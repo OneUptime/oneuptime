@@ -1365,3 +1365,216 @@ describe("VMRunner sandbox axios bridge — URL absolutization", () => {
     },
   );
 });
+
+/*
+ * The SSRF guard parses the target with OneUptime's URL type as well as
+ * WHATWG. That parser refused any URL whose first path segment contained a
+ * ":" - which every Telegram Bot API URL has, because the token
+ * ("<id>:<secret>") is that segment - and any path containing "~". The guard
+ * turned the parse failure into "Request URL is not a valid URL", so sandboxed
+ * code could not call Telegram at all. These drive the real isolate against a
+ * loopback server to prove the request now reaches the wire unchanged.
+ */
+describe("VMRunner sandbox axios bridge — paths with ':' or '~'", () => {
+  const BOT_TOKEN: string = "8000000001:AAFakeFakeFakeFakeFakeFakeFake_-12345";
+  const TELEGRAM_PATH: string = `/bot${BOT_TOKEN}/sendMessage`;
+
+  interface EchoedRequest {
+    method: string;
+    url: string;
+    host: string;
+    body: string;
+  }
+
+  async function startEchoServer(): Promise<RunningLoopbackServer> {
+    return startLoopbackServer(
+      (request: http.IncomingMessage, response: http.ServerResponse): void => {
+        let body: string = "";
+        request.on("data", (chunk: Buffer): void => {
+          body += chunk.toString("utf8");
+        });
+        request.on("end", (): void => {
+          const echoed: EchoedRequest = {
+            method: request.method || "",
+            url: request.url || "",
+            host: request.headers.host || "",
+            body: body,
+          };
+          response.setHeader("Content-Type", "application/json");
+          response.end(JSON.stringify(echoed));
+        });
+      },
+    );
+  }
+
+  async function runAgainstLoopback(code: string): Promise<EchoedRequest> {
+    const result: ReturnResult = await runInSandbox(code, {
+      allowPrivateNetworkRequests: true,
+    });
+
+    expect(result.scriptError).toBeUndefined();
+
+    return result.returnValue as EchoedRequest;
+  }
+
+  beforeEach(() => {
+    process.env[PRIVATE_NETWORK_WEBHOOK_ALLOWLIST_ENV] = "127.0.0.1";
+  });
+
+  test("axios.post reaches a Telegram /bot<id>:<secret>/sendMessage path", async () => {
+    const echoServer: RunningLoopbackServer = await startEchoServer();
+
+    try {
+      const echoed: EchoedRequest = await runAgainstLoopback(`
+        const response = await axios.post(
+          'http://127.0.0.1:${echoServer.port}${TELEGRAM_PATH}',
+          { chat_id: '@mychannel', text: 'Deploy finished' }
+        );
+        return response.data;
+      `);
+
+      expect(echoed.method).toBe("POST");
+      expect(echoed.url).toBe(TELEGRAM_PATH);
+      expect(JSON.parse(echoed.body)).toEqual({
+        chat_id: "@mychannel",
+        text: "Deploy finished",
+      });
+      expect(echoServer.requestCount()).toBe(1);
+    } finally {
+      await echoServer.close();
+    }
+  });
+
+  test.each([
+    ["get", "axios.get(URL)"],
+    ["put", "axios.put(URL, { a: 1 })"],
+    ["patch", "axios.patch(URL, { a: 1 })"],
+    ["delete", "axios.delete(URL)"],
+    ["post", "axios.request({ method: 'post', url: URL, data: { a: 1 } })"],
+    ["get", "axios(URL)"],
+  ])(
+    "axios.%s via %s reaches the same path",
+    async (method: string, call: string) => {
+      const echoServer: RunningLoopbackServer = await startEchoServer();
+
+      try {
+        const echoed: EchoedRequest = await runAgainstLoopback(`
+          const URL = 'http://127.0.0.1:${echoServer.port}${TELEGRAM_PATH}';
+          const response = await ${call};
+          return response.data;
+        `);
+
+        expect(echoed.method).toBe(method.toUpperCase());
+        expect(echoed.url).toBe(TELEGRAM_PATH);
+      } finally {
+        await echoServer.close();
+      }
+    },
+  );
+
+  test("keeps the query string on a Telegram path", async () => {
+    const echoServer: RunningLoopbackServer = await startEchoServer();
+
+    try {
+      const echoed: EchoedRequest = await runAgainstLoopback(`
+        const response = await axios.get(
+          'http://127.0.0.1:${echoServer.port}${TELEGRAM_PATH}?chat_id=%40mychannel&text=hi'
+        );
+        return response.data;
+      `);
+
+      expect(echoed.url).toBe(`${TELEGRAM_PATH}?chat_id=%40mychannel&text=hi`);
+    } finally {
+      await echoServer.close();
+    }
+  });
+
+  test("joins a relative token path onto baseURL", async () => {
+    const echoServer: RunningLoopbackServer = await startEchoServer();
+
+    try {
+      const echoed: EchoedRequest = await runAgainstLoopback(`
+        const response = await axios.post(
+          'bot${BOT_TOKEN}/sendMessage',
+          { chat_id: 1, text: 'hi' },
+          { baseURL: 'http://127.0.0.1:${echoServer.port}' }
+        );
+        return response.data;
+      `);
+
+      expect(echoed.method).toBe("POST");
+      expect(echoed.url).toBe(TELEGRAM_PATH);
+    } finally {
+      await echoServer.close();
+    }
+  });
+
+  test("reaches api.telegram.org by name, dialling the address the guard approved", async () => {
+    const echoServer: RunningLoopbackServer = await startEchoServer();
+    const validationLookupSpy: ValidationLookupSpy = jest.spyOn(
+      dns.promises,
+      "lookup",
+    ) as unknown as ValidationLookupSpy;
+    validationLookupSpy.mockResolvedValue([
+      { address: "127.0.0.1", family: 4 },
+    ]);
+
+    try {
+      const echoed: EchoedRequest = await runAgainstLoopback(`
+        const response = await axios.post(
+          'http://api.telegram.org:${echoServer.port}${TELEGRAM_PATH}',
+          { chat_id: '@mychannel', text: 'hi' }
+        );
+        return response.data;
+      `);
+
+      expect(validationLookupSpy).toHaveBeenCalledWith("api.telegram.org", {
+        all: true,
+      });
+      expect(echoed.host).toBe(`api.telegram.org:${echoServer.port}`);
+      expect(echoed.url).toBe(TELEGRAM_PATH);
+    } finally {
+      await echoServer.close();
+    }
+  });
+
+  test.each(["/~user/hook", "/files/~backup/latest", "/urn:uuid:6e8bc430/x"])(
+    "reaches the path %s",
+    async (path: string) => {
+      const echoServer: RunningLoopbackServer = await startEchoServer();
+
+      try {
+        const echoed: EchoedRequest = await runAgainstLoopback(`
+          const response = await axios.get('http://127.0.0.1:${echoServer.port}${path}');
+          return response.data;
+        `);
+
+        expect(echoed.url).toBe(path);
+      } finally {
+        await echoServer.close();
+      }
+    },
+  );
+
+  test("a token path on an internal host is refused for its HOST, not as an invalid URL", async () => {
+    delete process.env[PRIVATE_NETWORK_WEBHOOK_ALLOWLIST_ENV];
+
+    const message: string = await errorFromSandbox(
+      `return await axios.post('http://169.254.169.254${TELEGRAM_PATH}', { a: 1 });`,
+    );
+
+    expect(message).toMatch(REFUSAL);
+    expect(message).not.toMatch(/not a valid URL/i);
+  });
+
+  test("a token path on a public host clears the guard and fails only at transport", async () => {
+    delete process.env[PRIVATE_NETWORK_WEBHOOK_ALLOWLIST_ENV];
+
+    const message: string = await errorFromSandbox(
+      `try { return await axios.post('http://8.8.8.8${TELEGRAM_PATH}', {}, { timeout: 1 }); } catch (e) { return 'threw: ' + e.message; }`,
+    );
+
+    expect(message).not.toMatch(REFUSAL);
+    expect(message).not.toMatch(/not a valid URL/i);
+  });
+});

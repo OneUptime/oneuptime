@@ -7,7 +7,14 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 
 /*
@@ -49,8 +56,16 @@ import ServiceLevelObjectiveFeed, {
   ServiceLevelObjectiveFeedEventType,
 } from "../../../Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import { Yellow } from "../../../Types/BrandColors";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  DEFAULT_FEED_OPTIONS,
+  FEED_OPTIONS_TEXT,
+  FeedOptions,
+  getFeedOptionsSummary,
+} from "../../../UI/Components/Feed/FeedOptions";
 
 /*
  * The SLO feed is the generic ResourceFeed, wired once in
@@ -72,6 +87,8 @@ beforeEach(() => {
   mockGetListResponse = (): Promise<unknown> => {
     return Promise.resolve({ data: [], count: 0 });
   };
+  // A remembered sort order would change what the first request asks for.
+  window.localStorage.clear();
 });
 
 afterEach(() => {
@@ -94,6 +111,8 @@ describe("getSloResourceFeedProps", () => {
     );
     // Both the page and any embedded feed get the SLO icons from here.
     expect(props.getIcon).toBe(getSloFeedEventIcon);
+    // ...and the event types the Filter & Sort checklist offers.
+    expect(props.eventTypes).toEqual(ALL_EVENT_TYPES);
   });
 
   test("lets an embedded feed use its own title and description", () => {
@@ -254,6 +273,9 @@ describe("SloFeed", () => {
     expect(request.query.serviceLevelObjectiveId).toBe(SLO_ID);
     expect(request.select.serviceLevelObjectiveFeedEventType).toBe(true);
     expect(request.select.postedAt).toBe(true);
+    // Untouched, Filter & Sort adds nothing to the query and keeps the order.
+    expect(Object.keys(request.query)).toEqual(["serviceLevelObjectiveId"]);
+    expect(request.sort).toEqual({ postedAt: SortOrder.Descending });
   });
 
   test("renders what the SLO's history says, under the default title", async () => {
@@ -285,5 +307,88 @@ describe("SloFeed", () => {
     });
 
     expect(screen.getByText("Recent activity")).toBeInTheDocument();
+  });
+
+  test("offers Filter & Sort by its label, described by what the feed shows, and filters on the SLO's own event type column", async () => {
+    type GetExpectedSummary = (options: FeedOptions) => string;
+
+    /*
+     * Built by the same function the button uses, so the wording can change
+     * freely - what is pinned is that the description follows the feed's
+     * live order and filter, counted over the SLO's own event types.
+     */
+    const getExpectedSummary: GetExpectedSummary = (
+      options: FeedOptions,
+    ): string => {
+      return getFeedOptionsSummary({
+        options: options,
+        eventTypeCount: ALL_EVENT_TYPES.length,
+      });
+    };
+
+    const statusChanged: string =
+      ServiceLevelObjectiveFeedEventType.StatusChanged;
+
+    render(<SloFeed sloId={SLO_ID} />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("No activity has been recorded for this SLO yet."),
+      ).toBeInTheDocument();
+    });
+
+    /*
+     * The button is named by its visible label alone; what the feed is
+     * showing is read out as its description, so a screen reader says each
+     * once.
+     */
+    const optionsButton: HTMLElement = screen.getByRole("button", {
+      name: "Filter & Sort",
+    });
+
+    expect(optionsButton).toHaveAccessibleDescription(
+      getExpectedSummary(DEFAULT_FEED_OPTIONS),
+    );
+
+    fireEvent.click(optionsButton);
+
+    const panel: HTMLElement = screen.getByRole("dialog", {
+      name: FEED_OPTIONS_TEXT.panelLabel,
+    });
+
+    // StatusChanged is one of the SLO's own events, not a shared one.
+    fireEvent.click(
+      within(panel).getByTestId(`feed-options-event-type-${statusChanged}`),
+    );
+
+    await waitFor(() => {
+      expect(mockGetListCalls).toHaveLength(2);
+    });
+
+    const request: GetListRequest = mockGetListCalls[1]!;
+    const query: Record<string, unknown> = request["query"] as Record<
+      string,
+      unknown
+    >;
+    const eventTypeFilter: unknown =
+      query["serviceLevelObjectiveFeedEventType"];
+
+    expect(Object.keys(query).sort()).toEqual(
+      ["serviceLevelObjectiveId", "serviceLevelObjectiveFeedEventType"].sort(),
+    );
+    expect(query["serviceLevelObjectiveId"]).toBe(SLO_ID);
+    expect(eventTypeFilter).toBeInstanceOf(Includes);
+    expect((eventTypeFilter as Includes).values).toEqual([statusChanged]);
+    expect(request["sort"]).toEqual({ postedAt: SortOrder.Descending });
+
+    // The name stays put with a count on the button; the description moves.
+    expect(
+      screen.getByRole("button", { name: "Filter & Sort" }),
+    ).toHaveAccessibleDescription(
+      getExpectedSummary({
+        sortOrder: SortOrder.Descending,
+        eventTypes: [statusChanged],
+      }),
+    );
   });
 });

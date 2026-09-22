@@ -4,7 +4,7 @@ Label rules, owner rules and privacy rules run automatically when a resource is 
 
 ## Which rules can be run
 
-- **Label Rules** and **Owner Rules**, for every resource that has them: monitors, incidents, incident episodes, alerts, alert episodes, scheduled maintenance events, status pages, services, hosts, Kubernetes clusters, Docker hosts, Docker Swarm clusters, Podman hosts, Proxmox clusters, VMware vCenters, Ceph clusters, IoT fleets, serverless functions, cloud resources, RUM applications, dashboards, on-call policies, on-call schedules, incoming call policies, workflows, runbooks and network devices.
+- **Label Rules** and **Owner Rules**, for every resource that has them: monitors, incidents, incident episodes, alerts, alert episodes, scheduled maintenance events, status pages, services, hosts, Kubernetes clusters, Docker hosts, Docker Swarm clusters, Podman hosts, Proxmox clusters, VMware vCenters, Ceph clusters, IoT fleets, serverless functions, cloud resources, RUM applications, dashboards, on-call policies, on-call schedules, incoming call policies, workflows, runbooks, network devices and SLOs.
 - **Privacy Rules**, for incidents, alerts, incident episodes and alert episodes.
 - **Monitor Rules** on a status page. These already re-sync the page whenever a rule is saved; running one re-syncs it on demand.
 - **Monitor Rules** on an SLO. These already re-sync the SLO whenever a rule is saved; running one re-syncs the SLO's monitors on demand. See [Monitors and Monitor Rules](/docs/slo/monitor-rules).

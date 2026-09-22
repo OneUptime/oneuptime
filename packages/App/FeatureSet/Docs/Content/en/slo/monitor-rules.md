@@ -64,13 +64,14 @@ Add one or more conditions, then choose how they combine:
 
 Each condition compares one field of the monitor:
 
-| Field                           | Compared with              |
-| ------------------------------- | -------------------------- |
-| **Monitor Labels**              | The monitor's labels.      |
-| **Monitor Name Pattern**        | The monitor's name.        |
-| **Monitor Description Pattern** | The monitor's description. |
+| Field                   | Compared with                                           |
+| ----------------------- | ------------------------------------------------------- |
+| **Monitor Labels**      | The monitor's labels.                                   |
+| **Monitor Type**        | The monitor's type, such as _Website_, _API_ or _Ping_. |
+| **Monitor Name**        | The monitor's name.                                     |
+| **Monitor Description** | The monitor's description.                              |
 
-The operators on offer depend on the field. They can include equality (**Equals**, **Does not equal**), text matching (**Contains**, **Does not contain**, **Starts with**, **Ends with**), pattern matching (**Matches pattern**, **Does not match pattern**) and, for labels, **Has any of**, **Has all of** and **Has none of**.
+The operators on offer depend on the field. They can include equality (**Equals**, **Does not equal**), text matching (**Contains**, **Does not contain**, **Starts with**, **Ends with**), pattern matching (**Matches pattern**, **Does not match pattern**) and, for labels, **Has any of**, **Has all of** and **Has none of**. **Monitor Type** offers only **Equals** and **Does not equal**, and you pick its value from the list of monitor types.
 
 Patterns accept a regular expression (`^api-.*`) or a `*` wildcard (`*checkout*`). A pattern that is neither — `api-(01` — is rejected when you save, rather than silently matching nothing.
 
@@ -78,16 +79,18 @@ A rule needs at least one condition. To attach every monitor in the project, add
 
 Some examples:
 
-| You want                                | Conditions                                                                                                               |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Every production monitor                | **Monitor Labels** has any of _Production_                                                                               |
-| Every API monitor                       | **Monitor Name Pattern** matches pattern `^api-`                                                                         |
-| Checkout monitors, but not staging ones | **Match all (AND)**: **Monitor Name Pattern** matches pattern `*checkout*`, and **Monitor Labels** has none of _Staging_ |
+| You want                                  | Conditions                                                                                                       |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Every production monitor                  | **Monitor Labels** has any of _Production_                                                                       |
+| Every API monitor                         | **Monitor Type** equals _API_                                                                                    |
+| Every monitor except Manual ones          | **Monitor Type** does not equal _Manual_                                                                         |
+| Every monitor whose name starts with api- | **Monitor Name** matches pattern `^api-`                                                                         |
+| Checkout monitors, but not staging ones   | **Match all (AND)**: **Monitor Name** matches pattern `*checkout*`, and **Monitor Labels** has none of _Staging_ |
 
 ### When rules run
 
 - When you create, edit, enable, disable or delete a rule, the SLO's monitors are re-evaluated straight away.
-- When a monitor is created, or its labels, name or description change, every monitor rule in the project is checked against it — including labels your monitor label rules give it.
+- When a monitor is created, or its labels, name or description change, every monitor rule in the project is checked against it — including labels your monitor label rules give it. A monitor's type is set when the monitor is created, so **Monitor Type** conditions are checked then.
 - When a label is deleted, the SLOs whose rules used it are re-evaluated.
 - Rules keep an SLO's monitor list current even while the SLO is disabled or archived, so it resumes with the right monitors.
 

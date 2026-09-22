@@ -8,6 +8,7 @@ import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorLabelRule from "../../Models/DatabaseModels/MonitorLabelRule";
 import NetworkDeviceLabelRule from "../../Models/DatabaseModels/NetworkDeviceLabelRule";
+import ServiceLevelObjectiveLabelRule from "../../Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import TableColumnType from "../../Types/Database/TableColumnType";
 import FilterCondition from "../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../Types/JSON";
@@ -174,6 +175,11 @@ const criteriaByType: Record<string, [string, string, string]> = {
     "serviceNamePattern",
     "serviceDescriptionPattern",
     "serviceLabels",
+  ],
+  ServiceLevelObjectiveLabelRule: [
+    "serviceLevelObjectiveNamePattern",
+    "serviceLevelObjectiveDescriptionPattern",
+    "serviceLevelObjectiveLabels",
   ],
   StatusPageLabelRule: [
     "statusPageNamePattern",
@@ -589,6 +595,102 @@ describe("portable label rule files", () => {
       }).toThrow("without changing its meaning");
     },
   );
+
+  /*
+   * SLO label rules match patterns the way network device rules do - a regex,
+   * with a '*' wildcard fallback, on the trimmed pattern - so the two trade
+   * any pattern, and both refuse one whose meaning a regex-only rule type
+   * would change.
+   */
+  test("preserves wildcard SLO patterns when importing SLO rules", () => {
+    expect(
+      parse(
+        [{ ...base, serviceLevelObjectiveNamePattern: "*checkout*" }],
+        ServiceLevelObjectiveLabelRule,
+      ).items[0]!.json["serviceLevelObjectiveNamePattern"],
+    ).toBe("*checkout*");
+  });
+
+  test.each([
+    [NetworkDeviceLabelRule, ServiceLevelObjectiveLabelRule],
+    [ServiceLevelObjectiveLabelRule, NetworkDeviceLabelRule],
+  ])(
+    "moves a wildcard between %p and %p without changing its meaning",
+    (source: DatabaseBaseModelType, destination: DatabaseBaseModelType) => {
+      const sourceField: string =
+        source === NetworkDeviceLabelRule
+          ? "networkDeviceNamePattern"
+          : "serviceLevelObjectiveNamePattern";
+      const destinationField: string =
+        destination === NetworkDeviceLabelRule
+          ? "networkDeviceNamePattern"
+          : "serviceLevelObjectiveNamePattern";
+
+      expect(
+        parse([{ ...base, [sourceField]: "*edge*" }], source, destination)
+          .items[0]!.json[destinationField],
+      ).toBe("*edge*");
+    },
+  );
+
+  test.each(["*checkout*", "checkout.*", " checkout ", "   "])(
+    "rejects moving the SLO pattern %p to a regex-only rule type",
+    (pattern: string) => {
+      expect(() => {
+        parse(
+          [{ ...base, serviceLevelObjectiveNamePattern: pattern }],
+          ServiceLevelObjectiveLabelRule,
+          MonitorLabelRule,
+        );
+      }).toThrow("without changing its meaning");
+    },
+  );
+
+  test.each(["checkout.*", " checkout "])(
+    "rejects importing the regex %p into the broader SLO matcher",
+    (pattern: string) => {
+      expect(() => {
+        parse(
+          [{ ...base, monitorNamePattern: pattern }],
+          MonitorLabelRule,
+          ServiceLevelObjectiveLabelRule,
+        );
+      }).toThrow("without changing its meaning");
+    },
+  );
+
+  test("moves a plain SLO pattern to a regex-only rule type", () => {
+    expect(
+      parse(
+        [{ ...base, serviceLevelObjectiveNamePattern: "^checkout-" }],
+        ServiceLevelObjectiveLabelRule,
+        MonitorLabelRule,
+      ).items[0]!.json["monitorNamePattern"],
+    ).toBe("^checkout-");
+  });
+
+  test("accepts a wildcard, but not an invalid pattern, for SLO rules", () => {
+    expect(() => {
+      parse(
+        [{ ...base, serviceLevelObjectiveDescriptionPattern: "*tier 1*" }],
+        ServiceLevelObjectiveLabelRule,
+      );
+    }).not.toThrow();
+
+    expect(() => {
+      parse(
+        [{ ...base, serviceLevelObjectiveDescriptionPattern: "tier-(1" }],
+        ServiceLevelObjectiveLabelRule,
+      );
+    }).toThrow("is not a valid regular expression or wildcard pattern");
+  });
+
+  // A regex-only rule type still refuses the wildcard syntax outright.
+  test("still rejects a bare wildcard for a regex-only rule type", () => {
+    expect(() => {
+      parse([{ ...base, monitorNamePattern: "*checkout*" }], MonitorLabelRule);
+    }).toThrow("is not a valid regular expression.");
+  });
 
   test("preserves wildcard network patterns when importing network rules", () => {
     expect(

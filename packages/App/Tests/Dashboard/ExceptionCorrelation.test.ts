@@ -1,4 +1,4 @@
-import { describe, expect, test } from "@jest/globals";
+import { describe, expect, jest, test } from "@jest/globals";
 import Route from "Common/Types/API/Route";
 import TimeRange from "Common/Types/Time/TimeRange";
 import { JSONObject } from "Common/Types/JSON";
@@ -518,16 +518,54 @@ describe("buildOccurrenceLogsExplorerLink", () => {
     }
   });
 
-  test("returns null instead of throwing for ids Route cannot carry", () => {
-    // encodeURIComponent leaves "~" bare and Route's whitelist rejects it.
-    expect(
-      buildOccurrenceLogsExplorerLink({
-        logsRoute,
-        traceId: "~trace",
-        time: "2026-08-14T10:00:00.000Z",
-        now: NOW,
-      }),
-    ).toBeNull();
+  test("carries ids made of the characters encodeURIComponent leaves bare", () => {
+    /*
+     * encodeURIComponent leaves A-Z a-z 0-9 - _ . ! ~ * ' ( ) unescaped, so
+     * these reach Route verbatim. Route's whitelist accepts every one of them
+     * ("~" since the RFC 3986 unreserved-character fix), so the link is built.
+     */
+    const traceId: string = "a-b_c.d!e~f*g'h(i)j";
+    const link: OccurrenceLogsLink | null = buildOccurrenceLogsExplorerLink({
+      logsRoute,
+      traceId,
+      time: "2026-08-14T10:00:00.000Z",
+      now: NOW,
+    });
+
+    expect(link).not.toBeNull();
+
+    const params: URLSearchParams = new URLSearchParams(
+      link!.route.toString().split("?")[1] as string,
+    );
+
+    expect(JSON.parse(params.get("filters") as string)).toEqual([
+      ["traceId", [traceId]],
+    ]);
+  });
+
+  test("returns null instead of throwing when Route rejects the link", () => {
+    /*
+     * The builder runs per table row; a Route rejection must not escape a
+     * cell renderer. "trace-1" links normally, so null proves the catch ran.
+     */
+    jest
+      .spyOn(Route.prototype, "addQueryParams")
+      .mockImplementation((): Route => {
+        throw new Error("Invalid route");
+      });
+
+    try {
+      expect(
+        buildOccurrenceLogsExplorerLink({
+          logsRoute,
+          traceId: "trace-1",
+          time: "2026-08-14T10:00:00.000Z",
+          now: NOW,
+        }),
+      ).toBeNull();
+    } finally {
+      jest.restoreAllMocks();
+    }
   });
 });
 

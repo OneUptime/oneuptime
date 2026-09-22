@@ -14,6 +14,7 @@ import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
 import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
 
 /*
@@ -21,8 +22,8 @@ import { describe, expect, it, beforeEach, afterEach } from "@jest/globals";
  * to notice an SLO's monitor rules went stale. The engine is covered
  * separately; what matters here is that something actually calls it.
  *
- *   - MonitorService, when a monitor's labels, name or description change.
- *     SLO monitor rules match on all three, so a rename can pull a monitor
+ *   - MonitorService, when a monitor's labels, type, name or description change.
+ *     SLO monitor rules match on all four, so a rename can pull a monitor
  *     into an SLO or push it out. Keyed on the field being present rather
  *     than non-empty, because clearing every label arrives as `[]` and is
  *     exactly the edit that should detach the monitor.
@@ -127,6 +128,24 @@ describe("MonitorService.onUpdateSuccess - keeping SLO monitor rules honest", ()
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("re-runs SLO rules for every affected monitor when its type changes", async () => {
+    await callHook(
+      MonitorService,
+      "onUpdateSuccess",
+      monitorUpdate({ monitorType: MonitorType.API }),
+      [MONITOR_ID, OTHER_MONITOR_ID],
+    );
+    expect(syncSlosForMonitorSpy).toHaveBeenCalledTimes(2);
+    expect(syncSlosForMonitorSpy).toHaveBeenCalledWith({
+      monitorId: MONITOR_ID,
+      projectId: PROJECT_ID,
+    });
+    expect(syncSlosForMonitorSpy).toHaveBeenCalledWith({
+      monitorId: OTHER_MONITOR_ID,
+      projectId: PROJECT_ID,
+    });
   });
 
   it("re-runs the SLO monitor rules when a monitor gains a label", async () => {

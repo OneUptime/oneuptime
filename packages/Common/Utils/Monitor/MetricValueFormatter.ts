@@ -14,9 +14,9 @@ import ValueFormatter from "../ValueFormatter";
  * head at 3am to find out whether the pod is anywhere near its limit.
  *
  * This module is the single place that decides how a (value, unit) pair
- * is rendered for a notification, so the breaching-samples table, the
+ * is rendered for a notification, so the breaching-samples list, the
  * "Filter Conditions Met" sentence, the observation summary and the
- * per-platform resource tables cannot drift apart inside one email.
+ * per-platform resource lists cannot drift apart inside one email.
  *
  * WHY IT WRAPS ValueFormatter RATHER THAN BEING A CALL TO IT.
  *

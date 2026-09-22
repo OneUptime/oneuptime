@@ -1318,14 +1318,15 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
-     * SLO monitor rules match on labels, name and description, so an edit to
-     * any of the three can pull this monitor into an SLO's error budget or
+     * SLO monitor rules match on labels, type, name and description, so an edit to
+     * any of those fields can pull this monitor into an SLO's error budget or
      * push it out of one. Keyed on `!== undefined` rather than on a non-empty
      * value: clearing every label arrives as `[]`, and that is precisely the
      * edit that should detach the monitor from every rule-driven SLO.
      */
     if (
       (onUpdate.updateBy.data.labels !== undefined ||
+        onUpdate.updateBy.data.monitorType !== undefined ||
         onUpdate.updateBy.data.name !== undefined ||
         onUpdate.updateBy.data.description !== undefined) &&
       updatedItemIds.length > 0

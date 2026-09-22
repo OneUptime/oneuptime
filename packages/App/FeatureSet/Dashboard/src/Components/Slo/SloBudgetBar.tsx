@@ -1,4 +1,5 @@
 import { SloBudgetTier } from "Common/Utils/Slo/SloHealth";
+import { getSloBudgetRemainingText } from "Common/Utils/Slo/SloOverviewText";
 import {
   getSloBudgetBarGeometry,
   SloBudgetBarGeometry,
@@ -27,7 +28,7 @@ export const SLO_BUDGET_TIER_TEXT_CLASS: Record<SloBudgetTier, string> = {
 };
 
 export interface ComponentProps {
-  // SIGNED: below zero means overspent. The bar clamps; the number it describes does not.
+  // SIGNED: below zero means overspent. Only the display clamps to the track.
   errorBudgetRemainingPercentage: number | undefined | null;
   atRiskThresholdPercentage?: number | undefined | null;
   className?: string | undefined;
@@ -59,12 +60,14 @@ const SloBudgetBar: FunctionComponent<ComponentProps> = (
     `${geometry.atRiskThresholdPercentage}%`;
 
   const remainingText: string =
-    formatSloPercent(props.errorBudgetRemainingPercentage, 1) || "";
+    getSloBudgetRemainingText(props.errorBudgetRemainingPercentage) || "";
 
   let valueText: string = "Error budget not evaluated yet";
 
   if (geometry.isOverspent) {
-    valueText = `Error budget overspent (${remainingText}); at risk at ${thresholdText} or less`;
+    valueText = `Error budget exceeded; no budget remaining; at risk at ${thresholdText} or less`;
+  } else if (geometry.tier === SloBudgetTier.Exhausted) {
+    valueText = `No error budget remaining; at risk at ${thresholdText} or less`;
   } else if (geometry.isEvaluated) {
     valueText = `${remainingText} of the error budget remaining; at risk at ${thresholdText} or less`;
   }

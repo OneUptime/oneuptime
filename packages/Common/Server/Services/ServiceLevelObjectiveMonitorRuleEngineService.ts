@@ -7,8 +7,19 @@ import { Gray500, Green500 } from "../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import ObjectID from "../../Types/ObjectID";
+import FilterCondition from "../../Types/Filter/FilterCondition";
+import RuleCriteria, {
+  RuleCriteriaFilter,
+  RuleCriteriaOperator,
+} from "../../Types/Rules/RuleCriteria";
+import {
+  getMonitorTypeCriteriaValidationError,
+  isMonitorTypeCriteriaValue,
+} from "../../Utils/Rules/MonitorTypeRuleCriteria";
 import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
-import RuleCriteriaMatcher from "../../Utils/Rules/RuleCriteriaMatcher";
+import RuleCriteriaMatcher, {
+  isValidRuleCriteria,
+} from "../../Utils/Rules/RuleCriteriaMatcher";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../Utils/Rules/RuleEngineLimits";
 import RulePatternMatchUtil from "../../Utils/Rules/RulePatternMatchUtil";
 import QueryHelper from "../Types/Database/QueryHelper";
@@ -96,6 +107,7 @@ const RULE_SELECT: Select<ServiceLevelObjectiveMonitorRule> = {
   serviceLevelObjectiveId: true,
   isEnabled: true,
   monitorLabels: { _id: true },
+  monitorType: true,
   monitorNamePattern: true,
   monitorDescriptionPattern: true,
   criteria: true,
@@ -122,7 +134,7 @@ const MAX_MONITORS_LISTED_IN_FEED_DETAILS: number = 50;
  *
  *   - the SLO side (one of its rules was created, edited, disabled or
  *     deleted) -> syncMonitorsForSlo
- *   - the monitor side (its labels, name or description changed, or it was
+ *   - the monitor side (its labels, type, name or description changed, or it was
  *     just created) -> syncSlosForMonitor
  *
  * Both write through ServiceLevelObjective.autoAddedMonitors, which records
@@ -215,6 +227,7 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
         projectId: true,
         name: true,
         description: true,
+        monitorType: true,
         labels: {
           _id: true,
         },
@@ -479,20 +492,64 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
     monitor: Monitor;
     rule: ServiceLevelObjectiveMonitorRule;
   }): boolean {
-    return RuleCriteriaMatcher.matchesWithLegacySync({
-      rule: data.rule,
-      legacyFields: [
-        "monitorLabels",
-        "monitorNamePattern",
-        "monitorDescriptionPattern",
-      ],
+    const criteria: RuleCriteria | null | undefined = data.rule.criteria;
+
+    if (criteria === undefined || criteria === null) {
+      return this.doesMonitorMatchLegacyRule(data);
+    }
+
+    // A malformed type condition must fail the whole rule, even under Match any.
+    if (
+      !isValidRuleCriteria(criteria) ||
+      criteria.filters.some((filter: RuleCriteriaFilter): boolean => {
+        return (
+          filter.field === "monitorType" &&
+          getMonitorTypeCriteriaValidationError(filter) !== null
+        );
+      })
+    ) {
+      return false;
+    }
+
+    return RuleCriteriaMatcher.matchesSync({
+      criteria: criteria,
       emptyResult: false,
-      matchesLegacyRule: (
-        legacyRule: ServiceLevelObjectiveMonitorRule,
-      ): boolean => {
-        return this.doesMonitorMatchLegacyRule({
-          monitor: data.monitor,
-          rule: legacyRule,
+      matchesFilter: (filter: RuleCriteriaFilter): boolean => {
+        if (filter.field === "monitorType") {
+          if (!isMonitorTypeCriteriaValue(data.monitor.monitorType)) {
+            return false;
+          }
+
+          return filter.operator === RuleCriteriaOperator.Equals
+            ? data.monitor.monitorType === filter.value
+            : data.monitor.monitorType !== filter.value;
+        }
+
+        // Existing text and label conditions retain their legacy-compatible semantics.
+        return RuleCriteriaMatcher.matchesWithLegacySync({
+          rule: {
+            ...data.rule,
+            criteria: {
+              ...criteria,
+              filterCondition: FilterCondition.All,
+              filters: [filter],
+            },
+          } as ServiceLevelObjectiveMonitorRule,
+          legacyFields: [
+            "monitorLabels",
+            "monitorType",
+            "monitorNamePattern",
+            "monitorDescriptionPattern",
+          ],
+          emptyResult: false,
+          matchesLegacyRule: (
+            legacyRule: ServiceLevelObjectiveMonitorRule,
+          ): boolean => {
+            return this.doesMonitorMatchLegacyRule({
+              monitor: data.monitor,
+              rule: legacyRule,
+            });
+          },
         });
       },
     });
@@ -512,7 +569,24 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
       rule.monitorDescriptionPattern,
     );
 
-    if (!hasLabelCriteria && !hasNameCriteria && !hasDescriptionCriteria) {
+    const hasTypeCriteria: boolean =
+      rule.monitorType !== undefined && rule.monitorType !== null;
+
+    if (
+      !hasLabelCriteria &&
+      !hasNameCriteria &&
+      !hasDescriptionCriteria &&
+      !hasTypeCriteria
+    ) {
+      return false;
+    }
+
+    if (
+      hasTypeCriteria &&
+      (!isMonitorTypeCriteriaValue(rule.monitorType) ||
+        !isMonitorTypeCriteriaValue(monitor.monitorType) ||
+        monitor.monitorType !== rule.monitorType)
+    ) {
       return false;
     }
 
@@ -638,6 +712,7 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
         _id: true,
         name: true,
         description: true,
+        monitorType: true,
         labels: {
           _id: true,
         },
@@ -663,6 +738,7 @@ export class ServiceLevelObjectiveMonitorRuleEngineServiceClass {
 
     return Boolean(
       (rule.monitorLabels && rule.monitorLabels.length > 0) ||
+        rule.monitorType ||
         rule.monitorNamePattern ||
         rule.monitorDescriptionPattern,
     );

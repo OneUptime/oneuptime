@@ -1,4 +1,11 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
@@ -59,6 +66,7 @@ import IconProp from "../../../Types/Icon/IconProp";
 import ObjectID from "../../../Types/ObjectID";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { DEFAULT_LIMIT } from "../../../Types/Database/LimitMax";
+import { getSortOrderStorageKey } from "../../../UI/Components/Feed/useFeedOptions";
 
 interface RenderedFeedItem {
   key: string;
@@ -322,6 +330,15 @@ function lastRenderedFeedProps(): RenderedFeedProps {
   return calls[calls.length - 1]![0]!;
 }
 
+/*
+ * Both feeds open in the sort order the reader last chose, read from
+ * localStorage on mount, so one test's choice must not reorder the next
+ * test's requests.
+ */
+beforeEach(() => {
+  window.localStorage.clear();
+});
+
 afterEach(() => {
   cleanup();
   getListMock.mockReset();
@@ -437,6 +454,48 @@ describe("investigation reports in incident and alert feeds", () => {
     view.rerender(alertElement(11));
     await flush();
     expect(getListMock).toHaveBeenCalledTimes(2);
+  });
+
+  /*
+   * The refresh after an investigation re-reads the same view the reader is
+   * looking at. A reader who keeps these feeds oldest first must get the new
+   * report at the end of that order, not a feed flipped back to newest first.
+   */
+  test("a refresh re-reads the incident and alert feeds in the reader's remembered order", async () => {
+    window.localStorage.setItem(
+      getSortOrderStorageKey("incident"),
+      SortOrder.Ascending,
+    );
+    window.localStorage.setItem(
+      getSortOrderStorageKey("alert"),
+      SortOrder.Ascending,
+    );
+    getListMock.mockResolvedValue(listResult<IncidentFeed>([]) as never);
+
+    const incidentView: ReturnType<typeof render> = render(incidentElement(0));
+    await flush();
+    incidentView.rerender(incidentElement(1));
+    await flush();
+
+    const alertView: ReturnType<typeof render> = render(alertElement(0));
+    await flush();
+    alertView.rerender(alertElement(1));
+    await flush();
+
+    const requests: Array<FeedListRequest> = getListMock.mock.calls.map(
+      (call: Array<unknown>): FeedListRequest => {
+        return call[0] as FeedListRequest;
+      },
+    );
+
+    expect(
+      requests.map((request: FeedListRequest): unknown => {
+        return request.modelType;
+      }),
+    ).toEqual([IncidentFeed, IncidentFeed, AlertFeed, AlertFeed]);
+    for (const request of requests) {
+      expect(request.sort).toEqual({ postedAt: SortOrder.Ascending });
+    }
   });
 
   test("a late mount-time incident response cannot erase the refreshed report", async () => {

@@ -1,4 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
+import DOMPurify from "dompurify";
+import { marked, Token, Tokens } from "marked";
+import AffectedResourceList, {
+  AffectedResourceListEntry,
+} from "../../../Server/Utils/Monitor/AffectedResourceList";
 import {
   htmlToMarkdown,
   markdownToHtml,
@@ -273,6 +278,167 @@ describe("markdownToHtml", () => {
         "<ul><li>a <strong>b</strong></li></ul>",
       );
     });
+
+    /*
+     * An ordered list that does not start at one keeps its first number, so
+     * the serializer can write the same numbers back.
+     */
+    it("records a first marker other than one as the list's start", () => {
+      expect(markdownToHtml("3. a\n4. b")).toBe(
+        '<ol start="3"><li>a</li><li>b</li></ol>',
+      );
+    });
+
+    it("does not add a start attribute to a list that starts at one", () => {
+      expect(markdownToHtml("1. a")).not.toContain("start=");
+    });
+
+    it("keeps an indented continuation line inside its item", () => {
+      expect(markdownToHtml("- a\n  b")).toBe("<ul><li>a<br>b</li></ul>");
+    });
+
+    /*
+     * The fixed two-space indent this converter used to write under every
+     * marker. Two spaces is short of the content column of "1.", but a plain
+     * line indented past the marker still continues the item (CommonMark's
+     * lazy continuation), so documents saved that way read back whole.
+     */
+    it("keeps a continuation line indented short of the content column", () => {
+      expect(markdownToHtml("1. a\n  b")).toBe("<ol><li>a<br>b</li></ol>");
+    });
+
+    it("ends the list at a blank line followed by unindented text", () => {
+      expect(markdownToHtml("- a\n\nb")).toBe("<ul><li>a</li></ul><p>b</p>");
+    });
+  });
+
+  /*
+   * Nesting follows CommonMark, as marked (the email renderer) does: a line
+   * belongs to an item when it is indented to the item's content column --
+   * the marker's indent, plus the marker, plus one space.
+   */
+  describe("nested lists", () => {
+    it("nests a bullet list indented to an ordered item's content column", () => {
+      expect(markdownToHtml("1. a\n   - b\n   - c\n2. d")).toBe(
+        "<ol><li>a<ul><li>b</li><li>c</li></ul></li><li>d</li></ol>",
+      );
+    });
+
+    it("nests a bullet list in a bullet list", () => {
+      expect(markdownToHtml("- a\n  - b\n- c")).toBe(
+        "<ul><li>a<ul><li>b</li></ul></li><li>c</li></ul>",
+      );
+    });
+
+    it("nests an ordered list in a bullet list", () => {
+      expect(markdownToHtml("- a\n  1. b\n  2. c")).toBe(
+        "<ul><li>a<ol><li>b</li><li>c</li></ol></li></ul>",
+      );
+    });
+
+    it("nests three levels deep", () => {
+      expect(markdownToHtml("- a\n  - b\n    - c\n- d")).toBe(
+        "<ul><li>a<ul><li>b<ul><li>c</li></ul></li></ul></li><li>d</li></ul>",
+      );
+    });
+
+    /* Four columns under "10.", not three. */
+    it("uses the wider content column of a two-digit marker", () => {
+      expect(markdownToHtml("10. a\n    - b")).toBe(
+        '<ol start="10"><li>a<ul><li>b</li></ul></li></ol>',
+      );
+    });
+
+    /*
+     * Three spaces is short of the content column of "10.", so the bullet is
+     * a sibling of the item, of the other kind, and starts a new list. That
+     * is how marked reads it too, and why AffectedResourceList indents item
+     * 10's details by four.
+     */
+    it("does not nest a list indented short of the content column", () => {
+      expect(markdownToHtml("10. a\n   - b")).toBe(
+        '<ol start="10"><li>a</li></ol><ul><li>b</li></ul>',
+      );
+    });
+
+    /*
+     * The regression. Changing marker kind used to end the list at any
+     * depth, so each item of a ranked list with bullet details became a
+     * one-item <ol> with its details stranded in a <ul> after it.
+     */
+    it("keeps one ordered list when its items carry bullet lists", () => {
+      const html: string = markdownToHtml(
+        "1. a\n   - x\n2. b\n   - y\n3. c\n   - z",
+      );
+
+      expect(html).toBe(
+        "<ol>" +
+          "<li>a<ul><li>x</li></ul></li>" +
+          "<li>b<ul><li>y</li></ul></li>" +
+          "<li>c<ul><li>z</li></ul></li>" +
+          "</ol>",
+      );
+    });
+
+    it("still ends a nested list on a marker change at its own indentation", () => {
+      expect(markdownToHtml("- a\n  - b\n  1. c")).toBe(
+        "<ul><li>a<ul><li>b</li></ul><ol><li>c</li></ol></li></ul>",
+      );
+    });
+
+    it("nests a tab-indented list", () => {
+      expect(markdownToHtml("1. a\n\t- b")).toBe(
+        "<ol><li>a<ul><li>b</li></ul></li></ol>",
+      );
+    });
+
+    it("keeps an indented list after a blank line inside the item", () => {
+      expect(markdownToHtml("- a\n\n  - b")).toBe(
+        "<ul><li>a<ul><li>b</li></ul></li></ul>",
+      );
+    });
+
+    it("keeps text after a nested list inside the item", () => {
+      expect(markdownToHtml("- a\n  - b\n\n  c")).toBe(
+        "<ul><li>a<ul><li>b</li></ul><p>c</p></li></ul>",
+      );
+    });
+
+    /*
+     * What the serializer writes for an item whose own text was deleted and
+     * only its nested list is left.
+     */
+    it("reads an item that opens straight onto a marker as a nested list", () => {
+      expect(markdownToHtml("1. - a\n   - b")).toBe(
+        "<ol><li><ul><li>a</li><li>b</li></ul></li></ol>",
+      );
+    });
+
+    it("nests a list under a task item", () => {
+      const html: string = markdownToHtml("- [ ] a\n  - b");
+
+      expect(html).toContain('<ul class="task-list">');
+      expect(html).toContain("> a<ul><li>b</li></ul></li></ul>");
+    });
+
+    it("renders inline markup inside a nested item", () => {
+      expect(markdownToHtml("1. a\n   - Node: `n-1`")).toBe(
+        "<ol><li>a<ul><li>Node: <code>n-1</code></li></ul></li></ol>",
+      );
+    });
+
+    it("escapes HTML inside a nested item", () => {
+      const html: string = markdownToHtml("- a\n  - <script>alert(1)</script>");
+
+      expect(html).not.toContain("<script>");
+      expect(html).toContain("&lt;script&gt;");
+    });
+
+    it("renders a fenced block nested in an item", () => {
+      expect(markdownToHtml("- a\n  ```\n  x\n\n  y\n  ```")).toBe(
+        "<ul><li>a<pre><code>x\n\ny</code></pre></li></ul>",
+      );
+    });
   });
 
   describe("blockquotes", () => {
@@ -537,6 +703,78 @@ describe("htmlToMarkdown", () => {
     it("indents a continuation line so it stays inside its item", () => {
       expect(htmlToMarkdown("<ul><li>a<br>b</li></ul>")).toBe("- a\n  b");
     });
+
+    it("indents a continuation line by the width of an ordered marker", () => {
+      expect(htmlToMarkdown("<ol><li>a<br>b</li></ol>")).toBe("1. a\n   b");
+    });
+
+    it("starts numbering at the list's start attribute", () => {
+      expect(htmlToMarkdown('<ol start="3"><li>a</li><li>b</li></ol>')).toBe(
+        "3. a\n4. b",
+      );
+    });
+
+    it("keeps a start of zero", () => {
+      expect(htmlToMarkdown('<ol start="0"><li>a</li></ol>')).toBe("0. a");
+    });
+
+    it("numbers from one when the start attribute is not a number", () => {
+      expect(htmlToMarkdown('<ol start="x"><li>a</li></ol>')).toBe("1. a");
+      expect(htmlToMarkdown('<ol start="-2"><li>a</li></ol>')).toBe("1. a");
+    });
+
+    /*
+     * A nested list is indented to its item's content column -- three
+     * spaces under "1. ". The old fixed two spaces put it outside the item.
+     */
+    it("indents a nested list by the width of its item's marker", () => {
+      expect(htmlToMarkdown("<ol><li>a<ul><li>b</li></ul></li></ol>")).toBe(
+        "1. a\n   - b",
+      );
+    });
+
+    it("indents a nested list by four under a two-digit marker", () => {
+      expect(
+        htmlToMarkdown(
+          '<ol start="9"><li>a<ul><li>x</li></ul></li><li>b<ul><li>y</li></ul></li></ol>',
+        ),
+      ).toBe("9. a\n   - x\n10. b\n    - y");
+    });
+
+    /*
+     * No blank line either side of a nested list: that would make the list
+     * loose and, between items, read as the end of the outer list.
+     */
+    it("keeps a nested list tight inside its item", () => {
+      expect(
+        htmlToMarkdown("<ul><li>a<ul><li>b</li></ul></li><li>c</li></ul>"),
+      ).toBe("- a\n  - b\n- c");
+    });
+
+    it("indents every level of a deep nest", () => {
+      expect(
+        htmlToMarkdown(
+          "<ul><li>a<ol><li>b<ul><li>c</li></ul></li></ol></li></ul>",
+        ),
+      ).toBe("- a\n  1. b\n     - c");
+    });
+
+    it("indents a list nested under a task item by the bullet's width", () => {
+      expect(
+        htmlToMarkdown(
+          '<ul class="task-list"><li class="task-list-item">' +
+            '<input type="checkbox" disabled> a<ul><li>b</li></ul></li></ul>',
+        ),
+      ).toBe("- [ ] a\n  - b");
+    });
+
+    it("does not pad a blank line inside an item with spaces", () => {
+      const md: string = htmlToMarkdown(
+        "<ul><li>a<ul><li>b</li></ul><p>c</p></li></ul>",
+      );
+
+      expect(md).toBe("- a\n  - b\n\n  c");
+    });
   });
 
   describe("tables", () => {
@@ -682,5 +920,451 @@ describe("markdown round trip", () => {
     );
 
     expect(html).not.toContain("<script>");
+  });
+});
+
+/*
+ * The same property for nested lists, which the loop used to take apart:
+ * a change of marker kind ended the list at any depth, and the serializer
+ * numbered every <ol> from one and indented by a fixed two spaces.
+ */
+describe("nested list round trip", () => {
+  const cases: Array<{ name: string; markdown: string }> = [
+    { name: "a bullet list in a bullet list", markdown: "- a\n  - b\n- c" },
+    {
+      name: "an ordered list in a bullet list",
+      markdown: "- a\n  1. b\n  2. c\n- d",
+    },
+    {
+      name: "a bullet list in an ordered list",
+      markdown: "1. a\n   - b\n2. c\n   - d",
+    },
+    { name: "three levels", markdown: "- a\n  - b\n    - c\n- d" },
+    {
+      name: "three levels of mixed kinds",
+      markdown: "1. a\n   - b\n     1. c\n2. d",
+    },
+    { name: "a list that starts at three", markdown: "3. a\n4. b" },
+    { name: "an ordered list split by a blank line", markdown: "1. a\n\n2. b" },
+    {
+      name: "a nested list under a two-digit marker",
+      markdown: "9. a\n   - x\n10. b\n    - y",
+    },
+    { name: "a continuation line in an ordered item", markdown: "1. a\n   b" },
+    {
+      name: "a task list with a nested list",
+      markdown: "- [ ] a\n  - b\n- [x] c",
+    },
+    {
+      name: "a nested list after a paragraph",
+      markdown: "Intro\n\n1. a\n   - b",
+    },
+    {
+      name: "a paragraph after a nested list",
+      markdown: "1. a\n   - b\n\nOutro",
+    },
+    { name: "an item that is only a nested list", markdown: "1. - a\n   - b" },
+  ];
+
+  for (const testCase of cases) {
+    it(`preserves ${testCase.name}`, () => {
+      const once: string = htmlToMarkdown(markdownToHtml(testCase.markdown));
+
+      expect(once).toBe(testCase.markdown);
+    });
+  }
+
+  it("preserves an ol start attribute through markdown and back", () => {
+    const html: string = '<ol start="3"><li>a</li><li>b</li></ol>';
+    const markdown: string = htmlToMarkdown(html);
+
+    expect(markdown).toBe("3. a\n4. b");
+    expect(markdownToHtml(markdown)).toBe(html);
+
+    // And marked, which renders the same markdown into emails, agrees.
+    const list: Tokens.List = marked.lexer(markdown)[0] as Tokens.List;
+
+    expect(list.type).toBe("list");
+    expect(list.start).toBe(3);
+  });
+
+  /*
+   * Markdown the serializer would not have written itself -- a blank line
+   * inside the item, a deeper indent, another bullet character -- is
+   * normalised on the first pass and left alone after that.
+   */
+  it("reaches a fixed point for loosely written nested lists", () => {
+    for (const source of ["- a\n\n  - b", "* a\n    * b", "1. a\n    - b"]) {
+      const first: string = htmlToMarkdown(markdownToHtml(source));
+      const second: string = htmlToMarkdown(markdownToHtml(first));
+
+      expect(markdownToHtml(first)).toContain("<li>a<ul><li>b</li></ul></li>");
+      expect(second).toBe(first);
+    }
+  });
+});
+
+/*
+ * The document that exposed all of this. Platform monitors (Kubernetes,
+ * Proxmox, VMware, ...) write an "Affected Resources" block into the root
+ * cause of the incidents and alerts they open: a ranked ordered list whose
+ * items each own a bullet list of details. "Edit Root Cause" opens it in this
+ * editor, and before nested lists were supported the first keystroke saved
+ * it back with every resource numbered "1." and its details detached.
+ */
+describe("Affected Resources block in the editor", () => {
+  const code: (value: string) => string = (value: string): string => {
+    return AffectedResourceList.code(value);
+  };
+
+  const podEntries: (count: number) => Array<AffectedResourceListEntry> = (
+    count: number,
+  ): Array<AffectedResourceListEntry> => {
+    const result: Array<AffectedResourceListEntry> = [
+      {
+        kind: "Pod",
+        name: code("oneuptime-migrate-267-k64qm"),
+        value: "**3**",
+        details: [
+          { label: "Namespace", value: code("default") },
+          { label: "Job", value: code("oneuptime-migrate-267") },
+          {
+            label: "Node",
+            value: code("gke-gke-test-cluster-default-pool-662f6819-c6w3"),
+          },
+        ],
+      },
+    ];
+
+    for (let i: number = 2; i <= count; i++) {
+      result.push({
+        kind: "Pod",
+        name: code(`kube-dns-autoscaler-859854db85-gg5x${i}`),
+        value: `**${i % 3 === 0 ? 1 : 2}**`,
+        details: [
+          { label: "Namespace", value: code("kube-system") },
+          // An empty detail is dropped by the renderer.
+          { label: "Deployment", value: i % 2 === 0 ? code("kube-dns") : "" },
+          {
+            label: "Node",
+            value: code(`gke-gke-test-cluster-db-pool-3e2bfa3b-du6${i}`),
+          },
+        ],
+      });
+    }
+
+    return result;
+  };
+
+  const renderBlock: (count: number, totalCount: number) => string = (
+    count: number,
+    totalCount: number,
+  ): string => {
+    return AffectedResourceList.render({
+      heading: "Affected Resources",
+      overflowNoun: "affected resources",
+      totalCount,
+      entries: podEntries(count),
+    });
+  };
+
+  // A root cause as a monitor saves it: a sentence, then the block.
+  const rootCause: (count: number, totalCount: number) => string = (
+    count: number,
+    totalCount: number,
+  ): string => {
+    return `Pods are restarting in cluster \`gke-test\`.${renderBlock(count, totalCount)}`;
+  };
+
+  // The sanitizer config of MarkdownEditor.tsx; its URI rule is not relevant here.
+  const sanitize: (html: string) => string = (html: string): string => {
+    return DOMPurify.sanitize(html, { ADD_ATTR: ["target"] });
+  };
+
+  // Top-level block tokens as marked (the email renderer) sees them.
+  const blockTokens: (markdown: string) => Array<Token> = (
+    markdown: string,
+  ): Array<Token> => {
+    return marked.lexer(markdown).filter((token: Token): boolean => {
+      return token.type !== "space";
+    });
+  };
+
+  /*
+   * marked must read the re-serialized markdown as ONE ordered list, with
+   * every item owning a nested bullet list. A string that merely looks right
+   * can still parse as a run of one-item lists.
+   */
+  const expectOneRankedList: (
+    markdown: string,
+    entries: Array<AffectedResourceListEntry>,
+  ) => void = (
+    markdown: string,
+    entries: Array<AffectedResourceListEntry>,
+  ): void => {
+    const lists: Array<Tokens.List> = blockTokens(markdown).filter(
+      (token: Token): boolean => {
+        return token.type === "list";
+      },
+    ) as Array<Tokens.List>;
+
+    expect(lists).toHaveLength(1);
+
+    const list: Tokens.List = lists[0] as Tokens.List;
+
+    expect(list.ordered).toBe(true);
+    expect(list.start).toBe(1);
+    expect(list.items).toHaveLength(entries.length);
+
+    list.items.forEach((item: Tokens.ListItem, index: number): void => {
+      const nested: Array<Tokens.List> = item.tokens.filter(
+        (token: Token): boolean => {
+          return token.type === "list";
+        },
+      ) as Array<Tokens.List>;
+      const expectedDetails: number = (entries[index]?.details || []).filter(
+        (detail: { value: string }): boolean => {
+          return detail.value.length > 0;
+        },
+      ).length;
+
+      expect(nested).toHaveLength(1);
+      expect(nested[0]?.ordered).toBe(false);
+      expect(nested[0]?.items).toHaveLength(expectedDetails);
+    });
+  };
+
+  it("round trips a three-entry block unchanged", () => {
+    const block: string = renderBlock(3, 3);
+    const once: string = htmlToMarkdown(markdownToHtml(block));
+
+    // A document's leading blank lines are dropped, as for any document.
+    expect(once).toBe(block.replace(/^\n+/, ""));
+    expectOneRankedList(once, podEntries(3));
+  });
+
+  it("round trips a ten-entry block with its overflow line unchanged", () => {
+    const block: string = renderBlock(10, 83);
+    const once: string = htmlToMarkdown(markdownToHtml(block));
+
+    expect(block).toContain("\n10. **Pod**");
+    expect(block).toContain("\n    - Namespace:");
+    expect(block).toContain("*... and 73 more affected resources*");
+    expect(once).toBe(block.replace(/^\n+/, ""));
+    expectOneRankedList(once, podEntries(10));
+  });
+
+  it("round trips a whole root cause unchanged", () => {
+    const source: string = rootCause(10, 83);
+
+    expect(htmlToMarkdown(markdownToHtml(source))).toBe(source);
+  });
+
+  it("renders the block as one ordered list whose items own their details", () => {
+    const container: HTMLDivElement = document.createElement("div");
+    container.innerHTML = markdownToHtml(renderBlock(10, 83));
+
+    const topLevelLists: NodeListOf<Element> = container.querySelectorAll(
+      ":scope > ol, :scope > ul",
+    );
+
+    expect(topLevelLists).toHaveLength(1);
+
+    const list: Element = topLevelLists[0] as Element;
+
+    expect(list.tagName).toBe("OL");
+    expect(list.hasAttribute("start")).toBe(false);
+
+    const items: NodeListOf<Element> = list.querySelectorAll(":scope > li");
+
+    expect(items).toHaveLength(10);
+
+    items.forEach((item: Element): void => {
+      const details: NodeListOf<Element> = item.querySelectorAll(":scope > ul");
+
+      expect(details).toHaveLength(1);
+      expect(details[0]?.querySelector(":scope > li")?.textContent).toMatch(
+        /^Namespace: /,
+      );
+    });
+
+    // The heading and the overflow line stay paragraphs around the list.
+    expect(container.firstElementChild?.tagName).toBe("P");
+    expect(container.lastElementChild?.tagName).toBe("P");
+    expect(container.lastElementChild?.textContent).toBe(
+      "... and 73 more affected resources",
+    );
+  });
+
+  /*
+   * The editor sanitizes before injecting. DOMPurify's default allowlist
+   * keeps nested lists and the start attribute; if it ever stopped doing so
+   * the round trip would lose them there instead of here.
+   */
+  it("survives the editor's sanitizer unchanged", () => {
+    const html: string = markdownToHtml(rootCause(10, 83));
+
+    expect(sanitize(html)).toBe(html);
+    expect(sanitize(markdownToHtml("3. a\n4. b"))).toContain('<ol start="3">');
+  });
+
+  /*
+   * What "Edit Root Cause" actually does: render into the contenteditable,
+   * let the user type, serialize. Adding a note after the list must not
+   * renumber the list or detach any item's details.
+   */
+  it("keeps numbering and nesting when the user adds a paragraph", () => {
+    const source: string = rootCause(10, 83);
+    const editable: HTMLDivElement = document.createElement("div");
+    editable.innerHTML = sanitize(markdownToHtml(source));
+
+    const note: HTMLParagraphElement = document.createElement("p");
+    note.textContent = "Rolled back the migration job.";
+    editable.appendChild(note);
+
+    const saved: string = htmlToMarkdown(editable.innerHTML);
+
+    expect(saved).toBe(`${source}\n\nRolled back the migration job.`);
+    expectOneRankedList(saved, podEntries(10));
+  });
+
+  it("keeps numbering and nesting when the user edits a nested detail", () => {
+    const source: string = rootCause(10, 83);
+    const editable: HTMLDivElement = document.createElement("div");
+    editable.innerHTML = sanitize(markdownToHtml(source));
+
+    const lastDetail: Element | null = editable.querySelector(
+      ":scope > ol > li:nth-child(10) > ul > li:last-child",
+    );
+
+    expect(lastDetail?.textContent).toMatch(/^Node: /);
+    lastDetail?.appendChild(document.createTextNode(" (cordoned)"));
+
+    const saved: string = htmlToMarkdown(editable.innerHTML);
+    const nodeTen: string = "`gke-gke-test-cluster-db-pool-3e2bfa3b-du610`";
+
+    expect(saved).toBe(
+      source.replace(
+        `    - Node: ${nodeTen}`,
+        `    - Node: ${nodeTen} (cordoned)`,
+      ),
+    );
+    expectOneRankedList(saved, podEntries(10));
+  });
+
+  it("is a fixed point: a second save changes nothing", () => {
+    const first: string = htmlToMarkdown(markdownToHtml(rootCause(10, 83)));
+
+    expect(htmlToMarkdown(markdownToHtml(first))).toBe(first);
+  });
+});
+
+/*
+ * Regressions found while verifying nested-list support.
+ */
+describe("nested list edge cases", () => {
+  /*
+   * Each level of nesting parses its item's lines as a document of its own.
+   * Uncapped, a single "- - - … x" line a thousand levels deep overflowed
+   * the stack — in the editor's mount effect, so one such document would
+   * have crashed the editor for everyone who opened it — and a staircase of
+   * indented bullets cost cubic time.
+   */
+  it("does not overflow the stack on a pathologically deep single line", () => {
+    const deep: string = `${"- ".repeat(1000)}x`;
+
+    let html: string = "";
+    expect(() => {
+      html = markdownToHtml(deep);
+    }).not.toThrow();
+    expect(html).toContain("x");
+    // Nesting stops at the cap; the rest of the item is kept as text.
+    expect((html.match(/<ul>/g) || []).length).toBeLessThanOrEqual(21);
+  });
+
+  it("parses a deep staircase of indented bullets quickly", () => {
+    const lines: Array<string> = [];
+    for (let i: number = 0; i < 1000; i++) {
+      lines.push(`${" ".repeat(i * 2)}- item ${i}`);
+    }
+
+    const startedAt: number = performance.now();
+    const html: string = markdownToHtml(lines.join("\n"));
+    const elapsed: number = performance.now() - startedAt;
+
+    expect(html).toContain("item 0");
+    expect(html).toContain("item 999");
+    // The uncapped parser took about 8 seconds here.
+    expect(elapsed).toBeLessThan(2000);
+  });
+
+  it("still nests normally well inside the cap", () => {
+    const lines: Array<string> = [];
+    for (let i: number = 0; i < 10; i++) {
+      lines.push(`${" ".repeat(i * 2)}- level ${i}`);
+    }
+    const markdown: string = lines.join("\n");
+
+    const html: string = markdownToHtml(markdown);
+
+    expect((html.match(/<ul>/g) || []).length).toBe(10);
+    expect(htmlToMarkdown(html)).toBe(markdown);
+  });
+
+  /*
+   * A loose item's second paragraph is a <p> after the item's text. It used
+   * to come back one newline short, so the saved markdown joined it to the
+   * first paragraph and every save lost another break.
+   */
+  it("keeps the blank line before a later paragraph of an ordered item", () => {
+    const markdown: string = "1. a\n\n   b\n2. c";
+
+    const html: string = markdownToHtml(markdown);
+
+    expect(html).toBe("<ol><li>a<p>b</p></li><li>c</li></ol>");
+    expect(htmlToMarkdown(html)).toBe(markdown);
+  });
+
+  it("keeps every paragraph break of a multi-paragraph bullet, save after save", () => {
+    const markdown: string = "- a\n\n  b\n\n  c\n- d";
+
+    const once: string = htmlToMarkdown(markdownToHtml(markdown));
+    const twice: string = htmlToMarkdown(markdownToHtml(once));
+
+    expect(once).toBe(markdown);
+    expect(twice).toBe(markdown);
+  });
+
+  it("separates a later paragraph from the item's text when serializing editor HTML", () => {
+    expect(htmlToMarkdown("<ul><li>a<p>b</p></li></ul>")).toBe("- a\n\n  b");
+  });
+
+  /*
+   * Enter at the end of a nested bullet leaves an empty <li>. Trimming the
+   * item's content writes it as a bare "-", which used to reopen as a
+   * literal "-" paragraph while marked (the email) read it as an empty item.
+   */
+  it("reads a bare marker after a list item as an empty item", () => {
+    const saved: string = htmlToMarkdown(
+      "<ol><li>a<ul><li>x</li><li><br></li></ul></li><li>b</li></ol>",
+    );
+
+    expect(saved).toBe("1. a\n   - x\n   -\n2. b");
+
+    const html: string = markdownToHtml(saved);
+    expect(html).toBe(
+      "<ol><li>a<ul><li>x</li><li></li></ul></li><li>b</li></ol>",
+    );
+    expect(html).not.toContain("<p>-</p>");
+    expect(htmlToMarkdown(html)).toBe(saved);
+  });
+
+  it("an empty ordered item after another is read as an item too", () => {
+    expect(markdownToHtml("1. a\n2.")).toBe("<ol><li>a</li><li></li></ol>");
+  });
+
+  it("a bare marker cannot START a list, so a lone number stays text", () => {
+    expect(markdownToHtml("2021.")).toBe("<p>2021.</p>");
+    expect(markdownToHtml("-")).not.toContain("<li>");
   });
 });

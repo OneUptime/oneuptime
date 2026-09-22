@@ -1,4 +1,5 @@
 import RuleSettingsPageProps from "../../RuleSettingsPageProps";
+import getSloMonitorRuleFormFields from "./SloMonitorRuleFormFields";
 import SloNoticeBanner from "../../../Components/Slo/SloNoticeBanner";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -8,10 +9,8 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Green, Red } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Label from "Common/Models/DatabaseModels/Label";
 import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import RuleTable from "Common/UI/Components/RuleRun/RuleTable";
@@ -23,7 +22,7 @@ import React, { Fragment, FunctionComponent, ReactElement } from "react";
 /*
  * The "### Match Criteria" section is load-bearing: the rule-criteria table
  * configuration rewrites that heading's body to describe the condition
- * builder that replaces the three legacy fields below.
+ * builder that replaces the individual match fields.
  */
 const monitorRuleDocumentation: string = `
 ### How SLO Monitor Rules Work
@@ -34,20 +33,21 @@ An SLO can have as many rules as you like. A monitor is attached while **any** e
 
 ### Match Criteria
 
-A monitor has to pass **all** the criteria you fill in. Criteria you leave empty are skipped.
+Add conditions and choose **Match all** to require every condition, or **Match any** to require at least one condition.
 
 - **Monitor Labels** - matches a monitor carrying *any one* of the labels you select.
-- **Monitor Name Pattern** - matched against the monitor name.
-- **Monitor Description Pattern** - matched against the monitor description.
+- **Monitor Type** - use **Equals** or **Does not equal** to include or exclude a monitor type.
+- **Monitor Name** - compare the monitor name using a text operator.
+- **Monitor Description** - compare the monitor description using a text operator.
 
-Patterns take either syntax: a case-insensitive regular expression (\`^api-.*\`) or a \`*\` wildcard (\`*checkout*\`). A pattern that is neither - \`api-(01\` - is rejected when you save, rather than silently matching nothing.
+The **Matches pattern** and **Does not match pattern** operators take either syntax: a case-insensitive regular expression (\`^api-.*\`) or a \`*\` wildcard (\`*checkout*\`). A pattern that is neither - \`api-(01\` - is rejected when you save, rather than silently matching nothing.
 
 At least one criterion is required. Use \`.*\` as the name pattern if you really do want every monitor in the project.
 
 ### When Rules Run
 
 - When you create, edit, enable, disable or delete a rule, this SLO's monitors are re-evaluated immediately.
-- When a monitor is created, or its labels, name or description change, every rule on every SLO in the project is re-evaluated for it.
+- When a monitor is created, or its labels, type, name or description change, every rule on every SLO in the project is re-evaluated for it.
 - Rules keep the monitor list current even while the SLO is disabled or archived, so it resumes with the right monitors.
 
 ### What Rules Own
@@ -142,7 +142,7 @@ const SloMonitorRules: FunctionComponent<RuleSettingsPageProps> = (
         helpContent={{
           title: "How SLO Monitor Rules Work",
           description:
-            "Match monitors by label or pattern and attach them to this SLO automatically.",
+            "Match monitors by label, type, name or description and attach them to this SLO automatically.",
           markdown: monitorRuleDocumentation,
         }}
         noItemsMessage="No monitor rules on this SLO. Its monitors are picked by hand on the Monitors page - create a rule to attach matching monitors automatically instead."
@@ -194,70 +194,7 @@ const SloMonitorRules: FunctionComponent<RuleSettingsPageProps> = (
           { title: "Basic Info", id: "basic-info" },
           { title: "Match Criteria", id: "match-criteria" },
         ]}
-        formFields={[
-          {
-            field: { name: true },
-            title: "Name",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Every production API monitor",
-            validation: { minLength: 2 },
-          },
-          {
-            field: { description: true },
-            title: "Description",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Why these monitors belong to this SLO.",
-          },
-          {
-            field: { isEnabled: true },
-            title: "Enabled",
-            stepId: "basic-info",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            defaultValue: true,
-            description:
-              "Turning a rule off detaches the monitors only this rule attached. Monitors you attached by hand, or that another enabled rule matches, are left alone.",
-          },
-          {
-            field: { monitorLabels: true },
-            title: "Monitor Labels",
-            stepId: "match-criteria",
-            sectionTitle: "Match by Attributes",
-            sectionDescription:
-              "Match monitors carrying at least one of these labels. Leave empty to skip the label filter.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Select Monitor Labels (optional)",
-          },
-          {
-            field: { monitorNamePattern: true },
-            title: "Monitor Name Pattern",
-            stepId: "match-criteria",
-            sectionTitle: "Match by Pattern",
-            sectionDescription:
-              "Case-insensitive regex (^api-.*) or a * wildcard (*checkout*), matched against the monitor name and description. Use .* to match every monitor.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "^api-.* or *api*",
-          },
-          {
-            field: { monitorDescriptionPattern: true },
-            title: "Monitor Description Pattern",
-            stepId: "match-criteria",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "customer facing|tier-1",
-          },
-        ]}
+        formFields={getSloMonitorRuleFormFields()}
       />
     </Fragment>
   );

@@ -76,6 +76,7 @@ import Typeof from "../../Types/Typeof";
 import API from "../../Utils/API";
 import Slug from "../../Utils/Slug";
 import { getRuleCriteriaValidationError } from "../../Utils/Rules/RuleCriteriaMatcher";
+import { getMonitorTypeCriteriaValidationError } from "../../Utils/Rules/MonitorTypeRuleCriteria";
 import RuleCriteria, {
   RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
   RuleCriteriaOperator,
@@ -850,6 +851,15 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
         throw new BadDataException(
           `Rule criteria field "${filter.field}" is not a column on ${this.modelName}.`,
         );
+      }
+
+      if (metadata.type === TableColumnType.MonitorType) {
+        const validationError: string | null =
+          getMonitorTypeCriteriaValidationError(filter);
+
+        if (validationError) {
+          throw new BadDataException(validationError);
+        }
       }
 
       const isRelationField: boolean =

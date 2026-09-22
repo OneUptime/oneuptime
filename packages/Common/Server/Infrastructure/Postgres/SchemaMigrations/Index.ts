@@ -1,6 +1,8 @@
 import { AddAIInvestigationDecision1793700000000 } from "./1793700000000-AddAIInvestigationDecision";
 import { RemoveMonitorDescriptionLengthLimit1793800000000 } from "./1793800000000-RemoveMonitorDescriptionLengthLimit";
 import { AddEnterpriseEditionFirstSeenAt1793900000000 } from "./1793900000000-AddEnterpriseEditionFirstSeenAt";
+import { AddSloLabelAndOwnerRules1794100000000 } from "./1794100000000-AddSloLabelAndOwnerRules";
+import { AddSloMonitorRuleMonitorType1794200000000 } from "./1794200000000-AddSloMonitorRuleMonitorType";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1202,4 +1204,6 @@ export default [
   AddAIInvestigationDecision1793700000000,
   RemoveMonitorDescriptionLengthLimit1793800000000,
   AddEnterpriseEditionFirstSeenAt1793900000000,
+  AddSloLabelAndOwnerRules1794100000000,
+  AddSloMonitorRuleMonitorType1794200000000,
 ];

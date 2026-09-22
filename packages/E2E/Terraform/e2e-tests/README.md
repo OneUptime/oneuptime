@@ -85,7 +85,7 @@ The runner prints the engine and its version in its header, and the summary is l
 
 It is hermetic and takes about a second: no network, no Docker, no OneUptime stack, and no real `terraform`/`tofu` binary. Engine dispatch is exercised against fakes on `PATH`; the rest are static contract checks over the fixtures, the runner, and the workflow. CI runs it immediately after checkout so a harness regression fails in seconds rather than after a stack bring-up.
 
-It covers, among others: dispatch reaching a spawned `verify.sh` that does not source `lib.sh`; `TF_CLI=terraform` not recursing into the shell function; `restore_terraformrc` never deleting a config it did not create; every verify script being `#!/bin/bash`; no fixture naming a binary or a registry host; and the workflow invoking the suite exactly twice with both wrappers disabled.
+It covers, among others: dispatch reaching a spawned `verify.sh` that does not source `lib.sh`; `TF_CLI=terraform` not recursing into the shell function; `restore_terraformrc` never deleting a config it did not create; every verify script being `#!/bin/bash`; no fixture naming a binary or a registry host; the runner installing `hashicorp/random` only from `TF_E2E_PROVIDER_MIRROR` when it is set (and failing, without touching the registry, when the mirror lacks it); the workflow restoring sha256-pinned engines and providers from the Actions cache, staging the `hashicorp/random` version the runner requires, and setting up gomplate before `npm run dev`; and the workflow invoking the suite exactly twice with both wrappers disabled.
 
 Add a check whenever you add a harness mechanism, and make sure it actually fails when that mechanism is broken — every check here was verified by breaking the thing it guards and confirming the suite went red.
 
@@ -200,13 +200,14 @@ removed from the provider, and should be called out in the PR description.
 
 The following environment variables are used:
 
-| Variable            | Default            | Description                                      |
-| ------------------- | ------------------ | ------------------------------------------------ |
-| `ONEUPTIME_URL`     | `http://localhost` | OneUptime instance URL                           |
-| `TF_CLI`            | `terraform`        | Engine to drive: `terraform` or `tofu`           |
-| `TF_VAR_api_key`    | (generated)        | API key for authentication                       |
-| `TF_VAR_project_id` | (generated)        | Project ID for resources                         |
-| `TEST_FILTER`       | (unset)            | egrep pattern to run a subset of tests locally   |
+| Variable                 | Default            | Description                                                                                                                                              |
+| ------------------------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ONEUPTIME_URL`          | `http://localhost` | OneUptime instance URL                                                                                                                                   |
+| `TF_CLI`                 | `terraform`        | Engine to drive: `terraform` or `tofu`                                                                                                                   |
+| `TF_VAR_api_key`         | (generated)        | API key for authentication                                                                                                                               |
+| `TF_VAR_project_id`      | (generated)        | Project ID for resources                                                                                                                                 |
+| `TEST_FILTER`            | (unset)            | egrep pattern to run a subset of tests locally                                                                                                           |
+| `TF_E2E_PROVIDER_MIRROR` | (unset)            | Packed-layout provider mirror to install `hashicorp/random` from, with no registry access (CI sets it; unset, the engine downloads it from its registry) |
 
 ## CI/CD
 
@@ -221,6 +222,21 @@ The workflow pins Terraform to 1.9.8 and OpenTofu to 1.12.5, runs `go vet` /
 `go test` on the generated provider, then runs the suite twice — once per
 engine — against a single stack. Neither run is retried; only the flaky
 services bring-up step is.
+
+Nothing the suite needs is downloaded per run. The engines and `hashicorp/random`
+(one zip per engine, since each resolves it against its own registry) are
+pinned by sha256 in the workflow's job env and restored from the Actions
+cache; `Scripts/GHA/fetch_pinned_artifact.sh` checks every copy against its
+pin and, only on a cache miss, downloads it with backoff — falling back, for
+the engines, to the vendors' package repositories. The provider zips form a
+packed provider mirror that both runs pass to `run-tests.sh` as
+`TF_E2E_PROVIDER_MIRROR`, and gomplate (for `npm run dev`) comes from the
+`setup-gomplate` action the same way. This is because GitHub's release CDN —
+which serves OpenTofu, its copy of `hashicorp/random` and gomplate — answers
+500/504 in bursts longer than any retry, and failed this job that way. When
+bumping the random provider, change `RANDOM_PROVIDER_VERSION` in `run-tests.sh`
+and in the workflow together, with both new digests; the self-test fails if
+the versions differ.
 
 Both runs share one stack and one test project rather than getting a job
 each. Bring-up (disk cleanup, npm install, provider generation, docker

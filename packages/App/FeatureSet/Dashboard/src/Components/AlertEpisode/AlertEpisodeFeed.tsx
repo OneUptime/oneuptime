@@ -5,9 +5,10 @@ import Feed from "Common/UI/Components/Feed/Feed";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import AlertEpisodeFeed from "Common/Models/DatabaseModels/AlertEpisodeFeed";
+import AlertEpisodeFeed, {
+  AlertEpisodeFeedEventType,
+} from "Common/Models/DatabaseModels/AlertEpisodeFeed";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -23,6 +24,14 @@ import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDut
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedOptions, {
+  UseFeedOptionsResult,
+} from "Common/UI/Components/Feed/useFeedOptions";
+import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import {
+  getFeedEventTypeQuery,
+  getFeedNoItemsMessage,
+} from "Common/UI/Components/Feed/FeedOptions";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -36,6 +45,17 @@ export interface ComponentProps {
    */
   refreshToken?: number | undefined;
 }
+
+/*
+ * The event type checklist behind the Filter & Sort button hands over plain
+ * strings. This reads them from the same per-event-type table the feed items
+ * use, so the two always match.
+ */
+export const getAlertEpisodeFeedEventIcon: (eventType: string) => IconProp = (
+  eventType: string,
+): IconProp => {
+  return getAlertEpisodeFeedIcon(eventType as AlertEpisodeFeedEventType);
+};
 
 const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -80,6 +100,13 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
     };
   };
 
+  const feedOptions: UseFeedOptionsResult = useFeedOptions({
+    eventTypes: Object.values(AlertEpisodeFeedEventType),
+    getEventTypeIcon: getAlertEpisodeFeedEventIcon,
+    storageKey: "alert-episode",
+    resetKey: props.alertEpisodeId.toString(),
+  });
+
   const {
     feedItems,
     isLoading,
@@ -93,12 +120,17 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
     loadMore,
   } = useFeedItems<AlertEpisodeFeed>({
     resourceKey: props.alertEpisodeId.toString(),
+    viewKey: feedOptions.optionsKey,
     refreshToken: props.refreshToken,
     getItems: async (limit: number): Promise<ListResult<AlertEpisodeFeed>> => {
       return await ModelAPI.getList<AlertEpisodeFeed>({
         modelType: AlertEpisodeFeed,
         query: {
           alertEpisodeId: props.alertEpisodeId!,
+          ...getFeedEventTypeQuery<AlertEpisodeFeed>(
+            "alertEpisodeFeedEventType",
+            feedOptions.options,
+          ),
         },
         select: {
           moreInformationInMarkdown: true,
@@ -115,7 +147,7 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
         },
         skip: 0,
         sort: {
-          postedAt: SortOrder.Descending,
+          postedAt: feedOptions.options.sortOrder,
         },
         limit,
       });
@@ -132,6 +164,12 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
         "This is the timeline and feed for this episode. You can see all the updates and information about this episode here."
       }
       buttons={[
+        <FeedOptionsButton
+          key="alert-episode-feed-options"
+          value={feedOptions.options}
+          eventTypeOptions={feedOptions.eventTypeOptions}
+          onChange={feedOptions.setOptions}
+        />,
         <MoreMenu
           key="alert-episode-feed-actions-menu"
           elementToBeShownInsteadOfButton={
@@ -178,7 +216,11 @@ const AlertEpisodeFeedElement: FunctionComponent<ComponentProps> = (
         {isCurrentFeedLoaded && !isLoading && !error && (
           <Feed
             items={feedItems}
-            noItemsMessage="Looks like there are no items in this feed for this episode."
+            noItemsMessage={getFeedNoItemsMessage({
+              options: feedOptions.options,
+              noItemsMessage:
+                "Looks like there are no items in this feed for this episode.",
+            })}
             hasMore={hasMore}
             isLoadingMore={isLoadingMore}
             onMore={loadMore}

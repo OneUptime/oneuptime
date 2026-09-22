@@ -25,6 +25,14 @@ export interface FeedPage<TFeedModel> {
 
 export interface UseFeedItemsProps<TFeedModel> {
   resourceKey: string;
+  /*
+   * What the reader has chosen to see of this resource's feed - its sort
+   * order and event type filter (see useFeedOptions). A change re-reads the
+   * feed from its first window, exactly like moving to another resource:
+   * rows already loaded were read for the old view, so keeping them, or the
+   * size of the window they filled, would mix two different feeds.
+   */
+  viewKey?: string | undefined;
   refreshToken?: number | undefined;
   getItems: (limit: number) => Promise<FeedPage<TFeedModel>>;
   mapItems: (items: Array<TFeedModel>) => Array<FeedItemProps>;
@@ -50,7 +58,8 @@ interface FetchOptions {
 
 /*
  * Every dashboard activity feed follows the same paging contract: read the
- * newest top N rows and replace that window when the reader asks for more.
+ * first N rows in the reader's chosen order (newest first unless they asked
+ * for oldest first) and replace that window when the reader asks for more.
  * Re-reading from zero matters for a live feed. Offset-appending can duplicate
  * or skip a row when a new event arrives between page requests.
  */
@@ -71,10 +80,20 @@ const useFeedItems: <TFeedModel>(
     null,
   );
 
-  const activeResourceKeyRef: MutableRefObject<string> = useRef<string>(
-    props.resourceKey,
-  );
-  activeResourceKeyRef.current = props.resourceKey;
+  /*
+   * The resource and the view together name the feed being shown. Everything
+   * below that guards against a stale response or resets the window keys on
+   * this, so a response for the previous view is dropped the same way as a
+   * response for the previous resource.
+   */
+  const feedKey: string =
+    props.viewKey === undefined
+      ? props.resourceKey
+      : `${props.resourceKey}\u0000${props.viewKey}`;
+
+  const activeResourceKeyRef: MutableRefObject<string> =
+    useRef<string>(feedKey);
+  activeResourceKeyRef.current = feedKey;
   const previousResourceKeyRef: MutableRefObject<string | null> = useRef<
     string | null
   >(null);
@@ -184,8 +203,8 @@ const useFeedItems: <TFeedModel>(
 
   useEffect(() => {
     const hasResourceChanged: boolean =
-      previousResourceKeyRef.current !== props.resourceKey;
-    previousResourceKeyRef.current = props.resourceKey;
+      previousResourceKeyRef.current !== feedKey;
+    previousResourceKeyRef.current = feedKey;
 
     if (hasResourceChanged) {
       currentLimitRef.current = DEFAULT_LIMIT;
@@ -200,7 +219,7 @@ const useFeedItems: <TFeedModel>(
     }).catch(() => {
       // fetchItems converts request failures into the appropriate UI state.
     });
-  }, [fetchItems, props.resourceKey, props.refreshToken]);
+  }, [fetchItems, feedKey, props.refreshToken]);
 
   useEffect(() => {
     return () => {
@@ -208,7 +227,7 @@ const useFeedItems: <TFeedModel>(
     };
   }, []);
 
-  const isCurrentFeedLoaded: boolean = loadedResourceKey === props.resourceKey;
+  const isCurrentFeedLoaded: boolean = loadedResourceKey === feedKey;
 
   return {
     feedItems,

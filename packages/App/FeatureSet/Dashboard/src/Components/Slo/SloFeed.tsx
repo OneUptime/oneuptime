@@ -2,7 +2,9 @@ import ResourceFeed, {
   ComponentProps as ResourceFeedProps,
 } from "../ResourceFeed/ResourceFeed";
 import { getSloFeedEventIcon } from "./SloFeedIcon";
-import ServiceLevelObjectiveFeed from "Common/Models/DatabaseModels/ServiceLevelObjectiveFeed";
+import ServiceLevelObjectiveFeed, {
+  ServiceLevelObjectiveFeedEventType,
+} from "Common/Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import ObjectID from "Common/Types/ObjectID";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -39,6 +41,7 @@ export const getSloResourceFeedProps: GetSloResourceFeedPropsFunction = (
     resourceIdColumn: "serviceLevelObjectiveId",
     resourceId: props.sloId,
     eventTypeColumn: "serviceLevelObjectiveFeedEventType",
+    eventTypes: Object.values(ServiceLevelObjectiveFeedEventType),
     title: props.title || DEFAULT_TITLE,
     description: props.description || DEFAULT_DESCRIPTION,
     noItemsMessage: NO_ITEMS_MESSAGE,
