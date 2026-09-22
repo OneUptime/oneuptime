@@ -452,6 +452,31 @@ Identified users are grouped by the pseudonymous key the server stores the refer
 
 The rollup is computed on the server (`POST /telemetry/rum/session-replay/users`, under the same permissions as the list) rather than by grouping the session list in the browser, because the list is paginated by keyset: a page of 20 sessions would say "3 sessions" for a person who had 30, with the other 27 on pages you had not fetched. The server rolls up the whole range and pages the people instead.
 
+### User flows
+
+**User Flows** is in the side menu under **Real User Monitoring → your application → User Flows**, at `.../user-flows`. It draws how people move through your application page to page, from the recordings in the selected range (a week by default): where they land, which page they go to next, where they leave, and where they go in circles.
+
+The flow map has one column per step. A page is a box whose height is the number of sessions at that step, and a band between two boxes is as thick as the number of sessions that made that move. A red stub off a box is the sessions that left the application there; a grey fade means the journey continues past the last column. A band drawn in amber is one where most sessions were going **back** to a page they had already seen. A red dot on a box means sessions hit an error on that page. Hover a box or a band to follow its traffic through the map; click it for the detail panel.
+
+| Control | What it does |
+| --- | --- |
+| **From session start** | Step 1 is each session's landing page. |
+| **After a page** | Anchors the map on one page and follows sessions from the first time they reached it — "where do people go after `/pricing`?" |
+| **Before a page** | Follows sessions backward from the first time they reached a page — "how do people get to `/checkout`?" The anchor is drawn on the right. |
+| **Steps** / **Pages per step** | How many columns to draw and how many pages a column names before the rest are folded into **Other pages** (click it to see what it holds). |
+| **Sessions** | All sessions, only sessions with errors, or only sessions with frustration signals (rage clicks, dead clicks, error clicks, refresh rage). |
+| **Device** | Only desktop, mobile or tablet sessions. |
+| **Group IDs in URLs** | On by default: `/orders/1042` and `/orders/1043` are one page, `/orders/:id`. Numbers, hex ids and long letter-and-digit tokens are grouped, as is every segment the recorder already replaced with `[redacted]`. |
+| **Hide this page** | In a page's detail panel. Removes the page from every journey, so a login or consent interstitial stops splitting paths in two; hidden pages are listed above the map and can be shown again. |
+
+The detail panel for a page shows how many sessions reached it at that step, how many left there, how many hit an error there, where visitors came from and went next across the whole range, up to five sessions to watch, and a link to the session list filtered to every session that visited the page. For a band it shows the share of each side and the sessions that made exactly that move.
+
+Above the map, a few findings name the pages worth a look first: the page where the largest share of visitors hit an error, the page where the most journeys that were going somewhere end (pages almost nobody continues from, such as an order confirmation, are treated as natural ends and never named), the page with the most frustration, and the pair of pages people bounce between (A → B → A). Each finding needs at least three sessions. Click one to point the map at that page. Below the map, **Top paths** lists whole journeys by how many sessions took them, **Pages** has entries, exits, exit rate, errors and frustration for every page, and **Back and forth** lists the loops.
+
+Every control is kept in the URL, so a map is a link you can share.
+
+What the map is built from: each recording chunk carries the pages visited while it was open, in order, and chunks are ordered by time across tabs (the recorder starts a new tab on every full page load). A page repeated back to back — a reload, or two chunks on one page — counts once, and two visits to the same page inside a single chunk also count once, so the map shows journeys rather than exact page-view counts. Errors and frustration are attributed to the page a chunk was flushed from. The page reads the newest 5,000 recorded sessions in the range, and says so when the range held more; only recorded sessions appear, so sampling and capture triggers shape it the same way they shape the session list. The page is served by `POST /telemetry/rum/session-replay/user-flow` under the same permissions and plan as the session list.
+
 ### The player
 
 The player opens wide by default — the RUM side menu steps aside so the stage and the events rail get the width; press `W` or use **Wide** in the header to bring it back. The header is one compact bar rather than a summary card, because every row it does not take is a row the recording gets. Its first line carries **All recordings** (back to the list with your filters intact), the user (or _Visitor a1b2c3_ for an anonymous session that carries a [visitor id](#anonymous-visitors), _Anonymous_ when it does not, _Identity hidden_ when your role cannot read identity), this person's other sessions, and the **Copy link**, **Session details**, **Wide** and **Theater** buttons. Its second line carries browser, OS, viewport and country, when the session was recorded, the short session id and the playhead as both an offset and a wall-clock time so you can cross-reference dashboards by eye.

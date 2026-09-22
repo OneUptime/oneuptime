@@ -151,6 +151,12 @@ import SessionReplayReadService, {
   SessionReplayUsersCursor,
   SessionReplayUsersResult,
 } from "../Utils/SessionReplay/SessionReplayReadService";
+import SessionReplayUserFlowReadService from "../Utils/SessionReplay/SessionReplayUserFlowReadService";
+import {
+  USER_FLOW_DEFAULT_MAX_SESSIONS,
+  USER_FLOW_MAX_SESSIONS,
+  UserFlowJourneysResponseDto,
+} from "../../Types/Rum/UserFlow";
 import SessionReplayHealthCounters, {
   SessionReplayDropCount,
 } from "../Utils/SessionReplay/SessionReplayHealthCounters";
@@ -5425,6 +5431,96 @@ router.post(
         users: result.users as unknown as JSONObject,
         nextCursor: nextCursor,
       });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+/*
+ * User Flows: the ordered page journey of each recorded session in the
+ * window, for the flow map, paths and drop-off views (see
+ * SessionReplayUserFlowReadService for where the order comes from).
+ *
+ * Same guard, plan gate and label-scoped application check as /users: it
+ * projects only manifest-level columns the session list already shows -
+ * pages, device facts and signal counts - never a payload, and no
+ * identity column at all.
+ */
+router.post(
+  "/telemetry/rum/session-replay/user-flow",
+  ...requireSessionReplayListAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      assertSessionReplayPlan(databaseProps);
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+
+      const rumApplicationId: ObjectID = readObjectIdFromBody(
+        body,
+        "rumApplicationId",
+      );
+
+      await assertSessionReplayApplicationAccess({
+        projectId: projectId,
+        rumApplicationId: rumApplicationId,
+        databaseProps: databaseProps,
+        permissions: SESSION_REPLAY_LIST_PERMISSIONS,
+      });
+
+      const startTime: Date =
+        readOptionalDateFromBody(body, "startTime") ||
+        OneUptimeDate.addRemoveDays(OneUptimeDate.getCurrentDate(), -7);
+
+      const endTime: Date =
+        readOptionalDateFromBody(body, "endTime") ||
+        OneUptimeDate.getCurrentDate();
+
+      if (startTime.getTime() > endTime.getTime()) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("startTime must not be after endTime"),
+        );
+      }
+
+      /* `limit` caps the SESSIONS read, newest first. */
+      const maxSessions: number = readLimitFromBody(
+        body,
+        USER_FLOW_DEFAULT_MAX_SESSIONS,
+        USER_FLOW_MAX_SESSIONS,
+      );
+
+      const result: UserFlowJourneysResponseDto =
+        await SessionReplayUserFlowReadService.readJourneys({
+          projectId: projectId,
+          rumApplicationId: rumApplicationId,
+          startTime: startTime,
+          endTime: endTime,
+          maxSessions: maxSessions,
+        });
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        result as unknown as JSONObject,
+      );
     } catch (err: unknown) {
       next(err);
     }

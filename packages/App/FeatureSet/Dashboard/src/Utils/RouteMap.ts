@@ -494,6 +494,11 @@ export const RumRoutePath: Dictionary<string> = {
    */
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS]: `${RouteParams.ModelID}/session-replay-users`,
   /*
+   * Page-to-page journeys drawn from the recordings. Its own top-level
+   * segment, so it can never be read as a session id by the player route.
+   */
+  [PageMap.RUM_APPLICATION_VIEW_USER_FLOWS]: `${RouteParams.ModelID}/user-flows`,
+  /*
    * A sibling of /session-replay rather than a child, for the same reason
    * as the audit page: a child segment would be shadowed by a session
    * whose id happened to be "settings".
@@ -4822,6 +4827,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS]
+    }`,
+  ),
+
+  [PageMap.RUM_APPLICATION_VIEW_USER_FLOWS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_USER_FLOWS]
     }`,
   ),
 
