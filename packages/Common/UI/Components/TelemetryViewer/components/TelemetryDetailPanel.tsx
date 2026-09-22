@@ -24,6 +24,11 @@ export interface TelemetryDetailPanelProps {
   onTabChange: (tabId: string) => void;
   headerActions?: ReactNode;
   variant?: "floating" | "embedded";
+  /*
+   * Replaces the floating drawer's default width classes, including their
+   * cap at the viewport width, so a custom width should bring its own
+   * max-width (e.g. "w-[64rem] max-w-[95vw]").
+   */
   widthClassName?: string;
 }
 
@@ -95,7 +100,13 @@ const TelemetryDetailPanel: FunctionComponent<TelemetryDetailPanelProps> = (
     return null;
   }
 
-  const widthClassName: string = props.widthClassName || "w-[38rem]";
+  /*
+   * The drawer is pinned to the right edge, so on a viewport narrower than
+   * its width the overflow runs off the left edge and takes the header and
+   * content with it. max-w-full keeps it within the viewport on phones and
+   * leaves the 38rem width untouched wherever that fits.
+   */
+  const widthClassName: string = props.widthClassName || "w-[38rem] max-w-full";
 
   const activeTab: TelemetryDetailPanelTab | undefined = props.tabs.find(
     (t: TelemetryDetailPanelTab) => {

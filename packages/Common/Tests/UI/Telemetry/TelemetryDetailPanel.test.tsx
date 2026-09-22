@@ -286,3 +286,31 @@ describe("TelemetryDetailPanel dismissal and variants", () => {
     expect(screen.queryByText("Session details")).not.toBeInTheDocument();
   });
 });
+
+describe("TelemetryDetailPanel width", () => {
+  it("caps the default 38rem drawer at the viewport so phones can reach its left edge", () => {
+    render(<TelemetryDetailPanel {...makeProps()} />);
+
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Session details",
+    });
+
+    expect(dialog).toHaveClass("fixed", "right-0", "w-[38rem]", "max-w-full");
+  });
+
+  it("uses a caller's width classes in place of the default, cap included", () => {
+    render(
+      <TelemetryDetailPanel
+        {...makeProps({ widthClassName: "w-[64rem] max-w-[95vw]" })}
+      />,
+    );
+
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: "Session details",
+    });
+
+    expect(dialog).toHaveClass("w-[64rem]", "max-w-[95vw]");
+    expect(dialog).not.toHaveClass("w-[38rem]");
+    expect(dialog).not.toHaveClass("max-w-full");
+  });
+});
