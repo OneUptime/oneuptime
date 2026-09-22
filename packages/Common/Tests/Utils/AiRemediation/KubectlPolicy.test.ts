@@ -18,13 +18,21 @@ import { describe, expect, it } from "@jest/globals";
  *     strips a leading "kubectl"; it never treats operators specially
  *     because kubectl is spawned as an argv, never through a shell.
  *  2. Read verbs (get/describe/logs/events/top/rollout status, ...) tier as
- *     Read; reversible controller-managed changes (rollout restart, scale,
- *     delete a NAMED pod/job, cordon/uncordon, label/annotate) tier as
- *     SafeWrite; anything that changes what is deployed or fans out (patch,
- *     set image, drain, delete by selector, delete workloads) tiers as
- *     RiskyWrite; exec/cp/port-forward/apply/edit, credential and file
- *     flags, --all-namespaces writes, deleting namespaces/volumes/nodes/
- *     secrets/CRDs, and unknown verbs are Denied.
+ *     Read; SafeWrite is exactly ONE named object of one built-in kind with
+ *     no selector — rollout restart/undo/pause/resume of one workload, scale
+ *     of one workload to a non-zero count, delete of one named pod,
+ *     cordon/uncordon of one node, label/annotate of one pod or workload
+ *     with unreserved keys; anything wider or that changes what is deployed
+ *     (a bare kind, several names, a selector, patch, set image, drain,
+ *     delete of a Job or a workload, labels on namespaces/nodes/RBAC)
+ *     tiers as RiskyWrite, and every write in kube-system/kube-public/
+ *     kube-node-lease is at least RiskyWrite and marked protectedNamespace;
+ *     exec/cp/port-forward/apply/edit, credential and file flags,
+ *     --all-namespaces writes, deleting namespaces/volumes/nodes/secrets/
+ *     CRDs/RBAC in any spelling, resource categories in writes, RBAC and
+ *     ServiceAccount grants (create/patch roles and bindings, set subject,
+ *     set serviceaccount), pod-security patch fields, create job --image,
+ *     a namespace set twice, and unknown verbs are Denied.
  *  3. Flags are parsed exactly as kubectl's pflag parses them — short-flag
  *     clusters letter by letter, optional-value flags never consuming the
  *     next token, "_" read as "-", unknown flags refused — so a denied flag
@@ -36,8 +44,10 @@ import { describe, expect, it } from "@jest/globals";
  *     (get, describe, label, patch, delete, create secret, create token) are
  *     Denied on top of the verb tiers.
  *  4. evaluateForAutoExecution promotes Read and SafeWrite to AutoApproved,
- *     keeps RiskyWrite at RequiresApproval unless the operator allowlist
- *     matches the rendered command, and never lifts a Denied.
+ *     keeps RiskyWrite at RequiresApproval unless the cluster bypasses
+ *     approvals or an allowlist pattern matches the argv token by token,
+ *     never lifts a Denied, and never auto-approves a write in a protected
+ *     namespace (not with bypass, not through the allowlist).
  */
 
 function tier(command: string): KubectlCommandTier {
@@ -760,9 +770,14 @@ const ALLOWED_SECRET_NEIGHBOURS: Array<[string, KubectlCommandTier]> = [
     KubectlCommandTier.SafeWrite,
   ],
   ["kubectl label pod web-1 -n web secret-", KubectlCommandTier.SafeWrite],
-  // References to a Secret are not its values.
+  /*
+   * A reference to a ConfigMap is not a Secret. (`set env --from=secret/...`
+   * used to sit here as RiskyWrite; it wires a Secret's keys into the
+   * workload exactly like a secretKeyRef patch, so it is Denied now — see
+   * DENIED_IDENTITY_AND_RBAC_SHAPES.)
+   */
   [
-    "kubectl set env deployment/web -n web --from=secret/db-creds",
+    "kubectl set env deployment/web -n web --from=configmap/app-config",
     KubectlCommandTier.RiskyWrite,
   ],
   [
@@ -777,10 +792,11 @@ const ALLOWED_SECRET_NEIGHBOURS: Array<[string, KubectlCommandTier]> = [
     "kubectl create configmap app-config --from-literal=a=b -n web",
     KubectlCommandTier.RiskyWrite,
   ],
-  [
-    "kubectl create serviceaccount runner -n web",
-    KubectlCommandTier.RiskyWrite,
-  ],
+  /*
+   * `create serviceaccount` used to sit here as RiskyWrite. A new
+   * ServiceAccount is an identity for someone to bind, so it is Denied with
+   * the RBAC kinds now (see DENIED_IDENTITY_AND_RBAC_SHAPES).
+   */
 ];
 
 /*
@@ -926,12 +942,10 @@ describe("KubectlPolicy", () => {
       "kubectl scale deployment/web -n web --replicas=3",
       "kubectl scale statefulset db --replicas 2 -n data",
       "kubectl delete pod web-7d9f-abc -n web",
-      "kubectl delete pods web-7d9f-abc web-7d9f-def -n web",
       "kubectl delete pod/web-7d9f-abc -n web",
-      "kubectl delete job migrate-42 -n web",
       "kubectl cordon worker-1",
       "kubectl uncordon worker-1",
-      "kubectl label node worker-1 pool=spare --overwrite",
+      "kubectl label pod web-7d9f-abc -n web quarantine=true",
       "kubectl annotate deployment web -n web oneuptime.com/note=restarted",
     ])("tiers %s as SafeWrite", (command: string) => {
       expect(tier(command)).toBe(KubectlCommandTier.SafeWrite);
@@ -941,6 +955,15 @@ describe("KubectlPolicy", () => {
 
   describe("RiskyWrite tier", () => {
     it.each([
+      /*
+       * These three used to be pinned as SafeWrite. The docs promise safe
+       * changes run "each on one named object": two pods is two objects; a
+       * deleted Job is recreated by nothing; and a node label is a control
+       * DaemonSet nodeSelectors and load balancers act on, not metadata.
+       */
+      "kubectl delete pods web-7d9f-abc web-7d9f-def -n web",
+      "kubectl delete job migrate-42 -n web",
+      "kubectl label node worker-1 pool=spare --overwrite",
       'kubectl patch deployment web -n web -p \'{"spec":{"replicas":2}}\'',
       "kubectl set image deployment/web web=nginx:1.27 -n web",
       "kubectl set env deployment/web -n web LOG_LEVEL=debug",
@@ -1681,7 +1704,7 @@ describe("KubectlPolicy", () => {
       expect(verdict.reason).toContain("Requires human approval");
     });
 
-    it("promotes RiskyWrite to AutoApproved when the allowlist matches the rendered command", () => {
+    it("promotes RiskyWrite to AutoApproved when an allowlist pattern matches the argv token by token", () => {
       const verdict: KubectlAutoExecutionVerdict =
         KubectlPolicy.evaluateForAutoExecution({
           command: "kubectl set image deployment/web web=nginx:1.27 -n web",

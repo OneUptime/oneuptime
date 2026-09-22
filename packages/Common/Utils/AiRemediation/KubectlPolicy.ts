@@ -1,4 +1,7 @@
-import { KubectlCommandTier } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  KubectlCommandTier,
+  isProtectedKubernetesNamespace,
+} from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import {
   AiRemediationCommandPolicyVerdict,
   MAX_COMMAND_LENGTH_CHARS,
@@ -24,7 +27,46 @@ import CommandPolicy from "./CommandPolicy";
  *
  * Tiers (see KubectlCommandTier): Read is what an investigation may run;
  * SafeWrite is what Automatic remediation runs unattended; RiskyWrite needs
- * a human unless the operator allowlisted it; Denied never runs.
+ * a human unless the operator allowlisted it (or the cluster bypasses
+ * approvals); Denied never runs.
+ *
+ * SafeWrite is deliberately narrow: exactly ONE named object of one
+ * built-in kind, with no selector (-l, --selector or --field-selector) and
+ * no --all —
+ *   - rollout restart/undo/pause/resume of one Deployment, StatefulSet or
+ *     DaemonSet (a bare kind is every object of that kind to kubectl);
+ *   - scale of one Deployment, StatefulSet or ReplicaSet to a count above
+ *     zero (zero is an outage, not a nudge);
+ *   - delete of one named pod (its controller recreates it; a Job is not
+ *     recreated by anything, so deleting one is RiskyWrite);
+ *   - cordon/uncordon of one node;
+ *   - label/annotate of one pod or workload (Deployment, StatefulSet,
+ *     DaemonSet, ReplicaSet, Job, CronJob) with keys outside the reserved
+ *     kubernetes.io / k8s.io prefixes (and a few identity, admission and
+ *     GitOps controller prefixes). Labels on namespaces, nodes, Services,
+ *     RBAC objects or webhooks steer admission, scheduling, identity or
+ *     traffic, so they are RiskyWrite.
+ * Anything wider is RiskyWrite. A write whose namespace is one of
+ * PROTECTED_KUBERNETES_NAMESPACES (kube-system, kube-public,
+ * kube-node-lease), or that targets one of those Namespace objects, is at
+ * least RiskyWrite and carries `protectedNamespace`: evaluateForAutoExecution
+ * never runs it without a human, whatever the mode or allowlist.
+ *
+ * Denied is what no one should be asked to approve from an AI plan: changes
+ * to who may do what (creating or changing roles and role bindings, creating
+ * ServiceAccounts, ClusterRole aggregation labels, set subject, set
+ * serviceaccount, auth reconcile, certificate approve/deny); wiring
+ * identity, privileges, host access, Secrets or a new program into a pod
+ * (patch bodies touching POD_SECURITY_PATCH_KEYS, Pod Security Admission
+ * labels, set env --from=secret/..., create job --image — only
+ * `create job NAME --from=cronjob/NAME` re-runs existing code); deleting
+ * cluster-level kinds in any spelling; anything that names a resource
+ * CATEGORY (all, api-extensions, ...) in a write, because kubectl expands a
+ * category into many kinds before this policy could see them; and anything
+ * kubectl would not run as the command we read — a verb or create/set
+ * subcommand it does not have (kubectl would run a kubectl-<word> plugin
+ * from the Runner's PATH), one not written in lowercase (cobra matches
+ * case-sensitively), or a namespace set twice (pflag keeps the last one).
  *
  * Three more things are Denied because their OUTPUT is the problem, not the
  * verb. Secret objects are off-limits in every verb (get, describe, label,
@@ -35,6 +77,31 @@ import CommandPolicy from "./CommandPolicy";
  * echo it. And a flag written before the verb is refused unless it is one of
  * kubectl's global flags, because kubectl picks the command before it parses
  * flags and `kubectl --all events delete` runs delete (see the Flags section).
+ *
+ * ---- The cluster kubectl allowlist -------------------------------------------
+ *
+ * The AI page's "kubectl allowlist" (KubernetesCluster.aiKubectlCommandAllowlist)
+ * lets an operator pre-approve RiskyWrite SHAPES in Automatic mode. It is
+ * matched token by token against the argv kubectl will get, never as one
+ * glob over the rendered string (see matchesAllowlist):
+ *   - A pattern is tokenized exactly like a command (shell quoting, a leading
+ *     "kubectl" optional) and must have the SAME number of tokens as the
+ *     command, so `*` can never absorb an extra resource, a selector, a
+ *     second -n or any other extra argument.
+ *   - Each pattern token matches exactly one argv token. A `*` inside a
+ *     token is a glob within that one token and never matches whitespace:
+ *     `web=*` matches `web=nginx:1.27`, `deployment/*` matches
+ *     `deployment/api`, and `-p *` matches a patch body written without
+ *     spaces.
+ *   - Flags must be spelled in the pattern to be present in the command: a
+ *     command token that is a flag is only matched by a pattern token that
+ *     spells the same flag literally (`-n`, `--replicas=*`); a `*` never
+ *     stands for a flag.
+ *   - Case-sensitive. Up to 100 non-blank patterns of at most 500
+ *     characters are read; longer ones and ones that do not tokenize are
+ *     skipped.
+ *   - The allowlist never promotes a Denied command, and never a write in a
+ *     protected namespace.
  */
 
 export interface KubectlPolicyResult {
@@ -47,6 +114,32 @@ export interface KubectlPolicyResult {
   verb: string;
   // The exact command, rendered for humans: "kubectl get pods -n web".
   displayCommand: string;
+  /*
+   * The namespace the command names with -n / --namespace (-nX, -n=X,
+   * --namespace=X), exactly as kubectl parses it. Absent when the command
+   * gives none — kubectl then uses the context's namespace (the Runner pod's
+   * own, in-cluster). Never set on a Denied result.
+   */
+  namespace?: string | undefined;
+  /*
+   * Set on a write that lands in, or targets, one of
+   * PROTECTED_KUBERNETES_NAMESPACES. Such a write is at least RiskyWrite and
+   * evaluateForAutoExecution never runs it without a human: not with
+   * bypassApproval, not through the allowlist.
+   */
+  protectedNamespace?: string | undefined;
+}
+
+/*
+ * kubectl normalizes "_" to "-" in long flag names (pflag's
+ * WordSepNormalizeFunc), so --as_group IS --as-group and
+ * --insecure_skip_tls_verify IS --insecure-skip-tls-verify. Every flag
+ * lookup here goes through this first, so an underscore spelling can never
+ * slip past a deny list; anything else that inspects kubectl flags (the
+ * Runner's argv guard) should use it too.
+ */
+export function normalizeKubectlFlagName(name: string): string {
+  return (name || "").replace(/_/g, "-");
 }
 
 export interface KubectlAutoExecutionVerdict {
@@ -84,7 +177,8 @@ const SHELL_SAFE_TOKEN: RegExp = /^[A-Za-z0-9_@%+=:,./-]+$/;
  *   - A value flag takes the next token whatever it looks like: "-n -A" is
  *     the namespace "-A".
  *   - "--" ends flag parsing; everything after it is positional.
- *   - "_" in a long flag name reads as "-" ("--all_namespaces").
+ *   - "_" in a long flag name reads as "-" ("--all_namespaces"); see
+ *     normalizeKubectlFlagName, which runs before every lookup.
  *   - A flag kubectl does not know is an error.
  *   - The command is picked BEFORE flags are parsed (by cobra, not pflag),
  *     and at that point any flag that is not a global flag is assumed to
@@ -346,6 +440,17 @@ const SUBCOMMAND_VERBS: Set<string> = new Set<string>([
  * Flags that are Denied wherever they appear, with why. Short and long
  * spellings are both listed because a short flag can hide inside a cluster
  * ("-As", "-pf") and is found letter by letter.
+ *
+ * kubectl v1.36's global flags are --as --as-group --as-uid --as-user-extra
+ * --cache-dir --certificate-authority --client-certificate --client-key
+ * --cluster --context --disable-compression --insecure-skip-tls-verify
+ * --kubeconfig --kuberc --log-flush-frequency --match-server-version
+ * -n/--namespace --password --profile --profile-output --request-timeout
+ * -s/--server --tls-server-name --token --user --username -v/--v --vmodule
+ * --warnings-as-errors. Every one of them except GLOBAL_FLAGS is listed
+ * here: each selects credentials, an identity or a cluster, writes a file
+ * on the Runner, or logs request bodies. (An unlisted flag is refused
+ * anyway; listing them names the reason.)
  */
 const DENIED_FLAG_GROUPS: Array<{ reason: string; flags: Array<string> }> = [
   {
@@ -360,6 +465,7 @@ const DENIED_FLAG_GROUPS: Array<{ reason: string; flags: Array<string> }> = [
       "as",
       "as-group",
       "as-uid",
+      "as-user-extra",
       "context",
       "cluster",
       "user",
@@ -506,14 +612,12 @@ const READ_VERBS: Set<string> = new Set<string>([
   "explain",
 ]);
 
-const SAFE_WRITE_VERBS: Set<string> = new Set<string>([
-  "scale",
-  "cordon",
-  "uncordon",
-  "label",
-  "annotate",
-]);
-
+/*
+ * The write verbs that CAN be SafeWrite — rollout restart/undo/pause/resume,
+ * delete, scale, cordon, uncordon, label and annotate — each have their own
+ * branch in evaluateArgs, because each has its own "exactly one named
+ * object" shape. These are always at least RiskyWrite:
+ */
 const RISKY_WRITE_VERBS: Set<string> = new Set<string>([
   "patch",
   "set",
@@ -524,13 +628,24 @@ const RISKY_WRITE_VERBS: Set<string> = new Set<string>([
   "autoscale",
 ]);
 
+// Verbs that act on nodes, which live outside any namespace.
+const NODE_VERBS: Set<string> = new Set<string>([
+  "cordon",
+  "uncordon",
+  "drain",
+  "taint",
+]);
+
 /*
  * Verbs with nothing to offer an SRE agent, or that open an interactive or
  * long-lived channel, or that could rewrite objects from input we do not
  * support. Listed explicitly so the reason names the verb; any verb not in
- * any list is Denied too.
+ * any list is Denied too — kubectl runs a `kubectl-<verb>` plugin from the
+ * Runner's PATH for a word it does not know (and a kuberc alias for one it
+ * has been taught), so an unknown verb is never a guess we can afford.
  */
 const DENIED_VERBS: Set<string> = new Set<string>([
+  "kuberc",
   "exec",
   "attach",
   "cp",
@@ -557,7 +672,12 @@ const DENIED_VERBS: Set<string> = new Set<string>([
 /*
  * Kinds whose deletion is either unrecoverable or cluster-wide. Deleting
  * them is Denied even with a human in the loop — this lane is for fixing a
- * workload, not for tearing down a cluster.
+ * workload, not for tearing down a cluster. Matched on normalizeKind(), so
+ * every spelling kubectl accepts is covered: plural, singular, short name,
+ * Kind case and group-qualified (`crd`, `CustomResourceDefinition`,
+ * `customresourcedefinitions.apiextensions.k8s.io`, `ns/prod`, ...).
+ * Resource CATEGORIES (all, api-extensions) are refused separately, in every
+ * write verb (see RESOURCE_CATEGORIES).
  */
 const NEVER_DELETE_KINDS: Set<string> = new Set<string>([
   "namespace",
@@ -567,14 +687,68 @@ const NEVER_DELETE_KINDS: Set<string> = new Set<string>([
   "customresourcedefinition",
   "clusterrole",
   "clusterrolebinding",
+  "role",
+  "rolebinding",
   "storageclass",
   "secret",
   "priorityclass",
   "apiservice",
   "mutatingwebhookconfiguration",
   "validatingwebhookconfiguration",
+  "validatingadmissionpolicy",
+  "validatingadmissionpolicybinding",
+  "mutatingadmissionpolicy",
+  "mutatingadmissionpolicybinding",
   "certificatesigningrequest",
+]);
+
+/*
+ * Resource categories. kubectl expands a category into every kind that
+ * declares it (ReplaceAliases, through discovery) BEFORE it resolves types,
+ * so `kubectl delete api-extensions -l x` deletes CRDs, APIServices and
+ * admission webhooks although none of those kinds appears in the command.
+ * A category is therefore never allowed in a write, whatever the verb.
+ * `all` and `api-extensions` are the categories the API server itself
+ * defines (the only ones that can reach built-in kinds); the rest are the
+ * categories widely used operators give their custom resources — a custom
+ * category can only reach custom resources, which are RiskyWrite anyway, so
+ * this list is a clearer refusal, not the only line. Reads (`get all`)
+ * stay Read.
+ */
+const RESOURCE_CATEGORIES: Set<string> = new Set<string>([
   "all",
+  "api-extensions",
+  "crossplane",
+  "managed",
+  "composite",
+  "claim",
+  "knative",
+  "serving",
+  "eventing",
+  "istio-io",
+  "networking-istio-io",
+  "security-istio-io",
+  "telemetry-istio-io",
+  "extensions-istio-io",
+  "gateway-api",
+  "cert-manager",
+  "kyverno",
+  "cluster-api",
+  "tekton",
+  "tekton-pipelines",
+]);
+
+/*
+ * Kinds that decide who may do what. OneUptime AI never creates or changes
+ * them (a new or widened binding is a privilege grant, not a fix), and never
+ * deletes them (NEVER_DELETE_KINDS). Reading them stays Read: an
+ * investigation needs to see why something is Forbidden.
+ */
+const RBAC_KINDS: Set<string> = new Set<string>([
+  "role",
+  "clusterrole",
+  "rolebinding",
+  "clusterrolebinding",
 ]);
 
 /*
@@ -610,8 +784,239 @@ const OBJECT_VERBS: Set<string> = new Set<string>([
   "set",
 ]);
 
-// Kinds a controller recreates: deleting one named instance is a safe change.
-const SAFE_DELETE_KINDS: Set<string> = new Set<string>(["pod", "job"]);
+/*
+ * Kinds whose deletion is a safe change: exactly one, and only the pod. A
+ * pod with a controller (ReplicaSet, StatefulSet, DaemonSet, Job) is
+ * recreated by it. A Job is NOT recreated by anything — a standalone Job (a
+ * migration, a one-off batch run) is simply gone, and a CronJob only starts
+ * a new one on its next schedule — so deleting a Job is RiskyWrite.
+ * Matched on builtinKind(), so a custom resource that happens to be called
+ * `pods.example.com` is not a pod.
+ */
+const SAFE_DELETE_KINDS: Set<string> = new Set<string>(["pod"]);
+
+// The workloads `kubectl rollout restart/undo/pause/resume` acts on.
+const ROLLOUT_SAFE_KINDS: Set<string> = new Set<string>([
+  "deployment",
+  "statefulset",
+  "daemonset",
+]);
+
+/*
+ * The workloads a safe `kubectl scale` may target — the ones whose scale
+ * subresource the kubernetes-agent chart's remediation RBAC grants.
+ */
+const SCALE_SAFE_KINDS: Set<string> = new Set<string>([
+  "deployment",
+  "statefulset",
+  "replicaset",
+]);
+
+/*
+ * The kinds a safe label/annotate may target: a pod or a workload. A label
+ * on these is metadata a fix may need (quarantine a pod by dropping its
+ * `app` label, note a restart). On any other kind a label is a control:
+ * Pod Security Admission reads namespace labels, DaemonSet nodeSelectors and
+ * cloud load balancers read node labels, Services and NetworkPolicies select
+ * by label, ClusterRole aggregation reads role labels, and ServiceAccount /
+ * Ingress annotations bind cloud identities and inject proxy config.
+ */
+const LABEL_SAFE_KINDS: Set<string> = new Set<string>([
+  "pod",
+  "deployment",
+  "statefulset",
+  "daemonset",
+  "replicaset",
+  "job",
+  "cronjob",
+]);
+
+/*
+ * The API group each built-in kind named in a *_SAFE_KINDS set lives in.
+ * builtinKind() accepts a group-qualified spelling only in this group, so
+ * `deployments.apps/web` is a Deployment while `jobs.batch.volcano.sh` or
+ * `pods.example.com` is some custom resource and never a safe target.
+ */
+const BUILTIN_KIND_GROUPS: Record<string, string> = {
+  pod: "",
+  node: "",
+  deployment: "apps",
+  statefulset: "apps",
+  daemonset: "apps",
+  replicaset: "apps",
+  job: "batch",
+  cronjob: "batch",
+};
+
+/*
+ * Kinds that live outside any namespace. A write that names only these is
+ * not "in" the namespace its -n flag names (kubectl ignores -n for them), so
+ * the protected-namespace rule looks at the object instead.
+ */
+const CLUSTER_SCOPED_KINDS: Set<string> = new Set<string>([
+  "node",
+  "namespace",
+  "persistentvolume",
+  "customresourcedefinition",
+  "clusterrole",
+  "clusterrolebinding",
+  "storageclass",
+  "priorityclass",
+  "apiservice",
+  "mutatingwebhookconfiguration",
+  "validatingwebhookconfiguration",
+  "validatingadmissionpolicy",
+  "validatingadmissionpolicybinding",
+  "mutatingadmissionpolicy",
+  "mutatingadmissionpolicybinding",
+  "certificatesigningrequest",
+  "ingressclass",
+  "runtimeclass",
+  "csidriver",
+  "csinode",
+  "volumeattachment",
+  "flowschema",
+  "prioritylevelconfiguration",
+]);
+
+/*
+ * Label / annotation key prefixes (the DNS part before "/") that belong to
+ * Kubernetes itself — kubernetes.io and k8s.io and every subdomain
+ * (pod-security.kubernetes.io, node-role.kubernetes.io,
+ * rbac.authorization.k8s.io, kubectl.kubernetes.io, ...) — or to the
+ * identity, admission and GitOps controllers that act on them. Writing one
+ * of these steers a controller rather than annotating an object, so it is
+ * RiskyWrite on any kind. Matched as the domain itself or a subdomain.
+ */
+const RESERVED_KEY_DOMAINS: Array<string> = [
+  "kubernetes.io",
+  "k8s.io",
+  "gatekeeper.sh",
+  "kyverno.io",
+  "argoproj.io",
+  "eks.amazonaws.com",
+  "iam.gke.io",
+  "azure.workload.identity",
+];
+
+/*
+ * Pod Security Admission's namespace labels. Lowering or removing them lets
+ * privileged pods into the namespace, which is never a fix OneUptime AI
+ * makes (Denied, in label, annotate and patch alike).
+ */
+const POD_SECURITY_KEY_DOMAIN: string = "pod-security.kubernetes.io";
+
+/*
+ * ClusterRole aggregation: a ClusterRole labelled with one of these has its
+ * rules merged into admin / edit / view (and so granted to everyone bound
+ * to them). That is an RBAC grant, Denied like creating a binding.
+ */
+const RBAC_AGGREGATION_KEY_PREFIX: string =
+  "rbac.authorization.k8s.io/aggregate-to-";
+
+/*
+ * Field names a `kubectl patch` body may never touch, matched by key name
+ * (case-insensitively) anywhere in the body — strategic-merge and merge
+ * patches (JSON or YAML) as keys, JSON patches as path segments. Each one
+ * changes which identity, privileges, host access, Secrets or program a pod
+ * runs with. With write RBAC on a workload that is the same as running any
+ * image as any ServiceAccount in the namespace and reading every Secret it
+ * can mount, which no approval card should be asked to wave through. Image,
+ * env values, resources and replicas stay patchable (set image / set env /
+ * set resources say the same thing more plainly).
+ */
+const POD_SECURITY_PATCH_KEYS: Set<string> = new Set<string>(
+  [
+    "serviceAccountName",
+    "serviceAccount",
+    "automountServiceAccountToken",
+    "securityContext",
+    "privileged",
+    "capabilities",
+    "hostPath",
+    "hostNetwork",
+    "hostPID",
+    "hostIPC",
+    "volumes",
+    "volumeMounts",
+    "initContainers",
+    "ephemeralContainers",
+    "command",
+    "args",
+    "envFrom",
+    "secretKeyRef",
+    "secretRef",
+    "secretName",
+  ].map((key: string) => {
+    return key.toLowerCase();
+  }),
+);
+
+/*
+ * kubectl create's subcommands and their aliases, exactly as cobra matches
+ * them (case-sensitively). Anything else is not a create subcommand:
+ * kubectl would look for a `kubectl-create-<name>` plugin on the Runner's
+ * PATH, so it is Denied rather than tiered.
+ */
+const CREATE_SUBCOMMANDS: Record<string, string> = {
+  namespace: "namespace",
+  ns: "namespace",
+  quota: "resourcequota",
+  resourcequota: "resourcequota",
+  secret: "secret",
+  configmap: "configmap",
+  cm: "configmap",
+  serviceaccount: "serviceaccount",
+  sa: "serviceaccount",
+  service: "service",
+  svc: "service",
+  deployment: "deployment",
+  deploy: "deployment",
+  clusterrole: "clusterrole",
+  clusterrolebinding: "clusterrolebinding",
+  role: "role",
+  rolebinding: "rolebinding",
+  poddisruptionbudget: "poddisruptionbudget",
+  pdb: "poddisruptionbudget",
+  priorityclass: "priorityclass",
+  pc: "priorityclass",
+  job: "job",
+  cronjob: "cronjob",
+  cj: "cronjob",
+  ingress: "ingress",
+  ing: "ingress",
+  token: "token",
+};
+
+/*
+ * What `kubectl create <subcommand>` makes that OneUptime AI never makes:
+ * RBAC objects and ServiceAccounts decide who may do what, and a new
+ * ServiceAccount is an identity for someone to bind.
+ */
+const DENIED_CREATE_KINDS: Set<string> = new Set<string>([
+  "clusterrole",
+  "clusterrolebinding",
+  "role",
+  "rolebinding",
+  "serviceaccount",
+]);
+
+// Cluster-scoped objects `kubectl create` can make (for the namespace rule).
+const CLUSTER_SCOPED_CREATE_KINDS: Set<string> = new Set<string>([
+  "namespace",
+  "priorityclass",
+]);
+
+/*
+ * kubectl set's subcommands OneUptime AI may use (set serviceaccount and set
+ * subject are Denied by name; anything else is not a set subcommand).
+ */
+const SET_SUBCOMMANDS: Set<string> = new Set<string>([
+  "env",
+  "image",
+  "resources",
+  "selector",
+]);
 
 const KIND_ALIASES: Record<string, string> = {
   po: "pod",
@@ -619,6 +1024,55 @@ const KIND_ALIASES: Record<string, string> = {
   pod: "pod",
   jobs: "job",
   job: "job",
+  cj: "cronjob",
+  cronjobs: "cronjob",
+  cronjob: "cronjob",
+  deploy: "deployment",
+  deployments: "deployment",
+  deployment: "deployment",
+  sts: "statefulset",
+  statefulsets: "statefulset",
+  statefulset: "statefulset",
+  ds: "daemonset",
+  daemonsets: "daemonset",
+  daemonset: "daemonset",
+  rs: "replicaset",
+  replicasets: "replicaset",
+  replicaset: "replicaset",
+  rc: "replicationcontroller",
+  replicationcontrollers: "replicationcontroller",
+  replicationcontroller: "replicationcontroller",
+  hpa: "horizontalpodautoscaler",
+  horizontalpodautoscalers: "horizontalpodautoscaler",
+  horizontalpodautoscaler: "horizontalpodautoscaler",
+  svc: "service",
+  services: "service",
+  service: "service",
+  ep: "endpoints",
+  endpoints: "endpoints",
+  cm: "configmap",
+  configmaps: "configmap",
+  configmap: "configmap",
+  sa: "serviceaccount",
+  serviceaccounts: "serviceaccount",
+  serviceaccount: "serviceaccount",
+  ing: "ingress",
+  ingresses: "ingress",
+  ingress: "ingress",
+  ingressclasses: "ingressclass",
+  ingressclass: "ingressclass",
+  netpol: "networkpolicy",
+  networkpolicies: "networkpolicy",
+  networkpolicy: "networkpolicy",
+  pdb: "poddisruptionbudget",
+  poddisruptionbudgets: "poddisruptionbudget",
+  poddisruptionbudget: "poddisruptionbudget",
+  quota: "resourcequota",
+  resourcequotas: "resourcequota",
+  resourcequota: "resourcequota",
+  limits: "limitrange",
+  limitranges: "limitrange",
+  limitrange: "limitrange",
   ns: "namespace",
   namespaces: "namespace",
   namespace: "namespace",
@@ -635,6 +1089,10 @@ const KIND_ALIASES: Record<string, string> = {
   crds: "customresourcedefinition",
   customresourcedefinitions: "customresourcedefinition",
   customresourcedefinition: "customresourcedefinition",
+  roles: "role",
+  role: "role",
+  rolebindings: "rolebinding",
+  rolebinding: "rolebinding",
   clusterroles: "clusterrole",
   clusterrole: "clusterrole",
   clusterrolebindings: "clusterrolebinding",
@@ -653,10 +1111,29 @@ const KIND_ALIASES: Record<string, string> = {
   mutatingwebhookconfiguration: "mutatingwebhookconfiguration",
   validatingwebhookconfigurations: "validatingwebhookconfiguration",
   validatingwebhookconfiguration: "validatingwebhookconfiguration",
+  validatingadmissionpolicies: "validatingadmissionpolicy",
+  validatingadmissionpolicy: "validatingadmissionpolicy",
+  validatingadmissionpolicybindings: "validatingadmissionpolicybinding",
+  validatingadmissionpolicybinding: "validatingadmissionpolicybinding",
+  mutatingadmissionpolicies: "mutatingadmissionpolicy",
+  mutatingadmissionpolicy: "mutatingadmissionpolicy",
+  mutatingadmissionpolicybindings: "mutatingadmissionpolicybinding",
+  mutatingadmissionpolicybinding: "mutatingadmissionpolicybinding",
   csr: "certificatesigningrequest",
   certificatesigningrequests: "certificatesigningrequest",
   certificatesigningrequest: "certificatesigningrequest",
-  all: "all",
+  runtimeclasses: "runtimeclass",
+  runtimeclass: "runtimeclass",
+  csidrivers: "csidriver",
+  csidriver: "csidriver",
+  csinodes: "csinode",
+  csinode: "csinode",
+  volumeattachments: "volumeattachment",
+  volumeattachment: "volumeattachment",
+  flowschemas: "flowschema",
+  flowschema: "flowschema",
+  prioritylevelconfigurations: "prioritylevelconfiguration",
+  prioritylevelconfiguration: "prioritylevelconfiguration",
 };
 
 interface ParsedArgs {
@@ -677,21 +1154,63 @@ interface FlagRule {
 }
 
 interface NamedKinds {
+  // Normalized kinds (normalizeKind), for the deny lists.
   kinds: Set<string>;
+  // Each kind as written ("deployments.apps", "po"), for builtinKind().
+  rawKinds: Array<string>;
   // How many objects are named (as opposed to a bare kind meaning "all").
   namedCount: number;
+  // The names, in order ("web" from both "pod web" and "pod/web").
+  names: Array<string>;
 }
 
+/*
+ * The kind a token names, for the DENY lists: lowercased, the head of a
+ * group-qualified form ("pods.v1." / "deployments.apps" / "secrets.foo.io"
+ * all keep the leading segment) mapped through KIND_ALIASES. Folding every
+ * group into the built-in kind is the safe side for a deny list — a custom
+ * `secrets.example.io` is refused like a Secret — and must never be used to
+ * decide that something is SAFE (see builtinKind()).
+ */
 function normalizeKind(token: string): string {
   const lower: string = token.toLowerCase();
-  /*
-   * "pods.v1." / "deployments.apps" fully-qualified forms: keep the leading
-   * segment, which is the kind.
-   */
   const head: string = lower.split(".")[0] || lower;
   return Object.prototype.hasOwnProperty.call(KIND_ALIASES, head)
     ? KIND_ALIASES[head]!
     : head;
+}
+
+/*
+ * The built-in kind a token names, for the SAFE sets — or undefined when it
+ * is not one of BUILTIN_KIND_GROUPS in that kind's own API group. kubectl
+ * reads "RESOURCE.GROUP" and "RESOURCE.VERSION.GROUP" (with "pods.v1." for
+ * the core group), so `deployments.apps`, `deployments.v1.apps` and
+ * `pods.v1.` are the built-in kinds, and `pods.example.com` or
+ * `jobs.batch.volcano.sh` are custom resources.
+ */
+function builtinKind(token: string): string | undefined {
+  const lower: string = token.toLowerCase();
+  const parts: Array<string> = lower.split(".");
+  const head: string = parts[0] || "";
+
+  if (!Object.prototype.hasOwnProperty.call(KIND_ALIASES, head)) {
+    return undefined;
+  }
+
+  const kind: string = KIND_ALIASES[head]!;
+
+  if (!Object.prototype.hasOwnProperty.call(BUILTIN_KIND_GROUPS, kind)) {
+    return undefined;
+  }
+
+  if (parts.length === 1) {
+    return kind;
+  }
+
+  const group: string =
+    parts.length === 2 ? parts[1]! : parts.slice(2).join(".");
+
+  return group === BUILTIN_KIND_GROUPS[kind] ? kind : undefined;
 }
 
 /*
@@ -703,23 +1222,55 @@ function normalizeKind(token: string): string {
  */
 function namedKinds(resourceTokens: Array<string>): NamedKinds {
   const kinds: Set<string> = new Set<string>();
+  const rawKinds: Array<string> = [];
+  const names: Array<string> = [];
   let namedCount: number = 0;
 
   for (let i: number = 0; i < resourceTokens.length; i++) {
     const token: string = resourceTokens[i]!;
     if (token.includes("/")) {
-      kinds.add(normalizeKind(token.split("/")[0] || ""));
+      const slash: number = token.indexOf("/");
+      const rawKind: string = token.slice(0, slash);
+      rawKinds.push(rawKind);
+      kinds.add(normalizeKind(rawKind));
+      names.push(token.slice(slash + 1));
       namedCount++;
     } else if (i === 0) {
       for (const part of token.split(",")) {
+        rawKinds.push(part);
         kinds.add(normalizeKind(part));
       }
     } else {
+      names.push(token);
       namedCount++;
     }
   }
 
-  return { kinds, namedCount };
+  return { kinds, rawKinds, namedCount, names };
+}
+
+/*
+ * True when the objects are exactly ONE named object of ONE kind — the
+ * shape every SafeWrite needs. A bare kind is every object of that kind to
+ * kubectl's rollout verbs, and a comma list of kinds or several names is
+ * several objects.
+ */
+function isOneNamedObject(targets: NamedKinds): boolean {
+  return targets.namedCount === 1 && targets.rawKinds.length === 1;
+}
+
+// True when every kind is built in and in `allowed` (see builtinKind()).
+function everyBuiltinKindIn(
+  targets: NamedKinds,
+  allowed: Set<string>,
+): boolean {
+  return (
+    targets.rawKinds.length > 0 &&
+    targets.rawKinds.every((rawKind: string) => {
+      const kind: string | undefined = builtinKind(rawKind);
+      return kind !== undefined && allowed.has(kind);
+    })
+  );
 }
 
 /*
@@ -741,6 +1292,238 @@ function objectTokens(verb: string, positionals: Array<string>): Array<string> {
   }
 
   return tokens;
+}
+
+/*
+ * The label / annotation KEYS a label or annotate command writes or removes:
+ * the pair tokens after the objects, "KEY=VALUE" (the key is before the
+ * first "=") or "KEY-" (removal). Values are never inspected, so a reserved
+ * string in a value is just text.
+ */
+function labelKeys(verb: string, positionals: Array<string>): Array<string> {
+  const start: number = 1 + objectTokens(verb, positionals).length;
+  const keys: Array<string> = [];
+
+  for (const token of positionals.slice(start)) {
+    const eq: number = token.indexOf("=");
+    if (eq >= 0) {
+      keys.push(token.slice(0, eq));
+    } else if (token.endsWith("-")) {
+      keys.push(token.slice(0, -1));
+    }
+  }
+
+  return keys;
+}
+
+// The DNS prefix of a label key ("pod-security.kubernetes.io/enforce"), lowercased.
+function keyDomain(key: string): string {
+  const slash: number = key.indexOf("/");
+  return slash >= 0 ? key.slice(0, slash).toLowerCase() : "";
+}
+
+function isDomainOrSubdomain(domain: string, of: string): boolean {
+  return domain === of || domain.endsWith(`.${of}`);
+}
+
+function isReservedKey(key: string): boolean {
+  const domain: string = keyDomain(key);
+  return (
+    domain.length > 0 &&
+    RESERVED_KEY_DOMAINS.some((reserved: string) => {
+      return isDomainOrSubdomain(domain, reserved);
+    })
+  );
+}
+
+function isPodSecurityKey(key: string): boolean {
+  return isDomainOrSubdomain(keyDomain(key), POD_SECURITY_KEY_DOMAIN);
+}
+
+/*
+ * The first field a patch body touches that POD_SECURITY_PATCH_KEYS
+ * forbids, or a Pod Security Admission label, or null. A body that parses
+ * as JSON is walked (keys, and the path/from of JSON-patch operations,
+ * decoded, so a \u escape or a ~1 cannot hide a name). Anything else is
+ * YAML to kubectl; it is refused outright when it carries a backslash (a
+ * YAML escape could spell a key we would not see) and otherwise scanned
+ * word by word, which over-approximates on the safe side.
+ */
+function findForbiddenPatchField(body: string): string | null {
+  let parsed: unknown = undefined;
+  let isJson: boolean = false;
+
+  try {
+    parsed = JSON.parse(body);
+    isJson = true;
+  } catch {
+    isJson = false;
+  }
+
+  if (isJson) {
+    return findForbiddenJsonField(parsed, 0);
+  }
+
+  if (body.includes("\\")) {
+    return "an escape sequence (write the patch body as plain JSON)";
+  }
+
+  if (body.toLowerCase().includes(POD_SECURITY_KEY_DOMAIN)) {
+    return `${POD_SECURITY_KEY_DOMAIN}/`;
+  }
+
+  for (const word of body.match(/[A-Za-z0-9_]+/g) || []) {
+    if (POD_SECURITY_PATCH_KEYS.has(word.toLowerCase())) {
+      return word;
+    }
+  }
+
+  return null;
+}
+
+function forbiddenFieldInName(name: string): string | null {
+  if (POD_SECURITY_PATCH_KEYS.has(name.toLowerCase())) {
+    return name;
+  }
+  if (isPodSecurityKey(name)) {
+    return name;
+  }
+  return null;
+}
+
+// A JSON-pointer path ("/spec/template/spec/volumes/-"), segment by segment.
+function forbiddenFieldInPath(path: string): string | null {
+  for (const rawSegment of path.split("/")) {
+    const segment: string = rawSegment.replace(/~1/g, "/").replace(/~0/g, "~");
+    const found: string | null = forbiddenFieldInName(segment);
+    if (found) {
+      return found;
+    }
+  }
+  return null;
+}
+
+function findForbiddenJsonField(value: unknown, depth: number): string | null {
+  // Nesting this deep is not a patch a fix needs; refuse rather than recurse.
+  if (depth > 64) {
+    return "a patch body nested more than 64 levels deep";
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found: string | null = findForbiddenJsonField(item, depth + 1);
+      if (found) {
+        return found;
+      }
+    }
+    return null;
+  }
+
+  if (value === null || typeof value !== "object") {
+    return null;
+  }
+
+  const record: Record<string, unknown> = value as Record<string, unknown>;
+  const isJsonPatchOperation: boolean = Object.prototype.hasOwnProperty.call(
+    record,
+    "op",
+  );
+
+  for (const [key, child] of Object.entries(record)) {
+    const keyProblem: string | null = forbiddenFieldInName(key);
+    if (keyProblem) {
+      return keyProblem;
+    }
+
+    /*
+     * Strategic-merge directives name the list they edit after the slash:
+     * "$setElementOrder/volumes", "$deleteFromPrimitiveList/args".
+     */
+    if (key.startsWith("$") && key.includes("/")) {
+      const directiveProblem: string | null = forbiddenFieldInName(
+        key.slice(key.indexOf("/") + 1),
+      );
+      if (directiveProblem) {
+        return directiveProblem;
+      }
+    }
+
+    if (
+      isJsonPatchOperation &&
+      (key === "path" || key === "from") &&
+      typeof child === "string"
+    ) {
+      const pathProblem: string | null = forbiddenFieldInPath(child);
+      if (pathProblem) {
+        return pathProblem;
+      }
+    }
+
+    const found: string | null = findForbiddenJsonField(child, depth + 1);
+    if (found) {
+      return found;
+    }
+  }
+
+  return null;
+}
+
+// Same bounds CommandPolicy applies to the Bash lane's allowlist.
+const MAX_ALLOWLIST_PATTERNS: number = 100;
+const MAX_ALLOWLIST_PATTERN_LENGTH: number = 500;
+
+function isFlagToken(token: string): boolean {
+  return token.startsWith("-") && token !== "-";
+}
+
+/*
+ * One pattern token against one argv token (see the allowlist section in the
+ * header). A flag is matched only by the same flag spelled literally: the
+ * part up to "=" must be equal, and only a value after "=" may glob. A `*`
+ * never matches whitespace; whitespace runs inside a quoted token must line
+ * up with whitespace in the pattern (runs are collapsed on both sides).
+ */
+function allowlistTokenMatches(pattern: string, token: string): boolean {
+  if (isFlagToken(token) || isFlagToken(pattern)) {
+    if (!isFlagToken(token) || !isFlagToken(pattern)) {
+      return false;
+    }
+
+    const tokenEq: number = token.indexOf("=");
+    const patternEq: number = pattern.indexOf("=");
+
+    if (tokenEq < 0 || patternEq < 0) {
+      return pattern === token;
+    }
+
+    if (pattern.slice(0, patternEq) !== token.slice(0, tokenEq)) {
+      return false;
+    }
+
+    return globWithinToken(
+      pattern.slice(patternEq + 1),
+      token.slice(tokenEq + 1),
+    );
+  }
+
+  return globWithinToken(pattern, token);
+}
+
+function globWithinToken(pattern: string, text: string): boolean {
+  const patternPieces: Array<string> = pattern.trim().split(/\s+/);
+  const textPieces: Array<string> = text.trim().split(/\s+/);
+
+  if (patternPieces.length !== textPieces.length) {
+    return false;
+  }
+
+  for (let i: number = 0; i < patternPieces.length; i++) {
+    if (!CommandPolicy.globMatches(patternPieces[i]!, textPieces[i]!)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 export default class KubectlPolicy {
@@ -924,7 +1707,8 @@ export default class KubectlPolicy {
 
     const parsed: ParsedArgs = KubectlPolicy.parseArgs(args);
 
-    const verb: string = (parsed.positionals[0] || "").toLowerCase();
+    const rawVerb: string = parsed.positionals[0] || "";
+    const verb: string = rawVerb.toLowerCase();
 
     // A denied verb is the most useful thing to say, whatever its flags.
     if (DENIED_VERBS.has(verb)) {
@@ -938,6 +1722,28 @@ export default class KubectlPolicy {
 
     if (!verb) {
       return deny("The command names no kubectl verb.");
+    }
+
+    /*
+     * cobra matches commands case-sensitively: "Get" is not the get command,
+     * and kubectl would look for a kubectl-Get plugin on the Runner's PATH
+     * and run it. The same holds one level down for subcommands.
+     */
+    if (rawVerb !== verb) {
+      return deny(
+        `kubectl matches commands case-sensitively, so "${rawVerb}" is not kubectl ${verb}: kubectl would look for a kubectl-${rawVerb} plugin on the Runner (write the verb in lowercase)`,
+        verb,
+      );
+    }
+
+    const rawSubcommand: string = parsed.positionals[1] || "";
+    const subcommand: string = rawSubcommand.toLowerCase();
+
+    if (SUBCOMMAND_VERBS.has(verb) && rawSubcommand !== subcommand) {
+      return deny(
+        `kubectl matches commands case-sensitively, so "${rawSubcommand}" is not the kubectl ${verb} ${subcommand} command (write the subcommand in lowercase)`,
+        `${verb} ${subcommand}`,
+      );
     }
 
     const streamingProblem: string | null = KubectlPolicy.findStreamingFlag(
@@ -956,23 +1762,141 @@ export default class KubectlPolicy {
       return deny(outputProblem);
     }
 
+    /*
+     * The namespace, resolved from -n / --namespace in every spelling
+     * parseArgs accepts (-n X, -nX, -n=X, --namespace X, --namespace=X).
+     * pflag keeps the LAST value of a repeated flag, so `-n web ... -n
+     * kube-system` would run in kube-system while a reader (or an allowlist
+     * pattern) saw web first: a namespace set twice is refused outright.
+     */
+    const namespaceValues: Array<string> = [
+      ...(parsed.flags.get("n") || []),
+      ...(parsed.flags.get("namespace") || []),
+    ];
+
+    if (namespaceValues.length > 1) {
+      return deny(
+        `the namespace is set more than once (${namespaceValues
+          .map((value: string) => {
+            return `"${value}"`;
+          })
+          .join(", ")}); kubectl silently uses the last one, so set -n once`,
+        verb,
+      );
+    }
+
+    const namespace: string | undefined = namespaceValues[0];
+
     const hasAllNamespaces: boolean =
       parsed.flags.has("A") || parsed.flags.has("all-namespaces");
     const hasAll: boolean = parsed.flags.has("all");
+    /*
+     * A field selector selects exactly like a label selector (kubectl's
+     * builder visits every match), so for a write both are "a selector".
+     */
     const hasSelector: boolean =
-      parsed.flags.has("l") || parsed.flags.has("selector");
+      parsed.flags.has("l") ||
+      parsed.flags.has("selector") ||
+      parsed.flags.has("field-selector");
     const hasForce: boolean = parsed.flags.has("force");
 
-    const subcommand: string = (parsed.positionals[1] || "").toLowerCase();
+    /*
+     * The objects a write names: after the verb for delete, after the
+     * verb's object tokens for the other object verbs (after the
+     * subcommand for rollout and set), and none for node verbs and create.
+     */
+    const targets: NamedKinds =
+      verb === "delete"
+        ? namedKinds(parsed.positionals.slice(1))
+        : OBJECT_VERBS.has(verb)
+          ? namedKinds(objectTokens(verb, parsed.positionals))
+          : namedKinds([]);
+
+    const createKind: string | undefined =
+      verb === "create" &&
+      Object.prototype.hasOwnProperty.call(CREATE_SUBCOMMANDS, rawSubcommand)
+        ? CREATE_SUBCOMMANDS[rawSubcommand]
+        : undefined;
+
+    /*
+     * Where a write lands, for the protected-namespace rule. Nodes and the
+     * other cluster-scoped kinds have no namespace (kubectl ignores -n for
+     * them); what could be protected there is a Namespace object itself.
+     */
+    const isClusterScopedWrite: boolean =
+      NODE_VERBS.has(verb) ||
+      (createKind !== undefined &&
+        CLUSTER_SCOPED_CREATE_KINDS.has(createKind)) ||
+      (targets.kinds.size > 0 &&
+        Array.from(targets.kinds).every((kind: string) => {
+          return CLUSTER_SCOPED_KINDS.has(kind);
+        }));
+
+    let protectedNamespace: string | undefined = undefined;
+
+    if (!isClusterScopedWrite && isProtectedKubernetesNamespace(namespace)) {
+      protectedNamespace = namespace!.trim().toLowerCase();
+    } else if (targets.kinds.has("namespace")) {
+      const protectedObject: string | undefined = targets.names.find(
+        (name: string) => {
+          return isProtectedKubernetesNamespace(name);
+        },
+      );
+      protectedNamespace = protectedObject
+        ? protectedObject.trim().toLowerCase()
+        : undefined;
+    }
+
+    /*
+     * The result for a command that may run. A write that lands in (or
+     * targets) a protected namespace is lifted from SafeWrite to RiskyWrite
+     * and marked, so evaluateForAutoExecution never runs it unattended.
+     */
+    const allowed: (
+      tier: KubectlCommandTier,
+      reason: string,
+      verbLabel: string,
+    ) => KubectlPolicyResult = (
+      tier: KubectlCommandTier,
+      reason: string,
+      verbLabel: string,
+    ): KubectlPolicyResult => {
+      const result: KubectlPolicyResult = {
+        tier,
+        reason,
+        args,
+        verb: verbLabel,
+        displayCommand,
+      };
+
+      if (namespace !== undefined) {
+        result.namespace = namespace;
+      }
+
+      if (tier === KubectlCommandTier.Read || !protectedNamespace) {
+        return result;
+      }
+
+      result.protectedNamespace = protectedNamespace;
+
+      if (tier === KubectlCommandTier.SafeWrite) {
+        result.tier = KubectlCommandTier.RiskyWrite;
+        result.reason = `${reason}, but it changes the protected namespace ${protectedNamespace}, so a human must approve it`;
+      } else {
+        result.reason = `${reason}; it changes the protected namespace ${protectedNamespace}, which always needs a human`;
+      }
+
+      return result;
+    };
+
+    // Kinds for messages: normalized for labels, as written for "not a ...".
+    const kindList: string = Array.from(targets.kinds).join(",");
+    const writtenKindList: string = targets.rawKinds.join(",");
 
     // ---- Credentials -----------------------------------------------------
 
     if (OBJECT_VERBS.has(verb)) {
-      const named: NamedKinds = namedKinds(
-        objectTokens(verb, parsed.positionals),
-      );
-
-      for (const kind of named.kinds) {
+      for (const kind of targets.kinds) {
         if (CREDENTIAL_KINDS.has(kind)) {
           return deny(
             `kubectl ${verb} on Secret objects is never allowed for OneUptime AI: it never reads, changes or deletes Secrets, whose values would otherwise reach the model and the job record (describe the workload that uses the Secret instead)`,
@@ -997,18 +1921,104 @@ export default class KubectlPolicy {
           "create secret",
         );
       }
+
+      const deniedCreateKind: string | undefined =
+        createKind && DENIED_CREATE_KINDS.has(createKind)
+          ? createKind
+          : RBAC_KINDS.has(normalizeKind(subcommand))
+            ? normalizeKind(subcommand)
+            : undefined;
+
+      if (deniedCreateKind) {
+        return deny(
+          `kubectl create ${subcommand} is never allowed for OneUptime AI: roles, role bindings and ServiceAccounts decide who may do what in the cluster, and creating one is a privilege grant, not a fix (a human makes RBAC changes)`,
+          `create ${deniedCreateKind}`,
+        );
+      }
+
+      if (!createKind) {
+        return deny(
+          `kubectl create ${rawSubcommand || "(missing subcommand)"} is not a kubectl create subcommand OneUptime AI may run (for a word it does not know, kubectl would look for a kubectl-create-${rawSubcommand || "<name>"} plugin on the Runner and run it)`,
+          `create ${subcommand}`,
+        );
+      }
+
+      if (createKind === "job") {
+        if (parsed.flags.has("image")) {
+          return deny(
+            "kubectl create job --image runs an arbitrary image in the cluster; OneUptime AI only re-runs an existing CronJob: kubectl create job NAME --from=cronjob/NAME",
+            "create job",
+          );
+        }
+
+        const fromValues: Array<string> = parsed.flags.get("from") || [];
+        const from: string = fromValues.length === 1 ? fromValues[0]! : "";
+        const slash: number = from.indexOf("/");
+        const fromName: string = slash > 0 ? from.slice(slash + 1) : "";
+        const isCronJobRef: boolean =
+          slash > 0 &&
+          builtinKind(from.slice(0, slash)) === "cronjob" &&
+          fromName.length > 0 &&
+          !fromName.includes("/");
+
+        if (!isCronJobRef) {
+          return deny(
+            "kubectl create job may only re-run an existing CronJob: kubectl create job NAME --from=cronjob/NAME",
+            "create job",
+          );
+        }
+
+        if (parsed.positionals.length > 3) {
+          return deny(
+            "kubectl create job --from=cronjob/NAME takes one job NAME and no command (the CronJob's own spec runs)",
+            "create job",
+          );
+        }
+      }
+    }
+
+    if (verb === "set") {
+      if (subcommand === "serviceaccount" || subcommand === "sa") {
+        return deny(
+          "kubectl set serviceaccount is never allowed for OneUptime AI: it changes the identity a workload's pods run as, and with it every permission and Secret they can reach",
+          "set serviceaccount",
+        );
+      }
+
+      if (subcommand === "subject") {
+        return deny(
+          "kubectl set subject is never allowed for OneUptime AI: adding users, groups or ServiceAccounts to a role binding is a privilege grant, not a fix",
+          "set subject",
+        );
+      }
+
+      if (!SET_SUBCOMMANDS.has(subcommand)) {
+        return deny(
+          `kubectl set ${rawSubcommand || "(missing subcommand)"} is not allowed`,
+          `set ${subcommand}`,
+        );
+      }
+
+      if (subcommand === "env") {
+        for (const from of parsed.flags.get("from") || []) {
+          if (CREDENTIAL_KINDS.has(normalizeKind(from.split("/")[0] || ""))) {
+            return deny(
+              "kubectl set env --from=secret/... wires a Secret's keys into the workload's environment; OneUptime AI never attaches Secrets to workloads (set plain values, or --from=configmap/...)",
+              "set env",
+            );
+          }
+        }
+      }
     }
 
     // ---- Read tier -------------------------------------------------------
 
     if (READ_VERBS.has(verb)) {
-      return {
-        tier: KubectlCommandTier.Read,
-        reason: `kubectl ${verb} only reads the cluster`,
-        args,
+      return allowed(
+        KubectlCommandTier.Read,
+        `kubectl ${verb} only reads the cluster`,
         verb,
-        displayCommand,
-      };
+      );
     }
 
     if (verb === "cluster-info") {
@@ -1018,24 +2028,20 @@ export default class KubectlPolicy {
           "cluster-info dump",
         );
       }
-      return {
-        tier: KubectlCommandTier.Read,
-        reason: "kubectl cluster-info only reads the cluster",
-        args,
+      return allowed(
+        KubectlCommandTier.Read,
+        "kubectl cluster-info only reads the cluster",
         verb,
-        displayCommand,
-      };
+      );
     }
 
     if (verb === "auth") {
       if (subcommand === "can-i" || subcommand === "whoami") {
-        return {
-          tier: KubectlCommandTier.Read,
-          reason: `kubectl auth ${subcommand} only reads the cluster`,
-          args,
-          verb: `auth ${subcommand}`,
-          displayCommand,
-        };
+        return allowed(
+          KubectlCommandTier.Read,
+          `kubectl auth ${subcommand} only reads the cluster`,
+          `auth ${subcommand}`,
+        );
       }
       return deny(
         `kubectl auth ${subcommand || "(missing subcommand)"} is not allowed`,
@@ -1043,59 +2049,102 @@ export default class KubectlPolicy {
       );
     }
 
-    if (verb === "rollout") {
-      const rolloutVerb: string = `rollout ${subcommand}`;
-
-      if (subcommand === "status" || subcommand === "history") {
-        return {
-          tier: KubectlCommandTier.Read,
-          reason: `kubectl ${rolloutVerb} only reads the cluster`,
-          args,
-          verb: rolloutVerb,
-          displayCommand,
-        };
-      }
-
-      if (
-        subcommand === "restart" ||
-        subcommand === "undo" ||
-        subcommand === "pause" ||
-        subcommand === "resume"
-      ) {
-        if (hasAllNamespaces) {
-          return deny(
-            `kubectl ${rolloutVerb} across all namespaces is not allowed`,
-            rolloutVerb,
-          );
-        }
-        if (hasSelector || hasAll) {
-          return {
-            tier: KubectlCommandTier.RiskyWrite,
-            reason: `kubectl ${rolloutVerb} with a selector or --all touches many workloads at once`,
-            args,
-            verb: rolloutVerb,
-            displayCommand,
-          };
-        }
-        return {
-          tier: KubectlCommandTier.SafeWrite,
-          reason: `kubectl ${rolloutVerb} is a controller-managed, reversible change to one workload`,
-          args,
-          verb: rolloutVerb,
-          displayCommand,
-        };
-      }
-
-      return deny(
-        `kubectl rollout ${subcommand || "(missing subcommand)"} is not allowed`,
-        rolloutVerb,
+    if (
+      verb === "rollout" &&
+      (subcommand === "status" || subcommand === "history")
+    ) {
+      return allowed(
+        KubectlCommandTier.Read,
+        `kubectl rollout ${subcommand} only reads the cluster`,
+        `rollout ${subcommand}`,
       );
     }
 
     // ---- Write tiers -----------------------------------------------------
 
     if (hasAllNamespaces) {
-      return deny(`kubectl ${verb} across all namespaces is not allowed`, verb);
+      const label: string = verb === "rollout" ? `rollout ${subcommand}` : verb;
+      return deny(
+        `kubectl ${label} across all namespaces is not allowed`,
+        label,
+      );
+    }
+
+    if (OBJECT_VERBS.has(verb)) {
+      for (const kind of targets.kinds) {
+        if (RESOURCE_CATEGORIES.has(kind)) {
+          return deny(
+            `kubectl ${verb} on the resource category "${kind}" is never allowed for OneUptime AI: kubectl expands a category into every kind in it (api-extensions alone covers CRDs, APIServices and admission webhooks), so name the kind instead`,
+            `${verb} ${kind}`,
+          );
+        }
+
+        if (
+          RBAC_KINDS.has(kind) &&
+          verb !== "label" &&
+          verb !== "annotate" &&
+          verb !== "delete"
+        ) {
+          return deny(
+            `kubectl ${verb} on ${kind} objects is never allowed for OneUptime AI: roles and role bindings decide who may do what in the cluster, and changing them is a privilege grant, not a fix (a human makes RBAC changes)`,
+            `${verb} ${kind}`,
+          );
+        }
+      }
+    }
+
+    if (verb === "rollout") {
+      const rolloutVerb: string = `rollout ${subcommand}`;
+
+      if (
+        subcommand !== "restart" &&
+        subcommand !== "undo" &&
+        subcommand !== "pause" &&
+        subcommand !== "resume"
+      ) {
+        return deny(
+          `kubectl rollout ${subcommand || "(missing subcommand)"} is not allowed`,
+          rolloutVerb,
+        );
+      }
+
+      if (hasSelector || hasAll) {
+        return allowed(
+          KubectlCommandTier.RiskyWrite,
+          `kubectl ${rolloutVerb} with a selector or --all touches many workloads at once`,
+          rolloutVerb,
+        );
+      }
+
+      if (targets.namedCount === 0) {
+        return allowed(
+          KubectlCommandTier.RiskyWrite,
+          `kubectl ${rolloutVerb} names no workload, and kubectl reads a bare kind as every ${kindList || "workload"} in the namespace (name one: TYPE/NAME)`,
+          rolloutVerb,
+        );
+      }
+
+      if (!isOneNamedObject(targets)) {
+        return allowed(
+          KubectlCommandTier.RiskyWrite,
+          `kubectl ${rolloutVerb} names several workloads at once`,
+          rolloutVerb,
+        );
+      }
+
+      if (!everyBuiltinKindIn(targets, ROLLOUT_SAFE_KINDS)) {
+        return allowed(
+          KubectlCommandTier.RiskyWrite,
+          `kubectl ${rolloutVerb} on ${writtenKindList} is not a Deployment, StatefulSet or DaemonSet rollout`,
+          rolloutVerb,
+        );
+      }
+
+      return allowed(
+        KubectlCommandTier.SafeWrite,
+        `kubectl ${rolloutVerb} of one named workload is a controller-managed, reversible change`,
+        rolloutVerb,
+      );
     }
 
     if (verb === "delete") {
@@ -1103,21 +2152,11 @@ export default class KubectlPolicy {
         return deny("kubectl delete --all is not allowed", "delete");
       }
 
-      const kindTokens: Array<string> = parsed.positionals.slice(1);
-
-      if (kindTokens.length === 0) {
+      if (parsed.positionals.length < 2) {
         return deny("kubectl delete needs a resource kind and name", "delete");
       }
 
-      /*
-       * Both "delete pod foo" and "delete pod/foo" (and "delete pods foo
-       * bar") are accepted; normalize to the set of kinds named.
-       */
-      const named: NamedKinds = namedKinds(kindTokens);
-      const kinds: Set<string> = named.kinds;
-      const namedCount: number = named.namedCount;
-
-      for (const kind of kinds) {
+      for (const kind of targets.kinds) {
         if (NEVER_DELETE_KINDS.has(kind)) {
           return deny(
             `deleting ${kind} objects is never allowed for OneUptime AI`,
@@ -1126,88 +2165,240 @@ export default class KubectlPolicy {
         }
       }
 
-      const verbLabel: string = `delete ${Array.from(kinds).join(",")}`;
+      const verbLabel: string = `delete ${kindList}`;
 
-      if (namedCount === 0 && !hasSelector) {
+      if (targets.namedCount === 0 && !hasSelector) {
         return deny(
           "kubectl delete needs the name of the object to delete (or a selector, which needs approval)",
           verbLabel,
         );
       }
 
-      const allSafeKinds: boolean = Array.from(kinds).every((kind: string) => {
-        return SAFE_DELETE_KINDS.has(kind);
-      });
-
-      if (allSafeKinds && namedCount > 0 && !hasSelector && !hasForce) {
-        return {
-          tier: KubectlCommandTier.SafeWrite,
-          reason:
-            "deleting a named pod or job is recreated by its controller and has a bounded blast radius",
-          args,
-          verb: verbLabel,
-          displayCommand,
-        };
+      if (
+        !hasSelector &&
+        !hasForce &&
+        isOneNamedObject(targets) &&
+        everyBuiltinKindIn(targets, SAFE_DELETE_KINDS)
+      ) {
+        return allowed(
+          KubectlCommandTier.SafeWrite,
+          "deleting one named pod is a bounded change: its controller recreates it",
+          verbLabel,
+        );
       }
 
-      return {
-        tier: KubectlCommandTier.RiskyWrite,
-        reason: hasForce
+      return allowed(
+        KubectlCommandTier.RiskyWrite,
+        hasForce
           ? "force-deleting skips graceful termination"
           : hasSelector
             ? "deleting by selector can remove many objects at once"
-            : `deleting ${Array.from(kinds).join(",")} objects changes what is deployed`,
-        args,
-        verb: verbLabel,
-        displayCommand,
-      };
+            : targets.namedCount > 1
+              ? "deleting several objects at once"
+              : targets.kinds.has("job")
+                ? "a deleted Job is gone for good: no controller recreates it"
+                : `deleting ${writtenKindList} objects changes what is deployed`,
+        verbLabel,
+      );
     }
 
-    if (SAFE_WRITE_VERBS.has(verb)) {
+    if (verb === "scale") {
       if (hasAll || hasSelector) {
-        return {
-          tier: KubectlCommandTier.RiskyWrite,
-          reason: `kubectl ${verb} with a selector or --all touches many objects at once`,
-          args,
+        return allowed(
+          KubectlCommandTier.RiskyWrite,
+          "kubectl scale with a selector or --all touches many objects at once",
           verb,
-          displayCommand,
-        };
+        );
       }
 
-      if (verb === "scale" && !parsed.flags.has("replicas")) {
+      const replicas: Array<string> = parsed.flags.get("replicas") || [];
+
+      if (replicas.length === 0) {
         return deny("kubectl scale needs --replicas", verb);
       }
 
-      return {
-        tier: KubectlCommandTier.SafeWrite,
-        reason: `kubectl ${verb} is a reversible change with a bounded blast radius`,
-        args,
+      if (!isOneNamedObject(targets)) {
+        return allowed(
+          KubectlCommandTier.RiskyWrite,
+          "kubectl scale names several workloads (or none) at once",
+          verb,
+        );
+      }
+
+      if (!everyBuiltinKindIn(targets, SCALE_SAFE_KINDS)) {
+        return allowed(
+          KubectlCommandTier.RiskyWrite,
+          `kubectl scale of ${writtenKindList} is not a safe change (only a Deployment, StatefulSet or ReplicaSet is)`,
+          verb,
+        );
+      }
+
+      for (const value of replicas) {
+        const count: string = value.trim();
+        if (!/^[0-9]+$/.test(count)) {
+          return allowed(
+            KubectlCommandTier.RiskyWrite,
+            `--replicas=${value} is not a replica count kubectl scale can apply safely`,
+            verb,
+          );
+        }
+        if (parseInt(count, 10) === 0) {
+          return allowed(
+            KubectlCommandTier.RiskyWrite,
+            "scaling to zero replicas stops the workload: an outage, not a reversible nudge",
+            verb,
+          );
+        }
+      }
+
+      return allowed(
+        KubectlCommandTier.SafeWrite,
+        "kubectl scale of one named workload to a non-zero count is a reversible change",
         verb,
-        displayCommand,
-      };
+      );
+    }
+
+    if (verb === "cordon" || verb === "uncordon") {
+      if (hasAll || hasSelector) {
+        return allowed(
+          KubectlCommandTier.RiskyWrite,
+          `kubectl ${verb} with a selector or --all touches many nodes at once`,
+          verb,
+        );
+      }
+
+      const nodes: Array<string> = parsed.positionals.slice(1);
+      const node: string = nodes[0] || "";
+      const namesOneNode: boolean =
+        nodes.length === 1 &&
+        (!node.includes("/") ||
+          builtinKind(node.slice(0, node.indexOf("/"))) === "node");
+
+      if (!namesOneNode) {
+        return allowed(
+          KubectlCommandTier.RiskyWrite,
+          `kubectl ${verb} of anything but one named node touches several nodes (or none) at once`,
+          verb,
+        );
+      }
+
+      return allowed(
+        KubectlCommandTier.SafeWrite,
+        `kubectl ${verb} of one node is a reversible change`,
+        verb,
+      );
+    }
+
+    if (verb === "label" || verb === "annotate") {
+      const keys: Array<string> = labelKeys(verb, parsed.positionals);
+
+      if (targets.kinds.has("namespace")) {
+        const podSecurityKey: string | undefined = keys.find(isPodSecurityKey);
+        if (podSecurityKey) {
+          return deny(
+            `kubectl ${verb} of ${podSecurityKey} on a namespace is never allowed for OneUptime AI: pod-security.kubernetes.io keys are Pod Security Admission's controls, which decide whether privileged pods may run there`,
+            `${verb} namespace`,
+          );
+        }
+      }
+
+      // Aggregation reads labels only; an annotation there is just text.
+      if (verb === "label" && targets.kinds.has("clusterrole")) {
+        const aggregationKey: string | undefined = keys.find((key: string) => {
+          return key.toLowerCase().startsWith(RBAC_AGGREGATION_KEY_PREFIX);
+        });
+        if (aggregationKey) {
+          return deny(
+            `kubectl ${verb} of ${aggregationKey} on a ClusterRole is never allowed for OneUptime AI: it merges the role's rules into admin/edit/view and so grants them to everyone bound to those, a privilege grant, not a fix`,
+            `${verb} clusterrole`,
+          );
+        }
+      }
+
+      if (hasAll || hasSelector) {
+        return allowed(
+          KubectlCommandTier.RiskyWrite,
+          `kubectl ${verb} with a selector or --all touches many objects at once`,
+          verb,
+        );
+      }
+
+      if (!isOneNamedObject(targets)) {
+        return allowed(
+          KubectlCommandTier.RiskyWrite,
+          `kubectl ${verb} names several objects (or none) at once`,
+          verb,
+        );
+      }
+
+      if (!everyBuiltinKindIn(targets, LABEL_SAFE_KINDS)) {
+        return allowed(
+          KubectlCommandTier.RiskyWrite,
+          `${verb === "label" ? "labels" : "annotations"} on ${writtenKindList} can steer admission, scheduling, identity or traffic (only a pod or workload is a safe target)`,
+          verb,
+        );
+      }
+
+      const reservedKey: string | undefined = keys.find(isReservedKey);
+
+      if (reservedKey) {
+        return allowed(
+          KubectlCommandTier.RiskyWrite,
+          `${reservedKey} is a key Kubernetes or a cluster controller acts on, not a plain ${verb === "label" ? "label" : "annotation"}`,
+          verb,
+        );
+      }
+
+      return allowed(
+        KubectlCommandTier.SafeWrite,
+        `kubectl ${verb} of one named pod or workload is a reversible change`,
+        verb,
+      );
+    }
+
+    if (verb === "patch") {
+      const bodies: Array<string> = [
+        ...(parsed.flags.get("p") || []),
+        ...(parsed.flags.get("patch") || []),
+      ];
+
+      for (const body of bodies) {
+        const field: string | null = findForbiddenPatchField(body);
+        if (field) {
+          return deny(
+            isPodSecurityKey(field)
+              ? `kubectl patch of ${field} is never allowed for OneUptime AI: Pod Security Admission reads these labels to decide whether privileged pods may run in a namespace`
+              : `kubectl patch that touches ${field} is never allowed for OneUptime AI: it changes which identity, privileges, host access, Secrets or program a pod runs with (patch other fields, or use set image / set env / set resources)`,
+            "patch",
+          );
+        }
+      }
     }
 
     if (RISKY_WRITE_VERBS.has(verb)) {
       const verbLabel: string =
         verb === "set" || verb === "create" ? `${verb} ${subcommand}` : verb;
-      return {
-        tier: KubectlCommandTier.RiskyWrite,
-        reason: `kubectl ${verbLabel} can change what is deployed or affect many pods, so a human must approve it`,
-        args,
-        verb: verbLabel,
-        displayCommand,
-      };
+      return allowed(
+        KubectlCommandTier.RiskyWrite,
+        `kubectl ${verbLabel} can change what is deployed or affect many pods, so a human must approve it`,
+        verbLabel,
+      );
     }
 
-    return deny(`kubectl ${verb} is not a command OneUptime AI may run`, verb);
+    return deny(
+      `kubectl ${verb} is not a command OneUptime AI may run (for a word it does not know, kubectl would look for a kubectl-${verb} plugin on the Runner and run it)`,
+      verb,
+    );
   }
 
   /*
    * The remediation verdict for one command under a cluster's settings.
    * Read and SafeWrite auto-approve; RiskyWrite auto-approves only when the
-   * operator allowlisted its exact shape (same glob matcher the Bash lane
-   * uses, on the rendered command); Denied stays Denied. Suggest mode never
-   * consults this — everything there is RequiresApproval by construction.
+   * cluster bypasses approvals or the operator allowlisted its exact shape
+   * (matchesAllowlist: token by token, see the allowlist section in the
+   * header); Denied stays Denied; and a write in a protected namespace always
+   * needs a human. Suggest mode never consults this — everything there is
+   * RequiresApproval by construction.
    */
   public static evaluateForAutoExecution(data: {
     command: string;
@@ -1216,6 +2407,7 @@ export default class KubectlPolicy {
      * The cluster's operator chose to never be asked: RiskyWrite auto-approves
      * too. Denied stays Denied — that tier is what "even with approval"
      * means, and bypassing approval cannot grant more than approval would.
+     * Nor does it reach a protected namespace (kube-system and friends).
      */
     bypassApproval?: boolean | undefined;
   }): KubectlAutoExecutionVerdict {
@@ -1231,10 +2423,27 @@ export default class KubectlPolicy {
       };
     }
 
-    if (
-      result.tier === KubectlCommandTier.Read ||
-      result.tier === KubectlCommandTier.SafeWrite
-    ) {
+    if (result.tier === KubectlCommandTier.Read) {
+      return {
+        verdict: AiRemediationCommandPolicyVerdict.AutoApproved,
+        tier: result.tier,
+        reason: result.reason,
+      };
+    }
+
+    /*
+     * Before SafeWrite, bypass and the allowlist: nothing an operator set on
+     * the cluster lets OneUptime AI change kube-system on its own.
+     */
+    if (result.protectedNamespace) {
+      return {
+        verdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
+        tier: result.tier,
+        reason: `Requires human approval: ${result.reason}. Neither bypassing approvals nor the cluster's allowlist applies in ${result.protectedNamespace}.`,
+      };
+    }
+
+    if (result.tier === KubectlCommandTier.SafeWrite) {
       return {
         verdict: AiRemediationCommandPolicyVerdict.AutoApproved,
         tier: result.tier,
@@ -1251,8 +2460,8 @@ export default class KubectlPolicy {
     }
 
     if (
-      CommandPolicy.matchesAllowlist({
-        command: result.displayCommand,
+      KubectlPolicy.matchesAllowlist({
+        args: result.args,
         allowlistPatterns: data.allowlistPatterns,
       })
     ) {
@@ -1268,6 +2477,56 @@ export default class KubectlPolicy {
       tier: result.tier,
       reason: `Requires human approval: ${result.reason}.`,
     };
+  }
+
+  /*
+   * Whether a cluster allowlist pattern names this argv (without the
+   * leading "kubectl"), token by token — the semantics are spelled out in
+   * the allowlist section of the header. Tier-blind on purpose: callers
+   * (evaluateForAutoExecution) decide which tiers the allowlist may promote.
+   */
+  public static matchesAllowlist(data: {
+    args: Array<string>;
+    allowlistPatterns: Array<string>;
+  }): boolean {
+    const args: Array<string> = (data.args || []).filter((arg: unknown) => {
+      return typeof arg === "string";
+    });
+
+    if (args.length === 0) {
+      return false;
+    }
+
+    const patterns: Array<string> = (data.allowlistPatterns || [])
+      .filter((pattern: unknown) => {
+        return typeof pattern === "string" && pattern.trim().length > 0;
+      })
+      .slice(0, MAX_ALLOWLIST_PATTERNS);
+
+    for (const pattern of patterns) {
+      if (pattern.length > MAX_ALLOWLIST_PATTERN_LENGTH) {
+        continue;
+      }
+
+      const tokenized: KubectlTokenizeResult = KubectlPolicy.tokenize(pattern);
+      const patternArgs: Array<string> | undefined = tokenized.args;
+
+      if (!patternArgs || patternArgs.length !== args.length) {
+        continue;
+      }
+
+      const matches: boolean = patternArgs.every(
+        (patternToken: string, index: number) => {
+          return allowlistTokenMatches(patternToken, args[index]!);
+        },
+      );
+
+      if (matches) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   public static isReadOnly(command: string): boolean {
@@ -1464,7 +2723,7 @@ export default class KubectlPolicy {
       if (token.startsWith("--")) {
         const eq: number = token.indexOf("=");
         const rawName: string = eq >= 0 ? token.slice(2, eq) : token.slice(2);
-        const name: string = rawName.replace(/_/g, "-");
+        const name: string = normalizeKubectlFlagName(rawName);
 
         if (!name || name.startsWith("-")) {
           problems.push(`"${token}" is not valid flag syntax`);
