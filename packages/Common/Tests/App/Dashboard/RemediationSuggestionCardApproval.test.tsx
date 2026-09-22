@@ -7,7 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 
 // Only rendered when "Show reasoning" is opened; keep the lazy import out.
@@ -22,9 +29,12 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 
 import RemediationSuggestionCard, {
   CommandApprovalPillKind,
+  getActionErrorTitle,
   getCommandApprovalPillKind,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationSuggestionCard";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import {
   AiRemediationCommandExecutionStatus,
   AiRemediationCommandPolicyVerdict,
@@ -37,6 +47,7 @@ import { JSONObject } from "../../../Types/JSON";
 import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import ObjectID from "../../../Types/ObjectID";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
+import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 
 /*
@@ -302,5 +313,157 @@ describe("RemediationSuggestionCard approval pill", () => {
     expect(within(row).queryByText("auto-approved")).not.toBeInTheDocument();
     expect(within(row).queryByText("needs approval")).not.toBeInTheDocument();
     expect(screen.getByText("Dismissed")).toBeInTheDocument();
+  });
+});
+
+/*
+ * Approving a kubectl plan runs it on a cluster under the approver's name.
+ * Two things went unpinned: a double click posted the approval twice (the
+ * button is only disabled once React re-renders, and both clicks of a
+ * double click land before that), and the server's approval-time refusal
+ * — the cluster's remediation switched off, or its Runner or credential
+ * changed, since the plan was composed — has to reach the reader intact.
+ */
+describe("RemediationSuggestionCard Approve & Run", () => {
+  const APPROVE_ROUTE: string = "/auto-remediation/approve";
+  const DISMISS_ROUTE: string = "/auto-remediation/dismiss";
+  const SUGGESTION_ID: string = "0193c0de-6666-4aaa-8bbb-000000000006";
+  const REFUSAL: string =
+    "Cluster \"prod-east\" (command 1) no longer allows AI remediation: AI remediation is off — Turn it on on the cluster's AI page. Fix that on the cluster's AI page and approve again, or dismiss the suggestion.";
+
+  let postSpy: ReturnType<typeof jest.spyOn>;
+
+  type Answer = (value: HTTPResponse<JSONObject> | HTTPErrorResponse) => void;
+
+  // Holds every action request open until the test answers it.
+  function deferActions(): Array<Answer> {
+    const answers: Array<Answer> = [];
+    postSpy.mockImplementation(
+      (): Promise<HTTPResponse<JSONObject> | HTTPErrorResponse> => {
+        return new Promise((resolve: Answer) => {
+          answers.push(resolve);
+        });
+      },
+    );
+    return answers;
+  }
+
+  function actionPosts(route: string): Array<JSONObject> {
+    return postSpy.mock.calls
+      .map((call: Array<unknown>): JSONObject => {
+        return (call[0] || {}) as JSONObject;
+      })
+      .filter((request: JSONObject): boolean => {
+        return String(request["url"]).endsWith(route);
+      });
+  }
+
+  async function renderWaitingPlan(): Promise<HTMLElement> {
+    await renderCard(
+      suggestion(AutoRemediationSuggestionStatus.Suggested, [
+        kubectlCommand({
+          policyVerdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
+        }),
+      ]),
+    );
+    return screen.getByTestId("remediation-approve-button");
+  }
+
+  beforeEach(() => {
+    postSpy = jest.spyOn(API, "post");
+    jest.spyOn(ModelAPI, "getCommonHeaders").mockReturnValue({});
+  });
+
+  test("a double click posts the approval once", async () => {
+    const answers: Array<Answer> = deferActions();
+    const button: HTMLElement = await renderWaitingPlan();
+
+    // Both clicks land before React re-renders the button as disabled.
+    act(() => {
+      button.click();
+      button.click();
+    });
+
+    expect(actionPosts(APPROVE_ROUTE)).toHaveLength(1);
+    expect(actionPosts(APPROVE_ROUTE)[0]!["data"]).toEqual({
+      suggestionId: SUGGESTION_ID,
+    });
+    expect(screen.getByTestId("remediation-approve-button")).toBeDisabled();
+    // Dismiss is locked too while the approval is in flight.
+    expect(screen.getByText("Dismiss").closest("button")).toBeDisabled();
+
+    await act(async () => {
+      answers[0]!(new HTTPResponse<JSONObject>(200, {}, {}));
+    });
+
+    await waitFor(() => {
+      expect(getListSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
+    expect(actionPosts(APPROVE_ROUTE)).toHaveLength(1);
+  });
+
+  test("a refused approval shows the server's reason, says nothing ran, and reloads", async () => {
+    const answers: Array<Answer> = deferActions();
+    const button: HTMLElement = await renderWaitingPlan();
+    const listCallsBefore: number = getListSpy.mock.calls.length;
+
+    act(() => {
+      button.click();
+    });
+
+    await act(async () => {
+      answers[0]!(new HTTPErrorResponse(400, { error: REFUSAL }, {}));
+    });
+
+    const alert: HTMLElement = await screen.findByTestId(
+      "remediation-action-error",
+    );
+    expect(alert).toHaveTextContent(REFUSAL);
+    expect(alert).toHaveTextContent("the fix was not approved and nothing ran");
+
+    await waitFor(() => {
+      expect(getListSpy.mock.calls.length).toBeGreaterThan(listCallsBefore);
+    });
+
+    // The guard is released: the operator can fix the cluster and retry.
+    expect(screen.getByTestId("remediation-approve-button")).not.toBeDisabled();
+    act(() => {
+      screen.getByTestId("remediation-approve-button").click();
+    });
+    expect(actionPosts(APPROVE_ROUTE)).toHaveLength(2);
+    // A new attempt clears the old refusal.
+    expect(
+      screen.queryByTestId("remediation-action-error"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a refused dismissal names the dismissal", async () => {
+    const answers: Array<Answer> = deferActions();
+    await renderWaitingPlan();
+
+    act(() => {
+      (screen.getByText("Dismiss").closest("button") as HTMLElement).click();
+    });
+    expect(actionPosts(DISMISS_ROUTE)).toHaveLength(1);
+
+    await act(async () => {
+      answers[0]!(
+        new HTTPErrorResponse(422, { error: "You cannot dismiss this." }, {}),
+      );
+    });
+
+    const alert: HTMLElement = await screen.findByTestId(
+      "remediation-action-error",
+    );
+    expect(alert).toHaveTextContent("You cannot dismiss this.");
+    expect(alert).toHaveTextContent("the suggestion was not dismissed");
+    expect(alert).not.toHaveTextContent("nothing ran");
+  });
+
+  test("the refusal headline follows the action", () => {
+    expect(getActionErrorTitle("approve")).toMatch(/not approved/);
+    expect(getActionErrorTitle("approve")).toMatch(/nothing ran/);
+    expect(getActionErrorTitle("dismiss")).toMatch(/not dismissed/);
+    expect(getActionErrorTitle(null)).toBe("Could not save your action");
   });
 });

@@ -359,6 +359,25 @@ function CommandExecutionPill({
 
 const POLL_INTERVAL_MS: number = 15 * 1000;
 
+export type RemediationSuggestionAction = "approve" | "dismiss";
+
+/*
+ * The refusal's headline names the action that failed. The server refuses
+ * an approval before it claims the plan, so a refused approval ran
+ * nothing.
+ */
+export function getActionErrorTitle(
+  action: RemediationSuggestionAction | null,
+): string {
+  if (action === "approve") {
+    return "Could not save your action: the fix was not approved and nothing ran";
+  }
+  if (action === "dismiss") {
+    return "Could not save your action: the suggestion was not dismissed";
+  }
+  return "Could not save your action";
+}
+
 const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -367,7 +386,11 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
   >([]);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [actionError, setActionError] = useState<string>("");
+  const [failedAction, setFailedAction] =
+    useState<RemediationSuggestionAction | null>(null);
   const [busySuggestionId, setBusySuggestionId] = useState<string>("");
+  const [busyAction, setBusyAction] =
+    useState<RemediationSuggestionAction | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     new Set<string>(),
   );
@@ -491,19 +514,30 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
 
   const performAction: (
     suggestion: AutoRemediationSuggestion,
-    action: "approve" | "dismiss",
+    action: RemediationSuggestionAction,
   ) => Promise<void> = async (
     suggestion: AutoRemediationSuggestion,
-    action: "approve" | "dismiss",
+    action: RemediationSuggestionAction,
   ): Promise<void> => {
     const suggestionId: string | undefined = suggestion.id?.toString();
     if (!suggestionId) {
       return;
     }
 
-    setActionError("");
-    setBusySuggestionId(suggestionId);
+    /*
+     * One action at a time, decided on the ref rather than on state: a
+     * double click lands both clicks before React re-renders the button
+     * as disabled, and each click would otherwise post its own approve.
+     */
+    if (isBusyRef.current) {
+      return;
+    }
     isBusyRef.current = true;
+
+    setActionError("");
+    setFailedAction(null);
+    setBusySuggestionId(suggestionId);
+    setBusyAction(action);
 
     try {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -519,12 +553,21 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
         throw response;
       }
     } catch (err) {
+      /*
+       * The server re-checks a kubectl plan at approval time — the cluster's
+       * remediation may have been switched off, or its Runner or
+       * credential changed, since the plan was composed — and refuses the
+       * click with the reason and what to do.
+       */
       setActionError(API.getFriendlyMessage(err));
+      setFailedAction(action);
     } finally {
       setBusySuggestionId("");
+      setBusyAction(null);
       isBusyRef.current = false;
     }
 
+    // Reload either way: a refusal usually means the plan's state moved on.
     await load();
   };
 
@@ -549,8 +592,9 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
         {actionError ? (
           <Alert
             type={AlertType.DANGER}
-            strongTitle="Could not save your action"
+            strongTitle={getActionErrorTitle(failedAction)}
             title={actionError}
+            dataTestId="remediation-action-error"
           />
         ) : (
           <></>
@@ -815,6 +859,8 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                       buttonStyle={ButtonStyleType.SUCCESS_OUTLINE}
                       buttonSize={ButtonSize.Small}
                       disabled={isBusy}
+                      isLoading={isBusy && busyAction === "approve"}
+                      dataTestId="remediation-approve-button"
                       onClick={() => {
                         performAction(suggestion, "approve").catch(() => {
                           // handled inside performAction
