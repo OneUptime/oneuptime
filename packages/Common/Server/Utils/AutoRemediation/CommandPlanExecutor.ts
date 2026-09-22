@@ -18,6 +18,7 @@ import {
   AiRemediationRollbackStatus,
   getForwardCommandStepId,
   getRollbackCommandStepId,
+  isSettledCommandExecutionStatus,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import CommandPolicy from "../../../Utils/AiRemediation/CommandPolicy";
@@ -43,6 +44,7 @@ import RunnerJobService, {
   isTerminalAgentJobStatus,
 } from "../../Services/RunnerJobService";
 import RunnerJobStatus from "../../../Types/Runbook/RunnerJobStatus";
+import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import ToolResultSerializer from "../AI/Toolbox/Serializer";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -70,11 +72,39 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * and a rollback fires at the end of the verification window. The
  * operator's current choice (remediation off, a different Runner bound, a
  * mode that no longer bypasses approvals) wins over the frozen plan.
+ *
+ * The two arms can overlap: verification fails a plan that overran its
+ * window while the executor is still waiting on a command. Three rules keep
+ * them from undoing each other:
+ *   - the executor starts each command (its stand-down check, the enqueue,
+ *     and the write that names the job) under a per-plan lock, and the
+ *     rollback arm reads the plan under the same lock — so every forward
+ *     job that will ever exist is either on the record the rollback arm
+ *     reads, or its command stands down;
+ *   - the rollback arm WAITS for a forward job still in flight and rolls it
+ *     back once it succeeds, instead of skipping it;
+ *   - both write the plan read-modify-write under that lock, each writing
+ *     only its own fields (the executor: forward executions and the plan's
+ *     execution lifecycle; the rollback arm: rollbacks and rollbackStatus),
+ *     so neither erases the other's record.
+ *
+ * A Worker restart mid-rollback leaves the plan's rollbackStatus unset with
+ * a heartbeat that goes stale; the verifier's recovery sweep resumes it
+ * (executeRollback settles rollbacks already handed to a Runner from their
+ * jobs, and never re-runs one that ran).
  */
 
 const AI_COMMAND_CLAIM_TIMEOUT_MS: number = 60_000;
 const MAX_STORED_OUTPUT_CHARS: number = 6000;
 const MAX_FEED_REASON_CHARS: number = 400;
+
+/*
+ * The per-plan lock covers database writes and one enqueue — never a wait
+ * on a Runner. It expires on its own if the pod dies holding it.
+ */
+const PLAN_LOCK_NAMESPACE: string = "AutoRemediationCommandPlan";
+const PLAN_LOCK_TIMEOUT_MS: number = 30_000;
+const PLAN_LOCK_ACQUIRE_TIMEOUT_MS: number = 15_000;
 
 // What the rollback arm needs from a RunnerJob to settle its command.
 const RECONCILE_JOB_SELECT: {
@@ -90,6 +120,35 @@ const RECONCILE_JOB_SELECT: {
   exitCode: true,
   errorMessage: true,
 };
+
+// Who is writing the plan — each side owns different fields of it.
+type PlanWriter = "executor" | "rollback";
+
+/*
+ * What the rollback arm did, for the verifier: it gates the follow-up round
+ * on it and records it on the verification note. rollbackStatus is
+ * undefined when the arm could not settle the rollback (no plan, or the
+ * status could not be written).
+ */
+export interface CommandPlanRollbackOutcome {
+  rollbackStatus: AiRemediationRollbackStatus | undefined;
+  // Rollbacks that ran and succeeded.
+  rolledBack: number;
+  // Rollbacks that ran and failed, or that the command policy refused.
+  failed: number;
+  // Rollbacks left for a human to run by hand (their outcome says why).
+  leftForHuman: number;
+  // One sentence for the verification note.
+  summary: string;
+}
+
+interface StartedCommand {
+  state: AiRemediationCommandExecutionState;
+  // Set when the command reached a Runner; null when it was refused first.
+  job: RunnerJob | null;
+  // Whether the cluster's AI page should record this outcome.
+  recordsClusterOutcome: boolean;
+}
 
 export default class CommandPlanExecutor {
   /*
@@ -150,11 +209,13 @@ export default class CommandPlanExecutor {
 
       plan.executionStatus = AiRemediationPlanExecutionStatus.Running;
       plan.executionStartedAt = OneUptimeDate.getCurrentDate().toISOString();
-      await this.persistPlan(suggestion, plan);
+      await this.persistPlan(suggestion, plan, "executor");
 
       let failed: boolean = false;
       // What stopped the plan, for the feed: the first non-Succeeded outcome.
       let firstFailure: string | null = null;
+      // Verification settled the remediation while the plan was executing.
+      let settledMidPlan: boolean = false;
 
       for (const command of plan.commands) {
         // FullAuto-executed entries never appear in approved Suggest plans.
@@ -171,40 +232,66 @@ export default class CommandPlanExecutor {
         }
 
         /*
-         * Abort check between commands. Verification runs on its own sweep
-         * and can fail this remediation while the plan is still executing
-         * (a slow Runner, a long command); once it does, it rolls the
-         * executed commands back. Continuing to push NEW forward commands
-         * into a rollback that is already under way is how a plan and its
-         * undo end up fighting each other, so the executor stops the moment
-         * verification is no longer Pending or a human moved the
-         * suggestion off Approved.
+         * Start the command under the plan lock: the stand-down check, the
+         * Pending marker, the enqueue and the write that names the job. The
+         * rollback arm reads the plan under the same lock, so it either sees
+         * this command's job (and waits for it) or this command sees the
+         * settled verification and never starts.
          */
-        if (!(await this.isStillExecutable(suggestion.id!))) {
-          command.execution = {
-            status: AiRemediationCommandExecutionStatus.Skipped,
-            errorMessage:
-              "Skipped: this remediation was settled (verified, failed, or actioned by a human) before the command ran.",
-          };
-          failed = true;
+        const mutex: SemaphoreMutex | null = await this.lockPlan(
+          suggestion.id!,
+        );
+
+        let started: StartedCommand | null = null;
+
+        try {
+          /*
+           * Abort check between commands. Verification runs on its own
+           * sweep and can fail this remediation while the plan is still
+           * executing (a slow Runner, a long command); once it does, it
+           * rolls the executed commands back. Continuing to push NEW
+           * forward commands into a rollback that is already under way is
+           * how a plan and its undo end up fighting each other, so the
+           * executor stops the moment verification is no longer Pending or
+           * a human moved the suggestion off Approved.
+           */
+          if (!(await this.isStillExecutable(suggestion.id!))) {
+            command.execution = {
+              status: AiRemediationCommandExecutionStatus.Skipped,
+              errorMessage:
+                "Skipped: this remediation was settled (verified, failed, or actioned by a human) before the command ran.",
+            };
+            failed = true;
+            settledMidPlan = true;
+          } else {
+            /*
+             * Persist the Pending marker BEFORE the side effect: a pod death
+             * mid-command must leave a record that this command may have
+             * run.
+             */
+            command.execution = {
+              status: AiRemediationCommandExecutionStatus.Pending,
+              startedAt: OneUptimeDate.getCurrentDate().toISOString(),
+            };
+            await this.persistPlan(suggestion, plan, "executor", {
+              planLocked: true,
+            });
+
+            started = await this.startOneCommand({ suggestion, plan, command });
+          }
+        } finally {
+          await this.unlockPlan(mutex);
+        }
+
+        if (!started) {
           continue;
         }
 
-        /*
-         * Persist the Pending marker BEFORE the side effect: a pod death
-         * mid-command must leave a record that this command may have run.
-         */
-        command.execution = {
-          status: AiRemediationCommandExecutionStatus.Pending,
-          startedAt: OneUptimeDate.getCurrentDate().toISOString(),
-        };
-        await this.persistPlan(suggestion, plan);
-
         const state: AiRemediationCommandExecutionState =
-          await this.executeOneCommand({ suggestion, plan, command });
+          await this.finishOneCommand({ command, started });
 
         command.execution = state;
-        await this.persistPlan(suggestion, plan);
+        await this.persistPlan(suggestion, plan, "executor");
 
         if (state.status !== AiRemediationCommandExecutionStatus.Succeeded) {
           failed = true;
@@ -222,17 +309,31 @@ export default class CommandPlanExecutor {
         ? AiRemediationPlanExecutionStatus.Failed
         : AiRemediationPlanExecutionStatus.Completed;
       plan.executionCompletedAt = OneUptimeDate.getCurrentDate().toISOString();
-      await this.persistPlan(suggestion, plan);
+      await this.persistPlan(suggestion, plan, "executor");
+
+      /*
+       * The last command can still be running when verification concludes
+       * (a plan that overran its window). "Verification is watching" would
+       * then contradict the verification and rollback notes already on the
+       * feed.
+       */
+      if (!settledMidPlan && !(await this.isStillExecutable(suggestion.id!))) {
+        settledMidPlan = true;
+      }
 
       await this.postFeedItem({
         suggestion,
-        markdown: failed
-          ? `⚠️ **Approved AI command plan did not complete** — ${
-              firstFailure || "a command failed"
-            }; the remaining commands were skipped. Review the per-command output on the suggestion. Verification will judge (and roll back) what ran.`
-          : `⚡ **Approved AI command plan executed** (${plan.commands.length} command(s)). Verification is watching the monitors for recovery.`,
-        pingWorkspace: failed,
-        displayColor: failed ? Red500 : Green500,
+        markdown: settledMidPlan
+          ? `⚠️ **Approved AI command plan finished after its verification had already concluded**${
+              firstFailure ? ` — ${firstFailure}` : ""
+            }. Commands that had not started yet were skipped; the verification and rollback notes on this suggestion say what was judged and what was undone. Review the per-command record.`
+          : failed
+            ? `⚠️ **Approved AI command plan did not complete** — ${
+                firstFailure || "a command failed"
+              }; the remaining commands were skipped. Review the per-command output on the suggestion. Verification will judge (and roll back) what ran.`
+            : `⚡ **Approved AI command plan executed** (${plan.commands.length} command(s)). Verification is watching the monitors for recovery.`,
+        pingWorkspace: failed || settledMidPlan,
+        displayColor: failed || settledMidPlan ? Red500 : Green500,
       });
     } catch (error) {
       logger.error(
@@ -244,38 +345,100 @@ export default class CommandPlanExecutor {
   /*
    * Undo a failed remediation: run the rollbackCommand of every command
    * that executed successfully, in REVERSE order. Called by the verifier
-   * after it wins the Failed verification transition — single caller by
-   * construction. Never throws.
+   * after it wins the Failed verification transition, and by its recovery
+   * sweep for a rollback a Worker restart interrupted. Never throws.
    */
   @CaptureSpan()
   public static async executeRollback(data: {
     suggestion: AutoRemediationSuggestion;
-  }): Promise<void> {
+  }): Promise<CommandPlanRollbackOutcome> {
     const { suggestion } = data;
 
+    let plan: AiRemediationCommandPlan | null = null;
+
     try {
-      const plan: AiRemediationCommandPlan | null =
-        AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
+      /*
+       * Read the plan as stored NOW, under the plan lock — not the copy the
+       * verifier read before it won the verification transition. An
+       * approved plan's executor may have enqueued a command since; the
+       * lock guarantees its job is on this read, or that the command stands
+       * down and never starts.
+       */
+      plan = await this.readPlanForRollback(suggestion);
 
       if (!plan) {
-        return;
+        return this.describeRollbackOutcome(null);
       }
 
       if (
         plan.rollbackStatus &&
         plan.rollbackStatus !== AiRemediationRollbackStatus.NotAttempted
       ) {
-        return; // Already rolled back (or judged not applicable).
+        // Already rolled back (or judged not applicable).
+        return this.describeRollbackOutcome(plan);
       }
+
+      plan.rollbackHeartbeatAt = OneUptimeDate.getCurrentDate().toISOString();
+      await this.persistPlan(suggestion, plan, "rollback");
 
       /*
        * A command whose record still says Pending may nonetheless have run:
        * the executor persists Pending, enqueues, and can die before writing
-       * the outcome. The RunnerJob row is the authority on what actually
-       * happened, so resolve those before deciding what to undo — otherwise a
-       * pod death silently exempts a real state change from rollback.
+       * the outcome — or it is simply still waiting on the job. The
+       * RunnerJob row is the authority on what actually happened, so
+       * resolve those first, WAITING for a job still in flight: skipping it
+       * would leave a change that is about to land exempt from its undo.
        */
-      await this.reconcilePendingExecutions(suggestion, plan);
+      await this.reconcilePendingExecutions(suggestion, plan, {
+        waitForInFlight: true,
+      });
+
+      /*
+       * A resumed rollback: undos an interrupted attempt already handed to
+       * a Runner are settled from their jobs, never run twice.
+       */
+      await this.reconcilePendingRollbacks(suggestion, plan);
+
+      let anyFailed: boolean = false;
+      // Rollbacks nobody may run unattended now — a human undoes them.
+      const leftForHuman: Array<AiRemediationCommand> = [];
+
+      /*
+       * A forward command whose job could not be resolved even after
+       * waiting may or may not have run. Its undo is not run blind; a human
+       * is told to check.
+       */
+      for (const command of plan.commands) {
+        const execution: AiRemediationCommandExecutionState | undefined =
+          command.execution;
+
+        if (
+          execution &&
+          !isSettledCommandExecutionStatus(execution.status) &&
+          execution.runnerJobId &&
+          command.rollbackCommand &&
+          !command.rollbackExecution
+        ) {
+          command.rollbackExecution = {
+            status: AiRemediationCommandExecutionStatus.Skipped,
+            errorMessage: `Rollback not run: whether the command ran could not be confirmed from its job. If it ran, undo it manually: ${command.rollbackCommand}`,
+          };
+          leftForHuman.push(command);
+          anyFailed = true;
+        }
+      }
+
+      if (
+        plan.commands.some((command: AiRemediationCommand) => {
+          return (
+            command.rollbackExecution !== undefined &&
+            !isSettledCommandExecutionStatus(command.rollbackExecution.status)
+          );
+        })
+      ) {
+        // A rollback of an interrupted attempt whose outcome is unknown.
+        anyFailed = true;
+      }
 
       const rollbackTargets: Array<AiRemediationCommand> = plan.commands
         .filter((command: AiRemediationCommand) => {
@@ -288,15 +451,20 @@ export default class CommandPlanExecutor {
         })
         .reverse();
 
-      if (rollbackTargets.length === 0) {
-        plan.rollbackStatus = AiRemediationRollbackStatus.NotApplicable;
-        await this.persistPlan(suggestion, plan);
-        return;
+      if (rollbackTargets.length === 0 && !anyFailed) {
+        plan.rollbackStatus = plan.commands.some(
+          (command: AiRemediationCommand) => {
+            return (
+              command.rollbackExecution?.status ===
+              AiRemediationCommandExecutionStatus.Succeeded
+            );
+          },
+        )
+          ? AiRemediationRollbackStatus.Completed
+          : AiRemediationRollbackStatus.NotApplicable;
+        await this.persistPlan(suggestion, plan, "rollback");
+        return this.describeRollbackOutcome(plan);
       }
-
-      let anyFailed: boolean = false;
-      // Rollbacks the cluster no longer allows unattended — a human undoes them.
-      const notRunUnattended: Array<AiRemediationCommand> = [];
 
       for (const command of rollbackTargets) {
         const rollbackCommand: string = command.rollbackCommand as string;
@@ -312,7 +480,7 @@ export default class CommandPlanExecutor {
             errorMessage: `Rollback refused by the command policy: ${denyReason}.`,
           };
           anyFailed = true;
-          await this.persistPlan(suggestion, plan);
+          await this.persistPlan(suggestion, plan, "rollback");
           continue;
         }
 
@@ -337,9 +505,9 @@ export default class CommandPlanExecutor {
             status: AiRemediationCommandExecutionStatus.Skipped,
             errorMessage: `Rollback not run: ${clusterRefusal}. Undo it manually: ${rollbackCommand}`,
           };
-          notRunUnattended.push(command);
+          leftForHuman.push(command);
           anyFailed = true;
-          await this.persistPlan(suggestion, plan);
+          await this.persistPlan(suggestion, plan, "rollback");
           continue;
         }
 
@@ -347,7 +515,8 @@ export default class CommandPlanExecutor {
           status: AiRemediationCommandExecutionStatus.Pending,
           startedAt: OneUptimeDate.getCurrentDate().toISOString(),
         };
-        await this.persistPlan(suggestion, plan);
+        plan.rollbackHeartbeatAt = OneUptimeDate.getCurrentDate().toISOString();
+        await this.persistPlan(suggestion, plan, "rollback");
 
         try {
           const job: RunnerJob = await this.enqueue({
@@ -357,9 +526,9 @@ export default class CommandPlanExecutor {
             stepId: getRollbackCommandStepId(command),
           });
 
-          // The job id lands before the wait — see executeOneCommand.
+          // The job id lands before the wait — see startOneCommand.
           command.rollbackExecution.runnerJobId = job.id?.toString();
-          await this.persistPlan(suggestion, plan);
+          await this.persistPlan(suggestion, plan, "rollback");
 
           const terminalJob: RunnerJob =
             await RunnerJobService.pollUntilTerminal({
@@ -368,22 +537,15 @@ export default class CommandPlanExecutor {
               executionTimeoutInMs: command.timeoutInMs,
             });
 
-          const succeeded: boolean =
-            terminalJob.status === RunnerJobStatus.Succeeded;
-
-          command.rollbackExecution.status = succeeded
-            ? AiRemediationCommandExecutionStatus.Succeeded
-            : AiRemediationCommandExecutionStatus.Failed;
-          command.rollbackExecution.completedAt =
-            OneUptimeDate.getCurrentDate().toISOString();
-          command.rollbackExecution.exitCode = terminalJob.exitCode;
-          command.rollbackExecution.output = this.capOutput(
-            terminalJob.output || "",
+          this.settleFromJob(
+            command.rollbackExecution,
+            terminalJob,
+            "Rollback",
           );
-          if (!succeeded) {
-            command.rollbackExecution.errorMessage =
-              terminalJob.errorMessage ||
-              `Rollback ended with status ${terminalJob.status}.`;
+          if (
+            command.rollbackExecution.status !==
+            AiRemediationCommandExecutionStatus.Succeeded
+          ) {
             anyFailed = true;
           }
         } catch (error) {
@@ -394,19 +556,19 @@ export default class CommandPlanExecutor {
           anyFailed = true;
         }
 
-        await this.persistPlan(suggestion, plan);
+        await this.persistPlan(suggestion, plan, "rollback");
       }
 
       plan.rollbackStatus = anyFailed
         ? AiRemediationRollbackStatus.Failed
         : AiRemediationRollbackStatus.Completed;
-      await this.persistPlan(suggestion, plan);
+      await this.persistPlan(suggestion, plan, "rollback");
 
       await this.postFeedItem({
         suggestion,
         markdown:
-          notRunUnattended.length > 0
-            ? `⚠️ **Auto-remediation rollback was not run for ${notRunUnattended.length} command(s)** — the cluster no longer allows them unattended, so a human has to undo them. ${notRunUnattended
+          leftForHuman.length > 0
+            ? `⚠️ **Auto-remediation rollback was not run for ${leftForHuman.length} command(s)** — the cluster no longer allows them unattended, or whether they ran could not be confirmed, so a human has to undo them. ${leftForHuman
                 .map((command: AiRemediationCommand) => {
                   return this.capForFeed(
                     command.rollbackExecution?.errorMessage || "",
@@ -421,20 +583,44 @@ export default class CommandPlanExecutor {
         pingWorkspace: true,
         displayColor: anyFailed ? Red500 : Green500,
       });
+
+      return this.describeRollbackOutcome(plan);
     } catch (error) {
       logger.error(
         `CommandPlanExecutor: rollback failed for suggestion ${suggestion.id?.toString()}: ${error}`,
       );
+
+      /*
+       * Settle it as Failed so nobody assumes it was undone — and so the
+       * recovery sweep does not retry a rollback that throws every time.
+       */
+      if (plan) {
+        plan.rollbackStatus = AiRemediationRollbackStatus.Failed;
+        await this.persistPlan(suggestion, plan, "rollback");
+        await this.postFeedItem({
+          suggestion,
+          markdown: `⚠️ **Auto-remediation rollback could not complete** — an unexpected error stopped it. Review the suggestion's per-command record; manual intervention may be needed.`,
+          pingWorkspace: true,
+          displayColor: Red500,
+        });
+      }
+
+      return this.describeRollbackOutcome(plan);
     }
   }
 
   // ------------------------------------------------------------------
 
-  private static async executeOneCommand(data: {
+  /*
+   * Everything up to and including the enqueue: the execution-time policy
+   * floor, the cluster re-check, the enqueue, and the write that names the
+   * job. Runs under the plan lock (see executeApprovedPlan).
+   */
+  private static async startOneCommand(data: {
     suggestion: AutoRemediationSuggestion;
     plan: AiRemediationCommandPlan;
     command: AiRemediationCommand;
-  }): Promise<AiRemediationCommandExecutionState> {
+  }): Promise<StartedCommand> {
     const { suggestion, plan, command } = data;
 
     /*
@@ -448,8 +634,12 @@ export default class CommandPlanExecutor {
 
     if (denyReason) {
       return {
-        status: AiRemediationCommandExecutionStatus.Failed,
-        errorMessage: `Refused by the remediation command policy at execution time: ${denyReason}.`,
+        state: {
+          status: AiRemediationCommandExecutionStatus.Failed,
+          errorMessage: `Refused by the remediation command policy at execution time: ${denyReason}.`,
+        },
+        job: null,
+        recordsClusterOutcome: false,
       };
     }
 
@@ -470,8 +660,12 @@ export default class CommandPlanExecutor {
 
     if (clusterRefusal) {
       return {
-        status: AiRemediationCommandExecutionStatus.Failed,
-        errorMessage: `Refused at execution time: ${clusterRefusal}.`,
+        state: {
+          status: AiRemediationCommandExecutionStatus.Failed,
+          errorMessage: `Refused at execution time: ${clusterRefusal}.`,
+        },
+        job: null,
+        recordsClusterOutcome: false,
       };
     }
 
@@ -499,40 +693,54 @@ export default class CommandPlanExecutor {
        */
       state.runnerJobId = job.id?.toString();
       command.execution = state;
-      await this.persistPlan(suggestion, plan);
-
-      const terminalJob: RunnerJob = await RunnerJobService.pollUntilTerminal({
-        jobId: job.id!,
-        claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
-        executionTimeoutInMs: command.timeoutInMs,
+      await this.persistPlan(suggestion, plan, "executor", {
+        planLocked: true,
       });
 
-      if (!isTerminalAgentJobStatus(terminalJob.status)) {
-        throw new Error("Command job did not reach a terminal state.");
-      }
-
-      const succeeded: boolean =
-        terminalJob.status === RunnerJobStatus.Succeeded;
-
-      state.status = succeeded
-        ? AiRemediationCommandExecutionStatus.Succeeded
-        : AiRemediationCommandExecutionStatus.Failed;
-      state.completedAt = OneUptimeDate.getCurrentDate().toISOString();
-      state.exitCode = terminalJob.exitCode;
-      state.output = this.capOutput(terminalJob.output || "");
-      if (!succeeded) {
-        state.errorMessage =
-          terminalJob.errorMessage ||
-          `Command ended with status ${terminalJob.status}.`;
-      }
+      return { state, job, recordsClusterOutcome: true };
     } catch (error) {
       state.status = AiRemediationCommandExecutionStatus.Failed;
       state.completedAt = OneUptimeDate.getCurrentDate().toISOString();
       state.errorMessage =
         error instanceof Error ? error.message : String(error);
+
+      return { state, job: null, recordsClusterOutcome: true };
+    }
+  }
+
+  // The wait (outside the plan lock) and the outcome.
+  private static async finishOneCommand(data: {
+    command: AiRemediationCommand;
+    started: StartedCommand;
+  }): Promise<AiRemediationCommandExecutionState> {
+    const { command, started } = data;
+    const state: AiRemediationCommandExecutionState = started.state;
+
+    if (started.job) {
+      try {
+        const terminalJob: RunnerJob = await RunnerJobService.pollUntilTerminal(
+          {
+            jobId: started.job.id!,
+            claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
+            executionTimeoutInMs: command.timeoutInMs,
+          },
+        );
+
+        if (!isTerminalAgentJobStatus(terminalJob.status)) {
+          throw new Error("Command job did not reach a terminal state.");
+        }
+
+        this.settleFromJob(state, terminalJob, "Command");
+      } catch (error) {
+        state.status = AiRemediationCommandExecutionStatus.Failed;
+        state.completedAt = OneUptimeDate.getCurrentDate().toISOString();
+        state.errorMessage =
+          error instanceof Error ? error.message : String(error);
+      }
     }
 
     if (
+      started.recordsClusterOutcome &&
       command.stepType === RunbookStepType.Kubectl &&
       command.kubernetesClusterId &&
       ObjectID.isValidUUID(command.kubernetesClusterId)
@@ -546,6 +754,25 @@ export default class CommandPlanExecutor {
     }
 
     return state;
+  }
+
+  // Copy a terminal job's outcome onto an execution record.
+  private static settleFromJob(
+    state: AiRemediationCommandExecutionState,
+    job: RunnerJob,
+    label: "Command" | "Rollback",
+  ): void {
+    const succeeded: boolean = job.status === RunnerJobStatus.Succeeded;
+
+    state.status = succeeded
+      ? AiRemediationCommandExecutionStatus.Succeeded
+      : AiRemediationCommandExecutionStatus.Failed;
+    state.completedAt = OneUptimeDate.getCurrentDate().toISOString();
+    state.exitCode = job.exitCode;
+    state.output = this.capOutput(job.output || "");
+    state.errorMessage = succeeded
+      ? undefined
+      : job.errorMessage || `${label} ended with status ${job.status}.`;
   }
 
   /*
@@ -697,16 +924,17 @@ export default class CommandPlanExecutor {
   }
 
   /*
-   * The forward job of a command whose record never got its job id. The
-   * enqueue and the write that names the job are two steps; a pod death or
-   * a failed write between them leaves a Pending record for a job the
-   * Runner was nonetheless handed. (suggestion, stepId) is unique per
+   * The job a command's step ran under, when its record never got the job
+   * id. The enqueue and the write that names the job are two steps; a pod
+   * death or a failed write between them leaves a Pending record for a job
+   * the Runner was nonetheless handed. (suggestion, stepId) is unique per
    * forward command — a plan executes at most once and a retried run never
-   * re-executes — and the newest row wins should that ever change.
+   * re-executes — and per rollback; the newest row wins should that ever
+   * change.
    */
-  private static async findForwardJobByStepId(data: {
+  private static async findJobByStepId(data: {
     suggestion: AutoRemediationSuggestion;
-    command: AiRemediationCommand;
+    stepId: string;
   }): Promise<RunnerJob | null> {
     if (!data.suggestion.id) {
       return null;
@@ -719,7 +947,7 @@ export default class CommandPlanExecutor {
           : {}),
         autoRemediationSuggestionId: data.suggestion.id,
         origin: RunnerJobOrigin.AiRemediation,
-        stepId: getForwardCommandStepId(data.command),
+        stepId: data.stepId,
       },
       select: RECONCILE_JOB_SELECT,
       sort: { createdAt: SortOrder.Descending },
@@ -760,7 +988,9 @@ export default class CommandPlanExecutor {
    * Settle commands left in Pending/Running by reading their RunnerJob. A
    * job that reached Succeeded really ran, so the command becomes Succeeded
    * (and therefore rollback-eligible); any other terminal state becomes
-   * Failed. Jobs still in flight are left alone.
+   * Failed. A job still in flight is WAITED for when `waitForInFlight` is
+   * set (the rollback arm: the change is about to land, and its undo must
+   * not be skipped); otherwise it is left alone.
    *
    * The job is found by the id on the record, or — when the record never
    * got one, because the pod died or the write failed between the enqueue
@@ -771,6 +1001,7 @@ export default class CommandPlanExecutor {
   private static async reconcilePendingExecutions(
     suggestion: AutoRemediationSuggestion,
     plan: AiRemediationCommandPlan,
+    options: { waitForInFlight: boolean },
   ): Promise<void> {
     let changed: boolean = false;
 
@@ -791,13 +1022,16 @@ export default class CommandPlanExecutor {
       }
 
       try {
-        const job: RunnerJob | null = execution.runnerJobId
+        let job: RunnerJob | null = execution.runnerJobId
           ? await RunnerJobService.findOneById({
               id: new ObjectID(execution.runnerJobId),
               select: RECONCILE_JOB_SELECT,
               props: { isRoot: true },
             })
-          : await this.findForwardJobByStepId({ suggestion, command });
+          : await this.findJobByStepId({
+              suggestion,
+              stepId: getForwardCommandStepId(command),
+            });
 
         if (!job) {
           continue;
@@ -810,7 +1044,28 @@ export default class CommandPlanExecutor {
         }
 
         if (!isTerminalAgentJobStatus(job.status)) {
-          continue;
+          if (!options.waitForInFlight || !job.id) {
+            continue;
+          }
+
+          // Say where the rollback stands before a wait that can take minutes.
+          if (changed) {
+            await this.persistPlan(suggestion, plan, "rollback");
+            changed = false;
+          }
+          plan.rollbackHeartbeatAt =
+            OneUptimeDate.getCurrentDate().toISOString();
+          await this.persistPlan(suggestion, plan, "rollback");
+
+          job = await RunnerJobService.pollUntilTerminal({
+            jobId: job.id,
+            claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
+            executionTimeoutInMs: command.timeoutInMs,
+          });
+
+          if (!isTerminalAgentJobStatus(job.status)) {
+            continue;
+          }
         }
 
         const succeeded: boolean = job.status === RunnerJobStatus.Succeeded;
@@ -833,8 +1088,135 @@ export default class CommandPlanExecutor {
     }
 
     if (changed) {
-      await this.persistPlan(suggestion, plan);
+      await this.persistPlan(suggestion, plan, "rollback");
     }
+  }
+
+  /*
+   * A rollback resumed after a Worker restart: settle the undos the
+   * interrupted attempt had already started. One with a job — on the record
+   * or found under its rollback step id — is settled from that job
+   * (waiting for it when it is still running): it is never run a second
+   * time, because running an undo twice (a second `rollout undo`) can put
+   * the bad change right back. One that never reached a Runner is cleared,
+   * so it runs now. One whose job cannot be looked up stays unsettled, and
+   * the rollback is not reported complete.
+   */
+  private static async reconcilePendingRollbacks(
+    suggestion: AutoRemediationSuggestion,
+    plan: AiRemediationCommandPlan,
+  ): Promise<void> {
+    let changed: boolean = false;
+
+    for (const command of plan.commands) {
+      const rollback: AiRemediationCommandExecutionState | undefined =
+        command.rollbackExecution;
+
+      if (!rollback || isSettledCommandExecutionStatus(rollback.status)) {
+        continue;
+      }
+
+      try {
+        let job: RunnerJob | null = rollback.runnerJobId
+          ? await RunnerJobService.findOneById({
+              id: new ObjectID(rollback.runnerJobId),
+              select: RECONCILE_JOB_SELECT,
+              props: { isRoot: true },
+            })
+          : await this.findJobByStepId({
+              suggestion,
+              stepId: getRollbackCommandStepId(command),
+            });
+
+        if (!job) {
+          // Never reached a Runner: run it now.
+          command.rollbackExecution = undefined;
+          changed = true;
+          continue;
+        }
+
+        if (!rollback.runnerJobId && job.id) {
+          rollback.runnerJobId = job.id.toString();
+          changed = true;
+        }
+
+        if (!isTerminalAgentJobStatus(job.status) && job.id) {
+          plan.rollbackHeartbeatAt =
+            OneUptimeDate.getCurrentDate().toISOString();
+          await this.persistPlan(suggestion, plan, "rollback");
+
+          job = await RunnerJobService.pollUntilTerminal({
+            jobId: job.id,
+            claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
+            executionTimeoutInMs: command.timeoutInMs,
+          });
+        }
+
+        if (isTerminalAgentJobStatus(job.status)) {
+          this.settleFromJob(rollback, job, "Rollback");
+          changed = true;
+        }
+      } catch (error) {
+        logger.error(
+          `CommandPlanExecutor: could not reconcile the rollback of command ${command.sequence} of suggestion ${suggestion.id?.toString()}: ${error}`,
+        );
+      }
+    }
+
+    if (changed) {
+      await this.persistPlan(suggestion, plan, "rollback");
+    }
+  }
+
+  private static describeRollbackOutcome(
+    plan: AiRemediationCommandPlan | null,
+  ): CommandPlanRollbackOutcome {
+    let rolledBack: number = 0;
+    let failed: number = 0;
+    let leftForHuman: number = 0;
+
+    for (const command of plan?.commands || []) {
+      switch (command.rollbackExecution?.status) {
+        case AiRemediationCommandExecutionStatus.Succeeded:
+          rolledBack += 1;
+          break;
+        case AiRemediationCommandExecutionStatus.Failed:
+          failed += 1;
+          break;
+        case AiRemediationCommandExecutionStatus.Skipped:
+          leftForHuman += 1;
+          break;
+        default:
+          break;
+      }
+    }
+
+    const rollbackStatus: AiRemediationRollbackStatus | undefined =
+      plan?.rollbackStatus &&
+      plan.rollbackStatus !== AiRemediationRollbackStatus.NotAttempted
+        ? plan.rollbackStatus
+        : undefined;
+
+    let summary: string;
+
+    switch (rollbackStatus) {
+      case AiRemediationRollbackStatus.Completed:
+        summary = `Rollback completed: ${rolledBack} command(s) undone.`;
+        break;
+      case AiRemediationRollbackStatus.NotApplicable:
+        summary =
+          "Nothing was rolled back: no executed command carried a rollback command.";
+        break;
+      case AiRemediationRollbackStatus.Failed:
+        summary = `Rollback did NOT fully complete: ${rolledBack} command(s) undone, ${failed} rollback(s) failed, ${leftForHuman} left for a human to undo — the change may still be applied.`;
+        break;
+      default:
+        summary =
+          "The rollback did not finish; whatever it did not undo may still be applied.";
+        break;
+    }
+
+    return { rollbackStatus, rolledBack, failed, leftForHuman, summary };
   }
 
   /*
@@ -893,21 +1275,238 @@ export default class CommandPlanExecutor {
     }
   }
 
+  /*
+   * The plan the rollback arm works from: the stored one, read under the
+   * plan lock. Falls back to the copy the caller holds when the stored plan
+   * cannot be read.
+   */
+  private static async readPlanForRollback(
+    suggestion: AutoRemediationSuggestion,
+  ): Promise<AiRemediationCommandPlan | null> {
+    const mutex: SemaphoreMutex | null = suggestion.id
+      ? await this.lockPlan(suggestion.id)
+      : null;
+
+    try {
+      const stored: AiRemediationCommandPlan | null = suggestion.id
+        ? await this.readStoredPlan(suggestion.id)
+        : null;
+
+      return (
+        stored || AiRemediationCommandPlanUtil.parse(suggestion.commandPlan)
+      );
+    } finally {
+      await this.unlockPlan(mutex);
+    }
+  }
+
+  // The plan as stored right now, or null when it cannot be read.
+  private static async readStoredPlan(
+    suggestionId: ObjectID,
+  ): Promise<AiRemediationCommandPlan | null> {
+    try {
+      /*
+       * findOneBy, not findOneById: this is the column read for a merge,
+       * not a status re-check, and it must not be mistaken for one.
+       */
+      const stored: AutoRemediationSuggestion | null =
+        await AutoRemediationSuggestionService.findOneBy({
+          query: { _id: suggestionId.toString() },
+          select: { _id: true, commandPlan: true },
+          props: { isRoot: true },
+        });
+
+      return AiRemediationCommandPlanUtil.parse(stored?.commandPlan);
+    } catch (error) {
+      logger.warn(
+        `CommandPlanExecutor: could not read the stored plan of suggestion ${suggestionId.toString()} to merge into; writing this writer's copy as is: ${error}`,
+      );
+      return null;
+    }
+  }
+
+  /*
+   * Persist the plan without erasing what the OTHER arm wrote. The stored
+   * plan is re-read (under the plan lock) and only this writer's fields are
+   * taken from its copy: the executor owns forward executions and the
+   * plan's execution lifecycle; the rollback arm owns rollbacks,
+   * rollbackStatus and the rollback heartbeat. A forward execution the
+   * rollback arm settled from its job is kept over a stale unsettled copy
+   * either way. When the stored plan cannot be read, this writer's copy is
+   * written as is — the record must still land.
+   */
   private static async persistPlan(
     suggestion: AutoRemediationSuggestion,
     plan: AiRemediationCommandPlan,
+    writer: PlanWriter,
+    options?: { planLocked?: boolean | undefined },
   ): Promise<void> {
+    const mutex: SemaphoreMutex | null =
+      options?.planLocked || !suggestion.id
+        ? null
+        : await this.lockPlan(suggestion.id);
+
     try {
+      const stored: AiRemediationCommandPlan | null = suggestion.id
+        ? await this.readStoredPlan(suggestion.id)
+        : null;
+
+      const toWrite: AiRemediationCommandPlan = stored
+        ? this.mergePlans({ mine: plan, stored, writer })
+        : plan;
+
       await AutoRemediationSuggestionService.updateOneById({
         id: suggestion.id!,
         data: {
-          commandPlan: AiRemediationCommandPlanUtil.toJSON(plan),
+          commandPlan: AiRemediationCommandPlanUtil.toJSON(toWrite),
         } as never,
         props: { isRoot: true },
       });
     } catch (error) {
       logger.error(
         `CommandPlanExecutor: failed to persist plan progress for suggestion ${suggestion.id?.toString()}: ${error}`,
+      );
+    } finally {
+      await this.unlockPlan(mutex);
+    }
+  }
+
+  private static mergePlans(data: {
+    mine: AiRemediationCommandPlan;
+    stored: AiRemediationCommandPlan;
+    writer: PlanWriter;
+  }): AiRemediationCommandPlan {
+    const { mine, stored } = data;
+
+    if (data.writer === "executor") {
+      const storedBySequence: Map<number, AiRemediationCommand> = new Map<
+        number,
+        AiRemediationCommand
+      >(
+        stored.commands.map((command: AiRemediationCommand) => {
+          return [command.sequence, command];
+        }),
+      );
+
+      return {
+        ...mine,
+        commands: mine.commands.map((command: AiRemediationCommand) => {
+          const storedCommand: AiRemediationCommand | undefined =
+            storedBySequence.get(command.sequence);
+
+          return {
+            ...command,
+            execution: this.pickExecution(
+              command.execution,
+              storedCommand?.execution,
+            ),
+            rollbackExecution: storedCommand?.rollbackExecution,
+          };
+        }),
+        rollbackStatus: stored.rollbackStatus,
+        rollbackHeartbeatAt: stored.rollbackHeartbeatAt,
+      };
+    }
+
+    const mineBySequence: Map<number, AiRemediationCommand> = new Map<
+      number,
+      AiRemediationCommand
+    >(
+      mine.commands.map((command: AiRemediationCommand) => {
+        return [command.sequence, command];
+      }),
+    );
+
+    return {
+      ...stored,
+      commands: stored.commands.map((storedCommand: AiRemediationCommand) => {
+        const command: AiRemediationCommand | undefined = mineBySequence.get(
+          storedCommand.sequence,
+        );
+
+        if (!command) {
+          return storedCommand;
+        }
+
+        return {
+          ...storedCommand,
+          execution: this.pickExecution(
+            command.execution,
+            storedCommand.execution,
+          ),
+          rollbackExecution: command.rollbackExecution,
+        };
+      }),
+      rollbackStatus: mine.rollbackStatus ?? stored.rollbackStatus,
+      rollbackHeartbeatAt:
+        mine.rollbackHeartbeatAt ?? stored.rollbackHeartbeatAt,
+    };
+  }
+
+  /*
+   * The more settled of two records of one command's forward execution: a
+   * record with an outcome beats one still waiting for it; with both
+   * settled (or both not) the writer's own wins, keeping any job id either
+   * of them knows.
+   */
+  private static pickExecution(
+    mine: AiRemediationCommandExecutionState | undefined,
+    stored: AiRemediationCommandExecutionState | undefined,
+  ): AiRemediationCommandExecutionState | undefined {
+    if (!mine) {
+      return stored;
+    }
+
+    if (!stored) {
+      return mine;
+    }
+
+    if (isSettledCommandExecutionStatus(mine.status)) {
+      return mine;
+    }
+
+    if (isSettledCommandExecutionStatus(stored.status)) {
+      return stored;
+    }
+
+    return mine.runnerJobId || !stored.runnerJobId
+      ? mine
+      : { ...mine, runnerJobId: stored.runnerJobId };
+  }
+
+  /*
+   * The per-plan lock, or null when it cannot be had (Redis unavailable):
+   * the plan's writes then proceed unserialized rather than not at all — a
+   * remediation must never be stranded half-recorded for want of a lock.
+   */
+  private static async lockPlan(
+    suggestionId: ObjectID,
+  ): Promise<SemaphoreMutex | null> {
+    try {
+      return await Semaphore.lock({
+        key: suggestionId.toString(),
+        namespace: PLAN_LOCK_NAMESPACE,
+        lockTimeout: PLAN_LOCK_TIMEOUT_MS,
+        acquireTimeout: PLAN_LOCK_ACQUIRE_TIMEOUT_MS,
+      });
+    } catch (error) {
+      logger.warn(
+        `CommandPlanExecutor: could not take the plan lock of suggestion ${suggestionId.toString()}; continuing unserialized: ${error}`,
+      );
+      return null;
+    }
+  }
+
+  private static async unlockPlan(mutex: SemaphoreMutex | null): Promise<void> {
+    if (!mutex) {
+      return;
+    }
+
+    try {
+      await Semaphore.release(mutex);
+    } catch (error) {
+      logger.error(
+        `CommandPlanExecutor: failed to release the plan lock: ${error}`,
       );
     }
   }

@@ -123,6 +123,28 @@ export interface AiRemediationCommandPlan {
   executionStartedAt?: string | undefined;
   executionCompletedAt?: string | undefined;
   rollbackStatus?: AiRemediationRollbackStatus | undefined;
+  /*
+   * ISO 8601. Written by the rollback arm when it starts and refreshed
+   * before every step it waits on, until rollbackStatus settles. A Failed
+   * verification whose rollback never settled and whose heartbeat went
+   * stale was interrupted (a Worker restart mid-rollback): the verifier's
+   * recovery sweep resumes it instead of leaving the cluster half-reverted.
+   */
+  rollbackHeartbeatAt?: string | undefined;
+}
+
+/*
+ * A command's execution record has reached an outcome. Pending and Running
+ * records may still change: the job they name can finish later.
+ */
+export function isSettledCommandExecutionStatus(
+  status: AiRemediationCommandExecutionStatus | undefined,
+): boolean {
+  return (
+    status === AiRemediationCommandExecutionStatus.Succeeded ||
+    status === AiRemediationCommandExecutionStatus.Failed ||
+    status === AiRemediationCommandExecutionStatus.Skipped
+  );
 }
 
 /*
@@ -333,6 +355,9 @@ export class AiRemediationCommandPlanUtil {
       )
     ) {
       plan.rollbackStatus = rollbackStatus as AiRemediationRollbackStatus;
+    }
+    if (typeof json["rollbackHeartbeatAt"] === "string") {
+      plan.rollbackHeartbeatAt = json["rollbackHeartbeatAt"];
     }
 
     return plan;

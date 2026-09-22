@@ -17,6 +17,7 @@ import {
   ROLLBACK_COMMAND_STEP_ID_PREFIX,
   getForwardCommandStepId,
   getRollbackCommandStepId,
+  isSettledCommandExecutionStatus,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
@@ -1257,5 +1258,80 @@ describe("AiRemediationCommandPlanUtil.toJSON", () => {
     expect(keys).not.toContain("rollbackCommand");
     expect(keys).not.toContain("execution");
     expect(Object.keys(json)).not.toContain("executionStatus");
+  });
+});
+
+/*
+ * The rollback heartbeat: the rollback arm stamps it while it works, and the
+ * verifier's recovery sweep tells a live rollback from one a Worker restart
+ * cut short by it. It must survive a parse/toJSON round trip, and junk must
+ * never reject the plan.
+ */
+describe("AiRemediationCommandPlanUtil.parse — rollbackHeartbeatAt", () => {
+  test("round-trips an ISO heartbeat", () => {
+    const heartbeat: string = "2026-09-22T10:00:00.000Z";
+    const plan: AiRemediationCommandPlan = parseOk(
+      makePlan([makeCommand()], { rollbackHeartbeatAt: heartbeat }),
+    );
+
+    expect(plan.rollbackHeartbeatAt).toBe(heartbeat);
+    expect(
+      AiRemediationCommandPlanUtil.toJSON(plan)["rollbackHeartbeatAt"],
+    ).toBe(heartbeat);
+  });
+
+  test("a non-string heartbeat is dropped, not the plan", () => {
+    const plan: AiRemediationCommandPlan = parseOk(
+      makePlan([makeCommand()], { rollbackHeartbeatAt: 12345 }),
+    );
+
+    expect(plan.rollbackHeartbeatAt).toBeUndefined();
+  });
+
+  test("a plan without one parses as before", () => {
+    const plan: AiRemediationCommandPlan = parseOk(makePlan([makeCommand()]));
+
+    expect(plan.rollbackHeartbeatAt).toBeUndefined();
+    expect(
+      Object.keys(AiRemediationCommandPlanUtil.toJSON(plan)),
+    ).not.toContain("rollbackHeartbeatAt");
+  });
+});
+
+describe("isSettledCommandExecutionStatus", () => {
+  test("an outcome is settled; a record still waiting on its job is not", () => {
+    expect(
+      isSettledCommandExecutionStatus(
+        AiRemediationCommandExecutionStatus.Succeeded,
+      ),
+    ).toBe(true);
+    expect(
+      isSettledCommandExecutionStatus(
+        AiRemediationCommandExecutionStatus.Failed,
+      ),
+    ).toBe(true);
+    expect(
+      isSettledCommandExecutionStatus(
+        AiRemediationCommandExecutionStatus.Skipped,
+      ),
+    ).toBe(true);
+    expect(
+      isSettledCommandExecutionStatus(
+        AiRemediationCommandExecutionStatus.Pending,
+      ),
+    ).toBe(false);
+    expect(
+      isSettledCommandExecutionStatus(
+        AiRemediationCommandExecutionStatus.Running,
+      ),
+    ).toBe(false);
+    expect(isSettledCommandExecutionStatus(undefined)).toBe(false);
+  });
+
+  test("covers every execution status", () => {
+    // A new status must decide which side it is on.
+    expect(Object.values(AiRemediationCommandExecutionStatus).sort()).toEqual(
+      ["Failed", "Pending", "Running", "Skipped", "Succeeded"].sort(),
+    );
   });
 });

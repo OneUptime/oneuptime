@@ -1,7 +1,10 @@
 import AutoRemediationRuleEngineService, {
+  ClusterRoundHold,
   DEFAULT_VERIFICATION_WINDOW_MINUTES,
   MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT,
   MAX_SUGGESTIONS_PER_SUBJECT,
+  getClusterRoundNameSnapshot,
+  parseClusterRoundNameSnapshot,
 } from "../../../Server/Services/AutoRemediationRuleEngineService";
 import AutoRemediationRuleService from "../../../Server/Services/AutoRemediationRuleService";
 import AutoRemediationSuggestionService from "../../../Server/Services/AutoRemediationSuggestionService";
@@ -19,6 +22,7 @@ import AIRunType from "../../../Types/AI/AIRunType";
 import AutoRemediationExecutionMode from "../../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
+import AutoRemediationVerificationStatus from "../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
@@ -47,9 +51,19 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   both FullAuto with auto-resolve, and the feed says approvals are
  *   bypassed;
  * - the feed states exactly what each round does: an Automatic round runs
- *   safe changes on its own and leaves a riskier change in the AI's
- *   recommendations — it never promises an approval card that the FullAuto
- *   run (which has no propose tool) cannot produce.
+ *   safe changes on its own and a riskier change never runs on its own —
+ *   the round proposes it for one-click approval instead (the execution
+ *   runner settles a round that ran nothing but refused riskier changes as
+ *   an approval card for exactly those);
+ * - at most one UNATTENDED round per cluster at a time, whatever the
+ *   subject: a round that would run unattended while another round on the
+ *   same cluster is still running or verifying its fix is created asking
+ *   first — the alert and the incident of one monitor never both change a
+ *   cluster at once. A failed check asks first too;
+ * - a follow-up forced to ask (its predecessor's rollback did not complete)
+ *   asks first even on a BypassApproval cluster, and says why;
+ * - the in-flight round check and the cluster-round name snapshot helpers
+ *   classify exactly what they claim to.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -515,7 +529,13 @@ describe("AutoRemediationRuleEngineService cluster feed copy states exactly what
     return incidentFeedMarkdown();
   }
 
-  it("Automatic, round 1: safe changes run on their own; a riskier change is left in the recommendations, never promised as an approval card", async () => {
+  it("Automatic, round 1: safe changes run on their own; a riskier change never runs on its own — it is proposed for one-click approval", async () => {
+    /*
+     * Changed with the "Automatic proposes the riskier fix" fix: this copy
+     * used to say a riskier change is "neither run nor proposed in this
+     * round". A round that ran nothing but refused a riskier change now
+     * ends as an approval card for it, so the copy promises exactly that.
+     */
     mockBaseline({
       statuses: [
         readyCluster({
@@ -531,10 +551,10 @@ describe("AutoRemediationRuleEngineService cluster feed copy states exactly what
     expect(markdown).toContain("on its own");
     expect(markdown).toContain("rollout restart/undo, scale");
     expect(markdown).toContain("cluster's kubectl allowlist");
-    expect(markdown).toContain("neither run nor proposed in this round");
-    expect(markdown).toContain("recommendations for a human");
-    expect(markdown).not.toContain("will ask");
-    expect(markdown).not.toContain("for approval");
+    expect(markdown).toContain("A riskier change never runs on its own");
+    expect(markdown).toContain("proposes it for your one-click approval");
+    expect(markdown).not.toContain("neither run nor proposed");
+    expect(markdown).not.toContain("asks first");
     expect(markdown).not.toContain("bypassed");
   });
 
@@ -606,5 +626,429 @@ describe("AutoRemediationRuleEngineService cluster feed copy states exactly what
     expect(second).toContain("safe or riskier");
     expect(second).toContain("destructive commands never run");
     expect(second).not.toContain("approve");
+  });
+});
+
+/*
+ * The other rounds on the cluster, as the in-flight round check reads them
+ * (its query names the cluster; the per-subject dedupe's does not).
+ */
+function mockRoundsOnCluster(
+  rows: Array<Record<string, unknown>>,
+  existing: Array<AutoRemediationSuggestion> = [],
+): jest.SpyInstance {
+  return (
+    AutoRemediationSuggestionService.findBy as unknown as jest.SpyInstance
+  ).mockImplementation(
+    async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+      const query: Record<string, unknown> =
+        (args as { query?: Record<string, unknown> }).query || {};
+      return (query["kubernetesClusterId"]
+        ? rows
+        : existing) as unknown as Array<AutoRemediationSuggestion>;
+    },
+  );
+}
+
+function roundOnCluster(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  const id: ObjectID = ObjectID.generate();
+  return {
+    id,
+    _id: id.toString(),
+    status: AutoRemediationSuggestionStatus.AutoExecuted,
+    executionMode: AutoRemediationExecutionMode.FullAuto,
+    verificationStatus: AutoRemediationVerificationStatus.Pending,
+    verificationDeadlineAt: new Date(Date.now() + 10 * 60 * 1000),
+    incidentId: INCIDENT_ID,
+    ruleNameSnapshot: 'AI remediation for cluster "prod-us"',
+    createdAt: new Date(Date.now() - 5 * 60 * 1000),
+    ...overrides,
+  };
+}
+
+describe("AutoRemediationRuleEngineService — one unattended round per cluster at a time", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function startAlertRound(): Promise<string> {
+    await AutoRemediationRuleEngineService.applyRulesToAlert({
+      id: ALERT_ID,
+      _id: ALERT_ID.toString(),
+      projectId: PROJECT_ID,
+      title: "Pods stuck in Pending",
+    } as unknown as Alert);
+
+    const feed: jest.SpyInstance =
+      AlertFeedService.createAlertFeedItem as unknown as jest.SpyInstance;
+    expect(feed).toHaveBeenCalledTimes(1);
+    return (feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
+      .feedInfoInMarkdown;
+  }
+
+  it("creates the alert's round ASKING FIRST while the incident's round on the same cluster is still being verified — the alert and the incident of one monitor", async () => {
+    mockBaseline({});
+    const holdRead: jest.SpyInstance = mockRoundsOnCluster([roundOnCluster()]);
+
+    const markdown: string = await startAlertRound();
+
+    expect(createdSuggestions).toHaveLength(1);
+    expect(createdSuggestions[0]!.executionMode).toBe(
+      AutoRemediationExecutionMode.Suggest,
+    );
+    expect(createdSuggestions[0]!.autoResolveOnRecovery).toBe(false);
+    expect(markdown).toContain(
+      "This round asks first because another OneUptime AI round on this cluster applied a fix that is still being verified",
+    );
+    expect(markdown).toContain("nothing runs until you approve the plan");
+    expect(markdown).not.toContain("on its own");
+
+    // The check read this cluster, in this project, across subjects.
+    const query: Record<string, unknown> = (
+      holdRead.mock.calls.find((call: Array<unknown>) => {
+        return Boolean(
+          (call[0] as { query: Record<string, unknown> }).query[
+            "kubernetesClusterId"
+          ],
+        );
+      })![0] as { query: Record<string, unknown> }
+    ).query;
+    expect((query["kubernetesClusterId"] as ObjectID).toString()).toBe(
+      CLUSTER_ID.toString(),
+    );
+    expect((query["projectId"] as ObjectID).toString()).toBe(
+      PROJECT_ID.toString(),
+    );
+    expect(query["incidentId"]).toBeUndefined();
+    expect(query["alertId"]).toBeUndefined();
+  });
+
+  it("asks first while another round on the cluster is still running unattended — on a BypassApproval cluster too", async () => {
+    mockBaseline({
+      statuses: [
+        readyCluster({
+          remediationMode: KubernetesAiRemediationMode.BypassApproval,
+        }),
+      ],
+    });
+    mockRoundsOnCluster([
+      roundOnCluster({
+        status: AutoRemediationSuggestionStatus.Planning,
+        verificationStatus: undefined,
+        verificationDeadlineAt: undefined,
+        createdAt: new Date(Date.now() - 60 * 1000),
+      }),
+    ]);
+
+    const markdown: string = await startAlertRound();
+
+    expect(createdSuggestions[0]!.executionMode).toBe(
+      AutoRemediationExecutionMode.Suggest,
+    );
+    expect(markdown).toContain("is still running unattended");
+    expect(markdown).not.toContain("Approvals are bypassed");
+  });
+
+  it("asks first when the in-flight round check itself fails", async () => {
+    mockBaseline({});
+    (
+      AutoRemediationSuggestionService.findBy as unknown as jest.SpyInstance
+    ).mockImplementation(
+      async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+        const query: Record<string, unknown> =
+          (args as { query?: Record<string, unknown> }).query || {};
+        if (query["kubernetesClusterId"]) {
+          throw new Error("db down");
+        }
+        return [];
+      },
+    );
+
+    const markdown: string = await startAlertRound();
+
+    expect(createdSuggestions[0]!.executionMode).toBe(
+      AutoRemediationExecutionMode.Suggest,
+    );
+    expect(markdown).toContain(
+      "OneUptime AI could not confirm that no other AI round is changing this cluster",
+    );
+  });
+
+  it.each([
+    [
+      "a verified fix",
+      {
+        verificationStatus: AutoRemediationVerificationStatus.Verified,
+      },
+    ],
+    [
+      "a fix whose verification deadline passed long ago (the verifier is not running)",
+      {
+        verificationDeadlineAt: new Date(Date.now() - 60 * 60 * 1000),
+      },
+    ],
+    [
+      "a round stuck in Planning for hours",
+      {
+        status: AutoRemediationSuggestionStatus.Planning,
+        verificationStatus: undefined,
+        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+      },
+    ],
+    [
+      "a round that only asks",
+      {
+        status: AutoRemediationSuggestionStatus.Planning,
+        executionMode: AutoRemediationExecutionMode.Suggest,
+        verificationStatus: undefined,
+      },
+    ],
+  ])(
+    "negative control: %s does not hold the cluster — the round runs unattended as its mode says",
+    async (_label: string, overrides: Record<string, unknown>) => {
+      mockBaseline({});
+      mockRoundsOnCluster([roundOnCluster(overrides)]);
+
+      const markdown: string = await startAlertRound();
+
+      expect(createdSuggestions[0]!.executionMode).toBe(
+        AutoRemediationExecutionMode.FullAuto,
+      );
+      expect(createdSuggestions[0]!.autoResolveOnRecovery).toBe(true);
+      expect(markdown).toContain(
+        "Automatic remediation is on for this cluster",
+      );
+    },
+  );
+
+  it("negative control: a cluster that asks for approval never needs the check — its round asks anyway", async () => {
+    mockBaseline({
+      statuses: [
+        readyCluster({
+          remediationMode: KubernetesAiRemediationMode.RequireApproval,
+        }),
+      ],
+    });
+    const holdRead: jest.SpyInstance = mockRoundsOnCluster([roundOnCluster()]);
+
+    await startAlertRound();
+
+    expect(createdSuggestions[0]!.executionMode).toBe(
+      AutoRemediationExecutionMode.Suggest,
+    );
+    expect(
+      holdRead.mock.calls.some((call: Array<unknown>) => {
+        return Boolean(
+          (call[0] as { query: Record<string, unknown> }).query[
+            "kubernetesClusterId"
+          ],
+        );
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("AutoRemediationRuleEngineService.startFollowUpClusterRemediation — forced to ask first", () => {
+  beforeEach(() => {
+    mockBaseline({});
+    jest
+      .spyOn(AutoRemediationSuggestionService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    jest
+      .spyOn(KubernetesClusterAiAccessService, "getStatusForCluster")
+      .mockResolvedValue(
+        readyCluster({
+          remediationMode: KubernetesAiRemediationMode.BypassApproval,
+        }),
+      );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("asks first on a BypassApproval cluster when the previous round's rollback did not complete, and says why", async () => {
+    const started: boolean =
+      await AutoRemediationRuleEngineService.startFollowUpClusterRemediation({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: CLUSTER_ID,
+        incidentId: INCIDENT_ID,
+        forceSuggest: true,
+      });
+
+    expect(started).toBe(true);
+    expect(createdSuggestions[0]!.executionMode).toBe(
+      AutoRemediationExecutionMode.Suggest,
+    );
+    expect(createdSuggestions[0]!.autoResolveOnRecovery).toBe(false);
+    expect(createdSuggestions[0]!.ruleNameSnapshot).toContain("round 2");
+
+    const markdown: string = (
+      (
+        IncidentFeedService.createIncidentFeedItem as unknown as jest.SpyInstance
+      ).mock.calls[0]![0] as { feedInfoInMarkdown: string }
+    ).feedInfoInMarkdown;
+    expect(markdown).toContain("round 2");
+    expect(markdown).toContain(
+      "This round asks first because the previous fix's rollback did not complete",
+    );
+    expect(markdown).not.toContain("Approvals are bypassed");
+  });
+
+  it("uses the reason it was given", async () => {
+    await AutoRemediationRuleEngineService.startFollowUpClusterRemediation({
+      projectId: PROJECT_ID,
+      kubernetesClusterId: CLUSTER_ID,
+      incidentId: INCIDENT_ID,
+      forceSuggest: true,
+      forceSuggestReason: "a human must look first",
+    });
+
+    const markdown: string = (
+      (
+        IncidentFeedService.createIncidentFeedItem as unknown as jest.SpyInstance
+      ).mock.calls[0]![0] as { feedInfoInMarkdown: string }
+    ).feedInfoInMarkdown;
+    expect(markdown).toContain("asks first because a human must look first");
+  });
+
+  it("negative control: without forceSuggest the BypassApproval follow-up runs unattended, as before", async () => {
+    await AutoRemediationRuleEngineService.startFollowUpClusterRemediation({
+      projectId: PROJECT_ID,
+      kubernetesClusterId: CLUSTER_ID,
+      incidentId: INCIDENT_ID,
+    });
+
+    expect(createdSuggestions[0]!.executionMode).toBe(
+      AutoRemediationExecutionMode.FullAuto,
+    );
+    expect(createdSuggestions[0]!.autoResolveOnRecovery).toBe(true);
+  });
+});
+
+describe("AutoRemediationRuleEngineService.findRoundHoldingCluster", () => {
+  const MINE: ObjectID = new ObjectID("12121212-1212-4212-8212-121212121212");
+  const NOW: number = Date.now();
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function holding(
+    rows: Array<Record<string, unknown>>,
+    data: {
+      anyOrder?: boolean;
+      subject?: { incidentId?: ObjectID; alertId?: ObjectID };
+    } = {},
+  ): Promise<ClusterRoundHold | null> {
+    jest
+      .spyOn(AutoRemediationSuggestionService, "findBy")
+      .mockResolvedValue(rows as unknown as Array<AutoRemediationSuggestion>);
+    return AutoRemediationRuleEngineService.findRoundHoldingCluster({
+      projectId: PROJECT_ID,
+      clusterId: CLUSTER_ID.toString(),
+      forRound: { suggestionId: MINE, createdAt: new Date(NOW - 1000) },
+      ...data,
+    });
+  }
+
+  it("never holds a cluster against the round itself", async () => {
+    expect(
+      await holding([
+        roundOnCluster({
+          id: MINE,
+          _id: MINE.toString(),
+          status: AutoRemediationSuggestionStatus.Planning,
+        }),
+      ]),
+    ).toBeNull();
+  });
+
+  it("orders Planning unattended rounds: an earlier one holds, a later one does not — unless any order counts", async () => {
+    const earlier: Record<string, unknown> = roundOnCluster({
+      status: AutoRemediationSuggestionStatus.Planning,
+      verificationStatus: undefined,
+      createdAt: new Date(NOW - 5000),
+    });
+    const later: Record<string, unknown> = roundOnCluster({
+      status: AutoRemediationSuggestionStatus.Planning,
+      verificationStatus: undefined,
+      createdAt: new Date(NOW),
+    });
+
+    expect((await holding([earlier]))?.description).toContain(
+      "still running unattended",
+    );
+    expect(await holding([later])).toBeNull();
+    expect(await holding([later], { anyOrder: true })).not.toBeNull();
+  });
+
+  it("holds for the same signal's round that is still composing — asking or not — only when a subject is given", async () => {
+    const composing: Record<string, unknown> = roundOnCluster({
+      status: AutoRemediationSuggestionStatus.Planning,
+      executionMode: AutoRemediationExecutionMode.Suggest,
+      verificationStatus: undefined,
+    });
+
+    const sameSignal: ClusterRoundHold | null = await holding([composing], {
+      subject: { incidentId: INCIDENT_ID },
+    });
+    expect(sameSignal?.isSameSubject).toBe(true);
+    expect(sameSignal?.description).toContain("same signal");
+
+    expect(
+      await holding([composing], { subject: { alertId: ALERT_ID } }),
+    ).toBeNull();
+    expect(await holding([composing])).toBeNull();
+  });
+
+  it("holds while an Approved (human-approved) fix is still being verified", async () => {
+    expect(
+      (
+        await holding([
+          roundOnCluster({ status: AutoRemediationSuggestionStatus.Approved }),
+        ])
+      )?.description,
+    ).toContain("still being verified");
+  });
+
+  it("propagates a failed read so callers fail safe", async () => {
+    jest
+      .spyOn(AutoRemediationSuggestionService, "findBy")
+      .mockRejectedValue(new Error("db down"));
+
+    await expect(
+      AutoRemediationRuleEngineService.findRoundHoldingCluster({
+        projectId: PROJECT_ID,
+        clusterId: CLUSTER_ID.toString(),
+      }),
+    ).rejects.toThrow("db down");
+  });
+});
+
+describe("cluster round name snapshots", () => {
+  it("round-trips the server-written name, rounds included", () => {
+    expect(getClusterRoundNameSnapshot("prod-us", 1)).toBe(
+      'AI remediation for cluster "prod-us"',
+    );
+    expect(getClusterRoundNameSnapshot("prod-us", 2)).toBe(
+      'AI remediation for cluster "prod-us" (round 2)',
+    );
+    expect(
+      parseClusterRoundNameSnapshot(getClusterRoundNameSnapshot("prod-us", 2)),
+    ).toEqual({ clusterName: "prod-us" });
+    expect(
+      parseClusterRoundNameSnapshot('AI remediation for cluster "a "b" c"'),
+    ).toEqual({ clusterName: 'a "b" c' });
+  });
+
+  it("does not take an ordinary rule name for a cluster round", () => {
+    expect(parseClusterRoundNameSnapshot("Restart the API service")).toBeNull();
+    expect(
+      parseClusterRoundNameSnapshot('Custom: AI remediation for cluster "x"'),
+    ).toBeNull();
+    expect(parseClusterRoundNameSnapshot(undefined)).toBeNull();
   });
 });

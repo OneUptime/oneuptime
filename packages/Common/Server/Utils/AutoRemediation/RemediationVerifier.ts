@@ -19,6 +19,7 @@ import {
   AiRemediationCommandPlan,
   AiRemediationCommandPlanUtil,
   AiRemediationPlanExecutionStatus,
+  AiRemediationRollbackStatus,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import RunbookExecutionStatus from "../../../Types/Runbook/RunbookExecutionStatus";
@@ -37,10 +38,25 @@ import IncidentStateTimelineService from "../../Services/IncidentStateTimelineSe
 import MonitorService from "../../Services/MonitorService";
 import MonitorStatusService from "../../Services/MonitorStatusService";
 import RunbookExecutionService from "../../Services/RunbookExecutionService";
-import CommandPlanExecutor from "./CommandPlanExecutor";
+import CommandPlanExecutor, {
+  CommandPlanRollbackOutcome,
+} from "./CommandPlanExecutor";
 import AutoRemediationRuleEngineService from "../../Services/AutoRemediationRuleEngineService";
+import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+
+/*
+ * A rollback refreshes its heartbeat before every step, and no single step
+ * (a claim wait plus the longest command timeout) takes this long — so a
+ * heartbeat older than this means the rollback is no longer running.
+ */
+const ROLLBACK_HEARTBEAT_STALE_MINUTES: number = 10;
+
+// How far back the recovery sweep looks for an interrupted rollback.
+const ROLLBACK_RESUME_LOOKBACK_HOURS: number = 24;
+
+const ROLLBACK_RESUME_LOCK_NAMESPACE: string = "AutoRemediationRollbackResume";
 
 /*
  * Auto-remediation — the outcome verifier.
@@ -57,6 +73,11 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  *   subject already resolved        -> verification Verified
  *   window elapsed, still unhealthy -> verification Failed
  *   nothing to verify against       -> verification Skipped
+ *
+ * A failed command plan is rolled back, and a cluster round may get a
+ * follow-up round — only once the rollback has settled, and asking first
+ * when it did not complete. The same sweep resumes a rollback that a
+ * Worker restart cut short.
  *
  * Verification NEVER touches paging: escalation continues (or stops on
  * ack/resolve) exactly as it always did. Every conclusion goes through a
@@ -158,30 +179,317 @@ export default class RemediationVerifier {
           suggestion.suggestionType ===
             AutoRemediationSuggestionType.CommandPlan
         ) {
-          await CommandPlanExecutor.executeRollback({ suggestion });
-
-          /*
-           * A cluster whose AI page enabled remediation gets another try:
-           * after the rollback, OneUptime AI composes a NEW plan unless the
-           * round cap is spent. The follow-up round is Suggest (a human
-           * approves it) — except on a BypassApproval cluster, where it
-           * runs unattended again (see startFollowUpClusterRemediation).
-           * Never blocks verification — a failure here only means no retry.
-           */
-          if (suggestion.kubernetesClusterId && suggestion.projectId) {
-            await AutoRemediationRuleEngineService.startFollowUpClusterRemediation(
-              {
-                projectId: suggestion.projectId,
-                kubernetesClusterId: suggestion.kubernetesClusterId,
-                incidentId: suggestion.incidentId,
-                alertId: suggestion.alertId,
-              },
-            );
-          }
+          await this.rollBackAndFollowUp({
+            suggestion,
+            verificationNote: outcome.note,
+          });
         }
       } catch (error) {
         logger.error(
           `RemediationVerifier: failed to verify suggestion ${suggestion.id?.toString()}: ${error}`,
+        );
+      }
+    }
+
+    /*
+     * Rollbacks a Worker restart cut short. Never lets the sweep fail — the
+     * verifications above have already been settled either way.
+     */
+    try {
+      await this.resumeInterruptedRollbacks();
+    } catch (error) {
+      logger.error(
+        `RemediationVerifier: failed to resume interrupted rollbacks: ${error}`,
+      );
+    }
+  }
+
+  /*
+   * Roll a failed command plan back, record what the rollback actually did
+   * on the verification note, and only THEN decide on the follow-up round.
+   *
+   * A cluster whose AI page enabled remediation gets another try: after the
+   * rollback, OneUptime AI composes a NEW plan unless the round cap is
+   * spent. The follow-up round is Suggest (a human approves it) — except on
+   * a BypassApproval cluster, where it runs unattended again (see
+   * startFollowUpClusterRemediation). But it may only start from a known
+   * baseline:
+   *   - rollback completed, or nothing to roll back: as above;
+   *   - rollback settled Failed (a rollback failed, or was left for a human
+   *     to undo by hand): the follow-up asks first even on a Bypass cluster
+   *     — round 1's change may still be applied, and an unattended round on
+   *     top of a state humans were just told to fix by hand is exactly the
+   *     wrong move;
+   *   - rollback did not settle at all: no follow-up now. The recovery
+   *     sweep resumes the rollback and starts the follow-up once it has.
+   * Never blocks verification — a failure here only means no retry.
+   */
+  private static async rollBackAndFollowUp(data: {
+    suggestion: AutoRemediationSuggestion;
+    verificationNote?: string | undefined;
+  }): Promise<void> {
+    const { suggestion } = data;
+
+    const rollback: CommandPlanRollbackOutcome | undefined =
+      await CommandPlanExecutor.executeRollback({ suggestion });
+
+    if (!rollback) {
+      return;
+    }
+
+    /*
+     * The note was written before the rollback ran; it now says what the
+     * rollback did, so the card — and the next round's context — never
+     * read a rollback that did not happen as one that did.
+     */
+    if (suggestion.id && rollback.rollbackStatus) {
+      try {
+        await AutoRemediationSuggestionService.updateOneById({
+          id: suggestion.id,
+          data: {
+            verificationNote: [data.verificationNote, rollback.summary]
+              .filter((part: string | undefined) => {
+                return Boolean(part);
+              })
+              .join(" "),
+          } as never,
+          props: { isRoot: true },
+        });
+      } catch (error) {
+        logger.error(
+          `RemediationVerifier: could not record the rollback outcome on suggestion ${suggestion.id.toString()}: ${error}`,
+        );
+      }
+    }
+
+    if (!suggestion.kubernetesClusterId || !suggestion.projectId) {
+      return;
+    }
+
+    if (!rollback.rollbackStatus) {
+      logger.warn(
+        `RemediationVerifier: the rollback of suggestion ${suggestion.id?.toString()} did not settle; the follow-up round waits for it to be resumed.`,
+      );
+      return;
+    }
+
+    const rollbackIncomplete: boolean =
+      rollback.rollbackStatus === AiRemediationRollbackStatus.Failed;
+
+    await AutoRemediationRuleEngineService.startFollowUpClusterRemediation({
+      projectId: suggestion.projectId,
+      kubernetesClusterId: suggestion.kubernetesClusterId,
+      incidentId: suggestion.incidentId,
+      alertId: suggestion.alertId,
+      forceSuggest: rollbackIncomplete ? true : undefined,
+      forceSuggestReason: rollbackIncomplete
+        ? "the previous fix's rollback did not complete, so its change may still be applied"
+        : undefined,
+    });
+  }
+
+  /*
+   * Resume rollbacks a Worker restart interrupted. The verifier rolls a
+   * failed plan back inline, right after winning the verification
+   * transition; a pod that dies mid-rollback leaves verification Failed
+   * with the plan's rollbackStatus unset, and nothing else ever looks at a
+   * Failed verification again. So: a Failed CommandPlan verification of the
+   * last day whose rollback never settled, and whose rollback heartbeat
+   * (or, before the first beat, verification time) is older than any single
+   * rollback step can take, was interrupted. It is claimed under a lock —
+   * re-checked there, and re-stamped before the lock is released, so a
+   * second replica sees a live heartbeat and leaves it alone — then
+   * resumed: executeRollback settles undos already handed to a Runner from
+   * their jobs, runs the rest, and the follow-up round follows as usual.
+   * Without the lock, nothing is resumed this tick: two replicas rolling
+   * back one plan could run an undo twice.
+   */
+  @CaptureSpan()
+  public static async resumeInterruptedRollbacks(): Promise<void> {
+    const now: number = OneUptimeDate.getCurrentDate().getTime();
+
+    const candidates: Array<AutoRemediationSuggestion> =
+      await AutoRemediationSuggestionService.findBy({
+        query: {
+          suggestionType: AutoRemediationSuggestionType.CommandPlan,
+          verificationStatus: AutoRemediationVerificationStatus.Failed,
+          status: QueryHelper.any([
+            AutoRemediationSuggestionStatus.Approved,
+            AutoRemediationSuggestionStatus.AutoExecuted,
+          ]),
+          verificationCompletedAt: QueryHelper.inBetween(
+            OneUptimeDate.getSomeHoursAgo(ROLLBACK_RESUME_LOOKBACK_HOURS),
+            OneUptimeDate.getSomeMinutesAgo(ROLLBACK_HEARTBEAT_STALE_MINUTES),
+          ),
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          incidentId: true,
+          alertId: true,
+          suggestionType: true,
+          commandPlan: true,
+          aiRunId: true,
+          verificationStatus: true,
+          verificationCompletedAt: true,
+          verificationNote: true,
+          ruleNameSnapshot: true,
+          kubernetesClusterId: true,
+        },
+        limit: 50,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    for (const candidate of candidates) {
+      try {
+        if (
+          candidate.verificationStatus !==
+            AutoRemediationVerificationStatus.Failed ||
+          !this.isInterruptedRollback(candidate, now)
+        ) {
+          continue;
+        }
+
+        const claimed: AutoRemediationSuggestion | null =
+          await this.claimInterruptedRollback(candidate);
+
+        if (!claimed) {
+          continue;
+        }
+
+        logger.warn(
+          `RemediationVerifier: resuming the interrupted rollback of suggestion ${claimed.id?.toString()}.`,
+        );
+
+        await this.rollBackAndFollowUp({
+          suggestion: claimed,
+          verificationNote: claimed.verificationNote,
+        });
+      } catch (error) {
+        logger.error(
+          `RemediationVerifier: failed to resume the rollback of suggestion ${candidate.id?.toString()}: ${error}`,
+        );
+      }
+    }
+  }
+
+  // A Failed verification whose rollback never settled and went quiet.
+  private static isInterruptedRollback(
+    suggestion: AutoRemediationSuggestion,
+    now: number,
+  ): boolean {
+    const plan: AiRemediationCommandPlan | null =
+      AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
+
+    if (!plan) {
+      return false;
+    }
+
+    if (
+      plan.rollbackStatus &&
+      plan.rollbackStatus !== AiRemediationRollbackStatus.NotAttempted
+    ) {
+      return false;
+    }
+
+    const lastSignOfLife: number | null = plan.rollbackHeartbeatAt
+      ? new Date(plan.rollbackHeartbeatAt).getTime()
+      : suggestion.verificationCompletedAt
+        ? new Date(suggestion.verificationCompletedAt).getTime()
+        : null;
+
+    if (lastSignOfLife === null || Number.isNaN(lastSignOfLife)) {
+      return false;
+    }
+
+    return lastSignOfLife < now - ROLLBACK_HEARTBEAT_STALE_MINUTES * 60 * 1000;
+  }
+
+  /*
+   * Claim an interrupted rollback for this replica: under a lock, re-read
+   * the plan, re-check that it is still interrupted, and stamp a fresh
+   * heartbeat before letting go. Null when another replica got there
+   * first, or the lock cannot be had.
+   */
+  private static async claimInterruptedRollback(
+    candidate: AutoRemediationSuggestion,
+  ): Promise<AutoRemediationSuggestion | null> {
+    let mutex: SemaphoreMutex;
+
+    try {
+      mutex = await Semaphore.lock({
+        key: candidate.id!.toString(),
+        namespace: ROLLBACK_RESUME_LOCK_NAMESPACE,
+        lockTimeout: 30_000,
+        acquireTimeout: 5_000,
+      });
+    } catch (error) {
+      logger.warn(
+        `RemediationVerifier: could not take the rollback-resume lock of suggestion ${candidate.id?.toString()}; not resuming it this tick: ${error}`,
+      );
+      return null;
+    }
+
+    try {
+      const current: AutoRemediationSuggestion | null =
+        await AutoRemediationSuggestionService.findOneById({
+          id: candidate.id!,
+          select: {
+            _id: true,
+            projectId: true,
+            incidentId: true,
+            alertId: true,
+            suggestionType: true,
+            commandPlan: true,
+            aiRunId: true,
+            verificationStatus: true,
+            verificationCompletedAt: true,
+            verificationNote: true,
+            ruleNameSnapshot: true,
+            kubernetesClusterId: true,
+          },
+          props: { isRoot: true },
+        });
+
+      if (
+        !current ||
+        current.verificationStatus !==
+          AutoRemediationVerificationStatus.Failed ||
+        !this.isInterruptedRollback(
+          current,
+          OneUptimeDate.getCurrentDate().getTime(),
+        )
+      ) {
+        return null;
+      }
+
+      const plan: AiRemediationCommandPlan | null =
+        AiRemediationCommandPlanUtil.parse(current.commandPlan);
+
+      if (!plan) {
+        return null;
+      }
+
+      plan.rollbackHeartbeatAt = OneUptimeDate.getCurrentDate().toISOString();
+
+      await AutoRemediationSuggestionService.updateOneById({
+        id: current.id!,
+        data: {
+          commandPlan: AiRemediationCommandPlanUtil.toJSON(plan),
+        } as never,
+        props: { isRoot: true },
+      });
+
+      current.commandPlan = AiRemediationCommandPlanUtil.toJSON(plan);
+
+      return current;
+    } finally {
+      try {
+        await Semaphore.release(mutex);
+      } catch (error) {
+        logger.error(
+          `RemediationVerifier: failed to release the rollback-resume lock: ${error}`,
         );
       }
     }
@@ -350,10 +658,15 @@ export default class RemediationVerifier {
         OneUptimeDate.getCurrentDate().getTime()
       : false;
 
+    /*
+     * The notes below are written BEFORE the rollback runs, so they never
+     * claim anything about it: what the rollback actually did is appended
+     * once it has settled (rollBackAndFollowUp).
+     */
     if (plan.executionStatus === AiRemediationPlanExecutionStatus.Failed) {
       return {
         status: AutoRemediationVerificationStatus.Failed,
-        note: "The AI command plan did not complete — a command failed. Executed commands with a rollback are being rolled back.",
+        note: "The AI command plan did not complete — a command failed.",
         pingWorkspace: true,
         displayColor: Red500,
         shouldAutoResolve: false,
@@ -411,7 +724,7 @@ export default class RemediationVerifier {
     if (deadlinePassed) {
       return {
         status: AutoRemediationVerificationStatus.Failed,
-        note: "The AI command remediation completed but the service did not recover within the verification window — executed commands with a rollback are being rolled back, and escalation continues as normal.",
+        note: "The AI command remediation completed but the service did not recover within the verification window — escalation continues as normal.",
         pingWorkspace: true,
         displayColor: Red500,
         shouldAutoResolve: false,

@@ -14,6 +14,9 @@ import KubernetesClusterAiAccessService from "../../../../Server/Services/Kubern
 import RunnerJobService from "../../../../Server/Services/RunnerJobService";
 import RunnerService from "../../../../Server/Services/RunnerService";
 import logger from "../../../../Server/Utils/Logger";
+import Semaphore, {
+  SemaphoreMutex,
+} from "../../../../Server/Infrastructure/Semaphore";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Runner from "../../../../Models/DatabaseModels/Runner";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
@@ -44,9 +47,13 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * - a cluster is a target only when its AI page made it remediation-ready;
  *   the model names the cluster and the toolkit fills in the Runner and
  *   credential the cluster's page bound — never the model's choice;
- * - FullAuto executes Read/SafeWrite kubectl inline, refuses RiskyWrite
+ * - FullAuto executes SafeWrite kubectl inline, refuses RiskyWrite
  *   unless the cluster allowlist names it, refuses Denied always, and
- *   refuses everything on a cluster that asks for approval;
+ *   refuses everything on a cluster that asks for approval (a kubectl read
+ *   is refused too: it belongs to run_kubectl, and sent through the execute
+ *   tool it would count as an executed fix — see
+ *   RemediationCommandToolsLiveCluster.test.ts, which also pins the live
+ *   per-command re-check of the cluster and the write-time breaker slot);
  * - on a BypassApproval cluster FullAuto executes RiskyWrite inline too
  *   (no allowlist needed) and accepts a RiskyWrite rollback; Denied stays
  *   refused whatever the mode or allowlist says;
@@ -64,9 +71,10 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   before it is persisted on the suggestion or shown to the model — for
  *   the kubectl lane AND for a Bash step that happens to run kubectl;
  * - list_command_targets tells a FullAuto round the truth about an
- *   Automatic cluster: a riskier change is refused inline (there is no
- *   propose tool in that round), so it belongs in the written
- *   recommendations for a human.
+ *   Automatic cluster: a riskier change never runs inline — a rule-driven
+ *   run leaves it in the written recommendations for a human, a cluster
+ *   round submits it anyway so it is proposed for one-click approval when
+ *   the round ends.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -110,10 +118,18 @@ function cluster(
   };
 }
 
+/*
+ * The cluster AI pages as they stand "now". The toolkit re-reads a
+ * cluster's page before every inline kubectl change; by default the page
+ * says exactly what the toolkit was built with (nothing changed mid-run).
+ */
+const liveClusterStatuses: Map<string, KubernetesClusterAiAccessStatus> =
+  new Map<string, KubernetesClusterAiAccessStatus>();
+
 function buildToolkit(
   overrides: Partial<RemediationCommandToolkitOptions> = {},
 ): RemediationCommandToolkit {
-  return new RemediationCommandToolkit({
+  const options: RemediationCommandToolkitOptions = {
     projectId: PROJECT_ID,
     aiRunId: RUN_ID,
     suggestionId: SUGGESTION_ID,
@@ -122,7 +138,13 @@ function buildToolkit(
     allowedRunnerIds: [],
     clusterTargets: [cluster()],
     ...overrides,
-  });
+  };
+
+  for (const target of options.clusterTargets || []) {
+    liveClusterStatuses.set(target.clusterId, target);
+  }
+
+  return new RemediationCommandToolkit(options);
 }
 
 function getTool(
@@ -174,9 +196,32 @@ let enqueueBash: jest.SpyInstance;
 
 function mockHappyPath(): void {
   persistedPlans = [];
+  liveClusterStatuses.clear();
   jest.spyOn(logger, "error").mockImplementation((): void => {
     return undefined;
   });
+  jest.spyOn(logger, "warn").mockImplementation((): void => {
+    return undefined;
+  });
+  jest
+    .spyOn(KubernetesClusterAiAccessService, "getStatusForCluster")
+    .mockImplementation(
+      async (data: {
+        clusterId: ObjectID;
+      }): Promise<KubernetesClusterAiAccessStatus | null> => {
+        return liveClusterStatuses.get(data.clusterId.toString()) || null;
+      },
+    );
+  // The write-time circuit-breaker slot: a lock, and a cluster with headroom.
+  jest
+    .spyOn(Semaphore, "lock")
+    .mockResolvedValue({} as unknown as SemaphoreMutex);
+  jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+  jest
+    .spyOn(AutoRemediationSuggestionService, "countBy")
+    .mockResolvedValue(new PositiveNumber(0));
+  jest.spyOn(AutoRemediationSuggestionService, "findBy").mockResolvedValue([]);
+  jest.spyOn(RunnerJobService, "findBy").mockResolvedValue([]);
   jest
     .spyOn(AutoRemediationSuggestionService, "findOneById")
     .mockResolvedValue({
@@ -233,23 +278,39 @@ describe("RemediationCommandToolkit list_command_targets with clusters", () => {
     ).not.toHaveBeenCalled();
   });
 
-  it("tells a FullAuto round that an Automatic cluster refuses a RiskyWrite inline — it is neither run nor proposed, and goes to the written recommendations", async () => {
+  it("tells a rule-driven FullAuto run that an Automatic cluster never runs a RiskyWrite inline, and sends it to the written recommendations", async () => {
     const outcome: ToolCallOutcome = await getTool(
       buildToolkit(),
       "list_command_targets",
     ).execute({});
 
     /*
-     * A FullAuto round has no propose tool, so "needs approval" would
-     * promise a card that never appears. The text has to send the model
-     * to its written recommendations instead — while still saying that an
-     * allowlisted shape runs.
+     * A rule-driven run never proposes what it refused (only a cluster
+     * round does), so the text sends the model to its written
+     * recommendations — while still saying that an allowlisted shape runs.
      */
-    expect(outcome.textForLlm).toContain("refused inline");
-    expect(outcome.textForLlm).toContain("neither run nor proposed");
+    expect(outcome.textForLlm).toContain("never runs inline");
     expect(outcome.textForLlm).toContain("written recommendations for a human");
     expect(outcome.textForLlm).toContain("unless the cluster allowlist names");
-    expect(outcome.textForLlm).not.toContain("needs approval");
+    expect(outcome.textForLlm).not.toContain("proposed for one-click approval");
+  });
+
+  it("tells a cluster round that a refused RiskyWrite is recorded and proposed for one-click approval — the Automatic promise", async () => {
+    /*
+     * Changed with the "Automatic proposes the riskier fix" fix: this text
+     * used to say "neither run nor proposed", which is no longer true for
+     * a cluster round that executes nothing.
+     */
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit({ proposesRefusedCommands: true }),
+      "list_command_targets",
+    ).execute({});
+
+    expect(outcome.textForLlm).toContain("never runs inline");
+    expect(outcome.textForLlm).toContain("submit it anyway");
+    expect(outcome.textForLlm).toContain("proposed for one-click approval");
+    expect(outcome.textForLlm).toContain("if no other change ran");
+    expect(outcome.textForLlm).not.toContain("neither run nor proposed");
   });
 
   it("hides a cluster that is not remediation-ready", async () => {

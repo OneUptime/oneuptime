@@ -65,7 +65,10 @@ import {
  * - the check runs after the project opt-in and Runner consent re-checks;
  * - a plan whose clusters all still match proceeds to the claim;
  * - each cluster is read once however many commands target it, and
- *   non-kubectl commands never trigger a cluster read.
+ *   non-kubectl commands never trigger a cluster read;
+ * - a Bash/SSH step aimed at a cluster's in-cluster kubectl agent (by its
+ *   server-owned name or its posture) fails the click, while a Kubectl
+ *   step naming that same Runner passes.
  * ---------------------------------------------------------------------------
  */
 
@@ -630,6 +633,89 @@ describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
 
     expect(error.message).toContain("no longer accepts AI commands");
     expect(statusSpy).not.toHaveBeenCalled();
+  });
+
+  /*
+   * The in-cluster kubectl agent claims only Kubectl jobs. A plan with a
+   * Bash/SSH step on it would claim-timeout AFTER the approver clicked and
+   * skip the rest of the plan — so the click fails instead. A Kubectl step
+   * legitimately names that same Runner (it is how its cluster is reached).
+   */
+  test("rejects a Bash step on the cluster's in-cluster agent Runner (known by its name) before the claim, naming the step", async () => {
+    mockCommands([
+      kubectlCommandJson({ sequence: 1 }),
+      bashCommandJson({ sequence: 2, runnerId: RUNNER_ID.toString() }),
+    ]);
+    runnerFindSpy.mockResolvedValue({
+      _id: RUNNER_ID.toString(),
+      name: "kubernetes-agent/prod-us",
+    } as unknown as Runner);
+
+    const error: BadDataException = expectRefusedBeforeClaim(
+      await callApprove(),
+    );
+
+    expect(error.message).toContain("Command 2 is a Bash step");
+    expect(error.message).toContain('"kubernetes-agent/prod-us"');
+    expect(error.message).toContain("runs only Kubectl steps");
+    // Asked for what identifies an agent.
+    expect(
+      (runnerFindSpy.mock.calls[0]![0] as { select: Record<string, boolean> })
+        .select,
+    ).toEqual(expect.objectContaining({ name: true, hostInfo: true }));
+  });
+
+  test("rejects an SSH step on a Runner whose posture says it is a cluster's in-cluster agent", async () => {
+    mockCommands([
+      bashCommandJson({
+        stepType: RunbookStepType.SSH,
+        credentialId: CREDENTIAL_ID,
+      }),
+    ]);
+    runnerFindSpy.mockResolvedValue({
+      _id: OTHER_RUNNER_ID.toString(),
+      name: "renamed-agent",
+      hostInfo: {
+        kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
+      },
+    } as unknown as Runner);
+
+    const error: BadDataException = expectRefusedBeforeClaim(
+      await callApprove(),
+    );
+
+    expect(error.message).toContain("Command 1 is a SSH step");
+    expect(statusSpy).not.toHaveBeenCalled();
+  });
+
+  test("negative control: a Kubectl step whose runnerId IS the agent Runner passes — the check is per step type, not per Runner", async () => {
+    runnerFindSpy.mockResolvedValue({
+      _id: RUNNER_ID.toString(),
+      name: "kubernetes-agent/prod-us",
+      hostInfo: {
+        kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
+      },
+    } as unknown as Runner);
+
+    const result: RouteCallResult = await callApprove();
+
+    expect(result.nextCallCount).toBe(0);
+    expect(casSpy).toHaveBeenCalledTimes(1);
+    expect(executeApprovedPlanMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("negative control: a Bash step on an ordinary Runner (even one running in a pod) passes", async () => {
+    mockCommands([bashCommandJson()]);
+    runnerFindSpy.mockResolvedValue({
+      _id: OTHER_RUNNER_ID.toString(),
+      name: "web-runner-1",
+      hostInfo: { kubernetes: { inCluster: true } },
+    } as unknown as Runner);
+
+    const result: RouteCallResult = await callApprove();
+
+    expect(result.nextCallCount).toBe(0);
+    expect(casSpy).toHaveBeenCalledTimes(1);
   });
 
   test("a refusal names the failing command's position", async () => {

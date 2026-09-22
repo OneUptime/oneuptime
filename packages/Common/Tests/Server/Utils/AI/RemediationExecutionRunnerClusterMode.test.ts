@@ -12,6 +12,7 @@ import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import AutoRemediationExecutionMode from "../../../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/AutoRemediationSuggestionType";
+import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
@@ -36,13 +37,23 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   reported on the resolution, because the caller has to tell the human
  *   why a promised unattended fix turned into an approval card;
  * - the breaker counts unattended kubectl runs on the cluster however they
- *   were started: cluster-level rounds settled AutoExecuted AND distinct AI
+ *   were started: cluster-level rounds settled AutoExecuted, distinct AI
  *   runs (rule-driven included) whose inline `ai-command-*` kubectl jobs
- *   name the cluster — the larger of the two wins;
- * - a failing breaker query fails safe to Suggest, reported as a downgrade;
+ *   name the cluster, AND unattended rounds still in flight (Planning,
+ *   FullAuto) created before this one — runs and in-flight rounds unioned by
+ *   suggestion id, the larger total winning. Ordering by creation is what
+ *   lets rounds announced together decide among themselves: the earliest
+ *   keep their slots, the later ones ask, whichever run starts first;
+ * - another round holding the cluster — still running unattended (created
+ *   before this one), or its fix still being verified, whatever subject it
+ *   is for — downgrades this round, reported as its own reason;
+ * - a failing breaker or in-flight query fails safe to Suggest, reported
+ *   as a downgrade;
  * - the FullAuto persona tells a bypass run that riskier changes execute
- *   inline, and an Automatic run that they go to a human — and both keep
- *   the destructive-command refusal.
+ *   inline, and an Automatic run that they are refused inline and proposed
+ *   for approval when the round ends — and on an Automatic cluster it only
+ *   ever recommends a SAFE rollback (rollout undo), since a riskier undo is
+ *   refused there; both keep the destructive-command refusal.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -110,12 +121,15 @@ function inlineJobsFromDistinctRuns(count: number): Array<RunnerJob> {
 const NO_DOWNGRADE: Partial<ClusterModeResolution> = {
   downgradedByCircuitBreaker: false,
   downgradedByModeChange: false,
+  downgradedByInFlightRound: false,
+  inFlightRound: null,
   breakerCheckFailed: false,
 };
 
 describe("RemediationExecutionRunner.resolveClusterMode", () => {
   let countBy: jest.SpyInstance;
   let jobFindBy: jest.SpyInstance;
+  let suggestionFindBy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.spyOn(logger, "warn").mockImplementation((): void => {
@@ -128,6 +142,10 @@ describe("RemediationExecutionRunner.resolveClusterMode", () => {
       .spyOn(AutoRemediationSuggestionService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jobFindBy = jest.spyOn(RunnerJobService, "findBy").mockResolvedValue([]);
+    // No other round in flight on the cluster, none holding it.
+    suggestionFindBy = jest
+      .spyOn(AutoRemediationSuggestionService, "findBy")
+      .mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -227,6 +245,8 @@ describe("RemediationExecutionRunner.resolveClusterMode", () => {
         mode: "Suggest",
         downgradedByCircuitBreaker: false,
         downgradedByModeChange: true,
+        downgradedByInFlightRound: false,
+        inFlightRound: null,
         autoExecutedInWindow: null,
         breakerCheckFailed: false,
       });
@@ -265,6 +285,8 @@ describe("RemediationExecutionRunner.resolveClusterMode", () => {
       mode: "Suggest",
       downgradedByCircuitBreaker: true,
       downgradedByModeChange: false,
+      downgradedByInFlightRound: false,
+      inFlightRound: null,
       autoExecutedInWindow: MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR,
       breakerCheckFailed: false,
     });
@@ -291,6 +313,8 @@ describe("RemediationExecutionRunner.resolveClusterMode", () => {
       mode: "Suggest",
       downgradedByCircuitBreaker: true,
       downgradedByModeChange: false,
+      downgradedByInFlightRound: false,
+      inFlightRound: null,
       autoExecutedInWindow: MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR,
       breakerCheckFailed: false,
     });
@@ -349,6 +373,8 @@ describe("RemediationExecutionRunner.resolveClusterMode", () => {
       mode: "Suggest",
       downgradedByCircuitBreaker: true,
       downgradedByModeChange: false,
+      downgradedByInFlightRound: false,
+      inFlightRound: null,
       autoExecutedInWindow: null,
       breakerCheckFailed: true,
     });
@@ -372,7 +398,262 @@ describe("RemediationExecutionRunner.resolveClusterMode", () => {
       breakerCheckFailed: true,
     });
   });
+
+  /*
+   * In-flight rounds. A round that passed the breaker and is still
+   * diagnosing has written nothing yet — no settled row, no inline job — so
+   * without counting it every round announced in the same storm reads the
+   * same stale count and all of them run unattended.
+   */
+  it("counts an unattended round still in flight (created before this one) against the breaker: 2 settled + 1 in flight trips it", async () => {
+    const mine: AutoRemediationSuggestion = roundCreatedAt(
+      new Date(Date.now() - 30 * 1000),
+    );
+    countBy.mockResolvedValue(new PositiveNumber(2));
+    jobFindBy.mockResolvedValue(inlineJobsFromDistinctRuns(2));
+    suggestionFindBy.mockImplementation(
+      async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+        return isInFlightQuery(args)
+          ? [roundCreatedAt(new Date(Date.now() - 60 * 1000))]
+          : [];
+      },
+    );
+
+    await expect(
+      RemediationExecutionRunner.resolveClusterMode({
+        suggestion: mine,
+        cluster: cluster(),
+      }),
+    ).resolves.toEqual({
+      mode: "Suggest",
+      downgradedByCircuitBreaker: true,
+      downgradedByModeChange: false,
+      downgradedByInFlightRound: false,
+      inFlightRound: null,
+      autoExecutedInWindow: MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR,
+      breakerCheckFailed: false,
+    });
+  });
+
+  it("negative control: the same in-flight round created AFTER this one does not count, and this round keeps its unattended slot", async () => {
+    const mine: AutoRemediationSuggestion = roundCreatedAt(
+      new Date(Date.now() - 60 * 1000),
+    );
+    countBy.mockResolvedValue(new PositiveNumber(2));
+    jobFindBy.mockResolvedValue(inlineJobsFromDistinctRuns(2));
+    suggestionFindBy.mockImplementation(
+      async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+        return isInFlightQuery(args)
+          ? [roundCreatedAt(new Date(Date.now() - 30 * 1000))]
+          : [];
+      },
+    );
+
+    await expect(
+      RemediationExecutionRunner.resolveClusterMode({
+        suggestion: mine,
+        cluster: cluster(),
+      }),
+    ).resolves.toMatchObject({
+      mode: "FullAuto",
+      autoExecutedInWindow: MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR - 1,
+    });
+  });
+
+  it("never counts the round against itself", async () => {
+    const mine: AutoRemediationSuggestion = roundCreatedAt(new Date());
+    jobFindBy.mockResolvedValue([
+      ...inlineJobsFromDistinctRuns(2),
+      inlineJob(mine.id!),
+    ]);
+    suggestionFindBy.mockImplementation(
+      async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+        return isInFlightQuery(args) ? [mine] : [];
+      },
+    );
+
+    await expect(
+      RemediationExecutionRunner.resolveClusterMode({
+        suggestion: mine,
+        cluster: cluster(),
+      }),
+    ).resolves.toMatchObject({ mode: "FullAuto", autoExecutedInWindow: 2 });
+  });
+
+  it("lets at most one of two rounds announced together take the last slot, whichever run starts first", async () => {
+    // Two Planning FullAuto rounds on the cluster, 2 of 3 slots used.
+    const early: AutoRemediationSuggestion = roundCreatedAt(
+      new Date(Date.now() - 2000),
+    );
+    const late: AutoRemediationSuggestion = roundCreatedAt(
+      new Date(Date.now() - 1000),
+    );
+    countBy.mockResolvedValue(new PositiveNumber(2));
+    jobFindBy.mockResolvedValue(inlineJobsFromDistinctRuns(2));
+    suggestionFindBy.mockImplementation(
+      async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+        return isInFlightQuery(args) ? [early, late] : [];
+      },
+    );
+
+    const resolutions: Array<ClusterModeResolution> = await Promise.all([
+      RemediationExecutionRunner.resolveClusterMode({
+        suggestion: late,
+        cluster: cluster(),
+      }),
+      RemediationExecutionRunner.resolveClusterMode({
+        suggestion: early,
+        cluster: cluster(),
+      }),
+    ]);
+
+    const unattended: Array<ClusterModeResolution> = resolutions.filter(
+      (resolution: ClusterModeResolution) => {
+        return resolution.mode === "FullAuto";
+      },
+    );
+    expect(unattended).toHaveLength(1);
+    // The earlier round keeps the slot; the later one is the breaker downgrade.
+    expect(resolutions[1]!.mode).toBe("FullAuto");
+    expect(resolutions[0]!.downgradedByCircuitBreaker).toBe(true);
+  });
+
+  /*
+   * One unattended round per cluster at a time, whatever the subject: an
+   * alert and an incident of one monitor each get their own round on the
+   * same cluster.
+   */
+  it("downgrades a round while another subject's round on the cluster is still being verified — the alert and the incident of one monitor", async () => {
+    const holder: AutoRemediationSuggestion = {
+      id: ObjectID.generate(),
+      _id: ObjectID.generate().toString(),
+      status: AutoRemediationSuggestionStatus.AutoExecuted,
+      executionMode: AutoRemediationExecutionMode.FullAuto,
+      verificationStatus: AutoRemediationVerificationStatus.Pending,
+      verificationDeadlineAt: new Date(Date.now() + 10 * 60 * 1000),
+      incidentId: ObjectID.generate(),
+      ruleNameSnapshot: 'AI remediation for cluster "prod-us"',
+      createdAt: new Date(Date.now() - 5 * 60 * 1000),
+    } as unknown as AutoRemediationSuggestion;
+    suggestionFindBy.mockImplementation(
+      async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+        return isInFlightQuery(args) ? [] : [holder];
+      },
+    );
+
+    const resolution: ClusterModeResolution =
+      await RemediationExecutionRunner.resolveClusterMode({
+        suggestion: roundCreatedAt(new Date()),
+        cluster: cluster({
+          remediationMode: KubernetesAiRemediationMode.Automatic,
+        }),
+      });
+
+    expect(resolution.mode).toBe("Suggest");
+    expect(resolution.downgradedByInFlightRound).toBe(true);
+    expect(resolution.downgradedByCircuitBreaker).toBe(false);
+    expect(resolution.inFlightRound?.suggestionId).toBe(holder.id!.toString());
+    expect(resolution.inFlightRound?.description).toContain(
+      "still being verified",
+    );
+  });
+
+  it("downgrades a round while an earlier unattended round on the cluster is still running", async () => {
+    const earlier: AutoRemediationSuggestion = {
+      ...roundCreatedAt(new Date(Date.now() - 60 * 1000)),
+      status: AutoRemediationSuggestionStatus.Planning,
+      executionMode: AutoRemediationExecutionMode.FullAuto,
+      alertId: ObjectID.generate(),
+    } as unknown as AutoRemediationSuggestion;
+    suggestionFindBy.mockImplementation(
+      async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+        return isInFlightQuery(args) ? [] : [earlier];
+      },
+    );
+
+    const resolution: ClusterModeResolution =
+      await RemediationExecutionRunner.resolveClusterMode({
+        suggestion: roundCreatedAt(new Date()),
+        cluster: cluster(),
+      });
+
+    expect(resolution.mode).toBe("Suggest");
+    expect(resolution.downgradedByInFlightRound).toBe(true);
+    expect(resolution.inFlightRound?.description).toContain(
+      "still running unattended",
+    );
+  });
+
+  it("negative control: an unattended round created AFTER this one does not hold the cluster against it; a settled one never does", async () => {
+    const later: AutoRemediationSuggestion = {
+      ...roundCreatedAt(new Date(Date.now() + 60 * 1000)),
+      status: AutoRemediationSuggestionStatus.Planning,
+      executionMode: AutoRemediationExecutionMode.FullAuto,
+    } as unknown as AutoRemediationSuggestion;
+    const verified: AutoRemediationSuggestion = {
+      ...roundCreatedAt(new Date(Date.now() - 20 * 60 * 1000)),
+      status: AutoRemediationSuggestionStatus.AutoExecuted,
+      verificationStatus: AutoRemediationVerificationStatus.Verified,
+    } as unknown as AutoRemediationSuggestion;
+    suggestionFindBy.mockImplementation(
+      async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+        return isInFlightQuery(args) ? [] : [later, verified];
+      },
+    );
+
+    await expect(
+      RemediationExecutionRunner.resolveClusterMode({
+        suggestion: roundCreatedAt(new Date()),
+        cluster: cluster(),
+      }),
+    ).resolves.toMatchObject({ mode: "FullAuto", ...NO_DOWNGRADE });
+  });
+
+  it("fails safe to Suggest when the in-flight round check itself fails, with no holder named", async () => {
+    suggestionFindBy.mockImplementation(
+      async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+        if (isInFlightQuery(args)) {
+          return [];
+        }
+        throw new Error("db down");
+      },
+    );
+
+    const resolution: ClusterModeResolution =
+      await RemediationExecutionRunner.resolveClusterMode({
+        suggestion: roundCreatedAt(new Date()),
+        cluster: cluster(),
+      });
+
+    expect(resolution).toMatchObject({
+      mode: "Suggest",
+      downgradedByInFlightRound: true,
+      inFlightRound: null,
+      downgradedByCircuitBreaker: false,
+    });
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining("another AI round in flight"),
+    );
+  });
 });
+
+// The breaker's in-flight read: unattended Planning rounds on the cluster.
+function isInFlightQuery(args: unknown): boolean {
+  const query: Record<string, unknown> =
+    (args as { query?: Record<string, unknown> }).query || {};
+  return (
+    query["status"] === AutoRemediationSuggestionStatus.Planning &&
+    query["executionMode"] === AutoRemediationExecutionMode.FullAuto
+  );
+}
+
+function roundCreatedAt(createdAt: Date): AutoRemediationSuggestion {
+  const round: AutoRemediationSuggestion = suggestion(
+    AutoRemediationExecutionMode.FullAuto,
+  );
+  (round as unknown as { createdAt: Date }).createdAt = createdAt;
+  return round;
+}
 
 describe("RemediationExecutionRunner.getClusterBreakerState", () => {
   let countBy: jest.SpyInstance;
@@ -383,6 +664,10 @@ describe("RemediationExecutionRunner.getClusterBreakerState", () => {
       .spyOn(AutoRemediationSuggestionService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jobFindBy = jest.spyOn(RunnerJobService, "findBy").mockResolvedValue([]);
+    // No unattended round in flight unless a test says otherwise.
+    jest
+      .spyOn(AutoRemediationSuggestionService, "findBy")
+      .mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -498,5 +783,45 @@ describe("buildClusterFullAutoPersona", () => {
       expect(persona).toContain("Always pass a rollbackCommand");
       expect(persona).toContain("**Actions taken**");
     }
+  });
+
+  it("never recommends a rollback form an Automatic cluster refuses: rollout undo, not set image back", () => {
+    const persona: string = buildClusterFullAutoPersona({
+      bypassApproval: false,
+    });
+
+    /*
+     * The planner refuses a RiskyWrite rollback outside Bypass approval
+     * (rollbacks run unattended), so recommending `set image` back would
+     * steer the model into a refusal and waste a tool call.
+     */
+    expect(persona).not.toContain("set image back");
+    expect(persona).toContain(
+      "kubectl rollout undo deployment/<name> -n <namespace>",
+    );
+    expect(persona).toContain("A rollback must itself be a safe change");
+    expect(persona).toContain("undoes a set image/env/resources");
+  });
+
+  it("negative control: a Bypass-approval persona still offers set image back — the rule depends on the mode, not a blanket removal", () => {
+    const persona: string = buildClusterFullAutoPersona({
+      bypassApproval: true,
+    });
+
+    expect(persona).toContain("kubectl set image back to the previous image");
+    expect(persona).not.toContain("A rollback must itself be a safe change");
+  });
+
+  it("tells an Automatic run to submit the riskier fix anyway — it is refused, recorded and proposed for one-click approval", () => {
+    const persona: string = buildClusterFullAutoPersona({
+      bypassApproval: false,
+    });
+
+    expect(persona).toContain(
+      "submit the exact riskier kubectl command with execute_remediation_command anyway",
+    );
+    expect(persona).toContain("it will NOT run");
+    expect(persona).toContain("one-click approval");
+    expect(persona).toContain("do NOT hunt for a worse safe substitute");
   });
 });

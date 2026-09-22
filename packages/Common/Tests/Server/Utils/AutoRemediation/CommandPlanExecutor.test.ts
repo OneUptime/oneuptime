@@ -1150,10 +1150,15 @@ describe("CommandPlanExecutor.executeRollback", () => {
     expect(finalPlan["rollbackStatus"]).toBe("NotApplicable");
   });
 
-  it("names a job-less command's still-running stepId job on the record but leaves its status alone", async () => {
+  it("names a job-less command's still-running stepId job on the record, waits for it, and rolls it back once it succeeded", async () => {
+    /*
+     * Changed with the rollback-vs-in-flight-command fix: the rollback arm
+     * used to leave a command whose job was still running alone — and the
+     * change it made moments later was never undone.
+     */
     const update: jest.SpyInstance = mockPersist();
     const enqueue: jest.SpyInstance = mockEnqueue();
-    mockPoll();
+    const poll: jest.SpyInstance = mockPoll();
     mockFeed();
     mockStepIdLookup([terminalJob({ status: RunnerJobStatus.Running })]);
 
@@ -1165,14 +1170,23 @@ describe("CommandPlanExecutor.executeRollback", () => {
       }),
     });
 
-    expect(enqueue).not.toHaveBeenCalled();
+    // The first wait is on the forward job, then the rollback's own job.
+    expect(
+      (
+        (poll.mock.calls[0]![0] as { jobId: ObjectID }).jobId as ObjectID
+      ).toString(),
+    ).toBe(JOB_ID.toString());
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(
+      (enqueue.mock.calls[0]![0] as Record<string, unknown>)["command"],
+    ).toBe("undo-1");
     const finalPlan: Record<string, unknown> = lastPersistedPlan(update);
     const execution: Record<string, unknown> = commandInPlan(finalPlan, 0)[
       "execution"
     ] as Record<string, unknown>;
-    expect(execution["status"]).toBe("Pending");
+    expect(execution["status"]).toBe("Succeeded");
     expect(execution["runnerJobId"]).toBe(JOB_ID.toString());
-    expect(finalPlan["rollbackStatus"]).toBe("NotApplicable");
+    expect(finalPlan["rollbackStatus"]).toBe("Completed");
   });
 
   it("leaves a Pending command with no runnerJobId alone when no job carries its stepId — it never reached the Runner", async () => {
@@ -1262,10 +1276,50 @@ describe("CommandPlanExecutor.executeRollback", () => {
     expect(lastPersistedPlan(update)["rollbackStatus"]).toBe("Completed");
   });
 
-  it("leaves a Pending command alone while its job is still in flight", async () => {
+  it("WAITS for a Pending command whose job is still in flight, then rolls it back in reverse order with the rest", async () => {
+    /*
+     * Changed with the rollback-vs-in-flight-command fix: this used to pin
+     * "leave it alone, settle NotApplicable" — which is exactly how a
+     * command that finished a moment later (a slow drain) escaped its undo.
+     */
     const update: jest.SpyInstance = mockPersist();
     const enqueue: jest.SpyInstance = mockEnqueue();
-    mockPoll();
+    const poll: jest.SpyInstance = mockPoll();
+    mockFeed();
+    mockJobLookup(terminalJob({ status: RunnerJobStatus.Running }));
+
+    await CommandPlanExecutor.executeRollback({
+      suggestion: fakeSuggestion({
+        commandPlan: rawPlan([executedCommand(1), pendingCommand(2)], {
+          executionStatus: "Running",
+        }),
+      }),
+    });
+
+    expect(poll).toHaveBeenCalled();
+    const enqueuedCommands: Array<string> = enqueue.mock.calls.map(
+      (call: Array<unknown>) => {
+        return (call[0] as Record<string, unknown>)["command"] as string;
+      },
+    );
+    expect(enqueuedCommands).toEqual(["undo-2", "undo-1"]);
+    const finalPlan: Record<string, unknown> = lastPersistedPlan(update);
+    expect(
+      (commandInPlan(finalPlan, 1)["execution"] as Record<string, unknown>)[
+        "status"
+      ],
+    ).toBe("Succeeded");
+    expect(finalPlan["rollbackStatus"]).toBe("Completed");
+  });
+
+  it("does not roll back a command whose in-flight job ends Failed after the wait", async () => {
+    const update: jest.SpyInstance = mockPersist();
+    const enqueue: jest.SpyInstance = mockEnqueue();
+    jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockResolvedValue(
+        terminalJob({ status: RunnerJobStatus.Failed, errorMessage: "boom" }),
+      );
     mockFeed();
     mockJobLookup(terminalJob({ status: RunnerJobStatus.Running }));
 
@@ -1283,8 +1337,40 @@ describe("CommandPlanExecutor.executeRollback", () => {
       (commandInPlan(finalPlan, 0)["execution"] as Record<string, unknown>)[
         "status"
       ],
-    ).toBe("Pending");
+    ).toBe("Failed");
     expect(finalPlan["rollbackStatus"]).toBe("NotApplicable");
+  });
+
+  it("leaves a command whose job disappears while waited on for a human — and never reports the rollback complete", async () => {
+    const update: jest.SpyInstance = mockPersist();
+    const enqueue: jest.SpyInstance = mockEnqueue();
+    jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockRejectedValue(new Error("RunnerJob disappeared while waiting."));
+    const feed: jest.SpyInstance = mockFeed();
+    mockJobLookup(terminalJob({ status: RunnerJobStatus.Running }));
+
+    await CommandPlanExecutor.executeRollback({
+      suggestion: fakeSuggestion({
+        commandPlan: rawPlan([pendingCommand(1)], {
+          executionStatus: "Running",
+        }),
+      }),
+    });
+
+    expect(enqueue).not.toHaveBeenCalled();
+    const finalPlan: Record<string, unknown> = lastPersistedPlan(update);
+    const rollbackExecution: Record<string, unknown> = commandInPlan(
+      finalPlan,
+      0,
+    )["rollbackExecution"] as Record<string, unknown>;
+    expect(rollbackExecution["status"]).toBe("Skipped");
+    expect(rollbackExecution["errorMessage"]).toContain(
+      "could not be confirmed",
+    );
+    expect(rollbackExecution["errorMessage"]).toContain("undo-1");
+    expect(finalPlan["rollbackStatus"]).toBe("Failed");
+    expect(feedMarkdown(feed)).toContain("a human has to undo them");
   });
 });
 

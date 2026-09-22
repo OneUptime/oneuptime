@@ -24,6 +24,9 @@ import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import {
   KubernetesAiAccessGap,
   KubernetesClusterAiAccessStatus,
+  isKubernetesAgentRunnerName,
+  isKubernetesAgentRunnerPosture,
+  parseKubernetesRunnerPosture,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 /*
  * Approving starts a runbook execution, so reading the suggestion is not
@@ -191,6 +194,47 @@ async function assertKubectlCommandsStillRunnable(data: {
   }
 }
 
+/*
+ * A cluster's in-cluster kubectl agent (the Runner a kubernetes-agent chart
+ * registers) claims Kubectl jobs only. A Bash or SSH step aimed at it would
+ * sit unclaimed until its claim timeout, fail, and skip the rest of the
+ * plan AFTER the approver clicked — so it fails the click instead. A
+ * Kubectl step legitimately names that same Runner (it is how the cluster
+ * is reached), so the check is per step type, not per Runner.
+ */
+function assertNotHostStepOnKubernetesAgent(data: {
+  plan: AiRemediationCommandPlan;
+  runnerId: string;
+  runner: Runner;
+}): void {
+  const isAgent: boolean =
+    isKubernetesAgentRunnerName(data.runner.name) ||
+    isKubernetesAgentRunnerPosture(
+      parseKubernetesRunnerPosture(data.runner.hostInfo),
+    );
+
+  if (!isAgent) {
+    return;
+  }
+
+  const hostStep: AiRemediationCommand | undefined = data.plan.commands.find(
+    (command: AiRemediationCommand) => {
+      return (
+        command.runnerId === data.runnerId &&
+        command.stepType !== RunbookStepType.Kubectl
+      );
+    },
+  );
+
+  if (hostStep) {
+    throw new BadDataException(
+      `Command ${hostStep.sequence} is a ${hostStep.stepType} step on Runner "${
+        data.runner.name || hostStep.runnerNameSnapshot
+      }", a Kubernetes cluster's in-cluster kubectl agent, which runs only Kubectl steps. The plan cannot be run — dismiss it and let a new suggestion be composed.`,
+    );
+  }
+}
+
 async function loadSuggestionAsRoot(
   suggestionId: ObjectID,
 ): Promise<AutoRemediationSuggestion> {
@@ -335,7 +379,8 @@ router.post(
         /*
          * Fail fast if a target Runner lost its AI-commands consent (or was
          * deleted) since the plan was composed — better a clear error now
-         * than a plan that half-runs into claim timeouts.
+         * than a plan that half-runs into claim timeouts. Each Runner is
+         * read once, however many commands target it.
          */
         const runnerIds: Array<string> = Array.from(
           new Set(
@@ -352,7 +397,7 @@ router.post(
               projectId: suggestion.projectId,
               canRunAiCommands: true,
             },
-            select: { _id: true },
+            select: { _id: true, name: true, hostInfo: true },
             props: { isRoot: true },
           });
 
@@ -361,6 +406,12 @@ router.post(
               "A Runner this plan targets no longer accepts AI commands (or was deleted). The plan cannot be run — dismiss it and let a new suggestion be composed.",
             );
           }
+
+          assertNotHostStepOnKubernetesAgent({
+            plan,
+            runnerId,
+            runner,
+          });
         }
 
         /*
