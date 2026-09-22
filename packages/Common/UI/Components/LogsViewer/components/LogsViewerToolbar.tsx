@@ -5,6 +5,7 @@ import ColumnSelector from "./ColumnSelector";
 import SavedViewsDropdown from "./SavedViewsDropdown";
 import KeyboardShortcutsHelp from "./KeyboardShortcutsHelp";
 import Icon from "../../Icon/Icon";
+import IconProp from "../../../../Types/Icon/IconProp";
 import Tooltip from "../../Tooltip/Tooltip";
 import {
   LiveLogsOptions,
@@ -43,7 +44,22 @@ export interface LogsViewerToolbarProps {
   onToggleKeyboardShortcuts?: (() => void) | undefined;
   onShowDocumentation?: (() => void) | undefined;
   signalPivotActions?: Array<LogsSignalPivotAction> | undefined;
+  /*
+   * The phone-only "Filters" toggle for the facet sidebar. Below md the
+   * sidebar stacks above the list, folded until this opens it; from md up it
+   * always shows beside the list and the toggle is hidden. `facetPanelId` is
+   * the sidebar's id, for aria-controls.
+   */
+  facetPanelId?: string | undefined;
+  isFacetPanelOpen?: boolean | undefined;
+  onToggleFacetPanel?: (() => void) | undefined;
 }
+
+export const LOGS_VIEWER_TOOLBAR_TEST_ID: string = "logs-viewer-toolbar";
+export const LOGS_VIEWER_FILTERS_TOGGLE_TEST_ID: string =
+  "logs-viewer-filters-toggle";
+export const LOGS_VIEWER_EXPORT_MENU_TEST_ID: string =
+  "logs-viewer-export-menu";
 
 const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
   props: LogsViewerToolbarProps,
@@ -62,11 +78,37 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
   const showExport: boolean = Boolean(props.onExportCSV || props.onExportJSON);
 
   return (
+    /*
+     * Below md the two groups wrap onto their own rows instead of sharing
+     * one: side by side they squeezed each other on a phone. Wrapping moves
+     * the triggers, so there every popover in the row spans the row (its
+     * positioning context) rather than hanging off its trigger. From md up it
+     * is the single unwrapped row it always was, popovers included.
+     */
     <div
-      className={`flex items-center justify-between gap-3 ${props.className || ""}`}
+      className={`relative flex flex-wrap items-center justify-between gap-3 md:flex-nowrap ${props.className || ""}`}
+      data-testid={LOGS_VIEWER_TOOLBAR_TEST_ID}
     >
       {/* Left group: View management + stats */}
       <div className="flex flex-wrap items-center gap-3">
+        {props.facetPanelId && props.onToggleFacetPanel && (
+          <button
+            type="button"
+            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors md:hidden ${
+              props.isFacetPanelOpen
+                ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+            aria-expanded={Boolean(props.isFacetPanelOpen)}
+            aria-controls={props.facetPanelId}
+            data-testid={LOGS_VIEWER_FILTERS_TOGGLE_TEST_ID}
+            onClick={props.onToggleFacetPanel}
+          >
+            <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
+            <span>Filters</span>
+          </button>
+        )}
+
         {props.viewMode && props.onViewModeChange && (
           <div className="inline-flex rounded-md shadow-sm" role="group">
             <button
@@ -175,8 +217,11 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
         </div>
       </div>
 
-      {/* Right group: Display controls */}
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      {/*
+       * Right group: Display controls. Start-aligned below md, where it sits
+       * on its own row under the left group.
+       */}
+      <div className="flex flex-wrap items-center justify-start gap-2 md:justify-end">
         {props.availableColumns &&
           props.selectedColumns &&
           props.onSelectedColumnsChange && (
@@ -212,7 +257,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
         )}
 
         {props.onToggleKeyboardShortcuts && (
-          <div className="relative">
+          <div className="md:relative">
             <button
               type="button"
               className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors ${
@@ -236,7 +281,7 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
         )}
 
         {showExport && (
-          <div className="relative" ref={exportDropdownRef}>
+          <div className="md:relative" ref={exportDropdownRef}>
             <button
               type="button"
               className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50"
@@ -273,7 +318,10 @@ const LogsViewerToolbar: FunctionComponent<LogsViewerToolbarProps> = (
               </svg>
             </button>
             {isExportOpen && (
-              <div className="absolute right-0 z-20 mt-1 w-40 rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+              <div
+                className="absolute left-0 right-0 z-20 mt-1 rounded-md border border-gray-200 bg-white py-1 shadow-lg md:left-auto md:w-40"
+                data-testid={LOGS_VIEWER_EXPORT_MENU_TEST_ID}
+              >
                 {props.onExportCSV && (
                   <button
                     type="button"
