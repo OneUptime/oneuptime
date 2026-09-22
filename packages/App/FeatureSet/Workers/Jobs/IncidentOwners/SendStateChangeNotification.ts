@@ -253,6 +253,7 @@ RunCron(
           templateType: EmailTemplateType.IncidentOwnerStateChanged,
           vars: vars,
           subject: subjectLine,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

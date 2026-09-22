@@ -39,6 +39,8 @@ packages/E2E/test-results
 Terraform
 HelmChart
 Scripts
+# Every Node image runs this while it is built (see the script's header).
+!Scripts/Docker/UpdateNpmCli.js
 .git
 GoSDK
 

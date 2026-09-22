@@ -548,4 +548,28 @@ describe("MonitorOwner:SendStatusChangeEmail worker", () => {
       expect(vars["rootCause"]).toBe(expectedEmptyRootCauseHtml);
     }
   });
+
+  /*
+   * The monitor name is user text. Compiled again by the mailer, "{{ ... }}"
+   * in it rendered as nothing and a lone "{{" stopped the email being sent.
+   */
+  test("a monitor name quoting template syntax reaches the subject as written, marked literal", async () => {
+    const timeline: MonitorStatusTimeline = makeTimeline({ id: "timeline-1" });
+    timeline.monitor!.name = "{{ .Release.Name }}-api";
+    timelineService.findAllBy.mockResolvedValue([timeline]);
+    monitorService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+
+    await runWorkerTick();
+
+    const emailEnvelope: EmailEnvelope = (
+      notificationService.sendUserNotification.mock.calls[0]![0] as {
+        emailEnvelope: EmailEnvelope;
+      }
+    ).emailEnvelope;
+
+    expect(emailEnvelope.isSubjectLiteral).toBe(true);
+    expect(emailEnvelope.subject).toBe(
+      "[Operational Monitor] {{ .Release.Name }}-api",
+    );
+  });
 });

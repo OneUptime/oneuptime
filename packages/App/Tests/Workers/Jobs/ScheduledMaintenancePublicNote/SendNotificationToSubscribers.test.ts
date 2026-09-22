@@ -1727,3 +1727,88 @@ describe("ScheduledMaintenancePublicNote custom templates, in each channel's for
     },
   );
 });
+
+interface TemplateSyntaxNote {
+  name: string;
+  markdown: string;
+  // The plain text the Markdown helper turns it into.
+  text: string;
+}
+
+/*
+ * Notes quoting template syntax. The subject is finished text when the worker
+ * sends it, so the mail is marked literal: compiling it again read the braces
+ * as Handlebars, and the email either failed to render and was never sent or
+ * lost the quoted words. Tests/Notification/
+ * SubscriberEmailSubjectLiteral.test.ts follows such a subject to SMTP.
+ */
+const TEMPLATE_SYNTAX_NOTES: Array<TemplateSyntaxNote> = [
+  {
+    name: "a bare expression",
+    markdown: "Deploy blocked on {{ x }}",
+    text: "Deploy blocked on {{ x }}",
+  },
+  {
+    name: "a quoted Helm value",
+    markdown: "Helm upgrade failed: `{{ .Values.image.tag }}` was empty",
+    text: "Helm upgrade failed: {{ .Values.image.tag }} was empty",
+  },
+  {
+    name: "a lone opening pair of braces",
+    markdown: "Config parser stopped at {{ on line 3",
+    text: "Config parser stopped at {{ on line 3",
+  },
+];
+
+// The default email subject's prefix for each job.
+const DEFAULT_EMAIL_SUBJECT_PREFIXES: Record<string, string> = {
+  [CREATED_JOB]: "[Update Scheduled Maintenance] ",
+  [UPDATED_JOB]: "[Scheduled Maintenance Note Updated] ",
+};
+
+describe.each(TRIGGERS)(
+  "ScheduledMaintenancePublicNote email subjects are sent as written ($name)",
+  (trigger: TriggerCase) => {
+    test.each(TEMPLATE_SYNTAX_NOTES)(
+      "a note with $name reaches the custom subject as written",
+      async ({ markdown, text }: TemplateSyntaxNote) => {
+        const note: ScheduledMaintenancePublicNote = publicNote();
+        note.note = markdown;
+        trigger.queue([note]);
+        mock(Markdown.convertToPlainText).mockImplementation(
+          (value: unknown): string => {
+            return value === markdown ? text : "";
+          },
+        );
+        useCustomTemplates({
+          eventType: trigger.eventType,
+          body: "{{note}}",
+          subject: "{{scheduledMaintenanceTitle}}: {{note}}",
+        });
+
+        await runJob(trigger.job);
+
+        expect(sentMail()).toHaveLength(1);
+        expect(sentMail()[0]!["subject"]).toBe(
+          `Subject|${EVENT_TITLE}: ${text}`,
+        );
+        expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+      },
+    );
+
+    test("an event title with template syntax reaches the default subject as written", async () => {
+      trigger.queue([publicNote()]);
+      const event: ScheduledMaintenance = scheduledEvent();
+      event.title = "Upgrade to {{ .Values.image.tag }}";
+      storedEvent = event;
+
+      await runJob(trigger.job);
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["subject"]).toBe(
+        `${DEFAULT_EMAIL_SUBJECT_PREFIXES[trigger.job]}Upgrade to {{ .Values.image.tag }}`,
+      );
+      expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+    });
+  },
+);

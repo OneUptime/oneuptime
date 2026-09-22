@@ -3076,6 +3076,7 @@ export default class StatusPageAPI extends BaseAPI<
                   body: compiledBody,
                 },
                 subject: compiledSubject,
+                isSubjectLiteral: true,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(
@@ -3112,6 +3113,7 @@ export default class StatusPageAPI extends BaseAPI<
                   manageSubscriptionUrl: manageUrlink,
                 },
                 subject: "Manage your Subscription for " + statusPageNameStr,
+                isSubjectLiteral: true,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(

@@ -178,6 +178,10 @@ jobs:
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
         run: npm run test-monitor-overview-ui
+      - name: Run Security Events Empty States UI regressions
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        run: npm run test-security-events-empty-states-ui
       - name: Run Status Page Search UI regressions
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
@@ -220,6 +224,8 @@ jobs:
             output/playwright/event-overview-ui/test-results
             output/playwright/monitor-overview-ui/*.png
             output/playwright/monitor-overview-ui/test-results
+            output/playwright/security-events-empty-states-ui/*.png
+            output/playwright/security-events-empty-states-ui/test-results
             output/playwright/status-page-search/test-results
             output/playwright/pencil-button/test-results
             output/playwright/alerts/*.png

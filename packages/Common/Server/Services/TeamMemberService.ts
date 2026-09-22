@@ -403,6 +403,7 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
             subject: isInvitationAcceptedOnCreate
               ? "You have been added to " + project.name
               : "You have been invited to " + project.name,
+            isSubjectLiteral: true,
           },
           {
             projectId: createBy.data.projectId!,

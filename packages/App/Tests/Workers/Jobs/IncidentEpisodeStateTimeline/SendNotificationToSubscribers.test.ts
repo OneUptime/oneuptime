@@ -1704,3 +1704,65 @@ describe("IncidentEpisodeStateTimeline custom templates get values in their chan
     );
   });
 });
+
+interface TemplateSyntaxTitle {
+  name: string;
+  title: string;
+}
+
+/*
+ * Titles quoting template syntax. This event's custom subject gets no
+ * Markdown-converted text, so the episode title is the user-authored value
+ * it carries. The subject is finished text when the worker sends it, so the
+ * mail is marked literal: compiling it again read the braces as Handlebars,
+ * and the email either failed to render and was never sent or lost the
+ * quoted words. Tests/Notification/SubscriberEmailSubjectLiteral.test.ts
+ * follows such a subject to SMTP.
+ */
+const TEMPLATE_SYNTAX_TITLES: Array<TemplateSyntaxTitle> = [
+  { name: "a bare expression", title: "Deploy blocked on {{ x }}" },
+  {
+    name: "a quoted Helm value",
+    title: "Helm upgrade failed: {{ .Values.image.tag }} was empty",
+  },
+  {
+    name: "a lone opening pair of braces",
+    title: "Config parser stopped at {{ on line 3",
+  },
+];
+
+describe("IncidentEpisodeStateTimeline email subjects are sent as written", () => {
+  test.each(TEMPLATE_SYNTAX_TITLES)(
+    "a title with $name reaches the custom subject as written",
+    async ({ title }: TemplateSyntaxTitle) => {
+      pendingTimelines = [stateTimeline()];
+      const row: IncidentEpisode = episode();
+      row.title = title;
+      storedEpisode = row;
+      useCustomTemplatesOnEveryChannel();
+
+      await runJob();
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["subject"]).toBe(
+        `Subject: ${title} is ${STATE_NAME}`,
+      );
+      expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+    },
+  );
+
+  test("a title with template syntax reaches the default subject as written", async () => {
+    pendingTimelines = [stateTimeline()];
+    const row: IncidentEpisode = episode();
+    row.title = "Rollout of {{ .Values.image.tag }} stalled";
+    storedEpisode = row;
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["subject"]).toBe(
+      `[${STATE_NAME} Incident] Rollout of {{ .Values.image.tag }} stalled`,
+    );
+    expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+  });
+});

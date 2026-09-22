@@ -100,16 +100,38 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
+import ProbeMonitorsNotification, {
+  ProbeAffectedMonitor,
+  ProbeMonitorsNotificationContent,
+  ProbeMonitorsRecipient,
+} from "../Utils/Monitor/ProbeMonitorsNotification";
 
 const MONITOR_TEMPLATE_RELATION_KEYS: Array<string> = [
   "monitorTemplateId",
   "monitorTemplate",
 ];
 
+/*
+ * A global or shared probe can be attached to thousands of monitors. Work
+ * that fans out per monitor (flag syncs, owner lookups) runs in batches of
+ * this size instead of all at once, so it cannot exhaust the connection pool.
+ */
+const PROBE_FAN_OUT_CONCURRENCY: number = 50;
+
 export interface MonitorDestinationInfo {
   monitorDestination: string;
   requestType: string;
   monitorType: string;
+}
+
+/*
+ * What syncMonitorProbeFlags changed. A flag is present only when it flipped,
+ * and then holds its NEW value; an absent flag did not change.
+ */
+export interface MonitorProbeFlagChanges {
+  monitorId: ObjectID;
+  isNoProbeEnabledOnThisMonitor?: boolean | undefined;
+  isAllProbesDisconnectedFromThisMonitor?: boolean | undefined;
 }
 
 export class Service extends DatabaseService<Model> {
@@ -2263,8 +2285,49 @@ ${createdItem.description?.trim() || "No description provided."}
     await Promise.all(createPromises);
   }
 
+  /*
+   * Re-derives a monitor's two probe flags and announces what changed, one
+   * notification per monitor. This is the path for changes that concern one
+   * monitor: a probe attached, enabled, disabled or removed, or a monitor
+   * created. A probe connecting or disconnecting goes through
+   * refreshProbeStatus instead, which announces all of that probe's monitors
+   * in one message per person.
+   */
   @CaptureSpan()
   public async refreshMonitorProbeStatus(monitorId: ObjectID): Promise<void> {
+    const changes: MonitorProbeFlagChanges | null =
+      await this.syncMonitorProbeFlags(monitorId);
+
+    if (!changes) {
+      return;
+    }
+
+    if (changes.isNoProbeEnabledOnThisMonitor !== undefined) {
+      await this.notifyOwnersWhenNoProbeIsEnabled({
+        monitorId: monitorId,
+        isNoProbesEnabled: changes.isNoProbeEnabledOnThisMonitor,
+      });
+    }
+
+    if (changes.isAllProbesDisconnectedFromThisMonitor !== undefined) {
+      await this.notifyOwnersProbesDisconnected({
+        monitorId: monitorId,
+        isProbeDisconnected: changes.isAllProbesDisconnectedFromThisMonitor,
+      });
+    }
+  }
+
+  /*
+   * Re-derives isNoProbeEnabledOnThisMonitor and
+   * isAllProbesDisconnectedFromThisMonitor from the monitor's MonitorProbe
+   * rows, writes the flags that changed, and reports them. Sends nothing:
+   * the caller decides how to announce the changes. Returns null when the
+   * monitor is gone or is not checked by probes.
+   */
+  @CaptureSpan()
+  public async syncMonitorProbeFlags(
+    monitorId: ObjectID,
+  ): Promise<MonitorProbeFlagChanges | null> {
     const monitor: Model | null = await this.findOneById({
       id: monitorId,
       select: {
@@ -2279,25 +2342,29 @@ ${createdItem.description?.trim() || "No description provided."}
     });
 
     if (!monitor) {
-      return;
+      return null;
     }
 
     if (!monitor.id) {
-      return;
+      return null;
     }
 
     const monitorType: MonitorType | undefined = monitor?.monitorType;
 
     if (!monitorType) {
-      return;
+      return null;
     }
 
     const isProbeableMonitor: boolean =
       MonitorTypeHelper.isProbableMonitor(monitorType);
 
     if (!isProbeableMonitor) {
-      return;
+      return null;
     }
+
+    const changes: MonitorProbeFlagChanges = {
+      monitorId: monitorId,
+    };
 
     // get all the probes for this monitor.
 
@@ -2343,12 +2410,7 @@ ${createdItem.description?.trim() || "No description provided."}
           },
         });
 
-        // notify owners that no probe is enabled.
-
-        await this.notifyOwnersWhenNoProbeIsEnabled({
-          monitorId: monitorId,
-          isNoProbesEnabled: true,
-        });
+        changes.isNoProbeEnabledOnThisMonitor = true;
       }
     } else if (monitor.isNoProbeEnabledOnThisMonitor) {
       await this.updateOneById({
@@ -2361,12 +2423,30 @@ ${createdItem.description?.trim() || "No description provided."}
         },
       });
 
-      // notify owners that probes are now enabled.
+      changes.isNoProbeEnabledOnThisMonitor = false;
+    }
 
-      await this.notifyOwnersWhenNoProbeIsEnabled({
-        monitorId: monitorId,
-        isNoProbesEnabled: false,
-      });
+    /*
+     * With no enabled probe left there is nothing to be connected or
+     * disconnected. Clear a stale "all disconnected" flag quietly: the "no
+     * probes enabled" notice above already tells the owners this monitor is
+     * not being checked, and announcing "Probes ... are Connected" here
+     * would say the opposite.
+     */
+    if (enabledProbes.length === 0) {
+      if (monitor.isAllProbesDisconnectedFromThisMonitor) {
+        await this.updateOneById({
+          id: monitorId,
+          data: {
+            isAllProbesDisconnectedFromThisMonitor: false,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+
+      return changes;
     }
 
     const disconnectedProbes: Array<MonitorProbe> = probesForMonitor.filter(
@@ -2388,14 +2468,11 @@ ${createdItem.description?.trim() || "No description provided."}
 
       if (anyGlobalProbe) {
         // do not notify if any global probe is disconnected.
-        return;
+        return changes;
       }
     }
 
-    if (
-      disconnectedProbes.length === enabledProbes.length &&
-      enabledProbes.length > 0
-    ) {
+    if (disconnectedProbes.length === enabledProbes.length) {
       if (!monitor.isAllProbesDisconnectedFromThisMonitor) {
         // all probes are disconnected.
         await this.updateOneById({
@@ -2408,10 +2485,7 @@ ${createdItem.description?.trim() || "No description provided."}
           },
         });
 
-        await this.notifyOwnersProbesDisconnected({
-          monitorId: monitorId,
-          isProbeDisconnected: true,
-        });
+        changes.isAllProbesDisconnectedFromThisMonitor = true;
       }
     } else if (monitor.isAllProbesDisconnectedFromThisMonitor) {
       await this.updateOneById({
@@ -2424,11 +2498,10 @@ ${createdItem.description?.trim() || "No description provided."}
         },
       });
 
-      await this.notifyOwnersProbesDisconnected({
-        monitorId: monitorId,
-        isProbeDisconnected: false,
-      });
+      changes.isAllProbesDisconnectedFromThisMonitor = false;
     }
+
+    return changes;
   }
 
   @CaptureSpan()
@@ -2560,6 +2633,7 @@ ${createdItem.description?.trim() || "No description provided."}
         templateType: EmailTemplateType.MonitorProbesStatus,
         vars: vars,
         subject: `[${enabledStatus} Monitor Probes] ${monitor.name!}`,
+        isSubjectLiteral: true,
       };
 
       const sms: SMSMessage = {
@@ -2690,16 +2764,17 @@ ${createdItem.description?.trim() || "No description provided."}
         templateType: EmailTemplateType.MonitorProbesStatus,
         vars: vars,
         subject: `[${status} Monitor Probes] ${monitor.name!}`,
+        isSubjectLiteral: true,
       };
 
       const sms: SMSMessage = {
-        message: `This is a message from OneUptime. Probes for monitor ${monitor.name} is ${status}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
+        message: `This is a message from OneUptime. Probes for monitor ${monitor.name} are ${status}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard.`,
       };
 
       const callMessage: CallRequestMessage = {
         data: [
           {
-            sayMessage: `This is a message from OneUptime. New monitor was created ${monitor.name}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
+            sayMessage: `This is a message from OneUptime. Probes for monitor ${monitor.name} are ${status}. To unsubscribe from this notification go to User Settings in OneUptime Dashboard. Good bye.`,
           },
         ],
       };
@@ -2724,9 +2799,12 @@ ${createdItem.description?.trim() || "No description provided."}
         smsMessage: sms,
         callRequestMessage: callMessage,
         pushNotificationMessage:
-          PushNotificationUtil.createMonitorCreatedNotification({
-            monitorName: monitor.name!,
+          PushNotificationUtil.createMonitorProbeStatusNotification({
+            title: "OneUptime: Monitor Probe Status",
+            body: `Probes for monitor ${monitor.name} are ${status}`,
+            tag: "monitor-probe-status",
             monitorId: monitor.id!.toString(),
+            monitorName: monitor.name!,
           }),
         whatsAppMessage,
         eventType,
@@ -2735,6 +2813,18 @@ ${createdItem.description?.trim() || "No description provided."}
     }
   }
 
+  /*
+   * A probe connected or disconnected: re-derive the flags of every monitor
+   * it checks, then announce the monitors it took down (or brought back) in
+   * ONE message per person per project, instead of one message per monitor.
+   *
+   * Only monitors that use this probe (their row for it is enabled) and whose
+   * flag moved the same way as the probe are grouped under its name. Any
+   * other flag change seen during this refresh (a stale flag being corrected,
+   * on a monitor that moved the other way or does not use this probe) did not
+   * happen BECAUSE of this probe, so it keeps the per-monitor message, which
+   * does not name a probe.
+   */
   @CaptureSpan()
   public async refreshProbeStatus(probeId: ObjectID): Promise<void> {
     // get all the monitors for this probe.
@@ -2746,12 +2836,8 @@ ${createdItem.description?.trim() || "No description provided."}
         },
         select: {
           _id: true,
-          isEnabled: true,
-          projectId: true,
           monitorId: true,
-          monitor: {
-            monitorType: true,
-          },
+          isEnabled: true,
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -2765,28 +2851,389 @@ ${createdItem.description?.trim() || "No description provided."}
       return;
     }
 
+    const probe: Probe | null = await ProbeService.findOneById({
+      id: probeId,
+      select: {
+        _id: true,
+        name: true,
+        connectionStatus: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
     /*
      * Each monitor appears at most once for a given probeId (composite
-     * unique on MonitorProbe), so concurrent refreshes operate on disjoint
-     * rows and are safe to run in parallel. A global/shared probe can be
-     * attached to thousands of monitors, though, so refresh in bounded
-     * batches instead of firing every refresh at once — an unbounded
-     * Promise.all here would exhaust the database connection pool.
+     * unique on MonitorProbe); dedupe anyway so a monitor can never be
+     * listed, or announced, twice.
      */
-    const refreshConcurrency: number = 50;
+    const monitorIds: Array<ObjectID> = [];
+    const seenMonitorIds: Set<string> = new Set();
 
-    for (let i: number = 0; i < monitorProbes.length; i += refreshConcurrency) {
-      const batch: Array<MonitorProbe> = monitorProbes.slice(
+    /*
+     * Monitors that actually use this probe. A monitor whose row for it is
+     * disabled is still synced (its flag may be stale), but whatever moved
+     * its flag, it was not this probe.
+     */
+    const monitorIdsUsingProbe: Set<string> = new Set();
+
+    for (const monitorProbe of monitorProbes) {
+      if (!monitorProbe.monitorId) {
+        continue;
+      }
+
+      const key: string = monitorProbe.monitorId.toString();
+
+      if (monitorProbe.isEnabled) {
+        monitorIdsUsingProbe.add(key);
+      }
+
+      if (seenMonitorIds.has(key)) {
+        continue;
+      }
+
+      seenMonitorIds.add(key);
+      monitorIds.push(monitorProbe.monitorId);
+    }
+
+    /*
+     * Concurrent syncs operate on disjoint monitors and are safe in
+     * parallel, but run in bounded batches (see PROBE_FAN_OUT_CONCURRENCY).
+     * One monitor failing is logged and does not stop the others.
+     */
+    const allChanges: Array<MonitorProbeFlagChanges> = [];
+
+    for (
+      let i: number = 0;
+      i < monitorIds.length;
+      i += PROBE_FAN_OUT_CONCURRENCY
+    ) {
+      const batch: Array<ObjectID> = monitorIds.slice(
         i,
-        i + refreshConcurrency,
+        i + PROBE_FAN_OUT_CONCURRENCY,
+      );
+
+      const batchChanges: Array<MonitorProbeFlagChanges | null> =
+        await Promise.all(
+          batch.map(
+            async (
+              monitorId: ObjectID,
+            ): Promise<MonitorProbeFlagChanges | null> => {
+              try {
+                return await this.syncMonitorProbeFlags(monitorId);
+              } catch (err) {
+                logger.error(
+                  `Error refreshing probe flags of monitor ${monitorId.toString()} after probe ${probeId.toString()} changed status`,
+                );
+                logger.error(err);
+                return null;
+              }
+            },
+          ),
+        );
+
+      for (const changes of batchChanges) {
+        if (changes) {
+          allChanges.push(changes);
+        }
+      }
+    }
+
+    /*
+     * The direction this probe moved. Without a probe row or a status (the
+     * probe was deleted mid-refresh) nothing can be attributed to it, and
+     * every change falls back to the per-monitor message.
+     */
+    let isProbeDisconnected: boolean | null = null;
+
+    if (probe?.connectionStatus === ProbeConnectionStatus.Disconnected) {
+      isProbeDisconnected = true;
+    } else if (probe?.connectionStatus === ProbeConnectionStatus.Connected) {
+      isProbeDisconnected = false;
+    }
+
+    const groupedMonitorIds: Array<ObjectID> = [];
+
+    for (const changes of allChanges) {
+      if (changes.isNoProbeEnabledOnThisMonitor !== undefined) {
+        await this.notifySafely(
+          `no-probe-enabled notification for monitor ${changes.monitorId.toString()}`,
+          () => {
+            return this.notifyOwnersWhenNoProbeIsEnabled({
+              monitorId: changes.monitorId,
+              isNoProbesEnabled: changes.isNoProbeEnabledOnThisMonitor!,
+            });
+          },
+        );
+      }
+
+      if (changes.isAllProbesDisconnectedFromThisMonitor === undefined) {
+        continue;
+      }
+
+      if (
+        probe &&
+        isProbeDisconnected !== null &&
+        monitorIdsUsingProbe.has(changes.monitorId.toString()) &&
+        changes.isAllProbesDisconnectedFromThisMonitor === isProbeDisconnected
+      ) {
+        groupedMonitorIds.push(changes.monitorId);
+        continue;
+      }
+
+      await this.notifySafely(
+        `probe status notification for monitor ${changes.monitorId.toString()}`,
+        () => {
+          return this.notifyOwnersProbesDisconnected({
+            monitorId: changes.monitorId,
+            isProbeDisconnected:
+              changes.isAllProbesDisconnectedFromThisMonitor!,
+          });
+        },
+      );
+    }
+
+    if (probe && isProbeDisconnected !== null && groupedMonitorIds.length > 0) {
+      await this.notifyOwnersOfMonitorsAffectedByProbeStatusChange({
+        probeId: probeId,
+        probeName: probe.name || "Probe",
+        isProbeDisconnected: isProbeDisconnected,
+        monitorIds: groupedMonitorIds,
+      });
+    }
+  }
+
+  // Runs one notification, logging instead of throwing if it fails.
+  private async notifySafely(
+    description: string,
+    notify: () => Promise<void>,
+  ): Promise<void> {
+    try {
+      await notify();
+    } catch (err) {
+      logger.error(`Error sending ${description}`);
+      logger.error(err);
+    }
+  }
+
+  /*
+   * One message per person per project for all the monitors a probe took
+   * down (isProbeDisconnected) or brought back. Recipients are exactly the
+   * people the per-monitor message would have reached: each monitor's
+   * owners, or the project owners for a monitor that has no owners.
+   */
+  @CaptureSpan()
+  public async notifyOwnersOfMonitorsAffectedByProbeStatusChange(data: {
+    probeId: ObjectID;
+    probeName: string;
+    isProbeDisconnected: boolean;
+    monitorIds: Array<ObjectID>;
+  }): Promise<void> {
+    if (data.monitorIds.length === 0) {
+      return;
+    }
+
+    const monitors: Array<Model> = await this.findBy({
+      query: {
+        _id: QueryHelper.any(data.monitorIds),
+      },
+      select: {
+        _id: true,
+        name: true,
+        projectId: true,
+        project: {
+          name: true,
+        },
+      },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    // A shared probe can serve monitors in many projects: one pass each.
+    const monitorsByProjectId: Map<string, Array<Model>> = new Map();
+
+    for (const monitor of monitors) {
+      if (!monitor.id || !monitor.projectId) {
+        continue;
+      }
+
+      const projectKey: string = monitor.projectId.toString();
+      const projectMonitors: Array<Model> =
+        monitorsByProjectId.get(projectKey) || [];
+
+      projectMonitors.push(monitor);
+      monitorsByProjectId.set(projectKey, projectMonitors);
+    }
+
+    for (const projectMonitors of monitorsByProjectId.values()) {
+      await this.notifySafely(
+        `grouped probe status notification for project ${projectMonitors[0]!.projectId!.toString()}`,
+        () => {
+          return this.notifyProjectOfMonitorsAffectedByProbeStatusChange({
+            probeId: data.probeId,
+            probeName: data.probeName,
+            isProbeDisconnected: data.isProbeDisconnected,
+            monitors: projectMonitors,
+          });
+        },
+      );
+    }
+  }
+
+  private async notifyProjectOfMonitorsAffectedByProbeStatusChange(data: {
+    probeId: ObjectID;
+    probeName: string;
+    isProbeDisconnected: boolean;
+    // Non-empty, all in one project.
+    monitors: Array<Model>;
+  }): Promise<void> {
+    const projectId: ObjectID = data.monitors[0]!.projectId!;
+    const projectName: string = data.monitors[0]!.project?.name || "Project";
+
+    const affectedMonitors: Array<ProbeAffectedMonitor> = [];
+    const ownersByMonitorId: Dictionary<Array<User>> = {};
+
+    for (
+      let i: number = 0;
+      i < data.monitors.length;
+      i += PROBE_FAN_OUT_CONCURRENCY
+    ) {
+      const batch: Array<Model> = data.monitors.slice(
+        i,
+        i + PROBE_FAN_OUT_CONCURRENCY,
       );
 
       await Promise.all(
-        batch.map((monitorProbe: MonitorProbe) => {
-          return this.refreshMonitorProbeStatus(monitorProbe.monitorId!);
+        batch.map(async (monitor: Model): Promise<void> => {
+          try {
+            const owners: Array<User> = await this.findOwners(monitor.id!);
+
+            affectedMonitors.push({
+              monitorId: monitor.id!,
+              monitorName: monitor.name || "Monitor",
+              monitorViewLink: (
+                await this.getMonitorLinkInDashboard(projectId, monitor.id!)
+              ).toString(),
+            });
+
+            ownersByMonitorId[monitor.id!.toString()] = owners;
+          } catch (err) {
+            /*
+             * Without its owners there is no telling who should hear about
+             * this monitor. Leave it out rather than mail it to the wrong
+             * people.
+             */
+            logger.error(
+              `Error resolving owners of monitor ${monitor.id!.toString()} for a grouped probe status notification`,
+            );
+            logger.error(err);
+          }
         }),
       );
     }
+
+    if (affectedMonitors.length === 0) {
+      return;
+    }
+
+    const needsProjectOwners: boolean = affectedMonitors.some(
+      (monitor: ProbeAffectedMonitor): boolean => {
+        return (
+          (ownersByMonitorId[monitor.monitorId.toString()] || []).length === 0
+        );
+      },
+    );
+
+    const projectOwners: Array<User> = needsProjectOwners
+      ? await ProjectService.getOwners(projectId)
+      : [];
+
+    const recipients: Array<ProbeMonitorsRecipient> =
+      ProbeMonitorsNotification.groupMonitorsByRecipient({
+        // Owners resolve concurrently; sort so recipients come out stable.
+        monitors: ProbeMonitorsNotification.sortMonitors(affectedMonitors),
+        ownersByMonitorId: ownersByMonitorId,
+        projectOwners: projectOwners,
+      });
+
+    if (recipients.length === 0) {
+      return;
+    }
+
+    /*
+     * The probe id rides along as a query parameter the page ignores. It
+     * keeps the link unique per probe, and the email rollup folds deferred
+     * emails that share a link into one row: without it, two probes going
+     * down in one project would collapse into a single digest row naming
+     * only the last one.
+     */
+    const viewMonitorsLink: string = (
+      data.isProbeDisconnected
+        ? await this.getMonitorsWithDisconnectedProbesLinkInDashboard(projectId)
+        : await this.getMonitorsLinkInDashboard(projectId)
+    )
+      .addQueryParam("probeId", data.probeId.toString())
+      .toString();
+
+    for (const recipient of recipients) {
+      await this.notifySafely(
+        `grouped probe status notification to user ${recipient.user.id?.toString()}`,
+        async () => {
+          const content: ProbeMonitorsNotificationContent =
+            ProbeMonitorsNotification.buildContent({
+              probeName: data.probeName,
+              projectName: projectName,
+              isProbeDisconnected: data.isProbeDisconnected,
+              recipient: recipient,
+              viewMonitorsLink: viewMonitorsLink,
+            });
+
+          await UserNotificationSettingService.sendUserNotification({
+            userId: recipient.user.id!,
+            projectId: projectId,
+            emailEnvelope: content.emailEnvelope,
+            smsMessage: content.smsMessage,
+            callRequestMessage: content.callRequestMessage,
+            pushNotificationMessage: content.pushNotificationMessage,
+            whatsAppMessage: content.whatsAppMessage,
+            eventType: ProbeMonitorsNotification.EVENT_TYPE,
+            /*
+             * The notification logs can point at one monitor only. Tag the
+             * message when it is about exactly one, so it still shows in
+             * that monitor's Notification Logs.
+             */
+            ...(recipient.monitors.length === 1
+              ? { monitorId: recipient.monitors[0]!.monitorId }
+              : {}),
+          });
+        },
+      );
+    }
+  }
+
+  @CaptureSpan()
+  public async getMonitorsLinkInDashboard(projectId: ObjectID): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/monitors`,
+    );
+  }
+
+  // The "Probe Disconnected" list: every monitor whose probes are all down.
+  @CaptureSpan()
+  public async getMonitorsWithDisconnectedProbesLinkInDashboard(
+    projectId: ObjectID,
+  ): Promise<URL> {
+    const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
+
+    return URL.fromString(dashboardUrl.toString()).addRoute(
+      `/${projectId.toString()}/monitors/probe-disconnected`,
+    );
   }
 
   @CaptureSpan()

@@ -63,6 +63,7 @@ async function sendBroadcastEmailsInBackground(data: {
             templateType: EmailTemplateType.SimpleMessage,
             toEmail: user.email,
             subject: data.subject,
+            isSubjectLiteral: true,
             vars: {
               subject: data.subject,
               message: data.htmlMessage,
@@ -129,6 +130,7 @@ router.post(
         templateType: EmailTemplateType.SimpleMessage,
         toEmail: new Email(testEmail),
         subject: subject,
+        isSubjectLiteral: true,
         vars: {
           subject: subject,
           message: htmlMessage,

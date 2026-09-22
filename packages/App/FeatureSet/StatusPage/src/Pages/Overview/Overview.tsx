@@ -228,6 +228,28 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const startDate: Date = useMemo(() => {
     return OneUptimeDate.getSomeDaysAgoFromDate(endDate, uptimeHistoryDays);
   }, [endDate, uptimeHistoryDays]);
+
+  /*
+   * The window and zone the uptime STRIPS are drawn over: the window the
+   * server bucketed and the zone it bucketed in, so that every bar is exactly
+   * one bucket. See UptimeDailyAggregateUtil.getWindow for why the browser's
+   * own startDate / endDate cannot be used here - near a DST change or just
+   * after UTC midnight they add a bar in front of or after the buckets, and
+   * that bar has nothing to be painted from.
+   *
+   * With no buckets at all (nothing on the page is a monitor, or a server
+   * that predates the aggregate) there is nothing to line up with, and the
+   * strips keep the visitor's own days.
+   */
+  const uptimeBucketWindow: { startDate: Date; endDate: Date } | null =
+    useMemo(() => {
+      return UptimeDailyAggregateUtil.getWindow(uptimeDailyAggregate);
+    }, [uptimeDailyAggregate]);
+  const uptimeStripStartDate: Date = uptimeBucketWindow?.startDate || startDate;
+  const uptimeStripEndDate: Date = uptimeBucketWindow?.endDate || endDate;
+  const uptimeStripTimezone: string | undefined = uptimeBucketWindow
+    ? UptimeDailyAggregateUtil.getTimezone(uptimeDailyAggregate)
+    : undefined;
   const [currentStatus, setCurrentStatus] = useState<MonitorStatus | null>(
     null,
   );
@@ -715,6 +737,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
               uptimeWindow: { startDate: startDate, endDate: endDate },
               allStatusPageGroups: resourceGroups,
               statusPageGroupTreeIndex: groupTreeIndex,
+              uptimeDailyAggregate: uptimeDailyAggregate,
             },
           )
         : null;
@@ -761,6 +784,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     monitorGroupCurrentStatuses,
     statusPage,
     monitorsInGroup,
+    uptimeDailyAggregate,
     startDate,
     endDate,
     t,
@@ -873,6 +897,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
               uptimeDailyAggregate,
               resource.monitorId || resource.monitor?.id || "",
             )}
+            /*
+             * The buckets are UTC days (one cached payload serves every
+             * visitor), so the bars are drawn on UTC days too. Drawn on the
+             * visitor's local days instead, a bucket landed on the wrong bar
+             * west of UTC and today's bar had no bucket at all.
+             */
+            uptimeTimezone={uptimeStripTimezone}
             monitorStatuses={monitorStatuses}
             description={resource.displayDescription || ""}
             tooltip={resource.displayTooltip || ""}
@@ -888,8 +919,8 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 monitorsInGroup: monitorsInGroup,
               },
             )}
-            startDate={startDate}
-            endDate={endDate}
+            startDate={uptimeStripStartDate}
+            endDate={uptimeStripEndDate}
             showHistoryChart={resource.showStatusHistoryChart}
             showCurrentStatus={resource.showCurrentStatus}
             uptimeGraphHeight={10}
@@ -967,8 +998,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
               },
             )}
             downtimeMonitorStatuses={statusPage?.downtimeMonitorStatuses || []}
-            startDate={startDate}
-            endDate={endDate}
+            startDate={uptimeStripStartDate}
+            endDate={uptimeStripEndDate}
+            /*
+             * A group has no buckets and is painted from its rows, but it
+             * shares the list's "N days ago ... Today" axis with the monitor
+             * strips, so it is drawn on their days. On the visitor's own days
+             * column i would be a different day on each row.
+             */
+            uptimeTimezone={uptimeStripTimezone}
             showHistoryChart={resource.showStatusHistoryChart}
             showCurrentStatus={resource.showCurrentStatus}
             uptimeGraphHeight={10}
@@ -998,10 +1036,12 @@ const Overview: FunctionComponent<PageComponentProps> = (
     statusPageHistoryChartBarColorRules,
     statusPage,
     monitorStatusTimelines,
+    uptimeDailyAggregate,
     monitorsInGroup,
     monitorGroupCurrentStatuses,
-    startDate,
-    endDate,
+    uptimeStripStartDate,
+    uptimeStripEndDate,
+    uptimeStripTimezone,
     uptimeHistoryDays,
     t,
   ]);
@@ -1024,12 +1064,14 @@ const Overview: FunctionComponent<PageComponentProps> = (
         resourceGroups,
         monitorsInGroup,
         uptimeWindow: { startDate, endDate },
+        uptimeDailyAggregate,
       },
     );
   }, [
     currentStatus,
     statusPage,
     monitorStatusTimelines,
+    uptimeDailyAggregate,
     statusPageResources,
     resourceGroups,
     monitorsInGroup,
@@ -1262,6 +1304,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                 statusPage?.downtimeMonitorStatuses || [],
               monitorsInGroup: monitorsInGroup,
               uptimeWindow: { startDate: startDate, endDate: endDate },
+              uptimeDailyAggregate: uptimeDailyAggregate,
             });
           if (percent !== null) {
             uptimePercents.push(percent);

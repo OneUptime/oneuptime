@@ -474,6 +474,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                     body: customEmailBody,
                   },
                   subject: customEmailSubject,
+                  isSubjectLiteral: true,
                 },
                 {
                   mailServer: ProjectSmtpConfigService.toEmailServer(
@@ -499,6 +500,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                   subject:
                     "[Scheduled Maintenance] " +
                     (event.title || statusPageName),
+                  isSubjectLiteral: true,
                 },
                 {
                   mailServer: ProjectSmtpConfigService.toEmailServer(

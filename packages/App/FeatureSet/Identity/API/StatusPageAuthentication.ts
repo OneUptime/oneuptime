@@ -672,6 +672,7 @@ router.post(
           {
             toEmail: user.email!,
             subject: "Password Reset Request for " + statusPageName,
+            isSubjectLiteral: true,
             templateType: EmailTemplateType.StatusPageForgotPassword,
             vars: {
               statusPageName: statusPageName!,
@@ -863,6 +864,7 @@ router.post(
         {
           toEmail: alreadySavedUser.email!,
           subject: "Password Changed.",
+          isSubjectLiteral: true,
           templateType: EmailTemplateType.StatusPagePasswordChanged,
           vars: {
             homeURL: statusPageURL,

@@ -29,6 +29,7 @@
     "test-trace-detail-ui": "playwright test --config playwright.trace-detail-ui.config.ts",
     "test-event-overview-ui": "playwright test --config playwright.event-overview-ui.config.ts",
     "test-monitor-overview-ui": "playwright test --config playwright.monitor-overview-ui.config.ts",
+    "test-security-events-empty-states-ui": "playwright test --config playwright.security-events-empty-states-ui.config.ts",
     "test-enterprise-licensed": "playwright test --config playwright.enterprise-licensed.config.ts",
     "test-enterprise-lapsed": "playwright test --config playwright.enterprise-lapsed.config.ts"
   },
@@ -39,9 +40,9 @@
     "@types/node": "^26.1.1"
   },
   "dependencies": {
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.63.0",
     "Common": "file:../Common",
-    "playwright": "^1.60.0",
+    "playwright": "^1.63.0",
     "typescript": "^5.9.2"
   }
 }

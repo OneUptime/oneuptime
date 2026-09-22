@@ -3,7 +3,7 @@ receivers:
     endpoint: unix:///var/run/docker.sock
     # Docker Engine API version the receiver speaks, from DOCKER_API_VERSION.
     #
-    # Verified against otel/opentelemetry-collector-contrib:0.154.0:
+    # Verified against otel/opentelemetry-collector-contrib:0.161.0:
     #   * a daemon rejects a client NEWER than its maximum ("client version 1.44
     #     is too new"), and a rejected receiver fails to start, which takes the
     #     whole collector down with it -- so a host on an older Engine has to be

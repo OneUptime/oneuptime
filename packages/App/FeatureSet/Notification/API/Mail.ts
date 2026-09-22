@@ -28,6 +28,7 @@ router.post(
         templateType: body["templateType"] as EmailTemplateType,
         toEmail: new Email(body["toEmail"] as string),
         subject: body["subject"] as string,
+        isSubjectLiteral: body["isSubjectLiteral"] === true,
         vars: body["vars"] as Dictionary<string>,
         body: (body["body"] as string) || "",
       };

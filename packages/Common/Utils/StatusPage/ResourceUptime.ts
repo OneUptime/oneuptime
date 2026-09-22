@@ -228,6 +228,8 @@ export default class StatusPageResourceUptimeUtil {
     allStatusPageGroups?: Array<StatusPageGroup> | undefined;
     /* See getCurrentStatusPageGroupStatus. */
     statusPageGroupTreeIndex?: StatusPageGroupTreeIndex | undefined;
+    /* See calculateUptimePercentOfResource. */
+    uptimeDailyAggregate?: UptimeDailyAggregate | null | undefined;
   }): number | null {
     if (!data.statusPageGroup.showUptimePercent) {
       return null;
@@ -256,6 +258,7 @@ export default class StatusPageResourceUptimeUtil {
           downtimeMonitorStatuses: data.downtimeMonitorStatuses,
           monitorsInGroup: data.monitorsInGroup,
           uptimeWindow: data.uptimeWindow,
+          uptimeDailyAggregate: data.uptimeDailyAggregate,
         });
 
       if (calculateUptimePercentOfResource !== null) {
@@ -361,6 +364,8 @@ export default class StatusPageResourceUptimeUtil {
     monitorsInGroup: Dictionary<Array<ObjectID>>;
     // if supplied, uptime is measured over this window instead of "first event -> now".
     uptimeWindow?: UptimeWindow | undefined;
+    /* See calculateUptimePercentOfResource. */
+    uptimeDailyAggregate?: UptimeDailyAggregate | null | undefined;
   }): number | null {
     const showUptimePercentage: boolean = Boolean(
       data.statusPageResources.find((item: StatusPageResource) => {
@@ -406,6 +411,7 @@ export default class StatusPageResourceUptimeUtil {
               uptimeWindow: data.uptimeWindow,
               allStatusPageGroups: data.resourceGroups,
               statusPageGroupTreeIndex: groupTreeIndex,
+              uptimeDailyAggregate: data.uptimeDailyAggregate,
             });
 
           if (groupUptimePercent !== null) {
@@ -448,6 +454,7 @@ export default class StatusPageResourceUptimeUtil {
           downtimeMonitorStatuses: data.downtimeMonitorStatuses,
           monitorsInGroup: data.monitorsInGroup,
           uptimeWindow: data.uptimeWindow,
+          uptimeDailyAggregate: data.uptimeDailyAggregate,
         });
 
       if (calculateUptimePercentOfResource !== null) {

@@ -175,6 +175,7 @@ RunCron(
           templateType: EmailTemplateType.StatusPageOwnerAdded,
           vars: vars,
           subject: "You have been added as the owner of the status page.",
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

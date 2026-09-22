@@ -311,6 +311,7 @@ RunCron(
           subject: `[${Text.uppercaseFirstLetter(
             alertState!.name!,
           )} Alert ${alertNumberStr}] - ${alert.title!}`,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

@@ -5,7 +5,8 @@ import {
   UptimeDailyAggregate,
   UptimeDayBucket,
 } from "../../../Types/StatusPage/UptimeDailyAggregate";
-import { describe, expect, test } from "@jest/globals";
+import UptimeDailyAggregateUtil from "../../../Utils/StatusPage/UptimeDailyAggregateUtil";
+import { describe, expect, jest, test } from "@jest/globals";
 
 /*
  * WHAT THIS FILE IS DEFENDING
@@ -300,4 +301,266 @@ describe("MonitorStatusTimelineService.toUptimeDailyAggregate", () => {
       expect(result.isComplete).toBe(true);
     });
   });
+
+  /*
+   * ROOT CAUSE 3 (server half). The buckets are cut in a zone - UTC for the
+   * status page, whose payload is one cached response shared by every
+   * visitor - and the browser has to draw its bars on the same day
+   * boundaries. Before the fix the aggregate did not say which zone that
+   * was, so the browser drew the viewer's local days and matched each UTC
+   * bucket to whichever local day it started in. toUptimeDailyAggregate took
+   * no zone and returned no `timezone`, so every assertion below fails
+   * against it.
+   */
+  describe("the zone the days were cut in travels with the buckets", () => {
+    test("rows shaped without a zone make a UTC aggregate", () => {
+      expect(
+        aggregate([row(MONITOR_A, "2026-07-01", STATUS_UP, 86400)]).timezone,
+      ).toBe("UTC");
+    });
+
+    test("an empty result set is a UTC aggregate too", () => {
+      expect(aggregate([]).timezone).toBe("UTC");
+    });
+
+    test("the zone the SQL cut the days in is carried on the aggregate, buckets unchanged", () => {
+      const tokyoMidnight: Date = new Date("2026-06-30T15:00:00.000Z");
+
+      const result: UptimeDailyAggregate =
+        MonitorStatusTimelineServiceType.toUptimeDailyAggregate(
+          [
+            {
+              ...row(MONITOR_A, "2026-07-01", STATUS_UP, 86400),
+              bucketStart: tokyoMidnight,
+              bucketEnd: new Date(tokyoMidnight.getTime() + 86400 * 1000),
+            },
+          ],
+          "Asia/Tokyo",
+        );
+
+      expect(result.timezone).toBe("Asia/Tokyo");
+
+      const buckets: Array<UptimeDayBucket> = bucketsFor(result, MONITOR_A);
+
+      expect(buckets).toHaveLength(1);
+      expect(buckets[0]!.bucketStart.toISOString()).toBe(
+        "2026-06-30T15:00:00.000Z",
+      );
+      expect(buckets[0]!.coveredSeconds).toBe(86400);
+    });
+
+    test("the zone survives the wire format the status page parses", () => {
+      const result: UptimeDailyAggregate =
+        MonitorStatusTimelineServiceType.toUptimeDailyAggregate(
+          [row(MONITOR_A, "2026-07-01", STATUS_UP, 86400)],
+          "America/New_York",
+        );
+
+      expect(
+        UptimeDailyAggregateUtil.fromJSON(
+          UptimeDailyAggregateUtil.toJSON(result),
+        ).timezone,
+      ).toBe("America/New_York");
+    });
+  });
+});
+
+/*
+ * The query half, with the database replaced by a stub repository that
+ * records the SQL and parameters it is handed and returns canned rows.
+ *
+ * ROOT CAUSE 4 (server hardening). The LEAD that caps an open row at the
+ * next row's start used to order by startsAt alone. A flapping monitor
+ * writes rows that tie on startsAt (a backfilled zero-length row next to the
+ * open one), and an exact tie is left in whatever order the plan produces.
+ * When the OPEN row came first its LEAD was the tied row's startsAt - its own
+ * start - so the monitor's current status was cut to zero length and today
+ * read as no data. The fix orders `startsAt, endsAt NULLS LAST`, the rule
+ * getRollingUptimeTotals and UptimeUtil.compareTimelinesChronologically use.
+ */
+describe("MonitorStatusTimelineService.getDailyUptimeAggregate", () => {
+  interface CapturedQuery {
+    sql: string;
+    params: Array<unknown>;
+  }
+
+  interface StubbedService {
+    service: MonitorStatusTimelineServiceType;
+    calls: Array<CapturedQuery>;
+    getRepositoryCalls: () => number;
+  }
+
+  const WINDOW_START: Date = new Date("2026-07-24T12:00:00.000Z");
+  const WINDOW_END: Date = new Date("2026-09-22T12:00:00.000Z");
+
+  function stubService(rows: Array<Row> = []): StubbedService {
+    const service: MonitorStatusTimelineServiceType =
+      new MonitorStatusTimelineServiceType();
+    const calls: Array<CapturedQuery> = [];
+    let repositoryCalls: number = 0;
+
+    const repository: ReturnType<
+      MonitorStatusTimelineServiceType["getRepository"]
+    > = {
+      manager: {
+        query: (sql: string, params: Array<unknown>): Promise<Array<Row>> => {
+          calls.push({ sql, params });
+          return Promise.resolve(rows);
+        },
+      },
+    } as unknown as ReturnType<
+      MonitorStatusTimelineServiceType["getRepository"]
+    >;
+
+    /*
+     * Stubbed on a fresh instance, so nothing leaks between tests. The real
+     * getRepository throws without a database connection.
+     */
+    jest.spyOn(service, "getRepository").mockImplementation(() => {
+      repositoryCalls++;
+      return repository;
+    });
+
+    return {
+      service,
+      calls,
+      getRepositoryCalls: (): number => {
+        return repositoryCalls;
+      },
+    };
+  }
+
+  // the SQL on one line, so assertions do not depend on its indentation.
+  function flatten(sql: string): string {
+    return sql.replace(/\s+/g, " ");
+  }
+
+  test("the LEAD that ends an open row orders by startsAt, then endsAt NULLS LAST", async () => {
+    const stub: StubbedService = stubService();
+
+    await stub.service.getDailyUptimeAggregate({
+      monitorIds: [new ObjectID(MONITOR_A)],
+      startDate: WINDOW_START,
+      endDate: WINDOW_END,
+    });
+
+    expect(stub.calls).toHaveLength(1);
+
+    const sql: string = flatten(stub.calls[0]!.sql);
+
+    // the old SQL read `PARTITION BY t."monitorId" ORDER BY t."startsAt" )`.
+    expect(sql).toMatch(
+      /LEAD\(t\."startsAt"\) OVER \( PARTITION BY t\."monitorId" ORDER BY t\."startsAt", t\."endsAt" NULLS LAST \)/,
+    );
+    expect(sql).not.toMatch(/ORDER BY t\."startsAt" \)/);
+  });
+
+  test("the requested zone is bound as $4, which is the zone the SQL cuts days in", async () => {
+    const stub: StubbedService = stubService();
+
+    await stub.service.getDailyUptimeAggregate({
+      monitorIds: [new ObjectID(MONITOR_A), new ObjectID(MONITOR_B)],
+      startDate: WINDOW_START,
+      endDate: WINDOW_END,
+      timezone: "Asia/Tokyo",
+    });
+
+    const call: CapturedQuery = stub.calls[0]!;
+
+    expect(flatten(call.sql)).toContain("$4::text AS tz");
+    expect(call.params).toHaveLength(4);
+    expect(call.params[0]).toEqual([MONITOR_A, MONITOR_B]);
+    expect(call.params[1]).toBe(WINDOW_START);
+    expect(call.params[2]).toBe(WINDOW_END);
+    expect(call.params[3]).toBe("Asia/Tokyo");
+  });
+
+  test.each([
+    ["not given", undefined],
+    ["an empty string", ""],
+  ])(
+    "a zone that is %s is bound as UTC and the aggregate says UTC",
+    async (_name: string, timezone: string | undefined) => {
+      const stub: StubbedService = stubService([
+        row(MONITOR_A, "2026-07-01", STATUS_UP, 86400),
+      ]);
+
+      const result: UptimeDailyAggregate =
+        await stub.service.getDailyUptimeAggregate({
+          monitorIds: [new ObjectID(MONITOR_A)],
+          startDate: WINDOW_START,
+          endDate: WINDOW_END,
+          timezone: timezone,
+        });
+
+      expect(stub.calls[0]!.params[3]).toBe("UTC");
+      expect(result.timezone).toBe("UTC");
+    },
+  );
+
+  test("the returned aggregate carries the zone it was cut in, with the rows shaped into buckets", async () => {
+    const tokyoMidnight: Date = new Date("2026-06-30T15:00:00.000Z");
+
+    const stub: StubbedService = stubService([
+      {
+        ...row(MONITOR_A, "2026-07-01", STATUS_UP, 82800),
+        bucketStart: tokyoMidnight,
+        bucketEnd: new Date(tokyoMidnight.getTime() + 86400 * 1000),
+      },
+      {
+        ...row(MONITOR_A, "2026-07-01", STATUS_DOWN, 3600),
+        bucketStart: tokyoMidnight,
+        bucketEnd: new Date(tokyoMidnight.getTime() + 86400 * 1000),
+      },
+    ]);
+
+    const result: UptimeDailyAggregate =
+      await stub.service.getDailyUptimeAggregate({
+        monitorIds: [new ObjectID(MONITOR_A)],
+        startDate: WINDOW_START,
+        endDate: WINDOW_END,
+        timezone: "Asia/Tokyo",
+      });
+
+    // the old code returned toUptimeDailyAggregate(rows): no timezone at all.
+    expect(result.timezone).toBe("Asia/Tokyo");
+    expect(result.isComplete).toBe(true);
+
+    const buckets: Array<UptimeDayBucket> = bucketsFor(result, MONITOR_A);
+
+    expect(buckets).toHaveLength(1);
+    expect(buckets[0]!.coveredSeconds).toBe(86400);
+    expect(buckets[0]!.statusDurations).toHaveLength(2);
+  });
+
+  test.each([
+    ["a zone", "America/New_York", "America/New_York"],
+    ["no zone", undefined, "UTC"],
+  ])(
+    "no monitors with %s returns an empty aggregate in that zone without touching the database",
+    async (
+      _name: string,
+      timezone: string | undefined,
+      expectedTimezone: string,
+    ) => {
+      const stub: StubbedService = stubService();
+
+      const result: UptimeDailyAggregate =
+        await stub.service.getDailyUptimeAggregate({
+          monitorIds: [],
+          startDate: WINDOW_START,
+          endDate: WINDOW_END,
+          timezone: timezone,
+        });
+
+      expect(result).toEqual({
+        monitors: [],
+        isComplete: true,
+        completeFrom: null,
+        timezone: expectedTimezone,
+      });
+      expect(stub.calls).toHaveLength(0);
+      expect(stub.getRepositoryCalls()).toBe(0);
+    },
+  );
 });

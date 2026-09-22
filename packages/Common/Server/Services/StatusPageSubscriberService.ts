@@ -826,6 +826,7 @@ Stay informed about service availability! 🚀`;
               body: compiledBody,
             },
             subject: compiledSubject,
+            isSubjectLiteral: true,
           },
           {
             projectId: subscriber.projectId,
@@ -861,6 +862,7 @@ Stay informed about service availability! 🚀`;
               unsubscribeUrl: unsubscribeUrl,
             },
             subject: "Confirm your subscription to " + statusPageName,
+            isSubjectLiteral: true,
           },
           {
             projectId: subscriber.projectId,
@@ -1047,6 +1049,7 @@ Stay informed about service availability! 🚀`;
               body: compiledBody,
             },
             subject: compiledSubject,
+            isSubjectLiteral: true,
           },
           {
             projectId: subscriber.projectId,
@@ -1081,6 +1084,7 @@ Stay informed about service availability! 🚀`;
               unsubscribeUrl: unsubscribeLink,
             },
             subject: "You have been subscribed to " + statusPageName,
+            isSubjectLiteral: true,
           },
           {
             projectId: subscriber.projectId,

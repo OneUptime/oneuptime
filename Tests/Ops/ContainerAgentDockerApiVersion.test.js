@@ -18,8 +18,9 @@
  * 1.44 (the behaviour the agents have always shipped).
  *
  * BEHAVIOUR VERIFIED AGAINST otel/opentelemetry-collector-contrib:0.154.0 and a
- * real daemon (max API 1.54, min 1.40). These numbers are measured, not assumed,
- * and several of them contradict what the configs used to claim:
+ * real daemon (max API 1.54, min 1.40), and again against 0.161.0 (whose Docker
+ * client negotiates up to 1.56). These numbers are measured, not assumed, and
+ * several of them contradict what the configs used to claim:
  *
  *   api_version in config    | on the wire                    | collector
  *   -------------------------|--------------------------------|-----------
@@ -443,7 +444,7 @@ describe("the shipped explanation matches the measured behaviour", () => {
 
   /*
    * The configs used to say "the receiver default is 1.25, which modern daemons
-   * reject". Measured against 0.154.0, the receiver's default is 1.44 and 1.25 is
+   * reject". Measured against 0.154.0 and 0.161.0, the receiver's default is 1.44 and 1.25 is
    * its accepted minimum — so that sentence was wrong twice over and steered the
    * reader toward believing an unset variable is dangerous when it is not.
    */
