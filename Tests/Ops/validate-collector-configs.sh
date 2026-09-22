@@ -27,7 +27,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # The version the agent images are built FROM. Keep this in step with the
 # Dockerfiles; validating against a different collector proves less than it
 # looks, because operator and receiver schemas move between releases.
-COLLECTOR_IMAGE="otel/opentelemetry-collector-contrib:0.154.0"
+COLLECTOR_IMAGE="otel/opentelemetry-collector-contrib:0.161.0"
 
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
@@ -76,8 +76,9 @@ ENV_ARGS=(
   -e "DOCKER_SWARM_CLUSTER_NAME=validate-only"
   -e "PODMAN_HOST_NAME=validate-only"
   # The docker_stats receiver's api_version. An unset variable resolves to an
-  # empty string, which validate accepts and the receiver reads as its own 1.25
-  # default — so validate the value the images and compose files actually ship.
+  # empty string, which validate accepts and the receiver takes as "negotiate
+  # with the daemon" (see ContainerAgentDockerApiVersion.test.js) — so validate
+  # the value the images and compose files actually ship.
   -e "DOCKER_API_VERSION=1.44"
   -e "APP_VERSION=validate-only"
   -e "HOSTNAME=validate-only"
@@ -188,6 +189,36 @@ if (found === 0) {
 while read -r name; do
   validate "kubernetes-agent / ${name}" "${WORK_DIR}/${name}"
 done <"${WORK_DIR}/k8s-configs.txt"
+
+# The VMware config lists the receiver's optional metrics in a comment and
+# tells users to enable any of them "the same way", and OneUptime's VMware
+# metric catalog asks for three of them (vcenter.host.memory.active /
+# .ballooned / .granted). A metric the pinned collector does not know is a
+# config that refuses to start ("'metrics' has invalid keys"), which is what
+# those three were on 0.154.0. So validate the config once more with every
+# listed metric switched on.
+node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [source, out] = process.argv.slice(1);
+const text = fs.readFileSync(source, "utf8");
+const listed = [...text.matchAll(/^\s*#\s+(vcenter\.[a-z0-9_.]+)\s/gm)].map(
+  (match) => match[1],
+);
+if (listed.length === 0) {
+  throw new Error(`${source}: found no optional vcenter metrics to enable`);
+}
+const config = yaml.load(text);
+for (const metric of listed) {
+  config.receivers.vcenter.metrics[metric] = { enabled: true };
+}
+fs.writeFileSync(out, yaml.dump(config));
+console.log(listed.join(" "));
+' "${REPO_ROOT}/agents/VMwareAgent/otel-collector-config.yaml" \
+  "${WORK_DIR}/VMwareAgent-all-metrics.yaml"
+validate "VMwareAgent, every optional metric its config lists enabled" \
+  "${WORK_DIR}/VMwareAgent-all-metrics.yaml"
 
 if [ "${failures}" -ne 0 ]; then
   echo

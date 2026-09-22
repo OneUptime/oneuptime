@@ -42,14 +42,17 @@ RUN npm config set foreground-scripts true
 # ee/package.json depends on Common and App as file: packages. They must stay
 # symlinks to /usr/src/Common and /usr/src/app, or ee gets its own copy of
 # Common and a second EnterpriseEdition that core never reads. That is npm's
-# default today, but npm@latest below is unpinned and npm 9.0 briefly made
+# default today, but the npm update below is unpinned and npm 9.0 briefly made
 # copying the default, so pin it.
 RUN npm config set install-links false --global
 
-# Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
-# brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
-# that the base image's npm still carries.
-RUN npm install -g npm@latest
+# Update npm to npm@latest with every dependency it bundles (tar, undici,
+# brace-expansion, ip-address, ...) reinstalled at the newest version npm's own
+# ranges accept. `npm install -g npm@latest` alone ships the dependencies npm
+# was packed with, and scanners flagged them in every image. See
+# Scripts/Docker/UpdateNpmCli.js.
+COPY ./Scripts/Docker/UpdateNpmCli.js /tmp/UpdateNpmCli.js
+RUN node /tmp/UpdateNpmCli.js && rm /tmp/UpdateNpmCli.js
 
 
 
@@ -94,9 +97,16 @@ ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
 
-# Install app dependencies
+# Install app dependencies.
+# aedes (the MQTT broker) publishes its examples/ directory, and
+# examples/clusters/package.json is named "aedes_clusters": the name of a
+# malware package on npm (GHSA-8m4c-fp49-4pw5). Image scanners identify
+# packages by package.json name, so every App image reported a critical
+# "malware" finding for an example nothing loads. Delete it in the same layer
+# as the install, so no layer of the image carries it.
 COPY ./packages/App/package*.json /usr/src/app/
-RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline \
+    && rm -rf node_modules/aedes/examples
 
 WORKDIR /usr/src/app/FeatureSet/Accounts
 COPY ./packages/App/FeatureSet/Accounts/package*.json /usr/src/app/FeatureSet/Accounts/

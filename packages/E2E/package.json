@@ -39,9 +39,9 @@
     "@types/node": "^26.1.1"
   },
   "dependencies": {
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.63.0",
     "Common": "file:../Common",
-    "playwright": "^1.60.0",
+    "playwright": "^1.63.0",
     "typescript": "^5.9.2"
   }
 }

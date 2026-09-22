@@ -18,10 +18,13 @@ RUN npm config set fetch-retries 5
 RUN npm config set fetch-retry-mintimeout 20000
 RUN npm config set fetch-retry-maxtimeout 60000
 
-# Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
-# brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
-# that the base image's npm still carries.
-RUN npm install -g npm@latest
+# Update npm to npm@latest with every dependency it bundles (tar, undici,
+# brace-expansion, ip-address, ...) reinstalled at the newest version npm's own
+# ranges accept. `npm install -g npm@latest` alone ships the dependencies npm
+# was packed with, and scanners flagged them in every image. See
+# Scripts/Docker/UpdateNpmCli.js.
+COPY ./Scripts/Docker/UpdateNpmCli.js /tmp/UpdateNpmCli.js
+RUN node /tmp/UpdateNpmCli.js && rm /tmp/UpdateNpmCli.js
 
 
 ARG GIT_SHA
@@ -64,7 +67,8 @@ RUN if [ -z "$APP_VERSION" ]; then export APP_VERSION=1.0.0; fi
 #   - ca-certificates: required by update-ca-certificates (intermediate certs
 #     copied above)
 #   - Build toolchain: python3, make, g++, unixODBC headers (node-gyp / native
-#     npm modules, including the SQL Server trusted-connection driver)
+#     npm modules, including the SQL Server trusted-connection driver), purged
+#     from the production image once they are built
 #   - Kerberos client: required for SQL Server Integrated Authentication on
 #     Linux; users provide their realm configuration and ticket cache
 #   - Playwright/Chromium system libraries
@@ -144,8 +148,16 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers
 #
 # If BrowserType ever re-enables an engine, this list must be updated too --
 # Probe/Tests/Build/ProbeBrowserInstall.test.ts fails loudly when they diverge.
+#
+# Since Playwright 1.63 Firefox's dependency list also names libavcodec59, the
+# FFmpeg stack (x264/x265, dav1d, aom, libvpx, openjpeg, ... ~40 packages and
+# ~160 CVEs in the scans). Firefox only dlopen()s it to decode MP4/H.264 media:
+# without it Firefox still launches, renders, and plays WebM/VP9 and Ogg with
+# its own decoders, which is exactly what the image did before 1.63 (1.60 never
+# installed FFmpeg). So it is removed again in the same layer.
 RUN apt-get update \
     && npx playwright install --with-deps chromium firefox \
+    && apt-get purge -y --auto-remove libavcodec59 \
     && rm -rf /var/lib/apt/lists/* \
     && chmod -R a+rX /ms-playwright-browsers \
     && chmod -R a+rX /usr/src/Common /usr/src/app
@@ -181,6 +193,20 @@ RUN npm run compile
 # Production source is copied after the shared permission setup above. Keep it
 # readable by the arbitrary, per-execution synthetic worker UIDs as well.
 RUN chmod -R a+rX /usr/src/Common /usr/src/app /ms-playwright-browsers
+# Remove the build toolchain (python3, make, g++ and the unixODBC headers) now
+# that the native modules and the no-sync library are built. The running probe
+# needs none of it, and it was ~80% of the OS-package CVEs scanners reported
+# for this image (the kernel headers g++ pulls in, linux-libc-dev, alone were
+# ~1,900 of them). Production only: Start.dev.sh reinstalls and rebuilds native
+# modules in the development image. The native pieces are loaded again after
+# the purge, so if it ever takes a runtime library with it the build fails
+# here rather than the first SQL Server or custom-code check in production.
+RUN apt-get purge -y --auto-remove python3 make g++ unixodbc-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* \
+    && node -e "require('mssql/msnodesqlv8')" \
+    && odbcinst -q -d -n "ODBC Driver 18 for SQL Server" \
+    && node -e "require('/usr/src/Common/node_modules/isolated-vm')"
 # IS_ENTERPRISE_EDITION only changes ENV metadata and is read by no build step,
 # so declaring it last lets the community + enterprise passes share the heavy
 # cached layers above. (/tmp/npm is already world-writable from the base setup,

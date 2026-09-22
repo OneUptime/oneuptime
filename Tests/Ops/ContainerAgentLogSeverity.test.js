@@ -62,7 +62,7 @@
  *                  in the direction it is now supposed to go
  *
  * The expectations were cross-checked against the real thing: each config was
- * run through otelcol-contrib 0.154.0 (the version the images are built FROM)
+ * run through otelcol-contrib 0.161.0 (the version the images are built FROM)
  * over a fixture log file, and the severityNumber/severityText this suite
  * predicts is the severityNumber/severityText the collector emitted.
  */
@@ -545,7 +545,7 @@ describe.each(AGENTS)("%s severity operator chain", (agent) => {
     );
     // parse_to is left at its default (`attributes`), which MERGES the capture
     // into the existing attribute map rather than replacing it — verified
-    // against otelcol-contrib 0.154.0, where log.iostream and log.file.path
+    // against otelcol-contrib 0.154.0 and 0.161.0, where log.iostream and log.file.path
     // both survive this operator.
     expect(bodyParser.parse_to).toBeUndefined();
   });
