@@ -10,6 +10,7 @@ import AutoRemediationVerificationStatus from "Common/Types/AutoRemediation/Auto
 import AutoRemediationSuggestionType from "Common/Types/AutoRemediation/AutoRemediationSuggestionType";
 import {
   AiRemediationCommand,
+  AiRemediationCommandExecutionState,
   AiRemediationCommandExecutionStatus,
   AiRemediationCommandPlan,
   AiRemediationCommandPlanUtil,
@@ -357,22 +358,98 @@ function CommandExecutionPill({
   );
 }
 
+/*
+ * What one execution record says beyond its status pill: the exit code,
+ * the error, and the output behind a toggle. Used for a command and for
+ * its rollback.
+ */
+function CommandExecutionDetails(props: {
+  execution: AiRemediationCommandExecutionState;
+  isOutputExpanded: boolean;
+  onToggleOutput: () => void;
+}): ReactElement {
+  return (
+    <div className="mt-2">
+      {typeof props.execution.exitCode === "number" ? (
+        <div className="text-xs text-gray-500">
+          Exit code: {props.execution.exitCode}
+        </div>
+      ) : (
+        <></>
+      )}
+      {props.execution.errorMessage ? (
+        <div className="mt-1 text-xs text-rose-600">
+          {props.execution.errorMessage}
+        </div>
+      ) : (
+        <></>
+      )}
+      {props.execution.output ? (
+        <div className="mt-1">
+          <button
+            type="button"
+            className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
+            onClick={props.onToggleOutput}
+          >
+            {props.isOutputExpanded ? "Hide output" : "Show output"}
+          </button>
+          {props.isOutputExpanded ? (
+            <pre className="mt-1 max-h-64 overflow-auto rounded border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-800">
+              {props.execution.output}
+            </pre>
+          ) : (
+            <></>
+          )}
+        </div>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+}
+
 const POLL_INTERVAL_MS: number = 15 * 1000;
 
 export type RemediationSuggestionAction = "approve" | "dismiss";
 
+// The suggestion has left "waiting": someone approved it, or it ran unattended.
+function isAlreadyStarted(
+  status: AutoRemediationSuggestionStatus | undefined,
+): boolean {
+  return (
+    status === AutoRemediationSuggestionStatus.Approved ||
+    status === AutoRemediationSuggestionStatus.AutoExecuted
+  );
+}
+
 /*
- * The refusal's headline names the action that failed. The server refuses
- * an approval before it claims the plan, so a refused approval ran
- * nothing.
+ * The refusal's headline: the action that failed, and what the reloaded
+ * suggestion says really happened. The server refuses an approval BEFORE
+ * it claims the plan when the plan cannot run — the cluster's remediation
+ * was switched off, its Runner changed — so a refused approval of a plan
+ * that is still waiting ran nothing. But it also refuses an approval that
+ * lost to another one ("Only suggested remediations can be approved — this
+ * one is Approved", "This suggestion was just actioned by someone else"):
+ * then the plan WAS approved and is running, and "nothing ran" would tell
+ * the reader the opposite of what happened to the cluster.
  */
 export function getActionErrorTitle(
   action: RemediationSuggestionAction | null,
+  statusAfterReload?: AutoRemediationSuggestionStatus | undefined,
 ): string {
   if (action === "approve") {
+    if (statusAfterReload === AutoRemediationSuggestionStatus.Approved) {
+      return "Your approval was not recorded: this fix had already been approved, and it has started — see its commands below";
+    }
+    if (statusAfterReload === AutoRemediationSuggestionStatus.AutoExecuted) {
+      return "Your approval was not recorded: this fix already ran without approval — see its commands below";
+    }
     return "Could not save your action: the fix was not approved and nothing ran";
   }
   if (action === "dismiss") {
+    if (isAlreadyStarted(statusAfterReload)) {
+      return "Could not save your action: the suggestion was not dismissed — this fix had already started; see its commands below";
+    }
     return "Could not save your action: the suggestion was not dismissed";
   }
   return "Could not save your action";
@@ -388,65 +465,80 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
   const [actionError, setActionError] = useState<string>("");
   const [failedAction, setFailedAction] =
     useState<RemediationSuggestionAction | null>(null);
+  // Which suggestion the refused action was on, to read its reloaded status.
+  const [failedSuggestionId, setFailedSuggestionId] = useState<string>("");
   const [busySuggestionId, setBusySuggestionId] = useState<string>("");
   const [busyAction, setBusyAction] =
     useState<RemediationSuggestionAction | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     new Set<string>(),
   );
-  const isBusyRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
+  /*
+   * An approve/dismiss is in flight — from the click until the reload that
+   * shows its outcome has landed. It is both the single-submit guard and
+   * what keeps a background poll from clobbering the list meanwhile.
+   */
+  const isActionInFlightRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
 
   const incidentIdString: string | undefined = props.incidentId?.toString();
   const alertIdString: string | undefined = props.alertId?.toString();
 
-  const load: () => Promise<void> = useCallback(async (): Promise<void> => {
-    // Don't clobber the list while an approve/dismiss is in flight.
-    if (isBusyRef.current) {
-      return;
-    }
-    try {
-      const query: Record<string, ObjectID> = {};
-      if (incidentIdString) {
-        query["incidentId"] = new ObjectID(incidentIdString);
-      } else if (alertIdString) {
-        query["alertId"] = new ObjectID(alertIdString);
-      } else {
-        return;
-      }
+  const load: (options?: { isActionReload?: boolean }) => Promise<void> =
+    useCallback(
+      async (options?: { isActionReload?: boolean }): Promise<void> => {
+        /*
+         * Don't clobber the list while an approve/dismiss is in flight —
+         * except for that action's own reload, which is what ends it.
+         */
+        if (isActionInFlightRef.current && !options?.isActionReload) {
+          return;
+        }
+        try {
+          const query: Record<string, ObjectID> = {};
+          if (incidentIdString) {
+            query["incidentId"] = new ObjectID(incidentIdString);
+          } else if (alertIdString) {
+            query["alertId"] = new ObjectID(alertIdString);
+          } else {
+            return;
+          }
 
-      const result: ListResult<AutoRemediationSuggestion> =
-        await ModelAPI.getList<AutoRemediationSuggestion>({
-          modelType: AutoRemediationSuggestion,
-          query,
-          limit: 10,
-          skip: 0,
-          select: {
-            _id: true,
-            status: true,
-            ruleNameSnapshot: true,
-            runbookNameSnapshot: true,
-            rationaleMarkdown: true,
-            runbookId: true,
-            runbookExecutionId: true,
-            suggestionType: true,
-            commandPlan: true,
-            verificationStatus: true,
-            verificationNote: true,
-            kubernetesClusterId: true,
-            createdAt: true,
-          },
-          sort: {
-            createdAt: SortOrder.Descending,
-          },
-        });
+          const result: ListResult<AutoRemediationSuggestion> =
+            await ModelAPI.getList<AutoRemediationSuggestion>({
+              modelType: AutoRemediationSuggestion,
+              query,
+              limit: 10,
+              skip: 0,
+              select: {
+                _id: true,
+                status: true,
+                ruleNameSnapshot: true,
+                runbookNameSnapshot: true,
+                rationaleMarkdown: true,
+                runbookId: true,
+                runbookExecutionId: true,
+                suggestionType: true,
+                commandPlan: true,
+                verificationStatus: true,
+                verificationNote: true,
+                kubernetesClusterId: true,
+                createdAt: true,
+              },
+              sort: {
+                createdAt: SortOrder.Descending,
+              },
+            });
 
-      setSuggestions(result.data);
-      setIsLoaded(true);
-    } catch {
-      // Best-effort card — a failed refresh keeps the previous state.
-      setIsLoaded(true);
-    }
-  }, [incidentIdString, alertIdString]);
+          setSuggestions(result.data);
+          setIsLoaded(true);
+        } catch {
+          // Best-effort card — a failed refresh keeps the previous state.
+          setIsLoaded(true);
+        }
+      },
+      [incidentIdString, alertIdString],
+    );
 
   useEffect(() => {
     load().catch(() => {
@@ -529,15 +621,18 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
      * double click lands both clicks before React re-renders the button
      * as disabled, and each click would otherwise post its own approve.
      */
-    if (isBusyRef.current) {
+    if (isActionInFlightRef.current) {
       return;
     }
-    isBusyRef.current = true;
+    isActionInFlightRef.current = true;
 
     setActionError("");
     setFailedAction(null);
+    setFailedSuggestionId("");
     setBusySuggestionId(suggestionId);
     setBusyAction(action);
+
+    let refusal: string = "";
 
     try {
       const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
@@ -557,18 +652,32 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
        * The server re-checks a kubectl plan at approval time — the cluster's
        * remediation may have been switched off, or its Runner or
        * credential changed, since the plan was composed — and refuses the
-       * click with the reason and what to do.
+       * click with the reason and what to do. It also refuses a click that
+       * lost to someone else's; the reload below says which.
        */
-      setActionError(API.getFriendlyMessage(err));
-      setFailedAction(action);
-    } finally {
-      setBusySuggestionId("");
-      setBusyAction(null);
-      isBusyRef.current = false;
+      refusal = API.getFriendlyMessage(err);
     }
 
-    // Reload either way: a refusal usually means the plan's state moved on.
-    await load();
+    /*
+     * Reload either way — a refusal usually means the plan's state moved
+     * on — and only then release the guard. Until the reloaded row
+     * replaces the one the click was made on, that row still shows
+     * "Approve & Run", and a second click there would post again. The
+     * refusal is shown together with the reloaded row, so its headline can
+     * say what really happened.
+     */
+    try {
+      await load({ isActionReload: true });
+    } finally {
+      if (refusal) {
+        setActionError(refusal);
+        setFailedAction(action);
+        setFailedSuggestionId(suggestionId);
+      }
+      setBusySuggestionId("");
+      setBusyAction(null);
+      isActionInFlightRef.current = false;
+    }
   };
 
   if (!isLoaded && props.hideIfEmpty) {
@@ -592,7 +701,14 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
         {actionError ? (
           <Alert
             type={AlertType.DANGER}
-            strongTitle={getActionErrorTitle(failedAction)}
+            strongTitle={getActionErrorTitle(
+              failedAction,
+              suggestions.find(
+                (suggestion: AutoRemediationSuggestion): boolean => {
+                  return suggestion.id?.toString() === failedSuggestionId;
+                },
+              )?.status as AutoRemediationSuggestionStatus | undefined,
+            )}
             title={actionError}
             dataTestId="remediation-action-error"
           />
@@ -773,46 +889,56 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                               )}
 
                               {command.execution ? (
-                                <div className="mt-2">
-                                  {typeof command.execution.exitCode ===
-                                  "number" ? (
-                                    <div className="text-xs text-gray-500">
-                                      Exit code: {command.execution.exitCode}
+                                <CommandExecutionDetails
+                                  execution={command.execution}
+                                  isOutputExpanded={isOutputExpanded}
+                                  onToggleOutput={() => {
+                                    toggleExpanded(commandKey);
+                                  }}
+                                />
+                              ) : (
+                                <></>
+                              )}
+
+                              {/*
+                               * The undo's own outcome, when the rollback
+                               * arm ran (or skipped) it for this command:
+                               * "Rollback status" below the plan says how
+                               * the rollback as a whole ended, this says
+                               * what happened to each undo.
+                               */}
+                              {command.rollbackExecution ? (
+                                <div
+                                  className="mt-2 rounded border border-gray-200 bg-white px-2 py-1.5"
+                                  data-testid="remediation-rollback-outcome"
+                                >
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-xs font-medium text-gray-700">
+                                      Rollback result
+                                    </span>
+                                    <CommandExecutionPill
+                                      status={command.rollbackExecution.status}
+                                    />
+                                  </div>
+                                  {command.rollbackExecution.status ===
+                                    AiRemediationCommandExecutionStatus.Skipped &&
+                                  !command.rollbackExecution.errorMessage ? (
+                                    <div className="mt-1 text-xs text-gray-500">
+                                      The undo did not run — undo this change by
+                                      hand if it is still needed.
                                     </div>
                                   ) : (
                                     <></>
                                   )}
-                                  {command.execution.errorMessage ? (
-                                    <div className="mt-1 text-xs text-rose-600">
-                                      {command.execution.errorMessage}
-                                    </div>
-                                  ) : (
-                                    <></>
-                                  )}
-                                  {command.execution.output ? (
-                                    <div className="mt-1">
-                                      <button
-                                        type="button"
-                                        className="text-xs font-medium text-indigo-600 hover:text-indigo-500"
-                                        onClick={() => {
-                                          toggleExpanded(commandKey);
-                                        }}
-                                      >
-                                        {isOutputExpanded
-                                          ? "Hide output"
-                                          : "Show output"}
-                                      </button>
-                                      {isOutputExpanded ? (
-                                        <pre className="mt-1 max-h-64 overflow-auto rounded border border-gray-200 bg-white px-3 py-2 font-mono text-xs text-gray-800">
-                                          {command.execution.output}
-                                        </pre>
-                                      ) : (
-                                        <></>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <></>
-                                  )}
+                                  <CommandExecutionDetails
+                                    execution={command.rollbackExecution}
+                                    isOutputExpanded={expandedIds.has(
+                                      `${commandKey}:rollback`,
+                                    )}
+                                    onToggleOutput={() => {
+                                      toggleExpanded(`${commandKey}:rollback`);
+                                    }}
+                                  />
                                 </div>
                               ) : (
                                 <></>

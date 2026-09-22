@@ -16,11 +16,56 @@ import Runner from "Common/Models/DatabaseModels/Runner";
 import AutoRemediationExecutionMode from "Common/Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationTriggerEntity from "Common/Types/AutoRemediation/AutoRemediationTriggerEntity";
 import { Blue, Green, Purple, Red, Yellow } from "Common/Types/BrandColors";
+import ListResult from "Common/Types/BaseDatabase/ListResult";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import { isKubernetesAgentRunnerName } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   triggerEntityType: AutoRemediationTriggerEntity;
   entityLabel: string; // "incident" | "alert"
+}
+
+/*
+ * The Runners a rule's composed Bash/SSH commands may target. A
+ * kubernetes-agent Runner (the in-cluster Runner the agent chart
+ * registers) never runs Bash or SSH — it runs kubectl for its own cluster
+ * only — so it is not offered: a rule narrowed to it could never run a
+ * command. Recognised by its name, which only the server writes.
+ */
+export function buildCommandRunnerOptions(
+  runners: Array<Runner>,
+): Array<DropdownOption> {
+  const options: Array<DropdownOption> = [];
+
+  for (const runner of runners) {
+    const id: string | null = runner._id ? String(runner._id) : null;
+
+    if (!id || isKubernetesAgentRunnerName(runner.name)) {
+      continue;
+    }
+
+    options.push({ value: id, label: runner.name || id });
+  }
+
+  return options;
+}
+
+export async function fetchCommandRunnerOptions(): Promise<
+  Array<DropdownOption>
+> {
+  const result: ListResult<Runner> = await ModelAPI.getList<Runner>({
+    modelType: Runner,
+    query: {},
+    limit: LIMIT_PER_PROJECT,
+    skip: 0,
+    select: { _id: true, name: true },
+    sort: { name: SortOrder.Ascending },
+  });
+
+  return buildCommandRunnerOptions(result.data || []);
 }
 
 const autoRemediationDocumentation: (entityLabel: string) => string = (
@@ -320,13 +365,13 @@ const AutoRemediationRulesTable: FunctionComponent<ComponentProps> = (
           title: "Command Runners",
           stepId: "remediation",
           description:
-            "Which Runners the AI may target with composed commands. Leave empty to allow any Runner with AI commands enabled.",
+            "Which Runners the AI may target with composed commands. Leave empty to allow any Runner with AI commands enabled. In-cluster Runners installed by the Kubernetes agent chart are not listed: they only ever run kubectl for their own cluster, never Bash or SSH commands.",
           fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: Runner,
-            labelField: "name",
-            valueField: "_id",
-          },
+          /*
+           * Not an entity dropdown: that one lists (and searches) every
+           * Runner row, and kubernetes-agent Runners must not be offered.
+           */
+          fetchDropdownOptions: fetchCommandRunnerOptions,
           required: false,
           placeholder: "Select Runners (optional)",
         },

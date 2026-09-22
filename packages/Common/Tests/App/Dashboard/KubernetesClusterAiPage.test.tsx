@@ -24,7 +24,9 @@ import KubernetesClusterAI, {
   KUBERNETES_AGENT_HELM_RELEASE,
   REMEDIATION_MODE_LABELS,
   canPickKubernetesCredential,
+  getAiAccessHelmCommands,
   getKubernetesCredentialPermissionTitles,
+  getRemediationModeFieldDescription,
   parseStatus,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI";
 import { getKubernetesInstallationMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
@@ -117,10 +119,12 @@ const ADMIN_PERMISSIONS: Array<Permission> = [
 ];
 
 const SET_IMAGE_PATTERN: string = "kubectl set image deployment/web * -n web";
+const PATCH_PATTERN: string = "kubectl patch deployment/web -n web -p *";
 const OTHER_CLUSTER_RUNNER_ID: string = "55555555-0000-4000-8000-00000000000e";
 const HOST_RUNNER_ID: string = "55555555-0000-4000-8000-00000000000f";
 const DISABLED_RUNNER_ID: string = "55555555-0000-4000-8000-000000000010";
 const SSH_CREDENTIAL_ID: string = "77777777-0000-4000-8000-000000000008";
+const STAGING_CREDENTIAL_ID: string = "77777777-0000-4000-8000-000000000009";
 
 function makeStatus(
   overrides: Partial<KubernetesClusterAiAccessStatus> = {},
@@ -181,10 +185,18 @@ function makeCluster(overrides: ClusterOverrides = {}): KubernetesCluster {
   );
 }
 
+// The posture an in-cluster agent Runner reports for the cluster it runs in.
+function agentHostInfo(clusterIdentifier: string): JSONObject {
+  return {
+    kubernetes: { inCluster: true, allowWrites: false, clusterIdentifier },
+  };
+}
+
 /*
  * Every kind of Runner a project holds: this cluster's agent, another
  * cluster's agent, a host Runner that runs AI commands, and one that does
- * not. Only the first and third can serve this cluster.
+ * not. Only the first and third can serve this cluster. The agents report
+ * the cluster they run in, which is how the picker tells them apart.
  */
 function makeProjectRunners(): Array<Runner> {
   return [
@@ -192,11 +204,13 @@ function makeProjectRunners(): Array<Runner> {
       _id: RUNNER_ID,
       name: "kubernetes-agent/prod-east",
       canRunAiCommands: true,
+      hostInfo: agentHostInfo("prod-east"),
     }),
     Object.assign(new Runner(), {
       _id: OTHER_CLUSTER_RUNNER_ID,
       name: "kubernetes-agent/prod-eu",
       canRunAiCommands: true,
+      hostInfo: agentHostInfo("prod-eu"),
     }),
     Object.assign(new Runner(), {
       _id: HOST_RUNNER_ID,
@@ -211,19 +225,47 @@ function makeProjectRunners(): Array<Runner> {
   ];
 }
 
+function assignedTo(...runnerIds: Array<string>): Array<Runner> {
+  return runnerIds.map((runnerId: string): Runner => {
+    return Object.assign(new Runner(), { _id: runnerId });
+  });
+}
+
+/*
+ * A Kubernetes credential assigned to the host Runner, one assigned to a
+ * Runner that is not listed, and an SSH key.
+ */
 function makeProjectCredentials(): Array<RunbookCredential> {
   return [
     Object.assign(new RunbookCredential(), {
       _id: CREDENTIAL_ID,
       name: "prod-east token",
       credentialType: RunbookCredentialType.Kubernetes,
+      runners: assignedTo(HOST_RUNNER_ID),
+    }),
+    Object.assign(new RunbookCredential(), {
+      _id: STAGING_CREDENTIAL_ID,
+      name: "staging token",
+      credentialType: RunbookCredentialType.Kubernetes,
+      runners: assignedTo(DISABLED_RUNNER_ID),
     }),
     Object.assign(new RunbookCredential(), {
       _id: SSH_CREDENTIAL_ID,
       name: "bastion ssh key",
       credentialType: RunbookCredentialType.SSH,
+      runners: assignedTo(HOST_RUNNER_ID),
     }),
   ];
+}
+
+// The cluster bound to the host Runner (outside the cluster).
+function hostRunnerBinding(): ClusterOverrides {
+  return {
+    aiAccessRunner: Object.assign(new Runner(), {
+      _id: HOST_RUNNER_ID,
+      name: "bash-runner",
+    }),
+  };
 }
 
 type JobOverrides = {
@@ -454,11 +496,12 @@ async function pickOption(
  * saved value. The Toggle picks up its value in an effect after its first
  * paint, so a click in that instant would toggle the unseeded default.
  */
-async function toggleInvestigation(
+async function toggleSwitch(
   dialog: HTMLElement,
+  testId: string,
   from: boolean,
 ): Promise<void> {
-  const toggle: HTMLElement = within(dialog).getByRole("switch");
+  const toggle: HTMLElement = within(dialog).getByTestId(testId);
   await waitFor(
     () => {
       expect(toggle).toHaveAttribute("aria-checked", String(from));
@@ -467,6 +510,39 @@ async function toggleInvestigation(
   );
   fireEvent.click(toggle);
   expect(toggle).toHaveAttribute("aria-checked", String(!from));
+}
+
+/*
+ * By its test id: the modal can also hold "Unbind the Runner" and "Unbind
+ * the Kubernetes credential" switches.
+ */
+async function toggleInvestigation(
+  dialog: HTMLElement,
+  from: boolean,
+): Promise<void> {
+  await toggleSwitch(dialog, "ai-investigation-field", from);
+}
+
+async function setAllowlistText(
+  dialog: HTMLElement,
+  value: string,
+): Promise<void> {
+  const field: HTMLElement = await within(dialog).findByTestId(
+    "kubectl-allowlist-field",
+    {},
+    { timeout: WAIT_TIMEOUT },
+  );
+  fireEvent.change(field, { target: { value } });
+}
+
+async function waitForOneUpdate(): Promise<JSONObject> {
+  await waitFor(
+    () => {
+      expect(updateByIdSpy).toHaveBeenCalledTimes(1);
+    },
+    { timeout: WAIT_TIMEOUT },
+  );
+  return updateRequests()[0]!["data"] as JSONObject;
 }
 
 function saveEditModal(dialog: HTMLElement): void {
@@ -565,28 +641,70 @@ describe("remediation mode labels", () => {
       expect(label.trim().length).toBeGreaterThan(0);
     }
     expect(new Set(labels).size).toBe(labels.length);
-    // The two unattended modes must say so, and bypass must say nobody asks.
+    // Both unattended modes say fixes run on their own.
     expect(
       REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.Automatic],
     ).toMatch(/run on their own/);
     expect(
       REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.BypassApproval],
-    ).toMatch(/nobody is asked/);
+    ).toMatch(/runs on its own/);
     expect(
       REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.Disabled],
     ).toMatch(/Off/);
   });
 
-  test("Automatic never claims riskier fixes ask for approval", () => {
-    /*
-     * In Automatic mode a riskier change is never run without a human: the
-     * unattended round refuses it and leaves the command in the written
-     * recommendations. The label must not promise an approval prompt.
-     */
+  /*
+   * The copy must match the canonical description on
+   * KubernetesAiRemediationMode (and what RemediationExecutionRunner does):
+   * an Automatic round that could only find riskier fixes ends by proposing
+   * them for one-click approval. The page said they were "left for you"
+   * and that "only a follow-up round" proposed them. This pin replaces the
+   * old one, which required "left for you".
+   */
+  test("Automatic says a riskier fix is proposed for one-click approval", () => {
     const label: string =
       REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.Automatic];
-    expect(label).not.toMatch(/\bask/i);
-    expect(label).toMatch(/left for you/);
+    expect(label).toMatch(/one-click approval/);
+    expect(label).not.toMatch(/left for you/);
+
+    const description: string = getRemediationModeFieldDescription();
+    expect(description).toMatch(
+      /when the round could only find riskier fixes, it ends by proposing exactly those for one-click approval/,
+    );
+    expect(description).not.toMatch(/only a follow-up round/);
+    expect(description).not.toMatch(
+      /leaves the exact command in its recommendations/,
+    );
+    // A named Job is not recreated by anything: deleting one is riskier.
+    expect(description).not.toMatch(/delete a named pod or job/);
+    expect(description).toContain("delete a named pod");
+  });
+
+  /*
+   * Bypass approval does ask in a few places: protected namespaces, node
+   * drains and taints, and a tripped circuit breaker. "Nobody is asked"
+   * was false.
+   */
+  test("Bypass approval names what still asks a human", () => {
+    const label: string =
+      REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.BypassApproval];
+    expect(label).not.toMatch(/nobody is asked/);
+    for (const exception of [
+      "protected namespaces",
+      "drain",
+      "circuit breaker",
+    ]) {
+      expect(label).toContain(exception);
+    }
+
+    const description: string = getRemediationModeFieldDescription();
+    expect(description).not.toMatch(/nobody is ever asked/);
+    for (const namespace of ["kube-system", "kube-public", "kube-node-lease"]) {
+      expect(description).toContain(namespace);
+    }
+    expect(description).toMatch(/a node drain and a taint always need a human/);
+    expect(description).toMatch(/circuit breaker/);
+    expect(description).toMatch(/never changes its own namespace/);
   });
 });
 
@@ -922,11 +1040,10 @@ describe("Kubernetes cluster AI page", () => {
   });
 
   /*
-   * Binding a Runner or a credential, the unattended modes and the
-   * allowlist need KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS (the server
-   * refuses them otherwise). These tests used to have a ProjectMember bind
-   * both; a member now gets the tightening form only, and the pickers are
-   * exercised with a user who holds the admin set.
+   * Binding a Runner or a credential, the higher unattended modes and new
+   * allowlist patterns need KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS (the
+   * server refuses them otherwise). The pickers are exercised with a user
+   * who holds the admin set; the tightening a member may do is below.
    */
   describe("edit modal pickers", () => {
     test("omits the credential picker for an admin-set holder who may not read Runner credentials", async () => {
@@ -966,8 +1083,13 @@ describe("Kubernetes cluster AI page", () => {
       expect(listRequestsFor(RunbookCredential)).toHaveLength(0);
     });
 
-    test("offers the credential picker, Kubernetes credentials only, to an admin", async () => {
+    /*
+     * The finding (dashboard-ai-page-7): the picker offered every
+     * Kubernetes credential, whatever Runner it was assigned to.
+     */
+    test("offers an admin only the Kubernetes credentials assigned to the chosen Runner", async () => {
       grant(ADMIN_PERMISSIONS);
+      serveCluster(hostRunnerBinding());
       openAiPage();
 
       await findText(SETTINGS_CARD_TITLE);
@@ -990,13 +1112,78 @@ describe("Kubernetes cluster AI page", () => {
       expect(requests[0]!.query).toEqual({
         credentialType: RunbookCredentialType.Kubernetes,
       });
+      // The assignments are read so the options can follow the Runner.
+      expect(requests[0]!.select).toEqual(
+        expect.objectContaining({ runners: { _id: true } }),
+      );
 
       const options: Array<string> = await openDropdown(
         dialog,
         /^Kubernetes credential/,
       );
-      expect(options).toContain("prod-east token");
-      expect(options).not.toContain("bastion ssh key");
+      expect(options).toEqual(["prod-east token"]);
+      expect(
+        within(dialog).getByText(/assigned to "bash-runner" are listed/),
+      ).toBeInTheDocument();
+    });
+
+    test("offers no credential for this cluster's in-cluster Runner, and says why", async () => {
+      grant(ADMIN_PERMISSIONS);
+      openAiPage();
+      const dialog: HTMLElement = await openEditModal();
+
+      expect(
+        await within(dialog).findByText(
+          /No credential can be chosen: "kubernetes-agent\/prod-east" is an in-cluster Runner/,
+          {},
+          { timeout: WAIT_TIMEOUT },
+        ),
+      ).toBeInTheDocument();
+
+      // Choosing the host Runner brings its credentials back.
+      await pickOption(dialog, /^Runner/, "bash-runner");
+      expect(
+        await within(dialog).findByText(
+          /assigned to "bash-runner" are listed/,
+          {},
+          { timeout: WAIT_TIMEOUT },
+        ),
+      ).toBeInTheDocument();
+      const options: Array<string> = await openDropdown(
+        dialog,
+        /^Kubernetes credential/,
+      );
+      expect(options).toEqual(["prod-east token"]);
+    });
+
+    test("refuses to save this cluster's in-cluster Runner together with a credential", async () => {
+      grant(ADMIN_PERMISSIONS);
+      serveCluster({
+        ...hostRunnerBinding(),
+        aiAccessCredential: Object.assign(new RunbookCredential(), {
+          _id: CREDENTIAL_ID,
+          name: "prod-east token",
+        }),
+      });
+      openAiPage();
+      const dialog: HTMLElement = await openEditModal();
+      await within(dialog).findByText("Runner", {}, { timeout: WAIT_TIMEOUT });
+
+      await pickOption(
+        dialog,
+        /^Runner/,
+        "kubernetes-agent/prod-east (in-cluster Runner for this cluster)",
+      );
+      saveEditModal(dialog);
+
+      const error: HTMLElement = await screen.findByTestId(
+        "ai-access-save-error",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      );
+      expect(error).toHaveTextContent("is an in-cluster Runner");
+      expect(error).toHaveTextContent("Clear the Kubernetes credential");
+      expect(updateByIdSpy).not.toHaveBeenCalled();
     });
 
     /*
@@ -1013,13 +1200,60 @@ describe("Kubernetes cluster AI page", () => {
 
       const request: ListRequest = listRequestsFor(Runner)[0]!;
       expect(request.select).toEqual(
-        expect.objectContaining({ name: true, canRunAiCommands: true }),
+        expect.objectContaining({
+          name: true,
+          canRunAiCommands: true,
+          // The posture tells this cluster's agent from another's.
+          hostInfo: true,
+        }),
       );
 
       const options: Array<string> = await openDropdown(dialog, /^Runner/);
       expect(options).toEqual([
         "kubernetes-agent/prod-east (in-cluster Runner for this cluster)",
         "bash-runner",
+      ]);
+    });
+
+    /*
+     * The finding (dashboard-ai-page-2): for a cluster identifier long
+     * enough that the server shortens the Runner name with a hash, the
+     * picker hid this cluster's own Runner.
+     */
+    test("offers this cluster's in-cluster Runner when the server shortened its name", async () => {
+      const longIdentifier: string =
+        "arn:aws:eks:ap-southeast-2:123456789012:cluster/payments-platform-production-blue-green";
+      const shortenedName: string = `kubernetes-agent/${longIdentifier.slice(0, 74)}-fe7fc1b3`;
+      grant(ADMIN_PERMISSIONS);
+      serveStatus(makeStatus({ clusterIdentifier: longIdentifier }));
+      getListSpy.mockImplementation(async (args: unknown): Promise<unknown> => {
+        const request: ListRequest = args as ListRequest;
+        const data: Array<unknown> =
+          request.modelType === Runner
+            ? [
+                Object.assign(new Runner(), {
+                  _id: RUNNER_ID,
+                  name: shortenedName,
+                  canRunAiCommands: true,
+                  hostInfo: agentHostInfo(longIdentifier),
+                }),
+              ]
+            : [];
+        return { data, count: data.length, skip: 0, limit: 10 };
+      });
+      serveCluster({
+        aiAccessRunner: Object.assign(new Runner(), {
+          _id: RUNNER_ID,
+          name: shortenedName,
+        }),
+      });
+      openAiPage();
+      const dialog: HTMLElement = await openEditModal();
+      await within(dialog).findByText("Runner", {}, { timeout: WAIT_TIMEOUT });
+
+      const options: Array<string> = await openDropdown(dialog, /^Runner/);
+      expect(options).toEqual([
+        `${shortenedName} (in-cluster Runner for this cluster)`,
       ]);
     });
 
@@ -1069,7 +1303,9 @@ describe("Kubernetes cluster AI page", () => {
         within(dialog).queryByText(/do not have permission/i),
       ).not.toBeInTheDocument();
       expect(within(dialog).getByText("AI remediation")).toBeInTheDocument();
-      expect(within(dialog).getByRole("switch")).toBeInTheDocument();
+      expect(
+        within(dialog).getByTestId("ai-investigation-field"),
+      ).toBeInTheDocument();
       expect(
         within(dialog).getByTestId("kubernetes-ai-access-admin-note"),
       ).toBeInTheDocument();
@@ -1078,7 +1314,7 @@ describe("Kubernetes cluster AI page", () => {
       expect(listRequestsFor(RunbookCredential)).toHaveLength(0);
     });
 
-    test("an admin-set holder who may read credentials but not Runners gets the credential picker only", async () => {
+    test("an admin-set holder who may read credentials but not Runners gets the credential picker, and may unbind the Runner", async () => {
       grant([
         ...BASE_PERMISSIONS,
         Permission.EditKubernetesCluster,
@@ -1100,6 +1336,9 @@ describe("Kubernetes cluster AI page", () => {
       expect(
         within(dialog).getByTestId("kubernetes-runner-picker-permission-note"),
       ).toHaveTextContent("Read Runbook Agent");
+      expect(
+        within(dialog).getByTestId("ai-access-clear-runner-field"),
+      ).toBeInTheDocument();
       expect(listRequestsFor(RunbookCredential)).toHaveLength(1);
       expect(listRequestsFor(Runner)).toHaveLength(0);
     });
@@ -1137,12 +1376,12 @@ describe("Kubernetes cluster AI page", () => {
    * The finding: every cluster editor — SettingsMember, SettingsAdmin,
    * EditKubernetesCluster, ProjectMember — could switch a cluster to
    * Bypass approval, or Automatic with a "kubectl *" allowlist, and so
-   * remove an approval they could not give. The server now refuses those
+   * remove an approval they could not give. The server refuses those
    * writes without KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS; the page must
    * not offer them, and must not re-send them unchanged either.
    */
   describe("who may loosen AI access", () => {
-    test("a member is offered only Off and Ask for approval, and told why", async () => {
+    test("a member is offered only Off and Ask for approval on an Ask-for-approval cluster, and told why", async () => {
       openAiPage();
 
       expect(
@@ -1158,6 +1397,7 @@ describe("Kubernetes cluster AI page", () => {
       expect(
         within(dialog).getByTestId("kubernetes-ai-access-admin-note"),
       ).toHaveTextContent("Project Admin");
+      // Nothing saved to remove: no allowlist field.
       expect(
         within(dialog).queryByText("kubectl allowlist (Automatic mode)"),
       ).not.toBeInTheDocument();
@@ -1205,7 +1445,7 @@ describe("Kubernetes cluster AI page", () => {
       );
     });
 
-    test("a member on an Automatic cluster sees the current mode but no other unattended one", async () => {
+    test("a member on an Automatic cluster sees the current mode but no higher one", async () => {
       serveCluster({
         aiRemediationMode: KubernetesAiRemediationMode.Automatic,
       });
@@ -1221,6 +1461,176 @@ describe("Kubernetes cluster AI page", () => {
         REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.RequireApproval],
         `${REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.Automatic]} (current)`,
       ]);
+    });
+
+    /*
+     * The finding (dashboard-ai-page-4, XP-7): Bypass approval -> Automatic
+     * is a tightening the server accepts from every cluster editor, and the
+     * page hid Automatic from them.
+     */
+    test("a member on a Bypass-approval cluster may step down to Automatic", async () => {
+      serveCluster({
+        aiRemediationMode: KubernetesAiRemediationMode.BypassApproval,
+      });
+      openAiPage();
+      const dialog: HTMLElement = await openEditModal();
+
+      const options: Array<string> = await openDropdown(
+        dialog,
+        /^AI remediation/,
+      );
+      expect(options).toEqual([
+        REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.Disabled],
+        REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.RequireApproval],
+        REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.Automatic],
+        `${REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.BypassApproval]} (current)`,
+      ]);
+
+      fireEvent.click(
+        menuOptions().find((option: HTMLElement): boolean => {
+          return (
+            option.textContent ===
+            REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.Automatic]
+          );
+        })!,
+      );
+      saveEditModal(dialog);
+
+      expect(await waitForOneUpdate()).toEqual({
+        aiRemediationMode: KubernetesAiRemediationMode.Automatic,
+      });
+      expect(
+        screen.queryByTestId("ai-access-save-error"),
+      ).not.toBeInTheDocument();
+      // A step down is not a new risk: no confirmation either.
+      expect(
+        screen.queryByText("Let riskier changes run without approval?"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("a member may remove an allowlist pattern", async () => {
+      serveCluster({
+        aiRemediationMode: KubernetesAiRemediationMode.Automatic,
+        aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, PATCH_PATTERN],
+      });
+      openAiPage();
+      const dialog: HTMLElement = await openEditModal();
+
+      expect(
+        within(dialog).getByText(/You can remove patterns or clear the list/),
+      ).toBeInTheDocument();
+      await setAllowlistText(dialog, SET_IMAGE_PATTERN);
+      saveEditModal(dialog);
+
+      expect(await waitForOneUpdate()).toEqual({
+        aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN],
+      });
+    });
+
+    test("a member may clear the allowlist", async () => {
+      serveCluster({
+        aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN],
+      });
+      openAiPage();
+      const dialog: HTMLElement = await openEditModal();
+
+      await setAllowlistText(dialog, "");
+      saveEditModal(dialog);
+
+      expect(await waitForOneUpdate()).toEqual({
+        aiKubectlCommandAllowlist: [],
+      });
+    });
+
+    test("a member who adds or edits a pattern is told it needs the admin set, and nothing is sent", async () => {
+      serveCluster({
+        aiRemediationMode: KubernetesAiRemediationMode.Automatic,
+        aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN],
+      });
+      openAiPage();
+      const dialog: HTMLElement = await openEditModal();
+
+      await setAllowlistText(
+        dialog,
+        "kubectl set image deployment/web * -n prod",
+      );
+      saveEditModal(dialog);
+
+      expect(
+        await within(dialog).findByText(
+          /is not in the saved allowlist/,
+          {},
+          { timeout: WAIT_TIMEOUT },
+        ),
+      ).toHaveTextContent("Edit Auto Remediation Rule");
+      expect(updateByIdSpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The finding (SIA-4): the server and the gap copy tell every cluster
+     * editor they may clear the Runner, and the page offered them no way
+     * to — Settings roles and EditKubernetesCluster cannot even list
+     * Runners.
+     */
+    for (const [role, permissions] of [
+      ["a member", MEMBER_PERMISSIONS],
+      ["a Settings member", [...BASE_PERMISSIONS, Permission.SettingsMember]],
+      [
+        "an EditKubernetesCluster editor",
+        [
+          ...BASE_PERMISSIONS,
+          Permission.EditKubernetesCluster,
+          Permission.ReadKubernetesCluster,
+        ],
+      ],
+    ] as Array<[string, Array<Permission>]>) {
+      test(`${role} may unbind the Runner without listing Runners`, async () => {
+        grant(permissions);
+        openAiPage();
+        const dialog: HTMLElement = await openEditModal();
+
+        expect(
+          within(dialog).getByText(/Bound now: kubernetes-agent\/prod-east/),
+        ).toBeInTheDocument();
+        await toggleSwitch(dialog, "ai-access-clear-runner-field", false);
+        saveEditModal(dialog);
+
+        expect(await waitForOneUpdate()).toEqual({ aiAccessRunnerId: null });
+        expect(listRequestsFor(Runner)).toHaveLength(0);
+      });
+    }
+
+    test("a member may unbind the credential", async () => {
+      serveCluster({
+        ...hostRunnerBinding(),
+        aiAccessCredential: Object.assign(new RunbookCredential(), {
+          _id: CREDENTIAL_ID,
+          name: "prod-east token",
+        }),
+      });
+      openAiPage();
+      const dialog: HTMLElement = await openEditModal();
+
+      await toggleSwitch(dialog, "ai-access-clear-credential-field", false);
+      saveEditModal(dialog);
+
+      expect(await waitForOneUpdate()).toEqual({
+        aiAccessCredentialId: null,
+      });
+      expect(listRequestsFor(RunbookCredential)).toHaveLength(0);
+    });
+
+    test("with nothing bound, there is nothing to unbind", async () => {
+      serveCluster({ aiAccessRunner: undefined });
+      openAiPage();
+      const dialog: HTMLElement = await openEditModal();
+
+      expect(
+        within(dialog).queryByTestId("ai-access-clear-runner-field"),
+      ).not.toBeInTheDocument();
+      expect(
+        within(dialog).queryByTestId("ai-access-clear-credential-field"),
+      ).not.toBeInTheDocument();
     });
 
     /*
@@ -1251,16 +1661,27 @@ describe("Kubernetes cluster AI page", () => {
       expect(String(request["id"])).toBe(CLUSTER_ID.toString());
       expect(request["modelType"]).toBe(KubernetesCluster);
 
-      // Saved: the modal closes and the status is read again.
+      /*
+       * Saved: the modal closes and the status is read again. The re-read
+       * is a passive effect of the same state update that closes the
+       * modal, so it can land a tick after the dialog is gone: wait for
+       * it, rather than assume it has already run (a suite run once saw
+       * one status post here).
+       */
       await waitFor(
         () => {
           expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
         },
         { timeout: WAIT_TIMEOUT },
       );
-      expect(
-        postsTo("/kubernetes-cluster/ai-access/status").length,
-      ).toBeGreaterThanOrEqual(2);
+      await waitFor(
+        () => {
+          expect(
+            postsTo("/kubernetes-cluster/ai-access/status").length,
+          ).toBeGreaterThanOrEqual(2);
+        },
+        { timeout: WAIT_TIMEOUT },
+      );
     });
 
     test("a member can still switch remediation off", async () => {
@@ -1277,13 +1698,7 @@ describe("Kubernetes cluster AI page", () => {
       );
       saveEditModal(dialog);
 
-      await waitFor(
-        () => {
-          expect(updateByIdSpy).toHaveBeenCalledTimes(1);
-        },
-        { timeout: WAIT_TIMEOUT },
-      );
-      expect(updateRequests()[0]!["data"]).toEqual({
+      expect(await waitForOneUpdate()).toEqual({
         aiRemediationMode: KubernetesAiRemediationMode.Disabled,
       });
     });
@@ -1356,13 +1771,7 @@ describe("Kubernetes cluster AI page", () => {
 
       fireEvent.click(within(confirm).getByText("Confirm and save"));
 
-      await waitFor(
-        () => {
-          expect(updateByIdSpy).toHaveBeenCalledTimes(1);
-        },
-        { timeout: WAIT_TIMEOUT },
-      );
-      expect(updateRequests()[0]!["data"]).toEqual({
+      expect(await waitForOneUpdate()).toEqual({
         aiRemediationMode: KubernetesAiRemediationMode.BypassApproval,
       });
     });
@@ -1372,15 +1781,13 @@ describe("Kubernetes cluster AI page", () => {
       openAiPage();
       const dialog: HTMLElement = await openEditModal();
 
-      fireEvent.change(within(dialog).getByTestId("kubectl-allowlist-field"), {
-        target: { value: "kubectl *" },
-      });
+      await setAllowlistText(dialog, "kubectl * * * -n *");
       saveEditModal(dialog);
 
       const confirm: HTMLElement = await findDialogTitled(
         "Let riskier changes run without approval?",
       );
-      expect(confirm).toHaveTextContent('"kubectl *"');
+      expect(confirm).toHaveTextContent('"kubectl * * * -n *"');
       fireEvent.click(within(confirm).getByText("Cancel"));
 
       await waitFor(
@@ -1395,29 +1802,32 @@ describe("Kubernetes cluster AI page", () => {
       expect(screen.getByRole("dialog")).toBe(dialog);
     });
 
-    test("a match-everything allowlist is saved after confirmation, one pattern per line", async () => {
+    /*
+     * "kubectl * * * -n *" auto-approves deleting any Deployment in any
+     * non-protected namespace; the old whole-string check let it through
+     * without a confirmation because it spells out "-n".
+     */
+    test("a broad allowlist is saved after confirmation, one pattern per line", async () => {
       grant(ADMIN_PERMISSIONS);
       openAiPage();
       const dialog: HTMLElement = await openEditModal();
 
-      fireEvent.change(within(dialog).getByTestId("kubectl-allowlist-field"), {
-        target: { value: `${SET_IMAGE_PATTERN}\n\nkubectl *\n` },
-      });
+      await setAllowlistText(
+        dialog,
+        `${SET_IMAGE_PATTERN}\n\nkubectl * * * -n *\n`,
+      );
       saveEditModal(dialog);
 
       const confirm: HTMLElement = await findDialogTitled(
         "Let riskier changes run without approval?",
       );
+      expect(confirm).toHaveTextContent(
+        "a wildcard for the verb, the object or the namespace",
+      );
       fireEvent.click(within(confirm).getByText("Confirm and save"));
 
-      await waitFor(
-        () => {
-          expect(updateByIdSpy).toHaveBeenCalledTimes(1);
-        },
-        { timeout: WAIT_TIMEOUT },
-      );
-      expect(updateRequests()[0]!["data"]).toEqual({
-        aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, "kubectl *"],
+      expect(await waitForOneUpdate()).toEqual({
+        aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, "kubectl * * * -n *"],
       });
     });
 
@@ -1426,18 +1836,10 @@ describe("Kubernetes cluster AI page", () => {
       openAiPage();
       const dialog: HTMLElement = await openEditModal();
 
-      fireEvent.change(within(dialog).getByTestId("kubectl-allowlist-field"), {
-        target: { value: SET_IMAGE_PATTERN },
-      });
+      await setAllowlistText(dialog, SET_IMAGE_PATTERN);
       saveEditModal(dialog);
 
-      await waitFor(
-        () => {
-          expect(updateByIdSpy).toHaveBeenCalledTimes(1);
-        },
-        { timeout: WAIT_TIMEOUT },
-      );
-      expect(updateRequests()[0]!["data"]).toEqual({
+      expect(await waitForOneUpdate()).toEqual({
         aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN],
       });
       expect(
@@ -1445,19 +1847,22 @@ describe("Kubernetes cluster AI page", () => {
       ).not.toBeInTheDocument();
     });
 
-    test("an allowlist pattern that can never match is refused in the form", async () => {
+    /*
+     * Validity is KubectlPolicy's: a bare "kubectl" names no command. (A
+     * pattern without the leading "kubectl" is valid — the matcher reads
+     * it — so it is no longer the example here.)
+     */
+    test("an allowlist pattern the matcher cannot use is refused in the form", async () => {
       grant(ADMIN_PERMISSIONS);
       openAiPage();
       const dialog: HTMLElement = await openEditModal();
 
-      fireEvent.change(within(dialog).getByTestId("kubectl-allowlist-field"), {
-        target: { value: "set image deployment/web * -n web" },
-      });
+      await setAllowlistText(dialog, `${SET_IMAGE_PATTERN}\nkubectl`);
       saveEditModal(dialog);
 
       expect(
         await within(dialog).findByText(
-          /must start with "kubectl"/,
+          /^Pattern 2: /,
           {},
           { timeout: WAIT_TIMEOUT },
         ),
@@ -1470,12 +1875,12 @@ describe("Kubernetes cluster AI page", () => {
       openAiPage();
       const dialog: HTMLElement = await openEditModal();
 
-      expect(
-        within(dialog).getByText(/\* matches exactly one word/),
-      ).toHaveTextContent("flags must be written out");
-      expect(
-        within(dialog).getByText(/\* matches exactly one word/),
-      ).toHaveTextContent("One pattern per line");
+      const description: HTMLElement = within(dialog).getByText(
+        /\* matches exactly one word/,
+      );
+      expect(description).toHaveTextContent("flags must be written out");
+      expect(description).toHaveTextContent("One pattern per line");
+      expect(description).toHaveTextContent('a leading "kubectl" is optional');
     });
   });
 
@@ -1496,10 +1901,12 @@ describe("Kubernetes cluster AI page", () => {
       );
       expect(tile).toHaveTextContent(SET_IMAGE_PATTERN);
       expect(tile).toHaveTextContent("also run on their own");
-      // The banner says so too, rather than "riskier ones are left for you".
+      // The banner says so too, and that any other riskier fix asks.
       expect(
         screen.getByText(/plus riskier ones that match the kubectl allowlist/),
-      ).toBeInTheDocument();
+      ).toHaveTextContent(
+        "Any other riskier fix is proposed for your one-click approval.",
+      );
     });
 
     test("an empty allowlist shows nothing extra", async () => {
@@ -1516,7 +1923,9 @@ describe("Kubernetes cluster AI page", () => {
         screen.queryByTestId("kubectl-allowlist-in-effect"),
       ).not.toBeInTheDocument();
       expect(
-        screen.getByText(/and apply safe fixes on its own\.$/),
+        screen.getByText(
+          /and apply safe fixes on its own\. A riskier fix is proposed for your one-click approval\.$/,
+        ),
       ).toBeInTheDocument();
     });
 
@@ -1557,9 +1966,22 @@ describe("Kubernetes cluster AI page", () => {
   describe("connect a Runner", () => {
     const noRunnerGap: KubernetesAiAccessGap = {
       code: "no_runner_bound",
-      title: "No Runner is bound to this cluster",
-      description: "OneUptime AI needs a Runner to run kubectl.",
-      nextStep: "Upgrade the agent with aiAccess.enabled=true.",
+      title: "No Runner can reach this cluster",
+      description:
+        "OneUptime AI runs kubectl through a Runner. None is bound to this cluster yet.",
+      nextStep:
+        "Upgrade the Kubernetes agent with --set aiAccess.enabled=true to install an in-cluster Runner (one command), or bind an existing Runner and a Kubernetes credential on this cluster's AI page.",
+      blocks: "both",
+    };
+
+    // The server's gap when this cluster's in-cluster Runner is registered.
+    const agentNotSelectedGap: KubernetesAiAccessGap = {
+      code: "no_runner_bound",
+      title: "The in-cluster Runner is installed but not selected",
+      description:
+        'Runner "kubernetes-agent/prod-east", this cluster\'s in-cluster Runner, is registered and online, but no Runner is bound to this cluster, so OneUptime AI does not use it.',
+      nextStep:
+        'Select the kubernetes-agent Runner "kubernetes-agent/prod-east" as this cluster\'s Runner on this page (leave the credential empty). No helm change is needed.',
       blocks: "both",
     };
 
@@ -1603,14 +2025,6 @@ describe("Kubernetes cluster AI page", () => {
       expect(readOnly).toContain(`--namespace ${install.namespace}`);
       expect(readOnly).toContain("--set aiAccess.enabled=true");
       expect(readOnly).not.toContain("aiAccess.remediation.enabled=true");
-
-      // Write access is a separate, clearly optional command.
-      expect(
-        screen.getByText("Optional: also let AI apply fixes"),
-      ).toBeInTheDocument();
-      expect(textOf("ai-access-helm-remediation-command")).toContain(
-        "--set aiAccess.remediation.enabled=true",
-      );
       expect(screen.queryByText(/Drop the last line/)).not.toBeInTheDocument();
     });
 
@@ -1627,7 +2041,48 @@ describe("Kubernetes cluster AI page", () => {
       expect(screen.getByTestId("ai-access-test-button")).toBeDisabled();
     });
 
-    test("a ready cluster in Bypass approval shows the banner and no card", async () => {
+    /*
+     * Known follow-up 7: with this cluster's in-cluster Runner installed
+     * but not selected, the helm card told the operator to run a command
+     * that changes nothing.
+     */
+    test("an installed but unselected in-cluster Runner asks to select it, not to run helm", async () => {
+      serveStatus(makeStatus({ runner: null, gaps: [agentNotSelectedGap] }));
+      openAiPage();
+
+      const card: HTMLElement = await screen.findByTestId(
+        "ai-access-select-agent-runner",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      );
+      expect(card).toHaveTextContent(
+        'Select the kubernetes-agent Runner "kubernetes-agent/prod-east"',
+      );
+      // A member cannot choose a Runner: the card says what it takes.
+      expect(card).toHaveTextContent("Edit Auto Remediation Rule");
+      expect(
+        screen.queryByText("Connect a Runner (one command)"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("ai-access-helm-command"),
+      ).not.toBeInTheDocument();
+    });
+
+    test("an admin is pointed at Edit AI access to select the installed Runner", async () => {
+      grant(ADMIN_PERMISSIONS);
+      serveStatus(makeStatus({ runner: null, gaps: [agentNotSelectedGap] }));
+      openAiPage();
+
+      expect(
+        await screen.findByTestId(
+          "ai-access-select-agent-runner",
+          {},
+          { timeout: WAIT_TIMEOUT },
+        ),
+      ).toHaveTextContent("Open Edit AI access below and choose it");
+    });
+
+    test("a ready cluster in Bypass approval shows the qualified banner and no connect card", async () => {
       serveStatus(
         makeStatus({
           remediationMode: KubernetesAiRemediationMode.BypassApproval,
@@ -1636,9 +2091,13 @@ describe("Kubernetes cluster AI page", () => {
       );
       openAiPage();
 
-      expect(
-        await findText(/apply fixes on its own without asking anyone\./),
-      ).toBeInTheDocument();
+      const banner: HTMLElement = await findText(
+        /apply every fix the policy allows on its own/,
+      );
+      expect(banner).toHaveTextContent("protected namespace");
+      expect(banner).toHaveTextContent("drain");
+      expect(banner).toHaveTextContent("circuit breaker");
+      expect(banner).not.toHaveTextContent("without asking anyone");
       expect(
         screen.queryByText("Connect a Runner (one command)"),
       ).not.toBeInTheDocument();
@@ -1668,6 +2127,174 @@ describe("Kubernetes cluster AI page", () => {
       ).toBeInTheDocument();
       expect(
         screen.queryByText("Connect a Runner (one command)"),
+      ).not.toBeInTheDocument();
+    });
+
+    // Known follow-up 7: this gap renders like every other, with its next step.
+    test("a credential on another cluster's in-cluster Runner shows its gap and next step", async () => {
+      serveStatus(
+        makeStatus({
+          runner: {
+            id: OTHER_CLUSTER_RUNNER_ID,
+            name: "kubernetes-agent/prod-eu",
+            isOnline: true,
+            canRunAiCommands: true,
+            posture: {
+              inCluster: true,
+              allowWrites: false,
+              clusterIdentifier: "prod-eu",
+            },
+          },
+          accessMethod: "none",
+          isInvestigationReady: false,
+          isRemediationReady: false,
+          gaps: [
+            {
+              code: "credential_on_agent_runner",
+              title: "An in-cluster Runner cannot carry a credential",
+              description:
+                'Runner "kubernetes-agent/prod-eu" is the in-cluster Runner of cluster "prod-eu".',
+              nextStep:
+                "Create a Runner under Project Settings → Runners, assign the Kubernetes credential to it and select both on this page — or install the in-cluster Runner on THIS cluster with --set aiAccess.enabled=true, which needs no credential.",
+              blocks: "both",
+            },
+          ],
+        }),
+      );
+      openAiPage();
+
+      expect(
+        await findText("An in-cluster Runner cannot carry a credential"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/Create a Runner under Project Settings → Runners/),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText("Connect a Runner (one command)"),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  /*
+   * The finding (dashboard-ai-page-3): the write-access command lived in
+   * the connect card, so it vanished once the recommended read-only
+   * Runner connected; it granted write RBAC cluster-wide with no scoped
+   * form, no `helm repo update` and understated copy.
+   */
+  describe("letting AI apply fixes", () => {
+    const writeAccessGap: KubernetesAiAccessGap = {
+      code: "remediation_write_access_missing",
+      title: "The in-cluster Runner is read-only",
+      description:
+        "The Kubernetes agent was installed without write access, so kubectl changes would be refused by the cluster.",
+      nextStep:
+        "Upgrade the agent with --set aiAccess.remediation.enabled=true to grant the Runner's ServiceAccount the write verbs OneUptime AI may use.",
+      blocks: "remediation",
+    };
+
+    test("a connected read-only in-cluster Runner still gets complete write-access commands", async () => {
+      serveStatus(
+        makeStatus({
+          remediationMode: KubernetesAiRemediationMode.RequireApproval,
+          isRemediationReady: false,
+          gaps: [writeAccessGap],
+        }),
+      );
+      openAiPage();
+
+      const section: HTMLElement = await screen.findByTestId(
+        "ai-access-remediation-setup",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      );
+      expect(section).toHaveTextContent(
+        "The in-cluster Runner has read-only RBAC",
+      );
+      expect(
+        screen.queryByText("Connect a Runner (one command)"),
+      ).not.toBeInTheDocument();
+
+      const scoped: string = textOf(
+        "ai-access-helm-remediation-scoped-command",
+      );
+      expect(scoped.startsWith("helm repo update")).toBe(true);
+      expect(scoped).toContain(
+        `helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent`,
+      );
+      expect(scoped).toContain("--set aiAccess.remediation.enabled=true");
+      expect(scoped).toContain("aiAccess.remediation.namespaces=");
+      expect(scoped).toContain("aiAccess.remediation.nodeOperations=false");
+      expect(scoped).toBe(getAiAccessHelmCommands().enableRemediationScoped);
+
+      const clusterWide: string = textOf("ai-access-helm-remediation-command");
+      expect(clusterWide.startsWith("helm repo update")).toBe(true);
+      expect(clusterWide).toContain("--set aiAccess.remediation.enabled=true");
+
+      const disclosure: HTMLElement = screen.getByTestId(
+        "ai-access-write-disclosure",
+      );
+      expect(disclosure).toHaveTextContent("any image as any ServiceAccount");
+      expect(disclosure).toHaveTextContent("kube-system");
+    });
+
+    test("stays on the page for a Runner that already writes, saying where", async () => {
+      serveStatus(
+        makeStatus({
+          runner: {
+            ...makeStatus().runner!,
+            posture: {
+              inCluster: true,
+              allowWrites: true,
+              writeNamespaces: ["web", "api"],
+              kubectlVersion: "v1.31.0",
+            },
+          },
+        }),
+      );
+      openAiPage();
+
+      expect(
+        await screen.findByTestId(
+          "ai-access-runner-write-access",
+          {},
+          { timeout: WAIT_TIMEOUT },
+        ),
+      ).toHaveTextContent("writes allowed in web, api");
+      expect(
+        screen.getByTestId("ai-access-remediation-setup"),
+      ).toHaveTextContent(
+        "The in-cluster Runner reports: writes allowed in web, api.",
+      );
+      expect(
+        screen.getByTestId("ai-access-helm-remediation-scoped-command"),
+      ).toBeInTheDocument();
+    });
+
+    test("an external Runner is told its credential's RBAC decides", async () => {
+      serveStatus(
+        makeStatus({
+          runner: {
+            id: HOST_RUNNER_ID,
+            name: "bash-runner",
+            isOnline: true,
+            canRunAiCommands: true,
+          },
+          accessMethod: "credential",
+          credentialId: CREDENTIAL_ID,
+          credentialName: "prod-east token",
+        }),
+      );
+      openAiPage();
+
+      expect(
+        await screen.findByTestId(
+          "ai-access-remediation-setup",
+          {},
+          { timeout: WAIT_TIMEOUT },
+        ),
+      ).toHaveTextContent("bounded by that credential's RBAC");
+      expect(
+        screen.queryByTestId("ai-access-runner-write-access"),
       ).not.toBeInTheDocument();
     });
   });

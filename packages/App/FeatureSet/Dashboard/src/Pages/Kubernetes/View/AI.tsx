@@ -22,16 +22,25 @@ import {
   KubernetesAiAccessGap,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  KubernetesRunnerPosture,
   KUBERNETES_AGENT_RUNNER_NAME_PREFIX,
   PROTECTED_KUBERNETES_NAMESPACES,
+  isInClusterPostureForCluster,
   isKubernetesAgentRunnerName,
-  isSameKubernetesClusterIdentifier,
   isUnattendedRemediationMode,
+  parseKubernetesRunnerPosture,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import {
   KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
   KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import KubectlPolicy, {
+  KUBECTL_ALLOWLIST_MAX_PATTERNS,
+} from "Common/Utils/AiRemediation/KubectlPolicy";
+import {
+  KUBERNETES_AGENT_HELM_NAMESPACE,
+  KUBERNETES_AGENT_HELM_RELEASE,
+} from "../Utils/DocumentationMarkdown";
 import RunbookCredentialType from "Common/Types/Runbook/RunbookCredentialType";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
@@ -108,6 +117,24 @@ interface AccessTestResult {
   }>;
 }
 
+// "a, b and c" / "a, b or c".
+function formatNameList(
+  names: ReadonlyArray<string>,
+  conjunction: string,
+): string {
+  if (names.length <= 1) {
+    return names.join("");
+  }
+  return `${names.slice(0, -1).join(", ")} ${conjunction} ${names[names.length - 1]}`;
+}
+
+/*
+ * What each mode does, in the words of the canonical description on
+ * KubernetesAiRemediationMode (Common/Types/Kubernetes/
+ * KubernetesClusterAiAccess.ts). Every sentence on this page about a mode
+ * — the labels, the mode field, the banners and the confirmations — says
+ * the same thing that comment says.
+ */
 export const REMEDIATION_MODE_LABELS: Record<
   KubernetesAiRemediationMode,
   string
@@ -116,10 +143,22 @@ export const REMEDIATION_MODE_LABELS: Record<
   [KubernetesAiRemediationMode.RequireApproval]:
     "Ask for approval — a human approves each kubectl plan",
   [KubernetesAiRemediationMode.Automatic]:
-    "Automatic — safe fixes run on their own, riskier ones are left for you",
+    "Automatic — safe fixes run on their own, riskier ones are proposed for your one-click approval",
   [KubernetesAiRemediationMode.BypassApproval]:
-    "Bypass approval — every allowed fix runs on its own, nobody is asked",
+    "Bypass approval — every allowed fix runs on its own; only protected namespaces, node drains and taints, or a tripped circuit breaker still ask a human",
 };
+
+// What holds in every mode, Bypass approval included.
+export function getEveryModeProtectionsSentence(): string {
+  return `destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run; a write in ${formatNameList(
+    PROTECTED_KUBERNETES_NAMESPACES,
+    "or",
+  )}, a node drain and a taint always need a human; the in-cluster Runner never changes its own namespace; and the hourly circuit breaker turns an unattended run into a proposal`;
+}
+
+export function getRemediationModeFieldDescription(): string {
+  return `Off: AI only investigates. Ask for approval: AI composes the exact kubectl plan and a human approves it with one click; a follow-up plan asks again. Automatic: safe changes — each on one named object (rollout restart/undo/pause/resume, scale above zero, delete a named pod, cordon/uncordon a node, label/annotate a pod or workload) — run on their own. A riskier change (patch, set image, drain, scale to zero, deleting workloads or jobs, anything touching several objects) never runs without a human: when the round could only find riskier fixes, it ends by proposing exactly those for one-click approval; when it also ran safe fixes, a riskier fix is proposed only if verification shows the safe ones did not recover the signal. Riskier shapes the kubectl allowlist names run on their own. Bypass approval: AI does not ask — every change the policy allows, safe and riskier, runs on its own, follow-up rounds included. In every mode: ${getEveryModeProtectionsSentence()}.`;
+}
 
 // How often the page re-reads the status; the Runner heartbeats every minute.
 export const AI_ACCESS_STATUS_POLL_INTERVAL_MS: number = 30_000;
@@ -144,46 +183,150 @@ export const KUBECTL_JOB_ORIGIN_LABELS: Record<
 
 /*
  * The helm release and namespace the Dashboard's own install instructions
- * use (Pages/Kubernetes/Utils/DocumentationMarkdown.ts: `helm install
- * kubernetes-agent oneuptime/kubernetes-agent --namespace oneuptime-agent`).
- * The one-command upgrade on this page must name the same pair: `helm
- * upgrade` of a release that does not exist fails with "has no deployed
- * releases", so a cluster installed the way the product said would not
- * connect. A parity test reads both and fails when they drift.
+ * use. They are defined once, next to those instructions
+ * (Pages/Kubernetes/Utils/DocumentationMarkdown.ts), and the one-command
+ * upgrades on this page are built from the same constants: `helm upgrade`
+ * of a release that does not exist fails with "has no deployed releases",
+ * so a cluster installed the way the product said would not connect.
  */
-export const KUBERNETES_AGENT_HELM_RELEASE: string = "kubernetes-agent";
-export const KUBERNETES_AGENT_HELM_NAMESPACE: string = "oneuptime-agent";
+export { KUBERNETES_AGENT_HELM_NAMESPACE, KUBERNETES_AGENT_HELM_RELEASE };
+
+// The example namespaces the scoped write-access command names.
+export const AI_ACCESS_EXAMPLE_WRITE_NAMESPACES: string = "{web,api}";
 
 export interface AiAccessHelmCommands {
   // The default: read-only investigation access. What a plain copy-paste runs.
   readOnly: string;
   /*
-   * Optional second step: also grant the Runner write RBAC so AI can apply
-   * fixes. A complete command of its own, never a line to append — a
-   * dropped last line left a trailing backslash behind.
+   * Write access, the recommended form: the write role bound only in the
+   * namespaces AI may fix, and no node operations. A complete command of
+   * its own, never a line to append — a dropped last line left a trailing
+   * backslash behind.
    */
+  enableRemediationScoped: string;
+  // Write access bound cluster-wide, node operations included (the chart's defaults).
   enableRemediation: string;
 }
 
 /*
- * `helm repo update` comes first: an install from before aiAccess existed
- * keeps a cached chart index, `helm upgrade` then resolves the old chart,
- * and its values schema refuses the flag with "Additional property
- * aiAccess is not allowed" — which reads as "this feature does not exist".
+ * Every command starts with `helm repo update`: an install from before
+ * aiAccess existed keeps a cached chart index, `helm upgrade` then resolves
+ * the old chart, and its values schema refuses the flag with "Additional
+ * property aiAccess is not allowed" — which reads as "this feature does not
+ * exist". Each command is complete on its own, so an operator who skips the
+ * read-only step and runs a write-access command directly is covered too.
  * No chart version is named: published charts carry the OneUptime version,
  * not the chart's own.
  */
 export function getAiAccessHelmCommands(): AiAccessHelmCommands {
-  const upgrade: string = `helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
+  const upgrade: string = `helm repo update
+helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
   --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} --reuse-values \\
   --set aiAccess.enabled=true`;
 
   return {
-    readOnly: `helm repo update
-${upgrade}`,
+    readOnly: upgrade,
+    enableRemediationScoped: `${upgrade} \\
+  --set aiAccess.remediation.enabled=true \\
+  --set "aiAccess.remediation.namespaces=${AI_ACCESS_EXAMPLE_WRITE_NAMESPACES}" \\
+  --set aiAccess.remediation.nodeOperations=false`,
     enableRemediation: `${upgrade} \\
   --set aiAccess.remediation.enabled=true`,
   };
+}
+
+/*
+ * What granting the in-cluster Runner write access amounts to, said
+ * wherever the page offers it — the same disclosure the chart docs make
+ * (telemetry/kubernetes-agent.md, ai/ai-sre.md): RBAC bounds WHERE the
+ * Runner may write, not what a write may do.
+ */
+export function getAiAccessWriteDisclosure(): string {
+  return `Write access grants patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs, Pods and HPAs, create on Jobs and HPAs, and delete on Pods and Jobs — and, unless aiAccess.remediation.nodeOperations=false, cordon, uncordon, drain and taint on every node. Patch/update on workloads, pods and CronJobs, and create on Jobs, in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets. Without aiAccess.remediation.namespaces the write role is bound cluster-wide — ${formatNameList(
+    PROTECTED_KUBERNETES_NAMESPACES,
+    "and",
+  )} and the agent's own namespace included — and there only the command policy and the Runner hold the line: a write in ${formatNameList(
+    PROTECTED_KUBERNETES_NAMESPACES,
+    "or",
+  )} always needs a human, and the Runner never changes anything in its own namespace. With it, the chart binds the role in exactly the namespaces you list, and the Runner refuses a write anywhere else.`;
+}
+
+/*
+ * What the bound in-cluster Runner may write, from the posture it reports:
+ * where (its writeNamespaces; empty is cluster-wide, absent is an older
+ * Runner that did not say) and whether node operations are on. Null for a
+ * Runner that is not in a cluster — its credential's RBAC decides.
+ */
+export function describeRunnerWriteAccess(
+  posture: KubernetesRunnerPosture | undefined,
+): string | null {
+  if (!posture?.inCluster) {
+    return null;
+  }
+
+  if (!posture.allowWrites) {
+    return "read-only RBAC";
+  }
+
+  const where: string = !posture.writeNamespaces
+    ? "writes allowed"
+    : posture.writeNamespaces.length === 0
+      ? "writes allowed cluster-wide"
+      : `writes allowed in ${posture.writeNamespaces.join(", ")}`;
+
+  return posture.allowNodeOperations === false
+    ? `${where}, no node operations`
+    : where;
+}
+
+/*
+ * The card that helps an operator connect a Runner:
+ *
+ * connect:             no Runner is bound (or the bound one is gone) and
+ *                      this cluster's in-cluster Runner is not installed —
+ *                      show the one-command helm upgrade.
+ * select_agent_runner: no Runner is bound, but this cluster's in-cluster
+ *                      Runner is already registered (the server's
+ *                      no_runner_bound gap names it): re-running helm would
+ *                      change nothing, selecting it on this page is the step.
+ * none:                a Runner is bound.
+ *
+ * The server tells the two no_runner_bound cases apart only in the gap's
+ * words: the installed case names the "kubernetes-agent/…" Runner to
+ * select. A parity test runs the server's real status through this.
+ */
+export type AiAccessConnectCardMode =
+  | "connect"
+  | "select_agent_runner"
+  | "none";
+
+export function getAiAccessConnectCardMode(
+  status: KubernetesClusterAiAccessStatus,
+): AiAccessConnectCardMode {
+  const noRunnerBound: KubernetesAiAccessGap | undefined = status.gaps.find(
+    (gap: KubernetesAiAccessGap): boolean => {
+      return gap.code === "no_runner_bound";
+    },
+  );
+
+  if (
+    noRunnerBound &&
+    noRunnerBound.nextStep.includes(`"${KUBERNETES_AGENT_RUNNER_NAME_PREFIX}/`)
+  ) {
+    return "select_agent_runner";
+  }
+
+  if (
+    status.runner === null ||
+    noRunnerBound ||
+    status.gaps.some((gap: KubernetesAiAccessGap): boolean => {
+      return gap.code === "runner_missing";
+    })
+  ) {
+    return "connect";
+  }
+
+  return "none";
 }
 
 /*
@@ -211,12 +354,14 @@ export function holdsKubernetesAiAccessPermission(
 
 /*
  * Whether the signed-in user may LOOSEN what AI may do on the cluster:
- * switch remediation to Automatic or Bypass approval, author a kubectl
- * allowlist, or bind the Runner / credential kubectl runs through. A
+ * move remediation up to Automatic or Bypass approval, add a kubectl
+ * allowlist pattern, or bind a Runner / credential kubectl runs through. A
  * cluster's mode does the job of a FullAuto auto-remediation rule, so it
  * takes the same permissions (KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS) and
- * the server refuses the write without them. Tightening — Off, Ask for
- * approval, the investigation switch — stays open to every cluster editor.
+ * the server refuses the write without them. Tightening — a lower mode
+ * (Bypass approval -> Automatic included), removing allowlist patterns,
+ * unbinding the Runner or credential, the investigation switch — stays
+ * open to every cluster editor (getKubernetesAiAccessLooseningChanges).
  */
 export function canConfigureUnattendedKubernetesAiAccess(): boolean {
   return holdsKubernetesAiAccessPermission(
@@ -316,7 +461,10 @@ export function getAccessTestPermissionMessage(): string {
  * modal opens: the permission snapshot has long landed by then.
  */
 export interface KubernetesAiAccessEditCapabilities {
-  // Unattended modes and the allowlist.
+  /*
+   * Loosening: a higher unattended mode and new allowlist patterns. Without
+   * it the modal still offers every tightening (see the modal's `offered`).
+   */
   canConfigureUnattended: boolean;
   // The Runner picker: loosening AND able to list Runners.
   canPickRunner: boolean;
@@ -339,10 +487,6 @@ export function getKubernetesAiAccessEditCapabilities(): KubernetesAiAccessEditC
       ),
   };
 }
-
-// Kept in step with CommandPolicy's MAX_ALLOWLIST_PATTERNS / _LENGTH.
-export const MAX_KUBECTL_ALLOWLIST_PATTERNS: number = 100;
-export const MAX_KUBECTL_ALLOWLIST_PATTERN_LENGTH: number = 500;
 
 function collapseWhitespace(value: string): string {
   return value.trim().replace(/\s+/g, " ");
@@ -369,41 +513,27 @@ export function parseKubectlAllowlistText(text: unknown): Array<string> {
 }
 
 /*
- * True for a pattern that matches (nearly) every kubectl command: nothing
- * but wildcards, or "kubectl" followed by nothing but wildcards ("*",
- * "kubectl *", "kubectl * * *", "kubectl*"). In Automatic mode such an
- * allowlist behaves like Bypass approval, so saving one is confirmed the
- * same way.
+ * Null when the text is a usable allowlist, otherwise what is wrong with it.
+ * What "usable" means is KubectlPolicy's, the one definition the matcher,
+ * the server's save validation and this form share
+ * (describeAllowlistPatternProblem and KUBECTL_ALLOWLIST_MAX_PATTERNS): the
+ * form never accepts an entry the matcher would skip, nor refuses one it
+ * would read. A leading "kubectl" is optional there, and a bare "kubectl"
+ * names no command.
  */
-export function isBroadKubectlAllowlistPattern(pattern: string): boolean {
-  const remainder: string = pattern.replace(/\*/g, "").replace(/\s+/g, "");
-  return remainder === "" || remainder.toLowerCase() === "kubectl";
-}
-
-// Null when the text is a usable allowlist, otherwise what is wrong with it.
 export function validateKubectlAllowlistText(text: unknown): string | null {
   const patterns: Array<string> = parseKubectlAllowlistText(text);
 
-  if (patterns.length > MAX_KUBECTL_ALLOWLIST_PATTERNS) {
-    return `At most ${MAX_KUBECTL_ALLOWLIST_PATTERNS} patterns; this list has ${patterns.length}.`;
+  if (patterns.length > KUBECTL_ALLOWLIST_MAX_PATTERNS) {
+    return `At most ${KUBECTL_ALLOWLIST_MAX_PATTERNS} patterns; this list has ${patterns.length}.`;
   }
 
   for (let index: number = 0; index < patterns.length; index++) {
-    const pattern: string = patterns[index]!;
+    const problem: string | null =
+      KubectlPolicy.describeAllowlistPatternProblem(patterns[index]);
 
-    if (pattern.length > MAX_KUBECTL_ALLOWLIST_PATTERN_LENGTH) {
-      return `Pattern ${index + 1} is longer than ${MAX_KUBECTL_ALLOWLIST_PATTERN_LENGTH} characters.`;
-    }
-
-    /*
-     * Patterns are matched against the whole command, which always starts
-     * with "kubectl". Anything else can never match — including a JSON
-     * array pasted from the old editor — so it is refused rather than
-     * saved as a pattern that silently does nothing.
-     */
-    const firstWord: string = pattern.split(" ")[0] || "";
-    if (firstWord !== "kubectl" && firstWord.replace(/\*/g, "") !== "") {
-      return `Pattern ${index + 1} ("${pattern}") must start with "kubectl" — patterns are matched against the whole command, for example: kubectl set image deployment/web * -n web`;
+    if (problem) {
+      return `Pattern ${index + 1}: ${problem}`;
     }
   }
 
@@ -411,9 +541,44 @@ export function validateKubectlAllowlistText(text: unknown): string | null {
 }
 
 /*
- * The allowlist as stored, read the way the server normalizes it: a list of
- * non-blank strings (or a JSON string of one). Anything else is used as an
- * empty allowlist — isClean says whether the stored value was usable as is.
+ * The stored allowlist exactly as the server reads it — KubernetesCluster
+ * Service when it decides whether a write adds a pattern, and the status
+ * (so the policy) when it decides what is in effect: trimmed non-blank
+ * strings; a JSON-encoded array is read as that array, any other string as
+ * ONE pattern; anything else is no pattern at all.
+ */
+export function readStoredKubectlAllowlist(value: unknown): Array<string> {
+  let raw: unknown = value;
+
+  if (typeof raw === "string") {
+    try {
+      raw = JSON.parse(raw);
+    } catch {
+      raw = [value];
+    }
+  }
+
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  const patterns: Array<string> = [];
+
+  for (const entry of raw) {
+    if (typeof entry === "string" && entry.trim().length > 0) {
+      patterns.push(entry.trim());
+    }
+  }
+
+  return patterns;
+}
+
+/*
+ * The stored allowlist for the form and the settings card: the patterns
+ * the server reads (readStoredKubectlAllowlist), shown whitespace-collapsed
+ * like the form shows them, and whether the stored value is a clean list —
+ * a list, or a JSON-encoded list, of non-blank strings. A value that is not
+ * clean is rewritten as a clean list when the form saves the allowlist.
  */
 export interface SavedKubectlAllowlist {
   patterns: Array<string>;
@@ -427,34 +592,30 @@ export function normalizeSavedKubectlAllowlist(
     return { patterns: [], isClean: true };
   }
 
-  if (typeof value === "string") {
+  const patterns: Array<string> = readStoredKubectlAllowlist(value).map(
+    (pattern: string): string => {
+      return collapseWhitespace(pattern);
+    },
+  );
+
+  let raw: unknown = value;
+
+  if (typeof raw === "string") {
     try {
-      const parsed: unknown = JSON.parse(value);
-      if (Array.isArray(parsed)) {
-        return normalizeSavedKubectlAllowlist(parsed);
-      }
+      raw = JSON.parse(raw);
     } catch {
-      // Not JSON; unusable below.
+      return { patterns, isClean: false };
     }
-    return { patterns: [], isClean: false };
   }
 
-  if (!Array.isArray(value)) {
-    return { patterns: [], isClean: false };
-  }
-
-  const patterns: Array<string> = [];
-  let isClean: boolean = true;
-
-  for (const entry of value) {
-    if (typeof entry !== "string" || entry.trim().length === 0) {
-      isClean = false;
-      continue;
-    }
-    patterns.push(collapseWhitespace(entry));
-  }
-
-  return { patterns, isClean };
+  return {
+    patterns,
+    isClean:
+      Array.isArray(raw) &&
+      raw.every((entry: unknown): boolean => {
+        return typeof entry === "string" && entry.trim().length > 0;
+      }),
+  };
 }
 
 // The cluster's AI settings as stored, read for the edit modal.
@@ -507,7 +668,9 @@ export function readKubernetesAiAccessSavedSettings(
 
 /*
  * The edit form's values. The allowlist is edited as text, one pattern per
- * line; an unbound Runner or credential is the empty string.
+ * line; an unbound Runner or credential is the empty string. The two clear
+ * switches are offered to users who may unbind but not pick (see
+ * KubernetesAiAccessOfferedFields).
  */
 export interface KubernetesAiAccessSettingsFormValues {
   isAiInvestigationEnabled: boolean;
@@ -515,6 +678,8 @@ export interface KubernetesAiAccessSettingsFormValues {
   kubectlAllowlistText: string;
   aiAccessRunnerId: string;
   aiAccessCredentialId: string;
+  clearAiAccessRunner: boolean;
+  clearAiAccessCredential: boolean;
 }
 
 export function getKubernetesAiAccessSettingsInitialValues(
@@ -528,14 +693,61 @@ export function getKubernetesAiAccessSettingsInitialValues(
     ).patterns.join("\n"),
     aiAccessRunnerId: saved.aiAccessRunnerId || "",
     aiAccessCredentialId: saved.aiAccessCredentialId || "",
+    clearAiAccessRunner: false,
+    clearAiAccessCredential: false,
   };
 }
 
-// Which of the privileged fields the form actually offered.
+/*
+ * Which of the privileged fields the form offered. Every cluster editor
+ * may TIGHTEN (the server's rule, mirrored by
+ * getKubernetesAiAccessLooseningChanges), so the fields are offered by what
+ * the user may do with them, not only by whether they may loosen:
+ *
+ * allowlist:           the allowlist field. An admin edits it freely; a
+ *                      cluster editor without the admin set gets it only
+ *                      when there is something to remove, and may only
+ *                      remove (allowlistRemoveOnly).
+ * runner / credential: the pickers — the admin set AND permission to list
+ *                      the rows (see getKubernetesAiAccessEditCapabilities).
+ * runnerClear /
+ * credentialClear:     an "Unbind" switch for a bound Runner / credential
+ *                      when its picker is not offered. Unbinding is
+ *                      tightening and needs no list to read.
+ */
 export interface KubernetesAiAccessOfferedFields {
   allowlist: boolean;
+  allowlistRemoveOnly: boolean;
   runner: boolean;
   credential: boolean;
+  runnerClear: boolean;
+  credentialClear: boolean;
+}
+
+export function getKubernetesAiAccessOfferedFields(data: {
+  saved: KubernetesAiAccessSavedSettings;
+  canConfigureUnattended: boolean;
+  isRunnerPickerAvailable: boolean;
+  isCredentialPickerAvailable: boolean;
+}): KubernetesAiAccessOfferedFields {
+  const savedAllowlist: SavedKubectlAllowlist = normalizeSavedKubectlAllowlist(
+    data.saved.aiKubectlCommandAllowlist,
+  );
+
+  return {
+    allowlist:
+      data.canConfigureUnattended ||
+      savedAllowlist.patterns.length > 0 ||
+      !savedAllowlist.isClean,
+    allowlistRemoveOnly: !data.canConfigureUnattended,
+    runner: data.isRunnerPickerAvailable,
+    credential: data.isCredentialPickerAvailable,
+    runnerClear:
+      !data.isRunnerPickerAvailable && data.saved.aiAccessRunnerId !== null,
+    credentialClear:
+      !data.isCredentialPickerAvailable &&
+      data.saved.aiAccessCredentialId !== null,
+  };
 }
 
 function readDropdownId(value: unknown): string | null {
@@ -558,6 +770,33 @@ function isSameStringList(a: Array<string>, b: Array<string>): boolean {
       return item === b[index];
     })
   );
+}
+
+/*
+ * The patterns to send, each line the stored list already holds in the
+ * spelling it is stored in. The form shows patterns whitespace-collapsed,
+ * but the server decides "does this write add a pattern?" by comparing the
+ * stored strings exactly: re-sending "kubectl  scale …" as "kubectl scale
+ * …" would read as a new pattern, and a cluster editor who removed one
+ * line would be refused for "adding" another.
+ */
+function withStoredSpellings(
+  patterns: Array<string>,
+  storedValue: unknown,
+): Array<string> {
+  const spellings: Map<string, string> = new Map<string, string>();
+
+  for (const stored of readStoredKubectlAllowlist(storedValue)) {
+    const collapsed: string = collapseWhitespace(stored);
+
+    if (!spellings.has(collapsed)) {
+      spellings.set(collapsed, stored);
+    }
+  }
+
+  return patterns.map((pattern: string): string => {
+    return spellings.get(pattern) ?? pattern;
+  });
 }
 
 /*
@@ -605,7 +844,10 @@ export function getKubernetesAiAccessSettingsChanges(data: {
       data.saved.aiKubectlCommandAllowlist,
     );
     if (!saved.isClean || !isSameStringList(patterns, saved.patterns)) {
-      changes["aiKubectlCommandAllowlist"] = patterns;
+      changes["aiKubectlCommandAllowlist"] = withStoredSpellings(
+        patterns,
+        data.saved.aiKubectlCommandAllowlist,
+      );
     }
   }
 
@@ -616,6 +858,13 @@ export function getKubernetesAiAccessSettingsChanges(data: {
     if (runnerId !== data.saved.aiAccessRunnerId) {
       changes["aiAccessRunnerId"] = runnerId;
     }
+  } else if (
+    data.offered.runnerClear &&
+    data.values.clearAiAccessRunner === true &&
+    data.saved.aiAccessRunnerId !== null
+  ) {
+    // A clear switch can only ever send null.
+    changes["aiAccessRunnerId"] = null;
   }
 
   if (data.offered.credential) {
@@ -625,42 +874,168 @@ export function getKubernetesAiAccessSettingsChanges(data: {
     if (credentialId !== data.saved.aiAccessCredentialId) {
       changes["aiAccessCredentialId"] = credentialId;
     }
+  } else if (
+    data.offered.credentialClear &&
+    data.values.clearAiAccessCredential === true &&
+    data.saved.aiAccessCredentialId !== null
+  ) {
+    changes["aiAccessCredentialId"] = null;
   }
 
   return changes;
 }
 
 /*
- * The changes that LOOSEN what AI may do and so need
- * KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS, named for the refusal.
+ * How much each mode lets OneUptime AI do without a human, least first —
+ * the server's REMEDIATION_MODES_BY_AUTONOMY (KubernetesClusterService).
+ * Automatic runs a strict subset of what Bypass approval runs, so Bypass
+ * approval -> Automatic is a tightening.
  */
-export function getKubernetesAiAccessLooseningChanges(
-  changes: JSONObject,
-): Array<string> {
+export const REMEDIATION_MODES_BY_AUTONOMY: Array<KubernetesAiRemediationMode> =
+  [
+    KubernetesAiRemediationMode.Disabled,
+    KubernetesAiRemediationMode.RequireApproval,
+    KubernetesAiRemediationMode.Automatic,
+    KubernetesAiRemediationMode.BypassApproval,
+  ];
+
+function getRemediationModeAutonomy(mode: KubernetesAiRemediationMode): number {
+  return REMEDIATION_MODES_BY_AUTONOMY.indexOf(mode);
+}
+
+// The mode's short name, as the feed and the refusals say it.
+export const REMEDIATION_MODE_SHORT_NAMES: Record<
+  KubernetesAiRemediationMode,
+  string
+> = {
+  [KubernetesAiRemediationMode.Disabled]: "Off",
+  [KubernetesAiRemediationMode.RequireApproval]: "Ask for approval",
+  [KubernetesAiRemediationMode.Automatic]: "Automatic",
+  [KubernetesAiRemediationMode.BypassApproval]: "Bypass approval",
+};
+
+/*
+ * May a cluster editor WITHOUT the admin set choose this mode on a cluster
+ * saved at `savedMode`? Every mode at or below the saved one: Off and Ask
+ * for approval always, Automatic on a Bypass-approval cluster, and the
+ * saved mode itself (choosing it is no change).
+ */
+export function isRemediationModeOpenToEveryEditor(
+  mode: KubernetesAiRemediationMode,
+  savedMode: KubernetesAiRemediationMode,
+): boolean {
+  return (
+    !isUnattendedRemediationMode(mode) ||
+    getRemediationModeAutonomy(mode) <= getRemediationModeAutonomy(savedMode)
+  );
+}
+
+/*
+ * The changes that LOOSEN what AI may do on a cluster whose settings are
+ * `saved`, and so need KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS — the
+ * server's rule (KubernetesClusterService.getAiAccessLoosening), mirrored
+ * so the page offers exactly what the server accepts:
+ *
+ * - mode: an unattended mode above the saved one (Bypass approval ->
+ *   Automatic tightens);
+ * - allowlist: a pattern the stored list does not already hold, compared
+ *   the way the server compares them (trimmed stored strings); removing
+ *   patterns or clearing the list tightens;
+ * - Runner or credential: binding one other than the bound one; unbinding
+ *   tightens.
+ *
+ * Each entry names the change for the refusal; empty when nothing loosens.
+ */
+export function getKubernetesAiAccessLooseningChanges(data: {
+  saved: KubernetesAiAccessSavedSettings;
+  changes: JSONObject;
+}): Array<string> {
   const loosening: Array<string> = [];
 
+  const mode: KubernetesAiRemediationMode | undefined = data.changes[
+    "aiRemediationMode"
+  ] as KubernetesAiRemediationMode | undefined;
+
   if (
-    isUnattendedRemediationMode(
-      changes["aiRemediationMode"] as KubernetesAiRemediationMode | undefined,
-    )
+    mode !== undefined &&
+    isUnattendedRemediationMode(mode) &&
+    getRemediationModeAutonomy(mode) >
+      getRemediationModeAutonomy(data.saved.aiRemediationMode)
   ) {
-    loosening.push("an unattended remediation mode");
+    loosening.push(
+      `switching AI remediation to ${REMEDIATION_MODE_SHORT_NAMES[mode]}`,
+    );
   }
 
-  const allowlist: unknown = changes["aiKubectlCommandAllowlist"];
-  if (Array.isArray(allowlist) && allowlist.length > 0) {
-    loosening.push("a kubectl allowlist");
+  const allowlist: unknown = data.changes["aiKubectlCommandAllowlist"];
+
+  if (allowlist !== undefined) {
+    const stored: Array<string> = readStoredKubectlAllowlist(
+      data.saved.aiKubectlCommandAllowlist,
+    );
+    const added: Array<string> = (Array.isArray(allowlist) ? allowlist : [])
+      .filter((pattern: unknown): pattern is string => {
+        return typeof pattern === "string";
+      })
+      .filter((pattern: string): boolean => {
+        return !stored.includes(pattern.trim());
+      });
+
+    if (added.length > 0) {
+      loosening.push(
+        `adding the kubectl allowlist pattern${added.length === 1 ? "" : "s"} ${added
+          .map((pattern: string): string => {
+            return `"${pattern}"`;
+          })
+          .join(", ")}`,
+      );
+    }
   }
 
-  if (changes["aiAccessRunnerId"]) {
-    loosening.push("a Runner binding");
+  const runnerId: unknown = data.changes["aiAccessRunnerId"];
+
+  if (runnerId && String(runnerId) !== data.saved.aiAccessRunnerId) {
+    loosening.push("binding a different Runner");
   }
 
-  if (changes["aiAccessCredentialId"]) {
-    loosening.push("a credential binding");
+  const credentialId: unknown = data.changes["aiAccessCredentialId"];
+
+  if (
+    credentialId &&
+    String(credentialId) !== data.saved.aiAccessCredentialId
+  ) {
+    loosening.push("binding a Kubernetes credential");
   }
 
   return loosening;
+}
+
+/*
+ * What the allowlist field refuses from a cluster editor without the admin
+ * set: any line the stored list does not hold (compared whitespace-
+ * collapsed, the form's spelling — withStoredSpellings sends those lines in
+ * their stored spelling). Removing lines and clearing the list pass.
+ */
+export function getKubectlAllowlistRemovalOnlyError(data: {
+  text: unknown;
+  storedValue: unknown;
+}): string | null {
+  const stored: Array<string> = readStoredKubectlAllowlist(
+    data.storedValue,
+  ).map((pattern: string): string => {
+    return collapseWhitespace(pattern);
+  });
+  const patterns: Array<string> = parseKubectlAllowlistText(data.text);
+
+  for (let index: number = 0; index < patterns.length; index++) {
+    const pattern: string = patterns[index]!;
+
+    if (!stored.includes(pattern)) {
+      return `Pattern ${index + 1} ("${pattern}") is not in the saved allowlist. You can remove patterns or clear the list; adding or changing one needs one of these permissions: ${getKubernetesAiAccessAdminPermissionTitles().join(", ")}.`;
+    }
+  }
+
+  return null;
 }
 
 export interface KubernetesAiAccessConfirmation {
@@ -669,19 +1044,16 @@ export interface KubernetesAiAccessConfirmation {
 }
 
 const RISKIER_CHANGE_EXAMPLES: string =
-  "riskier changes such as kubectl set image, patch, drain and deleting workloads";
-
-function getNeverUnattendedSentence(): string {
-  return `Destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) and any change in ${PROTECTED_KUBERNETES_NAMESPACES.join(
-    ", ",
-  )} still never run without a human.`;
-}
+  "riskier changes such as kubectl set image, patch, scale to zero and deleting workloads";
 
 /*
- * Saving Bypass approval, or an allowlist that matches (nearly) everything
- * while Automatic mode is on or being turned on, lets riskier changes run
- * with nobody asked. Such a save is confirmed first, in words that name
- * what it unlocks. Null when the save needs no confirmation.
+ * Saving Bypass approval, or a broad allowlist pattern while Automatic mode
+ * is on or being turned on, lets riskier changes run with nobody asked.
+ * Such a save is confirmed first, in words that name what it unlocks. A
+ * pattern is broad exactly when KubectlPolicy.isBroadAllowlistPattern says
+ * so — a wildcard for the verb, the object or the namespace, decided on the
+ * tokens the matcher itself reads. Null when the save needs no
+ * confirmation.
  */
 export function getKubernetesAiAccessConfirmation(data: {
   saved: KubernetesAiAccessSavedSettings;
@@ -696,23 +1068,27 @@ export function getKubernetesAiAccessConfirmation(data: {
   if (newMode === KubernetesAiRemediationMode.BypassApproval) {
     return {
       title: "Turn on Bypass approval?",
-      description: `With Bypass approval OneUptime AI applies every fix the kubectl policy allows on this cluster without asking anyone — ${RISKIER_CHANGE_EXAMPLES} included, in follow-up rounds too. ${getNeverUnattendedSentence()}`,
+      description: `With Bypass approval OneUptime AI applies every fix the kubectl policy allows on this cluster without asking anyone — ${RISKIER_CHANGE_EXAMPLES} included, in follow-up rounds too. Even so, ${getEveryModeProtectionsSentence()}.`,
     };
   }
 
   const savedPatterns: Array<string> = normalizeSavedKubectlAllowlist(
     data.saved.aiKubectlCommandAllowlist,
   ).patterns;
-  const isAllowlistChanged: boolean = Array.isArray(
-    data.changes["aiKubectlCommandAllowlist"],
-  );
-  const resultingPatterns: Array<string> = isAllowlistChanged
-    ? (data.changes["aiKubectlCommandAllowlist"] as Array<string>)
+  const changedPatterns: unknown = data.changes["aiKubectlCommandAllowlist"];
+  const resultingPatterns: Array<string> = Array.isArray(changedPatterns)
+    ? changedPatterns
+        .filter((pattern: unknown): pattern is string => {
+          return typeof pattern === "string";
+        })
+        .map((pattern: string): string => {
+          return collapseWhitespace(pattern);
+        })
     : savedPatterns;
 
   const broadPatterns: Array<string> = resultingPatterns.filter(
     (pattern: string): boolean => {
-      return isBroadKubectlAllowlistPattern(pattern);
+      return KubectlPolicy.isBroadAllowlistPattern(pattern);
     },
   );
 
@@ -725,13 +1101,17 @@ export function getKubernetesAiAccessConfirmation(data: {
       return !savedPatterns.includes(pattern);
     },
   );
+  // Up to Automatic: from Bypass approval it is a step down, not a new risk.
   const isTurningOnAutomatic: boolean =
-    newMode === KubernetesAiRemediationMode.Automatic;
+    newMode === KubernetesAiRemediationMode.Automatic &&
+    getRemediationModeAutonomy(data.saved.aiRemediationMode) <
+      getRemediationModeAutonomy(KubernetesAiRemediationMode.Automatic);
 
   if (newBroadPatterns.length === 0 && !isTurningOnAutomatic) {
     return null;
   }
 
+  const isOne: boolean = broadPatterns.length === 1;
   const quoted: string = broadPatterns
     .map((pattern: string): string => {
       return `"${pattern}"`;
@@ -740,12 +1120,67 @@ export function getKubernetesAiAccessConfirmation(data: {
 
   return {
     title: "Let riskier changes run without approval?",
-    description: `The allowlist pattern ${quoted} matches (nearly) every kubectl command. ${
+    description: `The allowlist pattern${isOne ? "" : "s"} ${quoted} ${
+      isOne ? "uses" : "use"
+    } a wildcard for the verb, the object or the namespace, so ${
+      isOne ? "it pre-approves" : "they pre-approve"
+    } a whole class of changes, not one. ${
       resultingMode === KubernetesAiRemediationMode.Automatic
         ? "In Automatic mode"
         : "Once this cluster is switched to Automatic mode"
-    }, ${RISKIER_CHANGE_EXAMPLES} will then run with nobody asked — the same as Bypass approval. ${getNeverUnattendedSentence()}`,
+    }, every riskier change of that shape — to any object and in any namespace the wildcard covers, ${RISKIER_CHANGE_EXAMPLES} included — then runs with nobody asked. Even so, ${getEveryModeProtectionsSentence()}.`,
   };
+}
+
+/*
+ * The Runners the edit modal lists, with what the pickers need to know
+ * about each: its name, and whether it is a kubernetes-agent Runner (by
+ * name, which only the server writes — isKubernetesAgentRunnerName).
+ */
+export interface KubernetesAiRunnerDirectoryEntry {
+  name: string;
+  isAgent: boolean;
+}
+
+export function buildKubernetesAiRunnerDirectory(
+  runners: Array<Runner>,
+): Record<string, KubernetesAiRunnerDirectoryEntry> {
+  const directory: Record<string, KubernetesAiRunnerDirectoryEntry> = {};
+
+  for (const runner of runners) {
+    const id: string | null = runner._id ? String(runner._id) : null;
+
+    if (!id) {
+      continue;
+    }
+
+    const name: string = runner.name || id;
+    directory[id] = { name, isAgent: isKubernetesAgentRunnerName(name) };
+  }
+
+  return directory;
+}
+
+/*
+ * Is this Runner row THIS cluster's in-cluster agent Runner? A kubernetes-
+ * agent row (by name) whose reported posture says it runs inside this
+ * cluster (isInClusterPostureForCluster) — the pair the server itself
+ * matches on. Never by rebuilding the row's name: the server shortens a
+ * long cluster identifier with a hash the browser cannot compute
+ * (getKubernetesAgentRunnerNameForCluster), so "kubernetes-agent/<id>" is
+ * not the name of every cluster's Runner.
+ */
+export function isThisClustersAgentRunner(
+  runner: Pick<Runner, "name" | "hostInfo">,
+  clusterIdentifier: string | undefined,
+): boolean {
+  return (
+    isKubernetesAgentRunnerName(runner.name) &&
+    isInClusterPostureForCluster(
+      parseKubernetesRunnerPosture(runner.hostInfo),
+      clusterIdentifier,
+    )
+  );
 }
 
 /*
@@ -754,8 +1189,6 @@ export function getKubernetesAiAccessConfirmation(data: {
  * ANOTHER cluster is never offered — it runs kubectl with its own
  * ServiceAccount, so it can only ever reach its own cluster — and a Runner
  * with "Runs AI Remediation Commands" off would be refused every command.
- * Agent rows are recognised by their name (isKubernetesAgentRunnerName),
- * which only the server writes, never by the posture a Runner reports.
  *
  * The currently bound Runner is always kept, labelled with why it cannot
  * serve the cluster when it cannot, so the form shows the binding it would
@@ -780,12 +1213,10 @@ export function buildKubernetesAiRunnerOptions(data: {
     const name: string = runner.name || id;
     const isBound: boolean = id === data.boundRunnerId;
     const isAgent: boolean = isKubernetesAgentRunnerName(name);
-    const isThisClustersAgent: boolean =
-      isAgent &&
-      isSameKubernetesClusterIdentifier(
-        name.slice(KUBERNETES_AGENT_RUNNER_NAME_PREFIX.length + 1),
-        data.clusterIdentifier,
-      );
+    const isThisClustersAgent: boolean = isThisClustersAgentRunner(
+      runner,
+      data.clusterIdentifier,
+    );
     const canRunAiCommands: boolean = runner.canRunAiCommands === true;
 
     let unusableReason: string | null = null;
@@ -832,31 +1263,94 @@ export function buildKubernetesAiRunnerOptions(data: {
   return options;
 }
 
+// The Runner the credential would be used through: its id and name.
+export interface KubernetesAiCredentialRunner {
+  id: string | null;
+  name: string | null;
+}
+
+// The Runners a credential row is assigned to; undefined when not read.
+function readCredentialRunnerIds(
+  credential: RunbookCredential,
+): Array<string> | undefined {
+  if (!Array.isArray(credential.runners)) {
+    return undefined;
+  }
+
+  return credential.runners
+    .map((runner: Runner): string => {
+      return String(runner?._id || runner?.id || "");
+    })
+    .filter((id: string): boolean => {
+      return id.length > 0;
+    });
+}
+
 /*
- * The credential picker's options: Kubernetes credentials only (the server
- * refuses anything else on save), plus the bound one so the form can show
- * it.
+ * The credential picker's options: Kubernetes credentials (the server
+ * refuses anything else on save) assigned to the Runner the form has
+ * chosen — the Runner uses a credential only when the credential is
+ * assigned to it, and the status reports any other pairing as a
+ * credential_missing gap. None for a kubernetes-agent Runner, which is
+ * never given a credential, and none before a Runner is chosen. The bound
+ * credential is always kept, labelled with why it does not fit when it
+ * does not, so the form shows the binding it would otherwise hide.
  */
 export function buildKubernetesAiCredentialOptions(data: {
   credentials: Array<RunbookCredential>;
   boundCredentialId: string | null;
   boundCredentialName: string | null;
+  runner: KubernetesAiCredentialRunner;
 }): Array<DropdownOption> {
   const options: Array<DropdownOption> = [];
+  const runnerName: string = data.runner.name || "the chosen Runner";
+  const isAgentRunner: boolean = isKubernetesAgentRunnerName(data.runner.name);
 
   for (const credential of data.credentials) {
     const id: string | null = credential._id ? String(credential._id) : null;
     if (!id) {
       continue;
     }
+
+    const isBound: boolean = id === data.boundCredentialId;
+    const name: string = credential.name || id;
+
     if (
       credential.credentialType &&
-      credential.credentialType !== RunbookCredentialType.Kubernetes &&
-      id !== data.boundCredentialId
+      credential.credentialType !== RunbookCredentialType.Kubernetes
     ) {
+      if (isBound) {
+        options.push({
+          value: id,
+          label: `${name} (currently bound — not a Kubernetes credential)`,
+        });
+      }
       continue;
     }
-    options.push({ value: id, label: credential.name || id });
+
+    const runnerIds: Array<string> | undefined =
+      readCredentialRunnerIds(credential);
+
+    let unusableReason: string | null = null;
+    if (isAgentRunner) {
+      unusableReason = `${runnerName} is an in-cluster Runner and is never given a credential`;
+    } else if (!data.runner.id) {
+      unusableReason = "no Runner is chosen to use it";
+    } else if (runnerIds && !runnerIds.includes(data.runner.id)) {
+      unusableReason = `not assigned to ${runnerName}`;
+    }
+
+    if (unusableReason) {
+      if (isBound) {
+        options.push({
+          value: id,
+          label: `${name} (currently bound — ${unusableReason})`,
+        });
+      }
+      continue;
+    }
+
+    options.push({ value: id, label: name });
   }
 
   if (
@@ -872,6 +1366,92 @@ export function buildKubernetesAiCredentialOptions(data: {
   }
 
   return options;
+}
+
+// The credential field's help, for the Runner the form has chosen.
+export function getKubernetesAiCredentialFieldDescription(
+  runner: KubernetesAiCredentialRunner,
+): string {
+  if (runner.id && isKubernetesAgentRunnerName(runner.name)) {
+    return `No credential can be chosen: "${runner.name}" is an in-cluster Runner installed by the Kubernetes agent chart. It runs kubectl with its own ServiceAccount and is never given a credential — leave this empty. A credential is for a Runner outside the cluster.`;
+  }
+
+  if (!runner.id) {
+    return "Only for a Runner outside the cluster. Choose the Runner first: only Kubernetes credentials (API server URL + ServiceAccount token) assigned to the chosen Runner are listed.";
+  }
+
+  return `Only for a Runner outside the cluster: the Kubernetes credentials (API server URL + ServiceAccount token) assigned to "${
+    runner.name || "the chosen Runner"
+  }" are listed. Assign one to it under Project Settings → Runner Credentials. Leave empty for the in-cluster Runner, which uses its own ServiceAccount.`;
+}
+
+/*
+ * Why the Runner and credential the form would save cannot work together,
+ * or null. The status would report the pairing as a gap that blocks
+ * investigation and remediation, so the save is refused with the reason
+ * instead. Only a credential that is being set, or kept while a new Runner
+ * is bound, is checked: unbinding either one never is.
+ */
+export function getKubernetesAiCredentialAssignmentError(data: {
+  runner: KubernetesAiCredentialRunner;
+  credentialId: string | null;
+  credentialName: string | null;
+  // The Runners the credential is assigned to; undefined when not known.
+  credentialRunnerIds: Array<string> | undefined;
+}): string | null {
+  if (!data.credentialId) {
+    return null;
+  }
+
+  const credential: string = data.credentialName
+    ? `"${data.credentialName}"`
+    : "The Kubernetes credential";
+
+  if (data.runner.id && isKubernetesAgentRunnerName(data.runner.name)) {
+    return `"${data.runner.name}" is an in-cluster Runner: it runs kubectl with its own ServiceAccount and is never given a credential. Clear the Kubernetes credential, or choose a Runner created under Project Settings → Runners.`;
+  }
+
+  if (!data.runner.id) {
+    return `${credential} is only used through a Runner it is assigned to: choose that Runner, or clear the credential.`;
+  }
+
+  if (
+    data.credentialRunnerIds &&
+    !data.credentialRunnerIds.includes(data.runner.id)
+  ) {
+    return `${credential} is not assigned to Runner "${
+      data.runner.name || data.runner.id
+    }". Assign it under Project Settings → Runner Credentials, or choose a credential assigned to that Runner.`;
+  }
+
+  return null;
+}
+
+// The credential rows the picker read, by id: name and assigned Runners.
+export interface KubernetesAiCredentialDirectoryEntry {
+  name: string;
+  runnerIds: Array<string> | undefined;
+}
+
+export function buildKubernetesAiCredentialDirectory(
+  credentials: Array<RunbookCredential>,
+): Record<string, KubernetesAiCredentialDirectoryEntry> {
+  const directory: Record<string, KubernetesAiCredentialDirectoryEntry> = {};
+
+  for (const credential of credentials) {
+    const id: string | null = credential._id ? String(credential._id) : null;
+
+    if (!id) {
+      continue;
+    }
+
+    directory[id] = {
+      name: credential.name || id,
+      runnerIds: readCredentialRunnerIds(credential),
+    };
+  }
+
+  return directory;
 }
 
 export function parseStatus(
@@ -930,17 +1510,94 @@ function AdminPermissionNote(): ReactElement {
       className="text-xs leading-5 text-gray-500"
       data-testid="kubernetes-ai-access-admin-note"
     >
-      Automatic and Bypass approval, the kubectl allowlist and choosing the
-      Runner or Kubernetes credential need one of these permissions:{" "}
+      Letting AI do more — a higher remediation mode (Automatic or Bypass
+      approval), new kubectl allowlist patterns, or choosing a Runner or
+      Kubernetes credential — needs one of these permissions:{" "}
       {getKubernetesAiAccessAdminPermissionTitles().join(", ")} — the same ones
       an unattended auto-remediation rule needs. You can still turn
-      investigation on or off and switch remediation to Off or Ask for approval.
+      investigation on or off, lower the remediation mode (to Off or Ask for
+      approval, or from Bypass approval to Automatic), remove allowlist
+      patterns, and unbind the Runner or credential.
     </p>
   );
 }
 
 const ALLOWLIST_FIELD_DESCRIPTION: string =
-  "Optional, used in Automatic mode only. One pattern per line: a riskier kubectl command (set image, patch, drain, deleting workloads) that matches a pattern also runs without approval. Patterns are compared word by word — * matches exactly one word, and flags must be written out — for example: kubectl set image deployment/web * -n web. Not needed in Bypass approval mode, where every allowed change already runs on its own. Destructive commands and the protected namespaces never run unattended.";
+  'Optional, used in Automatic mode only. One pattern per line: a riskier kubectl command (set image, patch, scale to zero, deleting workloads) that matches a pattern also runs without approval. Patterns are compared word by word — * matches exactly one word, and flags must be written out; a leading "kubectl" is optional — for example: kubectl set image deployment/web * -n web. A wildcard for the verb, the object or the namespace pre-approves a whole class of changes, and saving one asks you to confirm. Not needed in Bypass approval mode, where every allowed change already runs on its own. Destructive commands, node drains and taints, and the protected namespaces never run unattended.';
+
+/*
+ * The Runner the form would bind: the picker's value when the picker is
+ * offered, nothing once the clear switch is on, otherwise the saved one.
+ */
+export function getKubernetesAiAccessChosenRunnerId(data: {
+  saved: KubernetesAiAccessSavedSettings;
+  values: FormValues<KubernetesAiAccessSettingsFormValues>;
+  offered: KubernetesAiAccessOfferedFields;
+}): string | null {
+  if (data.offered.runner) {
+    return readDropdownId(data.values.aiAccessRunnerId);
+  }
+
+  if (data.offered.runnerClear && data.values.clearAiAccessRunner === true) {
+    return null;
+  }
+
+  return data.saved.aiAccessRunnerId;
+}
+
+/*
+ * Why the Runner and credential this save leaves bound cannot work
+ * together (getKubernetesAiCredentialAssignmentError), or null. Checked
+ * only when the save sets a credential, or binds a new Runner while a
+ * credential stays bound — unbinding either one is never refused.
+ */
+export function getKubernetesAiAccessBindingError(data: {
+  saved: KubernetesAiAccessSavedSettings;
+  changes: JSONObject;
+  runners: Record<string, KubernetesAiRunnerDirectoryEntry>;
+  credentials: Record<string, KubernetesAiCredentialDirectoryEntry>;
+}): string | null {
+  const isRunnerChanged: boolean = "aiAccessRunnerId" in data.changes;
+  const isCredentialChanged: boolean = "aiAccessCredentialId" in data.changes;
+  const runnerId: string | null = isRunnerChanged
+    ? readDropdownId(data.changes["aiAccessRunnerId"])
+    : data.saved.aiAccessRunnerId;
+  const credentialId: string | null = isCredentialChanged
+    ? readDropdownId(data.changes["aiAccessCredentialId"])
+    : data.saved.aiAccessCredentialId;
+
+  const isChecked: boolean =
+    (isCredentialChanged && credentialId !== null) ||
+    (isRunnerChanged && runnerId !== null && credentialId !== null);
+
+  if (!isChecked) {
+    return null;
+  }
+
+  const runnerName: string | null = runnerId
+    ? data.runners[runnerId]?.name ||
+      (runnerId === data.saved.aiAccessRunnerId
+        ? data.saved.aiAccessRunnerName
+        : null)
+    : null;
+  const credential: KubernetesAiCredentialDirectoryEntry | undefined =
+    credentialId ? data.credentials[credentialId] : undefined;
+
+  return getKubernetesAiCredentialAssignmentError({
+    runner: { id: runnerId, name: runnerName },
+    credentialId,
+    credentialName:
+      credential?.name ||
+      (credentialId === data.saved.aiAccessCredentialId
+        ? data.saved.aiAccessCredentialName
+        : null),
+    credentialRunnerIds: credential?.runnerIds,
+  });
+}
+
+function capitalizeFirst(value: string): string {
+  return value.length > 0 ? `${value[0]!.toUpperCase()}${value.slice(1)}` : "";
+}
 
 interface SettingsModalProps {
   clusterId: ObjectID;
@@ -956,9 +1613,10 @@ interface SettingsModalProps {
  * re-send the unchanged Automatic mode, allowlist and Runner binding —
  * writes the server refuses unless they hold the admin set — and the save
  * of a perfectly allowed change would fail. This form sends only what
- * changed, offers only what the user may set, validates the allowlist as
- * patterns, and asks before a save that lets riskier changes run
- * unattended.
+ * changed, offers what the user may do (every cluster editor may tighten;
+ * only the admin set may loosen), validates the allowlist as patterns,
+ * refuses a Runner and credential that cannot work together, and asks
+ * before a save that lets riskier changes run unattended.
  */
 const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
   props: SettingsModalProps,
@@ -966,14 +1624,17 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
   const [saved, setSaved] = useState<KubernetesAiAccessSavedSettings | null>(
     null,
   );
-  const [runnerOptions, setRunnerOptions] = useState<Array<DropdownOption>>([]);
-  const [credentialOptions, setCredentialOptions] = useState<
-    Array<DropdownOption>
-  >([]);
+  const [runners, setRunners] = useState<Array<Runner>>([]);
+  const [credentials, setCredentials] = useState<Array<RunbookCredential>>([]);
   const [isRunnerPickerAvailable, setIsRunnerPickerAvailable] =
     useState<boolean>(false);
   const [isCredentialPickerAvailable, setIsCredentialPickerAvailable] =
     useState<boolean>(false);
+  /*
+   * The Runner the form currently has chosen. The credential options follow
+   * it: only credentials assigned to it are offered.
+   */
+  const [chosenRunnerId, setChosenRunnerId] = useState<string | null>(null);
   const [pickerErrors, setPickerErrors] = useState<Array<string>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
@@ -1034,12 +1695,13 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       /*
        * Each picker loads on its own: one list failing must not take the
        * other picker — or the rest of the form — down with it. A picker
-       * whose list failed is left out, which leaves its binding as it is.
+       * whose list failed is left out, which leaves its binding as it is
+       * (it can still be unbound).
        */
       const errors: Array<string> = [];
 
-      const loadRunners: () => Promise<Array<DropdownOption> | null> =
-        async (): Promise<Array<DropdownOption> | null> => {
+      const loadRunners: () => Promise<Array<Runner> | null> =
+        async (): Promise<Array<Runner> | null> => {
           if (!canPickRunner) {
             return null;
           }
@@ -1053,15 +1715,12 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
                 _id: true,
                 name: true,
                 canRunAiCommands: true,
+                // The posture: which cluster an agent Runner runs in.
+                hostInfo: true,
               },
               sort: { name: SortOrder.Ascending },
             });
-            return buildKubernetesAiRunnerOptions({
-              runners: result.data || [],
-              clusterIdentifier: props.clusterIdentifier,
-              boundRunnerId: settings.aiAccessRunnerId,
-              boundRunnerName: settings.aiAccessRunnerName,
-            });
+            return result.data || [];
           } catch (err) {
             errors.push(
               `The Runner list could not be loaded, so the Runner binding is left as it is: ${API.getFriendlyMessage(err)}`,
@@ -1070,8 +1729,8 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           }
         };
 
-      const loadCredentials: () => Promise<Array<DropdownOption> | null> =
-        async (): Promise<Array<DropdownOption> | null> => {
+      const loadCredentials: () => Promise<Array<RunbookCredential> | null> =
+        async (): Promise<Array<RunbookCredential> | null> => {
           if (!canPickCredential) {
             return null;
           }
@@ -1082,14 +1741,16 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
                 query: { credentialType: RunbookCredentialType.Kubernetes },
                 limit: LIMIT_PER_PROJECT,
                 skip: 0,
-                select: { _id: true, name: true, credentialType: true },
+                select: {
+                  _id: true,
+                  name: true,
+                  credentialType: true,
+                  // Which Runners may use each one: the picker follows the Runner.
+                  runners: { _id: true },
+                },
                 sort: { name: SortOrder.Ascending },
               });
-            return buildKubernetesAiCredentialOptions({
-              credentials: result.data || [],
-              boundCredentialId: settings.aiAccessCredentialId,
-              boundCredentialName: settings.aiAccessCredentialName,
-            });
+            return result.data || [];
           } catch (err) {
             errors.push(
               `The credential list could not be loaded, so the credential binding is left as it is: ${API.getFriendlyMessage(err)}`,
@@ -1098,9 +1759,9 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           }
         };
 
-      const [runners, credentials]: [
-        Array<DropdownOption> | null,
-        Array<DropdownOption> | null,
+      const [runnerRows, credentialRows]: [
+        Array<Runner> | null,
+        Array<RunbookCredential> | null,
       ] = await Promise.all([loadRunners(), loadCredentials()]);
 
       if (!isMounted) {
@@ -1108,10 +1769,11 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       }
 
       setSaved(settings);
-      setRunnerOptions(runners || []);
-      setIsRunnerPickerAvailable(runners !== null);
-      setCredentialOptions(credentials || []);
-      setIsCredentialPickerAvailable(credentials !== null);
+      setChosenRunnerId(settings.aiAccessRunnerId);
+      setRunners(runnerRows || []);
+      setIsRunnerPickerAvailable(runnerRows !== null);
+      setCredentials(credentialRows || []);
+      setIsCredentialPickerAvailable(credentialRows !== null);
       setPickerErrors(errors);
       setIsLoading(false);
     };
@@ -1125,39 +1787,88 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     };
   }, []);
 
-  const offered: KubernetesAiAccessOfferedFields = useMemo(() => {
-    return {
-      allowlist: canConfigureUnattended,
-      runner: isRunnerPickerAvailable,
-      credential: isCredentialPickerAvailable,
-    };
+  const offered: KubernetesAiAccessOfferedFields | null = useMemo(() => {
+    if (!saved) {
+      return null;
+    }
+
+    return getKubernetesAiAccessOfferedFields({
+      saved,
+      canConfigureUnattended,
+      isRunnerPickerAvailable,
+      isCredentialPickerAvailable,
+    });
   }, [
+    saved,
     canConfigureUnattended,
     isRunnerPickerAvailable,
     isCredentialPickerAvailable,
   ]);
 
-  /*
-   * Built only once everything has loaded: BasicForm reads its initial
-   * values once, on the first render in which the fields exist.
-   */
-  const fields: Fields<KubernetesAiAccessSettingsFormValues> = useMemo(() => {
+  const runnerDirectory: Record<string, KubernetesAiRunnerDirectoryEntry> =
+    useMemo(() => {
+      return buildKubernetesAiRunnerDirectory(runners);
+    }, [runners]);
+
+  const credentialDirectory: Record<
+    string,
+    KubernetesAiCredentialDirectoryEntry
+  > = useMemo(() => {
+    return buildKubernetesAiCredentialDirectory(credentials);
+  }, [credentials]);
+
+  const runnerOptions: Array<DropdownOption> = useMemo(() => {
     if (!saved) {
       return [];
     }
 
+    return buildKubernetesAiRunnerOptions({
+      runners,
+      clusterIdentifier: props.clusterIdentifier,
+      boundRunnerId: saved.aiAccessRunnerId,
+      boundRunnerName: saved.aiAccessRunnerName,
+    });
+  }, [saved, runners, props.clusterIdentifier]);
+
+  const chosenRunner: KubernetesAiCredentialRunner = useMemo(() => {
+    if (!chosenRunnerId) {
+      return { id: null, name: null };
+    }
+
+    return {
+      id: chosenRunnerId,
+      name:
+        runnerDirectory[chosenRunnerId]?.name ||
+        (chosenRunnerId === saved?.aiAccessRunnerId
+          ? saved.aiAccessRunnerName
+          : null),
+    };
+  }, [chosenRunnerId, runnerDirectory, saved]);
+
+  /*
+   * Built once everything has loaded — BasicForm reads its initial values
+   * once, on the first render in which the fields exist — and again when
+   * the chosen Runner changes, so the credential options follow it (the
+   * form keeps its values across that).
+   */
+  const fields: Fields<KubernetesAiAccessSettingsFormValues> = useMemo(() => {
+    if (!saved || !offered) {
+      return [];
+    }
+
     /*
-     * Without the admin set the unattended modes are not offered — except
-     * the one already saved, so the dropdown can show it. Leaving it
-     * selected is no change and sends nothing.
+     * Without the admin set a cluster editor may still lower the mode, so
+     * every mode at or below the saved one is offered (Automatic on a
+     * Bypass-approval cluster) — the saved one marked, since choosing it is
+     * no change and sends nothing.
      */
     const modes: Array<KubernetesAiRemediationMode> = canConfigureUnattended
       ? Object.values(KubernetesAiRemediationMode)
       : Object.values(KubernetesAiRemediationMode).filter(
           (mode: KubernetesAiRemediationMode): boolean => {
-            return (
-              !isUnattendedRemediationMode(mode) ||
-              mode === saved.aiRemediationMode
+            return isRemediationModeOpenToEveryEditor(
+              mode,
+              saved.aiRemediationMode,
             );
           },
         );
@@ -1170,12 +1881,12 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           "Read-only: get, describe, logs, events, top, rollout status. Nothing on the cluster is ever changed by an investigation.",
         fieldType: FormFieldSchemaType.Toggle,
         required: false,
+        dataTestId: "ai-investigation-field",
       },
       {
         field: { aiRemediationMode: true },
         title: "AI remediation",
-        description:
-          "Ask for approval: AI composes the exact kubectl plan and a human approves it with one click. Automatic: safe changes (rollout restart/undo, scale, delete a named pod, cordon/uncordon, label/annotate) run on their own; a riskier change is never run without a human — AI leaves the exact command in its recommendations and only a follow-up round proposes it for approval — unless the allowlist names its shape. Bypass approval: every allowed change, riskier ones included, runs on its own and nobody is ever asked. Destructive commands (deleting namespaces, volumes, nodes, secrets, CRDs; exec; apply) never run in any mode.",
+        description: getRemediationModeFieldDescription(),
         fieldType: FormFieldSchemaType.Dropdown,
         required: true,
         dataTestId: "ai-remediation-mode-field",
@@ -1184,7 +1895,9 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
             return {
               value: mode,
               label:
-                !canConfigureUnattended && isUnattendedRemediationMode(mode)
+                !canConfigureUnattended &&
+                isUnattendedRemediationMode(mode) &&
+                mode === saved.aiRemediationMode
                   ? `${REMEDIATION_MODE_LABELS[mode]} (current)`
                   : REMEDIATION_MODE_LABELS[mode],
             };
@@ -1197,7 +1910,9 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
       result.push({
         field: { kubectlAllowlistText: true },
         title: "kubectl allowlist (Automatic mode)",
-        description: ALLOWLIST_FIELD_DESCRIPTION,
+        description: offered.allowlistRemoveOnly
+          ? `You can remove patterns or clear the list; adding or changing one needs one of these permissions: ${getKubernetesAiAccessAdminPermissionTitles().join(", ")}. ${ALLOWLIST_FIELD_DESCRIPTION}`
+          : ALLOWLIST_FIELD_DESCRIPTION,
         fieldType: FormFieldSchemaType.LongText,
         required: false,
         placeholder: "kubectl set image deployment/web * -n web",
@@ -1205,7 +1920,15 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         customValidation: (
           values: FormValues<KubernetesAiAccessSettingsFormValues>,
         ): string | null => {
-          return validateKubectlAllowlistText(values.kubectlAllowlistText);
+          return (
+            validateKubectlAllowlistText(values.kubectlAllowlistText) ||
+            (offered.allowlistRemoveOnly
+              ? getKubectlAllowlistRemovalOnlyError({
+                  text: values.kubectlAllowlistText,
+                  storedValue: saved.aiKubectlCommandAllowlist,
+                })
+              : null)
+          );
         },
       });
     }
@@ -1222,24 +1945,58 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         dataTestId: "ai-access-runner-field",
         dropdownOptions: runnerOptions,
       });
+    } else if (offered.runnerClear) {
+      result.push({
+        field: { clearAiAccessRunner: true },
+        title: "Unbind the Runner",
+        description: `Bound now: ${
+          saved.aiAccessRunnerName || "a Runner"
+        }. Unbinding stops OneUptime AI from running kubectl on this cluster until a Runner is bound again. Choosing a Runner needs ${
+          canConfigureUnattended
+            ? `permission to read Runners (one of: ${getKubernetesRunnerPermissionTitles().join(", ")})`
+            : `one of these permissions: ${getKubernetesAiAccessAdminPermissionTitles().join(", ")}`
+        }.`,
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+        dataTestId: "ai-access-clear-runner-field",
+      });
     }
 
     if (offered.credential) {
       result.push({
         field: { aiAccessCredentialId: true },
         title: "Kubernetes credential",
-        description:
-          "Only for a Runner outside the cluster: a Kubernetes credential (API server URL + ServiceAccount token) assigned to that Runner. Leave empty for the in-cluster Runner, which uses its own ServiceAccount.",
+        description: getKubernetesAiCredentialFieldDescription(chosenRunner),
         fieldType: FormFieldSchemaType.Dropdown,
         required: false,
         placeholder: "None (in-cluster Runner)",
         dataTestId: "ai-access-credential-field",
-        dropdownOptions: credentialOptions,
+        dropdownOptions: buildKubernetesAiCredentialOptions({
+          credentials,
+          boundCredentialId: saved.aiAccessCredentialId,
+          boundCredentialName: saved.aiAccessCredentialName,
+          runner: chosenRunner,
+        }),
+      });
+    } else if (offered.credentialClear) {
+      result.push({
+        field: { clearAiAccessCredential: true },
+        title: "Unbind the Kubernetes credential",
+        description: `Bound now: ${
+          saved.aiAccessCredentialName || "a Kubernetes credential"
+        }. Unbinding it leaves an in-cluster Runner working as before; a Runner outside the cluster cannot reach it without one. Choosing a credential needs ${
+          canConfigureUnattended
+            ? `permission to read Runner credentials (one of: ${getKubernetesCredentialPermissionTitles().join(", ")})`
+            : `one of these permissions: ${getKubernetesAiAccessAdminPermissionTitles().join(", ")}`
+        }.`,
+        fieldType: FormFieldSchemaType.Toggle,
+        required: false,
+        dataTestId: "ai-access-clear-credential-field",
       });
     }
 
     return result;
-  }, [saved, offered, runnerOptions, credentialOptions]);
+  }, [saved, offered, runnerOptions, credentials, chosenRunner]);
 
   const initialValues: FormValues<KubernetesAiAccessSettingsFormValues> =
     useMemo(() => {
@@ -1276,7 +2033,7 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
   const onSubmit: (
     values: FormValues<KubernetesAiAccessSettingsFormValues>,
   ) => void = (values: FormValues<KubernetesAiAccessSettingsFormValues>) => {
-    if (!saved || isSavingRef.current) {
+    if (!saved || !offered || isSavingRef.current) {
       return;
     }
 
@@ -1295,14 +2052,28 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
     }
 
     if (!canConfigureUnattended) {
-      const loosening: Array<string> =
-        getKubernetesAiAccessLooseningChanges(changes);
+      const loosening: Array<string> = getKubernetesAiAccessLooseningChanges({
+        saved,
+        changes,
+      });
       if (loosening.length > 0) {
         setSaveError(
-          `Setting ${loosening.join(", ")} needs one of these permissions: ${getKubernetesAiAccessAdminPermissionTitles().join(", ")}.`,
+          `${capitalizeFirst(loosening.join(", "))} needs one of these permissions: ${getKubernetesAiAccessAdminPermissionTitles().join(", ")}.`,
         );
         return;
       }
+    }
+
+    const bindingError: string | null = getKubernetesAiAccessBindingError({
+      saved,
+      changes,
+      runners: runnerDirectory,
+      credentials: credentialDirectory,
+    });
+
+    if (bindingError) {
+      setSaveError(bindingError);
+      return;
     }
 
     const confirmation: KubernetesAiAccessConfirmation | null =
@@ -1330,10 +2101,10 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           className="text-xs leading-5 text-gray-500"
           data-testid="kubernetes-runner-picker-permission-note"
         >
-          The Runner binding is not shown: choosing a Runner needs permission to
+          The Runner picker is not shown: choosing a Runner needs permission to
           read Runners (one of:{" "}
-          {getKubernetesRunnerPermissionTitles().join(", ")}). It is left as it
-          is.
+          {getKubernetesRunnerPermissionTitles().join(", ")}). The binding is
+          left as it is unless you unbind it.
         </p>,
       );
     }
@@ -1344,10 +2115,11 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
           className="text-xs leading-5 text-gray-500"
           data-testid="kubernetes-credential-picker-permission-note"
         >
-          The credential binding is not shown: choosing a credential needs
+          The credential picker is not shown: choosing a credential needs
           permission to read Runner credentials (one of:{" "}
-          {getKubernetesCredentialPermissionTitles().join(", ")}). It is left as
-          it is; the in-cluster Runner needs no credential.
+          {getKubernetesCredentialPermissionTitles().join(", ")}). The binding
+          is left as it is unless you unbind it; the in-cluster Runner needs no
+          credential.
         </p>,
       );
     }
@@ -1384,7 +2156,7 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
 
           {loadError ? (
             <ErrorMessage message={loadError} />
-          ) : isLoading || !saved ? (
+          ) : isLoading || !saved || !offered ? (
             <ComponentLoader />
           ) : (
             <BasicForm
@@ -1395,6 +2167,19 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
               initialValues={initialValues}
               hideSubmitButton={true}
               footer={<></>}
+              onChange={(
+                values: FormValues<KubernetesAiAccessSettingsFormValues>,
+              ) => {
+                const runnerId: string | null =
+                  getKubernetesAiAccessChosenRunnerId({
+                    saved,
+                    values,
+                    offered,
+                  });
+                setChosenRunnerId((previous: string | null): string | null => {
+                  return previous === runnerId ? previous : runnerId;
+                });
+              }}
               onSubmit={onSubmit}
             />
           )}
@@ -1626,6 +2411,17 @@ const KubernetesClusterAI: FunctionComponent<
   const testGate: PermissionGateResult = getAccessTestPermissionGate();
   const allowlistInEffect: Array<string> = getAllowlistInEffect(status);
   const helmCommands: AiAccessHelmCommands = getAiAccessHelmCommands();
+  const connectCardMode: AiAccessConnectCardMode =
+    getAiAccessConnectCardMode(status);
+  const agentRunnerNotSelectedGap: KubernetesAiAccessGap | undefined =
+    connectCardMode === "select_agent_runner"
+      ? status.gaps.find((gap: KubernetesAiAccessGap): boolean => {
+          return gap.code === "no_runner_bound";
+        })
+      : undefined;
+  const runnerWriteAccess: string | null = describeRunnerWriteAccess(
+    status.runner?.posture,
+  );
   const lastCheckedAt: string = status.evaluatedAt
     ? OneUptimeDate.getDateAsFormattedString(
         OneUptimeDate.fromString(status.evaluatedAt),
@@ -1765,11 +2561,13 @@ const KubernetesClusterAI: FunctionComponent<
                     {status.runner.posture?.kubectlVersion
                       ? ` · kubectl ${status.runner.posture.kubectlVersion}`
                       : ""}
-                    {status.runner.posture?.inCluster
-                      ? status.runner.posture.allowWrites
-                        ? " · writes allowed"
-                        : " · read-only RBAC"
-                      : ""}
+                    {runnerWriteAccess ? (
+                      <span data-testid="ai-access-runner-write-access">
+                        {` · ${runnerWriteAccess}`}
+                      </span>
+                    ) : (
+                      <></>
+                    )}
                   </p>
                   <Link
                     to={RouteUtil.populateRouteParams(
@@ -1872,12 +2670,12 @@ const KubernetesClusterAI: FunctionComponent<
                 with kubectl during investigations
                 {status.remediationMode ===
                 KubernetesAiRemediationMode.BypassApproval
-                  ? " and apply fixes on its own without asking anyone."
+                  ? " and apply every fix the policy allows on its own, riskier ones included — only a write in a protected namespace, a node drain or taint, or a run past the hourly circuit breaker still asks a human."
                   : status.remediationMode ===
                       KubernetesAiRemediationMode.Automatic
                     ? allowlistInEffect.length > 0
-                      ? " and apply safe fixes on its own — plus riskier ones that match the kubectl allowlist."
-                      : " and apply safe fixes on its own."
+                      ? " and apply safe fixes on its own — plus riskier ones that match the kubectl allowlist. Any other riskier fix is proposed for your one-click approval."
+                      : " and apply safe fixes on its own. A riskier fix is proposed for your one-click approval."
                     : status.remediationMode ===
                         KubernetesAiRemediationMode.RequireApproval
                       ? " and propose kubectl fixes for your approval."
@@ -1916,10 +2714,36 @@ const KubernetesClusterAI: FunctionComponent<
         </div>
       </Card>
 
-      {!hasRunner ||
-      status.gaps.some((gap: KubernetesAiAccessGap) => {
-        return gap.code === "runner_missing" || gap.code === "no_runner_bound";
-      }) ? (
+      {connectCardMode === "select_agent_runner" &&
+      agentRunnerNotSelectedGap ? (
+        /*
+         * This cluster's in-cluster Runner is registered but no Runner is
+         * bound: re-running helm would change nothing, so the helm card is
+         * not shown — selecting the Runner is the step.
+         */
+        <Card
+          title="Select this cluster's in-cluster Runner"
+          description="The in-cluster Runner is already installed on this cluster. No helm change is needed: select it as this cluster's Runner."
+        >
+          <div
+            className="space-y-2"
+            data-testid="ai-access-select-agent-runner"
+          >
+            <p className="text-sm text-gray-900">
+              {agentRunnerNotSelectedGap.nextStep}
+            </p>
+            <p className="text-xs leading-5 text-gray-500">
+              {canConfigureUnattended && canPickRunner
+                ? "Open Edit AI access below and choose it as the Runner."
+                : `Choosing a Runner needs one of these permissions: ${getKubernetesAiAccessAdminPermissionTitles().join(
+                    ", ",
+                  )}, and permission to read Runners (one of: ${getKubernetesRunnerPermissionTitles().join(
+                    ", ",
+                  )}).`}
+            </p>
+          </div>
+        </Card>
+      ) : connectCardMode === "connect" ? (
         <Card
           title="Connect a Runner (one command)"
           description="OneUptime AI runs kubectl through a Runner inside your infrastructure. The quickest way is the Kubernetes agent you already installed: one extra flag deploys a small in-cluster Runner that registers itself to this cluster."
@@ -1944,7 +2768,7 @@ const KubernetesClusterAI: FunctionComponent<
                 release name and namespace from the install instructions (
                 {KUBERNETES_AGENT_HELM_RELEASE} in{" "}
                 {KUBERNETES_AGENT_HELM_NAMESPACE}); if you installed the agent
-                under another name or namespace, use yours. Run{" "}
+                under another name or namespace, use yours. It runs{" "}
                 <code>helm repo update</code> first: an older cached chart does
                 not know aiAccess and fails with &quot;Additional property
                 aiAccess is not allowed&quot;. The Runner reuses the
@@ -1953,36 +2777,88 @@ const KubernetesClusterAI: FunctionComponent<
                 {oneuptimeUrl}.
               </p>
             </div>
-            <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                Optional: also let AI apply fixes
-              </p>
-              <div data-testid="ai-access-helm-remediation-command">
-                <CodeBlock
-                  language="bash"
-                  code={helmCommands.enableRemediation}
-                />
-              </div>
-              <p className="mt-2 text-xs leading-5 text-gray-500">
-                Run this instead of — or after — the command above only if AI
-                should be able to change the cluster. It grants the Runner write
-                access (restart, scale, patch, delete pods) across the cluster.
-                When this cluster&apos;s AI access has never been configured,
-                remediation then starts in Ask for approval, so nothing changes
-                without a human until you choose otherwise below.
-              </p>
-            </div>
             <p className="text-xs leading-5 text-gray-500">
               Prefer an existing Runner? Bind it below together with a
               Kubernetes credential (API server URL + ServiceAccount token from
-              Project Settings → Runner Credentials) and make sure &quot;Runs AI
-              Remediation Commands&quot; is on for that Runner.
+              Project Settings → Runner Credentials) assigned to that Runner,
+              and make sure &quot;Runs AI Remediation Commands&quot; is on for
+              it.
             </p>
           </div>
         </Card>
       ) : (
         <></>
       )}
+
+      {/*
+       * Write access for the in-cluster Runner. Always here — not only
+       * before a Runner connects — because the recommended first step is
+       * read-only, and the step after it must still be on the page once
+       * that Runner is bound.
+       */}
+      <Card
+        title="Let AI apply fixes (write access)"
+        description="Optional. The in-cluster Runner starts read-only; one more helm upgrade grants the write access OneUptime AI's fixes use. The AI remediation mode below still decides whether a fix waits for a human."
+      >
+        <div className="space-y-4" data-testid="ai-access-remediation-setup">
+          <p className="text-xs leading-5 text-gray-600">
+            {status.runner && !status.runner.posture?.inCluster
+              ? `OneUptime AI reaches this cluster through Runner "${status.runner.name}"${
+                  status.credentialName
+                    ? ` and its Kubernetes credential "${status.credentialName}"`
+                    : ""
+                }: what a fix may change there is bounded by that credential's RBAC, not by these commands, which apply to the Kubernetes agent's in-cluster Runner.`
+              : runnerWriteAccess === "read-only RBAC"
+                ? "The in-cluster Runner has read-only RBAC, so the cluster would refuse every kubectl change. Grant write access with one of these commands."
+                : runnerWriteAccess
+                  ? `The in-cluster Runner reports: ${runnerWriteAccess}. Run one of these commands again to change where it may write.`
+                  : "Run one of these instead of the read-only command, or after it — each is a complete command."}
+          </p>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Recommended: write access only where AI may fix
+            </p>
+            <div data-testid="ai-access-helm-remediation-scoped-command">
+              <CodeBlock
+                language="bash"
+                code={helmCommands.enableRemediationScoped}
+              />
+            </div>
+            <p className="mt-2 text-xs leading-5 text-gray-500">
+              Replace {AI_ACCESS_EXAMPLE_WRITE_NAMESPACES} with the namespaces
+              AI may fix: the chart binds the write role in those alone
+              (aiAccess.remediation.namespaces), and the Runner refuses a write
+              anywhere else. aiAccess.remediation.nodeOperations=false keeps
+              fixes off nodes — leave that line out to let AI cordon, uncordon,
+              drain and taint nodes (a drain or taint still waits for a human).
+            </p>
+          </div>
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Or: write access across the cluster
+            </p>
+            <div data-testid="ai-access-helm-remediation-command">
+              <CodeBlock
+                language="bash"
+                code={helmCommands.enableRemediation}
+              />
+            </div>
+          </div>
+          <p
+            className="text-xs leading-5 text-gray-700"
+            data-testid="ai-access-write-disclosure"
+          >
+            {getAiAccessWriteDisclosure()}
+          </p>
+          <p className="text-xs leading-5 text-gray-500">
+            If this is the cluster&apos;s first registration, remediation starts
+            in Ask for approval, so nothing changes without a human until you
+            choose otherwise below. A cluster that was already registered keeps
+            its remediation mode: choose it with Edit AI access after the
+            upgrade.
+          </p>
+        </div>
+      </Card>
 
       <CardModelDetail<KubernetesCluster>
         name="AI access settings"
@@ -2114,7 +2990,8 @@ const KubernetesClusterAI: FunctionComponent<
                         (one of:{" "}
                         {getKubernetesRunnerPermissionTitles().join(", ")}). The
                         in-cluster Runner installed by the agent chart binds
-                        itself.
+                        itself, and a bound Runner can be unbound in Edit AI
+                        access.
                       </p>
                     )}
                   </div>
@@ -2143,7 +3020,8 @@ const KubernetesClusterAI: FunctionComponent<
                         Runner credentials (one of:{" "}
                         {getKubernetesCredentialPermissionTitles().join(", ")}
                         ). The in-cluster Runner installed by the agent chart
-                        needs no credential.
+                        needs no credential, and a bound credential can be
+                        unbound in Edit AI access.
                       </p>
                     )}
                   </div>

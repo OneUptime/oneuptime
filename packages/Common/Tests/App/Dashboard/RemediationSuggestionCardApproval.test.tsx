@@ -466,4 +466,237 @@ describe("RemediationSuggestionCard Approve & Run", () => {
     expect(getActionErrorTitle("dismiss")).toMatch(/not dismissed/);
     expect(getActionErrorTitle(null)).toBe("Could not save your action");
   });
+
+  /*
+   * The finding (dashboard-ai-page-5): the server also refuses an
+   * approval that lost to someone else's — "Only suggested remediations
+   * can be approved — this one is Approved", "This suggestion was just
+   * actioned by someone else" — and then the plan WAS approved and is
+   * running. The headline must follow what the reloaded suggestion says.
+   */
+  test("the refusal headline follows what the reloaded suggestion says happened", () => {
+    for (const status of [
+      AutoRemediationSuggestionStatus.Approved,
+      AutoRemediationSuggestionStatus.AutoExecuted,
+    ]) {
+      const title: string = getActionErrorTitle("approve", status);
+      expect(title).not.toMatch(/nothing ran/);
+      expect(title).not.toMatch(/not approved/);
+      expect(title).toMatch(/already/);
+    }
+
+    // Still waiting, dismissed or inapplicable: nothing ran.
+    for (const status of [
+      AutoRemediationSuggestionStatus.Suggested,
+      AutoRemediationSuggestionStatus.Dismissed,
+      AutoRemediationSuggestionStatus.NoneApplicable,
+      undefined,
+    ]) {
+      expect(getActionErrorTitle("approve", status)).toBe(
+        "Could not save your action: the fix was not approved and nothing ran",
+      );
+    }
+
+    expect(
+      getActionErrorTitle("dismiss", AutoRemediationSuggestionStatus.Approved),
+    ).toMatch(/not dismissed — this fix had already started/);
+  });
+
+  test("an approval refused because a teammate already approved does not say nothing ran", async () => {
+    const answers: Array<Answer> = deferActions();
+    const button: HTMLElement = await renderWaitingPlan();
+
+    // By the time the click is refused, a teammate's approval is running.
+    serve(
+      suggestion(
+        AutoRemediationSuggestionStatus.Approved,
+        [
+          kubectlCommand({
+            execution: { status: AiRemediationCommandExecutionStatus.Running },
+          }),
+        ],
+        AiRemediationPlanExecutionStatus.Running,
+      ),
+    );
+
+    act(() => {
+      button.click();
+    });
+
+    await act(async () => {
+      answers[0]!(
+        new HTTPErrorResponse(
+          400,
+          {
+            error:
+              "Only suggested remediations can be approved — this one is Approved.",
+          },
+          {},
+        ),
+      );
+    });
+
+    const alert: HTMLElement = await screen.findByTestId(
+      "remediation-action-error",
+    );
+    expect(alert).toHaveTextContent("this one is Approved");
+    expect(alert).toHaveTextContent("this fix had already been approved");
+    expect(alert).not.toHaveTextContent("nothing ran");
+    expect(alert).not.toHaveTextContent("not approved");
+    // The reloaded plan is what the alert points at.
+    expect(screen.getByText("Approved & started")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("remediation-approve-button"),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * The guard used to be released before the reload, so for one round
+   * trip "Approve & Run" was enabled over the stale "Suggested" row and a
+   * second click posted again.
+   */
+  test("a click while the post-approval reload is in flight does not post again", async () => {
+    const answers: Array<Answer> = deferActions();
+    const button: HTMLElement = await renderWaitingPlan();
+
+    let answerReload: (
+      value: ListResult<AutoRemediationSuggestion>,
+    ) => void = (): void => {
+      // replaced below
+    };
+    getListSpy.mockImplementation(
+      (): Promise<ListResult<AutoRemediationSuggestion>> => {
+        return new Promise(
+          (resolve: (value: ListResult<AutoRemediationSuggestion>) => void) => {
+            answerReload = resolve;
+          },
+        );
+      },
+    );
+    const listCallsBefore: number = getListSpy.mock.calls.length;
+
+    act(() => {
+      button.click();
+    });
+    await act(async () => {
+      answers[0]!(new HTTPResponse<JSONObject>(200, {}, {}));
+    });
+
+    // The approval landed; its reload has not.
+    await waitFor(() => {
+      expect(getListSpy.mock.calls.length).toBeGreaterThan(listCallsBefore);
+    });
+    expect(screen.getByTestId("remediation-approve-button")).toBeDisabled();
+    act(() => {
+      screen.getByTestId("remediation-approve-button").click();
+    });
+    expect(actionPosts(APPROVE_ROUTE)).toHaveLength(1);
+
+    await act(async () => {
+      answerReload({
+        data: [
+          suggestion(
+            AutoRemediationSuggestionStatus.Approved,
+            [kubectlCommand()],
+            AiRemediationPlanExecutionStatus.Running,
+          ),
+        ],
+        count: 1,
+        skip: 0,
+        limit: 10,
+      });
+    });
+
+    expect(await screen.findByText("Approved & started")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("remediation-approve-button"),
+    ).not.toBeInTheDocument();
+    expect(actionPosts(APPROVE_ROUTE)).toHaveLength(1);
+  });
+});
+
+/*
+ * Known follow-up 15: plan.rollbackStatus said how the rollback as a
+ * whole ended, but not what happened to each undo; the per-command
+ * rollbackExecution records were never shown.
+ */
+describe("RemediationSuggestionCard rollback outcomes", () => {
+  function rolledBackPlan(
+    rollbackExecution: JSONObject | undefined,
+  ): AutoRemediationSuggestion {
+    const command: JSONObject = {
+      ...kubectlCommand({
+        wasAutoExecuted: true,
+        execution: {
+          status: AiRemediationCommandExecutionStatus.Succeeded,
+          exitCode: 0,
+        },
+      }),
+      rollbackCommand: "kubectl rollout undo deployment/web -n web",
+      ...(rollbackExecution ? { rollbackExecution } : {}),
+    };
+
+    return Object.assign(new AutoRemediationSuggestion(), {
+      _id: "0193c0de-6666-4aaa-8bbb-000000000006",
+      status: AutoRemediationSuggestionStatus.AutoExecuted,
+      suggestionType: AutoRemediationSuggestionType.CommandPlan,
+      ruleNameSnapshot: "AI remediation for cluster",
+      kubernetesClusterId: new ObjectID(CLUSTER_ID),
+      commandPlan: {
+        commands: [command],
+        executionStatus: AiRemediationPlanExecutionStatus.Completed,
+        rollbackStatus: "Failed",
+      },
+      createdAt: new Date("2026-09-22T10:00:00Z"),
+    });
+  }
+
+  test("shows each undo's status, exit code, error and output", async () => {
+    const row: HTMLElement = await renderCard(
+      rolledBackPlan({
+        status: AiRemediationCommandExecutionStatus.Failed,
+        exitCode: 1,
+        errorMessage: "error: no rollout history found",
+        output: "rollout undo output",
+      }),
+    );
+
+    const outcome: HTMLElement = within(row).getByTestId(
+      "remediation-rollback-outcome",
+    );
+    expect(outcome).toHaveTextContent("Rollback result");
+    expect(within(outcome).getByText("Failed")).toBeInTheDocument();
+    expect(outcome).toHaveTextContent("Exit code: 1");
+    expect(outcome).toHaveTextContent("error: no rollout history found");
+    expect(outcome).not.toHaveTextContent("rollout undo output");
+
+    act(() => {
+      within(outcome).getByText("Show output").click();
+    });
+    expect(outcome).toHaveTextContent("rollout undo output");
+    // The command's own output toggle is separate.
+    expect(screen.getByText("Rollback status: Failed")).toBeInTheDocument();
+  });
+
+  test("says a skipped undo did not run", async () => {
+    const row: HTMLElement = await renderCard(
+      rolledBackPlan({ status: AiRemediationCommandExecutionStatus.Skipped }),
+    );
+
+    const outcome: HTMLElement = within(row).getByTestId(
+      "remediation-rollback-outcome",
+    );
+    expect(within(outcome).getByText("Skipped")).toBeInTheDocument();
+    expect(outcome).toHaveTextContent("The undo did not run");
+  });
+
+  test("shows nothing for a command whose undo never ran", async () => {
+    const row: HTMLElement = await renderCard(rolledBackPlan(undefined));
+
+    expect(
+      within(row).queryByTestId("remediation-rollback-outcome"),
+    ).not.toBeInTheDocument();
+    // The rollback command itself is still listed.
+    expect(row).toHaveTextContent("kubectl rollout undo deployment/web -n web");
+  });
 });
