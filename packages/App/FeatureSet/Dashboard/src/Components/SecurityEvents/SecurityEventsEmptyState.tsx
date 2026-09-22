@@ -107,7 +107,8 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
         className="py-1 text-xs leading-5 text-gray-500"
       >
         {SecurityEventConnectorCategories.map((category: string): string => {
-          return translateString(category);
+          // A category with no entry in the locale reads as its English name.
+          return translateString(category) || category;
         }).join(" · ")}
       </p>
     ),
@@ -137,8 +138,9 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
       </p>
 
       {/*
-       * Columns from the width the list actually has: it shares its row with
-       * the filters sidebar, so the window's width says little about it.
+       * Columns from the width the list actually has: from md up it shares
+       * its row with the filters sidebar, so the window's width says little
+       * about it.
        */}
       <ul
         role="list"
@@ -157,7 +159,7 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
               >
                 {/*
                  * Wraps rather than squeezing the title to nothing when the
-                 * list is narrow, e.g. beside the filters on a phone.
+                 * list is narrow, e.g. beside the filters on a small tablet.
                  */}
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <div

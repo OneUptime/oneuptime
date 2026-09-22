@@ -786,9 +786,10 @@ describe("SecurityEventProviderTile", () => {
           const hasGrey: boolean = tokens.some((token: string): boolean => {
             return token.startsWith("text-gray-");
           });
+          const hoverTextClass: RegExp = /(^|:)hover:text-/;
           const hasHoverText: boolean = tokens.some(
             (token: string): boolean => {
-              return /(^|:)hover:text-/.test(token);
+              return hoverTextClass.test(token);
             },
           );
           expect(hasGrey && hasHoverText).toBe(false);

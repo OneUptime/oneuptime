@@ -124,7 +124,10 @@ const SecurityEventConnectionsEmptyState: FunctionComponent<ComponentProps> = (
             data-testid={`${SECURITY_EVENT_CONNECTIONS_EMPTY_STATE_ID}-disabled-reason`}
             className="mt-3 flex max-w-md items-start gap-1.5 text-left text-xs leading-5 text-gray-500"
           >
-            <Icon icon={IconProp.Lock} className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <Icon
+              icon={IconProp.Lock}
+              className="mt-0.5 h-3.5 w-3.5 shrink-0"
+            />
             {/* The gate's own sentence, already in the API's wording. */}
             <span className="min-w-0">{props.createDisabledReason}</span>
           </div>

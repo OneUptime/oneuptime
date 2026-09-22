@@ -650,13 +650,14 @@ describe("SecurityEventsEmptyState", () => {
     test("only the endpoint is raised above the overlay", () => {
       renderEmptyState();
 
+      const zIndexClass: RegExp = /^z-/;
       const raised: (element: HTMLElement) => Array<Element> = (
         element: HTMLElement,
       ): Array<Element> => {
         return Array.from(element.querySelectorAll("*")).filter(
           (child: Element): boolean => {
             return classTokens(child).some((token: string): boolean => {
-              return /^z-/.test(token);
+              return zIndexClass.test(token);
             });
           },
         );
@@ -1006,9 +1007,10 @@ describe("SecurityEventsEmptyState", () => {
         "grid-cols-[repeat(auto-fit,minmax(min(100%,16rem),1fr))]",
         "gap-4",
       );
+      const breakpointColumns: RegExp = /^(sm|md|lg|xl|2xl):grid-cols-/;
       expect(
         classTokens(list).filter((token: string): boolean => {
-          return /^(sm|md|lg|xl|2xl):grid-cols-/.test(token);
+          return breakpointColumns.test(token);
         }),
       ).toEqual([]);
     });
