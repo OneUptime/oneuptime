@@ -393,11 +393,16 @@ describe("production images do not ship a build toolchain", () => {
       const purges = lines.filter((line) => {
         return /\bapt-get purge\b/.test(line);
       });
-      expect({ template, purges: purges.length }).toEqual({
-        template,
-        purges: 1,
+      const toolchainPurges = purges.filter((line) => {
+        return /\bapt-get purge\b[^&|;]*\sg\+\+(\s|$)/.test(line);
       });
-      expect(purges[0]).toMatch(/apt-get purge -y --auto-remove /);
+      expect({ template, toolchainPurges: toolchainPurges.length }).toEqual({
+        template,
+        toolchainPurges: 1,
+      });
+      for (const purge of purges) {
+        expect(purge).toMatch(/apt-get purge -y --auto-remove /);
+      }
     }
   });
 
@@ -407,7 +412,8 @@ describe("production images do not ship a build toolchain", () => {
         return stage.instructions;
       })
       .join("\n");
-    expect(development).not.toMatch(/apt-get purge/);
+    expect(development).not.toMatch(/apt-get purge\b[^&|;\n]*\sg\+\+(\s|$)/m);
+    expect(development).toMatch(/apt-get install\b[^&|;\n]*\sg\+\+\s/m);
     expect(read("packages/Probe/Start.dev.sh")).toMatch(/npm (ci|install)/);
   });
 });
@@ -539,8 +545,10 @@ describe("E2E", () => {
       return /\bnpx playwright install\b/.test(line);
     });
     expect(browserInstall).toHaveLength(1);
+    // The FFmpeg stack Playwright lists for Firefox is removed in the same
+    // layer, as in the Probe image (ProbeBrowserInstall.test.ts says why).
     expect(browserInstall[0]).toMatch(
-      /apt-get update && npx playwright install --with-deps chromium firefox && rm -rf \/var\/lib\/apt\/lists\/\*/,
+      /apt-get update && npx playwright install --with-deps chromium firefox && apt-get purge -y --auto-remove libavcodec59 && rm -rf \/var\/lib\/apt\/lists\/\*/,
     );
 
     const configs = fs

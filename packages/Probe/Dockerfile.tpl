@@ -148,8 +148,16 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright-browsers
 #
 # If BrowserType ever re-enables an engine, this list must be updated too --
 # Probe/Tests/Build/ProbeBrowserInstall.test.ts fails loudly when they diverge.
+#
+# Since Playwright 1.63 Firefox's dependency list also names libavcodec59, the
+# FFmpeg stack (x264/x265, dav1d, aom, libvpx, openjpeg, ... ~40 packages and
+# ~160 CVEs in the scans). Firefox only dlopen()s it to decode MP4/H.264 media:
+# without it Firefox still launches, renders, and plays WebM/VP9 and Ogg with
+# its own decoders, which is exactly what the image did before 1.63 (1.60 never
+# installed FFmpeg). So it is removed again in the same layer.
 RUN apt-get update \
     && npx playwright install --with-deps chromium firefox \
+    && apt-get purge -y --auto-remove libavcodec59 \
     && rm -rf /var/lib/apt/lists/* \
     && chmod -R a+rX /ms-playwright-browsers \
     && chmod -R a+rX /usr/src/Common /usr/src/app

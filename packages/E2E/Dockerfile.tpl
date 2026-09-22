@@ -101,8 +101,12 @@ RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline --ignore-scripts
 # the LOCKED playwright version (node_modules/.bin/playwright from the npm ci
 # above), with their system libraries. `--with-deps` apt-installs those, so
 # refresh the apt lists first and drop them again in the same layer.
+# libavcodec59 (the FFmpeg stack Playwright lists for Firefox) is removed again,
+# as in the Probe image: Firefox only uses it to decode MP4/H.264, which no
+# test plays (see packages/Probe/Dockerfile.tpl).
 RUN apt-get update \
     && npx playwright install --with-deps chromium firefox \
+    && apt-get purge -y --auto-remove libavcodec59 \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy app source
