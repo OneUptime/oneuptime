@@ -5,48 +5,127 @@ behalf of OneUptime AI.
 Every aiAccess.* lookup goes through the locals below so the template renders
 on a release whose stored values predate this block. `helm upgrade
 --reuse-values` feeds the templates the PREVIOUS release's coalesced values,
-not this chart's values.yaml, so on an install older than 0.7.0 the only
-aiAccess keys present are the ones passed with --set: `.Values.aiAccess` is
-nil on a plain upgrade, and `.Values.aiAccess.image` is nil after
-`--set aiAccess.enabled=true`. A bare `.Values.aiAccess.image.repository`
-aborts the whole upgrade with "nil pointer evaluating interface {}". The
-fallbacks here must stay in step with values.yaml; tests/ai-runner_test.yaml
-renders the legacy shape and checks that they do.
+not this chart's values.yaml, so on an install from a chart without aiAccess
+the only aiAccess keys present are the ones passed with --set:
+`.Values.aiAccess` is nil on a plain upgrade, and `.Values.aiAccess.image` is
+nil after `--set aiAccess.enabled=true`. A bare
+`.Values.aiAccess.image.repository` aborts the whole upgrade with "nil pointer
+evaluating interface {}". The fallbacks here must stay in step with
+values.yaml; tests/ai-runner_test.yaml renders the legacy shape and checks
+that they do.
 */ -}}
 {{- $aiAccess := .Values.aiAccess | default dict -}}
 {{- if $aiAccess.enabled }}
+{{- $fullname := include "kubernetes-agent.fullname" . -}}
 {{- $remediation := $aiAccess.remediation | default dict -}}
 {{- $allowWrites := $remediation.enabled | default false -}}
+{{- /*
+Node operations default to on. `default true` would also turn an explicit
+`false` into true (Sprig's default treats false as empty), so the key is
+tested instead.
+*/ -}}
+{{- $nodeOperations := true -}}
+{{- if and (hasKey $remediation "nodeOperations") (kindIs "bool" $remediation.nodeOperations) }}
+{{- $nodeOperations = $remediation.nodeOperations -}}
+{{- end }}
+{{- /*
+The namespaces the write role is bound in; empty means cluster-wide. Only
+collected when writes are granted, so ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+always names exactly the RoleBindings rendered below.
+*/ -}}
+{{- $writeNamespaces := list -}}
+{{- if $allowWrites }}
+{{- range $namespace := ($remediation.namespaces | default list | uniq) }}
+{{- if eq $namespace $.Release.Namespace }}
+{{- fail (printf "aiAccess.remediation.namespaces lists %s, the namespace this chart is installed in. The Runner never changes its own namespace (a fix there could scale the agent, or the Runner itself, away), so write access there would only widen what a compromised Runner could do. Remove it from the list, or install the agent into a namespace of its own." $namespace) }}
+{{- end }}
+{{- $writeNamespaces = append $writeNamespaces $namespace -}}
+{{- end }}
+{{- end }}
 {{- $image := $aiAccess.image | default dict -}}
 {{- $imageRepository := $image.repository | default "oneuptime/runner" -}}
 {{- $imageTag := $image.tag | default "release" -}}
-{{- $imagePullPolicy := $image.pullPolicy | default "IfNotPresent" -}}
+{{- /*
+`release` is a moving tag: the release pipeline re-points it at every
+OneUptime version (the chart's other OneUptime images track it the same way).
+With IfNotPresent a node that cached an older `release` would keep running
+that Runner, and its policy re-check, after every upgrade, so a moving tag is
+always pulled. A pinned tag keeps IfNotPresent. An explicit pullPolicy wins.
+*/ -}}
+{{- $movingTag := has $imageTag (list "release" "enterprise-release" "latest") -}}
+{{- $imagePullPolicy := $image.pullPolicy | default (ternary "Always" "IfNotPresent" $movingTag) -}}
 {{- $defaultResources := dict "requests" (dict "cpu" "50m" "memory" "128Mi") "limits" (dict "cpu" "500m" "memory" "512Mi") -}}
 {{- /* An explicit `resources: {}` means "no requests or limits" and is honoured; only an absent key falls back. */ -}}
 {{- $resources := ternary $aiAccess.resources $defaultResources (hasKey $aiAccess "resources") -}}
 {{- $extraEnv := $aiAccess.extraEnv | default list -}}
 {{- /*
+Names the chart sets itself. The kubelet keeps the LAST definition of a
+duplicate env name, so an extraEnv entry with one of these would silently
+replace the chart's value: ONEUPTIME_KUBECTL_ALLOW_WRITES="true" on a
+read-only install would tell OneUptime the Runner may write when its RBAC
+says otherwise. Refuse the render instead, and name the value to change.
+*/ -}}
+{{- $reservedEnv := dict -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_URL" "the chart sets it from oneuptime.url" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_INGESTION_KEY" "the chart sets it from oneuptime.apiKey" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_KUBERNETES_CLUSTER_NAME" "the chart sets it from clusterName" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_RUNNER_NAME" "the chart sets it from clusterName" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION" "the chart sets it to its own version" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_KUBECTL_ALLOW_WRITES" "the chart sets it from aiAccess.remediation.enabled so it always matches the RBAC it grants; change that value instead" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_KUBECTL_WRITE_NAMESPACES" "the chart sets it from aiAccess.remediation.namespaces so it always matches the RoleBindings it renders; change that value instead" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_RUNNER_POD_NAMESPACE" "the chart sets it to the Runner pod's own namespace through the downward API" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_RUNNER_ENABLE_RUNBOOKS" "this Runner only runs kubectl for OneUptime AI, so the chart always turns runbooks off" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_RUNNER_ENABLE_CODE_FIXES" "this Runner only runs kubectl for OneUptime AI, so the chart always turns code fixes off" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_RUNNER_ID" "this Runner registers itself with oneuptime.apiKey; a dashboard-issued Runner identity would take it out of kubernetes-agent mode" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_RUNNER_KEY" "this Runner registers itself with oneuptime.apiKey; a dashboard-issued Runner identity would take it out of kubernetes-agent mode" -}}
+{{- $_ := set $reservedEnv "HOME" "the chart points it at the writable scratch volume kubectl needs on a read-only root filesystem" -}}
+{{- $_ := set $reservedEnv "KUBECACHEDIR" "the chart points it at the writable scratch volume kubectl needs on a read-only root filesystem" -}}
+{{- $_ := set $reservedEnv "PORT" "the chart sets it to the port the health probes use" -}}
+{{- range $index, $env := $extraEnv }}
+{{- $envName := required (printf "aiAccess.extraEnv[%d] has no name: every entry is a Kubernetes EnvVar with a name and a value (or valueFrom)." $index) $env.name -}}
+{{- if hasKey $reservedEnv $envName }}
+{{- fail (printf "aiAccess.extraEnv must not set %s: %s. Remove it from aiAccess.extraEnv." $envName (get $reservedEnv $envName)) }}
+{{- end }}
+{{- end }}
+{{- /*
 Its own ServiceAccount, on purpose. The collector's ServiceAccount is shared
 by every telemetry pod in this chart and is read-only by construction; the
 Runner's is the one identity in the cluster that may (with
-aiAccess.remediation.enabled) change things, so it gets exactly the verbs
-OneUptime AI's fix policy can use and nothing the collector has no business
-holding. What the Runner may actually run is decided by the cluster's AI page
-in OneUptime and re-checked by the Runner itself; RBAC is the outer bound.
+aiAccess.remediation.enabled) change things.
+
+Be plain about what the write roles below amount to. patch/update on
+workloads, pods and CronJobs, and create on Jobs, in a namespace is as good as
+running any image as any ServiceAccount in that namespace and reading every
+Secret it can mount: a pod template can name any image, any ServiceAccount
+and any Secret volume, and RBAC has no "patch, but not the pod template"
+verb. That no rule names pods/exec or secrets does not change it. So RBAC
+here bounds WHERE the Runner may write (aiAccess.remediation.namespaces; node
+operations only with aiAccess.remediation.nodeOperations), not what a write
+may do. The command policy in OneUptime, re-checked by the Runner before it
+spawns kubectl, is what refuses pod-template security patches,
+`set serviceaccount` and `create job --image`, and never runs a write in
+kube-system, kube-public or kube-node-lease without a human; the Runner never
+writes its own namespace. RBAC cannot exclude namespaces from a
+ClusterRoleBinding, so on the cluster-wide default those lines are held by
+the policy and the Runner, not by RBAC.
 */ -}}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ include "kubernetes-agent.fullname" . }}-ai-runner
+  name: {{ $fullname }}-ai-runner
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "kubernetes-agent.labels" . | nindent 4 }}
     component: ai-runner
 ---
+{{- /*
+Read-only, everywhere: an investigation has to be able to look at any
+namespace. Bound cluster-wide whatever aiAccess.remediation says.
+*/}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "kubernetes-agent.fullname" . }}-ai-runner
+  name: {{ $fullname }}-ai-runner
   labels:
     {{- include "kubernetes-agent.labels" . | nindent 4 }}
     component: ai-runner
@@ -125,12 +204,49 @@ rules:
       - selfsubjectaccessreviews
       - selfsubjectrulesreviews
     verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $fullname }}-ai-runner
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: ai-runner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $fullname }}-ai-runner
+subjects:
+  - kind: ServiceAccount
+    name: {{ $fullname }}-ai-runner
+    namespace: {{ .Release.Namespace }}
 {{- if $allowWrites }}
-  # Remediation: the write verbs OneUptime AI's fix policy can express.
-  # rollout restart/undo/pause/resume, set image/env/resources and patch are
-  # PATCH/UPDATE on the workload itself (rollout undo on a Deployment PATCHes
-  # the Deployment from its ReplicaSet history; there is no rollback
-  # subresource in apps/v1).
+---
+{{- /*
+Remediation: the namespaced writes the fix policy's commands issue, and
+nothing else. A ClusterRole only so one definition can be bound per
+namespace; it is never bound cluster-wide when
+aiAccess.remediation.namespaces lists namespaces. Never secrets, pods/exec,
+pods/attach, pods/portforward, serviceaccounts/token, impersonate, escalate,
+bind, CRDs or any rbac.authorization.k8s.io write, and delete on pods and
+jobs only. Label/annotate/patch on any other kind (Services, ConfigMaps,
+Ingresses, Namespaces, PVCs) fails here with Forbidden even when a human
+approved it; the policy tiers those as riskier changes for that reason.
+*/}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $fullname }}-ai-runner-remediation
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: ai-runner
+rules:
+  # rollout restart/undo/pause/resume, set image/env/resources, label,
+  # annotate and patch are a PATCH on the workload itself (kubectl falls back
+  # to an UPDATE when it cannot compute a patch). rollout undo on a Deployment
+  # PATCHes it from its ReplicaSet history, on a DaemonSet or StatefulSet from
+  # its ControllerRevisions; both are read through the read-only role. There
+  # is no rollback subresource in apps/v1.
   - apiGroups: ["apps"]
     resources:
       - deployments
@@ -141,19 +257,22 @@ rules:
   # kubectl scale PATCHes the scale subresource blind, but with
   # --current-replicas or --resource-version it GETs the subresource first
   # and then UPDATEs it. `get` on the workload does not cover its
-  # subresource, so the read-only rules above are not enough here.
+  # subresource, so the read-only rules are not enough here.
   - apiGroups: ["apps"]
     resources:
       - deployments/scale
       - statefulsets/scale
       - replicasets/scale
     verbs: ["get", "patch", "update"]
+  # label / annotate / patch a Job or CronJob (suspending a CronJob, say).
   - apiGroups: ["batch"]
     resources:
       - jobs
       - cronjobs
     verbs: ["patch", "update"]
-  # kubectl create job --from=cronjob/... (a human-approved, RiskyWrite command).
+  # kubectl create job --from=cronjob/<name> (a human-approved, riskier
+  # command; it GETs the CronJob through the read-only role). The policy
+  # refuses `create job --image`, which would run an arbitrary image.
   - apiGroups: ["batch"]
     resources:
       - jobs
@@ -169,43 +288,113 @@ rules:
     resources:
       - jobs
     verbs: ["delete"]
-  # cordon / uncordon / taint / label / annotate on nodes and pods.
+  # label / annotate / patch a pod.
   - apiGroups: [""]
     resources:
-      - nodes
       - pods
     verbs: ["patch", "update"]
-  # kubectl drain evicts pods (a RiskyWrite command a human approves).
-  - apiGroups: [""]
-    resources:
-      - pods/eviction
-    verbs: ["create"]
+  # kubectl autoscale creates an HPA; patch adjusts an existing one's bounds.
   - apiGroups: ["autoscaling"]
     resources:
       - horizontalpodautoscalers
     verbs: ["patch", "update", "create"]
-{{- end }}
+{{- if $writeNamespaces }}
+{{- range $namespace := $writeNamespaces }}
 ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $fullname }}-ai-runner-remediation
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "kubernetes-agent.labels" $ | nindent 4 }}
+    component: ai-runner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $fullname }}-ai-runner-remediation
+subjects:
+  - kind: ServiceAccount
+    name: {{ $fullname }}-ai-runner
+    namespace: {{ $.Release.Namespace }}
+{{- end }}
+{{- else }}
+---
+{{- /*
+No namespaces listed: the one-flag setup, bound cluster-wide. That includes
+kube-system, kube-public, kube-node-lease and this release's own namespace,
+because a ClusterRoleBinding cannot leave namespaces out. The policy never
+runs a write in those three system namespaces without a human, and the
+Runner never writes its own namespace; list namespaces in
+aiAccess.remediation.namespaces to make RBAC say so as well.
+*/}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "kubernetes-agent.fullname" . }}-ai-runner
+  name: {{ $fullname }}-ai-runner-remediation
   labels:
     {{- include "kubernetes-agent.labels" . | nindent 4 }}
     component: ai-runner
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "kubernetes-agent.fullname" . }}-ai-runner
+  name: {{ $fullname }}-ai-runner-remediation
 subjects:
   - kind: ServiceAccount
-    name: {{ include "kubernetes-agent.fullname" . }}-ai-runner
+    name: {{ $fullname }}-ai-runner
     namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- if $nodeOperations }}
+---
+{{- /*
+Node operations: cordon, uncordon, taint and drain. Nodes are cluster-scoped
+and draining one evicts pods in every namespace, so this cannot be scoped to
+aiAccess.remediation.namespaces; it is its own role so it can be switched off
+with aiAccess.remediation.nodeOperations=false.
+*/}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $fullname }}-ai-runner-node-operations
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: ai-runner
+rules:
+  # cordon / uncordon / taint / label a node: a PATCH on the node (kubectl
+  # falls back to an UPDATE when it cannot compute a patch). No nodes/proxy,
+  # which reaches the kubelet API.
+  - apiGroups: [""]
+    resources:
+      - nodes
+    verbs: ["patch", "update"]
+  # kubectl drain evicts pods (a riskier command a human approves).
+  - apiGroups: [""]
+    resources:
+      - pods/eviction
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $fullname }}-ai-runner-node-operations
+  labels:
+    {{- include "kubernetes-agent.labels" . | nindent 4 }}
+    component: ai-runner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $fullname }}-ai-runner-node-operations
+subjects:
+  - kind: ServiceAccount
+    name: {{ $fullname }}-ai-runner
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "kubernetes-agent.fullname" . }}-ai-runner
+  name: {{ $fullname }}-ai-runner
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "kubernetes-agent.labels" . | nindent 4 }}
@@ -227,14 +416,16 @@ spec:
         {{- include "kubernetes-agent.selectorLabels" . | nindent 8 }}
         component: ai-runner
     spec:
-      serviceAccountName: {{ include "kubernetes-agent.fullname" . }}-ai-runner
+      serviceAccountName: {{ $fullname }}-ai-runner
       # Linux nodes only — the image is linux-only, and Windows pools
       # (e.g. on AKS) are not tainted by default.
       nodeSelector:
         {{- include "kubernetes-agent.nodeSelector" (dict) | nindent 8 }}
       # No privileged containers, no hostPath, no hostNetwork — GKE Autopilot
-      # compatible. The Runner only talks HTTPS to OneUptime and to the
-      # cluster's API server.
+      # compatible, and admitted by Pod Security Admission "restricted"
+      # (non-root, no privilege escalation, every capability dropped,
+      # RuntimeDefault seccomp). The Runner only talks HTTPS to OneUptime and
+      # to the cluster's API server.
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -249,6 +440,7 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
+            runAsNonRoot: true
             capabilities:
               drop:
                 - ALL
@@ -260,7 +452,7 @@ spec:
             - name: ONEUPTIME_INGESTION_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "kubernetes-agent.fullname" . }}
+                  name: {{ $fullname }}
                   key: api-key
             - name: ONEUPTIME_KUBERNETES_CLUSTER_NAME
               value: {{ include "kubernetes-agent.clusterName" . | quote }}
@@ -270,6 +462,19 @@ spec:
             # this is false, so RBAC and policy can never disagree silently.
             - name: ONEUPTIME_KUBECTL_ALLOW_WRITES
               value: {{ $allowWrites | quote }}
+            # The namespaces the write role is bound in (comma-separated;
+            # empty = cluster-wide). The Runner refuses a write outside them
+            # before it spawns kubectl, instead of letting the API server say
+            # Forbidden after a human approved it.
+            - name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+              value: {{ join "," $writeNamespaces | quote }}
+            # The Runner's own namespace, from the downward API. The Runner
+            # never changes anything in it: a fix there could scale the agent,
+            # or the Runner itself, away.
+            - name: ONEUPTIME_RUNNER_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             # This Runner exists to run kubectl for OneUptime AI. It never runs
             # runbooks or clones repositories.
             - name: ONEUPTIME_RUNNER_ENABLE_RUNBOOKS

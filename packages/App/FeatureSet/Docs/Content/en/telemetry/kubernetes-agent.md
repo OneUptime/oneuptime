@@ -356,35 +356,47 @@ Labels are matched case-insensitively, so an existing manually-created `Producti
 
 When an incident or alert is raised on this cluster, OneUptime AI investigates it. With one extra flag it also gets a terminal: it runs read-only `kubectl` the way an on-call engineer would (describe the failing pod, read its events, tail the crashing container's logs, check node capacity) and cites every command on the incident page.
 
+Refresh your chart index first, then upgrade the agent:
+
 ```bash
+helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent --reuse-values \
   --set aiAccess.enabled=true
 ```
 
+Use the release name and namespace you installed the agent with, if they differ (`helm list -A | grep kubernetes-agent` shows them). Without `helm repo update`, Helm may resolve the chart you installed from, which does not know `aiAccess` and fails with `Additional property aiAccess is not allowed`. Published chart versions follow the OneUptime version, so if `helm show values oneuptime/kubernetes-agent | grep aiAccess` prints nothing, your index is still old.
+
 That deploys one small Deployment — the OneUptime Runner — with a **read-only** ServiceAccount. It registers itself with the same `oneuptime.apiKey` and `clusterName` the agent already uses, so there is nothing to set up in the dashboard: the cluster's **AI** page (Kubernetes → cluster → AI) shows it as Connected within a minute.
 
-`aiAccess.*` is new in chart 0.7.0. The command works on an older install as it is — every `aiAccess.*` value has a fallback in the chart's templates — but `--reuse-values` renders an upgrade with your previous release's values and never picks up a newer chart's defaults. On Helm 3.14+, `--reset-then-reuse-values` is the safer flag: it keeps your overrides and picks up the new defaults for everything else.
+The command works on a release whose values predate `aiAccess` as it is — every `aiAccess.*` value has a fallback in the chart's templates — but `--reuse-values` renders an upgrade with your previous release's values and never picks up a newer chart's defaults. On Helm 3.14+, `--reset-then-reuse-values` is the safer flag: it keeps your overrides and picks up the new defaults for everything else.
 
-To let OneUptime AI **fix** what it finds, also grant write access:
+To let OneUptime AI **fix** what it finds, also grant write access — a separate, optional step:
 
 ```bash
+helm repo update
 helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --namespace oneuptime-agent --reuse-values \
   --set aiAccess.enabled=true \
   --set aiAccess.remediation.enabled=true
 ```
 
-If this is the cluster's **first** registration with write access, it starts in **ask for approval**: OneUptime AI composes the exact `kubectl` plan and a human approves it with one click on the incident. If the cluster was **already registered** — read-only first, writes now — it keeps whatever AI remediation mode its AI page has (**Off** unless you changed it): the server never flips a switch an operator owns, so open the cluster's AI page after the upgrade and pick **ask for approval**, **automatic** (safe changes run on their own; a riskier change is never run without a human — OneUptime AI leaves the exact command in its recommendations) or **bypass approval** (every allowed change runs on its own) yourself. See [AI SRE — Cluster access](/docs/ai/ai-sre) for what each mode may run, what the command policy refuses outright, and what the Runner's RBAC never grants.
+and, to grant it only in the namespaces AI may fix (recommended), add `--set "aiAccess.remediation.namespaces={web,api}"`.
+
+If this is the cluster's **first** registration with write access, it starts in **ask for approval**: OneUptime AI composes the exact `kubectl` plan and a human approves it with one click on the incident. If the cluster was **already registered** — read-only first, writes now — it keeps whatever AI remediation mode its AI page has (**Off** unless you changed it): the server never flips a switch an operator owns, so open the cluster's AI page after the upgrade and pick **ask for approval**, **automatic** (safe changes run on their own; a riskier change is proposed for one-click approval) or **bypass approval** (every change the policy allows runs on its own) yourself. Whatever the mode, a write in kube-system, kube-public or kube-node-lease always needs a human, and the Runner never changes anything in its own namespace. See [AI SRE — Cluster access](/docs/ai/ai-sre) for what each mode may run, what the command policy refuses outright, and who may change the mode.
+
+**What the write access amounts to.** Patch/update on workloads, pods and CronJobs, and create on Jobs, in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets — a pod template can name any image, ServiceAccount and Secret volume. So the chart's RBAC bounds *where* the Runner may write, not what a write may do: the command policy refuses pod-template security patches, `set serviceaccount` and `create job --image`. With `aiAccess.remediation.namespaces` empty the write role is bound cluster-wide, which RBAC cannot keep out of kube-system, kube-public, kube-node-lease or the agent's own namespace; there the policy and the Runner hold the line. List namespaces and the chart binds it in those alone, and the Runner refuses a write anywhere else.
 
 | Value | Default | What it does |
 | --- | --- | --- |
-| `aiAccess.enabled` | `false` | Deploy the in-cluster Runner with read-only RBAC and register it to this cluster. |
-| `aiAccess.remediation.enabled` | `false` | Also grant the write verbs OneUptime AI's fixes use (rollout restart/undo, scale, cordon/uncordon, label/annotate, patch, and delete on pods and jobs only). The RBAC never grants exec, attach, port-forward, secrets, CRDs, or deleting namespaces, volumes or nodes; the command policy additionally refuses `apply`/`edit`/`replace`, `--all-namespaces` writes and `delete --all`, which RBAC alone would allow. |
-| `aiAccess.image.repository` / `aiAccess.image.tag` | `oneuptime/runner` / `release` | The Runner image. Pin a tag to hold it. |
-| `aiAccess.image.pullPolicy` | `IfNotPresent` | Pull policy for the Runner image. |
+| `aiAccess.enabled` | `false` | Deploy the in-cluster Runner with read-only RBAC (cluster-wide) and register it to this cluster. |
+| `aiAccess.remediation.enabled` | `false` | Also grant the write verbs OneUptime AI's fixes use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets (and their scale subresource), Jobs, CronJobs, Pods and HPAs; create on Jobs and HPAs; delete on Pods and Jobs only. It never grants Secrets, `exec`, `attach`, `port-forward`, CRDs or RBAC writes, so a change to any other kind — deleting a Deployment, labelling a Service or ConfigMap — fails with `Forbidden` even when approved. |
+| `aiAccess.remediation.namespaces` | `[]` | Bind the write role only in these namespaces, one RoleBinding each; the Runner refuses writes elsewhere. Empty binds it cluster-wide. The agent's own namespace cannot be listed. |
+| `aiAccess.remediation.nodeOperations` | `true` | With `remediation.enabled`, also grant cordon/uncordon/taint (patch on nodes) and drain (pod evictions), cluster-wide. Set `false` to keep fixes off nodes. |
+| `aiAccess.image.repository` / `aiAccess.image.tag` | `oneuptime/runner` / `release` | The Runner image. `release` moves with every OneUptime release; pin a version to hold it. |
+| `aiAccess.image.pullPolicy` | `Always` for `release`, `IfNotPresent` for a pinned tag | Leave empty for that default, so a node's cached Runner never outlives an upgrade. |
 | `aiAccess.resources` | `50m` / `128Mi` requests, `500m` / `512Mi` limits | The Runner idles between commands. |
-| `aiAccess.extraEnv` | `[]` | Extra `EnvVar` objects for the Runner container — e.g. `HTTPS_PROXY` / `NO_PROXY` behind an egress proxy. |
+| `aiAccess.extraEnv` | `[]` | Extra `EnvVar` objects for the Runner container — e.g. `HTTPS_PROXY` / `NO_PROXY` behind an egress proxy. Names the chart sets itself (such as `ONEUPTIME_KUBECTL_ALLOW_WRITES`, `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` or `ONEUPTIME_KUBERNETES_CLUSTER_NAME`) fail the render instead of silently replacing the chart's value. |
 
 If the AI page still says the Runner is not connected after a couple of minutes, read its logs:
 

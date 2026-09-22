@@ -1,11 +1,18 @@
 # NOTES.txt for OneUptime AI access. The notes are the one place every
-# operator reads after `helm upgrade`, so they must (a) render at all on a
-# release whose stored values predate aiAccess — `--reuse-values` feeds the
-# templates the previous release's values, and a bare `.Values.aiAccess.enabled`
-# aborts the whole upgrade with "nil pointer evaluating interface {}" — and
-# (b) describe what the server actually does with the remediation switch: it
-# sets "ask for approval" only on a cluster's FIRST registration, and never
-# flips the mode of a cluster that was registered before.
+# operator reads after `helm upgrade`, so they must:
+#   (a) render at all on a release whose stored values predate aiAccess —
+#       `--reuse-values` feeds the templates the previous release's values,
+#       and a bare `.Values.aiAccess.enabled` aborts the whole upgrade with
+#       "nil pointer evaluating interface {}";
+#   (b) describe what the server actually does with the remediation switch:
+#       it sets "ask for approval" only on a cluster's FIRST registration, and
+#       never flips the mode of a cluster that was registered before;
+#   (c) offer an upgrade command that works on an existing install:
+#       `helm repo update` first (an old local index serves a chart whose
+#       schema rejects aiAccess.*), then the release's own name and namespace;
+#   (d) say what write access amounts to and where it is bound, and never
+#       call RBAC an outer bound: patch on workloads and pods is as good as
+#       running any image as any ServiceAccount in that namespace.
 #
 # helm-unittest only hands raw text to the regex asserts for NOTES.txt (for a
 # manifest template they see nil), which is why these live in their own suite
@@ -15,22 +22,33 @@ release:
   name: oneuptime-agent
   namespace: oneuptime
 tests:
-  - it: NOTES render on a pre-0.7.0 release upgraded with plain --reuse-values and offer the one-flag upgrade
+  - it: NOTES render on a release from a chart without aiAccess upgraded with plain --reuse-values and offer the one-flag upgrade after a repo update
     templates:
       - templates/NOTES.txt
     values:
-      - values/legacy-pre-0.7.0-no-ai.yaml
+      - values/legacy-pre-aiaccess-no-ai.yaml
     set:
       clusterName: prod-us
       oneuptime.url: https://oneuptime.example.com
       oneuptime.apiKey: key-123
     asserts:
+      # `helm repo update` on the line right before the upgrade, and the
+      # upgrade names this release and namespace.
       - matchRegexRaw:
-          pattern: "helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reuse-values --set aiAccess.enabled=true"
+          pattern: "  helm repo update\n  helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reuse-values --set aiAccess.enabled=true\n"
+      # Write access is a separate, optional step, not part of the command.
+      - matchRegexRaw:
+          pattern: "To also let it fix what it finds, add --set aiAccess.remediation.enabled=true"
+      - notMatchRegexRaw:
+          pattern: "--set aiAccess.enabled=true --set aiAccess.remediation.enabled=true"
       - matchRegexRaw:
           pattern: "--reset-then-reuse-values is the safer flag"
       - notMatchRegexRaw:
           pattern: "OneUptime AI access: an in-cluster Runner"
+      # Chart 0.7.0 is never published: released charts carry the OneUptime
+      # version, so a version number here would only mislead.
+      - notMatchRegexRaw:
+          pattern: "0\\.7\\.0"
 
   - it: NOTES tell a read-only install how to grant writes
     templates:
@@ -45,6 +63,11 @@ tests:
           pattern: "read-only kubectl while investigating incidents and alerts \\(add --set aiAccess.remediation.enabled=true to let it fix them too\\)"
       - matchRegexRaw:
           pattern: "kubectl logs -n oneuptime -l component=ai-runner --tail=100"
+      # Nothing about write scope on a read-only install.
+      - notMatchRegexRaw:
+          pattern: "Write access is bound"
+      - notMatchRegexRaw:
+          pattern: "Node operations"
 
   - it: NOTES never promise that an already-registered cluster flips to ask-for-approval
     templates:
@@ -60,20 +83,63 @@ tests:
       # registration; a cluster registered earlier keeps the mode on its AI
       # page. The copy must say both halves and not the old blanket claim.
       - matchRegexRaw:
-          pattern: "a cluster registering for the first time starts in \"ask for approval\""
+          pattern: 'a cluster registering for the first time starts in "ask for approval"'
       - matchRegexRaw:
           pattern: "a cluster that was already registered keeps the AI remediation mode chosen on its AI page"
       - notMatchRegexRaw:
           pattern: "ask for approval by default"
 
+  - it: NOTES say what cluster-wide write access amounts to and what holds the line in the system namespaces
+    templates:
+      - templates/NOTES.txt
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "patch on workloads and pods \\(and\ncreate on jobs\\) in a namespace is as good as running any image as any\nServiceAccount there and reading its Secrets"
+      - matchRegexRaw:
+          pattern: "Write access is bound cluster-wide. RBAC cannot keep it out of kube-system,\nkube-public, kube-node-lease or oneuptime"
+      - matchRegexRaw:
+          pattern: "--set \"aiAccess.remediation.namespaces=\\{web,api\\}\""
+      - matchRegexRaw:
+          pattern: "Node operations \\(cordon, uncordon, taint, drain\\) are on, cluster-wide"
+      # RBAC is not an outer bound on code execution or Secret access.
+      - notMatchRegexRaw:
+          pattern: "outer bound"
+
+  - it: NOTES name the namespaces write access is bound in when they are listed
+    templates:
+      - templates/NOTES.txt
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+      aiAccess.remediation.namespaces:
+        - prod
+        - web
+      aiAccess.remediation.nodeOperations: false
+    asserts:
+      - matchRegexRaw:
+          pattern: "Write access is bound only in: prod, web \\(aiAccess.remediation.namespaces\\)."
+      - notMatchRegexRaw:
+          pattern: "bound cluster-wide"
+      - matchRegexRaw:
+          pattern: "Node operations \\(cordon, uncordon, taint, drain\\) are off."
+
   # The same two upgrades on a release whose stored values predate aiAccess:
   # `.Values.aiAccess` holds only what --set passed, and NOTES must still
   # render the right branch rather than abort.
-  - it: NOTES render the read-only branch on a pre-0.7.0 release upgraded with the one flag
+  - it: NOTES render the read-only branch on a release from a chart without aiAccess upgraded with the one flag
     templates:
       - templates/NOTES.txt
     values:
-      - values/legacy-pre-0.7.0-ai-enabled.yaml
+      - values/legacy-pre-aiaccess-ai-enabled.yaml
     set:
       clusterName: prod-us
       oneuptime.url: https://oneuptime.example.com
@@ -90,11 +156,11 @@ tests:
       - notMatchRegexRaw:
           pattern: "--reuse-values --set aiAccess.enabled=true"
 
-  - it: NOTES render the write branch on a pre-0.7.0 release upgraded with both flags, without the blanket approval claim
+  - it: NOTES render the write branch on a release from a chart without aiAccess upgraded with both flags, without the blanket approval claim
     templates:
       - templates/NOTES.txt
     values:
-      - values/legacy-pre-0.7.0-ai-remediation.yaml
+      - values/legacy-pre-aiaccess-ai-remediation.yaml
     set:
       clusterName: prod-us
       oneuptime.url: https://oneuptime.example.com
@@ -103,8 +169,14 @@ tests:
       - matchRegexRaw:
           pattern: "investigate AND fix incidents"
       - matchRegexRaw:
-          pattern: "a cluster registering for the first time starts in \"ask for approval\""
+          pattern: 'a cluster registering for the first time starts in "ask for approval"'
       - matchRegexRaw:
           pattern: "a cluster that was already registered keeps the AI remediation mode chosen on its AI page"
       - notMatchRegexRaw:
           pattern: "ask for approval by default"
+      # No namespaces and no nodeOperations key in the stored values: the
+      # same fallbacks as templates/ai-runner.yaml.
+      - matchRegexRaw:
+          pattern: "Write access is bound cluster-wide"
+      - matchRegexRaw:
+          pattern: "Node operations \\(cordon, uncordon, taint, drain\\) are on, cluster-wide"
