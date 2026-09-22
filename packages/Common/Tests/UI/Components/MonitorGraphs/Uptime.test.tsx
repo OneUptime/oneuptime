@@ -8,9 +8,13 @@ import MonitorUptimeGraph, {
   ComponentProps,
 } from "../../../../UI/Components/MonitorGraphs/Uptime";
 import UptimeUtil from "../../../../UI/Components/MonitorGraphs/UptimeUtil";
-import { Green, Red } from "../../../../Types/BrandColors";
+import { UptimeBarDaySummary } from "../../../../UI/Components/Graphs/DayUptimeGraph";
+import { StatusDuration } from "../../../../UI/Components/Graphs/UptimeDaySummary";
+import { Green, Orange, Red } from "../../../../Types/BrandColors";
 import Color from "../../../../Types/Color";
 import ObjectID from "../../../../Types/ObjectID";
+import { UptimeDayBucket } from "../../../../Types/StatusPage/UptimeDailyAggregate";
+import UptimeBarTooltipIncident from "../../../../Types/Monitor/UptimeBarTooltipIncident";
 import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../../Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPageHistoryChartBarColorRule from "../../../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
@@ -297,5 +301,207 @@ describe("MonitorUptimeGraph - loading and recovery", () => {
       "aria-label",
       expect.stringContaining("100% uptime"),
     );
+  });
+});
+
+/*
+ * The server's day buckets. A day whose timeline rows were dropped by the
+ * fetch cap is painted from its bucket alone, and a bucket only names status
+ * ids, so the graph resolves each one to the status's name, colour, downtime
+ * flag and priority. Without the priority the bar could not take the colour
+ * of the day's worst status the way a day painted from rows does.
+ */
+describe("MonitorUptimeGraph - server buckets", () => {
+  type OnBarClickFunction = (
+    date: Date,
+    incidents: Array<UptimeBarTooltipIncident>,
+    summary: UptimeBarDaySummary,
+  ) => void;
+
+  interface BucketDuration {
+    status: MonitorStatus;
+    seconds: number;
+  }
+
+  function bucketFor(
+    day: string,
+    durations: Array<BucketDuration>,
+  ): UptimeDayBucket {
+    const bucketStart: Date = new Date(`${day}T00:00:00.000Z`);
+
+    return {
+      bucketStart: bucketStart,
+      bucketEnd: new Date(bucketStart.getTime() + 86400 * 1000),
+      daySeconds: 86400,
+      coveredSeconds: durations.reduce(
+        (sum: number, duration: BucketDuration) => {
+          return sum + duration.seconds;
+        },
+        0,
+      ),
+      statusDurations: durations.map((duration: BucketDuration) => {
+        return {
+          monitorStatusId: duration.status.id as ObjectID,
+          seconds: duration.seconds,
+        };
+      }),
+    };
+  }
+
+  function openBar(
+    onBarClick: ReturnType<typeof jest.fn<OnBarClickFunction>>,
+    index: number,
+  ): UptimeBarDaySummary {
+    fireEvent.click(screen.getAllByTestId("uptime-bar")[index] as HTMLElement);
+
+    const calls: Array<Parameters<OnBarClickFunction>> = onBarClick.mock.calls;
+
+    return calls[calls.length - 1]?.[2] as UptimeBarDaySummary;
+  }
+
+  test("bucket durations carry the status priority", () => {
+    const up: MonitorStatus = makeStatus(false);
+    const down: MonitorStatus = makeStatus(true);
+    const onBarClick: ReturnType<typeof jest.fn<OnBarClickFunction>> =
+      jest.fn<OnBarClickFunction>();
+
+    renderHistory({
+      items: [],
+      monitorStatuses: [up, down],
+      downtimeMonitorStatuses: [down],
+      uptimeBuckets: [
+        bucketFor("2026-01-02", [
+          { status: up, seconds: 43200 },
+          { status: down, seconds: 43200 },
+        ]),
+      ],
+      onBarClick: onBarClick,
+    });
+
+    const summary: UptimeBarDaySummary = openBar(onBarClick, 1);
+
+    expect(
+      summary.statusDurations.map((duration: StatusDuration) => {
+        return {
+          label: duration.label,
+          priority: duration.priority,
+          isDowntime: duration.isDowntime,
+        };
+      }),
+    ).toEqual([
+      { label: "Operational", priority: 1, isDowntime: false },
+      { label: "Offline", priority: 2, isDowntime: true },
+    ]);
+
+    // The day has no rows of its own, so the bucket paints it.
+    expect(summary.uptimePercent).toBe(50);
+    expect(screen.getAllByTestId("uptime-bar")[1]).toHaveStyle({
+      backgroundColor: Red.toString(),
+    });
+  });
+
+  test("the day takes the colour of its highest-priority status, not its downtime status", () => {
+    const up: MonitorStatus = makeStatus(false);
+    const down: MonitorStatus = makeStatus(true);
+
+    // A status ranked above Offline that the page does not count as down.
+    const maintenance: MonitorStatus = new MonitorStatus();
+    maintenance._id = "status-maintenance";
+    maintenance.name = "Maintenance";
+    maintenance.color = Orange;
+    maintenance.priority = 3;
+
+    renderHistory({
+      items: [],
+      monitorStatuses: [up, down, maintenance],
+      downtimeMonitorStatuses: [down],
+      uptimeBuckets: [
+        bucketFor("2026-01-02", [
+          { status: up, seconds: 60000 },
+          { status: down, seconds: 25800 },
+          { status: maintenance, seconds: 600 },
+        ]),
+      ],
+    });
+
+    expect(screen.getAllByTestId("uptime-bar")[1]).toHaveStyle({
+      backgroundColor: Orange.toString(),
+    });
+  });
+
+  test("a status the page holds no priority for leaves the duration without one", () => {
+    // The same two statuses, read without their priority column.
+    const up: MonitorStatus = new MonitorStatus();
+    up._id = "status-up";
+    up.name = "Operational";
+    up.color = Green;
+
+    const down: MonitorStatus = new MonitorStatus();
+    down._id = "status-down";
+    down.name = "Offline";
+    down.color = Red;
+
+    const onBarClick: ReturnType<typeof jest.fn<OnBarClickFunction>> =
+      jest.fn<OnBarClickFunction>();
+
+    renderHistory({
+      items: [],
+      monitorStatuses: [up, down],
+      downtimeMonitorStatuses: [down],
+      uptimeBuckets: [
+        bucketFor("2026-01-02", [
+          { status: up, seconds: 64800 },
+          { status: down, seconds: 21600 },
+        ]),
+      ],
+      onBarClick: onBarClick,
+    });
+
+    const summary: UptimeBarDaySummary = openBar(onBarClick, 1);
+
+    expect(
+      summary.statusDurations.map((duration: StatusDuration) => {
+        return duration.priority;
+      }),
+    ).toEqual([undefined, undefined]);
+
+    // With no priorities, the downtime status the day spent longest in.
+    expect(summary.uptimePercent).toBe(75);
+    expect(screen.getAllByTestId("uptime-bar")[1]).toHaveStyle({
+      backgroundColor: Red.toString(),
+    });
+  });
+
+  test("a day with timeline rows keeps its row-derived reading beside a bucket-only day", () => {
+    const up: MonitorStatus = makeStatus(false);
+    const down: MonitorStatus = makeStatus(true);
+    const onBarClick: ReturnType<typeof jest.fn<OnBarClickFunction>> =
+      jest.fn<OnBarClickFunction>();
+
+    renderHistory({
+      // Down 01:00-23:00 on Jan 2, from the rows.
+      items: [makeTimeline(down)],
+      monitorStatuses: [up, down],
+      downtimeMonitorStatuses: [down],
+      uptimeBuckets: [
+        bucketFor("2026-01-01", [
+          { status: up, seconds: 64800 },
+          { status: down, seconds: 21600 },
+        ]),
+        // Disagrees with the rows on purpose: the rows still decide Jan 2.
+        bucketFor("2026-01-02", [{ status: up, seconds: 86400 }]),
+      ],
+      onBarClick: onBarClick,
+    });
+
+    const bars: Array<HTMLElement> = screen.getAllByTestId("uptime-bar");
+
+    // Jan 1 has no rows, so its bucket paints it.
+    expect(openBar(onBarClick, 0).uptimePercent).toBe(75);
+    expect(bars[0]).toHaveStyle({ backgroundColor: Red.toString() });
+
+    // Jan 2 has rows, so they decide it, whatever its bucket says.
+    expect(openBar(onBarClick, 1).uptimePercent).toBe(0);
+    expect(bars[1]).toHaveStyle({ backgroundColor: Red.toString() });
   });
 });

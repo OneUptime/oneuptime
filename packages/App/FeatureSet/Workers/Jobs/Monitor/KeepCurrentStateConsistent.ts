@@ -19,14 +19,14 @@ import ObjectID from "Common/Types/ObjectID";
  *   - uptime math treats an open row as running until the next event, so a single orphan can
  *     render as months of phantom downtime.
  *
- * It also breaks this job's original purpose. MonitorService.refreshMonitorCurrentStatus
- * resolves the current status with findOneBy({ monitorId, endsAt: isNull() }) and no sort,
- * which falls back to ORDER BY createdAt DESC. While several open rows exist that query can
- * return the orphan rather than the true current row - createdAt is DB-side now() and startsAt
- * is the worker pod's clock, and on real data the two orderings disagree. So refreshing a
- * monitor's current status is only safe AFTER its stale rows are closed, at which point exactly
- * one open row remains and the lookup is unambiguous. That is the order used below, and the
- * refresh is deliberately limited to monitors this run actually repaired.
+ * It also blocks this job's original purpose. MonitorService.refreshMonitorCurrentStatus
+ * reads up to two open rows, newest startsAt first, and writes nothing unless exactly one
+ * comes back: with several open rows there is no telling which is the true current one
+ * (createdAt is DB-side now() and startsAt is the worker pod's clock, and on real data the two
+ * orderings disagree), so it refuses to guess rather than copy an orphan's status onto the
+ * monitor. A refresh therefore only does anything AFTER the monitor's stale rows are closed,
+ * when exactly one open row remains. That is the order used below, and the refresh is
+ * deliberately limited to monitors this run actually repaired.
  */
 
 RunCron(

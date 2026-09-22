@@ -174,6 +174,10 @@ jobs:
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
         run: npm run test-event-overview-ui
+      - name: Run Monitor Overview UI regressions
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        run: npm run test-monitor-overview-ui
       - name: Run Status Page Search UI regressions
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
@@ -214,6 +218,8 @@ jobs:
             output/playwright/trace-detail-ui/test-results
             output/playwright/event-overview-ui/*.png
             output/playwright/event-overview-ui/test-results
+            output/playwright/monitor-overview-ui/*.png
+            output/playwright/monitor-overview-ui/test-results
             output/playwright/status-page-search/test-results
             output/playwright/pencil-button/test-results
             output/playwright/alerts/*.png

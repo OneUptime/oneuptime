@@ -11,10 +11,25 @@ export interface ComponentProps {
   secretKey: ObjectID;
 }
 
+/*
+ * The address an incoming-email monitor receives on, or null when this
+ * server has no inbound email domain configured (so there is no address to
+ * show). Shared with the monitor overview's connection card.
+ */
+export function getIncomingEmailAddress(secretKey: ObjectID): string | null {
+  if (!INBOUND_EMAIL_DOMAIN) {
+    return null;
+  }
+
+  return `monitor-${secretKey.toString()}@${INBOUND_EMAIL_DOMAIN}`;
+}
+
 const IncomingEmailMonitorLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (!INBOUND_EMAIL_DOMAIN) {
+  const emailAddress: string | null = getIncomingEmailAddress(props.secretKey);
+
+  if (!emailAddress) {
     return (
       <Card
         title={`Incoming Email Address`}
@@ -43,8 +58,6 @@ const IncomingEmailMonitorLink: FunctionComponent<ComponentProps> = (
       />
     );
   }
-
-  const emailAddress: string = `monitor-${props.secretKey.toString()}@${INBOUND_EMAIL_DOMAIN}`;
 
   return (
     <>

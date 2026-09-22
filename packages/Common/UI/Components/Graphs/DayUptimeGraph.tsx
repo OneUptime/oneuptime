@@ -79,10 +79,10 @@ export interface ComponentProps {
   events: Array<Event>;
   /*
    * Server-measured coverage per day. When a day has a reading, it decides
-   * whether that day has data and what its durations are; the `events` array
-   * is then only used for incident overlays. When absent - the dashboard
-   * monitor page, which does not fetch the aggregate - the old event-derived
-   * behaviour applies unchanged.
+   * whether that day has data and what its durations are. It also decides the
+   * day's percentage and colour, but only on a day with no events of its own
+   * (see getUptimeBar): a day that still has its rows keeps the event-derived
+   * reading. When absent, the old event-derived behaviour applies unchanged.
    */
   dayReadings?: Array<DayReading> | undefined;
   height?: number | undefined;
@@ -104,6 +104,62 @@ export interface ComponentProps {
    */
   labels?: UptimeHistoryLabels | undefined;
 }
+
+type GetReadingBarColorFunction = (
+  statusDurations: Array<StatusDuration>,
+  defaultBarColor: Color,
+) => Color;
+
+/*
+ * The colour of a day painted from the server's reading alone.
+ *
+ * The events path paints a day in the colour of its highest-priority status,
+ * so this does the same with the reading's durations. A status the day spent
+ * no time in cannot win, and two statuses at the same priority go to the one
+ * the day spent longer in. A caller that did not say what its statuses'
+ * priorities are still gets its worst time shown: the downtime status the
+ * day spent longest in, and only a day with no downtime at all gets the
+ * operator's colour.
+ */
+const getReadingBarColor: GetReadingBarColorFunction = (
+  statusDurations: Array<StatusDuration>,
+  defaultBarColor: Color,
+): Color => {
+  let highestPriority: StatusDuration | null = null;
+
+  for (const duration of statusDurations) {
+    if (duration.seconds <= 0 || typeof duration.priority !== "number") {
+      continue;
+    }
+
+    if (
+      !highestPriority ||
+      duration.priority > (highestPriority.priority as number) ||
+      (duration.priority === highestPriority.priority &&
+        duration.seconds > highestPriority.seconds)
+    ) {
+      highestPriority = duration;
+    }
+  }
+
+  if (highestPriority) {
+    return highestPriority.color;
+  }
+
+  let longestDowntime: StatusDuration | null = null;
+
+  for (const duration of statusDurations) {
+    if (!duration.isDowntime || duration.seconds <= 0) {
+      continue;
+    }
+
+    if (!longestDowntime || duration.seconds > longestDowntime.seconds) {
+      longestDowntime = duration;
+    }
+  }
+
+  return longestDowntime ? longestDowntime.color : defaultBarColor;
+};
 
 const DayUptimeGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -331,6 +387,69 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
     }
 
     /*
+     * Whether the server's reading, rather than the events, decides this
+     * day's percentage and colour.
+     *
+     * The events the browser holds arrive under a fetch cap that silently
+     * drops history, so a day whose rows were all dropped has no events here
+     * even though the server measured it. Before this, such a day was painted
+     * the operator's default colour at 100% - a day spent entirely offline
+     * read as a perfect one. On that day the reading is the only account of
+     * what happened, so it is used.
+     *
+     * A day that still has events keeps the event-derived reading exactly as
+     * before, even when a reading exists too. That keeps this change to the
+     * days that were being painted as perfect with nothing to show for it, so
+     * a public status page looks the same on every day it still has rows for.
+     * A reading with no durations says nothing about how the day was spent,
+     * so it keeps the old quiet-day treatment below.
+     */
+    const readingDecidesTheDay: boolean = Boolean(
+      todaysReading &&
+        todaysReading.coveredSeconds > 0 &&
+        todaysReading.statusDurations.length > 0 &&
+        todaysEvents.length === 0,
+    );
+
+    if (readingDecidesTheDay && todaysReading) {
+      /*
+       * Downtime is the time spent in a status the caller counts as down, over
+       * the seconds the server actually covered. A duration carries no status
+       * id, so its isDowntime flag is the caller's answer, set from the same
+       * downtime statuses it passes as downtimeEventStatusIds. Clamped, so a
+       * reading whose durations overrun its coverage reads as a fully down
+       * day rather than as a negative uptime.
+       */
+      const downtimeInReading: number = todaysReading.statusDurations.reduce(
+        (sum: number, duration: StatusDuration) => {
+          return duration.isDowntime
+            ? sum + Math.max(duration.seconds, 0)
+            : sum;
+        },
+        0,
+      );
+
+      totalDowntimeInSeconds = Math.min(
+        downtimeInReading,
+        todaysReading.coveredSeconds,
+      );
+      totalUptimeInSeconds =
+        todaysReading.coveredSeconds - totalDowntimeInSeconds;
+
+      /*
+       * With bar rules, the rules below choose the colour from the reading's
+       * percentage, and a day no rule matches keeps the default colour, as
+       * it does on the events path.
+       */
+      if (!props.barColorRules || props.barColorRules.length === 0) {
+        color = getReadingBarColor(
+          todaysReading.statusDurations,
+          props.defaultBarColor || Green,
+        );
+      }
+    }
+
+    /*
      * Does this day have data at all?
      *
      * With a server reading, coverage is the answer and it is authoritative -
@@ -391,14 +510,16 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
      * the fetch cap had thrown away.
      *
      * Now the two are separated. A day with data but no events of its own is
-     * an ordinary good day and still gets the operator's colour. A day with
-     * no data gets the fixed no-data treatment and says so.
+     * an ordinary good day and still gets the operator's colour, unless the
+     * server's reading says how the day was spent, in which case the colour
+     * chosen from that reading above stands. A day with no data gets the
+     * fixed no-data treatment and says so.
      */
     hasEvents = hasDataForTheDay;
 
     if (!hasDataForTheDay) {
       color = NO_DATA_BAR_COLOR;
-    } else if (todaysEvents.length === 0) {
+    } else if (todaysEvents.length === 0 && !readingDecidesTheDay) {
       color = props.defaultBarColor || Green;
     }
 

@@ -98,6 +98,12 @@ const EXCEPTION_TABLE: string = readSource(
   "Exceptions",
   "ExceptionInstanceTable.tsx",
 );
+const TRACE_MONITOR_PREVIEW: string = readSource(
+  "Components",
+  "Monitor",
+  "TraceMonitor",
+  "TraceMonitorPreview.tsx",
+);
 
 describe("a stored log monitor window resolves to a pinned picker range", () => {
   /*
@@ -340,6 +346,33 @@ describe("the monitor step's logs preview keeps its rolling window", () => {
     expect(LOG_MONITOR_PREVIEW).toContain(
       'delete (query as Record<string, unknown>)["time"];',
     );
+  });
+});
+
+describe("the monitor's trace preview keeps its rolling window", () => {
+  test("drops the evaluation window before handing the query to the table", () => {
+    /*
+     * The same choice as the logs preview above. toQuery() stamps a
+     * startTime of "now minus the monitor's window", resolved once, so a
+     * trace monitor's overview kept showing the spans from before the page
+     * opened and emptied out a minute later.
+     */
+    expect(TRACE_MONITOR_PREVIEW).toContain(
+      'delete (query as Record<string, unknown>)["startTime"];',
+    );
+  });
+
+  test("builds the query once per filter, not once per render", () => {
+    /*
+     * TraceTable re-syncs, and so refetches, whenever it is handed a new
+     * query object. The overview re-renders on every poll, so an unmemoised
+     * query meant a span fetch every minute for nothing.
+     */
+    expect(TRACE_MONITOR_PREVIEW).toContain("useMemo");
+    expect(TRACE_MONITOR_PREVIEW).toMatch(
+      /const spanQuery: Query<Span> = useMemo\(/,
+    );
+    expect(TRACE_MONITOR_PREVIEW).toContain("spanQuery={spanQuery}");
   });
 });
 

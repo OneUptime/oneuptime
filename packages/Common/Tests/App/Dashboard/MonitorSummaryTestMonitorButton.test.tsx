@@ -7,7 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  RenderResult,
+  screen,
+  within,
+} from "@testing-library/react";
 import * as React from "react";
 import Permission from "../../../Types/Permission";
 
@@ -80,11 +87,46 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
+/*
+ * SummaryInfo is the real component, wrapped so each render's props are
+ * recorded: "what did the card show on its very first commit" cannot be
+ * asserted after the fact from the DOM alone, because effects have run by
+ * the time render() returns.
+ */
+const mockSummaryInfoRenders: Array<Record<string, unknown>> = [];
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryInfo",
+  () => {
+    const actual: {
+      default: React.FunctionComponent<Record<string, unknown>>;
+    } = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryInfo",
+    ) as { default: React.FunctionComponent<Record<string, unknown>> };
+    const ReactModule: typeof React = jest.requireActual(
+      "react",
+    ) as typeof React;
+
+    return {
+      __esModule: true,
+      default: (props: Record<string, unknown>): React.ReactElement => {
+        mockSummaryInfoRenders.push(props);
+        return ReactModule.createElement(actual.default, props);
+      },
+    };
+  },
+);
+
 import Summary from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/Summary";
 import Probe from "../../../Models/DatabaseModels/Probe";
+import { MonitorStepProbeResponse } from "../../../Models/DatabaseModels/MonitorProbe";
+import Dictionary from "../../../Types/Dictionary";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
+import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import ServerMonitorResponse from "../../../Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "../../../Types/ObjectID";
 
 const MONITOR_ID: string = "11111111-1111-4111-8111-111111111111";
@@ -162,6 +204,7 @@ function probePicker(): HTMLElement | null {
 
 beforeEach(() => {
   currentPermissions = [Permission.ProjectAdmin];
+  mockSummaryInfoRenders.length = 0;
 });
 
 afterEach(() => {
@@ -204,6 +247,24 @@ describe("the summary card offers a test", () => {
     expect(testButton()).toBeInTheDocument();
     expect(probePicker()).toBeInTheDocument();
     expect(screen.getByText("Showing results from:")).toBeInTheDocument();
+  });
+
+  test("the picker and the button get a row of their own under the title", () => {
+    /*
+     * In the overview's two-thirds column, side by side they squeezed the
+     * title and description into a column a word or two wide.
+     */
+    renderSummary();
+
+    expect(screen.getByTestId("card-header")).toHaveAttribute(
+      "data-header-layout",
+      "stacked",
+    );
+    const actions: HTMLElement = screen.getByTestId("card-header-actions");
+    expect(within(actions).getByTestId("test-monitor-button")).toBeTruthy();
+    expect(
+      within(actions).getByText("Showing results from:"),
+    ).toBeInTheDocument();
   });
 
   test("the button is offered for every probeable monitor type", () => {
@@ -338,5 +399,303 @@ describe("what the card hands the test form", () => {
     renderSummary({ withoutMonitorId: true });
 
     expect(testButton()).toBeInTheDocument();
+  });
+});
+
+/*
+ * The overview redesign's changes to the card: the picked probe is worked
+ * out during render (so the first paint is already right), the criteria
+ * verdict follows the picked probe, and the three situations a generic "no
+ * summary" used to cover - probes unreadable, agent never reported, and a
+ * verdict that belongs to another probe - each say what is true.
+ */
+
+const SECOND_PROBE_ID: string = "66666666-6666-4666-8666-666666666666";
+
+function pingResponse(
+  probeId: string,
+  failureCause: string,
+): MonitorStepProbeResponse {
+  return {
+    "step-1": {
+      probeId: new ObjectID(probeId),
+      monitorStepId: "step-1",
+      isOnline: false,
+      failureCause: failureCause,
+      monitoredAt: new Date("2026-09-21T11:59:00.000Z"),
+    },
+  } as unknown as MonitorStepProbeResponse;
+}
+
+function evaluation(criteriaName: string): MonitorEvaluationSummary {
+  return {
+    evaluatedAt: new Date("2026-09-21T11:59:00.000Z"),
+    criteriaResults: [
+      {
+        criteriaName: criteriaName,
+        filterCondition: FilterCondition.All,
+        met: false,
+        message: `${criteriaName} was not met`,
+        filters: [],
+      },
+    ],
+    events: [],
+  };
+}
+
+interface CardOptions {
+  monitorType?: MonitorType | undefined;
+  probes?: Array<Probe> | undefined;
+  disabledProbeIds?: Array<string> | undefined;
+  monitorSteps?: MonitorSteps | undefined;
+  probeMonitorResponses?: Array<MonitorStepProbeResponse> | undefined;
+  evaluationSummary?: MonitorEvaluationSummary | undefined;
+  evaluationSummariesByProbeId?:
+    | Dictionary<MonitorEvaluationSummary>
+    | undefined;
+  probeLoadError?: string | undefined;
+  description?: string | undefined;
+  serverMonitorResponse?: ServerMonitorResponse | undefined;
+}
+
+function renderCard(options: CardOptions): RenderResult {
+  return render(
+    <Summary
+      monitorType={options.monitorType || MonitorType.Ping}
+      monitorId={new ObjectID(MONITOR_ID)}
+      monitorSteps={options.monitorSteps}
+      probes={options.probes || ATTACHED_PROBES}
+      disabledProbeIds={options.disabledProbeIds}
+      probeMonitorResponses={options.probeMonitorResponses}
+      evaluationSummary={options.evaluationSummary}
+      evaluationSummariesByProbeId={options.evaluationSummariesByProbeId}
+      probeLoadError={options.probeLoadError}
+      description={options.description}
+      serverMonitorResponse={options.serverMonitorResponse}
+    />,
+  );
+}
+
+function lastSummaryInfoProps(): Record<string, unknown> {
+  const props: Record<string, unknown> | undefined =
+    mockSummaryInfoRenders[mockSummaryInfoRenders.length - 1];
+
+  if (!props) {
+    throw new Error("SummaryInfo was never rendered");
+  }
+
+  return props;
+}
+
+function pickProbe(name: string): void {
+  const combobox: HTMLElement = screen.getByRole("combobox");
+  fireEvent.keyDown(combobox, { key: "ArrowDown", code: "ArrowDown" });
+  fireEvent.click(screen.getByText(name));
+}
+
+const TWO_PROBES: Array<Probe> = [
+  probe(PROBE_ID, "Ohio Probe"),
+  probe(SECOND_PROBE_ID, "London Probe"),
+];
+
+describe("the summary card's first paint", () => {
+  test("no 'has not reported' text on the first commit when the selected probe has responses", () => {
+    renderCard({
+      probeMonitorResponses: [pingResponse(PROBE_ID, "Host unreachable")],
+    });
+
+    // Every render, the first included, already had the probe's result.
+    expect(mockSummaryInfoRenders.length).toBeGreaterThan(0);
+    for (const props of mockSummaryInfoRenders) {
+      expect(props["probeName"]).toBe("Ohio Probe");
+      expect((props["probeMonitorResponses"] as Array<unknown>).length).toBe(1);
+    }
+
+    expect(screen.queryByText(/has not reported a result yet/)).toBeNull();
+    expect(screen.getByText("Host unreachable")).toBeInTheDocument();
+  });
+
+  test("the summary scrolls inside the card instead of widening the page", () => {
+    /*
+     * The per-type views put four quarter-width cards in one row, wider
+     * than a phone; the page must never scroll sideways because of them.
+     */
+    renderCard({
+      probeMonitorResponses: [pingResponse(PROBE_ID, "Host unreachable")],
+    });
+
+    const body: HTMLElement = screen.getByTestId("monitor-summary-body");
+    expect(body).toHaveClass("overflow-x-auto");
+    expect(within(body).getByText("Host unreachable")).toBeInTheDocument();
+  });
+
+  test("a probe with no result yet says so by name, once there really is nothing", () => {
+    renderCard({ probeMonitorResponses: [] });
+
+    expect(
+      screen.getByText(
+        "Ohio Probe has not reported a result yet. Results usually appear within a few minutes of its next check.",
+      ),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("the summary card when probe results cannot be read", () => {
+  test("probeLoadError replaces the no-probes message", () => {
+    renderCard({ probes: [] });
+    expect(
+      screen.getByText(
+        "No probes are monitoring this resource. Add one under Probes to start collecting data.",
+      ),
+    ).toBeInTheDocument();
+    cleanup();
+
+    renderCard({
+      probes: [],
+      probeLoadError: "You do not have permission to read this Monitor Probe.",
+    });
+
+    expect(
+      screen.getByText(
+        "Probe results are unavailable. You do not have permission to read this Monitor Probe.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/No probes are monitoring this resource/),
+    ).toBeNull();
+  });
+
+  test("with an error there is no picker and no Test button, even with probes", () => {
+    renderCard({
+      monitorSteps: stepsWith(1),
+      probeLoadError: "Network error.",
+    });
+
+    expect(probePicker()).not.toBeInTheDocument();
+    expect(testButton()).not.toBeInTheDocument();
+    expect(mockSummaryInfoRenders).toHaveLength(0);
+  });
+});
+
+describe("the criteria verdict follows the picked probe", () => {
+  test("per-probe evaluation follows the picker", () => {
+    const ohio: MonitorEvaluationSummary = evaluation("Ohio criteria");
+    const london: MonitorEvaluationSummary = evaluation("London criteria");
+
+    renderCard({
+      probes: TWO_PROBES,
+      probeMonitorResponses: [
+        pingResponse(PROBE_ID, "Ohio says no"),
+        pingResponse(SECOND_PROBE_ID, "London says no"),
+      ],
+      // The newest verdict overall is London's.
+      evaluationSummary: london,
+      evaluationSummariesByProbeId: {
+        [PROBE_ID]: ohio,
+        [SECOND_PROBE_ID]: london,
+      },
+    });
+
+    expect(lastSummaryInfoProps()["evaluationSummary"]).toBe(ohio);
+    expect(screen.getByText("Ohio says no")).toBeInTheDocument();
+
+    pickProbe("London Probe");
+
+    expect(lastSummaryInfoProps()["probeName"]).toBe("London Probe");
+    expect(lastSummaryInfoProps()["evaluationSummary"]).toBe(london);
+    expect(screen.getByText("London says no")).toBeInTheDocument();
+    expect(screen.queryByText("Ohio says no")).toBeNull();
+  });
+
+  test("a note says which probe the newest verdict came from", () => {
+    const london: MonitorEvaluationSummary = evaluation("London criteria");
+
+    renderCard({
+      probes: TWO_PROBES,
+      evaluationSummary: london,
+      evaluationSummariesByProbeId: { [SECOND_PROBE_ID]: london },
+    });
+
+    // Ohio is picked first and has no verdict of its own.
+    expect(lastSummaryInfoProps()["evaluationSummary"]).toBeUndefined();
+    expect(
+      screen.getByTestId("monitor-summary-other-evaluation"),
+    ).toHaveTextContent(
+      "The latest criteria evaluation came from London Probe. Pick it above to see why it passed or failed.",
+    );
+
+    pickProbe("London Probe");
+
+    expect(lastSummaryInfoProps()["evaluationSummary"]).toBe(london);
+    expect(screen.queryByTestId("monitor-summary-other-evaluation")).toBeNull();
+  });
+
+  test("without per-probe verdicts the newest one is shown, as before", () => {
+    const latest: MonitorEvaluationSummary = evaluation("Any criteria");
+
+    renderCard({ probes: TWO_PROBES, evaluationSummary: latest });
+
+    expect(lastSummaryInfoProps()["evaluationSummary"]).toBe(latest);
+    expect(screen.queryByTestId("monitor-summary-other-evaluation")).toBeNull();
+  });
+});
+
+describe("the summary card's header and empty states", () => {
+  test("no right element at all when there are no probes", () => {
+    renderCard({ probes: [] });
+
+    expect(probePicker()).not.toBeInTheDocument();
+    /*
+     * With neither a right element nor buttons the title takes the whole
+     * width. An empty fragment in the slot used to count as a right element
+     * and reserve an empty column.
+     */
+    expect(
+      screen.getByTestId("card-details-heading").parentElement,
+    ).toHaveClass("w-full");
+  });
+
+  test("a server that has never reported says so instead of rendering an empty card", () => {
+    renderCard({ monitorType: MonitorType.Server });
+
+    expect(
+      screen.getByText(
+        "No report from the server agent yet. Install the agent to start sending data; setup instructions are under Documentation.",
+      ),
+    ).toBeInTheDocument();
+    expect(mockSummaryInfoRenders).toHaveLength(0);
+    cleanup();
+
+    renderCard({
+      monitorType: MonitorType.Server,
+      serverMonitorResponse: {
+        hostname: "web-01",
+        requestReceivedAt: new Date("2026-09-21T11:59:00.000Z"),
+      } as ServerMonitorResponse,
+    });
+
+    expect(mockSummaryInfoRenders.length).toBeGreaterThan(0);
+    expect(
+      screen.queryByText(/No report from the server agent yet/),
+    ).toBeNull();
+  });
+
+  test("the description can be overridden, and defaults to the old copy", () => {
+    renderCard({
+      description: "What each probe saw on its most recent check.",
+    });
+
+    expect(screen.getByTestId("card-description")).toHaveTextContent(
+      "What each probe saw on its most recent check.",
+    );
+    expect(
+      screen.getByRole("heading", { name: "Monitor Summary" }),
+    ).toBeInTheDocument();
+    cleanup();
+
+    renderCard({});
+    expect(screen.getByTestId("card-description")).toHaveTextContent(
+      "Here is how your monitor is performing at this moment.",
+    );
   });
 });

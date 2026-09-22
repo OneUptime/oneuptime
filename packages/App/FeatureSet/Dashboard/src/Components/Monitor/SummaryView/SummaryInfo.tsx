@@ -67,9 +67,9 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
       return (
         <div key={key} className="space-y-6">
           <ErrorMessage
-            message={
-              "No summary available for the selected probe. Should be few minutes for summary to show up. "
-            }
+            message={`${
+              props.probeName || "This probe"
+            } has not reported a result yet. Results usually appear within a few minutes of its next check.`}
           />
         </div>
       );
@@ -253,9 +253,9 @@ const SummaryInfo: FunctionComponent<ComponentProps> = (
 
     return (
       <ErrorMessage
-        message={
-          "No summary available for the selected probe. Should be few minutes for summary to show up. "
-        }
+        message={`${
+          props.probeName || "This probe"
+        } has not reported a result yet. Results usually appear within a few minutes of its next check.`}
       />
     );
   }

@@ -118,6 +118,11 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
               seconds: duration.seconds,
               color: status?.color || props.defaultBarColor,
               isDowntime: downtimeIds.includes(statusId),
+              /*
+               * So a day painted from this bucket alone takes the colour of
+               * its worst status, as a day painted from timeline rows does.
+               */
+              priority: status?.priority ?? undefined,
             };
           },
         ),

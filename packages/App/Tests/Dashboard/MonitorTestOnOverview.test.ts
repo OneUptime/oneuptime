@@ -80,7 +80,7 @@ describe("the monitor overview hands the summary card what a test needs", () => 
   });
 
   test("passes the steps the test would run", () => {
-    expect(source).toContain(squash("monitorSteps={monitor?.monitorSteps}"));
+    expect(source).toContain(squash("monitorSteps={monitor.monitorSteps}"));
   });
 });
 

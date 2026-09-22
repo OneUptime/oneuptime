@@ -620,12 +620,12 @@ describe("MonitorService.refreshMonitorCurrentStatus - bridging a repaired statu
     const findMonitor: jest.SpyInstance = jest
       .spyOn(MonitorService, "findOneById")
       .mockResolvedValue(fakeMonitor(OPERATIONAL_STATUS_ID));
-    jest.spyOn(MonitorStatusTimelineService, "findOneBy").mockResolvedValue(
+    jest.spyOn(MonitorStatusTimelineService, "findBy").mockResolvedValue([
       fakeTimelineRow({
         monitorStatusId: OFFLINE_STATUS_ID,
         projectId: PROJECT_ID,
       }),
-    );
+    ]);
     const monitorWrite: jest.SpyInstance = jest
       .spyOn(MonitorService, "updateOneById")
       .mockResolvedValue(1);
@@ -654,12 +654,12 @@ describe("MonitorService.refreshMonitorCurrentStatus - bridging a repaired statu
     jest
       .spyOn(MonitorService, "findOneById")
       .mockResolvedValue(fakeMonitor(OFFLINE_STATUS_ID));
-    jest.spyOn(MonitorStatusTimelineService, "findOneBy").mockResolvedValue(
+    jest.spyOn(MonitorStatusTimelineService, "findBy").mockResolvedValue([
       fakeTimelineRow({
         monitorStatusId: OFFLINE_STATUS_ID,
         projectId: PROJECT_ID,
       }),
-    );
+    ]);
     const monitorWrite: jest.SpyInstance = jest.spyOn(
       MonitorService,
       "updateOneById",
@@ -682,12 +682,12 @@ describe("MonitorService.refreshMonitorCurrentStatus - bridging a repaired statu
       _id: MONITOR_ID.toString(),
       currentMonitorStatusId: OPERATIONAL_STATUS_ID,
     } as unknown as Monitor);
-    jest.spyOn(MonitorStatusTimelineService, "findOneBy").mockResolvedValue(
+    jest.spyOn(MonitorStatusTimelineService, "findBy").mockResolvedValue([
       fakeTimelineRow({
         monitorStatusId: OFFLINE_STATUS_ID,
         projectId: PROJECT_ID,
       }),
-    );
+    ]);
     jest.spyOn(MonitorService, "updateOneById").mockResolvedValue(1);
     const bridge: jest.SpyInstance = mockBridge();
 
@@ -703,12 +703,12 @@ describe("MonitorService.refreshMonitorCurrentStatus - bridging a repaired statu
     jest
       .spyOn(MonitorService, "findOneById")
       .mockResolvedValue(fakeMonitor(OPERATIONAL_STATUS_ID));
-    jest.spyOn(MonitorStatusTimelineService, "findOneBy").mockResolvedValue(
+    jest.spyOn(MonitorStatusTimelineService, "findBy").mockResolvedValue([
       fakeTimelineRow({
         monitorStatusId: OFFLINE_STATUS_ID,
         projectId: PROJECT_ID,
       }),
-    );
+    ]);
     jest.spyOn(MonitorService, "updateOneById").mockResolvedValue(1);
     jest
       .spyOn(NetworkSiteService, "onMonitorStatusChanged")
