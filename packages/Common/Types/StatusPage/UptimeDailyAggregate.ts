@@ -107,4 +107,19 @@ export interface UptimeDailyAggregate {
    * false. Null when the whole window is covered.
    */
   completeFrom: Date | null;
+
+  /*
+   * The IANA zone the day buckets were cut in. Absent means UTC, which is
+   * what the server has always used when nobody asked for a zone.
+   *
+   * A client MUST draw its day bars on these same boundaries. The status page
+   * payload is one cached response shared by every visitor, so its buckets
+   * are UTC days - but the bars used to be drawn on the VISITOR's local days
+   * and a bucket was matched to whichever local day its start fell in. West
+   * of UTC that is the previous local day: every bar showed the next day's
+   * reading, and today's bar had no reading at all, so it fell back to the
+   * capped timeline rows and could come out grey. East of UTC, today's bar
+   * had no reading for the first hours of every local day.
+   */
+  timezone?: string | undefined;
 }

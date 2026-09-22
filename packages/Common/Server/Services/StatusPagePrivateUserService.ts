@@ -244,6 +244,7 @@ export class Service extends DatabaseService<Model> {
       {
         toEmail: createdItem.email!,
         subject: "You have been invited to " + statusPageName,
+        isSubjectLiteral: true,
         templateType: EmailTemplateType.StatusPageWelcomeEmail,
         vars: {
           statusPageName: statusPageName!,

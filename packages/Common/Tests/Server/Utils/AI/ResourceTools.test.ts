@@ -1149,13 +1149,39 @@ describe("resource query integration with real analytics SQL builders", () => {
       "toStartOfInterval(time, INTERVAL 1 MINUTE) >= toStartOfInterval(",
     );
     expect(statement.query).toContain(
-      "toStartOfInterval(time, INTERVAL 1 MINUTE) <= toStartOfInterval(",
+      "toStartOfInterval(time, INTERVAL 1 MINUTE) < {",
     );
     expect(result.dataForLlm).toContain(
       "Requested window: 2026-09-17T12:00:59.000Z – 2026-09-17T12:01:01.000Z",
     );
     expect(result.dataForLlm).toContain(
       "whole boundary minutes: 2026-09-17T12:00:00.000Z (inclusive) – 2026-09-17T12:02:00.000Z (exclusive)",
+    );
+  });
+
+  /*
+   * The histogram keeps only minutes that start before the end, so a
+   * minute-aligned end is the exclusive edge itself - the disclosure must not
+   * claim a minute the SQL no longer counts.
+   */
+  test("log histogram disclosure treats a minute-aligned end as the exclusive edge", async () => {
+    logs.mockRestore();
+    jest.spyOn(LogService, "executeQuery").mockResolvedValue({
+      json: async () => {
+        return { data: [] };
+      },
+    } as never);
+    const result: ToolExecutionResult =
+      await QueryResourceTelemetryTool.execute(
+        {
+          ...args(AIResourceType.Host, "logs"),
+          startTime: "2026-09-17T12:00:00.000Z",
+          endTime: "2026-09-17T12:05:00.000Z",
+        },
+        context(),
+      );
+    expect(result.dataForLlm).toContain(
+      "whole boundary minutes: 2026-09-17T12:00:00.000Z (inclusive) – 2026-09-17T12:05:00.000Z (exclusive)",
     );
   });
 

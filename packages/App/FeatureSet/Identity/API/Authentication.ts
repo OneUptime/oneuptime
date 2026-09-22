@@ -729,6 +729,7 @@ router.post(
         MailService.sendMail({
           toEmail: partialUser.email as Email,
           subject: "Welcome to OneUptime. Please verify your email.",
+          isSubjectLiteral: true,
           templateType: EmailTemplateType.SignupWelcomeEmail,
           vars: {
             name: (partialUser.name! as Name).toString(),
@@ -874,6 +875,7 @@ router.post(
         MailService.sendMail({
           toEmail: user.email!,
           subject: "Password Reset Request for OneUptime",
+          isSubjectLiteral: true,
           templateType: EmailTemplateType.ForgotPassword,
           vars: {
             homeURL: new URL(httpProtocol, host).toString(),
@@ -996,6 +998,7 @@ router.post(
       MailService.sendMail({
         toEmail: user.email!,
         subject: "Email Verified.",
+        isSubjectLiteral: true,
         templateType: EmailTemplateType.EmailVerified,
         vars: {
           homeURL: new URL(httpProtocol, host).toString(),
@@ -1111,6 +1114,7 @@ router.post(
       MailService.sendMail({
         toEmail: alreadySavedUser.email!,
         subject: "Password Changed.",
+        isSubjectLiteral: true,
         templateType: EmailTemplateType.PasswordChanged,
         vars: {
           homeURL: new URL(httpProtocol, host).toString(),

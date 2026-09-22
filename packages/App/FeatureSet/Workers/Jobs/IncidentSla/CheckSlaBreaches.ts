@@ -268,6 +268,7 @@ async function sendBreachNotification(data: {
           subject: `[SLA ${breachTypeStr} Breached] Incident ${incidentNumberStr} - ${incident.title}`,
         },
         subject: `[SLA ${breachTypeStr} Breached] Incident ${incidentNumberStr} - ${incident.title}`,
+        isSubjectLiteral: true,
       };
 
       const sms: SMSMessage = {

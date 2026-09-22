@@ -124,6 +124,21 @@ describe("SecurityEventConnectorCatalog - one definition per provider", () => {
 
     expect(new Set(paths).size).toBe(paths.length);
   });
+
+  /*
+   * The icon is a product's only mark beside its name in the Add connection
+   * picker and the Connections empty state. Three providers used to share
+   * one shield, which read as a mistake in a list of eight.
+   */
+  test("icons are unique so no two providers look alike in the picker or the empty state", () => {
+    const icons: Array<IconProp> = SecurityEventConnectorCatalog.map(
+      (definition: SecurityEventConnectorDefinition): IconProp => {
+        return definition.icon;
+      },
+    );
+
+    expect(new Set(icons).size).toBe(icons.length);
+  });
 });
 
 describe.each(DEFINITION_CASES)(

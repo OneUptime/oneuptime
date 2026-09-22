@@ -1,4 +1,5 @@
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
+import { isOAuth2WorkflowVariable } from "Common/Types/Workflow/WorkflowVariableOAuth";
 
 /**
  * Redaction of workflow-variable secrets out of anything that gets persisted
@@ -52,20 +53,35 @@ type GetSecretWorkflowVariableValuesFunction = (
  * boolean from the database, so both are accepted. A variable whose `isSecret`
  * was not selected reads as undefined and is treated as not secret — every
  * caller must therefore select the column.
+ *
+ * An OAuth 2.0 variable is secret whatever its flag says: its value is a
+ * bearer token, and it is the access token (not `content`, which it leaves
+ * empty) that ends up in a component's arguments. Its client secret and
+ * refresh token are never put into a run, but they are redacted too if a caller
+ * happened to select them, so no future code path can print one by accident.
  */
 export const getSecretWorkflowVariableValues: GetSecretWorkflowVariableValuesFunction =
   (variables: Array<WorkflowVariable>): Array<string> => {
-    return getSecretValuesForRedaction(
-      variables
-        .filter((variable: WorkflowVariable) => {
-          const isSecret: unknown = variable.isSecret;
+    const values: Array<string | undefined | null> = [];
 
-          return isSecret === true || isSecret === "true";
-        })
-        .map((variable: WorkflowVariable) => {
-          return variable.content as string;
-        }),
-    );
+    for (const variable of variables) {
+      if (isOAuth2WorkflowVariable(variable.variableType)) {
+        values.push(
+          variable.oauthAccessToken,
+          variable.oauthClientSecret,
+          variable.oauthRefreshToken,
+        );
+        continue;
+      }
+
+      const isSecret: unknown = variable.isSecret;
+
+      if (isSecret === true || isSecret === "true") {
+        values.push(variable.content);
+      }
+    }
+
+    return getSecretValuesForRedaction(values);
   };
 
 type RedactSecretsFromStringFunction = (

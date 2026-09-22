@@ -297,6 +297,7 @@ async function renderModal(
   props: {
     connection?: SecurityEventConnection;
     credentialsOnly?: boolean;
+    initialProvider?: SecurityEventConnectorProvider;
   } = {},
 ): Promise<{ onClose: CallbackMock; onSaved: CallbackMock }> {
   const onClose: CallbackMock = jest.fn<() => void>();
@@ -307,6 +308,7 @@ async function renderModal(
         <SecurityEventConnectionFormModal
           connection={props.connection}
           credentialsOnly={props.credentialsOnly}
+          initialProvider={props.initialProvider}
           onClose={onClose}
           onSaved={onSaved}
         />
@@ -747,6 +749,178 @@ describe("SecurityEventConnectionFormModal (create)", () => {
     ).toBeVisible();
     expect(onSaved).not.toHaveBeenCalled();
     expect(dialog()).toBeVisible();
+  });
+});
+
+/*
+ * A provider tile in the Connections empty state opens the create form with
+ * that provider already chosen. The Provider step is kept (so the choice
+ * shows, and can be changed); it just starts answered.
+ */
+describe("SecurityEventConnectionFormModal (initial provider)", () => {
+  beforeEach((): void => {
+    mockTransport();
+  });
+
+  afterEach((): void => {
+    cleanup();
+    jest.restoreAllMocks();
+  });
+
+  function checkedProviders(): Array<string> {
+    return within(screen.getByRole("radiogroup"))
+      .getAllByRole("radio")
+      .filter((radio: HTMLElement): boolean => {
+        return radio.getAttribute("aria-checked") === "true";
+      })
+      .map((radio: HTMLElement): string => {
+        return radio.textContent || "";
+      });
+  }
+
+  test("starts on the Provider step with that provider already selected, and only that one", async (): Promise<void> => {
+    await renderModal({
+      initialProvider: SecurityEventConnectorProvider.CrowdStrikeFalcon,
+    });
+
+    expect(
+      screen.getByRole("dialog", { name: "Add connection" }),
+    ).toBeVisible();
+    expect(activeStep()).toBe("Provider");
+    expect(
+      within(progress())
+        .getAllByRole("listitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual(["Provider", "Connection", "Credentials", "Polling"]);
+    expect(checkedProviders()).toHaveLength(1);
+    expect(checkedProviders()[0]).toContain("CrowdStrike Falcon");
+    expect(
+      screen.getByRole("radio", { name: /CrowdStrike Falcon/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByText("Provider is required.")).not.toBeInTheDocument();
+  });
+
+  test("Next goes straight to that provider's connection fields and setup guide", async (): Promise<void> => {
+    await renderModal({
+      initialProvider: SecurityEventConnectorProvider.CrowdStrikeFalcon,
+    });
+    await next();
+
+    expect(activeStep()).toBe("Connection");
+    expect(screen.getByText("CrowdStrike Falcon settings")).toBeVisible();
+    expect(screen.getByLabelText(/^Client ID/)).toBeVisible();
+    expect(
+      screen.getByRole("link", { name: /CrowdStrike Falcon setup guide/ }),
+    ).toHaveAttribute(
+      "href",
+      expect.stringMatching(/\/integrations\/crowdstrike-falcon$/),
+    );
+    expect(
+      screen.queryByLabelText(/^Okta organization URL/),
+    ).not.toBeInTheDocument();
+  });
+
+  test("the preselected provider can still be changed", async (): Promise<void> => {
+    await renderModal({
+      initialProvider: SecurityEventConnectorProvider.MicrosoftSentinel,
+    });
+    expect(checkedProviders()[0]).toContain("Microsoft Sentinel");
+
+    await chooseProvider("Okta System Log");
+    expect(checkedProviders()).toHaveLength(1);
+    expect(checkedProviders()[0]).toContain("Okta System Log");
+
+    await next();
+    expect(activeStep()).toBe("Connection");
+    expect(screen.getByLabelText(/^Okta organization URL/)).toBeVisible();
+    expect(
+      screen.queryByLabelText(/^Directory \(tenant\) ID/),
+    ).not.toBeInTheDocument();
+  });
+
+  test("creates the connection for the preselected provider without touching the Provider step", async (): Promise<void> => {
+    const { onSaved }: { onSaved: CallbackMock } = await renderModal({
+      initialProvider: SecurityEventConnectorProvider.OktaSystemLog,
+    });
+    await next();
+    fill(/^Okta organization URL/, OKTA_ORG_URL);
+    await next();
+    fireEvent.change(screen.getByLabelText(/^API token/), {
+      target: { value: OKTA_TOKEN },
+    });
+    await next();
+    expect(activeStep()).toBe("Polling");
+    fill(/^Name/, "Okta from the empty state");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(footerButton("Create connection"));
+    });
+
+    await waitFor((): void => {
+      expect(ModelAPI.create).toHaveBeenCalledTimes(1);
+    });
+    const created: { model: SecurityEventConnection } = jest.mocked(
+      ModelAPI.create,
+    ).mock.calls[0]?.[0] as { model: SecurityEventConnection };
+    expect(created.model.provider).toBe("okta");
+    expect(created.model.name).toBe("Okta from the empty state");
+    expect(created.model.config).toEqual({ orgUrl: OKTA_ORG_URL });
+    expect(JSON.parse(created.model.secrets || "{}")).toEqual({
+      apiToken: OKTA_TOKEN,
+    });
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  test("Test these settings sends the preselected provider", async (): Promise<void> => {
+    await renderModal({
+      initialProvider: SecurityEventConnectorProvider.OktaSystemLog,
+    });
+    await next();
+    fill(/^Okta organization URL/, OKTA_ORG_URL);
+    await next();
+    fireEvent.change(screen.getByLabelText(/^API token/), {
+      target: { value: OKTA_TOKEN },
+    });
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(testButton());
+    });
+
+    expect(await screen.findByText("All checks passed")).toBeVisible();
+    expect(lastPostBody()["provider"]).toBe("okta");
+  });
+
+  test("a value that is not a catalog provider selects nothing", async (): Promise<void> => {
+    await renderModal({
+      initialProvider:
+        "not-a-provider" as unknown as SecurityEventConnectorProvider,
+    });
+
+    expect(activeStep()).toBe("Provider");
+    expect(checkedProviders()).toEqual([]);
+    await next();
+    expect(activeStep()).toBe("Provider");
+    expect(await screen.findByText("Provider is required.")).toBeVisible();
+  });
+
+  test("editing ignores it: the saved connection's provider stays locked", async (): Promise<void> => {
+    await renderModal({
+      connection: oktaConnection(),
+      initialProvider: SecurityEventConnectorProvider.MicrosoftSentinel,
+    });
+
+    expect(
+      screen.getByRole("dialog", { name: "Edit connection: Acme Okta" }),
+    ).toBeVisible();
+    expect(screen.queryByRole("radiogroup")).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^Okta organization URL/)).toHaveValue(
+      OKTA_ORG_URL,
+    );
+    expect(
+      screen.queryByLabelText(/^Directory \(tenant\) ID/),
+    ).not.toBeInTheDocument();
   });
 });
 

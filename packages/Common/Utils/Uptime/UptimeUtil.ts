@@ -22,6 +22,61 @@ export interface UptimeWindow {
 
 export default class UptimeUtil {
   /**
+   * Chronological order for timeline rows, to the millisecond.
+   *
+   * Not OneUptimeDate.isAfter: that compares at SECOND granularity, so two
+   * rows that start within the same wall-clock second compare as equal and
+   * keep whatever order they arrived in. The server sends rows newest-first,
+   * and a flapping monitor writes most of its transitions within a second of
+   * each other (Offline at 12:47:40.326, back to Operational at .540). Left in
+   * arrival order, the still-open Operational row sorted BEFORE the Offline
+   * row it follows, took that row's start as its own end, and ended before it
+   * began. The monitor's current status then never reached "now", so today's
+   * bar had nothing in it and was painted the no-events colour - grey on a
+   * page whose default bar colour is grey - while the monitor was up.
+   *
+   * On an exact tie a closed row sorts before an open one, so the open row is
+   * the one that runs on to the next row or to now. This is the order
+   * getRollingUptimeTotals and getDailyUptimeAggregate use server-side
+   * (`ORDER BY startsAt, endsAt NULLS LAST`); the zero-length row a backfill
+   * tie leaves behind can then never cut the open row short.
+   */
+  public static compareTimelinesChronologically(
+    a: MonitorStatusTimeline,
+    b: MonitorStatusTimeline,
+  ): number {
+    if (!a.startsAt || !b.startsAt) {
+      return 0;
+    }
+
+    const startDifference: number =
+      OneUptimeDate.fromString(a.startsAt).getTime() -
+      OneUptimeDate.fromString(b.startsAt).getTime();
+
+    if (startDifference !== 0) {
+      return startDifference;
+    }
+
+    if (!a.endsAt && !b.endsAt) {
+      return 0;
+    }
+
+    // closed before open.
+    if (!a.endsAt) {
+      return 1;
+    }
+
+    if (!b.endsAt) {
+      return -1;
+    }
+
+    return (
+      OneUptimeDate.fromString(a.endsAt).getTime() -
+      OneUptimeDate.fromString(b.endsAt).getTime()
+    );
+  }
+
+  /**
    * This function, `getMonitorEventsForId`, takes a `monitorId` as an argument and returns an array of `MonitorEvent` objects.
    * @param {ObjectID} monitorId - The ID of the monitor for which events are to be fetched.
    * @param {UptimeWindow | undefined} window - If supplied, events are clipped to this window and events outside it are dropped.
@@ -34,25 +89,15 @@ export default class UptimeUtil {
   ): Array<MonitorEvent> {
     // Initialize an empty array to store the monitor events.
 
-    // make sure items are sorted by start date.
+    // make sure items are sorted by start date - to the millisecond, see compareTimelinesChronologically.
 
     let items: Array<MonitorStatusTimeline> = [...statusTimelineItems];
 
-    items = items.sort((a: MonitorStatusTimeline, b: MonitorStatusTimeline) => {
-      if (!a.startsAt || !b.startsAt) {
-        return 0;
-      }
-
-      if (OneUptimeDate.isAfter(a.startsAt!, b.startsAt!)) {
-        return 1;
-      }
-
-      if (OneUptimeDate.isAfter(b.startsAt!, a.startsAt!)) {
-        return -1;
-      }
-
-      return 0;
-    });
+    items = items.sort(
+      (a: MonitorStatusTimeline, b: MonitorStatusTimeline): number => {
+        return UptimeUtil.compareTimelinesChronologically(a, b);
+      },
+    );
 
     const eventList: Array<MonitorEvent> = [];
 
@@ -122,6 +167,17 @@ export default class UptimeUtil {
         ) {
           continue;
         }
+      } else if (
+        OneUptimeDate.fromString(eventEndDate).getTime() <
+        OneUptimeDate.fromString(eventStartDate).getTime()
+      ) {
+        /*
+         * An event that ends before it starts covers nothing. Kept, it counts
+         * negative seconds, which the day bars and the downtime sums then
+         * subtract from real time. A row can only produce one from a corrupt
+         * endsAt now that the rows are sorted to the millisecond.
+         */
+        continue;
       }
 
       // Push a new MonitorEvent object to the eventList array with properties from the current item and calculated dates.
@@ -138,6 +194,17 @@ export default class UptimeUtil {
 
     // Return the populated eventList array.
     return eventList;
+  }
+
+  /*
+   * Start-date order for events, to the millisecond rather than to the second
+   * OneUptimeDate.isAfter compares at. Ties keep their existing order.
+   */
+  public static compareEventsByStartDate(a: Event, b: Event): number {
+    return (
+      OneUptimeDate.fromString(a.startDate).getTime() -
+      OneUptimeDate.fromString(b.startDate).getTime()
+    );
   }
 
   public static getNonOverlappingMonitorEvents(
@@ -269,17 +336,13 @@ export default class UptimeUtil {
       eventList.push(...monitorEvents);
     }
 
-    // sort event list by start date.
-    eventList.sort((a: MonitorEvent, b: MonitorEvent) => {
-      if (OneUptimeDate.isAfter(a.startDate, b.startDate)) {
-        return 1;
-      }
-
-      if (OneUptimeDate.isAfter(b.startDate, a.startDate)) {
-        return -1;
-      }
-
-      return 0;
+    /*
+     * sort event list by start date, to the millisecond. Events from several
+     * monitors (a monitor group) that start within the same second must still
+     * come out in the order they happened - see compareTimelinesChronologically.
+     */
+    eventList.sort((a: MonitorEvent, b: MonitorEvent): number => {
+      return UptimeUtil.compareEventsByStartDate(a, b);
     });
 
     return [...eventList];
@@ -298,17 +361,9 @@ export default class UptimeUtil {
       window,
     );
 
-    // sort these by start date,
-    monitorEvents.sort((a: Event, b: Event) => {
-      if (OneUptimeDate.isAfter(a.startDate, b.startDate)) {
-        return 1;
-      }
-
-      if (OneUptimeDate.isAfter(b.startDate, a.startDate)) {
-        return -1;
-      }
-
-      return 0;
+    // sort these by start date, to the millisecond.
+    monitorEvents.sort((a: Event, b: Event): number => {
+      return UptimeUtil.compareEventsByStartDate(a, b);
     });
 
     /*

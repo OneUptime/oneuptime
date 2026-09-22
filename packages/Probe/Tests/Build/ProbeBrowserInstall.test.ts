@@ -173,6 +173,28 @@ describe("Probe Playwright browser install", () => {
     );
   });
 
+  test("removes the FFmpeg stack Playwright lists for Firefox, in the same layer", () => {
+    /*
+     * Playwright 1.63 added libavcodec59 to Firefox's Debian 12 dependency
+     * list: ~40 FFmpeg/codec packages and ~160 CVEs in the image scans.
+     * Firefox only dlopen()s it for MP4/H.264, launches and renders without
+     * it, and the image never had it before 1.63. Removing it in a later RUN
+     * would leave every file in the lower layer; it has to go after the
+     * install and before the lists are dropped, in this one instruction.
+     */
+    const install: number =
+      browserInstallInstruction.search(PLAYWRIGHT_INSTALL);
+    const purge: number = browserInstallInstruction.indexOf(
+      "apt-get purge -y --auto-remove libavcodec59",
+    );
+    const listsDropped: number = browserInstallInstruction.indexOf(
+      "rm -rf /var/lib/apt/lists/*",
+    );
+
+    expect(purge).toBeGreaterThan(install);
+    expect(listsDropped).toBeGreaterThan(purge);
+  });
+
   test("refreshes and then drops the apt lists in the same layer", () => {
     /*
      * `--with-deps` shells out to apt, so the lists have to be present, and

@@ -49,35 +49,94 @@ function readSource(...relativeParts: Array<string>): string {
 }
 
 describe("Monitor overview feeds the summary picker only the monitor's own probes", () => {
-  const source: string = readSource("Pages", "Monitor", "View", "Index.tsx");
+  /*
+   * The overview is now a page, a data hook and a pure probe util, so each
+   * guarantee is pinned where it now lives: the hook reads only this
+   * monitor's MonitorProbe rows, the util turns those rows into the picker
+   * list, and the page hands that list to the Summary card.
+   *
+   * The old pins on setProbes(, setDisabledProbeIds( and setProbeResponses(
+   * are gone because those state setters no longer exist. What they stood
+   * for (every attached probe listed, switched-off ones remembered, results
+   * collected) is covered by
+   * Common/Tests/Utils/Monitor/MonitorOverviewProbeUtil.test.ts.
+   */
+  const page: string = readSource("Pages", "Monitor", "View", "Index.tsx");
+  const dataHook: string = readSource(
+    "Components",
+    "Monitor",
+    "Overview",
+    "useMonitorOverviewData.ts",
+  );
+  const selects: string = readSource(
+    "Components",
+    "Monitor",
+    "Overview",
+    "MonitorOverviewSelect.ts",
+  );
+  const probeUtil: string = squash(
+    fs.readFileSync(
+      path.join(
+        __dirname,
+        "..",
+        "..",
+        "..",
+        "Common",
+        "Utils",
+        "Monitor",
+        "MonitorOverviewProbeUtil.ts",
+      ),
+      "utf8",
+    ),
+  );
 
   test("no longer pulls the whole project's probe list into this page", () => {
     /*
      * The single most important line of the fix. ProbeUtil.getAllProbes()
      * returns project probes plus global probes with no monitor filter at all.
+     * The page and the hook that now does its reading are both guarded.
      */
-    expect(source).not.toContain("ProbeUtil.getAllProbes()");
-    expect(source).not.toContain(
-      'import ProbeUtil from "../../../Utils/Probe"',
+    for (const source of [page, dataHook]) {
+      expect(source).not.toContain("ProbeUtil.getAllProbes()");
+      expect(source).not.toContain(
+        'import ProbeUtil from "../../../Utils/Probe"',
+      );
+    }
+  });
+
+  test("reads the monitor's own MonitorProbe rows, newest first", () => {
+    expect(dataHook).toContain(
+      squash("query: { monitorId: options.monitorId, },"),
+    );
+    expect(dataHook).toContain(
+      squash("sort: { createdAt: SortOrder.Descending, },"),
     );
   });
 
-  test("selects the probe relation on the monitor's own MonitorProbe rows", () => {
-    expect(source).toContain(
-      squash("probe: { name: true, iconFileId: true, },"),
+  test("selects the probe relation and the columns the picker needs", () => {
+    expect(selects).toContain(
+      squash(
+        "probe: { name: true, iconFileId: true, connectionStatus: true, },",
+      ),
     );
-    expect(source).toContain(squash("isEnabled: true,"));
-    expect(source).toContain(squash("query: { monitorId: modelId, },"));
+    expect(selects).toContain(squash("isEnabled: true,"));
+    expect(selects).toContain(squash("lastMonitoringLog: true,"));
+    /*
+     * The sort column has to be selected: with the probe relation joined,
+     * TypeORM's paginated path orders by a column the inner query only emits
+     * when it was selected, and the whole read fails without it.
+     */
+    expect(selects).toContain(squash("createdAt: true,"));
   });
 
   test("builds the picker list from those rows", () => {
-    expect(source).toContain("setProbes(attachedProbes)");
-    expect(source).toContain("attachedProbes.push(probe)");
+    expect(dataHook).toContain("MonitorOverviewProbeUtil.toAttachedProbes(");
+    expect(probeUtil).toContain("attachedProbes.push(probe)");
   });
 
   test("keys each option on the join row's probeId", () => {
     // The relation select carries _id, but the join row is the authority.
-    expect(source).toContain("probe._id = monitorProbe.probeId.toString()");
+    expect(probeUtil).toContain("probe._id = monitorProbe.probeId.toString()");
   });
 
   test("tracks which attached probes are switched off", () => {
@@ -85,20 +144,20 @@ describe("Monitor overview feeds the summary picker only the monitor's own probe
      * Without this the card cannot tell "no data yet" from "this probe is
      * disabled", and tells the user to wait for data that will never come.
      */
-    expect(source).toContain("setDisabledProbeIds(disabledProbeIds)");
-    expect(source).toContain(squash("if (monitorProbe.isEnabled === false) {"));
+    expect(probeUtil).toContain(
+      squash("if (monitorProbe.isEnabled === false) {"),
+    );
   });
 
   test("hands both down to the Summary card", () => {
-    expect(source).toContain(squash("probes={probes}"));
-    expect(source).toContain(squash("disabledProbeIds={disabledProbeIds}"));
+    expect(page).toContain(squash("probes={probes}"));
+    expect(page).toContain(squash("disabledProbeIds={disabledProbeIds}"));
   });
 
   test("still collects the monitoring logs it always did", () => {
-    expect(source).toContain(
-      "probeMonitorResponses.push(monitorProbe?.lastMonitoringLog)",
+    expect(probeUtil).toContain(
+      "probeMonitorResponses.push(monitorProbe.lastMonitoringLog)",
     );
-    expect(source).toContain("setProbeResponses(probeMonitorResponses)");
   });
 });
 
@@ -180,9 +239,9 @@ describe("Summary info tells the three empty states apart", () => {
     expect(source).toContain("is disabled for this monitor");
   });
 
-  test("keeps the wait-a-few-minutes message for the case where waiting helps", () => {
+  test("keeps a wait message only for the case where waiting helps", () => {
     expect(source).toContain(
-      "No summary available for the selected probe. Should be few minutes for summary to show up.",
+      "has not reported a result yet. Results usually appear within a few minutes of its next check.",
     );
   });
 });

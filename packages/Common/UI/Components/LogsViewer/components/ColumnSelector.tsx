@@ -25,6 +25,8 @@ const triggerButtonClassName: string =
 const actionButtonClassName: string =
   "rounded-md px-2 py-1 text-xs font-medium text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700";
 
+export const COLUMN_SELECTOR_PANEL_TEST_ID: string = "column-selector-panel";
+
 const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
   props: ColumnSelectorProps,
 ): ReactElement => {
@@ -136,7 +138,13 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
   };
 
   return (
-    <div className="relative" ref={ref}>
+    /*
+     * Positioned from md up only. A 24rem panel hung off the trigger's right
+     * edge ran off the side of a phone, since the trigger can sit anywhere in
+     * the wrapped toolbar. Below md the panel instead spans the nearest
+     * positioned ancestor, the toolbar row, and drops below the trigger.
+     */
+    <div className="md:relative" ref={ref}>
       <button
         type="button"
         className={triggerButtonClassName}
@@ -153,7 +161,10 @@ const ColumnSelector: FunctionComponent<ColumnSelectorProps> = (
       </button>
 
       {isComponentVisible && (
-        <div className="absolute right-0 z-20 mt-2 w-96 rounded-lg border border-gray-200 bg-white p-4 shadow-xl">
+        <div
+          className="absolute left-0 right-0 z-20 mt-2 rounded-lg border border-gray-200 bg-white p-4 shadow-xl md:left-auto md:w-96"
+          data-testid={COLUMN_SELECTOR_PANEL_TEST_ID}
+        >
           <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-semibold text-gray-900">Columns</h3>

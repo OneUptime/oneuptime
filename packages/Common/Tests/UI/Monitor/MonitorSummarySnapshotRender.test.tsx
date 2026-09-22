@@ -275,10 +275,10 @@ describe("A stored monitor summary renders the check that caused the incident", 
 
   it("does not tell the reader to wait a few minutes for data that is already here", () => {
     /*
-     * SummaryInfo's empty state for a probeable monitor is "No summary
-     * available for the selected probe. Should be few minutes for summary
-     * to show up." On an incident from last quarter that is nonsense, and
-     * it is exactly what a bare (unwrapped) probe response produces.
+     * SummaryInfo's empty state for a probeable monitor is "{probe} has not
+     * reported a result yet. Results usually appear within a few minutes of
+     * its next check." On an incident from last quarter that is nonsense,
+     * and it is exactly what a bare (unwrapped) probe response produces.
      */
     renderSnapshot(
       storeAndReadBack({
@@ -296,7 +296,7 @@ describe("A stored monitor summary renders the check that caused the incident", 
       }),
     );
 
-    expect(screen.queryByText(/few minutes for summary/)).toBeNull();
+    expect(screen.queryByText(/has not reported a result yet/)).toBeNull();
     expect(screen.getByText("Host unreachable")).toBeInTheDocument();
   });
 });

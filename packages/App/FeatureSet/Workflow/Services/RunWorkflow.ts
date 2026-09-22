@@ -35,6 +35,20 @@ import WorkflowLogService from "Common/Server/Services/WorkflowLogService";
 import WorkflowService from "Common/Server/Services/WorkflowService";
 import WorkflowVariableService from "Common/Server/Services/WorkflowVariableService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
+import Select from "Common/Server/Types/Database/Select";
+import { OAUTH2_TOKEN_REQUEST_TIMEOUT_IN_MS } from "Common/Server/Utils/Workflow/OAuth2TokenClient";
+import WorkflowVariableOAuthToken, {
+  WorkflowVariableAccessToken,
+} from "Common/Server/Utils/Workflow/WorkflowVariableOAuthToken";
+import {
+  WorkflowVariableReference,
+  WorkflowVariableScope,
+  WorkflowVariableType,
+  getWorkflowVariableReferences,
+  isOAuth2AccessTokenUsable,
+  isOAuth2WorkflowVariable,
+  toDateOrNull,
+} from "Common/Types/Workflow/WorkflowVariableOAuth";
 import ComponentCode, {
   ExecuteChildWorkflow,
   MAX_WORKFLOW_CALL_DEPTH,
@@ -223,6 +237,45 @@ export function getRemainingWorkflowTimeInMs(
   return Math.max(0, deadlineAtInMs - nowInMs);
 }
 
+/**
+ * What {{local.variables.X}} / {{global.variables.X}} resolves to. A Static
+ * variable is its content; an OAuth 2.0 variable is its current access token,
+ * which refreshOAuthVariablesUsedByComponent keeps fresh before any step that
+ * uses it runs.
+ */
+export function getWorkflowVariableValue(variable: WorkflowVariable): string {
+  if (isOAuth2WorkflowVariable(variable.variableType)) {
+    return variable.oauthAccessToken || "";
+  }
+
+  return variable.content as string;
+}
+
+/*
+ * The variable a reference resolves to. getVariables loads local variables by
+ * workflowId and global ones with a null workflowId, so workflowId is the
+ * scope. When two rows share a name, the LAST one wins, because that is the one
+ * whose value getVariables left in the storage map.
+ */
+function findVariableForReference(
+  variables: Array<WorkflowVariable>,
+  reference: WorkflowVariableReference,
+): WorkflowVariable | undefined {
+  for (let index: number = variables.length - 1; index >= 0; index--) {
+    const variable: WorkflowVariable = variables[index]!;
+    const isLocal: boolean = Boolean(variable.workflowId);
+
+    if (
+      variable.name === reference.name &&
+      isLocal === (reference.scope === WorkflowVariableScope.Local)
+    ) {
+      return variable;
+    }
+  }
+
+  return undefined;
+}
+
 export interface StorageMap {
   local: {
     variables: Dictionary<string>;
@@ -255,6 +308,12 @@ export default class RunWorkflow {
   private callChain: Array<string> = [];
   private workflowDeadlineAtInMs: number = 0;
   private stepTrace: WorkflowStepTrace = emptyTrace();
+  /*
+   * An OAuth token whose expiry is unknown is fetched once per run: a token
+   * fetched at or after this moment is reused by later steps, one fetched
+   * before it is not. A resumed run is a new RunWorkflow, so it fetches again.
+   */
+  private runStartedAt: Date = new Date();
 
   private getRemainingExecutionTimeInMs(): number {
     return getRemainingWorkflowTimeInMs(this.workflowDeadlineAtInMs);
@@ -277,6 +336,7 @@ export default class RunWorkflow {
       this.workflowId = runProps.workflowId;
       this.workflowLogId = runProps.workflowLogId;
       this.callChain = runProps.callChain || [];
+      this.runStartedAt = new Date();
 
       let didWorkflowErrorOut: boolean = false;
       this.workflowDeadlineAtInMs = Date.now() + Math.max(runProps.timeout, 0);
@@ -537,6 +597,35 @@ export default class RunWorkflow {
           throw new BadDataException(
             "Component with ID " + executeComponentId + " not found.",
           );
+        }
+
+        /*
+         * Make sure every OAuth 2.0 variable this step refers to holds a
+         * token that has not expired, before its arguments are resolved. A
+         * failure is recorded as this step's failure - it is the step that
+         * could not run - rather than as an error nobody can place.
+         */
+        try {
+          await this.refreshOAuthVariablesUsedByComponent({
+            node: stackItem.node,
+            storageMap: storageMap,
+            variables: variables,
+          });
+        } catch (refreshError: unknown) {
+          this.recordStep({
+            node: stackItem.node,
+            args: {},
+            returnValues: {},
+            executedPort: null,
+            startedAt: OneUptimeDate.getCurrentDate(),
+            variables: variables,
+            errorMessage:
+              refreshError instanceof Exception
+                ? refreshError.getMessage()
+                : String(refreshError),
+          });
+
+          throw refreshError;
         }
 
         // now actually run this component.
@@ -952,6 +1041,172 @@ export default class RunWorkflow {
     );
   }
 
+  /**
+   * Refresh, right before a step runs, every OAuth 2.0 variable the step
+   * refers to whose access token will not do - so the token a component
+   * receives has not expired, however long the variable sat unused and however
+   * long this run has been going.
+   *
+   * Only variables the step's arguments actually name are considered. A
+   * project can have OAuth variables for a dozen systems; a run that never
+   * touches one must not fetch its token, and must not fail because that
+   * system's identity provider is down.
+   *
+   * When a refresh fails but the cached token has not actually expired yet (it
+   * is inside the refresh margin), the step goes ahead with the cached token and
+   * the log says so: failing a run that still holds a working token would be
+   * worse than the failure being reported. Otherwise the step fails with the
+   * reason, which WorkflowVariableOAuthToken has also written to the variable
+   * for the dashboard to show.
+   */
+  public async refreshOAuthVariablesUsedByComponent(data: {
+    node: NodeDataProp;
+    storageMap: StorageMap;
+    variables: Array<WorkflowVariable>;
+  }): Promise<void> {
+    const oauthVariables: Array<WorkflowVariable> = data.variables.filter(
+      (variable: WorkflowVariable) => {
+        return isOAuth2WorkflowVariable(variable.variableType) && variable.id;
+      },
+    );
+
+    if (oauthVariables.length === 0) {
+      return;
+    }
+
+    for (const reference of this.getVariableReferencesOfComponent(data.node)) {
+      const variable: WorkflowVariable | undefined = findVariableForReference(
+        oauthVariables,
+        reference,
+      );
+
+      if (!variable) {
+        continue;
+      }
+
+      if (
+        isOAuth2AccessTokenUsable({
+          state: {
+            hasAccessToken: Boolean(variable.oauthAccessToken),
+            accessTokenExpiresAt: variable.oauthAccessTokenExpiresAt,
+            lastRefreshedAt: variable.oauthLastRefreshedAt,
+          },
+          now: new Date(),
+          acceptTokenRefreshedAtOrAfter: this.runStartedAt,
+        })
+      ) {
+        continue;
+      }
+
+      const label: string = `{{${reference.scope}.variables.${reference.name}}}`;
+      const previousAccessToken: string | undefined = variable.oauthAccessToken;
+
+      let token: WorkflowVariableAccessToken;
+
+      try {
+        token = await WorkflowVariableOAuthToken.getAccessToken({
+          variableId: variable.id!,
+          acceptTokenRefreshedAtOrAfter: this.runStartedAt,
+          timeoutInMs: Math.max(
+            1000,
+            Math.min(
+              OAUTH2_TOKEN_REQUEST_TIMEOUT_IN_MS,
+              this.getRemainingExecutionTimeInMs(),
+            ),
+          ),
+        });
+      } catch (err: unknown) {
+        const reason: string =
+          err instanceof Exception
+            ? err.getMessage()
+            : err instanceof Error
+              ? err.message
+              : String(err);
+
+        const cachedExpiresAt: Date | null = toDateOrNull(
+          variable.oauthAccessTokenExpiresAt,
+        );
+
+        if (
+          variable.oauthAccessToken &&
+          cachedExpiresAt &&
+          cachedExpiresAt.getTime() > Date.now()
+        ) {
+          this.log(
+            `Could not refresh the OAuth 2.0 access token for ${label}: ${reason} Using the cached token, which expires at ${cachedExpiresAt.toISOString()}.`,
+          );
+          continue;
+        }
+
+        throw new BadDataException(
+          `Could not get an OAuth 2.0 access token for ${label}: ${reason}`,
+        );
+      }
+
+      /*
+       * Keep the token this run held before as a redaction target: an earlier
+       * step may already have logged it, and the variable is about to hold the
+       * new one instead.
+       */
+      if (previousAccessToken && previousAccessToken !== token.accessToken) {
+        const previous: WorkflowVariable = new WorkflowVariable();
+        previous.variableType = WorkflowVariableType.OAuth2;
+        previous.oauthAccessToken = previousAccessToken;
+        data.variables.push(previous);
+      }
+
+      variable.oauthAccessToken = token.accessToken;
+      variable.oauthAccessTokenExpiresAt = token.expiresAt as Date;
+      variable.oauthLastRefreshedAt = token.refreshedAt as Date;
+
+      if (reference.scope === WorkflowVariableScope.Local) {
+        data.storageMap.local.variables[reference.name] = token.accessToken;
+      } else {
+        data.storageMap.global.variables[reference.name] = token.accessToken;
+      }
+
+      if (token.didRefresh) {
+        this.log(
+          `Fetched a new OAuth 2.0 access token for ${label}${
+            token.expiresAt
+              ? `, valid until ${token.expiresAt.toISOString()}.`
+              : ". The identity provider did not say when it expires, so a new one is fetched on every run."
+          }`,
+        );
+      } else {
+        this.log(
+          `Using the OAuth 2.0 access token for ${label} that another run fetched moments ago.`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Every variable reference in the arguments this component will receive -
+   * the same arguments getComponentArguments resolves.
+   */
+  public getVariableReferencesOfComponent(
+    component: NodeDataProp,
+  ): Array<WorkflowVariableReference> {
+    const references: Array<WorkflowVariableReference> = [];
+    const seen: Set<string> = new Set();
+
+    for (const argument of component.metadata?.arguments || []) {
+      const value: JSONValue | undefined = component.arguments?.[argument.id];
+
+      for (const reference of getWorkflowVariableReferences(value)) {
+        const key: string = `${reference.scope}:${reference.name}`;
+
+        if (!seen.has(key)) {
+          seen.add(key);
+          references.push(reference);
+        }
+      }
+    }
+
+    return references;
+  }
+
   public getComponentArguments(
     storageMap: StorageMap,
     component: NodeDataProp,
@@ -1131,17 +1386,32 @@ export default class RunWorkflow {
     projectId: ObjectID,
     workflowId: ObjectID,
   ): Promise<{ storageMap: StorageMap; variables: Array<WorkflowVariable> }> {
+    /*
+     * The OAuth columns are what refreshOAuthVariablesUsedByComponent needs to
+     * decide whether a cached access token can be used as it is; workflowId is
+     * how it tells a local variable from a global one of the same name. The
+     * OAuth credentials are deliberately not read here - only
+     * WorkflowVariableOAuthToken touches them, and only when it refreshes.
+     */
+    const select: Select<WorkflowVariable> = {
+      _id: true,
+      name: true,
+      content: true,
+      isSecret: true,
+      workflowId: true,
+      variableType: true,
+      oauthAccessToken: true,
+      oauthAccessTokenExpiresAt: true,
+      oauthLastRefreshedAt: true,
+    };
+
     /// get local and global variables.
     const localVariables: Array<WorkflowVariable> =
       await WorkflowVariableService.findBy({
         query: {
           workflowId: workflowId,
         },
-        select: {
-          name: true,
-          content: true,
-          isSecret: true,
-        },
+        select: select,
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         props: {
@@ -1155,11 +1425,7 @@ export default class RunWorkflow {
           workflowId: QueryHelper.isNull(),
           projectId: projectId,
         },
-        select: {
-          name: true,
-          content: true,
-          isSecret: true,
-        },
+        select: select,
         skip: 0,
         limit: LIMIT_PER_PROJECT,
         props: {
@@ -1179,12 +1445,12 @@ export default class RunWorkflow {
 
     for (const variable of localVariables) {
       newStorageMap.local.variables[variable.name as string] =
-        variable.content as string;
+        getWorkflowVariableValue(variable);
     }
 
     for (const variable of globalVariables) {
       newStorageMap.global.variables[variable.name as string] =
-        variable.content as string;
+        getWorkflowVariableValue(variable);
     }
 
     return {

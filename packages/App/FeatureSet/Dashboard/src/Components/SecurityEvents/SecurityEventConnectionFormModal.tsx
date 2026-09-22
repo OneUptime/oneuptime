@@ -561,6 +561,12 @@ export interface ComponentProps {
   connection?: SecurityEventConnection | undefined;
   // Only the credentials step (the "Update credentials" row action).
   credentialsOnly?: boolean | undefined;
+  /*
+   * Create only: the provider card to start with selected, when the form is
+   * opened from that provider's tile in the empty state. The Provider step
+   * stays, so the choice can still be changed.
+   */
+  initialProvider?: SecurityEventConnectorProvider | undefined;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -876,6 +882,10 @@ const SecurityEventConnectionFormModal: FunctionComponent<ComponentProps> = (
     initialValues["isEnabled"] = true;
     initialValues["alertingOnly"] = true;
     initialValues["pollIntervalInMinutes"] = 5;
+
+    if (getSecurityEventConnectorDefinition(props.initialProvider)) {
+      initialValues["provider"] = props.initialProvider as string;
+    }
 
     for (const definition of SecurityEventConnectorCatalog) {
       for (const field of definition.configFields) {

@@ -71,6 +71,15 @@ export interface LogsFacetSidebarProps {
   onFacetSearchChange?:
     | ((facetKey: string, searchText: string) => void)
     | undefined;
+  // Lets a disclosure toggle point at the panel with aria-controls.
+  id?: string | undefined;
+  /*
+   * Below md the sidebar stacks above the list at full width rather than
+   * sitting beside it. When true it is also folded away there, until the
+   * caller's toggle opens it. From md up it always shows. The fold is CSS
+   * only, so the sidebar stays mounted and keeps its search and expand state.
+   */
+  isCollapsedOnSmallScreens?: boolean | undefined;
 }
 
 /*
@@ -349,7 +358,12 @@ const LogsFacetSidebar: FunctionComponent<LogsFacetSidebarProps> = (
   ]);
 
   return (
-    <div className="flex h-full w-56 flex-none flex-col overflow-y-auto rounded-lg border border-gray-200 bg-white">
+    <div
+      id={props.id}
+      className={`${
+        props.isCollapsedOnSmallScreens ? "hidden md:flex" : "flex"
+      } max-h-80 w-full flex-none flex-col overflow-y-auto rounded-lg border border-gray-200 bg-white md:h-full md:max-h-none md:w-56`}
+    >
       <div className="border-b border-gray-100 px-3 py-2.5">
         <h3 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
           Filters

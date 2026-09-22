@@ -29,11 +29,23 @@ const SHORTCUT_ROWS: Array<ShortcutRow> = [
   { keys: ["?"], description: "Toggle this help" },
 ];
 
+export const KEYBOARD_SHORTCUTS_HELP_TEST_ID: string =
+  "keyboard-shortcuts-help";
+
 const KeyboardShortcutsHelp: FunctionComponent<KeyboardShortcutsHelpProps> = (
   props: KeyboardShortcutsHelpProps,
 ): ReactElement => {
   return (
-    <div className="absolute right-0 top-full z-50 mt-1 w-72 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+    /*
+     * From md up this hangs off the trigger's right edge. Below md it spans
+     * the toolbar row the trigger sits in instead (the trigger's wrapper is
+     * not positioned there) and drops below the trigger, since an 18rem panel
+     * hung off a trigger mid-row could run off the side of a phone.
+     */
+    <div
+      className="absolute left-0 right-0 z-50 mt-1 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg md:left-auto md:top-full md:w-72"
+      data-testid={KEYBOARD_SHORTCUTS_HELP_TEST_ID}
+    >
       <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
           Keyboard shortcuts

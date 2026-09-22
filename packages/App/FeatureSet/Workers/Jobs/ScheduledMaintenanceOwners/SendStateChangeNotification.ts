@@ -225,6 +225,7 @@ RunCron(
           subject: `[${Text.uppercaseFirstLetter(
             scheduledMaintenanceState!.name!,
           )} Scheduled Maintenance ${scheduledMaintenanceNumberStr}] - ${scheduledMaintenance.title}`,
+          isSubjectLiteral: true,
         };
 
         const scheduledMaintenanceIdentifier: string =

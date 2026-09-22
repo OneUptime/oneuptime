@@ -199,6 +199,7 @@ RunCron(
           templateType: EmailTemplateType.IncidentOwnerAdded,
           vars: vars,
           subject: `You have been added as the owner of Incident ${incidentNumber} - ${incident.title}`,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

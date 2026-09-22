@@ -754,6 +754,7 @@ export class Service extends DatabaseService<Model> {
           templateType: EmailTemplateType.ProbeConnectionStatusChange,
           vars: vars,
           subject: `[Probe ${connectionStatus}] ${probe.name}`,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {
@@ -823,6 +824,11 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Custom probes live under Monitors > Settings > Probes in the dashboard
+   * (PageMap.MONITORS_SETTINGS_PROBE_VIEW). There is no /settings/probes
+   * route, so a link without the /monitors segment lands on a missing page.
+   */
   @CaptureSpan()
   public async getLinkInDashboard(
     projectId: ObjectID,
@@ -831,7 +837,7 @@ export class Service extends DatabaseService<Model> {
     const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
 
     return URL.fromString(dashboardUrl.toString()).addRoute(
-      `/${projectId.toString()}/settings/probes/${probeId.toString()}`,
+      `/${projectId.toString()}/monitors/settings/probes/${probeId.toString()}`,
     );
   }
 }

@@ -182,6 +182,7 @@ RunCron(
           templateType: EmailTemplateType.MonitorOwnerAdded,
           vars: vars,
           subject: "You have been added as the owner of the monitor.",
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

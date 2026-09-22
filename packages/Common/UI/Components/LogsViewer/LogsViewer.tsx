@@ -3,6 +3,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -120,6 +121,11 @@ export interface ComponentProps {
   liveOptions?: LiveLogsOptions | undefined;
   histogramBuckets?: Array<HistogramBucket>;
   histogramLoading?: boolean;
+  /*
+   * How much time one histogram bar covers, as the query that drew the bars
+   * bucketed them. It is what lets a click on a bar open that bar's logs.
+   */
+  histogramBucketIntervalMs?: number | undefined;
   onHistogramTimeRangeSelect?: (startTime: Date, endTime: Date) => void;
   facetData?: FacetData;
   facetLoading?: boolean;
@@ -179,6 +185,9 @@ export type {
 
 const DEFAULT_PAGE_SIZE: number = 100;
 const PAGE_SIZE_OPTIONS: Array<number> = [100, 250, 500, 1000];
+
+export const LOGS_VIEWER_MAIN_AREA_TEST_ID: string = "logs-viewer-main-area";
+export const LOGS_VIEWER_LIST_TEST_ID: string = "logs-viewer-list";
 
 const severityWeight: Record<string, number> = {
   fatal: 6,
@@ -319,6 +328,16 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
 
   const [showKeyboardShortcuts, setShowKeyboardShortcuts] =
     useState<boolean>(false);
+
+  /*
+   * Below md there is no room for the facet sidebar beside the list: at phone
+   * width it squeezed the list card to ~120px. There the sidebar stacks above
+   * the list instead, folded behind a "Filters" toggle in the toolbar so the
+   * list stays the first thing on screen. From md up the sidebar always shows
+   * and the toggle is hidden, so this state only matters on small screens.
+   */
+  const [isFacetPanelOpen, setIsFacetPanelOpen] = useState<boolean>(false);
+  const facetPanelId: string = useId();
 
   /*
    * Drag-zooming the histogram is a one-way trip on its own: it swaps the
@@ -1129,6 +1148,13 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     props.onViewModeChange?.(mode);
   };
 
+  const showSidebar: boolean =
+    props.showFacetSidebar !== false && Boolean(props.facetData);
+
+  // The analytics view replaces the sidebar, so there is nothing to toggle.
+  const showFacetPanelToggle: boolean =
+    showSidebar && currentViewMode !== "analytics";
+
   const toolbarProps: LogsViewerToolbarProps = {
     resultCount: totalItems,
     currentPage,
@@ -1180,10 +1206,18 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
     },
     onShowDocumentation: props.onShowDocumentation,
     signalPivotActions: props.signalPivotActions,
+    ...(showFacetPanelToggle
+      ? {
+          facetPanelId,
+          isFacetPanelOpen,
+          onToggleFacetPanel: () => {
+            setIsFacetPanelOpen((prev: boolean) => {
+              return !prev;
+            });
+          },
+        }
+      : {}),
   };
-
-  const showSidebar: boolean =
-    props.showFacetSidebar !== false && Boolean(props.facetData);
 
   return (
     <div className="space-y-2">
@@ -1220,6 +1254,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         <LogsHistogram
           buckets={props.histogramBuckets}
           isLoading={props.histogramLoading || false}
+          bucketIntervalMs={props.histogramBucketIntervalMs}
           onTimeRangeSelect={histogramZoom.onTimeRangeSelect}
           onZoomOut={histogramZoom.onZoomOut}
         />
@@ -1235,9 +1270,18 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
           logAttributes={logAttributes}
         />
       ) : (
-        <div className="flex gap-3">
+        /*
+         * Facets + list. A column below md (the sidebar, when opened, stacks
+         * above the list); side by side from md up.
+         */
+        <div
+          className="flex flex-col gap-3 md:flex-row"
+          data-testid={LOGS_VIEWER_MAIN_AREA_TEST_ID}
+        >
           {showSidebar && props.facetData && (
             <LogsFacetSidebar
+              id={facetPanelId}
+              isCollapsedOnSmallScreens={!isFacetPanelOpen}
               facetData={props.facetData}
               isLoading={props.facetLoading || false}
               serviceMap={serviceMap}
@@ -1257,7 +1301,10 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
             />
           )}
 
-          <div className="min-w-0 flex-1">
+          <div
+            className="min-w-0 flex-1"
+            data-testid={LOGS_VIEWER_LIST_TEST_ID}
+          >
             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
               {!props.showFilters && (
                 <div className="border-b border-gray-100 bg-gray-50/50 px-4 py-3">

@@ -656,7 +656,14 @@ export default class IncidentEpisodeMember extends BaseModel {
   public createdByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateIncidentEpisodeMember,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,

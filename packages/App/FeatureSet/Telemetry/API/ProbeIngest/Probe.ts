@@ -233,6 +233,7 @@ router.post(
                 toEmail: email,
                 templateType: EmailTemplateType.ProbeOffline,
                 subject: "ACTION REQUIRED: Probe Offline Notification",
+                isSubjectLiteral: true,
                 vars: {
                   probeName: probe.name || "",
                   probeDescription: probe.description || "",

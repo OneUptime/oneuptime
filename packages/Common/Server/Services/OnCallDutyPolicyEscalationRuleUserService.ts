@@ -100,6 +100,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
       templateType: EmailTemplateType.UserAddedToOnCallPolicy,
       vars: vars,
       subject: `You have been added to the on-call duty policy ${createdModel.onCallDutyPolicy?.name}`,
+      isSubjectLiteral: true,
     };
 
     const sms: SMSMessage = {
@@ -334,6 +335,7 @@ export class Service extends OnCallDutyPolicyChildService<Model> {
         templateType: EmailTemplateType.UserRemovedFromOnCallPolicy,
         vars: vars,
         subject: `You have been removed from the on-call duty policy ${deletedItem.onCallDutyPolicy?.name}`,
+        isSubjectLiteral: true,
       };
 
       const sms: SMSMessage = {

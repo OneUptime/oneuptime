@@ -124,6 +124,7 @@ RunCron(
             EmailTemplateType.ScheduledMaintenanceOwnerResourceCreated,
           vars: vars,
           subject: `[Created Scheduled Maintenance ${scheduledMaintenanceNumberStr}] - ${scheduledMaintenance.title!}`,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

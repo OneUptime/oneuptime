@@ -163,6 +163,7 @@ RunCron(
           templateType: EmailTemplateType.AIAgentOwnerAdded,
           vars: vars,
           subject: "[AI Agent] Owner of " + aiAgent.name,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

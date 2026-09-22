@@ -305,6 +305,7 @@ export async function sendInstanceHealthNotificationToMasterAdmins(data: {
               toEmail: user.email,
               templateType: data.templateType,
               subject: data.check.subject,
+              isSubjectLiteral: true,
               vars,
             },
             {

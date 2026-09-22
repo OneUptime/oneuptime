@@ -156,6 +156,7 @@ RunCron(
             templateType: EmailTemplateType.IncidentEpisodeOwnerResourceCreated,
             vars: vars,
             subject: `[New Incident Episode ${episodeNumberStr}] - ${episode.title!}`,
+            isSubjectLiteral: true,
           };
 
           const sms: SMSMessage = {

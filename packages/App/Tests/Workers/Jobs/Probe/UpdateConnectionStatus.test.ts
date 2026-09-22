@@ -95,6 +95,27 @@ jest.mock("Common/Server/Services/ProbeService", () => {
 });
 
 /*
+ * After a gap in the ticks the worker marks no probe Disconnected for one
+ * cutoff (UpdateConnectionStatusDowntimeGrace.test.ts pins that). Every test
+ * here drives a steady-state tick, so no grace period is running.
+ */
+jest.mock(
+  "../../../../FeatureSet/Workers/Utils/ProbeConnectionDowntimeGrace",
+  () => {
+    return {
+      __esModule: true,
+      default: jest.fn().mockImplementation(() => {
+        return {
+          canMarkProbesDisconnected: (): Promise<boolean> => {
+            return Promise.resolve(true);
+          },
+        };
+      }),
+    };
+  },
+);
+
+/*
  * QueryHelper is mocked with sentinel-returning fns so the tests can assert
  * BOTH which predicate factory each query field came from AND the exact
  * argument it was built with (the real helpers return opaque typeorm Raw

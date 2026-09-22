@@ -21,6 +21,12 @@ export interface ComponentProps {
   monitorStepSecurityEventsMonitor:
     | MonitorStepSecurityEventsMonitor
     | undefined;
+  /*
+   * "form" (the default) sits under the filter fields in the criteria
+   * editor, so its copy points at "the filters above". "overview" is the
+   * monitor overview, where there are no filters above to point at.
+   */
+  context?: "form" | "overview" | undefined;
 }
 
 /*
@@ -40,6 +46,7 @@ const SecurityEventsMonitorPreview: FunctionComponent<ComponentProps> = (
 
   const monitorStep: MonitorStepSecurityEventsMonitor | undefined =
     props.monitorStepSecurityEventsMonitor;
+  const isOverview: boolean = props.context === "overview";
 
   const fetchCount: () => Promise<void> =
     useCallback(async (): Promise<void> => {
@@ -105,7 +112,9 @@ const SecurityEventsMonitorPreview: FunctionComponent<ComponentProps> = (
   if (count === null) {
     return (
       <div className="text-sm text-gray-500">
-        Configure the filters above to preview matching security events.
+        {isOverview
+          ? "This monitor has no filters yet."
+          : "Configure the filters above to preview matching security events."}
       </div>
     );
   }
@@ -122,8 +131,9 @@ const SecurityEventsMonitorPreview: FunctionComponent<ComponentProps> = (
         {count.toLocaleString()}
       </div>
       <div className="mt-1 text-sm text-gray-500">
-        {count === 1 ? "security event matches" : "security events match"} the
-        filters above{windowText ? ` in the last ${windowText}` : ""}.
+        {count === 1 ? "security event matches" : "security events match"}{" "}
+        {isOverview ? "this monitor's filters" : "the filters above"}
+        {windowText ? ` in the last ${windowText}` : ""}.
       </div>
     </div>
   );

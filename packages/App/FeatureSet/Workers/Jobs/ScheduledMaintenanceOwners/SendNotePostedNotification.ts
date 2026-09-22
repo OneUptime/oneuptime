@@ -191,6 +191,7 @@ RunCron(
           templateType: EmailTemplateType.ScheduledMaintenanceOwnerNotePosted,
           vars: vars,
           subject: `[Update Scheduled Maintenance ${scheduledMaintenanceNumberStr}] - ${scheduledMaintenance.title}`,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

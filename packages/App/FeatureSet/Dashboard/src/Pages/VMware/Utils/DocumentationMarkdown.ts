@@ -98,7 +98,7 @@ services:
     # the agent is entirely defined by otel-collector-config.yaml. The native
     # \`vcenter\` receiver talks to vCenter directly, so no exporter sidecar
     # is needed.
-    image: otel/opentelemetry-collector-contrib:0.154.0
+    image: otel/opentelemetry-collector-contrib:0.161.0
     container_name: oneuptime-vmware-agent
     volumes:
       - ./otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro

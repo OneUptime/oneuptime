@@ -197,6 +197,7 @@ RunCron(
           templateType: EmailTemplateType.IncidentMemberAdded,
           vars: vars,
           subject: `You have been assigned as ${roleName} to Incident ${incidentNumber} - ${incident.title}`,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

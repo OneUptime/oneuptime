@@ -84,6 +84,10 @@ export interface SecurityEventConnectorDefinition {
   productName: string;
   description: string;
   category: SecurityEventConnectorCategory;
+  /*
+   * The product's only mark beside its name in the Add connection picker
+   * and the Connections empty state, so no two providers share one.
+   */
   icon: IconProp;
   // Docs path under /docs, e.g. "/docs/integrations/microsoft-sentinel".
   docsPath: string;
@@ -376,7 +380,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       description:
         "Import detection alerts from Elastic Security through the Kibana detections API as Detection Finding events.",
       category: "SIEM",
-      icon: IconProp.ShieldCheck,
+      icon: IconProp.Database,
       docsPath: "/docs/integrations/elastic-security",
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: false,
@@ -522,7 +526,7 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
       description:
         "Import Google SecOps (Chronicle) alerts and rule detections as Detection Finding events.",
       category: "SIEM",
-      icon: IconProp.ShieldCheck,
+      icon: IconProp.ViewfinderCircle,
       docsPath: "/docs/integrations/google-secops",
       defaultPollIntervalInMinutes: 5,
       supportsAlertingOnlyToggle: true,

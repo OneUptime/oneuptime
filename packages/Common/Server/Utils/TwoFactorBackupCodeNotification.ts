@@ -68,6 +68,7 @@ export default class TwoFactorBackupCodeNotification {
     await MailService.sendMail({
       toEmail: user.email,
       subject: "Backup codes were created for your OneUptime account",
+      isSubjectLiteral: true,
       templateType: EmailTemplateType.TwoFactorBackupCodesCreated,
       vars: {
         generatedAt: OneUptimeDate.getCurrentDateAsFormattedString(),

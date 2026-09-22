@@ -46,6 +46,7 @@ export default class AuthenticationEmail {
     MailService.sendMail({
       toEmail: user.email!,
       subject: "Please verify email.",
+      isSubjectLiteral: true,
       templateType: EmailTemplateType.SignupWelcomeEmail,
       vars: {
         name: user.name?.toString() || "",
@@ -133,6 +134,7 @@ export default class AuthenticationEmail {
     await MailService.sendMail({
       toEmail: data.user.email,
       subject: "A backup code was used to sign in to your OneUptime account",
+      isSubjectLiteral: true,
       templateType: EmailTemplateType.TwoFactorBackupCodeUsed,
       vars: {
         signedInAt: OneUptimeDate.getCurrentDateAsFormattedString(),
@@ -183,6 +185,7 @@ export default class AuthenticationEmail {
       await MailService.sendMail({
         toEmail: data.email,
         subject: "Finish setting up your OneUptime account",
+        isSubjectLiteral: true,
         templateType: EmailTemplateType.CompleteRegistration,
         vars: {
           registrationLink: registrationLink.toString(),

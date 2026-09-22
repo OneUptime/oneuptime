@@ -18,6 +18,7 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import {
   applyTypedLogFilterToRequest,
   buildLogsHistogramRequest,
+  parseLogsHistogramResponse,
   pickTypedLogFilter,
   preserveBaseAttributesInTypedFilter,
   RESOURCE_FACET_KEYS,
@@ -978,4 +979,90 @@ describe("pickTypedLogFilter / serializeTypedLogFilter", () => {
       attributes: { k: { _type: "Wildcard", value: ["a%"] } },
     });
   });
+});
+
+/*
+ * Issue #3914. A histogram bucket is labelled with its start only, so the
+ * chart needs the width the server bucketed by to open a clicked bar's
+ * logs: without it one bar could only zoom into a window zero seconds wide,
+ * which holds no logs at all.
+ */
+describe("parseLogsHistogramResponse", () => {
+  const BUCKETS: Array<JSONObject> = [
+    { time: "2026-09-17 10:15:00", severity: "Error", count: 4 },
+    { time: "2026-09-17 10:16:00", severity: "Info", count: 9 },
+  ];
+
+  test("hands on the buckets as they came", () => {
+    expect(
+      parseLogsHistogramResponse({ buckets: BUCKETS, bucketSizeInMinutes: 1 })
+        .buckets,
+    ).toEqual(BUCKETS);
+  });
+
+  test.each([
+    [1, 60 * 1000],
+    [5, 5 * 60 * 1000],
+    [15, 15 * 60 * 1000],
+    [1440, 24 * 60 * 60 * 1000],
+  ])(
+    "reads a %p-minute bucket as %p ms",
+    (bucketSizeInMinutes: number, expectedMs: number) => {
+      expect(
+        parseLogsHistogramResponse({
+          buckets: BUCKETS,
+          bucketSizeInMinutes: bucketSizeInMinutes,
+        }).bucketIntervalMs,
+      ).toBe(expectedMs);
+    },
+  );
+
+  test("reads a width sent as a numeric string", () => {
+    expect(
+      parseLogsHistogramResponse({
+        buckets: BUCKETS,
+        bucketSizeInMinutes: "5",
+      }).bucketIntervalMs,
+    ).toBe(5 * 60 * 1000);
+  });
+
+  /*
+   * An unknown width must stay unknown: the chart then offers drag only
+   * rather than guessing a bar's span.
+   */
+  test.each([undefined, null, 0, -5, "soon", Number.NaN])(
+    "leaves the width unknown for %p",
+    (bucketSizeInMinutes: unknown) => {
+      expect(
+        parseLogsHistogramResponse({
+          buckets: BUCKETS,
+          bucketSizeInMinutes: bucketSizeInMinutes as JSONObject[string],
+        }).bucketIntervalMs,
+      ).toBeUndefined();
+    },
+  );
+
+  test("reads a response with no buckets as an empty chart", () => {
+    expect(parseLogsHistogramResponse({ bucketSizeInMinutes: 1 })).toEqual({
+      buckets: [],
+      bucketIntervalMs: 60 * 1000,
+    });
+  });
+
+  test("reads buckets that are not a list as an empty chart", () => {
+    expect(
+      parseLogsHistogramResponse({ buckets: "oops", bucketSizeInMinutes: 1 })
+        .buckets,
+    ).toEqual([]);
+  });
+
+  test.each([undefined, null])(
+    "survives a %p response body",
+    (data: null | undefined) => {
+      expect(parseLogsHistogramResponse(data)).toEqual({
+        buckets: [],
+        bucketIntervalMs: undefined,
+      });
+    },
+  );
 });

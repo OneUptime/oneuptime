@@ -1,5 +1,6 @@
 import useLogsHistogram, {
   FetchHistogramBucketsFunction,
+  LogsHistogramData,
   LogsHistogramState,
 } from "../../../UI/Components/LogsViewer/useLogsHistogram";
 import { HistogramBucket } from "../../../UI/Components/LogsViewer/types";
@@ -56,9 +57,14 @@ const HistogramProbe: FunctionComponent<ProbeProps> = (
           .join(",")}
       </span>
       <span data-testid="loading">{String(state.isLoading)}</span>
+      <span data-testid="interval">{String(state.bucketIntervalMs)}</span>
     </div>
   );
 };
+
+function interval(): string {
+  return screen.getByTestId("interval").textContent || "";
+}
 
 function counts(): string {
   return screen.getByTestId("counts").textContent || "";
@@ -286,6 +292,175 @@ describe("useLogsHistogram", () => {
 
       expect(counts()).toBe("11:59=3,12:00=8");
       expect(isLoading()).toBe(false);
+    });
+  });
+
+  /*
+   * The width of a bucket is what lets a click on a bar open that bar's logs
+   * (issue #3914). It has to travel with the buckets it describes: pairing
+   * one window's bars with another window's width would open the wrong span
+   * of time.
+   */
+  describe("bucket width", () => {
+    const MINUTE_MS: number = 60 * 1000;
+
+    test("is handed on with the buckets when the query reports it", async () => {
+      const fetchBuckets: FetchHistogramBucketsFunction =
+        async (): Promise<LogsHistogramData> => {
+          return { buckets: FIRST_WINDOW, bucketIntervalMs: MINUTE_MS };
+        };
+
+      render(<HistogramProbe fetchBuckets={fetchBuckets} />);
+
+      await waitFor(() => {
+        expect(counts()).toBe("11:59=3");
+      });
+
+      expect(interval()).toBe(String(MINUTE_MS));
+    });
+
+    test("is unknown for a query that returns bare buckets", async () => {
+      const fetchBuckets: FetchHistogramBucketsFunction = async (): Promise<
+        Array<HistogramBucket>
+      > => {
+        return FIRST_WINDOW;
+      };
+
+      render(<HistogramProbe fetchBuckets={fetchBuckets} />);
+
+      await waitFor(() => {
+        expect(counts()).toBe("11:59=3");
+      });
+
+      expect(interval()).toBe("undefined");
+    });
+
+    test("follows the query to a new window", async () => {
+      let answer: LogsHistogramData = {
+        buckets: FIRST_WINDOW,
+        bucketIntervalMs: MINUTE_MS,
+      };
+
+      const fetchBuckets: FetchHistogramBucketsFunction =
+        async (): Promise<LogsHistogramData> => {
+          return answer;
+        };
+
+      const view: ReturnType<typeof render> = render(
+        <HistogramProbe fetchBuckets={fetchBuckets} queryKey="one-hour" />,
+      );
+
+      await waitFor(() => {
+        expect(interval()).toBe(String(MINUTE_MS));
+      });
+
+      answer = { buckets: SECOND_WINDOW, bucketIntervalMs: 15 * MINUTE_MS };
+
+      view.rerender(
+        <HistogramProbe fetchBuckets={fetchBuckets} queryKey="one-day" />,
+      );
+
+      await waitFor(() => {
+        expect(counts()).toBe("11:59=3,12:00=8");
+      });
+
+      expect(interval()).toBe(String(15 * MINUTE_MS));
+    });
+
+    test("is dropped with the buckets when a load fails", async () => {
+      let shouldFail: boolean = false;
+
+      const fetchBuckets: FetchHistogramBucketsFunction =
+        async (): Promise<LogsHistogramData> => {
+          if (shouldFail) {
+            throw new Error("clickhouse timeout");
+          }
+
+          return { buckets: FIRST_WINDOW, bucketIntervalMs: MINUTE_MS };
+        };
+
+      render(
+        <HistogramProbe fetchBuckets={fetchBuckets} onReady={captureState} />,
+      );
+
+      await waitFor(() => {
+        expect(interval()).toBe(String(MINUTE_MS));
+      });
+
+      shouldFail = true;
+      await refresh(false);
+
+      expect(counts()).toBe("");
+      expect(interval()).toBe("undefined");
+    });
+
+    test("stays with the buckets still on screen when a poll fails", async () => {
+      let shouldFail: boolean = false;
+
+      const fetchBuckets: FetchHistogramBucketsFunction =
+        async (): Promise<LogsHistogramData> => {
+          if (shouldFail) {
+            throw new Error("clickhouse timeout");
+          }
+
+          return { buckets: FIRST_WINDOW, bucketIntervalMs: MINUTE_MS };
+        };
+
+      render(
+        <HistogramProbe fetchBuckets={fetchBuckets} onReady={captureState} />,
+      );
+
+      await waitFor(() => {
+        expect(interval()).toBe(String(MINUTE_MS));
+      });
+
+      shouldFail = true;
+      await refresh(true);
+
+      expect(counts()).toBe("11:59=3");
+      expect(interval()).toBe(String(MINUTE_MS));
+    });
+
+    test("is not overwritten by the answer to a query the reader has left", async () => {
+      const pending: Array<(data: LogsHistogramData) => void> = [];
+
+      const fetchBuckets: FetchHistogramBucketsFunction =
+        (): Promise<LogsHistogramData> => {
+          return new Promise<LogsHistogramData>(
+            (resolve: (data: LogsHistogramData) => void) => {
+              pending.push(resolve);
+            },
+          );
+        };
+
+      const view: ReturnType<typeof render> = render(
+        <HistogramProbe fetchBuckets={fetchBuckets} queryKey="one-day" />,
+      );
+
+      await waitFor(() => {
+        expect(pending.length).toBe(1);
+      });
+
+      view.rerender(
+        <HistogramProbe fetchBuckets={fetchBuckets} queryKey="one-hour" />,
+      );
+
+      await waitFor(() => {
+        expect(pending.length).toBe(2);
+      });
+
+      await act(async () => {
+        pending[1]!({ buckets: SECOND_WINDOW, bucketIntervalMs: MINUTE_MS });
+      });
+      await act(async () => {
+        pending[0]!({
+          buckets: FIRST_WINDOW,
+          bucketIntervalMs: 15 * MINUTE_MS,
+        });
+      });
+
+      expect(counts()).toBe("11:59=3,12:00=8");
+      expect(interval()).toBe(String(MINUTE_MS));
     });
   });
 
