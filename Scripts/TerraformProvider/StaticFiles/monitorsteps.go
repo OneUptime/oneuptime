@@ -33,9 +33,10 @@ package provider
 //
 //   - MonitorStepsToAPI:   typed list -> wire envelope. Unset optionals are
 //     omitted entirely (never sent as "", false, null or empty containers).
-//     Server-generated ids are never sent — the server owns them.
+//     Criteria, incident template and alert template ids are derived from
+//     their position in the list (see monitorStepsDerivedID).
 //   - MonitorStepsFromAPI: wire envelope (or bare value map) -> typed list.
-//     Only schema-known fields are mapped; server-generated ids, the
+//     Only schema-known fields are mapped; ids, the
 //     server-hydrated snmpMonitor carrier and any unknown keys are dropped
 //     so server-side extras never cause drift. Empty strings and empty
 //     containers normalize to null (the schema forbids them in config, so
@@ -46,6 +47,7 @@ package provider
 
 import (
 	"context"
+	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -954,8 +956,8 @@ func monitorStepsStepSchema() schema.NestedAttributeObject {
 }
 
 // MonitorStepsSchemaAttribute returns the typed nested schema for the
-// monitor_steps attribute. Server-generated per-step and per-criteria ids are
-// deliberately not part of the schema — the server owns them.
+// monitor_steps attribute. Ids are deliberately not part of the schema:
+// MonitorStepsToAPI derives them from list positions.
 func MonitorStepsSchemaAttribute(description string) schema.ListNestedAttribute {
 	return schema.ListNestedAttribute{
 		MarkdownDescription: description,
@@ -1115,8 +1117,21 @@ func monitorStepsFilterToAPI(attrs map[string]attr.Value, attrPath string, diags
 	return out
 }
 
-func monitorStepsIncidentToAPI(attrs map[string]attr.Value) map[string]interface{} {
-	out := map[string]interface{}{}
+// monitorStepsDerivedID returns a stable UUID for the criteria or template at
+// attrPath. The server records the matched criteria and incident template ids
+// on each incident and only auto-resolves incidents whose ids still exist on
+// the monitor, so ids that change on every apply leave open incidents
+// unresolvable. Uniqueness is only needed within one monitor: every server
+// lookup by these ids is scoped to the monitor.
+func monitorStepsDerivedID(attrPath string) string {
+	sum := sha1.Sum([]byte("oneuptime-terraform-provider:monitor_steps:" + attrPath))
+	sum[6] = (sum[6] & 0x0f) | 0x50
+	sum[8] = (sum[8] & 0x3f) | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", sum[0:4], sum[4:6], sum[6:8], sum[8:10], sum[10:16])
+}
+
+func monitorStepsIncidentToAPI(attrs map[string]attr.Value, attrPath string) map[string]interface{} {
+	out := map[string]interface{}{"id": monitorStepsDerivedID(attrPath)}
 	if v, ok := monitorStepsAttrString(attrs, "title"); ok {
 		out["title"] = v
 	}
@@ -1153,8 +1168,8 @@ func monitorStepsIncidentToAPI(attrs map[string]attr.Value) map[string]interface
 	return out
 }
 
-func monitorStepsAlertToAPI(attrs map[string]attr.Value) map[string]interface{} {
-	out := map[string]interface{}{}
+func monitorStepsAlertToAPI(attrs map[string]attr.Value, attrPath string) map[string]interface{} {
+	out := map[string]interface{}{"id": monitorStepsDerivedID(attrPath)}
 	if v, ok := monitorStepsAttrString(attrs, "title"); ok {
 		out["title"] = v
 	}
@@ -1205,7 +1220,7 @@ func monitorStepsObjectListElements(attrs map[string]attr.Value, name string) ([
 }
 
 func monitorStepsCriteriaToAPI(attrs map[string]attr.Value, attrPath string, diags *diag.Diagnostics) map[string]interface{} {
-	value := map[string]interface{}{}
+	value := map[string]interface{}{"id": monitorStepsDerivedID(attrPath)}
 	if v, ok := monitorStepsAttrString(attrs, "name"); ok {
 		value["name"] = v
 	}
@@ -1244,16 +1259,16 @@ func monitorStepsCriteriaToAPI(attrs map[string]attr.Value, attrPath string, dia
 
 	if incidentObjs, ok := monitorStepsObjectListElements(attrs, "incidents"); ok {
 		incidents := make([]interface{}, 0, len(incidentObjs))
-		for _, obj := range incidentObjs {
-			incidents = append(incidents, monitorStepsIncidentToAPI(obj.Attributes()))
+		for i, obj := range incidentObjs {
+			incidents = append(incidents, monitorStepsIncidentToAPI(obj.Attributes(), fmt.Sprintf("%s.incidents[%d]", attrPath, i)))
 		}
 		value["incidents"] = incidents
 	}
 
 	if alertObjs, ok := monitorStepsObjectListElements(attrs, "alerts"); ok {
 		alerts := make([]interface{}, 0, len(alertObjs))
-		for _, obj := range alertObjs {
-			alerts = append(alerts, monitorStepsAlertToAPI(obj.Attributes()))
+		for i, obj := range alertObjs {
+			alerts = append(alerts, monitorStepsAlertToAPI(obj.Attributes(), fmt.Sprintf("%s.alerts[%d]", attrPath, i)))
 		}
 		value["alerts"] = alerts
 	}
@@ -1364,8 +1379,7 @@ func monitorStepsStepToAPI(attrs map[string]attr.Value, attrPath string, diags *
 
 // MonitorStepsToAPI converts the typed monitor_steps list into the wire
 // envelope the OneUptime API expects. Null or unknown lists convert to nil
-// (the field is omitted from the request). Server-generated ids are never
-// sent — the server assigns them.
+// (the field is omitted from the request).
 func MonitorStepsToAPI(ctx context.Context, list types.List) (interface{}, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	_ = ctx
@@ -1887,7 +1901,7 @@ func monitorStepsStepFromAPI(v interface{}, diags *diag.Diagnostics) (types.Obje
 // monitor_steps list. It accepts the {_type: "MonitorSteps", value: {...}}
 // envelope, an already-unwrapped value map, or nil. Unset or absent input
 // yields the typed null list. Only schema-known fields are mapped:
-// server-generated ids, the server-hydrated snmpMonitor carrier and unknown
+// ids, the server-hydrated snmpMonitor carrier and unknown
 // keys are dropped so server-side extras never cause drift.
 func MonitorStepsFromAPI(ctx context.Context, value interface{}) (types.List, diag.Diagnostics) {
 	var diags diag.Diagnostics
