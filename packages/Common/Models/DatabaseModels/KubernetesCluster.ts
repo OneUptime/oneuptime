@@ -1004,6 +1004,18 @@ export default class KubernetesCluster extends BaseModel {
    * plus a Kubernetes credential. Whether AI may investigate (read-only
    * kubectl) and how it may remediate are separate switches so a project
    * can let AI look without letting it touch.
+   *
+   * The update ACLs below are the cluster's own on purpose: everyone who
+   * may edit the cluster may make AI do LESS (remediation Off or Ask for
+   * approval, fewer allowlist patterns, no Runner or credential, the
+   * investigation switch). Making AI do MORE — an unattended mode, a new
+   * allowlist pattern, binding a Runner or credential — is refused in
+   * KubernetesClusterService unless the caller holds one of
+   * KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS (the permissions that may author
+   * a FullAuto AutoRemediationRule), and binding a credential also needs
+   * KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS. A column ACL cannot express
+   * "tightening is free", which is why the rule lives in the service. The
+   * descriptions say so, because they are the API and Terraform docs.
    */
   @ColumnAccessControl({
     create: [],
@@ -1032,7 +1044,7 @@ export default class KubernetesCluster extends BaseModel {
     modelType: Runner,
     title: "AI Access Runner",
     description:
-      "The Runner OneUptime AI uses to run kubectl against this cluster — the in-cluster Runner installed by the Kubernetes agent chart, or any Runner holding a Kubernetes credential for this cluster.",
+      "The Runner OneUptime AI uses to run kubectl against this cluster — the in-cluster Runner installed by the Kubernetes agent chart (which binds itself here when it first registers), or any Runner holding a Kubernetes credential for this cluster. Binding a Runner, or switching to a different one, needs Project Owner, Project Admin or Edit Auto Remediation Rule; anyone who may edit the cluster can clear it.",
   })
   @ManyToOne(
     () => {
@@ -1076,7 +1088,7 @@ export default class KubernetesCluster extends BaseModel {
     canReadOnRelationQuery: true,
     title: "AI Access Runner ID",
     description:
-      "ID of the Runner OneUptime AI uses to run kubectl against this cluster.",
+      "ID of the Runner OneUptime AI uses to run kubectl against this cluster. Binding a Runner, or switching to a different one, needs Project Owner, Project Admin or Edit Auto Remediation Rule; anyone who may edit the cluster can clear it.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1112,7 +1124,7 @@ export default class KubernetesCluster extends BaseModel {
     modelType: RunbookCredential,
     title: "AI Access Credential",
     description:
-      "The Kubernetes credential the AI access Runner uses for this cluster. Leave empty for the in-cluster Runner, which uses its own ServiceAccount.",
+      "The Kubernetes credential (API server URL and ServiceAccount token) the AI access Runner uses for this cluster; it must be a Kubernetes credential of this project, and AI uses it only once it is assigned to that Runner. Leave empty for the in-cluster Runner, which uses its own ServiceAccount. Binding a credential needs Project Owner, Project Admin or Edit Auto Remediation Rule, and also permission to read credentials (Project Owner, Project Admin or Read Runbook Credential); anyone who may edit the cluster can clear it.",
   })
   @ManyToOne(
     () => {
@@ -1155,7 +1167,7 @@ export default class KubernetesCluster extends BaseModel {
     canReadOnRelationQuery: true,
     title: "AI Access Credential ID",
     description:
-      "ID of the Kubernetes credential the AI access Runner uses for this cluster. Empty for the in-cluster Runner.",
+      "ID of the Kubernetes credential the AI access Runner uses for this cluster. Empty for the in-cluster Runner. Binding a credential needs Project Owner, Project Admin or Edit Auto Remediation Rule, and also permission to read credentials (Project Owner, Project Admin or Read Runbook Credential); anyone who may edit the cluster can clear it.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1191,7 +1203,7 @@ export default class KubernetesCluster extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Let AI Investigate With kubectl",
     description:
-      "When on, OneUptime AI runs read-only kubectl commands (get, describe, logs, events, top) on this cluster while investigating incidents and alerts linked to it. Nothing is ever changed by an investigation.",
+      "When on, OneUptime AI runs read-only kubectl commands (get, describe, logs, events, top, rollout status) on this cluster while investigating incidents and alerts linked to it, and uses their output, with secret values redacted, as evidence. Nothing is ever changed by an investigation. Anyone who may edit the cluster can turn it on or off.",
     defaultValue: false,
   })
   @Column({
@@ -1228,7 +1240,7 @@ export default class KubernetesCluster extends BaseModel {
     type: TableColumnType.ShortText,
     title: "AI Remediation Mode",
     description:
-      "Disabled: AI never changes this cluster. RequireApproval: AI composes a kubectl fix and a human approves it with one click. Automatic: AI applies safe fixes (rollout restart, scale, delete a pod, cordon) on its own and still asks before riskier changes. BypassApproval: AI applies every allowed fix on its own and never asks; destructive commands still never run.",
+      "Disabled: AI never proposes or runs a change on this cluster. RequireApproval: AI composes a kubectl plan and a human approves it with one click before anything runs. Automatic: safe kubectl changes to one named object (rollout restart/undo, scale, delete a named pod or job, cordon/uncordon, label/annotate) run on their own; a riskier change (patch, set image, drain, deleting workloads) is never run without a human: AI leaves the exact command in its written recommendations, and only a follow-up round after a failed fix proposes one for approval, unless the kubectl allowlist names its shape. BypassApproval: AI never asks; every change the policy allows, riskier ones included, runs on its own, follow-up rounds too. Destructive commands never run in any mode. Anyone who may edit the cluster can lower the mode (to Disabled, RequireApproval, or from BypassApproval to Automatic); raising it to Automatic or BypassApproval needs Project Owner, Project Admin or Edit Auto Remediation Rule.",
     defaultValue: KubernetesAiRemediationMode.Disabled,
     example: KubernetesAiRemediationMode.RequireApproval,
   })
@@ -1266,7 +1278,7 @@ export default class KubernetesCluster extends BaseModel {
     required: false,
     title: "AI kubectl Allowlist",
     description:
-      "Optional list of kubectl command patterns (with * wildcards) that Automatic mode may run without approval even though they are riskier changes, for example: kubectl set image deployment/web * -n web. Destructive commands never run regardless.",
+      'Optional JSON array of kubectl command patterns (with * wildcards) that Automatic mode may run without approval even though they are riskier changes, for example: ["kubectl set image deployment/web * -n web"]. Each pattern is matched against the whole command, so it must start with "kubectl " or a * wildcard; at most 100 patterns of at most 500 characters each. Destructive commands never run regardless. Adding a pattern needs Project Owner, Project Admin or Edit Auto Remediation Rule; anyone who may edit the cluster can remove patterns or clear the list.',
   })
   @Column({
     type: ColumnType.JSON,
@@ -1293,7 +1305,7 @@ export default class KubernetesCluster extends BaseModel {
     type: TableColumnType.Date,
     title: "AI Access Last Verified At",
     description:
-      "When a kubectl command from OneUptime AI last succeeded on this cluster.",
+      "When a kubectl command from OneUptime AI last succeeded on this cluster. Set by the server.",
   })
   @Column({
     type: ColumnType.Date,
@@ -1320,7 +1332,7 @@ export default class KubernetesCluster extends BaseModel {
     type: TableColumnType.LongText,
     title: "AI Access Last Error",
     description:
-      "The most recent failure OneUptime AI hit while running kubectl on this cluster, kept until the next successful command.",
+      "The most recent failure OneUptime AI hit while running kubectl on this cluster, kept until the next successful command. Set by the server.",
   })
   @Column({
     type: ColumnType.LongText,
@@ -1357,7 +1369,7 @@ export default class KubernetesCluster extends BaseModel {
     type: TableColumnType.Date,
     title: "AI Access Configured At",
     description:
-      "When OneUptime AI access to this cluster was first configured. Set by the server; never cleared.",
+      "When OneUptime AI access to this cluster was first configured: by the in-cluster Runner's first registration, or by anyone saving an AI access setting. Set by the server; never cleared, so the Runner re-registering later never turns back on switches an operator turned off.",
   })
   @Column({
     type: ColumnType.Date,
