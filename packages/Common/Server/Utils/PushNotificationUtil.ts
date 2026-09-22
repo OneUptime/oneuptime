@@ -517,6 +517,51 @@ export default class PushNotificationUtil {
     return PushNotificationUtil.applyDefaults(notification);
   }
 
+  /*
+   * One push per probe transition for the monitors it took down (or brought
+   * back), instead of one per monitor. The tag is shared by both directions,
+   * so on web push a reconnect replaces the disconnect it resolves.
+   */
+  public static createProbeMonitorsStatusNotification(params: {
+    probeName: string;
+    projectName: string;
+    connectionStatus: string;
+    monitorCount: number;
+    // One sentence: probe, count and project.
+    summary: string;
+    clickAction?: string;
+  }): PushNotificationMessage {
+    const {
+      probeName,
+      projectName,
+      connectionStatus,
+      monitorCount,
+      summary,
+      clickAction,
+    } = params;
+    const notification: Partial<PushNotificationMessage> = {
+      title: `Probe ${connectionStatus}: ${probeName}`,
+      body: summary,
+      tag: "probe-monitors-status",
+      requireInteraction: false,
+      data: {
+        type: "probe-monitors-status",
+        probeName: probeName,
+        projectName: projectName,
+        connectionStatus: connectionStatus,
+        monitorCount: monitorCount.toString(),
+      },
+    };
+
+    if (clickAction) {
+      notification.clickAction = clickAction;
+      notification.url = clickAction;
+      notification.data!["url"] = clickAction;
+    }
+
+    return PushNotificationUtil.applyDefaults(notification);
+  }
+
   public static createAIAgentStatusChangedNotification(params: {
     aiAgentName: string;
     projectName: string;

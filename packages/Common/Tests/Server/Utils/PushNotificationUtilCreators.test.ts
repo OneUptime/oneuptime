@@ -264,4 +264,83 @@ describe("PushNotificationUtil untested creators", () => {
       });
     });
   });
+
+  /*
+   * The grouped push sent once per probe transition (issue #2486), in place
+   * of one push per monitor. It names the probe and the direction in the
+   * title and carries the caller's one-sentence summary as the body.
+   */
+  describe("createProbeMonitorsStatusNotification - one push per probe transition", () => {
+    const summary: string =
+      "Probe eu-west is disconnected. 20 monitors in project Acme are not being monitored.";
+
+    test("titles the push with the direction and probe, and uses the summary as the body", () => {
+      const link: string = "https://dashboard/p1/monitors/probe-disconnected";
+      const message: PushNotificationMessage =
+        PushNotificationUtil.createProbeMonitorsStatusNotification({
+          probeName: "eu-west",
+          projectName: "Acme",
+          connectionStatus: "Disconnected",
+          monitorCount: 20,
+          summary: summary,
+          clickAction: link,
+        });
+
+      expect(message.title).toBe("Probe Disconnected: eu-west");
+      expect(message.body).toBe(summary);
+      expect(message.tag).toBe("probe-monitors-status");
+      expect(message.requireInteraction).toBe(false);
+      expect(message.icon).toBe(PushNotificationUtil.DEFAULT_ICON);
+      expect(message.badge).toBe(PushNotificationUtil.DEFAULT_BADGE);
+      expect(message.clickAction).toBe(link);
+      expect(message.url).toBe(link);
+      expect(message.data).toEqual({
+        type: "probe-monitors-status",
+        probeName: "eu-west",
+        projectName: "Acme",
+        connectionStatus: "Disconnected",
+        monitorCount: "20",
+        url: link,
+      });
+    });
+
+    test("without a clickAction, no url/clickAction is wired", () => {
+      const message: PushNotificationMessage =
+        PushNotificationUtil.createProbeMonitorsStatusNotification({
+          probeName: "eu-west",
+          projectName: "Acme",
+          connectionStatus: "Connected",
+          monitorCount: 1,
+          summary: summary,
+        });
+
+      expect(message.title).toBe("Probe Connected: eu-west");
+      expect(message.clickAction).toBeUndefined();
+      expect(message.url).toBeUndefined();
+      expect(message.data).not.toHaveProperty("url");
+      expect(message.data).toMatchObject({ monitorCount: "1" });
+    });
+
+    test("both directions share one tag, so on web push a reconnect replaces the disconnect", () => {
+      const disconnected: PushNotificationMessage =
+        PushNotificationUtil.createProbeMonitorsStatusNotification({
+          probeName: "eu-west",
+          projectName: "Acme",
+          connectionStatus: "Disconnected",
+          monitorCount: 2,
+          summary: summary,
+        });
+      const connected: PushNotificationMessage =
+        PushNotificationUtil.createProbeMonitorsStatusNotification({
+          probeName: "eu-west",
+          projectName: "Acme",
+          connectionStatus: "Connected",
+          monitorCount: 2,
+          summary: summary,
+        });
+
+      expect(connected.tag).toBe(disconnected.tag);
+      expect(connected.title).not.toBe(disconnected.title);
+    });
+  });
 });
