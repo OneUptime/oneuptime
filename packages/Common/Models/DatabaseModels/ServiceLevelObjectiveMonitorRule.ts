@@ -20,6 +20,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
+import MonitorType from "../../Types/Monitor/MonitorType";
 import Permission from "../../Types/Permission";
 import {
   Column,
@@ -44,10 +45,10 @@ import {
  * monitor stays attached while at least one enabled rule of the SLO still
  * matches it, so there is nothing to re-home when one rule is disabled.
  *
- * Extends RuleBaseModel for the versioned `criteria` JSON. The three legacy
- * match columns below are still required: the condition builder derives its
- * field list from them, DatabaseService validates criteria fields against real
- * columns, and the engine evaluates criteria through the legacy matcher.
+ * Extends RuleBaseModel for the versioned `criteria` JSON. The match columns
+ * remain available to older API clients and provide metadata for the condition
+ * builder and criteria validation. Text and label criteria keep the legacy
+ * matcher semantics; monitor types use exact enum equality.
  *
  * Read access follows the SLO (CanAccessIfCanReadOn) and Owned-scope grants
  * follow SLO ownership (OwnedThrough), exactly like the burn rate rules beside
@@ -400,6 +401,39 @@ export default class ServiceLevelObjectiveMonitorRule extends RuleBaseModel {
     },
   })
   public monitorLabels?: Array<Label> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.CreateServiceLevelObjectiveMonitorRule,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadServiceLevelObjectiveMonitorRule,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.EditServiceLevelObjectiveMonitorRule,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.MonitorType,
+    title: "Monitor Type",
+    description:
+      "Only match monitors of this type. Leave empty to skip the type filter.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    nullable: true,
+    length: ColumnLength.ShortText,
+  })
+  public monitorType?: MonitorType = undefined;
 
   @ColumnAccessControl({
     create: [

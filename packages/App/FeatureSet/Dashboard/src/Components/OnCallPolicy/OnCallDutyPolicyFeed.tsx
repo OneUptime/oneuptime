@@ -9,16 +9,58 @@ import OnCallDutyPolicyFeed, {
 } from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedOptions, {
+  UseFeedOptionsResult,
+} from "Common/UI/Components/Feed/useFeedOptions";
+import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import {
+  getFeedEventTypeQuery,
+  getFeedNoItemsMessage,
+} from "Common/UI/Components/Feed/FeedOptions";
 
 export interface ComponentProps {
   onCallDutyPolicyId: ObjectID;
 }
+
+/*
+ * One icon per event type, shared by the feed items and the event type
+ * checklist behind the Filter & Sort button, so the two always match.
+ */
+export const ON_CALL_DUTY_POLICY_FEED_ICONS: Record<
+  OnCallDutyPolicyFeedEventType,
+  IconProp
+> = {
+  [OnCallDutyPolicyFeedEventType.OnCallDutyPolicyCreated]: IconProp.Call,
+  [OnCallDutyPolicyFeedEventType.RosterHandoff]: IconProp.Calendar,
+  [OnCallDutyPolicyFeedEventType.OnCallDutyScheduleAdded]: IconProp.Calendar,
+  [OnCallDutyPolicyFeedEventType.OnCallDutyScheduleRemoved]: IconProp.Close,
+  [OnCallDutyPolicyFeedEventType.UserAdded]: IconProp.User,
+  [OnCallDutyPolicyFeedEventType.TeamAdded]: IconProp.Team,
+  [OnCallDutyPolicyFeedEventType.OwnerTeamAdded]: IconProp.Team,
+  [OnCallDutyPolicyFeedEventType.OwnerUserAdded]: IconProp.User,
+  [OnCallDutyPolicyFeedEventType.OwnerUserRemoved]: IconProp.Close,
+  [OnCallDutyPolicyFeedEventType.OwnerTeamRemoved]: IconProp.Close,
+  [OnCallDutyPolicyFeedEventType.UserRemoved]: IconProp.Close,
+  [OnCallDutyPolicyFeedEventType.TeamRemoved]: IconProp.Close,
+  [OnCallDutyPolicyFeedEventType.UserOverrideAdded]: IconProp.Circle,
+  [OnCallDutyPolicyFeedEventType.UserOverrideRemoved]: IconProp.Circle,
+  [OnCallDutyPolicyFeedEventType.CoverageGapStarted]: IconProp.Circle,
+};
+
+export const getOnCallDutyPolicyFeedEventIcon: (
+  eventType: string,
+) => IconProp = (eventType: string): IconProp => {
+  return (
+    ON_CALL_DUTY_POLICY_FEED_ICONS[
+      eventType as OnCallDutyPolicyFeedEventType
+    ] || IconProp.Circle
+  );
+};
 
 const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -42,92 +84,6 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
 
   const getFeedItemFromOnCallDutyPolicyFeed: GetFeedItemFromOnCallDutyPolicyFeed =
     (onCallDutyPolicyFeed: OnCallDutyPolicyFeed): FeedItemProps => {
-      let icon: IconProp = IconProp.Circle;
-
-      if (
-        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
-        OnCallDutyPolicyFeedEventType.OnCallDutyPolicyCreated
-      ) {
-        icon = IconProp.Call;
-      }
-
-      if (
-        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
-        OnCallDutyPolicyFeedEventType.RosterHandoff
-      ) {
-        icon = IconProp.Calendar;
-      }
-
-      if (
-        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
-        OnCallDutyPolicyFeedEventType.OnCallDutyScheduleAdded
-      ) {
-        icon = IconProp.Calendar;
-      }
-
-      if (
-        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
-        OnCallDutyPolicyFeedEventType.OnCallDutyScheduleRemoved
-      ) {
-        icon = IconProp.Close;
-      }
-
-      if (
-        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
-        OnCallDutyPolicyFeedEventType.UserAdded
-      ) {
-        icon = IconProp.User;
-      }
-
-      if (
-        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
-        OnCallDutyPolicyFeedEventType.TeamAdded
-      ) {
-        icon = IconProp.Team;
-      }
-
-      if (
-        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
-        OnCallDutyPolicyFeedEventType.OwnerTeamAdded
-      ) {
-        icon = IconProp.Team;
-      }
-
-      if (
-        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
-        OnCallDutyPolicyFeedEventType.OwnerUserAdded
-      ) {
-        icon = IconProp.User;
-      }
-
-      if (
-        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
-        OnCallDutyPolicyFeedEventType.OwnerUserRemoved
-      ) {
-        icon = IconProp.Close;
-      }
-
-      if (
-        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
-        OnCallDutyPolicyFeedEventType.OwnerTeamRemoved
-      ) {
-        icon = IconProp.Close;
-      }
-
-      if (
-        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
-        OnCallDutyPolicyFeedEventType.UserRemoved
-      ) {
-        icon = IconProp.Close;
-      }
-
-      if (
-        onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType ===
-        OnCallDutyPolicyFeedEventType.TeamRemoved
-      ) {
-        icon = IconProp.Close;
-      }
-
       return {
         key: onCallDutyPolicyFeed.id!.toString(),
         textInMarkdown: onCallDutyPolicyFeed.feedInfoInMarkdown || "",
@@ -137,9 +93,18 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
         itemDateTime:
           onCallDutyPolicyFeed.postedAt || onCallDutyPolicyFeed.createdAt!,
         color: onCallDutyPolicyFeed.displayColor || Gray500,
-        icon: icon,
+        icon: getOnCallDutyPolicyFeedEventIcon(
+          onCallDutyPolicyFeed.onCallDutyPolicyFeedEventType || "",
+        ),
       };
     };
+
+  const feedOptions: UseFeedOptionsResult = useFeedOptions({
+    eventTypes: Object.values(OnCallDutyPolicyFeedEventType),
+    getEventTypeIcon: getOnCallDutyPolicyFeedEventIcon,
+    storageKey: "on-call-policy",
+    resetKey: props.onCallDutyPolicyId.toString(),
+  });
 
   const {
     feedItems,
@@ -153,6 +118,7 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
     loadMore,
   } = useFeedItems<OnCallDutyPolicyFeed>({
     resourceKey: props.onCallDutyPolicyId.toString(),
+    viewKey: feedOptions.optionsKey,
     getItems: async (
       limit: number,
     ): Promise<ListResult<OnCallDutyPolicyFeed>> => {
@@ -160,6 +126,10 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
         modelType: OnCallDutyPolicyFeed,
         query: {
           onCallDutyPolicyId: props.onCallDutyPolicyId!,
+          ...getFeedEventTypeQuery<OnCallDutyPolicyFeed>(
+            "onCallDutyPolicyFeedEventType",
+            feedOptions.options,
+          ),
         },
         select: {
           moreInformationInMarkdown: true,
@@ -176,7 +146,7 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
         },
         skip: 0,
         sort: {
-          postedAt: SortOrder.Descending,
+          postedAt: feedOptions.options.sortOrder,
         },
         limit,
       });
@@ -191,6 +161,12 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
         "This is the timeline and feed for this on call duty policy. You can see all the updates and information about this on call duty policy here."
       }
       buttons={[
+        <FeedOptionsButton
+          key="on-call-policy-feed-options"
+          value={feedOptions.options}
+          eventTypeOptions={feedOptions.eventTypeOptions}
+          onChange={feedOptions.setOptions}
+        />,
         {
           title: "Refresh",
           buttonStyle: ButtonStyleType.ICON,
@@ -207,7 +183,11 @@ const OnCallDutyPolicyFeedElement: FunctionComponent<ComponentProps> = (
         {isCurrentFeedLoaded && !isLoading && !error && (
           <Feed
             items={feedItems}
-            noItemsMessage="Looks like there are no items in this feed for this onCallDutyPolicy."
+            noItemsMessage={getFeedNoItemsMessage({
+              options: feedOptions.options,
+              noItemsMessage:
+                "Looks like there are no items in this feed for this onCallDutyPolicy.",
+            })}
             hasMore={hasMore}
             isLoadingMore={isLoadingMore}
             onMore={loadMore}

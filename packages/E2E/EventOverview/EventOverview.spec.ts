@@ -2857,6 +2857,16 @@ test.describe("investigation states", () => {
       await expect(summarySection(page)).toHaveCount(0);
       await expect(reportSection(page)).toHaveCount(0);
       await expect(evidenceList(page)).toHaveCount(0);
+      // Nor a rating: there is nothing to judge, even once the run completes.
+      await expect(
+        investigation.getByText("Rate this investigation"),
+      ).toHaveCount(0);
+      await expect(
+        investigation.getByRole("button", { name: "Confirmed" }),
+      ).toHaveCount(0);
+      await expect(
+        investigation.getByRole("button", { name: "Rejected" }),
+      ).toHaveCount(0);
 
       if (scenario.usage) {
         const activity: Locator = investigation.getByRole("region", {

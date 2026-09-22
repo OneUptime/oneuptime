@@ -1,5 +1,5 @@
 /*
- * Offline fixture for the real SLO Burn Rate Rules page.
+ * Offline fixture for the real SLO Burn Rate Rules and Overview pages.
  *
  * Only the ModelAPI/API data boundary and the synthetic user's permission
  * snapshot are replaced. The page component, its ModelTable, its form and
@@ -10,12 +10,19 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import {
   BrowserRouter,
+  Route,
+  Routes,
   useLocation,
   useNavigate,
   useParams,
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
+import SloView from "../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/Index";
+import SloViewLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/Layout";
+import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
+import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import SloBurnRateRules from "../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/BurnRateRules";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import ServiceLevelObjectiveBurnRateRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
@@ -261,6 +268,12 @@ const slo = new ServiceLevelObjective();
 slo._id = SLO_ID;
 slo.projectId = new ObjectID(PROJECT_ID);
 slo.name = "Checkout availability";
+slo.description = "Availability of the checkout API for customer purchases.";
+slo.labels = labels;
+if (new URLSearchParams(window.location.search).get("details") === "empty") {
+  slo.description = "";
+  slo.labels = [];
+}
 slo.isEnabled = true;
 slo.sloStatus = SloStatus.AtRisk;
 slo.sliType = SliType.MonitorUptime;
@@ -269,6 +282,10 @@ slo.windowType = SloWindowType.Rolling;
 slo.windowDays = 30;
 slo.multiMonitorMode = SloMultiMonitorMode.AnyDown;
 slo.errorBudgetTotalSeconds = 2592;
+slo.errorBudgetRemainingSeconds = 518.4;
+slo.errorBudgetRemainingPercentage = 20;
+slo.currentSliPercentage = 99.92;
+slo.currentBurnRate = 1.2;
 slo.lastEvaluatedAt = minutesBefore(1);
 const monitor = new Monitor();
 monitor._id = "70000000-0000-4000-8000-000000000001";
@@ -283,7 +300,11 @@ ModelAPI.getCommonHeaders = () => ({ tenantid: PROJECT_ID });
 ModelAPI.getItem = async (options) => {
   const tableName = new options.modelType().tableName;
   if (tableName === "ServiceLevelObjective") {
-    return slo;
+    // Form prefilling converts relation models to picker IDs. Each API read
+    // returns a fresh record so those conversions cannot mutate stored data.
+    return Object.assign(new ServiceLevelObjective(), slo, {
+      labels: [...slo.labels],
+    });
   }
   if (tableName === "ServiceLevelObjectiveBurnRateRule") {
     const existing = rules.find((item) => item._id === options.id.toString());
@@ -323,8 +344,24 @@ ModelAPI.getCount = async (options) => {
   return tableName === "ServiceLevelObjectiveBurnRateRule" ? rules.length : 0;
 };
 
+ModelAPI.count = ModelAPI.getCount;
+AnalyticsModelAPI.aggregate = async () => ({ data: [] });
+
 ModelAPI.createOrUpdate = async (options) => {
   const record = options.model;
+  if (record.tableName === "ServiceLevelObjective") {
+    Object.assign(slo, record, {
+      labels: (record.labels || []).map((value) => {
+        const id = (value._id || value).toString();
+        const related = labels.find((item) => item._id === id);
+        if (!related) {
+          throw new Error(`Unknown SLO label relation: ${id}`);
+        }
+        return related;
+      }),
+    });
+    return { data: slo };
+  }
   const index = rules.findIndex((item) => item._id === record._id);
 
   if (!record._id) {
@@ -381,13 +418,21 @@ await i18next.use(initReactI18next).init({
   interpolation: { escapeValue: false },
 });
 
+function OverviewLayout() {
+  Navigation.setNavigateHook(useNavigate());
+  Navigation.setLocation(useLocation());
+  Navigation.setParams(useParams());
+  return <SloViewLayout />;
+}
+
 function Fixture() {
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(useLocation());
   Navigation.setParams(useParams());
+  const isOverview = !useLocation().pathname.endsWith("/burn-rate-rules");
   return (
     <>
-      <header className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-5">
+      <header className="flex flex-wrap gap-3 items-center justify-between border-b border-gray-200 bg-white px-8 py-5">
         <div className="flex items-center gap-5">
           <span className="text-lg font-semibold text-gray-900">OneUptime</span>
           <span className="text-sm text-gray-500">Checkout availability</span>
@@ -396,13 +441,26 @@ function Fixture() {
           Demo workspace · Synthetic data
         </span>
       </header>
-      <main className="mx-auto max-w-[1820px] px-8 py-8">
-        <div className="mb-7 text-sm text-gray-500">
-          SLOs <span className="mx-2">/</span> Checkout availability{" "}
-          <span className="mx-2">/</span> Burn Rate Rules
-        </div>
-        <SloBurnRateRules />
-      </main>
+      {isOverview ? (
+        <main className="mx-auto max-w-[1820px]">
+          <Routes>
+            <Route
+              path={RouteMap[PageMap.SLO_VIEW].toString()}
+              element={<OverviewLayout />}
+            >
+              <Route index element={<SloView />} />
+            </Route>
+          </Routes>
+        </main>
+      ) : (
+        <main className="mx-auto max-w-[1820px] px-8 py-8">
+          <div className="mb-7 text-sm text-gray-500">
+            SLOs <span className="mx-2">/</span> Checkout availability{" "}
+            <span className="mx-2">/</span> Burn Rate Rules
+          </div>
+          <SloBurnRateRules />
+        </main>
+      )}
     </>
   );
 }

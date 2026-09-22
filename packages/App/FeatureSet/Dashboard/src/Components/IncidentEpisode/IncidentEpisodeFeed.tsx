@@ -5,9 +5,10 @@ import Feed from "Common/UI/Components/Feed/Feed";
 import API from "Common/UI/Utils/API/API";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import IncidentEpisodeFeed from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
+import IncidentEpisodeFeed, {
+  IncidentEpisodeFeedEventType,
+} from "Common/Models/DatabaseModels/IncidentEpisodeFeed";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -23,6 +24,14 @@ import OnCallDutyPolicyExecutionLog from "Common/Models/DatabaseModels/OnCallDut
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedOptions, {
+  UseFeedOptionsResult,
+} from "Common/UI/Components/Feed/useFeedOptions";
+import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import {
+  getFeedEventTypeQuery,
+  getFeedNoItemsMessage,
+} from "Common/UI/Components/Feed/FeedOptions";
 import IncidentEpisodePublicNote from "Common/Models/DatabaseModels/IncidentEpisodePublicNote";
 import OneUptimeDate from "Common/Types/Date";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
@@ -38,6 +47,17 @@ export interface ComponentProps {
    */
   refreshToken?: number | undefined;
 }
+
+/*
+ * The event type checklist behind the Filter & Sort button hands over plain
+ * strings. This reads them from the same per-event-type table the feed items
+ * use, so the two always match.
+ */
+export const getIncidentEpisodeFeedEventIcon: (
+  eventType: string,
+) => IconProp = (eventType: string): IconProp => {
+  return getIncidentEpisodeFeedIcon(eventType as IncidentEpisodeFeedEventType);
+};
 
 const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -85,6 +105,13 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
     };
   };
 
+  const feedOptions: UseFeedOptionsResult = useFeedOptions({
+    eventTypes: Object.values(IncidentEpisodeFeedEventType),
+    getEventTypeIcon: getIncidentEpisodeFeedEventIcon,
+    storageKey: "incident-episode",
+    resetKey: props.incidentEpisodeId.toString(),
+  });
+
   const {
     feedItems,
     isLoading,
@@ -98,6 +125,7 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
     loadMore,
   } = useFeedItems<IncidentEpisodeFeed>({
     resourceKey: props.incidentEpisodeId.toString(),
+    viewKey: feedOptions.optionsKey,
     refreshToken: props.refreshToken,
     getItems: async (
       limit: number,
@@ -106,6 +134,10 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
         modelType: IncidentEpisodeFeed,
         query: {
           incidentEpisodeId: props.incidentEpisodeId!,
+          ...getFeedEventTypeQuery<IncidentEpisodeFeed>(
+            "incidentEpisodeFeedEventType",
+            feedOptions.options,
+          ),
         },
         select: {
           moreInformationInMarkdown: true,
@@ -122,7 +154,7 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
         },
         skip: 0,
         sort: {
-          postedAt: SortOrder.Descending,
+          postedAt: feedOptions.options.sortOrder,
         },
         limit,
       });
@@ -141,6 +173,12 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
         "This is the timeline and feed for this episode. You can see all the updates and information about this episode here."
       }
       buttons={[
+        <FeedOptionsButton
+          key="incident-episode-feed-options"
+          value={feedOptions.options}
+          eventTypeOptions={feedOptions.eventTypeOptions}
+          onChange={feedOptions.setOptions}
+        />,
         <MoreMenu
           key="incident-episode-feed-actions-menu"
           elementToBeShownInsteadOfButton={
@@ -195,7 +233,11 @@ const IncidentEpisodeFeedElement: FunctionComponent<ComponentProps> = (
         {isCurrentFeedLoaded && !isLoading && !error && (
           <Feed
             items={feedItems}
-            noItemsMessage="Looks like there are no items in this feed for this episode."
+            noItemsMessage={getFeedNoItemsMessage({
+              options: feedOptions.options,
+              noItemsMessage:
+                "Looks like there are no items in this feed for this episode.",
+            })}
             hasMore={hasMore}
             isLoadingMore={isLoadingMore}
             onMore={loadMore}

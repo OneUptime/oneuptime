@@ -25,7 +25,8 @@ export interface MetricBreachingSample {
 
 /**
  * Descriptor for one variable referenced by a formula, used to label
- * table columns and render the Metric Details section. Name is the
+ * each breaching sample's component values and render the Metric
+ * Details section. Name is the
  * metric display name (usually the metric name, sometimes the formula
  * expression for nested formulas) and unit is the variable's native
  * unit as configured.
@@ -103,8 +104,8 @@ export default interface MetricCriteriaContext {
   breachingSample?: MetricBreachingSample | undefined;
   /**
    * All samples in the evaluation window that breached the threshold,
-   * in chronological order. Used to render a table of timestamps and
-   * values on the incident root-cause page.
+   * in chronological order. Used to render the Breaching Samples list
+   * of timestamps and values on the incident root-cause page.
    */
   breachingSamples?: Array<MetricBreachingSample> | undefined;
   /**
@@ -116,8 +117,8 @@ export default interface MetricCriteriaContext {
   /**
    * For formulas: metadata for each variable the formula references,
    * in the order they appear in the expression. Consumers use this to
-   * label breakdown columns and to surface underlying units/metric
-   * names in the Metric Details section.
+   * label each breaching sample's component values and to surface
+   * underlying units/metric names in the Metric Details section.
    */
   components?: Array<MetricComponent> | undefined;
 }

@@ -111,9 +111,10 @@ describe("Markdown.slugify", () => {
  * Until this suite existed there was no coverage of convertToHTML at all,
  * for any content type — and the email renderer was a bare `new Renderer()`,
  * so marked's stock output went straight into the message. That mattered
- * most for the alert and incident root cause, which carries a
+ * most for the alert and incident root cause, which then carried a
  * GitHub-flavoured table of breaching samples: it arrived as a naked
  * <table> with no borders and no padding, every row running into the next.
+ * (Those samples are a list now; tables typed into markdown remain.)
  *
  * Two properties are load-bearing and easy to break:
  *

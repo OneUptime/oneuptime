@@ -459,7 +459,26 @@ export default class URL extends DatabaseProperty {
     const path: string = pathSegments.join("/");
 
     if (path || fragment) {
-      route = new Route(path + fragment);
+      /*
+       * The route is held without the "/" that separates it from the
+       * authority ("api/v1/items"), and toString puts it back. Dropping it is
+       * only harmless while the first segment has no ":" — once it does, the
+       * bare path reads as a scheme ("bot123:ABC/sendMessage" is scheme
+       * "bot123", RFC 3986 4.2) and Route rejects it. Telegram puts the bot
+       * token, which always contains a ":", in exactly that segment, so every
+       * https://api.telegram.org/bot<token>/... URL failed to parse — which
+       * broke the Telegram workflow component, the API components, and the
+       * SSRF check on every sandboxed axios call to Telegram.
+       *
+       * Keep the "/" for those paths only. It is the path as written, it
+       * cannot be read as a scheme, and toString produces the same string
+       * either way; every path that parsed before parses to the same Route.
+       */
+      const routeValue: string = path + fragment;
+
+      route = new Route(
+        Route.hasSchemePrefix(routeValue) ? "/" + routeValue : routeValue,
+      );
     }
 
     const queryString: string = URL.queryStringOf(url);
@@ -535,8 +554,13 @@ export default class URL extends DatabaseProperty {
   }
 
   public addRoute(route: Route | string): URL {
+    /*
+     * A string goes to Route.addRoute as-is, which prefixes the "/" before
+     * validating. Wrapping it in a Route first validated the bare form, so
+     * addRoute("bot123:ABC/sendMessage") threw for the same reason as above.
+     */
     if (typeof route === Typeof.String) {
-      this.route.addRoute(new Route(route.toString()));
+      this.route.addRoute(route.toString());
     }
 
     if (route instanceof Route) {

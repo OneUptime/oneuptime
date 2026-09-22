@@ -379,10 +379,21 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "serviceNamePattern",
     "serviceDescriptionPattern",
   ],
+  ServiceLevelObjectiveLabelRule: [
+    "serviceLevelObjectiveLabels",
+    "serviceLevelObjectiveNamePattern",
+    "serviceLevelObjectiveDescriptionPattern",
+  ],
   ServiceLevelObjectiveMonitorRule: [
     "monitorLabels",
+    "monitorType",
     "monitorNamePattern",
     "monitorDescriptionPattern",
+  ],
+  ServiceLevelObjectiveOwnerRule: [
+    "serviceLevelObjectiveLabels",
+    "serviceLevelObjectiveNamePattern",
+    "serviceLevelObjectiveDescriptionPattern",
   ],
   ServiceOwnerRule: [
     "serviceLabels",
