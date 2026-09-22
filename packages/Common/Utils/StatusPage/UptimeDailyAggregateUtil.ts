@@ -17,6 +17,15 @@ import moment from "moment-timezone";
 export const DEFAULT_UPTIME_AGGREGATE_TIMEZONE: string = "UTC";
 
 /*
+ * What a monitor's day buckets add up to: the seconds something was recorded
+ * for it, and how many of those were spent in a downtime status.
+ */
+export interface UptimeDailyAggregateTotals {
+  coveredSeconds: number;
+  downtimeSeconds: number;
+}
+
+/*
  * Wire format for the uptime aggregate.
  *
  * Deliberately PLAIN: ISO strings and id strings, not this codebase's typed
@@ -291,28 +300,19 @@ export default class UptimeDailyAggregateUtil {
   }
 
   /**
-   * A monitor's uptime percentage over its day buckets, or null when the
-   * buckets cover no time at all.
+   * Covered and downtime seconds over a monitor's day buckets.
    *
-   * This is the figure shown next to the bars, and it has to come from the
-   * same place the bars do. It used to be computed from the timeline rows
-   * the page receives, which arrive under a 10,000 row cap across every
-   * monitor on the page. On a page with a flapping monitor that is a few
-   * days of a sixty day window, so the percentage only saw those days: one
-   * status page read 99.876% for a monitor whose sixty days, measured from
-   * the buckets, were 99.667%.
+   * The server's uptime report reads its downtime from here, and its
+   * percentage through getUptimePercent below, so the two figures on a
+   * report row are always measured over the same seconds.
    *
-   * Downtime over the seconds actually COVERED, not over the window: a
-   * monitor younger than the window is measured from its first reading, as
-   * UptimeUtil.getTotalDowntimeInSeconds measures it from its first event.
-   * Clamped to [0, 100], then rounded down to the precision the way every
-   * other uptime figure is.
+   * A bucket's downtime is capped at its coverage: a bucket cannot be down
+   * for longer than it was watched.
    */
-  public static getUptimePercent(data: {
+  public static getTotals(data: {
     buckets: Array<UptimeDayBucket>;
     downtimeMonitorStatusIds: Array<ObjectID | string>;
-    precision: UptimePrecision;
-  }): number | null {
+  }): UptimeDailyAggregateTotals {
     const downtimeIds: Set<string> = new Set<string>(
       data.downtimeMonitorStatusIds.map((id: ObjectID | string): string => {
         return id.toString();
@@ -340,16 +340,53 @@ export default class UptimeDailyAggregateUtil {
         }
       }
 
-      // a bucket cannot be down for longer than it was watched.
       downtimeSeconds += Math.min(downtimeInBucket, bucket.coveredSeconds);
     }
 
-    if (!(coveredSeconds > 0)) {
+    return {
+      coveredSeconds: coveredSeconds,
+      downtimeSeconds: downtimeSeconds,
+    };
+  }
+
+  /**
+   * A monitor's uptime percentage over its day buckets, or null when the
+   * buckets cover no time at all.
+   *
+   * This is the figure shown next to the bars, and it has to come from the
+   * same place the bars do. It used to be computed from the timeline rows
+   * the page receives, which arrive under a 10,000 row cap across every
+   * monitor on the page. On a page with a flapping monitor that is a few
+   * days of a sixty day window, so the percentage only saw those days: one
+   * status page read 99.876% for a monitor whose sixty days, measured from
+   * the buckets, were 99.667%. The server's uptime report and uptime API
+   * read it for the same reason.
+   *
+   * Downtime over the seconds actually COVERED, not over the window: a
+   * monitor younger than the window is measured from its first reading, as
+   * UptimeUtil.getTotalDowntimeInSeconds measures it from its first event.
+   * Clamped to [0, 100], then rounded down to the precision the way every
+   * other uptime figure is.
+   */
+  public static getUptimePercent(data: {
+    buckets: Array<UptimeDayBucket>;
+    downtimeMonitorStatusIds: Array<ObjectID | string>;
+    precision: UptimePrecision;
+  }): number | null {
+    const totals: UptimeDailyAggregateTotals =
+      UptimeDailyAggregateUtil.getTotals({
+        buckets: data.buckets,
+        downtimeMonitorStatusIds: data.downtimeMonitorStatusIds,
+      });
+
+    if (!(totals.coveredSeconds > 0)) {
       return null;
     }
 
     const percent: number =
-      ((coveredSeconds - downtimeSeconds) / coveredSeconds) * 100;
+      ((totals.coveredSeconds - totals.downtimeSeconds) /
+        totals.coveredSeconds) *
+      100;
 
     return UptimeUtil.roundToPrecision({
       number: Math.min(100, Math.max(0, percent)),
