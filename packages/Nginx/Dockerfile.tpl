@@ -1,12 +1,15 @@
 # Node 26 donor stage: Alpine's apk nodejs package tops out below Node 26, so
 # node + npm are copied from the official node image into the nginx image
-# below. The alpine release of this tag (3.23) MUST match the alpine release
-# of the nginx base image (nginx:1.30.2-alpine is Alpine 3.23.x) so the copied
+# below. The alpine release of this tag (3.24) MUST match the alpine release
+# the nginx base image is pinned to (alpine3.24 in its tag) so the copied
 # node binary links against the same musl/libstdc++ ABI — when the nginx base
 # moves to a newer alpine, bump this tag in the same commit.
-FROM public.ecr.aws/docker/library/node:26-alpine3.23 AS node26
+# Tests/Ops/ContainerImageHardening.test.js fails when the two differ.
+FROM public.ecr.aws/docker/library/node:26-alpine3.24 AS node26
 
-FROM nginx:1.30.2-alpine
+# The newest stable nginx, with its Alpine release in the tag so it cannot
+# drift away from the node donor above.
+FROM nginx:1.30.5-alpine3.24
 
 
 # Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
@@ -29,8 +32,15 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 # module in a single --no-cache layer so the apk index data doesn't persist in
 # the image. libstdc++ (pulls in libgcc) is required by the node binary and the
 # isolated-vm prebuilt C++ addon copied/installed below.
+#
+# The nginx base image also ships the image-filter, xslt and geoip dynamic
+# modules. nginx.conf loads only the njs module, and the other three bring in
+# ~30 libraries nothing here uses (libgd, tiff, libjpeg, libpng, libwebp,
+# fontconfig, the X11 client libraries, libxslt, GeoIP), including tiff's
+# unfixed CVEs. Removing them takes those libraries with them.
 RUN apk upgrade --no-cache \
-    && apk add --no-cache bash curl openssl nginx-module-njs libstdc++
+    && apk add --no-cache bash curl openssl nginx-module-njs libstdc++ \
+    && apk del --no-cache nginx-module-image-filter nginx-module-xslt nginx-module-geoip
 
 # Install Node 26 + npm from the donor stage above (apk has no Node 26
 # package). COPY --from resolves per target platform, so multi-arch builds
@@ -41,10 +51,13 @@ COPY --from=node26 /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
-# Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
-# brace-expansion, picomatch, ...) pick up security fixes that the base
-# image's npm still carries.
-RUN npm install -g npm@latest
+# Update npm to npm@latest with every dependency it bundles (tar, undici,
+# brace-expansion, ip-address, ...) reinstalled at the newest version npm's own
+# ranges accept. `npm install -g npm@latest` alone ships the dependencies npm
+# was packed with, and scanners flagged them in every image. See
+# Scripts/Docker/UpdateNpmCli.js.
+COPY ./Scripts/Docker/UpdateNpmCli.js /tmp/UpdateNpmCli.js
+RUN node /tmp/UpdateNpmCli.js && rm /tmp/UpdateNpmCli.js
 
 COPY ./packages/Nginx/envsubst-on-templates.sh /etc/nginx/envsubst-on-templates.sh
 

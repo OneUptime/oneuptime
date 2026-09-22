@@ -28,6 +28,11 @@ Test" workflow provides both:
   image from `public.ecr.aws/docker/library/node:26-alpine3.24`). With the
   variable set, a docker that does not answer `docker version` fails the test
   instead of skipping it. The workflow sets the variable on the jest step.
+- **the npm registry, and docker.** `RUN_NPM_CLI_UPDATE_TESTS=1` turns on the
+  real runs of `Scripts/Docker/UpdateNpmCli.js` in `UpdateNpmCli.test.js`:
+  one against a vulnerable npm installed from the registry, one inside
+  `node:26-alpine3.24` through the real `.dockerignore`. The workflow sets it
+  on the jest step too.
 
 or from the repo root:
 
@@ -370,6 +375,52 @@ suite reads the images and Dockerfiles from release.yml's
 template, finds the ones with an `enterprise` stage (using the same line test
 as `build_docker_images.sh`, cross-checked against the stage parser) and
 asserts that set equals `ENTERPRISE_IMAGES`, which bash reads from the script.
+
+### `UpdateNpmCli.test.js`
+
+npm bundles its whole dependency tree, so the `tar`, `undici`,
+`brace-expansion` and `ip-address` inside `<global root>/npm` are whatever the
+npm release was packed with, and `npm audit` over our lockfiles never sees
+them. Scanners reported nine CVEs in exactly those four in every Node image,
+put there by `npm install -g npm@latest`. Every Node image now runs
+`Scripts/Docker/UpdateNpmCli.js` instead: `npm@latest` (never older than the
+image's npm), with its dependencies reinstalled by npm's own resolver at the
+newest versions npm's ranges accept, checked with the new npm itself
+(`--version`, `ls --all --omit=dev`) before and after it replaces anything.
+
+The suite covers the version choice, the install manifest, the order of the
+steps, the swap (including the overlayfs `EXDEV` fallbacks and putting the old
+npm back when the move fails), and that every failure leaves the image's npm
+exactly as it was, with no staging directory behind. With
+`RUN_NPM_CLI_UPDATE_TESTS=1` it also updates a real npm 12.0.2 (which bundles
+all four vulnerable packages) and uses the result for a real install, and runs
+the script inside `node:26-alpine3.24` through the real `.dockerignore`.
+
+### `ContainerImageHardening.test.js`
+
+What keeps the images free of the rest of what scanners reported, for every
+`Dockerfile.tpl`, rendered for production and development:
+
+- every Node image runs the npm update in the stage that ships, before
+  anything it installs, and none installs npm with `npm install -g npm`;
+- `.dockerignore` lets that one script into the build context, and still keeps
+  the rest of `Scripts/` out;
+- no image starts `FROM` a full Debian node image (buildpack-deps: compilers,
+  kernel headers and ~70 `-dev` libraries), only alpine or slim;
+- a production image that installs a compiler removes it after the last step
+  that could need it (`apk del .gyp`, or `apt-get purge --auto-remove`);
+- tini is started from the path the image's package manager installs it to;
+- the Runner still installs the command-line tools the full image provided;
+- E2E installs itself with `--ignore-scripts` (its `preinstall` would install
+  a second, unpinned set of browsers and WebKit's libraries), only while no
+  dependency has an install script, and installs exactly the engines its
+  Playwright projects launch;
+- the App drops aedes' `examples/` (a `package.json` named like a malware
+  package) in the layer that installs it;
+- the Nginx base and its node donor are pinned to the same Alpine release, and
+  only the nginx modules `nginx.conf` never loads are removed;
+- the collector version is the same everywhere the container agents run it or
+  it is validated.
 
 ### `lint-app-dockerfile.sh`
 

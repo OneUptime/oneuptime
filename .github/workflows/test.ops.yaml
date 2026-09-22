@@ -71,10 +71,16 @@ jobs:
       # RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS also runs the real-Docker check of
       # what `COPY ./ee` ships through .dockerignore: it builds one tiny image,
       # and fails rather than skips when docker is not usable.
+      #
+      # RUN_NPM_CLI_UPDATE_TESTS runs Scripts/Docker/UpdateNpmCli.js for real:
+      # against a vulnerable npm from the registry, and inside
+      # node:26-alpine3.24 through the real .dockerignore, the way every Node
+      # image runs it. It needs the npm registry and docker.
       - run: cd Tests/Ops && npm install
       - run: cd Tests/Ops && npm run test
         env:
           RUN_ENTERPRISE_IMAGE_RUNTIME_TESTS: "1"
+          RUN_NPM_CLI_UPDATE_TESTS: "1"
       # The jest suite reads the collector configs with js-yaml and reasons
       # about them, which cannot see the Go-side class of error: a malformed
       # RE2 regex, an `output`/`default` naming an operator that does not
