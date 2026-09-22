@@ -8,6 +8,8 @@ import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageGroupTreeUtil, { StatusPageGroupTreeIndex } from "./GroupTree";
 import UptimeUtil, { UptimeWindow } from "../Uptime/UptimeUtil";
+import { UptimeDailyAggregate } from "../../Types/StatusPage/UptimeDailyAggregate";
+import UptimeDailyAggregateUtil from "./UptimeDailyAggregateUtil";
 
 export default class StatusPageResourceUptimeUtil {
   public static getWorstMonitorStatus(data: {
@@ -154,9 +156,39 @@ export default class StatusPageResourceUptimeUtil {
     monitorsInGroup: Dictionary<Array<ObjectID>>;
     // if supplied, uptime is measured over this window instead of "first event -> now".
     uptimeWindow?: UptimeWindow | undefined;
+    /*
+     * The server's per-day buckets. When supplied, a single-monitor resource
+     * is measured from its buckets rather than from monitorStatusTimelines,
+     * which arrive under a 10,000 row cap across the whole page and on a page
+     * with a flapping monitor hold only its last few days. A monitor-group
+     * resource is still measured from the rows: its status at any moment is
+     * the worst of its monitors', which per-monitor sums cannot express.
+     */
+    uptimeDailyAggregate?: UptimeDailyAggregate | null | undefined;
   }): number | null {
     if (!data.statusPageResource.showUptimePercent) {
       return null;
+    }
+
+    if (data.uptimeDailyAggregate && data.statusPageResource.monitorId) {
+      const uptimePercentFromBuckets: number | null =
+        UptimeDailyAggregateUtil.getUptimePercent({
+          buckets: UptimeDailyAggregateUtil.getBucketsForMonitor(
+            data.uptimeDailyAggregate,
+            data.statusPageResource.monitorId,
+          ),
+          downtimeMonitorStatusIds: (data.downtimeMonitorStatuses || [])
+            .map((status: MonitorStatus) => {
+              return status.id?.toString() || "";
+            })
+            .filter(Boolean),
+          precision: data.precision,
+        });
+
+      // buckets that cover nothing fall back to the rows, as before.
+      if (uptimePercentFromBuckets !== null) {
+        return uptimePercentFromBuckets;
+      }
     }
 
     const monitorStatusTimelines: Array<MonitorStatusTimeline> =

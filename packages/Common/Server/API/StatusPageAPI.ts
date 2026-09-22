@@ -1462,6 +1462,7 @@ export default class StatusPageAPI extends BaseAPI<
             statusPageResources,
             statusPage,
             monitorStatusTimelines,
+            uptimeDailyAggregate,
             statusPageGroups,
             monitorsInGroup,
           } = await this.getStatusPageResourcesAndTimelines({
@@ -1576,31 +1577,35 @@ export default class StatusPageAPI extends BaseAPI<
                       resourceUptime.currentStatus = null;
                     }
 
-                    const resourceStatusTimelines: Array<MonitorStatusTimeline> =
-                      StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
+                    /*
+                     * From the per-day aggregate, not monitorStatusTimelines:
+                     * those rows come back under one 10,000 row cap across
+                     * every monitor on the page, newest first, and on a page
+                     * with a flapping monitor that is the last few days of the
+                     * range - so the percentage would cover only those days.
+                     * Null when the resource does not show its uptime.
+                     */
+                    resourceUptime.uptimePercent =
+                      StatusPageResourceUptimeUtil.calculateUptimePercentOfResource(
                         {
                           statusPageResource: resource,
                           monitorStatusTimelines: monitorStatusTimelines,
+                          precision: precision,
+                          downtimeMonitorStatuses: downtimeMonitorStatuses,
                           monitorsInGroup: monitorsInGroup,
+                          uptimeWindow: uptimeWindow,
+                          uptimeDailyAggregate: uptimeDailyAggregate,
                         },
                       );
-
-                    if (resource.showUptimePercent) {
-                      const uptimePercent: number =
-                        UptimeUtil.calculateUptimePercentage(
-                          resourceStatusTimelines,
-                          precision,
-                          downtimeMonitorStatuses,
-                          uptimeWindow,
-                        );
-
-                      resourceUptime.uptimePercent = uptimePercent;
-                    }
 
                     groupUptime.statusPageResourceUptimes.push(resourceUptime);
                   }
 
-                  // if its a monitor group, then...
+                  /*
+                   * if its a monitor group, then... its uptime stays on the
+                   * rows: a group is down whenever its worst monitor is, which
+                   * the per-monitor aggregate cannot express.
+                   */
 
                   if (resource.monitorGroupId) {
                     let currentStatus: MonitorStatus | undefined =

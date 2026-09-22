@@ -14,12 +14,15 @@
  *   - the numbers rolled up onto each group,
  *   - the flat `resources` array custom templates written before groups still
  *     loop over,
+ *   - a single monitor's uptime and downtime measured over the whole window
+ *     even when the page's timeline rows are cut off by the row cap,
  *   - and the empty-status-page case.
  */
 
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import StatusPageGroupService from "../../../Server/Services/StatusPageGroupService";
 import IncidentService from "../../../Server/Services/IncidentService";
+import MonitorGroupService from "../../../Server/Services/MonitorGroupService";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
@@ -33,6 +36,15 @@ import StatusPageReportPeriodUtil, {
   StatusPageReportPeriod,
 } from "../../../Utils/StatusPage/ReportPeriod";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import Timezone from "../../../Types/Timezone";
+import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
+import {
+  MonitorUptimeDailyAggregate,
+  UptimeDailyAggregate,
+  UptimeDayBucket,
+  UptimeStatusDuration,
+} from "../../../Types/StatusPage/UptimeDailyAggregate";
+import UptimeUtil from "../../../Utils/Uptime/UptimeUtil";
 import { Green, Red } from "../../../Types/BrandColors";
 import {
   StatusPageReport,
@@ -238,15 +250,134 @@ function nestedResources(): Array<StatusPageResource> {
   ];
 }
 
+const DAY_IN_MILLISECONDS: number = 24 * 60 * 60 * 1000;
+
+type AggregateRequest = {
+  monitorIds: Array<ObjectID>;
+  startDate: Date;
+  endDate: Date;
+  timezone?: string | undefined;
+};
+
+/*
+ * What MonitorStatusTimelineService.getDailyUptimeAggregate returns for these
+ * rows, without a database: a row runs to its endsAt or, while open, to the
+ * next row's start or now; it is clipped to the window and its seconds summed
+ * per day and status. Days are cut at UTC midnight here - the totals the
+ * report reads do not depend on where the cut falls.
+ */
+function aggregateFromTimeline(data: {
+  timeline: Array<MonitorStatusTimeline>;
+  request: AggregateRequest;
+}): UptimeDailyAggregate {
+  const windowStart: number = data.request.startDate.getTime();
+  const windowEnd: number = Math.min(
+    data.request.endDate.getTime(),
+    Date.now(),
+  );
+
+  const monitors: Array<MonitorUptimeDailyAggregate> = [];
+
+  for (const monitorId of data.request.monitorIds) {
+    const rows: Array<MonitorStatusTimeline> = data.timeline
+      .filter((row: MonitorStatusTimeline) => {
+        return row.monitorId?.toString() === monitorId.toString();
+      })
+      .sort((a: MonitorStatusTimeline, b: MonitorStatusTimeline) => {
+        return a.startsAt!.getTime() - b.startsAt!.getTime();
+      });
+
+    const buckets: Array<UptimeDayBucket> = [];
+
+    for (
+      let dayStart: number =
+        Math.floor(windowStart / DAY_IN_MILLISECONDS) * DAY_IN_MILLISECONDS;
+      dayStart < windowEnd;
+      dayStart += DAY_IN_MILLISECONDS
+    ) {
+      const bucketStart: number = Math.max(dayStart, windowStart);
+      const bucketEnd: number = Math.min(
+        dayStart + DAY_IN_MILLISECONDS,
+        windowEnd,
+      );
+
+      const secondsByStatus: Dictionary<number> = {};
+
+      rows.forEach((row: MonitorStatusTimeline, index: number) => {
+        const rowEnd: number = row.endsAt
+          ? row.endsAt.getTime()
+          : rows[index + 1]?.startsAt?.getTime() || windowEnd;
+
+        const overlap: number =
+          Math.min(rowEnd, bucketEnd) -
+          Math.max(row.startsAt!.getTime(), bucketStart);
+
+        if (overlap > 0) {
+          const statusId: string = row.monitorStatus!.id!.toString();
+          secondsByStatus[statusId] =
+            (secondsByStatus[statusId] || 0) + overlap / 1000;
+        }
+      });
+
+      const statusDurations: Array<UptimeStatusDuration> = Object.keys(
+        secondsByStatus,
+      ).map((statusId: string): UptimeStatusDuration => {
+        return {
+          monitorStatusId: new ObjectID(statusId),
+          seconds: secondsByStatus[statusId]!,
+        };
+      });
+
+      buckets.push({
+        bucketStart: new Date(bucketStart),
+        bucketEnd: new Date(bucketEnd),
+        daySeconds: (bucketEnd - bucketStart) / 1000,
+        coveredSeconds: statusDurations.reduce(
+          (total: number, duration: UptimeStatusDuration) => {
+            return total + duration.seconds;
+          },
+          0,
+        ),
+        statusDurations: statusDurations,
+      });
+    }
+
+    monitors.push({ monitorId: monitorId, buckets: buckets });
+  }
+
+  return { monitors: monitors, isComplete: true, completeFrom: null };
+}
+
+/*
+ * The row fetch as the database serves it: newest first, cut off after
+ * `limit` rows across every monitor on the page.
+ */
+function newestRows(
+  timeline: Array<MonitorStatusTimeline>,
+  limit: number,
+): Array<MonitorStatusTimeline> {
+  return [...timeline]
+    .sort((a: MonitorStatusTimeline, b: MonitorStatusTimeline) => {
+      return b.startsAt!.getTime() - a.startsAt!.getTime();
+    })
+    .slice(0, limit);
+}
+
 /*
  * Wires up every read getReportByStatusPage makes. Incident counts come back as
  * "one incident per monitor asked about", which makes it visible whether a group
  * asked about its whole subtree.
+ *
+ * The day aggregate is built from the WHOLE timeline, as the real one is. The
+ * row fetch returns the whole timeline too unless `rowCap` is set, in which
+ * case it returns only the newest `rowCap` rows - the real fetch's LIMIT_MAX.
  */
 function mockReads(data: {
   statusPageResources: Array<StatusPageResource>;
   statusPageGroups: Array<StatusPageGroup>;
   timeline: Array<MonitorStatusTimeline>;
+  rowCap?: number | undefined;
+  monitorsInGroup?: Dictionary<Array<ObjectID>> | undefined;
 }): void {
   const statusPage: StatusPage = new StatusPage();
   statusPage.downtimeMonitorStatuses = [OFFLINE];
@@ -264,8 +395,25 @@ function mockReads(data: {
     .mockResolvedValue(data.statusPageGroups as never);
 
   jest
+    .spyOn(MonitorGroupService, "getMonitorIdsInMonitorGroups")
+    .mockResolvedValue((data.monitorsInGroup || {}) as never);
+
+  jest
     .spyOn(StatusPageService, "getMonitorStatusTimelineForStatusPage")
-    .mockResolvedValue(data.timeline as never);
+    .mockResolvedValue(
+      (data.rowCap === undefined
+        ? data.timeline
+        : newestRows(data.timeline, data.rowCap)) as never,
+    );
+
+  jest
+    .spyOn(StatusPageService, "getUptimeDailyAggregateForStatusPage")
+    .mockImplementation(async (request: AggregateRequest) => {
+      return aggregateFromTimeline({
+        timeline: data.timeline,
+        request: request,
+      });
+    });
 
   jest
     .spyOn(IncidentService, "countBy")
@@ -540,6 +688,381 @@ describe("StatusPageService.getReportByStatusPage", () => {
           return !row.isGroup && row.indentInPixels === 0;
         }),
       ).toBe(true);
+    });
+  });
+
+  /*
+   * The bug this pins: the report measured every resource from timeline rows
+   * fetched under one LIMIT_MAX (10,000) across the whole page, newest first.
+   * A flapping monitor fills that in days - status.chainflip.io matched
+   * 255,733 rows in 60 days - so every figure covered only the newest days of
+   * the window, and lp.chainflip.io reported 99.876% for a window it was up
+   * 99.667% of. A single-monitor resource is now measured from the uncapped
+   * day aggregate.
+   */
+  describe("a page whose timeline rows are cut off by the row cap", () => {
+    const SENT_AT: Date = new Date("2026-08-01T00:00:00.000Z");
+    const WINDOW_DAYS: number = 60;
+    const DAY: number = DAY_IN_MILLISECONDS;
+
+    /*
+     * Stands in for LIMIT_MAX. Newest first, 11 rows is the flapping
+     * monitor's last five days and the edge monitor's latest row - which is
+     * all the capped fetch hands back.
+     */
+    const ROW_CAP: number = 11;
+
+    const FLAPPING_MONITOR: ObjectID = new ObjectID(
+      "aa000000-0000-4000-8000-000000000011",
+    );
+    const QUIET_MONITOR: ObjectID = new ObjectID(
+      "aa000000-0000-4000-8000-000000000012",
+    );
+    const EDGE_MONITOR: ObjectID = new ObjectID(
+      "aa000000-0000-4000-8000-000000000013",
+    );
+    const UNRECORDED_MONITOR: ObjectID = new ObjectID(
+      "aa000000-0000-4000-8000-000000000014",
+    );
+    const EDGE_MONITOR_GROUP: ObjectID = new ObjectID(
+      "cc000000-0000-4000-8000-000000000001",
+    );
+
+    // June 2 - August 1: no daylight saving change anywhere in it.
+    function sixtyDayPeriod(): StatusPageReportPeriod {
+      return StatusPageReportPeriodUtil.getReportPeriod({
+        periodType: StatusPageReportPeriodType.Rolling,
+        reportDataInDays: WINDOW_DAYS,
+        timezone: Timezone.AmericaNew_York,
+        sentAt: SENT_AT,
+      });
+    }
+
+    function at(offsetInMilliseconds: number): Date {
+      return new Date(
+        sixtyDayPeriod().startDate.getTime() + offsetInMilliseconds,
+      );
+    }
+
+    /*
+     * Offline for a moment at noon every day: five minutes a day for the
+     * first 55 days, one minute a day for the last five. Recently quiet, so
+     * the newest rows alone make it look healthier than it was.
+     */
+    function flappingTimeline(): Array<MonitorStatusTimeline> {
+      const rows: Array<MonitorStatusTimeline> = [];
+      let operationalSince: Date = at(-DAY);
+
+      for (let dayIndex: number = 0; dayIndex < WINDOW_DAYS; dayIndex++) {
+        const offlineStart: Date = at(dayIndex * DAY + DAY / 2);
+        const offlineEnd: Date = new Date(
+          offlineStart.getTime() + (dayIndex < 55 ? 300 : 60) * 1000,
+        );
+
+        rows.push(
+          makeTimelineItem({
+            monitorId: FLAPPING_MONITOR,
+            monitorStatus: OPERATIONAL,
+            startsAt: operationalSince,
+            endsAt: offlineStart,
+          }),
+          makeTimelineItem({
+            monitorId: FLAPPING_MONITOR,
+            monitorStatus: OFFLINE,
+            startsAt: offlineStart,
+            endsAt: offlineEnd,
+          }),
+        );
+
+        operationalSince = offlineEnd;
+      }
+
+      rows.push(
+        makeTimelineItem({
+          monitorId: FLAPPING_MONITOR,
+          monitorStatus: OPERATIONAL,
+          startsAt: operationalSince,
+        }),
+      );
+
+      return rows;
+    }
+
+    function timeline(): Array<MonitorStatusTimeline> {
+      return [
+        ...flappingTimeline(),
+        /*
+         * Down for one whole day early in the window, fine since. Its rows
+         * are old, so under a newest-first cap a noisy neighbour pushes every
+         * one of them out.
+         */
+        makeTimelineItem({
+          monitorId: QUIET_MONITOR,
+          monitorStatus: OPERATIONAL,
+          startsAt: at(-30 * DAY),
+          endsAt: at(10 * DAY),
+        }),
+        makeTimelineItem({
+          monitorId: QUIET_MONITOR,
+          monitorStatus: OFFLINE,
+          startsAt: at(10 * DAY),
+          endsAt: at(11 * DAY),
+        }),
+        makeTimelineItem({
+          monitorId: QUIET_MONITOR,
+          monitorStatus: OPERATIONAL,
+          startsAt: at(11 * DAY),
+        }),
+        // behind a monitor group; offline for the last six hours.
+        makeTimelineItem({
+          monitorId: EDGE_MONITOR,
+          monitorStatus: OPERATIONAL,
+          startsAt: at(-DAY),
+          endsAt: at(WINDOW_DAYS * DAY - DAY / 4),
+        }),
+        makeTimelineItem({
+          monitorId: EDGE_MONITOR,
+          monitorStatus: OFFLINE,
+          startsAt: at(WINDOW_DAYS * DAY - DAY / 4),
+        }),
+      ];
+    }
+
+    function resources(): Array<StatusPageResource> {
+      const edge: StatusPageResource = new StatusPageResource();
+      edge.displayName = "Edge";
+      edge.monitorGroupId = EDGE_MONITOR_GROUP;
+      edge.order = 3;
+
+      return [
+        makeResource({
+          displayName: "lp.chainflip.io",
+          monitorId: FLAPPING_MONITOR,
+          order: 1,
+        }),
+        makeResource({
+          displayName: "Status API",
+          monitorId: QUIET_MONITOR,
+          order: 2,
+        }),
+        edge,
+        makeResource({
+          displayName: "New monitor",
+          monitorId: UNRECORDED_MONITOR,
+          order: 4,
+        }),
+      ];
+    }
+
+    function itemsByName(
+      report: StatusPageReport,
+    ): Dictionary<StatusPageReportItem> {
+      const items: Dictionary<StatusPageReportItem> = {};
+
+      for (const item of report.resources) {
+        items[item.resourceName] = item;
+      }
+
+      return items;
+    }
+
+    beforeEach(() => {
+      jest.restoreAllMocks();
+      mockReads({
+        statusPageResources: resources(),
+        statusPageGroups: [],
+        timeline: timeline(),
+        rowCap: ROW_CAP,
+        monitorsInGroup: {
+          [EDGE_MONITOR_GROUP.toString()]: [EDGE_MONITOR],
+        },
+      });
+    });
+
+    test("the capped rows really do lose most of the window", () => {
+      const period: StatusPageReportPeriod = sixtyDayPeriod();
+      const cappedRows: Array<MonitorStatusTimeline> = newestRows(
+        timeline(),
+        ROW_CAP,
+      ).filter((row: MonitorStatusTimeline) => {
+        return row.monitorId?.toString() === FLAPPING_MONITOR.toString();
+      });
+
+      // the premise of every test below: the rows alone say 99.92%.
+      expect(
+        UptimeUtil.calculateUptimePercentage(
+          cappedRows,
+          UptimePrecision.TWO_DECIMAL,
+          [OFFLINE],
+          { startDate: period.startDate, endDate: period.endDate },
+        ),
+      ).toBe(99.92);
+    });
+
+    test("measures a flapping monitor's uptime over the whole window", async () => {
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: sixtyDayPeriod(),
+        });
+
+      /*
+       * 55 x 5 minutes + 5 x 1 minute = 280 minutes down in 60 days:
+       * 99.6759...%, rounded down to the report's two decimals.
+       */
+      expect(
+        itemsByName(report)["lp.chainflip.io"]!.uptimePercentAsString,
+      ).toBe("99.67%");
+    });
+
+    test("reads the downtime beside it from the same seconds", async () => {
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: sixtyDayPeriod(),
+        });
+
+      // not the 5 minutes the capped rows hold.
+      expect(
+        itemsByName(report)["lp.chainflip.io"]!.downtimeInHoursAndMinutes,
+      ).toBe("4 hours, 40 minutes");
+    });
+
+    test("keeps a quiet monitor's history when a noisy one fills the cap", async () => {
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: sixtyDayPeriod(),
+        });
+
+      const quiet: StatusPageReportItem = itemsByName(report)["Status API"]!;
+
+      // one day down in sixty, although none of its rows survive the cap.
+      expect(quiet.uptimePercentAsString).toBe("98.33%");
+      expect(quiet.downtimeInHoursAndMinutes).toBe("1 days, 0 minutes");
+    });
+
+    test("averages the page over the corrected figures", async () => {
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: sixtyDayPeriod(),
+        });
+
+      // (99.67 + 98.33 + Edge's 0 from the rows + 100 for the new monitor) / 4
+      expect(report.averageUptimePercent).toBe("74.50%");
+    });
+
+    test("asks for the day aggregate of single monitors, over the report window, in the report's timezone", async () => {
+      const period: StatusPageReportPeriod = sixtyDayPeriod();
+
+      await StatusPageService.getReportByStatusPage({
+        statusPageId: STATUS_PAGE_ID,
+        reportPeriod: period,
+      });
+
+      const aggregateSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        StatusPageService,
+        "getUptimeDailyAggregateForStatusPage",
+      ) as ReturnType<typeof jest.spyOn>;
+
+      expect(aggregateSpy).toHaveBeenCalledTimes(1);
+
+      const request: AggregateRequest = aggregateSpy.mock
+        .calls[0]![0] as AggregateRequest;
+
+      expect(
+        request.monitorIds.map((monitorId: ObjectID) => {
+          return monitorId.toString();
+        }),
+      ).toEqual([
+        FLAPPING_MONITOR.toString(),
+        QUIET_MONITOR.toString(),
+        UNRECORDED_MONITOR.toString(),
+      ]);
+      expect(request.startDate).toEqual(period.startDate);
+      expect(request.endDate).toEqual(period.endDate);
+      expect(request.timezone).toBe("America/New_York");
+    });
+
+    test("cuts days in UTC for a zone Postgres would refuse, rather than failing the report", async () => {
+      /*
+       * Still offered in the report settings, but dropped from tzdata in
+       * 2020: `AT TIME ZONE 'US/Pacific-New'` is an error in Postgres.
+       */
+      const period: StatusPageReportPeriod = {
+        ...sixtyDayPeriod(),
+        timezone: Timezone.USPacificNew,
+      };
+
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: period,
+        });
+
+      const aggregateSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        StatusPageService,
+        "getUptimeDailyAggregateForStatusPage",
+      ) as ReturnType<typeof jest.spyOn>;
+
+      expect(
+        (aggregateSpy.mock.calls[0]![0] as AggregateRequest).timezone,
+      ).toBe("UTC");
+
+      // the totals do not depend on where the days are cut.
+      expect(
+        itemsByName(report)["lp.chainflip.io"]!.uptimePercentAsString,
+      ).toBe("99.67%");
+    });
+
+    test("keeps a monitor group on the timeline rows", async () => {
+      const period: StatusPageReportPeriod = sixtyDayPeriod();
+
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: period,
+        });
+
+      /*
+       * A group is down whenever its worst monitor is, which per-monitor day
+       * sums cannot express - so it is measured from the rows the page
+       * fetched, cap and all. Here only the Offline row survives the cap.
+       */
+      const edgeRows: Array<MonitorStatusTimeline> = newestRows(
+        timeline(),
+        ROW_CAP,
+      ).filter((row: MonitorStatusTimeline) => {
+        return row.monitorId?.toString() === EDGE_MONITOR.toString();
+      });
+
+      const fromRows: number = UptimeUtil.calculateUptimePercentage(
+        edgeRows,
+        UptimePrecision.TWO_DECIMAL,
+        [OFFLINE],
+        { startDate: period.startDate, endDate: period.endDate },
+      );
+
+      expect(itemsByName(report)["Edge"]!.uptimePercentAsString).toBe(
+        `${fromRows}%`,
+      );
+      expect(fromRows).toBe(0);
+    });
+
+    test("falls back to the rows for a monitor with nothing recorded, rather than printing null", async () => {
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: sixtyDayPeriod(),
+        });
+
+      const unrecorded: StatusPageReportItem =
+        itemsByName(report)["New monitor"]!;
+
+      expect(unrecorded.uptimePercent).toBe(100);
+      expect(unrecorded.uptimePercentAsString).toBe("100%");
+      expect(unrecorded.downtimeInHoursAndMinutes).toBe("0 minutes");
     });
   });
 
