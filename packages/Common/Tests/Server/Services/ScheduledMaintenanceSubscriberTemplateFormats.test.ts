@@ -462,4 +462,57 @@ describe("scheduled maintenance subscriber notifications: template formats", () 
     expect(Markdown.convertToHTML).toHaveBeenCalledTimes(2);
     expect(Markdown.convertToPlainText).toHaveBeenCalledTimes(2);
   });
+
+  /*
+   * The subject is finished text once compileTemplate has filled it, so the
+   * mail is marked literal. The mailer used to compile it again, and a
+   * description quoting template syntax either stopped the email or lost the
+   * quoted words.
+   */
+  test.each([
+    "Deploy blocked on {{ x }}",
+    "Helm upgrade failed: {{ .Values.image.tag }} was empty",
+    "Config parser stopped at {{ on line 3",
+  ])(
+    "sends a subject quoting template syntax as written: %s",
+    async (text: string) => {
+      jest.spyOn(Markdown, "convertToPlainText").mockReturnValue(text);
+      useCustomTemplates("{{scheduledMaintenanceTitle}}: {{eventDescription}}");
+
+      await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+        scheduledEvent(),
+      ]);
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]).toEqual(
+        expect.objectContaining({
+          subject: `${TITLE}: ${text}`,
+          isSubjectLiteral: true,
+        }),
+      );
+    },
+  );
+
+  test("sends the default subject of a title quoting template syntax as written", async () => {
+    jest
+      .spyOn(
+        StatusPageSubscriberNotificationTemplateService,
+        "getTemplateForStatusPage",
+      )
+      .mockResolvedValue(null);
+    const event: ScheduledMaintenance = scheduledEvent();
+    event.title = "Rollout of {{ .Values.image.tag }}";
+
+    await ScheduledMaintenanceService.notififySubscribersOnEventScheduled([
+      event,
+    ]);
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]).toEqual(
+      expect.objectContaining({
+        subject: "[Scheduled Maintenance] Rollout of {{ .Values.image.tag }}",
+        isSubjectLiteral: true,
+      }),
+    );
+  });
 });

@@ -607,6 +607,7 @@ const notifySubscribersOfAnnouncement: (data: {
                       body: customEmailBody,
                     },
                     subject: emailSubject,
+                    isSubjectLiteral: true,
                   },
                   {
                     mailServer: ProjectSMTPConfigService.toEmailServer(
@@ -648,6 +649,7 @@ const notifySubscribersOfAnnouncement: (data: {
                       unsubscribeUrl: unsubscribeUrl,
                     },
                     subject: emailSubject,
+                    isSubjectLiteral: true,
                   },
                   {
                     mailServer: ProjectSMTPConfigService.toEmailServer(
