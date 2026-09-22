@@ -805,7 +805,12 @@ describe("Monitor overview dark mode", () => {
       return true;
     }
 
+    /*
+     * CSS escaping, as Theme.css writes the class: backslashes first, so the
+     * ones added for ":" and "/" are not escaped a second time.
+     */
     const escapedClass: string = token
+      .replace(/\\/g, "\\\\")
       .replace(/:/g, "\\:")
       .replace(/\//g, "\\/");
     let from: number = THEME_CSS.indexOf(`.${escapedClass}`);
