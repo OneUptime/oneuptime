@@ -232,8 +232,14 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white">
-      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
-        <div className="flex items-center gap-2">
+      {/*
+       * Below md the header wraps rather than overflowing: at phone width a
+       * legend of several series plus the header actions ran past the
+       * viewport and scrolled the whole page sideways. From md up it is the
+       * single row it always was (md:flex-nowrap, md:gap-x-0).
+       */}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-gray-100 px-4 py-2 md:flex-nowrap md:gap-x-0">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 md:flex-nowrap">
           <span className="text-xs font-medium text-gray-500">
             {props.title || "Volume"}
           </span>
@@ -246,7 +252,7 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 md:flex-nowrap">
           {activeSeries.map((option: HistogramSeriesOption) => {
             return (
               <div key={option.key} className="flex items-center gap-1.5">
