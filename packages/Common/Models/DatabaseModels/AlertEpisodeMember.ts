@@ -654,7 +654,14 @@ export default class AlertEpisodeMember extends BaseModel {
   public createdByUserId?: ObjectID = undefined;
 
   @ColumnAccessControl({
-    create: [],
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.AlertAdmin,
+      Permission.AlertMember,
+      Permission.CreateAlertEpisodeMember,
+    ],
     read: [
       Permission.ProjectOwner,
       Permission.ProjectAdmin,
