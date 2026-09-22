@@ -353,9 +353,17 @@ export class LogAggregationService {
      * column the aggregate projection does not store, so ClickHouse rejects
      * the projection and full-scans (verified: 2.1M rows / ~46ms vs 978 rows /
      * ~7ms with this form). The outer query re-buckets the tiny minute-level
-     * result to the requested size. Window edges round to the minute, which is
-     * consistent with the minute-bucketed output and only shifts the first/last
-     * bucket by the partial boundary minute when the range is not minute-aligned.
+     * result to the requested size. The start edge rounds down to the minute,
+     * which is consistent with the minute-bucketed output and only widens the
+     * first bucket by the partial boundary minute when the range is not
+     * minute-aligned.
+     *
+     * The end edge keeps every minute that STARTS before the window ends. It
+     * used to keep the minute the end falls in as well, which for a
+     * minute-aligned end - exactly what zooming into a bar produces, e.g.
+     * 10:15 to 10:16 - drew a whole extra bar (10:16) of logs the list below
+     * it does not show. The end is bound as DateTime64 so a sub-second end
+     * (10:16:00.500) still keeps the minute it has started.
      *
      * A non-projection filter (primaryEntityId, entityKeys, traceId, spanId,
      * attributes) makes the inner query transparently fall back to a
@@ -383,10 +391,10 @@ export class LogAggregationService {
             type: TableColumnType.Date,
             value: request.startTime,
           }}, INTERVAL 1 MINUTE)
-          AND toStartOfInterval(time, INTERVAL 1 MINUTE) <= toStartOfInterval(${{
-            type: TableColumnType.Date,
+          AND toStartOfInterval(time, INTERVAL 1 MINUTE) < ${{
+            type: TableColumnType.DateTime64,
             value: request.endTime,
-          }}, INTERVAL 1 MINUTE)
+          }}
     `;
 
     LogAggregationService.appendCommonFilters(statement, request);

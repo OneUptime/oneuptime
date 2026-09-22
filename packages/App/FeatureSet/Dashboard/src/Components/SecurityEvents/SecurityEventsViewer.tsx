@@ -77,7 +77,6 @@ import {
   buildSecurityEventVolumeAggregateBy,
   buildSecurityEventVolumeFromResult,
   getSecurityEventVolumeSeries,
-  getSecurityEventVolumeZoomRange,
 } from "./SecurityEventVolume";
 import {
   getSecurityEventsTimeRangeParams,
@@ -879,25 +878,22 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
       setPage(1);
     }, []);
 
+  /*
+   * The chart already hands over whole buckets (it is given their width
+   * below), cut at the end of the window being zoomed out of, so the window
+   * is applied as it comes.
+   */
   const handleHistogramTimeRangeSelect: (
     startDate: Date,
     endDate: Date,
   ) => void = useCallback(
     (startDate: Date, endDate: Date): void => {
-      const zoomed: { startDate: Date; endDate: Date } =
-        getSecurityEventVolumeZoomRange({
-          startDate: startDate,
-          endDate: endDate,
-          intervalMs: volume?.intervalMs || 0,
-          windowEndDate: new Date(timeWindow.endValue),
-        });
-
       applyTimeRange({
         range: TimeRange.CUSTOM,
-        startAndEndDate: new InBetween<Date>(zoomed.startDate, zoomed.endDate),
+        startAndEndDate: new InBetween<Date>(startDate, endDate),
       });
     },
-    [volume?.intervalMs, timeWindow, applyTimeRange],
+    [applyTimeRange],
   );
 
   const refresh: () => void = useCallback((): void => {
@@ -1010,6 +1006,7 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
         histogramSeries={histogramSeries}
         histogramTitle="Security Event Volume"
         histogramLoading={isVolumeLoading}
+        histogramBucketIntervalMs={volume?.intervalMs}
         onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
         /*
          * The histogram renders nothing at all when it has no buckets AND no

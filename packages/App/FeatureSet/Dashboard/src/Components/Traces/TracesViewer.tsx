@@ -801,6 +801,13 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
   const [histogramBuckets, setHistogramBuckets] = useState<
     Array<HistogramBucket>
   >([]);
+  /*
+   * Width of one bar in `histogramBuckets`, set together with them. It is
+   * what lets a click on a bar open that bar's spans.
+   */
+  const [histogramBucketIntervalMs, setHistogramBucketIntervalMs] = useState<
+    number | undefined
+  >(undefined);
   const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
@@ -1916,8 +1923,11 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         ] || []) as unknown as Array<HistogramBucket>;
         setHistogramBuckets(buckets);
       }
+      // Both endpoints bucket by the size this request asked for.
+      setHistogramBucketIntervalMs(bucketSizeInMinutes * 60 * 1000);
     } else {
       setHistogramBuckets([]);
+      setHistogramBucketIntervalMs(undefined);
     }
 
     if (facetsResult.status === "fulfilled") {
@@ -3276,6 +3286,7 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         chartMetric === "count" ? "Traces over time" : "Response time"
       }
       histogramLoading={histogramLoading}
+      histogramBucketIntervalMs={histogramBucketIntervalMs}
       onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
       histogramValueFormatter={
         chartMetric === "count" ? undefined : formatDurationMs

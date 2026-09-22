@@ -2,11 +2,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   ReactNode,
-  useEffect,
   useMemo,
-  useCallback,
-  useRef,
-  useState,
 } from "react";
 import {
   BarChart,
@@ -21,6 +17,9 @@ import { HistogramBucket, HistogramSeriesOption } from "../types";
 import TelemetryHistogramTooltip from "./TelemetryHistogramTooltip";
 import ComponentLoader from "../../ComponentLoader/ComponentLoader";
 import OneUptimeDate from "../../../../Types/Date";
+import useHistogramRangeSelection, {
+  HistogramRangeSelectionState,
+} from "../../Charts/Utils/useHistogramRangeSelection";
 
 export interface TelemetryHistogramProps {
   buckets: Array<HistogramBucket>;
@@ -38,6 +37,12 @@ export interface TelemetryHistogramProps {
    * started from.
    */
   onZoomOut?: (() => void) | undefined;
+  /*
+   * How much time one bar covers. With it a click on a bar zooms into that
+   * bar and a drag zooms through the end of the last bar it covered; without
+   * it a selection can only run from one bar's start to another's.
+   */
+  bucketIntervalMs?: number | undefined;
   // Extra controls rendered in the chart header (e.g. a metric selector).
   headerActions?: ReactNode;
   // Formats Y-axis ticks and tooltip values (e.g. milliseconds → "1.2 s").
@@ -93,15 +98,11 @@ function formatYAxisTick(value: number): string {
 const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
   props: TelemetryHistogramProps,
 ): ReactElement => {
-  const [selectionStart, setSelectionStart] = useState<string | null>(null);
-  const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
-  const isSelecting: React.MutableRefObject<boolean> = useRef(false);
-  /*
-   * Mirrors isSelecting for rendering. The ref stays the authority so a
-   * mouseup handled twice (chart *and* window, below) cannot commit the same
-   * drag twice; the state is only here so the drag can change what is drawn.
-   */
-  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const selection: HistogramRangeSelectionState = useHistogramRangeSelection({
+    onTimeRangeSelect: props.onTimeRangeSelect,
+    onZoomOut: props.onZoomOut,
+    bucketIntervalMs: props.bucketIntervalMs,
+  });
 
   const pivotedData: Array<PivotedRow> = useMemo(() => {
     return pivotBuckets(props.buckets);
@@ -134,85 +135,6 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
     });
   }, [props.buckets, props.series]);
 
-  const handleMouseDown: (e: any) => void = useCallback(
-    (e: any): void => {
-      if (!props.onTimeRangeSelect || !e?.activeLabel) {
-        return;
-      }
-
-      isSelecting.current = true;
-      setIsDragging(true);
-      setSelectionStart(e.activeLabel as string);
-      setSelectionEnd(null);
-    },
-    [props.onTimeRangeSelect],
-  );
-
-  const handleMouseMove: (e: any) => void = useCallback((e: any): void => {
-    if (!isSelecting.current || !e?.activeLabel) {
-      return;
-    }
-
-    setSelectionEnd(e.activeLabel as string);
-  }, []);
-
-  const handleMouseUp: () => void = useCallback((): void => {
-    if (
-      !isSelecting.current ||
-      !selectionStart ||
-      !selectionEnd ||
-      !props.onTimeRangeSelect
-    ) {
-      isSelecting.current = false;
-      setIsDragging(false);
-      setSelectionStart(null);
-      setSelectionEnd(null);
-      return;
-    }
-
-    isSelecting.current = false;
-    setIsDragging(false);
-
-    const start: Date = OneUptimeDate.fromString(selectionStart);
-    const end: Date = OneUptimeDate.fromString(selectionEnd);
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      setSelectionStart(null);
-      setSelectionEnd(null);
-      return;
-    }
-
-    const earlierDate: Date = start < end ? start : end;
-    const laterDate: Date = start < end ? end : start;
-
-    props.onTimeRangeSelect(earlierDate, laterDate);
-
-    setSelectionStart(null);
-    setSelectionEnd(null);
-  }, [selectionStart, selectionEnd, props.onTimeRangeSelect]);
-
-  /*
-   * Readers routinely drag past the edge of a 120px-tall chart and let go
-   * outside it, where the chart's own mouseup never fires. Without this the
-   * drag would never end: the selection band would stay painted and the
-   * tooltip would stay suppressed until the next click.
-   */
-  useEffect(() => {
-    if (!isDragging) {
-      return undefined;
-    }
-
-    const finishDragOutsideChart: () => void = (): void => {
-      handleMouseUp();
-    };
-
-    window.addEventListener("mouseup", finishDragOutsideChart);
-
-    return () => {
-      window.removeEventListener("mouseup", finishDragOutsideChart);
-    };
-  }, [isDragging, handleMouseUp]);
-
   if (props.isLoading && pivotedData.length === 0) {
     return (
       <div className="flex h-32 items-center justify-center rounded-lg border border-gray-200 bg-white">
@@ -238,7 +160,11 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
             {props.title || "Volume"}
           </span>
           {props.onTimeRangeSelect && (
-            <span className="text-[10px] text-gray-300">Drag to zoom</span>
+            <span className="text-[10px] text-gray-300">
+              {selection.canClickToZoom
+                ? "Click or drag to zoom"
+                : "Drag to zoom"}
+            </span>
           )}
           {props.onZoomOut && (
             <span className="text-[10px] text-gray-300">
@@ -276,15 +202,15 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
             height: 120,
             cursor: props.onTimeRangeSelect ? "crosshair" : "default",
           }}
-          onDoubleClick={props.onZoomOut}
+          onDoubleClick={selection.onDoubleClick}
         >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={pivotedData}
               margin={{ top: 4, right: 8, bottom: 0, left: -4 }}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
+              onMouseDown={selection.onMouseDown}
+              onMouseMove={selection.onMouseMove}
+              onMouseUp={selection.onMouseUp}
               barCategoryGap="15%"
               barGap={0}
             >
@@ -326,7 +252,7 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
                   />
                 }
                 cursor={{ fill: "rgba(99,102,241,0.06)" }}
-                {...(isDragging ? { active: false } : {})}
+                {...(selection.isDragging ? { active: false } : {})}
               />
               {activeSeries.map(
                 (option: HistogramSeriesOption, index: number) => {
@@ -344,10 +270,10 @@ const TelemetryHistogram: FunctionComponent<TelemetryHistogramProps> = (
                   );
                 },
               )}
-              {selectionStart && selectionEnd && (
+              {selection.selectionStart && selection.selectionEnd && (
                 <ReferenceArea
-                  x1={selectionStart}
-                  x2={selectionEnd}
+                  x1={selection.selectionStart}
+                  x2={selection.selectionEnd}
                   fill="rgba(99,102,241,0.12)"
                   stroke="rgba(99,102,241,0.5)"
                   strokeWidth={1}

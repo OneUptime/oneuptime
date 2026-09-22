@@ -326,39 +326,3 @@ export function buildSecurityEventVolumeFromResult(data: {
     endDate: data.endDate,
   });
 }
-
-/*
- * The window a drag across the chart zooms into. The histogram reports the
- * *start* of the first and last buckets under the drag, so taken literally a
- * drag would drop the last bucket it covered - and a click-drag inside one
- * bucket would zoom into a window zero seconds wide. The end is pushed out by
- * one bucket, but never past the end of the window being zoomed out of: the
- * newest bucket is usually still filling up.
- */
-export function getSecurityEventVolumeZoomRange(data: {
-  startDate: Date;
-  endDate: Date;
-  intervalMs: number;
-  windowEndDate?: Date | undefined;
-}): { startDate: Date; endDate: Date } {
-  const startMs: number = Math.min(
-    data.startDate.getTime(),
-    data.endDate.getTime(),
-  );
-  const lastBucketMs: number = Math.max(
-    data.startDate.getTime(),
-    data.endDate.getTime(),
-  );
-
-  let endMs: number = lastBucketMs + Math.max(0, data.intervalMs);
-
-  if (data.windowEndDate) {
-    const windowEndMs: number = data.windowEndDate.getTime();
-
-    if (windowEndMs > startMs) {
-      endMs = Math.min(endMs, windowEndMs);
-    }
-  }
-
-  return { startDate: new Date(startMs), endDate: new Date(endMs) };
-}

@@ -852,9 +852,13 @@ export class TraceAggregationService {
      * predicate references a column the aggregate projection does not store,
      * so ClickHouse rejects proj_hist_by_minute and full-scans the base table
      * (verified: 32M rows / ~220ms vs 1.5K rows / ~6ms with this form). The
-     * window edges round to the minute, which is consistent with the
-     * minute-bucketed output and only shifts the first/last bucket by the
-     * partial boundary minute when the range is not minute-aligned.
+     * start edge rounds down to the minute, which is consistent with the
+     * minute-bucketed output and only widens the first bucket by the partial
+     * boundary minute when the range is not minute-aligned. The end edge
+     * keeps every minute that STARTS before the window ends, so a
+     * minute-aligned end - what zooming into a bar produces - does not draw
+     * an extra bar of spans the list below it does not show (see the log
+     * histogram in LogAggregationService for the same rule).
      *
      * If any non-projection filter (kind, name, traceId, spanId,
      * nameSearchText, spanNameSearches, statusMessageSearchText,
@@ -886,10 +890,10 @@ export class TraceAggregationService {
             type: TableColumnType.Date,
             value: request.startTime,
           }})
-          AND toStartOfMinute(startTime) <= toStartOfMinute(${{
-            type: TableColumnType.Date,
+          AND toStartOfMinute(startTime) < ${{
+            type: TableColumnType.DateTime64,
             value: request.endTime,
-          }})
+          }}
     `;
 
     TraceAggregationService.appendCommonFilters(statement, request);

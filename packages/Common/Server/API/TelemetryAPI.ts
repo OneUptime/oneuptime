@@ -615,13 +615,20 @@ router.post(
 
       const body: JSONObject = req.body as JSONObject;
 
+      /*
+       * One reading of the clock for both default edges. Two readings can
+       * land a millisecond apart, making the default hour 60m + 1ms long -
+       * which tips the bucket size from one minute to five.
+       */
+      const now: Date = OneUptimeDate.getCurrentDate();
+
       const startTime: Date = body["startTime"]
         ? OneUptimeDate.fromString(body["startTime"] as string)
-        : OneUptimeDate.addRemoveHours(OneUptimeDate.getCurrentDate(), -1);
+        : OneUptimeDate.addRemoveHours(now, -1);
 
       const endTime: Date = body["endTime"]
         ? OneUptimeDate.fromString(body["endTime"] as string)
-        : OneUptimeDate.getCurrentDate();
+        : now;
 
       const bucketSizeInMinutes: number =
         (body["bucketSizeInMinutes"] as number) ||
@@ -683,8 +690,14 @@ router.post(
       const buckets: Array<HistogramBucket> =
         await LogAggregationService.getHistogram(request);
 
+      /*
+       * Each bucket is labelled with its start only. The chart needs the
+       * width too: without it a click on one bar could only zoom into a
+       * window zero seconds wide.
+       */
       return Response.sendJsonObjectResponse(req, res, {
         buckets: buckets as unknown as JSONObject,
+        bucketSizeInMinutes: bucketSizeInMinutes,
       });
     } catch (err: unknown) {
       next(err);
