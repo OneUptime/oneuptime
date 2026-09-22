@@ -35,6 +35,8 @@ Use secret variables for:
 
 Don't paste a secret directly into a block — values like `Authorization: Bearer eyJh...` end up visible in the workflow and the logs. Use `{{global.variables.MY_SECRET}}` instead.
 
+If the secret is an OAuth access token that expires, make the variable an [OAuth 2.0 variable](/docs/workflows/variables#oauth-20-variables-tokens-that-refresh-themselves). OneUptime then fetches the token from your identity provider and refreshes it whenever a workflow is about to use an expired one. OAuth 2.0 variables are always secret, and their credentials are encrypted in the database.
+
 ## Exporting and importing workflows
 
 You can move a workflow between projects, or between a self-hosted install and OneUptime Cloud, as a JSON file.
