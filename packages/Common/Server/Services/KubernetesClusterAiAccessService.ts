@@ -112,6 +112,7 @@ export const CLUSTER_AI_ACCESS_SELECT: Record<string, boolean> = {
   aiKubectlCommandAllowlist: true,
   aiAccessLastVerifiedAt: true,
   aiAccessLastError: true,
+  aiAccessConfiguredAt: true,
   isArchived: true,
 };
 

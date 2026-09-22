@@ -8,10 +8,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * AutoRemediationSuggestion gain the cluster a kubectl command ran against
  * so the cluster's AI page can list every command AI ran on it.
  */
-export class AddKubernetesClusterAiAccess1794000000000
+export class AddKubernetesClusterAiAccess1794400000000
   implements MigrationInterface
 {
-  public name: string = "AddKubernetesClusterAiAccess1794000000000";
+  public name: string = "AddKubernetesClusterAiAccess1794400000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
@@ -34,6 +34,9 @@ export class AddKubernetesClusterAiAccess1794000000000
     );
     await queryRunner.query(
       `ALTER TABLE "KubernetesCluster" ADD "aiAccessLastError" character varying`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "KubernetesCluster" ADD "aiAccessConfiguredAt" TIMESTAMP WITH TIME ZONE`,
     );
     await queryRunner.query(
       `ALTER TABLE "RunnerJob" ADD "kubernetesClusterId" uuid`,
@@ -91,6 +94,9 @@ export class AddKubernetesClusterAiAccess1794000000000
     );
     await queryRunner.query(
       `ALTER TABLE "RunnerJob" DROP COLUMN "kubernetesClusterId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "KubernetesCluster" DROP COLUMN "aiAccessConfiguredAt"`,
     );
     await queryRunner.query(
       `ALTER TABLE "KubernetesCluster" DROP COLUMN "aiAccessLastError"`,

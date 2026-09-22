@@ -1327,4 +1327,41 @@ export default class KubernetesCluster extends BaseModel {
     nullable: true,
   })
   public aiAccessLastError?: string = undefined;
+
+  /*
+   * When this cluster's AI access was first configured — by the in-cluster
+   * Runner's first bind, or by anyone writing an AI access setting. Only
+   * the server writes it, and nothing ever clears it, so it outlives the
+   * Runner binding: deleting the bound Runner nulls aiAccessRunnerId
+   * through the foreign key, and without this marker the next agent
+   * registration could not tell "never configured" (apply the chart's
+   * defaults) from "configured, then the Runner was deleted" (leave the
+   * operator's switches alone).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Configured At",
+    description:
+      "When OneUptime AI access to this cluster was first configured. Set by the server; never cleared.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessConfiguredAt?: Date = undefined;
 }
