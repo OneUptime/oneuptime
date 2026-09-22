@@ -33,7 +33,12 @@ const SecurityEventsEmptyState: FunctionComponent = (): ReactElement => {
     <EmptyState
       id={SECURITY_EVENTS_EMPTY_STATE_ID}
       icon={IconProp.ShieldCheck}
-      paddingClassName="py-4"
+      /*
+       * The list card has no padding of its own. On a phone the text and the
+       * full-width buttons would sit flush against its border, so they get a
+       * side gutter there; from md up the spacing is as it was.
+       */
+      paddingClassName="px-4 py-4 md:px-0"
       title="No security events yet"
       description="Send events from any source that can POST JSON — a SIEM, a SOAR webhook, a log forwarder — or connect a security product and OneUptime polls it for you. Every event is normalized to OCSF, whatever dialect it arrives in."
       footer={

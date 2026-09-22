@@ -131,6 +131,17 @@ describe("SecurityEventsEmptyState", () => {
     expect(root()).not.toHaveClass("pb-52");
   });
 
+  /*
+   * The list card has no padding of its own, so without a side gutter the
+   * text and the full-width phone buttons sat flush against its border. The
+   * gutter stops at md, so the desktop spacing is what it was.
+   */
+  test("keeps a side gutter inside the list card on a phone", () => {
+    renderEmptyState();
+
+    expect(root()).toHaveClass("px-4", "md:px-0");
+  });
+
   test("the description is capped to a readable width", () => {
     renderEmptyState();
 

@@ -192,6 +192,8 @@ describe("SecurityEventsNoResults", () => {
     render(<SecurityEventsNoResults windowStartDate={WINDOW_START} />);
 
     expect(root()).toHaveClass("py-4");
+    // A side gutter on a phone, where the list card is flush otherwise.
+    expect(root()).toHaveClass("px-4", "md:px-0");
     expect(root()).not.toHaveClass("pt-52");
   });
 });

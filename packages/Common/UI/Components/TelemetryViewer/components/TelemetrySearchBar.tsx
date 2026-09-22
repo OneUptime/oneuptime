@@ -424,7 +424,15 @@ const TelemetrySearchBar: React.ForwardRefExoticComponent<
             }}
             onKeyDown={handleKeyDown}
             placeholder={props.placeholder || "Search..."}
-            className="flex-1 bg-transparent font-mono text-sm text-gray-900 placeholder-gray-400 outline-none"
+            /*
+             * min-w-0 below md: an input's default minimum is its intrinsic
+             * ~20ch width, so in a narrow box on a phone it overflowed and its
+             * placeholder painted over the toolbar buttons beside it. From md
+             * up it keeps that minimum: there the box can be squeezed to a
+             * sliver by a crowded toolbar, and an input shrunk to fit would
+             * leave nothing to click.
+             */
+            className="min-w-0 flex-1 bg-transparent font-mono text-sm text-gray-900 placeholder-gray-400 outline-none md:min-w-[auto]"
             spellCheck={false}
             autoComplete="off"
           />
