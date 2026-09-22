@@ -459,6 +459,81 @@ describe("SecurityEventConnectionsTable", () => {
     expect(emptyState.props.onAddConnection).toBe(cardButton.onClick);
   });
 
+  /*
+   * A provider tile in the empty state passes its provider through the same
+   * handler; the form then opens on the Provider step with that card chosen.
+   */
+  test("the empty state can open the create form with a provider already selected", async (): Promise<void> => {
+    renderTable([]);
+
+    const emptyState: ReactElement<{
+      onAddConnection: (provider?: SecurityEventConnectorProvider) => void;
+    }> = tableProps().noItemsMessage as ReactElement<{
+      onAddConnection: (provider?: SecurityEventConnectorProvider) => void;
+    }>;
+
+    await act(async (): Promise<void> => {
+      emptyState.props.onAddConnection(
+        SecurityEventConnectorProvider.CrowdStrikeFalcon,
+      );
+    });
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add connection",
+    });
+    expect(
+      within(dialog).getByRole("radio", { name: /CrowdStrike Falcon/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      within(dialog)
+        .getAllByRole("radio")
+        .filter((radio: HTMLElement): boolean => {
+          return radio.getAttribute("aria-checked") === "true";
+        }),
+    ).toHaveLength(1);
+  });
+
+  test("after a provider tile's form is closed, the card button opens a form with nothing chosen", async (): Promise<void> => {
+    renderTable([]);
+
+    await act(async (): Promise<void> => {
+      (
+        tableProps().noItemsMessage as ReactElement<{
+          onAddConnection: (provider?: SecurityEventConnectorProvider) => void;
+        }>
+      ).props.onAddConnection(SecurityEventConnectorProvider.OktaSystemLog);
+    });
+    const first: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add connection",
+    });
+    expect(
+      within(first).getByRole("radio", { name: /Okta System Log/ }),
+    ).toHaveAttribute("aria-checked", "true");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(first).getAllByRole("button", { name: "Close" })[0]!,
+      );
+    });
+    await waitFor((): void => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    await act(async (): Promise<void> => {
+      (tableProps().cardProps?.buttons?.[0] as CardButtonSchema).onClick();
+    });
+    const second: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add connection",
+    });
+    expect(
+      within(second)
+        .getAllByRole("radio")
+        .filter((radio: HTMLElement): boolean => {
+          return radio.getAttribute("aria-checked") === "true";
+        }),
+    ).toEqual([]);
+  });
+
   test("members who cannot create connections get a disabled empty-state button with the reason", (): void => {
     jest.spyOn(PermissionGate, "check").mockReturnValue({
       isAllowed: false,
