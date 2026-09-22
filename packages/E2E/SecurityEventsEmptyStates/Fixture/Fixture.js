@@ -16,6 +16,15 @@
  *            it can read connections but not create them, so Add connection
  *            is disabled and says which permission is missing.
  *   ?theme=  dark adds html.dark (handled by server.js).
+ *   ?latest= none (default) | pending | old. Once its time window comes
+ *            back empty, the Security Events page looks up the project's
+ *            newest event (one row, no time window) to tell "nothing ever
+ *            arrived" from "nothing in this window".
+ *            none: there is no event at all, so the page shows its empty
+ *            state. pending: that lookup does not answer until the spec
+ *            calls window.__securityEventsEmptyStatesFixture
+ *            .resolveLatestEvent(). old: the newest event arrived at
+ *            OLD_EVENT_TIME, outside the default one-day window.
  *
  * Every read is recorded on window.__securityEventsEmptyStatesFixture:
  * listRequests (analytics lists carry analytics: true), countRequests,
@@ -64,15 +73,30 @@ const params = new URLSearchParams(window.location.search);
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
 const rolePermissions =
   role === "viewer" ? [Permission.SecurityViewer] : [Permission.ProjectOwner];
+const latest = ["pending", "old"].includes(params.get("latest"))
+  ? params.get("latest")
+  : "none";
+// ?latest=old: well before the spec's pinned clock (2026-09-22T12:00:00Z).
+const OLD_EVENT_TIME = "2026-09-01T09:30:00.000Z";
+
+let releaseLatestEvent = () => {};
+const latestEventReleased = new Promise((resolve) => {
+  releaseLatestEvent = resolve;
+});
 
 const fixture = {
   role,
+  latest,
   listRequests: [],
   countRequests: [],
   aggregateRequests: [],
   apiRequests: [],
   creates: [],
   unhandled: [],
+  // ?latest=pending: answer the newest-event lookup now.
+  resolveLatestEvent: () => {
+    releaseLatestEvent();
+  },
 };
 window.__securityEventsEmptyStatesFixture = fixture;
 
@@ -179,6 +203,17 @@ AnalyticsModelAPI.getList = async (options) => {
   });
   if (!ANALYTICS_TABLES.includes(modelName)) {
     fixture.unhandled.push({ kind: "analytics.getList", modelName });
+  }
+  // The newest-event lookup: one row, no time window (see ?latest=).
+  const isLatestEventLookup =
+    modelName === tableName(SecurityEvent) &&
+    limit === 1 &&
+    !(options.query && options.query.time);
+  if (isLatestEventLookup && latest === "pending") {
+    await latestEventReleased;
+  }
+  if (isLatestEventLookup && latest === "old") {
+    return { data: [{ time: new Date(OLD_EVENT_TIME) }], count: 1, skip, limit };
   }
   return { data: [], count: 0, skip, limit };
 };
