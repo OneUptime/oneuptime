@@ -627,6 +627,7 @@ export class OnCallNotificationAlertingService extends BaseService {
           templateType: EmailTemplateType.SimpleMessage,
           vars: vars,
           subject: subject,
+          isSubjectLiteral: true,
         },
         {
           projectId: projectId,

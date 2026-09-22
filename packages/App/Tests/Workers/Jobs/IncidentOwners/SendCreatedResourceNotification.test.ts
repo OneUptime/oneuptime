@@ -531,4 +531,27 @@ describe("IncidentOwner:SendCreatedResourceEmail worker", () => {
       expect(vars["rootCause"]).toBe(expectedDefaultRootCauseHtml);
     }
   });
+
+  /*
+   * The title is user text. Compiled again by the mailer, "{{ ... }}" in it
+   * rendered as nothing and a lone "{{" stopped the email being sent.
+   */
+  test("a title quoting template syntax reaches the subject as written, marked literal", async () => {
+    const incident: Incident = makeIncident({});
+    incident.title = "Rollout of {{ .Values.image.tag }} stalled";
+    incidentService.findAllBy.mockResolvedValue([incident]);
+    incidentService.findOwners.mockResolvedValue([makeOwner("user-1")]);
+
+    await runWorkerTick();
+
+    const envelope: EmailEnvelope = (
+      notificationService.sendUserNotification.mock.calls[0]![0] as {
+        emailEnvelope: EmailEnvelope;
+      }
+    ).emailEnvelope;
+    expect(envelope.isSubjectLiteral).toBe(true);
+    expect(envelope.subject).toBe(
+      "[New Incident #12] - Rollout of {{ .Values.image.tag }} stalled",
+    );
+  });
 });

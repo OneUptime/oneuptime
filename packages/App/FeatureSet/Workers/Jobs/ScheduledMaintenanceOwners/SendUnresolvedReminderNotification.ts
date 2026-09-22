@@ -292,6 +292,7 @@ const sendReminderForScheduledMaintenance: SendReminderForScheduledMaintenanceFu
           EmailTemplateType.ScheduledMaintenanceOwnerUnresolvedReminder,
         vars: vars,
         subject: `[Reminder] Scheduled Maintenance ${scheduledMaintenanceNumberStr} is still ${currentStateName} - ${scheduledMaintenance.title!}`,
+        isSubjectLiteral: true,
       };
 
       const sms: SMSMessage = {

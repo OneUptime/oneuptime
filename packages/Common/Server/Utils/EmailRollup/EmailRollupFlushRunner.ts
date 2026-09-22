@@ -792,6 +792,7 @@ export default class EmailRollupFlushRunner {
           {
             toEmail: bucket.toEmail,
             subject: built.subject,
+            isSubjectLiteral: true,
             templateType: EmailTemplateType.NotificationRollup,
             vars: built.vars,
           },

@@ -224,6 +224,7 @@ export class Service extends DatabaseService<Model> {
           subject: "Verify this email address",
         },
         subject: "Verify this email address",
+        isSubjectLiteral: true,
       },
       {
         projectId: item.projectId!,

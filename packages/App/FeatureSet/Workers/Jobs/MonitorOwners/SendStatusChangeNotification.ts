@@ -228,6 +228,7 @@ RunCron(
           subject: `[${monitorStatus!.name!} Monitor] ${
             monitor.name || "Monitor"
           }`,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

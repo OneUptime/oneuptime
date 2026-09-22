@@ -256,6 +256,7 @@ const sendReminderForIncident: SendReminderForIncidentFunction = async (
       templateType: EmailTemplateType.IncidentOwnerUnresolvedReminder,
       vars: vars,
       subject: `[Reminder] Incident ${incidentNumberStr} is still ${currentStateName} - ${incident.title!}`,
+      isSubjectLiteral: true,
     };
 
     const sms: SMSMessage = {

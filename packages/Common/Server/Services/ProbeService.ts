@@ -754,6 +754,7 @@ export class Service extends DatabaseService<Model> {
           templateType: EmailTemplateType.ProbeConnectionStatusChange,
           vars: vars,
           subject: `[Probe ${connectionStatus}] ${probe.name}`,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

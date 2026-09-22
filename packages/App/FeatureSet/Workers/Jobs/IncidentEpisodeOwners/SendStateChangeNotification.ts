@@ -234,6 +234,7 @@ RunCron(
           subject: `[${Text.uppercaseFirstLetter(
             incidentState!.name!,
           )} Incident Episode ${episodeNumberStr}] - ${episode.title!}`,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

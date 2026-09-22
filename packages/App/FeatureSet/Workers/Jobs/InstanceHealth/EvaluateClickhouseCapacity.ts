@@ -317,6 +317,7 @@ async function sendCapacityNotificationToMasterAdmins(data: {
               toEmail: user.email,
               templateType: EmailTemplateType.ClickhouseCapacityWarning,
               subject,
+              isSubjectLiteral: true,
               vars,
             },
             {

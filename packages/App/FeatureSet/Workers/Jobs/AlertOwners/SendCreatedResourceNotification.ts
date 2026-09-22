@@ -375,6 +375,7 @@ RunCron(
             templateType: EmailTemplateType.AlertOwnerResourceCreated,
             vars: vars,
             subject: `[New Alert ${alertNumberStr}] - ${alert.title!}`,
+            isSubjectLiteral: true,
           };
 
           const sms: SMSMessage = {

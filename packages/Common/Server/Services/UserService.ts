@@ -532,6 +532,7 @@ export class Service extends DatabaseService<Model> {
         MailService.sendMail({
           toEmail: user.email!,
           subject: "Password Changed.",
+          isSubjectLiteral: true,
           templateType: EmailTemplateType.PasswordChanged,
           vars: {
             homeURL: new URL(httpProtocol, host).toString(),
@@ -635,6 +636,7 @@ export class Service extends DatabaseService<Model> {
           MailService.sendMail({
             toEmail: newUser.email!,
             subject: "You have changed your email. Please verify your email.",
+            isSubjectLiteral: true,
             templateType: EmailTemplateType.EmailChanged,
             vars: {
               name: newUser.name!.toString(),
@@ -1341,6 +1343,7 @@ export class Service extends DatabaseService<Model> {
         await MailService.sendMail({
           toEmail: user.email,
           subject: "Password Reset Request for OneUptime",
+          isSubjectLiteral: true,
           templateType: EmailTemplateType.ForgotPassword,
           vars: {
             homeURL: new URL(httpProtocol, host).toString(),

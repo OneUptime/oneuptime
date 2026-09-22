@@ -97,6 +97,7 @@ RunCron(
             templateType: EmailTemplateType.StatusPageOwnerAnnouncementPosted,
             vars: vars,
             subject: `[Announcement] ${announcement.title!}`,
+            isSubjectLiteral: true,
           };
 
           const sms: SMSMessage = {

@@ -2633,6 +2633,7 @@ ${createdItem.description?.trim() || "No description provided."}
         templateType: EmailTemplateType.MonitorProbesStatus,
         vars: vars,
         subject: `[${enabledStatus} Monitor Probes] ${monitor.name!}`,
+        isSubjectLiteral: true,
       };
 
       const sms: SMSMessage = {
@@ -2763,6 +2764,7 @@ ${createdItem.description?.trim() || "No description provided."}
         templateType: EmailTemplateType.MonitorProbesStatus,
         vars: vars,
         subject: `[${status} Monitor Probes] ${monitor.name!}`,
+        isSubjectLiteral: true,
       };
 
       const sms: SMSMessage = {

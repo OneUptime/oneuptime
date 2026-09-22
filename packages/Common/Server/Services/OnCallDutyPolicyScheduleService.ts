@@ -567,6 +567,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             templateType: EmailTemplateType.UserNoLongerActiveOnOnCallRoster,
             vars: vars,
             subject: "You are no longer on-call for " + onCallPolicy.name!,
+            isSubjectLiteral: true,
           };
 
           const sms: SMSMessage = {
@@ -719,6 +720,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             templateType: EmailTemplateType.UserCurrentlyOnOnCallRoster,
             vars: vars,
             subject: "You are now on-call for " + onCallPolicy.name!,
+            isSubjectLiteral: true,
           };
 
           const sms: SMSMessage = {
@@ -952,6 +954,7 @@ export class Service extends DatabaseService<OnCallDutyPolicySchedule> {
             templateType: EmailTemplateType.UserNextOnOnCallRoster,
             vars: vars,
             subject: "You are next on-call for " + onCallPolicy.name!,
+            isSubjectLiteral: true,
           };
 
           const sms: SMSMessage = {

@@ -4635,6 +4635,7 @@ export class Service extends DatabaseService<Model> {
       templateType: EmailTemplateType.AcknowledgeAlert,
       vars: vars,
       subject: `ACTION REQUIRED: Alert ${alertNumber} created - ${alert.title!}`,
+      isSubjectLiteral: true,
     };
 
     return emailMessage;
@@ -4696,6 +4697,7 @@ export class Service extends DatabaseService<Model> {
       templateType: EmailTemplateType.AcknowledgeIncident,
       vars: vars,
       subject: `ACTION REQUIRED: Incident ${incidentNumber} created - ${incident.title!}`,
+      isSubjectLiteral: true,
     };
 
     return emailMessage;
@@ -4866,6 +4868,7 @@ export class Service extends DatabaseService<Model> {
       templateType: EmailTemplateType.AcknowledgeAlertEpisode,
       vars: vars,
       subject: `ACTION REQUIRED: Alert Episode ${episodeNumber} created - ${alertEpisode.title!}`,
+      isSubjectLiteral: true,
     };
 
     return emailMessage;
@@ -5051,6 +5054,7 @@ export class Service extends DatabaseService<Model> {
       templateType: EmailTemplateType.AcknowledgeIncidentEpisode,
       vars: vars,
       subject: `ACTION REQUIRED: Incident Episode ${episodeNumber} created - ${incidentEpisode.title!}`,
+      isSubjectLiteral: true,
     };
 
     return emailMessage;

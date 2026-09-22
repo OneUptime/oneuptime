@@ -212,6 +212,7 @@ RunCron(
           templateType: EmailTemplateType.SimpleMessage,
           vars: vars,
           subject: emailSubject,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {
