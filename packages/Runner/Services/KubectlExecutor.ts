@@ -4,10 +4,13 @@ import path from "path";
 import { spawn } from "child_process";
 import { KUBERNETES_AGENT_CLUSTER_NAME, MAX_OUTPUT_BYTES } from "../Config";
 import KubernetesPosture from "../Utils/KubernetesPosture";
+import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
 import KubectlArgvGuard from "../Utils/KubectlArgvGuard";
+import KubectlWriteScope from "../Utils/KubectlWriteScope";
 import { JSONObject } from "Common/Types/JSON";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
 import {
+  KUBECTL_ALLOW_WRITES_ENV,
   KubectlCommandTier,
   isSameKubernetesClusterIdentifier,
   normalizeKubernetesClusterIdentifier,
@@ -37,9 +40,17 @@ export interface KubectlExecResult {
  * two independent checks: the Runner's own KubectlArgvGuard (file-backed
  * output formats, credential/cluster/file flags anywhere in the argv), then
  * the same pure KubectlPolicy the server ran. A Denied command never spawns,
- * an investigation-origin job may only be Read tier, and a host installed
- * read-only refuses every write — whatever a compromised or misconfigured
- * server sent.
+ * an investigation-origin job may only be Read tier, a host that does not
+ * allow writes refuses every write, and a write outside the namespaces this
+ * Runner may change (or into its own pod's namespace) is refused —
+ * whatever a compromised or misconfigured server sent.
+ *
+ * kubectl runs in a closed environment: PATH, a private empty HOME, a
+ * private discovery cache, kuberc preferences switched off (kubectl 1.33+
+ * would otherwise let a preferences file add default flags to an argv the
+ * policy already approved), and either the temporary kubeconfig (plus the
+ * host's proxy settings) or the in-cluster service address — nothing else
+ * this host holds, whatever it is.
  *
  * Credentials never touch the argv. The kubernetes-agent Runner, and only
  * it, may run a credential-less job with its pod's own ServiceAccount (the
@@ -54,8 +65,52 @@ export interface KubectlExecResult {
 
 const KUBECTL_BINARY: string = "kubectl";
 
-// The API-server-side bound; the process timeout is the outer bound.
-const MIN_REQUEST_TIMEOUT_SECONDS: number = 5;
+/*
+ * --request-timeout bounds each API request; the process timeout bounds the
+ * whole command. The first must end well before the second, or an API
+ * server that never answers gets kubectl SIGKILLed a moment before it
+ * would have said "Unable to connect to the server", and the operator sees
+ * a bare kill with no output. So the request timeout leaves at least this
+ * much of the budget for kubectl to print its error and exit ...
+ */
+const REQUEST_TIMEOUT_HEADROOM_MS: number = 3_000;
+// ... and at least this share of it on short budgets ...
+const REQUEST_TIMEOUT_HEADROOM_RATIO: number = 0.2;
+// ... but never less than half the budget, and never under this floor.
+const MIN_REQUEST_TIMEOUT_MS: number = 100;
+
+/*
+ * stderr carries kubectl's reason for failing, and it comes after whatever
+ * stdout already printed. It gets its own budget (its tail — the error is
+ * at the end) and stdout gets the rest, so a large partial table can never
+ * push the reason out of the output.
+ */
+const STDERR_MAX_BYTES: number = 8_000;
+
+// The longest stderr excerpt carried on a failure's errorMessage.
+const ERROR_REASON_MAX_CHARS: number = 500;
+
+/*
+ * Proxy settings kubectl honours (Go's ProxyFromEnvironment), forwarded from
+ * the Runner host to a command that reaches its API server through a
+ * credential — the Runner's own traffic already uses them. Never on the
+ * in-cluster path, whose API server is the pod's own service address.
+ */
+const PROXY_ENV_NAMES: Array<string> = [
+  "HTTPS_PROXY",
+  "https_proxy",
+  "HTTP_PROXY",
+  "http_proxy",
+  "NO_PROXY",
+  "no_proxy",
+];
+
+// What kubectl needs to find the API server with the pod's ServiceAccount.
+const IN_CLUSTER_ENV_NAMES: Array<string> = [
+  "KUBERNETES_SERVICE_HOST",
+  "KUBERNETES_SERVICE_PORT",
+  "KUBERNETES_SERVICE_PORT_HTTPS",
+];
 
 /*
  * Every temporary kubeconfig lives under one predictable, private directory
@@ -68,15 +123,138 @@ const KUBECONFIG_PARENT_DIR_NAME: string = "oneuptime-kubectl";
 const KUBECONFIG_DIR_PREFIX: string = "job-";
 const PRIVATE_DIR_MODE: number = 0o700;
 
-function truncate(s: string): string {
-  if (Buffer.byteLength(s, "utf8") <= MAX_OUTPUT_BYTES) {
-    return s;
+/*
+ * Inside each command's private directory: `config` (the kubeconfig, when
+ * the job carries a credential), `home` (kubectl's HOME and working
+ * directory — empty, so no ~/.kube/config or ~/.kube/kuberc is ever found)
+ * and `cache` (its discovery cache).
+ */
+const JOB_HOME_DIR_NAME: string = "home";
+const JOB_CACHE_DIR_NAME: string = "cache";
+
+const STDOUT_HEADER: string = "[stdout]\n";
+const STDERR_HEADER: string = "[stderr]\n";
+
+function headBytes(s: string, maxBytes: number): string {
+  return Buffer.from(s, "utf8")
+    .subarray(0, Math.max(0, maxBytes))
+    .toString("utf8");
+}
+
+function tailBytes(s: string, maxBytes: number): string {
+  const buffer: Buffer = Buffer.from(s, "utf8");
+  return buffer
+    .subarray(Math.max(0, buffer.length - Math.max(0, maxBytes)))
+    .toString("utf8");
+}
+
+/*
+ * The output shipped back to the server: `[stdout]` then `[stderr]`, within
+ * MAX_OUTPUT_BYTES plus the truncation markers. stderr is budgeted first
+ * (its last STDERR_MAX_BYTES — kubectl's error is at the end) and is never
+ * cut to make room for stdout; stdout gets whatever is left and says so
+ * when it was cut. `stdoutTruncated`/`stderrTruncated` report that the
+ * capture itself already dropped bytes.
+ */
+export function formatKubectlOutput(data: {
+  stdout: string;
+  stderr: string;
+  stdoutTruncated?: boolean | undefined;
+  stderrTruncated?: boolean | undefined;
+}): string {
+  let stderr: string = data.stderr;
+  let stderrCut: boolean = data.stderrTruncated === true;
+
+  if (Buffer.byteLength(stderr, "utf8") > STDERR_MAX_BYTES) {
+    stderr = tailBytes(stderr, STDERR_MAX_BYTES);
+    stderrCut = true;
   }
 
-  return (
-    Buffer.from(s, "utf8").slice(0, MAX_OUTPUT_BYTES).toString("utf8") +
-    "\n... [output truncated]"
+  const stderrSection: string = stderr
+    ? `${STDERR_HEADER}${stderrCut ? "... [earlier stderr truncated]\n" : ""}${stderr}`
+    : "";
+
+  let stdoutSection: string = "";
+
+  if (data.stdout) {
+    const budget: number =
+      MAX_OUTPUT_BYTES -
+      Buffer.byteLength(stderrSection, "utf8") -
+      (stderrSection ? 1 : 0) -
+      STDOUT_HEADER.length;
+
+    let stdout: string = data.stdout;
+    let stdoutCut: boolean = data.stdoutTruncated === true;
+
+    if (Buffer.byteLength(stdout, "utf8") > budget) {
+      stdout = headBytes(stdout, budget);
+      stdoutCut = true;
+    }
+
+    stdoutSection = `${STDOUT_HEADER}${stdout}${
+      stdoutCut
+        ? `\n... [output truncated: stdout cut at ${Buffer.byteLength(stdout, "utf8")} bytes${stderrSection ? "; stderr follows" : ""}]`
+        : ""
+    }`;
+  }
+
+  return [stdoutSection, stderrSection].filter(Boolean).join("\n");
+}
+
+/*
+ * kubectl's reason for a failure: the last non-empty stderr line
+ * ("Error from server (Forbidden): ..."), capped. Carried on the
+ * errorMessage so it survives any later cap on the output.
+ */
+function lastStderrLine(stderr: string): string {
+  const lines: Array<string> = stderr
+    .split(/\r?\n/)
+    .map((line: string) => {
+      return line.trim();
+    })
+    .filter((line: string) => {
+      return line.length > 0;
+    });
+
+  const last: string = lines[lines.length - 1] || "";
+
+  return last.length > ERROR_REASON_MAX_CHARS
+    ? `${last.slice(0, ERROR_REASON_MAX_CHARS)}...`
+    : last;
+}
+
+/*
+ * The --request-timeout for a command with this process budget: well
+ * inside it, so kubectl can report an unreachable or slow API server itself
+ * before the process is killed. 30s gives 24s; 120s gives 96s; a 1s budget
+ * gives 500ms.
+ */
+export function getRequestTimeoutMs(timeoutInMs: number): number {
+  const budget: number = Math.max(0, Math.floor(timeoutInMs));
+  const withHeadroom: number = Math.min(
+    budget - REQUEST_TIMEOUT_HEADROOM_MS,
+    Math.floor(budget * (1 - REQUEST_TIMEOUT_HEADROOM_RATIO)),
   );
+
+  return Math.max(withHeadroom, Math.floor(budget / 2), MIN_REQUEST_TIMEOUT_MS);
+}
+
+// kubectl takes a Go duration: whole seconds when that loses little, else ms.
+export function formatRequestTimeout(ms: number): string {
+  return ms >= 2_000 ? `${Math.floor(ms / 1000)}s` : `${Math.floor(ms)}ms`;
+}
+
+/*
+ * The API server a credential points at, for messages: scheme, host and
+ * port only — never a path, a query or userinfo.
+ */
+function describeApiServer(apiServerUrl: string): string {
+  try {
+    const parsed: URL = new URL(apiServerUrl);
+    return `${parsed.protocol}//${parsed.host}`;
+  } catch {
+    return "the API server named in the Kubernetes credential";
+  }
 }
 
 /*
@@ -105,7 +283,9 @@ function getPayloadClusterIdentifier(payload: JSONObject): string {
 
 function hasFlag(args: Array<string>, name: string): boolean {
   return args.some((arg: string) => {
-    return arg === `--${name}` || arg.startsWith(`--${name}=`);
+    // kubectl reads "_" as "-" in a long flag name.
+    const normalized: string = arg.replace(/_/g, "-");
+    return normalized === `--${name}` || normalized.startsWith(`--${name}=`);
   });
 }
 
@@ -181,55 +361,54 @@ export default class KubectlExecutor {
       return {
         success: false,
         output: "",
-        errorMessage:
-          "Refused by the Runner: this Runner was installed read-only (ONEUPTIME_KUBECTL_ALLOW_WRITES=false). Upgrade the Kubernetes agent with --set aiAccess.remediation.enabled=true to allow OneUptime AI to change this cluster.",
+        errorMessage: KubectlExecutor.describeWritesRefused(),
       };
     }
-
-    // ---- Cluster access. ------------------------------------------------
-
-    let kubeconfigDir: string | null = null;
-    const finalArgs: Array<string> = [];
 
     const apiServerUrl: string = String(
       data.credential?.["apiServerUrl"] || "",
     );
     const token: string = String(data.credential?.["token"] || "");
+    const usesCredential: boolean = Boolean(apiServerUrl && token);
 
-    if (apiServerUrl && token) {
-      try {
-        kubeconfigDir = KubectlExecutor.createKubeconfigDir();
-        const kubeconfigPath: string = path.join(kubeconfigDir, "config");
-        fs.writeFileSync(
-          kubeconfigPath,
-          KubectlExecutor.buildKubeconfig({
-            apiServerUrl,
-            token,
-            caCertificate: data.credential?.["caCertificate"]
-              ? String(data.credential["caCertificate"])
-              : undefined,
-          }),
-          { mode: 0o600 },
-        );
-        finalArgs.push("--kubeconfig", kubeconfigPath);
-      } catch (err) {
-        KubectlExecutor.cleanup(kubeconfigDir);
-        return {
-          success: false,
-          output: "",
-          errorMessage: `Could not prepare the Kubernetes credential: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
-        };
-      }
-    } else if (data.credential) {
+    // ---- Where a write may land. ----------------------------------------
+
+    const scopeRefusal: string | null = KubectlWriteScope.getRefusalReason({
+      args,
+      tier: policy.tier,
+      verb: policy.verb,
+      displayCommand: policy.displayCommand,
+      writeNamespaces: KubernetesPosture.getWriteNamespaces(),
+      podNamespace: KubernetesPosture.getPodNamespace(),
+      /*
+       * What a missing -n means: the pod's own namespace in-cluster, and
+       * "default" for the kubeconfig built below, which names none.
+       */
+      defaultNamespace: usesCredential
+        ? "default"
+        : KubernetesPosture.getPodNamespace(),
+    });
+
+    if (scopeRefusal) {
+      return {
+        success: false,
+        output: "",
+        errorMessage: `Refused by the Runner: ${scopeRefusal}`,
+      };
+    }
+
+    // ---- Cluster access. ------------------------------------------------
+
+    if (!usesCredential && data.credential) {
       return {
         success: false,
         output: "",
         errorMessage:
           "The Kubernetes credential is missing an API server URL or token.",
       };
-    } else if (!KubernetesPosture.canUseOwnServiceAccount()) {
+    }
+
+    if (!usesCredential && !KubernetesPosture.canUseOwnServiceAccount()) {
       /*
        * No credential means "use the pod's own ServiceAccount" — which only
        * the kubernetes-agent Runner may do, because only it knows which
@@ -243,7 +422,9 @@ export default class KubectlExecutor {
         errorMessage:
           "This kubectl command has no Kubernetes credential, and only the in-cluster Runner installed by the Kubernetes agent chart may run kubectl with its pod's own ServiceAccount — this Runner is not that Runner (or is not running inside a cluster). Bind a Kubernetes credential to this Runner on the cluster's AI page, or install the Kubernetes agent with --set aiAccess.enabled=true and select its Runner there.",
       };
-    } else {
+    }
+
+    if (!usesCredential) {
       /*
        * Defence in depth on the credential-less path: the server only
        * enqueues such a job for the in-cluster Runner OF THAT CLUSTER, but
@@ -280,15 +461,59 @@ export default class KubectlExecutor {
     }
 
     /*
+     * Every command gets its own private directory — the credential's
+     * kubeconfig when there is one, an empty HOME and a discovery cache —
+     * so nothing another command, another process or a previous life of
+     * this one left on disk can shape what kubectl does.
+     */
+    let jobDir: string | null = null;
+    let kubeconfigPath: string | null = null;
+
+    try {
+      jobDir = KubectlExecutor.createKubeconfigDir();
+
+      if (usesCredential) {
+        kubeconfigPath = path.join(jobDir, "config");
+        fs.writeFileSync(
+          kubeconfigPath,
+          KubectlExecutor.buildKubeconfig({
+            apiServerUrl,
+            token,
+            caCertificate: data.credential?.["caCertificate"]
+              ? String(data.credential["caCertificate"])
+              : undefined,
+          }),
+          { mode: 0o600 },
+        );
+      }
+    } catch (err) {
+      KubectlExecutor.cleanup(jobDir);
+      return {
+        success: false,
+        output: "",
+        errorMessage: `${
+          usesCredential
+            ? "Could not prepare the Kubernetes credential"
+            : "Could not prepare a private working directory for kubectl"
+        }: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+
+    const finalArgs: Array<string> = kubeconfigPath
+      ? ["--kubeconfig", kubeconfigPath]
+      : [];
+
+    /*
      * Bound every API call so a hung watch or a slow API server cannot hold
-     * the job open past its lease. The outer process timeout still applies.
+     * the job open past its lease — and end it well before the process
+     * timeout, so kubectl can say what went wrong before it is killed.
      */
     if (!hasFlag(args, "request-timeout")) {
-      const seconds: number = Math.max(
-        MIN_REQUEST_TIMEOUT_SECONDS,
-        Math.floor(data.timeoutInMs / 1000),
+      finalArgs.push(
+        `--request-timeout=${formatRequestTimeout(
+          getRequestTimeoutMs(data.timeoutInMs),
+        )}`,
       );
-      finalArgs.push(`--request-timeout=${seconds}s`);
     }
 
     finalArgs.push(...args);
@@ -297,11 +522,35 @@ export default class KubectlExecutor {
       return await KubectlExecutor.spawnKubectl({
         args: finalArgs,
         timeoutInMs: data.timeoutInMs,
-        workingDir: kubeconfigDir || os.tmpdir(),
+        homeDir: path.join(jobDir, JOB_HOME_DIR_NAME),
+        cacheDir: path.join(jobDir, JOB_CACHE_DIR_NAME),
+        kubeconfigPath,
+        apiServerDescription: usesCredential
+          ? describeApiServer(apiServerUrl)
+          : null,
       });
     } finally {
-      KubectlExecutor.cleanup(kubeconfigDir);
+      KubectlExecutor.cleanup(jobDir);
     }
+  }
+
+  /*
+   * Why a write is refused on a host that does not allow writes — pointing
+   * at the fix that applies to THIS Runner: the chart flag for the
+   * Kubernetes agent's Runner, the environment variable for any other.
+   */
+  private static describeWritesRefused(): string {
+    const setting: string | null = KubernetesPosture.getAllowWritesSetting();
+    const current: string =
+      setting === null || setting.trim() === ""
+        ? `${KUBECTL_ALLOW_WRITES_ENV} is not set`
+        : `${KUBECTL_ALLOW_WRITES_ENV}="${setting}"`;
+
+    if (KubernetesAgentMode.isActive()) {
+      return `Refused by the Runner: this Runner was installed read-only (${current}; only "true" allows writes). Upgrade the Kubernetes agent with --set aiAccess.remediation.enabled=true to allow OneUptime AI to change this cluster.`;
+    }
+
+    return `Refused by the Runner: this Runner host does not allow AI-composed kubectl writes (${current}; only "true" allows them, and any other value refuses every write). Set ${KUBECTL_ALLOW_WRITES_ENV}=true in this Runner's environment and restart it to let OneUptime AI change clusters through it; the Kubernetes credential's RBAC still bounds what it can do.`;
   }
 
   /*
@@ -498,57 +747,94 @@ export default class KubectlExecutor {
     const dir: string = fs.mkdtempSync(
       path.join(parent, KUBECONFIG_DIR_PREFIX),
     );
-    fs.chmodSync(dir, PRIVATE_DIR_MODE);
-
     KubectlExecutor.activeKubeconfigDirs.add(dir);
 
+    try {
+      fs.chmodSync(dir, PRIVATE_DIR_MODE);
+
+      // kubectl's HOME: private and empty.
+      fs.mkdirSync(path.join(dir, JOB_HOME_DIR_NAME), {
+        mode: PRIVATE_DIR_MODE,
+      });
+    } catch (err) {
+      KubectlExecutor.cleanup(dir);
+      throw err;
+    }
+
     return dir;
+  }
+
+  /*
+   * The environment kubectl runs with: a closed allowlist built from
+   * nothing but what this command needs, whatever this host's environment
+   * holds (cloud CLI profiles, KUBECONFIG, KUBECTL_* feature switches,
+   * credentials in variables). Public for tests.
+   *
+   *   - PATH, to find kubectl.
+   *   - HOME: the command's private, empty directory, so kubectl never
+   *     finds ~/.kube/config or ~/.kube/kuberc; KUBECACHEDIR beside it.
+   *   - KUBERC=off and KUBECTL_KUBERC=false: kubectl 1.33+ reads a kuberc
+   *     preferences file (aliases, default flags) — it must never rewrite
+   *     an argv the policy already approved.
+   *   - With a credential: KUBECONFIG = the temporary kubeconfig (also on
+   *     the argv as --kubeconfig), and this host's proxy settings, which is
+   *     how the Runner's own traffic reaches the outside too. No in-cluster
+   *     service address, so kubectl can never fall back to the pod's own
+   *     ServiceAccount.
+   *   - Without one (the kubernetes-agent Runner in its pod): the in-cluster
+   *     service address, and no proxy — the API server is the pod's own
+   *     service, and a host proxy would only get in its way.
+   */
+  public static buildSpawnEnv(data: {
+    homeDir: string;
+    cacheDir: string;
+    kubeconfigPath: string | null;
+  }): NodeJS.ProcessEnv {
+    const env: NodeJS.ProcessEnv = {
+      PATH: process.env["PATH"] || "/usr/local/bin:/usr/bin:/bin",
+      HOME: data.homeDir,
+      KUBECACHEDIR: data.cacheDir,
+      KUBERC: "off",
+      KUBECTL_KUBERC: "false",
+    };
+
+    const passThrough: Array<string> = data.kubeconfigPath
+      ? PROXY_ENV_NAMES
+      : IN_CLUSTER_ENV_NAMES;
+
+    for (const name of passThrough) {
+      const value: string | undefined = process.env[name];
+
+      if (value) {
+        env[name] = value;
+      }
+    }
+
+    if (data.kubeconfigPath) {
+      env["KUBECONFIG"] = data.kubeconfigPath;
+    }
+
+    return env;
   }
 
   private static spawnKubectl(data: {
     args: Array<string>;
     timeoutInMs: number;
-    workingDir: string;
+    homeDir: string;
+    cacheDir: string;
+    kubeconfigPath: string | null;
+    // "https://host:port" of the credential's API server; null in-cluster.
+    apiServerDescription: string | null;
   }): Promise<KubectlExecResult> {
     return new Promise<KubectlExecResult>(
       (resolve: (value: KubectlExecResult) => void) => {
-        let stdout: string = "";
-        let stderr: string = "";
+        const stdoutChunks: Array<Buffer> = [];
         let stdoutBytes: number = 0;
-        let stderrBytes: number = 0;
+        let stdoutTruncated: boolean = false;
+        // Only the tail of stderr is kept: kubectl's error is at the end.
+        let stderrTail: Buffer = Buffer.alloc(0);
+        let stderrTruncated: boolean = false;
         let settled: boolean = false;
-
-        /*
-         * A deliberately small environment: kubectl reads KUBECONFIG and a
-         * handful of KUBERNETES_* variables from it, and nothing else on
-         * this host (cloud CLI profiles, proxies with credentials) should
-         * leak into a command the model composed. HOME points at a scratch
-         * directory so kubectl never finds ~/.kube/config.
-         */
-        const env: NodeJS.ProcessEnv = {
-          PATH: process.env["PATH"] || "/usr/local/bin:/usr/bin:/bin",
-          HOME: data.workingDir,
-          KUBECACHEDIR: path.join(data.workingDir, "cache"),
-          ...(process.env["KUBERNETES_SERVICE_HOST"]
-            ? {
-                KUBERNETES_SERVICE_HOST: process.env["KUBERNETES_SERVICE_HOST"],
-              }
-            : {}),
-          ...(process.env["KUBERNETES_SERVICE_PORT"]
-            ? {
-                KUBERNETES_SERVICE_PORT: process.env["KUBERNETES_SERVICE_PORT"],
-              }
-            : {}),
-          ...(process.env["KUBERNETES_SERVICE_PORT_HTTPS"]
-            ? {
-                KUBERNETES_SERVICE_PORT_HTTPS:
-                  process.env["KUBERNETES_SERVICE_PORT_HTTPS"],
-              }
-            : {}),
-          ...(process.env["NODE_EXTRA_CA_CERTS"]
-            ? { NODE_EXTRA_CA_CERTS: process.env["NODE_EXTRA_CA_CERTS"] }
-            : {}),
-        };
 
         let child: ReturnType<typeof spawn>;
 
@@ -558,8 +844,12 @@ export default class KubectlExecutor {
             killSignal: "SIGKILL",
             // No stdin: kubectl must never wait for input.
             stdio: ["ignore", "pipe", "pipe"],
-            env,
-            cwd: data.workingDir,
+            env: KubectlExecutor.buildSpawnEnv({
+              homeDir: data.homeDir,
+              cacheDir: data.cacheDir,
+              kubeconfigPath: data.kubeconfigPath,
+            }),
+            cwd: data.homeDir,
           });
         } catch (err) {
           resolve({
@@ -572,15 +862,21 @@ export default class KubectlExecutor {
 
         child.stdout?.on("data", (chunk: Buffer) => {
           if (stdoutBytes < MAX_OUTPUT_BYTES) {
+            stdoutChunks.push(chunk);
             stdoutBytes += chunk.length;
-            stdout += chunk.toString("utf8");
+          } else {
+            stdoutTruncated = true;
           }
         });
 
         child.stderr?.on("data", (chunk: Buffer) => {
-          if (stderrBytes < MAX_OUTPUT_BYTES) {
-            stderrBytes += chunk.length;
-            stderr += chunk.toString("utf8");
+          stderrTail = Buffer.concat([stderrTail, chunk]);
+
+          if (stderrTail.length > STDERR_MAX_BYTES * 2) {
+            stderrTail = stderrTail.subarray(
+              stderrTail.length - STDERR_MAX_BYTES,
+            );
+            stderrTruncated = true;
           }
         });
 
@@ -605,36 +901,69 @@ export default class KubectlExecutor {
           }
           settled = true;
 
-          const combined: string = [
-            stdout && `[stdout]\n${stdout}`,
-            stderr && `[stderr]\n${stderr}`,
-          ]
-            .filter(Boolean)
-            .join("\n");
+          const stdout: string = Buffer.concat(stdoutChunks).toString("utf8");
+          const stderr: string = stderrTail.toString("utf8");
+          const output: string = formatKubectlOutput({
+            stdout,
+            stderr,
+            stdoutTruncated,
+            stderrTruncated,
+          });
+          const reason: string = lastStderrLine(stderr);
 
           if (signal === "SIGKILL") {
             resolve({
               success: false,
-              output: truncate(combined),
-              errorMessage: `Killed (timeout ${data.timeoutInMs}ms)`,
+              output,
+              errorMessage: KubectlExecutor.describeKill({
+                timeoutInMs: data.timeoutInMs,
+                producedOutput: stdout.trim() !== "" || stderr.trim() !== "",
+                apiServerDescription: data.apiServerDescription,
+              }),
             });
             return;
           }
 
           if (code === 0) {
-            resolve({ success: true, output: truncate(combined), exitCode: 0 });
+            resolve({ success: true, output, exitCode: 0 });
             return;
           }
 
           resolve({
             success: false,
-            output: truncate(combined),
+            output,
             exitCode: code ?? undefined,
-            errorMessage: `Exit code ${code ?? "?"}`,
+            errorMessage: `Exit code ${code ?? "?"}${reason ? `: ${reason}` : ""}`,
           });
         });
       },
     );
+  }
+
+  /*
+   * A kill on timeout. With output, the output says what kubectl was doing.
+   * With none at all, kubectl never heard back from the API server even
+   * though every request was bounded well inside this budget — which on a
+   * Runner is nearly always a network path that does not exist (a private
+   * endpoint, a firewall, an egress policy, a missing proxy), not a slow
+   * cluster. Say so, and name where it was trying to go.
+   */
+  private static describeKill(data: {
+    timeoutInMs: number;
+    producedOutput: boolean;
+    apiServerDescription: string | null;
+  }): string {
+    const killed: string = `Killed (timeout ${data.timeoutInMs}ms)`;
+
+    if (data.producedOutput) {
+      return killed;
+    }
+
+    const target: string = data.apiServerDescription
+      ? `the Kubernetes API server at ${data.apiServerDescription}`
+      : "the in-cluster Kubernetes API server";
+
+    return `${killed}: kubectl produced no output at all, so ${target} is probably unreachable from this Runner. Check the API server address, the network path from the Runner (firewall, egress policy, proxy settings) and the CA certificate.`;
   }
 
   private static cleanup(dir: string | null): void {

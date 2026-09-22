@@ -2,6 +2,11 @@ import URL from "Common/Types/API/URL";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import NumberUtil from "Common/Utils/Number";
+import {
+  KUBECTL_ALLOW_WRITES_ENV,
+  KUBECTL_WRITE_NAMESPACES_ENV,
+  RUNNER_POD_NAMESPACE_ENV,
+} from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import { HasClusterKey } from "Common/Server/EnvironmentConfig";
 import logger from "Common/Server/Utils/Logger";
 
@@ -140,14 +145,75 @@ export const ENABLE_AI_COMMANDS_OVERRIDE: boolean | null =
   parseCapabilityOverride(process.env["ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS"]);
 
 /*
- * Whether AI-composed kubectl WRITES may run from this host. Only "false"
- * has an effect: an external Runner is bounded by its Kubernetes
- * credential's RBAC, so writes are allowed unless the host refuses them. The
- * kubernetes-agent chart sets it explicitly from aiAccess.remediation.enabled,
- * matching the RBAC it granted the Runner's ServiceAccount.
+ * Whether AI-composed kubectl WRITES may run from this host. Unlike the
+ * capability overrides above this switch fails CLOSED: only "true" (any
+ * case, surrounding whitespace ignored) lets a write through; unset, empty,
+ * "false" and anything else — "readonly", "disabled", "no", a typo — refuse
+ * every non-Read kubectl before it spawns. A security switch whose name
+ * reads as a boolean must never turn a plausible "off" spelling into "on".
+ *
+ * The kubernetes-agent chart sets it explicitly from
+ * aiAccess.remediation.enabled, matching the RBAC it granted the Runner's
+ * ServiceAccount. Any other Runner that should let OneUptime AI change a
+ * cluster through its Kubernetes credential sets it to "true" itself.
  */
-export const KUBECTL_ALLOW_WRITES_OVERRIDE: boolean | null =
-  parseCapabilityOverride(process.env["ONEUPTIME_KUBECTL_ALLOW_WRITES"]);
+export const KUBECTL_ALLOW_WRITES_RAW: string | null =
+  process.env[KUBECTL_ALLOW_WRITES_ENV] ?? null;
+
+export function parseKubectlAllowWrites(value: string | null): boolean {
+  return (value || "").trim().toLowerCase() === "true";
+}
+
+export const KUBECTL_ALLOW_WRITES: boolean = parseKubectlAllowWrites(
+  KUBECTL_ALLOW_WRITES_RAW,
+);
+
+/*
+ * A value that is set but is neither "true" nor "false" is almost certainly
+ * an operator meaning "off" in other words. It already refuses writes; say
+ * so once at start-up so nobody has to guess what it did.
+ */
+if (
+  KUBECTL_ALLOW_WRITES_RAW !== null &&
+  KUBECTL_ALLOW_WRITES_RAW.trim() !== "" &&
+  !["true", "false"].includes(KUBECTL_ALLOW_WRITES_RAW.trim().toLowerCase())
+) {
+  logger.warn(
+    `${KUBECTL_ALLOW_WRITES_ENV}="${KUBECTL_ALLOW_WRITES_RAW}" is not a recognised value; refusing every AI-composed kubectl write on this host. Set it to "true" to allow writes or "false" to refuse them explicitly.`,
+  );
+}
+
+/*
+ * Where AI-composed kubectl writes may land. The kubernetes-agent chart
+ * passes the namespaces it bound write RBAC in (comma-separated); empty or
+ * unset means cluster-wide. Reads are never namespace-restricted.
+ */
+export function parseKubectlWriteNamespaces(
+  value: string | null | undefined,
+): Array<string> {
+  const namespaces: Array<string> = [];
+
+  for (const part of (value || "").split(",")) {
+    const namespace: string = part.trim().toLowerCase();
+
+    if (namespace && !namespaces.includes(namespace)) {
+      namespaces.push(namespace);
+    }
+  }
+
+  return namespaces;
+}
+
+export const KUBECTL_WRITE_NAMESPACES: Array<string> =
+  parseKubectlWriteNamespaces(process.env[KUBECTL_WRITE_NAMESPACES_ENV]);
+
+/*
+ * The namespace this Runner's own pod runs in (the chart sets it from the
+ * downward API). A write there could scale the agent — or this Runner —
+ * away, so the Runner never makes one.
+ */
+export const RUNNER_POD_NAMESPACE: string | null =
+  (process.env[RUNNER_POD_NAMESPACE_ENV] || "").trim().toLowerCase() || null;
 
 /*
  * What a cluster-scoped Runner runs, where no dashboard row exists to consult.

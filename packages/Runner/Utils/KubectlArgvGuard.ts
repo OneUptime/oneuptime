@@ -21,8 +21,9 @@
  *     the template verbatim, so `-o jsonpath-file=/var/run/secrets/.../token`
  *     prints the pod's ServiceAccount token into the output the Runner ships
  *     to the server, the model and the dashboard — from a Read-tier `get`.
- *   - flags that select credentials, a cluster or an identity (--kubeconfig,
- *     --kuberc, --token, --server/-s, --as, --as-group, --as-uid, --context,
+ *   - flags that select credentials, preferences, a cluster or an identity
+ *     (--kubeconfig, --kuberc, --token, --server/-s, --as and every --as-*
+ *     such as --as-group, --as-uid and --as-user-extra, --context,
  *     --cluster, --user, --username, --password, client certificate flags,
  *     --insecure-skip-tls-verify, --tls-server-name), that read files as
  *     input (-f/--filename, -k/--kustomize, -R/--recursive, --patch-file,
@@ -33,6 +34,26 @@
  *     character the way pflag does, so `-Rf`, `-Af` and `-pf` are caught as
  *     well as `-f`, and an inline value such as `-nweb` is a value, not four
  *     flags.
+ *   - every spelling kubectl reads as one of those names: long flag names
+ *     are compared lowercased (stricter than kubectl) and with "_" read as
+ *     "-", the way kubectl's flag normalizer (cliflag.WordSepNormalizeFunc)
+ *     reads them — `--from_file` IS `--from-file` to kubectl, so it is to
+ *     this guard too.
+ *
+ * Two exceptions follow the verb, and only when the verb is certain (the
+ * first token, or the first after kubectl's own global -n/--namespace/
+ * --request-timeout flags). Both mirror a verb-specific meaning the shared
+ * policy already allows, so the two layers never disagree about an argv the
+ * policy passed:
+ *
+ *   - `explain --recursive` (bare, =true or =false) prints every field of a
+ *     resource's documentation and reads nothing; on every other verb
+ *     --recursive walks a directory of manifests and stays refused, and so
+ *     does -R everywhere.
+ *   - on `patch`, -p is --patch and takes a value: everything after the
+ *     `p` of `-p'{"spec":...}'` is the patch, not a cluster of flags. On
+ *     every other verb `p` stays a boolean letter (on logs it is
+ *     --previous, so `logs -pf` is still caught as --follow's neighbour -f).
  */
 
 // Long flag names refused wherever they appear. `as-*` is matched by prefix.
@@ -115,6 +136,37 @@ const FILE_BACKED_OUTPUT_MARKER: string = "file";
 // A negative number or duration (`-1`, `-5s`): a value, never a flag.
 const NEGATIVE_NUMBER_TOKEN: RegExp = /^-\d/;
 
+/*
+ * kubectl's global flags that take a value and may precede the verb. The
+ * verb is only "certain" when nothing else comes before it: kubectl picks
+ * the command before it parses flags, and any other flag there makes the
+ * word after it ambiguous (the shared policy refuses such an argv anyway).
+ */
+const GLOBAL_VALUE_LONG_FLAGS: Set<string> = new Set<string>([
+  "namespace",
+  "request-timeout",
+]);
+
+const GLOBAL_BOOLEAN_LONG_FLAGS: Set<string> = new Set<string>([
+  "match-server-version",
+]);
+
+// The values --recursive may carry on `explain`, where it is a boolean.
+const EXPLAIN_RECURSIVE_VALUES: Set<string> = new Set<string>([
+  "",
+  "true",
+  "false",
+]);
+
+/*
+ * A long flag's name the way kubectl reads it: "_" is "-". Lowercased too,
+ * which kubectl does not do — a guard that is stricter than kubectl costs
+ * nothing, one that is looser is a bypass.
+ */
+function normalizeLongFlagName(name: string): string {
+  return name.toLowerCase().replace(/_/g, "-");
+}
+
 function describeDeniedFlag(flag: string): string {
   return `the ${flag} flag is not allowed on this Runner (OneUptime AI may only use the cluster access this Runner was given, and kubectl may never read or write files on the Runner's host, use another identity, or issue raw API requests)`;
 }
@@ -131,12 +183,18 @@ function isFileBackedOutputFormat(value: string): boolean {
 }
 
 export default class KubectlArgvGuard {
+  // The long flag names refused everywhere (test seam, for exhaustive tests).
+  public static readonly deniedLongFlags: ReadonlyArray<string> =
+    Array.from(DENIED_LONG_FLAGS);
+
   /*
    * Why this argv must not spawn, or null when nothing here is refused.
    * Independent of KubectlPolicy: a null from here still needs the policy's
    * tier verdict before anything runs.
    */
   public static getRefusalReason(args: Array<string>): string | null {
+    const verb: string | null = KubectlArgvGuard.getCertainVerb(args);
+
     for (let i: number = 0; i < args.length; i++) {
       const token: string = args[i]!;
       const next: string = args[i + 1] ?? "";
@@ -158,6 +216,7 @@ export default class KubectlArgvGuard {
         const reason: string | null = KubectlArgvGuard.checkLongFlag(
           token,
           next,
+          verb,
         );
         if (reason) {
           return reason;
@@ -168,6 +227,7 @@ export default class KubectlArgvGuard {
       const reason: string | null = KubectlArgvGuard.checkShortCluster(
         token,
         next,
+        verb,
       );
       if (reason) {
         return reason;
@@ -177,16 +237,81 @@ export default class KubectlArgvGuard {
     return null;
   }
 
-  private static checkLongFlag(token: string, next: string): string | null {
+  /*
+   * The verb kubectl will run, when it is certain: the first token that is
+   * not a flag, with only kubectl's global -n/--namespace/--request-timeout
+   * (and their values) and --match-server-version allowed before it. Any
+   * other flag before the verb, or a `--`, makes it uncertain, and an
+   * uncertain verb earns none of the verb-specific exceptions.
+   */
+  public static getCertainVerb(args: Array<string>): string | null {
+    for (let i: number = 0; i < args.length; i++) {
+      const token: string = args[i]!;
+
+      if (!token.startsWith("-") || token === "-") {
+        return token;
+      }
+
+      if (token === "--") {
+        return null;
+      }
+
+      if (token.startsWith("--")) {
+        const eq: number = token.indexOf("=");
+        const name: string = normalizeLongFlagName(
+          eq >= 0 ? token.slice(2, eq) : token.slice(2),
+        );
+
+        if (GLOBAL_VALUE_LONG_FLAGS.has(name)) {
+          if (eq < 0) {
+            i++; // Its value is the next token, whatever it looks like.
+          }
+          continue;
+        }
+
+        if (GLOBAL_BOOLEAN_LONG_FLAGS.has(name)) {
+          continue;
+        }
+
+        return null;
+      }
+
+      // -n web, -nweb, -n=web: the only short global flag.
+      if (token.startsWith("-n")) {
+        if (token === "-n") {
+          i++;
+        }
+        continue;
+      }
+
+      return null;
+    }
+
+    return null;
+  }
+
+  private static checkLongFlag(
+    token: string,
+    next: string,
+    verb: string | null,
+  ): string | null {
     const eq: number = token.indexOf("=");
     const name: string = eq >= 0 ? token.slice(2, eq) : token.slice(2);
-    const lower: string = name.toLowerCase();
+    const normalized: string = normalizeLongFlagName(name);
 
-    if (DENIED_LONG_FLAGS.has(lower) || lower.startsWith("as-")) {
+    if (
+      normalized === "recursive" &&
+      verb === "explain" &&
+      EXPLAIN_RECURSIVE_VALUES.has(eq >= 0 ? token.slice(eq + 1) : "")
+    ) {
+      return null;
+    }
+
+    if (DENIED_LONG_FLAGS.has(normalized) || normalized.startsWith("as-")) {
       return describeDeniedFlag(`--${name}`);
     }
 
-    if (lower === "output") {
+    if (normalized === "output") {
       const value: string = eq >= 0 ? token.slice(eq + 1) : next;
       if (isFileBackedOutputFormat(value)) {
         return describeFileBackedOutput(value);
@@ -201,9 +326,14 @@ export default class KubectlArgvGuard {
    * one that takes a value, whose value is the rest of the token (or, when
    * nothing is left, the next token). A character we do not know is treated
    * as a boolean flag and the walk continues, so an unknown flag can never
-   * hide a denied one behind it.
+   * hide a denied one behind it. On `patch`, `p` is --patch and takes a
+   * value (see the header): the inline patch is never walked as flags.
    */
-  private static checkShortCluster(token: string, next: string): string | null {
+  private static checkShortCluster(
+    token: string,
+    next: string,
+    verb: string | null,
+  ): string | null {
     const body: string = token.slice(1);
 
     for (let j: number = 0; j < body.length; j++) {
@@ -215,6 +345,10 @@ export default class KubectlArgvGuard {
 
       if (DENIED_SHORT_FLAGS.has(ch)) {
         return describeDeniedFlag(`-${ch}`);
+      }
+
+      if (ch === "p" && verb === "patch") {
+        break;
       }
 
       if (VALUE_TAKING_SHORT_FLAGS.has(ch)) {

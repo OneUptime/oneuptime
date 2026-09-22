@@ -76,7 +76,10 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
-import Register from "../../Services/RegisterRunner";
+import Register, {
+  RegistrationRefusedError,
+  getServerReason,
+} from "../../Services/RegisterRunner";
 import { RUNNER_INGEST_URL, ONEUPTIME_BASE_URL } from "../../Config";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import RunnerCapabilities from "../../Utils/RunnerCapabilities";
@@ -259,6 +262,165 @@ describe("Register.describeRegistrationFailure", () => {
       expect(message).not.toContain("ONEUPTIME_RUNNER_KEY");
     },
   );
+});
+
+/*
+ * The kubernetes-agent Runner's wording. Kept apart from the project-scoped
+ * wording above, which must not change: a project Runner's 400 really is
+ * about ONEUPTIME_RUNNER_ID and ONEUPTIME_RUNNER_KEY, and the chart's
+ * Runner has neither.
+ */
+describe("Register.describeKubernetesAgentRegistrationFailure", () => {
+  const url: URL = URL.fromString(
+    "https://test.oneuptime.com/runner-ingest/register-kubernetes-agent",
+  );
+
+  function describeFailure(statusCode: number, serverReason: string): string {
+    return Register.describeKubernetesAgentRegistrationFailure({
+      statusCode,
+      url,
+      clusterName: "prod-us",
+      serverReason,
+    });
+  }
+
+  test.each([400, 401, 403, 404, 422, 429, 500, 502])(
+    "a %s names the status, the URL and the cluster, and never the project Runner's variables",
+    (statusCode: number) => {
+      const message: string = describeFailure(statusCode, "");
+
+      expect(message).toContain(String(statusCode));
+      expect(message).toContain(url.toString());
+      expect(message).toContain('"prod-us"');
+      expect(message).not.toContain("ONEUPTIME_RUNNER_ID");
+      expect(message).not.toContain("ONEUPTIME_RUNNER_KEY");
+      expect(message).not.toContain("Server said");
+    },
+  );
+
+  test("appends what the server said", () => {
+    expect(describeFailure(403, "keep retrying")).toContain(
+      "Server said: keep retrying",
+    );
+  });
+
+  test.each([
+    [401, "oneuptime.apiKey"],
+    [403, "still looks online"],
+    [404, "/runner-ingest"],
+    [422, "disabled"],
+    [429, "rate limited"],
+  ])("a %s explains itself (%s)", (statusCode: number, expected: string) => {
+    expect(describeFailure(statusCode, "")).toContain(expected);
+  });
+});
+
+describe("getServerReason", () => {
+  test("takes the message, then the error, from a JSON body", () => {
+    expect(getServerReason({ message: "  a\n  b  " })).toBe("a b");
+    expect(getServerReason({ error: "denied" })).toBe("denied");
+    expect(getServerReason({ message: "first", error: "second" })).toBe(
+      "first",
+    );
+  });
+
+  test("says nothing for a body with no usable reason", () => {
+    expect(getServerReason(undefined)).toBe("");
+    expect(getServerReason(null)).toBe("");
+    expect(getServerReason("<html>Bad Gateway</html>")).toBe("");
+    expect(getServerReason(["x"])).toBe("");
+    expect(getServerReason({ message: 42 })).toBe("");
+    expect(getServerReason({ message: "   " })).toBe("");
+    expect(getServerReason({ data: "<html>" })).toBe("");
+  });
+
+  test("caps a long reason", () => {
+    const reason: string = getServerReason({ message: "m".repeat(5_000) });
+
+    expect(reason.length).toBe(503);
+    expect(reason.endsWith("...")).toBe(true);
+  });
+});
+
+describe("Register.getRetryDelaySeconds", () => {
+  function schedule(data: {
+    isKubernetesAgent: boolean;
+    error: unknown;
+    attempts: number;
+  }): Array<number> {
+    const delays: Array<number> = [];
+    for (let attempt: number = 1; attempt <= data.attempts; attempt++) {
+      delays.push(
+        Register.getRetryDelaySeconds({
+          attempt,
+          error: data.error,
+          isKubernetesAgent: data.isKubernetesAgent,
+        }),
+      );
+    }
+    return delays;
+  }
+
+  const forbidden: RegistrationRefusedError = new RegistrationRefusedError({
+    message: "online",
+    statusCode: 403,
+  });
+
+  // Negative control: a project Runner's schedule is unchanged.
+  test("a project Runner doubles from 30s up to five minutes, whatever the error", () => {
+    for (const error of [new Error("ECONNREFUSED"), forbidden]) {
+      expect(
+        schedule({ isKubernetesAgent: false, error, attempts: 7 }),
+      ).toEqual([30, 60, 120, 240, 300, 300, 300]);
+    }
+  });
+
+  test("the agent Runner caps its backoff at a minute", () => {
+    expect(
+      schedule({
+        isKubernetesAgent: true,
+        error: new Error("ECONNREFUSED"),
+        attempts: 5,
+      }),
+    ).toEqual([30, 60, 60, 60, 60]);
+  });
+
+  test("the agent Runner retries a 403 every 20 seconds, or when the server says (within a minute)", () => {
+    expect(
+      schedule({ isKubernetesAgent: true, error: forbidden, attempts: 4 }),
+    ).toEqual([20, 20, 20, 20]);
+
+    for (const [hint, expected] of [
+      [0, 1],
+      [7.2, 8],
+      [45, 45],
+      [3_600, 60],
+    ] as Array<[number, number]>) {
+      expect(
+        Register.getRetryDelaySeconds({
+          attempt: 3,
+          error: new RegistrationRefusedError({
+            message: "online",
+            statusCode: 403,
+            retryAfterSeconds: hint,
+          }),
+          isKubernetesAgent: true,
+        }),
+      ).toBe(expected);
+    }
+  });
+
+  test("every agent wait fits many times into the 5-minute alive window", () => {
+    for (const error of [forbidden, new Error("x")]) {
+      for (const delay of schedule({
+        isKubernetesAgent: true,
+        error,
+        attempts: 20,
+      })) {
+        expect(delay).toBeLessThanOrEqual(60);
+      }
+    }
+  });
 });
 
 describe("registering a project-scoped Runner", () => {

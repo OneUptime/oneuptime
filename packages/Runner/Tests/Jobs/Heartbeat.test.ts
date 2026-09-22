@@ -23,7 +23,7 @@
 jest.mock("../../Services/RunnerClient", () => {
   return {
     __esModule: true,
-    default: { heartbeat: jest.fn() },
+    default: { heartbeat: jest.fn(), disconnect: jest.fn() },
   };
 });
 
@@ -46,12 +46,15 @@ jest.mock("Common/Server/Utils/Logger", () => {
   };
 });
 
-import {
+import startHeartbeat, {
+  HeartbeatHandle,
   HeartbeatLoop,
   getHostInfo,
+  signOff,
   REREGISTER_AFTER_REJECTED_HEARTBEATS,
   REREGISTER_MAX_ATTEMPTS,
 } from "../../Jobs/Heartbeat";
+import { HEARTBEAT_INTERVAL_MS } from "../../Config";
 import AgentClient, { HeartbeatResult } from "../../Services/RunnerClient";
 import Register from "../../Services/RegisterRunner";
 import KubernetesAgentMode from "../../Utils/KubernetesAgentMode";
@@ -215,9 +218,13 @@ describe("re-registration after rejected heartbeats", () => {
 
     await loop.tick();
     expect(tryRegisterRunner).toHaveBeenCalledTimes(1);
-    expect(tryRegisterRunner).toHaveBeenCalledWith({
-      maxAttempts: REREGISTER_MAX_ATTEMPTS,
-    });
+    /*
+     * objectContaining: the round also carries a shouldContinue hook (see
+     * "stopping the heartbeat" below), which is what ends it after sign-off.
+     */
+    expect(tryRegisterRunner).toHaveBeenCalledWith(
+      expect.objectContaining({ maxAttempts: REREGISTER_MAX_ATTEMPTS }),
+    );
     expect(loop.isReregistering()).toBe(true);
 
     /*
@@ -416,5 +423,234 @@ describe("overlapping ticks", () => {
     round.resolve(true);
     await settle(loop);
     expect(loop.isReregistering()).toBe(false);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Stopping, and the sign-off. The bug: on SIGTERM the Runner posted
+ * /disconnect while the heartbeat interval kept running, and the server
+ * writes connectionStatus Connected on every heartbeat — so a tick during
+ * shutdown (or one already on the wire) flipped the row back online and
+ * the kubernetes-agent Runner's replacement pod was refused for the whole
+ * alive window. Now the heartbeat stops, and in-flight work is waited out,
+ * BEFORE the sign-off; nothing is sent after it.
+ * ---------------------------------------------------------------------------
+ */
+describe("stopping the heartbeat", () => {
+  async function flush(): Promise<void> {
+    for (let i: number = 0; i < 5; i++) {
+      await new Promise<void>((resolve: () => void) => {
+        setImmediate(resolve);
+      });
+    }
+  }
+
+  test("a stopped loop sends nothing", async () => {
+    heartbeat.mockResolvedValue(OK);
+    const loop: HeartbeatLoop = new HeartbeatLoop();
+
+    await loop.stop();
+    await tickTimes(loop, 3);
+
+    expect(loop.isStopped()).toBe(true);
+    expect(heartbeat).not.toHaveBeenCalled();
+  });
+
+  test("negative control: the same loop without stop() sends", async () => {
+    heartbeat.mockResolvedValue(OK);
+    const loop: HeartbeatLoop = new HeartbeatLoop();
+
+    await loop.tick();
+
+    expect(heartbeat).toHaveBeenCalledTimes(1);
+  });
+
+  test("stop() waits for a heartbeat that is already on the wire", async () => {
+    const slow: Deferred<HeartbeatResult> = deferred<HeartbeatResult>();
+    heartbeat.mockReturnValue(slow.promise);
+    const loop: HeartbeatLoop = new HeartbeatLoop();
+
+    const first: Promise<void> = loop.tick();
+    await flush();
+    expect(loop.isHeartbeatInFlight()).toBe(true);
+
+    let stopped: boolean = false;
+    const stopping: Promise<void> = loop.stop().then(() => {
+      stopped = true;
+    });
+
+    await flush();
+    expect(stopped).toBe(false);
+
+    slow.resolve(OK);
+    await stopping;
+    await first;
+
+    expect(stopped).toBe(true);
+    expect(loop.isHeartbeatInFlight()).toBe(false);
+  });
+
+  test("stop() gives up on a hung heartbeat after its bound", async () => {
+    heartbeat.mockReturnValue(new Promise<HeartbeatResult>(() => {}));
+    const loop: HeartbeatLoop = new HeartbeatLoop();
+
+    void loop.tick();
+    await flush();
+    expect(loop.isHeartbeatInFlight()).toBe(true);
+
+    const startedAt: number = Date.now();
+    await loop.stop(50);
+    const waited: number = Date.now() - startedAt;
+
+    expect(waited).toBeGreaterThanOrEqual(40);
+    expect(waited).toBeLessThan(5_000);
+  });
+
+  test("a heartbeat still gathering its posture when stop() is called is never sent", async () => {
+    const posture: Deferred<{
+      clusterIdentifier: string;
+      inCluster: boolean;
+    }> = deferred<{ clusterIdentifier: string; inCluster: boolean }>();
+    (KubernetesPosture.build as jest.Mock).mockReturnValue(posture.promise);
+    heartbeat.mockResolvedValue(OK);
+    const loop: HeartbeatLoop = new HeartbeatLoop();
+
+    const ticking: Promise<void> = loop.tick();
+    await flush();
+
+    const stopping: Promise<void> = loop.stop();
+    posture.resolve({ clusterIdentifier: "prod-us", inCluster: true });
+    await stopping;
+    await ticking;
+
+    expect(heartbeat).not.toHaveBeenCalled();
+  });
+
+  test("a rejection answered after stop() starts no re-registration", async () => {
+    heartbeat.mockResolvedValue(rejected(401));
+    tryRegisterRunner.mockResolvedValue(true);
+    const loop: HeartbeatLoop = new HeartbeatLoop();
+
+    await tickTimes(loop, REREGISTER_AFTER_REJECTED_HEARTBEATS - 1);
+
+    const last: Deferred<HeartbeatResult> = deferred<HeartbeatResult>();
+    heartbeat.mockReturnValue(last.promise);
+    const ticking: Promise<void> = loop.tick();
+    await flush();
+
+    const stopping: Promise<void> = loop.stop();
+    last.resolve(rejected(401));
+    await stopping;
+    await ticking;
+
+    expect(tryRegisterRunner).not.toHaveBeenCalled();
+  });
+
+  test("a re-registration round in progress is told to stop once the loop stops", async () => {
+    heartbeat.mockResolvedValue(rejected(401));
+    const round: Deferred<boolean> = deferred<boolean>();
+    tryRegisterRunner.mockReturnValue(round.promise);
+    const loop: HeartbeatLoop = new HeartbeatLoop();
+
+    await tickTimes(loop, REREGISTER_AFTER_REJECTED_HEARTBEATS);
+    expect(tryRegisterRunner).toHaveBeenCalledTimes(1);
+
+    const shouldContinue: () => boolean = (
+      tryRegisterRunner.mock.calls[0]![0] as { shouldContinue: () => boolean }
+    ).shouldContinue;
+
+    expect(shouldContinue()).toBe(true);
+
+    await loop.stop();
+
+    expect(shouldContinue()).toBe(false);
+
+    round.resolve(false);
+    await settle(loop);
+  });
+
+  describe("startHeartbeat's handle", () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    test("stop() clears the interval: no heartbeat however much time passes", async () => {
+      /*
+       * Jest 28 takes a config object; the installed @types/jest (27) only
+       * knows the old "modern" | "legacy" argument, hence the cast. The
+       * promise plumbing needs the real setImmediate to flush, and Node 26
+       * makes globalThis.performance read-only, so it cannot be faked.
+       */
+      (
+        jest.useFakeTimers as unknown as (config: {
+          doNotFake: Array<string>;
+        }) => void
+      )({ doNotFake: ["nextTick", "setImmediate", "performance"] });
+      heartbeat.mockResolvedValue(OK);
+
+      const handle: HeartbeatHandle = startHeartbeat();
+      await flush();
+      expect(heartbeat).toHaveBeenCalledTimes(1);
+
+      // Negative control: the interval does fire while the loop runs.
+      jest.advanceTimersByTime(HEARTBEAT_INTERVAL_MS);
+      await flush();
+      expect(heartbeat).toHaveBeenCalledTimes(2);
+
+      await handle.stop();
+
+      for (let i: number = 0; i < 3; i++) {
+        jest.advanceTimersByTime(HEARTBEAT_INTERVAL_MS);
+        await flush();
+      }
+
+      expect(heartbeat).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("signOff", () => {
+    beforeEach(() => {
+      (AgentClient.disconnect as jest.Mock).mockReset();
+    });
+
+    test("stops the heartbeat before telling the server the Runner is gone", async () => {
+      const order: Array<string> = [];
+      const handle: HeartbeatHandle = {
+        stop: async (): Promise<void> => {
+          order.push("stop");
+        },
+      };
+      (AgentClient.disconnect as jest.Mock).mockImplementation(
+        async (): Promise<boolean> => {
+          order.push("disconnect");
+          return true;
+        },
+      );
+
+      await signOff(handle);
+
+      expect(order).toEqual(["stop", "disconnect"]);
+    });
+
+    test("does not sign off until the heartbeat has actually stopped", async () => {
+      const stopped: Deferred<void> = deferred<void>();
+      const handle: HeartbeatHandle = {
+        stop: (): Promise<void> => {
+          return stopped.promise;
+        },
+      };
+      (AgentClient.disconnect as jest.Mock).mockResolvedValue(true);
+
+      const signingOff: Promise<void> = signOff(handle);
+      await flush();
+
+      expect(AgentClient.disconnect).not.toHaveBeenCalled();
+
+      stopped.resolve();
+      await signingOff;
+
+      expect(AgentClient.disconnect).toHaveBeenCalledTimes(1);
+    });
   });
 });

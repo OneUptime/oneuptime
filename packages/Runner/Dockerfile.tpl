@@ -79,13 +79,25 @@ SHELL ["/bin/bash", "-c"]
 # kubectl during investigations and policy-tiered kubectl fixes during
 # remediations through this Runner (in-cluster via the kubernetes-agent chart,
 # or wherever a Kubernetes credential is assigned). Pinned by version AND
-# sha256 per architecture so a rebuild can never pick up a different binary;
-# bump KUBECTL_VERSION and both digests together (dl.k8s.io publishes
-# kubectl.sha256 next to each binary).
+# sha256 per architecture so a rebuild can never pick up a different binary.
+#
+# Keep it on a SUPPORTED minor in the middle of the supported cluster range:
+# kubectl is only supported within one minor of the API server, and each
+# release is built with the Go of its day, so a stale pin means version-skew
+# warnings on every "Test access" and a block of Go stdlib CVEs in image
+# scans that no rebuild fixes. v1.36.4 (go1.26.5) covers 1.35-1.37 servers.
+# Bump KUBECTL_VERSION and both digests together, at least once per
+# Kubernetes minor release (dl.k8s.io publishes kubectl.sha256 next to each
+# binary: https://dl.k8s.io/release/<version>/bin/linux/<arch>/kubectl.sha256).
+#
+# kubectl 1.33+ reads a kuberc preferences file (aliases, default flags).
+# KubectlExecutor switches it off for every AI command (KUBERC=off,
+# KUBECTL_KUBERC=false, an empty private HOME) and the argv guard refuses
+# --kuberc, so a preferences file can never rewrite an approved argv.
 ARG TARGETARCH
-ARG KUBECTL_VERSION=v1.31.4
-ARG KUBECTL_SHA256_AMD64=298e19e9c6c17199011404278f0ff8168a7eca4217edad9097af577023a5620f
-ARG KUBECTL_SHA256_ARM64=b97e93c20e3be4b8c8fa1235a41b4d77d4f2022ed3d899230dbbbbd43d26f872
+ARG KUBECTL_VERSION=v1.36.4
+ARG KUBECTL_SHA256_AMD64=8b8f088da2dab964f853b38464033b1be15ede2839eca751482357c45abdd05a
+ARG KUBECTL_SHA256_ARM64=0ecf44450ee6063bf19dd166a103ee6df4a9034455c2abce626e6eea657d73fb
 RUN set -euo pipefail \
   && arch="${TARGETARCH:-amd64}" \
   && case "${arch}" in \

@@ -125,9 +125,16 @@ const childProcessMock: {
 
 import KubectlExecutor, {
   KubectlExecResult,
+  formatKubectlOutput,
+  formatRequestTimeout,
+  getRequestTimeoutMs,
 } from "../../Services/KubectlExecutor";
+import { MAX_OUTPUT_BYTES } from "../../Config";
 import KubernetesPosture from "../../Utils/KubernetesPosture";
-import KubectlPolicy from "Common/Utils/AiRemediation/KubectlPolicy";
+import KubernetesAgentMode from "../../Utils/KubernetesAgentMode";
+import KubectlPolicy, {
+  KubectlPolicyResult,
+} from "Common/Utils/AiRemediation/KubectlPolicy";
 import { KubectlCommandTier } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import GracefulShutdown from "Common/Server/Utils/GracefulShutdown";
 import { JSONObject } from "Common/Types/JSON";
@@ -228,6 +235,9 @@ describe("KubectlExecutor", () => {
       .spyOn(KubernetesPosture, "canUseOwnServiceAccount")
       .mockReturnValue(true);
     jest.spyOn(KubernetesPosture, "allowsWrites").mockReturnValue(true);
+    // No namespace scope unless a test sets one.
+    jest.spyOn(KubernetesPosture, "getWriteNamespaces").mockReturnValue([]);
+    jest.spyOn(KubernetesPosture, "getPodNamespace").mockReturnValue(null);
     jest
       .spyOn(KubectlExecutor, "getOwnClusterIdentifier")
       .mockReturnValue(OWN_CLUSTER);
@@ -237,6 +247,12 @@ describe("KubectlExecutor", () => {
     jest.restoreAllMocks();
   });
 
+  /*
+   * The request timeout used to EQUAL the process timeout (30s for a 30s
+   * job), so an API server that never answered got kubectl SIGKILLed just
+   * before it would have printed "Unable to connect to the server". It now
+   * leaves kubectl room to report: 24s of a 30s budget.
+   */
   test("runs the argv as the kubectl binary — never through a shell — with a request timeout", async () => {
     const result: KubectlExecResult = await KubectlExecutor.execute({
       payload: READ_PAYLOAD,
@@ -255,7 +271,7 @@ describe("KubectlExecutor", () => {
     } = lastSpawn();
     expect(call.command).toBe("kubectl");
     expect(call.args).toEqual([
-      "--request-timeout=30s",
+      "--request-timeout=24s",
       "get",
       "pods",
       "-n",
@@ -266,7 +282,7 @@ describe("KubectlExecutor", () => {
     expect(call.options["timeout"]).toBe(30000);
     expect(call.options["killSignal"]).toBe("SIGKILL");
 
-    // Minimal environment: no host kubeconfig, no cloud profiles.
+    // Minimal environment: no host kubeconfig, no cloud profiles, no kuberc.
     const env: Record<string, string> = call.options["env"] as Record<
       string,
       string
@@ -274,6 +290,10 @@ describe("KubectlExecutor", () => {
     expect(env["HOME"]).toBeDefined();
     expect(env["KUBECONFIG"]).toBeUndefined();
     expect(env["AWS_PROFILE"]).toBeUndefined();
+    expect(env["KUBERC"]).toBe("off");
+    expect(env["KUBECTL_KUBERC"]).toBe("false");
+    // kubectl runs in its private HOME, not wherever the Runner happens to be.
+    expect(call.options["cwd"]).toBe(env["HOME"]);
   });
 
   test("keeps shell metacharacters as literal argument bytes", async () => {
@@ -315,8 +335,12 @@ describe("KubectlExecutor", () => {
     expect(childProcessMock.spawn).not.toHaveBeenCalled();
   });
 
-  test("refuses every write on a host installed read-only", async () => {
+  test("refuses every write on the Kubernetes agent's Runner installed read-only, pointing at the chart", async () => {
     (KubernetesPosture.allowsWrites as jest.Mock).mockReturnValue(false);
+    jest.spyOn(KubernetesAgentMode, "isActive").mockReturnValue(true);
+    jest
+      .spyOn(KubernetesPosture, "getAllowWritesSetting")
+      .mockReturnValue("false");
 
     const result: KubectlExecResult = await KubectlExecutor.execute({
       payload: WRITE_PAYLOAD,
@@ -327,6 +351,9 @@ describe("KubectlExecutor", () => {
     expect(result.success).toBe(false);
     expect(result.errorMessage).toContain("installed read-only");
     expect(result.errorMessage).toContain("aiAccess.remediation.enabled=true");
+    expect(result.errorMessage).toContain(
+      'ONEUPTIME_KUBECTL_ALLOW_WRITES="false"',
+    );
     expect(childProcessMock.spawn).not.toHaveBeenCalled();
 
     // Reads still work on a read-only host.
@@ -338,6 +365,42 @@ describe("KubectlExecutor", () => {
     expect(read.success).toBe(true);
   });
 
+  /*
+   * An external Runner has nothing to do with the chart: its operator sets
+   * the variable on the host. The refusal used to send them to `helm
+   * upgrade` regardless.
+   */
+  test.each([
+    [null, "is not set"],
+    ["readonly", 'ONEUPTIME_KUBECTL_ALLOW_WRITES="readonly"'],
+  ])(
+    "refuses every write on another Runner host (setting %p), documenting the variable instead of the chart",
+    async (setting: string | null, shown: string) => {
+      (KubernetesPosture.allowsWrites as jest.Mock).mockReturnValue(false);
+      jest.spyOn(KubernetesAgentMode, "isActive").mockReturnValue(false);
+      jest
+        .spyOn(KubernetesPosture, "getAllowWritesSetting")
+        .mockReturnValue(setting);
+
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: WRITE_PAYLOAD,
+        credential: CREDENTIAL,
+        timeoutInMs: 30000,
+        origin: "AiRemediation",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.errorMessage).toContain(shown);
+      expect(result.errorMessage).toContain(
+        "ONEUPTIME_KUBECTL_ALLOW_WRITES=true",
+      );
+      expect(result.errorMessage).not.toContain("aiAccess");
+      expect(result.errorMessage).not.toContain("helm");
+      expect(result.errorMessage).not.toContain("Upgrade the Kubernetes agent");
+      expect(childProcessMock.spawn).not.toHaveBeenCalled();
+    },
+  );
+
   test("runs a write for a remediation job when the host allows it", async () => {
     const result: KubectlExecResult = await KubectlExecutor.execute({
       payload: WRITE_PAYLOAD,
@@ -347,7 +410,7 @@ describe("KubectlExecutor", () => {
 
     expect(result.success).toBe(true);
     expect(lastSpawn().args).toEqual([
-      "--request-timeout=30s",
+      "--request-timeout=24s",
       "rollout",
       "restart",
       "deployment/web",
@@ -493,7 +556,25 @@ describe("KubectlExecutor", () => {
       ["-Af combined", ["get", "pods", "-Af", "/x"]],
       ["after --", ["get", "pods", "--", "--kubeconfig=/x"]],
       ["--kuberc", ["get", "pods", "--kuberc=/x"]],
+      ["--as-user-extra", ["get", "pods", "--as-user-extra=reason=x"]],
       ["--patch-file", ["patch", "deployment/web", "--patch-file=/x"]],
+      /*
+       * kubectl reads "_" as "-": with the policy bypassed, the guard alone
+       * must stop the token-copy argv spelled with underscores.
+       */
+      [
+        "--from_file (underscore spelling)",
+        [
+          "create",
+          "configmap",
+          "x",
+          `--from_file=${SERVICE_ACCOUNT_TOKEN_PATH}`,
+        ],
+      ],
+      [
+        "--insecure_skip_tls_verify (underscore spelling)",
+        ["get", "pods", "--insecure_skip_tls_verify"],
+      ],
       [
         "--from-file",
         [
@@ -554,6 +635,605 @@ describe("KubectlExecutor", () => {
         expect(result.success).toBe(true);
         expect(childProcessMock.spawn).toHaveBeenCalledTimes(1);
       }
+    });
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * Commands the shared policy allows must not be refused by the guard on
+   * the Runner — least of all a patch a human already approved.
+   * -------------------------------------------------------------------------
+   */
+  describe("commands the policy allows reach kubectl", () => {
+    test.each([
+      [
+        `kubectl patch deployment web -n web -p'{"spec":{"replicas":3}}'`,
+        "AiRemediation",
+      ],
+      [
+        `kubectl patch deployment web -n web -p'{"spec":{"paused":false}}'`,
+        "AiRemediation",
+      ],
+      ["kubectl explain pods --recursive", "AiInvestigation"],
+      ["kubectl get pods --all_namespaces", "AiInvestigation"],
+    ])("`%s`", async (command: string, origin: string) => {
+      const policy: KubectlPolicyResult =
+        KubectlPolicy.evaluateCommand(command);
+      expect(policy.tier).not.toBe(KubectlCommandTier.Denied);
+
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: { args: policy.args, clusterIdentifier: OWN_CLUSTER },
+        timeoutInMs: 30000,
+        origin,
+      });
+
+      expect(result.errorMessage ?? "").not.toContain("the -s flag");
+      expect(result.success).toBe(true);
+      expect(childProcessMock.spawn).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * The environment kubectl runs with is a closed allowlist. The host's
+   * environment is polluted on purpose here: every variable that could
+   * point kubectl at another kubeconfig, a kuberc preferences file, a
+   * plugin, a cloud profile or a credential is set, and none may reach it.
+   * -------------------------------------------------------------------------
+   */
+  describe("the environment kubectl runs with", () => {
+    const POLLUTED: Record<string, string> = {
+      KUBECONFIG: "/root/.kube/config",
+      KUBERC: "/tmp/evil-kuberc",
+      KUBECTL_KUBERC: "true",
+      KUBECTL_ENABLE_CMD_SHADOW: "true",
+      KUBECTL_EXTERNAL_DIFF: "sh -c 'curl evil'",
+      KUBECTL_COMMAND_HEADERS: "true",
+      HOME: "/root",
+      KUBECACHEDIR: "/root/.kube/cache",
+      AWS_PROFILE: "prod-admin",
+      AWS_SECRET_ACCESS_KEY: "aws-secret-value",
+      GOOGLE_APPLICATION_CREDENTIALS: "/root/gcp.json",
+      AZURE_CLIENT_SECRET: "azure-secret-value",
+      SSL_CERT_FILE: "/root/evil-ca.pem",
+      NODE_EXTRA_CA_CERTS: "/etc/extra-ca.pem",
+      ONEUPTIME_INGESTION_KEY: "ingestion-key-value",
+      KUBERNETES_SERVICE_HOST: "10.0.0.1",
+      KUBERNETES_SERVICE_PORT: "443",
+      KUBERNETES_SERVICE_PORT_HTTPS: "443",
+      HTTPS_PROXY: "http://proxy.corp:3128",
+      https_proxy: "http://proxy.corp:3128",
+      HTTP_PROXY: "http://proxy.corp:3128",
+      http_proxy: "http://proxy.corp:3128",
+      NO_PROXY: ".corp,10.0.0.0/8",
+      no_proxy: ".corp,10.0.0.0/8",
+    };
+
+    const saved: Record<string, string | undefined> = {};
+
+    beforeEach(() => {
+      for (const [key, value] of Object.entries(POLLUTED)) {
+        saved[key] = process.env[key];
+        process.env[key] = value;
+      }
+    });
+
+    afterEach(() => {
+      for (const key of Object.keys(POLLUTED)) {
+        if (saved[key] === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = saved[key];
+        }
+      }
+    });
+
+    function spawnedEnv(): Record<string, string> {
+      return lastSpawn().options["env"] as Record<string, string>;
+    }
+
+    test("in-cluster: PATH, a private HOME and cache, kuberc off and the service address — nothing else", async () => {
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: READ_PAYLOAD,
+        timeoutInMs: 30000,
+        origin: "AiInvestigation",
+      });
+      expect(result.success).toBe(true);
+
+      const env: Record<string, string> = spawnedEnv();
+
+      expect(Object.keys(env).sort()).toEqual(
+        [
+          "PATH",
+          "HOME",
+          "KUBECACHEDIR",
+          "KUBERC",
+          "KUBECTL_KUBERC",
+          "KUBERNETES_SERVICE_HOST",
+          "KUBERNETES_SERVICE_PORT",
+          "KUBERNETES_SERVICE_PORT_HTTPS",
+        ].sort(),
+      );
+      expect(env["KUBERC"]).toBe("off");
+      expect(env["KUBECTL_KUBERC"]).toBe("false");
+      expect(env["HOME"]).not.toBe("/root");
+      expect(env["HOME"]).toContain(KubectlExecutor.getKubeconfigParentDir());
+      expect(env["KUBECACHEDIR"]).not.toBe("/root/.kube/cache");
+      expect(env["KUBERNETES_SERVICE_HOST"]).toBe("10.0.0.1");
+      // No proxy in-cluster: the API server is the pod's own service.
+      expect(env["HTTPS_PROXY"]).toBeUndefined();
+      expect(env["https_proxy"]).toBeUndefined();
+      expect(env["NO_PROXY"]).toBeUndefined();
+      expect(JSON.stringify(env)).not.toContain("secret-value");
+      expect(JSON.stringify(env)).not.toContain("ingestion-key-value");
+    });
+
+    test("with a credential: the temporary kubeconfig and the host's proxy settings — and no in-cluster fallback", async () => {
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: READ_PAYLOAD,
+        credential: CREDENTIAL,
+        timeoutInMs: 30000,
+        origin: "AiInvestigation",
+      });
+      expect(result.success).toBe(true);
+
+      const env: Record<string, string> = spawnedEnv();
+
+      expect(Object.keys(env).sort()).toEqual(
+        [
+          "PATH",
+          "HOME",
+          "KUBECACHEDIR",
+          "KUBERC",
+          "KUBECTL_KUBERC",
+          "KUBECONFIG",
+          "HTTPS_PROXY",
+          "https_proxy",
+          "HTTP_PROXY",
+          "http_proxy",
+          "NO_PROXY",
+          "no_proxy",
+        ].sort(),
+      );
+      // The only kubeconfig kubectl can see is the temporary one on the argv.
+      expect(env["KUBECONFIG"]).toBe(kubeconfigPathOf(lastSpawn().args));
+      expect(env["KUBECONFIG"]).not.toBe("/root/.kube/config");
+      expect(env["HTTPS_PROXY"]).toBe("http://proxy.corp:3128");
+      expect(env["NO_PROXY"]).toBe(".corp,10.0.0.0/8");
+      expect(env["KUBERNETES_SERVICE_HOST"]).toBeUndefined();
+      expect(env["HOME"]).not.toBe("/root");
+    });
+
+    test("proxy variables the host does not set are not invented", async () => {
+      for (const name of [
+        "HTTPS_PROXY",
+        "https_proxy",
+        "HTTP_PROXY",
+        "http_proxy",
+        "NO_PROXY",
+        "no_proxy",
+      ]) {
+        delete process.env[name];
+      }
+
+      await KubectlExecutor.execute({
+        payload: READ_PAYLOAD,
+        credential: CREDENTIAL,
+        timeoutInMs: 30000,
+        origin: "AiInvestigation",
+      });
+
+      const env: Record<string, string> = spawnedEnv();
+      expect(Object.prototype.hasOwnProperty.call(env, "HTTPS_PROXY")).toBe(
+        false,
+      );
+      expect(Object.prototype.hasOwnProperty.call(env, "NO_PROXY")).toBe(false);
+    });
+
+    /*
+     * HOME is where kubectl looks for ~/.kube/config and ~/.kube/kuberc, so
+     * it must be a directory nobody else controls — the in-cluster path used
+     * to use the pod's shared /tmp.
+     */
+    test.each([
+      ["in-cluster", undefined],
+      ["with a credential", CREDENTIAL],
+    ])(
+      "%s, HOME is a private, empty directory for this command alone",
+      async (_label: string, credential: JSONObject | undefined) => {
+        let homeDuring: string = "";
+        let homeEntries: Array<string> = ["not read"];
+        let homeMode: number = 0;
+
+        spawnOnceWith(() => {
+          homeDuring = String(
+            (lastSpawn().options["env"] as Record<string, string>)["HOME"],
+          );
+          homeEntries = fs.readdirSync(homeDuring);
+          homeMode = fs.statSync(homeDuring).mode & 0o777;
+        });
+
+        const result: KubectlExecResult = await KubectlExecutor.execute({
+          payload: READ_PAYLOAD,
+          ...(credential ? { credential } : {}),
+          timeoutInMs: 30000,
+          origin: "AiInvestigation",
+        });
+
+        expect(result.success).toBe(true);
+        expect(path.basename(path.dirname(homeDuring))).toMatch(/^job-/);
+        expect(homeEntries).toEqual([]);
+        expect(homeMode).toBe(0o700);
+        // Removed with the command.
+        expect(fs.existsSync(homeDuring)).toBe(false);
+        expect(KubectlExecutor.getActiveKubeconfigDirs()).toEqual([]);
+      },
+    );
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * Timeouts: kubectl must get to say why before it is killed.
+   * -------------------------------------------------------------------------
+   */
+  describe("request timeout and kills", () => {
+    test.each([
+      [1000, "500ms"],
+      [1500, "750ms"],
+      [5000, "2s"],
+      [10000, "7s"],
+      [30000, "24s"],
+      [120000, "96s"],
+    ])(
+      "a %sms job gets --request-timeout=%s",
+      async (timeoutInMs: number, expected: string) => {
+        await KubectlExecutor.execute({
+          payload: READ_PAYLOAD,
+          timeoutInMs,
+          origin: "AiInvestigation",
+        });
+
+        expect(lastSpawn().args[0]).toBe(`--request-timeout=${expected}`);
+        expect(lastSpawn().options["timeout"]).toBe(timeoutInMs);
+      },
+    );
+
+    test("the request timeout is always well inside the process timeout", () => {
+      for (
+        let timeoutInMs: number = 1000;
+        timeoutInMs <= 120_000;
+        timeoutInMs += 500
+      ) {
+        const requestMs: number = getRequestTimeoutMs(timeoutInMs);
+        const rendered: string = formatRequestTimeout(requestMs);
+        const renderedMs: number = rendered.endsWith("ms")
+          ? parseInt(rendered, 10)
+          : parseInt(rendered, 10) * 1000;
+
+        expect(renderedMs).toBeLessThan(timeoutInMs);
+        expect(renderedMs).toBeGreaterThanOrEqual(
+          Math.min(timeoutInMs / 2, timeoutInMs - 1000) - 1000,
+        );
+        expect(renderedMs).toBeGreaterThan(0);
+      }
+    });
+
+    test("a kill with no output at all says the API server is probably unreachable, naming it", async () => {
+      childProcessMock.__set({ signal: "SIGKILL", stdout: "", stderr: "" });
+
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: READ_PAYLOAD,
+        credential: {
+          ...CREDENTIAL,
+          apiServerUrl: "https://admin:hunter2@k8s.example.com:6443/prefix?x=1",
+        },
+        timeoutInMs: 30000,
+        origin: "AiInvestigation",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.errorMessage).toContain("timeout 30000ms");
+      expect(result.errorMessage).toContain("unreachable");
+      expect(result.errorMessage).toContain("https://k8s.example.com:6443");
+      // Only scheme, host and port: never userinfo, a path or a query.
+      expect(result.errorMessage).not.toContain("hunter2");
+      expect(result.errorMessage).not.toContain("/prefix");
+    });
+
+    test("in-cluster, the same kill names the in-cluster API server", async () => {
+      childProcessMock.__set({ signal: "SIGKILL", stdout: "", stderr: "" });
+
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: READ_PAYLOAD,
+        timeoutInMs: 30000,
+        origin: "AiInvestigation",
+      });
+
+      expect(result.errorMessage).toContain("unreachable");
+      expect(result.errorMessage).toContain("in-cluster");
+    });
+
+    test("a kill after some output keeps the plain message and the output", async () => {
+      childProcessMock.__set({
+        signal: "SIGKILL",
+        stdout: "partial table",
+        stderr: "",
+      });
+
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: READ_PAYLOAD,
+        timeoutInMs: 30000,
+        origin: "AiInvestigation",
+      });
+
+      expect(result.errorMessage).toBe("Killed (timeout 30000ms)");
+      expect(result.output).toContain("partial table");
+    });
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * Output capping keeps kubectl's reason. stdout used to be joined first
+   * and the whole text cut at MAX_OUTPUT_BYTES, so a large partial table
+   * pushed "Error from server (Forbidden)" out of the output entirely.
+   * -------------------------------------------------------------------------
+   */
+  describe("output capping", () => {
+    const FORBIDDEN: string =
+      'Error from server (Forbidden): deployments.apps is forbidden: User "system:serviceaccount:x:y" cannot list resource "deployments"';
+    // Room for the section headers and the truncation markers.
+    const MARKER_ALLOWANCE: number = 200;
+
+    test("a huge stdout is cut and stderr survives intact", async () => {
+      childProcessMock.__set({
+        exitCode: 1,
+        stdout: "x".repeat(120_000),
+        stderr: `${FORBIDDEN}\n`,
+      });
+
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: READ_PAYLOAD,
+        timeoutInMs: 30000,
+        origin: "AiInvestigation",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.exitCode).toBe(1);
+      expect(result.output).toContain(`[stderr]\n${FORBIDDEN}`);
+      expect(result.output).toContain("[output truncated: stdout cut at");
+      expect(result.output).toContain("stderr follows");
+      expect(Buffer.byteLength(result.output, "utf8")).toBeLessThanOrEqual(
+        MAX_OUTPUT_BYTES + MARKER_ALLOWANCE,
+      );
+      // The reason is on the errorMessage too, so it survives any later cap.
+      expect(result.errorMessage).toBe(`Exit code 1: ${FORBIDDEN}`);
+    });
+
+    test("a huge stdout with no stderr uses the whole budget and says nothing about stderr", async () => {
+      childProcessMock.__set({
+        exitCode: 0,
+        stdout: "y".repeat(60_000),
+        stderr: "",
+      });
+
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: READ_PAYLOAD,
+        timeoutInMs: 30000,
+        origin: "AiInvestigation",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.errorMessage).toBeUndefined();
+      expect(result.output).not.toContain("[stderr]");
+      expect(result.output).not.toContain("stderr follows");
+      expect(result.output).toContain("[output truncated: stdout cut at");
+      expect(Buffer.byteLength(result.output, "utf8")).toBeGreaterThan(
+        MAX_OUTPUT_BYTES - MARKER_ALLOWANCE,
+      );
+      expect(Buffer.byteLength(result.output, "utf8")).toBeLessThanOrEqual(
+        MAX_OUTPUT_BYTES + MARKER_ALLOWANCE,
+      );
+    });
+
+    test("a huge stderr keeps its tail, where the error is", async () => {
+      childProcessMock.__set({
+        exitCode: 1,
+        stdout: "",
+        stderr: `${"w".repeat(20_000)}\n${FORBIDDEN}\n`,
+      });
+
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: READ_PAYLOAD,
+        timeoutInMs: 30000,
+        origin: "AiInvestigation",
+      });
+
+      expect(result.output).toContain("[earlier stderr truncated]");
+      expect(result.output.endsWith(`${FORBIDDEN}\n`)).toBe(true);
+      expect(Buffer.byteLength(result.output, "utf8")).toBeLessThanOrEqual(
+        8_000 + MARKER_ALLOWANCE,
+      );
+      expect(result.errorMessage).toContain("Forbidden");
+    });
+
+    test("small outputs keep the familiar layout", () => {
+      expect(formatKubectlOutput({ stdout: "a\n", stderr: "b\n" })).toBe(
+        "[stdout]\na\n\n[stderr]\nb\n",
+      );
+      expect(formatKubectlOutput({ stdout: "", stderr: "Forbidden" })).toBe(
+        "[stderr]\nForbidden",
+      );
+      expect(formatKubectlOutput({ stdout: "ok", stderr: "" })).toBe(
+        "[stdout]\nok",
+      );
+      expect(formatKubectlOutput({ stdout: "", stderr: "" })).toBe("");
+    });
+
+    test("a long error line is capped on the errorMessage", async () => {
+      childProcessMock.__set({
+        exitCode: 1,
+        stdout: "",
+        stderr: `Error: ${"z".repeat(2_000)}`,
+      });
+
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: READ_PAYLOAD,
+        timeoutInMs: 30000,
+        origin: "AiInvestigation",
+      });
+
+      expect((result.errorMessage || "").length).toBeLessThan(600);
+      expect(result.errorMessage).toMatch(/^Exit code 1: Error: z+\.\.\.$/);
+    });
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * The namespace scope on writes — the Runner's own bound, independent of
+   * RBAC. patch/update on a workload template is running any image as any
+   * ServiceAccount of that namespace, so a write outside the namespaces the
+   * chart bound (or into the Runner's own) never spawns. Out-of-scope
+   * namespaces here are ordinary ones ("payments"), so the verdict cannot
+   * come from the policy's own handling of kube-system.
+   * -------------------------------------------------------------------------
+   */
+  describe("the namespace scope on writes", () => {
+    const POD_NAMESPACE: string = "oneuptime-agent";
+
+    beforeEach(() => {
+      (KubernetesPosture.getWriteNamespaces as jest.Mock).mockReturnValue([
+        "web",
+      ]);
+      (KubernetesPosture.getPodNamespace as jest.Mock).mockReturnValue(
+        POD_NAMESPACE,
+      );
+    });
+
+    function writePayload(args: Array<string>): JSONObject {
+      return { args, clusterIdentifier: OWN_CLUSTER };
+    }
+
+    test.each([
+      [
+        "a scale in another namespace",
+        [
+          "scale",
+          "deployment",
+          "payments-api",
+          "-n",
+          "payments",
+          "--replicas=0",
+        ],
+        "outside the namespaces",
+      ],
+      [
+        "set image with -nX",
+        ["set", "image", "deployment/x", "-npayments", "c=attacker/img:1"],
+        "outside the namespaces",
+      ],
+      [
+        "patch with --namespace=X",
+        ["patch", "pod", "p", "--namespace=payments", "-p", '{"spec":{}}'],
+        "outside the namespaces",
+      ],
+      [
+        "a write with no -n (the pod's own namespace in-cluster)",
+        ["rollout", "restart", "deployment/oneuptime-agent-kubernetes-agent"],
+        "the namespace this Runner itself runs in",
+      ],
+      [
+        "scaling the agent away in its own namespace",
+        [
+          "scale",
+          "deployment",
+          "oneuptime-agent-kubernetes-agent",
+          "-n",
+          POD_NAMESPACE,
+          "--replicas=0",
+        ],
+        "the namespace this Runner itself runs in",
+      ],
+      [
+        "an ambiguous namespace",
+        ["rollout", "restart", "deployment/web", "--selector", "-n", "web"],
+        "cannot tell for certain",
+      ],
+    ])(
+      "refuses %s before spawning",
+      async (_label: string, args: Array<string>, expected: string) => {
+        const result: KubectlExecResult = await KubectlExecutor.execute({
+          payload: writePayload(args),
+          timeoutInMs: 30000,
+          origin: "AiRemediation",
+        });
+
+        expect(result.success).toBe(false);
+        expect(result.errorMessage).toContain("Refused by the Runner");
+        expect(result.errorMessage).toContain(expected);
+        expect(childProcessMock.spawn).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each([
+      [
+        "a write in scope",
+        ["rollout", "restart", "deployment/web", "-n", "web"],
+      ],
+      ["a read anywhere", ["get", "pods", "-n", "payments"]],
+      [
+        "a read in the Runner's own namespace",
+        ["get", "pods", "-n", POD_NAMESPACE],
+      ],
+      ["a node operation", ["cordon", "node-1"]],
+    ])("spawns %s", async (_label: string, args: Array<string>) => {
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: writePayload(args),
+        timeoutInMs: 30000,
+        origin: "AiRemediation",
+      });
+
+      expect(result.success).toBe(true);
+      expect(childProcessMock.spawn).toHaveBeenCalledTimes(1);
+    });
+
+    test('with a credential, a write with no -n lands in "default" and is refused when that is not listed', async () => {
+      (KubernetesPosture.getPodNamespace as jest.Mock).mockReturnValue(null);
+
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: { args: ["rollout", "restart", "deployment/web"] },
+        credential: CREDENTIAL,
+        timeoutInMs: 30000,
+        origin: "AiRemediation",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.errorMessage).toContain('"default"');
+      expect(childProcessMock.spawn).not.toHaveBeenCalled();
+    });
+
+    /*
+     * Negative control: the same out-of-scope write runs when no scope is
+     * configured, so the refusals above come from the scope and nothing else.
+     */
+    test("without a scope, the same out-of-scope write spawns", async () => {
+      (KubernetesPosture.getWriteNamespaces as jest.Mock).mockReturnValue([]);
+      (KubernetesPosture.getPodNamespace as jest.Mock).mockReturnValue(null);
+
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: writePayload([
+          "scale",
+          "deployment",
+          "payments-api",
+          "-n",
+          "payments",
+          "--replicas=0",
+        ]),
+        timeoutInMs: 30000,
+        origin: "AiRemediation",
+      });
+
+      expect(result.success).toBe(true);
+      expect(childProcessMock.spawn).toHaveBeenCalledTimes(1);
     });
   });
 

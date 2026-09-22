@@ -8,13 +8,12 @@ import {
   PORT,
   RUNNER_VERSION,
 } from "./Config";
-import startHeartbeat from "./Jobs/Heartbeat";
+import startHeartbeat, { HeartbeatHandle, signOff } from "./Jobs/Heartbeat";
 import startRunbookPolling from "./Jobs/PollRunbookWork";
 import startCodeFixPolling from "./Jobs/PollCodeFixWork";
 import startCodeFixAlive from "./Jobs/CodeFixAlive";
 import Register from "./Services/RegisterRunner";
 import KubectlExecutor from "./Services/KubectlExecutor";
-import AgentClient from "./Services/RunnerClient";
 import RunnerIdentity from "./Utils/RunnerIdentity";
 import WorkspaceManager from "./Utils/WorkspaceManager";
 import GitCredentials from "./Utils/GitCredentials";
@@ -182,20 +181,22 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      * liveness on the code-fix identity instead (startCodeFixAlive below).
      */
     if (!IS_CLUSTER_SCOPED) {
-      startHeartbeat();
+      const heartbeat: HeartbeatHandle = startHeartbeat();
 
       /*
        * Sign off on SIGTERM/SIGINT so the dashboard shows this Runner
        * offline at once — and, for the kubernetes-agent Runner, so the
        * replacement pod can register immediately after a rolling restart
        * instead of waiting for this instance's last heartbeat to age out.
-       * GracefulShutdown bounds the call and exits afterwards.
+       * The heartbeat stops first (see signOff): one sent after the
+       * sign-off would mark this Runner online again. GracefulShutdown
+       * bounds the call and exits afterwards.
        */
       GracefulShutdown.registerHandler(
         "Runner.disconnect",
         ShutdownPriority.Workers,
         async (): Promise<void> => {
-          await AgentClient.disconnect();
+          await signOff(heartbeat);
         },
       );
     }

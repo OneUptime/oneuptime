@@ -39,6 +39,10 @@ import KubernetesAgentMode from "../../Utils/KubernetesAgentMode";
 interface PostureModule {
   isInCluster: () => boolean;
   canUseOwnServiceAccount: () => boolean;
+  allowsWrites: () => boolean;
+  getAllowWritesSetting: () => string | null;
+  getWriteNamespaces: () => Array<string>;
+  getPodNamespace: () => string | null;
   build: () => Promise<KubernetesRunnerPosture>;
   detectKubectlVersion: () => Promise<string | null>;
 }
@@ -166,7 +170,39 @@ describe("KubernetesPosture with the mode decided from the environment", () => {
       allowWrites: false,
       kubectlVersion: "v1.31.4",
       agentChartVersion: undefined,
+      // Reported explicitly: an empty list means cluster-wide.
+      writeNamespaces: [],
+      podNamespace: undefined,
     });
+  });
+
+  test("the posture reports where writes may land and the pod's own namespace", async () => {
+    const modules: ReturnType<typeof loadIsolated> = loadIsolated({
+      ONEUPTIME_RUNNER_ID: undefined,
+      ONEUPTIME_RUNNER_KEY: undefined,
+      ONEUPTIME_INGESTION_KEY: "ingest-key-123",
+      ONEUPTIME_KUBERNETES_CLUSTER_NAME: "prod-us",
+      ONEUPTIME_KUBECTL_ALLOW_WRITES: "true",
+      ONEUPTIME_KUBECTL_WRITE_NAMESPACES: " web, API ,,web ",
+      ONEUPTIME_RUNNER_POD_NAMESPACE: " OneUptime-Agent ",
+    });
+    pretendInPod();
+    jest
+      .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+      .mockResolvedValue("v1.36.4");
+
+    const posture: KubernetesRunnerPosture =
+      await modules.KubernetesPosture.build();
+
+    expect(posture.allowWrites).toBe(true);
+    // Trimmed, lowercased, de-duplicated, blanks dropped.
+    expect(posture.writeNamespaces).toEqual(["web", "api"]);
+    expect(posture.podNamespace).toBe("oneuptime-agent");
+    expect(modules.KubernetesPosture.getWriteNamespaces()).toEqual([
+      "web",
+      "api",
+    ]);
+    expect(modules.KubernetesPosture.getPodNamespace()).toBe("oneuptime-agent");
   });
 
   test("the kubernetes-agent Runner outside any pod may not use a ServiceAccount it does not have", () => {
@@ -208,5 +244,108 @@ describe("KubernetesPosture with the mode decided from the environment", () => {
 
     expect(posture.inCluster).toBe(false);
     expect(posture.clusterIdentifier).toBeUndefined();
+  });
+});
+
+/*
+ * ONEUPTIME_KUBECTL_ALLOW_WRITES used to fail OPEN: any value other than
+ * false/0/no/off allowed writes, so an operator hardening an external Runner
+ * with "readonly" or "disabled" silently kept remediations running. It now
+ * fails closed — only "true" allows a write — and an unrecognised value is
+ * named in a start-up warning.
+ */
+describe("ONEUPTIME_KUBECTL_ALLOW_WRITES fails closed", () => {
+  const savedEnv: NodeJS.ProcessEnv = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...savedEnv };
+    jest.restoreAllMocks();
+    jest.resetModules();
+  });
+
+  function allowsWritesWith(value: string | undefined): {
+    allowsWrites: boolean;
+    warnings: Array<string>;
+  } {
+    const modules: ReturnType<typeof loadIsolated> = loadIsolated({
+      ONEUPTIME_KUBECTL_ALLOW_WRITES: value,
+    });
+
+    /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+    const warn: jest.Mock = require("Common/Server/Utils/Logger").default
+      .warn as jest.Mock;
+    /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+
+    return {
+      allowsWrites: modules.KubernetesPosture.allowsWrites(),
+      warnings: warn.mock.calls.map((call: Array<unknown>) => {
+        return String(call[0]);
+      }),
+    };
+  }
+
+  test.each(["true", "TRUE", " True ", "true\n"])(
+    "%j allows writes",
+    (value: string) => {
+      expect(allowsWritesWith(value).allowsWrites).toBe(true);
+    },
+  );
+
+  test.each([
+    undefined,
+    "",
+    "   ",
+    "false",
+    " FALSE ",
+    "0",
+    "no",
+    "off",
+    // Plausible "off" spellings that used to ALLOW writes.
+    "readonly",
+    "read-only",
+    "disabled",
+    "none",
+    "n",
+    "nope",
+    // Spellings of "on" other than "true" are refused too: fail closed.
+    "1",
+    "yes",
+    "on",
+    "enabled",
+  ])("%j refuses writes", (value: string | undefined) => {
+    expect(allowsWritesWith(value).allowsWrites).toBe(false);
+  });
+
+  test("an unrecognised value is named in exactly one start-up warning", () => {
+    const { warnings } = allowsWritesWith("readonly");
+
+    const about: Array<string> = warnings.filter((message: string) => {
+      return message.includes("ONEUPTIME_KUBECTL_ALLOW_WRITES");
+    });
+
+    expect(about).toHaveLength(1);
+    expect(about[0]).toContain('"readonly"');
+    expect(about[0]).toContain("refusing every AI-composed kubectl write");
+  });
+
+  test.each([undefined, "", "true", "false", " FALSE "])(
+    "%j is recognised and not warned about",
+    (value: string | undefined) => {
+      const { warnings } = allowsWritesWith(value);
+
+      expect(
+        warnings.filter((message: string) => {
+          return message.includes("ONEUPTIME_KUBECTL_ALLOW_WRITES");
+        }),
+      ).toEqual([]);
+    },
+  );
+
+  test("the raw setting is kept for refusal messages", () => {
+    const modules: ReturnType<typeof loadIsolated> = loadIsolated({
+      ONEUPTIME_KUBECTL_ALLOW_WRITES: "disabled",
+    });
+
+    expect(modules.KubernetesPosture.getAllowWritesSetting()).toBe("disabled");
   });
 });

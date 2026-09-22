@@ -23,6 +23,89 @@ import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
+// The longest server reason carried into a log line.
+const SERVER_REASON_MAX_CHARS: number = 500;
+
+/*
+ * A registration the server answered and refused, with the status it
+ * answered and, when it said, how long until it would admit the Runner. The
+ * retry loop reads both to pick its wait.
+ */
+export class RegistrationRefusedError extends Error {
+  public readonly statusCode: number;
+  public readonly retryAfterSeconds: number | null;
+
+  public constructor(data: {
+    message: string;
+    statusCode: number;
+    retryAfterSeconds?: number | null | undefined;
+  }) {
+    super(data.message);
+    this.name = "RegistrationRefusedError";
+    this.statusCode = data.statusCode;
+    this.retryAfterSeconds = data.retryAfterSeconds ?? null;
+  }
+}
+
+/*
+ * What the server said about a refused request, from its JSON body
+ * (`{ message }`, or `{ error }` from a layer in front of it): whitespace
+ * collapsed and capped. Empty for a body that is not an object — an
+ * ingress's HTML error page says nothing an operator can act on here.
+ */
+export function getServerReason(data: unknown): string {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return "";
+  }
+
+  for (const key of ["message", "error"]) {
+    const value: unknown = (data as Record<string, unknown>)[key];
+
+    if (typeof value === "string" && value.trim()) {
+      const collapsed: string = value.replace(/\s+/g, " ").trim();
+
+      return collapsed.length > SERVER_REASON_MAX_CHARS
+        ? `${collapsed.slice(0, SERVER_REASON_MAX_CHARS)}...`
+        : collapsed;
+    }
+  }
+
+  return "";
+}
+
+/*
+ * How long the server said to wait before trying again: a numeric
+ * `retryAfterSeconds` in the body, or an HTTP Retry-After header in seconds.
+ * Null when it said nothing usable.
+ */
+function getRetryAfterSeconds(result: HTTPResponse<JSONObject>): number | null {
+  const fromBody: unknown =
+    result.data && typeof result.data === "object"
+      ? (result.data as JSONObject)["retryAfterSeconds"]
+      : undefined;
+
+  const headers: Record<string, unknown> = (result.headers || {}) as Record<
+    string,
+    unknown
+  >;
+  const fromHeader: unknown = headers["retry-after"] ?? headers["Retry-After"];
+
+  for (const candidate of [fromBody, fromHeader]) {
+    const seconds: number =
+      typeof candidate === "number"
+        ? candidate
+        : typeof candidate === "string" && /^\d+$/.test(candidate.trim())
+          ? parseInt(candidate.trim(), 10)
+          : NaN;
+
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      return seconds;
+    }
+  }
+
+  return null;
+}
+
 export default class Register {
   // Base retry interval; backoff doubles from here up to the cap below.
   private static readonly baseRetryIntervalInSeconds: number = 30;
@@ -31,12 +114,31 @@ export default class Register {
   private static readonly maxRetryIntervalInSeconds: number = 5 * 60;
 
   /*
+   * The kubernetes-agent Runner's cap. After a crash (no sign-off) the
+   * server refuses the replacement pod until the dead instance's last
+   * heartbeat is RUNNER_ALIVE_WINDOW_IN_MINUTES (5) old. A 5-minute cap on
+   * doubling waits landed the retry that could be admitted at about 7.5
+   * minutes; a 1-minute cap keeps every attempt well inside the window, so
+   * the pod is back within a minute of it closing.
+   */
+  private static readonly kubernetesAgentMaxRetryIntervalInSeconds: number = 60;
+
+  /*
+   * A 403 on agent registration means exactly that wait: the previous
+   * instance still looks online. It clears by itself on a known schedule,
+   * so it is retried at a short fixed interval (or when the server says),
+   * never with a growing backoff.
+   */
+  private static readonly kubernetesAgentPredecessorRetryInSeconds: number = 20;
+
+  /*
    * Register the AI agent, retrying FOREVER on failure. The server being
    * temporarily unreachable (boot ordering, migrations, network blips) must
    * never kill or give up on the agent container — it registers whenever
    * the server comes back. Backoff starts at 30s and doubles per
-   * consecutive failure, capped at 5 minutes; every failure is logged with
-   * the attempt count and the next wait.
+   * consecutive failure, capped at 5 minutes (1 minute for the
+   * kubernetes-agent Runner, see getRetryDelaySeconds); every failure is
+   * logged with the attempt count, the next wait and the server's reason.
    */
   public static async registerRunner(): Promise<void> {
     await Register.registerWithRetries({ maxAttempts: null });
@@ -53,20 +155,75 @@ export default class Register {
    */
   public static async tryRegisterRunner(data: {
     maxAttempts: number;
+    /*
+     * Asked before every attempt; false ends the round at once (resolving
+     * false). The heartbeat loop answers false once the Runner has signed
+     * off, so no registration can mark it online again after its
+     * /disconnect.
+     */
+    shouldContinue?: (() => boolean) | undefined;
   }): Promise<boolean> {
     return Register.registerWithRetries({
       maxAttempts: Math.max(1, Math.floor(data.maxAttempts)),
+      shouldContinue: data.shouldContinue,
     });
+  }
+
+  /*
+   * How long to wait after a failed attempt. Doubling from 30s, capped at
+   * 5 minutes — or at 1 minute for the kubernetes-agent Runner, and a short
+   * fixed wait (or the server's own hint) for its expected 403 while the
+   * previous instance ages out. Public for tests.
+   */
+  public static getRetryDelaySeconds(data: {
+    attempt: number;
+    error: unknown;
+    isKubernetesAgent: boolean;
+  }): number {
+    const doubling: number =
+      Register.baseRetryIntervalInSeconds *
+      Math.pow(2, Math.max(0, data.attempt - 1));
+
+    if (!data.isKubernetesAgent) {
+      return Math.min(doubling, Register.maxRetryIntervalInSeconds);
+    }
+
+    if (
+      data.error instanceof RegistrationRefusedError &&
+      data.error.statusCode === 403
+    ) {
+      const hint: number | null = data.error.retryAfterSeconds;
+
+      return hint === null
+        ? Register.kubernetesAgentPredecessorRetryInSeconds
+        : Math.min(
+            Math.max(1, Math.ceil(hint)),
+            Register.kubernetesAgentMaxRetryIntervalInSeconds,
+          );
+    }
+
+    return Math.min(
+      doubling,
+      Register.kubernetesAgentMaxRetryIntervalInSeconds,
+    );
   }
 
   private static async registerWithRetries(data: {
     maxAttempts: number | null;
+    shouldContinue?: (() => boolean) | undefined;
   }): Promise<boolean> {
     let attempt: number = 0;
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
       attempt++;
+
+      if (data.shouldContinue && !data.shouldContinue()) {
+        logger.debug("Registration round ended: the Runner is shutting down.", {
+          runnerName: RUNNER_NAME,
+        } as LogAttributes);
+        return false;
+      }
 
       try {
         logger.debug(`Registering Runner. Attempt: ${attempt}`, {
@@ -78,18 +235,29 @@ export default class Register {
         } as LogAttributes);
         return true;
       } catch (error) {
-        const waitSeconds: number = Math.min(
-          Register.baseRetryIntervalInSeconds * Math.pow(2, attempt - 1),
-          Register.maxRetryIntervalInSeconds,
-        );
+        const waitSeconds: number = Register.getRetryDelaySeconds({
+          attempt,
+          error,
+          isKubernetesAgent: IS_KUBERNETES_AGENT_MODE,
+        });
 
         const isLastAttempt: boolean =
           data.maxAttempts !== null && attempt >= data.maxAttempts;
 
+        /*
+         * The server answered: it is reachable, and the reason is in the
+         * next log line. Only a request that got no answer at all is
+         * waiting for the server to become reachable.
+         */
+        const retryNote: string =
+          error instanceof RegistrationRefusedError
+            ? "the Runner keeps retrying; the reason the server gave is logged below."
+            : "the Runner keeps retrying until the server is reachable.";
+
         logger.error(
           isLastAttempt
             ? `Failed to register Runner (attempt ${attempt} of ${data.maxAttempts}). Giving up on this round; the Runner keeps its current identity and will try again later.`
-            : `Failed to register Runner (attempt ${attempt}). Retrying after ${waitSeconds} seconds — the agent keeps retrying until the server is reachable.`,
+            : `Failed to register Runner (attempt ${attempt}). Retrying after ${waitSeconds} seconds — ${retryNote}`,
           { runnerName: RUNNER_NAME } as LogAttributes,
         );
         logger.error(error, { runnerName: RUNNER_NAME } as LogAttributes);
@@ -133,6 +301,56 @@ export default class Register {
     }
 
     return base;
+  }
+
+  /*
+   * The same, for the Runner the kubernetes-agent chart installs — which
+   * has no ONEUPTIME_RUNNER_ID or ONEUPTIME_RUNNER_KEY to check, and whose
+   * refusals mostly mean something else: a 403 is the previous instance
+   * still looking online (it clears by itself), a 422 a disabled key, a 429
+   * a limit. The server's own reason is always appended — this log line is
+   * all the operator of the pod gets to see.
+   */
+  public static describeKubernetesAgentRegistrationFailure(data: {
+    statusCode: number;
+    url: URL;
+    clusterName: string;
+    serverReason: string;
+  }): string {
+    const base: string = `Failed to register the Kubernetes agent Runner for cluster "${data.clusterName}": ${data.statusCode} from ${data.url.toString()}`;
+
+    let explanation: string;
+
+    switch (data.statusCode) {
+      case 401:
+        explanation =
+          "The server rejected the ingestion key — check oneuptime.apiKey on the Kubernetes agent chart (it must be a server telemetry ingestion key from Project Settings > Telemetry Ingestion Keys).";
+        break;
+      case 403:
+        explanation = `The previous Runner instance for cluster "${data.clusterName}" still looks online — its pod was stopped without a clean shutdown (an OOM kill, a crash, a node loss), or another install uses the same clusterName. It is admitted automatically once that instance's last heartbeat is 5 minutes old, so no action is needed unless this keeps repeating for more than about 10 minutes (then check for a second install with the same clusterName).`;
+        break;
+      case 404:
+        explanation =
+          "A 404 means the request did not reach the Runner work mount. Check that oneuptime.url on the Kubernetes agent chart is the base URL of your OneUptime server (no trailing path), and that your ingress routes /runner-ingest to the app service.";
+        break;
+      case 422:
+        explanation =
+          "The server recognised the ingestion key but refused it (a disabled key, or a key that is not a server ingestion key). Use an enabled server telemetry ingestion key in oneuptime.apiKey on the Kubernetes agent chart.";
+        break;
+      case 429:
+        explanation =
+          "Registration is rate limited, or the project reached its limit of in-cluster Runners. The Runner keeps retrying.";
+        break;
+      default:
+        explanation =
+          data.statusCode >= 500
+            ? "The server could not handle the registration right now. The Runner keeps retrying."
+            : "The server refused the registration.";
+    }
+
+    return `${base}. ${explanation}${
+      data.serverReason ? ` Server said: ${data.serverReason}` : ""
+    }`;
   }
 
   /*
@@ -185,14 +403,27 @@ export default class Register {
     });
 
     if (!result.isSuccess()) {
-      throw new Error(
-        result.statusCode === 401
-          ? `Failed to register the Kubernetes agent Runner: ${result.statusCode} from ${registrationUrl.toString()}. The server rejected the ingestion key — check oneuptime.apiKey on the Kubernetes agent chart (it must be a server telemetry ingestion key from Project Settings > Telemetry Ingestion Keys).`
-          : Register.describeRegistrationFailure({
-              statusCode: result.statusCode,
-              url: registrationUrl,
-            }),
-      );
+      /*
+       * The server's messages on this route never echo the key; the key is
+       * stripped anyway, since this text goes straight to the pod's log.
+       */
+      const ingestionKey: string = KUBERNETES_AGENT_INGESTION_KEY || "";
+      const serverReason: string = ingestionKey
+        ? getServerReason(result.data)
+            .split(ingestionKey)
+            .join("[redacted ingestion key]")
+        : getServerReason(result.data);
+
+      throw new RegistrationRefusedError({
+        message: Register.describeKubernetesAgentRegistrationFailure({
+          statusCode: result.statusCode,
+          url: registrationUrl,
+          clusterName: KUBERNETES_AGENT_CLUSTER_NAME || "",
+          serverReason,
+        }),
+        statusCode: result.statusCode,
+        retryAfterSeconds: getRetryAfterSeconds(result),
+      });
     }
 
     const runnerId: unknown = result.data["runnerId"];

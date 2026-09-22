@@ -122,6 +122,17 @@ export interface KubernetesRunnerPosture {
   allowWrites?: boolean | undefined;
   kubectlVersion?: string | undefined;
   agentChartVersion?: string | undefined;
+  /*
+   * The namespaces the Runner lets AI-composed kubectl writes into
+   * (KUBECTL_WRITE_NAMESPACES_ENV). An empty list means cluster-wide;
+   * absent means the Runner predates the setting and did not say.
+   */
+  writeNamespaces?: Array<string> | undefined;
+  /*
+   * The namespace the Runner pod itself runs in (RUNNER_POD_NAMESPACE_ENV).
+   * The Runner never writes into it.
+   */
+  podNamespace?: string | undefined;
 }
 
 export interface KubernetesAiAccessRunnerSummary {
@@ -226,6 +237,17 @@ export function parseKubernetesRunnerPosture(
     agentChartVersion:
       typeof raw["agentChartVersion"] === "string"
         ? raw["agentChartVersion"]
+        : undefined,
+    writeNamespaces: Array.isArray(raw["writeNamespaces"])
+      ? (raw["writeNamespaces"] as Array<unknown>).filter(
+          (namespace: unknown): namespace is string => {
+            return typeof namespace === "string" && namespace.length > 0;
+          },
+        )
+      : undefined,
+    podNamespace:
+      typeof raw["podNamespace"] === "string" && raw["podNamespace"].length > 0
+        ? raw["podNamespace"]
         : undefined,
   };
 }

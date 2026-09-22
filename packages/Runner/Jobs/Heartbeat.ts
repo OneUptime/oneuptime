@@ -20,13 +20,21 @@ export const REREGISTER_AFTER_REJECTED_HEARTBEATS: number = 3;
 
 /*
  * How many registration attempts one re-registration round may make before
- * giving up. RegisterRunner backs off 30s, 60s, 120s and 240s between the
- * five attempts, so a whole round takes about seven and a half minutes. A
+ * giving up. For the kubernetes-agent Runner (the only one that
+ * re-registers) RegisterRunner waits 30s, then at most 60s, between the
+ * five attempts, so a whole round takes about three and a half minutes. A
  * round that fails leaves the Runner on its current identity; the next
  * round starts only after another run of rejections, so a revoked ingestion
  * key costs a bounded trickle of attempts, never a flood.
  */
 export const REREGISTER_MAX_ATTEMPTS: number = 5;
+
+/*
+ * How long stopping the heartbeat waits for a heartbeat that is already on
+ * the wire. Well under GracefulShutdown's per-handler bound, so the sign-off
+ * that follows still has time to run.
+ */
+export const HEARTBEAT_STOP_MAX_WAIT_MS: number = 5_000;
 
 /*
  * The statuses the Runner work mount answers a bad or unknown identity
@@ -93,11 +101,20 @@ function isCredentialRejection(statusCode: number | undefined): boolean {
  * key that has already been replaced, and a server that keeps rejecting the
  * Runner produces a bounded trickle of registration attempts rather than an
  * ever-growing set of retry-forever loops.
+ *
+ * Shutdown: once stop() is called nothing is sent again — no heartbeat and
+ * no registration attempt — and stop() waits (boundedly) for a heartbeat
+ * already on the wire. The Runner signs off with /disconnect only after
+ * that, because a heartbeat the server processes after the sign-off marks
+ * the row Connected again and locks the replacement pod out for the whole
+ * alive window.
  */
 export class HeartbeatLoop {
   private rejectedInARow: number = 0;
   private heartbeatInFlight: boolean = false;
+  private inFlight: Promise<void> | null = null;
   private reregistration: Promise<void> | null = null;
+  private stopped: boolean = false;
 
   public isReregistering(): boolean {
     return this.reregistration !== null;
@@ -105,6 +122,39 @@ export class HeartbeatLoop {
 
   public isHeartbeatInFlight(): boolean {
     return this.heartbeatInFlight;
+  }
+
+  public isStopped(): boolean {
+    return this.stopped;
+  }
+
+  /*
+   * Stop for good: no heartbeat or registration attempt starts after this,
+   * and a heartbeat already in flight is waited for — at most maxWaitMs,
+   * so a hung request cannot hold up the shutdown.
+   */
+  public async stop(
+    maxWaitMs: number = HEARTBEAT_STOP_MAX_WAIT_MS,
+  ): Promise<void> {
+    this.stopped = true;
+
+    const inFlight: Promise<void> | null = this.inFlight;
+
+    if (!inFlight) {
+      return;
+    }
+
+    await new Promise<void>((resolve: () => void) => {
+      const timer: ReturnType<typeof setTimeout> = setTimeout(
+        resolve,
+        maxWaitMs,
+      );
+      const done: () => void = (): void => {
+        clearTimeout(timer);
+        resolve();
+      };
+      inFlight.then(done, done);
+    });
   }
 
   public getRejectedInARow(): number {
@@ -117,6 +167,11 @@ export class HeartbeatLoop {
   }
 
   public async tick(): Promise<void> {
+    if (this.stopped) {
+      logger.debug("Skipping heartbeat: the Runner has signed off.");
+      return;
+    }
+
     if (this.heartbeatInFlight) {
       logger.debug(
         "Skipping heartbeat: the previous one has not been answered yet.",
@@ -131,9 +186,29 @@ export class HeartbeatLoop {
 
     this.heartbeatInFlight = true;
 
+    const run: Promise<void> = this.send();
+    this.inFlight = run;
+
+    try {
+      await run;
+    } finally {
+      this.heartbeatInFlight = false;
+      this.inFlight = null;
+    }
+  }
+
+  private async send(): Promise<void> {
     try {
       const before: RunnerCapabilitySet = RunnerCapabilities.resolve();
       const hostInfo: JSONObject = await getHostInfo();
+
+      /*
+       * Gathering the posture takes a moment; if the Runner began signing
+       * off meanwhile, nothing may reach the server any more.
+       */
+      if (this.stopped) {
+        return;
+      }
 
       const result: HeartbeatResult = await AgentClient.heartbeat({
         agentVersion: RUNNER_VERSION,
@@ -172,8 +247,6 @@ export class HeartbeatLoop {
       logger.warn(
         `Heartbeat failed: ${err instanceof Error ? err.message : String(err)}`,
       );
-    } finally {
-      this.heartbeatInFlight = false;
     }
   }
 
@@ -185,6 +258,7 @@ export class HeartbeatLoop {
     this.rejectedInARow++;
 
     if (
+      this.stopped ||
       !KubernetesAgentMode.isActive() ||
       this.rejectedInARow < REREGISTER_AFTER_REJECTED_HEARTBEATS ||
       this.reregistration
@@ -205,6 +279,10 @@ export class HeartbeatLoop {
      */
     this.reregistration = Register.tryRegisterRunner({
       maxAttempts: REREGISTER_MAX_ATTEMPTS,
+      // A registration after the sign-off would mark the Runner online again.
+      shouldContinue: (): boolean => {
+        return !this.stopped;
+      },
     })
       .then((registered: boolean) => {
         if (registered) {
@@ -229,7 +307,16 @@ export class HeartbeatLoop {
   }
 }
 
-export default function startHeartbeat(): void {
+export interface HeartbeatHandle {
+  /*
+   * Stop the loop for good: clears the interval, then waits (boundedly)
+   * for a heartbeat already on the wire. Resolves once nothing more will
+   * be sent.
+   */
+  stop: () => Promise<void>;
+}
+
+export default function startHeartbeat(): HeartbeatHandle {
   const loop: HeartbeatLoop = new HeartbeatLoop();
 
   const tick: () => void = (): void => {
@@ -241,5 +328,28 @@ export default function startHeartbeat(): void {
   };
 
   tick();
-  setInterval(tick, HEARTBEAT_INTERVAL_MS);
+  const interval: ReturnType<typeof setInterval> = setInterval(
+    tick,
+    HEARTBEAT_INTERVAL_MS,
+  );
+
+  return {
+    stop: async (): Promise<void> => {
+      clearInterval(interval);
+      await loop.stop();
+    },
+  };
+}
+
+/*
+ * The Runner's sign-off on SIGTERM/SIGINT, in the only safe order: stop the
+ * heartbeat (and wait out one already on the wire) BEFORE telling the
+ * server this Runner is gone. The other way round, a heartbeat the server
+ * handles after the /disconnect marks the row Connected again, and the
+ * kubernetes-agent Runner's replacement pod is refused for the whole alive
+ * window instead of registering at once.
+ */
+export async function signOff(heartbeat: HeartbeatHandle): Promise<void> {
+  await heartbeat.stop();
+  await AgentClient.disconnect();
 }

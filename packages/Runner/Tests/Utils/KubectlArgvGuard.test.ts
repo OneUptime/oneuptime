@@ -10,6 +10,10 @@
  */
 
 import KubectlArgvGuard from "../../Utils/KubectlArgvGuard";
+import KubectlPolicy, {
+  KubectlPolicyResult,
+} from "Common/Utils/AiRemediation/KubectlPolicy";
+import { KubectlCommandTier } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 
 function refusal(args: Array<string>): string | null {
   return KubectlArgvGuard.getRefusalReason(args);
@@ -361,5 +365,277 @@ describe("KubectlArgvGuard: everyday argv is untouched", () => {
     ["empty argv", []],
   ])("allows %s", (_label: string, args: Array<string>) => {
     expect(refusal(args)).toBeNull();
+  });
+});
+
+/*
+ * kubectl normalizes "_" to "-" in long flag names (its flag set uses
+ * cliflag.WordSepNormalizeFunc), so `--from_file` IS `--from-file`. The
+ * guard used to compare the raw name, which made every dashed denied flag
+ * one underscore away from passing the Runner's own check — leaving only
+ * the shared policy between `create configmap x --from_file=<token path>`
+ * and the pod's ServiceAccount token.
+ */
+describe("KubectlArgvGuard: underscore spellings kubectl reads as dashes", () => {
+  // Built from the guard's own list, so a dashed flag added later is covered too.
+  const dashedDeniedFlags: Array<string> =
+    KubectlArgvGuard.deniedLongFlags.filter((flag: string) => {
+      return flag.includes("-");
+    });
+
+  test("the list under test is not empty", () => {
+    expect(dashedDeniedFlags.length).toBeGreaterThan(10);
+    expect(dashedDeniedFlags).toContain("from-file");
+    expect(dashedDeniedFlags).toContain("insecure-skip-tls-verify");
+  });
+
+  test.each(dashedDeniedFlags)(
+    "refuses --%s spelled with underscores, in every value form, naming it as written",
+    (flag: string) => {
+      const underscored: string = flag.replace(/-/g, "_");
+
+      for (const args of [
+        ["get", "pods", `--${underscored}`],
+        ["get", "pods", `--${underscored}=x`],
+        ["get", "pods", `--${underscored}`, "x"],
+        [`--${underscored}=x`, "get", "pods"],
+      ]) {
+        const reason: string | null = refusal(args);
+
+        expect(reason).not.toBeNull();
+        expect(reason).toContain(`--${underscored}`);
+      }
+    },
+  );
+
+  test.each([
+    [
+      "the ServiceAccount token copied into a ConfigMap",
+      [
+        "create",
+        "configmap",
+        "x",
+        "--from_file=/var/run/secrets/kubernetes.io/serviceaccount/token",
+      ],
+    ],
+    [
+      "--from_file as two tokens",
+      ["create", "configmap", "x", "--from_file", "/path"],
+    ],
+    [
+      "--from_env_file",
+      ["create", "secret", "generic", "x", "--from_env_file=/etc/env"],
+    ],
+    ["--patch_file", ["patch", "deploy", "x", "--patch_file=/etc/passwd"]],
+    ["--as_group", ["get", "pods", "--as_group=system:masters"]],
+    ["--as_group as two tokens", ["get", "pods", "--as_group", "g"]],
+    ["--as_uid", ["get", "pods", "--as_uid=0"]],
+    ["--As_Group mixed case", ["get", "pods", "--As_Group=x"]],
+    ["--as_user_extra", ["get", "pods", "--as_user_extra=scopes=x"]],
+    ["--log_dir", ["get", "pods", "--log_dir=/tmp"]],
+  ])("refuses %s", (_label: string, args: Array<string>) => {
+    expect(refusal(args)).not.toBeNull();
+  });
+
+  test("kubectl 1.33+ preference and impersonation flags are refused in both spellings", () => {
+    for (const flag of [
+      "--kuberc=/tmp/evil",
+      "--kuberc",
+      "--as-user-extra=reason=x",
+      "--as_user_extra=reason=x",
+    ]) {
+      expect(refusal(["get", "pods", flag])).not.toBeNull();
+    }
+  });
+
+  /*
+   * Negative controls: normalizing must not make the guard refuse the
+   * allowed flags the model writes with underscores.
+   */
+  test.each([
+    ["--all_namespaces", ["get", "pods", "--all_namespaces"]],
+    [
+      "--field_selector",
+      ["get", "pods", "--field_selector=status.phase=Pending"],
+    ],
+    ["--show_labels", ["get", "pods", "--show_labels"]],
+    ["--all_containers", ["logs", "web", "--all_containers=true"]],
+    ["--since_time", ["logs", "pod/x", "--since_time=2026-01-01T00:00:00Z"]],
+    ["--request_timeout", ["get", "pods", "--request_timeout=5s"]],
+  ])("still allows %s", (_label: string, args: Array<string>) => {
+    expect(refusal(args)).toBeNull();
+  });
+});
+
+describe("KubectlArgvGuard: the verb, when it is certain", () => {
+  test.each([
+    [["explain", "pods"], "explain"],
+    [["-n", "web", "patch", "deployment", "web"], "patch"],
+    [["-nweb", "patch", "deployment", "web"], "patch"],
+    [["-n=web", "get", "pods"], "get"],
+    [["--namespace", "web", "get", "pods"], "get"],
+    [["--namespace=web", "get", "pods"], "get"],
+    [["--request-timeout", "5s", "get", "pods"], "get"],
+    [["--request_timeout=5s", "get", "pods"], "get"],
+    [["--match-server-version", "get", "pods"], "get"],
+    // `-n` swallows the next word, whatever it is.
+    [["-n", "explain", "get", "pods"], "get"],
+  ])("%j runs %s", (args: Array<string>, verb: string) => {
+    expect(KubectlArgvGuard.getCertainVerb(args)).toBe(verb);
+  });
+
+  test.each([
+    [["--overwrite", "explain", "pods"]],
+    [["-A", "explain", "pods"]],
+    [["--", "explain", "pods"]],
+    [["-n", "web"]],
+    [[]],
+  ])("%j has no certain verb", (args: Array<string>) => {
+    expect(KubectlArgvGuard.getCertainVerb(args)).toBeNull();
+  });
+});
+
+/*
+ * The shared policy allows `explain --recursive` (it prints every field of
+ * a resource's documentation and reads nothing), but the guard refused
+ * --recursive on every verb, so the Runner refused a command the model had
+ * been told was Read.
+ */
+describe("KubectlArgvGuard: explain --recursive", () => {
+  test.each([
+    ["explain pods --recursive", ["explain", "pods", "--recursive"]],
+    [
+      "explain deployment.spec --recursive=true",
+      ["explain", "deployment.spec", "--recursive=true"],
+    ],
+    ["--recursive=false", ["explain", "pods", "--recursive=false"]],
+    ["after a global -n", ["-n", "web", "explain", "pods", "--recursive"]],
+  ])("allows %s", (_label: string, args: Array<string>) => {
+    expect(refusal(args)).toBeNull();
+  });
+
+  test.each([
+    ["on get", ["get", "pods", "--recursive"]],
+    ["on apply", ["apply", "--recursive", "-f", "/x"]],
+    ["-R on explain (explain has no -R)", ["explain", "pods", "-R"]],
+    [
+      "when -n swallowed the word explain",
+      ["-n", "explain", "get", "pods", "--recursive"],
+    ],
+    [
+      "when the verb is uncertain",
+      ["--overwrite", "explain", "pods", "--recursive"],
+    ],
+    [
+      "with a value that is not a boolean",
+      ["explain", "pods", "--recursive=/etc"],
+    ],
+    [
+      "with a denied flag beside it",
+      ["explain", "pods", "--recursive", "--kubeconfig=/x"],
+    ],
+  ])("still refuses --recursive %s", (_label: string, args: Array<string>) => {
+    expect(refusal(args)).not.toBeNull();
+  });
+});
+
+/*
+ * On `patch`, -p is --patch and takes a value, so pflag reads everything
+ * after the `p` of `-p'{"spec":...}'` as the patch. The guard walked it as
+ * a cluster of boolean flags and refused a human-approved patch with "the
+ * -s flag is not allowed" — a flag the command never had.
+ */
+describe("KubectlArgvGuard: an inline patch is a value, not a flag cluster", () => {
+  test.each([
+    [
+      "a strategic-merge patch starting with spec",
+      ["patch", "deployment", "web", "-n", "web", '-p{"spec":{"replicas":3}}'],
+    ],
+    [
+      "a node patch",
+      ["patch", "node", "n1", '-p{"spec":{"unschedulable":true}}'],
+    ],
+    [
+      "a YAML flow patch",
+      ["patch", "deployment", "web", "-n", "web", "-pspec: {replicas: 3}"],
+    ],
+    ["-p=<patch>", ["patch", "deployment", "web", '-p={"spec":{}}']],
+    ["the patch value f", ["patch", "deployment", "web", "-pf"]],
+    [
+      "after a global -n",
+      ["-n", "web", "patch", "deployment", "web", '-p{"spec":{}}'],
+    ],
+  ])("allows %s", (_label: string, args: Array<string>) => {
+    expect(refusal(args)).toBeNull();
+  });
+
+  test.each([
+    ["-pf on logs (--previous plus --follow's -f)", ["logs", "web-0", "-pf"]],
+    ["-psf on logs", ["logs", "web-0", "-psf"]],
+    ["-Rf on get", ["get", "pods", "-Rf", "/x"]],
+    ["-f before the p", ["patch", "deploy", "web", "-fp{}"]],
+    [
+      "a separate -f after the patch",
+      ["patch", "deployment", "web", "-p{}", "-f", "/x"],
+    ],
+    [
+      "a separate --kubeconfig after the patch",
+      ["patch", "deployment", "web", "-p{}", "--kubeconfig=/x"],
+    ],
+    [
+      "-pf when the verb is uncertain",
+      ["--overwrite", "patch", "deployment", "web", "-pf"],
+    ],
+    ["-pf on get", ["get", "pods", "-pf"]],
+  ])("still refuses %s", (_label: string, args: Array<string>) => {
+    expect(refusal(args)).not.toBeNull();
+  });
+});
+
+/*
+ * The two layers must agree on every argv the policy lets through: a
+ * command the model was told it may run (and a human may have approved)
+ * must never be refused by the guard on the Runner. This table is the
+ * check that would have caught both false refusals above, and it catches
+ * the next one the first time the policy gains a verb-specific meaning.
+ */
+describe("KubectlArgvGuard agrees with the shared policy", () => {
+  test.each([
+    "kubectl get pods -n web",
+    "kubectl get pods -nweb -o jsonpath={.items}",
+    "kubectl get pods --all_namespaces --show_labels",
+    "kubectl explain pods --recursive",
+    "kubectl explain deployment.spec --recursive=true",
+    "kubectl logs web-0 -n web -p",
+    "kubectl logs web-0 -n web --previous --tail=100",
+    "kubectl top pods -n web --containers",
+    "kubectl -n web rollout restart deployment/web",
+    "kubectl rollout restart deployment/web -n web",
+    "kubectl scale deployment/web -n web --replicas=3",
+    "kubectl label pod web-0 -n web tier=backend --overwrite",
+    "kubectl delete pod web-0 -n web",
+    "kubectl cordon node-1",
+    `kubectl patch deployment web -n web -p'{"spec":{"paused":false}}'`,
+    `kubectl patch deployment web -n web -p '{"spec":{"replicas":2}}'`,
+    `kubectl patch deployment web -n web --type=merge -p'{"spec":{"replicas":3}}'`,
+    `kubectl patch node n1 -p'{"spec":{"unschedulable":true}}'`,
+    "kubectl set image deployment/web web=img:2 -n web",
+  ])("the guard lets `%s` through", (command: string) => {
+    const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(command);
+
+    // Precondition: the policy allows it (Read, SafeWrite or RiskyWrite).
+    expect(policy.tier).not.toBe(KubectlCommandTier.Denied);
+    expect(refusal(policy.args)).toBeNull();
+  });
+
+  test.each([
+    "kubectl get pods --kubeconfig=/x",
+    "kubectl create configmap x --from_file=/etc/passwd",
+    "kubectl get pods -o jsonpath-file=/etc/passwd",
+  ])("both layers refuse `%s`", (command: string) => {
+    const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(command);
+
+    expect(policy.tier).toBe(KubectlCommandTier.Denied);
+    expect(refusal(policy.args)).not.toBeNull();
   });
 });

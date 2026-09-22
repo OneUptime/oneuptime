@@ -1,9 +1,13 @@
 import fs from "fs";
+import os from "os";
 import { spawn } from "child_process";
 import {
-  KUBECTL_ALLOW_WRITES_OVERRIDE,
+  KUBECTL_ALLOW_WRITES,
+  KUBECTL_ALLOW_WRITES_RAW,
+  KUBECTL_WRITE_NAMESPACES,
   KUBERNETES_AGENT_CHART_VERSION,
   KUBERNETES_AGENT_CLUSTER_NAME,
+  RUNNER_POD_NAMESPACE,
 } from "../Config";
 import KubernetesAgentMode from "./KubernetesAgentMode";
 import { KubernetesRunnerPosture } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
@@ -12,7 +16,8 @@ import logger from "Common/Server/Utils/Logger";
 /*
  * What this Runner can say about its own Kubernetes reach: whether it may
  * run kubectl with its pod's own ServiceAccount, whether its host lets
- * AI-composed writes through, and which kubectl it carries. Reported at
+ * AI-composed writes through and into which namespaces, and which kubectl
+ * it carries. Reported at
  * registration and on every heartbeat of the kubernetes-agent Runner, so the
  * dashboard's "what is missing" checklist reflects the container that is
  * actually running.
@@ -66,13 +71,34 @@ export default class KubernetesPosture {
   }
 
   /*
-   * Only "false" refuses: an external Runner with a Kubernetes credential
-   * is bounded by that credential's RBAC, so writes are allowed unless the
-   * host says otherwise. The chart sets this explicitly from
-   * aiAccess.remediation.enabled.
+   * Only ONEUPTIME_KUBECTL_ALLOW_WRITES=true lets an AI-composed write run
+   * from this host (see Config: the switch fails closed). The chart sets it
+   * from aiAccess.remediation.enabled; any other Runner sets it itself.
    */
   public static allowsWrites(): boolean {
-    return KUBECTL_ALLOW_WRITES_OVERRIDE !== false;
+    return KUBECTL_ALLOW_WRITES;
+  }
+
+  // The switch exactly as set (null when unset), for refusal messages.
+  public static getAllowWritesSetting(): string | null {
+    return KUBECTL_ALLOW_WRITES_RAW;
+  }
+
+  /*
+   * The namespaces AI-composed writes may land in, lowercased; empty means
+   * cluster-wide. Methods rather than the constants so tests can scope a
+   * Runner without rebuilding Config from the environment.
+   */
+  public static getWriteNamespaces(): Array<string> {
+    return [...KUBECTL_WRITE_NAMESPACES];
+  }
+
+  /*
+   * The namespace this Runner's pod runs in, or null when the Runner was not
+   * told (an external Runner, or an agent chart that predates the setting).
+   */
+  public static getPodNamespace(): string | null {
+    return RUNNER_POD_NAMESPACE;
   }
 
   /*
@@ -95,6 +121,8 @@ export default class KubernetesPosture {
       kubectlVersion:
         (await KubernetesPosture.detectKubectlVersion()) || undefined,
       agentChartVersion: KUBERNETES_AGENT_CHART_VERSION || undefined,
+      writeNamespaces: KubernetesPosture.getWriteNamespaces(),
+      podNamespace: KubernetesPosture.getPodNamespace() || undefined,
     };
   }
 
@@ -130,6 +158,17 @@ export default class KubernetesPosture {
             timeout: KUBECTL_VERSION_TIMEOUT_MS,
             killSignal: "SIGKILL",
             stdio: ["ignore", "pipe", "ignore"],
+            /*
+             * A closed environment like the one KubectlExecutor gives every
+             * AI command, with kuberc preferences switched off, so nothing
+             * on this host can rewrite what the probe asks for.
+             */
+            env: {
+              PATH: process.env["PATH"] || "/usr/local/bin:/usr/bin:/bin",
+              HOME: os.tmpdir(),
+              KUBERC: "off",
+              KUBECTL_KUBERC: "false",
+            },
           });
         } catch {
           finish(null);
