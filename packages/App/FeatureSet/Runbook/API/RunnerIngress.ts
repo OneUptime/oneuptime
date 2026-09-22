@@ -23,6 +23,7 @@ import RunbookStepType, {
 import {
   KubernetesRunnerPosture,
   isInClusterPostureForCluster,
+  isKubernetesAgentRunnerName,
   isKubernetesAgentRunnerPosture,
   parseKubernetesRunnerPosture,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
@@ -41,6 +42,10 @@ import Response from "Common/Server/Utils/Response";
 
 export default class RunnerIngressAPI {
   public router!: ExpressRouter;
+
+  // Why a job naming a credential is failed for a kubernetes-agent Runner.
+  public static readonly AGENT_RUNNER_CREDENTIAL_REFUSAL: string =
+    "This step needs a credential, and this Runner is a cluster's in-cluster Runner: it runs kubectl with its own ServiceAccount only and is never given a credential. It was not run. Create a Runner under Project Settings → Runners, assign the credential to it and target that Runner instead.";
 
   public constructor() {
     this.router = Express.getRouter();
@@ -281,21 +286,28 @@ export default class RunnerIngressAPI {
        *
        *  - the Runner may declare its own list on the claim (`stepTypes`),
        *    which the kubernetes-agent Runner uses to ask for kubectl only;
-       *  - a Runner whose posture says it IS a cluster's in-cluster agent is
-       *    narrowed to kubectl by the server regardless, so an AI-composed
-       *    Bash or SSH command can never be leased by the agent pod even by
-       *    an older or misbuilt Runner binary. That pod exists to run
-       *    policy-tiered kubectl; a shell inside it would bypass the tier
-       *    policy and the read-only switch entirely.
+       *  - a kubernetes-agent Runner is narrowed to kubectl by the server
+       *    regardless, so an AI-composed Bash or SSH command can never be
+       *    leased by the agent pod even by an older or misbuilt Runner
+       *    binary. That pod exists to run policy-tiered kubectl; a shell
+       *    inside it would bypass the tier policy and the read-only switch
+       *    entirely.
+       *
+       * "Is an agent" is decided from the row NAME, which only the server
+       * writes at registration, as well as from the posture. The posture
+       * alone is not enough: the Runner rewrites hostInfo on every
+       * heartbeat, so a Runner minted with the ingestion key could drop its
+       * posture and be served shell work.
        */
       const body: JSONObject = (req.body as JSONObject) || {};
       const posture: KubernetesRunnerPosture | undefined =
         parseKubernetesRunnerPosture(agent.hostInfo);
+      const isAgentRunnerRow: boolean = isKubernetesAgentRunnerName(agent.name);
 
       let allowedStepTypes: Array<RunbookStepType> | undefined =
         RunnerIngressAPI.parseRequestedStepTypes(body["stepTypes"]);
 
-      if (isKubernetesAgentRunnerPosture(posture)) {
+      if (isAgentRunnerRow || isKubernetesAgentRunnerPosture(posture)) {
         allowedStepTypes = (
           allowedStepTypes || RUNNER_EXECUTED_STEP_TYPES
         ).filter((stepType: RunbookStepType) => {
@@ -340,10 +352,15 @@ export default class RunnerIngressAPI {
        * at claim time. AI commands reach credentials only through the
        * credentialId path below, which never exposes the material to the
        * model.
+       *
+       * Never for a kubernetes-agent Runner either: its identity can be
+       * minted with the project's telemetry ingestion key, so it is never
+       * handed a secret (and it is served kubectl only, which has no script).
        */
       let scriptToSend: string = job.script ?? "";
       if (
         scriptToSend &&
+        !isAgentRunnerRow &&
         !AI_COMMAND_JOB_ORIGINS.includes(job.origin || RunnerJobOrigin.Runbook)
       ) {
         const secrets: Array<RunbookSecret> =
@@ -404,6 +421,27 @@ export default class RunnerIngressAPI {
       }
 
       if (typeof credentialId === "string" && credentialId) {
+        /*
+         * A kubernetes-agent Runner is NEVER handed credential material,
+         * whatever is assigned to it. Its row is minted and re-keyed with
+         * the project's telemetry ingestion key — a credential every
+         * collector and CI job holds — so resolving a credential for it
+         * would hand that credential to anyone holding the key. It runs
+         * kubectl with its own ServiceAccount only. The job is failed with
+         * the same refusal shape as the credential-less rule above, and the
+         * credential is never resolved.
+         */
+        if (isAgentRunnerRow) {
+          await RunnerJobService.submitResult({
+            jobId: job.id!,
+            agentId: agent.id,
+            success: false,
+            errorMessage: RunnerIngressAPI.AGENT_RUNNER_CREDENTIAL_REFUSAL,
+          });
+
+          return Response.sendJsonObjectResponse(req, res, { job: null });
+        }
+
         credential = await RunbookCredentialsUtil.resolveForJob({
           credentialId,
           agentId: agent.id,

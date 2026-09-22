@@ -2,17 +2,26 @@ import RunnerJobService, {
   MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR,
   MAX_AI_INVESTIGATION_COMMAND_JOBS_PER_PROJECT_PER_HOUR,
 } from "../../../Server/Services/RunnerJobService";
+import AIRunService from "../../../Server/Services/AIRunService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
+import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import RunnerService from "../../../Server/Services/RunnerService";
+import AIRun from "../../../Models/DatabaseModels/AIRun";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
+import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
+import AIRunType from "../../../Types/AI/AIRunType";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
+import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
 import RunnerJobOrigin, {
   AI_COMMAND_JOB_ORIGINS,
 } from "../../../Types/Runbook/RunnerJobOrigin";
 import RunnerJobStatus from "../../../Types/Runbook/RunnerJobStatus";
-import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  KubectlCommandTier,
+  KubernetesAiRemediationMode,
+} from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { AI_COMMAND_STEP_TYPES } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
@@ -36,7 +45,15 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * - the cluster and the target Runner must belong to the project, and a
  *   credential-less job is enqueued only for the in-cluster Runner OF THAT
  *   CLUSTER — never for a Runner that lives in some other cluster's pod;
- * - each origin has its own hourly project brake.
+ * - the job goes through the cluster's CURRENT binding: the target is its
+ *   bound Runner, a credential is its bound Kubernetes credential, an
+ *   investigation job needs the investigation switch still on and a
+ *   remediation job needs remediation still enabled — callers act on a
+ *   snapshot, so revoking access on the AI page stops the next command;
+ * - a kubernetes-agent Runner is never sent a job that names a credential;
+ * - each origin has its own hourly project brake, and the dashboard's
+ *   access test (explicitly flagged, no AI run) is exempt from the
+ *   investigation switch and never counted against that brake.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -72,6 +89,12 @@ function args(overrides: Partial<EnqueueArgs> = {}): EnqueueArgs {
   };
 }
 
+/*
+ * The cluster as its AI page left it: bound to RUNNER_ID with a Kubernetes
+ * credential also selected (the in-cluster Runner wins over it, so a
+ * credential-less job is still legitimate), investigation on, remediation
+ * asking for approval.
+ */
 function fakeCluster(
   overrides: Partial<Record<string, unknown>> = {},
 ): KubernetesCluster {
@@ -81,8 +104,24 @@ function fakeCluster(
     projectId: PROJECT_ID,
     name: "prod-us",
     clusterIdentifier: "prod-us",
+    aiAccessRunnerId: RUNNER_ID,
+    aiAccessCredentialId: new ObjectID(CREDENTIAL_ID),
+    isAiInvestigationEnabled: true,
+    aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
     ...overrides,
   } as unknown as KubernetesCluster;
+}
+
+function fakeCredential(
+  overrides: Partial<Record<string, unknown>> = {},
+): RunbookCredential {
+  return {
+    id: new ObjectID(CREDENTIAL_ID),
+    _id: CREDENTIAL_ID,
+    name: "prod-us kubeconfig",
+    credentialType: RunbookCredentialType.Kubernetes,
+    ...overrides,
+  } as unknown as RunbookCredential;
 }
 
 // The in-cluster Runner of prod-us, as its posture describes it.
@@ -107,12 +146,23 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
   let createdRows: Array<RunnerJob>;
   let clusterLookup: jest.SpyInstance;
   let runnerLookup: jest.SpyInstance;
+  let credentialLookup: jest.SpyInstance;
+  let countBySpy: jest.SpyInstance;
+  let aiRunLookup: jest.SpyInstance;
 
   beforeEach(() => {
     createdRows = [];
-    jest
+    countBySpy = jest
       .spyOn(RunnerJobService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
+    credentialLookup = jest
+      .spyOn(RunbookCredentialService, "findOneBy")
+      .mockResolvedValue(fakeCredential());
+    // The run an investigation-origin job belongs to: an investigation.
+    aiRunLookup = jest.spyOn(AIRunService, "findOneBy").mockResolvedValue({
+      id: RUN_ID,
+      runType: AIRunType.Investigation,
+    } as unknown as AIRun);
     jest
       .spyOn(RunnerJobService, "create")
       .mockImplementation(async (data: unknown): Promise<RunnerJob> => {
@@ -288,10 +338,47 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
       expect(createdRows).toHaveLength(1);
     });
 
-    it("lets a credential job target the agent of another cluster (the credential names the API server)", async () => {
+    /*
+     * Flipped with the credential-exfiltration fix. This used to enqueue:
+     * "the credential names the API server". But a kubernetes-agent Runner
+     * is minted and re-keyed with the telemetry ingestion key, so it is
+     * never handed credential material — the job must never exist.
+     */
+    it("refuses a credential job for a kubernetes-agent Runner, even another cluster's", async () => {
       runnerLookup.mockResolvedValue(
         fakeRunner({
           name: "kubernetes-agent/prod-eu",
+          hostInfo: {
+            kubernetes: { inCluster: true, clusterIdentifier: "prod-eu" },
+          },
+        }),
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(
+          args({ credentialId: CREDENTIAL_ID }),
+        ),
+      ).rejects.toThrow(/is never given a credential/);
+      expect(createdRows).toHaveLength(0);
+    });
+
+    it("refuses it by the server-owned NAME, even when the Runner's posture was dropped on heartbeat", async () => {
+      runnerLookup.mockResolvedValue(
+        fakeRunner({ name: "kubernetes-agent/prod-eu", hostInfo: {} }),
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(
+          args({ credentialId: CREDENTIAL_ID }),
+        ),
+      ).rejects.toThrow(/is never given a credential/);
+      expect(createdRows).toHaveLength(0);
+    });
+
+    it("negative control: a dashboard Runner living in another cluster's pod may carry the credential", async () => {
+      runnerLookup.mockResolvedValue(
+        fakeRunner({
+          name: "pod-runner",
           hostInfo: {
             kubernetes: { inCluster: true, clusterIdentifier: "prod-eu" },
           },
@@ -387,24 +474,22 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
   });
 
   it("brakes investigations and remediations on separate hourly counters", async () => {
-    const countBy: jest.SpyInstance = jest
-      .spyOn(RunnerJobService, "countBy")
-      .mockResolvedValue(
-        new PositiveNumber(
-          MAX_AI_INVESTIGATION_COMMAND_JOBS_PER_PROJECT_PER_HOUR,
-        ),
-      );
+    countBySpy.mockResolvedValue(
+      new PositiveNumber(
+        MAX_AI_INVESTIGATION_COMMAND_JOBS_PER_PROJECT_PER_HOUR,
+      ),
+    );
 
     await expect(
       RunnerJobService.enqueueAiKubectlCommand(args()),
     ).rejects.toThrow(/AI investigation commands in the last hour/);
 
     const investigationQuery: Record<string, unknown> = (
-      countBy.mock.calls[0]![0] as { query: Record<string, unknown> }
+      countBySpy.mock.calls[0]![0] as { query: Record<string, unknown> }
     ).query;
     expect(investigationQuery["origin"]).toBe(RunnerJobOrigin.AiInvestigation);
 
-    countBy.mockResolvedValue(
+    countBySpy.mockResolvedValue(
       new PositiveNumber(MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR),
     );
 
@@ -419,19 +504,420 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
     ).rejects.toThrow(/AI remediation commands in the last hour/);
 
     const remediationQuery: Record<string, unknown> = (
-      countBy.mock.calls[1]![0] as { query: Record<string, unknown> }
+      countBySpy.mock.calls[1]![0] as { query: Record<string, unknown> }
     ).query;
     expect(remediationQuery["origin"]).toBe(RunnerJobOrigin.AiRemediation);
     expect(createdRows).toHaveLength(0);
   });
 
-  it("allows the dashboard access test to enqueue without an AI run", async () => {
-    const job: RunnerJob = await RunnerJobService.enqueueAiKubectlCommand(
-      args({ aiRunId: undefined, command: "kubectl version" }),
-    );
+  /*
+   * The access test is the only kubectl job without an AI run. The
+   * investigation brake counts rows WITH an AI run, so however often
+   * someone clicks "Test access" it never starves real investigations.
+   */
+  it("counts only investigation jobs that belong to an AI run toward the investigation brake", async () => {
+    await RunnerJobService.enqueueAiKubectlCommand(args());
 
-    expect(job.aiRunId).toBeUndefined();
-    expect(job.payload?.["displayCommand"]).toBe("kubectl version");
+    const query: Record<string, unknown> = (
+      countBySpy.mock.calls[0]![0] as { query: Record<string, unknown> }
+    ).query;
+    const aiRunFilter: { getSql?: (alias: string) => string } = query[
+      "aiRunId"
+    ] as { getSql?: (alias: string) => string };
+    expect(aiRunFilter).toBeDefined();
+    expect(aiRunFilter.getSql!('"aiRunId"')).toBe('("aiRunId" IS NOT NULL)');
+
+    // The remediation brake keeps counting every remediation job.
+    await RunnerJobService.enqueueAiKubectlCommand(
+      args({
+        origin: RunnerJobOrigin.AiRemediation,
+        autoRemediationSuggestionId: SUGGESTION_ID,
+        command: "kubectl scale deployment/web --replicas=3 -n web",
+      }),
+    );
+    const remediationQuery: Record<string, unknown> = (
+      countBySpy.mock.calls[1]![0] as { query: Record<string, unknown> }
+    ).query;
+    expect(remediationQuery["aiRunId"]).toBeUndefined();
+  });
+
+  describe("the dashboard's access test", () => {
+    it("enqueues without an AI run when flagged as an access test", async () => {
+      const job: RunnerJob = await RunnerJobService.enqueueAiKubectlCommand(
+        args({
+          aiRunId: undefined,
+          command: "kubectl version",
+          isAccessTest: true,
+        }),
+      );
+
+      expect(job.aiRunId).toBeUndefined();
+      expect(job.payload?.["displayCommand"]).toBe("kubectl version");
+    });
+
+    it("is never counted against, nor stopped by, the project's investigation brake", async () => {
+      countBySpy.mockResolvedValue(
+        new PositiveNumber(
+          MAX_AI_INVESTIGATION_COMMAND_JOBS_PER_PROJECT_PER_HOUR + 10,
+        ),
+      );
+
+      await RunnerJobService.enqueueAiKubectlCommand(
+        args({
+          aiRunId: undefined,
+          command: "kubectl version",
+          isAccessTest: true,
+        }),
+      );
+
+      expect(countBySpy).not.toHaveBeenCalled();
+      expect(createdRows).toHaveLength(1);
+    });
+
+    it("runs before the investigation switch is turned on (that is what it is for)", async () => {
+      clusterLookup.mockResolvedValue(
+        fakeCluster({ isAiInvestigationEnabled: false }),
+      );
+
+      await RunnerJobService.enqueueAiKubectlCommand(
+        args({
+          aiRunId: undefined,
+          command: "kubectl auth can-i --list",
+          isAccessTest: true,
+        }),
+      );
+
+      expect(createdRows).toHaveLength(1);
+    });
+
+    it("is still bound by the binding, the policy and the read-only rule", async () => {
+      clusterLookup.mockResolvedValue(
+        fakeCluster({ aiAccessRunnerId: ObjectID.generate() }),
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(
+          args({
+            aiRunId: undefined,
+            command: "kubectl version",
+            isAccessTest: true,
+          }),
+        ),
+      ).rejects.toThrow(/no longer reached through this Runner/);
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(
+          args({
+            aiRunId: undefined,
+            command: "kubectl rollout restart deployment/web -n web",
+            isAccessTest: true,
+          }),
+        ),
+      ).rejects.toThrow(/read-only kubectl commands/);
+
+      expect(createdRows).toHaveLength(0);
+    });
+
+    it("is refused with an AI run, or as a remediation", async () => {
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(
+          args({ command: "kubectl version", isAccessTest: true }),
+        ),
+      ).rejects.toThrow(/no AI run behind it/);
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(
+          args({
+            aiRunId: undefined,
+            origin: RunnerJobOrigin.AiRemediation,
+            autoRemediationSuggestionId: SUGGESTION_ID,
+            command: "kubectl version",
+            isAccessTest: true,
+          }),
+        ),
+      ).rejects.toThrow(/no AI run behind it/);
+
+      expect(createdRows).toHaveLength(0);
+    });
+
+    it("an investigation job without its AI run is refused unless it is flagged as the access test", async () => {
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(args({ aiRunId: undefined })),
+      ).rejects.toThrow(/needs the AI run it belongs to/);
+
+      expect(createdRows).toHaveLength(0);
+    });
+  });
+
+  /*
+   * Callers act on a snapshot of the cluster's AI access (an investigation
+   * reads it once when it starts). The chokepoint re-reads the cluster, so
+   * an operator who revokes or re-points access stops the next command.
+   */
+  describe("the cluster's CURRENT binding and switches", () => {
+    it("reads the binding and both switches off the cluster row", async () => {
+      await RunnerJobService.enqueueAiKubectlCommand(args());
+
+      const select: Record<string, unknown> = (
+        clusterLookup.mock.calls[0]![0] as { select: Record<string, unknown> }
+      ).select;
+      expect(select).toMatchObject({
+        aiAccessRunnerId: true,
+        aiAccessCredentialId: true,
+        isAiInvestigationEnabled: true,
+        aiRemediationMode: true,
+      });
+    });
+
+    it("refuses a job for a Runner the cluster is no longer bound to", async () => {
+      clusterLookup.mockResolvedValue(
+        fakeCluster({ aiAccessRunnerId: ObjectID.generate() }),
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(args()),
+      ).rejects.toThrow(/no longer reached through this Runner/);
+      expect(runnerLookup).not.toHaveBeenCalled();
+      expect(createdRows).toHaveLength(0);
+    });
+
+    it("refuses any job for a cluster whose binding was cleared", async () => {
+      clusterLookup.mockResolvedValue(
+        fakeCluster({ aiAccessRunnerId: undefined }),
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(args()),
+      ).rejects.toThrow(/no longer reached through this Runner/);
+      expect(createdRows).toHaveLength(0);
+    });
+
+    it("refuses a credential that is no longer the cluster's bound credential", async () => {
+      clusterLookup.mockResolvedValue(
+        fakeCluster({ aiAccessCredentialId: ObjectID.generate() }),
+      );
+      runnerLookup.mockResolvedValue(
+        fakeRunner({ name: "office-runner", hostInfo: { hostname: "x" } }),
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(
+          args({ credentialId: CREDENTIAL_ID }),
+        ),
+      ).rejects.toThrow(/no longer reached with this Kubernetes credential/);
+
+      clusterLookup.mockResolvedValue(
+        fakeCluster({ aiAccessCredentialId: undefined }),
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(
+          args({ credentialId: CREDENTIAL_ID }),
+        ),
+      ).rejects.toThrow(/no longer reached with this Kubernetes credential/);
+      expect(createdRows).toHaveLength(0);
+    });
+
+    it("refuses a bound credential that is not a Kubernetes credential of this project", async () => {
+      runnerLookup.mockResolvedValue(
+        fakeRunner({ name: "office-runner", hostInfo: { hostname: "x" } }),
+      );
+      credentialLookup.mockResolvedValue(
+        fakeCredential({ credentialType: RunbookCredentialType.SSH }),
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(
+          args({ credentialId: CREDENTIAL_ID }),
+        ),
+      ).rejects.toThrow(/not a Kubernetes credential of this project/);
+
+      credentialLookup.mockResolvedValue(null);
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(
+          args({ credentialId: CREDENTIAL_ID }),
+        ),
+      ).rejects.toThrow(/not a Kubernetes credential of this project/);
+
+      const query: Record<string, unknown> = (
+        credentialLookup.mock.calls[0]![0] as {
+          query: Record<string, unknown>;
+        }
+      ).query;
+      expect(query["_id"]).toBe(CREDENTIAL_ID);
+      expect(query["projectId"]).toBe(PROJECT_ID);
+      expect(createdRows).toHaveLength(0);
+    });
+
+    it("refuses an investigation job once 'Let AI investigate with kubectl' is off", async () => {
+      clusterLookup.mockResolvedValue(
+        fakeCluster({ isAiInvestigationEnabled: false }),
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(args()),
+      ).rejects.toThrow(/"Let AI investigate with kubectl" is turned off/);
+      expect(createdRows).toHaveLength(0);
+
+      // The run's type decides the switch; read from this project only.
+      const query: Record<string, unknown> = (
+        aiRunLookup.mock.calls[0]![0] as { query: Record<string, unknown> }
+      ).query;
+      expect(query["_id"]).toBe(RUN_ID.toString());
+      expect(query["projectId"]).toBe(PROJECT_ID);
+    });
+
+    it("fails closed to the investigation switch when the AI run cannot be found", async () => {
+      aiRunLookup.mockResolvedValue(null);
+      clusterLookup.mockResolvedValue(
+        fakeCluster({ isAiInvestigationEnabled: false }),
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(args()),
+      ).rejects.toThrow(/"Let AI investigate with kubectl" is turned off/);
+      expect(createdRows).toHaveLength(0);
+    });
+
+    /*
+     * A remediation run reads the cluster it may fix through the same
+     * read-only lane (KubectlInvestigationToolkit with the remediation
+     * readiness check), even when the operator left investigation off. Its
+     * reads follow the cluster's remediation mode, not the investigation
+     * switch — tightening the investigation switch must not break them.
+     */
+    it("governs a remediation run's reads by the remediation mode, not the investigation switch", async () => {
+      aiRunLookup.mockResolvedValue({
+        id: RUN_ID,
+        runType: AIRunType.RemediationExecution,
+      } as unknown as AIRun);
+      clusterLookup.mockResolvedValue(
+        fakeCluster({
+          isAiInvestigationEnabled: false,
+          aiRemediationMode: KubernetesAiRemediationMode.Automatic,
+        }),
+      );
+
+      await RunnerJobService.enqueueAiKubectlCommand(args());
+      expect(createdRows).toHaveLength(1);
+
+      clusterLookup.mockResolvedValue(
+        fakeCluster({
+          isAiInvestigationEnabled: true,
+          aiRemediationMode: KubernetesAiRemediationMode.Disabled,
+        }),
+      );
+
+      await expect(
+        RunnerJobService.enqueueAiKubectlCommand(args()),
+      ).rejects.toThrow(/AI remediation is turned off/);
+      expect(createdRows).toHaveLength(1);
+    });
+
+    it("never looks the AI run up for the access test or a remediation job", async () => {
+      await RunnerJobService.enqueueAiKubectlCommand(
+        args({
+          aiRunId: undefined,
+          command: "kubectl version",
+          isAccessTest: true,
+        }),
+      );
+      await RunnerJobService.enqueueAiKubectlCommand(
+        args({
+          origin: RunnerJobOrigin.AiRemediation,
+          autoRemediationSuggestionId: SUGGESTION_ID,
+          command: "kubectl rollout restart deployment/web -n web",
+        }),
+      );
+
+      expect(aiRunLookup).not.toHaveBeenCalled();
+      expect(createdRows).toHaveLength(2);
+    });
+
+    it("refuses a remediation job once the cluster's remediation is Disabled (or unknown)", async () => {
+      for (const mode of [
+        KubernetesAiRemediationMode.Disabled,
+        undefined,
+        "automatic",
+      ]) {
+        clusterLookup.mockResolvedValue(
+          fakeCluster({ aiRemediationMode: mode }),
+        );
+
+        await expect(
+          RunnerJobService.enqueueAiKubectlCommand(
+            args({
+              origin: RunnerJobOrigin.AiRemediation,
+              autoRemediationSuggestionId: SUGGESTION_ID,
+              command: "kubectl rollout restart deployment/web -n web",
+            }),
+          ),
+        ).rejects.toThrow(/AI remediation is turned off/);
+      }
+
+      expect(createdRows).toHaveLength(0);
+    });
+
+    it("negative control: every enabled remediation mode still enqueues, investigation switch or not", async () => {
+      for (const mode of [
+        KubernetesAiRemediationMode.RequireApproval,
+        KubernetesAiRemediationMode.Automatic,
+        KubernetesAiRemediationMode.BypassApproval,
+      ]) {
+        clusterLookup.mockResolvedValue(
+          fakeCluster({
+            aiRemediationMode: mode,
+            isAiInvestigationEnabled: false,
+          }),
+        );
+
+        await RunnerJobService.enqueueAiKubectlCommand(
+          args({
+            origin: RunnerJobOrigin.AiRemediation,
+            autoRemediationSuggestionId: SUGGESTION_ID,
+            command: "kubectl rollout restart deployment/web -n web",
+          }),
+        );
+      }
+
+      expect(createdRows).toHaveLength(3);
+    });
+
+    it("negative control: an investigation with remediation Disabled still enqueues", async () => {
+      clusterLookup.mockResolvedValue(
+        fakeCluster({
+          aiRemediationMode: KubernetesAiRemediationMode.Disabled,
+        }),
+      );
+
+      await RunnerJobService.enqueueAiKubectlCommand(args());
+
+      expect(createdRows).toHaveLength(1);
+    });
+
+    it("negative control: a credential-less job for the cluster's own agent is fine with a credential still selected", async () => {
+      // The default cluster has aiAccessCredentialId set; the job has none.
+      const job: RunnerJob =
+        await RunnerJobService.enqueueAiKubectlCommand(args());
+
+      expect(job.payload?.["credentialId"]).toBeUndefined();
+      expect(credentialLookup).not.toHaveBeenCalled();
+      expect(createdRows).toHaveLength(1);
+    });
+
+    it("negative control: the bound Runner and bound credential enqueue with the credential on the payload", async () => {
+      runnerLookup.mockResolvedValue(
+        fakeRunner({ name: "office-runner", hostInfo: { hostname: "x" } }),
+      );
+
+      const job: RunnerJob = await RunnerJobService.enqueueAiKubectlCommand(
+        args({ credentialId: CREDENTIAL_ID }),
+      );
+
+      expect(job.payload?.["credentialId"]).toBe(CREDENTIAL_ID);
+      expect(createdRows).toHaveLength(1);
+    });
   });
 });
 

@@ -19,15 +19,40 @@ import KubectlOutputRedactor from "../../Utils/AiRemediation/KubectlOutputRedact
 import ToolResultSerializer from "../Utils/AI/Toolbox/Serializer";
 import {
   KubectlCommandTier,
+  KubernetesAiRemediationMode,
   KubernetesRunnerPosture,
   isInClusterPostureForCluster,
+  isKubernetesAgentRunnerName,
   parseKubernetesRunnerPosture,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
+import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
+import AIRunType from "../../Types/AI/AIRunType";
+import AIRun from "../../Models/DatabaseModels/AIRun";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../Models/DatabaseModels/Runner";
+import AIRunService from "./AIRunService";
 import KubernetesClusterService from "./KubernetesClusterService";
+import RunbookCredentialService from "./RunbookCredentialService";
 import RunnerService from "./RunnerService";
 import QueryHelper from "../Types/Database/QueryHelper";
+
+/*
+ * The cluster remediation modes in which a kubectl job for remediation may
+ * be enqueued at all. Anything else — Disabled, or a value the dashboard
+ * does not know — reads as "remediation is off".
+ */
+const ENABLED_REMEDIATION_MODES: Array<KubernetesAiRemediationMode> = [
+  KubernetesAiRemediationMode.RequireApproval,
+  KubernetesAiRemediationMode.Automatic,
+  KubernetesAiRemediationMode.BypassApproval,
+];
+
+// AI runs whose cluster reads are governed by the remediation switch.
+const REMEDIATION_RUN_TYPES: Array<AIRunType> = [
+  AIRunType.RemediationExecution,
+  AIRunType.RemediationPlan,
+];
 
 /*
  * Project-wide hourly ceiling on AI-composed command jobs, counted on the
@@ -236,6 +261,37 @@ export class Service extends DatabaseService<Model> {
     }
 
     /*
+     * The target must be one of this project's Runners, and never a
+     * kubernetes-agent Runner. That Runner exists to run policy-tiered
+     * kubectl with its own ServiceAccount: the claim path serves it kubectl
+     * only, so a Bash or SSH job aimed at it would sit unclaimed until its
+     * deadline after a human approved it — and its identity is minted with
+     * the project's telemetry ingestion key, so it must never be handed
+     * AI-composed shell work or an SSH credential. Checked here, at the
+     * enqueue chokepoint, so an already-stored plan is refused too.
+     */
+    const targetRunner: Runner | null = await RunnerService.findOneBy({
+      query: {
+        _id: data.targetAgentId.toString(),
+        projectId: data.projectId,
+      },
+      select: { _id: true, name: true },
+      props: { isRoot: true },
+    });
+
+    if (!targetRunner) {
+      throw new BadDataException(
+        "The target Runner was not found or it does not belong to this project.",
+      );
+    }
+
+    if (isKubernetesAgentRunnerName(targetRunner.name)) {
+      throw new BadDataException(
+        `Runner "${targetRunner.name}" is a cluster's in-cluster Runner: it runs kubectl through its cluster only, never ${data.stepType} commands. Target the Kubernetes cluster instead, or pick a Runner you created under Project Settings → Runners.`,
+      );
+    }
+
+    /*
      * Project-wide hourly storm brake for the whole AI-command lane. It
      * lives HERE, at the single enqueue chokepoint, so it also bounds the
      * approved-plan and rollback paths — not just the FullAuto inline tool
@@ -312,13 +368,26 @@ export class Service extends DatabaseService<Model> {
    * enqueued for the in-cluster Runner OF THIS CLUSTER (its posture names
    * the cluster), and the payload carries the cluster's identifier so the
    * claim path and the Runner can refuse a job that reaches the wrong pod.
+   * A credential is never sent to a kubernetes-agent Runner (its identity
+   * is minted with the project's telemetry ingestion key).
+   *
+   * It also re-reads the cluster's CURRENT AI access configuration, because
+   * every caller acts on a snapshot (an investigation reads the cluster's
+   * status once when it starts, a remediation run when it composes): the
+   * target must still be the cluster's bound Runner, a credential must still
+   * be its bound Kubernetes credential, an investigation's reads need "Let
+   * AI investigate with kubectl" still on, and a remediation run's commands
+   * (its reads included) need the cluster's remediation still enabled. An
+   * operator who revokes or re-points access therefore stops an in-flight
+   * run at its next command.
    */
   @CaptureSpan()
   public async enqueueAiKubectlCommand(data: {
     projectId: ObjectID;
     /*
-     * Absent only for the dashboard's "test access" check, which runs a
-     * read command with no AI run behind it.
+     * The AI run the command belongs to. Required for an investigation job;
+     * absent only for the dashboard's access test (isAccessTest), which
+     * runs a read command with no AI run behind it.
      */
     aiRunId?: ObjectID | undefined;
     origin: RunnerJobOrigin.AiInvestigation | RunnerJobOrigin.AiRemediation;
@@ -330,6 +399,15 @@ export class Service extends DatabaseService<Model> {
     command: string;
     timeoutInMs: number;
     claimTimeoutInMs?: number | undefined;
+    /*
+     * The cluster AI page's "Test access" check. It is how an operator
+     * verifies access BEFORE turning AI on, so it is exempt from the
+     * investigation switch — never from the binding, the policy or the
+     * read-only rule — and it is kept out of the project-wide investigation
+     * brake (the test route has its own per-cluster and per-user limits),
+     * so testing can never starve real incident investigations.
+     */
+    isAccessTest?: boolean | undefined;
   }): Promise<Model> {
     if (!data.targetAgentId) {
       throw new BadDataException(
@@ -361,6 +439,33 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    const isAccessTest: boolean = data.isAccessTest === true;
+
+    /*
+     * The access test is the only kubectl job without an AI run, and it is
+     * a read: that is what lets the investigation brake below count real
+     * investigations only (rows with an AI run) without the test slipping
+     * work past it under another name.
+     */
+    if (
+      isAccessTest &&
+      (data.origin !== RunnerJobOrigin.AiInvestigation || data.aiRunId)
+    ) {
+      throw new BadDataException(
+        "An access test is a read-only check with no AI run behind it.",
+      );
+    }
+
+    if (
+      data.origin === RunnerJobOrigin.AiInvestigation &&
+      !isAccessTest &&
+      !data.aiRunId
+    ) {
+      throw new BadDataException(
+        "An investigation kubectl job needs the AI run it belongs to.",
+      );
+    }
+
     const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
       data.command,
     );
@@ -380,28 +485,40 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    const hourlyCap: number =
-      data.origin === RunnerJobOrigin.AiInvestigation
-        ? MAX_AI_INVESTIGATION_COMMAND_JOBS_PER_PROJECT_PER_HOUR
-        : MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR;
-
-    const jobsInLastHour: number = (
-      await this.countBy({
-        query: {
-          projectId: data.projectId,
-          origin: data.origin,
-          createdAt: QueryHelper.greaterThan(OneUptimeDate.getSomeHoursAgo(1)),
-        },
-        props: { isRoot: true },
-      })
-    ).toNumber();
-
-    if (jobsInLastHour >= hourlyCap) {
-      throw new BadDataException(
+    /*
+     * The access test is bounded by its own route limits instead, and an
+     * investigation's brake counts only rows with an AI run, so tests never
+     * spend the budget real investigations share.
+     */
+    if (!isAccessTest) {
+      const hourlyCap: number =
         data.origin === RunnerJobOrigin.AiInvestigation
-          ? `This project has run ${jobsInLastHour} AI investigation commands in the last hour, which is its limit (${hourlyCap}). No further cluster commands can run this hour.`
-          : `This project has run ${jobsInLastHour} AI remediation commands in the last hour, which is its limit (${hourlyCap}). No further AI commands can run this hour.`,
-      );
+          ? MAX_AI_INVESTIGATION_COMMAND_JOBS_PER_PROJECT_PER_HOUR
+          : MAX_AI_COMMAND_JOBS_PER_PROJECT_PER_HOUR;
+
+      const jobsInLastHour: number = (
+        await this.countBy({
+          query: {
+            projectId: data.projectId,
+            origin: data.origin,
+            createdAt: QueryHelper.greaterThan(
+              OneUptimeDate.getSomeHoursAgo(1),
+            ),
+            ...(data.origin === RunnerJobOrigin.AiInvestigation
+              ? { aiRunId: QueryHelper.notNull() }
+              : {}),
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      if (jobsInLastHour >= hourlyCap) {
+        throw new BadDataException(
+          data.origin === RunnerJobOrigin.AiInvestigation
+            ? `This project has run ${jobsInLastHour} AI investigation commands in the last hour, which is its limit (${hourlyCap}). No further cluster commands can run this hour.`
+            : `This project has run ${jobsInLastHour} AI remediation commands in the last hour, which is its limit (${hourlyCap}). No further AI commands can run this hour.`,
+        );
+      }
     }
 
     /*
@@ -416,7 +533,15 @@ export class Service extends DatabaseService<Model> {
           _id: data.kubernetesClusterId.toString(),
           projectId: data.projectId,
         },
-        select: { _id: true, name: true, clusterIdentifier: true },
+        select: {
+          _id: true,
+          name: true,
+          clusterIdentifier: true,
+          aiAccessRunnerId: true,
+          aiAccessCredentialId: true,
+          isAiInvestigationEnabled: true,
+          aiRemediationMode: true,
+        },
         props: { isRoot: true },
       });
 
@@ -427,6 +552,25 @@ export class Service extends DatabaseService<Model> {
     }
 
     const clusterIdentifier: string = (cluster.clusterIdentifier || "").trim();
+    const clusterLabel: string =
+      cluster.name || clusterIdentifier || data.kubernetesClusterId.toString();
+
+    const bindingRefusal: string | null = Service.getClusterBindingRefusal({
+      cluster,
+      clusterLabel,
+      targetAgentId: data.targetAgentId,
+      credentialId: data.credentialId,
+      requiredSwitch: await this.getRequiredClusterSwitch({
+        projectId: data.projectId,
+        origin: data.origin,
+        aiRunId: data.aiRunId,
+        isAccessTest,
+      }),
+    });
+
+    if (bindingRefusal) {
+      throw new BadDataException(bindingRefusal);
+    }
 
     const targetRunner: Runner | null = await RunnerService.findOneBy({
       query: {
@@ -441,6 +585,43 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException(
         "The target Runner was not found or it does not belong to this project.",
       );
+    }
+
+    if (data.credentialId) {
+      /*
+       * A kubernetes-agent Runner is never handed credential material: its
+       * identity is issued with the project's telemetry ingestion key, so
+       * anyone holding that key could come to hold the credential too. The
+       * claim path refuses it as well; refusing here keeps the job from
+       * ever existing.
+       */
+      if (isKubernetesAgentRunnerName(targetRunner.name)) {
+        throw new BadDataException(
+          `Runner "${targetRunner.name}" is a cluster's in-cluster Runner and is never given a credential, so a kubectl command for cluster "${clusterLabel}" that needs one cannot run on it. Create a Runner under Project Settings → Runners, assign the Kubernetes credential to it and select both on the cluster's AI page.`,
+        );
+      }
+
+      const credential: RunbookCredential | null = ObjectID.isValidUUID(
+        data.credentialId,
+      )
+        ? await RunbookCredentialService.findOneBy({
+            query: {
+              _id: data.credentialId,
+              projectId: data.projectId,
+            },
+            select: { _id: true, name: true, credentialType: true },
+            props: { isRoot: true },
+          })
+        : null;
+
+      if (
+        !credential ||
+        credential.credentialType !== RunbookCredentialType.Kubernetes
+      ) {
+        throw new BadDataException(
+          `The credential this kubectl command names is not a Kubernetes credential of this project, so it was not enqueued for cluster "${clusterLabel}".`,
+        );
+      }
     }
 
     if (!data.credentialId) {
@@ -496,6 +677,100 @@ export class Service extends DatabaseService<Model> {
     row.claimDeadlineAt = claimDeadlineAt;
 
     return this.create({ data: row, props: { isRoot: true } });
+  }
+
+  /*
+   * Which of the cluster's AI switches must still be on for this kubectl
+   * job, or null for none (the access test, which is how an operator checks
+   * access before turning AI on).
+   *
+   * A remediation job needs remediation. A read-only (investigation-origin)
+   * job follows the run it belongs to: a remediation run reads the cluster
+   * it may fix through the same read-only lane — even when the operator
+   * left investigation off — so its reads need remediation, and every
+   * other run's reads need the investigation switch.
+   */
+  private async getRequiredClusterSwitch(data: {
+    projectId: ObjectID;
+    origin: RunnerJobOrigin;
+    aiRunId?: ObjectID | undefined;
+    isAccessTest: boolean;
+  }): Promise<"investigation" | "remediation" | null> {
+    if (data.origin === RunnerJobOrigin.AiRemediation) {
+      return "remediation";
+    }
+
+    if (data.isAccessTest || !data.aiRunId) {
+      return null;
+    }
+
+    const run: AIRun | null = await AIRunService.findOneBy({
+      query: {
+        _id: data.aiRunId.toString(),
+        projectId: data.projectId,
+      },
+      select: { _id: true, runType: true },
+      props: { isRoot: true },
+    });
+
+    return run?.runType && REMEDIATION_RUN_TYPES.includes(run.runType)
+      ? "remediation"
+      : "investigation";
+  }
+
+  /*
+   * Why a kubectl job may NOT be enqueued for this cluster as it is
+   * configured right now, or null when it may. Pure, so the rule reads in
+   * one place: the job must go through the cluster's CURRENT binding, and
+   * the capability it is for must still be switched on.
+   *
+   * A credential-less job does not require the credential binding to be
+   * empty: the in-cluster Runner of the cluster wins over a bound
+   * credential (the readiness status prefers it), so such a job is
+   * legitimate with a credential still selected.
+   */
+  public static getClusterBindingRefusal(data: {
+    cluster: KubernetesCluster;
+    clusterLabel: string;
+    targetAgentId: ObjectID;
+    credentialId?: string | undefined;
+    // The switch that must still be on; null for the access test.
+    requiredSwitch: "investigation" | "remediation" | null;
+  }): string | null {
+    const { cluster, clusterLabel } = data;
+
+    if (
+      !cluster.aiAccessRunnerId ||
+      cluster.aiAccessRunnerId.toString() !== data.targetAgentId.toString()
+    ) {
+      return `Cluster "${clusterLabel}" is no longer reached through this Runner (its AI access binding changed or was cleared on the cluster's AI page), so this kubectl command was not enqueued.`;
+    }
+
+    if (
+      data.credentialId &&
+      (!cluster.aiAccessCredentialId ||
+        cluster.aiAccessCredentialId.toString() !== data.credentialId)
+    ) {
+      return `Cluster "${clusterLabel}" is no longer reached with this Kubernetes credential (its AI access binding changed or was cleared on the cluster's AI page), so this kubectl command was not enqueued.`;
+    }
+
+    if (
+      data.requiredSwitch === "investigation" &&
+      cluster.isAiInvestigationEnabled !== true
+    ) {
+      return `"Let AI investigate with kubectl" is turned off for cluster "${clusterLabel}", so this investigation command was not enqueued.`;
+    }
+
+    if (
+      data.requiredSwitch === "remediation" &&
+      !ENABLED_REMEDIATION_MODES.includes(
+        cluster.aiRemediationMode as KubernetesAiRemediationMode,
+      )
+    ) {
+      return `AI remediation is turned off for cluster "${clusterLabel}", so this kubectl command was not enqueued.`;
+    }
+
+    return null;
   }
 
   /*

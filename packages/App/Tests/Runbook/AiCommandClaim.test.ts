@@ -58,10 +58,12 @@ import {
  *      with the claiming pod's own ServiceAccount, so it is served ONLY to
  *      the in-cluster Runner whose posture names the job's cluster (any
  *      other Runner gets the job failed, not served); and the Runner may
- *      narrow what it is served with `stepTypes`, while a Runner whose
- *      posture says it IS a cluster's agent is narrowed to kubectl by the
- *      server regardless, so an AI-composed shell command never reaches
- *      the agent pod.
+ *      narrow what it is served with `stepTypes`, while a kubernetes-agent
+ *      Runner (by its server-owned name, or by its posture) is narrowed to
+ *      kubectl by the server regardless, so an AI-composed shell command
+ *      never reaches the agent pod. That Runner is also never handed
+ *      credential material or runbook secrets: its identity can be minted
+ *      with the telemetry ingestion key.
  *
  *      Registration (/register-kubernetes-agent) passes the Runner's
  *      previous key through so a live Runner can prove continuity, reports
@@ -72,8 +74,10 @@ import {
  *   2. RunnerJobService.enqueueAiCommand — the server-side gate on the path
  *      an LLM's output takes to a shell. It must re-validate what the tool
  *      layer already checked (step type, non-empty command, the hard
- *      denylist, SSH credential requirement), enforce the project-wide
- *      hourly ceiling on AI command jobs, and persist the job in the
+ *      denylist, SSH credential requirement), refuse a target that is not
+ *      one of the project's Runners or is a kubernetes-agent Runner,
+ *      enforce the project-wide hourly ceiling on AI command jobs, and
+ *      persist the job in the
  *      same layout the runbook executors use: Bash carries the command as
  *      the script; SSH carries an empty script plus a structured payload,
  *      never credential material.
@@ -848,6 +852,18 @@ describe("RunnerJobService.enqueueAiCommand", () => {
     countBySpy = jest
       .spyOn(RunnerJobService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
+
+    /*
+     * ...and the target Runner, which must be this project's and never a
+     * kubernetes-agent Runner (see RunnerJobEnqueueAiCommandAgentRunner).
+     * An ordinary Runner here, so these tests stay about what they test.
+     */
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue({
+      id: TARGET_AGENT_ID,
+      _id: TARGET_AGENT_ID.toString(),
+      projectId: PROJECT_ID,
+      name: "office-runner",
+    } as unknown as Runner);
   });
 
   afterEach(() => {
@@ -1315,8 +1331,19 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
       RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
     ).mockResolvedValue(resolved);
 
-    // An external Runner: no posture at all.
-    await callRoute({ uri: CLAIM_ROUTE, agent: agentWithPosture(undefined) });
+    /*
+     * An external Runner created in the dashboard: no posture at all. (It
+     * used to be the agent-named row with its posture dropped — which is
+     * exactly the identity that must never receive a credential; see the
+     * block below.)
+     */
+    await callRoute({
+      uri: CLAIM_ROUTE,
+      agent: {
+        ...agentWithPosture(undefined),
+        name: "office-runner",
+      } as unknown as Runner,
+    });
 
     expect(submitResultSpy).not.toHaveBeenCalled();
 
@@ -1336,6 +1363,279 @@ describe("POST /claim-next-job serves credential-less Kubectl jobs only to the i
 
     const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
     expect(job["credential"]).toEqual(resolved);
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The credential-exfiltration fix. A kubernetes-agent Runner row is minted,
+ * and while offline re-keyed, with the project's telemetry ingestion key —
+ * a credential every collector and CI job holds. So that identity is NEVER
+ * handed credential material, whatever an operator assigned to it: a job
+ * that names a credential is failed for it (the same refusal shape as the
+ * credential-less rule) and the credential is never resolved.
+ *
+ * "Agent" is decided from the row NAME, which only the server writes —
+ * never from hostInfo posture, which the Runner rewrites on every
+ * heartbeat: a holder of the ingestion key who heartbeats `hostInfo: {}`
+ * must not unlock credentials or shell work.
+ * ---------------------------------------------------------------------------
+ */
+describe("POST /claim-next-job never hands a kubernetes-agent Runner credential material", () => {
+  let agentId: ObjectID;
+  let projectId: ObjectID;
+  let claimNextJobSpy: jest.SpyInstance;
+  let submitResultSpy: jest.SpyInstance;
+
+  function runnerRow(data: {
+    name: string;
+    hostInfo?: JSONObject | undefined;
+  }): Runner {
+    return {
+      id: agentId,
+      projectId: projectId,
+      name: data.name,
+      canRunRunbooks: true,
+      canRunAiCommands: true,
+      ...(data.hostInfo !== undefined ? { hostInfo: data.hostInfo } : {}),
+    } as unknown as Runner;
+  }
+
+  function credentialedKubectlJob(credentialId: string): RunnerJob {
+    return {
+      id: JOB_ID,
+      origin: RunnerJobOrigin.AiInvestigation,
+      stepId: "ai-investigation-kubectl-1",
+      stepType: RunbookStepType.Kubectl,
+      script: "",
+      timeoutInMs: 30_000,
+      leaseExpiresAt: new Date("2026-08-04T00:00:30.000Z"),
+      payload: {
+        args: ["get", "pods", "-n", "web"],
+        displayCommand: "kubectl get pods -n web",
+        tier: "Read",
+        kubernetesClusterId: ObjectID.generate().toString(),
+        clusterIdentifier: "prod-b",
+        credentialId,
+      },
+    } as unknown as RunnerJob;
+  }
+
+  beforeAll(() => {
+    mockRoutes.length = 0;
+    new RunnerIngressAPI();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    agentId = ObjectID.generate();
+    projectId = ObjectID.generate();
+
+    claimNextJobSpy = jest
+      .spyOn(RunnerJobService, "claimNextJob")
+      .mockResolvedValue(null);
+    submitResultSpy = jest
+      .spyOn(RunnerJobService, "submitResult")
+      .mockResolvedValue(true);
+
+    (RunbookSecretsUtil.loadForAgent as unknown as jest.Mock).mockResolvedValue(
+      [],
+    );
+    (
+      RunbookSecretsUtil.populateInScript as unknown as jest.Mock
+    ).mockImplementation((data: { script: string }): string => {
+      return data.script;
+    });
+    (
+      RunbookCredentialsUtil.resolveForJob as unknown as jest.Mock
+    ).mockResolvedValue({
+      apiServerUrl: "https://prod-b.internal:6443",
+      token: "PROD-B-WRITE-SA-TOKEN",
+    });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  for (const [label, hostInfo] of [
+    [
+      "with its agent posture",
+      { kubernetes: { inCluster: true, clusterIdentifier: "prod-a" } },
+    ],
+    ["whose heartbeat dropped its posture", {}],
+    ["with no hostInfo at all", undefined],
+  ] as Array<[string, JSONObject | undefined]>) {
+    test(`fails a credentialed job for an agent Runner ${label}, never resolving the credential`, async () => {
+      claimNextJobSpy.mockResolvedValue(
+        credentialedKubectlJob(ObjectID.generate().toString()),
+      );
+
+      const result: RouteCallResult = await callRoute({
+        uri: CLAIM_ROUTE,
+        agent: runnerRow({ name: "kubernetes-agent/prod-a", hostInfo }),
+      });
+
+      expect(result.nextCallCount).toBe(0);
+      expect(RunbookCredentialsUtil.resolveForJob).not.toHaveBeenCalled();
+
+      expect(submitResultSpy).toHaveBeenCalledTimes(1);
+      const call: {
+        jobId: ObjectID;
+        agentId: ObjectID;
+        success: boolean;
+        errorMessage: string;
+      } = submitResultSpy.mock.calls[0]![0] as {
+        jobId: ObjectID;
+        agentId: ObjectID;
+        success: boolean;
+        errorMessage: string;
+      };
+      expect(call.jobId.toString()).toBe(JOB_ID.toString());
+      expect(call.agentId.toString()).toBe(agentId.toString());
+      expect(call.success).toBe(false);
+      expect(call.errorMessage).toBe(
+        RunnerIngressAPI.AGENT_RUNNER_CREDENTIAL_REFUSAL,
+      );
+
+      // Nothing on the wire: no job, and certainly no token.
+      expect(lastJsonResponse()).toEqual({ job: null });
+      expect(JSON.stringify(lastJsonResponse())).not.toContain(
+        "PROD-B-WRITE-SA-TOKEN",
+      );
+    });
+  }
+
+  test("fails an SSH job for an agent Runner the same way (no SSH key either)", async () => {
+    claimNextJobSpy.mockResolvedValue({
+      id: JOB_ID,
+      origin: RunnerJobOrigin.AiRemediation,
+      stepId: "cmd-1",
+      stepType: RunbookStepType.SSH,
+      script: "",
+      timeoutInMs: 60_000,
+      payload: {
+        credentialId: ObjectID.generate().toString(),
+        command: "systemctl restart nginx",
+      },
+    } as unknown as RunnerJob);
+
+    await callRoute({
+      uri: CLAIM_ROUTE,
+      agent: runnerRow({ name: "kubernetes-agent/prod-a", hostInfo: {} }),
+    });
+
+    expect(RunbookCredentialsUtil.resolveForJob).not.toHaveBeenCalled();
+    expect(submitResultSpy).toHaveBeenCalledTimes(1);
+    expect(lastJsonResponse()).toEqual({ job: null });
+  });
+
+  test("never substitutes runbook secrets for an agent Runner, even on a runbook-origin job", async () => {
+    claimNextJobSpy.mockResolvedValue({
+      id: JOB_ID,
+      origin: RunnerJobOrigin.Runbook,
+      runbookExecutionId: ObjectID.generate(),
+      stepId: "step-1",
+      stepType: RunbookStepType.Bash,
+      script: SECRET_PLACEHOLDER_SCRIPT,
+      timeoutInMs: 60_000,
+    } as unknown as RunnerJob);
+
+    await callRoute({
+      uri: CLAIM_ROUTE,
+      agent: runnerRow({ name: "kubernetes-agent/prod-a", hostInfo: {} }),
+    });
+
+    expect(RunbookSecretsUtil.loadForAgent).not.toHaveBeenCalled();
+    expect(RunbookSecretsUtil.populateInScript).not.toHaveBeenCalled();
+  });
+
+  test("narrows an agent Runner to kubectl by its name even when its heartbeat dropped the posture", async () => {
+    await callRoute({
+      uri: CLAIM_ROUTE,
+      agent: runnerRow({ name: "kubernetes-agent/prod-a", hostInfo: {} }),
+    });
+
+    const claimArgs: Record<string, unknown> = claimNextJobSpy.mock
+      .calls[0]![0] as Record<string, unknown>;
+    expect(claimArgs["allowedStepTypes"]).toEqual([RunbookStepType.Kubectl]);
+  });
+
+  test("an agent Runner that asks only for shell work by name is served nothing", async () => {
+    const result: RouteCallResult = await callRoute({
+      uri: CLAIM_ROUTE,
+      agent: runnerRow({ name: "kubernetes-agent/prod-a", hostInfo: {} }),
+      body: { stepTypes: ["Bash", "SSH"] },
+    });
+
+    expect(result.nextCallCount).toBe(0);
+    expect(claimNextJobSpy).not.toHaveBeenCalled();
+    expect(lastJsonResponse()).toEqual({ job: null });
+  });
+
+  test("negative control: a dashboard Runner with the same assignment still receives the credential", async () => {
+    claimNextJobSpy.mockResolvedValue(
+      credentialedKubectlJob(ObjectID.generate().toString()),
+    );
+
+    await callRoute({
+      uri: CLAIM_ROUTE,
+      agent: runnerRow({ name: "office-runner", hostInfo: {} }),
+    });
+
+    expect(submitResultSpy).not.toHaveBeenCalled();
+    expect(RunbookCredentialsUtil.resolveForJob).toHaveBeenCalledTimes(1);
+    const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
+    expect(job["credential"]).toEqual({
+      apiServerUrl: "https://prod-b.internal:6443",
+      token: "PROD-B-WRITE-SA-TOKEN",
+    });
+  });
+
+  test("negative control: a name that only resembles the prefix is not an agent", async () => {
+    claimNextJobSpy.mockResolvedValue(
+      credentialedKubectlJob(ObjectID.generate().toString()),
+    );
+
+    await callRoute({
+      uri: CLAIM_ROUTE,
+      agent: runnerRow({ name: "kubernetes-agent-office", hostInfo: {} }),
+    });
+
+    expect(submitResultSpy).not.toHaveBeenCalled();
+    expect(RunbookCredentialsUtil.resolveForJob).toHaveBeenCalledTimes(1);
+    const claimArgs: Record<string, unknown> = claimNextJobSpy.mock
+      .calls[0]![0] as Record<string, unknown>;
+    expect(claimArgs).not.toHaveProperty("allowedStepTypes");
+  });
+
+  test("negative control: the agent Runner's own credential-less kubectl for its cluster is still served", async () => {
+    claimNextJobSpy.mockResolvedValue({
+      ...credentialedKubectlJob("unused"),
+      payload: {
+        args: ["get", "pods", "-n", "web"],
+        displayCommand: "kubectl get pods -n web",
+        tier: "Read",
+        kubernetesClusterId: ObjectID.generate().toString(),
+        clusterIdentifier: "prod-a",
+      },
+    } as unknown as RunnerJob);
+
+    await callRoute({
+      uri: CLAIM_ROUTE,
+      agent: runnerRow({
+        name: "kubernetes-agent/prod-a",
+        hostInfo: {
+          kubernetes: { inCluster: true, clusterIdentifier: "prod-a" },
+        },
+      }),
+    });
+
+    expect(submitResultSpy).not.toHaveBeenCalled();
+    const job: JSONObject = lastJsonResponse()["job"] as JSONObject;
+    expect(job["jobId"]).toBe(JOB_ID.toString());
+    expect(job).not.toHaveProperty("credential");
   });
 });
 

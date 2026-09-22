@@ -453,6 +453,27 @@ export default class TelemetryIngest {
       }
 
       /*
+       * Kubernetes agent Runner registration mints a Runner identity — the
+       * one every kubectl job for a cluster is targeted at — so it takes a
+       * project-wide server key. A key pinned to one service's name was
+       * scoped by its owner to that service's telemetry; it is refused here
+       * rather than letting it stand up cluster access it was never meant
+       * to reach.
+       */
+      if (
+        surface === TelemetryIngestSurface.KubernetesAgentRunner &&
+        policy.pinnedServiceName
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthorizedException(
+            "This telemetry ingestion key is pinned to a single service, so it cannot register the Kubernetes agent's in-cluster Runner. Use an unpinned server ingestion key for the Kubernetes agent.",
+          ),
+        );
+      }
+
+      /*
        * Rate limit.
        *
        * A null effective limit means "no limit", and it short-circuits BEFORE

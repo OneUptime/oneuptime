@@ -12,6 +12,10 @@ import { JSONObject } from "../../Types/JSON";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { RUNNER_ALIVE_WINDOW_IN_MINUTES } from "../../Types/Runner/RunnerLiveStatus";
+import {
+  KUBERNETES_AGENT_RUNNER_NAME_PREFIX,
+  isKubernetesAgentRunnerName,
+} from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -70,20 +74,33 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Runners in this project that have opted into AI-composed commands and
-   * heartbeated recently. Same liveness semantics as the code-fix lookup:
-   * lastAlive as a query predicate, never a sort over possibly-NULL rows.
+   * heartbeated recently — the hosts an AI remediation run may target with
+   * Bash or SSH. Same liveness semantics as the code-fix lookup: lastAlive
+   * as a query predicate, never a sort over possibly-NULL rows.
+   *
+   * The in-cluster Runners the kubernetes-agent chart registers are left
+   * out. They have canRunAiCommands on (for kubectl through their cluster),
+   * but they only ever run policy-tiered kubectl with their own
+   * ServiceAccount: offered as a shell host, a plan aimed at one could never
+   * be claimed (the ingress serves such a Runner kubectl only), and a Runner
+   * an ingestion key can mint must never be handed AI-composed shell work.
+   * Excluded in the query, so agent rows can never crowd real hosts out of
+   * the limit, and again on the rows, with the server-owned name marker.
    */
   @CaptureSpan()
   public async getOnlineAiCommandRunnersForProject(data: {
     projectId: ObjectID;
     limit?: number | undefined;
   }): Promise<Array<Model>> {
-    return this.findBy({
+    const runners: Array<Model> = await this.findBy({
       query: {
         projectId: data.projectId,
         canRunAiCommands: true,
         lastAlive: QueryHelper.greaterThan(
           OneUptimeDate.getSomeMinutesAgo(RUNNER_ALIVE_WINDOW_IN_MINUTES),
+        ),
+        name: QueryHelper.notWildcard(
+          `${KUBERNETES_AGENT_RUNNER_NAME_PREFIX}/*`,
         ),
       },
       select: {
@@ -97,6 +114,88 @@ export class Service extends DatabaseService<Model> {
       skip: 0,
       props: { isRoot: true },
     });
+
+    return runners.filter((runner: Model) => {
+      return !isKubernetesAgentRunnerName(runner.name);
+    });
+  }
+
+  /*
+   * The ids an EntityArray payload of Runners names. A service hook sees
+   * that column in whatever shape the caller wrote it: model instances or
+   * serialised relations from the dashboard (`{ _id }`), ObjectIDs or plain
+   * id strings from server-side callers.
+   */
+  public static readRunnerIds(value: unknown): Array<ObjectID> {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const ids: Array<ObjectID> = [];
+
+    for (const item of value) {
+      let id: string | undefined = undefined;
+
+      if (item instanceof ObjectID) {
+        id = item.toString();
+      } else if (typeof item === "string") {
+        id = item;
+      } else if (item && typeof item === "object") {
+        const relation: { _id?: unknown; id?: unknown } = item as {
+          _id?: unknown;
+          id?: unknown;
+        };
+        const relationId: unknown = relation._id || relation.id;
+        id = relationId ? relationId.toString() : undefined;
+      }
+
+      if (id && ObjectID.isValidUUID(id)) {
+        ids.push(new ObjectID(id));
+      }
+    }
+
+    return ids;
+  }
+
+  /*
+   * Refuses to assign credential material (a RunbookCredential or a
+   * RunbookSecret) to a kubernetes-agent Runner. Such a Runner row is minted
+   * and re-keyed with the project's telemetry ingestion key — a credential
+   * every collector and CI job holds — so whatever is assigned to it is
+   * reachable by anyone holding that key. It runs kubectl with its own
+   * ServiceAccount only and never needs a credential; the claim path would
+   * refuse to hand one over anyway, so the assignment is refused where it is
+   * made, with a message that says what to do instead.
+   */
+  @CaptureSpan()
+  public async assertNoKubernetesAgentRunners(data: {
+    runners: unknown;
+    // What is being assigned, for the message: "credential" or "secret".
+    assignedWhat: string;
+  }): Promise<void> {
+    const ids: Array<ObjectID> = Service.readRunnerIds(data.runners);
+
+    if (ids.length === 0) {
+      return;
+    }
+
+    const runners: Array<Model> = await this.findBy({
+      query: { _id: QueryHelper.any(ids) },
+      select: { _id: true, name: true },
+      limit: ids.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const agentRunner: Model | undefined = runners.find((runner: Model) => {
+      return isKubernetesAgentRunnerName(runner.name);
+    });
+
+    if (agentRunner) {
+      throw new BadDataException(
+        `Runner "${agentRunner.name}" is the in-cluster Runner the Kubernetes agent chart installed. It runs kubectl with its own ServiceAccount only and is never given a ${data.assignedWhat}, because its identity is issued with the project's telemetry ingestion key. Assign this ${data.assignedWhat} to a Runner you created under Project Settings → Runners instead.`,
+      );
+    }
   }
 
   /*
@@ -172,8 +271,10 @@ export class Service extends DatabaseService<Model> {
    * is the truth about the last heartbeat and what the dashboard shows);
    * the explicit Disconnected status is what a kubernetes-agent
    * registration reads to admit a replacement pod immediately instead of
-   * waiting for the alive window to lapse. The next heartbeat or
-   * registration flips it back to Connected.
+   * waiting for the alive window to lapse, and what a cluster's AI access
+   * status reads to call the Runner offline at once (an uninstalled agent
+   * must not read as Connected until its last heartbeat ages out). The
+   * next heartbeat or registration flips it back to Connected.
    */
   @CaptureSpan()
   public async markDisconnected(data: { agentId: ObjectID }): Promise<void> {

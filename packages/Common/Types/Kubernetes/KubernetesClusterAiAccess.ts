@@ -89,6 +89,14 @@ export type KubernetesAiAccessGapCode =
    */
   | "runner_cluster_mismatch"
   | "credential_missing"
+  /*
+   * A Kubernetes credential is selected for this cluster, but the bound
+   * Runner is a kubernetes-agent Runner (of another cluster). Such a Runner
+   * is minted with the telemetry ingestion key, so it is never handed
+   * credential material: a cross-cluster credential needs a Runner created
+   * in the dashboard.
+   */
+  | "credential_on_agent_runner"
   | "investigation_disabled"
   | "remediation_disabled"
   | "remediation_write_access_missing"
