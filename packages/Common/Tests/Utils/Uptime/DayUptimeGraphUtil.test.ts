@@ -1,8 +1,20 @@
-import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
+import DayUptimeGraphUtil, {
+  UptimeGraphDay,
+} from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import UptimeHistoryLabels, {
   DefaultUptimeHistoryLabels,
 } from "../../../Types/Monitor/UptimeHistoryLabels";
-import { describe, expect, test } from "@jest/globals";
+import OneUptimeDate from "../../../Types/Date";
+import Timezone from "../../../Types/Timezone";
+import {
+  describeZoneStripAcrossDst,
+  expectSameDays,
+  expectUtcStripToPairWithServerBuckets,
+  getDaysTheOldWay,
+  getPinnedWindows,
+  PinnedWindow,
+} from "./DayUptimeGraphUtilTimezoneCases";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * Contract under test - the day-by-day uptime strip has to be operable
@@ -457,5 +469,409 @@ describe("DayUptimeGraphUtil.getGraphAriaLabel", () => {
     expect(DayUptimeGraphUtil.getGraphAriaLabel({ dayCount: -5 })).toBe(
       "Uptime history for the last 0 days",
     );
+  });
+});
+
+/*
+ * The strip's day maths (root cause 3 of the status.chainflip.io grey bars).
+ *
+ * The status page's per-day readings are UTC days - one cached payload
+ * serves every visitor - but the strip drew each visitor's LOCAL days and
+ * paired a bar with whichever reading started inside it. Off UTC, bars were
+ * painted from the wrong day's reading and today's bar often had none at
+ * all, so it fell back to the capped rows and came out grey. getDays now
+ * draws the zone the readings were cut in; formatDayLabel says which zone
+ * that is when it is not the viewer's.
+ *
+ * These cases hold in any process zone: this file runs in the machine's own
+ * zone, and DayUptimeGraphUtilTimezone.<Zone>.test.ts pin five others. The
+ * helpers and the independent oracles live in
+ * DayUptimeGraphUtilTimezoneCases.ts.
+ */
+
+describe("DayUptimeGraphUtil.isValidTimezone", () => {
+  test("IANA zones moment knows are valid", () => {
+    expect(DayUptimeGraphUtil.isValidTimezone("UTC")).toBe(true);
+    expect(DayUptimeGraphUtil.isValidTimezone("America/New_York")).toBe(true);
+    expect(DayUptimeGraphUtil.isValidTimezone("Asia/Kolkata")).toBe(true);
+    // The legacy alias some ICU builds report for the same zone.
+    expect(DayUptimeGraphUtil.isValidTimezone("Asia/Calcutta")).toBe(true);
+  });
+
+  /*
+   * The timezone arrives on the wire. Anything that is not a zone must send
+   * the strip down its old path, never into moment with a bad name.
+   */
+  test("anything else is not", () => {
+    for (const value of [
+      "",
+      "   ",
+      "Not/AZone",
+      " UTC",
+      undefined,
+      null,
+      0,
+      330,
+      Number.NaN,
+      true,
+      {},
+      ["UTC"],
+    ]) {
+      expect(DayUptimeGraphUtil.isValidTimezone(value)).toBe(false);
+    }
+  });
+});
+
+describe("DayUptimeGraphUtil.getDays without a timezone", () => {
+  /*
+   * The dashboard's monitor page passes no timezone and must draw exactly
+   * what it drew before the fix, whatever zone the browser is in.
+   */
+  test("is the old local-day strip, bar for bar, for every pinned window", () => {
+    for (const window of getPinnedWindows()) {
+      expectSameDays(
+        DayUptimeGraphUtil.getDays({
+          startDate: window.startDate,
+          endDate: window.endDate,
+        }),
+        getDaysTheOldWay(window.startDate, window.endDate),
+      );
+    }
+  });
+
+  test("is the old strip for windows that are not a whole number of days", () => {
+    const windows: Array<[string, string]> = [
+      ["2026-09-01T23:00:00.000Z", "2026-09-22T01:00:00.000Z"],
+      ["2026-09-01T01:00:00.000Z", "2026-09-22T23:00:00.000Z"],
+      ["2026-02-10T08:15:00.000Z", "2026-05-11T19:45:00.000Z"],
+      ["2026-09-22T12:00:00.000Z", "2026-09-22T12:00:00.000Z"],
+    ];
+
+    for (const [start, end] of windows) {
+      const startDate: Date = new Date(start);
+      const endDate: Date = new Date(end);
+
+      expectSameDays(
+        DayUptimeGraphUtil.getDays({ startDate: startDate, endDate: endDate }),
+        getDaysTheOldWay(startDate, endDate),
+      );
+    }
+  });
+
+  test("an unusable timezone is the no-timezone path, not UTC", () => {
+    const window: PinnedWindow = getPinnedWindows()[0]!;
+
+    const expected: Array<UptimeGraphDay> = getDaysTheOldWay(
+      window.startDate,
+      window.endDate,
+    );
+
+    for (const timezone of [undefined, "", "   ", "Not/AZone", " UTC"]) {
+      expectSameDays(
+        DayUptimeGraphUtil.getDays({
+          startDate: window.startDate,
+          endDate: window.endDate,
+          timezone: timezone,
+        }),
+        expected,
+      );
+    }
+  });
+});
+
+describe("DayUptimeGraphUtil.getDays with timezone UTC", () => {
+  afterEach(() => {
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  /*
+   * The pairing the status page depends on: every bar a UTC day, today's
+   * bar holding the window end, and every server bucket - the first one
+   * clipped to the window start, the rest UTC midnights - in exactly one
+   * bar. The local-day strip the page drew before the fix breaks this in
+   * any zone off UTC (see the per-zone files for the exact failure).
+   */
+  for (const window of getPinnedWindows()) {
+    test(`pairs every bar with its own server bucket: ${window.name}`, () => {
+      expectUtcStripToPairWithServerBuckets(window);
+    });
+  }
+
+  test("does not depend on the zone the viewer picked in their settings", () => {
+    const window: PinnedWindow = getPinnedWindows()[4]!;
+
+    const asProcess: Array<UptimeGraphDay> = DayUptimeGraphUtil.getDays({
+      startDate: window.startDate,
+      endDate: window.endDate,
+      timezone: "UTC",
+    });
+
+    for (const viewer of [
+      Timezone.AmericaNew_York,
+      Timezone.AsiaTokyo,
+      Timezone.AsiaKolkata,
+      Timezone.PacificAuckland,
+    ]) {
+      OneUptimeDate.setUserTimezone(viewer);
+
+      expectSameDays(
+        DayUptimeGraphUtil.getDays({
+          startDate: window.startDate,
+          endDate: window.endDate,
+          timezone: "UTC",
+        }),
+        asProcess,
+      );
+    }
+  });
+
+  /*
+   * Calendar days, not 24-hour periods: two instants a millisecond apart on
+   * either side of a UTC midnight are on two dates, so two bars. (The
+   * no-zone path counts whole 24-hour spans between the two instants, so it
+   * can draw one bar for two dates; the zone path must not.)
+   */
+  test("counts calendar days rather than 24 hour spans", () => {
+    const days: Array<UptimeGraphDay> = DayUptimeGraphUtil.getDays({
+      startDate: new Date("2026-09-21T23:59:59.999Z"),
+      endDate: new Date("2026-09-22T00:00:00.000Z"),
+      timezone: "UTC",
+    });
+
+    expect(
+      days.map((day: UptimeGraphDay) => {
+        return day.startOfDay.toISOString();
+      }),
+    ).toEqual(["2026-09-21T00:00:00.000Z", "2026-09-22T00:00:00.000Z"]);
+
+    const wholeDay: Array<UptimeGraphDay> = DayUptimeGraphUtil.getDays({
+      startDate: new Date("2026-09-22T00:00:00.000Z"),
+      endDate: new Date("2026-09-22T23:59:59.999Z"),
+      timezone: "UTC",
+    });
+
+    expect(wholeDay).toHaveLength(1);
+    expect(wholeDay[0]!.startOfDay.toISOString()).toBe(
+      "2026-09-22T00:00:00.000Z",
+    );
+    expect(wholeDay[0]!.endOfDay.toISOString()).toBe(
+      "2026-09-22T23:59:59.999Z",
+    );
+  });
+
+  test("a window of one instant is one bar", () => {
+    const instant: Date = new Date("2026-09-22T15:42:07.123Z");
+
+    const days: Array<UptimeGraphDay> = DayUptimeGraphUtil.getDays({
+      startDate: instant,
+      endDate: instant,
+      timezone: "UTC",
+    });
+
+    expect(days).toHaveLength(1);
+    expect(days[0]!.date.toISOString()).toBe("2026-09-22T00:00:00.000Z");
+  });
+
+  /*
+   * Should never happen - the page computes start from end - but a window
+   * that ends before it starts must draw nothing rather than throw or draw
+   * a negative count. The no-zone path behaves the same way.
+   */
+  test("a window that ends before it starts draws no bars on either path", () => {
+    const startDate: Date = new Date("2026-09-22T12:00:00.000Z");
+
+    for (const endDate of [
+      new Date("2026-09-21T12:00:00.000Z"),
+      new Date("2026-09-20T12:00:00.000Z"),
+      new Date("2026-06-01T12:00:00.000Z"),
+    ]) {
+      expect(
+        DayUptimeGraphUtil.getDays({
+          startDate: startDate,
+          endDate: endDate,
+          timezone: "UTC",
+        }),
+      ).toEqual([]);
+
+      expect(
+        DayUptimeGraphUtil.getDays({ startDate: startDate, endDate: endDate }),
+      ).toEqual([]);
+    }
+  });
+});
+
+describeZoneStripAcrossDst("the machine's own zone");
+
+describe("DayUptimeGraphUtil.formatDayLabel", () => {
+  /*
+   * The viewer's zone is pinned with setUserTimezone in each case, so these
+   * hold whatever zone this process runs in.
+   */
+  afterEach(() => {
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  const UTC_MIDNIGHT: Date = new Date("2026-09-23T00:00:00.000Z");
+
+  test("a UTC bar read by a UTC viewer is the bare UTC date", () => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+    expect(
+      DayUptimeGraphUtil.formatDayLabel({
+        date: UTC_MIDNIGHT,
+        timezone: "UTC",
+      }),
+    ).toBe("Sep 23, 2026");
+  });
+
+  /*
+   * At 22:00 on Sep 22 in New York, today's bar is the UTC day Sep 23. It
+   * says so, rather than reading like a date from the future.
+   */
+  test("a UTC bar read from New York is the UTC date, marked as UTC", () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    const tenPmOnTheTwentySecond: Date = new Date("2026-09-23T02:00:00.000Z");
+
+    expect(
+      DayUptimeGraphUtil.formatDayLabel({
+        date: tenPmOnTheTwentySecond,
+        timezone: "UTC",
+      }),
+    ).toBe("Sep 23, 2026 (UTC)");
+
+    expect(
+      DayUptimeGraphUtil.formatDayLabel({ date: tenPmOnTheTwentySecond }),
+    ).toBe("Sep 22, 2026");
+  });
+
+  test("the marker appears for every viewer whose offset differs at that date", () => {
+    for (const viewer of [
+      Timezone.AmericaNew_York,
+      Timezone.AsiaTokyo,
+      Timezone.AsiaKolkata,
+      Timezone.PacificAuckland,
+    ]) {
+      OneUptimeDate.setUserTimezone(viewer);
+
+      expect(
+        DayUptimeGraphUtil.formatDayLabel({
+          date: UTC_MIDNIGHT,
+          timezone: "UTC",
+        }),
+      ).toBe("Sep 23, 2026 (UTC)");
+
+      expect(
+        DayUptimeGraphUtil.formatDayLabel({
+          date: new Date("2026-01-15T00:00:00.000Z"),
+          timezone: "UTC",
+        }),
+      ).toBe("Jan 15, 2026 (UTC)");
+    }
+  });
+
+  /*
+   * London is on UTC in winter and an hour off it in summer, and the marker
+   * follows the offset AT THE BAR'S DATE rather than today's.
+   */
+  test("a London viewer sees the marker in summer only", () => {
+    OneUptimeDate.setUserTimezone(Timezone.EuropeLondon);
+
+    expect(
+      DayUptimeGraphUtil.formatDayLabel({
+        date: new Date("2026-01-15T00:00:00.000Z"),
+        timezone: "UTC",
+      }),
+    ).toBe("Jan 15, 2026");
+
+    expect(
+      DayUptimeGraphUtil.formatDayLabel({
+        date: UTC_MIDNIGHT,
+        timezone: "UTC",
+      }),
+    ).toBe("Sep 23, 2026 (UTC)");
+  });
+
+  test("the marker is about the offset, not the zone's name", () => {
+    // Abidjan is a different zone that is always on UTC.
+    OneUptimeDate.setUserTimezone(Timezone.AfricaAbidjan);
+
+    expect(
+      DayUptimeGraphUtil.formatDayLabel({
+        date: UTC_MIDNIGHT,
+        timezone: "UTC",
+      }),
+    ).toBe("Sep 23, 2026");
+
+    // Toronto keeps New York's offsets all year.
+    OneUptimeDate.setUserTimezone(Timezone.AmericaToronto);
+
+    expect(
+      DayUptimeGraphUtil.formatDayLabel({
+        date: new Date("2026-01-15T05:00:00.000Z"),
+        timezone: "America/New_York",
+      }),
+    ).toBe("Jan 15, 2026");
+  });
+
+  test("a bar drawn in another zone is dated in that zone and named with its abbreviation at that date", () => {
+    OneUptimeDate.setUserTimezone(Timezone.AsiaTokyo);
+
+    // New York midnights: EST in winter, EDT in summer.
+    expect(
+      DayUptimeGraphUtil.formatDayLabel({
+        date: new Date("2026-01-15T05:00:00.000Z"),
+        timezone: "America/New_York",
+      }),
+    ).toBe("Jan 15, 2026 (EST)");
+
+    expect(
+      DayUptimeGraphUtil.formatDayLabel({
+        date: new Date("2026-07-15T04:00:00.000Z"),
+        timezone: "America/New_York",
+      }),
+    ).toBe("Jul 15, 2026 (EDT)");
+
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+    // Kolkata's Sep 23 starts at 18:30Z on Sep 22.
+    expect(
+      DayUptimeGraphUtil.formatDayLabel({
+        date: new Date("2026-09-22T18:30:00.000Z"),
+        timezone: "Asia/Kolkata",
+      }),
+    ).toBe("Sep 23, 2026 (IST)");
+  });
+
+  test("without a usable timezone the label is the long-standing local one", () => {
+    for (const viewer of [null, Timezone.AsiaTokyo, Timezone.AmericaNew_York]) {
+      OneUptimeDate.setUserTimezone(viewer);
+
+      for (const window of getPinnedWindows()) {
+        const expected: string =
+          OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            window.endDate,
+            true,
+          );
+
+        for (const timezone of [undefined, "", "Not/AZone"]) {
+          expect(
+            DayUptimeGraphUtil.formatDayLabel({
+              date: window.endDate,
+              timezone: timezone,
+            }),
+          ).toBe(expected);
+        }
+      }
+    }
+
+    // And that local label follows the viewer's chosen zone.
+    OneUptimeDate.setUserTimezone(Timezone.AsiaTokyo);
+
+    expect(
+      DayUptimeGraphUtil.formatDayLabel({
+        date: new Date("2026-09-22T20:00:00.000Z"),
+      }),
+    ).toBe("Sep 23, 2026");
   });
 });

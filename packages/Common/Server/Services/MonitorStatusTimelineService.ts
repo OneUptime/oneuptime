@@ -114,6 +114,14 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
    *    and double-count that span. This mirrors what
    *    UptimeUtil.getMonitorEventsForId already does client-side.
    *
+   *    "Next" is `ORDER BY startsAt, endsAt NULLS LAST`. With startsAt alone
+   *    an exact tie is left in whatever order the plan produces, and when the
+   *    open row comes first its LEAD is the tied row's start - its own start -
+   *    so the monitor's CURRENT status is cut to zero length and today reads
+   *    as no data. Putting the open row last on a tie is what
+   *    getRollingUptimeTotals and UptimeUtil.compareTimelinesChronologically
+   *    do, so all three agree on the same rows.
+   *
    * 2. Periods are split into days ARITHMETICALLY (`generate_series` over the
    *    days a period touches) and then hash-aggregated, rather than joined
    *    against a bucket grid. Both give the same answer; the join does not
@@ -159,6 +167,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       monitors: [],
       isComplete: true,
       completeFrom: null,
+      timezone: data.timezone || "UTC",
     };
 
     if (data.monitorIds.length === 0) {
@@ -189,7 +198,8 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
                  COALESCE(
                    t."endsAt",
                    LEAD(t."startsAt") OVER (
-                     PARTITION BY t."monitorId" ORDER BY t."startsAt"
+                     PARTITION BY t."monitorId"
+                     ORDER BY t."startsAt", t."endsAt" NULLS LAST
                    ),
                    p.eff_end
                  ),
@@ -271,7 +281,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       data.timezone || "UTC",
     ]);
 
-    return Service.toUptimeDailyAggregate(rows);
+    return Service.toUptimeDailyAggregate(rows, data.timezone || "UTC");
   }
 
   /*
@@ -289,6 +299,12 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       monitorStatusId: string | null;
       seconds: string | number;
     }>,
+    /*
+     * The zone the SQL cut the day buckets in. It travels with the buckets
+     * so a client draws its bars on the same day boundaries - see
+     * UptimeDailyAggregate.timezone.
+     */
+    timezone: string = "UTC",
   ): UptimeDailyAggregate {
     const byMonitor: Map<string, Map<number, UptimeDayBucket>> = new Map();
 
@@ -357,6 +373,7 @@ export class Service extends DatabaseService<MonitorStatusTimeline> {
       monitors: monitors,
       isComplete: true,
       completeFrom: null,
+      timezone: timezone,
     };
   }
 

@@ -1,12 +1,13 @@
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
-import { describe, expect, jest, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import UptimeBarDayModal from "../../../../UI/Components/MonitorGraphs/UptimeBarDayModal";
 import { StatusDuration } from "../../../../UI/Components/Graphs/UptimeDaySummary";
 import { Green, Red } from "../../../../Types/BrandColors";
 import Color from "../../../../Types/Color";
 import OneUptimeDate from "../../../../Types/Date";
+import Timezone from "../../../../Types/Timezone";
 import UptimeBarTooltipIncident from "../../../../Types/Monitor/UptimeBarTooltipIncident";
 import UptimeHistoryLabels, {
   DefaultUptimeHistoryLabels,
@@ -298,5 +299,171 @@ describe("UptimeBarDayModal - translation", () => {
     render(<UptimeBarDayModal date={DAY} incidents={[]} onClose={() => {}} />);
 
     expect(screen.getByText("No incidents")).toBeInTheDocument();
+  });
+});
+
+/*
+ * The day is named in the zone its bar was drawn in.
+ *
+ * The status page's uptime strip is drawn on UTC days (its readings are cut
+ * on UTC days, one cached payload for every visitor), so the bar a New York
+ * visitor opens at eight in the evening on Sep 21 stands for Sep 22 UTC. The
+ * dialog has to name that same day, and say it is a UTC day, or it titles the
+ * day with a date the bar does not stand for.
+ *
+ * The visitor's zone is pinned with setUserTimezone so these read the same on
+ * any machine. Every test that passes `timezone` fails on the pre-fix dialog:
+ * the prop did not exist, and the title was always the visitor's local date.
+ */
+describe("UptimeBarDayModal - the day is named in the zone its bar was drawn in", () => {
+  const UTC_MIDNIGHT: Date = new Date("2026-09-22T00:00:00.000Z");
+
+  afterEach(() => {
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  function renderDay(date: Date, timezone?: string | undefined): void {
+    render(
+      <UptimeBarDayModal
+        date={date}
+        timezone={timezone}
+        incidents={[]}
+        hasEvents={true}
+        uptimePercent={100}
+        statusDurations={[UPTIME]}
+        onClose={() => {}}
+      />,
+    );
+  }
+
+  test("a UTC day opened from New York is titled with the UTC date and says it is UTC", () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    renderDay(UTC_MIDNIGHT, "UTC");
+
+    expect(screen.getByText("Sep 22, 2026 (UTC)")).toBeInTheDocument();
+    expect(screen.queryByText("Sep 21, 2026")).not.toBeInTheDocument();
+  });
+
+  test("without a zone, New York sees exactly the old local title", () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    renderDay(UTC_MIDNIGHT);
+
+    // 00:00 UTC on Sep 22 is 20:00 on Sep 21 in New York.
+    expect(screen.getByText("Sep 21, 2026")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+          UTC_MIDNIGHT,
+          true,
+        ),
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("a UTC day opened from Tokyo is titled with the UTC date and says it is UTC", () => {
+    OneUptimeDate.setUserTimezone(Timezone.AsiaTokyo);
+
+    /*
+     * 09:00 in Tokyo, the same date - but nine hours off UTC, so the day is
+     * still marked as the UTC day it is.
+     */
+    renderDay(UTC_MIDNIGHT, "UTC");
+
+    expect(screen.getByText("Sep 22, 2026 (UTC)")).toBeInTheDocument();
+  });
+
+  test("a visitor in UTC gets the UTC date with no zone on it", () => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+    renderDay(UTC_MIDNIGHT, "UTC");
+
+    expect(screen.getByText("Sep 22, 2026")).toBeInTheDocument();
+    expect(screen.queryByText("Sep 22, 2026 (UTC)")).not.toBeInTheDocument();
+  });
+
+  /*
+   * The suffix follows the offset, not the name: London is on UTC's offset in
+   * winter, so a UTC day needs no explanation there; in summer London is an
+   * hour ahead, and it does.
+   */
+  test("London in winter shares UTC's offset, so the UTC day is left unmarked", () => {
+    OneUptimeDate.setUserTimezone(Timezone.EuropeLondon);
+
+    renderDay(new Date("2026-01-15T00:00:00.000Z"), "UTC");
+
+    expect(screen.getByText("Jan 15, 2026")).toBeInTheDocument();
+    expect(screen.queryByText("Jan 15, 2026 (UTC)")).not.toBeInTheDocument();
+  });
+
+  test("London in summer is an hour ahead of UTC, so the UTC day is marked", () => {
+    OneUptimeDate.setUserTimezone(Timezone.EuropeLondon);
+
+    renderDay(new Date("2026-07-15T00:00:00.000Z"), "UTC");
+
+    expect(screen.getByText("Jul 15, 2026 (UTC)")).toBeInTheDocument();
+  });
+
+  test("a bar drawn in the visitor's own zone is titled with no zone on it", () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    // New York midnight on Sep 22.
+    renderDay(new Date("2026-09-22T04:00:00.000Z"), "America/New_York");
+
+    expect(screen.getByText("Sep 22, 2026")).toBeInTheDocument();
+    expect(screen.queryByText(/\(EDT\)/)).not.toBeInTheDocument();
+  });
+
+  test("the zone's abbreviation is the one in force on that date", () => {
+    OneUptimeDate.setUserTimezone(Timezone.UTC);
+
+    renderDay(new Date("2026-01-15T05:00:00.000Z"), "America/New_York");
+
+    expect(screen.getByText("Jan 15, 2026 (EST)")).toBeInTheDocument();
+
+    cleanup();
+
+    renderDay(new Date("2026-07-15T04:00:00.000Z"), "America/New_York");
+
+    expect(screen.getByText("Jul 15, 2026 (EDT)")).toBeInTheDocument();
+  });
+
+  test.each(["Not/A_Zone", "", "   "])(
+    "an unusable zone %p is ignored and the title is the old local one",
+    (timezone: string) => {
+      OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+      renderDay(UTC_MIDNIGHT, timezone);
+
+      expect(screen.getByText("Sep 21, 2026")).toBeInTheDocument();
+    },
+  );
+
+  test("the zone names the day only: an incident's time is still the visitor's own", () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    const declaredAt: Date = new Date("2026-09-22T01:30:00.000Z");
+
+    render(
+      <UptimeBarDayModal
+        date={UTC_MIDNIGHT}
+        timezone="UTC"
+        incidents={[makeIncident({ declaredAt: declaredAt })]}
+        onClose={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("Sep 22, 2026 (UTC)")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        new RegExp(
+          OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+            declaredAt,
+            false,
+          ).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+        ),
+      ),
+    ).toBeInTheDocument();
   });
 });

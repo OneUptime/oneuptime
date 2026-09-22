@@ -1,6 +1,7 @@
 import Modal, { ModalWidth } from "../Modal/Modal";
 import UptimeDaySummary, { StatusDuration } from "../Graphs/UptimeDaySummary";
 import OneUptimeDate from "../../../Types/Date";
+import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import UptimeHistoryLabels, {
   DefaultUptimeHistoryLabels,
@@ -22,6 +23,11 @@ export interface ComponentProps {
   statusDurations?: Array<StatusDuration> | undefined;
   /* Defaults to English. The status page passes translated strings. */
   labels?: UptimeHistoryLabels | undefined;
+  /*
+   * The zone the day was drawn in, so the dialog names the same day as the
+   * bar that opened it. The browser's own zone when absent.
+   */
+  timezone?: string | undefined;
 }
 
 /*
@@ -36,8 +42,10 @@ export interface ComponentProps {
 const UptimeBarDayModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const dateStr: string =
-    OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(props.date, true);
+  const dateStr: string = DayUptimeGraphUtil.formatDayLabel({
+    date: props.date,
+    timezone: props.timezone,
+  });
 
   const labels: UptimeHistoryLabels =
     props.labels || DefaultUptimeHistoryLabels;
