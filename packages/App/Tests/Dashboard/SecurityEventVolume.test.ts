@@ -24,7 +24,6 @@ import {
   buildSecurityEventVolumeAggregateBy,
   buildSecurityEventVolumeFromResult,
   getSecurityEventVolumeSeries,
-  getSecurityEventVolumeZoomRange,
   intervalForWindow,
   toSecurityEventVolumeSeverity,
 } from "../../FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventVolume";
@@ -555,83 +554,5 @@ describe("buildSecurityEventVolume", () => {
         ...window,
       }).total,
     ).toBe(0);
-  });
-});
-
-describe("getSecurityEventVolumeZoomRange", () => {
-  const FIFTEEN_MINUTES: number = 15 * MINUTE_MS;
-
-  test("keeps the last bucket the drag covered, not just its start", () => {
-    expect(
-      getSecurityEventVolumeZoomRange({
-        startDate: new Date("2026-09-17T10:00:00.000Z"),
-        endDate: new Date("2026-09-17T11:00:00.000Z"),
-        intervalMs: FIFTEEN_MINUTES,
-      }),
-    ).toEqual({
-      startDate: new Date("2026-09-17T10:00:00.000Z"),
-      endDate: new Date("2026-09-17T11:15:00.000Z"),
-    });
-  });
-
-  test("a drag that stays in one bucket zooms into that bucket, not a zero-width window", () => {
-    const zoomed: { startDate: Date; endDate: Date } =
-      getSecurityEventVolumeZoomRange({
-        startDate: new Date("2026-09-17T10:00:00.000Z"),
-        endDate: new Date("2026-09-17T10:00:00.000Z"),
-        intervalMs: FIFTEEN_MINUTES,
-      });
-
-    expect(zoomed.endDate.getTime() - zoomed.startDate.getTime()).toBe(
-      FIFTEEN_MINUTES,
-    );
-  });
-
-  test("a right-to-left drag zooms the same as left-to-right", () => {
-    expect(
-      getSecurityEventVolumeZoomRange({
-        startDate: new Date("2026-09-17T11:00:00.000Z"),
-        endDate: new Date("2026-09-17T10:00:00.000Z"),
-        intervalMs: FIFTEEN_MINUTES,
-      }),
-    ).toEqual(
-      getSecurityEventVolumeZoomRange({
-        startDate: new Date("2026-09-17T10:00:00.000Z"),
-        endDate: new Date("2026-09-17T11:00:00.000Z"),
-        intervalMs: FIFTEEN_MINUTES,
-      }),
-    );
-  });
-
-  test("never runs past the end of the window it zooms out of", () => {
-    expect(
-      getSecurityEventVolumeZoomRange({
-        startDate: new Date("2026-09-17T12:30:00.000Z"),
-        endDate: new Date("2026-09-17T12:45:00.000Z"),
-        intervalMs: FIFTEEN_MINUTES,
-        windowEndDate: new Date("2026-09-17T12:52:10.000Z"),
-      }).endDate,
-    ).toEqual(new Date("2026-09-17T12:52:10.000Z"));
-  });
-
-  test("ignores a window end that would leave nothing to show", () => {
-    expect(
-      getSecurityEventVolumeZoomRange({
-        startDate: new Date("2026-09-17T12:30:00.000Z"),
-        endDate: new Date("2026-09-17T12:45:00.000Z"),
-        intervalMs: FIFTEEN_MINUTES,
-        windowEndDate: new Date("2026-09-17T12:00:00.000Z"),
-      }).endDate,
-    ).toEqual(new Date("2026-09-17T13:00:00.000Z"));
-  });
-
-  test("with no bucket size known it zooms to exactly the dragged labels", () => {
-    expect(
-      getSecurityEventVolumeZoomRange({
-        startDate: new Date("2026-09-17T10:00:00.000Z"),
-        endDate: new Date("2026-09-17T11:00:00.000Z"),
-        intervalMs: 0,
-      }).endDate,
-    ).toEqual(new Date("2026-09-17T11:00:00.000Z"));
   });
 });

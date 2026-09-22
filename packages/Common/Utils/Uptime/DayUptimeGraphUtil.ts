@@ -16,6 +16,19 @@
 import UptimeHistoryLabels, {
   DefaultUptimeHistoryLabels,
 } from "../../Types/Monitor/UptimeHistoryLabels";
+import OneUptimeDate from "../../Types/Date";
+import Timezone from "../../Types/Timezone";
+import moment from "moment-timezone";
+
+/*
+ * One bar of the strip: the calendar day it stands for, as instants.
+ */
+export interface UptimeGraphDay {
+  /* The instant the bar is labelled and reported by. */
+  date: Date;
+  startOfDay: Date;
+  endOfDay: Date;
+}
 
 export default class DayUptimeGraphUtil {
   /* How far PageUp / PageDown jump. A week reads naturally on a daily strip. */
@@ -181,6 +194,158 @@ export default class DayUptimeGraphUtil {
     return this.interpolate(labels.graphLabel, {
       total: String(Math.max(data.dayCount, 0)),
     });
+  }
+
+  public static isValidTimezone(timezone: unknown): timezone is string {
+    return (
+      typeof timezone === "string" &&
+      timezone.trim() !== "" &&
+      moment.tz.zone(timezone) !== null
+    );
+  }
+
+  /*
+   * The calendar days the strip draws, oldest first, one per bar.
+   *
+   * Without a zone this is the strip's long-standing behaviour, unchanged:
+   * the browser's own days, stepped from startDate.
+   *
+   * With a zone, the days are that zone's days. A strip painted from server
+   * readings must pass the zone the server cut its buckets in, or a bar and
+   * the reading it is painted from describe different spans of time. The
+   * status page's buckets are UTC days, shared by every visitor through one
+   * cached response. Drawn on a New York visitor's local days, each UTC
+   * bucket started at 20:00 the PREVIOUS local day, so every bar showed the
+   * next day's reading and today's bar had no reading at all.
+   *
+   * The zone path steps calendar days in the zone rather than adding 24
+   * hours, so a DST day is one bar of 23 or 25 hours, as the server's bucket
+   * for it is.
+   */
+  public static getDays(data: {
+    startDate: Date;
+    endDate: Date;
+    timezone?: string | undefined;
+  }): Array<UptimeGraphDay> {
+    const days: Array<UptimeGraphDay> = [];
+
+    if (!this.isValidTimezone(data.timezone)) {
+      const count: number = OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
+        data.startDate,
+        data.endDate,
+      );
+
+      for (let i: number = 0; i < count; i++) {
+        const date: Date = OneUptimeDate.getSomeDaysAfterDate(
+          data.startDate,
+          i,
+        );
+
+        days.push({
+          date: date,
+          startOfDay: OneUptimeDate.getStartOfDay(date),
+          endOfDay: OneUptimeDate.getEndOfDay(date),
+        });
+      }
+
+      return days;
+    }
+
+    const timezone: string = data.timezone;
+
+    const firstDay: Date = OneUptimeDate.getStartOfDay(
+      data.startDate,
+      timezone,
+    );
+    const lastDay: Date = OneUptimeDate.getStartOfDay(data.endDate, timezone);
+
+    /*
+     * Rounded, because a span of calendar days that crosses a DST change is
+     * a whole number of days give or take an hour, never exactly.
+     */
+    const count: number =
+      Math.round(
+        (lastDay.getTime() - firstDay.getTime()) / (24 * 60 * 60 * 1000),
+      ) + 1;
+
+    /*
+     * Stepped from local MIDDAY, not midnight. In a zone that changes its
+     * clocks at midnight (America/Santiago, America/Havana, Asia/Beirut) that
+     * day has no 00:00, and stepping a midnight onto it keeps the old offset
+     * and lands on 23:00 of the PREVIOUS day - which would draw that day twice
+     * and skip the next. Midday is never in a DST gap. addRemoveHours adds
+     * absolute hours, so the anchor is 11:00-13:00 local on firstDay's own
+     * date even when that date is 23 or 25 hours long.
+     */
+    const midday: Date = OneUptimeDate.addRemoveHours(firstDay, 12);
+
+    const getStartOfNthDay: (n: number) => Date = (n: number): Date => {
+      return OneUptimeDate.getStartOfDay(
+        OneUptimeDate.addRemoveDays(midday, n, timezone),
+        timezone,
+      );
+    };
+
+    for (let i: number = 0; i < count; i++) {
+      const startOfDay: Date = getStartOfNthDay(i);
+
+      days.push({
+        date: startOfDay,
+        startOfDay: startOfDay,
+        /*
+         * The next day's start less a millisecond, not endOf("day"): on a
+         * day whose clock repeats its last hour, endOf("day") is the FIRST
+         * 23:59:59.999 and the repeated hour would belong to no bar.
+         */
+        endOfDay: new Date(getStartOfNthDay(i + 1).getTime() - 1),
+      });
+    }
+
+    return days;
+  }
+
+  /*
+   * The date a bar is labelled with, in the zone its day was drawn in.
+   *
+   * When that zone draws a different calendar day from the visitor's own -
+   * a UTC strip read from New York - the label says which zone it is, so
+   * "Sep 23" at eight in the evening on Sep 22 reads as the UTC date it is
+   * rather than as a mistake. When the two agree on the day (a UTC strip read
+   * in London in winter), the label is left alone.
+   */
+  public static formatDayLabel(data: {
+    date: Date;
+    timezone?: string | undefined;
+  }): string {
+    if (!this.isValidTimezone(data.timezone)) {
+      return OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
+        data.date,
+        true,
+      );
+    }
+
+    const label: string =
+      OneUptimeDate.getDateAsCustomFormattedStringInTimezone({
+        date: data.date,
+        format: "MMM DD, YYYY",
+        timezone: data.timezone,
+      });
+
+    const viewerTimezone: string = OneUptimeDate.getCurrentTimezone();
+
+    const barOffset: number = moment(data.date).tz(data.timezone).utcOffset();
+    const viewerOffset: number = this.isValidTimezone(viewerTimezone)
+      ? moment(data.date).tz(viewerTimezone).utcOffset()
+      : barOffset;
+
+    if (barOffset === viewerOffset) {
+      return label;
+    }
+
+    return `${label} (${OneUptimeDate.getZoneAbbrByTimezone(
+      data.timezone as Timezone,
+      data.date,
+    )})`;
   }
 
   /*

@@ -75,6 +75,15 @@ export default interface DatabaseMonitorResponse {
    * checkpoint counters out of pg_stat_bgwriter in 17, for example).
    */
   engineVersion?: string | undefined;
+  /*
+   * Microsoft SQL Server only: the platform the probe detected from
+   * SERVERPROPERTY('EngineEdition') - "SQL Server", "Azure SQL Database",
+   * "Azure SQL Managed Instance". Kept apart from engineVersion, which
+   * criteria expressions and templates already read as the raw version, so
+   * the summary can show "Azure SQL Database 12.0.2000.8" without changing
+   * that value under anyone's feet.
+   */
+  enginePlatform?: string | undefined;
   // Sanitized connection error, present only when isOnline is false.
   connectionError: string | null;
   isTimeout?: boolean | undefined;

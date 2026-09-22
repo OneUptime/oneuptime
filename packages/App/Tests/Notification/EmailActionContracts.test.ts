@@ -44,6 +44,7 @@ const DESTINATION_KEYS: ReadonlyArray<string> = [
   "viewAIAgentsLink",
   "viewProbeLink",
   "viewProbesLink",
+  "viewMonitorsLink",
   "sloViewLink",
   "acknowledgeIncidentLink",
   "acknowledgeAlertLink",
@@ -437,6 +438,12 @@ const SINGLE_ACTION_CONTRACTS: Array<
     "View on Dashboard",
     "monitorViewLink",
   ],
+  [
+    "MonitorsAffectedByProbeStatus",
+    "viewMonitorsLink",
+    "View Monitors",
+    "viewMonitorsLink",
+  ],
   ["NotificationRollup", "projectHomeLink", "View Your Project", null],
   [
     "PostgresHealthWarning",
@@ -759,6 +766,47 @@ describe("invoice actions are independently available", () => {
   test("omits both controls when neither destination is supplied", () => {
     expectNavigation(
       render("Invoice", { invoicePdfUrl: undefined, dashboardLink: undefined }),
+      [],
+      [],
+    );
+  });
+});
+
+/*
+ * The grouped probe email names its action for the direction of the change:
+ * a disconnect opens the list of monitors that lost their probes, a reconnect
+ * the monitor list. Its per-monitor rows link each monitor's own page and are
+ * neither a primary action nor a copyable fallback.
+ */
+describe("the grouped probe email labels its action for the direction", () => {
+  test.each([
+    ["true", "View Affected Monitors"],
+    ["false", "View Monitors"],
+  ] as Array<[string, string]>)(
+    "isProbeDisconnected=%s uses %s",
+    (isProbeDisconnected: string, label: string) => {
+      expectNavigation(
+        render("MonitorsAffectedByProbeStatus", {
+          isProbeDisconnected,
+          monitors: [
+            {
+              monitorName: "Checkout API",
+              monitorViewLink: destination("monitorViewLink"),
+            },
+          ],
+        }),
+        [action("viewMonitorsLink", label)],
+        [copyable("viewMonitorsLink")],
+      );
+    },
+  );
+
+  test("omits both controls when the destination is absent", () => {
+    expectNavigation(
+      render("MonitorsAffectedByProbeStatus", {
+        isProbeDisconnected: "true",
+        viewMonitorsLink: undefined,
+      }),
       [],
       [],
     );

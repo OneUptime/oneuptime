@@ -6,12 +6,20 @@
 # hostPath volumes, no host access) and forwards them to OneUptime via OTLP.
 #
 
-FROM public.ecr.aws/docker/library/node:26-bookworm-slim
+# Alpine, like the App, Home and TestServer images. This agent is plain
+# JavaScript (no native modules) and needs nothing from the OS beyond CA
+# certificates and tini, and on bookworm-slim that base alone carried ~240
+# OS-package CVEs with no Debian fix (glibc, perl-base, util-linux, systemd
+# libraries, ...), none of it used here.
+FROM public.ecr.aws/docker/library/node:26-alpine3.24
 
-# Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
-# brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
-# that the base image's npm still carries.
-RUN npm install -g npm@latest
+# Update npm to npm@latest with every dependency it bundles (tar, undici,
+# brace-expansion, ip-address, ...) reinstalled at the newest version npm's own
+# ranges accept. `npm install -g npm@latest` alone ships the dependencies npm
+# was packed with, and scanners flagged them in every image. See
+# Scripts/Docker/UpdateNpmCli.js.
+COPY ./Scripts/Docker/UpdateNpmCli.js /tmp/UpdateNpmCli.js
+RUN node /tmp/UpdateNpmCli.js && rm /tmp/UpdateNpmCli.js
 
 # Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
 # the bottom so the npm ci / compile layers stay cacheable across commits and
@@ -31,27 +39,28 @@ COPY ./packages/Common/SslCertificates /usr/local/share/ca-certificates
 {{- if file.Exists "SslCertificates" }}
 COPY ./SslCertificates /usr/local/share/ca-certificates
 {{- end }}
-RUN apt-get update \
-    && apt-get upgrade -y \
-    && apt-get install -y --no-install-recommends ca-certificates tini \
-    && update-ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+# `apk upgrade` pulls in Alpine security fixes published since the base
+# image was built; --no-cache keeps the apk index out of the layer.
+RUN apk upgrade --no-cache \
+    && apk add --no-cache ca-certificates tini \
+    && update-ca-certificates
 
 ENV PRODUCTION=true
 
 WORKDIR /usr/src/app
 COPY ./agents/KubernetesLogTailer/package*.json /usr/src/app/
-# Uses node:*-slim default cache path (~/.npm) rather than the /tmp/npm
+# Uses the node image's default cache path (~/.npm) rather than the /tmp/npm
 # convention the other images set — npm config was never customized here.
 RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --prefer-offline
 
-# The node:*-slim base image already ships a non-root `node` user at UID/GID
-# 1000. Reuse it rather than creating our own (creating a second user with
-# GID 1000 fails with `groupadd: GID '1000' already exists`). UID 1000 is
-# what the Helm chart's securityContext.runAsUser requests.
+# The node base image already ships a non-root `node` user at UID/GID 1000.
+# Reuse it rather than creating our own (a second user with GID 1000 cannot be
+# created). UID 1000 is what the Helm chart's securityContext.runAsUser
+# requests.
 RUN chown -R node:node /usr/src/app
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
+# Alpine's tini package installs the binary at /sbin/tini.
+ENTRYPOINT ["/sbin/tini", "--"]
 
 {{ if eq .Env.ENVIRONMENT "development" }}
 USER node

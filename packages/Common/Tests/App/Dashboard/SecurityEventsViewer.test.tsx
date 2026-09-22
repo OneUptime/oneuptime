@@ -906,6 +906,37 @@ describe("the window", () => {
     });
 
     expect(urlParams().get("start")).toBe("2026-09-18T10:00:00.000Z");
+    // Through the END of the last 15-minute bucket dragged over - once.
+    expect(urlParams().get("end")).toBe("2026-09-18T10:30:00.000Z");
+  });
+
+  /*
+   * Issue #3914: a click on one bar has to open that bar's events, not a
+   * window zero seconds wide (or, widened twice, two buckets).
+   */
+  test("clicking one bar zooms into exactly that bar's bucket", async () => {
+    renderViewer();
+    await waitForLoad();
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("bucket-2026-09-18T10:15:00.000Z"),
+      ).toBeInTheDocument();
+    });
+
+    const bar: HTMLElement = screen.getByTestId(
+      "bucket-2026-09-18T10:15:00.000Z",
+    );
+
+    fireEvent.mouseDown(bar);
+    fireEvent.mouseUp(bar);
+
+    await waitFor(() => {
+      expect(urlParams().get("range")).toBe(TimeRange.CUSTOM);
+    });
+
+    expect(urlParams().get("start")).toBe("2026-09-18T10:15:00.000Z");
+    expect(urlParams().get("end")).toBe("2026-09-18T10:30:00.000Z");
   });
 
   test("Refresh re-reads a relative window from now", async () => {

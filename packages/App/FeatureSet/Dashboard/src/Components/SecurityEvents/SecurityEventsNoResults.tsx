@@ -10,6 +10,13 @@ import { getTimeRangeCovering } from "./SecurityEventsTimeRange";
 export const SECURITY_EVENTS_NO_RESULTS_ID: string =
   "security-events-no-results";
 
+/*
+ * Compact table padding. The list card has no padding of its own, so on a
+ * phone the text sits flush against its border without a side gutter; from md
+ * up the spacing is as it was.
+ */
+const PADDING_CLASS_NAME: string = "px-4 py-4 md:px-0";
+
 export interface ComponentProps {
   /*
    * When the project's newest event arrived, if that is known. Leave it unset
@@ -53,7 +60,7 @@ const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
       <EmptyState
         id={SECURITY_EVENTS_NO_RESULTS_ID}
         icon={IconProp.Filter}
-        paddingClassName="py-4"
+        paddingClassName={PADDING_CLASS_NAME}
         title="No security events match these filters"
         description="Events have arrived in this time range, but none of them match the filters applied to the table. Clear or loosen a filter to see them."
       />
@@ -65,7 +72,7 @@ const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
       <EmptyState
         id={SECURITY_EVENTS_NO_RESULTS_ID}
         icon={IconProp.Search}
-        paddingClassName="py-4"
+        paddingClassName={PADDING_CLASS_NAME}
         title="No security events in this time range"
         description="Try a wider time range, or clear the filters applied to the table."
       />
@@ -81,7 +88,7 @@ const SecurityEventsNoResults: FunctionComponent<ComponentProps> = (
     <EmptyState
       id={SECURITY_EVENTS_NO_RESULTS_ID}
       icon={IconProp.Clock}
-      paddingClassName="py-4"
+      paddingClassName={PADDING_CLASS_NAME}
       title="No security events in this time range"
       description={`The most recent security event arrived ${OneUptimeDate.fromNow(
         latest,

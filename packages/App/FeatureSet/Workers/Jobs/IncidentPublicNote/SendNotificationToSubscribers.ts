@@ -626,6 +626,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                   body: compiledBody,
                 },
                 subject: compiledSubject,
+                isSubjectLiteral: true,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(
@@ -674,6 +675,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                     ),
                 },
                 subject: copy.emailSubjectPrefix + incident.title,
+                isSubjectLiteral: true,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(

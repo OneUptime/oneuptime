@@ -314,6 +314,17 @@ describe("SecurityEventsEmptyState", () => {
       expect(root()).not.toHaveClass("pb-52");
     });
 
+    /*
+     * The list card has no padding of its own, so without a side gutter the
+     * text and the cards would sit flush against its border on a phone. The
+     * gutter only widens from sm up.
+     */
+    test("keeps a side gutter inside the list card on a phone", () => {
+      renderEmptyState();
+
+      expect(root()).toHaveClass("px-3", "sm:px-6");
+    });
+
     test("headings read as one outline: the title, then each card's title", () => {
       renderEmptyState();
 

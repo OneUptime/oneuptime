@@ -1274,15 +1274,18 @@ export class Service extends DatabaseService<StatusPage> {
               // templateType omitted => body is compiled as a Handlebars string.
               body: customReportEmailTemplate!.templateBody!,
               vars: vars,
+              // A custom subject is a Handlebars template, like the body.
               subject: customReportEmailTemplate!.emailSubject
                 ? customReportEmailTemplate!.emailSubject
                 : "[Report] " + statusPageName,
+              isSubjectLiteral: !customReportEmailTemplate!.emailSubject,
             }
           : {
               toEmail: email,
               templateType: EmailTemplateType.StatusPageSubscriberReport,
               vars: vars,
               subject: "[Report] " + statusPageName,
+              isSubjectLiteral: true,
             },
         {
           mailServer: ProjectSMTPConfigService.toEmailServer(

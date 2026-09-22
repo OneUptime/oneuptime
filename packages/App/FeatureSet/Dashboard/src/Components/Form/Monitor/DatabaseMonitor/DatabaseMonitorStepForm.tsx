@@ -10,6 +10,11 @@ import {
 import SqlDatabaseType, {
   SqlDatabaseTypeUtil,
 } from "Common/Types/Monitor/SqlDatabaseType";
+import {
+  AZURE_SQL_DATABASE_MONITORING_GRANT,
+  AZURE_SQL_DATABASE_SERVER_STATE_READER_GRANT,
+  SQL_SERVER_MONITORING_GRANT,
+} from "Common/Types/Monitor/DatabaseMonitor/SqlServerPlatform";
 import Input, { InputType } from "Common/UI/Components/Input/Input";
 import Toggle from "Common/UI/Components/Toggle/Toggle";
 import Dropdown, {
@@ -85,6 +90,11 @@ const getPrivilegeHint: GetPrivilegeHintFunction = (
       return "Needs the PROCESS privilege.";
     }
 
+    // SHOW REPLICA STATUS raises 1227 without it, on a primary as well.
+    if (group === DatabaseMetricGroup.Replication) {
+      return "Needs the REPLICATION CLIENT privilege.";
+    }
+
     if (
       group === DatabaseMetricGroup.Connections ||
       group === DatabaseMetricGroup.Locks
@@ -95,11 +105,25 @@ const getPrivilegeHint: GetPrivilegeHintFunction = (
     return "Readable by any login that can connect.";
   }
 
+  /*
+   * Only database size really is readable by any login: log space and
+   * tempdb free space are DMVs like the rest, and SQL Server refuses them
+   * outright without the grant (issue #3913).
+   */
   if (group === DatabaseMetricGroup.Storage) {
-    return "Readable by any login that can connect.";
+    return "Database size is readable by any login that can connect; log space and tempdb free space need VIEW SERVER STATE (on Azure SQL Database, the Azure grants above).";
   }
 
-  return "Needs VIEW SERVER STATE.";
+  if (group === DatabaseMetricGroup.Replication) {
+    return "Needs VIEW SERVER STATE. Not collected on Azure SQL Database, which has no sys.dm_hadr_database_replica_states.";
+  }
+
+  /*
+   * "The Azure grants above" rather than one Azure grant: which one works
+   * depends on the service tier (VIEW DATABASE STATE is not enough on
+   * Basic, S0, S1 or an elastic pool), and the block above says so.
+   */
+  return "Needs VIEW SERVER STATE (on Azure SQL Database, the Azure grants above).";
 };
 
 type GetGrantBlockFunction = (databaseType: SqlDatabaseType) => string;
@@ -107,15 +131,33 @@ type GetGrantBlockFunction = (databaseType: SqlDatabaseType) => string;
 const getGrantBlock: GetGrantBlockFunction = (
   databaseType: SqlDatabaseType,
 ): string => {
+  /*
+   * REPLICATION CLIENT as well as PROCESS: without it SHOW REPLICA STATUS
+   * fails on every check (1227, verified on 8.4), primary or replica, and
+   * the Replication group is reported missing forever.
+   */
   if (databaseType === SqlDatabaseType.MySQL) {
     return [
-      "GRANT PROCESS ON *.* TO '<monitoring_user>'@'%';",
+      "GRANT PROCESS, REPLICATION CLIENT ON *.* TO '<monitoring_user>'@'%';",
       "GRANT SELECT ON performance_schema.* TO '<monitoring_user>'@'%';",
     ].join("\n");
   }
 
+  /*
+   * Both platforms, because nothing in the form says which one the host
+   * is: Azure SQL Database has no server-level permissions, so the SQL
+   * Server grant fails there and the database-level one is what works.
+   */
   if (databaseType === SqlDatabaseType.MicrosoftSqlServer) {
-    return "GRANT VIEW SERVER STATE TO [<monitoring_login>];";
+    return [
+      "-- SQL Server and Azure SQL Managed Instance, run in master",
+      SQL_SERVER_MONITORING_GRANT,
+      "",
+      "-- Azure SQL Database, run in the monitored database",
+      AZURE_SQL_DATABASE_MONITORING_GRANT,
+      "-- Azure SQL Database on Basic, S0, S1 or an elastic pool, run in master instead (for a login)",
+      AZURE_SQL_DATABASE_SERVER_STATE_READER_GRANT,
+    ].join("\n");
   }
 
   return [
@@ -430,6 +472,34 @@ const DatabaseMonitorStepForm: FunctionComponent<ComponentProps> = (
             is never collected here.
           </p>
         )}
+        {databaseType === SqlDatabaseType.MicrosoftSqlServer && (
+          <p className="text-xs text-blue-700 mt-3">
+            Read access to your tables is not enough: without this grant SQL
+            Server refuses the server state views outright (&quot;The user does
+            not have permission to perform this action&quot;), and only database
+            size is collected. The probe detects Azure SQL Database and shows
+            its grant when one is missing. Azure SQL Database has no
+            sys.dm_hadr_database_replica_states, so Replication is not collected
+            there.
+          </p>
+        )}
+        {/*
+         * The anchor is the English heading's; docs pages are served in the
+         * reader's language, and on a translated page an unknown fragment
+         * simply opens the page at the top.
+         */}
+        <p className="text-xs text-blue-700 mt-3">
+          <Link
+            className="underline"
+            openInNewTab={true}
+            to={URL.fromString(
+              DOCS_URL.toString() +
+                "/monitor/database-health-monitor#create-a-monitoring-user",
+            )}
+          >
+            Read the setup guide for the full statements for each platform.
+          </Link>
+        </p>
       </div>
 
       <div>

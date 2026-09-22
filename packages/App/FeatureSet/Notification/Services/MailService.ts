@@ -979,7 +979,15 @@ export default class MailService {
       mail.body = mail.templateType
         ? await this.compileEmailBody(mail.templateType, mail.vars)
         : this.compileText(mail.body || "", mail.vars);
-      mail.subject = this.compileText(mail.subject, mail.vars);
+
+      /*
+       * A literal subject was rendered by the sender, often from user-authored
+       * text; compiling it again would read any "{{" in that text as template
+       * syntax.
+       */
+      if (!mail.isSubjectLiteral) {
+        mail.subject = this.compileText(mail.subject, mail.vars);
+      }
 
       if (
         (!options || !options.emailServer) &&

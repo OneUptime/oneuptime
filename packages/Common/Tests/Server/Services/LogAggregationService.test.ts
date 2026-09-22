@@ -367,3 +367,102 @@ describe("LogAggregationService sessionIds filter", () => {
     }
   });
 });
+
+/*
+ * Issue #3914. Zooming into one bar of the Log Volume chart asks for a window
+ * like 10:15 - 10:16. The histogram used to keep the minute the END falls in
+ * as well, so that window drew two bars (10:15 and 10:16) over a list holding
+ * only the first minute's logs: volume on the chart, "no logs" below it. The
+ * window edges are filtered on the projection's own minute expression, never
+ * on raw `time`, so the fix must keep that shape.
+ */
+describe("LogAggregationService histogram window edges", () => {
+  const projectId: ObjectID = ObjectID.generate();
+
+  const buildHistogramStatement: (
+    overrides?: Partial<HistogramRequest>,
+  ) => Statement = (overrides: Partial<HistogramRequest> = {}): Statement => {
+    return (LogAggregationService as any).buildHistogramStatement({
+      projectId,
+      startTime: new Date("2026-09-17T10:15:00.000Z"),
+      endTime: new Date("2026-09-17T10:16:00.000Z"),
+      bucketSizeInMinutes: 1,
+      ...overrides,
+    });
+  };
+
+  const normalizedQuery: (statement: Statement) => string = (
+    statement: Statement,
+  ): string => {
+    return statement.query.replace(/\s+/g, " ");
+  };
+
+  const END_PREDICATE: RegExp =
+    /toStartOfInterval\(time, INTERVAL 1 MINUTE\) < \{(p\d+):DateTime64\(9\)\}/;
+
+  const START_PREDICATE: RegExp =
+    /toStartOfInterval\(time, INTERVAL 1 MINUTE\) >= toStartOfInterval\(\{(p\d+):DateTime\}, INTERVAL 1 MINUTE\)/;
+
+  const boundValue: (statement: Statement, predicate: RegExp) => unknown = (
+    statement: Statement,
+    predicate: RegExp,
+  ): unknown => {
+    const match: RegExpMatchArray | null =
+      normalizedQuery(statement).match(predicate);
+
+    expect(match).not.toBeNull();
+
+    return (statement.query_params as Record<string, unknown>)[match![1]!];
+  };
+
+  test("keeps only the minutes that start before the window ends", () => {
+    const query: string = normalizedQuery(buildHistogramStatement());
+
+    expect(query).toMatch(END_PREDICATE);
+    expect(query).not.toMatch(
+      /toStartOfInterval\(time, INTERVAL 1 MINUTE\) <= toStartOfInterval\(/,
+    );
+  });
+
+  test("binds the end itself, not the start of its minute", () => {
+    expect(boundValue(buildHistogramStatement(), END_PREDICATE)).toBe(
+      "2026-09-17 10:16:00.000000000",
+    );
+  });
+
+  /*
+   * A sub-second end ("now" as the picker resolves it) has already started
+   * its minute, and the list below the chart holds that minute's first
+   * moments - so the chart has to keep it. A DateTime bind would truncate
+   * the end to 10:16:00 and drop it.
+   */
+  test("keeps the minute a sub-second end has already started", () => {
+    const statement: Statement = buildHistogramStatement({
+      endTime: new Date("2026-09-17T10:16:00.500Z"),
+    });
+
+    expect(boundValue(statement, END_PREDICATE)).toBe(
+      "2026-09-17 10:16:00.500000000",
+    );
+  });
+
+  test("still counts the whole minute the window starts in", () => {
+    const statement: Statement = buildHistogramStatement({
+      startTime: new Date("2026-09-17T10:15:30.000Z"),
+    });
+
+    expect(boundValue(statement, START_PREDICATE)).toBe("2026-09-17 10:15:30");
+  });
+
+  /*
+   * A raw `time` predicate references a column the proj_severity_histogram
+   * projection does not store, so ClickHouse would fall back to scanning
+   * the base table.
+   */
+  test("never filters the window on the raw time column", () => {
+    const query: string = normalizedQuery(buildHistogramStatement());
+
+    expect(query).not.toMatch(/[^(]\btime\s*(<|>|<=|>=)\s/);
+    expect(query).toContain("optimize_use_projections = 1");
+  });
+});

@@ -195,10 +195,16 @@ describe("WorkflowVariableService rename uniqueness", () => {
     /*
      * The overwhelmingly common update from the dashboard edit form carries no
      * name at all, or carries only content through the "Update Content" modal.
-     * Neither should cost a round trip.
+     * Neither needs the uniqueness lookup.
+     *
+     * A content write does read the row it targets, once: since OAuth 2.0
+     * variables, content means something only for a Static variable (an OAuth
+     * variable's value is the token OneUptime fetches, and typed content is
+     * refused - see WorkflowVariableOAuthHooks.test.ts), so the hook has to
+     * know the type before it lets the write through.
      */
-    test("a content-only update reads nothing and is allowed through", async () => {
-      const { countByCalls } = stubReads({
+    test("a content-only update skips the uniqueness lookup and is allowed through", async () => {
+      const { countByCalls, findByCalls } = stubReads({
         itemsBeingUpdated: [],
         conflictCount: 99,
       });
@@ -211,7 +217,8 @@ describe("WorkflowVariableService rename uniqueness", () => {
         (result.updateBy.data as unknown as Partial<WorkflowVariable>).content,
       ).toBe("rotated-token");
       expect(countByCalls).toHaveLength(0);
-      expect(WorkflowVariableService.findBy).not.toHaveBeenCalled();
+      // One read, to learn the variable's type - not the rename lookup.
+      expect(findByCalls).toHaveLength(1);
     });
 
     test("a description-and-secret update is allowed through", async () => {
@@ -738,6 +745,10 @@ describe("WorkflowVariableService rename uniqueness", () => {
       ).resolves.toBeDefined();
     });
 
+    /*
+     * A description, not content: a content write reads the row for another
+     * reason (its type decides whether content may be written at all).
+     */
     test("an update that does not mention the flag reads nothing", async () => {
       const { findByCalls } = stubReads({
         itemsBeingUpdated: [
@@ -751,7 +762,7 @@ describe("WorkflowVariableService rename uniqueness", () => {
       });
 
       await expect(
-        hook()(makeUpdateBy({ content: "rotated-token" })),
+        hook()(makeUpdateBy({ description: "Rotated monthly" })),
       ).resolves.toBeDefined();
 
       expect(findByCalls).toHaveLength(0);

@@ -5,7 +5,6 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import LogsViewer, {
   LogsSortField,
   LiveLogsOptions,
-  HistogramBucket,
   FacetData,
   ActiveFilter,
   LogsViewMode,
@@ -18,12 +17,14 @@ import {
 } from "Common/UI/Components/LogsViewer/types";
 import useLiveLogsRefresh from "Common/UI/Components/LogsViewer/useLiveLogsRefresh";
 import useLogsHistogram, {
+  LogsHistogramData,
   LogsHistogramState,
 } from "Common/UI/Components/LogsViewer/useLogsHistogram";
 import {
   ATTRIBUTE_FACET_PREFIX,
   applyTypedLogFilterToRequest,
   buildLogsHistogramRequest,
+  parseLogsHistogramResponse,
   pickTypedLogFilter,
   preserveBaseAttributesInTypedFilter,
   serializeTypedLogFilter,
@@ -1097,8 +1098,8 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
 
   // --- Fetch histogram ---
 
-  const fetchHistogramBuckets: () => Promise<Array<HistogramBucket>> =
-    useCallback(async (): Promise<Array<HistogramBucket>> => {
+  const fetchHistogramBuckets: () => Promise<LogsHistogramData> =
+    useCallback(async (): Promise<LogsHistogramData> => {
       /*
        * The window is resolved inside the builder on every call, so a preset
        * range slides forward with the clock and live polls pick up newly
@@ -1132,8 +1133,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
         requestData,
       );
 
-      return (response.data["buckets"] ||
-        []) as unknown as Array<HistogramBucket>;
+      return parseLogsHistogramResponse(response.data);
     }, [
       serviceIdStrings,
       traceIdStrings,
@@ -2517,6 +2517,7 @@ const DashboardLogsViewer: FunctionComponent<ComponentProps> = (
           lockedFilterSignal="logs"
           histogramBuckets={histogram.buckets}
           histogramLoading={histogram.isLoading}
+          histogramBucketIntervalMs={histogram.bucketIntervalMs}
           onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
           facetData={facetData}
           facetLoading={facetLoading}
