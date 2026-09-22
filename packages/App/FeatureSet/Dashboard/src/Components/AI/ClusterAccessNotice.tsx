@@ -14,16 +14,58 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * Tells the reader of an investigation, in one glance, whether OneUptime AI
- * could reach the clusters this signal is about — and, when it could not,
+ * can reach the clusters this signal is about — and, when it cannot,
  * exactly why and where to fix it. Deterministic server data, never the
  * model's prose, so it reads the same on every panel and is right even
  * when the report forgot to mention it.
+ *
+ * Two different facts live here and are never mixed up:
+ *
+ *  - What the run DID comes from the run's own events (clusterCommandCount),
+ *    so a finished run reports its kubectl usage in the past tense.
+ *  - What the clusters allow NOW comes from clusterAccess, which the API
+ *    computes from current configuration at request time. It is always
+ *    phrased in the present tense: access switched on or off after a run
+ *    finished must not rewrite what that run had.
  */
 
 export interface ComponentProps {
   clusterAccess: Array<KubernetesClusterAiAccessStatus>;
-  // Past tense once the run has finished; present while it runs.
+  // True once the run has finished (completed or failed); false while it runs.
   isRunFinished: boolean;
+  /*
+   * kubectl commands the run actually made, counted from its events. Only
+   * read for a finished run. Undefined when the caller cannot tell, in
+   * which case the notice describes the current configuration and makes
+   * no claim about what the run did.
+   */
+  clusterCommandCount?: number | undefined;
+}
+
+export const DATA_ONLY_RUN_TEXT: string =
+  "This investigation used OneUptime data only — no kubectl commands were run.";
+
+/*
+ * The past-tense sentence for a finished run, or null when the run's own
+ * kubectl usage is unknown (older API replicas, or a run whose events have
+ * not been loaded) — never guessed from the current configuration.
+ */
+export function describeFinishedRunKubectlUsage(
+  clusterCommandCount: number | undefined,
+): string | null {
+  if (typeof clusterCommandCount !== "number") {
+    return null;
+  }
+
+  const count: number = Math.max(0, Math.floor(clusterCommandCount));
+
+  if (count === 0) {
+    return DATA_ONLY_RUN_TEXT;
+  }
+
+  return `OneUptime AI ran ${count.toLocaleString()} read-only kubectl ${
+    count === 1 ? "command" : "commands"
+  } during this investigation.`;
 }
 
 const KNOWN_MODES: Array<string> = Object.values(KubernetesAiRemediationMode);
@@ -92,17 +134,53 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
       return status.isInvestigationReady;
     });
 
+  const finishedRunUsage: string | null = props.isRunFinished
+    ? describeFinishedRunKubectlUsage(props.clusterCommandCount)
+    : null;
+  const didRunKubectl: boolean =
+    finishedRunUsage !== null && finishedRunUsage !== DATA_ONLY_RUN_TEXT;
+
   return (
     <div className="space-y-2" data-testid="cluster-access-notice">
+      {finishedRunUsage ? (
+        <div
+          data-testid="cluster-access-run-usage"
+          className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${
+            didRunKubectl
+              ? "border-emerald-200 bg-emerald-50/70"
+              : "border-gray-200 bg-gray-50"
+          }`}
+        >
+          <Icon
+            icon={didRunKubectl ? IconProp.ShieldCheck : IconProp.Info}
+            className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
+              didRunKubectl ? "text-emerald-600" : "text-gray-500"
+            }`}
+          />
+          <p
+            className={`text-xs leading-5 ${
+              didRunKubectl ? "text-emerald-900" : "text-gray-700"
+            }`}
+          >
+            {finishedRunUsage}
+          </p>
+        </div>
+      ) : (
+        <></>
+      )}
+
       {reachable.length > 0 ? (
-        <div className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3">
+        <div
+          data-testid="cluster-access-reachable"
+          className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-4 py-3"
+        >
           <Icon
             icon={IconProp.ShieldCheck}
             className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-600"
           />
           <p className="text-xs leading-5 text-emerald-900">
-            OneUptime AI {props.isRunFinished ? "had" : "has"} read-only kubectl
-            access to{" "}
+            OneUptime AI {props.isRunFinished ? "currently has" : "has"}{" "}
+            read-only kubectl access to{" "}
             {reachable.map(
               (status: KubernetesClusterAiAccessStatus, index: number) => {
                 return (
@@ -137,6 +215,7 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
         return (
           <div
             key={status.clusterId}
+            data-testid="cluster-access-unreachable"
             className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3"
           >
             <Icon
@@ -146,10 +225,8 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
             <div className="min-w-0">
               <p className="text-sm font-medium text-amber-900">
                 {props.isRunFinished
-                  ? "Investigated with OneUptime data only"
-                  : "Investigating with OneUptime data only"}{" "}
-                — no kubectl access to cluster &quot;{status.clusterName}
-                &quot;
+                  ? `OneUptime AI cannot currently reach cluster "${status.clusterName}" with kubectl`
+                  : `Investigating with OneUptime data only — no kubectl access to cluster "${status.clusterName}"`}
               </p>
               {first ? (
                 <p className="mt-1 text-xs leading-5 text-amber-800">

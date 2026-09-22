@@ -3,7 +3,9 @@ import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import Model from "../../Models/DatabaseModels/RunnerJob";
 import RunnerJobStatus from "../../Types/Runbook/RunnerJobStatus";
-import RunnerJobOrigin from "../../Types/Runbook/RunnerJobOrigin";
+import RunnerJobOrigin, {
+  AI_COMMAND_JOB_ORIGINS,
+} from "../../Types/Runbook/RunnerJobOrigin";
 import RunbookStepType, {
   isPayloadCarryingStepType,
   isRunnerExecutedStepType,
@@ -13,7 +15,18 @@ import CommandPolicy from "../../Utils/AiRemediation/CommandPolicy";
 import KubectlPolicy, {
   KubectlPolicyResult,
 } from "../../Utils/AiRemediation/KubectlPolicy";
-import { KubectlCommandTier } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
+import KubectlOutputRedactor from "../../Utils/AiRemediation/KubectlOutputRedactor";
+import ToolResultSerializer from "../Utils/AI/Toolbox/Serializer";
+import {
+  KubectlCommandTier,
+  KubernetesRunnerPosture,
+  isInClusterPostureForCluster,
+  parseKubernetesRunnerPosture,
+} from "../../Types/Kubernetes/KubernetesClusterAiAccess";
+import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
+import Runner from "../../Models/DatabaseModels/Runner";
+import KubernetesClusterService from "./KubernetesClusterService";
+import RunnerService from "./RunnerService";
 import QueryHelper from "../Types/Database/QueryHelper";
 
 /*
@@ -294,7 +307,11 @@ export class Service extends DatabaseService<Model> {
    * The command travels as an argv in the payload (never a shell line) plus
    * the cluster and, for Runners outside the cluster, the credential id the
    * ingress resolves at claim time. In-cluster Runners carry no credential:
-   * kubectl uses the pod's own ServiceAccount.
+   * kubectl uses the pod's own ServiceAccount — which reaches whatever
+   * cluster that pod lives in. So a credential-less job is only ever
+   * enqueued for the in-cluster Runner OF THIS CLUSTER (its posture names
+   * the cluster), and the payload carries the cluster's identifier so the
+   * claim path and the Runner can refuse a job that reaches the wrong pod.
    */
   @CaptureSpan()
   public async enqueueAiKubectlCommand(data: {
@@ -387,6 +404,66 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    /*
+     * The cluster and the target Runner must both be THIS project's. The
+     * cluster's identifier travels in the payload; without a credential the
+     * Runner must be that cluster's own in-cluster agent, because its
+     * ServiceAccount reaches only the cluster its pod lives in.
+     */
+    const cluster: KubernetesCluster | null =
+      await KubernetesClusterService.findOneBy({
+        query: {
+          _id: data.kubernetesClusterId.toString(),
+          projectId: data.projectId,
+        },
+        select: { _id: true, name: true, clusterIdentifier: true },
+        props: { isRoot: true },
+      });
+
+    if (!cluster) {
+      throw new BadDataException(
+        "Kubernetes cluster not found or it does not belong to this project.",
+      );
+    }
+
+    const clusterIdentifier: string = (cluster.clusterIdentifier || "").trim();
+
+    const targetRunner: Runner | null = await RunnerService.findOneBy({
+      query: {
+        _id: data.targetAgentId.toString(),
+        projectId: data.projectId,
+      },
+      select: { _id: true, name: true, hostInfo: true },
+      props: { isRoot: true },
+    });
+
+    if (!targetRunner) {
+      throw new BadDataException(
+        "The target Runner was not found or it does not belong to this project.",
+      );
+    }
+
+    if (!data.credentialId) {
+      const posture: KubernetesRunnerPosture | undefined =
+        parseKubernetesRunnerPosture(targetRunner.hostInfo);
+
+      if (!isInClusterPostureForCluster(posture, clusterIdentifier)) {
+        throw new BadDataException(
+          `A kubectl command without a Kubernetes credential can only run on the in-cluster Runner of cluster "${
+            clusterIdentifier || cluster.name || cluster.id?.toString()
+          }", and Runner "${targetRunner.name}" ${
+            posture?.inCluster
+              ? `is the in-cluster Runner of ${
+                  posture.clusterIdentifier?.trim()
+                    ? `cluster "${posture.clusterIdentifier.trim()}"`
+                    : "an unnamed cluster"
+                }`
+              : "runs outside the cluster"
+          }. Select a Kubernetes credential for this Runner on the cluster's AI page, or install the in-cluster Runner on this cluster.`,
+        );
+      }
+    }
+
     const claimDeadlineAt: Date = OneUptimeDate.addRemoveSeconds(
       OneUptimeDate.getCurrentDate(),
       Math.ceil((data.claimTimeoutInMs ?? DEFAULT_CLAIM_TIMEOUT_MS) / 1000),
@@ -411,6 +488,7 @@ export class Service extends DatabaseService<Model> {
       displayCommand: policy.displayCommand,
       tier: policy.tier,
       kubernetesClusterId: data.kubernetesClusterId.toString(),
+      ...(clusterIdentifier ? { clusterIdentifier } : {}),
       ...(data.credentialId ? { credentialId: data.credentialId } : {}),
     };
     row.timeoutInMs = data.timeoutInMs;
@@ -477,7 +555,21 @@ export class Service extends DatabaseService<Model> {
      * asked for explicitly by the ingress after checking canRunAiCommands.
      */
     allowedOrigins?: Array<RunnerJobOrigin> | undefined;
+    /*
+     * Which step types this Runner may be handed. Undefined means every
+     * runner-executed type (the historical contract); an explicit empty
+     * list means nothing at all and returns null without touching the
+     * database. The ingress narrows this for the kubernetes-agent Runner
+     * (kubectl only) and for a Runner that declares its own list on the
+     * claim, so an AI-composed shell command can never be leased by a pod
+     * that only exists to run kubectl.
+     */
+    allowedStepTypes?: Array<RunbookStepType> | undefined;
   }): Promise<Model | null> {
+    if (data.allowedStepTypes && data.allowedStepTypes.length === 0) {
+      return null;
+    }
+
     const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
       PostgresAppInstance.getDataSource();
 
@@ -492,6 +584,9 @@ export class Service extends DatabaseService<Model> {
         ? data.allowedOrigins
         : [RunnerJobOrigin.Runbook];
 
+    const allowedStepTypes: Array<RunbookStepType> | null =
+      data.allowedStepTypes ?? null;
+
     const sql: string = `
       WITH claimed AS (
         SELECT "_id" FROM "RunnerJob"
@@ -499,6 +594,7 @@ export class Service extends DatabaseService<Model> {
           AND "status" = $2
           AND "targetAgentId" = $3::uuid
           AND "origin" = ANY($6::text[])
+          AND ($7::text[] IS NULL OR "stepType" = ANY($7::text[]))
           AND "claimDeadlineAt" > NOW()
           AND "deletedAt" IS NULL
         ORDER BY "createdAt" ASC
@@ -529,6 +625,7 @@ export class Service extends DatabaseService<Model> {
         RunnerJobStatus.Claimed,
         leaseMs.toString(),
         allowedOrigins,
+        allowedStepTypes,
       ]),
     );
 
@@ -615,6 +712,22 @@ export class Service extends DatabaseService<Model> {
     return rows.length > 0;
   }
 
+  /*
+   * What an AI-origin job's output looks like on the row. The dashboard
+   * renders RunnerJob.output verbatim on the cluster's AI page and the
+   * remediation card, so a `kubectl get secret -o yaml` an investigation
+   * ran must never land there with its data values intact: the same two
+   * passes KubectlJobRunner applies before the model sees the output are
+   * applied here before the row does. Both are pure text transforms (the
+   * redactor is dependency-free by design; importing KubectlJobRunner into
+   * this service would be an import cycle). A runbook step's output is the
+   * operator's own script and is stored as it was.
+   */
+  public static redactAiJobText(text: string): string {
+    return ToolResultSerializer.redact(KubectlOutputRedactor.redact(text).text)
+      .text;
+  }
+
   @CaptureSpan()
   public async submitResult(data: {
     jobId: ObjectID;
@@ -634,6 +747,22 @@ export class Service extends DatabaseService<Model> {
       ? RunnerJobStatus.Succeeded
       : RunnerJobStatus.Failed;
 
+    const rawOutput: string | null = data.output ?? null;
+    const rawErrorMessage: string | null = data.errorMessage ?? null;
+
+    /*
+     * The origin decides which text is stored, and it is read in the same
+     * statement rather than looked up first so the lease check and the
+     * write stay one atomic step (and one round trip): the CASE picks the
+     * redacted text for an AI-origin row and the verbatim text otherwise.
+     */
+    const redactedOutput: string | null =
+      rawOutput === null ? null : Service.redactAiJobText(rawOutput);
+    const redactedErrorMessage: string | null =
+      rawErrorMessage === null
+        ? null
+        : Service.redactAiJobText(rawErrorMessage);
+
     /*
      * Only the agent that holds the lease is allowed to write the terminal
      * result. If the lease has already moved on (Worker timed out and
@@ -642,9 +771,15 @@ export class Service extends DatabaseService<Model> {
     const sql: string = `
       UPDATE "RunnerJob"
       SET "status" = $1,
-          "output" = $2,
+          "output" = CASE
+            WHEN "origin" = ANY($9::text[]) THEN $10::text
+            ELSE $2::text
+          END,
           "exitCode" = $3,
-          "errorMessage" = $4,
+          "errorMessage" = CASE
+            WHEN "origin" = ANY($9::text[]) THEN $11::text
+            ELSE $4::text
+          END,
           "completedAt" = NOW(),
           "updatedAt" = NOW(),
           "version" = "version" + 1
@@ -656,13 +791,16 @@ export class Service extends DatabaseService<Model> {
     const rows: Array<JSONObject> = unwrapRows(
       await dataSource.query(sql, [
         status,
-        data.output ?? null,
+        rawOutput,
         data.exitCode ?? null,
-        data.errorMessage ?? null,
+        rawErrorMessage,
         data.jobId.toString(),
         data.agentId.toString(),
         RunnerJobStatus.Claimed,
         RunnerJobStatus.Running,
+        AI_COMMAND_JOB_ORIGINS,
+        redactedOutput,
+        redactedErrorMessage,
       ]),
     );
 

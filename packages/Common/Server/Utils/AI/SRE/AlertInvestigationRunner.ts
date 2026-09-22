@@ -38,7 +38,9 @@ import {
 import { KubernetesClusterAiAccessStatus } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
 import ClusterAccessContext from "../ClusterAccess/ClusterAccessContext";
-import KubectlInvestigationToolkit from "../ClusterAccess/KubectlInvestigationToolkit";
+import KubectlInvestigationToolkit, {
+  INVESTIGATION_MAX_WALL_CLOCK_MS,
+} from "../ClusterAccess/KubectlInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -217,11 +219,21 @@ export default class AIAlertInvestigationRunner {
       return;
     }
 
+    /*
+     * The run's wall clock, stated once: the engine enforces it between
+     * tool calls and the kubectl toolkit plans every command's wait to end
+     * before it, so a run_kubectl issued late in the run cannot outlive the
+     * budget (the loop cannot interrupt a tool once it is running).
+     */
+    const runDeadlineAtMs: number =
+      Date.now() + INVESTIGATION_MAX_WALL_CLOCK_MS;
+
     const kubectlToolkit: KubectlInvestigationToolkit =
       new KubectlInvestigationToolkit({
         projectId,
         aiRunId,
         clusters: clusterStatuses,
+        runDeadlineAtMs,
       });
     const extraTools: Array<ObservabilityAssistantExtraTool> =
       kubectlToolkit.buildTools();
@@ -235,6 +247,7 @@ export default class AIAlertInvestigationRunner {
         feature: AI_ALERT_INVESTIGATION_FEATURE,
         alertId,
         contextSummary,
+        maxWallClockMs: INVESTIGATION_MAX_WALL_CLOCK_MS,
         ...(clusterStatuses.length > 0
           ? {
               additionalInstructions:

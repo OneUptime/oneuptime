@@ -43,7 +43,12 @@ export enum AiRemediationCommandExecutionStatus {
   Running = "Running",
   Succeeded = "Succeeded",
   Failed = "Failed",
-  // An earlier command in the plan failed, so this one never ran.
+  /*
+   * Never ran: an earlier command in the plan failed, the remediation was
+   * settled before this command's turn, or — for a rollback — the cluster
+   * no longer allowed the undo to run unattended, so a human was told to
+   * undo it instead.
+   */
   Skipped = "Skipped",
 }
 
@@ -118,6 +123,40 @@ export interface AiRemediationCommandPlan {
   executionStartedAt?: string | undefined;
   executionCompletedAt?: string | undefined;
   rollbackStatus?: AiRemediationRollbackStatus | undefined;
+}
+
+/*
+ * RunnerJob.stepId prefixes of the three ways a plan's commands reach a
+ * Runner: executed INLINE by a FullAuto run while it plans, executed by the
+ * approved-plan executor after a human's click, or run by the rollback arm
+ * after verification failed. The per-cluster circuit breaker counts inline
+ * kubectl jobs by the first; the rollback arm resolves an interrupted
+ * command through the prefix its lane used when the job id never reached
+ * the command's record. Spelled out here, once, so the lanes never drift.
+ */
+export const INLINE_COMMAND_STEP_ID_PREFIX: string = "ai-command-";
+export const APPROVED_COMMAND_STEP_ID_PREFIX: string = "ai-approved-";
+export const ROLLBACK_COMMAND_STEP_ID_PREFIX: string = "ai-rollback-";
+
+/*
+ * The stepId the FORWARD job of a command carries: inline when a FullAuto
+ * run executed it while planning, approved otherwise. Unique per suggestion
+ * — a plan executes at most once and a retried run never re-executes.
+ */
+export function getForwardCommandStepId(
+  command: Pick<AiRemediationCommand, "sequence" | "wasAutoExecuted">,
+): string {
+  return `${
+    command.wasAutoExecuted === true
+      ? INLINE_COMMAND_STEP_ID_PREFIX
+      : APPROVED_COMMAND_STEP_ID_PREFIX
+  }${command.sequence}`;
+}
+
+export function getRollbackCommandStepId(
+  command: Pick<AiRemediationCommand, "sequence">,
+): string {
+  return `${ROLLBACK_COMMAND_STEP_ID_PREFIX}${command.sequence}`;
 }
 
 // Hard caps — enforced at plan acceptance, not just in the prompt.

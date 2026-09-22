@@ -39,7 +39,7 @@ export default class ClusterAccessContext {
           })
           .join(
             ", ",
-          )}. Use run_kubectl for READ-ONLY inspection — kubectl get/describe/events/logs/top/rollout status — the way an on-call engineer would open a terminal: describe the failing pod, read its recent events, check node capacity and pending-pod reasons, tail the crashing container's logs. Prefer direct cluster inspection over guessing from metrics when the two disagree. Every run_kubectl result is cited like any other tool result.`,
+          )}. Use run_kubectl for READ-ONLY inspection — kubectl get/describe/events/logs/top/rollout status — the way an on-call engineer would open a terminal: describe the failing pod, read its recent events, check node capacity and pending-pod reasons, tail the crashing container's logs. Prefer direct cluster inspection over guessing from metrics when the two disagree. Every run_kubectl result is cited like any other tool result. Reading Secrets is refused and credential-looking values (Secret data, passwords, tokens, keys) are redacted from every output before you see it — never ask for them and never treat a redaction marker as a finding.`,
       );
     }
 
@@ -143,7 +143,7 @@ export default class ClusterAccessContext {
     }
     if (status.remediationMode === KubernetesAiRemediationMode.Automatic) {
       return status.isRemediationReady
-        ? "Automatic (safe kubectl fixes run without a human; riskier ones ask)"
+        ? "Automatic (safe kubectl fixes run without a human; riskier ones are left in the recommendations for a human)"
         : "Automatic, but not ready";
     }
     if (

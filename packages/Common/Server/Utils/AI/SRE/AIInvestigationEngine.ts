@@ -49,7 +49,13 @@ import CaptureSpan from "../../Telemetry/CaptureSpan";
 // Budgets — larger than an interactive chat-ops answer, small enough to stay cheap.
 const MAX_LLM_CALLS: number = 8;
 const MAX_TOOL_CALLS: number = 12;
-const MAX_WALL_CLOCK_MS: number = 150 * 1000;
+/*
+ * The wall clock an investigation run gets by default. Exported because the
+ * kubectl read toolkit plans every command's wait against this same budget
+ * (the runners hand it to the engine AND to the toolkit as an absolute
+ * deadline), and one definition is how the two can never disagree.
+ */
+export const MAX_WALL_CLOCK_MS: number = 150 * 1000;
 const MAX_OUTPUT_TOKENS: number = 2000;
 
 /*

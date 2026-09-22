@@ -80,10 +80,18 @@ describe("ClusterAccessContext", () => {
     ).toContain("Bypass approval, but not ready");
 
     expect(describe(KubernetesAiRemediationMode.Automatic, true)).toContain(
-      "Automatic (safe kubectl fixes run without a human; riskier ones ask)",
+      "Automatic (safe kubectl fixes run without a human; riskier ones are left in the recommendations for a human)",
     );
     expect(describe(KubernetesAiRemediationMode.Automatic, false)).toContain(
       "Automatic, but not ready",
+    );
+    /*
+     * A riskier change never runs without a human in Automatic mode: the
+     * unattended round leaves it in the recommendations rather than asking,
+     * so the model must not be told that riskier fixes "ask".
+     */
+    expect(describe(KubernetesAiRemediationMode.Automatic, true)).not.toMatch(
+      /riskier ones ask/,
     );
 
     expect(
@@ -136,6 +144,9 @@ describe("ClusterAccessContext", () => {
 
     expect(addendum).toContain('can inspect directly: "prod-us"');
     expect(addendum).toContain("Use run_kubectl for READ-ONLY inspection");
+    // Secrets are refused by the policy and output is redacted: said up front.
+    expect(addendum).toContain("Reading Secrets is refused");
+    expect(addendum).toContain("redacted from every output");
     expect(addendum).toContain('CANNOT reach with kubectl: "staging"');
     expect(addendum).toContain("Do NOT invent kubectl output");
     expect(addendum).toContain(

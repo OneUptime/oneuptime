@@ -62,7 +62,10 @@ function response(
 }
 
 interface LoadedModules {
-  Register: { registerRunner: () => Promise<void> };
+  Register: {
+    registerRunner: () => Promise<void>;
+    tryRegisterRunner: (data: { maxAttempts: number }) => Promise<boolean>;
+  };
   RunnerIdentity: {
     getRunnerId: () => { toString: () => string };
     getRunnerKey: () => string;
@@ -198,6 +201,79 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
     expect(warnLog).toEqual([]);
   });
 
+  /*
+   * The server re-keys a live Runner only when the request proves it is the
+   * same Runner by presenting the current key. A fresh pod has nothing to
+   * present; a running process re-registering (the heartbeat loop) does.
+   */
+  test("a first registration sends no previousRunnerKey; a re-registration sends the key it holds", async () => {
+    const modules: LoadedModules = loadInAgentMode({});
+    jest
+      .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+      .mockResolvedValue("v1.31.4");
+
+    postMock
+      .mockResolvedValueOnce(
+        response(200, {
+          runnerId: "11111111-1111-4111-8111-111111111111",
+          runnerKey: "issued-key-abc",
+          isBoundToCluster: true,
+          capabilities: { canRunAiCommands: true },
+        }),
+      )
+      .mockResolvedValueOnce(
+        response(200, {
+          runnerId: "11111111-1111-4111-8111-111111111111",
+          runnerKey: "rotated-key-xyz",
+          isBoundToCluster: true,
+          capabilities: { canRunAiCommands: true },
+        }),
+      );
+
+    await modules.Register.registerRunner();
+    const first: JSONObject = postMock.mock.calls[0]![0] as JSONObject;
+    expect(Object.keys(first["data"] as JSONObject)).not.toContain(
+      "previousRunnerKey",
+    );
+
+    await modules.Register.tryRegisterRunner({ maxAttempts: 1 });
+    const second: JSONObject = postMock.mock.calls[1]![0] as JSONObject;
+    expect((second["data"] as JSONObject)["previousRunnerKey"]).toBe(
+      "issued-key-abc",
+    );
+    expect(modules.RunnerIdentity.getRunnerKey()).toBe("rotated-key-xyz");
+  });
+
+  test("explains an operator-cleared binding differently from a binding another Runner holds", async () => {
+    const modules: LoadedModules = loadInAgentMode({});
+    jest
+      .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+      .mockResolvedValue("v1.31.4");
+
+    postMock.mockResolvedValueOnce(
+      response(200, {
+        runnerId: "11111111-1111-4111-8111-111111111111",
+        runnerKey: "issued-key-abc",
+        isBoundToCluster: false,
+        bindingState: "left_unbound_by_operator",
+        capabilities: { canRunAiCommands: true },
+      }),
+    );
+
+    await modules.Register.registerRunner();
+
+    expect(
+      warnLog.some((entry: unknown) => {
+        return String(entry).includes("an operator cleared it");
+      }),
+    ).toBe(true);
+    expect(
+      warnLog.some((entry: unknown) => {
+        return String(entry).includes("bound to a different Runner");
+      }),
+    ).toBe(false);
+  });
+
   test("warns when the dashboard bound the cluster to a different Runner", async () => {
     const modules: LoadedModules = loadInAgentMode({});
     jest
@@ -247,5 +323,96 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
         return String(entry).includes("kubectl was not found");
       }),
     ).toBe(true);
+  });
+
+  /*
+   * The heartbeat loop re-registers with a bounded budget: a revoked
+   * ingestion key must produce a trickle of attempts, not a loop that never
+   * returns (the start-up registration is the one that retries forever).
+   */
+  describe("tryRegisterRunner (bounded, for re-registration)", () => {
+    test("gives up after maxAttempts, returns false and keeps the current identity", async () => {
+      const modules: LoadedModules = loadInAgentMode({});
+      jest
+        .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+        .mockResolvedValue("v1.31.4");
+
+      postMock.mockResolvedValue(response(401, {}));
+
+      await expect(
+        modules.Register.tryRegisterRunner({ maxAttempts: 3 }),
+      ).resolves.toBe(false);
+
+      expect(postMock).toHaveBeenCalledTimes(3);
+      // Nothing was issued, so there is still no identity to speak of.
+      expect(() => {
+        return modules.RunnerIdentity.getRunnerKey();
+      }).toThrow(/has not finished registering/);
+    });
+
+    test("returns true as soon as an attempt within the budget succeeds", async () => {
+      const modules: LoadedModules = loadInAgentMode({});
+      jest
+        .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+        .mockResolvedValue("v1.31.4");
+
+      postMock
+        .mockResolvedValueOnce(response(503, {}))
+        .mockResolvedValueOnce(response(503, {}))
+        .mockResolvedValueOnce(
+          response(200, {
+            runnerId: "11111111-1111-4111-8111-111111111111",
+            runnerKey: "rotated-key-xyz",
+            isBoundToCluster: true,
+            capabilities: { canRunAiCommands: true },
+          }),
+        );
+
+      await expect(
+        modules.Register.tryRegisterRunner({ maxAttempts: 5 }),
+      ).resolves.toBe(true);
+
+      expect(postMock).toHaveBeenCalledTimes(3);
+      expect(modules.RunnerIdentity.getRunnerKey()).toBe("rotated-key-xyz");
+    });
+
+    test("a budget below one still makes exactly one attempt", async () => {
+      const modules: LoadedModules = loadInAgentMode({});
+      jest
+        .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+        .mockResolvedValue(null);
+
+      postMock.mockResolvedValue(response(401, {}));
+
+      await expect(
+        modules.Register.tryRegisterRunner({ maxAttempts: 0 }),
+      ).resolves.toBe(false);
+
+      expect(postMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("a failed round leaves the previously issued identity in place", async () => {
+      const modules: LoadedModules = loadInAgentMode({});
+      jest
+        .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+        .mockResolvedValue("v1.31.4");
+
+      postMock.mockResolvedValueOnce(
+        response(200, {
+          runnerId: "11111111-1111-4111-8111-111111111111",
+          runnerKey: "issued-key-abc",
+          isBoundToCluster: true,
+          capabilities: { canRunAiCommands: true },
+        }),
+      );
+      await modules.Register.registerRunner();
+
+      postMock.mockResolvedValue(response(401, {}));
+      await expect(
+        modules.Register.tryRegisterRunner({ maxAttempts: 2 }),
+      ).resolves.toBe(false);
+
+      expect(modules.RunnerIdentity.getRunnerKey()).toBe("issued-key-abc");
+    });
   });
 });

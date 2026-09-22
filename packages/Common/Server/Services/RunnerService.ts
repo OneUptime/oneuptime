@@ -166,6 +166,29 @@ export class Service extends DatabaseService<Model> {
       props: { isRoot: true },
     });
   }
+
+  /*
+   * A Runner signing off on a clean shutdown. lastAlive is left alone (it
+   * is the truth about the last heartbeat and what the dashboard shows);
+   * the explicit Disconnected status is what a kubernetes-agent
+   * registration reads to admit a replacement pod immediately instead of
+   * waiting for the alive window to lapse. The next heartbeat or
+   * registration flips it back to Connected.
+   */
+  @CaptureSpan()
+  public async markDisconnected(data: { agentId: ObjectID }): Promise<void> {
+    if (!data.agentId) {
+      throw new BadDataException("agentId is required");
+    }
+
+    await this.updateOneById({
+      id: data.agentId,
+      data: {
+        connectionStatus: RunnerConnectionStatus.Disconnected,
+      } as never,
+      props: { isRoot: true },
+    });
+  }
 }
 
 export default new Service();

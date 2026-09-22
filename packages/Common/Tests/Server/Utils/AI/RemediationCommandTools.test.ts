@@ -1006,3 +1006,111 @@ describe("RemediationCommandToolkit rollback policy gate (Suggest)", () => {
     );
   });
 });
+
+describe("RemediationCommandToolkit persists the job id before waiting (Bash)", () => {
+  beforeEach(() => {
+    mockHappyExecution();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  type PersistedCommand = AiRemediationCommandPlan["commands"][number];
+
+  function lastPersistedCommand(persist: jest.SpyInstance): PersistedCommand {
+    const call: { data: { commandPlan: AiRemediationCommandPlan } } = persist
+      .mock.calls[persist.mock.calls.length - 1]![0] as {
+      data: { commandPlan: AiRemediationCommandPlan };
+    };
+    return call.data.commandPlan.commands[0]!;
+  }
+
+  it("records runnerJobId on the Pending command between the enqueue and the wait, then the outcome", async () => {
+    const persist: jest.SpyInstance = jest.spyOn(
+      AutoRemediationSuggestionService,
+      "updateOneById",
+    );
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      RunnerJobService,
+      "enqueueAiCommand",
+    );
+    const poll: jest.SpyInstance = jest.spyOn(
+      RunnerJobService,
+      "pollUntilTerminal",
+    );
+
+    let recordAtPollStart: PersistedCommand | undefined = undefined;
+    poll.mockImplementation(async (): Promise<RunnerJob> => {
+      recordAtPollStart = lastPersistedCommand(persist);
+      return fakeTerminalJob();
+    });
+
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit(),
+      "execute_remediation_command",
+    ).execute(bashArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(persist).toHaveBeenCalledTimes(3);
+
+    // audit record < enqueue < job id < poll < outcome
+    expect(persist.mock.invocationCallOrder[0]).toBeLessThan(
+      enqueue.mock.invocationCallOrder[0]!,
+    );
+    expect(enqueue.mock.invocationCallOrder[0]).toBeLessThan(
+      persist.mock.invocationCallOrder[1]!,
+    );
+    expect(persist.mock.invocationCallOrder[1]).toBeLessThan(
+      poll.mock.invocationCallOrder[0]!,
+    );
+    expect(poll.mock.invocationCallOrder[0]).toBeLessThan(
+      persist.mock.invocationCallOrder[2]!,
+    );
+
+    /*
+     * At the moment the wait starts, the durable record already names the
+     * job — a Worker death during the wait leaves a Pending command the
+     * rollback arm can resolve against its RunnerJob.
+     */
+    expect(recordAtPollStart!.execution).toEqual(
+      expect.objectContaining({
+        status: AiRemediationCommandExecutionStatus.Pending,
+        runnerJobId: JOB_ID.toString(),
+      }),
+    );
+
+    expect(lastPersistedCommand(persist).execution).toEqual(
+      expect.objectContaining({
+        status: AiRemediationCommandExecutionStatus.Succeeded,
+        runnerJobId: JOB_ID.toString(),
+      }),
+    );
+  });
+
+  it("keeps the job id on a Bash command whose wait throws", async () => {
+    const persist: jest.SpyInstance = jest.spyOn(
+      AutoRemediationSuggestionService,
+      "updateOneById",
+    );
+    jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockRejectedValue(new Error("lease lost"));
+
+    const toolkit: RemediationCommandToolkit = buildToolkit();
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(bashArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(outcome.textForLlm).toContain("FAILED before completion");
+    expect(lastPersistedCommand(persist).execution).toEqual(
+      expect.objectContaining({
+        status: AiRemediationCommandExecutionStatus.Failed,
+        runnerJobId: JOB_ID.toString(),
+        errorMessage: "lease lost",
+      }),
+    );
+  });
+});

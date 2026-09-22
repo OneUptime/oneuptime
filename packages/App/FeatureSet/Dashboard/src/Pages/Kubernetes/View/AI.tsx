@@ -17,14 +17,18 @@ import {
   KubernetesClusterAiAccessStatus,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
+import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
+import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "Common/Models/DatabaseModels/RunbookCredential";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import { APP_API_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
+import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, {
   ButtonSize,
@@ -47,6 +51,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -71,17 +76,70 @@ interface AccessTestResult {
   }>;
 }
 
-const REMEDIATION_MODE_LABELS: Record<KubernetesAiRemediationMode, string> = {
+export const REMEDIATION_MODE_LABELS: Record<
+  KubernetesAiRemediationMode,
+  string
+> = {
   [KubernetesAiRemediationMode.Disabled]: "Off — AI only investigates",
   [KubernetesAiRemediationMode.RequireApproval]:
     "Ask for approval — a human approves each kubectl plan",
   [KubernetesAiRemediationMode.Automatic]:
-    "Automatic — safe fixes run on their own, riskier ones ask",
+    "Automatic — safe fixes run on their own, riskier ones are left for you",
   [KubernetesAiRemediationMode.BypassApproval]:
     "Bypass approval — every allowed fix runs on its own, nobody is asked",
 };
 
-function parseStatus(value: unknown): KubernetesClusterAiAccessStatus | null {
+// How often the page re-reads the status; the Runner heartbeats every minute.
+export const AI_ACCESS_STATUS_POLL_INTERVAL_MS: number = 30_000;
+
+export const KUBECTL_JOBS_TABLE_PREFERENCES_KEY: string =
+  "kubernetes-cluster-ai-kubectl-jobs";
+
+/*
+ * The "Why" column of the commands table, in the reader's words. Only the
+ * two AI origins ever carry a Kubectl step; runbook steps are not kubectl.
+ */
+export const KUBECTL_JOB_ORIGIN_LABELS: Record<
+  Extract<
+    RunnerJobOrigin,
+    RunnerJobOrigin.AiInvestigation | RunnerJobOrigin.AiRemediation
+  >,
+  string
+> = {
+  [RunnerJobOrigin.AiInvestigation]: "Investigation or access test",
+  [RunnerJobOrigin.AiRemediation]: "Remediation",
+};
+
+/*
+ * Whether the signed-in user may pick a Kubernetes credential for an
+ * out-of-cluster Runner. The picker lists RunbookCredential rows, and a
+ * ModelForm loads every dropdown's options when the edit modal opens — so a
+ * user who may edit the cluster (ProjectMember, EditKubernetesCluster) but
+ * may not read credentials would get a permissions error across the whole
+ * modal instead of a form. Such a user still edits everything else; the
+ * in-cluster Runner needs no credential at all.
+ *
+ * The RunbookCredential read ACL stays as it is: the credential rows carry
+ * cluster tokens and are deliberately not readable by every member.
+ */
+export function canPickKubernetesCredential(): boolean {
+  return PermissionGate.check(new RunbookCredential(), ModelAction.Read)
+    .isAllowed;
+}
+
+/*
+ * The permissions that would let the user pick a credential, named for the
+ * explanation shown in place of the picker.
+ */
+export function getKubernetesCredentialPermissionTitles(): Array<string> {
+  return PermissionGate.getPermissionTitles(
+    new RunbookCredential().getReadPermissions(),
+  );
+}
+
+export function parseStatus(
+  value: unknown,
+): KubernetesClusterAiAccessStatus | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
@@ -121,12 +179,28 @@ function GapRow({ gap }: { gap: KubernetesAiAccessGap }): ReactElement {
 const KubernetesClusterAI: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+  const modelIdString: string = Navigation.getLastParamAsString(1);
+  /*
+   * Memoized on the string it was read from: a fresh ObjectID every render
+   * would recreate fetchStatus (which depends on it) and re-run the load
+   * effect after every state update — an unbounded loop of status
+   * requests, each answer triggering the next.
+   */
+  const modelId: ObjectID = useMemo((): ObjectID => {
+    return new ObjectID(modelIdString);
+  }, [modelIdString]);
 
   const [status, setStatus] = useState<KubernetesClusterAiAccessStatus | null>(
     null,
   );
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  /*
+   * The last status request's failure. Fatal only while there is no status
+   * to show: once the page has one, a failed background poll keeps the last
+   * good status on screen — with the operator's open edit modal, test
+   * results and table — and reports the failure inline instead. A later
+   * successful poll clears it.
+   */
   const [error, setError] = useState<string>("");
   const [isTesting, setIsTesting] = useState<boolean>(false);
   const [testResult, setTestResult] = useState<AccessTestResult | null>(null);
@@ -149,9 +223,23 @@ const KubernetesClusterAI: FunctionComponent<
           throw response;
         }
 
-        setStatus(parseStatus(response.data));
+        const parsed: KubernetesClusterAiAccessStatus | null = parseStatus(
+          response.data,
+        );
+
+        if (!parsed) {
+          throw new Error(
+            "The server returned an AI access status this page cannot read.",
+          );
+        }
+
+        setStatus(parsed);
         setError("");
       } catch (err) {
+        /*
+         * Keep whatever is already on screen. The render below decides
+         * whether this is the fatal first-load case or an inline warning.
+         */
         setError(API.getFriendlyMessage(err));
       }
       setIsLoading(false);
@@ -169,7 +257,7 @@ const KubernetesClusterAI: FunctionComponent<
       fetchStatus().catch(() => {
         // handled inside fetchStatus
       });
-    }, 30_000);
+    }, AI_ACCESS_STATUS_POLL_INTERVAL_MS);
     return () => {
       clearInterval(interval);
     };
@@ -232,12 +320,24 @@ const KubernetesClusterAI: FunctionComponent<
     return <PageLoader isVisible={true} />;
   }
 
-  if (error || !status) {
+  // Nothing to show yet: the first load failed, so the error is the page.
+  if (!status) {
     return <ErrorMessage message={error || "Could not load AI access."} />;
   }
 
   const oneuptimeUrl: string = `${HTTP_PROTOCOL}${HOST}`;
   const hasRunner: boolean = status.runner !== null;
+  /*
+   * Read after the status has loaded: the permission snapshot arrives on
+   * API response headers, so checking it during the first paint of a fresh
+   * session would hide affordances the user actually has.
+   */
+  const canPickCredential: boolean = canPickKubernetesCredential();
+  const lastCheckedAt: string = status.evaluatedAt
+    ? OneUptimeDate.getDateAsFormattedString(
+        OneUptimeDate.fromString(status.evaluatedAt),
+      )
+    : "";
   const investigationGaps: Array<KubernetesAiAccessGap> = status.gaps.filter(
     (gap: KubernetesAiAccessGap) => {
       return gap.blocks === "investigation" || gap.blocks === "both";
@@ -303,6 +403,21 @@ const KubernetesClusterAI: FunctionComponent<
 
   return (
     <Fragment>
+      {error ? (
+        <Alert
+          type={AlertType.WARNING}
+          strongTitle="Could not refresh the AI access status"
+          title={`${error}${
+            lastCheckedAt
+              ? ` Showing the last status from ${lastCheckedAt}; this page retries on its own.`
+              : " Showing the last known status; this page retries on its own."
+          }`}
+          dataTestId="ai-access-refresh-warning"
+        />
+      ) : (
+        <></>
+      )}
+
       <Card
         title="OneUptime AI access to this cluster"
         description="When an incident or alert is raised on this cluster, OneUptime AI investigates it. With access, it also runs kubectl the way an on-call engineer would — and, if you allow it, fixes the problem. Every command appears on the incident."
@@ -363,7 +478,7 @@ const KubernetesClusterAI: FunctionComponent<
                 Investigation
               </p>
               <p className="mt-1 text-sm text-gray-900">
-                {status.isAiInvestigationEnabled
+                {status.isInvestigationEnabled
                   ? "AI runs read-only kubectl (get, describe, logs, events, top) while investigating."
                   : "Off — AI investigates with OneUptime data only."}
               </p>
@@ -520,7 +635,7 @@ const KubernetesClusterAI: FunctionComponent<
             field: { aiRemediationMode: true },
             title: "AI remediation",
             description:
-              "Ask for approval: AI composes the exact kubectl plan and a human approves it with one click. Automatic: safe changes (rollout restart/undo, scale, delete a named pod, cordon/uncordon, label/annotate) run on their own; riskier changes still ask. Bypass approval: every allowed change, riskier ones included, runs on its own and nobody is ever asked. Destructive commands (deleting namespaces, volumes, nodes, secrets, CRDs; exec; apply) never run in any mode.",
+              "Ask for approval: AI composes the exact kubectl plan and a human approves it with one click. Automatic: safe changes (rollout restart/undo, scale, delete a named pod, cordon/uncordon, label/annotate) run on their own; a riskier change is never run without a human — AI leaves the exact command in its recommendations and only a follow-up round proposes it for approval — unless the allowlist below names its shape. Bypass approval: every allowed change, riskier ones included, runs on its own and nobody is ever asked. Destructive commands (deleting namespaces, volumes, nodes, secrets, CRDs; exec; apply) never run in any mode.",
             fieldType: FormFieldSchemaType.Dropdown,
             required: false,
             dropdownOptions: [
@@ -575,20 +690,31 @@ const KubernetesClusterAI: FunctionComponent<
             required: false,
             placeholder: "Select a Runner",
           },
-          {
-            field: { aiAccessCredential: true },
-            title: "Kubernetes credential",
-            description:
-              "Only for a Runner outside the cluster: a Kubernetes credential assigned to that Runner. Leave empty for the in-cluster Runner.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: RunbookCredential,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "None (in-cluster Runner)",
-          },
+          /*
+           * The credential picker lists RunbookCredential rows, which not
+           * every user who may edit the cluster may read. Leaving the field
+           * out (rather than hiding it) means the form never requests those
+           * rows, so the modal opens cleanly and the bound credential is
+           * left untouched on save.
+           */
+          ...(canPickCredential
+            ? [
+                {
+                  field: { aiAccessCredential: true },
+                  title: "Kubernetes credential",
+                  description:
+                    "Only for a Runner outside the cluster: a Kubernetes credential assigned to that Runner. Leave empty for the in-cluster Runner.",
+                  fieldType: FormFieldSchemaType.Dropdown,
+                  dropdownModal: {
+                    type: RunbookCredential,
+                    labelField: "name",
+                    valueField: "_id",
+                  },
+                  required: false,
+                  placeholder: "None (in-cluster Runner)",
+                },
+              ]
+            : []),
         ]}
         modelDetailProps={{
           modelType: KubernetesCluster,
@@ -640,10 +766,26 @@ const KubernetesClusterAI: FunctionComponent<
               fieldType: FieldType.Element,
               getElement: (item: KubernetesCluster): ReactElement => {
                 return (
-                  <span>
-                    {item.aiAccessCredential?.name ||
-                      "None (in-cluster Runner)"}
-                  </span>
+                  <div>
+                    <span>
+                      {item.aiAccessCredential?.name ||
+                        "None (in-cluster Runner)"}
+                    </span>
+                    {canPickCredential ? (
+                      <></>
+                    ) : (
+                      <p
+                        className="mt-1 text-xs text-gray-500"
+                        data-testid="kubernetes-credential-permission-note"
+                      >
+                        Choosing a credential here needs permission to read
+                        Runner credentials (one of:{" "}
+                        {getKubernetesCredentialPermissionTitles().join(", ")}
+                        ). The in-cluster Runner installed by the agent chart
+                        needs no credential.
+                      </p>
+                    )}
+                  </div>
                 );
               },
             },
@@ -767,15 +909,52 @@ const KubernetesClusterAI: FunctionComponent<
           description:
             "Every kubectl command OneUptime AI ran here — during investigations (read-only), approved fixes, automatic fixes and access tests — with its outcome.",
         }}
+        userPreferencesKey={KUBECTL_JOBS_TABLE_PREFERENCES_KEY}
+        /*
+         * The table fetches exactly the column fields plus these, so every
+         * field a cell reads must be named here or it is undefined on the
+         * row: aiRunId tells an investigation from an access test, exitCode
+         * and errorMessage say how a command ended.
+         */
         selectMoreFields={{
-          payload: true,
-          output: true,
+          aiRunId: true,
+          exitCode: true,
           errorMessage: true,
         }}
         noItemsMessage="OneUptime AI has not run any kubectl commands on this cluster yet."
         sortBy="createdAt"
         sortOrder={SortOrder.Descending}
         showRefreshButton={true}
+        filters={[
+          {
+            field: { status: true },
+            title: "Result",
+            type: FieldType.Dropdown,
+            filterDropdownOptions:
+              DropdownUtil.getDropdownOptionsFromEnum(RunnerJobStatus),
+          },
+          {
+            field: { origin: true },
+            title: "Why",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: [
+              {
+                value: RunnerJobOrigin.AiInvestigation,
+                label:
+                  KUBECTL_JOB_ORIGIN_LABELS[RunnerJobOrigin.AiInvestigation],
+              },
+              {
+                value: RunnerJobOrigin.AiRemediation,
+                label: KUBECTL_JOB_ORIGIN_LABELS[RunnerJobOrigin.AiRemediation],
+              },
+            ],
+          },
+          {
+            field: { createdAt: true },
+            title: "When",
+            type: FieldType.Date,
+          },
+        ]}
         columns={[
           {
             field: { createdAt: true },
@@ -803,11 +982,11 @@ const KubernetesClusterAI: FunctionComponent<
               const origin: string = String(item.origin || "");
               return (
                 <span className="text-xs text-gray-700">
-                  {origin === "AiInvestigation"
+                  {origin === RunnerJobOrigin.AiInvestigation
                     ? item.aiRunId
                       ? "Investigation (read-only)"
                       : "Access test (read-only)"
-                    : origin === "AiRemediation"
+                    : origin === RunnerJobOrigin.AiRemediation
                       ? "Remediation"
                       : origin}
                 </span>
@@ -821,22 +1000,31 @@ const KubernetesClusterAI: FunctionComponent<
             getElement: (item: RunnerJob): ReactElement => {
               const statusText: string = String(item.status || "");
               const color: typeof Green500 =
-                statusText === "Succeeded"
+                statusText === RunnerJobStatus.Succeeded
                   ? Green500
-                  : statusText === "Pending" ||
-                      statusText === "Claimed" ||
-                      statusText === "Running"
+                  : statusText === RunnerJobStatus.Pending ||
+                      statusText === RunnerJobStatus.Claimed ||
+                      statusText === RunnerJobStatus.Running
                     ? Yellow500
                     : Red500;
               return (
-                <Pill
-                  text={
-                    typeof item.exitCode === "number"
-                      ? `${statusText} (exit ${item.exitCode})`
-                      : statusText
-                  }
-                  color={color}
-                />
+                <div>
+                  <Pill
+                    text={
+                      typeof item.exitCode === "number"
+                        ? `${statusText} (exit ${item.exitCode})`
+                        : statusText
+                    }
+                    color={color}
+                  />
+                  {item.errorMessage ? (
+                    <p className="mt-1 max-w-md break-words text-xs text-rose-600">
+                      {item.errorMessage}
+                    </p>
+                  ) : (
+                    <></>
+                  )}
+                </div>
               );
             },
           },

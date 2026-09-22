@@ -1,0 +1,110 @@
+# NOTES.txt for OneUptime AI access. The notes are the one place every
+# operator reads after `helm upgrade`, so they must (a) render at all on a
+# release whose stored values predate aiAccess — `--reuse-values` feeds the
+# templates the previous release's values, and a bare `.Values.aiAccess.enabled`
+# aborts the whole upgrade with "nil pointer evaluating interface {}" — and
+# (b) describe what the server actually does with the remediation switch: it
+# sets "ask for approval" only on a cluster's FIRST registration, and never
+# flips the mode of a cluster that was registered before.
+#
+# helm-unittest only hands raw text to the regex asserts for NOTES.txt (for a
+# manifest template they see nil), which is why these live in their own suite
+# rather than next to the RBAC assertions in ai-runner_test.yaml.
+suite: ai access notes
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+tests:
+  - it: NOTES render on a pre-0.7.0 release upgraded with plain --reuse-values and offer the one-flag upgrade
+    templates:
+      - templates/NOTES.txt
+    values:
+      - values/legacy-pre-0.7.0-no-ai.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - matchRegexRaw:
+          pattern: "helm upgrade oneuptime-agent oneuptime/kubernetes-agent -n oneuptime --reuse-values --set aiAccess.enabled=true"
+      - matchRegexRaw:
+          pattern: "--reset-then-reuse-values is the safer flag"
+      - notMatchRegexRaw:
+          pattern: "OneUptime AI access: an in-cluster Runner"
+
+  - it: NOTES tell a read-only install how to grant writes
+    templates:
+      - templates/NOTES.txt
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    asserts:
+      - matchRegexRaw:
+          pattern: "read-only kubectl while investigating incidents and alerts \\(add --set aiAccess.remediation.enabled=true to let it fix them too\\)"
+      - matchRegexRaw:
+          pattern: "kubectl logs -n oneuptime -l component=ai-runner --tail=100"
+
+  - it: NOTES never promise that an already-registered cluster flips to ask-for-approval
+    templates:
+      - templates/NOTES.txt
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+    asserts:
+      # The server sets "ask for approval" only on a cluster's FIRST
+      # registration; a cluster registered earlier keeps the mode on its AI
+      # page. The copy must say both halves and not the old blanket claim.
+      - matchRegexRaw:
+          pattern: "a cluster registering for the first time starts in \"ask for approval\""
+      - matchRegexRaw:
+          pattern: "a cluster that was already registered keeps the AI remediation mode chosen on its AI page"
+      - notMatchRegexRaw:
+          pattern: "ask for approval by default"
+
+  # The same two upgrades on a release whose stored values predate aiAccess:
+  # `.Values.aiAccess` holds only what --set passed, and NOTES must still
+  # render the right branch rather than abort.
+  - it: NOTES render the read-only branch on a pre-0.7.0 release upgraded with the one flag
+    templates:
+      - templates/NOTES.txt
+    values:
+      - values/legacy-pre-0.7.0-ai-enabled.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - matchRegexRaw:
+          pattern: "read-only kubectl while investigating incidents and alerts \\(add --set aiAccess.remediation.enabled=true to let it fix them too\\)"
+      - matchRegexRaw:
+          pattern: "kubectl logs -n oneuptime -l component=ai-runner --tail=100"
+      - notMatchRegexRaw:
+          pattern: "investigate AND fix incidents"
+      # The "upgrade with --set aiAccess.enabled=true" prompt is for installs
+      # that have not enabled it.
+      - notMatchRegexRaw:
+          pattern: "--reuse-values --set aiAccess.enabled=true"
+
+  - it: NOTES render the write branch on a pre-0.7.0 release upgraded with both flags, without the blanket approval claim
+    templates:
+      - templates/NOTES.txt
+    values:
+      - values/legacy-pre-0.7.0-ai-remediation.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - matchRegexRaw:
+          pattern: "investigate AND fix incidents"
+      - matchRegexRaw:
+          pattern: "a cluster registering for the first time starts in \"ask for approval\""
+      - matchRegexRaw:
+          pattern: "a cluster that was already registered keeps the AI remediation mode chosen on its AI page"
+      - notMatchRegexRaw:
+          pattern: "ask for approval by default"

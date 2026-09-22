@@ -69,6 +69,8 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
 
 That deploys one small Deployment — the OneUptime Runner — with a **read-only** ServiceAccount. It registers itself with the same `oneuptime.apiKey` and `clusterName` the agent already uses, so there is nothing to configure in the dashboard: the cluster's **AI** page (Kubernetes → cluster → AI) shows it as Connected within a minute.
 
+> **Upgrading from a chart older than 0.7.0?** `aiAccess.*` is new in 0.7.0, and `--reuse-values` renders an upgrade with the previous release's values rather than the new chart's defaults. The one-flag command above still works on such an install — every `aiAccess.*` value has a fallback in the template, identical to `values.yaml` — but on Helm 3.14+ prefer `--reset-then-reuse-values` in its place: it keeps your overrides and also picks up the new chart's defaults for everything else, which plain `--reuse-values` never does (see [Upgrading](#upgrading)).
+
 To let OneUptime AI **fix** what it finds, also grant write access:
 
 ```bash
@@ -78,14 +80,26 @@ helm upgrade oneuptime-agent oneuptime/kubernetes-agent \
   --set aiAccess.remediation.enabled=true
 ```
 
-The cluster then starts in **ask for approval**: OneUptime AI composes the exact `kubectl` plan (for example `kubectl rollout restart deployment/web -n web`) and a human approves it with one click on the incident. Switch the cluster to **automatic** on its AI page to let safe changes (rollout restart/undo, scale, deleting a named pod, cordon/uncordon, label/annotate) run on their own while riskier changes (patch, set image, drain, deleting workloads) still ask — or to **bypass approval** to let every allowed change run on its own and never be asked. Destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run in any mode — the RBAC here does not grant them and the Runner refuses them regardless of what it is told.
+What this does to the cluster's **AI remediation** mode depends on whether OneUptime has registered this cluster's Runner before:
+
+- **First registration with write access** (both flags in the first install or upgrade that enables `aiAccess`): the cluster starts in **ask for approval**. OneUptime AI composes the exact `kubectl` plan (for example `kubectl rollout restart deployment/web -n web`) and a human approves it with one click on the incident.
+- **Already registered** (you enabled read-only access first and are granting writes now): the cluster keeps whatever mode its AI page has — still **Off** unless you changed it. The server never flips a switch an operator owns, so after this upgrade open the cluster's AI page and pick the mode yourself. Until you do, OneUptime AI investigates but proposes no fixes.
+
+The three modes on the AI page: **ask for approval** (above); **automatic**, where safe changes (rollout restart/undo/pause/resume, scale, deleting a named pod or job, cordon/uncordon, label/annotate — each on one named object) run on their own, while a riskier change (patch, set image/env/resources, taint, drain, create, any of the safe verbs with a selector or `--all`, deleting with `--force`, deleting other kinds) is never run without a human — OneUptime AI leaves the exact command in its recommendations, and only a follow-up round proposes it for one-click approval — unless you allowlist its exact shape there; and **bypass approval**, where every change the policy allows runs on its own and nobody is asked.
+
+Two layers bound what the Runner can do, and they are not the same list:
+
+- **The command policy** — evaluated by the server and re-checked by the Runner before it spawns `kubectl` — refuses some commands outright, in every mode and even with a human approving them: `exec`, `attach`, `cp`, `port-forward`, `proxy`, `debug`, `run`, `edit`, `apply`, `replace`, `diff`, any file input or file-reading output format (`-f`, `-k`, `-o jsonpath-file=…`, `-o go-template-file=…`, `-o custom-columns-file=…`, `--template`, or a bare `-o jsonpath` with no inline template), credential, cluster-selection, raw-API and verbose-logging flags, Secret objects in any verb (OneUptime AI never reads, changes, deletes or creates a Secret — `create secret`, `create token` and `set env --resolve` included), writes across `--all-namespaces`, `delete --all`, and deleting namespaces, nodes, volumes, CRDs or cluster roles. Flags are parsed the way kubectl parses them — combined short flags are split so `-As` is caught, `--cascade`/`--dry-run`/`--validate` never swallow the next word, and only `-n`/`--namespace`, `--request-timeout` and `--match-server-version` may precede the verb (or the subcommand of `rollout`/`set`/`create`/`auth`/`cluster-info`/`top`) — so a denied flag or kind cannot hide behind another. It is the policy, not RBAC, that stops most of these: `kubectl apply` on an existing Deployment is a PATCH the write RBAC below would allow.
+- **The RBAC in this chart** is the outer bound should the policy ever be bypassed. Read-only mode grants only get/list/watch (plus pod logs and the access reviews `kubectl auth can-i` needs). `remediation.enabled` adds patch/update on workloads, their scale subresource, jobs, cronjobs, nodes, pods and HPAs; create on jobs, pod evictions and HPAs; and delete on **pods and jobs only**. It never grants `pods/exec`, `pods/attach`, `pods/portforward`, secrets, CRDs, wildcards, or delete on anything else — so a plan that deletes any other kind (a Deployment, say) is refused by the API server with `Forbidden` even after a human approves it.
 
 | `aiAccess.*` | Default | What it does |
 | --- | --- | --- |
 | `enabled` | `false` | Deploy the in-cluster Runner with read-only RBAC and register it to this cluster. |
 | `remediation.enabled` | `false` | Also grant the write verbs OneUptime AI's fixes use; the Runner refuses writes locally when this is off. |
 | `image.repository` / `image.tag` | `oneuptime/runner` / `release` | The Runner image. |
+| `image.pullPolicy` | `IfNotPresent` | Pull policy for the Runner image. |
 | `resources` | `50m` / `128Mi` → `500m` / `512Mi` | The Runner idles between commands. |
+| `extraEnv` | `[]` | Extra `EnvVar` objects for the Runner container — e.g. `HTTPS_PROXY` / `NO_PROXY` when the cluster reaches OneUptime through an egress proxy. |
 
 ## Tuning resources (CPU & memory)
 

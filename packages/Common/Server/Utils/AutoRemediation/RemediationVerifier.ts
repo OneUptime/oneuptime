@@ -161,10 +161,12 @@ export default class RemediationVerifier {
           await CommandPlanExecutor.executeRollback({ suggestion });
 
           /*
-           * A cluster whose AI page enabled remediation asked to be asked
-           * again: after the rollback, OneUptime AI composes a NEW plan
-           * (always for approval) unless the round cap is spent. Never
-           * blocks verification — a failure here only means no retry.
+           * A cluster whose AI page enabled remediation gets another try:
+           * after the rollback, OneUptime AI composes a NEW plan unless the
+           * round cap is spent. The follow-up round is Suggest (a human
+           * approves it) — except on a BypassApproval cluster, where it
+           * runs unattended again (see startFollowUpClusterRemediation).
+           * Never blocks verification — a failure here only means no retry.
            */
           if (suggestion.kubernetesClusterId && suggestion.projectId) {
             await AutoRemediationRuleEngineService.startFollowUpClusterRemediation(

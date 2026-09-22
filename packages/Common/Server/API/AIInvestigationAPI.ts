@@ -36,7 +36,11 @@ import FixPerformanceTaskTrigger from "../Utils/AI/SRE/FixPerformanceTaskTrigger
 import TelemetryImprovementTaskTrigger from "../Utils/AI/SRE/TelemetryImprovementTaskTrigger";
 import PostedRootCause from "../Utils/AI/SRE/PostedRootCause";
 import KubernetesClusterAiAccessService from "../Services/KubernetesClusterAiAccessService";
-import { KubernetesClusterAiAccessStatus } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  KubernetesAiAccessGap,
+  KubernetesAiAccessRunnerSummary,
+  KubernetesClusterAiAccessStatus,
+} from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import CodeFixTaskType from "../../Types/AI/CodeFixTaskType";
 import { AnalyzableSpan } from "../Utils/AI/PerfEvidence/SpanTreeAnalyzer";
 import {
@@ -350,8 +354,9 @@ async function sendLatestInvestigation(
    * them — evaluated from CURRENT configuration so the panel can tell the
    * reader "we investigated with OneUptime data only; here is what is
    * missing and where to fix it". Enrichment: a failure yields no rows.
+   * Present, possibly empty, in every response shape.
    */
-  const clusterAccess: Array<KubernetesClusterAiAccessStatus> =
+  const clusterAccess: Array<InvestigationPanelClusterAccess> =
     await getClusterAccessForPanel({ projectId: viewer.projectId, ...subject });
 
   if (!run) {
@@ -485,13 +490,86 @@ async function sendLatestInvestigation(
   });
 }
 
+/*
+ * The cluster access row the panel receives. The service's status names
+ * the RunbookCredential the cluster's jobs use; the panel only needs to
+ * say which cluster is reachable, how, and what is missing, so the row is
+ * rebuilt field by field from the status — an allowlist, so a field added
+ * to the status (or to the runner summary) never reaches every viewer of
+ * an incident by default.
+ */
+export type InvestigationPanelClusterAccess = Omit<
+  KubernetesClusterAiAccessStatus,
+  "credentialId"
+>;
+
+function toPanelRunnerSummary(
+  runner: KubernetesAiAccessRunnerSummary | null,
+): KubernetesAiAccessRunnerSummary | null {
+  if (!runner) {
+    return null;
+  }
+
+  return {
+    id: runner.id,
+    name: runner.name,
+    isOnline: runner.isOnline,
+    lastAliveAt: runner.lastAliveAt,
+    canRunAiCommands: runner.canRunAiCommands,
+    posture: runner.posture
+      ? {
+          clusterIdentifier: runner.posture.clusterIdentifier,
+          inCluster: runner.posture.inCluster,
+          allowWrites: runner.posture.allowWrites,
+          kubectlVersion: runner.posture.kubectlVersion,
+          agentChartVersion: runner.posture.agentChartVersion,
+        }
+      : undefined,
+  };
+}
+
+export function toPanelClusterAccess(
+  status: KubernetesClusterAiAccessStatus,
+): InvestigationPanelClusterAccess {
+  return {
+    clusterId: status.clusterId,
+    clusterName: status.clusterName,
+    clusterIdentifier: status.clusterIdentifier,
+    runner: toPanelRunnerSummary(status.runner),
+    accessMethod: status.accessMethod,
+    credentialName: status.credentialName,
+    kubectlAllowlist: [...(status.kubectlAllowlist || [])],
+    isInvestigationEnabled: status.isInvestigationEnabled,
+    isInvestigationReady: status.isInvestigationReady,
+    remediationMode: status.remediationMode,
+    isRemediationReady: status.isRemediationReady,
+    gaps: (status.gaps || []).map(
+      (gap: KubernetesAiAccessGap): KubernetesAiAccessGap => {
+        return {
+          code: gap.code,
+          title: gap.title,
+          description: gap.description,
+          nextStep: gap.nextStep,
+          blocks: gap.blocks,
+        };
+      },
+    ),
+    lastVerifiedAt: status.lastVerifiedAt,
+    lastError: status.lastError,
+    evaluatedAt: status.evaluatedAt,
+  };
+}
+
 async function getClusterAccessForPanel(data: {
   projectId: ObjectID;
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
-}): Promise<Array<KubernetesClusterAiAccessStatus>> {
+}): Promise<Array<InvestigationPanelClusterAccess>> {
   try {
-    return await KubernetesClusterAiAccessService.getStatusesForSubject(data);
+    const statuses: Array<KubernetesClusterAiAccessStatus> =
+      await KubernetesClusterAiAccessService.getStatusesForSubject(data);
+
+    return statuses.map(toPanelClusterAccess);
   } catch (error) {
     logger.error(
       `AI: could not resolve cluster access for the investigation panel: ${error}`,

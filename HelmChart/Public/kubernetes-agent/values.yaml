@@ -1226,27 +1226,42 @@ serviceAccount:
 #   * RBAC, here: aiAccess.enabled grants the Runner's ServiceAccount
 #     READ-ONLY verbs (get/list/watch, pods/log). aiAccess.remediation.enabled
 #     additionally grants the write verbs OneUptime AI's fixes use (rollout
-#     restart/undo, scale, delete a pod/job, cordon/uncordon, label/annotate,
-#     patch). It never grants exec, port-forward, or deletion of namespaces,
-#     volumes, nodes, secrets or CRDs.
+#     restart/undo, scale, cordon/uncordon, label/annotate, patch, and delete
+#     on pods and jobs — the only kinds it may delete). It never grants exec,
+#     attach, port-forward, secrets, CRDs, or deletion of namespaces, volumes
+#     or nodes. RBAC is the outer bound; the command policy (next) is what
+#     refuses apply/edit/replace, --all-namespaces writes and delete --all,
+#     which RBAC alone would let through as ordinary patch/update/delete calls.
 #   * Policy, in OneUptime: the cluster's AI page decides whether AI may
 #     investigate (read-only kubectl), and whether it may remediate — "ask
 #     for approval" (a human approves the exact kubectl plan with one click),
-#     "automatic" (safe changes run on their own, riskier ones still ask) or
-#     "bypass approval" (every allowed change runs on its own, nobody is
+#     "automatic" (safe changes run on their own; a riskier change is never
+#     run without a human — OneUptime AI leaves the exact command in its
+#     recommendations, and only a follow-up round proposes it for approval)
+#     or "bypass approval" (every allowed change runs on its own, nobody is
 #     asked). OneUptime AI never runs a command the policy refuses, whatever
 #     RBAC allows, and the Runner re-checks the same policy before running it.
 #
 # Read-only investigation only:
 #   --set aiAccess.enabled=true
-# Investigation + fixes (approval required by default):
+# Investigation + fixes:
 #   --set aiAccess.enabled=true --set aiAccess.remediation.enabled=true
+#
+# Existing install: `helm upgrade --reuse-values --set ...` works even though
+# the release's stored values predate this block — every aiAccess.* value has
+# a fallback in the template matching the defaults below. On Helm 3.14+,
+# `--reset-then-reuse-values` is the safer flag: it keeps your overrides and
+# also picks up this chart's defaults for everything else, which plain
+# `--reuse-values` never does.
 aiAccess:
   enabled: false
   remediation:
-    # Grant the Runner write RBAC so OneUptime AI can apply fixes. The
-    # cluster's AI page starts in "ask for approval" when this is on; switch
-    # it to "automatic" there if you want safe fixes applied without a human.
+    # Grant the Runner write RBAC so OneUptime AI can apply fixes. A cluster
+    # registering for the FIRST time with this on starts in "ask for
+    # approval" on its AI page. A cluster that was already registered (say,
+    # read-only first and writes now) keeps whatever mode its AI page has —
+    # the server never flips a switch an operator owns — so pick "ask for
+    # approval", "automatic" or "bypass approval" there after the upgrade.
     enabled: false
   image:
     repository: oneuptime/runner

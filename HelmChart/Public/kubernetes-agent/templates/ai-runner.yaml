@@ -1,8 +1,31 @@
-{{- if .Values.aiAccess.enabled }}
 {{- /*
 OneUptime AI access: an in-cluster OneUptime Runner that runs kubectl on
 behalf of OneUptime AI.
 
+Every aiAccess.* lookup goes through the locals below so the template renders
+on a release whose stored values predate this block. `helm upgrade
+--reuse-values` feeds the templates the PREVIOUS release's coalesced values,
+not this chart's values.yaml, so on an install older than 0.7.0 the only
+aiAccess keys present are the ones passed with --set: `.Values.aiAccess` is
+nil on a plain upgrade, and `.Values.aiAccess.image` is nil after
+`--set aiAccess.enabled=true`. A bare `.Values.aiAccess.image.repository`
+aborts the whole upgrade with "nil pointer evaluating interface {}". The
+fallbacks here must stay in step with values.yaml; tests/ai-runner_test.yaml
+renders the legacy shape and checks that they do.
+*/ -}}
+{{- $aiAccess := .Values.aiAccess | default dict -}}
+{{- if $aiAccess.enabled }}
+{{- $remediation := $aiAccess.remediation | default dict -}}
+{{- $allowWrites := $remediation.enabled | default false -}}
+{{- $image := $aiAccess.image | default dict -}}
+{{- $imageRepository := $image.repository | default "oneuptime/runner" -}}
+{{- $imageTag := $image.tag | default "release" -}}
+{{- $imagePullPolicy := $image.pullPolicy | default "IfNotPresent" -}}
+{{- $defaultResources := dict "requests" (dict "cpu" "50m" "memory" "128Mi") "limits" (dict "cpu" "500m" "memory" "512Mi") -}}
+{{- /* An explicit `resources: {}` means "no requests or limits" and is honoured; only an absent key falls back. */ -}}
+{{- $resources := ternary $aiAccess.resources $defaultResources (hasKey $aiAccess "resources") -}}
+{{- $extraEnv := $aiAccess.extraEnv | default list -}}
+{{- /*
 Its own ServiceAccount, on purpose. The collector's ServiceAccount is shared
 by every telemetry pod in this chart and is read-only by construction; the
 Runner's is the one identity in the cluster that may (with
@@ -59,6 +82,10 @@ rules:
       - statefulsets/status
       - daemonsets
       - daemonsets/status
+      # `kubectl rollout history` / `rollout undo` on a DaemonSet or
+      # StatefulSet read the workload's ControllerRevisions (Deployments
+      # keep their history in ReplicaSets, already listed). Read-only.
+      - controllerrevisions
     verbs: ["get", "list", "watch"]
   - apiGroups: ["batch"]
     resources:
@@ -98,21 +125,29 @@ rules:
       - selfsubjectaccessreviews
       - selfsubjectrulesreviews
     verbs: ["create"]
-{{- if .Values.aiAccess.remediation.enabled }}
+{{- if $allowWrites }}
   # Remediation: the write verbs OneUptime AI's fix policy can express.
-  # rollout restart/undo/pause/resume, scale, set image/env/resources and
-  # patch are PATCH/UPDATE on workloads and their scale subresource.
+  # rollout restart/undo/pause/resume, set image/env/resources and patch are
+  # PATCH/UPDATE on the workload itself (rollout undo on a Deployment PATCHes
+  # the Deployment from its ReplicaSet history; there is no rollback
+  # subresource in apps/v1).
   - apiGroups: ["apps"]
     resources:
       - deployments
-      - deployments/scale
-      - deployments/rollback
       - statefulsets
-      - statefulsets/scale
       - daemonsets
       - replicasets
-      - replicasets/scale
     verbs: ["patch", "update"]
+  # kubectl scale PATCHes the scale subresource blind, but with
+  # --current-replicas or --resource-version it GETs the subresource first
+  # and then UPDATEs it. `get` on the workload does not cover its
+  # subresource, so the read-only rules above are not enough here.
+  - apiGroups: ["apps"]
+    resources:
+      - deployments/scale
+      - statefulsets/scale
+      - replicasets/scale
+    verbs: ["get", "patch", "update"]
   - apiGroups: ["batch"]
     resources:
       - jobs
@@ -209,8 +244,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: ai-runner
-          image: "{{ .Values.aiAccess.image.repository }}:{{ .Values.aiAccess.image.tag | default "release" }}"
-          imagePullPolicy: {{ .Values.aiAccess.image.pullPolicy }}
+          image: "{{ $imageRepository }}:{{ $imageTag }}"
+          imagePullPolicy: {{ $imagePullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -234,7 +269,7 @@ spec:
             # Matches the RBAC above. The Runner refuses any write locally when
             # this is false, so RBAC and policy can never disagree silently.
             - name: ONEUPTIME_KUBECTL_ALLOW_WRITES
-              value: {{ .Values.aiAccess.remediation.enabled | quote }}
+              value: {{ $allowWrites | quote }}
             # This Runner exists to run kubectl for OneUptime AI. It never runs
             # runbooks or clones repositories.
             - name: ONEUPTIME_RUNNER_ENABLE_RUNBOOKS
@@ -251,7 +286,7 @@ spec:
               value: /tmp/kube-cache
             - name: PORT
               value: "3875"
-            {{- with .Values.aiAccess.extraEnv }}
+            {{- with $extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
           ports:
@@ -275,7 +310,7 @@ spec:
             - name: scratch
               mountPath: /tmp
           resources:
-            {{- toYaml .Values.aiAccess.resources | nindent 12 }}
+            {{- toYaml $resources | nindent 12 }}
       volumes:
         - name: scratch
           emptyDir: {}

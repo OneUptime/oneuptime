@@ -11,6 +11,11 @@ import AlertService from "../../../Server/Services/AlertService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import PostedRootCause from "../../../Server/Utils/AI/SRE/PostedRootCause";
 import InvestigationEligibility from "../../../Server/Utils/AI/SRE/InvestigationEligibility";
+import KubernetesClusterAiAccessService from "../../../Server/Services/KubernetesClusterAiAccessService";
+import {
+  KubernetesAiRemediationMode,
+  KubernetesClusterAiAccessStatus,
+} from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import InvestigationNotStartedReason from "../../../Types/AI/InvestigationNotStartedReason";
 import FixFromIncidentTaskTrigger from "../../../Server/Utils/AI/SRE/FixFromIncidentTaskTrigger";
 import {
@@ -125,6 +130,53 @@ function investigationEvent(eventType: AIRunEventType): AIRunEvent {
   return event;
 }
 
+const CLUSTER_ID: string = "56565656-5656-4565-8565-565656565656";
+const RUNNER_ID: string = "67676767-6767-4676-8676-676767676767";
+const CREDENTIAL_ID: string = "78787878-7878-4787-8787-787878787878";
+const RUNNER_KEY: string = "runner-secret-key-89898989";
+
+/*
+ * What the access service answers with — including the credential id the
+ * jobs name and, defensively, a runner key a future summary might carry.
+ * Neither may reach the panel.
+ */
+function clusterAccessStatus(): KubernetesClusterAiAccessStatus {
+  return {
+    clusterId: CLUSTER_ID,
+    clusterName: "prod-us",
+    clusterIdentifier: "prod-us",
+    runner: {
+      id: RUNNER_ID,
+      name: "kubernetes-agent/prod-us",
+      isOnline: true,
+      lastAliveAt: "2026-09-14T18:00:00.000Z",
+      canRunAiCommands: true,
+      posture: { inCluster: false, allowWrites: false },
+      key: RUNNER_KEY,
+    } as KubernetesClusterAiAccessStatus["runner"],
+    accessMethod: "credential",
+    credentialId: CREDENTIAL_ID,
+    credentialName: "prod-sa-token",
+    kubectlAllowlist: ["kubectl rollout restart deployment/*"],
+    isInvestigationEnabled: true,
+    isInvestigationReady: true,
+    remediationMode: KubernetesAiRemediationMode.RequireApproval,
+    isRemediationReady: true,
+    gaps: [
+      {
+        code: "remediation_disabled",
+        title: "AI remediation is turned off for this cluster",
+        description: "x",
+        nextStep: "y",
+        blocks: "remediation",
+      },
+    ],
+    lastVerifiedAt: "2026-09-14T17:59:00.000Z",
+    lastError: undefined,
+    evaluatedAt: "2026-09-14T18:00:00.000Z",
+  };
+}
+
 function requestFor(body: JSONObject): ExpressRequest {
   return {
     body,
@@ -177,6 +229,9 @@ describe("AIInvestigationAPI latest-investigation payload", () => {
       .spyOn(AlertService, "findOneById")
       .mockResolvedValue(alertInProject(PROJECT_ID));
     jest.spyOn(AIRunEventService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(KubernetesClusterAiAccessService, "getStatusesForSubject")
+      .mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -205,6 +260,7 @@ describe("AIInvestigationAPI latest-investigation payload", () => {
       isAnalysisPending: false,
       evidence: [],
       references: [],
+      clusterAccess: [],
     });
     expect(PostedRootCause.getForInvestigation).not.toHaveBeenCalled();
   });
@@ -659,6 +715,9 @@ describe("AIInvestigationAPI latest-investigation evidence and references", () =
       .spyOn(IncidentService, "findBy")
       .mockResolvedValue([]);
     alertFindBy = jest.spyOn(AlertService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(KubernetesClusterAiAccessService, "getStatusesForSubject")
+      .mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -1002,6 +1061,9 @@ describe("AIInvestigationAPI latest-investigation tenant pinning", () => {
       .spyOn(IncidentService, "findBy")
       .mockResolvedValue([]);
     alertFindBy = jest.spyOn(AlertService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(KubernetesClusterAiAccessService, "getStatusesForSubject")
+      .mockResolvedValue([]);
   });
 
   afterEach(() => {
@@ -1153,6 +1215,7 @@ describe("AIInvestigationAPI latest-investigation tenant pinning", () => {
       [
         "analysisMarkdown",
         "analysisTldr",
+        "clusterAccess",
         "events",
         "evidence",
         "isAnalysisPending",
@@ -1161,6 +1224,263 @@ describe("AIInvestigationAPI latest-investigation tenant pinning", () => {
         "run",
       ].sort(),
     );
+  });
+});
+
+/*
+ * The panel's cluster access rows: which clusters the signal is about and
+ * whether OneUptime AI can reach them, from CURRENT configuration. The rows
+ * exist in every response shape, are read inside the tenant only, and never
+ * carry the credential or Runner secrets the jobs behind them use.
+ */
+describe("AIInvestigationAPI latest-investigation cluster access", () => {
+  let getStatuses: SpyInstance<
+    typeof KubernetesClusterAiAccessService.getStatusesForSubject
+  >;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest
+      .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+      .mockResolvedValue(props);
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(incidentInProject(PROJECT_ID));
+    jest
+      .spyOn(AlertService, "findOneById")
+      .mockResolvedValue(alertInProject(PROJECT_ID));
+    jest.spyOn(AIRunEventService, "findBy").mockResolvedValue([]);
+    jest.spyOn(IncidentService, "findBy").mockResolvedValue([]);
+    jest.spyOn(AlertService, "findBy").mockResolvedValue([]);
+    // No run by default; callIncidentRoute overrides these per case.
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue([]);
+    jest.spyOn(PostedRootCause, "getForInvestigation").mockResolvedValue(null);
+    jest
+      .spyOn(InvestigationEligibility, "getNotStartedReason")
+      .mockResolvedValue({
+        ...InvestigationEligibility.reason("no_run_recorded", {
+          projectId: PROJECT_ID,
+          incidentId: INCIDENT_ID,
+        }),
+        source: "unknown",
+      });
+    getStatuses = jest
+      .spyOn(KubernetesClusterAiAccessService, "getStatusesForSubject")
+      .mockResolvedValue([clusterAccessStatus()]);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function sentClusterAccess(): Array<JSONObject> {
+    return sentPayload()["clusterAccess"] as Array<JSONObject>;
+  }
+
+  it("never carries credential ids or Runner keys to the panel", async () => {
+    await callIncidentRoute({
+      run: investigationRun({
+        status: AIRunStatus.Completed,
+        createdAt: new Date("2026-09-14T18:00:00.000Z"),
+        completedAt: new Date("2026-09-14T18:04:00.000Z"),
+      }),
+      analysisMarkdown: "## Current investigation\nPool exhausted.",
+    });
+
+    const rows: Array<JSONObject> = sentClusterAccess();
+    expect(rows).toHaveLength(1);
+
+    const row: JSONObject = rows[0]!;
+    expect(row).not.toHaveProperty("credentialId");
+    expect(row["runner"]).not.toHaveProperty("key");
+
+    const serialized: string = JSON.stringify(rows);
+    expect(serialized).not.toContain(CREDENTIAL_ID);
+    expect(serialized).not.toContain(RUNNER_KEY);
+
+    // What the panel does need is all there.
+    expect(row).toEqual({
+      clusterId: CLUSTER_ID,
+      clusterName: "prod-us",
+      clusterIdentifier: "prod-us",
+      runner: {
+        id: RUNNER_ID,
+        name: "kubernetes-agent/prod-us",
+        isOnline: true,
+        lastAliveAt: "2026-09-14T18:00:00.000Z",
+        canRunAiCommands: true,
+        posture: { inCluster: false, allowWrites: false },
+      },
+      accessMethod: "credential",
+      credentialName: "prod-sa-token",
+      kubectlAllowlist: ["kubectl rollout restart deployment/*"],
+      isInvestigationEnabled: true,
+      isInvestigationReady: true,
+      remediationMode: KubernetesAiRemediationMode.RequireApproval,
+      isRemediationReady: true,
+      gaps: [
+        {
+          code: "remediation_disabled",
+          title: "AI remediation is turned off for this cluster",
+          description: "x",
+          nextStep: "y",
+          blocks: "remediation",
+        },
+      ],
+      lastVerifiedAt: "2026-09-14T17:59:00.000Z",
+      evaluatedAt: "2026-09-14T18:00:00.000Z",
+    });
+  });
+
+  it("drops unknown fields on the status and the runner summary rather than forwarding them", async () => {
+    const status: KubernetesClusterAiAccessStatus = clusterAccessStatus();
+    (status as unknown as JSONObject)["runnerKey"] = RUNNER_KEY;
+    (status as unknown as JSONObject)["kubeconfig"] = "apiVersion: v1";
+    getStatuses.mockResolvedValue([status]);
+
+    await callIncidentRoute();
+
+    const serialized: string = JSON.stringify(sentClusterAccess());
+    expect(serialized).not.toContain("runnerKey");
+    expect(serialized).not.toContain("kubeconfig");
+    expect(serialized).not.toContain(RUNNER_KEY);
+    expect(serialized).not.toContain(CREDENTIAL_ID);
+  });
+
+  it("keeps a cluster with no Runner bound as an explicit null runner", async () => {
+    getStatuses.mockResolvedValue([
+      {
+        ...clusterAccessStatus(),
+        runner: null,
+        accessMethod: "none",
+        credentialId: undefined,
+        credentialName: undefined,
+        isInvestigationReady: false,
+        isRemediationReady: false,
+        gaps: [
+          {
+            code: "no_runner_bound",
+            title: "No Runner is bound to this cluster",
+            description: "x",
+            nextStep: "y",
+            blocks: "both",
+          },
+        ],
+      },
+    ]);
+
+    await callIncidentRoute();
+
+    const row: JSONObject = sentClusterAccess()[0]!;
+    expect(row["runner"]).toBeNull();
+    expect(row["isInvestigationReady"]).toBe(false);
+    expect((row["gaps"] as Array<JSONObject>)[0]!["code"]).toBe(
+      "no_runner_bound",
+    );
+  });
+
+  it("is present in the no-investigation shape too", async () => {
+    await callIncidentRoute();
+
+    const payload: JSONObject = sentPayload();
+    expect(payload["run"]).toBeNull();
+    expect(sentClusterAccess()).toHaveLength(1);
+    expect(sentClusterAccess()[0]!["clusterId"]).toBe(CLUSTER_ID);
+    expect(sentClusterAccess()[0]).not.toHaveProperty("credentialId");
+  });
+
+  it.each([
+    AIRunStatus.Queued,
+    AIRunStatus.Running,
+    AIRunStatus.Error,
+    AIRunStatus.Completed,
+  ])(
+    "is present, sanitized, alongside a %s run",
+    async (status: AIRunStatus) => {
+      await callIncidentRoute({
+        run: investigationRun({
+          status,
+          createdAt: new Date("2026-09-14T18:00:00.000Z"),
+          completedAt: new Date(Date.now() - 1000),
+        }),
+      });
+
+      expect(sentClusterAccess()).toHaveLength(1);
+      expect(JSON.stringify(sentClusterAccess())).not.toContain(CREDENTIAL_ID);
+    },
+  );
+
+  it("is an empty array when the signal is about no cluster", async () => {
+    getStatuses.mockResolvedValue([]);
+
+    await callIncidentRoute();
+
+    expect(sentPayload()["clusterAccess"]).toEqual([]);
+  });
+
+  it("is an empty array, and the payload still sends, when the lookup fails", async () => {
+    getStatuses.mockRejectedValue(new Error("database unavailable"));
+
+    await callIncidentRoute({
+      run: investigationRun({
+        status: AIRunStatus.Completed,
+        createdAt: new Date("2026-09-14T18:00:00.000Z"),
+        completedAt: new Date("2026-09-14T18:04:00.000Z"),
+      }),
+      analysisMarkdown: "## Current investigation\nPool exhausted.",
+    });
+
+    const payload: JSONObject = sentPayload();
+    expect(payload["clusterAccess"]).toEqual([]);
+    expect(payload["analysisMarkdown"]).toBe(
+      "## Current investigation\nPool exhausted.",
+    );
+  });
+
+  it.each(["incident", "alert"] as const)(
+    "looks the %s's clusters up inside the tenant for that subject only",
+    async (subjectType: "incident" | "alert") => {
+      const next: ReturnType<typeof jest.fn> = jest.fn();
+
+      await mockRouter
+        .match("post", `/ai-investigation/${subjectType}`)
+        .handlerFunction(
+          requestFor(
+            subjectType === "incident"
+              ? { incidentId: INCIDENT_ID.toString() }
+              : { alertId: ALERT_ID.toString() },
+          ),
+          response(),
+          next as unknown as NextFunction,
+        );
+
+      expect(next).not.toHaveBeenCalled();
+      expect(getStatuses).toHaveBeenCalledTimes(1);
+      expect(getStatuses).toHaveBeenCalledWith(
+        subjectType === "incident"
+          ? { projectId: PROJECT_ID, incidentId: INCIDENT_ID }
+          : { projectId: PROJECT_ID, alertId: ALERT_ID },
+      );
+      expect(sentClusterAccess()).toHaveLength(1);
+    },
+  );
+
+  it("is not looked up when the subject is not readable", async () => {
+    jest.spyOn(IncidentService, "findOneById").mockResolvedValue(null);
+
+    const next: ReturnType<typeof jest.fn> = jest.fn();
+
+    await mockRouter
+      .match("post", "/ai-investigation/incident")
+      .handlerFunction(
+        requestFor({ incidentId: INCIDENT_ID.toString() }),
+        response(),
+        next as unknown as NextFunction,
+      );
+
+    expect(next).toHaveBeenCalledWith(expect.any(BadDataException));
+    expect(getStatuses).not.toHaveBeenCalled();
+    expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
   });
 });
 

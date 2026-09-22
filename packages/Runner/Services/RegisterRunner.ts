@@ -39,6 +39,29 @@ export default class Register {
    * the attempt count and the next wait.
    */
   public static async registerRunner(): Promise<void> {
+    await Register.registerWithRetries({ maxAttempts: null });
+  }
+
+  /*
+   * The same registration with a bounded number of attempts, for callers
+   * that must not hang forever — the heartbeat loop re-registering a
+   * kubernetes-agent Runner whose key was rotated behind it. Resolves true
+   * once registered, false when the budget is spent; the caller decides
+   * what to do next (the heartbeat loop simply starts counting rejections
+   * again, so a revoked ingestion key produces a bounded, single-flight
+   * trickle of attempts rather than an ever-growing pile of loops).
+   */
+  public static async tryRegisterRunner(data: {
+    maxAttempts: number;
+  }): Promise<boolean> {
+    return Register.registerWithRetries({
+      maxAttempts: Math.max(1, Math.floor(data.maxAttempts)),
+    });
+  }
+
+  private static async registerWithRetries(data: {
+    maxAttempts: number | null;
+  }): Promise<boolean> {
     let attempt: number = 0;
 
     // eslint-disable-next-line no-constant-condition
@@ -53,18 +76,28 @@ export default class Register {
         logger.debug(`Runner registered successfully.`, {
           runnerName: RUNNER_NAME,
         } as LogAttributes);
-        return;
+        return true;
       } catch (error) {
         const waitSeconds: number = Math.min(
           Register.baseRetryIntervalInSeconds * Math.pow(2, attempt - 1),
           Register.maxRetryIntervalInSeconds,
         );
 
+        const isLastAttempt: boolean =
+          data.maxAttempts !== null && attempt >= data.maxAttempts;
+
         logger.error(
-          `Failed to register Runner (attempt ${attempt}). Retrying after ${waitSeconds} seconds — the agent keeps retrying until the server is reachable.`,
+          isLastAttempt
+            ? `Failed to register Runner (attempt ${attempt} of ${data.maxAttempts}). Giving up on this round; the Runner keeps its current identity and will try again later.`
+            : `Failed to register Runner (attempt ${attempt}). Retrying after ${waitSeconds} seconds — the agent keeps retrying until the server is reachable.`,
           { runnerName: RUNNER_NAME } as LogAttributes,
         );
         logger.error(error, { runnerName: RUNNER_NAME } as LogAttributes);
+
+        if (isLastAttempt) {
+          return false;
+        }
+
         await Sleep.sleep(waitSeconds * 1000);
       }
     }
@@ -107,6 +140,13 @@ export default class Register {
    * cluster's name for a Runner identity bound to that cluster. The server
    * rotates the key on every registration, so a restarted pod never reuses
    * a credential it may have logged or lost.
+   *
+   * The server only re-keys a Runner that is offline or that proves it is
+   * the same Runner by presenting its current key — an ingestion key alone
+   * must never evict a live Runner. So a re-registration from a running
+   * process (the heartbeat loop, after rejected heartbeats) sends the key
+   * it holds as previousRunnerKey; a fresh pod has none to send and is
+   * admitted once its predecessor is offline (or signed off cleanly).
    */
   private static async registerKubernetesAgentRunner(): Promise<void> {
     const registrationUrl: URL = URL.fromString(
@@ -114,6 +154,11 @@ export default class Register {
     ).addRoute("/register-kubernetes-agent");
 
     const posture: KubernetesRunnerPosture = await KubernetesPosture.build();
+
+    const previousRunnerKey: string = LocalCache.getString(
+      "RUNNER",
+      "RUNNER_KEY",
+    );
 
     logger.debug("Registering the Kubernetes agent Runner...", {
       runnerName: RUNNER_NAME,
@@ -132,6 +177,7 @@ export default class Register {
         ...(posture.agentChartVersion
           ? { agentChartVersion: posture.agentChartVersion }
           : {}),
+        ...(previousRunnerKey ? { previousRunnerKey } : {}),
       },
       headers: {
         "x-oneuptime-token": KUBERNETES_AGENT_INGESTION_KEY || "",
@@ -172,8 +218,15 @@ export default class Register {
     });
 
     if (result.data["isBoundToCluster"] === false) {
+      /*
+       * bindingState says WHY: an operator may have deliberately cleared
+       * the binding, which is not the same message as "another Runner has
+       * it". A server that predates bindingState gets the general wording.
+       */
       logger.warn(
-        `Cluster "${KUBERNETES_AGENT_CLUSTER_NAME}" is bound to a different Runner in the dashboard, so OneUptime AI will not use this in-cluster Runner until you select it on the cluster's AI page.`,
+        result.data["bindingState"] === "left_unbound_by_operator"
+          ? `Cluster "${KUBERNETES_AGENT_CLUSTER_NAME}" has no Runner bound in the dashboard (an operator cleared it), so OneUptime AI will not use this in-cluster Runner until you select it on the cluster's AI page.`
+          : `Cluster "${KUBERNETES_AGENT_CLUSTER_NAME}" is bound to a different Runner in the dashboard, so OneUptime AI will not use this in-cluster Runner until you select it on the cluster's AI page.`,
         { runnerName: RUNNER_NAME } as LogAttributes,
       );
     }

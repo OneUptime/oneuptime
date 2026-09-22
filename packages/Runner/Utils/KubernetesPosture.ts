@@ -5,15 +5,25 @@ import {
   KUBERNETES_AGENT_CHART_VERSION,
   KUBERNETES_AGENT_CLUSTER_NAME,
 } from "../Config";
+import KubernetesAgentMode from "./KubernetesAgentMode";
 import { KubernetesRunnerPosture } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import logger from "Common/Server/Utils/Logger";
 
 /*
- * What this Runner can say about its own Kubernetes reach: whether it runs
- * inside a cluster (a pod with a mounted ServiceAccount), whether its host
- * lets AI-composed writes through, and which kubectl it carries. Reported
- * at registration and on every heartbeat, so the dashboard's "what is
- * missing" checklist reflects the container that is actually running.
+ * What this Runner can say about its own Kubernetes reach: whether it may
+ * run kubectl with its pod's own ServiceAccount, whether its host lets
+ * AI-composed writes through, and which kubectl it carries. Reported at
+ * registration and on every heartbeat of the kubernetes-agent Runner, so the
+ * dashboard's "what is missing" checklist reflects the container that is
+ * actually running.
+ *
+ * Only the kubernetes-agent Runner has a posture at all. Merely running in a
+ * pod says nothing about WHICH cluster that pod is in: an ordinary project
+ * Runner deployed in staging could be selected on production's AI page, and
+ * if being in a pod were enough for "in-cluster access" every command for
+ * production would run, credential-less, against staging's ServiceAccount.
+ * The agent Runner is different because it registered with the cluster's
+ * name and the server bound it to that cluster.
  */
 
 export const SERVICE_ACCOUNT_TOKEN_PATH: string =
@@ -26,7 +36,9 @@ export default class KubernetesPosture {
 
   /*
    * kubectl's own in-cluster detection is the same two facts: the API
-   * server's service host in the environment and a mounted token.
+   * server's service host in the environment and a mounted token. This is
+   * the raw fact about the process — it is NOT permission to use that
+   * ServiceAccount for OneUptime AI; see canUseOwnServiceAccount.
    */
   public static isInCluster(): boolean {
     if (!process.env["KUBERNETES_SERVICE_HOST"]) {
@@ -41,6 +53,19 @@ export default class KubernetesPosture {
   }
 
   /*
+   * Whether a kubectl job that arrives WITHOUT a credential may run with
+   * this pod's ServiceAccount. True only for the kubernetes-agent Runner
+   * (which knows which cluster it is in and was registered as that
+   * cluster's Runner) and only while it actually runs inside a cluster. A
+   * project Runner that happens to live in a pod answers false, so a
+   * credential-less job reaching it is refused rather than run against
+   * whatever cluster its pod is in.
+   */
+  public static canUseOwnServiceAccount(): boolean {
+    return KubernetesAgentMode.isActive() && KubernetesPosture.isInCluster();
+  }
+
+  /*
    * Only "false" refuses: an external Runner with a Kubernetes credential
    * is bounded by that credential's RBAC, so writes are allowed unless the
    * host says otherwise. The chart sets this explicitly from
@@ -50,10 +75,22 @@ export default class KubernetesPosture {
     return KUBECTL_ALLOW_WRITES_OVERRIDE !== false;
   }
 
+  /*
+   * Only meaningful for the kubernetes-agent Runner, which is the only
+   * caller that should report it. Outside that mode it never claims
+   * in-cluster access or a cluster identity, whatever environment the
+   * process runs in, so a misrouted call cannot make an ordinary Runner
+   * look like a cluster's agent.
+   */
   public static async build(): Promise<KubernetesRunnerPosture> {
+    const isAgent: boolean = KubernetesAgentMode.isActive();
+
     return {
-      clusterIdentifier: KUBERNETES_AGENT_CLUSTER_NAME || undefined,
-      inCluster: KubernetesPosture.isInCluster(),
+      clusterIdentifier:
+        isAgent && KUBERNETES_AGENT_CLUSTER_NAME
+          ? KUBERNETES_AGENT_CLUSTER_NAME
+          : undefined,
+      inCluster: KubernetesPosture.canUseOwnServiceAccount(),
       allowWrites: KubernetesPosture.allowsWrites(),
       kubectlVersion:
         (await KubernetesPosture.detectKubectlVersion()) || undefined,

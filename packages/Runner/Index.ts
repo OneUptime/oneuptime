@@ -13,6 +13,8 @@ import startRunbookPolling from "./Jobs/PollRunbookWork";
 import startCodeFixPolling from "./Jobs/PollCodeFixWork";
 import startCodeFixAlive from "./Jobs/CodeFixAlive";
 import Register from "./Services/RegisterRunner";
+import KubectlExecutor from "./Services/KubectlExecutor";
+import AgentClient from "./Services/RunnerClient";
 import RunnerIdentity from "./Utils/RunnerIdentity";
 import WorkspaceManager from "./Utils/WorkspaceManager";
 import GitCredentials from "./Utils/GitCredentials";
@@ -37,6 +39,9 @@ import {
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import App from "Common/Server/Utils/StartServer";
+import GracefulShutdown, {
+  ShutdownPriority,
+} from "Common/Server/Utils/GracefulShutdown";
 import Telemetry from "Common/Server/Utils/Telemetry";
 import Profiling from "Common/Server/Utils/Profiling";
 import Express, { ExpressApplication } from "Common/Server/Utils/Express";
@@ -88,6 +93,27 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
     app.use("/metrics", MetricsAPI);
 
     await App.addDefaultRoutes();
+
+    /*
+     * Reap the kubeconfigs a previous life of this container left on disk.
+     * A kubectl command for an external Runner writes the cluster's bearer
+     * token to a private temporary kubeconfig and removes it in a finally
+     * block — which never runs when the process is killed mid-command (an
+     * OOM, a node drain, a SIGKILL after the termination grace period).
+     * Done here, before registration and in every mode, so a token never
+     * outlives the process that wrote it by more than one restart; the same
+     * call arranges for in-flight kubeconfigs to go on SIGTERM/SIGINT.
+     */
+    const reapedKubeconfigs: number = KubectlExecutor.initialize();
+
+    if (reapedKubeconfigs > 0) {
+      logger.info(
+        `Reclaimed ${reapedKubeconfigs} abandoned kubectl credential director${
+          reapedKubeconfigs === 1 ? "y" : "ies"
+        } from a previous run.`,
+        { serviceName: APP_NAME } as LogAttributes,
+      );
+    }
 
     /*
      * Registration resolves this Runner's identity: in project mode it
@@ -157,6 +183,21 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      */
     if (!IS_CLUSTER_SCOPED) {
       startHeartbeat();
+
+      /*
+       * Sign off on SIGTERM/SIGINT so the dashboard shows this Runner
+       * offline at once — and, for the kubernetes-agent Runner, so the
+       * replacement pod can register immediately after a rolling restart
+       * instead of waiting for this instance's last heartbeat to age out.
+       * GracefulShutdown bounds the call and exits afterwards.
+       */
+      GracefulShutdown.registerHandler(
+        "Runner.disconnect",
+        ShutdownPriority.Workers,
+        async (): Promise<void> => {
+          await AgentClient.disconnect();
+        },
+      );
     }
 
     /*

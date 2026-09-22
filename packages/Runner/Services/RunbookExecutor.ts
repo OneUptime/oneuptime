@@ -5,6 +5,7 @@ import SSHExecutor from "./SSHExecutor";
 import KubernetesExecutor from "./KubernetesExecutor";
 import KubectlExecutor from "./KubectlExecutor";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
+import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
 import logger from "Common/Server/Utils/Logger";
 import VMUtil from "Common/Server/Utils/VM/VMAPI";
 import CommandPolicy from "Common/Utils/AiRemediation/CommandPolicy";
@@ -153,6 +154,25 @@ async function runJavaScriptLocally(data: {
 }
 
 async function runJob(job: ClaimedJob): Promise<ExecResult> {
+  /*
+   * The kubernetes-agent Runner runs kubectl and nothing else, whatever the
+   * origin and whatever the server sent. Checked before any capability,
+   * policy or executor is consulted: a Bash or SSH step inside the agent
+   * pod would reach the same kubectl and the mounted ServiceAccount token
+   * with none of the kubectl safeguards below in the way.
+   */
+  const agentRefusal: string | null = KubernetesAgentMode.getStepTypeRefusal(
+    job.stepType,
+  );
+
+  if (agentRefusal) {
+    return {
+      success: false,
+      output: "",
+      errorMessage: agentRefusal,
+    };
+  }
+
   /*
    * Defense in depth for AI-composed command jobs. The server already gates
    * these on the dashboard capability and validates the command at enqueue,

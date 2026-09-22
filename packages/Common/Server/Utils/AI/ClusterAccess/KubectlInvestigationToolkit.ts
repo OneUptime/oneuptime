@@ -11,10 +11,18 @@ import {
 import KubectlPolicy, {
   KubectlPolicyResult,
 } from "../../../../Utils/AiRemediation/KubectlPolicy";
+import KubectlWaitBudget, {
+  KubectlWaitBudgetResult,
+  MIN_KUBECTL_TIMEOUT_MS,
+} from "../../../../Utils/AiRemediation/KubectlWaitBudget";
 import { ToolCallOutcome } from "../Toolbox/Index";
 import { ToolArgs } from "../Toolbox/ToolTypes";
 import { ObservabilityAssistantExtraTool } from "../Chat/ObservabilityAssistant";
-import KubectlJobRunner, { KubectlJobOutcome } from "./KubectlJobRunner";
+import KubectlJobRunner, {
+  KUBECTL_CLAIM_TIMEOUT_MS,
+  KUBECTL_OUTPUT_TRUNCATED_SUFFIX,
+  KubectlJobOutcome,
+} from "./KubectlJobRunner";
 import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
@@ -30,12 +38,36 @@ import {
  * refuses a non-Read investigation-origin job, and the Runner refuses the
  * same before spawning kubectl. "Read-only — nothing in your systems was
  * changed" stays literally true.
+ *
+ * Two more things the toolkit owns:
+ *  - the run's wall clock. The agent loop checks its budget only between
+ *    tool calls and cannot interrupt one, so the toolkit plans every
+ *    command's claim window and execution timeout against the run's
+ *    deadline (KubectlWaitBudget) and refuses a command the budget can no
+ *    longer hold, before anything is enqueued;
+ *  - what the model sees. Output reaches it only through the shared
+ *    KubectlJobRunner redaction, and Secret reads are refused by the
+ *    policy outright, so the tool says both up front instead of letting
+ *    the model burn calls finding out.
  */
 
 export {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+
+/*
+ * The wall clock an investigation run gets, for the runners to hand to
+ * BOTH the engine (its maxWallClockMs) and this toolkit (as an absolute
+ * deadline), so the loop's budget and the kubectl budget can never
+ * disagree. It IS the engine's default, re-exported under the name the
+ * runners use rather than restated. A re-export (a live binding) rather
+ * than a copied const: the engine's module graph reaches this file
+ * through the services and the investigation runners, so a value copied
+ * at load time could read an engine module that has not finished
+ * evaluating.
+ */
+export { MAX_WALL_CLOCK_MS as INVESTIGATION_MAX_WALL_CLOCK_MS } from "../SRE/AIInvestigationEngine";
 
 export interface KubectlInvestigationToolkitOptions {
   projectId: ObjectID;
@@ -48,6 +80,12 @@ export interface KubectlInvestigationToolkitOptions {
    * allowed to fix even when its operator left investigation off.
    */
   readinessCheck?: "investigation" | "remediation" | undefined;
+  /*
+   * When the run's wall-clock budget ends (epoch milliseconds). Every
+   * command's wait is planned to end before it; absent, commands are only
+   * bounded by their own timeouts.
+   */
+  runDeadlineAtMs?: number | undefined;
 }
 
 export default class KubectlInvestigationToolkit {
@@ -132,7 +170,7 @@ export default class KubectlInvestigationToolkit {
     return {
       definition: {
         name: RUN_KUBECTL_TOOL_NAME,
-        description: `Run ONE read-only kubectl command on a linked cluster and get its output. Allowed: get, describe, logs, events, top, rollout status/history, api-resources, explain, auth can-i, cluster-info. Anything that changes the cluster (delete, scale, patch, apply, exec, ...) is refused here — this is an investigation. Always pass -n <namespace> for namespaced objects and keep output small (use --tail, -o wide, field selectors). At most ${maxCommands} commands per investigation.`,
+        description: `Run ONE read-only kubectl command on a linked cluster and get its output. Allowed: get, describe, logs, events, top, rollout status/history, api-resources, explain, auth can-i, cluster-info. Anything that changes the cluster (delete, scale, patch, apply, exec, ...) is refused here — this is an investigation. Reading Secrets is refused too, and credential-looking values (Secret data, passwords, tokens, keys) are redacted from every output before you see it, so do not spend commands on them. Always pass -n <namespace> for namespaced objects and keep output small (use --tail, -o wide, field selectors). At most ${maxCommands} commands per investigation.`,
         inputSchema: {
           type: "object",
           properties: {
@@ -153,7 +191,7 @@ export default class KubectlInvestigationToolkit {
             },
             timeoutInMs: {
               type: "number",
-              description: `Timeout in milliseconds (default ${DEFAULT_KUBECTL_TIMEOUT_MS}, max ${MAX_KUBECTL_TIMEOUT_MS}).`,
+              description: `Timeout in milliseconds (default ${DEFAULT_KUBECTL_TIMEOUT_MS}, max ${MAX_KUBECTL_TIMEOUT_MS}). Shortened automatically when the investigation's time budget is nearly spent.`,
             },
           },
           required: ["clusterId", "command", "rationale"],
@@ -211,11 +249,36 @@ export default class KubectlInvestigationToolkit {
       );
     }
 
-    const timeoutInMs: number = ToolArgs.getNumber(args, "timeoutInMs", {
-      defaultValue: DEFAULT_KUBECTL_TIMEOUT_MS,
-      min: 1000,
-      max: MAX_KUBECTL_TIMEOUT_MS,
+    const requestedTimeoutInMs: number = ToolArgs.getNumber(
+      args,
+      "timeoutInMs",
+      {
+        defaultValue: DEFAULT_KUBECTL_TIMEOUT_MS,
+        min: MIN_KUBECTL_TIMEOUT_MS,
+        max: MAX_KUBECTL_TIMEOUT_MS,
+      },
+    );
+
+    /*
+     * Planned before the command counts against the budget or anything is
+     * enqueued: a command the run's wall clock can no longer hold is
+     * refused outright rather than started and abandoned.
+     */
+    const budget: KubectlWaitBudgetResult = KubectlWaitBudget.plan({
+      requestedTimeoutInMs,
+      maxClaimTimeoutInMs: KUBECTL_CLAIM_TIMEOUT_MS,
+      deadlineAtMs: this.options.runDeadlineAtMs,
     });
+
+    if (!budget.ok) {
+      return this.failure(
+        `Not enough time is left in this investigation's budget to run another kubectl command (about ${KubectlInvestigationToolkit.describeSeconds(
+          budget.refusal.remainingBudgetMs,
+        )} remain; a command needs at least ${KubectlInvestigationToolkit.describeSeconds(
+          budget.refusal.minimumBudgetMs,
+        )} including the wait for the Runner). Nothing was run. Finish your analysis with what you have.`,
+      );
+    }
 
     this.commandsRun++;
 
@@ -231,7 +294,8 @@ export default class KubectlInvestigationToolkit {
         credentialId: cluster.credentialId,
         command: policy.displayCommand,
         stepId: `ai-investigation-kubectl-${this.commandsRun}`,
-        timeoutInMs,
+        timeoutInMs: budget.plan.timeoutInMs,
+        claimTimeoutInMs: budget.plan.claimTimeoutInMs,
       });
     } catch (error) {
       const message: string =
@@ -250,10 +314,16 @@ export default class KubectlInvestigationToolkit {
         dataForLlm: text,
         rowCount: outcome.succeeded ? 1 : 0,
         citationLabel: `${outcome.displayCommand} on cluster "${cluster.clusterName}"`,
-        redactionCount: 0,
-        isTruncated: outcome.output.endsWith("[output truncated]"),
+        redactionCount: outcome.redactionCount ?? 0,
+        isTruncated:
+          outcome.isTruncated ??
+          outcome.output.endsWith(KUBECTL_OUTPUT_TRUNCATED_SUFFIX.trim()),
       },
     };
+  }
+
+  private static describeSeconds(milliseconds: number): string {
+    return `${Math.max(0, Math.round(milliseconds / 1000))}s`;
   }
 
   private failure(text: string): ToolCallOutcome {

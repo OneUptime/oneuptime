@@ -45,7 +45,11 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   and stops at MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT for all;
  * - a BypassApproval cluster never asks: round 1 and the follow-up are
  *   both FullAuto with auto-resolve, and the feed says approvals are
- *   bypassed.
+ *   bypassed;
+ * - the feed states exactly what each round does: an Automatic round runs
+ *   safe changes on its own and leaves a riskier change in the AI's
+ *   recommendations — it never promises an approval card that the FullAuto
+ *   run (which has no propose tool) cannot produce.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -475,5 +479,132 @@ describe("AutoRemediationRuleEngineService.startFollowUpClusterRemediation", () 
     ).toBe(false);
 
     expect(createdSuggestions).toHaveLength(0);
+  });
+});
+
+describe("AutoRemediationRuleEngineService cluster feed copy states exactly what each round does", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function incidentFeedMarkdown(): string {
+    const feed: jest.SpyInstance =
+      IncidentFeedService.createIncidentFeedItem as unknown as jest.SpyInstance;
+    expect(feed).toHaveBeenCalledTimes(1);
+    return (feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
+      .feedInfoInMarkdown;
+  }
+
+  async function followUp(mode: KubernetesAiRemediationMode): Promise<string> {
+    mockBaseline({});
+    jest
+      .spyOn(AutoRemediationSuggestionService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1));
+    jest
+      .spyOn(KubernetesClusterAiAccessService, "getStatusForCluster")
+      .mockResolvedValue(readyCluster({ remediationMode: mode }));
+
+    expect(
+      await AutoRemediationRuleEngineService.startFollowUpClusterRemediation({
+        projectId: PROJECT_ID,
+        kubernetesClusterId: CLUSTER_ID,
+        incidentId: INCIDENT_ID,
+      }),
+    ).toBe(true);
+
+    return incidentFeedMarkdown();
+  }
+
+  it("Automatic, round 1: safe changes run on their own; a riskier change is left in the recommendations, never promised as an approval card", async () => {
+    mockBaseline({
+      statuses: [
+        readyCluster({
+          remediationMode: KubernetesAiRemediationMode.Automatic,
+        }),
+      ],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
+
+    const markdown: string = incidentFeedMarkdown();
+    expect(markdown).toContain("Automatic remediation is on for this cluster");
+    expect(markdown).toContain("on its own");
+    expect(markdown).toContain("rollout restart/undo, scale");
+    expect(markdown).toContain("cluster's kubectl allowlist");
+    expect(markdown).toContain("neither run nor proposed in this round");
+    expect(markdown).toContain("recommendations for a human");
+    expect(markdown).not.toContain("will ask");
+    expect(markdown).not.toContain("for approval");
+    expect(markdown).not.toContain("bypassed");
+  });
+
+  it("Automatic, round 2: the follow-up asks first — nothing runs until the new plan is approved", async () => {
+    const markdown: string = await followUp(
+      KubernetesAiRemediationMode.Automatic,
+    );
+
+    expect(markdown).toContain("round 2");
+    expect(markdown).toContain("did not recover the service");
+    expect(markdown).toContain("nothing runs until you approve the new plan");
+    expect(markdown).not.toContain("on its own");
+    expect(markdown).not.toContain("recommendations");
+  });
+
+  it("RequireApproval, round 1: nothing runs until the plan is approved", async () => {
+    mockBaseline({
+      statuses: [
+        readyCluster({
+          remediationMode: KubernetesAiRemediationMode.RequireApproval,
+        }),
+      ],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
+
+    const markdown: string = incidentFeedMarkdown();
+    expect(markdown).toContain("composing a kubectl fix");
+    expect(markdown).toContain("Nothing runs until you approve the plan");
+    expect(markdown).not.toContain("on its own");
+  });
+
+  it("RequireApproval, round 2: the follow-up asks again", async () => {
+    const markdown: string = await followUp(
+      KubernetesAiRemediationMode.RequireApproval,
+    );
+
+    expect(markdown).toContain("round 2");
+    expect(markdown).toContain("nothing runs until you approve the new plan");
+    expect(markdown).not.toContain("on its own");
+  });
+
+  it("BypassApproval, round 1 and 2: every allowed change runs on its own, riskier ones included, destructive never", async () => {
+    mockBaseline({
+      statuses: [
+        readyCluster({
+          remediationMode: KubernetesAiRemediationMode.BypassApproval,
+        }),
+      ],
+    });
+
+    await AutoRemediationRuleEngineService.applyRulesToIncident(fakeIncident());
+
+    const first: string = incidentFeedMarkdown();
+    expect(first).toContain("Approvals are bypassed for this cluster");
+    expect(first).toContain("safe or riskier");
+    expect(first).toContain("without asking");
+    expect(first).toContain("destructive commands never run");
+    expect(first).not.toContain("approve");
+    expect(first).not.toContain("recommendations");
+
+    jest.restoreAllMocks();
+
+    const second: string = await followUp(
+      KubernetesAiRemediationMode.BypassApproval,
+    );
+    expect(second).toContain("round 2");
+    expect(second).toContain("runs on its own");
+    expect(second).toContain("safe or riskier");
+    expect(second).toContain("destructive commands never run");
+    expect(second).not.toContain("approve");
   });
 });

@@ -1,6 +1,11 @@
 import RemediationCommandToolkit, {
+  INLINE_COMMAND_STEP_ID_PREFIX,
   RemediationCommandToolkitOptions,
 } from "../../../../Server/Utils/AI/Remediation/RemediationCommandTools";
+import KubectlJobRunner, {
+  KUBECTL_CLAIM_TIMEOUT_MS,
+  KUBECTL_OUTPUT_TRUNCATED_SUFFIX,
+} from "../../../../Server/Utils/AI/ClusterAccess/KubectlJobRunner";
 import { ObservabilityAssistantExtraTool } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
 import { ToolCallOutcome } from "../../../../Server/Utils/AI/Toolbox/Index";
 import AIRunService from "../../../../Server/Services/AIRunService";
@@ -10,6 +15,7 @@ import RunnerJobService from "../../../../Server/Services/RunnerJobService";
 import RunnerService from "../../../../Server/Services/RunnerService";
 import logger from "../../../../Server/Utils/Logger";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import Runner from "../../../../Models/DatabaseModels/Runner";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import {
@@ -22,6 +28,7 @@ import {
   KubectlCommandTier,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
 import RunnerJobOrigin from "../../../../Types/Runbook/RunnerJobOrigin";
@@ -44,10 +51,22 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   (no allowlist needed) and accepts a RiskyWrite rollback; Denied stays
  *   refused whatever the mode or allowlist says;
  * - a rollback must itself be safe (Read/SafeWrite): it runs unattended;
- * - Suggest records kubectl commands on the plan with their tier and the
- *   verdict the card shows, in the canonical rendered form;
- * - every executed command is persisted BEFORE the job is enqueued and
- *   runs as an AiRemediation-origin kubectl job with the suggestion id.
+ * - Suggest records kubectl commands on the plan with their tier, in the
+ *   canonical rendered form, every one marked RequiresApproval: the plan
+ *   needs a human's click whatever the cluster's mode would auto-approve
+ *   (a breaker-tripped BypassApproval round proposes the very plan it would
+ *   otherwise have run, and the card must not call any of it auto-approved);
+ * - every executed command is persisted BEFORE the job is enqueued, again
+ *   WITH its job id before the wait, and runs as an AiRemediation-origin
+ *   kubectl job with the suggestion id;
+ * - what a command printed goes through ONE redaction chain (structural
+ *   Secret/credential masking, then the generic rules, then the cap)
+ *   before it is persisted on the suggestion or shown to the model — for
+ *   the kubectl lane AND for a Bash step that happens to run kubectl;
+ * - list_command_targets tells a FullAuto round the truth about an
+ *   Automatic cluster: a riskier change is refused inline (there is no
+ *   propose tool in that round), so it belongs in the written
+ *   recommendations for a human.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -212,6 +231,25 @@ describe("RemediationCommandToolkit list_command_targets with clusters", () => {
     expect(
       RunnerService.getOnlineAiCommandRunnersForProject,
     ).not.toHaveBeenCalled();
+  });
+
+  it("tells a FullAuto round that an Automatic cluster refuses a RiskyWrite inline — it is neither run nor proposed, and goes to the written recommendations", async () => {
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit(),
+      "list_command_targets",
+    ).execute({});
+
+    /*
+     * A FullAuto round has no propose tool, so "needs approval" would
+     * promise a card that never appears. The text has to send the model
+     * to its written recommendations instead — while still saying that an
+     * allowlisted shape runs.
+     */
+    expect(outcome.textForLlm).toContain("refused inline");
+    expect(outcome.textForLlm).toContain("neither run nor proposed");
+    expect(outcome.textForLlm).toContain("written recommendations for a human");
+    expect(outcome.textForLlm).toContain("unless the cluster allowlist names");
+    expect(outcome.textForLlm).not.toContain("needs approval");
   });
 
   it("hides a cluster that is not remediation-ready", async () => {
@@ -573,7 +611,7 @@ describe("RemediationCommandToolkit execute_remediation_command (Kubectl, Bypass
     expect(enqueueKubectl).toHaveBeenCalledTimes(1);
   });
 
-  it("does not execute anything in Suggest mode on a Bypass cluster (breaker-tripped run) and records RiskyWrite as auto-approved", async () => {
+  it("does not execute anything in Suggest mode on a Bypass cluster (breaker-tripped run) and records RiskyWrite as requiring approval — the plan needs a click", async () => {
     const toolkit: RemediationCommandToolkit = buildToolkit({
       mode: "Suggest",
       clusterTargets: [
@@ -608,10 +646,16 @@ describe("RemediationCommandToolkit execute_remediation_command (Kubectl, Bypass
     const plan: AiRemediationCommandPlan | null = toolkit.getProposedPlan();
     expect(plan?.commands).toHaveLength(1);
     expect(plan!.commands[0]!.kubectlTier).toBe(KubectlCommandTier.RiskyWrite);
+    /*
+     * Honest to the human: this plan WILL need their click. The cluster's
+     * bypass would have run it unattended — but this round did not, so
+     * "auto-approved" would describe a run that never happens.
+     */
     expect(plan!.commands[0]!.policyVerdict).toBe(
-      AiRemediationCommandPolicyVerdict.AutoApproved,
+      AiRemediationCommandPolicyVerdict.RequiresApproval,
     );
     expect(plan!.commands[0]!.wasAutoExecuted).toBeFalsy();
+    expect(persistedPlans).toHaveLength(0);
   });
 });
 
@@ -663,8 +707,9 @@ describe("RemediationCommandToolkit propose_remediation_commands (Kubectl, Sugge
       "kubectl rollout restart deployment/web -n web",
     );
     expect(restart.kubectlTier).toBe(KubectlCommandTier.SafeWrite);
+    // A safe change on a plan awaiting approval still needs the click.
     expect(restart.policyVerdict).toBe(
-      AiRemediationCommandPolicyVerdict.AutoApproved,
+      AiRemediationCommandPolicyVerdict.RequiresApproval,
     );
     expect(restart.rollbackCommand).toBe(
       "kubectl rollout undo deployment/web -n web",
@@ -701,5 +746,532 @@ describe("RemediationCommandToolkit propose_remediation_commands (Kubectl, Sugge
     expect(outcome.textForLlm).toContain("Command 2");
     expect(outcome.textForLlm).toContain("exec");
     expect(toolkit.getProposedPlan()).toBeNull();
+  });
+});
+
+describe("RemediationCommandToolkit Suggest-mode kubectl verdicts are honest about the click", () => {
+  beforeEach(mockHappyPath);
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it.each([
+    KubernetesAiRemediationMode.RequireApproval,
+    KubernetesAiRemediationMode.Automatic,
+    KubernetesAiRemediationMode.BypassApproval,
+  ])(
+    "records every kubectl command as RequiresApproval on a %s cluster, whatever its tier or allowlist",
+    async (remediationMode: KubernetesAiRemediationMode) => {
+      const toolkit: RemediationCommandToolkit = buildToolkit({
+        mode: "Suggest",
+        clusterTargets: [
+          cluster({
+            remediationMode,
+            kubectlAllowlist: ["kubectl set image deployment/web * -n web"],
+          }),
+        ],
+      });
+
+      const outcome: ToolCallOutcome = await getTool(
+        toolkit,
+        "propose_remediation_commands",
+      ).execute({
+        commands: [
+          // Read, SafeWrite, and an allowlisted RiskyWrite.
+          kubectlArgs({
+            command: "kubectl get pods -n web",
+            rollbackCommand: undefined,
+          }),
+          kubectlArgs(),
+          kubectlArgs({
+            command: "kubectl set image deployment/web web=nginx:1.27 -n web",
+            rollbackCommand: undefined,
+          }),
+        ],
+      });
+
+      expect(outcome.success).toBe(true);
+      expect(enqueueKubectl).not.toHaveBeenCalled();
+
+      const plan: AiRemediationCommandPlan | null = toolkit.getProposedPlan();
+      expect(plan?.commands).toHaveLength(3);
+      expect(
+        plan!.commands.map((command: AiRemediationCommand) => {
+          return command.kubectlTier;
+        }),
+      ).toEqual([
+        KubectlCommandTier.Read,
+        KubectlCommandTier.SafeWrite,
+        KubectlCommandTier.RiskyWrite,
+      ]);
+      for (const command of plan!.commands) {
+        expect(command.policyVerdict).toBe(
+          AiRemediationCommandPolicyVerdict.RequiresApproval,
+        );
+        expect(command.wasAutoExecuted).toBeFalsy();
+      }
+    },
+  );
+
+  it("still refuses Denied commands in Suggest mode on a Bypass cluster with a permissive allowlist", async () => {
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      mode: "Suggest",
+      clusterTargets: [
+        cluster({
+          remediationMode: KubernetesAiRemediationMode.BypassApproval,
+          kubectlAllowlist: ["*"],
+        }),
+      ],
+    });
+
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "propose_remediation_commands",
+    ).execute({
+      commands: [
+        kubectlArgs(),
+        kubectlArgs({
+          command: "kubectl delete namespace web",
+          rollbackCommand: undefined,
+        }),
+      ],
+    });
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain("Command 2");
+    expect(outcome.textForLlm).toContain(
+      "Denied by the kubectl command policy",
+    );
+    expect(toolkit.getProposedPlan()).toBeNull();
+  });
+
+  it("keeps the RiskyWrite rollback rule at planning time: only a Bypass cluster may propose one", async () => {
+    const riskyRollback: JSONObject = kubectlArgs({
+      command: "kubectl set image deployment/web web=nginx:1.27 -n web",
+      rollbackCommand: "kubectl set image deployment/web web=nginx:1.26 -n web",
+    });
+
+    const refused: ToolCallOutcome = await getTool(
+      buildToolkit({
+        mode: "Suggest",
+        clusterTargets: [
+          cluster({ remediationMode: KubernetesAiRemediationMode.Automatic }),
+        ],
+      }),
+      "propose_remediation_commands",
+    ).execute({ commands: [riskyRollback] });
+    expect(refused.success).toBe(false);
+    expect(refused.textForLlm).toContain("rollbacks run unattended");
+
+    const bypassToolkit: RemediationCommandToolkit = buildToolkit({
+      mode: "Suggest",
+      clusterTargets: [
+        cluster({
+          remediationMode: KubernetesAiRemediationMode.BypassApproval,
+        }),
+      ],
+    });
+    const accepted: ToolCallOutcome = await getTool(
+      bypassToolkit,
+      "propose_remediation_commands",
+    ).execute({ commands: [riskyRollback] });
+    expect(accepted.success).toBe(true);
+    expect(bypassToolkit.getProposedPlan()!.commands[0]!.rollbackCommand).toBe(
+      "kubectl set image deployment/web web=nginx:1.26 -n web",
+    );
+  });
+});
+
+describe("RemediationCommandToolkit kubectl execution persists the job id before waiting", () => {
+  beforeEach(mockHappyPath);
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function commandsOf(plan: JSONObject): Array<AiRemediationCommand> {
+    return plan["commands"] as unknown as Array<AiRemediationCommand>;
+  }
+
+  it("records runnerJobId on the Pending command BEFORE polling the job, and never goes through KubectlJobRunner.run", async () => {
+    const runSpy: jest.SpyInstance = jest.spyOn(KubectlJobRunner, "run");
+    const persist: jest.SpyInstance =
+      AutoRemediationSuggestionService.updateOneById as unknown as jest.SpyInstance;
+    const poll: jest.SpyInstance = jest.spyOn(
+      RunnerJobService,
+      "pollUntilTerminal",
+    );
+
+    let plansWhenPollStarted: number = -1;
+    let recordAtPollStart: AiRemediationCommand | undefined = undefined;
+    poll.mockImplementation(async (): Promise<RunnerJob> => {
+      plansWhenPollStarted = persistedPlans.length;
+      recordAtPollStart = commandsOf(
+        persistedPlans[persistedPlans.length - 1]!,
+      )[0];
+      return fakeJob();
+    });
+
+    const toolkit: RemediationCommandToolkit = buildToolkit();
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(kubectlArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(outcome.textForLlm).toContain("SUCCEEDED");
+    expect(runSpy).not.toHaveBeenCalled();
+
+    /*
+     * Three persists: the audit record before the enqueue (no job id yet —
+     * there is none), the job id right after the enqueue and BEFORE the
+     * wait, and the outcome afterwards.
+     */
+    expect(persistedPlans).toHaveLength(3);
+    expect(commandsOf(persistedPlans[0]!)[0]!.execution).toEqual(
+      expect.objectContaining({
+        status: AiRemediationCommandExecutionStatus.Pending,
+      }),
+    );
+    expect(
+      commandsOf(persistedPlans[0]!)[0]!.execution?.runnerJobId,
+    ).toBeUndefined();
+
+    expect(plansWhenPollStarted).toBe(2);
+    expect(recordAtPollStart!.execution).toEqual(
+      expect.objectContaining({
+        status: AiRemediationCommandExecutionStatus.Pending,
+        runnerJobId: JOB_ID.toString(),
+      }),
+    );
+
+    // Strict order: persist(audit) < enqueue < persist(job id) < poll < persist(outcome).
+    expect(persist.mock.invocationCallOrder[0]).toBeLessThan(
+      enqueueKubectl.mock.invocationCallOrder[0]!,
+    );
+    expect(enqueueKubectl.mock.invocationCallOrder[0]).toBeLessThan(
+      persist.mock.invocationCallOrder[1]!,
+    );
+    expect(persist.mock.invocationCallOrder[1]).toBeLessThan(
+      poll.mock.invocationCallOrder[0]!,
+    );
+    expect(poll.mock.invocationCallOrder[0]).toBeLessThan(
+      persist.mock.invocationCallOrder[2]!,
+    );
+
+    expect(commandsOf(persistedPlans[2]!)[0]!.execution).toEqual(
+      expect.objectContaining({
+        status: AiRemediationCommandExecutionStatus.Succeeded,
+        runnerJobId: JOB_ID.toString(),
+        exitCode: 0,
+      }),
+    );
+  });
+
+  it("enqueues with the shared kubectl claim timeout and the inline step id, and records the outcome on the cluster", async () => {
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit(),
+      "execute_remediation_command",
+    ).execute(kubectlArgs());
+
+    expect(outcome.success).toBe(true);
+    const enqueueArgs: Record<string, unknown> = enqueueKubectl.mock
+      .calls[0]![0] as Record<string, unknown>;
+    expect(enqueueArgs["claimTimeoutInMs"]).toBe(KUBECTL_CLAIM_TIMEOUT_MS);
+    expect(enqueueArgs["stepId"]).toBe(`${INLINE_COMMAND_STEP_ID_PREFIX}1`);
+    expect((enqueueArgs["aiRunId"] as ObjectID).toString()).toBe(
+      RUN_ID.toString(),
+    );
+
+    const pollArgs: Record<string, unknown> = (
+      RunnerJobService.pollUntilTerminal as unknown as jest.SpyInstance
+    ).mock.calls[0]![0] as Record<string, unknown>;
+    expect(pollArgs["claimTimeoutInMs"]).toBe(KUBECTL_CLAIM_TIMEOUT_MS);
+
+    expect(
+      KubernetesClusterAiAccessService.recordCommandOutcome,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ succeeded: true, errorMessage: undefined }),
+    );
+    expect(
+      (
+        (
+          KubernetesClusterAiAccessService.recordCommandOutcome as unknown as jest.SpyInstance
+        ).mock.calls[0]![0] as { clusterId: ObjectID }
+      ).clusterId.toString(),
+    ).toBe(CLUSTER_ID.toString());
+  });
+
+  it("keeps the job id on a command whose wait throws and records it Failed", async () => {
+    jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockRejectedValue(new Error("RunnerJob disappeared while waiting."));
+
+    const toolkit: RemediationCommandToolkit = buildToolkit();
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(kubectlArgs());
+
+    // The tool call itself resolves: the model is told the command failed.
+    expect(outcome.success).toBe(true);
+    expect(outcome.textForLlm).toContain("FAILED before completion");
+
+    const executed: AiRemediationCommand = toolkit.getExecutedCommands()[0]!;
+    expect(executed.execution).toEqual(
+      expect.objectContaining({
+        status: AiRemediationCommandExecutionStatus.Failed,
+        runnerJobId: JOB_ID.toString(),
+        errorMessage: "RunnerJob disappeared while waiting.",
+      }),
+    );
+    const last: AiRemediationCommand = commandsOf(
+      persistedPlans[persistedPlans.length - 1]!,
+    )[0]!;
+    expect(last.execution?.runnerJobId).toBe(JOB_ID.toString());
+    expect(last.execution?.status).toBe(
+      AiRemediationCommandExecutionStatus.Failed,
+    );
+  });
+
+  it("reports a failed kubectl job with its error and records the failure on the cluster", async () => {
+    jest.spyOn(RunnerJobService, "pollUntilTerminal").mockResolvedValue(
+      fakeJob({
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        output: "",
+        errorMessage: "deployments.apps is forbidden",
+      }),
+    );
+
+    const toolkit: RemediationCommandToolkit = buildToolkit();
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(kubectlArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(outcome.textForLlm).toContain("FAILED (exit code: 1");
+    expect(outcome.textForLlm).toContain("deployments.apps is forbidden");
+    expect(outcome.textForLlm).toContain(
+      '<tool_result source="untrusted_cluster_output">',
+    );
+    expect(toolkit.getExecutedCommands()[0]!.execution).toEqual(
+      expect.objectContaining({
+        status: AiRemediationCommandExecutionStatus.Failed,
+        exitCode: 1,
+        errorMessage: "deployments.apps is forbidden",
+        runnerJobId: JOB_ID.toString(),
+      }),
+    );
+    expect(
+      KubernetesClusterAiAccessService.recordCommandOutcome,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        succeeded: false,
+        errorMessage: "deployments.apps is forbidden",
+      }),
+    );
+  });
+
+  it("caps and redacts kubectl output at the shared kubectl limit, through the shared chain", async () => {
+    // Ordinary `kubectl get pods` rows: nothing here reads as base64.
+    const row: string =
+      "web-7c9d4f8b6-abcde   1/1     Running   0          5m\n";
+    jest.spyOn(RunnerJobService, "pollUntilTerminal").mockResolvedValue(
+      fakeJob({
+        output: `token: Bearer abcdefghijklmnopqrstuvwxyz\n${row.repeat(
+          Math.ceil((MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM + 500) / row.length),
+        )}`,
+      }),
+    );
+    const shared: jest.SpyInstance = jest.spyOn(
+      KubectlJobRunner,
+      "redactAndCap",
+    );
+
+    const toolkit: RemediationCommandToolkit = buildToolkit();
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(kubectlArgs());
+
+    expect(shared).toHaveBeenCalled();
+    const stored: string = toolkit.getExecutedCommands()[0]!.execution!
+      .output as string;
+    expect(stored.endsWith(KUBECTL_OUTPUT_TRUNCATED_SUFFIX)).toBe(true);
+    expect(stored.length).toBeLessThanOrEqual(
+      MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM + KUBECTL_OUTPUT_TRUNCATED_SUFFIX.length,
+    );
+    expect(stored).not.toContain("abcdefghijklmnopqrstuvwxyz");
+    expect(stored).toContain("web-7c9d4f8b6-abcde");
+    expect(outcome.textForLlm).not.toContain("abcdefghijklmnopqrstuvwxyz");
+  });
+
+  it("masks Secret data and credential-looking error text before storing or showing it — the structural kubectl redaction, not only the generic one", async () => {
+    jest.spyOn(RunnerJobService, "pollUntilTerminal").mockResolvedValue(
+      fakeJob({
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        output:
+          "apiVersion: v1\nkind: Secret\nmetadata:\n  name: db\ndata:\n  password: cGFzc3dvcmQxMjM=\n",
+        errorMessage: "error: unable to use password=hunter2-for-db here",
+      }),
+    );
+
+    const toolkit: RemediationCommandToolkit = buildToolkit();
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(kubectlArgs());
+
+    const executed: AiRemediationCommand = toolkit.getExecutedCommands()[0]!;
+    // Stored on the plan (the card shows it): values masked, keys kept.
+    expect(executed.execution?.output).not.toContain("cGFzc3dvcmQxMjM=");
+    expect(executed.execution?.output).toContain("password:");
+    expect(executed.execution?.errorMessage).not.toContain("hunter2-for-db");
+    expect(executed.execution?.status).toBe(
+      AiRemediationCommandExecutionStatus.Failed,
+    );
+
+    // Shown to the model.
+    expect(outcome.textForLlm).not.toContain("cGFzc3dvcmQxMjM=");
+    expect(outcome.textForLlm).not.toContain("hunter2-for-db");
+
+    // Recorded on the cluster's AI page.
+    expect(
+      (
+        (
+          KubernetesClusterAiAccessService.recordCommandOutcome as unknown as jest.SpyInstance
+        ).mock.calls[0]![0] as { errorMessage?: string }
+      ).errorMessage,
+    ).not.toContain("hunter2-for-db");
+  });
+});
+
+describe("RemediationCommandToolkit Bash-lane output goes through the shared kubectl redaction chain", () => {
+  const HOST_RUNNER_ID: ObjectID = new ObjectID(
+    "55555555-5555-4555-8555-555555555555",
+  );
+  const SECRET_YAML: string =
+    "apiVersion: v1\nkind: Secret\nmetadata:\n  name: db\n  namespace: web\ndata:\n  password: cGFzc3dvcmQxMjM=\n  username: YWRtaW4=\n";
+
+  beforeEach(() => {
+    mockHappyPath();
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue({
+      id: HOST_RUNNER_ID,
+      _id: HOST_RUNNER_ID.toString(),
+      name: "ops-bastion",
+      description: "bastion host with kubectl",
+    } as unknown as Runner);
+    enqueueBash.mockResolvedValue(fakeJob());
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function bashKubectlArgs(): JSONObject {
+    return {
+      runnerId: HOST_RUNNER_ID.toString(),
+      stepType: "Bash",
+      command: "kubectl get secret db -n web -o yaml",
+      rationale: "check the db credentials the pods mount",
+      expectedEffect: "the Secret is printed",
+    } as JSONObject;
+  }
+
+  function bashToolkit(): RemediationCommandToolkit {
+    return buildToolkit({
+      allowlistPatterns: ["kubectl get *"],
+      allowedRunnerIds: [HOST_RUNNER_ID.toString()],
+      clusterTargets: [],
+    });
+  }
+
+  it("masks a Secret data block a Bash step printed before persisting it on the suggestion and before the model sees it", async () => {
+    jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockResolvedValue(fakeJob({ output: SECRET_YAML }));
+    const shared: jest.SpyInstance = jest.spyOn(
+      KubectlJobRunner,
+      "redactAndCap",
+    );
+
+    const toolkit: RemediationCommandToolkit = bashToolkit();
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(bashKubectlArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(enqueueKubectl).not.toHaveBeenCalled();
+    expect(enqueueBash).toHaveBeenCalledTimes(1);
+    expect(shared).toHaveBeenCalledWith(SECRET_YAML, expect.any(Number));
+
+    const executed: AiRemediationCommand = toolkit.getExecutedCommands()[0]!;
+    expect(executed.stepType).toBe(RunbookStepType.Bash);
+    expect(executed.execution?.status).toBe(
+      AiRemediationCommandExecutionStatus.Succeeded,
+    );
+
+    // Persisted on the plan (the card shows it): values masked, keys kept.
+    const stored: string = executed.execution!.output as string;
+    expect(stored).not.toContain("cGFzc3dvcmQxMjM=");
+    expect(stored).not.toContain("YWRtaW4=");
+    expect(stored).toContain("password:");
+    expect(stored).toContain("username:");
+    expect(stored).toContain("kind: Secret");
+
+    // The last persisted plan carries the masked output, not the raw one.
+    const lastPersisted: AiRemediationCommand = (
+      persistedPlans[persistedPlans.length - 1]![
+        "commands"
+      ] as unknown as Array<AiRemediationCommand>
+    )[0]!;
+    expect(lastPersisted.execution?.output).toBe(stored);
+    expect(JSON.stringify(persistedPlans)).not.toContain("cGFzc3dvcmQxMjM=");
+
+    // Shown to the model, and the evidence trail says something was masked.
+    expect(outcome.textForLlm).not.toContain("cGFzc3dvcmQxMjM=");
+    expect(outcome.textForLlm).toContain("password:");
+    expect(outcome.result?.redactionCount).toBeGreaterThan(0);
+    expect(outcome.result?.isTruncated).toBe(false);
+  });
+
+  it("reports the kubectl lane's own redaction count on the tool result instead of zero", async () => {
+    jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockResolvedValue(fakeJob({ output: SECRET_YAML }));
+
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit(),
+      "execute_remediation_command",
+    ).execute(kubectlArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(enqueueKubectl).toHaveBeenCalledTimes(1);
+    expect(outcome.textForLlm).not.toContain("cGFzc3dvcmQxMjM=");
+    expect(outcome.result?.redactionCount).toBeGreaterThan(0);
+  });
+
+  it("leaves ordinary Bash output alone and reports no redaction", async () => {
+    jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockResolvedValue(
+        fakeJob({ output: "NAME   READY   STATUS\nweb-1  1/1     Running\n" }),
+      );
+
+    const toolkit: RemediationCommandToolkit = bashToolkit();
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(bashKubectlArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(toolkit.getExecutedCommands()[0]!.execution?.output).toContain(
+      "web-1  1/1     Running",
+    );
+    expect(outcome.result?.redactionCount).toBe(0);
+    expect(outcome.result?.isTruncated).toBe(false);
   });
 });

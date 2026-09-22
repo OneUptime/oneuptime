@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { RUNNER_INGEST_URL } from "../Config";
 import RunnerIdentity from "../Utils/RunnerIdentity";
+import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
 import { JSONObject } from "Common/Types/JSON";
 import logger from "Common/Server/Utils/Logger";
 
@@ -64,6 +65,13 @@ function authBody(extra: JSONObject = {}): JSONObject {
 export interface HeartbeatResult {
   ok: boolean;
   /*
+   * The HTTP status the server answered with. The heartbeat loop needs it
+   * to tell a rejected credential (400/401/403 — worth re-registering for)
+   * from a server that is merely unwell (5xx — not the key's fault, and
+   * rotating it would only add churn to an outage).
+   */
+  statusCode?: number | undefined;
+  /*
    * What the project currently grants this Runner. Absent when the server
    * predates capability reporting, in which case the caller keeps whatever it
    * resolved at boot.
@@ -96,6 +104,7 @@ export default class AgentClient {
 
       return {
         ok: true,
+        statusCode: res.status,
         ...(payload
           ? {
               capabilities: {
@@ -110,21 +119,80 @@ export default class AgentClient {
     logger.error(
       `Heartbeat rejected (${res.status}): ${JSON.stringify(res.data)}`,
     );
-    return { ok: false };
+    return { ok: false, statusCode: res.status };
   }
 
+  /*
+   * Claim the next job targeted at this Runner.
+   *
+   * The kubernetes-agent Runner asks only for Kubectl steps (`stepTypes`),
+   * and a server that honours the filter never hands it anything else. A
+   * server that predates the filter may still return a Bash, SSH,
+   * JavaScript or Kubernetes job — that job is refused right here, at claim
+   * time, before it can reach an executor: it is failed with the reason so
+   * it does not sit until its lease lapses and get re-claimed in a loop,
+   * and the caller sees no job.
+   */
   public static async claimNextJob(): Promise<ClaimedJob | null> {
-    const res: AxiosResponse = await http.post("/claim-next-job", authBody());
+    const res: AxiosResponse = await http.post(
+      "/claim-next-job",
+      authBody(
+        KubernetesAgentMode.isActive()
+          ? { stepTypes: [...KubernetesAgentMode.allowedStepTypes] }
+          : {},
+      ),
+    );
     if (res.status >= 200 && res.status < 300) {
       const job: ClaimedJob | null | undefined = (res.data as JSONObject)?.[
         "job"
       ] as ClaimedJob | null | undefined;
-      return job ?? null;
+
+      if (!job) {
+        return null;
+      }
+
+      const agentRefusal: string | null =
+        KubernetesAgentMode.getStepTypeRefusal(job.stepType);
+
+      if (agentRefusal) {
+        logger.warn(
+          `Refusing claimed ${String(job.stepType)} job ${job.jobId} at claim time: ${agentRefusal}`,
+        );
+
+        await AgentClient.submitJobResult({
+          jobId: job.jobId,
+          success: false,
+          errorMessage: agentRefusal,
+        });
+
+        return null;
+      }
+
+      return job;
     }
     logger.error(
       `claim-next-job rejected (${res.status}): ${JSON.stringify(res.data)}`,
     );
     return null;
+  }
+
+  /*
+   * Sign off on a clean shutdown. The server marks this Runner offline the
+   * moment it says so instead of when its last heartbeat ages out — which
+   * is what lets the kubernetes-agent Runner's replacement pod register
+   * (and take over the key) immediately after a rolling restart rather
+   * than after the alive window. Best effort: an older server answers 404
+   * and the replacement simply waits the window out.
+   */
+  public static async disconnect(): Promise<boolean> {
+    const res: AxiosResponse = await http.post("/disconnect", authBody());
+    if (res.status >= 200 && res.status < 300) {
+      return true;
+    }
+    logger.warn(
+      `disconnect rejected (${res.status}): ${JSON.stringify(res.data)}`,
+    );
+    return false;
   }
 
   public static async jobHeartbeat(jobId: string): Promise<boolean> {

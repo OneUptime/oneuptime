@@ -14,6 +14,7 @@ import {
   AiRemediationCommandPlan,
   AiRemediationCommandPlanUtil,
   DEFAULT_COMMAND_TIMEOUT_MS,
+  INLINE_COMMAND_STEP_ID_PREFIX,
   MAX_COMMAND_TIMEOUT_MS,
   MAX_PLAN_COMMANDS,
   MIN_COMMAND_TIMEOUT_MS,
@@ -37,6 +38,7 @@ import RunbookCredential from "../../../../Models/DatabaseModels/RunbookCredenti
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import AIRunService from "../../../Services/AIRunService";
 import AutoRemediationSuggestionService from "../../../Services/AutoRemediationSuggestionService";
+import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
 import RunbookCredentialService from "../../../Services/RunbookCredentialService";
 import RunnerJobService, {
   isTerminalAgentJobStatus,
@@ -49,7 +51,9 @@ import { ToolArgs } from "../Toolbox/ToolTypes";
 import ToolResultSerializer, { SerializedResult } from "../Toolbox/Serializer";
 import { ObservabilityAssistantExtraTool } from "../Chat/ObservabilityAssistant";
 import KubectlJobRunner, {
+  KUBECTL_CLAIM_TIMEOUT_MS,
   KubectlJobOutcome,
+  RedactedKubectlOutput,
 } from "../ClusterAccess/KubectlJobRunner";
 import logger from "../../Logger";
 
@@ -78,13 +82,23 @@ import logger from "../../Logger";
  *              is refused with an explanation.
  *
  * Every executed command is persisted onto the suggestion's commandPlan
- * column IMMEDIATELY (before and after the RunnerJob runs), so a pod crash
- * mid-run leaves an auditable record — and the retry/sweeper paths can see
- * that side effects already happened and settle accordingly instead of
- * re-executing.
+ * column IMMEDIATELY: before the RunnerJob is enqueued, again with the job
+ * id before the wait, and after the job ran. A pod crash mid-run therefore
+ * leaves an auditable record that names the job — the retry/sweeper paths
+ * settle what already happened instead of re-executing, and the rollback
+ * arm can resolve an interrupted command against its RunnerJob instead of
+ * treating it as never having reached the Runner.
  */
 
 export const MAX_AUTO_EXECUTED_COMMANDS_PER_RUN: number = 5;
+
+/*
+ * Step id prefix of every command a run executes INLINE, as opposed to the
+ * approved-plan executor's and the rollback arm's. Defined with the plan
+ * types (the executor resolves interrupted commands by it) and re-exported
+ * here for the breaker, which counts inline kubectl jobs by it.
+ */
+export { INLINE_COMMAND_STEP_ID_PREFIX };
 
 /*
  * Re-exported from the enqueue chokepoint that actually enforces it. This
@@ -272,7 +286,7 @@ export default class RemediationCommandToolkit {
           cluster.remediationMode === KubernetesAiRemediationMode.BypassApproval
             ? "BypassApproval: every kubectl change the policy allows (Read, SafeWrite AND RiskyWrite) runs without a human; only Denied commands are refused"
             : cluster.remediationMode === KubernetesAiRemediationMode.Automatic
-              ? "Automatic: Read and SafeWrite kubectl (rollout restart/undo, scale, delete a named pod/job, cordon/uncordon, label/annotate) run without a human; RiskyWrite needs approval unless allowlisted"
+              ? "Automatic: Read and SafeWrite kubectl (rollout restart/undo, scale, delete a named pod/job, cordon/uncordon, label/annotate) run without a human; a RiskyWrite is refused inline (neither run nor proposed) unless the cluster allowlist names its shape — put it in your written recommendations for a human"
               : "RequireApproval: every kubectl change is proposed for one-click approval",
         kubectlAllowlist:
           cluster.kubectlAllowlist.length > 0
@@ -472,23 +486,90 @@ export default class RemediationCommandToolkit {
     }
 
     let outcomeText: string;
+    /*
+     * What the shared redaction did to the output the model (and the
+     * card) will see — reported on the tool result instead of a hardcoded
+     * zero so the run's evidence trail says when something was masked.
+     */
+    let redactionCount: number = 0;
+    let isTruncated: boolean = false;
 
     try {
       if (command.stepType === RunbookStepType.Kubectl) {
-        const outcome: KubectlJobOutcome = await KubectlJobRunner.run({
+        /*
+         * Enqueue and wait are deliberately two steps with a persist in
+         * between: the job id must be on the record BEFORE the wait, so a
+         * Worker that dies mid-wait leaves a Pending command the rollback
+         * arm can still resolve against its RunnerJob. (KubectlJobRunner.run
+         * folds both into one call and only reports the id afterwards,
+         * which is exactly the window this closes.) Waiting mirrors
+         * KubectlJobRunner; redaction and capping ARE KubectlJobRunner's —
+         * the one chain every kubectl output goes through before a model
+         * sees it or it is stored on the plan.
+         */
+        const clusterId: ObjectID = new ObjectID(command.kubernetesClusterId!);
+
+        const job: RunnerJob = await RunnerJobService.enqueueAiKubectlCommand({
           projectId: this.options.projectId,
           aiRunId: this.options.aiRunId,
           origin: RunnerJobOrigin.AiRemediation,
           autoRemediationSuggestionId: this.options.suggestionId,
-          kubernetesClusterId: new ObjectID(command.kubernetesClusterId!),
-          targetRunnerId: new ObjectID(command.runnerId),
+          kubernetesClusterId: clusterId,
+          stepId: `${INLINE_COMMAND_STEP_ID_PREFIX}${command.sequence}`,
+          targetAgentId: new ObjectID(command.runnerId),
           credentialId: command.credentialId,
           command: command.command,
-          stepId: `ai-command-${command.sequence}`,
           timeoutInMs: command.timeoutInMs,
+          claimTimeoutInMs: KUBECTL_CLAIM_TIMEOUT_MS,
         });
 
-        command.execution.runnerJobId = outcome.jobId;
+        command.execution.runnerJobId = job.id?.toString();
+        await this.persistPlanProgress();
+
+        const terminalJob: RunnerJob = await this.waitForJobWithHeartbeat({
+          jobId: job.id!,
+          claimTimeoutInMs: KUBECTL_CLAIM_TIMEOUT_MS,
+          executionTimeoutInMs: command.timeoutInMs,
+        });
+
+        const succeeded: boolean =
+          terminalJob.status === RunnerJobStatus.Succeeded;
+
+        const redacted: RedactedKubectlOutput = KubectlJobRunner.redactAndCap(
+          terminalJob.output || "",
+        );
+
+        const outcome: KubectlJobOutcome = {
+          jobId: job.id!.toString(),
+          succeeded,
+          exitCode: terminalJob.exitCode,
+          output: redacted.text,
+          redactionCount: redacted.redactionCount,
+          isTruncated: redacted.isTruncated,
+          /*
+           * kubectl's stderr can echo what it was given, and this message
+           * reaches the model, the plan and the cluster's AI page — so it
+           * goes through the same chain (uncapped in practice: short).
+           */
+          errorMessage: succeeded
+            ? undefined
+            : KubectlJobRunner.redactAndCap(
+                terminalJob.errorMessage ||
+                  `Command ended with status ${terminalJob.status}.`,
+              ).text,
+          displayCommand: String(
+            (job.payload as { displayCommand?: string } | undefined)
+              ?.displayCommand || command.command,
+          ),
+        };
+
+        // Best-effort bookkeeping for the cluster's AI page; never throws.
+        await KubernetesClusterAiAccessService.recordCommandOutcome({
+          clusterId,
+          succeeded,
+          errorMessage: outcome.errorMessage,
+        });
+
         command.execution.status = outcome.succeeded
           ? AiRemediationCommandExecutionStatus.Succeeded
           : AiRemediationCommandExecutionStatus.Failed;
@@ -496,6 +577,8 @@ export default class RemediationCommandToolkit {
           OneUptimeDate.getCurrentDate().toISOString();
         command.execution.exitCode = outcome.exitCode;
         command.execution.output = outcome.output;
+        redactionCount = outcome.redactionCount ?? 0;
+        isTruncated = outcome.isTruncated ?? false;
         if (!outcome.succeeded) {
           command.execution.errorMessage = outcome.errorMessage;
         }
@@ -506,7 +589,7 @@ export default class RemediationCommandToolkit {
           projectId: this.options.projectId,
           aiRunId: this.options.aiRunId,
           autoRemediationSuggestionId: this.options.suggestionId,
-          stepId: `ai-command-${command.sequence}`,
+          stepId: `${INLINE_COMMAND_STEP_ID_PREFIX}${command.sequence}`,
           stepType: command.stepType,
           targetAgentId: new ObjectID(command.runnerId),
           command: command.command,
@@ -515,10 +598,13 @@ export default class RemediationCommandToolkit {
           claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
         });
 
+        // Same rule as the kubectl lane: the job id lands before the wait.
         command.execution.runnerJobId = job.id?.toString();
+        await this.persistPlanProgress();
 
         const terminalJob: RunnerJob = await this.waitForJobWithHeartbeat({
           jobId: job.id!,
+          claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
           executionTimeoutInMs: command.timeoutInMs,
         });
 
@@ -531,9 +617,12 @@ export default class RemediationCommandToolkit {
         command.execution.completedAt =
           OneUptimeDate.getCurrentDate().toISOString();
         command.execution.exitCode = terminalJob.exitCode;
-        command.execution.output = this.redactAndCapOutput(
+        const redacted: RedactedKubectlOutput = this.redactAndCapOutput(
           terminalJob.output || "",
         );
+        command.execution.output = redacted.text;
+        redactionCount = redacted.redactionCount;
+        isTruncated = redacted.isTruncated;
         if (!succeeded) {
           command.execution.errorMessage =
             terminalJob.errorMessage ||
@@ -570,8 +659,8 @@ export default class RemediationCommandToolkit {
           command.stepType === RunbookStepType.Kubectl
             ? `Executed on cluster "${command.kubernetesClusterNameSnapshot}": ${this.summarizeCommand(command.command)}`
             : `Executed on Runner "${command.runnerNameSnapshot}": ${this.summarizeCommand(command.command)}`,
-        redactionCount: 0,
-        isTruncated: false,
+        redactionCount,
+        isTruncated,
       },
     };
   }
@@ -738,27 +827,26 @@ export default class RemediationCommandToolkit {
         continue;
       }
 
-      /*
-       * Informational verdict for the approval card: AutoApproved commands
-       * would have run without a human under FullAuto / Automatic;
-       * everything here still requires the plan-level approval either way.
-       */
       if (parsed.command.stepType === RunbookStepType.Kubectl) {
-        const cluster: KubernetesClusterAiAccessStatus | undefined =
-          this.findClusterTarget(parsed.command.kubernetesClusterId);
-        const verdict: KubectlAutoExecutionVerdict =
-          KubectlPolicy.evaluateForAutoExecution({
-            command: parsed.command.command,
-            allowlistPatterns: cluster?.kubectlAllowlist || [],
-          });
-
-        if (verdict.verdict === AiRemediationCommandPolicyVerdict.Denied) {
-          problems.push(`Command ${i + 1}: ${verdict.reason}`);
-          continue;
-        }
-
-        parsed.command.policyVerdict = verdict.verdict;
+        /*
+         * A proposed plan runs only after a human's click, so every kubectl
+         * command on it requires approval — whatever the cluster's mode
+         * would have auto-approved had the round run unattended. The one
+         * round that reaches here on an Automatic or BypassApproval cluster
+         * is a breaker-tripped (or follow-up) round proposing the plan it
+         * would otherwise have executed; calling any of it "auto-approved"
+         * on the card would claim a run that never happens without the
+         * click. The tier (safe / riskier change) is recorded separately
+         * for the card, and Denied was refused at parse time.
+         */
+        parsed.command.policyVerdict =
+          AiRemediationCommandPolicyVerdict.RequiresApproval;
       } else {
+        /*
+         * Informational verdict for the approval card: AutoApproved
+         * commands matched the rule's operator allowlist; everything here
+         * still requires the plan-level approval either way.
+         */
         const policy: CommandPolicyResult = CommandPolicy.evaluateCommand({
           command: parsed.command.command,
           allowlistPatterns: this.options.allowlistPatterns,
@@ -1101,6 +1189,7 @@ export default class RemediationCommandToolkit {
    */
   private async waitForJobWithHeartbeat(data: {
     jobId: ObjectID;
+    claimTimeoutInMs: number;
     executionTimeoutInMs: number;
   }): Promise<RunnerJob> {
     const heartbeatTimer: ReturnType<typeof setInterval> = setInterval(() => {
@@ -1119,7 +1208,7 @@ export default class RemediationCommandToolkit {
     try {
       const job: RunnerJob = await RunnerJobService.pollUntilTerminal({
         jobId: data.jobId,
-        claimTimeoutInMs: AI_COMMAND_CLAIM_TIMEOUT_MS,
+        claimTimeoutInMs: data.claimTimeoutInMs,
         executionTimeoutInMs: data.executionTimeoutInMs,
       });
 
@@ -1174,12 +1263,16 @@ export default class RemediationCommandToolkit {
     return suggestion?.status || null;
   }
 
-  private redactAndCapOutput(output: string): string {
-    const redacted: string = ToolResultSerializer.redact(output).text;
-    if (redacted.length <= MAX_OUTPUT_CHARS_FOR_LLM) {
-      return redacted;
-    }
-    return `${redacted.slice(0, MAX_OUTPUT_CHARS_FOR_LLM)}\n... [output truncated]`;
+  /*
+   * Bash/SSH output. A shell step can run kubectl (or cat a kubeconfig)
+   * just as well as the kubectl lane can, and what it prints is persisted
+   * on the suggestion for humans AND handed to the model — so it goes
+   * through the one chain every kubectl output goes through (structural
+   * Secret/credential masking, then the generic rules, then the cap), at
+   * this lane's own cap.
+   */
+  private redactAndCapOutput(output: string): RedactedKubectlOutput {
+    return KubectlJobRunner.redactAndCap(output, MAX_OUTPUT_CHARS_FOR_LLM);
   }
 
   private summarizeCommand(command: string): string {

@@ -17,7 +17,15 @@ import ObjectID from "Common/Types/ObjectID";
 import RunnerJobOrigin, {
   AI_COMMAND_JOB_ORIGINS,
 } from "Common/Types/Runbook/RunnerJobOrigin";
-import RunbookStepType from "Common/Types/Runbook/RunbookStepType";
+import RunbookStepType, {
+  RUNNER_EXECUTED_STEP_TYPES,
+} from "Common/Types/Runbook/RunbookStepType";
+import {
+  KubernetesRunnerPosture,
+  isInClusterPostureForCluster,
+  isKubernetesAgentRunnerPosture,
+  parseKubernetesRunnerPosture,
+} from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import Version from "Common/Types/Version";
 import { JSONObject } from "Common/Types/JSON";
 import Runner from "Common/Models/DatabaseModels/Runner";
@@ -62,6 +70,19 @@ export default class RunnerIngressAPI {
     );
 
     /*
+     * A Runner signing off on a clean shutdown. For the kubernetes-agent
+     * Runner this is what lets the replacement pod register immediately:
+     * a registration may only re-key a Runner that is offline (or that
+     * proves it holds the current key), so a pod that says goodbye spares
+     * its successor the wait for the alive window to lapse.
+     */
+    this.router.post(
+      `/disconnect`,
+      RunnerAuthorization.isAuthorizedAgent,
+      this.disconnect,
+    );
+
+    /*
      * The in-cluster Runner the kubernetes-agent chart installs has no
      * dashboard-issued id and key. It presents the project's telemetry
      * ingestion key (the same one the agent ships telemetry with) and the
@@ -72,6 +93,25 @@ export default class RunnerIngressAPI {
       TelemetryIngest.forSurface(TelemetryIngestSurface.KubernetesAgentRunner),
       this.registerKubernetesAgentRunner,
     );
+  }
+
+  public async disconnect(
+    req: RunnerExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const agent: Runner | undefined = req.runner;
+      if (!agent || !agent.id) {
+        throw new BadDataException("Agent not found on request");
+      }
+
+      await RunnerService.markDisconnected({ agentId: agent.id });
+
+      return Response.sendJsonObjectResponse(req, res, { status: "ok" });
+    } catch (err) {
+      next(err);
+    }
   }
 
   public async registerKubernetesAgentRunner(
@@ -99,11 +139,23 @@ export default class RunnerIngressAPI {
           ? (body["agentVersion"] as string)
           : undefined;
 
+      /*
+       * The key this Runner currently holds, if it still has one. Lets a
+       * live Runner rotate its own key; a registration that cannot prove
+       * continuity may only replace a Runner that is offline.
+       */
+      const previousRunnerKey: string | undefined =
+        typeof body["previousRunnerKey"] === "string" &&
+        body["previousRunnerKey"]
+          ? (body["previousRunnerKey"] as string)
+          : undefined;
+
       const result: RegisterKubernetesAgentRunnerResult =
         await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
           projectId,
           clusterIdentifier: clusterName.trim(),
           agentVersion,
+          previousRunnerKey,
           posture: {
             allowWrites: body["allowWrites"] === true,
             kubectlVersion:
@@ -122,6 +174,7 @@ export default class RunnerIngressAPI {
         runnerKey: result.runnerKey,
         clusterId: result.clusterId.toString(),
         isBoundToCluster: result.isBoundToCluster,
+        bindingState: result.bindingState,
         capabilities: {
           canRunRunbooks: false,
           canRunCodeFixTasks: false,
@@ -222,6 +275,39 @@ export default class RunnerIngressAPI {
       }
 
       /*
+       * Which step types this Runner may be handed. Two narrowings, both
+       * optional and both intersecting the historical "every runner-executed
+       * type":
+       *
+       *  - the Runner may declare its own list on the claim (`stepTypes`),
+       *    which the kubernetes-agent Runner uses to ask for kubectl only;
+       *  - a Runner whose posture says it IS a cluster's in-cluster agent is
+       *    narrowed to kubectl by the server regardless, so an AI-composed
+       *    Bash or SSH command can never be leased by the agent pod even by
+       *    an older or misbuilt Runner binary. That pod exists to run
+       *    policy-tiered kubectl; a shell inside it would bypass the tier
+       *    policy and the read-only switch entirely.
+       */
+      const body: JSONObject = (req.body as JSONObject) || {};
+      const posture: KubernetesRunnerPosture | undefined =
+        parseKubernetesRunnerPosture(agent.hostInfo);
+
+      let allowedStepTypes: Array<RunbookStepType> | undefined =
+        RunnerIngressAPI.parseRequestedStepTypes(body["stepTypes"]);
+
+      if (isKubernetesAgentRunnerPosture(posture)) {
+        allowedStepTypes = (
+          allowedStepTypes || RUNNER_EXECUTED_STEP_TYPES
+        ).filter((stepType: RunbookStepType) => {
+          return stepType === RunbookStepType.Kubectl;
+        });
+      }
+
+      if (allowedStepTypes && allowedStepTypes.length === 0) {
+        return Response.sendJsonObjectResponse(req, res, { job: null });
+      }
+
+      /*
        * Steps now target a specific agent by ID. The authenticated agent's
        * own ID is the only thing we trust here — a leaked key cannot be used
        * to claim work targeted at a different agent. The origins list keeps
@@ -233,6 +319,7 @@ export default class RunnerIngressAPI {
         agentId: agent.id,
         projectId: agent.projectId,
         allowedOrigins,
+        ...(allowedStepTypes ? { allowedStepTypes } : {}),
       });
 
       if (!job) {
@@ -280,30 +367,36 @@ export default class RunnerIngressAPI {
 
       /*
        * A Kubectl job without a credential is meant for an in-cluster
-       * Runner, which uses its own ServiceAccount. Serve it only to a Runner
-       * that reported itself in-cluster: a plain Runner would otherwise run
-       * kubectl against whatever its host's kubeconfig points at.
+       * Runner, which uses its own ServiceAccount — and that ServiceAccount
+       * reaches only the cluster the pod lives in. So it is served only to
+       * the in-cluster Runner OF THE JOB'S CLUSTER: the Runner's posture
+       * must name the cluster the payload names. A plain Runner would run
+       * kubectl against whatever its host's kubeconfig points at, and the
+       * agent of another cluster would run it against that other cluster.
+       * The payload's identifier was stamped by the enqueue chokepoint from
+       * the cluster row; a job without one fails closed.
        */
       if (
         job.stepType === RunbookStepType.Kubectl &&
         !(typeof credentialId === "string" && credentialId)
       ) {
-        const kubernetesPosture: unknown = ((agent.hostInfo as
-          | JSONObject
-          | undefined) || {})["kubernetes"];
-        const isInCluster: boolean = Boolean(
-          kubernetesPosture &&
-            typeof kubernetesPosture === "object" &&
-            (kubernetesPosture as JSONObject)["inCluster"] === true,
-        );
+        const jobClusterIdentifier: string =
+          typeof payload["clusterIdentifier"] === "string"
+            ? (payload["clusterIdentifier"] as string).trim()
+            : "";
 
-        if (!isInCluster) {
+        const refusal: string | null =
+          RunnerIngressAPI.getCredentialLessKubectlRefusal({
+            posture,
+            jobClusterIdentifier,
+          });
+
+        if (refusal) {
           await RunnerJobService.submitResult({
             jobId: job.id!,
             agentId: agent.id,
             success: false,
-            errorMessage:
-              "This kubectl command has no Kubernetes credential and this Runner is not the in-cluster Runner. Select a Kubernetes credential for this Runner on the cluster's AI page.",
+            errorMessage: refusal,
           });
 
           return Response.sendJsonObjectResponse(req, res, { job: null });
@@ -426,5 +519,79 @@ export default class RunnerIngressAPI {
     } catch (err) {
       next(err);
     }
+  }
+
+  /*
+   * The optional `stepTypes` a Runner may send on a claim to narrow what it
+   * is served. Absent means "no narrowing" (the historical contract). When
+   * present it must be a list of runner-executed step types: a malformed
+   * list is a misbuilt Runner, not a revocation, so it is answered with a
+   * 400 that names the problem rather than a silent { job: null } the
+   * Runner would poll against forever.
+   */
+  public static parseRequestedStepTypes(
+    raw: unknown,
+  ): Array<RunbookStepType> | undefined {
+    if (raw === undefined || raw === null) {
+      return undefined;
+    }
+
+    if (!Array.isArray(raw)) {
+      throw new BadDataException(
+        "stepTypes must be an array of runner step types.",
+      );
+    }
+
+    const stepTypes: Array<RunbookStepType> = [];
+
+    for (const item of raw) {
+      if (
+        typeof item !== "string" ||
+        !RUNNER_EXECUTED_STEP_TYPES.includes(item as RunbookStepType)
+      ) {
+        throw new BadDataException(
+          `stepTypes may only name runner step types (${RUNNER_EXECUTED_STEP_TYPES.join(
+            ", ",
+          )}); got ${JSON.stringify(item)}.`,
+        );
+      }
+
+      if (!stepTypes.includes(item as RunbookStepType)) {
+        stepTypes.push(item as RunbookStepType);
+      }
+    }
+
+    return stepTypes;
+  }
+
+  /*
+   * Why a credential-less kubectl job may NOT be served to this Runner, or
+   * null when it may. The one rule: only the in-cluster Runner of the job's
+   * own cluster runs kubectl with its ServiceAccount.
+   */
+  public static getCredentialLessKubectlRefusal(data: {
+    posture: KubernetesRunnerPosture | undefined;
+    jobClusterIdentifier: string;
+  }): string | null {
+    if (!data.posture?.inCluster) {
+      return "This kubectl command has no Kubernetes credential and this Runner is not the in-cluster Runner. Select a Kubernetes credential for this Runner on the cluster's AI page.";
+    }
+
+    if (!data.jobClusterIdentifier) {
+      return "This kubectl command has no Kubernetes credential and does not name the cluster it is for, so it cannot be matched to this in-cluster Runner. It was not run.";
+    }
+
+    if (
+      !isInClusterPostureForCluster(data.posture, data.jobClusterIdentifier)
+    ) {
+      const reportedCluster: string =
+        data.posture.clusterIdentifier?.trim() || "";
+
+      return `This kubectl command is for cluster "${data.jobClusterIdentifier}" but this Runner is the in-cluster Runner of ${
+        reportedCluster ? `cluster "${reportedCluster}"` : "an unnamed cluster"
+      }, so it was not run. Install the in-cluster Runner on cluster "${data.jobClusterIdentifier}", or bind a Runner with a Kubernetes credential for it on the cluster's AI page.`;
+    }
+
+    return null;
   }
 }

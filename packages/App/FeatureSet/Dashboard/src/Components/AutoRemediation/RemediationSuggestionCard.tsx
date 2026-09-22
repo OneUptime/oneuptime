@@ -13,7 +13,6 @@ import {
   AiRemediationCommandExecutionStatus,
   AiRemediationCommandPlan,
   AiRemediationCommandPlanUtil,
-  AiRemediationCommandPolicyVerdict,
   AiRemediationPlanExecutionStatus,
 } from "Common/Types/AutoRemediation/AiRemediationCommandPlan";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -212,40 +211,87 @@ function VerificationPill({
   );
 }
 
-interface VerdictVisual {
+/*
+ * What the per-command approval pill says: did (or will) this command run
+ * without a human saying yes?
+ *
+ * It is NOT read off command.policyVerdict. The server stores that verdict
+ * as information for the approval card: every kubectl command on a
+ * proposed plan is recorded RequiresApproval, and AutoApproved appears
+ * only on a command a FullAuto run executed inline (wasAutoExecuted) or,
+ * for Bash/SSH, on an informational allowlist match — a proposed plan can
+ * therefore carry "AutoApproved" Bash commands that have not run and will
+ * not run until someone approves. A green "auto-approved" pill under an
+ * "Approve & Run" button reads as "already ran"; the on-call reader then
+ * skips the approval, or approves expecting a second run. The pill is
+ * therefore derived from what actually happened to the command and its
+ * plan.
+ */
+export enum CommandApprovalPillKind {
+  // Ran, or runs, with nobody approving it — the only time "auto-approved" is true.
+  RanWithoutApproval = "RanWithoutApproval",
+  // Nothing runs until a human approves the plan it belongs to.
+  NeedsApproval = "NeedsApproval",
+}
+
+export function getCommandApprovalPillKind(
+  command: Pick<AiRemediationCommand, "wasAutoExecuted">,
+  suggestionStatus: AutoRemediationSuggestionStatus,
+): CommandApprovalPillKind | null {
+  // A FullAuto / Automatic run executed this inline during planning.
+  if (command.wasAutoExecuted === true) {
+    return CommandApprovalPillKind.RanWithoutApproval;
+  }
+
+  switch (suggestionStatus) {
+    // The whole plan executed unattended; no approval step exists for it.
+    case AutoRemediationSuggestionStatus.AutoExecuted:
+      return CommandApprovalPillKind.RanWithoutApproval;
+    /*
+     * Waiting for a human (or still being composed and headed that way):
+     * every command in the plan, whatever its verdict, runs only on
+     * approval.
+     */
+    case AutoRemediationSuggestionStatus.Suggested:
+    case AutoRemediationSuggestionStatus.Planning:
+      return CommandApprovalPillKind.NeedsApproval;
+    /*
+     * Approved: a human said yes, so neither label is true any more — the
+     * status pill and each command's execution pill tell the story.
+     * Dismissed / NoneApplicable: nothing ran and nothing will.
+     */
+    default:
+      return null;
+  }
+}
+
+interface ApprovalVisual {
   label: string;
   badge: string;
   dot: string;
 }
 
-const VERDICT_VISUAL: Record<AiRemediationCommandPolicyVerdict, VerdictVisual> =
-  {
-    [AiRemediationCommandPolicyVerdict.AutoApproved]: {
-      label: "auto-approved",
-      badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-      dot: "bg-emerald-500",
-    },
-    [AiRemediationCommandPolicyVerdict.RequiresApproval]: {
-      label: "needs approval",
-      badge: "bg-amber-50 text-amber-700 ring-amber-200",
-      dot: "bg-amber-500",
-    },
-    // Denied commands are never stored in a plan — entry exists only to satisfy the Record type.
-    [AiRemediationCommandPolicyVerdict.Denied]: {
-      label: "denied",
-      badge: "bg-rose-50 text-rose-700 ring-rose-200",
-      dot: "bg-rose-500",
-    },
-  };
+const APPROVAL_VISUAL: Record<CommandApprovalPillKind, ApprovalVisual> = {
+  [CommandApprovalPillKind.RanWithoutApproval]: {
+    label: "auto-approved",
+    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  [CommandApprovalPillKind.NeedsApproval]: {
+    label: "needs approval",
+    badge: "bg-amber-50 text-amber-700 ring-amber-200",
+    dot: "bg-amber-500",
+  },
+};
 
-function PolicyVerdictPill({
-  verdict,
+function CommandApprovalPill({
+  kind,
 }: {
-  verdict: AiRemediationCommandPolicyVerdict;
+  kind: CommandApprovalPillKind;
 }): ReactElement {
-  const v: VerdictVisual =
-    VERDICT_VISUAL[verdict] ||
-    VERDICT_VISUAL[AiRemediationCommandPolicyVerdict.RequiresApproval]!;
+  const v: ApprovalVisual =
+    APPROVAL_VISUAL[kind] ||
+    APPROVAL_VISUAL[CommandApprovalPillKind.NeedsApproval]!;
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${v.badge}`}
@@ -614,6 +660,8 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                           const commandKey: string = `${suggestionId}:command:${command.sequence}`;
                           const isOutputExpanded: boolean =
                             expandedIds.has(commandKey);
+                          const approvalPillKind: CommandApprovalPillKind | null =
+                            getCommandApprovalPillKind(command, status);
 
                           return (
                             <li
@@ -642,9 +690,13 @@ const RemediationSuggestionCard: FunctionComponent<ComponentProps> = (
                                 ) : (
                                   <></>
                                 )}
-                                <PolicyVerdictPill
-                                  verdict={command.policyVerdict}
-                                />
+                                {approvalPillKind ? (
+                                  <CommandApprovalPill
+                                    kind={approvalPillKind}
+                                  />
+                                ) : (
+                                  <></>
+                                )}
                                 {command.execution ? (
                                   <CommandExecutionPill
                                     status={command.execution.status}

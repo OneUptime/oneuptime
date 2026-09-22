@@ -18,9 +18,13 @@
  *                  again.
  * Automatic:       AI runs safe changes (rollout restart/undo, scale, delete
  *                  a named pod, cordon/uncordon, label/annotate) without a
- *                  human. Riskier changes (patch, set image, drain, deleting
- *                  workloads) still ask for approval unless the cluster's
- *                  allowlist names them; destructive commands never run.
+ *                  human. A riskier change (patch, set image, drain, deleting
+ *                  workloads) never runs without one: in the unattended round
+ *                  AI refuses it inline and leaves the exact command in its
+ *                  written recommendations; only a follow-up round, which
+ *                  asks, proposes it for one-click approval. Shapes on the
+ *                  cluster's kubectl allowlist run on their own; destructive
+ *                  commands never run.
  * BypassApproval:  AI never asks. Every change the policy allows — safe AND
  *                  riskier — runs on its own, follow-up rounds included.
  *                  Destructive commands (Denied tier) still never run, and
@@ -78,6 +82,12 @@ export type KubernetesAiAccessGapCode =
   | "runner_missing"
   | "runner_offline"
   | "runner_ai_commands_disabled"
+  /*
+   * The bound Runner runs inside a cluster, but not THIS one (or it never
+   * said which). Its ServiceAccount would run kubectl against whatever
+   * cluster its pod lives in, so in-cluster access is refused for it.
+   */
+  | "runner_cluster_mismatch"
   | "credential_missing"
   | "investigation_disabled"
   | "remediation_disabled"
@@ -204,6 +214,101 @@ export function parseKubernetesRunnerPosture(
         : undefined,
   };
 }
+
+/*
+ * Cluster identifiers come from three places that do not agree on casing:
+ * the k8s.cluster.name resource attribute telemetry stamps on the cluster
+ * row, the chart's clusterName value the Runner registers with, and whatever
+ * an operator typed. The cluster row itself is looked up case-insensitively
+ * (KubernetesClusterService.findOrCreateByClusterIdentifier), so every
+ * "is this the same cluster?" decision must use the same rule — a Runner
+ * that says "Prod-US" IS the Runner for the "prod-us" row.
+ */
+export function normalizeKubernetesClusterIdentifier(value: unknown): string {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+/*
+ * True only when BOTH identifiers are present and name the same cluster.
+ * Two blanks are never "the same cluster": a Runner that did not say which
+ * cluster it is in must never match a cluster row that has no identifier.
+ */
+export function isSameKubernetesClusterIdentifier(
+  a: unknown,
+  b: unknown,
+): boolean {
+  const left: string = normalizeKubernetesClusterIdentifier(a);
+  const right: string = normalizeKubernetesClusterIdentifier(b);
+
+  return left.length > 0 && right.length > 0 && left === right;
+}
+
+/*
+ * The posture of the Runner the kubernetes-agent chart installs: it runs in
+ * a pod AND it registered with the name of the cluster that pod is in. An
+ * ordinary project Runner that merely happens to live in a pod has no
+ * cluster identity and must never be treated as any cluster's agent.
+ */
+export function isKubernetesAgentRunnerPosture(
+  posture: KubernetesRunnerPosture | undefined,
+): boolean {
+  return Boolean(
+    posture?.inCluster === true &&
+      normalizeKubernetesClusterIdentifier(posture.clusterIdentifier).length >
+        0,
+  );
+}
+
+/*
+ * May this Runner run credential-less kubectl (its own ServiceAccount) for
+ * the cluster named by `clusterIdentifier`? Only the in-cluster Runner OF
+ * THAT CLUSTER. This is the single rule behind the cluster's readiness
+ * status, the enqueue chokepoint and the claim path — a job for cluster A
+ * must never be served to a pod living in cluster B, whatever the
+ * dashboard was told.
+ */
+export function isInClusterPostureForCluster(
+  posture: KubernetesRunnerPosture | undefined,
+  clusterIdentifier: unknown,
+): boolean {
+  return (
+    isKubernetesAgentRunnerPosture(posture) &&
+    isSameKubernetesClusterIdentifier(
+      posture?.clusterIdentifier,
+      clusterIdentifier,
+    )
+  );
+}
+
+/*
+ * What registration did about the cluster's Runner binding — returned to
+ * the registering pod so it can log the right thing, and recorded on the
+ * cluster feed.
+ *
+ * first_bind:                    the cluster had never been AI-configured;
+ *                                the agent Runner was bound and the chart's
+ *                                defaults applied.
+ * already_bound:                 the cluster was already bound to this
+ *                                cluster's agent Runner; only the key (and
+ *                                posture) rotated.
+ * rebound_after_runner_missing:  the Runner the cluster pointed at no longer
+ *                                exists; the agent Runner took the binding
+ *                                over, switches untouched.
+ * bound_to_other_runner:         an operator bound the cluster to a different
+ *                                Runner in the dashboard; left alone.
+ * left_unbound_by_operator:      the cluster has an AI-access history but no
+ *                                Runner bound — an operator cleared it, so
+ *                                registration does not re-bind or flip any
+ *                                switch. The agent Runner row exists and
+ *                                heartbeats; the operator picks it on the
+ *                                cluster's AI page when they want it back.
+ */
+export type KubernetesAgentRunnerBindingState =
+  | "first_bind"
+  | "already_bound"
+  | "rebound_after_runner_missing"
+  | "bound_to_other_runner"
+  | "left_unbound_by_operator";
 
 // Caps shared by the investigation tool and the remediation toolkit.
 export const MAX_KUBECTL_COMMANDS_PER_INVESTIGATION: number = 8;

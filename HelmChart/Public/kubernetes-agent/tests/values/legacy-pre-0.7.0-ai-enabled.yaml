@@ -1,0 +1,14 @@
+# What `helm upgrade --reuse-values --set aiAccess.enabled=true` feeds the
+# templates on a release installed from a chart older than 0.7.0: the previous
+# release's coalesced values, which never heard of aiAccess, plus the one flag.
+#
+# helm-unittest always coalesces a values file over this chart's values.yaml,
+# so the 0.7.0 defaults are removed here with nulls (Helm deletes a key whose
+# user value is null when it coalesces). After coalescing, .Values.aiAccess is
+# exactly {enabled: true} — the same map a real upgrade renders with.
+aiAccess:
+  enabled: true
+  remediation: null
+  image: null
+  resources: null
+  extraEnv: null

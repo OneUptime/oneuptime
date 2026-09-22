@@ -1008,7 +1008,7 @@
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Also grant the write RBAC OneUptime AI's fixes use (rollout restart/undo, scale, delete pod/job, cordon/uncordon, label/annotate, patch). Never exec, port-forward, or deleting namespaces/volumes/nodes/secrets/CRDs."
+              "description": "Also grant the write RBAC OneUptime AI's fixes use: patch/update on workloads and their scale subresource, jobs, cronjobs, nodes, pods and HPAs; create on jobs, pod evictions and HPAs; delete on pods and jobs only. Never exec, attach, port-forward, secrets, CRDs, or deleting namespaces, volumes or nodes. The Runner refuses writes locally when this is off. A cluster registering for the first time with this on starts in ask-for-approval; a cluster that was already registered keeps the AI remediation mode chosen on its AI page."
             }
           },
           "additionalProperties": false

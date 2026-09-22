@@ -1211,6 +1211,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             <ClusterAccessNotice
               clusterAccess={clusterAccess}
               isRunFinished={true}
+              clusterCommandCount={clusterCommandCount}
             />
             {analysisMarkdown && parsedReport ? (
               <InvestigationReportView
@@ -1348,6 +1349,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               <ClusterAccessNotice
                 clusterAccess={clusterAccess}
                 isRunFinished={isFailed}
+                clusterCommandCount={clusterCommandCount}
               />
               {hasActivity ? (
                 <ChatActivityFeed

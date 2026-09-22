@@ -1,9 +1,18 @@
 import DatabaseService from "./DatabaseService";
 import KubernetesClusterLabelRuleEngineService from "./KubernetesClusterLabelRuleEngineService";
 import KubernetesClusterOwnerRuleEngineService from "./KubernetesClusterOwnerRuleEngineService";
+import RunbookCredentialService from "./RunbookCredentialService";
+import RunnerService from "./RunnerService";
 import Model from "../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../Models/DatabaseModels/Label";
+import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
+import Runner from "../../Models/DatabaseModels/Runner";
+import CreateBy from "../Types/Database/CreateBy";
+import UpdateBy from "../Types/Database/UpdateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import BadDataException from "../../Types/Exception/BadDataException";
+import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
 import KubernetesClusterFeedService from "./KubernetesClusterFeedService";
 import { KubernetesClusterFeedEventType } from "../../Models/DatabaseModels/KubernetesClusterFeed";
 import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
@@ -27,9 +36,196 @@ const LAST_SEEN_THROTTLE_SECONDS: number = 60;
 const LABELS_APPLIED_CACHE_NAMESPACE: string = "k8s-cluster-labels-applied";
 const LABELS_APPLIED_CACHE_TTL_SECONDS: number = 60;
 
+/*
+ * The two spellings each AI-access relation can arrive under: the FK column
+ * server-side callers write, and the relation object the dashboard's forms
+ * post. See RelationIdUtil for why a hook must read both.
+ */
+const AI_ACCESS_RUNNER_KEYS: Array<string> = [
+  "aiAccessRunnerId",
+  "aiAccessRunner",
+];
+const AI_ACCESS_CREDENTIAL_KEYS: Array<string> = [
+  "aiAccessCredentialId",
+  "aiAccessCredential",
+];
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    const projectId: ObjectID | undefined =
+      createBy.data.projectId ||
+      createBy.data.project?.id ||
+      createBy.props.tenantId ||
+      undefined;
+
+    await this.validateAiAccessBindingsBelongToProject({
+      data: createBy.data as unknown as JSONObject,
+      projectId,
+    });
+
+    return { createBy, carryForward: null };
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    const data: JSONObject = (updateBy.data || {}) as unknown as JSONObject;
+
+    if (
+      RelationIdUtil.isWritten(Object.keys(data), [
+        ...AI_ACCESS_RUNNER_KEYS,
+        ...AI_ACCESS_CREDENTIAL_KEYS,
+      ])
+    ) {
+      /*
+       * Root/API updates do not always carry a tenantId, so fall back to
+       * the project of each cluster the query actually matches — a Runner
+       * must belong to every one of them.
+       */
+      const projectIds: Array<ObjectID> = updateBy.props.tenantId
+        ? [updateBy.props.tenantId]
+        : await this.getProjectIdsForUpdateQuery(updateBy);
+
+      for (const projectId of projectIds) {
+        await this.validateAiAccessBindingsBelongToProject({
+          data,
+          projectId,
+        });
+      }
+
+      /*
+       * Nothing matched: there is no project to check against, and the
+       * update will write nothing — unless the query was empty, which
+       * would never happen through updateOneById. Fail closed on a
+       * binding that cannot be checked.
+       */
+      if (projectIds.length === 0) {
+        await this.validateAiAccessBindingsBelongToProject({
+          data,
+          projectId: undefined,
+        });
+      }
+    }
+
+    return { updateBy, carryForward: null };
+  }
+
+  /*
+   * aiAccessRunnerId / aiAccessCredentialId are editable through ordinary
+   * CRUD by every member who may edit a cluster, and nothing in the
+   * framework checks that a ManyToOne target belongs to the row's own
+   * project (only the tenant relation itself is checked). Unchecked, a
+   * member of project A could point a cluster at project B's Runner or
+   * credential — and then read that Runner's name, liveness and status,
+   * or that credential's name and type, through the relation join, and use
+   * the FK as an existence oracle for foreign ids. Same class of guard as
+   * MonitorProbeService ("Probe not found or it does not belong to this
+   * project.") and IoTDeviceCredentialService.
+   *
+   * Clearing a binding (null) is always allowed.
+   */
+  @CaptureSpan()
+  private async validateAiAccessBindingsBelongToProject(data: {
+    data: JSONObject;
+    projectId: ObjectID | undefined;
+  }): Promise<void> {
+    const runnerId: ObjectID | null = RelationIdUtil.readConsistent(
+      data.data,
+      AI_ACCESS_RUNNER_KEYS,
+      "AI access Runner",
+    );
+
+    const credentialId: ObjectID | null = RelationIdUtil.readConsistent(
+      data.data,
+      AI_ACCESS_CREDENTIAL_KEYS,
+      "AI access credential",
+    );
+
+    if (!runnerId && !credentialId) {
+      return;
+    }
+
+    if (!data.projectId) {
+      throw new BadDataException(
+        "The project of this Kubernetes cluster could not be resolved, so its AI access Runner or credential cannot be checked.",
+      );
+    }
+
+    if (runnerId) {
+      const runner: Runner | null = await RunnerService.findOneBy({
+        query: {
+          _id: runnerId.toString(),
+          projectId: data.projectId,
+        },
+        select: { _id: true },
+        props: { isRoot: true },
+      });
+
+      if (!runner) {
+        throw new BadDataException(
+          "Runner not found or it does not belong to this project.",
+        );
+      }
+    }
+
+    if (credentialId) {
+      const credential: RunbookCredential | null =
+        await RunbookCredentialService.findOneBy({
+          query: {
+            _id: credentialId.toString(),
+            projectId: data.projectId,
+          },
+          select: { _id: true, credentialType: true },
+          props: { isRoot: true },
+        });
+
+      if (!credential) {
+        throw new BadDataException(
+          "Credential not found or it does not belong to this project.",
+        );
+      }
+
+      if (credential.credentialType !== RunbookCredentialType.Kubernetes) {
+        throw new BadDataException(
+          "The AI access credential must be a Kubernetes credential (API server URL and ServiceAccount token).",
+        );
+      }
+    }
+  }
+
+  @CaptureSpan()
+  private async getProjectIdsForUpdateQuery(
+    updateBy: UpdateBy<Model>,
+  ): Promise<Array<ObjectID>> {
+    const clusters: Array<Model> = await this.findBy({
+      query: updateBy.query,
+      select: {
+        projectId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const projectIds: Record<string, ObjectID> = {};
+
+    for (const cluster of clusters) {
+      if (cluster.projectId) {
+        projectIds[cluster.projectId.toString()] = cluster.projectId;
+      }
+    }
+
+    return Object.values(projectIds);
   }
 
   @CaptureSpan()

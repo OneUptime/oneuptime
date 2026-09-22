@@ -364,6 +364,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 
 That deploys one small Deployment — the OneUptime Runner — with a **read-only** ServiceAccount. It registers itself with the same `oneuptime.apiKey` and `clusterName` the agent already uses, so there is nothing to set up in the dashboard: the cluster's **AI** page (Kubernetes → cluster → AI) shows it as Connected within a minute.
 
+`aiAccess.*` is new in chart 0.7.0. The command works on an older install as it is — every `aiAccess.*` value has a fallback in the chart's templates — but `--reuse-values` renders an upgrade with your previous release's values and never picks up a newer chart's defaults. On Helm 3.14+, `--reset-then-reuse-values` is the safer flag: it keeps your overrides and picks up the new defaults for everything else.
+
 To let OneUptime AI **fix** what it finds, also grant write access:
 
 ```bash
@@ -373,13 +375,16 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set aiAccess.remediation.enabled=true
 ```
 
-The cluster then starts in **ask for approval**: OneUptime AI composes the exact `kubectl` plan and a human approves it with one click on the incident. Switch the cluster to **automatic** on its AI page to let safe changes run on their own, or to **bypass approval** to let every allowed change run on its own without ever asking. See [AI SRE — Cluster access](/docs/ai/ai-sre) for what each mode may run and what is never allowed.
+If this is the cluster's **first** registration with write access, it starts in **ask for approval**: OneUptime AI composes the exact `kubectl` plan and a human approves it with one click on the incident. If the cluster was **already registered** — read-only first, writes now — it keeps whatever AI remediation mode its AI page has (**Off** unless you changed it): the server never flips a switch an operator owns, so open the cluster's AI page after the upgrade and pick **ask for approval**, **automatic** (safe changes run on their own; a riskier change is never run without a human — OneUptime AI leaves the exact command in its recommendations) or **bypass approval** (every allowed change runs on its own) yourself. See [AI SRE — Cluster access](/docs/ai/ai-sre) for what each mode may run, what the command policy refuses outright, and what the Runner's RBAC never grants.
 
 | Value | Default | What it does |
 | --- | --- | --- |
 | `aiAccess.enabled` | `false` | Deploy the in-cluster Runner with read-only RBAC and register it to this cluster. |
-| `aiAccess.remediation.enabled` | `false` | Also grant the write verbs OneUptime AI's fixes use (rollout restart/undo, scale, delete a pod/job, cordon/uncordon, label/annotate, patch). Never exec, port-forward, or deleting namespaces/volumes/nodes/secrets/CRDs. |
-| `aiAccess.image.tag` | `release` | Pin the Runner image. |
+| `aiAccess.remediation.enabled` | `false` | Also grant the write verbs OneUptime AI's fixes use (rollout restart/undo, scale, cordon/uncordon, label/annotate, patch, and delete on pods and jobs only). The RBAC never grants exec, attach, port-forward, secrets, CRDs, or deleting namespaces, volumes or nodes; the command policy additionally refuses `apply`/`edit`/`replace`, `--all-namespaces` writes and `delete --all`, which RBAC alone would allow. |
+| `aiAccess.image.repository` / `aiAccess.image.tag` | `oneuptime/runner` / `release` | The Runner image. Pin a tag to hold it. |
+| `aiAccess.image.pullPolicy` | `IfNotPresent` | Pull policy for the Runner image. |
+| `aiAccess.resources` | `50m` / `128Mi` requests, `500m` / `512Mi` limits | The Runner idles between commands. |
+| `aiAccess.extraEnv` | `[]` | Extra `EnvVar` objects for the Runner container — e.g. `HTTPS_PROXY` / `NO_PROXY` behind an egress proxy. |
 
 If the AI page still says the Runner is not connected after a couple of minutes, read its logs:
 
@@ -396,7 +401,7 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --reuse-values
 ```
 
-`--reuse-values` keeps your existing configuration (preset, cluster name, filters); pass any new `--set` overrides on top of it.
+`--reuse-values` keeps your existing configuration (preset, cluster name, filters); pass any new `--set` overrides on top of it. It never picks up defaults a newer chart added, though — on Helm 3.14+ use `--reset-then-reuse-values` instead, which keeps your overrides and fills in the new defaults for everything else.
 
 ## Uninstalling the Agent
 

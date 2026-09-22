@@ -566,9 +566,11 @@ class AutoRemediationRuleEngineServiceClass {
    * Cluster-level remediation: for every cluster this signal is about whose
    * AI page enables remediation (and whose access is ready), start one AI
    * command run with the cluster as its only target. Automatic clusters run
-   * FullAuto (safe kubectl without a human, riskier changes ask); clusters
-   * on "ask for approval" run Suggest. One suggestion per cluster per
-   * subject per round. Returns how much of the per-subject budget it used.
+   * FullAuto (safe kubectl without a human; a riskier change is neither run
+   * nor proposed — it is left in the AI's recommendations); BypassApproval
+   * clusters run FullAuto for every allowed change; clusters on "ask for
+   * approval" run Suggest. One suggestion per cluster per subject per
+   * round. Returns how much of the per-subject budget it used.
    */
   private async applyClusterLevelRemediation(data: {
     projectId: ObjectID;
@@ -790,17 +792,26 @@ class AutoRemediationRuleEngineServiceClass {
       props: { isRoot: true },
     });
 
+    /*
+     * The feed states exactly what this round does. In particular an
+     * Automatic round never proposes anything: the run only has the execute
+     * tool, so a riskier change it cannot run ends up in the AI's written
+     * recommendations — not in an approval card. Promising "riskier changes
+     * will ask for approval" here would leave the responder waiting for a
+     * card that never comes. (If the hourly circuit breaker downgrades an
+     * unattended round, the execution runner posts its own explanation.)
+     */
     await this.postFeedItem({
       projectId: data.projectId,
       linkage: data.linkage,
       markdown: isBypass
         ? data.round > 1
-          ? `⚡ **OneUptime AI is applying another kubectl fix on cluster "${cluster.clusterName}"** (round ${data.round}) — the previous fix did not recover the service. Approvals are bypassed for this cluster, so the new fix runs on its own. Progress appears here.`
-          : `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Approvals are bypassed for this cluster: AI is diagnosing with kubectl and will apply whatever fix the policy allows on its own, without asking. Progress appears here.`
+          ? `⚡ **OneUptime AI is applying another kubectl fix on cluster "${cluster.clusterName}"** (round ${data.round}) — the previous fix did not recover the service. Approvals are bypassed for this cluster, so the new fix runs on its own: every kubectl change the policy allows, safe or riskier; destructive commands never run. Progress appears here.`
+          : `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Approvals are bypassed for this cluster: AI is diagnosing with kubectl and will apply whatever fix the policy allows — safe or riskier — on its own, without asking; destructive commands never run. Progress appears here.`
         : isAutomatic
-          ? `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Automatic remediation is on for this cluster: AI is diagnosing with kubectl and will apply safe fixes on its own (riskier changes will ask for approval). Progress appears here.`
+          ? `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Automatic remediation is on for this cluster: AI is diagnosing with kubectl and will apply safe changes (rollout restart/undo, scale, deleting a named pod or job, cordon/uncordon, label/annotate, plus anything on the cluster's kubectl allowlist) on its own. A riskier change is neither run nor proposed in this round — AI leaves it in its recommendations for a human. Progress appears here.`
           : data.round > 1
-            ? `⚡ **OneUptime AI is composing another kubectl fix for cluster "${cluster.clusterName}"** (round ${data.round}) — the previous plan did not recover the service. A new plan will appear here for approval.`
+            ? `⚡ **OneUptime AI is composing another kubectl fix for cluster "${cluster.clusterName}"** (round ${data.round}) — the previous fix did not recover the service. This round asks first: nothing runs until you approve the new plan, which will appear here shortly.`
             : `⚡ **OneUptime AI is composing a kubectl fix for cluster "${cluster.clusterName}".** Nothing runs until you approve the plan — it will appear here shortly.`,
       pingWorkspace: false,
     });
