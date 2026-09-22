@@ -315,3 +315,43 @@ export const MAX_KUBECTL_COMMANDS_PER_INVESTIGATION: number = 8;
 export const DEFAULT_KUBECTL_TIMEOUT_MS: number = 30 * 1000;
 export const MAX_KUBECTL_TIMEOUT_MS: number = 2 * 60 * 1000;
 export const MAX_KUBECTL_OUTPUT_CHARS_FOR_LLM: number = 8000;
+
+/*
+ * Namespaces OneUptime AI never changes without a human, in every mode —
+ * Bypass approval and the cluster allowlist included. A write here can take
+ * down cluster DNS, networking or the control plane's own bookkeeping, and
+ * RBAC cannot express "every namespace except these", so the policy holds
+ * the line: a write whose namespace is one of these is never auto-approved.
+ */
+export const PROTECTED_KUBERNETES_NAMESPACES: ReadonlyArray<string> = [
+  "kube-system",
+  "kube-public",
+  "kube-node-lease",
+];
+
+export function isProtectedKubernetesNamespace(namespace: unknown): boolean {
+  return (
+    typeof namespace === "string" &&
+    PROTECTED_KUBERNETES_NAMESPACES.includes(namespace.trim().toLowerCase())
+  );
+}
+
+/*
+ * Environment the kubernetes-agent chart sets on the in-cluster Runner. The
+ * chart and the Runner must agree on these names, so they live here.
+ *
+ * ALLOW_WRITES:     "true" only when the chart granted write RBAC.
+ * WRITE_NAMESPACES: comma-separated namespaces the chart bound write RBAC in
+ *                   (aiAccess.remediation.namespaces). Empty or unset means
+ *                   cluster-wide. The Runner refuses a write outside the
+ *                   list before spawning kubectl.
+ * POD_NAMESPACE:    the namespace the Runner pod itself runs in (downward
+ *                   API). The Runner never changes its own namespace — a
+ *                   fix there could scale the agent, or the Runner, away.
+ */
+export const KUBECTL_ALLOW_WRITES_ENV: string =
+  "ONEUPTIME_KUBECTL_ALLOW_WRITES";
+export const KUBECTL_WRITE_NAMESPACES_ENV: string =
+  "ONEUPTIME_KUBECTL_WRITE_NAMESPACES";
+export const RUNNER_POD_NAMESPACE_ENV: string =
+  "ONEUPTIME_RUNNER_POD_NAMESPACE";
