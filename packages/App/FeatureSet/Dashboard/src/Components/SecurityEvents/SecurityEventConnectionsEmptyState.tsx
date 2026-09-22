@@ -4,6 +4,7 @@ import {
   SecurityEventConnectorCatalog,
   SecurityEventConnectorDefinition,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
+import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import EmptyState from "Common/UI/Components/EmptyState/EmptyState";
 import EmptyStateGuideLinks, {
@@ -20,7 +21,10 @@ export interface ComponentProps {
   canCreate: boolean;
   // Why Add connection is disabled, shown as its tooltip.
   createDisabledReason?: string | undefined;
-  onAddConnection: () => void;
+  // Opens the create form, with the provider selected when one is passed.
+  onAddConnection: (
+    initialProvider?: SecurityEventConnectorProvider | undefined,
+  ) => void;
 }
 
 export interface SecurityEventConnectionRequirement {
