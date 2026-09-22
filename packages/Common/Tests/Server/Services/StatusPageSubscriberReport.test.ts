@@ -15,7 +15,8 @@
  *   - the flat `resources` array custom templates written before groups still
  *     loop over,
  *   - a single monitor's uptime and downtime measured over the whole window
- *     even when the page's timeline rows are cut off by the row cap,
+ *     even when the page's timeline rows are cut off by the row cap, and
+ *     group and page downtime never below one of their own resources',
  *   - and the empty-status-page case.
  */
 
@@ -630,6 +631,102 @@ describe("StatusPageService.getReportByStatusPage", () => {
     });
   });
 
+  describe("a group whose monitors were down at different times", () => {
+    /*
+     * Router down 7 -> 5 days ago, Switch 01 down 12 -> 11 days ago. Every
+     * row is built from one instant, so the outages are whole days to the
+     * millisecond and the minute ceiling cannot tip either figure over.
+     */
+    function staggeredTimeline(): Array<MonitorStatusTimeline> {
+      const now: number = OneUptimeDate.getCurrentDate().getTime();
+
+      function daysAgo(days: number): Date {
+        return new Date(now - days * DAY_IN_MILLISECONDS);
+      }
+
+      return [
+        makeTimelineItem({
+          monitorId: ROUTER_MONITOR,
+          monitorStatus: OPERATIONAL,
+          startsAt: daysAgo(HISTORY_DAYS),
+          endsAt: daysAgo(7),
+        }),
+        makeTimelineItem({
+          monitorId: ROUTER_MONITOR,
+          monitorStatus: OFFLINE,
+          startsAt: daysAgo(7),
+          endsAt: daysAgo(5),
+        }),
+        makeTimelineItem({
+          monitorId: ROUTER_MONITOR,
+          monitorStatus: OPERATIONAL,
+          startsAt: daysAgo(5),
+        }),
+        makeTimelineItem({
+          monitorId: SWITCH_MONITOR,
+          monitorStatus: OPERATIONAL,
+          startsAt: daysAgo(HISTORY_DAYS),
+          endsAt: daysAgo(12),
+        }),
+        makeTimelineItem({
+          monitorId: SWITCH_MONITOR,
+          monitorStatus: OFFLINE,
+          startsAt: daysAgo(12),
+          endsAt: daysAgo(11),
+        }),
+        makeTimelineItem({
+          monitorId: SWITCH_MONITOR,
+          monitorStatus: OPERATIONAL,
+          startsAt: daysAgo(11),
+        }),
+        makeTimelineItem({
+          monitorId: WEBSITE_MONITOR,
+          monitorStatus: OPERATIONAL,
+          startsAt: daysAgo(HISTORY_DAYS),
+        }),
+      ];
+    }
+
+    beforeEach(() => {
+      jest.restoreAllMocks();
+      mockReads({
+        statusPageResources: nestedResources(),
+        statusPageGroups: nestedGroups(),
+        timeline: staggeredTimeline(),
+      });
+    });
+
+    test("adds up downtime that no single resource holds", async () => {
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: reportPeriod(),
+        });
+
+      const downtimeByName: Dictionary<string> = {};
+
+      for (const resource of report.resources) {
+        downtimeByName[resource.resourceName] =
+          resource.downtimeInHoursAndMinutes;
+      }
+
+      expect(downtimeByName["Router"]).toBe("2 days, 0 minutes");
+      expect(downtimeByName["Switch 01"]).toBe("1 days, 0 minutes");
+
+      /*
+       * Neither resource was down for three days, so only the merged rows
+       * can say so - the floor at the largest resource must not replace them.
+       */
+      const corporate: StatusPageReportGroup = report.groups[0]!;
+      const unit: StatusPageReportGroup =
+        corporate.subGroups[0]!.subGroups[0]!.subGroups[0]!;
+
+      expect(unit.downtimeInHoursAndMinutes).toBe("3 days, 0 minutes");
+      expect(corporate.downtimeInHoursAndMinutes).toBe("3 days, 0 minutes");
+      expect(report.totalDowntimeInHoursAndMinutes).toBe("3 days, 0 minutes");
+    });
+  });
+
   describe("backwards compatibility", () => {
     test("still exposes the flat resource list custom templates loop over", async () => {
       const report: StatusPageReport =
@@ -953,7 +1050,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       expect(report.averageUptimePercent).toBe("74.50%");
     });
 
-    test("asks for the day aggregate of single monitors, over the report window, in the report's timezone", async () => {
+    test("asks for the day aggregate of single monitors, over the report window, cut in UTC", async () => {
       const period: StatusPageReportPeriod = sixtyDayPeriod();
 
       await StatusPageService.getReportByStatusPage({
@@ -982,38 +1079,113 @@ describe("StatusPageService.getReportByStatusPage", () => {
       ]);
       expect(request.startDate).toEqual(period.startDate);
       expect(request.endDate).toEqual(period.endDate);
-      expect(request.timezone).toBe("America/New_York");
+      // not the report's America/New_York: only window totals are read.
+      expect(request.timezone).toBe("UTC");
     });
 
-    test("cuts days in UTC for a zone Postgres would refuse, rather than failing the report", async () => {
+    /*
+     * Postgres reads the OS tzdata, and the images OneUptime ships (Debian
+     * trixie, no tzdata-legacy) reject these link names in `AT TIME ZONE`,
+     * although the report settings offer them and moment knows all but
+     * US/Pacific-New. Handed to the aggregate, any of them would fail the
+     * query and with it the whole report.
+     */
+    test.each([
+      Timezone.USEastern,
+      Timezone.AsiaCalcutta,
+      Timezone.GB,
+      Timezone.USPacificNew,
+    ])(
+      "never hands the report's timezone (%s) to the aggregate",
+      async (timezone: Timezone) => {
+        const period: StatusPageReportPeriod = {
+          ...sixtyDayPeriod(),
+          timezone: timezone,
+        };
+
+        const report: StatusPageReport =
+          await StatusPageService.getReportByStatusPage({
+            statusPageId: STATUS_PAGE_ID,
+            reportPeriod: period,
+          });
+
+        const aggregateSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+          StatusPageService,
+          "getUptimeDailyAggregateForStatusPage",
+        ) as ReturnType<typeof jest.spyOn>;
+
+        expect(
+          (aggregateSpy.mock.calls[0]![0] as AggregateRequest).timezone,
+        ).toBe("UTC");
+
+        // the totals do not depend on where the days are cut.
+        expect(
+          itemsByName(report)["lp.chainflip.io"]!.uptimePercentAsString,
+        ).toBe("99.67%");
+        expect(report.reportTimezone).toBe(timezone);
+      },
+    );
+
+    test("does not report less page downtime than one of its resources", async () => {
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: sixtyDayPeriod(),
+        });
+
       /*
-       * Still offered in the report settings, but dropped from tzdata in
-       * 2020: `AT TIME ZONE 'US/Pacific-New'` is an error in Postgres.
+       * The page total still merges the capped rows, which hold only 6 hours
+       * and 5 minutes of downtime. "Status API" alone was down for a day, so
+       * the total is at least that.
        */
-      const period: StatusPageReportPeriod = {
-        ...sixtyDayPeriod(),
-        timezone: Timezone.USPacificNew,
-      };
+      expect(itemsByName(report)["Status API"]!.downtimeInHoursAndMinutes).toBe(
+        "1 days, 0 minutes",
+      );
+      expect(report.totalDowntimeInHoursAndMinutes).toBe("1 days, 0 minutes");
+    });
+
+    test("does not report less group downtime than one of its resources", async () => {
+      const GROUP: ObjectID = new ObjectID(
+        "dd000000-0000-4000-8000-000000000001",
+      );
+
+      jest.restoreAllMocks();
+      mockReads({
+        statusPageResources: [
+          makeResource({
+            displayName: "lp.chainflip.io",
+            monitorId: FLAPPING_MONITOR,
+            groupId: GROUP,
+            order: 1,
+          }),
+          makeResource({
+            displayName: "Status API",
+            monitorId: QUIET_MONITOR,
+            groupId: GROUP,
+            order: 2,
+          }),
+        ],
+        statusPageGroups: [makeGroup({ id: GROUP, name: "APIs" })],
+        timeline: timeline(),
+        rowCap: ROW_CAP,
+      });
 
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
-          reportPeriod: period,
+          reportPeriod: sixtyDayPeriod(),
         });
 
-      const aggregateSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
-        StatusPageService,
-        "getUptimeDailyAggregateForStatusPage",
-      ) as ReturnType<typeof jest.spyOn>;
+      const group: StatusPageReportGroup = report.groups[0]!;
 
-      expect(
-        (aggregateSpy.mock.calls[0]![0] as AggregateRequest).timezone,
-      ).toBe("UTC");
+      // (99.67 + 98.33) / 2: the group's uptime averages corrected figures.
+      expect(group.uptimePercentAsString).toBe("99%");
 
-      // the totals do not depend on where the days are cut.
-      expect(
-        itemsByName(report)["lp.chainflip.io"]!.uptimePercentAsString,
-      ).toBe("99.67%");
+      /*
+       * Its merged rows hold only the flapping monitor's last five minutes
+       * down; "Status API" alone was down for a day.
+       */
+      expect(group.downtimeInHoursAndMinutes).toBe("1 days, 0 minutes");
     });
 
     test("keeps a monitor group on the timeline rows", async () => {
@@ -1063,6 +1235,77 @@ describe("StatusPageService.getReportByStatusPage", () => {
       expect(unrecorded.uptimePercent).toBe(100);
       expect(unrecorded.uptimePercentAsString).toBe("100%");
       expect(unrecorded.downtimeInHoursAndMinutes).toBe("0 minutes");
+    });
+  });
+
+  describe("downtime from the day aggregate", () => {
+    beforeEach(() => {
+      jest.restoreAllMocks();
+      mockReads({
+        statusPageResources: [
+          makeResource({
+            displayName: "Router",
+            monitorId: ROUTER_MONITOR,
+            order: 1,
+          }),
+        ],
+        statusPageGroups: [],
+        timeline: makeTimeline(),
+      });
+    });
+
+    test("does not round a sum of fractional seconds up by a minute", async () => {
+      /*
+       * The aggregate's seconds are double precision sums, and adding these
+       * three in JavaScript gives 7200.000000000001. Rounded straight up to
+       * the minute that would read "2 hours, 1 minutes".
+       */
+      const offlineSecondsByDay: Array<number> = [
+        3190.800103, 2559.918649, 1449.281248,
+      ];
+
+      const buckets: Array<UptimeDayBucket> = offlineSecondsByDay.map(
+        (offlineSeconds: number, index: number): UptimeDayBucket => {
+          const bucketStart: Date = new Date(
+            reportPeriod().startDate.getTime() + index * DAY_IN_MILLISECONDS,
+          );
+
+          return {
+            bucketStart: bucketStart,
+            bucketEnd: new Date(bucketStart.getTime() + DAY_IN_MILLISECONDS),
+            daySeconds: 86400,
+            coveredSeconds: 86400,
+            statusDurations: [
+              {
+                monitorStatusId: OPERATIONAL.id!,
+                seconds: 86400 - offlineSeconds,
+              },
+              { monitorStatusId: OFFLINE.id!, seconds: offlineSeconds },
+            ],
+          };
+        },
+      );
+
+      jest
+        .spyOn(StatusPageService, "getUptimeDailyAggregateForStatusPage")
+        .mockResolvedValue({
+          monitors: [{ monitorId: ROUTER_MONITOR, buckets: buckets }],
+          isComplete: true,
+          completeFrom: null,
+          timezone: "UTC",
+        });
+
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: reportPeriod(),
+        });
+
+      const router: StatusPageReportItem = report.resources[0]!;
+
+      // two hours down in three covered days.
+      expect(router.uptimePercentAsString).toBe("97.22%");
+      expect(router.downtimeInHoursAndMinutes).toBe("2 hours, 0 minutes");
     });
   });
 

@@ -62,7 +62,7 @@ import { JSONObject } from "../../Types/JSON";
 import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResource";
 import MonitorGroupService from "./MonitorGroupService";
 import QueryHelper from "../Types/Database/QueryHelper";
-import OneUptimeDate, { Moment } from "../../Types/Date";
+import OneUptimeDate from "../../Types/Date";
 import IncidentService from "./IncidentService";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
 import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
@@ -70,7 +70,9 @@ import {
   UptimeDailyAggregate,
   UptimeDayBucket,
 } from "../../Types/StatusPage/UptimeDailyAggregate";
-import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
+import UptimeDailyAggregateUtil, {
+  DEFAULT_UPTIME_AGGREGATE_TIMEZONE,
+} from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
@@ -1476,18 +1478,15 @@ export class Service extends DatabaseService<StatusPage> {
      * that was, so it stays on the rows - as do the page and group downtime
      * totals, which merge several monitors the same way.
      *
-     * Days are cut in the report's timezone, so the buckets are the calendar
-     * days the report is written in. The totals taken from them do not depend
-     * on where the cut falls - which is what makes UTC a safe stand-in for a
-     * zone Postgres would refuse. The report settings still offer
-     * US/Pacific-New, which tzdata dropped in 2020; handed to `AT TIME ZONE`
-     * it fails the query, and with it the whole report. moment carries the
-     * same tzdata, so a zone it does not know is not passed on.
+     * Days are cut in UTC, never in the report's timezone. The report reads
+     * only whole-window totals, and those do not depend on where the cut
+     * falls, because every bucket is clipped to the window. The report
+     * timezone must not reach `AT TIME ZONE` either. Postgres reads the OS
+     * tzdata, and the images OneUptime ships (Debian trixie, no
+     * tzdata-legacy) reject link names the settings still offer and moment
+     * still knows, such as US/Eastern, Asia/Calcutta and GB. One of those
+     * would fail the query, and with it the whole report.
      */
-    const aggregateTimezone: string = Moment.tz.zone(data.reportPeriod.timezone)
-      ? data.reportPeriod.timezone
-      : "UTC";
-
     const singleMonitorIds: Dictionary<ObjectID> = {};
 
     for (const resource of statusPageResources) {
@@ -1501,7 +1500,7 @@ export class Service extends DatabaseService<StatusPage> {
         monitorIds: Object.values(singleMonitorIds),
         startDate: startDate,
         endDate: endDate,
-        timezone: aggregateTimezone,
+        timezone: DEFAULT_UPTIME_AGGREGATE_TIMEZONE,
       });
 
     const downtimeMonitorStatusIds: Array<string> = (
@@ -1519,6 +1518,9 @@ export class Service extends DatabaseService<StatusPage> {
      * resource beneath it without expanding monitor groups a second time.
      */
     const monitorIdsByResourceIndex: Array<Array<ObjectID>> = [];
+
+    // each entry's downtime in seconds, which the rollups below are floored at.
+    const downtimeInSecondsByResourceIndex: Array<number> = [];
 
     for (const resource of statusPageResources) {
       // for each of these resource, calculate uptime percent.
@@ -1605,6 +1607,7 @@ export class Service extends DatabaseService<StatusPage> {
       });
 
       monitorIdsByResourceIndex.push(monitorIdsForThisResource);
+      downtimeInSecondsByResourceIndex.push(downtimeInSeconds);
     }
 
     const avgUptimePercent: number =
@@ -1624,6 +1627,18 @@ export class Service extends DatabaseService<StatusPage> {
     );
 
     /*
+     * The page total still merges every monitor's capped rows, so on a page
+     * that hits the cap it is understated - and could read less than one of
+     * the resources above it, which a merged figure can never do. Floored at
+     * the largest resource's downtime, it stays a lower bound without
+     * contradicting the rows it sums up.
+     */
+    const pageDowntimeInSeconds: number = this.getRolledUpDowntimeInSeconds({
+      mergedDowntimeInSeconds: totalDowntimeInSeconds.totalDowntimeInSeconds,
+      resourceDowntimesInSeconds: downtimeInSecondsByResourceIndex,
+    });
+
+    /*
      * The status page arranges its resources into a tree of groups and shows a
      * rolled up number at every level. Recipients of this email usually have no
      * login, so the report has to carry that hierarchy too - see
@@ -1639,6 +1654,7 @@ export class Service extends DatabaseService<StatusPage> {
         statusPageGroups: statusPageGroups,
         entries: entries,
         monitorIdsByResourceIndex: monitorIdsByResourceIndex,
+        downtimeInSecondsByResourceIndex: downtimeInSecondsByResourceIndex,
         timeline: timeline,
         downtimeMonitorStatuses: statusPage.downtimeMonitorStatuses || [],
         reportWindow: reportWindow,
@@ -1663,9 +1679,31 @@ export class Service extends DatabaseService<StatusPage> {
       rows: structure.rows,
       hasGroups: structure.groups.length > 0,
       totalDowntimeInHoursAndMinutes: this.getDowntimeInHoursAndMinutes(
-        totalDowntimeInSeconds.totalDowntimeInSeconds,
+        pageDowntimeInSeconds,
       ),
     };
+  }
+
+  /*
+   * Downtime merged across several monitors, floored at the largest downtime
+   * of any one resource beneath it.
+   *
+   * The merged figure comes from the timeline rows, which are capped; a single
+   * monitor's downtime comes from the uncapped day aggregate. When the cap
+   * cuts rows, the merge can come out below one of its own resources. Several
+   * monitors are down at least as long as any one of them, so the floor is
+   * still a lower bound - just no longer a contradictory one.
+   */
+  private getRolledUpDowntimeInSeconds(data: {
+    mergedDowntimeInSeconds: number;
+    resourceDowntimesInSeconds: Array<number>;
+  }): number {
+    return data.resourceDowntimesInSeconds.reduce(
+      (largest: number, downtimeInSeconds: number) => {
+        return Math.max(largest, downtimeInSeconds);
+      },
+      data.mergedDowntimeInSeconds,
+    );
   }
 
   /*
@@ -1692,6 +1730,8 @@ export class Service extends DatabaseService<StatusPage> {
     statusPageGroups: Array<StatusPageGroup>;
     entries: Array<StatusPageReportResourceEntry>;
     monitorIdsByResourceIndex: Array<Array<ObjectID>>;
+    // each entry's own downtime; the group's is floored at the largest.
+    downtimeInSecondsByResourceIndex?: Array<number> | undefined;
     timeline: Array<MonitorStatusTimeline>;
     downtimeMonitorStatuses: Array<MonitorStatus>;
     reportWindow: UptimeWindow;
@@ -1716,6 +1756,7 @@ export class Service extends DatabaseService<StatusPage> {
       );
 
       const uptimePercentsInSubtree: Array<number> = [];
+      const downtimesInSecondsInSubtree: Array<number> = [];
       const monitorIdsInSubtree: Dictionary<ObjectID> = {};
 
       data.entries.forEach(
@@ -1728,6 +1769,9 @@ export class Service extends DatabaseService<StatusPage> {
           }
 
           uptimePercentsInSubtree.push(entry.reportItem.uptimePercent);
+          downtimesInSecondsInSubtree.push(
+            data.downtimeInSecondsByResourceIndex?.[index] || 0,
+          );
 
           for (const monitorId of data.monitorIdsByResourceIndex[index] || []) {
             // de-duplicated: the same monitor can back more than one resource.
@@ -1800,7 +1844,10 @@ export class Service extends DatabaseService<StatusPage> {
         uptimePercent: uptimePercent,
         uptimePercentAsString: `${uptimePercent}%`,
         downtimeInHoursAndMinutes: this.getDowntimeInHoursAndMinutes(
-          downtime.totalDowntimeInSeconds,
+          this.getRolledUpDowntimeInSeconds({
+            mergedDowntimeInSeconds: downtime.totalDowntimeInSeconds,
+            resourceDowntimesInSeconds: downtimesInSecondsInSubtree,
+          }),
         ),
         totalIncidentCount: totalIncidentCount,
       };
