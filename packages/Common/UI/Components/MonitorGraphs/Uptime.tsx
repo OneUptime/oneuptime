@@ -45,6 +45,12 @@ export interface ComponentProps {
   uptimeBuckets?: Array<UptimeDayBucket> | undefined;
   /* Statuses by id, so a bucket's durations can be given a name and colour. */
   monitorStatuses?: Array<MonitorStatus> | undefined;
+  /*
+   * The zone uptimeBuckets were cut in, so the bars are drawn on the same
+   * day boundaries. The browser's own zone when absent, which is only right
+   * when the buckets were asked for in the browser's zone (the dashboard).
+   */
+  uptimeTimezone?: string | undefined;
   defaultBarColor: Color;
   incidents?: Array<UptimeBarTooltipIncident> | undefined;
   onBarClick?: (
@@ -154,6 +160,7 @@ const MonitorUptimeGraph: FunctionComponent<ComponentProps> = (
       endDate={props.endDate}
       events={events}
       dayReadings={dayReadings}
+      timezone={props.uptimeTimezone}
       defaultBarColor={props.defaultBarColor}
       height={props.height}
       barColorRules={barColorRules}

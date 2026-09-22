@@ -10,6 +10,7 @@ import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import { UptimeDayBucket } from "Common/Types/StatusPage/UptimeDailyAggregate";
+import UptimeDailyAggregateUtil from "Common/Utils/StatusPage/UptimeDailyAggregateUtil";
 import MonitorStatusTimelne from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
@@ -43,6 +44,11 @@ export interface ComponentProps {
    * cap dropped, and paint both with defaultBarColor.
    */
   uptimeBuckets?: Array<UptimeDayBucket> | undefined;
+  /*
+   * The zone uptimeBuckets were cut in (UptimeDailyAggregate.timezone). The
+   * bars are drawn on that zone's days so each bar is exactly one bucket.
+   */
+  uptimeTimezone?: string | undefined;
   monitorStatuses?: Array<MonitorStatus> | undefined;
   defaultBarColor: Color;
   uptimeHistoryDays?: number | undefined;
@@ -117,19 +123,45 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
       props.showUptimePercent
     ) {
       /*
-       * measure uptime over the same window the history chart is drawn for. Without this an
-       * open (endsAt = null) row that started before the window contributes its whole
-       * duration, and the denominator becomes "first event -> now" rather than the window.
+       * From the same buckets the bars are painted from, when there are any.
+       *
+       * monitorStatusTimeline arrives under a 10,000 row cap across every
+       * monitor on the page, so on a page with a flapping monitor it holds a
+       * few days of the window and a percentage computed from it only sees
+       * those days - it read 99.876% for a monitor that was up 99.667% of
+       * its sixty days. The buckets are measured from every row.
        */
-      const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
-        props.monitorStatusTimeline,
-        precision,
-        props.downtimeMonitorStatuses,
-        {
-          startDate: props.startDate,
-          endDate: props.endDate,
-        },
-      );
+      const uptimePercentFromBuckets: number | null = props.uptimeBuckets
+        ? UptimeDailyAggregateUtil.getUptimePercent({
+            buckets: props.uptimeBuckets,
+            downtimeMonitorStatusIds: props.downtimeMonitorStatuses
+              .map((status: MonitorStatus) => {
+                return status.id?.toString() || "";
+              })
+              .filter(Boolean),
+            precision: precision,
+          })
+        : null;
+
+      /*
+       * Otherwise (a monitor group, or buckets that cover nothing) measure
+       * uptime over the same window the history chart is drawn for. Without
+       * this an open (endsAt = null) row that started before the window
+       * contributes its whole duration, and the denominator becomes "first
+       * event -> now" rather than the window.
+       */
+      const uptimePercent: number =
+        uptimePercentFromBuckets !== null
+          ? uptimePercentFromBuckets
+          : UptimeUtil.calculateUptimePercentage(
+              props.monitorStatusTimeline,
+              precision,
+              props.downtimeMonitorStatuses,
+              {
+                startDate: props.startDate,
+                endDate: props.endDate,
+              },
+            );
 
       return (
         <div
@@ -218,6 +250,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
             defaultBarColor={props.defaultBarColor}
             downtimeMonitorStatuses={props.downtimeMonitorStatuses}
             uptimeBuckets={props.uptimeBuckets}
+            uptimeTimezone={props.uptimeTimezone}
             monitorStatuses={props.monitorStatuses}
             items={props.monitorStatusTimeline || []}
             startDate={props.startDate}
@@ -261,6 +294,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           hasEvents={selectedDaySummary?.hasEvents}
           statusDurations={selectedDaySummary?.statusDurations}
           labels={uptimeHistoryLabels}
+          timezone={props.uptimeTimezone}
           onIncidentClick={props.onIncidentClick}
           onClose={() => {
             setSelectedDay(null);
