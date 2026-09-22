@@ -1,4 +1,9 @@
 import { DatabaseMetricGroup } from "Common/Types/Monitor/DatabaseMetricCatalog";
+import {
+  AZURE_SQL_DATABASE_MONITORING_REMEDIATION,
+  SQL_SERVER_MONITORING_REMEDIATION,
+  SqlServerEngineEdition,
+} from "Common/Types/Monitor/DatabaseMonitor/SqlServerPlatform";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
 
@@ -7,7 +12,10 @@ import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
  *
  * EVERY statement in this file has been executed against a real server -
  * PostgreSQL 15.18, MySQL 8.4.11 and SQL Server 2022 (16.0.4265.3) - and its
- * output column names checked against the mapping below. That matters more
+ * output column names checked against the mapping below. The SQL Server
+ * statements were run again on 2017, 2019 and 2022 as a login holding only
+ * db_datareader, then with VIEW SERVER STATE alone, which is what the
+ * permission notes below record. That matters more
  * than it sounds: catalog SQL is exactly the kind of code that looks right
  * and is not. Three examples this validation actually caught, all of which
  * would otherwise have shipped:
@@ -61,6 +69,18 @@ export interface DatabaseHealthQuery {
    * to the operator. Absent when the query needs no special grant.
    */
   remediation?: string | undefined;
+  /*
+   * Microsoft SQL Server only. The grant to show instead of `remediation`
+   * when the server turns out to be an Azure SQL Database, where
+   * server-level permissions such as VIEW SERVER STATE do not exist.
+   */
+  remediationOnAzureSqlDatabase?: string | undefined;
+  /*
+   * Microsoft SQL Server only. SERVERPROPERTY('EngineEdition') values on
+   * which the query's view does not exist at all. Skipped silently there,
+   * like a version gate.
+   */
+  skipOnSqlServerEngineEditions?: Array<SqlServerEngineEdition> | undefined;
   /*
    * Version gate, compared against the engine's numeric server version
    * (PostgreSQL server_version_num, e.g. 150018). A query outside the range
@@ -526,9 +546,24 @@ FROM information_schema.INNODB_TRX`,
 ];
 
 /*
- * Microsoft SQL Server. Everything here needs VIEW SERVER STATE except the
- * per-database storage and log queries, which is why they are in their own
- * group - a login without VIEW SERVER STATE still gets size and log space.
+ * Microsoft SQL Server. Everything here reads a DMV and needs VIEW SERVER
+ * STATE (VIEW SERVER PERFORMANCE STATE is enough on 2022 and later) - except
+ * database size, which comes from sys.database_files and needs nothing. That
+ * is why Storage is split into three statements.
+ *
+ * Without the grant a DMV read FAILS rather than under-reporting, with one
+ * exception worth knowing: sys.dm_exec_sessions and sys.dm_exec_requests
+ * quietly return only the caller's own session. Every statement that reads
+ * them also reads a DMV that does raise (dm_os_sys_info, dm_tran_*,
+ * dm_os_waiting_tasks, dm_os_performance_counters), so the whole statement
+ * fails loudly instead of recording "1 connection". Keep it that way - a
+ * statement reading ONLY those two views would need a preflight like
+ * PostgreSQL's has_stats_access.
+ *
+ * On Azure SQL Database (SERVERPROPERTY('EngineEdition') = 5) the same DMVs
+ * are gated by VIEW DATABASE STATE instead - or, on Basic, S0, S1 and elastic
+ * pools, by the ##MS_ServerStateReader## server role - which is why every
+ * grant here carries an Azure variant.
  */
 const sqlServerQueries: Array<DatabaseHealthQuery> = [
   {
@@ -554,7 +589,8 @@ const sqlServerQueries: Array<DatabaseHealthQuery> = [
         metricType: MonitorMetricType.DatabaseUptimeSeconds,
       },
     ],
-    remediation: "GRANT VIEW SERVER STATE TO [<monitoring_login>];",
+    remediation: SQL_SERVER_MONITORING_REMEDIATION,
+    remediationOnAzureSqlDatabase: AZURE_SQL_DATABASE_MONITORING_REMEDIATION,
   },
   {
     id: "mssql-activity",
@@ -577,7 +613,8 @@ const sqlServerQueries: Array<DatabaseHealthQuery> = [
         metricType: MonitorMetricType.DatabaseLongestTransactionSeconds,
       },
     ],
-    remediation: "GRANT VIEW SERVER STATE TO [<monitoring_login>];",
+    remediation: SQL_SERVER_MONITORING_REMEDIATION,
+    remediationOnAzureSqlDatabase: AZURE_SQL_DATABASE_MONITORING_REMEDIATION,
   },
   {
     /*
@@ -614,7 +651,8 @@ FROM sys.dm_os_performance_counters`,
         metricType: MonitorMetricType.DatabaseMemoryGrantsPending,
       },
     ],
-    remediation: "GRANT VIEW SERVER STATE TO [<monitoring_login>];",
+    remediation: SQL_SERVER_MONITORING_REMEDIATION,
+    remediationOnAzureSqlDatabase: AZURE_SQL_DATABASE_MONITORING_REMEDIATION,
   },
   {
     /*
@@ -645,7 +683,8 @@ FROM sys.dm_os_performance_counters`,
         metricType: MonitorMetricType.DatabaseDeadlocksTotal,
       },
     ],
-    remediation: "GRANT VIEW SERVER STATE TO [<monitoring_login>];",
+    remediation: SQL_SERVER_MONITORING_REMEDIATION,
+    remediationOnAzureSqlDatabase: AZURE_SQL_DATABASE_MONITORING_REMEDIATION,
   },
   {
     id: "mssql-io",
@@ -674,34 +713,65 @@ FROM sys.dm_io_virtual_file_stats(NULL, NULL)`,
         metricType: MonitorMetricType.DatabaseDiskWritesTotal,
       },
     ],
-    remediation: "GRANT VIEW SERVER STATE TO [<monitoring_login>];",
+    remediation: SQL_SERVER_MONITORING_REMEDIATION,
+    remediationOnAzureSqlDatabase: AZURE_SQL_DATABASE_MONITORING_REMEDIATION,
   },
   {
-    id: "mssql-storage",
+    /*
+     * Storage is THREE statements because it has two permission levels.
+     * sys.database_files is readable by any user of the database; the log
+     * and tempdb DMVs are not - without VIEW SERVER STATE they raise Msg 300
+     * (verified on 2017, 2019 and 2022 as a db_datareader login). As one
+     * statement, a login with plain read access lost database size along
+     * with the two numbers it genuinely cannot see (issue #3913).
+     */
+    id: "mssql-storage-size",
     group: DatabaseMetricGroup.Storage,
-    sql: `SELECT
- (SELECT SUM(CAST(size AS BIGINT)) * 8 * 1024 FROM sys.database_files) AS database_size_bytes,
- (SELECT TOP 1 used_log_space_in_percent FROM sys.dm_db_log_space_usage) AS log_space_used_percent,
- (SELECT SUM(unallocated_extent_page_count) * 8 * 1024 FROM tempdb.sys.dm_db_file_space_usage) AS tempdb_free_bytes`,
+    sql: `SELECT SUM(CAST(size AS BIGINT)) * 8 * 1024 AS database_size_bytes FROM sys.database_files`,
     columnMappings: [
       {
         column: "database_size_bytes",
         metricType: MonitorMetricType.DatabaseSizeBytes,
       },
+    ],
+  },
+  {
+    id: "mssql-storage-log",
+    group: DatabaseMetricGroup.Storage,
+    sql: `SELECT TOP 1 used_log_space_in_percent AS log_space_used_percent FROM sys.dm_db_log_space_usage`,
+    columnMappings: [
       {
         column: "log_space_used_percent",
         metricType: MonitorMetricType.DatabaseLogSpaceUsedPercent,
       },
+    ],
+    remediation: SQL_SERVER_MONITORING_REMEDIATION,
+    remediationOnAzureSqlDatabase: AZURE_SQL_DATABASE_MONITORING_REMEDIATION,
+  },
+  {
+    id: "mssql-storage-tempdb",
+    group: DatabaseMetricGroup.Storage,
+    sql: `SELECT SUM(unallocated_extent_page_count) * 8 * 1024 AS tempdb_free_bytes FROM tempdb.sys.dm_db_file_space_usage`,
+    columnMappings: [
       {
         column: "tempdb_free_bytes",
         metricType: MonitorMetricType.DatabaseTempDbFreeBytes,
       },
     ],
+    remediation: SQL_SERVER_MONITORING_REMEDIATION,
+    remediationOnAzureSqlDatabase: AZURE_SQL_DATABASE_MONITORING_REMEDIATION,
   },
   {
     /*
      * Returns a single row of zeroes when no availability group is
-     * configured - verified, not assumed - so this needs no gate.
+     * configured - verified, not assumed - so this needs no gate on SQL
+     * Server. Azure SQL Database has no such view at all ("Invalid object
+     * name 'sys.dm_hadr_database_replica_states'", issue #3913; Microsoft
+     * documents it for SQL Server and Managed Instance only), so there it is
+     * skipped rather than failed on every check. Azure's own views -
+     * sys.dm_database_replica_states, sys.dm_geo_replication_link_status -
+     * are not queried yet: they have different row semantics and have not
+     * been run against a live Azure database.
      */
     id: "mssql-replication",
     group: DatabaseMetricGroup.Replication,
@@ -721,7 +791,8 @@ FROM sys.dm_hadr_database_replica_states`,
         multiplier: 1024,
       },
     ],
-    remediation: "GRANT VIEW SERVER STATE TO [<monitoring_login>];",
+    remediation: SQL_SERVER_MONITORING_REMEDIATION,
+    skipOnSqlServerEngineEditions: [SqlServerEngineEdition.AzureSqlDatabase],
   },
 ];
 
@@ -762,7 +833,12 @@ export function getProbeQuery(databaseType: SqlDatabaseType): string {
     case SqlDatabaseType.MySQL:
       return "SELECT VERSION() AS engine_version";
     case SqlDatabaseType.MicrosoftSqlServer:
-      return "SELECT CAST(SERVERPROPERTY('ProductVersion') AS NVARCHAR(128)) AS engine_version";
+      /*
+       * engine_edition tells Azure SQL Database (5) and Managed Instance (8)
+       * from SQL Server. It decides which grant a permission failure points
+       * to and which views exist, and SERVERPROPERTY needs no permission.
+       */
+      return "SELECT CAST(SERVERPROPERTY('ProductVersion') AS NVARCHAR(128)) AS engine_version, CAST(SERVERPROPERTY('EngineEdition') AS INT) AS engine_edition";
     default:
       return "SELECT 1";
   }
