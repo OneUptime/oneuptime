@@ -113,7 +113,6 @@ const STRINGS: Array<string> = [
   "event",
   "events",
   "No security events yet",
-  "Send events from any source that can POST JSON — a SIEM, a SOAR webhook, a log forwarder — or connect a security product and OneUptime polls it for you. Every event is normalized to OCSF, whatever dialect it arrives in.",
   "Read the setup guide",
   "Connect a security product",
   "Principal User",
