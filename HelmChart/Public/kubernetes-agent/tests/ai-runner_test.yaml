@@ -18,9 +18,13 @@
 #     namespace is as good as running any image as any ServiceAccount there,
 #     so WHERE those rules are bound is the part of the boundary RBAC holds;
 #   * tell the Runner what RBAC it got (ONEUPTIME_KUBECTL_ALLOW_WRITES, the
-#     namespaces in ONEUPTIME_KUBECTL_WRITE_NAMESPACES) and where it runs
-#     (ONEUPTIME_RUNNER_POD_NAMESPACE), and never let aiAccess.extraEnv
-#     replace any of that;
+#     namespaces in ONEUPTIME_KUBECTL_WRITE_NAMESPACES, and
+#     ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS, "true" only when the node role
+#     is rendered) and where it runs (ONEUPTIME_RUNNER_POD_NAMESPACE), and
+#     never let aiAccess.extraEnv replace any of that;
+#   * keep a stored aiAccess.remediation.namespaces list across
+#     `--reuse-values` upgrades, and go back to cluster-wide only on the
+#     resets the docs name (`=null`, or `--set-json ...=[]`);
 #   * render on a release whose stored values predate the block: `helm
 #     upgrade --reuse-values` feeds the templates the previous release's
 #     values, so on an install from a chart without aiAccess
@@ -244,6 +248,13 @@ tests:
           content:
             name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
             value: ""
+      # No node role on a read-only install, so node operations are off too.
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "false"
       # Every rule is get/list/watch, except the create-only access reviews
       # `kubectl auth can-i` needs. No other create, and no patch, update,
       # delete or deletecollection anywhere: the array is exact.
@@ -357,6 +368,15 @@ tests:
           content:
             name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
             value: ""
+      # The node-operations role below is rendered, so the Runner is told node
+      # operations are on — exactly once.
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "true"
+          count: 1
       # The read-only role is unchanged by remediation: no write verb leaks
       # into the role every investigation holds cluster-wide.
       - documentIndex: 1
@@ -429,7 +449,7 @@ tests:
               resources:
                 - jobs
               verbs: ["create"]
-            # delete a NAMED pod or job so its controller recreates it.
+            # delete a NAMED pod (a safe change) or job (a riskier one).
             - apiGroups: [""]
               resources:
                 - pods
@@ -620,6 +640,104 @@ tests:
           content:
             name: ONEUPTIME_KUBECTL_ALLOW_WRITES
             value: "true"
+      # Node operations are cluster-wide whatever the namespace list says.
+      - documentIndex: 8
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "true"
+
+  # `helm upgrade --reuse-values` keeps a stored namespace list, so the docs
+  # tell operators to reset it with `--set aiAccess.remediation.namespaces=null`
+  # (or `--set-json 'aiAccess.remediation.namespaces=[]'`), never `={}`. These
+  # render each against a release that stores [web].
+  - it: keeps a stored namespace list when an upgrade leaves the namespaces flag out
+    values:
+      - values/ai-remediation-stored-namespaces.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      # The negative control for the two resets below: without one, the
+      # stored list still binds the role in web only.
+      - hasDocuments:
+          count: 8
+      - documentIndex: 4
+        isKind:
+          of: RoleBinding
+      - documentIndex: 4
+        equal:
+          path: metadata.namespace
+          value: web
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: web
+
+  - it: goes back to the cluster-wide binding when a stored namespace list is reset to null
+    values:
+      - values/ai-remediation-stored-namespaces.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.remediation.namespaces: null
+    asserts:
+      - hasDocuments:
+          count: 8
+      - documentIndex: 4
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 4
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: ""
+
+  - it: goes back to the cluster-wide binding when a stored namespace list is reset to an empty list
+    values:
+      - values/ai-remediation-stored-namespaces.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.remediation.namespaces: []
+    asserts:
+      - hasDocuments:
+          count: 8
+      - documentIndex: 4
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: ""
+
+  - it: refuses the empty namespace name `--set "aiAccess.remediation.namespaces={}"` produces
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+      # Helm's --set reads `{}` as a list holding one empty string, not as an
+      # empty list, which is why the docs name `=null` as the reset instead.
+      aiAccess.remediation.namespaces:
+        - ""
+    asserts:
+      - failedTemplate:
+          errorPattern: "aiAccess.remediation.namespaces.0: String length must be greater than or equal to 1"
 
   - it: renders one RoleBinding per namespace even when the list repeats one
     set:
@@ -708,6 +826,12 @@ tests:
           content:
             name: ONEUPTIME_KUBECTL_ALLOW_WRITES
             value: "false"
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "false"
 
   - it: rejects a namespace name Kubernetes would not accept
     set:
@@ -754,6 +878,23 @@ tests:
         notEqual:
           path: metadata.name
           value: oneuptime-agent-kubernetes-agent-ai-runner-node-operations
+      # The Runner is told, not only RBAC: it refuses cordon, uncordon, drain,
+      # taint and node label/annotate/patch before spawning kubectl, instead
+      # of an unattended cordon failing Forbidden at the API server. Writes
+      # themselves stay on.
+      - documentIndex: 5
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "false"
+          count: 1
+      - documentIndex: 5
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "true"
 
   - it: grants node operations only together with remediation
     set:
@@ -765,6 +906,14 @@ tests:
     asserts:
       - hasDocuments:
           count: 4
+      # nodeOperations=true alone grants nothing, and the Runner is told so:
+      # the switch follows the rendered node role, not the value.
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "false"
       - documentIndex: 1
         equal:
           path: rules
@@ -925,6 +1074,12 @@ tests:
           content:
             name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
             value: ""
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "false"
       # And the same read-only role.
       - documentIndex: 1
         equal:
@@ -984,6 +1139,13 @@ tests:
           content:
             name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
             value: ""
+      # No nodeOperations key: the same fallback (on) the node role uses.
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "true"
 
   - it: falls back to the default repository and an IfNotPresent pull when a release from a chart without aiAccess pins only the image tag
     values:
@@ -1374,6 +1536,23 @@ tests:
     asserts:
       - failedTemplate:
           errorPattern: "aiAccess.extraEnv must not set ONEUPTIME_KUBECTL_WRITE_NAMESPACES: the chart sets it from aiAccess.remediation.namespaces"
+
+  - it: refuses an extraEnv that would turn the Runner's node operations back on
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+      aiAccess.remediation.nodeOperations: false
+      aiAccess.extraEnv:
+        - name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+          value: "true"
+    asserts:
+      # With no node role rendered, "true" would have the Runner run node
+      # operations that can only fail Forbidden.
+      - failedTemplate:
+          errorPattern: "aiAccess.extraEnv must not set ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS: the chart sets it from aiAccess.remediation.nodeOperations"
 
   - it: refuses an extraEnv that would override the Runner's own namespace
     set:

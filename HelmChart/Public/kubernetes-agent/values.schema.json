@@ -1001,18 +1001,18 @@
       "properties": {
         "enabled": {
           "type": "boolean",
-          "description": "Deploy the in-cluster Runner with read-only RBAC (get/list/watch, pod logs and the access reviews kubectl auth can-i needs), bound cluster-wide. It registers itself with oneuptime.apiKey and binds to clusterName."
+          "description": "Deploy the in-cluster Runner with read-only RBAC (get/list/watch, pod logs and the access reviews kubectl auth can-i needs), bound cluster-wide. It registers itself with oneuptime.apiKey (a key with a Pinned Service Name cannot register it) and binds to clusterName."
         },
         "remediation": {
           "type": "object",
           "properties": {
             "enabled": {
               "type": "boolean",
-              "description": "Also grant the write RBAC OneUptime AI's fixes use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets, their scale subresource, Jobs, CronJobs, Pods and HPAs; create on Jobs and HPAs; delete on Pods and Jobs only. Patch/update on workloads, pods and CronJobs (and create on Jobs) in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets, so this is bound only in remediation.namespaces when that lists any, and cluster-wide otherwise; the command policy, not RBAC, refuses pod-template security patches, set serviceaccount and create job --image, and never runs a write in kube-system, kube-public or kube-node-lease without a human. Never secrets, exec, attach, port-forward, CRDs or RBAC writes. The Runner refuses writes locally when this is off. A cluster registering for the first time with this on starts in ask-for-approval; a cluster that was already registered keeps the AI remediation mode chosen on its AI page."
+              "description": "Also grant the write RBAC OneUptime AI's fixes use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets, their scale subresource, Jobs, CronJobs, Pods and HPAs; create on Jobs and HPAs; delete on Pods and Jobs only. Patch/update on workloads, pods and CronJobs (and create on Jobs) in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets, so this is bound only in remediation.namespaces when that lists any, and cluster-wide otherwise; the command policy, not RBAC, refuses pod-template security patches, set serviceaccount, create deployment/cronjob/job --image and patch bodies that are not JSON, while set image stays a riskier change a human approves unless the cluster bypasses approvals or its allowlist names it; in every mode it never runs a write in kube-system, kube-public or kube-node-lease, a drain or a taint without a human. Never secrets, exec, attach, port-forward, CRDs or RBAC writes. The Runner refuses writes locally when this is off. A cluster registering for the first time with this on starts in ask-for-approval, unless AI settings were already picked on its AI page before the install (they are kept as chosen); a cluster that was already registered keeps the AI remediation mode chosen on its AI page."
             },
             "namespaces": {
               "type": "array",
-              "description": "Namespaces to bind the remediation write role in, one RoleBinding each. Empty (the default) binds it cluster-wide with a ClusterRoleBinding, which RBAC cannot keep out of kube-system, kube-public, kube-node-lease or this release's namespace: there the policy (never without a human in the three system namespaces) and the Runner (never its own namespace) hold the line. The Runner refuses writes outside the list before spawning kubectl. This release's own namespace may not be listed.",
+              "description": "Namespaces to bind the remediation write role in, one RoleBinding each. Empty (the default) binds it cluster-wide with a ClusterRoleBinding, which RBAC cannot keep out of kube-system, kube-public, kube-node-lease or this release's namespace: there the policy (never without a human in the three system namespaces) and the Runner (never its own namespace) hold the line. The Runner refuses writes outside the list before spawning kubectl. This release's own namespace may not be listed. Every listed namespace must already exist: the chart creates a RoleBinding in each and never a namespace, so a missing one fails the install or upgrade with namespaces \"<name>\" not found. Take a namespace off the list before deleting it. To go back to cluster-wide, set it to null (--set aiAccess.remediation.namespaces=null) or [] (--set-json), not {} (Helm reads that as one empty name, which is refused).",
               "items": {
                 "type": "string",
                 "minLength": 1,
@@ -1022,7 +1022,7 @@
             },
             "nodeOperations": {
               "type": "boolean",
-              "description": "With remediation.enabled, also grant cordon/uncordon/taint (patch on nodes) and drain (create on pods/eviction), cluster-wide since nodes are cluster-scoped, in a ClusterRole of their own. Default true; set false to keep OneUptime AI's fixes off nodes."
+              "description": "With remediation.enabled, also grant cordon/uncordon/taint (patch on nodes) and drain (create on pods/eviction), cluster-wide since nodes are cluster-scoped, in a ClusterRole of their own. A drain or a taint always waits for a human, in every mode. Default true; set false to keep OneUptime AI's fixes off nodes: no node RBAC is granted and ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false tells the Runner to refuse cordon, uncordon, drain, taint and label/annotate/patch on a node before it spawns kubectl."
             }
           },
           "additionalProperties": false
@@ -1067,7 +1067,7 @@
         },
         "extraEnv": {
           "type": "array",
-          "description": "Extra environment variables for the Runner container, as Kubernetes EnvVar objects (use --set-string for values). Names the chart sets itself (ONEUPTIME_URL, ONEUPTIME_INGESTION_KEY, ONEUPTIME_KUBERNETES_CLUSTER_NAME, ONEUPTIME_RUNNER_NAME, ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION, ONEUPTIME_KUBECTL_ALLOW_WRITES, ONEUPTIME_KUBECTL_WRITE_NAMESPACES, ONEUPTIME_RUNNER_POD_NAMESPACE, ONEUPTIME_RUNNER_ENABLE_RUNBOOKS, ONEUPTIME_RUNNER_ENABLE_CODE_FIXES, HOME, KUBECACHEDIR, PORT) and ONEUPTIME_RUNNER_ID / ONEUPTIME_RUNNER_KEY fail the render.",
+          "description": "Extra environment variables for the Runner container, as Kubernetes EnvVar objects (use --set-string for values). Names the chart sets itself (ONEUPTIME_URL, ONEUPTIME_INGESTION_KEY, ONEUPTIME_KUBERNETES_CLUSTER_NAME, ONEUPTIME_RUNNER_NAME, ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION, ONEUPTIME_KUBECTL_ALLOW_WRITES, ONEUPTIME_KUBECTL_WRITE_NAMESPACES, ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS, ONEUPTIME_RUNNER_POD_NAMESPACE, ONEUPTIME_RUNNER_ENABLE_RUNBOOKS, ONEUPTIME_RUNNER_ENABLE_CODE_FIXES, HOME, KUBECACHEDIR, PORT) and ONEUPTIME_RUNNER_ID / ONEUPTIME_RUNNER_KEY fail the render.",
           "items": {
             "type": "object",
             "required": ["name"],

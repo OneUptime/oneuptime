@@ -31,8 +31,9 @@ import path from "path";
  *   ServiceAccount in the namespace and reading its Secrets), the protected
  *   namespaces that always need a human, and aiAccess.remediation.namespaces.
  * - The behaviour the policy and the server enforce is described as it is:
- *   what a safe change is, Automatic proposing riskier changes for approval,
- *   the word-by-word allowlist, who may loosen a cluster's AI access (the
+ *   what a safe change is, when Automatic proposes a riskier change for
+ *   approval, every case in which Bypass approval still asks, the
+ *   word-by-word allowlist, who may loosen a cluster's AI access (the
  *   permission titles are read from the permission catalog), the deny list,
  *   and that the agent's own Runner never gets a credential and never runs
  *   Bash/SSH steps.
@@ -296,7 +297,7 @@ describe("the AI SRE page's cluster-access section", () => {
     expect(section).toContain("the command, its status and when it ran");
   });
 
-  it("says Automatic proposes a riskier change for one-click approval", () => {
+  it("says when Automatic proposes a riskier change for one-click approval", () => {
     const automatic: string | undefined = section
       .split("\n")
       .find((line: string) => {
@@ -304,11 +305,64 @@ describe("the AI SRE page's cluster-access section", () => {
       });
 
     expect(automatic).toContain(
-      "safe changes run on their own; a riskier change is proposed for one-click approval",
+      "safe changes run on their own; a riskier change never does.",
+    );
+    /*
+     * A cluster round proposes its refused riskier changes only when it ran
+     * nothing else; after a safe fix, only the follow-up round (after a
+     * failed verification) proposes the next plan. The previous copy, "a
+     * riskier change is proposed for one-click approval", dropped both
+     * conditions (KubernetesAiAccessDocsModes.test.ts checks every copy).
+     */
+    expect(automatic).toContain(
+      "When the round could only find riskier fixes, it ends by proposing exactly those for one-click approval.",
+    );
+    expect(automatic).toContain(
+      "When it also ran a safe fix, the riskier one stays in the analysis and is proposed only if verification shows the safe fix did not recover the monitors — by the follow-up round, which asks for approval.",
     );
     // The earlier copy: a riskier change was neither run nor proposed.
     expect(automatic).not.toMatch(
       /refuses them inline|neither run nor proposed/,
+    );
+  });
+
+  it("lists every case in which a Bypass approval round still asks", () => {
+    const start: number = section.indexOf("- **Bypass approval**");
+    const end: number = section.indexOf("A **safe** change", start);
+
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+
+    const bypass: string = section.slice(start, end);
+
+    for (const askCase of [
+      "the hourly circuit breaker (three unattended fixes per cluster per hour) has tripped, or cannot be checked;",
+      "another unattended OneUptime AI round is still changing, or still verifying a fix on, the same cluster",
+      "it is the follow-up round after a fix whose rollback did not complete.",
+    ]) {
+      expect({ askCase, listed: bypass.includes(askCase) }).toEqual({
+        askCase,
+        listed: true,
+      });
+    }
+
+    // The previous copy's absolute claims.
+    expect(bypass).not.toContain("nobody is asked");
+    expect(bypass).not.toContain(
+      "The only exception is the hourly circuit breaker",
+    );
+  });
+
+  it("leaves the ask-for-approval description as it was", () => {
+    // Negative control for the two mode rewrites above.
+    const requireApproval: string | undefined = section
+      .split("\n")
+      .find((line: string) => {
+        return line.startsWith("- **Ask for approval**");
+      });
+
+    expect(requireApproval).toContain(
+      "a human approves it with one click, and OneUptime runs exactly those commands",
     );
   });
 
@@ -389,7 +443,14 @@ describe("the AI SRE page's cluster-access section", () => {
     for (const denied of [
       "`set serviceaccount`",
       "`set subject`",
-      "`create job --image`",
+      /*
+       * `create job --image` became one of three: every create subcommand
+       * that makes a pod template is refused with an image, and a patch
+       * body must be JSON.
+       */
+      "`create deployment`, `create cronjob` or `create job` with `--image` (`create job --from=cronjob/…` stays a riskier change)",
+      "a `patch` body that is not JSON",
+      "any write — `patch`, `label`, `annotate`, `set` — to RBAC objects, CustomResourceDefinitions, APIServices, admission webhook configurations or admission policies",
       "`certificate approve`",
       "`create clusterrolebinding`",
       "`--kuberc`",

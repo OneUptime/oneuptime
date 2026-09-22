@@ -1,0 +1,13 @@
+# A release whose stored values already list write namespaces, the way
+#   --set aiAccess.enabled=true --set aiAccess.remediation.enabled=true \
+#   --set "aiAccess.remediation.namespaces={web}"
+# leaves them. `helm upgrade --reuse-values` feeds these back on every later
+# upgrade, so leaving the namespaces flag out keeps [web]; only an explicit
+# `--set aiAccess.remediation.namespaces=null` (or `--set-json ...=[]`) goes
+# back to the cluster-wide binding. tests/ai-runner_test.yaml renders both.
+aiAccess:
+  enabled: true
+  remediation:
+    enabled: true
+    namespaces:
+      - web

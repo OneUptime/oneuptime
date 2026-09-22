@@ -12,7 +12,15 @@
 #       schema rejects aiAccess.*), then the release's own name and namespace;
 #   (d) say what write access amounts to and where it is bound, and never
 #       call RBAC an outer bound: patch on workloads and pods is as good as
-#       running any image as any ServiceAccount in that namespace.
+#       running any image as any ServiceAccount in that namespace. Nor may
+#       they claim the policy refuses every command that does that: `set
+#       image` runs a new image as the workload's own ServiceAccount and is
+#       a riskier change a human approves (or that Bypass approval runs);
+#   (e) say that every listed namespace must already exist (a missing one
+#       fails every upgrade), that a drain or a taint always waits for a
+#       human, and that nodeOperations=false reaches the Runner too;
+#   (f) keep the settings an operator picked on the AI page before the
+#       install, and point at the Runner's log for a refused registration.
 #
 # helm-unittest only hands raw text to the regex asserts for NOTES.txt (for a
 # manifest template they see nil), which is why these live in their own suite
@@ -88,6 +96,13 @@ tests:
           pattern: "a cluster that was already registered keeps the AI remediation mode chosen on its AI page"
       - notMatchRegexRaw:
           pattern: "ask for approval by default"
+      # Settings an operator picked before installing the chart survive the
+      # first registration (the Runner is bound, nothing is flipped).
+      - matchRegexRaw:
+          pattern: "unless AI settings were already picked on its AI page before the install, which are kept as chosen"
+      # A refused registration explains itself in the Runner's log.
+      - matchRegexRaw:
+          pattern: "A refused\nregistration says whether it clears on its own or what to change \\(an\ningestion key with a Pinned Service Name cannot register the Runner\\)"
 
   - it: NOTES say what cluster-wide write access amounts to and what holds the line in the system namespaces
     templates:
@@ -110,6 +125,21 @@ tests:
       # RBAC is not an outer bound on code execution or Secret access.
       - notMatchRegexRaw:
           pattern: "outer bound"
+      # The policy refuses SOME ways to run another image, not all of them:
+      # `set image` is a riskier change that Bypass approval or an allowlist
+      # entry runs unattended. The old copy claimed the list was complete.
+      - notMatchRegexRaw:
+          pattern: "refuses the commands that would do that"
+      - matchRegexRaw:
+          pattern: "It still allows changing an image \\(set image, or a patch of an\nimage field\\) as a riskier change: the new image runs as the workload's own\nServiceAccount, with its Secrets, and a human approves it unless the cluster\nbypasses approvals or its allowlist names the command."
+      - matchRegexRaw:
+          pattern: "create deployment/cronjob/job --image, patch bodies that are\nnot JSON"
+      # The cluster-wide branch suggests listing namespaces; they must exist.
+      - matchRegexRaw:
+          pattern: "\\(every listed namespace must already exist\\):\n  --set \"aiAccess.remediation.namespaces=\\{web,api\\}\""
+      # A drain evicts pods everywhere, so it never runs unattended.
+      - matchRegexRaw:
+          pattern: "A drain\nevicts pods in every namespace, kube-system and oneuptime included, so a drain\nor a taint always waits for a human, in every mode"
 
   - it: NOTES name the namespaces write access is bound in when they are listed
     templates:
@@ -129,8 +159,15 @@ tests:
           pattern: "Write access is bound only in: prod, web \\(aiAccess.remediation.namespaces\\)."
       - notMatchRegexRaw:
           pattern: "bound cluster-wide"
+      # A RoleBinding in a namespace that does not exist fails the upgrade;
+      # say so, and how to go back to cluster-wide.
       - matchRegexRaw:
-          pattern: "Node operations \\(cordon, uncordon, taint, drain\\) are off."
+          pattern: "Each listed namespace must already exist: the chart creates a RoleBinding in\neach and never creates a namespace, so a missing one fails every install or\nupgrade with 'namespaces \"<name>\" not found'."
+      - matchRegexRaw:
+          pattern: "Take a namespace off the list\nbefore you delete it; --set aiAccess.remediation.namespaces=null goes back to\ncluster-wide."
+      # The Runner refuses node operations too, not only RBAC.
+      - matchRegexRaw:
+          pattern: "Node operations \\(cordon, uncordon, taint, drain\\) are off: the chart grants no\nnode RBAC, and the Runner refuses them before it runs kubectl."
 
   # The same two upgrades on a release whose stored values predate aiAccess:
   # `.Values.aiAccess` holds only what --set passed, and NOTES must still

@@ -381,28 +381,36 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
   --set aiAccess.remediation.enabled=true
 ```
 
-and, to grant it only in the namespaces AI may fix (recommended), add `--set "aiAccess.remediation.namespaces={web,api}"`.
+and, to grant it only in the namespaces AI may fix (recommended), add `--set "aiAccess.remediation.namespaces={web,api}"`. Every namespace you list must already exist: the chart creates one RoleBinding in each and never creates a namespace, so a missing one fails the whole upgrade — the collector's too — with `namespaces "api" not found`. Create it first, or take it off the list, and take a namespace off the list before you delete it. With `--reuse-values`, leaving the flag out keeps the stored list; `--set aiAccess.remediation.namespaces=null` (or `--set-json 'aiAccess.remediation.namespaces=[]'`) goes back to cluster-wide — not `={}`, which Helm reads as one empty name.
 
-If this is the cluster's **first** registration with write access, it starts in **ask for approval**: OneUptime AI composes the exact `kubectl` plan and a human approves it with one click on the incident. If the cluster was **already registered** — read-only first, writes now — it keeps whatever AI remediation mode its AI page has (**Off** unless you changed it): the server never flips a switch an operator owns, so open the cluster's AI page after the upgrade and pick **ask for approval**, **automatic** (safe changes run on their own; a riskier change is proposed for one-click approval) or **bypass approval** (every change the policy allows runs on its own) yourself. Whatever the mode, a write in kube-system, kube-public or kube-node-lease always needs a human, and the Runner never changes anything in its own namespace. See [AI SRE — Cluster access](/docs/ai/ai-sre) for what each mode may run, what the command policy refuses outright, and who may change the mode.
+If this is the cluster's **first** registration with write access, it starts in **ask for approval**: OneUptime AI composes the exact `kubectl` plan and a human approves it with one click on the incident. If someone already picked AI settings on the cluster's AI page before the install, the Runner is bound and every setting is kept exactly as chosen. If the cluster was **already registered** — read-only first, writes now — it keeps whatever AI remediation mode its AI page has (**Off** unless you changed it): the server never flips a switch an operator owns, so open the cluster's AI page after the upgrade and pick the mode yourself:
 
-**What the write access amounts to.** Patch/update on workloads, pods and CronJobs, and create on Jobs, in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets — a pod template can name any image, ServiceAccount and Secret volume. So the chart's RBAC bounds *where* the Runner may write, not what a write may do: the command policy refuses pod-template security patches, `set serviceaccount` and `create job --image`. With `aiAccess.remediation.namespaces` empty the write role is bound cluster-wide, which RBAC cannot keep out of kube-system, kube-public, kube-node-lease or the agent's own namespace; there the policy and the Runner hold the line. List namespaces and the chart binds it in those alone, and the Runner refuses a write anywhere else.
+- **ask for approval** — a human approves every plan with one click;
+- **automatic** — safe changes run on their own; a riskier change never does. When the round could only find riskier fixes, it ends by proposing exactly those for one-click approval; when it also ran a safe fix, the riskier one is proposed only if verification shows the safe fix did not recover the signal (the follow-up round, which asks);
+- **bypass approval** — AI does not ask: every change the policy allows runs on its own, follow-up rounds included, except that a round asks when the hourly circuit breaker trips, when another unattended OneUptime AI round is still changing or verifying the same cluster, or when it follows a fix whose rollback did not complete.
+
+Whatever the mode, a write in kube-system, kube-public or kube-node-lease always needs a human, and so do a `drain` and a `taint` (a drain evicts pods in every namespace, the agent's own included); and the Runner never changes anything in its own namespace. See [AI SRE — Cluster access](/docs/ai/ai-sre) for what each mode may run, what the command policy refuses outright, and who may change the mode.
+
+**What the write access amounts to.** Patch/update on workloads, pods and CronJobs, and create on Jobs, in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets — a pod template can name any image, ServiceAccount and Secret volume. So the chart's RBAC bounds *where* the Runner may write, not what a write may do: the command policy refuses pod-template security patches, `set serviceaccount`, `create … --image` and patch bodies that are not JSON. It does not refuse `set image`, or a patch of an image field: that is a riskier change — the new image runs as the workload's own ServiceAccount, with its Secrets — which a human approves unless the cluster bypasses approvals or its allowlist names the command. With `aiAccess.remediation.namespaces` empty the write role is bound cluster-wide, which RBAC cannot keep out of kube-system, kube-public, kube-node-lease or the agent's own namespace; there the policy and the Runner hold the line. List namespaces and the chart binds it in those alone, and the Runner refuses a write anywhere else.
 
 | Value | Default | What it does |
 | --- | --- | --- |
 | `aiAccess.enabled` | `false` | Deploy the in-cluster Runner with read-only RBAC (cluster-wide) and register it to this cluster. |
 | `aiAccess.remediation.enabled` | `false` | Also grant the write verbs OneUptime AI's fixes use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets (and their scale subresource), Jobs, CronJobs, Pods and HPAs; create on Jobs and HPAs; delete on Pods and Jobs only. It never grants Secrets, `exec`, `attach`, `port-forward`, CRDs or RBAC writes, so a change to any other kind — deleting a Deployment, labelling a Service or ConfigMap — fails with `Forbidden` even when approved. |
-| `aiAccess.remediation.namespaces` | `[]` | Bind the write role only in these namespaces, one RoleBinding each; the Runner refuses writes elsewhere. Empty binds it cluster-wide. The agent's own namespace cannot be listed. |
-| `aiAccess.remediation.nodeOperations` | `true` | With `remediation.enabled`, also grant cordon/uncordon/taint (patch on nodes) and drain (pod evictions), cluster-wide. Set `false` to keep fixes off nodes. |
+| `aiAccess.remediation.namespaces` | `[]` | Bind the write role only in these namespaces, one RoleBinding each; the Runner refuses writes elsewhere. Each must already exist, or the upgrade fails. Empty binds it cluster-wide; `=null` resets a stored list. The agent's own namespace cannot be listed. |
+| `aiAccess.remediation.nodeOperations` | `true` | With `remediation.enabled`, also grant cordon/uncordon/taint (patch on nodes) and drain (pod evictions), cluster-wide. Set `false` to keep fixes off nodes: no node RBAC, and the Runner refuses node operations (`ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false`). |
 | `aiAccess.image.repository` / `aiAccess.image.tag` | `oneuptime/runner` / `release` | The Runner image. `release` moves with every OneUptime release; pin a version to hold it. |
 | `aiAccess.image.pullPolicy` | `Always` for `release`, `IfNotPresent` for a pinned tag | Leave empty for that default, so a node's cached Runner never outlives an upgrade. |
 | `aiAccess.resources` | `50m` / `128Mi` requests, `500m` / `512Mi` limits | The Runner idles between commands. |
-| `aiAccess.extraEnv` | `[]` | Extra `EnvVar` objects for the Runner container — e.g. `HTTPS_PROXY` / `NO_PROXY` behind an egress proxy. Names the chart sets itself (such as `ONEUPTIME_KUBECTL_ALLOW_WRITES`, `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` or `ONEUPTIME_KUBERNETES_CLUSTER_NAME`) fail the render instead of silently replacing the chart's value. |
+| `aiAccess.extraEnv` | `[]` | Extra `EnvVar` objects for the Runner container — e.g. `HTTPS_PROXY` / `NO_PROXY` behind an egress proxy. Names the chart sets itself (such as `ONEUPTIME_KUBECTL_ALLOW_WRITES`, `ONEUPTIME_KUBECTL_WRITE_NAMESPACES`, `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS` or `ONEUPTIME_KUBERNETES_CLUSTER_NAME`) fail the render instead of silently replacing the chart's value. |
 
 If the AI page still says the Runner is not connected after a couple of minutes, read its logs:
 
 ```bash
 kubectl logs -n oneuptime-agent -l component=ai-runner --tail=100
 ```
+
+When the server refuses a registration, the log says whether the refusal clears on its own or needs you. A previous Runner pod that still heartbeats clears on its own: the Runner retries after the wait the server names. A Runner row that holds more than an in-cluster Runner's defaults (credentials, secrets, **Runs Runbooks** or **Runs AI Code Fixes**, another cluster's binding), or a Runner of the same name that belongs to another cluster, needs you, and the log names what to change. The in-cluster Runner itself cannot be renamed or given the **Runs Runbooks** or **Runs AI Code Fixes** capability, and an ingestion key with a **Pinned Service Name** cannot register it — give the agent a key without one.
 
 ## Upgrading the Agent
 
@@ -414,6 +422,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \
 ```
 
 `--reuse-values` keeps your existing configuration (preset, cluster name, filters); pass any new `--set` overrides on top of it. It never picks up defaults a newer chart added, though — on Helm 3.14+ use `--reset-then-reuse-values` instead, which keeps your overrides and fills in the new defaults for everything else.
+
+If the upgrade fails with `namespaces "<name>" not found`, `aiAccess.remediation.namespaces` lists a namespace that does not exist (or no longer does): the chart puts a RoleBinding in each listed namespace and never creates one. Create the namespace, or upgrade with the list minus that namespace (`--set aiAccess.remediation.namespaces=null` goes back to the cluster-wide binding).
 
 ## Uninstalling the Agent
 

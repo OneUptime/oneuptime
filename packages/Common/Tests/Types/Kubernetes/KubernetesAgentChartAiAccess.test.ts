@@ -1,4 +1,5 @@
 import {
+  KUBECTL_ALLOW_NODE_OPERATIONS_ENV,
   KUBECTL_ALLOW_WRITES_ENV,
   KUBECTL_WRITE_NAMESPACES_ENV,
   KUBERNETES_AGENT_RUNNER_NAME_PREFIX,
@@ -17,9 +18,13 @@ import path from "path";
  * operator-facing copy keeps up with its own template:
  *
  * - the chart sets ONEUPTIME_KUBECTL_ALLOW_WRITES,
- *   ONEUPTIME_KUBECTL_WRITE_NAMESPACES and ONEUPTIME_RUNNER_POD_NAMESPACE
- *   under exactly the names Common declares (the Runner reads them through
- *   the same constants), the pod namespace from the downward API;
+ *   ONEUPTIME_KUBECTL_WRITE_NAMESPACES, ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+ *   and ONEUPTIME_RUNNER_POD_NAMESPACE under exactly the names Common
+ *   declares (the Runner reads them through the same constants), the pod
+ *   namespace from the downward API, and the node-operations switch from
+ *   the same two values that decide whether the node role is rendered — so
+ *   aiAccess.remediation.nodeOperations=false reaches the Runner, not only
+ *   RBAC;
  * - every variable the chart sets itself is one aiAccess.extraEnv may not
  *   set: the kubelet keeps the LAST definition of a duplicate name, so an
  *   unreserved one could be silently replaced (tests/ai-runner_test.yaml
@@ -61,6 +66,10 @@ const TELEMETRY_DOC_PATH: string = path.join(
   "telemetry",
   "kubernetes-agent.md",
 );
+
+// The node-operations role renders only inside both switches.
+const NODE_ROLE_GATE_PATTERN: RegExp =
+  /\{\{- if \$allowWrites \}\}[\s\S]*\{\{- if \$nodeOperations \}\}[\s\S]*-ai-runner-node-operations/;
 
 function read(filePath: string): string {
   return fs.readFileSync(filePath, "utf8");
@@ -120,10 +129,25 @@ describe("the kubernetes-agent chart's Runner environment", () => {
     expect(reservedEnvNames.length).toBeGreaterThanOrEqual(envNames.length);
   });
 
-  it("sets the write switch, the write namespaces and the pod namespace under the names the Runner reads", () => {
+  it("sets the write switch, the write namespaces, the node-operations switch and the pod namespace under the names the Runner reads", () => {
     expect(envNames).toContain(KUBECTL_ALLOW_WRITES_ENV);
     expect(envNames).toContain(KUBECTL_WRITE_NAMESPACES_ENV);
+    expect(envNames).toContain(KUBECTL_ALLOW_NODE_OPERATIONS_ENV);
     expect(envNames).toContain(RUNNER_POD_NAMESPACE_ENV);
+  });
+
+  it("tells the Runner node operations are on exactly when the node role is rendered", () => {
+    /*
+     * The node-operations ClusterRole renders inside `if $allowWrites` and
+     * `if $nodeOperations`, so the switch must be both: nodeOperations=false
+     * would otherwise leave an Automatic cluster auto-running a cordon that
+     * the API server refuses Forbidden. tests/ai-runner_test.yaml renders
+     * the four combinations.
+     */
+    expect(template).toContain(
+      `- name: ${KUBECTL_ALLOW_NODE_OPERATIONS_ENV}\n              value: {{ and $allowWrites $nodeOperations | quote }}`,
+    );
+    expect(template).toMatch(NODE_ROLE_GATE_PATTERN);
   });
 
   it("takes the pod namespace from the downward API, not from a value an operator could get wrong", () => {
@@ -144,6 +168,13 @@ describe("the kubernetes-agent chart's Runner environment", () => {
     });
 
     expect(unreserved).toEqual([]);
+  });
+
+  it("reserves the node-operations switch with a message naming the values to change", () => {
+    expect(reservedEnvNames).toContain(KUBECTL_ALLOW_NODE_OPERATIONS_ENV);
+    expect(template).toContain(
+      `set $reservedEnv "${KUBECTL_ALLOW_NODE_OPERATIONS_ENV}" "the chart sets it from aiAccess.remediation.nodeOperations`,
+    );
   });
 
   it("also reserves the dashboard-issued Runner identity, which would take the Runner out of kubernetes-agent mode", () => {

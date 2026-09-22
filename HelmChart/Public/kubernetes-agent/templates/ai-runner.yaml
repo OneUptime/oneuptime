@@ -73,6 +73,7 @@ says otherwise. Refuse the render instead, and name the value to change.
 {{- $_ := set $reservedEnv "ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION" "the chart sets it to its own version" -}}
 {{- $_ := set $reservedEnv "ONEUPTIME_KUBECTL_ALLOW_WRITES" "the chart sets it from aiAccess.remediation.enabled so it always matches the RBAC it grants; change that value instead" -}}
 {{- $_ := set $reservedEnv "ONEUPTIME_KUBECTL_WRITE_NAMESPACES" "the chart sets it from aiAccess.remediation.namespaces so it always matches the RoleBindings it renders; change that value instead" -}}
+{{- $_ := set $reservedEnv "ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS" "the chart sets it from aiAccess.remediation.nodeOperations (false whenever aiAccess.remediation.enabled is off) so it always matches the node role it renders; change those values instead" -}}
 {{- $_ := set $reservedEnv "ONEUPTIME_RUNNER_POD_NAMESPACE" "the chart sets it to the Runner pod's own namespace through the downward API" -}}
 {{- $_ := set $reservedEnv "ONEUPTIME_RUNNER_ENABLE_RUNBOOKS" "this Runner only runs kubectl for OneUptime AI, so the chart always turns runbooks off" -}}
 {{- $_ := set $reservedEnv "ONEUPTIME_RUNNER_ENABLE_CODE_FIXES" "this Runner only runs kubectl for OneUptime AI, so the chart always turns code fixes off" -}}
@@ -102,9 +103,15 @@ verb. That no rule names pods/exec or secrets does not change it. So RBAC
 here bounds WHERE the Runner may write (aiAccess.remediation.namespaces; node
 operations only with aiAccess.remediation.nodeOperations), not what a write
 may do. The command policy in OneUptime, re-checked by the Runner before it
-spawns kubectl, is what refuses pod-template security patches,
-`set serviceaccount` and `create job --image`, and never runs a write in
-kube-system, kube-public or kube-node-lease without a human; the Runner never
+spawns kubectl, refuses changing which ServiceAccount, security settings,
+volumes, command or Secret wiring a pod runs with (pod-template security
+patches, `set serviceaccount`, `create deployment|cronjob|job --image`, and
+any patch body that is not JSON). It does NOT refuse changing an image: `set
+image`, or a patch of an image field, is a riskier change that runs the new
+image as the workload's own ServiceAccount with its Secrets, and a human
+approves it unless the cluster bypasses approvals or its allowlist names the
+command. The policy never runs a write in kube-system, kube-public or
+kube-node-lease, a drain or a taint without a human, and the Runner never
 writes its own namespace. RBAC cannot exclude namespaces from a
 ClusterRoleBinding, so on the cluster-wide default those lines are held by
 the policy and the Runner, not by RBAC.
@@ -272,14 +279,17 @@ rules:
     verbs: ["patch", "update"]
   # kubectl create job --from=cronjob/<name> (a human-approved, riskier
   # command; it GETs the CronJob through the read-only role). The policy
-  # refuses `create job --image`, which would run an arbitrary image.
+  # refuses `create job --image` (and `create deployment` / `create cronjob`
+  # with `--image`, which RBAC does not grant either): each would run an
+  # arbitrary image.
   - apiGroups: ["batch"]
     resources:
       - jobs
     verbs: ["create"]
-  # Deleting a NAMED pod or job so its controller recreates it. The policy
-  # never allows deleting namespaces, volumes, nodes, secrets or CRDs, and
-  # RBAC does not grant it either.
+  # Deleting a NAMED pod so its controller recreates it (a safe change), or
+  # a named job (a riskier change a human approves). The policy never allows
+  # deleting namespaces, volumes, nodes, secrets or CRDs, and RBAC does not
+  # grant it either.
   - apiGroups: [""]
     resources:
       - pods
@@ -298,6 +308,14 @@ rules:
     resources:
       - horizontalpodautoscalers
     verbs: ["patch", "update", "create"]
+{{- /*
+Namespaces listed: one RoleBinding in each. The chart never creates a
+namespace (and uses no `lookup`, so `helm template` renders the same thing),
+so every listed namespace must already exist: the API server refuses a
+RoleBinding in a missing one with `namespaces "<ns>" not found`, and that
+fails the whole install or upgrade, collector included. The values, README,
+NOTES and docs tell operators to create it first or take it off the list.
+*/}}
 {{- if $writeNamespaces }}
 {{- range $namespace := $writeNamespaces }}
 ---
@@ -348,9 +366,14 @@ subjects:
 ---
 {{- /*
 Node operations: cordon, uncordon, taint and drain. Nodes are cluster-scoped
-and draining one evicts pods in every namespace, so this cannot be scoped to
-aiAccess.remediation.namespaces; it is its own role so it can be switched off
-with aiAccess.remediation.nodeOperations=false.
+and draining one evicts pods in every namespace (kube-system and this
+release's own included), so this cannot be scoped to
+aiAccess.remediation.namespaces. That is also why the policy never runs a
+drain or a taint without a human, in any mode, Bypass approval included. It
+is its own role so it can be switched off with
+aiAccess.remediation.nodeOperations=false, which also tells the Runner
+(ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS below) to refuse node operations
+before it spawns kubectl.
 */}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -367,7 +390,8 @@ rules:
     resources:
       - nodes
     verbs: ["patch", "update"]
-  # kubectl drain evicts pods (a riskier command a human approves).
+  # kubectl drain evicts pods: a command a human approves in every mode,
+  # Bypass approval included.
   - apiGroups: [""]
     resources:
       - pods/eviction
@@ -459,15 +483,25 @@ spec:
             - name: ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION
               value: {{ .Chart.Version | quote }}
             # Matches the RBAC above. The Runner refuses any write locally when
-            # this is false, so RBAC and policy can never disagree silently.
+            # this is false, before kubectl runs, with a reason that names
+            # aiAccess.remediation.enabled rather than the API server's
+            # Forbidden.
             - name: ONEUPTIME_KUBECTL_ALLOW_WRITES
               value: {{ $allowWrites | quote }}
             # The namespaces the write role is bound in (comma-separated;
             # empty = cluster-wide). The Runner refuses a write outside them
-            # before it spawns kubectl, instead of letting the API server say
-            # Forbidden after a human approved it.
+            # before it spawns kubectl: still after a human approved it, but
+            # with a reason that names this value rather than the API
+            # server's Forbidden.
             - name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
               value: {{ join "," $writeNamespaces | quote }}
+            # Matches the node-operations role above: "true" only when it is
+            # rendered (remediation on AND nodeOperations on), "false"
+            # otherwise. With "false" the Runner refuses cordon, uncordon,
+            # drain, taint and label/annotate/patch on a node before it
+            # spawns kubectl, and reports it in its posture.
+            - name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+              value: {{ and $allowWrites $nodeOperations | quote }}
             # The Runner's own namespace, from the downward API. The Runner
             # never changes anything in it: a fix there could scale the agent,
             # or the Runner itself, away.

@@ -77,7 +77,7 @@ The agent is now collecting:
 {{- end }}
 {{- end }}
 {{- if $aiAccess.enabled }}
-  - OneUptime AI access: an in-cluster Runner that lets OneUptime AI run {{ if $aiRemediation.enabled }}kubectl to investigate AND fix incidents (a cluster registering for the first time starts in "ask for approval"; a cluster that was already registered keeps the AI remediation mode chosen on its AI page — pick ask for approval, automatic or bypass approval there){{ else }}read-only kubectl while investigating incidents and alerts (add --set aiAccess.remediation.enabled=true to let it fix them too){{ end }}
+  - OneUptime AI access: an in-cluster Runner that lets OneUptime AI run {{ if $aiRemediation.enabled }}kubectl to investigate AND fix incidents (a cluster registering for the first time starts in "ask for approval", unless AI settings were already picked on its AI page before the install, which are kept as chosen; a cluster that was already registered keeps the AI remediation mode chosen on its AI page — pick ask for approval, automatic or bypass approval there){{ else }}read-only kubectl while investigating incidents and alerts (add --set aiAccess.remediation.enabled=true to let it fix them too){{ end }}
 {{- end }}
 {{- if .Values.preset }}
 
@@ -104,29 +104,46 @@ Your cluster should appear in OneUptime within a few minutes at:
 
 OneUptime AI access registers itself with the same key — within a minute the
 cluster's AI page (Kubernetes → <cluster> → AI) shows the Runner as Connected
-and lists what AI may do. If it does not, check the Runner's logs:
+and lists what AI may do. If it does not, check the Runner's logs. A refused
+registration says whether it clears on its own or what to change (an
+ingestion key with a Pinned Service Name cannot register the Runner):
   kubectl logs -n {{ .Release.Namespace }} -l component=ai-runner --tail=100
 {{- if $aiRemediation.enabled }}
 
 What the Runner's write access amounts to: patch on workloads and pods (and
 create on jobs) in a namespace is as good as running any image as any
 ServiceAccount there and reading its Secrets. OneUptime's command policy
-refuses the commands that would do that (pod-template security patches, set
-serviceaccount, create job --image); RBAC only decides where the rest may land.
+refuses changing which ServiceAccount, security settings, volumes, command or
+Secret wiring a pod runs with (pod-template security patches, set
+serviceaccount, create deployment/cronjob/job --image, patch bodies that are
+not JSON). It still allows changing an image (set image, or a patch of an
+image field) as a riskier change: the new image runs as the workload's own
+ServiceAccount, with its Secrets, and a human approves it unless the cluster
+bypasses approvals or its allowlist names the command. RBAC only decides
+where writes may land.
 {{- if $aiWriteNamespaces }}
 Write access is bound only in: {{ join ", " $aiWriteNamespaces }} (aiAccess.remediation.namespaces).
+Each listed namespace must already exist: the chart creates a RoleBinding in
+each and never creates a namespace, so a missing one fails every install or
+upgrade with 'namespaces "<name>" not found'. Take a namespace off the list
+before you delete it; --set aiAccess.remediation.namespaces=null goes back to
+cluster-wide.
 {{- else }}
 Write access is bound cluster-wide. RBAC cannot keep it out of kube-system,
 kube-public, kube-node-lease or {{ .Release.Namespace }}: there OneUptime's policy (never
 without a human in the three system namespaces) and the Runner (never its own
-namespace) hold the line. To bind it only where AI may fix things, upgrade with:
+namespace) hold the line. To bind it only where AI may fix things, upgrade
+with (every listed namespace must already exist):
   --set "aiAccess.remediation.namespaces={web,api}"
 {{- end }}
 {{- if $aiNodeOperations }}
-Node operations (cordon, uncordon, taint, drain) are on, cluster-wide; turn
-them off with --set aiAccess.remediation.nodeOperations=false.
+Node operations (cordon, uncordon, taint, drain) are on, cluster-wide. A drain
+evicts pods in every namespace, kube-system and {{ .Release.Namespace }} included, so a drain
+or a taint always waits for a human, in every mode; turn node operations off
+with --set aiAccess.remediation.nodeOperations=false.
 {{- else }}
-Node operations (cordon, uncordon, taint, drain) are off.
+Node operations (cordon, uncordon, taint, drain) are off: the chart grants no
+node RBAC, and the Runner refuses them before it runs kubectl.
 {{- end }}
 {{- end }}
 {{- else }}
