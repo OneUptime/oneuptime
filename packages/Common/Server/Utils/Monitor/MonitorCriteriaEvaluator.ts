@@ -128,6 +128,15 @@ export interface TelemetryExplorerDeepLink {
   dropped: Array<string>;
 }
 
+/**
+ * Which affected-resources rows breached the matched criteria, and which
+ * end of the value range is the worst.
+ */
+interface AffectedResourceBreachPredicate {
+  matches: (value: number) => boolean;
+  worstIsLowest: boolean;
+}
+
 export default class MonitorCriteriaEvaluator {
   public static async processMonitorStep(input: {
     dataToProcess: DataToProcess;
@@ -2159,6 +2168,7 @@ ${contextBlock}
     dataToProcess: DataToProcess;
     monitorStep: MonitorStep;
     monitor: Monitor;
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
   }): Promise<string | null> {
     const metricResponse: MetricMonitorResponse =
       input.dataToProcess as MetricMonitorResponse;
@@ -2191,18 +2201,40 @@ ${contextBlock}
 
     // Affected resources
     if (breakdown.affectedResources && breakdown.affectedResources.length > 0) {
-      // Sort by metric value descending (worst first) and filter out zero-value resources
-      const sortedResources: Array<KubernetesAffectedResource> = [
-        ...breakdown.affectedResources,
-      ]
-        .filter((r: KubernetesAffectedResource) => {
-          return r.metricValue > 0;
-        })
-        .sort(
-          (a: KubernetesAffectedResource, b: KubernetesAffectedResource) => {
-            return b.metricValue - a.metricValue;
-          },
-        );
+      /*
+       * Keep the rows that satisfy the criteria that just matched, worst
+       * first — NOT simply the non-zero rows. k8s-node-not-ready fires on
+       * `k8s.node.condition_ready = 0`, so the zero rows are the NotReady
+       * nodes; the old hardcoded `> 0` dropped exactly those and named a
+       * healthy node in the analysis below.
+       */
+      const breach: AffectedResourceBreachPredicate =
+        MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
+          criteriaInstance: input.criteriaInstance,
+          floorEqualityFiresOnFall: true,
+        });
+
+      const sortedResources: Array<KubernetesAffectedResource> =
+        breakdown.affectedResources
+          .map((r: KubernetesAffectedResource) => {
+            /*
+             * A fall criteria breached on the resource's lowest sample
+             * in the window, not its highest.
+             */
+            return breach.worstIsLowest
+              ? { ...r, metricValue: r.lowestMetricValue ?? r.metricValue }
+              : r;
+          })
+          .filter((r: KubernetesAffectedResource) => {
+            return breach.matches(r.metricValue);
+          })
+          .sort(
+            (a: KubernetesAffectedResource, b: KubernetesAffectedResource) => {
+              return breach.worstIsLowest
+                ? a.metricValue - b.metricValue
+                : b.metricValue - a.metricValue;
+            },
+          );
 
       if (sortedResources.length === 0) {
         return sections.join("\n");
@@ -3260,37 +3292,61 @@ ${contextBlock}
   }
 
   /*
-   * Which rows of the Ceph affected-resources list actually BREACHED.
+   * Which rows of an affected-resources list actually BREACHED.
    *
    * The blanket `metricValue > 0` below is right for every count- or
    * level-style criteria ("> 0 active health checks", "> 85 % used"), but
-   * it is exactly backwards for the availability signals: the OSD Down /
-   * OSD Out / Quorum Degraded criteria fire on `< 1` over ceph_osd_up /
-   * ceph_osd_in / ceph_mon_quorum_status, so the ZERO rows are the down
-   * daemons. Dropping them rendered a list of the HEALTHY daemons under
-   * an incident that tells the reader to "check the root cause for the
-   * affected ceph_daemon label".
+   * it is exactly backwards for the availability signals: the Ceph OSD
+   * Down / OSD Out / Quorum Degraded criteria fire on `< 1` over
+   * ceph_osd_up / ceph_osd_in / ceph_mon_quorum_status, so the ZERO rows
+   * are the down daemons. Dropping them rendered a list of the HEALTHY
+   * daemons under an incident that tells the reader to "check the root
+   * cause for the affected ceph_daemon label".
    *
    * Invert only for a criteria that fires when the metric FALLS.
    * Everything else — every `> 0` health check, PG count, latency and
-   * capacity ratio, and every `= 0` recovery criteria — keeps the
-   * existing `> 0`, worst-highest-first list byte for byte.
+   * capacity ratio, and (by default) every `= 0` recovery criteria —
+   * keeps the existing `> 0`, worst-highest-first list byte for byte.
+   *
+   * `floorEqualityFiresOnFall` additionally counts a FIRING `= 0` (or
+   * below) as a fall. Kubernetes needs it: k8s-node-not-ready and
+   * k8s-etcd-no-leader fire on `= 0` over k8s.node.condition_ready /
+   * etcd_server_has_leader, and zero is the floor of those metrics, so
+   * the only way to reach it is down. It is gated on the criteria opening
+   * an incident or alert because the same `= 0` is also how the restart,
+   * failed-pod and unavailable-replica templates express RECOVERY, and
+   * that all-clear must not become a list of healthy zero rows. Ceph
+   * leaves it off: all of its `= 0` criteria are recoveries.
    */
-  private static getCephBreachPredicate(
-    criteriaInstance?: MonitorCriteriaInstance | undefined,
-  ): { matches: (value: number) => boolean; worstIsLowest: boolean } {
+  private static getAffectedResourceBreachPredicate(input: {
+    criteriaInstance?: MonitorCriteriaInstance | undefined;
+    floorEqualityFiresOnFall?: boolean | undefined;
+  }): AffectedResourceBreachPredicate {
     const metricFilters: Array<CriteriaFilter> = (
-      criteriaInstance?.data?.filters || []
+      input.criteriaInstance?.data?.filters || []
     ).filter((f: CriteriaFilter) => {
       return f.checkOn === CheckOn.MetricValue && typeof f.value === "number";
     });
 
+    const opensIncidentOrAlert: boolean =
+      input.criteriaInstance?.data?.createIncidents === true ||
+      input.criteriaInstance?.data?.createAlerts === true;
+
     const firesWhenMetricFalls: boolean =
       metricFilters.length > 0 &&
       metricFilters.every((f: CriteriaFilter) => {
-        return (
+        if (
           f.filterType === FilterType.LessThan ||
           f.filterType === FilterType.LessThanOrEqualTo
+        ) {
+          return true;
+        }
+
+        return (
+          input.floorEqualityFiresOnFall === true &&
+          opensIncidentOrAlert &&
+          f.filterType === FilterType.EqualTo &&
+          (f.value as number) <= 0
         );
       });
 
@@ -3307,6 +3363,10 @@ ${contextBlock}
       matches: (value: number): boolean => {
         return metricFilters.some((f: CriteriaFilter) => {
           const threshold: number = f.value as number;
+
+          if (f.filterType === FilterType.EqualTo) {
+            return value === threshold;
+          }
 
           return f.filterType === FilterType.LessThan
             ? value < threshold
@@ -3465,12 +3525,10 @@ ${contextBlock}
        * ceph_osd_in / ceph_mon_quorum_status the criteria is `< 1`, so
        * the zero rows are the whole point of the incident.
        */
-      const breach: {
-        matches: (value: number) => boolean;
-        worstIsLowest: boolean;
-      } = MonitorCriteriaEvaluator.getCephBreachPredicate(
-        input.criteriaInstance,
-      );
+      const breach: AffectedResourceBreachPredicate =
+        MonitorCriteriaEvaluator.getAffectedResourceBreachPredicate({
+          criteriaInstance: input.criteriaInstance,
+        });
 
       const sortedResources: Array<CephAffectedResource> = [
         ...breakdown.affectedResources,

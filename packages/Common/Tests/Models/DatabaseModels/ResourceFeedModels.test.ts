@@ -258,14 +258,6 @@ const FEED_MODELS: Array<FeedModelSpec> = [
       "ServiceLevelObjectiveArchived",
       "ServiceLevelObjectiveRestored",
     ],
-    /*
-     * SLOs have no owner rules and no label rules - the rules they do have
-     * (burn rate and monitor rules) post their own events - so these two would
-     * be enum members nothing can ever write. Enum values are stored verbatim
-     * and can never be removed once rows exist, so they are exempted here
-     * rather than added as dead values. The four owner events still apply.
-     */
-    exemptSharedEventTypes: ["OwnerRuleExecuted", "LabelRuleExecuted"],
   },
 ];
 

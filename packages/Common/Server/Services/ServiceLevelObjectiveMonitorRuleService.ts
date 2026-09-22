@@ -11,6 +11,11 @@ import Color from "../../Types/Color";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
+import MonitorType from "../../Types/Monitor/MonitorType";
+import {
+  getMonitorTypeCriteriaValidationError,
+  isMonitorTypeCriteriaValue,
+} from "../../Utils/Rules/MonitorTypeRuleCriteria";
 import { escapeMarkdownInline } from "../../Utils/Markdown/MarkdownEscape";
 import {
   getRuleCriteriaValidationError,
@@ -51,6 +56,7 @@ const RULE_SNAPSHOT_SELECT: Select<Model> = {
     _id: true,
     name: true,
   },
+  monitorType: true,
   monitorNamePattern: true,
   monitorDescriptionPattern: true,
   criteria: true,
@@ -92,6 +98,7 @@ export class Service extends DatabaseService<Model> {
 
     this.assertHasMatchCriteria({
       monitorLabelCount: (createBy.data.monitorLabels || []).length,
+      monitorType: createBy.data.monitorType,
       monitorNamePattern: createBy.data.monitorNamePattern,
       monitorDescriptionPattern: createBy.data.monitorDescriptionPattern,
       criteria: createBy.data.criteria,
@@ -188,6 +195,7 @@ export class Service extends DatabaseService<Model> {
 
     const touchesCriteria: boolean =
       updateBy.data.monitorLabels !== undefined ||
+      updateBy.data.monitorType !== undefined ||
       updateBy.data.monitorNamePattern !== undefined ||
       updateBy.data.monitorDescriptionPattern !== undefined ||
       updateBy.data.criteria !== undefined;
@@ -656,6 +664,7 @@ export class Service extends DatabaseService<Model> {
    */
   private assertHasMatchCriteria(data: {
     monitorLabelCount: number;
+    monitorType?: MonitorType | undefined;
     monitorNamePattern?: string | undefined;
     monitorDescriptionPattern?: string | undefined;
     criteria?: Model["criteria"];
@@ -673,6 +682,17 @@ export class Service extends DatabaseService<Model> {
         isValidRuleCriteria(data.criteria) &&
         data.criteria.filters.length > 0
       ) {
+        for (const filter of data.criteria.filters) {
+          if (filter.field === "monitorType") {
+            const typeError: string | null =
+              getMonitorTypeCriteriaValidationError(filter);
+
+            if (typeError) {
+              throw new BadDataException(typeError);
+            }
+          }
+        }
+
         return;
       }
 
@@ -682,12 +702,23 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (
+      data.monitorType !== undefined &&
+      data.monitorType !== null &&
+      !isMonitorTypeCriteriaValue(data.monitorType)
+    ) {
+      throw new BadDataException(
+        "Monitor type criteria require a valid monitor type.",
+      );
+    }
+
+    if (
       data.monitorLabelCount === 0 &&
+      !data.monitorType &&
       !data.monitorNamePattern &&
       !data.monitorDescriptionPattern
     ) {
       throw new BadDataException(
-        "An SLO monitor rule needs at least one match criterion: monitor labels, a monitor name pattern, or a monitor description pattern. Use .* as the name pattern to match every monitor in the project.",
+        "An SLO monitor rule needs at least one match criterion: monitor labels, a monitor type, a monitor name pattern, or a monitor description pattern. Use .* as the name pattern to match every monitor in the project.",
       );
     }
   }
@@ -744,6 +775,10 @@ export class Service extends DatabaseService<Model> {
           ? rule.monitorLabels || []
           : nextLabels || []
         ).length,
+        monitorType:
+          updateBy.data.monitorType === undefined
+            ? rule.monitorType
+            : (updateBy.data.monitorType as MonitorType | undefined),
         monitorNamePattern:
           updateBy.data.monitorNamePattern === undefined
             ? rule.monitorNamePattern

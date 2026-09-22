@@ -170,14 +170,49 @@ const ALL_TABLES: Array<string> = [
 ];
 
 describe("AddSloLabelAndOwnerRules1794100000000", () => {
-  test("is registered, last, under the name its class carries", () => {
+  test("is registered under the name its class carries", () => {
     const migration: AddSloLabelAndOwnerRules1794100000000 =
       new AddSloLabelAndOwnerRules1794100000000();
 
     expect(migration.name).toBe("AddSloLabelAndOwnerRules1794100000000");
-    expect(SchemaMigrations[SchemaMigrations.length - 1]).toBe(
-      AddSloLabelAndOwnerRules1794100000000,
+    expect(SchemaMigrations).toContain(AddSloLabelAndOwnerRules1794100000000);
+  });
+
+  /*
+   * Not "is registered last": the next migration to land falsifies that
+   * without going anywhere near these tables. What this migration must not do
+   * is jump the queue of those registered before it; the registry-wide guard
+   * on the newest entry lives in SchemaMigrationsOrdering.
+   */
+  test("its timestamp keeps it behind every migration registered before it", () => {
+    const timestampOf: (className: string) => number | null = (
+      className: string,
+    ): number | null => {
+      const match: RegExpMatchArray | null = className.match(/(\d{13})$/);
+      return match ? Number(match[1]) : null;
+    };
+
+    const names: Array<string> = (
+      SchemaMigrations as unknown as Array<{ name: string }>
+    ).map((registered: { name: string }): string => {
+      return registered.name;
+    });
+
+    const ownIndex: number = names.indexOf(
+      "AddSloLabelAndOwnerRules1794100000000",
     );
+
+    // indexOf -1 would make the slice below empty and this test vacuous.
+    expect(ownIndex).toBeGreaterThan(0);
+
+    const notBehind: Array<string> = names
+      .slice(0, ownIndex)
+      .filter((className: string): boolean => {
+        const timestamp: number | null = timestampOf(className);
+        return timestamp !== null && timestamp >= 1794100000000;
+      });
+
+    expect(notBehind).toEqual([]);
   });
 
   test("touches only the seven new tables", async () => {

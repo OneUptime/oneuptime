@@ -1,7 +1,9 @@
 import PageComponentProps from "../../PageComponentProps";
 import ResourceFeed from "../../../Components/ResourceFeed/ResourceFeed";
 import ObjectID from "Common/Types/ObjectID";
-import DockerSwarmClusterFeed from "Common/Models/DatabaseModels/DockerSwarmClusterFeed";
+import DockerSwarmClusterFeed, {
+  DockerSwarmClusterFeedEventType,
+} from "Common/Models/DatabaseModels/DockerSwarmClusterFeed";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -16,6 +18,7 @@ const DockerSwarmClusterFeedPage: FunctionComponent<
       resourceIdColumn="dockerSwarmClusterId"
       resourceId={modelId}
       eventTypeColumn="dockerSwarmClusterFeedEventType"
+      eventTypes={Object.values(DockerSwarmClusterFeedEventType)}
       title="Docker Swarm Cluster Feed"
       description="Everything that has happened to this Docker Swarm cluster - how and why it was created, who owns it, and every change since."
       noItemsMessage="No activity has been recorded for this Docker Swarm cluster yet."

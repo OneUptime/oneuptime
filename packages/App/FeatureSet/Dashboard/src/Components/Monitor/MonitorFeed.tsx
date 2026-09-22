@@ -9,16 +9,49 @@ import MonitorFeed, {
 } from "Common/Models/DatabaseModels/MonitorFeed";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedOptions, {
+  UseFeedOptionsResult,
+} from "Common/UI/Components/Feed/useFeedOptions";
+import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import {
+  getFeedEventTypeQuery,
+  getFeedNoItemsMessage,
+} from "Common/UI/Components/Feed/FeedOptions";
 
 export interface ComponentProps {
   monitorId: ObjectID;
 }
+
+/*
+ * One icon per event type, shared by the feed items and the event type
+ * checklist behind the Filter & Sort button, so the two always match.
+ */
+export const MONITOR_FEED_ICONS: Record<MonitorFeedEventType, IconProp> = {
+  [MonitorFeedEventType.MonitorCreated]: IconProp.AltGlobe,
+  [MonitorFeedEventType.MonitorStatusChanged]: IconProp.ArrowCircleRight,
+  [MonitorFeedEventType.MonitorUpdated]: IconProp.Edit,
+  [MonitorFeedEventType.OwnerNotificationSent]: IconProp.Bell,
+  [MonitorFeedEventType.SubscriberNotificationSent]: IconProp.Notification,
+  [MonitorFeedEventType.OwnerUserAdded]: IconProp.User,
+  [MonitorFeedEventType.OwnerTeamAdded]: IconProp.Team,
+  [MonitorFeedEventType.OwnerUserRemoved]: IconProp.Close,
+  [MonitorFeedEventType.OwnerTeamRemoved]: IconProp.Close,
+  [MonitorFeedEventType.OwnerRuleExecuted]: IconProp.Circle,
+  [MonitorFeedEventType.LabelRuleExecuted]: IconProp.Circle,
+};
+
+export const getMonitorFeedEventIcon: (eventType: string) => IconProp = (
+  eventType: string,
+): IconProp => {
+  return (
+    MONITOR_FEED_ICONS[eventType as MonitorFeedEventType] || IconProp.Circle
+  );
+};
 
 const MonitorFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -40,65 +73,6 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
   const getFeedItemFromMonitorFeed: GetFeedItemFromMonitorFeed = (
     monitorFeed: MonitorFeed,
   ): FeedItemProps => {
-    let icon: IconProp = IconProp.Circle;
-
-    if (
-      monitorFeed.monitorFeedEventType === MonitorFeedEventType.MonitorCreated
-    ) {
-      icon = IconProp.AltGlobe;
-    }
-
-    if (
-      monitorFeed.monitorFeedEventType ===
-      MonitorFeedEventType.MonitorStatusChanged
-    ) {
-      icon = IconProp.ArrowCircleRight;
-    }
-
-    if (
-      monitorFeed.monitorFeedEventType === MonitorFeedEventType.MonitorUpdated
-    ) {
-      icon = IconProp.Edit;
-    }
-
-    if (
-      monitorFeed.monitorFeedEventType ===
-      MonitorFeedEventType.OwnerNotificationSent
-    ) {
-      icon = IconProp.Bell;
-    }
-
-    if (
-      monitorFeed.monitorFeedEventType ===
-      MonitorFeedEventType.SubscriberNotificationSent
-    ) {
-      icon = IconProp.Notification;
-    }
-
-    if (
-      monitorFeed.monitorFeedEventType === MonitorFeedEventType.OwnerUserAdded
-    ) {
-      icon = IconProp.User;
-    }
-
-    if (
-      monitorFeed.monitorFeedEventType === MonitorFeedEventType.OwnerTeamAdded
-    ) {
-      icon = IconProp.Team;
-    }
-
-    if (
-      monitorFeed.monitorFeedEventType === MonitorFeedEventType.OwnerUserRemoved
-    ) {
-      icon = IconProp.Close;
-    }
-
-    if (
-      monitorFeed.monitorFeedEventType === MonitorFeedEventType.OwnerTeamRemoved
-    ) {
-      icon = IconProp.Close;
-    }
-
     return {
       key: monitorFeed.id!.toString(),
       textInMarkdown: monitorFeed.feedInfoInMarkdown || "",
@@ -106,9 +80,16 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
       user: monitorFeed.user,
       itemDateTime: monitorFeed.postedAt || monitorFeed.createdAt!,
       color: monitorFeed.displayColor || Gray500,
-      icon: icon,
+      icon: getMonitorFeedEventIcon(monitorFeed.monitorFeedEventType || ""),
     };
   };
+
+  const feedOptions: UseFeedOptionsResult = useFeedOptions({
+    eventTypes: Object.values(MonitorFeedEventType),
+    getEventTypeIcon: getMonitorFeedEventIcon,
+    storageKey: "monitor",
+    resetKey: props.monitorId.toString(),
+  });
 
   const {
     feedItems,
@@ -122,11 +103,16 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
     loadMore,
   } = useFeedItems<MonitorFeed>({
     resourceKey: props.monitorId.toString(),
+    viewKey: feedOptions.optionsKey,
     getItems: async (limit: number): Promise<ListResult<MonitorFeed>> => {
       return await ModelAPI.getList({
         modelType: MonitorFeed,
         query: {
           monitorId: props.monitorId!,
+          ...getFeedEventTypeQuery<MonitorFeed>(
+            "monitorFeedEventType",
+            feedOptions.options,
+          ),
         },
         select: {
           moreInformationInMarkdown: true,
@@ -143,7 +129,7 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
         },
         skip: 0,
         sort: {
-          postedAt: SortOrder.Descending,
+          postedAt: feedOptions.options.sortOrder,
         },
         limit,
       });
@@ -158,6 +144,12 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
         "This is the timeline and feed for this monitor. You can see all the updates and information about this monitor here."
       }
       buttons={[
+        <FeedOptionsButton
+          key="monitor-feed-options"
+          value={feedOptions.options}
+          eventTypeOptions={feedOptions.eventTypeOptions}
+          onChange={feedOptions.setOptions}
+        />,
         {
           title: "Refresh",
           buttonStyle: ButtonStyleType.ICON,
@@ -174,7 +166,11 @@ const MonitorFeedElement: FunctionComponent<ComponentProps> = (
         {isCurrentFeedLoaded && !isLoading && !error && (
           <Feed
             items={feedItems}
-            noItemsMessage="Looks like there are no items in this feed for this monitor."
+            noItemsMessage={getFeedNoItemsMessage({
+              options: feedOptions.options,
+              noItemsMessage:
+                "Looks like there are no items in this feed for this monitor.",
+            })}
             hasMore={hasMore}
             isLoadingMore={isLoadingMore}
             onMore={loadMore}

@@ -9,7 +9,6 @@ import AlertFeed, {
   AlertFeedEventType,
 } from "Common/Models/DatabaseModels/AlertFeed";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -29,6 +28,14 @@ import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import Icon from "Common/UI/Components/Icon/Icon";
 import RunbookPicker from "../Runbook/RunbookPicker";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedOptions, {
+  UseFeedOptionsResult,
+} from "Common/UI/Components/Feed/useFeedOptions";
+import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import {
+  getFeedEventTypeQuery,
+  getFeedNoItemsMessage,
+} from "Common/UI/Components/Feed/FeedOptions";
 import {
   FeedItemMarkdown,
   getFeedItemMarkdown,
@@ -38,6 +45,43 @@ export interface ComponentProps {
   alertId: ObjectID;
   refreshToken?: number | undefined;
 }
+
+/*
+ * One icon per event type, shared by the feed items and the event type
+ * checklist behind the Filter & Sort button, so the two always match. A root
+ * cause posted by an AI investigation is the one item that swaps its icon
+ * (see getFeedItemFromAlertFeed).
+ */
+export const ALERT_FEED_ICONS: Record<AlertFeedEventType, IconProp> = {
+  [AlertFeedEventType.PublicNote]: IconProp.Announcement,
+  [AlertFeedEventType.SubscriberNotificationSent]: IconProp.Notification,
+  [AlertFeedEventType.OwnerNotificationSent]: IconProp.Bell,
+  [AlertFeedEventType.OwnerUserAdded]: IconProp.User,
+  [AlertFeedEventType.OwnerTeamAdded]: IconProp.Team,
+  [AlertFeedEventType.AlertCreated]: IconProp.Alert,
+  [AlertFeedEventType.AlertStateChanged]: IconProp.ArrowCircleRight,
+  [AlertFeedEventType.PrivateNote]: IconProp.Lock,
+  [AlertFeedEventType.AlertUpdated]: IconProp.Edit,
+  [AlertFeedEventType.RootCause]: IconProp.Cube,
+  [AlertFeedEventType.RemediationNotes]: IconProp.Wrench,
+  [AlertFeedEventType.OwnerUserRemoved]: IconProp.Close,
+  [AlertFeedEventType.OwnerTeamRemoved]: IconProp.Close,
+  [AlertFeedEventType.OnCallPolicy]: IconProp.Call,
+  [AlertFeedEventType.OnCallNotification]: IconProp.Alert,
+  [AlertFeedEventType.AddedToEpisode]: IconProp.Circle,
+  [AlertFeedEventType.RemovedFromEpisode]: IconProp.Circle,
+  [AlertFeedEventType.LabelRuleExecuted]: IconProp.Tag,
+  [AlertFeedEventType.OwnerRuleExecuted]: IconProp.User,
+  [AlertFeedEventType.PrivacyRuleExecuted]: IconProp.Circle,
+  [AlertFeedEventType.OnCallRuleExecuted]: IconProp.Call,
+  [AlertFeedEventType.AutoRemediation]: IconProp.Circle,
+};
+
+export const getAlertFeedEventIcon: (eventType: string) => IconProp = (
+  eventType: string,
+): IconProp => {
+  return ALERT_FEED_ICONS[eventType as AlertFeedEventType] || IconProp.Circle;
+};
 
 const AlertFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -69,7 +113,9 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
   const getFeedItemFromAlertFeed: GetFeedItemFromAlertFeed = (
     alertFeed: AlertFeed,
   ): FeedItemProps => {
-    let icon: IconProp = IconProp.Circle;
+    let icon: IconProp = getAlertFeedEventIcon(
+      alertFeed.alertFeedEventType || "",
+    );
     const isAIInvestigation: boolean = Boolean(
       alertFeed.alertFeedEventType === AlertFeedEventType.RootCause &&
         (alertFeed.aiRunId ||
@@ -78,85 +124,8 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
           )),
     );
 
-    if (alertFeed.alertFeedEventType === AlertFeedEventType.AlertCreated) {
-      icon = IconProp.Alert;
-    }
-
-    if (alertFeed.alertFeedEventType === AlertFeedEventType.AlertStateChanged) {
-      icon = IconProp.ArrowCircleRight;
-    }
-
-    if (alertFeed.alertFeedEventType === AlertFeedEventType.AlertUpdated) {
-      icon = IconProp.Edit;
-    }
-
-    if (
-      alertFeed.alertFeedEventType === AlertFeedEventType.OwnerNotificationSent
-    ) {
-      icon = IconProp.Bell;
-    }
-
-    if (
-      alertFeed.alertFeedEventType ===
-      AlertFeedEventType.SubscriberNotificationSent
-    ) {
-      icon = IconProp.Notification;
-    }
-
-    if (alertFeed.alertFeedEventType === AlertFeedEventType.PublicNote) {
-      icon = IconProp.Announcement;
-    }
-
-    if (alertFeed.alertFeedEventType === AlertFeedEventType.PrivateNote) {
-      icon = IconProp.Lock;
-    }
-
-    if (alertFeed.alertFeedEventType === AlertFeedEventType.OwnerUserAdded) {
-      icon = IconProp.User;
-    }
-
-    if (alertFeed.alertFeedEventType === AlertFeedEventType.OwnerTeamAdded) {
-      icon = IconProp.Team;
-    }
-
-    if (alertFeed.alertFeedEventType === AlertFeedEventType.RemediationNotes) {
-      icon = IconProp.Wrench;
-    }
-
     if (alertFeed.alertFeedEventType === AlertFeedEventType.RootCause) {
       icon = isAIInvestigation ? IconProp.Sparkles : IconProp.Cube;
-    }
-
-    if (alertFeed.alertFeedEventType === AlertFeedEventType.OwnerUserRemoved) {
-      icon = IconProp.Close;
-    }
-
-    if (alertFeed.alertFeedEventType === AlertFeedEventType.OwnerTeamRemoved) {
-      icon = IconProp.Close;
-    }
-
-    if (
-      alertFeed.alertFeedEventType === AlertFeedEventType.OnCallNotification
-    ) {
-      icon = IconProp.Alert;
-    }
-
-    if (alertFeed.alertFeedEventType === AlertFeedEventType.OnCallPolicy) {
-      icon = IconProp.Call;
-    }
-
-    if (alertFeed.alertFeedEventType === AlertFeedEventType.LabelRuleExecuted) {
-      icon = IconProp.Tag;
-    }
-
-    if (alertFeed.alertFeedEventType === AlertFeedEventType.OwnerRuleExecuted) {
-      icon = IconProp.User;
-    }
-
-    if (
-      alertFeed.alertFeedEventType === AlertFeedEventType.OnCallRuleExecuted
-    ) {
-      icon = IconProp.Call;
     }
 
     /*
@@ -182,6 +151,13 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
     };
   };
 
+  const feedOptions: UseFeedOptionsResult = useFeedOptions({
+    eventTypes: Object.values(AlertFeedEventType),
+    getEventTypeIcon: getAlertFeedEventIcon,
+    storageKey: "alert",
+    resetKey: alertIdString,
+  });
+
   const {
     feedItems,
     isLoading,
@@ -195,12 +171,17 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
     loadMore,
   } = useFeedItems<AlertFeed>({
     resourceKey: alertIdString,
+    viewKey: feedOptions.optionsKey,
     refreshToken: props.refreshToken,
     getItems: async (limit: number): Promise<ListResult<AlertFeed>> => {
       return await ModelAPI.getList({
         modelType: AlertFeed,
         query: {
           alertId: props.alertId!,
+          ...getFeedEventTypeQuery<AlertFeed>(
+            "alertFeedEventType",
+            feedOptions.options,
+          ),
         },
         select: {
           moreInformationInMarkdown: true,
@@ -218,7 +199,7 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
         },
         skip: 0,
         sort: {
-          postedAt: SortOrder.Descending,
+          postedAt: feedOptions.options.sortOrder,
         },
         limit,
       });
@@ -233,6 +214,12 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
         "This is the timeline and feed for this alert. You can see all the updates and information about this alert here."
       }
       buttons={[
+        <FeedOptionsButton
+          key="alert-feed-options"
+          value={feedOptions.options}
+          eventTypeOptions={feedOptions.eventTypeOptions}
+          onChange={feedOptions.setOptions}
+        />,
         <MoreMenu
           key="alert-feed-actions-menu"
           elementToBeShownInsteadOfButton={
@@ -287,7 +274,11 @@ const AlertFeedElement: FunctionComponent<ComponentProps> = (
         {isCurrentFeedLoaded && !isLoading && !error && (
           <Feed
             items={feedItems}
-            noItemsMessage="Looks like there are no items in this feed for this alert."
+            noItemsMessage={getFeedNoItemsMessage({
+              options: feedOptions.options,
+              noItemsMessage:
+                "Looks like there are no items in this feed for this alert.",
+            })}
             hasMore={hasMore}
             isLoadingMore={isLoadingMore}
             onMore={loadMore}

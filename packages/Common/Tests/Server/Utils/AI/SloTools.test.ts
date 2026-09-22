@@ -10,6 +10,7 @@ import LabelService from "../../../../Server/Services/LabelService";
 import ServiceLevelObjectiveMonitorRule from "../../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import Label from "../../../../Models/DatabaseModels/Label";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
 import {
   RULE_CRITERIA_SCHEMA_VERSION,
   RuleCriteriaOperator,
@@ -750,6 +751,7 @@ describe("query_slos — monitor rules", () => {
     legacy.isEnabled = true;
     legacy.monitorLabels = [buildLabel(PRODUCTION_LABEL_ID, "Production")];
     legacy.monitorNamePattern = "^api-";
+    legacy.monitorType = MonitorType.API;
 
     const configured: ServiceLevelObjectiveMonitorRule =
       new ServiceLevelObjectiveMonitorRule();
@@ -764,6 +766,11 @@ describe("query_slos — monitor rules", () => {
           field: "monitorLabels",
           operator: RuleCriteriaOperator.HasAnyOf,
           value: [TIER1_LABEL_ID.toString()],
+        },
+        {
+          field: "monitorType",
+          operator: RuleCriteriaOperator.NotEquals,
+          value: MonitorType.Manual,
         },
       ],
     };
@@ -795,6 +802,8 @@ describe("query_slos — monitor rules", () => {
     expect(result.dataForLlm).toContain("Production APIs");
     expect(result.dataForLlm).toContain("Labels has any of");
     expect(result.dataForLlm).toContain("Name matches pattern");
+    expect(result.dataForLlm).toContain("Type is");
+    expect(result.dataForLlm).toContain("Type is not");
     expect(result.dataForLlm).toContain("Tier one");
     // A criteria rule stores label ids; the name is looked up for the model.
     expect(result.dataForLlm).toContain("Tier 1");
@@ -805,6 +814,7 @@ describe("query_slos — monitor rules", () => {
     ).toBe(SLO_ID.toString());
     expect(call["props"]).toBe(ctx.props);
     expect((call["select"] as JSONObject)["criteria"]).toBe(true);
+    expect((call["select"] as JSONObject)["monitorType"]).toBe(true);
     expect((call["select"] as JSONObject)["monitorLabels"]).toEqual({
       _id: true,
       name: true,
