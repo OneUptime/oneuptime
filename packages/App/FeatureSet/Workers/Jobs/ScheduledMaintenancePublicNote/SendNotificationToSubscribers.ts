@@ -695,6 +695,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                   body: compiledBody,
                 },
                 subject: compiledSubject,
+                isSubjectLiteral: true,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(
@@ -739,6 +740,7 @@ const notifySubscribersOfScheduledMaintenancePublicNote: (data: {
                     ),
                 },
                 subject: copy.emailSubjectPrefix + event.title,
+                isSubjectLiteral: true,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(

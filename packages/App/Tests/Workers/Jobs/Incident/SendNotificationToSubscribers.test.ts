@@ -677,3 +677,74 @@ describe("Incident:SendNotificationToSubscribers default email, with grouped res
     );
   });
 });
+
+interface TemplateSyntaxDescription {
+  name: string;
+  markdown: string;
+  // The plain text the Markdown helper turns it into.
+  text: string;
+}
+
+/*
+ * Descriptions quoting template syntax. The subject is finished text when the
+ * worker sends it, so the mail is marked literal: compiling it again read the
+ * braces as Handlebars, and the email either failed to render and was never
+ * sent or lost the quoted words. Tests/Notification/
+ * SubscriberEmailSubjectLiteral.test.ts follows such a subject to SMTP.
+ */
+const TEMPLATE_SYNTAX_DESCRIPTIONS: Array<TemplateSyntaxDescription> = [
+  {
+    name: "a bare expression",
+    markdown: "Deploy blocked on {{ x }}",
+    text: "Deploy blocked on {{ x }}",
+  },
+  {
+    name: "a quoted Helm value",
+    markdown: "Helm upgrade failed: `{{ .Values.image.tag }}` was empty",
+    text: "Helm upgrade failed: {{ .Values.image.tag }} was empty",
+  },
+  {
+    name: "a lone opening pair of braces",
+    markdown: "Config parser stopped at {{ on line 3",
+    text: "Config parser stopped at {{ on line 3",
+  },
+];
+
+describe("Incident:SendNotificationToSubscribers email subjects are sent as written", () => {
+  test.each(TEMPLATE_SYNTAX_DESCRIPTIONS)(
+    "a description with $name reaches the custom subject as written",
+    async ({ markdown, text }: TemplateSyntaxDescription) => {
+      const row: Incident = incident();
+      row.description = markdown;
+      pendingIncidents = [row];
+      mock(Markdown.convertToPlainText).mockImplementation(
+        (value: unknown): string => {
+          return value === markdown ? text : "";
+        },
+      );
+      useCustomTemplatesOnEveryChannel();
+
+      await runJob();
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["subject"]).toBe(
+        `${INCIDENT_TITLE}: ${text} (Checkout API)`,
+      );
+      expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+    },
+  );
+
+  test("a title with template syntax reaches the default subject as written", async () => {
+    const row: Incident = incident();
+    row.title = "Rollout of {{ .Values.image.tag }} stalled";
+    pendingIncidents = [row];
+
+    await runJob();
+
+    expect(sentMail()).toHaveLength(1);
+    expect(sentMail()[0]!["subject"]).toBe(
+      "[Incident] Rollout of {{ .Values.image.tag }} stalled",
+    );
+    expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+  });
+});
