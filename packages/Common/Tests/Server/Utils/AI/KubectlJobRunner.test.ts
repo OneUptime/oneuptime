@@ -247,9 +247,12 @@ describe("KubectlJobRunner.isAccessFailure", () => {
         ),
       },
     ],
-  ])("treats %s as an access failure", (_label: string, facts) => {
-    expect(KubectlJobRunner.isAccessFailure(facts)).toBe(true);
-  });
+  ])(
+    "treats %s as an access failure",
+    (_label: string, facts: KubectlTerminalJobFacts) => {
+      expect(KubectlJobRunner.isAccessFailure(facts)).toBe(true);
+    },
+  );
 
   it.each<[string, string]>([
     ["NotFound", 'Error from server (NotFound): pods "web-7d9f-abc" not found'],

@@ -1472,6 +1472,14 @@ function findForbiddenJsonField(value: unknown, depth: number): string | null {
 const MAX_ALLOWLIST_PATTERNS: number = 100;
 const MAX_ALLOWLIST_PATTERN_LENGTH: number = 500;
 
+/*
+ * Exported so the server's save validation and the AI page's form
+ * validation hold entries to exactly the bounds matchesAllowlist reads.
+ */
+export const KUBECTL_ALLOWLIST_MAX_PATTERNS: number = MAX_ALLOWLIST_PATTERNS;
+export const KUBECTL_ALLOWLIST_MAX_PATTERN_LENGTH: number =
+  MAX_ALLOWLIST_PATTERN_LENGTH;
+
 function isFlagToken(token: string): boolean {
   return token.startsWith("-") && token !== "-";
 }
@@ -1525,6 +1533,9 @@ function globWithinToken(pattern: string, text: string): boolean {
 
   return true;
 }
+
+// A replica count kubectl scale takes: digits only.
+const REPLICA_COUNT_PATTERN: RegExp = /^[0-9]+$/;
 
 export default class KubectlPolicy {
   /*
@@ -2235,7 +2246,7 @@ export default class KubectlPolicy {
 
       for (const value of replicas) {
         const count: string = value.trim();
-        if (!/^[0-9]+$/.test(count)) {
+        if (!REPLICA_COUNT_PATTERN.test(count)) {
           return allowed(
             KubectlCommandTier.RiskyWrite,
             `--replicas=${value} is not a replica count kubectl scale can apply safely`,
@@ -2527,6 +2538,114 @@ export default class KubectlPolicy {
     }
 
     return false;
+  }
+
+  /*
+   * Why an allowlist entry cannot work, in words for the person typing it —
+   * or null when matchesAllowlist will read it. The server validates saves
+   * with this and the AI page validates its form with it, so neither can
+   * accept an entry the matcher would silently skip. (The entry count is
+   * checked by the callers against KUBECTL_ALLOWLIST_MAX_PATTERNS.)
+   */
+  public static describeAllowlistPatternProblem(
+    pattern: unknown,
+  ): string | null {
+    if (typeof pattern !== "string" || pattern.trim().length === 0) {
+      return "An allowlist entry cannot be blank.";
+    }
+
+    if (pattern.length > MAX_ALLOWLIST_PATTERN_LENGTH) {
+      return `An allowlist entry can be at most ${MAX_ALLOWLIST_PATTERN_LENGTH} characters long.`;
+    }
+
+    const tokenized: KubectlTokenizeResult = KubectlPolicy.tokenize(pattern);
+
+    if (!tokenized.args) {
+      return `"${pattern}" is not one kubectl command line: ${
+        tokenized.errorMessage || "it could not be split into arguments"
+      }`;
+    }
+
+    if (tokenized.args.length === 0) {
+      return `"${pattern}" names no kubectl command.`;
+    }
+
+    return null;
+  }
+
+  /*
+   * Does this allowlist entry pre-approve more than one specific change?
+   * True when a wildcard stands for the verb, the namespace or the object
+   * the command acts on (`kubectl delete * -n web`, `kubectl scale
+   * deployment/* --replicas=* -n web`, `kubectl patch deployment web -n *`).
+   * A wildcard in a VALUE — the image in `kubectl set image deployment/web
+   * * -n web`, a replica count — keeps the entry about one object. The AI
+   * page asks for an explicit confirmation before saving a broad entry.
+   */
+  public static isBroadAllowlistPattern(pattern: unknown): boolean {
+    if (KubectlPolicy.describeAllowlistPatternProblem(pattern) !== null) {
+      return false;
+    }
+
+    let args: Array<string> = KubectlPolicy.tokenize(pattern as string).args!;
+
+    if (args[0]?.toLowerCase() === "kubectl") {
+      args = args.slice(1);
+    }
+
+    const positional: Array<string> = [];
+
+    for (let i: number = 0; i < args.length; i++) {
+      const token: string = args[i]!;
+
+      if (token === "-n" || token === "--namespace") {
+        if ((args[i + 1] || "").includes("*")) {
+          return true;
+        }
+        i++;
+        continue;
+      }
+
+      if (
+        (token.startsWith("-n") && !token.startsWith("--")) ||
+        token.startsWith("--namespace=")
+      ) {
+        const value: string = token.startsWith("--namespace=")
+          ? token.slice("--namespace=".length)
+          : token.slice(2).replace(/^=/, "");
+
+        if (value.includes("*")) {
+          return true;
+        }
+        continue;
+      }
+
+      if (!isFlagToken(token)) {
+        positional.push(token);
+      }
+    }
+
+    const verbLength: number = SUBCOMMAND_VERBS.has(positional[0] || "")
+      ? 2
+      : 1;
+    const verbTokens: Array<string> = positional.slice(0, verbLength);
+    const objectTokens: Array<string> = positional.slice(
+      verbLength,
+      verbLength + 1,
+    );
+
+    // TYPE NAME: the name follows the kind.
+    if (objectTokens[0] && !objectTokens[0].includes("/")) {
+      const name: string | undefined = positional[verbLength + 1];
+
+      if (name !== undefined) {
+        objectTokens.push(name);
+      }
+    }
+
+    return [...verbTokens, ...objectTokens].some((token: string) => {
+      return token.includes("*");
+    });
   }
 
   public static isReadOnly(command: string): boolean {

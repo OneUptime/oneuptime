@@ -542,7 +542,10 @@ function readDropdownId(value: unknown): string | null {
   if (value === null || value === undefined || value === "") {
     return null;
   }
-  if (typeof value === "object" && "value" in (value as object)) {
+  if (
+    typeof value === "object" &&
+    "value" in (value as Record<string, unknown>)
+  ) {
     return readDropdownId((value as { value: unknown }).value);
   }
   return String(value);

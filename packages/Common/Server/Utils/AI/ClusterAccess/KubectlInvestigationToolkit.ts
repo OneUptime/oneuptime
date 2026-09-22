@@ -100,6 +100,9 @@ export interface KubectlInvestigationToolkitOptions {
   runDeadlineAtMs?: number | undefined;
 }
 
+// A reason that already ends a sentence.
+const SENTENCE_END_PATTERN: RegExp = /[.!?]$/;
+
 export default class KubectlInvestigationToolkit {
   private options: KubectlInvestigationToolkitOptions;
   private commandsRun: number = 0;
@@ -378,7 +381,7 @@ export default class KubectlInvestigationToolkit {
       const redactedReason: string = KubectlOutputRedactor.redact(
         outcome.errorMessage || "The job ended without running kubectl.",
       ).text.trim();
-      const reason: string = /[.!?]$/.test(redactedReason)
+      const reason: string = SENTENCE_END_PATTERN.test(redactedReason)
         ? redactedReason
         : `${redactedReason}.`;
 

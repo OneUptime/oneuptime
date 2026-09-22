@@ -16,19 +16,28 @@
  * RequireApproval: AI composes a kubectl plan and a human approves it with
  *                  one click before anything runs. Any follow-up plan asks
  *                  again.
- * Automatic:       AI runs safe changes (rollout restart/undo, scale, delete
- *                  a named pod, cordon/uncordon, label/annotate) without a
- *                  human. A riskier change (patch, set image, drain, deleting
- *                  workloads) never runs without one: in the unattended round
- *                  AI refuses it inline and leaves the exact command in its
- *                  written recommendations; only a follow-up round, which
- *                  asks, proposes it for one-click approval. Shapes on the
- *                  cluster's kubectl allowlist run on their own; destructive
- *                  commands never run.
- * BypassApproval:  AI never asks. Every change the policy allows — safe AND
- *                  riskier — runs on its own, follow-up rounds included.
- *                  Destructive commands (Denied tier) still never run, and
- *                  the hourly per-cluster circuit breaker still applies.
+ * Automatic:       AI runs safe changes without a human — each on ONE named
+ *                  object: rollout restart/undo/pause/resume of one workload,
+ *                  scale one workload above zero, delete one named pod,
+ *                  cordon/uncordon one node, label/annotate one pod or
+ *                  workload with unreserved keys. A riskier change (patch,
+ *                  set image, drain, scale to zero, deleting workloads or
+ *                  jobs, anything touching several objects) never runs
+ *                  without one: when the round could only find riskier fixes
+ *                  it ends by proposing exactly those for one-click
+ *                  approval; when it also ran safe fixes, a riskier fix is
+ *                  proposed only if verification shows the safe ones did not
+ *                  recover the signal (the follow-up round, which asks).
+ *                  Shapes on the cluster's kubectl allowlist run on their
+ *                  own.
+ * BypassApproval:  AI does not ask. Every change the policy allows — safe
+ *                  AND riskier — runs on its own, follow-up rounds included.
+ *
+ * In EVERY mode, Bypass approval included: destructive commands (Denied
+ * tier) never run; a write in a protected namespace (kube-system,
+ * kube-public, kube-node-lease) and a node drain always need a human; the
+ * in-cluster Runner never changes its own namespace; and the hourly
+ * per-cluster circuit breaker turns an unattended run into a proposal.
  */
 export enum KubernetesAiRemediationMode {
   Disabled = "Disabled",
@@ -57,13 +66,17 @@ export function isUnattendedRemediationMode(
  *
  * Read:       inspects the cluster and changes nothing (get, describe, logs,
  *             events, top, rollout status, ...). Investigations may run these.
- * SafeWrite:  a reversible, controller-mediated change with a well-understood
- *             blast radius. Automatic mode runs these without a human.
+ * SafeWrite:  a reversible, controller-mediated change to exactly ONE named
+ *             object of one built-in kind, with no selector and outside the
+ *             protected namespaces. Automatic mode runs these without a
+ *             human.
  * RiskyWrite: a change that can alter what is deployed or affect many pods
- *             at once. Always needs a human unless the operator allowlisted
- *             the exact shape on the cluster.
+ *             at once. Needs a human unless the operator allowlisted the
+ *             exact shape on the cluster or the cluster bypasses approvals
+ *             (never for protected namespaces or a drain).
  * Denied:     never runs, even with human approval (exec/cp/port-forward,
- *             deleting namespaces/volumes/nodes/CRDs, credential flags, ...).
+ *             deleting namespaces/volumes/nodes/CRDs, RBAC grants, patches
+ *             to pod identity or host access, credential flags, ...).
  */
 export enum KubectlCommandTier {
   Read = "Read",
@@ -141,6 +154,14 @@ export interface KubernetesRunnerPosture {
    * The Runner never writes into it.
    */
   podNamespace?: string | undefined;
+  /*
+   * Whether the Runner may run node operations — cordon, uncordon, drain,
+   * taint, and label/annotate/patch on Node objects
+   * (KUBECTL_ALLOW_NODE_OPERATIONS_ENV, from the chart's
+   * aiAccess.remediation.nodeOperations). Absent means the Runner did not
+   * say, which older Runners and Runners outside the chart never do.
+   */
+  allowNodeOperations?: boolean | undefined;
 }
 
 export interface KubernetesAiAccessRunnerSummary {
@@ -257,6 +278,10 @@ export function parseKubernetesRunnerPosture(
       typeof raw["podNamespace"] === "string" && raw["podNamespace"].length > 0
         ? raw["podNamespace"]
         : undefined,
+    allowNodeOperations:
+      typeof raw["allowNodeOperations"] === "boolean"
+        ? raw["allowNodeOperations"]
+        : undefined,
   };
 }
 
@@ -330,28 +355,36 @@ export function isInClusterPostureForCluster(
  * the registering pod so it can log the right thing, and recorded on the
  * cluster feed.
  *
- * first_bind:                    the cluster had never been AI-configured;
- *                                the agent Runner was bound and the chart's
- *                                defaults applied.
- * already_bound:                 the cluster was already bound to this
- *                                cluster's agent Runner; only the key (and
- *                                posture) rotated.
- * rebound_after_runner_missing:  the Runner the cluster pointed at no longer
- *                                exists; the agent Runner took the binding
- *                                over, switches untouched.
- * bound_to_other_runner:         an operator bound the cluster to a different
- *                                Runner in the dashboard; left alone.
- * left_unbound_by_operator:      the cluster has an AI-access history but no
- *                                Runner bound — an operator cleared it, so
- *                                registration does not re-bind or flip any
- *                                switch. The agent Runner row exists and
- *                                heartbeats; the operator picks it on the
- *                                cluster's AI page when they want it back.
+ * first_bind:                       the cluster had never been AI-configured
+ *                                   and never had a Runner bound; the agent
+ *                                   Runner was bound and the chart's defaults
+ *                                   applied.
+ * bound_keeping_operator_settings:  no Runner had ever been bound, but an
+ *                                   operator had already chosen AI settings
+ *                                   on the cluster's AI page (for example a
+ *                                   remediation mode, before installing the
+ *                                   chart); the agent Runner was bound and
+ *                                   every switch left exactly as chosen.
+ * already_bound:                    the cluster was already bound to this
+ *                                   cluster's agent Runner; only the key (and
+ *                                   posture) rotated.
+ * bound_to_other_runner:            an operator bound the cluster to a
+ *                                   different Runner in the dashboard; left
+ *                                   alone.
+ * left_unbound_by_operator:         a Runner was bound to this cluster
+ *                                   before and no Runner is bound now — an
+ *                                   operator cleared the binding, or the
+ *                                   bound Runner row was deleted (the
+ *                                   foreign key nulls it). Registration does
+ *                                   not re-bind or flip any switch; the agent
+ *                                   Runner row exists and heartbeats, and the
+ *                                   operator selects it on the cluster's AI
+ *                                   page when they want it back.
  */
 export type KubernetesAgentRunnerBindingState =
   | "first_bind"
+  | "bound_keeping_operator_settings"
   | "already_bound"
-  | "rebound_after_runner_missing"
   | "bound_to_other_runner"
   | "left_unbound_by_operator";
 
@@ -393,6 +426,15 @@ export function isProtectedKubernetesNamespace(namespace: unknown): boolean {
  * POD_NAMESPACE:    the namespace the Runner pod itself runs in (downward
  *                   API). The Runner never changes its own namespace — a
  *                   fix there could scale the agent, or the Runner, away.
+ * ALLOW_NODE_OPERATIONS: "true" when the chart granted node RBAC
+ *                   (aiAccess.remediation.nodeOperations): cordon,
+ *                   uncordon, drain, taint and label/annotate/patch on Node
+ *                   objects. Same rule as ALLOW_WRITES: when set, only
+ *                   "true" allows them; unset allows them on an ordinary
+ *                   Runner (its credential's RBAC bounds them) and refuses
+ *                   them on the kubernetes-agent Runner, whose chart always
+ *                   sets it. The Runner reports the result in its posture
+ *                   so the server never plans a node change it would refuse.
  */
 export const KUBECTL_ALLOW_WRITES_ENV: string =
   "ONEUPTIME_KUBECTL_ALLOW_WRITES";
@@ -400,3 +442,37 @@ export const KUBECTL_WRITE_NAMESPACES_ENV: string =
   "ONEUPTIME_KUBECTL_WRITE_NAMESPACES";
 export const RUNNER_POD_NAMESPACE_ENV: string =
   "ONEUPTIME_RUNNER_POD_NAMESPACE";
+export const KUBECTL_ALLOW_NODE_OPERATIONS_ENV: string =
+  "ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS";
+
+/*
+ * Why POST /runner-ingest/register-kubernetes-agent refused a registration
+ * (HTTP 403). The server sends it as `reason` in the JSON error body so the
+ * Runner can tell a wait that clears on its own from one that needs an
+ * operator, instead of reading every 403 as the first kind.
+ *
+ * previous_instance_online:          the agent Runner row's current instance
+ *                                    still heartbeats and this request did
+ *                                    not present its key. Clears on its own;
+ *                                    the body carries retryAfterSeconds (and
+ *                                    the response a Retry-After header).
+ * runner_holds_more_than_defaults:   the offline row holds credentials,
+ *                                    secrets, extra capabilities or another
+ *                                    cluster's binding, so only a request
+ *                                    that proves continuity may re-key it.
+ *                                    Needs an operator.
+ * runner_belongs_to_another_cluster: the row this cluster's agent Runner
+ *                                    name resolves to is another cluster's.
+ *                                    Needs an operator.
+ */
+export type KubernetesAgentRegistrationRefusalReason =
+  | "previous_instance_online"
+  | "runner_holds_more_than_defaults"
+  | "runner_belongs_to_another_cluster";
+
+// Refusals that clear without anyone doing anything; retrying is right.
+export function isTransientKubernetesAgentRegistrationRefusal(
+  reason: unknown,
+): boolean {
+  return reason === "previous_instance_online";
+}

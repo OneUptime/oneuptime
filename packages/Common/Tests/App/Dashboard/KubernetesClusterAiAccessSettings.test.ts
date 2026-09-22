@@ -76,6 +76,9 @@ const BASE_PERMISSIONS: Array<Permission> = [
 
 const SET_IMAGE_PATTERN: string = "kubectl set image deployment/web * -n web";
 
+// A line continuation left dangling at the end of a command.
+const TRAILING_CONTINUATION_REGEX: RegExp = /\\\s*$/;
+
 function grant(
   permissions: Array<Permission>,
   blocked: Array<Permission> = [],
@@ -252,7 +255,7 @@ describe("one-command helm upgrade", () => {
     expect(readOnly).toContain("--set aiAccess.enabled=true");
     expect(readOnly).not.toContain("remediation");
     // No trailing line continuation: the shell would wait for more input.
-    expect(/\\\s*$/.test(readOnly)).toBe(false);
+    expect(TRAILING_CONTINUATION_REGEX.test(readOnly)).toBe(false);
   });
 
   test("the optional remediation command is a whole command, not a line to append", () => {
@@ -262,7 +265,7 @@ describe("one-command helm upgrade", () => {
     expect(enableRemediation).toContain(
       "--set aiAccess.remediation.enabled=true",
     );
-    expect(/\\\s*$/.test(enableRemediation)).toBe(false);
+    expect(TRAILING_CONTINUATION_REGEX.test(enableRemediation)).toBe(false);
 
     // Every continued line is followed by a real one.
     const lines: Array<string> = enableRemediation.split("\n");

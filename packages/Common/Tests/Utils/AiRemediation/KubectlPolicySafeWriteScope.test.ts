@@ -130,8 +130,10 @@ const SINGLE_OBJECT_SAFE_WRITES: Array<string> = [
  * ---- Several objects, a bare kind, or a selector: RiskyWrite ---------------
  */
 const NOT_ONE_NAMED_OBJECT: Array<string> = [
-  // rollout with a bare kind is every object of that kind (kubectl's builder
-  // selects labels.Everything() for rollout's allowEmptySelector).
+  /*
+   * rollout with a bare kind is every object of that kind (kubectl's builder
+   * selects labels.Everything() for rollout's allowEmptySelector).
+   */
   "kubectl rollout restart deployment -n web",
   "kubectl rollout undo deployment -n web",
   "kubectl rollout pause deployment -n web",

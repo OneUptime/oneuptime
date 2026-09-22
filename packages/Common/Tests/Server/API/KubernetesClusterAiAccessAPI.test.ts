@@ -424,7 +424,7 @@ describe("KubernetesClusterAiAccessAPI", () => {
   });
 
   describe("tenant isolation and the cluster lookup (both routes)", () => {
-    for (const uri of [STATUS_ROUTE, TEST_ROUTE]) {
+    function testTenantIsolation(uri: string): void {
       test(`${uri}: reads the cluster under the user's props, scoped to the tenant`, async () => {
         await callRoute(uri);
 
@@ -490,6 +490,10 @@ describe("KubernetesClusterAiAccessAPI", () => {
         expect(result.nextCallCount).toBe(1);
         expect(clusterFind).not.toHaveBeenCalled();
       });
+    }
+
+    for (const uri of [STATUS_ROUTE, TEST_ROUTE]) {
+      testTenantIsolation(uri);
     }
   });
 

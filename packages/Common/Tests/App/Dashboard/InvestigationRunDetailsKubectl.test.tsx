@@ -314,9 +314,15 @@ describe("describeKubectlUsage", () => {
     ],
     [{ notRun: 1 }, "1 kubectl command did not run"],
     [{ notRun: 2 }, "2 kubectl commands did not run"],
-  ])("%j -> %s", (overrides, expected: string | null) => {
-    expect(
-      describeKubectlUsage(overrides ? activity(overrides) : undefined),
-    ).toBe(expected);
-  });
+  ])(
+    "%j -> %s",
+    (
+      overrides: Partial<KubectlActivitySummary> | undefined,
+      expected: string | null,
+    ) => {
+      expect(
+        describeKubectlUsage(overrides ? activity(overrides) : undefined),
+      ).toBe(expected);
+    },
+  );
 });

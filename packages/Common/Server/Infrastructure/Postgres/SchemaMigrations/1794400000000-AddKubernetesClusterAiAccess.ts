@@ -39,6 +39,9 @@ export class AddKubernetesClusterAiAccess1794400000000
       `ALTER TABLE "KubernetesCluster" ADD "aiAccessConfiguredAt" TIMESTAMP WITH TIME ZONE`,
     );
     await queryRunner.query(
+      `ALTER TABLE "KubernetesCluster" ADD "aiAccessRunnerBoundAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    await queryRunner.query(
       `ALTER TABLE "RunnerJob" ADD "kubernetesClusterId" uuid`,
     );
     await queryRunner.query(
@@ -94,6 +97,9 @@ export class AddKubernetesClusterAiAccess1794400000000
     );
     await queryRunner.query(
       `ALTER TABLE "RunnerJob" DROP COLUMN "kubernetesClusterId"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "KubernetesCluster" DROP COLUMN "aiAccessRunnerBoundAt"`,
     );
     await queryRunner.query(
       `ALTER TABLE "KubernetesCluster" DROP COLUMN "aiAccessConfiguredAt"`,

@@ -341,11 +341,14 @@ describe("getClusterAccessSignature", () => {
       },
     ],
     ["the gaps themselves", { gaps: [] }],
-  ])("changes with %s", (_label: string, overrides) => {
-    expect(signature([withRunner(overrides)])).not.toBe(
-      signature([withRunner()]),
-    );
-  });
+  ])(
+    "changes with %s",
+    (_label: string, overrides: Partial<KubernetesClusterAiAccessStatus>) => {
+      expect(signature([withRunner(overrides)])).not.toBe(
+        signature([withRunner()]),
+      );
+    },
+  );
 
   test("changes when a cluster is added", () => {
     expect(

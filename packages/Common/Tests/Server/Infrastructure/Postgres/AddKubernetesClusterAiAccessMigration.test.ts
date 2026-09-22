@@ -1,6 +1,7 @@
 import { AddKubernetesClusterAiAccess1794400000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1794400000000-AddKubernetesClusterAiAccess";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import KubernetesCluster from "../../../../Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "../../../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../../../Models/DatabaseModels/Runner";
@@ -96,7 +97,7 @@ const recordQueries: RecordQueriesFunction = async (
   return statements;
 };
 
-type ModelClass = { new (): object; name: string };
+type ModelClass = { new (): BaseModel; name: string };
 
 interface ExpectedColumn {
   model: ModelClass;
@@ -156,6 +157,12 @@ const EXPECTED_COLUMNS: Array<ExpectedColumn> = [
     model: KubernetesCluster,
     table: "KubernetesCluster",
     property: "aiAccessConfiguredAt",
+    ddl: "TIMESTAMP WITH TIME ZONE",
+  },
+  {
+    model: KubernetesCluster,
+    table: "KubernetesCluster",
+    property: "aiAccessRunnerBoundAt",
     ddl: "TIMESTAMP WITH TIME ZONE",
   },
   {
@@ -357,6 +364,9 @@ describe("AddKubernetesClusterAiAccess migration - identity and registration", (
   });
 });
 
+// An ALTER TABLE statement's `ADD "<name>" ` clause.
+const ADD_STATEMENT_PATTERN: RegExp = / ADD "[^"]+" /;
+
 describe("AddKubernetesClusterAiAccess migration - columns", () => {
   test("adds exactly the new columns, in order, before anything else", async () => {
     const statements: Array<string> = await recordQueries("up");
@@ -367,7 +377,8 @@ describe("AddKubernetesClusterAiAccess migration - columns", () => {
     expect(
       statements.filter((statement: string): boolean => {
         return (
-          / ADD "[^"]+" /.test(statement) && !statement.includes("CONSTRAINT")
+          ADD_STATEMENT_PATTERN.test(statement) &&
+          !statement.includes("CONSTRAINT")
         );
       }),
     ).toHaveLength(EXPECTED_COLUMNS.length);
@@ -457,11 +468,14 @@ describe("AddKubernetesClusterAiAccess migration - columns", () => {
     ).toBe(false);
   });
 
-  test("leaves the configured marker empty on existing clusters, so none reads as configured", async () => {
+  test("leaves both markers empty on existing clusters, so none reads as configured or once-bound", async () => {
     const statements: Array<string> = await recordQueries("up");
 
     expect(statements).toContain(
       `ALTER TABLE "KubernetesCluster" ADD "aiAccessConfiguredAt" TIMESTAMP WITH TIME ZONE`,
+    );
+    expect(statements).toContain(
+      `ALTER TABLE "KubernetesCluster" ADD "aiAccessRunnerBoundAt" TIMESTAMP WITH TIME ZONE`,
     );
   });
 });

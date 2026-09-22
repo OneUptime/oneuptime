@@ -717,20 +717,15 @@ describe("KubernetesClusterService AI access binding guard", () => {
       [{ aiKubectlCommandAllowlist: ["*"] }],
     ])(
       "refuses %p from a Settings Member and accepts it from a Project Admin",
-      async (data: object) => {
+      async (data: Record<string, unknown>) => {
         await expect(
           hooks().onBeforeUpdate(
-            updateBy(
-              data as Record<string, unknown>,
-              userProps(PROJECT_ID, [Permission.SettingsMember]),
-            ),
+            updateBy(data, userProps(PROJECT_ID, [Permission.SettingsMember])),
           ),
         ).rejects.toThrow(NotAuthorizedException);
 
         await expect(
-          hooks().onBeforeUpdate(
-            updateBy(data as Record<string, unknown>, adminProps()),
-          ),
+          hooks().onBeforeUpdate(updateBy(data, adminProps())),
         ).resolves.toBeDefined();
       },
     );
@@ -1299,14 +1294,17 @@ describe("KubernetesClusterService AI access configured marker", () => {
     [{ aiKubectlCommandAllowlist: [] }],
     [{ aiRemediationMode: KubernetesAiRemediationMode.Disabled }],
     [{ isAiInvestigationEnabled: true }],
-  ])("marks the cluster for a user write of %p", async (data: object) => {
-    await runUpdate(
-      data as Record<string, unknown>,
-      userProps(PROJECT_ID, [Permission.EditKubernetesCluster]),
-    );
+  ])(
+    "marks the cluster for a user write of %p",
+    async (data: Record<string, unknown>) => {
+      await runUpdate(
+        data,
+        userProps(PROJECT_ID, [Permission.EditKubernetesCluster]),
+      );
 
-    expect(markerWrites()).toHaveLength(1);
-  });
+      expect(markerWrites()).toHaveLength(1);
+    },
+  );
 
   it("does not mark the cluster for a user write of an unrelated column", async () => {
     await runUpdate({ name: "x" }, adminProps());

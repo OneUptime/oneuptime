@@ -603,8 +603,10 @@ describe("KubectlPolicy against the kubernetes-agent chart's RBAC", () => {
     expect(roles.read.length).toBeGreaterThan(0);
     expect(roles.remediation.length).toBeGreaterThan(0);
     expect(roles.nodeOperations.length).toBeGreaterThan(0);
-    // The read-only role really is read-only (a sanity check on the
-    // parsing: the write rules must not have been read into it).
+    /*
+     * The read-only role really is read-only (a sanity check on the
+     * parsing: the write rules must not have been read into it).
+     */
     expect(isAllowed(roles.read, request("deployment", "patch"))).toBe(false);
   });
 
@@ -688,9 +690,11 @@ describe("KubectlPolicy against the kubernetes-agent chart's RBAC", () => {
   });
 
   it("keeps node operations out of the namespaced remediation role", () => {
-    // Bound per namespace, a nodes rule would do nothing (nodes are
-    // cluster-scoped) — and bound cluster-wide it would ignore
-    // aiAccess.remediation.nodeOperations.
+    /*
+     * Bound per namespace, a nodes rule would do nothing (nodes are
+     * cluster-scoped) — and bound cluster-wide it would ignore
+     * aiAccess.remediation.nodeOperations.
+     */
     expect(isAllowed(roles.remediation, request("node", "patch"))).toBe(false);
     expect(
       isAllowed(roles.remediation, request("pod", "create", "eviction")),

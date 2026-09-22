@@ -1900,9 +1900,16 @@ describe("canViewerReadCredentialNames", () => {
       false,
     ],
     ["a viewer with no tenant permissions", props, false],
-  ])("%s", (_label: string, viewer, expected: boolean) => {
-    expect(canViewerReadCredentialNames(viewer, PROJECT_ID)).toBe(expected);
-  });
+  ])(
+    "%s",
+    (
+      _label: string,
+      viewer: DatabaseCommonInteractionProps,
+      expected: boolean,
+    ) => {
+      expect(canViewerReadCredentialNames(viewer, PROJECT_ID)).toBe(expected);
+    },
+  );
 
   it("only counts the grants of the project asked about", () => {
     const viewer: DatabaseCommonInteractionProps = viewerWithPermissions([

@@ -2220,48 +2220,50 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       },
     ];
 
+    function itRefusesTheUnprovenReKey(holding: Holding, state: string): void {
+      it(`refuses a ${state} row with ${holding.name}: 403, nothing written, no key handed out`, async () => {
+        const overrides: Partial<Record<string, unknown>> = holding.arrange();
+        jest
+          .spyOn(KubernetesClusterService, "findOneBy")
+          .mockResolvedValue(fakeCluster({ aiAccessRunnerId: RUNNER_ID }));
+        mockRunnerLookups({
+          bound:
+            state === "signed off"
+              ? signedOffAgentRunner(overrides)
+              : offlineAgentRunner(overrides),
+        });
+
+        let thrown: unknown = null;
+
+        try {
+          await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+            projectId: PROJECT_ID,
+            clusterIdentifier: "prod-us",
+            posture: { allowWrites: true },
+          });
+        } catch (error) {
+          thrown = error;
+        }
+
+        expect(thrown).toBeInstanceOf(ForbiddenException);
+        const message: string = (thrown as Error).message;
+        expect(message).toContain(holding.expectInMessage);
+        expect(message).toContain("delete the Runner");
+        expect(message).not.toContain(CURRENT_KEY);
+
+        expect(runnerUpdates).toHaveLength(0);
+        expect(clusterUpdates).toHaveLength(0);
+        expect(createdRunner).toBeNull();
+        expect(feedItems).toHaveLength(0);
+        expect(String(warnSpy.mock.calls[0]![0])).toContain(
+          "without proof of continuity",
+        );
+      });
+    }
+
     for (const holding of holdings) {
       for (const state of ["signed off", "offline"]) {
-        it(`refuses a ${state} row with ${holding.name}: 403, nothing written, no key handed out`, async () => {
-          const overrides: Partial<Record<string, unknown>> = holding.arrange();
-          jest
-            .spyOn(KubernetesClusterService, "findOneBy")
-            .mockResolvedValue(fakeCluster({ aiAccessRunnerId: RUNNER_ID }));
-          mockRunnerLookups({
-            bound:
-              state === "signed off"
-                ? signedOffAgentRunner(overrides)
-                : offlineAgentRunner(overrides),
-          });
-
-          let thrown: unknown = null;
-
-          try {
-            await KubernetesClusterAiAccessService.registerKubernetesAgentRunner(
-              {
-                projectId: PROJECT_ID,
-                clusterIdentifier: "prod-us",
-                posture: { allowWrites: true },
-              },
-            );
-          } catch (error) {
-            thrown = error;
-          }
-
-          expect(thrown).toBeInstanceOf(ForbiddenException);
-          const message: string = (thrown as Error).message;
-          expect(message).toContain(holding.expectInMessage);
-          expect(message).toContain("delete the Runner");
-          expect(message).not.toContain(CURRENT_KEY);
-
-          expect(runnerUpdates).toHaveLength(0);
-          expect(clusterUpdates).toHaveLength(0);
-          expect(createdRunner).toBeNull();
-          expect(feedItems).toHaveLength(0);
-          expect(String(warnSpy.mock.calls[0]![0])).toContain(
-            "without proof of continuity",
-          );
-        });
+        itRefusesTheUnprovenReKey(holding, state);
       }
     }
 

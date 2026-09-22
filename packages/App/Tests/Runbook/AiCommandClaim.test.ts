@@ -1459,14 +1459,10 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
     jest.restoreAllMocks();
   });
 
-  for (const [label, hostInfo] of [
-    [
-      "with its agent posture",
-      { kubernetes: { inCluster: true, clusterIdentifier: "prod-a" } },
-    ],
-    ["whose heartbeat dropped its posture", {}],
-    ["with no hostInfo at all", undefined],
-  ] as Array<[string, JSONObject | undefined]>) {
+  function testCredentialedJobFailsForAgentRunner(
+    label: string,
+    hostInfo: JSONObject | undefined,
+  ): void {
     test(`fails a credentialed job for an agent Runner ${label}, never resolving the credential`, async () => {
       claimNextJobSpy.mockResolvedValue(
         credentialedKubectlJob(ObjectID.generate().toString()),
@@ -1505,6 +1501,17 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
         "PROD-B-WRITE-SA-TOKEN",
       );
     });
+  }
+
+  for (const [label, hostInfo] of [
+    [
+      "with its agent posture",
+      { kubernetes: { inCluster: true, clusterIdentifier: "prod-a" } },
+    ],
+    ["whose heartbeat dropped its posture", {}],
+    ["with no hostInfo at all", undefined],
+  ] as Array<[string, JSONObject | undefined]>) {
+    testCredentialedJobFailsForAgentRunner(label, hostInfo);
   }
 
   test("fails an SSH job for an agent Runner the same way (no SSH key either)", async () => {

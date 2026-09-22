@@ -444,11 +444,12 @@ describe("KubernetesClusterService AI access feed", () => {
       [{ aiAccessLastError: "forbidden" }],
       [{ lastSeenAt: new Date(), otelCollectorStatus: "connected" }],
       [{ nodeCount: 3 }],
-    ])("a root write of %p posts nothing at all", async (data: object) => {
-      expect(
-        await runUpdate(data as Record<string, unknown>, { isRoot: true }),
-      ).toHaveLength(0);
-    });
+    ])(
+      "a root write of %p posts nothing at all",
+      async (data: Record<string, unknown>) => {
+        expect(await runUpdate(data, { isRoot: true })).toHaveLength(0);
+      },
+    );
   });
 
   it("a rename by a user posts only the generic updated item", async () => {

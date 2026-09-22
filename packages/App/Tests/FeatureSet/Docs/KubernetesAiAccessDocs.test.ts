@@ -80,6 +80,16 @@ const RBAC_COPY: Array<string> = [
   CHART_TEMPLATE,
 ];
 
+// A line continuation left dangling at the end of a command.
+const TRAILING_CONTINUATION_PATTERN: RegExp = /\\\s*$/;
+// The chart version the docs once named; no customer's install carries it.
+const CHART_070_PATTERN: RegExp = /\b0\.7\.0\b/;
+const OUTER_BOUND_PATTERN: RegExp = /outer bound/i;
+// What patch access to workloads amounts to.
+const WORKLOAD_PATCH_EQUIVALENCE_PATTERN: RegExp =
+  /any image as any ServiceAccount/;
+const OWN_NAMESPACE_PATTERN: RegExp = /own namespace/;
+
 function read(filePath: string): string {
   return fs.readFileSync(filePath, "utf8");
 }
@@ -203,7 +213,10 @@ describe("OneUptime AI cluster-access setup commands", () => {
 
       it("never leaves a trailing line continuation", () => {
         for (const block of blocks) {
-          expect({ block, dangling: /\\\s*$/.test(block) }).toEqual({
+          expect({
+            block,
+            dangling: TRAILING_CONTINUATION_PATTERN.test(block),
+          }).toEqual({
             block,
             dangling: false,
           });
@@ -216,7 +229,7 @@ describe("OneUptime AI cluster-access setup commands", () => {
     for (const file of [...SETUP_PAGES, CHART_NOTES, CHART_VALUES]) {
       expect({
         file: relative(file),
-        namesChart070: /\b0\.7\.0\b/.test(read(file)),
+        namesChart070: CHART_070_PATTERN.test(read(file)),
       }).toEqual({ file: relative(file), namesChart070: false });
     }
   });
@@ -227,7 +240,7 @@ describe("OneUptime AI cluster-access RBAC copy", () => {
     for (const file of RBAC_COPY) {
       expect({
         file: relative(file),
-        outerBound: /outer bound/i.test(read(file)),
+        outerBound: OUTER_BOUND_PATTERN.test(read(file)),
       }).toEqual({ file: relative(file), outerBound: false });
     }
   });
@@ -245,7 +258,7 @@ describe("OneUptime AI cluster-access RBAC copy", () => {
       const text: string = read(file).replace(/\s*\n\s*#?\s*/g, " ");
       expect({
         file: relative(file),
-        equivalence: /any image as any ServiceAccount/.test(text),
+        equivalence: WORKLOAD_PATCH_EQUIVALENCE_PATTERN.test(text),
       }).toEqual({ file: relative(file), equivalence: true });
     }
   });
@@ -269,7 +282,7 @@ describe("OneUptime AI cluster-access RBAC copy", () => {
       expect({
         file: relative(file),
         scoped: text.includes("aiAccess.remediation.namespaces"),
-        ownNamespace: /own namespace/.test(text),
+        ownNamespace: OWN_NAMESPACE_PATTERN.test(text),
       }).toEqual({ file: relative(file), scoped: true, ownNamespace: true });
     }
   });

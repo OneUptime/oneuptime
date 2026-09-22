@@ -111,8 +111,10 @@ describe("the kubernetes-agent chart's Runner environment", () => {
   const reservedEnvNames: Array<string> = getReservedEnvNames(template);
 
   it("parses the env block it asserts on", () => {
-    // A guard for the helpers: a template reshuffle that hides the env
-    // block must fail here, not make every assertion below vacuous.
+    /*
+     * A guard for the helpers: a template reshuffle that hides the env
+     * block must fail here, not make every assertion below vacuous.
+     */
     expect(envNames).toContain("ONEUPTIME_URL");
     expect(envNames).toContain("PORT");
     expect(reservedEnvNames.length).toBeGreaterThanOrEqual(envNames.length);

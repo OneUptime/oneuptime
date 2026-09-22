@@ -119,6 +119,7 @@ export const CLUSTER_AI_ACCESS_SELECT: Record<string, boolean> = {
   aiAccessLastVerifiedAt: true,
   aiAccessLastError: true,
   aiAccessConfiguredAt: true,
+  aiAccessRunnerBoundAt: true,
   isArchived: true,
 };
 

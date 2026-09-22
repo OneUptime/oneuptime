@@ -57,6 +57,7 @@ const SERVER_WRITTEN_COLUMNS: Array<string> = [
   "aiAccessLastVerifiedAt",
   "aiAccessLastError",
   "aiAccessConfiguredAt",
+  "aiAccessRunnerBoundAt",
 ];
 
 // The settings that loosen AI access, and so name who may loosen them.

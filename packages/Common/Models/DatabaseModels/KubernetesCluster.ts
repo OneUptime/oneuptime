@@ -1376,4 +1376,43 @@ export default class KubernetesCluster extends BaseModel {
     nullable: true,
   })
   public aiAccessConfiguredAt?: Date = undefined;
+
+  /*
+   * When a Runner was first bound to this cluster for AI access — by the
+   * in-cluster Runner's registration or by anyone selecting a Runner on the
+   * AI page. Only the server writes it and nothing ever clears it.
+   *
+   * aiAccessConfiguredAt alone cannot tell the two cases registration must
+   * treat differently apart: an operator who chose a remediation mode
+   * BEFORE installing the chart (no Runner was ever bound — bind the agent
+   * Runner and keep their switches) and a cluster whose Runner binding was
+   * cleared or whose bound Runner was deleted (a Runner WAS bound — leave
+   * the cluster unbound until someone selects a Runner again).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadKubernetesCluster,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "AI Access Runner Bound At",
+    description:
+      "When a Runner was first bound to this cluster for OneUptime AI access. Set by the server; never cleared, so a cluster whose Runner was cleared or deleted is not silently re-bound when the in-cluster Runner registers again.",
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+  })
+  public aiAccessRunnerBoundAt?: Date = undefined;
 }

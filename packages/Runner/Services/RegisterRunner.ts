@@ -73,6 +73,9 @@ export function getServerReason(data: unknown): string {
   return "";
 }
 
+// A Retry-After header in seconds: digits only.
+const RETRY_AFTER_SECONDS_PATTERN: RegExp = /^\d+$/;
+
 /*
  * How long the server said to wait before trying again: a numeric
  * `retryAfterSeconds` in the body, or an HTTP Retry-After header in seconds.
@@ -94,7 +97,8 @@ function getRetryAfterSeconds(result: HTTPResponse<JSONObject>): number | null {
     const seconds: number =
       typeof candidate === "number"
         ? candidate
-        : typeof candidate === "string" && /^\d+$/.test(candidate.trim())
+        : typeof candidate === "string" &&
+            RETRY_AFTER_SECONDS_PATTERN.test(candidate.trim())
           ? parseInt(candidate.trim(), 10)
           : NaN;
 

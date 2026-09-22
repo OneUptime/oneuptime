@@ -286,11 +286,13 @@ const FLAG_TOKEN_REGEX: RegExp = /^-{1,2}[A-Za-z][A-Za-z0-9_.-]*$/;
  * A flag's value inside one line: a quoted string, or a bare word that is
  * neither the next flag ("-…") nor a marker this module already wrote.
  */
-const INLINE_FLAG_VALUE_SOURCE: string =
-  /("(?:[^"\\]|\\.)*"|'[^']*'|[^\s"'[\-,;&|`\])}][^\s"',;&|`\])}]*)/.source;
+const INLINE_FLAG_VALUE_PATTERN: RegExp =
+  /("(?:[^"\\]|\\.)*"|'[^']*'|[^\s"'[\-,;&|`\])}][^\s"',;&|`\])}]*)/;
+const INLINE_FLAG_VALUE_SOURCE: string = INLINE_FLAG_VALUE_PATTERN.source;
 
 // Where a flag can start inside a line.
-const INLINE_FLAG_BOUNDARY_SOURCE: string = /(^|[\s"'[(,;&|`])/.source;
+const INLINE_FLAG_BOUNDARY_PATTERN: RegExp = /(^|[\s"'[(,;&|`])/;
+const INLINE_FLAG_BOUNDARY_SOURCE: string = INLINE_FLAG_BOUNDARY_PATTERN.source;
 
 /*
  * `--requirepass value` / `-password value` in one line: a command in a
@@ -375,16 +377,24 @@ interface ShortPasswordFlagRegexes {
   separated: RegExp;
 }
 
+// The password glued to a short flag ("-pS3cret"): a bare word.
+const SHORT_PASSWORD_ATTACHED_VALUE_PATTERN: RegExp =
+  /([^\s"'[\-,;&|`\])}][^\s"',;&|`\])}]*)/;
+
+// What separates a short flag from its password: blanks, or a list's ",".
+const SHORT_PASSWORD_SEPARATOR_PATTERN: RegExp =
+  /([ \t]+|"\s*,\s*"|\\"\s*,\s*\\"|'\s*,\s*')/;
+
 function buildShortPasswordFlagRegexes(
   letter: string,
 ): ShortPasswordFlagRegexes {
   return {
     attached: new RegExp(
-      `${INLINE_FLAG_BOUNDARY_SOURCE}(-${letter})${/([^\s"'[\-,;&|`\])}][^\s"',;&|`\])}]*)/.source}`,
+      `${INLINE_FLAG_BOUNDARY_SOURCE}(-${letter})${SHORT_PASSWORD_ATTACHED_VALUE_PATTERN.source}`,
       "g",
     ),
     separated: new RegExp(
-      `${INLINE_FLAG_BOUNDARY_SOURCE}(-${letter})${/([ \t]+|"\s*,\s*"|\\"\s*,\s*\\"|'\s*,\s*')/.source}${INLINE_FLAG_VALUE_SOURCE}`,
+      `${INLINE_FLAG_BOUNDARY_SOURCE}(-${letter})${SHORT_PASSWORD_SEPARATOR_PATTERN.source}${INLINE_FLAG_VALUE_SOURCE}`,
       "g",
     ),
   };
