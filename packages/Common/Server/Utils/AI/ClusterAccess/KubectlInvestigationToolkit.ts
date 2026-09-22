@@ -11,6 +11,7 @@ import {
 import KubectlPolicy, {
   KubectlPolicyResult,
 } from "../../../../Utils/AiRemediation/KubectlPolicy";
+import KubectlOutputRedactor from "../../../../Utils/AiRemediation/KubectlOutputRedactor";
 import KubectlWaitBudget, {
   KubectlWaitBudgetResult,
   MIN_KUBECTL_TIMEOUT_MS,
@@ -48,7 +49,18 @@ import {
  *  - what the model sees. Output reaches it only through the shared
  *    KubectlJobRunner redaction, and Secret reads are refused by the
  *    policy outright, so the tool says both up front instead of letting
- *    the model burn calls finding out.
+ *    the model burn calls finding out;
+ *  - what counts as evidence. A command that never reached kubectl (no
+ *    Runner claimed it, or the server or Runner refused it) is a failed
+ *    tool call: it mints no citation and is not counted as run anywhere.
+ *    A command that ran and exited non-zero is still evidence ("Forbidden",
+ *    "NotFound" are findings), cited with rowCount 0;
+ *  - a per-cluster breaker. The Runner lives in the cluster being
+ *    investigated, so it is most likely to be evicted or crashlooping
+ *    exactly when an investigation needs it, and still reads as online for
+ *    a few minutes. Once one command goes unclaimed, the cluster is
+ *    unreachable for the rest of the run: later commands for it fail at
+ *    once instead of each waiting out another claim window.
  */
 
 export {
@@ -91,9 +103,18 @@ export interface KubectlInvestigationToolkitOptions {
 export default class KubectlInvestigationToolkit {
   private options: KubectlInvestigationToolkitOptions;
   private commandsRun: number = 0;
+  /*
+   * Clusters whose Runner left a command unclaimed in this run, with the
+   * claim window it was given — the breaker described above.
+   */
+  private unreachableClusters: Map<string, number> = new Map<string, number>();
 
   public constructor(options: KubectlInvestigationToolkitOptions) {
     this.options = options;
+  }
+
+  public isClusterUnreachable(clusterId: string): boolean {
+    return this.unreachableClusters.has(clusterId);
   }
 
   public getReadyClusters(): Array<KubernetesClusterAiAccessStatus> {
@@ -144,7 +165,11 @@ export default class KubectlInvestigationToolkit {
               cluster.clusterIdentifier !== cluster.clusterName
                 ? ` (k8s.cluster.name: ${cluster.clusterIdentifier})`
                 : ""
-            } — read-only kubectl via Runner "${cluster.runner?.name}"`;
+            } — ${
+              this.isClusterUnreachable(cluster.clusterId)
+                ? `UNREACHABLE for the rest of this investigation: its Runner "${cluster.runner?.name}" did not pick up an earlier command. Do not call run_kubectl on it again.`
+                : `read-only kubectl via Runner "${cluster.runner?.name}"`
+            }`;
           })
           .join("\n");
 
@@ -249,6 +274,23 @@ export default class KubectlInvestigationToolkit {
       );
     }
 
+    /*
+     * The breaker: checked before the budget is planned, a command is
+     * spent or anything is enqueued, so a dead Runner costs one claim
+     * window per run rather than one per command.
+     */
+    const unreachableClaimWindowMs: number | undefined =
+      this.unreachableClusters.get(cluster.clusterId);
+
+    if (unreachableClaimWindowMs !== undefined) {
+      return this.failure(
+        `Cluster "${cluster.clusterName}"'s Runner did not pick up an earlier command within ${KubectlInvestigationToolkit.describeSeconds(
+          unreachableClaimWindowMs,
+        )}, so the cluster is treated as unreachable for the rest of this investigation. Nothing was run. Do not call run_kubectl on this cluster again: continue with OneUptime telemetry and say in **Cluster access** that the cluster's Runner did not respond.`,
+        `kubectl was not run on cluster "${cluster.clusterName}": its Runner did not pick up an earlier command, so the cluster was unreachable for the rest of this investigation.`,
+      );
+    }
+
     const requestedTimeoutInMs: number = ToolArgs.getNumber(
       args,
       "timeoutInMs",
@@ -280,6 +322,11 @@ export default class KubectlInvestigationToolkit {
       );
     }
 
+    /*
+     * Counted once a job is enqueued, whether or not a Runner then runs
+     * it: the per-investigation cap bounds the Runner work this run can
+     * ask for, not the commands that happened to succeed.
+     */
     this.commandsRun++;
 
     let outcome: KubectlJobOutcome;
@@ -305,6 +352,42 @@ export default class KubectlInvestigationToolkit {
       );
     }
 
+    if (outcome.claimTimedOut === true) {
+      this.unreachableClusters.set(
+        cluster.clusterId,
+        budget.plan.claimTimeoutInMs,
+      );
+
+      return this.failure(
+        `kubectl was NOT run on cluster "${cluster.clusterName}": its Runner did not pick up "${outcome.displayCommand}" within ${KubectlInvestigationToolkit.describeSeconds(
+          budget.plan.claimTimeoutInMs,
+        )} (it may be offline, restarting or busy). The cluster is treated as unreachable for the rest of this investigation — do not call run_kubectl on it again. Continue with OneUptime telemetry and say in **Cluster access** that the cluster's Runner did not respond.`,
+        `kubectl was not run on cluster "${cluster.clusterName}": its Runner did not pick up the command in time.`,
+      );
+    }
+
+    /*
+     * Nothing reached kubectl, so there is nothing to cite: a refusal by
+     * the server or the Runner, a kubectl that could not start, or a
+     * Runner that went silent before running it. The model reads why; the
+     * persisted event carries only the category, because the Runner's
+     * reason can name its configuration and every reader of the incident
+     * sees the event.
+     */
+    if (outcome.executed === false) {
+      const redactedReason: string = KubectlOutputRedactor.redact(
+        outcome.errorMessage || "The job ended without running kubectl.",
+      ).text.trim();
+      const reason: string = /[.!?]$/.test(redactedReason)
+        ? redactedReason
+        : `${redactedReason}.`;
+
+      return this.failure(
+        `No kubectl result came back from cluster "${cluster.clusterName}" for "${outcome.displayCommand}": ${reason} Nothing from this command is evidence. Continue with OneUptime telemetry and mention in **Cluster access** that kubectl could not run.`,
+        `No kubectl result came back from cluster "${cluster.clusterName}": the command was refused, or the Runner did not run it.`,
+      );
+    }
+
     const text: string = KubectlJobRunner.describeForLlm(outcome);
 
     return {
@@ -326,7 +409,17 @@ export default class KubectlInvestigationToolkit {
     return `${Math.max(0, Math.round(milliseconds / 1000))}s`;
   }
 
-  private failure(text: string): ToolCallOutcome {
-    return { success: false, textForLlm: text, errorMessage: text };
+  /*
+   * `errorMessage` is what the run's persisted event (and so every reader
+   * of the incident's investigation panel) carries; it defaults to the
+   * model's text, which is right for failures that name nothing beyond the
+   * command and the cluster.
+   */
+  private failure(text: string, errorMessage?: string): ToolCallOutcome {
+    return {
+      success: false,
+      textForLlm: text,
+      errorMessage: errorMessage ?? text,
+    };
   }
 }

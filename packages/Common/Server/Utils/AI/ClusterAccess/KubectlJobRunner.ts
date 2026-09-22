@@ -41,6 +41,41 @@ const HEARTBEAT_TOUCH_INTERVAL_MS: number = 15_000;
 export const KUBECTL_OUTPUT_TRUNCATED_SUFFIX: string =
   "\n... [output truncated]";
 
+/*
+ * The Runner's own error for a kubectl it spawned and then killed at its
+ * timeout (KubectlExecutor). kubectl ran, so the job reports no exit code
+ * but still counts as executed.
+ */
+export const KUBECTL_KILLED_ON_TIMEOUT_PREFIX: string = "Killed (timeout";
+
+/*
+ * What kubectl prints when it could not reach, authenticate to, or was
+ * not authorized by the API server. Such a failure says something about
+ * the cluster's AI access; every other failure of a command that ran
+ * (NotFound, a bad flag, an unknown resource type) is about the command
+ * the model chose and must not overwrite the cluster's "Last error".
+ * Matched against kubectl's stderr only: stdout is cluster data (pod logs
+ * say "connection refused" all the time).
+ */
+const KUBECTL_ACCESS_ERROR_PATTERNS: Array<RegExp> = [
+  /Error from server \((Forbidden|Unauthorized)\)/,
+  / is forbidden: /,
+  /\(Unauthorized\)/,
+  /You must be logged in to the server/,
+  /the server has asked for the client to provide credentials/,
+  /Unable to connect to the server/,
+  /The connection to the server .+ was refused/,
+  /no configuration has been provided/,
+  /connection refused/,
+  /no such host/,
+  /dial tcp /,
+  /i\/o timeout/,
+  /TLS handshake timeout/,
+  /x509: /,
+  /context deadline exceeded/,
+  /net\/http: request canceled/,
+];
+
 export interface KubectlJobOutcome {
   jobId: string;
   succeeded: boolean;
@@ -55,6 +90,46 @@ export interface KubectlJobOutcome {
   isTruncated?: boolean | undefined;
   errorMessage?: string | undefined;
   displayCommand: string;
+  /*
+   * Whether kubectl actually ran on the cluster. False when the job never
+   * reached kubectl: no Runner claimed it, the server or the Runner refused
+   * it before spawning kubectl, or kubectl could not be started. Such a
+   * command produced no evidence, so it is never cited or counted as run.
+   * Absent on an outcome a caller assembled from its own wait.
+   */
+  executed?: boolean | undefined;
+  /*
+   * True only when no Runner claimed the job within its claim window: the
+   * cluster's Runner is offline, restarting or busy, and the next command
+   * would wait out the same window for nothing.
+   */
+  claimTimedOut?: boolean | undefined;
+  /*
+   * Whether this failure is about the cluster's AI ACCESS (never claimed,
+   * refused by the Runner or the server, timed out, authentication,
+   * authorization or connection errors) rather than about the command
+   * itself. Only access failures become the cluster's "Last error".
+   */
+  isAccessFailure?: boolean | undefined;
+}
+
+// The parts of a terminal RunnerJob that decide how its outcome is read.
+export interface KubectlTerminalJobFacts {
+  status?: RunnerJobStatus | undefined;
+  exitCode?: number | null | undefined;
+  output?: string | null | undefined;
+  errorMessage?: string | null | undefined;
+  /*
+   * Whether the Runner reported the job running (startedAt). Only read for
+   * a TimedOut job, whose row alone cannot say whether kubectl ran.
+   */
+  wasStarted?: boolean | undefined;
+}
+
+interface KubectlJobClaimState {
+  // Undefined when the row could not be re-read: nothing is assumed.
+  wasClaimed: boolean | undefined;
+  wasStarted: boolean;
 }
 
 export interface RedactedKubectlOutput {
@@ -115,6 +190,32 @@ export default class KubectlJobRunner {
 
     const succeeded: boolean = terminalJob.status === RunnerJobStatus.Succeeded;
 
+    /*
+     * A TimedOut row cannot say on its own whether a Runner ever took the
+     * job (the timeout write re-reads it without claimedAt), and that is
+     * the one fact that separates "the Runner is unreachable" from "the
+     * Runner took it and went silent". Read it back from the row rather
+     * than guessing from the reason text.
+     */
+    const claimState: KubectlJobClaimState =
+      terminalJob.status === RunnerJobStatus.TimedOut
+        ? await this.readClaimState(job.id!)
+        : { wasClaimed: true, wasStarted: true };
+
+    const facts: KubectlTerminalJobFacts = {
+      status: terminalJob.status,
+      exitCode: terminalJob.exitCode,
+      output: terminalJob.output,
+      errorMessage: terminalJob.errorMessage,
+      wasStarted: claimState.wasStarted,
+    };
+
+    const executed: boolean = KubectlJobRunner.didKubectlRun(facts);
+    const claimTimedOut: boolean =
+      terminalJob.status === RunnerJobStatus.TimedOut &&
+      claimState.wasClaimed === false;
+    const isAccessFailure: boolean = KubectlJobRunner.isAccessFailure(facts);
+
     const redacted: RedactedKubectlOutput = this.redactAndCap(
       terminalJob.output || "",
     );
@@ -129,20 +230,176 @@ export default class KubectlJobRunner {
       errorMessage: succeeded
         ? undefined
         : this.redactMessage(
-            terminalJob.errorMessage ||
-              `Command ended with status ${terminalJob.status}.`,
+            terminalJob.status === RunnerJobStatus.TimedOut
+              ? KubectlJobRunner.describeTimeout({
+                  wasClaimed: claimState.wasClaimed,
+                  claimTimeoutInMs,
+                  executionTimeoutInMs: data.timeoutInMs,
+                })
+              : terminalJob.errorMessage ||
+                  `Command ended with status ${terminalJob.status}.`,
           ),
       displayCommand,
+      executed,
+      claimTimedOut,
+      isAccessFailure,
     };
 
-    // Best-effort bookkeeping for the cluster's AI page; never throws.
-    await KubernetesClusterAiAccessService.recordCommandOutcome({
-      clusterId: data.kubernetesClusterId,
-      succeeded,
-      errorMessage: outcome.errorMessage,
-    });
+    /*
+     * Best-effort bookkeeping for the cluster's AI page; never throws. A
+     * success proves the access works. A failure is recorded only when it
+     * is about the access: a pod the model guessed wrong (NotFound) says
+     * nothing about the Runner, and must neither become the cluster's
+     * "Last error" nor clear a real one.
+     */
+    if (succeeded || isAccessFailure) {
+      await KubernetesClusterAiAccessService.recordCommandOutcome({
+        clusterId: data.kubernetesClusterId,
+        succeeded,
+        errorMessage: outcome.errorMessage,
+      });
+    }
 
     return outcome;
+  }
+
+  /*
+   * Did kubectl run on the cluster? Decided from what only a spawned
+   * kubectl leaves behind — an exit code, or output — never from reason
+   * text, with one exception: the Runner's own "Killed (timeout …)" for a
+   * kubectl it spawned and killed. A TimedOut job ran only if the Runner
+   * reported it running before it went silent.
+   */
+  public static didKubectlRun(job: KubectlTerminalJobFacts): boolean {
+    if (job.status === RunnerJobStatus.Succeeded) {
+      return true;
+    }
+
+    if (typeof job.exitCode === "number") {
+      return true;
+    }
+
+    if (job.status === RunnerJobStatus.TimedOut) {
+      return job.wasStarted === true;
+    }
+
+    if ((job.output || "").trim().length > 0) {
+      return true;
+    }
+
+    return (job.errorMessage || "").startsWith(
+      KUBECTL_KILLED_ON_TIMEOUT_PREFIX,
+    );
+  }
+
+  /*
+   * Is this failure about the cluster's AI access, rather than about the
+   * command the model chose? Everything that kept kubectl from running is
+   * access (an unclaimed job, a Runner or server refusal, a missing
+   * kubectl); so is a timeout. A kubectl that ran and exited non-zero is
+   * access only when its stderr says it could not reach, authenticate to
+   * or was not authorized by the API server.
+   */
+  public static isAccessFailure(job: KubectlTerminalJobFacts): boolean {
+    if (job.status === RunnerJobStatus.Succeeded) {
+      return false;
+    }
+
+    if (!KubectlJobRunner.didKubectlRun(job)) {
+      return true;
+    }
+
+    if (job.status === RunnerJobStatus.TimedOut) {
+      return true;
+    }
+
+    const errorMessage: string = job.errorMessage || "";
+
+    if (errorMessage.startsWith(KUBECTL_KILLED_ON_TIMEOUT_PREFIX)) {
+      return true;
+    }
+
+    const diagnostics: string = `${KubectlJobRunner.getStderr(
+      job.output || "",
+    )}\n${errorMessage}`;
+
+    return KUBECTL_ACCESS_ERROR_PATTERNS.some((pattern: RegExp) => {
+      return pattern.test(diagnostics);
+    });
+  }
+
+  /*
+   * The Runner joins stdout and stderr as "[stdout]\n…\n[stderr]\n…". Only
+   * stderr is kubectl talking; without the marker there is no stderr to
+   * read, so nothing in the (cluster-authored) output is trusted to
+   * classify the failure.
+   */
+  private static getStderr(output: string): string {
+    const marker: string = "[stderr]\n";
+    const index: number = output.lastIndexOf(marker);
+    return index === -1 ? "" : output.slice(index + marker.length);
+  }
+
+  /*
+   * The kubectl-specific reason for a TimedOut job. pollUntilTerminal's
+   * reasons are worded for runbook steps ("…then try again", "increase the
+   * timeout on the step"): the model would retry, and the cluster's AI page
+   * would show runbook advice as the cluster's last error.
+   */
+  private static describeTimeout(data: {
+    wasClaimed: boolean | undefined;
+    claimTimeoutInMs: number;
+    executionTimeoutInMs: number;
+  }): string {
+    if (data.wasClaimed === false) {
+      return `The cluster's Runner did not pick up this kubectl command within ${KubectlJobRunner.describeSeconds(
+        data.claimTimeoutInMs,
+      )} — it may be offline, restarting or busy with other work. Nothing was run on the cluster.`;
+    }
+
+    return `The Runner did not report a result for this kubectl command in time — it stopped responding, or kubectl outlived its ${KubectlJobRunner.describeSeconds(
+      data.executionTimeoutInMs,
+    )} timeout. What the command did is unknown.`;
+  }
+
+  private static describeSeconds(milliseconds: number): string {
+    return `${Math.max(1, Math.round(milliseconds / 1000))}s`;
+  }
+
+  /*
+   * Whether a Runner ever claimed (and started) the job. Best effort: a
+   * failed read leaves the claim unknown, which trips nothing and claims
+   * nothing ran.
+   */
+  private static async readClaimState(
+    jobId: ObjectID,
+  ): Promise<KubectlJobClaimState> {
+    try {
+      const row: RunnerJob | null = await RunnerJobService.findOneById({
+        id: jobId,
+        select: {
+          _id: true,
+          claimedAt: true,
+          startedAt: true,
+          assignedAgentId: true,
+        },
+        props: { isRoot: true },
+      });
+
+      if (!row) {
+        return { wasClaimed: undefined, wasStarted: false };
+      }
+
+      return {
+        wasClaimed: Boolean(row.claimedAt || row.assignedAgentId),
+        wasStarted: Boolean(row.startedAt),
+      };
+    } catch (error) {
+      logger.error(
+        `kubectl job ${jobId.toString()}: could not read whether a Runner claimed it: ${error}`,
+      );
+      return { wasClaimed: undefined, wasStarted: false };
+    }
   }
 
   /*

@@ -1,5 +1,6 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import type { KubectlActivitySummary } from "../AIChat/ChatActivityFeed";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -21,51 +22,148 @@ import React, { FunctionComponent, ReactElement } from "react";
  *
  * Two different facts live here and are never mixed up:
  *
- *  - What the run DID comes from the run's own events (clusterCommandCount),
- *    so a finished run reports its kubectl usage in the past tense.
+ *  - What the run DID comes from the run's own events (kubectlActivity),
+ *    so a finished run reports its kubectl usage in the past tense — and
+ *    only commands that actually ran on the cluster count as run.
  *  - What the clusters allow NOW comes from clusterAccess, which the API
  *    computes from current configuration at request time. It is always
  *    phrased in the present tense: access switched on or off after a run
  *    finished must not rewrite what that run had.
  */
 
+/*
+ * One cluster's row as the panel receives it. Every reader of the signal
+ * gets these fields; the Runner, credential, allowlist and last error only
+ * reach a viewer who can read the cluster itself, and the notice never
+ * needs them.
+ */
+export type ClusterAccessNoticeRow = Pick<
+  KubernetesClusterAiAccessStatus,
+  | "clusterId"
+  | "clusterName"
+  | "isInvestigationReady"
+  | "isRemediationReady"
+  | "remediationMode"
+  | "gaps"
+> &
+  Partial<KubernetesClusterAiAccessStatus>;
+
 export interface ComponentProps {
-  clusterAccess: Array<KubernetesClusterAiAccessStatus>;
+  clusterAccess: Array<ClusterAccessNoticeRow>;
   // True once the run has finished (completed or failed); false while it runs.
   isRunFinished: boolean;
   /*
-   * kubectl commands the run actually made, counted from its events. Only
-   * read for a finished run. Undefined when the caller cannot tell, in
-   * which case the notice describes the current configuration and makes
-   * no claim about what the run did.
+   * What the run's kubectl calls did, from its events. Only read for a
+   * finished run. Undefined when the caller cannot tell, in which case the
+   * notice describes the current configuration and makes no claim about
+   * what the run did.
    */
-  clusterCommandCount?: number | undefined;
+  kubectlActivity?: KubectlActivitySummary | undefined;
 }
 
 export const DATA_ONLY_RUN_TEXT: string =
   "This investigation used OneUptime data only — no kubectl commands were run.";
 
 /*
+ * How the sentence is presented:
+ *  - "ran": at least one kubectl command completed on the cluster — the
+ *    notice's "had access" styling;
+ *  - "failed": kubectl was tried but nothing completed — a run whose every
+ *    command failed or never ran must not look like one that inspected the
+ *    cluster;
+ *  - "none": the run never tried kubectl.
+ */
+export type FinishedRunKubectlUsageTone = "ran" | "failed" | "none";
+
+export interface FinishedRunKubectlUsage {
+  text: string;
+  tone: FinishedRunKubectlUsageTone;
+}
+
+function pluralizeCommands(count: number): string {
+  return `${count.toLocaleString()} read-only kubectl ${
+    count === 1 ? "command" : "commands"
+  }`;
+}
+
+function toCount(value: number | undefined): number {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.floor(value))
+    : 0;
+}
+
+/*
  * The past-tense sentence for a finished run, or null when the run's own
  * kubectl usage is unknown (older API replicas, or a run whose events have
  * not been loaded) — never guessed from the current configuration.
+ *
+ * "Ran" is only ever said of commands that reached kubectl. Commands that
+ * returned an error, and commands that never ran (the cluster's Runner did
+ * not pick them up, or they were refused), are named separately, so an
+ * unreachable cluster is never reported as inspected.
  */
 export function describeFinishedRunKubectlUsage(
-  clusterCommandCount: number | undefined,
-): string | null {
-  if (typeof clusterCommandCount !== "number") {
+  activity: KubectlActivitySummary | undefined,
+): FinishedRunKubectlUsage | null {
+  if (!activity) {
     return null;
   }
 
-  const count: number = Math.max(0, Math.floor(clusterCommandCount));
+  const executed: number = toCount(activity.executed);
+  const succeeded: number = Math.min(executed, toCount(activity.succeeded));
+  const failed: number = executed - succeeded;
+  const notRun: number = toCount(activity.notRun);
 
-  if (count === 0) {
-    return DATA_ONLY_RUN_TEXT;
+  if (executed === 0 && notRun === 0) {
+    return { text: DATA_ONLY_RUN_TEXT, tone: "none" };
   }
 
-  return `OneUptime AI ran ${count.toLocaleString()} read-only kubectl ${
-    count === 1 ? "command" : "commands"
-  } during this investigation.`;
+  if (executed === 0) {
+    return {
+      text: `OneUptime AI tried ${pluralizeCommands(
+        notRun,
+      )}, but none ran on the cluster — the cluster's Runner did not pick ${
+        notRun === 1 ? "it" : "them"
+      } up, or ${
+        notRun === 1 ? "it was" : "they were"
+      } refused. This investigation used OneUptime data only; see Investigation activity for why.`,
+      tone: "failed",
+    };
+  }
+
+  if (succeeded === 0) {
+    return {
+      text: `OneUptime AI tried ${pluralizeCommands(
+        executed + notRun,
+      )}, but none succeeded — kubectl returned an error for ${
+        executed === 1 ? "the one that ran" : `all ${executed} that ran`
+      }${
+        notRun > 0 ? ` and ${notRun.toLocaleString()} could not run` : ""
+      }. See Investigation activity for each result.`,
+      tone: "failed",
+    };
+  }
+
+  const notes: Array<string> = [];
+
+  if (failed > 0) {
+    notes.push(`${failed.toLocaleString()} returned an error`);
+  }
+
+  if (notRun > 0) {
+    notes.push(`${notRun.toLocaleString()} more could not run`);
+  }
+
+  return {
+    text: `OneUptime AI ran ${pluralizeCommands(
+      executed,
+    )} during this investigation${
+      notes.length > 0
+        ? ` (${notes.join("; ")} — see Investigation activity)`
+        : ""
+    }.`,
+    tone: "ran",
+  };
 }
 
 const KNOWN_MODES: Array<string> = Object.values(KubernetesAiRemediationMode);
@@ -73,7 +171,7 @@ const KNOWN_MODES: Array<string> = Object.values(KubernetesAiRemediationMode);
 // Older API replicas omit the field; malformed rows are dropped, never trusted.
 export function parseClusterAccess(
   value: unknown,
-): Array<KubernetesClusterAiAccessStatus> {
+): Array<ClusterAccessNoticeRow> {
   if (!Array.isArray(value)) {
     return [];
   }
@@ -93,7 +191,31 @@ export function parseClusterAccess(
       KNOWN_MODES.includes(String(status.remediationMode)) &&
       Array.isArray(status.gaps)
     );
-  }) as Array<KubernetesClusterAiAccessStatus>;
+  }) as Array<ClusterAccessNoticeRow>;
+}
+
+/*
+ * The part of the rows this notice renders, for a caller deciding whether
+ * a poll changed anything. The API stamps every row with the time it was
+ * evaluated and the Runner's latest heartbeat, so the raw rows differ on
+ * every poll even when nothing a reader can see did. Gap text is kept in
+ * full: one gap code has several descriptions.
+ */
+export function getClusterAccessSignature(
+  rows: Array<ClusterAccessNoticeRow>,
+): Array<unknown> {
+  return rows.map((row: ClusterAccessNoticeRow): Array<unknown> => {
+    return [
+      row.clusterId,
+      row.clusterName,
+      row.isInvestigationReady,
+      row.isRemediationReady,
+      row.remediationMode,
+      (row.gaps || []).map((gap: KubernetesAiAccessGap): Array<unknown> => {
+        return [gap.code, gap.title, gap.description, gap.nextStep, gap.blocks];
+      }),
+    ];
+  });
 }
 
 function getClusterAiPageRoute(clusterId: string): Route {
@@ -103,7 +225,7 @@ function getClusterAiPageRoute(clusterId: string): Route {
   );
 }
 
-function describeRemediation(status: KubernetesClusterAiAccessStatus): string {
+function describeRemediation(status: ClusterAccessNoticeRow): string {
   if (status.remediationMode === KubernetesAiRemediationMode.Disabled) {
     return "fixes are off";
   }
@@ -125,44 +247,64 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
     return <></>;
   }
 
-  const unreachable: Array<KubernetesClusterAiAccessStatus> =
-    props.clusterAccess.filter((status: KubernetesClusterAiAccessStatus) => {
+  const unreachable: Array<ClusterAccessNoticeRow> = props.clusterAccess.filter(
+    (status: ClusterAccessNoticeRow) => {
       return !status.isInvestigationReady;
-    });
-  const reachable: Array<KubernetesClusterAiAccessStatus> =
-    props.clusterAccess.filter((status: KubernetesClusterAiAccessStatus) => {
+    },
+  );
+  const reachable: Array<ClusterAccessNoticeRow> = props.clusterAccess.filter(
+    (status: ClusterAccessNoticeRow) => {
       return status.isInvestigationReady;
-    });
+    },
+  );
 
-  const finishedRunUsage: string | null = props.isRunFinished
-    ? describeFinishedRunKubectlUsage(props.clusterCommandCount)
+  const finishedRunUsage: FinishedRunKubectlUsage | null = props.isRunFinished
+    ? describeFinishedRunKubectlUsage(props.kubectlActivity)
     : null;
-  const didRunKubectl: boolean =
-    finishedRunUsage !== null && finishedRunUsage !== DATA_ONLY_RUN_TEXT;
+  const didInspectCluster: boolean = finishedRunUsage?.tone === "ran";
+  // Tried kubectl but nothing came back: worth the reader's attention.
+  const didKubectlFail: boolean = finishedRunUsage?.tone === "failed";
 
   return (
     <div className="space-y-2" data-testid="cluster-access-notice">
       {finishedRunUsage ? (
         <div
           data-testid="cluster-access-run-usage"
+          data-tone={finishedRunUsage.tone}
           className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${
-            didRunKubectl
+            didInspectCluster
               ? "border-emerald-200 bg-emerald-50/70"
-              : "border-gray-200 bg-gray-50"
+              : didKubectlFail
+                ? "border-amber-200 bg-amber-50"
+                : "border-gray-200 bg-gray-50"
           }`}
         >
           <Icon
-            icon={didRunKubectl ? IconProp.ShieldCheck : IconProp.Info}
+            icon={
+              didInspectCluster
+                ? IconProp.ShieldCheck
+                : didKubectlFail
+                  ? IconProp.Alert
+                  : IconProp.Info
+            }
             className={`mt-0.5 h-4 w-4 flex-shrink-0 ${
-              didRunKubectl ? "text-emerald-600" : "text-gray-500"
+              didInspectCluster
+                ? "text-emerald-600"
+                : didKubectlFail
+                  ? "text-amber-600"
+                  : "text-gray-500"
             }`}
           />
           <p
             className={`text-xs leading-5 ${
-              didRunKubectl ? "text-emerald-900" : "text-gray-700"
+              didInspectCluster
+                ? "text-emerald-900"
+                : didKubectlFail
+                  ? "text-amber-900"
+                  : "text-gray-700"
             }`}
           >
-            {finishedRunUsage}
+            {finishedRunUsage.text}
           </p>
         </div>
       ) : (
@@ -181,22 +323,20 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
           <p className="text-xs leading-5 text-emerald-900">
             OneUptime AI {props.isRunFinished ? "currently has" : "has"}{" "}
             read-only kubectl access to{" "}
-            {reachable.map(
-              (status: KubernetesClusterAiAccessStatus, index: number) => {
-                return (
-                  <span key={status.clusterId}>
-                    {index > 0 ? ", " : ""}
-                    <Link
-                      to={getClusterAiPageRoute(status.clusterId)}
-                      className="font-medium underline decoration-emerald-300 hover:text-emerald-950"
-                    >
-                      {status.clusterName}
-                    </Link>{" "}
-                    ({describeRemediation(status)})
-                  </span>
-                );
-              },
-            )}
+            {reachable.map((status: ClusterAccessNoticeRow, index: number) => {
+              return (
+                <span key={status.clusterId}>
+                  {index > 0 ? ", " : ""}
+                  <Link
+                    to={getClusterAiPageRoute(status.clusterId)}
+                    className="font-medium underline decoration-emerald-300 hover:text-emerald-950"
+                  >
+                    {status.clusterName}
+                  </Link>{" "}
+                  ({describeRemediation(status)})
+                </span>
+              );
+            })}
             .
           </p>
         </div>
@@ -204,7 +344,7 @@ const ClusterAccessNotice: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {unreachable.map((status: KubernetesClusterAiAccessStatus) => {
+      {unreachable.map((status: ClusterAccessNoticeRow) => {
         const blocking: Array<KubernetesAiAccessGap> = status.gaps.filter(
           (gap: KubernetesAiAccessGap) => {
             return gap.blocks === "investigation" || gap.blocks === "both";

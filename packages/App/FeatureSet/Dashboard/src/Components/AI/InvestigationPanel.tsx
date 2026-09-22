@@ -1,5 +1,7 @@
 import ChatActivityFeed, {
   hasRenderableActivity,
+  KubectlActivitySummary,
+  summarizeKubectlActivity,
 } from "../AIChat/ChatActivityFeed";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageMap from "../../Utils/PageMap";
@@ -7,10 +9,11 @@ import InvestigationReportView from "./InvestigationReport/InvestigationReportVi
 import InvestigationNotStartedCard, {
   parseInvestigationNotStartedReason,
 } from "./InvestigationNotStartedCard";
-import ClusterAccessNotice, { parseClusterAccess } from "./ClusterAccessNotice";
-import { KubernetesClusterAiAccessStatus } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
-import { RUN_KUBECTL_TOOL_NAME } from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
-import AIRunEventType from "Common/Types/AI/AIRunEventType";
+import ClusterAccessNotice, {
+  ClusterAccessNoticeRow,
+  getClusterAccessSignature,
+  parseClusterAccess,
+} from "./ClusterAccessNotice";
 import { EvidenceFocusRequest } from "./InvestigationReport/InvestigationEvidenceList";
 import InvestigationRunDetails, {
   InvestigationRunUsage,
@@ -189,7 +192,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
    * is missing" even for a run that has long finished.
    */
   const [clusterAccess, setClusterAccess] = useState<
-    Array<KubernetesClusterAiAccessStatus>
+    Array<ClusterAccessNoticeRow>
   >([]);
   /*
    * The latest citation chip a reader activated in the report. The run
@@ -446,7 +449,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           (runJson?.["totalTokens"] as number | undefined) || 0;
         const nextErrorMessage: string | null =
           (runJson?.["errorMessage"] as string | undefined) || null;
-        const nextClusterAccess: Array<KubernetesClusterAiAccessStatus> =
+        const nextClusterAccess: Array<ClusterAccessNoticeRow> =
           parseClusterAccess(data["clusterAccess"]);
         const nextSupportsSettledPolling: boolean =
           Object.prototype.hasOwnProperty.call(data, "analysisMarkdown") ||
@@ -568,7 +571,12 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
           nextEvidence,
           nextReferences,
           nextNotInvestigatedReason,
-          nextClusterAccess,
+          /*
+           * What the notice renders, not the raw rows: each row carries the
+           * time it was evaluated and the Runner's latest heartbeat, which
+           * change on every poll and would re-commit the whole panel.
+           */
+          getClusterAccessSignature(nextClusterAccess),
         ]);
         if (signature !== signatureRef.current) {
           signatureRef.current = signature;
@@ -1136,13 +1144,13 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
    */
   const hasActivity: boolean = hasRenderableActivity(events);
 
-  // Completed kubectl calls: shown next to "telemetry queries" in the usage line.
-  const clusterCommandCount: number = events.filter((event: AIRunEvent) => {
-    return (
-      event.eventType === AIRunEventType.ToolCallCompleted &&
-      event.toolName === RUN_KUBECTL_TOOL_NAME
-    );
-  }).length;
+  /*
+   * What the run's kubectl calls did — ran (and whether kubectl succeeded)
+   * or never ran — for the notice and the usage line, which count kubectl
+   * apart from telemetry queries.
+   */
+  const kubectlActivity: KubectlActivitySummary =
+    summarizeKubectlActivity(events);
 
   const statusBadge: ReactElement = (
     <span
@@ -1211,7 +1219,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             <ClusterAccessNotice
               clusterAccess={clusterAccess}
               isRunFinished={true}
-              clusterCommandCount={clusterCommandCount}
+              kubectlActivity={kubectlActivity}
             />
             {analysisMarkdown && parsedReport ? (
               <InvestigationReportView
@@ -1273,7 +1281,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               }
               events={events}
               usage={stats}
-              clusterCommandCount={clusterCommandCount}
+              kubectlActivity={kubectlActivity}
               modelName={modelName}
               subjectType={subjectType}
               subjectId={subjectIdString}
@@ -1325,11 +1333,9 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
                     ? "The steps this run completed before it stopped."
                     : isQueued
                       ? "Waiting for a worker to pick this up. Steps appear here the moment it starts."
-                      : clusterAccess.some(
-                            (status: KubernetesClusterAiAccessStatus) => {
-                              return status.isInvestigationReady;
-                            },
-                          )
+                      : clusterAccess.some((status: ClusterAccessNoticeRow) => {
+                            return status.isInvestigationReady;
+                          })
                         ? "Reading this project's telemetry and running read-only kubectl on the cluster, narrating every step. Nothing is changed."
                         : "Reading this project's own telemetry and narrating every step. Read-only — nothing is changed."}
                 </p>
@@ -1349,7 +1355,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
               <ClusterAccessNotice
                 clusterAccess={clusterAccess}
                 isRunFinished={isFailed}
-                clusterCommandCount={clusterCommandCount}
+                kubectlActivity={kubectlActivity}
               />
               {hasActivity ? (
                 <ChatActivityFeed
@@ -1374,7 +1380,7 @@ const InvestigationPanel: FunctionComponent<ComponentProps> = (
             {!isActive && stats ? (
               <InvestigationUsageLine
                 usage={stats}
-                clusterCommandCount={clusterCommandCount}
+                kubectlActivity={kubectlActivity}
                 className="border-t border-gray-200 bg-gray-50/70 px-5 py-3"
               />
             ) : (

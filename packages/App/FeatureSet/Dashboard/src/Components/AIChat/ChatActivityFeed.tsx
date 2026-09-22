@@ -1,8 +1,102 @@
 import AIRunEvent from "Common/Models/DatabaseModels/AIRunEvent";
 import AIRunEventType from "Common/Types/AI/AIRunEventType";
 import IconProp from "Common/Types/Icon/IconProp";
+import {
+  LIST_CLUSTER_ACCESS_TOOL_NAME,
+  RUN_KUBECTL_TOOL_NAME,
+} from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
 import Icon from "Common/UI/Components/Icon/Icon";
 import React, { FunctionComponent, ReactElement } from "react";
+
+/*
+ * The AI tools that reach a Kubernetes cluster rather than the project's
+ * telemetry. Their calls are never "telemetry queries".
+ */
+export const CLUSTER_TOOL_NAMES: ReadonlyArray<string> = [
+  RUN_KUBECTL_TOOL_NAME,
+  LIST_CLUSTER_ACCESS_TOOL_NAME,
+];
+
+export function isClusterToolName(toolName: string | undefined): boolean {
+  return CLUSTER_TOOL_NAMES.includes(toolName || "");
+}
+
+/*
+ * What an investigation's kubectl calls actually did, read from the run's
+ * own events. The server records a command that reached kubectl as a
+ * completed call (rowCount 1 when it succeeded, 0 when kubectl returned an
+ * error) and a command that never reached kubectl — refused, never picked
+ * up by the cluster's Runner, or out of budget — as a failed call, so the
+ * two are never confused for one another.
+ */
+export interface KubectlActivitySummary {
+  // run_kubectl calls that ran on the cluster.
+  executed: number;
+  // Of those, the ones kubectl completed without an error.
+  succeeded: number;
+  // run_kubectl calls that did not run at all.
+  notRun: number;
+  /*
+   * Every cluster tool call started (run_kubectl and list_cluster_access),
+   * which the run's toolCallCount includes and "telemetry queries" must not.
+   */
+  clusterToolCalls: number;
+}
+
+/*
+ * Counted over the latest attempt only (the events after the last
+ * RunStarted), the same span the report, its evidence and the run's
+ * counters describe: a retried run keeps its earlier attempts' events.
+ */
+export function summarizeKubectlActivity(
+  events: Array<AIRunEvent>,
+): KubectlActivitySummary {
+  let latestRunStartedIndex: number = -1;
+  events.forEach((event: AIRunEvent, index: number): void => {
+    if (event.eventType === AIRunEventType.RunStarted) {
+      latestRunStartedIndex = index;
+    }
+  });
+
+  const summary: KubectlActivitySummary = {
+    executed: 0,
+    succeeded: 0,
+    notRun: 0,
+    clusterToolCalls: 0,
+  };
+
+  events.forEach((event: AIRunEvent, index: number): void => {
+    if (index < latestRunStartedIndex) {
+      return;
+    }
+
+    if (
+      event.eventType === AIRunEventType.ToolCallStarted &&
+      isClusterToolName(event.toolName)
+    ) {
+      summary.clusterToolCalls++;
+      return;
+    }
+
+    if (event.toolName !== RUN_KUBECTL_TOOL_NAME) {
+      return;
+    }
+
+    if (event.eventType === AIRunEventType.ToolCallCompleted) {
+      summary.executed++;
+      if ((event.resultSummary?.rowCount ?? 0) > 0) {
+        summary.succeeded++;
+      }
+      return;
+    }
+
+    if (event.eventType === AIRunEventType.ToolCallFailed) {
+      summary.notRun++;
+    }
+  });
+
+  return summary;
+}
 
 export interface ComponentProps {
   events: Array<AIRunEvent>;
@@ -113,7 +207,15 @@ function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
         const durationInMs: number | undefined =
           event.resultSummary?.durationInMs;
         const parts: Array<string> = [];
-        if (rowCount !== undefined) {
+        /*
+         * A kubectl command has no rows: rowCount only says whether kubectl
+         * completed (1) or ran and returned an error (0).
+         */
+        const isKubectl: boolean = event.toolName === RUN_KUBECTL_TOOL_NAME;
+        const kubectlFailed: boolean = isKubectl && (rowCount ?? 0) === 0;
+        if (isKubectl) {
+          parts.push(kubectlFailed ? "kubectl returned an error" : "succeeded");
+        } else if (rowCount !== undefined) {
           parts.push(`${rowCount} ${rowCount === 1 ? "row" : "rows"}`);
         }
         if (durationInMs !== undefined) {
@@ -122,14 +224,20 @@ function buildSteps(events: Array<AIRunEvent>): Array<ActivityStep> {
         completeLastRunning(
           friendlyToolName(event.toolName),
           parts.join(" · ") || undefined,
-          false,
+          kubectlFailed,
         );
         break;
       }
       case AIRunEventType.ToolCallFailed:
         completeLastRunning(
           friendlyToolName(event.toolName),
-          "did not succeed — retrying differently",
+          /*
+           * A failed kubectl call never reached the cluster: say so rather
+           * than implying it ran and will be retried.
+           */
+          event.toolName === RUN_KUBECTL_TOOL_NAME
+            ? "did not run on the cluster"
+            : "did not succeed — retrying differently",
           true,
         );
         break;

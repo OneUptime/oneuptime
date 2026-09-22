@@ -39,7 +39,7 @@ export default class ClusterAccessContext {
           })
           .join(
             ", ",
-          )}. Use run_kubectl for READ-ONLY inspection — kubectl get/describe/events/logs/top/rollout status — the way an on-call engineer would open a terminal: describe the failing pod, read its recent events, check node capacity and pending-pod reasons, tail the crashing container's logs. Prefer direct cluster inspection over guessing from metrics when the two disagree. Every run_kubectl result is cited like any other tool result. Reading Secrets is refused and credential-looking values (Secret data, passwords, tokens, keys) are redacted from every output before you see it — never ask for them and never treat a redaction marker as a finding.`,
+          )}. Use run_kubectl for READ-ONLY inspection — kubectl get/describe/events/logs/top/rollout status — the way an on-call engineer would open a terminal: describe the failing pod, read its recent events, check node capacity and pending-pod reasons, tail the crashing container's logs. Prefer direct cluster inspection over guessing from metrics when the two disagree. Every kubectl command that ran is cited like any other tool result; a command that could not run comes back as an error, is not evidence, and must never be described as inspected. The Runner that runs kubectl lives in the cluster and can itself be down: if run_kubectl says a cluster's Runner did not pick up a command, that cluster is unreachable for the rest of this investigation — do not call run_kubectl on it again, continue with OneUptime telemetry, and say so in your report. Reading Secrets is refused and credential-looking values (Secret data, passwords, tokens, keys) are redacted from every output before you see it — never ask for them and never treat a redaction marker as a finding.`,
       );
     }
 
@@ -62,7 +62,7 @@ export default class ClusterAccessContext {
     }
 
     lines.push(
-      `Add a section **${ClusterAccessContext.REPORT_SECTION_HEADING}** before Suggested next steps: one or two sentences on what you inspected directly on the cluster (or that you could not, and that the human should set up AI access on the cluster's AI page).`,
+      `Add a section **${ClusterAccessContext.REPORT_SECTION_HEADING}** before Suggested next steps: one or two sentences on what you inspected directly on the cluster (or that you could not — access not set up, or the cluster's Runner not responding — and that the human should check the cluster's AI page).`,
     );
 
     return lines.join("\n");

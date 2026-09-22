@@ -154,6 +154,27 @@ describe("ClusterAccessContext", () => {
     );
   });
 
+  /*
+   * The in-cluster Runner can be down exactly when the cluster is in
+   * trouble. The model must know that a command which did not run is not
+   * evidence, and that an unresponsive Runner means "stop trying kubectl
+   * on that cluster" rather than "try again".
+   */
+  it("tells the model a command that did not run is not evidence, and to stop on an unresponsive Runner", () => {
+    const addendum: string = ClusterAccessContext.buildPersonaAddendum([
+      status(),
+    ]);
+
+    expect(addendum).toContain("Every kubectl command that ran is cited");
+    expect(addendum).toContain(
+      "a command that could not run comes back as an error, is not evidence",
+    );
+    expect(addendum).toContain("did not pick up a command");
+    expect(addendum).toContain("do not call run_kubectl on it again");
+    expect(addendum).not.toContain("try again");
+    expect(addendum).toContain("the cluster's Runner not responding");
+  });
+
   it("describes missing access for humans with the first blocking gap and its next step", () => {
     const text: string = ClusterAccessContext.describeMissingAccessForHumans(
       status({

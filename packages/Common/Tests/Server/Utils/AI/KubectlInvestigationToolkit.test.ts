@@ -17,6 +17,7 @@ import RunnerJobService from "../../../../Server/Services/RunnerJobService";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import RunnerJobOrigin from "../../../../Types/Runbook/RunnerJobOrigin";
 import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
+import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import {
   DEFAULT_KUBECTL_TIMEOUT_MS,
   KubernetesAiRemediationMode,
@@ -52,7 +53,10 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   wait ends before the run's wall-clock deadline, and a command the
  *   budget can no longer hold is refused before anything is enqueued;
  * - a job failure becomes a tool failure the model can continue from,
- *   never a thrown error that kills the investigation.
+ *   never a thrown error that kills the investigation;
+ * - only a command that reached kubectl is evidence (cited, counted as
+ *   run); one that never ran is a failed call, and one no Runner claimed
+ *   makes its cluster unreachable for the rest of the run.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -355,17 +359,60 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
     ).toBe("55555555-5555-4555-8555-555555555555");
   });
 
-  it("turns a failed job into a tool failure the model can continue from", async () => {
+  /*
+   * A kubectl that ran and exited non-zero is still evidence ("NotFound",
+   * "Forbidden" are findings): a completed, cited tool call with rowCount 0
+   * the model can continue from — never a thrown error.
+   */
+  it("keeps a command that ran and failed as cited evidence with rowCount 0", async () => {
+    jest.spyOn(RunnerJobService, "enqueueAiKubectlCommand").mockResolvedValue(
+      fakeJob({
+        payload: { displayCommand: "kubectl describe pod web-7d9f-abc -n web" },
+      }),
+    );
+    jest.spyOn(RunnerJobService, "pollUntilTerminal").mockResolvedValue(
+      fakeJob({
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        errorMessage: "Exit code 1",
+        output:
+          '[stderr]\nError from server (NotFound): pods "web-7d9f-abc" not found',
+      }),
+    );
+
+    const outcome: ToolCallOutcome = await getTool(
+      new KubectlInvestigationToolkit({
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        clusters: [readyCluster()],
+      }),
+      RUN_KUBECTL_TOOL_NAME,
+    ).execute({
+      clusterId: CLUSTER_ID.toString(),
+      command: "kubectl describe pod web-7d9f-abc -n web",
+      rationale: "see why it is pending",
+    });
+
+    expect(outcome.success).toBe(true);
+    expect(outcome.result?.rowCount).toBe(0);
+    expect(outcome.result?.citationLabel).toBe(
+      'kubectl describe pod web-7d9f-abc -n web on cluster "prod-us"',
+    );
+    expect(outcome.textForLlm).toContain("FAILED (exit code: 1");
+    expect(outcome.textForLlm).toContain("NotFound");
+  });
+
+  /*
+   * The contract the investigation panel counts from: a command that ran
+   * is a completed call whose rowCount says whether kubectl succeeded.
+   */
+  it("reports rowCount 1 for a command that succeeded", async () => {
     jest
       .spyOn(RunnerJobService, "enqueueAiKubectlCommand")
       .mockResolvedValue(fakeJob());
-    jest.spyOn(RunnerJobService, "pollUntilTerminal").mockResolvedValue(
-      fakeJob({
-        status: RunnerJobStatus.TimedOut,
-        errorMessage: "No runbook agent picked up this step",
-        output: "",
-      }),
-    );
+    jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockResolvedValue(fakeJob());
 
     const outcome: ToolCallOutcome = await getTool(
       new KubectlInvestigationToolkit({
@@ -380,13 +427,8 @@ describe("KubectlInvestigationToolkit run_kubectl", () => {
       rationale: "see pod phases",
     });
 
-    // The command ran (or tried to): success with a FAILED body, not a throw.
     expect(outcome.success).toBe(true);
-    expect(outcome.textForLlm).toContain("FAILED");
-    expect(outcome.textForLlm).toContain("No runbook agent picked up");
-    expect(recordOutcome).toHaveBeenCalledWith(
-      expect.objectContaining({ succeeded: false }),
-    );
+    expect(outcome.result?.rowCount).toBe(1);
   });
 
   it("reports an enqueue error as a tool failure instead of throwing", async () => {
@@ -1059,5 +1101,493 @@ describe("KubectlJobRunner.describeForLlm", () => {
     });
 
     expect(text).toContain(redacted.text);
+  });
+});
+
+/*
+ * A command that never reached kubectl — no Runner claimed it, or the
+ * server or the Runner refused it before spawning kubectl — produced no
+ * evidence. It is a FAILED tool call (no citation, so the agent loop emits
+ * tool_failed and the panel never counts it as run), and an unclaimed one
+ * trips a per-cluster breaker so later commands for that cluster fail at
+ * once instead of each waiting out another claim window.
+ */
+describe("KubectlInvestigationToolkit run_kubectl when kubectl never ran", () => {
+  const OTHER_CLUSTER_ID: ObjectID = new ObjectID(
+    "77777777-7777-4777-8777-777777777777",
+  );
+  const OTHER_RUNNER_ID: ObjectID = new ObjectID(
+    "99999999-9999-4999-8999-999999999999",
+  );
+  const UNCLAIMED_REASON: string =
+    "No runbook agent picked up this step before the wait window expired. The agent may be offline — check that it is running and reachable, then try again.";
+
+  let enqueue: jest.SpyInstance;
+  let poll: jest.SpyInstance;
+  let claimRead: jest.SpyInstance;
+  let recordOutcome: jest.SpyInstance;
+
+  // What RunnerJobService.timeoutJob hands back: no claimedAt selected.
+  function timedOutJob(): RunnerJob {
+    return fakeJob({
+      status: RunnerJobStatus.TimedOut,
+      exitCode: undefined,
+      output: "",
+      errorMessage: UNCLAIMED_REASON,
+    });
+  }
+
+  // The claim columns of the row, as KubectlJobRunner re-reads them.
+  function claimRow(overrides: Partial<Record<string, unknown>>): RunnerJob {
+    return { _id: JOB_ID.toString(), ...overrides } as unknown as RunnerJob;
+  }
+
+  function singleClusterToolkit(): KubectlInvestigationToolkit {
+    return new KubectlInvestigationToolkit({
+      projectId: PROJECT_ID,
+      aiRunId: RUN_ID,
+      clusters: [readyCluster()],
+    });
+  }
+
+  function twoClusterToolkit(): KubectlInvestigationToolkit {
+    return new KubectlInvestigationToolkit({
+      projectId: PROJECT_ID,
+      aiRunId: RUN_ID,
+      clusters: [
+        readyCluster(),
+        readyCluster({
+          clusterId: OTHER_CLUSTER_ID.toString(),
+          clusterName: "prod-eu",
+          clusterIdentifier: "prod-eu",
+          runner: {
+            id: OTHER_RUNNER_ID.toString(),
+            name: "kubernetes-agent/prod-eu",
+            isOnline: true,
+            canRunAiCommands: true,
+            posture: { inCluster: true, allowWrites: false },
+          },
+        }),
+      ],
+    });
+  }
+
+  async function runOn(
+    toolkit: KubectlInvestigationToolkit,
+    clusterId: ObjectID = CLUSTER_ID,
+    command: string = "kubectl get pods -n web",
+  ): Promise<ToolCallOutcome> {
+    return getTool(toolkit, RUN_KUBECTL_TOOL_NAME).execute({
+      clusterId: clusterId.toString(),
+      command,
+      rationale: "see pod phases",
+    });
+  }
+
+  beforeEach(() => {
+    jest
+      .spyOn(AIRunService, "updateOneBy")
+      .mockResolvedValue(undefined as never);
+    recordOutcome = jest
+      .spyOn(KubernetesClusterAiAccessService, "recordCommandOutcome")
+      .mockResolvedValue(undefined);
+    enqueue = jest
+      .spyOn(RunnerJobService, "enqueueAiKubectlCommand")
+      .mockResolvedValue(fakeJob());
+    poll = jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockResolvedValue(timedOutJob());
+    // Never claimed: no claimedAt, no assignedAgentId, no startedAt.
+    claimRead = jest
+      .spyOn(RunnerJobService, "findOneById")
+      .mockResolvedValue(claimRow({}));
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("reports an unclaimed job as a failed call with no citation, never as run", async () => {
+    const toolkit: KubectlInvestigationToolkit = singleClusterToolkit();
+
+    const outcome: ToolCallOutcome = await runOn(toolkit);
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.result).toBeUndefined();
+    expect(outcome.textForLlm).toContain(
+      'kubectl was NOT run on cluster "prod-us"',
+    );
+    expect(outcome.textForLlm).toContain("did not pick up");
+    expect(outcome.textForLlm).toContain("Continue with OneUptime telemetry");
+    // The runbook wording invites a retry; the model must be told not to.
+    expect(outcome.textForLlm).not.toContain("try again");
+    expect(outcome.textForLlm).not.toContain("runbook");
+    expect(outcome.textForLlm).toContain("do not call run_kubectl on it again");
+    // The persisted event names the cluster and nothing about its Runner.
+    expect(outcome.errorMessage).toBe(
+      'kubectl was not run on cluster "prod-us": its Runner did not pick up the command in time.',
+    );
+    // The claim state was read from the row, not guessed from the reason.
+    expect(claimRead).toHaveBeenCalledTimes(1);
+    expect(
+      (claimRead.mock.calls[0]![0] as { select: Record<string, boolean> })
+        .select,
+    ).toEqual(
+      expect.objectContaining({
+        claimedAt: true,
+        startedAt: true,
+        assignedAgentId: true,
+      }),
+    );
+    // A job was enqueued, so it counts against the per-run cap.
+    expect(toolkit.getCommandsRun()).toBe(1);
+  });
+
+  it("trips a per-cluster breaker: the next command fails at once, enqueues nothing and spends nothing", async () => {
+    const toolkit: KubectlInvestigationToolkit = singleClusterToolkit();
+
+    await runOn(toolkit);
+    expect(toolkit.isClusterUnreachable(CLUSTER_ID.toString())).toBe(true);
+
+    const plan: jest.SpyInstance = jest.spyOn(KubectlWaitBudget, "plan");
+    const second: ToolCallOutcome = await runOn(
+      toolkit,
+      CLUSTER_ID,
+      "kubectl get events -n web",
+    );
+
+    expect(second.success).toBe(false);
+    expect(second.result).toBeUndefined();
+    expect(second.textForLlm).toContain(
+      "treated as unreachable for the rest of this investigation",
+    );
+    expect(second.textForLlm).toContain(
+      `within ${Math.round(KUBECTL_CLAIM_TIMEOUT_MS / 1000)}s`,
+    );
+    expect(second.textForLlm).toContain("Nothing was run");
+    expect(second.textForLlm).toContain("continue with OneUptime telemetry");
+    expect(second.errorMessage).toContain(
+      'kubectl was not run on cluster "prod-us"',
+    );
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(poll).toHaveBeenCalledTimes(1);
+    expect(plan).not.toHaveBeenCalled();
+    expect(toolkit.getCommandsRun()).toBe(1);
+  });
+
+  it("marks the unreachable cluster in list_cluster_access", async () => {
+    const toolkit: KubectlInvestigationToolkit = twoClusterToolkit();
+
+    await runOn(toolkit);
+
+    const listing: ToolCallOutcome = await getTool(
+      toolkit,
+      LIST_CLUSTER_ACCESS_TOOL_NAME,
+    ).execute({});
+
+    const lines: Array<string> = listing.textForLlm.split("\n");
+    expect(lines[0]).toContain('"prod-us"');
+    expect(lines[0]).toContain(
+      "UNREACHABLE for the rest of this investigation",
+    );
+    expect(lines[1]).toContain('"prod-eu"');
+    expect(lines[1]).toContain(
+      'read-only kubectl via Runner "kubernetes-agent/prod-eu"',
+    );
+  });
+
+  it("keeps the breaker per cluster: another ready cluster still runs", async () => {
+    const toolkit: KubectlInvestigationToolkit = twoClusterToolkit();
+
+    await runOn(toolkit, CLUSTER_ID);
+    poll.mockResolvedValue(fakeJob());
+
+    const other: ToolCallOutcome = await runOn(toolkit, OTHER_CLUSTER_ID);
+
+    expect(other.success).toBe(true);
+    expect(other.result?.rowCount).toBe(1);
+    expect(enqueue).toHaveBeenCalledTimes(2);
+    expect(
+      (
+        (enqueue.mock.calls[1]![0] as Record<string, unknown>)[
+          "kubernetesClusterId"
+        ] as ObjectID
+      ).toString(),
+    ).toBe(OTHER_CLUSTER_ID.toString());
+    expect(toolkit.isClusterUnreachable(OTHER_CLUSTER_ID.toString())).toBe(
+      false,
+    );
+  });
+
+  it("reports the claim window actually planned for the command", async () => {
+    const NOW_MS: number = 1_700_000_000_000;
+    jest.spyOn(Date, "now").mockReturnValue(NOW_MS);
+    const toolkit: KubectlInvestigationToolkit =
+      new KubectlInvestigationToolkit({
+        projectId: PROJECT_ID,
+        aiRunId: RUN_ID,
+        clusters: [readyCluster()],
+        runDeadlineAtMs: NOW_MS + 40_000,
+      });
+
+    const outcome: ToolCallOutcome = await runOn(toolkit);
+
+    expect(outcome.textForLlm).toContain(
+      `within ${Math.round(MIN_KUBECTL_CLAIM_TIMEOUT_MS / 1000)}s`,
+    );
+  });
+
+  /*
+   * Negative controls: only a job no Runner ever took trips the breaker. A
+   * kubectl that ran and failed, or a Runner that took the job and went
+   * silent, leaves the cluster reachable.
+   */
+  it("does not trip the breaker for a command that ran and exited non-zero", async () => {
+    poll.mockResolvedValue(
+      fakeJob({
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        errorMessage: "Exit code 1",
+        output: '[stderr]\nError from server (NotFound): pods "x" not found',
+      }),
+    );
+    const toolkit: KubectlInvestigationToolkit = singleClusterToolkit();
+
+    expect((await runOn(toolkit)).success).toBe(true);
+    expect((await runOn(toolkit)).success).toBe(true);
+
+    expect(enqueue).toHaveBeenCalledTimes(2);
+    expect(toolkit.isClusterUnreachable(CLUSTER_ID.toString())).toBe(false);
+    // The Failed row is read as it is; only a TimedOut row is re-read.
+    expect(claimRead).not.toHaveBeenCalled();
+  });
+
+  it("does not trip the breaker when a Runner claimed the job and then went silent", async () => {
+    claimRead.mockResolvedValue(
+      claimRow({
+        claimedAt: new Date("2026-09-22T10:00:00.000Z"),
+        assignedAgentId: RUNNER_ID,
+        startedAt: new Date("2026-09-22T10:00:01.000Z"),
+      }),
+    );
+    const toolkit: KubectlInvestigationToolkit = singleClusterToolkit();
+
+    const first: ToolCallOutcome = await runOn(toolkit);
+    await runOn(toolkit);
+
+    expect(enqueue).toHaveBeenCalledTimes(2);
+    expect(toolkit.isClusterUnreachable(CLUSTER_ID.toString())).toBe(false);
+    // It ran: a completed (cited) call with a FAILED body and rowCount 0.
+    expect(first.success).toBe(true);
+    expect(first.result?.rowCount).toBe(0);
+    expect(first.textForLlm).toContain("did not report a result");
+    expect(first.textForLlm).not.toContain("runbook");
+    expect(first.textForLlm).not.toContain("try again");
+  });
+
+  it("does not trip the breaker when the claim state cannot be read", async () => {
+    claimRead.mockRejectedValue(new Error("database unavailable"));
+    const toolkit: KubectlInvestigationToolkit = singleClusterToolkit();
+
+    const outcome: ToolCallOutcome = await runOn(toolkit);
+
+    // Nothing is known to have run, so nothing is cited...
+    expect(outcome.success).toBe(false);
+    expect(outcome.result).toBeUndefined();
+    // ...but nothing is known to be unreachable either.
+    expect(toolkit.isClusterUnreachable(CLUSTER_ID.toString())).toBe(false);
+    await runOn(toolkit);
+    expect(enqueue).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    [
+      "the claim-time credential refusal",
+      "The credential this step references is not available to this Runner. Check that it exists and that this Runner is assigned to it.",
+    ],
+    [
+      "the Runner's cluster refusal",
+      'Refused by the Runner: this kubectl command targets cluster "prod-us" but this Runner is the Kubernetes agent of cluster "staging" and only runs credential-less kubectl for its own cluster.',
+    ],
+    [
+      "a missing kubectl",
+      "kubectl is not installed on this Runner. Use the oneuptime/runner image (which bundles kubectl) or install kubectl on the host.",
+    ],
+  ])(
+    "reports %s as a failed call with no citation",
+    async (_label: string, refusal: string) => {
+      poll.mockResolvedValue(
+        fakeJob({
+          status: RunnerJobStatus.Failed,
+          exitCode: undefined,
+          output: "",
+          errorMessage: refusal,
+          claimedAt: new Date("2026-09-22T10:00:00.000Z"),
+        }),
+      );
+      const toolkit: KubectlInvestigationToolkit = singleClusterToolkit();
+
+      const outcome: ToolCallOutcome = await runOn(toolkit);
+
+      expect(outcome.success).toBe(false);
+      expect(outcome.result).toBeUndefined();
+      expect(outcome.textForLlm).toContain(
+        'No kubectl result came back from cluster "prod-us"',
+      );
+      // The model reads why; the persisted event carries only the category.
+      expect(outcome.textForLlm).toContain(refusal.slice(0, 40));
+      expect(outcome.errorMessage).toBe(
+        'No kubectl result came back from cluster "prod-us": the command was refused, or the Runner did not run it.',
+      );
+      // A refusal is fast, not a dead Runner: the breaker stays open.
+      expect(toolkit.isClusterUnreachable(CLUSTER_ID.toString())).toBe(false);
+      // A refusal is an access problem, so the cluster's page shows it.
+      expect(recordOutcome).toHaveBeenCalledWith(
+        expect.objectContaining({ succeeded: false }),
+      );
+    },
+  );
+
+  it("keeps a kubectl the Runner killed at its timeout as a command that ran", async () => {
+    poll.mockResolvedValue(
+      fakeJob({
+        status: RunnerJobStatus.Failed,
+        exitCode: undefined,
+        output: "",
+        errorMessage: "Killed (timeout 30000ms)",
+      }),
+    );
+
+    const outcome: ToolCallOutcome = await runOn(singleClusterToolkit());
+
+    expect(outcome.success).toBe(true);
+    expect(outcome.result?.rowCount).toBe(0);
+    expect(outcome.textForLlm).toContain("Killed (timeout 30000ms)");
+  });
+});
+
+/*
+ * The AIRun heartbeat: a kubectl wait can outlast the stale-run sweeper's
+ * window, so the run is touched while the command is in flight — and never
+ * after, whether the wait resolved or threw.
+ */
+describe("KubectlJobRunner keeps the AI run alive while it waits", () => {
+  let touch: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    touch = jest
+      .spyOn(AIRunService, "updateOneBy")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(KubernetesClusterAiAccessService, "recordCommandOutcome")
+      .mockResolvedValue(undefined);
+    jest
+      .spyOn(RunnerJobService, "enqueueAiKubectlCommand")
+      .mockResolvedValue(fakeJob());
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+    jest.restoreAllMocks();
+  });
+
+  function runOnce(): Promise<unknown> {
+    return KubectlJobRunner.run({
+      projectId: PROJECT_ID,
+      aiRunId: RUN_ID,
+      origin: RunnerJobOrigin.AiInvestigation,
+      kubernetesClusterId: CLUSTER_ID,
+      targetRunnerId: RUNNER_ID,
+      command: "kubectl get pods -n web",
+      stepId: "ai-investigation-kubectl-1",
+      timeoutInMs: DEFAULT_KUBECTL_TIMEOUT_MS,
+    });
+  }
+
+  /*
+   * pollUntilTerminal held open until the test settles it; `polled`
+   * resolves once the wait has started (the heartbeat timer is armed just
+   * before it), so the fake clock only moves while a command is in flight.
+   */
+  function holdPoll(): {
+    polled: Promise<void>;
+    settle: (job: RunnerJob) => void;
+    fail: (error: Error) => void;
+  } {
+    let markPolled: () => void = (): void => {};
+    const polled: Promise<void> = new Promise<void>(
+      (resolve: () => void): void => {
+        markPolled = resolve;
+      },
+    );
+    const handles: {
+      settle: (job: RunnerJob) => void;
+      fail: (error: Error) => void;
+    } = { settle: (): void => {}, fail: (): void => {} };
+
+    jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockImplementation((): Promise<RunnerJob> => {
+        markPolled();
+        return new Promise<RunnerJob>(
+          (
+            resolve: (job: RunnerJob) => void,
+            reject: (error: Error) => void,
+          ): void => {
+            handles.settle = resolve;
+            handles.fail = reject;
+          },
+        );
+      });
+
+    return {
+      polled,
+      settle: (job: RunnerJob): void => {
+        handles.settle(job);
+      },
+      fail: (error: Error): void => {
+        handles.fail(error);
+      },
+    };
+  }
+
+  it("touches the run about every 15 s while the job is in flight, and stops after it settles", async () => {
+    const poll: ReturnType<typeof holdPoll> = holdPoll();
+
+    const running: Promise<unknown> = runOnce();
+    await poll.polled;
+    jest.advanceTimersByTime(40_000);
+
+    expect(touch).toHaveBeenCalledTimes(2);
+    expect(touch.mock.calls[0]![0]).toEqual(
+      expect.objectContaining({
+        query: { _id: RUN_ID.toString(), status: AIRunStatus.Running },
+      }),
+    );
+
+    poll.settle(fakeJob());
+    await running;
+    jest.advanceTimersByTime(60_000);
+
+    expect(touch).toHaveBeenCalledTimes(2);
+  });
+
+  it("stops touching the run when the wait throws", async () => {
+    const poll: ReturnType<typeof holdPoll> = holdPoll();
+
+    const running: Promise<unknown> = runOnce();
+    const settled: Promise<unknown> = running.catch((error: unknown) => {
+      return error;
+    });
+    await poll.polled;
+    jest.advanceTimersByTime(20_000);
+    expect(touch).toHaveBeenCalledTimes(1);
+
+    poll.fail(new Error("RunnerJob disappeared while waiting."));
+    expect(await settled).toBeInstanceOf(Error);
+    jest.advanceTimersByTime(60_000);
+
+    expect(touch).toHaveBeenCalledTimes(1);
   });
 });
