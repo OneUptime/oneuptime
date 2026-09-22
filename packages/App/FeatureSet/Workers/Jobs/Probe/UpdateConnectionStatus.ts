@@ -1,5 +1,6 @@
 import OneUptimeDate from "Common/Types/Date";
 import RunCron from "../../Utils/Cron";
+import ProbeConnectionDowntimeGrace from "../../Utils/ProbeConnectionDowntimeGrace";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import ProbeService from "Common/Server/Services/ProbeService";
@@ -17,6 +18,15 @@ import Probe, {
  * `lastAlive <= now - 3 minutes` flips at exactly the same instant.
  */
 const STALE_CUTOFF_IN_MINUTES: number = 3;
+
+/*
+ * After a gap in the ticks (the app was down), no probe is marked
+ * Disconnected until one full cutoff has passed: silence while OneUptime
+ * itself was not listening says nothing about the probe. See
+ * ProbeConnectionDowntimeGrace.
+ */
+const downtimeGrace: ProbeConnectionDowntimeGrace =
+  new ProbeConnectionDowntimeGrace(STALE_CUTOFF_IN_MINUTES);
 
 type FlipCandidate = {
   probe: Probe;
@@ -47,24 +57,36 @@ RunCron(
      * notify-owners hook (ProbeService.onBeforeUpdate) independently skips
      * NULL→anything transitions, so no extra notifications are introduced.
      */
-    const toDisconnect: Array<Probe> = await ProbeService.findBy({
-      query: {
-        // Stale OR never seen at all.
-        lastAlive: QueryHelper.lessThanEqualToOrNull(staleCutoff),
-        connectionStatus: QueryHelper.notInOrNull([
-          ProbeConnectionStatus.Disconnected,
-        ]),
-      },
-      select: {
-        _id: true,
-        projectId: true,
-      },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-      },
-    });
+    const canMarkProbesDisconnected: boolean =
+      await downtimeGrace.canMarkProbesDisconnected();
+
+    if (!canMarkProbesDisconnected) {
+      logger.debug(
+        "Probe:UpdateConnectionStatus is in its post-downtime grace period - not marking any probe Disconnected yet",
+        { service: "workers" },
+      );
+    }
+
+    const toDisconnect: Array<Probe> = canMarkProbesDisconnected
+      ? await ProbeService.findBy({
+          query: {
+            // Stale OR never seen at all.
+            lastAlive: QueryHelper.lessThanEqualToOrNull(staleCutoff),
+            connectionStatus: QueryHelper.notInOrNull([
+              ProbeConnectionStatus.Disconnected,
+            ]),
+          },
+          select: {
+            _id: true,
+            projectId: true,
+          },
+          skip: 0,
+          limit: LIMIT_MAX,
+          props: {
+            isRoot: true,
+          },
+        })
+      : [];
 
     const toConnect: Array<Probe> = await ProbeService.findBy({
       query: {
