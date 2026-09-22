@@ -405,6 +405,70 @@ describe("AffectedResourceList.render - parses as one ordered list of resources"
       "... and 3 more affected resources",
     ]);
   });
+
+  /*
+   * Real names are snake_case and can hold backticks. convertToPlainText
+   * used to strip emphasis before code, so the underscores of one code()
+   * span paired with the next span's (and with an italic note after the
+   * list) and were deleted, and code()'s longer fences came out as debris:
+   * "checkoutapi-7d9f", "kubesystem", "Pod ` db01 `", and a Virtual Machine
+   * with no name at all.
+   */
+  test("plain text keeps code() names and details verbatim, underscores and backticks included", () => {
+    const markdown: string =
+      render(
+        [
+          entry({
+            name: AffectedResourceList.code("checkout_api-7d9f"),
+            value: "**99**",
+            details: [
+              {
+                label: "Namespace",
+                value: AffectedResourceList.code("kube_system"),
+              },
+              {
+                label: "Node",
+                value: AffectedResourceList.code("gke_prod_pool_1"),
+              },
+            ],
+          }),
+          entry({
+            name: AffectedResourceList.code("db`01"),
+            value: "**98**",
+            details: [
+              {
+                label: "Namespace",
+                value: AffectedResourceList.code("kube_system"),
+              },
+              {
+                label: "Node",
+                value: AffectedResourceList.code("gke_prod_pool_2"),
+              },
+            ],
+          }),
+          entry({
+            kind: "Virtual Machine",
+            name: AffectedResourceList.code("a``b`c"),
+            value: "**97**",
+            details: [],
+          }),
+        ],
+        5,
+      ) + "\n\n_Showing the first 3 of 5 affected resources._";
+
+    expect(Markdown.convertToPlainText(markdown).split("\n")).toEqual([
+      "Affected Resources (5 total)",
+      "Pod checkout_api-7d9f — 99",
+      "Namespace: kube_system",
+      "Node: gke_prod_pool_1",
+      "Pod db`01 — 98",
+      "Namespace: kube_system",
+      "Node: gke_prod_pool_2",
+      "Virtual Machine a``b`c — 97",
+      "... and 2 more affected resources",
+      "Showing the first 3 of 5 affected resources.",
+    ]);
+  });
 });
 
 describe("AffectedResourceList.code", () => {
