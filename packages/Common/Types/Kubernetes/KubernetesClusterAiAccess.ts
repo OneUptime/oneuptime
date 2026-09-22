@@ -175,6 +175,21 @@ export function getKubernetesAgentRunnerName(
 }
 
 /*
+ * Is this Runner row one the kubernetes-agent chart registered (and an
+ * ingestion key can therefore mint a key for)? Decided from the row NAME,
+ * which only the server writes at registration — never from hostInfo
+ * posture, which the Runner itself rewrites on every heartbeat. Such a row
+ * runs kubectl with its own ServiceAccount only: it is never a Bash/SSH
+ * host and is never handed a credential.
+ */
+export function isKubernetesAgentRunnerName(name: unknown): boolean {
+  return (
+    typeof name === "string" &&
+    name.startsWith(`${KUBERNETES_AGENT_RUNNER_NAME_PREFIX}/`)
+  );
+}
+
+/*
  * The Runner is the only component that ever holds cluster credentials, so
  * the server learns the Runner's write posture from the Runner itself. A
  * Runner installed with read-only RBAC reports allowWrites=false and the
