@@ -1,5 +1,12 @@
 import { useCallback, useState } from "react";
-import RangeStartAndEndDateTime from "../../../../Types/Time/RangeStartAndEndDateTime";
+import InBetween from "../../../../Types/BaseDatabase/InBetween";
+import RangeStartAndEndDateTime, {
+  RangeStartAndEndDateTimeUtil,
+} from "../../../../Types/Time/RangeStartAndEndDateTime";
+import {
+  HistogramSelectionWindow,
+  clampHistogramSelectionToWindowEnd,
+} from "./HistogramSelection";
 
 export interface HistogramZoomOptions {
   /** The window the explorer is showing right now. */
@@ -40,6 +47,10 @@ export type UseHistogramZoomFunction = (
  * time range picked by other means — the toolbar picker, a saved view — is
  * the reader choosing a new starting point, so it forgets what it held and
  * the zoom-out affordance goes away until the next drag.
+ *
+ * A zoom also never runs past the end of the window it zooms out of: the
+ * newest bar is usually still filling up, so taken whole it would open a
+ * window that ends in the future. See clampHistogramSelectionToWindowEnd.
  */
 const useHistogramZoom: UseHistogramZoomFunction = (
   options: HistogramZoomOptions,
@@ -62,13 +73,26 @@ const useHistogramZoom: UseHistogramZoomFunction = (
           return;
         }
 
+        let selected: HistogramSelectionWindow = {
+          startTime: startTime,
+          endTime: endTime,
+        };
+
         if (timeRange) {
           setRangeBeforeZoom((current: RangeStartAndEndDateTime | null) => {
             return current || timeRange;
           });
+
+          const currentWindow: InBetween<Date> =
+            RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+          selected = clampHistogramSelectionToWindowEnd(
+            selected,
+            currentWindow.endValue,
+          );
         }
 
-        onTimeRangeSelect(startTime, endTime);
+        onTimeRangeSelect(selected.startTime, selected.endTime);
       },
       [onTimeRangeSelect, timeRange],
     );

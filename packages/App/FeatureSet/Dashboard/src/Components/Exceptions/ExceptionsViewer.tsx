@@ -594,6 +594,13 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
   const [histogramBuckets, setHistogramBuckets] = useState<
     Array<HistogramBucket>
   >([]);
+  /*
+   * Width of one bar in `histogramBuckets`, set together with them. It is
+   * what lets a click on a bar open that bar's occurrences.
+   */
+  const [histogramBucketIntervalMs, setHistogramBucketIntervalMs] = useState<
+    number | undefined
+  >(undefined);
   const [histogramLoading, setHistogramLoading] = useState<boolean>(false);
   const [facetData, setFacetData] = useState<FacetData>({});
   const [facetLoading, setFacetLoading] = useState<boolean>(false);
@@ -1477,9 +1484,11 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       const buckets: Array<HistogramBucket> = (response.data["buckets"] ||
         []) as unknown as Array<HistogramBucket>;
       setHistogramBuckets(buckets);
+      setHistogramBucketIntervalMs(bucketSizeInMinutes * 60 * 1000);
     } catch {
       // non-critical
       setHistogramBuckets([]);
+      setHistogramBucketIntervalMs(undefined);
     } finally {
       setHistogramLoading(false);
     }
@@ -2312,6 +2321,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
       histogramSeries={histogramSeries}
       histogramTitle="Exceptions over time"
       histogramLoading={histogramLoading}
+      histogramBucketIntervalMs={histogramBucketIntervalMs}
       onHistogramTimeRangeSelect={handleHistogramTimeRangeSelect}
       // Pagination
       page={page}

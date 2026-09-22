@@ -120,6 +120,11 @@ export interface ComponentProps {
   liveOptions?: LiveLogsOptions | undefined;
   histogramBuckets?: Array<HistogramBucket>;
   histogramLoading?: boolean;
+  /*
+   * How much time one histogram bar covers, as the query that drew the bars
+   * bucketed them. It is what lets a click on a bar open that bar's logs.
+   */
+  histogramBucketIntervalMs?: number | undefined;
   onHistogramTimeRangeSelect?: (startTime: Date, endTime: Date) => void;
   facetData?: FacetData;
   facetLoading?: boolean;
@@ -1220,6 +1225,7 @@ const LogsViewer: FunctionComponent<ComponentProps> = (
         <LogsHistogram
           buckets={props.histogramBuckets}
           isLoading={props.histogramLoading || false}
+          bucketIntervalMs={props.histogramBucketIntervalMs}
           onTimeRangeSelect={histogramZoom.onTimeRangeSelect}
           onZoomOut={histogramZoom.onZoomOut}
         />

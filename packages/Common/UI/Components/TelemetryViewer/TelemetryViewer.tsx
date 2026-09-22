@@ -115,6 +115,11 @@ export interface TelemetryViewerProps<T> {
   histogramSeries?: Array<HistogramSeriesOption> | undefined;
   histogramTitle?: string | undefined;
   histogramLoading?: boolean;
+  /*
+   * How much time one histogram bar covers, as the query that drew the bars
+   * bucketed them. It is what lets a click on a bar open that bar's rows.
+   */
+  histogramBucketIntervalMs?: number | undefined;
   onHistogramTimeRangeSelect?:
     | ((startTime: Date, endTime: Date) => void)
     | undefined;
@@ -265,6 +270,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             isLoading={props.histogramLoading || false}
             series={props.histogramSeries}
             title={props.histogramTitle}
+            bucketIntervalMs={props.histogramBucketIntervalMs}
             onTimeRangeSelect={histogramZoom.onTimeRangeSelect}
             onZoomOut={histogramZoom.onZoomOut}
             headerActions={props.histogramHeaderActions}

@@ -9,15 +9,46 @@ export interface LogsHistogramRefreshOptions {
   silent?: boolean | undefined;
 }
 
+export interface LogsHistogramData {
+  buckets: Array<HistogramBucket>;
+  /*
+   * How much time one bucket covers, as the query bucketed it. It travels
+   * with the buckets it describes so the chart never pairs one window's
+   * bars with another window's width.
+   */
+  bucketIntervalMs?: number | undefined;
+}
+
 export interface LogsHistogramState {
   buckets: Array<HistogramBucket>;
+  /** Width of one bucket in `buckets`; undefined when the query did not say. */
+  bucketIntervalMs: number | undefined;
   isLoading: boolean;
   refresh: (options?: LogsHistogramRefreshOptions) => Promise<void>;
 }
 
+/*
+ * A bare array is a query that does not report its bucket width; the chart
+ * still draws it, but can only zoom from one bar's start to another's.
+ */
 export type FetchHistogramBucketsFunction = () => Promise<
-  Array<HistogramBucket>
+  Array<HistogramBucket> | LogsHistogramData
 >;
+
+const EMPTY_HISTOGRAM: LogsHistogramData = { buckets: [] };
+
+function toHistogramData(
+  result: Array<HistogramBucket> | LogsHistogramData,
+): LogsHistogramData {
+  if (Array.isArray(result)) {
+    return { buckets: result };
+  }
+
+  return {
+    buckets: result.buckets || [],
+    bucketIntervalMs: result.bucketIntervalMs,
+  };
+}
 
 export type UseLogsHistogramFunction = (
   fetchBuckets: FetchHistogramBucketsFunction,
@@ -44,7 +75,8 @@ export type UseLogsHistogramFunction = (
 const useLogsHistogram: UseLogsHistogramFunction = (
   fetchBuckets: FetchHistogramBucketsFunction,
 ): LogsHistogramState => {
-  const [buckets, setBuckets] = useState<Array<HistogramBucket>>([]);
+  const [histogram, setHistogram] =
+    useState<LogsHistogramData>(EMPTY_HISTOGRAM);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const silentRequestInFlight: React.MutableRefObject<boolean> =
@@ -78,15 +110,15 @@ const useLogsHistogram: UseLogsHistogramFunction = (
         }
 
         try {
-          const nextBuckets: Array<HistogramBucket> = await fetchBuckets();
+          const next: LogsHistogramData = toHistogramData(await fetchBuckets());
 
           if (currentQuery.current === fetchBuckets) {
-            setBuckets(nextBuckets);
+            setHistogram(next);
           }
         } catch {
           // The histogram is non-critical; degrade rather than fail the page.
           if (!isSilent && currentQuery.current === fetchBuckets) {
-            setBuckets([]);
+            setHistogram(EMPTY_HISTOGRAM);
           }
         } finally {
           if (isSilent) {
@@ -104,7 +136,8 @@ const useLogsHistogram: UseLogsHistogramFunction = (
   }, [refresh]);
 
   return {
-    buckets: buckets,
+    buckets: histogram.buckets,
+    bucketIntervalMs: histogram.bucketIntervalMs,
     isLoading: isLoading,
     refresh: refresh,
   };
