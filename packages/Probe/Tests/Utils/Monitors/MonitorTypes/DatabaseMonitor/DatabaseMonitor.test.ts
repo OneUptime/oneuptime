@@ -46,6 +46,18 @@ describe("DatabaseMonitor.classifyQueryFailure", () => {
     [
       "The user does not have permission to perform this action. VIEW SERVER STATE permission was denied on object 'server'",
     ],
+    /*
+     * Issue #3913. SQL Server's Msg 297 on its own and MySQL's 1142 are
+     * verbatim what the drivers surfaced as err.message on live servers,
+     * and neither matched before. Msg 262 only ever arrives as a PRECEDING
+     * error (describeQueryError now joins it into the message); its text
+     * already matched "permission denied" and is pinned here so it stays so.
+     */
+    ["The user does not have permission to perform this action."],
+    [
+      "SELECT command denied to user 'lowpriv'@'172.17.0.1' for table 'data_lock_waits'",
+    ],
+    ["VIEW DATABASE STATE permission denied in database 'orders'."],
     ["must be superuser or a member of pg_read_all_stats"],
   ])("classifies %s as a missing permission", (message: string) => {
     expect(DatabaseMonitor.classifyQueryFailure(message)).toBe(

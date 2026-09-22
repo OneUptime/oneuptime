@@ -16,6 +16,9 @@ import {
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import Link from "Common/UI/Components/Link/Link";
+import URL from "Common/Types/API/URL";
+import { DOCS_URL } from "Common/UI/Config";
 import React, { FunctionComponent, ReactElement } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 
@@ -77,6 +80,48 @@ const groupStatusesByRemediation: (
   return Array.from(buckets.values());
 };
 
+/*
+ * A remediation is copyable SQL, so each statement gets its own block. One
+ * can span lines - Azure SQL Database's names two statements for two
+ * databases - and a `--` line there says where the statement under it
+ * runs: that is a label for the operator, not something to copy.
+ */
+const renderRemediation: (remediation: string) => ReactElement = (
+  remediation: string,
+): ReactElement => {
+  const lines: Array<string> = remediation
+    .split(/\r?\n/)
+    .map((line: string) => {
+      return line.trim();
+    })
+    .filter((line: string) => {
+      return line.length > 0;
+    });
+
+  return (
+    <div className="mt-1 space-y-1">
+      {lines.map((line: string, index: number): ReactElement => {
+        if (line.startsWith("--")) {
+          return (
+            <div key={index} className="text-xs text-amber-800">
+              {line.replace(/^--\s*/, "")}
+            </div>
+          );
+        }
+
+        return (
+          <code
+            key={index}
+            className="block select-all rounded bg-amber-100 px-2 py-1 font-mono text-xs text-amber-900 break-all"
+          >
+            {line}
+          </code>
+        );
+      })}
+    </div>
+  );
+};
+
 const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -130,6 +175,36 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
         DatabaseMetricGroupUnavailableReason.NotSupportedByEngine
       );
     });
+
+  /*
+   * "Azure SQL Database 12.0.2000.8" rather than a bare version that reads
+   * as SQL Server 2014. The platform is its own field (SQL Server only), so
+   * a payload from an older probe simply shows the version as before.
+   */
+  const engineDescription: string = [
+    dbResponse?.enginePlatform,
+    dbResponse?.engineVersion,
+  ]
+    .filter((part: string | undefined): part is string => {
+      return Boolean(part);
+    })
+    .join(" ");
+
+  /*
+   * The GRANT beside each group is the fix; the guide is for the operator
+   * who needs the rest of the picture - which database to run it in, and
+   * the platforms (Azure SQL Database tiers, managed PostgreSQL) where the
+   * statement differs. The anchor is the English heading's: docs pages are
+   * served in the reader's language, and on a translated page an unknown
+   * fragment just opens the page at the top.
+   */
+  const hasMissingPermission: boolean = degradedStatuses.some(
+    (status: DatabaseMetricGroupStatus) => {
+      return (
+        status.reason === DatabaseMetricGroupUnavailableReason.MissingPermission
+      );
+    },
+  );
 
   const probeAttempts: Array<ProbeAttempt> =
     props.probeMonitorResponse.probeAttempts || [];
@@ -193,7 +268,7 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
         <InfoCard
           className="w-1/5 shadow-none border-2 border-gray-100"
           title="Engine"
-          value={dbResponse?.engineVersion || "-"}
+          value={engineDescription || "-"}
         />
         <InfoCard
           className="w-1/5 shadow-none border-2 border-gray-100"
@@ -266,15 +341,26 @@ const DatabaseMonitorView: FunctionComponent<ComponentProps> = (
                   return (
                     <div key={index} className="text-sm text-amber-900">
                       {statuses.map(renderGroupStatus)}
-                      {remediation && (
-                        <code className="mt-1 block select-all rounded bg-amber-100 px-2 py-1 font-mono text-xs text-amber-900 break-all">
-                          {remediation}
-                        </code>
-                      )}
+                      {remediation && renderRemediation(remediation)}
                     </div>
                   );
                 },
               )}
+            </div>
+          )}
+
+          {hasMissingPermission && (
+            <div className="mt-3 text-xs text-amber-800">
+              <Link
+                className="underline"
+                openInNewTab={true}
+                to={URL.fromString(
+                  DOCS_URL.toString() +
+                    "/monitor/database-health-monitor#create-a-monitoring-user",
+                )}
+              >
+                Which grants each metric group needs, for every platform
+              </Link>
             </div>
           )}
 

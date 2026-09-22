@@ -14,6 +14,11 @@ import {
   getDatabaseMetricByMetricType,
   getDatabaseMetricsForEngine,
 } from "Common/Types/Monitor/DatabaseMetricCatalog";
+import {
+  AZURE_SQL_DATABASE_MONITORING_REMEDIATION,
+  SQL_SERVER_MONITORING_REMEDIATION,
+  SqlServerEngineEdition,
+} from "Common/Types/Monitor/DatabaseMonitor/SqlServerPlatform";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 import SqlDatabaseType, {
   SqlDatabaseTypeUtil,
@@ -343,17 +348,35 @@ describe("DatabaseHealthQueries", () => {
 
     expect(dmvQueries.length).toBeGreaterThan(0);
 
+    /*
+     * EVERY DMV, with no exceptions. This loop used to skip the Storage
+     * statement as "database-scoped; readable without VIEW SERVER STATE" -
+     * but sys.dm_db_log_space_usage and tempdb.sys.dm_db_file_space_usage
+     * both raise Msg 300 without it (verified on 2017, 2019 and 2022), so
+     * that statement failed for a read-only login and the operator was
+     * never told why (issue #3913).
+     */
     for (const query of dmvQueries) {
-      if (query.id === "mssql-storage") {
-        // Database-scoped; readable without VIEW SERVER STATE.
-        continue;
-      }
+      /*
+       * A statement that never runs on Azure SQL Database has nothing to
+       * advise there - and an Azure grant on it would imply one could help.
+       */
+      const runsOnAzureSqlDatabase: boolean =
+        query.skipOnSqlServerEngineEditions?.includes(
+          SqlServerEngineEdition.AzureSqlDatabase,
+        ) !== true;
 
       expect({
         id: query.id,
-        mentionsGrant:
-          query.remediation?.includes("VIEW SERVER STATE") === true,
-      }).toEqual({ id: query.id, mentionsGrant: true });
+        remediation: query.remediation,
+        azureRemediation: query.remediationOnAzureSqlDatabase,
+      }).toEqual({
+        id: query.id,
+        remediation: SQL_SERVER_MONITORING_REMEDIATION,
+        azureRemediation: runsOnAzureSqlDatabase
+          ? AZURE_SQL_DATABASE_MONITORING_REMEDIATION
+          : undefined,
+      });
     }
   });
 
@@ -414,6 +437,187 @@ describe("DatabaseHealthQueries", () => {
         }).toEqual({ engine, metric: metric.metricType, produced: true });
       }
     }
+  });
+
+  describe("Microsoft SQL Server permission levels (issue #3913)", () => {
+    const sqlServerQueries: Array<DatabaseHealthQuery> =
+      getDatabaseHealthQueries(SqlDatabaseType.MicrosoftSqlServer);
+
+    const readsDmv: (query: DatabaseHealthQuery) => boolean = (
+      query: DatabaseHealthQuery,
+    ): boolean => {
+      return query.sql.includes("sys.dm_");
+    };
+
+    test("the probe query reads the engine edition, which needs no permission", () => {
+      const probeQuery: string = getProbeQuery(
+        SqlDatabaseType.MicrosoftSqlServer,
+      );
+
+      expect(probeQuery).toContain("SERVERPROPERTY('EngineEdition')");
+      expect(probeQuery).toContain("AS engine_edition");
+      // Still the one statement that decides online/offline: no DMV in it.
+      expect(probeQuery).not.toContain("sys.dm_");
+    });
+
+    test("no statement mixes the grant-free catalog view with a DMV", () => {
+      /*
+       * The exact shape of the bug: one statement read sys.database_files
+       * (any user) together with two DMVs (VIEW SERVER STATE), so a
+       * read-only login lost database size along with the numbers it
+       * genuinely could not see.
+       */
+      for (const query of sqlServerQueries) {
+        expect({
+          id: query.id,
+          mixesPermissionLevels:
+            query.sql.includes("sys.database_files") && readsDmv(query),
+        }).toEqual({ id: query.id, mixesPermissionLevels: false });
+      }
+    });
+
+    test("database size comes from a statement that needs no grant", () => {
+      const producers: Array<DatabaseHealthQuery> = sqlServerQueries.filter(
+        (query: DatabaseHealthQuery) => {
+          return query.columnMappings.some(
+            (mapping: DatabaseQueryColumnMapping) => {
+              return mapping.metricType === MonitorMetricType.DatabaseSizeBytes;
+            },
+          );
+        },
+      );
+
+      expect(producers).toHaveLength(1);
+      expect(producers[0]?.sql).toContain("sys.database_files");
+      expect(readsDmv(producers[0]!)).toBe(false);
+      expect(producers[0]?.remediation).toBeUndefined();
+      expect(producers[0]?.group).toBe(DatabaseMetricGroup.Storage);
+    });
+
+    test("a statement that needs no grant carries no remediation, so it never shows a GRANT", () => {
+      for (const query of sqlServerQueries.filter(
+        (candidate: DatabaseHealthQuery) => {
+          return !readsDmv(candidate);
+        },
+      )) {
+        expect({
+          id: query.id,
+          remediation: query.remediation,
+          azureRemediation: query.remediationOnAzureSqlDatabase,
+        }).toEqual({
+          id: query.id,
+          remediation: undefined,
+          azureRemediation: undefined,
+        });
+      }
+    });
+
+    test("every statement reading a silently-scoped view also reads one that fails loudly", () => {
+      /*
+       * Without VIEW SERVER STATE, sys.dm_exec_sessions and
+       * sys.dm_exec_requests do not raise - they return only the caller's
+       * own session (verified: connections_total read 1). A statement that
+       * read only those two would record "1 connection" forever, the SQL
+       * Server twin of PostgreSQL's pg_stat_activity trap. Each such
+       * statement must also read a DMV that raises Msg 300, so the whole
+       * statement fails and the group is reported missing instead.
+       */
+      const silentlyScoped: Array<string> = [
+        "sys.dm_exec_sessions",
+        "sys.dm_exec_requests",
+      ];
+      const loud: Array<string> = [
+        "sys.dm_os_sys_info",
+        "sys.dm_tran_active_transactions",
+        "sys.dm_tran_session_transactions",
+        "sys.dm_os_waiting_tasks",
+        "sys.dm_os_performance_counters",
+      ];
+
+      const readers: Array<DatabaseHealthQuery> = sqlServerQueries.filter(
+        (query: DatabaseHealthQuery) => {
+          return silentlyScoped.some((view: string) => {
+            return query.sql.includes(view);
+          });
+        },
+      );
+
+      expect(readers.length).toBeGreaterThan(0);
+
+      for (const query of readers) {
+        expect({
+          id: query.id,
+          alsoReadsALoudView: loud.some((view: string) => {
+            return query.sql.includes(view);
+          }),
+        }).toEqual({ id: query.id, alsoReadsALoudView: true });
+      }
+    });
+
+    test("only the HADR statement is skipped on Azure SQL Database, which has no such view", () => {
+      const skippedOnAzure: Array<string> = sqlServerQueries
+        .filter((query: DatabaseHealthQuery) => {
+          return (
+            query.skipOnSqlServerEngineEditions?.includes(
+              SqlServerEngineEdition.AzureSqlDatabase,
+            ) === true
+          );
+        })
+        .map((query: DatabaseHealthQuery) => {
+          return query.id;
+        });
+
+      expect(skippedOnAzure).toEqual(["mssql-replication"]);
+
+      const replication: DatabaseHealthQuery | undefined =
+        sqlServerQueries.find((query: DatabaseHealthQuery) => {
+          return query.id === "mssql-replication";
+        });
+
+      expect(replication?.sql).toContain("sys.dm_hadr_database_replica_states");
+      // Managed Instance does have the view.
+      expect(replication?.skipOnSqlServerEngineEditions).not.toContain(
+        SqlServerEngineEdition.AzureSqlManagedInstance,
+      );
+    });
+
+    test("the SQL-Server-only fields are only ever set on SQL Server statements", () => {
+      for (const engine of ENGINES) {
+        if (engine === SqlDatabaseType.MicrosoftSqlServer) {
+          continue;
+        }
+
+        for (const query of getDatabaseHealthQueries(engine)) {
+          expect({
+            id: query.id,
+            azureRemediation: query.remediationOnAzureSqlDatabase,
+            editionGate: query.skipOnSqlServerEngineEditions,
+          }).toEqual({
+            id: query.id,
+            azureRemediation: undefined,
+            editionGate: undefined,
+          });
+        }
+      }
+    });
+
+    test("the Azure grant is one that exists on Azure SQL Database", () => {
+      /*
+       * Server-level permissions cannot be granted on Azure SQL Database,
+       * so the Azure remediation must name the database-level permission
+       * and the server role for the tiers where that is not enough - and
+       * never VIEW SERVER STATE itself.
+       */
+      expect(AZURE_SQL_DATABASE_MONITORING_REMEDIATION).toContain(
+        "GRANT VIEW DATABASE STATE",
+      );
+      expect(AZURE_SQL_DATABASE_MONITORING_REMEDIATION).toContain(
+        "##MS_ServerStateReader##",
+      );
+      expect(AZURE_SQL_DATABASE_MONITORING_REMEDIATION).not.toContain(
+        "VIEW SERVER STATE",
+      );
+    });
   });
 
   test("MySQL never claims to produce a deadlock counter", () => {

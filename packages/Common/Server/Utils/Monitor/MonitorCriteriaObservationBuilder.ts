@@ -1785,7 +1785,11 @@ export default class MonitorCriteriaObservationBuilder {
     )}`;
 
     if (status.remediation) {
-      message += ` (${status.remediation})`;
+      /*
+       * A remediation can span lines - Azure SQL Database's names two
+       * statements for two databases - but this is one sentence.
+       */
+      message += ` (${status.remediation.replace(/\s*[\r\n]+\s*/g, " ")})`;
     }
 
     return `${message}.`;
