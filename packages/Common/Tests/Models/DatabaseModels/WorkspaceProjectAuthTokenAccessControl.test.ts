@@ -1,6 +1,7 @@
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
+import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
@@ -19,6 +20,12 @@ import { describe, expect, test } from "@jest/globals";
  * So the binding may only be written by the connect flows, which prove the
  * workspace or tenant first (see WorkspaceOAuthState). The CRUD API must not
  * be a second way to create it or to change which workspace it names.
+ *
+ * Nor may it change miscData. For Microsoft Teams that holds the Bot
+ * Framework service URLs proactive sends go to, with the bot's token
+ * attached, plus the Graph app token and the tenant's consent state. The
+ * Slack channel cache, the one part the dashboard edits, has its own route
+ * (PUT /slack/channel-cache).
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -108,14 +115,45 @@ describe("WorkspaceProjectAuthToken access control", () => {
     expect(columnAccess("authToken").read).toEqual([]);
   });
 
-  test("members can still read the connection and edit its cached settings", () => {
+  test("members can still read the connection", () => {
     expect(check([Permission.Viewer], DatabaseRequestType.Read)).toBeNull();
+    expect(columnAccess("miscData").read).toContain(Permission.Viewer);
+  });
 
-    // The Slack channel cache editor updates miscData through the CRUD API.
-    expect(
-      check([Permission.ProjectMember], DatabaseRequestType.Update),
-    ).toBeNull();
-    expect(columnAccess("miscData").update).toContain(Permission.ProjectMember);
+  test("no project role can change miscData through the CRUD API", () => {
+    expect(columnAccess("miscData").update).toEqual([]);
+
+    for (const permission of [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ]) {
+      const update: WorkspaceProjectAuthToken = new WorkspaceProjectAuthToken();
+      update.miscData = {
+        installedTeams: {
+          "team-1": {
+            id: "team-1",
+            serviceUrl: "https://attacker.example.com/",
+          },
+        },
+      };
+
+      let error: Error | null = null;
+
+      try {
+        ColumnPermissions.checkDataColumnPermissions(
+          WorkspaceProjectAuthToken,
+          update,
+          propsWith([permission]),
+          DatabaseRequestType.Update,
+        );
+      } catch (err) {
+        error = err as Error;
+      }
+
+      expect(error).not.toBeNull();
+      expect(error?.message).toContain("miscData");
+    }
   });
 
   test("owners and admins can still disconnect", () => {

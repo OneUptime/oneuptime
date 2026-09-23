@@ -7,6 +7,8 @@ import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnDelete } from "../Types/Database/Hooks";
 import Model, {
+  SlackChannelCache,
+  SlackMiscData,
   WorkspaceMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -144,6 +146,61 @@ export class Service extends DatabaseService<Model> {
     workspaceType: WorkspaceType;
   }): Promise<boolean> {
     return Boolean(await this.getProjectAuth(data));
+  }
+
+  /*
+   * Replaces the project's cached Slack channel list and nothing else.
+   *
+   * miscData cannot be updated through the CRUD API (see the model): for
+   * Microsoft Teams it holds values the server trusts. The Slack channel
+   * cache is the one part of it the dashboard edits, so its editor saves
+   * through PUT /slack/channel-cache, which lands here. Every other miscData
+   * field is carried over from the stored row, never from the caller.
+   */
+  @CaptureSpan()
+  public async replaceSlackChannelCache(data: {
+    projectId: ObjectID;
+    channelCache: SlackChannelCache;
+  }): Promise<void> {
+    if (!data.projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
+    const projectAuth: Model | null = await this.findOneBy({
+      query: {
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.Slack,
+      },
+      select: {
+        _id: true,
+        miscData: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!projectAuth || !projectAuth.id) {
+      throw new BadDataException(
+        "Slack is not connected for this project. Please connect Slack first.",
+      );
+    }
+
+    const miscData: SlackMiscData = {
+      ...((projectAuth.miscData as SlackMiscData | undefined) ||
+        ({} as SlackMiscData)),
+      channelCache: data.channelCache,
+    };
+
+    await this.updateOneById({
+      id: projectAuth.id,
+      data: {
+        miscData: miscData,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   @CaptureSpan()

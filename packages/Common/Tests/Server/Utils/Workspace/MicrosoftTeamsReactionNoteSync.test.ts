@@ -1460,6 +1460,38 @@ describe("MicrosoftTeamsUtil.sendTextReplyToChannelThread", () => {
     );
   });
 
+  // The bot's token goes wherever the serviceUrl points (see MicrosoftTeamsServiceUrl).
+  test("refuses a recorded service URL that is not a Microsoft host", async () => {
+    mockProjectAuth(
+      {
+        installedTeams: {
+          [TEAM_ID]: {
+            id: TEAM_ID,
+            graphTeamId: TEAM_ID,
+            serviceUrl: "https://attacker.example.com/",
+          },
+        },
+      },
+      "tenant-1",
+    );
+    const adapter: {
+      refs: Array<ConversationReference>;
+      activities: Array<JSONObject>;
+    } = mockAdapter();
+
+    await expect(
+      MicrosoftTeamsUtil.sendTextReplyToChannelThread({
+        projectId: projectId,
+        teamId: TEAM_ID,
+        channelId: CHANNEL_ID,
+        parentMessageId: "1",
+        text: "x",
+      }),
+    ).rejects.toBeInstanceOf(BadDataException);
+
+    expect(adapter.refs).toHaveLength(0);
+  });
+
   test("refuses without a Teams connection or tenant", async () => {
     mockAdapter();
 

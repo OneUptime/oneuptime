@@ -84,6 +84,7 @@ import {
   ResourceResponse,
 } from "botbuilder";
 import { ExpressRequest, ExpressResponse } from "../../Express";
+import MicrosoftTeamsServiceUrl from "./MicrosoftTeamsServiceUrl";
 // Teams action handlers and types
 import MicrosoftTeamsAuthAction, {
   MicrosoftTeamsRequest,
@@ -1003,20 +1004,21 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     /*
      * No captured personal chat - create (or resolve) the 1:1 conversation
      * proactively. A regional serviceUrl captured from any prior activity is
-     * preferred; the commercial-cloud global endpoint is the fallback.
+     * preferred; the commercial-cloud global endpoint is the fallback. Only
+     * Microsoft hosts are considered (see MicrosoftTeamsServiceUrl).
      */
-    const serviceUrl: string =
-      Object.values(miscData.availableChats || {}).find(
+    const serviceUrl: string = MicrosoftTeamsServiceUrl.firstTrustedOrDefault([
+      ...Object.values(miscData.availableChats || {}).map(
         (chat: MicrosoftTeamsChat) => {
-          return Boolean(chat.serviceUrl);
+          return chat.serviceUrl;
         },
-      )?.serviceUrl ||
-      Object.values(miscData.installedTeams || {}).find(
+      ),
+      ...Object.values(miscData.installedTeams || {}).map(
         (team: MicrosoftTeamsInstalledTeam) => {
-          return Boolean(team.serviceUrl);
+          return team.serviceUrl;
         },
-      )?.serviceUrl ||
-      "https://smba.trafficmanager.net/teams/";
+      ),
+    ]);
 
     const adapter: CloudAdapter = this.getBotAdapter();
 
@@ -1754,10 +1756,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         /*
          * Fallback is the commercial-cloud global endpoint; the serviceUrl
          * captured from the install event is preferred (required for GCC/DoD),
-         * matching what sendAdaptiveCardToChat already does.
+         * matching what sendAdaptiveCardToChat already does. A stored URL
+         * that is not a Microsoft host is refused.
          */
-        serviceUrl:
-          installedTeam?.serviceUrl || "https://smba.trafficmanager.net/teams/",
+        serviceUrl: MicrosoftTeamsServiceUrl.resolve(installedTeam?.serviceUrl),
       };
 
       logger.debug(
@@ -1976,8 +1978,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         tenantId: tenantId,
       } as ConversationReference["conversation"],
       channelId: "msteams",
-      serviceUrl:
-        installedTeam?.serviceUrl || "https://smba.trafficmanager.net/teams/",
+      serviceUrl: MicrosoftTeamsServiceUrl.resolve(installedTeam?.serviceUrl),
     };
 
     const adapter: CloudAdapter = this.getBotAdapter();
@@ -2333,8 +2334,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         /*
          * Fallback is the commercial-cloud global endpoint; the serviceUrl
          * captured from bot activities is preferred (required for GCC/DoD).
+         * A stored URL that is not a Microsoft host is refused.
          */
-        serviceUrl: chat.serviceUrl || "https://smba.trafficmanager.net/teams/",
+        serviceUrl: MicrosoftTeamsServiceUrl.resolve(chat.serviceUrl),
       };
 
       logger.debug(
