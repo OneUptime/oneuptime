@@ -47,6 +47,7 @@ import {
   mergeSessionReplayStringMaps,
   sanitizeSessionReplayStringMap,
 } from "Common/Utils/Rum/SessionReplayStringMap";
+import SessionReplayWireEncoding from "Common/Utils/Rum/SessionReplayWireEncoding";
 import SessionSampling from "Common/Utils/Rum/SessionSampling";
 import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
 import Chunker, {
@@ -202,7 +203,9 @@ const KEEPALIVE_FRAME_OVERHEAD_BYTES: number =
  * 7 KB rather than 8: the transport rewrites payloadEncoding, payloadBytes
  * and flushFailures on the way out, so what is measured here is not
  * byte-identical to what is posted. Anything over sheds optional fields
- * rather than losing the frame (fitEnvelope).
+ * rather than losing the frame (fitEnvelope). What is measured is the
+ * encoded line (SessionReplayWireEncoding.encodeEnvelopeLine), escapes and
+ * terminator included, because that is what the parser counts.
  */
 const MAX_ENVELOPE_JSON_BYTES: number = 7 * 1024;
 
@@ -1320,7 +1323,14 @@ export default class Recorder {
     let json: string = "";
 
     try {
-      json = JSON.stringify(sanitised);
+      /*
+       * `%`, `&` and `http/` go out escaped so a web application firewall
+       * cannot decode a line break out of the payload, or find an HTTP
+       * version in it, and read the chunk as a smuggled request line. Done
+       * here, once, rather than in the transport, so every byte count
+       * below is the wire's.
+       */
+      json = SessionReplayWireEncoding.escapeJson(JSON.stringify(sanitised));
     } catch {
       /*
        * A non-serialisable event cannot be uploaded, and guessing at a
@@ -2567,8 +2577,16 @@ export default class Recorder {
     );
   }
 
+  /*
+   * The envelope's weight as it goes on the wire: the line the transport
+   * writes, not JSON.stringify. Every `%` and `&` is six bytes there, so
+   * measuring the plain JSON could let an envelope the parser refuses past
+   * this check.
+   */
   private static envelopeBytes(envelope: SessionReplayChunkEnvelope): number {
-    return utf8ByteLength(JSON.stringify(envelope));
+    return utf8ByteLength(
+      SessionReplayWireEncoding.encodeEnvelopeLine(envelope),
+    );
   }
 
   public getCapabilities(): Array<string> {

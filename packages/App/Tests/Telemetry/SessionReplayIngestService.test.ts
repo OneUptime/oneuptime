@@ -22,6 +22,7 @@ import {
   SessionReplayChunkMeta,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayIdentity from "Common/Server/Utils/SessionReplay/SessionReplayIdentity";
+import SessionReplayWireEncoding from "Common/Utils/Rum/SessionReplayWireEncoding";
 import zlib from "zlib";
 
 jest.mock("Common/Server/Utils/Logger", () => {
@@ -4054,5 +4055,124 @@ describe("SessionReplayIngestService.processFromQueue - ended tabs for early fin
         }),
       ).toBe(true);
     });
+  });
+});
+
+/*
+ * Recorders escape `%`, `&` and `http/` in every envelope and event, and put
+ * a space before each frame's newline, so a customer's web application
+ * firewall does not take a chunk for a smuggled HTTP request (CRS 921110).
+ * None of that may survive into what is stored: the worker JSON.parses the
+ * payload and re-serialises it, and the envelope is parsed the same way.
+ */
+describe("SessionReplayIngestService.processFromQueue - frames written for a web application firewall", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    redisStrings.clear();
+    redisConnected = true;
+    recordRefusalMock.mockResolvedValue(undefined as never);
+    recordDropMock.mockResolvedValue(undefined as never);
+    markChunkReceivedMock.mockResolvedValue(undefined as never);
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+    loadRulesMock.mockResolvedValue([] as never);
+    scrubEventsMock.mockResolvedValue({
+      isComplete: true,
+      nodesVisited: 3,
+      stringsScrubbed: 0,
+      skippedOversizedStrings: 0,
+      skippedStructuralStrings: 0,
+      truncatedAtDepth: false,
+    } as never);
+    submitMock.mockResolvedValue({ flushed: Promise.resolve() } as never);
+    (isSessionErased as jest.Mock).mockResolvedValue(false as never);
+  });
+
+  const EVENTS: Array<unknown> = [
+    { type: 2, timestamp: 1, data: { text: "50% off & more" } },
+    {
+      type: 3,
+      timestamp: 2,
+      data: {
+        href: "https://docs.example.com/a%20b?c=1&d=2",
+        text: "GET / HTTP/1.1",
+      },
+    },
+  ];
+
+  function encodedFrame(
+    overrides: Partial<SessionReplayChunkEnvelope>,
+    encoding: "gzip" | "identity",
+  ): Buffer {
+    const text: string = `[${EVENTS.map((event: unknown): string => {
+      return SessionReplayWireEncoding.escapeJson(JSON.stringify(event));
+    }).join(",")}]`;
+
+    expect(text).not.toMatch(/[%&]|http\//i);
+
+    const payload: Buffer =
+      encoding === "gzip"
+        ? zlib.gzipSync(new Uint8Array(Buffer.from(text)))
+        : Buffer.from(text);
+
+    const envelope: SessionReplayChunkEnvelope = buildEnvelope({
+      ...overrides,
+      payloadEncoding: encoding,
+      payloadBytes: payload.length,
+    });
+
+    return Buffer.concat([
+      new Uint8Array(
+        Buffer.from(SessionReplayWireEncoding.encodeEnvelopeLine(envelope)),
+      ),
+      new Uint8Array(payload),
+    ]);
+  }
+
+  test("a gzip chunk is stored as the page's own text, with no escapes left", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        encodedFrame(
+          {
+            chunkIndex: 0,
+            url: "https://shop.example.com/widget%20list",
+            meta: {
+              ...buildEnvelope().meta!,
+              tags: { plan: "Budget & Co" },
+            },
+          },
+          "gzip",
+        ),
+      ),
+    );
+
+    const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+    expect(chunk["payload"]).toBe(JSON.stringify(EVENTS));
+    expect(chunk["url"]).toBe("https://shop.example.com/widget%20list");
+    expect(getSubmittedRows("RumSessionV1")[0]!["tags"]).toEqual({
+      plan: "Budget & Co",
+    });
+  });
+
+  test("a terminal flush of several identity frames stores every one decoded", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        Buffer.concat([
+          new Uint8Array(encodedFrame({ chunkIndex: 0 }, "identity")),
+          new Uint8Array(encodedFrame({ chunkIndex: 1 }, "identity")),
+          new Uint8Array(
+            encodedFrame({ chunkIndex: 2, isFinal: true }, "identity"),
+          ),
+        ]),
+      ),
+    );
+
+    const chunks: Array<JSONObject> = getSubmittedRows("RumSessionChunkV1");
+
+    expect(chunks).toHaveLength(3);
+
+    for (const chunk of chunks) {
+      expect(chunk["payload"]).toBe(JSON.stringify(EVENTS));
+    }
   });
 });

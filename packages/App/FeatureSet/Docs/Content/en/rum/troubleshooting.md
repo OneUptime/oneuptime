@@ -44,6 +44,8 @@ new BatchSpanProcessor(exporter, { maxExportBatchSize: 100 });
 
 A browser rarely produces batches that large unless spans carry big attributes — an unbounded stack trace or a serialised response body on a span attribute is the usual cause, and trimming that is the better fix.
 
+**`403` with an HTML page, or an empty body.** OneUptime answers every refusal with JSON, so this one came from something in front of it — usually a web application firewall on your own domain, if you proxy OneUptime through it. OTLP/JSON is parsed by the firewall and every span attribute is checked by its injection rules, so a URL with a query string on a span is enough to be blocked; the firewall's log names the rule. Exclude the OTLP payload from inspection on the OTLP paths only — [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting#your-opentelemetry-requests-are-blocked-too) shows how, and covers the replay recorder behind the same firewall.
+
 ## 3. The data arrives, but under **Services** instead of **RUM**
 
 This is the most common report, and the usual cause is that the resource has no client attributes.

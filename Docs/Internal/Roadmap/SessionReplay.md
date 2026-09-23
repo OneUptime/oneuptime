@@ -231,7 +231,9 @@ if (req.path.includes("/otlp/v1/") || req.path.includes("/session-replay/v1/")) 
 
 ### Chunk format
 
-`Content-Type: application/vnd.oneuptime.session-replay.v1`, `Content-Encoding: gzip`. Body is `<envelope JSON>\n<compressed rrweb event array>` — envelope in the body, not in eight more headers, because piling custom headers onto a preflight mechanism we already flagged as brittle is bad trade; `indexOf(0x0A)` + a 200-byte `JSON.parse` is ~2 µs.
+`Content-Type: application/octet-stream`, no `Content-Encoding` (only the payload is gzipped, so the header would describe a body that is not gzip). Body is `<envelope JSON> \n<compressed rrweb event array>` — envelope in the body, not in eight more headers, because piling custom headers onto a preflight mechanism we already flagged as brittle is bad trade; `indexOf(0x0A)` + a 200-byte `JSON.parse` is ~2 µs.
+
+> **Shipped differently:** the first recorders sent `application/vnd.oneuptime.session-replay.v1`. A customer behind Azure Front Door (DRS 2.1, baselined on OWASP CRS 3.3.2) had every chunk refused by rule 920420, which allowlists request content types; `application/octet-stream` is the one allowlisted type a firewall does not parse. The server never branched on the header, so both are accepted. With the type fixed, CRS 921110 (request smuggling, run over the raw body after URL and entity decoding) would have been next: an envelope ending in e.g. `gadget+case` plus the frame's newline reads as a request line. `Common/Utils/Rum/SessionReplayWireEncoding` therefore escapes `%`, `&` and `http/` in the envelope and in every event, and writes a space before each frame's newline — JSON.parse reads it unchanged. `Common/Tests/Utils/Rum/SessionReplayWafCompatibility.test.ts` holds both rules.
 
 ```ts
 // packages/Common/Types/Rum/SessionReplay.ts
