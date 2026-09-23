@@ -22,10 +22,15 @@ import SubscriberNotificationStatus from "../../../Components/StatusPageSubscrib
 import { getNotifySubscribersOfUpdateFormField } from "../../../Components/StatusPageSubscribers/SubscriberUpdateNotificationFormField";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
+import IncidentEpisode from "Common/Models/DatabaseModels/IncidentEpisode";
+import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useState,
 } from "react";
 import AttachmentList from "../../../Components/Attachment/AttachmentList";
@@ -37,6 +42,49 @@ const EpisodePublicNote: FunctionComponent<PageComponentProps> = (
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  /*
+   * Where "Notify Status Page Subscribers" starts on a new note: off when
+   * the episode was created without notifying subscribers. Null until the
+   * episode loads - the create form reads its starting values once, so it
+   * must not open before this is known.
+   */
+  const [notifySubscribersByDefault, setNotifySubscribersByDefault] = useState<
+    boolean | null
+  >(null);
+  const [episodeError, setEpisodeError] = useState<string>("");
+
+  useEffect(() => {
+    let isStale: boolean = false;
+
+    setNotifySubscribersByDefault(null);
+    setEpisodeError("");
+
+    ModelAPI.getItem<IncidentEpisode>({
+      modelType: IncidentEpisode,
+      id: modelId,
+      select: {
+        shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true,
+      },
+    })
+      .then((episode: IncidentEpisode | null) => {
+        if (!isStale) {
+          setNotifySubscribersByDefault(
+            PublicNoteSubscriberNotificationDefault.shouldNotifyForIncidentEpisode(
+              episode,
+            ),
+          );
+        }
+      })
+      .catch((err: unknown) => {
+        if (!isStale) {
+          setEpisodeError(API.getFriendlyMessage(err));
+        }
+      });
+
+    return () => {
+      isStale = true;
+    };
+  }, [modelId.toString()]);
 
   const handleResendNotification: (
     item: IncidentEpisodePublicNote,
@@ -81,6 +129,14 @@ const EpisodePublicNote: FunctionComponent<PageComponentProps> = (
     }
   };
 
+  if (episodeError) {
+    return <ErrorMessage message={episodeError} />;
+  }
+
+  if (notifySubscribersByDefault === null) {
+    return <PageLoader isVisible={true} />;
+  }
+
   return (
     <Fragment>
       <ModelTable<IncidentEpisodePublicNote>
@@ -92,6 +148,15 @@ const EpisodePublicNote: FunctionComponent<PageComponentProps> = (
           tableId: "incident-episode-public-note-table",
         }}
         isDeleteable={true}
+        /*
+         * The notify flag is seeded as a value, not only as the field's
+         * default: the form drops a false default, and an unsent flag would
+         * fall back to notifying.
+         */
+        createInitialValues={{
+          shouldStatusPageSubscribersBeNotifiedOnNoteCreated:
+            notifySubscribersByDefault,
+        }}
         isCreateable={true}
         showViewIdButton={true}
         isEditable={true}
@@ -147,9 +212,11 @@ const EpisodePublicNote: FunctionComponent<PageComponentProps> = (
 
             title: "Notify Status Page Subscribers",
             stepId: "more",
-            description: "Should status page subscribers be notified?",
+            description: notifySubscribersByDefault
+              ? "Should status page subscribers be notified?"
+              : PublicNoteSubscriberNotificationDefault.quietIncidentEpisodeDescription,
             fieldType: FormFieldSchemaType.Checkbox,
-            defaultValue: true,
+            defaultValue: notifySubscribersByDefault,
             required: false,
           },
           getNotifySubscribersOfUpdateFormField<IncidentEpisodePublicNote>({

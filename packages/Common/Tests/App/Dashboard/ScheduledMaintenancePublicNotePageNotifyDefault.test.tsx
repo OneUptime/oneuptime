@@ -19,14 +19,14 @@ import React, { ReactElement } from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * Incidents > View > Public Notes.
+ * Scheduled Maintenance Events > View > Public Notes.
  *
- * An incident declared without notifying status page subscribers (or a
- * private one, which the server forces to the same) should not have its
- * first public note be what tells them. The page therefore loads the
- * incident's flag before it draws the notes table, and hands the table's
- * create form a starting value for "Notify Status Page Subscribers" that
- * follows it.
+ * A scheduled maintenance event created without notifying status page
+ * subscribers ("Event Created: Notify Status Page Subscribers" unticked)
+ * should not have its first public note be what tells them. The page
+ * therefore loads the event's flag before it draws the notes table, and
+ * hands the table's create form a starting value for "Notify Status Page
+ * Subscribers" that follows it.
  *
  * ModelTable, BasicFormModal, ConfirmModal and GenerateFromAIModal are prop
  * recorders: what is under test is what the page hands them, and what it does
@@ -188,11 +188,11 @@ jest.mock("../../../UI/Utils/Translation", () => {
   };
 });
 
-import PublicNote from "../../../../App/FeatureSet/Dashboard/src/Pages/Incidents/View/PublicNote";
-import Incident from "../../../Models/DatabaseModels/Incident";
-import IncidentNoteTemplate from "../../../Models/DatabaseModels/IncidentNoteTemplate";
-import IncidentPublicNote from "../../../Models/DatabaseModels/IncidentPublicNote";
+import PublicNote from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/View/PublicNote";
 import Project from "../../../Models/DatabaseModels/Project";
+import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
+import ScheduledMaintenanceNoteTemplate from "../../../Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
+import ScheduledMaintenancePublicNote from "../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import PublicNoteSubscriberNotificationDefault from "../../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
@@ -201,17 +201,20 @@ import Navigation from "../../../UI/Utils/Navigation";
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
-const INCIDENT_ID: string = "22222222-2222-4222-8222-222222222222";
-const OTHER_INCIDENT_ID: string = "33333333-3333-4333-8333-333333333333";
+const EVENT_ID: string = "22222222-2222-4222-8222-222222222222";
+const OTHER_EVENT_ID: string = "33333333-3333-4333-8333-333333333333";
 const TEMPLATE_ID: string = "44444444-4444-4444-8444-444444444444";
 
+const PAGE_ROUTE: string =
+  "/dashboard/scheduled-maintenance-events/view/public-notes";
 const NOTIFY_FIELD: string =
   "shouldStatusPageSubscribersBeNotifiedOnNoteCreated";
 const NOTIFYING_DESCRIPTION: string =
   "Should status page subscribers be notified?";
-const TEMPLATE_NOTE: string = "We are investigating elevated error rates.";
+const TEMPLATE_NOTE: string =
+  "The failover drill has started. Writes may pause for a few seconds.";
 
-let currentIncidentId: string = INCIDENT_ID;
+let currentEventId: string = EVENT_ID;
 
 interface Deferred<T> {
   promise: Promise<T>;
@@ -236,22 +239,25 @@ function createDeferred<T>(): Deferred<T> {
   return { promise: promise, resolve: resolve, reject: reject };
 }
 
-function buildIncident(notifyOnCreate: boolean | undefined): Incident {
-  const incident: Incident = new Incident();
-  incident._id = currentIncidentId;
+function buildEvent(
+  notifyOnCreate: boolean | null | undefined,
+): ScheduledMaintenance {
+  const event: ScheduledMaintenance = new ScheduledMaintenance();
+  event._id = currentEventId;
 
   if (notifyOnCreate !== undefined) {
-    incident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
-      notifyOnCreate;
+    event.shouldStatusPageSubscribersBeNotifiedOnEventCreated =
+      notifyOnCreate as boolean;
   }
 
-  return incident;
+  return event;
 }
 
-function buildTemplate(): IncidentNoteTemplate {
-  const template: IncidentNoteTemplate = new IncidentNoteTemplate();
+function buildTemplate(): ScheduledMaintenanceNoteTemplate {
+  const template: ScheduledMaintenanceNoteTemplate =
+    new ScheduledMaintenanceNoteTemplate();
   template._id = TEMPLATE_ID;
-  template.templateName = "Investigating";
+  template.templateName = "Drill started";
   template.note = TEMPLATE_NOTE;
   return template;
 }
@@ -268,29 +274,29 @@ type ModelRequest = {
   select?: Record<string, unknown> | undefined;
 };
 
-function incidentRequests(): Array<ModelRequest> {
+function eventRequests(): Array<ModelRequest> {
   return getItemMock.mock.calls
     .map((args: Array<unknown>) => {
       return args[0] as ModelRequest;
     })
     .filter((request: ModelRequest) => {
-      return request.modelType === Incident;
+      return request.modelType === ScheduledMaintenance;
     });
 }
 
 /*
- * The incident lookup answers with `incident`; the template lookup always
- * answers with the one template, so a flow can use both.
+ * The event lookup answers with `event`; the template lookup always answers
+ * with the one template, so a flow can use both.
  */
-function serveIncident(incident: Promise<Incident | null>): void {
+function serveEvent(event: Promise<ScheduledMaintenance | null>): void {
   getItemMock.mockImplementation((...args: Array<unknown>): unknown => {
     const request: ModelRequest = args[0] as ModelRequest;
 
-    if (request.modelType === IncidentNoteTemplate) {
+    if (request.modelType === ScheduledMaintenanceNoteTemplate) {
       return Promise.resolve(buildTemplate());
     }
 
-    return incident;
+    return event;
   });
 
   getListMock.mockImplementation((): unknown => {
@@ -308,7 +314,7 @@ function renderPage(
 ): RenderResult {
   return render(
     <PublicNote
-      pageRoute={new Route("/dashboard/incidents/view/public-notes")}
+      pageRoute={new Route(PAGE_ROUTE)}
       currentProject={currentProject}
       hasPaymentMethod={true}
     />,
@@ -316,9 +322,9 @@ function renderPage(
 }
 
 async function renderPageFor(
-  notifyOnCreate: boolean | undefined,
+  notifyOnCreate: boolean | null | undefined,
 ): Promise<RenderResult> {
-  serveIncident(Promise.resolve(buildIncident(notifyOnCreate)));
+  serveEvent(Promise.resolve(buildEvent(notifyOnCreate)));
   const view: RenderResult = renderPage();
 
   await waitFor(() => {
@@ -332,7 +338,7 @@ async function renderPageFor(
 function rerenderPage(view: RenderResult): void {
   view.rerender(
     <PublicNote
-      pageRoute={new Route("/dashboard/incidents/view/public-notes")}
+      pageRoute={new Route(PAGE_ROUTE)}
       currentProject={buildProject()}
       hasPaymentMethod={true}
     />,
@@ -393,7 +399,7 @@ async function createFromTemplate(): Promise<void> {
 
   await act(async () => {
     await capturedTemplateModalProps!.onSubmit({
-      incidentNoteTemplateId: new ObjectID(TEMPLATE_ID),
+      scheduledMaintenanceNoteTemplateId: new ObjectID(TEMPLATE_ID),
     });
   });
 }
@@ -413,7 +419,7 @@ async function generateWithAI(text: string): Promise<void> {
 }
 
 beforeEach(() => {
-  currentIncidentId = INCIDENT_ID;
+  currentEventId = EVENT_ID;
   tableRenders = [];
   createFormOpenings = [];
   capturedTemplateModalProps = null;
@@ -422,10 +428,10 @@ beforeEach(() => {
   jest
     .spyOn(Navigation, "getLastParamAsObjectID")
     .mockImplementation((): ObjectID => {
-      return new ObjectID(currentIncidentId);
+      return new ObjectID(currentEventId);
     });
   jest.spyOn(Navigation, "getCurrentRoute").mockImplementation((): Route => {
-    return new Route("/dashboard/incidents/view/public-notes");
+    return new Route(PAGE_ROUTE);
   });
 });
 
@@ -436,23 +442,23 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("public notes page: loading the incident's notify setting", () => {
-  test("asks for only the incident's notify-on-declare flag, by the incident in the route", async () => {
+describe("public notes page: loading the event's notify setting", () => {
+  test("asks for only the event's notify-on-create flag, by the event in the route", async () => {
     await renderPageFor(false);
 
-    const requests: Array<ModelRequest> = incidentRequests();
+    const requests: Array<ModelRequest> = eventRequests();
 
     expect(requests).toHaveLength(1);
-    expect(requests[0]!.id?.toString()).toBe(INCIDENT_ID);
+    expect(requests[0]!.id?.toString()).toBe(EVENT_ID);
     expect(requests[0]!.select).toEqual({
-      shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+      shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
     });
   });
 
-  test("shows a loader and no notes table while the incident is still loading", async () => {
-    const incident: Deferred<Incident | null> =
-      createDeferred<Incident | null>();
-    serveIncident(incident.promise);
+  test("shows a loader and no notes table while the event is still loading", async () => {
+    const event: Deferred<ScheduledMaintenance | null> =
+      createDeferred<ScheduledMaintenance | null>();
+    serveEvent(event.promise);
 
     renderPage();
 
@@ -462,85 +468,145 @@ describe("public notes page: loading the incident's notify setting", () => {
     expect(tableRenders).toHaveLength(0);
 
     await act(async () => {
-      incident.resolve(buildIncident(false));
+      event.resolve(buildEvent(false));
     });
 
     expect(screen.getByTestId("public-note-table")).toBeInTheDocument();
     expect(screen.queryByTestId("bar-loader")).toBeNull();
     expect(tableRenders.length).toBeGreaterThan(0);
 
-    // The very first table render already knows the incident was quiet.
+    // The very first table render already knows the event was quiet.
     for (const tableRender of tableRenders) {
       expect(tableRender.createInitialValues?.[NOTIFY_FIELD]).toBe(false);
     }
   });
 
-  test("shows the error and no notes table when the incident cannot be loaded", async () => {
-    serveIncident(Promise.reject(new Error("Incident could not be loaded.")));
+  test("shows the error and no notes table when the event cannot be loaded", async () => {
+    serveEvent(
+      Promise.reject(new Error("Scheduled maintenance could not be loaded.")),
+    );
 
     renderPage();
 
     expect(
-      await screen.findByText("Incident could not be loaded."),
+      await screen.findByText("Scheduled maintenance could not be loaded."),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("public-note-table")).toBeNull();
     expect(screen.queryByTestId("bar-loader")).toBeNull();
     expect(tableRenders).toHaveLength(0);
   });
 
-  test("ignores a slower answer for the incident the page has already moved away from", async () => {
-    const firstIncident: Deferred<Incident | null> =
-      createDeferred<Incident | null>();
-    const secondIncident: Deferred<Incident | null> =
-      createDeferred<Incident | null>();
+  test("ignores a slower answer for the event the page has already moved away from", async () => {
+    const firstEvent: Deferred<ScheduledMaintenance | null> =
+      createDeferred<ScheduledMaintenance | null>();
+    const secondEvent: Deferred<ScheduledMaintenance | null> =
+      createDeferred<ScheduledMaintenance | null>();
 
     getItemMock.mockImplementation((...args: Array<unknown>): unknown => {
       const request: ModelRequest = args[0] as ModelRequest;
-      return request.id?.toString() === INCIDENT_ID
-        ? firstIncident.promise
-        : secondIncident.promise;
+      return request.id?.toString() === EVENT_ID
+        ? firstEvent.promise
+        : secondEvent.promise;
     });
 
     const view: RenderResult = renderPage();
 
-    currentIncidentId = OTHER_INCIDENT_ID;
+    currentEventId = OTHER_EVENT_ID;
     view.rerender(
       <PublicNote
-        pageRoute={new Route("/dashboard/incidents/view/public-notes")}
+        pageRoute={new Route(PAGE_ROUTE)}
         currentProject={buildProject()}
         hasPaymentMethod={true}
       />,
     );
 
     await waitFor(() => {
-      expect(incidentRequests()).toHaveLength(2);
+      expect(eventRequests()).toHaveLength(2);
     });
-    expect(incidentRequests()[1]!.id?.toString()).toBe(OTHER_INCIDENT_ID);
+    expect(eventRequests()[1]!.id?.toString()).toBe(OTHER_EVENT_ID);
 
-    const quietIncident: Incident = new Incident();
-    quietIncident._id = OTHER_INCIDENT_ID;
-    quietIncident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
-      false;
+    const quietEvent: ScheduledMaintenance = new ScheduledMaintenance();
+    quietEvent._id = OTHER_EVENT_ID;
+    quietEvent.shouldStatusPageSubscribersBeNotifiedOnEventCreated = false;
 
     await act(async () => {
-      secondIncident.resolve(quietIncident);
+      secondEvent.resolve(quietEvent);
     });
 
-    const notifyingIncident: Incident = new Incident();
-    notifyingIncident._id = INCIDENT_ID;
-    notifyingIncident.shouldStatusPageSubscribersBeNotifiedOnIncidentCreated =
-      true;
+    const notifyingEvent: ScheduledMaintenance = new ScheduledMaintenance();
+    notifyingEvent._id = EVENT_ID;
+    notifyingEvent.shouldStatusPageSubscribersBeNotifiedOnEventCreated = true;
 
     await act(async () => {
-      firstIncident.resolve(notifyingIncident);
+      firstEvent.resolve(notifyingEvent);
     });
 
     expect(table().createInitialValues?.[NOTIFY_FIELD]).toBe(false);
     expect(notifyFormField().defaultValue).toBe(false);
+    expect(notifyFormField().description).toBe(
+      PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
+    );
+  });
+
+  test("moving to another event waits for that event's setting instead of keeping the last one", async () => {
+    serveEvent(Promise.resolve(buildEvent(false)));
+
+    const view: RenderResult = renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("public-note-table")).toBeInTheDocument();
+    });
+    expect(table().createInitialValues?.[NOTIFY_FIELD]).toBe(false);
+
+    const nextEvent: Deferred<ScheduledMaintenance | null> =
+      createDeferred<ScheduledMaintenance | null>();
+
+    getItemMock.mockImplementation((...args: Array<unknown>): unknown => {
+      const request: ModelRequest = args[0] as ModelRequest;
+
+      if (request.id?.toString() === OTHER_EVENT_ID) {
+        return nextEvent.promise;
+      }
+
+      return Promise.resolve(buildEvent(false));
+    });
+
+    currentEventId = OTHER_EVENT_ID;
+    view.rerender(
+      <PublicNote
+        pageRoute={new Route(PAGE_ROUTE)}
+        currentProject={buildProject()}
+        hasPaymentMethod={true}
+      />,
+    );
+
+    // The page stays mounted, so it goes back to loading for the new event.
+    await waitFor(() => {
+      expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("public-note-table")).toBeNull();
+    expect(eventRequests()).toHaveLength(2);
+    expect(eventRequests()[1]!.id?.toString()).toBe(OTHER_EVENT_ID);
+
+    const notifyingEvent: ScheduledMaintenance = new ScheduledMaintenance();
+    notifyingEvent._id = OTHER_EVENT_ID;
+    notifyingEvent.shouldStatusPageSubscribersBeNotifiedOnEventCreated = true;
+
+    await act(async () => {
+      nextEvent.resolve(notifyingEvent);
+    });
+
+    expect(screen.getByTestId("public-note-table")).toBeInTheDocument();
+    expect(table().createInitialValues?.[NOTIFY_FIELD]).toBe(true);
+    expect(notifyFormField().defaultValue).toBe(true);
+    expect(notifyFormField().description).toBe(NOTIFYING_DESCRIPTION);
+    expect(String(table().query?.["scheduledMaintenanceId"])).toBe(
+      OTHER_EVENT_ID,
+    );
   });
 });
 
-describe("public notes page: an incident declared without notifying subscribers", () => {
+describe("public notes page: an event created without notifying subscribers", () => {
   test("seeds the create form with notify subscribers off", async () => {
     await renderPageFor(false);
 
@@ -556,11 +622,13 @@ describe("public notes page: an incident declared without notifying subscribers"
 
     expect(field.defaultValue).toBe(false);
     expect(field.description).toBe(
-      PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
+      PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
     );
     expect(field.description).not.toBe(NOTIFYING_DESCRIPTION);
     expect(field.title).toBe("Notify Status Page Subscribers");
     expect(field.required).toBe(false);
+    // Still on the same step of the form as before.
+    expect(field.stepId).toBe("more");
   });
 
   test("does not open the create form on its own", async () => {
@@ -573,9 +641,10 @@ describe("public notes page: an incident declared without notifying subscribers"
 describe.each([
   ["that notified subscribers", true],
   ["with no notify setting stored", undefined],
+  ["whose notify setting reads back as null", null],
 ])(
-  "public notes page: an incident %s",
-  (_name: string, notifyOnCreate: boolean | undefined) => {
+  "public notes page: an event %s",
+  (_name: string, notifyOnCreate: boolean | null | undefined) => {
     test("seeds the create form with notify subscribers on", async () => {
       await renderPageFor(notifyOnCreate);
 
@@ -596,9 +665,9 @@ describe.each([
   },
 );
 
-describe("public notes page: an incident the lookup does not find", () => {
+describe("public notes page: an event the lookup does not find", () => {
   test("falls back to notifying subscribers", async () => {
-    serveIncident(Promise.resolve(null));
+    serveEvent(Promise.resolve(null));
     renderPage();
 
     await waitFor(() => {
@@ -623,7 +692,7 @@ describe("public notes page: drafting a note from a template", () => {
     expect(notifyFormField().defaultValue).toBe(false);
   });
 
-  test("keeps notify subscribers on for an incident that notified", async () => {
+  test("keeps notify subscribers on for an event that notified", async () => {
     await renderPageFor(true);
 
     await createFromTemplate();
@@ -633,7 +702,7 @@ describe("public notes page: drafting a note from a template", () => {
     expect(table().createInitialValues?.[NOTIFY_FIELD]).toBe(true);
   });
 
-  test("fetches the chosen template and lists templates without touching the incident again", async () => {
+  test("fetches the chosen template and lists templates without touching the event again", async () => {
     await renderPageFor(false);
 
     await createFromTemplate();
@@ -643,12 +712,12 @@ describe("public notes page: drafting a note from a template", () => {
         return args[0] as ModelRequest;
       })
       .find((request: ModelRequest) => {
-        return request.modelType === IncidentNoteTemplate;
+        return request.modelType === ScheduledMaintenanceNoteTemplate;
       });
 
     expect(templateRequest?.id?.toString()).toBe(TEMPLATE_ID);
     expect(getListMock).toHaveBeenCalledTimes(1);
-    expect(incidentRequests()).toHaveLength(1);
+    expect(eventRequests()).toHaveLength(1);
   });
 });
 
@@ -666,7 +735,7 @@ describe("public notes page: drafting a note with AI", () => {
     expect(screen.queryByTestId("ai-modal")).toBeNull();
   });
 
-  test("opens the form with the draft and notify subscribers on for an incident that notified", async () => {
+  test("opens the form with the draft and notify subscribers on for an event that notified", async () => {
     await renderPageFor(true);
 
     await generateWithAI("Drafted by AI.");
@@ -679,36 +748,36 @@ describe("public notes page: drafting a note with AI", () => {
   });
 });
 
-describe("public notes page: a draft does not follow you to another incident", () => {
+describe("public notes page: a draft does not follow you to another event", () => {
   /*
-   * The page stays mounted when the route moves to another incident, but
-   * the notes table is swapped for a loader until that incident's flag
-   * arrives and then mounts afresh - and a table that mounts with a draft
-   * opens its create form by itself. A draft left from the last incident
-   * would open there, and saving it would post it on this one.
+   * The page stays mounted when the route moves to another event, but the
+   * notes table is swapped for a loader until that event's flag arrives and
+   * then mounts afresh - and a table that mounts with a draft opens its
+   * create form by itself. A draft left from the last event would open
+   * there, and saving it would post it on this one.
    */
-  async function moveToOtherIncident(
+  async function moveToOtherEvent(
     view: RenderResult,
     notifyOnCreate: boolean,
   ): Promise<void> {
-    const nextIncident: Deferred<Incident | null> =
-      createDeferred<Incident | null>();
+    const nextEvent: Deferred<ScheduledMaintenance | null> =
+      createDeferred<ScheduledMaintenance | null>();
 
     getItemMock.mockImplementation((...args: Array<unknown>): unknown => {
       const request: ModelRequest = args[0] as ModelRequest;
 
-      if (request.modelType === IncidentNoteTemplate) {
+      if (request.modelType === ScheduledMaintenanceNoteTemplate) {
         return Promise.resolve(buildTemplate());
       }
 
-      if (request.id?.toString() === OTHER_INCIDENT_ID) {
-        return nextIncident.promise;
+      if (request.id?.toString() === OTHER_EVENT_ID) {
+        return nextEvent.promise;
       }
 
-      return Promise.resolve(buildIncident(false));
+      return Promise.resolve(buildEvent(false));
     });
 
-    currentIncidentId = OTHER_INCIDENT_ID;
+    currentEventId = OTHER_EVENT_ID;
     rerenderPage(view);
 
     await waitFor(() => {
@@ -716,19 +785,21 @@ describe("public notes page: a draft does not follow you to another incident", (
     });
     expect(screen.queryByTestId("public-note-table")).toBeNull();
 
-    // From here on, only the table mounted for the new incident is recorded.
+    // From here on, only the table mounted for the new event is recorded.
     tableRenders = [];
 
     await act(async () => {
-      nextIncident.resolve(buildIncident(notifyOnCreate));
+      nextEvent.resolve(buildEvent(notifyOnCreate));
     });
 
     expect(screen.getByTestId("public-note-table")).toBeInTheDocument();
-    expect(String(table().query?.["incidentId"])).toBe(OTHER_INCIDENT_ID);
+    expect(String(table().query?.["scheduledMaintenanceId"])).toBe(
+      OTHER_EVENT_ID,
+    );
   }
 
   function expectNoDraftOnTheNewTable(notifyOnCreate: boolean): void {
-    // The form opened once, on the first incident, and not again.
+    // The form opened once, on the first event, and not again.
     expect(createFormOpenings.slice(1)).toEqual([]);
 
     for (const tableRender of tableRenders) {
@@ -739,7 +810,7 @@ describe("public notes page: a draft does not follow you to another incident", (
     }
   }
 
-  test("a template chosen on one incident does not open the create form on the next", async () => {
+  test("a template chosen on one event does not open the create form on the next", async () => {
     const view: RenderResult = await renderPageFor(false);
 
     await createFromTemplate();
@@ -749,43 +820,43 @@ describe("public notes page: a draft does not follow you to another incident", (
       TEMPLATE_NOTE,
     );
 
-    await moveToOtherIncident(view, true);
+    await moveToOtherEvent(view, true);
 
     expectNoDraftOnTheNewTable(true);
   });
 
-  test("an AI draft written on one incident does not open the create form on the next", async () => {
+  test("an AI draft written on one event does not open the create form on the next", async () => {
     const view: RenderResult = await renderPageFor(false);
 
-    await generateWithAI("Drafted by AI for the first incident.");
+    await generateWithAI("Drafted by AI for the first event.");
 
     expect(createFormOpenings).toHaveLength(1);
 
-    await moveToOtherIncident(view, false);
+    await moveToOtherEvent(view, false);
 
     expectNoDraftOnTheNewTable(false);
   });
 
-  test("a template chosen after moving opens the form with the new incident's flag", async () => {
+  test("a template chosen after moving opens the form with the new event's flag", async () => {
     const view: RenderResult = await renderPageFor(false);
 
     await createFromTemplate();
-    await moveToOtherIncident(view, true);
+    await moveToOtherEvent(view, true);
     await createFromTemplate();
 
     expect(table().showCreateForm).toBe(true);
     expect(table().createInitialValues?.["note"]).toBe(TEMPLATE_NOTE);
     expect(table().createInitialValues?.[NOTIFY_FIELD]).toBe(true);
     expect(createFormOpenings).toHaveLength(2);
-    expect(String(createFormOpenings[1]!.query?.["incidentId"])).toBe(
-      OTHER_INCIDENT_ID,
-    );
+    expect(
+      String(createFormOpenings[1]!.query?.["scheduledMaintenanceId"]),
+    ).toBe(OTHER_EVENT_ID);
     expect(createFormOpenings[1]!.createInitialValues?.[NOTIFY_FIELD]).toBe(
       true,
     );
   });
 
-  test("rendering the same incident again keeps the draft and the open form", async () => {
+  test("rendering the same event again keeps the draft and the open form", async () => {
     const view: RenderResult = await renderPageFor(false);
 
     await createFromTemplate();
@@ -796,24 +867,28 @@ describe("public notes page: a draft does not follow you to another incident", (
     expect(table().createInitialValues?.["note"]).toBe(TEMPLATE_NOTE);
     expect(table().createInitialValues?.[NOTIFY_FIELD]).toBe(false);
     expect(createFormOpenings).toHaveLength(1);
-    expect(incidentRequests()).toHaveLength(1);
+    expect(eventRequests()).toHaveLength(1);
   });
 });
 
 describe("public notes page: creating a note", () => {
-  test("still stamps the note with this incident and the current project", async () => {
+  test("still stamps the note with this event and the current project", async () => {
     await renderPageFor(false);
 
-    const note: IncidentPublicNote = (await table().onBeforeCreate!(
-      new IncidentPublicNote(),
-    )) as IncidentPublicNote;
+    const note: ScheduledMaintenancePublicNote = (await table().onBeforeCreate!(
+      new ScheduledMaintenancePublicNote(),
+    )) as ScheduledMaintenancePublicNote;
 
-    expect(note.incidentId?.toString()).toBe(INCIDENT_ID);
+    expect(note.scheduledMaintenanceId?.toString()).toBe(EVENT_ID);
     expect(note.projectId?.toString()).toBe(PROJECT_ID.toString());
+    // The page leaves the flag to the form; it does not force one.
+    expect(note.shouldStatusPageSubscribersBeNotifiedOnNoteCreated).toBe(
+      undefined,
+    );
   });
 
   test("refuses to create a note without a current project", async () => {
-    serveIncident(Promise.resolve(buildIncident(false)));
+    serveEvent(Promise.resolve(buildEvent(false)));
     renderPage(null);
 
     await waitFor(() => {
@@ -821,14 +896,14 @@ describe("public notes page: creating a note", () => {
     });
 
     expect(() => {
-      return table().onBeforeCreate!(new IncidentPublicNote());
+      return table().onBeforeCreate!(new ScheduledMaintenancePublicNote());
     }).toThrow("Project ID cannot be null");
   });
 
-  test("lists only this incident's notes", async () => {
+  test("lists only this event's notes", async () => {
     await renderPageFor(false);
 
-    expect(String(table().query?.["incidentId"])).toBe(INCIDENT_ID);
+    expect(String(table().query?.["scheduledMaintenanceId"])).toBe(EVENT_ID);
     expect(String(table().query?.["projectId"])).toBe(PROJECT_ID.toString());
   });
 });

@@ -51,6 +51,7 @@ import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArr
 import Recurring from "Common/Types/Events/Recurring";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 import ScheduledMaintenanceFeedElement from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceFeed";
+import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
@@ -245,6 +246,11 @@ const ScheduledMaintenanceView: FunctionComponent<
               title: true,
               scheduledMaintenanceNumber: true,
               scheduledMaintenanceNumberWithPrefix: true,
+              shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+              shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
+                true,
+              shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
+                true,
               statusPages: {
                 _id: true,
                 name: true,
@@ -362,6 +368,17 @@ const ScheduledMaintenanceView: FunctionComponent<
     (scheduledMaintenance?.scheduledMaintenanceNumber
       ? "#" + scheduledMaintenance.scheduledMaintenanceNumber
       : undefined);
+  /*
+   * Off when the event was created without notifying status page
+   * subscribers; the feed's public note form then starts with "Notify Status
+   * Page Subscribers" unticked. The state change header gets the event's
+   * settings instead, because moving the event to ongoing or ended also
+   * follows its "Event Ongoing" / "Event Ended" settings.
+   */
+  const notifyStatusPageSubscribersByDefault: boolean =
+    PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenance(
+      scheduledMaintenance,
+    );
 
   const heroFacts: Array<EventStatusFact> = [
     {
@@ -387,6 +404,7 @@ const ScheduledMaintenanceView: FunctionComponent<
         title={eventTitle}
         eventStartsAt={eventStartsAt}
         eventEndsAt={eventEndsAt}
+        subscriberNotificationSettings={scheduledMaintenance}
         facts={heroFacts}
         onActionComplete={() => {
           // The state change adds a feed item and can change the details.
@@ -411,6 +429,9 @@ const ScheduledMaintenanceView: FunctionComponent<
           <ScheduledMaintenanceFeedElement
             scheduledMaintenanceId={modelId}
             refreshToken={feedRefreshToken}
+            notifyStatusPageSubscribersByDefault={
+              notifyStatusPageSubscribersByDefault
+            }
           />
         </div>
 

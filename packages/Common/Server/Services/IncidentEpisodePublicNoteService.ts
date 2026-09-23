@@ -14,6 +14,8 @@ import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberUpdateNotification from "../../Types/StatusPage/SubscriberUpdateNotification";
+import PublicNoteSubscriberNotificationDefault from "../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
+import Query from "../Types/Database/Query";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
 import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
@@ -90,6 +92,26 @@ export class Service extends DatabaseService<Model> {
       createBy.data.postedAt = OneUptimeDate.getCurrentDate();
     }
 
+    /*
+     * A note that does not say whether to notify subscribers (Slack and
+     * Teams notes, workflows, API calls that leave the field out) follows
+     * its episode, so one created without telling subscribers stays quiet.
+     * An explicit true or false is kept as sent.
+     */
+    if (
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated ===
+        undefined ||
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === null
+    ) {
+      const notifyByDefault: boolean | null =
+        await this.getIncidentEpisodeNotifyDefault(createBy.data);
+
+      if (notifyByDefault !== null) {
+        createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+          notifyByDefault;
+      }
+    }
+
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnNoteCreated
     if (
       createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === false
@@ -109,6 +131,50 @@ export class Service extends DatabaseService<Model> {
       createBy: createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * Whether a note on this episode notifies subscribers when nobody said,
+   * or null when the episode cannot be found (the column default applies).
+   * Read as root: posting a note does not require permission to read the
+   * episode, and the answer is only this one flag.
+   */
+  private async getIncidentEpisodeNotifyDefault(
+    note: Model,
+  ): Promise<boolean | null> {
+    const incidentEpisodeId: ObjectID | null | undefined =
+      note.incidentEpisodeId || note.incidentEpisode?.id;
+
+    if (!incidentEpisodeId) {
+      return null;
+    }
+
+    const query: Query<IncidentEpisode> = {
+      _id: incidentEpisodeId.toString(),
+    };
+
+    if (note.projectId) {
+      query.projectId = note.projectId;
+    }
+
+    const incidentEpisode: IncidentEpisode | null =
+      await IncidentEpisodeService.findOneBy({
+        query: query,
+        select: {
+          shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!incidentEpisode) {
+      return null;
+    }
+
+    return PublicNoteSubscriberNotificationDefault.shouldNotifyForIncidentEpisode(
+      incidentEpisode,
+    );
   }
 
   /*
