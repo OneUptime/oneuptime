@@ -1244,19 +1244,28 @@ serviceAccount:
 #     write (remediation.namespaces), not what a write may do.
 #   * Policy, in OneUptime, re-checked by the Runner before it spawns
 #     kubectl. It refuses exec/attach/cp/port-forward/apply/edit/replace,
-#     Secret objects, pod-template security patches, `set serviceaccount`,
-#     `create deployment|cronjob|job --image`, patch bodies that are not
-#     JSON, any write to RBAC objects, CRDs, APIServices, admission webhooks
-#     or admission policies, `--all-namespaces` writes and `delete --all` in
-#     every mode, even with a human approving. It does not refuse changing an
+#     Secret objects, pod-template security patches, patches that replace
+#     the pod spec or a whole containers list (`$patch: replace`, a merge
+#     patch of `containers`, a JSON-patch replace/remove of the pod spec),
+#     `set serviceaccount`, `create deployment|cronjob|job --image`, patch
+#     bodies that are not JSON, labels/annotations on Namespace objects
+#     picked by --all or a selector, any write to RBAC objects, CRDs,
+#     APIServices, admission webhooks or admission policies,
+#     `--all-namespaces` writes and `delete --all` in every mode, even with
+#     a human approving. It does not refuse changing an
 #     image: `set image` (or a patch of an image field) is a riskier change
 #     that runs the new image as the workload's own ServiceAccount, with its
 #     Secrets; a human approves it unless the cluster bypasses approvals or
 #     its allowlist names the command.
 #     In every mode, "bypass approval" included, a write in kube-system,
-#     kube-public or kube-node-lease, a drain and a taint always wait for a
-#     human (a drain evicts pods in every namespace, those three and the
-#     agent's own included), and the Runner never changes its own namespace.
+#     kube-public or kube-node-lease (a custom resource is judged by its
+#     namespace, even one named like a built-in kind), a drain and a taint
+#     always wait for a human (a drain evicts pods in every namespace, those
+#     three and the agent's own included), and the Runner never changes its
+#     own namespace, anything outside remediation.namespaces, or a node
+#     when remediation.nodeOperations is false. OneUptime reads that scope
+#     from what the Runner reports and refuses such a fix when it is
+#     proposed or approved, before the Runner would refuse it.
 #     The cluster's AI page decides whether AI may investigate (read-only
 #     kubectl), and whether it may remediate:
 #       - "ask for approval": a human approves the exact kubectl plan with
@@ -1267,7 +1276,10 @@ serviceAccount:
 #         safe fix, a riskier fix is proposed only if verification shows the
 #         safe one did not recover the signal (the follow-up round, which
 #         asks). Shapes on the cluster's kubectl allowlist run on their own,
-#         except the every-mode lines above;
+#         except the every-mode lines above (an allowlist entry must spell
+#         out its verb and be more than one word, or it is refused). A
+#         round proposes instead of running when the hourly circuit breaker
+#         trips or another unattended round still holds the cluster;
 #       - "bypass approval": AI does not ask. Every change the policy allows,
 #         riskier ones included, runs on its own, follow-up rounds included,
 #         except the every-mode lines above. A round still asks instead when
@@ -1305,7 +1317,9 @@ aiAccess:
     enabled: false
     # Where the write role applies. List namespaces to bind it with one
     # RoleBinding in each (and nowhere else); the Runner is told the list
-    # and refuses a write outside it before spawning kubectl.
+    # and refuses a write outside it before spawning kubectl, and since it
+    # reports the list, OneUptime refuses such a write already when it is
+    # proposed or approved.
     #
     # Every listed namespace must already exist. The chart creates a
     # RoleBinding in each and never creates a namespace, so a missing one
@@ -1338,7 +1352,8 @@ aiAccess:
     # the chart then grants no node RBAC and tells the Runner
     # (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false), which refuses cordon,
     # uncordon, drain, taint and label/annotate/patch on a node before it
-    # spawns kubectl.
+    # spawns kubectl; OneUptime, which the Runner tells, refuses such a fix
+    # already when it is proposed or approved.
     nodeOperations: true
   image:
     repository: oneuptime/runner

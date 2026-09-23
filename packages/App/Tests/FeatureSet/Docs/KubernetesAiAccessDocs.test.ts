@@ -1,4 +1,9 @@
 import { getKubernetesInstallationMarkdown } from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import {
+  getAiAccessHelmCommands,
+  getAiAccessScopedCommandNote,
+  getAiAccessWriteDisclosure,
+} from "../../../FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAiAccessSetup";
 import { PROTECTED_KUBERNETES_NAMESPACES } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import {
   KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
@@ -39,6 +44,22 @@ import path from "path";
  *   Bash/SSH steps.
  * - The AI page's command history is described as what it shows — the
  *   command, its status and when it ran — not as command output.
+ * - The cluster AI page (Pages/Kubernetes/View/AI.tsx) is held to the same
+ *   rules as the pages: every helm upgrade it offers
+ *   (getAiAccessHelmCommands) refreshes the chart index first and targets
+ *   the dashboard's release, and its write-access disclosure
+ *   (getAiAccessWriteDisclosure) says what patch access to workloads
+ *   amounts to. Both are read from Pages/Kubernetes/Utils/
+ *   KubernetesAiAccessSetup.ts, which AI.tsx shows and re-exports, because
+ *   AI.tsx itself reads `window` at load and this suite has no browser.
+ * - What changed in round three is described as the code does it: what the
+ *   bound Runner would refuse (outside aiAccess.remediation.namespaces, its
+ *   own namespace, node operations with nodeOperations=false) is refused
+ *   when a fix is proposed or approved; parent-replacement patches,
+ *   unnamed Namespace-object writes and one-word allowlist entries are
+ *   refused; a custom resource named like a built-in kind is judged by its
+ *   namespace; and the agent's own Runner is never an auto-remediation
+ *   rule's command Runner.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -62,6 +83,14 @@ const CHART_NOTES: string = path.join(CHART_DIR, "templates/NOTES.txt");
 const CHART_VALUES: string = path.join(CHART_DIR, "values.yaml");
 const CHART_SCHEMA: string = path.join(CHART_DIR, "values.schema.json");
 const CHART_TEMPLATE: string = path.join(CHART_DIR, "templates/ai-runner.yaml");
+const RUNNER_README: string = path.join(PACKAGES_ROOT, "Runner/README.md");
+const ROADMAP: string = path.join(
+  REPOSITORY_ROOT,
+  "Docs/Internal/Roadmap/AiClusterAccess.md",
+);
+
+// How the cluster AI page is named in an expectation.
+const AI_PAGE: string = "Pages/Kubernetes/View/AI.tsx";
 
 // The pages with copy-paste setup commands.
 const SETUP_PAGES: Array<string> = [
@@ -90,6 +119,17 @@ const OUTER_BOUND_PATTERN: RegExp = /outer bound/i;
 const WORKLOAD_PATCH_EQUIVALENCE_PATTERN: RegExp =
   /any image as any ServiceAccount/;
 const OWN_NAMESPACE_PATTERN: RegExp = /own namespace/;
+/*
+ * A write the bound Runner would refuse, refused before it reaches the
+ * Runner: when the fix is proposed or approved.
+ */
+const REFUSED_UP_FRONT_PATTERN: RegExp =
+  /(when|before)[^.]{0,40}\bproposed or approved\b|proposes it and again when someone approves it/;
+const AGENT_NEVER_RULE_RUNNER_PATTERN: RegExp =
+  /never accepted as an auto-remediation rule's command Runner/;
+// A custom resource named like a built-in kind is judged by its namespace.
+const CUSTOM_RESOURCE_BY_NAMESPACE_PATTERN: RegExp =
+  /custom resource is judged by (the namespace it is written in|its namespace|`-n`)/;
 
 function read(filePath: string): string {
   return fs.readFileSync(filePath, "utf8");
@@ -97,6 +137,22 @@ function read(filePath: string): string {
 
 function relative(filePath: string): string {
   return path.relative(REPOSITORY_ROOT, filePath);
+}
+
+// A copy an operator reads, by name, with line breaks read as one space.
+interface CopySource {
+  label: string;
+  text: string;
+}
+
+// Line breaks, and the `#` of a YAML comment, read as one space.
+const LINE_BREAK_PATTERN: RegExp = /\s*\n\s*#?\s*/g;
+
+function fileSource(filePath: string): CopySource {
+  return {
+    label: relative(filePath),
+    text: read(filePath).replace(LINE_BREAK_PATTERN, " "),
+  };
 }
 
 function getBashBlocks(markdown: string): Array<string> {
@@ -151,6 +207,32 @@ function getDashboardInstallTarget(): HelmTarget {
   return { release: match[1]!, namespace: match[2]! };
 }
 
+// The aiAccess upgrades one place offers, in the order it offers them.
+interface SetupCommandSource {
+  label: string;
+  blocks: Array<string>;
+}
+
+/*
+ * Every place with copy-paste aiAccess upgrades: the three setup pages,
+ * and the cluster AI page — every value of getAiAccessHelmCommands(), in
+ * the order the page shows them (read-only first).
+ */
+function getSetupCommandSources(): Array<SetupCommandSource> {
+  return [
+    ...SETUP_PAGES.map((page: string): SetupCommandSource => {
+      return {
+        label: relative(page),
+        blocks: getAiAccessUpgradeBlocks(read(page)),
+      };
+    }),
+    {
+      label: AI_PAGE,
+      blocks: Object.values(getAiAccessHelmCommands()),
+    },
+  ];
+}
+
 describe("OneUptime AI cluster-access setup commands", () => {
   const target: HelmTarget = getDashboardInstallTarget();
 
@@ -161,9 +243,24 @@ describe("OneUptime AI cluster-access setup commands", () => {
     });
   });
 
-  for (const page of SETUP_PAGES) {
-    describe(relative(page), () => {
-      const blocks: Array<string> = getAiAccessUpgradeBlocks(read(page));
+  it("checks every command the cluster AI page offers, each an aiAccess upgrade", () => {
+    // Harness guard: all three of the page's commands reach the loop below.
+    const commands: Array<string> = Object.values(getAiAccessHelmCommands());
+
+    expect(commands).toHaveLength(3);
+    for (const command of commands) {
+      expect({
+        command,
+        isAiAccessUpgrade:
+          command.includes("helm upgrade") &&
+          command.includes("--set aiAccess"),
+      }).toEqual({ command, isAiAccessUpgrade: true });
+    }
+  });
+
+  for (const source of getSetupCommandSources()) {
+    describe(source.label, () => {
+      const blocks: Array<string> = source.blocks;
 
       it("has at least a read-only and a write-access command", () => {
         expect(blocks.length).toBeGreaterThanOrEqual(2);
@@ -233,8 +330,34 @@ describe("OneUptime AI cluster-access setup commands", () => {
         namesChart070: CHART_070_PATTERN.test(read(file)),
       }).toEqual({ file: relative(file), namesChart070: false });
     }
+
+    for (const command of Object.values(getAiAccessHelmCommands())) {
+      expect({
+        command,
+        namesChart070: CHART_070_PATTERN.test(command),
+      }).toEqual({ command, namesChart070: false });
+    }
   });
 });
+
+/*
+ * Everything an operator reads where write access is offered: the docs
+ * files, and the cluster AI page's write-access disclosure.
+ */
+function getWriteAccessOffers(): Array<CopySource> {
+  return [
+    ...[
+      AI_SRE_PAGE,
+      KUBERNETES_AGENT_PAGE,
+      CHART_README,
+      CHART_NOTES,
+      CHART_VALUES,
+      CHART_SCHEMA,
+      CHART_TEMPLATE,
+    ].map(fileSource),
+    { label: AI_PAGE, text: getAiAccessWriteDisclosure() },
+  ];
+}
 
 describe("OneUptime AI cluster-access RBAC copy", () => {
   it("never calls the chart's RBAC an outer bound", () => {
@@ -247,44 +370,47 @@ describe("OneUptime AI cluster-access RBAC copy", () => {
   });
 
   it("says what patch access to workloads amounts to wherever write access is offered", () => {
-    for (const file of [
-      AI_SRE_PAGE,
-      KUBERNETES_AGENT_PAGE,
-      CHART_README,
-      CHART_NOTES,
-      CHART_VALUES,
-      CHART_SCHEMA,
-      CHART_TEMPLATE,
-    ]) {
-      const text: string = read(file).replace(/\s*\n\s*#?\s*/g, " ");
+    const offers: Array<CopySource> = getWriteAccessOffers();
+
+    // Harness guard: the AI page's disclosure is one of the offers checked.
+    expect(
+      offers.some((offer: CopySource): boolean => {
+        return offer.label === AI_PAGE && offer.text.length > 0;
+      }),
+    ).toBe(true);
+
+    for (const offer of offers) {
       expect({
-        file: relative(file),
-        equivalence: WORKLOAD_PATCH_EQUIVALENCE_PATTERN.test(text),
-      }).toEqual({ file: relative(file), equivalence: true });
+        file: offer.label,
+        equivalence: WORKLOAD_PATCH_EQUIVALENCE_PATTERN.test(offer.text),
+      }).toEqual({ file: offer.label, equivalence: true });
     }
   });
 
-  it("names every protected namespace and aiAccess.remediation.namespaces on each setup page", () => {
-    for (const file of SETUP_PAGES) {
-      const text: string = read(file);
-
+  it("names every protected namespace and aiAccess.remediation.namespaces on each setup page and the AI page", () => {
+    for (const source of [
+      ...SETUP_PAGES.map((file: string): CopySource => {
+        return { label: relative(file), text: read(file) };
+      }),
+      { label: AI_PAGE, text: getAiAccessWriteDisclosure() },
+    ]) {
       for (const namespace of PROTECTED_KUBERNETES_NAMESPACES) {
         expect({
-          file: relative(file),
+          file: source.label,
           namespace,
-          named: text.includes(namespace),
+          named: source.text.includes(namespace),
         }).toEqual({
-          file: relative(file),
+          file: source.label,
           namespace,
           named: true,
         });
       }
 
       expect({
-        file: relative(file),
-        scoped: text.includes("aiAccess.remediation.namespaces"),
-        ownNamespace: OWN_NAMESPACE_PATTERN.test(text),
-      }).toEqual({ file: relative(file), scoped: true, ownNamespace: true });
+        file: source.label,
+        scoped: source.text.includes("aiAccess.remediation.namespaces"),
+        ownNamespace: OWN_NAMESPACE_PATTERN.test(source.text),
+      }).toEqual({ file: source.label, scoped: true, ownNamespace: true });
     }
   });
 });
@@ -467,5 +593,197 @@ describe("the AI SRE page's cluster-access section", () => {
 
   it("says the Runner turns kuberc off", () => {
     expect(section).toContain("turns kuberc off");
+  });
+});
+
+describe("what the bound Runner would refuse, in the docs and on the AI page", () => {
+  /*
+   * RemediationCommandToolkit.getRunnerScopeRefusal (compose, proposal),
+   * the approval route and RunnerJobService.getRunnerWriteScopeRefusal (the
+   * enqueue chokepoint) read the Runner's reported scope, so a write outside
+   * aiAccess.remediation.namespaces, in the Runner's own namespace, or a
+   * node operation with nodeOperations=false never reaches the Runner as a
+   * failed fix. Every copy that describes the Runner's scope says so.
+   */
+  function getScopeCopies(): Array<CopySource> {
+    return [
+      ...[
+        AI_SRE_PAGE,
+        KUBERNETES_AGENT_PAGE,
+        CHART_README,
+        CHART_NOTES,
+        CHART_VALUES,
+        RUNNER_README,
+        ROADMAP,
+      ].map(fileSource),
+      {
+        label: `${AI_PAGE} (scoped command)`,
+        text: getAiAccessScopedCommandNote(),
+      },
+      { label: `${AI_PAGE} (disclosure)`, text: getAiAccessWriteDisclosure() },
+    ];
+  }
+
+  it("says such a fix is refused when it is proposed or approved, not only on the Runner", () => {
+    for (const copy of getScopeCopies()) {
+      expect({
+        file: copy.label,
+        refusedUpFront: REFUSED_UP_FRONT_PATTERN.test(copy.text),
+      }).toEqual({ file: copy.label, refusedUpFront: true });
+    }
+  });
+
+  it("names the Runner's whole scope in the every-mode lines of the AI SRE page", () => {
+    const section: string = getClusterAccessSection();
+
+    expect(section).toContain(
+      "- The Runner never changes anything in its own namespace — a fix there could scale the agent, or the Runner itself, away — nor anything outside the namespaces its chart lets it write (`aiAccess.remediation.namespaces`), nor a node when its chart turned node operations off (`aiAccess.remediation.nodeOperations=false`).",
+    );
+    expect(section).toContain(
+      "refuses such a fix when OneUptime AI proposes it and again when someone approves it, so it never reaches the Runner as a failed fix",
+    );
+    // The earlier copy left the refusal to the Runner alone.
+    expect(section).not.toContain(
+      "and the Runner refuses a write anywhere else before it spawns kubectl.",
+    );
+  });
+
+  it("no longer leaves the refusal to the Runner alone on the Kubernetes agent page", () => {
+    expect(read(KUBERNETES_AGENT_PAGE)).not.toContain(
+      "and the Runner refuses a write anywhere else.",
+    );
+  });
+
+  // Negative control: the pattern does not read Runner-only wording as up front.
+  it("does not read a Runner-only refusal as an up-front one", () => {
+    for (const runnerOnly of [
+      "List namespaces and the chart binds it in those alone, and the Runner refuses a write anywhere else.",
+      "the Runner is told the list and refuses a write outside it before spawning kubectl.",
+      "Node operations (cordon, uncordon, taint, drain) are off: the chart grants no node RBAC, and the Runner refuses them before it runs kubectl.",
+    ]) {
+      expect({
+        runnerOnly,
+        refusedUpFront: REFUSED_UP_FRONT_PATTERN.test(runnerOnly),
+      }).toEqual({ runnerOnly, refusedUpFront: false });
+    }
+  });
+});
+
+describe("the AI page's write-access commands", () => {
+  const commands: ReturnType<typeof getAiAccessHelmCommands> =
+    getAiAccessHelmCommands();
+  const note: string = getAiAccessScopedCommandNote();
+
+  it("says every listed namespace must already exist, and how to reset the list", () => {
+    expect(note).toContain("Every namespace you list must already exist");
+    expect(note).toContain('namespaces "<name>" not found');
+    expect(note).toContain("--set aiAccess.remediation.namespaces=null");
+  });
+
+  /*
+   * Under --reuse-values a stored value is kept when its flag is left out:
+   * the cluster-wide command resets a stored namespace list, and turning
+   * node operations back on takes =true, not dropping the line.
+   */
+  it("makes the cluster-wide command cluster-wide on a release that stored a list", () => {
+    expect(commands.enableRemediation).toContain(
+      "--set aiAccess.remediation.namespaces=null",
+    );
+    expect(commands.enableRemediationScoped).not.toContain("=null");
+    expect(note).not.toContain("leave that line out");
+    expect(note).toContain("set it to true to let AI cordon");
+  });
+});
+
+describe("what the policy refuses, added in round three", () => {
+  const PARENT_REPLACEMENT_PHRASES: Array<string> = [
+    "a strategic-merge `$patch: replace`",
+    "a merge patch that sets a whole `containers` list",
+    "a JSON patch that replaces or removes the pod spec",
+  ];
+  const UNNAMED_NAMESPACE_WRITE: string =
+    "a label or annotation on Namespace objects picked by `--all` or a selector instead of by name";
+
+  for (const file of [AI_SRE_PAGE, CHART_README]) {
+    it(`lists parent-replacement patches and unnamed Namespace-object writes, in ${relative(file)}`, () => {
+      const text: string = read(file);
+
+      for (const phrase of [
+        ...PARENT_REPLACEMENT_PHRASES,
+        UNNAMED_NAMESPACE_WRITE,
+      ]) {
+        expect({
+          file: relative(file),
+          phrase,
+          listed: text.includes(phrase),
+        }).toEqual({
+          file: relative(file),
+          phrase,
+          listed: true,
+        });
+      }
+    });
+
+    it(`says a one-word allowlist entry is refused, in ${relative(file)}`, () => {
+      expect(fileSource(file).text).toMatch(
+        /more than one word after the optional leading `kubectl`/,
+      );
+    });
+  }
+
+  it("names parent-replacement patches wherever the policy's refusals are summed up", () => {
+    for (const file of [
+      KUBERNETES_AGENT_PAGE,
+      CHART_NOTES,
+      CHART_VALUES,
+      ROADMAP,
+    ]) {
+      const text: string = fileSource(file).text;
+
+      expect({
+        file: relative(file),
+        named:
+          text.includes("replace the pod spec or a whole") ||
+          text.includes("`$patch: replace`"),
+      }).toEqual({ file: relative(file), named: true });
+    }
+  });
+});
+
+describe("custom resources named like built-in kinds", () => {
+  it("are judged by their namespace, in every copy of the protected-namespace line", () => {
+    for (const file of [
+      AI_SRE_PAGE,
+      KUBERNETES_AGENT_PAGE,
+      CHART_README,
+      CHART_VALUES,
+      RUNNER_README,
+    ]) {
+      const copy: CopySource = fileSource(file);
+
+      expect({
+        file: copy.label,
+        byNamespace: CUSTOM_RESOURCE_BY_NAMESPACE_PATTERN.test(copy.text),
+      }).toEqual({ file: copy.label, byNamespace: true });
+    }
+  });
+});
+
+describe("the agent's own Runner and auto-remediation rules", () => {
+  it("is never accepted as a rule's command Runner", () => {
+    for (const file of [
+      AI_SRE_PAGE,
+      KUBERNETES_AGENT_PAGE,
+      CHART_README,
+      RUNNER_README,
+      ROADMAP,
+    ]) {
+      const copy: CopySource = fileSource(file);
+
+      expect({
+        file: copy.label,
+        neverRuleRunner: AGENT_NEVER_RULE_RUNNER_PATTERN.test(copy.text),
+      }).toEqual({ file: copy.label, neverRuleRunner: true });
+    }
   });
 });

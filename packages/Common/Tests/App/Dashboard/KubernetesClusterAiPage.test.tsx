@@ -24,7 +24,9 @@ import KubernetesClusterAI, {
   KUBERNETES_AGENT_HELM_RELEASE,
   REMEDIATION_MODE_LABELS,
   canPickKubernetesCredential,
+  getAiAccessClusterWideCommandNote,
   getAiAccessHelmCommands,
+  getAiAccessScopedCommandNote,
   getKubernetesCredentialPermissionTitles,
   getRemediationModeFieldDescription,
   parseStatus,
@@ -120,9 +122,16 @@ const ADMIN_PERMISSIONS: Array<Permission> = [
 
 const SET_IMAGE_PATTERN: string = "kubectl set image deployment/web * -n web";
 const PATCH_PATTERN: string = "kubectl patch deployment/web -n web -p *";
+/*
+ * A broad but valid allowlist entry: deleting any Deployment in any
+ * namespace. These tests used "kubectl * * * -n *" until KubectlPolicy made
+ * a wildcard verb invalid; the form now refuses that entry outright.
+ */
+const BROAD_PATTERN: string = "kubectl delete deployment * -n *";
 const OTHER_CLUSTER_RUNNER_ID: string = "55555555-0000-4000-8000-00000000000e";
 const HOST_RUNNER_ID: string = "55555555-0000-4000-8000-00000000000f";
 const DISABLED_RUNNER_ID: string = "55555555-0000-4000-8000-000000000010";
+const RENAMED_AGENT_RUNNER_ID: string = "55555555-0000-4000-8000-000000000011";
 const SSH_CREDENTIAL_ID: string = "77777777-0000-4000-8000-000000000008";
 const STAGING_CREDENTIAL_ID: string = "77777777-0000-4000-8000-000000000009";
 
@@ -194,9 +203,12 @@ function agentHostInfo(clusterIdentifier: string): JSONObject {
 
 /*
  * Every kind of Runner a project holds: this cluster's agent, another
- * cluster's agent, a host Runner that runs AI commands, and one that does
- * not. Only the first and third can serve this cluster. The agents report
- * the cluster they run in, which is how the picker tells them apart.
+ * cluster's agent, a host Runner that runs AI commands, one that does not,
+ * and another cluster's agent whose name lost the "kubernetes-agent/"
+ * marker (a rename from before the server refused one) — an agent by its
+ * posture, the server's rule. Only the first and third can serve this
+ * cluster. The agents report the cluster they run in, which is how the
+ * picker tells them apart.
  */
 function makeProjectRunners(): Array<Runner> {
   return [
@@ -221,6 +233,12 @@ function makeProjectRunners(): Array<Runner> {
       _id: DISABLED_RUNNER_ID,
       name: "ops-runner",
       canRunAiCommands: false,
+    }),
+    Object.assign(new Runner(), {
+      _id: RENAMED_AGENT_RUNNER_ID,
+      name: "prod-eu-kubectl",
+      canRunAiCommands: true,
+      hostInfo: agentHostInfo("prod-eu"),
     }),
   ];
 }
@@ -702,9 +720,17 @@ describe("remediation mode labels", () => {
     for (const namespace of ["kube-system", "kube-public", "kube-node-lease"]) {
       expect(description).toContain(namespace);
     }
-    expect(description).toMatch(/a node drain and a taint always need a human/);
+    // The canonical comment's words: "a node drain and a node taint".
+    expect(description).toMatch(
+      /a node drain and a node taint always need a human/,
+    );
     expect(description).toMatch(/circuit breaker/);
     expect(description).toMatch(/never changes its own namespace/);
+    // Bypass approval's other exception: another unattended round.
+    expect(description).toMatch(
+      /another unattended round already holds the cluster/,
+    );
+    expect(label).toContain("another unattended round");
   });
 });
 
@@ -1781,13 +1807,13 @@ describe("Kubernetes cluster AI page", () => {
       openAiPage();
       const dialog: HTMLElement = await openEditModal();
 
-      await setAllowlistText(dialog, "kubectl * * * -n *");
+      await setAllowlistText(dialog, BROAD_PATTERN);
       saveEditModal(dialog);
 
       const confirm: HTMLElement = await findDialogTitled(
         "Let riskier changes run without approval?",
       );
-      expect(confirm).toHaveTextContent('"kubectl * * * -n *"');
+      expect(confirm).toHaveTextContent(`"${BROAD_PATTERN}"`);
       fireEvent.click(within(confirm).getByText("Cancel"));
 
       await waitFor(
@@ -1803,9 +1829,10 @@ describe("Kubernetes cluster AI page", () => {
     });
 
     /*
-     * "kubectl * * * -n *" auto-approves deleting any Deployment in any
-     * non-protected namespace; the old whole-string check let it through
-     * without a confirmation because it spells out "-n".
+     * "kubectl delete deployment * -n *" auto-approves deleting any
+     * Deployment in any non-protected namespace; the old whole-string
+     * check let such an entry through without a confirmation because it
+     * spells out "-n".
      */
     test("a broad allowlist is saved after confirmation, one pattern per line", async () => {
       grant(ADMIN_PERMISSIONS);
@@ -1814,7 +1841,7 @@ describe("Kubernetes cluster AI page", () => {
 
       await setAllowlistText(
         dialog,
-        `${SET_IMAGE_PATTERN}\n\nkubectl * * * -n *\n`,
+        `${SET_IMAGE_PATTERN}\n\n${BROAD_PATTERN}\n`,
       );
       saveEditModal(dialog);
 
@@ -1822,12 +1849,12 @@ describe("Kubernetes cluster AI page", () => {
         "Let riskier changes run without approval?",
       );
       expect(confirm).toHaveTextContent(
-        "a wildcard for the verb, the object or the namespace",
+        "a wildcard for an object, the namespace, a selector or a --from source",
       );
       fireEvent.click(within(confirm).getByText("Confirm and save"));
 
       expect(await waitForOneUpdate()).toEqual({
-        aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, "kubectl * * * -n *"],
+        aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, BROAD_PATTERN],
       });
     });
 
@@ -1881,6 +1908,17 @@ describe("Kubernetes cluster AI page", () => {
       expect(description).toHaveTextContent("flags must be written out");
       expect(description).toHaveTextContent("One pattern per line");
       expect(description).toHaveTextContent('a leading "kubectl" is optional');
+      /*
+       * KubectlPolicy refuses a wildcard verb and (from round three) a
+       * one-word entry; the help said a wildcard verb was merely broad.
+       */
+      expect(description).toHaveTextContent(
+        "Write the verb (and the subcommand of rollout, set or create) out, never as *, and use more than one word",
+      );
+      expect(description).toHaveTextContent(
+        "A wildcard for the object or the namespace pre-approves a whole class of changes",
+      );
+      expect(description).not.toHaveTextContent("A wildcard for the verb");
     });
   });
 
@@ -2096,8 +2134,14 @@ describe("Kubernetes cluster AI page", () => {
       );
       expect(banner).toHaveTextContent("protected namespace");
       expect(banner).toHaveTextContent("drain");
+      expect(banner).toHaveTextContent("a node taint");
       expect(banner).toHaveTextContent("circuit breaker");
+      // The canonical comment's second proposal case.
+      expect(banner).toHaveTextContent(
+        "while another unattended round holds this cluster",
+      );
       expect(banner).not.toHaveTextContent("without asking anyone");
+      expect(banner).not.toHaveTextContent("only a write");
       expect(
         screen.queryByText("Connect a Runner (one command)"),
       ).not.toBeInTheDocument();
@@ -2229,6 +2273,25 @@ describe("Kubernetes cluster AI page", () => {
       const clusterWide: string = textOf("ai-access-helm-remediation-command");
       expect(clusterWide.startsWith("helm repo update")).toBe(true);
       expect(clusterWide).toContain("--set aiAccess.remediation.enabled=true");
+      expect(clusterWide).toBe(getAiAccessHelmCommands().enableRemediation);
+
+      /*
+       * Under each command, what the chart and the server do with the list:
+       * every namespace must already exist, `=null` resets a stored list,
+       * and a write outside it is refused before it reaches the Runner.
+       */
+      const scopedNote: string = textOf(
+        "ai-access-helm-remediation-scoped-note",
+      );
+      expect(scopedNote).toBe(getAiAccessScopedCommandNote());
+      expect(scopedNote).toContain("must already exist");
+      expect(scopedNote).toContain(
+        "--set aiAccess.remediation.namespaces=null",
+      );
+      expect(scopedNote).toContain("refused when it is proposed or approved");
+      expect(textOf("ai-access-helm-remediation-note")).toBe(
+        getAiAccessClusterWideCommandNote(),
+      );
 
       const disclosure: HTMLElement = screen.getByTestId(
         "ai-access-write-disclosure",

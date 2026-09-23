@@ -26,10 +26,19 @@ import {
   KUBERNETES_AGENT_RUNNER_NAME_PREFIX,
   PROTECTED_KUBERNETES_NAMESPACES,
   isInClusterPostureForCluster,
-  isKubernetesAgentRunnerName,
   isUnattendedRemediationMode,
   parseKubernetesRunnerPosture,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import { isKubernetesAgentRunnerRow } from "../Utils/KubernetesAgentRunner";
+import {
+  AI_ACCESS_EXAMPLE_WRITE_NAMESPACES,
+  AiAccessHelmCommands,
+  formatNameList,
+  getAiAccessClusterWideCommandNote,
+  getAiAccessHelmCommands,
+  getAiAccessScopedCommandNote,
+  getAiAccessWriteDisclosure,
+} from "../Utils/KubernetesAiAccessSetup";
 import {
   KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
   KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
@@ -117,17 +126,6 @@ interface AccessTestResult {
   }>;
 }
 
-// "a, b and c" / "a, b or c".
-function formatNameList(
-  names: ReadonlyArray<string>,
-  conjunction: string,
-): string {
-  if (names.length <= 1) {
-    return names.join("");
-  }
-  return `${names.slice(0, -1).join(", ")} ${conjunction} ${names[names.length - 1]}`;
-}
-
 /*
  * What each mode does, in the words of the canonical description on
  * KubernetesAiRemediationMode (Common/Types/Kubernetes/
@@ -145,19 +143,25 @@ export const REMEDIATION_MODE_LABELS: Record<
   [KubernetesAiRemediationMode.Automatic]:
     "Automatic — safe fixes run on their own, riskier ones are proposed for your one-click approval",
   [KubernetesAiRemediationMode.BypassApproval]:
-    "Bypass approval — every allowed fix runs on its own; only protected namespaces, node drains and taints, or a tripped circuit breaker still ask a human",
+    "Bypass approval — every allowed fix runs on its own, except that protected namespaces, node drains and taints still need a human, and a tripped circuit breaker or another unattended round on the cluster turns a run into a proposal",
 };
 
-// What holds in every mode, Bypass approval included.
+/*
+ * What holds in every mode, Bypass approval included — the canonical
+ * comment's "In EVERY mode" paragraph, clause for clause: the Denied tier,
+ * the protected namespaces, a node drain and a node taint, the in-cluster
+ * Runner's own namespace and write scope, and the two cases in which an
+ * unattended run becomes a proposal.
+ */
 export function getEveryModeProtectionsSentence(): string {
   return `destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run; a write in ${formatNameList(
     PROTECTED_KUBERNETES_NAMESPACES,
     "or",
-  )}, a node drain and a taint always need a human; the in-cluster Runner never changes its own namespace; and the hourly circuit breaker turns an unattended run into a proposal`;
+  )}, a node drain and a node taint always need a human; the in-cluster Runner never changes its own namespace or anything outside the namespaces its chart may write; and an unattended run becomes a proposal when the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster`;
 }
 
 export function getRemediationModeFieldDescription(): string {
-  return `Off: AI only investigates. Ask for approval: AI composes the exact kubectl plan and a human approves it with one click; a follow-up plan asks again. Automatic: safe changes — each on one named object (rollout restart/undo/pause/resume, scale above zero, delete a named pod, cordon/uncordon a node, label/annotate a pod or workload) — run on their own. A riskier change (patch, set image, drain, scale to zero, deleting workloads or jobs, anything touching several objects) never runs without a human: when the round could only find riskier fixes, it ends by proposing exactly those for one-click approval; when it also ran safe fixes, a riskier fix is proposed only if verification shows the safe ones did not recover the signal. Riskier shapes the kubectl allowlist names run on their own. Bypass approval: AI does not ask — every change the policy allows, safe and riskier, runs on its own, follow-up rounds included. In every mode: ${getEveryModeProtectionsSentence()}.`;
+  return `Off: AI only investigates. Ask for approval: AI composes the exact kubectl plan and a human approves it with one click; a follow-up plan asks again. Automatic: safe changes — each on one named object (rollout restart/undo/pause/resume, scale above zero, delete a named pod, cordon/uncordon a node, label/annotate a pod or workload) — run on their own. A riskier change (patch, set image, drain, taint, scale to zero, deleting workloads or jobs, anything touching several objects) never runs without a human: when the round could only find riskier fixes, it ends by proposing exactly those for one-click approval; when it also ran safe fixes, a riskier fix is proposed only if verification shows the safe ones did not recover the signal. Riskier shapes the kubectl allowlist names run on their own. Bypass approval: AI does not ask — every change the policy allows, safe and riskier, runs on its own, follow-up rounds included, except for what always asks. In every mode, Bypass approval included: ${getEveryModeProtectionsSentence()}.`;
 }
 
 // How often the page re-reads the status; the Runner heartbeats every minute.
@@ -191,65 +195,19 @@ export const KUBECTL_JOB_ORIGIN_LABELS: Record<
  */
 export { KUBERNETES_AGENT_HELM_NAMESPACE, KUBERNETES_AGENT_HELM_RELEASE };
 
-// The example namespaces the scoped write-access command names.
-export const AI_ACCESS_EXAMPLE_WRITE_NAMESPACES: string = "{web,api}";
-
-export interface AiAccessHelmCommands {
-  // The default: read-only investigation access. What a plain copy-paste runs.
-  readOnly: string;
-  /*
-   * Write access, the recommended form: the write role bound only in the
-   * namespaces AI may fix, and no node operations. A complete command of
-   * its own, never a line to append — a dropped last line left a trailing
-   * backslash behind.
-   */
-  enableRemediationScoped: string;
-  // Write access bound cluster-wide, node operations included (the chart's defaults).
-  enableRemediation: string;
-}
-
 /*
- * Every command starts with `helm repo update`: an install from before
- * aiAccess existed keeps a cached chart index, `helm upgrade` then resolves
- * the old chart, and its values schema refuses the flag with "Additional
- * property aiAccess is not allowed" — which reads as "this feature does not
- * exist". Each command is complete on its own, so an operator who skips the
- * read-only step and runs a write-access command directly is covered too.
- * No chart version is named: published charts carry the OneUptime version,
- * not the chart's own.
+ * The helm upgrades and the write-access copy live in
+ * Pages/Kubernetes/Utils/KubernetesAiAccessSetup.ts, where the docs suite
+ * reads them without a browser; this page shows them and re-exports them.
  */
-export function getAiAccessHelmCommands(): AiAccessHelmCommands {
-  const upgrade: string = `helm repo update
-helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
-  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} --reuse-values \\
-  --set aiAccess.enabled=true`;
-
-  return {
-    readOnly: upgrade,
-    enableRemediationScoped: `${upgrade} \\
-  --set aiAccess.remediation.enabled=true \\
-  --set "aiAccess.remediation.namespaces=${AI_ACCESS_EXAMPLE_WRITE_NAMESPACES}" \\
-  --set aiAccess.remediation.nodeOperations=false`,
-    enableRemediation: `${upgrade} \\
-  --set aiAccess.remediation.enabled=true`,
-  };
-}
-
-/*
- * What granting the in-cluster Runner write access amounts to, said
- * wherever the page offers it — the same disclosure the chart docs make
- * (telemetry/kubernetes-agent.md, ai/ai-sre.md): RBAC bounds WHERE the
- * Runner may write, not what a write may do.
- */
-export function getAiAccessWriteDisclosure(): string {
-  return `Write access grants patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs, Pods and HPAs, create on Jobs and HPAs, and delete on Pods and Jobs — and, unless aiAccess.remediation.nodeOperations=false, cordon, uncordon, drain and taint on every node. Patch/update on workloads, pods and CronJobs, and create on Jobs, in a namespace is equivalent to running any image as any ServiceAccount in that namespace and reading its Secrets. Without aiAccess.remediation.namespaces the write role is bound cluster-wide — ${formatNameList(
-    PROTECTED_KUBERNETES_NAMESPACES,
-    "and",
-  )} and the agent's own namespace included — and there only the command policy and the Runner hold the line: a write in ${formatNameList(
-    PROTECTED_KUBERNETES_NAMESPACES,
-    "or",
-  )} always needs a human, and the Runner never changes anything in its own namespace. With it, the chart binds the role in exactly the namespaces you list, and the Runner refuses a write anywhere else.`;
-}
+export {
+  AI_ACCESS_EXAMPLE_WRITE_NAMESPACES,
+  getAiAccessClusterWideCommandNote,
+  getAiAccessHelmCommands,
+  getAiAccessScopedCommandNote,
+  getAiAccessWriteDisclosure,
+};
+export type { AiAccessHelmCommands };
 
 /*
  * What the bound in-cluster Runner may write, from the posture it reports:
@@ -1051,8 +1009,9 @@ const RISKIER_CHANGE_EXAMPLES: string =
  * is on or being turned on, lets riskier changes run with nobody asked.
  * Such a save is confirmed first, in words that name what it unlocks. A
  * pattern is broad exactly when KubectlPolicy.isBroadAllowlistPattern says
- * so — a wildcard for the verb, the object or the namespace, decided on the
- * tokens the matcher itself reads. Null when the save needs no
+ * so — a wildcard for an object, the namespace, a selector or a --from
+ * source (a wildcard verb is not broad but invalid, and refused), decided
+ * on the tokens the matcher itself reads. Null when the save needs no
  * confirmation.
  */
 export function getKubernetesAiAccessConfirmation(data: {
@@ -1068,7 +1027,7 @@ export function getKubernetesAiAccessConfirmation(data: {
   if (newMode === KubernetesAiRemediationMode.BypassApproval) {
     return {
       title: "Turn on Bypass approval?",
-      description: `With Bypass approval OneUptime AI applies every fix the kubectl policy allows on this cluster without asking anyone — ${RISKIER_CHANGE_EXAMPLES} included, in follow-up rounds too. Even so, ${getEveryModeProtectionsSentence()}.`,
+      description: `With Bypass approval OneUptime AI does not ask: it applies every fix the kubectl policy allows on this cluster on its own — ${RISKIER_CHANGE_EXAMPLES} included, in follow-up rounds too. Even so, ${getEveryModeProtectionsSentence()}.`,
     };
   }
 
@@ -1122,7 +1081,7 @@ export function getKubernetesAiAccessConfirmation(data: {
     title: "Let riskier changes run without approval?",
     description: `The allowlist pattern${isOne ? "" : "s"} ${quoted} ${
       isOne ? "uses" : "use"
-    } a wildcard for the verb, the object or the namespace, so ${
+    } a wildcard for an object, the namespace, a selector or a --from source, so ${
       isOne ? "it pre-approves" : "they pre-approve"
     } a whole class of changes, not one. ${
       resultingMode === KubernetesAiRemediationMode.Automatic
@@ -1134,8 +1093,9 @@ export function getKubernetesAiAccessConfirmation(data: {
 
 /*
  * The Runners the edit modal lists, with what the pickers need to know
- * about each: its name, and whether it is a kubernetes-agent Runner (by
- * name, which only the server writes — isKubernetesAgentRunnerName).
+ * about each: its name, and whether it is a kubernetes-agent Runner — by
+ * the server's rule (isKubernetesAgentRunnerRow: the name marker, compared
+ * case-insensitively, or an agent posture).
  */
 export interface KubernetesAiRunnerDirectoryEntry {
   name: string;
@@ -1155,7 +1115,7 @@ export function buildKubernetesAiRunnerDirectory(
     }
 
     const name: string = runner.name || id;
-    directory[id] = { name, isAgent: isKubernetesAgentRunnerName(name) };
+    directory[id] = { name, isAgent: isKubernetesAgentRunnerRow(runner) };
   }
 
   return directory;
@@ -1163,10 +1123,12 @@ export function buildKubernetesAiRunnerDirectory(
 
 /*
  * Is this Runner row THIS cluster's in-cluster agent Runner? A kubernetes-
- * agent row (by name) whose reported posture says it runs inside this
- * cluster (isInClusterPostureForCluster) — the pair the server itself
- * matches on. Never by rebuilding the row's name: the server shortens a
- * long cluster identifier with a hash the browser cannot compute
+ * agent row (isKubernetesAgentRunnerRow: by its name marker, in any case,
+ * or by its posture) whose reported posture says it runs inside this
+ * cluster (isInClusterPostureForCluster) — what the server's
+ * RunnerService.isKubernetesAgentRunnerOfCluster requires of a row it can
+ * check without the name. Never by rebuilding the row's name: the server
+ * shortens a long cluster identifier with a hash the browser cannot compute
  * (getKubernetesAgentRunnerNameForCluster), so "kubernetes-agent/<id>" is
  * not the name of every cluster's Runner.
  */
@@ -1175,7 +1137,7 @@ export function isThisClustersAgentRunner(
   clusterIdentifier: string | undefined,
 ): boolean {
   return (
-    isKubernetesAgentRunnerName(runner.name) &&
+    isKubernetesAgentRunnerRow(runner) &&
     isInClusterPostureForCluster(
       parseKubernetesRunnerPosture(runner.hostInfo),
       clusterIdentifier,
@@ -1212,7 +1174,7 @@ export function buildKubernetesAiRunnerOptions(data: {
 
     const name: string = runner.name || id;
     const isBound: boolean = id === data.boundRunnerId;
-    const isAgent: boolean = isKubernetesAgentRunnerName(name);
+    const isAgent: boolean = isKubernetesAgentRunnerRow(runner);
     const isThisClustersAgent: boolean = isThisClustersAgentRunner(
       runner,
       data.clusterIdentifier,
@@ -1263,10 +1225,28 @@ export function buildKubernetesAiRunnerOptions(data: {
   return options;
 }
 
-// The Runner the credential would be used through: its id and name.
+/*
+ * The Runner the credential would be used through: its id and name, and
+ * whether it is a kubernetes-agent Runner when the picker read its row
+ * (isKubernetesAgentRunnerRow). Without the row — a bound Runner the list
+ * did not return — its name decides.
+ */
 export interface KubernetesAiCredentialRunner {
   id: string | null;
   name: string | null;
+  isAgent?: boolean | undefined;
+}
+
+/*
+ * Is the credential's Runner a kubernetes-agent Runner? Fails closed: the
+ * row's verdict when the picker read it, and its name marker in any case.
+ */
+function isAgentCredentialRunner(
+  runner: KubernetesAiCredentialRunner,
+): boolean {
+  return (
+    runner.isAgent === true || isKubernetesAgentRunnerRow({ name: runner.name })
+  );
 }
 
 // The Runners a credential row is assigned to; undefined when not read.
@@ -1304,7 +1284,7 @@ export function buildKubernetesAiCredentialOptions(data: {
 }): Array<DropdownOption> {
   const options: Array<DropdownOption> = [];
   const runnerName: string = data.runner.name || "the chosen Runner";
-  const isAgentRunner: boolean = isKubernetesAgentRunnerName(data.runner.name);
+  const isAgentRunner: boolean = isAgentCredentialRunner(data.runner);
 
   for (const credential of data.credentials) {
     const id: string | null = credential._id ? String(credential._id) : null;
@@ -1372,7 +1352,7 @@ export function buildKubernetesAiCredentialOptions(data: {
 export function getKubernetesAiCredentialFieldDescription(
   runner: KubernetesAiCredentialRunner,
 ): string {
-  if (runner.id && isKubernetesAgentRunnerName(runner.name)) {
+  if (runner.id && isAgentCredentialRunner(runner)) {
     return `No credential can be chosen: "${runner.name}" is an in-cluster Runner installed by the Kubernetes agent chart. It runs kubectl with its own ServiceAccount and is never given a credential — leave this empty. A credential is for a Runner outside the cluster.`;
   }
 
@@ -1407,7 +1387,7 @@ export function getKubernetesAiCredentialAssignmentError(data: {
     ? `"${data.credentialName}"`
     : "The Kubernetes credential";
 
-  if (data.runner.id && isKubernetesAgentRunnerName(data.runner.name)) {
+  if (data.runner.id && isAgentCredentialRunner(data.runner)) {
     return `"${data.runner.name}" is an in-cluster Runner: it runs kubectl with its own ServiceAccount and is never given a credential. Clear the Kubernetes credential, or choose a Runner created under Project Settings → Runners.`;
   }
 
@@ -1522,8 +1502,16 @@ function AdminPermissionNote(): ReactElement {
   );
 }
 
+/*
+ * What an allowlist entry is, in KubectlPolicy's words (the allowlist
+ * section of its header): matched word by word, the verb — and the
+ * subcommand of rollout, set or create — written out rather than `*`, more
+ * than one word, and never promoting a drain, a taint or a protected-
+ * namespace write. The form refuses anything else with
+ * describeAllowlistPatternProblem's own message.
+ */
 const ALLOWLIST_FIELD_DESCRIPTION: string =
-  'Optional, used in Automatic mode only. One pattern per line: a riskier kubectl command (set image, patch, scale to zero, deleting workloads) that matches a pattern also runs without approval. Patterns are compared word by word — * matches exactly one word, and flags must be written out; a leading "kubectl" is optional — for example: kubectl set image deployment/web * -n web. A wildcard for the verb, the object or the namespace pre-approves a whole class of changes, and saving one asks you to confirm. Not needed in Bypass approval mode, where every allowed change already runs on its own. Destructive commands, node drains and taints, and the protected namespaces never run unattended.';
+  'Optional, used in Automatic mode only. One pattern per line: a riskier kubectl command (set image, patch, scale to zero, deleting workloads) that matches a pattern also runs without approval. Patterns are compared word by word — * matches exactly one word, and flags must be written out; a leading "kubectl" is optional — for example: kubectl set image deployment/web * -n web. Write the verb (and the subcommand of rollout, set or create) out, never as *, and use more than one word: other entries are refused. A wildcard for the object or the namespace pre-approves a whole class of changes, and saving one asks you to confirm. Not needed in Bypass approval mode, where every allowed change already runs on its own. Destructive commands, node drains and taints, and the protected namespaces never run unattended.';
 
 /*
  * The Runner the form would bind: the picker's value when the picker is
@@ -1584,7 +1572,11 @@ export function getKubernetesAiAccessBindingError(data: {
     credentialId ? data.credentials[credentialId] : undefined;
 
   return getKubernetesAiCredentialAssignmentError({
-    runner: { id: runnerId, name: runnerName },
+    runner: {
+      id: runnerId,
+      name: runnerName,
+      isAgent: runnerId ? data.runners[runnerId]?.isAgent : undefined,
+    },
     credentialId,
     credentialName:
       credential?.name ||
@@ -1842,6 +1834,7 @@ const KubernetesAiAccessSettingsModal: FunctionComponent<SettingsModalProps> = (
         (chosenRunnerId === saved?.aiAccessRunnerId
           ? saved.aiAccessRunnerName
           : null),
+      isAgent: runnerDirectory[chosenRunnerId]?.isAgent,
     };
   }, [chosenRunnerId, runnerDirectory, saved]);
 
@@ -2670,7 +2663,7 @@ const KubernetesClusterAI: FunctionComponent<
                 with kubectl during investigations
                 {status.remediationMode ===
                 KubernetesAiRemediationMode.BypassApproval
-                  ? " and apply every fix the policy allows on its own, riskier ones included — only a write in a protected namespace, a node drain or taint, or a run past the hourly circuit breaker still asks a human."
+                  ? " and apply every fix the policy allows on its own, riskier ones included — except that a write in a protected namespace, a node drain or a node taint still asks a human, and a run past the hourly circuit breaker, or while another unattended round holds this cluster, is proposed for approval instead."
                   : status.remediationMode ===
                       KubernetesAiRemediationMode.Automatic
                     ? allowlistInEffect.length > 0
@@ -2824,13 +2817,11 @@ const KubernetesClusterAI: FunctionComponent<
                 code={helmCommands.enableRemediationScoped}
               />
             </div>
-            <p className="mt-2 text-xs leading-5 text-gray-500">
-              Replace {AI_ACCESS_EXAMPLE_WRITE_NAMESPACES} with the namespaces
-              AI may fix: the chart binds the write role in those alone
-              (aiAccess.remediation.namespaces), and the Runner refuses a write
-              anywhere else. aiAccess.remediation.nodeOperations=false keeps
-              fixes off nodes — leave that line out to let AI cordon, uncordon,
-              drain and taint nodes (a drain or taint still waits for a human).
+            <p
+              className="mt-2 text-xs leading-5 text-gray-500"
+              data-testid="ai-access-helm-remediation-scoped-note"
+            >
+              {getAiAccessScopedCommandNote()}
             </p>
           </div>
           <div>
@@ -2843,6 +2834,12 @@ const KubernetesClusterAI: FunctionComponent<
                 code={helmCommands.enableRemediation}
               />
             </div>
+            <p
+              className="mt-2 text-xs leading-5 text-gray-500"
+              data-testid="ai-access-helm-remediation-note"
+            >
+              {getAiAccessClusterWideCommandNote()}
+            </p>
           </div>
           <p
             className="text-xs leading-5 text-gray-700"

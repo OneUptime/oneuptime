@@ -17,6 +17,7 @@ import {
   KubernetesAiCredentialDirectoryEntry,
   KubernetesAiRunnerDirectoryEntry,
   REMEDIATION_MODES_BY_AUTONOMY,
+  REMEDIATION_MODE_LABELS,
   SavedKubectlAllowlist,
   buildKubernetesAiCredentialDirectory,
   buildKubernetesAiCredentialOptions,
@@ -28,9 +29,12 @@ import {
   describeRunnerWriteAccess,
   getAccessTestPermissionGate,
   getAccessTestPermissionMessage,
+  getAiAccessClusterWideCommandNote,
   getAiAccessConnectCardMode,
   getAiAccessHelmCommands,
+  getAiAccessScopedCommandNote,
   getAiAccessWriteDisclosure,
+  getEveryModeProtectionsSentence,
   getKubectlAllowlistRemovalOnlyError,
   getKubectlJobsPermissionTitles,
   getKubernetesAiAccessAdminPermissionTitles,
@@ -45,6 +49,7 @@ import {
   getKubernetesAiCredentialAssignmentError,
   getKubernetesAiCredentialFieldDescription,
   getKubernetesRunnerPermissionTitles,
+  getRemediationModeFieldDescription,
   isRemediationModeOpenToEveryEditor,
   isThisClustersAgentRunner,
   normalizeSavedKubectlAllowlist,
@@ -54,6 +59,7 @@ import {
   validateKubectlAllowlistText,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI";
 import { getKubernetesInstallationMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/DocumentationMarkdown";
+import { isKubernetesAgentRunnerRow } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAgentRunner";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../../Models/DatabaseModels/Runner";
@@ -78,6 +84,8 @@ import KubectlPolicy, {
   KUBECTL_ALLOWLIST_MAX_PATTERNS,
   KUBECTL_ALLOWLIST_MAX_PATTERN_LENGTH,
 } from "../../../Utils/AiRemediation/KubectlPolicy";
+import fs from "fs";
+import path from "path";
 
 /*
  * The pure pieces behind the cluster AI page's settings: who may loosen
@@ -103,6 +111,20 @@ const BASE_PERMISSIONS: Array<Permission> = [
 
 const SET_IMAGE_PATTERN: string = "kubectl set image deployment/web * -n web";
 const PATCH_PATTERN: string = "kubectl patch deployment/web -n web -p *";
+/*
+ * A broad but valid entry: deleting any Deployment in any namespace. The
+ * fixtures used "kubectl * * * -n *" until KubectlPolicy made a wildcard
+ * verb invalid (round two): such an entry is refused where it is typed and
+ * skipped by the matcher, so it is never broad and never confirmed.
+ */
+const BROAD_PATTERN: string = "kubectl delete deployment * -n *";
+// Wildcard verbs (and a lone "*"): invalid, refused by the form.
+const VERB_WILDCARD_PATTERNS: Array<string> = [
+  "*",
+  "kubectl *",
+  "kubectl * * * -n *",
+  "* * -n web",
+];
 
 // A line continuation left dangling at the end of a command.
 const TRAILING_CONTINUATION_REGEX: RegExp = /\\\s*$/;
@@ -392,7 +414,45 @@ describe("helm upgrades", () => {
 
     const clusterWide: string = getAiAccessHelmCommands().enableRemediation;
     expect(clusterWide).toContain("--set aiAccess.remediation.enabled=true");
-    expect(clusterWide).not.toContain("aiAccess.remediation.namespaces");
+    /*
+     * Replaces the pin that the cluster-wide command names no namespaces:
+     * under --reuse-values that left a list stored by the scoped command in
+     * force, so "write access across the cluster" bound the role only
+     * where the old list said. It now resets the list.
+     */
+    expect(clusterWide).toContain("--set aiAccess.remediation.namespaces=null");
+    expect(clusterWide).not.toContain(AI_ACCESS_EXAMPLE_WRITE_NAMESPACES);
+    expect(clusterWide).not.toContain("nodeOperations");
+  });
+
+  /*
+   * What the page says under the two write-access commands: every listed
+   * namespace must already exist (the chart never creates one, and a
+   * missing one fails the whole upgrade), `=null` resets a stored list,
+   * turning node operations back on takes `=true` under --reuse-values,
+   * and a write outside the list is refused before it reaches the Runner.
+   */
+  test("the scoped command's note says what the chart and the server do with the list", () => {
+    const note: string = getAiAccessScopedCommandNote();
+    expect(note).toContain(AI_ACCESS_EXAMPLE_WRITE_NAMESPACES);
+    expect(note).toContain("Every namespace you list must already exist");
+    expect(note).toContain("never creates a namespace");
+    expect(note).toContain('namespaces "<name>" not found');
+    expect(note).toContain("--set aiAccess.remediation.namespaces=null");
+    expect(note).toContain(
+      "a fix anywhere else is refused when it is proposed or approved, and the Runner refuses it again",
+    );
+    expect(note).toContain("set it to true to let AI cordon");
+    expect(note).toContain("a drain or a taint still waits for a human");
+    // The old advice: dropping the line keeps a stored false under --reuse-values.
+    expect(note).not.toContain("leave that line out");
+  });
+
+  test("the cluster-wide command's note says the list is reset and node operations are kept", () => {
+    const note: string = getAiAccessClusterWideCommandNote();
+    expect(note).toContain("--set aiAccess.remediation.namespaces=null");
+    expect(note).toContain("bound cluster-wide");
+    expect(note).toContain("Node operations keep the release's setting");
   });
 
   test("every command is complete, never a line to append", () => {
@@ -431,6 +491,13 @@ describe("helm upgrades", () => {
     for (const namespace of PROTECTED_KUBERNETES_NAMESPACES) {
       expect(disclosure).toContain(namespace);
     }
+    // Refused up front (the toolkit, the approval route, the enqueue), not only on the Runner.
+    expect(disclosure).toContain(
+      "a write anywhere else is refused when it is proposed or approved, and again by the Runner",
+    );
+    expect(disclosure).not.toContain(
+      "and the Runner refuses a write anywhere else.",
+    );
   });
 });
 
@@ -576,8 +643,29 @@ describe("kubectl allowlist text", () => {
       validateKubectlAllowlistText(`${SET_IMAGE_PATTERN}\n${PATCH_PATTERN}`),
     ).toBeNull();
     // Broad but well-formed: accepted here, confirmed on save.
-    expect(validateKubectlAllowlistText("*")).toBeNull();
-    expect(validateKubectlAllowlistText("kubectl * * * -n *")).toBeNull();
+    expect(validateKubectlAllowlistText(BROAD_PATTERN)).toBeNull();
+    expect(
+      validateKubectlAllowlistText("kubectl set image deployment/* * -n *"),
+    ).toBeNull();
+  });
+
+  /*
+   * KubectlPolicy made a wildcard verb invalid: it would pre-approve every
+   * KIND of change, and the matcher skips it. The form refuses it with the
+   * policy's words; this replaces the pin that accepted "*" and
+   * "kubectl * * * -n *" as broad but well-formed.
+   */
+  test("refuses a wildcard verb, which the matcher never reads", () => {
+    for (const pattern of VERB_WILDCARD_PATTERNS) {
+      expect({
+        pattern,
+        error: validateKubectlAllowlistText(pattern),
+      }).toEqual({
+        pattern,
+        error: `Pattern 1: ${KubectlPolicy.describeAllowlistPatternProblem(pattern)}`,
+      });
+      expect(validateKubectlAllowlistText(pattern)).toMatch(/verb/);
+    }
   });
 
   /*
@@ -1351,17 +1439,17 @@ describe("confirming a save that lets riskier changes run unattended", () => {
     expect(confirmation!.title).toMatch(/Bypass approval/);
   });
 
-  test("is asked before a pattern with a wildcard verb, object or namespace", () => {
+  test("is asked before a pattern with a wildcard for an object or the namespace", () => {
     for (const broad of [
-      "kubectl * * * -n *",
-      "kubectl * * * * -n *",
-      "kubectl * * -n *",
+      BROAD_PATTERN,
       "kubectl delete * * -n *",
-      "kubectl * deployment web -n web",
-      "* * * -n *",
-      // A wildcard verb, even in one named namespace (chart-docs test gap).
-      "* * -n web",
-      "kubectl *",
+      "kubectl delete deployment *",
+      "kubectl set image deployment/* * -n *",
+      "kubectl set image deployment/* * --namespace=*",
+      "kubectl patch deployment * -p * -n *",
+      "kubectl rollout restart deployment -n *",
+      // Without the leading "kubectl", as the matcher reads it too.
+      "set image deployment/web * -n *",
     ]) {
       const confirmation: KubernetesAiAccessConfirmation | null =
         getKubernetesAiAccessConfirmation({
@@ -1374,8 +1462,22 @@ describe("confirming a save that lets riskier changes run unattended", () => {
       expect(confirmation!.description).toContain(`"${broad}"`);
       expect(confirmation!.description).toContain("In Automatic mode");
       expect(confirmation!.description).toContain(
-        "a wildcard for the verb, the object or the namespace",
+        "a wildcard for an object, the namespace, a selector or a --from source",
       );
+      // A wildcard verb is invalid, so the copy no longer names it.
+      expect(confirmation!.description).not.toContain("for the verb");
+    }
+  });
+
+  test("is never asked for a wildcard verb, which the form refuses first", () => {
+    for (const pattern of VERB_WILDCARD_PATTERNS) {
+      expect({
+        pattern,
+        confirmation: getKubernetesAiAccessConfirmation({
+          saved: makeSaved(),
+          changes: { aiKubectlCommandAllowlist: [SET_IMAGE_PATTERN, pattern] },
+        }),
+      }).toEqual({ pattern, confirmation: null });
     }
   });
 
@@ -1386,7 +1488,7 @@ describe("confirming a save that lets riskier changes run unattended", () => {
           aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
           aiKubectlCommandAllowlist: [],
         }),
-        changes: { aiKubectlCommandAllowlist: ["kubectl * * * -n *"] },
+        changes: { aiKubectlCommandAllowlist: [BROAD_PATTERN] },
       });
     expectNamesWhatItUnlocks(confirmation);
     expect(confirmation!.description).toContain("Once this cluster is");
@@ -1397,7 +1499,7 @@ describe("confirming a save that lets riskier changes run unattended", () => {
       getKubernetesAiAccessConfirmation({
         saved: makeSaved({
           aiRemediationMode: KubernetesAiRemediationMode.Disabled,
-          aiKubectlCommandAllowlist: ["kubectl * * * -n *"],
+          aiKubectlCommandAllowlist: [BROAD_PATTERN],
         }),
         changes: { aiRemediationMode: KubernetesAiRemediationMode.Automatic },
       }),
@@ -1434,21 +1536,23 @@ describe("confirming a save that lets riskier changes run unattended", () => {
       },
       // An already-saved broad pattern is not re-confirmed on unrelated edits.
       {
-        saved: makeSaved({ aiKubectlCommandAllowlist: ["kubectl * * * -n *"] }),
+        saved: makeSaved({ aiKubectlCommandAllowlist: [BROAD_PATTERN] }),
         changes: { isAiInvestigationEnabled: false },
       },
       {
-        saved: makeSaved({ aiKubectlCommandAllowlist: ["kubectl * * * -n *"] }),
+        saved: makeSaved({ aiKubectlCommandAllowlist: [BROAD_PATTERN] }),
         changes: {
-          aiKubectlCommandAllowlist: ["kubectl * * * -n *", SET_IMAGE_PATTERN],
+          aiKubectlCommandAllowlist: [BROAD_PATTERN, SET_IMAGE_PATTERN],
         },
       },
       // Re-sent in its stored spelling: still the saved pattern.
       {
         saved: makeSaved({
-          aiKubectlCommandAllowlist: ["kubectl  * * *  -n *"],
+          aiKubectlCommandAllowlist: ["kubectl  delete  deployment *  -n *"],
         }),
-        changes: { aiKubectlCommandAllowlist: ["kubectl  * * *  -n *"] },
+        changes: {
+          aiKubectlCommandAllowlist: ["kubectl  delete  deployment *  -n *"],
+        },
       },
       // Leaving Bypass approval — to Automatic too — or clearing the allowlist.
       {
@@ -1462,12 +1566,12 @@ describe("confirming a save that lets riskier changes run unattended", () => {
       {
         saved: makeSaved({
           aiRemediationMode: KubernetesAiRemediationMode.BypassApproval,
-          aiKubectlCommandAllowlist: ["kubectl * * * -n *"],
+          aiKubectlCommandAllowlist: [BROAD_PATTERN],
         }),
         changes: { aiRemediationMode: KubernetesAiRemediationMode.Automatic },
       },
       {
-        saved: makeSaved({ aiKubectlCommandAllowlist: ["kubectl * * * -n *"] }),
+        saved: makeSaved({ aiKubectlCommandAllowlist: [BROAD_PATTERN] }),
         changes: { aiKubectlCommandAllowlist: [] },
       },
     ];
@@ -1559,6 +1663,13 @@ describe("confirming a save that lets riskier changes run unattended", () => {
       "* * * -n *",
       "kubectl delete * * -n *",
       "kubectl delete deployment * -n *",
+      "kubectl delete deployment *",
+      "kubectl delete statefulset * -n *",
+      "kubectl set image deployment/* * -n *",
+      "kubectl set image deployment/* * --namespace=*",
+      "kubectl set env deployment/* * -n zz-probe-ns",
+      "kubectl patch deployment * -p * -n *",
+      "kubectl rollout restart deployment -n *",
       "kubectl set image deployment/* * -n zz-probe-ns",
       "kubectl scale deployment/* --replicas=* -n zz-probe-ns",
       SET_IMAGE_PATTERN,
@@ -1576,9 +1687,23 @@ describe("confirming a save that lets riskier changes run unattended", () => {
 
     test("harness guard: the probes are riskier changes a pattern can promote", () => {
       expect(promotable.length).toBeGreaterThanOrEqual(15);
-      expect(promotedBy("kubectl * * * -n *").length).toBeGreaterThan(0);
-      expect(promotedBy("kubectl * * * * -n *").length).toBeGreaterThan(0);
-      expect(promotedBy("kubectl * * * -p * -n *").length).toBeGreaterThan(0);
+      /*
+       * Broad entries that really do promote probes (the wildcard-verb
+       * entries this guard used promote nothing since KubectlPolicy made
+       * them invalid).
+       */
+      expect(promotedBy(BROAD_PATTERN).length).toBeGreaterThan(0);
+      expect(promotedBy("kubectl delete * * -n *").length).toBeGreaterThan(0);
+      expect(
+        promotedBy("kubectl patch deployment * -p * -n *").length,
+      ).toBeGreaterThan(0);
+      // An invalid entry promotes nothing: the matcher skips it.
+      for (const pattern of VERB_WILDCARD_PATTERNS) {
+        expect({ pattern, promoted: promotedBy(pattern) }).toEqual({
+          pattern,
+          promoted: [],
+        });
+      }
     });
 
     test("every pattern that reaches objects or namespaces it does not name is confirmed", () => {
@@ -1732,10 +1857,27 @@ describe("Runner picker options", () => {
         "prod-east",
       ),
     ).toBe(false);
-    // An ordinary Runner that reports this cluster's posture is not an agent row.
+    /*
+     * A row without the name marker that reports an agent posture for this
+     * cluster IS this cluster's agent: only the kubernetes-agent Runner
+     * binary reports such a posture, and RunnerService.isKubernetesAgent
+     * RunnerRow / isKubernetesAgentRunnerOfCluster read it so. This replaces
+     * the pin that called it "not an agent row" (the page read the name
+     * alone); a Runner in a pod that names no cluster is still not one.
+     */
     expect(
       isThisClustersAgentRunner(
         makeRunner("a", "office-runner", true, "prod-east"),
+        "prod-east",
+      ),
+    ).toBe(true);
+    expect(
+      isThisClustersAgentRunner(
+        Object.assign(new Runner(), {
+          _id: "a",
+          name: "office-runner",
+          hostInfo: { kubernetes: { inCluster: true } },
+        }),
         "prod-east",
       ),
     ).toBe(false);
@@ -2249,5 +2391,315 @@ describe("access test permission", () => {
     expect(message).toMatch(/Running the access test needs permission/);
     expect(message).toMatch(/Nothing .* was changed/);
     expect(message).not.toMatch(/permission to change/);
+  });
+});
+
+/*
+ * The page's mode copy against the canonical description on
+ * KubernetesAiRemediationMode (Common/Types/Kubernetes/
+ * KubernetesClusterAiAccess.ts). The shared phrases are checked in the
+ * canonical comment too, so rewording it flags this copy for review.
+ */
+describe("the mode copy follows the canonical description", () => {
+  const CANONICAL_SOURCE: string = path.resolve(
+    __dirname,
+    "../../../Types/Kubernetes/KubernetesClusterAiAccess.ts",
+  );
+  const COMMENT_LINE_BREAK_REGEX: RegExp = /\s*\n\s*\*?\s*/g;
+
+  function getCanonicalModeComment(): string {
+    const source: string = fs.readFileSync(CANONICAL_SOURCE, "utf8");
+    const enumStart: number = source.indexOf(
+      "export enum KubernetesAiRemediationMode",
+    );
+    const commentStart: number = source.lastIndexOf("/*", enumStart);
+    expect(enumStart).toBeGreaterThan(-1);
+    expect(commentStart).toBeGreaterThan(-1);
+    return source
+      .slice(commentStart, enumStart)
+      .replace(COMMENT_LINE_BREAK_REGEX, " ");
+  }
+
+  // Each clause of the canonical "In EVERY mode" paragraph.
+  const EVERY_MODE_CLAUSES: Array<string> = [
+    "a node drain and a node taint always need a human",
+    "never changes its own namespace or anything outside the namespaces its chart may write",
+    "the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster",
+  ];
+
+  test("the canonical comment still says what the page repeats", () => {
+    const canonical: string = getCanonicalModeComment();
+    for (const clause of [
+      ...EVERY_MODE_CLAUSES,
+      "In EVERY mode, Bypass approval included",
+      "set image, drain, taint, scale to zero",
+      "except for what always asks",
+    ]) {
+      expect({ clause, inCanonical: canonical.includes(clause) }).toEqual({
+        clause,
+        inCanonical: true,
+      });
+    }
+  });
+
+  test("every mode's protections name the drain, the taint, the Runner's scope and both proposal cases", () => {
+    const sentence: string = getEveryModeProtectionsSentence();
+    for (const clause of EVERY_MODE_CLAUSES) {
+      expect({ clause, said: sentence.includes(clause) }).toEqual({
+        clause,
+        said: true,
+      });
+    }
+    for (const namespace of PROTECTED_KUBERNETES_NAMESPACES) {
+      expect(sentence).toContain(namespace);
+    }
+    // The earlier copy: only the breaker, and "a taint" without "node".
+    expect(sentence).not.toContain(
+      "the hourly circuit breaker turns an unattended run into a proposal",
+    );
+  });
+
+  test("the mode field names the taint among the riskier changes and Bypass's exceptions", () => {
+    const description: string = getRemediationModeFieldDescription();
+    expect(description).toContain(
+      "A riskier change (patch, set image, drain, taint, scale to zero,",
+    );
+    expect(description).toContain(
+      "follow-up rounds included, except for what always asks. In every mode, Bypass approval included:",
+    );
+    expect(description).toContain(getEveryModeProtectionsSentence());
+  });
+
+  test("the Bypass approval label names every exception, another unattended round included", () => {
+    const label: string =
+      REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.BypassApproval];
+    for (const exception of [
+      "protected namespaces",
+      "node drains and taints",
+      "circuit breaker",
+      "another unattended round",
+    ]) {
+      expect({ exception, named: label.includes(exception) }).toEqual({
+        exception,
+        named: true,
+      });
+    }
+    expect(label).not.toMatch(/\bonly\b/);
+  });
+
+  test("the Bypass approval confirmation says AI does not ask, then what still asks", () => {
+    const confirmation: KubernetesAiAccessConfirmation | null =
+      getKubernetesAiAccessConfirmation({
+        saved: makeSaved({
+          aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
+        }),
+        changes: {
+          aiRemediationMode: KubernetesAiRemediationMode.BypassApproval,
+        },
+      });
+    expect(confirmation!.description).toContain(
+      "With Bypass approval OneUptime AI does not ask",
+    );
+    expect(confirmation!.description).not.toContain("without asking anyone");
+    expect(confirmation!.description).toContain(
+      getEveryModeProtectionsSentence(),
+    );
+  });
+});
+
+/*
+ * Which Runner rows are kubernetes-agent Runners: the server's one rule
+ * (RunnerService.isKubernetesAgentRunnerRow) — the name marker, compared
+ * case-insensitively, OR an agent posture. The page read the name alone,
+ * so a row whose posture says it is an agent (a legacy rename) was
+ * offered like a host Runner and given credentials the server refuses.
+ * KubernetesClusterAiPageServerParity.test.ts runs the same table against
+ * the real RunnerService.
+ */
+describe("a kubernetes-agent Runner, by the server's rule", () => {
+  // An agent posture without the name marker: in a cluster, naming it.
+  const postureOnly: Runner = makeRunner(
+    "r-renamed",
+    "prod-eu-kubectl",
+    true,
+    "prod-eu",
+  );
+  const postureOnlyHere: Runner = makeRunner(
+    "r-renamed-here",
+    "east-kubectl",
+    true,
+    "prod-east",
+  );
+  const upperCaseName: Runner = makeRunner(
+    "r-upper",
+    "KUBERNETES-AGENT/prod-eu",
+    true,
+  );
+  // In a pod, but naming no cluster: an ordinary Runner, not an agent.
+  const podNoCluster: Runner = Object.assign(new Runner(), {
+    _id: "r-pod",
+    name: "pod-runner",
+    canRunAiCommands: true,
+    hostInfo: { kubernetes: { inCluster: true, allowWrites: true } },
+  });
+  const hostRunner: Runner = makeRunner("r-host", "bash-runner");
+
+  test("the rule reads the name in any case, or the posture", () => {
+    expect(isKubernetesAgentRunnerRow(postureOnly)).toBe(true);
+    expect(isKubernetesAgentRunnerRow(upperCaseName)).toBe(true);
+    expect(
+      isKubernetesAgentRunnerRow({ name: "  Kubernetes-Agent/prod-eu " }),
+    ).toBe(true);
+    // Negative controls: an ordinary Runner, in a pod or not.
+    expect(isKubernetesAgentRunnerRow(podNoCluster)).toBe(false);
+    expect(isKubernetesAgentRunnerRow(hostRunner)).toBe(false);
+    expect(isKubernetesAgentRunnerRow({ name: "kubernetes-agent" })).toBe(
+      false,
+    );
+    expect(isKubernetesAgentRunnerRow(null)).toBe(false);
+    expect(isKubernetesAgentRunnerRow({})).toBe(false);
+  });
+
+  test("the directory marks a posture-only or upper-case agent row", () => {
+    const directory: Record<string, KubernetesAiRunnerDirectoryEntry> =
+      buildKubernetesAiRunnerDirectory([
+        postureOnly,
+        upperCaseName,
+        podNoCluster,
+        hostRunner,
+      ]);
+    expect(directory["r-renamed"]!.isAgent).toBe(true);
+    expect(directory["r-upper"]!.isAgent).toBe(true);
+    expect(directory["r-pod"]!.isAgent).toBe(false);
+    expect(directory["r-host"]!.isAgent).toBe(false);
+  });
+
+  test("the Runner picker never offers another cluster's agent, whatever it is named", () => {
+    const options: Array<DropdownOption> = buildKubernetesAiRunnerOptions({
+      runners: [postureOnly, upperCaseName, podNoCluster, hostRunner],
+      clusterIdentifier: "prod-east",
+      boundRunnerId: null,
+      boundRunnerName: null,
+    });
+    // Before: the posture-only row was offered like a host Runner.
+    expect(optionValues(options)).toEqual(["r-pod", "r-host"]);
+  });
+
+  test("the Runner picker lists this cluster's agent first even without the name marker", () => {
+    expect(isThisClustersAgentRunner(postureOnlyHere, "prod-east")).toBe(true);
+    expect(isThisClustersAgentRunner(postureOnly, "prod-east")).toBe(false);
+    expect(isThisClustersAgentRunner(podNoCluster, "prod-east")).toBe(false);
+
+    const options: Array<DropdownOption> = buildKubernetesAiRunnerOptions({
+      runners: [hostRunner, postureOnlyHere],
+      clusterIdentifier: "prod-east",
+      boundRunnerId: null,
+      boundRunnerName: null,
+    });
+    expect(optionValues(options)).toEqual(["r-renamed-here", "r-host"]);
+    expect(options[0]!.label).toBe(
+      "east-kubectl (in-cluster Runner for this cluster)",
+    );
+  });
+
+  test("a bound agent of another cluster stays listed, labelled why it cannot serve", () => {
+    const options: Array<DropdownOption> = buildKubernetesAiRunnerOptions({
+      runners: [postureOnly, hostRunner],
+      clusterIdentifier: "prod-east",
+      boundRunnerId: "r-renamed",
+      boundRunnerName: "prod-eu-kubectl",
+    });
+    expect(optionValues(options)).toEqual(["r-renamed", "r-host"]);
+    expect(options[0]!.label).toMatch(
+      /currently bound — runs inside another cluster/,
+    );
+  });
+
+  test("the credential picker offers nothing for an agent row the name does not mark", () => {
+    const credentials: Array<RunbookCredential> = [
+      makeCredential(CREDENTIAL_ID, "prod token", ["r-renamed-here"]),
+    ];
+    const runner: { id: string; name: string; isAgent: boolean } = {
+      id: "r-renamed-here",
+      name: "east-kubectl",
+      isAgent: true,
+    };
+
+    expect(
+      buildKubernetesAiCredentialOptions({
+        credentials,
+        boundCredentialId: null,
+        boundCredentialName: null,
+        runner,
+      }),
+    ).toEqual([]);
+    expect(getKubernetesAiCredentialFieldDescription(runner)).toMatch(
+      /^No credential can be chosen: "east-kubectl" is an in-cluster Runner/,
+    );
+    expect(
+      getKubernetesAiCredentialAssignmentError({
+        runner,
+        credentialId: CREDENTIAL_ID,
+        credentialName: "prod token",
+        credentialRunnerIds: ["r-renamed-here"],
+      }),
+    ).toMatch(/is an in-cluster Runner/);
+
+    // Negative control: the same row read as an ordinary Runner.
+    const ordinary: { id: string; name: string; isAgent: boolean } = {
+      ...runner,
+      isAgent: false,
+    };
+    expect(
+      optionValues(
+        buildKubernetesAiCredentialOptions({
+          credentials,
+          boundCredentialId: null,
+          boundCredentialName: null,
+          runner: ordinary,
+        }),
+      ),
+    ).toEqual([CREDENTIAL_ID]);
+    expect(
+      getKubernetesAiCredentialAssignmentError({
+        runner: ordinary,
+        credentialId: CREDENTIAL_ID,
+        credentialName: "prod token",
+        credentialRunnerIds: ["r-renamed-here"],
+      }),
+    ).toBeNull();
+  });
+
+  test("an upper-case agent name is an agent even when the row was not read", () => {
+    expect(
+      getKubernetesAiCredentialFieldDescription({
+        id: "r-upper",
+        name: "KUBERNETES-AGENT/prod-eu",
+      }),
+    ).toMatch(/^No credential can be chosen/);
+  });
+
+  test("saving a credential with an agent row the name does not mark is refused", () => {
+    const runners: Record<string, KubernetesAiRunnerDirectoryEntry> =
+      buildKubernetesAiRunnerDirectory([postureOnlyHere]);
+    const credentials: Record<string, KubernetesAiCredentialDirectoryEntry> =
+      buildKubernetesAiCredentialDirectory([
+        makeCredential(CREDENTIAL_ID, "prod token", ["r-renamed-here"]),
+      ]);
+
+    expect(
+      getKubernetesAiAccessBindingError({
+        saved: makeSaved({
+          aiAccessRunnerId: null,
+          aiAccessCredentialId: null,
+        }),
+        changes: {
+          aiAccessRunnerId: "r-renamed-here",
+          aiAccessCredentialId: CREDENTIAL_ID,
+        },
+        runners,
+        credentials,
+      }),
+    ).toMatch(/"east-kubectl" is an in-cluster Runner/);
   });
 });

@@ -19,6 +19,13 @@ import {
   getKubernetesAiAccessSettingsInitialValues,
   validateKubectlAllowlistText,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/View/AI";
+import { isKubernetesAgentRunnerRow } from "../../../../App/FeatureSet/Dashboard/src/Pages/Kubernetes/Utils/KubernetesAgentRunner";
+import {
+  RunnerFormRestrictions,
+  getReservedRunnerNameError,
+  getRunnerFormFields,
+  getRunnerFormRestrictions,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/RunnerFormFields";
 import KubernetesClusterAiAccessService, {
   KubernetesClusterAiAccessProjectGates,
   getKubernetesAgentRunnerNameForCluster,
@@ -27,8 +34,11 @@ import KubernetesClusterService, {
   normalizeKubectlAllowlistForWrite,
 } from "../../../Server/Services/KubernetesClusterService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
-import RunnerService from "../../../Server/Services/RunnerService";
-import { OnUpdate } from "../../../Server/Types/Database/Hooks";
+import RunnerService, {
+  Service as RunnerServiceClass,
+} from "../../../Server/Services/RunnerService";
+import CreateBy from "../../../Server/Types/Database/CreateBy";
+import { OnCreate, OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
@@ -36,6 +46,7 @@ import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential"
 import Runner from "../../../Models/DatabaseModels/Runner";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../Types/Date";
+import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../../Types/JSON";
 import {
@@ -49,6 +60,7 @@ import Permission, {
 } from "../../../Types/Permission";
 import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
+import Field from "../../../UI/Components/Forms/Types/Field";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 
 /*
@@ -671,4 +683,233 @@ describe("allowlist validation: the page and the server agree", () => {
       }).toEqual({ pageRefuses: isServerRefusal });
     });
   }
+});
+
+/*
+ * The Runner pages against RunnerService, run for real with only the
+ * database read stubbed. The pages decide which rows are kubernetes-agent
+ * rows with the server's rule, and their edit form posts nothing the
+ * server's write hook refuses — and leaves out exactly what it refuses.
+ */
+describe("the Runner pages and RunnerService agree on agent rows", () => {
+  interface RowCase {
+    label: string;
+    row: { name?: unknown; hostInfo?: unknown };
+  }
+
+  const AGENT_POSTURE: JSONObject = {
+    kubernetes: { inCluster: true, clusterIdentifier: "prod" },
+  };
+
+  const ROWS: Array<RowCase> = [
+    {
+      label: "an agent row",
+      row: { name: "kubernetes-agent/prod", hostInfo: AGENT_POSTURE },
+    },
+    {
+      label: "an agent row whose heartbeat dropped the posture",
+      row: { name: "kubernetes-agent/prod", hostInfo: {} },
+    },
+    {
+      label: "a case-variant agent name",
+      row: { name: "Kubernetes-Agent/prod", hostInfo: {} },
+    },
+    {
+      label: "a padded upper-case agent name",
+      row: { name: "  KUBERNETES-AGENT/prod ", hostInfo: {} },
+    },
+    {
+      label: "an agent by posture alone (a legacy rename)",
+      row: { name: "prod-kubectl", hostInfo: AGENT_POSTURE },
+    },
+    {
+      label: "a Runner in a pod naming no cluster",
+      row: {
+        name: "pod-runner",
+        hostInfo: { kubernetes: { inCluster: true } },
+      },
+    },
+    { label: "a host Runner", row: { name: "office-runner", hostInfo: {} } },
+    { label: "a look-alike name", row: { name: "kubernetes-agent-office" } },
+  ];
+
+  const RUNNER_ROW_ID: ObjectID = new ObjectID(
+    "99999999-9999-4999-8999-999999999999",
+  );
+
+  interface RunnerHooks {
+    onBeforeCreate(createBy: CreateBy<Runner>): Promise<OnCreate<Runner>>;
+    onBeforeUpdate(updateBy: UpdateBy<Runner>): Promise<OnUpdate<Runner>>;
+  }
+
+  function runnerHooks(): RunnerHooks {
+    return RunnerService as unknown as RunnerHooks;
+  }
+
+  function editorProps(): DatabaseCommonInteractionProps {
+    return {
+      userId: ObjectID.generate(),
+      tenantId: PROJECT_ID,
+    } as DatabaseCommonInteractionProps;
+  }
+
+  // Serves `row` as the Runner the update hook reads.
+  function serveRunnerRow(row: RowCase["row"]): void {
+    jest.spyOn(RunnerService, "findBy").mockResolvedValue([
+      {
+        id: RUNNER_ROW_ID,
+        _id: RUNNER_ROW_ID.toString(),
+        ...row,
+      } as unknown as Runner,
+    ]);
+  }
+
+  // What the hook says about a non-root update of `row`: null, or the refusal.
+  async function serverRefusal(
+    row: RowCase["row"],
+    data: JSONObject,
+  ): Promise<string | null> {
+    serveRunnerRow(row);
+
+    try {
+      await runnerHooks().onBeforeUpdate({
+        query: { _id: RUNNER_ROW_ID.toString() },
+        data: data as unknown as Runner,
+        limit: 1,
+        skip: 0,
+        props: editorProps(),
+      } as unknown as UpdateBy<Runner>);
+      return null;
+    } catch (err) {
+      if (err instanceof BadDataException) {
+        return err.message;
+      }
+      throw err;
+    }
+  }
+
+  // The fields the detail page's edit form offers for `row`.
+  function formFieldNames(row: RowCase["row"]): Array<string> {
+    return getRunnerFormFields({
+      withSteps: false,
+      restrictions: getRunnerFormRestrictions(row),
+    }).map((field: Field<Runner>): string => {
+      return Object.keys(field.field || {})[0] || "";
+    });
+  }
+
+  test("the pages' agent rule is RunnerService.isKubernetesAgentRunnerRow", () => {
+    for (const rowCase of ROWS) {
+      expect({
+        row: rowCase.label,
+        isAgent: isKubernetesAgentRunnerRow(rowCase.row),
+      }).toEqual({
+        row: rowCase.label,
+        isAgent: RunnerServiceClass.isKubernetesAgentRunnerRow(rowCase.row),
+      });
+    }
+  });
+
+  test("the form's locks are the hook's rules: the name marker, and the row rule", () => {
+    for (const rowCase of ROWS) {
+      const restrictions: RunnerFormRestrictions = getRunnerFormRestrictions(
+        rowCase.row,
+      );
+      expect({ row: rowCase.label, restrictions }).toEqual({
+        row: rowCase.label,
+        restrictions: {
+          isNameLocked: RunnerServiceClass.isKubernetesAgentName(
+            rowCase.row.name,
+          ),
+          areShellCapabilitiesLocked:
+            RunnerServiceClass.isKubernetesAgentRunnerRow(rowCase.row),
+        },
+      });
+    }
+  });
+
+  /*
+   * What the form posts for a row: every field it offers, the capability
+   * switches it offers as they are stored (off) and "Runs AI Remediation
+   * Commands" on, the name re-posted unchanged.
+   */
+  test("the hook accepts everything the edit form posts, for every row", async () => {
+    for (const rowCase of ROWS) {
+      const fields: Array<string> = formFieldNames(rowCase.row);
+      const data: JSONObject = {};
+
+      if (fields.includes("name")) {
+        data["name"] = rowCase.row.name as string;
+      }
+      data["description"] = "Edited from the Runner page.";
+      if (fields.includes("canRunRunbooks")) {
+        data["canRunRunbooks"] = false;
+      }
+      if (fields.includes("canRunCodeFixTasks")) {
+        data["canRunCodeFixTasks"] = false;
+      }
+      data["canRunAiCommands"] = true;
+
+      expect({
+        row: rowCase.label,
+        refusal: await serverRefusal(rowCase.row, data),
+      }).toEqual({ row: rowCase.label, refusal: null });
+    }
+  });
+
+  test("the hook refuses exactly what the form leaves out", async () => {
+    for (const rowCase of ROWS) {
+      const fields: Array<string> = formFieldNames(rowCase.row);
+
+      const renameRefused: boolean =
+        (await serverRefusal(rowCase.row, { name: "renamed-runner" })) !== null;
+      const runbooksRefused: boolean =
+        (await serverRefusal(rowCase.row, { canRunRunbooks: true })) !== null;
+      const codeFixesRefused: boolean =
+        (await serverRefusal(rowCase.row, { canRunCodeFixTasks: true })) !==
+        null;
+
+      expect({
+        row: rowCase.label,
+        renameRefused,
+        runbooksRefused,
+        codeFixesRefused,
+      }).toEqual({
+        row: rowCase.label,
+        renameRefused: !fields.includes("name"),
+        runbooksRefused: !fields.includes("canRunRunbooks"),
+        codeFixesRefused: !fields.includes("canRunCodeFixTasks"),
+      });
+    }
+  });
+
+  test("the name check refuses a reserved name exactly when the create hook does", async () => {
+    for (const name of [
+      "kubernetes-agent/prod",
+      "Kubernetes-Agent/prod",
+      " KUBERNETES-AGENT/prod",
+      "prod-runner",
+      "kubernetes-agent",
+      "kubernetes-agent-office",
+      "my-kubernetes-agent/prod",
+    ]) {
+      let serverRefuses: boolean = false;
+      try {
+        await runnerHooks().onBeforeCreate({
+          data: Object.assign(new Runner(), { name }),
+          props: editorProps(),
+        } as unknown as CreateBy<Runner>);
+      } catch (err) {
+        if (!(err instanceof BadDataException)) {
+          throw err;
+        }
+        serverRefuses = true;
+      }
+
+      expect({
+        name,
+        pageRefuses: getReservedRunnerNameError(name) !== null,
+      }).toEqual({ name, pageRefuses: serverRefuses });
+    }
+  });
 });
