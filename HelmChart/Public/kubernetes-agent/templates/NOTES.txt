@@ -1,3 +1,16 @@
+{{- /*
+`helm upgrade --reuse-values` renders with the previous release's values, so
+on an install from a chart without aiAccess `.Values.aiAccess` is nil (or
+holds only what --set passed) and a bare `.Values.aiAccess.enabled` would
+abort the upgrade. Same locals as templates/ai-runner.yaml.
+*/ -}}
+{{- $aiAccess := .Values.aiAccess | default dict -}}
+{{- $aiRemediation := $aiAccess.remediation | default dict -}}
+{{- $aiWriteNamespaces := $aiRemediation.namespaces | default list | uniq -}}
+{{- $aiNodeOperations := true -}}
+{{- if and (hasKey $aiRemediation "nodeOperations") (kindIs "bool" $aiRemediation.nodeOperations) }}
+{{- $aiNodeOperations = $aiRemediation.nodeOperations -}}
+{{- end }}
 OneUptime Kubernetes Agent has been installed.
 
 Cluster Name: {{ .Values.clusterName }}
@@ -63,6 +76,9 @@ The agent is now collecting:
   - Raw cost metrics (node hourly cost, container allocation, PV and load balancer cost) for Metric Explorer and the Kubernetes Cost dashboard
 {{- end }}
 {{- end }}
+{{- if $aiAccess.enabled }}
+  - OneUptime AI access: an in-cluster Runner that lets OneUptime AI run {{ if $aiRemediation.enabled }}kubectl to investigate AND fix incidents (a cluster registering for the first time starts in "ask for approval", unless AI settings were already picked on its AI page before the install, which are kept as chosen; a cluster that was already registered keeps the AI remediation mode chosen on its AI page — pick ask for approval, automatic or bypass approval there){{ else }}read-only kubectl while investigating incidents and alerts (add --set aiAccess.remediation.enabled=true to let it fix them too){{ end }}
+{{- end }}
 {{- if .Values.preset }}
 
 Preset: {{ .Values.preset }}
@@ -84,6 +100,73 @@ To turn eBPF auto-instrumentation off:
 
 Your cluster should appear in OneUptime within a few minutes at:
   {{ .Values.oneuptime.url }}/dashboard/<project-id>/kubernetes
+{{- if $aiAccess.enabled }}
+
+OneUptime AI access registers itself with the same key — within a minute the
+cluster's AI page (Kubernetes → <cluster> → AI) shows the Runner as Connected
+and lists what AI may do. If it does not, check the Runner's logs. A refused
+registration says whether it clears on its own or what to change (an
+ingestion key with a Pinned Service Name cannot register the Runner):
+  kubectl logs -n {{ .Release.Namespace }} -l component=ai-runner --tail=100
+If you delete the Runner so the agent registers a fresh one, select the new
+Runner on the cluster's AI page afterwards: a registration never re-binds a
+cluster that had a Runner bound.
+{{- if $aiRemediation.enabled }}
+
+What the Runner's write access amounts to: patch on workloads and pods (and
+create on jobs) in a namespace is as good as running any image as any
+ServiceAccount there and reading its Secrets. OneUptime's command policy
+refuses changing which ServiceAccount, security settings, volumes, command or
+Secret wiring a pod runs with (pod-template security patches, set
+serviceaccount, create deployment/cronjob/job --image, patch bodies that are
+not JSON, patches that replace the pod spec or a whole containers list,
+expose --overrides).
+It still allows changing an image (set image, or a patch of an
+image field) as a riskier change: the new image runs as the workload's own
+ServiceAccount, with its Secrets, and a human approves it unless the cluster
+bypasses approvals or its allowlist names the command. RBAC only decides
+where writes may land.
+{{- if $aiWriteNamespaces }}
+Write access is bound only in: {{ join ", " $aiWriteNamespaces }} (aiAccess.remediation.namespaces).
+Each listed namespace must already exist: the chart creates a RoleBinding in
+each and never creates a namespace, so a missing one fails every install or
+upgrade with 'namespaces "<name>" not found'. Take a namespace off the list
+before you delete it; --set-json 'aiAccess.remediation.namespaces=[]' goes
+back to cluster-wide (--set aiAccess.remediation.namespaces=null does not
+reset a stored list under --reuse-values). A fix outside these namespaces is
+refused when it is proposed or approved, and the Runner refuses it again
+before it runs kubectl.
+{{- else }}
+Write access is bound cluster-wide. RBAC cannot keep it out of kube-system,
+kube-public, kube-node-lease or {{ .Release.Namespace }}: there OneUptime's policy (never
+without a human in the three system namespaces) and the Runner (never its own
+namespace) hold the line. To bind it only where AI may fix things, upgrade
+with (every listed namespace must already exist):
+  --set "aiAccess.remediation.namespaces={web,api}"
+{{- end }}
+{{- if $aiNodeOperations }}
+Node operations (cordon, uncordon, taint, drain) are on, cluster-wide. A drain
+evicts pods in every namespace, kube-system and {{ .Release.Namespace }} included, so a drain,
+a taint or a patch of a node always waits for a human, in every mode; turn
+node operations off with --set aiAccess.remediation.nodeOperations=false.
+{{- else }}
+Node operations (cordon, uncordon, taint, drain) are off: the chart grants no
+node RBAC, and the Runner refuses them before it runs kubectl. OneUptime reads
+that from the Runner and refuses a node fix already when it is proposed or
+approved.
+{{- end }}
+{{- end }}
+{{- else }}
+
+To let OneUptime AI run kubectl on this cluster while it investigates, refresh
+your chart index (an old one serves a chart without aiAccess) and upgrade:
+  helm repo update
+  helm upgrade {{ .Release.Name }} oneuptime/kubernetes-agent -n {{ .Release.Namespace }} --reuse-values --set aiAccess.enabled=true
+To also let it fix what it finds, add --set aiAccess.remediation.enabled=true
+(write RBAC; aiAccess.remediation.namespaces limits where it applies).
+On Helm 3.14+, --reset-then-reuse-values is the safer flag: it keeps your
+overrides and also picks up this chart's defaults for everything else.
+{{- end }}
 
 If it stays "Disconnected" or no data shows up (most often a wrong/revoked
 ingestion key — which is silently dropped, so the collector logs look clean),

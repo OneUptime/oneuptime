@@ -1,0 +1,15 @@
+# The same release upgraded with
+#   --reuse-values --set aiAccess.enabled=true --set aiAccess.remediation.enabled=true
+# .Values.aiAccess.remediation is then exactly {enabled: true}: no namespaces
+# (so the write role is bound cluster-wide) and no nodeOperations (so node
+# operations fall back to on, as in values.yaml).
+# See legacy-pre-aiaccess-ai-enabled.yaml for why the other keys are null.
+aiAccess:
+  enabled: true
+  remediation:
+    enabled: true
+    namespaces: null
+    nodeOperations: null
+  image: null
+  resources: null
+  extraEnv: null

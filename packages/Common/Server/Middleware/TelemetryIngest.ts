@@ -71,8 +71,19 @@ const COUNTER_UNAVAILABLE_LOG_INTERVAL_MS: number = 60 * 1000;
  */
 const UNNAMED_SURFACE_READABLE_NAME: string = "this ingest endpoint";
 
+/*
+ * The ceiling a server key gets on the Kubernetes agent Runner registration
+ * surface when its policy names none. Registration is a handful of calls
+ * per agent pod lifetime (start-up, then heartbeats through the Runner's
+ * own credential), so a leaked ingestion key hammering it is abuse, not
+ * traffic - unlike OTLP ingest, where "no limit" is the historical contract
+ * and must stay that way. An explicit per-key limit still wins.
+ */
+export const DEFAULT_KUBERNETES_AGENT_RUNNER_REQUESTS_PER_MINUTE: number = 30;
+
 type GetEffectiveRequestsPerMinuteLimitFunction = (
   policy: TelemetryIngestionKeyPolicy,
+  surface?: TelemetryIngestSurface | null | undefined,
 ) => number | null;
 
 /*
@@ -89,9 +100,18 @@ type GetEffectiveRequestsPerMinuteLimitFunction = (
  * with NULL falls back to the shipped default instead, because a public key
  * with no ceiling is the thing we are trying to stop shipping: "the customer
  * did not configure a limit" cannot be allowed to mean "unlimited" there.
+ *
+ * The one surface-dependent case is Kubernetes agent Runner registration:
+ * a server key with no configured limit is held to a conservative default
+ * there (see DEFAULT_KUBERNETES_AGENT_RUNNER_REQUESTS_PER_MINUTE), because
+ * that endpoint mints Runner identities rather than accepting telemetry.
+ * Every other surface keeps the server-key contract above untouched.
  */
 export const getEffectiveRequestsPerMinuteLimit: GetEffectiveRequestsPerMinuteLimitFunction =
-  (policy: TelemetryIngestionKeyPolicy): number | null => {
+  (
+    policy: TelemetryIngestionKeyPolicy,
+    surface?: TelemetryIngestSurface | null | undefined,
+  ): number | null => {
     /*
      * An explicit limit wins for both key types, including a Server key: a
      * customer who deliberately set a ceiling on a server key asked for one
@@ -107,6 +127,10 @@ export const getEffectiveRequestsPerMinuteLimit: GetEffectiveRequestsPerMinuteLi
 
     if (policy.keyType === TelemetryIngestionKeyType.Browser) {
       return DEFAULT_BROWSER_KEY_REQUESTS_PER_MINUTE;
+    }
+
+    if (surface === TelemetryIngestSurface.KubernetesAgentRunner) {
+      return DEFAULT_KUBERNETES_AGENT_RUNNER_REQUESTS_PER_MINUTE;
     }
 
     return null;
@@ -429,6 +453,27 @@ export default class TelemetryIngest {
       }
 
       /*
+       * Kubernetes agent Runner registration mints a Runner identity — the
+       * one every kubectl job for a cluster is targeted at — so it takes a
+       * project-wide server key. A key pinned to one service's name was
+       * scoped by its owner to that service's telemetry; it is refused here
+       * rather than letting it stand up cluster access it was never meant
+       * to reach.
+       */
+      if (
+        surface === TelemetryIngestSurface.KubernetesAgentRunner &&
+        policy.pinnedServiceName
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthorizedException(
+            "This telemetry ingestion key is pinned to a single service, so it cannot register the Kubernetes agent's in-cluster Runner. Use an unpinned server ingestion key for the Kubernetes agent.",
+          ),
+        );
+      }
+
+      /*
        * Rate limit.
        *
        * A null effective limit means "no limit", and it short-circuits BEFORE
@@ -440,7 +485,7 @@ export default class TelemetryIngest {
        * today's ingest slower.
        */
       const effectiveLimitPerMinute: number | null =
-        getEffectiveRequestsPerMinuteLimit(policy);
+        getEffectiveRequestsPerMinuteLimit(policy, surface);
 
       if (effectiveLimitPerMinute !== null) {
         const decision: TelemetryIngestionKeyLimitDecision =

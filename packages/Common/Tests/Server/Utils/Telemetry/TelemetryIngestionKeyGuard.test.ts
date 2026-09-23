@@ -136,10 +136,47 @@ describe("TelemetryIngestionKeyGuard.getRefusal", () => {
       },
     );
 
-    test("covers all fourteen surfaces in the matrix above", () => {
-      expect(ALL_SURFACES).toHaveLength(14);
+    test("covers all fifteen surfaces in the matrix above", () => {
+      expect(ALL_SURFACES).toHaveLength(15);
       expect(BROWSER_ALLOWED).toHaveLength(4);
-      expect(BROWSER_FORBIDDEN).toHaveLength(10);
+      expect(BROWSER_FORBIDDEN).toHaveLength(11);
+    });
+
+    /*
+     * The Kubernetes agent Runner registration mints a Runner credential
+     * from an ingestion key. It is server-only, and pinned by name here so
+     * that moving it into the browser allowlist is a deliberate, failing
+     * change rather than a silent one.
+     */
+    test("keeps Kubernetes agent Runner registration off the browser allowlist", () => {
+      expect(BROWSER_FORBIDDEN).toContain(
+        TelemetryIngestSurface.KubernetesAgentRunner,
+      );
+      expect(BROWSER_ALLOWED).not.toContain(
+        TelemetryIngestSurface.KubernetesAgentRunner,
+      );
+
+      const refusal: TelemetryIngestionKeyRefusal | null = refusalFor({
+        policy: buildPolicy({
+          keyType: TelemetryIngestionKeyType.Browser,
+          allowedOrigins: [ALLOWED_ORIGIN],
+        }),
+        surface: TelemetryIngestSurface.KubernetesAgentRunner,
+      });
+
+      expect(refusal?.reason).toBe(
+        TelemetryIngestionKeyRefusalReason.SurfaceNotAllowedForBrowserKey,
+      );
+      expect(refusal?.message).toContain(
+        "Kubernetes agent Runner registration",
+      );
+
+      expect(
+        refusalFor({
+          policy: buildPolicy(),
+          surface: TelemetryIngestSurface.KubernetesAgentRunner,
+        }),
+      ).toBeNull();
     });
   });
 

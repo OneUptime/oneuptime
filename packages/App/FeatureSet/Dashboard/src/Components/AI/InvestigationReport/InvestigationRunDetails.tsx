@@ -1,5 +1,7 @@
 import ChatActivityFeed, {
   countActivitySteps,
+  isClusterToolName,
+  KubectlActivitySummary,
 } from "../../AIChat/ChatActivityFeed";
 import InvestigationEvidenceList, {
   EvidenceFocusRequest,
@@ -30,10 +32,17 @@ export const INVESTIGATION_READ_ONLY_TEXT: string =
 export interface UsageLineProps {
   usage: InvestigationRunUsage | null;
   /*
-   * Queries to report instead of the run's tool calls, which also count
-   * calls that failed and never became evidence.
+   * Telemetry queries to report instead of the run's tool calls, which
+   * also count calls that failed and never became evidence. Never includes
+   * cluster tool calls.
    */
   queryCount?: number | undefined;
+  /*
+   * What the run's kubectl calls did on linked clusters. Reported as its
+   * own item, and — when the query count falls back to the run's tool
+   * calls — taken out of "telemetry queries", so no call is counted twice.
+   */
+  kubectlActivity?: KubectlActivitySummary | undefined;
   stepCount?: number | undefined;
   modelName?: string | undefined;
   // Queries run and steps taken. Defaults to true.
@@ -51,6 +60,67 @@ const USAGE_ITEM_CLASS_NAME: string =
 const USAGE_ICON_CLASS_NAME: string = "h-3.5 w-3.5 flex-shrink-0 text-gray-400";
 
 /*
+ * The usage line's kubectl item, or null when the run never tried kubectl.
+ * Only commands that ran on the cluster are counted as commands; those
+ * that returned an error, never ran, or were taken by a Runner that never
+ * reported back (whether they ran is unknown) are said alongside, never
+ * folded in.
+ */
+export function describeKubectlUsage(
+  activity: KubectlActivitySummary | undefined,
+): string | null {
+  if (!activity) {
+    return null;
+  }
+
+  const executed: number = Math.max(0, activity.executed);
+  const failed: number = Math.max(
+    0,
+    executed - Math.min(executed, Math.max(0, activity.succeeded)),
+  );
+  const notRun: number = Math.max(0, activity.notRun);
+  const unknown: number = Math.max(0, activity.unknown || 0);
+
+  if (executed === 0 && notRun === 0 && unknown === 0) {
+    return null;
+  }
+
+  if (executed === 0 && unknown === 0) {
+    return `${notRun.toLocaleString()} kubectl ${
+      notRun === 1 ? "command" : "commands"
+    } did not run`;
+  }
+
+  if (executed === 0 && notRun === 0) {
+    return `${unknown.toLocaleString()} kubectl ${
+      unknown === 1 ? "command" : "commands"
+    } returned no result`;
+  }
+
+  if (executed === 0) {
+    return `${(notRun + unknown).toLocaleString()} kubectl commands without a result (${notRun.toLocaleString()} did not run, ${unknown.toLocaleString()} returned no result)`;
+  }
+
+  const notes: Array<string> = [];
+
+  if (failed > 0) {
+    notes.push(`${failed.toLocaleString()} failed`);
+  }
+
+  if (notRun > 0) {
+    notes.push(`${notRun.toLocaleString()} did not run`);
+  }
+
+  if (unknown > 0) {
+    notes.push(`${unknown.toLocaleString()} returned no result`);
+  }
+
+  return `${executed.toLocaleString()} kubectl ${
+    executed === 1 ? "command" : "commands"
+  }${notes.length > 0 ? ` (${notes.join(", ")})` : ""}`;
+}
+
+/*
  * What a run did and cost, plus the read-only guarantee, as one wrapping
  * list. Responders ask "did this thing touch anything?" before they trust a
  * report, so the guarantee stays visible even while the details are
@@ -60,9 +130,22 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
   props: UsageLineProps,
 ): ReactElement => {
   const usage: InvestigationRunUsage | null = props.usage;
+  /*
+   * The run's tool calls include every cluster tool call (run_kubectl and
+   * list_cluster_access), which are not telemetry queries.
+   */
   const queryCount: number | null =
-    props.queryCount ?? (usage ? usage.toolCallCount : null);
+    props.queryCount ??
+    (usage
+      ? Math.max(
+          0,
+          usage.toolCallCount - (props.kubectlActivity?.clusterToolCalls || 0),
+        )
+      : null);
   const stepCount: number = props.stepCount || 0;
+  const kubectlUsage: string | null = describeKubectlUsage(
+    props.kubectlActivity,
+  );
   const items: Array<ReactElement> = [];
 
   if (props.showCounts !== false && queryCount !== null) {
@@ -71,6 +154,15 @@ export const InvestigationUsageLine: FunctionComponent<UsageLineProps> = (
         <Icon icon={IconProp.Database} className={USAGE_ICON_CLASS_NAME} />
         {queryCount.toLocaleString()} telemetry{" "}
         {queryCount === 1 ? "query" : "queries"}
+      </li>,
+    );
+  }
+
+  if (props.showCounts !== false && kubectlUsage) {
+    items.push(
+      <li key="clusterCommands" className={USAGE_ITEM_CLASS_NAME}>
+        <Icon icon={IconProp.Terminal} className={USAGE_ICON_CLASS_NAME} />
+        {kubectlUsage}
       </li>,
     );
   }
@@ -140,6 +232,8 @@ export interface ComponentProps {
   legacyEntries: Array<InvestigationEvidenceCheckedEntry>;
   events: Array<AIRunEvent>;
   usage: InvestigationRunUsage | null;
+  // What the run's kubectl calls did (see summarizeKubectlActivity).
+  kubectlActivity?: KubectlActivitySummary | undefined;
   modelName?: string | undefined;
   subjectType: InvestigationReportSubjectType;
   subjectId: string;
@@ -207,6 +301,23 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
     props.evidence.length > 0
       ? props.evidence.length
       : props.legacyEntries.length;
+  /*
+   * Every cited call is evidence, cluster calls included, but only the
+   * others are telemetry queries: kubectl has its own item in the usage
+   * line and a cluster listing is configuration, not data. Legacy entries
+   * carry no tool name and predate cluster access.
+   */
+  const telemetryQueryCount: number =
+    props.evidence.length > 0
+      ? props.evidence.filter((item: InvestigationEvidenceItem): boolean => {
+          return !isClusterToolName(item.toolName);
+        }).length
+      : props.legacyEntries.length;
+  const hasClusterEvidence: boolean = props.evidence.some(
+    (item: InvestigationEvidenceItem): boolean => {
+      return isClusterToolName(item.toolName);
+    },
+  );
   const stepCount: number = countActivitySteps(props.events);
   const tabs: Array<DetailsTab> = [];
 
@@ -228,6 +339,7 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
       <div className="rounded-xl border border-gray-200 bg-gray-50/70 px-4 py-3 sm:px-5">
         <InvestigationUsageLine
           usage={props.usage}
+          kubectlActivity={props.kubectlActivity}
           stepCount={stepCount}
           modelName={props.modelName}
         />
@@ -322,9 +434,16 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
           className={panelFocusClassName}
         >
           <p className="px-4 pb-1 pt-3 text-xs leading-5 text-gray-500 sm:px-5">
-            {props.evidence.length > 0
-              ? "Every query OneUptime AI ran. Expand one to see what it asked and the rows it returned."
-              : "Every query OneUptime AI ran while investigating."}
+            {/*
+              A kubectl command is not a query and has no rows to load, so
+              a list with cluster calls in it promises rows only for the
+              telemetry queries.
+            */}
+            {props.evidence.length === 0
+              ? "Every query OneUptime AI ran while investigating."
+              : hasClusterEvidence
+                ? "Every telemetry query and kubectl call OneUptime AI made. Expand one to see what it asked — and, for a telemetry query, the rows it returned."
+                : "Every query OneUptime AI ran. Expand one to see what it asked and the rows it returned."}
           </p>
           <InvestigationEvidenceList
             items={props.evidence}
@@ -403,12 +522,14 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
             nothing; tokens and model wait in the body.
           */}
           {/*
-            With evidence, the query count is the one the Evidence tab shows,
-            so the two never disagree inside this section.
+            With evidence, the query count is the Evidence tab's items less
+            the cluster calls, which the kubectl item reports instead: the
+            tab lists every cited call, the header counts each call once.
           */}
           <InvestigationUsageLine
             usage={props.usage}
-            queryCount={evidenceCount > 0 ? evidenceCount : undefined}
+            queryCount={evidenceCount > 0 ? telemetryQueryCount : undefined}
+            kubectlActivity={props.kubectlActivity}
             stepCount={stepCount}
             showCost={false}
             className="mt-0.5"
