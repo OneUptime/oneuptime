@@ -27,6 +27,7 @@ import {
   UptimeDayBucket,
   UptimeStatusDuration,
 } from "../../Types/StatusPage/UptimeDailyAggregate";
+import { MergedDowntimeTotals } from "../../Types/StatusPage/MergedDowntimeTotals";
 import {
   MONITOR_UPTIME_HISTORY_DAYS,
   MONITOR_UPTIME_ROLLING_WINDOWS,
@@ -77,16 +78,10 @@ export interface RollingUptimeTotalRow {
 }
 
 /*
- * What getMergedDowntimeSeconds returns for a SET of monitors. Both figures
- * are unions, so an instant counts once however many of the monitors it
- * covers.
+ * What getMergedDowntimeSeconds returns for a SET of monitors. Defined with
+ * the status page types, because the browser reads it too.
  */
-export interface MergedDowntimeTotals {
-  // Seconds at least one of the monitors was recorded, in any status.
-  coveredSeconds: number;
-  // Seconds at least one of them spent in a downtime status.
-  downtimeSeconds: number;
-}
+export type { MergedDowntimeTotals };
 
 /*
  * The single row getMergedDowntimeSeconds' SQL returns. Typed loosely
