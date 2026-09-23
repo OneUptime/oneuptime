@@ -67,6 +67,12 @@ export function getWorkflowsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Workflow",
       "Owners",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.WORKFLOW_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Workflows",
+      "View Workflow",
+      "Audit Logs",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.WORKFLOW_DELETE, [
       "Project",
       "Workflows",
