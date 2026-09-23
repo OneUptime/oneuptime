@@ -1,4 +1,5 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import TimezoneAlias from "Common/Types/TimezoneAlias";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Dropdown, {
   DropdownOption,
@@ -11,8 +12,9 @@ import TimezoneUtil from "Common/UI/Utils/Timezone";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
- * Timezone options are static and expensive to sort (every IANA zone by GMT
- * offset), so compute them once at module load rather than per render.
+ * Timezone options are static and not free to build (every current zone
+ * resolved to its GMT offset and sorted), so compute them once at module load
+ * rather than per render.
  */
 const timezoneDropdownOptions: Array<DropdownOption> =
   TimezoneUtil.getTimezoneDropdownOptions();
@@ -42,11 +44,24 @@ export interface ComponentProps {
 const TimezoneSelectButton: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * The value can be a legacy tz name the picker does not offer: a schedule
+   * saved with "US/Pacific", or a "View as" zone seeded from the browser's
+   * guess, which Chromium spells "Asia/Calcutta" (see
+   * Common/Types/TimezoneAlias.ts). Matched as given it selects no option, so
+   * the modal would open on its placeholder instead of the zone in use. Read
+   * it as its current name instead — in the bubble and in the draft, which is
+   * what selects the option and what Save hands back.
+   */
+  const currentValue: string | undefined = props.value
+    ? TimezoneAlias.getCanonicalTimezone(props.value)
+    : undefined;
+
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [draft, setDraft] = useState<string | undefined>(props.value);
+  const [draft, setDraft] = useState<string | undefined>(currentValue);
 
   const openModal: () => void = (): void => {
-    setDraft(props.value);
+    setDraft(currentValue);
     setIsModalOpen(true);
   };
 
@@ -58,7 +73,7 @@ const TimezoneSelectButton: FunctionComponent<ComponentProps> = (
 
   const bubbleText: string = props.saving
     ? "Saving…"
-    : props.value || props.placeholder || "Select timezone";
+    : currentValue || props.placeholder || "Select timezone";
 
   return (
     <React.Fragment>
@@ -72,7 +87,7 @@ const TimezoneSelectButton: FunctionComponent<ComponentProps> = (
           icon={props.icon || IconProp.Globe}
           className="h-4 w-4 text-gray-400"
         />
-        <span className={props.value || props.saving ? "" : "text-gray-400"}>
+        <span className={currentValue || props.saving ? "" : "text-gray-400"}>
           {bubbleText}
         </span>
         <Icon icon={IconProp.ChevronDown} className="h-3 w-3 text-gray-400" />
@@ -86,7 +101,12 @@ const TimezoneSelectButton: FunctionComponent<ComponentProps> = (
           submitButtonText={props.submitButtonText || "Save"}
           submitButtonStyleType={ButtonStyleType.PRIMARY}
           onSubmit={() => {
-            props.onChange(draft);
+            /*
+             * Saving the zone that was already set hands back the value as
+             * it came, legacy spelling and all, so the caller sees no change
+             * and does not rewrite a stored "US/Pacific" nobody touched.
+             */
+            props.onChange(draft === currentValue ? props.value : draft);
             setIsModalOpen(false);
           }}
           onClose={() => {

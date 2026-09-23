@@ -1086,9 +1086,10 @@ describe("StatusPageService.getReportByStatusPage", () => {
     /*
      * Postgres reads the OS tzdata, and the images OneUptime ships (Debian
      * trixie, no tzdata-legacy) reject these link names in `AT TIME ZONE`,
-     * although the report settings offer them and moment knows all but
-     * US/Pacific-New. Handed to the aggregate, any of them would fail the
-     * query and with it the whole report.
+     * although moment knows all but US/Pacific-New. The report settings no
+     * longer offer them, but rows saved before that and API callers still
+     * hold them. Handed to the aggregate, any of them would fail the query
+     * and with it the whole report.
      */
     test.each([
       Timezone.USEastern,

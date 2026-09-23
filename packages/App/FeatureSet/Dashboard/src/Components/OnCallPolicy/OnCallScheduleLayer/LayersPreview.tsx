@@ -18,6 +18,7 @@ import {
 import TimezoneSelectButton from "./TimezoneSelectButton";
 import CalendarEvent from "Common/Types/Calendar/CalendarEvent";
 import OneUptimeDate from "Common/Types/Date";
+import TimezoneAlias from "Common/Types/TimezoneAlias";
 import IconProp from "Common/Types/Icon/IconProp";
 import Dictionary from "Common/Types/Dictionary";
 import LayerUtil, { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
@@ -560,13 +561,22 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
   /*
    * Explain which zone the grid/summary below are rendered in, and — when the
    * viewer has switched away from the schedule's own zone — that these times are
-   * for reference only and not the zone people are actually paged in.
+   * for reference only and not the zone people are actually paged in. Zones
+   * are named and compared in current names, as the "View as" bubble shows
+   * them: a schedule stored as "US/Pacific" viewed as America/Los_Angeles is
+   * being viewed in its own zone.
    */
-  const viewNote: string = props.timezone
-    ? viewAsTimezone === props.timezone
-      ? `Times below are shown in the schedule's timezone (${props.timezone}) — the zone people are actually paged in.`
-      : `Viewing in ${viewAsTimezone}. This schedule is configured and paged in ${props.timezone}, so the times below are for your reference only.`
-    : `Viewing in ${viewAsTimezone}. This schedule has no timezone set, so it is paged in the server's local time.`;
+  const scheduleZoneName: string | undefined = props.timezone
+    ? TimezoneAlias.getCanonicalTimezone(props.timezone)
+    : undefined;
+  const viewZoneName: string =
+    TimezoneAlias.getCanonicalTimezone(viewAsTimezone);
+
+  const viewNote: string = scheduleZoneName
+    ? viewZoneName === scheduleZoneName
+      ? `Times below are shown in the schedule's timezone (${scheduleZoneName}) — the zone people are actually paged in.`
+      : `Viewing in ${viewZoneName}. This schedule is configured and paged in ${scheduleZoneName}, so the times below are for your reference only.`
+    : `Viewing in ${viewZoneName}. This schedule has no timezone set, so it is paged in the server's local time.`;
 
   const hasActiveOverrides: boolean = overrideRecords.length > 0;
 
@@ -660,9 +670,9 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
           required={true}
           title="Layer Preview"
           description={
-            props.timezone
+            scheduleZoneName
               ? "Here is a preview of who is on call and when. Restriction windows are resolved in this schedule's timezone - " +
-                props.timezone
+                scheduleZoneName
               : "Here is a preview of who is on call and when. This is based on your local timezone - " +
                 OneUptimeDate.getCurrentTimezoneString()
           }
