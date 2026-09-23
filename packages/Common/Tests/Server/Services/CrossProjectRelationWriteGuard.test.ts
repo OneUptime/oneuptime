@@ -7,6 +7,9 @@ import {
   test,
 } from "@jest/globals";
 import { FindOperator } from "typeorm";
+import Alert from "../../../Models/DatabaseModels/Alert";
+import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
+import AlertState from "../../../Models/DatabaseModels/AlertState";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
@@ -18,6 +21,9 @@ import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import AlertService from "../../../Server/Services/AlertService";
+import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
+import AlertStateService from "../../../Server/Services/AlertStateService";
 import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
@@ -33,13 +39,14 @@ import StatusPageService from "../../../Server/Services/StatusPageService";
 import ObjectID from "../../../Types/ObjectID";
 
 /*
- * Incidents and scheduled maintenance events carry many-to-many lists —
- * monitors, labels, on-call policies, status pages — that nothing checked
- * against the record's project. DatabaseService turns each id into a join row
+ * Incidents, alerts and scheduled maintenance events carry many-to-many
+ * lists — monitors, labels, on-call policies, status pages — that nothing
+ * checked against the record's project. DatabaseService turns each id into a join row
  * and the permission layer never looks at relation ids, so an API caller in
  * one project could attach another project's records. On create,
  * IncidentService then changed the status of those foreign monitors and
- * executed the foreign on-call policies for this project's incident.
+ * executed the foreign on-call policies for this project's incident, and
+ * AlertService did the same with an alert's on-call policies.
  *
  * These tests drive the real ProjectScopedReferenceValidator through the
  * service hooks and only stub the lookups it makes, so a foreign or unknown id
@@ -69,9 +76,12 @@ const UNKNOWN_ID: string = "9c0ba0b3-2f8e-4c02-a8d5-6a4d2f5b9c11";
 const STATE_ID: string = "2b0a94a4-2f8c-49f0-8a2e-0f1ff5df41c9";
 const SEVERITY_ID: string = "6a56b0f9-6c8f-4f76-9b53-0a1a5b0ec1a2";
 const TEMPLATE_ID: string = "1d2c3b4a-5968-4776-8a5b-4c3d2e1f0a9b";
+const ALERT_SEVERITY_ID: string = "7b1c2d3e-4f5a-4b6c-8d7e-9f0a1b2c3d4e";
 const INCIDENT_ID: string = "a2eb67d4-bd2e-4186-9187-dad799c9316c";
 const SECOND_INCIDENT_ID: string = "a2eb67d4-bd2e-4186-9187-dad799c9316d";
 const EVENT_ID: string = "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f";
+const ALERT_ID: string = "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f7a";
+const SECOND_ALERT_ID: string = "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f7b";
 
 function nameOf(id: string): string {
   return `record ${id}`;
@@ -140,6 +150,12 @@ function registerRecords(): void {
     {
       service: IncidentSeverityService,
       records: [withProject(new IncidentSeverity(), SEVERITY_ID, PROJECT_ID)],
+    },
+    {
+      service: AlertSeverityService,
+      records: [
+        withProject(new AlertSeverity(), ALERT_SEVERITY_ID, PROJECT_ID),
+      ],
     },
   ];
 
@@ -568,6 +584,338 @@ describe("cross-project relation guard on write", () => {
 
       expect(IncidentService.findBy).not.toHaveBeenCalled();
       expect(MonitorService.findBy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("AlertService create", () => {
+    let counter: jest.Mock;
+
+    beforeEach(() => {
+      const createdState: AlertState = new AlertState();
+      createdState._id = STATE_ID;
+      jest
+        .spyOn(AlertStateService, "findOneBy")
+        .mockResolvedValue(createdState as never);
+
+      counter = jest.fn(async () => {
+        return { counter: 1, prefix: undefined };
+      }) as unknown as jest.Mock;
+      jest
+        .spyOn(ProjectService, "incrementAndGetAlertCounter")
+        .mockImplementation(counter as never);
+    });
+
+    function alertWith(relations: Partial<Alert>): Alert {
+      const alert: Alert = new Alert();
+      alert.title = "test";
+      alert.alertSeverityId = new ObjectID(ALERT_SEVERITY_ID);
+      Object.assign(alert, relations);
+      return alert;
+    }
+
+    test("rejects another project's on-call policy before it can be executed", async () => {
+      /*
+       * onCreateSuccess executes every listed policy, so this is what would
+       * page the other project's on-call for this project's alert.
+       */
+      await expect(
+        callHook(AlertService, "onBeforeCreate", {
+          data: alertWith({
+            onCallDutyPolicies: [stubOf(OnCallDutyPolicy, FOREIGN_POLICY_ID)],
+          }),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(foreignMessage("On-Call Policy", FOREIGN_POLICY_ID));
+
+      // Rejected before the counter, so no alert number is burned.
+      expect(counter).not.toHaveBeenCalled();
+    });
+
+    test("rejects another project's label", async () => {
+      await expect(
+        callHook(AlertService, "onBeforeCreate", {
+          data: alertWith({ labels: [stubOf(Label, FOREIGN_LABEL_ID)] }),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(foreignMessage("Label", FOREIGN_LABEL_ID));
+    });
+
+    test("rejects another project's monitor by id", async () => {
+      await expect(
+        callHook(AlertService, "onBeforeCreate", {
+          data: alertWith({ monitorId: new ObjectID(FOREIGN_MONITOR_ID) }),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(foreignMessage("Monitor", FOREIGN_MONITOR_ID));
+
+      expect(counter).not.toHaveBeenCalled();
+    });
+
+    test("rejects another project's monitor sent as a relation", async () => {
+      await expect(
+        callHook(AlertService, "onBeforeCreate", {
+          data: alertWith({ monitor: stubOf(Monitor, FOREIGN_MONITOR_ID) }),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(foreignMessage("Monitor", FOREIGN_MONITOR_ID));
+    });
+
+    test("names every foreign record in one error", async () => {
+      await expect(
+        callHook(AlertService, "onBeforeCreate", {
+          data: alertWith({
+            monitorId: new ObjectID(FOREIGN_MONITOR_ID),
+            labels: [
+              stubOf(Label, OWN_LABEL_ID),
+              stubOf(Label, FOREIGN_LABEL_ID),
+            ],
+            onCallDutyPolicies: [stubOf(OnCallDutyPolicy, FOREIGN_POLICY_ID)],
+          }),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(
+        `belong to a different project: Monitor "${nameOf(
+          FOREIGN_MONITOR_ID,
+        )}", Label "${nameOf(FOREIGN_LABEL_ID)}", On-Call Policy "${nameOf(
+          FOREIGN_POLICY_ID,
+        )}"`,
+      );
+    });
+
+    test("rejects an on-call policy id that matches no record", async () => {
+      await expect(
+        callHook(AlertService, "onBeforeCreate", {
+          data: alertWith({
+            onCallDutyPolicies: [stubOf(OnCallDutyPolicy, UNKNOWN_ID)],
+          }),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(`do not exist: On-Call Policy "${UNKNOWN_ID}"`);
+    });
+
+    test("root creates are checked against the project on the payload", async () => {
+      // Workers create alerts as root with projectId on the data.
+      const alert: Alert = alertWith({
+        onCallDutyPolicies: [stubOf(OnCallDutyPolicy, FOREIGN_POLICY_ID)],
+      });
+      alert.projectId = PROJECT_ID;
+
+      await expect(
+        callHook(AlertService, "onBeforeCreate", {
+          data: alert,
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(foreignMessage("On-Call Policy", FOREIGN_POLICY_ID));
+    });
+
+    test("accepts this project's monitor, labels and on-call policies in every shape", async () => {
+      const monitor: Monitor = withProject(
+        new Monitor(),
+        OWN_MONITOR_ID,
+        PROJECT_ID,
+      );
+
+      const alert: Alert = alertWith({
+        // A full monitor, as MonitorAlert attaches it.
+        monitor: monitor,
+        labels: [
+          stubOf(Label, OWN_LABEL_ID),
+          // A bare uuid string, as an API client may send it.
+          OWN_LABEL_ID as unknown as Label,
+        ],
+        onCallDutyPolicies: [
+          // Upper case: Postgres reads uuids back lower-cased.
+          stubOf(OnCallDutyPolicy, OWN_POLICY_ID.toUpperCase()),
+          { _id: OWN_POLICY_ID } as unknown as OnCallDutyPolicy,
+        ],
+      });
+
+      await expect(
+        callHook(AlertService, "onBeforeCreate", {
+          data: alert,
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
+
+      expect(counter).toHaveBeenCalledTimes(1);
+    });
+
+    test("does not look relations up when none are sent", async () => {
+      await callHook(AlertService, "onBeforeCreate", {
+        data: alertWith({}),
+        props: { tenantId: PROJECT_ID },
+      });
+
+      expect(MonitorService.findBy).not.toHaveBeenCalled();
+      expect(LabelService.findBy).not.toHaveBeenCalled();
+      expect(OnCallDutyPolicyService.findBy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("AlertService update", () => {
+    let matchedAlerts: Array<Alert> = [];
+
+    beforeEach(() => {
+      matchedAlerts = [];
+
+      jest.spyOn(AlertService, "findBy").mockImplementation((async () => {
+        return matchedAlerts;
+      }) as never);
+    });
+
+    function storedAlert(data: {
+      id: string;
+      projectId: ObjectID;
+      labelIds?: Array<string>;
+      policyIds?: Array<string>;
+    }): Alert {
+      const alert: Alert = new Alert();
+      alert._id = data.id;
+      alert.projectId = data.projectId;
+      alert.labels = (data.labelIds || []).map((id: string) => {
+        return stubOf(Label, id);
+      });
+      alert.onCallDutyPolicies = (data.policyIds || []).map((id: string) => {
+        return stubOf(OnCallDutyPolicy, id);
+      });
+      return alert;
+    }
+
+    test("rejects adding another project's label or on-call policy", async () => {
+      matchedAlerts = [storedAlert({ id: ALERT_ID, projectId: PROJECT_ID })];
+
+      await expect(
+        callHook(AlertService, "onBeforeUpdate", {
+          data: {
+            labels: [{ _id: FOREIGN_LABEL_ID }],
+            onCallDutyPolicies: [new ObjectID(FOREIGN_POLICY_ID)],
+          },
+          query: { _id: ALERT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(
+        `belong to a different project: Label "${nameOf(
+          FOREIGN_LABEL_ID,
+        )}", On-Call Policy "${nameOf(FOREIGN_POLICY_ID)}"`,
+      );
+    });
+
+    test("rejects repointing the alert at another project's monitor", async () => {
+      matchedAlerts = [storedAlert({ id: ALERT_ID, projectId: PROJECT_ID })];
+
+      await expect(
+        callHook(AlertService, "onBeforeUpdate", {
+          data: { monitorId: FOREIGN_MONITOR_ID },
+          query: { _id: ALERT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(foreignMessage("Monitor", FOREIGN_MONITOR_ID));
+
+      await expect(
+        callHook(AlertService, "onBeforeUpdate", {
+          // The relation slot, as a bare uuid string before sanitizing.
+          data: { monitor: FOREIGN_MONITOR_ID },
+          query: { _id: ALERT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(foreignMessage("Monitor", FOREIGN_MONITOR_ID));
+    });
+
+    test("re-saving a list keeps an id the alert already holds", async () => {
+      /*
+       * Alerts created before this guard — or by a monitor whose criteria
+       * still carried a stale policy — can already hold another project's
+       * record. Only ids the update adds are checked.
+       */
+      matchedAlerts = [
+        storedAlert({
+          id: ALERT_ID,
+          projectId: PROJECT_ID,
+          policyIds: [FOREIGN_POLICY_ID],
+        }),
+      ];
+
+      await expect(
+        callHook(AlertService, "onBeforeUpdate", {
+          data: {
+            onCallDutyPolicies: [
+              FOREIGN_POLICY_ID.toUpperCase(),
+              OWN_POLICY_ID,
+            ],
+          },
+          query: { _id: ALERT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
+
+      // Only the added policy was looked up.
+      expect(OnCallDutyPolicyService.findBy).toHaveBeenCalledTimes(1);
+    });
+
+    test("an id held by one matched alert is still checked for the others", async () => {
+      matchedAlerts = [
+        storedAlert({
+          id: ALERT_ID,
+          projectId: PROJECT_ID,
+          labelIds: [FOREIGN_LABEL_ID],
+        }),
+        storedAlert({ id: SECOND_ALERT_ID, projectId: PROJECT_ID }),
+      ];
+
+      await expect(
+        callHook(AlertService, "onBeforeUpdate", {
+          data: { labels: [FOREIGN_LABEL_ID] },
+          query: {},
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(foreignMessage("Label", FOREIGN_LABEL_ID));
+    });
+
+    test("updates without a tenant are checked against each matched alert's project", async () => {
+      matchedAlerts = [storedAlert({ id: ALERT_ID, projectId: PROJECT_ID })];
+
+      await expect(
+        callHook(AlertService, "onBeforeUpdate", {
+          data: { onCallDutyPolicies: [{ _id: FOREIGN_POLICY_ID }] },
+          query: { _id: ALERT_ID },
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(foreignMessage("On-Call Policy", FOREIGN_POLICY_ID));
+    });
+
+    test("accepts this project's records and clearing a list", async () => {
+      matchedAlerts = [
+        storedAlert({
+          id: ALERT_ID,
+          projectId: PROJECT_ID,
+          labelIds: [OWN_LABEL_ID],
+        }),
+      ];
+
+      await expect(
+        callHook(AlertService, "onBeforeUpdate", {
+          data: {
+            monitorId: OWN_MONITOR_ID,
+            labels: [],
+            onCallDutyPolicies: [{ _id: OWN_POLICY_ID }],
+          },
+          query: { _id: ALERT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    test("an update that writes no relation reads nothing back", async () => {
+      await callHook(AlertService, "onBeforeUpdate", {
+        data: { title: "renamed" },
+        query: { _id: ALERT_ID },
+        props: { tenantId: PROJECT_ID },
+      });
+
+      expect(AlertService.findBy).not.toHaveBeenCalled();
+      expect(MonitorService.findBy).not.toHaveBeenCalled();
+      expect(LabelService.findBy).not.toHaveBeenCalled();
+      expect(OnCallDutyPolicyService.findBy).not.toHaveBeenCalled();
     });
   });
 
