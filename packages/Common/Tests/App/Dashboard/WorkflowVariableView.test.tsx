@@ -141,10 +141,21 @@ jest.mock("../../../UI/Utils/API/API", () => {
   };
 });
 
+/*
+ * Every render of a visible loader, so a test can prove the loader never
+ * appeared at all - a background reload that flashed it for one render and
+ * took it down again would still blank the page for that moment.
+ */
+let pageLoaderRenderCount: number = 0;
+
 jest.mock("../../../UI/Components/Loader/PageLoader", () => {
   return {
     __esModule: true,
     default: (props: { isVisible: boolean }): ReactElement | null => {
+      if (props.isVisible) {
+        pageLoaderRenderCount++;
+      }
+
       return props.isVisible ? <div data-testid="page-loader" /> : null;
     },
   };
@@ -542,7 +553,14 @@ async function renderLoaded(
 
   await waitForPage();
 
+  // From here on, any loader render is one a reload caused.
+  pageLoaderRenderCount = 0;
+
   return result;
+}
+
+function expectNoLoaderSinceLoad(): void {
+  expect(pageLoaderRenderCount).toBe(0);
 }
 
 function detail(name: string): CapturedDetailProps {
@@ -669,6 +687,44 @@ async function waitForOutcome(): Promise<void> {
   });
 }
 
+const NOT_FOUND_MESSAGE: RegExp = /This variable could not be found/;
+
+/*
+ * What the API really answers for a missing, deleted or out-of-tenant id: an
+ * empty object, which ModelAPI turns into a WorkflowVariable with nothing set.
+ */
+function missingVariable(): WorkflowVariable {
+  return new WorkflowVariable();
+}
+
+/*
+ * Makes the next read (a background reload after a save or a token refresh)
+ * wait until the test settles it.
+ */
+function holdNextRead(): Deferred<unknown> {
+  const pending: Deferred<unknown> = deferred<unknown>();
+  getItem.mockReturnValueOnce(pending.promise);
+  return pending;
+}
+
+async function waitForReads(count: number): Promise<void> {
+  await waitFor(() => {
+    expect(getItem).toHaveBeenCalledTimes(count);
+  });
+}
+
+// The variable's page, whole: its cards and its delete card, and no error.
+function expectOAuthPageShown(): void {
+  expect(screen.getByTestId(`detail:${DETAILS_CARD}`)).toBeInTheDocument();
+  expect(screen.getByTestId("card:Access Token")).toBeInTheDocument();
+  expect(
+    screen.getByTestId(`detail:${OAUTH_SETTINGS_CARD}`),
+  ).toBeInTheDocument();
+  expect(screen.getByTestId("model-delete")).toBeInTheDocument();
+  expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("refresh-button")).not.toBeInTheDocument();
+}
+
 beforeEach(() => {
   capturedCards = {};
   capturedDetails = {};
@@ -677,6 +733,7 @@ beforeEach(() => {
   capturedCredentialsModalProps = null;
   capturedTokenRefreshModalProps = null;
   capturedTokenStatusProps = null;
+  pageLoaderRenderCount = 0;
 
   getItem.mockReset();
   getItem.mockResolvedValue(staticVariable());
@@ -817,18 +874,74 @@ describe("loading the variable", () => {
     expect(screen.getByTestId(`detail:${DETAILS_CARD}`)).toBeInTheDocument();
   });
 
+  /*
+   * The API answers a missing id with an empty object, not null. Read as a
+   * variable, that has no type - so without the id check it would be drawn
+   * as an empty static variable with an Update Content button.
+   */
   test("says so when the variable is not found", async () => {
-    getItem.mockResolvedValue(null);
+    getItem.mockResolvedValue(missingVariable());
 
     renderView();
 
-    expect(
-      await screen.findByText(/This variable could not be found/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(NOT_FOUND_MESSAGE)).toBeInTheDocument();
     expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
     // Nothing to edit or delete.
     expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
     expect(capturedDetails[DETAILS_CARD]).toBeUndefined();
+    expect(screen.queryByTestId("card:Content")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("card-button:Update Content"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("says so when the read answers with nothing at all", async () => {
+    getItem.mockResolvedValue(null);
+
+    renderView();
+
+    expect(await screen.findByText(NOT_FOUND_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
+    expect(capturedDetails[DETAILS_CARD]).toBeUndefined();
+  });
+
+  /*
+   * An empty variable has no workflowId either, so a scope check run first
+   * would call a missing variable "another workflow's".
+   */
+  test("a workflow's page says a missing variable is missing, not another workflow's", async () => {
+    getItem.mockResolvedValue(missingVariable());
+
+    renderView({ workflowId: WORKFLOW_ID });
+
+    expect(await screen.findByText(NOT_FOUND_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(/does not belong/)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
+    expect(capturedDetails[DETAILS_CARD]).toBeUndefined();
+  });
+
+  test("a workflow's page says so for a null read too", async () => {
+    getItem.mockResolvedValue(null);
+
+    renderView({ workflowId: WORKFLOW_ID });
+
+    expect(await screen.findByText(NOT_FOUND_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByText(/does not belong/)).not.toBeInTheDocument();
+  });
+
+  // A variable with values but no id is still not one the page can act on.
+  test("a read with fields but no id is not found either", async () => {
+    const variable: WorkflowVariable = new WorkflowVariable();
+    variable.name = "API_KEY";
+    variable.variableType = WorkflowVariableType.Static;
+
+    getItem.mockResolvedValue(variable);
+
+    renderView();
+
+    expect(await screen.findByText(NOT_FOUND_MESSAGE)).toBeInTheDocument();
+    expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
   });
 
   test("shows the friendly message when the request fails", async () => {
@@ -863,6 +976,71 @@ describe("loading the variable", () => {
     ).not.toBeInTheDocument();
   });
 
+  // The error owns the page, so its retry is a foreground load: loader, then page.
+  test("Refresh? on the error retries in the foreground and shows the variable", async () => {
+    const retry: Deferred<unknown> = deferred<unknown>();
+    getItem.mockRejectedValueOnce(new Error("The API is unreachable."));
+    getItem.mockReturnValueOnce(retry.promise);
+
+    renderView();
+
+    await screen.findByText("The API is unreachable.");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("refresh-button"));
+    });
+
+    expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+    expect(
+      screen.queryByText("The API is unreachable."),
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      retry.resolve(oauthVariable());
+    });
+
+    await waitForPage();
+
+    expectOAuthPageShown();
+    expect(tokenStatus().variable.name).toBe("API_TOKEN");
+    expect(getItemCall(1).id.toString()).toBe(VARIABLE_ID.toString());
+  });
+
+  test("Refresh? after a not-found shows the variable once it is there", async () => {
+    getItem.mockResolvedValueOnce(missingVariable());
+    getItem.mockResolvedValueOnce(staticVariable());
+
+    renderView();
+
+    await screen.findByText(NOT_FOUND_MESSAGE);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("refresh-button"));
+    });
+
+    await waitForPage();
+
+    expect(screen.queryByText(NOT_FOUND_MESSAGE)).not.toBeInTheDocument();
+    expect(screen.getByTestId("card:Content")).toBeInTheDocument();
+  });
+
+  test("Refresh? that fails again shows the new error", async () => {
+    getItem.mockRejectedValueOnce(new Error("The API is unreachable."));
+    getItem.mockRejectedValueOnce(new Error("Still unreachable."));
+
+    renderView();
+
+    await screen.findByText("The API is unreachable.");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("refresh-button"));
+    });
+
+    expect(await screen.findByText("Still unreachable.")).toBeInTheDocument();
+    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
+  });
+
   test("reads the new variable when the page moves to another one", async () => {
     const result: ReturnType<typeof render> =
       await renderLoaded(staticVariable());
@@ -887,6 +1065,460 @@ describe("loading the variable", () => {
     expect(capturedDeleteProps?.modelId.toString()).toBe(
       OTHER_VARIABLE_ID.toString(),
     );
+  });
+});
+
+/*
+ * Moving from one variable's page to another's reuses the component, so the
+ * first variable's read can still be in flight when the second one starts.
+ * Whichever answers last, the page must show the variable it is now on.
+ *
+ * The two variables differ in type, so the layout alone says which one
+ * landed: the cards' modelId comes from the prop, not from the read.
+ */
+describe("a slow read never overwrites a newer one", () => {
+  function otherStaticVariable(): WorkflowVariable {
+    return staticVariable({ _id: OTHER_VARIABLE_ID.toString(), name: "OTHER" });
+  }
+
+  function expectOtherVariableShown(): void {
+    expect(screen.getByTestId("card:Content")).toBeInTheDocument();
+    expect(screen.queryByTestId("card:Access Token")).not.toBeInTheDocument();
+    expect(capturedDetails[OAUTH_SETTINGS_CARD]).toBeUndefined();
+    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+
+    // The variable the page acts on is the one it read for OTHER.
+    fireEvent.click(screen.getByTestId("card-button:Update Content"));
+    expect(capturedContentModalProps?.variable.name).toBe("OTHER");
+  }
+
+  test("the previous variable's read answering last is ignored", async () => {
+    const first: Deferred<unknown> = deferred<unknown>();
+    const second: Deferred<unknown> = deferred<unknown>();
+    getItem.mockReturnValueOnce(first.promise);
+    getItem.mockReturnValueOnce(second.promise);
+
+    const result: ReturnType<typeof render> = renderView();
+
+    result.rerender(<WorkflowVariableView variableId={OTHER_VARIABLE_ID} />);
+
+    await waitForReads(2);
+    expect(getItemCall(0).id.toString()).toBe(VARIABLE_ID.toString());
+    expect(getItemCall(1).id.toString()).toBe(OTHER_VARIABLE_ID.toString());
+
+    await act(async () => {
+      second.resolve(otherStaticVariable());
+    });
+
+    await waitForPage();
+
+    await act(async () => {
+      first.resolve(oauthVariable());
+    });
+
+    expectOtherVariableShown();
+  });
+
+  test("the previous variable's read answering first does not land either", async () => {
+    const first: Deferred<unknown> = deferred<unknown>();
+    const second: Deferred<unknown> = deferred<unknown>();
+    getItem.mockReturnValueOnce(first.promise);
+    getItem.mockReturnValueOnce(second.promise);
+
+    const result: ReturnType<typeof render> = renderView();
+
+    result.rerender(<WorkflowVariableView variableId={OTHER_VARIABLE_ID} />);
+
+    await waitForReads(2);
+
+    await act(async () => {
+      first.resolve(oauthVariable());
+    });
+
+    // Still waiting for the variable the page is on.
+    expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+    expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
+
+    await act(async () => {
+      second.resolve(otherStaticVariable());
+    });
+
+    await waitForPage();
+
+    expectOtherVariableShown();
+  });
+
+  test("the previous variable's late failure does not replace the page with an error", async () => {
+    const first: Deferred<unknown> = deferred<unknown>();
+    const second: Deferred<unknown> = deferred<unknown>();
+    getItem.mockReturnValueOnce(first.promise);
+    getItem.mockReturnValueOnce(second.promise);
+
+    const result: ReturnType<typeof render> = renderView();
+
+    result.rerender(<WorkflowVariableView variableId={OTHER_VARIABLE_ID} />);
+
+    await waitForReads(2);
+
+    await act(async () => {
+      second.resolve(otherStaticVariable());
+    });
+
+    await waitForPage();
+
+    await act(async () => {
+      first.reject(new Error("The API is unreachable."));
+    });
+
+    expect(
+      screen.queryByText("The API is unreachable."),
+    ).not.toBeInTheDocument();
+    expectOtherVariableShown();
+  });
+
+  // Two saves in a row: the first save's reload must not undo the second's.
+  test("an older background reload answering last is ignored", async () => {
+    await renderLoaded(staticVariable({ isSecret: false }));
+
+    const olderReload: Deferred<unknown> = holdNextRead();
+    const newerReload: Deferred<unknown> = holdNextRead();
+
+    await act(async () => {
+      detail(DETAILS_CARD).onSaveSuccess?.(staticVariable());
+    });
+    await act(async () => {
+      detail(DETAILS_CARD).onSaveSuccess?.(staticVariable({ isSecret: true }));
+    });
+
+    await waitForReads(3);
+
+    await act(async () => {
+      newerReload.resolve(staticVariable({ isSecret: true }));
+    });
+
+    await waitFor(() => {
+      expect(detailFormFieldNames(DETAILS_CARD)).toEqual([
+        "name",
+        "description",
+      ]);
+    });
+
+    await act(async () => {
+      olderReload.resolve(staticVariable({ isSecret: false }));
+    });
+
+    // The secret toggle would come back if the stale read landed.
+    expect(detailFormFieldNames(DETAILS_CARD)).toEqual(["name", "description"]);
+  });
+
+  test("a read that answers after the page is gone does nothing", async () => {
+    const pending: Deferred<unknown> = deferred<unknown>();
+    getItem.mockReturnValueOnce(pending.promise);
+
+    const errorSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(console, "error")
+      .mockImplementation((): void => {});
+
+    try {
+      const result: ReturnType<typeof render> = renderView();
+
+      result.unmount();
+
+      await act(async () => {
+        pending.resolve(oauthVariable());
+      });
+
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(capturedDetails[DETAILS_CARD]).toBeUndefined();
+      expect(capturedTokenStatusProps).toBeNull();
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  test("a read that fails after the page is gone does nothing", async () => {
+    const pending: Deferred<unknown> = deferred<unknown>();
+    getItem.mockReturnValueOnce(pending.promise);
+
+    const errorSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(console, "error")
+      .mockImplementation((): void => {});
+
+    try {
+      const result: ReturnType<typeof render> = renderView();
+
+      result.unmount();
+
+      await act(async () => {
+        pending.reject(new Error("The API is unreachable."));
+      });
+
+      expect(errorSpy).not.toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+});
+
+/*
+ * After a save or a token refresh the page reads the variable again to pick
+ * up what was written. The page already shows a variable that exists, and the
+ * token refresh result on top of it is the one thing somebody needs to read
+ * right then - so a reload never shows the loader, and a failed one leaves
+ * everything where it was.
+ */
+describe("reloads after a save or a token refresh", () => {
+  test("a failed reload after Refresh now leaves the page and the outcome on screen", async () => {
+    await renderLoaded(oauthVariable());
+
+    const reload: Deferred<unknown> = holdNextRead();
+
+    await clickRefreshNow();
+    await waitForOutcome();
+    await waitForReads(2);
+
+    await act(async () => {
+      reload.reject(new Error("The API is unreachable."));
+    });
+
+    expectOAuthPageShown();
+    expect(
+      screen.queryByText("The API is unreachable."),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("token-refresh-modal")).toHaveAttribute(
+      "data-pending",
+      "false",
+    );
+    expect(tokenModal().outcome?.expiresAt?.toISOString()).toBe(
+      TOKEN_EXPIRES_AT,
+    );
+    // The token status still shows the variable it had.
+    expect(tokenStatus().variable.name).toBe("API_TOKEN");
+    expectNoLoaderSinceLoad();
+  });
+
+  test("a failed reload after a refused Refresh now keeps the refusal on screen", async () => {
+    apiPost.mockRejectedValue(new Error("invalid_client"));
+
+    await renderLoaded(oauthVariable());
+
+    const reload: Deferred<unknown> = holdNextRead();
+
+    await clickRefreshNow();
+    await waitForOutcome();
+    await waitForReads(2);
+
+    await act(async () => {
+      reload.reject(new Error("The API is unreachable."));
+    });
+
+    expectOAuthPageShown();
+    expect(screen.getByTestId("token-refresh-modal")).toBeInTheDocument();
+    expect(tokenModal().outcome?.error).toBe("invalid_client");
+  });
+
+  test("a failed reload after a credentials save leaves the page and the outcome on screen", async () => {
+    await renderLoaded(oauthVariable());
+
+    const reload: Deferred<unknown> = holdNextRead();
+
+    fireEvent.click(screen.getByTestId("card-button:Update Credentials"));
+
+    await act(async () => {
+      capturedCredentialsModalProps?.onSaved("Client secret");
+    });
+
+    await waitForOutcome();
+    await waitForReads(2);
+
+    await act(async () => {
+      reload.reject(new Error("The API is unreachable."));
+    });
+
+    expectOAuthPageShown();
+    expect(
+      screen.queryByText("The API is unreachable."),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("token-refresh-modal")).toHaveAttribute(
+      "data-pending",
+      "false",
+    );
+    expect(tokenModal().outcome?.savedWhat).toBe("Client secret");
+    expect(tokenModal().variableName).toBe("API_TOKEN");
+    expectNoLoaderSinceLoad();
+  });
+
+  test("a failed reload after saving the details leaves the page", async () => {
+    await renderLoaded(oauthVariable());
+
+    const reload: Deferred<unknown> = holdNextRead();
+
+    await act(async () => {
+      detail(DETAILS_CARD).onSaveSuccess?.(oauthVariable());
+    });
+
+    await waitForReads(2);
+
+    await act(async () => {
+      reload.reject(new Error("The API is unreachable."));
+    });
+
+    expectOAuthPageShown();
+    expect(
+      screen.queryByText("The API is unreachable."),
+    ).not.toBeInTheDocument();
+    expect(tokenStatus().variable.name).toBe("API_TOKEN");
+    expectNoLoaderSinceLoad();
+  });
+
+  test("a failed reload after saving the OAuth 2.0 settings leaves the page", async () => {
+    await renderLoaded(oauthVariable());
+
+    const reload: Deferred<unknown> = holdNextRead();
+
+    await act(async () => {
+      detail(OAUTH_SETTINGS_CARD).onSaveSuccess?.(oauthVariable());
+    });
+
+    await waitForReads(2);
+
+    await act(async () => {
+      reload.reject(new Error("The API is unreachable."));
+    });
+
+    expectOAuthPageShown();
+    expect(
+      screen.queryByText("The API is unreachable."),
+    ).not.toBeInTheDocument();
+    expectNoLoaderSinceLoad();
+  });
+
+  test("a failed reload after saving a static variable's details leaves the page", async () => {
+    await renderLoaded(staticVariable());
+
+    const reload: Deferred<unknown> = holdNextRead();
+
+    await act(async () => {
+      detail(DETAILS_CARD).onSaveSuccess?.(staticVariable());
+    });
+
+    await waitForReads(2);
+
+    await act(async () => {
+      reload.reject(new Error("The API is unreachable."));
+    });
+
+    expect(screen.getByTestId(`detail:${DETAILS_CARD}`)).toBeInTheDocument();
+    expect(screen.getByTestId("card:Content")).toBeInTheDocument();
+    expect(screen.getByTestId("model-delete")).toBeInTheDocument();
+    expect(
+      screen.queryByText("The API is unreachable."),
+    ).not.toBeInTheDocument();
+  });
+
+  // A reload that reads back nothing is a failed reload too, not a not-found page.
+  test("a reload that finds no variable leaves the page and the outcome on screen", async () => {
+    await renderLoaded(oauthVariable());
+
+    const reload: Deferred<unknown> = holdNextRead();
+
+    await clickRefreshNow();
+    await waitForOutcome();
+    await waitForReads(2);
+
+    await act(async () => {
+      reload.resolve(missingVariable());
+    });
+
+    expectOAuthPageShown();
+    expect(screen.queryByText(NOT_FOUND_MESSAGE)).not.toBeInTheDocument();
+    expect(screen.getByTestId("token-refresh-modal")).toBeInTheDocument();
+  });
+
+  test("a successful reload after Refresh now updates the token status without the loader", async () => {
+    await renderLoaded(oauthVariable());
+
+    const reload: Deferred<unknown> = holdNextRead();
+
+    await clickRefreshNow();
+    await waitForOutcome();
+    await waitForReads(2);
+
+    // The reload is out, and the page is still the page.
+    expectOAuthPageShown();
+    expect(tokenStatus().variable.oauthLastRefreshError).toBeUndefined();
+
+    await act(async () => {
+      reload.resolve(
+        oauthVariable({ oauthLastRefreshError: "invalid_client" }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(tokenStatus().variable.oauthLastRefreshError).toBe(
+        "invalid_client",
+      );
+    });
+
+    expectOAuthPageShown();
+    expect(screen.getByTestId("token-refresh-modal")).toBeInTheDocument();
+    // Only the first load, before the page was up, ever showed it.
+    expectNoLoaderSinceLoad();
+  });
+
+  test("a successful reload after a settings save updates the page without the loader", async () => {
+    await renderLoaded(oauthVariable());
+
+    const reload: Deferred<unknown> = holdNextRead();
+
+    await act(async () => {
+      detail(OAUTH_SETTINGS_CARD).onSaveSuccess?.(oauthVariable());
+    });
+
+    await waitForReads(2);
+
+    expectOAuthPageShown();
+
+    await act(async () => {
+      reload.resolve(oauthVariable({ oauthLastRefreshError: "invalid_scope" }));
+    });
+
+    await waitFor(() => {
+      expect(tokenStatus().variable.oauthLastRefreshError).toBe(
+        "invalid_scope",
+      );
+    });
+
+    expectOAuthPageShown();
+    expectNoLoaderSinceLoad();
+  });
+
+  test("a failed reload does not stop the next one from landing", async () => {
+    await renderLoaded(oauthVariable());
+
+    getItem.mockRejectedValueOnce(new Error("The API is unreachable."));
+
+    await act(async () => {
+      detail(DETAILS_CARD).onSaveSuccess?.(oauthVariable());
+    });
+
+    await waitForReads(2);
+
+    getItem.mockResolvedValueOnce(
+      oauthVariable({ oauthLastRefreshError: "invalid_client" }),
+    );
+
+    await clickRefreshNow();
+    await waitForOutcome();
+
+    await waitFor(() => {
+      expect(tokenStatus().variable.oauthLastRefreshError).toBe(
+        "invalid_client",
+      );
+    });
+
+    expectOAuthPageShown();
+    expectNoLoaderSinceLoad();
   });
 });
 
@@ -1031,6 +1663,8 @@ describe("a static variable", () => {
     await act(async () => {
       pending.resolve(staticVariable());
     });
+
+    expectNoLoaderSinceLoad();
   });
 
   test("shows its type as Static", async () => {
@@ -2077,6 +2711,19 @@ describe("the page wrappers", () => {
           "This variable does not belong to this workflow.",
         ),
       ).toBeInTheDocument();
+    });
+
+    // A deleted variable's link: it is gone, not someone else's.
+    test("says a missing variable could not be found, not that it belongs elsewhere", async () => {
+      getItem.mockResolvedValue(missingVariable());
+
+      renderLocalPage();
+
+      expect(await screen.findByText(NOT_FOUND_MESSAGE)).toBeInTheDocument();
+      expect(
+        screen.queryByText("This variable does not belong to this workflow."),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
     });
   });
 });

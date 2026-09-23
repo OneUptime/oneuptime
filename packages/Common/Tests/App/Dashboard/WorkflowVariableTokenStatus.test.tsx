@@ -38,8 +38,23 @@ const TOKEN_STATUS_TEST_ID: string = "workflow-variable-token-status";
 const DETAIL_TEST_ID: string = "workflow-variable-token-status-detail";
 const REFRESH_BUTTON_TEST_ID: string = "workflow-variable-refresh-token";
 
-// Kept in step with MAX_ERROR_PREVIEW_LENGTH in the component.
-const MAX_ERROR_PREVIEW_LENGTH: number = 160;
+/*
+ * The advice that says what to do about a failed refresh comes last in the
+ * provider's message, so the long-message cases end with it: the whole point
+ * of showing the message whole is that this tail reaches the screen.
+ */
+const ERROR_TAIL: string =
+  "Replace the refresh token, or check the client secret.";
+
+// Well past the 160 characters the old table cell cut messages to.
+const LONG_ERROR: string = `The token endpoint refused the request (HTTP 400): invalid_grant - ${"x".repeat(
+  300,
+)} - ${ERROR_TAIL}`;
+
+// About as long as a verbose provider's error body gets.
+const VERY_LONG_ERROR: string = `${"The authorization server rejected the refresh token because it has expired or been revoked. ".repeat(
+  21,
+)}${ERROR_TAIL}`;
 
 type OnClickMock = ReturnType<typeof jest.fn<() => void>>;
 
@@ -112,6 +127,14 @@ function refreshButton(): HTMLElement {
 
 function hoverPill(): void {
   fireEvent.mouseEnter(screen.getByTestId("pill"));
+}
+
+// Hovering is what would open a tippy tooltip; nothing may appear.
+function expectPillHasNoTooltip(): void {
+  hoverPill();
+
+  expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  expect(screen.getByTestId("pill")).not.toHaveAttribute("aria-describedby");
 }
 
 afterEach(() => {
@@ -191,37 +214,58 @@ describe("WorkflowVariableTokenStatus", () => {
     expect(screen.getByText("No expiry reported")).toBeInTheDocument();
   });
 
-  test("a failed refresh shows the reason, shortened, with the full text on hover", () => {
-    const reason: string = `The token endpoint refused the request (HTTP 400): invalid_grant - ${"x".repeat(
-      300,
-    )}`;
+  test("a failed refresh shows the whole reason, after when it happened", () => {
     const failedAt: Date = new Date("2026-09-22T11:55:00.000Z");
 
     const result: RenderedStatus = statusOf({
-      oauthLastRefreshError: reason,
+      oauthLastRefreshError: LONG_ERROR,
       oauthLastRefreshErrorAt: failedAt,
       oauthAccessTokenExpiresAt: new Date("2026-09-22T12:30:00.000Z"),
       oauthLastRefreshedAt: new Date("2026-09-22T11:30:00.000Z"),
     });
 
+    expect(LONG_ERROR.length).toBeGreaterThan(300);
     expect(result.status).toBe(OAuth2TokenStatus.RefreshFailed);
-    expect(result.detail).toContain(
-      "The token endpoint refused the request (HTTP 400): invalid_grant",
-    );
-    expect(result.detail.endsWith("…")).toBe(true);
-    expect(result.detail.length).toBeLessThan(reason.length);
-    expect(result.detail).toBe(
-      `${formatDate(failedAt)}: ${reason.substring(
-        0,
-        MAX_ERROR_PREVIEW_LENGTH,
-      )}…`,
-    );
+    expect(result.detail).toBe(`${formatDate(failedAt)}: ${LONG_ERROR}`);
+    // The advice at the end is the part a cut-off message used to lose.
+    expect(result.detail.endsWith(ERROR_TAIL)).toBe(true);
     expect(screen.getByText("Refresh failed")).toBeInTheDocument();
+  });
 
-    // The shortened text is only a preview; hovering the pill shows it all.
-    hoverPill();
+  test("a failed refresh with no time recorded shows the whole reason alone", () => {
+    const result: RenderedStatus = statusOf({
+      oauthLastRefreshError: LONG_ERROR,
+    });
 
-    expect(screen.getByRole("tooltip")).toHaveTextContent(reason);
+    expect(result.status).toBe(OAuth2TokenStatus.RefreshFailed);
+    expect(result.detail).toBe(LONG_ERROR);
+  });
+
+  // The server caps the stored message; the page adds no cap of its own.
+  test("a very long refresh error is shown whole, after when it happened", () => {
+    const failedAt: Date = new Date("2026-09-22T11:55:00.000Z");
+
+    const result: RenderedStatus = statusOf({
+      oauthLastRefreshError: VERY_LONG_ERROR,
+      oauthLastRefreshErrorAt: failedAt,
+    });
+
+    expect(VERY_LONG_ERROR.length).toBeGreaterThan(1900);
+    expect(VERY_LONG_ERROR.length).toBeLessThan(2100);
+    expect(result.status).toBe(OAuth2TokenStatus.RefreshFailed);
+    expect(result.detail).toBe(`${formatDate(failedAt)}: ${VERY_LONG_ERROR}`);
+    expect(result.detail.length).toBe(
+      `${formatDate(failedAt)}: `.length + VERY_LONG_ERROR.length,
+    );
+  });
+
+  test("a very long refresh error with no time recorded is shown whole", () => {
+    const result: RenderedStatus = statusOf({
+      oauthLastRefreshError: VERY_LONG_ERROR,
+    });
+
+    expect(result.detail).toBe(VERY_LONG_ERROR);
+    expect(result.detail.endsWith(ERROR_TAIL)).toBe(true);
   });
 
   test("a short refresh error is shown whole, after when it happened", () => {
@@ -236,27 +280,36 @@ describe("WorkflowVariableTokenStatus", () => {
 
     expect(result.status).toBe(OAuth2TokenStatus.RefreshFailed);
     expect(result.detail).toBe(`${formatDate(failedAt)}: ${reason}`);
-    expect(result.detail.endsWith("…")).toBe(false);
   });
 
-  test("an error exactly as long as the preview is not shortened", () => {
-    const reason: string = "e".repeat(MAX_ERROR_PREVIEW_LENGTH);
-
-    const result: RenderedStatus = statusOf({
-      oauthLastRefreshError: reason,
+  /*
+   * The whole message is already on the page, so a tooltip repeating it would
+   * only be a second copy under the cursor.
+   */
+  test("the pill has no tooltip after a failed refresh", () => {
+    statusOf({
+      oauthLastRefreshError: LONG_ERROR,
+      oauthLastRefreshErrorAt: new Date("2026-09-22T11:55:00.000Z"),
     });
 
-    expect(result.detail).toBe(reason);
+    expect(readStatus().status).toBe(OAuth2TokenStatus.RefreshFailed);
+
+    expectPillHasNoTooltip();
   });
 
-  test("an error one character longer than the preview is shortened", () => {
-    const reason: string = "e".repeat(MAX_ERROR_PREVIEW_LENGTH + 1);
-
-    const result: RenderedStatus = statusOf({
-      oauthLastRefreshError: reason,
+  // A card has room for the message, so it wraps instead of being clipped.
+  test("a failed refresh's detail wraps", () => {
+    statusOf({
+      oauthLastRefreshError: VERY_LONG_ERROR,
+      oauthLastRefreshErrorAt: new Date("2026-09-22T11:55:00.000Z"),
     });
 
-    expect(result.detail).toBe(`${"e".repeat(MAX_ERROR_PREVIEW_LENGTH)}…`);
+    const detail: HTMLElement = screen.getByTestId(DETAIL_TEST_ID);
+
+    expect(detail).not.toHaveClass("max-w-xs");
+    expect(detail).toHaveClass("whitespace-normal");
+    expect(detail).toHaveClass("break-words");
+    expect(detail).toHaveClass("text-sm");
   });
 
   test("a refresh error with no time recorded is shown without one", () => {
@@ -284,16 +337,44 @@ describe("WorkflowVariableTokenStatus", () => {
     expect(screen.queryByText("Valid")).not.toBeInTheDocument();
   });
 
-  // Only a failure has more to say than the line under the pill.
-  test("the pill has no tooltip unless a refresh failed", () => {
-    statusOf({
-      oauthLastRefreshedAt: new Date("2026-09-22T11:30:00.000Z"),
-      oauthAccessTokenExpiresAt: new Date("2026-09-22T12:30:00.000Z"),
-    });
+  // Whatever the pill has to say is in the line under it.
+  test("the pill has no tooltip in any state", () => {
+    const states: Array<Record<string, unknown>> = [
+      {},
+      {
+        oauthLastRefreshedAt: new Date("2026-09-22T11:30:00.000Z"),
+        oauthAccessTokenExpiresAt: new Date("2026-09-22T12:30:00.000Z"),
+      },
+      {
+        oauthLastRefreshedAt: new Date("2026-09-22T10:00:00.000Z"),
+        oauthAccessTokenExpiresAt: new Date("2026-09-22T11:00:00.000Z"),
+      },
+      { oauthLastRefreshedAt: new Date("2026-09-22T11:59:00.000Z") },
+      { oauthLastRefreshError: "invalid_client" },
+      {
+        oauthLastRefreshError: VERY_LONG_ERROR,
+        oauthLastRefreshErrorAt: new Date("2026-09-22T11:55:00.000Z"),
+      },
+    ];
+    const seen: Array<string | null> = [];
 
-    hoverPill();
+    for (const values of states) {
+      seen.push(statusOf(values).status);
 
-    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+      expectPillHasNoTooltip();
+
+      cleanup();
+    }
+
+    // Every state was covered, not just the one the loop happened to reach.
+    expect(seen).toEqual([
+      OAuth2TokenStatus.NotFetched,
+      OAuth2TokenStatus.Valid,
+      OAuth2TokenStatus.Expired,
+      OAuth2TokenStatus.NoExpiry,
+      OAuth2TokenStatus.RefreshFailed,
+      OAuth2TokenStatus.RefreshFailed,
+    ]);
   });
 
   // The page renders against the current time; `now` exists for tests.

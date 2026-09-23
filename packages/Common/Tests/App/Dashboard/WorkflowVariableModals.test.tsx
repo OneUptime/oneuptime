@@ -144,6 +144,7 @@ import {
   fetchTokenRefreshOutcome,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Workflow/WorkflowVariableUtil";
 import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
 import {
@@ -1220,6 +1221,7 @@ describe("WorkflowVariableTokenRefreshModal", () => {
         "The token endpoint refused the request (HTTP 401): invalid_client.",
       );
       expect(confirm().description).not.toContain("valid until");
+      expect(confirm().description).not.toContain("did not ask");
     });
 
     // An error wins over a stale expiry: the token was not fetched.
@@ -1240,6 +1242,59 @@ describe("WorkflowVariableTokenRefreshModal", () => {
         error: "invalid_client",
       });
 
+      expect(confirm().disableSubmitButton).toBeFalsy();
+
+      act(() => {
+        confirm().onSubmit();
+      });
+
+      expect(handles.onClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  /*
+   * A 401, 403 or 422 from the refresh route: OneUptime turned the request
+   * down, so the identity provider never heard of it. Saying "it said no"
+   * would send somebody off to check a client secret nobody tried.
+   */
+  describe("after OneUptime itself refused", () => {
+    test("says the identity provider was not asked, and quotes OneUptime", () => {
+      renderRefreshModal({
+        variableName: "API_TOKEN",
+        error: "You do not have permission to update this variable.",
+        isRefusedByOneUptime: true,
+      });
+
+      expect(confirm().title).toBe("Could Not Fetch an Access Token");
+      expect(confirm().description).toBe(
+        'OneUptime did not ask your identity provider for an access token for "API_TOKEN": You do not have permission to update this variable.',
+      );
+      expect(confirm().description).not.toContain("said no");
+      expect(confirm().description).not.toContain("valid until");
+    });
+
+    test("leads with what was saved", () => {
+      renderRefreshModal({
+        variableName: "API_TOKEN",
+        savedWhat: "Client secret",
+        error: "You do not have permission to update this variable.",
+        isRefusedByOneUptime: true,
+      });
+
+      expect(confirm().title).toBe("Could Not Fetch an Access Token");
+      expect(confirm().description).toBe(
+        'Client secret saved. OneUptime did not ask your identity provider for an access token for "API_TOKEN": You do not have permission to update this variable.',
+      );
+    });
+
+    test("is a plain Close that closes", () => {
+      const handles: { onClose: VoidMock } = renderRefreshModal({
+        variableName: "API_TOKEN",
+        error: "Not authorized.",
+        isRefusedByOneUptime: true,
+      });
+
+      expect(confirm().submitButtonText).toBe("Close");
       expect(confirm().disableSubmitButton).toBeFalsy();
 
       act(() => {
@@ -1336,6 +1391,59 @@ describe("WorkflowVariableTokenRefreshModal", () => {
       expect(confirm().title).toBe("Could Not Fetch an Access Token");
       expect(confirm().description).toContain("Client secret saved.");
       expect(confirm().description).toContain("invalid_client");
+    });
+
+    /*
+     * The real route answers a caller who may not update the variable with
+     * NotAuthorizedException, a 422 error response. Its status code alone must
+     * carry through to the wording. (API.getFriendlyMessage is mocked in this
+     * file and words anything that is not an Error as "Request failed.".)
+     */
+    test("a 422 is reported as OneUptime refusing, not the provider", async () => {
+      apiPost.mockResolvedValue(
+        new HTTPErrorResponse(
+          422,
+          { message: "You do not have permission to update this variable." },
+          {},
+        ),
+      );
+
+      const outcome: TokenRefreshOutcome = await fetchTokenRefreshOutcome({
+        variable: oauthVariable(),
+        savedWhat: "Client secret",
+      });
+
+      expect(outcome.isRefusedByOneUptime).toBe(true);
+
+      renderRefreshModal(outcome);
+
+      expect(apiPost).toHaveBeenCalledTimes(1);
+      expect(confirm().title).toBe("Could Not Fetch an Access Token");
+      expect(confirm().description).toBe(
+        'Client secret saved. OneUptime did not ask your identity provider for an access token for "API_TOKEN": Request failed.',
+      );
+      expect(confirm().description).not.toContain("said no");
+    });
+
+    // A 400 is the route passing on the provider's own refusal.
+    test("a 400 is still reported as the provider saying no", async () => {
+      apiPost.mockResolvedValue(
+        new HTTPErrorResponse(400, { message: "invalid_client" }, {}),
+      );
+
+      const outcome: TokenRefreshOutcome = await fetchTokenRefreshOutcome({
+        variable: oauthVariable(),
+      });
+
+      expect(outcome.isRefusedByOneUptime).toBe(false);
+
+      renderRefreshModal(outcome);
+
+      expect(confirm().title).toBe("Could Not Fetch an Access Token");
+      expect(confirm().description).toContain(
+        'OneUptime asked your identity provider for an access token for "API_TOKEN" and it said no',
+      );
+      expect(confirm().description).not.toContain("did not ask");
     });
 
     test("a variable with no id is refused without a request", async () => {

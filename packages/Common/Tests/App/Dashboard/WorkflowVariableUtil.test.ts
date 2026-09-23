@@ -94,6 +94,7 @@ import {
   getWorkflowVariableReference,
   getWorkflowVariableViewRoute,
   getWorkflowVariablesListRoute,
+  isRefusedByOneUptime,
   refreshWorkflowVariableOAuthToken,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/Workflow/WorkflowVariableUtil";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -413,6 +414,28 @@ describe("getTokenRefreshTitle", () => {
       }),
     ).toBe("Could Not Fetch an Access Token");
   });
+
+  /*
+   * Only the description tells the two refusals apart. Either way no token was
+   * fetched, so the title is the same.
+   */
+  test("says it could not fetch one when OneUptime refused", () => {
+    expect(
+      getTokenRefreshTitle({
+        variableName: "API_TOKEN",
+        error: "You do not have permission to update this variable.",
+        isRefusedByOneUptime: true,
+      }),
+    ).toBe("Could Not Fetch an Access Token");
+    expect(
+      getTokenRefreshTitle({
+        variableName: "API_TOKEN",
+        savedWhat: "Client secret",
+        error: "You do not have permission to update this variable.",
+        isRefusedByOneUptime: true,
+      }),
+    ).toBe("Could Not Fetch an Access Token");
+  });
 });
 
 describe("getTokenRefreshDescription", () => {
@@ -487,6 +510,141 @@ describe("getTokenRefreshDescription", () => {
 
     expect(description).not.toContain("saved.");
     expect(description.startsWith("OneUptime asked")).toBe(true);
+  });
+
+  /*
+   * A 401, 403 or 422 from the refresh route means OneUptime turned the request
+   * down before it reached the identity provider. Blaming the provider would
+   * send somebody off to check a client secret that was never tried.
+   */
+  describe("when OneUptime itself refused", () => {
+    test("says the identity provider was never asked", () => {
+      expect(
+        getTokenRefreshDescription({
+          variableName: "API_TOKEN",
+          error: "You do not have permission to update this variable.",
+          isRefusedByOneUptime: true,
+        }),
+      ).toBe(
+        'OneUptime did not ask your identity provider for an access token for "API_TOKEN": You do not have permission to update this variable.',
+      );
+    });
+
+    // The save still went through; only the follow-up refresh was refused.
+    test("says what was saved first", () => {
+      expect(
+        getTokenRefreshDescription({
+          variableName: "API_TOKEN",
+          savedWhat: "Client secret",
+          error: "You do not have permission to update this variable.",
+          isRefusedByOneUptime: true,
+        }),
+      ).toBe(
+        'Client secret saved. OneUptime did not ask your identity provider for an access token for "API_TOKEN": You do not have permission to update this variable.',
+      );
+    });
+
+    test("never says the provider said no", () => {
+      const descriptions: Array<string> = [
+        getTokenRefreshDescription({
+          variableName: "API_TOKEN",
+          error: "Not authorized.",
+          isRefusedByOneUptime: true,
+        }),
+        getTokenRefreshDescription({
+          variableName: "API_TOKEN",
+          savedWhat: "Refresh token",
+          error: "Not authorized.",
+          isRefusedByOneUptime: true,
+        }),
+      ];
+
+      descriptions.forEach((description: string) => {
+        expect(description).not.toContain("said no");
+        expect(description).not.toContain("OneUptime asked");
+      });
+    });
+
+    test("keeps the provider wording when the flag is false", () => {
+      expect(
+        getTokenRefreshDescription({
+          variableName: "API_TOKEN",
+          error: "invalid_client",
+          isRefusedByOneUptime: false,
+        }),
+      ).toBe(
+        'OneUptime asked your identity provider for an access token for "API_TOKEN" and it said no: invalid_client',
+      );
+    });
+
+    // The flag only changes how a failure is worded; it never invents one.
+    test("still reports a fetched token when there is no error", () => {
+      const description: string = getTokenRefreshDescription({
+        variableName: "API_TOKEN",
+        expiresAt: null,
+        isRefusedByOneUptime: true,
+      });
+
+      expect(
+        description.startsWith("OneUptime fetched a new access token"),
+      ).toBe(true);
+      expect(description).not.toContain("did not ask");
+    });
+  });
+});
+
+describe("isRefusedByOneUptime", () => {
+  /*
+   * NotAuthenticatedException (401), a plain 403 and NotAuthorizedException
+   * (422) are OneUptime's own answers: the caller is not signed in or may not
+   * update the variable.
+   */
+  test.each([401, 403, 422])(
+    "is true for an HTTP %s error response",
+    (statusCode: number) => {
+      expect(
+        isRefusedByOneUptime(
+          new HTTPErrorResponse(statusCode, { message: "Not authorized." }, {}),
+        ),
+      ).toBe(true);
+    },
+  );
+
+  /*
+   * A 400 is how the route passes on the identity provider's own refusal;
+   * the rest are not a decision about the caller at all.
+   */
+  test.each([400, 404, 500, 502])(
+    "is false for an HTTP %s error response",
+    (statusCode: number) => {
+      expect(
+        isRefusedByOneUptime(
+          new HTTPErrorResponse(statusCode, { message: "invalid_client" }, {}),
+        ),
+      ).toBe(false);
+    },
+  );
+
+  test("is false for a plain Error", () => {
+    expect(isRefusedByOneUptime(new Error("Network request failed."))).toBe(
+      false,
+    );
+  });
+
+  test("is false for a string", () => {
+    expect(isRefusedByOneUptime("Not authorized.")).toBe(false);
+  });
+
+  test("is false for undefined and null", () => {
+    expect(isRefusedByOneUptime(undefined)).toBe(false);
+    expect(isRefusedByOneUptime(null)).toBe(false);
+  });
+
+  // Only a real error response counts, not anything shaped like one.
+  test("is false for an object that merely carries a refusal status code", () => {
+    expect(
+      isRefusedByOneUptime({ statusCode: 422, message: "Not authorized." }),
+    ).toBe(false);
   });
 });
 
@@ -618,6 +776,7 @@ describe("fetchTokenRefreshOutcome", () => {
     expect(outcome.expiresAt?.toISOString()).toBe(EXPIRES_AT_ISO);
     expect(outcome.error).toBeUndefined();
     expect(outcome.savedWhat).toBeUndefined();
+    expect(outcome.isRefusedByOneUptime).toBeFalsy();
     expect(getTokenRefreshTitle(outcome)).toBe("Access Token Fetched");
     expect(lastPost().url.toString()).toBe(expectedRefreshUrl(VARIABLE_ID));
   });
@@ -652,12 +811,84 @@ describe("fetchTokenRefreshOutcome", () => {
     );
     expect(outcome.expiresAt).toBeUndefined();
     expect(outcome.savedWhat).toBe("Client secret");
+    // A 400 carries the provider's answer: the provider was asked.
+    expect(outcome.isRefusedByOneUptime).toBe(false);
     expect(getTokenRefreshTitle(outcome)).toBe(
       "Could Not Fetch an Access Token",
     );
     expect(getTokenRefreshDescription(outcome)).toBe(
       'Client secret saved. OneUptime asked your identity provider for an access token for "API_TOKEN" and it said no: invalid_client: The client secret supplied is incorrect.',
     );
+  });
+
+  /*
+   * NotAuthorizedException answers 422. The request never left OneUptime, so
+   * the outcome must not be worded as the identity provider saying no.
+   */
+  test("marks a 422 as refused by OneUptime, not by the provider", async () => {
+    failWith(422, {
+      message: "You do not have permission to update this variable.",
+    });
+
+    const outcome: TokenRefreshOutcome = await fetchTokenRefreshOutcome({
+      variable: makeVariable({ id: VARIABLE_ID, name: "API_TOKEN" }),
+    });
+
+    expect(outcome.isRefusedByOneUptime).toBe(true);
+    expect(outcome.error).toBe(
+      "You do not have permission to update this variable.",
+    );
+    expect(outcome.expiresAt).toBeUndefined();
+    expect(getTokenRefreshTitle(outcome)).toBe(
+      "Could Not Fetch an Access Token",
+    );
+    expect(getTokenRefreshDescription(outcome)).toBe(
+      'OneUptime did not ask your identity provider for an access token for "API_TOKEN": You do not have permission to update this variable.',
+    );
+  });
+
+  test("words a 422 after a save as saved, then refused by OneUptime", async () => {
+    failWith(422, {
+      message: "You do not have permission to update this variable.",
+    });
+
+    const outcome: TokenRefreshOutcome = await fetchTokenRefreshOutcome({
+      variable: makeVariable({ id: VARIABLE_ID, name: "API_TOKEN" }),
+      savedWhat: "Client secret",
+    });
+
+    expect(outcome.savedWhat).toBe("Client secret");
+    expect(outcome.isRefusedByOneUptime).toBe(true);
+    expect(getTokenRefreshDescription(outcome)).toBe(
+      'Client secret saved. OneUptime did not ask your identity provider for an access token for "API_TOKEN": You do not have permission to update this variable.',
+    );
+  });
+
+  test.each([401, 403])(
+    "marks an HTTP %s as refused by OneUptime too",
+    async (statusCode: number) => {
+      failWith(statusCode, { message: "Not authorized." });
+
+      const outcome: TokenRefreshOutcome = await fetchTokenRefreshOutcome({
+        variable: makeVariable({ id: VARIABLE_ID, name: "API_TOKEN" }),
+      });
+
+      expect(outcome.isRefusedByOneUptime).toBe(true);
+      expect(getTokenRefreshDescription(outcome)).toContain(
+        "OneUptime did not ask your identity provider",
+      );
+      expect(getTokenRefreshDescription(outcome)).not.toContain("said no");
+    },
+  );
+
+  test("does not mark a request that threw as refused by OneUptime", async () => {
+    apiPost.mockRejectedValue(new Error("Network request failed."));
+
+    const outcome: TokenRefreshOutcome = await fetchTokenRefreshOutcome({
+      variable: makeVariable({ id: VARIABLE_ID, name: "API_TOKEN" }),
+    });
+
+    expect(outcome.isRefusedByOneUptime).toBe(false);
   });
 
   test("reads the error from the response's `data` field too", async () => {
@@ -744,6 +975,7 @@ describe("fetchTokenRefreshOutcome", () => {
       variableName: "API_TOKEN",
       savedWhat: undefined,
       error: "Synchronous failure.",
+      isRefusedByOneUptime: false,
     });
   });
 });

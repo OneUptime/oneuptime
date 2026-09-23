@@ -536,20 +536,82 @@ function createDeferred<T>(): Deferred<T> {
 }
 
 /*
+ * Fires the open OAuth form's onSuccess with the saved variable and lets
+ * whatever it starts settle. Waits for nothing in particular, so it also
+ * serves the cases where no token is asked for at all.
+ */
+async function saveOAuthVariable(variable: WorkflowVariable): Promise<void> {
+  await act(async () => {
+    oauthForm().onSuccess(variable);
+  });
+
+  // A few more turns, so a request sent late would still be seen.
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+}
+
+/*
  * Opens the OAuth form from the More menu and fires its onSuccess with the
  * saved variable, then waits for the token outcome to land in the modal.
  */
 async function createOAuthVariable(variable: WorkflowVariable): Promise<void> {
   openOAuthForm();
 
-  await act(async () => {
-    oauthForm().onSuccess(variable);
-  });
+  await saveOAuthVariable(variable);
 
   await waitFor(() => {
     expect(capturedRefreshModalProps?.outcome).toBeTruthy();
   });
 }
+
+type RoleCase = {
+  label: string;
+  permissions: Array<Permission>;
+};
+
+/*
+ * Roles on WorkflowVariable's create list but not its update list. The
+ * refresh route writes the token to the variable, so it checks for update and
+ * would refuse every one of these.
+ */
+const CREATE_ONLY_ROLES: Array<RoleCase> = [
+  {
+    label: "Create and Read Workflow Variables",
+    permissions: [
+      Permission.CreateWorkflowVariable,
+      Permission.ReadWorkflowVariable,
+    ],
+  },
+  { label: "Project Member", permissions: [Permission.ProjectMember] },
+  { label: "Workflow Admin", permissions: [Permission.WorkflowAdmin] },
+  { label: "Workflow Member", permissions: [Permission.WorkflowMember] },
+  /*
+   * A workflow variable is not an operational resource, so the Edit All
+   * wildcard does not widen its update list - here or on the server.
+   */
+  {
+    label: "Create Workflow Variables with Edit All Operational Resources",
+    permissions: [
+      Permission.CreateWorkflowVariable,
+      Permission.EditAllOperationalResources,
+    ],
+  },
+];
+
+// Roles on both lists: these may create the variable and fetch its token.
+const CREATE_AND_UPDATE_ROLES: Array<RoleCase> = [
+  { label: "Project Admin", permissions: [Permission.ProjectAdmin] },
+  { label: "Project Owner", permissions: [Permission.ProjectOwner] },
+  {
+    label: "Create and Edit Workflow Variables",
+    permissions: [
+      Permission.CreateWorkflowVariable,
+      Permission.EditWorkflowVariable,
+    ],
+  },
+];
 
 let clockTick: number = 0;
 let currentDateSpy: SpyInstance<() => Date> | null = null;
@@ -1377,6 +1439,210 @@ describe.each(PAGE_CASES)("the $page variables list", (pageCase: PageCase) => {
         await table().onBeforeCreate!(new WorkflowVariable());
       });
 
+      expect(apiPost).not.toHaveBeenCalled();
+      expect(isRefreshModalOpen()).toBe(false);
+    });
+  });
+
+  /*
+   * Creating a variable and refreshing its token are different permissions.
+   * Somebody who may create but not update would only get OneUptime's own
+   * refusal back from the refresh route - shown as if their provider had said
+   * no - so the page does not ask for them.
+   */
+  describe("whose new OAuth 2.0 variable gets its first token fetched", () => {
+    test.each(CREATE_ONLY_ROLES)(
+      "not somebody who may only create variables ($label): the form closes and the list refreshes, with no token request and no token modal",
+      async (role: RoleCase) => {
+        permissionsForTest = role.permissions;
+
+        renderPage(pageCase.page);
+
+        const initialToggle: string | undefined = table().refreshToggle;
+
+        // They may create, so the menu entry does open the form.
+        expect(oauthMenuButton().disabled).toBe(false);
+
+        openOAuthForm();
+
+        expect(isOAuthFormOpen()).toBe(true);
+
+        await saveOAuthVariable(oauthVariable());
+
+        expect(isOAuthFormOpen()).toBe(false);
+
+        // The new row still shows up at once.
+        expect(table().refreshToggle).not.toBe(initialToggle);
+
+        expect(apiPost).not.toHaveBeenCalled();
+        expect(isRefreshModalOpen()).toBe(false);
+        expect(capturedRefreshModalProps).toBeNull();
+        expect(refreshModalOutcomes).toEqual([]);
+      },
+    );
+
+    // With no token request there is nothing to wait for, so no second bump.
+    test("refreshes the list once, and only once, for somebody who may only create", async () => {
+      permissionsForTest = [
+        Permission.CreateWorkflowVariable,
+        Permission.ReadWorkflowVariable,
+      ];
+
+      renderPage(pageCase.page);
+
+      const initialToggle: string | undefined = table().refreshToggle;
+
+      openOAuthForm();
+
+      await saveOAuthVariable(oauthVariable());
+
+      const afterCreateToggle: string | undefined = table().refreshToggle;
+
+      expect(afterCreateToggle).not.toBe(initialToggle);
+
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(table().refreshToggle).toBe(afterCreateToggle);
+    });
+
+    test("can open the form again afterwards, still without a token modal in the way", async () => {
+      permissionsForTest = [
+        Permission.CreateWorkflowVariable,
+        Permission.ReadWorkflowVariable,
+      ];
+
+      renderPage(pageCase.page);
+
+      openOAuthForm();
+
+      await saveOAuthVariable(oauthVariable());
+
+      openOAuthForm();
+
+      expect(isOAuthFormOpen()).toBe(true);
+      expect(isRefreshModalOpen()).toBe(false);
+    });
+
+    test.each(CREATE_AND_UPDATE_ROLES)(
+      "somebody who may also update variables ($label): asks for the token and shows the outcome",
+      async (role: RoleCase) => {
+        permissionsForTest = role.permissions;
+
+        renderPage(pageCase.page);
+
+        await createOAuthVariable(oauthVariable());
+
+        expect(isOAuthFormOpen()).toBe(false);
+        expect(apiPost).toHaveBeenCalledTimes(1);
+        expect(refreshCall().url).toContain(
+          `/workflow-variable/${VARIABLE_ID.toString()}/refresh-oauth-token`,
+        );
+
+        expect(refreshModal().variableName).toBe("API_TOKEN");
+        expect(refreshModal().outcome!.error).toBeUndefined();
+        expect(refreshModal().outcome!.expiresAt).toEqual(
+          new Date(EXPIRES_AT_ISO),
+        );
+        expect(refreshModalOutcomes[0]).toBeNull();
+      },
+    );
+
+    /*
+     * PermissionGate lets a master admin do everything before it even looks
+     * at the snapshot, so an empty one does not stop the fetch.
+     */
+    test("a master admin, even before the permission snapshot arrives", async () => {
+      permissionsForTest = [];
+      isMasterAdminForTest = true;
+
+      renderPage(pageCase.page);
+
+      await createOAuthVariable(oauthVariable());
+
+      expect(apiPost).toHaveBeenCalledTimes(1);
+      expect(refreshCall().url).toContain(
+        `/workflow-variable/${VARIABLE_ID.toString()}/refresh-oauth-token`,
+      );
+      expect(refreshModal().outcome!.expiresAt).toEqual(
+        new Date(EXPIRES_AT_ISO),
+      );
+    });
+
+    test("a master admin whose project role may only create", async () => {
+      permissionsForTest = [Permission.CreateWorkflowVariable];
+      isMasterAdminForTest = true;
+
+      renderPage(pageCase.page);
+
+      await createOAuthVariable(oauthVariable());
+
+      expect(apiPost).toHaveBeenCalledTimes(1);
+      expect(isRefreshModalOpen()).toBe(true);
+    });
+
+    // The gate is read when the variable is saved, not when the form opened.
+    test("not somebody whose role lost update while the form was open", async () => {
+      permissionsForTest = [Permission.ProjectAdmin];
+
+      renderPage(pageCase.page);
+
+      openOAuthForm();
+
+      permissionsForTest = [
+        Permission.CreateWorkflowVariable,
+        Permission.ReadWorkflowVariable,
+      ];
+
+      await saveOAuthVariable(oauthVariable());
+
+      expect(isOAuthFormOpen()).toBe(false);
+      expect(apiPost).not.toHaveBeenCalled();
+      expect(isRefreshModalOpen()).toBe(false);
+    });
+
+    test("somebody whose role gained update while the form was open", async () => {
+      permissionsForTest = [
+        Permission.CreateWorkflowVariable,
+        Permission.ReadWorkflowVariable,
+      ];
+
+      renderPage(pageCase.page);
+
+      openOAuthForm();
+
+      permissionsForTest = [
+        Permission.CreateWorkflowVariable,
+        Permission.EditWorkflowVariable,
+      ];
+
+      await saveOAuthVariable(oauthVariable());
+
+      await waitFor(() => {
+        expect(refreshModal().outcome).toBeTruthy();
+      });
+
+      expect(apiPost).toHaveBeenCalledTimes(1);
+    });
+
+    /*
+     * An empty snapshot (not a master admin) is PermissionGate's "not loaded
+     * yet": it does not allow, so the page does not ask. The variable still
+     * gets its first token the first time a workflow uses it.
+     */
+    test("not while the permission snapshot is empty at the moment of saving", async () => {
+      permissionsForTest = [Permission.ProjectAdmin];
+
+      renderPage(pageCase.page);
+
+      openOAuthForm();
+
+      permissionsForTest = [];
+
+      await saveOAuthVariable(oauthVariable());
+
+      expect(isOAuthFormOpen()).toBe(false);
       expect(apiPost).not.toHaveBeenCalled();
       expect(isRefreshModalOpen()).toBe(false);
     });
