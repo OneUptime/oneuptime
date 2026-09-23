@@ -4,6 +4,8 @@ import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusT
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import StatusPageAPI from "../../../Server/API/StatusPageAPI";
+import StatusPageService from "../../../Server/Services/StatusPageService";
+import { MergedDowntimeTotals } from "../../../Server/Services/MonitorStatusTimelineService";
 import {
   ExpressRequest,
   ExpressResponse,
@@ -67,9 +69,10 @@ jest.mock("../../../Server/Utils/Response", () => {
  * The page's timeline rows arrive under one 10,000 row cap across every
  * monitor on the page, newest first. On a page with a flapping monitor that
  * is the last few days of the range, so a monitor resource is measured from
- * the uncapped day aggregate instead. These tests pin that the handler hands
- * the aggregate on: the util it calls has its own tests, but they cannot see
- * whether the endpoint passes the aggregate at all.
+ * the uncapped day aggregate instead, and a monitor group from its uncapped
+ * merged downtime. These tests pin that the handler hands both on: the utils
+ * it calls have their own tests, but they cannot see whether the endpoint
+ * uses them at all.
  *
  * All reads are spied on - no database is touched.
  */
@@ -190,14 +193,34 @@ function monitorResource(data: {
   return resource;
 }
 
-function monitorGroupResource(): StatusPageResource {
+function monitorGroupResource(data?: {
+  name?: string | undefined;
+  showUptimePercent?: boolean | undefined;
+}): StatusPageResource {
   const resource: StatusPageResource = new StatusPageResource();
   resource._id = ObjectID.generate().toString();
-  resource.displayName = "Edge";
+  resource.displayName = data?.name || "Edge";
   resource.monitorGroupId = MONITOR_GROUP;
-  resource.showUptimePercent = true;
+  resource.showUptimePercent = data?.showUptimePercent ?? true;
   resource.uptimePercentPrecision = UptimePrecision.TWO_DECIMAL;
   return resource;
+}
+
+/*
+ * The group's monitor over the whole range, as the merged query measures
+ * it: the same 280 minutes in sixty days as the buckets, 99.6759...% up.
+ */
+const MERGED_OVER_SIXTY_DAYS: MergedDowntimeTotals = {
+  coveredSeconds: 60 * DAY_SECONDS,
+  downtimeSeconds: 55 * 300 + 5 * 60,
+};
+
+function mockMergedDowntime(
+  merged: MergedDowntimeTotals = MERGED_OVER_SIXTY_DAYS,
+): ReturnType<typeof jest.spyOn> {
+  return jest
+    .spyOn(StatusPageService, "getMergedDowntimeForStatusPage")
+    .mockResolvedValue(merged) as ReturnType<typeof jest.spyOn>;
 }
 
 function mockPage(): void {
@@ -233,6 +256,11 @@ function mockPage(): void {
           monitorId: MONITOR,
           showUptimePercent: false,
         }),
+        monitorGroupResource({ name: "Edge again" }),
+        monitorGroupResource({
+          name: "Hidden group uptime",
+          showUptimePercent: false,
+        }),
       ],
       monitorStatuses: [OPERATIONAL, OFFLINE],
       monitorStatusTimelines: [
@@ -251,6 +279,8 @@ function mockPage(): void {
       startDateForMonitorTimeline: new Date(START_DATE),
       endDateForMonitorTimeline: new Date(END_DATE),
     });
+
+  mockMergedDowntime();
 }
 
 async function uptimeByResourceName(): Promise<Record<string, number | null>> {
@@ -324,10 +354,63 @@ describe("POST /status-page-api/uptime/:statusPageId", () => {
     expect(uptimes["lp.chainflip.io"]).toBe(99.67);
   });
 
-  it("keeps a monitor group on the rows, even with its monitor's buckets to hand", async () => {
+  it("measures a monitor group from its merged downtime, not the rows the cap left", async () => {
+    const uptimes: Record<string, number | null> = await uptimeByResourceName();
+
+    // the capped rows alone say 99.86%.
+    expect(uptimes["Edge"]).toBe(99.67);
+    expect(uptimes["Edge again"]).toBe(99.67);
+  });
+
+  it("asks once per set of monitors, over the requested range and the page's downtime statuses", async () => {
+    const mergedSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      StatusPageService,
+      "getMergedDowntimeForStatusPage",
+    ) as ReturnType<typeof jest.spyOn>;
+
+    await uptimeByResourceName();
+
+    // Edge and Edge again share a monitor group; the hidden one asks nothing.
+    expect(mergedSpy).toHaveBeenCalledTimes(1);
+
+    const request: {
+      monitorIds: Array<ObjectID>;
+      downtimeMonitorStatusIds: Array<ObjectID | string>;
+      startDate: Date;
+      endDate: Date;
+    } = mergedSpy.mock.calls[0]![0] as {
+      monitorIds: Array<ObjectID>;
+      downtimeMonitorStatusIds: Array<ObjectID | string>;
+      startDate: Date;
+      endDate: Date;
+    };
+
+    expect(
+      request.monitorIds.map((monitorId: ObjectID) => {
+        return monitorId.toString();
+      }),
+    ).toEqual([GROUP_MONITOR.toString()]);
+    expect(
+      request.downtimeMonitorStatusIds.map((id: ObjectID | string) => {
+        return id.toString();
+      }),
+    ).toEqual([OFFLINE.id!.toString()]);
+    expect(request.startDate).toEqual(new Date(START_DATE));
+    expect(request.endDate).toEqual(new Date(END_DATE));
+  });
+
+  it("falls back to the rows for a monitor group with nothing recorded", async () => {
+    mockMergedDowntime({ coveredSeconds: 0, downtimeSeconds: 0 });
+
     const uptimes: Record<string, number | null> = await uptimeByResourceName();
 
     expect(uptimes["Edge"]).toBe(99.86);
+  });
+
+  it("still sends no uptime for a monitor group that hides it", async () => {
+    const uptimes: Record<string, number | null> = await uptimeByResourceName();
+
+    expect(uptimes["Hidden group uptime"]).toBeNull();
   });
 
   it("falls back to the rows for a monitor the aggregate has nothing for", async () => {

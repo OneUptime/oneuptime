@@ -28,6 +28,7 @@ import StatusPageResourceService from "../Services/StatusPageResourceService";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "../Services/StatusPageService";
+import { MergedDowntimeTotals } from "../Services/MonitorStatusTimelineService";
 import { UptimeDailyAggregate } from "../../Types/StatusPage/UptimeDailyAggregate";
 import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
 import StatusPageSsoService from "../Services/StatusPageSsoService";
@@ -1485,6 +1486,52 @@ export default class StatusPageAPI extends BaseAPI<
             endDate: endDate,
           };
 
+          /*
+           * A monitor group is down whenever at least one of its monitors
+           * is, which the per-monitor aggregate cannot say, so its uptime is
+           * merged over its monitors by the database - not from
+           * monitorStatusTimelines, which arrive under one 10,000 row cap
+           * across every monitor on the page, newest first. Asked here, once
+           * per distinct set of monitors, because the walk below is
+           * synchronous.
+           */
+          const mergedDowntimeByMonitorGroupId: Dictionary<MergedDowntimeTotals> =
+            {};
+          const mergedDowntimeByMonitorSet: Dictionary<MergedDowntimeTotals> =
+            {};
+
+          const downtimeMonitorStatusIds: Array<string> =
+            downtimeMonitorStatuses
+              .map((status: MonitorStatus): string => {
+                return status.id?.toString() || "";
+              })
+              .filter(Boolean);
+
+          for (const resource of statusPageResources) {
+            if (!resource.monitorGroupId || !resource.showUptimePercent) {
+              continue;
+            }
+
+            const monitorGroupId: string = resource.monitorGroupId.toString();
+            const monitorIds: Array<ObjectID> =
+              monitorsInGroup[monitorGroupId] || [];
+            const monitorSetKey: string =
+              StatusPageServiceType.getMonitorSetKey(monitorIds);
+
+            if (!mergedDowntimeByMonitorSet[monitorSetKey]) {
+              mergedDowntimeByMonitorSet[monitorSetKey] =
+                await StatusPageService.getMergedDowntimeForStatusPage({
+                  monitorIds: monitorIds,
+                  downtimeMonitorStatusIds: downtimeMonitorStatusIds,
+                  startDate: startDate,
+                  endDate: endDate,
+                });
+            }
+
+            mergedDowntimeByMonitorGroupId[monitorGroupId] =
+              mergedDowntimeByMonitorSet[monitorSetKey]!;
+          }
+
           type ResourceUptime = {
             statusPageResourceId: ObjectID;
             uptimePercent: number | null;
@@ -1601,11 +1648,7 @@ export default class StatusPageAPI extends BaseAPI<
                     groupUptime.statusPageResourceUptimes.push(resourceUptime);
                   }
 
-                  /*
-                   * if its a monitor group, then... its uptime stays on the
-                   * rows: a group is down whenever its worst monitor is, which
-                   * the per-monitor aggregate cannot express.
-                   */
+                  // if its a monitor group, then its uptime is merged over its monitors.
 
                   if (resource.monitorGroupId) {
                     let currentStatus: MonitorStatus | undefined =
@@ -1633,22 +1676,37 @@ export default class StatusPageAPI extends BaseAPI<
                     }
 
                     if (resource.showUptimePercent) {
-                      const resourceStatusTimelines: Array<MonitorStatusTimeline> =
-                        StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
-                          {
-                            statusPageResource: resource,
-                            monitorStatusTimelines: monitorStatusTimelines,
-                            monitorsInGroup: monitorsInGroup,
-                          },
-                        );
+                      const merged: MergedDowntimeTotals | undefined =
+                        mergedDowntimeByMonitorGroupId[
+                          resource.monitorGroupId.toString()
+                        ];
 
-                      const uptimePercent: number =
-                        UptimeUtil.calculateUptimePercentage(
+                      let uptimePercent: number | null = merged
+                        ? UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+                            coveredSeconds: merged.coveredSeconds,
+                            downtimeSeconds: merged.downtimeSeconds,
+                            precision: precision,
+                          })
+                        : null;
+
+                      // nothing recorded: fall back to the rows, as a monitor does.
+                      if (uptimePercent === null) {
+                        const resourceStatusTimelines: Array<MonitorStatusTimeline> =
+                          StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
+                            {
+                              statusPageResource: resource,
+                              monitorStatusTimelines: monitorStatusTimelines,
+                              monitorsInGroup: monitorsInGroup,
+                            },
+                          );
+
+                        uptimePercent = UptimeUtil.calculateUptimePercentage(
                           resourceStatusTimelines,
                           precision,
                           downtimeMonitorStatuses,
                           uptimeWindow,
                         );
+                      }
 
                       resourceUptime.uptimePercent = uptimePercent;
                     }
