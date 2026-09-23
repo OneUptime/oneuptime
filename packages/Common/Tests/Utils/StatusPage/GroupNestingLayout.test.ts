@@ -769,6 +769,19 @@ describe("StatusPageGroupNestingLayoutUtil", () => {
       ).toBe(StatusPageGroupRollupKind.CurrentStatus);
     });
 
+    test("a group configured for uptime only shows its uptime percent even when down", () => {
+      expect(
+        StatusPageGroupNestingLayoutUtil.getRollupKind({
+          showUptimePercent: true,
+          showCurrentStatus: false,
+          isCurrentlyDown: true,
+          uptimePercent: 99.5,
+
+          resourceCountInSubtree: 1,
+        }),
+      ).toBe(StatusPageGroupRollupKind.UptimePercent);
+    });
+
     test("a group configured for neither shows nothing", () => {
       expect(
         StatusPageGroupNestingLayoutUtil.getRollupKind({
