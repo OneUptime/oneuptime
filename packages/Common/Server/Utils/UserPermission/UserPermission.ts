@@ -78,6 +78,22 @@ export default class UserPermissionUtil {
     };
   }
 
+  /*
+   * Whether the user's global permission lists the project among the ones they
+   * are an accepted member of. No global permission, or one without a project
+   * list, answers no.
+   */
+  public static isProjectInGlobalAccessPermission(
+    userGlobalAccessPermission: UserGlobalAccessPermission | null | undefined,
+    projectId: ObjectID,
+  ): boolean {
+    return (userGlobalAccessPermission?.projectIds || []).some(
+      (memberProjectId: ObjectID) => {
+        return memberProjectId.toString() === projectId.toString();
+      },
+    );
+  }
+
   @CaptureSpan()
   public static async getUserTenantAccessPermissionFromCache(
     userId: ObjectID,

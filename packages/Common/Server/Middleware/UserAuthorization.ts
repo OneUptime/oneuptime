@@ -642,6 +642,7 @@ export default class UserMiddleware {
             req,
             tenantId,
             userId: new ObjectID(userId),
+            userGlobalAccessPermission: userGlobalAccessPermissionPromise,
           }),
           TeamMemberService.getTeamIdsForUser(new ObjectID(userId), tenantId),
         ]);
@@ -689,6 +690,7 @@ export default class UserMiddleware {
             req,
             new ObjectID(userId),
             userGlobalAccessPermission.projectIds,
+            userGlobalAccessPermission,
           );
 
         if (userTenantAccessPermission) {
@@ -876,8 +878,18 @@ export default class UserMiddleware {
     req: ExpressRequest;
     tenantId: ObjectID;
     userId: ObjectID;
+    /*
+     * The user's global permission, when the caller is already resolving it.
+     * AccessTokenService checks the project against it before serving a cached
+     * permission set.
+     */
+    userGlobalAccessPermission?:
+      | Promise<UserGlobalAccessPermission | null>
+      | UserGlobalAccessPermission
+      | null
+      | undefined;
   }): Promise<UserTenantAccessPermission | null> {
-    const { req, tenantId, userId } = data;
+    const { req, tenantId, userId, userGlobalAccessPermission } = data;
 
     const isMasterAdmin: boolean =
       (req as OneUptimeRequest).userAuthorization?.isMasterAdmin === true;
@@ -912,7 +924,9 @@ export default class UserMiddleware {
         }
         throw err;
       }),
-      AccessTokenService.getUserTenantAccessPermission(userId, tenantId),
+      AccessTokenService.getUserTenantAccessPermission(userId, tenantId, {
+        userGlobalAccessPermission,
+      }),
     ]);
 
     /*
@@ -962,6 +976,8 @@ export default class UserMiddleware {
     req: ExpressRequest,
     userId: ObjectID,
     projectIds: ObjectID[],
+    // The global permission projectIds came from, so each project skips re-reading it.
+    userGlobalAccessPermission?: UserGlobalAccessPermission | null | undefined,
   ): Promise<Dictionary<UserTenantAccessPermission> | null> {
     if (!projectIds.length) {
       return null;
@@ -1042,6 +1058,7 @@ export default class UserMiddleware {
           permission: await AccessTokenService.getUserTenantAccessPermission(
             userId,
             projectId,
+            { userGlobalAccessPermission },
           ),
         };
       }),

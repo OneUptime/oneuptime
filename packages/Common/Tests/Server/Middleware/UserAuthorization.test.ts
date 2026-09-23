@@ -653,6 +653,7 @@ describe("UserMiddleware", () => {
         mockedRequest,
         userId,
         mockedGlobalAccessPermission.projectIds,
+        mockedGlobalAccessPermission,
       );
     });
 
@@ -690,6 +691,40 @@ describe("UserMiddleware", () => {
           userId,
         },
       );
+    });
+    /*
+     * AccessTokenService only serves a cached project permission while the
+     * user's global permission still lists the project. The middleware is
+     * already reading that global permission, so it hands the same pending
+     * read to the tenant lookup instead of letting it read the key again.
+     */
+    test("should hand the global permission it is resolving to the tenant permission lookup", async () => {
+      const spyGetUserGlobalAccessPermission: jest.SpyInstance = getJestSpyOn(
+        AccessTokenService,
+        "getUserGlobalAccessPermission",
+      ).mockResolvedValueOnce(mockedGlobalAccessPermission);
+      const spyGetUserTenantAccessPermissionWithTenantId: jest.SpyInstance =
+        getJestSpyOn(
+          UserMiddleware,
+          "getUserTenantAccessPermissionWithTenantId",
+        ).mockResolvedValueOnce(mockedTenantAccessPermission);
+
+      await UserMiddleware.getUserMiddleware(req, res, next);
+
+      expect(spyGetUserGlobalAccessPermission).toHaveBeenCalledTimes(1);
+      expect(
+        spyGetUserTenantAccessPermissionWithTenantId,
+      ).toHaveBeenCalledTimes(1);
+
+      const handedOver: unknown = (
+        spyGetUserTenantAccessPermissionWithTenantId.mock.calls[0]![0] as {
+          userGlobalAccessPermission?: unknown;
+        }
+      ).userGlobalAccessPermission;
+
+      expect(handedOver).toBeInstanceOf(Promise);
+      await expect(handedOver).resolves.toBe(mockedGlobalAccessPermission);
+      expect(next).toHaveBeenCalled();
     });
   });
 
@@ -791,6 +826,7 @@ describe("UserMiddleware", () => {
       expect(spyGetUserTenantAccessPermission).toHaveBeenLastCalledWith(
         userId,
         projectId,
+        { userGlobalAccessPermission: undefined },
       );
     });
 
@@ -817,6 +853,33 @@ describe("UserMiddleware", () => {
       expect(spyGetUserTenantAccessPermission).toHaveBeenLastCalledWith(
         userId,
         projectId,
+        { userGlobalAccessPermission: undefined },
+      );
+    });
+    test("should forward the caller's global permission to AccessTokenService", async () => {
+      spyGetRequireSsoForLogin.mockResolvedValueOnce(false);
+
+      const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
+        AccessTokenService,
+        "getUserTenantAccessPermission",
+      ).mockResolvedValueOnce(null);
+
+      const userGlobalAccessPermission: Promise<UserGlobalAccessPermission | null> =
+        Promise.resolve({
+          projectIds: [projectId],
+        } as UserGlobalAccessPermission);
+
+      await UserMiddleware.getUserTenantAccessPermissionWithTenantId({
+        req,
+        tenantId: projectId,
+        userId,
+        userGlobalAccessPermission,
+      });
+
+      expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
+        userId,
+        projectId,
+        { userGlobalAccessPermission },
       );
     });
   });
@@ -932,6 +995,7 @@ describe("UserMiddleware", () => {
       expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
         userId,
         projectId,
+        { userGlobalAccessPermission: undefined },
       );
     });
 
@@ -952,6 +1016,7 @@ describe("UserMiddleware", () => {
       expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
         userId,
         projectId,
+        { userGlobalAccessPermission: undefined },
       );
     });
 
@@ -998,6 +1063,38 @@ describe("UserMiddleware", () => {
       expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
         userId,
         projectId,
+        { userGlobalAccessPermission: undefined },
+      );
+    });
+
+    test("should hand every project's lookup the global permission the project list came from", async () => {
+      const otherProjectId: ObjectID = ObjectID.generate();
+      const userGlobalAccessPermission: UserGlobalAccessPermission = {
+        projectIds: [projectId, otherProjectId],
+      } as UserGlobalAccessPermission;
+
+      const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
+        AccessTokenService,
+        "getUserTenantAccessPermission",
+      ).mockResolvedValue(mockedUserTenantAccessPermission);
+
+      await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+        req,
+        userId,
+        userGlobalAccessPermission.projectIds,
+        userGlobalAccessPermission,
+      );
+
+      expect(spyGetUserTenantAccessPermission).toHaveBeenCalledTimes(2);
+      expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
+        userId,
+        projectId,
+        { userGlobalAccessPermission },
+      );
+      expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
+        userId,
+        otherProjectId,
+        { userGlobalAccessPermission },
       );
     });
   });

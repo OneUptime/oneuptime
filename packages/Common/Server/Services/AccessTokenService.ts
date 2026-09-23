@@ -25,39 +25,11 @@ export class AccessTokenService extends BaseService {
 
   @CaptureSpan()
   public async refreshUserAllPermissions(userId: ObjectID): Promise<void> {
-    await this.refreshUserGlobalAccessPermission(userId);
+    const userGlobalAccessPermission: UserGlobalAccessPermission =
+      await this.refreshUserGlobalAccessPermission(userId);
 
-    // query for all projects user belongs to.
-    let teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
-      query: {
-        userId: userId,
-        hasAcceptedInvitation: true,
-      },
-      select: {
-        projectId: true,
-      },
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
-
-    if (!teamMembers) {
-      teamMembers = [];
-    }
-
-    if (teamMembers.length === 0) {
-      return;
-    }
-
-    const projectIds: Array<ObjectID> = teamMembers.map(
-      (teamMember: TeamMember) => {
-        return teamMember.projectId!;
-      },
-    );
-
-    for (const projectId of projectIds) {
+    // every project the user belongs to.
+    for (const projectId of userGlobalAccessPermission.projectIds) {
       await this.refreshUserTenantAccessPermission(userId, projectId);
     }
   }
@@ -66,8 +38,13 @@ export class AccessTokenService extends BaseService {
   public async refreshUserGlobalAccessPermission(
     userId: ObjectID,
   ): Promise<UserGlobalAccessPermission> {
-    // query for all projects user belongs to.
-    let teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
+    /*
+     * Every project the user belongs to - all of them, not a first page.
+     * getUserTenantAccessPermission only serves a cached permission set for a
+     * project on this list, so a project cut off it would have its set rebuilt
+     * on every request.
+     */
+    let teamMembers: Array<TeamMember> = await TeamMemberService.findAllBy({
       query: {
         userId: userId,
         hasAcceptedInvitation: true,
@@ -75,8 +52,6 @@ export class AccessTokenService extends BaseService {
       select: {
         projectId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
       props: {
         isRoot: true,
       },
@@ -86,11 +61,18 @@ export class AccessTokenService extends BaseService {
       teamMembers = [];
     }
 
-    const projectIds: Array<ObjectID> = teamMembers.map(
-      (teamMember: TeamMember) => {
-        return teamMember.projectId!;
-      },
-    );
+    // One row per team, so a project comes back once for each team in it.
+    const projectIds: Array<ObjectID> = [];
+    const seenProjectIds: Set<string> = new Set<string>();
+
+    for (const teamMember of teamMembers) {
+      const projectId: ObjectID | undefined = teamMember.projectId;
+
+      if (projectId && !seenProjectIds.has(projectId.toString())) {
+        seenProjectIds.add(projectId.toString());
+        projectIds.push(projectId);
+      }
+    }
 
     const permissionToStore: UserGlobalAccessPermission = {
       projectIds,
@@ -125,6 +107,14 @@ export class AccessTokenService extends BaseService {
   public async refreshUserTenantAccessPermission(
     userId: ObjectID,
     projectId: ObjectID,
+    options?: {
+      /*
+       * Whether to clear the cached entry when the user turns out not to be a
+       * member. Default true. False only when the caller has just seen there
+       * is no entry, so a non-member probing a project costs no cache write.
+       */
+      clearCacheIfNotMember?: boolean | undefined;
+    },
   ): Promise<UserTenantAccessPermission | null> {
     // query for all projects user belongs to.
     const teamMembers: Array<TeamMember> = await TeamMemberService.findBy({
@@ -150,6 +140,20 @@ export class AccessTokenService extends BaseService {
     );
 
     if (teamIds.length === 0) {
+      /*
+       * Not a member of this project. Clear the cached entry rather than just
+       * returning: when the user's last membership has just been removed, it
+       * still holds everything they could do as a member, and nothing else
+       * ever overwrites it - the request middleware would keep serving it
+       * until it expired, 30 days later.
+       */
+      if (options?.clearCacheIfNotMember !== false) {
+        await GlobalCache.deleteKey(
+          PermissionNamespace.ProjectPermission,
+          UserPermissionUtil.buildTenantPermissionCacheKey(userId, projectId),
+        );
+      }
+
       return null;
     }
 
@@ -227,36 +231,105 @@ export class AccessTokenService extends BaseService {
   }): Promise<DatabaseCommonInteractionProps> {
     const { userId, projectId } = data;
 
+    const userGlobalAccessPermission: UserGlobalAccessPermission | null =
+      await this.getUserGlobalAccessPermission(userId);
+
     return {
       userId: userId,
-      userGlobalAccessPermission:
-        (await this.getUserGlobalAccessPermission(userId)) || undefined,
+      userGlobalAccessPermission: userGlobalAccessPermission || undefined,
       userTenantAccessPermission: {
         [projectId.toString()]: (await this.getUserTenantAccessPermission(
           userId,
           projectId,
+          { userGlobalAccessPermission },
         ))!,
       },
       tenantId: projectId,
     };
   }
 
+  /*
+   * The user's permission set in one project, or null if they are not a member
+   * of it.
+   *
+   * A cached set is only served while the user's global permission still lists
+   * the project. The two are written together whenever a membership changes, so
+   * they disagree only when the cached set is left over from a membership that
+   * has since been removed - or, the other way round, when the global list is
+   * the stale one. The memberships decide which: the set is rebuilt from them,
+   * which also clears it if the user is not a member.
+   *
+   * Pass `userGlobalAccessPermission` when the caller already has it, or is
+   * already fetching it, to save a second read of the same cache key.
+   */
   @CaptureSpan()
   public async getUserTenantAccessPermission(
     userId: ObjectID,
     projectId: ObjectID,
+    options?: {
+      userGlobalAccessPermission?:
+        | UserGlobalAccessPermission
+        | null
+        | Promise<UserGlobalAccessPermission | null>
+        | undefined;
+    },
   ): Promise<UserTenantAccessPermission | null> {
-    const json: UserTenantAccessPermission | null =
-      await UserPermissionUtil.getUserTenantAccessPermissionFromCache(
+    const [json, userGlobalAccessPermission]: [
+      UserTenantAccessPermission | null,
+      UserGlobalAccessPermission | null,
+    ] = await Promise.all([
+      UserPermissionUtil.getUserTenantAccessPermissionFromCache(
         userId,
         projectId,
-      );
+      ),
+      options?.userGlobalAccessPermission !== undefined
+        ? options.userGlobalAccessPermission
+        : this.getUserGlobalAccessPermission(userId),
+    ]);
 
     if (!json) {
-      return await this.refreshUserTenantAccessPermission(userId, projectId);
+      return await this.refreshUserTenantAccessPermission(userId, projectId, {
+        clearCacheIfNotMember: false,
+      });
     }
 
-    return json;
+    if (
+      UserPermissionUtil.isProjectInGlobalAccessPermission(
+        userGlobalAccessPermission,
+        projectId,
+      )
+    ) {
+      return json;
+    }
+
+    const permission: UserTenantAccessPermission | null =
+      await this.refreshUserTenantAccessPermission(userId, projectId);
+
+    if (permission) {
+      // Still a member: it was the global list that was out of date.
+      await this.refreshUserGlobalAccessPermission(userId);
+    }
+
+    return permission;
+  }
+
+  /*
+   * Drops the user's cached global permission and their cached permission set
+   * in one project, so both are rebuilt from their memberships the next time
+   * they are read. The fallback for when refreshing them has failed.
+   */
+  @CaptureSpan()
+  public async clearCachedPermissions(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await Promise.all([
+      GlobalCache.deleteKey("user", userId.toString()),
+      GlobalCache.deleteKey(
+        PermissionNamespace.ProjectPermission,
+        UserPermissionUtil.buildTenantPermissionCacheKey(userId, projectId),
+      ),
+    ]);
   }
 }
 
