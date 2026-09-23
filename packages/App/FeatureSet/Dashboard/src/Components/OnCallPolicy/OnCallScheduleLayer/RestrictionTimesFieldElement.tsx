@@ -28,10 +28,10 @@ export interface ComponentProps {
   /*
    * The schedule's IANA timezone. Restriction wall-clock times are ENFORCED by
    * the engine in this zone, but the TimePicker captures/displays in the
-   * viewer's browser zone. Without reconciling the two, an admin in a different
-   * zone silently configured the wrong hours (audit F1). When set, times are
-   * entered, displayed and stored as wall-clock in this zone; when omitted, the
-   * legacy browser-local behavior is preserved.
+   * viewer's own zone (their User Settings zone, else the browser's). Without
+   * reconciling the two, an admin in a different zone silently configured the
+   * wrong hours (audit F1). When set, times are entered, displayed and stored
+   * as wall-clock in this zone; when omitted, the viewer's zone is used.
    */
   timezone?: string | undefined;
 }
@@ -53,9 +53,11 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
 
   /*
    * Display a stored instant in the TimePicker as its wall-clock IN THE SCHEDULE
-   * TIMEZONE (the picker itself renders in browser-local time, so we hand it a
-   * local Date carrying the schedule-zone wall-clock). Inverse of
-   * timePickerValueToStoredDate.
+   * TIMEZONE. The picker reads hours and minutes in the current timezone
+   * (OneUptimeDate.getLocalHours), so we hand it a Date whose current-timezone
+   * wall clock is the schedule-zone wall-clock. That is why this uses the
+   * current-timezone helpers, not the browser-local ones the schedule preview
+   * grid needs. Inverse of timePickerValueToStoredDate.
    */
   const storedDateToTimePickerValue: (
     stored: Date | undefined,
@@ -73,9 +75,10 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * Convert a TimePicker onChange value (a browser-local wall-clock) into the
-   * instant to STORE, reinterpreting the entered wall-clock in the schedule
-   * timezone so it is enforced exactly as typed (audit F1).
+   * Convert a TimePicker onChange value (a wall clock in the current timezone,
+   * see OneUptimeDate.getDateWithCustomTime) into the instant to STORE,
+   * reinterpreting the entered wall-clock in the schedule timezone so it is
+   * enforced exactly as typed (audit F1).
    */
   const timePickerValueToStoredDate: (value: any) => Date = (
     value: any,

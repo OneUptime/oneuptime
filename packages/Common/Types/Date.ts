@@ -487,6 +487,10 @@ export default class OneUptimeDate {
    * for the schedule's timezone even though the time picker captured it in the
    * viewer's own zone (audit F1). Inverse of
    * getLocalDateFromWallClockInTimezone.
+   *
+   * Only for widgets that read Dates through the current timezone, as the
+   * datetime-local Input and the TimePicker do. A widget that reads a Date's
+   * browser-local wall clock needs getInstantFromBrowserLocalWallClockInTimezone.
    */
   public static getInstantFromLocalWallClockInTimezone(
     date: Date | string,
@@ -513,6 +517,10 @@ export default class OneUptimeDate {
    * wall-clock IN THE CURRENT TIMEZONE equals `date`'s wall-clock as seen in
    * `timezone`. Used to display a stored schedule-timezone time inside a picker
    * that renders in the viewer's own zone (audit F1).
+   *
+   * Only for widgets that read Dates through the current timezone. A widget
+   * that draws a Date at its browser-local wall clock needs
+   * getBrowserLocalDateFromWallClockInTimezone.
    */
   public static getLocalDateFromWallClockInTimezone(
     date: Date | string,
@@ -531,6 +539,62 @@ export default class OneUptimeDate {
           second: zoned.second(),
         },
         this.getCurrentTimezone().toString(),
+      )
+      .toDate();
+  }
+
+  /**
+   * The browser-zone twin of getLocalDateFromWallClockInTimezone: return a Date
+   * whose BROWSER-LOCAL wall clock (getHours() and so on) equals `date`'s wall
+   * clock in `timezone`.
+   *
+   * For widgets that draw a Date at its browser-local wall clock and know
+   * nothing of the user's configured zone, such as react-big-calendar with the
+   * plain moment localizer. getLocalDateFromWallClockInTimezone builds the wall
+   * clock in the CURRENT timezone, which is the user's User Settings zone when
+   * one is set. When that differs from the browser's zone, the widget draws
+   * every Date off by the difference between the two. Inverse of
+   * getInstantFromBrowserLocalWallClockInTimezone.
+   */
+  public static getBrowserLocalDateFromWallClockInTimezone(
+    date: Date | string,
+    timezone: string,
+  ): Date {
+    date = this.fromString(date);
+    const zoned: moment.Moment = moment.tz(date, timezone);
+    return new Date(
+      zoned.year(),
+      zoned.month(),
+      zoned.date(),
+      zoned.hour(),
+      zoned.minute(),
+      zoned.second(),
+    );
+  }
+
+  /**
+   * The browser-zone twin of getInstantFromLocalWallClockInTimezone: read
+   * `date`'s BROWSER-LOCAL wall clock and return the instant that same wall
+   * clock names in `timezone`. For turning a Date a browser-local widget
+   * reported (a range react-big-calendar shows, say) back into an instant.
+   * Inverse of getBrowserLocalDateFromWallClockInTimezone.
+   */
+  public static getInstantFromBrowserLocalWallClockInTimezone(
+    date: Date | string,
+    timezone: string,
+  ): Date {
+    date = this.fromString(date);
+    return moment
+      .tz(
+        {
+          year: date.getFullYear(),
+          month: date.getMonth(),
+          day: date.getDate(),
+          hour: date.getHours(),
+          minute: date.getMinutes(),
+          second: date.getSeconds(),
+        },
+        timezone,
       )
       .toDate();
   }
