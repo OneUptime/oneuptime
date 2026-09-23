@@ -70,6 +70,25 @@ import CommandPolicy from "./CommandPolicy";
  * a human: not in Bypass approval, not through the allowlist. cordon and
  * uncordon only stop or resume scheduling on the node and stay SafeWrite.
  *
+ * Every `kubectl patch` of a Node carries `requiresHuman` too, whatever its
+ * body says. A taint is nothing but the Node's spec.taints, and a patch
+ * writes it as surely as `kubectl taint` does (checked with the pinned
+ * kubectl v1.36.4 and `patch --local`: a strategic-merge list replaces
+ * every taint the node had, a merge-patch null clears them, a JSON-patch add
+ * appends one) — the substitute a model reaches for once `taint` is refused.
+ * The rule reads the KIND, not the body: a body check would have to follow
+ * every patch type, directive and JSON-patch copy or move to spec.taints,
+ * and no fix needs a raw node patch unattended (cordon and uncordon change
+ * scheduling, label and annotate change metadata). It counts every spelling
+ * of the built-in Node that kubectl resolves — node, nodes, no, Node,
+ * nodes.v1., no/NAME, several names, a comma list, and a Node after another
+ * object whose name holds an `=` (`patch pod/a=b node/n1`: patch reads every
+ * word as an object, see objectTokens) — through builtinKind(), so a custom
+ * resource that borrows the name (`nodes.example.com`) is not a Node: it
+ * cannot taint anything, and is RiskyWrite like any other custom resource.
+ * `kubectl label node` and `kubectl annotate node` stay RiskyWrite without
+ * it: they write metadata only.
+ *
  * Denied is what no one should be asked to approve from an AI plan:
  *   - Changes to who may do what, or to what the API server admits and
  *     serves: EVERY write (label, annotate, patch, set, scale, rollout,
@@ -81,13 +100,17 @@ import CommandPolicy from "./CommandPolicy";
  *     subject; set serviceaccount; auth reconcile; certificate approve/deny.
  *     Reading these kinds stays Read.
  *   - Wiring identity, privileges, host access, Secrets or a new program
- *     into a pod: patch bodies touching POD_SECURITY_PATCH_KEYS — by name,
- *     or by replacing or removing what holds them (a strategic-merge
- *     `$patch`, `$retainKeys` or `$setElementOrder` on a pod spec or
- *     above it, a merge patch that sets the containers list wholesale, a
- *     JSON-patch replace or remove of /spec/template/spec or of a
- *     container; see POD_SPEC_PATH_STEPS) — Pod Security Admission labels,
- *     set env --from=secret/..., and creating a
+ *     into a pod: patch bodies touching POD_SECURITY_PATCH_KEYS (every Pod
+ *     Security Standards baseline control among them: host namespaces,
+ *     host ports, hostPath, privileges and the rest of securityContext, the
+ *     AppArmor annotation and a probe's or lifecycle hook's host; and the
+ *     user-namespace opt-out, the runtime class and process-namespace
+ *     sharing) — by name, or by replacing or removing what holds them
+ *     (a strategic-merge `$patch`, `$retainKeys` or `$setElementOrder` on
+ *     a pod spec or above it, a merge patch that sets the containers list
+ *     wholesale, a JSON-patch replace or remove of /spec/template/spec or
+ *     of a container; see POD_SPEC_PATH_STEPS) — Pod Security Admission
+ *     labels, set env --from=secret/..., and creating a
  *     workload that runs an image named in the command — `create
  *     deployment` and `create cronjob` (kubectl requires --image for both)
  *     and `create job --image`. Only `create job NAME --from=cronjob/NAME`
@@ -97,6 +120,20 @@ import CommandPolicy from "./CommandPolicy";
  *     that workload already has, and a rollback puts the old image back —
  *     so it is RiskyWrite, and a human, the allowlist or Bypass approval
  *     decides.
+ *   - kubectl expose with --overrides or --override-type, in every spelling
+ *     kubectl accepts (--overrides=..., --overrides ..., --override_type).
+ *     kubectl merges the override into the Service it generates and then
+ *     creates whatever object the result describes, of any kind and in any
+ *     namespace: checked with the pinned kubectl v1.36.4 against a fake API
+ *     server, `expose deployment web -n prod --overrides=...` POSTs a
+ *     cluster-admin ClusterRoleBinding, and `--override_type=json` with a
+ *     `replace /kind` makes it a Namespace. So the command no longer says
+ *     what it creates — an RBAC grant, a PriorityClass, a Job with any
+ *     image and pod spec — and the write scope, the RBAC rule and the patch
+ *     rules above all read the wrong object. expose is the only verb
+ *     OneUptime AI may run that takes these flags (kubectl run, the one
+ *     other v1.36.4 command that does, is a Denied verb); they are refused
+ *     on every write verb all the same (OBJECT_OVERRIDE_FLAGS).
  *   - A patch body that is not JSON. kubectl reads any other body as YAML
  *     1.1, whose tags (`!!binary`), anchors, aliases and merge keys can
  *     spell a field name that appears nowhere in the text, so a body is
@@ -120,9 +157,12 @@ import CommandPolicy from "./CommandPolicy";
  *
  * Three more things are Denied because their OUTPUT is the problem, not the
  * verb. Secret objects are off-limits in every verb (get, describe, label,
- * patch, delete, create secret, create token, set env --resolve): each of
- * those can print or mint credential values, which would land in front of
- * the model and in the job record. File-backed output formats (-o
+ * patch, delete, create secret, create token, set env --resolve), wherever
+ * the command names one among its objects (`get pod/a=b secret/s` names one:
+ * only label, annotate, taint, set image and set env read a word with an `=`
+ * as an update; see objectTokens): each of those can print or mint
+ * credential values, which would land in front of the model and in the job
+ * record. File-backed output formats (-o
  * jsonpath-file=..., --template) make kubectl read a file off the Runner and
  * echo it. And a flag written before the verb is refused unless it is one of
  * kubectl's global flags, because kubectl picks the command before it parses
@@ -152,7 +192,7 @@ import CommandPolicy from "./CommandPolicy";
  *     stands for a flag.
  *   - Case-sensitive. The first 100 non-blank entries are read.
  *   - The allowlist never promotes a Denied command, never a write in a
- *     protected namespace, and never a drain or taint.
+ *     protected namespace, and never a drain, a taint or a patch of a Node.
  *
  * Which entries are valid is decided in ONE place,
  * describeAllowlistPatternProblem: the server refuses to save anything
@@ -174,9 +214,10 @@ import CommandPolicy from "./CommandPolicy";
  *     written for "kubectl" (the old whole-command glob) never matched
  *     anything;
  *   - whose verb is one OneUptime AI may run at all; and
- *   - whose flags the policy reads: a flag this policy refuses or does not
- *     know, or a non-global flag before the verb, makes every command the
- *     entry could match Denied.
+ *   - whose flags the policy reads: a flag this policy refuses (--overrides
+ *     and --override-type among them) or does not know, or a non-global
+ *     flag before the verb, makes every command the entry could match
+ *     Denied.
  *
  * An entry is BROAD (isBroadAllowlistPattern; the AI page asks for an
  * explicit confirmation before saving one) when a `*` stands for the
@@ -187,8 +228,9 @@ import CommandPolicy from "./CommandPolicy";
  * * -n web` (kubectl reads that last word either as the image update or as
  * another object with no update, which it refuses), a patch body, a replica
  * count, a revision, or the name of the Job `create job * --from=cronjob/X`
- * makes. Entries the allowlist can never promote — reads, drain and taint —
- * pre-approve nothing and are never broad.
+ * makes. Entries the allowlist can never promote — reads, drain, taint and a
+ * patch that names a Node (`kubectl patch node * -p *`) — pre-approve
+ * nothing and are never broad.
  */
 
 export interface KubectlPolicyResult {
@@ -216,10 +258,10 @@ export interface KubectlPolicyResult {
    */
   protectedNamespace?: string | undefined;
   /*
-   * Set on a node drain or taint (see the header). Such a command is
-   * RiskyWrite and evaluateForAutoExecution never runs it without a human,
-   * exactly like a protected-namespace write: it moves pods in every
-   * namespace, kube-system and the agent's own included.
+   * Set on a node drain, a taint and a patch of a Node (see the header).
+   * Such a command is RiskyWrite and evaluateForAutoExecution never runs it
+   * without a human, exactly like a protected-namespace write: it can move
+   * pods in every namespace, kube-system and the agent's own included.
    */
   requiresHuman?: boolean | undefined;
 }
@@ -242,9 +284,9 @@ export interface KubectlAutoExecutionVerdict {
   reason: string;
   /*
    * True when nothing an operator can configure lets this command run
-   * unattended — a write in a protected namespace, or a node drain or taint
-   * — so an approval card should say that (the reason does), not that the
-   * cluster "only runs safe changes". Absent otherwise.
+   * unattended — a write in a protected namespace, or a node drain, taint
+   * or patch — so an approval card should say that (the reason does), not
+   * that the cluster "only runs safe changes". Absent otherwise.
    */
   requiresHuman?: boolean | undefined;
 }
@@ -439,6 +481,7 @@ const KNOWN_FLAGS: Record<string, FlagArity> = {
   "external-ip": FlagArity.Value,
   "cluster-ip": FlagArity.Value,
   "load-balancer-ip": FlagArity.Value,
+  // Listed for their arity only: every write refuses them (OBJECT_OVERRIDE_FLAGS).
   overrides: FlagArity.Value,
   "override-type": FlagArity.Value,
   "session-affinity": FlagArity.Value,
@@ -665,6 +708,19 @@ const STREAMING_FLAGS: Set<string> = new Set<string>([
 ]);
 
 /*
+ * Flags that replace the object kubectl generates with whatever their JSON
+ * describes (kubectl expose; see the header's Denied list). They stay in
+ * KNOWN_FLAGS with their real arity, so `--overrides '{...}'` is still split
+ * where kubectl splits it and the verb is still found, and every write that
+ * carries one is refused in evaluateArgs — in every spelling, because
+ * parseArgs files `--override_type` and `--overrides=x` under these names —
+ * as is an allowlist entry that spells one (readAllowlistEntry). A read
+ * keeps them: no read verb takes them (kubectl refuses the command) and a
+ * read creates nothing.
+ */
+const OBJECT_OVERRIDE_FLAGS: Array<string> = ["overrides", "override-type"];
+
+/*
  * ---- Output formats --------------------------------------------------------
  *
  * -o/--output values, compared lowercased. Formats that take an argument
@@ -743,10 +799,21 @@ const NODE_NAME_VERBS: Set<string> = new Set<string>([
 /*
  * Node verbs that move pods off a node in every namespace (a drain evicts
  * them; a NoExecute taint makes the node evict them, and any taint decides
- * which pods it keeps). They carry `requiresHuman`: nothing an operator sets
- * on the cluster runs them unattended (see the header).
+ * which pods it keeps), with what the approval card says about each. They
+ * carry `requiresHuman`: nothing an operator sets on the cluster runs them
+ * unattended (see the header). A patch of a Node carries it too
+ * (NODE_PATCH_ALWAYS_HUMAN_REASON): a taint is only the Node's spec.taints.
+ * describeAlwaysHumanWrite() is the one place that reads these.
  */
-const ALWAYS_HUMAN_VERBS: Set<string> = new Set<string>(["drain", "taint"]);
+const ALWAYS_HUMAN_VERB_REASONS: Record<string, string> = {
+  drain:
+    "kubectl drain evicts every pod on the node, in every namespace (kube-system and the OneUptime agent's own included), so a human always approves it",
+  taint:
+    "kubectl taint decides which pods a node keeps, in every namespace (kube-system and the OneUptime agent's own included; a NoExecute taint evicts the rest at once), so a human always approves it",
+};
+
+const NODE_PATCH_ALWAYS_HUMAN_REASON: string =
+  "kubectl patch of a Node can set, replace or clear its taints, which decide which pods the node keeps, in every namespace (kube-system and the OneUptime agent's own included; a NoExecute taint evicts the rest at once), so a human always approves it, whatever the patch body says (kubectl cordon and uncordon change scheduling on one node without one)";
 
 /*
  * The write verbs evaluateArgs tiers in a branch of their own (the ones that
@@ -1092,6 +1159,18 @@ const RESERVED_KEY_DOMAINS: Array<string> = [
 const POD_SECURITY_KEY_DOMAIN: string = "pod-security.kubernetes.io";
 
 /*
+ * The AppArmor profile as an annotation on a pod (or a pod template):
+ * `container.apparmor.security.beta.kubernetes.io/<container>: unconfined`.
+ * It is the deprecated spelling of securityContext.appArmorProfile (the API
+ * server copies it into that field when it creates a pod, for as long as it
+ * supports the annotation) and a Pod Security Standards baseline control of
+ * its own, so a patch body may not name one, like a POD_SECURITY_PATCH_KEYS
+ * field. Matched as this domain or a subdomain of it.
+ */
+const APPARMOR_ANNOTATION_KEY_DOMAIN: string =
+  "apparmor.security.beta.kubernetes.io";
+
+/*
  * ClusterRole aggregation: a ClusterRole labelled with one of these has its
  * rules merged into admin / edit / view (and so granted to everyone bound
  * to them). That is an RBAC grant, Denied like creating a binding.
@@ -1113,6 +1192,20 @@ const RBAC_AGGREGATION_KEY_PREFIX: string =
  * set resources say the same thing more plainly). A patch that replaces or
  * removes an object ABOVE these fields drops them without naming any; that
  * is refused by findPodSpecReplacement (see POD_SPEC_PATH_STEPS).
+ *
+ * The host and isolation fields cover every control of the Pod Security
+ * Standards baseline profile (and the restricted profile adds nothing
+ * outside securityContext and volumes): the host namespaces (hostNetwork,
+ * hostPID, hostIPC), hostPath volumes, a container port's hostPort (it binds
+ * the node's own IP), and — under securityContext — privileged,
+ * capabilities, hostProcess, SELinux, AppArmor, seccomp, procMount and
+ * sysctls; plus what weakens a pod's isolation outside those: hostUsers
+ * (true, the default, takes away the user namespace false gives the pod),
+ * runtimeClassName (it can move the pod off a sandboxed runtime) and
+ * shareProcessNamespace. Two baseline controls are refused beside this list,
+ * because a name alone does not say what they are: the AppArmor annotation
+ * (APPARMOR_ANNOTATION_KEY_DOMAIN) and the host of a probe or lifecycle hook
+ * (HOST_FIELD_HANDLER_KEYS; `host` elsewhere is no pod field).
  */
 const POD_SECURITY_PATCH_KEYS: Set<string> = new Set<string>(
   [
@@ -1126,6 +1219,10 @@ const POD_SECURITY_PATCH_KEYS: Set<string> = new Set<string>(
     "hostNetwork",
     "hostPID",
     "hostIPC",
+    "hostPort",
+    "hostUsers",
+    "runtimeClassName",
+    "shareProcessNamespace",
     "volumes",
     "volumeMounts",
     "initContainers",
@@ -1502,17 +1599,46 @@ function everyBuiltinKindIn(
 }
 
 /*
+ * The commands that read the words after their objects as updates, KEY=VALUE
+ * or KEY- (kubectl's GetResourcesAndPairs for label, annotate and set image,
+ * SplitEnvironmentFromResources for set env, and taint's own split): for
+ * these, and only these, the objects end at the first such word. (taint also
+ * ends them at a KEY:EFFECT word; reading that as one more object only adds
+ * an object.) Every other verb hands kubectl's resource builder ALL of its
+ * words, `=` or not, and kubectl goes on to the next object when one fails:
+ * checked with the pinned kubectl v1.36.4 against a fake API server, `get
+ * pod/a=b secret/s` prints the Secret and `patch pod/a=b node/n1` patches
+ * the Node, each after the missing pod's error.
+ */
+function readsObjectsThenPairs(verb: string, subcommand: string): boolean {
+  if (verb === "label" || verb === "annotate" || verb === "taint") {
+    return true;
+  }
+
+  return verb === "set" && (subcommand === "image" || subcommand === "env");
+}
+
+/*
  * The object tokens of a command, split the way kubectl splits positionals:
- * after the verb (and the subcommand, for rollout and set), the leading
- * tokens that are not KEY=VALUE or KEY- pairs — kubectl's
- * GetResourcesAndPairs. So `label pod web-1 app=web` names only the pod, and
- * `label pod web-1 secret/rotated=true` names no Secret.
+ * the words after the verb (and the subcommand, for rollout and set) — for
+ * the commands that take updates (readsObjectsThenPairs), only the leading
+ * words that are not KEY=VALUE or KEY- pairs. So `label pod web-1 app=web`
+ * names only the pod, and `label pod web-1 secret/rotated=true` names no
+ * Secret, while `get pod/a=b secret/s` names the Secret. For set selector
+ * the last word is the selector expression, not an object; it is kept here,
+ * which can only add an object to what the deny lists read.
  */
 function objectTokens(verb: string, positionals: Array<string>): Array<string> {
   const start: number = verb === "rollout" || verb === "set" ? 2 : 1;
+  const words: Array<string> = positionals.slice(start);
+
+  if (!readsObjectsThenPairs(verb, (positionals[1] || "").toLowerCase())) {
+    return words;
+  }
+
   const tokens: Array<string> = [];
 
-  for (const token of positionals.slice(start)) {
+  for (const token of words) {
     if (token.includes("=") || token.endsWith("-")) {
       break;
     }
@@ -1520,6 +1646,55 @@ function objectTokens(verb: string, positionals: Array<string>): Array<string> {
   }
 
   return tokens;
+}
+
+/*
+ * The objects a write names: after the verb for delete, after the verb's
+ * object tokens for the other object verbs (after the subcommand for
+ * rollout and set), and none for node verbs and create. evaluateArgs and
+ * the allowlist's reading of an entry (allowlistMayPromote) both use this,
+ * so the two can never disagree about what a command acts on.
+ */
+function commandTargets(verb: string, positionals: Array<string>): NamedKinds {
+  if (verb === "delete") {
+    return namedKinds(positionals.slice(1));
+  }
+
+  return OBJECT_VERBS.has(verb)
+    ? namedKinds(objectTokens(verb, positionals))
+    : namedKinds([]);
+}
+
+/*
+ * True when one of the objects is the built-in Node, in any spelling kubectl
+ * resolves to it (builtinKind(): node, nodes, no, Node, nodes.v1., no/NAME).
+ * A custom resource that borrows the name (`nodes.example.com`) is not.
+ */
+function namesBuiltinNode(targets: NamedKinds): boolean {
+  return targets.rawKinds.some((rawKind: string) => {
+    return builtinKind(rawKind) === "node";
+  });
+}
+
+/*
+ * Why nothing an operator sets on the cluster runs this write unattended —
+ * a drain, a taint, or a patch of a Node (see the header) — or undefined.
+ * A write that gets a reason here carries `requiresHuman`, and an allowlist
+ * entry that names one pre-approves nothing.
+ */
+function describeAlwaysHumanWrite(
+  verb: string,
+  targets: NamedKinds,
+): string | undefined {
+  if (Object.prototype.hasOwnProperty.call(ALWAYS_HUMAN_VERB_REASONS, verb)) {
+    return ALWAYS_HUMAN_VERB_REASONS[verb];
+  }
+
+  if (verb === "patch" && namesBuiltinNode(targets)) {
+    return NODE_PATCH_ALWAYS_HUMAN_REASON;
+  }
+
+  return undefined;
 }
 
 /*
@@ -1568,6 +1743,10 @@ function isPodSecurityKey(key: string): boolean {
   return isDomainOrSubdomain(keyDomain(key), POD_SECURITY_KEY_DOMAIN);
 }
 
+function isAppArmorAnnotationKey(key: string): boolean {
+  return isDomainOrSubdomain(keyDomain(key), APPARMOR_ANNOTATION_KEY_DOMAIN);
+}
+
 function isRbacAggregationKey(key: string): boolean {
   return key.toLowerCase().startsWith(RBAC_AGGREGATION_KEY_PREFIX);
 }
@@ -1577,14 +1756,16 @@ const MAX_PATCH_BODY_DEPTH: number = 64;
 /*
  * findForbiddenJsonField's answer for a body nested past
  * MAX_PATCH_BODY_DEPTH. It can never equal a field it reports, which are
- * POD_SECURITY_PATCH_KEYS and Pod Security Admission label keys.
+ * POD_SECURITY_PATCH_KEYS, Pod Security Admission label keys, AppArmor
+ * annotation keys and a probe's or hook's host (httpGet.host).
  */
 const PATCH_BODY_TOO_DEEP: string = "\0too-deep";
 
 /*
  * Why a `kubectl patch` body may not run, or null. The body must be JSON,
- * and the JSON is walked for POD_SECURITY_PATCH_KEYS and Pod Security
- * Admission labels (keys, and the path/from of JSON-patch operations,
+ * and the JSON is walked for POD_SECURITY_PATCH_KEYS, Pod Security
+ * Admission labels, AppArmor annotations and the host of a probe or
+ * lifecycle hook (keys, and the path/from of JSON-patch operations,
  * decoded, so a \u escape or a ~1 cannot hide a name).
  *
  * Why JSON only: kubectl sends a body whose first non-space byte is "{" to
@@ -1616,7 +1797,7 @@ function findPatchBodyProblem(
     return `kubectl patch with a body that is not JSON is never allowed for OneUptime AI: kubectl reads any other body as YAML, whose tags, anchors and merge keys can spell a field name that appears nowhere in the text (write the patch body as JSON, e.g. -p '{"spec":{"replicas":3}}')`;
   }
 
-  const field: string | null = findForbiddenJsonField(parsed, 0);
+  const field: string | null = findForbiddenJsonField(parsed, 0, "");
 
   if (field === PATCH_BODY_TOO_DEEP) {
     return `kubectl patch with a body nested more than ${MAX_PATCH_BODY_DEPTH} levels deep is never allowed for OneUptime AI (no fix needs one)`;
@@ -2006,21 +2187,58 @@ function describeJsonPointer(pointer: string): string {
   return pointer === "" ? "the whole object" : pointer;
 }
 
-function forbiddenFieldInName(name: string): string | null {
+/*
+ * The probe and lifecycle-hook handlers whose `host` the Pod Security
+ * Standards baseline refuses (its Host Probes / Lifecycle Hooks control,
+ * Kubernetes v1.34+): a liveness, readiness or startup probe, or a postStart
+ * or preStop hook, with httpGet.host or tcpSocket.host makes the kubelet
+ * connect from the node to any address it names instead of to the pod. The
+ * name check reads `host` only as a member of one of these (lowercased): a
+ * `host` anywhere else, such as an Ingress rule's, is no pod field.
+ */
+const HOST_FIELD_HANDLER_KEYS: Set<string> = new Set<string>([
+  "httpget",
+  "tcpsocket",
+]);
+
+const HANDLER_HOST_KEY: string = "host";
+
+/*
+ * Why a key (or a JSON-pointer segment) may not appear in a patch body, as
+ * the field to name, or null. `parentKey` is the key of the object that
+ * holds it ("" at the top, and for a list element), for the fields that are
+ * forbidden only where they sit (HOST_FIELD_HANDLER_KEYS).
+ */
+function forbiddenFieldInName(name: string, parentKey: string): string | null {
   if (POD_SECURITY_PATCH_KEYS.has(name.toLowerCase())) {
     return name;
   }
-  if (isPodSecurityKey(name)) {
+  if (isPodSecurityKey(name) || isAppArmorAnnotationKey(name)) {
     return name;
+  }
+  if (
+    name.toLowerCase() === HANDLER_HOST_KEY &&
+    HOST_FIELD_HANDLER_KEYS.has(parentKey.toLowerCase())
+  ) {
+    return `${parentKey}.${name}`;
   }
   return null;
 }
 
+// A JSON pointer ("/spec/template/spec/volumes/-"), decoded segment by segment.
+function jsonPointerSegments(pointer: string): Array<string> {
+  return pointer.split("/").map(decodeJsonPointerSegment);
+}
+
 // A JSON-pointer path ("/spec/template/spec/volumes/-"), segment by segment.
 function forbiddenFieldInPath(path: string): string | null {
-  for (const rawSegment of path.split("/")) {
-    const segment: string = decodeJsonPointerSegment(rawSegment);
-    const found: string | null = forbiddenFieldInName(segment);
+  const segments: Array<string> = jsonPointerSegments(path);
+
+  for (let index: number = 0; index < segments.length; index++) {
+    const found: string | null = forbiddenFieldInName(
+      segments[index]!,
+      index > 0 ? segments[index - 1]! : "",
+    );
     if (found) {
       return found;
     }
@@ -2028,7 +2246,18 @@ function forbiddenFieldInPath(path: string): string | null {
   return null;
 }
 
-function findForbiddenJsonField(value: unknown, depth: number): string | null {
+/*
+ * The first forbidden field a parsed patch body names (see
+ * forbiddenFieldInName), PATCH_BODY_TOO_DEEP, or null. `parentKey` is the
+ * key that holds `value` — for a JSON-patch operation's value, the last
+ * segment of its path, so `{"op": "add", "path": ".../httpGet", "value":
+ * {"host": ...}}` is read like the same object written in place.
+ */
+function findForbiddenJsonField(
+  value: unknown,
+  depth: number,
+  parentKey: string,
+): string | null {
   // Nesting this deep is not a patch a fix needs; refuse rather than recurse.
   if (depth > MAX_PATCH_BODY_DEPTH) {
     return PATCH_BODY_TOO_DEEP;
@@ -2036,7 +2265,7 @@ function findForbiddenJsonField(value: unknown, depth: number): string | null {
 
   if (Array.isArray(value)) {
     for (const item of value) {
-      const found: string | null = findForbiddenJsonField(item, depth + 1);
+      const found: string | null = findForbiddenJsonField(item, depth + 1, "");
       if (found) {
         return found;
       }
@@ -2053,9 +2282,14 @@ function findForbiddenJsonField(value: unknown, depth: number): string | null {
     record,
     "op",
   );
+  const operationPath: unknown = record["path"];
+  const operationValueParent: string =
+    isJsonPatchOperation && typeof operationPath === "string"
+      ? jsonPointerSegments(operationPath).pop() || ""
+      : "";
 
   for (const [key, child] of Object.entries(record)) {
-    const keyProblem: string | null = forbiddenFieldInName(key);
+    const keyProblem: string | null = forbiddenFieldInName(key, parentKey);
     if (keyProblem) {
       return keyProblem;
     }
@@ -2067,6 +2301,7 @@ function findForbiddenJsonField(value: unknown, depth: number): string | null {
     if (key.startsWith("$") && key.includes("/")) {
       const directiveProblem: string | null = forbiddenFieldInName(
         key.slice(key.indexOf("/") + 1),
+        parentKey,
       );
       if (directiveProblem) {
         return directiveProblem;
@@ -2084,7 +2319,11 @@ function findForbiddenJsonField(value: unknown, depth: number): string | null {
       }
     }
 
-    const found: string | null = findForbiddenJsonField(child, depth + 1);
+    const found: string | null = findForbiddenJsonField(
+      child,
+      depth + 1,
+      isJsonPatchOperation && key === "value" ? operationValueParent : key,
+    );
     if (found) {
       return found;
     }
@@ -2167,15 +2406,26 @@ function hasWildcard(token: string): boolean {
 }
 
 /*
- * Whether evaluateForAutoExecution can ever promote a command with this verb
- * through the allowlist: never a read (it runs anyway), and never a drain or
- * taint (it always needs a human).
+ * Whether evaluateForAutoExecution can ever promote a command this entry
+ * matches through the allowlist: never a read (it runs anyway), and never a
+ * drain, a taint or a patch that names a Node (it always needs a human;
+ * describeAlwaysHumanWrite reads the entry's objects exactly as it reads a
+ * command's, so `kubectl patch node * -p *` promotes nothing). A `*` where
+ * the kind goes may still stand for a Node, but it stands for every other
+ * kind as well, so such an entry is broad, and the Node commands it matches
+ * need a human all the same.
  */
-function allowlistMayPromote(verb: string, subcommand: string): boolean {
+function allowlistMayPromote(parsed: ParsedArgs): boolean {
+  const verb: string = parsed.positionals[0] || "";
+  const subcommand: string = parsed.positionals[1] || "";
+
+  if (READ_VERBS.has(verb) || READ_COMMAND_GROUPS.has(verb)) {
+    return false;
+  }
+
   if (
-    READ_VERBS.has(verb) ||
-    READ_COMMAND_GROUPS.has(verb) ||
-    ALWAYS_HUMAN_VERBS.has(verb)
+    describeAlwaysHumanWrite(verb, commandTargets(verb, parsed.positionals)) !==
+    undefined
   ) {
     return false;
   }
@@ -2551,17 +2801,17 @@ export default class KubectlPolicy {
       parsed.flags.has("field-selector");
     const hasForce: boolean = parsed.flags.has("force");
 
+    // The objects a write names (see commandTargets).
+    const targets: NamedKinds = commandTargets(verb, parsed.positionals);
+
     /*
-     * The objects a write names: after the verb for delete, after the
-     * verb's object tokens for the other object verbs (after the
-     * subcommand for rollout and set), and none for node verbs and create.
+     * Set for a drain, a taint and a patch of a Node: the write carries
+     * requiresHuman, whatever tier it gets (see the header).
      */
-    const targets: NamedKinds =
-      verb === "delete"
-        ? namedKinds(parsed.positionals.slice(1))
-        : OBJECT_VERBS.has(verb)
-          ? namedKinds(objectTokens(verb, parsed.positionals))
-          : namedKinds([]);
+    const alwaysHumanReason: string | undefined = describeAlwaysHumanWrite(
+      verb,
+      targets,
+    );
 
     const createKind: string | undefined =
       verb === "create" &&
@@ -2610,8 +2860,8 @@ export default class KubectlPolicy {
     /*
      * The result for a command that may run. A write that lands in (or
      * targets) a protected namespace is lifted from SafeWrite to RiskyWrite
-     * and marked, and a drain or taint is marked too, so
-     * evaluateForAutoExecution never runs either unattended.
+     * and marked, and a drain, a taint or a patch of a Node is marked too,
+     * so evaluateForAutoExecution never runs either unattended.
      */
     const allowed: (
       tier: KubectlCommandTier,
@@ -2638,12 +2888,9 @@ export default class KubectlPolicy {
         return result;
       }
 
-      if (ALWAYS_HUMAN_VERBS.has(verb)) {
+      if (alwaysHumanReason !== undefined) {
         result.requiresHuman = true;
-        result.reason =
-          verb === "drain"
-            ? "kubectl drain evicts every pod on the node, in every namespace (kube-system and the OneUptime agent's own included), so a human always approves it"
-            : "kubectl taint decides which pods a node keeps, in every namespace (kube-system and the OneUptime agent's own included; a NoExecute taint evicts the rest at once), so a human always approves it";
+        result.reason = alwaysHumanReason;
       }
 
       if (!protectedNamespace) {
@@ -2652,11 +2899,16 @@ export default class KubectlPolicy {
 
       result.protectedNamespace = protectedNamespace;
 
+      /*
+       * Built on result.reason, so a write that needs a human for both
+       * reasons (a patch of a Node and of a workload in kube-system) says
+       * both.
+       */
       if (tier === KubectlCommandTier.SafeWrite) {
         result.tier = KubectlCommandTier.RiskyWrite;
-        result.reason = `${reason}, but it changes the protected namespace ${protectedNamespace}, so a human must approve it`;
+        result.reason = `${result.reason}, but it changes the protected namespace ${protectedNamespace}, so a human must approve it`;
       } else {
-        result.reason = `${reason}; it changes the protected namespace ${protectedNamespace}, which always needs a human`;
+        result.reason = `${result.reason}; it changes the protected namespace ${protectedNamespace}, which always needs a human`;
       }
 
       return result;
@@ -2841,6 +3093,26 @@ export default class KubectlPolicy {
     }
 
     // ---- Write tiers -----------------------------------------------------
+
+    /*
+     * --overrides decides what kubectl expose creates, so the command no
+     * longer says it (see the header and OBJECT_OVERRIDE_FLAGS).
+     */
+    const overrideFlag: string | undefined = OBJECT_OVERRIDE_FLAGS.find(
+      (flag: string) => {
+        return parsed.flags.has(flag);
+      },
+    );
+
+    if (overrideFlag !== undefined) {
+      const label: string = SUBCOMMAND_VERBS.has(verb)
+        ? `${verb} ${subcommand}`
+        : verb;
+      return deny(
+        `kubectl ${label} with --${overrideFlag} is never allowed for OneUptime AI: --overrides (merged as --override-type says) replaces the object kubectl expose generates with whatever its JSON describes, of any kind and in any namespace (a ClusterRoleBinding, a PriorityClass, a Job running any image), so the command no longer says what it creates (write the Service kubectl expose makes with its own flags: --port, --target-port, --name, --type, --protocol)`,
+        label,
+      );
+    }
 
     if (hasAllNamespaces) {
       const label: string = verb === "rollout" ? `rollout ${subcommand}` : verb;
@@ -3220,8 +3492,9 @@ export default class KubectlPolicy {
    * cluster bypasses approvals or the operator allowlisted its exact shape
    * (matchesAllowlist: token by token, see the allowlist section in the
    * header); Denied stays Denied; and a write in a protected namespace, a
-   * node drain and a taint always need a human. Suggest mode never consults
-   * this — everything there is RequiresApproval by construction.
+   * node drain, a taint and a patch of a Node always need a human. Suggest
+   * mode never consults this — everything there is RequiresApproval by
+   * construction.
    */
   public static evaluateForAutoExecution(data: {
     command: string;
@@ -3231,7 +3504,7 @@ export default class KubectlPolicy {
      * too. Denied stays Denied — that tier is what "even with approval"
      * means, and bypassing approval cannot grant more than approval would.
      * Nor does it reach a protected namespace (kube-system and friends), a
-     * drain or a taint.
+     * drain, a taint or a patch of a Node.
      */
     bypassApproval?: boolean | undefined;
   }): KubectlAutoExecutionVerdict {
@@ -3268,12 +3541,12 @@ export default class KubectlPolicy {
       };
     }
 
-    // Nor does anything let it drain or taint a node on its own.
+    // Nor does anything let it drain, taint or patch a node on its own.
     if (result.requiresHuman) {
       return {
         verdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
         tier: result.tier,
-        reason: `Requires human approval: ${result.reason}. Neither bypassing approvals nor the cluster's allowlist applies to a node drain or taint.`,
+        reason: `Requires human approval: ${result.reason}. Neither bypassing approvals nor the cluster's allowlist applies to a node drain or taint, or to a patch of a Node.`,
         requiresHuman: true,
       };
     }
@@ -3405,8 +3678,11 @@ export default class KubectlPolicy {
     const verb: string = parsed.positionals[0] || "";
     const subcommand: string = parsed.positionals[1] || "";
 
-    // Reads, drains and taints are never promoted: the entry pre-approves nothing.
-    if (!allowlistMayPromote(verb, subcommand)) {
+    /*
+     * Reads, drains, taints and patches of a Node are never promoted: the
+     * entry pre-approves nothing.
+     */
+    if (!allowlistMayPromote(parsed)) {
       return false;
     }
 
@@ -3560,6 +3836,23 @@ export default class KubectlPolicy {
     if (parsed.violation) {
       return {
         problem: `"${shown}" can never match a command that runs: ${parsed.violation}.`,
+      };
+    }
+
+    /*
+     * Refused by evaluateArgs rather than by the parser (see
+     * OBJECT_OVERRIDE_FLAGS), so every command such an entry could match is
+     * Denied all the same.
+     */
+    const overrideFlag: string | undefined = OBJECT_OVERRIDE_FLAGS.find(
+      (flag: string) => {
+        return parsed.flags.has(flag);
+      },
+    );
+
+    if (overrideFlag !== undefined) {
+      return {
+        problem: `"${shown}" can never match a command that runs: the --${overrideFlag} flag is never allowed for OneUptime AI, because --overrides lets kubectl expose create an object of any kind, in any namespace, instead of the Service the command names.`,
       };
     }
 

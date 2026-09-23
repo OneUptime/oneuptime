@@ -405,6 +405,16 @@ const POD_SECURITY_FIELDS: Array<string> = [
   "hostNetwork",
   "hostPID",
   "hostIPC",
+  /*
+   * The Pod Security Standards baseline's Host Ports control and the
+   * isolation fields beside it; they were RiskyWrite (AutoApproved under
+   * Bypass approval) until the name check listed them. More shapes in
+   * KubectlPolicyPodSecurityBaseline.test.ts.
+   */
+  "hostPort",
+  "hostUsers",
+  "runtimeClassName",
+  "shareProcessNamespace",
   "volumes",
   "volumeMounts",
   "initContainers",
@@ -1124,7 +1134,13 @@ describe("KubectlPolicy denials", () => {
 
   describe("patch bodies that change a pod's identity, privileges, host access, Secrets or program are Denied", () => {
     it("forbids exactly the documented fields", () => {
-      expect(POD_SECURITY_FIELDS).toHaveLength(20);
+      /*
+       * 24 since hostPort, hostUsers, runtimeClassName and
+       * shareProcessNamespace joined the name check (the Pod Security
+       * Standards baseline's Host Ports control and the isolation fields
+       * beside it).
+       */
+      expect(POD_SECURITY_FIELDS).toHaveLength(24);
     });
 
     it.each(DENIED_PATCH_BODIES)("denies %s", (command: string) => {
