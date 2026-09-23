@@ -13,7 +13,15 @@ const GlobalWorkflowVariableView: FunctionComponent<
   return (
     <Fragment>
       {/* No workflowId - one of the project's global variables. */}
-      <WorkflowVariableView variableId={variableId} />
+      {/*
+       * Keyed by the variable, so moving straight from one variable's page to
+       * another's mounts a fresh page rather than handing the new variable to
+       * an instance with the old one's requests still in flight.
+       */}
+      <WorkflowVariableView
+        key={variableId.toString()}
+        variableId={variableId}
+      />
     </Fragment>
   );
 };

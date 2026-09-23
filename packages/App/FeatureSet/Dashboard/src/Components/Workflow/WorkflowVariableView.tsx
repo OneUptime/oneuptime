@@ -142,9 +142,10 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
 
   /*
    * Bumped by every load (and on unmount). A response only lands if no newer
-   * load has started since, so a slow read of the previous variable - after
-   * moving from one variable's page to another's - can never replace the one
-   * on screen.
+   * load has started since, so a slow read - a reload after one save coming
+   * back after the reload of the next - can never replace a newer one. Moving
+   * to another variable's page is handled by the page wrappers instead: they
+   * key this component by the variable, so the new page is a new instance.
    */
   const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
 

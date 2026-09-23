@@ -13,7 +13,17 @@ const WorkflowVariableViewPage: FunctionComponent<
 
   return (
     <Fragment>
-      <WorkflowVariableView variableId={variableId} workflowId={workflowId} />
+      {/*
+       * Keyed by the workflow and the variable, so moving straight from one
+       * variable's page to another's mounts a fresh page rather than handing
+       * the new variable to an instance with the old one's requests still in
+       * flight.
+       */}
+      <WorkflowVariableView
+        key={`${workflowId.toString()}/${variableId.toString()}`}
+        variableId={variableId}
+        workflowId={workflowId}
+      />
     </Fragment>
   );
 };

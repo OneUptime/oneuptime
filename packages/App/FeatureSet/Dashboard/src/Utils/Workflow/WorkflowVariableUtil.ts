@@ -74,26 +74,6 @@ export interface TokenRefreshOutcome {
   savedWhat?: string | undefined;
   expiresAt?: Date | null | undefined;
   error?: string | undefined;
-  /*
-   * OneUptime itself turned the request down - the caller may not update the
-   * variable, or is not signed in - so the identity provider was never asked.
-   */
-  isRefusedByOneUptime?: boolean | undefined;
-}
-
-/*
- * What the refresh route answers when OneUptime, not the identity provider,
- * says no: NotAuthenticatedException (401), a plain 403, and
- * NotAuthorizedException (422). A provider's refusal comes back as a
- * BadDataException (400) carrying the provider's own words.
- */
-const ONEUPTIME_REFUSAL_STATUS_CODES: Array<number> = [401, 403, 422];
-
-export function isRefusedByOneUptime(err: unknown): boolean {
-  return (
-    err instanceof HTTPErrorResponse &&
-    ONEUPTIME_REFUSAL_STATUS_CODES.includes(err.statusCode)
-  );
 }
 
 /*
@@ -128,7 +108,6 @@ export async function fetchTokenRefreshOutcome(data: {
       variableName,
       savedWhat: data.savedWhat,
       error: API.getFriendlyMessage(err),
-      isRefusedByOneUptime: isRefusedByOneUptime(err),
     };
   }
 }
@@ -144,12 +123,15 @@ export function getTokenRefreshDescription(
 ): string {
   const saved: string = outcome.savedWhat ? `${outcome.savedWhat} saved. ` : "";
 
-  if (outcome.error && outcome.isRefusedByOneUptime) {
-    return `${saved}OneUptime did not ask your identity provider for an access token for "${outcome.variableName}": ${outcome.error}`;
-  }
-
+  /*
+   * Worded without blaming anybody. Not every failure is the identity provider
+   * saying no: some never reach it (no token URL saved, the caller may not
+   * update the variable, the variable was deleted in another tab, a network
+   * error), and the ones that do already say so themselves - "The token
+   * endpoint refused the request (HTTP 400): invalid_grant - ...".
+   */
   if (outcome.error) {
-    return `${saved}OneUptime asked your identity provider for an access token for "${outcome.variableName}" and it said no: ${outcome.error}`;
+    return `${saved}OneUptime could not fetch an access token for "${outcome.variableName}": ${outcome.error}`;
   }
 
   return `${saved}OneUptime fetched a new access token for "${outcome.variableName}" from your identity provider. ${
