@@ -16,8 +16,8 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 
 /*
- * The "Token" cell of an OAuth 2.0 variable's row: what state its cached
- * access token is in, the one line somebody needs next to it, and - for
+ * The "Access Token" card on an OAuth 2.0 variable's page: what state its
+ * cached access token is in, the one line somebody needs next to it, and - for
  * whoever may update the variable - a "Refresh now" button.
  *
  * "Expired" is amber, not red, on purpose. It is the normal state of a
@@ -25,9 +25,11 @@ import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
  * a new token - so painting it as a failure would train people to ignore the
  * red that actually means something: a refresh that failed.
  *
- * The refresh lives here rather than among the row actions because it acts on
- * exactly what this cell shows, and because a fifth row action pushed the
- * actions column off screen on an ordinary laptop.
+ * A failed refresh shows the whole message. It used to be cut to 160
+ * characters to fit a table cell, which left room for the provider's error code
+ * and little else - the part that says what to do about it (replace the
+ * refresh token, check the client secret) came last and never showed. The
+ * server already caps the stored message.
  */
 
 export interface RefreshAction {
@@ -44,8 +46,6 @@ export interface ComponentProps {
   // For tests; the table always renders against the current time.
   now?: Date | undefined;
 }
-
-const MAX_ERROR_PREVIEW_LENGTH: number = 160;
 
 type FormatDateFunction = (date: Date) => string;
 
@@ -67,7 +67,6 @@ const WorkflowVariableTokenStatus: FunctionComponent<ComponentProps> = (
   let color: Color = Gray500;
   let icon: IconProp = IconProp.Clock;
   let detail: string = "";
-  let tooltip: string | undefined = undefined;
 
   switch (summary.status) {
     case OAuth2TokenStatus.Valid:
@@ -90,12 +89,7 @@ const WorkflowVariableTokenStatus: FunctionComponent<ComponentProps> = (
     case OAuth2TokenStatus.RefreshFailed: {
       color = Red500;
       icon = IconProp.Error;
-      const message: string = summary.lastRefreshError || "";
-      detail =
-        message.length > MAX_ERROR_PREVIEW_LENGTH
-          ? `${message.substring(0, MAX_ERROR_PREVIEW_LENGTH)}…`
-          : message;
-      tooltip = message;
+      detail = summary.lastRefreshError || "";
 
       if (summary.lastRefreshErrorAt) {
         detail = `${formatDate(summary.lastRefreshErrorAt)}: ${detail}`;
@@ -117,14 +111,11 @@ const WorkflowVariableTokenStatus: FunctionComponent<ComponentProps> = (
       data-testid="workflow-variable-token-status"
       data-status={summary.status}
     >
-      <Pill text={summary.status} color={color} icon={icon} tooltip={tooltip} />
+      <Pill text={summary.status} color={color} icon={icon} />
       {detail ? (
-        /*
-         * whitespace-normal: table cells are nowrap, and a refresh error is a
-         * sentence or two - unwrapped it pushed the row actions off screen.
-         */
+        // A refresh error is a sentence or two, so let it wrap.
         <span
-          className="max-w-xs whitespace-normal break-words text-xs text-gray-500"
+          className="whitespace-normal break-words text-sm text-gray-500"
           data-testid="workflow-variable-token-status-detail"
         >
           {detail}

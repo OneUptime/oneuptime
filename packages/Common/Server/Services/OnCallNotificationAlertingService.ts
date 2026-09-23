@@ -235,9 +235,10 @@ export class OnCallNotificationAlertingService extends BaseService {
       user: user,
     });
 
-    const policyOwners: Array<User> = await this.findOnCallDutyPolicyOwners(
-      data.onCallDutyPolicyId,
-    );
+    const policyOwners: Array<User> = await this.findOnCallDutyPolicyOwners({
+      projectId: data.projectId,
+      onCallDutyPolicyId: data.onCallDutyPolicyId,
+    });
 
     if (policyOwners.length > 0) {
       for (const owner of policyOwners) {
@@ -512,13 +513,17 @@ export class OnCallNotificationAlertingService extends BaseService {
   }
 
   /*
-   * The policy's own owners: direct owner users, plus every member of an owner team.
-   * Returns [] when no policy id was supplied, which is the caller's signal to fall back
-   * to the project owners.
+   * The policy's own owners: direct owner users, plus the accepted members of each owner
+   * team, keeping only accepted members of the project. Returns [] when no policy id was
+   * supplied or none of its owners is still a member, which is the caller's signal to
+   * fall back to the project owners.
    */
-  private async findOnCallDutyPolicyOwners(
-    onCallDutyPolicyId: ObjectID | undefined,
-  ): Promise<Array<User>> {
+  private async findOnCallDutyPolicyOwners(input: {
+    projectId: ObjectID;
+    onCallDutyPolicyId: ObjectID | undefined;
+  }): Promise<Array<User>> {
+    const { projectId, onCallDutyPolicyId } = input;
+
     if (!onCallDutyPolicyId) {
       return [];
     }
@@ -592,15 +597,33 @@ export class OnCallNotificationAlertingService extends BaseService {
     }
 
     if (teamIds.length > 0) {
-      const teamUsers: Array<User> =
-        await TeamMemberService.getUsersInTeams(teamIds);
+      /*
+       * Accepted rows only. Acceptance is per team row and a pending row grants none of
+       * the team's permissions, so someone whose invitation to an owner team is still
+       * pending does not own the policy through it, even if they belong to another team
+       * in the project.
+       */
+      const teamUsers: Array<User> = await TeamMemberService.getUsersInTeams(
+        teamIds,
+        { acceptedOnly: true },
+      );
 
       for (const teamUser of teamUsers) {
         addUser(teamUser);
       }
     }
 
-    return users;
+    /*
+     * This mail is sent straight through MailService, not through the recipients'
+     * notification settings, so nothing downstream checks that they belong to the
+     * project. An owner who left or never joined must not get project-internal mail, and
+     * a policy whose owners are all such users has to come back empty so the caller
+     * falls back to the project owners instead of telling nobody who can act.
+     */
+    return TeamMemberService.filterUsersToProjectMembers({
+      projectId: projectId,
+      users: users,
+    });
   }
 
   private async sendSimpleMessage(input: {

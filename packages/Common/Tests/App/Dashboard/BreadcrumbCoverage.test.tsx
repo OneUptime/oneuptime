@@ -12,6 +12,7 @@ import RouteMap, {
   SettingsRoutePath,
   SloRoutePath,
   RouteUtil,
+  WorkflowRoutePath,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { getSloBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/Utils/Breadcrumbs";
 import { getAlertsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/AlertBreadcrumbs";
@@ -19,6 +20,7 @@ import { getIncidentsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/sr
 import { getMonitorBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/MonitorBreadcrumbs";
 import { getScheduleMaintenanceBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ScheduledMaintenanceBreadcrumbs";
 import { getSettingsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/SettingsBreadcrumbs";
+import { getWorkflowsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/WorkflowsBreadcrumbs";
 import Route from "../../../Types/API/Route";
 import Dictionary from "../../../Types/Dictionary";
 import Link from "../../../Types/Link";
@@ -79,6 +81,18 @@ const products: Array<Product> = [
     landing: PageMap.SLOS,
     routes: SloRoutePath,
     getBreadcrumbs: getSloBreadcrumbs,
+  },
+  {
+    /*
+     * WorkflowRoutePath puts the global variable view page
+     * (variables/:id) next to the workflow view page (:id) and nests a
+     * workflow's own variable page two ids deep (:id/variables/:subModelId),
+     * so this also proves `variables` is not matched as a workflow id.
+     */
+    name: "Workflows",
+    landing: PageMap.WORKFLOWS,
+    routes: WorkflowRoutePath,
+    getBreadcrumbs: getWorkflowsBreadcrumbs,
   },
 ];
 
@@ -186,6 +200,24 @@ describe("restored breadcrumb hierarchy", () => {
       getSettingsBreadcrumbs,
       ["Project", "Settings", "Telemetry Ingestion Keys", "View Key"],
       PageMap.SETTINGS_TELEMETRY_INGESTION_KEYS,
+    ],
+    [
+      PageMap.WORKFLOWS_VARIABLE_VIEW,
+      getWorkflowsBreadcrumbs,
+      ["Project", "Workflows", "Variables", "View Variable"],
+      PageMap.WORKFLOWS_VARIABLES,
+    ],
+    [
+      PageMap.WORKFLOW_VARIABLE_VIEW,
+      getWorkflowsBreadcrumbs,
+      ["Project", "Workflows", "View Workflow", "Variables", "View Variable"],
+      PageMap.WORKFLOW_VARIABLES,
+    ],
+    [
+      PageMap.WORKFLOW_VIEW_AUDIT_LOGS,
+      getWorkflowsBreadcrumbs,
+      ["Project", "Workflows", "View Workflow", "Audit Logs"],
+      PageMap.WORKFLOW_VIEW,
     ],
   ] as Array<[PageMap, BreadcrumbGetter, Array<string>, PageMap]>)(
     "%s preserves its parent link and leaf title",

@@ -75,6 +75,7 @@ import { ExtendedReplayConfig, readExtendedConfig } from "./ExtendedConfig";
 import FrustrationDetector, { FrustrationSignal } from "./FrustrationDetector";
 import Masking, { MaskInputOptionsShape } from "./Masking";
 import NetworkRecorder, { RecordedRequest } from "./NetworkRecorder";
+import OfflineStore from "./OfflineStore";
 import PerformanceRecorder, { PerformanceIssue } from "./PerformanceRecorder";
 import RollingBuffer, { BufferedEvent } from "./RollingBuffer";
 import RouteRecorder, { RecordedRoute } from "./RouteRecorder";
@@ -275,6 +276,15 @@ export interface RecorderDecisions {
   lastDirective: SessionReplayDirective | null;
   lastDirectiveReason: string | null;
   startDecision: RecorderStartDecision;
+
+  /*
+   * Offline mode: whether uploads are waiting for the network, and how many
+   * chunks are queued for when it returns. "It records but nothing arrives"
+   * on a flaky connection is answered here rather than by a network tab
+   * full of failed requests.
+   */
+  offline: boolean;
+  queuedChunks: number;
 }
 
 export type SessionChangeListener = (sessionId: string, tabId: string) => void;
@@ -555,9 +565,23 @@ export default class Recorder {
 
     this.chunker = this.createChunker();
 
+    const chunkUrl: string = getChunkUrl(this.initOptions);
+
     this.transport = new Transport({
-      url: getChunkUrl(this.initOptions),
+      url: chunkUrl,
       headers: Config.getIngestHeaders(this.initOptions),
+
+      /*
+       * Offline mode's durable queue, scoped to this application's endpoint
+       * so a second application on the same origin never uploads - or is
+       * handed - another's chunks. A page can opt out; its outages are then
+       * survived in memory only, and a tab closed while offline loses what
+       * it had queued.
+       */
+      offlineStore:
+        this.initOptions.offlineStorage === false
+          ? null
+          : new OfflineStore(`${chunkUrl}#${this.initOptions.appIdentifier}`),
       onDirective: (
         directive: SessionReplayDirective,
         reason: string | null,
@@ -870,6 +894,25 @@ export default class Recorder {
   private readonly pageShowListener: (event: PageTransitionEvent) => void;
   private readonly focusInListener: (event: Event) => void;
 
+  /*
+   * Offline mode. Recording never depends on the network; these only tell
+   * the transport when to upload what it queued (online) and to have its
+   * offline store open before a pagehide needs to write to it (offline).
+   */
+  private readonly onlineListener: () => void = (): void => {
+    debugLog("browser-online", "Back online.", {
+      queuedChunks: this.transport.getQueueDepth(),
+    });
+
+    this.transport.resume();
+  };
+
+  private readonly offlineListener: () => void = (): void => {
+    debugLog("browser-offline", "Offline; recording continues.", {});
+
+    this.transport.prepareForOffline();
+  };
+
   public start(): void {
     if (this.started || this.stopped) {
       return;
@@ -911,6 +954,13 @@ export default class Recorder {
 
       this.startDecision = "not-sampled";
       this.stopped = true;
+
+      /*
+       * Nothing is recorded on THIS page, but an earlier, sampled page may
+       * have been closed offline with a recording still queued. Uploading it
+       * does not depend on this page's draw.
+       */
+      this.restoreOfflineChunks();
       return;
     }
 
@@ -1002,6 +1052,8 @@ export default class Recorder {
       capture: true,
       passive: true,
     });
+    this.windowRef.addEventListener("online", this.onlineListener);
+    this.windowRef.addEventListener("offline", this.offlineListener);
 
     this.startRrweb();
 
@@ -1066,6 +1118,25 @@ export default class Recorder {
     this.startDecision = this.uploading
       ? "recording-and-uploading"
       : "recording-into-memory";
+
+    this.restoreOfflineChunks();
+  }
+
+  /*
+   * Offline mode: upload what an earlier page of this application recorded
+   * and could not send before it was closed. Only once uploading is allowed
+   * - those chunks are end-user content like any other, and a consent the
+   * page has not (yet) given this time is not a consent to send them - so a
+   * RequireExplicit page does this from grantConsent() instead.
+   */
+  private restoreOfflineChunks(): void {
+    if (!this.consent.isUploadAllowed()) {
+      return;
+    }
+
+    void this.transport.restorePersisted().catch((): void => {
+      /* Best effort; never an unhandled rejection on the host page. */
+    });
   }
 
   /*
@@ -2114,7 +2185,16 @@ export default class Recorder {
       return;
     }
 
-    if (this.chunker.getOpenByteSize() <= KEEPALIVE_PAYLOAD_BUDGET_BYTES) {
+    /*
+     * Offline, the terminal path stores what it is given rather than posting
+     * it, so the keepalive budget does not apply: the open chunk goes to the
+     * offline store whole, now, while the page is still alive to write it -
+     * a hidden tab is exactly the tab a mobile browser discards next.
+     */
+    if (
+      this.transport.isOffline() ||
+      this.chunker.getOpenByteSize() <= KEEPALIVE_PAYLOAD_BUDGET_BYTES
+    ) {
       this.flushTerminal(false);
       return;
     }
@@ -2155,21 +2235,31 @@ export default class Recorder {
     let split: SplitCloseResult = { emptiedSealEvents: 0, emptiedSealBytes: 0 };
 
     try {
-      /*
-       * Per PIECE and in TOTAL: the browser counts the keepalive quota
-       * across every in-flight request to an origin, so what the page can
-       * still send is one request's worth however it is cut up. Anything
-       * older than that is dropped here, counted, and reported on the
-       * envelope as droppedEvents - not minted a chunk index and handed to a
-       * request the browser will refuse. Every piece beside the sealing one
-       * is charged its envelope as well, so what is minted is what fits.
-       */
-      split = this.chunker.closeSplit(
-        isFinal,
-        KEEPALIVE_PAYLOAD_BUDGET_BYTES,
-        KEEPALIVE_PAYLOAD_BUDGET_BYTES,
-        KEEPALIVE_FRAME_OVERHEAD_BYTES,
-      );
+      if (this.transport.isOffline()) {
+        /*
+         * Offline mode: nothing is posted, the transport stores it, so there
+         * is no keepalive request to fit and no reason to drop the oldest
+         * events. The open chunk is closed whole.
+         */
+        this.chunker.close(isFinal);
+      } else {
+        /*
+         * Per PIECE and in TOTAL: the browser counts the keepalive quota
+         * across every in-flight request to an origin, so what the page can
+         * still send is one request's worth however it is cut up. Anything
+         * older than that is dropped here, counted, and reported on the
+         * envelope as droppedEvents - not minted a chunk index and handed to
+         * a request the browser will refuse. Every piece beside the sealing
+         * one is charged its envelope as well, so what is minted is what
+         * fits.
+         */
+        split = this.chunker.closeSplit(
+          isFinal,
+          KEEPALIVE_PAYLOAD_BUDGET_BYTES,
+          KEEPALIVE_PAYLOAD_BUDGET_BYTES,
+          KEEPALIVE_FRAME_OVERHEAD_BYTES,
+        );
+      }
     } finally {
       this.isTerminalFlush = false;
 
@@ -2974,6 +3064,10 @@ export default class Recorder {
     }
 
     this.startUploadingIfAllowed();
+
+    if (this.started) {
+      this.restoreOfflineChunks();
+    }
   }
 
   public revokeConsent(): void {
@@ -3258,6 +3352,8 @@ export default class Recorder {
       lastDirective: this.lastDirective,
       lastDirectiveReason: this.lastDirectiveReason,
       startDecision: this.startDecision,
+      offline: this.transport.isOffline(),
+      queuedChunks: this.transport.getQueueDepth(),
     };
   }
 
@@ -3348,17 +3444,22 @@ export default class Recorder {
       this.pageShowListener as EventListener,
     );
     this.documentRef.removeEventListener("focusin", this.focusInListener, true);
+    this.windowRef.removeEventListener("online", this.onlineListener);
+    this.windowRef.removeEventListener("offline", this.offlineListener);
 
     this.pendingCustomEvents = [];
 
     /*
      * The ring buffer holds end-user content nothing will ever send: gone
      * in every case. The transport's queue goes too, EXCEPT after a seal:
-     * those chunks are the recording the page just asked to finish.
+     * those chunks are the recording the page just asked to finish - and
+     * except at the chunk cap, whose disclosure chunk was the session's
+     * final one. Discarding there threw away every chunk still waiting out
+     * an outage, which in offline mode can be the whole session.
      */
     this.buffer.clear();
 
-    if (!seal) {
+    if (!seal && reason !== "chunk-cap") {
       this.transport.discardQueue();
     }
   }

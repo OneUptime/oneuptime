@@ -48,7 +48,7 @@ async function seed(outbox: ReplayOutbox, index: number): Promise<void> {
     envelope: frameEnvelope,
     payload: JSON.stringify([{ index }]),
     attempts: 0,
-    createdAtUnixMs: index,
+    createdAtUnixMs: Date.now() + index,
   });
 }
 
@@ -122,7 +122,7 @@ describe("mobile replay transport", () => {
       async (_url: string, init?: NonNullable<Parameters<ReplayFetch>[1]>) => {
         expect(
           Array.from(storage.values.keys()).some((key: string) => {
-            return key.endsWith("/outbox");
+            return key.endsWith("/outbox-v2");
           }),
         ).toBe(true);
         expect(init?.headers?.["Content-Type"]).toBe(
@@ -173,7 +173,12 @@ describe("mobile replay transport", () => {
       onDiagnostic: jest.fn(),
     });
     await first.enqueue(envelope(), "[]");
-    expect((await outbox.list())[0]?.attempts).toBe(1);
+    /*
+     * Offline mode: a request that never reached the server keeps the
+     * frame without spending one of its attempts.
+     */
+    expect(await outbox.list()).toHaveLength(1);
+    expect((await outbox.list())[0]?.attempts).toBe(0);
     first.destroy();
 
     const acceptedFetch: jest.MockedFunction<ReplayFetch> = jest.fn(
@@ -223,7 +228,7 @@ describe("mobile replay transport", () => {
     const uploading: Promise<void> = transport.enqueue(envelope(), "[]");
     for (
       let step: number = 0;
-      step < 20 && fetch.mock.calls.length === 0;
+      step < 200 && fetch.mock.calls.length === 0;
       step += 1
     ) {
       await Promise.resolve();
@@ -236,7 +241,9 @@ describe("mobile replay transport", () => {
     expect(onDiagnostic).toHaveBeenCalledWith("chunk-post-timeout", {
       chunkIndex: 0,
     });
-    expect((await outbox.list())[0]?.attempts).toBe(1);
+    /* A request that never got an answer is the network: no attempt spent. */
+    expect(await outbox.list()).toHaveLength(1);
+    expect((await outbox.list())[0]?.attempts).toBe(0);
     transport.destroy();
     jest.useRealTimers();
   });
@@ -267,7 +274,7 @@ describe("mobile replay transport", () => {
     const uploading: Promise<void> = transport.enqueue(envelope(), "[]");
     for (
       let step: number = 0;
-      step < 20 && fetch.mock.calls.length === 0;
+      step < 200 && fetch.mock.calls.length === 0;
       step += 1
     ) {
       await Promise.resolve();

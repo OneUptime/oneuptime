@@ -10,6 +10,7 @@ import {
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayWireEncoding from "Common/Utils/Rum/SessionReplayWireEncoding";
 import { debugLog, debugWarn } from "./Debug";
+import OfflineStore, { OfflineChunk } from "./OfflineStore";
 
 /*
  * Chunk upload.
@@ -53,6 +54,28 @@ import { debugLog, debugWarn } from "./Debug";
  *    and 429 with Retry-After when the application is over its rate. Both
  *    are the server asking for patience; counting either toward the breaker
  *    self-disabled exactly the recorders the server wanted to keep.
+ *
+ * And offline mode, which is the same idea applied to the network itself:
+ *
+ * 7. Losing the connection is not a failure either. Once this transport has
+ *    had ANY answer from the chunk endpoint - so the origin, the auth and
+ *    CORS are all known to work - a request that never reaches the server
+ *    is the network, not the installation: it costs no strike and no
+ *    attempt, and the chunk simply waits. The same when the browser itself
+ *    says it is offline (navigator.onLine === false), in which case nothing
+ *    is even attempted until its `online` event. Before that first answer a
+ *    network failure still counts toward the breaker, because that is also
+ *    exactly what a content blocker refusing the chunk URL looks like, and
+ *    a recorder must not record and queue forever for an endpoint it will
+ *    never reach.
+ *
+ *    While waiting, recording carries on. The queue is bounded by bytes and
+ *    count rather than one request's worth, so an outage of an hour loses
+ *    nothing on an ordinary page; past the bound the OLDEST chunks go, as
+ *    before, and every one lost is counted. When an OfflineStore is given,
+ *    everything queued is also written to IndexedDB, so a tab closed while
+ *    offline hands its recording to the next page of the application
+ *    (restorePersisted) instead of losing it.
  */
 
 export interface TransportOptions {
@@ -89,6 +112,13 @@ export interface TransportOptions {
    * viewer needs to know a snapshot is missing rather than be shown a gap.
    */
   onChunkTooLarge?: (compressedBytes: number) => void;
+
+  /*
+   * Offline mode's durable queue (see OfflineStore). Null or absent keeps
+   * queued chunks in memory only: the page opted out of offline storage, or
+   * the transport is under test.
+   */
+  offlineStore?: OfflineStore | null;
 }
 
 /*
@@ -111,6 +141,20 @@ interface QueuedChunk {
    * hold the queue's other seven hostage forever.
    */
   attempts: number;
+
+  /*
+   * Where the chunk stands with the offline store:
+   *
+   *   absent     not stored
+   *   "writing"  a write was issued and has not completed
+   *   "stored"   durably stored, so it is CLAIMED there before it is posted:
+   *              another tab may already have taken it (OfflineStore rule 3)
+   *   "claimed"  taken out of the store by this tab (restorePersisted). It
+   *              is not written back unless it has to wait again, because a
+   *              record written back could be claimed - and sent - by the
+   *              tab that stored it first.
+   */
+  stored?: "writing" | "stored" | "claimed";
 }
 
 /*
@@ -178,6 +222,35 @@ const MAX_RETRY_AFTER_SECONDS: number = 300;
 const MAX_ATTEMPTS_PER_CHUNK: number = 3;
 
 /*
+ * Property 7: the waits after a request that never reached the server, once
+ * the endpoint is known to work. Short at first, because most drops are
+ * brief (a tunnel, a lift, a wifi hand-over), then settling at five minutes:
+ * one small failed request every five minutes costs nothing, and the
+ * browser's `online` event, the next page load or a successful request
+ * drains the queue early anyway. None of them is a strike.
+ */
+export const OFFLINE_RETRY_MS: Array<number> = [
+  5_000, 15_000, 30_000, 60_000, 120_000, 300_000,
+];
+
+/*
+ * While the browser reports itself offline nothing is posted at all; the
+ * queue re-checks navigator.onLine this often in case its `online` event
+ * was missed. A property read, never a request.
+ */
+export const OFFLINE_POLL_MS: number = 30_000;
+
+/*
+ * How much the queue holds while it waits, in chunks and in payload
+ * characters. A chunk closes every 15 s (or at 256 KB), so 240 is an hour of
+ * a busy page; the character bound is what actually binds on a heavy one,
+ * and keeps the recorder's memory on the customer's page to a few MB however
+ * long the outage lasts.
+ */
+export const MAX_QUEUED_CHUNKS: number = 240;
+export const MAX_QUEUED_PAYLOAD_CHARS: number = 4 * 1024 * 1024;
+
+/*
  * 400s the server will answer identically for every chunk this recorder
  * could ever send: the wire version it speaks, the application it claims to
  * be, the shape of its frames. Retrying is pointless and each retry is a
@@ -228,9 +301,17 @@ export default class Transport {
   private droppedChunks: number = 0;
 
   /*
-   * Chunks that failed retryably. Bounded by the per-request frame cap: a
-   * recorder that hoards a growing backlog of end-user content in memory is
-   * both a memory leak and a privacy problem.
+   * Property 7. Whether the chunk endpoint has ever answered this transport,
+   * and how many requests in a row have since failed to reach it.
+   */
+  private reachedServer: boolean = false;
+  private connectivityFailures: number = 0;
+
+  /*
+   * Chunks waiting to be posted: after a retryable failure, during a throttle
+   * or an outage. Bounded (MAX_QUEUED_CHUNKS, MAX_QUEUED_PAYLOAD_CHARS): a
+   * recorder that hoards an unbounded backlog of end-user content in memory
+   * is both a memory leak and a privacy problem.
    */
   private retryQueue: Array<QueuedChunk> = [];
 
@@ -261,6 +342,22 @@ export default class Transport {
 
   public getFlushFailureCount(): number {
     return this.consecutiveFailures;
+  }
+
+  /*
+   * Offline, as far as uploading is concerned: the browser says so, or the
+   * last request never reached a server that has answered before.
+   */
+  public isOffline(): boolean {
+    return Transport.browserIsOffline() || this.connectivityFailures > 0;
+  }
+
+  private static browserIsOffline(): boolean {
+    try {
+      return navigator.onLine === false;
+    } catch {
+      return false;
+    }
   }
 
   public getDroppedChunkCount(): number {
@@ -430,6 +527,18 @@ export default class Transport {
       if (this.isPaused()) {
         this.enqueueForRetry(current);
         this.scheduleDrain(this.pausedUntilUnixMs());
+
+        if (Transport.browserIsOffline()) {
+          debugLog(
+            "chunk-held-offline",
+            "Browser offline; chunks are kept until it returns.",
+            {
+              chunkIndex: current.envelope.chunkIndex,
+              queueDepth: this.retryQueue.length,
+            },
+          );
+        }
+
         return false;
       }
 
@@ -591,6 +700,43 @@ export default class Transport {
       return false;
     }
 
+    const store: OfflineStore | null = this.options.offlineStore || null;
+    const pieces: Array<QueuedChunk> = chunks.map(
+      (chunk: TerminalChunk): QueuedChunk => {
+        return {
+          envelope: chunk.envelope,
+          payload: chunk.payload,
+          attempts: 0,
+        };
+      },
+    );
+
+    /*
+     * Offline mode. A keepalive request would fail like any other, and take
+     * the page's last chunks with it. With an offline store they are queued
+     * instead - and so written to IndexedDB, from inside this handler, with
+     * the rest of the queue - for this page to send if it lives on (a tab
+     * that was only hidden), or the next page of the application if it does
+     * not. Every piece is kept, so nothing about the keepalive quota applies.
+     */
+    if (store && this.isOffline()) {
+      this.releaseClaimed();
+      this.enqueueForRetry(...pieces);
+      this.scheduleDrain(this.pausedUntilUnixMs());
+
+      debugLog(
+        "offline-flush-stored",
+        "Offline at page exit; last chunks kept.",
+        {
+          chunks: pieces.length,
+          queueDepth: this.retryQueue.length,
+          storeOpen: store.isOpen(),
+        },
+      );
+
+      return true;
+    }
+
     const queued: Array<QueuedChunk> = this.retryQueue;
     this.retryQueue = [];
     this.cancelDrain();
@@ -600,21 +746,22 @@ export default class Transport {
      * the retry queue oldest-first. Built in priority order; the body is
      * assembled in chunkIndex order afterwards.
      */
-    const candidates: Array<TerminalChunk> = [
-      chunks[chunks.length - 1] as TerminalChunk,
-    ];
+    const candidates: Array<QueuedChunk> = pieces.slice().reverse();
 
-    for (let index: number = chunks.length - 2; index >= 0; index--) {
-      candidates.push(chunks[index] as TerminalChunk);
-    }
-
-    for (const chunk of queued) {
-      candidates.push({ envelope: chunk.envelope, payload: chunk.payload });
-    }
+    candidates.push(...queued);
 
     const selected: Array<{ frame: PayloadBytes; chunkIndex: number }> = [];
     let totalBytes: number = 0;
     let dropped: number = 0;
+
+    /*
+     * What the quota could not carry. With an offline store it is kept for
+     * the next upload instead of being lost; without one it is dropped.
+     */
+    const leftovers: Array<QueuedChunk> = [];
+
+    /* Stored chunks that ARE in this request, to forget once it is sent. */
+    const sentStored: Array<SessionReplayChunkEnvelope> = [];
 
     /*
      * Size of the sealing frame as the split built it, for the diagnostics
@@ -630,7 +777,7 @@ export default class Transport {
     let emptiedSealingEvents: number | null = null;
 
     for (let index: number = 0; index < candidates.length; index++) {
-      const candidate: TerminalChunk = candidates[index] as TerminalChunk;
+      const candidate: QueuedChunk = candidates[index]!;
       let frame: PayloadBytes = Transport.buildIdentityFrame(
         candidate.envelope,
         candidate.payload,
@@ -664,12 +811,21 @@ export default class Transport {
         totalBytes + frame.length > SESSION_REPLAY_KEEPALIVE_MAX_BYTES ||
         selected.length >= MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST
       ) {
-        dropped++;
+        if (store) {
+          leftovers.push(candidate);
+        } else {
+          dropped++;
+        }
+
         continue;
       }
 
       if (standInFor !== null) {
         emptiedSealingEvents = standInFor;
+      }
+
+      if (candidate.stored === "writing" || candidate.stored === "stored") {
+        sentStored.push(candidate.envelope);
       }
 
       selected.push({
@@ -680,6 +836,32 @@ export default class Transport {
     }
 
     this.droppedChunks += dropped;
+
+    if (store) {
+      store.remove(sentStored);
+
+      for (const leftover of leftovers) {
+        if (leftover.stored === "claimed") {
+          delete leftover.stored;
+        }
+      }
+
+      if (leftovers.length > 0) {
+        /* Back in chunk order: candidates were in priority order. */
+        leftovers.sort((left: QueuedChunk, right: QueuedChunk): number => {
+          return left.envelope.chunkIndex - right.envelope.chunkIndex;
+        });
+
+        this.enqueueForRetry(...leftovers);
+        this.scheduleDrain(this.pausedUntilUnixMs());
+
+        debugLog(
+          "final-flush-deferred",
+          "Keepalive quota full; the rest were kept.",
+          { sent: selected.length, kept: leftovers.length },
+        );
+      }
+    }
 
     /*
      * The same code for both outcomes, because the loss it reports is the
@@ -844,6 +1026,8 @@ export default class Transport {
     return Transport.buildBody(
       {
         ...envelope,
+        /* Sent now, however long it waited: see postOnce. */
+        clientSendUnixMs: Date.now(),
         payloadEncoding: "identity",
         payloadBytes: payloadBytes.length,
       },
@@ -851,13 +1035,58 @@ export default class Transport {
     );
   }
 
+  /*
+   * One chunk, one request - bracketed by the offline store. A chunk that is
+   * durably stored is claimed first, and skipped when another tab already
+   * took it (OfflineStore, rule 3); a chunk that is done with - accepted, or
+   * refused for good - is forgotten there afterwards. A chunk that is
+   * waiting again was put back by enqueueForRetry.
+   */
   private async post(chunk: QueuedChunk): Promise<PostOutcome> {
+    const store: OfflineStore | null = this.options.offlineStore || null;
+    const stored: QueuedChunk["stored"] = chunk.stored;
+
+    /*
+     * Whatever it was, the attempt starts from "not stored": a chunk that has
+     * to wait again is written back by enqueueForRetry.
+     */
+    delete chunk.stored;
+
+    if (store && stored === "stored") {
+      if (!(await store.claim(chunk.envelope))) {
+        debugLog(
+          "offline-chunk-claimed-elsewhere",
+          "Another tab took this stored chunk.",
+          { chunkIndex: chunk.envelope.chunkIndex },
+        );
+
+        return "accepted";
+      }
+    }
+
+    const outcome: PostOutcome = await this.postOnce(chunk);
+
+    if (store && outcome !== "halt") {
+      store.remove([chunk.envelope]);
+    }
+
+    return outcome;
+  }
+
+  private async postOnce(chunk: QueuedChunk): Promise<PostOutcome> {
     const compressed: CompressionResult = await Transport.compress(
       chunk.payload,
     );
 
+    /*
+     * clientSendUnixMs is stamped HERE, as the request goes out, not when
+     * the chunk closed: a chunk that waited out an outage says how long it
+     * waited, which is what lets the server keep a recording uploaded hours
+     * later on its real timeline (SessionIdentity.getClientQueueDelayMs).
+     */
     const envelope: SessionReplayChunkEnvelope = {
       ...chunk.envelope,
+      clientSendUnixMs: Date.now(),
       payloadEncoding: compressed.encoding,
       payloadBytes: compressed.bytes.length,
       flushFailures: this.consecutiveFailures,
@@ -907,7 +1136,17 @@ export default class Transport {
         mode: "cors",
       });
     } catch {
-      /* Network-level failure: retryable, and it counts against the breaker. */
+      /*
+       * The request never reached a server. Offline (property 7) when the
+       * browser says so or the endpoint has answered before; otherwise it
+       * is retryable and counts against the breaker, because it may just as
+       * well be a content blocker that will refuse this URL forever.
+       */
+      if (Transport.browserIsOffline() || this.reachedServer) {
+        this.recordConnectivityFailure(chunk);
+        return "halt";
+      }
+
       debugWarn(
         "chunk-post-failed",
         "A chunk upload never reached the server.",
@@ -937,6 +1176,18 @@ export default class Transport {
     sent: SessionReplayChunkEnvelope,
   ): Promise<PostOutcome> {
     const status: number = response.status;
+
+    /* Any answer at all: the network is back, and the endpoint is real. */
+    this.reachedServer = true;
+
+    if (this.connectivityFailures > 0) {
+      debugLog("back-online", "Back online; uploading resumes.", {
+        queueDepth: this.retryQueue.length,
+      });
+
+      this.connectivityFailures = 0;
+      this.backoffUntilUnixMs = 0;
+    }
 
     if (status >= 200 && status < 300) {
       this.consecutiveFailures = 0;
@@ -1408,6 +1659,7 @@ export default class Transport {
       );
 
       this.droppedChunks++;
+      this.options.offlineStore?.remove([chunk.envelope]);
     } else {
       this.enqueueForRetry(chunk);
     }
@@ -1433,25 +1685,214 @@ export default class Transport {
     this.scheduleDrain(this.backoffUntilUnixMs);
   }
 
-  private enqueueForRetry(chunk: QueuedChunk): void {
-    if (this.retryQueue.length >= MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST) {
-      /*
-       * Drop the OLDEST queued chunk. The most recent seconds are the ones
-       * closest to whatever went wrong, so they are the ones worth keeping.
-       */
-      this.retryQueue.shift();
+  /*
+   * Property 7: the request never reached the server, and that is the
+   * network rather than the installation. No strike, no attempt against the
+   * chunk - it waits, as long as it takes, for the connection to return.
+   */
+  private recordConnectivityFailure(chunk: QueuedChunk): void {
+    this.connectivityFailures++;
+
+    const waitMs: number =
+      OFFLINE_RETRY_MS[
+        Math.min(this.connectivityFailures, OFFLINE_RETRY_MS.length) - 1
+      ]!;
+
+    this.backoffUntilUnixMs = Date.now() + waitMs;
+    this.enqueueForRetry(chunk);
+
+    debugWarn(
+      "chunk-held-offline",
+      "No connection; chunks are kept until it returns.",
+      {
+        chunkIndex: chunk.envelope.chunkIndex,
+        queueDepth: this.retryQueue.length,
+        retryInMs: waitMs,
+        browserOffline: Transport.browserIsOffline(),
+      },
+    );
+
+    this.scheduleDrain(this.pausedUntilUnixMs());
+  }
+
+  /*
+   * Queue chunks to be posted later, in the order given, behind whatever is
+   * already waiting, then write the ones not yet stored to the offline store
+   * in ONE transaction (which is what a pagehide handler needs).
+   */
+  private enqueueForRetry(...chunks: Array<QueuedChunk>): void {
+    this.retryQueue.push(...chunks);
+
+    let queuedChars: number = 0;
+
+    for (const queued of this.retryQueue) {
+      queuedChars += queued.payload.length;
+    }
+
+    const dropped: Array<SessionReplayChunkEnvelope> = [];
+
+    /*
+     * Over a bound: drop the OLDEST queued chunk. The most recent seconds
+     * are the ones closest to whatever went wrong, so they are the ones worth
+     * keeping - and a later full snapshot re-anchors the player after a gap.
+     * The newest chunk is always kept, however large.
+     */
+    while (
+      this.retryQueue.length > 1 &&
+      (this.retryQueue.length > MAX_QUEUED_CHUNKS ||
+        queuedChars > MAX_QUEUED_PAYLOAD_CHARS)
+    ) {
+      const oldest: QueuedChunk = this.retryQueue.shift()!;
+
+      queuedChars -= oldest.payload.length;
+      dropped.push(oldest.envelope);
       this.droppedChunks++;
     }
 
-    this.retryQueue.push(chunk);
+    const store: OfflineStore | null = this.options.offlineStore || null;
+
+    if (!store) {
+      return;
+    }
+
+    if (dropped.length > 0) {
+      debugWarn(
+        "offline-queue-full",
+        "Upload queue full; oldest chunks dropped.",
+        { dropped: dropped.length, queueDepth: this.retryQueue.length },
+      );
+
+      store.remove(dropped);
+    }
+
+    const unstored: Array<QueuedChunk> = this.retryQueue.filter(
+      (queued: QueuedChunk): boolean => {
+        return !queued.stored;
+      },
+    );
+
+    for (const queued of unstored) {
+      queued.stored = "writing";
+    }
+
+    store.put(unstored, (): void => {
+      for (const queued of unstored) {
+        /* Not if an upload attempt started meanwhile: see post(). */
+        if (queued.stored === "writing") {
+          queued.stored = "stored";
+        }
+      }
+    });
+  }
+
+  /*
+   * The page is going away: whatever this tab claimed from the offline
+   * store and has not yet sent must be written back, or it goes with the
+   * page.
+   */
+  private releaseClaimed(): void {
+    for (const queued of this.retryQueue) {
+      if (queued.stored === "claimed") {
+        delete queued.stored;
+      }
+    }
+  }
+
+  /*
+   * The page is loading, and an earlier page of this application - closed,
+   * reloaded or navigated away from while offline - left chunks in the
+   * offline store. Claim them and upload them ahead of anything this page
+   * records. Called only once uploading is allowed (consent), and cheap
+   * when there is nothing to do: the store is not even opened unless a page
+   * said it left something.
+   */
+  public async restorePersisted(): Promise<number> {
+    const store: OfflineStore | null = this.options.offlineStore || null;
+
+    if (!store || this.disabled || !OfflineStore.hasPending()) {
+      return 0;
+    }
+
+    const restored: Array<OfflineChunk> = await store.takeAll();
+
+    if (restored.length === 0 || this.disabled) {
+      return 0;
+    }
+
+    debugLog(
+      "offline-chunks-restored",
+      "Uploading chunks an earlier page kept offline.",
+      { chunks: restored.length },
+    );
+
+    /* Ahead of this page's own queue: they were recorded first. */
+    const ownQueue: Array<QueuedChunk> = this.retryQueue;
+
+    this.retryQueue = [];
+    this.enqueueForRetry(
+      ...restored.map((chunk: OfflineChunk): QueuedChunk => {
+        return {
+          envelope: chunk.envelope,
+          payload: chunk.payload,
+          attempts: 0,
+          stored: "claimed",
+        };
+      }),
+      ...ownQueue,
+    );
+
+    this.resume();
+
+    return restored.length;
+  }
+
+  /*
+   * The browser says the connection is back (its `online` event). An
+   * offline wait ends now; a server throttle and a failure backoff do not.
+   */
+  public resume(): void {
+    if (this.connectivityFailures > 0) {
+      this.backoffUntilUnixMs = 0;
+    }
+
+    if (this.disabled || this.retryQueue.length === 0) {
+      return;
+    }
+
+    if (this.isPaused()) {
+      this.scheduleDrain(this.pausedUntilUnixMs());
+      return;
+    }
+
+    this.cancelDrain();
+    this.drainLater();
+  }
+
+  /*
+   * The browser says the connection is gone (its `offline` event). Open the
+   * offline store now, while the page is alive: a pagehide handler can only
+   * write to a database that is already open.
+   */
+  public prepareForOffline(): void {
+    if (this.options.offlineStore && !this.disabled) {
+      void this.options.offlineStore.open();
+    }
   }
 
   private isPaused(nowUnixMs: number = Date.now()): boolean {
-    return this.isThrottled(nowUnixMs) || this.isBackingOff(nowUnixMs);
+    return (
+      this.isThrottled(nowUnixMs) ||
+      this.isBackingOff(nowUnixMs) ||
+      Transport.browserIsOffline()
+    );
   }
 
   private pausedUntilUnixMs(): number {
-    return Math.max(this.throttledUntilUnixMs, this.backoffUntilUnixMs);
+    return Math.max(
+      this.throttledUntilUnixMs,
+      this.backoffUntilUnixMs,
+      Transport.browserIsOffline() ? Date.now() + OFFLINE_POLL_MS : 0,
+    );
   }
 
   /*
@@ -1507,6 +1948,12 @@ export default class Transport {
     this.retryQueue = [];
     this.backoffUntilUnixMs = 0;
     this.cancelDrain();
+
+    /*
+     * And what an earlier page left in the offline store: it is held under
+     * the same consent, and nothing will upload it either.
+     */
+    this.options.offlineStore?.clear();
   }
 
   private disable(reason: string): void {
@@ -1530,6 +1977,7 @@ export default class Transport {
     this.droppedChunks += this.retryQueue.length;
     this.retryQueue = [];
     this.cancelDrain();
+    this.options.offlineStore?.clear();
 
     this.options.onPermanentFailure(reason);
   }

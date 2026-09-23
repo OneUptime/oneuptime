@@ -14,6 +14,12 @@ export function getWorkflowsBreadcrumbs(path: string): Array<Link> | undefined {
       "Workflows",
       "Variables",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.WORKFLOWS_VARIABLE_VIEW, [
+      "Project",
+      "Workflows",
+      "Variables",
+      "View Variable",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.WORKFLOWS_LOGS, [
       "Project",
       "Workflows",
@@ -36,6 +42,13 @@ export function getWorkflowsBreadcrumbs(path: string): Array<Link> | undefined {
       "View Workflow",
       "Variables",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.WORKFLOW_VARIABLE_VIEW, [
+      "Project",
+      "Workflows",
+      "View Workflow",
+      "Variables",
+      "View Variable",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.WORKFLOW_LOGS, [
       "Project",
       "Workflows",
@@ -53,6 +66,12 @@ export function getWorkflowsBreadcrumbs(path: string): Array<Link> | undefined {
       "Workflows",
       "View Workflow",
       "Owners",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.WORKFLOW_VIEW_AUDIT_LOGS, [
+      "Project",
+      "Workflows",
+      "View Workflow",
+      "Audit Logs",
     ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.WORKFLOW_DELETE, [
       "Project",

@@ -102,8 +102,15 @@ const FORBIDDEN_IN_BUNDLE = [
  * once, to make those five distinguishable is the better trade than the
  * support round trips the silence costs - and the output is off unless
  * somebody asks for it.
+ *
+ * Raised again from 13 KB to 13.5 KB for offline mode, whose one loader-side
+ * cost is reading the data-oneuptime-offline-storage opt-out: the stub
+ * normalises the init options before it hands them to the artifact, so an
+ * option it does not read never reaches the recorder. Measured 13322 bytes
+ * raw / 4930 gzip after, against 13181 / 4890 before; the gzip budget below
+ * is unchanged.
  */
-const LOADER_MAX_BYTES = 13 * 1024;
+const LOADER_MAX_BYTES = 13.5 * 1024;
 const RECORDER_MAX_BYTES = 320 * 1024;
 
 /*
@@ -136,9 +143,18 @@ const RECORDER_MAX_BYTES = 320 * 1024;
  * Measured after: recorder.js 288.9 KB raw / 87.5 KB gzip; before the
  * overhaul 245 KB / 75.7 KB. rrweb's record entry point is still the
  * fixed 57.8 KB floor of that number.
+ *
+ * Raised from 90 KB to 92 KB for offline mode (src/OfflineStore.ts and the
+ * transport's offline half): a recording that survives the visitor losing
+ * their connection - no circuit-breaker strike for an outage, a queue
+ * bounded by size instead of eight chunks, an IndexedDB copy so a tab
+ * closed while offline hands its recording to the next page, and a
+ * cross-tab claim so that copy is uploaded exactly once. Measured after:
+ * recorder.js 306.3 KB raw / 90.1 KB gzip (92296 bytes); before it
+ * 298.5 KB / 87.9 KB (90018 bytes).
  */
 const LOADER_MAX_GZIP_BYTES = 5 * 1024;
-const RECORDER_MAX_GZIP_BYTES = 90 * 1024;
+const RECORDER_MAX_GZIP_BYTES = 92 * 1024;
 
 function isInside(directory, candidate) {
   const withSeparator = directory.endsWith(path.sep)

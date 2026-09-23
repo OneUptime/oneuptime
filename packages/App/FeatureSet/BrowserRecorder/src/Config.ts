@@ -193,6 +193,17 @@ export interface RecorderInitOptions {
    * See there for why the diagnostic exists at all.
    */
   debug?: boolean;
+
+  /*
+   * Offline mode's durable queue. By default, chunks recorded while the
+   * browser has no connection are also written to IndexedDB, so a tab closed
+   * before the connection returns does not lose them: the next page of the
+   * application uploads them. false keeps them in memory only - an outage
+   * the page lives through is still survived, and nothing of the session is
+   * ever written to the visitor's disk. Set it with
+   * data-oneuptime-offline-storage="false" or on the init global.
+   */
+  offlineStorage?: boolean;
 }
 
 export default class Config {
@@ -314,6 +325,7 @@ export default class Config {
         ? tag.getAttribute("data-oneuptime-respect-do-not-track") !== "false"
         : undefined,
       debug: tag.getAttribute("data-oneuptime-debug"),
+      offlineStorage: tag.getAttribute("data-oneuptime-offline-storage"),
     };
 
     return Config.normaliseOptions(dataset, "script-tag");
@@ -410,6 +422,15 @@ export default class Config {
 
     if (Config.readBooleanOption(raw["debug"])) {
       options.debug = true;
+    }
+
+    /*
+     * Only an explicit "off" is carried; on is the default. String() reads
+     * the boolean false of the init global and the "false" of the script
+     * tag alike, in fewer bytes of the loader than two comparisons.
+     */
+    if (String(raw["offlineStorage"]) === "false") {
+      options.offlineStorage = false;
     }
 
     /*

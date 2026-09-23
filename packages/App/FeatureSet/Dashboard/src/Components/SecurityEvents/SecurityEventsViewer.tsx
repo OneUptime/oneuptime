@@ -46,6 +46,16 @@ import {
 } from "../../Utils/TelemetryTabScope";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import SecurityEventAttributeUtil from "./SecurityEventAttributeUtil";
+import SecurityEventAttributeColumnPicker from "./SecurityEventAttributeColumnPicker";
+import {
+  SecurityEventAttributeColumn,
+  buildSecurityEventAttributeColumns,
+  mergeSecurityEventAttributeKeys,
+  normalizeSecurityEventAttributeColumnKeys,
+  readSecurityEventAttributeColumnKeys,
+  toggleSecurityEventAttributeColumnKey,
+  writeSecurityEventAttributeColumnKeys,
+} from "./SecurityEventAttributeColumns";
 import SecurityEventDetailPanel from "./SecurityEventDetailPanel";
 import SecurityEventListRow from "./SecurityEventListRow";
 import SecurityEventsEmptyState from "./SecurityEventsEmptyState";
@@ -299,6 +309,17 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
 
   const [latestEventTime, setLatestEventTime] =
     useState<LatestEventTime>(undefined);
+
+  /*
+   * The source attributes this viewer chose to see on every row. Read once
+   * per mount; every change is written straight back, so the choice follows
+   * them to the next visit.
+   */
+  const [attributeColumnKeys, setAttributeColumnKeys] = useState<Array<string>>(
+    (): Array<string> => {
+      return readSecurityEventAttributeColumnKeys(projectId?.toString() || "");
+    },
+  );
 
   /*
    * Source id -> Service name. The aggregate route can only hand back the
@@ -711,6 +732,42 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
     };
   }, [isLive, timeRange.range]);
 
+  // --- Attribute columns ---
+
+  const attributeColumns: Array<SecurityEventAttributeColumn> = useMemo(() => {
+    return buildSecurityEventAttributeColumns(attributeColumnKeys);
+  }, [attributeColumnKeys]);
+
+  const pickerAttributeKeys: Array<string> = useMemo(() => {
+    return mergeSecurityEventAttributeKeys({
+      attributeKeys: attributeKeys,
+      events: events,
+    });
+  }, [attributeKeys, events]);
+
+  const updateAttributeColumnKeys: (keys: Array<string>) => void = useCallback(
+    (keys: Array<string>): void => {
+      const next: Array<string> =
+        normalizeSecurityEventAttributeColumnKeys(keys);
+
+      setAttributeColumnKeys(next);
+      writeSecurityEventAttributeColumnKeys(projectId?.toString() || "", next);
+    },
+    [projectId?.toString()],
+  );
+
+  const toggleAttributeColumn: (attributeKey: string) => void = useCallback(
+    (attributeKey: string): void => {
+      updateAttributeColumnKeys(
+        toggleSecurityEventAttributeColumnKey(
+          attributeColumnKeys,
+          attributeKey,
+        ),
+      );
+    },
+    [attributeColumnKeys, updateAttributeColumnKeys],
+  );
+
   // --- Filter actions ---
 
   const applyFacetSelection: (
@@ -953,6 +1010,7 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
               onClick={() => {
                 setSelectedEvent(item);
               }}
+              attributeColumns={attributeColumns}
             />
           );
         }}
@@ -989,6 +1047,14 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
           isLive: isLive,
           onToggle: setIsLive,
         }}
+        toolbarTrailingActions={
+          <SecurityEventAttributeColumnPicker
+            attributeKeys={pickerAttributeKeys}
+            isLoading={attributesLoading}
+            selectedKeys={attributeColumnKeys}
+            onChange={updateAttributeColumnKeys}
+          />
+        }
         // Facets
         showFacetSidebar={true}
         facetData={facetData}
@@ -1050,6 +1116,8 @@ const SecurityEventsViewer: FunctionComponent = (): ReactElement => {
               onFilterBy={(facetKey: string, value: string) => {
                 handleFacetInclude(facetKey, value);
               }}
+              attributeColumnKeys={attributeColumnKeys}
+              onToggleAttributeColumn={toggleAttributeColumn}
             />
           ) : null
         }
