@@ -1080,9 +1080,16 @@ describe("RemediationCommandToolkit kubectl execution persists the job id before
       "execute_remediation_command",
     ).execute(kubectlArgs());
 
-    // The tool call itself resolves: the model is told the command failed.
+    /*
+     * The tool call itself resolves. Changed in the round-three review: the
+     * model used to read "FAILED before completion", which invites a
+     * resend; a job whose wait broke may still run (or have run), so the
+     * result is unknown and the model is told to check before reissuing.
+     */
     expect(outcome.success).toBe(true);
-    expect(outcome.textForLlm).toContain("FAILED before completion");
+    expect(outcome.textForLlm).toContain("RESULT UNKNOWN");
+    expect(outcome.textForLlm).toContain("Do NOT resend it blindly");
+    expect(outcome.textForLlm).not.toContain("FAILED before completion");
 
     const executed: AiRemediationCommand = toolkit.getExecutedCommands()[0]!;
     expect(executed.execution).toEqual(

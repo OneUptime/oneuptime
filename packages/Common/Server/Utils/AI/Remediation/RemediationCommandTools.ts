@@ -72,9 +72,11 @@ import { ObservabilityAssistantExtraTool } from "../Chat/ObservabilityAssistant"
 import KubectlJobRunner, {
   KUBECTL_CLAIM_TIMEOUT_MS,
   KubectlJobOutcome,
-  KubectlTerminalJobFacts,
+  KubectlRunState,
   RedactedKubectlOutput,
 } from "../ClusterAccess/KubectlJobRunner";
+import KubectlOutputRedactor from "../../../../Utils/AiRemediation/KubectlOutputRedactor";
+import { UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY } from "../ClusterAccess/ClusterAccessContext";
 import logger from "../../Logger";
 
 /*
@@ -128,10 +130,16 @@ import logger from "../../Logger";
  * unless the run saw the cluster stop allowing AI remediation, which drops
  * everything kept for it.
  *
- * A kubectl change that never reached kubectl (no Runner claimed it, or the
- * Runner refused it before spawning) is a failed tool call: it is not
+ * What a kubectl change's job did is read the way every kubectl job is
+ * read (KubectlJobRunner.readFinishedJob). One that certainly never reached
+ * kubectl (no Runner claimed it, the enqueue, the server or the Runner
+ * refused it, kubectl could not start) is a failed tool call: it is not
  * cited, not recorded as executed, and never sends the round to
- * verification.
+ * verification. One a Runner took whose result never came back — or whose
+ * wait broke — MAY have run: it keeps its job id and its place among the
+ * executed commands (so verification judges it and the rollback arm reads
+ * its job again), and the model is told to check with a read before it
+ * reissues anything.
  *
  * Every executed command is persisted onto the suggestion's commandPlan
  * column IMMEDIATELY: before the RunnerJob is enqueued, again with the job
@@ -174,6 +182,16 @@ export const AI_COMMAND_CLAIM_TIMEOUT_MS: number = 60_000;
 const HEARTBEAT_TOUCH_INTERVAL_MS: number = 15_000;
 
 const MAX_OUTPUT_CHARS_FOR_LLM: number = 6000;
+
+// A reason that already ends a sentence.
+const SENTENCE_END_PATTERN: RegExp = /[.!?]$/;
+
+/*
+ * What the model is told when kubectl ran but did not finish (no exit
+ * code): the change may have landed before kubectl was stopped.
+ */
+const KUBECTL_UNFINISHED_CHECK_FIRST: string =
+  "kubectl did not finish (it was stopped before it reported an exit code), so it MAY have changed the cluster. Before you reissue this command, or run anything that depends on it, check with a read (run_kubectl) whether it took effect. Do NOT resend it blindly.";
 
 /*
  * The per-cluster breaker lock is held from the count through the enqueue
@@ -503,7 +521,12 @@ export default class RemediationCommandToolkit {
     };
   }
 
-  // A cluster's mode, as list_command_targets tells the model.
+  /*
+   * A cluster's mode, as list_command_targets tells the model — the
+   * canonical KubernetesAiRemediationMode semantics, including what always
+   * asks and what turns an unattended round into a proposal. One field of
+   * at most the serializer's 500 characters.
+   */
   private describeClusterModeForLlm(
     cluster: KubernetesClusterAiAccessStatus,
   ): string {
@@ -514,7 +537,7 @@ export default class RemediationCommandToolkit {
         this.options.proposesRefusedCommands
           ? " (submit such a change anyway: it is refused, recorded, and proposed for one-click approval when this round ends if no other change ran)"
           : ""
-      }`;
+      }; and ${UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY}`;
     }
 
     if (cluster.remediationMode === KubernetesAiRemediationMode.Automatic) {
@@ -522,7 +545,7 @@ export default class RemediationCommandToolkit {
         this.options.proposesRefusedCommands
           ? "submit it anyway: it is refused, recorded, and proposed for one-click approval when this round ends if no other change ran; put it in your written recommendations too"
           : "put it in your written recommendations for a human"
-      }`;
+      }; and ${UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY}`;
     }
 
     return "RequireApproval: every kubectl change is proposed for one-click approval";
@@ -719,7 +742,7 @@ export default class RemediationCommandToolkit {
           this.options.proposesRefusedCommands
             ? "a refused riskier change is recorded and proposed for one-click approval when this round ends, provided no other change ran"
             : "put those in your recommendations"
-        }. Whatever the mode, ${KUBECTL_ALWAYS_ASKS_SUMMARY}; ${KUBECTL_NEVER_RUNS_SUMMARY}. A write outside the cluster's writeScope (list_command_targets) is refused before it runs. At most ${MAX_AUTO_EXECUTED_COMMANDS_PER_RUN} commands may be sent per remediation. Provide a rollbackCommand whenever the command changes state and an undo exists.`,
+        }. Whatever the mode, ${KUBECTL_ALWAYS_ASKS_SUMMARY}; ${UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY}; ${KUBECTL_NEVER_RUNS_SUMMARY}. A write outside the cluster's writeScope (list_command_targets) is refused before it runs. At most ${MAX_AUTO_EXECUTED_COMMANDS_PER_RUN} commands may be sent per remediation. Provide a rollbackCommand whenever the command changes state and an undo exists.`,
         inputSchema: {
           type: "object",
           properties: this.buildCommandSchemaProperties(),
@@ -753,7 +776,7 @@ export default class RemediationCommandToolkit {
       command: {
         type: "string",
         description:
-          'The exact command. Bash/SSH: one simple command — no chaining, pipes, redirection or substitution. Kubectl: one line starting with "kubectl", e.g. "kubectl rollout restart deployment/web -n web".',
+          'The exact command. Bash/SSH: one simple command — no chaining, pipes, redirection or substitution. Kubectl: one line starting with "kubectl", e.g. "kubectl rollout restart deployment/web -n web"; a patch body must be JSON, e.g. kubectl patch deployment/web -n web -p \'{"spec":{"replicas":3}}\'.',
       },
       credentialId: {
         type: "string",
@@ -969,6 +992,11 @@ export default class RemediationCommandToolkit {
      */
     let redactionCount: number = 0;
     let isTruncated: boolean = false;
+    /*
+     * A kubectl command a Runner took whose result never came back (or
+     * whose wait broke): it may have run. Its citation says so.
+     */
+    let kubectlResultUnknown: boolean = false;
 
     try {
       if (command.stepType === RunbookStepType.Kubectl) {
@@ -1011,89 +1039,35 @@ export default class RemediationCommandToolkit {
           executionTimeoutInMs: command.timeoutInMs,
         });
 
-        const succeeded: boolean =
-          terminalJob.status === RunnerJobStatus.Succeeded;
-
         /*
-         * A TimedOut row cannot say on its own whether a Runner ever took
-         * the job. For a WRITE only "certainly never claimed" means it did
-         * not run: a claimed job may have run kubectl before it went
-         * silent (startedAt lags the claim), so it counts as run — its
-         * record stays, and verification and the rollback arm judge it.
+         * Read exactly as the investigation lane reads its jobs: the run
+         * state (the claim read back from the row for a TimedOut job), the
+         * kubectl-worded reason, the redacted output, and whether a
+         * failure is about the cluster's access.
          */
-        const wasClaimed: boolean | undefined =
-          terminalJob.status === RunnerJobStatus.TimedOut
-            ? await this.readWasClaimed(job.id!)
-            : true;
-
-        const facts: KubectlTerminalJobFacts = {
-          status: terminalJob.status,
-          exitCode: terminalJob.exitCode,
-          output: terminalJob.output,
-          errorMessage: terminalJob.errorMessage,
-          wasStarted: wasClaimed !== false,
-        };
-
-        const kubectlRan: boolean = KubectlJobRunner.didKubectlRun(facts);
-
-        const redacted: RedactedKubectlOutput = KubectlJobRunner.redactAndCap(
-          terminalJob.output || "",
-        );
-
-        const outcome: KubectlJobOutcome = {
-          jobId: job.id!.toString(),
-          succeeded,
-          exitCode: terminalJob.exitCode,
-          output: redacted.text,
-          redactionCount: redacted.redactionCount,
-          isTruncated: redacted.isTruncated,
-          /*
-           * kubectl's stderr can echo what it was given, and this message
-           * reaches the model, the plan and the cluster's AI page — so it
-           * goes through the same chain (uncapped in practice: short).
-           */
-          errorMessage: succeeded
-            ? undefined
-            : KubectlJobRunner.redactAndCap(
-                wasClaimed === false
-                  ? `The cluster's Runner did not pick up this kubectl command within ${Math.round(
-                      KUBECTL_CLAIM_TIMEOUT_MS / 1000,
-                    )}s — it may be offline, restarting or busy with other work. Nothing was run on the cluster.`
-                  : terminalJob.errorMessage ||
-                      `Command ended with status ${terminalJob.status}.`,
-              ).text,
-          displayCommand: String(
-            (job.payload as { displayCommand?: string } | undefined)
-              ?.displayCommand || command.command,
-          ),
-          executed: kubectlRan,
-          claimTimedOut: wasClaimed === false,
-          isAccessFailure: KubectlJobRunner.isAccessFailure(facts),
-        };
-
-        /*
-         * Best-effort bookkeeping for the cluster's AI page; never throws.
-         * A success proves the access works; a failure becomes the
-         * cluster's "Last error" only when it is about the ACCESS (never
-         * claimed, refused, timed out, unauthorized, unreachable) — a
-         * deployment the model named wrong says nothing about the Runner.
-         */
-        if (succeeded || outcome.isAccessFailure) {
-          await KubernetesClusterAiAccessService.recordCommandOutcome({
-            clusterId,
-            succeeded,
-            errorMessage: outcome.errorMessage,
+        const outcome: KubectlJobOutcome =
+          await KubectlJobRunner.readFinishedJob({
+            job,
+            terminalJob,
+            command: command.command,
+            claimTimeoutInMs: KUBECTL_CLAIM_TIMEOUT_MS,
+            executionTimeoutInMs: command.timeoutInMs,
           });
-        }
+
+        await KubectlJobRunner.recordOutcomeOnCluster({ clusterId, outcome });
 
         /*
-         * kubectl never ran: nothing changed on the cluster, so this is a
-         * failed tool call — no citation, no executed command, nothing for
-         * verification to judge or the rollback arm to undo. Its job row
-         * stays (and counts toward the breaker and the budget).
+         * kubectl certainly never ran: nothing changed on the cluster, so
+         * this is a failed tool call — no citation, no executed command,
+         * nothing for verification to judge or the rollback arm to undo.
+         * Its job row stays (and counts toward the breaker and the budget).
          */
-        if (!kubectlRan) {
-          return await this.settleNeverRan(command, outcome);
+        if (outcome.runState === KubectlRunState.NotRun) {
+          return await this.settleNeverRan(command, {
+            displayCommand: outcome.displayCommand,
+            errorMessage: outcome.errorMessage,
+            claimTimedOut: outcome.claimTimedOut === true,
+          });
         }
 
         command.execution.status = outcome.succeeded
@@ -1109,7 +1083,32 @@ export default class RemediationCommandToolkit {
           command.execution.errorMessage = outcome.errorMessage;
         }
 
-        outcomeText = KubectlJobRunner.describeForLlm(outcome);
+        /*
+         * A Runner took the command and no result came back: kubectl may
+         * have run and changed the cluster. It stays an executed command
+         * with its job id, so verification judges it and the rollback arm
+         * reads its job again (and asks a human to undo it if it may have
+         * run) — never "nothing happened". The model is told to check
+         * before it reissues anything.
+         */
+        if (outcome.runState === KubectlRunState.Unknown) {
+          kubectlResultUnknown = true;
+          outcomeText = this.describeResultUnknown(command, {
+            displayCommand: outcome.displayCommand,
+            reason: outcome.errorMessage,
+          });
+        } else if (!outcome.succeeded && typeof outcome.exitCode !== "number") {
+          /*
+           * kubectl ran but never finished — the Runner stopped it at its
+           * timeout: it may have applied the change before it was stopped.
+           * The rollback arm reads it the same way.
+           */
+          outcomeText = `${KubectlJobRunner.describeForLlm(
+            outcome,
+          )}\n${KUBECTL_UNFINISHED_CHECK_FIRST}`;
+        } else {
+          outcomeText = KubectlJobRunner.describeForLlm(outcome);
+        }
       } else {
         const job: RunnerJob = await RunnerJobService.enqueueAiCommand({
           projectId: this.options.projectId,
@@ -1166,11 +1165,43 @@ export default class RemediationCommandToolkit {
     } catch (error) {
       const message: string =
         error instanceof Error ? error.message : String(error);
+
+      /*
+       * The enqueue itself refused the kubectl command (the chokepoint's
+       * binding, switch, scope and rate checks run before the row is
+       * written): no job exists and no Runner was handed anything, so it
+       * certainly never ran — a failed tool call, off the record.
+       */
+      if (
+        command.stepType === RunbookStepType.Kubectl &&
+        !command.execution.runnerJobId
+      ) {
+        return await this.settleNeverRan(command, {
+          displayCommand: command.command,
+          errorMessage: KubectlJobRunner.redactAndCap(message).text,
+          claimTimedOut: false,
+        });
+      }
+
       command.execution.status = AiRemediationCommandExecutionStatus.Failed;
       command.execution.completedAt =
         OneUptimeDate.getCurrentDate().toISOString();
       command.execution.errorMessage = message;
-      outcomeText = `Command FAILED before completion: ${message}`;
+
+      /*
+       * The job exists and the wait for it broke: a Runner may still run
+       * it (or already has). The same "may have run" as a lost result —
+       * the command keeps its job id and its place on the record.
+       */
+      if (command.stepType === RunbookStepType.Kubectl) {
+        kubectlResultUnknown = true;
+        outcomeText = this.describeResultUnknown(command, {
+          displayCommand: command.command,
+          reason: `Waiting for its result failed: ${message}`,
+        });
+      } else {
+        outcomeText = `Command FAILED before completion: ${message}`;
+      }
     }
 
     await this.persistPlanProgress();
@@ -1183,7 +1214,9 @@ export default class RemediationCommandToolkit {
         rowCount: 1,
         citationLabel:
           command.stepType === RunbookStepType.Kubectl
-            ? `Executed on cluster "${command.kubernetesClusterNameSnapshot}": ${this.summarizeCommand(command.command)}`
+            ? kubectlResultUnknown
+              ? `Sent to cluster "${command.kubernetesClusterNameSnapshot}", result unknown: ${this.summarizeCommand(command.command)}`
+              : `Executed on cluster "${command.kubernetesClusterNameSnapshot}": ${this.summarizeCommand(command.command)}`
             : `Executed on Runner "${command.runnerNameSnapshot}": ${this.summarizeCommand(command.command)}`,
         redactionCount,
         isTruncated,
@@ -1192,14 +1225,19 @@ export default class RemediationCommandToolkit {
   }
 
   /*
-   * A kubectl command whose job never reached kubectl: take it off the
-   * run's executed commands (and off the durable record, which exists to
-   * settle what RAN), and tell the model plainly — without a citation, as
-   * there is no evidence.
+   * A kubectl command whose job certainly never reached kubectl (no Runner
+   * claimed it, the server or the Runner refused it, kubectl could not
+   * start): take it off the run's executed commands (and off the durable
+   * record, which exists to settle what RAN), and tell the model plainly —
+   * without a citation, as there is no evidence.
    */
   private async settleNeverRan(
     command: AiRemediationCommand,
-    outcome: KubectlJobOutcome,
+    data: {
+      displayCommand: string;
+      errorMessage: string | undefined;
+      claimTimedOut: boolean;
+    },
   ): Promise<ToolCallOutcome> {
     this.executedCommands = this.executedCommands.filter(
       (executed: AiRemediationCommand) => {
@@ -1210,40 +1248,42 @@ export default class RemediationCommandToolkit {
     await this.persistPlanProgress();
 
     return this.failure(
-      `"${outcome.displayCommand}" did NOT run on cluster "${
+      `"${data.displayCommand}" did NOT run on cluster "${
         command.kubernetesClusterNameSnapshot || command.kubernetesClusterId
-      }": ${outcome.errorMessage || "the job never reached kubectl."} Nothing changed on the cluster and nothing was recorded as executed. ${
-        outcome.claimTimedOut
+      }": ${data.errorMessage || "the job never reached kubectl."} Nothing changed on the cluster and nothing was recorded as executed. ${
+        data.claimTimedOut
           ? "Do NOT send more commands to this cluster in this run — its Runner is not picking them up; say so in your analysis."
           : "Do NOT resend the same command; fix what the refusal names, or put the change in your recommendations for a human."
       }`,
     );
   }
 
-  // Whether a Runner ever claimed the job; undefined when it cannot be read.
-  private async readWasClaimed(jobId: ObjectID): Promise<boolean | undefined> {
-    try {
-      const row: RunnerJob | null = await RunnerJobService.findOneById({
-        id: jobId,
-        select: {
-          _id: true,
-          claimedAt: true,
-          assignedAgentId: true,
-        },
-        props: { isRoot: true },
-      });
+  /*
+   * What the model is told about a kubectl command a Runner took (or may
+   * yet run) whose result never came back. It may have changed the
+   * cluster, so it is neither "failed, try again" nor "did not run": the
+   * model checks with a read before it reissues it or builds on it.
+   */
+  private describeResultUnknown(
+    command: AiRemediationCommand,
+    data: { displayCommand: string; reason: string | undefined },
+  ): string {
+    const reason: string = KubectlOutputRedactor.redact(
+      (data.reason || "No result came back for this command.").trim(),
+    ).text;
 
-      if (!row) {
-        return undefined;
-      }
-
-      return Boolean(row.claimedAt || row.assignedAgentId);
-    } catch (error) {
-      logger.error(
-        `RemediationCommandToolkit: could not read whether a Runner claimed kubectl job ${jobId.toString()}; treating it as run: ${error}`,
-      );
-      return undefined;
-    }
+    return [
+      `${data.displayCommand}`,
+      `RESULT UNKNOWN on cluster "${
+        command.kubernetesClusterNameSnapshot || command.kubernetesClusterId
+      }": ${SENTENCE_END_PATTERN.test(reason) ? reason : `${reason}.`}`,
+      `The command reached the cluster's Runner, so it MAY have run and changed the cluster. It stays on this round's record as a command that may have run, and verification judges it${
+        command.rollbackCommand
+          ? "; if the service does not recover, its rollbackCommand is not run blind — a human is asked to check and undo it"
+          : ""
+      }.`,
+      "Before you reissue this command, or run anything that depends on it, check with a read (run_kubectl — e.g. kubectl rollout status, kubectl get or kubectl describe on the object it changes) whether it took effect. Do NOT resend it blindly.",
+    ].join("\n");
   }
 
   private getSentCommandCount(): number {

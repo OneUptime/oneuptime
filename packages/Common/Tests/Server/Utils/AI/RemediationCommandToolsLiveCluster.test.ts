@@ -889,8 +889,15 @@ describe("RemediationCommandToolkit takes a cluster's hourly unattended slot bef
       kubectlArgs(),
     );
 
-    // The tool call resolves: the model is told the command failed.
-    expect(outcome.textForLlm).toContain("FAILED before completion");
+    /*
+     * The tool call resolves. Changed in the round-three review: an
+     * enqueue that throws wrote no job, so the command certainly never ran
+     * — a failed tool call off the record (KubectlJobRunner's NotRun), no
+     * longer an executed command that "FAILED before completion".
+     */
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain("did NOT run on cluster");
+    expect(outcome.textForLlm).toContain("enqueue exploded");
     expect(release).toHaveBeenCalledTimes(1);
   });
 });

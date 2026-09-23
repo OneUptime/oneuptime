@@ -47,6 +47,7 @@ import RunnerJobStatus from "../../../Types/Runbook/RunnerJobStatus";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import ToolResultSerializer from "../AI/Toolbox/Serializer";
 import KubectlJobRunner, {
+  KubectlRunState,
   KubectlTerminalJobFacts,
 } from "../AI/ClusterAccess/KubectlJobRunner";
 import RemediationCommandToolkit from "../AI/Remediation/RemediationCommandTools";
@@ -68,7 +69,11 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * executed command that carried a rollbackCommand is undone, in reverse
  * order. Rollback commands were visible on the approval card (or, for
  * FullAuto, passed the same policy the forward command did) and are
- * re-checked against the hard denylist here anyway.
+ * re-checked against the hard denylist here anyway. A command that may
+ * have run without saying so — its record still Pending, or a kubectl
+ * command recorded as failed whose job a Runner took with no result back
+ * (KubectlJobRunner's Unknown run state) — is never treated as never run:
+ * its undo is not run blind either, a human is told to check and undo it.
  *
  * Kubectl commands — forward and rollback — are additionally re-checked
  * against the cluster's AI page AS IT IS NOW, right before they are
@@ -126,6 +131,27 @@ const RECONCILE_JOB_SELECT: {
   output: true,
   exitCode: true,
   errorMessage: true,
+};
+
+/*
+ * What the rollback arm needs from a kubectl RunnerJob to tell whether
+ * kubectl ran (KubectlJobRunner.getRunStateOfJobRow): the outcome, and
+ * whether a Runner ever claimed or started the job.
+ */
+const RUN_STATE_JOB_SELECT: {
+  _id: true;
+  status: true;
+  output: true;
+  exitCode: true;
+  errorMessage: true;
+  claimedAt: true;
+  startedAt: true;
+  assignedAgentId: true;
+} = {
+  ...RECONCILE_JOB_SELECT,
+  claimedAt: true,
+  startedAt: true,
+  assignedAgentId: true,
 };
 
 // Who is writing the plan — each side owns different fields of it.
@@ -460,6 +486,27 @@ export default class CommandPlanExecutor {
           leftForHuman.push(command);
           anyFailed = true;
         }
+      }
+
+      /*
+       * A kubectl command recorded as failed may still have changed the
+       * cluster: a Runner took it and no result came back, the wait for it
+       * broke while the job ran on, or kubectl was stopped before it
+       * finished. Its job is read again: one that succeeded after all is
+       * rolled back like any other, and one that may have changed the
+       * cluster gets the same answer as an unresolved one above — its undo
+       * is not run blind, a human is told to check.
+       */
+      for (const command of await this.reconcileFailedKubectlExecutions(
+        suggestion,
+        plan,
+      )) {
+        command.rollbackExecution = {
+          status: AiRemediationCommandExecutionStatus.Skipped,
+          errorMessage: `Rollback not run: the command reached the cluster's Runner but kubectl did not report a finished result, so whether it changed the cluster is unknown. If it did, undo it manually: ${command.rollbackCommand}`,
+        };
+        leftForHuman.push(command);
+        anyFailed = true;
       }
 
       if (
@@ -1264,6 +1311,89 @@ export default class CommandPlanExecutor {
     if (changed) {
       await this.persistPlan(suggestion, plan, "rollback");
     }
+  }
+
+  /*
+   * The kubectl commands recorded as Failed that may nonetheless have
+   * changed the cluster, read from their jobs the way KubectlJobRunner
+   * reads every kubectl job (KubectlJobRunner.getRunStateOfJobRow). Only a
+   * command that carries a rollbackCommand and has no rollback yet is read
+   * — nothing else has an undo to owe.
+   *
+   *  - A job that Succeeded after all (the wait for it broke, and the
+   *    record said Failed) is settled from the job: it becomes Succeeded,
+   *    and so a rollback target like any other.
+   *  - A job whose run is Unknown — a Runner took it and no result came
+   *    back, it is still in flight, or its row cannot be read — is
+   *    returned: whether it changed the cluster is not known. So is one
+   *    where kubectl ran but never finished (the Runner killed it at its
+   *    timeout, or it left output but no exit code): it may have applied
+   *    its change before it was stopped.
+   *  - A job that certainly never ran, or whose kubectl finished and
+   *    reported a failure (an exit code), owes no undo, as before.
+   */
+  private static async reconcileFailedKubectlExecutions(
+    suggestion: AutoRemediationSuggestion,
+    plan: AiRemediationCommandPlan,
+  ): Promise<Array<AiRemediationCommand>> {
+    const mayHaveRun: Array<AiRemediationCommand> = [];
+    let changed: boolean = false;
+
+    for (const command of plan.commands) {
+      const execution: AiRemediationCommandExecutionState | undefined =
+        command.execution;
+
+      if (
+        command.stepType !== RunbookStepType.Kubectl ||
+        !execution ||
+        execution.status !== AiRemediationCommandExecutionStatus.Failed ||
+        !execution.runnerJobId ||
+        !command.rollbackCommand ||
+        command.rollbackExecution
+      ) {
+        continue;
+      }
+
+      let runState: KubectlRunState = KubectlRunState.Unknown;
+      let job: RunnerJob | null = null;
+
+      try {
+        job = ObjectID.isValidUUID(execution.runnerJobId)
+          ? await RunnerJobService.findOneById({
+              id: new ObjectID(execution.runnerJobId),
+              select: RUN_STATE_JOB_SELECT,
+              props: { isRoot: true },
+            })
+          : null;
+
+        if (job) {
+          runState = KubectlJobRunner.getRunStateOfJobRow(job);
+        }
+      } catch (error) {
+        logger.error(
+          `CommandPlanExecutor: could not read whether command ${command.sequence} of suggestion ${suggestion.id?.toString()} ran: ${error}`,
+        );
+      }
+
+      if (job && job.status === RunnerJobStatus.Succeeded) {
+        this.settleFromJob(execution, job, "Command");
+        changed = true;
+        continue;
+      }
+
+      const kubectlFinished: boolean =
+        runState === KubectlRunState.Ran && typeof job?.exitCode === "number";
+
+      if (runState !== KubectlRunState.NotRun && !kubectlFinished) {
+        mayHaveRun.push(command);
+      }
+    }
+
+    if (changed) {
+      await this.persistPlan(suggestion, plan, "rollback");
+    }
+
+    return mayHaveRun;
   }
 
   private static describeRollbackOutcome(

@@ -37,14 +37,33 @@ export interface InvestigationEvidenceCheckedEntry {
   // "C1"
   citationId: string;
   label: string;
+  /*
+   * Rows for a telemetry query. A cluster tool's line carries no rows and
+   * reads as the engine counts it: a kubectl command that succeeded is 1,
+   * one that returned an error (or never gave a result) is 0, and a
+   * cluster listing is the number of clusters it listed.
+   */
   rowCount: number;
+  /*
+   * What a cluster tool's line says in place of a row count, as written:
+   * "succeeded", "kubectl returned an error", "2 cluster(s)". Absent for a
+   * telemetry query's "N row(s)".
+   */
+  outcome?: string | undefined;
 }
 
 export interface InvestigationReportFooter {
   // Footer text without the surrounding * emphasis markers.
   text: string;
   modelName?: string | undefined;
+  // "N queries run across your own telemetry" — telemetry queries only.
   queryCount?: number | undefined;
+  /*
+   * "M kubectl commands run on your Kubernetes clusters", which the footer
+   * of a run that used cluster tools states (0 for "no telemetry queries or
+   * kubectl commands run"). Absent when the footer does not say.
+   */
+  kubectlCommandCount?: number | undefined;
 }
 
 export interface ParsedInvestigationReport {
@@ -186,17 +205,32 @@ const LIST_ITEM_REGEX: RegExp = /^[ \t]*(?:[-*+]|\d{1,3}[.)])(?:[ \t]+|$)/;
 const LIST_CONTINUATION_REGEX: RegExp = /^[ \t]{2,}\S/;
 const LEADING_WHITESPACE_REGEX: RegExp = /^[ \t]/;
 /*
- * "- **[C1]** label — 7 row(s)". The label is greedy so a label that itself
- * contains " — " keeps everything up to the LAST " — N row(s)".
+ * "- **[C1]** label — 7 row(s)", or a cluster tool's line, which says what
+ * the call did instead of counting rows: "— succeeded", "— kubectl returned
+ * an error", "— 2 cluster(s)" (and "— never ran" / "— result unknown" for a
+ * kubectl command that gave no result). The label is greedy so a label
+ * that itself contains " — " keeps everything up to the LAST " — <outcome>".
  */
 const EVIDENCE_CHECKED_ENTRY_REGEX: RegExp =
-  /^[ \t]*(?:[-*+]|\d{1,3}[.)])[ \t]+(?:\*\*|__)?\[(C\d{1,3})\](?:\*\*|__)?(.+)[ \t][—–-][ \t]+(\d+)[ \t]+rows?(?:\(s\))?[ \t]*$/i;
+  /^[ \t]*(?:[-*+]|\d{1,3}[.)])[ \t]+(?:\*\*|__)?\[(C\d{1,3})\](?:\*\*|__)?(.+)[ \t][—–-][ \t]+(\d+[ \t]+(?:rows?|clusters?)(?:\(s\))?|succeeded|kubectl[ \t]+returned[ \t]+an[ \t]+error|never[ \t]+ran|did[ \t]+not[ \t]+run|(?:kubectl[ \t]+)?result[ \t]+unknown|unknown)[ \t]*$/i;
 // The entry regex backtracks over the label; never feed it a runaway line.
 const MAX_EVIDENCE_CHECKED_LINE_LENGTH: number = 2000;
+
+// How one entry's outcome (group 3 of the entry regex) reads.
+const EVIDENCE_ROWS_OUTCOME_REGEX: RegExp = /^(\d+)[ \t]+rows?(?:\(s\))?$/i;
+const EVIDENCE_CLUSTERS_OUTCOME_REGEX: RegExp =
+  /^(\d+)[ \t]+clusters?(?:\(s\))?$/i;
+const EVIDENCE_KUBECTL_SUCCEEDED_REGEX: RegExp = /^succeeded$/i;
 
 const FOOTER_EMPHASIS_REGEX: RegExp = /^(\*\*|__|\*|_)([\s\S]+)\1$/;
 const FOOTER_USING_REGEX: RegExp = /\busing[ \t]+/;
 const FOOTER_QUERIES_RUN_REGEX: RegExp = /\bquer(?:y|ies)[ \t]+run\b/i;
+// "... and 2 kubectl commands run on your Kubernetes clusters" -> 2.
+const FOOTER_KUBECTL_COMMANDS_RUN_REGEX: RegExp =
+  /\b(\d{1,9})[ \t]+kubectl[ \t]+commands?[ \t]+run\b/i;
+// A run that used cluster tools but cited no query and no kubectl command.
+const FOOTER_NOTHING_RUN_REGEX: RegExp =
+  /\bno[ \t]+telemetry[ \t]+queries[ \t]+or[ \t]+kubectl[ \t]+commands[ \t]+run\b/i;
 const DIGIT_REGEX: RegExp = /\d/;
 
 const EVENT_REFERENCE_PATTERN: string = "#(\\d{1,9})(?!\\w)";
@@ -839,13 +873,33 @@ function findFooter(
     footer.modelName = modelName;
   }
 
-  const queryCount: number | undefined = readFooterQueryCount(text);
+  const nothingRun: boolean = FOOTER_NOTHING_RUN_REGEX.test(text);
+
+  const queryCount: number | undefined = nothingRun
+    ? 0
+    : readFooterQueryCount(text);
 
   if (queryCount !== undefined) {
     footer.queryCount = queryCount;
   }
 
+  const kubectlCommandCount: number | undefined = nothingRun
+    ? 0
+    : readFooterKubectlCommandCount(text);
+
+  if (kubectlCommandCount !== undefined) {
+    footer.kubectlCommandCount = kubectlCommandCount;
+  }
+
   return { breakIndex, footer };
+}
+
+// "... and 2 kubectl commands run on ..." / "1 kubectl command run" -> 2 / 1.
+function readFooterKubectlCommandCount(text: string): number | undefined {
+  const commands: RegExpExecArray | null =
+    FOOTER_KUBECTL_COMMANDS_RUN_REGEX.exec(text);
+
+  return commands ? parseInt(commands[1] || "0", 10) : undefined;
 }
 
 /*
@@ -955,10 +1009,58 @@ function findEvidenceCheckedBlockEnd(
   return end;
 }
 
+/*
+ * What kind of tool call an Evidence checked line is about, which decides
+ * which count of the footer it must fit in: a telemetry query ("N row(s)"),
+ * a kubectl command, or a cluster listing (which the footer never counts).
+ */
+type EvidenceCheckedEntryKind = "query" | "kubectl" | "clusters";
+
+interface ParsedEvidenceCheckedEntry {
+  entry: InvestigationEvidenceCheckedEntry;
+  kind: EvidenceCheckedEntryKind;
+}
+
+function readEvidenceCheckedOutcome(outcomeText: string): {
+  kind: EvidenceCheckedEntryKind;
+  rowCount: number;
+  outcome?: string | undefined;
+} {
+  const outcome: string = outcomeText.trim().replace(WHITESPACE_RUN_REGEX, " ");
+
+  const rows: RegExpExecArray | null =
+    EVIDENCE_ROWS_OUTCOME_REGEX.exec(outcome);
+
+  if (rows) {
+    return { kind: "query", rowCount: parseInt(rows[1] || "0", 10) };
+  }
+
+  const clusters: RegExpExecArray | null =
+    EVIDENCE_CLUSTERS_OUTCOME_REGEX.exec(outcome);
+
+  if (clusters) {
+    return {
+      kind: "clusters",
+      rowCount: parseInt(clusters[1] || "0", 10),
+      outcome,
+    };
+  }
+
+  /*
+   * The engine counts a kubectl command that succeeded as 1 and one that
+   * returned an error as 0; a command with no result has nothing to count.
+   */
+  return {
+    kind: "kubectl",
+    rowCount: EVIDENCE_KUBECTL_SUCCEEDED_REGEX.test(outcome) ? 1 : 0,
+    outcome,
+  };
+}
+
 function parseEvidenceCheckedEntries(
   lines: Array<string>,
-): Array<InvestigationEvidenceCheckedEntry> {
-  const entries: Array<InvestigationEvidenceCheckedEntry> = [];
+): Array<ParsedEvidenceCheckedEntry> {
+  const entries: Array<ParsedEvidenceCheckedEntry> = [];
   const seen: Set<string> = new Set<string>();
 
   for (const line of lines) {
@@ -966,29 +1068,94 @@ function parseEvidenceCheckedEntries(
       continue;
     }
 
-    const entry: RegExpExecArray | null =
+    const match: RegExpExecArray | null =
       EVIDENCE_CHECKED_ENTRY_REGEX.exec(line);
 
-    if (!entry) {
+    if (!match) {
       continue;
     }
 
-    const citationId: string = (entry[1] || "").toUpperCase();
-    const label: string = (entry[2] || "").trim();
+    const citationId: string = (match[1] || "").toUpperCase();
+    const label: string = (match[2] || "").trim();
 
     if (!citationId || !label || seen.has(citationId)) {
       continue;
     }
 
-    seen.add(citationId);
-    entries.push({
+    const read: {
+      kind: EvidenceCheckedEntryKind;
+      rowCount: number;
+      outcome?: string | undefined;
+    } = readEvidenceCheckedOutcome(match[3] || "");
+
+    const entry: InvestigationEvidenceCheckedEntry = {
       citationId,
       label,
-      rowCount: parseInt(entry[3] || "0", 10),
-    });
+      rowCount: read.rowCount,
+    };
+
+    if (read.outcome !== undefined) {
+      entry.outcome = read.outcome;
+    }
+
+    seen.add(citationId);
+    entries.push({ entry, kind: read.kind });
   }
 
   return entries;
+}
+
+/*
+ * Whether an "Evidence checked" block can be the server's, going by the
+ * footer's counts. The server writes one entry per citation, at most one
+ * citation per call, and no block at all when nothing was cited. So a
+ * block with more query lines than the footer's telemetry queries, or more
+ * kubectl lines than its kubectl commands, was written by the model. A
+ * cluster listing is cited but never counted in the footer, so its lines
+ * fit any footer that counts something — or the cluster-tool footer that
+ * says nothing else ran ("no telemetry queries or kubectl commands run"),
+ * the one run whose only citations are listings. A footer saying "0
+ * queries run" never goes with a block. Without a readable count (no
+ * footer, an older format) the block is trusted.
+ */
+function isServerEvidenceCheckedBlock(
+  entries: Array<ParsedEvidenceCheckedEntry>,
+  footer: InvestigationReportFooter | undefined,
+): boolean {
+  const queryCount: number | undefined = footer?.queryCount;
+  const kubectlCommandCount: number | undefined = footer?.kubectlCommandCount;
+
+  if (queryCount === undefined && kubectlCommandCount === undefined) {
+    return true;
+  }
+
+  let queryLines: number = 0;
+  let kubectlLines: number = 0;
+  let clusterLines: number = 0;
+
+  for (const parsed of entries) {
+    if (parsed.kind === "query") {
+      queryLines++;
+    } else if (parsed.kind === "kubectl") {
+      kubectlLines++;
+    } else {
+      clusterLines++;
+    }
+  }
+
+  if (queryLines > (queryCount ?? 0)) {
+    return false;
+  }
+
+  if (kubectlLines > (kubectlCommandCount ?? 0)) {
+    return false;
+  }
+
+  if ((queryCount ?? 0) + (kubectlCommandCount ?? 0) > 0) {
+    return true;
+  }
+
+  return kubectlCommandCount !== undefined && clusterLines > 0;
 }
 
 function createEmptyReport(): ParsedInvestigationReport {
@@ -1334,25 +1501,28 @@ export function parseInvestigationReport(
       evidenceCheckedIndex,
       contentEnd,
     );
-    const entries: Array<InvestigationEvidenceCheckedEntry> =
+    const entries: Array<ParsedEvidenceCheckedEntry> =
       parseEvidenceCheckedEntries(
         lines.slice(evidenceCheckedIndex + 1, blockEnd),
       );
-    const queryCount: number | undefined = footerMatch?.footer.queryCount;
 
     /*
-     * The server writes one entry per citation, at most one citation per
-     * query, and no block at all when there are no citations. A footer
-     * saying "0 queries run", or fewer queries than entries, therefore means
-     * the model wrote this block: it stays in the body as model content.
-     * Without a readable count (no footer, an older format) it is trusted.
+     * A block the footer's counts rule out was written by the model: it
+     * stays in the body as model content (isServerEvidenceCheckedBlock).
      */
-    const isServerBlock: boolean =
-      queryCount === undefined ||
-      (queryCount > 0 && entries.length <= queryCount);
+    const isServerBlock: boolean = isServerEvidenceCheckedBlock(
+      entries,
+      footerMatch?.footer,
+    );
 
     if (isServerBlock) {
-      evidenceChecked = entries;
+      evidenceChecked = entries.map(
+        (
+          parsed: ParsedEvidenceCheckedEntry,
+        ): InvestigationEvidenceCheckedEntry => {
+          return parsed.entry;
+        },
+      );
 
       for (
         let index: number = evidenceCheckedIndex;

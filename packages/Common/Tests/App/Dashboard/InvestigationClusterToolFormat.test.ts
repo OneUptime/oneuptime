@@ -14,11 +14,20 @@ import {
   CLUSTER_TOOL_NAMES as FEED_CLUSTER_TOOL_NAMES,
   isClusterToolName as feedIsClusterToolName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
-import { describeEvidenceTool } from "../../../../App/FeatureSet/Dashboard/src/Utils/InvestigationEvidenceFormat";
 import {
+  describeEvidenceTool,
+  EvidenceToolDescription,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/InvestigationEvidenceFormat";
+import IconProp from "../../../Types/Icon/IconProp";
+import {
+  KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX as SHARED_KUBECTL_RESULT_UNKNOWN_PREFIX,
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
+
+// The shared formatter's fallback for a tool it does not know: "Ran <words>".
+const RAN_FALLBACK_PATTERN: RegExp =
+  /^Ran run kubectl$|^Ran list cluster access$/;
 
 /*
  * The one place the dashboard words a cluster tool call — the activity
@@ -111,10 +120,68 @@ describe("describeClusterEvidenceTool", () => {
     expect(
       describeClusterEvidenceTool(LIST_CLUSTER_ACCESS_TOOL_NAME)?.description,
     ).toBe("Listed the clusters OneUptime AI can inspect");
-    // The generic fallback it replaces.
-    expect(describeEvidenceTool(RUN_KUBECTL_TOOL_NAME).description).toBe(
-      "Ran run kubectl",
+  });
+
+  /*
+   * The shared evidence formatter knows the cluster tools itself (it used
+   * to fall back to "Ran run kubectl" under "Other"), so a surface that
+   * only calls describeEvidenceTool — the citation chip — words them the
+   * same way the Evidence tab does.
+   */
+  test.each<[string, string, IconProp]>([
+    [
+      RUN_KUBECTL_TOOL_NAME,
+      "Ran a read-only kubectl command",
+      IconProp.Terminal,
+    ],
+    [
+      LIST_CLUSTER_ACCESS_TOOL_NAME,
+      "Listed the clusters OneUptime AI can inspect",
+      IconProp.Cube,
+    ],
+  ])(
+    "the shared formatter describes %s under Kubernetes",
+    (toolName: string, description: string, icon: IconProp) => {
+      const expected: EvidenceToolDescription = {
+        description,
+        icon,
+        category: "Kubernetes",
+      };
+
+      expect(describeEvidenceTool(toolName)).toEqual(expected);
+      expect(describeClusterEvidenceTool(toolName)).toEqual(expected);
+      // Case and surrounding space do not change the answer.
+      expect(describeEvidenceTool(` ${toolName.toUpperCase()} `)).toEqual(
+        expected,
+      );
+      expect(describeEvidenceTool(toolName).description).not.toMatch(
+        RAN_FALLBACK_PATTERN,
+      );
+    },
+  );
+
+  test("returns a copy, so a caller cannot change the shared table", () => {
+    const first: EvidenceToolDescription | null = describeClusterEvidenceTool(
+      RUN_KUBECTL_TOOL_NAME,
     );
+    first!.description = "changed";
+
+    expect(
+      describeClusterEvidenceTool(RUN_KUBECTL_TOOL_NAME)?.description,
+    ).toBe("Ran a read-only kubectl command");
+    expect(describeEvidenceTool(RUN_KUBECTL_TOOL_NAME).description).toBe(
+      "Ran a read-only kubectl command",
+    );
+  });
+
+  // Negative control: an unknown tool still falls back to its own words.
+  test("still humanises a tool the table does not know", () => {
+    expect(describeEvidenceTool("query_kubernetes_pods")).toEqual({
+      description: "Ran query kubernetes pods",
+      icon: IconProp.Database,
+      category: "Other",
+    });
+    expect(describeClusterEvidenceTool("query_kubernetes_pods")).toBeNull();
   });
 
   test("leaves other tools to the shared formatter", () => {
@@ -145,9 +212,21 @@ describe("isKubectlResultUnknownMessage", () => {
   test("recognises the server's result-unknown event", () => {
     expect(
       isKubectlResultUnknownMessage(
-        `${KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX} the Runner of cluster "prod-us" took the command, but no result came back, so whether it ran is unknown.`,
+        `${SHARED_KUBECTL_RESULT_UNKNOWN_PREFIX} the Runner of cluster "prod-us" took the command, but no result came back, so whether it ran is unknown.`,
       ),
     ).toBe(true);
+  });
+
+  // The panel re-exports the one shared definition for its readers.
+  test("reads the marker defined next to the shared tool names", () => {
+    expect(KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX).toBe(
+      SHARED_KUBECTL_RESULT_UNKNOWN_PREFIX,
+    );
+    expect(
+      isKubectlResultUnknownMessage(
+        `  ${SHARED_KUBECTL_RESULT_UNKNOWN_PREFIX} leading space is not the event`,
+      ),
+    ).toBe(false);
   });
 
   test("never reads a never-ran event as unknown", () => {

@@ -3,6 +3,22 @@ import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { KUBECTL_ALWAYS_ASKS_SUMMARY } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
+
+/*
+ * The canonical KubernetesAiRemediationMode comment's last every-mode
+ * clause, in the words every model-facing copy of the unattended modes
+ * uses: what turns an Automatic or Bypass-approval round into a proposal.
+ * The remediation prompts, tools and feed items import it from here (a
+ * pure module every one of them can reach without an import cycle).
+ */
+export const UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY: string =
+  "an unattended run becomes a proposal when the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster";
+
+// "a write ..." -> "A write ..." for copy that starts a sentence.
+function capitalizeFirst(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
 
 /*
  * The prompt-side view of cluster access.
@@ -133,17 +149,25 @@ export default class ClusterAccessContext {
     return `OneUptime AI could not run kubectl on cluster "${status.clusterName}": ${first.title.toLowerCase()}. ${first.nextStep}`;
   }
 
+  /*
+   * The cluster's remediation mode in the words of the canonical
+   * KubernetesAiRemediationMode comment (Types/Kubernetes/
+   * KubernetesClusterAiAccess): what runs without a human, what is
+   * proposed instead, and what always asks — Bypass approval included.
+   */
   private static describeRemediationMode(
     status: KubernetesClusterAiAccessStatus,
   ): string {
     if (status.remediationMode === KubernetesAiRemediationMode.BypassApproval) {
       return status.isRemediationReady
-        ? "Bypass approval (every allowed kubectl fix runs without a human; nothing is ever asked)"
+        ? `Bypass approval (AI does not ask: every kubectl fix the policy allows, safe and riskier, runs without a human, follow-up rounds included — except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, and ${UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY}; destructive commands never run)`
         : "Bypass approval, but not ready";
     }
     if (status.remediationMode === KubernetesAiRemediationMode.Automatic) {
       return status.isRemediationReady
-        ? "Automatic (safe kubectl fixes run without a human; riskier ones are left in the recommendations for a human)"
+        ? `Automatic (safe kubectl fixes run without a human, and so do riskier ones whose shape the cluster's kubectl allowlist names; any other riskier fix never runs without one — a round that finds only riskier fixes proposes them for one-click approval, and after safe fixes a riskier one is proposed only if verification shows they did not recover the signal, in a follow-up round that asks. ${capitalizeFirst(
+            KUBECTL_ALWAYS_ASKS_SUMMARY,
+          )}, and ${UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY}; destructive commands never run)`
         : "Automatic, but not ready";
     }
     if (

@@ -4,10 +4,8 @@ import KubectlInvestigationToolkit, {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../../Server/Utils/AI/ClusterAccess/KubectlInvestigationToolkit";
-import {
-  isKubectlResultUnknownMessage,
-  KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX as DASHBOARD_KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX,
-} from "../../../../../App/FeatureSet/Dashboard/src/Components/AI/ClusterToolFormat";
+import { isKubectlResultUnknownMessage } from "../../../../../App/FeatureSet/Dashboard/src/Components/AI/ClusterToolFormat";
+import { KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX as SHARED_KUBECTL_RESULT_UNKNOWN_PREFIX } from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
 import KubectlJobRunner, {
   KUBECTL_CLAIM_TIMEOUT_MS,
   KUBECTL_OUTPUT_TRUNCATED_SUFFIX,
@@ -1596,6 +1594,33 @@ describe("KubectlInvestigationToolkit run_kubectl when kubectl never ran", () =>
     expect(isKubectlResultUnknownMessage(outcome.errorMessage)).toBe(false);
   });
 
+  /*
+   * One definition of the marker (next to the shared tool names): the
+   * event the toolkit persists for a lost result starts with it, and the
+   * panel's reader recognises that event.
+   */
+  it("persists a lost result under the shared result-unknown marker, which the panel reads as unknown", async () => {
+    claimRead.mockResolvedValue(
+      claimRow({
+        claimedAt: new Date("2026-09-22T10:00:00.000Z"),
+        assignedAgentId: RUNNER_ID,
+      }),
+    );
+
+    const outcome: ToolCallOutcome = await runOn(singleClusterToolkit());
+
+    expect(
+      outcome.errorMessage?.startsWith(
+        `${SHARED_KUBECTL_RESULT_UNKNOWN_PREFIX} `,
+      ),
+    ).toBe(true);
+    expect(isKubectlResultUnknownMessage(outcome.errorMessage)).toBe(true);
+    // What the server module exports under that name is the shared marker.
+    expect(KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX).toBe(
+      SHARED_KUBECTL_RESULT_UNKNOWN_PREFIX,
+    );
+  });
+
   it.each([
     [
       "the claim-time credential refusal",
@@ -1792,16 +1817,11 @@ describe("KubectlJobRunner keeps the AI run alive while it waits", () => {
 /*
  * The server writes the "result unknown" marker into the run's persisted
  * event; the dashboard reads it to count such a command apart from one
- * that never ran. Two definitions (the dashboard cannot import server
- * code), one text.
+ * that never ran. The marker has one definition (next to the shared tool
+ * names); the toolkit's behaviour against the panel's reader is pinned in
+ * "when kubectl never ran" above.
  */
 describe("the kubectl result-unknown event marker", () => {
-  it("is the same text on the server and in the dashboard", () => {
-    expect(DASHBOARD_KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX).toBe(
-      KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX,
-    );
-  });
-
   it("does not match the never-ran wording", () => {
     expect(
       isKubectlResultUnknownMessage(

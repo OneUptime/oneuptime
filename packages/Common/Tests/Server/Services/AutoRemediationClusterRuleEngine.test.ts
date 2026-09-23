@@ -37,6 +37,9 @@ import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
+// A node taint always needs a human, in every mode (the canonical comment).
+const TAINT_WORD_PATTERN: RegExp = /\btaint\b/;
+
 /*
  * Contract under test — cluster-level remediation in the rule engine, the
  * lane a cluster's AI page turns on without any AutoRemediationRule:
@@ -53,14 +56,19 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * - the follow-up round ("ask again") is Suggest for Automatic and
  *   RequireApproval clusters, FullAuto again for BypassApproval clusters,
  *   and stops at MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT for all;
- * - a BypassApproval cluster never asks: round 1 and the follow-up are
- *   both FullAuto with auto-resolve, and the feed says approvals are
- *   bypassed;
- * - the feed states exactly what each round does: an Automatic round runs
- *   safe changes on its own and a riskier change never runs on its own —
- *   the round proposes it for one-click approval instead (the execution
- *   runner settles a round that ran nothing but refused riskier changes as
- *   an approval card for exactly those);
+ * - a BypassApproval cluster's rounds do not ask: round 1 and the follow-up
+ *   are both FullAuto with auto-resolve, and the feed says approvals are
+ *   bypassed — except for what always needs a human;
+ * - the feed states exactly what each round does, in the canonical mode
+ *   terms: an Automatic round runs safe (and allowlisted) changes on its
+ *   own and a riskier change never runs on its own — a round that finds
+ *   only riskier fixes proposes exactly those for one-click approval (the
+ *   execution runner settles a round that ran nothing but refused riskier
+ *   changes as an approval card for exactly those), and after safe fixes
+ *   a riskier one is proposed only if verification fails; in both
+ *   unattended modes a protected-namespace write, a node drain and a node
+ *   taint always need a human, and the round becomes a proposal when the
+ *   breaker trips or another unattended round holds the cluster;
  * - at most one UNATTENDED round per cluster at a time, whatever the
  *   subject: a round that would run unattended while another round on the
  *   same cluster is still running or verifying its fix is created asking
@@ -570,7 +578,35 @@ describe("AutoRemediationRuleEngineService cluster feed copy states exactly what
     expect(markdown).not.toContain("pod or job");
     expect(markdown).toContain("cluster's kubectl allowlist");
     expect(markdown).toContain("A riskier change never runs on its own");
-    expect(markdown).toContain("proposes it for your one-click approval");
+    /*
+     * Changed in the round-three review: "AI proposes it for your one-click
+     * approval instead" was unconditional. The canonical Automatic
+     * semantics have two cases — a round that finds only riskier fixes
+     * proposes exactly those; after safe fixes, a riskier one is proposed
+     * only if verification shows the service did not recover — and the
+     * every-mode rules (a protected-namespace write, a node drain and a
+     * node taint always need a human; the breaker or another round's hold
+     * turns the round into a proposal) apply to Automatic too.
+     */
+    expect(markdown).toContain(
+      "if the round finds only riskier fixes, AI proposes exactly those for your one-click approval",
+    );
+    expect(markdown).toContain(
+      "a riskier fix is proposed only if verification shows the service did not recover",
+    );
+    expect(markdown).toContain(
+      "riskier changes whose shape the cluster's kubectl allowlist names",
+    );
+    expect(markdown.toLowerCase()).toContain(
+      KUBECTL_ALWAYS_ASKS_SUMMARY.toLowerCase(),
+    );
+    expect(markdown).toMatch(TAINT_WORD_PATTERN);
+    expect(markdown).toContain("hourly circuit breaker for this cluster trips");
+    expect(markdown).toContain(
+      "another unattended OneUptime AI round already holds the cluster",
+    );
+    expect(markdown).toContain("destructive commands never run");
+    expect(markdown).not.toContain("proposes it for your one-click approval");
     expect(markdown).not.toContain("neither run nor proposed");
     expect(markdown).not.toContain("asks first");
     expect(markdown).not.toContain("bypassed");
@@ -633,6 +669,17 @@ describe("AutoRemediationRuleEngineService cluster feed copy states exactly what
     expect(first).toContain("destructive commands never run");
     // Bypass approval still asks for what needs a human in every mode.
     expect(first).toContain(KUBECTL_ALWAYS_ASKS_SUMMARY);
+    expect(first).toMatch(TAINT_WORD_PATTERN);
+    /*
+     * ...and a Bypass round still becomes a proposal when the breaker trips
+     * or another unattended round holds the cluster (the canonical
+     * KubernetesAiRemediationMode comment's Bypass exceptions).
+     */
+    expect(first).toContain("hourly circuit breaker for this cluster trips");
+    expect(first).toContain(
+      "another unattended OneUptime AI round already holds the cluster",
+    );
+    expect(first).toContain("this round becomes a proposal");
     expect(first).not.toContain("approve");
     expect(first).not.toContain("recommendations");
 
@@ -645,6 +692,8 @@ describe("AutoRemediationRuleEngineService cluster feed copy states exactly what
     expect(second).toContain("runs on its own");
     expect(second).toContain("safe or riskier");
     expect(second).toContain("destructive commands never run");
+    expect(second).toContain(KUBECTL_ALWAYS_ASKS_SUMMARY);
+    expect(second).toContain("this round becomes a proposal");
     expect(second).not.toContain("approve");
   });
 });

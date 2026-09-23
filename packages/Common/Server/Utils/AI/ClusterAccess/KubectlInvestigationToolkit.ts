@@ -26,6 +26,7 @@ import KubectlJobRunner, {
   KubectlRunState,
 } from "./KubectlJobRunner";
 import {
+  KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX,
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
@@ -71,7 +72,14 @@ import {
  *    claimed by Runner, never by cluster).
  */
 
+/*
+ * Re-exported for the callers that read them from here. The result-unknown
+ * prefix is what the persisted event of a kubectl command whose result
+ * never came back starts with, so the investigation panel can tell it from
+ * a command that never ran; the panel reads the same definition.
+ */
 export {
+  KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX,
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
@@ -110,15 +118,6 @@ export interface KubectlInvestigationToolkitOptions {
 
 // A reason that already ends a sentence.
 const SENTENCE_END_PATTERN: RegExp = /[.!?]$/;
-
-/*
- * How the run's persisted event starts for a kubectl command a Runner took
- * whose result never came back, so the investigation panel can tell it
- * from a command that never ran. The dashboard keeps the same text
- * (Components/AI/ClusterToolFormat.ts); a parity test pins the two.
- */
-export const KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX: string =
-  "kubectl result unknown:";
 
 // The Runner an unclaimed command tripped the breaker for.
 interface UnreachableRunner {

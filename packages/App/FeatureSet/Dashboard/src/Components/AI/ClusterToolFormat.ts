@@ -1,9 +1,10 @@
 import {
+  describeEvidenceTool,
   EvidenceToolDescription,
   formatRowCount,
 } from "../../Utils/InvestigationEvidenceFormat";
-import IconProp from "Common/Types/Icon/IconProp";
 import {
+  KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX,
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
@@ -36,12 +37,10 @@ export function isClusterToolName(
 /*
  * How the server's persisted event starts for a kubectl command a Runner
  * took whose result never came back — whether it ran is unknown, so it is
- * never counted as "did not run". The same text as the server's
- * KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX (KubectlInvestigationToolkit); a
- * parity test pins the two.
+ * never counted as "did not run". Defined once, next to the tool names the
+ * server and the panel share; re-exported for the panel's readers.
  */
-export const KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX: string =
-  "kubectl result unknown:";
+export { KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX };
 
 export function isKubectlResultUnknownMessage(
   errorMessage: string | null | undefined,
@@ -113,36 +112,16 @@ export function formatEvidenceOutcome(
   );
 }
 
-const CLUSTER_TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
-  string,
-  EvidenceToolDescription
->([
-  [
-    RUN_KUBECTL_TOOL_NAME,
-    {
-      description: "Ran a read-only kubectl command",
-      icon: IconProp.Terminal,
-      category: "Kubernetes",
-    },
-  ],
-  [
-    LIST_CLUSTER_ACCESS_TOOL_NAME,
-    {
-      description: "Listed the clusters OneUptime AI can inspect",
-      icon: IconProp.Cube,
-      category: "Kubernetes",
-    },
-  ],
-]);
-
-// What a cluster tool did, or null for any other tool.
+/*
+ * What a cluster tool did, or null for any other tool. The wording lives in
+ * the shared evidence formatter's table (Utils/InvestigationEvidenceFormat),
+ * so every surface that describes a tool call — this one included — reads
+ * the same entry.
+ */
 export function describeClusterEvidenceTool(
   toolName: string | null | undefined,
 ): EvidenceToolDescription | null {
-  const known: EvidenceToolDescription | undefined =
-    CLUSTER_TOOL_DESCRIPTIONS.get(toolName || "");
-
-  return known ? { ...known } : null;
+  return isClusterToolName(toolName) ? describeEvidenceTool(toolName) : null;
 }
 
 /*

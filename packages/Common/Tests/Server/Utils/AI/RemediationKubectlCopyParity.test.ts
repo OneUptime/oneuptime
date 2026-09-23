@@ -20,8 +20,14 @@ import {
   PROTECTED_KUBERNETES_NAMESPACES,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import KubectlPolicy from "../../../../Utils/AiRemediation/KubectlPolicy";
+import { UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY } from "../../../../Server/Utils/AI/ClusterAccess/ClusterAccessContext";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, it } from "@jest/globals";
+
+const TAINT_WORD_PATTERN: RegExp = /\btaint\b/;
+// The stale Bypass promise: a Bypass round still asks for some changes.
+const NOBODY_IS_ASKED_PATTERN: RegExp =
+  /nobody is asked|nothing is ever asked/i;
 
 /*
  * Contract under test — every LLM-facing description of the kubectl tiers
@@ -155,9 +161,15 @@ describe("the shared kubectl tier summaries match what KubectlPolicy does", () =
     expect(KUBECTL_EVERY_MODE_LIMITS_SUMMARY).toContain(
       "never changes its own namespace",
     );
-    expect(KUBECTL_EVERY_MODE_LIMITS_SUMMARY).toContain(
-      "circuit breaker turns an unattended run into a proposal",
-    );
+    /*
+     * Loosened in the round-three review: the canonical comment now words
+     * this clause "an unattended run becomes a proposal when the hourly
+     * per-cluster circuit breaker trips or another unattended round
+     * already holds the cluster", and the shared summary may follow it in
+     * the Types lane; either wording names the breaker and the proposal.
+     */
+    expect(KUBECTL_EVERY_MODE_LIMITS_SUMMARY).toContain("circuit breaker");
+    expect(KUBECTL_EVERY_MODE_LIMITS_SUMMARY).toContain("proposal");
   });
 
   it("the Automatic and Bypass summaries state the canonical mode semantics", () => {
@@ -173,8 +185,9 @@ describe("the shared kubectl tier summaries match what KubectlPolicy does", () =
     );
     // KubernetesAiRemediationMode.BypassApproval's doc comment.
     expect(KUBECTL_BYPASS_MODE_SUMMARY).toContain("AI does not ask.");
+    // No trailing period: the canonical sentence goes on with its exceptions.
     expect(KUBECTL_BYPASS_MODE_SUMMARY).toContain(
-      "Every change the policy allows — safe AND riskier — runs on its own, follow-up rounds included.",
+      "Every change the policy allows — safe AND riskier — runs on its own, follow-up rounds included",
     );
   });
 });
@@ -299,8 +312,92 @@ describe("the tools the model reads use the shared summaries", () => {
     expect(description).toContain(KUBECTL_RISKIER_CHANGES_SUMMARY);
     expect(description).toContain(KUBECTL_ALWAYS_ASKS_SUMMARY);
     expect(description).toContain(KUBECTL_NEVER_RUNS_SUMMARY);
+    // The canonical every-mode clause: breaker and hold turn a run into a proposal.
+    expect(description).toContain(UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY);
     for (const stale of STALE_PHRASES) {
       expect(description).not.toContain(stale);
     }
   });
+
+  it("the command field asks for a JSON patch body", () => {
+    const properties: Record<string, { description: string }> = toolNamed(
+      toolkitFor(KubernetesAiRemediationMode.Automatic),
+      "execute_remediation_command",
+    ).definition.inputSchema["properties"] as unknown as Record<
+      string,
+      { description: string }
+    >;
+    const example: string = `kubectl patch deployment/web -n web -p '{"spec":{"replicas":3}}'`;
+
+    expect(properties["command"]!.description).toContain(
+      "a patch body must be JSON",
+    );
+    expect(properties["command"]!.description).toContain(example);
+    // The example is one the policy lets through, not one it denies.
+    expect(KubectlPolicy.evaluateCommand(example).tier).toBe(
+      KubectlCommandTier.RiskyWrite,
+    );
+  });
+
+  /*
+   * One row field per idea, each capped at the serializer's 500 characters:
+   * the mode field must carry the whole canonical sentence — the breaker
+   * and hold exception included — or the model reads it cut off.
+   */
+  it.each<[KubernetesAiRemediationMode, boolean]>([
+    [KubernetesAiRemediationMode.Automatic, true],
+    [KubernetesAiRemediationMode.Automatic, false],
+    [KubernetesAiRemediationMode.BypassApproval, true],
+    [KubernetesAiRemediationMode.BypassApproval, false],
+  ])(
+    "the %s mode field (a round that proposes refused changes: %p) states the breaker and hold exception, whole",
+    async (mode: KubernetesAiRemediationMode, proposes: boolean) => {
+      jest
+        .spyOn(RunnerService, "getOnlineAiCommandRunnersForProject")
+        .mockResolvedValue([]);
+
+      const toolkit: RemediationCommandToolkit = new RemediationCommandToolkit({
+        projectId: new ObjectID("22222222-2222-4222-8222-222222222222"),
+        aiRunId: new ObjectID("88888888-8888-4888-8888-888888888888"),
+        suggestionId: new ObjectID("77777777-7777-4777-8777-777777777777"),
+        mode: "FullAuto",
+        allowlistPatterns: [],
+        allowedRunnerIds: [],
+        clusterTargets: [clusterIn(mode)],
+        proposesRefusedCommands: proposes,
+      });
+
+      const outcome: ToolCallOutcome = await toolNamed(
+        toolkit,
+        "list_command_targets",
+      ).execute({});
+
+      expect(outcome.textForLlm).toContain(
+        UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY,
+      );
+      expect(outcome.textForLlm).toContain("alwaysNeedsAHuman");
+      expect(outcome.textForLlm).not.toContain("[truncated]");
+      expect(outcome.result?.isTruncated).toBe(false);
+    },
+  );
+});
+
+describe("the cluster personas state the canonical every-mode rules", () => {
+  it.each([
+    ["Automatic", false],
+    ["Bypass approval", true],
+  ])(
+    "%s persona: the breaker and hold exception, and a lost result is checked before a resend",
+    (_label: string, bypassApproval: boolean) => {
+      const persona: string = buildClusterFullAutoPersona({ bypassApproval });
+
+      expect(persona).toContain(UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY);
+      expect(persona).toContain("do NOT try other changes on that cluster");
+      expect(persona).toContain("result comes back UNKNOWN");
+      expect(persona).toContain("never resend it blindly");
+      // A node taint always needs a human, in every mode.
+      expect(persona).toMatch(TAINT_WORD_PATTERN);
+      expect(persona).not.toMatch(NOBODY_IS_ASKED_PATTERN);
+    },
+  );
 });

@@ -1,9 +1,19 @@
-import ClusterAccessContext from "../../../../Server/Utils/AI/ClusterAccess/ClusterAccessContext";
+import ClusterAccessContext, {
+  UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY,
+} from "../../../../Server/Utils/AI/ClusterAccess/ClusterAccessContext";
+import { KUBECTL_ALWAYS_ASKS_SUMMARY } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  PROTECTED_KUBERNETES_NAMESPACES,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { describe, expect, it } from "@jest/globals";
+
+// The stale Bypass promise: a Bypass round does still ask, for some changes.
+const NOTHING_IS_ASKED_PATTERN: RegExp =
+  /nothing is ever asked|nobody is asked/i;
+const DRAIN_WORD_PATTERN: RegExp = /\bdrain\b/;
+const TAINT_WORD_PATTERN: RegExp = /\btaint\b/;
 
 /*
  * Contract under test — the deterministic text that tells the model (and,
@@ -70,28 +80,29 @@ describe("ClusterAccessContext", () => {
       ]);
     };
 
+    /*
+     * Changed in the round-three review: the Bypass line used to promise
+     * "nothing is ever asked" and the Automatic line that riskier fixes are
+     * "left in the recommendations". Both contradicted the canonical
+     * KubernetesAiRemediationMode comment — a Bypass round still asks for
+     * a protected-namespace write, a node drain or a taint, and becomes a
+     * proposal when the breaker trips or another round holds the cluster;
+     * an Automatic round proposes a riskier fix for one-click approval. The
+     * clause-by-clause pins are in "states every mode the way the
+     * canonical comment does" below.
+     */
     expect(
       describe(KubernetesAiRemediationMode.BypassApproval, true),
-    ).toContain(
-      "Bypass approval (every allowed kubectl fix runs without a human; nothing is ever asked)",
-    );
+    ).toContain("Bypass approval (AI does not ask:");
     expect(
       describe(KubernetesAiRemediationMode.BypassApproval, false),
     ).toContain("Bypass approval, but not ready");
 
     expect(describe(KubernetesAiRemediationMode.Automatic, true)).toContain(
-      "Automatic (safe kubectl fixes run without a human; riskier ones are left in the recommendations for a human)",
+      "Automatic (safe kubectl fixes run without a human",
     );
     expect(describe(KubernetesAiRemediationMode.Automatic, false)).toContain(
       "Automatic, but not ready",
-    );
-    /*
-     * A riskier change never runs without a human in Automatic mode: the
-     * unattended round leaves it in the recommendations rather than asking,
-     * so the model must not be told that riskier fixes "ask".
-     */
-    expect(describe(KubernetesAiRemediationMode.Automatic, true)).not.toMatch(
-      /riskier ones ask/,
     );
 
     expect(
@@ -100,6 +111,78 @@ describe("ClusterAccessContext", () => {
 
     expect(describe(KubernetesAiRemediationMode.Disabled, false)).toContain(
       "disabled — AI may only inspect",
+    );
+  });
+
+  /*
+   * The canonical KubernetesAiRemediationMode comment, clause by clause:
+   * Bypass approval does not ask — except for a protected-namespace write,
+   * a node drain and a node taint, which always need a human, and a round
+   * becomes a proposal when the breaker trips or another unattended round
+   * holds the cluster; Automatic runs safe (and allowlisted) fixes and
+   * proposes a riskier one for one-click approval, never leaving it only
+   * in the recommendations.
+   */
+  it("states every mode the way the canonical comment does", () => {
+    const describeReady: (mode: KubernetesAiRemediationMode) => string = (
+      mode: KubernetesAiRemediationMode,
+    ): string => {
+      return ClusterAccessContext.buildContextSection([
+        status({ remediationMode: mode, isRemediationReady: true }),
+      ]);
+    };
+
+    const bypass: string = describeReady(
+      KubernetesAiRemediationMode.BypassApproval,
+    );
+    const automatic: string = describeReady(
+      KubernetesAiRemediationMode.Automatic,
+    );
+
+    for (const text of [bypass, automatic]) {
+      // Automatic's copy starts a sentence with it, so compare case-blind.
+      expect(text.toLowerCase()).toContain(
+        KUBECTL_ALWAYS_ASKS_SUMMARY.toLowerCase(),
+      );
+      expect(text).toMatch(DRAIN_WORD_PATTERN);
+      expect(text).toMatch(TAINT_WORD_PATTERN);
+      for (const namespace of PROTECTED_KUBERNETES_NAMESPACES) {
+        expect(text).toContain(namespace);
+      }
+      expect(text).toContain(UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY);
+      expect(text).toContain("destructive commands never run");
+      expect(text).not.toMatch(NOTHING_IS_ASKED_PATTERN);
+      expect(text).not.toContain("left in the recommendations");
+    }
+
+    expect(UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY).toContain(
+      "circuit breaker trips",
+    );
+    expect(UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY).toContain(
+      "another unattended round already holds the cluster",
+    );
+
+    expect(bypass).toContain("AI does not ask");
+    expect(bypass).toContain("safe and riskier");
+    expect(bypass).toContain("follow-up rounds included");
+
+    expect(automatic).toContain(
+      "riskier ones whose shape the cluster's kubectl allowlist names",
+    );
+    expect(automatic).toContain(
+      "a round that finds only riskier fixes proposes them for one-click approval",
+    );
+    expect(automatic).toContain(
+      "a riskier one is proposed only if verification shows they did not recover the signal",
+    );
+
+    // Negative control: a cluster that asks for everything says only that.
+    const requireApproval: string = describeReady(
+      KubernetesAiRemediationMode.RequireApproval,
+    );
+    expect(requireApproval).toContain("a human approves any kubectl fix");
+    expect(requireApproval).not.toContain(
+      UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY,
     );
   });
 

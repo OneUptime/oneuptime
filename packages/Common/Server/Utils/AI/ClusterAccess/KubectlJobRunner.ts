@@ -211,8 +211,9 @@ export interface KubectlTerminalJobFacts {
   output?: string | null | undefined;
   errorMessage?: string | null | undefined;
   /*
-   * Whether a Runner claimed the job (claimedAt or assignedAgentId on its
-   * row). Only read for a TimedOut job, whose row alone cannot say.
+   * Whether a Runner claimed the job (claimedAt, assignedAgentId or
+   * startedAt on its row — a started job was claimed). Only read for a
+   * TimedOut job, whose row alone cannot say.
    * Undefined when it is not known, which assumes nothing: the run state
    * is Unknown, never NotRun.
    */
@@ -287,17 +288,54 @@ export default class KubectlJobRunner {
       ...(data.isAccessTest === true ? { isAccessTest: true } : {}),
     });
 
-    const displayCommand: string = String(
-      (job.payload as { displayCommand?: string } | undefined)
-        ?.displayCommand || data.command,
-    );
-
     const terminalJob: RunnerJob = await this.waitForJobWithHeartbeat({
       aiRunId: data.aiRunId,
       jobId: job.id!,
       claimTimeoutInMs,
       executionTimeoutInMs: data.timeoutInMs,
     });
+
+    const outcome: KubectlJobOutcome = await KubectlJobRunner.readFinishedJob({
+      job,
+      terminalJob,
+      command: data.command,
+      claimTimeoutInMs,
+      executionTimeoutInMs: data.timeoutInMs,
+    });
+
+    await KubectlJobRunner.recordOutcomeOnCluster({
+      clusterId: data.kubernetesClusterId,
+      outcome,
+    });
+
+    return outcome;
+  }
+
+  /*
+   * How a finished kubectl job reads: whether kubectl ran (the claim read
+   * back from the row for a TimedOut job), the kubectl-worded reason for a
+   * failure, the redacted and capped output, and whether the failure is
+   * about the cluster's access. run() reads every job it waits on this way;
+   * a caller that enqueues and waits itself — the remediation toolkit,
+   * which must record the job id between the two — reads its job the same
+   * way, so the two lanes never disagree about what a job did.
+   */
+  public static async readFinishedJob(data: {
+    // The job as enqueued: its id, and the payload's display command.
+    job: RunnerJob;
+    // The same job once it reached a terminal status.
+    terminalJob: RunnerJob;
+    // What was asked for, shown when the payload carries no display form.
+    command: string;
+    claimTimeoutInMs: number;
+    executionTimeoutInMs: number;
+  }): Promise<KubectlJobOutcome> {
+    const { job, terminalJob } = data;
+
+    const displayCommand: string = String(
+      (job.payload as { displayCommand?: string } | undefined)
+        ?.displayCommand || data.command,
+    );
 
     const succeeded: boolean = terminalJob.status === RunnerJobStatus.Succeeded;
 
@@ -334,7 +372,7 @@ export default class KubectlJobRunner {
       terminalJob.output || "",
     );
 
-    const outcome: KubectlJobOutcome = {
+    return {
       jobId: job.id!.toString(),
       succeeded,
       exitCode: terminalJob.exitCode,
@@ -347,8 +385,8 @@ export default class KubectlJobRunner {
             terminalJob.status === RunnerJobStatus.TimedOut
               ? KubectlJobRunner.describeTimeout({
                   wasClaimed: claimState.wasClaimed,
-                  claimTimeoutInMs,
-                  executionTimeoutInMs: data.timeoutInMs,
+                  claimTimeoutInMs: data.claimTimeoutInMs,
+                  executionTimeoutInMs: data.executionTimeoutInMs,
                 })
               : terminalJob.errorMessage ||
                   `Command ended with status ${terminalJob.status}.`,
@@ -359,23 +397,53 @@ export default class KubectlJobRunner {
       claimTimedOut,
       isAccessFailure,
     };
+  }
 
-    /*
-     * Best-effort bookkeeping for the cluster's AI page; never throws. A
-     * success proves the access works. A failure is recorded only when it
-     * is about the access: a pod the model guessed wrong (NotFound) says
-     * nothing about the Runner, and must neither become the cluster's
-     * "Last error" nor clear a real one.
-     */
-    if (succeeded || isAccessFailure) {
-      await KubernetesClusterAiAccessService.recordCommandOutcome({
-        clusterId: data.kubernetesClusterId,
-        succeeded,
-        errorMessage: outcome.errorMessage,
-      });
+  /*
+   * Best-effort bookkeeping for the cluster's AI page; never throws. A
+   * success proves the access works. A failure is recorded only when it is
+   * about the access: a pod the model guessed wrong (NotFound) says nothing
+   * about the Runner, and must neither become the cluster's "Last error"
+   * nor clear a real one.
+   */
+  public static async recordOutcomeOnCluster(data: {
+    clusterId: ObjectID;
+    outcome: KubectlJobOutcome;
+  }): Promise<void> {
+    if (!data.outcome.succeeded && !data.outcome.isAccessFailure) {
+      return;
     }
 
-    return outcome;
+    await KubernetesClusterAiAccessService.recordCommandOutcome({
+      clusterId: data.clusterId,
+      succeeded: data.outcome.succeeded,
+      errorMessage: data.outcome.errorMessage,
+    });
+  }
+
+  /*
+   * What a kubectl job's row says about whether kubectl ran, for a caller
+   * that reads the row later — the rollback arm, deciding whether an undo
+   * is owed for a command whose record says it failed. The row must carry
+   * its claim columns (claimedAt, startedAt, assignedAgentId) along with
+   * status, exitCode, output and errorMessage. A job still in flight may
+   * yet run: Unknown.
+   */
+  public static getRunStateOfJobRow(row: RunnerJob): KubectlRunState {
+    if (!isTerminalAgentJobStatus(row.status)) {
+      return KubectlRunState.Unknown;
+    }
+
+    return KubectlJobRunner.getRunState({
+      status: row.status,
+      exitCode: row.exitCode,
+      output: row.output,
+      errorMessage: row.errorMessage,
+      wasClaimed: Boolean(
+        row.claimedAt || row.assignedAgentId || row.startedAt,
+      ),
+      wasStarted: Boolean(row.startedAt),
+    });
   }
 
   /*
@@ -582,8 +650,16 @@ export default class KubectlJobRunner {
         return { wasClaimed: undefined, wasStarted: undefined };
       }
 
+      /*
+       * A started job was claimed, whatever its claim columns say: a
+       * heartbeat (startedAt) only comes from the Runner that holds it. A
+       * started job read as unclaimed would be reported as "never picked
+       * up — nothing was run" and trip the investigation's Runner breaker.
+       */
       return {
-        wasClaimed: Boolean(row.claimedAt || row.assignedAgentId),
+        wasClaimed: Boolean(
+          row.claimedAt || row.assignedAgentId || row.startedAt,
+        ),
         wasStarted: Boolean(row.startedAt),
       };
     } catch (error) {

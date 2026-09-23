@@ -40,6 +40,7 @@ import {
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
 import KubectlInvestigationToolkit from "../ClusterAccess/KubectlInvestigationToolkit";
+import { UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY } from "../ClusterAccess/ClusterAccessContext";
 import AIRunService from "../../../Services/AIRunService";
 import AlertFeedService from "../../../Services/AlertFeedService";
 import AlertService from "../../../Services/AlertService";
@@ -245,6 +246,21 @@ function capitalizeFirst(text: string): string {
 }
 
 /*
+ * The canonical every-mode clause about unattended runs, as an instruction:
+ * the toolkit refuses (and records for a proposal) a change the breaker or
+ * another round's hold stops, so the model must not look for a way round.
+ */
+const UNATTENDED_RUN_BECOMES_PROPOSAL_RULE: string = `In every unattended mode, ${UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY}: a change refused for either reason is recorded and proposed the same way — do NOT try other changes on that cluster.`;
+
+/*
+ * A kubectl change whose result never came back may have been applied
+ * (KubectlJobRunner's Unknown run state): the model checks before it
+ * reissues it, so a change is never applied twice on a guess.
+ */
+const KUBECTL_RESULT_UNKNOWN_RULE: string =
+  "A kubectl change whose result comes back UNKNOWN (the Runner took it and no result came back) may still have changed the cluster: check with run_kubectl whether it took effect before you reissue it or build on it — never resend it blindly.";
+
+/*
  * The kubectl rules every cluster persona states, in the shared words of
  * AiRemediationCommandPlan's KUBECTL_*_SUMMARY constants — which restate
  * the tier and mode doc comments in KubernetesClusterAiAccess — so no
@@ -291,11 +307,11 @@ How to work:
 2. Act minimally: execute the smallest ${
     data.bypassApproval ? "" : "safe "
   }change that addresses the diagnosed cause via execute_remediation_command with stepType Kubectl. One change at a time.
-3. Verify each action: after a change, run_kubectl to observe its effect (pod phase, rollout status, events) before deciding whether more is needed.
+3. Verify each action: after a change, run_kubectl to observe its effect (pod phase, rollout status, events) before deciding whether more is needed. ${KUBECTL_RESULT_UNKNOWN_RULE}
 4. Know your limits — ${
     data.bypassApproval
-      ? `${KUBECTL_BYPASS_MODE_SUMMARY} Every kubectl change the policy allows executes inline and nobody is asked, EXCEPT that ${KUBECTL_ALWAYS_ASKS_SUMMARY}: submit such a change with execute_remediation_command anyway — it will NOT run, but it is recorded, and when this round ends having run no other change OneUptime AI proposes it to a human for one-click approval. Prefer the safe form of a fix when both would work, and never propose a destructive command (they are refused).`
-      : `${KUBECTL_AUTOMATIC_MODE_SUMMARY} So only safe kubectl changes (and allowlisted ones) execute inline. If the right fix is riskier — or is something that always needs a human (${KUBECTL_ALWAYS_ASKS_SUMMARY}) — do NOT hunt for a worse safe substitute: submit the exact kubectl command with execute_remediation_command anyway. It will NOT run, but it is recorded, and when this round ends having run no other change OneUptime AI proposes it to a human for one-click approval. Put it in your final recommendations too. (If you also run a safe change, the riskier one stays in your recommendations; should the service not recover, a follow-up round proposes the next plan for approval.)`
+      ? `${KUBECTL_BYPASS_MODE_SUMMARY} Every kubectl change the policy allows executes inline without asking anyone, EXCEPT that ${KUBECTL_ALWAYS_ASKS_SUMMARY}: submit such a change with execute_remediation_command anyway — it will NOT run, but it is recorded, and when this round ends having run no other change OneUptime AI proposes it to a human for one-click approval. ${UNATTENDED_RUN_BECOMES_PROPOSAL_RULE} Prefer the safe form of a fix when both would work, and never propose a destructive command (they are refused).`
+      : `${KUBECTL_AUTOMATIC_MODE_SUMMARY} So only safe kubectl changes (and allowlisted ones) execute inline. If the right fix is riskier — or is something that always needs a human (${KUBECTL_ALWAYS_ASKS_SUMMARY}) — do NOT hunt for a worse safe substitute: submit the exact kubectl command with execute_remediation_command anyway. It will NOT run, but it is recorded, and when this round ends having run no other change OneUptime AI proposes it to a human for one-click approval. Put it in your final recommendations too. (If you also run a safe change, the riskier one stays in your recommendations; should the service not recover, a follow-up round proposes the next plan for approval.) ${UNATTENDED_RUN_BECOMES_PROPOSAL_RULE}`
   }
 5. Always pass a rollbackCommand when the change has an undo — it is what runs if the service has not recovered by the end of the verification window. ${
     data.bypassApproval
@@ -796,8 +812,8 @@ export default class RemediationExecutionRunner {
             ? `A signal has been declared on Kubernetes cluster "${resolvedClusterTarget.clusterName}" and ${
                 resolvedClusterTarget.remediationMode ===
                 KubernetesAiRemediationMode.BypassApproval
-                  ? "its operator bypassed approvals: every fix the policy allows runs on its own, except what always needs a human (a protected namespace, a node drain or taint)"
-                  : "Automatic remediation is enabled for it: safe fixes run on their own, a riskier one is proposed for approval"
+                  ? "its operator bypassed approvals: every fix the policy allows runs on its own, except what always needs a human (a write in a protected namespace, a node drain or a node taint) — and the round becomes a proposal if the hourly circuit breaker trips or another unattended round holds the cluster"
+                  : "Automatic remediation is enabled for it: safe fixes (and shapes on the cluster's kubectl allowlist) run on their own, and a riskier fix never runs without a human's one-click approval"
               }. Diagnose with kubectl and remediate now.`
             : `A signal has been declared on Kubernetes cluster "${resolvedClusterTarget.clusterName}". Diagnose it with kubectl and compose a kubectl plan for human approval.`
           : resolvedMode === "FullAuto"
@@ -1896,8 +1912,8 @@ export default class RemediationExecutionRunner {
         data.mode === "FullAuto"
           ? data.clusterTarget.remediationMode ===
             KubernetesAiRemediationMode.BypassApproval
-            ? `Remediation mode: ${KUBECTL_BYPASS_MODE_SUMMARY} Every kubectl change the policy allows (safe AND riskier: ${KUBECTL_RISKIER_CHANGES_SUMMARY}) executes inline via execute_remediation_command without asking anyone — except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}; submit such a change anyway and it is recorded and proposed for one-click approval if this round runs no other change. ${capitalizeFirst(KUBECTL_NEVER_RUNS_SUMMARY)}. Still act minimally and verify each change.`
-            : `Remediation mode: ${KUBECTL_AUTOMATIC_MODE_SUMMARY} Safe kubectl changes execute inline via execute_remediation_command. A riskier one — or one that always needs a human (${KUBECTL_ALWAYS_ASKS_SUMMARY}) — never runs inline: submit it with execute_remediation_command anyway and it is refused but recorded; if this round runs no other change, OneUptime AI proposes the recorded change(s) for one-click approval when the round ends. Put it in your recommendations too.`
+            ? `Remediation mode: ${KUBECTL_BYPASS_MODE_SUMMARY} Every kubectl change the policy allows (safe AND riskier: ${KUBECTL_RISKIER_CHANGES_SUMMARY}) executes inline via execute_remediation_command without asking anyone — except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}; submit such a change anyway and it is recorded and proposed for one-click approval if this round runs no other change. ${capitalizeFirst(UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY)}. ${capitalizeFirst(KUBECTL_NEVER_RUNS_SUMMARY)}. Still act minimally and verify each change.`
+            : `Remediation mode: ${KUBECTL_AUTOMATIC_MODE_SUMMARY} Safe kubectl changes execute inline via execute_remediation_command. A riskier one — or one that always needs a human (${KUBECTL_ALWAYS_ASKS_SUMMARY}) — never runs inline: submit it with execute_remediation_command anyway and it is refused but recorded; if this round runs no other change, OneUptime AI proposes the recorded change(s) for one-click approval when the round ends. Put it in your recommendations too. ${capitalizeFirst(UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY)}.`
           : "Remediation mode: a human approves — record your plan with propose_remediation_commands.",
       );
       lines.push(

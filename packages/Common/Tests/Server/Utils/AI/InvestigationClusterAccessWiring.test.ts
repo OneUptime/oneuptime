@@ -14,6 +14,7 @@ import AIMemory from "../../../../Server/Utils/AI/SRE/AIMemory";
 import AIConfidenceSignal from "../../../../Server/Utils/AI/SRE/ConfidenceSignal";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
 import {
+  InvestigationEvidenceCheckedEntry,
   parseInvestigationReport,
   ParsedInvestigationReport,
 } from "../../../../Utils/AI/InvestigationReport";
@@ -664,6 +665,22 @@ describe("AIInvestigationEngine's posted report and kubectl", () => {
 
       expect(report.bodyMarkdown).not.toContain("Evidence checked");
       expect(report.footer?.modelName).toBe("gpt-4.1-mini");
+      /*
+       * A run without evidence items shows only what the parser reads
+       * back: every cited call — kubectl and cluster listings included —
+       * stays an evidence line.
+       */
+      expect(
+        report.evidenceChecked.map(
+          (entry: InvestigationEvidenceCheckedEntry): string => {
+            return entry.citationId;
+          },
+        ),
+      ).toEqual(
+        citations.map((cited: AIChatCitation): string => {
+          return cited.id;
+        }),
+      );
     },
   );
 

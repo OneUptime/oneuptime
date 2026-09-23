@@ -114,6 +114,19 @@ const PENDING_VERIFICATION_HOLD_GRACE_MINUTES: number = 10;
  */
 const HELD_ROUND_LOOKBACK_HOURS: number = 24;
 
+/*
+ * The canonical every-mode clause (UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY)
+ * in the feed's words: what "holds the cluster" means to the human reading
+ * the announcement of an unattended round.
+ */
+const UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE: string =
+  "If the hourly circuit breaker for this cluster trips, or another unattended OneUptime AI round already holds the cluster (it is still changing it, or its fix is still being verified), this round becomes a proposal for your approval instead.";
+
+// "a write ..." -> "A write ..." for copy that starts a sentence.
+function capitalizeFirst(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 type SubjectLinkage = {
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
@@ -1106,10 +1119,13 @@ class AutoRemediationRuleEngineServiceClass {
    * AI page enables remediation (and whose access is ready), start one AI
    * command run with the cluster as its only target. Automatic clusters run
    * FullAuto (safe kubectl without a human; a riskier change never runs on
-   * its own — when it is the fix, the round ends by proposing it for
-   * one-click approval); BypassApproval clusters run FullAuto for every
-   * change the policy allows (a protected-namespace write or a node drain
-   * or taint still asks); clusters on "ask for approval" run Suggest. One
+   * its own — a round that could only find riskier fixes ends by proposing
+   * exactly those for one-click approval, and after safe fixes a riskier
+   * one is proposed only if verification shows they did not recover the
+   * signal, by the follow-up round, which asks);
+   * BypassApproval clusters run FullAuto for every change the policy
+   * allows (a protected-namespace write, a node drain or a node taint
+   * still asks); clusters on "ask for approval" run Suggest. One
    * suggestion per cluster per subject from this hook; and at most one
    * UNATTENDED AI run per cluster at a time, whatever the subject — a round
    * that finds another round, or a rule-driven run, still changing the
@@ -1393,14 +1409,19 @@ class AutoRemediationRuleEngineServiceClass {
     });
 
     /*
-     * The feed states exactly what this round does. An Automatic round runs
-     * safe changes on its own; a riskier change never runs without a human
-     * — when it is the fix, the round ends by proposing it as a one-click
-     * approval card (or, when a safe change was tried first and did not
-     * recover the service, the follow-up round proposes the next plan).
-     * (If the hourly circuit breaker, or another round in flight, turns an
-     * unattended round into a proposal once it starts, the execution runner
-     * posts its own explanation.)
+     * The feed states exactly what this round does, in the terms of the
+     * canonical KubernetesAiRemediationMode comment. An Automatic round
+     * runs safe (and allowlisted) changes on its own; a riskier change
+     * never runs without a human — when the round finds only riskier
+     * fixes it ends by proposing exactly those as a one-click approval
+     * card, and when it also ran safe fixes a riskier one is proposed only
+     * if verification shows they did not recover the service (the
+     * follow-up round, which asks). A Bypass-approval round asks for
+     * nothing but what always needs a human. In both, a protected-
+     * namespace write, a node drain and a node taint always need a human,
+     * and the round becomes a proposal if the hourly circuit breaker trips
+     * or another unattended round holds the cluster — said here up front;
+     * the execution runner posts its own explanation when that happens.
      */
     let markdown: string;
 
@@ -1415,10 +1436,12 @@ class AutoRemediationRuleEngineServiceClass {
     } else if (isBypass) {
       markdown =
         data.round > 1
-          ? `⚡ **OneUptime AI is applying another kubectl fix on cluster "${cluster.clusterName}"** (round ${data.round}) — the previous fix did not recover the service. Approvals are bypassed for this cluster, so the new fix runs on its own: every kubectl change the policy allows, safe or riskier — except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. Progress appears here.`
-          : `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Approvals are bypassed for this cluster: AI is diagnosing with kubectl and will apply whatever fix the policy allows — safe or riskier — on its own, without asking, except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. Progress appears here.`;
+          ? `⚡ **OneUptime AI is applying another kubectl fix on cluster "${cluster.clusterName}"** (round ${data.round}) — the previous fix did not recover the service. Approvals are bypassed for this cluster, so the new fix runs on its own: every kubectl change the policy allows, safe or riskier — except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`
+          : `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Approvals are bypassed for this cluster: AI is diagnosing with kubectl and will apply whatever fix the policy allows — safe or riskier — on its own, without asking, except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`;
     } else if (isAutomatic) {
-      markdown = `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Automatic remediation is on for this cluster: AI is diagnosing with kubectl and will apply safe changes (${KUBECTL_SAFE_CHANGES_SUMMARY}), plus anything the cluster's kubectl allowlist names, on its own. A riskier change never runs on its own — AI proposes it for your one-click approval instead. Progress appears here.`;
+      markdown = `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Automatic remediation is on for this cluster: AI is diagnosing with kubectl and will apply safe changes (${KUBECTL_SAFE_CHANGES_SUMMARY}), plus riskier changes whose shape the cluster's kubectl allowlist names, on its own. A riskier change never runs on its own otherwise: if the round finds only riskier fixes, AI proposes exactly those for your one-click approval; if it also applied safe changes, a riskier fix is proposed only if verification shows the service did not recover. ${capitalizeFirst(
+        KUBECTL_ALWAYS_ASKS_SUMMARY,
+      )}, and destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`;
     } else {
       markdown =
         data.round > 1

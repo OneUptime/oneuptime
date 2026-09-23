@@ -940,14 +940,24 @@ describe("buildClusterFullAutoPersona", () => {
     expect(persona).not.toContain("bypass");
   });
 
-  it("tells a BypassApproval run that riskier fixes execute inline and nobody is asked — except for what needs a human in every mode", () => {
+  it("tells a BypassApproval run that riskier fixes execute inline without asking — except for what needs a human in every mode", () => {
     const persona: string = buildClusterFullAutoPersona({
       bypassApproval: true,
     });
 
     expect(persona).toContain("chose to bypass approvals entirely");
     expect(persona).toContain("safe AND riskier");
-    expect(persona).toContain("nobody is asked");
+    /*
+     * Changed in the round-three review: "nobody is asked" is no longer
+     * said even with its EXCEPT clause — the canonical comment's Bypass
+     * round still asks for what always needs a human, and becomes a
+     * proposal when the breaker trips or another round holds the cluster.
+     */
+    expect(persona).toContain("without asking anyone, EXCEPT that");
+    expect(persona).not.toContain("nobody is asked");
+    expect(persona).toContain(
+      "an unattended run becomes a proposal when the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster",
+    );
     expect(persona).toContain("its operator bypassed approvals");
     expect(persona).toContain("also run without a human on this cluster");
     /*

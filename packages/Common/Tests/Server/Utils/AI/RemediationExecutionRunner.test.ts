@@ -1148,8 +1148,22 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
     expect(request.get().questionOverride).toContain(
       "its operator bypassed approvals",
     );
+    /*
+     * The canonical Bypass exceptions (round-three review): a node taint
+     * needs a human like a drain, and the breaker or another round's hold
+     * turns the round into a proposal.
+     */
+    expect(request.get().questionOverride).toContain(
+      "a write in a protected namespace, a node drain or a node taint",
+    );
+    expect(request.get().questionOverride).toContain(
+      "the round becomes a proposal if the hourly circuit breaker trips or another unattended round holds the cluster",
+    );
     expect(request.get().contextSummary).toContain(
       "Remediation mode: Bypass approval",
+    );
+    expect(request.get().contextSummary).toContain(
+      "An unattended run becomes a proposal when the hourly per-cluster circuit breaker trips",
     );
     expect(request.get().contextSummary).not.toContain("downgraded");
 
@@ -1183,8 +1197,20 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
     expect(request.get().questionOverride).toContain(
       "Automatic remediation is enabled for it",
     );
+    /*
+     * Changed in the round-three review: "a riskier one is proposed for
+     * approval" was unconditional; the canonical Automatic semantics are
+     * that a riskier fix never runs without a human's click (and shapes on
+     * the allowlist run on their own).
+     */
+    expect(request.get().questionOverride).toContain(
+      "safe fixes (and shapes on the cluster's kubectl allowlist) run on their own, and a riskier fix never runs without a human's one-click approval",
+    );
     expect(request.get().contextSummary).toContain(
       "Remediation mode: Automatic",
+    );
+    expect(request.get().contextSummary).toContain(
+      "An unattended run becomes a proposal when the hourly per-cluster circuit breaker trips",
     );
     expect(incidentFeed).not.toHaveBeenCalled();
   });
