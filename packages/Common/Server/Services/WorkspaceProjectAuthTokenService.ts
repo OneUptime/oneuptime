@@ -5,8 +5,10 @@ import WorkspaceType, {
 import DatabaseService from "./DatabaseService";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnDelete } from "../Types/Database/Hooks";
+import { OnDelete, OnFind } from "../Types/Database/Hooks";
 import Model, {
+  LegacyServerOnlyMiscDataKeys,
+  MiscData,
   WorkspaceMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -82,6 +84,52 @@ export class Service extends DatabaseService<Model> {
     };
   }
 
+  /*
+   * miscData is readable by every project Viewer through the CRUD API. Older
+   * releases kept the tenant's live Microsoft Graph app token in it, so a
+   * row that still carries one (not yet migrated, or written by an old pod
+   * during a rolling deploy) must not hand it out. Stripped for every caller,
+   * root included: the token lives in `authToken` now, and anything that
+   * reads miscData and writes it back then cleans the row as a side effect.
+   */
+  public static removeLegacyServerOnlyMiscData(miscData: MiscData): MiscData {
+    if (!miscData || typeof miscData !== "object") {
+      return miscData;
+    }
+
+    const hasLegacyKey: boolean = LegacyServerOnlyMiscDataKeys.some(
+      (key: string) => {
+        return Object.prototype.hasOwnProperty.call(miscData, key);
+      },
+    );
+
+    if (!hasLegacyKey) {
+      return miscData;
+    }
+
+    const cleaned: MiscData = { ...miscData };
+
+    for (const key of LegacyServerOnlyMiscDataKeys) {
+      delete cleaned[key];
+    }
+
+    return cleaned;
+  }
+
+  @CaptureSpan()
+  protected override async onFindSuccess(
+    onFind: OnFind<Model>,
+    items: Array<Model>,
+  ): Promise<OnFind<Model>> {
+    for (const item of items) {
+      if (item.miscData) {
+        item.miscData = Service.removeLegacyServerOnlyMiscData(item.miscData);
+      }
+    }
+
+    return { ...onFind, carryForward: items };
+  }
+
   @CaptureSpan()
   public async getProjectAuth(data: {
     projectId: ObjectID;
@@ -102,6 +150,7 @@ export class Service extends DatabaseService<Model> {
       },
       select: {
         authToken: true,
+        authTokenExpiresAt: true,
         workspaceProjectId: true,
         miscData: true,
         workspaceType: true,
@@ -126,6 +175,7 @@ export class Service extends DatabaseService<Model> {
       },
       select: {
         authToken: true,
+        authTokenExpiresAt: true,
         workspaceProjectId: true,
         miscData: true,
         workspaceType: true,
@@ -146,11 +196,17 @@ export class Service extends DatabaseService<Model> {
     return Boolean(await this.getProjectAuth(data));
   }
 
+  /*
+   * `authTokenExpiresAt` is the expiry of THIS `authToken`. Leaving it out
+   * clears the stored one, so a new token never inherits an old token's
+   * expiry.
+   */
   @CaptureSpan()
   public async refreshAuthToken(data: {
     projectId: ObjectID;
     workspaceType: WorkspaceType;
     authToken: string;
+    authTokenExpiresAt?: Date | undefined;
     workspaceProjectId: string;
     miscData: WorkspaceMiscData;
   }): Promise<void> {
@@ -225,6 +281,9 @@ export class Service extends DatabaseService<Model> {
 
       projectAuth.projectId = data.projectId;
       projectAuth.authToken = data.authToken;
+      if (data.authTokenExpiresAt) {
+        projectAuth.authTokenExpiresAt = data.authTokenExpiresAt;
+      }
       projectAuth.workspaceType = data.workspaceType;
       projectAuth.workspaceProjectId = data.workspaceProjectId;
       projectAuth.miscData = data.miscData;
@@ -240,6 +299,7 @@ export class Service extends DatabaseService<Model> {
         id: projectAuth.id!,
         data: {
           authToken: data.authToken,
+          authTokenExpiresAt: data.authTokenExpiresAt || null,
           workspaceProjectId: data.workspaceProjectId,
           miscData: data.miscData,
         },
@@ -248,6 +308,58 @@ export class Service extends DatabaseService<Model> {
         },
       });
     }
+  }
+
+  /*
+   * Store a freshly minted token for an EXISTING connection, and nothing
+   * else.
+   *
+   * Deliberately not refreshAuthToken: a token refresh must not rewrite
+   * miscData (a stale copy would erase chats and teams captured by bot
+   * events in the meantime), must not recreate a connection that was
+   * disconnected while the token request was in flight, and must not follow
+   * a connection that now names a different workspace. Matching on
+   * workspaceProjectId covers the last two: if the row is gone or repointed,
+   * nothing is written.
+   */
+  @CaptureSpan()
+  public async saveRefreshedAuthToken(data: {
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+    workspaceProjectId: string;
+    authToken: string;
+    authTokenExpiresAt: Date;
+  }): Promise<void> {
+    if (!data.projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
+    if (!data.workspaceType) {
+      throw new BadDataException("workspaceType is required");
+    }
+
+    if (!data.workspaceProjectId) {
+      throw new BadDataException("workspaceProjectId is required");
+    }
+
+    if (!data.authToken) {
+      throw new BadDataException("authToken is required");
+    }
+
+    await this.updateOneBy({
+      query: {
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+        workspaceProjectId: data.workspaceProjectId,
+      },
+      data: {
+        authToken: data.authToken,
+        authTokenExpiresAt: data.authTokenExpiresAt,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
   }
 }
 export default new Service();
