@@ -791,42 +791,138 @@ describe("buildWorkflowVariables", () => {
  * never an unfilled reference to strip. Break either half and the result is a
  * 401 from Jira that reads like a wrong token, with the run still reporting
  * success.
+ *
+ * Every Jira template comes in an incident and an alert version, built from
+ * one set of builders, so most of what follows is checked once for each kind.
+ * A template is named here by the part it plays, which is also how an alert
+ * template is paired with its incident counterpart.
  */
 
-const JIRA_TEMPLATE_IDS: Array<string> = [
-  "jira-create-issue-for-incident",
-  "jira-transition-issue-on-incident-state",
-  "jira-comment-from-private-note",
-  "jira-comment-from-public-note",
-  "jira-comment-on-incident-update",
-  "jira-declare-incident-from-issue",
-  "jira-status-to-incident-state",
-  "jira-comment-to-private-note",
-  "jira-issue-changes-to-private-note",
+type JiraTemplateRole =
+  | "createIssue"
+  | "transition"
+  | "privateNoteToComment"
+  | "publicNoteToComment"
+  | "updateComment"
+  | "createFromIssue"
+  | "statusToState"
+  | "commentToNote"
+  | "issueChangesToNote";
+
+/** The order each kind's templates are declared in, OneUptime -> Jira first. */
+const JIRA_TEMPLATE_ROLES: Array<JiraTemplateRole> = [
+  "createIssue",
+  "transition",
+  "privateNoteToComment",
+  "publicNoteToComment",
+  "updateComment",
+  "createFromIssue",
+  "statusToState",
+  "commentToNote",
+  "issueChangesToNote",
 ];
 
-const JIRA_CREATE_ISSUE_TEMPLATE_ID: string = "jira-create-issue-for-incident";
-
 /** Every other template that calls Jira only needs to know where and as whom. */
-const JIRA_SITE_AND_TOKEN_TEMPLATE_IDS: Array<string> = [
-  "jira-transition-issue-on-incident-state",
-  "jira-comment-from-private-note",
-  "jira-comment-from-public-note",
-  "jira-comment-on-incident-update",
-  "jira-declare-incident-from-issue",
-  "jira-comment-to-private-note",
+const JIRA_SITE_AND_TOKEN_ROLES: Array<JiraTemplateRole> = [
+  "transition",
+  "privateNoteToComment",
+  "publicNoteToComment",
+  "updateComment",
+  "createFromIssue",
+  "commentToNote",
 ];
 
 /*
  * A webhook in and OneUptime's own database out: neither calls Jira, so
  * neither has anything to ask for.
  */
+const JIRA_WEBHOOK_ONLY_ROLES: Array<JiraTemplateRole> = [
+  "statusToState",
+  "issueChangesToNote",
+];
+
+interface JiraKind {
+  /** The record, as the template ids and every line of their text name it. */
+  noun: string;
+  /** The other kind's record, which nothing of this kind should mention. */
+  otherNoun: string;
+  /** Each template's id by the part it plays, or null where the kind has none. */
+  templateIds: Record<JiraTemplateRole, string | null>;
+}
+
+const INCIDENT_JIRA_KIND: JiraKind = {
+  noun: "incident",
+  otherNoun: "alert",
+  templateIds: {
+    createIssue: "jira-create-issue-for-incident",
+    transition: "jira-transition-issue-on-incident-state",
+    privateNoteToComment: "jira-comment-from-incident-private-note",
+    publicNoteToComment: "jira-comment-from-incident-public-note",
+    updateComment: "jira-comment-on-incident-update",
+    createFromIssue: "jira-declare-incident-from-issue",
+    statusToState: "jira-status-to-incident-state",
+    commentToNote: "jira-comment-to-incident-private-note",
+    issueChangesToNote: "jira-issue-changes-to-incident-private-note",
+  },
+};
+
+/* Alerts have no public notes, so there is nothing for that template to copy. */
+const ALERT_JIRA_KIND: JiraKind = {
+  noun: "alert",
+  otherNoun: "incident",
+  templateIds: {
+    createIssue: "jira-create-issue-for-alert",
+    transition: "jira-transition-issue-on-alert-state",
+    privateNoteToComment: "jira-comment-from-alert-private-note",
+    publicNoteToComment: null,
+    updateComment: "jira-comment-on-alert-update",
+    createFromIssue: "jira-create-alert-from-issue",
+    statusToState: "jira-status-to-alert-state",
+    commentToNote: "jira-comment-to-alert-private-note",
+    issueChangesToNote: "jira-issue-changes-to-alert-private-note",
+  },
+};
+
+const JIRA_KINDS: Array<JiraKind> = [INCIDENT_JIRA_KIND, ALERT_JIRA_KIND];
+
+type TemplateIdsOfFunction = (
+  kind: JiraKind,
+  roles?: Array<JiraTemplateRole>,
+) => Array<string>;
+
+/** The kind's templates in those roles, in that order, skipping any it lacks. */
+const templateIdsOf: TemplateIdsOfFunction = (
+  kind: JiraKind,
+  roles: Array<JiraTemplateRole> = JIRA_TEMPLATE_ROLES,
+): Array<string> => {
+  const ids: Array<string> = [];
+
+  for (const role of roles) {
+    const templateId: string | null = kind.templateIds[role];
+
+    if (templateId) {
+      ids.push(templateId);
+    }
+  }
+
+  return ids;
+};
+
+/** Every Jira template, in the order the picker shows them: incidents, then alerts. */
+const JIRA_TEMPLATE_IDS: Array<string> = [
+  ...templateIdsOf(INCIDENT_JIRA_KIND),
+  ...templateIdsOf(ALERT_JIRA_KIND),
+];
+
 const JIRA_WEBHOOK_ONLY_TEMPLATE_IDS: Array<string> = [
-  "jira-status-to-incident-state",
-  "jira-issue-changes-to-private-note",
+  ...templateIdsOf(INCIDENT_JIRA_KIND, JIRA_WEBHOOK_ONLY_ROLES),
+  ...templateIdsOf(ALERT_JIRA_KIND, JIRA_WEBHOOK_ONLY_ROLES),
 ];
 
 const JIRA_TOKEN_VARIABLE: string = "jiraBasicAuthToken";
+
+/** The one setting whose help text names the record: it is what the issue links back to. */
+const ONEUPTIME_URL_VARIABLE: string = "oneuptimeUrl";
 
 const JIRA_AUTHORIZATION_HEADERS: JSONObject = {
   Authorization: "Basic {{local.variables.jiraBasicAuthToken}}",
@@ -838,7 +934,7 @@ const JIRA_CREATE_ISSUE_VARIABLE_NAMES: Array<string> = [
   "jiraBasicAuthToken",
   "jiraProjectKey",
   "jiraIssueType",
-  "oneuptimeUrl",
+  ONEUPTIME_URL_VARIABLE,
 ];
 
 /** What someone setting the Jira templates up would type. */
@@ -868,6 +964,18 @@ type JiraTemplatesFunction = () => Array<WorkflowTemplate>;
 
 const jiraTemplates: JiraTemplatesFunction = (): Array<WorkflowTemplate> => {
   return getWorkflowTemplatesByCategory(WorkflowTemplateCategory.Jira);
+};
+
+type TemplateIdsFunction = (
+  templates: Array<WorkflowTemplate>,
+) => Array<string>;
+
+const idsOf: TemplateIdsFunction = (
+  templates: Array<WorkflowTemplate>,
+): Array<string> => {
+  return templates.map((template: WorkflowTemplate) => {
+    return template.id;
+  });
 };
 
 type VariableNamesFunction = (template: WorkflowTemplate) => Array<string>;
@@ -989,15 +1097,92 @@ const buildJiraRows: BuildJiraRowsFunction = (
   });
 };
 
+interface RowSummary {
+  name: string | undefined;
+  content: string | undefined;
+  isSecret: unknown;
+  description: string | undefined;
+}
+
+type SummarizeRowsFunction = (
+  rows: Array<WorkflowVariable>,
+) => Array<RowSummary>;
+
+/** What the wizard writes for each row, in the order it writes them. */
+const summarizeRows: SummarizeRowsFunction = (
+  rows: Array<WorkflowVariable>,
+): Array<RowSummary> => {
+  return rows.map((row: WorkflowVariable): RowSummary => {
+    return {
+      name: row.name,
+      content: row.content,
+      isSecret: isSecretOf(row),
+      description: row.description,
+    };
+  });
+};
+
+type RowIdentitiesFunction = (
+  rows: Array<WorkflowVariable>,
+) => Array<JSONObject>;
+
+/** What each row is and holds, leaving out the help text that explains it. */
+const rowIdentitiesOf: RowIdentitiesFunction = (
+  rows: Array<WorkflowVariable>,
+): Array<JSONObject> => {
+  return summarizeRows(rows).map((summary: RowSummary): JSONObject => {
+    return {
+      name: summary.name,
+      content: summary.content,
+      isSecret: summary.isSecret as boolean,
+    };
+  });
+};
+
+type TemplateTextFunction = (template: WorkflowTemplate) => Array<string>;
+
+/*
+ * What a template says about itself, on its card and in the workflow it
+ * creates. Settings' help text is left out: the issue-type setting shared by
+ * both kinds rightly offers Jira's own "Incident" issue type as an example.
+ */
+const textOf: TemplateTextFunction = (
+  template: WorkflowTemplate,
+): Array<string> => {
+  return [
+    template.name,
+    template.description,
+    template.teaches,
+    template.workflowName,
+    template.workflowDescription,
+  ];
+};
+
 describe("Jira templates", () => {
-  test("the Jira category holds exactly the nine Jira templates", () => {
-    expect(
-      jiraTemplates()
-        .map((template: WorkflowTemplate) => {
-          return template.id;
-        })
-        .sort(),
-    ).toEqual([...JIRA_TEMPLATE_IDS].sort());
+  test("the Jira category holds the seventeen Jira templates, the incident ones first", () => {
+    expect(idsOf(jiraTemplates())).toEqual(JIRA_TEMPLATE_IDS);
+    expect(JIRA_TEMPLATE_IDS).toHaveLength(17);
+  });
+
+  /*
+   * Workflow names are unique within a project, compared without regard to
+   * case. The alert versions exist so a team can run them beside the incident
+   * ones, and a suggested name shared by the two would make whichever was
+   * created second fail on its name.
+   */
+  test("every template suggests a workflow name no other template does", () => {
+    const seen: Record<string, string> = {};
+
+    for (const template of getWorkflowTemplates()) {
+      const key: string = template.workflowName.trim().toLowerCase();
+
+      expect({
+        template: template.id,
+        sameNameAs: seen[key],
+      }).toEqual({ template: template.id, sameNameAs: undefined });
+
+      seen[key] = template.id;
+    }
   });
 
   /*
@@ -1061,110 +1246,7 @@ describe("Jira templates", () => {
     }
   });
 
-  describe("validateTemplateVariableValues", () => {
-    test("the create-issue template demands all five of its settings", () => {
-      const template: WorkflowTemplate = templateById(
-        JIRA_CREATE_ISSUE_TEMPLATE_ID,
-      );
-
-      expect(variableNamesOf(template)).toEqual(
-        JIRA_CREATE_ISSUE_VARIABLE_NAMES,
-      );
-
-      const expected: Record<string, string> = {};
-
-      for (const variable of template.variables) {
-        expected[variable.name] = `${variable.title} is required.`;
-      }
-
-      expect(validateTemplateVariableValues(template, {})).toEqual(expected);
-      expect(Object.keys(expected)).toHaveLength(5);
-    });
-
-    test("the create-issue template is satisfied once all five are filled", () => {
-      const template: WorkflowTemplate = templateById(
-        JIRA_CREATE_ISSUE_TEMPLATE_ID,
-      );
-
-      expect(
-        validateTemplateVariableValues(
-          template,
-          filledValuesFor(template, JIRA_VALUES),
-        ),
-      ).toEqual({});
-    });
-
-    /* There is no partial Jira setup: each setting on its own blocks the create. */
-    test("leaving out any one setting blocks the create-issue template", () => {
-      const template: WorkflowTemplate = templateById(
-        JIRA_CREATE_ISSUE_TEMPLATE_ID,
-      );
-
-      for (const name of JIRA_CREATE_ISSUE_VARIABLE_NAMES) {
-        const values: Record<string, string> = filledValuesFor(
-          template,
-          JIRA_VALUES,
-        );
-
-        delete values[name];
-
-        expect({
-          missing: name,
-          errors: Object.keys(validateTemplateVariableValues(template, values)),
-        }).toEqual({ missing: name, errors: [name] });
-      }
-    });
-
-    /*
-     * The token comes out of a pipe into base64, which ends its output with a
-     * line break. Pasting only that is not a token.
-     */
-    test("a token that is only a line break counts as missing", () => {
-      const template: WorkflowTemplate = templateById(
-        JIRA_CREATE_ISSUE_TEMPLATE_ID,
-      );
-
-      expect(
-        Object.keys(
-          validateTemplateVariableValues(template, {
-            ...filledValuesFor(template, JIRA_VALUES),
-            jiraBasicAuthToken: " \n",
-          }),
-        ),
-      ).toEqual([JIRA_TOKEN_VARIABLE]);
-    });
-
-    test("the webhook-only templates demand nothing", () => {
-      for (const templateId of JIRA_WEBHOOK_ONLY_TEMPLATE_IDS) {
-        const template: WorkflowTemplate = templateById(templateId);
-
-        expect({
-          template: templateId,
-          toFill: templateVariablesToFill(template),
-          errors: validateTemplateVariableValues(template, {}),
-        }).toEqual({ template: templateId, toFill: [], errors: {} });
-      }
-    });
-  });
-
   describe("buildWorkflowFromTemplate", () => {
-    /*
-     * request-headers is an object, not a string. The runtime substitutes
-     * inside it with JSON escaping and hands the object back, so the reference
-     * has to reach the saved graph exactly as the template wrote it.
-     */
-    test("the token reference survives inside the object-valued request-headers", () => {
-      const workflow: Workflow = buildJiraWorkflow(
-        templateById(JIRA_CREATE_ISSUE_TEMPLATE_ID),
-      );
-
-      expect(
-        argumentsOfComponent(workflow.graph as JSONObject, "create-issue-1")[
-          "request-headers"
-        ],
-      ).toEqual(JIRA_AUTHORIZATION_HEADERS);
-    });
-
     test("every step that calls Jira sends that same Authorization header", () => {
       for (const template of jiraTemplates()) {
         const calls: Array<BuiltNode> = builtNodesOf(
@@ -1292,8 +1374,8 @@ describe("Jira templates", () => {
 
     /*
      * Filled-in settings are no reason to switch it on. The create-issue
-     * template would file an issue for the very next incident, and a webhook
-     * template has not been registered in Jira yet at this point.
+     * template would file an issue for the very next incident or alert, and a
+     * webhook template has not been registered in Jira yet at this point.
      */
     test("a Jira workflow is created switched off, even with every setting filled", () => {
       for (const template of jiraTemplates()) {
@@ -1303,99 +1385,9 @@ describe("Jira templates", () => {
         }).toEqual({ template: template.id, isEnabled: false });
       }
     });
-
-    /*
-     * The builder edits the graph after it is created. An object-valued
-     * argument is exactly what a shallow copy would share with the shipped
-     * template, so an edit to one workflow's headers would turn up in every
-     * workflow made from it afterwards.
-     */
-    test("editing one Jira workflow's headers does not reach the next one", () => {
-      const template: WorkflowTemplate = templateById(
-        JIRA_CREATE_ISSUE_TEMPLATE_ID,
-      );
-
-      const headers: JSONObject = argumentsOfComponent(
-        buildJiraWorkflow(template).graph as JSONObject,
-        "create-issue-1",
-      )["request-headers"] as JSONObject;
-
-      headers["Authorization"] = "Basic edited-in-the-builder";
-      headers["X-Atlassian-Token"] = "no-check";
-
-      expect(
-        argumentsOfComponent(
-          buildJiraWorkflow(template).graph as JSONObject,
-          "create-issue-1",
-        )["request-headers"],
-      ).toEqual(JIRA_AUTHORIZATION_HEADERS);
-    });
   });
 
   describe("buildWorkflowVariables", () => {
-    test("the create-issue template writes one row per setting, in the order the wizard asks", () => {
-      const rows: Array<WorkflowVariable> = buildJiraRows(
-        templateById(JIRA_CREATE_ISSUE_TEMPLATE_ID),
-      );
-
-      expect(
-        rows.map((row: WorkflowVariable) => {
-          return row.name;
-        }),
-      ).toEqual(JIRA_CREATE_ISSUE_VARIABLE_NAMES);
-
-      for (const row of rows) {
-        expect(row.workflowId).toBe(workflowId);
-        expect(row.projectId).toBe(projectId);
-      }
-    });
-
-    test("only the API token row is secret", () => {
-      const rows: Array<WorkflowVariable> = buildJiraRows(
-        templateById(JIRA_CREATE_ISSUE_TEMPLATE_ID),
-      );
-
-      const byName: Record<string, unknown> = {};
-
-      for (const row of rows) {
-        byName[row.name as string] = isSecretOf(row);
-      }
-
-      expect(byName).toEqual({
-        jiraBaseUrl: false,
-        jiraBasicAuthToken: true,
-        jiraProjectKey: false,
-        jiraIssueType: false,
-        oneuptimeUrl: false,
-      });
-    });
-
-    /*
-     * base64 ends its output with a line break, and a stray space in the site
-     * URL lands in the middle of every request URL built from it. Either one
-     * surviving into the row breaks every call the workflow makes.
-     */
-    test("what was typed is trimmed, including the line break base64 leaves", () => {
-      const rows: Array<WorkflowVariable> = buildJiraRows(
-        templateById(JIRA_CREATE_ISSUE_TEMPLATE_ID),
-        {
-          jiraBaseUrl: "  https://acme.atlassian.net  ",
-          jiraBasicAuthToken: `${JIRA_VALUES[JIRA_TOKEN_VARIABLE]}\n`,
-          jiraProjectKey: " OPS",
-          jiraIssueType: "Task ",
-          oneuptimeUrl: "\thttps://oneuptime.com\r\n",
-        },
-      );
-
-      const contentByName: Record<string, string | undefined> = {};
-
-      for (const row of rows) {
-        contentByName[row.name as string] = row.content;
-      }
-
-      expect(contentByName).toEqual(JIRA_VALUES);
-    });
-
     /*
      * The help text says where each value comes from, and it goes on the row
      * so it is still there when someone opens the variable a year later. It
@@ -1423,47 +1415,403 @@ describe("Jira templates", () => {
         }
       }
     });
+  });
 
-    test("the other Jira-calling templates write the site URL and the secret token", () => {
-      for (const templateId of JIRA_SITE_AND_TOKEN_TEMPLATE_IDS) {
-        const rows: Array<WorkflowVariable> = buildJiraRows(
-          templateById(templateId),
+  describe.each(JIRA_KINDS)("the $noun templates", (kind: JiraKind) => {
+    const createIssueTemplateId: string = kind.templateIds
+      .createIssue as string;
+
+    /*
+     * Search matches on this text, so an alert template that mentioned
+     * incidents would turn up when someone looked for the incident ones, and
+     * its card would describe the wrong record.
+     */
+    /*
+     * The one deliberate exception: the template that creates a record from
+     * a new Jira issue warns about running it beside the other kind's, since
+     * two webhooks that match the same issue would make it both. That sentence
+     * is pinned exactly and taken out before the check.
+     */
+    const overlapWarning: string = ` If you also create ${kind.otherNoun}s from Jira, give the two webhooks JQL filters that never match the same issue, or each issue becomes both.`;
+
+    test(`the create-from-Jira template warns about the ${kind.otherNoun} version`, () => {
+      expect(
+        templateById(kind.templateIds.createFromIssue as string)
+          .workflowDescription,
+      ).toContain(overlapWarning);
+    });
+
+    test(`every one names the ${kind.noun} and never the ${kind.otherNoun}`, () => {
+      for (const templateId of templateIdsOf(kind)) {
+        const text: Array<string> = textOf(templateById(templateId)).map(
+          (line: string) => {
+            return line.split(overlapWarning).join("");
+          },
         );
 
         expect({
           template: templateId,
-          rows: rows.map((row: WorkflowVariable) => {
-            return {
-              name: row.name,
-              content: row.content,
-              isSecret: isSecretOf(row),
-            };
+          namesItsRecord: templateId.includes(kind.noun),
+          mentionsTheOtherRecord: [templateId, ...text].some((line: string) => {
+            return line.toLowerCase().includes(kind.otherNoun);
           }),
         }).toEqual({
           template: templateId,
-          rows: [
-            {
-              name: "jiraBaseUrl",
-              content: JIRA_VALUES["jiraBaseUrl"],
-              isSecret: false,
-            },
-            {
-              name: JIRA_TOKEN_VARIABLE,
-              content: JIRA_VALUES[JIRA_TOKEN_VARIABLE],
-              isSecret: true,
-            },
-          ],
+          namesItsRecord: true,
+          mentionsTheOtherRecord: false,
         });
       }
     });
 
-    test("the webhook-only templates write no rows", () => {
-      for (const templateId of JIRA_WEBHOOK_ONLY_TEMPLATE_IDS) {
+    describe("validateTemplateVariableValues", () => {
+      test("the create-issue template demands all five of its settings", () => {
+        const template: WorkflowTemplate = templateById(createIssueTemplateId);
+
+        expect(variableNamesOf(template)).toEqual(
+          JIRA_CREATE_ISSUE_VARIABLE_NAMES,
+        );
+
+        const expected: Record<string, string> = {};
+
+        for (const variable of template.variables) {
+          expected[variable.name] = `${variable.title} is required.`;
+        }
+
+        expect(validateTemplateVariableValues(template, {})).toEqual(expected);
+        expect(Object.keys(expected)).toHaveLength(5);
+      });
+
+      test("the create-issue template is satisfied once all five are filled", () => {
+        const template: WorkflowTemplate = templateById(createIssueTemplateId);
+
+        expect(
+          validateTemplateVariableValues(
+            template,
+            filledValuesFor(template, JIRA_VALUES),
+          ),
+        ).toEqual({});
+      });
+
+      /* There is no partial Jira setup: each setting on its own blocks the create. */
+      test("leaving out any one setting blocks the create-issue template", () => {
+        const template: WorkflowTemplate = templateById(createIssueTemplateId);
+
+        for (const name of JIRA_CREATE_ISSUE_VARIABLE_NAMES) {
+          const values: Record<string, string> = filledValuesFor(
+            template,
+            JIRA_VALUES,
+          );
+
+          delete values[name];
+
+          expect({
+            missing: name,
+            errors: Object.keys(
+              validateTemplateVariableValues(template, values),
+            ),
+          }).toEqual({ missing: name, errors: [name] });
+        }
+      });
+
+      /*
+       * The token comes out of a pipe into base64, which ends its output with
+       * a line break. Pasting only that is not a token.
+       */
+      test("a token that is only a line break counts as missing", () => {
+        const template: WorkflowTemplate = templateById(createIssueTemplateId);
+
+        expect(
+          Object.keys(
+            validateTemplateVariableValues(template, {
+              ...filledValuesFor(template, JIRA_VALUES),
+              jiraBasicAuthToken: " \n",
+            }),
+          ),
+        ).toEqual([JIRA_TOKEN_VARIABLE]);
+      });
+
+      test("the webhook-only templates demand nothing", () => {
+        const templateIds: Array<string> = templateIdsOf(
+          kind,
+          JIRA_WEBHOOK_ONLY_ROLES,
+        );
+
+        expect(templateIds).toHaveLength(2);
+
+        for (const templateId of templateIds) {
+          const template: WorkflowTemplate = templateById(templateId);
+
+          expect({
+            template: templateId,
+            toFill: templateVariablesToFill(template),
+            errors: validateTemplateVariableValues(template, {}),
+          }).toEqual({ template: templateId, toFill: [], errors: {} });
+        }
+      });
+    });
+
+    describe("buildWorkflowFromTemplate", () => {
+      /*
+       * request-headers is an object, not a string. The runtime substitutes
+       * inside it with JSON escaping and hands the object back, so the
+       * reference has to reach the saved graph exactly as the template wrote
+       * it.
+       */
+      test("the token reference survives inside the object-valued request-headers", () => {
+        const workflow: Workflow = buildJiraWorkflow(
+          templateById(createIssueTemplateId),
+        );
+
+        expect(
+          argumentsOfComponent(workflow.graph as JSONObject, "create-issue-1")[
+            "request-headers"
+          ],
+        ).toEqual(JIRA_AUTHORIZATION_HEADERS);
+      });
+
+      /*
+       * The builder edits the graph after it is created. An object-valued
+       * argument is exactly what a shallow copy would share with the shipped
+       * template, so an edit to one workflow's headers would turn up in every
+       * workflow made from it afterwards.
+       */
+      test("editing one Jira workflow's headers does not reach the next one", () => {
+        const template: WorkflowTemplate = templateById(createIssueTemplateId);
+
+        const headers: JSONObject = argumentsOfComponent(
+          buildJiraWorkflow(template).graph as JSONObject,
+          "create-issue-1",
+        )["request-headers"] as JSONObject;
+
+        headers["Authorization"] = "Basic edited-in-the-builder";
+        headers["X-Atlassian-Token"] = "no-check";
+
+        expect(
+          argumentsOfComponent(
+            buildJiraWorkflow(template).graph as JSONObject,
+            "create-issue-1",
+          )["request-headers"],
+        ).toEqual(JIRA_AUTHORIZATION_HEADERS);
+      });
+    });
+
+    describe("buildWorkflowVariables", () => {
+      test("the create-issue template writes one row per setting, in the order the wizard asks", () => {
+        const rows: Array<WorkflowVariable> = buildJiraRows(
+          templateById(createIssueTemplateId),
+        );
+
+        expect(
+          rows.map((row: WorkflowVariable) => {
+            return row.name;
+          }),
+        ).toEqual(JIRA_CREATE_ISSUE_VARIABLE_NAMES);
+
+        for (const row of rows) {
+          expect(row.workflowId).toBe(workflowId);
+          expect(row.projectId).toBe(projectId);
+        }
+      });
+
+      test("only the API token row is secret", () => {
+        const rows: Array<WorkflowVariable> = buildJiraRows(
+          templateById(createIssueTemplateId),
+        );
+
+        const byName: Record<string, unknown> = {};
+
+        for (const row of rows) {
+          byName[row.name as string] = isSecretOf(row);
+        }
+
+        expect(byName).toEqual({
+          jiraBaseUrl: false,
+          jiraBasicAuthToken: true,
+          jiraProjectKey: false,
+          jiraIssueType: false,
+          oneuptimeUrl: false,
+        });
+      });
+
+      /*
+       * base64 ends its output with a line break, and a stray space in the
+       * site URL lands in the middle of every request URL built from it.
+       * Either one surviving into the row breaks every call the workflow
+       * makes.
+       */
+      test("what was typed is trimmed, including the line break base64 leaves", () => {
+        const rows: Array<WorkflowVariable> = buildJiraRows(
+          templateById(createIssueTemplateId),
+          {
+            jiraBaseUrl: "  https://acme.atlassian.net  ",
+            jiraBasicAuthToken: `${JIRA_VALUES[JIRA_TOKEN_VARIABLE]}\n`,
+            jiraProjectKey: " OPS",
+            jiraIssueType: "Task ",
+            oneuptimeUrl: "\thttps://oneuptime.com\r\n",
+          },
+        );
+
+        const contentByName: Record<string, string | undefined> = {};
+
+        for (const row of rows) {
+          contentByName[row.name as string] = row.content;
+        }
+
+        expect(contentByName).toEqual(JIRA_VALUES);
+      });
+
+      /*
+       * The link back from the issue is the only setting that is about the
+       * record, so its help text is the only one that says which record it
+       * is. Someone configuring the alert version should not be told the
+       * issue links back to an incident.
+       */
+      test(`the OneUptime URL row says the issue links back to the ${kind.noun}`, () => {
+        const row: WorkflowVariable | undefined = buildJiraRows(
+          templateById(createIssueTemplateId),
+        ).find((candidate: WorkflowVariable) => {
+          return candidate.name === ONEUPTIME_URL_VARIABLE;
+        });
+
+        expect(row?.description).toContain(
+          `link the Jira issue back to the ${kind.noun}`,
+        );
+        expect(row?.description).not.toContain(kind.otherNoun);
+      });
+
+      test("the other Jira-calling templates write the site URL and the secret token", () => {
+        const templateIds: Array<string> = templateIdsOf(
+          kind,
+          JIRA_SITE_AND_TOKEN_ROLES,
+        );
+
+        expect(templateIds.length).toBeGreaterThan(0);
+
+        for (const templateId of templateIds) {
+          const rows: Array<WorkflowVariable> = buildJiraRows(
+            templateById(templateId),
+          );
+
+          expect({
+            template: templateId,
+            rows: rows.map((row: WorkflowVariable) => {
+              return {
+                name: row.name,
+                content: row.content,
+                isSecret: isSecretOf(row),
+              };
+            }),
+          }).toEqual({
+            template: templateId,
+            rows: [
+              {
+                name: "jiraBaseUrl",
+                content: JIRA_VALUES["jiraBaseUrl"],
+                isSecret: false,
+              },
+              {
+                name: JIRA_TOKEN_VARIABLE,
+                content: JIRA_VALUES[JIRA_TOKEN_VARIABLE],
+                isSecret: true,
+              },
+            ],
+          });
+        }
+      });
+
+      test("the webhook-only templates write no rows", () => {
+        for (const templateId of templateIdsOf(kind, JIRA_WEBHOOK_ONLY_ROLES)) {
+          expect({
+            template: templateId,
+            rows: buildJiraRows(templateById(templateId)),
+          }).toEqual({ template: templateId, rows: [] });
+        }
+      });
+    });
+  });
+
+  describe("the alert templates beside the incident ones", () => {
+    /*
+     * An alert has no public notes: there is nothing on an alert for that
+     * template to copy, so the alert set is one shorter.
+     */
+    test("only incidents have a public-note template", () => {
+      expect(
+        templateIdsOf(INCIDENT_JIRA_KIND, ["publicNoteToComment"]),
+      ).toEqual(["jira-comment-from-incident-public-note"]);
+      expect(templateIdsOf(ALERT_JIRA_KIND)).toHaveLength(8);
+      expect(
+        idsOf(jiraTemplates()).filter((templateId: string) => {
+          return templateId.includes("public-note");
+        }),
+      ).toEqual(["jira-comment-from-incident-public-note"]);
+      expect(getWorkflowTemplate("jira-comment-from-alert-public-note")).toBe(
+        null,
+      );
+    });
+
+    /*
+     * Someone taking both sets types the same Jira site and token twice, and
+     * each workflow gets its own rows. They must come out identical — same
+     * names, same secret flags — or the alert set would store its token in
+     * the clear, or under a name its graph does not refer to.
+     */
+    test("each alert template writes the same rows as its incident counterpart", () => {
+      for (const role of JIRA_TEMPLATE_ROLES) {
+        const incidentTemplateId: string | null =
+          INCIDENT_JIRA_KIND.templateIds[role];
+        const alertTemplateId: string | null =
+          ALERT_JIRA_KIND.templateIds[role];
+
+        if (!incidentTemplateId || !alertTemplateId) {
+          continue;
+        }
+
         expect({
-          template: templateId,
-          rows: buildJiraRows(templateById(templateId)),
-        }).toEqual({ template: templateId, rows: [] });
+          role: role,
+          rows: rowIdentitiesOf(buildJiraRows(templateById(alertTemplateId))),
+        }).toEqual({
+          role: role,
+          rows: rowIdentitiesOf(
+            buildJiraRows(templateById(incidentTemplateId)),
+          ),
+        });
       }
+    });
+
+    /*
+     * The help text differs in exactly one place: the OneUptime URL names the
+     * record the issue links back to. Every other setting is the same shared
+     * definition, word for word.
+     */
+    test("the create-issue rows differ from the incident's only in which record the link goes back to", () => {
+      const incidentRows: Array<RowSummary> = summarizeRows(
+        buildJiraRows(
+          templateById(INCIDENT_JIRA_KIND.templateIds.createIssue as string),
+        ),
+      );
+      const alertRows: Array<RowSummary> = summarizeRows(
+        buildJiraRows(
+          templateById(ALERT_JIRA_KIND.templateIds.createIssue as string),
+        ),
+      );
+
+      expect(alertRows).toEqual(
+        incidentRows.map((row: RowSummary): RowSummary => {
+          if (row.name !== ONEUPTIME_URL_VARIABLE) {
+            return row;
+          }
+
+          return {
+            ...row,
+            description: (row.description || "").replace(
+              "back to the incident",
+              "back to the alert",
+            ),
+          };
+        }),
+      );
+      expect(alertRows).not.toEqual(incidentRows);
     });
   });
 });

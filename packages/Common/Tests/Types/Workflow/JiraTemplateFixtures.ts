@@ -589,6 +589,160 @@ export const noteModel: NoteModelFunction = (
   return model;
 };
 
+/* ------------------------------ Alerts ------------------------------ */
+
+/*
+ * The alert side of the same fixtures. An alert has everything the
+ * templates read off an incident — a numbered prefix, a severity, a state,
+ * custom fields, a Private flag, private notes — but no public notes and no
+ * status page, and a project starts with two alert severities rather than
+ * three.
+ */
+
+export const ALERT_ID: string = "5d6e7f80-1a2b-4c3d-8e4f-5a6b7c8d9e0f";
+export const OTHER_ALERT_ID: string = "0f1e2d3c-4b5a-4968-8776-655443322110";
+export const ALERT_NUMBER: string = "ALT-7";
+
+export const ALERT_CREATED_STATE_ID: string =
+  "dddddddd-0000-4000-8000-000000000001";
+export const ALERT_ACKNOWLEDGED_STATE_ID: string =
+  "dddddddd-0000-4000-8000-000000000002";
+export const ALERT_RESOLVED_STATE_ID: string =
+  "dddddddd-0000-4000-8000-000000000003";
+
+export const HIGH_ALERT_SEVERITY_ID: string =
+  "eeeeeeee-0000-4000-8000-000000000001";
+export const LOW_ALERT_SEVERITY_ID: string =
+  "eeeeeeee-0000-4000-8000-000000000002";
+
+export type AlertLabelFunction = (alertId?: string) => string;
+
+export const alertLabel: AlertLabelFunction = (alertId?: string): string => {
+  return `oneuptime-alert-${alertId || ALERT_ID}`;
+};
+
+// The default alert states carry the same names and flags as incident ones.
+export const ALERT_CREATED_STATE: JSONObject = {
+  ...CREATED_STATE,
+  _id: ALERT_CREATED_STATE_ID,
+};
+
+export const ALERT_ACKNOWLEDGED_STATE: JSONObject = {
+  ...ACKNOWLEDGED_STATE,
+  _id: ALERT_ACKNOWLEDGED_STATE_ID,
+};
+
+export const ALERT_RESOLVED_STATE: JSONObject = {
+  ...RESOLVED_STATE,
+  _id: ALERT_RESOLVED_STATE_ID,
+};
+
+/** A project's default alert states, in the order find-many returns them. */
+export const ALERT_STATES: Array<JSONObject> = [
+  ALERT_RESOLVED_STATE,
+  ALERT_CREATED_STATE,
+  ALERT_ACKNOWLEDGED_STATE,
+];
+
+/** A project's two default alert severities, deliberately out of order. */
+export const ALERT_SEVERITIES: Array<JSONObject> = [
+  { _id: LOW_ALERT_SEVERITY_ID, name: "Low", order: 2 },
+  { _id: HIGH_ALERT_SEVERITY_ID, name: "High", order: 1 },
+];
+
+export interface AlertModelProps {
+  _id?: string | undefined;
+  title?: string | undefined;
+  description?: string | null | undefined;
+  customFields?: JSONObject | null | undefined;
+  state?: JSONObject | undefined;
+  severity?: string | undefined;
+  rootCause?: string | null | undefined;
+  remediationNotes?: string | null | undefined;
+  isPrivate?: boolean | undefined;
+}
+
+export type AlertModelFunction = (props?: AlertModelProps) => JSONObject;
+
+/** An Alert as the on-create / on-update triggers hand it over. */
+export const alertModel: AlertModelFunction = (
+  props?: AlertModelProps,
+): JSONObject => {
+  const state: JSONObject = props?.state || ALERT_CREATED_STATE;
+  const model: JSONObject = {
+    _id: props?._id || ALERT_ID,
+    projectId: objectIdJson(PROJECT_ID),
+    title:
+      props?.title === undefined ? "Disk usage above 90% on db-1" : props.title,
+    description:
+      props?.description === undefined
+        ? 'The "db-1" volume is at 93%.\nIt grew 4% in the last hour.'
+        : props.description,
+    alertNumber: 7,
+    alertNumberWithPrefix: ALERT_NUMBER,
+    customFields: props?.customFields === undefined ? {} : props.customFields,
+    alertSeverity: { name: props?.severity || "High" },
+    currentAlertState: state,
+    currentAlertStateId: objectIdJson(
+      (state["_id"] as string) || ALERT_CREATED_STATE_ID,
+    ),
+  };
+
+  if (props?.rootCause !== undefined) {
+    model["rootCause"] = props.rootCause;
+  }
+
+  if (props?.remediationNotes !== undefined) {
+    model["remediationNotes"] = props.remediationNotes;
+  }
+
+  if (props?.isPrivate !== undefined) {
+    model["isPrivate"] = props.isPrivate;
+  }
+
+  return model;
+};
+
+export interface AlertNoteModelProps {
+  note?: string | undefined;
+  authorName?: string | null | undefined;
+  alertId?: string | undefined;
+  isPrivate?: boolean | undefined;
+}
+
+export type AlertNoteModelFunction = (
+  props?: AlertNoteModelProps,
+) => JSONObject;
+
+/** An AlertInternalNote as its on-create trigger hands it over. */
+export const alertNoteModel: AlertNoteModelFunction = (
+  props?: AlertNoteModelProps,
+): JSONObject => {
+  const alert: JSONObject = { alertNumberWithPrefix: ALERT_NUMBER };
+
+  if (props?.isPrivate !== undefined) {
+    alert["isPrivate"] = props.isPrivate;
+  }
+
+  const model: JSONObject = {
+    _id: "ffffffff-0000-4000-8000-000000000001",
+    note:
+      props?.note === undefined
+        ? "Cleared old WAL segments. Usage is back to 71%."
+        : props.note,
+    alertId: objectIdJson(props?.alertId || ALERT_ID),
+    alert: alert,
+  };
+
+  if (props?.authorName !== null) {
+    model["createdByUser"] = {
+      name: { _type: "Name", value: props?.authorName || "Jane Doe" },
+    };
+  }
+
+  return model;
+};
+
 /* ------------------------------- Scripts ------------------------------- */
 
 export type ScriptOfFunction = (
