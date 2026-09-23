@@ -7,7 +7,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -111,6 +118,7 @@ import IsNull from "../../../Types/BaseDatabase/IsNull";
 import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
 import Dictionary from "../../../Types/Dictionary";
 import OneUptimeDate from "../../../Types/Date";
+import Timezone from "../../../Types/Timezone";
 import EventInterval from "../../../Types/Events/EventInterval";
 import Recurring from "../../../Types/Events/Recurring";
 import ObjectID from "../../../Types/ObjectID";
@@ -484,5 +492,201 @@ describe("Schedule preview reflects the overrides that alert routing applies (is
     );
 
     expect(await getOnCallNowText()).not.toContain(USER_C_NAME);
+  });
+});
+
+/*
+ * The "View as" note under the preview's timezone bubble. A schedule's zone
+ * is stored as it was saved, so an old schedule can still hold a legacy name
+ * ("US/Pacific"), while the bubble and the picker speak only current names
+ * ("America/Los_Angeles"). The note must speak the same names as the bubble,
+ * and must compare zones by what they are, not how they are spelled: a
+ * "US/Pacific" schedule viewed as America/Los_Angeles is being viewed in its
+ * own zone, not in some other zone "for reference only".
+ */
+describe("The preview's 'View as' note names zones in their current names", () => {
+  const VIEW_NOTE_PATTERN: RegExp = /^(Times below are shown|Viewing in)/;
+
+  function renderPreviewIn(timezone: string | undefined): void {
+    render(
+      <LayersPreview
+        layers={[makeLayer()]}
+        allLayerUsers={makeLayerUsers()}
+        timezone={timezone}
+        onCallDutyPolicyScheduleId={objectId(SCHEDULE_ID)}
+      />,
+    );
+  }
+
+  // Lets the preview's fetches land, so no state update outlives the test.
+  async function waitForPreviewToSettle(): Promise<void> {
+    await waitFor(
+      async () => {
+        expect(await getOnCallNowText()).toContain(USER_A_NAME);
+      },
+      { timeout: 10000 },
+    );
+  }
+
+  function getViewNote(): string {
+    const note: HTMLElement | undefined = Array.from(
+      document.querySelectorAll<HTMLElement>("p"),
+    ).find((paragraph: HTMLElement): boolean => {
+      return VIEW_NOTE_PATTERN.test(paragraph.textContent || "");
+    });
+
+    if (!note) {
+      throw new Error("Could not find the 'View as' note");
+    }
+
+    return note.textContent || "";
+  }
+
+  function getViewAsBubbleText(): string {
+    return screen.getByTestId("view-as-timezone-button").textContent || "";
+  }
+
+  function ownZoneNote(zone: string): string {
+    return `Times below are shown in the schedule's timezone (${zone}) — the zone people are actually paged in.`;
+  }
+
+  function otherZoneNote(viewZone: string, scheduleZone: string): string {
+    return `Viewing in ${viewZone}. This schedule is configured and paged in ${scheduleZone}, so the times below are for your reference only.`;
+  }
+
+  // Opens "View as", finds a zone by search, checks it is the one picked, and applies it.
+  function viewAs(searchText: string, expectedZone: string): void {
+    fireEvent.click(screen.getByTestId("view-as-timezone-button"));
+
+    const modal: HTMLElement = screen.getByTestId("modal");
+    const input: HTMLElement = within(modal).getByRole("combobox");
+
+    fireEvent.change(input, { target: { value: searchText } });
+    fireEvent.keyDown(input, { key: "Enter", code: "Enter" });
+
+    expect(
+      modal.querySelector<HTMLElement>(".ou-select__single-value")?.textContent,
+    ).toBe(
+      OneUptimeDate.getGmtOffsetFriendlyStringByTimezone(
+        expectedZone as Timezone,
+      ),
+    );
+
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+  }
+
+  function applyViewAsUnchanged(): void {
+    fireEvent.click(screen.getByTestId("view-as-timezone-button"));
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+  }
+
+  beforeEach(() => {
+    getListMock.mockReset();
+    setupApi({ overrides: [], attachedPolicyIds: [POLICY_ID] });
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("a schedule stored under a current name is described as before", async () => {
+    renderPreviewIn("UTC");
+    await waitForPreviewToSettle();
+
+    expect(getViewNote()).toBe(ownZoneNote("UTC"));
+
+    viewAs("tokyo", "Asia/Tokyo");
+
+    expect(getViewNote()).toBe(otherZoneNote("Asia/Tokyo", "UTC"));
+  });
+
+  test("a schedule stored as US/Pacific is named America/Los_Angeles, and viewed in its own zone", async () => {
+    renderPreviewIn("US/Pacific");
+    await waitForPreviewToSettle();
+
+    expect(getViewAsBubbleText()).toBe("America/Los_Angeles");
+    expect(getViewNote()).toBe(ownZoneNote("America/Los_Angeles"));
+    expect(getViewNote()).not.toContain("US/Pacific");
+
+    // Applying "View as" without choosing another zone changes nothing.
+    applyViewAsUnchanged();
+
+    expect(getViewAsBubbleText()).toBe("America/Los_Angeles");
+    expect(getViewNote()).toBe(ownZoneNote("America/Los_Angeles"));
+  });
+
+  test("viewed in another zone, both zones are named in their current names", async () => {
+    renderPreviewIn("US/Pacific");
+    await waitForPreviewToSettle();
+
+    viewAs("tokyo", "Asia/Tokyo");
+
+    expect(getViewAsBubbleText()).toBe("Asia/Tokyo");
+    expect(getViewNote()).toBe(
+      otherZoneNote("Asia/Tokyo", "America/Los_Angeles"),
+    );
+    expect(getViewNote()).not.toContain("US/Pacific");
+  });
+
+  test("switching back to the schedule's clock under its current name is its own zone again", async () => {
+    /*
+     * The picker hands back "America/Los_Angeles" here — it is a change from
+     * Asia/Tokyo — while the schedule still holds "US/Pacific". Compared as
+     * spelled, the note would claim the viewer is in a different zone from
+     * the one the schedule pages in.
+     */
+    renderPreviewIn("US/Pacific");
+    await waitForPreviewToSettle();
+
+    viewAs("tokyo", "Asia/Tokyo");
+    viewAs("los_angeles", "America/Los_Angeles");
+
+    expect(getViewNote()).toBe(ownZoneNote("America/Los_Angeles"));
+
+    // Found by the legacy spelling it was stored under, it is the same zone.
+    viewAs("tokyo", "Asia/Tokyo");
+    viewAs("US/Pacific", "America/Los_Angeles");
+
+    expect(getViewNote()).toBe(ownZoneNote("America/Los_Angeles"));
+  });
+
+  test("a mis-cased legacy name is named and compared as its current name", async () => {
+    renderPreviewIn("asia/calcutta");
+    await waitForPreviewToSettle();
+
+    expect(getViewAsBubbleText()).toBe("Asia/Kolkata");
+    expect(getViewNote()).toBe(ownZoneNote("Asia/Kolkata"));
+
+    viewAs("Japan", "Asia/Tokyo");
+    expect(getViewNote()).toBe(otherZoneNote("Asia/Tokyo", "Asia/Kolkata"));
+
+    viewAs("Calcutta", "Asia/Kolkata");
+    expect(getViewNote()).toBe(ownZoneNote("Asia/Kolkata"));
+  });
+
+  test("a schedule without a timezone names the viewer's zone in its current name", async () => {
+    /*
+     * The viewer's own zone seeds "View as". A profile saved as
+     * "Asia/Calcutta" is read as Asia/Kolkata, and the note says so.
+     */
+    OneUptimeDate.setUserTimezone("Asia/Calcutta" as Timezone);
+
+    try {
+      renderPreviewIn(undefined);
+      await waitForPreviewToSettle();
+
+      expect(getViewAsBubbleText()).toBe("Asia/Kolkata");
+      expect(getViewNote()).toBe(
+        "Viewing in Asia/Kolkata. This schedule has no timezone set, so it is paged in the server's local time.",
+      );
+
+      viewAs("US/Eastern", "America/New_York");
+
+      expect(getViewNote()).toBe(
+        "Viewing in America/New_York. This schedule has no timezone set, so it is paged in the server's local time.",
+      );
+    } finally {
+      OneUptimeDate.setUserTimezone(null);
+    }
   });
 });

@@ -10,6 +10,8 @@ import {
   MonitorUptimeWindowTotal,
 } from "../../../Types/Monitor/MonitorUptimeSummary";
 import ObjectID from "../../../Types/ObjectID";
+import Timezone from "../../../Types/Timezone";
+import { LEGACY_TIMEZONE_NAMES } from "../../../Types/TimezoneAlias";
 import { UptimeDayBucket } from "../../../Types/StatusPage/UptimeDailyAggregate";
 import MonitorUptimeSummaryUtil, {
   MonitorUptimeCaveat,
@@ -795,6 +797,81 @@ describe("MonitorUptimeSummaryUtil.parseTimezone", () => {
       "timezone must be an IANA time zone name, for example Europe/London.",
     );
   });
+
+  /*
+   * The dashboard sends the zone the browser reports, and Chromium reports
+   * India as "Asia/Calcutta". moment knows that name and answers with it
+   * unchanged, so it used to reach Postgres' AT TIME ZONE as it was — and
+   * the shipped images have no legacy tzdata links.
+   */
+  it.each([
+    ["Asia/Calcutta", "Asia/Kolkata"],
+    ["Europe/Kiev", "Europe/Kyiv"],
+    ["Asia/Saigon", "Asia/Ho_Chi_Minh"],
+    ["Singapore", "Asia/Singapore"],
+    ["GB", "Europe/London"],
+    ["US/Eastern", "America/New_York"],
+    ["us/pacific", "America/Los_Angeles"],
+    [" ASIA/CALCUTTA ", "Asia/Kolkata"],
+    ["Etc/UTC", "UTC"],
+    ["Zulu", "UTC"],
+    ["Etc/GMT", "GMT"],
+    ["EST5EDT", "America/New_York"],
+  ])("returns the current name for %p: %s", (raw: string, current: string) => {
+    expect(MonitorUptimeSummaryUtil.parseTimezone(raw)).toBe(current);
+  });
+
+  it("accepts US/Pacific-New, which moment itself no longer knows", () => {
+    // tzdata removed the name in 2020b; it was a link to Los Angeles.
+    expect(Moment.tz.zone("US/Pacific-New")).toBeNull();
+    expect(MonitorUptimeSummaryUtil.parseTimezone("US/Pacific-New")).toBe(
+      "America/Los_Angeles",
+    );
+    expect(MonitorUptimeSummaryUtil.parseTimezone("us/pacific-new")).toBe(
+      "America/Los_Angeles",
+    );
+  });
+
+  it("returns the current name for every legacy name", () => {
+    const legacyNames: Array<[string, Timezone]> = Object.entries(
+      LEGACY_TIMEZONE_NAMES,
+    ) as Array<[string, Timezone]>;
+
+    expect(legacyNames.length).toBeGreaterThan(100);
+
+    for (const [legacy, current] of legacyNames) {
+      expect({
+        legacy: legacy,
+        parsed: MonitorUptimeSummaryUtil.parseTimezone(legacy),
+        lowerCase: MonitorUptimeSummaryUtil.parseTimezone(legacy.toLowerCase()),
+      }).toEqual({ legacy: legacy, parsed: current, lowerCase: current });
+    }
+  });
+
+  it("returns a current name exactly as the enum spells it", () => {
+    for (const name of [
+      "Asia/Kolkata",
+      "Europe/Kyiv",
+      "America/Nuuk",
+      "Pacific/Kanton",
+      "America/Ciudad_Juarez",
+      "Asia/Qostanay",
+      "Asia/Kuala_Lumpur",
+      "Etc/GMT+5",
+      "GMT",
+    ]) {
+      expect(MonitorUptimeSummaryUtil.parseTimezone(name)).toBe(name);
+    }
+  });
+
+  it.each(["Europe/Lodnon", "Asia/Calcuta", "US/Pacific-Old", "Not a zone"])(
+    "still rejects %p",
+    (raw: string) => {
+      expect(() => {
+        MonitorUptimeSummaryUtil.parseTimezone(raw);
+      }).toThrow(BadDataException);
+    },
+  );
 });
 
 describe("MonitorUptimeSummaryUtil.getBrowserTimezone", () => {

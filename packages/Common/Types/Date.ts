@@ -5,6 +5,7 @@ import { JSONObject, ObjectType } from "./JSON";
 import PositiveNumber from "./PositiveNumber";
 import moment from "moment-timezone";
 import Timezone from "./Timezone";
+import TimezoneAlias from "./TimezoneAlias";
 import Zod, { ZodSchema } from "../Utils/Schema/Zod";
 
 export const Moment: typeof moment = moment;
@@ -55,10 +56,30 @@ export default class OneUptimeDate {
   }
 
   private static getLocalShortMonthName(date: Date): string {
-    return date.toLocaleString("default", {
-      month: "short",
-      timeZone: this.getCurrentTimezone().toString(),
-    });
+    /*
+     * The browser's Intl can be older than the zone name: an engine with
+     * tzdata before 2022b throws a RangeError for "Europe/Kyiv", which is
+     * what getCurrentTimezone reports for a browser that says "Europe/Kiev".
+     * Try the zone's legacy spellings next, which such an engine knows, and
+     * finally moment, which carries its own zone data.
+     */
+    const timezone: Timezone = this.getCurrentTimezone();
+
+    for (const name of [
+      timezone,
+      ...TimezoneAlias.getLegacyNamesOf(timezone),
+    ]) {
+      try {
+        return date.toLocaleString("default", {
+          month: "short",
+          timeZone: name.toString(),
+        });
+      } catch {
+        // Unknown to this engine's Intl; try the next spelling.
+      }
+    }
+
+    return this.inCurrentTimezone(date).format("MMM");
   }
 
   public static getSchema(): ZodSchema {
@@ -2203,26 +2224,55 @@ export default class OneUptimeDate {
    * the timezone they configured — even when the machine, OS or VPN they are
    * on reports a different one. Pass null to fall back to the browser zone
    * (signed-out surfaces, or a user who has not picked a timezone).
+   *
+   * A legacy name is kept as its current name ("Asia/Calcutta" as
+   * "Asia/Kolkata" — see TimezoneAlias), which is the name the picker
+   * offers and the one getUserTimezone reports.
    */
   public static setUserTimezone(timezone: Timezone | null | undefined): void {
-    /*
-     * Ignore anything moment does not recognise as an IANA zone. A stale or
-     * corrupt saved value must not take every date in the UI down with it.
-     */
-    if (!timezone || !moment.tz.zone(timezone.toString())) {
+    if (!timezone || typeof timezone !== "string") {
       this.userTimezone = null;
       return;
     }
 
-    this.userTimezone = timezone;
+    /*
+     * Translate before checking with moment. The saved value can be one an
+     * older build cached in the browser, and one of those, US/Pacific-New,
+     * has been removed from tzdata: moment no longer resolves it, but it is
+     * still Los Angeles, not a reason to drop the user's zone.
+     */
+    const currentTimezone: Timezone =
+      TimezoneAlias.getCanonicalTimezone(timezone);
+
+    /*
+     * Ignore anything moment does not recognise as an IANA zone. A stale or
+     * corrupt saved value must not take every date in the UI down with it.
+     */
+    if (!moment.tz.zone(currentTimezone.toString())) {
+      this.userTimezone = null;
+      return;
+    }
+
+    this.userTimezone = currentTimezone;
   }
 
   public static getUserTimezone(): Timezone | null {
     return this.userTimezone;
   }
 
+  /**
+   * The zone every "local" helper reads: the user's own, else the one the
+   * browser / process reports, in its current name. Chromium reports the
+   * ICU spelling of many zones (Asia/Calcutta, Europe/Kiev, Asia/Saigon),
+   * and this guess is what the dashboard saves to a new user's profile and
+   * pre-selects in the on-call schedule pickers — neither of which offers
+   * the legacy name. Called on every date format, so it stays a lookup:
+   * moment caches its guess, and the translation is a map read.
+   */
   public static getCurrentTimezone(): Timezone {
-    return this.userTimezone || (moment.tz.guess() as Timezone);
+    return (
+      this.userTimezone || TimezoneAlias.getCanonicalTimezone(moment.tz.guess())
+    );
   }
 
   /**

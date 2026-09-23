@@ -1,5 +1,7 @@
 /** @timezone UTC */
 
+import { cleanup, render, screen } from "@testing-library/react";
+import React from "react";
 import {
   ComponentArgument,
   ComponentInputType,
@@ -10,8 +12,12 @@ import DashboardClockComponent, {
   ClockWidgetHourFormat,
 } from "../../../Types/Dashboard/DashboardComponents/DashboardClockComponent";
 import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
+import OneUptimeDate from "../../../Types/Date";
 import { ObjectType } from "../../../Types/JSON";
-import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
+import Timezone from "../../../Types/Timezone";
+import Dropdown, {
+  DropdownOption,
+} from "../../../UI/Components/Dropdown/Dropdown";
 import DashboardClockComponentUtil from "../../../Utils/Dashboard/Components/DashboardClockComponent";
 import DashboardComponentsUtil from "../../../Utils/Dashboard/Components/Index";
 import {
@@ -222,10 +228,153 @@ describe("DashboardClockComponentUtil", () => {
         );
       });
 
-      it("offers the whole IANA catalogue", () => {
+      it("offers the whole catalogue of current IANA zones", () => {
         expect(
           getArgumentById("timezone").dropdownOptions?.length,
         ).toBeGreaterThan(100);
+      });
+
+      it("offers each clock once, under its current name rather than a legacy alias", () => {
+        /*
+         * The tzdb's backward-compatibility names ("Singapore", "US/Pacific",
+         * "Asia/Calcutta", "Zulu") put the same clock in this list twice. The
+         * current name of each is the one offered.
+         */
+        const values: Array<string> = (
+          getArgumentById("timezone").dropdownOptions || []
+        ).map((option: DropdownOption): string => {
+          return String(option.value);
+        });
+
+        for (const legacyName of [
+          "Singapore",
+          "US/Pacific",
+          "Asia/Calcutta",
+          "Europe/Kiev",
+          "Etc/UTC",
+          "Zulu",
+        ]) {
+          expect(values).not.toContain(legacyName);
+        }
+
+        for (const currentName of [
+          "Asia/Singapore",
+          "America/Los_Angeles",
+          "Asia/Kolkata",
+          "Europe/Kyiv",
+          "UTC",
+        ]) {
+          expect(values).toContain(currentName);
+        }
+
+        expect(new Set<string>(values).size).toBe(values.length);
+      });
+
+      /*
+       * A clock configured before the legacy names were hidden still holds
+       * one — the dashboard JSON is never rewritten. The settings panel's
+       * Dropdown matches a value that is no option's own against each
+       * option's aliases, so the clock opens on its zone rather than on the
+       * "Viewer's timezone" placeholder, which would read as if it had been
+       * reset.
+       */
+      it.each([
+        ["Asia/Calcutta", "Asia/Kolkata"],
+        ["Singapore", "Asia/Singapore"],
+        ["US/Pacific", "America/Los_Angeles"],
+        ["Europe/Kiev", "Europe/Kyiv"],
+        ["Zulu", "UTC"],
+        ["US/Pacific-New", "America/Los_Angeles"],
+      ])(
+        "matches a clock saved as %s to the %s option through its aliases",
+        (legacyName: string, currentName: string) => {
+          const options: Array<DropdownOption> =
+            getArgumentById("timezone").dropdownOptions || [];
+
+          // Not an option of its own: only an alias can select it.
+          expect(
+            options.filter((option: DropdownOption): boolean => {
+              return option.value === legacyName;
+            }),
+          ).toEqual([]);
+
+          const owners: Array<string> = options
+            .filter((option: DropdownOption): boolean => {
+              return Boolean(option.aliases?.includes(legacyName));
+            })
+            .map((option: DropdownOption): string => {
+              return String(option.value);
+            });
+
+          expect(owners).toEqual([currentName]);
+        },
+      );
+
+      it("shows a clock saved as Asia/Calcutta as the Asia/Kolkata option in the settings dropdown", () => {
+        const options: Array<DropdownOption> =
+          getArgumentById("timezone").dropdownOptions || [];
+
+        try {
+          /*
+           * FormField hands the Dropdown the raw stored string, typed as an
+           * option; the cast does the same.
+           */
+          render(
+            React.createElement(Dropdown, {
+              options: options,
+              value: "Asia/Calcutta" as unknown as DropdownOption,
+              placeholder: "Viewer's timezone",
+              onChange: (): void => {
+                return undefined;
+              },
+            }),
+          );
+
+          expect(
+            screen.getByText(
+              OneUptimeDate.getGmtOffsetFriendlyStringByTimezone(
+                Timezone.AsiaKolkata,
+              ),
+            ),
+          ).toBeTruthy();
+          expect(screen.queryByText("Viewer's timezone")).toBeNull();
+        } finally {
+          cleanup();
+        }
+      });
+
+      it("keeps telling the right time for a clock saved under a legacy name, without it being rewritten", () => {
+        /*
+         * The stored name is read as it is: moment resolves every legacy
+         * name it still has data for, to the same clock as its current name.
+         */
+        const at: Date = new Date("2026-08-03T18:07:09.500Z");
+
+        const legacy: ClockWidgetDisplay = getClockWidgetDisplay({
+          date: at,
+          timezone: "Asia/Calcutta",
+          hourFormat: ClockWidgetHourFormat.TwentyFourHour,
+          showSeconds: true,
+          showDate: true,
+          showTimezoneAbbreviation: true,
+        });
+        const current: ClockWidgetDisplay = getClockWidgetDisplay({
+          date: at,
+          timezone: "Asia/Kolkata",
+          hourFormat: ClockWidgetHourFormat.TwentyFourHour,
+          showSeconds: true,
+          showDate: true,
+          showTimezoneAbbreviation: true,
+        });
+
+        expect(legacy.isFallbackTimezone).toBe(false);
+        // Read in the zone as stored, not quietly swapped for another name.
+        expect(legacy.timezone).toBe("Asia/Calcutta");
+        expect(legacy.time).toBe(current.time);
+        expect(legacy.seconds).toBe(current.seconds);
+        expect(legacy.dateText).toBe(current.dateText);
+        expect(legacy.zoneAbbreviation).toBe(current.zoneAbbreviation);
+        expect(legacy.time).toBe("23:37");
       });
 
       it("offers only zones the widget can actually resolve", () => {
@@ -255,9 +404,9 @@ describe("DashboardClockComponentUtil", () => {
       it("builds the option list once and reuses it, so typing in the form stays fast", () => {
         /*
          * ArgumentsForm re-derives the arguments on every render — i.e. on
-         * every keystroke — and this list costs a ~556-entry sort with two
-         * moment.tz() calls per comparison. Same array identity proves the
-         * module-level cache is doing its job.
+         * every keystroke — and this list costs a moment lookup for every
+         * zone in the Timezone enum and a sort of the ~450 it offers. Same
+         * array identity proves the module-level cache is doing its job.
          */
         expect(getArgumentById("timezone").dropdownOptions).toBe(
           getArgumentById("timezone").dropdownOptions,

@@ -1521,9 +1521,11 @@ export class Service extends DatabaseService<StatusPage> {
      * falls, because every bucket is clipped to the window. The report
      * timezone must not reach `AT TIME ZONE` either. Postgres reads the OS
      * tzdata, and the images OneUptime ships (Debian trixie, no
-     * tzdata-legacy) reject link names the settings still offer and moment
-     * still knows, such as US/Eastern, Asia/Calcutta and GB. One of those
-     * would fail the query, and with it the whole report.
+     * tzdata-legacy) reject legacy link names that moment still knows, such
+     * as US/Eastern, Asia/Calcutta and GB. The settings no longer offer them
+     * (Types/TimezoneAlias.ts), but rows saved before that and API callers
+     * still hold them. One of those would fail the query, and with it the
+     * whole report.
      */
     const singleMonitorIds: Dictionary<ObjectID> = {};
 

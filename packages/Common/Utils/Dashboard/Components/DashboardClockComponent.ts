@@ -30,9 +30,9 @@ const DisplaySection: ComponentArgumentSection = {
 /*
  * Built once and reused. ArgumentsForm calls getComponentSettingsArguments on
  * every render — i.e. on every keystroke in the settings panel — and building
- * this list sorts ~400 zones with two moment.tz() calls per comparison, which
- * is more than enough to make typing in the panel feel laggy. The catalogue of
- * zones does not change while the tab is open.
+ * this list resolves every zone in the Timezone enum and sorts ~450 of them by
+ * GMT offset, which is more than enough to make typing in the panel feel
+ * laggy. The catalogue of zones does not change while the tab is open.
  */
 let cachedTimezoneOptions: Array<DropdownOption> | null = null;
 
@@ -98,9 +98,10 @@ export default class DashboardClockComponentUtil extends DashboardBaseComponentU
       placeholder: "Viewer's timezone",
       section: ClockSection,
       /*
-       * The full IANA list, ordered by GMT offset and labelled
-       * "GMT+5:30 Asia/Kolkata" — the same options and ordering the user
-       * already picks their timezone from in User Settings.
+       * Every current IANA zone (legacy aliases such as "Asia/Calcutta" are
+       * left out — see Types/TimezoneAlias.ts), ordered by GMT offset and
+       * labelled "GMT+5:30 Asia/Kolkata" — the same options and ordering the
+       * user already picks their timezone from in User Settings.
        */
       dropdownOptions: getTimezoneOptions(),
     });
