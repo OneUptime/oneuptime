@@ -153,6 +153,48 @@ describe("Config", (): void => {
 
       expect(Config.readInitOptions()).toBeNull();
     });
+
+    /*
+     * Offline mode writes what it could not upload to IndexedDB unless the
+     * page says not to. Only an explicit "false" turns it off: storage is
+     * on by default, so the option is absent otherwise.
+     */
+    describe("offline storage", (): void => {
+      it("is left to the default when the page says nothing", (): void => {
+        document.head.innerHTML =
+          '<script data-oneuptime-host="https://x.example.com" data-oneuptime-token="t" data-oneuptime-app-identifier="a"></script>';
+
+        expect(Config.readInitOptions()?.offlineStorage).toBeUndefined();
+      });
+
+      it('is switched off by data-oneuptime-offline-storage="false"', (): void => {
+        document.head.innerHTML =
+          '<script data-oneuptime-host="https://x.example.com" data-oneuptime-token="t" data-oneuptime-app-identifier="a" data-oneuptime-offline-storage="false"></script>';
+
+        expect(Config.readInitOptions()?.offlineStorage).toBe(false);
+      });
+
+      it("is switched off by offlineStorage: false on the init global", (): void => {
+        (window as unknown as Record<string, unknown>)[
+          "__ONEUPTIME_SESSION_REPLAY__"
+        ] = {
+          host: "https://oneuptime.com",
+          token: "tok",
+          appIdentifier: "app",
+          offlineStorage: false,
+        };
+
+        expect(Config.readInitOptions()?.offlineStorage).toBe(false);
+      });
+
+      it("stays on for any other value", (): void => {
+        for (const value of ["true", "", "0", "no", "off"]) {
+          document.head.innerHTML = `<script data-oneuptime-host="https://x.example.com" data-oneuptime-token="t" data-oneuptime-app-identifier="a" data-oneuptime-offline-storage="${value}"></script>`;
+
+          expect(Config.readInitOptions()?.offlineStorage).toBeUndefined();
+        }
+      });
+    });
   });
 
   describe("validateConfig", (): void => {

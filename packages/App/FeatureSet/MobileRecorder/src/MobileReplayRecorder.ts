@@ -34,8 +34,11 @@ import {
 } from "./Contract";
 import {
   fetchReplayConfig,
+  forgetReplayConfig,
+  loadCachedReplayConfig,
   MobileReplayStartOptions,
   ResolvedReplayConfig,
+  saveReplayConfig,
   ValidatedStartOptions,
   validateStartOptions,
 } from "./Config";
@@ -262,6 +265,23 @@ export default class MobileReplayRecorder {
   private captureTimer: ReturnType<typeof setInterval> | null = null;
   private flushTimer: ReturnType<typeof setInterval> | null = null;
   private appStateSubscription: AppStateSubscription | null = null;
+
+  /*
+   * Offline mode: the host app's connectivity source (start option
+   * `connectivity`), and what it last said, which a transport created later
+   * - after a consent or identity change - starts from.
+   */
+  private unsubscribeConnectivity: (() => void) | null = null;
+  private lastConnectivity: boolean | null = null;
+
+  /*
+   * The policy in force is the cached one an offline launch started with,
+   * or the last refresh could not reach the server. Refreshed the moment the
+   * connection is back rather than on the five-minute schedule, so a policy
+   * changed while the device was offline takes effect before its backlog
+   * has finished uploading.
+   */
+  private policyStale: boolean = false;
   private captureGeneration: number | null = null;
   private running: boolean = false;
   private foreground: boolean = true;
@@ -425,11 +445,43 @@ export default class MobileReplayRecorder {
       return false;
     }
 
+    const namespace: string = getReplayStorageNamespace(validated);
     let config: ResolvedReplayConfig = await fetchReplayConfig(this.options);
     if (!this.isCurrentGeneration(generation)) {
       return false;
     }
+
+    /*
+     * Offline mode. An app launched without a connection cannot fetch its
+     * policy; failing closed there meant nothing was recorded on exactly the
+     * launches offline mode exists for. The last policy the server gave is
+     * used instead - only when the request got no usable answer, never when
+     * the server answered that replay is off - and the periodic refresh
+     * replaces it the moment the server can be reached.
+     */
+    let configFromCache: boolean = false;
+    if (isRetryablePolicyFailure(config)) {
+      const cached: ResolvedReplayConfig | null = await loadCachedReplayConfig(
+        this.storage,
+        namespace,
+        this.now(),
+      );
+      if (!this.isCurrentGeneration(generation)) {
+        return false;
+      }
+      if (cached) {
+        this.diagnostic("config-from-cache", {
+          reason: config.disabledReason ?? "not-reported",
+        });
+        config = cached;
+        configFromCache = true;
+      }
+    } else if (this.mayPersistUnder(config)) {
+      await saveReplayConfig(this.storage, namespace, config, this.now());
+    }
+
     if (
+      !configFromCache &&
       config.enabled &&
       this.userRef &&
       (config.consentMode === SessionReplayConsentMode.NotRequired ||
@@ -447,9 +499,10 @@ export default class MobileReplayRecorder {
       });
       return false;
     }
-    this.lastPolicyRefreshAtUnixMs = this.now();
+    /* A cached policy is refreshed at the first chance, not in five minutes. */
+    this.lastPolicyRefreshAtUnixMs = configFromCache ? 0 : this.now();
+    this.policyStale = configFromCache;
 
-    const namespace: string = getReplayStorageNamespace(validated);
     const sessionStore: ReplaySessionStore = new ReplaySessionStore(
       this.storage,
       namespace,
@@ -490,8 +543,9 @@ export default class MobileReplayRecorder {
       return false;
     }
 
-    this.outbox = new ReplayOutbox(this.storage, namespace);
+    this.outbox = new ReplayOutbox(this.storage, namespace, this.now);
     this.transport = this.createTransport(validated, this.outbox);
+    this.subscribeConnectivity(validated);
 
     try {
       const nativeMetadata: NativeAppMetadata =
@@ -668,6 +722,7 @@ export default class MobileReplayRecorder {
     });
     await this.outbox?.clear();
     await this.sessionStore?.clear();
+    await this.forgetCachedConfig();
     this.identity = null;
     this.userRef = null;
     this.traits = {};
@@ -1459,6 +1514,15 @@ export default class MobileReplayRecorder {
       this.diagnosticsStatus =
         this.consentState() === "Unknown" ? "consent-required" : "recording";
       await this.captureTick(true);
+
+      /*
+       * Offline mode: returning to the app is the most likely moment the
+       * connection is back (the train left the tunnel while the phone was in
+       * a pocket), so the backlog is tried now rather than on its timer.
+       */
+      if (this.uploadActive && this.running) {
+        this.transport?.resume();
+      }
     }
   }
 
@@ -1550,7 +1614,7 @@ export default class MobileReplayRecorder {
     startOptions: ValidatedStartOptions,
     outbox: ReplayOutbox,
   ): ReplayTransport {
-    return new ReplayTransport({
+    const transport: ReplayTransport = new ReplayTransport({
       startOptions,
       outbox,
       onDirective: (
@@ -1561,8 +1625,15 @@ export default class MobileReplayRecorder {
       },
       onDiagnostic: (code: string, details?: Record<string, unknown>): void => {
         this.diagnostic(code, details);
+        if (code === "back-online") {
+          this.onBackOnline();
+        }
       },
     });
+    if (this.lastConnectivity !== null) {
+      transport.setConnectivity(this.lastConnectivity);
+    }
+    return transport;
   }
 
   private onDirective(
@@ -1609,7 +1680,94 @@ export default class MobileReplayRecorder {
     this.clearTimers();
     this.appStateSubscription?.remove();
     this.appStateSubscription = null;
+    this.stopConnectivity();
     this.restoreGlobalErrorHandler();
+  }
+
+  /*
+   * Whether this device may be written to under a policy. Nothing is stored
+   * before an explicit consent the policy requires - the cached policy
+   * included, even though it holds no user data - except a removal: a
+   * policy that says replay is off always deletes the cached one.
+   */
+  /*
+   * The cached policy goes with everything else when consent does: it holds
+   * no user data, but "nothing of the recorder stays on the device" is the
+   * promise, and the next consented policy fetch writes it again.
+   */
+  private async forgetCachedConfig(): Promise<void> {
+    if (this.options) {
+      await forgetReplayConfig(
+        this.storage,
+        getReplayStorageNamespace(this.options),
+      );
+    }
+  }
+
+  private mayPersistUnder(config: ResolvedReplayConfig): boolean {
+    return (
+      !config.enabled ||
+      config.consentMode === SessionReplayConsentMode.NotRequired ||
+      this.consentGranted
+    );
+  }
+
+  private subscribeConnectivity(options: ValidatedStartOptions): void {
+    this.stopConnectivity();
+    this.lastConnectivity = null;
+    if (!options.connectivity) {
+      return;
+    }
+
+    try {
+      const unsubscribe: unknown = options.connectivity.subscribe(
+        (isConnected: boolean | null): void => {
+          const connected: boolean | null =
+            typeof isConnected === "boolean" ? isConnected : null;
+          if (connected === this.lastConnectivity) {
+            return;
+          }
+          this.lastConnectivity = connected;
+          if (connected !== null) {
+            this.diagnostic(connected ? "network-online" : "network-offline");
+          }
+          this.transport?.setConnectivity(connected);
+          if (connected === true) {
+            this.onBackOnline();
+            /*
+             * The backlog goes now - but only while uploading is allowed. A
+             * consent this run has not been given does not become one
+             * because the network came back.
+             */
+            if (this.uploadActive && this.running) {
+              this.transport?.resume();
+            }
+          }
+        },
+      );
+      this.unsubscribeConnectivity =
+        typeof unsubscribe === "function" ? (unsubscribe as () => void) : null;
+    } catch {
+      /* A throwing connectivity source only costs the early drain. */
+      this.diagnostic("connectivity-subscribe-failed");
+    }
+  }
+
+  /* The next capture tick refreshes a stale policy (see policyStale). */
+  private onBackOnline(): void {
+    if (this.policyStale) {
+      this.lastPolicyRefreshAtUnixMs = 0;
+    }
+  }
+
+  private stopConnectivity(): void {
+    const unsubscribe: (() => void) | null = this.unsubscribeConnectivity;
+    this.unsubscribeConnectivity = null;
+    try {
+      unsubscribe?.();
+    } catch {
+      /* The host's unsubscribe must not break teardown. */
+    }
   }
 
   private isCurrentGeneration(generation: number): boolean {
@@ -1908,11 +2066,27 @@ export default class MobileReplayRecorder {
       }
 
       this.lastPolicyRefreshAtUnixMs = nowUnixMs;
+      if (
+        !isRetryablePolicyFailure(freshConfig) &&
+        this.mayPersistUnder(freshConfig)
+      ) {
+        /* What the next offline launch records under (see startInternal). */
+        await saveReplayConfig(
+          this.storage,
+          getReplayStorageNamespace(currentOptions),
+          freshConfig,
+          nowUnixMs,
+        );
+        if (!this.running || !this.isCurrentGeneration(generation)) {
+          return false;
+        }
+      }
       if (!freshConfig.enabled) {
         if (reason !== "consent" && isRetryablePolicyFailure(freshConfig)) {
           this.diagnostic("policy-refresh-failed-using-last-config", {
             reason,
           });
+          this.policyStale = true;
           return true;
         }
         this.config = freshConfig;
@@ -1925,6 +2099,7 @@ export default class MobileReplayRecorder {
         return false;
       }
 
+      this.policyStale = false;
       return await this.applyRuntimePolicy(
         previousConfig,
         freshConfig,
@@ -1984,6 +2159,7 @@ export default class MobileReplayRecorder {
         });
         await this.outbox?.clear();
         await this.sessionStore?.clear();
+        await this.forgetCachedConfig();
         if (!this.running || !this.isCurrentGeneration(generation)) {
           return false;
         }

@@ -365,6 +365,65 @@ minted at all. `getVisitorId()` returns it.
   `SessionReplayFidelityNotice` enum, so the player renders it as an unknown
   code rather than with dedicated copy.
 
+## Offline mode
+
+Recording never depends on the network. When the visitor loses their
+connection the recorder keeps recording, queues every chunk it closes, and
+uploads the whole backlog - in order, under the same session - when the
+connection returns. Nothing needs configuring.
+
+- **An outage is not a failure.** Once the chunk endpoint has answered this
+  page at least once (so the host, the ingestion key and CORS are known to
+  work), a request that never reaches the server costs no circuit-breaker
+  strike and no attempt against the chunk. Before that first answer a
+  network failure still counts toward the three-strike breaker, because it
+  is also exactly what a content blocker refusing the chunk URL looks like.
+- **Nothing is attempted while the browser says it is offline**
+  (`navigator.onLine === false`). The backlog drains the moment the
+  browser's `online` event fires, and the queue re-checks `navigator.onLine`
+  every 30 s in case that event was missed. A connection that is up but goes
+  nowhere (a captive portal, a dead cell) is retried after 5 s, 15 s, 30 s,
+  1 min, 2 min and then every 5 min. A server throttle (`429`, or a `503`
+  with `Retry-After`) still stands after the connection returns.
+- **The queue is bounded by size, not by one request.** It holds up to 240
+  chunks (an hour of a busy page) and 4 MB of payload; past either bound the
+  oldest chunks are dropped and counted, and a later full snapshot
+  re-anchors the player after the gap.
+- **A tab closed while offline is not lost.** Every chunk that has to wait
+  is also written to IndexedDB (database `oneuptime-session-replay`, store
+  `offline-chunks`). A `pagehide` or a hidden tab while offline writes the
+  open chunk there whole - not cut to the keepalive budget - from inside the
+  handler. The next page of the same application that loads with a
+  connection uploads it, ahead of its own chunks. A one-byte localStorage
+  marker, `oneuptime.replay.offline`, tells the next page there is
+  something to upload, so a visitor who never went offline never gets a
+  database at all. Two tabs of the application never both upload a stored
+  chunk: a tab claims a chunk by deleting it in a readwrite transaction
+  before it sends it, and only the tab whose claim found it sends it.
+- **Stored chunks are masked page content**, exactly what would have been
+  uploaded, scoped to the application's endpoint, and never kept longer
+  than three days (`SESSION_REPLAY_MAX_OFFLINE_DELAY_MS`). A page that
+  loads with consent withdrawn uploads none of it; `revokeConsent()`, a
+  server `stop` directive and a transport that stops for good (`401`,
+  `403`, `404`) delete all of it. Set `data-oneuptime-offline-storage="false"`
+  on the script tag (or `offlineStorage: false` on the init global) to keep
+  queued chunks in memory only: an outage the page lives through is still
+  survived, and nothing of the session is ever written to disk.
+- **The timeline stays true.** Each chunk's `clientSendUnixMs` is stamped
+  when it is actually sent, so its distance from the chunk's end is how long
+  it waited, measured on the device's own clock; ingest moves its reference
+  instant back by that much (up to three days) before clamping the session
+  start. A recording uploaded the next morning shows up where it happened,
+  not pinned to "four hours before it arrived".
+- `getDiagnostics().decisions` reports `offline` and `queuedChunks`, and the
+  debug records say `chunk-held-offline`, `back-online`,
+  `offline-flush-stored` and `offline-chunks-restored`.
+
+What offline mode does not do: a page that is **loaded** while offline does
+not record, because the loader has to fetch the application's policy (and
+the artifact) from OneUptime before anything starts - fail closed, as
+everywhere else.
+
 ## Implementation notes worth knowing
 
 **rrweb 2.1.1 has no `maskAllText` option.** Text masking is driven entirely by

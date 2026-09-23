@@ -71,6 +71,13 @@ export const SESSION_REPLAY_MAX_DECOMPRESSED_FRAME_BYTES: number =
   8 * 1024 * 1024;
 export const MAX_SESSION_REPLAY_CHUNK_BYTES: number = 2 * 1024 * 1024;
 export const MAX_SESSION_REPLAY_CHUNKS_PER_SESSION: number = 480;
+/*
+ * Offline mode: how long a chunk may wait on the device for a connection.
+ * The server allows exactly this much upload delay when it places a late
+ * recording on its timeline (Common's SESSION_REPLAY_MAX_OFFLINE_DELAY_MS).
+ */
+export const SESSION_REPLAY_MAX_OFFLINE_DELAY_MS: number =
+  3 * 24 * 60 * 60 * 1000;
 export const MOBILE_CAPTURE_INTERVAL_MS: number = 500;
 type MobileRecorderKind = "rn-view-tree";
 export const MOBILE_RECORDER_KIND: MobileRecorderKind = "rn-view-tree";

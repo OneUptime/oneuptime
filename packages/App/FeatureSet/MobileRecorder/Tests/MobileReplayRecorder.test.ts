@@ -230,7 +230,7 @@ describe("MobileReplayRecorder end-to-end", () => {
       envelope: persistedEnvelope,
       payload: "[]",
       attempts: 0,
-      createdAtUnixMs: 1,
+      createdAtUnixMs: Date.now(),
     });
 
     await test.recorder.start(validated);

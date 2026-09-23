@@ -1,3 +1,4 @@
+import { SESSION_REPLAY_MAX_OFFLINE_DELAY_MS } from "../../../Types/Rum/SessionReplay";
 import SessionIdentity, {
   SessionRotationReason,
   StoredSessionState,
@@ -195,6 +196,99 @@ describe("SessionIdentity", () => {
 
         expect(clamped).toBeLessThanOrEqual(NOW);
         expect(clamped).toBeGreaterThanOrEqual(NOW - 4 * HOUR);
+      }
+    });
+  });
+
+  /*
+   * Offline mode: how long a chunk sat in the device's queue, which ingest
+   * uses to keep a recording uploaded late on its real timeline.
+   */
+  describe("getClientQueueDelayMs", () => {
+    it("is send time minus the chunk's end, on the device clock", () => {
+      expect(
+        SessionIdentity.getClientQueueDelayMs({
+          sessionStartUnixMs: NOW,
+          chunkEndOffsetMs: 15_000,
+          clientSendUnixMs: NOW + 15_000 + 6 * HOUR,
+        }),
+      ).toBe(6 * HOUR);
+    });
+
+    it("is the same however wrong the device clock is", () => {
+      for (const clockErrorMs of [-3 * HOUR, 0, 90 * MINUTE, 400 * 24 * HOUR]) {
+        expect(
+          SessionIdentity.getClientQueueDelayMs({
+            sessionStartUnixMs: NOW + clockErrorMs,
+            chunkEndOffsetMs: 15_000,
+            clientSendUnixMs: NOW + clockErrorMs + 15_000 + 2 * HOUR,
+          }),
+        ).toBe(2 * HOUR);
+      }
+    });
+
+    it("is zero for a chunk sent as it closed", () => {
+      expect(
+        SessionIdentity.getClientQueueDelayMs({
+          sessionStartUnixMs: NOW,
+          chunkEndOffsetMs: 15_000,
+          clientSendUnixMs: NOW + 15_000,
+        }),
+      ).toBe(0);
+    });
+
+    it("is zero when the send stamp is before the chunk ended", () => {
+      /* An older recorder stamped the send time when the chunk closed. */
+      expect(
+        SessionIdentity.getClientQueueDelayMs({
+          sessionStartUnixMs: NOW,
+          chunkEndOffsetMs: 4 * HOUR,
+          clientSendUnixMs: NOW + 15_000,
+        }),
+      ).toBe(0);
+    });
+
+    it("never believes more than a recorder may hold a chunk", () => {
+      expect(
+        SessionIdentity.getClientQueueDelayMs({
+          sessionStartUnixMs: NOW,
+          chunkEndOffsetMs: 0,
+          clientSendUnixMs: NOW + 90 * 24 * HOUR,
+        }),
+      ).toBe(SESSION_REPLAY_MAX_OFFLINE_DELAY_MS);
+    });
+
+    it("is zero for missing or non-finite stamps", () => {
+      const cases: Array<{
+        sessionStartUnixMs: number;
+        chunkEndOffsetMs: number;
+        clientSendUnixMs: number;
+      }> = [
+        { sessionStartUnixMs: 0, chunkEndOffsetMs: 0, clientSendUnixMs: NOW },
+        {
+          sessionStartUnixMs: NOW,
+          chunkEndOffsetMs: 0,
+          clientSendUnixMs: Number.NaN,
+        },
+        {
+          sessionStartUnixMs: Number.NaN,
+          chunkEndOffsetMs: 0,
+          clientSendUnixMs: NOW,
+        },
+        {
+          sessionStartUnixMs: NOW,
+          chunkEndOffsetMs: Number.POSITIVE_INFINITY,
+          clientSendUnixMs: NOW,
+        },
+        {
+          sessionStartUnixMs: NOW,
+          chunkEndOffsetMs: 0,
+          clientSendUnixMs: Number.POSITIVE_INFINITY,
+        },
+      ];
+
+      for (const input of cases) {
+        expect(SessionIdentity.getClientQueueDelayMs(input)).toBe(0);
       }
     });
   });
