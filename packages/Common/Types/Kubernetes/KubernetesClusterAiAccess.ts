@@ -28,20 +28,19 @@
  *                  one-click approval; when it also ran safe fixes, a
  *                  riskier fix is proposed only if verification shows the
  *                  safe ones did not recover the signal (the follow-up
- *                  round, which asks).
- *                  Shapes on the cluster's kubectl allowlist run on their
- *                  own.
+ *                  round, which asks). Shapes on the cluster's kubectl
+ *                  allowlist run on their own.
  * BypassApproval:  AI does not ask. Every change the policy allows — safe
  *                  AND riskier — runs on its own, follow-up rounds included,
  *                  except for what always asks (below).
  *
  * In EVERY mode, Bypass approval included: destructive commands (Denied
  * tier) never run; a write in a protected namespace (kube-system,
- * kube-public, kube-node-lease), a node drain and a node taint always need a
- * human; the in-cluster Runner never changes its own namespace or anything
- * outside the namespaces its chart may write; and an unattended run becomes
- * a proposal when the hourly per-cluster circuit breaker trips or another
- * unattended round already holds the cluster.
+ * kube-public, kube-node-lease), a node drain, a node taint and a patch of
+ * a Node always need a human; the in-cluster Runner never changes its own
+ * namespace or anything outside the namespaces its chart may write; and an
+ * unattended run becomes a proposal when the hourly per-cluster circuit
+ * breaker trips or another unattended round already holds the cluster.
  */
 export enum KubernetesAiRemediationMode {
   Disabled = "Disabled",
@@ -77,7 +76,8 @@ export function isUnattendedRemediationMode(
  * RiskyWrite: a change that can alter what is deployed or affect many pods
  *             at once. Needs a human unless the operator allowlisted the
  *             exact shape on the cluster or the cluster bypasses approvals
- *             (never for protected namespaces, a drain or a taint).
+ *             (never for protected namespaces, a drain, a taint or a patch
+ *             of a Node).
  * Denied:     never runs, even with human approval (exec/cp/port-forward,
  *             deleting namespaces/volumes/nodes/CRDs, RBAC grants, patches
  *             to pod identity or host access, credential flags, ...).
