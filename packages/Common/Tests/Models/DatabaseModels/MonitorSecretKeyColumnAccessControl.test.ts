@@ -167,6 +167,67 @@ describe("Monitor secret key columns stay readable by the roles that can rotate 
   );
 });
 
+describe("the custom inbound email address is gated like the key it replaces", () => {
+  /*
+   * incomingEmailCustomLocalPart is not a key, but while it is set it IS the
+   * monitor's inbound address -- the generated monitor-{secretKey} one stops
+   * working -- so a holder can send mail the monitor counts as a heartbeat.
+   * It must be exactly as hard to read as incomingEmailSecretKey.
+   */
+  const COLUMN: string = "incomingEmailCustomLocalPart";
+
+  it("is declared on Monitor", () => {
+    expect(accessControl[COLUMN]).toBeDefined();
+  });
+
+  it("is unreadable by every read-only role", () => {
+    for (const permission of READ_ONLY_PERMISSIONS) {
+      expect(canRead(COLUMN, [permission])).toBe(false);
+    }
+
+    expect(canRead(COLUMN, READ_ONLY_PERMISSIONS)).toBe(false);
+  });
+
+  it("is readable by each role that can change it", () => {
+    for (const permission of ROTATION_PERMISSIONS) {
+      expect(canRead(COLUMN, [permission])).toBe(true);
+    }
+  });
+
+  it("gates read on exactly the same roles as update", () => {
+    const column: ColumnAccessControl | undefined = accessControl[COLUMN];
+
+    expect([...(column?.read || [])].sort()).toEqual(
+      [...(column?.update || [])].sort(),
+    );
+  });
+
+  it("has the same read and update lists as incomingEmailSecretKey", () => {
+    const custom: ColumnAccessControl | undefined = accessControl[COLUMN];
+    const key: ColumnAccessControl | undefined =
+      accessControl["incomingEmailSecretKey"];
+
+    expect([...(custom?.read || [])].sort()).toEqual(
+      [...(key?.read || [])].sort(),
+    );
+    expect([...(custom?.update || [])].sort()).toEqual(
+      [...(key?.update || [])].sort(),
+    );
+  });
+
+  it("is never writable on create", () => {
+    /*
+     * The column is unique across every project. Allowing it on create would
+     * let import and duplicate copy it -- and then fail on the copy.
+     */
+    expect(accessControl[COLUMN]?.create || []).toEqual([]);
+  });
+
+  it("is declared unique", () => {
+    expect(new Monitor().getTableColumnMetadata(COLUMN)?.unique).toBe(true);
+  });
+});
+
 describe("the rest of the monitor page still loads for a Viewer", () => {
   /*
    * Tightening the secret columns must not collaterally break the monitor view

@@ -82,7 +82,12 @@ const MonitorSetupCard: FunctionComponent<ComponentProps> = (
   }
 
   if (props.kind === MonitorOverviewSetupKind.InboundEmail) {
-    return <IncomingEmailMonitorLink secretKey={secretKey} />;
+    return (
+      <IncomingEmailMonitorLink
+        secretKey={secretKey}
+        customLocalPart={props.monitor.incomingEmailCustomLocalPart}
+      />
+    );
   }
 
   if (props.kind === MonitorOverviewSetupKind.ServerAgent) {
