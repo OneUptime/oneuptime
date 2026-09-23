@@ -103,10 +103,10 @@ command itself before it starts: its own argv guard (no credential,
 cluster, file or verbose-logging flags, in any spelling kubectl accepts),
 the shared kubectl policy, the write switch, the node switch and the
 namespace scope above. The Kubernetes agent's Runner reports that scope
-(`writeNamespaces`, `podNamespace`, `allowNodeOperations`) on its
-heartbeats, and OneUptime applies the same scope before a fix is proposed or
-approved, so a write that Runner would refuse is refused there first rather
-than reaching it as a failed fix.
+(`writeNamespaces`, `podNamespace`, `allowNodeOperations`) when it registers
+and on every heartbeat, and OneUptime applies the same scope before a fix is
+proposed, approved or enqueued, so a write that Runner would refuse is
+refused there first rather than reaching it as a failed fix.
 The Kubernetes agent chart's in-cluster Runner uses its pod's own
 ServiceAccount; any other Runner uses the Kubernetes credential bound to it
 on the cluster's AI page, written to a private temporary kubeconfig for the
@@ -123,10 +123,22 @@ preferences file on this host can change what a command does.
 On a Runner that is not the Kubernetes agent's, kubectl writes (and node
 operations) are allowed unless you set `ONEUPTIME_KUBECTL_ALLOW_WRITES` (or
 `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS`) to something other than `true` —
-the Kubernetes credential you assign is what bounds them. The server cannot
-see these switches on such a Runner, so a refused write shows up in the
-command's result on the cluster's AI page rather than as a missing setup
-step.
+the Kubernetes credential you assign is what bounds them, together with
+`ONEUPTIME_KUBECTL_WRITE_NAMESPACES` if you set it. Such a Runner reports
+these limits on every heartbeat (`allowWrites`, `allowNodeOperations` and
+`writeNamespaces`, with `inCluster` always `false`). It never reports a
+cluster name or a pod namespace, so OneUptime never mistakes it for a
+cluster's in-cluster Runner. OneUptime applies the namespace list and the
+node switch before a fix is proposed, approved or enqueued, just as it does
+for the Kubernetes agent's Runner. The Runner itself still checks every
+command, so some refusals appear only in the command's result on the
+cluster's AI page, not as a missing setup step:
+
+- a write other than a node operation, refused because
+  `ONEUPTIME_KUBECTL_ALLOW_WRITES` is off;
+- a write into the namespace named by `ONEUPTIME_RUNNER_POD_NAMESPACE`, if
+  you set it on such a Runner;
+- any refusal by a Runner running an older image, which reports no limits.
 
 ## Upgrading from the Runbook Agent
 

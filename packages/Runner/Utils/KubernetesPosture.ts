@@ -19,18 +19,24 @@ import logger from "Common/Server/Utils/Logger";
  * What this Runner can say about its own Kubernetes reach: whether it may
  * run kubectl with its pod's own ServiceAccount, whether its host lets
  * AI-composed writes through, into which namespaces and onto nodes, and
- * which kubectl it carries. Reported at
- * registration and on every heartbeat of the kubernetes-agent Runner, so the
- * dashboard's "what is missing" checklist reflects the container that is
- * actually running.
+ * which kubectl it carries. The kubernetes-agent Runner reports all of it
+ * (build) when it registers and on every heartbeat, so the dashboard's
+ * "what is missing" checklist reflects the container that is actually
+ * running.
  *
- * Only the kubernetes-agent Runner has a posture at all. Merely running in a
- * pod says nothing about WHICH cluster that pod is in: an ordinary project
- * Runner deployed in staging could be selected on production's AI page, and
- * if being in a pod were enough for "in-cluster access" every command for
- * production would run, credential-less, against staging's ServiceAccount.
- * The agent Runner is different because it registered with the cluster's
- * name and the server bound it to that cluster.
+ * Only the kubernetes-agent Runner ever claims in-cluster access or a
+ * cluster identity. Merely running in a pod says nothing about WHICH
+ * cluster that pod is in: an ordinary project Runner deployed in staging
+ * could be selected on production's AI page, and if being in a pod were
+ * enough for "in-cluster access" every command for production would run,
+ * credential-less, against staging's ServiceAccount. The agent Runner is
+ * different because it registered with the cluster's name and the server
+ * bound it to that cluster.
+ *
+ * Any other Runner reports its kubectl write limits only (buildWriteLimits):
+ * the switches and the namespace list it refuses writes by, so the server
+ * refuses up front what this Runner would refuse, instead of approving,
+ * enqueueing and counting a fix only for it to fail here.
  */
 
 export const SERVICE_ACCOUNT_TOKEN_PATH: string =
@@ -142,15 +148,49 @@ export default class KubernetesPosture {
       agentChartVersion: KUBERNETES_AGENT_CHART_VERSION || undefined,
       writeNamespaces: KubernetesPosture.getWriteNamespaces(),
       podNamespace: KubernetesPosture.getPodNamespace() || undefined,
-      /*
-       * What this Runner would actually run: a node operation is a write,
-       * so a Runner that refuses writes refuses node operations too,
-       * whatever the node switch says.
-       */
-      allowNodeOperations:
-        KubernetesPosture.allowsWrites() &&
-        KubernetesPosture.allowsNodeOperations(),
+      allowNodeOperations: KubernetesPosture.runsNodeOperations(),
     };
+  }
+
+  /*
+   * The kubectl write limits of a Runner that is NOT the kubernetes-agent
+   * Runner — the switches and the namespace list KubectlExecutor refuses
+   * writes by — reported on its every heartbeat, so the server's pre-checks
+   * (the enqueue chokepoint, the remediation toolkit) refuse what this
+   * Runner would refuse. writeNamespaces is always an explicit list, so an
+   * empty one reads as "cluster-wide", never as "did not say".
+   *
+   * Never a cluster identity, never a pod namespace and never inCluster
+   * true, whatever the environment says and wherever the process runs:
+   * this Runner reaches a cluster only through a Kubernetes credential,
+   * and the server's in-cluster rule (isInClusterPostureForCluster) needs
+   * inCluster AND a cluster identifier — so this can never make it look
+   * like a cluster's agent. No pod namespace: on such a Runner it names a
+   * namespace of whatever cluster its own pod runs in, not of the
+   * credential's cluster, so the server does not plan by it (KubectlExecutor
+   * still refuses a write there when ONEUPTIME_RUNNER_POD_NAMESPACE is set).
+   * No kubectl version either: probing it would spawn kubectl on every
+   * Runner host, most of which never run it.
+   */
+  public static buildWriteLimits(): KubernetesRunnerPosture {
+    return {
+      inCluster: false,
+      allowWrites: KubernetesPosture.allowsWrites(),
+      allowNodeOperations: KubernetesPosture.runsNodeOperations(),
+      writeNamespaces: KubernetesPosture.getWriteNamespaces(),
+    };
+  }
+
+  /*
+   * What this Runner would actually run: a node operation is a write, so a
+   * Runner that refuses writes refuses node operations too, whatever the
+   * node switch says.
+   */
+  private static runsNodeOperations(): boolean {
+    return (
+      KubernetesPosture.allowsWrites() &&
+      KubernetesPosture.allowsNodeOperations()
+    );
   }
 
   /*

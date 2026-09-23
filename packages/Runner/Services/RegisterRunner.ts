@@ -580,6 +580,17 @@ export default class Register {
         allowWrites: posture.allowWrites === true,
         // Whether this Runner runs node operations (the node switch, see Config).
         allowNodeOperations: posture.allowNodeOperations === true,
+        /*
+         * The rest of the write scope, exactly as the heartbeat reports it.
+         * The server stores the registration's posture over the last
+         * heartbeat's, so a scope left out here would read as "no scope"
+         * — every namespace, this pod's own included — until the next
+         * heartbeat, and the server's pre-checks would let through writes
+         * this Runner refuses. The list is always sent, so an empty one is
+         * stored as "cluster-wide" rather than "did not say".
+         */
+        writeNamespaces: posture.writeNamespaces || [],
+        ...(posture.podNamespace ? { podNamespace: posture.podNamespace } : {}),
         ...(posture.kubectlVersion
           ? { kubectlVersion: posture.kubectlVersion }
           : {}),

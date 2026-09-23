@@ -13,6 +13,10 @@
 
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  KubernetesRunnerPosture,
+  parseKubernetesRunnerPosture,
+} from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 
 const postMock: jest.Mock = jest.fn();
 
@@ -91,6 +95,41 @@ function response(
   data?: JSONObject,
 ): HTTPResponse<JSONObject> {
   return new HTTPResponse<JSONObject>(statusCode, data || {}, {});
+}
+
+// A successful registration, bound to the cluster.
+function registered(
+  runnerKey: string = "issued-key-abc",
+): HTTPResponse<JSONObject> {
+  return response(200, {
+    runnerId: "11111111-1111-4111-8111-111111111111",
+    runnerKey,
+    isBoundToCluster: true,
+    capabilities: { canRunAiCommands: true },
+  });
+}
+
+// The body of the registration POST made in this position.
+function registrationBody(index: number): JSONObject {
+  return (postMock.mock.calls[index]![0] as JSONObject)["data"] as JSONObject;
+}
+
+/*
+ * What the server reads off a registration body
+ * (RunnerIngressAPI.parseRegistrationPosture): all of the posture but
+ * which cluster, and that it is in-cluster, which the server sets itself.
+ */
+function reportedByRegistration(
+  posture: KubernetesRunnerPosture | undefined,
+): KubernetesRunnerPosture {
+  return {
+    allowWrites: posture?.allowWrites,
+    allowNodeOperations: posture?.allowNodeOperations,
+    writeNamespaces: posture?.writeNamespaces,
+    podNamespace: posture?.podNamespace,
+    kubectlVersion: posture?.kubectlVersion,
+    agentChartVersion: posture?.agentChartVersion,
+  };
 }
 
 interface LoadedModules {
@@ -332,6 +371,154 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
       canRunAiCommands: true,
     });
     expect(warnLog).toEqual([]);
+  });
+
+  /*
+   * The server stores the registration's posture over the last heartbeat's
+   * (server-remediation-1). The registration used to leave the write scope
+   * out, so from every registration until the next heartbeat the server
+   * read "no scope" — every namespace, this pod's own included — and its
+   * pre-checks approved and enqueued writes this Runner then refused. The
+   * registration now carries the scope the heartbeat reports.
+   */
+  describe("the write scope rides on the registration", () => {
+    test("registers with its write namespaces and its pod's own namespace", async () => {
+      const modules: LoadedModules = loadInAgentMode({
+        ONEUPTIME_KUBECTL_ALLOW_WRITES: "true",
+        ONEUPTIME_KUBECTL_WRITE_NAMESPACES: " Web, api ,web",
+        ONEUPTIME_RUNNER_POD_NAMESPACE: " OneUptime-Agent ",
+      });
+      jest
+        .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+        .mockResolvedValue("v1.36.4");
+      postMock.mockResolvedValueOnce(registered());
+
+      await modules.Register.registerRunner();
+
+      const data: JSONObject = registrationBody(0);
+      // The executor's own values: trimmed, lowercased, de-duplicated.
+      expect(data["writeNamespaces"]).toEqual(["web", "api"]);
+      expect(data["podNamespace"]).toBe("oneuptime-agent");
+    });
+
+    test("an unscoped Runner registers an explicit empty list and no pod namespace", async () => {
+      const modules: LoadedModules = loadInAgentMode({
+        ONEUPTIME_KUBECTL_ALLOW_WRITES: "true",
+        ONEUPTIME_KUBECTL_WRITE_NAMESPACES: undefined,
+        ONEUPTIME_RUNNER_POD_NAMESPACE: undefined,
+      });
+      jest
+        .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+        .mockResolvedValue("v1.36.4");
+      postMock.mockResolvedValueOnce(registered());
+
+      await modules.Register.registerRunner();
+
+      const data: JSONObject = registrationBody(0);
+      expect(data["writeNamespaces"]).toEqual([]);
+      expect(Object.keys(data)).not.toContain("podNamespace");
+      // Read by the server as "cluster-wide", never as "did not say".
+      expect(
+        parseKubernetesRunnerPosture({ kubernetes: data })?.writeNamespaces,
+      ).toEqual([]);
+    });
+
+    test("a re-registration carries the scope as well", async () => {
+      const modules: LoadedModules = loadInAgentMode({
+        ONEUPTIME_KUBECTL_ALLOW_WRITES: "true",
+        ONEUPTIME_KUBECTL_WRITE_NAMESPACES: "web",
+        ONEUPTIME_RUNNER_POD_NAMESPACE: "oneuptime-agent",
+      });
+      jest
+        .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+        .mockResolvedValue("v1.36.4");
+      postMock
+        .mockResolvedValueOnce(registered())
+        .mockResolvedValueOnce(registered("rotated-key-xyz"));
+
+      await modules.Register.registerRunner();
+      await modules.Register.tryRegisterRunner({ maxAttempts: 1 });
+
+      const data: JSONObject = registrationBody(1);
+      expect(data["previousRunnerKey"]).toBe("issued-key-abc");
+      expect(data["writeNamespaces"]).toEqual(["web"]);
+      expect(data["podNamespace"]).toBe("oneuptime-agent");
+    });
+
+    /*
+     * Everything the server reads off a registration (all but which
+     * cluster, and that it is in-cluster, which it sets itself) must be
+     * what the next heartbeat reports, or the stored posture flips between
+     * the two.
+     */
+    test.each([
+      [
+        "scoped, its own namespace known, nodes on",
+        {
+          ONEUPTIME_KUBECTL_ALLOW_WRITES: "true",
+          ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS: "true",
+          ONEUPTIME_KUBECTL_WRITE_NAMESPACES: "web,api",
+          ONEUPTIME_RUNNER_POD_NAMESPACE: "oneuptime-agent",
+          ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION: "0.7.0",
+        },
+      ],
+      [
+        "cluster-wide, nodes off",
+        {
+          ONEUPTIME_KUBECTL_ALLOW_WRITES: "true",
+          ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS: "false",
+          ONEUPTIME_KUBECTL_WRITE_NAMESPACES: undefined,
+          ONEUPTIME_RUNNER_POD_NAMESPACE: "oneuptime-agent",
+          ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION: undefined,
+        },
+      ],
+      [
+        "read-only, own namespace unknown",
+        {
+          ONEUPTIME_KUBECTL_ALLOW_WRITES: "false",
+          ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS: "true",
+          ONEUPTIME_KUBECTL_WRITE_NAMESPACES: "web",
+          ONEUPTIME_RUNNER_POD_NAMESPACE: undefined,
+          ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION: undefined,
+        },
+      ],
+    ])(
+      "the registration and the heartbeat report the same posture (%s)",
+      async (_label: string, env: Record<string, string | undefined>) => {
+        const modules: LoadedModules = loadInAgentMode(env);
+        jest
+          .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+          .mockResolvedValue("v1.36.4");
+        jest
+          .spyOn(modules.KubernetesPosture, "isInCluster")
+          .mockReturnValue(true);
+        postMock.mockResolvedValueOnce(registered());
+
+        await modules.Register.registerRunner();
+
+        /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+        const heartbeat: {
+          getHostInfo: () => Promise<JSONObject>;
+        } = require("../../Jobs/Heartbeat");
+        /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+
+        // Both as the server receives them: JSON, then the one parser.
+        const fromRegistration: KubernetesRunnerPosture | undefined =
+          parseKubernetesRunnerPosture({
+            kubernetes: JSON.parse(JSON.stringify(registrationBody(0))),
+          });
+        const fromHeartbeat: KubernetesRunnerPosture | undefined =
+          parseKubernetesRunnerPosture(
+            JSON.parse(JSON.stringify(await heartbeat.getHostInfo())),
+          );
+
+        expect(fromHeartbeat?.inCluster).toBe(true);
+        expect(fromHeartbeat?.clusterIdentifier).toBe("prod-us");
+        expect(reportedByRegistration(fromRegistration)).toEqual(
+          reportedByRegistration(fromHeartbeat),
+        );
+      },
+    );
   });
 
   /*

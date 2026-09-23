@@ -7,7 +7,9 @@
  * Posture: the Kubernetes posture used to ride on the heartbeat of any Runner
  * that happened to run in a pod, which made the server treat an ordinary
  * project Runner as a cluster's in-cluster agent. Only the kubernetes-agent
- * Runner reports one.
+ * Runner reports a full posture; any other Runner reports its kubectl write
+ * limits only (never in-cluster, a cluster or a pod namespace), so the
+ * server refuses up front the writes it would refuse.
  *
  * Re-registration: the third rejected heartbeat used to `await` a
  * retry-forever registration while setInterval kept firing ticks, each of
@@ -61,6 +63,12 @@ import KubernetesAgentMode from "../../Utils/KubernetesAgentMode";
 import KubernetesPosture from "../../Utils/KubernetesPosture";
 import RunnerCapabilities from "../../Utils/RunnerCapabilities";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  KubernetesRunnerPosture,
+  isInClusterPostureForCluster,
+  isKubernetesAgentRunnerPosture,
+  parseKubernetesRunnerPosture,
+} from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
 const heartbeat: jest.Mock = AgentClient.heartbeat as jest.Mock;
@@ -138,15 +146,98 @@ describe("what rides on the heartbeat", () => {
 
   /*
    * The scenario from the review: a project Runner deployed as a pod. It is
-   * in a cluster — but not one it registered for — so it says nothing.
+   * in a cluster — but not one it registered for — so it says nothing about
+   * that cluster.
+   *
+   * It used to report nothing at all, and the server could not see the
+   * write limits its executor refuses by (WS4-3): a write outside
+   * ONEUPTIME_KUBECTL_WRITE_NAMESPACES, or a node operation with the node
+   * switch off, was proposed, approved, enqueued and counted by the
+   * cluster's circuit breaker only to be refused here. It now reports those
+   * limits, and only those — this test used to pin "no kubernetes key".
    */
-  test("a project Runner that merely runs in a pod reports no posture at all", async () => {
+  test("a project Runner that merely runs in a pod reports its write limits, never a cluster, its pod's namespace or in-cluster access", async () => {
     (KubernetesAgentMode.isActive as jest.Mock).mockReturnValue(false);
     jest.spyOn(KubernetesPosture, "isInCluster").mockReturnValue(true);
+    jest.spyOn(KubernetesPosture, "allowsWrites").mockReturnValue(true);
+    jest
+      .spyOn(KubernetesPosture, "allowsNodeOperations")
+      .mockReturnValue(false);
+    jest
+      .spyOn(KubernetesPosture, "getWriteNamespaces")
+      .mockReturnValue(["prod"]);
+    // Set on this host, and still never reported (see buildWriteLimits).
+    jest.spyOn(KubernetesPosture, "getPodNamespace").mockReturnValue("runners");
+    const detect: jest.SpyInstance = jest
+      .spyOn(KubernetesPosture, "detectKubectlVersion")
+      .mockResolvedValue("v1.36.4");
+
+    const info: JSONObject = await getHostInfo();
+    const kubernetes: JSONObject = info["kubernetes"] as JSONObject;
+
+    expect(kubernetes).toEqual({
+      inCluster: false,
+      allowWrites: true,
+      allowNodeOperations: false,
+      writeNamespaces: ["prod"],
+    });
+    expect(Object.keys(kubernetes).sort()).toEqual([
+      "allowNodeOperations",
+      "allowWrites",
+      "inCluster",
+      "writeNamespaces",
+    ]);
+    expect(KubernetesPosture.build).not.toHaveBeenCalled();
+    expect(detect).not.toHaveBeenCalled();
+
+    // What the server makes of it once stored: never a cluster's agent.
+    const stored: KubernetesRunnerPosture | undefined =
+      parseKubernetesRunnerPosture(JSON.parse(JSON.stringify(info)));
+
+    expect(isKubernetesAgentRunnerPosture(stored)).toBe(false);
+    expect(isInClusterPostureForCluster(stored, "prod-us")).toBe(false);
+    expect(stored?.writeNamespaces).toEqual(["prod"]);
+    expect(stored?.allowNodeOperations).toBe(false);
+  });
+
+  // The executor refuses every write while writes are off, nodes included.
+  test("a project Runner with writes off reports node operations off too", async () => {
+    (KubernetesAgentMode.isActive as jest.Mock).mockReturnValue(false);
+    jest.spyOn(KubernetesPosture, "allowsWrites").mockReturnValue(false);
+    jest.spyOn(KubernetesPosture, "allowsNodeOperations").mockReturnValue(true);
+    jest.spyOn(KubernetesPosture, "getWriteNamespaces").mockReturnValue([]);
 
     const info: JSONObject = await getHostInfo();
 
-    expect(info).not.toHaveProperty("kubernetes");
+    expect(info["kubernetes"]).toEqual({
+      inCluster: false,
+      allowWrites: false,
+      allowNodeOperations: false,
+      writeNamespaces: [],
+    });
+  });
+
+  test("the heartbeat of a project Runner carries its write limits", async () => {
+    (KubernetesAgentMode.isActive as jest.Mock).mockReturnValue(false);
+    jest.spyOn(KubernetesPosture, "allowsWrites").mockReturnValue(true);
+    jest.spyOn(KubernetesPosture, "allowsNodeOperations").mockReturnValue(true);
+    jest
+      .spyOn(KubernetesPosture, "getWriteNamespaces")
+      .mockReturnValue(["web", "api"]);
+    heartbeat.mockResolvedValue(OK);
+
+    await new HeartbeatLoop().tick();
+
+    expect(heartbeat).toHaveBeenCalledTimes(1);
+    const sent: { hostInfo: JSONObject } = heartbeat.mock.calls[0]![0] as {
+      hostInfo: JSONObject;
+    };
+    expect(sent.hostInfo["kubernetes"]).toEqual({
+      inCluster: false,
+      allowWrites: true,
+      allowNodeOperations: true,
+      writeNamespaces: ["web", "api"],
+    });
     expect(KubernetesPosture.build).not.toHaveBeenCalled();
   });
 

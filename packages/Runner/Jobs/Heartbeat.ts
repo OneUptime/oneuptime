@@ -8,6 +8,7 @@ import RunnerCapabilities, {
 import KubernetesPosture from "../Utils/KubernetesPosture";
 import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
 import { JSONObject } from "Common/Types/JSON";
+import { KubernetesRunnerPosture } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import logger from "Common/Server/Utils/Logger";
 
 /*
@@ -56,18 +57,25 @@ export async function getHostInfo(): Promise<JSONObject> {
   };
 
   /*
-   * The Kubernetes posture rides on every heartbeat of the kubernetes-agent
-   * Runner — and ONLY that Runner — so the cluster's AI page reflects the
-   * container that is running now (writes allowed or not, which kubectl),
-   * not the one that registered last week. An ordinary Runner that merely
-   * runs in a pod reports no posture at all: being in a pod says nothing
-   * about which cluster, and a posture would make the server treat it as
-   * that cluster's in-cluster agent and hand it credential-less commands.
+   * The full Kubernetes posture rides on every heartbeat of the
+   * kubernetes-agent Runner — and ONLY that Runner — so the cluster's AI
+   * page reflects the container that is running now (writes allowed or
+   * not, which kubectl), not the one that registered last week.
+   *
+   * Any other Runner reports only its kubectl write limits: the write
+   * switch, the node switch and the write namespaces its KubectlExecutor
+   * refuses writes by, so the server refuses up front what this Runner
+   * would refuse. Never in-cluster, never a cluster identity or a pod
+   * namespace, even for a Runner that runs in a pod: being in a pod says
+   * nothing about which cluster, and an in-cluster posture naming a
+   * cluster would make the server treat it as that cluster's agent and
+   * hand it credential-less commands.
    */
-  if (KubernetesAgentMode.isActive()) {
-    info["kubernetes"] =
-      (await KubernetesPosture.build()) as unknown as JSONObject;
-  }
+  const posture: KubernetesRunnerPosture = KubernetesAgentMode.isActive()
+    ? await KubernetesPosture.build()
+    : KubernetesPosture.buildWriteLimits();
+
+  info["kubernetes"] = posture as unknown as JSONObject;
 
   return info;
 }

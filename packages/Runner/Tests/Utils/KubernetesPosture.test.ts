@@ -10,6 +10,12 @@
  * nothing about WHICH cluster; only the kubernetes-agent Runner, which
  * registered with the cluster's name, may claim in-cluster access.
  *
+ * Every other Runner reports its kubectl write limits only
+ * (buildWriteLimits) — the switches and the namespace list its executor
+ * refuses writes by — and never in-cluster, a cluster identity or a pod
+ * namespace, so the server can refuse up front what it would refuse
+ * without ever reading it as a cluster's agent.
+ *
  * Config.ts decides the mode from the environment at import time, so the
  * agent-mode cases load the modules in isolation with the environment set
  * first; the project-mode cases use the suite's jest.setup defaults.
@@ -17,7 +23,12 @@
  */
 
 import fs from "fs";
-import { KubernetesRunnerPosture } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  KubernetesRunnerPosture,
+  isInClusterPostureForCluster,
+  isKubernetesAgentRunnerPosture,
+  parseKubernetesRunnerPosture,
+} from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
@@ -46,6 +57,7 @@ interface PostureModule {
   getWriteNamespaces: () => Array<string>;
   getPodNamespace: () => string | null;
   build: () => Promise<KubernetesRunnerPosture>;
+  buildWriteLimits: () => KubernetesRunnerPosture;
   detectKubectlVersion: () => Promise<string | null>;
 }
 
@@ -228,7 +240,7 @@ describe("KubernetesPosture with the mode decided from the environment", () => {
    * project Runner (ONEUPTIME_RUNNER_ID wins in Config), so it must not
    * report a cluster identity it has no registration for.
    */
-  test("a project Runner given a cluster name in its environment still reports no posture", async () => {
+  test("a project Runner given a cluster name in its environment still claims no cluster and no in-cluster access", async () => {
     const modules: ReturnType<typeof loadIsolated> = loadIsolated({
       ONEUPTIME_RUNNER_ID: "00000000-0000-4000-8000-000000000000",
       ONEUPTIME_RUNNER_KEY: "test-runner-key",
@@ -257,9 +269,8 @@ describe("KubernetesPosture with the mode decided from the environment", () => {
  * with "readonly" or "disabled" silently kept remediations running. A SET
  * value now fails closed — only "true" allows a write — and an unrecognised
  * value is named in a start-up warning. UNSET keeps a project Runner's
- * writes on (its credential's RBAC bounds them, and the server cannot see
- * this host's environment) and refuses them on the kubernetes-agent Runner,
- * which the chart always configures explicitly.
+ * writes on (its credential's RBAC bounds them) and refuses them on the
+ * kubernetes-agent Runner, which the chart always configures explicitly.
  */
 describe("ONEUPTIME_KUBECTL_ALLOW_WRITES fails closed when set", () => {
   const savedEnv: NodeJS.ProcessEnv = { ...process.env };
@@ -558,4 +569,196 @@ describe("ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS", () => {
       expect(posture.allowNodeOperations).toBe(expected);
     },
   );
+});
+
+/*
+ * The write limits an ordinary Runner reports on every heartbeat (WS4-3).
+ * Its executor refuses writes outside ONEUPTIME_KUBECTL_WRITE_NAMESPACES and
+ * node operations while ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS is off, but
+ * it used to report nothing, so the server let every such write through to
+ * be refused here. The limits are the executor's own inputs, and never
+ * anything that could make the server read this Runner as a cluster's
+ * agent.
+ */
+describe("KubernetesPosture.buildWriteLimits (a Runner that is not the Kubernetes agent's)", () => {
+  const savedEnv: NodeJS.ProcessEnv = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...savedEnv };
+    jest.restoreAllMocks();
+    jest.resetModules();
+  });
+
+  // Exactly what an ordinary Runner may say: nothing that names a cluster.
+  const WRITE_LIMIT_KEYS: Array<string> = [
+    "allowNodeOperations",
+    "allowWrites",
+    "inCluster",
+    "writeNamespaces",
+  ];
+
+  const PROJECT_ENV: Record<string, string | undefined> = {
+    ONEUPTIME_RUNNER_ID: "00000000-0000-4000-8000-000000000000",
+    ONEUPTIME_RUNNER_KEY: "test-runner-key",
+    ONEUPTIME_KUBECTL_ALLOW_WRITES: undefined,
+    ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS: undefined,
+    ONEUPTIME_KUBECTL_WRITE_NAMESPACES: undefined,
+    ONEUPTIME_RUNNER_POD_NAMESPACE: undefined,
+  };
+
+  function loadProjectRunner(
+    env: Record<string, string | undefined>,
+  ): ReturnType<typeof loadIsolated> {
+    const modules: ReturnType<typeof loadIsolated> = loadIsolated({
+      ...PROJECT_ENV,
+      ...env,
+    });
+
+    // The loader really stayed in project mode, or this proves nothing.
+    expect(modules.KubernetesAgentMode.isActive()).toBe(false);
+
+    return modules;
+  }
+
+  // What the server stores and reads: the heartbeat's JSON, parsed.
+  function asStored(
+    limits: KubernetesRunnerPosture,
+  ): KubernetesRunnerPosture | undefined {
+    return parseKubernetesRunnerPosture(
+      JSON.parse(JSON.stringify({ kubernetes: limits })),
+    );
+  }
+
+  test("reports the switches and the namespace list its executor refuses writes by, and nothing else", () => {
+    const modules: ReturnType<typeof loadIsolated> = loadProjectRunner({
+      // Everything an agent would report is set, and none of it may leak.
+      ONEUPTIME_INGESTION_KEY: "ingest-key-123",
+      ONEUPTIME_KUBERNETES_CLUSTER_NAME: "prod-us",
+      ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION: "0.7.0",
+      ONEUPTIME_RUNNER_POD_NAMESPACE: "runners",
+      ONEUPTIME_KUBECTL_ALLOW_WRITES: "true",
+      ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS: "false",
+      ONEUPTIME_KUBECTL_WRITE_NAMESPACES: " Prod, staging ,prod ",
+    });
+    pretendInPod();
+    const detect: jest.SpyInstance = jest
+      .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+      .mockResolvedValue("v1.36.4");
+
+    expect(modules.KubernetesPosture.isInCluster()).toBe(true);
+
+    const limits: KubernetesRunnerPosture =
+      modules.KubernetesPosture.buildWriteLimits();
+
+    expect(limits).toEqual({
+      inCluster: false,
+      allowWrites: true,
+      allowNodeOperations: false,
+      // The executor's own list: trimmed, lowercased, de-duplicated.
+      writeNamespaces: ["prod", "staging"],
+    });
+    /*
+     * No cluster identity, no pod namespace, no chart or kubectl version —
+     * not even as an undefined key.
+     */
+    expect(Object.keys(limits).sort()).toEqual(WRITE_LIMIT_KEYS);
+    expect(modules.KubernetesPosture.getWriteNamespaces()).toEqual(
+      limits.writeNamespaces,
+    );
+    // Never probes kubectl: most Runner hosts never run it.
+    expect(detect).not.toHaveBeenCalled();
+  });
+
+  test("the server can never read it as a cluster's agent", () => {
+    const modules: ReturnType<typeof loadIsolated> = loadProjectRunner({
+      ONEUPTIME_INGESTION_KEY: "ingest-key-123",
+      ONEUPTIME_KUBERNETES_CLUSTER_NAME: "prod-us",
+      ONEUPTIME_RUNNER_POD_NAMESPACE: "runners",
+      ONEUPTIME_KUBECTL_WRITE_NAMESPACES: "prod",
+    });
+    pretendInPod();
+
+    const stored: KubernetesRunnerPosture | undefined = asStored(
+      modules.KubernetesPosture.buildWriteLimits(),
+    );
+
+    expect(stored).toBeDefined();
+    expect(stored?.inCluster).toBe(false);
+    expect(stored?.clusterIdentifier).toBeUndefined();
+    expect(stored?.podNamespace).toBeUndefined();
+    expect(isKubernetesAgentRunnerPosture(stored)).toBe(false);
+    expect(isInClusterPostureForCluster(stored, "prod-us")).toBe(false);
+    expect(isInClusterPostureForCluster(stored, "")).toBe(false);
+
+    // The scope itself survives the trip.
+    expect(stored?.writeNamespaces).toEqual(["prod"]);
+    expect(stored?.allowNodeOperations).toBe(true);
+    expect(stored?.allowWrites).toBe(true);
+  });
+
+  /*
+   * Unset switches keep an ordinary Runner's writes and node operations on
+   * (its credential's RBAC bounds them), and an unset list is reported as
+   * an explicit empty one: "cluster-wide", never "did not say".
+   */
+  test("an unconfigured Runner reports cluster-wide writes as an explicit empty list", () => {
+    const limits: KubernetesRunnerPosture = loadProjectRunner(
+      {},
+    ).KubernetesPosture.buildWriteLimits();
+
+    expect(limits).toEqual({
+      inCluster: false,
+      allowWrites: true,
+      allowNodeOperations: true,
+      writeNamespaces: [],
+    });
+    expect(asStored(limits)?.writeNamespaces).toEqual([]);
+  });
+
+  /*
+   * What the executor would actually run: it refuses every write while the
+   * write switch is off, so node operations are reported off then too,
+   * whatever the node switch says.
+   */
+  test.each([
+    ["true", "true", true, true],
+    ["true", "false", true, false],
+    ["true", "readonly", true, false],
+    ["true", undefined, true, true],
+    ["false", "true", false, false],
+    ["readonly", undefined, false, false],
+    [undefined, undefined, true, true],
+  ])(
+    "ALLOW_WRITES=%p and ALLOW_NODE_OPERATIONS=%p report allowWrites %p and allowNodeOperations %p",
+    (
+      writes: string | undefined,
+      nodes: string | undefined,
+      allowWrites: boolean,
+      allowNodeOperations: boolean,
+    ) => {
+      const limits: KubernetesRunnerPosture = loadProjectRunner({
+        ONEUPTIME_KUBECTL_ALLOW_WRITES: writes,
+        ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS: nodes,
+      }).KubernetesPosture.buildWriteLimits();
+
+      expect(limits.allowWrites).toBe(allowWrites);
+      expect(limits.allowNodeOperations).toBe(allowNodeOperations);
+      expect(limits.inCluster).toBe(false);
+    },
+  );
+
+  test("each call returns a fresh list, so a caller cannot change what the executor refuses by", () => {
+    const modules: ReturnType<typeof loadIsolated> = loadProjectRunner({
+      ONEUPTIME_KUBECTL_WRITE_NAMESPACES: "prod",
+    });
+
+    const limits: KubernetesRunnerPosture =
+      modules.KubernetesPosture.buildWriteLimits();
+    limits.writeNamespaces?.push("everything");
+
+    expect(modules.KubernetesPosture.getWriteNamespaces()).toEqual(["prod"]);
+    expect(
+      modules.KubernetesPosture.buildWriteLimits().writeNamespaces,
+    ).toEqual(["prod"]);
+  });
 });
