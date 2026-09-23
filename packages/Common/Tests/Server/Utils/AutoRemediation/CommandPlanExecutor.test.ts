@@ -2170,3 +2170,228 @@ describe("CommandPlanExecutor re-checks the cluster before a kubectl rollback ru
     expect(lastPersistedPlan(update)["rollbackStatus"]).toBe("Completed");
   });
 });
+
+/*
+ * The cluster's "Last error" is about its AI ACCESS (PR #3953 review, known
+ * follow-up 1): an approved kubectl command records a success, and a
+ * failure only when it is about the access — never claimed, refused, timed
+ * out, unauthorized, unreachable. A deployment the plan named wrong must
+ * neither become the cluster's last error nor clear a real one.
+ */
+describe("CommandPlanExecutor records only access failures as a cluster's last error", () => {
+  let recordOutcome: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    mockPersist();
+    mockKubectlEnqueue();
+    mockFeed();
+    mockClusterStatus(clusterStatus());
+    recordOutcome = mockRecordOutcome();
+    mockFetch(fakeSuggestion({ commandPlan: rawPlan([rawKubectlCommand()]) }));
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function jobEndsAs(overrides: Partial<Record<string, unknown>>): void {
+    jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockResolvedValue(terminalJob(overrides));
+  }
+
+  it("a kubectl that ran and failed on a wrong name is not recorded", async () => {
+    jobEndsAs({
+      status: RunnerJobStatus.Failed,
+      exitCode: 1,
+      output:
+        '[stdout]\n\n[stderr]\nError from server (NotFound): deployments.apps "web" not found',
+      errorMessage: "kubectl exited with code 1",
+    });
+
+    await CommandPlanExecutor.executeApprovedPlan({
+      suggestionId: SUGGESTION_ID,
+    });
+
+    expect(recordOutcome).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [
+      "the API server refused it (Forbidden)",
+      {
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        output:
+          '[stdout]\n\n[stderr]\nError from server (Forbidden): deployments.apps "web" is forbidden',
+      },
+    ],
+    [
+      "the Runner refused it before spawning kubectl",
+      {
+        status: RunnerJobStatus.Failed,
+        exitCode: undefined,
+        output: "",
+        errorMessage:
+          "Refused by the Runner: the namespace is outside its scope.",
+      },
+    ],
+    [
+      "it timed out",
+      {
+        status: RunnerJobStatus.TimedOut,
+        exitCode: undefined,
+        output: "",
+        errorMessage: "No Runner picked up this step in time.",
+      },
+    ],
+  ])(
+    "an access failure is recorded: %s",
+    async (_label: string, overrides: Record<string, unknown>) => {
+      jobEndsAs(overrides);
+
+      await CommandPlanExecutor.executeApprovedPlan({
+        suggestionId: SUGGESTION_ID,
+      });
+
+      expect(recordOutcome).toHaveBeenCalledTimes(1);
+      expect(recordOutcome.mock.calls[0]![0]).toMatchObject({
+        succeeded: false,
+      });
+    },
+  );
+
+  it("negative control: a success is recorded", async () => {
+    jobEndsAs({ status: RunnerJobStatus.Succeeded, exitCode: 0 });
+
+    await CommandPlanExecutor.executeApprovedPlan({
+      suggestionId: SUGGESTION_ID,
+    });
+
+    expect(recordOutcome).toHaveBeenCalledTimes(1);
+    expect(recordOutcome.mock.calls[0]![0]).toMatchObject({
+      succeeded: true,
+    });
+  });
+});
+
+/*
+ * A kubectl write the cluster's bound Runner reports it will refuse is not
+ * enqueued (PR #3953 review, XP-6): an approved command fails at execution
+ * time with the reason, and a rollback is left for a human with it —
+ * instead of being sent to the Runner only to be refused.
+ */
+describe("CommandPlanExecutor refuses a kubectl write its cluster's Runner would refuse", () => {
+  let update: jest.SpyInstance;
+  let kubectlEnqueue: jest.SpyInstance;
+  let feed: jest.SpyInstance;
+
+  const SCOPED_TO_API: KubernetesClusterAiAccessStatus = clusterStatus({
+    remediationMode: KubernetesAiRemediationMode.BypassApproval,
+    runner: {
+      id: RUNNER_ID.toString(),
+      name: "kubernetes-agent/prod-us",
+      isOnline: true,
+      canRunAiCommands: true,
+      posture: {
+        inCluster: true,
+        allowWrites: true,
+        writeNamespaces: ["api"],
+        podNamespace: "oneuptime-agent",
+      },
+    },
+  });
+
+  beforeEach(() => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    update = mockPersist();
+    kubectlEnqueue = mockKubectlEnqueue();
+    mockPoll();
+    mockRecordOutcome();
+    feed = mockFeed();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("fails an approved command outside the Runner's write namespaces at execution time, with the reason, and never enqueues it", async () => {
+    mockFetch(fakeSuggestion({ commandPlan: rawPlan([rawKubectlCommand()]) }));
+    mockClusterStatus(SCOPED_TO_API);
+
+    await CommandPlanExecutor.executeApprovedPlan({
+      suggestionId: SUGGESTION_ID,
+    });
+
+    expect(kubectlEnqueue).not.toHaveBeenCalled();
+    const execution: Record<string, unknown> = commandInPlan(
+      lastPersistedPlan(update),
+      0,
+    )["execution"] as Record<string, unknown>;
+    expect(execution["status"]).toBe("Failed");
+    expect(execution["errorMessage"]).toContain(
+      "Refused at execution time: the cluster's Runner would refuse it",
+    );
+    expect(execution["errorMessage"]).toContain('"web"');
+    expect(feedMarkdown(feed)).toContain(
+      "the cluster's Runner would refuse it",
+    );
+  });
+
+  it("leaves a rollback the Runner would refuse for a human, with the reason and the command to run", async () => {
+    mockClusterStatus(SCOPED_TO_API);
+
+    await CommandPlanExecutor.executeRollback({
+      suggestion: fakeSuggestion({
+        commandPlan: rawPlan(
+          [
+            rawKubectlCommand({
+              execution: { status: "Succeeded", exitCode: 0 },
+            }),
+          ],
+          { executionStatus: "Completed" },
+        ),
+      }),
+    });
+
+    expect(kubectlEnqueue).not.toHaveBeenCalled();
+    const finalPlan: Record<string, unknown> = lastPersistedPlan(update);
+    expect(finalPlan["rollbackStatus"]).toBe("Failed");
+    const rollbackExecution: Record<string, unknown> = commandInPlan(
+      finalPlan,
+      0,
+    )["rollbackExecution"] as Record<string, unknown>;
+    expect(rollbackExecution["status"]).toBe("Skipped");
+    expect(rollbackExecution["errorMessage"]).toContain(
+      "the cluster's Runner would refuse it",
+    );
+    expect(rollbackExecution["errorMessage"]).toContain(
+      `Undo it manually: ${KUBECTL_UNDO}`,
+    );
+  });
+
+  it("negative control: a command inside the Runner's scope is enqueued", async () => {
+    mockFetch(
+      fakeSuggestion({
+        commandPlan: rawPlan([
+          rawKubectlCommand({
+            command: "kubectl rollout restart deployment/api -n api",
+            rollbackCommand: "kubectl rollout undo deployment/api -n api",
+          }),
+        ]),
+      }),
+    );
+    mockClusterStatus(SCOPED_TO_API);
+
+    await CommandPlanExecutor.executeApprovedPlan({
+      suggestionId: SUGGESTION_ID,
+    });
+
+    expect(kubectlEnqueue).toHaveBeenCalledTimes(1);
+  });
+});

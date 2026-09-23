@@ -18,6 +18,7 @@ import {
   KubernetesClusterAiAccessStatus,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import RunnerJobOrigin from "../../../../Types/Runbook/RunnerJobOrigin";
+import { KUBECTL_ALWAYS_ASKS_SUMMARY } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
@@ -180,7 +181,12 @@ describe("RemediationExecutionRunner.resolveClusterMode", () => {
       ).query.kubernetesClusterId.toString(),
     ).toBe(CLUSTER_ID.toString());
 
-    expect(jobFindBy).toHaveBeenCalledTimes(1);
+    /*
+     * Two job reads now: the breaker's inline-job count, then the hold
+     * check's read of every AI run's kubectl jobs on the cluster (a
+     * rule-driven run that changed it holds it too).
+     */
+    expect(jobFindBy).toHaveBeenCalledTimes(2);
     const jobQuery: Record<string, unknown> = (
       jobFindBy.mock.calls[0]![0] as { query: Record<string, unknown> }
     ).query;
@@ -609,6 +615,181 @@ describe("RemediationExecutionRunner.resolveClusterMode", () => {
     ).resolves.toMatchObject({ mode: "FullAuto", ...NO_DOWNGRADE });
   });
 
+  /*
+   * A rule-driven FullAuto run carries no cluster id, only its kubectl jobs
+   * do. One that changed the cluster holds it against a cluster round of
+   * another subject (PR #3953 review, remediation-r2-04), exactly like a
+   * cluster round would.
+   */
+  describe("a rule-driven run that changed the cluster", () => {
+    const RULE_RUN_ID: ObjectID = new ObjectID(
+      "abababab-abab-4bab-8bab-abababababab",
+    );
+
+    function ruleRun(
+      overrides: Record<string, unknown> = {},
+    ): AutoRemediationSuggestion {
+      return {
+        id: RULE_RUN_ID,
+        _id: RULE_RUN_ID.toString(),
+        status: AutoRemediationSuggestionStatus.AutoExecuted,
+        executionMode: AutoRemediationExecutionMode.FullAuto,
+        verificationStatus: AutoRemediationVerificationStatus.Pending,
+        verificationDeadlineAt: new Date(Date.now() + 10 * 60 * 1000),
+        incidentId: ObjectID.generate(),
+        ruleNameSnapshot: "Restart web on 5xx",
+        createdAt: new Date(Date.now() - 5 * 60 * 1000),
+        ...overrides,
+      } as unknown as AutoRemediationSuggestion;
+    }
+
+    function mockRuleRunOnCluster(
+      run: AutoRemediationSuggestion,
+      stepId: string = "ai-command-1",
+    ): void {
+      jobFindBy.mockImplementation(
+        async (args: unknown): Promise<Array<RunnerJob>> => {
+          const query: Record<string, unknown> =
+            (args as { query?: Record<string, unknown> }).query || {};
+          // The breaker's count reads inline jobs only; the hold read, all.
+          if (query["stepId"] && !stepId.startsWith("ai-command-")) {
+            return [];
+          }
+          return [
+            {
+              ...inlineJob(RULE_RUN_ID),
+              stepId,
+            } as unknown as RunnerJob,
+          ];
+        },
+      );
+      suggestionFindBy.mockImplementation(
+        async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+          const query: Record<string, unknown> =
+            (args as { query?: Record<string, unknown> }).query || {};
+          // Only the read of the runs behind those jobs names ids.
+          return query["_id"] ? [run] : [];
+        },
+      );
+    }
+
+    it("downgrades the round while that run's fix is still being verified", async () => {
+      mockRuleRunOnCluster(ruleRun());
+
+      const resolution: ClusterModeResolution =
+        await RemediationExecutionRunner.resolveClusterMode({
+          suggestion: roundCreatedAt(new Date()),
+          cluster: cluster({
+            remediationMode: KubernetesAiRemediationMode.Automatic,
+          }),
+        });
+
+      expect(resolution.mode).toBe("Suggest");
+      expect(resolution.downgradedByInFlightRound).toBe(true);
+      expect(resolution.inFlightRound?.suggestionId).toBe(
+        RULE_RUN_ID.toString(),
+      );
+      expect(resolution.inFlightRound?.description).toContain(
+        "still being verified",
+      );
+    });
+
+    it("downgrades the round while that run is still changing the cluster — even though it was created AFTER this round", async () => {
+      mockRuleRunOnCluster(
+        ruleRun({
+          status: AutoRemediationSuggestionStatus.Planning,
+          verificationStatus: undefined,
+          verificationDeadlineAt: undefined,
+          createdAt: new Date(Date.now() + 60 * 1000),
+        }),
+      );
+
+      const resolution: ClusterModeResolution =
+        await RemediationExecutionRunner.resolveClusterMode({
+          suggestion: roundCreatedAt(new Date()),
+          cluster: cluster(),
+        });
+
+      expect(resolution.mode).toBe("Suggest");
+      expect(resolution.inFlightRound?.description).toBe(
+        "is still changing it",
+      );
+    });
+
+    it("holds through an approved plan's kubectl job too", async () => {
+      mockRuleRunOnCluster(
+        ruleRun({ status: AutoRemediationSuggestionStatus.Approved }),
+        "ai-approved-1",
+      );
+
+      await expect(
+        RemediationExecutionRunner.resolveClusterMode({
+          suggestion: roundCreatedAt(new Date()),
+          cluster: cluster(),
+        }),
+      ).resolves.toMatchObject({
+        mode: "Suggest",
+        downgradedByInFlightRound: true,
+      });
+    });
+
+    it.each([
+      [
+        "its fix was verified",
+        {
+          verificationStatus: AutoRemediationVerificationStatus.Verified,
+        },
+        "ai-command-1",
+      ],
+      [
+        "its verification deadline passed long ago",
+        { verificationDeadlineAt: new Date(Date.now() - 60 * 60 * 1000) },
+        "ai-command-1",
+      ],
+      ["its only job on the cluster is a rollback", {}, "ai-rollback-1"],
+    ])(
+      "negative control: the round keeps its unattended slot once %s",
+      async (
+        _label: string,
+        overrides: Record<string, unknown>,
+        stepId: string,
+      ) => {
+        mockRuleRunOnCluster(ruleRun(overrides), stepId);
+
+        await expect(
+          RemediationExecutionRunner.resolveClusterMode({
+            suggestion: roundCreatedAt(new Date()),
+            cluster: cluster(),
+          }),
+        ).resolves.toMatchObject({ mode: "FullAuto", ...NO_DOWNGRADE });
+      },
+    );
+
+    it("negative control: the round's OWN kubectl jobs never hold the cluster against it", async () => {
+      const self: AutoRemediationSuggestion = roundCreatedAt(new Date());
+      jobFindBy.mockResolvedValue([
+        {
+          ...inlineJob(self.id!),
+          stepId: "ai-command-1",
+        } as unknown as RunnerJob,
+      ]);
+      suggestionFindBy.mockImplementation(
+        async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+          const query: Record<string, unknown> =
+            (args as { query?: Record<string, unknown> }).query || {};
+          return query["_id"] ? [self] : [];
+        },
+      );
+
+      await expect(
+        RemediationExecutionRunner.resolveClusterMode({
+          suggestion: self,
+          cluster: cluster(),
+        }),
+      ).resolves.toMatchObject({ mode: "FullAuto", ...NO_DOWNGRADE });
+    });
+  });
+
   it("fails safe to Suggest when the in-flight round check itself fails, with no holder named", async () => {
     suggestionFindBy.mockImplementation(
       async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
@@ -759,7 +940,7 @@ describe("buildClusterFullAutoPersona", () => {
     expect(persona).not.toContain("bypass");
   });
 
-  it("tells a BypassApproval run that riskier fixes execute inline and nobody is asked", () => {
+  it("tells a BypassApproval run that riskier fixes execute inline and nobody is asked — except for what needs a human in every mode", () => {
     const persona: string = buildClusterFullAutoPersona({
       bypassApproval: true,
     });
@@ -768,7 +949,16 @@ describe("buildClusterFullAutoPersona", () => {
     expect(persona).toContain("safe AND riskier");
     expect(persona).toContain("nobody is asked");
     expect(persona).toContain("its operator bypassed approvals");
-    expect(persona).not.toContain("need a human");
+    expect(persona).toContain("also run without a human on this cluster");
+    /*
+     * Changed with the PR #3953 round-two review: this persona used to say
+     * nothing ever needs a human on a Bypass cluster. A protected-namespace
+     * write and a node drain or taint always do, so it now says exactly
+     * that (and nothing else "needs a human").
+     */
+    expect(persona).toContain("EXCEPT that");
+    expect(persona).toContain(KUBECTL_ALWAYS_ASKS_SUMMARY);
+    expect(persona).not.toContain(") need a human");
     expect(persona).not.toContain("smallest safe change");
     expect(persona).not.toContain("you could not run");
   });
@@ -776,8 +966,9 @@ describe("buildClusterFullAutoPersona", () => {
   it("keeps the destructive-command refusal, the diagnose-first and rollback rules in both", () => {
     for (const bypassApproval of [true, false]) {
       const persona: string = buildClusterFullAutoPersona({ bypassApproval });
+      // The shared wording of the Denied tier (KUBECTL_NEVER_RUNS_SUMMARY).
       expect(persona).toContain(
-        "Destructive commands (deleting namespaces, volumes, nodes, secrets, CRDs; exec; apply; edit) are refused even with approval",
+        "Destructive commands never run, even with approval: exec, cp, port-forward, run, apply, edit, deleting namespaces/volumes/nodes/secrets/CRDs",
       );
       expect(persona).toContain("Diagnose first with run_kubectl");
       expect(persona).toContain("Always pass a rollbackCommand");
@@ -803,12 +994,18 @@ describe("buildClusterFullAutoPersona", () => {
     expect(persona).toContain("undoes a set image/env/resources");
   });
 
-  it("negative control: a Bypass-approval persona still offers set image back — the rule depends on the mode, not a blanket removal", () => {
+  it("negative control: a Bypass-approval persona does not demand a safe rollback — the rule depends on the mode — and still leads with rollout undo", () => {
     const persona: string = buildClusterFullAutoPersona({
       bypassApproval: true,
     });
 
-    expect(persona).toContain("kubectl set image back to the previous image");
+    /*
+     * The rollback examples are rollout undo first on every cluster (known
+     * follow-up 3); a Bypass cluster merely does not refuse a riskier undo.
+     */
+    expect(persona).toContain(
+      "Undo examples: kubectl rollout undo deployment/<name> -n <namespace>",
+    );
     expect(persona).not.toContain("A rollback must itself be a safe change");
   });
 
@@ -817,10 +1014,11 @@ describe("buildClusterFullAutoPersona", () => {
       bypassApproval: false,
     });
 
+    // Worded to cover what always needs a human too (PR #3953 review).
     expect(persona).toContain(
-      "submit the exact riskier kubectl command with execute_remediation_command anyway",
+      "submit the exact kubectl command with execute_remediation_command anyway",
     );
-    expect(persona).toContain("it will NOT run");
+    expect(persona).toContain("It will NOT run");
     expect(persona).toContain("one-click approval");
     expect(persona).toContain("do NOT hunt for a worse safe substitute");
   });

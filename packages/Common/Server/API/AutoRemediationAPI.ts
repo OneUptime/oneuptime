@@ -52,6 +52,7 @@ import RunbookRuleEngineService from "../Services/RunbookRuleEngineService";
 import RunnerService from "../Services/RunnerService";
 import KubernetesClusterAiAccessService from "../Services/KubernetesClusterAiAccessService";
 import CommandPlanExecutor from "../Utils/AutoRemediation/CommandPlanExecutor";
+import RemediationCommandToolkit from "../Utils/AI/Remediation/RemediationCommandTools";
 import logger from "../Utils/Logger";
 
 const router: ExpressRouter = Express.getRouter();
@@ -190,6 +191,36 @@ async function assertKubectlCommandsStillRunnable(data: {
       throw new BadDataException(
         `Cluster "${status.clusterName}" (command ${command.sequence}) is no longer reached with the credential this plan was composed for. Dismiss the suggestion and let a new plan be composed with the current credential.`,
       );
+    }
+
+    /*
+     * The Runner's write scope as it reports it now (its chart's write
+     * namespaces, its own namespace, node operations): a command or rollback
+     * it would refuse fails the click with the reason, instead of claiming
+     * the plan and being refused one command in — or, for a rollback, only
+     * when verification fails and the change has to be undone.
+     */
+    const parts: Array<{ label: string; text: string | undefined }> = [
+      { label: "", text: command.command },
+      { label: "'s rollback", text: command.rollbackCommand },
+    ];
+
+    for (const part of parts) {
+      if (!part.text) {
+        continue;
+      }
+
+      const scopeRefusal: string | null =
+        RemediationCommandToolkit.getRunnerScopeRefusal({
+          cluster: status,
+          command: part.text,
+        });
+
+      if (scopeRefusal) {
+        throw new BadDataException(
+          `Command ${command.sequence}${part.label} cannot run on cluster "${status.clusterName}": ${scopeRefusal} Nothing ran. Dismiss the suggestion and let a new plan be composed, or change the Runner's scope on the Kubernetes agent chart and approve again.`,
+        );
+      }
     }
   }
 }

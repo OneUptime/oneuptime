@@ -289,7 +289,7 @@ describe("RemediationCommandToolkit list_command_targets with clusters", () => {
      * round does), so the text sends the model to its written
      * recommendations — while still saying that an allowlisted shape runs.
      */
-    expect(outcome.textForLlm).toContain("never runs inline");
+    expect(outcome.textForLlm).toContain("never run inline");
     expect(outcome.textForLlm).toContain("written recommendations for a human");
     expect(outcome.textForLlm).toContain("unless the cluster allowlist names");
     expect(outcome.textForLlm).not.toContain("proposed for one-click approval");
@@ -306,7 +306,7 @@ describe("RemediationCommandToolkit list_command_targets with clusters", () => {
       "list_command_targets",
     ).execute({});
 
-    expect(outcome.textForLlm).toContain("never runs inline");
+    expect(outcome.textForLlm).toContain("never run inline");
     expect(outcome.textForLlm).toContain("submit it anyway");
     expect(outcome.textForLlm).toContain("proposed for one-click approval");
     expect(outcome.textForLlm).toContain("if no other change ran");
@@ -523,7 +523,14 @@ describe("RemediationCommandToolkit execute_remediation_command (Kubectl, Bypass
 
     expect(outcome.result?.rowCount).toBe(1);
     expect(outcome.textForLlm).toContain("BypassApproval");
-    expect(outcome.textForLlm).toContain("RiskyWrite");
+    /*
+     * The row names the tiers in the shared words (PR #3953 round-two
+     * review) — one field each, as the serializer caps every field — and
+     * says what still needs a human on a Bypass cluster.
+     */
+    expect(outcome.textForLlm).toContain("safeChanges AND riskierChanges");
+    expect(outcome.textForLlm).toContain("riskierChanges=patch, set image");
+    expect(outcome.textForLlm).toContain("except alwaysNeedsAHuman");
     expect(outcome.textForLlm).not.toContain("needs approval");
   });
 
@@ -1095,12 +1102,20 @@ describe("RemediationCommandToolkit kubectl execution persists the job id before
   });
 
   it("reports a failed kubectl job with its error and records the failure on the cluster", async () => {
+    /*
+     * A realistic API-server refusal: the cluster's last error records a
+     * failure only when it is about the ACCESS (known follow-up 1) — a
+     * kubectl that failed on a wrong name is not (see
+     * RemediationCommandToolsKubectlOutcome.test.ts).
+     */
+    const forbidden: string =
+      "Error from server (Forbidden): deployments.apps web is forbidden: cannot patch it";
     jest.spyOn(RunnerJobService, "pollUntilTerminal").mockResolvedValue(
       fakeJob({
         status: RunnerJobStatus.Failed,
         exitCode: 1,
         output: "",
-        errorMessage: "deployments.apps is forbidden",
+        errorMessage: forbidden,
       }),
     );
 
@@ -1112,7 +1127,7 @@ describe("RemediationCommandToolkit kubectl execution persists the job id before
 
     expect(outcome.success).toBe(true);
     expect(outcome.textForLlm).toContain("FAILED (exit code: 1");
-    expect(outcome.textForLlm).toContain("deployments.apps is forbidden");
+    expect(outcome.textForLlm).toContain(forbidden);
     expect(outcome.textForLlm).toContain(
       '<tool_result source="untrusted_cluster_output">',
     );
@@ -1120,7 +1135,7 @@ describe("RemediationCommandToolkit kubectl execution persists the job id before
       expect.objectContaining({
         status: AiRemediationCommandExecutionStatus.Failed,
         exitCode: 1,
-        errorMessage: "deployments.apps is forbidden",
+        errorMessage: forbidden,
         runnerJobId: JOB_ID.toString(),
       }),
     );
@@ -1129,7 +1144,7 @@ describe("RemediationCommandToolkit kubectl execution persists the job id before
     ).toHaveBeenCalledWith(
       expect.objectContaining({
         succeeded: false,
-        errorMessage: "deployments.apps is forbidden",
+        errorMessage: forbidden,
       }),
     );
   });
@@ -1175,7 +1190,12 @@ describe("RemediationCommandToolkit kubectl execution persists the job id before
         exitCode: 1,
         output:
           "apiVersion: v1\nkind: Secret\nmetadata:\n  name: db\ndata:\n  password: cGFzc3dvcmQxMjM=\n",
-        errorMessage: "error: unable to use password=hunter2-for-db here",
+        /*
+         * An access failure, so the cluster's last error records it (only
+         * access failures are recorded) — which is what this pins redacted.
+         */
+        errorMessage:
+          "error: You must be logged in to the server (Unauthorized): password=hunter2-for-db",
       }),
     );
 

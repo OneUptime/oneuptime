@@ -15,6 +15,11 @@ import {
   AiRemediationCommandPlanUtil,
   DEFAULT_COMMAND_TIMEOUT_MS,
   INLINE_COMMAND_STEP_ID_PREFIX,
+  KUBECTL_ALLOWLIST_SUMMARY,
+  KUBECTL_ALWAYS_ASKS_SUMMARY,
+  KUBECTL_NEVER_RUNS_SUMMARY,
+  KUBECTL_RISKIER_CHANGES_SUMMARY,
+  KUBECTL_SAFE_CHANGES_SUMMARY,
   MAX_COMMAND_TIMEOUT_MS,
   MAX_PLAN_COMMANDS,
   MIN_COMMAND_TIMEOUT_MS,
@@ -24,6 +29,7 @@ import {
   KubernetesAiAccessGap,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  KubernetesRunnerPosture,
   isKubernetesAgentRunnerName,
   isKubernetesAgentRunnerPosture,
   isUnattendedRemediationMode,
@@ -43,6 +49,7 @@ import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRem
 import AIRunService from "../../../Services/AIRunService";
 import AutoRemediationRuleEngineService, {
   ClusterBreakerState,
+  ClusterRoundHold,
   MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR,
 } from "../../../Services/AutoRemediationRuleEngineService";
 import AutoRemediationSuggestionService from "../../../Services/AutoRemediationSuggestionService";
@@ -62,6 +69,7 @@ import { ObservabilityAssistantExtraTool } from "../Chat/ObservabilityAssistant"
 import KubectlJobRunner, {
   KUBECTL_CLAIM_TIMEOUT_MS,
   KubectlJobOutcome,
+  KubectlTerminalJobFacts,
   RedactedKubectlOutput,
 } from "../ClusterAccess/KubectlJobRunner";
 import logger from "../../Logger";
@@ -86,25 +94,41 @@ import logger from "../../Logger";
  *   FullAuto — the model gets list_command_targets and
  *              execute_remediation_command. Bash/SSH run only when they pass
  *              the structural guard AND the rule's operator allowlist;
- *              Kubectl changes run when KubectlPolicy tiers them SafeWrite
- *              (or RiskyWrite matching the cluster's allowlist, or anything
- *              short of Denied on a BypassApproval cluster). Everything else
- *              is refused with an explanation — including kubectl reads,
- *              which belong to run_kubectl: a read sent through the execute
- *              tool would count as an executed fix.
+ *              Kubectl changes run when KubectlPolicy's
+ *              evaluateForAutoExecution approves them: SafeWrite, RiskyWrite
+ *              matching the cluster's allowlist, or anything short of Denied
+ *              on a BypassApproval cluster — never a write in a protected
+ *              namespace, nor a node drain or taint. Everything else is
+ *              refused with an explanation — including kubectl reads, which
+ *              belong to run_kubectl: a read sent through the execute tool
+ *              would count as an executed fix.
  *
  * The cluster a kubectl change targets is re-read LIVE before every
  * command: the run's snapshot is minutes old, and an operator who turned
  * remediation off, moved the cluster to "ask for approval", re-bound its
  * Runner or narrowed its allowlist mid-run expects the next command to see
  * that. The first change a run makes on a cluster also takes the cluster's
- * hourly circuit-breaker slot under a per-cluster lock, so concurrent runs
- * cannot all read the same stale count and all run unattended.
+ * hourly circuit-breaker slot under a per-cluster lock — and, under the same
+ * lock, checks that no other AI run holds the cluster — so concurrent runs
+ * cannot all read the same stale state and all run unattended.
+ *
+ * A kubectl write the cluster's bound Runner has said it will refuse (a
+ * namespace outside its write namespaces, its own namespace, a node change
+ * with node operations off) is refused before it is proposed or run, with
+ * the reason: never composed, approved and enqueued only to be refused.
  *
  * A kubectl change refused only because it needs a human (a riskier change
- * on an Automatic cluster, a cluster moved to "ask for approval", a tripped
- * breaker) is kept: a cluster round that executed nothing proposes those
- * commands for one-click approval when it settles.
+ * on an Automatic cluster, a protected-namespace write, a node drain or
+ * taint, a cluster moved to "ask for approval", a tripped breaker, another
+ * AI run holding the cluster) is kept: a cluster round that executed
+ * nothing proposes those commands for one-click approval when it settles —
+ * unless the run saw the cluster stop allowing AI remediation, which drops
+ * everything kept for it.
+ *
+ * A kubectl change that never reached kubectl (no Runner claimed it, or the
+ * Runner refused it before spawning) is a failed tool call: it is not
+ * cited, not recorded as executed, and never sends the round to
+ * verification.
  *
  * Every executed command is persisted onto the suggestion's commandPlan
  * column IMMEDIATELY: before the RunnerJob is enqueued, again with the job
@@ -160,6 +184,244 @@ const CLUSTER_BREAKER_LOCK_ACQUIRE_TIMEOUT_MS: number = 20_000;
 export type RemediationCommandMode = "Suggest" | "FullAuto";
 
 /*
+ * Reading which objects a kubectl write changes, for the pre-check against
+ * the bound Runner's reported write scope (getRunnerScopeRefusal). The
+ * Runner holds the authoritative check (KubectlWriteScope, before it spawns
+ * kubectl); this only keeps OneUptime AI from composing, proposing or
+ * approving a write that check is certain to refuse. Where this reading is
+ * not certain it answers "unknown" and nothing is refused up front — the
+ * Runner still decides.
+ */
+
+// Verbs whose objects are always nodes (cluster-scoped: -n means nothing).
+const NODE_ONLY_VERBS: Set<string> = new Set<string>([
+  "cordon",
+  "uncordon",
+  "drain",
+  "taint",
+]);
+
+// Verbs that never run on their own in any mode, whatever the allowlist says.
+const ALWAYS_ASKS_NODE_VERBS: Set<string> = new Set<string>(["drain", "taint"]);
+
+// Verbs that name the kind they change, and may change Node objects.
+const KIND_NAMING_WRITE_VERBS: Set<string> = new Set<string>([
+  "label",
+  "annotate",
+  "patch",
+]);
+
+// Every spelling of the Node kind (resource, singular, short name).
+const NODE_KIND_SPELLINGS: Set<string> = new Set<string>([
+  "node",
+  "nodes",
+  "no",
+]);
+
+// Short flags by arity, as KubectlPolicy reads them for these verbs.
+const BOOLEAN_SHORT_FLAGS: Set<string> = new Set<string>(["A", "w", "q"]);
+const VALUE_SHORT_FLAGS: Set<string> = new Set<string>([
+  "n",
+  "o",
+  "L",
+  "l",
+  "c",
+  "p",
+  "e",
+  "r",
+]);
+
+// Long flags label/annotate/patch accept that take the next token as a value.
+const VALUE_LONG_FLAGS: Set<string> = new Set<string>([
+  "namespace",
+  "request-timeout",
+  "output",
+  "selector",
+  "labels",
+  "field-selector",
+  "patch",
+  "type",
+  "resource-version",
+  "field-manager",
+  "subresource",
+  "template",
+]);
+
+/*
+ * Long flags that never take the next token: booleans, and the
+ * optional-value flags that only take a value written with "=".
+ */
+const NON_CONSUMING_LONG_FLAGS: Set<string> = new Set<string>([
+  "match-server-version",
+  "allow-missing-template-keys",
+  "show-managed-fields",
+  "all-namespaces",
+  "all",
+  "list",
+  "local",
+  "overwrite",
+  "record",
+  "dry-run",
+  "validate",
+]);
+
+// A negative number (`-1`): a value, never a flag.
+const NEGATIVE_NUMBER_TOKEN: RegExp = /^-\d/;
+
+type KubectlWriteTarget = "node" | "other" | "unknown";
+
+function isFlagToken(token: string): boolean {
+  return (
+    token.startsWith("-") &&
+    token !== "-" &&
+    token !== "--" &&
+    !NEGATIVE_NUMBER_TOKEN.test(token)
+  );
+}
+
+/*
+ * Whether this flag token takes the NEXT token as its value — or "unknown"
+ * when this reading cannot tell (a flag it does not know).
+ */
+function flagTakesNextToken(token: string): boolean | "unknown" {
+  if (token.startsWith("--")) {
+    if (token.includes("=")) {
+      return false;
+    }
+
+    // kubectl reads "_" as "-" in a long flag name.
+    const name: string = token.slice(2).split("_").join("-");
+
+    if (VALUE_LONG_FLAGS.has(name)) {
+      return true;
+    }
+
+    return NON_CONSUMING_LONG_FLAGS.has(name) ? false : "unknown";
+  }
+
+  const body: string = token.slice(1);
+
+  for (let index: number = 0; index < body.length; index++) {
+    const letter: string = body[index]!;
+
+    if (letter === "=") {
+      return false;
+    }
+
+    if (BOOLEAN_SHORT_FLAGS.has(letter)) {
+      continue;
+    }
+
+    if (VALUE_SHORT_FLAGS.has(letter)) {
+      // An inline value ("-nweb") leaves nothing to take.
+      return index + 1 >= body.length;
+    }
+
+    return "unknown";
+  }
+
+  return false;
+}
+
+/*
+ * Is this kind token the core Node kind? kubectl reads "RESOURCE.GROUP" and
+ * "RESOURCE.VERSION.GROUP" ("nodes.v1." for the core group); a node kind in
+ * any other group (metrics.k8s.io NodeMetrics) is not a Node object.
+ */
+function isNodeKindToken(rawKind: string): boolean {
+  const parts: Array<string> = rawKind.toLowerCase().split(".");
+
+  if (!NODE_KIND_SPELLINGS.has(parts[0] || "")) {
+    return false;
+  }
+
+  if (parts.length === 1) {
+    return true;
+  }
+
+  const group: string =
+    parts.length === 2 ? parts[1]! : parts.slice(2).join(".");
+
+  return group === "";
+}
+
+/*
+ * Does this write (argv without "kubectl") change Node objects, something
+ * else, or can this reading not tell? Node verbs change nodes. label,
+ * annotate and patch change whatever kind their object tokens name: the
+ * first positional ("node n1", "node,pod x", "node/n1") — or, in the
+ * TYPE/NAME form, every object token.
+ */
+function readKubectlWriteTarget(args: Array<string>): KubectlWriteTarget {
+  const verb: string = (args[0] || "").toLowerCase();
+
+  if (NODE_ONLY_VERBS.has(verb)) {
+    return "node";
+  }
+
+  if (!KIND_NAMING_WRITE_VERBS.has(verb)) {
+    return "other";
+  }
+
+  const objectTokens: Array<string> = [];
+
+  for (let index: number = 1; index < args.length; index++) {
+    const token: string = args[index]!;
+
+    if (token === "--") {
+      return "unknown";
+    }
+
+    if (isFlagToken(token)) {
+      const takesNext: boolean | "unknown" = flagTakesNextToken(token);
+
+      if (takesNext === "unknown") {
+        return "unknown";
+      }
+
+      if (takesNext) {
+        index++;
+      }
+
+      continue;
+    }
+
+    // label/annotate: the KEY=VALUE and KEY- pairs follow the objects.
+    if (token.includes("=") || token.endsWith("-")) {
+      break;
+    }
+
+    objectTokens.push(token);
+  }
+
+  const first: string | undefined = objectTokens[0];
+
+  if (!first) {
+    return "unknown";
+  }
+
+  const kinds: Array<string> = first.includes("/")
+    ? objectTokens
+        .filter((token: string) => {
+          return token.includes("/");
+        })
+        .map((token: string) => {
+          return token.slice(0, token.indexOf("/"));
+        })
+    : first.split(",");
+
+  return kinds.some(isNodeKindToken) ? "node" : "other";
+}
+
+function quoteList(values: Array<string>): string {
+  return values
+    .map((value: string) => {
+      return `"${value}"`;
+    })
+    .join(", ");
+}
+
+/*
  * A kubectl change a FullAuto run did not execute only because it needs a
  * human's click — never one the policy refuses outright.
  */
@@ -210,6 +472,27 @@ export interface RemediationCommandToolkitOptions {
    * refusal tells the model that instead of "leave it to a human".
    */
   proposesRefusedCommands?: boolean | undefined;
+  /*
+   * How the run's FIRST change on a cluster checks, under the per-cluster
+   * breaker lock, that no other AI run holds the cluster (see
+   * AutoRemediationRuleEngineService.findRoundHoldingCluster) — the check
+   * the run's start made, repeated where it cannot go stale. A cluster
+   * round orders itself among cluster rounds (anyOrder false), exactly as
+   * its start did, so two rounds never refuse each other; a rule-driven
+   * run yields to any round in any order and to the signal's own round
+   * (anyOrder true, with its subject). Absent: no hold check.
+   */
+  clusterHold?:
+    | {
+        anyOrder: boolean;
+        subject?:
+          | {
+              incidentId?: ObjectID | undefined;
+              alertId?: ObjectID | undefined;
+            }
+          | undefined;
+      }
+    | undefined;
 }
 
 interface CommandArgsParseResult {
@@ -229,6 +512,13 @@ export default class RemediationCommandToolkit {
    * treats them as if they had never been targets.
    */
   private revokedClusterIds: Set<string> = new Set<string>();
+  /*
+   * Commands this run sent to a Runner that never reached kubectl. They are
+   * not executed commands, but their jobs exist: their sequence numbers
+   * (and so their step ids) are never reused, and they count against the
+   * run's command budget.
+   */
+  private neverRanCount: number = 0;
 
   public constructor(options: RemediationCommandToolkitOptions) {
     // A copy: the live re-check replaces cluster targets as the run goes.
@@ -243,8 +533,20 @@ export default class RemediationCommandToolkit {
     return this.proposedPlan;
   }
 
+  /*
+   * What a cluster round that ran nothing may propose. Never a change for a
+   * cluster the run saw stop allowing AI remediation (turned off, not
+   * ready, re-bound, deleted): the operator withdrew exactly what a
+   * proposal would ask them to approve.
+   */
   public getCommandsNeedingApproval(): Array<RemediationCommandNeedingApproval> {
-    return this.commandsNeedingApproval;
+    return this.commandsNeedingApproval.filter(
+      (kept: RemediationCommandNeedingApproval) => {
+        return !this.revokedClusterIds.has(
+          kept.command.kubernetesClusterId || "",
+        );
+      },
+    );
   }
 
   public getClusterTargets(): Array<KubernetesClusterAiAccessStatus> {
@@ -375,20 +677,22 @@ export default class RemediationCommandToolkit {
         via: `Runner "${cluster.runner?.name}"${
           cluster.accessMethod === "in_cluster" ? " (in-cluster)" : ""
         }`,
-        remediationMode:
-          cluster.remediationMode === KubernetesAiRemediationMode.BypassApproval
-            ? "BypassApproval: every kubectl change the policy allows (Read, SafeWrite AND RiskyWrite) runs without a human; only Denied commands are refused"
-            : cluster.remediationMode === KubernetesAiRemediationMode.Automatic
-              ? `Automatic: SafeWrite kubectl changes (rollout restart/undo, scale, delete a named pod/job, cordon/uncordon, label/annotate) run without a human; a RiskyWrite never runs inline unless the cluster allowlist names its shape — ${
-                  this.options.proposesRefusedCommands
-                    ? "submit it anyway: it is refused, recorded, and proposed for one-click approval when this round ends if no other change ran; put it in your written recommendations too"
-                    : "put it in your written recommendations for a human"
-                }`
-              : "RequireApproval: every kubectl change is proposed for one-click approval",
+        /*
+         * One idea per field: the serializer caps every field (500 chars),
+         * so a mode description that inlined the tier lists would reach
+         * the model cut off mid-sentence.
+         */
+        remediationMode: this.describeClusterModeForLlm(cluster),
+        safeChanges: KUBECTL_SAFE_CHANGES_SUMMARY,
+        riskierChanges: KUBECTL_RISKIER_CHANGES_SUMMARY,
+        alwaysNeedsAHuman: KUBECTL_ALWAYS_ASKS_SUMMARY,
+        neverRuns: KUBECTL_NEVER_RUNS_SUMMARY,
+        writeScope: RemediationCommandToolkit.describeRunnerWriteScope(cluster),
         kubectlAllowlist:
           cluster.kubectlAllowlist.length > 0
             ? cluster.kubectlAllowlist.join(" | ")
             : "(none)",
+        allowlistMatching: KUBECTL_ALLOWLIST_SUMMARY,
       });
     }
 
@@ -423,6 +727,182 @@ export default class RemediationCommandToolkit {
     };
   }
 
+  // A cluster's mode, as list_command_targets tells the model.
+  private describeClusterModeForLlm(
+    cluster: KubernetesClusterAiAccessStatus,
+  ): string {
+    if (
+      cluster.remediationMode === KubernetesAiRemediationMode.BypassApproval
+    ) {
+      return `BypassApproval: AI does not ask — every kubectl change the policy allows, safeChanges AND riskierChanges, runs without a human, except alwaysNeedsAHuman${
+        this.options.proposesRefusedCommands
+          ? " (submit such a change anyway: it is refused, recorded, and proposed for one-click approval when this round ends if no other change ran)"
+          : ""
+      }`;
+    }
+
+    if (cluster.remediationMode === KubernetesAiRemediationMode.Automatic) {
+      return `Automatic: safeChanges run without a human; riskierChanges never run inline unless the cluster allowlist names their exact shape, and alwaysNeedsAHuman never does — ${
+        this.options.proposesRefusedCommands
+          ? "submit it anyway: it is refused, recorded, and proposed for one-click approval when this round ends if no other change ran; put it in your written recommendations too"
+          : "put it in your written recommendations for a human"
+      }`;
+    }
+
+    return "RequireApproval: every kubectl change is proposed for one-click approval";
+  }
+
+  /*
+   * Where the cluster's bound Runner lets AI-composed kubectl writes land,
+   * as it last reported (its posture): the namespaces its chart scoped it
+   * to, its own namespace (never), and whether it may change nodes.
+   */
+  public static describeRunnerWriteScope(
+    cluster: KubernetesClusterAiAccessStatus,
+  ): string {
+    const posture: KubernetesRunnerPosture | undefined =
+      cluster.runner?.posture;
+
+    if (!posture) {
+      return "not reported by the Runner; its RBAC decides";
+    }
+
+    const writeNamespaces: Array<string> =
+      RemediationCommandToolkit.normalizeNamespaces(posture.writeNamespaces);
+    const podNamespace: string = RemediationCommandToolkit.normalizeNamespace(
+      posture.podNamespace,
+    );
+    const parts: Array<string> = [
+      writeNamespaces.length > 0
+        ? `writes only in namespaces ${quoteList(writeNamespaces)} — always pass -n <namespace>`
+        : "writes in any namespace its RBAC allows",
+    ];
+
+    if (podNamespace) {
+      parts.push(
+        `never in its own namespace "${podNamespace}"${
+          cluster.accessMethod === "in_cluster"
+            ? " (a write with no -n would land there)"
+            : ""
+        }`,
+      );
+    }
+
+    if (posture.allowNodeOperations === false) {
+      parts.push(
+        "no node operations (cordon, uncordon, drain, taint, label/annotate/patch of nodes)",
+      );
+    }
+
+    return parts.join("; ");
+  }
+
+  /*
+   * Why the cluster's bound Runner would refuse this kubectl write, going by
+   * the posture it reported — or null when it would not (or this cannot
+   * tell). Mirrors the Runner's own check (KubectlWriteScope) and the node
+   * operations switch: a write whose effective namespace — the one -n names
+   * or, without -n, the Runner pod's own namespace in-cluster ("default"
+   * for a kubeconfig built from a credential) — is outside a non-empty
+   * writeNamespaces or IS the Runner's own namespace; or a change to nodes
+   * on a Runner whose node operations are off. Node changes are
+   * cluster-scoped, so the namespace scope never applies to them.
+   *
+   * One sentence (or two) the model or a human can act on; callers add
+   * what happened.
+   */
+  public static getRunnerScopeRefusal(data: {
+    cluster: KubernetesClusterAiAccessStatus;
+    command: string;
+  }): string | null {
+    const posture: KubernetesRunnerPosture | undefined =
+      data.cluster.runner?.posture;
+
+    if (!posture) {
+      return null;
+    }
+
+    const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
+      data.command,
+    );
+
+    if (
+      policy.tier === KubectlCommandTier.Read ||
+      policy.tier === KubectlCommandTier.Denied
+    ) {
+      return null;
+    }
+
+    const target: KubectlWriteTarget = readKubectlWriteTarget(policy.args);
+
+    if (target === "unknown") {
+      return null;
+    }
+
+    const runnerLabel: string = `the Runner of cluster "${data.cluster.clusterName}"`;
+
+    if (target === "node") {
+      return posture.allowNodeOperations === false
+        ? `"${policy.displayCommand}" changes a node, and ${runnerLabel} has node operations turned off (aiAccess.remediation.nodeOperations=false on the Kubernetes agent chart): it refuses cordon, uncordon, drain, taint and label/annotate/patch of nodes. Fix it without changing nodes, or leave the node change to a human.`
+        : null;
+    }
+
+    const writeNamespaces: Array<string> =
+      RemediationCommandToolkit.normalizeNamespaces(posture.writeNamespaces);
+    const podNamespace: string = RemediationCommandToolkit.normalizeNamespace(
+      posture.podNamespace,
+    );
+
+    if (writeNamespaces.length === 0 && !podNamespace) {
+      return null;
+    }
+
+    const explicit: boolean = policy.namespace !== undefined;
+    const namespace: string = explicit
+      ? RemediationCommandToolkit.normalizeNamespace(policy.namespace)
+      : data.cluster.accessMethod === "in_cluster"
+        ? podNamespace
+        : "default";
+    const scope: string =
+      writeNamespaces.length > 0
+        ? ` It only lets OneUptime AI change ${quoteList(writeNamespaces)} (aiAccess.remediation.namespaces on the Kubernetes agent chart).`
+        : "";
+
+    if (!namespace) {
+      return `"${policy.displayCommand}" names no namespace, and ${runnerLabel} cannot tell which one it would change.${scope} Name the namespace with -n <namespace>.`;
+    }
+
+    if (podNamespace && namespace === podNamespace) {
+      return explicit
+        ? `"${policy.displayCommand}" would change namespace "${namespace}", where ${runnerLabel} itself runs — it never changes its own namespace, so it refuses this command.${scope}`
+        : `"${policy.displayCommand}" names no namespace, so kubectl would run it in "${namespace}", where ${runnerLabel} itself runs — it never changes its own namespace, so it refuses this command.${scope} Name the target namespace with -n <namespace>.`;
+    }
+
+    if (writeNamespaces.length > 0 && !writeNamespaces.includes(namespace)) {
+      return explicit
+        ? `"${policy.displayCommand}" would change namespace "${namespace}", outside the namespaces ${runnerLabel} may change, so it refuses this command.${scope}`
+        : `"${policy.displayCommand}" names no namespace, so kubectl would run it in "${namespace}", outside the namespaces ${runnerLabel} may change, so it refuses this command.${scope} Name the target namespace with -n <namespace>.`;
+    }
+
+    return null;
+  }
+
+  private static normalizeNamespace(value: string | undefined): string {
+    return (value || "").trim().toLowerCase();
+  }
+
+  private static normalizeNamespaces(
+    values: Array<string> | undefined,
+  ): Array<string> {
+    return (values || [])
+      .map((value: string) => {
+        return RemediationCommandToolkit.normalizeNamespace(value);
+      })
+      .filter((value: string) => {
+        return value.length > 0;
+      });
+  }
+
   /*
    * ------------------------------------------------------------------
    * execute_remediation_command (FullAuto only)
@@ -433,11 +913,11 @@ export default class RemediationCommandToolkit {
     return {
       definition: {
         name: "execute_remediation_command",
-        description: `Execute ONE remediation command immediately. Bash/SSH: only commands matching the rule's operator-authored allowlist AND free of shell chaining (no ;, &&, |, redirection, substitution) will run. Kubectl: this tool is for CHANGES only — read-only kubectl (get, describe, logs, rollout status, ...) goes through run_kubectl and is refused here. Safe changes (rollout restart/undo, scale, delete a named pod/job, cordon/uncordon, label/annotate) run; riskier changes (patch, set image, drain, deleting workloads) are refused unless the cluster allowlist names them or the cluster bypasses approvals — ${
+        description: `Execute ONE remediation command immediately. Bash/SSH: only commands matching the rule's operator-authored allowlist AND free of shell chaining (no ;, &&, |, redirection, substitution) will run. Kubectl: this tool is for CHANGES only — read-only kubectl (get, describe, logs, rollout status, ...) goes through run_kubectl and is refused here. Safe changes run (${KUBECTL_SAFE_CHANGES_SUMMARY}). Riskier changes (${KUBECTL_RISKIER_CHANGES_SUMMARY}) are refused unless the cluster allowlist names their exact shape (${KUBECTL_ALLOWLIST_SUMMARY}) or the cluster bypasses approvals — ${
           this.options.proposesRefusedCommands
             ? "a refused riskier change is recorded and proposed for one-click approval when this round ends, provided no other change ran"
             : "put those in your recommendations"
-        }; destructive commands never run. At most ${MAX_AUTO_EXECUTED_COMMANDS_PER_RUN} commands may run per remediation. Provide a rollbackCommand whenever the command changes state and an undo exists.`,
+        }. Whatever the mode, ${KUBECTL_ALWAYS_ASKS_SUMMARY}; ${KUBECTL_NEVER_RUNS_SUMMARY}. A write outside the cluster's writeScope (list_command_targets) is refused before it runs. At most ${MAX_AUTO_EXECUTED_COMMANDS_PER_RUN} commands may be sent per remediation. Provide a rollbackCommand whenever the command changes state and an undo exists.`,
         inputSchema: {
           type: "object",
           properties: this.buildCommandSchemaProperties(),
@@ -494,13 +974,13 @@ export default class RemediationCommandToolkit {
       rollbackCommand: {
         type: "string",
         description:
-          "Optional undo command, run if verification later fails. Must pass the same policy (for Kubectl: a safe change, e.g. kubectl rollout undo deployment/<name> -n <namespace> — which also undoes a set image/env/resources — or kubectl scale back).",
+          "Optional undo command, run unattended if verification later fails. Must pass the same policy. For Kubectl it must be a safe change on ONE named object (unless the cluster bypasses approvals), e.g. kubectl rollout undo deployment/<name> -n <namespace> — which also undoes a set image/env/resources or a patch of the pod template — or kubectl scale deployment/<name> --replicas=<previous count> -n <namespace>.",
       },
     };
   }
 
   private async executeCommand(args: JSONObject): Promise<ToolCallOutcome> {
-    if (this.executedCommands.length >= MAX_AUTO_EXECUTED_COMMANDS_PER_RUN) {
+    if (this.getSentCommandCount() >= MAX_AUTO_EXECUTED_COMMANDS_PER_RUN) {
       return this.failure(
         `The per-remediation command budget (${MAX_AUTO_EXECUTED_COMMANDS_PER_RUN}) is spent. Summarize what you did and what remains for a human.`,
       );
@@ -520,7 +1000,7 @@ export default class RemediationCommandToolkit {
 
     const parsed: CommandArgsParseResult = await this.parseAndValidateCommand(
       args,
-      this.executedCommands.length + 1,
+      this.getSentCommandCount() + 1,
     );
 
     if (parsed.errorText || !parsed.command) {
@@ -554,6 +1034,21 @@ export default class RemediationCommandToolkit {
       if (liveRefusal) {
         this.recordNeedingApproval(command, liveRefusal);
         return this.failure(liveRefusal.text);
+      }
+
+      /*
+       * The Runner's write scope as it reports it NOW (the parse checked
+       * the run's snapshot): a write it would refuse is never enqueued —
+       * nor kept for a proposal, which no click could make runnable.
+       */
+      const liveCluster: KubernetesClusterAiAccessStatus | undefined =
+        this.findClusterTarget(command.kubernetesClusterId);
+      const scopeRefusal: string | null = liveCluster
+        ? this.getCommandScopeRefusal(liveCluster, command)
+        : null;
+
+      if (scopeRefusal) {
+        return this.failure(scopeRefusal);
       }
     }
 
@@ -717,6 +1212,28 @@ export default class RemediationCommandToolkit {
         const succeeded: boolean =
           terminalJob.status === RunnerJobStatus.Succeeded;
 
+        /*
+         * A TimedOut row cannot say on its own whether a Runner ever took
+         * the job. For a WRITE only "certainly never claimed" means it did
+         * not run: a claimed job may have run kubectl before it went
+         * silent (startedAt lags the claim), so it counts as run — its
+         * record stays, and verification and the rollback arm judge it.
+         */
+        const wasClaimed: boolean | undefined =
+          terminalJob.status === RunnerJobStatus.TimedOut
+            ? await this.readWasClaimed(job.id!)
+            : true;
+
+        const facts: KubectlTerminalJobFacts = {
+          status: terminalJob.status,
+          exitCode: terminalJob.exitCode,
+          output: terminalJob.output,
+          errorMessage: terminalJob.errorMessage,
+          wasStarted: wasClaimed !== false,
+        };
+
+        const kubectlRan: boolean = KubectlJobRunner.didKubectlRun(facts);
+
         const redacted: RedactedKubectlOutput = KubectlJobRunner.redactAndCap(
           terminalJob.output || "",
         );
@@ -736,21 +1253,46 @@ export default class RemediationCommandToolkit {
           errorMessage: succeeded
             ? undefined
             : KubectlJobRunner.redactAndCap(
-                terminalJob.errorMessage ||
-                  `Command ended with status ${terminalJob.status}.`,
+                wasClaimed === false
+                  ? `The cluster's Runner did not pick up this kubectl command within ${Math.round(
+                      KUBECTL_CLAIM_TIMEOUT_MS / 1000,
+                    )}s — it may be offline, restarting or busy with other work. Nothing was run on the cluster.`
+                  : terminalJob.errorMessage ||
+                      `Command ended with status ${terminalJob.status}.`,
               ).text,
           displayCommand: String(
             (job.payload as { displayCommand?: string } | undefined)
               ?.displayCommand || command.command,
           ),
+          executed: kubectlRan,
+          claimTimedOut: wasClaimed === false,
+          isAccessFailure: KubectlJobRunner.isAccessFailure(facts),
         };
 
-        // Best-effort bookkeeping for the cluster's AI page; never throws.
-        await KubernetesClusterAiAccessService.recordCommandOutcome({
-          clusterId,
-          succeeded,
-          errorMessage: outcome.errorMessage,
-        });
+        /*
+         * Best-effort bookkeeping for the cluster's AI page; never throws.
+         * A success proves the access works; a failure becomes the
+         * cluster's "Last error" only when it is about the ACCESS (never
+         * claimed, refused, timed out, unauthorized, unreachable) — a
+         * deployment the model named wrong says nothing about the Runner.
+         */
+        if (succeeded || outcome.isAccessFailure) {
+          await KubernetesClusterAiAccessService.recordCommandOutcome({
+            clusterId,
+            succeeded,
+            errorMessage: outcome.errorMessage,
+          });
+        }
+
+        /*
+         * kubectl never ran: nothing changed on the cluster, so this is a
+         * failed tool call — no citation, no executed command, nothing for
+         * verification to judge or the rollback arm to undo. Its job row
+         * stays (and counts toward the breaker and the budget).
+         */
+        if (!kubectlRan) {
+          return await this.settleNeverRan(command, outcome);
+        }
 
         command.execution.status = outcome.succeeded
           ? AiRemediationCommandExecutionStatus.Succeeded
@@ -848,6 +1390,100 @@ export default class RemediationCommandToolkit {
   }
 
   /*
+   * A kubectl command whose job never reached kubectl: take it off the
+   * run's executed commands (and off the durable record, which exists to
+   * settle what RAN), and tell the model plainly — without a citation, as
+   * there is no evidence.
+   */
+  private async settleNeverRan(
+    command: AiRemediationCommand,
+    outcome: KubectlJobOutcome,
+  ): Promise<ToolCallOutcome> {
+    this.executedCommands = this.executedCommands.filter(
+      (executed: AiRemediationCommand) => {
+        return executed !== command;
+      },
+    );
+    this.neverRanCount += 1;
+    await this.persistPlanProgress();
+
+    return this.failure(
+      `"${outcome.displayCommand}" did NOT run on cluster "${
+        command.kubernetesClusterNameSnapshot || command.kubernetesClusterId
+      }": ${outcome.errorMessage || "the job never reached kubectl."} Nothing changed on the cluster and nothing was recorded as executed. ${
+        outcome.claimTimedOut
+          ? "Do NOT send more commands to this cluster in this run — its Runner is not picking them up; say so in your analysis."
+          : "Do NOT resend the same command; fix what the refusal names, or put the change in your recommendations for a human."
+      }`,
+    );
+  }
+
+  // Whether a Runner ever claimed the job; undefined when it cannot be read.
+  private async readWasClaimed(jobId: ObjectID): Promise<boolean | undefined> {
+    try {
+      const row: RunnerJob | null = await RunnerJobService.findOneById({
+        id: jobId,
+        select: {
+          _id: true,
+          claimedAt: true,
+          assignedAgentId: true,
+        },
+        props: { isRoot: true },
+      });
+
+      if (!row) {
+        return undefined;
+      }
+
+      return Boolean(row.claimedAt || row.assignedAgentId);
+    } catch (error) {
+      logger.error(
+        `RemediationCommandToolkit: could not read whether a Runner claimed kubectl job ${jobId.toString()}; treating it as run: ${error}`,
+      );
+      return undefined;
+    }
+  }
+
+  private getSentCommandCount(): number {
+    return this.executedCommands.length + this.neverRanCount;
+  }
+
+  /*
+   * Whether the cluster's Runner would refuse this command or its rollback
+   * (getRunnerScopeRefusal), worded for the model. A rollback the Runner
+   * refuses would leave the change applied when verification fails, so it
+   * is refused up front like the command itself.
+   */
+  private getCommandScopeRefusal(
+    cluster: KubernetesClusterAiAccessStatus,
+    command: Pick<AiRemediationCommand, "command" | "rollbackCommand">,
+  ): string | null {
+    const forward: string | null =
+      RemediationCommandToolkit.getRunnerScopeRefusal({
+        cluster,
+        command: command.command,
+      });
+
+    if (forward) {
+      return `${forward} The command was neither run nor recorded.`;
+    }
+
+    if (command.rollbackCommand) {
+      const rollback: string | null =
+        RemediationCommandToolkit.getRunnerScopeRefusal({
+          cluster,
+          command: command.rollbackCommand,
+        });
+
+      if (rollback) {
+        return `The rollbackCommand would be refused when it has to run: ${rollback} The command was neither run nor recorded — give a rollback the Runner may run, or omit it.`;
+      }
+    }
+
+    return null;
+  }
+
+  /*
    * Null when the command may auto-execute in FullAuto; otherwise why not.
    * Bash/SSH: denylist, structural guard and the rule allowlist, for the
    * forward command AND its rollback. Kubectl: the tier policy with the
@@ -892,13 +1528,12 @@ export default class RemediationCommandToolkit {
           };
         }
 
-        return {
-          text: `${verdict.reason} The command was NOT executed. ${this.describeWhereRefusedChangesGo()} Do NOT hunt for a worse safe substitute; use a safe change (rollout restart/undo, scale, delete a named pod, cordon/uncordon, label/annotate) only when it is genuinely the right fix.`,
-          approvalReason:
-            verdict.tier === KubectlCommandTier.RiskyWrite
-              ? `it is a riskier change (${verdict.tier}) and cluster "${cluster.clusterName}" only runs safe changes on its own`
-              : `cluster "${cluster.clusterName}" does not allow it without a human: ${verdict.reason}`,
-        };
+        return this.describeNeedsAHuman({
+          cluster,
+          command,
+          verdict,
+          bypassApproval,
+        });
       }
 
       if (command.rollbackCommand) {
@@ -966,6 +1601,59 @@ export default class RemediationCommandToolkit {
     }
 
     return null;
+  }
+
+  /*
+   * Why a kubectl change the policy allows did not run on its own, for the
+   * model (text) and for the card a human approves (approvalReason). Named
+   * for what actually holds it back: a protected namespace and a node drain
+   * or taint need a human in EVERY mode — Bypass approval and the allowlist
+   * included — so "riskier change on a cluster that only runs safe changes"
+   * would be false for them (a Bypass cluster runs riskier changes, and a
+   * one-object restart in kube-system is not a riskier change).
+   */
+  private describeNeedsAHuman(data: {
+    cluster: KubernetesClusterAiAccessStatus;
+    command: AiRemediationCommand;
+    verdict: KubectlAutoExecutionVerdict;
+    bypassApproval: boolean;
+  }): FullAutoRefusal {
+    const { cluster, verdict } = data;
+    const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
+      data.command.command,
+    );
+    const verb: string = (policy.verb.split(" ")[0] || "").toLowerCase();
+    const whereItGoes: string = this.describeWhereRefusedChangesGo();
+
+    if (policy.protectedNamespace) {
+      const namespace: string = policy.protectedNamespace;
+      return {
+        text: `${verdict.reason} The command was NOT executed: writes in ${namespace} always need a human, in every mode — Bypass approval and the cluster's allowlist included. ${whereItGoes} Do NOT try another change in ${namespace}; it would need a human just the same.`,
+        approvalReason: `it changes the protected namespace ${namespace} — writes in ${namespace} always need a human, in every mode`,
+      };
+    }
+
+    if (ALWAYS_ASKS_NODE_VERBS.has(verb)) {
+      return {
+        text: `${verdict.reason} The command was NOT executed: a node ${verb} always needs a human, in every mode — Bypass approval and the cluster's allowlist included. ${whereItGoes} Do NOT hunt for a worse substitute; cordon one node (a safe change) only when that alone is genuinely the right fix.`,
+        approvalReason: `a node ${verb} always needs a human, in every mode`,
+      };
+    }
+
+    if (
+      verdict.tier === KubectlCommandTier.RiskyWrite &&
+      !data.bypassApproval
+    ) {
+      return {
+        text: `${verdict.reason} The command was NOT executed. ${whereItGoes} Do NOT hunt for a worse safe substitute; use a safe change (${KUBECTL_SAFE_CHANGES_SUMMARY}) only when it is genuinely the right fix.`,
+        approvalReason: `it is a riskier change (${verdict.tier}), and cluster "${cluster.clusterName}" runs only safe changes on its own unless its kubectl allowlist names the exact command`,
+      };
+    }
+
+    return {
+      text: `${verdict.reason} The command was NOT executed. ${whereItGoes}`,
+      approvalReason: `cluster "${cluster.clusterName}" does not allow it without a human: ${verdict.reason}`,
+    };
   }
 
   // Where a kubectl change this round may not run on its own ends up.
@@ -1058,14 +1746,14 @@ export default class RemediationCommandToolkit {
     }
 
     if (!status) {
-      this.revokedClusterIds.add(clusterId);
+      this.revokeCluster(clusterId);
       return {
         text: `Cluster "${label}" no longer exists in this project. ${stopText}`,
       };
     }
 
     if (!status.isRemediationReady) {
-      this.revokedClusterIds.add(clusterId);
+      this.revokeCluster(clusterId);
       const gap: KubernetesAiAccessGap | undefined = status.gaps.find(
         (candidate: KubernetesAiAccessGap) => {
           return candidate.blocks !== "investigation";
@@ -1083,7 +1771,7 @@ export default class RemediationCommandToolkit {
       status.runner.id !== command.runnerId ||
       (status.credentialId || undefined) !== (command.credentialId || undefined)
     ) {
-      this.revokedClusterIds.add(clusterId);
+      this.revokeCluster(clusterId);
       return {
         text: `Cluster "${status.clusterName}" was re-bound to a different Runner or credential during this run. ${stopText}`,
       };
@@ -1111,6 +1799,23 @@ export default class RemediationCommandToolkit {
     }
 
     return null;
+  }
+
+  /*
+   * The cluster stopped allowing this run to change it: its AI page turned
+   * remediation off or lost readiness, it was re-bound, or it was deleted.
+   * The rest of the run treats it as never having been a target, and what
+   * was kept for its proposal is dropped — the operator just withdrew
+   * exactly what that card would ask them to approve. (A cluster moved to
+   * "ask for approval" is NOT revoked: its kept changes are the proposal.)
+   */
+  private revokeCluster(clusterId: string): void {
+    this.revokedClusterIds.add(clusterId);
+    this.commandsNeedingApproval = this.commandsNeedingApproval.filter(
+      (kept: RemediationCommandNeedingApproval) => {
+        return kept.command.kubernetesClusterId !== clusterId;
+      },
+    );
   }
 
   private replaceClusterTarget(status: KubernetesClusterAiAccessStatus): void {
@@ -1195,11 +1900,47 @@ export default class RemediationCommandToolkit {
         };
       }
 
+      /*
+       * One AI run changing a cluster at a time. The run's start checked
+       * this too, but a rule-driven run that changed the cluster since — or
+       * a round that started alongside this one — is only visible now; two
+       * unattended fixes on one workload verify and roll back on top of
+       * each other. Checked under the breaker lock, so of two runs racing
+       * for their first change the second sees the first one's job.
+       */
+      if (this.options.clusterHold) {
+        const hold: ClusterRoundHold | null =
+          await AutoRemediationRuleEngineService.findRoundHoldingCluster({
+            projectId: this.options.projectId,
+            clusterId,
+            forRound: {
+              suggestionId: this.options.suggestionId,
+              createdAt: this.options.suggestionCreatedAt,
+            },
+            anyOrder: this.options.clusterHold.anyOrder,
+            subject: this.options.clusterHold.subject,
+          });
+
+        if (hold) {
+          await RemediationCommandToolkit.releaseLock(mutex);
+          logger.warn(
+            `RemediationCommandToolkit: another AI run (${hold.suggestionId}) on cluster ${clusterId} ${hold.description}; refusing an inline change.`,
+          );
+          return {
+            mutex: null,
+            refusal: {
+              text: `Another OneUptime AI run on cluster "${label}" ${hold.description}, so this run may not change the cluster too — two unattended fixes on one cluster verify and roll back on top of each other. The command was NOT executed. ${this.describeWhereRefusedChangesGo()} Do NOT try other changes on this cluster.`,
+              approvalReason: `another OneUptime AI run on cluster "${label}" ${hold.description}`,
+            },
+          };
+        }
+      }
+
       return { mutex };
     } catch (error) {
       await RemediationCommandToolkit.releaseLock(mutex);
       logger.error(
-        `RemediationCommandToolkit: circuit-breaker check failed for cluster ${clusterId}; refusing the inline change: ${error}`,
+        `RemediationCommandToolkit: circuit-breaker or in-flight run check failed for cluster ${clusterId}; refusing the inline change: ${error}`,
       );
       return { mutex: null, refusal: couldNotCheck };
     }
@@ -1239,7 +1980,7 @@ export default class RemediationCommandToolkit {
     return {
       definition: {
         name: "propose_remediation_commands",
-        description: `Propose an ordered plan of at most ${MAX_PLAN_COMMANDS} remediation commands for one-click human approval. Nothing executes until a human approves the whole plan. Call this at most once with your final plan (a later call replaces the earlier one). Provide a rollbackCommand for every state-changing command that has an undo. Kubectl commands run through the cluster's Runner; destructive kubectl (deleting namespaces/volumes/nodes/secrets, exec, apply) is refused even with approval.`,
+        description: `Propose an ordered plan of at most ${MAX_PLAN_COMMANDS} remediation commands for one-click human approval. Nothing executes until a human approves the whole plan. Call this at most once with your final plan (a later call replaces the earlier one). Provide a rollbackCommand for every state-changing command that has an undo (for Kubectl, e.g. kubectl rollout undo deployment/<name> -n <namespace>). Kubectl commands run through the cluster's Runner, and a write outside its writeScope (list_command_targets) is refused; ${KUBECTL_NEVER_RUNS_SUMMARY}.`,
         inputSchema: {
           type: "object",
           properties: {
@@ -1632,6 +2373,19 @@ export default class RemediationCommandToolkit {
       }
 
       rollbackDisplay = rollbackPolicy.displayCommand;
+    }
+
+    /*
+     * A write the cluster's Runner has said it will refuse is never
+     * composed into a proposal or run — nobody's click could make it run.
+     */
+    const scopeRefusal: string | null = this.getCommandScopeRefusal(cluster, {
+      command: policy.displayCommand,
+      rollbackCommand: rollbackDisplay,
+    });
+
+    if (scopeRefusal) {
+      return { errorText: scopeRefusal };
     }
 
     return {

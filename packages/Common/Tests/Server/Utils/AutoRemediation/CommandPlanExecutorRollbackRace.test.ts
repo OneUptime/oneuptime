@@ -16,6 +16,7 @@ import AutoRemediationSuggestionType from "../../../../Types/AutoRemediation/Aut
 import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import { AiRemediationRollbackStatus } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
+import { Red500 } from "../../../../Types/BrandColors";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
@@ -698,5 +699,264 @@ describe("CommandPlanExecutor.executeRollback — resuming an interrupted rollba
     expect(outcome.rollbackStatus).toBe(AiRemediationRollbackStatus.Completed);
     expect(enqueue).not.toHaveBeenCalled();
     expect(writes).toHaveLength(0);
+  });
+});
+
+/*
+ * A resumed rollback reports the WHOLE plan (PR #3953 review,
+ * remediation-r2-01). The interrupted attempt may already have settled an
+ * undo as Failed or left it for a human, and an undo that was in flight at
+ * the restart may settle Failed from its job. Any of these keeps the
+ * rollback Failed — with the red feed item a human needs — instead of the
+ * "completed" or "nothing to roll back" a resumed attempt would otherwise
+ * derive from its own work alone; the verifier forces the next round to ask
+ * first on exactly that status.
+ */
+describe("CommandPlanExecutor.executeRollback — a resumed rollback carries the interrupted attempt's failures", () => {
+  let enqueue: jest.SpyInstance;
+  let feed: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+    feed = jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    enqueue = jest
+      .spyOn(RunnerJobService, "enqueueAiCommand")
+      .mockImplementation(
+        async (args: { stepId: string }): Promise<RunnerJob> => {
+          return job(JOB_IDS[args.stepId]!, RunnerJobStatus.Pending);
+        },
+      );
+    jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockImplementation(
+        async (args: { jobId: ObjectID }): Promise<RunnerJob> => {
+          return job(args.jobId, RunnerJobStatus.Succeeded);
+        },
+      );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function executed(
+    sequence: number,
+    rollbackExecution?: Record<string, unknown> | undefined,
+  ): Record<string, unknown> {
+    return command(sequence, {
+      execution: { status: "Succeeded", exitCode: 0 },
+      ...(rollbackExecution ? { rollbackExecution } : {}),
+    });
+  }
+
+  function planOf(commands: Array<Record<string, unknown>>): JSONObject {
+    return {
+      commands,
+      executionStatus: "Completed",
+      rollbackHeartbeatAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    } as unknown as JSONObject;
+  }
+
+  function enqueuedCommands(): Array<string> {
+    return enqueue.mock.calls.map((call: Array<unknown>) => {
+      return (call[0] as Record<string, unknown>)["command"] as string;
+    });
+  }
+
+  function feedMarkdown(): string {
+    expect(feed).toHaveBeenCalledTimes(1);
+    return (feed.mock.calls[0]![0] as { feedInfoInMarkdown: string })
+      .feedInfoInMarkdown;
+  }
+
+  function feedColor(): unknown {
+    return (feed.mock.calls[0]![0] as { displayColor: unknown }).displayColor;
+  }
+
+  const SUCCEEDED_UNDO: Record<string, unknown> = {
+    status: "Succeeded",
+    exitCode: 0,
+  };
+
+  it("an undo the interrupted attempt already FAILED keeps the resumed rollback Failed, while the in-flight one settles from its job and only the untouched one runs", async () => {
+    const store: Store = {
+      plan: planOf([
+        executed(1),
+        executed(2, {
+          status: "Pending",
+          runnerJobId: JOB_IDS["ai-rollback-2"]!.toString(),
+        }),
+        executed(3, {
+          status: "Failed",
+          exitCode: 1,
+          errorMessage: 'deployment "web" not found',
+        }),
+      ]),
+      verificationStatus: AutoRemediationVerificationStatus.Failed,
+    };
+    backWithStore(store);
+    jest
+      .spyOn(RunnerJobService, "findOneById")
+      .mockResolvedValue(
+        job(JOB_IDS["ai-rollback-2"]!, RunnerJobStatus.Succeeded) as never,
+      );
+
+    const outcome: CommandPlanRollbackOutcome =
+      await CommandPlanExecutor.executeRollback({
+        suggestion: suggestionWith(store.plan),
+      });
+
+    // Nothing is re-run: 3 failed before, 2 settles from its job.
+    expect(enqueuedCommands()).toEqual(["undo-1"]);
+    expect(store.plan["rollbackStatus"]).toBe("Failed");
+    expect(outcome.rollbackStatus).toBe(AiRemediationRollbackStatus.Failed);
+    expect(outcome.failed).toBe(1);
+    expect(outcome.rolledBack).toBe(2);
+    expect(outcome.summary).toContain("did NOT fully complete");
+    expect(feedMarkdown()).toContain("did not fully complete");
+    expect(feedColor()).toBe(Red500);
+  });
+
+  it("an undo the interrupted attempt LEFT FOR A HUMAN, with nothing left to run, is Failed — never NotApplicable — and the feed says who has to undo what", async () => {
+    const store: Store = {
+      plan: planOf([
+        executed(1, SUCCEEDED_UNDO),
+        executed(2, {
+          status: "Skipped",
+          errorMessage:
+            'Rollback not run: cluster "prod-us" no longer allows AI remediation. Undo it manually: undo-2',
+        }),
+        executed(3, SUCCEEDED_UNDO),
+      ]),
+      verificationStatus: AutoRemediationVerificationStatus.Failed,
+    };
+    backWithStore(store);
+
+    const outcome: CommandPlanRollbackOutcome =
+      await CommandPlanExecutor.executeRollback({
+        suggestion: suggestionWith(store.plan),
+      });
+
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(store.plan["rollbackStatus"]).toBe("Failed");
+    expect(outcome.rollbackStatus).toBe(AiRemediationRollbackStatus.Failed);
+    expect(outcome.leftForHuman).toBe(1);
+    expect(outcome.summary).not.toContain("Rollback completed");
+    const markdown: string = feedMarkdown();
+    expect(markdown).toContain("was not run for 1 command(s)");
+    expect(markdown).toContain("undo-2");
+    expect(markdown).toContain("manual intervention is needed");
+    expect(feedColor()).toBe(Red500);
+  });
+
+  it("the ONLY undo was in flight at the restart and its job FAILED: Failed, not 'nothing was rolled back'", async () => {
+    const store: Store = {
+      plan: planOf([
+        executed(1, {
+          status: "Pending",
+          runnerJobId: JOB_IDS["ai-rollback-1"]!.toString(),
+        }),
+      ]),
+      verificationStatus: AutoRemediationVerificationStatus.Failed,
+    };
+    backWithStore(store);
+    jest.spyOn(RunnerJobService, "findOneById").mockResolvedValue(
+      job(JOB_IDS["ai-rollback-1"]!, RunnerJobStatus.Failed, {
+        errorMessage: "rollout undo failed",
+      }) as never,
+    );
+
+    const outcome: CommandPlanRollbackOutcome =
+      await CommandPlanExecutor.executeRollback({
+        suggestion: suggestionWith(store.plan),
+      });
+
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(store.plan["rollbackStatus"]).toBe("Failed");
+    expect(outcome.rollbackStatus).toBe(AiRemediationRollbackStatus.Failed);
+    expect(outcome.failed).toBe(1);
+    expect(outcome.summary).not.toContain(
+      "no executed command carried a rollback command",
+    );
+    expect(feedMarkdown()).toContain("did not fully complete");
+  });
+
+  it("names the left-for-a-human undo AND counts the failed one when the interrupted attempt had both", async () => {
+    const store: Store = {
+      plan: planOf([
+        executed(1, {
+          status: "Skipped",
+          errorMessage: "Rollback not run. Undo it manually: undo-1",
+        }),
+        executed(2, {
+          status: "Failed",
+          exitCode: 1,
+          errorMessage: "boom",
+        }),
+      ]),
+      verificationStatus: AutoRemediationVerificationStatus.Failed,
+    };
+    backWithStore(store);
+
+    const outcome: CommandPlanRollbackOutcome =
+      await CommandPlanExecutor.executeRollback({
+        suggestion: suggestionWith(store.plan),
+      });
+
+    expect(outcome.rollbackStatus).toBe(AiRemediationRollbackStatus.Failed);
+    const markdown: string = feedMarkdown();
+    expect(markdown).toContain("undo-1");
+    expect(markdown).toContain("1 other rollback command(s) failed");
+  });
+
+  it("negative control: a resumed rollback whose earlier undos all SUCCEEDED and has nothing left is Completed, quietly", async () => {
+    const store: Store = {
+      plan: planOf([executed(1, SUCCEEDED_UNDO), executed(2, SUCCEEDED_UNDO)]),
+      verificationStatus: AutoRemediationVerificationStatus.Failed,
+    };
+    backWithStore(store);
+
+    const outcome: CommandPlanRollbackOutcome =
+      await CommandPlanExecutor.executeRollback({
+        suggestion: suggestionWith(store.plan),
+      });
+
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(store.plan["rollbackStatus"]).toBe("Completed");
+    expect(outcome.rollbackStatus).toBe(AiRemediationRollbackStatus.Completed);
+    expect(outcome.summary).toContain("Rollback completed: 2 command(s)");
+  });
+
+  it("a status and its counts never contradict: a rollback recorded Completed over a failed undo is reported Failed", async () => {
+    const store: Store = {
+      plan: {
+        ...planOf([
+          executed(1, SUCCEEDED_UNDO),
+          executed(2, { status: "Failed", exitCode: 1, errorMessage: "boom" }),
+        ]),
+        rollbackStatus: "Completed",
+      } as unknown as JSONObject,
+      verificationStatus: AutoRemediationVerificationStatus.Failed,
+    };
+    const { writes } = backWithStore(store);
+
+    const outcome: CommandPlanRollbackOutcome =
+      await CommandPlanExecutor.executeRollback({
+        suggestion: suggestionWith(store.plan),
+      });
+
+    // Settled already: nothing runs, nothing is written...
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(writes).toHaveLength(0);
+    // ...but the outcome the verifier gates the follow-up on says Failed.
+    expect(outcome.rollbackStatus).toBe(AiRemediationRollbackStatus.Failed);
+    expect(outcome.summary).toContain("did NOT fully complete");
   });
 });

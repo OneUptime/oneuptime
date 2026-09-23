@@ -1155,7 +1155,12 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
 
     // Headroom: nothing to tell the human, nothing to change on the row.
     expect(countBy).toHaveBeenCalledTimes(1);
-    expect(jobFindBy).toHaveBeenCalledTimes(1);
+    /*
+     * Two job reads: the breaker's inline-job count, and the in-flight
+     * check's read of every AI run's kubectl jobs on the cluster (a
+     * rule-driven run that changed it holds it too — PR #3953 review).
+     */
+    expect(jobFindBy).toHaveBeenCalledTimes(2);
     expect(incidentFeed).not.toHaveBeenCalled();
     expect(suggestionUpdate).not.toHaveBeenCalled();
   });
@@ -1818,6 +1823,236 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
     });
   });
 
+  /*
+   * A round that ran nothing proposes what it kept — but only if the
+   * cluster, as it stands when the round ends, still allows it (PR #3953
+   * review, remediation-r2-03). An operator who turned remediation off,
+   * re-bound the cluster or deleted it mid-round withdrew exactly what the
+   * card would ask them to approve, and a Runner whose write scope no longer
+   * covers a kept change would refuse it after the click.
+   */
+  describe("a proposal is checked against the cluster as it stands when the round ends", () => {
+    const RISKY_FIX_IN_API: string =
+      "kubectl set image deployment/api api=img:2 -n api";
+
+    beforeEach(() => {
+      (
+        KubernetesClusterAiAccessService.getStatusForCluster as unknown as jest.SpyInstance
+      ).mockResolvedValue(
+        clusterStatus({
+          remediationMode: KubernetesAiRemediationMode.Automatic,
+        }),
+      );
+    });
+
+    async function keepThenSettle(
+      commands: Array<string>,
+      atSettle: () => void,
+    ): Promise<void> {
+      mockSuggestionHonouringSelect(clusterRow());
+      const enqueue: jest.SpyInstance = mockInlineKubectl();
+      const request: { get: () => InvestigationRequest } = captureRequest();
+
+      await run();
+
+      for (const command of commands) {
+        const refused: ToolCallOutcome = await findTool(
+          request.get(),
+          "execute_remediation_command",
+        ).execute(kubectlCall(command));
+        expect(refused.success).toBe(false);
+      }
+      expect(enqueue).not.toHaveBeenCalled();
+
+      atSettle();
+
+      await request
+        .get()
+        .postAnalysis(postAnalysisArgs("**Summary** — set the new image."));
+    }
+
+    function liveAtSettle(
+      status: KubernetesClusterAiAccessStatus | null,
+    ): () => void {
+      return (): void => {
+        (
+          KubernetesClusterAiAccessService.getStatusForCluster as unknown as jest.SpyInstance
+        ).mockResolvedValue(status);
+      };
+    }
+
+    it.each([
+      [
+        "AI remediation was turned off",
+        liveAtSettle(
+          clusterStatus({
+            remediationMode: KubernetesAiRemediationMode.Disabled,
+            isRemediationReady: false,
+            gaps: [
+              {
+                code: "remediation_disabled",
+                title: "AI remediation is turned off for this cluster",
+                description: "",
+                nextStep: "",
+                blocks: "remediation",
+              },
+            ],
+          }),
+        ),
+        "stopped allowing AI remediation during this round (AI remediation is turned off for this cluster)",
+      ],
+      [
+        "the cluster was re-bound to another Runner",
+        liveAtSettle(
+          clusterStatus({
+            remediationMode: KubernetesAiRemediationMode.Automatic,
+            runner: {
+              id: ObjectID.generate().toString(),
+              name: "kubernetes-agent/prod-us-v2",
+              isOnline: true,
+              canRunAiCommands: true,
+            },
+          }),
+        ),
+        "re-bound to a different Runner or credential during this round",
+      ],
+      [
+        "the cluster was deleted",
+        liveAtSettle(null),
+        "was deleted during this round",
+      ],
+      [
+        "the cluster's status cannot be read",
+        (): void => {
+          (
+            KubernetesClusterAiAccessService.getStatusForCluster as unknown as jest.SpyInstance
+          ).mockRejectedValue(new Error("db down"));
+        },
+        "could not confirm that cluster",
+      ],
+    ])(
+      "settles NoneApplicable, with no approval ping, when %s",
+      async (_label: string, atSettle: () => void, reason: string) => {
+        await keepThenSettle([RISKY_FIX], atSettle);
+
+        const set: ReturnType<typeof settleSet> = settleSet();
+        expect(set.status).toBe(AutoRemediationSuggestionStatus.NoneApplicable);
+        expect(set.rationaleMarkdown).toContain(reason);
+        expect(set.rationaleMarkdown).toContain(
+          "so nothing was run or proposed",
+        );
+        expect(set.commandPlan).toBeUndefined();
+        expect(
+          suggestionCas.mock.calls.some((call: Array<unknown>) => {
+            return (
+              (call[0] as { set: { status: string } }).set.status ===
+              AutoRemediationSuggestionStatus.Suggested
+            );
+          }),
+        ).toBe(false);
+        expect(lastFeed().feedInfoInMarkdown).not.toContain(
+          "needs your approval",
+        );
+        expect(lastFeed().workspaceNotification.sendWorkspaceNotification).toBe(
+          false,
+        );
+      },
+    );
+
+    it("drops a kept change the Runner's live write scope refuses, and renumbers what is left from 1", async () => {
+      await keepThenSettle(
+        [RISKY_FIX, RISKY_FIX_IN_API],
+        liveAtSettle(
+          clusterStatus({
+            remediationMode: KubernetesAiRemediationMode.Automatic,
+            runner: {
+              id: CLUSTER_RUNNER_ID.toString(),
+              name: "kubernetes-agent/prod-us",
+              isOnline: true,
+              canRunAiCommands: true,
+              posture: {
+                inCluster: true,
+                allowWrites: true,
+                writeNamespaces: ["api"],
+              },
+            },
+          }),
+        ),
+      );
+
+      const set: ReturnType<typeof settleSet> = settleSet();
+      expect(set.status).toBe(AutoRemediationSuggestionStatus.Suggested);
+      const commands: Array<Record<string, unknown>> = set.commandPlan![
+        "commands"
+      ] as unknown as Array<Record<string, unknown>>;
+      expect(commands).toHaveLength(1);
+      expect(commands[0]).toMatchObject({
+        sequence: 1,
+        command: RISKY_FIX_IN_API,
+      });
+      expect(set.rationaleMarkdown).not.toContain(RISKY_FIX);
+    });
+
+    it("proposes nothing when the Runner's live write scope refuses every kept change", async () => {
+      await keepThenSettle(
+        [RISKY_FIX],
+        liveAtSettle(
+          clusterStatus({
+            remediationMode: KubernetesAiRemediationMode.Automatic,
+            runner: {
+              id: CLUSTER_RUNNER_ID.toString(),
+              name: "kubernetes-agent/prod-us",
+              isOnline: true,
+              canRunAiCommands: true,
+              posture: {
+                inCluster: true,
+                allowWrites: true,
+                writeNamespaces: ["api"],
+              },
+            },
+          }),
+        ),
+      );
+
+      const set: ReturnType<typeof settleSet> = settleSet();
+      expect(set.status).toBe(AutoRemediationSuggestionStatus.NoneApplicable);
+      expect(set.rationaleMarkdown).toContain("would refuse every change");
+    });
+
+    it("negative control: a cluster still ready and unchanged gets the one-click card with exactly the kept change", async () => {
+      await keepThenSettle([RISKY_FIX], (): void => {
+        return undefined;
+      });
+
+      const set: ReturnType<typeof settleSet> = settleSet();
+      expect(set.status).toBe(AutoRemediationSuggestionStatus.Suggested);
+      expect(
+        (set.commandPlan!["commands"] as unknown as Array<unknown>).length,
+      ).toBe(1);
+      expect(lastFeed().feedInfoInMarkdown).toContain(
+        "AI needs your approval for 1 kubectl change(s)",
+      );
+      expect(lastFeed().workspaceNotification.sendWorkspaceNotification).toBe(
+        true,
+      );
+    });
+
+    it("negative control: a cluster moved to Ask for approval still gets the card — that is not a withdrawal", async () => {
+      await keepThenSettle(
+        [RISKY_FIX],
+        liveAtSettle(
+          clusterStatus({
+            remediationMode: KubernetesAiRemediationMode.RequireApproval,
+          }),
+        ),
+      );
+
+      expect(settleSet().status).toBe(
+        AutoRemediationSuggestionStatus.Suggested,
+      );
+    });
+  });
+
   it("a BypassApproval round executes the riskier fix inline and settles AutoExecuted, with no approval card", async () => {
     mockSuggestionHonouringSelect(clusterRow());
     const enqueue: jest.SpyInstance = mockInlineKubectl();
@@ -2059,6 +2294,38 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
       expect(context).toContain("may STILL BE APPLIED");
     });
 
+    it("never tells the next round a change was undone when an undo failed — even under a rollback recorded as completed", async () => {
+      /*
+       * A rollback status written before resumed rollbacks carried an
+       * interrupted attempt's failures forward (PR #3953 review,
+       * remediation-r2-01) can read Completed over a failed undo. The
+       * per-command record wins.
+       */
+      const context: string = await contextFor(
+        previousAttempt({
+          commands: [
+            executedWith({
+              status: "Failed",
+              exitCode: 1,
+              errorMessage: 'deployments.apps "web" not found',
+            }),
+          ],
+          executionStatus: "Completed",
+          rollbackStatus: "Completed",
+        }),
+      );
+
+      expect(context).toContain(`rollback ${SAFE_UNDO} → ran and FAILED`);
+      expect(context).toContain(
+        "Rollback of this attempt: did NOT fully complete",
+      );
+      expect(context).not.toContain("Rollback of this attempt: completed");
+      expect(context).toContain("may STILL BE APPLIED");
+      expect(context).toContain(
+        "At least one earlier change was NOT fully rolled back",
+      );
+    });
+
     it("negative control: a completed rollback reads as undone, with no warning", async () => {
       const context: string = await contextFor(
         previousAttempt({
@@ -2201,7 +2468,8 @@ describe("RemediationExecutionRunner.executeRemediation — rule-driven runs and
     await run();
 
     expect(toolNames(request.get())).toContain("execute_remediation_command");
-    expect(jobFindBy).toHaveBeenCalledTimes(1);
+    // The hold check's read of the cluster's AI kubectl jobs, then the breaker's.
+    expect(jobFindBy).toHaveBeenCalledTimes(2);
 
     const targets: ToolCallOutcome = await listedTargets(request.get());
     expect(targets.result?.rowCount).toBe(1);
@@ -2272,7 +2540,19 @@ describe("RemediationExecutionRunner.executeRemediation — rule-driven runs and
   });
 
   it("treats a failed breaker read as tripped for a rule-driven FullAuto run", async () => {
-    jobFindBy.mockRejectedValue(new Error("db down"));
+    /*
+     * Only the breaker's inline-job count fails: the hold check (which
+     * also reads the cluster's jobs, and runs first) fails the same safe
+     * direction, and is pinned on its own below.
+     */
+    jobFindBy.mockImplementation(async (args: unknown): Promise<never> => {
+      const query: Record<string, unknown> =
+        (args as { query?: Record<string, unknown> }).query || {};
+      if (query["stepId"]) {
+        throw new Error("db down");
+      }
+      return [] as never;
+    });
     const request: { get: () => InvestigationRequest } = captureRequest();
 
     await run();
@@ -2449,6 +2729,54 @@ describe("RemediationExecutionRunner.executeRemediation — rule-driven runs and
     expect(targets.result?.rowCount).toBe(0);
     expect(request.get().contextSummary).toContain(
       "could not be checked for another OneUptime AI round in flight",
+    );
+  });
+
+  it("does not change a cluster another RULE-driven run is still changing — two rule runs never fix one cluster at once (PR #3953 review)", async () => {
+    const otherRun: ObjectID = ObjectID.generate();
+    jobFindBy.mockImplementation(
+      async (args: unknown): Promise<Array<RunnerJob>> => {
+        const query: Record<string, unknown> =
+          (args as { query?: Record<string, unknown> }).query || {};
+        // The hold check reads every AI kubectl job on the cluster.
+        return (query["stepId"]
+          ? []
+          : [
+              {
+                id: ObjectID.generate(),
+                autoRemediationSuggestionId: otherRun,
+                stepId: "ai-command-1",
+              },
+            ]) as unknown as Array<RunnerJob>;
+      },
+    );
+    suggestionFindBy.mockImplementation(
+      async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+        const query: Record<string, unknown> =
+          (args as { query?: Record<string, unknown> }).query || {};
+        return (query["_id"]
+          ? [
+              {
+                id: otherRun,
+                _id: otherRun.toString(),
+                status: AutoRemediationSuggestionStatus.Planning,
+                executionMode: AutoRemediationExecutionMode.FullAuto,
+                incidentId: ObjectID.generate(),
+                ruleNameSnapshot: "Scale web on latency",
+                createdAt: new Date(),
+              },
+            ]
+          : []) as unknown as Array<AutoRemediationSuggestion>;
+      },
+    );
+    const request: { get: () => InvestigationRequest } = captureRequest();
+
+    await run();
+
+    const targets: ToolCallOutcome = await listedTargets(request.get());
+    expect(targets.result?.rowCount).toBe(0);
+    expect(request.get().contextSummary).toContain(
+      "has another OneUptime AI round that is still changing it",
     );
   });
 

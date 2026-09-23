@@ -22,6 +22,8 @@ import {
   AiRemediationRollbackStatus,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import Text from "../../../Types/Text";
 import RunbookExecutionStatus from "../../../Types/Runbook/RunbookExecutionStatus";
 import { Green500, Red500 } from "../../../Types/BrandColors";
 import Color from "../../../Types/Color";
@@ -45,6 +47,7 @@ import AutoRemediationRuleEngineService from "../../Services/AutoRemediationRule
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import { FindOperator, Raw } from "typeorm";
 
 /*
  * A rollback refreshes its heartbeat before every step, and no single step
@@ -57,6 +60,33 @@ const ROLLBACK_HEARTBEAT_STALE_MINUTES: number = 10;
 const ROLLBACK_RESUME_LOOKBACK_HOURS: number = 24;
 
 const ROLLBACK_RESUME_LOCK_NAMESPACE: string = "AutoRemediationRollbackResume";
+
+// How many interrupted-rollback candidates one sweep reads.
+const ROLLBACK_RESUME_BATCH_SIZE: number = 50;
+
+/*
+ * The resume sweep's candidates are only plans whose rollback has NOT
+ * settled: commandPlan->>'rollbackStatus' absent, null or NotAttempted.
+ * Filtering settled rollbacks in the query — not after it — is what keeps
+ * the batch for rows that may still need resuming: every failed command
+ * plan stays a Failed verification for the whole lookback window, and
+ * without this a day's worth of settled ones would fill every batch ahead
+ * of an interrupted rollback. Key and value go in as parameters.
+ */
+function rollbackNotSettled(): FindOperator<unknown> {
+  const keyParameter: string = `rollbackKey_${Text.generateRandomText(10)}`;
+  const valueParameter: string = `rollbackOpen_${Text.generateRandomText(10)}`;
+
+  return Raw(
+    (alias: string): string => {
+      return `((${alias} ->> CAST(:${keyParameter} AS text)) IS NULL OR (${alias} ->> CAST(:${keyParameter} AS text)) = CAST(:${valueParameter} AS text))`;
+    },
+    {
+      [keyParameter]: "rollbackStatus",
+      [valueParameter]: AiRemediationRollbackStatus.NotAttempted,
+    },
+  );
+}
 
 /*
  * Auto-remediation — the outcome verifier.
@@ -303,6 +333,11 @@ export default class RemediationVerifier {
    * their jobs, runs the rest, and the follow-up round follows as usual.
    * Without the lock, nothing is resumed this tick: two replicas rolling
    * back one plan could run an undo twice.
+   *
+   * The read only returns rollbacks that have not settled, oldest
+   * verification first, so neither settled plans nor newer failures can
+   * keep an interrupted rollback out of the batch until it ages out of the
+   * window. The in-memory check still decides (a heartbeat can be fresh).
    */
   @CaptureSpan()
   public static async resumeInterruptedRollbacks(): Promise<void> {
@@ -321,6 +356,7 @@ export default class RemediationVerifier {
             OneUptimeDate.getSomeHoursAgo(ROLLBACK_RESUME_LOOKBACK_HOURS),
             OneUptimeDate.getSomeMinutesAgo(ROLLBACK_HEARTBEAT_STALE_MINUTES),
           ),
+          commandPlan: rollbackNotSettled() as never,
         },
         select: {
           _id: true,
@@ -336,7 +372,8 @@ export default class RemediationVerifier {
           ruleNameSnapshot: true,
           kubernetesClusterId: true,
         },
-        limit: 50,
+        sort: { verificationCompletedAt: SortOrder.Ascending },
+        limit: ROLLBACK_RESUME_BATCH_SIZE,
         skip: 0,
         props: { isRoot: true },
       });

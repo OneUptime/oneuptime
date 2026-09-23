@@ -19,6 +19,7 @@ import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRem
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import AutoRemediationExecutionMode from "../../../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import AutoRemediationVerificationStatus from "../../../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import {
   AiRemediationCommandPolicyVerdict,
   MAX_PLAN_COMMANDS,
@@ -904,7 +905,11 @@ describe("RemediationCommandToolkit serializes concurrent runs on one cluster's 
    * first change at the same moment. The fake job store is what the breaker
    * counts; an enqueue appends to it.
    */
-  async function raceTwoRuns(serializing: boolean): Promise<number> {
+  async function raceTwoRuns(serializing: boolean): Promise<{
+    successes: number;
+    runs: Array<RemediationCommandToolkit>;
+    outcomes: Array<ToolCallOutcome>;
+  }> {
     mockHappyPath();
 
     const jobs: Array<RunnerJob> = [
@@ -967,18 +972,45 @@ describe("RemediationCommandToolkit serializes concurrent runs on one cluster's 
       execute(runB, kubectlArgs()),
     ]);
 
-    return outcomes.filter((outcome: ToolCallOutcome) => {
-      return outcome.success;
-    }).length;
+    return {
+      successes: outcomes.filter((outcome: ToolCallOutcome) => {
+        return outcome.success;
+      }).length,
+      runs: [runA, runB],
+      outcomes,
+    };
   }
 
   it("lets exactly one of two racing runs take the last slot", async () => {
-    expect(await raceTwoRuns(true)).toBe(1);
+    expect((await raceTwoRuns(true)).successes).toBe(1);
     expect(enqueueKubectl).toHaveBeenCalledTimes(1);
   });
 
+  it("the run that lost the race was refused by the breaker it read AFTER the winner's job landed, and keeps its change for a proposal", async () => {
+    const race: {
+      successes: number;
+      runs: Array<RemediationCommandToolkit>;
+      outcomes: Array<ToolCallOutcome>;
+    } = await raceTwoRuns(true);
+
+    const loser: number = race.outcomes.findIndex(
+      (outcome: ToolCallOutcome) => {
+        return !outcome.success;
+      },
+    );
+    expect(loser).toBeGreaterThanOrEqual(0);
+    expect(race.outcomes[loser]!.textForLlm).toContain(
+      "hourly circuit breaker",
+    );
+    const kept: Array<RemediationCommandNeedingApproval> =
+      race.runs[loser]!.getCommandsNeedingApproval();
+    expect(kept).toHaveLength(1);
+    expect(kept[0]!.reason).toContain("circuit breaker");
+    expect(race.runs[1 - loser]!.getCommandsNeedingApproval()).toHaveLength(0);
+  });
+
   it("negative control: without a lock that serializes, both runs read 2 of 3 and both run — the lock is what holds the limit", async () => {
-    expect(await raceTwoRuns(false)).toBe(2);
+    expect((await raceTwoRuns(false)).successes).toBe(2);
   });
 });
 
@@ -1131,5 +1163,363 @@ describe("RemediationCommandToolkit's rollback rule on an Automatic cluster — 
     expect(outcome.success).toBe(false);
     expect(outcome.textForLlm).toContain("Requires human approval");
     expect(enqueueKubectl).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * What a round kept for a proposal is dropped once the run sees the cluster
+ * stop allowing AI remediation (PR #3953 review, remediation-r2-03): turned
+ * off, re-bound, or deleted mid-run. The operator just withdrew exactly
+ * what the card would ask them to approve. Moving the cluster to "ask for
+ * approval" is not a withdrawal: that keeps everything (see above).
+ */
+describe("RemediationCommandToolkit drops what it kept for a cluster the run saw stop allowing AI remediation", () => {
+  beforeEach(mockHappyPath);
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const RISKY_WRITE_2: string =
+    "kubectl set image deployment/api api=img:2 -n web";
+
+  it.each([
+    [
+      "remediation turned off",
+      (): KubernetesClusterAiAccessStatus | null => {
+        return cluster({
+          remediationMode: KubernetesAiRemediationMode.Disabled,
+          isRemediationReady: false,
+          gaps: [
+            {
+              code: "remediation_disabled",
+              title: "AI remediation is turned off for this cluster",
+              description: "",
+              nextStep: "",
+              blocks: "remediation",
+            },
+          ],
+        });
+      },
+      "no longer allows AI remediation",
+    ],
+    [
+      "the cluster re-bound to another Runner",
+      (): KubernetesClusterAiAccessStatus | null => {
+        return cluster({
+          runner: {
+            id: OTHER_RUNNER_ID.toString(),
+            name: "kubernetes-agent/prod-us-v2",
+            isOnline: true,
+            canRunAiCommands: true,
+          },
+        });
+      },
+      "re-bound",
+    ],
+    [
+      "the cluster deleted",
+      (): KubernetesClusterAiAccessStatus | null => {
+        return null;
+      },
+      "no longer exists",
+    ],
+  ])(
+    "%s: the riskier change kept earlier is no longer proposed",
+    async (
+      _label: string,
+      revoked: () => KubernetesClusterAiAccessStatus | null,
+      refusal: string,
+    ) => {
+      const toolkit: RemediationCommandToolkit = buildToolkit({
+        proposesRefusedCommands: true,
+      });
+
+      await execute(
+        toolkit,
+        kubectlArgs({ command: RISKY_WRITE, rollbackCommand: SAFE_UNDO }),
+      );
+      expect(toolkit.getCommandsNeedingApproval()).toHaveLength(1);
+
+      liveStatus.mockResolvedValue(revoked());
+
+      const next: ToolCallOutcome = await execute(toolkit, kubectlArgs());
+
+      expect(next.success).toBe(false);
+      expect(next.textForLlm).toContain(refusal);
+      expect(toolkit.getCommandsNeedingApproval()).toHaveLength(0);
+      expect(enqueueKubectl).not.toHaveBeenCalled();
+    },
+  );
+
+  it("negative control: with the cluster unchanged, a second riskier change is kept alongside the first", async () => {
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      proposesRefusedCommands: true,
+    });
+
+    await execute(
+      toolkit,
+      kubectlArgs({ command: RISKY_WRITE, rollbackCommand: SAFE_UNDO }),
+    );
+    await execute(
+      toolkit,
+      kubectlArgs({ command: RISKY_WRITE_2, rollbackCommand: undefined }),
+    );
+
+    expect(
+      toolkit
+        .getCommandsNeedingApproval()
+        .map((kept: RemediationCommandNeedingApproval) => {
+          return kept.command.command;
+        }),
+    ).toEqual([RISKY_WRITE, RISKY_WRITE_2]);
+  });
+});
+
+/*
+ * The reason a kept change carries onto the approval card names what
+ * actually holds it back (PR #3953 review, remediation-r2-05). A write in a
+ * protected namespace — and a node drain or taint — needs a human in EVERY
+ * mode, so "a riskier change on a cluster that only runs safe changes" would
+ * be false on a Bypass cluster, and for a one-object restart in kube-system.
+ */
+describe("RemediationCommandToolkit says why a kept change needs a human", () => {
+  beforeEach(mockHappyPath);
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const KUBE_SYSTEM_RESTART: string =
+    "kubectl rollout restart deployment/coredns -n kube-system";
+
+  async function keptReason(
+    mode: KubernetesAiRemediationMode,
+    command: string,
+  ): Promise<{ reason: string; text: string }> {
+    const target: KubernetesClusterAiAccessStatus = cluster({
+      remediationMode: mode,
+    });
+    liveStatus.mockResolvedValue(target);
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      clusterTargets: [target],
+      proposesRefusedCommands: true,
+    });
+
+    const outcome: ToolCallOutcome = await execute(
+      toolkit,
+      kubectlArgs({ command, rollbackCommand: undefined }),
+    );
+
+    expect(outcome.success).toBe(false);
+    expect(enqueueKubectl).not.toHaveBeenCalled();
+    const kept: Array<RemediationCommandNeedingApproval> =
+      toolkit.getCommandsNeedingApproval();
+    expect(kept).toHaveLength(1);
+    return { reason: kept[0]!.reason, text: outcome.textForLlm };
+  }
+
+  it("on a Bypass cluster, a restart in kube-system names the protected namespace — never 'only runs safe changes'", async () => {
+    const kept: { reason: string; text: string } = await keptReason(
+      KubernetesAiRemediationMode.BypassApproval,
+      KUBE_SYSTEM_RESTART,
+    );
+
+    expect(kept.reason).toContain("protected namespace kube-system");
+    expect(kept.reason).toContain(
+      "writes in kube-system always need a human, in every mode",
+    );
+    expect(kept.reason).not.toContain("safe changes");
+    expect(kept.reason).not.toContain("riskier change");
+    expect(kept.text).toContain(
+      "writes in kube-system always need a human, in every mode",
+    );
+  });
+
+  it("on an Automatic cluster, the same SAFE restart in kube-system is not called a riskier change", async () => {
+    const kept: { reason: string; text: string } = await keptReason(
+      KubernetesAiRemediationMode.Automatic,
+      KUBE_SYSTEM_RESTART,
+    );
+
+    expect(kept.reason).toContain("protected namespace kube-system");
+    expect(kept.reason).not.toContain("riskier change");
+  });
+
+  it("a node drain names the drain — it needs a human in every mode", async () => {
+    const kept: { reason: string; text: string } = await keptReason(
+      KubernetesAiRemediationMode.Automatic,
+      "kubectl drain n1 --ignore-daemonsets",
+    );
+
+    expect(kept.reason).toContain("a node drain always needs a human");
+    expect(kept.reason).not.toContain("riskier change");
+  });
+
+  it("negative control: an ordinary riskier change on an Automatic cluster is still a riskier change, and the allowlist is named", async () => {
+    const kept: { reason: string; text: string } = await keptReason(
+      KubernetesAiRemediationMode.Automatic,
+      RISKY_WRITE,
+    );
+
+    expect(kept.reason).toContain("riskier change");
+    expect(kept.reason).toContain("kubectl allowlist");
+    expect(kept.reason).not.toContain("protected namespace");
+  });
+});
+
+/*
+ * The run's first change on a cluster re-checks, under the breaker lock,
+ * that no other AI run holds the cluster (PR #3953 review,
+ * remediation-r2-04): a rule-driven run that changed the cluster since this
+ * run started is visible only now.
+ */
+describe("RemediationCommandToolkit checks for another AI run holding the cluster at its first change", () => {
+  beforeEach(mockHappyPath);
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const INCIDENT_ID: ObjectID = new ObjectID(
+    "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+  );
+
+  // Another run's kubectl job on the cluster, as the hold check reads it.
+  function kubectlJobOf(suggestionId: ObjectID, stepId: string): RunnerJob {
+    return {
+      id: ObjectID.generate(),
+      _id: ObjectID.generate().toString(),
+      autoRemediationSuggestionId: suggestionId,
+      stepId,
+    } as unknown as RunnerJob;
+  }
+
+  function mockOtherRun(row: Record<string, unknown> | null): void {
+    jobFindBy.mockResolvedValue(
+      row ? [kubectlJobOf(OTHER_SUGGESTION_ID, "ai-command-1")] : [],
+    );
+    (
+      AutoRemediationSuggestionService.findBy as unknown as jest.SpyInstance
+    ).mockImplementation(
+      async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+        const query: Record<string, unknown> =
+          (args as { query?: Record<string, unknown> }).query || {};
+        // Only the read of the runs behind those jobs names ids.
+        return (query["_id"] && row
+          ? [row]
+          : []) as unknown as Array<AutoRemediationSuggestion>;
+      },
+    );
+  }
+
+  function ruleRun(
+    overrides: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      id: OTHER_SUGGESTION_ID,
+      _id: OTHER_SUGGESTION_ID.toString(),
+      status: AutoRemediationSuggestionStatus.Planning,
+      executionMode: AutoRemediationExecutionMode.FullAuto,
+      incidentId: new ObjectID("dddddddd-dddd-4ddd-8ddd-dddddddddddd"),
+      ruleNameSnapshot: "Restart web on 5xx",
+      createdAt: new Date(Date.now() + 60 * 1000),
+      ...overrides,
+    };
+  }
+
+  it("refuses the change while a rule-driven run is still changing the cluster — whatever the order — and keeps it for a proposal", async () => {
+    mockOtherRun(ruleRun());
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      proposesRefusedCommands: true,
+      suggestionCreatedAt: new Date(),
+      clusterHold: { anyOrder: false },
+    });
+
+    const outcome: ToolCallOutcome = await execute(toolkit, kubectlArgs());
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain(
+      'Another OneUptime AI run on cluster "prod-us" is still changing it',
+    );
+    expect(enqueueKubectl).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledTimes(1);
+    const kept: Array<RemediationCommandNeedingApproval> =
+      toolkit.getCommandsNeedingApproval();
+    expect(kept).toHaveLength(1);
+    expect(kept[0]!.reason).toContain("is still changing it");
+  });
+
+  it("refuses the change while a rule-driven run's fix on the cluster is still being verified", async () => {
+    mockOtherRun(
+      ruleRun({
+        status: AutoRemediationSuggestionStatus.AutoExecuted,
+        verificationStatus: AutoRemediationVerificationStatus.Pending,
+        verificationDeadlineAt: new Date(Date.now() + 10 * 60 * 1000),
+      }),
+    );
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      clusterHold: {
+        anyOrder: true,
+        subject: { incidentId: INCIDENT_ID },
+      },
+    });
+
+    const outcome: ToolCallOutcome = await execute(toolkit, kubectlArgs());
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain("still being verified");
+    expect(enqueueKubectl).not.toHaveBeenCalled();
+  });
+
+  it("negative control: once that fix was verified the change runs", async () => {
+    mockOtherRun(
+      ruleRun({
+        status: AutoRemediationSuggestionStatus.AutoExecuted,
+        verificationStatus: AutoRemediationVerificationStatus.Verified,
+      }),
+    );
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      clusterHold: { anyOrder: false },
+    });
+
+    const outcome: ToolCallOutcome = await execute(toolkit, kubectlArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(enqueueKubectl).toHaveBeenCalledTimes(1);
+  });
+
+  it("negative control: nothing else on the cluster — the change runs", async () => {
+    mockOtherRun(null);
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      clusterHold: { anyOrder: false },
+    });
+
+    const outcome: ToolCallOutcome = await execute(toolkit, kubectlArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(enqueueKubectl).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails CLOSED when the hold check cannot be read: refused, lock released", async () => {
+    mockOtherRun(null);
+    (
+      AutoRemediationSuggestionService.findBy as unknown as jest.SpyInstance
+    ).mockImplementation(async (args: unknown): Promise<never> => {
+      const query: Record<string, unknown> =
+        (args as { query?: Record<string, unknown> }).query || {};
+      if (query["executionMode"]) {
+        // The breaker's in-flight read works...
+        return [] as never;
+      }
+      // ...the hold check's does not.
+      throw new Error("db down");
+    });
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      clusterHold: { anyOrder: false },
+    });
+
+    const outcome: ToolCallOutcome = await execute(toolkit, kubectlArgs());
+
+    expect(outcome.success).toBe(false);
+    expect(enqueueKubectl).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledTimes(1);
   });
 });

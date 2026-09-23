@@ -46,6 +46,10 @@ import RunnerJobService, {
 import RunnerJobStatus from "../../../Types/Runbook/RunnerJobStatus";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
 import ToolResultSerializer from "../AI/Toolbox/Serializer";
+import KubectlJobRunner, {
+  KubectlTerminalJobFacts,
+} from "../AI/ClusterAccess/KubectlJobRunner";
+import RemediationCommandToolkit from "../AI/Remediation/RemediationCommandTools";
 import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 
@@ -91,7 +95,10 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  * A Worker restart mid-rollback leaves the plan's rollbackStatus unset with
  * a heartbeat that goes stale; the verifier's recovery sweep resumes it
  * (executeRollback settles rollbacks already handed to a Runner from their
- * jobs, and never re-runs one that ran).
+ * jobs, and never re-runs one that ran). The resumed rollback's outcome is
+ * the WHOLE plan's: an undo the interrupted attempt already settled as
+ * failed, or left for a human, keeps the rollback Failed — the verifier
+ * forces the follow-up round to ask first on exactly that.
  */
 
 const AI_COMMAND_CLAIM_TIMEOUT_MS: number = 60_000;
@@ -146,7 +153,10 @@ interface StartedCommand {
   state: AiRemediationCommandExecutionState;
   // Set when the command reached a Runner; null when it was refused first.
   job: RunnerJob | null;
-  // Whether the cluster's AI page should record this outcome.
+  /*
+   * Whether the cluster's AI page may record this outcome at all (it then
+   * records a success, or a failure about the cluster's ACCESS only).
+   */
   recordsClusterOutcome: boolean;
 }
 
@@ -404,6 +414,30 @@ export default class CommandPlanExecutor {
       const leftForHuman: Array<AiRemediationCommand> = [];
 
       /*
+       * A resumed rollback reports the WHOLE plan, not just what this
+       * attempt does: an undo the interrupted attempt already settled as
+       * Failed — or that reconcilePendingRollbacks just settled Failed from
+       * its job — keeps the rollback Failed, and one it left for a human is
+       * named again on the feed. Otherwise a resumed rollback whose earlier
+       * undo failed would report "completed" (or "nothing to roll back"),
+       * and the follow-up round would run unattended on top of a change
+       * that is still applied.
+       */
+      for (const command of plan.commands) {
+        const earlier: AiRemediationCommandExecutionState | undefined =
+          command.rollbackExecution;
+
+        if (earlier?.status === AiRemediationCommandExecutionStatus.Failed) {
+          anyFailed = true;
+        } else if (
+          earlier?.status === AiRemediationCommandExecutionStatus.Skipped
+        ) {
+          anyFailed = true;
+          leftForHuman.push(command);
+        }
+      }
+
+      /*
        * A forward command whose job could not be resolved even after
        * waiting may or may not have run. Its undo is not run blind; a human
        * is told to check.
@@ -451,6 +485,13 @@ export default class CommandPlanExecutor {
         })
         .reverse();
 
+      /*
+       * Nothing to run and nothing that went wrong, now or in an
+       * interrupted attempt: Completed when some undo ran, NotApplicable
+       * when none was ever needed. Anything else goes through the end of
+       * this method, which settles the status from the whole plan and says
+       * so on the feed.
+       */
       if (rollbackTargets.length === 0 && !anyFailed) {
         plan.rollbackStatus = plan.commands.some(
           (command: AiRemediationCommand) => {
@@ -564,6 +605,15 @@ export default class CommandPlanExecutor {
         : AiRemediationRollbackStatus.Completed;
       await this.persistPlan(suggestion, plan, "rollback");
 
+      const failedUndos: number = plan.commands.filter(
+        (command: AiRemediationCommand) => {
+          return (
+            command.rollbackExecution?.status ===
+            AiRemediationCommandExecutionStatus.Failed
+          );
+        },
+      ).length;
+
       await this.postFeedItem({
         suggestion,
         markdown:
@@ -574,11 +624,13 @@ export default class CommandPlanExecutor {
                     command.rollbackExecution?.errorMessage || "",
                   );
                 })
-                .join(
-                  " ",
-                )} Review the suggestion's per-command record; manual intervention is needed.`
+                .join(" ")}${
+                failedUndos > 0
+                  ? ` ${failedUndos} other rollback command(s) failed.`
+                  : ""
+              } Review the suggestion's per-command record; manual intervention is needed.`
             : anyFailed
-              ? `⚠️ **Auto-remediation rollback did not fully complete** — at least one rollback command failed. Review the suggestion's per-command record; manual intervention may be needed.`
+              ? `⚠️ **Auto-remediation rollback did not fully complete** — at least one rollback command failed, or its outcome is not known. Review the suggestion's per-command record; manual intervention may be needed.`
               : `↩️ **Auto-remediation rolled back** — the executed commands' rollback commands ran after verification failed. Escalation continues as normal.`,
         pingWorkspace: true,
         displayColor: anyFailed ? Red500 : Green500,
@@ -716,6 +768,15 @@ export default class CommandPlanExecutor {
     const { command, started } = data;
     const state: AiRemediationCommandExecutionState = started.state;
 
+    /*
+     * What the job's end says about the cluster's ACCESS. A job that never
+     * reached a Runner (the enqueue refused it) is an access failure; a
+     * wait that threw says nothing about the cluster.
+     */
+    let facts: KubectlTerminalJobFacts | null = started.job
+      ? null
+      : { status: RunnerJobStatus.Failed, errorMessage: state.errorMessage };
+
     if (started.job) {
       try {
         const terminalJob: RunnerJob = await RunnerJobService.pollUntilTerminal(
@@ -731,6 +792,12 @@ export default class CommandPlanExecutor {
         }
 
         this.settleFromJob(state, terminalJob, "Command");
+        facts = {
+          status: terminalJob.status,
+          exitCode: terminalJob.exitCode,
+          output: terminalJob.output,
+          errorMessage: terminalJob.errorMessage,
+        };
       } catch (error) {
         state.status = AiRemediationCommandExecutionStatus.Failed;
         state.completedAt = OneUptimeDate.getCurrentDate().toISOString();
@@ -739,8 +806,21 @@ export default class CommandPlanExecutor {
       }
     }
 
+    /*
+     * The cluster's "Last error" is about its AI ACCESS: a success proves
+     * the access works, and a failure is recorded only when it is about
+     * the access (never claimed, refused, timed out, unauthorized,
+     * unreachable). A deployment the plan named wrong must neither become
+     * the cluster's last error nor clear a real one.
+     */
+    const succeeded: boolean =
+      state.status === AiRemediationCommandExecutionStatus.Succeeded;
+    const recordsOutcome: boolean =
+      succeeded || (facts !== null && KubectlJobRunner.isAccessFailure(facts));
+
     if (
       started.recordsClusterOutcome &&
+      recordsOutcome &&
       command.stepType === RunbookStepType.Kubectl &&
       command.kubernetesClusterId &&
       ObjectID.isValidUUID(command.kubernetesClusterId)
@@ -903,6 +983,24 @@ export default class CommandPlanExecutor {
       (status.credentialId || undefined) !== (command.credentialId || undefined)
     ) {
       return `cluster "${status.clusterName}" is no longer reached with the credential this plan was composed for`;
+    }
+
+    /*
+     * The Runner's write scope as it reports it now: a write it would
+     * refuse is not enqueued (or, for a rollback, is left for a human with
+     * the reason) — never sent only to be refused.
+     */
+    const scopeRefusal: string | null =
+      RemediationCommandToolkit.getRunnerScopeRefusal({
+        cluster: status,
+        command: data.commandText,
+      });
+
+    if (scopeRefusal) {
+      // The callers end the sentence themselves.
+      return `the cluster's Runner would refuse it: ${
+        scopeRefusal.endsWith(".") ? scopeRefusal.slice(0, -1) : scopeRefusal
+      }`;
     }
 
     if (data.purpose === "rollback") {
@@ -1191,11 +1289,22 @@ export default class CommandPlanExecutor {
       }
     }
 
-    const rollbackStatus: AiRemediationRollbackStatus | undefined =
+    const storedStatus: AiRemediationRollbackStatus | undefined =
       plan?.rollbackStatus &&
       plan.rollbackStatus !== AiRemediationRollbackStatus.NotAttempted
         ? plan.rollbackStatus
         : undefined;
+
+    /*
+     * A status and its counts never contradict each other: an undo that
+     * failed or was left for a human makes a settled rollback Failed, even
+     * one recorded "completed" before resumed rollbacks carried earlier
+     * failures forward.
+     */
+    const rollbackStatus: AiRemediationRollbackStatus | undefined =
+      storedStatus !== undefined && failed + leftForHuman > 0
+        ? AiRemediationRollbackStatus.Failed
+        : storedStatus;
 
     let summary: string;
 

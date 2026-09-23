@@ -1,6 +1,9 @@
 import RunbookStepType from "../Runbook/RunbookStepType";
 import { JSONObject } from "../JSON";
-import { KubectlCommandTier } from "../Kubernetes/KubernetesClusterAiAccess";
+import {
+  KubectlCommandTier,
+  PROTECTED_KUBERNETES_NAMESPACES,
+} from "../Kubernetes/KubernetesClusterAiAccess";
 
 /*
  * The AI-composed command plan stored on
@@ -187,6 +190,43 @@ export const MAX_COMMAND_LENGTH_CHARS: number = 2000;
 export const MIN_COMMAND_TIMEOUT_MS: number = 1000;
 export const MAX_COMMAND_TIMEOUT_MS: number = 5 * 60 * 1000;
 export const DEFAULT_COMMAND_TIMEOUT_MS: number = 60 * 1000;
+
+/*
+ * The kubectl tiers and the unattended cluster modes in the words every
+ * remediation prompt, tool description and feed item uses. They restate the
+ * KubectlCommandTier and KubernetesAiRemediationMode doc comments in
+ * Types/Kubernetes/KubernetesClusterAiAccess and must keep matching them —
+ * and the policy (KubectlPolicy), which is what actually decides. One copy,
+ * so a prompt can never describe a tier the policy no longer has.
+ */
+
+// SafeWrite: what an Automatic cluster runs without a human.
+export const KUBECTL_SAFE_CHANGES_SUMMARY: string =
+  "rollout restart/undo/pause/resume of one workload, scale of one workload to a non-zero replica count, delete of one named pod, cordon/uncordon of one node, and label/annotate of one pod or workload with unreserved keys — each on exactly ONE named object (TYPE/NAME, e.g. deployment/web), never a selector, --all, several names or a bare kind";
+
+// RiskyWrite: needs a human unless the allowlist names it or approvals are bypassed.
+export const KUBECTL_RISKIER_CHANGES_SUMMARY: string =
+  "patch, set image/env/resources, drain, taint, scale to zero, deleting a workload or a job, create job --from=cronjob/<name>, and any change that touches several objects at once";
+
+// Asks a human whatever the cluster's mode, allowlist included.
+export const KUBECTL_ALWAYS_ASKS_SUMMARY: string = `a write in a protected namespace (${PROTECTED_KUBERNETES_NAMESPACES.join(
+  ", ",
+)}) and a node drain or taint always need a human, in every mode — Bypass approval and the allowlist included`;
+
+// Denied: never runs, whoever approves it.
+export const KUBECTL_NEVER_RUNS_SUMMARY: string =
+  "destructive commands never run, even with approval: exec, cp, port-forward, run, apply, edit, deleting namespaces/volumes/nodes/secrets/CRDs, any write to RBAC, admission-webhook or API-extension objects, create deployment/cronjob/job with --image, and a patch whose body is not JSON or that changes a pod's identity, privileges, host access, Secrets or command";
+
+// How the cluster's allowlist is read.
+export const KUBECTL_ALLOWLIST_SUMMARY: string =
+  "the cluster's kubectl allowlist is matched token by token: a pattern must have exactly as many tokens as the command, a * matches within one token only, and a flag must be spelled as the pattern spells it";
+
+export const KUBECTL_AUTOMATIC_MODE_SUMMARY: string = `Automatic: safe changes run without a human (${KUBECTL_SAFE_CHANGES_SUMMARY}). A riskier change (${KUBECTL_RISKIER_CHANGES_SUMMARY}) never runs without one: when the round could only find riskier fixes it ends by proposing exactly those for one-click approval; when it also ran safe fixes, a riskier fix is proposed only if verification shows the safe ones did not recover the signal (the follow-up round, which asks). Shapes on the cluster's kubectl allowlist run on their own.`;
+
+export const KUBECTL_BYPASS_MODE_SUMMARY: string =
+  "Bypass approval: AI does not ask. Every change the policy allows — safe AND riskier — runs on its own, follow-up rounds included.";
+
+export const KUBECTL_EVERY_MODE_LIMITS_SUMMARY: string = `In every mode, Bypass approval included: ${KUBECTL_NEVER_RUNS_SUMMARY}; ${KUBECTL_ALWAYS_ASKS_SUMMARY}; the cluster's in-cluster Runner never changes its own namespace, nor a namespace outside the ones its chart lets it change, nor nodes when its chart turned node operations off; and the hourly per-cluster circuit breaker turns an unattended run into a proposal.`;
 
 export class AiRemediationCommandPlanUtil {
   /*

@@ -12,12 +12,14 @@ import AlertFeedService from "../../../Server/Services/AlertFeedService";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import KubernetesClusterAiAccessService from "../../../Server/Services/KubernetesClusterAiAccessService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import RunnerJobService from "../../../Server/Services/RunnerJobService";
 import AIInvestigationQueue from "../../../Server/Utils/AI/SRE/InvestigationQueue";
 import logger from "../../../Server/Utils/Logger";
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Project from "../../../Models/DatabaseModels/Project";
+import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
 import AIRunType from "../../../Types/AI/AIRunType";
 import AutoRemediationExecutionMode from "../../../Types/AutoRemediation/AutoRemediationExecutionMode";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
@@ -27,6 +29,10 @@ import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  KUBECTL_ALWAYS_ASKS_SUMMARY,
+  KUBECTL_SAFE_CHANGES_SUMMARY,
+} from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
@@ -177,6 +183,12 @@ function mockBaseline(data: {
   jest
     .spyOn(AlertFeedService, "createAlertFeedItem")
     .mockResolvedValue(undefined as never);
+  /*
+   * The in-flight check also reads the AI kubectl jobs on the cluster (a
+   * rule-driven run that changed it holds it too): none unless a test
+   * says otherwise.
+   */
+  jest.spyOn(RunnerJobService, "findBy").mockResolvedValue([]);
 }
 
 describe("AutoRemediationRuleEngineService cluster-level remediation", () => {
@@ -549,7 +561,13 @@ describe("AutoRemediationRuleEngineService cluster feed copy states exactly what
     const markdown: string = incidentFeedMarkdown();
     expect(markdown).toContain("Automatic remediation is on for this cluster");
     expect(markdown).toContain("on its own");
-    expect(markdown).toContain("rollout restart/undo, scale");
+    /*
+     * The shared SafeWrite wording (PR #3953 round-two review): one named
+     * object, and never "delete a named pod or job" — deleting a job is a
+     * riskier change.
+     */
+    expect(markdown).toContain(KUBECTL_SAFE_CHANGES_SUMMARY);
+    expect(markdown).not.toContain("pod or job");
     expect(markdown).toContain("cluster's kubectl allowlist");
     expect(markdown).toContain("A riskier change never runs on its own");
     expect(markdown).toContain("proposes it for your one-click approval");
@@ -613,6 +631,8 @@ describe("AutoRemediationRuleEngineService cluster feed copy states exactly what
     expect(first).toContain("safe or riskier");
     expect(first).toContain("without asking");
     expect(first).toContain("destructive commands never run");
+    // Bypass approval still asks for what needs a human in every mode.
+    expect(first).toContain(KUBECTL_ALWAYS_ASKS_SUMMARY);
     expect(first).not.toContain("approve");
     expect(first).not.toContain("recommendations");
 
@@ -749,6 +769,62 @@ describe("AutoRemediationRuleEngineService — one unattended round per cluster 
     );
     expect(markdown).toContain("is still running unattended");
     expect(markdown).not.toContain("Approvals are bypassed");
+  });
+
+  it("creates the alert's round ASKING FIRST while a rule-driven run on the monitor's incident still has its fix on the cluster under verification", async () => {
+    mockBaseline({});
+    const ruleRunId: ObjectID = ObjectID.generate();
+    (
+      AutoRemediationSuggestionService.findBy as unknown as jest.SpyInstance
+    ).mockImplementation(
+      async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+        const query: Record<string, unknown> =
+          (args as { query?: Record<string, unknown> }).query || {};
+        if (!query["_id"]) {
+          return [];
+        }
+        return [
+          {
+            id: ruleRunId,
+            _id: ruleRunId.toString(),
+            status: AutoRemediationSuggestionStatus.AutoExecuted,
+            executionMode: AutoRemediationExecutionMode.FullAuto,
+            verificationStatus: AutoRemediationVerificationStatus.Pending,
+            verificationDeadlineAt: new Date(Date.now() + 10 * 60 * 1000),
+            incidentId: INCIDENT_ID,
+            ruleNameSnapshot: "Restart web on 5xx",
+            createdAt: new Date(Date.now() - 5 * 60 * 1000),
+          },
+        ] as unknown as Array<AutoRemediationSuggestion>;
+      },
+    );
+    (RunnerJobService.findBy as unknown as jest.SpyInstance).mockResolvedValue([
+      {
+        id: ObjectID.generate(),
+        autoRemediationSuggestionId: ruleRunId,
+        stepId: "ai-command-1",
+      } as unknown as RunnerJob,
+    ]);
+
+    const markdown: string = await startAlertRound();
+
+    expect(createdSuggestions[0]!.executionMode).toBe(
+      AutoRemediationExecutionMode.Suggest,
+    );
+    expect(markdown).toContain(
+      "This round asks first because another OneUptime AI round on this cluster applied a fix that is still being verified",
+    );
+  });
+
+  it("negative control: with no rule-driven kubectl job on the cluster the alert's round runs unattended", async () => {
+    mockBaseline({});
+
+    const markdown: string = await startAlertRound();
+
+    expect(createdSuggestions[0]!.executionMode).toBe(
+      AutoRemediationExecutionMode.FullAuto,
+    );
+    expect(markdown).toContain("Automatic remediation is on for this cluster");
   });
 
   it("asks first when the in-flight round check itself fails", async () => {
@@ -946,6 +1022,7 @@ describe("AutoRemediationRuleEngineService.findRoundHoldingCluster", () => {
     jest
       .spyOn(AutoRemediationSuggestionService, "findBy")
       .mockResolvedValue(rows as unknown as Array<AutoRemediationSuggestion>);
+    jest.spyOn(RunnerJobService, "findBy").mockResolvedValue([]);
     return AutoRemediationRuleEngineService.findRoundHoldingCluster({
       projectId: PROJECT_ID,
       clusterId: CLUSTER_ID.toString(),
@@ -1012,6 +1089,187 @@ describe("AutoRemediationRuleEngineService.findRoundHoldingCluster", () => {
         ])
       )?.description,
     ).toContain("still being verified");
+  });
+
+  /*
+   * A rule-driven run carries no cluster id; its kubectl jobs do. One that
+   * changed the cluster holds it like a cluster round would (PR #3953
+   * review, remediation-r2-04) — so "one unattended AI run per cluster at a
+   * time" holds in both directions.
+   */
+  describe("a rule-driven run found through its kubectl jobs on the cluster", () => {
+    const RULE_RUN: ObjectID = new ObjectID(
+      "abababab-abab-4bab-8bab-abababababab",
+    );
+
+    function ruleRun(
+      overrides: Record<string, unknown> = {},
+    ): Record<string, unknown> {
+      return {
+        id: RULE_RUN,
+        _id: RULE_RUN.toString(),
+        status: AutoRemediationSuggestionStatus.AutoExecuted,
+        executionMode: AutoRemediationExecutionMode.FullAuto,
+        verificationStatus: AutoRemediationVerificationStatus.Pending,
+        verificationDeadlineAt: new Date(NOW + 10 * 60 * 1000),
+        incidentId: INCIDENT_ID,
+        ruleNameSnapshot: "Restart web on 5xx",
+        createdAt: new Date(NOW - 5 * 60 * 1000),
+        ...overrides,
+      };
+    }
+
+    function holdingThroughJobs(data: {
+      jobs: Array<{ suggestionId: ObjectID; stepId: string }>;
+      runs: Array<Record<string, unknown>>;
+      forRound?: ObjectID | undefined;
+    }): {
+      hold: Promise<ClusterRoundHold | null>;
+      runRead: jest.SpyInstance;
+    } {
+      const runRead: jest.SpyInstance = jest
+        .spyOn(AutoRemediationSuggestionService, "findBy")
+        .mockImplementation(
+          async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+            const query: Record<string, unknown> =
+              (args as { query?: Record<string, unknown> }).query || {};
+            // No cluster round on the cluster; the runs behind the jobs by id.
+            return (query["kubernetesClusterId"]
+              ? []
+              : data.runs) as unknown as Array<AutoRemediationSuggestion>;
+          },
+        );
+      jest.spyOn(RunnerJobService, "findBy").mockResolvedValue(
+        data.jobs.map(
+          (job: { suggestionId: ObjectID; stepId: string }): RunnerJob => {
+            return {
+              id: ObjectID.generate(),
+              autoRemediationSuggestionId: job.suggestionId,
+              stepId: job.stepId,
+            } as unknown as RunnerJob;
+          },
+        ),
+      );
+
+      return {
+        hold: AutoRemediationRuleEngineService.findRoundHoldingCluster({
+          projectId: PROJECT_ID,
+          clusterId: CLUSTER_ID.toString(),
+          forRound: {
+            suggestionId: data.forRound || MINE,
+            createdAt: new Date(NOW - 1000),
+          },
+        }),
+        runRead,
+      };
+    }
+
+    it("holds while its fix on the cluster is still being verified, naming the run", async () => {
+      const hold: ClusterRoundHold | null = await holdingThroughJobs({
+        jobs: [{ suggestionId: RULE_RUN, stepId: "ai-command-1" }],
+        runs: [ruleRun()],
+      }).hold;
+
+      expect(hold?.suggestionId).toBe(RULE_RUN.toString());
+      expect(hold?.ruleNameSnapshot).toBe("Restart web on 5xx");
+      expect(hold?.description).toBe(
+        "applied a fix that is still being verified",
+      );
+    });
+
+    it("holds while it is still running and already changed the cluster — created after the asking round, without anyOrder", async () => {
+      const hold: ClusterRoundHold | null = await holdingThroughJobs({
+        jobs: [{ suggestionId: RULE_RUN, stepId: "ai-command-2" }],
+        runs: [
+          ruleRun({
+            status: AutoRemediationSuggestionStatus.Planning,
+            verificationStatus: undefined,
+            createdAt: new Date(NOW),
+          }),
+        ],
+      }).hold;
+
+      expect(hold?.description).toBe("is still changing it");
+    });
+
+    it("reads the runs behind the jobs by id, in this project, CommandPlan only", async () => {
+      const lookup: {
+        hold: Promise<ClusterRoundHold | null>;
+        runRead: jest.SpyInstance;
+      } = holdingThroughJobs({
+        jobs: [{ suggestionId: RULE_RUN, stepId: "ai-command-1" }],
+        runs: [ruleRun()],
+      });
+      await lookup.hold;
+
+      const byId: Record<string, unknown> | undefined =
+        lookup.runRead.mock.calls
+          .map((call: Array<unknown>) => {
+            return (call[0] as { query: Record<string, unknown> }).query;
+          })
+          .find((query: Record<string, unknown>) => {
+            return Boolean(query["_id"]);
+          });
+      expect(byId).toBeDefined();
+      expect((byId!["projectId"] as ObjectID).toString()).toBe(
+        PROJECT_ID.toString(),
+      );
+      expect(byId!["suggestionType"]).toBe(
+        AutoRemediationSuggestionType.CommandPlan,
+      );
+    });
+
+    it.each([
+      [
+        "its fix was verified",
+        [{ stepId: "ai-command-1" }],
+        { verificationStatus: AutoRemediationVerificationStatus.Verified },
+      ],
+      [
+        "its only job on the cluster is a rollback of a failed fix",
+        [{ stepId: "ai-rollback-1" }],
+        {},
+      ],
+      ["it has no job on the cluster", [], {}],
+    ])(
+      "negative control: no hold when %s",
+      async (
+        _label: string,
+        jobs: Array<{ stepId: string }>,
+        overrides: Record<string, unknown>,
+      ) => {
+        const lookup: {
+          hold: Promise<ClusterRoundHold | null>;
+          runRead: jest.SpyInstance;
+        } = holdingThroughJobs({
+          jobs: jobs.map((job: { stepId: string }) => {
+            return { suggestionId: RULE_RUN, stepId: job.stepId };
+          }),
+          runs: [ruleRun(overrides)],
+        });
+
+        expect(await lookup.hold).toBeNull();
+      },
+    );
+
+    it("negative control: the asking run's own jobs never hold the cluster against it", async () => {
+      expect(
+        await holdingThroughJobs({
+          jobs: [{ suggestionId: RULE_RUN, stepId: "ai-command-1" }],
+          runs: [ruleRun()],
+          forRound: RULE_RUN,
+        }).hold,
+      ).toBeNull();
+    });
+
+    it("negative control: a run the read returns that no job named is ignored", async () => {
+      expect(
+        await holdingThroughJobs({
+          jobs: [{ suggestionId: ObjectID.generate(), stepId: "ai-command-1" }],
+          runs: [ruleRun()],
+        }).hold,
+      ).toBeNull();
+    });
   });
 
   it("propagates a failed read so callers fail safe", async () => {

@@ -15,7 +15,17 @@ import IncidentStateTimelineService from "../../../../Server/Services/IncidentSt
 import MonitorService from "../../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../../Server/Services/MonitorStatusService";
 import RunbookExecutionService from "../../../../Server/Services/RunbookExecutionService";
+import RunnerJobService from "../../../../Server/Services/RunnerJobService";
+import KubernetesClusterAiAccessService from "../../../../Server/Services/KubernetesClusterAiAccessService";
 import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRemediationSuggestion";
+import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
+import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
+import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
+import {
+  KubernetesAiRemediationMode,
+  KubernetesClusterAiAccessStatus,
+} from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { FindOperator } from "typeorm";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
@@ -831,5 +841,447 @@ describe("RemediationVerifier.resumeInterruptedRollbacks", () => {
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining("interrupted rollbacks"),
     );
+  });
+});
+
+/*
+ * The verifier's gate on a RESUMED rollback, driven through the real
+ * rollback arm (PR #3953 review, remediation-r2-01): a resumed rollback
+ * whose interrupted attempt had already failed an undo must settle Failed,
+ * so the follow-up round of a Bypass-approval cluster asks first instead of
+ * running unattended on top of a change that is still applied.
+ */
+describe("RemediationVerifier.resumeInterruptedRollbacks — the follow-up after a resumed rollback, with the real rollback arm", () => {
+  const CLUSTER_ID: ObjectID = new ObjectID(
+    "33333333-3333-4333-8333-333333333333",
+  );
+  const CLUSTER_RUNNER_ID: ObjectID = new ObjectID(
+    "44444444-4444-4444-8444-444444444444",
+  );
+  const UNDO_JOB_ONE: ObjectID = new ObjectID(
+    "20000000-0000-4000-8000-000000000001",
+  );
+
+  let followUp: jest.SpyInstance;
+  let storedPlan: JSONObject;
+
+  function kubectlCommand(
+    sequence: number,
+    rollbackExecution: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return {
+      sequence,
+      stepType: "Kubectl",
+      runnerId: CLUSTER_RUNNER_ID.toString(),
+      runnerNameSnapshot: "kubernetes-agent/prod-us",
+      kubernetesClusterId: CLUSTER_ID.toString(),
+      kubernetesClusterNameSnapshot: "prod-us",
+      kubectlTier: "SafeWrite",
+      command: `kubectl rollout restart deployment/web-${sequence} -n web`,
+      rollbackCommand: `kubectl rollout undo deployment/web-${sequence} -n web`,
+      timeoutInMs: 5000,
+      rationale: "restart",
+      expectedEffect: "recover",
+      policyVerdict: "AutoApproved",
+      wasAutoExecuted: true,
+      execution: { status: "Succeeded", exitCode: 0 },
+      rollbackExecution,
+    };
+  }
+
+  function interruptedRound(
+    rollbackOfTwo: Record<string, unknown>,
+  ): AutoRemediationSuggestion {
+    return fakePending({
+      status: AutoRemediationSuggestionStatus.AutoExecuted,
+      verificationStatus: AutoRemediationVerificationStatus.Failed,
+      verificationCompletedAt: new Date(Date.now() - 60 * 60 * 1000),
+      verificationNote: "The service did not recover.",
+      kubernetesClusterId: CLUSTER_ID,
+      commandPlan: {
+        commands: [
+          // Command 1's undo was in flight when the Worker restarted.
+          kubectlCommand(1, {
+            status: "Pending",
+            runnerJobId: UNDO_JOB_ONE.toString(),
+          }),
+          kubectlCommand(2, rollbackOfTwo),
+        ],
+        executionStatus: "Completed",
+        rollbackHeartbeatAt: new Date(
+          Date.now() - 30 * 60 * 1000,
+        ).toISOString(),
+      },
+    });
+  }
+
+  function mockStore(row: AutoRemediationSuggestion): void {
+    storedPlan = row.commandPlan as JSONObject;
+    const current: () => AutoRemediationSuggestion =
+      (): AutoRemediationSuggestion => {
+        return {
+          ...row,
+          commandPlan: JSON.parse(JSON.stringify(storedPlan)),
+        } as unknown as AutoRemediationSuggestion;
+      };
+    jest
+      .spyOn(AutoRemediationSuggestionService, "findBy")
+      .mockImplementation(
+        async (): Promise<Array<AutoRemediationSuggestion>> => {
+          return [current()];
+        },
+      );
+    jest
+      .spyOn(AutoRemediationSuggestionService, "findOneById")
+      .mockImplementation(async (): Promise<AutoRemediationSuggestion> => {
+        return current();
+      });
+    jest
+      .spyOn(AutoRemediationSuggestionService, "findOneBy")
+      .mockImplementation(async (): Promise<AutoRemediationSuggestion> => {
+        return current();
+      });
+    jest
+      .spyOn(AutoRemediationSuggestionService, "updateOneById")
+      .mockImplementation(async (args: unknown): Promise<never> => {
+        const data: Record<string, unknown> = (
+          args as { data: Record<string, unknown> }
+        ).data;
+        if (data["commandPlan"]) {
+          storedPlan = JSON.parse(JSON.stringify(data["commandPlan"]));
+        }
+        return undefined as never;
+      });
+  }
+
+  beforeEach(() => {
+    jest.spyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    jest
+      .spyOn(Semaphore, "lock")
+      .mockResolvedValue({ id: "lock" } as unknown as SemaphoreMutex);
+    jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+    jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    // The in-flight undo of command 1 finished fine while nobody watched.
+    jest.spyOn(RunnerJobService, "findOneById").mockResolvedValue({
+      id: UNDO_JOB_ONE,
+      status: RunnerJobStatus.Succeeded,
+      exitCode: 0,
+      output: "rolled back",
+    } as unknown as RunnerJob);
+    jest
+      .spyOn(KubernetesClusterAiAccessService, "getStatusForCluster")
+      .mockResolvedValue({
+        clusterId: CLUSTER_ID.toString(),
+        clusterName: "prod-us",
+        runner: {
+          id: CLUSTER_RUNNER_ID.toString(),
+          name: "kubernetes-agent/prod-us",
+          isOnline: true,
+          canRunAiCommands: true,
+        },
+        accessMethod: "in_cluster",
+        kubectlAllowlist: [],
+        isInvestigationEnabled: true,
+        isInvestigationReady: true,
+        remediationMode: KubernetesAiRemediationMode.BypassApproval,
+        isRemediationReady: true,
+        gaps: [],
+        evaluatedAt: new Date().toISOString(),
+      } as KubernetesClusterAiAccessStatus);
+    followUp = jest
+      .spyOn(
+        AutoRemediationRuleEngineService,
+        "startFollowUpClusterRemediation",
+      )
+      .mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("forces the follow-up to ask first when the interrupted attempt had already FAILED an undo — although this attempt's own undo succeeded", async () => {
+    mockStore(
+      interruptedRound({
+        status: "Failed",
+        exitCode: 1,
+        errorMessage: 'deployments.apps "web-2" not found',
+      }),
+    );
+
+    await RemediationVerifier.resumeInterruptedRollbacks();
+
+    expect(storedPlan["rollbackStatus"]).toBe("Failed");
+    expect(followUp).toHaveBeenCalledTimes(1);
+    expect(
+      (followUp.mock.calls[0]![0] as Record<string, unknown>)["forceSuggest"],
+    ).toBe(true);
+  });
+
+  it("forces the follow-up to ask first when the interrupted attempt had LEFT an undo for a human", async () => {
+    mockStore(
+      interruptedRound({
+        status: "Skipped",
+        errorMessage:
+          "Rollback not run. Undo it manually: kubectl rollout undo deployment/web-2 -n web",
+      }),
+    );
+
+    await RemediationVerifier.resumeInterruptedRollbacks();
+
+    expect(storedPlan["rollbackStatus"]).toBe("Failed");
+    expect(
+      (followUp.mock.calls[0]![0] as Record<string, unknown>)["forceSuggest"],
+    ).toBe(true);
+  });
+
+  it("negative control: every undo of the resumed rollback succeeded — the follow-up keeps the cluster's own mode", async () => {
+    mockStore(interruptedRound({ status: "Succeeded", exitCode: 0 }));
+
+    await RemediationVerifier.resumeInterruptedRollbacks();
+
+    expect(storedPlan["rollbackStatus"]).toBe("Completed");
+    expect(followUp).toHaveBeenCalledTimes(1);
+    expect(
+      (followUp.mock.calls[0]![0] as Record<string, unknown>)["forceSuggest"],
+    ).toBeUndefined();
+  });
+});
+
+/*
+ * The resume sweep's read (PR #3953 review, remediation-r2-02). Every failed
+ * command plan stays a Failed verification for the whole lookback window,
+ * so a read of "the newest N failed plans" fills up with rollbacks that
+ * settled long ago and an interrupted one never gets a slot. The read asks
+ * the database only for rollbacks that have not settled, oldest
+ * verification first.
+ */
+describe("RemediationVerifier.resumeInterruptedRollbacks — the sweep's read", () => {
+  const LONG_AGO: number = Date.now() - 3 * 60 * 60 * 1000;
+
+  let rollback: jest.SpyInstance;
+
+  beforeEach(() => {
+    jest.spyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+    rollback = jest
+      .spyOn(CommandPlanExecutor, "executeRollback")
+      .mockResolvedValue({
+        rollbackStatus: AiRemediationRollbackStatus.Completed,
+        rolledBack: 1,
+        failed: 0,
+        leftForHuman: 0,
+        summary: "Rollback completed: 1 command(s) undone.",
+      });
+    jest
+      .spyOn(
+        AutoRemediationRuleEngineService,
+        "startFollowUpClusterRemediation",
+      )
+      .mockResolvedValue(true);
+    jest
+      .spyOn(Semaphore, "lock")
+      .mockResolvedValue({ id: "lock" } as unknown as SemaphoreMutex);
+    jest.spyOn(Semaphore, "release").mockResolvedValue(undefined);
+    jest
+      .spyOn(AutoRemediationSuggestionService, "updateOneById")
+      .mockResolvedValue(undefined as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  function failedRow(data: {
+    id: ObjectID;
+    createdAt: Date;
+    verificationCompletedAt: Date;
+    rollbackStatus?: string | undefined;
+  }): AutoRemediationSuggestion {
+    return fakePending({
+      id: data.id,
+      _id: data.id.toString(),
+      status: AutoRemediationSuggestionStatus.AutoExecuted,
+      verificationStatus: AutoRemediationVerificationStatus.Failed,
+      createdAt: data.createdAt,
+      verificationCompletedAt: data.verificationCompletedAt,
+      commandPlan: {
+        ...rawPlan("Failed"),
+        ...(data.rollbackStatus ? { rollbackStatus: data.rollbackStatus } : {}),
+      },
+    });
+  }
+
+  // Whether the read's commandPlan predicate asks for unsettled rollbacks only.
+  function asksForUnsettledRollbacksOnly(
+    query: Record<string, unknown>,
+  ): boolean {
+    const predicate: unknown = query["commandPlan"];
+    if (!(predicate instanceof FindOperator) || predicate.type !== "raw") {
+      return false;
+    }
+    const parameters: Array<unknown> = Object.values(
+      predicate.objectLiteralParameters || {},
+    );
+    return (
+      parameters.includes("rollbackStatus") &&
+      parameters.includes(AiRemediationRollbackStatus.NotAttempted)
+    );
+  }
+
+  /*
+   * A database that does what the read asks for: the rollback predicate
+   * when the query carries it, the sort it names (createdAt descending by
+   * default, as DatabaseService does), and the limit.
+   */
+  function mockDatabase(
+    rows: Array<AutoRemediationSuggestion>,
+  ): jest.SpyInstance {
+    jest
+      .spyOn(AutoRemediationSuggestionService, "findOneById")
+      .mockImplementation(
+        async (args: unknown): Promise<AutoRemediationSuggestion | null> => {
+          const id: string = (args as { id: ObjectID }).id.toString();
+          return (
+            rows.find((row: AutoRemediationSuggestion) => {
+              return row.id?.toString() === id;
+            }) || null
+          );
+        },
+      );
+
+    return jest
+      .spyOn(AutoRemediationSuggestionService, "findBy")
+      .mockImplementation(
+        async (args: unknown): Promise<Array<AutoRemediationSuggestion>> => {
+          const read: {
+            query: Record<string, unknown>;
+            sort?: Record<string, unknown>;
+            limit: number;
+          } = args as {
+            query: Record<string, unknown>;
+            sort?: Record<string, unknown>;
+            limit: number;
+          };
+
+          let matching: Array<AutoRemediationSuggestion> = rows;
+
+          if (asksForUnsettledRollbacksOnly(read.query)) {
+            matching = matching.filter((row: AutoRemediationSuggestion) => {
+              const status: unknown = (row.commandPlan as JSONObject)[
+                "rollbackStatus"
+              ];
+              return (
+                status === undefined ||
+                status === null ||
+                status === AiRemediationRollbackStatus.NotAttempted
+              );
+            });
+          }
+
+          const byVerification: boolean =
+            read.sort?.["verificationCompletedAt"] === SortOrder.Ascending;
+
+          const sorted: Array<AutoRemediationSuggestion> = [...matching].sort(
+            (a: AutoRemediationSuggestion, b: AutoRemediationSuggestion) => {
+              return byVerification
+                ? new Date(a.verificationCompletedAt!).getTime() -
+                    new Date(b.verificationCompletedAt!).getTime()
+                : new Date(b.createdAt!).getTime() -
+                    new Date(a.createdAt!).getTime();
+            },
+          );
+
+          return sorted.slice(0, read.limit);
+        },
+      );
+  }
+
+  it("asks the database for unsettled rollbacks only, oldest verification first", async () => {
+    const read: jest.SpyInstance = mockDatabase([]);
+
+    await RemediationVerifier.resumeInterruptedRollbacks();
+
+    const args: {
+      query: Record<string, unknown>;
+      sort: Record<string, unknown>;
+      limit: number;
+    } = read.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      sort: Record<string, unknown>;
+      limit: number;
+    };
+    expect(asksForUnsettledRollbacksOnly(args.query)).toBe(true);
+    expect(args.sort["verificationCompletedAt"]).toBe(SortOrder.Ascending);
+    expect(args.limit).toBe(50);
+
+    // The predicate reads the plan's rollbackStatus key as text.
+    const sql: string = (args.query["commandPlan"] as FindOperator<unknown>)
+      .getSql!("plan");
+    expect(sql).toContain("plan ->>");
+    expect(sql).toContain("IS NULL");
+  });
+
+  it("is not starved: 60 newer failed plans whose rollbacks settled never crowd out one interrupted rollback", async () => {
+    const interruptedId: ObjectID = new ObjectID(
+      "99999999-9999-4999-8999-999999999999",
+    );
+    const rows: Array<AutoRemediationSuggestion> = [
+      failedRow({
+        id: interruptedId,
+        createdAt: new Date(LONG_AGO),
+        verificationCompletedAt: new Date(LONG_AGO + 60 * 1000),
+      }),
+    ];
+    for (let index: number = 0; index < 60; index++) {
+      rows.push(
+        failedRow({
+          id: ObjectID.generate(),
+          createdAt: new Date(LONG_AGO + (index + 2) * 60 * 1000),
+          verificationCompletedAt: new Date(LONG_AGO + (index + 2) * 60 * 1000),
+          rollbackStatus: "Completed",
+        }),
+      );
+    }
+    mockDatabase(rows);
+
+    await RemediationVerifier.resumeInterruptedRollbacks();
+
+    expect(rollback).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        rollback.mock.calls[0]![0] as { suggestion: AutoRemediationSuggestion }
+      ).suggestion.id?.toString(),
+    ).toBe(interruptedId.toString());
+  });
+
+  it("negative control: with that same plan settled too, nothing is resumed", async () => {
+    const rows: Array<AutoRemediationSuggestion> = [];
+    for (let index: number = 0; index < 61; index++) {
+      rows.push(
+        failedRow({
+          id: ObjectID.generate(),
+          createdAt: new Date(LONG_AGO + index * 60 * 1000),
+          verificationCompletedAt: new Date(LONG_AGO + index * 60 * 1000),
+          rollbackStatus: "Completed",
+        }),
+      );
+    }
+    mockDatabase(rows);
+
+    await RemediationVerifier.resumeInterruptedRollbacks();
+
+    expect(rollback).not.toHaveBeenCalled();
   });
 });

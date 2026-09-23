@@ -744,4 +744,93 @@ describe("POST /auto-remediation/approve — kubectl cluster re-check", () => {
     expect(error.message).toContain('"staging-eu"');
     expect(error.message).toContain("command 2");
   });
+
+  /*
+   * The bound Runner's reported write scope (PR #3953 review, XP-6): a
+   * command — or its rollback — the Runner would refuse fails the click
+   * with the reason, instead of claiming the plan and being refused one
+   * command in (or, for a rollback, only once the change must be undone).
+   */
+  function scopedStatus(
+    posture: Record<string, unknown>,
+  ): KubernetesClusterAiAccessStatus {
+    return readyStatus({
+      runner: {
+        id: RUNNER_ID.toString(),
+        name: "kubernetes-agent/prod-us",
+        isOnline: true,
+        canRunAiCommands: true,
+        posture: { inCluster: true, allowWrites: true, ...posture },
+      },
+    });
+  }
+
+  test("rejects a command outside the Runner's write namespaces, naming the scope", async () => {
+    statusSpy.mockResolvedValue(scopedStatus({ writeNamespaces: ["api"] }));
+
+    const error: BadDataException = expectRefusedBeforeClaim(
+      await callApprove(),
+    );
+
+    expect(error.message).toContain(
+      'Command 1 cannot run on cluster "prod-us"',
+    );
+    expect(error.message).toContain('would change namespace "web"');
+    expect(error.message).toContain('"api"');
+    expect(error.message).toContain("Nothing ran");
+  });
+
+  test("rejects a command whose ROLLBACK the Runner would refuse", async () => {
+    mockCommands([
+      kubectlCommandJson({
+        rollbackCommand: "kubectl rollout undo deployment/web",
+      }),
+    ]);
+    statusSpy.mockResolvedValue(
+      scopedStatus({ podNamespace: "oneuptime-agent" }),
+    );
+
+    const error: BadDataException = expectRefusedBeforeClaim(
+      await callApprove(),
+    );
+
+    expect(error.message).toContain("Command 1's rollback cannot run");
+    expect(error.message).toContain('"oneuptime-agent"');
+  });
+
+  test("rejects a node change on a Runner whose node operations are off", async () => {
+    mockCommands([
+      kubectlCommandJson({
+        command: "kubectl cordon n1",
+        rollbackCommand: "kubectl uncordon n1",
+      }),
+    ]);
+    statusSpy.mockResolvedValue(scopedStatus({ allowNodeOperations: false }));
+
+    const error: BadDataException = expectRefusedBeforeClaim(
+      await callApprove(),
+    );
+
+    expect(error.message).toContain("node operations turned off");
+  });
+
+  test("negative control: a command and rollback inside the Runner's scope proceed to the claim", async () => {
+    mockCommands([
+      kubectlCommandJson({
+        rollbackCommand: "kubectl rollout undo deployment/web -n web",
+      }),
+    ]);
+    statusSpy.mockResolvedValue(
+      scopedStatus({
+        writeNamespaces: ["web"],
+        podNamespace: "oneuptime-agent",
+        allowNodeOperations: false,
+      }),
+    );
+
+    const result: RouteCallResult = await callApprove();
+
+    expect(result.nextCallCount).toBe(0);
+    expect(casSpy).toHaveBeenCalledTimes(1);
+  });
 });

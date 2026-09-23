@@ -22,10 +22,18 @@ import {
   AiRemediationCommandPolicyVerdict,
   AiRemediationPlanExecutionStatus,
   AiRemediationRollbackStatus,
+  KUBECTL_ALLOWLIST_SUMMARY,
+  KUBECTL_ALWAYS_ASKS_SUMMARY,
+  KUBECTL_AUTOMATIC_MODE_SUMMARY,
+  KUBECTL_BYPASS_MODE_SUMMARY,
+  KUBECTL_NEVER_RUNS_SUMMARY,
+  KUBECTL_RISKIER_CHANGES_SUMMARY,
+  KUBECTL_SAFE_CHANGES_SUMMARY,
   MAX_PLAN_COMMANDS,
 } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import { Indigo500 } from "../../../../Types/BrandColors";
 import {
+  KubernetesAiAccessGap,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
   isUnattendedRemediationMode,
@@ -231,13 +239,28 @@ Write your final answer with exactly these markdown sections:
 **Risks** — what could go wrong if the plan runs.
 **Verification** — what should confirm recovery after the plan runs.`;
 
+// "a write ..." -> "A write ..." for copy that starts a sentence.
+function capitalizeFirst(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/*
+ * The kubectl rules every cluster persona states, in the shared words of
+ * AiRemediationCommandPlan's KUBECTL_*_SUMMARY constants — which restate
+ * the tier and mode doc comments in KubernetesClusterAiAccess — so no
+ * prompt describes a tier the policy no longer has.
+ */
 function buildClusterFramingRules(data: { bypassApproval: boolean }): string {
   return `- Kubectl commands run through the cluster's own Runner. Compose them as one line starting with "kubectl", always with -n <namespace> for namespaced objects. Diagnose first with run_kubectl (describe the failing pod, read its events and logs, check node capacity and pending-pod reasons, check rollout history) — it is read-only and does not count as a remediation command.
-- Safe changes: kubectl rollout restart/undo/pause/resume, kubectl scale --replicas, deleting a NAMED pod or job, cordon/uncordon, label/annotate. Riskier changes (patch, set image/env/resources, taint, drain, deleting workloads, delete by selector) ${
+- Safe changes: ${KUBECTL_SAFE_CHANGES_SUMMARY}. Riskier changes (${KUBECTL_RISKIER_CHANGES_SUMMARY}) ${
     data.bypassApproval
       ? "also run without a human on this cluster — its operator bypassed approvals — so use one when it is the right fix, but never as a shortcut when a safe change would do"
       : "need a human"
-  }. Destructive commands (deleting namespaces, volumes, nodes, secrets, CRDs; exec; apply; edit) are refused even with approval — never propose them.
+  }. Whatever the mode, ${KUBECTL_ALWAYS_ASKS_SUMMARY}. ${capitalizeFirst(
+    KUBECTL_NEVER_RUNS_SUMMARY,
+  )} — never propose them.
+- The cluster's Runner only writes where its writeScope (list_command_targets) says: a write in another namespace, in the Runner's own namespace, or to a node when node operations are off is refused before it runs.
+- The kubectl allowlist: ${KUBECTL_ALLOWLIST_SUMMARY}.
 - A pod stuck in Pending is usually a scheduling problem (insufficient CPU/memory on nodes, a node selector/affinity/taint nobody satisfies, an unbound PVC, a missing image pull secret): describe the pod and read its Events before deciding. Deleting the pod rarely fixes scheduling; fixing capacity, the selector or the claim does.`;
 }
 
@@ -269,15 +292,15 @@ How to work:
     data.bypassApproval ? "" : "safe "
   }change that addresses the diagnosed cause via execute_remediation_command with stepType Kubectl. One change at a time.
 3. Verify each action: after a change, run_kubectl to observe its effect (pod phase, rollout status, events) before deciding whether more is needed.
-4. Know your limits: ${
+4. Know your limits — ${
     data.bypassApproval
-      ? "every kubectl change the policy allows — safe AND riskier (patch, set image/env/resources, taint, drain, deleting workloads) — executes inline and nobody is asked, so prefer the safe form of a fix when both would work, and never propose a destructive command (they are refused)."
-      : "only safe kubectl changes (and allowlisted ones) execute inline. If the right fix is riskier, do NOT hunt for a worse safe substitute — submit the exact riskier kubectl command with execute_remediation_command anyway: it will NOT run, but it is recorded, and when this round ends having run no other change OneUptime AI proposes it to a human for one-click approval. Put it in your final recommendations too. (If you also run a safe change, the riskier one stays in your recommendations; should the service not recover, a follow-up round proposes the next plan for approval.)"
+      ? `${KUBECTL_BYPASS_MODE_SUMMARY} Every kubectl change the policy allows executes inline and nobody is asked, EXCEPT that ${KUBECTL_ALWAYS_ASKS_SUMMARY}: submit such a change with execute_remediation_command anyway — it will NOT run, but it is recorded, and when this round ends having run no other change OneUptime AI proposes it to a human for one-click approval. Prefer the safe form of a fix when both would work, and never propose a destructive command (they are refused).`
+      : `${KUBECTL_AUTOMATIC_MODE_SUMMARY} So only safe kubectl changes (and allowlisted ones) execute inline. If the right fix is riskier — or is something that always needs a human (${KUBECTL_ALWAYS_ASKS_SUMMARY}) — do NOT hunt for a worse safe substitute: submit the exact kubectl command with execute_remediation_command anyway. It will NOT run, but it is recorded, and when this round ends having run no other change OneUptime AI proposes it to a human for one-click approval. Put it in your final recommendations too. (If you also run a safe change, the riskier one stays in your recommendations; should the service not recover, a follow-up round proposes the next plan for approval.)`
   }
 5. Always pass a rollbackCommand when the change has an undo — it is what runs if the service has not recovered by the end of the verification window. ${
     data.bypassApproval
-      ? "Undo examples: kubectl rollout undo deployment/<name> -n <namespace>, kubectl scale back to the previous count, kubectl set image back to the previous image, kubectl uncordon."
-      : "A rollback must itself be a safe change, because it runs unattended: kubectl rollout undo deployment/<name> -n <namespace> (this also undoes a set image/env/resources or a patch of the pod template), kubectl scale back to the previous count, kubectl uncordon. Never pass set image, patch or another riskier command as a rollback — it is refused."
+      ? "Undo examples: kubectl rollout undo deployment/<name> -n <namespace> (this also undoes a set image/env/resources or a patch of the pod template), kubectl scale deployment/<name> --replicas=<previous count> -n <namespace>, kubectl uncordon <node>."
+      : "A rollback must itself be a safe change on ONE named object, because it runs unattended: kubectl rollout undo deployment/<name> -n <namespace> (this also undoes a set image/env/resources or a patch of the pod template), kubectl scale deployment/<name> --replicas=<previous count> -n <namespace>, kubectl uncordon <node>. Never pass set image, patch or another riskier command as a rollback — it is refused."
   }
 ${buildClusterFramingRules({ bypassApproval: data.bypassApproval })}
 ${SHARED_FRAMING_RULES}
@@ -299,7 +322,7 @@ const CLUSTER_SUGGEST_PERSONA: string = `You are OneUptime AI, OneUptime's auton
 How to work:
 1. Diagnose with run_kubectl and your read tools (describe the failing pod, read its events and logs, check node capacity, rollout history). If an investigation's root cause analysis is included below, start from it and verify it against the cluster.
 2. Compose the SMALLEST plan that addresses the diagnosed cause and record it with propose_remediation_commands using stepType Kubectl and the cluster's kubernetesClusterId (at most once — a later call replaces the earlier plan). Do not propose diagnostic-only commands; propose the fix.
-3. Give every state-changing command a rollbackCommand when an undo exists (kubectl rollout undo, kubectl scale back, kubectl uncordon) — it runs if the service has not recovered after the plan.
+3. Give every state-changing command a rollbackCommand when an undo exists (kubectl rollout undo deployment/<name> -n <namespace>, kubectl scale deployment/<name> --replicas=<previous count> -n <namespace>, kubectl uncordon <node>) — it runs unattended if the service has not recovered after the plan, so make it a safe change on ONE named object.
 4. If a previous plan for this signal already ran and did not recover the service (listed below), do NOT propose the same commands again — propose a different approach, or propose nothing and explain what a human should look at.
 5. If you cannot diagnose the cause, or no safe plan exists, propose NOTHING and say why.
 ${CLUSTER_FRAMING_RULES}
@@ -539,6 +562,14 @@ export default class RemediationExecutionRunner {
            * could only refuse for want of a human (settleAfterRun).
            */
           proposesRefusedCommands: true,
+          /*
+           * Its first change re-checks, under the breaker lock, that no
+           * other AI run holds the cluster — ordered among cluster rounds
+           * exactly as resolveClusterMode was, so two rounds never refuse
+           * each other; a rule-driven run that changed the cluster since
+           * holds it whatever the order.
+           */
+          clusterHold: { anyOrder: false },
         });
 
         readToolkit = new KubectlInvestigationToolkit({
@@ -683,6 +714,18 @@ export default class RemediationExecutionRunner {
           allowedRunnerIds,
           clusterTargets: commandClusterTargets,
           suggestionCreatedAt: suggestion.createdAt,
+          /*
+           * The start's hold partition, repeated at the first change on each
+           * cluster under its breaker lock: a rule run yields to any other
+           * run, in any order, and to the signal's own cluster round.
+           */
+          clusterHold: {
+            anyOrder: true,
+            subject: {
+              incidentId: suggestion.incidentId,
+              alertId: suggestion.alertId,
+            },
+          },
         });
 
         if (ruleClusterTargets.length > 0) {
@@ -753,8 +796,8 @@ export default class RemediationExecutionRunner {
             ? `A signal has been declared on Kubernetes cluster "${resolvedClusterTarget.clusterName}" and ${
                 resolvedClusterTarget.remediationMode ===
                 KubernetesAiRemediationMode.BypassApproval
-                  ? "its operator bypassed approvals: every allowed fix runs on its own"
-                  : "Automatic remediation is enabled for it"
+                  ? "its operator bypassed approvals: every fix the policy allows runs on its own, except what always needs a human (a protected namespace, a node drain or taint)"
+                  : "Automatic remediation is enabled for it: safe fixes run on their own, a riskier one is proposed for approval"
               }. Diagnose with kubectl and remediate now.`
             : `A signal has been declared on Kubernetes cluster "${resolvedClusterTarget.clusterName}". Diagnose it with kubectl and compose a kubectl plan for human approval.`
           : resolvedMode === "FullAuto"
@@ -996,8 +1039,34 @@ export default class RemediationExecutionRunner {
   }): Promise<void> {
     const { suggestion } = data;
 
-    const kept: Array<RemediationCommandNeedingApproval> =
-      data.needingApproval.slice(0, MAX_PLAN_COMMANDS);
+    /*
+     * The cluster as its AI page stands NOW. The round kept these changes
+     * minutes ago; an operator who has since turned remediation off,
+     * re-bound the cluster or deleted it just withdrew exactly what the
+     * card would ask them to approve — and a Runner that now reports a
+     * narrower write scope would refuse what the card offers. Settled as
+     * nothing proposed, with the reason, rather than a card and a ping.
+     */
+    const live: {
+      kept: Array<RemediationCommandNeedingApproval>;
+      withdrawnReason: string | null;
+    } = await this.recheckProposalAgainstLiveCluster({
+      suggestion,
+      needingApproval: data.needingApproval,
+    });
+
+    if (live.withdrawnReason) {
+      await this.settleNoneApplicable({
+        suggestion,
+        rationaleMarkdown: `${live.withdrawnReason} Review the cluster's AI page.\n\n${data.rationaleMarkdown}`,
+      });
+      return;
+    }
+
+    const kept: Array<RemediationCommandNeedingApproval> = live.kept.slice(
+      0,
+      MAX_PLAN_COMMANDS,
+    );
 
     const commands: Array<AiRemediationCommand> = kept.map(
       (entry: RemediationCommandNeedingApproval, index: number) => {
@@ -1066,6 +1135,129 @@ export default class RemediationExecutionRunner {
       markdown: `⚡ **${this.describeSource(suggestion)}: AI needs your approval for ${commands.length} kubectl change(s) it did not run on its own.** Review the exact command(s) and reasoning, then approve with one click to run them.`,
       pingWorkspace: true,
     });
+  }
+
+  /*
+   * What of a cluster round's kept changes may still be proposed, going by
+   * the cluster's AI page NOW — or why none may. Fails closed: a status
+   * that cannot be read proposes nothing.
+   */
+  private static async recheckProposalAgainstLiveCluster(data: {
+    suggestion: AutoRemediationSuggestion;
+    needingApproval: Array<RemediationCommandNeedingApproval>;
+  }): Promise<{
+    kept: Array<RemediationCommandNeedingApproval>;
+    withdrawnReason: string | null;
+  }> {
+    const { suggestion } = data;
+    const label: string =
+      data.needingApproval[0]?.command.kubernetesClusterNameSnapshot ||
+      suggestion.kubernetesClusterId?.toString() ||
+      "(unknown)";
+    const nothing: string = "so nothing was run or proposed.";
+
+    if (!suggestion.kubernetesClusterId || !suggestion.projectId) {
+      return {
+        kept: [],
+        withdrawnReason: `The cluster behind this round is gone, ${nothing}`,
+      };
+    }
+
+    let status: KubernetesClusterAiAccessStatus | null;
+
+    try {
+      status = await KubernetesClusterAiAccessService.getStatusForCluster({
+        clusterId: suggestion.kubernetesClusterId,
+        projectId: suggestion.projectId,
+      });
+    } catch (error) {
+      logger.error(
+        `RemediationExecutionRunner: could not re-read cluster ${suggestion.kubernetesClusterId.toString()} before proposing its kubectl changes; proposing nothing: ${error}`,
+      );
+      return {
+        kept: [],
+        withdrawnReason: `OneUptime AI could not confirm that cluster "${label}" still allows AI remediation, ${nothing}`,
+      };
+    }
+
+    if (!status) {
+      return {
+        kept: [],
+        withdrawnReason: `Cluster "${label}" was deleted during this round, ${nothing}`,
+      };
+    }
+
+    if (!status.isRemediationReady) {
+      const gap: KubernetesAiAccessGap | undefined = status.gaps.find(
+        (candidate: KubernetesAiAccessGap) => {
+          return candidate.blocks !== "investigation";
+        },
+      );
+      return {
+        kept: [],
+        withdrawnReason: `Cluster "${status.clusterName}" stopped allowing AI remediation during this round${
+          gap ? ` (${gap.title})` : ""
+        }, ${nothing}`,
+      };
+    }
+
+    const liveStatus: KubernetesClusterAiAccessStatus = status;
+
+    const rebound: boolean = data.needingApproval.some(
+      (entry: RemediationCommandNeedingApproval) => {
+        return (
+          !liveStatus.runner ||
+          liveStatus.runner.id !== entry.command.runnerId ||
+          (liveStatus.credentialId || undefined) !==
+            (entry.command.credentialId || undefined)
+        );
+      },
+    );
+
+    if (rebound) {
+      return {
+        kept: [],
+        withdrawnReason: `Cluster "${liveStatus.clusterName}" was re-bound to a different Runner or credential during this round, ${nothing}`,
+      };
+    }
+
+    const runnable: Array<RemediationCommandNeedingApproval> =
+      data.needingApproval.filter(
+        (entry: RemediationCommandNeedingApproval) => {
+          return !this.getProposalScopeRefusal(liveStatus, entry);
+        },
+      );
+
+    if (runnable.length === 0) {
+      return {
+        kept: [],
+        withdrawnReason: `The Runner of cluster "${liveStatus.clusterName}" would refuse every change this round kept (${
+          this.getProposalScopeRefusal(liveStatus, data.needingApproval[0]!) ||
+          "outside its write scope"
+        }), ${nothing}`,
+      };
+    }
+
+    return { kept: runnable, withdrawnReason: null };
+  }
+
+  // Why the cluster's Runner would refuse a kept change or its rollback.
+  private static getProposalScopeRefusal(
+    cluster: KubernetesClusterAiAccessStatus,
+    entry: RemediationCommandNeedingApproval,
+  ): string | null {
+    return (
+      RemediationCommandToolkit.getRunnerScopeRefusal({
+        cluster,
+        command: entry.command.command,
+      }) ||
+      (entry.command.rollbackCommand
+        ? RemediationCommandToolkit.getRunnerScopeRefusal({
+            cluster,
+            command: entry.command.rollbackCommand,
+          })
+        : null)
+    );
   }
 
   private static async settleNoneApplicable(data: {
@@ -1704,9 +1896,14 @@ export default class RemediationExecutionRunner {
         data.mode === "FullAuto"
           ? data.clusterTarget.remediationMode ===
             KubernetesAiRemediationMode.BypassApproval
-            ? "Remediation mode: Bypass approval — every kubectl change the policy allows (safe AND riskier: patch, set image, drain, deleting workloads) executes inline via execute_remediation_command without asking anyone. Only destructive commands (deleting namespaces/volumes/nodes/secrets/CRDs, exec, apply) are refused. Still act minimally and verify each change."
-            : "Remediation mode: Automatic — safe kubectl changes execute inline via execute_remediation_command. A riskier one never runs inline: submit it with execute_remediation_command anyway and it is refused but recorded; if this round runs no other change, OneUptime AI proposes the recorded change(s) for one-click approval when the round ends. Put it in your recommendations too."
+            ? `Remediation mode: ${KUBECTL_BYPASS_MODE_SUMMARY} Every kubectl change the policy allows (safe AND riskier: ${KUBECTL_RISKIER_CHANGES_SUMMARY}) executes inline via execute_remediation_command without asking anyone — except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}; submit such a change anyway and it is recorded and proposed for one-click approval if this round runs no other change. ${capitalizeFirst(KUBECTL_NEVER_RUNS_SUMMARY)}. Still act minimally and verify each change.`
+            : `Remediation mode: ${KUBECTL_AUTOMATIC_MODE_SUMMARY} Safe kubectl changes execute inline via execute_remediation_command. A riskier one — or one that always needs a human (${KUBECTL_ALWAYS_ASKS_SUMMARY}) — never runs inline: submit it with execute_remediation_command anyway and it is refused but recorded; if this round runs no other change, OneUptime AI proposes the recorded change(s) for one-click approval when the round ends. Put it in your recommendations too.`
           : "Remediation mode: a human approves — record your plan with propose_remediation_commands.",
+      );
+      lines.push(
+        `Where the cluster's Runner writes: ${RemediationCommandToolkit.describeRunnerWriteScope(
+          data.clusterTarget,
+        )}.`,
       );
       if (data.downgradeNote) {
         lines.push(
@@ -1715,7 +1912,7 @@ export default class RemediationExecutionRunner {
       }
       if (data.clusterTarget.kubectlAllowlist.length > 0) {
         lines.push(
-          "Riskier kubectl commands matching these operator-authored patterns may also auto-execute:",
+          `Riskier kubectl commands matching these operator-authored patterns may also auto-execute (${KUBECTL_ALLOWLIST_SUMMARY}; never a write in a protected namespace, a node drain or a taint):`,
         );
         for (const pattern of data.clusterTarget.kubectlAllowlist.slice(
           0,
@@ -1953,6 +2150,19 @@ export default class RemediationExecutionRunner {
     plan: AiRemediationCommandPlan,
     attempt: AutoRemediationSuggestion,
   ): string {
+    /*
+     * The per-command record wins over a settled status that says
+     * otherwise: one written before a resumed rollback carried its earlier
+     * failures forward could read "completed" over a failed undo.
+     */
+    if (
+      (plan.rollbackStatus === AiRemediationRollbackStatus.Completed ||
+        plan.rollbackStatus === AiRemediationRollbackStatus.NotApplicable) &&
+      this.hasUnfinishedUndo(plan)
+    ) {
+      return "did NOT fully complete — at least one rollback failed or was left for a human.";
+    }
+
     switch (plan.rollbackStatus) {
       case AiRemediationRollbackStatus.Completed:
         return "completed — every executed command with a rollback was undone.";
@@ -1989,17 +2199,39 @@ export default class RemediationExecutionRunner {
       return true;
     }
 
-    if (plan.rollbackStatus === AiRemediationRollbackStatus.Completed) {
+    // Whatever the plan-level status says (see describePlanRollbackStatus).
+    if (this.hasUnfinishedUndo(plan)) {
+      return true;
+    }
+
+    if (
+      plan.rollbackStatus === AiRemediationRollbackStatus.Completed ||
+      plan.rollbackStatus === AiRemediationRollbackStatus.NotApplicable
+    ) {
       return false;
     }
 
+    // The rollback never settled: an undo it has not reached is not done.
     return plan.commands.some((command: AiRemediationCommand) => {
       return (
         command.execution?.status ===
           AiRemediationCommandExecutionStatus.Succeeded &&
         Boolean(command.rollbackCommand) &&
-        plan.rollbackStatus !== AiRemediationRollbackStatus.NotApplicable &&
         command.rollbackExecution?.status !==
+          AiRemediationCommandExecutionStatus.Succeeded
+      );
+    });
+  }
+
+  /*
+   * An executed command whose undo the rollback arm attempted and did not
+   * complete: it failed, was left for a human, or its outcome is unknown.
+   */
+  private static hasUnfinishedUndo(plan: AiRemediationCommandPlan): boolean {
+    return plan.commands.some((command: AiRemediationCommand) => {
+      return (
+        command.rollbackExecution !== undefined &&
+        command.rollbackExecution.status !==
           AiRemediationCommandExecutionStatus.Succeeded
       );
     });
