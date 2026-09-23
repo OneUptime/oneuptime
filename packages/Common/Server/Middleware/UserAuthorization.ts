@@ -18,6 +18,7 @@ import ProjectMiddleware from "./ProjectAuthorization";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
 import Dictionary from "../../Types/Dictionary";
 import Exception from "../../Types/Exception/Exception";
+import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import SsoAuthorizationException from "../../Types/Exception/SsoAuthorizationException";
 import TenantNotFoundException from "../../Types/Exception/TenantNotFoundException";
@@ -590,6 +591,42 @@ export default class UserMiddleware {
       );
     }
 
+    /*
+     * The access token is a stateless JWT that lives for 15 minutes, and
+     * blocking a user revokes their sessions but cannot recall a token already
+     * issued. Without this check a blocked user keeps full access until it
+     * expires. The answer is cached per node (UserService.isUserBlocked), so
+     * this is one primary-key lookup per user per minute, not per request.
+     *
+     * A 401, like an expired token: the client asks /refresh-token for a new
+     * one, which is refused for a blocked user, and signs them out. A lookup
+     * that fails is an error, not a pass.
+     */
+    let isUserBlocked: boolean;
+
+    try {
+      isUserBlocked = await UserService.isUserBlocked(
+        oneuptimeRequest.userAuthorization.userId,
+      );
+    } catch (err) {
+      return Response.sendErrorResponse(req, res, err as Exception);
+    }
+
+    if (isUserBlocked) {
+      if (options.treatInvalidAccessTokenAsAnonymous) {
+        // As for a token that does not decode: the public routes never read who is asking.
+        delete oneuptimeRequest.userAuthorization;
+        oneuptimeRequest.userType = UserType.Public;
+        return next();
+      }
+
+      return Response.sendErrorResponse(
+        req,
+        res,
+        new NotAuthenticatedException(ExceptionMessages.UserBlocked),
+      );
+    }
+
     if (oneuptimeRequest.userAuthorization.isMasterAdmin) {
       oneuptimeRequest.userType = UserType.MasterAdmin;
     } else {
@@ -642,6 +679,7 @@ export default class UserMiddleware {
             req,
             tenantId,
             userId: new ObjectID(userId),
+            userGlobalAccessPermission: userGlobalAccessPermissionPromise,
           }),
           TeamMemberService.getTeamIdsForUser(new ObjectID(userId), tenantId),
         ]);
@@ -689,6 +727,7 @@ export default class UserMiddleware {
             req,
             new ObjectID(userId),
             userGlobalAccessPermission.projectIds,
+            userGlobalAccessPermission,
           );
 
         if (userTenantAccessPermission) {
@@ -876,8 +915,18 @@ export default class UserMiddleware {
     req: ExpressRequest;
     tenantId: ObjectID;
     userId: ObjectID;
+    /*
+     * The user's global permission, when the caller is already resolving it.
+     * AccessTokenService checks the project against it before serving a cached
+     * permission set.
+     */
+    userGlobalAccessPermission?:
+      | Promise<UserGlobalAccessPermission | null>
+      | UserGlobalAccessPermission
+      | null
+      | undefined;
   }): Promise<UserTenantAccessPermission | null> {
-    const { req, tenantId, userId } = data;
+    const { req, tenantId, userId, userGlobalAccessPermission } = data;
 
     const isMasterAdmin: boolean =
       (req as OneUptimeRequest).userAuthorization?.isMasterAdmin === true;
@@ -912,7 +961,9 @@ export default class UserMiddleware {
         }
         throw err;
       }),
-      AccessTokenService.getUserTenantAccessPermission(userId, tenantId),
+      AccessTokenService.getUserTenantAccessPermission(userId, tenantId, {
+        userGlobalAccessPermission,
+      }),
     ]);
 
     /*
@@ -962,6 +1013,8 @@ export default class UserMiddleware {
     req: ExpressRequest,
     userId: ObjectID,
     projectIds: ObjectID[],
+    // The global permission projectIds came from, so each project skips re-reading it.
+    userGlobalAccessPermission?: UserGlobalAccessPermission | null | undefined,
   ): Promise<Dictionary<UserTenantAccessPermission> | null> {
     if (!projectIds.length) {
       return null;
@@ -1042,6 +1095,7 @@ export default class UserMiddleware {
           permission: await AccessTokenService.getUserTenantAccessPermission(
             userId,
             projectId,
+            { userGlobalAccessPermission },
           ),
         };
       }),

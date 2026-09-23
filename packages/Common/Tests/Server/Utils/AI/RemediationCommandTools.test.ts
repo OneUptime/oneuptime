@@ -1006,3 +1006,308 @@ describe("RemediationCommandToolkit rollback policy gate (Suggest)", () => {
     );
   });
 });
+
+describe("RemediationCommandToolkit persists the job id before waiting (Bash)", () => {
+  beforeEach(() => {
+    mockHappyExecution();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  type PersistedCommand = AiRemediationCommandPlan["commands"][number];
+
+  function lastPersistedCommand(persist: jest.SpyInstance): PersistedCommand {
+    const call: { data: { commandPlan: AiRemediationCommandPlan } } = persist
+      .mock.calls[persist.mock.calls.length - 1]![0] as {
+      data: { commandPlan: AiRemediationCommandPlan };
+    };
+    return call.data.commandPlan.commands[0]!;
+  }
+
+  it("records runnerJobId on the Pending command between the enqueue and the wait, then the outcome", async () => {
+    const persist: jest.SpyInstance = jest.spyOn(
+      AutoRemediationSuggestionService,
+      "updateOneById",
+    );
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      RunnerJobService,
+      "enqueueAiCommand",
+    );
+    const poll: jest.SpyInstance = jest.spyOn(
+      RunnerJobService,
+      "pollUntilTerminal",
+    );
+
+    let recordAtPollStart: PersistedCommand | undefined = undefined;
+    poll.mockImplementation(async (): Promise<RunnerJob> => {
+      recordAtPollStart = lastPersistedCommand(persist);
+      return fakeTerminalJob();
+    });
+
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit(),
+      "execute_remediation_command",
+    ).execute(bashArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(persist).toHaveBeenCalledTimes(3);
+
+    // audit record < enqueue < job id < poll < outcome
+    expect(persist.mock.invocationCallOrder[0]).toBeLessThan(
+      enqueue.mock.invocationCallOrder[0]!,
+    );
+    expect(enqueue.mock.invocationCallOrder[0]).toBeLessThan(
+      persist.mock.invocationCallOrder[1]!,
+    );
+    expect(persist.mock.invocationCallOrder[1]).toBeLessThan(
+      poll.mock.invocationCallOrder[0]!,
+    );
+    expect(poll.mock.invocationCallOrder[0]).toBeLessThan(
+      persist.mock.invocationCallOrder[2]!,
+    );
+
+    /*
+     * At the moment the wait starts, the durable record already names the
+     * job — a Worker death during the wait leaves a Pending command the
+     * rollback arm can resolve against its RunnerJob.
+     */
+    expect(recordAtPollStart!.execution).toEqual(
+      expect.objectContaining({
+        status: AiRemediationCommandExecutionStatus.Pending,
+        runnerJobId: JOB_ID.toString(),
+      }),
+    );
+
+    expect(lastPersistedCommand(persist).execution).toEqual(
+      expect.objectContaining({
+        status: AiRemediationCommandExecutionStatus.Succeeded,
+        runnerJobId: JOB_ID.toString(),
+      }),
+    );
+  });
+
+  it("keeps the job id on a Bash command whose wait throws", async () => {
+    const persist: jest.SpyInstance = jest.spyOn(
+      AutoRemediationSuggestionService,
+      "updateOneById",
+    );
+    jest
+      .spyOn(RunnerJobService, "pollUntilTerminal")
+      .mockRejectedValue(new Error("lease lost"));
+
+    const toolkit: RemediationCommandToolkit = buildToolkit();
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(bashArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(outcome.textForLlm).toContain("FAILED before completion");
+    expect(lastPersistedCommand(persist).execution).toEqual(
+      expect.objectContaining({
+        status: AiRemediationCommandExecutionStatus.Failed,
+        runnerJobId: JOB_ID.toString(),
+        errorMessage: "lease lost",
+      }),
+    );
+  });
+});
+
+/*
+ * The in-cluster kubectl agent a kubernetes-agent chart registers is an
+ * AI-command Runner (it runs kubectl for its cluster), but it only ever
+ * claims Kubectl jobs. As a Bash or SSH target it could never serve the
+ * job: it would wait out its claim timeout and fail — after a human's
+ * approval, or burning a FullAuto run's budget. So it is neither listed nor
+ * accepted as a host target, whether it is known by its server-owned row
+ * name or by the posture the claim path narrows to Kubectl.
+ */
+describe("RemediationCommandToolkit never offers or accepts the in-cluster kubectl agent as a Bash/SSH target", () => {
+  const AGENT_RUNNER_ID: ObjectID = new ObjectID(
+    "abababab-abab-4bab-8bab-abababababab",
+  );
+  const POSTURE_AGENT_ID: ObjectID = new ObjectID(
+    "cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd",
+  );
+
+  function agentByName(): Runner {
+    return fakeRunner(AGENT_RUNNER_ID, {
+      name: "kubernetes-agent/prod-us",
+      description: "in-cluster kubectl agent",
+    });
+  }
+
+  function agentByPosture(): Runner {
+    return fakeRunner(POSTURE_AGENT_ID, {
+      name: "renamed-in-cluster-runner",
+      hostInfo: {
+        kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
+      },
+    });
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it("lists only the ordinary host Runner, never the agent — whether known by name or by posture", async () => {
+    jest
+      .spyOn(RunnerService, "getOnlineAiCommandRunnersForProject")
+      .mockResolvedValue([
+        fakeRunner(RUNNER_ID, { name: "ops-bastion" }),
+        agentByName(),
+        agentByPosture(),
+      ]);
+    const credentialLookup: jest.SpyInstance = jest
+      .spyOn(RunbookCredentialService, "findBy")
+      .mockResolvedValue([]);
+
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit(),
+      "list_command_targets",
+    ).execute({});
+
+    expect(outcome.result?.rowCount).toBe(1);
+    expect(outcome.textForLlm).toContain("ops-bastion");
+    expect(outcome.textForLlm).not.toContain(AGENT_RUNNER_ID.toString());
+    expect(outcome.textForLlm).not.toContain(POSTURE_AGENT_ID.toString());
+    expect(outcome.textForLlm).not.toContain("kubernetes-agent/prod-us");
+    // No credential lookups for a Runner that is not a target.
+    expect(credentialLookup).toHaveBeenCalledTimes(1);
+  });
+
+  it("negative control: an ordinary Runner that merely runs in a pod (no cluster identity) is still a host target", async () => {
+    jest
+      .spyOn(RunnerService, "getOnlineAiCommandRunnersForProject")
+      .mockResolvedValue([
+        fakeRunner(RUNNER_ID, {
+          name: "runner-in-a-pod",
+          hostInfo: { kubernetes: { inCluster: true } },
+        }),
+        fakeRunner(OTHER_RUNNER_ID, {
+          name: "runner-in-a-pod-2",
+          hostInfo: {
+            kubernetes: { inCluster: true, clusterIdentifier: "  " },
+          },
+        }),
+      ]);
+    jest.spyOn(RunbookCredentialService, "findBy").mockResolvedValue([]);
+
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit(),
+      "list_command_targets",
+    ).execute({});
+
+    expect(outcome.result?.rowCount).toBe(2);
+    expect(outcome.textForLlm).toContain("runner-in-a-pod");
+    expect(outcome.textForLlm).toContain("Bash, SSH");
+  });
+
+  it("reports no targets when the only online AI Runner is the agent", async () => {
+    jest
+      .spyOn(RunnerService, "getOnlineAiCommandRunnersForProject")
+      .mockResolvedValue([agentByName()]);
+
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit(),
+      "list_command_targets",
+    ).execute({});
+
+    expect(outcome.result?.rowCount).toBe(0);
+    expect(outcome.textForLlm).toContain("No online Runner");
+  });
+
+  it.each([
+    ["Bash", undefined],
+    ["SSH", CREDENTIAL_ID.toString()],
+  ])(
+    "FullAuto refuses a %s step on the agent Runner before any job, brake count or credential lookup",
+    async (stepType: string, credentialId: string | undefined) => {
+      mockHappyExecution();
+      const runnerLookup: jest.SpyInstance = jest
+        .spyOn(RunnerService, "findOneBy")
+        .mockResolvedValue(agentByName());
+      const credentialLookup: jest.SpyInstance = jest.spyOn(
+        RunbookCredentialService,
+        "findOneBy",
+      );
+
+      const toolkit: RemediationCommandToolkit = buildToolkit();
+      const outcome: ToolCallOutcome = await getTool(
+        toolkit,
+        "execute_remediation_command",
+      ).execute(
+        bashArgs({
+          stepType,
+          runnerId: AGENT_RUNNER_ID.toString(),
+          credentialId,
+        }),
+      );
+
+      expect(outcome.success).toBe(false);
+      expect(outcome.textForLlm).toContain("in-cluster kubectl agent");
+      expect(outcome.textForLlm).toContain("stepType Kubectl");
+      expect(outcome.textForLlm).toContain("kubernetesClusterId");
+      // The lookup that found it asked for what identifies an agent.
+      expect(
+        (runnerLookup.mock.calls[0]![0] as { select: Record<string, boolean> })
+          .select,
+      ).toEqual(expect.objectContaining({ name: true, hostInfo: true }));
+      expect(credentialLookup).not.toHaveBeenCalled();
+      expect(RunnerJobService.countBy).not.toHaveBeenCalled();
+      expect(RunnerJobService.enqueueAiCommand).not.toHaveBeenCalled();
+      expect(
+        AutoRemediationSuggestionService.updateOneById,
+      ).not.toHaveBeenCalled();
+      expect(toolkit.getExecutedCommands()).toHaveLength(0);
+    },
+  );
+
+  it("FullAuto refuses a Bash step on a Runner whose posture says it is a cluster's agent, whatever its name", async () => {
+    mockHappyExecution();
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(agentByPosture());
+
+    const outcome: ToolCallOutcome = await getTool(
+      buildToolkit(),
+      "execute_remediation_command",
+    ).execute(bashArgs({ runnerId: POSTURE_AGENT_ID.toString() }));
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain("in-cluster kubectl agent");
+    expect(RunnerJobService.enqueueAiCommand).not.toHaveBeenCalled();
+  });
+
+  it("Suggest rejects the whole plan when a Bash step names the agent Runner, and records nothing", async () => {
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(agentByName());
+
+    const toolkit: RemediationCommandToolkit = buildToolkit({
+      mode: "Suggest",
+    });
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "propose_remediation_commands",
+    ).execute({
+      commands: [bashArgs({ runnerId: AGENT_RUNNER_ID.toString() })],
+    });
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain("Command 1");
+    expect(outcome.textForLlm).toContain("in-cluster kubectl agent");
+    expect(toolkit.getProposedPlan()).toBeNull();
+  });
+
+  it("negative control: the same Bash step on an ordinary Runner executes", async () => {
+    mockHappyExecution();
+
+    const toolkit: RemediationCommandToolkit = buildToolkit();
+    const outcome: ToolCallOutcome = await getTool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(bashArgs());
+
+    expect(outcome.success).toBe(true);
+    expect(RunnerJobService.enqueueAiCommand).toHaveBeenCalledTimes(1);
+  });
+});

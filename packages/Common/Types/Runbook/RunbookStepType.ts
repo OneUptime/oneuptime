@@ -6,6 +6,14 @@ enum RunbookStepType {
   AI = "AI",
   SSH = "SSH",
   Kubernetes = "Kubernetes",
+  /*
+   * A single kubectl command, dispatched as an argv (never a shell line) to
+   * a Runner that can reach the cluster — the in-cluster Runner installed by
+   * the kubernetes-agent chart, or any Runner holding a Kubernetes
+   * credential. Composed only by OneUptime AI (investigations run read-only
+   * commands, remediations run policy-tiered writes); not authored in runbooks.
+   */
+  Kubectl = "Kubectl",
 }
 
 export default RunbookStepType;
@@ -28,6 +36,7 @@ export const RUNNER_EXECUTED_STEP_TYPES: Array<RunbookStepType> = [
   RunbookStepType.Bash,
   RunbookStepType.SSH,
   RunbookStepType.Kubernetes,
+  RunbookStepType.Kubectl,
 ];
 
 export function isRunnerExecutedStepType(type: RunbookStepType): boolean {
@@ -51,6 +60,7 @@ export function isRunnerExecutedStepType(type: RunbookStepType): boolean {
 export const PAYLOAD_CARRYING_STEP_TYPES: Array<RunbookStepType> = [
   RunbookStepType.SSH,
   RunbookStepType.Kubernetes,
+  RunbookStepType.Kubectl,
 ];
 
 export function isPayloadCarryingStepType(type: RunbookStepType): boolean {

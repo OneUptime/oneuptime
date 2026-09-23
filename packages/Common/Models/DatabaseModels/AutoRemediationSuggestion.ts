@@ -1,6 +1,7 @@
 import Alert from "./Alert";
 import AutoRemediationRule from "./AutoRemediationRule";
 import Incident from "./Incident";
+import KubernetesCluster from "./KubernetesCluster";
 import Project from "./Project";
 import Runbook from "./Runbook";
 import User from "./User";
@@ -187,6 +188,68 @@ export default class AutoRemediationSuggestion extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public ruleNameSnapshot?: string = undefined;
+
+  /*
+   * Cluster-level remediation: a suggestion produced by a cluster's own AI
+   * remediation mode (its AI page) rather than by an AutoRemediationRule.
+   * Such a suggestion has no rule; the cluster's mode and allowlist play the
+   * rule's part at execution time.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "kubernetesClusterId",
+    type: TableColumnType.Entity,
+    modelType: KubernetesCluster,
+    title: "Kubernetes Cluster",
+    description:
+      "The cluster whose AI remediation mode produced this suggestion (cluster-level remediation, no rule).",
+  })
+  @ManyToOne(
+    () => {
+      return KubernetesCluster;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "kubernetesClusterId" })
+  public kubernetesCluster?: KubernetesCluster = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Kubernetes Cluster ID",
+    description:
+      "ID of the cluster whose AI remediation mode produced this suggestion.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public kubernetesClusterId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

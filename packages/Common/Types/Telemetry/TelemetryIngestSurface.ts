@@ -27,6 +27,13 @@ enum TelemetryIngestSurface {
   SecurityEvents = "security-events",
   Grpc = "grpc",
   Mqtt = "mqtt",
+  /*
+   * The in-cluster Runner the kubernetes-agent chart installs registers
+   * itself with the project's ingestion key — one flag on the chart, no
+   * dashboard steps. Server keys only: a browser must never be able to
+   * mint a Runner credential.
+   */
+  KubernetesAgentRunner = "kubernetes-agent-runner",
 }
 
 /*
@@ -72,6 +79,8 @@ const INGEST_SURFACE_READABLE_NAMES: Record<TelemetryIngestSurface, string> = {
   [TelemetryIngestSurface.SecurityEvents]: "security event ingest",
   [TelemetryIngestSurface.Grpc]: "gRPC ingest",
   [TelemetryIngestSurface.Mqtt]: "MQTT ingest",
+  [TelemetryIngestSurface.KubernetesAgentRunner]:
+    "Kubernetes agent Runner registration",
 };
 
 type GetIngestSurfaceReadableNameFunction = (

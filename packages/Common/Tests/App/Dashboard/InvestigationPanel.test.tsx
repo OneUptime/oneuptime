@@ -107,8 +107,20 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed",
   () => {
+    /*
+     * The feed also owns the one reading of what the run's kubectl calls
+     * did (and which tools are cluster tools). Those are pure functions
+     * over the events, so the real ones are kept: mocking them would only
+     * restate their logic.
+     */
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed",
+    ) as Record<string, unknown>;
     return {
       __esModule: true,
+      CLUSTER_TOOL_NAMES: actual["CLUSTER_TOOL_NAMES"],
+      isClusterToolName: actual["isClusterToolName"],
+      summarizeKubectlActivity: actual["summarizeKubectlActivity"],
       default: (props: ActivityFeedProps): React.ReactElement => {
         activityFeedMock(props);
         return React.createElement("div", {

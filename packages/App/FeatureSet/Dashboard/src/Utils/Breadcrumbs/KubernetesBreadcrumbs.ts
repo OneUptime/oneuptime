@@ -17,6 +17,12 @@ export function getKubernetesBreadcrumbs(
       "Kubernetes",
       "View Cluster",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.KUBERNETES_CLUSTER_VIEW_AI, [
+      "Project",
+      "Kubernetes",
+      "View Cluster",
+      "AI",
+    ]),
 
     // Namespaces
     ...BuildBreadcrumbLinksByTitles(

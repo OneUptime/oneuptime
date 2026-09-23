@@ -93,6 +93,17 @@ const FIRST_MASTER_ADMIN_ELECTION_LOCK_TIMEOUT_MS: number = 10_000;
  */
 const FIRST_MASTER_ADMIN_ELECTION_ACQUIRE_TIMEOUT_MS: number = 5_000;
 
+/*
+ * How long one API node trusts its answer to "is this user blocked?".
+ *
+ * This bounds how long a block takes to reach a session that is already open
+ * on ANOTHER node. The node that wrote the block drops its own entry at once
+ * (onUpdateSuccess), and the block revokes every session, so a refresh token
+ * is refused immediately everywhere; what this governs is the stateless
+ * 15-minute access token, which would otherwise run to expiry.
+ */
+export const BLOCKED_USER_CACHE_TTL_MS: number = 60_000;
+
 export class Service extends DatabaseService<Model> {
   /*
    * Suppresses repeated `lastActive` UPDATEs from a single API node. 60s of
@@ -102,8 +113,91 @@ export class Service extends DatabaseService<Model> {
     10_000,
   );
 
+  /*
+   * `isUserBlocked` answers, per node. Read with an explicit `undefined`
+   * check: a cached "not blocked" is `false` and must not look like a miss.
+   */
+  private blockedUserCache: InMemoryTTLCache<boolean> = new InMemoryTTLCache(
+    10_000,
+  );
+
+  /*
+   * One lookup per user in flight. A dashboard load fires a burst of
+   * concurrent requests, and without this a cold cache turns the burst into
+   * the same number of identical queries.
+   */
+  private blockedUserLookups: Map<string, Promise<boolean>> = new Map();
+
   public constructor() {
     super(Model);
+  }
+
+  /**
+   * Whether a master admin has blocked this user. For the checks that run on
+   * every authenticated request (UserAuthorization, MasterAdminAuthorization),
+   * so it is cached per node for BLOCKED_USER_CACHE_TTL_MS.
+   *
+   * The sign-in and refresh-token routes do NOT use this. They load the user
+   * row anyway, and they are where a block has to take effect immediately, so
+   * they read `isBlocked` straight from it.
+   *
+   * A user that does not exist is reported as not blocked. This answers the
+   * blocked question only; what a deleted account may still do is out of its
+   * scope (/refresh-token refuses one).
+   */
+  @CaptureSpan()
+  public async isUserBlocked(userId: ObjectID): Promise<boolean> {
+    const key: string = userId.toString();
+
+    const cached: boolean | undefined = this.blockedUserCache.get(key);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const inFlight: Promise<boolean> | undefined =
+      this.blockedUserLookups.get(key);
+
+    if (inFlight) {
+      return inFlight;
+    }
+
+    const lookup: Promise<boolean> = this.findOneById({
+      id: userId,
+      select: { isBlocked: true },
+      props: { isRoot: true },
+    })
+      .then((user: Model | null): boolean => {
+        const isBlocked: boolean = Boolean(user?.isBlocked);
+
+        /*
+         * Only cached if this lookup is still the current one. A block written
+         * while it was on the wire clears the slot (forgetBlockedStatus), and
+         * the answer this lookup read may predate that write.
+         */
+        if (this.blockedUserLookups.get(key) === lookup) {
+          this.blockedUserCache.set(key, isBlocked, BLOCKED_USER_CACHE_TTL_MS);
+        }
+
+        return isBlocked;
+      })
+      .finally((): void => {
+        if (this.blockedUserLookups.get(key) === lookup) {
+          this.blockedUserLookups.delete(key);
+        }
+      });
+
+    this.blockedUserLookups.set(key, lookup);
+
+    return lookup;
+  }
+
+  // Drops this node's cached answer, so the next request reads the row.
+  public forgetBlockedStatus(userId: ObjectID): void {
+    const key: string = userId.toString();
+
+    this.blockedUserCache.delete(key);
+    this.blockedUserLookups.delete(key);
   }
 
   /**
@@ -516,8 +610,32 @@ export class Service extends DatabaseService<Model> {
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
-    _updatedItemIds: ObjectID[],
+    updatedItemIds: ObjectID[],
   ): Promise<OnUpdate<Model>> {
+    /*
+     * A block has to end the sessions the user already holds, not only stop
+     * the next sign-in. Revoking them makes /refresh-token refuse at once; the
+     * access token already in the browser is refused by UserAuthorization,
+     * which reads the flag through `isUserBlocked`.
+     *
+     * Unblocking only drops the cached answer. The revoked sessions stay
+     * revoked, and the user signs in again.
+     *
+     * Hook-only, like the password revocation below: a write made with
+     * `ignoreHooks: true` has to revoke the sessions itself.
+     */
+    if (onUpdate && onUpdate.updateBy.data.isBlocked !== undefined) {
+      for (const userId of updatedItemIds) {
+        this.forgetBlockedStatus(userId);
+
+        if (onUpdate.updateBy.data.isBlocked) {
+          await UserSessionService.revokeAllSessionsByUserId(userId, {
+            reason: "User blocked",
+          });
+        }
+      }
+    }
+
     if (onUpdate && onUpdate.updateBy.data.password) {
       const host: Hostname = await DatabaseConfig.getHost();
       const httpProtocol: Protocol = await DatabaseConfig.getHttpProtocol();

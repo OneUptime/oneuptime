@@ -908,8 +908,10 @@ const FormField: <T extends GenericObject>(
           {props.field.fieldType === FormFieldSchemaType.Checkbox && (
             <CheckboxElement
               error={props.touched && props.error ? props.error : undefined}
-              title={props.field.title || ""}
-              description={props.field.description || ""}
+              title={
+                translateString(props.field.title) ?? props.field.title ?? ""
+              }
+              description={translateValue(props.field.description) || ""}
               onChange={async (value: boolean) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);

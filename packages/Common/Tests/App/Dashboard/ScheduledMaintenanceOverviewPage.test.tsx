@@ -840,9 +840,15 @@ describe("Scheduled maintenance overview page", () => {
       expect(cells[2]).toHaveTextContent("Duration");
       expect(cells[2]).toHaveTextContent("2 hours");
       expect(cells[2]).not.toHaveTextContent("0 minutes");
+      /*
+       * The t() mocked above returns the template untouched, like
+       * react-i18next's not-ready t(), so the page fills the zone in itself.
+       * ScheduledMaintenanceWindowStatsTranslation covers a real translation.
+       */
       expect(cells[2]).toHaveTextContent(
         "Planned window · times in " + OneUptimeDate.getCurrentTimezoneString(),
       );
+      expect(cells[2]).not.toHaveTextContent("{{");
 
       // Segment cells: no card chrome of their own, values wrap.
       for (const cell of cells) {

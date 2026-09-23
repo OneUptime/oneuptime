@@ -33,7 +33,16 @@ import AIMemory from "./AIMemory";
 import FixFromIncidentTaskTrigger from "./FixFromIncidentTaskTrigger";
 import InstrumentationTaskTrigger from "./InstrumentationTaskTrigger";
 import RemediationHandoff from "./RemediationHandoff";
-import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
+import {
+  ObservabilityAssistantExtraTool,
+  ObservabilityAssistantResult,
+} from "../Chat/ObservabilityAssistant";
+import { KubernetesClusterAiAccessStatus } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
+import ClusterAccessContext from "../ClusterAccess/ClusterAccessContext";
+import KubectlInvestigationToolkit, {
+  INVESTIGATION_MAX_WALL_CLOCK_MS,
+} from "../ClusterAccess/KubectlInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -324,6 +333,7 @@ export default class AIIncidentInvestigationRunner {
     const { aiRunId, projectId, incidentId, attemptCount } = data;
 
     let contextSummary: string;
+    let clusterStatuses: Array<KubernetesClusterAiAccessStatus> = [];
     try {
       const contextData: IncidentContextData =
         await IncidentAIContextBuilder.buildIncidentContext({
@@ -354,6 +364,22 @@ export default class AIIncidentInvestigationRunner {
 
       contextSummary =
         this.buildIncidentSummary(contextData) + priorCasesContext;
+
+      // Direct cluster access — enrichment only, never a prerequisite.
+      try {
+        clusterStatuses =
+          await KubernetesClusterAiAccessService.getStatusesForSubject({
+            projectId,
+            incidentId,
+          });
+      } catch (error) {
+        logger.error(
+          `AI: could not resolve cluster access for incident ${incidentId.toString()}; investigating with OneUptime data only: ${error}`,
+        );
+      }
+
+      contextSummary +=
+        ClusterAccessContext.buildContextSection(clusterStatuses);
     } catch (error) {
       /*
        * Context assembly failed — the run is claimed, so hand it to the
@@ -381,6 +407,25 @@ export default class AIIncidentInvestigationRunner {
       return;
     }
 
+    /*
+     * The run's wall clock, stated once: the engine enforces it between
+     * tool calls and the kubectl toolkit plans every command's wait to end
+     * before it, so a run_kubectl issued late in the run cannot outlive the
+     * budget (the loop cannot interrupt a tool once it is running).
+     */
+    const runDeadlineAtMs: number =
+      Date.now() + INVESTIGATION_MAX_WALL_CLOCK_MS;
+
+    const kubectlToolkit: KubectlInvestigationToolkit =
+      new KubectlInvestigationToolkit({
+        projectId,
+        aiRunId,
+        clusters: clusterStatuses,
+        runDeadlineAtMs,
+      });
+    const extraTools: Array<ObservabilityAssistantExtraTool> =
+      kubectlToolkit.buildTools();
+
     await AIInvestigationEngine.executeRun({
       aiRunId,
       projectId,
@@ -390,6 +435,14 @@ export default class AIIncidentInvestigationRunner {
         feature: AI_INCIDENT_INVESTIGATION_FEATURE,
         incidentId,
         contextSummary,
+        maxWallClockMs: INVESTIGATION_MAX_WALL_CLOCK_MS,
+        ...(clusterStatuses.length > 0
+          ? {
+              additionalInstructions:
+                ClusterAccessContext.buildPersonaAddendum(clusterStatuses),
+            }
+          : {}),
+        ...(extraTools.length > 0 ? { extraTools } : {}),
         persistCodeFixRecommendation: true,
         persistAnalysisTldr: true,
         postAnalysis: async (postData: {

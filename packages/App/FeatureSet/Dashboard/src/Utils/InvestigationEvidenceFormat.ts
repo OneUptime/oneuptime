@@ -2,6 +2,10 @@ import { AIChatCitationTargetType } from "Common/Types/AI/AIChatTypes";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import {
+  LIST_CLUSTER_ACCESS_TOOL_NAME,
+  RUN_KUBECTL_TOOL_NAME,
+} from "Common/Types/Kubernetes/KubernetesClusterAiAccessToolNames";
 
 /*
  * Plain-language formatting for the "Evidence checked" list of an AI
@@ -303,6 +307,27 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       description: "Read an AI investigation",
       icon: IconProp.Sparkles,
       category: "AI",
+    },
+  ],
+  /*
+   * The tools that reach a Kubernetes cluster rather than the project's
+   * telemetry. Components/AI/ClusterToolFormat words their outcomes (a
+   * kubectl call has no rows) and reads these descriptions from here.
+   */
+  [
+    RUN_KUBECTL_TOOL_NAME,
+    {
+      description: "Ran a read-only kubectl command",
+      icon: IconProp.Terminal,
+      category: "Kubernetes",
+    },
+  ],
+  [
+    LIST_CLUSTER_ACCESS_TOOL_NAME,
+    {
+      description: "Listed the clusters OneUptime AI can inspect",
+      icon: IconProp.Cube,
+      category: "Kubernetes",
     },
   ],
   [

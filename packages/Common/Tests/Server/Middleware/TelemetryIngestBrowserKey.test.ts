@@ -646,7 +646,15 @@ describe("TelemetryIngest browser ingestion key guard", () => {
     });
 
     test("a browser key is refused 403 on every other surface, naming the surface and pointing at a server key", async () => {
-      expect(BROWSER_DISALLOWED_SURFACES.length).toBe(10);
+      /*
+       * Ten infrastructure / build-time pipes plus the Kubernetes agent
+       * Runner registration, which mints a Runner credential and must never
+       * be reachable with a key scraped off a page.
+       */
+      expect(BROWSER_DISALLOWED_SURFACES.length).toBe(11);
+      expect(BROWSER_DISALLOWED_SURFACES).toContain(
+        TelemetryIngestSurface.KubernetesAgentRunner,
+      );
 
       for (const surface of BROWSER_DISALLOWED_SURFACES) {
         jest.clearAllMocks();
@@ -668,6 +676,74 @@ describe("TelemetryIngest browser ingestion key guard", () => {
           )}. Use a server ingestion key.`,
         );
       }
+    });
+  });
+
+  /*
+   * The Kubernetes agent Runner registration is a server-only surface with
+   * a stronger reason than the others: a request admitted there is handed
+   * a Runner identity that every kubectl command for a cluster is targeted
+   * at. A browser key published in a page must never reach it, whatever
+   * Origin it carries; a server key reaches it like any other surface.
+   */
+  describe("Kubernetes agent Runner registration surface", () => {
+    test("a browser key is refused 403 even from an allowed origin", async () => {
+      resolveTo(buildBrowserPolicy({ allowedOrigins: [ALLOWED_ORIGIN] }));
+
+      const result: RunResult = await run(
+        TelemetryIngestSurface.KubernetesAgentRunner,
+        tokenHeaders({ origin: ALLOWED_ORIGIN }),
+      );
+
+      expect(result.next).not.toHaveBeenCalled();
+
+      const error: Error = refusal();
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect(error.message).toBe(
+        "A browser ingestion key cannot be used for Kubernetes agent Runner registration. Use a server ingestion key.",
+      );
+      expect((result.req as TelemetryRequest).projectId).toBeUndefined();
+    });
+
+    test("a server key is admitted and the project is put on the request", async () => {
+      const policy: TelemetryIngestionKeyPolicy = buildPolicy({});
+      resolveTo(policy);
+
+      const result: RunResult = await run(
+        TelemetryIngestSurface.KubernetesAgentRunner,
+        tokenHeaders(),
+      );
+
+      expect(Response.sendErrorResponse as MockFn).not.toHaveBeenCalled();
+      expect(result.next).toHaveBeenCalledTimes(1);
+      expect((result.req as TelemetryRequest).projectId.toString()).toBe(
+        PROJECT_ID,
+      );
+      expect((result.req as TelemetryRequest).ingestionKeyPolicy).toBe(policy);
+    });
+
+    test("a disabled or expired server key is still refused there", async () => {
+      resolveTo(buildPolicy({ isEnabled: false }));
+
+      const disabled: RunResult = await run(
+        TelemetryIngestSurface.KubernetesAgentRunner,
+        tokenHeaders(),
+      );
+
+      expect(disabled.next).not.toHaveBeenCalled();
+      expect(refusal()).toBeInstanceOf(NotAuthorizedException);
+
+      jest.clearAllMocks();
+      arrangeDefaults();
+      resolveTo(buildPolicy({ expiresAt: new Date(Date.now() - 60 * 1000) }));
+
+      const expired: RunResult = await run(
+        TelemetryIngestSurface.KubernetesAgentRunner,
+        tokenHeaders(),
+      );
+
+      expect(expired.next).not.toHaveBeenCalled();
+      expect(refusal()).toBeInstanceOf(NotAuthenticatedException);
     });
   });
 

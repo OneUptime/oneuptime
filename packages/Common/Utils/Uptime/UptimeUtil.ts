@@ -536,6 +536,35 @@ export default class UptimeUtil {
     });
   }
 
+  /**
+   * Uptime over the seconds that were actually recorded, or null when none
+   * were, so a caller can tell a resource with no data from one that was up.
+   *
+   * Both uncapped figures come through here: a single monitor's, from its
+   * day buckets, and a merged one from getMergedDowntimeSeconds. Measured
+   * over coverage rather than the window, a monitor younger than the window
+   * is measured from its first reading. Clamped to [0, 100], then rounded
+   * down to the precision the way every other uptime figure is.
+   */
+  public static calculateUptimePercentOfCoveredSeconds(data: {
+    coveredSeconds: number;
+    downtimeSeconds: number;
+    precision: UptimePrecision;
+  }): number | null {
+    if (!(data.coveredSeconds > 0)) {
+      return null;
+    }
+
+    const percentage: number =
+      ((data.coveredSeconds - data.downtimeSeconds) / data.coveredSeconds) *
+      100;
+
+    return this.roundToPrecision({
+      number: Math.min(100, Math.max(0, percentage)),
+      precision: data.precision,
+    });
+  }
+
   public static calculateAvgUptimePercentage(data: {
     uptimePercentages: Array<number>;
     precision: UptimePrecision;

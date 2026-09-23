@@ -31,7 +31,16 @@ import AIConfidenceSignal, { ConfidenceSignal } from "./ConfidenceSignal";
 import FixFromIncidentTaskTrigger from "./FixFromIncidentTaskTrigger";
 import InstrumentationTaskTrigger from "./InstrumentationTaskTrigger";
 import RemediationHandoff from "./RemediationHandoff";
-import { ObservabilityAssistantResult } from "../Chat/ObservabilityAssistant";
+import {
+  ObservabilityAssistantExtraTool,
+  ObservabilityAssistantResult,
+} from "../Chat/ObservabilityAssistant";
+import { KubernetesClusterAiAccessStatus } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import KubernetesClusterAiAccessService from "../../../Services/KubernetesClusterAiAccessService";
+import ClusterAccessContext from "../ClusterAccess/ClusterAccessContext";
+import KubectlInvestigationToolkit, {
+  INVESTIGATION_MAX_WALL_CLOCK_MS,
+} from "../ClusterAccess/KubectlInvestigationToolkit";
 import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 
@@ -155,6 +164,7 @@ export default class AIAlertInvestigationRunner {
     const { aiRunId, projectId, alertId, attemptCount } = data;
 
     let contextSummary: string;
+    let clusterStatuses: Array<KubernetesClusterAiAccessStatus> = [];
     try {
       const contextData: AlertContextData =
         await AlertAIContextBuilder.buildAlertContext({
@@ -162,6 +172,26 @@ export default class AIAlertInvestigationRunner {
         });
 
       contextSummary = this.buildAlertSummary(contextData);
+
+      /*
+       * Direct cluster access. Never a prerequisite: an access lookup that
+       * fails leaves the investigation on OneUptime telemetry alone, which
+       * is exactly what it did before clusters could be reached at all.
+       */
+      try {
+        clusterStatuses =
+          await KubernetesClusterAiAccessService.getStatusesForSubject({
+            projectId,
+            alertId,
+          });
+      } catch (error) {
+        logger.error(
+          `AI: could not resolve cluster access for alert ${alertId.toString()}; investigating with OneUptime data only: ${error}`,
+        );
+      }
+
+      contextSummary +=
+        ClusterAccessContext.buildContextSection(clusterStatuses);
     } catch (error) {
       /*
        * Context assembly failed — the run is claimed, so hand it to the
@@ -189,6 +219,25 @@ export default class AIAlertInvestigationRunner {
       return;
     }
 
+    /*
+     * The run's wall clock, stated once: the engine enforces it between
+     * tool calls and the kubectl toolkit plans every command's wait to end
+     * before it, so a run_kubectl issued late in the run cannot outlive the
+     * budget (the loop cannot interrupt a tool once it is running).
+     */
+    const runDeadlineAtMs: number =
+      Date.now() + INVESTIGATION_MAX_WALL_CLOCK_MS;
+
+    const kubectlToolkit: KubectlInvestigationToolkit =
+      new KubectlInvestigationToolkit({
+        projectId,
+        aiRunId,
+        clusters: clusterStatuses,
+        runDeadlineAtMs,
+      });
+    const extraTools: Array<ObservabilityAssistantExtraTool> =
+      kubectlToolkit.buildTools();
+
     await AIInvestigationEngine.executeRun({
       aiRunId,
       projectId,
@@ -198,6 +247,14 @@ export default class AIAlertInvestigationRunner {
         feature: AI_ALERT_INVESTIGATION_FEATURE,
         alertId,
         contextSummary,
+        maxWallClockMs: INVESTIGATION_MAX_WALL_CLOCK_MS,
+        ...(clusterStatuses.length > 0
+          ? {
+              additionalInstructions:
+                ClusterAccessContext.buildPersonaAddendum(clusterStatuses),
+            }
+          : {}),
+        ...(extraTools.length > 0 ? { extraTools } : {}),
         persistCodeFixRecommendation: true,
         persistAnalysisTldr: true,
         postAnalysis: async (postData: {

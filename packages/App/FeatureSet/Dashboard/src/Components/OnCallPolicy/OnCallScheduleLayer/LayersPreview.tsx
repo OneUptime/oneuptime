@@ -135,7 +135,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
   const [displayRange, setDisplayRange] = useState<StartAndEndTime>(
     (): StartAndEndTime => {
       const displayNow: Date =
-        OneUptimeDate.getLocalDateFromWallClockInTimezone(
+        OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
           OneUptimeDate.getCurrentDate(),
           props.timezone || OneUptimeDate.getCurrentTimezone().toString(),
         );
@@ -212,14 +212,14 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
    * computation and the override fetch stay in true UTC.
    */
   const startTime: Date = useMemo(() => {
-    return OneUptimeDate.getInstantFromLocalWallClockInTimezone(
+    return OneUptimeDate.getInstantFromBrowserLocalWallClockInTimezone(
       displayRange.startTime,
       viewAsTimezone,
     );
   }, [displayRange, viewAsTimezone]);
 
   const endTime: Date = useMemo(() => {
-    return OneUptimeDate.getInstantFromLocalWallClockInTimezone(
+    return OneUptimeDate.getInstantFromBrowserLocalWallClockInTimezone(
       displayRange.endTime,
       viewAsTimezone,
     );
@@ -612,19 +612,26 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
    * Shift each computed instant into the VIEW timezone for the grid. The
    * calendar (react-big-calendar, browser-local localizer) has no timezone
    * concept, so we hand it Dates whose browser-local wall-clock equals the
-   * instant's wall-clock in viewAsTimezone — the same trick the datetime input
-   * uses (getLocalDateFromWallClockInTimezone). Computation stays in real UTC
+   * instant's wall-clock in viewAsTimezone. Computation stays in real UTC
    * anchored to props.timezone; only the display Dates move.
+   *
+   * These use the BROWSER-zone helpers, not the ones the datetime inputs use
+   * (getLocalDateFromWallClockInTimezone). Those build the wall clock in the
+   * user's User Settings zone, which is right for the inputs but not for the
+   * grid, which draws in the browser's zone. With a settings zone of New York
+   * on a browser in India, every block, band and the current-time line was
+   * drawn nine and a half hours late against the hour gutter: a 09:00 shift
+   * sat at 6:30 PM.
    */
   const displayEvents: Array<CalendarEvent> = useMemo(() => {
     return calendarEvents.map((event: CalendarEvent) => {
       return {
         ...event,
-        start: OneUptimeDate.getLocalDateFromWallClockInTimezone(
+        start: OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
           event.start,
           viewAsTimezone,
         ),
-        end: OneUptimeDate.getLocalDateFromWallClockInTimezone(
+        end: OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
           event.end,
           viewAsTimezone,
         ),
@@ -643,11 +650,11 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         id: -1 * (index + 1),
         title: "",
         allDay: false,
-        start: OneUptimeDate.getLocalDateFromWallClockInTimezone(
+        start: OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
           gap.start,
           viewAsTimezone,
         ),
-        end: OneUptimeDate.getLocalDateFromWallClockInTimezone(
+        end: OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
           gap.end,
           viewAsTimezone,
         ),
@@ -657,7 +664,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
 
   // "now" shifted into the view zone so the grid opens on that zone's today.
   const displayDefaultDate: Date = useMemo(() => {
-    return OneUptimeDate.getLocalDateFromWallClockInTimezone(
+    return OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
       OneUptimeDate.getCurrentDate(),
       viewAsTimezone,
     );
@@ -672,7 +679,7 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
    * again each time it moves the line.
    */
   const getDisplayNow: () => Date = useCallback((): Date => {
-    return OneUptimeDate.getLocalDateFromWallClockInTimezone(
+    return OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
       OneUptimeDate.getCurrentDate(),
       viewAsTimezone,
     );

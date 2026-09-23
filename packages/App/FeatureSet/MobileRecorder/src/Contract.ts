@@ -7,8 +7,47 @@
 
 export const SESSION_REPLAY_WIRE_VERSION: number = 1;
 export const SESSION_REPLAY_SCHEMA_VERSION: number = 1;
-export const SESSION_REPLAY_CONTENT_TYPE: string =
+/*
+ * octet-stream, not a vendor type: a web application firewall on the OWASP
+ * Core Rule Set (Azure Front Door among them) refuses a Content-Type that
+ * is not on its allowlist, and octet-stream is on it and never parsed. The
+ * server accepts both. See Common/Types/Rum/SessionReplay.
+ */
+export const SESSION_REPLAY_CONTENT_TYPE: string = "application/octet-stream";
+export const SESSION_REPLAY_LEGACY_CONTENT_TYPE: string =
   "application/vnd.oneuptime.session-replay.v1";
+
+/*
+ * Copy of Common/Utils/Rum/SessionReplayWireEncoding, which explains why a
+ * frame's envelope line has its `%`, `&` and `http/` escaped and a space
+ * before its newline: a firewall's request-smuggling rule (CRS 921110)
+ * would otherwise read a trait value or a URL plus that newline as an HTTP
+ * request line.
+ */
+export const SESSION_REPLAY_ENVELOPE_TERMINATOR: string = " \n";
+
+const ESCAPED_SEQUENCES: RegExp = /[%&]|(http)\//gi;
+
+export function escapeSessionReplayJson(json: string): string {
+  return json.replace(
+    ESCAPED_SEQUENCES,
+    (match: string, http: string | undefined): string => {
+      if (http !== undefined) {
+        return `${http}\\/`;
+      }
+
+      return match === "%" ? "\\u0025" : "\\u0026";
+    },
+  );
+}
+
+export function encodeSessionReplayEnvelopeLine(envelope: unknown): string {
+  return (
+    escapeSessionReplayJson(JSON.stringify(envelope)) +
+    SESSION_REPLAY_ENVELOPE_TERMINATOR
+  );
+}
+
 export const SESSION_REPLAY_APP_IDENTIFIER_HEADER: string =
   "x-oneuptime-app-identifier";
 export const SESSION_REPLAY_RECORDER_KIND_HEADER: string =

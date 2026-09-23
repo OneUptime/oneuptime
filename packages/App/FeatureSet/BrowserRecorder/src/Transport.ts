@@ -8,6 +8,7 @@ import {
   SessionReplayDirective,
   SessionReplayPayloadEncoding,
 } from "Common/Types/Rum/SessionReplay";
+import SessionReplayWireEncoding from "Common/Utils/Rum/SessionReplayWireEncoding";
 import { debugLog, debugWarn } from "./Debug";
 
 /*
@@ -137,6 +138,15 @@ interface ServerResponseBody {
   reason: string | null;
   error: string | null;
   retryAfterSeconds: number | null;
+
+  /*
+   * Whether the body had the shape OneUptime writes: a JSON object with a
+   * directive, a reason, an error or a message. Every 4xx the ingest
+   * endpoint answers carries one. A web application firewall, CDN or proxy
+   * in front of it answers with an HTML page or nothing, and the recorder
+   * cannot tell that 403 from an origin-allowlist refusal by status alone.
+   */
+  fromOneUptime: boolean;
 }
 
 /*
@@ -331,6 +341,13 @@ export default class Transport {
    * surface, and splitting on the first newline plus parsing a ~300 byte
    * JSON object costs microseconds.
    *
+   * The envelope line is written by SessionReplayWireEncoding rather than a
+   * bare JSON.stringify: with its `%`, `&` and `http/` escaped and a space
+   * before its newline, a web application firewall's request-smuggling
+   * rule (CRS 921110) cannot read the envelope's URL or trait values plus
+   * that newline as an HTTP request line. The parser JSON.parses the same
+   * line either way.
+   *
    * A body may carry several such frames back to back (up to
    * MAX_SESSION_REPLAY_CHUNKS_PER_REQUEST); the parser reads each envelope's
    * payloadBytes to find the next one. sendTerminal uses that to carry the
@@ -341,7 +358,7 @@ export default class Transport {
     payloadBytes: PayloadBytes,
   ): PayloadBytes {
     const header: PayloadBytes = new TextEncoder().encode(
-      `${JSON.stringify(envelope)}\n`,
+      SessionReplayWireEncoding.encodeEnvelopeLine(envelope),
     );
 
     const body: PayloadBytes = new Uint8Array(
@@ -982,14 +999,22 @@ export default class Transport {
        * The three statuses that stop the recorder for good, each with a fix
        * in a different place. Until now this produced a recorder that simply
        * went quiet mid-session with nothing printed anywhere.
+       *
+       * answeredBy separates two very different fixes behind the same
+       * status. A 403 from OneUptime is an allowlist to edit; a 403 with no
+       * OneUptime body came from something in front of it - most often a
+       * web application firewall - and the fix is on that device.
        */
       debugWarn(
         "chunk-rejected-terminal",
-        "Uploading stopped for good: the server refused this recorder.",
+        said.fromOneUptime
+          ? "Uploading stopped for good: the server refused this recorder."
+          : "Uploading stopped for good: the refusal did not come from OneUptime. A web application firewall, CDN or proxy in front of it, or a host that is not OneUptime, answered.",
         {
           status: status,
           url: this.options.url,
           reason: said.reason || said.error || "not-reported",
+          answeredBy: said.fromOneUptime ? "oneuptime" : "not-oneuptime",
         },
       );
 
@@ -1296,6 +1321,7 @@ export default class Transport {
       reason: null,
       error: null,
       retryAfterSeconds: null,
+      fromOneUptime: false,
     };
 
     try {
@@ -1334,6 +1360,11 @@ export default class Transport {
           retryAfterSeconds > 0
             ? retryAfterSeconds
             : null,
+        fromOneUptime:
+          "directive" in raw ||
+          "reason" in raw ||
+          "error" in raw ||
+          "message" in raw,
       };
     } catch {
       return nothing;
@@ -1510,6 +1541,11 @@ export default class Transport {
    * envelope's payloadEncoding is what its parser branches on), but any
    * proxy, CDN or WAF between the page and the server that honours it would
    * try to inflate the envelope line and reject or corrupt every chunk.
+   *
+   * The Content-Type is application/octet-stream for the same audience: a
+   * WAF on the OWASP Core Rule Set refuses a vendor media type outright
+   * (rule 920420), while octet-stream is on its allowlist and is never
+   * parsed into ARGS. See SESSION_REPLAY_CONTENT_TYPE.
    */
   private buildHeaders(): Record<string, string> {
     const headers: Record<string, string> = { ...this.options.headers };

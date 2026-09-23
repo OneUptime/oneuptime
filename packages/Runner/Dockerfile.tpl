@@ -38,7 +38,7 @@ RUN node /tmp/UpdateNpmCli.js && rm /tmp/UpdateNpmCli.js
 ENV NODE_OPTIONS="--use-openssl-ca"
 
 LABEL org.opencontainers.image.title="OneUptime Runner"
-LABEL org.opencontainers.image.description="One self-hosted agent that executes runbook steps in your own infrastructure and, when enabled, opens AI code-fix pull requests in your repositories."
+LABEL org.opencontainers.image.description="One self-hosted agent that executes runbook steps in your own infrastructure, runs kubectl for OneUptime AI on the clusters it is given access to, and, when enabled, opens AI code-fix pull requests in your repositories."
 LABEL org.opencontainers.image.source="https://github.com/OneUptime/oneuptime"
 LABEL org.opencontainers.image.url="https://oneuptime.com"
 LABEL org.opencontainers.image.vendor="OneUptime"
@@ -74,6 +74,43 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 SHELL ["/bin/bash", "-c"]
+
+# kubectl, for the AI cluster-access capability: OneUptime AI runs read-only
+# kubectl during investigations and policy-tiered kubectl fixes during
+# remediations through this Runner (in-cluster via the kubernetes-agent chart,
+# or wherever a Kubernetes credential is assigned). Pinned by version AND
+# sha256 per architecture so a rebuild can never pick up a different binary.
+#
+# Keep it on a SUPPORTED minor in the middle of the supported cluster range:
+# kubectl is only supported within one minor of the API server, and each
+# release is built with the Go of its day, so a stale pin means version-skew
+# warnings on every "Test access" and a block of Go stdlib CVEs in image
+# scans that no rebuild fixes. v1.36.4 (go1.26.5) covers 1.35-1.37 servers.
+# Bump KUBECTL_VERSION and both digests together, at least once per
+# Kubernetes minor release (dl.k8s.io publishes kubectl.sha256 next to each
+# binary: https://dl.k8s.io/release/<version>/bin/linux/<arch>/kubectl.sha256).
+#
+# kubectl 1.33+ reads a kuberc preferences file (aliases, default flags).
+# KubectlExecutor switches it off for every AI command (KUBERC=off,
+# KUBECTL_KUBERC=false, an empty private HOME) and the argv guard refuses
+# --kuberc, so a preferences file can never rewrite an approved argv.
+ARG TARGETARCH
+ARG KUBECTL_VERSION=v1.36.4
+ARG KUBECTL_SHA256_AMD64=8b8f088da2dab964f853b38464033b1be15ede2839eca751482357c45abdd05a
+ARG KUBECTL_SHA256_ARM64=0ecf44450ee6063bf19dd166a103ee6df4a9034455c2abce626e6eea657d73fb
+RUN set -euo pipefail \
+  && arch="${TARGETARCH:-amd64}" \
+  && case "${arch}" in \
+       amd64) sha256="${KUBECTL_SHA256_AMD64}" ;; \
+       arm64) sha256="${KUBECTL_SHA256_ARM64}" ;; \
+       *) echo "unsupported TARGETARCH ${arch}" >&2; exit 1 ;; \
+     esac \
+  && curl -fsSL --retry 6 --retry-all-errors -o /tmp/kubectl \
+       "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${arch}/kubectl" \
+  && echo "${sha256}  /tmp/kubectl" | sha256sum -c - \
+  && install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl \
+  && rm -f /tmp/kubectl \
+  && kubectl version --client
 
 RUN mkdir -p /usr/src
 

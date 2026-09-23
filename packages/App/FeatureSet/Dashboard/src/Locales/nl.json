@@ -6458,5 +6458,7 @@
   "VMware vCenter Restored": "VMware vCenter hersteld",
   "VMware vCenter Updated": "VMware vCenter bijgewerkt",
   "Matching event types: {{count}}": "Overeenkomende gebeurtenistypen: {{count}}",
+  "Times are shown in {{abbreviation}}.": "Tijden worden getoond in de tijdzone {{abbreviation}}.",
+  "Planned window · times in {{abbreviation}}": "Gepland tijdvenster · tijden in {{abbreviation}}",
   "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Deze tijd is in uw tijdzone - {{abbreviation}} ({{timezone}})."
 }

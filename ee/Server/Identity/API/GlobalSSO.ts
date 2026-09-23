@@ -18,6 +18,7 @@ import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import ServerException from "Common/Types/Exception/ServerException";
 import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
@@ -504,6 +505,7 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
         email: true,
         isMasterAdmin: true,
         isEmailVerified: true,
+        isBlocked: true,
         profilePictureId: true,
         timezone: true,
       },
@@ -543,6 +545,28 @@ const loginUserWithGlobalSso: LoginUserWithGlobalSsoFunction = async (
       });
 
       isNewUser = true;
+    }
+
+    /*
+     * Blocked by a master admin. The identity provider vouching for the user
+     * does not lift that, so nothing is provisioned and no session is issued.
+     */
+    if (alreadySavedUser.isBlocked) {
+      if (
+        respondToMobileSsoFailure({
+          res,
+          isMobileRequest,
+          error: "account_blocked",
+          errorDescription: ExceptionMessages.UserBlocked,
+        })
+      ) {
+        return;
+      }
+
+      return Response.render(req, res, MESSAGE_VIEW, {
+        title: "Account blocked.",
+        message: ExceptionMessages.UserBlocked,
+      });
     }
 
     if (!alreadySavedUser.isEmailVerified && !isNewUser) {

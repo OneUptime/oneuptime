@@ -4,6 +4,8 @@ import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
 import RunnerJobStatus from "Common/Types/Runbook/RunnerJobStatus";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
+import Runner from "Common/Models/DatabaseModels/Runner";
+import RunnerService from "Common/Server/Services/RunnerService";
 import logger from "Common/Server/Utils/Logger";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import {
@@ -160,6 +162,17 @@ function stubDatabase(): Harness {
   const findSpy: jest.SpyInstance = jest
     .spyOn(RunnerJobService, "findLatestJobForStep")
     .mockResolvedValue(null);
+
+  /*
+   * enqueueAiCommand looks the target Runner up in the project (it refuses a
+   * foreign Runner and a kubernetes-agent Runner, which never runs Bash or
+   * SSH). An ordinary project Runner answers here.
+   */
+  jest.spyOn(RunnerService, "findOneBy").mockResolvedValue({
+    _id: AGENT_ID,
+    id: new ObjectID(AGENT_ID),
+    name: "office-runner",
+  } as unknown as Runner);
 
   return { createSpy, pollSpy, findSpy };
 }
