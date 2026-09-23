@@ -4798,6 +4798,8 @@
   "Should status page subscribers be notified when this note is posted?": "Moeten abonnees van de statuspagina worden gewaarschuwd wanneer deze notitie wordt geplaatst?",
   "Should status page subscribers be notified?": "Moeten abonnees van de statuspagina worden gewaarschuwd?",
   "Unticked by default because status page subscribers were not notified when this incident was declared.": "Standaard niet aangevinkt, omdat abonnees van de statuspagina niet op de hoogte zijn gebracht toen dit incident werd gemeld.",
+  "Unticked by default because status page subscribers were not notified when this episode was created.": "Standaard niet aangevinkt, omdat abonnees van de statuspagina niet op de hoogte zijn gebracht toen deze episode werd aangemaakt.",
+  "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.": "Standaard niet aangevinkt, omdat abonnees van de statuspagina niet op de hoogte zijn gebracht toen dit geplande onderhoud werd aangemaakt.",
   "Should the new monitor be disabled when its duplicated?": "Moet de nieuwe monitor worden uitgeschakeld wanneer deze wordt gedupliceerd?",
   "Show Announcement At": "Aankondiging weergeven om",
   "Show Announcement History (in days)": "Aankondigingsgeschiedenis weergeven (in dagen)",

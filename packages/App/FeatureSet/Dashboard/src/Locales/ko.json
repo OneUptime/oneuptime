@@ -4798,6 +4798,8 @@
   "Should status page subscribers be notified when this note is posted?": "이 메모가 게시될 때 상태 페이지 구독자에게 알림을 보내야 합니까?",
   "Should status page subscribers be notified?": "상태 페이지 구독자에게 알림을 보내야 합니까?",
   "Unticked by default because status page subscribers were not notified when this incident was declared.": "이 인시던트가 선언될 때 상태 페이지 구독자에게 알림이 전송되지 않았으므로 기본적으로 선택 해제되어 있습니다.",
+  "Unticked by default because status page subscribers were not notified when this episode was created.": "이 에피소드가 생성될 때 상태 페이지 구독자에게 알림이 전송되지 않았으므로 기본적으로 선택 해제되어 있습니다.",
+  "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.": "이 예정된 유지 관리가 생성될 때 상태 페이지 구독자에게 알림이 전송되지 않았으므로 기본적으로 선택 해제되어 있습니다.",
   "Should the new monitor be disabled when its duplicated?": "새 모니터를 복제할 때 비활성화해야 합니까?",
   "Show Announcement At": "공지사항 표시 시점",
   "Show Announcement History (in days)": "공지사항 기록 표시(일 단위)",

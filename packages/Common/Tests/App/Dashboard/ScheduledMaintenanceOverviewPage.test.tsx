@@ -482,6 +482,14 @@ describe("Scheduled maintenance overview page", () => {
         title: true,
         scheduledMaintenanceNumber: true,
         scheduledMaintenanceNumberWithPrefix: true,
+        /*
+         * Where the notify checkboxes start: the feed's public note follows
+         * Event Created; the header's state change also follows Event
+         * Ongoing / Event Ended for those moves.
+         */
+        shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+        shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing: true,
+        shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
         statusPages: { _id: true, name: true },
         createdByUser: { name: true, email: true },
       });

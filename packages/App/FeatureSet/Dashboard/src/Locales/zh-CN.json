@@ -4798,6 +4798,8 @@
   "Should status page subscribers be notified when this note is posted?": "发布此备注时是否应通知状态页订阅者？",
   "Should status page subscribers be notified?": "是否应通知状态页订阅者？",
   "Unticked by default because status page subscribers were not notified when this incident was declared.": "默认未勾选，因为声明此事件时未通知状态页订阅者。",
+  "Unticked by default because status page subscribers were not notified when this episode was created.": "默认未勾选，因为创建此片段时未通知状态页订阅者。",
+  "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.": "默认未勾选，因为创建此计划维护时未通知状态页订阅者。",
   "Should the new monitor be disabled when its duplicated?": "复制新监视器时是否应将其禁用？",
   "Show Announcement At": "显示公告时间",
   "Show Announcement History (in days)": "显示公告历史记录（天数）",
