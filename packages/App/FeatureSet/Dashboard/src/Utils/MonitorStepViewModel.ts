@@ -7,6 +7,7 @@ import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricsViewConfig from "Common/Types/Metrics/MetricsViewConfig";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
+import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import OcsfSeverity from "Common/Types/SecurityEvent/OcsfSeverity";
@@ -1254,6 +1255,16 @@ export default class MonitorStepViewModel {
         valueType: MonitorStepViewValueType.ArrayOfText,
         value: exceptionMonitor?.exceptionTypes || [],
         placeholder: "All exception types",
+      }),
+      optional({
+        key: "exceptionEnvironments",
+        title: "Environments",
+        description: "Deployment environments this monitor watches.",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: MonitorStepExceptionMonitorUtil.normalizeEnvironments(
+          exceptionMonitor?.environments,
+        ),
+        placeholder: "All environments",
       }),
       {
         key: "lastXSecondsOfExceptions",

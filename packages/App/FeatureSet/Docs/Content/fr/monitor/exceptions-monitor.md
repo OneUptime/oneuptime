@@ -8,6 +8,7 @@ Les moniteurs d'exceptions comptent et filtrent les exceptions correspondant à 
 
 - Alerter sur les pics d'exceptions dans vos applications
 - Surveiller des types d'exceptions spécifiques
+- Limiter les alertes à un environnement de déploiement tel que `production`
 - Rechercher des exceptions par message d'erreur
 - Suivre séparément les exceptions résolues et actives
 - Détecter les problèmes de stabilité des applications à partir des modèles d'erreurs
@@ -31,10 +32,35 @@ Sélectionnez un ou plusieurs services depuis lesquels surveiller les exceptions
 | Filtre                | Description                                                                        | Obligatoire |
 | --------------------- | ---------------------------------------------------------------------------------- | ----------- |
 | Types d'exceptions    | Filtrer par noms de types d'exceptions (ex. : `NullPointerException`, `TypeError`) | Non         |
+| Environnements        | Filtrer par environnement de déploiement (ex. : `production`, `staging`)           | Non         |
 | Message               | Recherche textuelle dans les messages d'exception                                  | Non         |
 | Inclure les résolues  | Inclure les exceptions marquées comme résolues (par défaut : false)                | Non         |
 | Inclure les archivées | Inclure les exceptions archivées (par défaut : false)                              | Non         |
 | Fenêtre temporelle    | Jusqu'où chercher les exceptions (en secondes, par défaut : 60)                    | Non         |
+
+### Environnements
+
+Les environnements proviennent de l'attribut de ressource OpenTelemetry `deployment.environment` de chaque exception, la même valeur que celle utilisée par l'explorateur d'exceptions pour filtrer avec `env:production`. Saisissez un environnement, ou plusieurs séparés par des virgules ; une exception est comptée lorsque son environnement correspond à l'un d'entre eux.
+
+La correspondance est exacte et sensible à la casse : `production` ne correspond ni à `Production` ni à `prod`. Les exceptions sans environnement ne sont pas comptées lorsque ce filtre est défini. Laissez-le vide pour compter les exceptions de tous les environnements, y compris celles sans environnement.
+
+Le filtre d'environnement est combiné avec tous les autres filtres : un moniteur limité à un service de télémétrie et à `production` ne compte donc que les exceptions de production de ce service.
+
+Lors de la création du moniteur via l'API, définissez `environments` dans le `exceptionMonitor` de l'étape sur une liste de noms d'environnements :
+
+```json
+{
+  "exceptionMonitor": {
+    "telemetryServiceIds": [],
+    "environments": ["production"],
+    "exceptionTypes": [],
+    "message": "",
+    "includeResolved": false,
+    "includeArchived": false,
+    "lastXSecondsOfExceptions": 300
+  }
+}
+```
 
 ## Critères de surveillance
 
@@ -69,6 +95,14 @@ Sélectionnez un ou plusieurs services depuis lesquels surveiller les exceptions
 - **Vérifier sur** : Nombre d'exceptions
 - **Type de filtre** : Supérieur à
 - **Valeur** : 0
+
+#### Alerter uniquement sur les exceptions de production
+
+- **Environnements** : `production`
+- **Fenêtre temporelle** : 300 secondes
+- **Vérifier sur** : Nombre d'exceptions
+- **Type de filtre** : Supérieur à
+- **Valeur** : 5
 
 #### Surveiller les exceptions contenant un message spécifique
 

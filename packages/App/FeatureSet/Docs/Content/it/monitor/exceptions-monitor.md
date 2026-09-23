@@ -8,6 +8,7 @@ I monitor delle eccezioni contano e filtrano le eccezioni che corrispondono a cr
 
 - Avvisare in caso di picchi di eccezioni nelle tue applicazioni
 - Monitorare tipi specifici di eccezioni
+- Limitare gli avvisi a un ambiente di deployment come `production`
 - Cercare eccezioni per messaggio di errore
 - Tracciare separatamente le eccezioni risolte e attive
 - Rilevare problemi di stabilità dell'applicazione dai pattern di errore
@@ -31,10 +32,35 @@ Seleziona uno o più servizi da cui monitorare le eccezioni. I servizi devono in
 | Filtro             | Descrizione                                                                     | Obbligatorio |
 | ------------------ | ------------------------------------------------------------------------------- | ------------ |
 | Tipi di Eccezione  | Filtra per nomi del tipo di eccezione (es. `NullPointerException`, `TypeError`) | No           |
+| Ambienti           | Filtra per ambiente di deployment (es. `production`, `staging`)                 | No           |
 | Messaggio          | Ricerca testuale nei messaggi delle eccezioni                                   | No           |
 | Includi Risolte    | Includi le eccezioni contrassegnate come risolte (predefinito: false)           | No           |
 | Includi Archiviate | Includi le eccezioni archiviate (predefinito: false)                            | No           |
 | Finestra Temporale | Quanto indietro cercare le eccezioni (in secondi, predefinito: 60)              | No           |
+
+### Ambienti
+
+Gli ambienti provengono dall'attributo di risorsa OpenTelemetry `deployment.environment` di ciascuna eccezione, lo stesso valore che l'explorer delle eccezioni filtra con `env:production`. Inserisci un ambiente, o più ambienti separati da virgole; un'eccezione viene conteggiata quando il suo ambiente corrisponde a uno qualsiasi di essi.
+
+La corrispondenza è esatta e fa distinzione tra maiuscole e minuscole: `production` non corrisponde a `Production` né a `prod`. Le eccezioni senza ambiente non vengono conteggiate quando questo filtro è impostato. Lascialo vuoto per conteggiare le eccezioni di tutti gli ambienti, comprese quelle senza ambiente.
+
+Il filtro per ambiente viene combinato con tutti gli altri filtri, quindi un monitor limitato a un servizio di telemetria e a `production` conteggia solo le eccezioni di produzione di quel servizio.
+
+Quando crei il monitor tramite l'API, imposta `environments` nell'`exceptionMonitor` del passaggio su un elenco di nomi di ambiente:
+
+```json
+{
+  "exceptionMonitor": {
+    "telemetryServiceIds": [],
+    "environments": ["production"],
+    "exceptionTypes": [],
+    "message": "",
+    "includeResolved": false,
+    "includeArchived": false,
+    "lastXSecondsOfExceptions": 300
+  }
+}
+```
 
 ## Criteri di Monitoraggio
 
@@ -69,6 +95,14 @@ Seleziona uno o più servizi da cui monitorare le eccezioni. I servizi devono in
 - **Controlla Su**: Exception Count
 - **Tipo di filtro**: Greater Than
 - **Valore**: 0
+
+#### Avvisa solo sulle eccezioni di produzione
+
+- **Ambienti**: `production`
+- **Finestra temporale**: 300 secondi
+- **Controlla Su**: Exception Count
+- **Tipo di filtro**: Greater Than
+- **Valore**: 5
 
 #### Monitora le eccezioni contenenti un messaggio specifico
 

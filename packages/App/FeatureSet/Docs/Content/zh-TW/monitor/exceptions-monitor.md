@@ -8,6 +8,7 @@
 
 - 針對應用程式中的例外激增發出警示
 - 監控特定的例外類型
+- 將警示範圍限定於特定部署環境（例如 `production`）
 - 依錯誤訊息搜尋例外
 - 分別追蹤已解決與作用中的例外
 - 從錯誤模式偵測應用程式的穩定性問題
@@ -31,10 +32,35 @@
 | 篩選條件         | 說明                                                           | 必填 |
 | ---------------- | -------------------------------------------------------------- | ---- |
 | Exception Types  | 依例外類型名稱篩選（例如 `NullPointerException`、`TypeError`） | 否   |
+| Environments     | 依部署環境篩選（例如 `production`、`staging`）                 | 否   |
 | Message          | 在例外訊息中進行文字搜尋                                       | 否   |
 | Include Resolved | 納入已被標記為已解決的例外（預設值：false）                    | 否   |
 | Include Archived | 納入已封存的例外（預設值：false）                              | 否   |
 | Time Window      | 向前搜尋例外的時間範圍（以秒為單位，預設值：60）               | 否   |
+
+### 環境
+
+環境來自每個例外上的 OpenTelemetry 資源屬性 `deployment.environment`，與例外探索器使用 `env:production` 篩選時所用的值相同。輸入一個環境，或以逗號分隔輸入多個環境；只要例外的環境符合其中任何一個，該例外就會被計入。
+
+比對為完全相符且區分大小寫：`production` 不會符合 `Production` 或 `prod`。設定此篩選條件後，沒有環境的例外不會被計入。將其留空即可計入所有環境的例外，包括沒有環境的例外。
+
+環境篩選條件會與其他所有篩選條件一併套用，因此限定於某個遙測服務與 `production` 的監控，只會計入該服務在正式環境中的例外。
+
+透過 API 建立監控時，請將步驟 `exceptionMonitor` 中的 `environments` 設為環境名稱清單：
+
+```json
+{
+  "exceptionMonitor": {
+    "telemetryServiceIds": [],
+    "environments": ["production"],
+    "exceptionTypes": [],
+    "message": "",
+    "includeResolved": false,
+    "includeArchived": false,
+    "lastXSecondsOfExceptions": 300
+  }
+}
+```
 
 ## 監控準則
 
@@ -69,6 +95,14 @@
 - **Check On**：Exception Count
 - **篩選器類型**：Greater Than
 - **值**：0
+
+#### 僅針對正式環境的例外發出警示
+
+- **環境**：`production`
+- **時間範圍**：300 秒
+- **Check On**：Exception Count
+- **篩選器類型**：Greater Than
+- **值**：5
 
 #### 監控包含特定訊息的例外
 
