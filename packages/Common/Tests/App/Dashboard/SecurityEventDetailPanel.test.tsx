@@ -14,6 +14,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import * as React from "react";
@@ -21,10 +22,12 @@ import { MemoryRouter } from "react-router-dom";
 import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import Navigation from "../../../UI/Utils/Navigation";
+import Clipboard from "../../../UI/Utils/Clipboard";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import SecurityEventDetailPanel, {
   SECURITY_EVENT_DETAIL_ATTRIBUTES_TAB_ID,
   SECURITY_EVENT_DETAIL_JSON_TAB_ID,
+  SECURITY_EVENT_DETAIL_JSON_TEST_ID,
   SECURITY_EVENT_DETAIL_OVERVIEW_TAB_ID,
   SECURITY_EVENT_DETAIL_PANEL_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventDetailPanel";
@@ -74,6 +77,8 @@ function renderPanel(
     onClose?: () => void;
     onFilterBy?: (facetKey: string, value: string) => void;
     onCorrelateObservable?: (observable: string) => void;
+    attributeColumnKeys?: Array<string>;
+    onToggleAttributeColumn?: (attributeKey: string) => void;
   } = {},
 ): void {
   render(
@@ -84,6 +89,12 @@ function renderPanel(
         {...(props.onFilterBy ? { onFilterBy: props.onFilterBy } : {})}
         {...(props.onCorrelateObservable
           ? { onCorrelateObservable: props.onCorrelateObservable }
+          : {})}
+        {...(props.attributeColumnKeys
+          ? { attributeColumnKeys: props.attributeColumnKeys }
+          : {})}
+        {...(props.onToggleAttributeColumn
+          ? { onToggleAttributeColumn: props.onToggleAttributeColumn }
           : {})}
       />
     </MemoryRouter>,
@@ -395,5 +406,295 @@ describe("the drawer is a modal", () => {
     const tablist: HTMLElement = screen.getByRole("tablist");
 
     expect(within(tablist).getAllByRole("tab")).toHaveLength(3);
+  });
+});
+
+/*
+ * A Google SecOps detection carries hundreds of attributes, many of them
+ * long keys holding long values (escaped JSON labels, base64 tokens). Printed
+ * unwrapped, those lines ran off the drawer's edge and the only horizontal
+ * scrollbar sat below hundreds of lines — the reader could not see the end
+ * of a value at all. And the only way to get the record into a ticket was to
+ * drag-select the whole thing.
+ */
+describe("reading and copying the JSON", () => {
+  const LONG_VALUE: string = `{"key":"identity_risk","value":"${"x".repeat(400)}"}`;
+
+  const DETECTION: SecurityEvent = event({
+    message: "Mass_Password_Reset_Modification",
+    attributes: {
+      "collectionElements.0.references.0.event.target.user.attribute.labels.9":
+        LONG_VALUE,
+      "collectionElements.0.references.0.event.target.user.firstName": "jdoe",
+    },
+  });
+
+  function json(): HTMLElement {
+    return screen.getByTestId(SECURITY_EVENT_DETAIL_JSON_TEST_ID);
+  }
+
+  function wrapToggle(): HTMLElement {
+    return screen.getByRole("button", { name: /Wrap lines/ });
+  }
+
+  test("the Wrap and Copy controls stay in reach however far the record is scrolled", () => {
+    renderPanel(DETECTION);
+    fireEvent.click(tab("JSON"));
+
+    const toolbar: HTMLElement = screen.getByRole("button", {
+      name: /Copy JSON/,
+    }).parentElement as HTMLElement;
+
+    expect(toolbar).toHaveClass("sticky");
+    expect(toolbar).toContainElement(wrapToggle());
+  });
+
+  test("long lines wrap to fit the drawer by default", () => {
+    renderPanel(DETECTION);
+    fireEvent.click(tab("JSON"));
+
+    expect(json()).toHaveClass("whitespace-pre-wrap");
+    expect(json()).toHaveClass("break-words");
+    expect(json()).not.toHaveClass("whitespace-pre");
+    expect(wrapToggle()).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("wrapping can be switched off for a reader who would rather scroll sideways", () => {
+    renderPanel(DETECTION);
+    fireEvent.click(tab("JSON"));
+
+    fireEvent.click(wrapToggle());
+
+    expect(json()).toHaveClass("whitespace-pre");
+    expect(json()).not.toHaveClass("whitespace-pre-wrap");
+    /*
+     * Scrolling within itself, height-capped, so its sideways scrollbar is on
+     * screen rather than below hundreds of lines.
+     */
+    expect(json()).toHaveClass("overflow-auto");
+    expect(json()).toHaveClass("max-h-[70vh]");
+    expect(wrapToggle()).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(wrapToggle());
+
+    expect(json()).toHaveClass("whitespace-pre-wrap");
+  });
+
+  test("wrapping changes how it looks, never what it says", () => {
+    renderPanel(DETECTION);
+    fireEvent.click(tab("JSON"));
+
+    const wrapped: string = json().textContent || "";
+
+    fireEvent.click(wrapToggle());
+
+    expect(json().textContent).toBe(wrapped);
+    expect(wrapped).toContain("x".repeat(400));
+  });
+
+  test("Copy JSON puts the whole record on the clipboard, exactly as shown", async () => {
+    const copy: MockFunction = getJestMockFunction();
+    copy.mockResolvedValue(true as never);
+    jest
+      .spyOn(Clipboard, "copyToClipboard")
+      .mockImplementation(copy as unknown as typeof Clipboard.copyToClipboard);
+
+    renderPanel(DETECTION);
+    fireEvent.click(tab("JSON"));
+
+    fireEvent.click(screen.getByRole("button", { name: /Copy JSON/ }));
+
+    await waitFor(() => {
+      expect(copy).toHaveBeenCalledTimes(1);
+    });
+
+    const copied: string = (copy.mock.calls[0] as Array<unknown>)[0] as string;
+
+    expect(copied).toBe(json().textContent);
+
+    const parsed: Record<string, unknown> = JSON.parse(copied);
+    expect(parsed["message"]).toBe("Mass_Password_Reset_Modification");
+    expect(
+      (parsed["attributes"] as Record<string, string>)[
+        "collectionElements.0.references.0.event.target.user.attribute.labels.9"
+      ],
+    ).toBe(LONG_VALUE);
+  });
+
+  test("says so once it has copied", async () => {
+    jest.spyOn(Clipboard, "copyToClipboard").mockResolvedValue(true as never);
+
+    renderPanel(DETECTION);
+    fireEvent.click(tab("JSON"));
+
+    fireEvent.click(screen.getByRole("button", { name: /Copy JSON/ }));
+
+    expect(await screen.findByText("Copied!")).toBeInTheDocument();
+  });
+
+  test("does not claim to have copied when the browser refused", async () => {
+    const copy: MockFunction = getJestMockFunction();
+    copy.mockResolvedValue(false as never);
+    jest
+      .spyOn(Clipboard, "copyToClipboard")
+      .mockImplementation(copy as unknown as typeof Clipboard.copyToClipboard);
+
+    renderPanel(DETECTION);
+    fireEvent.click(tab("JSON"));
+
+    fireEvent.click(screen.getByRole("button", { name: /Copy JSON/ }));
+
+    await waitFor(() => {
+      expect(copy).toHaveBeenCalledTimes(1);
+    });
+
+    expect(screen.queryByText("Copied!")).toBeNull();
+  });
+
+  test("copying reads the event the drawer is showing now, not the first one it opened on", async () => {
+    const copy: MockFunction = getJestMockFunction();
+    copy.mockResolvedValue(true as never);
+    jest
+      .spyOn(Clipboard, "copyToClipboard")
+      .mockImplementation(copy as unknown as typeof Clipboard.copyToClipboard);
+
+    const { rerender } = render(
+      <MemoryRouter>
+        <SecurityEventDetailPanel
+          securityEvent={event({ message: "first" })}
+          onClose={(): void => {}}
+        />
+      </MemoryRouter>,
+    );
+
+    rerender(
+      <MemoryRouter>
+        <SecurityEventDetailPanel
+          securityEvent={event({ message: "second" })}
+          onClose={(): void => {}}
+        />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(tab("JSON"));
+    fireEvent.click(screen.getByRole("button", { name: /Copy JSON/ }));
+
+    await waitFor(() => {
+      expect(copy).toHaveBeenCalledTimes(1);
+    });
+
+    expect(
+      JSON.parse((copy.mock.calls[0] as Array<unknown>)[0] as string)[
+        "message"
+      ],
+    ).toBe("second");
+  });
+});
+
+/*
+ * The reader who finds the attribute they care about in this tab should be
+ * able to put it on every row from right here, rather than go find the same
+ * key again among thousands in the toolbar's picker.
+ */
+describe("showing an attribute on the list's rows", () => {
+  const FIRST_NAME_KEY: string =
+    "collectionElements.0.references.0.event.target.user.firstName";
+
+  const DETECTION: SecurityEvent = event({
+    message: "Mass_Password_Reset_Modification",
+    attributes: {
+      [FIRST_NAME_KEY]: "jdoe",
+      "device.hostname": "web-01",
+    },
+  });
+
+  function columnButton(key: string): HTMLElement {
+    return screen.getByRole("button", {
+      name: new RegExp(
+        `(Show|Stop showing) ${key.replace(/\./g, "\\.")} on event rows`,
+      ),
+    });
+  }
+
+  test("each attribute offers it, and says which ones are already shown", () => {
+    renderPanel(DETECTION, {
+      attributeColumnKeys: [FIRST_NAME_KEY],
+      onToggleAttributeColumn: (): void => {},
+    });
+
+    fireEvent.click(tab("Attributes"));
+
+    expect(columnButton(FIRST_NAME_KEY)).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(columnButton(FIRST_NAME_KEY)).toHaveAccessibleName(
+      `Stop showing ${FIRST_NAME_KEY} on event rows`,
+    );
+    expect(columnButton("device.hostname")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(columnButton("device.hostname")).toHaveAccessibleName(
+      "Show device.hostname on event rows",
+    );
+  });
+
+  test("clicking it hands the page the attribute's key", () => {
+    const onToggle: MockFunction = getJestMockFunction();
+
+    renderPanel(DETECTION, {
+      attributeColumnKeys: [],
+      onToggleAttributeColumn: onToggle as unknown as (key: string) => void,
+    });
+
+    fireEvent.click(tab("Attributes"));
+    fireEvent.click(columnButton(FIRST_NAME_KEY));
+
+    expect(onToggle).toHaveBeenCalledWith(FIRST_NAME_KEY);
+
+    fireEvent.click(columnButton("device.hostname"));
+
+    expect(onToggle).toHaveBeenLastCalledWith("device.hostname");
+  });
+
+  test("sits beside the attribute's filter action, not in place of it", () => {
+    const onFilterBy: MockFunction = getJestMockFunction();
+    const onToggle: MockFunction = getJestMockFunction();
+
+    renderPanel(DETECTION, {
+      onFilterBy: onFilterBy as unknown as (
+        facetKey: string,
+        value: string,
+      ) => void,
+      onToggleAttributeColumn: onToggle as unknown as (key: string) => void,
+    });
+
+    fireEvent.click(tab("Attributes"));
+    fireEvent.click(filterButton(FIRST_NAME_KEY));
+
+    expect(onFilterBy).toHaveBeenCalledWith(
+      `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${FIRST_NAME_KEY}`,
+      "jdoe",
+    );
+    expect(onToggle).not.toHaveBeenCalled();
+  });
+
+  test("a page with no rows to add to gets no such action", () => {
+    renderPanel(DETECTION);
+
+    fireEvent.click(tab("Attributes"));
+
+    expect(screen.queryByRole("button", { name: /on event rows/ })).toBeNull();
+  });
+
+  test("only the Attributes tab offers it — the typed fields already have their chips", () => {
+    renderPanel(DETECTION, {
+      onToggleAttributeColumn: (): void => {},
+    });
+
+    expect(tab("Overview")).toHaveAttribute("aria-selected", "true");
+
+    expect(screen.queryByRole("button", { name: /on event rows/ })).toBeNull();
   });
 });
