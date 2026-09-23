@@ -6,10 +6,13 @@ import { KUBERNETES_AGENT_CLUSTER_NAME, MAX_OUTPUT_BYTES } from "../Config";
 import KubernetesPosture from "../Utils/KubernetesPosture";
 import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
 import KubectlArgvGuard from "../Utils/KubectlArgvGuard";
-import KubectlWriteScope from "../Utils/KubectlWriteScope";
+import KubectlWriteScope, {
+  KubectlWriteTargets,
+} from "../Utils/KubectlWriteScope";
 import { JSONObject } from "Common/Types/JSON";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
 import {
+  KUBECTL_ALLOW_NODE_OPERATIONS_ENV,
   KUBECTL_ALLOW_WRITES_ENV,
   KubectlCommandTier,
   isSameKubernetesClusterIdentifier,
@@ -41,9 +44,10 @@ export interface KubectlExecResult {
  * output formats, credential/cluster/file flags anywhere in the argv), then
  * the same pure KubectlPolicy the server ran. A Denied command never spawns,
  * an investigation-origin job may only be Read tier, a host that does not
- * allow writes refuses every write, and a write outside the namespaces this
- * Runner may change (or into its own pod's namespace) is refused —
- * whatever a compromised or misconfigured server sent.
+ * allow writes refuses every write, a host that does not allow node
+ * operations refuses every write to a node, and a write outside the
+ * namespaces this Runner may change (or into its own pod's namespace) is
+ * refused — whatever a compromised or misconfigured server sent.
  *
  * kubectl runs in a closed environment: PATH, a private empty HOME, a
  * private discovery cache, kuberc preferences switched off (kubectl 1.33+
@@ -365,6 +369,31 @@ export default class KubectlExecutor {
       };
     }
 
+    /*
+     * Node operations have their own switch: nodes are cluster-scoped, so
+     * the namespace scope below cannot bound them, and the chart's node
+     * role is optional. A write whose objects cannot be read for certain
+     * could be one, so it is refused too.
+     */
+    if (
+      policy.tier !== KubectlCommandTier.Read &&
+      !KubernetesPosture.allowsNodeOperations()
+    ) {
+      const targets: KubectlWriteTargets =
+        KubectlWriteScope.resolveTargets(args);
+
+      if (targets.touchesNodes || targets.uncertainty !== null) {
+        return {
+          success: false,
+          output: "",
+          errorMessage: KubectlExecutor.describeNodeOperationsRefused({
+            displayCommand: policy.displayCommand,
+            uncertainty: targets.uncertainty,
+          }),
+        };
+      }
+    }
+
     const apiServerUrl: string = String(
       data.credential?.["apiServerUrl"] || "",
     );
@@ -551,6 +580,33 @@ export default class KubectlExecutor {
     }
 
     return `Refused by the Runner: this Runner host does not allow AI-composed kubectl writes (${current}; when it is set, only "true" allows them). Set ${KUBECTL_ALLOW_WRITES_ENV}=true in this Runner's environment (or remove it) and restart it to let OneUptime AI change clusters through it; the Kubernetes credential's RBAC still bounds what it can do.`;
+  }
+
+  /*
+   * Why a node operation is refused on a host whose node switch is off —
+   * pointing, like describeWritesRefused, at the fix for THIS Runner.
+   */
+  private static describeNodeOperationsRefused(data: {
+    displayCommand: string;
+    uncertainty: string | null;
+  }): string {
+    const setting: string | null =
+      KubernetesPosture.getAllowNodeOperationsSetting();
+    const current: string =
+      setting === null || setting.trim() === ""
+        ? `${KUBECTL_ALLOW_NODE_OPERATIONS_ENV} is not set`
+        : `${KUBECTL_ALLOW_NODE_OPERATIONS_ENV}="${setting}"`;
+
+    const what: string =
+      data.uncertainty === null
+        ? `"${data.displayCommand}" is a node operation (cordon, uncordon, drain, taint, or a change to a Node object)`
+        : `this Runner cannot tell for certain whether "${data.displayCommand}" changes a node (${data.uncertainty})`;
+
+    if (KubernetesAgentMode.isActive()) {
+      return `Refused by the Runner: ${what}, and this Runner was installed without node operations (${current}; only "true" allows them). Upgrade the Kubernetes agent with --set aiAccess.remediation.nodeOperations=true to let OneUptime AI change nodes; other fixes are unaffected.`;
+    }
+
+    return `Refused by the Runner: ${what}, and this Runner host does not allow AI-composed node operations (${current}; when it is set, only "true" allows them). Set ${KUBECTL_ALLOW_NODE_OPERATIONS_ENV}=true in this Runner's environment (or remove it) and restart it to let OneUptime AI change nodes through it; the Kubernetes credential's RBAC still bounds what it can do.`;
   }
 
   /*

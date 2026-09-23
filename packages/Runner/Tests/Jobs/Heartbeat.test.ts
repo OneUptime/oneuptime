@@ -61,6 +61,7 @@ import KubernetesAgentMode from "../../Utils/KubernetesAgentMode";
 import KubernetesPosture from "../../Utils/KubernetesPosture";
 import RunnerCapabilities from "../../Utils/RunnerCapabilities";
 import { JSONObject } from "Common/Types/JSON";
+import LocalCache from "Common/Server/Infrastructure/LocalCache";
 
 const heartbeat: jest.Mock = AgentClient.heartbeat as jest.Mock;
 const tryRegisterRunner: jest.Mock = Register.tryRegisterRunner as jest.Mock;
@@ -547,6 +548,11 @@ describe("stopping the heartbeat", () => {
     expect(tryRegisterRunner).not.toHaveBeenCalled();
   });
 
+  /*
+   * The round here never hands over an attempt (onAttempt), which is a
+   * round sleeping between attempts: stop() does not wait out the sleep,
+   * it only tells the round not to make another attempt.
+   */
   test("a re-registration round in progress is told to stop once the loop stops", async () => {
     heartbeat.mockResolvedValue(rejected(401));
     const round: Deferred<boolean> = deferred<boolean>();
@@ -561,6 +567,7 @@ describe("stopping the heartbeat", () => {
     ).shouldContinue;
 
     expect(shouldContinue()).toBe(true);
+    expect(loop.isRegistrationAttemptInFlight()).toBe(false);
 
     await loop.stop();
 
@@ -568,6 +575,164 @@ describe("stopping the heartbeat", () => {
 
     round.resolve(false);
     await settle(loop);
+  });
+
+  /*
+   * -----------------------------------------------------------------------
+   * A registration attempt already on the wire when the Runner signs off.
+   * stop() used to wait only for a heartbeat, so it returned at once during
+   * a re-registration round and /disconnect went out while the attempt's
+   * POST was still in flight — with the key the heartbeats were being
+   * rejected for. The server then processed the registration after the
+   * sign-off and marked the Runner Connected again, locking the
+   * replacement pod out for the whole alive window.
+   * -----------------------------------------------------------------------
+   */
+  describe("a registration attempt on the wire", () => {
+    interface Round {
+      round: Deferred<boolean>;
+      attempt: Deferred<void>;
+    }
+
+    /*
+     * A re-registration round whose first attempt is on the wire: it hands
+     * the attempt to the loop exactly as Register.tryRegisterRunner does.
+     */
+    async function roundWithAttemptInFlight(
+      loop: HeartbeatLoop,
+    ): Promise<Round> {
+      const round: Deferred<boolean> = deferred<boolean>();
+      const attempt: Deferred<void> = deferred<void>();
+
+      heartbeat.mockResolvedValue(rejected(401));
+      tryRegisterRunner.mockImplementation(
+        (data: { onAttempt: (attempt: Promise<void>) => void }) => {
+          data.onAttempt(attempt.promise);
+          return round.promise;
+        },
+      );
+
+      await tickTimes(loop, REREGISTER_AFTER_REJECTED_HEARTBEATS);
+      expect(tryRegisterRunner).toHaveBeenCalledTimes(1);
+      expect(loop.isRegistrationAttemptInFlight()).toBe(true);
+
+      return { round, attempt };
+    }
+
+    test("stop() waits for it", async () => {
+      const loop: HeartbeatLoop = new HeartbeatLoop();
+      const { round, attempt } = await roundWithAttemptInFlight(loop);
+
+      let stopped: boolean = false;
+      const stopping: Promise<void> = loop.stop().then(() => {
+        stopped = true;
+      });
+
+      await flush();
+      expect(stopped).toBe(false);
+
+      attempt.resolve();
+      await stopping;
+
+      expect(stopped).toBe(true);
+      expect(loop.isRegistrationAttemptInFlight()).toBe(false);
+
+      round.resolve(true);
+      await settle(loop);
+    });
+
+    test("stop() waits for it when it fails, too", async () => {
+      const loop: HeartbeatLoop = new HeartbeatLoop();
+      const { round, attempt } = await roundWithAttemptInFlight(loop);
+
+      const stopping: Promise<void> = loop.stop();
+      attempt.reject(new Error("refused"));
+      await stopping;
+
+      expect(loop.isRegistrationAttemptInFlight()).toBe(false);
+
+      round.resolve(false);
+      await settle(loop);
+    });
+
+    test("stop() gives up on a hung attempt after its bound", async () => {
+      const loop: HeartbeatLoop = new HeartbeatLoop();
+      const { round } = await roundWithAttemptInFlight(loop);
+
+      const startedAt: number = Date.now();
+      await loop.stop(50);
+      const waited: number = Date.now() - startedAt;
+
+      expect(waited).toBeGreaterThanOrEqual(40);
+      expect(waited).toBeLessThan(5_000);
+
+      round.resolve(false);
+      await settle(loop);
+    });
+
+    test("the round makes no further attempt once stopped", async () => {
+      const loop: HeartbeatLoop = new HeartbeatLoop();
+      const { round, attempt } = await roundWithAttemptInFlight(loop);
+
+      const shouldContinue: () => boolean = (
+        tryRegisterRunner.mock.calls[0]![0] as {
+          shouldContinue: () => boolean;
+        }
+      ).shouldContinue;
+
+      const stopping: Promise<void> = loop.stop();
+      expect(shouldContinue()).toBe(false);
+
+      attempt.resolve();
+      await stopping;
+      round.resolve(false);
+      await settle(loop);
+    });
+
+    /*
+     * The order that matters: the sign-off goes out only after the attempt
+     * settled, so a registration the server accepts is followed by the
+     * /disconnect — carrying the key it just issued, which the attempt
+     * stored before settling.
+     */
+    test("signOff sends /disconnect only after the attempt settled, with the key it stored", async () => {
+      const loop: HeartbeatLoop = new HeartbeatLoop();
+      const { round, attempt } = await roundWithAttemptInFlight(loop);
+      const events: Array<string> = [];
+
+      LocalCache.setString("RUNNER", "RUNNER_KEY", "rejected-key");
+
+      (AgentClient.disconnect as jest.Mock).mockReset();
+      (AgentClient.disconnect as jest.Mock).mockImplementation(
+        async (): Promise<boolean> => {
+          events.push(
+            `disconnect with ${LocalCache.getString("RUNNER", "RUNNER_KEY")}`,
+          );
+          return true;
+        },
+      );
+
+      const signingOff: Promise<void> = signOff({
+        stop: (): Promise<void> => {
+          return loop.stop();
+        },
+      });
+
+      await flush();
+      expect(AgentClient.disconnect).not.toHaveBeenCalled();
+
+      // The server answered: the attempt stores the new key, then settles.
+      LocalCache.setString("RUNNER", "RUNNER_KEY", "new-key");
+      events.push("registered");
+      attempt.resolve();
+
+      await signingOff;
+
+      expect(events).toEqual(["registered", "disconnect with new-key"]);
+
+      round.resolve(true);
+      await settle(loop);
+    });
   });
 
   describe("startHeartbeat's handle", () => {

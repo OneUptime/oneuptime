@@ -12,7 +12,10 @@ import {
 } from "../Config";
 import RunnerCapabilities from "../Utils/RunnerCapabilities";
 import KubernetesPosture from "../Utils/KubernetesPosture";
-import { KubernetesRunnerPosture } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  KubernetesRunnerPosture,
+  isTransientKubernetesAgentRegistrationRefusal,
+} from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
@@ -23,28 +26,74 @@ import LocalCache from "Common/Server/Infrastructure/LocalCache";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import ClusterKeyAuthorization from "Common/Server/Middleware/ClusterKeyAuthorization";
 
-// The longest server reason carried into a log line.
-const SERVER_REASON_MAX_CHARS: number = 500;
+/*
+ * The longest server reason carried into a log line. The server's refusals
+ * that need an operator explain what to change and where, and that runs
+ * past 500 characters for a long cluster name; the ending is the part that
+ * says what to do.
+ */
+const SERVER_REASON_MAX_CHARS: number = 1000;
 
 /*
  * A registration the server answered and refused, with the status it
- * answered and, when it said, how long until it would admit the Runner. The
- * retry loop reads both to pick its wait.
+ * answered, the machine-readable reason it gave (a 403 from
+ * /register-kubernetes-agent carries one) and, when it said, how long until
+ * it would admit the Runner. The retry loop reads all three to pick its
+ * wait and how loudly to log.
  */
 export class RegistrationRefusedError extends Error {
   public readonly statusCode: number;
   public readonly retryAfterSeconds: number | null;
+  public readonly reason: string | null;
 
   public constructor(data: {
     message: string;
     statusCode: number;
     retryAfterSeconds?: number | null | undefined;
+    reason?: string | null | undefined;
   }) {
     super(data.message);
     this.name = "RegistrationRefusedError";
     this.statusCode = data.statusCode;
     this.retryAfterSeconds = data.retryAfterSeconds ?? null;
+    this.reason = data.reason ?? null;
   }
+
+  /*
+   * A kubernetes-agent registration the server will keep refusing until an
+   * operator acts: a 403 whose reason is not one that clears on its own —
+   * including a 403 with no reason at all, which only a proxy in front of
+   * the server (or a server that predates the reasons) sends.
+   */
+  public needsOperator(): boolean {
+    return (
+      this.statusCode === 403 &&
+      !isTransientKubernetesAgentRegistrationRefusal(this.reason)
+    );
+  }
+}
+
+/*
+ * Thrown by an attempt that noticed, just before its request, that the
+ * caller ended the round (the Runner is signing off). Not a failure: the
+ * round ends quietly and nothing reaches the server.
+ */
+export class RegistrationAbandonedError extends Error {
+  public constructor() {
+    super("The registration round was ended before its request was sent.");
+    this.name = "RegistrationAbandonedError";
+  }
+}
+
+// The machine-readable `reason` of a refusal body, or null when it has none.
+export function getServerRefusalReason(data: unknown): string | null {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return null;
+  }
+
+  const reason: unknown = (data as Record<string, unknown>)["reason"];
+
+  return typeof reason === "string" && reason.trim() ? reason.trim() : null;
 }
 
 /*
@@ -128,12 +177,22 @@ export default class Register {
   private static readonly kubernetesAgentMaxRetryIntervalInSeconds: number = 60;
 
   /*
-   * A 403 on agent registration means exactly that wait: the previous
-   * instance still looks online. It clears by itself on a known schedule,
-   * so it is retried at a short fixed interval (or when the server says),
-   * never with a growing backoff.
+   * The 403 that clears by itself (reason previous_instance_online): the
+   * previous instance still looks online and is admitted on a known
+   * schedule, so it is retried at a short fixed interval (or when the
+   * server says), never with a growing backoff.
    */
   private static readonly kubernetesAgentPredecessorRetryInSeconds: number = 20;
+
+  /*
+   * Every other 403 on agent registration needs an operator (see
+   * RegistrationRefusedError.needsOperator): the server keeps refusing
+   * until someone changes the Runner row. Retrying fast only hammers the
+   * server; a slow fixed interval still picks the fix up within minutes,
+   * and restarting the pod picks it up at once.
+   */
+  private static readonly kubernetesAgentOperatorActionRetryInSeconds: number =
+    5 * 60;
 
   /*
    * Register the AI agent, retrying FOREVER on failure. The server being
@@ -142,7 +201,8 @@ export default class Register {
    * the server comes back. Backoff starts at 30s and doubles per
    * consecutive failure, capped at 5 minutes (1 minute for the
    * kubernetes-agent Runner, see getRetryDelaySeconds); every failure is
-   * logged with the attempt count, the next wait and the server's reason.
+   * logged with the attempt count, the next wait and the server's reason —
+   * a refusal that needs an operator only once, however often it repeats.
    */
   public static async registerRunner(): Promise<void> {
     await Register.registerWithRetries({ maxAttempts: null });
@@ -160,24 +220,34 @@ export default class Register {
   public static async tryRegisterRunner(data: {
     maxAttempts: number;
     /*
-     * Asked before every attempt; false ends the round at once (resolving
-     * false). The heartbeat loop answers false once the Runner has signed
-     * off, so no registration can mark it online again after its
-     * /disconnect.
+     * Asked before every attempt, and again just before an attempt sends
+     * its request; false ends the round at once (resolving false). The
+     * heartbeat loop answers false once the Runner is signing off.
      */
     shouldContinue?: (() => boolean) | undefined;
+    /*
+     * Handed each attempt as it starts; it settles when the attempt's
+     * request has been answered (or failed). The heartbeat loop waits for
+     * the one in flight before the Runner signs off, so no registration
+     * the server processes after the /disconnect can mark the Runner
+     * online again — and an attempt that succeeded has stored its new key
+     * by then, so the /disconnect carries it.
+     */
+    onAttempt?: ((attempt: Promise<void>) => void) | undefined;
   }): Promise<boolean> {
     return Register.registerWithRetries({
       maxAttempts: Math.max(1, Math.floor(data.maxAttempts)),
       shouldContinue: data.shouldContinue,
+      onAttempt: data.onAttempt,
     });
   }
 
   /*
    * How long to wait after a failed attempt. Doubling from 30s, capped at
-   * 5 minutes — or at 1 minute for the kubernetes-agent Runner, and a short
-   * fixed wait (or the server's own hint) for its expected 403 while the
-   * previous instance ages out. Public for tests.
+   * 5 minutes — or at 1 minute for the kubernetes-agent Runner, a short
+   * fixed wait (or the server's own hint) for its 403 while the previous
+   * instance ages out, and a slow fixed wait for a 403 that needs an
+   * operator. Public for tests.
    */
   public static getRetryDelaySeconds(data: {
     attempt: number;
@@ -196,6 +266,10 @@ export default class Register {
       data.error instanceof RegistrationRefusedError &&
       data.error.statusCode === 403
     ) {
+      if (data.error.needsOperator()) {
+        return Register.kubernetesAgentOperatorActionRetryInSeconds;
+      }
+
       const hint: number | null = data.error.retryAfterSeconds;
 
       return hint === null
@@ -215,8 +289,15 @@ export default class Register {
   private static async registerWithRetries(data: {
     maxAttempts: number | null;
     shouldContinue?: (() => boolean) | undefined;
+    onAttempt?: ((attempt: Promise<void>) => void) | undefined;
   }): Promise<boolean> {
     let attempt: number = 0;
+    /*
+     * The refusal that needs an operator, as last logged at error level:
+     * the same refusal again is logged at debug, so a pod waiting for an
+     * operator says what to do once instead of every few minutes forever.
+     */
+    let loggedOperatorRefusal: string | null = null;
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -233,12 +314,26 @@ export default class Register {
         logger.debug(`Registering Runner. Attempt: ${attempt}`, {
           runnerName: RUNNER_NAME,
         } as LogAttributes);
-        await Register._registerRunner();
+        const attemptInFlight: Promise<void> = Register._registerRunner({
+          shouldContinue: data.shouldContinue,
+        });
+        if (data.onAttempt) {
+          data.onAttempt(attemptInFlight);
+        }
+        await attemptInFlight;
         logger.debug(`Runner registered successfully.`, {
           runnerName: RUNNER_NAME,
         } as LogAttributes);
         return true;
       } catch (error) {
+        if (error instanceof RegistrationAbandonedError) {
+          logger.debug(
+            "Registration round ended before its request: the Runner is shutting down.",
+            { runnerName: RUNNER_NAME } as LogAttributes,
+          );
+          return false;
+        }
+
         const waitSeconds: number = Register.getRetryDelaySeconds({
           attempt,
           error,
@@ -248,13 +343,41 @@ export default class Register {
         const isLastAttempt: boolean =
           data.maxAttempts !== null && attempt >= data.maxAttempts;
 
+        const needsOperator: boolean =
+          IS_KUBERNETES_AGENT_MODE &&
+          error instanceof RegistrationRefusedError &&
+          error.needsOperator();
+
+        if (
+          needsOperator &&
+          error instanceof Error &&
+          error.message === loggedOperatorRefusal
+        ) {
+          logger.debug(
+            `Registration still refused (attempt ${attempt}) for the reason logged above; ${
+              isLastAttempt
+                ? "giving up on this round"
+                : `retrying after ${waitSeconds} seconds`
+            }.`,
+            { runnerName: RUNNER_NAME } as LogAttributes,
+          );
+
+          if (isLastAttempt) {
+            return false;
+          }
+
+          await Sleep.sleep(waitSeconds * 1000);
+          continue;
+        }
+
         /*
          * The server answered: it is reachable, and the reason is in the
          * next log line. Only a request that got no answer at all is
          * waiting for the server to become reachable.
          */
-        const retryNote: string =
-          error instanceof RegistrationRefusedError
+        const retryNote: string = needsOperator
+          ? "the server keeps refusing until an operator acts; what to do is logged below (and only once while the refusal stays the same)."
+          : error instanceof RegistrationRefusedError
             ? "the Runner keeps retrying; the reason the server gave is logged below."
             : "the Runner keeps retrying until the server is reachable.";
 
@@ -265,6 +388,9 @@ export default class Register {
           { runnerName: RUNNER_NAME } as LogAttributes,
         );
         logger.error(error, { runnerName: RUNNER_NAME } as LogAttributes);
+
+        loggedOperatorRefusal =
+          needsOperator && error instanceof Error ? error.message : null;
 
         if (isLastAttempt) {
           return false;
@@ -310,16 +436,19 @@ export default class Register {
   /*
    * The same, for the Runner the kubernetes-agent chart installs — which
    * has no ONEUPTIME_RUNNER_ID or ONEUPTIME_RUNNER_KEY to check, and whose
-   * refusals mostly mean something else: a 403 is the previous instance
-   * still looking online (it clears by itself), a 422 a disabled key, a 429
-   * a limit. The server's own reason is always appended — this log line is
-   * all the operator of the pod gets to see.
+   * refusals mostly mean something else: a 422 is a disabled key, a 429 a
+   * limit, and a 403 says by its `reason` whether it clears by itself (the
+   * previous instance still looking online) or needs an operator. The
+   * server's own reason is always appended — this log line is all the
+   * operator of the pod gets to see.
    */
   public static describeKubernetesAgentRegistrationFailure(data: {
     statusCode: number;
     url: URL;
     clusterName: string;
     serverReason: string;
+    // The machine-readable reason of a 403 (see KubernetesClusterAiAccess).
+    reason?: string | null | undefined;
   }): string {
     const base: string = `Failed to register the Kubernetes agent Runner for cluster "${data.clusterName}": ${data.statusCode} from ${data.url.toString()}`;
 
@@ -331,7 +460,11 @@ export default class Register {
           "The server rejected the ingestion key — check oneuptime.apiKey on the Kubernetes agent chart (it must be a server telemetry ingestion key from Project Settings > Telemetry Ingestion Keys).";
         break;
       case 403:
-        explanation = `The previous Runner instance for cluster "${data.clusterName}" still looks online — its pod was stopped without a clean shutdown (an OOM kill, a crash, a node loss), or another install uses the same clusterName. It is admitted automatically once that instance's last heartbeat is 5 minutes old, so no action is needed unless this keeps repeating for more than about 10 minutes (then check for a second install with the same clusterName).`;
+        explanation = Register.describeKubernetesAgentForbidden({
+          clusterName: data.clusterName,
+          reason: data.reason ?? null,
+          hasServerReason: data.serverReason.length > 0,
+        });
         break;
       case 404:
         explanation =
@@ -358,6 +491,47 @@ export default class Register {
   }
 
   /*
+   * A 403 on /register-kubernetes-agent, by the reason the server gave.
+   * Only previous_instance_online clears by itself; every other reason —
+   * and a 403 with none, which only a proxy in front of the server (or a
+   * server that predates the reasons) sends — needs an operator, and is
+   * never described as a wait.
+   */
+  private static describeKubernetesAgentForbidden(data: {
+    clusterName: string;
+    reason: string | null;
+    hasServerReason: boolean;
+  }): string {
+    if (isTransientKubernetesAgentRegistrationRefusal(data.reason)) {
+      return `The previous Runner instance for cluster "${data.clusterName}" still looks online — its pod was stopped without a clean shutdown (an OOM kill, a crash, a node loss), or another install uses the same clusterName. It is admitted automatically once that instance's last heartbeat is 5 minutes old, so no action is needed unless this keeps repeating for more than about 10 minutes (then check for a second install with the same clusterName).`;
+    }
+
+    const retry: string = `The Runner retries every ${Math.round(
+      Register.kubernetesAgentOperatorActionRetryInSeconds / 60,
+    )} minutes; restart this pod after the fix to register at once.`;
+
+    switch (data.reason) {
+      case "runner_holds_more_than_defaults":
+        return `This does not clear on its own: an operator must act. The in-cluster Runner row for cluster "${data.clusterName}" is offline but holds more than an in-cluster Runner's defaults (credentials, secrets, "Runs Runbooks" or "Runs AI Code Fixes", or another cluster's AI access), and a new pod cannot prove it is the instance that held them. In Project Settings > Runners, take those away from that Runner or delete it — the server's own words follow. ${retry}`;
+      case "runner_belongs_to_another_cluster":
+        return `This does not clear on its own: an operator must act. The Runner row this cluster's in-cluster Runner registers as belongs to a different cluster. Rename or delete that Runner in Project Settings > Runners, or give this install its own clusterName on the Kubernetes agent chart — the server's own words follow. ${retry}`;
+      default:
+        if (data.reason) {
+          return `The server refused the registration (reason "${data.reason}") and did not say that the refusal clears on its own, so an operator must act on what it says — the server's own words follow. ${retry}`;
+        }
+
+        /*
+         * No reason at all: a server older than this Runner (whose only
+         * such 403 was the previous instance still looking online), or a
+         * proxy in front of it. Neither is described as a wait.
+         */
+        return data.hasServerReason
+          ? `The server refused the registration without saying whether the refusal clears on its own (a OneUptime server older than this Runner does not). If its words below say the previous instance still looks online, that clears by itself about 5 minutes after that instance's last heartbeat; otherwise an operator must act on what they say. ${retry}`
+          : `The server, or a proxy in front of it, refused the registration without saying why. Check the ingress or proxy in front of OneUptime for a rule that refuses /runner-ingest. ${retry}`;
+    }
+  }
+
+  /*
    * Kubernetes-agent mode: exchange the project's ingestion key + the
    * cluster's name for a Runner identity bound to that cluster. The server
    * rotates the key on every registration, so a restarted pod never reuses
@@ -370,12 +544,23 @@ export default class Register {
    * it holds as previousRunnerKey; a fresh pod has none to send and is
    * admitted once its predecessor is offline (or signed off cleanly).
    */
-  private static async registerKubernetesAgentRunner(): Promise<void> {
+  private static async registerKubernetesAgentRunner(options: {
+    shouldContinue?: (() => boolean) | undefined;
+  }): Promise<void> {
     const registrationUrl: URL = URL.fromString(
       RUNNER_INGEST_URL.toString(),
     ).addRoute("/register-kubernetes-agent");
 
     const posture: KubernetesRunnerPosture = await KubernetesPosture.build();
+
+    /*
+     * Building the posture takes a moment (the first kubectl version probe
+     * can take seconds); a Runner that began signing off meanwhile sends
+     * nothing.
+     */
+    if (options.shouldContinue && !options.shouldContinue()) {
+      throw new RegistrationAbandonedError();
+    }
 
     const previousRunnerKey: string = LocalCache.getString(
       "RUNNER",
@@ -393,6 +578,8 @@ export default class Register {
         clusterName: KUBERNETES_AGENT_CLUSTER_NAME,
         agentVersion: RUNNER_VERSION,
         allowWrites: posture.allowWrites === true,
+        // Whether this Runner runs node operations (the node switch, see Config).
+        allowNodeOperations: posture.allowNodeOperations === true,
         ...(posture.kubectlVersion
           ? { kubectlVersion: posture.kubectlVersion }
           : {}),
@@ -418,15 +605,19 @@ export default class Register {
             .join("[redacted ingestion key]")
         : getServerReason(result.data);
 
+      const reason: string | null = getServerRefusalReason(result.data);
+
       throw new RegistrationRefusedError({
         message: Register.describeKubernetesAgentRegistrationFailure({
           statusCode: result.statusCode,
           url: registrationUrl,
           clusterName: KUBERNETES_AGENT_CLUSTER_NAME || "",
           serverReason,
+          reason,
         }),
         statusCode: result.statusCode,
         retryAfterSeconds: getRetryAfterSeconds(result),
+        reason,
       });
     }
 
@@ -478,9 +669,11 @@ export default class Register {
     } as LogAttributes);
   }
 
-  private static async _registerRunner(): Promise<void> {
+  private static async _registerRunner(
+    options: { shouldContinue?: (() => boolean) | undefined } = {},
+  ): Promise<void> {
     if (IS_KUBERNETES_AGENT_MODE) {
-      await Register.registerKubernetesAgentRunner();
+      await Register.registerKubernetesAgentRunner(options);
       return;
     }
 

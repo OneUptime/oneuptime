@@ -41,6 +41,8 @@ interface PostureModule {
   canUseOwnServiceAccount: () => boolean;
   allowsWrites: () => boolean;
   getAllowWritesSetting: () => string | null;
+  allowsNodeOperations: () => boolean;
+  getAllowNodeOperationsSetting: () => string | null;
   getWriteNamespaces: () => Array<string>;
   getPodNamespace: () => string | null;
   build: () => Promise<KubernetesRunnerPosture>;
@@ -173,6 +175,8 @@ describe("KubernetesPosture with the mode decided from the environment", () => {
       // Reported explicitly: an empty list means cluster-wide.
       writeNamespaces: [],
       podNamespace: undefined,
+      // Writes are off, so node operations are too (whatever the node switch).
+      allowNodeOperations: false,
     });
   });
 
@@ -399,4 +403,159 @@ describe("ONEUPTIME_KUBECTL_ALLOW_WRITES fails closed when set", () => {
 
     expect(modules.KubernetesPosture.getAllowWritesSetting()).toBe("disabled");
   });
+});
+
+/*
+ * ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS, the node switch.
+ * aiAccess.remediation.nodeOperations=false used to remove only the
+ * chart's node RBAC; the Runner never heard of it, so AI kept running
+ * cordon/uncordon (SafeWrite) into Forbidden, and the server could not
+ * tell. The switch is parsed exactly like the write switch, refused before
+ * kubectl starts (see KubectlExecutor) and reported in the posture.
+ */
+describe("ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS", () => {
+  const savedEnv: NodeJS.ProcessEnv = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...savedEnv };
+    jest.restoreAllMocks();
+    jest.resetModules();
+  });
+
+  const AGENT_ENV: Record<string, string | undefined> = {
+    ONEUPTIME_RUNNER_ID: undefined,
+    ONEUPTIME_RUNNER_KEY: undefined,
+    ONEUPTIME_INGESTION_KEY: "ingest-key-123",
+    ONEUPTIME_KUBERNETES_CLUSTER_NAME: "prod-us",
+  };
+
+  interface Loaded {
+    modules: ReturnType<typeof loadIsolated>;
+    warnings: Array<string>;
+  }
+
+  function load(data: {
+    agent: boolean;
+    writes?: string | undefined;
+    nodes: string | undefined;
+  }): Loaded {
+    const modules: ReturnType<typeof loadIsolated> = loadIsolated({
+      ...(data.agent ? AGENT_ENV : {}),
+      ONEUPTIME_KUBECTL_ALLOW_WRITES: data.writes,
+      ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS: data.nodes,
+    });
+
+    // The loader really switched modes, or these cases prove nothing.
+    expect(modules.KubernetesAgentMode.isActive()).toBe(data.agent);
+
+    /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+    const warn: jest.Mock = require("Common/Server/Utils/Logger").default
+      .warn as jest.Mock;
+    /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
+
+    return {
+      modules,
+      warnings: warn.mock.calls
+        .map((call: Array<unknown>) => {
+          return String(call[0]);
+        })
+        .filter((message: string) => {
+          return message.includes("ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS");
+        }),
+    };
+  }
+
+  function allowsNodeOperations(data: {
+    agent: boolean;
+    nodes: string | undefined;
+  }): boolean {
+    return load(data).modules.KubernetesPosture.allowsNodeOperations();
+  }
+
+  test.each([
+    ["true", true],
+    [" TRUE ", true],
+    ["false", false],
+    ["readonly", false],
+    ["1", false],
+    ["yes", false],
+  ])(
+    "%j decides the same on every Runner (allows node operations: %p)",
+    (value: string, expected: boolean) => {
+      expect(allowsNodeOperations({ agent: false, nodes: value })).toBe(
+        expected,
+      );
+      expect(allowsNodeOperations({ agent: true, nodes: value })).toBe(
+        expected,
+      );
+    },
+  );
+
+  test.each([undefined, "", "   "])(
+    "%j (unset) allows node operations on an ordinary Runner, whose credential's RBAC bounds them",
+    (value: string | undefined) => {
+      expect(allowsNodeOperations({ agent: false, nodes: value })).toBe(true);
+    },
+  );
+
+  test.each([undefined, "", "   "])(
+    "%j (unset) refuses node operations on the kubernetes-agent Runner, whose chart always sets it",
+    (value: string | undefined) => {
+      expect(allowsNodeOperations({ agent: true, nodes: value })).toBe(false);
+    },
+  );
+
+  test("an unrecognised value is named in exactly one start-up warning", () => {
+    const loaded: Loaded = load({ agent: false, nodes: "disabled" });
+
+    expect(loaded.warnings).toHaveLength(1);
+    expect(loaded.warnings[0]).toContain('"disabled"');
+    expect(loaded.warnings[0]).toContain("node operation");
+  });
+
+  test.each([undefined, "true", "false"])(
+    "%j is recognised and not warned about",
+    (value: string | undefined) => {
+      expect(load({ agent: false, nodes: value }).warnings).toEqual([]);
+    },
+  );
+
+  test("the raw setting is kept for refusal messages", () => {
+    expect(
+      load({
+        agent: false,
+        nodes: "off",
+      }).modules.KubernetesPosture.getAllowNodeOperationsSetting(),
+    ).toBe("off");
+  });
+
+  /*
+   * The posture says what this Runner will actually run: a node operation
+   * is a write, so it is reported on only when both switches allow it.
+   */
+  test.each([
+    ["true", "true", true],
+    ["true", "false", false],
+    ["true", undefined, false],
+    ["false", "true", false],
+    [undefined, undefined, false],
+  ])(
+    "the agent Runner with ALLOW_WRITES=%p and ALLOW_NODE_OPERATIONS=%p reports allowNodeOperations %p",
+    async (
+      writes: string | undefined,
+      nodes: string | undefined,
+      expected: boolean,
+    ) => {
+      const loaded: Loaded = load({ agent: true, writes, nodes });
+      pretendInPod();
+      jest
+        .spyOn(loaded.modules.KubernetesPosture, "detectKubectlVersion")
+        .mockResolvedValue("v1.36.4");
+
+      const posture: KubernetesRunnerPosture =
+        await loaded.modules.KubernetesPosture.build();
+
+      expect(posture.allowNodeOperations).toBe(expected);
+    },
+  );
 });

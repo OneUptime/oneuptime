@@ -79,6 +79,7 @@ jest.mock("Common/Server/Utils/Logger", () => {
 import Register, {
   RegistrationRefusedError,
   getServerReason,
+  getServerRefusalReason,
 } from "../../Services/RegisterRunner";
 import { RUNNER_INGEST_URL, ONEUPTIME_BASE_URL } from "../../Config";
 import LocalCache from "Common/Server/Infrastructure/LocalCache";
@@ -275,12 +276,17 @@ describe("Register.describeKubernetesAgentRegistrationFailure", () => {
     "https://test.oneuptime.com/runner-ingest/register-kubernetes-agent",
   );
 
-  function describeFailure(statusCode: number, serverReason: string): string {
+  function describeFailure(
+    statusCode: number,
+    serverReason: string,
+    reason?: string | null,
+  ): string {
     return Register.describeKubernetesAgentRegistrationFailure({
       statusCode,
       url,
       clusterName: "prod-us",
       serverReason,
+      reason,
     });
   }
 
@@ -304,14 +310,103 @@ describe("Register.describeKubernetesAgentRegistrationFailure", () => {
     );
   });
 
+  /*
+   * A 403 is only "the previous instance still looks online" when the
+   * server says so (reason previous_instance_online); it used to be read
+   * that way from the status alone.
+   */
   test.each([
-    [401, "oneuptime.apiKey"],
-    [403, "still looks online"],
-    [404, "/runner-ingest"],
-    [422, "disabled"],
-    [429, "rate limited"],
-  ])("a %s explains itself (%s)", (statusCode: number, expected: string) => {
-    expect(describeFailure(statusCode, "")).toContain(expected);
+    [401, null, "oneuptime.apiKey"],
+    [403, "previous_instance_online", "still looks online"],
+    [404, null, "/runner-ingest"],
+    [422, null, "disabled"],
+    [429, null, "rate limited"],
+  ])(
+    "a %s (reason %p) explains itself (%s)",
+    (statusCode: number, reason: string | null, expected: string) => {
+      expect(describeFailure(statusCode, "", reason)).toContain(expected);
+    },
+  );
+
+  /*
+   * The server also answers 403 for two refusals that never clear by
+   * themselves. The Runner used to call every 403 a wait for the previous
+   * instance — "no action is needed" — and then append the server's own
+   * words, which asked the operator to change the Runner row.
+   */
+  describe("a 403 that needs an operator", () => {
+    const HOLDINGS: string =
+      'Runner "kubernetes-agent/prod-us" is offline, but it holds more than an in-cluster Runner\'s defaults. In Project Settings > Runners, turn off "Runs Runbooks" on it, or delete the Runner.';
+    const OTHER_CLUSTER: string =
+      'Runner "kubernetes-agent/prod-us" reports that it is the in-cluster Runner of a different cluster. Rename or delete that Runner.';
+
+    test.each([
+      [
+        "runner_holds_more_than_defaults",
+        HOLDINGS,
+        "Project Settings > Runners",
+      ],
+      ["runner_belongs_to_another_cluster", OTHER_CLUSTER, "Rename or delete"],
+    ])(
+      "%s says an operator must act, never that it clears by itself",
+      (reason: string, serverReason: string, expected: string) => {
+        const message: string = describeFailure(403, serverReason, reason);
+
+        expect(message).toContain("an operator must act");
+        expect(message).toContain(expected);
+        expect(message).toContain(`Server said: ${serverReason}`);
+        expect(message).toContain("restart this pod after the fix");
+        expect(message).not.toContain("still looks online");
+        expect(message).not.toContain("no action is needed");
+        expect(message).not.toContain("second install");
+      },
+    );
+
+    test("a reason this Runner does not know is not read as a wait either", () => {
+      const message: string = describeFailure(
+        403,
+        "Something new.",
+        "some_future_reason",
+      );
+
+      expect(message).toContain('"some_future_reason"');
+      expect(message).toContain("an operator must act");
+      expect(message).not.toContain("no action is needed");
+    });
+
+    /*
+     * No reason: an older server (whose only 403 here was the predecessor
+     * wait) or a proxy. The wording leaves the call to the server's words
+     * and never promises that nothing needs doing.
+     */
+    test("a 403 with no reason defers to the server's words", () => {
+      const message: string = describeFailure(403, "is online");
+
+      expect(message).toContain("without saying whether");
+      expect(message).toContain("Server said: is online");
+      expect(message).not.toContain("no action is needed");
+    });
+
+    test("a 403 with no reason and no words points at the proxy", () => {
+      const message: string = describeFailure(403, "");
+
+      expect(message).toContain("proxy");
+      expect(message).toContain("/runner-ingest");
+      expect(message).not.toContain("no action is needed");
+    });
+
+    // Negative control: the transient 403 keeps its reassuring wording.
+    test("previous_instance_online still says no action is needed", () => {
+      const message: string = describeFailure(
+        403,
+        "is online",
+        "previous_instance_online",
+      );
+
+      expect(message).toContain("still looks online");
+      expect(message).toContain("no action is needed");
+      expect(message).not.toContain("an operator must act");
+    });
   });
 });
 
@@ -334,11 +429,48 @@ describe("getServerReason", () => {
     expect(getServerReason({ data: "<html>" })).toBe("");
   });
 
+  /*
+   * The cap was 500 characters, which cut the server's holdings refusal
+   * (518 characters for a short cluster name) before the part that says
+   * what to change. It is 1000 now.
+   */
   test("caps a long reason", () => {
     const reason: string = getServerReason({ message: "m".repeat(5_000) });
 
-    expect(reason.length).toBe(503);
+    expect(reason.length).toBe(1003);
     expect(reason.endsWith("...")).toBe(true);
+  });
+
+  test("keeps the whole of a refusal that needs an operator, even for a long cluster name", () => {
+    const clusterName: string = `arn:aws:eks:eu-west-1:123456789012:cluster/${"c".repeat(60)}`;
+    const message: string = `Runner "kubernetes-agent/${clusterName}" for cluster "${clusterName}" is offline, but it holds more than an in-cluster Runner's defaults: "Runs Runbooks" is on, it is bound to other clusters' AI pages, and it has credentials assigned. A new Runner pod cannot prove it is the instance those were granted to, so it is not re-keyed with the ingestion key alone. In Project Settings > Runners, turn off "Runs Runbooks" and "Runs AI Code Fixes" on it, unassign its credentials and secrets and unbind it from other clusters' AI pages — or delete the Runner.`;
+
+    expect(message.length).toBeGreaterThan(500);
+    expect(getServerReason({ message })).toBe(message);
+    expect(getServerReason({ message })).toContain("or delete the Runner");
+  });
+});
+
+describe("getServerRefusalReason", () => {
+  test("reads the machine-readable reason of a refusal body", () => {
+    expect(
+      getServerRefusalReason({
+        message: "x",
+        reason: " runner_holds_more_than_defaults ",
+      }),
+    ).toBe("runner_holds_more_than_defaults");
+  });
+
+  test.each([
+    undefined,
+    null,
+    "<html>Forbidden</html>",
+    ["reason"],
+    { message: "no reason" },
+    { reason: 42 },
+    { reason: "   " },
+  ])("%p carries no reason", (body: unknown) => {
+    expect(getServerRefusalReason(body)).toBeNull();
   });
 });
 
@@ -361,10 +493,23 @@ describe("Register.getRetryDelaySeconds", () => {
     return delays;
   }
 
+  /*
+   * The 403 that clears by itself. It carries its reason now; a 403 without
+   * one is no longer read as this wait (see "a 403 that needs an operator").
+   */
   const forbidden: RegistrationRefusedError = new RegistrationRefusedError({
     message: "online",
     statusCode: 403,
+    reason: "previous_instance_online",
   });
+
+  function refusal(reason: string | null): RegistrationRefusedError {
+    return new RegistrationRefusedError({
+      message: `refused: ${reason}`,
+      statusCode: 403,
+      reason,
+    });
+  }
 
   // Negative control: a project Runner's schedule is unchanged.
   test("a project Runner doubles from 30s up to five minutes, whatever the error", () => {
@@ -403,6 +548,7 @@ describe("Register.getRetryDelaySeconds", () => {
             message: "online",
             statusCode: 403,
             retryAfterSeconds: hint,
+            reason: "previous_instance_online",
           }),
           isKubernetesAgent: true,
         }),
@@ -410,6 +556,64 @@ describe("Register.getRetryDelaySeconds", () => {
     }
   });
 
+  /*
+   * A 403 that needs an operator never clears by itself, so the 20-second
+   * cadence only hammered the server (each attempt runs its holdings
+   * queries) about 4,300 times a day. It is retried every 5 minutes — a
+   * fix is still picked up within minutes, and a pod restart at once — and
+   * a server hint for it is ignored.
+   */
+  test.each([
+    "runner_holds_more_than_defaults",
+    "runner_belongs_to_another_cluster",
+    "some_future_reason",
+    null,
+  ])(
+    "the agent Runner retries a 403 with reason %p every 5 minutes",
+    (reason: string | null) => {
+      expect(
+        schedule({
+          isKubernetesAgent: true,
+          error: refusal(reason),
+          attempts: 4,
+        }),
+      ).toEqual([300, 300, 300, 300]);
+
+      expect(
+        Register.getRetryDelaySeconds({
+          attempt: 1,
+          error: new RegistrationRefusedError({
+            message: "x",
+            statusCode: 403,
+            reason,
+            retryAfterSeconds: 5,
+          }),
+          isKubernetesAgent: true,
+        }),
+      ).toBe(300);
+    },
+  );
+
+  test("needsOperator is true only for a 403 that does not clear by itself", () => {
+    expect(forbidden.needsOperator()).toBe(false);
+    expect(refusal("runner_holds_more_than_defaults").needsOperator()).toBe(
+      true,
+    );
+    expect(refusal(null).needsOperator()).toBe(true);
+    // Only a 403 is about the Runner row at all.
+    expect(
+      new RegistrationRefusedError({
+        message: "x",
+        statusCode: 429,
+        reason: "runner_holds_more_than_defaults",
+      }).needsOperator(),
+    ).toBe(false);
+  });
+
+  /*
+   * The waits that race the alive window. A 403 that needs an operator is
+   * not one of them: no amount of waiting clears it.
+   */
   test("every agent wait fits many times into the 5-minute alive window", () => {
     for (const error of [forbidden, new Error("x")]) {
       for (const delay of schedule({

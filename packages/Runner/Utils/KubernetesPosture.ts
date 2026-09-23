@@ -2,6 +2,8 @@ import fs from "fs";
 import os from "os";
 import { spawn } from "child_process";
 import {
+  KUBECTL_ALLOW_NODE_OPERATIONS,
+  KUBECTL_ALLOW_NODE_OPERATIONS_RAW,
   KUBECTL_ALLOW_WRITES,
   KUBECTL_ALLOW_WRITES_RAW,
   KUBECTL_WRITE_NAMESPACES,
@@ -16,8 +18,8 @@ import logger from "Common/Server/Utils/Logger";
 /*
  * What this Runner can say about its own Kubernetes reach: whether it may
  * run kubectl with its pod's own ServiceAccount, whether its host lets
- * AI-composed writes through and into which namespaces, and which kubectl
- * it carries. Reported at
+ * AI-composed writes through, into which namespaces and onto nodes, and
+ * which kubectl it carries. Reported at
  * registration and on every heartbeat of the kubernetes-agent Runner, so the
  * dashboard's "what is missing" checklist reflects the container that is
  * actually running.
@@ -87,6 +89,21 @@ export default class KubernetesPosture {
   }
 
   /*
+   * Whether an AI-composed node operation (cordon, uncordon, drain, taint,
+   * or a write to a Node object) may run from this host, by the same rule
+   * as allowsWrites (see Config). Nodes are cluster-scoped, so this — not
+   * the namespace scope — is what bounds them on this Runner.
+   */
+  public static allowsNodeOperations(): boolean {
+    return KUBECTL_ALLOW_NODE_OPERATIONS;
+  }
+
+  // The node switch exactly as set (null when unset), for refusal messages.
+  public static getAllowNodeOperationsSetting(): string | null {
+    return KUBECTL_ALLOW_NODE_OPERATIONS_RAW;
+  }
+
+  /*
    * The namespaces AI-composed writes may land in, lowercased; empty means
    * cluster-wide. Methods rather than the constants so tests can scope a
    * Runner without rebuilding Config from the environment.
@@ -125,6 +142,14 @@ export default class KubernetesPosture {
       agentChartVersion: KUBERNETES_AGENT_CHART_VERSION || undefined,
       writeNamespaces: KubernetesPosture.getWriteNamespaces(),
       podNamespace: KubernetesPosture.getPodNamespace() || undefined,
+      /*
+       * What this Runner would actually run: a node operation is a write,
+       * so a Runner that refuses writes refuses node operations too,
+       * whatever the node switch says.
+       */
+      allowNodeOperations:
+        KubernetesPosture.allowsWrites() &&
+        KubernetesPosture.allowsNodeOperations(),
     };
   }
 

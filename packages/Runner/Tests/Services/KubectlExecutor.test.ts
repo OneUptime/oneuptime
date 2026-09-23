@@ -235,6 +235,7 @@ describe("KubectlExecutor", () => {
       .spyOn(KubernetesPosture, "canUseOwnServiceAccount")
       .mockReturnValue(true);
     jest.spyOn(KubernetesPosture, "allowsWrites").mockReturnValue(true);
+    jest.spyOn(KubernetesPosture, "allowsNodeOperations").mockReturnValue(true);
     // No namespace scope unless a test sets one.
     jest.spyOn(KubernetesPosture, "getWriteNamespaces").mockReturnValue([]);
     jest.spyOn(KubernetesPosture, "getPodNamespace").mockReturnValue(null);
@@ -1234,6 +1235,257 @@ describe("KubectlExecutor", () => {
 
       expect(result.success).toBe(true);
       expect(childProcessMock.spawn).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * Writes to objects that live outside every namespace, end to end. The
+   * scope used to judge them by -n like any other write: a human-approved
+   * `label node node-3 disktype=ssd` — which the chart's node role grants —
+   * never ran on the in-cluster Runner ("names no namespace, so kubectl
+   * would run it in the Runner's own"), while `patch pv ... -n prod` got
+   * past a Runner scoped to prod on the strength of a -n kubectl ignores.
+   * -------------------------------------------------------------------------
+   */
+  describe("writes to cluster-scoped objects", () => {
+    const POD_NAMESPACE: string = "oneuptime-agent";
+
+    async function run(
+      command: string,
+      credential?: JSONObject,
+    ): Promise<KubectlExecResult> {
+      const policy: KubectlPolicyResult =
+        KubectlPolicy.evaluateCommand(command);
+      expect(policy.tier).not.toBe(KubectlCommandTier.Denied);
+
+      return KubectlExecutor.execute({
+        payload: { args: policy.args, clusterIdentifier: OWN_CLUSTER },
+        credential,
+        timeoutInMs: 30000,
+        origin: "AiRemediation",
+      });
+    }
+
+    describe.each([
+      ["cluster-wide (the default install)", []],
+      ["scoped to web", ["web"]],
+    ])(
+      "on the in-cluster Runner, %s",
+      (_label: string, writeNamespaces: Array<string>) => {
+        beforeEach(() => {
+          (KubernetesPosture.getWriteNamespaces as jest.Mock).mockReturnValue(
+            writeNamespaces,
+          );
+          (KubernetesPosture.getPodNamespace as jest.Mock).mockReturnValue(
+            POD_NAMESPACE,
+          );
+        });
+
+        test.each([
+          "kubectl label node node-3 disktype=ssd",
+          "kubectl annotate node node-3 note=x",
+          `kubectl patch node node-3 -p '{"spec":{"unschedulable":true}}'`,
+          "kubectl cordon node-3",
+        ])("an approved `%s` reaches kubectl", async (command: string) => {
+          const result: KubectlExecResult = await run(command);
+
+          expect(result.errorMessage).toBeUndefined();
+          expect(result.success).toBe(true);
+          expect(childProcessMock.spawn).toHaveBeenCalledTimes(1);
+        });
+
+        // Negative controls: namespaced writes with no -n stay refused.
+        test.each([
+          "kubectl label pod web-1 app=web",
+          "kubectl rollout restart deployment/web",
+          `kubectl label namespace ${POD_NAMESPACE} team=a -n web`,
+        ])("`%s` is still refused before spawning", async (command: string) => {
+          const result: KubectlExecResult = await run(command);
+
+          expect(result.success).toBe(false);
+          expect(result.errorMessage).toContain("this Runner itself runs in");
+          expect(childProcessMock.spawn).not.toHaveBeenCalled();
+        });
+      },
+    );
+
+    describe("on a credential Runner scoped to prod", () => {
+      beforeEach(() => {
+        (KubernetesPosture.getWriteNamespaces as jest.Mock).mockReturnValue([
+          "prod",
+        ]);
+        (KubernetesPosture.getPodNamespace as jest.Mock).mockReturnValue(null);
+      });
+
+      test.each([
+        `kubectl patch pv pv-1 -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}' -n prod`,
+        `kubectl patch storageclass standard -p '{"allowVolumeExpansion":true}' -n prod`,
+        "kubectl annotate ingressclass nginx note=x -n prod",
+      ])(
+        "`%s` is refused before spawning, whatever -n says",
+        async (command: string) => {
+          const result: KubectlExecResult = await run(command, CREDENTIAL);
+
+          expect(result.success).toBe(false);
+          expect(result.errorMessage).toContain("cluster-scoped");
+          expect(result.errorMessage).not.toContain("-n <namespace>");
+          expect(childProcessMock.spawn).not.toHaveBeenCalled();
+        },
+      );
+
+      test("`label namespace staging ... -n prod` is refused: the Namespace object is staging", async () => {
+        const result: KubectlExecResult = await run(
+          "kubectl label namespace staging istio-injection=disabled -n prod",
+          CREDENTIAL,
+        );
+
+        expect(result.success).toBe(false);
+        expect(result.errorMessage).toContain('Namespace object "staging"');
+        expect(childProcessMock.spawn).not.toHaveBeenCalled();
+      });
+
+      // Negative controls: a namespaced write in prod, and prod's own Namespace object.
+      test.each([
+        `kubectl patch deployment web -n prod -p '{"spec":{"paused":false}}'`,
+        "kubectl label namespace prod team=a",
+      ])("`%s` spawns", async (command: string) => {
+        const result: KubectlExecResult = await run(command, CREDENTIAL);
+
+        expect(result.errorMessage).toBeUndefined();
+        expect(result.success).toBe(true);
+        expect(childProcessMock.spawn).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * The node switch (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS).
+   * aiAccess.remediation.nodeOperations=false removed the chart's node RBAC
+   * but nothing on the Runner knew: an Automatic cluster kept running
+   * `kubectl cordon` (SafeWrite) into Forbidden. Nodes are cluster-scoped,
+   * so the namespace scope cannot bound them; the node switch does, before
+   * kubectl starts.
+   * -------------------------------------------------------------------------
+   */
+  describe("the node switch", () => {
+    const NODE_OPERATIONS: Array<string> = [
+      "kubectl cordon node-3",
+      "kubectl uncordon node-3",
+      "kubectl drain node-3 --ignore-daemonsets",
+      "kubectl taint nodes node-3 dedicated=ai:NoSchedule",
+      "kubectl label node node-3 disktype=ssd",
+      "kubectl annotate nodes/node-3 note=x",
+      `kubectl patch node node-3 -p '{"spec":{"unschedulable":true}}'`,
+      "kubectl label node/node-3 pod/web-1 x=y -n web",
+    ];
+
+    async function run(command: string): Promise<KubectlExecResult> {
+      const policy: KubectlPolicyResult =
+        KubectlPolicy.evaluateCommand(command);
+      expect(policy.tier).not.toBe(KubectlCommandTier.Denied);
+
+      return KubectlExecutor.execute({
+        payload: { args: policy.args, clusterIdentifier: OWN_CLUSTER },
+        timeoutInMs: 30000,
+        origin: "AiRemediation",
+      });
+    }
+
+    describe("off on the Kubernetes agent's Runner", () => {
+      beforeEach(() => {
+        (KubernetesPosture.allowsNodeOperations as jest.Mock).mockReturnValue(
+          false,
+        );
+        jest.spyOn(KubernetesAgentMode, "isActive").mockReturnValue(true);
+        jest
+          .spyOn(KubernetesPosture, "getAllowNodeOperationsSetting")
+          .mockReturnValue("false");
+      });
+
+      test.each(NODE_OPERATIONS)(
+        "`%s` is refused before spawning, pointing at the chart",
+        async (command: string) => {
+          const result: KubectlExecResult = await run(command);
+
+          expect(result.success).toBe(false);
+          expect(result.errorMessage).toContain("node operation");
+          expect(result.errorMessage).toContain(
+            "aiAccess.remediation.nodeOperations=true",
+          );
+          expect(result.errorMessage).toContain(
+            'ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS="false"',
+          );
+          expect(childProcessMock.spawn).not.toHaveBeenCalled();
+        },
+      );
+
+      // Negative controls: everything else still runs.
+      test.each([
+        "kubectl rollout restart deployment/web -n web",
+        "kubectl set image deployment/web web=img:2 -n web",
+        "kubectl label pod web-1 app=web -n web",
+        "kubectl get nodes",
+        "kubectl describe node node-3",
+      ])("`%s` still spawns", async (command: string) => {
+        const result: KubectlExecResult = await run(command);
+
+        expect(result.errorMessage).toBeUndefined();
+        expect(result.success).toBe(true);
+        expect(childProcessMock.spawn).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    test("off on another Runner host, the refusal names the variable, not the chart", async () => {
+      (KubernetesPosture.allowsNodeOperations as jest.Mock).mockReturnValue(
+        false,
+      );
+      jest.spyOn(KubernetesAgentMode, "isActive").mockReturnValue(false);
+      jest
+        .spyOn(KubernetesPosture, "getAllowNodeOperationsSetting")
+        .mockReturnValue(null);
+
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: { args: ["cordon", "node-3"] },
+        credential: CREDENTIAL,
+        timeoutInMs: 30000,
+        origin: "AiRemediation",
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.errorMessage).toContain("is not set");
+      expect(result.errorMessage).toContain(
+        "ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=true",
+      );
+      expect(result.errorMessage).not.toContain("aiAccess");
+      expect(childProcessMock.spawn).not.toHaveBeenCalled();
+    });
+
+    // Negative control: the same node operations run with the switch on.
+    test.each(NODE_OPERATIONS)(
+      "`%s` spawns with the switch on",
+      async (command: string) => {
+        const result: KubectlExecResult = await run(command);
+
+        expect(result.errorMessage).toBeUndefined();
+        expect(result.success).toBe(true);
+        expect(childProcessMock.spawn).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    // Writes off refuses first: the node switch is only asked about writes.
+    test("a Runner that refuses writes says so, not that nodes are off", async () => {
+      (KubernetesPosture.allowsWrites as jest.Mock).mockReturnValue(false);
+      (KubernetesPosture.allowsNodeOperations as jest.Mock).mockReturnValue(
+        false,
+      );
+
+      const result: KubectlExecResult = await run("kubectl cordon node-3");
+
+      expect(result.success).toBe(false);
+      expect(result.errorMessage).toContain("kubectl writes");
+      expect(result.errorMessage).not.toContain("node operation");
     });
   });
 

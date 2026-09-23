@@ -47,8 +47,9 @@ heartbeat.
 | `ONEUPTIME_RUNNER_ENABLE_CODE_FIXES` | unset | Local override, same rule. Required (`true`) only for the in-cluster Runner, which has no dashboard row. |
 | `ONEUPTIME_RUNNER_ENABLE_AI_COMMANDS` | unset | Local override. Only `false` has an effect: it refuses AI remediation command work on this host even when the dashboard grants it. |
 | `ONEUPTIME_KUBECTL_ALLOW_WRITES` | unset | Whether OneUptime AI may run kubectl **writes** (remediations) from this host. When set it fails closed: only `true` (any case) allows them; `false` and any other value refuse every non-read kubectl before it starts. Unset allows writes on an ordinary Runner (the Kubernetes credential's RBAC bounds them) and refuses them on the Kubernetes agent's Runner, whose chart always sets it from `aiAccess.remediation.enabled`. Reads are unaffected. |
-| `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` | unset (cluster-wide) | Comma-separated namespaces kubectl writes may change. A write whose namespace (`-n`, or the default namespace when `-n` is missing) is not listed is refused before it starts, and so is a write across all namespaces; reads are never restricted. Node operations (cordon, uncordon, drain, taint) are cluster-scoped and not affected. |
-| `ONEUPTIME_RUNNER_POD_NAMESPACE` | unset | The namespace this Runner's own pod runs in (the Kubernetes agent chart sets it). kubectl writes into it are always refused, and in-cluster a write with no `-n` counts as one. |
+| `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS` | unset | Whether OneUptime AI may run kubectl **node operations** from this host: cordon, uncordon, drain, taint, and label, annotate or patch on a Node. Parsed like `ONEUPTIME_KUBECTL_ALLOW_WRITES`: when set, only `true` (any case) allows them and any other value refuses them before kubectl starts; unset allows them on an ordinary Runner and refuses them on the Kubernetes agent's Runner, whose chart sets it from `aiAccess.remediation.nodeOperations`. Nodes are cluster-scoped, so this switch — not the namespace list below — is what bounds them. Needs writes allowed; reads are unaffected. |
+| `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` | unset (cluster-wide) | Comma-separated namespaces kubectl writes may change; reads are never restricted. A write is judged by what it changes, the way kubectl reads it: a namespaced object by its namespace (`-n`, or the default namespace when `-n` is missing), and a write across all namespaces is refused; a Namespace object by its **name** (`label namespace X` changes `X`, whatever `-n` says), so only a listed namespace can be changed; any other cluster-scoped object (a PersistentVolume, StorageClass, IngressClass, ClusterRole, CRD, …) is outside every namespace and refused while this list is set (left to RBAC when it is empty). Node operations are not namespace-scoped: `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS` governs them. A custom resource is judged by `-n` (the Runner cannot look up its scope). |
+| `ONEUPTIME_RUNNER_POD_NAMESPACE` | unset | The namespace this Runner's own pod runs in (the Kubernetes agent chart sets it). kubectl writes into it are always refused, and so are writes to the Namespace object of that name; in-cluster a namespaced write with no `-n` counts as one. |
 | `ONEUPTIME_RUNNER_CONCURRENCY` | `1` | Max runbook jobs executed at once. |
 | `ONEUPTIME_RUNNER_POLL_INTERVAL_MS` | `5000` | How often it asks for work. |
 | `ONEUPTIME_RUNNER_HEARTBEAT_INTERVAL_MS` | `60000` | Liveness reporting cadence. |
@@ -93,7 +94,8 @@ OneUptime AI runs kubectl through a Runner: read-only during investigations,
 policy-tiered changes during remediations. The Runner re-checks every
 command itself before it starts: its own argv guard (no credential,
 cluster, file or verbose-logging flags, in any spelling kubectl accepts),
-the shared kubectl policy, the write switch and the namespace scope above.
+the shared kubectl policy, the write switch, the node switch and the
+namespace scope above.
 The Kubernetes agent chart's in-cluster Runner uses its pod's own
 ServiceAccount; any other Runner uses the Kubernetes credential bound to it
 on the cluster's AI page, written to a private temporary kubeconfig for the
@@ -107,12 +109,13 @@ command that uses a Kubernetes credential. Its `HOME` is a private empty
 directory and kuberc preferences are switched off, so no `~/.kube/config` or
 preferences file on this host can change what a command does.
 
-On a Runner that is not the Kubernetes agent's, kubectl writes are allowed
-unless you set `ONEUPTIME_KUBECTL_ALLOW_WRITES` to something other than
-`true` — the Kubernetes credential you assign is what bounds them. The
-server cannot see this switch on such a Runner, so a refused write shows up
-in the command's result on the cluster's AI page rather than as a missing
-setup step.
+On a Runner that is not the Kubernetes agent's, kubectl writes (and node
+operations) are allowed unless you set `ONEUPTIME_KUBECTL_ALLOW_WRITES` (or
+`ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS`) to something other than `true` —
+the Kubernetes credential you assign is what bounds them. The server cannot
+see these switches on such a Runner, so a refused write shows up in the
+command's result on the cluster's AI page rather than as a missing setup
+step.
 
 ## Upgrading from the Runbook Agent
 

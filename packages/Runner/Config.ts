@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import NumberUtil from "Common/Utils/Number";
 import {
+  KUBECTL_ALLOW_NODE_OPERATIONS_ENV,
   KUBECTL_ALLOW_WRITES_ENV,
   KUBECTL_WRITE_NAMESPACES_ENV,
   RUNNER_POD_NAMESPACE_ENV,
@@ -166,7 +167,13 @@ export const ENABLE_AI_COMMANDS_OVERRIDE: boolean | null =
 export const KUBECTL_ALLOW_WRITES_RAW: string | null =
   process.env[KUBECTL_ALLOW_WRITES_ENV] ?? null;
 
-export function parseKubectlAllowWrites(
+/*
+ * The rule every kubectl switch on this Runner follows (the write switch
+ * above, the node switch below): set, only "true" allows; unset, allowed
+ * on an ordinary Runner and refused on the kubernetes-agent Runner, whose
+ * chart always sets it.
+ */
+export function parseKubectlSwitch(
   value: string | null,
   isKubernetesAgentMode: boolean,
 ): boolean {
@@ -179,25 +186,64 @@ export function parseKubectlAllowWrites(
   return normalized === "true";
 }
 
-export const KUBECTL_ALLOW_WRITES: boolean = parseKubectlAllowWrites(
+/*
+ * A value that is set but is neither "true" nor "false" is almost certainly
+ * an operator meaning "off" in other words. It already refuses; say so once
+ * at start-up so nobody has to guess what it did.
+ */
+function warnAboutUnrecognisedKubectlSwitch(data: {
+  name: string;
+  value: string | null;
+  refuses: string;
+  allows: string;
+}): void {
+  if (
+    data.value !== null &&
+    data.value.trim() !== "" &&
+    !["true", "false"].includes(data.value.trim().toLowerCase())
+  ) {
+    logger.warn(
+      `${data.name}="${data.value}" is not a recognised value; refusing ${data.refuses} on this host. Set it to "true" to allow ${data.allows} or "false" to refuse them explicitly.`,
+    );
+  }
+}
+
+export const KUBECTL_ALLOW_WRITES: boolean = parseKubectlSwitch(
   KUBECTL_ALLOW_WRITES_RAW,
   IS_KUBERNETES_AGENT_MODE,
 );
 
+warnAboutUnrecognisedKubectlSwitch({
+  name: KUBECTL_ALLOW_WRITES_ENV,
+  value: KUBECTL_ALLOW_WRITES_RAW,
+  refuses: "every AI-composed kubectl write",
+  allows: "writes",
+});
+
 /*
- * A value that is set but is neither "true" nor "false" is almost certainly
- * an operator meaning "off" in other words. It already refuses writes; say
- * so once at start-up so nobody has to guess what it did.
+ * Whether AI-composed kubectl NODE OPERATIONS may run from this host:
+ * cordon, uncordon, drain and taint, and any write to a Node object (label,
+ * annotate, patch). Nodes are cluster-scoped, so the namespace scope below
+ * cannot bound them; this switch does, and it is parsed exactly like the
+ * write switch (parseKubectlSwitch). The kubernetes-agent chart sets it
+ * from aiAccess.remediation.nodeOperations, matching the node role it
+ * renders; an agent-mode Runner without it refuses node operations. Only
+ * meaningful when writes are allowed at all.
  */
-if (
-  KUBECTL_ALLOW_WRITES_RAW !== null &&
-  KUBECTL_ALLOW_WRITES_RAW.trim() !== "" &&
-  !["true", "false"].includes(KUBECTL_ALLOW_WRITES_RAW.trim().toLowerCase())
-) {
-  logger.warn(
-    `${KUBECTL_ALLOW_WRITES_ENV}="${KUBECTL_ALLOW_WRITES_RAW}" is not a recognised value; refusing every AI-composed kubectl write on this host. Set it to "true" to allow writes or "false" to refuse them explicitly.`,
-  );
-}
+export const KUBECTL_ALLOW_NODE_OPERATIONS_RAW: string | null =
+  process.env[KUBECTL_ALLOW_NODE_OPERATIONS_ENV] ?? null;
+
+export const KUBECTL_ALLOW_NODE_OPERATIONS: boolean = parseKubectlSwitch(
+  KUBECTL_ALLOW_NODE_OPERATIONS_RAW,
+  IS_KUBERNETES_AGENT_MODE,
+);
+
+warnAboutUnrecognisedKubectlSwitch({
+  name: KUBECTL_ALLOW_NODE_OPERATIONS_ENV,
+  value: KUBECTL_ALLOW_NODE_OPERATIONS_RAW,
+  refuses: "every AI-composed kubectl node operation",
+  allows: "node operations",
+});
 
 /*
  * Where AI-composed kubectl writes may land. The kubernetes-agent chart

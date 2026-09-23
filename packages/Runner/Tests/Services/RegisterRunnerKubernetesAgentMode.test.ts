@@ -51,6 +51,7 @@ jest.mock("Common/Types/Sleep", () => {
 });
 
 const warnLog: Array<unknown> = [];
+const debugLog: Array<unknown> = [];
 
 /*
  * The registration loop logs its failures rather than throwing them — that
@@ -63,7 +64,9 @@ jest.mock("Common/Server/Utils/Logger", () => {
   return {
     __esModule: true,
     default: {
-      debug: jest.fn(),
+      debug: (value: unknown) => {
+        debugLog.push(value);
+      },
       info: jest.fn(),
       warn: (value: unknown) => {
         warnLog.push(value);
@@ -96,6 +99,7 @@ interface LoadedModules {
     tryRegisterRunner: (data: {
       maxAttempts: number;
       shouldContinue?: () => boolean;
+      onAttempt?: (attempt: Promise<void>) => void;
     }) => Promise<boolean>;
   };
   RunnerIdentity: {
@@ -112,6 +116,7 @@ interface LoadedModules {
   Config: {
     IS_KUBERNETES_AGENT_MODE: boolean;
     KUBECTL_ALLOW_WRITES: boolean;
+    KUBECTL_ALLOW_NODE_OPERATIONS: boolean;
   };
   KubernetesPosture: {
     detectKubectlVersion: () => Promise<string | null>;
@@ -164,6 +169,7 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
   beforeEach(() => {
     postMock.mockReset();
     warnLog.length = 0;
+    debugLog.length = 0;
     errorLog.length = 0;
     sleepsInMs.length = 0;
     sleepHooks.length = 0;
@@ -217,6 +223,63 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
       expect((request["data"] as JSONObject)["allowWrites"]).toBe(expected);
     },
   );
+
+  /*
+   * The node switch (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS) follows the
+   * write switch's rule, and the Runner says what it will actually do: a
+   * node operation is a write, so a Runner that refuses writes reports
+   * node operations off whatever the node switch says.
+   */
+  test.each([
+    ["true", "true", true],
+    ["true", " TRUE ", true],
+    ["true", undefined, false],
+    ["true", "false", false],
+    ["true", "readonly", false],
+    ["false", "true", false],
+    [undefined, "true", false],
+  ])(
+    "ALLOW_WRITES=%p and ALLOW_NODE_OPERATIONS=%p register with allowNodeOperations %p",
+    async (
+      writes: string | undefined,
+      nodes: string | undefined,
+      expected: boolean,
+    ) => {
+      const modules: LoadedModules = loadInAgentMode({
+        ONEUPTIME_KUBECTL_ALLOW_WRITES: writes,
+        ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS: nodes,
+      });
+      jest
+        .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+        .mockResolvedValue("v1.36.4");
+
+      postMock.mockResolvedValueOnce(
+        response(200, {
+          runnerId: "11111111-1111-4111-8111-111111111111",
+          runnerKey: "issued-key-abc",
+          isBoundToCluster: true,
+          capabilities: { canRunAiCommands: true },
+        }),
+      );
+
+      await modules.Register.registerRunner();
+
+      const request: JSONObject = postMock.mock.calls[0]![0] as JSONObject;
+      expect((request["data"] as JSONObject)["allowNodeOperations"]).toBe(
+        expected,
+      );
+    },
+  );
+
+  test("an agent-mode Runner without the node switch refuses node operations", () => {
+    const modules: LoadedModules = loadInAgentMode({
+      ONEUPTIME_KUBECTL_ALLOW_WRITES: "true",
+      ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS: undefined,
+    });
+
+    expect(modules.Config.IS_KUBERNETES_AGENT_MODE).toBe(true);
+    expect(modules.Config.KUBECTL_ALLOW_NODE_OPERATIONS).toBe(false);
+  });
 
   test("registers with the ingestion key header, stores the issued identity and adopts the server's capabilities", async () => {
     const modules: LoadedModules = loadInAgentMode({
@@ -438,6 +501,7 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
         response(403, {
           message:
             'Runner "kubernetes-agent/prod-us" for cluster "prod-us" is online. If the Runner pod just restarted, keep retrying: it is admitted as soon as the previous instance\'s last heartbeat is older than 5 minutes.',
+          reason: "previous_instance_online",
         }),
       );
 
@@ -494,8 +558,9 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
 
       expect(logged).not.toContain("ingest-key-123");
       expect(logged).toContain("[redacted ingestion key]");
-      expect(logged).not.toContain("x".repeat(600));
-      expect(logged).toContain(`${"x".repeat(100)}...`);
+      // Capped at 1000 characters (it was 500, too short for the holdings refusal).
+      expect(logged).not.toContain("x".repeat(1_000));
+      expect(logged).toContain(`${"x".repeat(900)}...`);
     });
 
     test("a body that is not JSON (an ingress error page) is retried without a crash", async () => {
@@ -538,13 +603,20 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
       return modules;
     }
 
+    /*
+     * The server names this 403 (reason previous_instance_online); only
+     * that one is the wait that clears by itself.
+     */
+    const PREDECESSOR_ONLINE: JSONObject = {
+      message: "is online ... keep retrying",
+      reason: "previous_instance_online",
+    };
+
     test("a predecessor-online 403 is retried at a short fixed interval, never with a growing backoff", async () => {
       const modules: LoadedModules = load();
 
       for (let i: number = 0; i < 6; i++) {
-        postMock.mockResolvedValueOnce(
-          response(403, { message: "is online ... keep retrying" }),
-        );
+        postMock.mockResolvedValueOnce(response(403, PREDECESSOR_ONLINE));
       }
       postMock.mockResolvedValueOnce(REGISTERED);
 
@@ -560,10 +632,16 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
       const modules: LoadedModules = load();
 
       postMock
-        .mockResolvedValueOnce(response(403, { retryAfterSeconds: 45 }))
-        .mockResolvedValueOnce(response(403, { retryAfterSeconds: 3_600 }))
         .mockResolvedValueOnce(
-          new HTTPResponse<JSONObject>(403, {}, { "retry-after": "12" }),
+          response(403, { ...PREDECESSOR_ONLINE, retryAfterSeconds: 45 }),
+        )
+        .mockResolvedValueOnce(
+          response(403, { ...PREDECESSOR_ONLINE, retryAfterSeconds: 3_600 }),
+        )
+        .mockResolvedValueOnce(
+          new HTTPResponse<JSONObject>(403, PREDECESSOR_ONLINE, {
+            "retry-after": "12",
+          }),
         )
         .mockResolvedValueOnce(REGISTERED);
 
@@ -616,7 +694,7 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
       postMock.mockImplementation(async () => {
         return nowMs >= ADMITTED_FROM_MS
           ? REGISTERED
-          : response(403, { message: "is online ... keep retrying" });
+          : response(403, PREDECESSOR_ONLINE);
       });
 
       // Advance the fake clock by every requested sleep.
@@ -647,6 +725,283 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
           },
         }),
       ).resolves.toBe(false);
+
+      expect(postMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * A 403 that needs an operator. The server refuses this route with 403
+   * for three reasons, and only previous_instance_online clears by itself.
+   * The Runner used to read every 403 as that wait: every 20 seconds,
+   * forever, it logged that the previous instance "still looks online" and
+   * "no action is needed", followed by the server's own words asking the
+   * operator to change the Runner row.
+   * -------------------------------------------------------------------------
+   */
+  describe("a 403 that needs an operator", () => {
+    const REGISTERED: HTTPResponse<JSONObject> = response(200, {
+      runnerId: "11111111-1111-4111-8111-111111111111",
+      runnerKey: "issued-key-abc",
+      isBoundToCluster: true,
+      capabilities: { canRunAiCommands: true },
+    });
+
+    const HOLDINGS: JSONObject = {
+      message:
+        'Runner "kubernetes-agent/prod-us" is offline, but it holds more than an in-cluster Runner\'s defaults ("Runs Runbooks" is on). In Project Settings > Runners, turn off "Runs Runbooks" on it, or delete the Runner.',
+      reason: "runner_holds_more_than_defaults",
+    };
+
+    const OTHER_CLUSTER: JSONObject = {
+      message:
+        'Runner "kubernetes-agent/prod-us" reports that it is the in-cluster Runner of a different cluster. Rename or delete that Runner.',
+      reason: "runner_belongs_to_another_cluster",
+    };
+
+    function load(): LoadedModules {
+      const modules: LoadedModules = loadInAgentMode({});
+      jest
+        .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+        .mockResolvedValue("v1.36.4");
+      return modules;
+    }
+
+    function countIn(entries: Array<unknown>, text: string): number {
+      return entries.filter((entry: unknown) => {
+        return (
+          entry instanceof Error ? entry.message : String(entry)
+        ).includes(text);
+      }).length;
+    }
+
+    test.each([
+      ["runner_holds_more_than_defaults", HOLDINGS, 'turn off "Runs Runbooks"'],
+      ["runner_belongs_to_another_cluster", OTHER_CLUSTER, "Rename or delete"],
+    ])(
+      "%s is retried every 5 minutes and explained once, as operator action",
+      async (_reason: string, body: JSONObject, serverWords: string) => {
+        const modules: LoadedModules = load();
+
+        for (let i: number = 0; i < 3; i++) {
+          postMock.mockResolvedValueOnce(response(403, body));
+        }
+        postMock.mockResolvedValueOnce(REGISTERED);
+
+        await modules.Register.registerRunner();
+
+        expect(postMock).toHaveBeenCalledTimes(4);
+        expect(sleepsInMs).toEqual([300_000, 300_000, 300_000]);
+
+        const logged: string = loggedErrors();
+        expect(logged).toContain("an operator must act");
+        expect(logged).toContain(serverWords);
+        expect(logged).not.toContain("still looks online");
+        expect(logged).not.toContain("no action is needed");
+
+        // Explained once at error level; the repeats go to debug.
+        expect(countIn(errorLog, "an operator must act")).toBe(1);
+        expect(countIn(debugLog, "for the reason logged above")).toBe(2);
+      },
+    );
+
+    // Negative control: the transient 403 is logged on every attempt.
+    test("previous_instance_online is logged on every attempt and retried every 20 seconds", async () => {
+      const modules: LoadedModules = load();
+
+      for (let i: number = 0; i < 3; i++) {
+        postMock.mockResolvedValueOnce(
+          response(403, {
+            message: "is online ... keep retrying",
+            reason: "previous_instance_online",
+          }),
+        );
+      }
+      postMock.mockResolvedValueOnce(REGISTERED);
+
+      await modules.Register.registerRunner();
+
+      expect(sleepsInMs).toEqual([20_000, 20_000, 20_000]);
+      expect(countIn(errorLog, "still looks online")).toBe(3);
+      expect(countIn(errorLog, "an operator must act")).toBe(0);
+    });
+
+    test("a different refusal is explained again", async () => {
+      const modules: LoadedModules = load();
+
+      postMock
+        .mockResolvedValueOnce(response(403, HOLDINGS))
+        .mockResolvedValueOnce(response(403, HOLDINGS))
+        .mockResolvedValueOnce(response(403, OTHER_CLUSTER))
+        .mockResolvedValueOnce(REGISTERED);
+
+      await modules.Register.registerRunner();
+
+      expect(countIn(errorLog, "holds more than")).toBe(1);
+      expect(countIn(errorLog, "belongs to a different cluster")).toBe(1);
+    });
+
+    test("an outage between two identical refusals does not hide the second", async () => {
+      const modules: LoadedModules = load();
+
+      postMock
+        .mockResolvedValueOnce(response(403, HOLDINGS))
+        .mockResolvedValueOnce(response(503, {}))
+        .mockResolvedValueOnce(response(403, HOLDINGS))
+        .mockResolvedValueOnce(REGISTERED);
+
+      await modules.Register.registerRunner();
+
+      expect(countIn(errorLog, "holds more than")).toBe(2);
+    });
+
+    /*
+     * A server older than this Runner sends no reason. Nothing says the
+     * refusal clears by itself, so it is not retried as if it did.
+     */
+    test("a 403 with no reason is retried slowly and never called a wait", async () => {
+      const modules: LoadedModules = load();
+
+      postMock
+        .mockResolvedValueOnce(response(403, { message: "Forbidden." }))
+        .mockResolvedValueOnce(REGISTERED);
+
+      await modules.Register.registerRunner();
+
+      expect(sleepsInMs).toEqual([300_000]);
+      expect(loggedErrors()).not.toContain("no action is needed");
+      expect(loggedErrors()).toContain("Server said: Forbidden.");
+    });
+
+    test("a bounded round gives up after its budget, having explained once", async () => {
+      const modules: LoadedModules = load();
+
+      postMock.mockResolvedValue(response(403, HOLDINGS));
+
+      await expect(
+        modules.Register.tryRegisterRunner({ maxAttempts: 3 }),
+      ).resolves.toBe(false);
+
+      expect(postMock).toHaveBeenCalledTimes(3);
+      expect(sleepsInMs).toEqual([300_000, 300_000]);
+      expect(countIn(errorLog, "an operator must act")).toBe(1);
+      expect(countIn(debugLog, "giving up on this round")).toBe(1);
+    });
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * Signing off while a registration attempt is on the wire. The heartbeat
+   * loop waits for the attempt it is handed (onAttempt) before the Runner
+   * sends /disconnect, and an attempt that notices the Runner is signing
+   * off before its request sends nothing.
+   * -------------------------------------------------------------------------
+   */
+  describe("the attempt in flight", () => {
+    const REGISTERED: HTTPResponse<JSONObject> = response(200, {
+      runnerId: "11111111-1111-4111-8111-111111111111",
+      runnerKey: "rotated-key-xyz",
+      isBoundToCluster: true,
+      capabilities: { canRunAiCommands: true },
+    });
+
+    test("each attempt is handed to onAttempt, and settles when its request is answered", async () => {
+      const modules: LoadedModules = loadInAgentMode({});
+      jest
+        .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+        .mockResolvedValue("v1.36.4");
+
+      let answer: (value: HTTPResponse<JSONObject>) => void = () => {};
+      postMock.mockResolvedValueOnce(response(503, {})).mockReturnValueOnce(
+        new Promise<HTTPResponse<JSONObject>>(
+          (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+            answer = resolve;
+          },
+        ),
+      );
+
+      const attempts: Array<Promise<void>> = [];
+      const settled: Array<boolean> = [];
+
+      const round: Promise<boolean> = modules.Register.tryRegisterRunner({
+        maxAttempts: 3,
+        onAttempt: (attempt: Promise<void>): void => {
+          const index: number = attempts.length;
+          attempts.push(attempt);
+          settled.push(false);
+          attempt.then(
+            () => {
+              settled[index] = true;
+            },
+            () => {
+              settled[index] = true;
+            },
+          );
+        },
+      });
+
+      // Wait until the second request is on the wire.
+      for (let i: number = 0; i < 50 && postMock.mock.calls.length < 2; i++) {
+        await new Promise<void>((resolve: () => void) => {
+          setImmediate(resolve);
+        });
+      }
+
+      expect(attempts).toHaveLength(2);
+      expect(settled).toEqual([true, false]);
+
+      answer(REGISTERED);
+
+      await expect(round).resolves.toBe(true);
+      expect(settled).toEqual([true, true]);
+      // The new key is stored by the time the attempt settles.
+      expect(modules.RunnerIdentity.getRunnerKey()).toBe("rotated-key-xyz");
+    });
+
+    test("an attempt whose round ended while it gathered its posture sends nothing", async () => {
+      const modules: LoadedModules = loadInAgentMode({});
+      let keepGoing: boolean = true;
+
+      jest
+        .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+        .mockImplementation(async (): Promise<string | null> => {
+          // The Runner begins signing off while the posture is built.
+          keepGoing = false;
+          return "v1.36.4";
+        });
+
+      await expect(
+        modules.Register.tryRegisterRunner({
+          maxAttempts: 5,
+          shouldContinue: () => {
+            return keepGoing;
+          },
+        }),
+      ).resolves.toBe(false);
+
+      expect(postMock).not.toHaveBeenCalled();
+      // Not a failure: nothing is logged as one, and nothing waits.
+      expect(errorLog).toEqual([]);
+      expect(sleepsInMs).toEqual([]);
+    });
+
+    // Negative control: the same attempt with the round still wanted posts.
+    test("the same attempt posts when the round is still wanted", async () => {
+      const modules: LoadedModules = loadInAgentMode({});
+      jest
+        .spyOn(modules.KubernetesPosture, "detectKubectlVersion")
+        .mockResolvedValue("v1.36.4");
+      postMock.mockResolvedValueOnce(REGISTERED);
+
+      await expect(
+        modules.Register.tryRegisterRunner({
+          maxAttempts: 5,
+          shouldContinue: () => {
+            return true;
+          },
+        }),
+      ).resolves.toBe(true);
 
       expect(postMock).toHaveBeenCalledTimes(1);
     });
