@@ -4798,6 +4798,8 @@
   "Should status page subscribers be notified when this note is posted?": "Следует ли уведомлять подписчиков страницы статуса при публикации этой заметки?",
   "Should status page subscribers be notified?": "Следует ли уведомлять подписчиков страницы статуса?",
   "Unticked by default because status page subscribers were not notified when this incident was declared.": "По умолчанию не отмечено, так как подписчики страницы статуса не были уведомлены при объявлении этого инцидента.",
+  "Unticked by default because status page subscribers were not notified when this episode was created.": "По умолчанию не отмечено, так как подписчики страницы статуса не были уведомлены при создании этого эпизода.",
+  "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.": "По умолчанию не отмечено, так как подписчики страницы статуса не были уведомлены при создании этого планового обслуживания.",
   "Should the new monitor be disabled when its duplicated?": "Следует ли отключать новый монитор при его дублировании?",
   "Show Announcement At": "Показывать объявление с",
   "Show Announcement History (in days)": "Показывать историю объявлений (в днях)",
@@ -6457,5 +6459,8 @@
   "VMware vCenter Created": "VMware vCenter создан",
   "VMware vCenter Restored": "VMware vCenter восстановлен",
   "VMware vCenter Updated": "VMware vCenter обновлён",
-  "Matching event types: {{count}}": "Подходящие типы событий: {{count}}"
+  "Matching event types: {{count}}": "Подходящие типы событий: {{count}}",
+  "Times are shown in {{abbreviation}}.": "Время показано в часовом поясе {{abbreviation}}.",
+  "Planned window · times in {{abbreviation}}": "Плановое окно · время в {{abbreviation}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Время указано в вашем часовом поясе — {{abbreviation}} ({{timezone}})."
 }

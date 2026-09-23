@@ -64,13 +64,33 @@ type CapturedTableProps = {
     | undefined;
 };
 
+type CreateFormOpening = {
+  query?: Record<string, unknown> | undefined;
+  createInitialValues?: Record<string, unknown> | undefined;
+};
+
 let tableRenders: Array<CapturedTableProps> = [];
+let createFormOpenings: Array<CreateFormOpening> = [];
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
     __esModule: true,
     default: (props: CapturedTableProps): ReactElement => {
       tableRenders.push(props);
+
+      /*
+       * Mirrors BaseModelTable: the create form opens whenever
+       * showCreateForm turns true, including when the table mounts with it.
+       */
+      React.useEffect(() => {
+        if (props.showCreateForm) {
+          createFormOpenings.push({
+            query: props.query,
+            createInitialValues: props.createInitialValues,
+          });
+        }
+      }, [props.showCreateForm]);
+
       return <div data-testid="public-note-table" />;
     },
   };
@@ -297,13 +317,26 @@ function renderPage(
 
 async function renderPageFor(
   notifyOnCreate: boolean | undefined,
-): Promise<void> {
+): Promise<RenderResult> {
   serveIncident(Promise.resolve(buildIncident(notifyOnCreate)));
-  renderPage();
+  const view: RenderResult = renderPage();
 
   await waitFor(() => {
     expect(screen.getByTestId("public-note-table")).toBeInTheDocument();
   });
+
+  return view;
+}
+
+// Renders the still-mounted page again, as a route change does.
+function rerenderPage(view: RenderResult): void {
+  view.rerender(
+    <PublicNote
+      pageRoute={new Route("/dashboard/incidents/view/public-notes")}
+      currentProject={buildProject()}
+      hasPaymentMethod={true}
+    />,
+  );
 }
 
 function table(): CapturedTableProps {
@@ -347,9 +380,42 @@ async function clickCardButton(title: string): Promise<void> {
   });
 }
 
+async function createFromTemplate(): Promise<void> {
+  capturedTemplateModalProps = null;
+
+  await clickCardButton("Create from Template");
+
+  await waitFor(() => {
+    expect(capturedTemplateModalProps).not.toBeNull();
+  });
+
+  expect(table().showCreateForm).toBe(false);
+
+  await act(async () => {
+    await capturedTemplateModalProps!.onSubmit({
+      incidentNoteTemplateId: new ObjectID(TEMPLATE_ID),
+    });
+  });
+}
+
+async function generateWithAI(text: string): Promise<void> {
+  capturedAIModalProps = null;
+
+  await clickCardButton("Generate with AI");
+
+  await waitFor(() => {
+    expect(capturedAIModalProps).not.toBeNull();
+  });
+
+  await act(async () => {
+    capturedAIModalProps!.onSuccess(text);
+  });
+}
+
 beforeEach(() => {
   currentIncidentId = INCIDENT_ID;
   tableRenders = [];
+  createFormOpenings = [];
   capturedTemplateModalProps = null;
   capturedAIModalProps = null;
 
@@ -546,22 +612,6 @@ describe("public notes page: an incident the lookup does not find", () => {
 });
 
 describe("public notes page: drafting a note from a template", () => {
-  async function createFromTemplate(): Promise<void> {
-    await clickCardButton("Create from Template");
-
-    await waitFor(() => {
-      expect(capturedTemplateModalProps).not.toBeNull();
-    });
-
-    expect(table().showCreateForm).toBe(false);
-
-    await act(async () => {
-      await capturedTemplateModalProps!.onSubmit({
-        incidentNoteTemplateId: new ObjectID(TEMPLATE_ID),
-      });
-    });
-  }
-
   test("opens the form with the template's note and notify subscribers still off", async () => {
     await renderPageFor(false);
 
@@ -603,18 +653,6 @@ describe("public notes page: drafting a note from a template", () => {
 });
 
 describe("public notes page: drafting a note with AI", () => {
-  async function generateWithAI(text: string): Promise<void> {
-    await clickCardButton("Generate with AI");
-
-    await waitFor(() => {
-      expect(capturedAIModalProps).not.toBeNull();
-    });
-
-    await act(async () => {
-      capturedAIModalProps!.onSuccess(text);
-    });
-  }
-
   test("opens the form with the draft and notify subscribers still off", async () => {
     await renderPageFor(false);
 
@@ -638,6 +676,127 @@ describe("public notes page: drafting a note with AI", () => {
       note: "Drafted by AI.",
       shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
     });
+  });
+});
+
+describe("public notes page: a draft does not follow you to another incident", () => {
+  /*
+   * The page stays mounted when the route moves to another incident, but
+   * the notes table is swapped for a loader until that incident's flag
+   * arrives and then mounts afresh - and a table that mounts with a draft
+   * opens its create form by itself. A draft left from the last incident
+   * would open there, and saving it would post it on this one.
+   */
+  async function moveToOtherIncident(
+    view: RenderResult,
+    notifyOnCreate: boolean,
+  ): Promise<void> {
+    const nextIncident: Deferred<Incident | null> =
+      createDeferred<Incident | null>();
+
+    getItemMock.mockImplementation((...args: Array<unknown>): unknown => {
+      const request: ModelRequest = args[0] as ModelRequest;
+
+      if (request.modelType === IncidentNoteTemplate) {
+        return Promise.resolve(buildTemplate());
+      }
+
+      if (request.id?.toString() === OTHER_INCIDENT_ID) {
+        return nextIncident.promise;
+      }
+
+      return Promise.resolve(buildIncident(false));
+    });
+
+    currentIncidentId = OTHER_INCIDENT_ID;
+    rerenderPage(view);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("bar-loader")).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId("public-note-table")).toBeNull();
+
+    // From here on, only the table mounted for the new incident is recorded.
+    tableRenders = [];
+
+    await act(async () => {
+      nextIncident.resolve(buildIncident(notifyOnCreate));
+    });
+
+    expect(screen.getByTestId("public-note-table")).toBeInTheDocument();
+    expect(String(table().query?.["incidentId"])).toBe(OTHER_INCIDENT_ID);
+  }
+
+  function expectNoDraftOnTheNewTable(notifyOnCreate: boolean): void {
+    // The form opened once, on the first incident, and not again.
+    expect(createFormOpenings.slice(1)).toEqual([]);
+
+    for (const tableRender of tableRenders) {
+      expect(tableRender.showCreateForm).toBe(false);
+      expect(tableRender.createInitialValues).toEqual({
+        shouldStatusPageSubscribersBeNotifiedOnNoteCreated: notifyOnCreate,
+      });
+    }
+  }
+
+  test("a template chosen on one incident does not open the create form on the next", async () => {
+    const view: RenderResult = await renderPageFor(false);
+
+    await createFromTemplate();
+
+    expect(createFormOpenings).toHaveLength(1);
+    expect(createFormOpenings[0]!.createInitialValues?.["note"]).toBe(
+      TEMPLATE_NOTE,
+    );
+
+    await moveToOtherIncident(view, true);
+
+    expectNoDraftOnTheNewTable(true);
+  });
+
+  test("an AI draft written on one incident does not open the create form on the next", async () => {
+    const view: RenderResult = await renderPageFor(false);
+
+    await generateWithAI("Drafted by AI for the first incident.");
+
+    expect(createFormOpenings).toHaveLength(1);
+
+    await moveToOtherIncident(view, false);
+
+    expectNoDraftOnTheNewTable(false);
+  });
+
+  test("a template chosen after moving opens the form with the new incident's flag", async () => {
+    const view: RenderResult = await renderPageFor(false);
+
+    await createFromTemplate();
+    await moveToOtherIncident(view, true);
+    await createFromTemplate();
+
+    expect(table().showCreateForm).toBe(true);
+    expect(table().createInitialValues?.["note"]).toBe(TEMPLATE_NOTE);
+    expect(table().createInitialValues?.[NOTIFY_FIELD]).toBe(true);
+    expect(createFormOpenings).toHaveLength(2);
+    expect(String(createFormOpenings[1]!.query?.["incidentId"])).toBe(
+      OTHER_INCIDENT_ID,
+    );
+    expect(createFormOpenings[1]!.createInitialValues?.[NOTIFY_FIELD]).toBe(
+      true,
+    );
+  });
+
+  test("rendering the same incident again keeps the draft and the open form", async () => {
+    const view: RenderResult = await renderPageFor(false);
+
+    await createFromTemplate();
+    rerenderPage(view);
+
+    expect(screen.queryByTestId("bar-loader")).toBeNull();
+    expect(table().showCreateForm).toBe(true);
+    expect(table().createInitialValues?.["note"]).toBe(TEMPLATE_NOTE);
+    expect(table().createInitialValues?.[NOTIFY_FIELD]).toBe(false);
+    expect(createFormOpenings).toHaveLength(1);
+    expect(incidentRequests()).toHaveLength(1);
   });
 });
 

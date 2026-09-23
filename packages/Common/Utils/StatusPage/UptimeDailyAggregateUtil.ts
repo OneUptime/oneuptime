@@ -366,7 +366,8 @@ export default class UptimeDailyAggregateUtil {
    * monitor younger than the window is measured from its first reading, as
    * UptimeUtil.getTotalDowntimeInSeconds measures it from its first event.
    * Clamped to [0, 100], then rounded down to the precision the way every
-   * other uptime figure is.
+   * other uptime figure is - by the same function a merged figure from
+   * MonitorStatusTimelineService.getMergedDowntimeSeconds is read with.
    */
   public static getUptimePercent(data: {
     buckets: Array<UptimeDayBucket>;
@@ -379,17 +380,9 @@ export default class UptimeDailyAggregateUtil {
         downtimeMonitorStatusIds: data.downtimeMonitorStatusIds,
       });
 
-    if (!(totals.coveredSeconds > 0)) {
-      return null;
-    }
-
-    const percent: number =
-      ((totals.coveredSeconds - totals.downtimeSeconds) /
-        totals.coveredSeconds) *
-      100;
-
-    return UptimeUtil.roundToPrecision({
-      number: Math.min(100, Math.max(0, percent)),
+    return UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+      coveredSeconds: totals.coveredSeconds,
+      downtimeSeconds: totals.downtimeSeconds,
       precision: data.precision,
     });
   }

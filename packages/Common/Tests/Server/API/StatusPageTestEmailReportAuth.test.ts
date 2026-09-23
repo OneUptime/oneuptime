@@ -486,6 +486,8 @@ describe("POST /status-page/test-email-report authorization", () => {
     jest
       .spyOn(UserService, "updateLastActive")
       .mockResolvedValue(undefined as never);
+    // A blocked user's token is BlockedUserMiddleware.test.ts; here nobody is blocked.
+    jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false as never);
     jest
       .spyOn(ProjectService, "updateLastActive")
       .mockResolvedValue(undefined as never);

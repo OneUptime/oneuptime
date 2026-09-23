@@ -4,6 +4,7 @@ import MasterAdminAuthorization from "../../../Server/Middleware/MasterAdminAuth
 import ProjectMiddleware from "../../../Server/Middleware/ProjectAuthorization";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import UserService from "../../../Server/Services/UserService";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import {
   ExpressRequest,
@@ -1025,6 +1026,9 @@ describe("POST /user/:userId/projects — the master API key path", () => {
     ): Promise<boolean> => {
       return Promise.resolve(apiKey.toString() === MASTER_API_KEY);
     }) as never);
+
+    // A blocked master admin is refused too; that is BlockedUserMiddleware.test.ts.
+    jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
   });
 
   afterEach(() => {

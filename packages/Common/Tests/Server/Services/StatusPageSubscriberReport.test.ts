@@ -14,13 +14,17 @@
  *   - the numbers rolled up onto each group,
  *   - the flat `resources` array custom templates written before groups still
  *     loop over,
- *   - a single monitor's uptime and downtime measured over the whole window
- *     even when the page's timeline rows are cut off by the row cap, and
- *     group and page downtime never below one of their own resources',
+ *   - every uptime and downtime figure measured over the whole window even
+ *     when the page's timeline rows are cut off by the row cap: a single
+ *     monitor from its day aggregate, and a monitor group, a status page
+ *     group and the page from the time at least one of their monitors was
+ *     down - an outage two monitors share counted once, and never cut short
+ *     the way the old row merge cut it,
  *   - and the empty-status-page case.
  */
 
 import StatusPageService from "../../../Server/Services/StatusPageService";
+import { MergedDowntimeTotals } from "../../../Server/Services/MonitorStatusTimelineService";
 import StatusPageGroupService from "../../../Server/Services/StatusPageGroupService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import MonitorGroupService from "../../../Server/Services/MonitorGroupService";
@@ -349,6 +353,92 @@ function aggregateFromTimeline(data: {
   return { monitors: monitors, isComplete: true, completeFrom: null };
 }
 
+type MergedDowntimeRequest = {
+  monitorIds: Array<ObjectID>;
+  downtimeMonitorStatusIds: Array<ObjectID | string>;
+  startDate: Date;
+  endDate: Date;
+};
+
+// seconds covered by the union of [start, end) periods, in milliseconds.
+function unionSeconds(periods: Array<[number, number]>): number {
+  let total: number = 0;
+  let reach: number = -Infinity;
+
+  for (const [start, end] of [...periods].sort(
+    (a: [number, number], b: [number, number]) => {
+      return a[0] - b[0];
+    },
+  )) {
+    total += Math.max(0, end - Math.max(start, reach));
+    reach = Math.max(reach, end);
+  }
+
+  return total / 1000;
+}
+
+/*
+ * What MonitorStatusTimelineService.getMergedDowntimeSeconds returns for
+ * these rows, without a database: every row ended and clipped as in
+ * aggregateFromTimeline above, then the union across the monitors - the
+ * time at least one of them was recorded, and at least one was down.
+ */
+function mergedFromTimeline(data: {
+  timeline: Array<MonitorStatusTimeline>;
+  request: MergedDowntimeRequest;
+}): MergedDowntimeTotals {
+  const windowStart: number = data.request.startDate.getTime();
+  const windowEnd: number = Math.min(
+    data.request.endDate.getTime(),
+    Date.now(),
+  );
+
+  const downtimeIds: Set<string> = new Set<string>(
+    data.request.downtimeMonitorStatusIds.map(
+      (id: ObjectID | string): string => {
+        return id.toString();
+      },
+    ),
+  );
+
+  const covered: Array<[number, number]> = [];
+  const down: Array<[number, number]> = [];
+
+  for (const monitorId of data.request.monitorIds) {
+    const rows: Array<MonitorStatusTimeline> = data.timeline
+      .filter((row: MonitorStatusTimeline) => {
+        return row.monitorId?.toString() === monitorId.toString();
+      })
+      .sort((a: MonitorStatusTimeline, b: MonitorStatusTimeline) => {
+        return a.startsAt!.getTime() - b.startsAt!.getTime();
+      });
+
+    rows.forEach((row: MonitorStatusTimeline, index: number) => {
+      const rowEnd: number = row.endsAt
+        ? row.endsAt.getTime()
+        : rows[index + 1]?.startsAt?.getTime() || windowEnd;
+
+      const start: number = Math.max(row.startsAt!.getTime(), windowStart);
+      const end: number = Math.min(rowEnd, windowEnd);
+
+      if (end <= start) {
+        return;
+      }
+
+      covered.push([start, end]);
+
+      if (downtimeIds.has(row.monitorStatus!.id!.toString())) {
+        down.push([start, end]);
+      }
+    });
+  }
+
+  return {
+    coveredSeconds: unionSeconds(covered),
+    downtimeSeconds: unionSeconds(down),
+  };
+}
+
 /*
  * The row fetch as the database serves it: newest first, cut off after
  * `limit` rows across every monitor on the page.
@@ -369,9 +459,10 @@ function newestRows(
  * "one incident per monitor asked about", which makes it visible whether a group
  * asked about its whole subtree.
  *
- * The day aggregate is built from the WHOLE timeline, as the real one is. The
- * row fetch returns the whole timeline too unless `rowCap` is set, in which
- * case it returns only the newest `rowCap` rows - the real fetch's LIMIT_MAX.
+ * The day aggregate and the merged downtime are built from the WHOLE
+ * timeline, as the real ones are. The row fetch returns the whole timeline
+ * too unless `rowCap` is set, in which case it returns only the newest
+ * `rowCap` rows - the real fetch's LIMIT_MAX.
  */
 function mockReads(data: {
   statusPageResources: Array<StatusPageResource>;
@@ -411,6 +502,15 @@ function mockReads(data: {
     .spyOn(StatusPageService, "getUptimeDailyAggregateForStatusPage")
     .mockImplementation(async (request: AggregateRequest) => {
       return aggregateFromTimeline({
+        timeline: data.timeline,
+        request: request,
+      });
+    });
+
+  jest
+    .spyOn(StatusPageService, "getMergedDowntimeForStatusPage")
+    .mockImplementation(async (request: MergedDowntimeRequest) => {
+      return mergedFromTimeline({
         timeline: data.timeline,
         request: request,
       });
@@ -617,6 +717,48 @@ describe("StatusPageService.getReportByStatusPage", () => {
       expect(countBy).toHaveBeenCalledTimes(5);
     });
 
+    test("merges downtime once per distinct set of monitors", async () => {
+      await StatusPageService.getReportByStatusPage({
+        statusPageId: STATUS_PAGE_ID,
+        reportPeriod: reportPeriod(),
+      });
+
+      const mergedSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        StatusPageService,
+        "getMergedDowntimeForStatusPage",
+      ) as ReturnType<typeof jest.spyOn>;
+
+      const monitorSets: Array<Array<string>> = mergedSpy.mock.calls.map(
+        (call: Array<unknown>): Array<string> => {
+          return (call[0] as MergedDowntimeRequest).monitorIds
+            .map((monitorId: ObjectID) => {
+              return monitorId.toString();
+            })
+            .sort();
+        },
+      );
+
+      /*
+       * The page, and ONE set for all four levels of the hierarchy. Single
+       * monitors read their day aggregate instead.
+       */
+      expect(monitorSets).toHaveLength(2);
+      expect(monitorSets).toContainEqual(
+        [ROUTER_MONITOR, SWITCH_MONITOR, WEBSITE_MONITOR]
+          .map((monitorId: ObjectID) => {
+            return monitorId.toString();
+          })
+          .sort(),
+      );
+      expect(monitorSets).toContainEqual(
+        [ROUTER_MONITOR, SWITCH_MONITOR]
+          .map((monitorId: ObjectID) => {
+            return monitorId.toString();
+          })
+          .sort(),
+      );
+    });
+
     test("keeps reporting page level totals", async () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
@@ -714,8 +856,155 @@ describe("StatusPageService.getReportByStatusPage", () => {
       expect(downtimeByName["Switch 01"]).toBe("1 days, 0 minutes");
 
       /*
-       * Neither resource was down for three days, so only the merged rows
-       * can say so - the floor at the largest resource must not replace them.
+       * Neither resource was down for three days, so only the merged
+       * downtime can say so - the floor at the largest resource must not
+       * replace it.
+       */
+      const corporate: StatusPageReportGroup = report.groups[0]!;
+      const unit: StatusPageReportGroup =
+        corporate.subGroups[0]!.subGroups[0]!.subGroups[0]!;
+
+      expect(unit.downtimeInHoursAndMinutes).toBe("3 days, 0 minutes");
+      expect(corporate.downtimeInHoursAndMinutes).toBe("3 days, 0 minutes");
+      expect(report.totalDowntimeInHoursAndMinutes).toBe("3 days, 0 minutes");
+    });
+
+    test("never prints a group below one of its own resources", async () => {
+      /*
+       * A union counts an overlap between two rows of the SAME monitor once
+       * and the day aggregate twice; deleting a row from the middle of a
+       * timeline leaves such an overlap. Stood in for here by a merge that
+       * reads a day, below Router's own two.
+       */
+      jest
+        .spyOn(StatusPageService, "getMergedDowntimeForStatusPage")
+        .mockResolvedValue({
+          coveredSeconds: HISTORY_DAYS * 86400,
+          downtimeSeconds: 86400,
+        });
+
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: reportPeriod(),
+        });
+
+      const unit: StatusPageReportGroup =
+        report.groups[0]!.subGroups[0]!.subGroups[0]!.subGroups[0]!;
+
+      expect(unit.downtimeInHoursAndMinutes).toBe("2 days, 0 minutes");
+      expect(report.totalDowntimeInHoursAndMinutes).toBe("2 days, 0 minutes");
+    });
+  });
+
+  /*
+   * Router down 7 -> 5 days ago and Switch 01 down 6.5 -> 4 days ago. At
+   * least one of them was down from 7 days ago to 4 days ago: three days.
+   */
+  describe("a group whose monitors' outages overlap", () => {
+    function overlappingTimeline(): Array<MonitorStatusTimeline> {
+      const now: number = OneUptimeDate.getCurrentDate().getTime();
+
+      function daysAgo(days: number): Date {
+        return new Date(now - days * DAY_IN_MILLISECONDS);
+      }
+
+      return [
+        makeTimelineItem({
+          monitorId: ROUTER_MONITOR,
+          monitorStatus: OPERATIONAL,
+          startsAt: daysAgo(HISTORY_DAYS),
+          endsAt: daysAgo(7),
+        }),
+        makeTimelineItem({
+          monitorId: ROUTER_MONITOR,
+          monitorStatus: OFFLINE,
+          startsAt: daysAgo(7),
+          endsAt: daysAgo(5),
+        }),
+        makeTimelineItem({
+          monitorId: ROUTER_MONITOR,
+          monitorStatus: OPERATIONAL,
+          startsAt: daysAgo(5),
+        }),
+        makeTimelineItem({
+          monitorId: SWITCH_MONITOR,
+          monitorStatus: OPERATIONAL,
+          startsAt: daysAgo(HISTORY_DAYS),
+          endsAt: daysAgo(6.5),
+        }),
+        makeTimelineItem({
+          monitorId: SWITCH_MONITOR,
+          monitorStatus: OFFLINE,
+          startsAt: daysAgo(6.5),
+          endsAt: daysAgo(4),
+        }),
+        makeTimelineItem({
+          monitorId: SWITCH_MONITOR,
+          monitorStatus: OPERATIONAL,
+          startsAt: daysAgo(4),
+        }),
+        makeTimelineItem({
+          monitorId: WEBSITE_MONITOR,
+          monitorStatus: OPERATIONAL,
+          startsAt: daysAgo(HISTORY_DAYS),
+        }),
+      ];
+    }
+
+    beforeEach(() => {
+      jest.restoreAllMocks();
+      mockReads({
+        statusPageResources: nestedResources(),
+        statusPageGroups: nestedGroups(),
+        timeline: overlappingTimeline(),
+      });
+    });
+
+    test("the old row merge cut the outage short", () => {
+      const period: StatusPageReportPeriod = reportPeriod();
+
+      const groupRows: Array<MonitorStatusTimeline> =
+        overlappingTimeline().filter((row: MonitorStatusTimeline) => {
+          return row.monitorId?.toString() !== WEBSITE_MONITOR.toString();
+        });
+
+      /*
+       * The premise. UptimeUtil.getNonOverlappingMonitorEvents keeps one
+       * event at a time: a row of another monitor that starts later and runs
+       * longer ends the current one. Switch 01's Offline row ends Router's
+       * half a day in, and Router's Operational row ends Switch 01's a day
+       * early - two days of a three day outage, with no row cap involved.
+       */
+      expect(
+        UptimeUtil.getTotalDowntimeInSeconds(groupRows, [OFFLINE], {
+          startDate: period.startDate,
+          endDate: period.endDate,
+        }).totalDowntimeInSeconds,
+      ).toBe(2 * 86400);
+    });
+
+    test("counts the time at least one monitor was down, once", async () => {
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: reportPeriod(),
+        });
+
+      const downtimeByName: Dictionary<string> = {};
+
+      for (const resource of report.resources) {
+        downtimeByName[resource.resourceName] =
+          resource.downtimeInHoursAndMinutes;
+      }
+
+      expect(downtimeByName["Router"]).toBe("2 days, 0 minutes");
+      expect(downtimeByName["Switch 01"]).toBe("2 days, 12 hours, 0 minutes");
+
+      /*
+       * Not the old merge's two days, not the largest resource's two and a
+       * half it was floored at, and not the four and a half the two
+       * resources add up to.
        */
       const corporate: StatusPageReportGroup = report.groups[0]!;
       const unit: StatusPageReportGroup =
@@ -795,7 +1084,8 @@ describe("StatusPageService.getReportByStatusPage", () => {
    * 255,733 rows in 60 days - so every figure covered only the newest days of
    * the window, and lp.chainflip.io reported 99.876% for a window it was up
    * 99.667% of. A single-monitor resource is now measured from the uncapped
-   * day aggregate.
+   * day aggregate, and a monitor group, a status page group and the page from
+   * the uncapped merged downtime.
    */
   describe("a page whose timeline rows are cut off by the row cap", () => {
     const SENT_AT: Date = new Date("2026-08-01T00:00:00.000Z");
@@ -1046,8 +1336,11 @@ describe("StatusPageService.getReportByStatusPage", () => {
           reportPeriod: sixtyDayPeriod(),
         });
 
-      // (99.67 + 98.33 + Edge's 0 from the rows + 100 for the new monitor) / 4
-      expect(report.averageUptimePercent).toBe("74.50%");
+      /*
+       * (99.67 + 98.33 + 99.58 for Edge + 100 for the new monitor) / 4. Edge
+       * read 0% from the capped rows, which made this 74.50%.
+       */
+      expect(report.averageUptimePercent).toBe("99.39%");
     });
 
     test("asks for the day aggregate of single monitors, over the report window, cut in UTC", async () => {
@@ -1126,7 +1419,7 @@ describe("StatusPageService.getReportByStatusPage", () => {
       },
     );
 
-    test("does not report less page downtime than one of its resources", async () => {
+    test("merges the page's downtime over the whole window, not the rows the cap left", async () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
@@ -1134,17 +1427,85 @@ describe("StatusPageService.getReportByStatusPage", () => {
         });
 
       /*
-       * The page total still merges the capped rows, which hold only 6 hours
-       * and 5 minutes of downtime. "Status API" alone was down for a day, so
-       * the total is at least that.
+       * The capped rows hold 6 hours and 5 minutes of downtime, and the page
+       * used to print "Status API"'s one day it was floored at. At least one
+       * monitor was down for 280 minutes of flapping, the quiet monitor's day
+       * - which swallows one five minute flap - and Edge's last six hours:
+       * 280 - 5 + 1440 + 360 = 2075 minutes.
        */
-      expect(itemsByName(report)["Status API"]!.downtimeInHoursAndMinutes).toBe(
-        "1 days, 0 minutes",
+      expect(report.totalDowntimeInHoursAndMinutes).toBe(
+        "1 days, 10 hours, 35 minutes",
       );
-      expect(report.totalDowntimeInHoursAndMinutes).toBe("1 days, 0 minutes");
     });
 
-    test("does not report less group downtime than one of its resources", async () => {
+    test("never reads the capped rows", async () => {
+      const rowFetch: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        StatusPageService,
+        "getMonitorStatusTimelineForStatusPage",
+      ) as ReturnType<typeof jest.spyOn>;
+
+      rowFetch.mockClear();
+
+      await StatusPageService.getReportByStatusPage({
+        statusPageId: STATUS_PAGE_ID,
+        reportPeriod: sixtyDayPeriod(),
+      });
+
+      expect(rowFetch).not.toHaveBeenCalled();
+    });
+
+    test("asks for merged downtime over the report window and the page's downtime statuses", async () => {
+      const period: StatusPageReportPeriod = sixtyDayPeriod();
+
+      await StatusPageService.getReportByStatusPage({
+        statusPageId: STATUS_PAGE_ID,
+        reportPeriod: period,
+      });
+
+      const mergedSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        StatusPageService,
+        "getMergedDowntimeForStatusPage",
+      ) as ReturnType<typeof jest.spyOn>;
+
+      // Edge's monitor, then the page.
+      expect(mergedSpy).toHaveBeenCalledTimes(2);
+
+      const requests: Array<MergedDowntimeRequest> = mergedSpy.mock.calls.map(
+        (call: Array<unknown>): MergedDowntimeRequest => {
+          return call[0] as MergedDowntimeRequest;
+        },
+      );
+
+      expect(
+        requests.map((request: MergedDowntimeRequest) => {
+          return request.monitorIds
+            .map((monitorId: ObjectID) => {
+              return monitorId.toString();
+            })
+            .sort();
+        }),
+      ).toEqual([
+        [EDGE_MONITOR.toString()],
+        [
+          FLAPPING_MONITOR.toString(),
+          QUIET_MONITOR.toString(),
+          EDGE_MONITOR.toString(),
+          UNRECORDED_MONITOR.toString(),
+        ].sort(),
+      ]);
+
+      for (const request of requests) {
+        expect(request.startDate).toEqual(period.startDate);
+        expect(request.endDate).toEqual(period.endDate);
+        expect(
+          request.downtimeMonitorStatusIds.map((id: ObjectID | string) => {
+            return id.toString();
+          }),
+        ).toEqual([OFFLINE.id!.toString()]);
+      }
+    });
+
+    test("merges a group's downtime over its monitors, not the rows the cap left", async () => {
       const GROUP: ObjectID = new ObjectID(
         "dd000000-0000-4000-8000-000000000001",
       );
@@ -1182,13 +1543,20 @@ describe("StatusPageService.getReportByStatusPage", () => {
       expect(group.uptimePercentAsString).toBe("99%");
 
       /*
-       * Its merged rows hold only the flapping monitor's last five minutes
-       * down; "Status API" alone was down for a day.
+       * Its capped rows hold only the flapping monitor's last five minutes
+       * down, and it used to print "Status API"'s one day it was floored at.
+       * Merged: 280 minutes of flapping and the quiet monitor's day, which
+       * swallows one five minute flap - 1715 minutes.
        */
-      expect(group.downtimeInHoursAndMinutes).toBe("1 days, 0 minutes");
+      expect(group.downtimeInHoursAndMinutes).toBe(
+        "1 days, 4 hours, 35 minutes",
+      );
+      expect(report.totalDowntimeInHoursAndMinutes).toBe(
+        "1 days, 4 hours, 35 minutes",
+      );
     });
 
-    test("keeps a monitor group on the timeline rows", async () => {
+    test("measures a monitor group over the whole window, not the rows the cap left", async () => {
       const period: StatusPageReportPeriod = sixtyDayPeriod();
 
       const report: StatusPageReport =
@@ -1198,9 +1566,8 @@ describe("StatusPageService.getReportByStatusPage", () => {
         });
 
       /*
-       * A group is down whenever its worst monitor is, which per-monitor day
-       * sums cannot express - so it is measured from the rows the page
-       * fetched, cap and all. Here only the Offline row survives the cap.
+       * The premise: only Edge's Offline row survives the cap, so the rows
+       * alone say it was down the whole time.
        */
       const edgeRows: Array<MonitorStatusTimeline> = newestRows(
         timeline(),
@@ -1209,20 +1576,26 @@ describe("StatusPageService.getReportByStatusPage", () => {
         return row.monitorId?.toString() === EDGE_MONITOR.toString();
       });
 
-      const fromRows: number = UptimeUtil.calculateUptimePercentage(
-        edgeRows,
-        UptimePrecision.TWO_DECIMAL,
-        [OFFLINE],
-        { startDate: period.startDate, endDate: period.endDate },
-      );
+      expect(
+        UptimeUtil.calculateUptimePercentage(
+          edgeRows,
+          UptimePrecision.TWO_DECIMAL,
+          [OFFLINE],
+          { startDate: period.startDate, endDate: period.endDate },
+        ),
+      ).toBe(0);
 
-      expect(itemsByName(report)["Edge"]!.uptimePercentAsString).toBe(
-        `${fromRows}%`,
-      );
-      expect(fromRows).toBe(0);
+      /*
+       * Merged over its monitor for the whole window: six hours down in
+       * sixty days, 99.5833...%, and the six hours beside it.
+       */
+      const edge: StatusPageReportItem = itemsByName(report)["Edge"]!;
+
+      expect(edge.uptimePercentAsString).toBe("99.58%");
+      expect(edge.downtimeInHoursAndMinutes).toBe("6 hours, 0 minutes");
     });
 
-    test("falls back to the rows for a monitor with nothing recorded, rather than printing null", async () => {
+    test("prints 100% and no downtime for a monitor with nothing recorded, rather than null", async () => {
       const report: StatusPageReport =
         await StatusPageService.getReportByStatusPage({
           statusPageId: STATUS_PAGE_ID,
@@ -1235,6 +1608,41 @@ describe("StatusPageService.getReportByStatusPage", () => {
       expect(unrecorded.uptimePercent).toBe(100);
       expect(unrecorded.uptimePercentAsString).toBe("100%");
       expect(unrecorded.downtimeInHoursAndMinutes).toBe("0 minutes");
+    });
+
+    test("prints the same for a monitor group with nothing recorded", async () => {
+      const EMPTY_MONITOR_GROUP: ObjectID = new ObjectID(
+        "cc000000-0000-4000-8000-000000000002",
+      );
+
+      const empty: StatusPageResource = new StatusPageResource();
+      empty.displayName = "Empty group";
+      empty.monitorGroupId = EMPTY_MONITOR_GROUP;
+      empty.order = 1;
+
+      jest.restoreAllMocks();
+      mockReads({
+        statusPageResources: [empty],
+        statusPageGroups: [],
+        timeline: timeline(),
+        rowCap: ROW_CAP,
+        monitorsInGroup: {
+          [EMPTY_MONITOR_GROUP.toString()]: [UNRECORDED_MONITOR],
+        },
+      });
+
+      const report: StatusPageReport =
+        await StatusPageService.getReportByStatusPage({
+          statusPageId: STATUS_PAGE_ID,
+          reportPeriod: sixtyDayPeriod(),
+        });
+
+      const item: StatusPageReportItem = itemsByName(report)["Empty group"]!;
+
+      expect(item.uptimePercent).toBe(100);
+      expect(item.uptimePercentAsString).toBe("100%");
+      expect(item.downtimeInHoursAndMinutes).toBe("0 minutes");
+      expect(report.totalDowntimeInHoursAndMinutes).toBe("0 minutes");
     });
   });
 

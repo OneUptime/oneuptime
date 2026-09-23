@@ -650,7 +650,7 @@ describe("TeamMemberService resource cleanup when a user leaves the project", ()
   });
 
   describe("onDeleteSuccess wiring", () => {
-    test("runs once per (user, project), after the on-call cleanup and before the notification settings go", async () => {
+    test("runs once per (user, project), after the on-call cleanup and before the account links and notification settings go", async () => {
       jest
         .spyOn(TeamMemberService, "refreshTokens")
         .mockResolvedValue(undefined);
@@ -672,6 +672,12 @@ describe("TeamMemberService resource cleanup when a user leaves the project", ()
       const resourceCleanup: any = jest
         .spyOn(TeamMemberService, "cleanupResourceAssignmentsIfUserLeftProject")
         .mockResolvedValue(null);
+      const workspaceLinkCleanup: any = jest
+        .spyOn(
+          TeamMemberService,
+          "removeWorkspaceAccountLinksIfUserLeftProject",
+        )
+        .mockResolvedValue(0);
 
       await (TeamMemberService as any).onDeleteSuccess({
         deleteBy: { query: {}, props: { isRoot: true } },
@@ -709,6 +715,13 @@ describe("TeamMemberService resource cleanup when a user leaves the project", ()
 
       expect(onCallCleanup.mock.invocationCallOrder[0]!).toBeLessThan(
         resourceCleanup.mock.invocationCallOrder[0]!,
+      );
+      /*
+       * Before the Slack / Teams account links go: the "removed as owner /
+       * role" workspace posts can still mention the person.
+       */
+      expect(resourceCleanup.mock.invocationCallOrder[0]!).toBeLessThan(
+        workspaceLinkCleanup.mock.invocationCallOrder[0]!,
       );
       expect(resourceCleanup.mock.invocationCallOrder[0]!).toBeLessThan(
         removeSettings.mock.invocationCallOrder[0]!,

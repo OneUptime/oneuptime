@@ -170,6 +170,7 @@ import RestrictionTimes, {
   RestrictionType,
 } from "../../../Types/OnCallDutyPolicy/RestrictionTimes";
 import StartAndEndTime from "../../../Types/Time/StartAndEndTime";
+import Timezone from "../../../Types/Timezone";
 
 const PROJECT_ID: string = "11111111-1111-4111-8111-111111111111";
 const SCHEDULE_ID: string = "22222222-2222-4222-8222-222222222222";
@@ -689,10 +690,11 @@ describe("The grid is given shifts and bands for the range it draws", () => {
      * The week the grid opens on is the schedule zone's current week, drawn
      * as browser-local Dates: Sun 20 Sep 00:00 to Sat 26 Sep 23:59:59.
      */
-    const displayNow: Date = OneUptimeDate.getLocalDateFromWallClockInTimezone(
-      OneUptimeDate.getCurrentDate(),
-      SCHEDULE_TIMEZONE,
-    );
+    const displayNow: Date =
+      OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
+        OneUptimeDate.getCurrentDate(),
+        SCHEDULE_TIMEZONE,
+      );
     const displayWeekStart: Date = OneUptimeDate.getStartOfTheWeek(displayNow);
     const displayWeekEnd: Date = OneUptimeDate.getEndOfTheWeek(displayNow);
     expect(onGrid(displayWeekStart)).toBe("2026-09-20 00:00:00");
@@ -707,7 +709,7 @@ describe("The grid is given shifts and bands for the range it draws", () => {
      */
     expect(
       onGrid(
-        OneUptimeDate.getLocalDateFromWallClockInTimezone(
+        OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
           OneUptimeDate.getStartOfTheWeek(OneUptimeDate.getCurrentDate()),
           SCHEDULE_TIMEZONE,
         ),
@@ -1211,5 +1213,177 @@ describe("Uncovered bands cover the visible range and stay inside it", () => {
       ["2026-09-25 23:59:00", "2026-09-26 09:00:00"],
     ]);
     expectBandsInsideVisibleWeek();
+  });
+});
+
+/*
+ * The same grid for a user whose User Settings zone is New York while the
+ * browser is still in India: a VPN, a travelling laptop, an OS set to the
+ * wrong zone. OneUptimeDate's "current timezone" is then New York, but
+ * react-big-calendar still draws in the browser's zone. The display shift
+ * built its wall clocks in the settings zone, so every block, band and the
+ * current-time line was drawn nine and a half hours late against the hour
+ * gutter. They all moved together, so the grid still looked self-consistent.
+ */
+describe("A User Settings zone that differs from the browser's does not move the grid", () => {
+  const SETTINGS_ZONE: Timezone = Timezone.AmericaNew_York;
+
+  beforeEach(() => {
+    OneUptimeDate.setUserTimezone(SETTINGS_ZONE);
+  });
+
+  afterEach(() => {
+    OneUptimeDate.setUserTimezone(null);
+  });
+
+  test("the test really does run with a settings zone that is neither the browser's nor the schedule's", () => {
+    expect(OneUptimeDate.getCurrentTimezone()).toBe(SETTINGS_ZONE);
+    expect(new Date().getHours()).toBe(6);
+    expect(new Date().getMinutes()).toBe(48);
+  });
+
+  test("the current-time line and today's column are at the schedule zone's clock", async () => {
+    setupApi([]);
+    renderPreview(makeLayer(noRestrictions()), [USER_A_ID, USER_B_ID]);
+    await waitForOverridesResolved();
+
+    /*
+     * 09:18 in Singapore. Built on New York's clock, the line was drawn at
+     * the browser-local 18:48 instead.
+     */
+    expect(onGrid(getCalendarProps().getNow!())).toBe("2026-09-23 09:18:00");
+    expect(onGrid(getCalendarProps().defaultDate!).slice(0, 10)).toBe(
+      "2026-09-23",
+    );
+  });
+
+  test("blocks hand off at 5:02 PM on the grid, including the ones crossing the week's edges", async () => {
+    setupApi([]);
+    renderPreview(makeLayer(noRestrictions()), [USER_A_ID, USER_B_ID]);
+    await showVisibleWeek();
+
+    // Each hand-off used to sit at 2:32 AM the next morning.
+    const events: Array<CalendarEvent> = sortByStart(getCalendarProps().events);
+    expect(events.length).toBeGreaterThan(7);
+    expect(
+      new Set<string>(
+        events.slice(1).map((event: CalendarEvent): string => {
+          return onGridMinute(event.start).slice(11);
+        }),
+      ),
+    ).toEqual(new Set<string>(["17:02"]));
+
+    const coveringWeekStart: CalendarEvent | undefined = events.find(
+      (event: CalendarEvent): boolean => {
+        return (
+          event.start.getTime() < VISIBLE_WEEK_START.getTime() &&
+          event.end.getTime() > VISIBLE_WEEK_START.getTime()
+        );
+      },
+    );
+    expect(coveringWeekStart).toBeDefined();
+    expect(onGridMinute(coveringWeekStart!.start)).toBe("2026-09-19 17:02");
+    expect(onGridMinute(coveringWeekStart!.end)).toBe("2026-09-20 17:02");
+  });
+
+  test("the week the grid reports is read at the schedule zone's clock", async () => {
+    setupApi([]);
+    renderPreview(makeLayer(noRestrictions()), [USER_A_ID, USER_B_ID]);
+    await showVisibleWeek();
+
+    /*
+     * The grid reports its first instant as a browser-local Sun 20 00:00.
+     * Read on New York's clock that was Sat 19 14:30, so the shifts and the
+     * override fetch (a day of margin before the week) started on Friday
+     * afternoon rather than at Saturday midnight.
+     */
+    const windows: Array<OverrideQueryWindow> = getOverrideQueryWindows();
+    expect(wallClockInSchedule(windows[windows.length - 1]!.start)).toBe(
+      "2026-09-19 00:00:00",
+    );
+  });
+
+  test("before any navigation, office hours are hatched over exactly the week the grid draws", async () => {
+    setupApi([]);
+    renderPreview(makeLayer(dailyRestriction("09:00", "17:00")), [
+      USER_A_ID,
+      USER_B_ID,
+    ]);
+    await waitForOverridesResolved();
+
+    /*
+     * The range is seeded from "now" before the grid reports one, so this
+     * covers the seed as well as the bands. Each band used to open at
+     * 18:30 and close at 02:30 the next morning.
+     */
+    expect(getGapBands()).toEqual([
+      ["2026-09-20 00:00:00", "2026-09-20 09:00:00"],
+      ["2026-09-20 17:00:00", "2026-09-21 09:00:00"],
+      ["2026-09-21 17:00:00", "2026-09-22 09:00:00"],
+      ["2026-09-22 17:00:00", "2026-09-23 09:00:00"],
+      ["2026-09-23 17:00:00", "2026-09-24 09:00:00"],
+      ["2026-09-24 17:00:00", "2026-09-25 09:00:00"],
+      ["2026-09-25 17:00:00", "2026-09-26 09:00:00"],
+      ["2026-09-26 17:00:00", "2026-09-26 23:59:59"],
+    ]);
+    expectBandsInsideRange(VISIBLE_WEEK_START, VISIBLE_WEEK_END);
+  });
+
+  test("'View as' the settings zone itself draws that zone's clock", async () => {
+    setupApi([]);
+    // Starts Wed 23 Sep 09:00 in Singapore, i.e. Tue 22 Sep 21:00 in New York.
+    renderPreview(makeLayer(noRestrictions(), "17:02", "2026-09-23 09:00"), [
+      USER_A_ID,
+      USER_B_ID,
+    ]);
+    await showVisibleWeek();
+    expect(getGapBands()).toEqual([
+      ["2026-09-20 00:00:00", "2026-09-23 09:00:00"],
+    ]);
+
+    fireEvent.click(screen.getByTestId("view-as-new-york"));
+
+    /*
+     * Viewing in the settings zone left the instants unshifted, so the grid
+     * showed them at the BROWSER's clock: the line at India's 06:48 and the
+     * rotation starting at 06:30 on Wednesday rather than 21:00 on Tuesday.
+     */
+    await waitFor(
+      () => {
+        expect(onGrid(getCalendarProps().getNow!())).toBe(
+          "2026-09-22 21:18:00",
+        );
+        expect(getGapBands()).toEqual([
+          ["2026-09-20 00:00:00", "2026-09-22 21:00:00"],
+        ]);
+      },
+      { timeout: TIMEOUT_MS },
+    );
+    expectBandsInsideRange(VISIBLE_WEEK_START, VISIBLE_WEEK_END);
+  });
+
+  test("a schedule with no timezone is viewed on the settings zone's clock", async () => {
+    setupApi([]);
+    render(
+      <LayersPreview
+        layers={[makeLayer(noRestrictions())]}
+        allLayerUsers={makeLayerUsers([USER_A_ID, USER_B_ID])}
+        onCallDutyPolicyScheduleId={objectId(SCHEDULE_ID)}
+      />,
+    );
+    await waitForOverridesResolved();
+
+    /*
+     * With no schedule zone, "View as" falls back to the user's own zone. The
+     * grid has to show New York's 21:18 the evening before, not India's 06:48.
+     */
+    expect(screen.getByTestId("view-as-new-york")).toHaveAttribute(
+      "data-value",
+      "America/New_York",
+    );
+    expect(onGrid(getCalendarProps().getNow!())).toBe("2026-09-22 21:18:00");
+    expect(onGrid(getCalendarProps().defaultDate!).slice(0, 10)).toBe(
+      "2026-09-22",
+    );
   });
 });

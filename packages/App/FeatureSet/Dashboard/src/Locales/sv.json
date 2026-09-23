@@ -4798,6 +4798,8 @@
   "Should status page subscribers be notified when this note is posted?": "Ska statussidans prenumeranter aviseras när denna anteckning publiceras?",
   "Should status page subscribers be notified?": "Ska statussidans prenumeranter aviseras?",
   "Unticked by default because status page subscribers were not notified when this incident was declared.": "Inte markerad som standard eftersom prenumeranter på statussidan inte meddelades när denna incident deklarerades.",
+  "Unticked by default because status page subscribers were not notified when this episode was created.": "Inte markerad som standard eftersom prenumeranter på statussidan inte meddelades när denna episod skapades.",
+  "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.": "Inte markerad som standard eftersom prenumeranter på statussidan inte meddelades när detta schemalagda underhåll skapades.",
   "Should the new monitor be disabled when its duplicated?": "Ska den nya övervakningen inaktiveras när den dupliceras?",
   "Show Announcement At": "Visa meddelande vid",
   "Show Announcement History (in days)": "Visa meddelandehistorik (i dagar)",
@@ -6457,5 +6459,8 @@
   "VMware vCenter Created": "VMware vCenter skapad",
   "VMware vCenter Restored": "VMware vCenter återställd",
   "VMware vCenter Updated": "VMware vCenter uppdaterad",
-  "Matching event types: {{count}}": "Matchande händelsetyper: {{count}}"
+  "Matching event types: {{count}}": "Matchande händelsetyper: {{count}}",
+  "Times are shown in {{abbreviation}}.": "Tider visas i tidszonen {{abbreviation}}.",
+  "Planned window · times in {{abbreviation}}": "Planerat tidsfönster · tider i {{abbreviation}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Den här tiden anges i din tidszon - {{abbreviation}} ({{timezone}})."
 }

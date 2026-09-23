@@ -4078,4 +4078,212 @@ describe("Recorder", (): void => {
       expect(Recorder.getOsName("Windows NT 10.0")).toBe("Windows");
     });
   });
+  /*
+   * What a web application firewall in front of OneUptime sees of a real
+   * recording. A CRS rule (921110) reads an unparsed body raw, URL- and
+   * entity-decodes it, and refuses anything that looks like an HTTP request
+   * line - which page text such as "50% off" plus a %0A, or API docs showing
+   * "GET /v1 HTTP/1.1", used to. The recorder escapes `%`, `&` and `http/`
+   * where it serialises each event, so these check the wire, not a helper.
+   */
+  describe("what a web application firewall sees", (): void => {
+    const PAGE_TEXT: string = "50% off & more - GET /v1/users HTTP/1.1";
+
+    const chunkCalls: () => Array<Array<unknown>> = (): Array<
+      Array<unknown>
+    > => {
+      return fetchMock.mock.calls.filter((call: Array<unknown>): boolean => {
+        return String(call[0]).indexOf("session-replay/v1/chunk") >= 0;
+      }) as Array<Array<unknown>>;
+    };
+
+    const bodyOf: (call: Array<unknown>) => Uint8Array = (
+      call: Array<unknown>,
+    ): Uint8Array => {
+      return (call[1] as Record<string, unknown>)["body"] as Uint8Array;
+    };
+
+    beforeEach((): void => {
+      document.body.innerHTML = `<div id='app'><p>${PAGE_TEXT.replace(
+        "&",
+        "&amp;",
+      )}</p><a href='https://docs.example.com/get%20started%0Anow?a=1&b=2'>docs</a></div>`;
+    });
+
+    it("uploads page text with no raw %, & or http/, and it parses back verbatim", async (): Promise<void> => {
+      startRecorder({
+        maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        samplePercentage: 100,
+      });
+
+      await flushUploads();
+
+      const frames: Array<CapturedPost> = chunkCalls().flatMap(
+        (call: Array<unknown>): Array<CapturedPost> => {
+          return framesOf(call);
+        },
+      );
+
+      expect(frames.length).toBeGreaterThan(0);
+
+      const payload: string = frames
+        .map((frame: CapturedPost): string => {
+          return frame.payload;
+        })
+        .join("");
+
+      expect(payload).not.toMatch(/[%&]|http\//i);
+
+      const decoded: string = frames
+        .map((frame: CapturedPost): string => {
+          return JSON.stringify(JSON.parse(frame.payload));
+        })
+        .join("");
+
+      expect(decoded).toContain(PAGE_TEXT);
+      expect(decoded).toContain(
+        "https://docs.example.com/get%20started%0Anow?a=1&b=2",
+      );
+    });
+
+    it("the terminal flush has a space before every separator and no raw %, & or http/", async (): Promise<void> => {
+      startRecorder({
+        maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        samplePercentage: 100,
+      });
+
+      await flushUploads();
+
+      sealByHidingThePage();
+
+      const calls: Array<Array<unknown>> = chunkCalls();
+      const terminal: Array<unknown> = calls[
+        calls.length - 1
+      ] as Array<unknown>;
+
+      expect((terminal[1] as Record<string, unknown>)["keepalive"]).toBe(true);
+
+      const body: Uint8Array = bodyOf(terminal);
+      let separators: number = 0;
+
+      for (let index: number = 0; index < body.length; index++) {
+        if (body[index] === 0x0a) {
+          separators++;
+          expect(body[index - 1]).toBe(0x20);
+        }
+      }
+
+      const frames: Array<CapturedPost> = framesOf(terminal);
+
+      expect(separators).toBe(frames.length);
+
+      for (const frame of frames) {
+        expect(frame.envelope.payloadEncoding).toBe("identity");
+        expect(frame.payload).not.toMatch(/[%&]|http\//i);
+        expect(() => {
+          return JSON.parse(frame.payload);
+        }).not.toThrow();
+      }
+    });
+
+    it("every chunk carries the octet-stream content type", async (): Promise<void> => {
+      startRecorder({ samplePercentage: 100 });
+
+      await flushUploads();
+
+      sealByHidingThePage();
+
+      const calls: Array<Array<unknown>> = chunkCalls();
+
+      expect(calls.length).toBeGreaterThan(1);
+
+      for (const call of calls) {
+        const headers: Record<string, string> = (
+          call[1] as Record<string, unknown>
+        )["headers"] as Record<string, string>;
+
+        expect(headers["Content-Type"]).toBe("application/octet-stream");
+      }
+    });
+
+    /*
+     * REGRESSION guard for the byte budget. Each `&` is six bytes on the
+     * wire, so traits that are small as plain JSON can put the envelope LINE
+     * over the parser's 8 KB - and a refused chunk 0 loses the session's
+     * header row. The envelope is measured as it is sent, so the traits are
+     * shed instead.
+     */
+    it("keeps the chunk-0 envelope line under 8 KB when escaping is what makes it big", async (): Promise<void> => {
+      const traits: Record<string, string> = {};
+
+      for (let i: number = 0; i < SESSION_REPLAY_MAX_TRAIT_KEYS; i++) {
+        traits[`trait-${i}`] = "&".repeat(200);
+      }
+
+      const instance: Recorder = new Recorder({
+        initOptions: INIT_OPTIONS,
+        config: {
+          ...baseConfig(),
+          maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+          samplePercentage: 100,
+          captureUserIdentity: true,
+        },
+      });
+
+      recorder = instance;
+
+      instance.identify("user-7", traits);
+      instance.start();
+
+      await flushUploads();
+
+      const body: Uint8Array = bodyOf(chunkCalls()[0] as Array<unknown>);
+      const newline: number = body.indexOf(10);
+
+      expect(newline).toBeGreaterThan(0);
+      expect(newline).toBeLessThan(8 * 1024);
+
+      const envelope: SessionReplayChunkEnvelope = JSON.parse(
+        new TextDecoder().decode(body.subarray(0, newline)),
+      ) as SessionReplayChunkEnvelope;
+
+      expect(envelope.chunkIndex).toBe(0);
+      expect(envelope.meta?.identifiedUserRef).toBeDefined();
+      expect(envelope.meta?.identifiedUserTraits).toBeUndefined();
+    });
+
+    it("keeps small traits with & and % in them, readable after parsing", async (): Promise<void> => {
+      const instance: Recorder = new Recorder({
+        initOptions: INIT_OPTIONS,
+        config: {
+          ...baseConfig(),
+          maskingMode: SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+          samplePercentage: 100,
+          captureUserIdentity: true,
+        },
+      });
+
+      recorder = instance;
+
+      instance.identify("user-8", { company: "Smith & Sons", discount: "15%" });
+      instance.start();
+
+      await flushUploads();
+
+      const body: Uint8Array = bodyOf(chunkCalls()[0] as Array<unknown>);
+      const newline: number = body.indexOf(10);
+      const line: string = new TextDecoder().decode(body.subarray(0, newline));
+
+      expect(line).not.toMatch(/[%&]/);
+
+      const envelope: SessionReplayChunkEnvelope = JSON.parse(
+        line,
+      ) as SessionReplayChunkEnvelope;
+
+      expect(envelope.meta?.identifiedUserTraits).toEqual({
+        company: "Smith & Sons",
+        discount: "15%",
+      });
+    });
+  });
 });

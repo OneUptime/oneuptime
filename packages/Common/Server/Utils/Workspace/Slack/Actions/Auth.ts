@@ -13,6 +13,7 @@ import logger from "../../../Logger";
 import { JSONArray, JSONObject } from "../../../../../Types/JSON";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import Dictionary from "../../../../../Types/Dictionary";
+import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
 
 export interface SlackAction {
   actionValue?: string | undefined;
@@ -187,7 +188,31 @@ export default class SlackAuthAction {
       projectAuth.miscData as SlackMiscData
     )?.botUserId;
 
-    const userId: ObjectID | undefined = userAuth?.userId;
+    let userId: ObjectID | undefined = userAuth?.userId;
+
+    /*
+     * A connected Slack account outlives the membership it was connected
+     * under. Someone removed from the project acts here as a Slack user with
+     * no OneUptime account, never as the OneUptime user they used to be.
+     */
+    let isRemovedFromProject: boolean = false;
+
+    if (
+      userId &&
+      !(await WorkspaceActionAuthorization.isProjectMember({
+        userId: userId,
+        projectId: projectId,
+      }))
+    ) {
+      logger.debug(
+        "Slack user is linked to a user who is no longer a project member.",
+        {
+          projectId: projectId.toString(),
+        },
+      );
+      userId = undefined;
+      isRemovedFromProject = true;
+    }
 
     const view: JSONObject | undefined =
       (payload["view"] as JSONObject) || undefined;
@@ -245,7 +270,9 @@ export default class SlackAuthAction {
         ) {
           const markdwonPayload: WorkspacePayloadMarkdown = {
             _type: "WorkspacePayloadMarkdown",
-            text: `@${slackUsername}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account. `,
+            text: isRemovedFromProject
+              ? `@${slackUsername}, ${WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE}`
+              : `@${slackUsername}, Unfortunately your slack account is not connected to OneUptime. Please log into your OneUptime account, click on User Settings and then connect your Slack account. `,
           };
 
           await SlackUtil.sendDirectMessageToUser({
@@ -271,7 +298,7 @@ export default class SlackAuthAction {
       userId: userId,
       projectId: projectId,
       projectAuthToken: projectAuth.authToken!,
-      userAuthToken: userAuth?.authToken,
+      userAuthToken: userId ? userAuth?.authToken : undefined,
       botUserId: botUserId,
       slackChannelId: slackChannelId,
       slackUsername: slackUsername,

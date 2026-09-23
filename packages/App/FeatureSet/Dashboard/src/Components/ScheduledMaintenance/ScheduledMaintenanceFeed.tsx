@@ -17,6 +17,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import OneUptimeDate from "Common/Types/Date";
@@ -43,6 +44,11 @@ export interface ComponentProps {
    * so the new activity shows without pressing Refresh.
    */
   refreshToken?: number | undefined;
+  /*
+   * Where "Notify Status Page Subscribers" starts on a new public note.
+   * False when the event was created without notifying subscribers.
+   */
+  notifyStatusPageSubscribersByDefault?: boolean | undefined;
 }
 
 /*
@@ -104,6 +110,9 @@ export const getScheduledMaintenanceFeedEventIcon: (
 const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const notifySubscribersByDefault: boolean =
+    props.notifyStatusPageSubscribersByDefault ?? true;
+
   const [showPublicNoteModal, setShowPublicNoteModal] =
     React.useState<boolean>(false);
 
@@ -302,6 +311,15 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
               setShowPublicNoteModal(false);
             }}
             submitButtonText="Save"
+            /*
+             * Seeded as a value, not only as the field's default: the form
+             * drops a false default, and an unsent flag would fall back to
+             * notifying.
+             */
+            initialValues={{
+              shouldStatusPageSubscribersBeNotifiedOnNoteCreated:
+                notifySubscribersByDefault,
+            }}
             onBeforeCreate={async (model: ScheduledMaintenancePublicNote) => {
               model.scheduledMaintenanceId = props.scheduledMaintenanceId!;
               return model;
@@ -349,11 +367,12 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
                     shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
                   },
                   fieldType: FormFieldSchemaType.Checkbox,
-                  description:
-                    "Should status page subscribers be notified when this note is posted?",
+                  description: notifySubscribersByDefault
+                    ? "Should status page subscribers be notified when this note is posted?"
+                    : PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
                   title: "Notify Status Page Subscribers",
                   required: false,
-                  defaultValue: true,
+                  defaultValue: notifySubscribersByDefault,
                 },
               ],
               formType: FormType.Create,

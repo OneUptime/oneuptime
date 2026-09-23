@@ -4798,6 +4798,8 @@
   "Should status page subscribers be notified when this note is posted?": "發布此備註時是否應通知狀態頁面訂閱者？",
   "Should status page subscribers be notified?": "是否應通知狀態頁面訂閱者？",
   "Unticked by default because status page subscribers were not notified when this incident was declared.": "預設未勾選，因為宣告此事件時未通知狀態頁面訂閱者。",
+  "Unticked by default because status page subscribers were not notified when this episode was created.": "預設未勾選，因為建立此片段時未通知狀態頁面訂閱者。",
+  "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.": "預設未勾選，因為建立此排定維護時未通知狀態頁面訂閱者。",
   "Should the new monitor be disabled when its duplicated?": "複製新監測器時是否應停用它？",
   "Show Announcement At": "顯示公告於",
   "Show Announcement History (in days)": "顯示公告歷史記錄（天數）",
@@ -6457,5 +6459,8 @@
   "VMware vCenter Created": "VMware vCenter 已建立",
   "VMware vCenter Restored": "VMware vCenter 已還原",
   "VMware vCenter Updated": "VMware vCenter 已更新",
-  "Matching event types: {{count}}": "符合的事件類型：{{count}}"
+  "Matching event types: {{count}}": "符合的事件類型：{{count}}",
+  "Times are shown in {{abbreviation}}.": "時間以 {{abbreviation}} 時區顯示。",
+  "Planned window · times in {{abbreviation}}": "排定時間範圍 · 時間以 {{abbreviation}} 顯示",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "此時間以您的時區為準 - {{abbreviation}} ({{timezone}})。"
 }

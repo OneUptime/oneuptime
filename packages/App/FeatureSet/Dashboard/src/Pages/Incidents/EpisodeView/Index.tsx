@@ -1,6 +1,7 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import OnCallDutyPoliciesView from "../../../Components/OnCallPolicy/OnCallPolicies";
 import IncidentEpisodeFeedElement from "../../../Components/IncidentEpisode/IncidentEpisodeFeed";
+import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import IncidentEpisodeMemberRoleAssignment from "../../../Components/IncidentEpisode/IncidentEpisodeMemberRoleAssignment";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -179,6 +180,7 @@ const IncidentEpisodeView: FunctionComponent<
             createdAt: true,
             resolvedAt: true,
             incidentCount: true,
+            shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true,
           },
         }),
       ]);
@@ -297,6 +299,18 @@ const IncidentEpisodeView: FunctionComponent<
       ? episode.incidentCount
       : undefined;
 
+  /*
+   * Off when the episode was created without notifying status page
+   * subscribers; the feed's public note form then starts with "Notify Status
+   * Page Subscribers" unticked. Read from the loaded episode, so it always
+   * belongs to the episode on screen: the skeleton above covers the page
+   * until another episode has loaded.
+   */
+  const notifyStatusPageSubscribersByDefault: boolean =
+    PublicNoteSubscriberNotificationDefault.shouldNotifyForIncidentEpisode(
+      episode,
+    );
+
   return (
     <div className="space-y-5">
       <ChangeEpisodeState
@@ -407,6 +421,9 @@ const IncidentEpisodeView: FunctionComponent<
           <IncidentEpisodeFeedElement
             incidentEpisodeId={modelId}
             refreshToken={contentRefreshToken}
+            notifyStatusPageSubscribersByDefault={
+              notifyStatusPageSubscribersByDefault
+            }
           />
         </div>
 

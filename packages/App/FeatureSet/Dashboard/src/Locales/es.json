@@ -4798,6 +4798,8 @@
   "Should status page subscribers be notified when this note is posted?": "¿Se debe notificar a los suscriptores de la página de estado cuando se publique esta nota?",
   "Should status page subscribers be notified?": "¿Se debe notificar a los suscriptores de la página de estado?",
   "Unticked by default because status page subscribers were not notified when this incident was declared.": "Desmarcado de forma predeterminada porque no se notificó a los suscriptores de la página de estado cuando se declaró este incidente.",
+  "Unticked by default because status page subscribers were not notified when this episode was created.": "Desmarcado de forma predeterminada porque no se notificó a los suscriptores de la página de estado cuando se creó este episodio.",
+  "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.": "Desmarcado de forma predeterminada porque no se notificó a los suscriptores de la página de estado cuando se creó este mantenimiento programado.",
   "Should the new monitor be disabled when its duplicated?": "¿Se debe deshabilitar el nuevo monitor cuando se duplique?",
   "Show Announcement At": "Mostrar anuncio en",
   "Show Announcement History (in days)": "Mostrar historial de anuncios (en días)",
@@ -6457,5 +6459,8 @@
   "VMware vCenter Created": "VMware vCenter creado",
   "VMware vCenter Restored": "VMware vCenter restaurado",
   "VMware vCenter Updated": "VMware vCenter actualizado",
-  "Matching event types: {{count}}": "Tipos de eventos coincidentes: {{count}}"
+  "Matching event types: {{count}}": "Tipos de eventos coincidentes: {{count}}",
+  "Times are shown in {{abbreviation}}.": "Las horas se muestran en la zona horaria {{abbreviation}}.",
+  "Planned window · times in {{abbreviation}}": "Ventana programada · horas en {{abbreviation}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Esta hora está en tu zona horaria - {{abbreviation}} ({{timezone}})."
 }

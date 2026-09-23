@@ -1,6 +1,7 @@
 import { gzipSync, strToU8 } from "fflate";
 import {
   CHUNK_PATH,
+  encodeSessionReplayEnvelopeLine,
   MAX_SESSION_REPLAY_CHUNK_BYTES,
   SESSION_REPLAY_CONTENT_TYPE,
   SessionReplayChunkEnvelope,
@@ -51,7 +52,7 @@ export function encodeReplayFrame(
     payloadBytes: compressed.byteLength,
     clientSendUnixMs: Date.now(),
   };
-  const prefix: Uint8Array = strToU8(`${JSON.stringify(envelope)}\n`);
+  const prefix: Uint8Array = strToU8(encodeSessionReplayEnvelopeLine(envelope));
   const body: Uint8Array = new Uint8Array(
     prefix.byteLength + compressed.byteLength,
   );

@@ -85,11 +85,30 @@ The announcement itself carries **Should subscribers be notified?** (`shouldStat
 
 A scheduled maintenance event has its own set of subscriber columns: **Should subscribers be notified when event is created?**, **Should subscribers be notified when event is changed to ongoing?**, **Should subscribers be notified when event is changed to ended?**, plus **Subscriber notifications before the event** and **Next subscriber notification before the event at?** for advance warnings. **Status Pages** on the event decides which pages it appears on, and **Should be visible on status page?** decides whether it appears at all.
 
+If an event is created with **Event Created: Notify Status Page Subscribers** turned off (on the **Subscribers** step of the create form), new public notes on it start with **Notify Status Page Subscribers** off, with a line under the checkbox explaining why. That applies on the event's **Public Notes** page and in **Add Public Note** on the **Scheduled Maintenance Feed**. Notes posted without an explicit choice follow the same **Event Created** setting: Slack and Microsoft Teams notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept. **Event Created** only turns off the announcement sent when the event is created. Reminders (**Subscriber notifications before the event**, set with **Send reminders to subscribers before the event** on the create form) and the notifications set by **Event Ongoing: Notify Status Page Subscribers** and **Event Ended: Notify Status Page Subscribers** are separate settings and still go out. If subscribers have already heard about the event that way, for example from a reminder or the ongoing notification, tick the box to notify them about the note.
+
+The **Mark Scheduled Maintenance as `<state name>`** modal, opened from the buttons at the top of the event's **Overview** page, has one **Notify Status Page Subscribers** checkbox that covers both the state change and the modal's **Public Note**. On an event created with **Event Created** on, it starts on, as before. On an event created with it off, it starts off, with the same line under it, except in two cases where it starts on, matching what the automatic state change would announce:
+
+- You move the event into an ongoing state and **Event Ongoing: Notify Status Page Subscribers** is on.
+- You move the event into an ended or completed state and **Event Ended: Notify Status Page Subscribers** is on.
+
+The manual form on the event's **State Timeline** page and the **Change State** bulk action in the scheduled maintenance list do not look at these settings: their **Notify Status Page Subscribers** checkbox always starts on.
+
+Events created from a template take **Event Created: Notify Status Page Subscribers** from the template, along with its other subscriber settings. **Create from Template** fills in the create form with the template's values, and recurring events scheduled by a template under **Settings → Event Templates** copy them.
+
 ### Incidents
 
-`Incident` is the third event type. What makes an incident reach a status page in the first place — which resources it touches and which states keep it visible — is covered in [Incident States & Severities](/docs/incidents/states-and-severities).
+`Incident` is the third event type. What makes an incident reach a status page in the first place — which resources it touches and which states keep it visible — is covered in [Incident States & Severities](/docs/incidents/states-and-severities). Public notes on an incident declared without notifying subscribers start with **Notify Status Page Subscribers** off; see [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed#posting-a-public-note).
 
 The **Notification Logs** section in the status page side menu (`{id}/notification-logs`) is where you go when you need to see what the page actually sent.
+
+### Incident episodes
+
+An incident episode records whether subscribers were told it was created in `shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated`. Episodes created with the **Create Episode** button or by **Grouping Rules** have it on; an API request can create one with it set to `false`.
+
+On an episode created with it set to `false`, new public notes start with **Notify Status Page Subscribers** off, with a line under it explaining why, on the episode's **Public Notes** page and in **Add Public Note** on the **Episode Feed**. You can still tick it. Notes posted without an explicit choice follow the same setting: Slack notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept. Only this setting counts: unlike an incident, making an episode private does not change where the checkbox starts.
+
+This covers public notes only. The episode's state changes (**Acknowledge**, **Resolve** and auto-resolve) still notify subscribers, because neither the episode's state change modal nor the form on its **State Timeline** page has a **Notify Status Page Subscribers** checkbox.
 
 ### Telling subscribers about an edit
 

@@ -4798,6 +4798,8 @@
   "Should status page subscribers be notified when this note is posted?": "Gli iscritti alla pagina di stato devono essere notificati quando questa nota viene pubblicata?",
   "Should status page subscribers be notified?": "Gli iscritti alla pagina di stato devono essere notificati?",
   "Unticked by default because status page subscribers were not notified when this incident was declared.": "Deselezionato per impostazione predefinita perché gli iscritti alla pagina di stato non sono stati avvisati quando è stato dichiarato questo incidente.",
+  "Unticked by default because status page subscribers were not notified when this episode was created.": "Deselezionato per impostazione predefinita perché gli iscritti alla pagina di stato non sono stati avvisati quando è stato creato questo episodio.",
+  "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.": "Deselezionato per impostazione predefinita perché gli iscritti alla pagina di stato non sono stati avvisati quando è stata creata questa manutenzione programmata.",
   "Should the new monitor be disabled when its duplicated?": "Il nuovo monitor deve essere disabilitato quando viene duplicato?",
   "Show Announcement At": "Mostra annuncio alle",
   "Show Announcement History (in days)": "Mostra cronologia annunci (in giorni)",
@@ -6457,5 +6459,8 @@
   "VMware vCenter Created": "VMware vCenter creato",
   "VMware vCenter Restored": "VMware vCenter ripristinato",
   "VMware vCenter Updated": "VMware vCenter aggiornato",
-  "Matching event types: {{count}}": "Tipi di evento corrispondenti: {{count}}"
+  "Matching event types: {{count}}": "Tipi di evento corrispondenti: {{count}}",
+  "Times are shown in {{abbreviation}}.": "Gli orari sono mostrati nel fuso orario {{abbreviation}}.",
+  "Planned window · times in {{abbreviation}}": "Finestra programmata · orari in {{abbreviation}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "L'orario è espresso nel tuo fuso orario - {{abbreviation}} ({{timezone}})."
 }

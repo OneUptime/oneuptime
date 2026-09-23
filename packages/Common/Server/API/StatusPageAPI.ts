@@ -28,8 +28,10 @@ import StatusPageResourceService from "../Services/StatusPageResourceService";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "../Services/StatusPageService";
+import { MergedDowntimeTotals } from "../Services/MonitorStatusTimelineService";
 import { UptimeDailyAggregate } from "../../Types/StatusPage/UptimeDailyAggregate";
 import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
+import MonitorGroupMergedDowntimeUtil from "../../Utils/StatusPage/MonitorGroupMergedDowntimeUtil";
 import StatusPageSsoService from "../Services/StatusPageSsoService";
 import StatusPageOidcService from "../Services/StatusPageOidcService";
 import StatusPageSubscriberService from "../Services/StatusPageSubscriberService";
@@ -1485,6 +1487,23 @@ export default class StatusPageAPI extends BaseAPI<
             endDate: endDate,
           };
 
+          /*
+           * A monitor group is down whenever at least one of its monitors
+           * is, which the per-monitor aggregate cannot say, so its uptime is
+           * merged over its monitors by the database - not from
+           * monitorStatusTimelines, which arrive under one 10,000 row cap
+           * across every monitor on the page, newest first. Asked here,
+           * because the walk below is synchronous.
+           */
+          const mergedDowntimeByMonitorGroupId: Dictionary<MergedDowntimeTotals> =
+            await this.getMergedDowntimeByMonitorGroupId({
+              statusPageResources: statusPageResources,
+              monitorsInGroup: monitorsInGroup,
+              downtimeMonitorStatuses: downtimeMonitorStatuses,
+              startDate: startDate,
+              endDate: endDate,
+            });
+
           type ResourceUptime = {
             statusPageResourceId: ObjectID;
             uptimePercent: number | null;
@@ -1601,11 +1620,7 @@ export default class StatusPageAPI extends BaseAPI<
                     groupUptime.statusPageResourceUptimes.push(resourceUptime);
                   }
 
-                  /*
-                   * if its a monitor group, then... its uptime stays on the
-                   * rows: a group is down whenever its worst monitor is, which
-                   * the per-monitor aggregate cannot express.
-                   */
+                  // if its a monitor group, then its uptime is merged over its monitors.
 
                   if (resource.monitorGroupId) {
                     let currentStatus: MonitorStatus | undefined =
@@ -1633,22 +1648,37 @@ export default class StatusPageAPI extends BaseAPI<
                     }
 
                     if (resource.showUptimePercent) {
-                      const resourceStatusTimelines: Array<MonitorStatusTimeline> =
-                        StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
-                          {
-                            statusPageResource: resource,
-                            monitorStatusTimelines: monitorStatusTimelines,
-                            monitorsInGroup: monitorsInGroup,
-                          },
-                        );
+                      const merged: MergedDowntimeTotals | undefined =
+                        mergedDowntimeByMonitorGroupId[
+                          resource.monitorGroupId.toString()
+                        ];
 
-                      const uptimePercent: number =
-                        UptimeUtil.calculateUptimePercentage(
+                      let uptimePercent: number | null = merged
+                        ? UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+                            coveredSeconds: merged.coveredSeconds,
+                            downtimeSeconds: merged.downtimeSeconds,
+                            precision: precision,
+                          })
+                        : null;
+
+                      // nothing recorded: fall back to the rows, as a monitor does.
+                      if (uptimePercent === null) {
+                        const resourceStatusTimelines: Array<MonitorStatusTimeline> =
+                          StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
+                            {
+                              statusPageResource: resource,
+                              monitorStatusTimelines: monitorStatusTimelines,
+                              monitorsInGroup: monitorsInGroup,
+                            },
+                          );
+
+                        uptimePercent = UptimeUtil.calculateUptimePercentage(
                           resourceStatusTimelines,
                           precision,
                           downtimeMonitorStatuses,
                           uptimeWindow,
                         );
+                      }
 
                       resourceUptime.uptimePercent = uptimePercent;
                     }
@@ -4757,6 +4787,72 @@ export default class StatusPageAPI extends BaseAPI<
   }
 
   /*
+   * Merged downtime for every monitor group on the page whose resource shows
+   * its uptime, keyed by monitor group id: the time at least one of the
+   * group's monitors was in one of the page's downtime statuses, and the time
+   * at least one of them was recorded, over [startDate, endDate].
+   *
+   * A monitor group is down whenever one of its monitors is. The per-monitor
+   * day aggregate cannot say when that was, and monitorStatusTimelines arrive
+   * under one 10,000 row cap across every monitor on the page, newest first -
+   * on a page with a flapping monitor, the last few days of the window. So the
+   * database merges each group's monitors over every row, once per distinct
+   * set of monitors however many groups or resources share it.
+   *
+   * The overview ships the result and the uptime endpoint reads it, so both
+   * measure a monitor group the same way.
+   */
+  @CaptureSpan()
+  public async getMergedDowntimeByMonitorGroupId(data: {
+    statusPageResources: Array<StatusPageResource>;
+    monitorsInGroup: Dictionary<Array<ObjectID>>;
+    downtimeMonitorStatuses: Array<MonitorStatus>;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<Dictionary<MergedDowntimeTotals>> {
+    const mergedDowntimeByMonitorGroupId: Dictionary<MergedDowntimeTotals> = {};
+    const mergedDowntimeByMonitorSet: Dictionary<MergedDowntimeTotals> = {};
+
+    const downtimeMonitorStatusIds: Array<string> = data.downtimeMonitorStatuses
+      .map((status: MonitorStatus): string => {
+        return status.id?.toString() || "";
+      })
+      .filter(Boolean);
+
+    for (const resource of data.statusPageResources) {
+      if (!resource.monitorGroupId || !resource.showUptimePercent) {
+        continue;
+      }
+
+      const monitorGroupId: string = resource.monitorGroupId.toString();
+
+      if (mergedDowntimeByMonitorGroupId[monitorGroupId]) {
+        continue;
+      }
+
+      const monitorIds: Array<ObjectID> =
+        data.monitorsInGroup[monitorGroupId] || [];
+      const monitorSetKey: string =
+        StatusPageServiceType.getMonitorSetKey(monitorIds);
+
+      if (!mergedDowntimeByMonitorSet[monitorSetKey]) {
+        mergedDowntimeByMonitorSet[monitorSetKey] =
+          await StatusPageService.getMergedDowntimeForStatusPage({
+            monitorIds: monitorIds,
+            downtimeMonitorStatusIds: downtimeMonitorStatusIds,
+            startDate: data.startDate,
+            endDate: data.endDate,
+          });
+      }
+
+      mergedDowntimeByMonitorGroupId[monitorGroupId] =
+        mergedDowntimeByMonitorSet[monitorSetKey]!;
+    }
+
+    return mergedDowntimeByMonitorGroupId;
+  }
+
+  /*
    * Builds the full overview payload for one status page. Everything below
    * is a pure function of the statusPageId — every query runs with isRoot
    * props and nothing is read from the request — which is what makes the
@@ -4789,6 +4885,20 @@ export default class StatusPageAPI extends BaseAPI<
     } = await this.getStatusPageResourcesAndTimelines({
       statusPageId: statusPageId,
     });
+
+    /*
+     * What a monitor group's uptime percentage is read from in the browser,
+     * over the same window as the day aggregate. See
+     * getMergedDowntimeByMonitorGroupId.
+     */
+    const mergedDowntimeByMonitorGroupId: Dictionary<MergedDowntimeTotals> =
+      await this.getMergedDowntimeByMonitorGroupId({
+        statusPageResources: statusPageResources,
+        monitorsInGroup: monitorsInGroup,
+        downtimeMonitorStatuses: statusPage.downtimeMonitorStatuses || [],
+        startDate: startDate,
+        endDate: endDate,
+      });
 
     // check if status page has active incident.
     let activeIncidents: Array<Incident> = [];
@@ -5584,6 +5694,9 @@ export default class StatusPageAPI extends BaseAPI<
       ),
       uptimeDailyAggregate:
         UptimeDailyAggregateUtil.toJSON(uptimeDailyAggregate),
+      monitorGroupMergedDowntime: MonitorGroupMergedDowntimeUtil.toJSON(
+        mergedDowntimeByMonitorGroupId,
+      ),
       resourceGroups: BaseModel.toJSONArray(statusPageGroups, StatusPageGroup),
       monitorStatuses: BaseModel.toJSONArray(monitorStatuses, MonitorStatus),
       statusPageResources: BaseModel.toJSONArray(

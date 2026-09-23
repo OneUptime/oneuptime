@@ -25,6 +25,7 @@ import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 const mockSetJSON: jest.Mock = jest.fn();
 const mockGetJSONObject: jest.Mock = jest.fn();
+const mockDeleteKey: jest.Mock = jest.fn();
 const mockTeamMemberFindBy: jest.Mock = jest.fn();
 const mockTeamPermissionFindBy: jest.Mock = jest.fn();
 
@@ -42,6 +43,9 @@ jest.mock("../../../Server/Infrastructure/GlobalCache", () => {
       },
       getJSONObject: (...args: Array<unknown>) => {
         return mockGetJSONObject(...args);
+      },
+      deleteKey: (...args: Array<unknown>) => {
+        return mockDeleteKey(...args);
       },
     },
   };
@@ -117,9 +121,11 @@ describe("AccessTokenService.refreshUserTenantAccessPermission", () => {
   beforeEach(() => {
     mockSetJSON.mockReset();
     mockGetJSONObject.mockReset();
+    mockDeleteKey.mockReset();
     mockTeamMemberFindBy.mockReset();
     mockTeamPermissionFindBy.mockReset();
     mockSetJSON.mockResolvedValue(undefined as never);
+    mockDeleteKey.mockResolvedValue(undefined as never);
   });
 
   afterEach(() => {
@@ -175,8 +181,9 @@ describe("AccessTokenService.refreshUserTenantAccessPermission", () => {
 
   /*
    * Membership is the whole condition. A user who belongs to no team of this
-   * project never reaches the grant - the service returns null before it, and
-   * nothing is cached for them.
+   * project never reaches the grant - the service returns null before it,
+   * caches nothing for them, and clears whatever the key held from a
+   * membership they no longer have.
    */
   test("a user who is in no team of this project gets nothing at all", async () => {
     mockTeamMemberFindBy.mockResolvedValue([] as never);
@@ -190,6 +197,11 @@ describe("AccessTokenService.refreshUserTenantAccessPermission", () => {
     expect(permission).toBeNull();
     expect(mockSetJSON).not.toHaveBeenCalled();
     expect(mockTeamPermissionFindBy).not.toHaveBeenCalled();
+    expect(mockDeleteKey).toHaveBeenCalledTimes(1);
+    expect(mockDeleteKey).toHaveBeenCalledWith(
+      "project-permissions",
+      `${userId.toString()}:${projectId.toString()}`,
+    );
   });
 
   /*

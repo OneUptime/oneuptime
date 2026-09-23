@@ -61,6 +61,7 @@ import OnCallDutyPolicyScheduleLayerUser from "../../Models/DatabaseModels/OnCal
 import ProjectLeaveResourceCleanup, {
   ProjectLeaveResourceCleanupResult,
 } from "../Utils/TeamMember/ProjectLeaveResourceCleanup";
+import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 
 /*
  * What cleanupOnCallAssignmentsForUserLeavingProject did, for logging and
@@ -747,8 +748,57 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       }
     }
 
+    /*
+     * Revoke first, once per (user, project), each on its own. A delete can
+     * cover several users - a team, a SCIM group - and a failure in one
+     * user's cleanup below must not leave a later one with the permissions of
+     * the membership that was just removed: their cached entries would still
+     * list the project, and nothing would refresh them again. A failure is
+     * reported once everything else has run.
+     */
+    const refreshedKeys: Set<string> = new Set<string>();
+    let refreshError: Error | null = null;
+
     for (const item of onDelete.carryForward as Array<TeamMember>) {
-      await this.refreshTokens(item.userId!, item.projectId!);
+      if (!item.userId || !item.projectId) {
+        continue;
+      }
+
+      const refreshKey: string = `${item.userId.toString()}:${item.projectId.toString()}`;
+
+      if (refreshedKeys.has(refreshKey)) {
+        continue;
+      }
+
+      refreshedKeys.add(refreshKey);
+
+      try {
+        await this.refreshTokens(item.userId, item.projectId);
+      } catch (err) {
+        refreshError = refreshError || (err as Error);
+
+        logger.error(
+          err as Error,
+          {
+            projectId: item.projectId.toString(),
+            userId: item.userId.toString(),
+          } as LogAttributes,
+        );
+
+        // Fall back to dropping the cached entries: a missing entry is rebuilt from the memberships.
+        await AccessTokenService.clearCachedPermissions(
+          item.userId,
+          item.projectId,
+        ).catch((clearError: Error) => {
+          logger.error(clearError, {
+            projectId: item.projectId?.toString(),
+            userId: item.userId?.toString(),
+          } as LogAttributes);
+        });
+      }
+    }
+
+    for (const item of onDelete.carryForward as Array<TeamMember>) {
       await this.syncSubscriptionSeatsAfterMembershipChange(item.projectId!);
 
       /*
@@ -770,12 +820,24 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           projectId: item.projectId,
           userId: item.userId,
         });
+        /*
+         * After the resource cleanup: its "removed as owner / role" workspace
+         * posts can still mention the person through their chat account link.
+         */
+        await this.removeWorkspaceAccountLinksIfUserLeftProject({
+          projectId: item.projectId,
+          userId: item.userId,
+        });
       }
 
       await UserNotificationSettingService.removeDefaultNotificationSettingsForUser(
         item.userId!,
         item.projectId!,
       );
+    }
+
+    if (refreshError) {
+      throw refreshError;
     }
 
     return onDelete;
@@ -871,6 +933,70 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         } as LogAttributes,
       );
       return null;
+    }
+  }
+
+  /**
+   * A user who has left the project must stop acting in it from Slack or
+   * Microsoft Teams. Their WorkspaceUserAuthToken rows for the project are
+   * what map a chat account to them, and nothing removed those rows on leave:
+   * only uninstalling the app or disconnecting the workspace did. So once the
+   * user holds no accepted membership in ANY team of the project, delete them.
+   * Deleting through the service also removes the Slack / Teams notification
+   * methods that point at them (see WorkspaceUserAuthTokenService).
+   *
+   * The chat handlers check membership on every action as well; this keeps
+   * the table from holding links for people who are gone. Best-effort: never
+   * throws into the delete path. Returns how many links were removed.
+   */
+  @CaptureSpan()
+  public async removeWorkspaceAccountLinksIfUserLeftProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<number> {
+    try {
+      const remaining: PositiveNumber = await this.countBy({
+        query: {
+          projectId: data.projectId,
+          userId: data.userId,
+          hasAcceptedInvitation: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (remaining.toNumber() > 0) {
+        return 0;
+      }
+
+      return await WorkspaceUserAuthTokenService.deleteBy({
+        query: {
+          projectId: data.projectId,
+          userId: data.userId,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        "Error removing the Slack / Microsoft Teams account links of a user who left the project (best-effort).",
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+      return 0;
     }
   }
 

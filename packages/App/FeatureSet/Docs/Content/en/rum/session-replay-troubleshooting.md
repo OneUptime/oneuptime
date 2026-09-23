@@ -207,7 +207,7 @@ Every line carries a stable `code`. Look yours up here.
 | `envelope-trimmed`          | The chunk's header JSON was over the server's 8 KB envelope limit, so optional fields were dropped in this order until it fit: trace ids, routes, traits, tags, fidelity notices (`shed` lists what went). The footage is unaffected; the session may be missing some correlation or tag data. Usually 20 tags and 20 traits at their maximum lengths on one session. |
 | `final-chunk-too-large`     | A chunk sent as the page went away was over the 56 KB the recorder allows itself for a page-hide flush — deliberately under the browser's 64 KB combined keepalive quota. With `sealed: true` it was the final chunk: its events were dropped, so the recording ends a few seconds early, and an empty final chunk goes out in its place, so the session still ends with the tab and the chunk sequence has no hole. With `sealed: false` it was not a final chunk: it was dropped whole, nothing was sealed, and the session stays open with a gap where that chunk was. Either way what is lost is that chunk's events; a queued chunk that could not travel in the same request is reported separately, by `final-flush-partial`. |
 | `upload-blocked-transport`  | A trigger fired after uploading had already been disabled for this page. The `transport-disabled` line above it says why.                                                                                             |
-| `chunk-rejected-terminal`   | Uploading has stopped for good. `status: 401` is a bad token; `status: 403` is an origin not on the application's or the key's allowlist; `status: 404` is a wrong host. Fix and reload — the recorder does not retry on its own. |
+| `chunk-rejected-terminal`   | Uploading has stopped for good. `status: 401` is a bad token; `status: 403` is an origin not on the application's or the key's allowlist; `status: 404` is a wrong host. Fix and reload — the recorder does not retry on its own. Read `answeredBy` first: `"not-oneuptime"` means the refusal did not come from OneUptime at all — a web application firewall, CDN or proxy in front of it answered, or the host is not OneUptime. See [A firewall in front of OneUptime refuses the chunks](#a-firewall-in-front-of-oneuptime-refuses-the-chunks). |
 | `chunk-refused`             | One chunk was refused (too large, or unparseable) and the recording continued without it.                                                                                                                            |
 | `chunk-refused-terminal`    | Uploading has stopped because the server will refuse every chunk from this recorder: either the `error` in the detail is one the server answers the same way every time (`unsupported-wire-version` — a recorder the server no longer accepts; `app-identifier-mismatch` or `missing-app-identifier` — the chunk names a different application than the policy was fetched for; `malformed-body` / `malformed-envelope` / `missing-envelope` — a proxy rewriting the request), or every recent chunk was refused as malformed. Upgrade OneUptime so the published recorder matches the server, and report it with the diagnostics if it persists. |
 | `chunk-throttled`           | Rate limited. Uploads pause and resume on their own.                                                                                                                                                                 |
@@ -232,7 +232,7 @@ What the ingest endpoint answers a chunk `POST` with, as you would see it in the
 | `204`  | Taken and deliberately not stored. 204 has no body, so the directive rides in headers: `x-oneuptime-replay-directive` is `stop` when the recorder should stand down (replay disabled, not sampled, over budget, at the cap) or `continue` when only this request was refused, and `x-oneuptime-replay-reason` carries the reason. `consent-required` is the one that comes back `continue`: consent mode is _Require explicit_ and the page has not called `grantConsent()` yet, so the recorder keeps recording and tries again. The reason vocabulary is `ingest-disabled`, `instance-not-offering-replay`, `policy-unavailable`, `not-enabled`, `origin-not-allowed`, `session-chunk-cap`, `not-sampled`, `rate-limited`, `rate-counter-unavailable`, `budget-exhausted`, `budget-counter-unavailable`, `app-monthly-budget-exhausted` and `consent-required`, and the **Health** page counts them by name. |
 | `400`  | The frame could not be served, and the next one from the same build would not be either, so the body carries `directive: "stop"` and a stable `error` code: `empty-body`, `missing-envelope`, `envelope-too-large`, `malformed-envelope`, `malformed-body`, `unsupported-wire-version`, `truncated-payload`, `too-many-frames`, `app-identifier-mismatch`, `missing-app-identifier` or `chunk-index-malformed` (a `chunkIndex` that is missing, negative, fractional or absurd). Six of them — `unsupported-wire-version`, `app-identifier-mismatch`, `missing-app-identifier`, `malformed-body`, `malformed-envelope`, `missing-envelope` — stop uploading immediately (`chunk-refused-terminal`); any other 400 is forgiven once and stops uploading after three in a row. Nearly always a proxy rewriting the request, or a recorder and a server from different versions. |
 | `401`  | The ingestion key is wrong, revoked, expired or from another project.                                                                                                                                                                             |
-| `403`  | The page's origin is not on the ingestion key's or the application's allowlist. Terminal — the recorder does not retry.                                                                                                                            |
+| `403`  | The page's origin is not on the ingestion key's or the application's allowlist. Terminal — the recorder does not retry. A 403 whose body is an HTML page, or empty, did not come from OneUptime: a web application firewall refused the request — see [A firewall in front of OneUptime refuses the chunks](#a-firewall-in-front-of-oneuptime-refuses-the-chunks). |
 | `413`  | The body was over the request cap. The recorder splits chunks well below it, so this is a proxy that re-inflated a compressed body. That one chunk is dropped; the session continues.                                                              |
 | `422`  | `snapshot-too-large`: one frame declared a payload over the cap — an indivisible full-page snapshot that will not fit. Per-chunk, not terminal: the session survives with a fidelity notice saying that snapshot is missing, and playback resumes at the next one. Trim the DOM, or expect a gap at that page load. |
 | `429`  | Rate limited. `Retry-After` says for how long; uploads pause and resume on their own.                                                                                                                                                              |
@@ -261,6 +261,51 @@ Work down this list; it is ordered by how often each one is the answer.
    - **Yes, non-2xx** → see [config fetch statuses](#config-fetch-statuses).
 3. **Is there no chunk `POST`?** First interact with the page — an idle tab has nothing to send. Then read the `recording` line. Under the default `Always` trigger `uploading` should be `true` and chunks should post about every 15 seconds of activity; `uploading: false` under `OnErrorOrFrustration` is normal — call `OneUptimeReplay.captureSession()` to force one and confirm the path works.
 4. **Still nothing after `captureSession()`?** Look for `upload-blocked-consent` (call `grantConsent()`), `not-sampled`, or `transport-disabled`.
+
+## A firewall in front of OneUptime refuses the chunks
+
+If the recorder reaches OneUptime through your own edge — a web application firewall such as Azure Front Door or Application Gateway, Cloudflare, or a ModSecurity or Coraza proxy — that firewall inspects every chunk before OneUptime sees it. When it refuses one you will see:
+
+- chunk `POST`s answering `403` (sometimes `400` or `406`) with an HTML page or an empty body, rather than OneUptime's JSON;
+- `chunk-rejected-terminal` in the console with `answeredBy: "not-oneuptime"`, and uploading stopped for the rest of the page;
+- in the firewall's log, a rule id such as `920420` (_Request content type is not allowed by policy_), `921110` (_HTTP Request Smuggling Attack_) and then `949110` (_Inbound Anomaly Score Exceeded_).
+
+The fastest check is where the requests go. If the recorder's host is your own domain (for example `https://app.example.com/telemetry/...`, proxied on to OneUptime), your firewall is in the path. Loading the recorder from your OneUptime host directly takes your firewall out of it altogether.
+
+### What the recorder sends
+
+Write any exclusion against exactly this, and nothing broader:
+
+| | |
+| --- | --- |
+| Requests | `GET /telemetry/session-replay/v1/config`, `POST /telemetry/session-replay/v1/chunk`, and the browser's CORS preflight `OPTIONS` for each. The same paths without the `/telemetry` prefix are also live. |
+| `Content-Type` | `application/octet-stream`. Recorders built before this was changed sent `application/vnd.oneuptime.session-replay.v1`, which rule 920420 refuses. |
+| Headers | `x-oneuptime-token` and `x-oneuptime-app-identifier` on both requests; `x-oneuptime-user-ref` on the config request when your page identified a user. No `Content-Encoding`. |
+| Body | Not JSON, a form or XML: one or more frames of `<envelope JSON>` followed by the recording, usually gzip-compressed. A firewall reads it as opaque bytes. |
+
+### OWASP Core Rule Set 3.3, and Azure's DRS 2.x
+
+Nothing to configure. `application/octet-stream` is on the rule set's default content-type allowlist, so 920420 passes it, and a body of that type is never parsed into arguments, so the injection rules never see the page URLs and trait values inside it. The one rule that reads such a body raw, 921110, looks for text shaped like an HTTP request line: a method name such as `get`, whitespace, and then a line break or `HTTP/1.1`. The recorder writes every chunk so that pattern cannot occur — `%`, `&` and `http/` go out as JSON escapes, which leaves the firewall's URL and entity decoding nothing to turn into a line break, and each frame's own line break has a space in front of it. OneUptime reads the chunk exactly as before.
+
+Azure Front Door's DRS 2.1 and 2.2 are baselined on CRS 3.3.2 and 3.3.4, so this covers them.
+
+If a page is still running a recorder from before this change — a long-lived tab, or a mobile app build that has not been updated — its chunks carry the old content type and are refused until it reloads or updates. To bridge that window on Azure Front Door, add a custom rule that matches `RequestUri` containing `/session-replay/v1/chunk` **and** the `Content-Type` request header equal to `application/vnd.oneuptime.session-replay.v1`, with action _Allow_. Remove it once those clients are gone.
+
+### OWASP Core Rule Set 4
+
+CRS 4 removed `application/octet-stream` from its default allowlist, so 920420 refuses the chunks until you allow that type — for the chunk route only, not site-wide:
+
+```apache
+# REQUEST-900-EXCLUSION-RULES-BEFORE-CRS.conf
+SecRule REQUEST_FILENAME "@endsWith /session-replay/v1/chunk" \
+    "id:1000100,phase:1,pass,nolog,ctl:ruleRemoveById=920420"
+```
+
+The chunk body needs nothing further: the same encoding keeps 921110 quiet under CRS 4.
+
+### Your OpenTelemetry requests are blocked too
+
+The OpenTelemetry browser SDK's OTLP/HTTP exporter posts `application/json`, which a firewall does parse — and then every span attribute is an argument for the injection rules. A span's `http.url` with a query string in it is enough to trip one; a firewall log line naming `JsonValue:resourceSpans.scopeSpans.spans.attributes.value.stringValue` is this. OneUptime cannot change what that SDK sends, so the fix is on the firewall: exclude the OTLP payload's values from inspection on the OTLP paths (`/otlp/v1/traces`, `/otlp/v1/logs`, `/otlp/v1/metrics`) only. On Azure Front Door, attach a separate WAF policy to the route that serves those paths, and in it add managed-rule exclusions with match variable _Request body JSON arg names_, operator _Starts with_ and selectors `resourceSpans`, `resourceLogs` and `resourceMetrics`, scoped to the rules or rule groups your log shows firing.
 
 ## The session list says "N chunks missing", or the player draws gaps
 
