@@ -1,6 +1,10 @@
-import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceProjectAuthToken, {
+  LegacyServerOnlyMiscDataKeys,
+} from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import SelectPermission from "../../../Server/Types/Database/Permissions/SelectPermission";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -23,9 +27,12 @@ import { describe, expect, test } from "@jest/globals";
  *
  * Nor may it change miscData. For Microsoft Teams that holds the Bot
  * Framework service URLs proactive sends go to, with the bot's token
- * attached, plus the Graph app token and the tenant's consent state. The
- * Slack channel cache, the one part the dashboard edits, has its own route
- * (PUT /slack/channel-cache).
+ * attached, plus the tenant's consent state. The Slack channel cache, the
+ * one part the dashboard edits, has its own route (PUT /slack/channel-cache).
+ *
+ * And miscData, which every role down to Viewer can read, must not carry a
+ * credential: the Teams Graph app token lives only in the server-only
+ * authToken / authTokenExpiresAt columns.
  */
 
 const projectId: ObjectID = ObjectID.generate();
@@ -69,6 +76,23 @@ function check(
       WorkspaceProjectAuthToken,
       propsWith(permissions),
       type,
+    );
+  } catch (err) {
+    return err as Error;
+  }
+
+  return null;
+}
+
+function selectError(
+  permissions: Array<Permission>,
+  select: Record<string, boolean>,
+): Error | null {
+  try {
+    SelectPermission.checkSelectPermission(
+      WorkspaceProjectAuthToken,
+      select as any,
+      propsWith(permissions),
     );
   } catch (err) {
     return err as Error;
@@ -154,6 +178,51 @@ describe("WorkspaceProjectAuthToken access control", () => {
       expect(error).not.toBeNull();
       expect(error?.message).toContain("miscData");
     }
+  });
+
+  /*
+   * For Microsoft Teams `authToken` is a live Microsoft Graph app token for
+   * the customer's tenant. It used to be copied into miscData as well, which
+   * every Viewer can read, so any Viewer could lift it with
+   * GET /workspace-project-auth-token selecting miscData.
+   */
+  test("no project role can read or write the token's expiry", () => {
+    expect(columnAccess("authTokenExpiresAt").read).toEqual([]);
+    expect(columnAccess("authTokenExpiresAt").create).toEqual([]);
+    expect(columnAccess("authTokenExpiresAt").update).toEqual([]);
+  });
+
+  test("no project role can select the token columns", () => {
+    for (const permission of [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+    ]) {
+      for (const column of ["authToken", "authTokenExpiresAt"]) {
+        const error: Error | null = selectError([permission], {
+          [column]: true,
+        });
+
+        expect(error).toBeInstanceOf(NotAuthorizedException);
+      }
+    }
+  });
+
+  test("a Viewer can still select miscData, which the dashboard reads", () => {
+    expect(
+      selectError([Permission.Viewer], {
+        miscData: true,
+        workspaceType: true,
+        workspaceProjectId: true,
+      }),
+    ).toBeNull();
+  });
+
+  test("the keys that used to carry the Graph app token are stripped from miscData", () => {
+    expect(LegacyServerOnlyMiscDataKeys).toEqual(
+      expect.arrayContaining(["appAccessToken", "appAccessTokenExpiresAt"]),
+    );
   });
 
   test("owners and admins can still disconnect", () => {

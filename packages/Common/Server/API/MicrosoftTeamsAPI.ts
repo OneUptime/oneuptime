@@ -542,14 +542,14 @@ export default class MicrosoftTeamsAPI {
     const tokenData: JSONObject = tokenResp.data;
     const appAccessToken: string = (tokenData["access_token"] as string) || "";
     const expiresInSec: number = Number(tokenData["expires_in"] || 0);
-    const expiresAtIso: string = new Date(
+    const expiresAt: Date = new Date(
       Date.now() + Math.max(0, (expiresInSec - 60) * 1000),
-    ).toISOString();
+    );
 
     // tokenData carries the app access token; only its expiry is logged.
     logger.debug(
       "Microsoft Graph app token acquired via admin consent. expiresAt: " +
-        expiresAtIso,
+        expiresAt.toISOString(),
       getLogAttributesFromRequest(req as any),
     );
 
@@ -643,12 +643,14 @@ export default class MicrosoftTeamsAPI {
       }
     }
 
-    // Merge and persist project auth with tenantId, app token, and available teams
+    /*
+     * Merge and persist project auth with tenantId and available teams. The
+     * app token goes in authToken / authTokenExpiresAt only: miscData is
+     * readable by every project Viewer.
+     */
     const mergedMiscData: MicrosoftTeamsMiscData = {
       ...(existingAuth?.miscData as any),
       tenantId: tenantId,
-      appAccessToken: appAccessToken,
-      appAccessTokenExpiresAt: expiresAtIso,
       adminConsentGranted: true,
       adminConsentGrantedAt: new Date().toISOString(),
       adminConsentGrantedBy: userId.toString(),
@@ -660,6 +662,7 @@ export default class MicrosoftTeamsAPI {
       projectId: projectId,
       workspaceType: WorkspaceType.MicrosoftTeams,
       authToken: appAccessToken,
+      authTokenExpiresAt: expiresAt,
       workspaceProjectId: tenantId, // Use tenant ID as the workspace project identifier
       miscData: mergedMiscData,
     });

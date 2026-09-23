@@ -402,7 +402,7 @@ describe("MicrosoftTeamsUtil.saveChatToProjectAuthTokens", () => {
     jest.spyOn(WorkspaceProjectAuthTokenService, "findBy").mockResolvedValue([
       buildProjectAuthRow({
         miscData: baseMiscData({
-          appAccessToken: "token-abc",
+          adminConsentGrantedBy: "user-abc",
           availableChats: { [existingChat.id]: existingChat },
         }),
       }),
@@ -430,7 +430,7 @@ describe("MicrosoftTeamsUtil.saveChatToProjectAuthTokens", () => {
     expect(savedMiscData.teamId).toBe("team-1");
     expect(savedMiscData.teamName).toBe("Engineering");
     expect(savedMiscData.botId).toBe("bot-1");
-    expect(savedMiscData.appAccessToken).toBe("token-abc");
+    expect(savedMiscData.adminConsentGrantedBy).toBe("user-abc");
     expect(savedMiscData.availableChats).toEqual({
       [existingChat.id]: existingChat,
       [newChat.id]: newChat,
