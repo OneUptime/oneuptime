@@ -456,7 +456,7 @@ export class Service extends DatabaseService<Model> {
         modelName: "On-Call Policy",
         service: OnCallDutyPolicyService,
       },
-      ...getAffectedResourceRelations(),
+      ...getAffectedResourceRelations(this.getModel()),
     ];
   }
 
