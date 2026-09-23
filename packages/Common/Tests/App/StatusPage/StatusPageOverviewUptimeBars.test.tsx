@@ -1034,15 +1034,16 @@ describe("Status page overview - a monitor the aggregate does not know about", (
     },
   ];
 
-  for (const fallbackCase of FALLBACK_CASES) {
-    /*
-     * Buckets that cover nothing fall back to the rows. That path must still
-     * render, and it is where the sort fix shows on its own: with no reading
-     * for today, today's bar IS its events. Before the fix it was 83.86% and
-     * orange (see "today's bar is green" above); with the open row sorted
-     * after the Offline row it runs to now and today is 99.99%.
-     */
-    test(`it still renders, its uptime taken from the rows, when ${fallbackCase.name}`, async () => {
+  /*
+   * Buckets that cover nothing fall back to the rows. That path must still
+   * render, and it is where the sort fix shows on its own: with no reading
+   * for today, today's bar IS its events. Before the fix it was 83.86% and
+   * orange (see "today's bar is green" above); with the open row sorted
+   * after the Offline row it runs to now and today is 99.99%.
+   */
+  test.each(FALLBACK_CASES)(
+    "it still renders, its uptime taken from the rows, when $name",
+    async (fallbackCase: FallbackCase) => {
       mockRespondToPost = (): HTTPResponse<JSONObject> => {
         return new HTTPResponse<JSONObject>(
           200,
@@ -1086,6 +1087,6 @@ describe("Status page overview - a monitor the aggregate does not know about", (
       for (const bar of renderedBars) {
         expect(barColor(bar)).not.toBe(rgb(DEFAULT_BAR_COLOR));
       }
-    });
-  }
+    },
+  );
 });

@@ -263,9 +263,10 @@ app.use((req: OneUptimeRequest, res: ExpressResponse, next: NextFunction) => {
 app.use((req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
   /*
    * The urlencoded twin of the bypass above. It must carry the same
-   * session-replay exemption: a chunk POST carries a
-   * vnd.oneuptime.session-replay content type but the recorder's identity
-   * fallback path sends no Content-Encoding, so without this predicate the
+   * session-replay exemption: a chunk POST carries an
+   * application/octet-stream content type (older recorders: a
+   * vnd.oneuptime.session-replay one) but the recorder's identity fallback
+   * path sends no Content-Encoding, so without this predicate the
    * urlencoded parser would consume the stream before the replay body
    * reader ever saw it.
    */

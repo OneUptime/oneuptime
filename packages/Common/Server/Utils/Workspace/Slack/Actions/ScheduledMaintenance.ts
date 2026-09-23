@@ -34,7 +34,6 @@ import Label from "../../../../../Models/DatabaseModels/Label";
 import LabelService from "../../../../Services/LabelService";
 import ScheduledMaintenance from "../../../../../Models/DatabaseModels/ScheduledMaintenance";
 import OneUptimeDate from "../../../../../Types/Date";
-import AccessTokenService from "../../../../Services/AccessTokenService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAuthTokenService";
@@ -43,6 +42,11 @@ import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProj
 import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import ScheduledMaintenanceStateTimeline from "../../../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import ScheduledMaintenancePublicNote from "../../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceInternalNote from "../../../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SlackActionAuthorization from "./Authorization";
 
 export default class SlackScheduledMaintenanceActions {
   @CaptureSpan()
@@ -152,6 +156,17 @@ export default class SlackScheduledMaintenanceActions {
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: ScheduledMaintenance,
+          action: "create a scheduled maintenance event",
+          resources: [],
+        }))
+      ) {
+        return;
+      }
 
       const title: string =
         data.slackRequest.viewValues["scheduledMaintenanceTitle"]!.toString();
@@ -563,6 +578,22 @@ export default class SlackScheduledMaintenanceActions {
         response_action: "clear",
       });
 
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: ScheduledMaintenanceStateTimeline,
+          action: "mark this scheduled maintenance event as ongoing",
+          resources: [
+            {
+              service: ScheduledMaintenanceService,
+              id: scheduledMaintenanceId,
+            },
+          ],
+        }))
+      ) {
+        return;
+      }
+
       const isAlreadyOngoing: boolean =
         await ScheduledMaintenanceService.isScheduledMaintenanceOngoing({
           scheduledMaintenanceId: scheduledMaintenanceId,
@@ -700,6 +731,22 @@ export default class SlackScheduledMaintenanceActions {
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: ScheduledMaintenanceStateTimeline,
+          action: "mark this scheduled maintenance event as complete",
+          resources: [
+            {
+              service: ScheduledMaintenanceService,
+              id: scheduledMaintenanceId,
+            },
+          ],
+        }))
+      ) {
+        return;
+      }
 
       const isAlreadyResolved: boolean =
         await ScheduledMaintenanceService.isScheduledMaintenanceCompleted({
@@ -911,18 +958,26 @@ export default class SlackScheduledMaintenanceActions {
 
     const stateId: ObjectID = new ObjectID(stateString);
 
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: ScheduledMaintenanceStateTimeline,
+        action: "change the state of this scheduled maintenance event",
+        resources: [
+          { service: ScheduledMaintenanceService, id: scheduledMaintenanceId },
+        ],
+      });
+
+    if (!props) {
+      return;
+    }
+
     await ScheduledMaintenanceService.updateOneById({
       id: scheduledMaintenanceId,
       data: {
         currentScheduledMaintenanceStateId: stateId,
       },
-      props:
-        await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
-          {
-            userId: data.slackRequest.userId!,
-            projectId: data.slackRequest.projectId!,
-          },
-        ),
+      props: props,
     });
   }
 
@@ -992,6 +1047,25 @@ export default class SlackScheduledMaintenanceActions {
     Response.sendJsonObjectResponse(req, res, {
       response_action: "clear",
     });
+
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType:
+          noteType === "public"
+            ? ScheduledMaintenancePublicNote
+            : ScheduledMaintenanceInternalNote,
+        action:
+          noteType === "public"
+            ? "add a public note to this scheduled maintenance event"
+            : "add a private note to this scheduled maintenance event",
+        resources: [
+          { service: ScheduledMaintenanceService, id: scheduledMaintenanceId },
+        ],
+      }))
+    ) {
+      return;
+    }
 
     // if public note then, add a note.
     if (noteType === "public") {
@@ -1263,6 +1337,28 @@ export default class SlackScheduledMaintenanceActions {
     }
 
     const oneUptimeUserId: ObjectID = userAuth.userId;
+
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: {
+          userId: oneUptimeUserId,
+          projectId: projectId,
+          projectAuthToken: authToken,
+          slackUserId: userId,
+        },
+        modelType: isPrivateNoteEmoji
+          ? ScheduledMaintenanceInternalNote
+          : ScheduledMaintenancePublicNote,
+        action: isPrivateNoteEmoji
+          ? "add a private note to this scheduled maintenance event"
+          : "add a public note to this scheduled maintenance event",
+        resources: [
+          { service: ScheduledMaintenanceService, id: scheduledMaintenanceId },
+        ],
+      }))
+    ) {
+      return;
+    }
 
     // Fetch the message text using the timestamp
     let messageText: string | null = null;

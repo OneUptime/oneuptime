@@ -158,6 +158,7 @@ import AlertCustomFieldService, {
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
+import KubernetesClusterAiAccessAPI from "Common/Server/API/KubernetesClusterAiAccessAPI";
 import ProxmoxResourceAPI from "Common/Server/API/ProxmoxResourceAPI";
 import VMwareResourceAPI from "Common/Server/API/VMwareResourceAPI";
 import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
@@ -3766,6 +3767,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * win the match.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AutoRemediationAPI);
+
+    /*
+     * Cluster AI access — readiness checklist + "test access" for a
+     * Kubernetes cluster's AI page. Mounted before the KubernetesCluster
+     * CRUD router so these action routes win the match.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, KubernetesClusterAiAccessAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

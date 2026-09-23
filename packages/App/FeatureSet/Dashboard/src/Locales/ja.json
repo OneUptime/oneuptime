@@ -4797,6 +4797,7 @@
   "Should status page subscribers be notified when this incident is created?": "このインシデントが作成されたときにステータスページの購読者へ通知しますか？",
   "Should status page subscribers be notified when this note is posted?": "このメモが投稿されたときにステータスページの購読者へ通知しますか？",
   "Should status page subscribers be notified?": "ステータスページの購読者へ通知しますか？",
+  "Unticked by default because status page subscribers were not notified when this incident was declared.": "このインシデントの宣言時にステータスページの購読者へ通知されなかったため、デフォルトではオフになっています。",
   "Should the new monitor be disabled when its duplicated?": "複製したときに新しいモニターを無効にしますか？",
   "Show Announcement At": "お知らせの表示開始日時",
   "Show Announcement History (in days)": "お知らせ履歴の表示（日数）",
@@ -6456,5 +6457,8 @@
   "VMware vCenter Created": "VMware vCenter作成済み",
   "VMware vCenter Restored": "VMware vCenter復元済み",
   "VMware vCenter Updated": "VMware vCenter更新済み",
-  "Matching event types: {{count}}": "一致するイベントタイプ: {{count}}"
+  "Matching event types: {{count}}": "一致するイベントタイプ: {{count}}",
+  "Times are shown in {{abbreviation}}.": "時刻は {{abbreviation}} タイムゾーンで表示されます。",
+  "Planned window · times in {{abbreviation}}": "予定時間枠 · 時刻は {{abbreviation}} で表示",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "この時刻はお使いのタイムゾーンで表示されています - {{abbreviation}} ({{timezone}})。"
 }

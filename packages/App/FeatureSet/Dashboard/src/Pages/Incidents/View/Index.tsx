@@ -50,6 +50,7 @@ import TelemetryCompanionSignalTabs from "../../../Components/Telemetry/Telemetr
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import IconProp from "Common/Types/Icon/IconProp";
 import IncidentFeedElement from "../../../Components/Incident/IncidentFeed";
+import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import InvestigationPanel from "../../../Components/AI/InvestigationPanel";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import RemediationSuggestionCard from "../../../Components/AutoRemediation/RemediationSuggestionCard";
@@ -200,6 +201,15 @@ const IncidentView: FunctionComponent<
   // The raw series labels, handed to the affected resource card below.
   const [seriesLabels, setSeriesLabels] = useState<JSONObject | null>(null);
   const [isPrivate, setIsPrivate] = useState<boolean>(false);
+  /*
+   * Off when the incident was declared without notifying status page
+   * subscribers; the state change and public note forms then start with
+   * "Notify Status Page Subscribers" unticked.
+   */
+  const [
+    notifyStatusPageSubscribersByDefault,
+    setNotifyStatusPageSubscribersByDefault,
+  ] = useState<boolean>(true);
   const [eventNumber, setEventNumber] = useState<string | undefined>(undefined);
   const [incidentTitle, setIncidentTitle] = useState<string | undefined>(
     undefined,
@@ -413,6 +423,7 @@ const IncidentView: FunctionComponent<
             telemetryQuery: true,
             seriesLabels: true,
             isPrivate: true,
+            shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
             title: true,
             declaredAt: true,
             incidentNumber: true,
@@ -488,6 +499,11 @@ const IncidentView: FunctionComponent<
       );
 
       setIsPrivate(incident?.isPrivate === true);
+      setNotifyStatusPageSubscribersByDefault(
+        PublicNoteSubscriberNotificationDefault.shouldNotifyForIncident(
+          incident,
+        ),
+      );
 
       setIncidentTitle(incident?.title || undefined);
       setIncidentStartedAt(incident?.declaredAt || undefined);
@@ -797,6 +813,9 @@ const IncidentView: FunctionComponent<
           eventStartsAt={durationStartDate}
           severity={severity}
           isPrivate={isPrivate}
+          notifyStatusPageSubscribersByDefault={
+            notifyStatusPageSubscribersByDefault
+          }
           facts={headerFacts}
           aiInvestigationStatus={currentAIInvestigationStatus}
           aiInvestigationSummary={currentAIInvestigationSummary}
@@ -997,6 +1016,9 @@ const IncidentView: FunctionComponent<
           <IncidentFeedElement
             incidentId={modelId}
             refreshToken={feedRefreshToken}
+            notifyStatusPageSubscribersByDefault={
+              notifyStatusPageSubscribersByDefault
+            }
           />
         </div>
 

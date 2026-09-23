@@ -4797,6 +4797,7 @@
   "Should status page subscribers be notified when this incident is created?": "Skal abonnenter på statussiden varsles når denne hendelsen opprettes?",
   "Should status page subscribers be notified when this note is posted?": "Skal abonnenter på statussiden varsles når dette notatet publiseres?",
   "Should status page subscribers be notified?": "Skal abonnenter på statussiden varsles?",
+  "Unticked by default because status page subscribers were not notified when this incident was declared.": "Ikke avkrysset som standard fordi abonnenter på statussiden ikke ble varslet da denne hendelsen ble erklært.",
   "Should the new monitor be disabled when its duplicated?": "Skal den nye overvåkingen deaktiveres når den dupliseres?",
   "Show Announcement At": "Vis kunngjøring fra",
   "Show Announcement History (in days)": "Vis kunngjøringshistorikk (i dager)",
@@ -6456,5 +6457,8 @@
   "VMware vCenter Created": "VMware vCenter opprettet",
   "VMware vCenter Restored": "VMware vCenter gjenopprettet",
   "VMware vCenter Updated": "VMware vCenter oppdatert",
-  "Matching event types: {{count}}": "Samsvarende hendelsestyper: {{count}}"
+  "Matching event types: {{count}}": "Samsvarende hendelsestyper: {{count}}",
+  "Times are shown in {{abbreviation}}.": "Tidspunkter vises i tidssonen {{abbreviation}}.",
+  "Planned window · times in {{abbreviation}}": "Planlagt tidsvindu · tidspunkter i {{abbreviation}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Dette tidspunktet er i din tidssone - {{abbreviation}} ({{timezone}})."
 }

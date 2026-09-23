@@ -14,6 +14,8 @@ import Incident from "../../Models/DatabaseModels/Incident";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberUpdateNotification from "../../Types/StatusPage/SubscriberUpdateNotification";
+import PublicNoteSubscriberNotificationDefault from "../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
+import Query from "../Types/Database/Query";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
 import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
@@ -90,6 +92,26 @@ export class Service extends DatabaseService<Model> {
       createBy.data.postedAt = OneUptimeDate.getCurrentDate();
     }
 
+    /*
+     * A note that does not say whether to notify subscribers (Slack and
+     * Teams notes, workflows, API calls that leave the field out) follows
+     * its incident, so one declared without telling subscribers stays quiet.
+     * An explicit true or false is kept as sent.
+     */
+    if (
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated ===
+        undefined ||
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === null
+    ) {
+      const notifyByDefault: boolean | null =
+        await this.getIncidentNotifyDefault(createBy.data);
+
+      if (notifyByDefault !== null) {
+        createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+          notifyByDefault;
+      }
+    }
+
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnNoteCreated
     if (
       createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === false
@@ -109,6 +131,47 @@ export class Service extends DatabaseService<Model> {
       createBy: createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * Whether a note on this incident notifies subscribers when nobody said,
+   * or null when the incident cannot be found (the column default applies).
+   * Read as root: posting a note does not require permission to read the
+   * incident, and the answer is only this one flag.
+   */
+  private async getIncidentNotifyDefault(note: Model): Promise<boolean | null> {
+    const incidentId: ObjectID | null | undefined =
+      note.incidentId || note.incident?.id;
+
+    if (!incidentId) {
+      return null;
+    }
+
+    const query: Query<Incident> = {
+      _id: incidentId.toString(),
+    };
+
+    if (note.projectId) {
+      query.projectId = note.projectId;
+    }
+
+    const incident: Incident | null = await IncidentService.findOneBy({
+      query: query,
+      select: {
+        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!incident) {
+      return null;
+    }
+
+    return PublicNoteSubscriberNotificationDefault.shouldNotifyForIncident(
+      incident,
+    );
   }
 
   /*

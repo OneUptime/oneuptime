@@ -1,0 +1,5 @@
+# A release from a chart without aiAccess, upgraded with plain
+# `helm upgrade --reuse-values` (the README's Upgrading command) and no
+# aiAccess flag at all: .Values.aiAccess is nil. The null deletes this chart's
+# default so the templates see exactly that.
+aiAccess: null

@@ -723,4 +723,79 @@ describe("UptimeUtil", () => {
       ).toBe(99.99);
     });
   });
+
+  /*
+   * The percentage the uncapped figures are read with: a single monitor's
+   * day buckets, and the merged downtime of a monitor group.
+   */
+  describe("calculateUptimePercentOfCoveredSeconds", () => {
+    it("measures downtime over the seconds that were recorded", () => {
+      // 280 minutes down in 60 days.
+      expect(
+        UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+          coveredSeconds: 60 * SECONDS_IN_DAY,
+          downtimeSeconds: 280 * 60,
+          precision: UptimePrecision.TWO_DECIMAL,
+        }),
+      ).toBe(99.67);
+    });
+
+    it("rounds down to the precision", () => {
+      expect(
+        UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+          coveredSeconds: 10000,
+          downtimeSeconds: 1,
+          precision: UptimePrecision.ONE_DECIMAL,
+        }),
+      ).toBe(99.9);
+    });
+
+    it("is 100 with no downtime and 0 when down the whole time", () => {
+      expect(
+        UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+          coveredSeconds: SECONDS_IN_DAY,
+          downtimeSeconds: 0,
+          precision: UptimePrecision.TWO_DECIMAL,
+        }),
+      ).toBe(100);
+
+      expect(
+        UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+          coveredSeconds: SECONDS_IN_DAY,
+          downtimeSeconds: SECONDS_IN_DAY,
+          precision: UptimePrecision.TWO_DECIMAL,
+        }),
+      ).toBe(0);
+    });
+
+    it("never leaves [0, 100]", () => {
+      expect(
+        UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+          coveredSeconds: SECONDS_IN_DAY,
+          downtimeSeconds: 2 * SECONDS_IN_DAY,
+          precision: UptimePrecision.TWO_DECIMAL,
+        }),
+      ).toBe(0);
+
+      expect(
+        UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+          coveredSeconds: SECONDS_IN_DAY,
+          downtimeSeconds: -SECONDS_IN_DAY,
+          precision: UptimePrecision.TWO_DECIMAL,
+        }),
+      ).toBe(100);
+    });
+
+    it("is null when nothing was recorded, so a caller can tell no data from up", () => {
+      for (const coveredSeconds of [0, -1, NaN]) {
+        expect(
+          UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+            coveredSeconds: coveredSeconds,
+            downtimeSeconds: 0,
+            precision: UptimePrecision.TWO_DECIMAL,
+          }),
+        ).toBeNull();
+      }
+    });
+  });
 });

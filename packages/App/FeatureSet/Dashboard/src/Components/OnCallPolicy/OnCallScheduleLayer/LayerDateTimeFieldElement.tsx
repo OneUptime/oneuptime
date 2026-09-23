@@ -17,7 +17,8 @@ export interface ComponentProps {
    * The schedule's IANA timezone. The rotation-start / hand-off instant is
    * ENFORCED by the engine as wall-clock in this zone (Layer.addRotationUnits
    * steps day/week/month rotations with the schedule zone), but the
-   * datetime-local input captures/displays in the viewer's BROWSER zone.
+   * datetime-local input captures/displays in the viewer's own zone (their
+   * User Settings zone, else the browser's).
    * Without reconciling the two, an admin in a different zone silently
    * configured a hand-off at a different wall-clock than they typed — the same
    * root cause as the restriction times (audit F1), and inconsistent with them
@@ -39,8 +40,9 @@ const LayerDateTimeFieldElement: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   /*
    * Display the stored instant in the input as its wall-clock IN THE SCHEDULE
-   * TIMEZONE (the datetime-local input renders in browser-local time, so we
-   * hand it a local Date carrying the schedule-zone wall-clock).
+   * TIMEZONE. The Input renders a Date at its current-timezone wall clock
+   * (OneUptimeDate.toDateTimeLocalString), so we hand it a Date whose
+   * current-timezone wall clock is the schedule-zone wall-clock.
    */
   const displayValue: Date | undefined = storedInstantToWallClockInput(
     props.value !== undefined && props.value !== null

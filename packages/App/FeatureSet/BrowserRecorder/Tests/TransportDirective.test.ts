@@ -569,6 +569,108 @@ describe("Transport directives and diagnostics", (): void => {
     });
 
     /*
+     * A web application firewall in front of OneUptime answers a blocked
+     * chunk with 403 too - Azure Front Door with an HTML page - and by status
+     * alone it read as "origin not on the allowlist", sending the customer to
+     * edit a list that was never the problem. The record says who answered.
+     */
+    describe("who refused a terminal request", (): void => {
+      const cases: Array<{
+        name: string;
+        status: number;
+        body: string;
+        answeredBy: string;
+      }> = [
+        {
+          name: "the chunk route's own 403",
+          status: 403,
+          body: '{"directive":"stop","configEpoch":3,"reason":"origin-not-allowed"}',
+          answeredBy: "oneuptime",
+        },
+        {
+          name: "the auth middleware's 401",
+          status: 401,
+          body: '{"message":"Invalid ingestion key."}',
+          answeredBy: "oneuptime",
+        },
+        {
+          name: "a firewall's HTML block page",
+          status: 403,
+          body: "<!DOCTYPE html><html><body><h2>The request is blocked.</h2></body></html>",
+          answeredBy: "not-oneuptime",
+        },
+        {
+          name: "an empty 403",
+          status: 403,
+          body: "",
+          answeredBy: "not-oneuptime",
+        },
+        {
+          name: "a JSON 403 that is not OneUptime's shape",
+          status: 403,
+          body: '{"blocked":true,"ref":"20260922T132439Z"}',
+          answeredBy: "not-oneuptime",
+        },
+        {
+          name: "a 404 from a host that is not OneUptime",
+          status: 404,
+          body: "<html><body>Not Found</body></html>",
+          answeredBy: "not-oneuptime",
+        },
+      ];
+
+      for (const testCase of cases) {
+        it(`says ${testCase.answeredBy} for ${testCase.name}, and still stops`, async (): Promise<void> => {
+          clearDebugRecords();
+
+          const transport: Transport = makeTransport();
+
+          setFetch(respond(testCase.status, testCase.body));
+
+          await transport.send(envelope, "[{}]");
+
+          const record: DebugRecord | undefined = recordFor(
+            "chunk-rejected-terminal",
+          );
+
+          expect(record?.detail?.["answeredBy"]).toBe(testCase.answeredBy);
+          expect(record?.detail?.["status"]).toBe(testCase.status);
+
+          if (testCase.answeredBy === "not-oneuptime") {
+            expect(record?.message).toContain("did not come from OneUptime");
+          } else {
+            expect(record?.message).not.toContain(
+              "did not come from OneUptime",
+            );
+          }
+
+          /* Terminal either way: retrying into a firewall only burns battery. */
+          expect(transport.isDisabled()).toBe(true);
+        });
+      }
+
+      it("never copies the block page itself into the record", async (): Promise<void> => {
+        clearDebugRecords();
+
+        const transport: Transport = makeTransport();
+
+        setFetch(
+          respond(
+            403,
+            "<html><body>Blocked. Reference 20260922T132439Z-r16b78d55ddk2hhbh</body></html>",
+          ),
+        );
+
+        await transport.send(envelope, "[{}]");
+
+        expect(serializedRecords()).not.toContain("20260922T132439Z");
+        expect(detailOf("chunk-rejected-terminal")["reason"]).toBe(
+          "not-reported",
+        );
+      });
+    });
+
+    /*
      * A refused chunk is the chunk's problem, not the transport's. The
      * record has to make that visible, because "one oversized chunk" and
      * "uploading has stopped" are the same missing seconds in the player and

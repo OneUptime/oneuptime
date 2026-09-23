@@ -147,6 +147,8 @@ const STEP_TYPE_ICON: Record<RunbookStepType, IconProp> = {
   [RunbookStepType.SSH]: IconProp.Terminal,
   [RunbookStepType.Kubernetes]: IconProp.Cube,
   [RunbookStepType.AI]: IconProp.Sparkles,
+  // Composed by OneUptime AI only, never authored in a runbook; keeps the map total.
+  [RunbookStepType.Kubectl]: IconProp.Cube,
 };
 
 const STEP_TYPE_LABEL: Record<RunbookStepType, string> = {
@@ -157,6 +159,7 @@ const STEP_TYPE_LABEL: Record<RunbookStepType, string> = {
   [RunbookStepType.SSH]: "SSH",
   [RunbookStepType.Kubernetes]: "Kubernetes",
   [RunbookStepType.AI]: "AI",
+  [RunbookStepType.Kubectl]: "kubectl",
 };
 
 function isTerminal(status?: RunbookExecutionStatus): boolean {

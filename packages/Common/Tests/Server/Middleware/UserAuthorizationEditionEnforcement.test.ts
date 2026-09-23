@@ -363,6 +363,7 @@ describe("UserMiddleware SSO enforcement by edition", () => {
           expect(tenantPermissionLookup).toHaveBeenCalledWith(
             userId,
             projectId,
+            { userGlobalAccessPermission: undefined },
           );
         });
 
@@ -425,6 +426,7 @@ describe("UserMiddleware SSO enforcement by edition", () => {
       expect(tenantPermissionLookup).toHaveBeenLastCalledWith(
         userId,
         projectId,
+        { userGlobalAccessPermission: undefined },
       );
 
       // Renewed: refused again, with no restart and no data change.

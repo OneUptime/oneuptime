@@ -3,6 +3,7 @@ import {
   MAX_SESSION_REPLAY_CHUNK_BYTES,
   SESSION_REPLAY_CONTENT_TYPE,
   SESSION_REPLAY_KEEPALIVE_MAX_BYTES,
+  SESSION_REPLAY_LEGACY_CONTENT_TYPE,
   SessionReplayChunkEnvelope,
   SessionReplayDirective,
 } from "Common/Types/Rum/SessionReplay";
@@ -400,7 +401,7 @@ describe("Transport", (): void => {
   });
 
   describe("send", (): void => {
-    it("posts with the auth and app identifier headers and the vendor content type", async (): Promise<void> => {
+    it("posts with the auth and app identifier headers and the octet-stream content type", async (): Promise<void> => {
       const fetchMock: jest.Mock = jest
         .fn()
         .mockResolvedValue(respond(202, '{"directive":"continue"}'));
@@ -1876,6 +1877,292 @@ describe("Transport", (): void => {
         expect(original.droppedEvents).toBe(1);
         expect(original.chunkStartOffsetMs).toBe(0);
       });
+    });
+  });
+  /*
+   * What a web application firewall in front of OneUptime sees. A customer
+   * on Azure Front Door had every chunk refused: rule 920420 on the vendor
+   * content type, and - the next rule in line - 921110, which reads an
+   * unparsed body raw and takes an envelope ending in something like
+   * "gadget case" plus the frame's newline for a smuggled request line.
+   * Common's SessionReplayWafCompatibility test holds the rules; these hold
+   * the transport to producing exactly the bytes that test approves of.
+   */
+  describe("what a web application firewall sees", (): void => {
+    const hostileEnvelope: SessionReplayChunkEnvelope = {
+      ...envelope,
+      url: "https://shop.example.com/search/gadget+case%20x%0Ay",
+      meta: {
+        entryUrl: "https://shop.example.com/?a=REDACTED&b=REDACTED",
+        browserName: "Chrome",
+        browserVersion: "140",
+        osName: "macOS",
+        deviceType: "desktop",
+        viewportWidth: 1440,
+        viewportHeight: 900,
+        identifiedUserTraits: {
+          name: "Bridget Jones",
+          note: "GET /v1 HTTP/1.1 & 50%",
+        },
+      },
+    };
+
+    /* Every envelope LINE of a body, as raw text, with its terminator. */
+    const envelopeLinesOf: (body: Uint8Array) => Array<string> = (
+      body: Uint8Array,
+    ): Array<string> => {
+      const lines: Array<string> = [];
+      let offset: number = 0;
+
+      while (offset < body.length) {
+        const newlineIndex: number = body.indexOf(0x0a, offset);
+        const line: string = new TextDecoder().decode(
+          body.slice(offset, newlineIndex + 1),
+        );
+        const parsed: SessionReplayChunkEnvelope = JSON.parse(
+          line,
+        ) as SessionReplayChunkEnvelope;
+
+        lines.push(line);
+        offset = newlineIndex + 1 + parsed.payloadBytes;
+      }
+
+      return lines;
+    };
+
+    it("sends application/octet-stream, never the vendor type a CRS firewall refuses", async (): Promise<void> => {
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+      globalRecord["fetch"] = fetchMock;
+
+      await makeTransport().send(envelope, "[{}]");
+
+      const headers: Record<string, string> = (
+        fetchMock.mock.calls[0]?.[1] as Record<string, unknown>
+      )["headers"] as Record<string, string>;
+
+      expect(headers["Content-Type"]).toBe("application/octet-stream");
+      expect(headers["Content-Type"]).not.toBe(
+        SESSION_REPLAY_LEGACY_CONTENT_TYPE,
+      );
+    });
+
+    it("sends the same content type on the terminal flush", (): void => {
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+      globalRecord["fetch"] = fetchMock;
+
+      makeTransport().sendTerminal([{ envelope: envelope, payload: "[{}]" }]);
+
+      const headers: Record<string, string> = (
+        fetchMock.mock.calls[0]?.[1] as Record<string, unknown>
+      )["headers"] as Record<string, string>;
+
+      expect(headers["Content-Type"]).toBe(SESSION_REPLAY_CONTENT_TYPE);
+    });
+
+    it("writes the envelope line with no %, & or http/, ending in a space and a newline", (): void => {
+      const body: Uint8Array = Transport.buildBody(
+        { ...hostileEnvelope, payloadBytes: 4 },
+        new TextEncoder().encode("[{}]"),
+      );
+
+      const [line] = envelopeLinesOf(body);
+
+      expect(line).toBeDefined();
+      expect((line as string).endsWith(" \n")).toBe(true);
+      expect(line).not.toMatch(/[%&]|http\//i);
+    });
+
+    it("the server's split still reads back the exact envelope", (): void => {
+      const sent: SessionReplayChunkEnvelope = {
+        ...hostileEnvelope,
+        payloadBytes: 4,
+      };
+
+      const body: Uint8Array = Transport.buildBody(
+        sent,
+        new TextEncoder().encode("[{}]"),
+      );
+
+      expect(framesOf(body)).toEqual([sent]);
+    });
+
+    it("leaves the payload bytes exactly as given", (): void => {
+      const payload: Uint8Array<ArrayBuffer> = new TextEncoder().encode(
+        '[{"text":"50% & GET / HTTP/1.1"}]',
+      );
+
+      const body: Uint8Array = Transport.buildBody(hostileEnvelope, payload);
+      const newlineIndex: number = body.indexOf(0x0a);
+
+      expect(Array.from(body.slice(newlineIndex + 1))).toEqual(
+        Array.from(payload),
+      );
+    });
+
+    it("puts a space before EVERY frame separator of a multi-frame terminal flush", async (): Promise<void> => {
+      jest.useFakeTimers();
+      delete globalRecord["CompressionStream"];
+
+      globalRecord["fetch"] = jest
+        .fn()
+        .mockResolvedValue(respond(429, "", { "retry-after": "60" }));
+
+      const transport: Transport = makeTransport();
+
+      /* Two chunks land in the retry queue... */
+      await transport.send({ ...hostileEnvelope, chunkIndex: 0 }, "[{}]");
+      await transport.send({ ...hostileEnvelope, chunkIndex: 1 }, "[{}]");
+
+      const terminalFetch: jest.Mock = jest
+        .fn()
+        .mockResolvedValue(respond(202));
+      globalRecord["fetch"] = terminalFetch;
+
+      /* ...and ride out with the sealing frame. */
+      expect(
+        transport.sendTerminal([
+          {
+            envelope: { ...hostileEnvelope, chunkIndex: 2, isFinal: true },
+            payload: '[{"text":"click to get started"}]',
+          },
+        ]),
+      ).toBe(true);
+
+      const body: Uint8Array = (
+        terminalFetch.mock.calls[0]?.[1] as Record<string, unknown>
+      )["body"] as Uint8Array;
+
+      const lines: Array<string> = envelopeLinesOf(body);
+
+      expect(lines.length).toBeGreaterThan(1);
+
+      for (const line of lines) {
+        expect(line.endsWith(" \n")).toBe(true);
+        expect(line).not.toMatch(/[%&]|http\//i);
+      }
+
+      /* And every 0x0A in the body is one of those separators. */
+      let separators: number = 0;
+
+      for (let index: number = 0; index < body.length; index++) {
+        if (body[index] === 0x0a) {
+          separators++;
+          expect(body[index - 1]).toBe(0x20);
+        }
+      }
+
+      expect(separators).toBe(lines.length);
+    });
+
+    it("a gzip chunk carries the same envelope line, and a payload that inflates to what was queued", async (): Promise<void> => {
+      const originalCompression: unknown = globalRecord["CompressionStream"];
+      const originalResponse: unknown = globalRecord["Response"];
+
+      /* The platform pieces jsdom lacks, as in the compress tests above. */
+      globalRecord["CompressionStream"] = nodeCompressionStream;
+      globalRecord["Response"] = class StreamResponse {
+        private readonly stream: ReadableStream<Uint8Array>;
+
+        public constructor(stream: ReadableStream<Uint8Array>) {
+          this.stream = stream;
+        }
+
+        public async arrayBuffer(): Promise<ArrayBuffer> {
+          const reader: ReadableStreamDefaultReader<Uint8Array> =
+            this.stream.getReader();
+          const parts: Array<Uint8Array> = [];
+
+          for (;;) {
+            const next: ReadableStreamReadResult<Uint8Array> =
+              await reader.read();
+
+            if (next.done) {
+              break;
+            }
+
+            parts.push(next.value);
+          }
+
+          const joined: Uint8Array = new Uint8Array(
+            parts.reduce((total: number, part: Uint8Array): number => {
+              return total + part.length;
+            }, 0),
+          );
+          let offset: number = 0;
+
+          for (const part of parts) {
+            joined.set(part, offset);
+            offset += part.length;
+          }
+
+          return joined.buffer as ArrayBuffer;
+        }
+      };
+
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+      globalRecord["fetch"] = fetchMock;
+
+      const payload: string = '[{"type":3,"data":{"text":"budget review"}}]';
+
+      try {
+        await makeTransport().send(hostileEnvelope, payload);
+      } finally {
+        globalRecord["CompressionStream"] = originalCompression;
+        globalRecord["Response"] = originalResponse;
+      }
+
+      const body: Uint8Array = (
+        fetchMock.mock.calls[0]?.[1] as Record<string, unknown>
+      )["body"] as Uint8Array;
+
+      const [line] = envelopeLinesOf(body);
+      const sent: SessionReplayChunkEnvelope = JSON.parse(
+        line as string,
+      ) as SessionReplayChunkEnvelope;
+
+      expect(sent.payloadEncoding).toBe("gzip");
+      expect((line as string).endsWith(" \n")).toBe(true);
+      expect(line).not.toMatch(/[%&]|http\//i);
+      expect(sent.url).toBe(hostileEnvelope.url);
+      expect(sent.meta).toEqual(hostileEnvelope.meta);
+
+      const start: number = body.indexOf(0x0a) + 1;
+
+      expect(
+        nodeZlib
+          .gunzipSync(body.slice(start, start + sent.payloadBytes))
+          .toString(),
+      ).toBe(payload);
+    });
+
+    it("measures the keepalive quota on the escaped envelope, not the plain JSON", (): void => {
+      /*
+       * An envelope whose plain JSON leaves room under the quota but whose
+       * escaped line does not must be treated as the bigger of the two -
+       * it is what the browser is asked to send.
+       */
+      const fetchMock: jest.Mock = jest.fn().mockResolvedValue(respond(202));
+      globalRecord["fetch"] = fetchMock;
+
+      const escapeHeavy: SessionReplayChunkEnvelope = {
+        ...envelope,
+        isFinal: false,
+        url: `https://shop.example.com/${"%".repeat(4000)}`,
+      };
+
+      const plainFrameBytes: number =
+        new TextEncoder().encode(`${JSON.stringify(escapeHeavy)}\n`).length + 2;
+      const payload: string = `[${"x".repeat(
+        SESSION_REPLAY_KEEPALIVE_MAX_BYTES - plainFrameBytes - 64,
+      )}]`;
+
+      const transport: Transport = makeTransport();
+
+      expect(
+        transport.sendTerminal([{ envelope: escapeHeavy, payload: payload }]),
+      ).toBe(false);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(transport.getDroppedChunkCount()).toBe(1);
     });
   });
 });

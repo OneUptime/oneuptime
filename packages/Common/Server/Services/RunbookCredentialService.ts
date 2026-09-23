@@ -1,6 +1,8 @@
 import DatabaseService from "./DatabaseService";
+import RunnerService from "./RunnerService";
 import CreateBy from "../Types/Database/CreateBy";
-import { OnCreate } from "../Types/Database/Hooks";
+import UpdateBy from "../Types/Database/UpdateBy";
+import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import BadDataException from "../../Types/Exception/BadDataException";
 import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
 import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
@@ -69,7 +71,30 @@ export class Service extends DatabaseService<RunbookCredential> {
       }
     }
 
+    await RunnerService.assertNoKubernetesAgentRunners({
+      runners: createBy.data.runners,
+      assignedWhat: "credential",
+    });
+
     return { createBy, carryForward: [] };
+  }
+
+  /*
+   * A kubernetes-agent Runner is never given a credential (see
+   * RunnerService.assertNoKubernetesAgentRunners). Checked on every write of
+   * the Runner list, so assigning an existing credential to one is refused
+   * the same way as creating it assigned.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<RunbookCredential>,
+  ): Promise<OnUpdate<RunbookCredential>> {
+    await RunnerService.assertNoKubernetesAgentRunners({
+      runners: updateBy.data.runners,
+      assignedWhat: "credential",
+    });
+
+    return { updateBy, carryForward: null };
   }
 }
 

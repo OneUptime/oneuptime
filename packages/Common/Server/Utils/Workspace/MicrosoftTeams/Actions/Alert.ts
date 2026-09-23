@@ -20,6 +20,10 @@ import OnCallDutyPolicy from "../../../../../Models/DatabaseModels/OnCallDutyPol
 import AlertState from "../../../../../Models/DatabaseModels/AlertState";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import MicrosoftTeamsActionAuthorization from "./Authorization";
+import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import AlertStateTimeline from "../../../../../Models/DatabaseModels/AlertStateTimeline";
+import AlertInternalNote from "../../../../../Models/DatabaseModels/AlertInternalNote";
+import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 
 export default class MicrosoftTeamsAlertActions {
   @CaptureSpan()
@@ -280,6 +284,13 @@ export default class MicrosoftTeamsAlertActions {
 
       const alertId: ObjectID = new ObjectID(actionValue);
 
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: AlertStateTimeline,
+        action: "acknowledge this alert",
+        resources: [{ service: AlertService, id: alertId }],
+      });
+
       await MicrosoftTeamsActionAuthorization.assertCanUpdateAlert({
         alertId: alertId,
         projectId: projectId,
@@ -298,6 +309,13 @@ export default class MicrosoftTeamsAlertActions {
       }
 
       const alertId: ObjectID = new ObjectID(actionValue);
+
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: AlertStateTimeline,
+        action: "resolve this alert",
+        resources: [{ service: AlertService, id: alertId }],
+      });
 
       await MicrosoftTeamsActionAuthorization.assertCanUpdateAlert({
         alertId: alertId,
@@ -383,6 +401,13 @@ export default class MicrosoftTeamsAlertActions {
         // Submit the note
         const alertId: ObjectID = new ObjectID(actionValue);
 
+        await WorkspaceActionAuthorization.assertCanCreate({
+          props: databaseProps,
+          modelType: AlertInternalNote,
+          action: "add a private note to this alert",
+          resources: [{ service: AlertService, id: alertId }],
+        });
+
         await AlertInternalNoteService.addNote({
           alertId: alertId,
           note: note.toString(),
@@ -450,14 +475,22 @@ export default class MicrosoftTeamsAlertActions {
       if (onCallPolicyId) {
         // Execute the policy
         const alertId: ObjectID = new ObjectID(actionValue);
+        const policyId: ObjectID = new ObjectID(onCallPolicyId.toString());
 
-        await OnCallDutyPolicyService.executePolicy(
-          new ObjectID(onCallPolicyId.toString()),
-          {
-            triggeredByAlertId: alertId,
-            userNotificationEventType: UserNotificationEventType.AlertCreated,
-          },
-        );
+        await WorkspaceActionAuthorization.assertCanCreate({
+          props: databaseProps,
+          modelType: OnCallDutyPolicyExecutionLog,
+          action: "execute an on-call policy for this alert",
+          resources: [
+            { service: AlertService, id: alertId },
+            { service: OnCallDutyPolicyService, id: policyId },
+          ],
+        });
+
+        await OnCallDutyPolicyService.executePolicy(policyId, {
+          triggeredByAlertId: alertId,
+          userNotificationEventType: UserNotificationEventType.AlertCreated,
+        });
 
         await turnContext.sendActivity(
           "✅ On-call policy executed successfully.",
@@ -514,6 +547,13 @@ export default class MicrosoftTeamsAlertActions {
       if (alertStateId) {
         // Update the state
         const alertId: ObjectID = new ObjectID(actionValue);
+
+        await WorkspaceActionAuthorization.assertCanCreate({
+          props: databaseProps,
+          modelType: AlertStateTimeline,
+          action: "change the state of this alert",
+          resources: [{ service: AlertService, id: alertId }],
+        });
 
         await AlertService.updateOneById({
           id: alertId,

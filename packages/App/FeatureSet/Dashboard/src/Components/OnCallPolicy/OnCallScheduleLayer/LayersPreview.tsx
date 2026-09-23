@@ -47,6 +47,7 @@ import {
 import React, {
   FunctionComponent,
   ReactElement,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -60,6 +61,18 @@ import React, {
  * coverage gap) would otherwise keep showing the person who WAS on call.
  */
 const NOW_REFRESH_INTERVAL_MS: number = 30 * 1000;
+
+/*
+ * How far past each edge of the visible range the grid's shifts are computed.
+ * Shifts computed only for the visible range were cut at its edges, so the
+ * week's first block "started" at 12:00 AM and its last "ended" at 11:59 PM,
+ * showing hand-offs that do not happen. With a day of margin, a shift that
+ * crosses an edge is labelled as continuing. Only the visible part is drawn.
+ */
+const CALENDAR_EDGE_MARGIN_DAYS: number = 1;
+
+// Uncovered stretches shorter than this would be invisible hairlines on the grid.
+const CALENDAR_MINIMUM_GAP_SECONDS: number = 60;
 
 export interface ComponentProps {
   layers: Array<OnCallDutyPolicyScheduleLayer>;
@@ -103,18 +116,36 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   /*
-   * Seed the visible range to the current week so the initial render generates
+   * The range the grid shows, in the grid's own terms: Dates whose
+   * browser-local wall clock is the view zone's wall clock, as
+   * react-big-calendar reports them (see displayEvents below).
+   *
+   * It is kept in these terms, not as instants, so the instants below follow
+   * "View as". It used to be seeded from the BROWSER's week and converted only
+   * on navigation. When the view zone was not the browser's, the computed range
+   * then drifted away from the week actually drawn, and shifts and uncovered
+   * hours at one edge of the grid went missing.
+   *
+   * Seeded to the view zone's current week so the initial render generates
    * events for the whole week the calendar actually shows. The calendar below
    * uses react-big-calendar's default "week" view, but react-big-calendar does
    * not fire onRangeChange on initial mount (only on navigation / view switch).
    * Initializing to a single day made the calendar show just one occurrence
    * until a view was toggled. https://github.com/OneUptime/oneuptime/issues/2466
    */
-  const [startTime, setStartTime] = useState<Date>(
-    OneUptimeDate.getStartOfTheWeek(OneUptimeDate.getCurrentDate()),
-  );
-  const [endTime, setEndTime] = useState<Date>(
-    OneUptimeDate.getEndOfTheWeek(OneUptimeDate.getCurrentDate()),
+  const [displayRange, setDisplayRange] = useState<StartAndEndTime>(
+    (): StartAndEndTime => {
+      const displayNow: Date =
+        OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
+          OneUptimeDate.getCurrentDate(),
+          props.timezone || OneUptimeDate.getCurrentTimezone().toString(),
+        );
+
+      return {
+        startTime: OneUptimeDate.getStartOfTheWeek(displayNow),
+        endTime: OneUptimeDate.getEndOfTheWeek(displayNow),
+      };
+    },
   );
 
   const [calendarEvents, setCalendarEvents] = useState<Array<CalendarEvent>>(
@@ -177,6 +208,33 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     );
   }, [props.timezone]);
 
+  /*
+   * The instants the grid shows: the inverse of the display shift, so event
+   * computation and the override fetch stay in true UTC.
+   */
+  const startTime: Date = useMemo(() => {
+    return OneUptimeDate.getInstantFromBrowserLocalWallClockInTimezone(
+      displayRange.startTime,
+      viewAsTimezone,
+    );
+  }, [displayRange, viewAsTimezone]);
+
+  const endTime: Date = useMemo(() => {
+    return OneUptimeDate.getInstantFromBrowserLocalWallClockInTimezone(
+      displayRange.endTime,
+      viewAsTimezone,
+    );
+  }, [displayRange, viewAsTimezone]);
+
+  // The range the grid's shifts and overrides are computed over. See CALENDAR_EDGE_MARGIN_DAYS.
+  const computeStartTime: Date = useMemo(() => {
+    return OneUptimeDate.addRemoveDays(startTime, -CALENDAR_EDGE_MARGIN_DAYS);
+  }, [startTime]);
+
+  const computeEndTime: Date = useMemo(() => {
+    return OneUptimeDate.addRemoveDays(endTime, CALENDAR_EDGE_MARGIN_DAYS);
+  }, [endTime]);
+
   const scheduleUsersById: Dictionary<UserInfo> = useMemo(() => {
     const map: Dictionary<UserInfo> = {};
     for (const key in props.allLayerUsers) {
@@ -220,12 +278,14 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     const coverageEnd: Date = getCoverageWindowEnd(windowNow);
 
     return {
-      start: OneUptimeDate.isBefore(startTime, windowNow)
-        ? startTime
+      start: OneUptimeDate.isBefore(computeStartTime, windowNow)
+        ? computeStartTime
         : windowNow,
-      end: OneUptimeDate.isAfter(endTime, coverageEnd) ? endTime : coverageEnd,
+      end: OneUptimeDate.isAfter(computeEndTime, coverageEnd)
+        ? computeEndTime
+        : coverageEnd,
     };
-  }, [startTime, endTime]);
+  }, [computeStartTime, computeEndTime]);
 
   const overrideResolution: ScheduleOverrideResolution =
     useScheduleUserOverrides({
@@ -399,8 +459,8 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     const layerProps: Array<LayerProps> = buildLayerProps();
 
     let events: Array<CalendarEvent> = layerUtil.getMultiLayerEvents({
-      calendarEndDate: endTime,
-      calendarStartDate: startTime,
+      calendarEndDate: computeEndTime,
+      calendarStartDate: computeStartTime,
       layers: layerProps,
     });
 
@@ -421,17 +481,61 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
      * Computed over the calendar's own range rather than reusing the summary's
      * 42-day window, so navigating to a past or far-future week still shades
      * that week correctly.
+     *
+     * The shifts run past the visible range (see CALENDAR_EDGE_MARGIN_DAYS),
+     * and getCoverageGaps only bounds the leading gap by its window, so each
+     * gap is clipped back to the visible range here. Otherwise a hole in the
+     * margin would add an "Uncovered" legend entry for a band nobody can see.
      */
+    const calendarShifts: Array<OnCallShift> =
+      ScheduleShiftUtil.groupEventsIntoShifts(events, {
+        groupKey: ScheduleShiftUtil.groupKeyByUserAndOverride,
+      });
+
+    const gaps: Array<CoverageGap> = ScheduleShiftUtil.getCoverageGaps(
+      calendarShifts,
+      startTime,
+      endTime,
+      // Sub-minute slivers would render as invisible hairlines on the grid.
+      { minimumGapSeconds: CALENDAR_MINIMUM_GAP_SECONDS },
+    );
+
+    /*
+     * getCoverageGaps never reports a trailing gap: its other callers only
+     * know shifts up to their window's end, so a hole there could just be the
+     * end of the data. Here shifts are known through computeEndTime, so a
+     * hole after the last one is real. Without it, when the only shift was in
+     * the margin, a whole uncovered day showed no hatching at all. For
+     * example, a Saturday in Day view after a Friday-only shift.
+     */
+    if (calendarShifts.length > 0) {
+      const coveredUntil: Date = calendarShifts.reduce(
+        (latest: Date, shift: OnCallShift) => {
+          return OneUptimeDate.getGreaterDate(latest, shift.end);
+        },
+        calendarShifts[0]!.end,
+      );
+
+      if (OneUptimeDate.isBefore(coveredUntil, computeEndTime)) {
+        gaps.push({ start: coveredUntil, end: computeEndTime });
+      }
+    }
+
     setCalendarGaps(
-      ScheduleShiftUtil.getCoverageGaps(
-        ScheduleShiftUtil.groupEventsIntoShifts(events, {
-          groupKey: ScheduleShiftUtil.groupKeyByUserAndOverride,
+      gaps
+        .map((gap: CoverageGap) => {
+          return {
+            start: OneUptimeDate.getGreaterDate(gap.start, startTime),
+            end: OneUptimeDate.getLesserDate(gap.end, endTime),
+          };
+        })
+        .filter((gap: CoverageGap) => {
+          return (
+            OneUptimeDate.isAfter(gap.end, gap.start) &&
+            OneUptimeDate.getDifferenceInSeconds(gap.end, gap.start) >
+              CALENDAR_MINIMUM_GAP_SECONDS
+          );
         }),
-        startTime,
-        endTime,
-        // Sub-minute slivers would render as invisible hairlines on the grid.
-        { minimumGapSeconds: 60 },
-      ),
     );
 
     events.forEach((event: CalendarEvent) => {
@@ -497,6 +601,8 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
     props.timezone,
     startTime,
     endTime,
+    computeStartTime,
+    computeEndTime,
     overrideRecords,
     allUsersById,
     policyNameById,
@@ -507,19 +613,26 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
    * Shift each computed instant into the VIEW timezone for the grid. The
    * calendar (react-big-calendar, browser-local localizer) has no timezone
    * concept, so we hand it Dates whose browser-local wall-clock equals the
-   * instant's wall-clock in viewAsTimezone — the same trick the datetime input
-   * uses (getLocalDateFromWallClockInTimezone). Computation stays in real UTC
+   * instant's wall-clock in viewAsTimezone. Computation stays in real UTC
    * anchored to props.timezone; only the display Dates move.
+   *
+   * These use the BROWSER-zone helpers, not the ones the datetime inputs use
+   * (getLocalDateFromWallClockInTimezone). Those build the wall clock in the
+   * user's User Settings zone, which is right for the inputs but not for the
+   * grid, which draws in the browser's zone. With a settings zone of New York
+   * on a browser in India, every block, band and the current-time line was
+   * drawn nine and a half hours late against the hour gutter: a 09:00 shift
+   * sat at 6:30 PM.
    */
   const displayEvents: Array<CalendarEvent> = useMemo(() => {
     return calendarEvents.map((event: CalendarEvent) => {
       return {
         ...event,
-        start: OneUptimeDate.getLocalDateFromWallClockInTimezone(
+        start: OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
           event.start,
           viewAsTimezone,
         ),
-        end: OneUptimeDate.getLocalDateFromWallClockInTimezone(
+        end: OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
           event.end,
           viewAsTimezone,
         ),
@@ -538,11 +651,11 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         id: -1 * (index + 1),
         title: "",
         allDay: false,
-        start: OneUptimeDate.getLocalDateFromWallClockInTimezone(
+        start: OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
           gap.start,
           viewAsTimezone,
         ),
-        end: OneUptimeDate.getLocalDateFromWallClockInTimezone(
+        end: OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
           gap.end,
           viewAsTimezone,
         ),
@@ -552,7 +665,22 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
 
   // "now" shifted into the view zone so the grid opens on that zone's today.
   const displayDefaultDate: Date = useMemo(() => {
-    return OneUptimeDate.getLocalDateFromWallClockInTimezone(
+    return OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
+      OneUptimeDate.getCurrentDate(),
+      viewAsTimezone,
+    );
+  }, [viewAsTimezone]);
+
+  /*
+   * The grid's clock, shifted into the view zone like the events on it. Left
+   * to the browser clock, the current-time line and the highlighted day were
+   * drawn at the browser's time on a grid showing viewAsTimezone. For someone
+   * in India viewing a Singapore schedule, the line sat two and a half hours
+   * early. It reads the clock on every call, because the calendar calls it
+   * again each time it moves the line.
+   */
+  const getDisplayNow: () => Date = useCallback((): Date => {
+    return OneUptimeDate.getBrowserLocalDateFromWallClockInTimezone(
       OneUptimeDate.getCurrentDate(),
       viewAsTimezone,
     );
@@ -830,25 +958,15 @@ const LayersPreview: FunctionComponent<ComponentProps> = (
         events={displayEvents}
         backgroundEvents={displayGapEvents}
         defaultDate={displayDefaultDate}
+        getNow={getDisplayNow}
         onRangeChange={(startEndTime: StartAndEndTime) => {
           /*
            * react-big-calendar reports the visible range in the grid's
-           * (view-zone) wall-clock rendered as browser-local Dates. Convert it
-           * back to real instants — the inverse of the display shift — so event
-           * computation and the override fetch stay in true UTC.
+           * (view-zone) wall-clock rendered as browser-local Dates. It is kept
+           * that way and converted to instants above, so the conversion always
+           * uses the current "View as" zone.
            */
-          setStartTime(
-            OneUptimeDate.getInstantFromLocalWallClockInTimezone(
-              startEndTime.startTime,
-              viewAsTimezone,
-            ),
-          );
-          setEndTime(
-            OneUptimeDate.getInstantFromLocalWallClockInTimezone(
-              startEndTime.endTime,
-              viewAsTimezone,
-            ),
-          );
+          setDisplayRange(startEndTime);
         }}
       />
     </div>

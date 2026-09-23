@@ -612,6 +612,20 @@ describe("TeamMemberService on-call cleanup when a user leaves the project", () 
   });
 
   describe("onDeleteSuccess wiring", () => {
+    /*
+     * onDeleteSuccess also removes the user's Slack / Teams account links
+     * when they leave; that step has its own tests in
+     * TeamMemberWorkspaceAccountCleanup.test.ts and is stubbed here.
+     */
+    beforeEach(() => {
+      jest
+        .spyOn(
+          TeamMemberService,
+          "removeWorkspaceAccountLinksIfUserLeftProject",
+        )
+        .mockResolvedValue(0);
+    });
+
     test("runs the cleanup once per (user, project) BEFORE the notification settings are removed", async () => {
       jest
         .spyOn(TeamMemberService, "refreshTokens")

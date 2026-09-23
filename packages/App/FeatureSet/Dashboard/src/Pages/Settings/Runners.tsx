@@ -1,10 +1,15 @@
 import RunnerInstallInstructions from "../../Components/Runner/InstallInstructions";
 import RunnerStatusElement from "../../Components/Runner/RunnerStatus";
 import PageComponentProps from "../PageComponentProps";
+import {
+  NO_RUNNER_FORM_RESTRICTIONS,
+  RunnerFormRestrictions,
+  getRunnerFormRestrictions,
+  getRunnerTableFormFields,
+} from "./RunnerFormFields";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
@@ -32,6 +37,14 @@ import React, {
 
 const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [showSetupAgent, setShowSetupAgent] = useState<Runner | null>(null);
+  /*
+   * What the edit form leaves out for the row being edited: on a Runner the
+   * Kubernetes agent chart installed, the name and the runbook / code-fix
+   * switches, which the server refuses (RunnerFormFields). Set when Edit is
+   * clicked, before the form opens; the create form is never restricted.
+   */
+  const [editingRestrictions, setEditingRestrictions] =
+    useState<RunnerFormRestrictions>(NO_RUNNER_FORM_RESTRICTIONS);
 
   const { translateString }: UseTranslateValueResult = useTranslateValue();
 
@@ -64,6 +77,8 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           key: true,
           canRunCodeFixTasks: true,
           canRunAiCommands: true,
+          // The posture: whether a row is a Runner the Kubernetes agent chart installed.
+          hostInfo: true,
           /*
            * The Status column renders from lastAlive, so it has to be
            * selected here and not only by the Last Seen column — a Runner
@@ -80,71 +95,11 @@ const RunnersPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
           { title: "Capabilities", id: "capabilities" },
           { title: "Labels", id: "labels" },
         ]}
-        formFields={[
-          {
-            field: { name: true },
-            title: "Name",
-            stepId: "runner",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "prod-eu-runner",
-            validation: { minLength: 2 },
-          },
-          {
-            field: { description: true },
-            title: "Description",
-            stepId: "runner",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "Runs inside the production EU cluster. Can reach internal services.",
-          },
-          {
-            field: { canRunRunbooks: true },
-            title: "Runs Runbooks",
-            stepId: "capabilities",
-            description:
-              "Let this Runner execute runbook Bash and JavaScript steps on the host it runs on. On by default — this is why most Runners are installed.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            defaultValue: true,
-          },
-          {
-            field: { canRunCodeFixTasks: true },
-            title: "Runs AI Code Fixes",
-            stepId: "capabilities",
-            description:
-              "Let this Runner work in the code repositories connected to this project and open pull requests for review. Off by default; it needs a connected repository. The Runner picks this up on its next heartbeat — no restart needed.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            defaultValue: false,
-          },
-          {
-            field: { canRunAiCommands: true },
-            title: "Runs AI Remediation Commands",
-            stepId: "capabilities",
-            description:
-              "Let AI auto-remediation execute policy-checked commands on this Runner. Off by default — commands either match the rule's allowlist or wait for one-click human approval, and destructive commands are always refused. Takes effect on the Runner's next heartbeat, no restart needed.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            defaultValue: false,
-          },
-          {
-            field: { labels: true },
-            title: "Labels",
-            stepId: "labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
+        onBeforeEdit={(item: Runner): Promise<Runner> => {
+          setEditingRestrictions(getRunnerFormRestrictions(item));
+          return Promise.resolve(item);
+        }}
+        formFields={getRunnerTableFormFields(editingRestrictions)}
         searchableFields={["name", "description"]}
         actionButtons={[
           {

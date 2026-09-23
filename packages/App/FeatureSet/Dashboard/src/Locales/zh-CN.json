@@ -4797,6 +4797,7 @@
   "Should status page subscribers be notified when this incident is created?": "创建此事件时是否应通知状态页订阅者？",
   "Should status page subscribers be notified when this note is posted?": "发布此备注时是否应通知状态页订阅者？",
   "Should status page subscribers be notified?": "是否应通知状态页订阅者？",
+  "Unticked by default because status page subscribers were not notified when this incident was declared.": "默认未勾选，因为声明此事件时未通知状态页订阅者。",
   "Should the new monitor be disabled when its duplicated?": "复制新监视器时是否应将其禁用？",
   "Show Announcement At": "显示公告时间",
   "Show Announcement History (in days)": "显示公告历史记录（天数）",
@@ -6456,5 +6457,8 @@
   "VMware vCenter Created": "VMware vCenter 已创建",
   "VMware vCenter Restored": "VMware vCenter 已恢复",
   "VMware vCenter Updated": "VMware vCenter 已更新",
-  "Matching event types: {{count}}": "匹配的事件类型：{{count}}"
+  "Matching event types: {{count}}": "匹配的事件类型：{{count}}",
+  "Times are shown in {{abbreviation}}.": "时间以 {{abbreviation}} 时区显示。",
+  "Planned window · times in {{abbreviation}}": "计划时间窗口 · 时间以 {{abbreviation}} 显示",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "此时间以您的时区为准 - {{abbreviation}} ({{timezone}})。"
 }
