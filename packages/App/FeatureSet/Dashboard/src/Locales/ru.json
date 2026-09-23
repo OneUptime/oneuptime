@@ -6457,5 +6457,7 @@
   "VMware vCenter Created": "VMware vCenter создан",
   "VMware vCenter Restored": "VMware vCenter восстановлен",
   "VMware vCenter Updated": "VMware vCenter обновлён",
-  "Matching event types: {{count}}": "Подходящие типы событий: {{count}}"
+  "Matching event types: {{count}}": "Подходящие типы событий: {{count}}",
+  "Times are shown in {{abbreviation}}.": "Время показано в часовом поясе {{abbreviation}}.",
+  "Planned window · times in {{abbreviation}}": "Плановое окно · время в {{abbreviation}}"
 }

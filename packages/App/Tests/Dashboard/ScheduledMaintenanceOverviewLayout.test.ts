@@ -254,17 +254,40 @@ describe("scheduled maintenance overview: stat bar", () => {
     );
     expect(count(page, "getCurrentTimezoneString()")).toBe(1);
     // Folded into the Duration cell, not a loose footnote under the bar.
-    expect(page).toContain(
-      'description={ "Planned window · times in " + OneUptimeDate.getCurrentTimezoneString() }',
-    );
+    expect(page).toContain("description={plannedWindowDescription}");
     expect(page).not.toContain('"Times in "');
     expect(page).not.toContain("Your local timezone");
     expect(
       indexOf(page, 'label="Duration"') <
-        indexOf(page, '"Planned window · times in "'),
+        indexOf(page, "description={plannedWindowDescription}"),
     ).toBe(true);
-    expect(indexOf(page, '"Planned window · times in "')).toBeLessThan(
-      indexOf(page, "</EventStatBar>"),
+    expect(
+      indexOf(page, "description={plannedWindowDescription}"),
+    ).toBeLessThan(indexOf(page, "</EventStatBar>"));
+  });
+
+  /*
+   * The zone used to be glued onto English text in code, which no locale
+   * key can match. It is one key with a placeholder, looked up and then
+   * filled in by the page (react-i18next's not-ready t() does not
+   * interpolate), and passed to EventStatTile as is since the tile does not
+   * translate its description.
+   */
+  test("looks the timezone description up as one key and fills the zone in itself", () => {
+    expect(page).toContain(
+      'export const PLANNED_WINDOW_DESCRIPTION_TEMPLATE: string = "Planned window · times in {{abbreviation}}";',
+    );
+    expect(page).not.toContain('"Planned window · times in " +');
+    expect(page).toContain(
+      "const timezoneValues: Dictionary<string> = { abbreviation: OneUptimeDate.getCurrentTimezoneString(), };",
+    );
+    expect(page).toContain(
+      "translateString(PLANNED_WINDOW_DESCRIPTION_TEMPLATE) || PLANNED_WINDOW_DESCRIPTION_TEMPLATE",
+    );
+    expect(
+      indexOf(page, "translateString(PLANNED_WINDOW_DESCRIPTION_TEMPLATE)"),
+    ).toBeLessThan(
+      indexOf(page, "return timezoneValues[name] ?? placeholder;"),
     );
   });
 
