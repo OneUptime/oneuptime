@@ -596,15 +596,32 @@ tests:
         equal:
           path: roleRef.name
           value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
-      # No ClusterRoleBinding may point at the remediation role now: the only
-      # two left are the read-only one and the node-operations one.
-      - documentSelector:
-          path: kind
-          value: ClusterRoleBinding
-          matchMany: true
-        notEqual:
-          path: roleRef.name
-          value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      # No ClusterRoleBinding may point at the remediation role now. With the
+      # document count pinned above and every index's kind pinned here, the
+      # only two ClusterRoleBindings are the read-only one (index 2) and the
+      # node-operations one (index 7). (Per-index, because helm-unittest
+      # v0.5.1, which CI pins, has no documentSelector.matchMany.)
+      - documentIndex: 0
+        isKind:
+          of: ServiceAccount
+      - documentIndex: 1
+        isKind:
+          of: ClusterRole
+      - documentIndex: 2
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 3
+        isKind:
+          of: ClusterRole
+      - documentIndex: 6
+        isKind:
+          of: ClusterRole
+      - documentIndex: 7
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 8
+        isKind:
+          of: Deployment
       - documentIndex: 2
         equal:
           path: roleRef.name
@@ -613,18 +630,22 @@ tests:
         equal:
           path: roleRef.name
           value: oneuptime-agent-kubernetes-agent-ai-runner-node-operations
-      # And the RoleBindings are exactly where the list says, nowhere else.
-      - documentSelector:
-          path: kind
-          value: RoleBinding
-          matchMany: true
+      # And the RoleBindings are exactly where the list says, nowhere else:
+      # the kinds above leave indexes 4 and 5 as the only RoleBindings, in
+      # prod and web — none in kube-system or in the release's namespace.
+      - documentIndex: 4
         notEqual:
           path: metadata.namespace
           value: kube-system
-      - documentSelector:
-          path: kind
-          value: RoleBinding
-          matchMany: true
+      - documentIndex: 5
+        notEqual:
+          path: metadata.namespace
+          value: kube-system
+      - documentIndex: 4
+        notEqual:
+          path: metadata.namespace
+          value: oneuptime
+      - documentIndex: 5
         notEqual:
           path: metadata.namespace
           value: oneuptime
@@ -871,13 +892,25 @@ tests:
       - documentIndex: 5
         isKind:
           of: Deployment
-      - documentSelector:
-          path: kind
-          value: ClusterRole
-          matchMany: true
-        notEqual:
+      # Neither role is the node-operations one (per index: helm-unittest
+      # v0.5.1, which CI pins, has no documentSelector.matchMany).
+      - documentIndex: 1
+        equal:
           path: metadata.name
-          value: oneuptime-agent-kubernetes-agent-ai-runner-node-operations
+          value: oneuptime-agent-kubernetes-agent-ai-runner
+      - documentIndex: 3
+        equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      - documentIndex: 0
+        isKind:
+          of: ServiceAccount
+      - documentIndex: 2
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 4
+        isKind:
+          of: ClusterRoleBinding
       # The Runner is told, not only RBAC: it refuses cordon, uncordon, drain,
       # taint and node label/annotate/patch before spawning kubectl, instead
       # of an unattended cordon failing Forbidden at the API server. Writes
