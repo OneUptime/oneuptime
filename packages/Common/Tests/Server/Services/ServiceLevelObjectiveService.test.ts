@@ -2250,6 +2250,16 @@ describe("ServiceLevelObjectiveService.findOwners", () => {
       .spyOn(ServiceLevelObjectiveOwnerTeamService, "findBy")
       .mockResolvedValue(data.ownerTeams);
 
+    /*
+     * Everyone here is still a project member; dropping owners who left is
+     * covered by FindOwnersProjectMembership.test.ts.
+     */
+    jest
+      .spyOn(TeamMemberService, "filterUsersToProjectMembers")
+      .mockImplementation(async (args: { users: Array<User> }) => {
+        return args.users;
+      });
+
     return jest
       .spyOn(TeamMemberService, "getUsersInTeams")
       .mockResolvedValue(data.teamUsers);
@@ -2259,6 +2269,7 @@ describe("ServiceLevelObjectiveService.findOwners", () => {
     const ownerUser: ServiceLevelObjectiveOwnerUser =
       new ServiceLevelObjectiveOwnerUser();
     ownerUser._id = ObjectID.generate().toString();
+    ownerUser.projectId = PROJECT_ID;
     ownerUser.user = user;
     return ownerUser;
   }
@@ -2267,6 +2278,7 @@ describe("ServiceLevelObjectiveService.findOwners", () => {
     const ownerTeam: ServiceLevelObjectiveOwnerTeam =
       new ServiceLevelObjectiveOwnerTeam();
     ownerTeam._id = ObjectID.generate().toString();
+    ownerTeam.projectId = PROJECT_ID;
     ownerTeam.teamId = teamId;
     return ownerTeam;
   }

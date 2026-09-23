@@ -1081,6 +1081,7 @@ export class Service extends DatabaseService<Model> {
           incidentEpisodeId: episodeId,
         },
         select: {
+          projectId: true,
           userId: true,
           user: {
             _id: true,
@@ -1102,6 +1103,7 @@ export class Service extends DatabaseService<Model> {
           incidentEpisodeId: episodeId,
         },
         select: {
+          projectId: true,
           teamId: true,
         },
         props: {
@@ -1135,7 +1137,18 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    return Array.from(usersMap.values());
+    const projectId: ObjectID | undefined =
+      userOwners[0]?.projectId || teamOwners[0]?.projectId;
+
+    if (!projectId) {
+      return [];
+    }
+
+    // Owners who left the project are not notified, nor listed as notified.
+    return await TeamMemberService.filterUsersToProjectMembers({
+      projectId: projectId,
+      users: Array.from(usersMap.values()),
+    });
   }
 
   @CaptureSpan()

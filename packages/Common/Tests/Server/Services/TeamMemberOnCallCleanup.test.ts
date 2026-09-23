@@ -612,6 +612,13 @@ describe("TeamMemberService on-call cleanup when a user leaves the project", () 
   });
 
   describe("onDeleteSuccess wiring", () => {
+    beforeEach(() => {
+      // Covered by TeamMemberResourceCleanup.test.ts.
+      jest
+        .spyOn(TeamMemberService, "cleanupResourceAssignmentsIfUserLeftProject")
+        .mockResolvedValue(null);
+    });
+
     test("runs the cleanup once per (user, project) BEFORE the notification settings are removed", async () => {
       jest
         .spyOn(TeamMemberService, "refreshTokens")

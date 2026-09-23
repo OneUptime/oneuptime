@@ -3,6 +3,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import DatabaseService from "../../Services/DatabaseService";
+import TeamMemberService from "../../Services/TeamMemberService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Query from "../../Types/Database/Query";
 import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
@@ -19,6 +20,11 @@ import PostgresErrorTranslator from "../Database/PostgresErrorTranslator";
  * cannot let one owner who is already there stop the rest from being added.
  * They filter their owner set through getOwnersNotYetAssigned first, and
  * insert through createOwner, which treats "already an owner" as done.
+ *
+ * Those owner sets are saved configuration - rules, templates, criteria -
+ * and can name a user who has since left the project. createOwner skips
+ * such a user, so a departed member is not made the owner of new work,
+ * notified about it, or listed as notified.
  */
 
 export interface OwnersToAssign {
@@ -117,15 +123,20 @@ export default class OwnerRuleAssignment {
 
   /*
    * Inserts one owner row. Resolves true when the row was written and false
-   * when the owner was already there - whether the owner service's own check
-   * found the existing row, or the unique index rejected a concurrent insert
-   * that got past it. Every other failure is thrown as before.
+   * when it was not: the owner was already there - whether the owner
+   * service's own check found the existing row, or the unique index rejected
+   * a concurrent insert that got past it - or the owner is a user who is not
+   * a member of the project. Every other failure is thrown as before.
    */
   public static async createOwner<TOwner extends BaseModel>(data: {
     ownerService: DatabaseService<TOwner>;
     owner: TOwner;
     props: DatabaseCommonInteractionProps;
   }): Promise<boolean> {
+    if (!(await OwnerRuleAssignment.isOwnerInProject(data))) {
+      return false;
+    }
+
     try {
       await data.ownerService.create({
         data: data.owner,
@@ -230,6 +241,32 @@ export default class OwnerRuleAssignment {
     }
 
     return added;
+  }
+
+  /*
+   * Team owners are always in the project. A user owner must be a member:
+   * see TeamMemberService.isUserMemberOfProject.
+   */
+  private static async isOwnerInProject<TOwner extends BaseModel>(data: {
+    owner: TOwner;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<boolean> {
+    const userId: string | undefined = data.owner
+      .getColumnValue("userId")
+      ?.toString();
+
+    const projectId: string | undefined =
+      data.owner.getColumnValue("projectId")?.toString() ||
+      data.props.tenantId?.toString();
+
+    if (!userId || !projectId) {
+      return true;
+    }
+
+    return await TeamMemberService.isUserMemberOfProject({
+      projectId: new ObjectID(projectId),
+      userId: new ObjectID(userId),
+    });
   }
 
   private static buildOwner<TOwner extends BaseModel>(data: {

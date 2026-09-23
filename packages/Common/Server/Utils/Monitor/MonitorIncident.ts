@@ -20,6 +20,7 @@ import IncidentSeverityService from "../../Services/IncidentSeverityService";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
+import TeamMemberService from "../../Services/TeamMemberService";
 import NetworkDeviceOwnerUserService, {
   NetworkDeviceOwners,
 } from "../../Services/NetworkDeviceOwnerUserService";
@@ -873,6 +874,26 @@ export default class MonitorIncident {
               try {
                 const assignment: IncidentMemberRoleAssignment =
                   roleAssignment as IncidentMemberRoleAssignment;
+
+                /*
+                 * The criteria is saved configuration and can name a user
+                 * who has since left the project; they get no role on new
+                 * incidents.
+                 */
+                if (
+                  assignment.roleId &&
+                  assignment.userId &&
+                  !(await TeamMemberService.isUserMemberOfProject({
+                    projectId: input.monitor.projectId!,
+                    userId: new ObjectID(assignment.userId.toString()),
+                  }))
+                ) {
+                  logger.debug(
+                    `${input.monitor.id?.toString()} - Skipped incident member role ${assignment.roleId.toString()} for user ${assignment.userId.toString()}: not a member of the project`,
+                    incidentLogAttributes,
+                  );
+                  continue;
+                }
 
                 if (assignment.roleId && assignment.userId) {
                   const incidentMember: IncidentMember = new IncidentMember();

@@ -2007,6 +2007,7 @@ ${createdItem.description?.trim() || "No description provided."}
         },
         select: {
           _id: true,
+          projectId: true,
           user: {
             _id: true,
             email: true,
@@ -2028,6 +2029,7 @@ ${createdItem.description?.trim() || "No description provided."}
         },
         select: {
           _id: true,
+          projectId: true,
           teamId: true,
         },
         skip: 0,
@@ -2065,7 +2067,18 @@ ${createdItem.description?.trim() || "No description provided."}
       }
     }
 
-    return users;
+    const projectId: ObjectID | undefined =
+      ownerUsers[0]?.projectId || ownerTeams[0]?.projectId;
+
+    if (!projectId) {
+      return [];
+    }
+
+    // Owners who left the project are not notified, nor listed as notified.
+    return await TeamMemberService.filterUsersToProjectMembers({
+      projectId: projectId,
+      users: users,
+    });
   }
 
   @CaptureSpan()

@@ -24,6 +24,7 @@ import IncidentEpisodeMemberService from "./IncidentEpisodeMemberService";
 import IncidentEpisodeOwnerUserService from "./IncidentEpisodeOwnerUserService";
 import IncidentEpisodeOwnerTeamService from "./IncidentEpisodeOwnerTeamService";
 import IncidentEpisodeRoleMemberService from "./IncidentEpisodeRoleMemberService";
+import TeamMemberService from "./TeamMemberService";
 import MonitorService from "./MonitorService";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import IncidentEpisodeFeedService from "./IncidentEpisodeFeedService";
@@ -1008,6 +1009,16 @@ class IncidentGroupingEngineServiceClass {
             continue;
           }
           try {
+            // The rule can name a user who has since left the project.
+            if (
+              !(await TeamMemberService.isUserMemberOfProject({
+                projectId: incident.projectId!,
+                userId: new ObjectID(assignment.userId),
+              }))
+            ) {
+              continue;
+            }
+
             const roleMember: IncidentEpisodeRoleMember =
               new IncidentEpisodeRoleMember();
             roleMember.projectId = incident.projectId!;
