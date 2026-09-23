@@ -18,10 +18,14 @@ import { describe, expect, it } from "@jest/globals";
  *     command it spells.
  *  2. Valid: a non-blank string of at most 500 characters, one line,
  *     balanced quotes, at most 64 words, a leading "kubectl" optional in any
- *     case; the verb (and the rollout/set/create subcommand) written out in
- *     lowercase with no `*`; a verb OneUptime AI may run; flags the policy
- *     reads. The refusal says why in words for the person typing it, never
- *     "matched against the whole command".
+ *     case; at least two words after that "kubectl" (a one-word entry could
+ *     only match a one-word command, and none is ever pre-approved: a read
+ *     runs anyway, and kubectl refuses every write verb with nothing to act
+ *     on); the verb (and the rollout/set/create subcommand) written out in
+ *     lowercase with no `*` and no quoted spaces (a pasted JSON list reads
+ *     as one word); a verb OneUptime AI may run; flags the policy reads. The
+ *     refusal says why in words for the person typing it, never "matched
+ *     against the whole command".
  *  3. Broad (isBroadAllowlistPattern): a `*` for the namespace, an object
  *     the command acts on, a selector or a --from source. Not broad: a `*`
  *     in a value — the documented `kubectl set image deployment/web * -n
@@ -159,8 +163,12 @@ const INVALID_ENTRIES: Array<[unknown, string, string | null]> = [
     "kubectl delete deployment/web -n web",
   ],
   ["* * -n web", "where the kubectl verb goes", "kubectl drain node-1 -n web"],
-  ["*", "where the kubectl verb goes", "kubectl cordon"],
-  ["kubectl *", "where the kubectl verb goes", "kubectl drain"],
+  /*
+   * A lone `*` is one word: it was refused as a wildcard verb, and is now
+   * refused first as a one-word entry, which it also is (round three).
+   */
+  ["*", "only one word", "kubectl cordon"],
+  ["kubectl *", "only one word", "kubectl drain"],
   [
     "kubectl * * * -n *",
     "where the kubectl verb goes",
@@ -186,8 +194,49 @@ const INVALID_ENTRIES: Array<[unknown, string, string | null]> = [
     "where the kubectl create subcommand goes",
     "kubectl create job x --from=cronjob/y -n web",
   ],
-  ["kubectl rollout", "names no kubectl rollout subcommand", "kubectl rollout"],
-  ["kubectl set", "names no kubectl set subcommand", "kubectl set"],
+  /*
+   * A verb alone is one word: it could only match the bare verb, which
+   * kubectl refuses with nothing to act on (round three; "kubectl rollout"
+   * and "kubectl set" were refused for their missing subcommand before).
+   */
+  ["kubectl rollout", "only one word", "kubectl rollout"],
+  ["kubectl set", "only one word", "kubectl set"],
+  ["kubectl delete", "only one word", "kubectl delete"],
+  ["delete", "only one word", "kubectl delete"],
+  ["KUBECTL scale", "only one word", "kubectl scale"],
+  ["kubectl cordon", "only one word", "kubectl cordon"],
+  ["kubectl label", "only one word", "kubectl label"],
+  ["kubectl patch", "only one word", "kubectl patch"],
+  ["kubectl get", "only one word", "kubectl get"],
+  ["kubectl drain", "only one word", "kubectl drain"],
+  ["kubectl frobnicate", "only one word", "kubectl frobnicate"],
+  ["kubectl -n", "only one word", null],
+  // The subcommand rule still speaks where the entry has more than one word.
+  [
+    "kubectl rollout -n web",
+    "names no kubectl rollout subcommand",
+    "kubectl rollout -n web",
+  ],
+  /*
+   * Quotes around several words make them one word: a pasted JSON list, or a
+   * whole command in quotes.
+   */
+  [
+    '["kubectl set image deployment/web * -n web"]',
+    "has quotes around several words",
+    null,
+  ],
+  [
+    '"kubectl rollout restart deployment/web -n web"',
+    "has quotes around several words",
+    null,
+  ],
+  [
+    '["kubectl rollout restart deployment/web -n web", "kubectl delete pod web -n web"]',
+    "has quotes around several words",
+    null,
+  ],
+  ["'kubectl delete pod web' -n web", "has quotes around several words", null],
   // Entries that could only ever match commands the policy denies.
   [
     "kubectl Delete pod web -n web",
@@ -348,6 +397,12 @@ const NOT_BROAD_ENTRIES: Array<string> = [
   "kubectl * * * * -n *",
   "kubectl",
   "",
+  // One word, or several quoted into one (round three).
+  "kubectl delete",
+  "delete",
+  "kubectl cordon",
+  '["kubectl delete deployment * -n *"]',
+  '["kubectl delete deployment * -n *", "kubectl delete pod * -n *"]',
 ];
 
 // ---- An independent reading of what a command acts on -------------------------
@@ -823,6 +878,60 @@ describe("KubectlPolicy allowlist entries: one definition of valid and broad", (
       expect(
         KubectlPolicy.describeAllowlistPatternProblem("  * set image x  "),
       ).toContain('"* set image x"');
+    });
+
+    /*
+     * One word after the optional "kubectl" can only match a one-word
+     * command. None is ever pre-approved: a read runs anyway, and kubectl
+     * refuses every write verb bare (checked with the pinned kubectl
+     * v1.36.4 against no cluster: delete, scale, cordon, uncordon, label,
+     * annotate, patch, set, taint, drain, create, expose, autoscale and
+     * rollout each exit 1 with a usage error before any request). So the
+     * entry is refused, and says so.
+     */
+    it("refuses a one-word entry and says a one-word command is never pre-approved", () => {
+      for (const entry of ["kubectl delete", "delete", "Kubectl cordon"]) {
+        const problem: string | null =
+          KubectlPolicy.describeAllowlistPatternProblem(entry);
+        expect(problem).toContain("only one word");
+        expect(problem).toContain("a one-word command is never pre-approved");
+        expect(problem).toContain(
+          'such as "kubectl set image deployment/web * -n web"',
+        );
+        expect(KubectlPolicy.isBroadAllowlistPattern(entry)).toBe(false);
+      }
+    });
+
+    it("says a pasted JSON list is read as one word and how to write it", () => {
+      const problem: string | null =
+        KubectlPolicy.describeAllowlistPatternProblem(
+          '["kubectl set image deployment/web * -n web"]',
+        );
+      expect(problem).toContain("read as one word");
+      expect(problem).toContain("pasted JSON list");
+      expect(problem).toContain("on its own line without quotes or brackets");
+      // What the person meant is valid once written out.
+      expect(
+        KubectlPolicy.describeAllowlistPatternProblem(
+          "kubectl set image deployment/web * -n web",
+        ),
+      ).toBeNull();
+    });
+
+    it("negative control: two words are enough, with or without kubectl", () => {
+      for (const [entry, command] of [
+        ["kubectl cordon node-1", "kubectl cordon node-1"],
+        ["cordon *", "kubectl cordon node-1"],
+        ["kubectl delete pods", "kubectl delete pods"],
+        ["scale *", "kubectl scale web"],
+        ["kubectl -n web cordon", "kubectl -n web cordon"],
+      ] as Array<[string, string]>) {
+        expect({
+          entry,
+          problem: KubectlPolicy.describeAllowlistPatternProblem(entry),
+        }).toEqual({ entry, problem: null });
+        expect(matches(command, entry)).toBe(true);
+      }
     });
   });
 

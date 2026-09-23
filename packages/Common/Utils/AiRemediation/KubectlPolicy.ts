@@ -50,7 +50,16 @@ import CommandPolicy from "./CommandPolicy";
  * PROTECTED_KUBERNETES_NAMESPACES (kube-system, kube-public,
  * kube-node-lease), or that targets one of those Namespace objects, is at
  * least RiskyWrite and carries `protectedNamespace`: evaluateForAutoExecution
- * never runs it without a human, whatever the mode or allowlist.
+ * never runs it without a human, whatever the mode or allowlist. A write's
+ * namespace is the one -n names (or the context's), except for the built-in
+ * cluster-scoped kinds — nodes, Namespace objects, PersistentVolumes, ... —
+ * which kubectl writes outside any namespace. Those count only in their own
+ * API group, the way kubectl resolves them (builtinKind()): a custom
+ * resource that borrows a built-in name, such as `nodes.example.com` or
+ * `namespaces.example.com`, has a scope this policy cannot see, so it is
+ * judged by the namespace -n names — `annotate nodes.example.com x note=y
+ * -n kube-system` is a kube-system write. And a write to Namespace objects
+ * must name each one (see Denied): the rule reads their names.
  *
  * `kubectl drain` and `kubectl taint` are RiskyWrite and carry
  * `requiresHuman` for the same reason. A drain evicts every pod on the node
@@ -72,8 +81,13 @@ import CommandPolicy from "./CommandPolicy";
  *     subject; set serviceaccount; auth reconcile; certificate approve/deny.
  *     Reading these kinds stays Read.
  *   - Wiring identity, privileges, host access, Secrets or a new program
- *     into a pod: patch bodies touching POD_SECURITY_PATCH_KEYS, Pod
- *     Security Admission labels, set env --from=secret/..., and creating a
+ *     into a pod: patch bodies touching POD_SECURITY_PATCH_KEYS — by name,
+ *     or by replacing or removing what holds them (a strategic-merge
+ *     `$patch`, `$retainKeys` or `$setElementOrder` on a pod spec or
+ *     above it, a merge patch that sets the containers list wholesale, a
+ *     JSON-patch replace or remove of /spec/template/spec or of a
+ *     container; see POD_SPEC_PATH_STEPS) — Pod Security Admission labels,
+ *     set env --from=secret/..., and creating a
  *     workload that runs an image named in the command — `create
  *     deployment` and `create cronjob` (kubectl requires --image for both)
  *     and `create job --image`. Only `create job NAME --from=cronjob/NAME`
@@ -89,6 +103,12 @@ import CommandPolicy from "./CommandPolicy";
  *     only ever checked — and only ever run — as JSON (see
  *     findPatchBodyProblem).
  *   - Deleting cluster-level kinds (NEVER_DELETE_KINDS) in any spelling.
+ *   - A write to Namespace objects that does not name each one — by a
+ *     selector (`label ns -l env=prod`, `annotate ns --field-selector ...`),
+ *     --all (`label ns --all`) or a bare kind. It can change kube-system's
+ *     Namespace object without naming it, where the protected-namespace
+ *     rule, which reads the names, cannot see it. Only the built-in
+ *     Namespace kind counts (builtinKind()).
  *   - Anything that names a resource CATEGORY (all, api-extensions, ...)
  *     in a write, because kubectl expands a category into many kinds before
  *     this policy could see them.
@@ -142,6 +162,11 @@ import CommandPolicy from "./CommandPolicy";
  *   - a non-blank string of at most 500 characters, on one line, with
  *     balanced quotes and at most 64 words (a bare "kubectl" names no
  *     command);
+ *   - of at least two words after the optional "kubectl": a one-word entry
+ *     ("kubectl delete", "*", or a full command in quotes, as in a pasted
+ *     JSON list) could only match a one-word command, and none is ever
+ *     pre-approved — a read runs anyway, and kubectl refuses a write verb
+ *     with nothing to act on;
  *   - that names its kubectl verb written out: lowercase, no `*` — and, for
  *     rollout, set and create (and auth, cluster-info and top when it names
  *     one), its subcommand the same way. A wildcard verb or subcommand
@@ -704,12 +729,15 @@ const RISKY_WRITE_VERBS: Set<string> = new Set<string>([
   "autoscale",
 ]);
 
-// Verbs that act on nodes, which live outside any namespace.
-const NODE_VERBS: Set<string> = new Set<string>([
+/*
+ * Verbs whose operands are node NAMES (or TYPE/NAME), and nodes live outside
+ * any namespace. taint acts on nodes too, but names its kind like any object
+ * verb ("taint nodes NAME ..."), so the kind rule reads it.
+ */
+const NODE_NAME_VERBS: Set<string> = new Set<string>([
   "cordon",
   "uncordon",
   "drain",
-  "taint",
 ]);
 
 /*
@@ -977,52 +1005,64 @@ const LABEL_SAFE_KINDS: Set<string> = new Set<string>([
 ]);
 
 /*
- * The API group each built-in kind named in a *_SAFE_KINDS set lives in.
+ * Built-in kinds that live outside any namespace, and the API group each
+ * lives in. A write that names only these is not "in" the namespace its -n
+ * flag names (kubectl ignores -n for them), so the protected-namespace rule
+ * looks at the object instead. Matched on builtinKind(), never on
+ * normalizeKind(): `nodes.example.com` or `namespaces.example.com` is some
+ * custom resource that happens to borrow the name. Its scope is unknown
+ * here, so it is judged by the namespace -n names like any namespaced
+ * object — the reading that can only add a human, never remove one.
+ */
+const CLUSTER_SCOPED_KIND_GROUPS: Record<string, string> = {
+  node: "",
+  namespace: "",
+  persistentvolume: "",
+  customresourcedefinition: "apiextensions.k8s.io",
+  clusterrole: "rbac.authorization.k8s.io",
+  clusterrolebinding: "rbac.authorization.k8s.io",
+  storageclass: "storage.k8s.io",
+  priorityclass: "scheduling.k8s.io",
+  apiservice: "apiregistration.k8s.io",
+  mutatingwebhookconfiguration: "admissionregistration.k8s.io",
+  validatingwebhookconfiguration: "admissionregistration.k8s.io",
+  validatingadmissionpolicy: "admissionregistration.k8s.io",
+  validatingadmissionpolicybinding: "admissionregistration.k8s.io",
+  mutatingadmissionpolicy: "admissionregistration.k8s.io",
+  mutatingadmissionpolicybinding: "admissionregistration.k8s.io",
+  certificatesigningrequest: "certificates.k8s.io",
+  ingressclass: "networking.k8s.io",
+  runtimeclass: "node.k8s.io",
+  csidriver: "storage.k8s.io",
+  csinode: "storage.k8s.io",
+  volumeattachment: "storage.k8s.io",
+  flowschema: "flowcontrol.apiserver.k8s.io",
+  prioritylevelconfiguration: "flowcontrol.apiserver.k8s.io",
+};
+
+const CLUSTER_SCOPED_KINDS: Set<string> = new Set<string>(
+  Object.keys(CLUSTER_SCOPED_KIND_GROUPS),
+);
+
+/*
+ * The API group of every built-in kind a SAFE or SCOPE decision names: the
+ * kinds in the *_SAFE_KINDS sets and the cluster-scoped kinds above.
  * builtinKind() accepts a group-qualified spelling only in this group, so
- * `deployments.apps/web` is a Deployment while `jobs.batch.volcano.sh` or
- * `pods.example.com` is some custom resource and never a safe target.
+ * `deployments.apps/web` is a Deployment and `storageclasses.storage.k8s.io`
+ * a StorageClass, while `jobs.batch.volcano.sh`, `pods.example.com` or
+ * `nodes.example.com` is some custom resource: never a safe target, and
+ * never exempt from the namespace -n names.
  */
 const BUILTIN_KIND_GROUPS: Record<string, string> = {
   pod: "",
-  node: "",
   deployment: "apps",
   statefulset: "apps",
   daemonset: "apps",
   replicaset: "apps",
   job: "batch",
   cronjob: "batch",
+  ...CLUSTER_SCOPED_KIND_GROUPS,
 };
-
-/*
- * Kinds that live outside any namespace. A write that names only these is
- * not "in" the namespace its -n flag names (kubectl ignores -n for them), so
- * the protected-namespace rule looks at the object instead.
- */
-const CLUSTER_SCOPED_KINDS: Set<string> = new Set<string>([
-  "node",
-  "namespace",
-  "persistentvolume",
-  "customresourcedefinition",
-  "clusterrole",
-  "clusterrolebinding",
-  "storageclass",
-  "priorityclass",
-  "apiservice",
-  "mutatingwebhookconfiguration",
-  "validatingwebhookconfiguration",
-  "validatingadmissionpolicy",
-  "validatingadmissionpolicybinding",
-  "mutatingadmissionpolicy",
-  "mutatingadmissionpolicybinding",
-  "certificatesigningrequest",
-  "ingressclass",
-  "runtimeclass",
-  "csidriver",
-  "csinode",
-  "volumeattachment",
-  "flowschema",
-  "prioritylevelconfiguration",
-]);
 
 /*
  * Label / annotation key prefixes (the DNS part before "/") that belong to
@@ -1070,7 +1110,9 @@ const RBAC_AGGREGATION_KEY_PREFIX: string =
  * image as any ServiceAccount in the namespace and reading every Secret it
  * can mount, which no approval card should be asked to wave through. Image,
  * env values, resources and replicas stay patchable (set image / set env /
- * set resources say the same thing more plainly).
+ * set resources say the same thing more plainly). A patch that replaces or
+ * removes an object ABOVE these fields drops them without naming any; that
+ * is refused by findPodSpecReplacement (see POD_SPEC_PATH_STEPS).
  */
 const POD_SECURITY_PATCH_KEYS: Set<string> = new Set<string>(
   [
@@ -1327,8 +1369,10 @@ interface NamedKinds {
  * group-qualified form ("pods.v1." / "deployments.apps" / "secrets.foo.io"
  * all keep the leading segment) mapped through KIND_ALIASES. Folding every
  * group into the built-in kind is the safe side for a deny list — a custom
- * `secrets.example.io` is refused like a Secret — and must never be used to
- * decide that something is SAFE (see builtinKind()).
+ * `secrets.example.io` is refused like a Secret — and for a rule that can
+ * only ADD a human (a Namespace object named kube-system). It must never be
+ * used to decide that something is SAFE, or that a write is cluster-scoped
+ * and so outside the namespace -n names (see builtinKind()).
  */
 function normalizeKind(token: string): string {
   const lower: string = token.toLowerCase();
@@ -1339,12 +1383,16 @@ function normalizeKind(token: string): string {
 }
 
 /*
- * The built-in kind a token names, for the SAFE sets — or undefined when it
- * is not one of BUILTIN_KIND_GROUPS in that kind's own API group. kubectl
- * reads "RESOURCE.GROUP" and "RESOURCE.VERSION.GROUP" (with "pods.v1." for
- * the core group), so `deployments.apps`, `deployments.v1.apps` and
- * `pods.v1.` are the built-in kinds, and `pods.example.com` or
- * `jobs.batch.volcano.sh` are custom resources.
+ * The built-in kind a token names, for the SAFE sets and the cluster-scoped
+ * rule — or undefined when it is not one of BUILTIN_KIND_GROUPS in that
+ * kind's own API group. kubectl (schema.ParseResourceArg) reads a token with
+ * two dots or more first as "RESOURCE.VERSION.GROUP" and then as
+ * "RESOURCE.GROUP", and one with a single dot only as "RESOURCE.GROUP"
+ * ("pods." and "pods.v1." name the core group). So `deployments.apps`,
+ * `deployments.v1.apps`, `pods.v1.`, `storageclasses.storage.k8s.io` and
+ * `clusterroles.v1.rbac.authorization.k8s.io` are the built-in kinds, and
+ * `pods.example.com`, `nodes.v1.example.com` or `jobs.batch.volcano.sh` are
+ * custom resources.
  */
 function builtinKind(token: string): string | undefined {
   const lower: string = token.toLowerCase();
@@ -1365,10 +1413,32 @@ function builtinKind(token: string): string | undefined {
     return kind;
   }
 
-  const group: string =
-    parts.length === 2 ? parts[1]! : parts.slice(2).join(".");
+  const group: string = BUILTIN_KIND_GROUPS[kind]!;
 
-  return group === BUILTIN_KIND_GROUPS[kind] ? kind : undefined;
+  // RESOURCE.GROUP
+  if (parts.slice(1).join(".") === group) {
+    return kind;
+  }
+
+  // RESOURCE.VERSION.GROUP
+  if (parts.length >= 3 && parts.slice(2).join(".") === group) {
+    return kind;
+  }
+
+  return undefined;
+}
+
+/*
+ * True when every object a node verb names is a node: a bare NAME, or a
+ * TYPE/NAME whose type is the built-in Node (kubectl's cordon, uncordon and
+ * drain read "nodes/NAME" and also accept any other TYPE/NAME, such as a
+ * custom `nodes.example.com/x`, which then is not a node at all).
+ */
+function namesOnlyNodes(nodeTokens: Array<string>): boolean {
+  return nodeTokens.every((token: string) => {
+    const slash: number = token.indexOf("/");
+    return slash < 0 || builtinKind(token.slice(0, slash)) === "node";
+  });
 }
 
 /*
@@ -1528,8 +1598,16 @@ const PATCH_BODY_TOO_DEEP: string = "\0too-deep";
  * sit inside quoted strings, where YAML reads it as plain text, and a
  * repeated key keeps its last value in JSON.parse and in kubectl alike.
  * Every patch a fix needs can be written as JSON.
+ *
+ * A body that names no forbidden field can still drop them by replacing or
+ * removing what holds them; findPodSpecReplacement refuses that, for the
+ * patch types kubectl could apply the body as (`patchTypes`, see
+ * readPatchTypes).
  */
-function findPatchBodyProblem(body: string): string | null {
+function findPatchBodyProblem(
+  body: string,
+  patchTypes: Set<PatchType>,
+): string | null {
   let parsed: unknown = undefined;
 
   try {
@@ -1540,17 +1618,392 @@ function findPatchBodyProblem(body: string): string | null {
 
   const field: string | null = findForbiddenJsonField(parsed, 0);
 
-  if (field === null) {
-    return null;
-  }
-
   if (field === PATCH_BODY_TOO_DEEP) {
     return `kubectl patch with a body nested more than ${MAX_PATCH_BODY_DEPTH} levels deep is never allowed for OneUptime AI (no fix needs one)`;
   }
 
-  return isPodSecurityKey(field)
-    ? `kubectl patch of ${field} is never allowed for OneUptime AI: Pod Security Admission reads these labels to decide whether privileged pods may run in a namespace`
-    : `kubectl patch that touches ${field} is never allowed for OneUptime AI: it changes which identity, privileges, host access, Secrets or program a pod runs with (patch other fields, or use set image / set env / set resources)`;
+  if (field !== null) {
+    return isPodSecurityKey(field)
+      ? `kubectl patch of ${field} is never allowed for OneUptime AI: Pod Security Admission reads these labels to decide whether privileged pods may run in a namespace`
+      : `kubectl patch that touches ${field} is never allowed for OneUptime AI: it changes which identity, privileges, host access, Secrets or program a pod runs with (patch other fields, or use set image / set env / set resources)`;
+  }
+
+  return findPodSpecReplacement(parsed, patchTypes);
+}
+
+/*
+ * ---- Patches that replace what holds the pod-security fields ---------------
+ *
+ * POD_SECURITY_PATCH_KEYS are matched by NAME, which only sees a patch that
+ * spells one. A patch that replaces or removes an object ABOVE them drops
+ * them without naming any. Checked against the pinned kubectl v1.36.4 with
+ * `patch --local` on a Deployment whose pod runs as a restricted
+ * ServiceAccount with a securityContext, a command and a volume:
+ *   - strategic merge (the default type): `"$patch": "replace"` in the pod
+ *     spec (or in template, or spec) leaves only what the patch lists —
+ *     serviceAccountName back to default, securityContext and volumes
+ *     gone; `$retainKeys` in the pod spec clears every field it does not
+ *     list; a `{"$patch": "replace"}` element in the containers list drops
+ *     every container's command, securityContext, env and volumeMounts; a
+ *     `{"name": X, "$patch": "delete"}` element removes container X; null
+ *     for the pod spec or the containers list removes it;
+ *   - merge (--type=merge, RFC 7386): a list is replaced wholesale, so
+ *     `{"containers": [{"name": "web", "image": "x"}]}` leaves one container
+ *     with nothing but a name and an image; null removes, and a scalar
+ *     replaces;
+ *   - JSON patch: replace or remove of /spec/template/spec,
+ *     /spec/template/spec/containers or /spec/template/spec/containers/0
+ *     (/spec/containers/0 on a Pod), and an add whose path is an existing
+ *     object member — add replaces it — do the same.
+ *
+ * So nothing on the path from the object down to a pod-security field may be
+ * replaced, removed, reordered or filtered. That path is POD_SPEC_PATH_STEPS
+ * from the top of the body: through spec, template and jobTemplate (the pod
+ * template of a Pod, a workload, a Job, a CronJob, a PodTemplate, and the
+ * custom workloads that copy that layout) to the pod spec, then its
+ * containers list, one container, its env list, one env entry and its
+ * valueFrom. Refused along that path:
+ *   - any strategic-merge directive — a key starting with "$" ($patch,
+ *     $retainKeys, $setElementOrder/..., $deleteFromPrimitiveList/...) — in
+ *     a map on it, a `{"$patch": ...}` element of a list on it included;
+ *   - null for a key on it, or a value of the wrong shape (a scalar or a
+ *     list where the object goes, anything but a list where a list goes);
+ *   - under a merge patch, any value for the containers or env list;
+ *   - a JSON-patch remove, replace, move or copy whose path or from is on it
+ *     (the whole object, "", included), and an add whose path is on it and
+ *     names an object member rather than a list position.
+ * Anything off that path — metadata and the pod template's labels and
+ * annotations, replicas, the update strategy, a container's image or
+ * resources, an env entry's value — stays patchable: a strategic-merge patch
+ * that names one container and sets its image or resources, a JSON-patch
+ * replace of /spec/replicas or /spec/template/spec/containers/0/image, a
+ * merge patch of metadata/annotations. Adding a list element (a new env
+ * entry, or a new container, whose fields the name check reads) is not a
+ * replacement. Keys are matched case-insensitively, like the name check.
+ */
+
+// The patch types kubectl patch accepts for --type (it lowercases the value).
+enum PatchType {
+  Strategic = "strategic",
+  Merge = "merge",
+  Json = "json",
+}
+
+const PATCH_TYPES: Array<PatchType> = [
+  PatchType.Strategic,
+  PatchType.Merge,
+  PatchType.Json,
+];
+
+/*
+ * The types kubectl could apply a body as: strategic merge when --type is
+ * not given, else every --type value (pflag keeps the last one; reading all
+ * of them is the safe side). A value kubectl does not know makes it refuse
+ * the command, so it is read as every type.
+ */
+function readPatchTypes(typeValues: Array<string>): Set<PatchType> {
+  const types: Set<PatchType> = new Set<PatchType>();
+
+  if (typeValues.length === 0) {
+    types.add(PatchType.Strategic);
+    return types;
+  }
+
+  for (const value of typeValues) {
+    const known: PatchType | undefined = PATCH_TYPES.find((type: PatchType) => {
+      return type === value.trim().toLowerCase();
+    });
+
+    if (known) {
+      types.add(known);
+    } else {
+      for (const type of PATCH_TYPES) {
+        types.add(type);
+      }
+    }
+  }
+
+  return types;
+}
+
+// Where a patch is on the path from the object to the pod-security fields.
+enum PodSpecPathStep {
+  // The object, spec, template, jobTemplate — and the pod spec itself.
+  PodSpecOrAbove = "PodSpecOrAbove",
+  ContainerList = "ContainerList",
+  Container = "Container",
+  EnvList = "EnvList",
+  EnvEntry = "EnvEntry",
+  ValueFrom = "ValueFrom",
+}
+
+/*
+ * The steps down the path, by lowercased key. A list step's elements are the
+ * step in LIST_ELEMENT_STEPS. A key not listed for a step leaves the path.
+ */
+const POD_SPEC_PATH_STEPS: Record<
+  PodSpecPathStep,
+  Record<string, PodSpecPathStep>
+> = {
+  [PodSpecPathStep.PodSpecOrAbove]: {
+    spec: PodSpecPathStep.PodSpecOrAbove,
+    template: PodSpecPathStep.PodSpecOrAbove,
+    jobtemplate: PodSpecPathStep.PodSpecOrAbove,
+    containers: PodSpecPathStep.ContainerList,
+  },
+  [PodSpecPathStep.ContainerList]: {},
+  [PodSpecPathStep.Container]: { env: PodSpecPathStep.EnvList },
+  [PodSpecPathStep.EnvList]: {},
+  [PodSpecPathStep.EnvEntry]: { valuefrom: PodSpecPathStep.ValueFrom },
+  [PodSpecPathStep.ValueFrom]: {},
+};
+
+const LIST_ELEMENT_STEPS: Map<PodSpecPathStep, PodSpecPathStep> = new Map<
+  PodSpecPathStep,
+  PodSpecPathStep
+>([
+  [PodSpecPathStep.ContainerList, PodSpecPathStep.Container],
+  [PodSpecPathStep.EnvList, PodSpecPathStep.EnvEntry],
+]);
+
+function nextPodSpecPathStep(
+  step: PodSpecPathStep,
+  key: string,
+): PodSpecPathStep | undefined {
+  const listElement: PodSpecPathStep | undefined = LIST_ELEMENT_STEPS.get(step);
+
+  if (listElement) {
+    return listElement;
+  }
+
+  const steps: Record<string, PodSpecPathStep> = POD_SPEC_PATH_STEPS[step];
+  const lower: string = key.toLowerCase();
+
+  return Object.prototype.hasOwnProperty.call(steps, lower)
+    ? steps[lower]
+    : undefined;
+}
+
+// What the refusals say a replacement drops.
+const POD_SPEC_REPLACEMENT_DROPS: string =
+  "it replaces or removes a pod spec, a container or what holds them, and so drops the securityContext, serviceAccountName, command, args, volumes, volumeMounts and Secret references under it without naming any of them";
+
+const POD_SPEC_REPLACEMENT_INSTEAD: string =
+  "patch the field itself (such as one container's image or resources, named in a strategic-merge patch, or /spec/template/spec/containers/0/image in a JSON patch), or use set image / set env / set resources";
+
+// A JSON-pointer segment: "~1" is "/" and "~0" is "~" (RFC 6901, in that order).
+const JSON_POINTER_SLASH_ESCAPE: RegExp = /~1/g;
+const JSON_POINTER_TILDE_ESCAPE: RegExp = /~0/g;
+
+function decodeJsonPointerSegment(segment: string): string {
+  return segment
+    .replace(JSON_POINTER_SLASH_ESCAPE, "/")
+    .replace(JSON_POINTER_TILDE_ESCAPE, "~");
+}
+
+// A list position in a JSON-patch path: an index, or "-" (the end).
+const JSON_PATCH_LIST_POSITION: RegExp = /^(-|[0-9]+)$/;
+
+function describePodSpecPath(segments: Array<string>): string {
+  return segments.length === 0 ? "the whole object" : `/${segments.join("/")}`;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isListStep(step: PodSpecPathStep): boolean {
+  return LIST_ELEMENT_STEPS.has(step);
+}
+
+/*
+ * Why a parsed patch body replaces or removes something on the pod-spec path
+ * (see the section above), or null.
+ */
+function findPodSpecReplacement(
+  parsed: unknown,
+  patchTypes: Set<PatchType>,
+): string | null {
+  if (Array.isArray(parsed)) {
+    for (const operation of parsed) {
+      if (!isPlainObject(operation)) {
+        continue;
+      }
+
+      const problem: string | null = findJsonPatchReplacement(operation);
+
+      if (problem) {
+        return problem;
+      }
+    }
+    return null;
+  }
+
+  if (!isPlainObject(parsed)) {
+    return null;
+  }
+
+  return findObjectPatchReplacement(
+    parsed,
+    PodSpecPathStep.PodSpecOrAbove,
+    [],
+    patchTypes,
+    0,
+  );
+}
+
+// A strategic-merge or merge body, walked down the pod-spec path only.
+function findObjectPatchReplacement(
+  map: Record<string, unknown>,
+  step: PodSpecPathStep,
+  segments: Array<string>,
+  patchTypes: Set<PatchType>,
+  depth: number,
+): string | null {
+  // findForbiddenJsonField already refused a body this deep.
+  if (depth > MAX_PATCH_BODY_DEPTH) {
+    return null;
+  }
+
+  for (const [key, value] of Object.entries(map)) {
+    if (key.startsWith("$")) {
+      return `kubectl patch with the strategic-merge directive "${key}" at ${describePodSpecPath(segments)} is never allowed for OneUptime AI: ${POD_SPEC_REPLACEMENT_DROPS} (${POD_SPEC_REPLACEMENT_INSTEAD})`;
+    }
+
+    const next: PodSpecPathStep | undefined = nextPodSpecPathStep(step, key);
+
+    if (next === undefined) {
+      continue;
+    }
+
+    const where: string = describePodSpecPath([...segments, key]);
+
+    if (value === null) {
+      return `kubectl patch that sets ${where} to null is never allowed for OneUptime AI: ${POD_SPEC_REPLACEMENT_DROPS} (${POD_SPEC_REPLACEMENT_INSTEAD})`;
+    }
+
+    if (!isListStep(next)) {
+      if (!isPlainObject(value)) {
+        return `kubectl patch that sets ${where} to something other than an object is never allowed for OneUptime AI: ${POD_SPEC_REPLACEMENT_DROPS} (${POD_SPEC_REPLACEMENT_INSTEAD})`;
+      }
+
+      const problem: string | null = findObjectPatchReplacement(
+        value,
+        next,
+        [...segments, key],
+        patchTypes,
+        depth + 1,
+      );
+
+      if (problem) {
+        return problem;
+      }
+
+      continue;
+    }
+
+    if (patchTypes.has(PatchType.Merge)) {
+      return `kubectl patch --type=merge that sets ${where} is never allowed for OneUptime AI: a merge patch replaces a list wholesale, so ${POD_SPEC_REPLACEMENT_DROPS} (use a strategic-merge patch that names the container, or set image / set env / set resources)`;
+    }
+
+    if (!Array.isArray(value)) {
+      return `kubectl patch that sets ${where} to something other than a list is never allowed for OneUptime AI: ${POD_SPEC_REPLACEMENT_DROPS} (${POD_SPEC_REPLACEMENT_INSTEAD})`;
+    }
+
+    const element: PodSpecPathStep = LIST_ELEMENT_STEPS.get(next)!;
+
+    for (let index: number = 0; index < value.length; index++) {
+      const item: unknown = value[index];
+
+      if (!isPlainObject(item)) {
+        continue;
+      }
+
+      const problem: string | null = findObjectPatchReplacement(
+        item,
+        element,
+        [...segments, key, String(index)],
+        patchTypes,
+        depth + 2,
+      );
+
+      if (problem) {
+        return problem;
+      }
+    }
+  }
+
+  return null;
+}
+
+/*
+ * Where a JSON-patch path lands on the pod-spec path: the step it names and
+ * whether its last segment is a list position — or undefined when it leaves
+ * the path.
+ */
+interface JsonPatchTarget {
+  step: PodSpecPathStep;
+  isListPosition: boolean;
+}
+
+function readJsonPatchTarget(pointer: string): JsonPatchTarget | undefined {
+  // "" is the whole object; every other pointer starts with "/".
+  const segments: Array<string> =
+    pointer === ""
+      ? []
+      : pointer.split("/").slice(1).map(decodeJsonPointerSegment);
+  let step: PodSpecPathStep = PodSpecPathStep.PodSpecOrAbove;
+  let isListPosition: boolean = false;
+
+  for (const segment of segments) {
+    isListPosition = isListStep(step) && JSON_PATCH_LIST_POSITION.test(segment);
+
+    const next: PodSpecPathStep | undefined = nextPodSpecPathStep(
+      step,
+      segment,
+    );
+
+    if (next === undefined) {
+      return undefined;
+    }
+
+    step = next;
+  }
+
+  return { step, isListPosition };
+}
+
+function findJsonPatchReplacement(
+  operation: Record<string, unknown>,
+): string | null {
+  const op: unknown = operation["op"];
+  const path: unknown = operation["path"];
+  const from: unknown = operation["from"];
+
+  // test only compares; add inserts at a list position and replaces a member.
+  if (op === "test") {
+    return null;
+  }
+
+  if (typeof path === "string") {
+    const target: JsonPatchTarget | undefined = readJsonPatchTarget(path);
+
+    if (target && !(op === "add" && target.isListPosition)) {
+      return `kubectl patch with a JSON-patch "${String(op)}" of ${describeJsonPointer(path)} is never allowed for OneUptime AI: ${POD_SPEC_REPLACEMENT_DROPS} (${POD_SPEC_REPLACEMENT_INSTEAD})`;
+    }
+  }
+
+  if (typeof from === "string" && op !== "add") {
+    if (readJsonPatchTarget(from)) {
+      return `kubectl patch with a JSON-patch "${String(op)}" from ${describeJsonPointer(from)} is never allowed for OneUptime AI: ${POD_SPEC_REPLACEMENT_DROPS} (${POD_SPEC_REPLACEMENT_INSTEAD})`;
+    }
+  }
+
+  return null;
+}
+
+function describeJsonPointer(pointer: string): string {
+  return pointer === "" ? "the whole object" : pointer;
 }
 
 function forbiddenFieldInName(name: string): string | null {
@@ -1566,7 +2019,7 @@ function forbiddenFieldInName(name: string): string | null {
 // A JSON-pointer path ("/spec/template/spec/volumes/-"), segment by segment.
 function forbiddenFieldInPath(path: string): string | null {
   for (const rawSegment of path.split("/")) {
-    const segment: string = rawSegment.replace(/~1/g, "/").replace(/~0/g, "~");
+    const segment: string = decodeJsonPointerSegment(rawSegment);
     const found: string | null = forbiddenFieldInName(segment);
     if (found) {
       return found;
@@ -1658,6 +2111,9 @@ function isFlagToken(token: string): boolean {
 
 // What tokenize() says for a command (or an allowlist entry) with no verb.
 const NO_VERB_MESSAGE: string = "The command names no kubectl verb.";
+
+// A word that holds whitespace was quoted together (see readAllowlistEntry).
+const WHITESPACE_REGEX: RegExp = /\s/;
 
 // An allowlist entry as matchesAllowlist reads it (see readAllowlistEntry).
 interface AllowlistEntry {
@@ -2115,20 +2571,29 @@ export default class KubectlPolicy {
 
     /*
      * Where a write lands, for the protected-namespace rule. Nodes and the
-     * other cluster-scoped kinds have no namespace (kubectl ignores -n for
-     * them); what could be protected there is a Namespace object itself.
+     * other built-in cluster-scoped kinds have no namespace (kubectl ignores
+     * -n for them); what could be protected there is a Namespace object
+     * itself. Only the built-in kinds in their own API group count
+     * (builtinKind()): a custom resource that borrows a built-in name —
+     * `annotate nodes.example.com x -n kube-system` — has a scope this
+     * policy cannot see, so it is judged by the namespace -n names.
      */
     const isClusterScopedWrite: boolean =
-      NODE_VERBS.has(verb) ||
+      (NODE_NAME_VERBS.has(verb) &&
+        namesOnlyNodes(parsed.positionals.slice(1))) ||
       (createKind !== undefined &&
         CLUSTER_SCOPED_CREATE_KINDS.has(createKind)) ||
-      (targets.kinds.size > 0 &&
-        Array.from(targets.kinds).every((kind: string) => {
-          return CLUSTER_SCOPED_KINDS.has(kind);
-        }));
+      everyBuiltinKindIn(targets, CLUSTER_SCOPED_KINDS);
 
     let protectedNamespace: string | undefined = undefined;
 
+    /*
+     * A Namespace object named after a protected namespace is protected
+     * whatever -n says. That test reads the folded kind (normalizeKind), so
+     * a custom resource that borrows the name `namespaces` and is NAMED
+     * kube-system needs a human too: the folded reading can only add a
+     * human, never remove one.
+     */
     if (!isClusterScopedWrite && isProtectedKubernetesNamespace(namespace)) {
       protectedNamespace = namespace!.trim().toLowerCase();
     } else if (targets.kinds.has("namespace")) {
@@ -2432,6 +2897,50 @@ export default class KubectlPolicy {
       }
     }
 
+    // Pod Security Admission's namespace labels, whichever namespaces they reach.
+    if (
+      (verb === "label" || verb === "annotate") &&
+      targets.kinds.has("namespace")
+    ) {
+      const podSecurityKey: string | undefined = labelKeys(
+        verb,
+        parsed.positionals,
+      ).find(isPodSecurityKey);
+
+      if (podSecurityKey) {
+        return deny(
+          `kubectl ${verb} of ${podSecurityKey} on a namespace is never allowed for OneUptime AI: pod-security.kubernetes.io keys are Pod Security Admission's controls, which decide whether privileged pods may run there`,
+          `${verb} namespace`,
+        );
+      }
+    }
+
+    /*
+     * A write to Namespace objects must name each one. A selector, --all or
+     * a bare kind reaches Namespace objects the command never names —
+     * kube-system's among them — so the protected-namespace rule, which
+     * reads the names, could not see it (see the header). Deleting a
+     * Namespace is refused outright above (NEVER_DELETE_KINDS). Only the
+     * built-in Namespace kind counts (builtinKind()): a custom resource that
+     * borrows the name is judged by the namespace -n names.
+     */
+    if (
+      verb !== "delete" &&
+      targets.rawKinds.some((rawKind: string) => {
+        return builtinKind(rawKind) === "namespace";
+      }) &&
+      (hasSelector || hasAll || targets.namedCount === 0)
+    ) {
+      return deny(
+        `kubectl ${verb} of Namespace objects ${
+          hasSelector || hasAll
+            ? "by a selector or --all"
+            : "without naming any"
+        } is never allowed for OneUptime AI: it can change kube-system's Namespace object (or another protected one) without naming it, so name each Namespace object (namespace/NAME)`,
+        `${verb} namespace`,
+      );
+    }
+
     if (verb === "rollout") {
       const rolloutVerb: string = `rollout ${subcommand}`;
 
@@ -2631,16 +3140,6 @@ export default class KubectlPolicy {
     if (verb === "label" || verb === "annotate") {
       const keys: Array<string> = labelKeys(verb, parsed.positionals);
 
-      if (targets.kinds.has("namespace")) {
-        const podSecurityKey: string | undefined = keys.find(isPodSecurityKey);
-        if (podSecurityKey) {
-          return deny(
-            `kubectl ${verb} of ${podSecurityKey} on a namespace is never allowed for OneUptime AI: pod-security.kubernetes.io keys are Pod Security Admission's controls, which decide whether privileged pods may run there`,
-            `${verb} namespace`,
-          );
-        }
-      }
-
       if (hasAll || hasSelector) {
         return allowed(
           KubectlCommandTier.RiskyWrite,
@@ -2687,9 +3186,12 @@ export default class KubectlPolicy {
         ...(parsed.flags.get("p") || []),
         ...(parsed.flags.get("patch") || []),
       ];
+      const patchTypes: Set<PatchType> = readPatchTypes(
+        parsed.flags.get("type") || [],
+      );
 
       for (const body of bodies) {
-        const problem: string | null = findPatchBodyProblem(body);
+        const problem: string | null = findPatchBodyProblem(body, patchTypes);
         if (problem) {
           return deny(problem, "patch");
         }
@@ -2989,11 +3491,32 @@ export default class KubectlPolicy {
       };
     }
 
+    /*
+     * One word after the optional "kubectl" can only match a one-word
+     * command, and none is ever pre-approved: a read runs anyway, and every
+     * write verb needs an object (and a change) to act on, so kubectl
+     * refuses it bare. Quotes around a full command (a pasted JSON list, a
+     * quoted line) make it one word too.
+     */
+    const quotedWords: string = `"${shown}" has quotes around several words where the kubectl verb goes, so they are read as one word (as in a pasted JSON list, or a full command in quotes). Write each entry on its own line without quotes or brackets, such as kubectl set image deployment/web * -n web.`;
+
+    if (tokenized.args.length === 1) {
+      return {
+        problem: WHITESPACE_REGEX.test(tokenized.args[0]!)
+          ? quotedWords
+          : `"${shown}" is only one word after the optional "kubectl", so it could only match a one-word command, and a one-word command is never pre-approved (a read runs anyway; kubectl refuses a write verb with nothing to act on). Write out the full command it pre-approves, such as "kubectl set image deployment/web * -n web".`,
+      };
+    }
+
     const parsed: ParsedArgs = KubectlPolicy.parseArgs(tokenized.args);
     const verb: string | undefined = parsed.positionals[0];
 
     if (verb === undefined) {
       return { problem: namesNoCommand };
+    }
+
+    if (WHITESPACE_REGEX.test(verb)) {
+      return { problem: quotedWords };
     }
 
     if (hasWildcard(verb)) {

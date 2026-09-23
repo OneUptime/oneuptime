@@ -593,11 +593,32 @@ describe("KubectlPolicy SafeWrite scope", () => {
         expect(autoVerdict(command, { bypassApproval: true }).verdict).toBe(
           AiRemediationCommandPolicyVerdict.AutoApproved,
         );
+
+        /*
+         * A one-word entry ("kubectl cordon") is not a valid allowlist entry
+         * since round three: it could only match the bare verb, which
+         * kubectl refuses with nothing to act on. Every longer command here
+         * is still promoted by the entry that spells it.
+         */
+        const oneWord: boolean =
+          (KubectlPolicy.tokenize(command).args || []).length === 1;
         expect(
           autoVerdict(command, { allowlistPatterns: [command] }).verdict,
-        ).toBe(AiRemediationCommandPolicyVerdict.AutoApproved);
+        ).toBe(
+          oneWord
+            ? AiRemediationCommandPolicyVerdict.RequiresApproval
+            : AiRemediationCommandPolicyVerdict.AutoApproved,
+        );
       },
     );
+
+    it("negative control: kubectl cordon is the only one-word command in that table", () => {
+      expect(
+        NOT_ONE_NAMED_OBJECT.filter((command: string) => {
+          return (KubectlPolicy.tokenize(command).args || []).length === 1;
+        }),
+      ).toEqual(["kubectl cordon"]);
+    });
 
     it("says a bare kind is every object of that kind, and how to name one", () => {
       const text: string = KubectlPolicy.evaluateCommand(
