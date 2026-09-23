@@ -133,6 +133,38 @@ function unwrapRows(result: unknown): Array<JSONObject> {
 }
 
 /*
+ * What stands in for a character a Postgres text column cannot hold: the
+ * Unicode replacement character, so a reader of the stored output can see
+ * that something was there instead of the bytes silently closing up.
+ */
+export const RUNNER_JOB_UNSTORABLE_CHARACTER_REPLACEMENT: string = "\uFFFD";
+
+/*
+ * U+0000. Postgres rejects it anywhere in a text value (22021 "invalid byte
+ * sequence for encoding UTF8: 0x00") — at bind time, so even a parameter
+ * the statement's CASE would not pick fails the whole UPDATE.
+ */
+// eslint-disable-next-line no-control-regex
+const NUL_CHARACTER_PATTERN: RegExp = /\u0000/g;
+
+/*
+ * A UTF-16 surrogate pair, or a surrogate half on its own. A lone half has
+ * no UTF-8 encoding at all (a Runner that cut a string between the two
+ * halves sends one); the driver would quietly turn it into U+FFFD on the
+ * wire, so it is replaced here explicitly, before redaction, and the text
+ * the redaction passes read is exactly the text that is stored. A whole
+ * pair is matched first and kept.
+ */
+const SURROGATE_PATTERN: RegExp =
+  /[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uD800-\uDFFF]/g;
+
+function keepSurrogatePairOnly(match: string): string {
+  return match.length === 2
+    ? match
+    : RUNNER_JOB_UNSTORABLE_CHARACTER_REPLACEMENT;
+}
+
+/*
  * Why a timed-out job timed out, in words that fit what it was. A runbook
  * step is waited on by a runbook agent; an AI-composed kubectl command is
  * run by the cluster's Runner, and for it the difference between "nobody
@@ -1218,6 +1250,26 @@ export class Service extends DatabaseService<Model> {
       .text;
   }
 
+  /*
+   * A Runner's text as a Postgres text column can hold it. A NUL byte is
+   * ordinary in what a Runner reports — `kubectl logs` of a log that was
+   * rotated with copytruncate, a ConfigMap value `describe` prints
+   * verbatim, a script that writes binary — and Postgres refuses the whole
+   * UPDATE over one, so the result could never be stored: every submission
+   * failed the same way, the Runner retried it as if the server were down,
+   * and the job ended "result unknown" although the command had run. Each
+   * such character becomes U+FFFD instead, for every origin, and before
+   * anything else reads the text.
+   */
+  public static toStorableText(text: string): string {
+    return text
+      .replace(
+        NUL_CHARACTER_PATTERN,
+        RUNNER_JOB_UNSTORABLE_CHARACTER_REPLACEMENT,
+      )
+      .replace(SURROGATE_PATTERN, keepSurrogatePairOnly);
+  }
+
   @CaptureSpan()
   public async submitResult(data: {
     jobId: ObjectID;
@@ -1237,8 +1289,19 @@ export class Service extends DatabaseService<Model> {
       ? RunnerJobStatus.Succeeded
       : RunnerJobStatus.Failed;
 
-    const rawOutput: string | null = data.output ?? null;
-    const rawErrorMessage: string | null = data.errorMessage ?? null;
+    /*
+     * Made storable first: every text parameter below is bound whichever
+     * branch of the CASE the row takes, so one unstorable character in any
+     * of them would fail the write for every origin.
+     */
+    const rawOutput: string | null =
+      typeof data.output === "string"
+        ? Service.toStorableText(data.output)
+        : null;
+    const rawErrorMessage: string | null =
+      typeof data.errorMessage === "string"
+        ? Service.toStorableText(data.errorMessage)
+        : null;
 
     /*
      * The origin decides which text is stored, and it is read in the same

@@ -516,6 +516,17 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
           'on Runner "kubernetes-agent/prod-us": turn off "Runs Runbooks"',
         );
         expect(gap.nextStep).toContain("delete the Runner");
+        /*
+         * Round four: deleting the Runner leaves this cluster unbound (the
+         * FK nulls the binding and registration never re-binds a cluster
+         * that had a Runner), so the delete path names its second step.
+         * Was "... — or delete the Runner, and the in-cluster Runner
+         * registers a fresh one within a minute."
+         */
+        expect(gap.nextStep).toContain(
+          "select it on the cluster's AI page as its Runner",
+        );
+        expect(gap.nextStep).toContain("still bound to this cluster");
         expect(gap.nextStep).not.toContain("reconnects within a minute");
         expect(gap.nextStep).not.toContain("aiAccess.enabled=true");
         expect(gap.blocks).toBe("both");
@@ -2898,6 +2909,10 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         const message: string = (thrown as Error).message;
         expect(message).toContain(holding.expectInMessage);
         expect(message).toContain("delete the Runner");
+        // Round four: the delete path names its second step.
+        expect(message).toContain(
+          "select it on the cluster's AI page as its Runner",
+        );
         expect(message).not.toContain(CURRENT_KEY);
 
         expect(runnerUpdates).toHaveLength(0);
@@ -3426,6 +3441,10 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
 
       const head: string = refusal.message.slice(0, 500);
       expect(head).toContain("delete the Runner");
+      // Round four: the delete path's second step is part of the instruction.
+      expect(head).toContain(
+        "select it on the cluster's AI page as its Runner",
+      );
       expect(head).toContain('"Runs Runbooks"');
       expect(head).toContain('"Runs AI Code Fixes"');
       expect(head).toContain("3 Runner credential(s)");
@@ -3456,7 +3475,16 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
 
       expect(refusal.reason).toBe("runner_belongs_to_another_cluster");
       expect(refusal.retryAfterSeconds).toBeUndefined();
-      expect(refusal.message.startsWith("Rename or delete Runner")).toBe(true);
+      /*
+       * Round four: was "Rename or delete Runner ...". A non-root rename of
+       * an agent-named Runner is refused (RunnerService), so the one step
+       * an operator can take is the delete — and then selecting the fresh
+       * Runner, since a deleted Runner's cluster is left unbound.
+       */
+      expect(refusal.message.startsWith("Delete Runner")).toBe(true);
+      expect(refusal.message).toContain(
+        'select it on the AI page of cluster "prod-us" as its Runner',
+      );
     });
 
     it("getPreviousInstanceRetryAfterSeconds counts down to the end of the alive window, never below 1s", () => {

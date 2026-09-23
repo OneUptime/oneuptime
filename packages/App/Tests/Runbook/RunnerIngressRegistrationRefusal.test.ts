@@ -350,7 +350,14 @@ describe("POST /register-kubernetes-agent refusals on the wire", () => {
     expect(wire.thrownToNext).toBeUndefined();
     expect(wire.statusCode).toBe(403);
     expect(wire.body!["reason"]).toBe("runner_belongs_to_another_cluster");
-    expect(String(wire.body!["message"])).toMatch(/^Rename or delete Runner/);
+    /*
+     * Round four: was /^Rename or delete Runner/ — an agent-named Runner
+     * cannot be renamed by an operator, and the delete needs a second step.
+     */
+    expect(String(wire.body!["message"])).toMatch(/^Delete Runner/);
+    expect(String(wire.body!["message"])).toContain(
+      "select it on the AI page of cluster",
+    );
     expect(wire.body).not.toHaveProperty("retryAfterSeconds");
     expect(wire.headers).not.toHaveProperty("Retry-After");
   });

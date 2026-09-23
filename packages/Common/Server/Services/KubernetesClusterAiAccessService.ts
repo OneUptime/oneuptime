@@ -16,6 +16,8 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Version from "../../Types/Version";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
+import { PermissionHelper } from "../../Types/Permission";
+import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
 import {
   RUNNER_ALIVE_WINDOW_IN_MINUTES,
@@ -149,6 +151,21 @@ const MAX_CLUSTERS_PER_SUBJECT: number = 10;
  */
 export const REMEDIATION_WRITE_ACCESS_NEXT_STEP: string =
   'Grant the in-cluster Runner write access with a helm upgrade that adds --set aiAccess.remediation.enabled=true; the complete commands are under "Let AI apply fixes (write access)" on the cluster\'s AI page. List the namespaces AI may fix in aiAccess.remediation.namespaces (without it the write role is bound cluster-wide), and add aiAccess.remediation.nodeOperations=false to keep fixes off nodes.';
+
+/*
+ * Why deleting an in-cluster Runner is a two-step remedy. The binding's
+ * foreign key is ON DELETE SET NULL, so a deleted Runner's clusters are
+ * left with no Runner bound, and registration never binds a cluster that
+ * had one (left_unbound_by_operator): the fresh Runner the agent registers
+ * is used only once someone selects it on the cluster's AI page. Selecting
+ * a Runner loosens AI access, so it needs one of these permissions — which
+ * whoever deleted the Runner may not hold.
+ */
+export function getDeletedAgentRunnerRebindNote(): string {
+  return `Deleting a Runner leaves the clusters it was bound to with no Runner bound, and a registering Runner never binds a cluster that had one. Selecting a Runner needs one of these permissions: ${PermissionHelper.getPermissionTitles(
+    KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
+  ).join(", ")}.`;
+}
 
 /*
  * Runner.name and KubernetesCluster.clusterIdentifier are both ShortText
@@ -525,7 +542,7 @@ class KubernetesClusterAiAccessServiceClass {
                 }". Its ServiceAccount would run every kubectl command against "${reportedCluster}", so OneUptime AI will not use it for this cluster.`
               : `Runner "${runner.name}" reports that it runs inside a Kubernetes cluster but not which one, so OneUptime AI cannot tell whether that is this cluster.`,
             nextStep:
-              "Install the in-cluster Runner on THIS cluster with --set aiAccess.enabled=true (it binds itself), or bind a Runner that holds a Kubernetes credential for this cluster and select that credential on the cluster's AI page.",
+              "Install the in-cluster Runner on THIS cluster with --set aiAccess.enabled=true and select it on the cluster's AI page as its Runner (a registering Runner never replaces the Runner a cluster is bound to), or bind a Runner that holds a Kubernetes credential for this cluster and select that credential on the cluster's AI page.",
             blocks: "both",
           });
         } else {
@@ -769,9 +786,15 @@ class KubernetesClusterAiAccessServiceClass {
       description: `Runner "${data.runner.name}" is offline, and it holds more than an in-cluster Runner's defaults (${this.describeHoldings(
         holdings,
       )}). A restarted in-cluster Runner cannot prove it is the same Runner, so every registration it attempts is refused and it will not reconnect on its own.`,
+      /*
+       * Removing what it holds comes first: the Runner row survives, so the
+       * cluster stays bound to it and it reconnects on its next retry.
+       * Deleting it works too, but only with the second step — the fresh
+       * Runner is not bound to this cluster until someone selects it.
+       */
       nextStep: `Under Project Settings → Runners, on Runner "${data.runner.name}": ${this.describeHoldingRemedies(
         holdings,
-      )} — or delete the Runner, and the in-cluster Runner registers a fresh one within a minute.`,
+      )}. The in-cluster Runner then reconnects on its next retry, still bound to this cluster. Or delete the Runner and, once the in-cluster Runner registers a fresh one (within a minute), select it on the cluster's AI page as its Runner. ${getDeletedAgentRunnerRebindNote()}`,
       blocks: "both",
     };
   }
@@ -1097,8 +1120,10 @@ class KubernetesClusterAiAccessServiceClass {
    *   upgrade opens one), so a row an operator gave more — a credential or
    *   secret assigned to it, runbooks or code fixes turned on, or another
    *   cluster bound to it — is refused: re-keying it would hand all of that
-   *   to whoever holds the ingestion key. The operator removes the extras,
-   *   or deletes the Runner so the agent registers a fresh one.
+   *   to whoever holds the ingestion key. The operator removes the extras
+   *   (the Runner then comes back still bound), or deletes the Runner, lets
+   *   the agent register a fresh one and selects it on the cluster's AI
+   *   page — a deleted Runner's cluster is left unbound, see below.
    * - It finds the row it may re-key by this cluster's agent Runner NAME
    *   only — never by the posture a Runner reports about itself — and only
    *   binds a cluster that never had a Runner bound: a cluster whose
@@ -1223,7 +1248,7 @@ class KubernetesClusterAiAccessServiceClass {
 
       throw new KubernetesAgentRegistrationRefusedException({
         reason: "runner_belongs_to_another_cluster",
-        message: `Rename or delete Runner "${runner.name}" under Project Settings → Runners, then the agent registers on its next retry. That Runner already exists in this project but reports that it is the in-cluster Runner of a different cluster, so it was not reused for cluster "${clusterIdentifier}".`,
+        message: `Delete Runner "${runner.name}" under Project Settings → Runners (an in-cluster Runner cannot be renamed) and, once the agent registers a fresh one on its next retry, select it on the AI page of cluster "${clusterIdentifier}" as its Runner. That Runner already exists in this project but reports that it is the in-cluster Runner of a different cluster, so it was not reused for cluster "${clusterIdentifier}". ${getDeletedAgentRunnerRebindNote()}`,
       });
     }
 
@@ -1529,9 +1554,9 @@ class KubernetesClusterAiAccessServiceClass {
         reason: "runner_holds_more_than_defaults",
         message: `Under Project Settings → Runners, on Runner "${data.runner.name}": ${this.describeHoldingRemedies(
           holdings,
-        )} — or delete the Runner, and the agent registers a fresh one on its next retry. It is offline, but it holds more than an in-cluster Runner's defaults (${this.describeHoldings(
+        )} — or delete the Runner and, once the agent registers a fresh one on its next retry, select it on the cluster's AI page as its Runner. It is offline, but it holds more than an in-cluster Runner's defaults (${this.describeHoldings(
           holdings,
-        )}), so a registration for cluster "${data.clusterIdentifier}" that does not present its current key may not take it over, and its key was not changed.`,
+        )}), so a registration for cluster "${data.clusterIdentifier}" that does not present its current key may not take it over, and its key was not changed. ${getDeletedAgentRunnerRebindNote()}`,
       });
     }
 
