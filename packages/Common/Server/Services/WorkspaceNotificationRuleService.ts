@@ -810,6 +810,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           log.scheduledMaintenanceId =
             data.notificationFor.scheduledMaintenanceId;
         }
+        if (data.notificationFor.incidentEpisodeId) {
+          log.incidentEpisodeId = data.notificationFor.incidentEpisodeId;
+        }
+        if (data.notificationFor.alertEpisodeId) {
+          log.alertEpisodeId = data.notificationFor.alertEpisodeId;
+        }
 
         if (data.workspaceNotification.notifyUserId) {
           log.userId = data.workspaceNotification.notifyUserId;
@@ -848,6 +854,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         if (data.notificationFor.scheduledMaintenanceId) {
           log.scheduledMaintenanceId =
             data.notificationFor.scheduledMaintenanceId;
+        }
+        if (data.notificationFor.incidentEpisodeId) {
+          log.incidentEpisodeId = data.notificationFor.incidentEpisodeId;
+        }
+        if (data.notificationFor.alertEpisodeId) {
+          log.alertEpisodeId = data.notificationFor.alertEpisodeId;
         }
 
         if (data.workspaceNotification.notifyUserId) {
@@ -1126,8 +1138,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             projectId: data.projectId?.toString(),
           } as LogAttributes);
 
+          /*
+           * No rule for this workspace says nothing about the next one. This
+           * used to `return null`, so a project connected to both Slack and
+           * Microsoft Teams never got its Teams incident / alert channel when
+           * the workspace that happened to come first had no matching rule.
+           */
           if (!notificationRules || notificationRules.length === 0) {
-            return null;
+            continue;
           }
 
           logger.debug("Creating channels based on rules", {

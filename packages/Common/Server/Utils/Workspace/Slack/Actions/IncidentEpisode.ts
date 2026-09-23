@@ -1,9 +1,11 @@
+import SlackReactionNoteActions, { SlackReactionData } from "./ReactionNote";
+import { WorkspaceNoteResourceType } from "../../WorkspaceReactionNote";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../../Types/ObjectID";
 import IncidentEpisodeService from "../../../../Services/IncidentEpisodeService";
 import { ExpressRequest, ExpressResponse } from "../../../Express";
 import SlackUtil from "../Slack";
-import SlackActionType, { PrivateNoteEmojis } from "./ActionTypes";
+import SlackActionType from "./ActionTypes";
 import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
@@ -25,12 +27,7 @@ import logger from "../../../Logger";
 
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
-import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAuthTokenService";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
-import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
-import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
-import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
-import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import IncidentEpisodeStateTimeline from "../../../../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
 import IncidentEpisodeInternalNote from "../../../../../Models/DatabaseModels/IncidentEpisodeInternalNote";
 import IncidentEpisodePublicNote from "../../../../../Models/DatabaseModels/IncidentEpisodePublicNote";
@@ -870,195 +867,18 @@ export default class SlackIncidentEpisodeActions {
     );
   }
 
+  /*
+   * A note emoji on a message, looked up among incident episode channels only.
+   * Slack events go to SlackReactionNoteActions directly, which works out
+   * what the channel belongs to first.
+   */
   @CaptureSpan()
-  public static async handleEmojiReaction(data: {
-    teamId: string;
-    reaction: string;
-    userId: string;
-    channelId: string;
-    messageTs: string;
-  }): Promise<void> {
-    logger.debug("Handling emoji reaction for Incident Episode with data:");
-    logger.debug(data);
-
-    const { teamId, reaction, userId, channelId, messageTs } = data;
-
-    // Incident Episodes only support private notes
-    const isPrivateNoteEmoji: boolean = PrivateNoteEmojis.includes(reaction);
-
-    if (!isPrivateNoteEmoji) {
-      logger.debug(
-        `Emoji "${reaction}" is not a supported private note emoji for incident episodes. Ignoring.`,
-      );
-      return;
-    }
-
-    // Get the project auth token using the team ID
-    const projectAuth: WorkspaceProjectAuthToken | null =
-      await WorkspaceProjectAuthTokenService.findOneBy({
-        query: {
-          workspaceProjectId: teamId,
-        },
-        select: {
-          projectId: true,
-          authToken: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!projectAuth || !projectAuth.projectId || !projectAuth.authToken) {
-      logger.debug(
-        "No project auth found for team ID. Ignoring emoji reaction.",
-      );
-      return;
-    }
-
-    const projectId: ObjectID = projectAuth.projectId;
-    const authToken: string = projectAuth.authToken;
-
-    // Find the incident episode linked to this channel
-    const workspaceLog: WorkspaceNotificationLog | null =
-      await WorkspaceNotificationLogService.findOneBy({
-        query: {
-          channelId: channelId,
-          workspaceType: WorkspaceType.Slack,
-          projectId: projectId,
-        },
-        select: {
-          incidentEpisodeId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!workspaceLog || !workspaceLog.incidentEpisodeId) {
-      logger.debug(
-        "No incident episode found linked to this channel. Ignoring emoji reaction.",
-      );
-      return;
-    }
-
-    const episodeId: ObjectID = workspaceLog.incidentEpisodeId;
-
-    // Get the user ID in OneUptime based on Slack user ID
-    const userAuth: WorkspaceUserAuthToken | null =
-      await WorkspaceUserAuthTokenService.findOneBy({
-        query: {
-          workspaceUserId: userId,
-          workspaceType: WorkspaceType.Slack,
-          projectId: projectId,
-        },
-        select: {
-          userId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!userAuth || !userAuth.userId) {
-      logger.debug(
-        "No OneUptime user found for Slack user. Ignoring emoji reaction.",
-      );
-      return;
-    }
-
-    const oneUptimeUserId: ObjectID = userAuth.userId;
-
-    if (
-      !(await SlackActionAuthorization.authorize({
-        requester: {
-          userId: oneUptimeUserId,
-          projectId: projectId,
-          projectAuthToken: authToken,
-          slackUserId: userId,
-        },
-        modelType: IncidentEpisodeInternalNote,
-        action: "add a private note to this incident episode",
-        resources: [{ service: IncidentEpisodeService, id: episodeId }],
-      }))
-    ) {
-      return;
-    }
-
-    // Fetch the message text using the timestamp
-    let messageText: string | null = null;
-    try {
-      messageText = await SlackUtil.getMessageByTimestamp({
-        authToken: authToken,
-        channelId: channelId,
-        messageTs: messageTs,
-      });
-    } catch (err) {
-      logger.error("Error fetching message text:");
-      logger.error(err);
-      return;
-    }
-
-    if (!messageText) {
-      logger.debug("No message text found. Ignoring emoji reaction.");
-      return;
-    }
-
-    // Create a unique identifier for this Slack message to prevent duplicate notes
-    const postedFromSlackMessageId: string = `${channelId}:${messageTs}`;
-
-    // Check if a note from this Slack message already exists
-    const hasExistingNote: boolean =
-      await IncidentEpisodeInternalNoteService.hasNoteFromSlackMessage({
-        incidentEpisodeId: episodeId,
-        postedFromSlackMessageId: postedFromSlackMessageId,
-      });
-
-    if (hasExistingNote) {
-      logger.debug(
-        "Private note from this Slack message already exists. Skipping duplicate.",
-      );
-      return;
-    }
-
-    // Save as private note
-    try {
-      await IncidentEpisodeInternalNoteService.addNote({
-        incidentEpisodeId: episodeId,
-        note: messageText,
-        projectId: projectId,
-        userId: oneUptimeUserId,
-        postedFromSlackMessageId: postedFromSlackMessageId,
-      });
-      logger.debug("Private note added to incident episode successfully.");
-    } catch (err) {
-      logger.error("Error saving note:");
-      logger.error(err);
-      return;
-    }
-
-    // Send confirmation message as a reply to the original message thread
-    try {
-      const episodeLink: string = (
-        await IncidentEpisodeService.getEpisodeLinkInDashboard(
-          projectId,
-          episodeId,
-        )
-      ).toString();
-
-      const confirmationMessage: string = `Message saved as *private note* to <${episodeLink}|Incident Episode>.`;
-
-      await SlackUtil.sendMessageToThread({
-        authToken: authToken,
-        channelId: channelId,
-        threadTs: messageTs,
-        text: confirmationMessage,
-      });
-
-      logger.debug("Confirmation message sent successfully.");
-    } catch (err) {
-      logger.error("Error sending confirmation message:");
-      logger.error(err);
-      // Don't throw - note was saved successfully, confirmation is best effort
-    }
+  public static async handleEmojiReaction(
+    data: SlackReactionData,
+  ): Promise<void> {
+    await SlackReactionNoteActions.handleEmojiReaction({
+      ...data,
+      resourceTypes: [WorkspaceNoteResourceType.IncidentEpisode],
+    });
   }
 }

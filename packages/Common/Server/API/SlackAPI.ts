@@ -48,10 +48,10 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import Dictionary from "../../Types/Dictionary";
 import Exception from "../../Types/Exception/Exception";
 import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
-import {
-  PrivateNoteEmojis,
-  PublicNoteEmojis,
-} from "../Utils/Workspace/Slack/Actions/ActionTypes";
+import WorkspaceNoteReactionUtil from "../../Types/Workspace/WorkspaceNoteReaction";
+import SlackReactionNoteActions, {
+  SlackReactionData,
+} from "../Utils/Workspace/Slack/Actions/ReactionNote";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceActionAuthorization from "../Utils/Workspace/WorkspaceActionAuthorization";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -913,6 +913,41 @@ export default class SlackAPI {
             return Response.sendTextResponse(req, res, "ok");
           }
 
+          /*
+           * "Pin to channel" is Slack's own pin, not an emoji, and it means the
+           * same thing as a 📌 reaction: save the message as a private note.
+           * Both share one note per message, so doing both saves it once.
+           */
+          if (event["type"] === "pin_added") {
+            Response.sendTextResponse(req, res, "ok");
+
+            const pinData: SlackReactionData | null =
+              SlackReactionNoteActions.getReactionDataFromPinEvent({
+                payload: payload,
+                event: event,
+              });
+
+            if (!pinData) {
+              logger.debug(
+                "Pinned item is not a message. Skipping.",
+                getLogAttributesFromRequest(req as any),
+              );
+              return;
+            }
+
+            try {
+              await SlackReactionNoteActions.handleEmojiReaction(pinData);
+            } catch (err) {
+              logger.error(
+                "Error handling pinned message:",
+                getLogAttributesFromRequest(req as any),
+              );
+              logger.error(err, getLogAttributesFromRequest(req as any));
+            }
+
+            return;
+          }
+
           // Handle reaction_added events
           if (event["type"] === "reaction_added") {
             logger.debug(
@@ -941,11 +976,9 @@ export default class SlackAPI {
             };
 
             // OPTIMIZATION: Quick check if this is a supported emoji before any DB queries
-            const isSupportedEmoji: boolean =
-              PrivateNoteEmojis.includes(reactionData.reaction) ||
-              PublicNoteEmojis.includes(reactionData.reaction);
-
-            if (!isSupportedEmoji) {
+            if (
+              !WorkspaceNoteReactionUtil.isNoteReaction(reactionData.reaction)
+            ) {
               logger.debug(
                 `Emoji "${reactionData.reaction}" is not supported. Skipping.`,
                 getLogAttributesFromRequest(req as any),
@@ -954,58 +987,14 @@ export default class SlackAPI {
             }
 
             /*
-             * Process emoji reactions for Incidents, Alerts, and Scheduled Maintenance
-             * Each handler will silently ignore if the channel is not linked to their resource type
+             * Works out which incident, alert, scheduled maintenance or episode
+             * the channel belongs to, then saves the message as a note there.
              */
             try {
-              await SlackIncidentActions.handleEmojiReaction(reactionData);
+              await SlackReactionNoteActions.handleEmojiReaction(reactionData);
             } catch (err) {
               logger.error(
-                "Error handling incident emoji reaction:",
-                getLogAttributesFromRequest(req as any),
-              );
-              logger.error(err, getLogAttributesFromRequest(req as any));
-            }
-
-            try {
-              await SlackAlertActions.handleEmojiReaction(reactionData);
-            } catch (err) {
-              logger.error(
-                "Error handling alert emoji reaction:",
-                getLogAttributesFromRequest(req as any),
-              );
-              logger.error(err, getLogAttributesFromRequest(req as any));
-            }
-
-            try {
-              await SlackAlertEpisodeActions.handleEmojiReaction(reactionData);
-            } catch (err) {
-              logger.error(
-                "Error handling alert episode emoji reaction:",
-                getLogAttributesFromRequest(req as any),
-              );
-              logger.error(err, getLogAttributesFromRequest(req as any));
-            }
-
-            try {
-              await SlackIncidentEpisodeActions.handleEmojiReaction(
-                reactionData,
-              );
-            } catch (err) {
-              logger.error(
-                "Error handling incident episode emoji reaction:",
-                getLogAttributesFromRequest(req as any),
-              );
-              logger.error(err, getLogAttributesFromRequest(req as any));
-            }
-
-            try {
-              await SlackScheduledMaintenanceActions.handleEmojiReaction(
-                reactionData,
-              );
-            } catch (err) {
-              logger.error(
-                "Error handling scheduled maintenance emoji reaction:",
+                "Error handling emoji reaction:",
                 getLogAttributesFromRequest(req as any),
               );
               logger.error(err, getLogAttributesFromRequest(req as any));

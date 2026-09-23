@@ -71,6 +71,7 @@ const AlertsSlackPage: FunctionComponent<
             <MarkdownViewer
               text={`
 - 📌 **Pin emoji** (pushpin, round_pushpin) - React with a pin emoji to save the message as a **private note** (visible only to your team).
+- **Pin to channel** - Pinning the message with Slack's own *Pin to channel* does the same as the pin emoji.
 
 When you react with a pin emoji, OneUptime will automatically save the message content as a private note to the alert linked to that channel and confirm with a reply in the thread.
               `}
@@ -94,6 +95,7 @@ When you react with a pin emoji, OneUptime will automatically save the message c
             <MarkdownViewer
               text={`
 - 📌 **Pin emoji** (pushpin, round_pushpin) - React with a pin emoji to save the message as a **private note** (visible only to your team).
+- **Pin to channel** - Pinning the message with Slack's own *Pin to channel* does the same as the pin emoji.
 
 When you react with a pin emoji, OneUptime will automatically save the message content as a private note to the alert episode linked to that channel and confirm with a reply in the thread.
               `}
