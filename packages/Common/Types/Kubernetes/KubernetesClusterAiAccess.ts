@@ -21,23 +21,27 @@
  *                  scale one workload above zero, delete one named pod,
  *                  cordon/uncordon one node, label/annotate one pod or
  *                  workload with unreserved keys. A riskier change (patch,
- *                  set image, drain, scale to zero, deleting workloads or
- *                  jobs, anything touching several objects) never runs
- *                  without one: when the round could only find riskier fixes
- *                  it ends by proposing exactly those for one-click
- *                  approval; when it also ran safe fixes, a riskier fix is
- *                  proposed only if verification shows the safe ones did not
- *                  recover the signal (the follow-up round, which asks).
+ *                  set image, drain, taint, scale to zero, deleting
+ *                  workloads or jobs, anything touching several objects)
+ *                  never runs without one: when the round could only find
+ *                  riskier fixes it ends by proposing exactly those for
+ *                  one-click approval; when it also ran safe fixes, a
+ *                  riskier fix is proposed only if verification shows the
+ *                  safe ones did not recover the signal (the follow-up
+ *                  round, which asks).
  *                  Shapes on the cluster's kubectl allowlist run on their
  *                  own.
  * BypassApproval:  AI does not ask. Every change the policy allows — safe
- *                  AND riskier — runs on its own, follow-up rounds included.
+ *                  AND riskier — runs on its own, follow-up rounds included,
+ *                  except for what always asks (below).
  *
  * In EVERY mode, Bypass approval included: destructive commands (Denied
  * tier) never run; a write in a protected namespace (kube-system,
- * kube-public, kube-node-lease) and a node drain always need a human; the
- * in-cluster Runner never changes its own namespace; and the hourly
- * per-cluster circuit breaker turns an unattended run into a proposal.
+ * kube-public, kube-node-lease), a node drain and a node taint always need a
+ * human; the in-cluster Runner never changes its own namespace or anything
+ * outside the namespaces its chart may write; and an unattended run becomes
+ * a proposal when the hourly per-cluster circuit breaker trips or another
+ * unattended round already holds the cluster.
  */
 export enum KubernetesAiRemediationMode {
   Disabled = "Disabled",
@@ -73,7 +77,7 @@ export function isUnattendedRemediationMode(
  * RiskyWrite: a change that can alter what is deployed or affect many pods
  *             at once. Needs a human unless the operator allowlisted the
  *             exact shape on the cluster or the cluster bypasses approvals
- *             (never for protected namespaces or a drain).
+ *             (never for protected namespaces, a drain or a taint).
  * Denied:     never runs, even with human approval (exec/cp/port-forward,
  *             deleting namespaces/volumes/nodes/CRDs, RBAC grants, patches
  *             to pod identity or host access, credential flags, ...).
@@ -216,16 +220,22 @@ export function getKubernetesAgentRunnerName(
 
 /*
  * Is this Runner row one the kubernetes-agent chart registered (and an
- * ingestion key can therefore mint a key for)? Decided from the row NAME,
- * which only the server writes at registration — never from hostInfo
- * posture, which the Runner itself rewrites on every heartbeat. Such a row
- * runs kubectl with its own ServiceAccount only: it is never a Bash/SSH
- * host and is never handed a credential.
+ * ingestion key can therefore mint a key for)? Decided from the row NAME —
+ * never from hostInfo posture, which the Runner itself rewrites on every
+ * heartbeat. The name is server-owned: registration writes it, and
+ * RunnerService refuses any non-root create under the prefix and any
+ * non-root rename into or out of it, case-insensitively — so the check here
+ * is case-insensitive too. Such a row runs kubectl with its own
+ * ServiceAccount only: it is never a Bash/SSH host and is never handed a
+ * credential.
  */
 export function isKubernetesAgentRunnerName(name: unknown): boolean {
   return (
     typeof name === "string" &&
-    name.startsWith(`${KUBERNETES_AGENT_RUNNER_NAME_PREFIX}/`)
+    name
+      .trim()
+      .toLowerCase()
+      .startsWith(`${KUBERNETES_AGENT_RUNNER_NAME_PREFIX}/`)
   );
 }
 
