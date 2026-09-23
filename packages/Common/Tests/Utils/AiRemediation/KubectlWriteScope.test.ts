@@ -14,17 +14,23 @@
  *
  * Two halves: reading the namespace exactly the way kubectl does (every
  * spelling, and refusing what cannot be read for certain), and the verdict.
+ *
+ * The rule moved from the Runner into Common so the Runner, the server's
+ * enqueue chokepoint and the remediation toolkit ask ONE function; these
+ * cases moved with it unchanged (KubectlWriteScopeCallerParity holds the
+ * three callers to it).
  * ---------------------------------------------------------------------------
  */
 
 import KubectlWriteScope, {
   KubectlNamespaceResolution,
-} from "../../Utils/KubectlWriteScope";
-import KubectlArgvGuard from "../../Utils/KubectlArgvGuard";
+  KubectlWriteScopeRefusal,
+} from "../../../Utils/AiRemediation/KubectlWriteScope";
 import KubectlPolicy, {
   KubectlTokenizeResult,
-} from "Common/Utils/AiRemediation/KubectlPolicy";
-import { KubectlCommandTier } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+} from "../../../Utils/AiRemediation/KubectlPolicy";
+import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { describe, expect, test } from "@jest/globals";
 
 const POD_NAMESPACE: string = "oneuptime-agent";
 
@@ -36,14 +42,19 @@ function resolve(args: Array<string>): KubectlNamespaceResolution {
  * The verdict for a command, tokenized the way the server tokenizes it.
  * The tier is passed in rather than taken from the shared policy: this
  * layer only distinguishes Read from everything else, and its verdict must
- * not depend on how the policy happens to tier a namespace today.
+ * not depend on how the policy happens to tier a namespace today. The node
+ * switch is on: these cases are about the namespace scope.
+ *
+ * `usesCredential` picks what a missing -n means: "default" through a
+ * credential's kubeconfig, the pod's own namespace (unknown when
+ * podNamespace is null) in-cluster.
  */
 function verdict(
   command: string,
   scope: {
     writeNamespaces?: Array<string>;
     podNamespace?: string | null;
-    defaultNamespace?: string | null;
+    usesCredential?: boolean;
     tier?: KubectlCommandTier;
   } = {},
 ): string | null {
@@ -52,21 +63,23 @@ function verdict(
 
   expect(args.length).toBeGreaterThan(0);
 
-  const podNamespace: string | null =
-    scope.podNamespace === undefined ? POD_NAMESPACE : scope.podNamespace;
+  const refusal: KubectlWriteScopeRefusal | null = KubectlWriteScope.getRefusal(
+    {
+      command: {
+        args,
+        tier: scope.tier ?? KubectlCommandTier.RiskyWrite,
+        verb: KubectlPolicy.evaluateArgs(args).verb,
+        displayCommand: KubectlPolicy.renderDisplayCommand(args),
+      },
+      writeNamespaces: scope.writeNamespaces ?? [],
+      podNamespace:
+        scope.podNamespace === undefined ? POD_NAMESPACE : scope.podNamespace,
+      allowNodeOperations: true,
+      usesCredential: scope.usesCredential ?? false,
+    },
+  );
 
-  return KubectlWriteScope.getRefusalReason({
-    args,
-    tier: scope.tier ?? KubectlCommandTier.RiskyWrite,
-    verb: KubectlArgvGuard.getCertainVerb(args) || "",
-    displayCommand: KubectlPolicy.renderDisplayCommand(args),
-    writeNamespaces: scope.writeNamespaces ?? [],
-    podNamespace,
-    defaultNamespace:
-      scope.defaultNamespace === undefined
-        ? podNamespace
-        : scope.defaultNamespace,
-  });
+  return refusal ? refusal.reason : null;
 }
 
 describe("KubectlWriteScope.resolveNamespaces reads -n the way kubectl does", () => {
@@ -199,7 +212,7 @@ describe("KubectlWriteScope.resolveNamespaces reads -n the way kubectl does", ()
   );
 });
 
-describe("KubectlWriteScope.getRefusalReason", () => {
+describe("KubectlWriteScope.getRefusal: the namespace scope", () => {
   describe("the Runner pod's own namespace", () => {
     test.each([
       `kubectl scale deployment oneuptime-agent-kubernetes-agent -n ${POD_NAMESPACE} --replicas=0`,
@@ -272,7 +285,7 @@ describe("KubectlWriteScope.getRefusalReason", () => {
     test('a write with no -n on the credential path lands in "default", which is not listed', () => {
       const reason: string | null = verdict(
         "kubectl rollout restart deployment/web",
-        { writeNamespaces, podNamespace: null, defaultNamespace: "default" },
+        { writeNamespaces, podNamespace: null, usesCredential: true },
       );
 
       expect(reason).toContain('"default"');
@@ -282,7 +295,7 @@ describe("KubectlWriteScope.getRefusalReason", () => {
     test("a write with no -n whose default namespace is unknown is refused", () => {
       const reason: string | null = verdict(
         "kubectl rollout restart deployment/web",
-        { writeNamespaces, podNamespace: null, defaultNamespace: null },
+        { writeNamespaces, podNamespace: null, usesCredential: false },
       );
 
       expect(reason).toContain("names no namespace");
@@ -320,7 +333,7 @@ describe("KubectlWriteScope.getRefusalReason", () => {
         verdict("kubectl rollout restart deployment/web -l -n web", {
           writeNamespaces,
           podNamespace: null,
-          defaultNamespace: "default",
+          usesCredential: true,
         }),
       ).not.toBeNull();
     });

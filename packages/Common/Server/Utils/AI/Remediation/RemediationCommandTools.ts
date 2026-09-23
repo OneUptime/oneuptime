@@ -42,6 +42,9 @@ import KubectlPolicy, {
   KubectlAutoExecutionVerdict,
   KubectlPolicyResult,
 } from "../../../../Utils/AiRemediation/KubectlPolicy";
+import KubectlWriteScope, {
+  KubectlWriteScopeRefusal,
+} from "../../../../Utils/AiRemediation/KubectlWriteScope";
 import Runner from "../../../../Models/DatabaseModels/Runner";
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import RunbookCredential from "../../../../Models/DatabaseModels/RunbookCredential";
@@ -183,235 +186,8 @@ const CLUSTER_BREAKER_LOCK_ACQUIRE_TIMEOUT_MS: number = 20_000;
 
 export type RemediationCommandMode = "Suggest" | "FullAuto";
 
-/*
- * Reading which objects a kubectl write changes, for the pre-check against
- * the bound Runner's reported write scope (getRunnerScopeRefusal). The
- * Runner holds the authoritative check (KubectlWriteScope, before it spawns
- * kubectl); this only keeps OneUptime AI from composing, proposing or
- * approving a write that check is certain to refuse. Where this reading is
- * not certain it answers "unknown" and nothing is refused up front — the
- * Runner still decides.
- */
-
-// Verbs whose objects are always nodes (cluster-scoped: -n means nothing).
-const NODE_ONLY_VERBS: Set<string> = new Set<string>([
-  "cordon",
-  "uncordon",
-  "drain",
-  "taint",
-]);
-
 // Verbs that never run on their own in any mode, whatever the allowlist says.
 const ALWAYS_ASKS_NODE_VERBS: Set<string> = new Set<string>(["drain", "taint"]);
-
-// Verbs that name the kind they change, and may change Node objects.
-const KIND_NAMING_WRITE_VERBS: Set<string> = new Set<string>([
-  "label",
-  "annotate",
-  "patch",
-]);
-
-// Every spelling of the Node kind (resource, singular, short name).
-const NODE_KIND_SPELLINGS: Set<string> = new Set<string>([
-  "node",
-  "nodes",
-  "no",
-]);
-
-// Short flags by arity, as KubectlPolicy reads them for these verbs.
-const BOOLEAN_SHORT_FLAGS: Set<string> = new Set<string>(["A", "w", "q"]);
-const VALUE_SHORT_FLAGS: Set<string> = new Set<string>([
-  "n",
-  "o",
-  "L",
-  "l",
-  "c",
-  "p",
-  "e",
-  "r",
-]);
-
-// Long flags label/annotate/patch accept that take the next token as a value.
-const VALUE_LONG_FLAGS: Set<string> = new Set<string>([
-  "namespace",
-  "request-timeout",
-  "output",
-  "selector",
-  "labels",
-  "field-selector",
-  "patch",
-  "type",
-  "resource-version",
-  "field-manager",
-  "subresource",
-  "template",
-]);
-
-/*
- * Long flags that never take the next token: booleans, and the
- * optional-value flags that only take a value written with "=".
- */
-const NON_CONSUMING_LONG_FLAGS: Set<string> = new Set<string>([
-  "match-server-version",
-  "allow-missing-template-keys",
-  "show-managed-fields",
-  "all-namespaces",
-  "all",
-  "list",
-  "local",
-  "overwrite",
-  "record",
-  "dry-run",
-  "validate",
-]);
-
-// A negative number (`-1`): a value, never a flag.
-const NEGATIVE_NUMBER_TOKEN: RegExp = /^-\d/;
-
-type KubectlWriteTarget = "node" | "other" | "unknown";
-
-function isFlagToken(token: string): boolean {
-  return (
-    token.startsWith("-") &&
-    token !== "-" &&
-    token !== "--" &&
-    !NEGATIVE_NUMBER_TOKEN.test(token)
-  );
-}
-
-/*
- * Whether this flag token takes the NEXT token as its value — or "unknown"
- * when this reading cannot tell (a flag it does not know).
- */
-function flagTakesNextToken(token: string): boolean | "unknown" {
-  if (token.startsWith("--")) {
-    if (token.includes("=")) {
-      return false;
-    }
-
-    // kubectl reads "_" as "-" in a long flag name.
-    const name: string = token.slice(2).split("_").join("-");
-
-    if (VALUE_LONG_FLAGS.has(name)) {
-      return true;
-    }
-
-    return NON_CONSUMING_LONG_FLAGS.has(name) ? false : "unknown";
-  }
-
-  const body: string = token.slice(1);
-
-  for (let index: number = 0; index < body.length; index++) {
-    const letter: string = body[index]!;
-
-    if (letter === "=") {
-      return false;
-    }
-
-    if (BOOLEAN_SHORT_FLAGS.has(letter)) {
-      continue;
-    }
-
-    if (VALUE_SHORT_FLAGS.has(letter)) {
-      // An inline value ("-nweb") leaves nothing to take.
-      return index + 1 >= body.length;
-    }
-
-    return "unknown";
-  }
-
-  return false;
-}
-
-/*
- * Is this kind token the core Node kind? kubectl reads "RESOURCE.GROUP" and
- * "RESOURCE.VERSION.GROUP" ("nodes.v1." for the core group); a node kind in
- * any other group (metrics.k8s.io NodeMetrics) is not a Node object.
- */
-function isNodeKindToken(rawKind: string): boolean {
-  const parts: Array<string> = rawKind.toLowerCase().split(".");
-
-  if (!NODE_KIND_SPELLINGS.has(parts[0] || "")) {
-    return false;
-  }
-
-  if (parts.length === 1) {
-    return true;
-  }
-
-  const group: string =
-    parts.length === 2 ? parts[1]! : parts.slice(2).join(".");
-
-  return group === "";
-}
-
-/*
- * Does this write (argv without "kubectl") change Node objects, something
- * else, or can this reading not tell? Node verbs change nodes. label,
- * annotate and patch change whatever kind their object tokens name: the
- * first positional ("node n1", "node,pod x", "node/n1") — or, in the
- * TYPE/NAME form, every object token.
- */
-function readKubectlWriteTarget(args: Array<string>): KubectlWriteTarget {
-  const verb: string = (args[0] || "").toLowerCase();
-
-  if (NODE_ONLY_VERBS.has(verb)) {
-    return "node";
-  }
-
-  if (!KIND_NAMING_WRITE_VERBS.has(verb)) {
-    return "other";
-  }
-
-  const objectTokens: Array<string> = [];
-
-  for (let index: number = 1; index < args.length; index++) {
-    const token: string = args[index]!;
-
-    if (token === "--") {
-      return "unknown";
-    }
-
-    if (isFlagToken(token)) {
-      const takesNext: boolean | "unknown" = flagTakesNextToken(token);
-
-      if (takesNext === "unknown") {
-        return "unknown";
-      }
-
-      if (takesNext) {
-        index++;
-      }
-
-      continue;
-    }
-
-    // label/annotate: the KEY=VALUE and KEY- pairs follow the objects.
-    if (token.includes("=") || token.endsWith("-")) {
-      break;
-    }
-
-    objectTokens.push(token);
-  }
-
-  const first: string | undefined = objectTokens[0];
-
-  if (!first) {
-    return "unknown";
-  }
-
-  const kinds: Array<string> = first.includes("/")
-    ? objectTokens
-        .filter((token: string) => {
-          return token.includes("/");
-        })
-        .map((token: string) => {
-          return token.slice(0, token.indexOf("/"));
-        })
-    : first.split(",");
-
-  return kinds.some(isNodeKindToken) ? "node" : "other";
-}
 
 function quoteList(values: Array<string>): string {
   return values
@@ -799,14 +575,13 @@ export default class RemediationCommandToolkit {
 
   /*
    * Why the cluster's bound Runner would refuse this kubectl write, going by
-   * the posture it reported — or null when it would not (or this cannot
-   * tell). Mirrors the Runner's own check (KubectlWriteScope) and the node
-   * operations switch: a write whose effective namespace — the one -n names
-   * or, without -n, the Runner pod's own namespace in-cluster ("default"
-   * for a kubeconfig built from a credential) — is outside a non-empty
-   * writeNamespaces or IS the Runner's own namespace; or a change to nodes
-   * on a Runner whose node operations are off. Node changes are
-   * cluster-scoped, so the namespace scope never applies to them.
+   * the posture it reported — or null when it would not. The rule is the
+   * Runner's own (KubectlWriteScope.getRefusal, the one it asks before it
+   * spawns kubectl, and the one the enqueue chokepoint asks), with the
+   * inputs the Runner reported: its write namespaces, its own namespace,
+   * its node switch (absent is not second-guessed), and where a missing -n
+   * lands — the Runner pod's own namespace in-cluster, "default" for a
+   * kubeconfig built from a credential.
    *
    * One sentence (or two) the model or a human can act on; callers add
    * what happened.
@@ -833,58 +608,85 @@ export default class RemediationCommandToolkit {
       return null;
     }
 
-    const target: KubectlWriteTarget = readKubectlWriteTarget(policy.args);
+    const refusal: KubectlWriteScopeRefusal | null =
+      KubectlWriteScope.getRefusal({
+        command: policy,
+        writeNamespaces: posture.writeNamespaces || [],
+        podNamespace: posture.podNamespace || null,
+        allowNodeOperations: posture.allowNodeOperations !== false,
+        usesCredential: data.cluster.accessMethod !== "in_cluster",
+      });
 
-    if (target === "unknown") {
-      return null;
-    }
+    return refusal
+      ? RemediationCommandToolkit.describeRunnerScopeRefusal({
+          refusal,
+          runnerLabel: `the Runner of cluster "${data.cluster.clusterName}"`,
+        })
+      : null;
+  }
 
-    const runnerLabel: string = `the Runner of cluster "${data.cluster.clusterName}"`;
-
-    if (target === "node") {
-      return posture.allowNodeOperations === false
-        ? `"${policy.displayCommand}" changes a node, and ${runnerLabel} has node operations turned off (aiAccess.remediation.nodeOperations=false on the Kubernetes agent chart): it refuses cordon, uncordon, drain, taint and label/annotate/patch of nodes. Fix it without changing nodes, or leave the node change to a human.`
-        : null;
-    }
-
-    const writeNamespaces: Array<string> =
-      RemediationCommandToolkit.normalizeNamespaces(posture.writeNamespaces);
-    const podNamespace: string = RemediationCommandToolkit.normalizeNamespace(
-      posture.podNamespace,
-    );
-
-    if (writeNamespaces.length === 0 && !podNamespace) {
-      return null;
-    }
-
-    const explicit: boolean = policy.namespace !== undefined;
-    const namespace: string = explicit
-      ? RemediationCommandToolkit.normalizeNamespace(policy.namespace)
-      : data.cluster.accessMethod === "in_cluster"
-        ? podNamespace
-        : "default";
+  // A write-scope refusal, worded for the model and the approval card.
+  private static describeRunnerScopeRefusal(data: {
+    refusal: KubectlWriteScopeRefusal;
+    // "the Runner of cluster ..." — the subject of the refusal.
+    runnerLabel: string;
+  }): string {
+    const { refusal, runnerLabel } = data;
+    const command: string = `"${refusal.displayCommand}"`;
+    const capitalizedRunnerLabel: string = `${runnerLabel.charAt(0).toUpperCase()}${runnerLabel.slice(1)}`;
     const scope: string =
-      writeNamespaces.length > 0
-        ? ` It only lets OneUptime AI change ${quoteList(writeNamespaces)} (aiAccess.remediation.namespaces on the Kubernetes agent chart).`
+      refusal.writeNamespaces.length > 0
+        ? ` It only lets OneUptime AI change ${quoteList(refusal.writeNamespaces)} (aiAccess.remediation.namespaces on the Kubernetes agent chart).`
         : "";
+    const namespace: string = refusal.namespace || "";
+    const fix: string = refusal.fix ? ` ${refusal.fix}` : "";
+    // How the command reaches a namespace it names or implies.
+    const reaches: string =
+      refusal.namespaceSource === "default_namespace"
+        ? `names no namespace, so kubectl would run it in "${namespace}"`
+        : `would change namespace "${namespace}"`;
 
-    if (!namespace) {
-      return `"${policy.displayCommand}" names no namespace, and ${runnerLabel} cannot tell which one it would change.${scope} Name the namespace with -n <namespace>.`;
+    switch (refusal.code) {
+      case "node_operations":
+        return `${
+          refusal.uncertainty === null
+            ? `${command} changes a node, and ${runnerLabel}`
+            : `${capitalizedRunnerLabel} cannot tell for certain whether ${command} changes a node (${refusal.uncertainty}), and it`
+        } has node operations turned off (aiAccess.remediation.nodeOperations=false on the Kubernetes agent chart): it refuses cordon, uncordon, drain, taint and label/annotate/patch of nodes.${fix} Fix it without changing nodes, or leave the node change to a human.`;
+      case "objects_uncertain":
+      case "namespace_uncertain":
+        return `${capitalizedRunnerLabel} cannot tell for certain which ${
+          refusal.code === "namespace_uncertain" ? "namespace" : "objects"
+        } ${command} changes (${refusal.uncertainty}), so it refuses this command.${scope}${fix}`;
+      case "verb_mismatch":
+        return `${capitalizedRunnerLabel} reads the verb of ${command} as "${refusal.readVerb}", but the kubectl policy read "${refusal.policyVerb}", so it cannot tell for certain what the command changes and refuses it.${scope}`;
+      case "unnamed_namespace_objects":
+        return `${command} would change Namespace objects without naming them (a selector, --all or no name at all), so ${runnerLabel} cannot tell whether one of them is ${
+          refusal.podNamespace
+            ? `"${refusal.podNamespace}", where it runs`
+            : "outside the namespaces it may change"
+        }, and it refuses this command.${scope}${fix}`;
+      case "cluster_scoped":
+        return `${command} changes ${refusal.clusterScopedKinds.join(
+          ", ",
+        )} objects, which are cluster-scoped — outside every namespace, so outside the namespaces ${runnerLabel} may change, whatever -n says — so it refuses this command.${scope} Leave that change to a human.`;
+      case "all_namespaces":
+        return `${command} would change every namespace, including ones ${runnerLabel} may not change, so it refuses this command.${scope}${fix}`;
+      case "no_namespace":
+        return `${command} names no namespace, and ${runnerLabel} cannot tell which one it would change.${scope}${fix}`;
+      case "own_namespace":
+        return refusal.namespaceSource === "namespace_object"
+          ? `${command} would change the Namespace object "${namespace}", where ${runnerLabel} itself runs — it never changes its own namespace, so it refuses this command.${scope}`
+          : `${command} ${reaches}, where ${runnerLabel} itself runs — it never changes its own namespace, so it refuses this command.${scope}${fix}`;
+      case "outside_scope":
+        return refusal.namespaceSource === "namespace_object"
+          ? `${command} would change the Namespace object "${namespace}", outside the namespaces ${runnerLabel} may change (a Namespace object is judged by its name; -n does not apply to it), so it refuses this command.${scope}`
+          : `${command} ${reaches}, outside the namespaces ${runnerLabel} may change, so it refuses this command.${scope}${fix}`;
+      default: {
+        const unhandled: never = refusal.code;
+        return unhandled;
+      }
     }
-
-    if (podNamespace && namespace === podNamespace) {
-      return explicit
-        ? `"${policy.displayCommand}" would change namespace "${namespace}", where ${runnerLabel} itself runs — it never changes its own namespace, so it refuses this command.${scope}`
-        : `"${policy.displayCommand}" names no namespace, so kubectl would run it in "${namespace}", where ${runnerLabel} itself runs — it never changes its own namespace, so it refuses this command.${scope} Name the target namespace with -n <namespace>.`;
-    }
-
-    if (writeNamespaces.length > 0 && !writeNamespaces.includes(namespace)) {
-      return explicit
-        ? `"${policy.displayCommand}" would change namespace "${namespace}", outside the namespaces ${runnerLabel} may change, so it refuses this command.${scope}`
-        : `"${policy.displayCommand}" names no namespace, so kubectl would run it in "${namespace}", outside the namespaces ${runnerLabel} may change, so it refuses this command.${scope} Name the target namespace with -n <namespace>.`;
-    }
-
-    return null;
   }
 
   private static normalizeNamespace(value: string | undefined): string {

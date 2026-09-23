@@ -2,8 +2,9 @@
  * ---------------------------------------------------------------------------
  * KubectlWriteScope's own tables against the shared KubectlPolicy.
  *
- * The scope reads an argv again on the Runner, with its own copy of two
- * tables the policy also keeps:
+ * The scope reads an argv again (on the Runner before it spawns kubectl,
+ * and on the server against the Runner's reported posture), with its own
+ * copy of two tables the policy also keeps:
  *
  *   - the arity of every kubectl flag (does it take the next word as its
  *     value?). If the two ever disagree, `label --flag node n1 ...` or
@@ -20,11 +21,12 @@
  * ---------------------------------------------------------------------------
  */
 
-import KubectlWriteScope from "../../Utils/KubectlWriteScope";
+import KubectlWriteScope from "../../../Utils/AiRemediation/KubectlWriteScope";
 import KubectlPolicy, {
   KubectlPolicyResult,
-} from "Common/Utils/AiRemediation/KubectlPolicy";
-import { KubectlCommandTier } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+} from "../../../Utils/AiRemediation/KubectlPolicy";
+import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { describe, expect, test } from "@jest/globals";
 
 type Arity = "value" | "none";
 

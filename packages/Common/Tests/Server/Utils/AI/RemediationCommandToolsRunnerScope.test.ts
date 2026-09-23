@@ -46,8 +46,13 @@ import { afterEach, describe, expect, it } from "@jest/globals";
  * - node operations (cordon, uncordon, drain, taint, label/annotate/patch of
  *   nodes) are refused when node operations are off, and are never
  *   namespace-scoped (a node has no namespace);
- * - a Runner that reported nothing, or a command this reading cannot be
- *   sure about, is left to the Runner — never refused on a guess;
+ * - a Namespace object is judged by its name and any other cluster-scoped
+ *   object is outside every listed namespace, whatever -n says;
+ * - a command the Runner cannot read for certain is refused, because the
+ *   Runner refuses it — the toolkit asks the Runner's own rule
+ *   (KubectlWriteScope.getRefusal) with the posture it reported, so it
+ *   refuses exactly what the Runner refuses and nothing more;
+ * - a Runner that reported nothing is left to the Runner;
  * - list_command_targets tells the model the scope up front.
  */
 
@@ -290,13 +295,100 @@ describe("RemediationCommandToolkit.getRunnerScopeRefusal — the Runner's repor
     expect(refusalFor(command)).toContain("node operations turned off");
   });
 
-  it("never refuses on a guess: a flag the reading cannot size before the object leaves the call to the Runner", () => {
-    // --save-config is a flag the policy accepts but this reading does not size.
+  /*
+   * Used to be left "to the Runner": the toolkit's own flag table did not
+   * size --save-config, so it could not tell the Node kind — and the
+   * Runner, which sizes every flag the policy accepts, refused the node
+   * label after the approval. The shared rule reads it the Runner's way.
+   */
+  it("reads every flag the policy accepts: a node label behind --save-config is a node operation", () => {
     const command: string = "kubectl label --save-config node n1 team=a";
     expect(KubectlPolicy.evaluateCommand(command).tier).not.toBe(
       KubectlCommandTier.Denied,
     );
-    expect(refusalFor(command)).toBeNull();
+    expect(refusalFor(command)).toContain("node operations turned off");
+    // Negative control: with node operations on it is let through.
+    expect(
+      refusalFor(command, cluster({ ...SCOPED, allowNodeOperations: true })),
+    ).toBeNull();
+  });
+
+  /*
+   * Used to be left to the Runner too, which refuses a write whose objects
+   * it cannot read for certain; now refused before it is proposed.
+   */
+  it("refuses a command the Runner cannot read for certain, saying how to write it", () => {
+    const command: string = "kubectl label node/n1 pod-1 x=y -n web";
+    expect(KubectlPolicy.evaluateCommand(command).tier).not.toBe(
+      KubectlCommandTier.Denied,
+    );
+
+    const nodesOn: KubernetesClusterAiAccessStatus = cluster({
+      ...SCOPED,
+      allowNodeOperations: true,
+    });
+
+    expect(refusalFor(command, nodesOn)).toContain(
+      'The Runner of cluster "prod-us" cannot tell for certain which objects',
+    );
+    expect(refusalFor(command, nodesOn)).toContain("TYPE NAME or TYPE/NAME");
+    // With node operations off it could be one, and is refused as such.
+    expect(refusalFor(command)).toContain("cannot tell for certain whether");
+  });
+
+  describe("objects outside every namespace, judged as the Runner judges them", () => {
+    it.each([
+      [
+        "an unlisted Namespace object behind a listed -n",
+        "kubectl label namespace staging team=a -n web",
+        'would change the Namespace object "staging", outside the namespaces',
+      ],
+      [
+        "the Runner's own Namespace object",
+        "kubectl label ns oneuptime-agent team=a -n web",
+        'would change the Namespace object "oneuptime-agent", where the Runner of cluster "prod-us" itself runs',
+      ],
+      [
+        "Namespace objects it does not name",
+        "kubectl label ns --all team=a",
+        "without naming them",
+      ],
+      [
+        "a PersistentVolume behind a listed -n",
+        `kubectl patch pv pv-1 -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}' -n web`,
+        "persistentvolume objects, which are cluster-scoped",
+      ],
+      [
+        "create priorityclass",
+        "kubectl create priorityclass high --value=1000",
+        "priorityclass objects, which are cluster-scoped",
+      ],
+    ])("refuses %s", (_label: string, command: string, expected: string) => {
+      expect(KubectlPolicy.evaluateCommand(command).tier).not.toBe(
+        KubectlCommandTier.Denied,
+      );
+      const refusal: string | null = refusalFor(command);
+      expect(refusal).toContain(expected);
+      // -n means nothing for these objects; never tell the model to add one.
+      expect(refusal).not.toContain("-n <namespace>");
+    });
+
+    /*
+     * The toolkit's old reading judged this by the missing -n and refused
+     * it as a write into the Runner's own namespace; the Runner runs it.
+     */
+    it("negative control: a listed Namespace object with no -n is let through", () => {
+      expect(refusalFor("kubectl label namespace web team=a")).toBeNull();
+    });
+
+    it("negative control: without a write-namespace list, cluster-scoped objects are left to RBAC", () => {
+      expect(
+        refusalFor(
+          `kubectl patch pv pv-1 -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}'`,
+          cluster({ ...SCOPED, writeNamespaces: [] }),
+        ),
+      ).toBeNull();
+    });
   });
 });
 

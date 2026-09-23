@@ -20,24 +20,51 @@
  * other cluster-scoped object is refused while a write-namespace list is
  * set. Every command below is run through the shared KubectlPolicy first,
  * exactly as KubectlExecutor does, so the tier and verb are the executor's.
+ * The node switch is on throughout: KubectlWriteScopeEntryPoint covers it.
  * ---------------------------------------------------------------------------
  */
 
 import KubectlWriteScope, {
+  KubectlWriteScopeRefusal,
   KubectlWriteTargets,
-} from "../../Utils/KubectlWriteScope";
+} from "../../../Utils/AiRemediation/KubectlWriteScope";
 import KubectlPolicy, {
   KubectlPolicyResult,
   KubectlTokenizeResult,
-} from "Common/Utils/AiRemediation/KubectlPolicy";
-import { KubectlCommandTier } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+} from "../../../Utils/AiRemediation/KubectlPolicy";
+import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { describe, expect, test } from "@jest/globals";
 
 const POD_NAMESPACE: string = "oneuptime-agent";
 
 interface Scope {
   writeNamespaces?: Array<string>;
   podNamespace?: string | null;
-  defaultNamespace?: string | null;
+  // A missing -n means "default" (a credential's kubeconfig), not the pod's.
+  usesCredential?: boolean;
+}
+
+function reasonOf(
+  command: {
+    args: Array<string>;
+    tier: KubectlCommandTier;
+    verb: string;
+    displayCommand: string;
+  },
+  scope: Scope,
+): string | null {
+  const refusal: KubectlWriteScopeRefusal | null = KubectlWriteScope.getRefusal(
+    {
+      command,
+      writeNamespaces: scope.writeNamespaces ?? [],
+      podNamespace:
+        scope.podNamespace === undefined ? POD_NAMESPACE : scope.podNamespace,
+      allowNodeOperations: true,
+      usesCredential: scope.usesCredential ?? false,
+    },
+  );
+
+  return refusal ? refusal.reason : null;
 }
 
 function argsOf(command: string): Array<string> {
@@ -61,21 +88,7 @@ function verdict(command: string, scope: Scope = {}): string | null {
   expect(policy.tier).not.toBe(KubectlCommandTier.Denied);
   expect(policy.tier).not.toBe(KubectlCommandTier.Read);
 
-  const podNamespace: string | null =
-    scope.podNamespace === undefined ? POD_NAMESPACE : scope.podNamespace;
-
-  return KubectlWriteScope.getRefusalReason({
-    args,
-    tier: policy.tier,
-    verb: policy.verb,
-    displayCommand: policy.displayCommand,
-    writeNamespaces: scope.writeNamespaces ?? [],
-    podNamespace,
-    defaultNamespace:
-      scope.defaultNamespace === undefined
-        ? podNamespace
-        : scope.defaultNamespace,
-  });
+  return reasonOf(policy, scope);
 }
 
 /*
@@ -88,21 +101,16 @@ function verdictWithoutPolicy(
   scope: Scope & { verb?: string } = {},
 ): string | null {
   const args: Array<string> = argsOf(command);
-  const podNamespace: string | null =
-    scope.podNamespace === undefined ? POD_NAMESPACE : scope.podNamespace;
 
-  return KubectlWriteScope.getRefusalReason({
-    args,
-    tier: KubectlCommandTier.RiskyWrite,
-    verb: scope.verb ?? "",
-    displayCommand: KubectlPolicy.renderDisplayCommand(args),
-    writeNamespaces: scope.writeNamespaces ?? [],
-    podNamespace,
-    defaultNamespace:
-      scope.defaultNamespace === undefined
-        ? podNamespace
-        : scope.defaultNamespace,
-  });
+  return reasonOf(
+    {
+      args,
+      tier: KubectlCommandTier.RiskyWrite,
+      verb: scope.verb ?? "",
+      displayCommand: KubectlPolicy.renderDisplayCommand(args),
+    },
+    scope,
+  );
 }
 
 const IN_CLUSTER_SCOPES: Array<[string, Scope]> = [
@@ -235,7 +243,7 @@ describe("a Namespace object is judged by its name, not by -n", () => {
       verdict("kubectl label namespace staging team=a -n prod", {
         writeNamespaces: ["prod"],
         podNamespace: null,
-        defaultNamespace: "default",
+        usesCredential: true,
       }),
     ).toContain('Namespace object "staging"');
   });
@@ -293,7 +301,7 @@ describe("other cluster-scoped objects are outside every listed namespace", () =
       const reason: string | null = verdict(`${command} -n prod`, {
         writeNamespaces: ["prod"],
         podNamespace: null,
-        defaultNamespace: "default",
+        usesCredential: true,
       });
 
       expect(reason).toContain("cluster-scoped");

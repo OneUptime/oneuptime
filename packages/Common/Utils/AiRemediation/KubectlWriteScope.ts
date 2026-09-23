@@ -1,39 +1,64 @@
 import {
+  KUBECTL_ALLOW_NODE_OPERATIONS_ENV,
   KUBECTL_WRITE_NAMESPACES_ENV,
   KubectlCommandTier,
   RUNNER_POD_NAMESPACE_ENV,
-} from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
-import { normalizeKubectlFlagName } from "Common/Utils/AiRemediation/KubectlPolicy";
+} from "../../Types/Kubernetes/KubernetesClusterAiAccess";
+import KubectlPolicy, { normalizeKubectlFlagName } from "./KubectlPolicy";
 
 /*
- * Where an AI-composed kubectl WRITE lands, and whether this Runner lets it
- * land there — the Runner's own namespace bound, checked before anything
- * spawns and independent of RBAC.
+ * Where an AI-composed kubectl WRITE lands, and whether the Runner that
+ * runs it lets it land there — the Runner's own bound, independent of RBAC.
+ *
+ * ONE rule, asked in three places that must never disagree:
+ *
+ *   - the Runner (KubectlExecutor), before it spawns kubectl, with the
+ *     configuration it was started with — the authoritative check;
+ *   - the server's enqueue chokepoint (RunnerJobService
+ *     .getRunnerWriteScopeRefusal), with the posture that Runner reported,
+ *     so nothing is enqueued or counted by the circuit breaker only to be
+ *     refused on the Runner;
+ *   - the remediation toolkit (RemediationCommandToolkit
+ *     .getRunnerScopeRefusal), at propose and approve time, so nothing is
+ *     composed or approved only to be refused.
+ *
+ * All three call getRefusal with the same five inputs (the command, the
+ * write namespaces, the pod's namespace, the node switch, and whether
+ * kubectl runs through a credential's kubeconfig or the in-cluster
+ * ServiceAccount) and word the answer for their own reader. This module is
+ * pure: it reads no environment and no Node API; the Runner passes its
+ * configuration in, the server passes the posture.
  *
  * RBAC alone is not a namespace bound worth the name: patch/update on a
  * workload's pod template, or create on a job, is running any image as any
- * ServiceAccount of that namespace and mounting its Secrets. So the Runner
- * refuses, before spawning, every non-Read argv that changes something
+ * ServiceAccount of that namespace and mounting its Secrets. So every
+ * non-Read argv is refused that
  *
- *   - in the namespace this Runner's pod runs in (RUNNER_POD_NAMESPACE_ENV):
- *     a change there could scale the Kubernetes agent — or this Runner, and
- *     with it any rollback — away. A namespaced write with no -n runs in
- *     the pod's own namespace in-cluster, so a missing -n counts as that
- *     namespace; or
- *   - outside KUBECTL_WRITE_NAMESPACES_ENV when that list is non-empty (the
- *     chart passes the namespaces it bound write RBAC in).
+ *   - is a node operation while the node switch is off
+ *     (KUBECTL_ALLOW_NODE_OPERATIONS_ENV, the chart's
+ *     aiAccess.remediation.nodeOperations) — or might be one: a write whose
+ *     objects cannot be read for certain;
+ *   - changes something in the namespace the Runner's pod runs in
+ *     (RUNNER_POD_NAMESPACE_ENV): a change there could scale the Kubernetes
+ *     agent — or the Runner, and with it any rollback — away. A namespaced
+ *     write with no -n runs in the pod's own namespace in-cluster, so a
+ *     missing -n counts as that namespace; or
+ *   - changes something outside KUBECTL_WRITE_NAMESPACES_ENV when that list
+ *     is non-empty (the chart passes the namespaces it bound write RBAC in).
  *
  * What a write changes decides how it is judged, the way kubectl decides
  * it — kubectl ignores -n for an object that lives outside every namespace:
  *
  *   - a namespaced object (a pod, a workload, a custom resource) is judged
- *     by the namespace it lands in: -n, or the default namespace without it;
+ *     by the namespace it lands in: -n, or the default namespace without it
+ *     (the pod's own in-cluster, "default" through a credential's
+ *     kubeconfig, which names none);
  *   - a Namespace object is judged by its NAME — `label namespace X` changes
- *     namespace X, whatever -n says — so only a namespace this Runner may
+ *     namespace X, whatever -n says — so only a namespace the Runner may
  *     write in can be changed, never its own;
  *   - a Node, and every node verb (cordon, uncordon, drain, taint), is a
- *     node operation: not namespace-scoped here, but governed by the node
- *     switch (KUBECTL_ALLOW_NODE_OPERATIONS_ENV, see resolveTargets);
+ *     node operation: not namespace-scoped, but governed by the node
+ *     switch;
  *   - any other cluster-scoped object (a PersistentVolume, a StorageClass,
  *     an IngressClass, a ClusterRole, a CRD, ...) is outside every
  *     namespace: refused when the write-namespace list is non-empty (the
@@ -41,19 +66,19 @@ import { normalizeKubectlFlagName } from "Common/Utils/AiRemediation/KubectlPoli
  *     RBAC when it is empty.
  *
  * A write that changes several kinds of object meets every rule that
- * applies to one of them. Reads are never namespace-restricted.
+ * applies to one of them. Reads are never restricted.
  *
  * Only the built-in cluster-scoped kinds are known here (by every name
  * kubectl resolves: plural, singular, short name, Kind case and
  * group-qualified in their own API group). A custom resource is read as
- * namespaced — this Runner cannot run discovery before it decides — so a
+ * namespaced — nobody can run discovery before deciding — so a
  * cluster-scoped custom resource is judged by -n like a namespaced one. On
  * the in-cluster Runner with a write-namespace list its RoleBindings cannot
  * grant one anyway; elsewhere the credential's RBAC bounds it.
  *
  * The objects and the namespace are read the way kubectl reads the argv:
  * every flag by its arity (the same table the shared policy parses with —
- * a flag this Runner does not know makes the objects uncertain, which is
+ * a flag this reader does not know makes the objects uncertain, which is
  * refused), -n x, -nx, -n=x, --namespace x, --namespace=x, inside a cluster
  * of boolean short flags such as -An x. Every namespace the argv sets must
  * be allowed, not just the last one kubectl uses; a namespaced write across
@@ -490,7 +515,7 @@ interface PositionalsReading {
 }
 
 function describeUnknownFlag(flag: string): string {
-  return `"${flag}" is a flag this Runner does not know, so it cannot tell whether the flag takes the next word as its value`;
+  return `"${flag}" is a flag the write scope does not know, so whether it takes the next word as its value cannot be told`;
 }
 
 /*
@@ -658,7 +683,7 @@ function readObjectReferences(tokens: Array<string>): ObjectReferencesReading {
 
 /*
  * The built-in cluster-scoped kind a written kind names, or null for any
- * other kind (namespaced, or a custom resource whose scope this Runner
+ * other kind (namespaced, or a custom resource whose scope this reader
  * cannot see). kubectl reads "RESOURCE.GROUP" and "RESOURCE.VERSION.GROUP"
  * ("nodes.v1." for the core group); only the kind's own group counts.
  */
@@ -696,7 +721,7 @@ function clusterScopedKindOf(rawKind: string): string | null {
 }
 
 /*
- * What a write changes, as far as this Runner's scope rules care (see the
+ * What a write changes, as far as the scope rules care (see the
  * header). Everything is decided from the argv alone.
  */
 export interface KubectlWriteTargets {
@@ -893,6 +918,289 @@ function mayTakeNextToken(token: string): "no" | "maybe" {
   return "no";
 }
 
+/*
+ * A command as the write scope judges it: the argv and what the shared
+ * policy made of it. A KubectlPolicyResult is one.
+ */
+export interface KubectlWriteScopeCommand {
+  // The argv, without the leading "kubectl".
+  args: Array<string>;
+  // Only Read is exempt; every other tier is judged as a write.
+  tier: KubectlCommandTier;
+  /*
+   * The policy's verb label ("rollout restart"). The objects are read here
+   * again, and a reading whose verb disagrees with it is refused; ""
+   * skips that cross-check.
+   */
+  verb: string;
+  // The command as rendered for humans, for messages.
+  displayCommand: string;
+}
+
+// Everything the one write-scope question is asked with (see getRefusal).
+export interface KubectlWriteScopeInput {
+  /*
+   * The command: the shared policy's verdict on it (a KubectlPolicyResult,
+   * which every caller already has), or its argv, which is then evaluated
+   * with KubectlPolicy.evaluateArgs — what the Runner does with the argv it
+   * receives.
+   */
+  command: KubectlWriteScopeCommand | Array<string>;
+  /*
+   * The namespaces AI-composed writes may land in
+   * (KUBECTL_WRITE_NAMESPACES_ENV, the chart's
+   * aiAccess.remediation.namespaces); empty means cluster-wide.
+   */
+  writeNamespaces: Array<string>;
+  /*
+   * The namespace the Runner's own pod runs in (RUNNER_POD_NAMESPACE_ENV),
+   * or null when it is not known.
+   */
+  podNamespace: string | null;
+  /*
+   * The node switch (KUBECTL_ALLOW_NODE_OPERATIONS_ENV), as the Runner
+   * applies it.
+   */
+  allowNodeOperations: boolean;
+  /*
+   * Whether kubectl runs through a kubeconfig built from a Kubernetes
+   * credential — which names no namespace, so a missing -n means
+   * "default" — rather than with the in-cluster Runner's own
+   * ServiceAccount, where a missing -n means the pod's own namespace.
+   */
+  usesCredential: boolean;
+}
+
+/*
+ * Why a write is refused. Every caller words the refusal for its own
+ * reader from the facts that come with it.
+ */
+export type KubectlWriteScopeRefusalCode =
+  /*
+   * A node operation while the node switch is off — or, when `uncertainty`
+   * is set, a write whose objects cannot be read for certain, which could
+   * be one.
+   */
+  | "node_operations"
+  // The objects the write changes cannot be read for certain.
+  | "objects_uncertain"
+  // The namespace the write lands in cannot be read for certain.
+  | "namespace_uncertain"
+  // The objects were read with another verb than the policy's.
+  | "verb_mismatch"
+  // It changes Namespace objects it does not name (a selector, --all).
+  | "unnamed_namespace_objects"
+  // It changes other cluster-scoped objects while a write list is set.
+  | "cluster_scoped"
+  // A namespaced write across every namespace (-A).
+  | "all_namespaces"
+  // A namespaced write with no -n, where the default namespace is unknown.
+  | "no_namespace"
+  // It changes the Runner's own namespace.
+  | "own_namespace"
+  // It changes a namespace outside the write-namespace list.
+  | "outside_scope";
+
+// How an own_namespace or outside_scope write reaches its namespace.
+export type KubectlWriteScopeNamespaceSource =
+  // It changes that Namespace object, which is judged by its name.
+  | "namespace_object"
+  // -n / --namespace names it.
+  | "namespace_flag"
+  // It names no namespace, and kubectl would use this one.
+  | "default_namespace";
+
+// The facts behind a refusal, for callers that word it themselves.
+export interface KubectlWriteScopeRefusalFacts {
+  code: KubectlWriteScopeRefusalCode;
+  // The command as rendered for humans.
+  displayCommand: string;
+  // The scope it was judged against, trimmed and lowercased.
+  writeNamespaces: Array<string>;
+  // The Runner pod's namespace, trimmed and lowercased; "" when unknown.
+  podNamespace: string;
+  // own_namespace, outside_scope: the namespace, and how the write reaches it.
+  namespace: string | null;
+  namespaceSource: KubectlWriteScopeNamespaceSource | null;
+  /*
+   * Why the reading is not certain: set for objects_uncertain and
+   * namespace_uncertain, and for node_operations when the write only
+   * might be one.
+   */
+  uncertainty: string | null;
+  // cluster_scoped: the kinds it changes.
+  clusterScopedKinds: Array<string>;
+  // verb_mismatch: the verb read here, and the policy's.
+  readVerb: string;
+  policyVerb: string;
+  /*
+   * What to change in the command itself so it can be read or run, as a
+   * sentence for whoever composes it — or "" when no rewrite of the
+   * command helps (the node switch, a namespace outside the scope).
+   */
+  fix: string;
+}
+
+export interface KubectlWriteScopeRefusal
+  extends KubectlWriteScopeRefusalFacts {
+  /*
+   * The whole refusal in the Runner's own words ("this Runner ..."), as it
+   * reports it after "Refused by the Runner: ".
+   */
+  reason: string;
+}
+
+const FIX_PUT_THE_NAMESPACE_FIRST: string =
+  "Put the namespace first so it cannot be misread: kubectl -n <namespace> ...";
+const FIX_NAME_THE_OBJECTS: string =
+  'Name the objects right after the verb (TYPE NAME or TYPE/NAME) and give each flag its value with "=" (--selector=app=web).';
+const FIX_NAME_EACH_NAMESPACE_OBJECT: string = "Name each Namespace object.";
+const FIX_NAME_ONE_NAMESPACE: string =
+  "Name one namespace with -n <namespace>.";
+const FIX_NAME_THE_NAMESPACE: string =
+  "Name the namespace with -n <namespace>.";
+const FIX_NAME_THE_TARGET_NAMESPACE: string =
+  "Name the target namespace with -n <namespace>.";
+
+function normalizeNamespace(value: string | null | undefined): string {
+  return (value || "").trim().toLowerCase();
+}
+
+function normalizeNamespaces(
+  values: Array<string> | null | undefined,
+): Array<string> {
+  return (values || [])
+    .map((value: string) => {
+      return normalizeNamespace(value);
+    })
+    .filter((value: string) => {
+      return value.length > 0;
+    });
+}
+
+// The Runner's scope, in its own words, for the end of a refusal.
+function describeRunnerScope(data: {
+  writeNamespaces: Array<string>;
+  podNamespace: string;
+}): string {
+  const parts: Array<string> = [];
+
+  if (data.writeNamespaces.length > 0) {
+    parts.push(
+      `This Runner only lets OneUptime AI change ${data.writeNamespaces
+        .map((namespace: string) => {
+          return `"${namespace}"`;
+        })
+        .join(
+          ", ",
+        )} (${KUBECTL_WRITE_NAMESPACES_ENV}, from aiAccess.remediation.namespaces on the Kubernetes agent chart).`,
+    );
+  }
+
+  if (data.podNamespace) {
+    parts.push(
+      `It never changes its own namespace "${data.podNamespace}" (${RUNNER_POD_NAMESPACE_ENV}).`,
+    );
+  }
+
+  parts.push("Reads are not restricted.");
+
+  return parts.join(" ");
+}
+
+// A sentence and, when there is one, the fix after it.
+function withFix(sentence: string, fix: string): string {
+  return fix ? `${sentence} ${fix}` : sentence;
+}
+
+/*
+ * A refusal in the Runner's own words. The Runner reports a node-switch
+ * refusal with its own host's setting instead (KubectlExecutor); this
+ * wording is the fallback that names the variable.
+ */
+function describeForRunner(refusal: KubectlWriteScopeRefusalFacts): string {
+  const command: string = refusal.displayCommand;
+  const scope: string = describeRunnerScope(refusal);
+  const target: string = refusal.namespace || "";
+
+  switch (refusal.code) {
+    case "node_operations":
+      return withFix(
+        `${
+          refusal.uncertainty === null
+            ? `"${command}" is a node operation (cordon, uncordon, drain, taint, or a change to a Node object)`
+            : `this Runner cannot tell for certain whether "${command}" changes a node (${refusal.uncertainty})`
+        }, and this Runner does not allow AI-composed node operations (${KUBECTL_ALLOW_NODE_OPERATIONS_ENV}).`,
+        refusal.fix,
+      );
+    case "namespace_uncertain":
+      return withFix(
+        `this Runner cannot tell for certain which namespace "${command}" changes (${refusal.uncertainty}). ${scope}`,
+        refusal.fix,
+      );
+    case "objects_uncertain":
+      return withFix(
+        `this Runner cannot tell for certain which objects "${command}" changes (${refusal.uncertainty}). ${scope}`,
+        refusal.fix,
+      );
+    case "verb_mismatch":
+      return `this Runner reads the verb of "${command}" as "${refusal.readVerb}", but the kubectl policy read "${refusal.policyVerb}", so it cannot tell for certain what the command changes. ${scope}`;
+    case "unnamed_namespace_objects":
+      return withFix(
+        `"${command}" would change Namespace objects without naming them (a selector, --all or no name at all), so this Runner cannot tell whether one of them is ${
+          refusal.podNamespace
+            ? `"${refusal.podNamespace}", the namespace it runs in`
+            : "outside the namespaces it lets OneUptime AI change"
+        }. ${scope}`,
+        refusal.fix,
+      );
+    case "cluster_scoped":
+      return `"${command}" changes ${refusal.clusterScopedKinds.join(
+        ", ",
+      )} objects, which are cluster-scoped: they live outside every namespace, so outside the namespaces this Runner lets OneUptime AI change, whatever -n says. ${scope}`;
+    case "all_namespaces":
+      return withFix(
+        `"${command}" would change every namespace, including ones this Runner may not change. ${scope}`,
+        refusal.fix,
+      );
+    case "no_namespace":
+      return withFix(
+        `"${command}" names no namespace and this Runner cannot tell which one it would change. ${scope}`,
+        refusal.fix,
+      );
+    case "own_namespace":
+      if (refusal.namespaceSource === "namespace_object") {
+        return `"${command}" would change the Namespace object "${target}" — the namespace this Runner itself runs in; a change there could reconfigure the Kubernetes agent or this Runner, so OneUptime AI never makes one. ${scope}`;
+      }
+
+      return withFix(
+        `"${command}" ${
+          refusal.namespaceSource === "namespace_flag"
+            ? `would change namespace "${target}"`
+            : `names no namespace, so kubectl would run it in "${target}"`
+        }, the namespace this Runner itself runs in — a change there could scale away or reconfigure the Kubernetes agent or this Runner, so OneUptime AI never makes one. ${scope}`,
+        refusal.fix,
+      );
+    case "outside_scope":
+      if (refusal.namespaceSource === "namespace_object") {
+        return `"${command}" would change the Namespace object "${target}", which is outside the namespaces this Runner lets OneUptime AI change (a Namespace object is judged by its name; -n does not apply to it). ${scope}`;
+      }
+
+      return withFix(
+        `"${command}" ${
+          refusal.namespaceSource === "namespace_flag"
+            ? `would change namespace "${target}"`
+            : `names no namespace, so kubectl would run it in "${target}"`
+        }, which is outside the namespaces this Runner lets OneUptime AI change. ${scope}`,
+        refusal.fix,
+      );
+    default: {
+      const unhandled: never = refusal.code;
+      return unhandled;
+    }
+  }
+}
+
 export default class KubectlWriteScope {
   /*
    * The namespaces an argv sets, read the way kubectl reads them, or why
@@ -952,7 +1260,7 @@ export default class KubectlWriteScope {
 
       if (flag.kind === "uncertain") {
         return ambiguous(
-          `"${token}" combines "n" with a short flag this Runner does not know`,
+          `"${token}" combines "n" with a short flag the write scope does not know`,
         );
       }
 
@@ -979,8 +1287,8 @@ export default class KubectlWriteScope {
    * What a write changes, read from the argv the way kubectl reads it (see
    * the header): whether it is a node operation, which Namespace objects
    * and other cluster-scoped kinds it names, and whether anything it
-   * changes lives in a namespace. The executor also asks this for the node
-   * switch (KUBECTL_ALLOW_NODE_OPERATIONS_ENV), before the namespace scope.
+   * changes lives in a namespace. getRefusal judges both the node switch
+   * and the namespace scope from this one reading.
    */
   public static resolveTargets(args: Array<string>): KubectlWriteTargets {
     const targets: KubectlWriteTargets = {
@@ -1015,7 +1323,7 @@ export default class KubectlWriteScope {
       const subcommand: string = positionals[1] || "";
 
       if (!hasOwn(CREATE_SUBCOMMAND_SCOPES, subcommand)) {
-        targets.uncertainty = `"create ${subcommand}" is not a kubectl create subcommand this Runner knows`;
+        targets.uncertainty = `"create ${subcommand}" is not a kubectl create subcommand the write scope knows`;
         return targets;
       }
 
@@ -1101,7 +1409,7 @@ export default class KubectlWriteScope {
 
   /*
    * Test seams, so a test can hold these tables against the shared policy's
-   * own verdicts: every flag name this Runner knows the arity of, a flag's
+   * own verdicts: every flag name this reader knows the arity of, a flag's
    * arity ("value", "none", or null when unknown), every kind spelling it
    * knows is cluster-scoped, and the cluster-scoped kind a spelling names.
    */
@@ -1141,52 +1449,87 @@ export default class KubectlWriteScope {
   }
 
   /*
-   * Why this Runner will not run this argv where it lands, or null when it
-   * may. `defaultNamespace` is what a missing -n means on this path: the
-   * pod's own namespace in-cluster (null when unknown), "default" for a
-   * kubeconfig built from a credential (it names no namespace). `verb` is
-   * the shared policy's verb label; the objects are read here again, and a
-   * reading that disagrees with the policy's verb is refused.
+   * THE write-scope question, for every caller (see the header): why the
+   * Runner will not run this command where it lands — or null when it
+   * will. Read commands are never refused; every other tier is judged as a
+   * write (the policy refuses a Denied one on its own, before or after).
    *
-   * Node operations are not namespace-scoped here; the executor holds them
-   * to the node switch before it asks this.
+   * In order: the node switch (a node operation, or a write whose objects
+   * cannot be read for certain, while it is off); then, when a scope is
+   * set at all (write namespaces, or a known pod namespace), what the write
+   * changes — Namespace objects by name, other cluster-scoped objects
+   * against the write-namespace list, and namespaced objects by the
+   * namespace they land in.
    */
-  public static getRefusalReason(data: {
-    args: Array<string>;
-    tier: KubectlCommandTier;
-    verb: string;
-    displayCommand: string;
-    writeNamespaces: Array<string>;
-    podNamespace: string | null;
-    defaultNamespace: string | null;
-  }): string | null {
-    if (data.tier === KubectlCommandTier.Read) {
+  public static getRefusal(
+    input: KubectlWriteScopeInput,
+  ): KubectlWriteScopeRefusal | null {
+    const command: KubectlWriteScopeCommand = Array.isArray(input.command)
+      ? KubectlPolicy.evaluateArgs(input.command)
+      : input.command;
+
+    if (command.tier === KubectlCommandTier.Read) {
       return null;
     }
 
-    const writeNamespaces: Array<string> = data.writeNamespaces
-      .map((namespace: string) => {
-        return namespace.trim().toLowerCase();
-      })
-      .filter((namespace: string) => {
-        return namespace.length > 0;
-      });
-    const podNamespace: string =
-      (data.podNamespace || "").trim().toLowerCase() || "";
+    const writeNamespaces: Array<string> = normalizeNamespaces(
+      input.writeNamespaces,
+    );
+    const podNamespace: string = normalizeNamespace(input.podNamespace);
+    const hasScope: boolean = writeNamespaces.length > 0 || podNamespace !== "";
 
-    if (writeNamespaces.length === 0 && !podNamespace) {
+    if (input.allowNodeOperations && !hasScope) {
       return null;
     }
 
-    const command: string = data.displayCommand;
-    const scopeDescription: string = KubectlWriteScope.describeScope({
-      writeNamespaces,
-      podNamespace,
-    });
+    const refuse: (
+      code: KubectlWriteScopeRefusalCode,
+      facts?: Partial<KubectlWriteScopeRefusalFacts>,
+    ) => KubectlWriteScopeRefusal = (
+      code: KubectlWriteScopeRefusalCode,
+      facts: Partial<KubectlWriteScopeRefusalFacts> = {},
+    ): KubectlWriteScopeRefusal => {
+      const refusalFacts: KubectlWriteScopeRefusalFacts = {
+        code,
+        displayCommand: command.displayCommand,
+        writeNamespaces,
+        podNamespace,
+        namespace: null,
+        namespaceSource: null,
+        uncertainty: null,
+        clusterScopedKinds: [],
+        readVerb: "",
+        policyVerb: "",
+        fix: "",
+        ...facts,
+      };
+
+      return { ...refusalFacts, reason: describeForRunner(refusalFacts) };
+    };
 
     const targets: KubectlWriteTargets = KubectlWriteScope.resolveTargets(
-      data.args,
+      command.args,
     );
+
+    /*
+     * The node switch: nodes are cluster-scoped, so no namespace scope can
+     * bound them, and the chart's node role is optional. A write whose
+     * objects cannot be read for certain could be a node operation, so it
+     * is refused too.
+     */
+    if (
+      !input.allowNodeOperations &&
+      (targets.touchesNodes || targets.uncertainty !== null)
+    ) {
+      return refuse("node_operations", {
+        uncertainty: targets.uncertainty,
+        fix: targets.uncertainty === null ? "" : FIX_NAME_THE_OBJECTS,
+      });
+    }
+
+    if (!hasScope) {
+      return null;
+    }
 
     if (targets.uncertainty !== null) {
       /*
@@ -1195,19 +1538,28 @@ export default class KubectlWriteScope {
        * spelling that cannot be misread.
        */
       const namespaceReading: KubectlNamespaceResolution =
-        KubectlWriteScope.resolveNamespaces(data.args);
+        KubectlWriteScope.resolveNamespaces(command.args);
 
       if (namespaceReading.ambiguity) {
-        return `this Runner cannot tell for certain which namespace "${command}" changes (${namespaceReading.ambiguity}). ${scopeDescription} Put the namespace first so it cannot be misread: kubectl -n <namespace> ...`;
+        return refuse("namespace_uncertain", {
+          uncertainty: namespaceReading.ambiguity,
+          fix: FIX_PUT_THE_NAMESPACE_FIRST,
+        });
       }
 
-      return `this Runner cannot tell for certain which objects "${command}" changes (${targets.uncertainty}). ${scopeDescription} Name the objects right after the verb (TYPE NAME or TYPE/NAME) and give each flag its value with "=" (--selector=app=web).`;
+      return refuse("objects_uncertain", {
+        uncertainty: targets.uncertainty,
+        fix: FIX_NAME_THE_OBJECTS,
+      });
     }
 
-    const policyVerb: string = (data.verb.split(" ")[0] || "").toLowerCase();
+    const policyVerb: string = (command.verb.split(" ")[0] || "").toLowerCase();
 
     if (policyVerb && policyVerb !== targets.verb) {
-      return `this Runner reads the verb of "${command}" as "${targets.verb}", but the kubectl policy read "${policyVerb}", so it cannot tell for certain what the command changes. ${scopeDescription}`;
+      return refuse("verb_mismatch", {
+        readVerb: targets.verb,
+        policyVerb,
+      });
     }
 
     /*
@@ -1215,20 +1567,24 @@ export default class KubectlWriteScope {
      * so `label namespace X ... -n <allowed>` changes X.
      */
     if (targets.unnamedNamespaceObjects) {
-      return `"${command}" would change Namespace objects without naming them (a selector, --all or no name at all), so this Runner cannot tell whether one of them is ${
-        podNamespace
-          ? `"${podNamespace}", the namespace it runs in`
-          : "outside the namespaces it lets OneUptime AI change"
-      }. ${scopeDescription} Name each Namespace object.`;
+      return refuse("unnamed_namespace_objects", {
+        fix: FIX_NAME_EACH_NAMESPACE_OBJECT,
+      });
     }
 
     for (const name of targets.namespaceObjects) {
       if (podNamespace && name === podNamespace) {
-        return `"${command}" would change the Namespace object "${name}" — the namespace this Runner itself runs in; a change there could reconfigure the Kubernetes agent or this Runner, so OneUptime AI never makes one. ${scopeDescription}`;
+        return refuse("own_namespace", {
+          namespace: name,
+          namespaceSource: "namespace_object",
+        });
       }
 
       if (writeNamespaces.length > 0 && !writeNamespaces.includes(name)) {
-        return `"${command}" would change the Namespace object "${name}", which is outside the namespaces this Runner lets OneUptime AI change (a Namespace object is judged by its name; -n does not apply to it). ${scopeDescription}`;
+        return refuse("outside_scope", {
+          namespace: name,
+          namespaceSource: "namespace_object",
+        });
       }
     }
 
@@ -1237,9 +1593,9 @@ export default class KubectlWriteScope {
      * outside every listed one. Without a list, RBAC bounds it.
      */
     if (targets.clusterScopedKinds.length > 0 && writeNamespaces.length > 0) {
-      return `"${command}" changes ${targets.clusterScopedKinds.join(
-        ", ",
-      )} objects, which are cluster-scoped: they live outside every namespace, so outside the namespaces this Runner lets OneUptime AI change, whatever -n says. ${scopeDescription}`;
+      return refuse("cluster_scoped", {
+        clusterScopedKinds: [...targets.clusterScopedKinds],
+      });
     }
 
     if (!targets.namespaced) {
@@ -1247,75 +1603,65 @@ export default class KubectlWriteScope {
     }
 
     const resolution: KubectlNamespaceResolution =
-      KubectlWriteScope.resolveNamespaces(data.args);
+      KubectlWriteScope.resolveNamespaces(command.args);
 
     if (resolution.ambiguity) {
-      return `this Runner cannot tell for certain which namespace "${command}" changes (${resolution.ambiguity}). ${scopeDescription} Put the namespace first so it cannot be misread: kubectl -n <namespace> ...`;
+      return refuse("namespace_uncertain", {
+        uncertainty: resolution.ambiguity,
+        fix: FIX_PUT_THE_NAMESPACE_FIRST,
+      });
     }
 
     /*
      * The shared policy already denies a write across all namespaces; this
-     * layer does not rely on that — every namespace includes the ones this
+     * layer does not rely on that — every namespace includes the ones the
      * Runner may not change.
      */
     if (resolution.allNamespaces) {
-      return `"${command}" would change every namespace, including ones this Runner may not change. ${scopeDescription} Name one namespace with -n <namespace>.`;
+      return refuse("all_namespaces", { fix: FIX_NAME_ONE_NAMESPACE });
     }
 
     const explicit: boolean = resolution.namespaces.length > 0;
+    const source: KubectlWriteScopeNamespaceSource = explicit
+      ? "namespace_flag"
+      : "default_namespace";
+    // What a missing -n means: see KubectlWriteScopeInput.usesCredential.
+    const defaultNamespace: string = input.usesCredential
+      ? "default"
+      : podNamespace;
+    /*
+     * Every namespace the argv sets, blanks kept: `-n ""` names no
+     * namespace kubectl could be held to.
+     */
     const namespaces: Array<string> = explicit
       ? resolution.namespaces.map((namespace: string) => {
-          return namespace.trim().toLowerCase();
+          return normalizeNamespace(namespace);
         })
-      : [(data.defaultNamespace || "").trim().toLowerCase()];
+      : [defaultNamespace];
+    const fix: string = explicit ? "" : FIX_NAME_THE_TARGET_NAMESPACE;
 
     for (const target of namespaces) {
       if (!target) {
-        return `"${command}" names no namespace and this Runner cannot tell which one it would change. ${scopeDescription} Name the namespace with -n <namespace>.`;
+        return refuse("no_namespace", { fix: FIX_NAME_THE_NAMESPACE });
       }
 
       if (podNamespace && target === podNamespace) {
-        return explicit
-          ? `"${command}" would change namespace "${target}", the namespace this Runner itself runs in — a change there could scale away or reconfigure the Kubernetes agent or this Runner, so OneUptime AI never makes one. ${scopeDescription}`
-          : `"${command}" names no namespace, so kubectl would run it in "${target}", the namespace this Runner itself runs in — a change there could scale away or reconfigure the Kubernetes agent or this Runner, so OneUptime AI never makes one. ${scopeDescription} Name the target namespace with -n <namespace>.`;
+        return refuse("own_namespace", {
+          namespace: target,
+          namespaceSource: source,
+          fix,
+        });
       }
 
       if (writeNamespaces.length > 0 && !writeNamespaces.includes(target)) {
-        return explicit
-          ? `"${command}" would change namespace "${target}", which is outside the namespaces this Runner lets OneUptime AI change. ${scopeDescription}`
-          : `"${command}" names no namespace, so kubectl would run it in "${target}", which is outside the namespaces this Runner lets OneUptime AI change. ${scopeDescription} Name the target namespace with -n <namespace>.`;
+        return refuse("outside_scope", {
+          namespace: target,
+          namespaceSource: source,
+          fix,
+        });
       }
     }
 
     return null;
-  }
-
-  private static describeScope(data: {
-    writeNamespaces: Array<string>;
-    podNamespace: string;
-  }): string {
-    const parts: Array<string> = [];
-
-    if (data.writeNamespaces.length > 0) {
-      parts.push(
-        `This Runner only lets OneUptime AI change ${data.writeNamespaces
-          .map((namespace: string) => {
-            return `"${namespace}"`;
-          })
-          .join(
-            ", ",
-          )} (${KUBECTL_WRITE_NAMESPACES_ENV}, from aiAccess.remediation.namespaces on the Kubernetes agent chart).`,
-      );
-    }
-
-    if (data.podNamespace) {
-      parts.push(
-        `It never changes its own namespace "${data.podNamespace}" (${RUNNER_POD_NAMESPACE_ENV}).`,
-      );
-    }
-
-    parts.push("Reads are not restricted.");
-
-    return parts.join(" ");
   }
 }

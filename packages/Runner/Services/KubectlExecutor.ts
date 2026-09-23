@@ -7,8 +7,8 @@ import KubernetesPosture from "../Utils/KubernetesPosture";
 import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
 import KubectlArgvGuard from "../Utils/KubectlArgvGuard";
 import KubectlWriteScope, {
-  KubectlWriteTargets,
-} from "../Utils/KubectlWriteScope";
+  KubectlWriteScopeRefusal,
+} from "Common/Utils/AiRemediation/KubectlWriteScope";
 import { JSONObject } from "Common/Types/JSON";
 import RunnerJobOrigin from "Common/Types/Runbook/RunnerJobOrigin";
 import {
@@ -369,60 +369,45 @@ export default class KubectlExecutor {
       };
     }
 
-    /*
-     * Node operations have their own switch: nodes are cluster-scoped, so
-     * the namespace scope below cannot bound them, and the chart's node
-     * role is optional. A write whose objects cannot be read for certain
-     * could be one, so it is refused too.
-     */
-    if (
-      policy.tier !== KubectlCommandTier.Read &&
-      !KubernetesPosture.allowsNodeOperations()
-    ) {
-      const targets: KubectlWriteTargets =
-        KubectlWriteScope.resolveTargets(args);
-
-      if (targets.touchesNodes || targets.uncertainty !== null) {
-        return {
-          success: false,
-          output: "",
-          errorMessage: KubectlExecutor.describeNodeOperationsRefused({
-            displayCommand: policy.displayCommand,
-            uncertainty: targets.uncertainty,
-          }),
-        };
-      }
-    }
-
     const apiServerUrl: string = String(
       data.credential?.["apiServerUrl"] || "",
     );
     const token: string = String(data.credential?.["token"] || "");
     const usesCredential: boolean = Boolean(apiServerUrl && token);
 
-    // ---- Where a write may land. ----------------------------------------
-
-    const scopeRefusal: string | null = KubectlWriteScope.getRefusalReason({
-      args,
-      tier: policy.tier,
-      verb: policy.verb,
-      displayCommand: policy.displayCommand,
-      writeNamespaces: KubernetesPosture.getWriteNamespaces(),
-      podNamespace: KubernetesPosture.getPodNamespace(),
-      /*
-       * What a missing -n means: the pod's own namespace in-cluster, and
-       * "default" for the kubeconfig built below, which names none.
-       */
-      defaultNamespace: usesCredential
-        ? "default"
-        : KubernetesPosture.getPodNamespace(),
-    });
+    /*
+     * ---- Where a write may land, and whether it may change nodes. ------
+     *
+     * The one write-scope rule the server also asks with this Runner's
+     * reported posture (KubectlWriteScope.getRefusal), here with the
+     * configuration this Runner was started with. Node operations have
+     * their own switch: nodes are cluster-scoped, so the namespace scope
+     * cannot bound them, and the chart's node role is optional.
+     */
+    const scopeRefusal: KubectlWriteScopeRefusal | null =
+      KubectlWriteScope.getRefusal({
+        command: policy,
+        writeNamespaces: KubernetesPosture.getWriteNamespaces(),
+        podNamespace: KubernetesPosture.getPodNamespace(),
+        allowNodeOperations: KubernetesPosture.allowsNodeOperations(),
+        /*
+         * A missing -n means the pod's own namespace in-cluster, and
+         * "default" for the kubeconfig built below, which names none.
+         */
+        usesCredential,
+      });
 
     if (scopeRefusal) {
       return {
         success: false,
         output: "",
-        errorMessage: `Refused by the Runner: ${scopeRefusal}`,
+        errorMessage:
+          scopeRefusal.code === "node_operations"
+            ? KubectlExecutor.describeNodeOperationsRefused({
+                displayCommand: policy.displayCommand,
+                uncertainty: scopeRefusal.uncertainty,
+              })
+            : `Refused by the Runner: ${scopeRefusal.reason}`,
       };
     }
 

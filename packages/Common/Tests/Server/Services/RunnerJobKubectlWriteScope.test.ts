@@ -1,7 +1,5 @@
 import RunnerJobService, {
   Service as RunnerJobServiceClass,
-  describeKubectlWriteTarget,
-  readKubectlObjectKind,
 } from "../../../Server/Services/RunnerJobService";
 import AIRunService from "../../../Server/Services/AIRunService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
@@ -38,9 +36,17 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * each refusal naming the chart value to change, and nothing created (so
  * nothing is approved, enqueued or counted by the circuit breaker only to be
  * refused on the Runner). It never refuses MORE than the Runner would: reads
- * are never scoped, node operations and other cluster-scoped objects are in
- * no namespace, and a Runner that did not report a setting is not
- * second-guessed.
+ * are never scoped, node operations are in no namespace, and a Runner that
+ * did not report a setting is not second-guessed.
+ *
+ * The rule is the Runner's own (KubectlWriteScope.getRefusal, asked with
+ * the posture it reported), so it also refuses what the Runner refuses and
+ * the chokepoint's old reading let through: a Namespace object outside the
+ * scope behind a listed -n, a PersistentVolume or other cluster-scoped
+ * object while a write-namespace list is set, a write with no -n when the
+ * Runner reported no namespace of its own, and a write it cannot read for
+ * certain. KubectlWriteScopeCallerParity holds it to the Runner and the
+ * toolkit over the whole table.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -283,10 +289,29 @@ describe("RunnerJobService.enqueueAiKubectlCommand refuses writes the Runner's p
       expect(createdRows).toHaveLength(2);
     });
 
-    it("negative control: a write with no -n and no known pod namespace is left to the Runner", async () => {
+    /*
+     * Used to be enqueued "for the Runner to decide" — and the Runner
+     * refuses it: in-cluster, a missing -n is its pod's namespace, and a
+     * Runner that does not know that namespace cannot tell where the write
+     * lands. Refused here now, as the Runner refuses it.
+     */
+    it("refuses a write with no -n when the Runner reported no namespace of its own", async () => {
       runnerLookup.mockResolvedValue(agentRunner({ writeNamespaces: ["web"] }));
 
-      await enqueue("kubectl rollout restart deployment/web");
+      const message: string = await refusal(
+        "kubectl rollout restart deployment/web",
+      );
+
+      expect(message).toContain("names no namespace");
+      expect(message).toContain("was not enqueued");
+      expect(message).toContain("-n <namespace>");
+      expect(createdRows).toHaveLength(0);
+    });
+
+    it("negative control: the same write naming its namespace is enqueued", async () => {
+      runnerLookup.mockResolvedValue(agentRunner({ writeNamespaces: ["web"] }));
+
+      await enqueue(SAFE_WRITE);
 
       expect(createdRows).toHaveLength(1);
     });
@@ -308,53 +333,92 @@ describe("RunnerJobService.enqueueAiKubectlCommand refuses writes the Runner's p
       expect(createdRows).toHaveLength(4);
     });
   });
+
+  /*
+   * Objects that live outside every namespace, judged the way the Runner
+   * judges them. The chokepoint used to wave every one of these through
+   * as "cluster-scoped" — and the Runner refused them after the approval.
+   */
+  describe("Namespace objects and other cluster-scoped objects", () => {
+    beforeEach(() => {
+      runnerLookup.mockResolvedValue(
+        agentRunner({
+          writeNamespaces: ["web"],
+          podNamespace: "oneuptime-agent",
+          allowNodeOperations: true,
+        }),
+      );
+    });
+
+    it.each([
+      [
+        "an unlisted Namespace object behind a listed -n",
+        "kubectl label namespace staging team=a -n web",
+        'the Namespace object "staging"',
+      ],
+      [
+        "the Runner's own Namespace object",
+        "kubectl label ns oneuptime-agent team=a -n web",
+        "itself runs in",
+      ],
+      [
+        "a PersistentVolume behind a listed -n",
+        `kubectl patch pv pv-1 -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}' -n web`,
+        "cluster-scoped",
+      ],
+      [
+        "Namespace objects it does not name",
+        "kubectl label ns --all team=a",
+        "without naming them",
+      ],
+    ])(
+      "refuses %s, as the Runner does",
+      async (_label: string, command: string, expected: string) => {
+        const message: string = await refusal(command);
+
+        expect(message).toContain(expected);
+        expect(message).toContain("was not enqueued");
+        expect(createdRows).toHaveLength(0);
+      },
+    );
+
+    it.each([
+      [
+        "a listed Namespace object with no -n",
+        "kubectl label namespace web team=a",
+      ],
+      ["a node label (the switch is on)", "kubectl label node n1 team=a"],
+    ])(
+      "negative control: enqueues %s",
+      async (_label: string, command: string) => {
+        await enqueue(command);
+
+        expect(createdRows).toHaveLength(1);
+      },
+    );
+  });
 });
 
-describe("describeKubectlWriteTarget / readKubectlObjectKind", () => {
-  function target(command: string): {
-    isNodeOperation: boolean;
-    isClusterScoped: boolean;
-  } {
-    return describeKubectlWriteTarget(KubectlPolicy.evaluateCommand(command));
+describe("RunnerJobService.getRunnerWriteScopeRefusal words the Runner's rule for whoever enqueued", () => {
+  function refusalFor(
+    command: string,
+    posture: KubernetesRunnerPosture,
+    usesCredential: boolean = false,
+  ): string | null {
+    return RunnerJobServiceClass.getRunnerWriteScopeRefusal({
+      policy: KubectlPolicy.evaluateCommand(command),
+      posture,
+      usesCredential,
+    });
   }
 
-  it("reads the object kind after the verb (after the subcommand for rollout and set)", () => {
-    expect(
-      readKubectlObjectKind(["rollout", "restart", "deployment/web"]),
-    ).toBe("deployment");
-    expect(
-      readKubectlObjectKind(["set", "image", "deployments.apps/web", "a=b"]),
-    ).toBe("deployments");
-    expect(readKubectlObjectKind(["label", "--overwrite", "node", "n1"])).toBe(
-      "node",
-    );
-    expect(readKubectlObjectKind(["-n", "web", "label", "pod", "p1"])).toBe(
-      "pod",
-    );
-    expect(readKubectlObjectKind(["create", "namespace", "x"])).toBe(
-      "namespace",
-    );
-    expect(readKubectlObjectKind([])).toBe("");
-  });
-
-  it("node verbs and Node objects are node operations, and cluster-scoped", () => {
-    expect(target("kubectl cordon n1")).toEqual({
-      isNodeOperation: true,
-      isClusterScoped: true,
-    });
-    expect(target("kubectl label node n1 team=web").isNodeOperation).toBe(true);
-    expect(target("kubectl annotate nodes/n1 a=b").isNodeOperation).toBe(true);
-  });
-
-  it("negative control: workloads are neither, even named like a node", () => {
-    expect(target(SAFE_WRITE)).toEqual({
-      isNodeOperation: false,
-      isClusterScoped: false,
-    });
-    expect(
-      target("kubectl rollout restart deployment/node -n web").isNodeOperation,
-    ).toBe(false);
-  });
+  const SCOPED: KubernetesRunnerPosture = {
+    inCluster: true,
+    allowWrites: true,
+    writeNamespaces: ["web"],
+    podNamespace: "oneuptime-agent",
+    allowNodeOperations: true,
+  };
 
   it("getRunnerWriteScopeRefusal never scopes a Denied or Read result", () => {
     for (const command of ["kubectl get pods -n api", "kubectl exec x -- sh"]) {
@@ -383,5 +447,92 @@ describe("describeKubectlWriteTarget / readKubectlObjectKind", () => {
       });
 
     expect(refusal).toContain('namespace "default"');
+  });
+
+  it("a Namespace object outside the scope names the object, the scope and the chart value — never a -n that changes nothing", () => {
+    const message: string | null = refusalFor(
+      "kubectl label namespace staging team=a -n web",
+      SCOPED,
+    );
+
+    expect(message).toContain('the Namespace object "staging"');
+    expect(message).toContain("-n does not apply to it");
+    expect(message).toContain('"web": aiAccess.remediation.namespaces');
+    expect(message).toContain("ONEUPTIME_KUBECTL_WRITE_NAMESPACES");
+    expect(message).toContain(
+      'To let OneUptime AI change "staging", add it to aiAccess.remediation.namespaces',
+    );
+    expect(message).not.toContain("-n <namespace>");
+  });
+
+  it("a cluster-scoped kind names the kinds and the scope", () => {
+    const message: string | null = refusalFor(
+      "kubectl annotate ingressclass nginx note=x -n web",
+      SCOPED,
+    );
+
+    expect(message).toContain("ingressclass objects, which are cluster-scoped");
+    expect(message).toContain("whatever -n says");
+    expect(message).toContain("It was not enqueued.");
+  });
+
+  it("a command it cannot read for certain says why and how to write it", () => {
+    const objects: string | null = refusalFor(
+      "kubectl label node/n1 pod-1 x=y -n web",
+      SCOPED,
+    );
+
+    expect(objects).toContain(
+      "The cluster's Runner cannot tell for certain which objects",
+    );
+    expect(objects).toContain("TYPE NAME or TYPE/NAME");
+
+    const namespace: string | null = refusalFor(
+      "kubectl rollout restart deployment/web -l -nweb",
+      SCOPED,
+    );
+
+    expect(namespace).toContain(
+      "The cluster's Runner cannot tell for certain which namespace",
+    );
+    expect(namespace).toContain("kubectl -n <namespace> ...");
+  });
+
+  it("with node operations off, a write it cannot read is refused as a possible node operation", () => {
+    const message: string | null = refusalFor(
+      "kubectl label node/n1 pod-1 x=y -n web",
+      { ...SCOPED, allowNodeOperations: false },
+    );
+
+    expect(message).toContain("cannot tell for certain whether");
+    expect(message).toContain("changes a node");
+    expect(message).toContain("aiAccess.remediation.nodeOperations=false");
+  });
+
+  it("every refusal is whole sentences that say it was not enqueued", () => {
+    for (const command of [
+      "kubectl cordon n1",
+      "kubectl rollout restart deployment/pay -n payments",
+      "kubectl rollout restart deployment/web",
+      "kubectl rollout restart deployment/x -n oneuptime-agent",
+      "kubectl label namespace staging team=a -n web",
+      "kubectl label ns oneuptime-agent team=a -n web",
+      "kubectl label ns --all team=a",
+      "kubectl create priorityclass high --value=1000",
+      "kubectl label node/n1 pod-1 x=y -n web",
+    ]) {
+      const message: string | null = refusalFor(command, {
+        ...SCOPED,
+        allowNodeOperations: false,
+      });
+
+      expect({ command, refused: message !== null }).toEqual({
+        command,
+        refused: true,
+      });
+      expect(message).toContain("It was not enqueued.");
+      expect(message?.endsWith(".")).toBe(true);
+      expect(message).not.toContain("this Runner");
+    }
   });
 });
