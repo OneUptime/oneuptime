@@ -12,6 +12,7 @@ import OneUptimeDate from "Common/Types/Date";
 import Email from "Common/Types/Email";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
 import Exception from "Common/Types/Exception/Exception";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import ServerException from "Common/Types/Exception/ServerException";
 import ObjectID from "Common/Types/ObjectID";
 import PositiveNumber from "Common/Types/PositiveNumber";
@@ -513,6 +514,7 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
         email: true,
         isMasterAdmin: true,
         isEmailVerified: true,
+        isBlocked: true,
         profilePictureId: true,
         timezone: true,
       },
@@ -530,6 +532,22 @@ const handleOidcCallback: HandleOidcCallbackFunction = async (
         props: { isRoot: true },
       });
       isNewUser = true;
+    }
+
+    /*
+     * Blocked by a master admin. The identity provider vouching for the user
+     * does not lift that, so nothing is provisioned and no session is issued.
+     */
+    if (alreadySavedUser.isBlocked) {
+      return Response.render(
+        req,
+        res,
+        "/usr/src/app/FeatureSet/Identity/Views/Message.ejs",
+        {
+          title: "Account blocked.",
+          message: ExceptionMessages.UserBlocked,
+        },
+      );
     }
 
     if (!alreadySavedUser.isEmailVerified && !isNewUser) {
