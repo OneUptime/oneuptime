@@ -1,5 +1,6 @@
 import UserMiddleware from "./UserAuthorization";
 import ProjectMiddleware from "./ProjectAuthorization";
+import UserService from "../Services/UserService";
 import JSONWebToken from "../Utils/JsonWebToken";
 import Response from "../Utils/Response";
 import {
@@ -7,6 +8,8 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
+import Exception from "../../Types/Exception/Exception";
+import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotAuthenticatedException from "../../Types/Exception/NotAuthenticatedException";
 import JSONWebTokenData from "../../Types/JsonWebTokenData";
@@ -50,6 +53,31 @@ export default class MasterAdminAuthorization {
           new NotAuthorizedException(
             "Unauthorized: Only master admins can perform this action.",
           ),
+        );
+        return;
+      }
+
+      /*
+       * These routes read the JWT themselves rather than going through
+       * UserAuthorization, so they need the same blocked-user check: a
+       * blocked master admin's access token is still valid for up to 15
+       * minutes. Its own try, so a failed lookup is reported as what it is
+       * rather than as the invalid-token 401 below.
+       */
+      let isUserBlocked: boolean;
+
+      try {
+        isUserBlocked = await UserService.isUserBlocked(authData.userId);
+      } catch (err) {
+        Response.sendErrorResponse(req, res, err as Exception);
+        return;
+      }
+
+      if (isUserBlocked) {
+        Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException(ExceptionMessages.UserBlocked),
         );
         return;
       }

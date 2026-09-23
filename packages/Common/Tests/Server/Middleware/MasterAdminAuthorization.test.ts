@@ -1,6 +1,7 @@
 import MasterAdminAuthorization from "../../../Server/Middleware/MasterAdminAuthorization";
 import ProjectMiddleware from "../../../Server/Middleware/ProjectAuthorization";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import UserService from "../../../Server/Services/UserService";
 import CookieUtil from "../../../Server/Utils/Cookie";
 import JSONWebToken from "../../../Server/Utils/JsonWebToken";
 import Response from "../../../Server/Utils/Response";
@@ -159,6 +160,12 @@ describe("MasterAdminAuthorization.isAuthorizedMasterAdminMiddleware", () => {
     decodeSpy = getJestSpyOn(JSONWebToken, "decode").mockImplementation(() => {
       throw new BadDataException("AccessToken is invalid or expired");
     });
+
+    /*
+     * Blocked users are refused by these middlewares too; that is
+     * BlockedUserMiddleware.test.ts. Here every session is not blocked.
+     */
+    getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false);
   });
 
   describe("when there is no access token (the expired-cookie case)", () => {
@@ -337,6 +344,12 @@ describe("MasterAdminAuthorization.isAuthorizedMasterAdminOrMasterApiKeyMiddlewa
     ): Promise<boolean> => {
       return Promise.resolve(apiKey.toString() === MASTER_API_KEY);
     }) as never);
+
+    /*
+     * Blocked users are refused by these middlewares too; that is
+     * BlockedUserMiddleware.test.ts. Here every session is not blocked.
+     */
+    getJestSpyOn(UserService, "isUserBlocked").mockResolvedValue(false);
   });
 
   describe("when the master API key is presented", () => {
