@@ -57,6 +57,8 @@ import WorkspaceActionAuthorization from "../Utils/Workspace/WorkspaceActionAuth
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObservabilityAssistant from "../Utils/AI/Chat/ObservabilityAssistant";
 import { AIChatCitation } from "../../Types/AI/AIChatTypes";
+import WorkspaceNotificationRuleService from "../Services/WorkspaceNotificationRuleService";
+import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 
 export default class SlackAPI {
   public getRouter(): ExpressRouter {
@@ -796,6 +798,56 @@ export default class SlackAPI {
                 };
               }),
           });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
+    // Send a test notification to one channel ("Send Test" in Project Settings).
+    router.post(
+      "/slack/channels/test",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          /*
+           * Posting into a channel is a side effect, so membership alone is
+           * not enough. Anyone who could create a workspace notification rule
+           * - including its team block list, which the CRUD create enforces
+           * too - can already make OneUptime post to this channel; a Viewer,
+           * or a member whose team is blocked from creating rules, cannot.
+           * getUserMiddleware admits unauthenticated requests as "public", so
+           * the membership check is mandatory as well.
+           */
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+          CommonAPI.assertCanCreateTable({
+            modelType: WorkspaceNotificationRule,
+            props: databaseProps,
+            errorMessage:
+              "You do not have permission to send test notifications in this project.",
+          });
+
+          const channelId: string =
+            typeof req.body?.["channelId"] === "string"
+              ? (req.body["channelId"] as string)
+              : "";
+
+          // Slack has no chats or teams: only the channel id is forwarded.
+          await WorkspaceNotificationRuleService.sendTestNotificationToDestination(
+            {
+              projectId: projectId,
+              workspaceType: WorkspaceType.Slack,
+              testByUserId: databaseProps.userId!,
+              channelId: channelId,
+            },
+          );
+
+          return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
           return Response.sendErrorResponse(req, res, err as Exception);
         }

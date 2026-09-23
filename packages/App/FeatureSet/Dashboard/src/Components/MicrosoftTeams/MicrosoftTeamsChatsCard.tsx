@@ -24,6 +24,7 @@ import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import OneUptimeDate from "Common/Types/Date";
+import SendTestNotificationButton from "../Workspace/SendTestNotificationButton";
 
 interface ChatItem {
   id: string;
@@ -36,6 +37,7 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
   const [chats, setChats] = useState<Array<ChatItem>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [sendingTestCount, setSendingTestCount] = useState<number>(0);
 
   const loadChats: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -83,16 +85,38 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
     });
   }, []);
 
+  type SendingTestChangeFunction = (isSending: boolean) => void;
+
+  /*
+   * Refreshing swaps the list for a loader, which unmounts every row - and a
+   * row whose test is still in flight would then have nowhere to show its
+   * result, so the user would never learn whether it arrived. Refresh stays
+   * disabled until every test in flight has settled. Clamped at zero so a
+   * stray extra "false" can never leave the button locked.
+   */
+  const onSendingTestChange: SendingTestChangeFunction = (
+    isSending: boolean,
+  ): void => {
+    setSendingTestCount((count: number): number => {
+      return Math.max(0, count + (isSending ? 1 : -1));
+    });
+  };
+
   return (
     <Card
       title="Microsoft Teams Chats"
-      description="Send notifications straight into group chats and one-on-one chats. Add the OneUptime app to any chat in Microsoft Teams and it will show up here as a destination for your notification rules."
+      description="Send notifications straight into group chats and one-on-one chats. Add the OneUptime app to any chat in Microsoft Teams and it will show up here as a destination for your notification rules. Use Send Test to confirm OneUptime can post to a chat."
       buttons={[
         {
           title: "Refresh Chats",
           buttonStyle: ButtonStyleType.NORMAL,
           icon: IconProp.Refresh,
           isLoading: isLoading,
+          disabled: sendingTestCount > 0,
+          tooltip:
+            sendingTestCount > 0
+              ? "Wait for the test notification to finish sending."
+              : undefined,
           onClick: () => {
             loadChats().catch((err: Exception) => {
               setError(API.getFriendlyErrorMessage(err));
@@ -209,7 +233,7 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                 return (
                   <li
                     key={chat.id}
-                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                    className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
                   >
                     <div
                       className={`h-9 w-9 flex flex-none items-center justify-center rounded-full ${
@@ -229,7 +253,13 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                         className="h-5 w-5"
                       />
                     </div>
-                    <div className="min-w-0 flex-1">
+                    {/*
+                     * A floor rather than min-w-0: on a phone the avatar,
+                     * the chat-type badge and the Send Test control would
+                     * otherwise squeeze the name down to nothing. With a
+                     * floor the control wraps onto its own line instead.
+                     */}
+                    <div className="min-w-[8rem] flex-1">
                       <div className="font-medium text-gray-900 truncate">
                         {chat.name}
                       </div>
@@ -252,6 +282,18 @@ const MicrosoftTeamsChatsCard: FunctionComponent = (): ReactElement => {
                     >
                       {chat.chatType === "personal" ? "1:1 chat" : "Group chat"}
                     </span>
+                    <SendTestNotificationButton
+                      route="/microsoft-teams/chats/test"
+                      requestBody={{ chatId: chat.id }}
+                      /*
+                       * Chats are kept by id alone and a chat can register
+                       * before Teams has told us its name, so the button
+                       * still needs something to say in its label and error.
+                       */
+                      destinationName={chat.name || "this chat"}
+                      workspaceName="Microsoft Teams"
+                      onSendingChange={onSendingTestChange}
+                    />
                   </li>
                 );
               })}

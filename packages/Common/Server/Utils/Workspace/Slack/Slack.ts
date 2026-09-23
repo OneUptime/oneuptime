@@ -1362,7 +1362,7 @@ export default class SlackUtil extends WorkspaceBase {
         logger.error(e, sendMsgLogAttributes);
         workspaspaceMessageResponse.errors!.push({
           channel: channel,
-          error: e instanceof Error ? e.message : String(e),
+          error: WorkspaceBase.getSendErrorMessage(e),
         });
       }
     }

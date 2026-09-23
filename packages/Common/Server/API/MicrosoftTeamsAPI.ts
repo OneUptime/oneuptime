@@ -41,6 +41,8 @@ import CommonAPI from "./CommonAPI";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Dictionary from "../../Types/Dictionary";
 import { WorkspaceChannel } from "../Utils/Workspace/WorkspaceBase";
+import WorkspaceNotificationRuleService from "../Services/WorkspaceNotificationRuleService";
+import WorkspaceNotificationRule from "../../Models/DatabaseModels/WorkspaceNotificationRule";
 
 export default class MicrosoftTeamsAPI {
   private static getTeamsAppManifest(): JSONObject {
@@ -1211,6 +1213,62 @@ export default class MicrosoftTeamsAPI {
       },
     );
 
+    // Send a test notification to one channel ("Send Test" in Project Settings).
+    router.post(
+      "/microsoft-teams/channels/test",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          /*
+           * Posting into a channel is a side effect, so membership alone is
+           * not enough. Anyone who could create a workspace notification rule
+           * - including its team block list, which the CRUD create enforces
+           * too - can already make OneUptime post to this channel; a Viewer,
+           * or a member whose team is blocked from creating rules, cannot.
+           * getUserMiddleware admits unauthenticated requests as "public", so
+           * the membership check is mandatory as well.
+           */
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+          CommonAPI.assertCanCreateTable({
+            modelType: WorkspaceNotificationRule,
+            props: databaseProps,
+            errorMessage:
+              "You do not have permission to send test notifications in this project.",
+          });
+
+          const teamId: string =
+            typeof req.body?.["teamId"] === "string"
+              ? (req.body["teamId"] as string)
+              : "";
+
+          const channelId: string =
+            typeof req.body?.["channelId"] === "string"
+              ? (req.body["channelId"] as string)
+              : "";
+
+          // chatId is deliberately not forwarded: this route tests channels only.
+          await WorkspaceNotificationRuleService.sendTestNotificationToDestination(
+            {
+              projectId: projectId,
+              workspaceType: WorkspaceType.MicrosoftTeams,
+              testByUserId: databaseProps.userId!,
+              teamId: teamId,
+              channelId: channelId,
+            },
+          );
+
+          return Response.sendEmptySuccessResponse(req, res);
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
     /*
      * Get chats (group / personal chats) the OneUptime app has been added to.
      * Chats cannot be listed via app-only Graph permissions, so this returns
@@ -1246,6 +1304,60 @@ export default class MicrosoftTeamsAPI {
                 };
               }),
           });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
+    // Send a test notification to one chat ("Send Test" in Project Settings).
+    router.post(
+      "/microsoft-teams/chats/test",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          /*
+           * Posting into a chat is a side effect, so membership alone is not
+           * enough. Anyone who could create a workspace notification rule -
+           * including its team block list, which the CRUD create enforces
+           * too - can already make OneUptime post to this chat; a Viewer, or
+           * a member whose team is blocked from creating rules, cannot.
+           * getUserMiddleware admits unauthenticated requests as "public", so
+           * the membership check is mandatory as well.
+           */
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+          CommonAPI.assertCanCreateTable({
+            modelType: WorkspaceNotificationRule,
+            props: databaseProps,
+            errorMessage:
+              "You do not have permission to send test notifications in this project.",
+          });
+
+          const chatId: string =
+            typeof req.body?.["chatId"] === "string"
+              ? (req.body["chatId"] as string)
+              : "";
+
+          /*
+           * Only the chat id is forwarded. The service checks it against the
+           * chats this project captured, so a chat id from another tenant is
+           * rejected before anything is sent.
+           */
+          await WorkspaceNotificationRuleService.sendTestNotificationToDestination(
+            {
+              projectId: projectId,
+              workspaceType: WorkspaceType.MicrosoftTeams,
+              testByUserId: databaseProps.userId!,
+              chatId: chatId,
+            },
+          );
+
+          return Response.sendEmptySuccessResponse(req, res);
         } catch (err) {
           return Response.sendErrorResponse(req, res, err as Exception);
         }
