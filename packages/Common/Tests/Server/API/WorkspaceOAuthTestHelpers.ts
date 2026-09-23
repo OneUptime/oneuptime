@@ -142,6 +142,27 @@ export function httpGet(data: {
   path: string;
   headers?: http.OutgoingHttpHeaders | undefined;
 }): Promise<ProbeResponse> {
+  return httpRequest({ ...data, method: "GET" });
+}
+
+// Like httpGet, for any method; a `body` is sent as JSON.
+export function httpRequest(data: {
+  port: number;
+  method: string;
+  path: string;
+  headers?: http.OutgoingHttpHeaders | undefined;
+  body?: unknown;
+}): Promise<ProbeResponse> {
+  const payload: string | undefined =
+    data.body === undefined ? undefined : JSON.stringify(data.body);
+
+  const headers: http.OutgoingHttpHeaders = { ...(data.headers || {}) };
+
+  if (payload !== undefined) {
+    headers["content-type"] = "application/json";
+    headers["content-length"] = Buffer.byteLength(payload);
+  }
+
   return new Promise<ProbeResponse>(
     (
       resolve: (result: ProbeResponse) => void,
@@ -152,8 +173,8 @@ export function httpGet(data: {
           host: "127.0.0.1",
           port: data.port,
           path: data.path,
-          method: "GET",
-          headers: data.headers || {},
+          method: data.method,
+          headers: headers,
         },
         (response: http.IncomingMessage) => {
           const chunks: Array<Buffer> = [];
@@ -198,6 +219,10 @@ export function httpGet(data: {
         return reject(error);
       });
 
+      if (payload !== undefined) {
+        request.write(payload);
+      }
+
       request.end();
     },
   );
@@ -217,12 +242,13 @@ export interface RunningApp {
   close: () => Promise<void>;
 }
 
-// Mounts routers under /api on a real express app with cookie parsing.
+// Mounts routers under /api on a real express app with cookie and JSON parsing.
 export async function startApp(
   routers: Array<ExpressRouter>,
 ): Promise<RunningApp> {
   const app: express.Express = express();
   app.use(cookieParser());
+  app.use(express.json());
 
   for (const router of routers) {
     app.use("/api", router as any);

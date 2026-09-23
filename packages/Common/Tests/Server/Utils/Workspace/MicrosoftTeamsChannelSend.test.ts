@@ -934,6 +934,66 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChannel - conversation reference"
     expect(adapter.capturedRefs[0]!.serviceUrl).toBe(GCC_SERVICE_URL);
   });
 
+  /*
+   * botbuilder attaches the bot's Bot Framework token to the request whatever
+   * host the serviceUrl names, so a stored URL that is not Microsoft's must
+   * never reach the adapter (see MicrosoftTeamsServiceUrl).
+   */
+  test("a stored serviceUrl that is not a Microsoft host is refused before the Bot Framework is called", async () => {
+    mockProjectAuth({
+      installedTeams: {
+        [TEAM_ID]: buildInstalledTeam({
+          id: TEAM_ID,
+          serviceUrl: "https://attacker.example.com/teams/",
+        }),
+      },
+    });
+    const adapter: FakeBotAdapter = installFakeBotAdapter();
+
+    await expect(sendCardToChannel({ teamId: TEAM_ID })).rejects.toThrow(
+      BadDataException,
+    );
+
+    expect(adapter.continueConversationAsync).not.toHaveBeenCalled();
+  });
+
+  test("a stored serviceUrl on another Traffic Manager profile is refused", async () => {
+    mockProjectAuth({
+      installedTeams: {
+        [TEAM_ID]: buildInstalledTeam({
+          id: TEAM_ID,
+          serviceUrl: "https://attacker.trafficmanager.net/teams/",
+        }),
+      },
+    });
+    const adapter: FakeBotAdapter = installFakeBotAdapter();
+
+    await expect(sendCardToChannel({ teamId: TEAM_ID })).rejects.toThrow(
+      BadDataException,
+    );
+
+    expect(adapter.continueConversationAsync).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    "https://smba.infra.gcc.teams.microsoft.com/teams",
+    "https://smba.infra.dod.teams.microsoft.us/dod",
+  ])(
+    "a government-cloud serviceUrl (%s) is still used as captured",
+    async (serviceUrl: string) => {
+      mockProjectAuth({
+        installedTeams: {
+          [TEAM_ID]: buildInstalledTeam({ id: TEAM_ID, serviceUrl }),
+        },
+      });
+      const adapter: FakeBotAdapter = installFakeBotAdapter();
+
+      await sendCardToChannel({ teamId: TEAM_ID });
+
+      expect(adapter.capturedRefs[0]!.serviceUrl).toBe(serviceUrl);
+    },
+  );
+
   test("threadId is an empty string when sendActivity returns nothing", async () => {
     mockProjectAuth();
     installFakeBotAdapter({ sendActivityResponse: undefined });
