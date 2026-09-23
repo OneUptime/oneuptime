@@ -13,13 +13,17 @@
 import { describe, expect, test } from "@jest/globals";
 import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
+import ColumnLength from "Common/Types/Database/ColumnLength";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import {
   WorkflowTemplate,
+  WorkflowTemplateCategory,
   WorkflowTemplateVariable,
+  getTemplateGraphSpec,
   getWorkflowTemplate,
   getWorkflowTemplates,
+  getWorkflowTemplatesByCategory,
 } from "Common/Types/Workflow/Templates";
 import {
   applyTemplateVariableValuesToGraph,
@@ -69,6 +73,30 @@ const argumentsOfComponent: NodeArgumentsFunction = (
   ) as JSONObject;
 
   return (node["data"] as JSONObject)["arguments"] as JSONObject;
+};
+
+type FilledValuesFunction = (
+  template: WorkflowTemplate,
+  known?: Record<string, string>,
+) => Record<string, string>;
+
+/**
+ * A value for every variable a template declares, required or not, taken from
+ * `known` where it has one. Filling everything is the case where the wizard
+ * writes the most rows.
+ */
+const filledValuesFor: FilledValuesFunction = (
+  template: WorkflowTemplate,
+  known?: Record<string, string>,
+): Record<string, string> => {
+  const values: Record<string, string> = {};
+
+  for (const variable of template.variables) {
+    values[variable.name] =
+      known?.[variable.name] || `value-for-${variable.name}`;
+  }
+
+  return values;
 };
 
 describe("referenceForVariable", () => {
@@ -684,5 +712,758 @@ describe("buildWorkflowVariables", () => {
         projectId: projectId,
       }),
     ).toEqual([]);
+  });
+
+  /*
+   * WorkflowVariableService looks for an existing name case-insensitively, so
+   * a template asking for both jiraUrl and JiraUrl would pass every check in
+   * the wizard and then fail on the second row — after the workflow itself
+   * was written, which is exactly the half-created state the rollback exists
+   * for. Runtime lookup IS case-sensitive, so the two would not even be
+   * interchangeable if the create went through.
+   */
+  test("no template writes two rows whose names differ only in case", () => {
+    for (const template of getWorkflowTemplates()) {
+      const rows: Array<WorkflowVariable> = buildWorkflowVariables({
+        template: template,
+        values: filledValuesFor(template),
+        workflowId: workflowId,
+        projectId: projectId,
+      });
+
+      const lowerCaseNames: Array<string> = rows.map(
+        (row: WorkflowVariable) => {
+          return (row.name as string).toLowerCase();
+        },
+      );
+
+      expect({
+        template: template.id,
+        rows: rows.length,
+        distinctNames: new Set<string>(lowerCaseNames).size,
+      }).toEqual({
+        template: template.id,
+        rows: template.variables.length,
+        distinctNames: template.variables.length,
+      });
+    }
+  });
+
+  /*
+   * name is a ShortText column and description a LongText one. A template
+   * whose help text outgrew the column would be rejected by the API on the
+   * variable row, again only after the workflow already exists.
+   */
+  test("every row fits the columns it is written to", () => {
+    for (const template of getWorkflowTemplates()) {
+      const rows: Array<WorkflowVariable> = buildWorkflowVariables({
+        template: template,
+        values: filledValuesFor(template),
+        workflowId: workflowId,
+        projectId: projectId,
+      });
+
+      for (const row of rows) {
+        expect({
+          template: template.id,
+          variable: row.name,
+          nameFits: (row.name as string).length <= ColumnLength.ShortText,
+          descriptionFits:
+            (row.description || "").length <= ColumnLength.LongText,
+        }).toEqual({
+          template: template.id,
+          variable: row.name,
+          nameFits: true,
+          descriptionFits: true,
+        });
+      }
+    }
+  });
+});
+
+/* ------------------------------- Jira ------------------------------- */
+
+/*
+ * The Jira templates are the first whose secret sits inside an OBJECT-valued
+ * argument: the API token is referenced from request-headers, and
+ * applyTemplateVariableValuesToGraph only ever inspects string arguments.
+ * That is fine precisely because every Jira setting is required, so there is
+ * never an unfilled reference to strip. Break either half and the result is a
+ * 401 from Jira that reads like a wrong token, with the run still reporting
+ * success.
+ */
+
+const JIRA_TEMPLATE_IDS: Array<string> = [
+  "jira-create-issue-for-incident",
+  "jira-transition-issue-on-incident-state",
+  "jira-comment-from-private-note",
+  "jira-comment-from-public-note",
+  "jira-comment-on-incident-update",
+  "jira-declare-incident-from-issue",
+  "jira-status-to-incident-state",
+  "jira-comment-to-private-note",
+  "jira-issue-changes-to-private-note",
+];
+
+const JIRA_CREATE_ISSUE_TEMPLATE_ID: string = "jira-create-issue-for-incident";
+
+/** Every other template that calls Jira only needs to know where and as whom. */
+const JIRA_SITE_AND_TOKEN_TEMPLATE_IDS: Array<string> = [
+  "jira-transition-issue-on-incident-state",
+  "jira-comment-from-private-note",
+  "jira-comment-from-public-note",
+  "jira-comment-on-incident-update",
+  "jira-declare-incident-from-issue",
+  "jira-comment-to-private-note",
+];
+
+/*
+ * A webhook in and OneUptime's own database out: neither calls Jira, so
+ * neither has anything to ask for.
+ */
+const JIRA_WEBHOOK_ONLY_TEMPLATE_IDS: Array<string> = [
+  "jira-status-to-incident-state",
+  "jira-issue-changes-to-private-note",
+];
+
+const JIRA_TOKEN_VARIABLE: string = "jiraBasicAuthToken";
+
+const JIRA_AUTHORIZATION_HEADERS: JSONObject = {
+  Authorization: "Basic {{local.variables.jiraBasicAuthToken}}",
+};
+
+/** The create-issue template's settings, in the order the wizard asks. */
+const JIRA_CREATE_ISSUE_VARIABLE_NAMES: Array<string> = [
+  "jiraBaseUrl",
+  "jiraBasicAuthToken",
+  "jiraProjectKey",
+  "jiraIssueType",
+  "oneuptimeUrl",
+];
+
+/** What someone setting the Jira templates up would type. */
+const JIRA_VALUES: Record<string, string> = {
+  jiraBaseUrl: "https://acme.atlassian.net",
+  jiraBasicAuthToken: "cHJpeWFAYWNtZS5jb206QVRBVFQzeEZmR0YwUzNjcjN0",
+  jiraProjectKey: "OPS",
+  jiraIssueType: "Task",
+  oneuptimeUrl: "https://oneuptime.com",
+};
+
+type TemplateByIdFunction = (templateId: string) => WorkflowTemplate;
+
+const templateById: TemplateByIdFunction = (
+  templateId: string,
+): WorkflowTemplate => {
+  const template: WorkflowTemplate | null = getWorkflowTemplate(templateId);
+
+  if (!template) {
+    throw new Error(`Workflow template "${templateId}" was not found.`);
+  }
+
+  return template;
+};
+
+type JiraTemplatesFunction = () => Array<WorkflowTemplate>;
+
+const jiraTemplates: JiraTemplatesFunction = (): Array<WorkflowTemplate> => {
+  return getWorkflowTemplatesByCategory(WorkflowTemplateCategory.Jira);
+};
+
+type VariableNamesFunction = (template: WorkflowTemplate) => Array<string>;
+
+const variableNamesOf: VariableNamesFunction = (
+  template: WorkflowTemplate,
+): Array<string> => {
+  return template.variables.map((variable: WorkflowTemplateVariable) => {
+    return variable.name;
+  });
+};
+
+type BuildJiraWorkflowFunction = (template: WorkflowTemplate) => Workflow;
+
+/** A Jira workflow as the wizard creates it once every setting is filled. */
+const buildJiraWorkflow: BuildJiraWorkflowFunction = (
+  template: WorkflowTemplate,
+): Workflow => {
+  return buildWorkflowFromTemplate({
+    name: template.workflowName,
+    description: template.workflowDescription,
+    projectId: projectId,
+    template: template,
+    values: filledValuesFor(template, JIRA_VALUES),
+    generateId: generateId,
+  });
+};
+
+interface BuiltNode {
+  componentId: string;
+  args: JSONObject;
+}
+
+type BuiltNodesFunction = (workflow: Workflow) => Array<BuiltNode>;
+
+const builtNodesOf: BuiltNodesFunction = (
+  workflow: Workflow,
+): Array<BuiltNode> => {
+  return ((workflow.graph as JSONObject)["nodes"] as Array<JSONObject>).map(
+    (node: JSONObject): BuiltNode => {
+      const data: JSONObject = node["data"] as JSONObject;
+
+      return {
+        componentId: data["id"] as string,
+        args: data["arguments"] as JSONObject,
+      };
+    },
+  );
+};
+
+interface TemplateSpecNode {
+  componentId: string;
+  args?: JSONObject | undefined;
+}
+
+type SpecNodesFunction = (templateId: string) => Array<TemplateSpecNode>;
+
+/** The nodes exactly as the template defines them, before anything is built. */
+const specNodesOf: SpecNodesFunction = (
+  templateId: string,
+): Array<TemplateSpecNode> => {
+  const spec: { nodes: Array<TemplateSpecNode> } | null = getTemplateGraphSpec(
+    templateId,
+  ) as unknown as { nodes: Array<TemplateSpecNode> } | null;
+
+  if (!spec) {
+    throw new Error(`Workflow template "${templateId}" has no graph.`);
+  }
+
+  return spec.nodes;
+};
+
+type ReferencedVariablesFunction = (workflow: Workflow) => Array<string>;
+
+/** Every variable a built graph refers to, anywhere in it, sorted. */
+const referencedVariablesOf: ReferencedVariablesFunction = (
+  workflow: Workflow,
+): Array<string> => {
+  const pattern: RegExp = /\{\{local\.variables\.([^{}]+)\}\}/g;
+  const serialized: string = JSON.stringify(workflow.graph);
+  const names: Array<string> = [];
+
+  let match: RegExpExecArray | null = pattern.exec(serialized);
+
+  while (match) {
+    const name: string = match[1] as string;
+
+    if (!names.includes(name)) {
+      names.push(name);
+    }
+
+    match = pattern.exec(serialized);
+  }
+
+  return names.sort();
+};
+
+type IsSecretFunction = (row: WorkflowVariable) => unknown;
+
+/** isSecret is declared `string` on a boolean column, hence the cast. */
+const isSecretOf: IsSecretFunction = (row: WorkflowVariable): unknown => {
+  return (row as unknown as { isSecret?: unknown }).isSecret;
+};
+
+type BuildJiraRowsFunction = (
+  template: WorkflowTemplate,
+  values?: Record<string, string>,
+) => Array<WorkflowVariable>;
+
+const buildJiraRows: BuildJiraRowsFunction = (
+  template: WorkflowTemplate,
+  values?: Record<string, string>,
+): Array<WorkflowVariable> => {
+  return buildWorkflowVariables({
+    template: template,
+    values: values || filledValuesFor(template, JIRA_VALUES),
+    workflowId: workflowId,
+    projectId: projectId,
+  });
+};
+
+describe("Jira templates", () => {
+  test("the Jira category holds exactly the nine Jira templates", () => {
+    expect(
+      jiraTemplates()
+        .map((template: WorkflowTemplate) => {
+          return template.id;
+        })
+        .sort(),
+    ).toEqual([...JIRA_TEMPLATE_IDS].sort());
+  });
+
+  /*
+   * The precondition for everything below. With no optional settings there is
+   * never an unfilled reference, so the wizard never has anything to strip
+   * from a Jira graph.
+   */
+  test("every setting a Jira template asks for is required", () => {
+    for (const template of jiraTemplates()) {
+      for (const variable of template.variables) {
+        expect({
+          template: template.id,
+          variable: variable.name,
+          required: variable.required,
+        }).toEqual({
+          template: template.id,
+          variable: variable.name,
+          required: true,
+        });
+      }
+    }
+  });
+
+  /*
+   * isSecret decides two things: the field is masked in the wizard, and the
+   * stored value is scrubbed from run logs. The token is a reusable Jira
+   * credential, so it is secret wherever it is asked for. The site URL and
+   * project key are not, and masking them would only hide typos.
+   */
+  test("the API token is secret in every Jira template, and nothing else is", () => {
+    for (const template of jiraTemplates()) {
+      for (const variable of template.variables) {
+        expect({
+          template: template.id,
+          variable: variable.name,
+          isSecret: variable.isSecret,
+        }).toEqual({
+          template: template.id,
+          variable: variable.name,
+          isSecret: variable.name === JIRA_TOKEN_VARIABLE,
+        });
+      }
+    }
+  });
+
+  /*
+   * Both directions fail quietly. A setting the graph never refers to asks
+   * someone for a credential that is then stored for nothing; a reference
+   * with no setting behind it has no row to resolve to, so it is sent to Jira
+   * as literal braces.
+   */
+  test("each Jira template asks for exactly the settings its graph refers to", () => {
+    for (const template of jiraTemplates()) {
+      expect({
+        template: template.id,
+        referenced: referencedVariablesOf(buildJiraWorkflow(template)),
+      }).toEqual({
+        template: template.id,
+        referenced: variableNamesOf(template).sort(),
+      });
+    }
+  });
+
+  describe("validateTemplateVariableValues", () => {
+    test("the create-issue template demands all five of its settings", () => {
+      const template: WorkflowTemplate = templateById(
+        JIRA_CREATE_ISSUE_TEMPLATE_ID,
+      );
+
+      expect(variableNamesOf(template)).toEqual(
+        JIRA_CREATE_ISSUE_VARIABLE_NAMES,
+      );
+
+      const expected: Record<string, string> = {};
+
+      for (const variable of template.variables) {
+        expected[variable.name] = `${variable.title} is required.`;
+      }
+
+      expect(validateTemplateVariableValues(template, {})).toEqual(expected);
+      expect(Object.keys(expected)).toHaveLength(5);
+    });
+
+    test("the create-issue template is satisfied once all five are filled", () => {
+      const template: WorkflowTemplate = templateById(
+        JIRA_CREATE_ISSUE_TEMPLATE_ID,
+      );
+
+      expect(
+        validateTemplateVariableValues(
+          template,
+          filledValuesFor(template, JIRA_VALUES),
+        ),
+      ).toEqual({});
+    });
+
+    /* There is no partial Jira setup: each setting on its own blocks the create. */
+    test("leaving out any one setting blocks the create-issue template", () => {
+      const template: WorkflowTemplate = templateById(
+        JIRA_CREATE_ISSUE_TEMPLATE_ID,
+      );
+
+      for (const name of JIRA_CREATE_ISSUE_VARIABLE_NAMES) {
+        const values: Record<string, string> = filledValuesFor(
+          template,
+          JIRA_VALUES,
+        );
+
+        delete values[name];
+
+        expect({
+          missing: name,
+          errors: Object.keys(validateTemplateVariableValues(template, values)),
+        }).toEqual({ missing: name, errors: [name] });
+      }
+    });
+
+    /*
+     * The token comes out of a pipe into base64, which ends its output with a
+     * line break. Pasting only that is not a token.
+     */
+    test("a token that is only a line break counts as missing", () => {
+      const template: WorkflowTemplate = templateById(
+        JIRA_CREATE_ISSUE_TEMPLATE_ID,
+      );
+
+      expect(
+        Object.keys(
+          validateTemplateVariableValues(template, {
+            ...filledValuesFor(template, JIRA_VALUES),
+            jiraBasicAuthToken: " \n",
+          }),
+        ),
+      ).toEqual([JIRA_TOKEN_VARIABLE]);
+    });
+
+    test("the webhook-only templates demand nothing", () => {
+      for (const templateId of JIRA_WEBHOOK_ONLY_TEMPLATE_IDS) {
+        const template: WorkflowTemplate = templateById(templateId);
+
+        expect({
+          template: templateId,
+          toFill: templateVariablesToFill(template),
+          errors: validateTemplateVariableValues(template, {}),
+        }).toEqual({ template: templateId, toFill: [], errors: {} });
+      }
+    });
+  });
+
+  describe("buildWorkflowFromTemplate", () => {
+    /*
+     * request-headers is an object, not a string. The runtime substitutes
+     * inside it with JSON escaping and hands the object back, so the reference
+     * has to reach the saved graph exactly as the template wrote it.
+     */
+    test("the token reference survives inside the object-valued request-headers", () => {
+      const workflow: Workflow = buildJiraWorkflow(
+        templateById(JIRA_CREATE_ISSUE_TEMPLATE_ID),
+      );
+
+      expect(
+        argumentsOfComponent(workflow.graph as JSONObject, "create-issue-1")[
+          "request-headers"
+        ],
+      ).toEqual(JIRA_AUTHORIZATION_HEADERS);
+    });
+
+    test("every step that calls Jira sends that same Authorization header", () => {
+      for (const template of jiraTemplates()) {
+        const calls: Array<BuiltNode> = builtNodesOf(
+          buildJiraWorkflow(template),
+        ).filter((node: BuiltNode) => {
+          return (
+            node.args["url"] !== undefined ||
+            node.args["request-headers"] !== undefined
+          );
+        });
+
+        expect({
+          template: template.id,
+          callsJira: calls.length > 0,
+        }).toEqual({
+          template: template.id,
+          callsJira: !JIRA_WEBHOOK_ONLY_TEMPLATE_IDS.includes(template.id),
+        });
+
+        for (const call of calls) {
+          expect({
+            template: template.id,
+            component: call.componentId,
+            headers: call.args["request-headers"],
+          }).toEqual({
+            template: template.id,
+            component: call.componentId,
+            headers: JIRA_AUTHORIZATION_HEADERS,
+          });
+        }
+      }
+    });
+
+    /*
+     * request-headers is marked sensitive, so the whole argument is kept out
+     * of the run log. Anywhere else — a URL, a body, a log line, a script's
+     * arguments — the resolved token would be sent or recorded without that
+     * protection.
+     */
+    test("the token is referenced nowhere but the Authorization header", () => {
+      for (const template of jiraTemplates()) {
+        for (const node of builtNodesOf(buildJiraWorkflow(template))) {
+          for (const argumentId of Object.keys(node.args)) {
+            if (argumentId === "request-headers") {
+              continue;
+            }
+
+            expect({
+              template: template.id,
+              component: node.componentId,
+              argument: argumentId,
+              mentionsToken: JSON.stringify(node.args[argumentId]).includes(
+                JIRA_TOKEN_VARIABLE,
+              ),
+            }).toEqual({
+              template: template.id,
+              component: node.componentId,
+              argument: argumentId,
+              mentionsToken: false,
+            });
+          }
+        }
+      }
+    });
+
+    /*
+     * The stripping pass only fires for a blank optional setting, and Jira has
+     * none, so every argument — the object-valued ones included, which that
+     * pass never looks inside — reaches the saved graph unchanged.
+     */
+    test("nothing is stripped: every argument arrives as the template wrote it", () => {
+      for (const template of jiraTemplates()) {
+        const built: Array<BuiltNode> = builtNodesOf(
+          buildJiraWorkflow(template),
+        );
+        const spec: Array<TemplateSpecNode> = specNodesOf(template.id);
+
+        expect({
+          template: template.id,
+          components: built.map((node: BuiltNode) => {
+            return node.componentId;
+          }),
+        }).toEqual({
+          template: template.id,
+          components: spec.map((node: TemplateSpecNode) => {
+            return node.componentId;
+          }),
+        });
+
+        for (const specNode of spec) {
+          const builtNode: BuiltNode | undefined = built.find(
+            (node: BuiltNode) => {
+              return node.componentId === specNode.componentId;
+            },
+          );
+
+          expect({
+            template: template.id,
+            component: specNode.componentId,
+            args: builtNode?.args,
+          }).toEqual({
+            template: template.id,
+            component: specNode.componentId,
+            args: specNode.args || {},
+          });
+        }
+      }
+    });
+
+    test("what was typed never reaches the graph", () => {
+      for (const template of jiraTemplates()) {
+        const serialized: string = JSON.stringify(
+          buildJiraWorkflow(template).graph,
+        );
+
+        expect({
+          template: template.id,
+          token: serialized.includes(
+            JIRA_VALUES[JIRA_TOKEN_VARIABLE] as string,
+          ),
+          site: serialized.includes(JIRA_VALUES["jiraBaseUrl"] as string),
+        }).toEqual({ template: template.id, token: false, site: false });
+      }
+    });
+
+    /*
+     * Filled-in settings are no reason to switch it on. The create-issue
+     * template would file an issue for the very next incident, and a webhook
+     * template has not been registered in Jira yet at this point.
+     */
+    test("a Jira workflow is created switched off, even with every setting filled", () => {
+      for (const template of jiraTemplates()) {
+        expect({
+          template: template.id,
+          isEnabled: buildJiraWorkflow(template).isEnabled,
+        }).toEqual({ template: template.id, isEnabled: false });
+      }
+    });
+
+    /*
+     * The builder edits the graph after it is created. An object-valued
+     * argument is exactly what a shallow copy would share with the shipped
+     * template, so an edit to one workflow's headers would turn up in every
+     * workflow made from it afterwards.
+     */
+    test("editing one Jira workflow's headers does not reach the next one", () => {
+      const template: WorkflowTemplate = templateById(
+        JIRA_CREATE_ISSUE_TEMPLATE_ID,
+      );
+
+      const headers: JSONObject = argumentsOfComponent(
+        buildJiraWorkflow(template).graph as JSONObject,
+        "create-issue-1",
+      )["request-headers"] as JSONObject;
+
+      headers["Authorization"] = "Basic edited-in-the-builder";
+      headers["X-Atlassian-Token"] = "no-check";
+
+      expect(
+        argumentsOfComponent(
+          buildJiraWorkflow(template).graph as JSONObject,
+          "create-issue-1",
+        )["request-headers"],
+      ).toEqual(JIRA_AUTHORIZATION_HEADERS);
+    });
+  });
+
+  describe("buildWorkflowVariables", () => {
+    test("the create-issue template writes one row per setting, in the order the wizard asks", () => {
+      const rows: Array<WorkflowVariable> = buildJiraRows(
+        templateById(JIRA_CREATE_ISSUE_TEMPLATE_ID),
+      );
+
+      expect(
+        rows.map((row: WorkflowVariable) => {
+          return row.name;
+        }),
+      ).toEqual(JIRA_CREATE_ISSUE_VARIABLE_NAMES);
+
+      for (const row of rows) {
+        expect(row.workflowId).toBe(workflowId);
+        expect(row.projectId).toBe(projectId);
+      }
+    });
+
+    test("only the API token row is secret", () => {
+      const rows: Array<WorkflowVariable> = buildJiraRows(
+        templateById(JIRA_CREATE_ISSUE_TEMPLATE_ID),
+      );
+
+      const byName: Record<string, unknown> = {};
+
+      for (const row of rows) {
+        byName[row.name as string] = isSecretOf(row);
+      }
+
+      expect(byName).toEqual({
+        jiraBaseUrl: false,
+        jiraBasicAuthToken: true,
+        jiraProjectKey: false,
+        jiraIssueType: false,
+        oneuptimeUrl: false,
+      });
+    });
+
+    /*
+     * base64 ends its output with a line break, and a stray space in the site
+     * URL lands in the middle of every request URL built from it. Either one
+     * surviving into the row breaks every call the workflow makes.
+     */
+    test("what was typed is trimmed, including the line break base64 leaves", () => {
+      const rows: Array<WorkflowVariable> = buildJiraRows(
+        templateById(JIRA_CREATE_ISSUE_TEMPLATE_ID),
+        {
+          jiraBaseUrl: "  https://acme.atlassian.net  ",
+          jiraBasicAuthToken: `${JIRA_VALUES[JIRA_TOKEN_VARIABLE]}\n`,
+          jiraProjectKey: " OPS",
+          jiraIssueType: "Task ",
+          oneuptimeUrl: "\thttps://oneuptime.com\r\n",
+        },
+      );
+
+      const contentByName: Record<string, string | undefined> = {};
+
+      for (const row of rows) {
+        contentByName[row.name as string] = row.content;
+      }
+
+      expect(contentByName).toEqual(JIRA_VALUES);
+    });
+
+    /*
+     * The help text says where each value comes from, and it goes on the row
+     * so it is still there when someone opens the variable a year later. It
+     * has to fit the LongText column or the API refuses the row.
+     */
+    test("each row carries the template's own help text, short enough for its column", () => {
+      for (const template of jiraTemplates()) {
+        for (const row of buildJiraRows(template)) {
+          const variable: WorkflowTemplateVariable | undefined =
+            template.variables.find((candidate: WorkflowTemplateVariable) => {
+              return candidate.name === row.name;
+            });
+
+          expect({
+            template: template.id,
+            variable: row.name,
+            description: row.description,
+            fits: (row.description || "").length <= ColumnLength.LongText,
+          }).toEqual({
+            template: template.id,
+            variable: row.name,
+            description: variable?.description,
+            fits: true,
+          });
+        }
+      }
+    });
+
+    test("the other Jira-calling templates write the site URL and the secret token", () => {
+      for (const templateId of JIRA_SITE_AND_TOKEN_TEMPLATE_IDS) {
+        const rows: Array<WorkflowVariable> = buildJiraRows(
+          templateById(templateId),
+        );
+
+        expect({
+          template: templateId,
+          rows: rows.map((row: WorkflowVariable) => {
+            return {
+              name: row.name,
+              content: row.content,
+              isSecret: isSecretOf(row),
+            };
+          }),
+        }).toEqual({
+          template: templateId,
+          rows: [
+            {
+              name: "jiraBaseUrl",
+              content: JIRA_VALUES["jiraBaseUrl"],
+              isSecret: false,
+            },
+            {
+              name: JIRA_TOKEN_VARIABLE,
+              content: JIRA_VALUES[JIRA_TOKEN_VARIABLE],
+              isSecret: true,
+            },
+          ],
+        });
+      }
+    });
+
+    test("the webhook-only templates write no rows", () => {
+      for (const templateId of JIRA_WEBHOOK_ONLY_TEMPLATE_IDS) {
+        expect({
+          template: templateId,
+          rows: buildJiraRows(templateById(templateId)),
+        }).toEqual({ template: templateId, rows: [] });
+      }
+    });
   });
 });
