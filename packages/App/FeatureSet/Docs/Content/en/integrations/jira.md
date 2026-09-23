@@ -1,6 +1,6 @@
 # Jira Integration
 
-Open a [Jira](https://www.atlassian.com/software/jira) issue whenever a OneUptime incident is declared, keep it in step as the incident moves, and let Jira push status changes back into OneUptime — all with a [Workflow](/docs/workflows/index). There is no Jira-specific block to install: OneUptime calls Jira's REST API with the [API component](/docs/workflows/components#api), and Jira calls back into a [Webhook trigger](/docs/workflows/triggers#webhook).
+Open a [Jira](https://www.atlassian.com/software/jira) issue whenever a OneUptime incident is declared or an alert is created, keep it in step as the incident or alert moves, and let Jira push status changes back into OneUptime — all with a [Workflow](/docs/workflows/index). There is no Jira-specific block to install: OneUptime calls Jira's REST API with the [API component](/docs/workflows/components#api), and Jira calls back into a [Webhook trigger](/docs/workflows/triggers#webhook).
 
 ```text
 OneUptime Incident → On Create  ──►  API Post (POST /rest/api/3/issue)  ──►  Jira issue
@@ -8,33 +8,72 @@ OneUptime Incident → On Create  ──►  API Post (POST /rest/api/3/issue)  
 Jira issue transitioned  ──►  Automation rule (Send web request)  ──►  OneUptime Webhook trigger  ──►  Update One Incident
 ```
 
-The quickest way in is one of the nine ready-made Jira templates, described in the next section. The rest of the page builds both directions by hand, which is also your reference when you want a template to do something different. Everything up to the inbound section is written for **Jira Cloud**; a section near the end lists what changes on **Jira Data Center**.
+The quickest way in is one of the 17 ready-made Jira templates, nine for incidents and eight for alerts, described in the next section. The rest of the page builds both directions by hand for incidents, which is also your reference when you want a template to do something different. [Doing the same for alerts](#doing-the-same-for-alerts) maps that build onto alerts. Everything up to the inbound section is written for **Jira Cloud**; a section near the end lists what changes on **Jira Data Center**.
 
 > Atlassian has been renaming things in Jira Cloud: a **project** is now a **space** in much of the UI, and an **issue** is a **work item**. Tenants are on both vocabularies, so where the wording matters below you will find both.
 
 ## Start from a template
 
-The workflow picker has nine Jira templates, grouped under **Jira**. Each one is a small workflow of its own, so you can take only the directions you want. They share one convention — a label on the Jira issue — so any combination of them works together.
+The workflow picker has 17 Jira templates, grouped under **Jira**: nine for incidents, then eight for alerts. Each one is a small workflow of its own, so you can take only the records and directions you want — incidents, alerts, or both. They share one convention — labels on the Jira issue — so any combination of them works together.
+
+### Incident templates
 
 | Template                                                          | What it does                                                                                                                                                                  | What it asks for                                                |
 | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | **OneUptime → Jira**                                              |                                                                                                                                                                               |                                                                 |
 | Create a Jira issue when an incident is declared                  | Files an issue for every new incident and labels it with the incident's id. Incidents declared from Jira, and private incidents, are skipped.                                 | Site URL, API token, project key, issue type, OneUptime URL     |
 | Move the Jira issue when the incident is acknowledged or resolved | Moves the linked issue forward: to an In Progress status when the incident is acknowledged, and to a Done status when it is resolved. Never moves it back.                    | Site URL, API token                                             |
-| Copy private notes to the Jira issue                              | Posts each new private note as a comment on the linked issue — an internal comment in Jira Service Management.                                                                | Site URL, API token                                             |
-| Copy public notes to the Jira issue                               | Posts each new public note as a comment on the linked issue.                                                                                                                  | Site URL, API token                                             |
-| Comment on the Jira issue when the incident is edited             | When the incident's title, description, severity, root cause or remediation notes change, posts how the incident now stands — an internal comment in Jira Service Management. | Site URL, API token                                             |
+| Copy incident private notes to the Jira issue                     | Posts each new private note as a comment on the linked issue — an internal comment in Jira Service Management.                                                                | Site URL, API token                                             |
+| Copy incident public notes to the Jira issue                      | Posts each new public note as a comment on the linked issue.                                                                                                                  | Site URL, API token                                             |
+| Comment on the Jira issue when the incident is edited             | When the incident's title, severity, description, root cause or remediation notes change, posts how the incident now stands — an internal comment in Jira Service Management. | Site URL, API token                                             |
 | **Jira → OneUptime**                                              |                                                                                                                                                                               |                                                                 |
-| Declare an incident when a Jira issue is created                  | Declares an incident for each new issue, with a severity chosen from the issue's priority, then labels the issue to link the two.                                             | Site URL, API token, and a Jira webhook for **Issue created**   |
+| Declare an incident when a Jira issue is created                  | Declares an incident for each new issue, kept off your status pages, with a severity chosen from the issue's priority, then labels the issue to link the two.                 | Site URL, API token, and a Jira webhook for **Issue created**   |
 | Acknowledge or resolve the incident when its Jira issue moves     | Acknowledges the incident when its linked issue moves to an In Progress status, and resolves it when the issue moves to a Done status.                                        | A Jira webhook for **Issue updated**                            |
 | Add Jira comments to the incident as private notes                | Copies each comment on a linked issue onto the incident as a private note.                                                                                                    | Site URL, API token, and a Jira webhook for **Comment created** |
 | Add Jira issue changes to the incident as private notes           | Notes each edit to a linked issue — priority, assignee, summary and so on — on the incident as a private note. Status changes are left to the template above.                 | A Jira webhook for **Issue updated**                            |
 
-None of the OneUptime → Jira templates send an incident marked [**Private Incident**](/docs/incidents/declaring-incidents#step-5-more) to Jira — not the incident, its state, its notes or its edits — unless you switch that on. See [Limitations](#limitations).
+### Alert templates
+
+The alert templates do the same jobs for alerts. There is one fewer, because alerts have no public notes. Everything else that differs is listed under [What is different for alerts](#what-is-different-for-alerts).
+
+| Template                                                       | What it does                                                                                                                                                              | What it asks for                                                |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **OneUptime → Jira**                                           |                                                                                                                                                                           |                                                                 |
+| Create a Jira issue when an alert is created                   | Files an issue for every new alert, including every alert a monitor raises, and labels it with the alert's id. Alerts created from Jira, and private alerts, are skipped. | Site URL, API token, project key, issue type, OneUptime URL     |
+| Move the Jira issue when the alert is acknowledged or resolved | Moves the linked issue forward: to an In Progress status when the alert is acknowledged, and to a Done status when it is resolved. Never moves it back.                   | Site URL, API token                                             |
+| Copy alert private notes to the Jira issue                     | Posts each new private note as a comment on the linked issue — an internal comment in Jira Service Management.                                                            | Site URL, API token                                             |
+| Comment on the Jira issue when the alert is edited             | When the alert's title, severity, description or remediation notes change, posts how the alert now stands — an internal comment in Jira Service Management.               | Site URL, API token                                             |
+| **Jira → OneUptime**                                           |                                                                                                                                                                           |                                                                 |
+| Create an alert when a Jira issue is created                   | Creates an alert for each new issue, with a severity chosen from the issue's priority, then labels the issue to link the two.                                             | Site URL, API token, and a Jira webhook for **Issue created**   |
+| Acknowledge or resolve the alert when its Jira issue moves     | Acknowledges the alert when its linked issue moves to an In Progress status, and resolves it when the issue moves to a Done status.                                       | A Jira webhook for **Issue updated**                            |
+| Add Jira comments to the alert as private notes                | Copies each comment on a linked issue onto the alert as a private note.                                                                                                   | Site URL, API token, and a Jira webhook for **Comment created** |
+| Add Jira issue changes to the alert as private notes           | Notes each edit to a linked issue — priority, assignee, summary and so on — on the alert as a private note. Status changes are left to the template above.                | A Jira webhook for **Issue updated**                            |
+
+None of the OneUptime → Jira templates send an incident marked [**Private Incident**](/docs/incidents/declaring-incidents#step-5-more), or an alert marked **Private Alert**, to Jira — not the record, its state, its notes or its edits — unless you switch that on. See [Limitations](#limitations).
+
+### What is different for alerts
+
+Each alert template is built the same way as its incident twin, step for step. Where alerts differ from incidents, so do the templates:
+
+- **No public notes.** Alerts only have private notes, so there is no alert version of **Copy incident public notes to the Jira issue**, and every comment the alert templates post is an internal comment in Jira Service Management.
+- **No status page.** An alert never reaches a status page, so **Create an alert when a Jira issue is created** has no status page settings to turn off, as the incident version does. It writes the severity, title, description and `customFields.jiraIssueKey`, and nothing else.
+- **Two severities, so Medium becomes Low.** A new project starts with two alert severities, High and Low, where it has three incident severities. The create template spreads Jira's priorities across whatever severities the project has. On the default two, Highest, High, Critical and Blocker become High, and every other priority becomes Low — Medium and Major included, and any priority `PRIORITY_RANK` does not list. To send Medium to High, change `medium: 1` to `medium: 0` in `PRIORITY_RANK` in the `prepare-alert-1` script (see [Changing what a template does](#changing-what-a-template-does)). If you add a third alert severity between High and Low, the middle priorities land on it instead.
+- **Root cause edits are not watched.** An alert's root cause is written when the alert is created and cannot be edited afterwards, so **Comment on the Jira issue when the alert is edited** fires when the title, description, severity or remediation notes change. The comment it posts still shows the root cause.
+- **Alert links and labels.** The issue's description links to `/dashboard/<project id>/alerts/<alert id>`, and the issue is labelled `oneuptime-alert-<alert id>` rather than `oneuptime-incident-<incident id>`.
+- **Numbers say what they number.** With the default `#` prefix, an alert and an incident can both be `#12`, so the templates write a bare number as `Alert #12` or `Incident #12` in issue summaries and comments. A number with a prefix of its own, such as `ALT-12`, is written as it is.
+- **Private alerts.** An alert marked **Private Alert**, by hand or by an alert privacy rule, stays out of Jira unless you set `SYNC_PRIVATE_ALERTS` to `true`. It is the alert templates' copy of `SYNC_PRIVATE_INCIDENTS`.
+
+**Monitors raise alerts on their own, and can raise a lot of them.** **Create a Jira issue when an alert is created** files an issue for every one, so a noisy monitor can open dozens of issues. Unless every alert deserves a ticket, put a condition in front of the Jira step. To file issues only for High alerts, for example:
+
+1. Open the workflow's **Builder** and add an **If / Else** block.
+2. Set **Input 1** to `{{local.components.alert-on-create-1.returnValues.model.alertSeverity.name}}`, **Operator** to `==`, and **Input 2** to `High`.
+3. Remove the line from the trigger, `alert-on-create-1`, to `prepare-issue-1` by dragging its end off the dot (see [Tidying up](/docs/workflows/authoring#tidying-up)). Then connect the trigger's **Success** to the **If / Else** block, and the block's **Yes** to `prepare-issue-1`.
+
+An alert that takes the **No** branch ends the run there, and no issue is filed for it.
 
 ### What the templates ask for
 
-The **Configure** step of the create wizard asks for up to five values. The table above shows which ones each template needs.
+The **Configure** step of the create wizard asks for up to five values. The tables above show which ones each template needs.
 
 - **Jira Site URL** — your site, such as `https://your-domain.atlassian.net`, with no trailing slash. With a scoped API token (below), which includes every service account token, use `https://api.atlassian.com/ex/jira/<cloudId>` instead. Your `cloudId` is in the JSON at `https://your-domain.atlassian.net/_edge/tenant_info`.
 - **Jira API Token (base64 of email:token)** — not the token on its own, but the account's email and token encoded together, which is how Jira Cloud takes Basic auth:
@@ -57,7 +96,7 @@ The **Configure** step of the create wizard asks for up to five values. The tabl
 
 - **Jira Project Key** — the project (space) new issues are filed in: the `OPS` in `OPS-123`.
 - **Jira Issue Type** — the type of issue to create, spelled exactly as it is in that project, such as `Task`, `Bug` or `Incident`.
-- **OneUptime URL** — the address you open OneUptime at: `https://oneuptime.com`, or your own host. The issue's description links back to the incident with it.
+- **OneUptime URL** — the address you open OneUptime at: `https://oneuptime.com`, or your own host. The issue's description links back to the incident or alert with it.
 
 The account behind the token needs **Browse Projects**, **Create Issues**, **Edit Issues**, **Add Comments** and **Transition Issues** in that project. Between them, the templates search for, create, label, comment on and transition issues. Registering the webhooks further down needs a Jira administrator.
 
@@ -68,13 +107,13 @@ The account behind the token needs **Browse Projects**, **Create Issues**, **Edi
 3. **Configure** asks for the values above. They are saved as that workflow's own variables, under **Workflow Variables** in its left menu. The API token is saved as a secret: it is redacted from **Runs & Logs**, and it only ever goes into the `Authorization` header of the Jira calls.
 4. Click **Create Workflow**. Every workflow is created **disabled**. Turn it on from **Overview → Edit Workflow → Enabled**.
 
-Start with **Create a Jira issue when an incident is declared**. Every other OneUptime → Jira template finds the issue by the label this one adds. Enable it, declare a test incident, and open the workflow's **Runs & Logs**: the run's last step should read `✅ Created Jira issue` and name the new issue.
+Start with **Create a Jira issue when an incident is declared**, or **Create a Jira issue when an alert is created** for alerts. Every other OneUptime → Jira template of the same kind finds the issue by the label this one adds. Enable it, declare a test incident (or create a test alert), and open the workflow's **Runs & Logs**: the run's last step should read `✅ Created Jira issue` and name the new issue.
 
 Each workflow keeps its own copy of these values. When you replace the token, update `jiraBasicAuthToken` under **Workflow Variables** in every Jira workflow that asked for it.
 
 ### Connect the webhook templates
 
-The four Jira → OneUptime templates start from a [Webhook trigger](/docs/workflows/triggers#webhook), so Jira has to be told where to send its events. Do it in this order:
+The Jira → OneUptime templates, four for incidents and four for alerts, start from a [Webhook trigger](/docs/workflows/triggers#webhook), so Jira has to be told where to send its events. Do it in this order:
 
 1. Create the workflow and **enable it first**. A disabled workflow answers Jira with `400`, and Jira does not retry a delivery that was refused with a `4xx` like that. Events sent before you enable the workflow are lost, not queued.
 2. Open the workflow's **Builder**, click the **Webhook** trigger block (`webhook-1`), and copy the URL from its **Documentation** card:
@@ -87,71 +126,88 @@ The four Jira → OneUptime templates start from a [Webhook trigger](/docs/workf
 
 | Template                                                      | Jira event          | JQL filter                                                   |
 | ------------------------------------------------------------- | ------------------- | ------------------------------------------------------------ |
+| **Incidents**                                                 |                     |                                                              |
 | Declare an incident when a Jira issue is created              | **Issue created**   | `project = OPS AND (labels is EMPTY OR labels != oneuptime)` |
 | Acknowledge or resolve the incident when its Jira issue moves | **Issue updated**   | `project = OPS`                                              |
 | Add Jira comments to the incident as private notes            | **Comment created** | `project = OPS`                                              |
 | Add Jira issue changes to the incident as private notes       | **Issue updated**   | `project = OPS`                                              |
+| **Alerts**                                                    |                     |                                                              |
+| Create an alert when a Jira issue is created                  | **Issue created**   | `project = OPS AND (labels is EMPTY OR labels != oneuptime)` |
+| Acknowledge or resolve the alert when its Jira issue moves    | **Issue updated**   | `project = OPS`                                              |
+| Add Jira comments to the alert as private notes               | **Comment created** | `project = OPS`                                              |
+| Add Jira issue changes to the alert as private notes          | **Issue updated**   | `project = OPS`                                              |
 
-Replace `OPS` with your project key. The filter on the declare template keeps the issues OneUptime opened from reaching it at all. The template would skip them anyway, but an event that never arrives costs no run. `labels != oneuptime` on its own would also drop every issue that has no labels, which is why `labels is EMPTY` is there.
+Replace `OPS` with your project key. The filter on the two templates that create a record keeps the issues OneUptime opened from reaching them at all. The templates would skip them anyway, but an event that never arrives costs no run. `labels != oneuptime` on its own would also drop every issue that has no labels, which is why `labels is EMPTY` is there.
 
-The other three only act on linked issues, so `project = OPS AND labels = oneuptime` is a tighter filter for them if you want fewer runs.
+The other templates only act on linked issues, so `project = OPS AND labels = oneuptime` is a tighter filter for them if you want fewer runs. JQL matches a label only as a whole, so no filter can tell an incident's issue from an alert's. If you run the incident and alert versions of a template side by side, every event reaches both, and the one whose kind the issue is not linked to skips it.
 
-Each workflow has its own URL, so each needs its own Jira webhook. Two templates on **Issue updated** mean two webhooks.
+**Using both templates that create a record?** **Declare an incident when a Jira issue is created** and **Create an alert when a Jira issue is created** both listen for **Issue created**. If both are registered for the same issues, both act on each new issue. Each one checks the issue's labels with Jira before it creates anything, but the two deliveries arrive together, so usually neither run has labelled the issue by the time the other checks. The issue then gets an incident and an alert, and the labels of both. Register the two for different issues with the JQL filter, by project or by issue type:
+
+```text
+project = OPS AND issuetype = Incident AND (labels is EMPTY OR labels != oneuptime)
+project = OPS AND issuetype = Alert AND (labels is EMPTY OR labels != oneuptime)
+```
+
+Use issue types that exist in your project, spelled as Jira spells them.
+
+Each workflow has its own URL, so each needs its own Jira webhook. Two templates on **Issue updated** mean two webhooks, and four when you use the alert versions too.
 
 Before you rely on it:
 
 - **Jira only calls HTTPS, on its allowed ports.** OneUptime Cloud is fine. A self-hosted install has to be reachable from the internet over HTTPS on a port from Jira's list — see [Or use a Jira webhook instead](#or-use-a-jira-webhook-instead).
-- **Anyone who has the URL can trigger the workflow.** Jira's webhooks carry nothing a workflow can verify, so the URL is the only secret. Someone who has it can declare incidents — the declare template asks Jira whether the issue they name exists and is not linked yet, but takes the title, description and priority from the request — and can move or add notes to incidents whose id or Jira issue key they know. Keep the URL in Jira only. If it leaks, click **Reset Secret Key** on the workflow's **Settings** page and paste the new URL into the Jira webhook.
+- **Anyone who has the URL can trigger the workflow.** Jira's webhooks carry nothing a workflow can verify, so the URL is the only secret. Someone who has it can declare incidents or create alerts — the templates that create a record ask Jira whether the issue they name exists and is not linked yet, but take the title, description and priority from the request — and can move or add notes to incidents and alerts whose id or Jira issue key they know. Keep the URL in Jira only. If it leaks, click **Reset Secret Key** on the workflow's **Settings** page and paste the new URL into the Jira webhook.
 - **Every event is a run.** On OneUptime Cloud each delivery counts toward your plan's workflow runs, including the ones a template skips. The JQL filter is what keeps that number down. See [Plan limits](/docs/workflows/configuration#plan-limits).
 
 ### Check that it works
 
 Every template ends in a **Log** step that says what happened, so the last step of a run in **Runs & Logs** is the place to look:
 
-- `✅` — it did its job, and names the issue or incident.
-- `ℹ️` — it skipped the event on purpose, and says why: the issue is not linked, the note came from Jira, the incident is private, the new state has no Jira status mapped to it.
+- `✅` — it did its job, and names the issue, incident or alert.
+- `ℹ️` — it skipped the event on purpose, and says why: the issue is not linked to a record of this kind, the note came from Jira, the incident or alert is private, the new state has no Jira status mapped to it.
 - `❌` — a call failed. For a Jira call, the line includes Jira's answer.
-- `⚠️` — the declare template declared the incident, but Jira did not accept the link labels, so the other templates cannot find it yet.
+- `⚠️` — a template that creates a record from a Jira issue created the incident or alert, but Jira did not accept the link labels, so the other templates cannot find it yet.
 
 A skipped run still ends **Executed**. Skips are normal: most Jira events are not ones a given template acts on. See [Runs & Logs](/docs/workflows/runs-and-logs).
 
 ### How the two sides stay linked
 
-Jira holds the link. An issue that belongs to an incident carries two labels:
+Jira holds the link. An issue that belongs to an incident or an alert carries two labels:
 
 - `oneuptime`, which marks the issue as linked.
-- `oneuptime-incident-<incident id>`, which names the incident. The id is the last part of the incident's address in the dashboard, `/dashboard/<project id>/incidents/<incident id>`.
+- `oneuptime-incident-<incident id>` for an incident, or `oneuptime-alert-<alert id>` for an alert, which names the record. The id is the last part of the record's address in the dashboard: `/dashboard/<project id>/incidents/<incident id>` or `/dashboard/<project id>/alerts/<alert id>`.
 
-**Create a Jira issue when an incident is declared** adds both labels when it files the issue. **Declare an incident when a Jira issue is created** adds both to the issue once the incident exists. Every other template crosses over by these labels: the OneUptime → Jira ones search Jira for the incident's label, and the Jira → OneUptime ones read the incident id off the issue's labels. So do not rename or remove them. To link an issue that was opened by hand, add the two labels to it yourself — but only when the incident has no issue yet.
+**Create a Jira issue when an incident is declared** and **Create a Jira issue when an alert is created** add both labels when they file the issue. **Declare an incident when a Jira issue is created** and **Create an alert when a Jira issue is created** add both to the issue once the record exists. Every other template crosses over by these labels: the OneUptime → Jira ones search Jira for the record's label, and the Jira → OneUptime ones read the record's id off the issue's labels. So do not rename or remove them. To link an issue that was opened by hand, add the two labels to it yourself — but only when the record has no issue yet.
 
-An incident has one issue. The templates that post to or move the issue act only when exactly one issue carries the incident's label. Cloning an issue in Jira copies its labels, both of them, so a clone of a linked issue claims the same incident. From then on those templates stop, and each run ends in a skip that names both issues:
+**An issue is linked to an incident or to an alert, never both.** The templates that create a record from a Jira issue skip any issue that carries `oneuptime`, or a label starting with `oneuptime-incident-` or `oneuptime-alert-`. So an issue filed for an alert never becomes an incident as well, and an issue filed for an incident never becomes an alert. The templates of one kind ignore issues linked to the other: an incident template that receives an event for an alert's issue ends in a skip saying the issue is not linked to an incident. When you link an issue by hand, give it one record label, not one of each. Apart from labels added by hand, an issue only ends up with both when the two templates that create a record listen to the same issues — see [Connect the webhook templates](#connect-the-webhook-templates).
+
+A record has one issue. The templates that post to or move the issue act only when exactly one issue carries the record's label. Cloning an issue in Jira copies its labels, both of them, so a clone of a linked issue claims the same incident or alert. From then on those templates stop, and each run ends in a skip that names both issues:
 
 ```text
 More than one Jira issue is labelled oneuptime-incident-<id> (OPS-17, OPS-30). A cloned issue copies the label: remove it from every issue except the one filed for the incident.
 ```
 
-The other direction has no such check. Status changes, comments and edits on the clone reach the incident as if they were made on the original. So when you clone a linked issue, remove both labels from the clone.
+The other direction has no such check. Status changes, comments and edits on the clone reach the record as if they were made on the original. So when you clone a linked issue, remove both labels from the clone.
 
-Incidents declared from Jira also record the issue key in `customFields.jiraIssueKey`. That is how **Create a Jira issue when an incident is declared** knows the incident already has an issue.
+Incidents and alerts created from Jira also record the issue key in `customFields.jiraIssueKey`. That is how the create-issue templates know the record already has an issue.
 
-The link lives in Jira, not on the incident, because of how `customFields` works: it is one JSON value, so a workflow that writes one key into it replaces every other custom field on the incident (see [Step 3](#step-3-carry-the-incident-id-into-jira)). The declare template can write `jiraIssueKey` safely only because it does so when the incident is created, when there is nothing there to replace.
+The link lives in Jira, not on the record, because of how `customFields` works: it is one JSON value, so a workflow that writes one key into it replaces every other custom field on the incident or alert (see [Step 3](#step-3-carry-the-incident-id-into-jira)). The templates that create a record from a Jira issue can write `jiraIssueKey` safely only because they do so when the record is created, when there is nothing there to replace.
 
 ### How the templates avoid loops
 
 Every write in one direction is an event in the other. A comment the templates post in Jira comes back as a **Comment created** webhook, and a note they add in OneUptime fires the note trigger. Three things stop the echo:
 
-- **Markers in the text.** Every comment the templates post in Jira starts with `Synced from OneUptime`. Every note written from Jira, and the root cause of every state change made from Jira, starts with `Synced from Jira`. Each direction skips text that contains the other side's marker: a Jira comment containing `Synced from OneUptime` is not copied back, and a note containing `Synced from Jira` is not posted to Jira. A comment someone writes that quotes a marker is skipped too.
-- **Labels on new issues.** Issues OneUptime opened carry the `oneuptime` label, and the declare template skips any issue that has it — the JQL filter above keeps them from reaching it at all. Before it declares anything, the declare template also asks Jira for the issue's labels, rather than trusting the event. Incidents declared from Jira carry `customFields.jiraIssueKey`, and the create template skips those.
-- **States only move forward, on both sides.** The status template (**Acknowledge or resolve the incident when its Jira issue moves**) writes a new row on the incident's state timeline, the same as the **Resolve** button does, and only ever to a state later in the order than the current one. The transition template (**Move the Jira issue when the incident is acknowledged or resolved**) never moves an issue back either. When the incident is resolved from Jira, the transition template finds the issue already Done and stops. When the incident is resolved in OneUptime and the issue moves to Done, the status template finds the incident already resolved and changes nothing.
+- **Markers in the text.** Every comment the templates post in Jira starts with `Synced from OneUptime`. Every note written from Jira, and the root cause of every state change made from Jira, starts with `Synced from Jira`. Each direction skips text that contains the other side's marker: a Jira comment containing `Synced from OneUptime` is not copied back, and a note containing `Synced from Jira` is not posted to Jira. A comment someone writes that quotes a marker is skipped too. The incident and alert templates use the same markers.
+- **Labels on new issues.** Issues OneUptime opened carry the `oneuptime` label, and the templates that create a record from a Jira issue skip any issue that has it, or either record label — the JQL filter above keeps them from reaching those templates at all. Before they create anything, those templates also ask Jira for the issue's labels, rather than trusting the event. Incidents and alerts created from Jira carry `customFields.jiraIssueKey`, and the create-issue templates skip those.
+- **States only move forward, on both sides.** The status templates (**Acknowledge or resolve the incident when its Jira issue moves**, and the alert one) write a new row on the record's state timeline, the same as the **Resolve** button does, and only ever to a state later in the order than the current one. The transition templates (**Move the Jira issue when the incident is acknowledged or resolved**, and the alert one) never move an issue back either. When an incident is resolved from Jira, the transition template finds the issue already Done and stops. When the incident is resolved in OneUptime and the issue moves to Done, the status template finds the incident already resolved and changes nothing. Alerts settle the same way.
 
 Keep the markers when you edit the templates. They are the `FROM_ONEUPTIME` and `FROM_JIRA` constants in the helper block at the top of every script. Change the words around them as you like, but a comment or note written without its marker is copied straight back.
 
 ### How the transition template picks a status
 
-Jira has no "move to Done" call. An issue moves by a transition, and which transitions it has depends on its workflow and its current status. So **Move the Jira issue when the incident is acknowledged or resolved** reads the transitions open to the issue and chooses one by the status it leads to:
+Jira has no "move to Done" call. An issue moves by a transition, and which transitions it has depends on its workflow and its current status. So **Move the Jira issue when the incident is acknowledged or resolved**, and its alert twin, read the transitions open to the issue and choose one by the status it leads to:
 
 - **Only forward.** Jira sorts statuses into three categories, To Do, In Progress and Done, and the template never picks a transition into an earlier category than the issue's current one — not even for a status you named in `STATE_TO_JIRA_STATUS`. Acknowledging an incident whose issue is already Done ends in `Jira issue OPS-17 is already Done, so it was not moved back to an In Progress status.`
-- **The usual names first.** For a resolved incident, a status named Done, Resolved, Closed, Complete, Completed or Fixed wins. For an acknowledged one, In Progress or Work in Progress wins. A status with any other name in the right category is used when it is the only one that fits.
+- **The usual names first.** For a resolved incident or alert, a status named Done, Resolved, Closed, Complete, Completed or Fixed wins. For an acknowledged one, In Progress or Work in Progress wins. A status with any other name in the right category is used when it is the only one that fits.
 - **Never a guess that drops the work.** A status whose name reads like Canceled, Declined, Rejected, Won't Do, Duplicate, Obsolete, Waiting, Pending, Escalated, On Hold or Blocked is never chosen unless `STATE_TO_JIRA_STATUS` names it. So a Jira Service Management request that can go to Resolved or to Canceled goes to Resolved.
 - **Two ways to the same status.** When two transitions lead to one status, it takes the one without a screen.
 
@@ -167,7 +223,7 @@ or none of the transitions is one it may pick on its own:
 Jira issue OPS-17 has no transition from In Review to a Done status that can be chosen without naming it in STATE_TO_JIRA_STATUS.
 ```
 
-Either way, name the status in `STATE_TO_JIRA_STATUS` at the top of the `plan-transition-1` script, keyed by your OneUptime state names:
+Either way, name the status in `STATE_TO_JIRA_STATUS` at the top of the `plan-transition-1` script, keyed by your OneUptime incident or alert state names:
 
 ```javascript
 const STATE_TO_JIRA_STATUS = {
@@ -180,39 +236,43 @@ A state listed there moves the issue to that status by name, whatever its catego
 
 ### Changing what a template does
 
-Open the workflow's **Builder** and click the block you want to change. The settings you are most likely to want are constants near the top of a script — the **JavaScript Code** of a **Run Custom JavaScript** block, just below the shared helper block:
+Open the workflow's **Builder** and click the block you want to change. The settings you are most likely to want are constants near the top of a script — the **JavaScript Code** of a **Run Custom JavaScript** block, just below the shared helper block. The incident and alert versions of a template keep the same constants in the same blocks, except where the table says otherwise:
 
-| Constant                          | Template, and block                                                                           | What it controls                                                                                                                                                                                                                                                                                                                                                                                                     |
-| --------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `STATE_TO_JIRA_STATUS`            | Move the Jira issue when the incident is acknowledged or resolved — `plan-transition-1`       | Maps a OneUptime state name to a Jira status name, such as `{ Resolved: 'Resolved', Acknowledged: 'In Progress' }`. States not listed go by meaning: acknowledged moves the issue to an In Progress status, resolved to a Done one, and any other state is skipped. Name a status here when the run log asks you to — see [How the transition template picks a status](#how-the-transition-template-picks-a-status). |
-| `PREFERRED_STATUS`, `NEVER_GUESS` | Move the Jira issue when the incident is acknowledged or resolved — `plan-transition-1`       | The status names the template prefers when it goes by meaning, and the ones it never picks unless `STATE_TO_JIRA_STATUS` names them. Both are regular expressions matched against the status name, ignoring case.                                                                                                                                                                                                    |
-| `SYNC_PRIVATE_INCIDENTS`          | Every OneUptime → Jira template — `prepare-issue-1`, `plan-transition-1` or `build-comment-1` | `false` keeps incidents marked **Private Incident** out of Jira: no issue is filed for one, its issue is not moved, and neither its notes nor its edits are posted. Set it to `true` to send them anyway. Each template has its own copy, so set it in every template that should send them.                                                                                                                         |
-| `JIRA_STATUS_TO_STATE`            | Acknowledge or resolve the incident when its Jira issue moves — `decide-state-1`              | Maps a Jira status name to a OneUptime state name, such as `{ 'In Review': 'Monitoring' }`. Statuses not listed go by Jira's status category: In Progress acknowledges the incident, Done resolves it, and To Do maps to nothing.                                                                                                                                                                                    |
-| `PRIORITY_RANK`                   | Declare an incident when a Jira issue is created — `prepare-incident-1`                       | Maps a Jira priority, written in lowercase, to `0` (your most severe severity), `1` or `2` (your least severe), with the ones in between spread across the range. Priorities not listed land in the middle.                                                                                                                                                                                                          |
-| `EVENTS`                          | Add Jira comments to the incident as private notes — `read-comment-1`                         | The comment events that become notes. Add `'comment_updated'` to also copy edits — each edit becomes a new note — and tick **Comment updated** on the Jira webhook as well.                                                                                                                                                                                                                                          |
-| `IGNORED_FIELDS`                  | Add Jira issue changes to the incident as private notes — `read-changes-1`                    | The Jira fields, in lowercase, whose changes are not worth a note. A change is left out when either its field id or its name is listed, which is how `'rank'` catches Rank, a custom field that arrives as an id like `customfield_10019`. Status is on the list because the status template handles it.                                                                                                             |
+| Constant                          | Template, and block                                                                                                                       | What it controls                                                                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STATE_TO_JIRA_STATUS`            | Move the Jira issue when the incident (or alert) is acknowledged or resolved — `plan-transition-1`                                        | Maps a OneUptime state name to a Jira status name, such as `{ Resolved: 'Resolved', Acknowledged: 'In Progress' }`. States not listed go by meaning: acknowledged moves the issue to an In Progress status, resolved to a Done one, and any other state is skipped. Name a status here when the run log asks you to — see [How the transition template picks a status](#how-the-transition-template-picks-a-status). |
+| `PREFERRED_STATUS`, `NEVER_GUESS` | Move the Jira issue when the incident (or alert) is acknowledged or resolved — `plan-transition-1`                                        | The status names the template prefers when it goes by meaning, and the ones it never picks unless `STATE_TO_JIRA_STATUS` names them. Both are regular expressions matched against the status name, ignoring case.                                                                                                                                                                                                    |
+| `SYNC_PRIVATE_INCIDENTS`          | Every incident OneUptime → Jira template — `prepare-issue-1`, `plan-transition-1` or `build-comment-1`                                    | `false` keeps incidents marked **Private Incident** out of Jira: no issue is filed for one, its issue is not moved, and neither its notes nor its edits are posted. Set it to `true` to send them anyway. Each template has its own copy, so set it in every template that should send them.                                                                                                                         |
+| `SYNC_PRIVATE_ALERTS`             | Every alert OneUptime → Jira template — `prepare-issue-1`, `plan-transition-1` or `build-comment-1`                                       | The same for alerts marked **Private Alert**: `false` keeps them out of Jira in the same ways, and `true` sends them anyway. Set it in every alert template that should send them.                                                                                                                                                                                                                                   |
+| `JIRA_STATUS_TO_STATE`            | Acknowledge or resolve the incident (or alert) when its Jira issue moves — `decide-state-1`                                               | Maps a Jira status name to a OneUptime state name, such as `{ 'In Review': 'Monitoring' }`. Statuses not listed go by Jira's status category: In Progress acknowledges the incident or alert, Done resolves it, and To Do maps to nothing.                                                                                                                                                                           |
+| `PRIORITY_RANK`                   | Declare an incident when a Jira issue is created — `prepare-incident-1`; Create an alert when a Jira issue is created — `prepare-alert-1` | Maps a Jira priority, written in lowercase, to `0` (your most severe severity), `1` or `2` (your least severe), with the ones in between spread across the range. Priorities not listed land in the middle. With the two alert severities a new project has, `0` is High and both `1` and `2` are Low, so Medium becomes Low unless you change it to `medium: 0`.                                                    |
+| `EVENTS`                          | Add Jira comments to the incident (or alert) as private notes — `read-comment-1`                                                          | The comment events that become notes. Add `'comment_updated'` to also copy edits — each edit becomes a new note — and tick **Comment updated** on the Jira webhook as well.                                                                                                                                                                                                                                          |
+| `IGNORED_FIELDS`                  | Add Jira issue changes to the incident (or alert) as private notes — `read-changes-1`                                                     | The Jira fields, in lowercase, whose changes are not worth a note. A change is left out when either its field id or its name is listed, which is how `'rank'` catches Rank, a custom field that arrives as an id like `customfield_10019`. Status is on the list because the status template handles it.                                                                                                             |
 
 State and status names used as keys must be spelled exactly as they are named, capitals included. Keep `{{` out of the code: a script is substituted like any other setting before it runs, so two opening braces in a row would be read as a reference.
 
-To send more fields on new issues, edit the **Request Body** of the `create-issue-1` block in **Create a Jira issue when an incident is declared**. It holds the issue's project, issue type, summary, labels and description, and you can add a priority, components, an assignee or custom fields inside `fields`, in the shapes [Filling in more fields](#filling-in-more-fields) describes. Keep both labels. The wording of the summary and description is in the `prepare-issue-1` script.
+To send more fields on new issues, edit the **Request Body** of the `create-issue-1` block in **Create a Jira issue when an incident is declared** or **Create a Jira issue when an alert is created**. It holds the issue's project, issue type, summary, labels and description, and you can add a priority, components, an assignee or custom fields inside `fields`, in the shapes [Filling in more fields](#filling-in-more-fields) describes. Keep both labels. The wording of the summary and description is in the `prepare-issue-1` script. The description gives the record's severity, state and description, then its root cause and remediation notes when it has them — a monitor fills those in when it raises an incident or alert, and they are often what explains it.
 
-Private notes and incident-edit comments are marked internal by the `properties` entry, `sd.public.comment`, in the **Request Body** of their `post-comment-1` block. Only Jira Service Management reads it. Delete it only if customers should see those comments.
+Private notes and edit comments, for incidents and alerts alike, are marked internal by the `properties` entry, `sd.public.comment`, in the **Request Body** of their `post-comment-1` block. Only Jira Service Management reads it. Delete it only if customers should see those comments.
 
 ### Limitations
 
 - **Jira Cloud only.** The templates call the Jira Cloud REST API v3 with Basic auth. Data Center has no v3 and takes a personal access token as `Bearer`, so every API block needs the v2 adjustments in [Jira Data Center](#jira-data-center): `/rest/api/2/...` paths, plain strings instead of Atlassian Document Format bodies, and the header. The `find-issue-1` blocks change the most: Data Center has no `/search/jql`, so they must `POST` to `/rest/api/2/search` instead.
-- **Incidents declared from Jira are quiet.** They are created hidden from your status pages and without notifying status page subscribers, because an issue's text was not written for customers. They stay that way until someone changes it: turn on **Visible on Status Page** on the incident's **Settings** page (see [Keeping an incident off the status page](/docs/incidents/states-and-severities#keeping-an-incident-off-the-status-page)), or change `isVisibleOnStatusPage` and `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` in the template's `create-incident-1` block.
-- **Private incidents stay in OneUptime.** The OneUptime → Jira templates skip an incident marked **Private Incident**: no issue is filed for it, its issue is not moved, and neither its notes nor its edits are posted. Each skip says so in **Runs & Logs**. To send them anyway, set `SYNC_PRIVATE_INCIDENTS` to `true` in the template's script (see [Changing what a template does](#changing-what-a-template-does)). Making an incident private later stops the sync from then on, but does not take back what Jira already has. The Jira → OneUptime templates do not check, so comments, edits and status changes on a linked issue still reach a private incident.
-- **Incidents never move backwards, and neither do issues.** Reopening a Jira issue changes nothing in OneUptime, and a status in the To Do category maps to no state at all. See [Order is a real constraint](/docs/incidents/states-and-severities#order-is-a-real-constraint-not-a-display-preference). The transition template likewise never moves an issue to an earlier status category, not even for a status named in `STATE_TO_JIRA_STATUS`.
-- **A cloned issue claims the same incident.** A clone copies both link labels. The templates that post to or move the issue then stop with a skip naming both issues, and the clone's comments and changes reach the incident, until the labels are removed from the clone. See [How the two sides stay linked](#how-the-two-sides-stay-linked).
-- **The first few seconds can miss the issue.** Jira's search is eventually consistent, so a note, state change or edit made in the first seconds after an incident is declared can fail to find the new issue and end in the `No Jira issue is labelled …` skip. That run is not retried. The same applies just after an incident is declared from Jira, until its labels are added.
-- **Private and public mean different things in Jira.** In a Jira Service Management project, private notes and incident-edit comments (which carry the root cause and remediation) become internal comments, while public notes become comments the customer can see. In any other kind of project, all of them are ordinary comments that anyone who can see the issue can read.
+- **Incidents declared from Jira are quiet.** They are created hidden from your status pages and without notifying status page subscribers, because an issue's text was not written for customers. They stay that way until someone changes it: turn on **Visible on Status Page** on the incident's **Settings** page (see [Keeping an incident off the status page](/docs/incidents/states-and-severities#keeping-an-incident-off-the-status-page)), or change `isVisibleOnStatusPage` and `shouldStatusPageSubscribersBeNotifiedOnIncidentCreated` in the template's `create-incident-1` block. Alerts created from Jira need no such setting, because an alert never reaches a status page.
+- **Private incidents and alerts stay in OneUptime.** The OneUptime → Jira templates skip an incident marked **Private Incident** and an alert marked **Private Alert**: no issue is filed for it, its issue is not moved, and neither its notes nor its edits are posted. Each skip says so in **Runs & Logs**. To send them anyway, set `SYNC_PRIVATE_INCIDENTS` or `SYNC_PRIVATE_ALERTS` to `true` in the template's script (see [Changing what a template does](#changing-what-a-template-does)). Making a record private later stops the sync from then on, but does not take back what Jira already has. The Jira → OneUptime templates do not check, so comments, edits and status changes on a linked issue still reach a private incident or alert.
+- **Incidents and alerts never move backwards, and neither do issues.** Reopening a Jira issue changes nothing in OneUptime, and a status in the To Do category maps to no state at all. See [Order is a real constraint](/docs/incidents/states-and-severities#order-is-a-real-constraint-not-a-display-preference). The transition templates likewise never move an issue to an earlier status category, not even for a status named in `STATE_TO_JIRA_STATUS`.
+- **An issue belongs to an incident or an alert, not both.** The templates that create a record skip an issue already linked to either kind, and the templates of one kind ignore issues linked to the other. If both templates that create a record are registered for the same issues, though, each new issue gets an incident and an alert — give them different projects or issue types, as [Connect the webhook templates](#connect-the-webhook-templates) shows.
+- **A cloned issue claims the same incident or alert.** A clone copies both link labels. The templates that post to or move the issue then stop with a skip naming both issues, and the clone's comments and changes reach the record, until the labels are removed from the clone. See [How the two sides stay linked](#how-the-two-sides-stay-linked).
+- **Every alert gets an issue.** Apart from private alerts, **Create a Jira issue when an alert is created** files an issue for every alert, including each one a monitor raises. [What is different for alerts](#what-is-different-for-alerts) shows how to add a condition in front of it.
+- **The first few seconds can miss the issue.** Jira's search is eventually consistent, so a note, state change or edit made in the first seconds after an incident or alert is created can fail to find the new issue and end in the `No Jira issue is labelled …` skip. That run is not retried. The same applies just after an incident or alert is created from Jira, until its labels are added.
+- **Private and public mean different things in Jira.** In a Jira Service Management project, private notes and edit comments (which carry the root cause and remediation) become internal comments, while an incident's public notes become comments the customer can see. Alerts have only private notes, so every comment the alert templates post is internal there. In any other kind of project, all of them are ordinary comments that anyone who can see the issue can read.
+- **Edit comments follow saves, not changes.** The edit-comment templates listen for the fields they report, but the incident and alert details forms send the title and severity every time they are saved. So saving one after changing only its labels, or its Private setting, also posts a comment — with the same values as the last one. The trigger hands the workflow the record as it now stands, not what changed, so the template cannot tell these saves apart.
 - **Formatting does not cross over.** Notes are posted to Jira as plain text, so Markdown arrives as its raw characters. Jira's rich text arrives in OneUptime as the wiki markup Jira's webhooks send, such as `*bold*`.
 - **A bad or expired token rarely says so.** On your site URL, Jira usually answers a call it cannot authenticate as it would an anonymous visitor, not with a `401`. So a wrong, mistyped or expired token shows up as one of these:
 
   - the create template's `The target project doesn't exist or you don't have permission to create issues in it`, a `400`
   - `Issue does not exist or you do not have permission to see it`, a `404`, from a step that reads an issue
-  - the skip `No Jira issue is labelled oneuptime-incident-<id>, or the Jira credentials cannot see it.`, because a search Jira cannot authenticate finds nothing rather than failing
+  - the skip `No Jira issue is labelled oneuptime-incident-<id>, or the Jira credentials cannot see it.` (or `oneuptime-alert-<id>`), because a search Jira cannot authenticate finds nothing rather than failing
 
   A plain `401` is mostly what the `api.atlassian.com` address answers. To test the value you pasted, send it to `/rest/api/3/myself`, which needs a signed-in account: it answers with that account's name and email when the value works, and `401` when it does not.
 
@@ -222,8 +282,7 @@ Private notes and incident-edit comments are marked internal by the `properties`
 
   If it does not work, create a new token, encode it again, and update `jiraBasicAuthToken` in every Jira workflow.
 
-- **The same event can arrive twice.** Jira retries a delivery that failed with a server error or timed out. On the rare occasion that OneUptime had already started the run, the comment and issue-change templates add a second note. The declare template does not declare a second incident: before it declares anything, it asks Jira for the issue's labels, and by the time a retry arrives, the first run has labelled the issue. The same check stops a request that names an issue already linked. It cannot help when the first run declared the incident but Jira refused the labels — that run ends in a `⚠️` line saying so, and you should add the labels by hand.
-- **Incidents only.** The templates do not cover alerts. [Doing the same for alerts](#doing-the-same-for-alerts) describes building the same thing by hand.
+- **The same event can arrive twice.** Jira retries a delivery that failed with a server error or timed out. On the rare occasion that OneUptime had already started the run, the comment and issue-change templates add a second note. The templates that create a record do not create a second incident or alert: before they create anything, they ask Jira for the issue's labels, and by the time a retry arrives, the first run has labelled the issue. The same check stops a request that names an issue already linked. It cannot help when the first run created the record but Jira refused the labels — that run ends in a `⚠️` line saying so, and you should add the labels by hand.
 
 ## Prerequisites
 
@@ -542,15 +601,28 @@ Other differences to plan for:
 
 ## Doing the same for alerts
 
-Everything above is written around incidents because that is the common case, but alerts work identically — swap the record type and nothing else changes:
+Start with the eight alert templates in [Start from a template](#start-from-a-template). They do for alerts what the incident templates do for incidents, apart from public notes, which alerts do not have. [What is different for alerts](#what-is-different-for-alerts) lists the rest, including the two default alert severities and the condition worth adding before the create-issue template.
 
-| Incident                                 | Alert                                       |
-| ---------------------------------------- | ------------------------------------------- |
-| **On Create Incident** (`incident-on-create-1`) | **On Create Alert** (`alert-on-create-1`)   |
-| **On Update Incident** (`incident-on-update-1`) | **On Update Alert** (`alert-on-update-1`)   |
+To build an alert workflow by hand instead, follow the steps above with the alert version of each block and field:
+
+| Incident                                                     | Alert                                               |
+| ------------------------------------------------------------ | --------------------------------------------------- |
+| **On Create Incident** (`incident-on-create-1`)              | **On Create Alert** (`alert-on-create-1`)           |
+| **On Update Incident** (`incident-on-update-1`)              | **On Update Alert** (`alert-on-update-1`)           |
+| **On Create Incident Internal Note**                         | **On Create Alert Internal Note**                   |
+| **On Create Incident Public Note**                           | None: alerts have no public notes                   |
 | `incidentNumber`, `currentIncidentState`, `incidentSeverity` | `alertNumber`, `currentAlertState`, `alertSeverity` |
-| **Find One Incident State**              | **Find One Alert State**                    |
-| **Update One Incident**                  | **Update One Alert**                        |
+| **Find One Incident State**                                  | **Find One Alert State**                            |
+| **Update One Incident**                                      | **Update One Alert**                                |
+| Label `oneuptime-incident-<incident id>`                     | Label `oneuptime-alert-<alert id>`                  |
+| `/dashboard/<project id>/incidents/<incident id>`            | `/dashboard/<project id>/alerts/<alert id>`         |
+
+Label the issues the way the templates do, `oneuptime` plus `oneuptime-alert-<alert id>`, and a workflow you build and the alert templates can find each other's issues. Some things do not carry over one for one:
+
+- **Severities.** A new project has two alert severities, High and Low, where it has three incident severities. A priority mapping written for incidents needs redoing for alerts.
+- **Root cause.** An alert's root cause is written when the alert is created and cannot be edited afterwards, so there is no point listening on `rootCause` in **On Update Alert**.
+- **Status pages.** An alert never appears on a status page, so there is no `isVisibleOnStatusPage` to set when you create one from Jira.
+- **Volume.** Monitors raise alerts automatically, and **On Create Alert** fires for every one. Put an **If / Else** block between the trigger and the Jira call, on the severity or whatever decides which alerts deserve a ticket.
 
 A workflow has exactly one trigger, so incidents and alerts need one workflow each. If the two would do the same work, build the Jira half once and call it from both with the **Execute Workflow** component.
 

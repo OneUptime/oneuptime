@@ -25,32 +25,51 @@
  * Each run returns a trace — the steps executed, every request sent to Jira,
  * every database call and every log line — and the tests assert exactly what
  * would have left the workflow.
+ *
+ * Every Jira template comes in an incident and an alert version, built from
+ * the same builders. The scenarios are written once and run for both kinds,
+ * from the table under "The two kinds"; the few ways the kinds differ (alerts
+ * have no public notes, no status page and two default severities) have tests
+ * of their own. A last group runs the two kinds against each other, because a
+ * project can enable both sets at once and an issue linked to one kind of
+ * record must never be taken for the other.
  */
 
 import {
   ACKNOWLEDGED_STATE,
+  ALERT_ACKNOWLEDGED_STATE,
+  ALERT_CREATED_STATE,
+  ALERT_ID,
+  ALERT_NUMBER,
+  ALERT_RESOLVED_STATE,
+  ALERT_SEVERITIES,
+  ALERT_STATES,
   CREATED_STATE,
   CRITICAL_SEVERITY_ID,
   DONE,
   EMPTY_JIRA_SEARCH,
+  HIGH_ALERT_SEVERITY_ID,
   IN_PROGRESS,
   INCIDENT_ID,
   INCIDENT_NUMBER,
   INCIDENT_SEVERITIES,
   INCIDENT_STATES,
-  IncidentModelProps,
   JIRA_ISSUE_ID,
   JIRA_ISSUE_KEY,
   JIRA_SITE,
+  LOW_ALERT_SEVERITY_ID,
+  MAJOR_SEVERITY_ID,
   MINOR_SEVERITY_ID,
+  OTHER_ALERT_ID,
   OTHER_INCIDENT_ID,
   PROJECT_ID,
   RESOLVED_CHANGELOG,
   RESOLVED_STATE,
-  RESOLVED_STATE_ID,
-  ACKNOWLEDGED_STATE_ID,
   STARTED_CHANGELOG,
   TO_DO,
+  alertLabel,
+  alertModel,
+  alertNoteModel,
   changelogItem,
   incidentLabel,
   incidentModel,
@@ -65,13 +84,17 @@ import {
   noteModel,
 } from "./JiraTemplateFixtures";
 import {
+  JIRA_ALERT_LABEL_PREFIX,
   JIRA_INCIDENT_LABEL_PREFIX,
   JIRA_LINK_LABEL,
   JIRA_SYNCED_FROM_ONEUPTIME_MARKER,
   ONEUPTIME_SYNCED_FROM_JIRA_MARKER,
   WorkflowTemplate,
+  WorkflowTemplateCategory,
+  WorkflowTemplateVariable,
   buildGraphForTemplate,
   getWorkflowTemplate,
+  getWorkflowTemplatesByCategory,
 } from "../../../Types/Workflow/Templates";
 import ComponentMetadata, {
   Argument,
@@ -125,9 +148,17 @@ const ONEUPTIME_URL: string = "https://oneuptime.com";
 /** The id the database gives the incident the declare template creates. */
 const NEW_INCIDENT_ID: string = "5d6e7f80-9a1b-4c2d-8e3f-4a5b6c7d8e9f";
 
-const NEW_NOTE_ID: string = "dddddddd-0000-4000-8000-000000000001";
+/** The id the database gives the alert the create-alert template creates. */
+const NEW_ALERT_ID: string = "7a8b9c0d-1e2f-4a3b-8c4d-5e6f7a8b9c0d";
 
-const NEW_TIMELINE_ID: string = "eeeeeeee-0000-4000-8000-000000000001";
+/*
+ * The ids the database gives a new note or timeline row. Neither is ever
+ * written anywhere, so they are kept apart from every fixture id: a template
+ * quoting the wrong step's id would otherwise pass by coincidence.
+ */
+const NEW_NOTE_ID: string = "abababab-0000-4000-8000-000000000001";
+
+const NEW_TIMELINE_ID: string = "cdcdcdcd-0000-4000-8000-000000000001";
 
 /*
  * The account the templates' API token belongs to. Its own edits come back
@@ -162,8 +193,8 @@ const AUTHORIZATION: Dictionary<string> = {
 
 /*
  * The MERGED registry, as in Templates.test.ts: the database components
- * (incident-find-one, incident-state-timeline-create-one, ...) only exist
- * there, and a node without metadata has no arguments to resolve.
+ * (incident-find-one, alert-state-timeline-create-one, ...) only exist there,
+ * and a node without metadata has no arguments to resolve.
  */
 const registry: Array<ComponentMetadata> =
   loadComponentsAndCategories().components;
@@ -406,7 +437,7 @@ interface DatabaseReply {
 
 type DatabaseAnswer = DatabaseReply | ((call: DatabaseCall) => DatabaseReply);
 
-/** Keyed by the step's metadata id, e.g. "incident-find-one". */
+/** Keyed by the step's metadata id, e.g. "incident-find-one" or "alert-find-one". */
 type FakeDatabase = Dictionary<DatabaseAnswer>;
 
 type EditCodeFunction = (code: string) => string;
@@ -420,12 +451,14 @@ interface Scenario {
   /*
    * Edits a step's script before the run, keyed by component id — what a
    * user following the script's own comments would do, such as switching
-   * SYNC_PRIVATE_INCIDENTS on.
+   * SYNC_PRIVATE_INCIDENTS or SYNC_PRIVATE_ALERTS on.
    */
   editCode?: Dictionary<EditCodeFunction> | undefined;
 }
 
 interface SimulationTrace {
+  /** The template the run was built from. */
+  templateId: string;
   /** Component ids, in the order they ran. */
   executed: Array<string>;
   /** The port each step left by. */
@@ -743,6 +776,7 @@ const runTemplate: RunTemplateFunction = async (
   }
 
   const trace: SimulationTrace = {
+    templateId: scenario.templateId,
     executed: [],
     ports: {},
     requests: [],
@@ -828,6 +862,393 @@ afterAll(() => {
   jest.restoreAllMocks();
 });
 
+/* ------------------------------ The two kinds ------------------------------ */
+
+/*
+ * What a scenario needs to know about the record a template syncs. The
+ * templates build both of their versions from a table of their own; this one
+ * is written out value by value rather than read from it, so a wrong entry
+ * there fails here instead of being copied into the expectation.
+ */
+
+/** Everything a scenario may set on the record a database trigger hands over. */
+interface RecordModelProps {
+  _id?: string | undefined;
+  title?: string | undefined;
+  description?: string | null | undefined;
+  customFields?: JSONObject | null | undefined;
+  state?: JSONObject | undefined;
+  severity?: string | undefined;
+  rootCause?: string | null | undefined;
+  remediationNotes?: string | null | undefined;
+  isPrivate?: boolean | undefined;
+}
+
+type RecordModelFunction = (props?: RecordModelProps) => JSONObject;
+
+interface RecordNoteProps {
+  note?: string | undefined;
+  /** null leaves the author off, as on a note a workflow wrote. */
+  authorName?: string | null | undefined;
+  recordId?: string | undefined;
+  /** Whether the record the note is on is private. */
+  isPrivate?: boolean | undefined;
+}
+
+type RecordNoteFunction = (props?: RecordNoteProps) => JSONObject;
+
+type RecordLabelFunction = (recordId?: string) => string;
+
+interface NoteTemplate {
+  templateId: string;
+  /** "private" or "public": what the comment calls the note. */
+  visibility: string;
+  /** Whether Jira Service Management is told to keep the comment from the customer. */
+  internal: boolean;
+}
+
+interface SeverityRef {
+  id: string;
+  name: string;
+}
+
+interface KindTemplates {
+  createIssue: string;
+  transition: string;
+  privateNote: string;
+  updateComment: string;
+  createFromIssue: string;
+  statusToState: string;
+  commentToNote: string;
+  issueChangesToNote: string;
+}
+
+/** The component ids that carry the record's noun. The rest are the same for both kinds. */
+interface KindSteps {
+  onCreate: string;
+  onUpdate: string;
+  prepareRecord: string;
+  ifCreate: string;
+  createRecord: string;
+  find: string;
+}
+
+/** The database components, by what they do. */
+interface KindComponents {
+  findOne: string;
+  stateFindMany: string;
+  timelineCreateOne: string;
+  noteCreateOne: string;
+  severityFindMany: string;
+  createOne: string;
+}
+
+interface SimulatedKind {
+  /** "incident" or "alert". Both take "an", which the test titles rely on. */
+  noun: string;
+  id: string;
+  /** A record of the same kind that this project does not have. */
+  otherId: string;
+  /** The id the database gives the record the create-from-Jira template writes. */
+  newId: string;
+  number: string;
+  label: RecordLabelFunction;
+  labelPrefix: string;
+  numberField: string;
+  severityRelation: string;
+  severityIdColumn: string;
+  stateRelation: string;
+  stateIdColumn: string;
+  /** The column a note or a state-timeline row names its record by. */
+  idColumn: string;
+  /** The column a state-timeline row names its new state by. */
+  timelineStateColumn: string;
+  /** The dashboard path the record's page lives under. */
+  dashboardPath: string;
+  /** An incident is declared; an alert is created. */
+  created: string;
+  Created: string;
+  create: string;
+  templates: KindTemplates;
+  /** Every OneUptime note that goes to Jira: private and public for incidents, private for alerts. */
+  noteTemplates: Array<NoteTemplate>;
+  steps: KindSteps;
+  components: KindComponents;
+  createdState: JSONObject;
+  acknowledgedState: JSONObject;
+  resolvedState: JSONObject;
+  states: Array<JSONObject>;
+  severities: Array<JSONObject>;
+  mostSevere: SeverityRef;
+  /** Where a Medium priority lands: the middle of three, or the less severe of two. */
+  middleSeverity: SeverityRef;
+  leastSevere: SeverityRef;
+  /** Written beside the essentials when a record is created from a Jira issue. */
+  quietCreateFields: JSONObject;
+  /** The updates the edit-comment template listens for. */
+  editListenOn: JSONObject;
+  /** The fixture record's own values, as its comments and issues quote them. */
+  defaultTitle: string;
+  defaultDescription: string;
+  defaultSeverityName: string;
+  defaultNoteText: string;
+  model: RecordModelFunction;
+  note: RecordNoteFunction;
+  /** The switch every script that syncs a private record documents. */
+  syncPrivate: EditCodeFunction;
+}
+
+type SyncPrivateSwitchFunction = (constant: string) => EditCodeFunction;
+
+const syncPrivateSwitch: SyncPrivateSwitchFunction = (
+  constant: string,
+): EditCodeFunction => {
+  return (code: string): string => {
+    return code.replace(
+      `const ${constant} = false;`,
+      `const ${constant} = true;`,
+    );
+  };
+};
+
+/*
+ * The incident fixture leaves isPrivate off, and the triggers select it, so a
+ * scenario that sets it gets it added here.
+ */
+const incidentRecordModel: RecordModelFunction = (
+  props?: RecordModelProps,
+): JSONObject => {
+  const model: JSONObject = incidentModel(props);
+
+  if (props?.isPrivate !== undefined) {
+    model["isPrivate"] = props.isPrivate;
+  }
+
+  return model;
+};
+
+/* A note on an incident; the note triggers reach through to the incident for its Private flag. */
+const incidentRecordNote: RecordNoteFunction = (
+  props?: RecordNoteProps,
+): JSONObject => {
+  const note: JSONObject = noteModel({
+    note: props?.note,
+    authorName: props?.authorName,
+    incidentId: props?.recordId,
+  });
+
+  if (props?.isPrivate !== undefined) {
+    note["incident"] = {
+      ...(note["incident"] as JSONObject),
+      isPrivate: props.isPrivate,
+    };
+  }
+
+  return note;
+};
+
+const alertRecordNote: RecordNoteFunction = (
+  props?: RecordNoteProps,
+): JSONObject => {
+  return alertNoteModel({
+    note: props?.note,
+    authorName: props?.authorName,
+    alertId: props?.recordId,
+    isPrivate: props?.isPrivate,
+  });
+};
+
+const INCIDENT: SimulatedKind = {
+  noun: "incident",
+  id: INCIDENT_ID,
+  otherId: OTHER_INCIDENT_ID,
+  newId: NEW_INCIDENT_ID,
+  number: INCIDENT_NUMBER,
+  label: incidentLabel,
+  labelPrefix: "oneuptime-incident-",
+  numberField: "incidentNumberWithPrefix",
+  severityRelation: "incidentSeverity",
+  severityIdColumn: "incidentSeverityId",
+  stateRelation: "currentIncidentState",
+  stateIdColumn: "currentIncidentStateId",
+  idColumn: "incidentId",
+  timelineStateColumn: "incidentStateId",
+  dashboardPath: "incidents",
+  created: "declared",
+  Created: "Declared",
+  create: "declare",
+  templates: {
+    createIssue: "jira-create-issue-for-incident",
+    transition: "jira-transition-issue-on-incident-state",
+    privateNote: "jira-comment-from-incident-private-note",
+    updateComment: "jira-comment-on-incident-update",
+    createFromIssue: "jira-declare-incident-from-issue",
+    statusToState: "jira-status-to-incident-state",
+    commentToNote: "jira-comment-to-incident-private-note",
+    issueChangesToNote: "jira-issue-changes-to-incident-private-note",
+  },
+  noteTemplates: [
+    {
+      templateId: "jira-comment-from-incident-private-note",
+      visibility: "private",
+      internal: true,
+    },
+    {
+      templateId: "jira-comment-from-incident-public-note",
+      visibility: "public",
+      internal: false,
+    },
+  ],
+  steps: {
+    onCreate: "incident-on-create-1",
+    onUpdate: "incident-on-update-1",
+    prepareRecord: "prepare-incident-1",
+    ifCreate: "if-declare-1",
+    createRecord: "create-incident-1",
+    find: "find-incident-1",
+  },
+  components: {
+    findOne: "incident-find-one",
+    stateFindMany: "incident-state-find-many",
+    timelineCreateOne: "incident-state-timeline-create-one",
+    noteCreateOne: "incident-internal-note-create-one",
+    severityFindMany: "incident-severity-find-many",
+    createOne: "incident-create-one",
+  },
+  createdState: CREATED_STATE,
+  acknowledgedState: ACKNOWLEDGED_STATE,
+  resolvedState: RESOLVED_STATE,
+  states: INCIDENT_STATES,
+  severities: INCIDENT_SEVERITIES,
+  mostSevere: { id: CRITICAL_SEVERITY_ID, name: "Critical Incident" },
+  middleSeverity: { id: MAJOR_SEVERITY_ID, name: "Major Incident" },
+  leastSevere: { id: MINOR_SEVERITY_ID, name: "Minor Incident" },
+  // An issue's text was not written for customers, so it stays off status pages.
+  quietCreateFields: {
+    isVisibleOnStatusPage: false,
+    shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: false,
+  },
+  editListenOn: {
+    title: true,
+    description: true,
+    incidentSeverityId: true,
+    incidentSeverity: true,
+    rootCause: true,
+    remediationNotes: true,
+  },
+  defaultTitle: "Checkout latency high",
+  defaultDescription:
+    'p99 latency on /checkout is above 2s.\nStarted after the "v4.2" deploy.',
+  defaultSeverityName: "Critical Incident",
+  defaultNoteText:
+    "Failed over to the **secondary** database. Error rate is dropping.",
+  model: incidentRecordModel,
+  note: incidentRecordNote,
+  syncPrivate: syncPrivateSwitch("SYNC_PRIVATE_INCIDENTS"),
+};
+
+const ALERT: SimulatedKind = {
+  noun: "alert",
+  id: ALERT_ID,
+  otherId: OTHER_ALERT_ID,
+  newId: NEW_ALERT_ID,
+  number: ALERT_NUMBER,
+  label: alertLabel,
+  labelPrefix: "oneuptime-alert-",
+  numberField: "alertNumberWithPrefix",
+  severityRelation: "alertSeverity",
+  severityIdColumn: "alertSeverityId",
+  stateRelation: "currentAlertState",
+  stateIdColumn: "currentAlertStateId",
+  idColumn: "alertId",
+  timelineStateColumn: "alertStateId",
+  dashboardPath: "alerts",
+  created: "created",
+  Created: "Created",
+  create: "create",
+  templates: {
+    createIssue: "jira-create-issue-for-alert",
+    transition: "jira-transition-issue-on-alert-state",
+    privateNote: "jira-comment-from-alert-private-note",
+    updateComment: "jira-comment-on-alert-update",
+    createFromIssue: "jira-create-alert-from-issue",
+    statusToState: "jira-status-to-alert-state",
+    commentToNote: "jira-comment-to-alert-private-note",
+    issueChangesToNote: "jira-issue-changes-to-alert-private-note",
+  },
+  // Alerts have no public notes.
+  noteTemplates: [
+    {
+      templateId: "jira-comment-from-alert-private-note",
+      visibility: "private",
+      internal: true,
+    },
+  ],
+  steps: {
+    onCreate: "alert-on-create-1",
+    onUpdate: "alert-on-update-1",
+    prepareRecord: "prepare-alert-1",
+    ifCreate: "if-create-1",
+    createRecord: "create-alert-1",
+    find: "find-alert-1",
+  },
+  components: {
+    findOne: "alert-find-one",
+    stateFindMany: "alert-state-find-many",
+    timelineCreateOne: "alert-state-timeline-create-one",
+    noteCreateOne: "alert-internal-note-create-one",
+    severityFindMany: "alert-severity-find-many",
+    createOne: "alert-create-one",
+  },
+  createdState: ALERT_CREATED_STATE,
+  acknowledgedState: ALERT_ACKNOWLEDGED_STATE,
+  resolvedState: ALERT_RESOLVED_STATE,
+  states: ALERT_STATES,
+  severities: ALERT_SEVERITIES,
+  mostSevere: { id: HIGH_ALERT_SEVERITY_ID, name: "High" },
+  // Two severities: the middle of the range rounds to the less severe one.
+  middleSeverity: { id: LOW_ALERT_SEVERITY_ID, name: "Low" },
+  leastSevere: { id: LOW_ALERT_SEVERITY_ID, name: "Low" },
+  // An alert never reaches a status page, so there is nothing to keep it off.
+  quietCreateFields: {},
+  // An alert's root cause is written at creation and cannot be edited after.
+  editListenOn: {
+    title: true,
+    description: true,
+    alertSeverityId: true,
+    alertSeverity: true,
+    remediationNotes: true,
+  },
+  defaultTitle: "Disk usage above 90% on db-1",
+  defaultDescription:
+    'The "db-1" volume is at 93%.\nIt grew 4% in the last hour.',
+  defaultSeverityName: "High",
+  defaultNoteText: "Cleared old WAL segments. Usage is back to 71%.",
+  model: alertModel,
+  note: alertRecordNote,
+  syncPrivate: syncPrivateSwitch("SYNC_PRIVATE_ALERTS"),
+};
+
+const KINDS: Array<SimulatedKind> = [INCIDENT, ALERT];
+
+type TemplateIdsOfFunction = (kind: SimulatedKind) => Array<string>;
+
+/** Every template of one kind, each once. */
+const templateIdsOf: TemplateIdsOfFunction = (
+  kind: SimulatedKind,
+): Array<string> => {
+  const ids: Array<string> = [
+    ...Object.values(kind.templates),
+    ...kind.noteTemplates.map((noteTemplate: NoteTemplate) => {
+      return noteTemplate.templateId;
+    }),
+  ];
+
+  return ids.filter((id: string, index: number) => {
+    return ids.indexOf(id) === index;
+  });
+};
+
 /* ------------------------------ Scenario helpers ------------------------------ */
 
 type OnRecordFunction = (model: JSONObject) => JSONObject;
@@ -856,6 +1277,7 @@ const webhookDelivery: WebhookDeliveryFunction = (
 };
 
 type SearchRequestFunction = (
+  kind: SimulatedKind,
   fields: Array<string>,
   expandTransitions?: boolean,
 ) => JiraRequest;
@@ -866,11 +1288,12 @@ type SearchRequestFunction = (
  * refused rather than silently being "the" issue.
  */
 const searchRequest: SearchRequestFunction = (
+  kind: SimulatedKind,
   fields: Array<string>,
   expandTransitions?: boolean,
 ): JiraRequest => {
   const body: JSONObject = {
-    jql: `labels = "${JIRA_INCIDENT_LABEL_PREFIX}${INCIDENT_ID}" ORDER BY created ASC`,
+    jql: `labels = "${kind.labelPrefix}${kind.id}" ORDER BY created ASC`,
     fields: fields,
     maxResults: 2,
   };
@@ -896,6 +1319,12 @@ const adfOf: AdfOfFunction = (text: string): JSONObject => {
     version: 1,
     content: [{ type: "paragraph", content: [{ type: "text", text: text }] }],
   };
+};
+
+/** Marks a comment internal in Jira Service Management, so the customer never sees it. */
+const INTERNAL_COMMENT_PROPERTY: JSONObject = {
+  key: "sd.public.comment",
+  value: { internal: true },
 };
 
 type ExpectValidAdfFunction = (document: JSONValue | undefined) => void;
@@ -974,20 +1403,22 @@ const wikiTextOf: WikiTextOfFunction = (
     .join("\n\n");
 };
 
-type IncidentRecordFunction = (
+type RecordOfFunction = (
+  kind: SimulatedKind,
   state: JSONObject,
-  incidentId?: string,
+  recordId?: string,
 ) => JSONObject;
 
-/* An incident as Find One returns it for the status template's select. */
-const incidentRecord: IncidentRecordFunction = (
+/* A record as Find One returns it for the status template's select. */
+const recordOf: RecordOfFunction = (
+  kind: SimulatedKind,
   state: JSONObject,
-  incidentId?: string,
+  recordId?: string,
 ): JSONObject => {
   return {
-    _id: incidentId || INCIDENT_ID,
-    incidentNumberWithPrefix: INCIDENT_NUMBER,
-    currentIncidentState: {
+    _id: recordId || kind.id,
+    [kind.numberField]: kind.number,
+    [kind.stateRelation]: {
       _id: state["_id"] as string,
       name: state["name"] as string,
       order: state["order"] as number,
@@ -995,39 +1426,60 @@ const incidentRecord: IncidentRecordFunction = (
   };
 };
 
-type StatusDatabaseFunction = (incident: JSONObject | null) => FakeDatabase;
+type KindObjectFunction = (kind: SimulatedKind) => JSONObject;
 
-const statusDatabase: StatusDatabaseFunction = (
-  incident: JSONObject | null,
+/* A record as Find One returns it for the note templates' select. */
+const linkedRecordOf: KindObjectFunction = (
+  kind: SimulatedKind,
+): JSONObject => {
+  return { _id: kind.id, [kind.numberField]: kind.number };
+};
+
+type LinkedLabelsOfFunction = (kind: SimulatedKind) => Array<string>;
+
+/** The labels an issue linked to the kind's fixture record carries. */
+const linkedLabelsOf: LinkedLabelsOfFunction = (
+  kind: SimulatedKind,
+): Array<string> => {
+  return [JIRA_LINK_LABEL, kind.label()];
+};
+
+type KindDatabaseFunction = (
+  kind: SimulatedKind,
+  record: JSONObject | null,
+) => FakeDatabase;
+
+const statusDatabase: KindDatabaseFunction = (
+  kind: SimulatedKind,
+  record: JSONObject | null,
 ): FakeDatabase => {
   return {
-    "incident-find-one": found(incident),
-    "incident-state-find-many": many(INCIDENT_STATES),
-    "incident-state-timeline-create-one": createdWithId(NEW_TIMELINE_ID),
+    [kind.components.findOne]: found(record),
+    [kind.components.stateFindMany]: many(kind.states),
+    [kind.components.timelineCreateOne]: createdWithId(NEW_TIMELINE_ID),
   };
 };
 
-type NoteDatabaseFunction = (incident: JSONObject | null) => FakeDatabase;
-
-const noteDatabase: NoteDatabaseFunction = (
-  incident: JSONObject | null,
+const noteDatabase: KindDatabaseFunction = (
+  kind: SimulatedKind,
+  record: JSONObject | null,
 ): FakeDatabase => {
   return {
-    "incident-find-one": found(incident),
-    "incident-internal-note-create-one": createdWithId(NEW_NOTE_ID),
+    [kind.components.findOne]: found(record),
+    [kind.components.noteCreateOne]: createdWithId(NEW_NOTE_ID),
   };
 };
 
-const LINKED_INCIDENT: JSONObject = {
-  _id: INCIDENT_ID,
-  incidentNumberWithPrefix: INCIDENT_NUMBER,
-};
+type CreateDatabaseFunction = (kind: SimulatedKind) => FakeDatabase;
 
-const LINKED_LABELS: Array<string> = [JIRA_LINK_LABEL, incidentLabel()];
-
-const DECLARE_DATABASE: FakeDatabase = {
-  "incident-severity-find-many": many(INCIDENT_SEVERITIES),
-  "incident-create-one": createdWithId(NEW_INCIDENT_ID),
+/** What the create-from-Jira template reads and writes. */
+const createDatabase: CreateDatabaseFunction = (
+  kind: SimulatedKind,
+): FakeDatabase => {
+  return {
+    [kind.components.severityFindMany]: many(kind.severities),
+    [kind.components.createOne]: createdWithId(kind.newId),
+  };
 };
 
 /** The one read the Jira -> OneUptime templates make: an issue's labels, as Jira has them now. */
@@ -1037,18 +1489,18 @@ const GET_LABELS_REQUEST: JiraRequest = {
   headers: AUTHORIZATION,
 };
 
-type DeclareJiraFunction = (props?: {
+type CreateFromIssueJiraFunction = (props?: {
   labels?: Array<string> | undefined;
   getIssue?: JiraReply | undefined;
   edit?: JiraReply | undefined;
 }) => FakeJiraFunction;
 
 /*
- * Jira as the declare template meets it: first asked for the issue's labels,
- * then asked to add the link labels. By default the issue has none yet, as a
- * freshly created issue does.
+ * Jira as the create-from-Jira templates meet it: first asked for the issue's
+ * labels, then asked to add the link labels. By default the issue has none
+ * yet, as a freshly created issue does.
  */
-const declareJira: DeclareJiraFunction = (props?: {
+const createFromIssueJira: CreateFromIssueJiraFunction = (props?: {
   labels?: Array<string> | undefined;
   getIssue?: JiraReply | undefined;
   edit?: JiraReply | undefined;
@@ -1060,43 +1512,73 @@ const declareJira: DeclareJiraFunction = (props?: {
   });
 };
 
-type PrivateIncidentModelFunction = (props?: IncidentModelProps) => JSONObject;
+type LinkLabelsRequestFunction = (kind: SimulatedKind) => JiraRequest;
 
-/* The fixtures' incident, marked private the way the triggers now select it. */
-const privateIncidentModel: PrivateIncidentModelFunction = (
-  props?: IncidentModelProps,
-): JSONObject => {
-  return { ...incidentModel(props), isPrivate: true };
-};
-
-type PrivateNoteModelFunction = () => JSONObject;
-
-/* A note on a private incident: the note triggers select incident.isPrivate for this. */
-const privateNoteModel: PrivateNoteModelFunction = (): JSONObject => {
-  const note: JSONObject = noteModel();
-
+/*
+ * The PUT that links an issue to the record just created from it. The label
+ * carries the id the database gave the record — nothing else could.
+ */
+const linkLabelsRequest: LinkLabelsRequestFunction = (
+  kind: SimulatedKind,
+): JiraRequest => {
   return {
-    ...note,
-    incident: { ...(note["incident"] as JSONObject), isPrivate: true },
+    method: "PUT",
+    url: `${JIRA_SITE}/rest/api/3/issue/${JIRA_ISSUE_KEY}`,
+    headers: AUTHORIZATION,
+    body: {
+      update: {
+        labels: [
+          { add: JIRA_LINK_LABEL },
+          { add: `${kind.labelPrefix}${kind.newId}` },
+        ],
+      },
+    },
   };
 };
 
-/** Every script that syncs a private incident documents this switch. */
-const SYNC_PRIVATE_INCIDENTS: EditCodeFunction = (code: string): string => {
-  return code.replace(
-    "const SYNC_PRIVATE_INCIDENTS = false;",
-    "const SYNC_PRIVATE_INCIDENTS = true;",
-  );
-};
+const LABEL_JQL: RegExp = /^labels = "([^"]+)" ORDER BY created ASC$/;
 
-type TriggerSelectOfFunction = (templateId: string) => JSONObject;
+type LabelAwareJiraFunction = (issueLabels: Array<string>) => FakeJiraFunction;
 
 /*
- * What a database trigger asks the database for. The simulation hands the
+ * Jira holding one issue, OPS-17, carrying the given labels. A label search
+ * finds it only when its JQL names one of them, as Jira itself would answer,
+ * so a template searching by another kind's label finds nothing. Transitions
+ * and comments on the issue are accepted.
+ */
+const labelAwareJira: LabelAwareJiraFunction = (
+  issueLabels: Array<string>,
+): FakeJiraFunction => {
+  const otherRoutes: FakeJiraFunction = jiraRoutes({
+    [TRANSITION]: NO_CONTENT,
+    [COMMENT]: COMMENT_CREATED,
+  });
+
+  return (request: JiraRequest): JiraReply => {
+    if (`${request.method} ${request.url.replace(JIRA_SITE, "")}` !== SEARCH) {
+      return otherRoutes(request);
+    }
+
+    const match: RegExpExecArray | null = LABEL_JQL.exec(
+      String((request.body as JSONObject)["jql"]),
+    );
+
+    return ok(
+      match && issueLabels.includes(match[1] as string)
+        ? jiraSearchResponse()
+        : EMPTY_JIRA_SEARCH,
+    );
+  };
+};
+
+type TriggerArgumentsOfFunction = (templateId: string) => JSONObject;
+
+/*
+ * What a database trigger is configured with. The simulation hands the
  * trigger's model over as given, so a scenario that depends on a field — like
  * isPrivate — also checks that the real trigger would have selected it.
  */
-const triggerSelectOf: TriggerSelectOfFunction = (
+const triggerArgumentsOf: TriggerArgumentsOfFunction = (
   templateId: string,
 ): JSONObject => {
   const graph: SimulatedGraph = buildSimulatedGraph(templateId);
@@ -1104,7 +1586,47 @@ const triggerSelectOf: TriggerSelectOfFunction = (
     graph.triggerComponentId
   ] as SimulatedNode;
 
-  return trigger.arguments["select"] as JSONObject;
+  return trigger.arguments;
+};
+
+const triggerSelectOf: TriggerArgumentsOfFunction = (
+  templateId: string,
+): JSONObject => {
+  return triggerArgumentsOf(templateId)["select"] as JSONObject;
+};
+
+type FiresOnUpdateFunction = (
+  templateId: string,
+  updatedFields: JSONObject,
+) => boolean;
+
+/*
+ * The filter OnTriggerBaseModel.initTrigger
+ * (packages/Common/Server/Types/Workflow/Components/BaseModel/OnTriggerBaseModel.ts)
+ * puts in front of an on-update workflow: with a Listen On set, the workflow
+ * runs only when one of its keys is truthy among the fields the update
+ * changed. Keys are compared exactly, so an edit form that sends a relation
+ * is only heard by a Listen On naming the relation.
+ */
+const firesOnUpdate: FiresOnUpdateFunction = (
+  templateId: string,
+  updatedFields: JSONObject,
+): boolean => {
+  const listenOn: JSONObject | undefined = triggerArgumentsOf(templateId)[
+    "listen-on"
+  ] as JSONObject | undefined;
+
+  if (
+    !listenOn ||
+    Object.keys(listenOn).length === 0 ||
+    Object.keys(updatedFields).length === 0
+  ) {
+    return true;
+  }
+
+  return Object.keys(listenOn).some((key: string) => {
+    return Boolean(updatedFields[key]);
+  });
 };
 
 const CLONE_KEY: string = "OPS-30";
@@ -1116,8 +1638,8 @@ const firstIssueOf: FirstIssueOfFunction = (search: JSONObject): JSONObject => {
 };
 
 /*
- * Cloning an issue in Jira copies its labels, so the clone claims the
- * incident too. The search sorts oldest first; the original comes back first.
+ * Cloning an issue in Jira copies its labels, so the clone claims the record
+ * too. The search sorts oldest first; the original comes back first.
  */
 const CLONED_SEARCH: JSONObject = jiraSearchResponse({
   issues: [
@@ -1130,7 +1652,34 @@ const CLONED_SEARCH: JSONObject = jiraSearchResponse({
   ],
 });
 
-const CLONE_SKIPPED_LOG: string = `ℹ️ More than one Jira issue is labelled ${incidentLabel()} (${JIRA_ISSUE_KEY}, ${CLONE_KEY}). A cloned issue copies the label: remove it from every issue except the one filed for the incident.`;
+type KindLogFunction = (kind: SimulatedKind) => string;
+
+const cloneSkippedLog: KindLogFunction = (kind: SimulatedKind): string => {
+  return `ℹ️ More than one Jira issue is labelled ${kind.label()} (${JIRA_ISSUE_KEY}, ${CLONE_KEY}). A cloned issue copies the label: remove it from every issue except the one filed for the ${kind.noun}.`;
+};
+
+/** A OneUptime -> Jira template whose label search found nothing. */
+const noLinkedIssueLog: KindLogFunction = (kind: SimulatedKind): string => {
+  return `ℹ️ No Jira issue is labelled ${kind.label()}, or the Jira credentials cannot see it.`;
+};
+
+/** A Jira -> OneUptime template given an issue that carries no label of its kind. */
+const notLinkedLog: KindLogFunction = (kind: SimulatedKind): string => {
+  return `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is not linked to an ${kind.noun}: it has no ${kind.labelPrefix}<id> label.`;
+};
+
+/** A create-from-Jira template given an issue that is already linked to anything. */
+const alreadyLinkedLog: KindLogFunction = (kind: SimulatedKind): string => {
+  return `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is already linked to OneUptime, so no ${kind.noun} was ${kind.created}.`;
+};
+
+const NOTE_FROM_JIRA_LOG: string =
+  "ℹ️ This note came from Jira, so it was not posted back.";
+
+const COMMENT_FROM_ONEUPTIME_LOG: string =
+  "ℹ️ This comment was posted by OneUptime, so it was not copied back.";
+
+const NOTHING_WORTH_A_NOTE_LOG: string = `ℹ️ Nothing that changed on Jira issue ${JIRA_ISSUE_KEY} is worth a note.`;
 
 type CallOfFunction = (
   trace: SimulationTrace,
@@ -1175,1440 +1724,1871 @@ const metadataIdsOf: MetadataIdsOfFunction = (
   });
 };
 
+type AddedLabelsOfFunction = (trace: SimulationTrace) => Array<string>;
+
+/** The labels a create-from-Jira template's PUT added to the issue. */
+const addedLabelsOf: AddedLabelsOfFunction = (
+  trace: SimulationTrace,
+): Array<string> => {
+  const edit: JiraRequest | undefined = trace.requests.find(
+    (request: JiraRequest) => {
+      return request.method === "PUT";
+    },
+  );
+
+  expect(edit).toBeDefined();
+
+  return (
+    ((edit!.body as JSONObject)["update"] as JSONObject)[
+      "labels"
+    ] as Array<JSONObject>
+  ).map((operation: JSONObject) => {
+    return operation["add"] as string;
+  });
+};
+
+type PostedCommentOfFunction = (trace: SimulationTrace) => JSONObject;
+
+/** The ADF document a comment template posted. */
+const postedCommentOf: PostedCommentOfFunction = (
+  trace: SimulationTrace,
+): JSONObject => {
+  const post: JiraRequest | undefined = trace.requests.find(
+    (request: JiraRequest) => {
+      return request.url.endsWith("/comment");
+    },
+  );
+
+  expect(post).toBeDefined();
+
+  return (post!.body as JSONObject)["body"] as JSONObject;
+};
+
+type IssueFieldsOfFunction = (trace: SimulationTrace) => JSONObject;
+
+/** The fields of the issue a create-issue template filed. */
+const issueFieldsOf: IssueFieldsOfFunction = (
+  trace: SimulationTrace,
+): JSONObject => {
+  return (trace.requests[0]!.body as JSONObject)["fields"] as JSONObject;
+};
+
+interface WebhookScenarioProps {
+  event: JSONObject;
+  /** The issue's labels as Jira's GET returns them; the kind's own link by default. */
+  labels?: Array<string> | undefined;
+  /** What Find One returns; the kind's fixture record by default, null for "not here". */
+  record?: JSONObject | null | undefined;
+}
+
+type WebhookScenarioFunction = (
+  kind: SimulatedKind,
+  props: WebhookScenarioProps,
+) => Scenario;
+
+/* A Jira comment delivered to the kind's comment-to-note template. */
+const commentScenario: WebhookScenarioFunction = (
+  kind: SimulatedKind,
+  props: WebhookScenarioProps,
+): Scenario => {
+  return {
+    templateId: kind.templates.commentToNote,
+    trigger: webhookDelivery(props.event),
+    jira: jiraRoutes({
+      [GET_LABELS]: ok(
+        jiraIssueLabelsResponse(props.labels || linkedLabelsOf(kind)),
+      ),
+    }),
+    database: noteDatabase(
+      kind,
+      props.record === undefined ? linkedRecordOf(kind) : props.record,
+    ),
+  };
+};
+
+/* An issue_updated delivered to the kind's issue-changes template. It asks Jira nothing. */
+const issueChangesScenario: WebhookScenarioFunction = (
+  kind: SimulatedKind,
+  props: WebhookScenarioProps,
+): Scenario => {
+  return {
+    templateId: kind.templates.issueChangesToNote,
+    trigger: webhookDelivery(props.event),
+    database: noteDatabase(
+      kind,
+      props.record === undefined ? linkedRecordOf(kind) : props.record,
+    ),
+  };
+};
+
+type RunWebhookFunction = (
+  kind: SimulatedKind,
+  props: WebhookScenarioProps,
+) => Promise<SimulationTrace>;
+
+/* Shared by the comment suite and the echo, cross-kind and security suites below. */
+const runComment: RunWebhookFunction = async (
+  kind: SimulatedKind,
+  props: WebhookScenarioProps,
+): Promise<SimulationTrace> => {
+  return await runTemplate(commentScenario(kind, props));
+};
+
+const runIssueChanges: RunWebhookFunction = async (
+  kind: SimulatedKind,
+  props: WebhookScenarioProps,
+): Promise<SimulationTrace> => {
+  return await runTemplate(issueChangesScenario(kind, props));
+};
+
+type RunCreateFromIssueFunction = (
+  kind: SimulatedKind,
+  props?: {
+    event?: JSONObject | undefined;
+    labels?: Array<string> | undefined;
+  },
+) => Promise<SimulationTrace>;
+
+/*
+ * A jira:issue_created delivered to the kind's create-from-Jira template, for
+ * an issue Jira says carries the given labels (none by default).
+ */
+const runCreateFromIssue: RunCreateFromIssueFunction = async (
+  kind: SimulatedKind,
+  props?: {
+    event?: JSONObject | undefined;
+    labels?: Array<string> | undefined;
+  },
+): Promise<SimulationTrace> => {
+  return await runTemplate({
+    templateId: kind.templates.createFromIssue,
+    trigger: webhookDelivery(props?.event || jiraIssueCreatedEvent()),
+    jira: createFromIssueJira({ labels: props?.labels }),
+    database: createDatabase(kind),
+  });
+};
+
+type RunCreateIssueFunction = (kind: SimulatedKind) => Promise<SimulationTrace>;
+
+/* The kind's create-issue template, filing its fixture record. */
+const runCreateIssue: RunCreateIssueFunction = async (
+  kind: SimulatedKind,
+): Promise<SimulationTrace> => {
+  return await runTemplate({
+    templateId: kind.templates.createIssue,
+    trigger: onRecord(kind.model()),
+    jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
+  });
+};
+
+type RunNoteToCommentFunction = (
+  templateId: string,
+  note: JSONObject,
+) => Promise<SimulationTrace>;
+
+/* A note-to-comment template, meeting a linked issue that accepts the comment. */
+const runNoteToComment: RunNoteToCommentFunction = async (
+  templateId: string,
+  note: JSONObject,
+): Promise<SimulationTrace> => {
+  return await runTemplate({
+    templateId: templateId,
+    trigger: onRecord(note),
+    jira: jiraRoutes({
+      [SEARCH]: ok(jiraSearchResponse()),
+      [COMMENT]: COMMENT_CREATED,
+    }),
+  });
+};
+
+/* ------------------------------- The table itself ------------------------------- */
+
+describe("simulated: every Jira template is simulated", () => {
+  test("the two kinds between them name every Jira template, and nothing else", () => {
+    const simulated: Array<string> = [
+      ...templateIdsOf(INCIDENT),
+      ...templateIdsOf(ALERT),
+    ].sort();
+    const jira: Array<string> = getWorkflowTemplatesByCategory(
+      WorkflowTemplateCategory.Jira,
+    )
+      .map((template: WorkflowTemplate) => {
+        return template.id;
+      })
+      .sort();
+
+    expect(simulated).toEqual(jira);
+    expect(templateIdsOf(INCIDENT)).toHaveLength(9);
+    expect(templateIdsOf(ALERT)).toHaveLength(8);
+  });
+
+  test("the label prefixes this file writes out are the ones the templates export", () => {
+    expect(INCIDENT.labelPrefix).toBe(JIRA_INCIDENT_LABEL_PREFIX);
+    expect(ALERT.labelPrefix).toBe(JIRA_ALERT_LABEL_PREFIX);
+    expect(INCIDENT.label()).toBe(
+      `${JIRA_INCIDENT_LABEL_PREFIX}${INCIDENT_ID}`,
+    );
+    expect(ALERT.label()).toBe(`${JIRA_ALERT_LABEL_PREFIX}${ALERT_ID}`);
+  });
+});
+
 /* ------------------------------- OneUptime -> Jira ------------------------------- */
 
-const EXPECTED_ISSUE_DESCRIPTION: string = [
-  `${INCIDENT_NUMBER} was declared in OneUptime.`,
-  "Severity: Critical Incident",
-  "State: Identified",
-  "",
-  'p99 latency on /checkout is above 2s.\nStarted after the "v4.2" deploy.',
-].join("\n");
+type ExpectedTextFunction = (kind: SimulatedKind) => string;
 
-const INCIDENT_URL: string = `${ONEUPTIME_URL}/dashboard/${PROJECT_ID}/incidents/${INCIDENT_ID}`;
+const expectedIssueDescription: ExpectedTextFunction = (
+  kind: SimulatedKind,
+): string => {
+  return [
+    `${kind.number} was ${kind.created} in OneUptime.`,
+    `Severity: ${kind.defaultSeverityName}`,
+    `State: ${kind.createdState["name"] as string}`,
+    "",
+    kind.defaultDescription,
+  ].join("\n");
+};
 
-describe("simulated: create a Jira issue when an incident is declared", () => {
-  const TEMPLATE: string = "jira-create-issue-for-incident";
+/** The record's page in the dashboard, which the issue links back to. */
+const recordUrlOf: ExpectedTextFunction = (kind: SimulatedKind): string => {
+  return `${ONEUPTIME_URL}/dashboard/${PROJECT_ID}/${kind.dashboardPath}/${kind.id}`;
+};
 
-  test("files one labelled issue, with a readable ADF description that links back to the incident", async () => {
-    const trace: SimulationTrace = await runTemplate({
-      templateId: TEMPLATE,
-      trigger: onRecord(incidentModel()),
-      jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
-    });
+describe.each(KINDS)(
+  "simulated: create a Jira issue when an $noun is $created",
+  (kind: SimulatedKind) => {
+    const TEMPLATE: string = kind.templates.createIssue;
 
-    expect(trace.executed).toEqual([
-      "incident-on-create-1",
-      "prepare-issue-1",
-      "if-create-1",
-      "create-issue-1",
-      "log-created",
-    ]);
+    test(`files one labelled issue, with a readable ADF description that links back to the ${kind.noun}`, async () => {
+      const trace: SimulationTrace = await runTemplate({
+        templateId: TEMPLATE,
+        trigger: onRecord(kind.model()),
+        jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
+      });
 
-    expect(trace.requests).toEqual([
-      {
-        method: "POST",
-        url: `${JIRA_SITE}/rest/api/3/issue`,
-        headers: AUTHORIZATION,
-        body: {
-          fields: {
-            project: { key: "OPS" },
-            issuetype: { name: "Task" },
-            summary: `[OneUptime] ${INCIDENT_NUMBER}: Checkout latency high`,
-            labels: [JIRA_LINK_LABEL, incidentLabel()],
-            description: {
-              type: "doc",
-              version: 1,
-              content: [
-                {
-                  type: "paragraph",
-                  content: [{ type: "text", text: EXPECTED_ISSUE_DESCRIPTION }],
-                },
-                {
-                  type: "paragraph",
-                  content: [
-                    {
-                      type: "text",
-                      text: "Open this incident in OneUptime",
-                      marks: [{ type: "link", attrs: { href: INCIDENT_URL } }],
-                    },
-                  ],
-                },
-              ],
+      expect(trace.executed).toEqual([
+        kind.steps.onCreate,
+        "prepare-issue-1",
+        "if-create-1",
+        "create-issue-1",
+        "log-created",
+      ]);
+
+      expect(trace.requests).toEqual([
+        {
+          method: "POST",
+          url: `${JIRA_SITE}/rest/api/3/issue`,
+          headers: AUTHORIZATION,
+          body: {
+            fields: {
+              project: { key: "OPS" },
+              issuetype: { name: "Task" },
+              summary: `[OneUptime] ${kind.number}: ${kind.defaultTitle}`,
+              labels: [JIRA_LINK_LABEL, kind.label()],
+              description: {
+                type: "doc",
+                version: 1,
+                content: [
+                  {
+                    type: "paragraph",
+                    content: [
+                      { type: "text", text: expectedIssueDescription(kind) },
+                    ],
+                  },
+                  {
+                    type: "paragraph",
+                    content: [
+                      {
+                        type: "text",
+                        text: `Open this ${kind.noun} in OneUptime`,
+                        marks: [
+                          {
+                            type: "link",
+                            attrs: { href: recordUrlOf(kind) },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
             },
           },
         },
-      },
-    ]);
-
-    const fields: JSONObject = (trace.requests[0]!.body as JSONObject)[
-      "fields"
-    ] as JSONObject;
-    expectValidAdf(fields["description"]);
-
-    expect(trace.logs).toEqual([
-      `✅ Created Jira issue ${JIRA_ISSUE_KEY} for ${INCIDENT_NUMBER}.`,
-    ]);
-    expect(trace.databaseCalls).toEqual([]);
-  });
-
-  test("an incident declared from Jira is skipped before anything is sent", async () => {
-    const trace: SimulationTrace = await runTemplate({
-      templateId: TEMPLATE,
-      trigger: onRecord(
-        incidentModel({ customFields: { jiraIssueKey: "OPS-9" } }),
-      ),
-      jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
-    });
-
-    expect(trace.requests).toEqual([]);
-    expect(trace.ports["if-create-1"]).toBe("no");
-    expect(trace.logs).toEqual([
-      `ℹ️ ${INCIDENT_NUMBER} was declared from Jira issue OPS-9, so no new issue was created.`,
-    ]);
-  });
-
-  test("a private incident stays in OneUptime: no request of any kind reaches Jira", async () => {
-    // The trigger has to ask for the flag, or the script would never see it.
-    expect(triggerSelectOf(TEMPLATE)["isPrivate"]).toBe(true);
-
-    const trace: SimulationTrace = await runTemplate({
-      templateId: TEMPLATE,
-      trigger: onRecord(privateIncidentModel()),
-      jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
-    });
-
-    expect(trace.executed).toEqual([
-      "incident-on-create-1",
-      "prepare-issue-1",
-      "if-create-1",
-      "log-skipped",
-    ]);
-    expect(trace.requests).toEqual([]);
-    expect(trace.logs).toEqual([
-      `ℹ️ ${INCIDENT_NUMBER} is a private incident, so no Jira issue was created.`,
-    ]);
-  });
-
-  test("switching SYNC_PRIVATE_INCIDENTS on files the private incident after all", async () => {
-    const trace: SimulationTrace = await runTemplate({
-      templateId: TEMPLATE,
-      trigger: onRecord(privateIncidentModel()),
-      jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
-      editCode: { "prepare-issue-1": SYNC_PRIVATE_INCIDENTS },
-    });
-
-    expect(trace.requests).toHaveLength(1);
-    expect(
-      ((trace.requests[0]!.body as JSONObject)["fields"] as JSONObject)[
-        "labels"
-      ],
-    ).toEqual([JIRA_LINK_LABEL, incidentLabel()]);
-    expect(trace.logs).toEqual([
-      `✅ Created Jira issue ${JIRA_ISSUE_KEY} for ${INCIDENT_NUMBER}.`,
-    ]);
-  });
-
-  test("Jira's 400 reaches the failure log with the field errors it named", async () => {
-    const rejection: JSONObject = {
-      errorMessages: [],
-      errors: {
-        summary: "You must specify a summary of the issue.",
-        issuetype: "Specify an issue type",
-      },
-    };
-
-    const trace: SimulationTrace = await runTemplate({
-      templateId: TEMPLATE,
-      trigger: onRecord(incidentModel()),
-      jira: jiraRoutes({ [CREATE_ISSUE]: badRequest(rejection) }),
-    });
-
-    expect(trace.requests).toHaveLength(1);
-    expect(trace.ports["create-issue-1"]).toBe("error");
-
-    /*
-     * Jira's error body has none of the keys HTTPErrorResponse reads a message
-     * from, so the error value is the generic one — which is why the log also
-     * carries the body itself.
-     */
-    expect(trace.logs).toEqual([
-      `❌ Jira did not create the issue: Server Error.\nJira said: ${JSON.stringify(rejection, null, 2)}`,
-    ]);
-    expect(trace.logs[0]).toContain(
-      '"summary": "You must specify a summary of the issue."',
-    );
-  });
-
-  test("a title full of quotes, line breaks, backslashes and braces still sends valid JSON and a one-line summary", async () => {
-    const title: string =
-      'Disk "full" on\n  C:\\data\\{{local.variables.jiraBasicAuthToken}} {shard}\\';
-
-    const trace: SimulationTrace = await runTemplate({
-      templateId: TEMPLATE,
-      trigger: onRecord(
-        incidentModel({
-          title: title,
-          description: 'Path "C:\\logs\\app.log"\r\n\ttab {{x}} $& $1',
-        }),
-      ),
-      jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
-    });
-
-    // Reaching Jira at all means the body survived substitution and JSON.parse.
-    expect(trace.requests).toHaveLength(1);
-
-    const fields: JSONObject = (trace.requests[0]!.body as JSONObject)[
-      "fields"
-    ] as JSONObject;
-
-    expect(fields["summary"]).toBe(
-      `[OneUptime] ${INCIDENT_NUMBER}: Disk "full" on C:\\data\\{ {local.variables.jiraBasicAuthToken} } {shard}\\`,
-    );
-    expect(fields["summary"]).not.toMatch(/[\r\n]/);
-
-    const description: string = (
-      (
-        (
-          (fields["description"] as JSONObject)["content"] as Array<JSONObject>
-        )[0]!["content"] as Array<JSONObject>
-      )[0] as JSONObject
-    )["text"] as string;
-
-    // The carriage return is dropped, the tab kept, and "$&" is not read as a replacement pattern.
-    expect(description).toContain(
-      'Path "C:\\logs\\app.log"\n\ttab { {x} } $& $1',
-    );
-    expectValidAdf(fields["description"]);
-    expect(JSON.stringify(trace.requests[0]!.body)).not.toContain(JIRA_TOKEN);
-    expect(trace.logs).toEqual([
-      `✅ Created Jira issue ${JIRA_ISSUE_KEY} for ${INCIDENT_NUMBER}.`,
-    ]);
-  });
-});
-
-describe("simulated: move the Jira issue when the incident is acknowledged or resolved", () => {
-  const TEMPLATE: string = "jira-transition-issue-on-incident-state";
-
-  type RunTransitionFunction = (
-    state: JSONObject,
-    search: JiraReply,
-  ) => Promise<SimulationTrace>;
-
-  const runTransition: RunTransitionFunction = async (
-    state: JSONObject,
-    search: JiraReply,
-  ): Promise<SimulationTrace> => {
-    return await runTemplate({
-      templateId: TEMPLATE,
-      trigger: onRecord(incidentModel({ state: state })),
-      jira: jiraRoutes({ [SEARCH]: search, [TRANSITION]: NO_CONTENT }),
-    });
-  };
-
-  test("acknowledged: finds the issue by label, then moves it to In Progress", async () => {
-    const trace: SimulationTrace = await runTransition(
-      ACKNOWLEDGED_STATE,
-      ok(jiraSearchResponse()),
-    );
-
-    expect(trace.executed).toEqual([
-      "incident-on-update-1",
-      "find-issue-1",
-      "plan-transition-1",
-      "if-transition-1",
-      "transition-issue-1",
-      "log-transitioned",
-    ]);
-    expect(trace.requests).toEqual([
-      searchRequest(["key", "status"], true),
-      {
-        method: "POST",
-        url: `${JIRA_SITE}/rest/api/3/issue/${JIRA_ISSUE_KEY}/transitions`,
-        headers: AUTHORIZATION,
-        body: { transition: { id: "21" } },
-      },
-    ]);
-
-    // The 204 Jira answers with is a success, empty body and all.
-    expect(trace.ports["transition-issue-1"]).toBe("success");
-    expect(
-      trace.storage.local.components["transition-issue-1"]!.returnValues[
-        "response-body"
-      ],
-    ).toEqual({ data: "" });
-    expect(trace.logs).toEqual([
-      `✅ Moved Jira issue ${JIRA_ISSUE_KEY} to In Progress. ${INCIDENT_NUMBER} is Acknowledged in OneUptime.`,
-    ]);
-  });
-
-  test("resolved: moves the issue to Done with the Close transition", async () => {
-    const trace: SimulationTrace = await runTransition(
-      RESOLVED_STATE,
-      ok(jiraSearchResponse()),
-    );
-
-    expect(trace.requests).toHaveLength(2);
-    expect(trace.requests[1]!.body).toEqual({ transition: { id: "31" } });
-    expect(trace.logs).toEqual([
-      `✅ Moved Jira issue ${JIRA_ISSUE_KEY} to Done. ${INCIDENT_NUMBER} is Resolved in OneUptime.`,
-    ]);
-  });
-
-  test("an issue that is already Done is left alone after the search", async () => {
-    const trace: SimulationTrace = await runTransition(
-      RESOLVED_STATE,
-      ok(
-        jiraSearchResponse({
-          status: DONE,
-          transitions: [
-            jiraTransition({ id: "11", name: "Reopen", to: TO_DO }),
-            jiraTransition({ id: "21", name: "Start work", to: IN_PROGRESS }),
-          ],
-        }),
-      ),
-    );
-
-    expect(trace.requests).toEqual([searchRequest(["key", "status"], true)]);
-    expect(trace.logs).toEqual([
-      `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is already Done.`,
-    ]);
-  });
-
-  /*
-   * Someone closed the issue in Jira before anyone acknowledged the incident.
-   * Acknowledging it afterwards must not reopen the issue, even though a
-   * transition back to In Progress is on offer.
-   */
-  test("acknowledging an incident whose issue is already Done posts no transition", async () => {
-    const trace: SimulationTrace = await runTransition(
-      ACKNOWLEDGED_STATE,
-      ok(
-        jiraSearchResponse({
-          status: DONE,
-          transitions: [
-            jiraTransition({ id: "11", name: "Reopen", to: TO_DO }),
-            jiraTransition({ id: "21", name: "Start work", to: IN_PROGRESS }),
-          ],
-        }),
-      ),
-    );
-
-    expect(trace.requests).toEqual([searchRequest(["key", "status"], true)]);
-    expect(trace.ports["if-transition-1"]).toBe("no");
-    expect(trace.logs).toEqual([
-      `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is already Done, so it was not moved back to an In Progress status.`,
-    ]);
-  });
-
-  /*
-   * Jira Service Management's service request workflow, as its transitions
-   * endpoint lists them. Canceled is a Done status too, and it is the one
-   * without a screen, so "any Done status, screenless first" would cancel
-   * the customer's request instead of resolving it.
-   */
-  const JSM_WAITING_FOR_SUPPORT: JSONObject = jiraStatus({
-    name: "Waiting for support",
-    categoryKey: "new",
-    id: "10100",
-  });
-  const JSM_TRANSITIONS: Array<JSONObject> = [
-    jiraTransition({
-      id: "851",
-      name: "Respond to customer",
-      to: jiraStatus({
-        name: "Waiting for customer",
-        categoryKey: "indeterminate",
-        id: "10101",
-      }),
-    }),
-    jiraTransition({
-      id: "871",
-      name: "Escalate",
-      to: jiraStatus({
-        name: "Escalated",
-        categoryKey: "indeterminate",
-        id: "10102",
-      }),
-    }),
-    jiraTransition({
-      id: "881",
-      name: "Start work",
-      to: jiraStatus({
-        name: "Work in progress",
-        categoryKey: "indeterminate",
-        id: "10103",
-      }),
-    }),
-    jiraTransition({
-      id: "761",
-      name: "Resolve this issue",
-      hasScreen: true,
-      to: jiraStatus({ name: "Resolved", categoryKey: "done", id: "10104" }),
-    }),
-    jiraTransition({
-      id: "901",
-      name: "Cancel request",
-      to: jiraStatus({ name: "Canceled", categoryKey: "done", id: "10105" }),
-    }),
-  ];
-
-  test("Jira Service Management: resolving picks Resolved, not the screenless Canceled", async () => {
-    const trace: SimulationTrace = await runTransition(
-      RESOLVED_STATE,
-      ok(
-        jiraSearchResponse({
-          status: JSM_WAITING_FOR_SUPPORT,
-          transitions: JSM_TRANSITIONS,
-        }),
-      ),
-    );
-
-    expect(trace.requests).toEqual([
-      searchRequest(["key", "status"], true),
-      {
-        method: "POST",
-        url: `${JIRA_SITE}/rest/api/3/issue/${JIRA_ISSUE_KEY}/transitions`,
-        headers: AUTHORIZATION,
-        body: { transition: { id: "761" } },
-      },
-    ]);
-    expect(trace.logs).toEqual([
-      `✅ Moved Jira issue ${JIRA_ISSUE_KEY} to Resolved. ${INCIDENT_NUMBER} is Resolved in OneUptime.`,
-    ]);
-  });
-
-  test("Jira Service Management: acknowledging picks Work in progress, never Escalated or Waiting for customer", async () => {
-    const trace: SimulationTrace = await runTransition(
-      ACKNOWLEDGED_STATE,
-      ok(
-        jiraSearchResponse({
-          status: JSM_WAITING_FOR_SUPPORT,
-          transitions: JSM_TRANSITIONS,
-        }),
-      ),
-    );
-
-    expect(trace.requests).toHaveLength(2);
-    expect(trace.requests[1]!.body).toEqual({ transition: { id: "881" } });
-    expect(trace.logs).toEqual([
-      `✅ Moved Jira issue ${JIRA_ISSUE_KEY} to Work in progress. ${INCIDENT_NUMBER} is Acknowledged in OneUptime.`,
-    ]);
-  });
-
-  test("two Done statuses that fit equally well move nothing, and the skip names both", async () => {
-    const trace: SimulationTrace = await runTransition(
-      RESOLVED_STATE,
-      ok(
-        jiraSearchResponse({
-          status: IN_PROGRESS,
-          transitions: [
-            jiraTransition({
-              id: "51",
-              name: "Release",
-              to: jiraStatus({
-                name: "Released",
-                categoryKey: "done",
-                id: "10200",
-              }),
-            }),
-            jiraTransition({
-              id: "61",
-              name: "Deploy",
-              to: jiraStatus({
-                name: "Deployed",
-                categoryKey: "done",
-                id: "10201",
-              }),
-            }),
-          ],
-        }),
-      ),
-    );
-
-    expect(trace.requests).toEqual([searchRequest(["key", "status"], true)]);
-    expect(trace.logs).toEqual([
-      `ℹ️ Jira issue ${JIRA_ISSUE_KEY} could move to Released or Deployed for a Done status. Name the one to use in STATE_TO_JIRA_STATUS.`,
-    ]);
-  });
-
-  test("two issues carry the incident's label (a clone): no transition, and the skip names both", async () => {
-    const trace: SimulationTrace = await runTransition(
-      RESOLVED_STATE,
-      ok(CLONED_SEARCH),
-    );
-
-    expect(trace.requests).toEqual([searchRequest(["key", "status"], true)]);
-    expect(trace.logs).toEqual([CLONE_SKIPPED_LOG]);
-  });
-
-  test("a private incident's issue is not moved", async () => {
-    expect(triggerSelectOf(TEMPLATE)["isPrivate"]).toBe(true);
-
-    const trace: SimulationTrace = await runTemplate({
-      templateId: TEMPLATE,
-      trigger: onRecord(privateIncidentModel({ state: RESOLVED_STATE })),
-      jira: jiraRoutes({
-        [SEARCH]: ok(jiraSearchResponse()),
-        [TRANSITION]: NO_CONTENT,
-      }),
-    });
-
-    expect(trace.requests).toEqual([searchRequest(["key", "status"], true)]);
-    expect(trace.logs).toEqual([
-      `ℹ️ ${INCIDENT_NUMBER} is a private incident, so its Jira issue was not moved.`,
-    ]);
-  });
-
-  test("no linked issue: only the search is sent, and the skip says why", async () => {
-    const trace: SimulationTrace = await runTransition(
-      ACKNOWLEDGED_STATE,
-      ok(EMPTY_JIRA_SEARCH),
-    );
-
-    expect(trace.requests).toEqual([searchRequest(["key", "status"], true)]);
-    expect(trace.logs).toEqual([
-      `ℹ️ No Jira issue is labelled ${incidentLabel()}, or the Jira credentials cannot see it.`,
-    ]);
-  });
-
-  test("a state with no Jira status mapped to it moves nothing", async () => {
-    const trace: SimulationTrace = await runTransition(
-      {
-        _id: "aaaaaaaa-0000-4000-8000-000000000009",
-        name: "Monitoring",
-        order: 3,
-        isAcknowledgedState: false,
-        isResolvedState: false,
-      },
-      ok(jiraSearchResponse()),
-    );
-
-    expect(trace.requests).toHaveLength(1);
-    expect(trace.logs).toEqual([
-      `ℹ️ ${INCIDENT_NUMBER} moved to Monitoring, which has no Jira status mapped to it.`,
-    ]);
-  });
-
-  test("a 401 with a plain-text body reaches the failure log", async () => {
-    const trace: SimulationTrace = await runTransition(ACKNOWLEDGED_STATE, {
-      status: 401,
-      body: "Client must be authenticated to access this resource.",
-    });
-
-    expect(trace.executed).toEqual([
-      "incident-on-update-1",
-      "find-issue-1",
-      "log-find-failed",
-    ]);
-    expect(trace.requests).toHaveLength(1);
-    expect(trace.logs).toEqual([
-      `❌ Could not search Jira for the incident's issue: Client must be authenticated to access this resource.\nJira said: ${JSON.stringify(
-        { data: "Client must be authenticated to access this resource." },
-        null,
-        2,
-      )}`,
-    ]);
-  });
-});
-
-describe("simulated: copy notes to the Jira issue", () => {
-  const PRIVATE: string = "jira-comment-from-private-note";
-  const PUBLIC: string = "jira-comment-from-public-note";
-  const NOTE_TEXT: string =
-    "Failed over to the **secondary** database. Error rate is dropping.";
-
-  type RunNoteFunction = (
-    templateId: string,
-    note: JSONObject,
-  ) => Promise<SimulationTrace>;
-
-  const runNote: RunNoteFunction = async (
-    templateId: string,
-    note: JSONObject,
-  ): Promise<SimulationTrace> => {
-    return await runTemplate({
-      templateId: templateId,
-      trigger: onRecord(note),
-      jira: jiraRoutes({
-        [SEARCH]: ok(jiraSearchResponse()),
-        [COMMENT]: COMMENT_CREATED,
-      }),
-    });
-  };
-
-  test("a private note becomes an internal comment on the linked issue", async () => {
-    const trace: SimulationTrace = await runNote(PRIVATE, noteModel());
-
-    expect(trace.executed).toEqual([
-      "note-on-create-1",
-      "find-issue-1",
-      "build-comment-1",
-      "if-post-1",
-      "post-comment-1",
-      "log-posted",
-    ]);
-    expect(trace.requests).toEqual([
-      searchRequest(["key", "summary"]),
-      {
-        method: "POST",
-        url: `${JIRA_SITE}/rest/api/3/issue/${JIRA_ISSUE_KEY}/comment`,
-        headers: AUTHORIZATION,
-        body: {
-          body: adfOf(
-            `${JIRA_SYNCED_FROM_ONEUPTIME_MARKER}: private note on ${INCIDENT_NUMBER} by Jane Doe.\n\n${NOTE_TEXT}`,
-          ),
-          // Without this, Jira Service Management shows the comment to the customer.
-          properties: [{ key: "sd.public.comment", value: { internal: true } }],
-        },
-      },
-    ]);
-    expectValidAdf((trace.requests[1]!.body as JSONObject)["body"]);
-    expect(trace.logs).toEqual([
-      `✅ Posted the note to Jira issue ${JIRA_ISSUE_KEY}.`,
-    ]);
-  });
-
-  test("a public note becomes an ordinary comment, with no internal property", async () => {
-    const trace: SimulationTrace = await runNote(PUBLIC, noteModel());
-
-    expect(trace.requests).toHaveLength(2);
-    expect(trace.requests[1]!.body).toEqual({
-      body: adfOf(
-        `${JIRA_SYNCED_FROM_ONEUPTIME_MARKER}: public note on ${INCIDENT_NUMBER} by Jane Doe.\n\n${NOTE_TEXT}`,
-      ),
-    });
-    expect(trace.logs).toEqual([
-      `✅ Posted the note to Jira issue ${JIRA_ISSUE_KEY}.`,
-    ]);
-  });
-
-  test.each([PRIVATE, PUBLIC])(
-    "%s: a note that came from Jira is not posted back",
-    async (templateId: string) => {
-      const trace: SimulationTrace = await runNote(
-        templateId,
-        noteModel({
-          note: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Marco Rossi commented on [OPS-17](${JIRA_SITE}/browse/OPS-17).\n\nRolled back.`,
-          authorName: null,
-        }),
-      );
-
-      expect(trace.requests).toEqual([searchRequest(["key", "summary"])]);
-      expect(trace.logs).toEqual([
-        "ℹ️ This note came from Jira, so it was not posted back.",
       ]);
-    },
-  );
 
-  test("an incident without a linked issue gets no comment", async () => {
-    const trace: SimulationTrace = await runTemplate({
-      templateId: PRIVATE,
-      trigger: onRecord(noteModel()),
-      jira: jiraRoutes({ [SEARCH]: ok(EMPTY_JIRA_SEARCH) }),
+      expectValidAdf(issueFieldsOf(trace)["description"]);
+
+      expect(trace.logs).toEqual([
+        `✅ Created Jira issue ${JIRA_ISSUE_KEY} for ${kind.number}.`,
+      ]);
+      expect(trace.databaseCalls).toEqual([]);
     });
 
-    expect(trace.requests).toHaveLength(1);
-    expect(trace.logs).toEqual([
-      `ℹ️ No Jira issue is labelled ${incidentLabel()}, or the Jira credentials cannot see it.`,
-    ]);
-  });
-
-  test.each([PRIVATE, PUBLIC])(
-    "%s: a note on a private incident posts no comment",
-    async (templateId: string) => {
-      // The note trigger has to reach through to the incident for the flag.
-      expect(triggerSelectOf(templateId)["incident"]).toEqual({
-        incidentNumberWithPrefix: true,
-        isPrivate: true,
+    test(`an ${kind.noun} ${kind.created} from Jira is skipped before anything is sent`, async () => {
+      const trace: SimulationTrace = await runTemplate({
+        templateId: TEMPLATE,
+        trigger: onRecord(
+          kind.model({ customFields: { jiraIssueKey: "OPS-9" } }),
+        ),
+        jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
       });
 
-      const trace: SimulationTrace = await runNote(
-        templateId,
-        privateNoteModel(),
-      );
-
-      expect(trace.requests).toEqual([searchRequest(["key", "summary"])]);
-      expect(trace.ports["if-post-1"]).toBe("no");
+      expect(trace.requests).toEqual([]);
+      expect(trace.ports["if-create-1"]).toBe("no");
       expect(trace.logs).toEqual([
-        `ℹ️ The note is on ${INCIDENT_NUMBER}, a private incident, so it was not posted to Jira.`,
+        `ℹ️ ${kind.number} was ${kind.created} from Jira issue OPS-9, so no new issue was created.`,
       ]);
-    },
-  );
-
-  test("switching SYNC_PRIVATE_INCIDENTS on posts the private incident's note after all", async () => {
-    const trace: SimulationTrace = await runTemplate({
-      templateId: PRIVATE,
-      trigger: onRecord(privateNoteModel()),
-      jira: jiraRoutes({
-        [SEARCH]: ok(jiraSearchResponse()),
-        [COMMENT]: COMMENT_CREATED,
-      }),
-      editCode: { "build-comment-1": SYNC_PRIVATE_INCIDENTS },
     });
 
-    expect(trace.requests).toHaveLength(2);
-    expect(trace.requests[1]!.url).toBe(
-      `${JIRA_SITE}/rest/api/3/issue/${JIRA_ISSUE_KEY}/comment`,
-    );
-    expect(trace.logs).toEqual([
-      `✅ Posted the note to Jira issue ${JIRA_ISSUE_KEY}.`,
-    ]);
-  });
+    test(`a private ${kind.noun} stays in OneUptime: no request of any kind reaches Jira`, async () => {
+      // The trigger has to ask for the flag, or the script would never see it.
+      expect(triggerSelectOf(TEMPLATE)["isPrivate"]).toBe(true);
 
-  test.each([PRIVATE, PUBLIC])(
-    "%s: two issues carrying the incident's label (a clone) get no comment, and the skip names both",
-    async (templateId: string) => {
       const trace: SimulationTrace = await runTemplate({
-        templateId: templateId,
-        trigger: onRecord(noteModel()),
+        templateId: TEMPLATE,
+        trigger: onRecord(kind.model({ isPrivate: true })),
+        jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
+      });
+
+      expect(trace.executed).toEqual([
+        kind.steps.onCreate,
+        "prepare-issue-1",
+        "if-create-1",
+        "log-skipped",
+      ]);
+      expect(trace.requests).toEqual([]);
+      expect(trace.logs).toEqual([
+        `ℹ️ ${kind.number} is a private ${kind.noun}, so no Jira issue was created.`,
+      ]);
+    });
+
+    test(`switching the script's SYNC_PRIVATE switch on files the private ${kind.noun} after all`, async () => {
+      const trace: SimulationTrace = await runTemplate({
+        templateId: TEMPLATE,
+        trigger: onRecord(kind.model({ isPrivate: true })),
+        jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
+        editCode: { "prepare-issue-1": kind.syncPrivate },
+      });
+
+      expect(trace.requests).toHaveLength(1);
+      expect(issueFieldsOf(trace)["labels"]).toEqual([
+        JIRA_LINK_LABEL,
+        kind.label(),
+      ]);
+      expect(trace.logs).toEqual([
+        `✅ Created Jira issue ${JIRA_ISSUE_KEY} for ${kind.number}.`,
+      ]);
+    });
+
+    test("Jira's 400 reaches the failure log with the field errors it named", async () => {
+      const rejection: JSONObject = {
+        errorMessages: [],
+        errors: {
+          summary: "You must specify a summary of the issue.",
+          issuetype: "Specify an issue type",
+        },
+      };
+
+      const trace: SimulationTrace = await runTemplate({
+        templateId: TEMPLATE,
+        trigger: onRecord(kind.model()),
+        jira: jiraRoutes({ [CREATE_ISSUE]: badRequest(rejection) }),
+      });
+
+      expect(trace.requests).toHaveLength(1);
+      expect(trace.ports["create-issue-1"]).toBe("error");
+
+      /*
+       * Jira's error body has none of the keys HTTPErrorResponse reads a
+       * message from, so the error value is the generic one — which is why
+       * the log also carries the body itself.
+       */
+      expect(trace.logs).toEqual([
+        `❌ Jira did not create the issue: Server Error.\nJira said: ${JSON.stringify(rejection, null, 2)}`,
+      ]);
+      expect(trace.logs[0]).toContain(
+        '"summary": "You must specify a summary of the issue."',
+      );
+    });
+
+    test("a title full of quotes, line breaks, backslashes and braces still sends valid JSON and a one-line summary", async () => {
+      const title: string =
+        'Disk "full" on\n  C:\\data\\{{local.variables.jiraBasicAuthToken}} {shard}\\';
+
+      const trace: SimulationTrace = await runTemplate({
+        templateId: TEMPLATE,
+        trigger: onRecord(
+          kind.model({
+            title: title,
+            description: 'Path "C:\\logs\\app.log"\r\n\ttab {{x}} $& $1',
+          }),
+        ),
+        jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
+      });
+
+      // Reaching Jira at all means the body survived substitution and JSON.parse.
+      expect(trace.requests).toHaveLength(1);
+
+      const fields: JSONObject = issueFieldsOf(trace);
+
+      expect(fields["summary"]).toBe(
+        `[OneUptime] ${kind.number}: Disk "full" on C:\\data\\{ {local.variables.jiraBasicAuthToken} } {shard}\\`,
+      );
+      expect(fields["summary"]).not.toMatch(/[\r\n]/);
+
+      const description: string = (
+        (
+          (
+            (fields["description"] as JSONObject)[
+              "content"
+            ] as Array<JSONObject>
+          )[0]!["content"] as Array<JSONObject>
+        )[0] as JSONObject
+      )["text"] as string;
+
+      // The carriage return is dropped, the tab kept, and "$&" is not read as a replacement pattern.
+      expect(description).toContain(
+        'Path "C:\\logs\\app.log"\n\ttab { {x} } $& $1',
+      );
+      expectValidAdf(fields["description"]);
+      expect(JSON.stringify(trace.requests[0]!.body)).not.toContain(JIRA_TOKEN);
+      expect(trace.logs).toEqual([
+        `✅ Created Jira issue ${JIRA_ISSUE_KEY} for ${kind.number}.`,
+      ]);
+    });
+  },
+);
+
+/*
+ * Jira Service Management's service request workflow, as its transitions
+ * endpoint lists them. Canceled is a Done status too, and it is the one
+ * without a screen, so "any Done status, screenless first" would cancel the
+ * customer's request instead of resolving it.
+ */
+const JSM_WAITING_FOR_SUPPORT: JSONObject = jiraStatus({
+  name: "Waiting for support",
+  categoryKey: "new",
+  id: "10100",
+});
+
+const JSM_TRANSITIONS: Array<JSONObject> = [
+  jiraTransition({
+    id: "851",
+    name: "Respond to customer",
+    to: jiraStatus({
+      name: "Waiting for customer",
+      categoryKey: "indeterminate",
+      id: "10101",
+    }),
+  }),
+  jiraTransition({
+    id: "871",
+    name: "Escalate",
+    to: jiraStatus({
+      name: "Escalated",
+      categoryKey: "indeterminate",
+      id: "10102",
+    }),
+  }),
+  jiraTransition({
+    id: "881",
+    name: "Start work",
+    to: jiraStatus({
+      name: "Work in progress",
+      categoryKey: "indeterminate",
+      id: "10103",
+    }),
+  }),
+  jiraTransition({
+    id: "761",
+    name: "Resolve this issue",
+    hasScreen: true,
+    to: jiraStatus({ name: "Resolved", categoryKey: "done", id: "10104" }),
+  }),
+  jiraTransition({
+    id: "901",
+    name: "Cancel request",
+    to: jiraStatus({ name: "Canceled", categoryKey: "done", id: "10105" }),
+  }),
+];
+
+/** An issue someone already closed, from which only moving back is on offer. */
+const DONE_SEARCH: JSONObject = jiraSearchResponse({
+  status: DONE,
+  transitions: [
+    jiraTransition({ id: "11", name: "Reopen", to: TO_DO }),
+    jiraTransition({ id: "21", name: "Start work", to: IN_PROGRESS }),
+  ],
+});
+
+type TransitionRequestFunction = (transitionId: string) => JiraRequest;
+
+const transitionRequest: TransitionRequestFunction = (
+  transitionId: string,
+): JiraRequest => {
+  return {
+    method: "POST",
+    url: `${JIRA_SITE}/rest/api/3/issue/${JIRA_ISSUE_KEY}/transitions`,
+    headers: AUTHORIZATION,
+    body: { transition: { id: transitionId } },
+  };
+};
+
+describe.each(KINDS)(
+  "simulated: move the Jira issue when the $noun is acknowledged or resolved",
+  (kind: SimulatedKind) => {
+    const TEMPLATE: string = kind.templates.transition;
+
+    type RunTransitionFunction = (
+      state: JSONObject,
+      search: JiraReply,
+    ) => Promise<SimulationTrace>;
+
+    const runTransition: RunTransitionFunction = async (
+      state: JSONObject,
+      search: JiraReply,
+    ): Promise<SimulationTrace> => {
+      return await runTemplate({
+        templateId: TEMPLATE,
+        trigger: onRecord(kind.model({ state: state })),
+        jira: jiraRoutes({ [SEARCH]: search, [TRANSITION]: NO_CONTENT }),
+      });
+    };
+
+    test("acknowledged: finds the issue by label, then moves it to In Progress", async () => {
+      const trace: SimulationTrace = await runTransition(
+        kind.acknowledgedState,
+        ok(jiraSearchResponse()),
+      );
+
+      expect(trace.executed).toEqual([
+        kind.steps.onUpdate,
+        "find-issue-1",
+        "plan-transition-1",
+        "if-transition-1",
+        "transition-issue-1",
+        "log-transitioned",
+      ]);
+      expect(trace.requests).toEqual([
+        searchRequest(kind, ["key", "status"], true),
+        transitionRequest("21"),
+      ]);
+
+      // The 204 Jira answers with is a success, empty body and all.
+      expect(trace.ports["transition-issue-1"]).toBe("success");
+      expect(
+        trace.storage.local.components["transition-issue-1"]!.returnValues[
+          "response-body"
+        ],
+      ).toEqual({ data: "" });
+      expect(trace.logs).toEqual([
+        `✅ Moved Jira issue ${JIRA_ISSUE_KEY} to In Progress. ${kind.number} is Acknowledged in OneUptime.`,
+      ]);
+    });
+
+    test("resolved: moves the issue to Done with the Close transition", async () => {
+      const trace: SimulationTrace = await runTransition(
+        kind.resolvedState,
+        ok(jiraSearchResponse()),
+      );
+
+      expect(trace.requests).toHaveLength(2);
+      expect(trace.requests[1]!.body).toEqual({ transition: { id: "31" } });
+      expect(trace.logs).toEqual([
+        `✅ Moved Jira issue ${JIRA_ISSUE_KEY} to Done. ${kind.number} is Resolved in OneUptime.`,
+      ]);
+    });
+
+    test("an issue that is already Done is left alone after the search", async () => {
+      const trace: SimulationTrace = await runTransition(
+        kind.resolvedState,
+        ok(DONE_SEARCH),
+      );
+
+      expect(trace.requests).toEqual([
+        searchRequest(kind, ["key", "status"], true),
+      ]);
+      expect(trace.logs).toEqual([
+        `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is already Done.`,
+      ]);
+    });
+
+    /*
+     * Someone closed the issue in Jira before anyone acknowledged the record.
+     * Acknowledging it afterwards must not reopen the issue, even though a
+     * transition back to In Progress is on offer.
+     */
+    test(`acknowledging an ${kind.noun} whose issue is already Done posts no transition`, async () => {
+      const trace: SimulationTrace = await runTransition(
+        kind.acknowledgedState,
+        ok(DONE_SEARCH),
+      );
+
+      expect(trace.requests).toEqual([
+        searchRequest(kind, ["key", "status"], true),
+      ]);
+      expect(trace.ports["if-transition-1"]).toBe("no");
+      expect(trace.logs).toEqual([
+        `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is already Done, so it was not moved back to an In Progress status.`,
+      ]);
+    });
+
+    test("Jira Service Management: resolving picks Resolved, not the screenless Canceled", async () => {
+      const trace: SimulationTrace = await runTransition(
+        kind.resolvedState,
+        ok(
+          jiraSearchResponse({
+            status: JSM_WAITING_FOR_SUPPORT,
+            transitions: JSM_TRANSITIONS,
+          }),
+        ),
+      );
+
+      expect(trace.requests).toEqual([
+        searchRequest(kind, ["key", "status"], true),
+        transitionRequest("761"),
+      ]);
+      expect(trace.logs).toEqual([
+        `✅ Moved Jira issue ${JIRA_ISSUE_KEY} to Resolved. ${kind.number} is Resolved in OneUptime.`,
+      ]);
+    });
+
+    test("Jira Service Management: acknowledging picks Work in progress, never Escalated or Waiting for customer", async () => {
+      const trace: SimulationTrace = await runTransition(
+        kind.acknowledgedState,
+        ok(
+          jiraSearchResponse({
+            status: JSM_WAITING_FOR_SUPPORT,
+            transitions: JSM_TRANSITIONS,
+          }),
+        ),
+      );
+
+      expect(trace.requests).toHaveLength(2);
+      expect(trace.requests[1]!.body).toEqual({ transition: { id: "881" } });
+      expect(trace.logs).toEqual([
+        `✅ Moved Jira issue ${JIRA_ISSUE_KEY} to Work in progress. ${kind.number} is Acknowledged in OneUptime.`,
+      ]);
+    });
+
+    test("two Done statuses that fit equally well move nothing, and the skip names both", async () => {
+      const trace: SimulationTrace = await runTransition(
+        kind.resolvedState,
+        ok(
+          jiraSearchResponse({
+            status: IN_PROGRESS,
+            transitions: [
+              jiraTransition({
+                id: "51",
+                name: "Release",
+                to: jiraStatus({
+                  name: "Released",
+                  categoryKey: "done",
+                  id: "10200",
+                }),
+              }),
+              jiraTransition({
+                id: "61",
+                name: "Deploy",
+                to: jiraStatus({
+                  name: "Deployed",
+                  categoryKey: "done",
+                  id: "10201",
+                }),
+              }),
+            ],
+          }),
+        ),
+      );
+
+      expect(trace.requests).toEqual([
+        searchRequest(kind, ["key", "status"], true),
+      ]);
+      expect(trace.logs).toEqual([
+        `ℹ️ Jira issue ${JIRA_ISSUE_KEY} could move to Released or Deployed for a Done status. Name the one to use in STATE_TO_JIRA_STATUS.`,
+      ]);
+    });
+
+    test(`two issues carry the ${kind.noun}'s label (a clone): no transition, and the skip names both`, async () => {
+      const trace: SimulationTrace = await runTransition(
+        kind.resolvedState,
+        ok(CLONED_SEARCH),
+      );
+
+      expect(trace.requests).toEqual([
+        searchRequest(kind, ["key", "status"], true),
+      ]);
+      expect(trace.logs).toEqual([cloneSkippedLog(kind)]);
+    });
+
+    test(`a private ${kind.noun}'s issue is not moved`, async () => {
+      expect(triggerSelectOf(TEMPLATE)["isPrivate"]).toBe(true);
+
+      const trace: SimulationTrace = await runTemplate({
+        templateId: TEMPLATE,
+        trigger: onRecord(
+          kind.model({ state: kind.resolvedState, isPrivate: true }),
+        ),
+        jira: jiraRoutes({
+          [SEARCH]: ok(jiraSearchResponse()),
+          [TRANSITION]: NO_CONTENT,
+        }),
+      });
+
+      expect(trace.requests).toEqual([
+        searchRequest(kind, ["key", "status"], true),
+      ]);
+      expect(trace.logs).toEqual([
+        `ℹ️ ${kind.number} is a private ${kind.noun}, so its Jira issue was not moved.`,
+      ]);
+    });
+
+    test("no linked issue: only the search is sent, and the skip says why", async () => {
+      const trace: SimulationTrace = await runTransition(
+        kind.acknowledgedState,
+        ok(EMPTY_JIRA_SEARCH),
+      );
+
+      expect(trace.requests).toEqual([
+        searchRequest(kind, ["key", "status"], true),
+      ]);
+      expect(trace.logs).toEqual([noLinkedIssueLog(kind)]);
+    });
+
+    test("a state with no Jira status mapped to it moves nothing", async () => {
+      const trace: SimulationTrace = await runTransition(
+        {
+          _id: "aaaaaaaa-0000-4000-8000-000000000009",
+          name: "Monitoring",
+          order: 3,
+          isAcknowledgedState: false,
+          isResolvedState: false,
+        },
+        ok(jiraSearchResponse()),
+      );
+
+      expect(trace.requests).toHaveLength(1);
+      expect(trace.logs).toEqual([
+        `ℹ️ ${kind.number} moved to Monitoring, which has no Jira status mapped to it.`,
+      ]);
+    });
+
+    test("a 401 with a plain-text body reaches the failure log", async () => {
+      const trace: SimulationTrace = await runTransition(
+        kind.acknowledgedState,
+        {
+          status: 401,
+          body: "Client must be authenticated to access this resource.",
+        },
+      );
+
+      expect(trace.executed).toEqual([
+        kind.steps.onUpdate,
+        "find-issue-1",
+        "log-find-failed",
+      ]);
+      expect(trace.requests).toHaveLength(1);
+      expect(trace.logs).toEqual([
+        `❌ Could not search Jira for the ${kind.noun}'s issue: Client must be authenticated to access this resource.\nJira said: ${JSON.stringify(
+          { data: "Client must be authenticated to access this resource." },
+          null,
+          2,
+        )}`,
+      ]);
+    });
+  },
+);
+
+describe.each(KINDS)(
+  "simulated: copy $noun notes to the Jira issue",
+  (kind: SimulatedKind) => {
+    test.each(kind.noteTemplates)(
+      "$templateId: a $visibility note becomes a comment on the linked issue, internal only when the note is private",
+      async (noteTemplate: NoteTemplate) => {
+        const trace: SimulationTrace = await runNoteToComment(
+          noteTemplate.templateId,
+          kind.note(),
+        );
+
+        const body: JSONObject = {
+          body: adfOf(
+            `${JIRA_SYNCED_FROM_ONEUPTIME_MARKER}: ${noteTemplate.visibility} note on ${kind.number} by Jane Doe.\n\n${kind.defaultNoteText}`,
+          ),
+        };
+
+        // Without the property, Jira Service Management shows the comment to the customer.
+        if (noteTemplate.internal) {
+          body["properties"] = [INTERNAL_COMMENT_PROPERTY];
+        }
+
+        expect(trace.executed).toEqual([
+          "note-on-create-1",
+          "find-issue-1",
+          "build-comment-1",
+          "if-post-1",
+          "post-comment-1",
+          "log-posted",
+        ]);
+        expect(trace.requests).toEqual([
+          searchRequest(kind, ["key", "summary"]),
+          {
+            method: "POST",
+            url: `${JIRA_SITE}/rest/api/3/issue/${JIRA_ISSUE_KEY}/comment`,
+            headers: AUTHORIZATION,
+            body: body,
+          },
+        ]);
+        expectValidAdf((trace.requests[1]!.body as JSONObject)["body"]);
+        expect(trace.logs).toEqual([
+          `✅ Posted the note to Jira issue ${JIRA_ISSUE_KEY}.`,
+        ]);
+      },
+    );
+
+    test.each(kind.noteTemplates)(
+      "$templateId: a note that came from Jira is not posted back",
+      async (noteTemplate: NoteTemplate) => {
+        const trace: SimulationTrace = await runNoteToComment(
+          noteTemplate.templateId,
+          kind.note({
+            note: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Marco Rossi commented on [OPS-17](${JIRA_SITE}/browse/OPS-17).\n\nRolled back.`,
+            authorName: null,
+          }),
+        );
+
+        expect(trace.requests).toEqual([
+          searchRequest(kind, ["key", "summary"]),
+        ]);
+        expect(trace.logs).toEqual([NOTE_FROM_JIRA_LOG]);
+      },
+    );
+
+    test.each(kind.noteTemplates)(
+      "$templateId: a note on a record without a linked issue gets no comment",
+      async (noteTemplate: NoteTemplate) => {
+        const trace: SimulationTrace = await runTemplate({
+          templateId: noteTemplate.templateId,
+          trigger: onRecord(kind.note()),
+          jira: jiraRoutes({ [SEARCH]: ok(EMPTY_JIRA_SEARCH) }),
+        });
+
+        expect(trace.requests).toHaveLength(1);
+        expect(trace.logs).toEqual([noLinkedIssueLog(kind)]);
+      },
+    );
+
+    test.each(kind.noteTemplates)(
+      "$templateId: a note on a private record posts no comment",
+      async (noteTemplate: NoteTemplate) => {
+        // The note trigger has to reach through to the record for the flag.
+        expect(triggerSelectOf(noteTemplate.templateId)[kind.noun]).toEqual({
+          [kind.numberField]: true,
+          isPrivate: true,
+        });
+
+        const trace: SimulationTrace = await runNoteToComment(
+          noteTemplate.templateId,
+          kind.note({ isPrivate: true }),
+        );
+
+        expect(trace.requests).toEqual([
+          searchRequest(kind, ["key", "summary"]),
+        ]);
+        expect(trace.ports["if-post-1"]).toBe("no");
+        expect(trace.logs).toEqual([
+          `ℹ️ The note is on ${kind.number}, a private ${kind.noun}, so it was not posted to Jira.`,
+        ]);
+      },
+    );
+
+    test(`switching the script's SYNC_PRIVATE switch on posts the private ${kind.noun}'s note after all`, async () => {
+      const trace: SimulationTrace = await runTemplate({
+        templateId: kind.templates.privateNote,
+        trigger: onRecord(kind.note({ isPrivate: true })),
+        jira: jiraRoutes({
+          [SEARCH]: ok(jiraSearchResponse()),
+          [COMMENT]: COMMENT_CREATED,
+        }),
+        editCode: { "build-comment-1": kind.syncPrivate },
+      });
+
+      expect(trace.requests).toHaveLength(2);
+      expect(trace.requests[1]!.url).toBe(
+        `${JIRA_SITE}/rest/api/3/issue/${JIRA_ISSUE_KEY}/comment`,
+      );
+      expect(trace.logs).toEqual([
+        `✅ Posted the note to Jira issue ${JIRA_ISSUE_KEY}.`,
+      ]);
+    });
+
+    test.each(kind.noteTemplates)(
+      "$templateId: two issues carrying the record's label (a clone) get no comment, and the skip names both",
+      async (noteTemplate: NoteTemplate) => {
+        const trace: SimulationTrace = await runTemplate({
+          templateId: noteTemplate.templateId,
+          trigger: onRecord(kind.note()),
+          jira: jiraRoutes({
+            [SEARCH]: ok(CLONED_SEARCH),
+            [COMMENT]: COMMENT_CREATED,
+          }),
+        });
+
+        expect(trace.requests).toEqual([
+          searchRequest(kind, ["key", "summary"]),
+        ]);
+        expect(trace.logs).toEqual([cloneSkippedLog(kind)]);
+      },
+    );
+  },
+);
+
+describe.each(KINDS)(
+  "simulated: comment on the Jira issue when the $noun is edited",
+  (kind: SimulatedKind) => {
+    const TEMPLATE: string = kind.templates.updateComment;
+
+    test(`an internal comment lists the ${kind.noun}'s current title, severity, state, root cause and remediation`, async () => {
+      // The comment quotes the root cause, so the trigger has to select it.
+      expect(triggerSelectOf(TEMPLATE)["rootCause"]).toBe(true);
+
+      const trace: SimulationTrace = await runTemplate({
+        templateId: TEMPLATE,
+        trigger: onRecord(
+          kind.model({
+            title: "Checkout latency high in eu-west-1",
+            severity: kind.middleSeverity.name,
+            state: kind.acknowledgedState,
+            rootCause: "A bad deploy of the payments service.",
+            remediationNotes: "Rolled back to v4.1.",
+          }),
+        ),
+        jira: jiraRoutes({
+          [SEARCH]: ok(jiraSearchResponse()),
+          [COMMENT]: COMMENT_CREATED,
+        }),
+      });
+
+      expect(trace.requests).toEqual([
+        searchRequest(kind, ["key", "summary"]),
+        {
+          method: "POST",
+          url: `${JIRA_SITE}/rest/api/3/issue/${JIRA_ISSUE_KEY}/comment`,
+          headers: AUTHORIZATION,
+          body: {
+            body: adfOf(
+              [
+                `${JIRA_SYNCED_FROM_ONEUPTIME_MARKER}: ${kind.number} was updated.`,
+                "Title: Checkout latency high in eu-west-1",
+                `Severity: ${kind.middleSeverity.name}`,
+                "State: Acknowledged",
+                "Root cause: A bad deploy of the payments service.",
+                "Remediation: Rolled back to v4.1.",
+                `Description: ${kind.defaultDescription}`,
+              ].join("\n"),
+            ),
+            // A root cause is for the team: internal in Jira Service Management.
+            properties: [INTERNAL_COMMENT_PROPERTY],
+          },
+        },
+      ]);
+      expectValidAdf((trace.requests[1]!.body as JSONObject)["body"]);
+      expect(trace.logs).toEqual([
+        `✅ Posted the ${kind.noun}'s changes to Jira issue ${JIRA_ISSUE_KEY}.`,
+      ]);
+    });
+
+    test(`a private ${kind.noun}'s changes are not posted`, async () => {
+      expect(triggerSelectOf(TEMPLATE)["isPrivate"]).toBe(true);
+
+      const trace: SimulationTrace = await runTemplate({
+        templateId: TEMPLATE,
+        trigger: onRecord(
+          kind.model({
+            rootCause: "A bad deploy of the payments service.",
+            isPrivate: true,
+          }),
+        ),
+        jira: jiraRoutes({
+          [SEARCH]: ok(jiraSearchResponse()),
+          [COMMENT]: COMMENT_CREATED,
+        }),
+      });
+
+      expect(trace.requests).toEqual([searchRequest(kind, ["key", "summary"])]);
+      expect(trace.logs).toEqual([
+        `ℹ️ ${kind.number} is a private ${kind.noun}, so its changes were not posted to Jira.`,
+      ]);
+    });
+
+    test(`two issues carrying the ${kind.noun}'s label (a clone) get no comment`, async () => {
+      const trace: SimulationTrace = await runTemplate({
+        templateId: TEMPLATE,
+        trigger: onRecord(kind.model()),
         jira: jiraRoutes({
           [SEARCH]: ok(CLONED_SEARCH),
           [COMMENT]: COMMENT_CREATED,
         }),
       });
 
-      expect(trace.requests).toEqual([searchRequest(["key", "summary"])]);
-      expect(trace.logs).toEqual([CLONE_SKIPPED_LOG]);
-    },
-  );
-});
+      expect(trace.requests).toEqual([searchRequest(kind, ["key", "summary"])]);
+      expect(trace.logs).toEqual([cloneSkippedLog(kind)]);
+    });
 
-describe("simulated: comment on the Jira issue when the incident is edited", () => {
-  const TEMPLATE: string = "jira-comment-on-incident-update";
+    /*
+     * Which updates reach the graph at all. The dashboard's edit form sends a
+     * changed severity under its relation's key, and Listen On compares keys
+     * exactly, so the relation has to be listed beside the id column.
+     */
+    test("it runs for the edits the comment reports, the severity under either key, and never for a state change", () => {
+      expect(triggerArgumentsOf(TEMPLATE)["listen-on"]).toEqual(
+        kind.editListenOn,
+      );
 
-  test("an internal comment lists the incident's current title, severity, state, root cause and remediation", async () => {
-    const trace: SimulationTrace = await runTemplate({
-      templateId: TEMPLATE,
-      trigger: onRecord(
-        incidentModel({
-          title: "Checkout latency high in eu-west-1",
-          severity: "Major Incident",
-          state: ACKNOWLEDGED_STATE,
-          rootCause: "A bad deploy of the payments service.",
-          remediationNotes: "Rolled back to v4.1.",
+      for (const key of Object.keys(kind.editListenOn)) {
+        expect(firesOnUpdate(TEMPLATE, { [key]: "changed" })).toBe(true);
+      }
+
+      expect(
+        firesOnUpdate(TEMPLATE, {
+          [kind.severityRelation]: { _id: kind.middleSeverity.id },
         }),
-      ),
-      jira: jiraRoutes({
-        [SEARCH]: ok(jiraSearchResponse()),
-        [COMMENT]: COMMENT_CREATED,
-      }),
-    });
-
-    expect(trace.requests).toEqual([
-      searchRequest(["key", "summary"]),
-      {
-        method: "POST",
-        url: `${JIRA_SITE}/rest/api/3/issue/${JIRA_ISSUE_KEY}/comment`,
-        headers: AUTHORIZATION,
-        body: {
-          body: adfOf(
-            [
-              `${JIRA_SYNCED_FROM_ONEUPTIME_MARKER}: ${INCIDENT_NUMBER} was updated.`,
-              "Title: Checkout latency high in eu-west-1",
-              "Severity: Major Incident",
-              "State: Acknowledged",
-              "Root cause: A bad deploy of the payments service.",
-              "Remediation: Rolled back to v4.1.",
-              'Description: p99 latency on /checkout is above 2s.\nStarted after the "v4.2" deploy.',
-            ].join("\n"),
-          ),
-          // A root cause is for the team: internal in Jira Service Management.
-          properties: [{ key: "sd.public.comment", value: { internal: true } }],
-        },
-      },
-    ]);
-    expectValidAdf((trace.requests[1]!.body as JSONObject)["body"]);
-    expect(trace.logs).toEqual([
-      `✅ Posted the incident's changes to Jira issue ${JIRA_ISSUE_KEY}.`,
-    ]);
-  });
-
-  test("a private incident's changes are not posted", async () => {
-    expect(triggerSelectOf(TEMPLATE)["isPrivate"]).toBe(true);
-
-    const trace: SimulationTrace = await runTemplate({
-      templateId: TEMPLATE,
-      trigger: onRecord(
-        privateIncidentModel({
-          rootCause: "A bad deploy of the payments service.",
+      ).toBe(true);
+      expect(
+        firesOnUpdate(TEMPLATE, {
+          [kind.severityIdColumn]: kind.middleSeverity.id,
         }),
-      ),
-      jira: jiraRoutes({
-        [SEARCH]: ok(jiraSearchResponse()),
-        [COMMENT]: COMMENT_CREATED,
-      }),
+      ).toBe(true);
+
+      // A state change is the transition template's, which listens for nothing else.
+      const stateChange: JSONObject = {
+        [kind.stateIdColumn]: kind.resolvedState["_id"] as string,
+      };
+
+      expect(firesOnUpdate(TEMPLATE, stateChange)).toBe(false);
+      expect(firesOnUpdate(kind.templates.transition, stateChange)).toBe(true);
+      expect(firesOnUpdate(kind.templates.transition, { title: "New" })).toBe(
+        false,
+      );
     });
-
-    expect(trace.requests).toEqual([searchRequest(["key", "summary"])]);
-    expect(trace.logs).toEqual([
-      `ℹ️ ${INCIDENT_NUMBER} is a private incident, so its changes were not posted to Jira.`,
-    ]);
-  });
-
-  test("two issues carrying the incident's label (a clone) get no comment", async () => {
-    const trace: SimulationTrace = await runTemplate({
-      templateId: TEMPLATE,
-      trigger: onRecord(incidentModel()),
-      jira: jiraRoutes({
-        [SEARCH]: ok(CLONED_SEARCH),
-        [COMMENT]: COMMENT_CREATED,
-      }),
-    });
-
-    expect(trace.requests).toEqual([searchRequest(["key", "summary"])]);
-    expect(trace.logs).toEqual([CLONE_SKIPPED_LOG]);
-  });
-});
+  },
+);
 
 /* ------------------------------- Jira -> OneUptime ------------------------------- */
 
-const EXPECTED_DECLARED_DESCRIPTION: string = [
-  `Declared from Jira issue [${JIRA_ISSUE_KEY}](${JIRA_SITE}/browse/${JIRA_ISSUE_KEY}).`,
-  "Priority: High",
-  "Reported by: Priya Patel",
-  "",
-  "Customers in *eu-west-1* see 502s at checkout.\nStarted around 09:40 UTC.",
-].join("\n");
-
-const LINK_LABELS_REQUEST: JiraRequest = {
-  method: "PUT",
-  url: `${JIRA_SITE}/rest/api/3/issue/${JIRA_ISSUE_KEY}`,
-  headers: AUTHORIZATION,
-  body: {
-    update: {
-      labels: [
-        { add: JIRA_LINK_LABEL },
-        { add: `${JIRA_INCIDENT_LABEL_PREFIX}${NEW_INCIDENT_ID}` },
-      ],
-    },
-  },
+const expectedCreatedDescription: ExpectedTextFunction = (
+  kind: SimulatedKind,
+): string => {
+  return [
+    `${kind.Created} from Jira issue [${JIRA_ISSUE_KEY}](${JIRA_SITE}/browse/${JIRA_ISSUE_KEY}).`,
+    "Priority: High",
+    "Reported by: Priya Patel",
+    "",
+    "Customers in *eu-west-1* see 502s at checkout.\nStarted around 09:40 UTC.",
+  ].join("\n");
 };
 
-describe("simulated: declare an incident when a Jira issue is created", () => {
-  const TEMPLATE: string = "jira-declare-incident-from-issue";
+describe.each(KINDS)(
+  "simulated: $create an $noun when a Jira issue is created",
+  (kind: SimulatedKind) => {
+    const TEMPLATE: string = kind.templates.createFromIssue;
 
-  type RunDeclareFunction = (props: {
-    event: JSONObject;
-    database?: FakeDatabase | undefined;
-    /** The issue's labels as Jira's GET returns them; none by default. */
-    labels?: Array<string> | undefined;
-    getIssue?: JiraReply | undefined;
-    edit?: JiraReply | undefined;
-  }) => Promise<SimulationTrace>;
+    type RunCreateFunction = (props: {
+      event: JSONObject;
+      database?: FakeDatabase | undefined;
+      /** The issue's labels as Jira's GET returns them; none by default. */
+      labels?: Array<string> | undefined;
+      getIssue?: JiraReply | undefined;
+      edit?: JiraReply | undefined;
+    }) => Promise<SimulationTrace>;
 
-  const runDeclare: RunDeclareFunction = async (props: {
-    event: JSONObject;
-    database?: FakeDatabase | undefined;
-    labels?: Array<string> | undefined;
-    getIssue?: JiraReply | undefined;
-    edit?: JiraReply | undefined;
-  }): Promise<SimulationTrace> => {
-    return await runTemplate({
-      templateId: TEMPLATE,
-      trigger: webhookDelivery(props.event),
-      jira: declareJira({
-        labels: props.labels,
-        getIssue: props.getIssue,
-        edit: props.edit,
-      }),
-      database: props.database || DECLARE_DATABASE,
-    });
-  };
+    const runCreate: RunCreateFunction = async (props: {
+      event: JSONObject;
+      database?: FakeDatabase | undefined;
+      labels?: Array<string> | undefined;
+      getIssue?: JiraReply | undefined;
+      edit?: JiraReply | undefined;
+    }): Promise<SimulationTrace> => {
+      return await runTemplate({
+        templateId: TEMPLATE,
+        trigger: webhookDelivery(props.event),
+        jira: createFromIssueJira({
+          labels: props.labels,
+          getIssue: props.getIssue,
+          edit: props.edit,
+        }),
+        database: props.database || createDatabase(kind),
+      });
+    };
 
-  test("declares a private, quiet incident at the severity the priority maps to, then labels the issue with its id", async () => {
-    const trace: SimulationTrace = await runDeclare({
-      event: jiraIssueCreatedEvent(),
-    });
-
-    expect(trace.executed).toEqual([
-      "webhook-1",
-      "find-severities-1",
-      "prepare-incident-1",
-      "if-declare-1",
-      "get-issue-1",
-      "confirm-unlinked-1",
-      "if-unlinked-1",
-      "create-incident-1",
-      "link-issue-1",
-      "log-linked",
-    ]);
-
-    expect(trace.databaseCalls).toEqual([
-      {
-        componentId: "find-severities-1",
-        metadataId: "incident-severity-find-many",
-        args: {
-          query: { _id: { _type: "NotNull", value: null } },
-          select: { _id: true, name: true, order: true },
-          limit: 50,
-        },
-      },
-      {
-        componentId: "create-incident-1",
-        metadataId: "incident-create-one",
-        args: {
-          json: {
-            // High is the most severe priority band, and severities are ordered 1 = most severe.
-            incidentSeverityId: CRITICAL_SEVERITY_ID,
-            customFields: { jiraIssueKey: JIRA_ISSUE_KEY },
-            isVisibleOnStatusPage: false,
-            shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: false,
-            title: "Checkout API returns 502 for EU customers",
-            description: EXPECTED_DECLARED_DESCRIPTION,
-          },
-        },
-      },
-    ]);
-
-    /*
-     * Jira is asked for the issue's labels before anything is written, and
-     * the label added afterwards carries the id the database just gave the
-     * incident — nothing else could.
-     */
-    expect(trace.requests).toEqual([GET_LABELS_REQUEST, LINK_LABELS_REQUEST]);
-    expect(trace.logs).toEqual([
-      `✅ Declared an incident with severity Critical Incident for Jira issue ${JIRA_ISSUE_KEY}, and labelled the issue to link them.`,
-    ]);
-  });
-
-  test("a Low priority lands on the least severe severity", async () => {
-    const trace: SimulationTrace = await runDeclare({
-      event: jiraIssueCreatedEvent({ priority: "Low" }),
-    });
-
-    expect(jsonOf(trace, "incident-create-one")["incidentSeverityId"]).toBe(
-      MINOR_SEVERITY_ID,
-    );
-    expect(trace.logs[0]).toContain("with severity Minor Incident");
-  });
-
-  test("an issue whose payload shows it linked declares nothing, and Jira is not even asked", async () => {
-    const trace: SimulationTrace = await runDeclare({
-      event: jiraIssueCreatedEvent({ labels: LINKED_LABELS }),
-    });
-
-    expect(metadataIdsOf(trace)).toEqual(["incident-severity-find-many"]);
-    expect(trace.requests).toEqual([]);
-    expect(trace.logs).toEqual([
-      `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is already linked to OneUptime, so no incident was declared.`,
-    ]);
-  });
-
-  /*
-   * The payload is only the sender's word. Anyone holding the workflow's URL
-   * can post an issue_created that shows no labels, and a delivery Jira
-   * retries still carries the labels the issue had before the first delivery
-   * linked it. What Jira returns now is what decides.
-   */
-  test.each([
-    ["linked to this incident", LINKED_LABELS],
-    ["claimed by another incident", [incidentLabel(OTHER_INCIDENT_ID)]],
-    ["carrying only the oneuptime label", [JIRA_LINK_LABEL]],
-  ])(
-    "a payload showing no labels, for an issue Jira says is %s, declares nothing",
-    async (_description: string, labels: Array<string>) => {
-      const trace: SimulationTrace = await runDeclare({
+    test(`${kind.create}s an ${kind.noun} at the severity the priority maps to, then labels the issue with its id`, async () => {
+      const trace: SimulationTrace = await runCreate({
         event: jiraIssueCreatedEvent(),
-        labels: labels,
       });
 
       expect(trace.executed).toEqual([
         "webhook-1",
         "find-severities-1",
-        "prepare-incident-1",
-        "if-declare-1",
+        kind.steps.prepareRecord,
+        kind.steps.ifCreate,
         "get-issue-1",
         "confirm-unlinked-1",
         "if-unlinked-1",
-        "log-already-linked",
+        kind.steps.createRecord,
+        "link-issue-1",
+        "log-linked",
       ]);
-      // No incident is written, and the issue's labels are not touched.
-      expect(metadataIdsOf(trace)).toEqual(["incident-severity-find-many"]);
+
+      expect(trace.databaseCalls).toEqual([
+        {
+          componentId: "find-severities-1",
+          metadataId: kind.components.severityFindMany,
+          args: {
+            query: { _id: { _type: "NotNull", value: null } },
+            select: { _id: true, name: true, order: true },
+            limit: 50,
+          },
+        },
+        {
+          componentId: kind.steps.createRecord,
+          metadataId: kind.components.createOne,
+          args: {
+            json: {
+              // High is the most severe priority band, and severities are ordered 1 = most severe.
+              [kind.severityIdColumn]: kind.mostSevere.id,
+              customFields: { jiraIssueKey: JIRA_ISSUE_KEY },
+              ...kind.quietCreateFields,
+              title: "Checkout API returns 502 for EU customers",
+              description: expectedCreatedDescription(kind),
+            },
+          },
+        },
+      ]);
+
+      /*
+       * Jira is asked for the issue's labels before anything is written, and
+       * the label added afterwards carries the id the database just gave the
+       * record — nothing else could.
+       */
+      expect(trace.requests).toEqual([
+        GET_LABELS_REQUEST,
+        linkLabelsRequest(kind),
+      ]);
+      expect(trace.logs).toEqual([
+        `✅ ${kind.Created} an ${kind.noun} with severity ${kind.mostSevere.name} for Jira issue ${JIRA_ISSUE_KEY}, and labelled the issue to link them.`,
+      ]);
+    });
+
+    test("a Low priority lands on the least severe severity", async () => {
+      const trace: SimulationTrace = await runCreate({
+        event: jiraIssueCreatedEvent({ priority: "Low" }),
+      });
+
+      expect(
+        jsonOf(trace, kind.components.createOne)[kind.severityIdColumn],
+      ).toBe(kind.leastSevere.id);
+      expect(trace.logs[0]).toContain(`with severity ${kind.leastSevere.name}`);
+    });
+
+    test(`a Medium priority lands in the middle of the range: ${kind.middleSeverity.name}`, async () => {
+      const trace: SimulationTrace = await runCreate({
+        event: jiraIssueCreatedEvent({ priority: "Medium" }),
+      });
+
+      expect(
+        jsonOf(trace, kind.components.createOne)[kind.severityIdColumn],
+      ).toBe(kind.middleSeverity.id);
+      expect(trace.logs[0]).toContain(
+        `with severity ${kind.middleSeverity.name}`,
+      );
+    });
+
+    test(`an issue whose payload shows it linked ${kind.create}s nothing, and Jira is not even asked`, async () => {
+      const trace: SimulationTrace = await runCreate({
+        event: jiraIssueCreatedEvent({ labels: linkedLabelsOf(kind) }),
+      });
+
+      expect(metadataIdsOf(trace)).toEqual([kind.components.severityFindMany]);
+      expect(trace.requests).toEqual([]);
+      expect(trace.logs).toEqual([alreadyLinkedLog(kind)]);
+    });
+
+    /*
+     * The payload is only the sender's word. Anyone holding the workflow's
+     * URL can post an issue_created that shows no labels, and a delivery Jira
+     * retries still carries the labels the issue had before the first
+     * delivery linked it. What Jira returns now is what decides.
+     */
+    test.each([
+      [`linked to this ${kind.noun}`, linkedLabelsOf(kind)],
+      [`claimed by another ${kind.noun}`, [kind.label(kind.otherId)]],
+      ["carrying only the oneuptime label", [JIRA_LINK_LABEL]],
+    ])(
+      `a payload showing no labels, for an issue Jira says is %s, ${kind.create}s nothing`,
+      async (_description: string, labels: Array<string>) => {
+        const trace: SimulationTrace = await runCreate({
+          event: jiraIssueCreatedEvent(),
+          labels: labels,
+        });
+
+        expect(trace.executed).toEqual([
+          "webhook-1",
+          "find-severities-1",
+          kind.steps.prepareRecord,
+          kind.steps.ifCreate,
+          "get-issue-1",
+          "confirm-unlinked-1",
+          "if-unlinked-1",
+          "log-already-linked",
+        ]);
+        // No record is written, and the issue's labels are not touched.
+        expect(metadataIdsOf(trace)).toEqual([
+          kind.components.severityFindMany,
+        ]);
+        expect(trace.requests).toEqual([GET_LABELS_REQUEST]);
+        expect(trace.logs).toEqual([alreadyLinkedLog(kind)]);
+      },
+    );
+
+    test(`an issue Jira will not return (a forged key, or credentials that cannot see it) ${kind.create}s nothing`, async () => {
+      const notFound: JSONObject = {
+        errorMessages: [
+          "Issue does not exist or you do not have permission to see it.",
+        ],
+        errors: {},
+      };
+
+      const trace: SimulationTrace = await runCreate({
+        event: jiraIssueCreatedEvent(),
+        getIssue: { status: 404, body: notFound },
+      });
+
+      expect(trace.executed).toEqual([
+        "webhook-1",
+        "find-severities-1",
+        kind.steps.prepareRecord,
+        kind.steps.ifCreate,
+        "get-issue-1",
+        "log-get-issue-failed",
+      ]);
+      expect(metadataIdsOf(trace)).toEqual([kind.components.severityFindMany]);
       expect(trace.requests).toEqual([GET_LABELS_REQUEST]);
       expect(trace.logs).toEqual([
-        `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is already linked to OneUptime, so no incident was declared.`,
+        `❌ Could not read Jira issue ${JIRA_ISSUE_KEY}, so no ${kind.noun} was ${kind.created}: Server Error.\nJira said: ${JSON.stringify(notFound, null, 2)}`,
       ]);
-    },
-  );
+    });
 
-  test("an issue Jira will not return (a forged key, or credentials that cannot see it) declares nothing", async () => {
-    const notFound: JSONObject = {
-      errorMessages: [
-        "Issue does not exist or you do not have permission to see it.",
-      ],
-      errors: {},
+    test(`a success that is not the issue (a proxy's page) ${kind.create}s nothing`, async () => {
+      const trace: SimulationTrace = await runCreate({
+        event: jiraIssueCreatedEvent(),
+        getIssue: { status: 200, body: "<html><body>Sign in</body></html>" },
+      });
+
+      expect(trace.ports["get-issue-1"]).toBe("success");
+      expect(trace.ports["if-unlinked-1"]).toBe("no");
+      expect(metadataIdsOf(trace)).toEqual([kind.components.severityFindMany]);
+      expect(trace.requests).toEqual([GET_LABELS_REQUEST]);
+      expect(trace.logs).toEqual([
+        `ℹ️ Jira did not return the issue, so no ${kind.noun} was ${kind.created}.`,
+      ]);
+    });
+
+    test(`an issue_updated delivery to this webhook ${kind.create}s nothing`, async () => {
+      const trace: SimulationTrace = await runCreate({
+        event: jiraIssueUpdatedEvent({ items: STARTED_CHANGELOG }),
+      });
+
+      expect(metadataIdsOf(trace)).toEqual([kind.components.severityFindMany]);
+      expect(trace.requests).toEqual([]);
+      expect(trace.logs).toEqual([
+        "ℹ️ Ignored a jira:issue_updated event: this workflow only handles jira:issue_created.",
+      ]);
+    });
+
+    test("a failed create is logged, and the issue is not labelled with an id that does not exist", async () => {
+      const trace: SimulationTrace = await runCreate({
+        event: jiraIssueCreatedEvent(),
+        database: {
+          ...createDatabase(kind),
+          [kind.components.createOne]: DATABASE_FAILURE,
+        },
+      });
+
+      // Only the read that came before the create; no label edit follows it.
+      expect(trace.requests).toEqual([GET_LABELS_REQUEST]);
+      expect(trace.logs).toEqual([
+        `❌ Could not ${kind.create} the ${kind.noun} for Jira issue ${JIRA_ISSUE_KEY}. The database error is in the run log above.`,
+      ]);
+    });
+
+    test(`Jira refusing the labels ends on the warning, since the ${kind.noun} does exist`, async () => {
+      const rejection: JSONObject = {
+        errorMessages: [],
+        errors: {
+          labels:
+            "Field 'labels' cannot be set. It is not on the appropriate screen, or unknown.",
+        },
+      };
+
+      const trace: SimulationTrace = await runCreate({
+        event: jiraIssueCreatedEvent(),
+        edit: badRequest(rejection),
+      });
+
+      expect(trace.requests).toEqual([
+        GET_LABELS_REQUEST,
+        linkLabelsRequest(kind),
+      ]);
+      expect(trace.logs).toEqual([
+        `⚠️ The ${kind.noun} was ${kind.created}, but Jira did not accept the link labels, so the other Jira templates cannot find it: Server Error.\nJira said: ${JSON.stringify(rejection, null, 2)}`,
+      ]);
+    });
+  },
+);
+
+describe.each(KINDS)(
+  "simulated: acknowledge or resolve the $noun when its Jira issue moves",
+  (kind: SimulatedKind) => {
+    const TEMPLATE: string = kind.templates.statusToState;
+
+    type RunStatusFunction = (props: {
+      event: JSONObject;
+      record: JSONObject | null;
+    }) => Promise<SimulationTrace>;
+
+    const runStatus: RunStatusFunction = async (props: {
+      event: JSONObject;
+      record: JSONObject | null;
+    }): Promise<SimulationTrace> => {
+      return await runTemplate({
+        templateId: TEMPLATE,
+        trigger: webhookDelivery(props.event),
+        database: statusDatabase(kind, props.record),
+      });
     };
 
-    const trace: SimulationTrace = await runDeclare({
-      event: jiraIssueCreatedEvent(),
-      getIssue: { status: 404, body: notFound },
+    const RESOLVED_EVENT: JSONObject = jiraIssueUpdatedEvent({
+      items: RESOLVED_CHANGELOG,
+      labels: linkedLabelsOf(kind),
+      status: DONE,
     });
 
-    expect(trace.executed).toEqual([
-      "webhook-1",
-      "find-severities-1",
-      "prepare-incident-1",
-      "if-declare-1",
-      "get-issue-1",
-      "log-get-issue-failed",
-    ]);
-    expect(metadataIdsOf(trace)).toEqual(["incident-severity-find-many"]);
-    expect(trace.requests).toEqual([GET_LABELS_REQUEST]);
-    expect(trace.logs).toEqual([
-      `❌ Could not read Jira issue ${JIRA_ISSUE_KEY}, so no incident was declared: Server Error.\nJira said: ${JSON.stringify(notFound, null, 2)}`,
-    ]);
-  });
+    test(`Done resolves an acknowledged ${kind.noun} with a new timeline row`, async () => {
+      const trace: SimulationTrace = await runStatus({
+        event: RESOLVED_EVENT,
+        record: recordOf(kind, kind.acknowledgedState),
+      });
 
-  test("a success that is not the issue (a proxy's page) declares nothing", async () => {
-    const trace: SimulationTrace = await runDeclare({
-      event: jiraIssueCreatedEvent(),
-      getIssue: { status: 200, body: "<html><body>Sign in</body></html>" },
+      expect(trace.executed).toEqual([
+        "webhook-1",
+        "read-event-1",
+        "if-status-changed-1",
+        kind.steps.find,
+        "find-states-1",
+        "decide-state-1",
+        "if-change-1",
+        "change-state-1",
+        "log-changed",
+      ]);
+
+      expect(callOf(trace, kind.components.findOne).args).toEqual({
+        query: { _id: kind.id },
+        select: {
+          _id: true,
+          [kind.numberField]: true,
+          [kind.stateRelation]: { _id: true, name: true, order: true },
+        },
+      });
+
+      // A timeline row, never an edit to the record: the timeline is what notifies and refuses to go backwards.
+      expect(metadataIdsOf(trace)).toEqual([
+        kind.components.findOne,
+        kind.components.stateFindMany,
+        kind.components.timelineCreateOne,
+      ]);
+      expect(jsonOf(trace, kind.components.timelineCreateOne)).toEqual({
+        [kind.idColumn]: kind.id,
+        [kind.timelineStateColumn]: kind.resolvedState["_id"] as string,
+        rootCause: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: issue ${JIRA_ISSUE_KEY} moved to Done by Priya Patel.`,
+      });
+      expect(trace.requests).toEqual([]);
+      expect(trace.logs).toEqual([
+        `✅ Moved ${kind.number} to Resolved because Jira issue ${JIRA_ISSUE_KEY} is now Done.`,
+      ]);
     });
 
-    expect(trace.ports["get-issue-1"]).toBe("success");
-    expect(trace.ports["if-unlinked-1"]).toBe("no");
-    expect(metadataIdsOf(trace)).toEqual(["incident-severity-find-many"]);
-    expect(trace.requests).toEqual([GET_LABELS_REQUEST]);
-    expect(trace.logs).toEqual([
-      "ℹ️ Jira did not return the issue, so no incident was declared.",
-    ]);
-  });
+    test(`In Progress acknowledges a new ${kind.noun}`, async () => {
+      const trace: SimulationTrace = await runStatus({
+        event: jiraIssueUpdatedEvent({
+          items: STARTED_CHANGELOG,
+          labels: linkedLabelsOf(kind),
+          status: IN_PROGRESS,
+        }),
+        record: recordOf(kind, kind.createdState),
+      });
 
-  test("an issue_updated delivery to this webhook declares nothing", async () => {
-    const trace: SimulationTrace = await runDeclare({
-      event: jiraIssueUpdatedEvent({ items: STARTED_CHANGELOG }),
-    });
-
-    expect(metadataIdsOf(trace)).toEqual(["incident-severity-find-many"]);
-    expect(trace.requests).toEqual([]);
-    expect(trace.logs).toEqual([
-      "ℹ️ Ignored a jira:issue_updated event: this workflow only handles jira:issue_created.",
-    ]);
-  });
-
-  test("a failed create is logged, and the issue is not labelled with an id that does not exist", async () => {
-    const trace: SimulationTrace = await runDeclare({
-      event: jiraIssueCreatedEvent(),
-      database: {
-        ...DECLARE_DATABASE,
-        "incident-create-one": DATABASE_FAILURE,
-      },
-    });
-
-    // Only the read that came before the create; no label edit follows it.
-    expect(trace.requests).toEqual([GET_LABELS_REQUEST]);
-    expect(trace.logs).toEqual([
-      `❌ Could not declare the incident for Jira issue ${JIRA_ISSUE_KEY}. The database error is in the run log above.`,
-    ]);
-  });
-
-  test("Jira refusing the labels ends on the warning, since the incident does exist", async () => {
-    const rejection: JSONObject = {
-      errorMessages: [],
-      errors: {
-        labels:
-          "Field 'labels' cannot be set. It is not on the appropriate screen, or unknown.",
-      },
-    };
-
-    const trace: SimulationTrace = await runDeclare({
-      event: jiraIssueCreatedEvent(),
-      edit: badRequest(rejection),
-    });
-
-    expect(trace.requests).toEqual([GET_LABELS_REQUEST, LINK_LABELS_REQUEST]);
-    expect(trace.logs).toEqual([
-      `⚠️ The incident was declared, but Jira did not accept the link labels, so the other Jira templates cannot find it: Server Error.\nJira said: ${JSON.stringify(rejection, null, 2)}`,
-    ]);
-  });
-});
-
-describe("simulated: acknowledge or resolve the incident when its Jira issue moves", () => {
-  const TEMPLATE: string = "jira-status-to-incident-state";
-
-  type RunStatusFunction = (props: {
-    event: JSONObject;
-    incident: JSONObject | null;
-  }) => Promise<SimulationTrace>;
-
-  const runStatus: RunStatusFunction = async (props: {
-    event: JSONObject;
-    incident: JSONObject | null;
-  }): Promise<SimulationTrace> => {
-    return await runTemplate({
-      templateId: TEMPLATE,
-      trigger: webhookDelivery(props.event),
-      database: statusDatabase(props.incident),
-    });
-  };
-
-  const RESOLVED_EVENT: JSONObject = jiraIssueUpdatedEvent({
-    items: RESOLVED_CHANGELOG,
-    labels: LINKED_LABELS,
-    status: DONE,
-  });
-
-  test("Done resolves an acknowledged incident with a new timeline row", async () => {
-    const trace: SimulationTrace = await runStatus({
-      event: RESOLVED_EVENT,
-      incident: incidentRecord(ACKNOWLEDGED_STATE),
-    });
-
-    expect(trace.executed).toEqual([
-      "webhook-1",
-      "read-event-1",
-      "if-status-changed-1",
-      "find-incident-1",
-      "find-states-1",
-      "decide-state-1",
-      "if-change-1",
-      "change-state-1",
-      "log-changed",
-    ]);
-
-    expect(callOf(trace, "incident-find-one").args).toEqual({
-      query: { _id: INCIDENT_ID },
-      select: {
-        _id: true,
-        incidentNumberWithPrefix: true,
-        currentIncidentState: { _id: true, name: true, order: true },
-      },
-    });
-
-    // A timeline row, never an edit to the incident: the timeline is what notifies and refuses to go backwards.
-    expect(metadataIdsOf(trace)).toEqual([
-      "incident-find-one",
-      "incident-state-find-many",
-      "incident-state-timeline-create-one",
-    ]);
-    expect(jsonOf(trace, "incident-state-timeline-create-one")).toEqual({
-      incidentId: INCIDENT_ID,
-      incidentStateId: RESOLVED_STATE_ID,
-      rootCause: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: issue ${JIRA_ISSUE_KEY} moved to Done by Priya Patel.`,
-    });
-    expect(trace.requests).toEqual([]);
-    expect(trace.logs).toEqual([
-      `✅ Moved ${INCIDENT_NUMBER} to Resolved because Jira issue ${JIRA_ISSUE_KEY} is now Done.`,
-    ]);
-  });
-
-  test("In Progress acknowledges a new incident", async () => {
-    const trace: SimulationTrace = await runStatus({
-      event: jiraIssueUpdatedEvent({
-        items: STARTED_CHANGELOG,
-        labels: LINKED_LABELS,
-        status: IN_PROGRESS,
-      }),
-      incident: incidentRecord(CREATED_STATE),
-    });
-
-    expect(
-      jsonOf(trace, "incident-state-timeline-create-one")["incidentStateId"],
-    ).toBe(ACKNOWLEDGED_STATE_ID);
-    expect(trace.logs).toEqual([
-      `✅ Moved ${INCIDENT_NUMBER} to Acknowledged because Jira issue ${JIRA_ISSUE_KEY} is now In Progress.`,
-    ]);
-  });
-
-  test("an incident that is already resolved is not moved again", async () => {
-    const trace: SimulationTrace = await runStatus({
-      event: RESOLVED_EVENT,
-      incident: incidentRecord(RESOLVED_STATE),
-    });
-
-    expect(metadataIdsOf(trace)).toEqual([
-      "incident-find-one",
-      "incident-state-find-many",
-    ]);
-    expect(trace.logs).toEqual([
-      `ℹ️ ${INCIDENT_NUMBER} is already Resolved, so Jira issue ${JIRA_ISSUE_KEY} moving to Done changes nothing.`,
-    ]);
-  });
-
-  test("moving the issue back to To Do never moves the incident backwards", async () => {
-    const trace: SimulationTrace = await runStatus({
-      event: jiraIssueUpdatedEvent({
-        items: [
-          changelogItem({
-            field: "status",
-            from: "3",
-            fromString: "In Progress",
-            to: "10001",
-            toString: "To Do",
-          }),
+      expect(
+        jsonOf(trace, kind.components.timelineCreateOne)[
+          kind.timelineStateColumn
         ],
-        labels: LINKED_LABELS,
-        status: TO_DO,
-      }),
-      incident: incidentRecord(ACKNOWLEDGED_STATE),
+      ).toBe(kind.acknowledgedState["_id"]);
+      expect(trace.logs).toEqual([
+        `✅ Moved ${kind.number} to Acknowledged because Jira issue ${JIRA_ISSUE_KEY} is now In Progress.`,
+      ]);
     });
 
-    expect(metadataIdsOf(trace)).not.toContain(
-      "incident-state-timeline-create-one",
-    );
-    expect(trace.logs).toEqual([
-      `ℹ️ Jira issue ${JIRA_ISSUE_KEY} moved to To Do, which does not map to a OneUptime state.`,
-    ]);
-  });
+    test(`an ${kind.noun} that is already resolved is not moved again`, async () => {
+      const trace: SimulationTrace = await runStatus({
+        event: RESOLVED_EVENT,
+        record: recordOf(kind, kind.resolvedState),
+      });
 
-  test("an issue with no incident label touches nothing in the database", async () => {
-    const trace: SimulationTrace = await runStatus({
-      event: jiraIssueUpdatedEvent({ items: RESOLVED_CHANGELOG, status: DONE }),
-      incident: incidentRecord(ACKNOWLEDGED_STATE),
+      expect(metadataIdsOf(trace)).toEqual([
+        kind.components.findOne,
+        kind.components.stateFindMany,
+      ]);
+      expect(trace.logs).toEqual([
+        `ℹ️ ${kind.number} is already Resolved, so Jira issue ${JIRA_ISSUE_KEY} moving to Done changes nothing.`,
+      ]);
     });
 
-    expect(trace.databaseCalls).toEqual([]);
-    expect(trace.logs).toEqual([
-      `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is not linked to an incident: it has no ${JIRA_INCIDENT_LABEL_PREFIX}<id> label.`,
-    ]);
-  });
+    test(`moving the issue back to To Do never moves the ${kind.noun} backwards`, async () => {
+      const trace: SimulationTrace = await runStatus({
+        event: jiraIssueUpdatedEvent({
+          items: [
+            changelogItem({
+              field: "status",
+              from: "3",
+              fromString: "In Progress",
+              to: "10001",
+              toString: "To Do",
+            }),
+          ],
+          labels: linkedLabelsOf(kind),
+          status: TO_DO,
+        }),
+        record: recordOf(kind, kind.acknowledgedState),
+      });
 
-  test("a label naming an incident this project does not have changes nothing", async () => {
-    const trace: SimulationTrace = await runStatus({
-      event: RESOLVED_EVENT,
-      incident: null,
+      expect(metadataIdsOf(trace)).not.toContain(
+        kind.components.timelineCreateOne,
+      );
+      expect(trace.logs).toEqual([
+        `ℹ️ Jira issue ${JIRA_ISSUE_KEY} moved to To Do, which does not map to a OneUptime state.`,
+      ]);
     });
 
-    expect(metadataIdsOf(trace)).toEqual([
-      "incident-find-one",
-      "incident-state-find-many",
-    ]);
-    expect(trace.logs).toEqual([
-      `ℹ️ No incident with id ${INCIDENT_ID} exists in this project.`,
-    ]);
-  });
-});
+    test(`an issue with no ${kind.noun} label touches nothing in the database`, async () => {
+      const trace: SimulationTrace = await runStatus({
+        event: jiraIssueUpdatedEvent({
+          items: RESOLVED_CHANGELOG,
+          status: DONE,
+        }),
+        record: recordOf(kind, kind.acknowledgedState),
+      });
+
+      expect(trace.databaseCalls).toEqual([]);
+      expect(trace.logs).toEqual([notLinkedLog(kind)]);
+    });
+
+    test(`a label naming an ${kind.noun} this project does not have changes nothing`, async () => {
+      const trace: SimulationTrace = await runStatus({
+        event: RESOLVED_EVENT,
+        record: null,
+      });
+
+      expect(metadataIdsOf(trace)).toEqual([
+        kind.components.findOne,
+        kind.components.stateFindMany,
+      ]);
+      expect(trace.logs).toEqual([
+        `ℹ️ No ${kind.noun} with id ${kind.id} exists in this project.`,
+      ]);
+    });
+  },
+);
 
 const EXPECTED_COMMENT_NOTE: string = `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Marco Rossi commented on [${JIRA_ISSUE_KEY}](${JIRA_SITE}/browse/${JIRA_ISSUE_KEY}).\n\nRolled back the *eu-west-1* deploy. Watching the error rate.`;
 
-type RunCommentFunction = (props: {
-  event: JSONObject;
-  labels?: Array<string> | undefined;
-  incident?: JSONObject | null | undefined;
-}) => Promise<SimulationTrace>;
+describe.each(KINDS)(
+  "simulated: add Jira comments to the $noun as private notes",
+  (kind: SimulatedKind) => {
+    test(`reads the link off the issue, checks the ${kind.noun} is here, and writes the note`, async () => {
+      const trace: SimulationTrace = await runComment(kind, {
+        event: jiraCommentEvent(),
+      });
 
-/* Shared by the comment suite and the echo and security suites below. */
-const runComment: RunCommentFunction = async (props: {
-  event: JSONObject;
-  labels?: Array<string> | undefined;
-  incident?: JSONObject | null | undefined;
-}): Promise<SimulationTrace> => {
-  return await runTemplate({
-    templateId: "jira-comment-to-private-note",
-    trigger: webhookDelivery(props.event),
-    jira: jiraRoutes({
-      [GET_LABELS]: ok(jiraIssueLabelsResponse(props.labels || LINKED_LABELS)),
-    }),
-    database: noteDatabase(
-      props.incident === undefined ? LINKED_INCIDENT : props.incident,
-    ),
+      expect(trace.executed).toEqual([
+        "webhook-1",
+        "read-comment-1",
+        "if-comment-1",
+        "get-issue-1",
+        "find-link-1",
+        "if-linked-1",
+        kind.steps.find,
+        "if-found-1",
+        "create-note-1",
+        "log-noted",
+      ]);
+
+      // Comment webhooks carry no labels, so the issue is fetched for them.
+      expect(trace.requests).toEqual([GET_LABELS_REQUEST]);
+
+      expect(trace.databaseCalls).toEqual([
+        {
+          componentId: kind.steps.find,
+          metadataId: kind.components.findOne,
+          args: {
+            query: { _id: kind.id },
+            select: { _id: true, [kind.numberField]: true },
+          },
+        },
+        {
+          componentId: "create-note-1",
+          metadataId: kind.components.noteCreateOne,
+          args: {
+            json: { [kind.idColumn]: kind.id, note: EXPECTED_COMMENT_NOTE },
+          },
+        },
+      ]);
+      expect(trace.logs).toEqual([
+        `✅ Added the Jira comment on ${JIRA_ISSUE_KEY} to ${kind.number} as a private note.`,
+      ]);
+    });
+
+    test("a comment OneUptime posted is not copied back, and Jira is not even asked about it", async () => {
+      const trace: SimulationTrace = await runComment(kind, {
+        event: jiraCommentEvent({
+          body: `${JIRA_SYNCED_FROM_ONEUPTIME_MARKER}: private note on ${kind.number} by Jane Doe.\n\nFailed over.`,
+          author: AUTOMATION_USER,
+        }),
+      });
+
+      expect(trace.requests).toEqual([]);
+      expect(trace.databaseCalls).toEqual([]);
+      expect(trace.logs).toEqual([COMMENT_FROM_ONEUPTIME_LOG]);
+    });
+
+    test("an issue without the labels is only looked at", async () => {
+      const trace: SimulationTrace = await runComment(kind, {
+        event: jiraCommentEvent(),
+        labels: [],
+      });
+
+      expect(trace.requests).toEqual([GET_LABELS_REQUEST]);
+      expect(trace.databaseCalls).toEqual([]);
+      expect(trace.logs).toEqual([notLinkedLog(kind)]);
+    });
+
+    test(`a label naming an ${kind.noun} in another project writes no note`, async () => {
+      const trace: SimulationTrace = await runComment(kind, {
+        event: jiraCommentEvent(),
+        labels: [JIRA_LINK_LABEL, kind.label(kind.otherId)],
+        record: null,
+      });
+
+      expect(callOf(trace, kind.components.findOne).args["query"]).toEqual({
+        _id: kind.otherId,
+      });
+      expect(trace.ports["if-found-1"]).toBe("no");
+      expect(metadataIdsOf(trace)).toEqual([kind.components.findOne]);
+      expect(trace.logs).toEqual([
+        `ℹ️ Jira issue ${JIRA_ISSUE_KEY} names ${kind.noun} ${kind.otherId}, which is not in this project.`,
+      ]);
+    });
+  },
+);
+
+/** A priority change on an issue carrying the given labels. */
+type PriorityChangeFunction = (labels: Array<string>) => JSONObject;
+
+const priorityChange: PriorityChangeFunction = (
+  labels: Array<string>,
+): JSONObject => {
+  return jiraIssueUpdatedEvent({
+    labels: labels,
+    items: [
+      changelogItem({
+        field: "priority",
+        from: "3",
+        fromString: "Medium",
+        to: "1",
+        toString: "Highest",
+      }),
+    ],
   });
 };
 
-describe("simulated: add Jira comments to the incident as private notes", () => {
-  test("reads the link off the issue, checks the incident is here, and writes the note", async () => {
-    const trace: SimulationTrace = await runComment({
-      event: jiraCommentEvent(),
+describe.each(KINDS)(
+  "simulated: add Jira issue changes to the $noun as private notes",
+  (kind: SimulatedKind) => {
+    test(`a priority change is noted on the linked ${kind.noun}`, async () => {
+      const trace: SimulationTrace = await runIssueChanges(kind, {
+        event: priorityChange(linkedLabelsOf(kind)),
+      });
+
+      expect(trace.executed).toEqual([
+        "webhook-1",
+        "read-changes-1",
+        "if-changed-1",
+        kind.steps.find,
+        "if-found-1",
+        "create-note-1",
+        "log-noted",
+      ]);
+      expect(callOf(trace, kind.components.findOne).args).toEqual({
+        query: { _id: kind.id },
+        select: { _id: true, [kind.numberField]: true },
+      });
+      expect(jsonOf(trace, kind.components.noteCreateOne)).toEqual({
+        [kind.idColumn]: kind.id,
+        note: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Priya Patel updated [${JIRA_ISSUE_KEY}](${JIRA_SITE}/browse/${JIRA_ISSUE_KEY}).\n\n- priority: Medium → Highest`,
+      });
+      expect(trace.requests).toEqual([]);
+      expect(trace.logs).toEqual([
+        `✅ Noted the changes to Jira issue ${JIRA_ISSUE_KEY} on ${kind.number}.`,
+      ]);
     });
 
-    expect(trace.executed).toEqual([
-      "webhook-1",
-      "read-comment-1",
-      "if-comment-1",
-      "get-issue-1",
-      "find-link-1",
-      "if-linked-1",
-      "find-incident-1",
-      "if-found-1",
-      "create-note-1",
-      "log-noted",
+    test("adding only the link labels is not worth a note", async () => {
+      const trace: SimulationTrace = await runIssueChanges(kind, {
+        event: jiraIssueUpdatedEvent({
+          labels: linkedLabelsOf(kind),
+          items: [
+            changelogItem({
+              field: "labels",
+              fromString: "",
+              toString: linkedLabelsOf(kind).join(" "),
+            }),
+          ],
+        }),
+      });
+
+      expect(trace.databaseCalls).toEqual([]);
+      expect(trace.logs).toEqual([NOTHING_WORTH_A_NOTE_LOG]);
+    });
+
+    test("a status change is left to the status template", async () => {
+      const trace: SimulationTrace = await runIssueChanges(kind, {
+        event: jiraIssueUpdatedEvent({
+          labels: linkedLabelsOf(kind),
+          items: RESOLVED_CHANGELOG,
+          status: DONE,
+        }),
+      });
+
+      expect(trace.databaseCalls).toEqual([]);
+      expect(trace.logs).toEqual([NOTHING_WORTH_A_NOTE_LOG]);
+    });
+
+    // Dragging an issue on a board changes Rank, which Jira reports under its custom field id.
+    test("a Rank change, sent as customfield_10019, is not worth a note", async () => {
+      const trace: SimulationTrace = await runIssueChanges(kind, {
+        event: jiraIssueUpdatedEvent({
+          labels: linkedLabelsOf(kind),
+          items: [
+            changelogItem({
+              field: "Rank",
+              fieldId: "customfield_10019",
+              fromString: "",
+              toString: "Ranked higher",
+            }),
+          ],
+        }),
+      });
+
+      expect(trace.databaseCalls).toEqual([]);
+      expect(trace.logs).toEqual([NOTHING_WORTH_A_NOTE_LOG]);
+    });
+
+    test(`a label naming an ${kind.noun} in another project writes no note`, async () => {
+      const trace: SimulationTrace = await runIssueChanges(kind, {
+        event: priorityChange([JIRA_LINK_LABEL, kind.label(kind.otherId)]),
+        record: null,
+      });
+
+      expect(callOf(trace, kind.components.findOne).args["query"]).toEqual({
+        _id: kind.otherId,
+      });
+      expect(metadataIdsOf(trace)).toEqual([kind.components.findOne]);
+      expect(trace.logs).toEqual([
+        `ℹ️ Jira issue ${JIRA_ISSUE_KEY} names ${kind.noun} ${kind.otherId}, which is not in this project.`,
+      ]);
+    });
+  },
+);
+
+/* ------------------------------- What differs for alerts ------------------------------- */
+
+/*
+ * The alert templates are the incident ones with the nouns swapped, except
+ * where an alert is a different thing. Each difference is checked here with
+ * the values written out, so it cannot pass by both sides of the kind table
+ * being wrong the same way.
+ */
+describe("simulated: what differs for alerts", () => {
+  test("alerts have no public notes, so there is no template to post one", () => {
+    expect(
+      getWorkflowTemplate("jira-comment-from-alert-public-note"),
+    ).toBeNull();
+    expect(
+      buildGraphForTemplate("jira-comment-from-alert-public-note", generateId),
+    ).toBeNull();
+    expect(
+      ALERT.noteTemplates.map((noteTemplate: NoteTemplate) => {
+        return noteTemplate.templateId;
+      }),
+    ).toEqual(["jira-comment-from-alert-private-note"]);
+  });
+
+  test("an alert's issue is labelled oneuptime-alert-<id> and links to the alert's page under /alerts/", async () => {
+    const trace: SimulationTrace = await runCreateIssue(ALERT);
+    const fields: JSONObject = issueFieldsOf(trace);
+
+    expect(fields["labels"]).toEqual([
+      "oneuptime",
+      `oneuptime-alert-${ALERT_ID}`,
     ]);
+    expect(JSON.stringify(fields["description"])).toContain(
+      `"href":"https://oneuptime.com/dashboard/${PROJECT_ID}/alerts/${ALERT_ID}"`,
+    );
+    expect(JSON.stringify(fields)).not.toContain("incident");
+  });
 
-    // Comment webhooks carry no labels, so the issue is fetched for them.
-    expect(trace.requests).toEqual([GET_LABELS_REQUEST]);
+  test("the alert templates search Jira for oneuptime-alert-<id>, never for an incident label", async () => {
+    const jira: FakeJiraFunction = jiraRoutes({
+      [SEARCH]: ok(jiraSearchResponse()),
+      [TRANSITION]: NO_CONTENT,
+      [COMMENT]: COMMENT_CREATED,
+    });
 
-    expect(trace.databaseCalls).toEqual([
-      {
-        componentId: "find-incident-1",
-        metadataId: "incident-find-one",
-        args: {
-          query: { _id: INCIDENT_ID },
-          select: { _id: true, incidentNumberWithPrefix: true },
+    const traces: Array<SimulationTrace> = [
+      await runTemplate({
+        templateId: "jira-transition-issue-on-alert-state",
+        trigger: onRecord(alertModel({ state: ALERT_RESOLVED_STATE })),
+        jira: jira,
+      }),
+      await runTemplate({
+        templateId: "jira-comment-from-alert-private-note",
+        trigger: onRecord(alertNoteModel()),
+        jira: jira,
+      }),
+      await runTemplate({
+        templateId: "jira-comment-on-alert-update",
+        trigger: onRecord(alertModel()),
+        jira: jira,
+      }),
+    ];
+
+    for (const trace of traces) {
+      expect(
+        ((trace.requests[0]!.body as JSONObject)["jql"] as string).startsWith(
+          `labels = "oneuptime-alert-${ALERT_ID}"`,
+        ),
+      ).toBe(true);
+      expect(trace.requests).toHaveLength(2);
+    }
+  });
+
+  test("an alert created from Jira is written with no status-page fields, which an incident is kept off with", async () => {
+    const alert: SimulationTrace = await runCreateFromIssue(ALERT);
+    const incident: SimulationTrace = await runCreateFromIssue(INCIDENT);
+
+    expect(Object.keys(jsonOf(alert, "alert-create-one")).sort()).toEqual([
+      "alertSeverityId",
+      "customFields",
+      "description",
+      "title",
+    ]);
+    expect(jsonOf(alert, "alert-create-one")["description"]).toContain(
+      "Created from Jira issue",
+    );
+    expect(jsonOf(incident, "incident-create-one")).toMatchObject({
+      isVisibleOnStatusPage: false,
+      shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: false,
+    });
+    expect(alert.logs).toEqual([
+      `✅ Created an alert with severity High for Jira issue ${JIRA_ISSUE_KEY}, and labelled the issue to link them.`,
+    ]);
+    expect(alert.requests[1]).toEqual({
+      method: "PUT",
+      url: `${JIRA_SITE}/rest/api/3/issue/${JIRA_ISSUE_KEY}`,
+      headers: AUTHORIZATION,
+      body: {
+        update: {
+          labels: [
+            { add: "oneuptime" },
+            { add: `oneuptime-alert-${NEW_ALERT_ID}` },
+          ],
         },
       },
-      {
-        componentId: "create-note-1",
-        metadataId: "incident-internal-note-create-one",
-        args: {
-          json: { incidentId: INCIDENT_ID, note: EXPECTED_COMMENT_NOTE },
-        },
-      },
-    ]);
-    expect(trace.logs).toEqual([
-      `✅ Added the Jira comment on ${JIRA_ISSUE_KEY} to ${INCIDENT_NUMBER} as a private note.`,
-    ]);
+    });
   });
 
-  test("a comment OneUptime posted is not copied back, and Jira is not even asked about it", async () => {
-    const trace: SimulationTrace = await runComment({
-      event: jiraCommentEvent({
-        body: `${JIRA_SYNCED_FROM_ONEUPTIME_MARKER}: private note on ${INCIDENT_NUMBER} by Jane Doe.\n\nFailed over.`,
-        author: AUTOMATION_USER,
+  /*
+   * A project starts with two alert severities, High and Low, against three
+   * incident ones. The priority bands are spread over whatever is there, so
+   * the middle band rounds down to Low rather than landing on a severity
+   * that does not exist.
+   */
+  test.each([
+    ["Highest", HIGH_ALERT_SEVERITY_ID, "High"],
+    ["High", HIGH_ALERT_SEVERITY_ID, "High"],
+    ["Medium", LOW_ALERT_SEVERITY_ID, "Low"],
+    ["Low", LOW_ALERT_SEVERITY_ID, "Low"],
+    ["Lowest", LOW_ALERT_SEVERITY_ID, "Low"],
+  ])(
+    "with the two default alert severities, a %s priority creates a %s-severity alert",
+    async (priority: string, severityId: string, severityName: string) => {
+      const trace: SimulationTrace = await runCreateFromIssue(ALERT, {
+        event: jiraIssueCreatedEvent({ priority: priority }),
+      });
+
+      expect(jsonOf(trace, "alert-create-one")["alertSeverityId"]).toBe(
+        severityId,
+      );
+      expect(trace.logs[0]).toContain(`with severity ${severityName} `);
+    },
+  );
+
+  /*
+   * An alert's root cause is written when the alert is created and cannot be
+   * edited afterwards, so the edit-comment template does not listen for it —
+   * but the comment it posts for any other edit still shows it.
+   */
+  test("an alert's root cause is not listened on, and the comment still shows it", async () => {
+    const TEMPLATE: string = "jira-comment-on-alert-update";
+
+    expect(firesOnUpdate(TEMPLATE, { rootCause: "Changed" })).toBe(false);
+    expect(
+      firesOnUpdate("jira-comment-on-incident-update", {
+        rootCause: "Changed",
+      }),
+    ).toBe(true);
+
+    // The dashboard's edit form sends the relation, which is heard.
+    expect(
+      firesOnUpdate(TEMPLATE, {
+        alertSeverity: { _id: LOW_ALERT_SEVERITY_ID },
+      }),
+    ).toBe(true);
+
+    const trace: SimulationTrace = await runTemplate({
+      templateId: TEMPLATE,
+      trigger: onRecord(
+        alertModel({
+          severity: "Low",
+          rootCause: "The WAL archiver stopped.",
+        }),
+      ),
+      jira: jiraRoutes({
+        [SEARCH]: ok(jiraSearchResponse()),
+        [COMMENT]: COMMENT_CREATED,
       }),
     });
 
-    expect(trace.requests).toEqual([]);
-    expect(trace.databaseCalls).toEqual([]);
-    expect(trace.logs).toEqual([
-      "ℹ️ This comment was posted by OneUptime, so it was not copied back.",
-    ]);
-  });
-
-  test("an issue without the labels is only looked at", async () => {
-    const trace: SimulationTrace = await runComment({
-      event: jiraCommentEvent(),
-      labels: [],
-    });
-
-    expect(trace.requests).toHaveLength(1);
-    expect(trace.requests[0]!.method).toBe("GET");
-    expect(trace.databaseCalls).toEqual([]);
-    expect(trace.logs).toEqual([
-      `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is not linked to an incident: it has no ${JIRA_INCIDENT_LABEL_PREFIX}<id> label.`,
-    ]);
-  });
-
-  test("a label naming an incident in another project writes no note", async () => {
-    const trace: SimulationTrace = await runComment({
-      event: jiraCommentEvent(),
-      labels: [JIRA_LINK_LABEL, incidentLabel(OTHER_INCIDENT_ID)],
-      incident: null,
-    });
-
-    expect(callOf(trace, "incident-find-one").args["query"]).toEqual({
-      _id: OTHER_INCIDENT_ID,
-    });
-    expect(trace.ports["if-found-1"]).toBe("no");
-    expect(metadataIdsOf(trace)).toEqual(["incident-find-one"]);
-    expect(trace.logs).toEqual([
-      `ℹ️ Jira issue ${JIRA_ISSUE_KEY} names incident ${OTHER_INCIDENT_ID}, which is not in this project.`,
-    ]);
-  });
-});
-
-type RunIssueChangesFunction = (props: {
-  event: JSONObject;
-  incident?: JSONObject | null | undefined;
-}) => Promise<SimulationTrace>;
-
-const runIssueChanges: RunIssueChangesFunction = async (props: {
-  event: JSONObject;
-  incident?: JSONObject | null | undefined;
-}): Promise<SimulationTrace> => {
-  return await runTemplate({
-    templateId: "jira-issue-changes-to-private-note",
-    trigger: webhookDelivery(props.event),
-    database: noteDatabase(
-      props.incident === undefined ? LINKED_INCIDENT : props.incident,
-    ),
-  });
-};
-
-describe("simulated: add Jira issue changes to the incident as private notes", () => {
-  test("a priority change is noted on the linked incident", async () => {
-    const trace: SimulationTrace = await runIssueChanges({
-      event: jiraIssueUpdatedEvent({
-        labels: LINKED_LABELS,
-        items: [
-          changelogItem({
-            field: "priority",
-            from: "3",
-            fromString: "Medium",
-            to: "1",
-            toString: "Highest",
-          }),
-        ],
-      }),
-    });
-
-    expect(trace.executed).toEqual([
-      "webhook-1",
-      "read-changes-1",
-      "if-changed-1",
-      "find-incident-1",
-      "if-found-1",
-      "create-note-1",
-      "log-noted",
-    ]);
-    expect(callOf(trace, "incident-find-one").args["query"]).toEqual({
-      _id: INCIDENT_ID,
-    });
-    expect(jsonOf(trace, "incident-internal-note-create-one")).toEqual({
-      incidentId: INCIDENT_ID,
-      note: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: Priya Patel updated [${JIRA_ISSUE_KEY}](${JIRA_SITE}/browse/${JIRA_ISSUE_KEY}).\n\n- priority: Medium → Highest`,
-    });
-    expect(trace.requests).toEqual([]);
-    expect(trace.logs).toEqual([
-      `✅ Noted the changes to Jira issue ${JIRA_ISSUE_KEY} on ${INCIDENT_NUMBER}.`,
-    ]);
-  });
-
-  test("adding only the link labels is not worth a note", async () => {
-    const trace: SimulationTrace = await runIssueChanges({
-      event: jiraIssueUpdatedEvent({
-        labels: LINKED_LABELS,
-        items: [
-          changelogItem({
-            field: "labels",
-            fromString: "",
-            toString: LINKED_LABELS.join(" "),
-          }),
-        ],
-      }),
-    });
-
-    expect(trace.databaseCalls).toEqual([]);
-    expect(trace.logs).toEqual([
-      `ℹ️ Nothing that changed on Jira issue ${JIRA_ISSUE_KEY} is worth a note.`,
-    ]);
-  });
-
-  test("a status change is left to the status template", async () => {
-    const trace: SimulationTrace = await runIssueChanges({
-      event: jiraIssueUpdatedEvent({
-        labels: LINKED_LABELS,
-        items: RESOLVED_CHANGELOG,
-        status: DONE,
-      }),
-    });
-
-    expect(trace.databaseCalls).toEqual([]);
-    expect(trace.logs).toEqual([
-      `ℹ️ Nothing that changed on Jira issue ${JIRA_ISSUE_KEY} is worth a note.`,
-    ]);
-  });
-
-  // Dragging an issue on a board changes Rank, which Jira reports under its custom field id.
-  test("a Rank change, sent as customfield_10019, is not worth a note", async () => {
-    const trace: SimulationTrace = await runIssueChanges({
-      event: jiraIssueUpdatedEvent({
-        labels: LINKED_LABELS,
-        items: [
-          changelogItem({
-            field: "Rank",
-            fieldId: "customfield_10019",
-            fromString: "",
-            toString: "Ranked higher",
-          }),
-        ],
-      }),
-    });
-
-    expect(trace.databaseCalls).toEqual([]);
-    expect(trace.logs).toEqual([
-      `ℹ️ Nothing that changed on Jira issue ${JIRA_ISSUE_KEY} is worth a note.`,
-    ]);
+    expect(wikiTextOf(postedCommentOf(trace))).toContain(
+      "Severity: Low\nState: Identified\nRoot cause: The WAL archiver stopped.",
+    );
   });
 });
 
@@ -2622,435 +3602,634 @@ describe("simulated: add Jira issue changes to the incident as private notes", (
  * drifted away from what the other side recognises would fail here even while
  * every single-template test still passed.
  */
-describe("simulated: the templates do not echo each other", () => {
-  type RunCreateIssueFunction = () => Promise<SimulationTrace>;
+describe.each(KINDS)(
+  "simulated: the $noun templates do not echo each other",
+  (kind: SimulatedKind) => {
+    test(`(a) the issue OneUptime files comes back as issue_created, and ${kind.create}s no second ${kind.noun}`, async () => {
+      const created: SimulationTrace = await runCreateIssue(kind);
+      const fields: JSONObject = issueFieldsOf(created);
 
-  const runCreateIssue: RunCreateIssueFunction =
-    async (): Promise<SimulationTrace> => {
-      return await runTemplate({
-        templateId: "jira-create-issue-for-incident",
-        trigger: onRecord(incidentModel()),
-        jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
-      });
-    };
-
-  type RunDeclareFunction = () => Promise<SimulationTrace>;
-
-  const runDeclare: RunDeclareFunction = async (): Promise<SimulationTrace> => {
-    return await runTemplate({
-      templateId: "jira-declare-incident-from-issue",
-      trigger: webhookDelivery(jiraIssueCreatedEvent()),
-      jira: declareJira(),
-      database: DECLARE_DATABASE,
-    });
-  };
-
-  type AddedLabelsOfFunction = (trace: SimulationTrace) => Array<string>;
-
-  /** The labels the declare template's PUT added to the issue. */
-  const addedLabelsOf: AddedLabelsOfFunction = (
-    trace: SimulationTrace,
-  ): Array<string> => {
-    const edit: JiraRequest | undefined = trace.requests.find(
-      (request: JiraRequest) => {
-        return request.method === "PUT";
-      },
-    );
-
-    expect(edit).toBeDefined();
-
-    return (
-      ((edit!.body as JSONObject)["update"] as JSONObject)[
-        "labels"
-      ] as Array<JSONObject>
-    ).map((operation: JSONObject) => {
-      return operation["add"] as string;
-    });
-  };
-
-  type RunNoteToCommentFunction = (
-    templateId: string,
-    note: JSONObject,
-  ) => Promise<SimulationTrace>;
-
-  const runNoteToComment: RunNoteToCommentFunction = async (
-    templateId: string,
-    note: JSONObject,
-  ): Promise<SimulationTrace> => {
-    return await runTemplate({
-      templateId: templateId,
-      trigger: onRecord(note),
-      jira: jiraRoutes({
-        [SEARCH]: ok(jiraSearchResponse()),
-        [COMMENT]: COMMENT_CREATED,
-      }),
-    });
-  };
-
-  type PostedCommentOfFunction = (trace: SimulationTrace) => JSONObject;
-
-  /** The ADF document a comment template posted. */
-  const postedCommentOf: PostedCommentOfFunction = (
-    trace: SimulationTrace,
-  ): JSONObject => {
-    const post: JiraRequest | undefined = trace.requests.find(
-      (request: JiraRequest) => {
-        return request.url.endsWith("/comment");
-      },
-    );
-
-    expect(post).toBeDefined();
-
-    return (post!.body as JSONObject)["body"] as JSONObject;
-  };
-
-  test("(a) the issue OneUptime files comes back as issue_created, and declares no second incident", async () => {
-    const created: SimulationTrace = await runCreateIssue();
-    const fields: JSONObject = (created.requests[0]!.body as JSONObject)[
-      "fields"
-    ] as JSONObject;
-
-    const echo: SimulationTrace = await runTemplate({
-      templateId: "jira-declare-incident-from-issue",
-      trigger: webhookDelivery(
-        jiraIssueCreatedEvent({
-          summary: fields["summary"] as string,
-          labels: fields["labels"] as Array<string>,
-          description: wikiTextOf(fields["description"]),
-          reporter: AUTOMATION_USER,
-          user: AUTOMATION_USER,
-        }),
-      ),
-      jira: declareJira({ labels: fields["labels"] as Array<string> }),
-      database: DECLARE_DATABASE,
-    });
-
-    // The payload's own labels stop it, before Jira is asked anything.
-    expect(echo.ports["if-declare-1"]).toBe("no");
-    expect(metadataIdsOf(echo)).not.toContain("incident-create-one");
-    expect(echo.requests).toEqual([]);
-    expect(echo.logs).toEqual([
-      `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is already linked to OneUptime, so no incident was declared.`,
-    ]);
-  });
-
-  /*
-   * The same echo when the payload does not show the labels — a delivery
-   * built before they were set, or one somebody forged. The labels OneUptime
-   * filed the issue with are still what Jira returns, and they stop it.
-   */
-  test("(a') the same issue_created without its labels in the payload is stopped by the labels Jira returns", async () => {
-    const created: SimulationTrace = await runCreateIssue();
-    const fields: JSONObject = (created.requests[0]!.body as JSONObject)[
-      "fields"
-    ] as JSONObject;
-
-    const echo: SimulationTrace = await runTemplate({
-      templateId: "jira-declare-incident-from-issue",
-      trigger: webhookDelivery(
-        jiraIssueCreatedEvent({
-          summary: fields["summary"] as string,
-          labels: [],
-          description: wikiTextOf(fields["description"]),
-          reporter: AUTOMATION_USER,
-          user: AUTOMATION_USER,
-        }),
-      ),
-      jira: declareJira({ labels: fields["labels"] as Array<string> }),
-      database: DECLARE_DATABASE,
-    });
-
-    expect(echo.ports["if-declare-1"]).toBe("yes");
-    expect(echo.ports["if-unlinked-1"]).toBe("no");
-    expect(metadataIdsOf(echo)).toEqual(["incident-severity-find-many"]);
-    expect(echo.requests).toEqual([GET_LABELS_REQUEST]);
-    expect(echo.logs).toEqual([
-      `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is already linked to OneUptime, so no incident was declared.`,
-    ]);
-  });
-
-  test("(b) the incident declared from Jira comes back through incident-on-create, and files no second issue", async () => {
-    const declared: SimulationTrace = await runDeclare();
-    const json: JSONObject = jsonOf(declared, "incident-create-one");
-
-    const echo: SimulationTrace = await runTemplate({
-      templateId: "jira-create-issue-for-incident",
-      trigger: onRecord(
-        incidentModel({
-          _id: NEW_INCIDENT_ID,
-          title: json["title"] as string,
-          description: json["description"] as string,
-          customFields: json["customFields"] as JSONObject,
-        }),
-      ),
-      jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
-    });
-
-    expect(echo.requests).toEqual([]);
-    expect(echo.logs).toEqual([
-      `ℹ️ ${INCIDENT_NUMBER} was declared from Jira issue ${JIRA_ISSUE_KEY}, so no new issue was created.`,
-    ]);
-  });
-
-  test.each([
-    ["jira-comment-from-private-note"],
-    ["jira-comment-from-public-note"],
-  ])(
-    "(c) %s: the comment it posts comes back as comment_created, and writes no note",
-    async (templateId: string) => {
-      const posted: SimulationTrace = await runNoteToComment(
-        templateId,
-        noteModel(),
-      );
-      const comment: JSONObject = postedCommentOf(posted);
-
-      // As the webhook really carries it (wiki markup), and as ADF, in case a site sends that.
-      for (const body of [wikiTextOf(comment), comment]) {
-        const echo: SimulationTrace = await runComment({
-          event: jiraCommentEvent({ body: body, author: AUTOMATION_USER }),
-        });
-
-        expect(echo.requests).toEqual([]);
-        expect(echo.databaseCalls).toEqual([]);
-        expect(echo.logs).toEqual([
-          "ℹ️ This comment was posted by OneUptime, so it was not copied back.",
-        ]);
-      }
-    },
-  );
-
-  test("(d) the note a Jira comment becomes fires the private note trigger, and posts no comment back", async () => {
-    const noted: SimulationTrace = await runComment({
-      event: jiraCommentEvent(),
-    });
-    const note: JSONObject = jsonOf(noted, "incident-internal-note-create-one");
-
-    const echo: SimulationTrace = await runNoteToComment(
-      "jira-comment-from-private-note",
-      noteModel({ note: note["note"] as string, authorName: null }),
-    );
-
-    expect(echo.requests).toEqual([searchRequest(["key", "summary"])]);
-    expect(echo.logs).toEqual([
-      "ℹ️ This note came from Jira, so it was not posted back.",
-    ]);
-  });
-
-  test("(e) the note an issue change becomes posts no comment back", async () => {
-    const noted: SimulationTrace = await runIssueChanges({
-      event: jiraIssueUpdatedEvent({
-        labels: LINKED_LABELS,
-        items: [
-          changelogItem({
-            field: "assignee",
-            fromString: null,
-            toString: "Marco Rossi",
-          }),
-        ],
-      }),
-    });
-    const note: JSONObject = jsonOf(noted, "incident-internal-note-create-one");
-
-    const echo: SimulationTrace = await runNoteToComment(
-      "jira-comment-from-private-note",
-      noteModel({ note: note["note"] as string, authorName: null }),
-    );
-
-    expect(echo.requests).toEqual([searchRequest(["key", "summary"])]);
-    expect(echo.logs).toEqual([
-      "ℹ️ This note came from Jira, so it was not posted back.",
-    ]);
-  });
-
-  test("(f) the comment an incident edit posts comes back as comment_created, and writes no note", async () => {
-    const posted: SimulationTrace = await runTemplate({
-      templateId: "jira-comment-on-incident-update",
-      trigger: onRecord(
-        incidentModel({ rootCause: "A bad deploy of the payments service." }),
-      ),
-      jira: jiraRoutes({
-        [SEARCH]: ok(jiraSearchResponse()),
-        [COMMENT]: COMMENT_CREATED,
-      }),
-    });
-
-    const echo: SimulationTrace = await runComment({
-      event: jiraCommentEvent({
-        body: wikiTextOf(postedCommentOf(posted)),
-        author: AUTOMATION_USER,
-      }),
-    });
-
-    expect(echo.requests).toEqual([]);
-    expect(echo.databaseCalls).toEqual([]);
-    expect(echo.logs).toEqual([
-      "ℹ️ This comment was posted by OneUptime, so it was not copied back.",
-    ]);
-  });
-
-  test("(g) resolving in OneUptime moves the issue to Done, and the issue_updated that follows changes nothing", async () => {
-    const transitioned: SimulationTrace = await runTemplate({
-      templateId: "jira-transition-issue-on-incident-state",
-      trigger: onRecord(incidentModel({ state: RESOLVED_STATE })),
-      jira: jiraRoutes({
-        [SEARCH]: ok(jiraSearchResponse()),
-        [TRANSITION]: NO_CONTENT,
-      }),
-    });
-
-    // Where the transition it chose leads is the issue's new status.
-    const transitionId: string = (
-      (transitioned.requests[1]!.body as JSONObject)["transition"] as JSONObject
-    )["id"] as string;
-    const taken: JSONObject | undefined = (
-      (jiraSearchResponse()["issues"] as Array<JSONObject>)[0]![
-        "transitions"
-      ] as Array<JSONObject>
-    ).find((transition: JSONObject) => {
-      return transition["id"] === transitionId;
-    });
-
-    expect(taken).toBeDefined();
-    expect(taken!["to"]).toEqual(DONE);
-
-    const event: JSONObject = jiraIssueUpdatedEvent({
-      items: RESOLVED_CHANGELOG,
-      labels: LINKED_LABELS,
-      status: taken!["to"] as JSONObject,
-      user: AUTOMATION_USER,
-    });
-
-    const status: SimulationTrace = await runTemplate({
-      templateId: "jira-status-to-incident-state",
-      trigger: webhookDelivery(event),
-      database: statusDatabase(incidentRecord(RESOLVED_STATE)),
-    });
-
-    expect(metadataIdsOf(status)).not.toContain(
-      "incident-state-timeline-create-one",
-    );
-    expect(status.logs).toEqual([
-      `ℹ️ ${INCIDENT_NUMBER} is already Resolved, so Jira issue ${JIRA_ISSUE_KEY} moving to Done changes nothing.`,
-    ]);
-
-    // The same delivery reaches the issue-changes template, which leaves status to the one above.
-    const changes: SimulationTrace = await runIssueChanges({ event: event });
-
-    expect(changes.databaseCalls).toEqual([]);
-  });
-
-  test("(h) resolving from Jira fires incident-on-update, which finds the issue already Done and moves nothing", async () => {
-    const resolved: SimulationTrace = await runTemplate({
-      templateId: "jira-status-to-incident-state",
-      trigger: webhookDelivery(
-        jiraIssueUpdatedEvent({
-          items: RESOLVED_CHANGELOG,
-          labels: LINKED_LABELS,
-          status: DONE,
-        }),
-      ),
-      database: statusDatabase(incidentRecord(ACKNOWLEDGED_STATE)),
-    });
-
-    const row: JSONObject = jsonOf(
-      resolved,
-      "incident-state-timeline-create-one",
-    );
-    const newState: JSONObject | undefined = INCIDENT_STATES.find(
-      (state: JSONObject) => {
-        return state["_id"] === row["incidentStateId"];
-      },
-    );
-
-    expect(newState).toBeDefined();
-
-    const echo: SimulationTrace = await runTemplate({
-      templateId: "jira-transition-issue-on-incident-state",
-      trigger: onRecord(
-        incidentModel({
-          _id: row["incidentId"] as string,
-          state: newState as JSONObject,
-        }),
-      ),
-      jira: jiraRoutes({
-        [SEARCH]: ok(
-          jiraSearchResponse({
-            status: DONE,
-            transitions: [
-              jiraTransition({ id: "11", name: "Reopen", to: TO_DO }),
-            ],
+      const echo: SimulationTrace = await runTemplate({
+        templateId: kind.templates.createFromIssue,
+        trigger: webhookDelivery(
+          jiraIssueCreatedEvent({
+            summary: fields["summary"] as string,
+            labels: fields["labels"] as Array<string>,
+            description: wikiTextOf(fields["description"]),
+            reporter: AUTOMATION_USER,
+            user: AUTOMATION_USER,
           }),
         ),
-        [TRANSITION]: NO_CONTENT,
-      }),
-    });
-
-    expect(echo.requests).toEqual([searchRequest(["key", "status"], true)]);
-    expect(echo.logs).toEqual([
-      `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is already Done.`,
-    ]);
-  });
-
-  test("(i) the link labels the declare template adds come back as issue_updated, and write nothing", async () => {
-    const declared: SimulationTrace = await runDeclare();
-    const added: Array<string> = addedLabelsOf(declared);
-
-    const event: JSONObject = jiraIssueUpdatedEvent({
-      labels: added,
-      items: [
-        changelogItem({
-          field: "labels",
-          fromString: "",
-          toString: added.join(" "),
+        jira: createFromIssueJira({
+          labels: fields["labels"] as Array<string>,
         }),
-      ],
-      user: AUTOMATION_USER,
+        database: createDatabase(kind),
+      });
+
+      // The payload's own labels stop it, before Jira is asked anything.
+      expect(echo.ports[kind.steps.ifCreate]).toBe("no");
+      expect(metadataIdsOf(echo)).not.toContain(kind.components.createOne);
+      expect(echo.requests).toEqual([]);
+      expect(echo.logs).toEqual([alreadyLinkedLog(kind)]);
     });
 
-    const changes: SimulationTrace = await runIssueChanges({ event: event });
+    /*
+     * The same echo when the payload does not show the labels — a delivery
+     * built before they were set, or one somebody forged. The labels OneUptime
+     * filed the issue with are still what Jira returns, and they stop it.
+     */
+    test("(a') the same issue_created without its labels in the payload is stopped by the labels Jira returns", async () => {
+      const created: SimulationTrace = await runCreateIssue(kind);
+      const fields: JSONObject = issueFieldsOf(created);
 
-    expect(changes.databaseCalls).toEqual([]);
-    expect(changes.logs).toEqual([
-      `ℹ️ Nothing that changed on Jira issue ${JIRA_ISSUE_KEY} is worth a note.`,
-    ]);
+      const echo: SimulationTrace = await runTemplate({
+        templateId: kind.templates.createFromIssue,
+        trigger: webhookDelivery(
+          jiraIssueCreatedEvent({
+            summary: fields["summary"] as string,
+            labels: [],
+            description: wikiTextOf(fields["description"]),
+            reporter: AUTOMATION_USER,
+            user: AUTOMATION_USER,
+          }),
+        ),
+        jira: createFromIssueJira({
+          labels: fields["labels"] as Array<string>,
+        }),
+        database: createDatabase(kind),
+      });
 
-    const status: SimulationTrace = await runTemplate({
-      templateId: "jira-status-to-incident-state",
-      trigger: webhookDelivery(event),
-      database: statusDatabase(incidentRecord(ACKNOWLEDGED_STATE)),
+      expect(echo.ports[kind.steps.ifCreate]).toBe("yes");
+      expect(echo.ports["if-unlinked-1"]).toBe("no");
+      expect(metadataIdsOf(echo)).toEqual([kind.components.severityFindMany]);
+      expect(echo.requests).toEqual([GET_LABELS_REQUEST]);
+      expect(echo.logs).toEqual([alreadyLinkedLog(kind)]);
     });
 
-    expect(status.databaseCalls).toEqual([]);
-    expect(status.logs).toEqual([
-      `ℹ️ Jira issue ${JIRA_ISSUE_KEY} changed, but its status did not.`,
-    ]);
-  });
+    test(`(b) the ${kind.noun} ${kind.created} from Jira comes back through ${kind.noun}-on-create, and files no second issue`, async () => {
+      const createdFromJira: SimulationTrace = await runCreateFromIssue(kind);
+      const json: JSONObject = jsonOf(
+        createdFromJira,
+        kind.components.createOne,
+      );
 
-  /*
-   * Jira retries a delivery it thinks failed, so the same issue_created can
-   * arrive after the first delivery already declared an incident and
-   * labelled the issue. The payload is unchanged — it still shows no labels
-   * — and only Jira's answer can tell the two deliveries apart.
-   */
-  test("(j) a retried issue_created declares no second incident, because the first delivery's labels are now in Jira", async () => {
-    const first: SimulationTrace = await runDeclare();
+      const echo: SimulationTrace = await runTemplate({
+        templateId: kind.templates.createIssue,
+        trigger: onRecord(
+          kind.model({
+            _id: kind.newId,
+            title: json["title"] as string,
+            description: json["description"] as string,
+            customFields: json["customFields"] as JSONObject,
+          }),
+        ),
+        jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
+      });
 
-    expect(metadataIdsOf(first)).toContain("incident-create-one");
-
-    const retry: SimulationTrace = await runTemplate({
-      templateId: "jira-declare-incident-from-issue",
-      trigger: webhookDelivery(jiraIssueCreatedEvent()),
-      jira: declareJira({ labels: addedLabelsOf(first) }),
-      database: DECLARE_DATABASE,
+      expect(echo.requests).toEqual([]);
+      expect(echo.logs).toEqual([
+        `ℹ️ ${kind.number} was ${kind.created} from Jira issue ${JIRA_ISSUE_KEY}, so no new issue was created.`,
+      ]);
     });
 
-    expect(metadataIdsOf(retry)).toEqual(["incident-severity-find-many"]);
-    expect(retry.requests).toEqual([GET_LABELS_REQUEST]);
-    expect(retry.logs).toEqual([
-      `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is already linked to OneUptime, so no incident was declared.`,
-    ]);
-  });
-});
+    test.each(kind.noteTemplates)(
+      "(c) $templateId: the comment it posts comes back as comment_created, and writes no note",
+      async (noteTemplate: NoteTemplate) => {
+        const posted: SimulationTrace = await runNoteToComment(
+          noteTemplate.templateId,
+          kind.note(),
+        );
+        const comment: JSONObject = postedCommentOf(posted);
+
+        // As the webhook really carries it (wiki markup), and as ADF, in case a site sends that.
+        for (const body of [wikiTextOf(comment), comment]) {
+          const echo: SimulationTrace = await runComment(kind, {
+            event: jiraCommentEvent({ body: body, author: AUTOMATION_USER }),
+          });
+
+          expect(echo.requests).toEqual([]);
+          expect(echo.databaseCalls).toEqual([]);
+          expect(echo.logs).toEqual([COMMENT_FROM_ONEUPTIME_LOG]);
+        }
+      },
+    );
+
+    test("(d) the note a Jira comment becomes fires the private note trigger, and posts no comment back", async () => {
+      const noted: SimulationTrace = await runComment(kind, {
+        event: jiraCommentEvent(),
+      });
+      const note: JSONObject = jsonOf(noted, kind.components.noteCreateOne);
+
+      const echo: SimulationTrace = await runNoteToComment(
+        kind.templates.privateNote,
+        kind.note({ note: note["note"] as string, authorName: null }),
+      );
+
+      expect(echo.requests).toEqual([searchRequest(kind, ["key", "summary"])]);
+      expect(echo.logs).toEqual([NOTE_FROM_JIRA_LOG]);
+    });
+
+    test("(e) the note an issue change becomes posts no comment back", async () => {
+      const noted: SimulationTrace = await runIssueChanges(kind, {
+        event: jiraIssueUpdatedEvent({
+          labels: linkedLabelsOf(kind),
+          items: [
+            changelogItem({
+              field: "assignee",
+              fromString: null,
+              toString: "Marco Rossi",
+            }),
+          ],
+        }),
+      });
+      const note: JSONObject = jsonOf(noted, kind.components.noteCreateOne);
+
+      const echo: SimulationTrace = await runNoteToComment(
+        kind.templates.privateNote,
+        kind.note({ note: note["note"] as string, authorName: null }),
+      );
+
+      expect(echo.requests).toEqual([searchRequest(kind, ["key", "summary"])]);
+      expect(echo.logs).toEqual([NOTE_FROM_JIRA_LOG]);
+    });
+
+    test(`(f) the comment an ${kind.noun} edit posts comes back as comment_created, and writes no note`, async () => {
+      const posted: SimulationTrace = await runTemplate({
+        templateId: kind.templates.updateComment,
+        trigger: onRecord(
+          kind.model({ rootCause: "A bad deploy of the payments service." }),
+        ),
+        jira: jiraRoutes({
+          [SEARCH]: ok(jiraSearchResponse()),
+          [COMMENT]: COMMENT_CREATED,
+        }),
+      });
+
+      const echo: SimulationTrace = await runComment(kind, {
+        event: jiraCommentEvent({
+          body: wikiTextOf(postedCommentOf(posted)),
+          author: AUTOMATION_USER,
+        }),
+      });
+
+      expect(echo.requests).toEqual([]);
+      expect(echo.databaseCalls).toEqual([]);
+      expect(echo.logs).toEqual([COMMENT_FROM_ONEUPTIME_LOG]);
+    });
+
+    test("(g) resolving in OneUptime moves the issue to Done, and the issue_updated that follows changes nothing", async () => {
+      const transitioned: SimulationTrace = await runTemplate({
+        templateId: kind.templates.transition,
+        trigger: onRecord(kind.model({ state: kind.resolvedState })),
+        jira: jiraRoutes({
+          [SEARCH]: ok(jiraSearchResponse()),
+          [TRANSITION]: NO_CONTENT,
+        }),
+      });
+
+      // Where the transition it chose leads is the issue's new status.
+      const transitionId: string = (
+        (transitioned.requests[1]!.body as JSONObject)[
+          "transition"
+        ] as JSONObject
+      )["id"] as string;
+      const taken: JSONObject | undefined = (
+        firstIssueOf(jiraSearchResponse())["transitions"] as Array<JSONObject>
+      ).find((transition: JSONObject) => {
+        return transition["id"] === transitionId;
+      });
+
+      expect(taken).toBeDefined();
+      expect(taken!["to"]).toEqual(DONE);
+
+      const event: JSONObject = jiraIssueUpdatedEvent({
+        items: RESOLVED_CHANGELOG,
+        labels: linkedLabelsOf(kind),
+        status: taken!["to"] as JSONObject,
+        user: AUTOMATION_USER,
+      });
+
+      const status: SimulationTrace = await runTemplate({
+        templateId: kind.templates.statusToState,
+        trigger: webhookDelivery(event),
+        database: statusDatabase(kind, recordOf(kind, kind.resolvedState)),
+      });
+
+      expect(metadataIdsOf(status)).not.toContain(
+        kind.components.timelineCreateOne,
+      );
+      expect(status.logs).toEqual([
+        `ℹ️ ${kind.number} is already Resolved, so Jira issue ${JIRA_ISSUE_KEY} moving to Done changes nothing.`,
+      ]);
+
+      // The same delivery reaches the issue-changes template, which leaves status to the one above.
+      const changes: SimulationTrace = await runIssueChanges(kind, {
+        event: event,
+      });
+
+      expect(changes.databaseCalls).toEqual([]);
+    });
+
+    test(`(h) resolving from Jira fires ${kind.noun}-on-update, which finds the issue already Done and moves nothing`, async () => {
+      const resolved: SimulationTrace = await runTemplate({
+        templateId: kind.templates.statusToState,
+        trigger: webhookDelivery(
+          jiraIssueUpdatedEvent({
+            items: RESOLVED_CHANGELOG,
+            labels: linkedLabelsOf(kind),
+            status: DONE,
+          }),
+        ),
+        database: statusDatabase(kind, recordOf(kind, kind.acknowledgedState)),
+      });
+
+      const row: JSONObject = jsonOf(
+        resolved,
+        kind.components.timelineCreateOne,
+      );
+      const newState: JSONObject | undefined = kind.states.find(
+        (state: JSONObject) => {
+          return state["_id"] === row[kind.timelineStateColumn];
+        },
+      );
+
+      expect(newState).toBeDefined();
+
+      const echo: SimulationTrace = await runTemplate({
+        templateId: kind.templates.transition,
+        trigger: onRecord(
+          kind.model({
+            _id: row[kind.idColumn] as string,
+            state: newState as JSONObject,
+          }),
+        ),
+        jira: jiraRoutes({
+          [SEARCH]: ok(
+            jiraSearchResponse({
+              status: DONE,
+              transitions: [
+                jiraTransition({ id: "11", name: "Reopen", to: TO_DO }),
+              ],
+            }),
+          ),
+          [TRANSITION]: NO_CONTENT,
+        }),
+      });
+
+      expect(echo.requests).toEqual([
+        searchRequest(kind, ["key", "status"], true),
+      ]);
+      expect(echo.logs).toEqual([
+        `ℹ️ Jira issue ${JIRA_ISSUE_KEY} is already Done.`,
+      ]);
+    });
+
+    test(`(i) the link labels the create-from-Jira template adds come back as issue_updated, and write nothing`, async () => {
+      const createdFromJira: SimulationTrace = await runCreateFromIssue(kind);
+      const added: Array<string> = addedLabelsOf(createdFromJira);
+
+      const event: JSONObject = jiraIssueUpdatedEvent({
+        labels: added,
+        items: [
+          changelogItem({
+            field: "labels",
+            fromString: "",
+            toString: added.join(" "),
+          }),
+        ],
+        user: AUTOMATION_USER,
+      });
+
+      const changes: SimulationTrace = await runIssueChanges(kind, {
+        event: event,
+      });
+
+      expect(changes.databaseCalls).toEqual([]);
+      expect(changes.logs).toEqual([NOTHING_WORTH_A_NOTE_LOG]);
+
+      const status: SimulationTrace = await runTemplate({
+        templateId: kind.templates.statusToState,
+        trigger: webhookDelivery(event),
+        database: statusDatabase(kind, recordOf(kind, kind.acknowledgedState)),
+      });
+
+      expect(status.databaseCalls).toEqual([]);
+      expect(status.logs).toEqual([
+        `ℹ️ Jira issue ${JIRA_ISSUE_KEY} changed, but its status did not.`,
+      ]);
+    });
+
+    /*
+     * Jira retries a delivery it thinks failed, so the same issue_created can
+     * arrive after the first delivery already created a record and labelled
+     * the issue. The payload is unchanged — it still shows no labels — and
+     * only Jira's answer can tell the two deliveries apart.
+     */
+    test(`(j) a retried issue_created ${kind.create}s no second ${kind.noun}, because the first delivery's labels are now in Jira`, async () => {
+      const first: SimulationTrace = await runCreateFromIssue(kind);
+
+      expect(metadataIdsOf(first)).toContain(kind.components.createOne);
+
+      const retry: SimulationTrace = await runCreateFromIssue(kind, {
+        labels: addedLabelsOf(first),
+      });
+
+      expect(metadataIdsOf(retry)).toEqual([kind.components.severityFindMany]);
+      expect(retry.requests).toEqual([GET_LABELS_REQUEST]);
+      expect(retry.logs).toEqual([alreadyLinkedLog(kind)]);
+    });
+  },
+);
+
+/* ------------------------------- Across kinds ------------------------------- */
+
+interface KindPair {
+  /** The kind of record the issue is linked to. */
+  linked: SimulatedKind;
+  /** The kind whose templates must leave the issue alone. */
+  other: SimulatedKind;
+}
+
+const KIND_PAIRS: Array<KindPair> = [
+  { linked: INCIDENT, other: ALERT },
+  { linked: ALERT, other: INCIDENT },
+];
+
+/*
+ * A project can enable the incident and the alert templates side by side,
+ * and then every Jira webhook reaches both sets. An issue linked to one kind
+ * of record must never become, change, or collect notes on a record of the
+ * other kind. Each test sends the same event to both kinds' templates, and the
+ * linked kind acting on it is what shows the event was a real one.
+ */
+describe.each(KIND_PAIRS)(
+  "simulated: an issue linked to an $linked.noun is left alone by the $other.noun templates",
+  (pair: KindPair) => {
+    const linked: SimulatedKind = pair.linked;
+    const other: SimulatedKind = pair.other;
+
+    test(`the issue the ${linked.noun} template files comes back as issue_created, and the ${other.noun} template ${other.create}s nothing`, async () => {
+      const created: SimulationTrace = await runCreateIssue(linked);
+      const fields: JSONObject = issueFieldsOf(created);
+
+      expect(fields["labels"]).toEqual(linkedLabelsOf(linked));
+
+      const echo: SimulationTrace = await runTemplate({
+        templateId: other.templates.createFromIssue,
+        trigger: webhookDelivery(
+          jiraIssueCreatedEvent({
+            summary: fields["summary"] as string,
+            labels: fields["labels"] as Array<string>,
+            description: wikiTextOf(fields["description"]),
+            reporter: AUTOMATION_USER,
+            user: AUTOMATION_USER,
+          }),
+        ),
+        jira: createFromIssueJira({
+          labels: fields["labels"] as Array<string>,
+        }),
+        database: createDatabase(other),
+      });
+
+      expect(echo.ports[other.steps.ifCreate]).toBe("no");
+      expect(metadataIdsOf(echo)).toEqual([other.components.severityFindMany]);
+      expect(echo.requests).toEqual([]);
+      expect(echo.logs).toEqual([alreadyLinkedLog(other)]);
+    });
+
+    /*
+     * The bare oneuptime label is enough on its own to stop a create, so the
+     * tests above would pass even if only it counted. Without it — someone
+     * tidied the labels away — the record's own label still has to count as
+     * a link, whichever kind of record it names.
+     */
+    test.each([
+      ["in the payload", true],
+      ["only in Jira", false],
+    ])(
+      `an issue carrying only the ${linked.noun}'s own label (%s) ${other.create}s no ${other.noun}`,
+      async (_where: string, inPayload: boolean) => {
+        const labels: Array<string> = [linked.label()];
+
+        const trace: SimulationTrace = await runCreateFromIssue(other, {
+          event: jiraIssueCreatedEvent({ labels: inPayload ? labels : [] }),
+          labels: labels,
+        });
+
+        expect(trace.ports[other.steps.ifCreate]).toBe(
+          inPayload ? "no" : "yes",
+        );
+        expect(metadataIdsOf(trace)).toEqual([
+          other.components.severityFindMany,
+        ]);
+        expect(trace.requests).toEqual(inPayload ? [] : [GET_LABELS_REQUEST]);
+        expect(trace.logs).toEqual([alreadyLinkedLog(other)]);
+      },
+    );
+
+    /*
+     * Both create-from-Jira templates registered for the Issue created event:
+     * each receives the same delivery. Once the first has created its record
+     * and labelled the issue, the second's check with Jira has to refuse it.
+     */
+    test.each([
+      ["both link labels", false],
+      [`only the ${linked.noun}'s own label`, true],
+    ])(
+      `when the ${linked.noun} template has already linked the issue, the ${other.noun} template's check with Jira refuses an issue carrying %s`,
+      async (_carrying: string, dropLinkLabel: boolean) => {
+        const first: SimulationTrace = await runCreateFromIssue(linked);
+
+        expect(metadataIdsOf(first)).toEqual([
+          linked.components.severityFindMany,
+          linked.components.createOne,
+        ]);
+
+        const added: Array<string> = addedLabelsOf(first);
+
+        expect(added).toEqual([
+          JIRA_LINK_LABEL,
+          `${linked.labelPrefix}${linked.newId}`,
+        ]);
+
+        // The same delivery, which still shows no labels, reaches the other kind's template.
+        const second: SimulationTrace = await runCreateFromIssue(other, {
+          labels: dropLinkLabel
+            ? added.filter((label: string) => {
+                return label !== JIRA_LINK_LABEL;
+              })
+            : added,
+        });
+
+        expect(second.executed).toEqual([
+          "webhook-1",
+          "find-severities-1",
+          other.steps.prepareRecord,
+          other.steps.ifCreate,
+          "get-issue-1",
+          "confirm-unlinked-1",
+          "if-unlinked-1",
+          "log-already-linked",
+        ]);
+        expect(metadataIdsOf(second)).toEqual([
+          other.components.severityFindMany,
+        ]);
+        expect(second.requests).toEqual([GET_LABELS_REQUEST]);
+        expect(second.logs).toEqual([alreadyLinkedLog(other)]);
+      },
+    );
+
+    test(`a status change on the ${linked.noun}'s issue moves the ${linked.noun}, and no ${other.noun}`, async () => {
+      const event: JSONObject = jiraIssueUpdatedEvent({
+        items: RESOLVED_CHANGELOG,
+        labels: linkedLabelsOf(linked),
+        status: DONE,
+      });
+
+      const otherTrace: SimulationTrace = await runTemplate({
+        templateId: other.templates.statusToState,
+        trigger: webhookDelivery(event),
+        database: statusDatabase(
+          other,
+          recordOf(other, other.acknowledgedState),
+        ),
+      });
+
+      expect(otherTrace.executed).toEqual([
+        "webhook-1",
+        "read-event-1",
+        "if-status-changed-1",
+        "log-ignored",
+      ]);
+      expect(otherTrace.databaseCalls).toEqual([]);
+      expect(otherTrace.logs).toEqual([notLinkedLog(other)]);
+
+      const linkedTrace: SimulationTrace = await runTemplate({
+        templateId: linked.templates.statusToState,
+        trigger: webhookDelivery(event),
+        database: statusDatabase(
+          linked,
+          recordOf(linked, linked.acknowledgedState),
+        ),
+      });
+
+      expect(
+        jsonOf(linkedTrace, linked.components.timelineCreateOne),
+      ).toMatchObject({
+        [linked.idColumn]: linked.id,
+        [linked.timelineStateColumn]: linked.resolvedState["_id"] as string,
+      });
+    });
+
+    test(`a comment on the ${linked.noun}'s issue is noted on the ${linked.noun}, and on no ${other.noun}`, async () => {
+      const otherTrace: SimulationTrace = await runComment(other, {
+        event: jiraCommentEvent(),
+        labels: linkedLabelsOf(linked),
+      });
+
+      expect(otherTrace.requests).toEqual([GET_LABELS_REQUEST]);
+      expect(otherTrace.databaseCalls).toEqual([]);
+      expect(otherTrace.logs).toEqual([notLinkedLog(other)]);
+
+      const linkedTrace: SimulationTrace = await runComment(linked, {
+        event: jiraCommentEvent(),
+        labels: linkedLabelsOf(linked),
+      });
+
+      expect(jsonOf(linkedTrace, linked.components.noteCreateOne)).toEqual({
+        [linked.idColumn]: linked.id,
+        note: EXPECTED_COMMENT_NOTE,
+      });
+    });
+
+    test(`an edit to the ${linked.noun}'s issue is noted on the ${linked.noun}, and on no ${other.noun}`, async () => {
+      const event: JSONObject = priorityChange(linkedLabelsOf(linked));
+
+      const otherTrace: SimulationTrace = await runIssueChanges(other, {
+        event: event,
+      });
+
+      expect(otherTrace.databaseCalls).toEqual([]);
+      expect(otherTrace.logs).toEqual([notLinkedLog(other)]);
+
+      const linkedTrace: SimulationTrace = await runIssueChanges(linked, {
+        event: event,
+      });
+
+      expect(
+        jsonOf(linkedTrace, linked.components.noteCreateOne)[linked.idColumn],
+      ).toBe(linked.id);
+    });
+
+    test(`a comment the ${linked.noun}'s note template posts comes back, and is copied to no ${other.noun} either`, async () => {
+      const posted: SimulationTrace = await runNoteToComment(
+        linked.templates.privateNote,
+        linked.note(),
+      );
+
+      // Stopped by its marker before the other template even asks Jira which record it is on.
+      const echo: SimulationTrace = await runComment(other, {
+        event: jiraCommentEvent({
+          body: wikiTextOf(postedCommentOf(posted)),
+          author: AUTOMATION_USER,
+        }),
+        labels: linkedLabelsOf(linked),
+      });
+
+      expect(echo.requests).toEqual([]);
+      expect(echo.databaseCalls).toEqual([]);
+      expect(echo.logs).toEqual([COMMENT_FROM_ONEUPTIME_LOG]);
+    });
+
+    /*
+     * The other direction. Jira here answers a label search the way Jira
+     * does, so an issue is found only by the label it carries: the other
+     * kind's transitions, notes and edits search by their own label, find
+     * nothing, and post nothing to the linked kind's issue.
+     */
+    test(`the ${other.noun} templates' searches do not find the ${linked.noun}'s issue, so nothing is posted to it`, async () => {
+      const jira: FakeJiraFunction = labelAwareJira(linkedLabelsOf(linked));
+
+      const transition: SimulationTrace = await runTemplate({
+        templateId: other.templates.transition,
+        trigger: onRecord(other.model({ state: other.resolvedState })),
+        jira: jira,
+      });
+      const note: SimulationTrace = await runTemplate({
+        templateId: other.templates.privateNote,
+        trigger: onRecord(other.note()),
+        jira: jira,
+      });
+      const edit: SimulationTrace = await runTemplate({
+        templateId: other.templates.updateComment,
+        trigger: onRecord(other.model()),
+        jira: jira,
+      });
+
+      expect(transition.requests).toEqual([
+        searchRequest(other, ["key", "status"], true),
+      ]);
+      expect(note.requests).toEqual([searchRequest(other, ["key", "summary"])]);
+      expect(edit.requests).toEqual([searchRequest(other, ["key", "summary"])]);
+
+      for (const trace of [transition, note, edit]) {
+        expect(trace.logs).toEqual([noLinkedIssueLog(other)]);
+      }
+
+      // The same Jira answers the linked kind's search, so it was the label that decided.
+      const linkedTransition: SimulationTrace = await runTemplate({
+        templateId: linked.templates.transition,
+        trigger: onRecord(linked.model({ state: linked.resolvedState })),
+        jira: jira,
+      });
+
+      expect(linkedTransition.requests).toEqual([
+        searchRequest(linked, ["key", "status"], true),
+        transitionRequest("31"),
+      ]);
+    });
+  },
+);
 
 /* ------------------------------- Security ------------------------------- */
 
@@ -3113,402 +4292,512 @@ const expectTokenOnlyInAuthorization: ExpectTokenOnlyInAuthorizationFunction = (
   expect(everythingElse).not.toContain(JIRA_TOKEN);
 };
 
-describe("simulated: Jira text cannot reach a secret or another step's output", () => {
-  test("a comment naming the token and the webhook headers is written as inert text", async () => {
-    const trace: SimulationTrace = await runComment({
-      event: jiraCommentEvent({
-        body: `Please paste ${TOKEN_REFERENCE} and ${HEADERS_REFERENCE} here.`,
-        author: jiraUser(TOKEN_REFERENCE),
-      }),
+type DefusedFunction = (text: string) => string;
+
+/* What the scripts' defuse() makes of text from the other system. */
+const defused: DefusedFunction = (text: string): string => {
+  return text.split("{{").join("{ {").split("}}").join("} }");
+};
+
+/** One run of the token test, and how many requests it has to send. */
+interface TokenRun {
+  scenario: Scenario;
+  requests: number;
+}
+
+describe.each(KINDS)(
+  "simulated: Jira text cannot reach a secret or another step's output ($noun templates)",
+  (kind: SimulatedKind) => {
+    test("a comment naming the token and the webhook headers is written as inert text", async () => {
+      const trace: SimulationTrace = await runComment(kind, {
+        event: jiraCommentEvent({
+          body: `Please paste ${TOKEN_REFERENCE} and ${HEADERS_REFERENCE} here.`,
+          author: jiraUser(TOKEN_REFERENCE),
+        }),
+      });
+
+      expect(jsonOf(trace, kind.components.noteCreateOne)["note"]).toBe(
+        `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: { {local.variables.jiraBasicAuthToken} } commented on [${JIRA_ISSUE_KEY}](${JIRA_SITE}/browse/${JIRA_ISSUE_KEY}).\n\nPlease paste { {local.variables.jiraBasicAuthToken} } and { {local.components.webhook-1.returnValues.request-headers} } here.`,
+      );
+      expect(trace.requests).toHaveLength(1);
+      expectNothingSubstituted(trace);
+      expectTokenOnlyInAuthorization(trace);
     });
 
-    expect(jsonOf(trace, "incident-internal-note-create-one")["note"]).toBe(
-      `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: { {local.variables.jiraBasicAuthToken} } commented on [${JIRA_ISSUE_KEY}](${JIRA_SITE}/browse/${JIRA_ISSUE_KEY}).\n\nPlease paste { {local.variables.jiraBasicAuthToken} } and { {local.components.webhook-1.returnValues.request-headers} } here.`,
-    );
-    expect(trace.requests).toHaveLength(1);
-    expectNothingSubstituted(trace);
-    expectTokenOnlyInAuthorization(trace);
-  });
-
-  test("a summary, description and reporter naming the token declare an incident holding none of it", async () => {
-    const trace: SimulationTrace = await runTemplate({
-      templateId: "jira-declare-incident-from-issue",
-      trigger: webhookDelivery(
-        jiraIssueCreatedEvent({
+    test(`a summary, description and reporter naming the token ${kind.create} an ${kind.noun} holding none of it`, async () => {
+      const trace: SimulationTrace = await runCreateFromIssue(kind, {
+        event: jiraIssueCreatedEvent({
           summary: `Deploy ${TOKEN_REFERENCE} failed`,
           description: `Headers were ${HEADERS_REFERENCE}; token ${TOKEN_REFERENCE}; severities {{local.components.find-severities-1.returnValues.models}}`,
           reporter: jiraUser(TOKEN_REFERENCE),
         }),
-      ),
-      jira: declareJira(),
-      database: DECLARE_DATABASE,
-    });
-
-    const json: JSONObject = jsonOf(trace, "incident-create-one");
-
-    expect(json["title"]).toBe(
-      "Deploy { {local.variables.jiraBasicAuthToken} } failed",
-    );
-    // The severities reference sits in the payload, which is quoted in last, so it stays text.
-    expect(json["description"]).toContain(
-      "severities { {local.components.find-severities-1.returnValues.models} }",
-    );
-    expect(json["incidentSeverityId"]).toBe(CRITICAL_SEVERITY_ID);
-    expect(trace.requests).toEqual([GET_LABELS_REQUEST, LINK_LABELS_REQUEST]);
-    expectNothingSubstituted(trace);
-    expectTokenOnlyInAuthorization(trace);
-  });
-
-  /*
-   * The issue key from the payload is put into the GET's URL unencoded, so a
-   * forged key could otherwise point the credentials at any Jira endpoint.
-   */
-  test.each([
-    ["OPS-17/../../../myself"],
-    ["OPS-17?expand=renderedFields#"],
-    ["../../../rest/api/3/user/search?query=a"],
-  ])(
-    "a forged issue key %s sends no request with the credentials",
-    async (issueKey: string) => {
-      const trace: SimulationTrace = await runTemplate({
-        templateId: "jira-declare-incident-from-issue",
-        trigger: webhookDelivery(jiraIssueCreatedEvent({ key: issueKey })),
-        jira: declareJira(),
-        database: DECLARE_DATABASE,
       });
 
-      expect(trace.requests).toEqual([]);
-      expect(metadataIdsOf(trace)).toEqual(["incident-severity-find-many"]);
-      expect(trace.logs).toEqual([
-        "ℹ️ The event did not name a Jira issue key.",
+      const json: JSONObject = jsonOf(trace, kind.components.createOne);
+
+      expect(json["title"]).toBe(
+        "Deploy { {local.variables.jiraBasicAuthToken} } failed",
+      );
+      // The severities reference sits in the payload, which is quoted in last, so it stays text.
+      expect(json["description"]).toContain(
+        "severities { {local.components.find-severities-1.returnValues.models} }",
+      );
+      expect(json[kind.severityIdColumn]).toBe(kind.mostSevere.id);
+      expect(trace.requests).toEqual([
+        GET_LABELS_REQUEST,
+        linkLabelsRequest(kind),
       ]);
-    },
-  );
-
-  /*
-   * A skip reason is logged by substituting it into a Log step, so it is held
-   * to the same rule as any other text from Jira: here a status name, which
-   * Jira admins choose.
-   */
-  test("a Jira status named like a reference is quoted inertly in the reason a transition was skipped", async () => {
-    const trace: SimulationTrace = await runTemplate({
-      templateId: "jira-transition-issue-on-incident-state",
-      trigger: onRecord(incidentModel({ state: RESOLVED_STATE })),
-      jira: jiraRoutes({
-        [SEARCH]: ok(
-          jiraSearchResponse({
-            status: jiraStatus({
-              name: TOKEN_REFERENCE,
-              categoryKey: "indeterminate",
-              id: "10300",
-            }),
-            transitions: [],
-          }),
-        ),
-        [TRANSITION]: NO_CONTENT,
-      }),
-    });
-
-    expect(trace.requests).toEqual([searchRequest(["key", "status"], true)]);
-    expect(trace.logs).toEqual([
-      `ℹ️ Jira issue ${JIRA_ISSUE_KEY} has no transition from { {local.variables.jiraBasicAuthToken} } to a Done status that can be chosen without naming it in STATE_TO_JIRA_STATUS.`,
-    ]);
-    expectNothingSubstituted(trace);
-    expectTokenOnlyInAuthorization(trace);
-  });
-
-  // The transition's id is Jira's text too, and it is quoted into the request body.
-  test("a transition id named like a reference is sent as inert text", async () => {
-    const trace: SimulationTrace = await runTemplate({
-      templateId: "jira-transition-issue-on-incident-state",
-      trigger: onRecord(incidentModel({ state: RESOLVED_STATE })),
-      jira: jiraRoutes({
-        [SEARCH]: ok(
-          jiraSearchResponse({
-            transitions: [
-              jiraTransition({ id: TOKEN_REFERENCE, name: "Close", to: DONE }),
-            ],
-          }),
-        ),
-        [TRANSITION]: NO_CONTENT,
-      }),
-    });
-
-    expect(trace.requests).toHaveLength(2);
-    expect(trace.requests[1]!.body).toEqual({
-      transition: { id: "{ {local.variables.jiraBasicAuthToken} }" },
-    });
-    expectNothingSubstituted(trace);
-    expectTokenOnlyInAuthorization(trace);
-  });
-
-  test("a changelog naming references is noted as inert text", async () => {
-    const trace: SimulationTrace = await runIssueChanges({
-      event: jiraIssueUpdatedEvent({
-        labels: LINKED_LABELS,
-        user: jiraUser(HEADERS_REFERENCE),
-        items: [
-          changelogItem({
-            field: "summary",
-            fromString: "Checkout API returns 502",
-            toString: `Leak ${TOKEN_REFERENCE} and {{local.components.find-incident-1.returnValues.model}}`,
-          }),
-        ],
-      }),
-    });
-
-    const note: string = jsonOf(trace, "incident-internal-note-create-one")[
-      "note"
-    ] as string;
-
-    expect(note).toContain(
-      "- summary: Checkout API returns 502 → Leak { {local.variables.jiraBasicAuthToken} } and { {local.components.find-incident-1.returnValues.model} }",
-    );
-    expectNothingSubstituted(trace);
-  });
-
-  /*
-   * Jira users choose their own display names, and the status template quotes
-   * the event its first script returns — which carries that name — into the
-   * next script's arguments BEFORE the incident and the states. A name that is
-   * a reference to one of those later values would be substituted in its
-   * place, leaving the real reference unresolved. The helper block's rule —
-   * text from the other system is defused before it is returned — is what is
-   * supposed to prevent that.
-   */
-  test.each([
-    ["{{local.components.find-states-1.returnValues.models}}"],
-    ["{{local.components.find-incident-1.returnValues.model}}"],
-  ])(
-    "a Jira user named %s still resolves the incident",
-    async (displayName: string) => {
-      const trace: SimulationTrace = await runTemplate({
-        templateId: "jira-status-to-incident-state",
-        trigger: webhookDelivery(
-          jiraIssueUpdatedEvent({
-            items: RESOLVED_CHANGELOG,
-            labels: LINKED_LABELS,
-            status: DONE,
-            user: jiraUser(displayName),
-          }),
-        ),
-        database: statusDatabase(incidentRecord(ACKNOWLEDGED_STATE)),
-      });
-
-      expect(trace.logs).toEqual([
-        `✅ Moved ${INCIDENT_NUMBER} to Resolved because Jira issue ${JIRA_ISSUE_KEY} is now Done.`,
-      ]);
-      expect(jsonOf(trace, "incident-state-timeline-create-one")).toEqual({
-        incidentId: INCIDENT_ID,
-        incidentStateId: RESOLVED_STATE_ID,
-        rootCause: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: issue ${JIRA_ISSUE_KEY} moved to Done by ${displayName.split("{{").join("{ {").split("}}").join("} }")}.`,
-      });
       expectNothingSubstituted(trace);
-    },
-  );
-
-  /*
-   * The same rule for the other direction: the transition template returns
-   * the name of the status it moves the issue to, and the success log quotes
-   * that name before the script's own reason.
-   */
-  test("a Jira status named like a reference is logged as text, not substituted", async () => {
-    const trickStatus: JSONObject = jiraStatus({
-      name: "{{local.components.plan-transition-1.returnValues.returnValue.reason}}",
-      categoryKey: "done",
-      id: "10099",
+      expectTokenOnlyInAuthorization(trace);
     });
 
-    const trace: SimulationTrace = await runTemplate({
-      templateId: "jira-transition-issue-on-incident-state",
-      trigger: onRecord(incidentModel({ state: RESOLVED_STATE })),
-      jira: jiraRoutes({
-        [SEARCH]: ok(
-          jiraSearchResponse({
-            transitions: [
-              jiraTransition({ id: "41", name: "Close", to: trickStatus }),
-            ],
-          }),
-        ),
-        [TRANSITION]: NO_CONTENT,
-      }),
-    });
+    /*
+     * The issue key from the payload is put into the GET's URL unencoded, so
+     * a forged key could otherwise point the credentials at any Jira endpoint.
+     */
+    test.each([
+      ["OPS-17/../../../myself"],
+      ["OPS-17?expand=renderedFields#"],
+      ["../../../rest/api/3/user/search?query=a"],
+    ])(
+      "a forged issue key %s sends no request with the credentials",
+      async (issueKey: string) => {
+        const trace: SimulationTrace = await runCreateFromIssue(kind, {
+          event: jiraIssueCreatedEvent({ key: issueKey }),
+        });
 
-    expect(trace.requests[1]!.body).toEqual({ transition: { id: "41" } });
-    expect(trace.logs).toEqual([
-      `✅ Moved Jira issue ${JIRA_ISSUE_KEY} to { {local.components.plan-transition-1.returnValues.returnValue.reason} }. ${INCIDENT_NUMBER} is Resolved in OneUptime.`,
-    ]);
-  });
-
-  test("OneUptime text naming the token is posted to Jira as inert text", async () => {
-    const trace: SimulationTrace = await runTemplate({
-      templateId: "jira-comment-from-private-note",
-      trigger: onRecord(
-        noteModel({ note: `Rotate ${TOKEN_REFERENCE} after this.` }),
-      ),
-      jira: jiraRoutes({
-        [SEARCH]: ok(jiraSearchResponse()),
-        [COMMENT]: COMMENT_CREATED,
-      }),
-    });
-
-    expect(trace.requests).toHaveLength(2);
-    expect(JSON.stringify(trace.requests[1]!.body)).toContain(
-      "Rotate { {local.variables.jiraBasicAuthToken} } after this.",
+        expect(trace.requests).toEqual([]);
+        expect(metadataIdsOf(trace)).toEqual([
+          kind.components.severityFindMany,
+        ]);
+        expect(trace.logs).toEqual([
+          "ℹ️ The event did not name a Jira issue key.",
+        ]);
+      },
     );
-    expectNothingSubstituted(trace);
-    expectTokenOnlyInAuthorization(trace);
-  });
 
-  /*
-   * Every path that talks to Jira, run once each: the token must ride in the
-   * Authorization header of every request, as Basic auth, and turn up nowhere
-   * else — including in failure logs that print Jira's response.
-   */
-  test("the token is in every request's Authorization header and nowhere else in any trace", async () => {
-    const traces: Array<SimulationTrace> = [
-      await runTemplate({
-        templateId: "jira-create-issue-for-incident",
-        trigger: onRecord(incidentModel()),
-        jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
-      }),
-      await runTemplate({
-        templateId: "jira-create-issue-for-incident",
-        trigger: onRecord(incidentModel()),
+    /*
+     * A skip reason is logged by substituting it into a Log step, so it is
+     * held to the same rule as any other text from Jira: here a status name,
+     * which Jira admins choose.
+     */
+    test("a Jira status named like a reference is quoted inertly in the reason a transition was skipped", async () => {
+      const trace: SimulationTrace = await runTemplate({
+        templateId: kind.templates.transition,
+        trigger: onRecord(kind.model({ state: kind.resolvedState })),
         jira: jiraRoutes({
-          [CREATE_ISSUE]: badRequest({
-            errorMessages: ["Unauthorized"],
-            errors: {},
-          }),
-        }),
-      }),
-      await runTemplate({
-        templateId: "jira-transition-issue-on-incident-state",
-        trigger: onRecord(incidentModel({ state: ACKNOWLEDGED_STATE })),
-        jira: jiraRoutes({
-          [SEARCH]: ok(jiraSearchResponse()),
+          [SEARCH]: ok(
+            jiraSearchResponse({
+              status: jiraStatus({
+                name: TOKEN_REFERENCE,
+                categoryKey: "indeterminate",
+                id: "10300",
+              }),
+              transitions: [],
+            }),
+          ),
           [TRANSITION]: NO_CONTENT,
         }),
-      }),
-      await runTemplate({
-        templateId: "jira-transition-issue-on-incident-state",
-        trigger: onRecord(incidentModel({ state: ACKNOWLEDGED_STATE })),
-        jira: jiraRoutes({
-          [SEARCH]: { status: 401, body: "Unauthorized" },
-        }),
-      }),
-      await runTemplate({
-        templateId: "jira-comment-from-private-note",
-        trigger: onRecord(noteModel()),
-        jira: jiraRoutes({
-          [SEARCH]: ok(jiraSearchResponse()),
-          [COMMENT]: COMMENT_CREATED,
-        }),
-      }),
-      await runTemplate({
-        templateId: "jira-comment-from-public-note",
-        trigger: onRecord(noteModel()),
-        jira: jiraRoutes({
-          [SEARCH]: ok(jiraSearchResponse()),
-          [COMMENT]: { status: 403, body: { errorMessages: ["Forbidden"] } },
-        }),
-      }),
-      await runTemplate({
-        templateId: "jira-comment-on-incident-update",
-        trigger: onRecord(incidentModel()),
-        jira: jiraRoutes({
-          [SEARCH]: ok(jiraSearchResponse()),
-          [COMMENT]: COMMENT_CREATED,
-        }),
-      }),
-      await runTemplate({
-        templateId: "jira-declare-incident-from-issue",
-        trigger: webhookDelivery(jiraIssueCreatedEvent()),
-        jira: declareJira(),
-        database: DECLARE_DATABASE,
-      }),
-      await runTemplate({
-        templateId: "jira-declare-incident-from-issue",
-        trigger: webhookDelivery(jiraIssueCreatedEvent()),
-        jira: declareJira({ labels: LINKED_LABELS }),
-        database: DECLARE_DATABASE,
-      }),
-      await runTemplate({
-        templateId: "jira-declare-incident-from-issue",
-        trigger: webhookDelivery(jiraIssueCreatedEvent()),
-        jira: declareJira({
-          getIssue: {
-            status: 404,
-            body: { errorMessages: ["Issue does not exist"], errors: {} },
-          },
-        }),
-        database: DECLARE_DATABASE,
-      }),
-      await runTemplate({
-        templateId: "jira-declare-incident-from-issue",
-        trigger: webhookDelivery(jiraIssueCreatedEvent()),
-        jira: declareJira({
-          edit: badRequest({ errorMessages: [], errors: { labels: "No." } }),
-        }),
-        database: DECLARE_DATABASE,
-      }),
-      await runComment({ event: jiraCommentEvent() }),
-      await runTemplate({
-        templateId: "jira-comment-to-private-note",
-        trigger: webhookDelivery(jiraCommentEvent()),
-        jira: jiraRoutes({
-          [GET_LABELS]: {
-            status: 404,
-            body: { errorMessages: ["Issue does not exist"] },
-          },
-        }),
-      }),
-    ];
+      });
 
-    const requestCount: number = traces.reduce(
-      (count: number, trace: SimulationTrace) => {
-        return count + trace.requests.length;
-      },
-      0,
-    );
-
-    // Every template that talks to Jira is represented, successes and failures both.
-    expect(requestCount).toBe(19);
-
-    // ...and so is every Jira endpoint any of them calls, the declare template's GET included.
-    const routes: Array<string> = traces
-      .flatMap((trace: SimulationTrace) => {
-        return trace.requests.map((request: JiraRequest) => {
-          return `${request.method} ${request.url.replace(JIRA_SITE, "")}`;
-        });
-      })
-      .filter((route: string, index: number, all: Array<string>) => {
-        return all.indexOf(route) === index;
-      })
-      .sort();
-
-    expect(routes).toEqual(
-      [
-        CREATE_ISSUE,
-        SEARCH,
-        TRANSITION,
-        COMMENT,
-        EDIT_ISSUE,
-        GET_LABELS,
-      ].sort(),
-    );
-
-    for (const trace of traces) {
-      expect(trace.requests.length).toBeGreaterThan(0);
-      expectTokenOnlyInAuthorization(trace);
+      expect(trace.requests).toEqual([
+        searchRequest(kind, ["key", "status"], true),
+      ]);
+      expect(trace.logs).toEqual([
+        `ℹ️ Jira issue ${JIRA_ISSUE_KEY} has no transition from { {local.variables.jiraBasicAuthToken} } to a Done status that can be chosen without naming it in STATE_TO_JIRA_STATUS.`,
+      ]);
       expectNothingSubstituted(trace);
+      expectTokenOnlyInAuthorization(trace);
+    });
 
-      // A read carries no body for the credentials to be copied into.
-      for (const request of trace.requests) {
-        if (request.method === "GET") {
-          expect(request.body).toBeUndefined();
+    // The transition's id is Jira's text too, and it is quoted into the request body.
+    test("a transition id named like a reference is sent as inert text", async () => {
+      const trace: SimulationTrace = await runTemplate({
+        templateId: kind.templates.transition,
+        trigger: onRecord(kind.model({ state: kind.resolvedState })),
+        jira: jiraRoutes({
+          [SEARCH]: ok(
+            jiraSearchResponse({
+              transitions: [
+                jiraTransition({
+                  id: TOKEN_REFERENCE,
+                  name: "Close",
+                  to: DONE,
+                }),
+              ],
+            }),
+          ),
+          [TRANSITION]: NO_CONTENT,
+        }),
+      });
+
+      expect(trace.requests).toHaveLength(2);
+      expect(trace.requests[1]!.body).toEqual({
+        transition: { id: "{ {local.variables.jiraBasicAuthToken} }" },
+      });
+      expectNothingSubstituted(trace);
+      expectTokenOnlyInAuthorization(trace);
+    });
+
+    test("a changelog naming references is noted as inert text", async () => {
+      const trace: SimulationTrace = await runIssueChanges(kind, {
+        event: jiraIssueUpdatedEvent({
+          labels: linkedLabelsOf(kind),
+          user: jiraUser(HEADERS_REFERENCE),
+          items: [
+            changelogItem({
+              field: "summary",
+              fromString: "Checkout API returns 502",
+              toString: `Leak ${TOKEN_REFERENCE} and {{local.components.${kind.steps.find}.returnValues.model}}`,
+            }),
+          ],
+        }),
+      });
+
+      const note: string = jsonOf(trace, kind.components.noteCreateOne)[
+        "note"
+      ] as string;
+
+      expect(note).toContain(
+        `- summary: Checkout API returns 502 → Leak { {local.variables.jiraBasicAuthToken} } and { {local.components.${kind.steps.find}.returnValues.model} }`,
+      );
+      expectNothingSubstituted(trace);
+    });
+
+    /*
+     * Jira users choose their own display names, and the status template
+     * quotes the event its first script returns — which carries that name —
+     * into the next script's arguments BEFORE the record and the states. A
+     * name that is a reference to one of those later values would be
+     * substituted in its place, leaving the real reference unresolved. The
+     * helper block's rule — text from the other system is defused before it
+     * is returned — is what is supposed to prevent that.
+     */
+    test.each([
+      ["{{local.components.find-states-1.returnValues.models}}"],
+      [`{{local.components.${kind.steps.find}.returnValues.model}}`],
+    ])(
+      `a Jira user named %s still resolves the ${kind.noun}`,
+      async (displayName: string) => {
+        const trace: SimulationTrace = await runTemplate({
+          templateId: kind.templates.statusToState,
+          trigger: webhookDelivery(
+            jiraIssueUpdatedEvent({
+              items: RESOLVED_CHANGELOG,
+              labels: linkedLabelsOf(kind),
+              status: DONE,
+              user: jiraUser(displayName),
+            }),
+          ),
+          database: statusDatabase(
+            kind,
+            recordOf(kind, kind.acknowledgedState),
+          ),
+        });
+
+        expect(trace.logs).toEqual([
+          `✅ Moved ${kind.number} to Resolved because Jira issue ${JIRA_ISSUE_KEY} is now Done.`,
+        ]);
+        expect(jsonOf(trace, kind.components.timelineCreateOne)).toEqual({
+          [kind.idColumn]: kind.id,
+          [kind.timelineStateColumn]: kind.resolvedState["_id"] as string,
+          rootCause: `${ONEUPTIME_SYNCED_FROM_JIRA_MARKER}: issue ${JIRA_ISSUE_KEY} moved to Done by ${defused(displayName)}.`,
+        });
+        expectNothingSubstituted(trace);
+      },
+    );
+
+    /*
+     * The same rule for the other direction: the transition template returns
+     * the name of the status it moves the issue to, and the success log
+     * quotes that name before the script's own reason.
+     */
+    test("a Jira status named like a reference is logged as text, not substituted", async () => {
+      const trickStatus: JSONObject = jiraStatus({
+        name: "{{local.components.plan-transition-1.returnValues.returnValue.reason}}",
+        categoryKey: "done",
+        id: "10099",
+      });
+
+      const trace: SimulationTrace = await runTemplate({
+        templateId: kind.templates.transition,
+        trigger: onRecord(kind.model({ state: kind.resolvedState })),
+        jira: jiraRoutes({
+          [SEARCH]: ok(
+            jiraSearchResponse({
+              transitions: [
+                jiraTransition({ id: "41", name: "Close", to: trickStatus }),
+              ],
+            }),
+          ),
+          [TRANSITION]: NO_CONTENT,
+        }),
+      });
+
+      expect(trace.requests[1]!.body).toEqual({ transition: { id: "41" } });
+      expect(trace.logs).toEqual([
+        `✅ Moved Jira issue ${JIRA_ISSUE_KEY} to { {local.components.plan-transition-1.returnValues.returnValue.reason} }. ${kind.number} is Resolved in OneUptime.`,
+      ]);
+    });
+
+    test.each(kind.noteTemplates)(
+      "$templateId: OneUptime text naming the token is posted to Jira as inert text",
+      async (noteTemplate: NoteTemplate) => {
+        const trace: SimulationTrace = await runNoteToComment(
+          noteTemplate.templateId,
+          kind.note({ note: `Rotate ${TOKEN_REFERENCE} after this.` }),
+        );
+
+        expect(trace.requests).toHaveLength(2);
+        expect(JSON.stringify(trace.requests[1]!.body)).toContain(
+          "Rotate { {local.variables.jiraBasicAuthToken} } after this.",
+        );
+        expectNothingSubstituted(trace);
+        expectTokenOnlyInAuthorization(trace);
+      },
+    );
+
+    test("an edited title naming the token is posted to Jira as inert text", async () => {
+      const trace: SimulationTrace = await runTemplate({
+        templateId: kind.templates.updateComment,
+        trigger: onRecord(
+          kind.model({ title: `Rotate ${TOKEN_REFERENCE} after this` }),
+        ),
+        jira: jiraRoutes({
+          [SEARCH]: ok(jiraSearchResponse()),
+          [COMMENT]: COMMENT_CREATED,
+        }),
+      });
+
+      expect(trace.requests).toHaveLength(2);
+      expect(wikiTextOf(postedCommentOf(trace))).toContain(
+        "Title: Rotate { {local.variables.jiraBasicAuthToken} } after this",
+      );
+      expectNothingSubstituted(trace);
+      expectTokenOnlyInAuthorization(trace);
+    });
+
+    /*
+     * Every path that talks to Jira, run once each: the token must ride in
+     * the Authorization header of every request, as Basic auth, and turn up
+     * nowhere else — including in failure logs that print Jira's response.
+     */
+    test("the token is in every request's Authorization header and nowhere else in any trace", async () => {
+      const runs: Array<TokenRun> = [
+        {
+          requests: 1,
+          scenario: {
+            templateId: kind.templates.createIssue,
+            trigger: onRecord(kind.model()),
+            jira: jiraRoutes({ [CREATE_ISSUE]: ISSUE_CREATED }),
+          },
+        },
+        {
+          requests: 1,
+          scenario: {
+            templateId: kind.templates.createIssue,
+            trigger: onRecord(kind.model()),
+            jira: jiraRoutes({
+              [CREATE_ISSUE]: badRequest({
+                errorMessages: ["Unauthorized"],
+                errors: {},
+              }),
+            }),
+          },
+        },
+        {
+          requests: 2,
+          scenario: {
+            templateId: kind.templates.transition,
+            trigger: onRecord(kind.model({ state: kind.acknowledgedState })),
+            jira: jiraRoutes({
+              [SEARCH]: ok(jiraSearchResponse()),
+              [TRANSITION]: NO_CONTENT,
+            }),
+          },
+        },
+        {
+          requests: 1,
+          scenario: {
+            templateId: kind.templates.transition,
+            trigger: onRecord(kind.model({ state: kind.acknowledgedState })),
+            jira: jiraRoutes({
+              [SEARCH]: { status: 401, body: "Unauthorized" },
+            }),
+          },
+        },
+        ...kind.noteTemplates.flatMap(
+          (noteTemplate: NoteTemplate): Array<TokenRun> => {
+            return [
+              {
+                requests: 2,
+                scenario: {
+                  templateId: noteTemplate.templateId,
+                  trigger: onRecord(kind.note()),
+                  jira: jiraRoutes({
+                    [SEARCH]: ok(jiraSearchResponse()),
+                    [COMMENT]: COMMENT_CREATED,
+                  }),
+                },
+              },
+              {
+                requests: 2,
+                scenario: {
+                  templateId: noteTemplate.templateId,
+                  trigger: onRecord(kind.note()),
+                  jira: jiraRoutes({
+                    [SEARCH]: ok(jiraSearchResponse()),
+                    [COMMENT]: {
+                      status: 403,
+                      body: { errorMessages: ["Forbidden"] },
+                    },
+                  }),
+                },
+              },
+            ];
+          },
+        ),
+        {
+          requests: 2,
+          scenario: {
+            templateId: kind.templates.updateComment,
+            trigger: onRecord(kind.model()),
+            jira: jiraRoutes({
+              [SEARCH]: ok(jiraSearchResponse()),
+              [COMMENT]: COMMENT_CREATED,
+            }),
+          },
+        },
+        {
+          requests: 2,
+          scenario: {
+            templateId: kind.templates.createFromIssue,
+            trigger: webhookDelivery(jiraIssueCreatedEvent()),
+            jira: createFromIssueJira(),
+            database: createDatabase(kind),
+          },
+        },
+        {
+          requests: 1,
+          scenario: {
+            templateId: kind.templates.createFromIssue,
+            trigger: webhookDelivery(jiraIssueCreatedEvent()),
+            jira: createFromIssueJira({ labels: linkedLabelsOf(kind) }),
+            database: createDatabase(kind),
+          },
+        },
+        {
+          requests: 1,
+          scenario: {
+            templateId: kind.templates.createFromIssue,
+            trigger: webhookDelivery(jiraIssueCreatedEvent()),
+            jira: createFromIssueJira({
+              getIssue: {
+                status: 404,
+                body: { errorMessages: ["Issue does not exist"], errors: {} },
+              },
+            }),
+            database: createDatabase(kind),
+          },
+        },
+        {
+          requests: 2,
+          scenario: {
+            templateId: kind.templates.createFromIssue,
+            trigger: webhookDelivery(jiraIssueCreatedEvent()),
+            jira: createFromIssueJira({
+              edit: badRequest({
+                errorMessages: [],
+                errors: { labels: "No." },
+              }),
+            }),
+            database: createDatabase(kind),
+          },
+        },
+        {
+          requests: 1,
+          scenario: commentScenario(kind, { event: jiraCommentEvent() }),
+        },
+        {
+          requests: 1,
+          scenario: {
+            templateId: kind.templates.commentToNote,
+            trigger: webhookDelivery(jiraCommentEvent()),
+            jira: jiraRoutes({
+              [GET_LABELS]: {
+                status: 404,
+                body: { errorMessages: ["Issue does not exist"] },
+              },
+            }),
+          },
+        },
+      ];
+
+      const traces: Array<SimulationTrace> = [];
+
+      for (const run of runs) {
+        const trace: SimulationTrace = await runTemplate(run.scenario);
+
+        // A run that sent fewer requests than it should would test less than it claims.
+        expect(trace.requests).toHaveLength(run.requests);
+        traces.push(trace);
+      }
+
+      // Every template of this kind that holds the token is represented...
+      const covered: Array<string> = traces
+        .map((trace: SimulationTrace) => {
+          return trace.templateId;
+        })
+        .filter((templateId: string, index: number, all: Array<string>) => {
+          return all.indexOf(templateId) === index;
+        })
+        .sort();
+      const holdingTheToken: Array<string> = templateIdsOf(kind)
+        .filter((templateId: string) => {
+          return getWorkflowTemplate(templateId)!.variables.some(
+            (variable: WorkflowTemplateVariable) => {
+              return variable.name === "jiraBasicAuthToken";
+            },
+          );
+        })
+        .sort();
+
+      expect(covered).toEqual(holdingTheToken);
+
+      // ...and so is every Jira endpoint any of them calls, the create-from-Jira template's GET included.
+      const routes: Array<string> = traces
+        .flatMap((trace: SimulationTrace) => {
+          return trace.requests.map((request: JiraRequest) => {
+            return `${request.method} ${request.url.replace(JIRA_SITE, "")}`;
+          });
+        })
+        .filter((route: string, index: number, all: Array<string>) => {
+          return all.indexOf(route) === index;
+        })
+        .sort();
+
+      expect(routes).toEqual(
+        [
+          CREATE_ISSUE,
+          SEARCH,
+          TRANSITION,
+          COMMENT,
+          EDIT_ISSUE,
+          GET_LABELS,
+        ].sort(),
+      );
+
+      for (const trace of traces) {
+        expectTokenOnlyInAuthorization(trace);
+        expectNothingSubstituted(trace);
+
+        // A read carries no body for the credentials to be copied into.
+        for (const request of trace.requests) {
+          if (request.method === "GET") {
+            expect(request.body).toBeUndefined();
+          }
         }
       }
-    }
-  });
-});
+    });
+  },
+);
