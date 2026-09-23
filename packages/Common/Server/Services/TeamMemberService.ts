@@ -1397,11 +1397,20 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     return [...new Set(memberIds)].length; //get unique member ids.
   }
 
+  /**
+   * Every member row of the teams, pending invitations included. Pass
+   * acceptedOnly for the accepted rows alone - the only ones that grant the
+   * team's permissions and come with notification settings.
+   */
   @CaptureSpan()
-  public async getUsersInTeams(teamIds: Array<ObjectID>): Promise<Array<User>> {
+  public async getUsersInTeams(
+    teamIds: Array<ObjectID>,
+    options?: { acceptedOnly?: boolean | undefined } | undefined,
+  ): Promise<Array<User>> {
     const members: Array<TeamMember> = await this.findBy({
       query: {
         teamId: QueryHelper.any(teamIds),
+        ...(options?.acceptedOnly ? { hasAcceptedInvitation: true } : {}),
       },
       props: {
         isRoot: true,
