@@ -1,5 +1,6 @@
 import PageMap from "./PageMap";
 import RouteMap, { RouteUtil } from "./RouteMap";
+import RouteParams from "./RouteParams";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { NavItem, MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
@@ -110,7 +111,10 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.ON_CALL_DUTY] as Route,
       ),
-      activeRoute: RouteMap[PageMap.ON_CALL_DUTY],
+      // The product includes schedules and other siblings of the policies page.
+      activeRoute: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty`,
+      ),
       icon: IconProp.Call,
       iconColor: "stone",
       category: essentialsCategory,
