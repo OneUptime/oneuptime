@@ -4797,6 +4797,7 @@
   "Should status page subscribers be notified when this incident is created?": "هنگام ساخت این حادثه به مشترکان صفحه وضعیت اطلاع داده شود؟",
   "Should status page subscribers be notified when this note is posted?": "هنگام انتشار این یادداشت به مشترکان صفحه وضعیت اطلاع داده شود؟",
   "Should status page subscribers be notified?": "به مشترکان صفحه وضعیت اطلاع داده شود؟",
+  "Unticked by default because status page subscribers were not notified when this incident was declared.": "به‌طور پیش‌فرض علامت‌گذاری نشده است، زیرا هنگام اعلام این حادثه به مشترکان صفحه وضعیت اطلاع داده نشد.",
   "Should the new monitor be disabled when its duplicated?": "هنگام تکثیر یک مانیتور، مانیتور جدید غیرفعال باشد؟",
   "Show Announcement At": "نمایش اطلاعیه از",
   "Show Announcement History (in days)": "نمایش تاریخچه اطلاعیه‌ها (به روز)",

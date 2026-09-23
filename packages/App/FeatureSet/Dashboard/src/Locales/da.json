@@ -4797,6 +4797,7 @@
   "Should status page subscribers be notified when this incident is created?": "Skal abonnenter på statussiden underrettes, når denne hændelse oprettes?",
   "Should status page subscribers be notified when this note is posted?": "Skal abonnenter på statussiden underrettes, når denne note offentliggøres?",
   "Should status page subscribers be notified?": "Skal abonnenter på statussiden underrettes?",
+  "Unticked by default because status page subscribers were not notified when this incident was declared.": "Ikke markeret som standard, fordi abonnenter på statussiden ikke blev underrettet, da denne hændelse blev erklæret.",
   "Should the new monitor be disabled when its duplicated?": "Skal den nye overvågning deaktiveres, når den duplikeres?",
   "Show Announcement At": "Vis meddelelse den",
   "Show Announcement History (in days)": "Vis meddelelseshistorik (i dage)",

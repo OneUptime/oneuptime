@@ -4797,6 +4797,7 @@
   "Should status page subscribers be notified when this incident is created?": "Les abonnés à la page de statut doivent-ils être notifiés lorsque cet incident est créé ?",
   "Should status page subscribers be notified when this note is posted?": "Les abonnés à la page de statut doivent-ils être notifiés lorsque cette note est publiée ?",
   "Should status page subscribers be notified?": "Les abonnés à la page de statut doivent-ils être notifiés ?",
+  "Unticked by default because status page subscribers were not notified when this incident was declared.": "Décoché par défaut, car les abonnés de la page de statut n'ont pas été notifiés lors de la déclaration de cet incident.",
   "Should the new monitor be disabled when its duplicated?": "Le nouveau moniteur doit-il être désactivé lors de sa duplication ?",
   "Show Announcement At": "Afficher l'annonce à",
   "Show Announcement History (in days)": "Afficher l'historique des annonces (en jours)",

@@ -17,6 +17,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
+import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import OneUptimeDate from "Common/Types/Date";
@@ -46,6 +47,11 @@ import {
 export interface ComponentProps {
   incidentId: ObjectID;
   refreshToken?: number | undefined;
+  /*
+   * Where "Notify Status Page Subscribers" starts on a new public note.
+   * False when the incident was declared without notifying subscribers.
+   */
+  notifyStatusPageSubscribersByDefault?: boolean | undefined;
 }
 
 /*
@@ -92,6 +98,8 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const incidentIdString: string = props.incidentId.toString();
+  const notifySubscribersByDefault: boolean =
+    props.notifyStatusPageSubscribersByDefault ?? true;
   const [showOnCallPolicyModal, setShowOnCallPolicyModal] =
     React.useState<boolean>(false);
 
@@ -371,6 +379,15 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
               setShowPublicNoteModal(false);
             }}
             submitButtonText="Save"
+            /*
+             * Seeded as a value, not only as the field's default: the form
+             * drops a false default, and an unsent flag would fall back to
+             * notifying.
+             */
+            initialValues={{
+              shouldStatusPageSubscribersBeNotifiedOnNoteCreated:
+                notifySubscribersByDefault,
+            }}
             onBeforeCreate={async (model: IncidentPublicNote) => {
               model.incidentId = props.incidentId!;
               return model;
@@ -428,11 +445,12 @@ const IncidentFeedElement: FunctionComponent<ComponentProps> = (
                     shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
                   },
                   fieldType: FormFieldSchemaType.Checkbox,
-                  description:
-                    "Should status page subscribers be notified when this note is posted?",
+                  description: notifySubscribersByDefault
+                    ? "Should status page subscribers be notified when this note is posted?"
+                    : PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
                   title: "Notify Status Page Subscribers",
                   required: false,
-                  defaultValue: true,
+                  defaultValue: notifySubscribersByDefault,
                 },
               ],
               formType: FormType.Create,

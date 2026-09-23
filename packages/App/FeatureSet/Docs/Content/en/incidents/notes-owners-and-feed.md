@@ -28,12 +28,14 @@ The two note types look similar in the dashboard and behave very differently.
 
 Open **Notes → Public Notes** in the incident side menu and create a note. The card explains that what you write here shows up on the status page; the empty state reads that no public notes have been created for this incident so far.
 
-| Field                              | Purpose                                                                                                               |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| **Public Incident Note**           | The body, in Markdown. Required. The form reminds you the note is visible on your status page and links a cheatsheet. |
-| **Attachments**                    | Files shared with subscribers on the status page. Optional.                                                           |
-| **Notify Status Page Subscribers** | Checkbox, on by default. Turn it off to publish quietly.                                                              |
-| **Posted At**                      | Required date and time, defaulting to now, shown in your current timezone.                                            |
+| Field                              | Purpose                                                                                                                                       |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Public Incident Note**           | The body, in Markdown. Required. The form reminds you the note is visible on your status page and links a cheatsheet.                         |
+| **Attachments**                    | Files shared with subscribers on the status page. Optional.                                                                                   |
+| **Notify Status Page Subscribers** | Checkbox. On by default, unless the incident was declared without notifying subscribers — then it starts off. Turn it off to publish quietly. |
+| **Posted At**                      | Required date and time, defaulting to now, shown in your current timezone.                                                                    |
+
+**Quiet incidents stay quiet.** If an incident was declared with **Notify Status Page Subscribers** turned off (or as a private incident), its subscribers were never told about it, so a public note should not be the first thing they hear. On such an incident the checkbox starts off, with a line under it explaining why. You can still tick it to notify subscribers about that note. Notes posted without an explicit choice follow the same rule: Slack and Microsoft Teams notes, workflows, and API requests that leave out `shouldStatusPageSubscribersBeNotifiedOnNoteCreated`. An explicit `true` or `false` is always kept.
 
 **Posted At is the note's real timestamp.** Status pages sort and display public notes by `postedAt`, not by when you typed them — so if you're catching the status page up on an update you sent 40 minutes ago, set **Posted At** to when it actually happened. If a note arrives through the API without one, OneUptime stamps the current time.
 
@@ -89,7 +91,7 @@ Two details worth knowing:
 
 Creating a public note with **Notify Status Page Subscribers** on does not by itself guarantee an email goes out. The note has to clear a chain of checks, and every failure records a specific reason rather than erroring:
 
-1. **Notify Status Page Subscribers** must be on. If it isn't, the note is stamped as skipped the moment it's created.
+1. **Notify Status Page Subscribers** must be on. If it isn't, the note is stamped as skipped the moment it's created. It starts off on incidents that were declared without notifying subscribers.
 2. The note must belong to an incident that still exists.
 3. The incident must have at least one monitor attached — with no monitors there is no status page resource to route the note to.
 4. The incident's **Visible on Status Page** flag (`isVisibleOnStatusPage`) must be true.
