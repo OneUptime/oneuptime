@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse } from "axios";
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import { RUNNER_INGEST_URL } from "../Config";
 import RunnerIdentity from "../Utils/RunnerIdentity";
 import KubernetesAgentMode from "../Utils/KubernetesAgentMode";
@@ -60,6 +60,50 @@ function authBody(extra: JSONObject = {}): JSONObject {
     agentKey: RunnerIdentity.getRunnerKey(),
     ...extra,
   };
+}
+
+/*
+ * Statuses that say "not now" rather than "no": the server (or a proxy in
+ * front of it) could not handle the request at the moment. A 5xx, a request
+ * timeout and a rate limit are worth sending again. Every other 4xx is the
+ * server's answer about this request, and repeating it gets the same answer.
+ */
+export function isRetryableIngestStatus(statusCode: number): boolean {
+  return statusCode >= 500 || statusCode === 408 || statusCode === 429;
+}
+
+/*
+ * A job heartbeat or result the server could not take right now (see
+ * isRetryableIngestStatus). It may not have reached the server, so what it
+ * carried may still be unrecorded, and sending it again is safe: a result
+ * the server did store is refused the second time (the job is no longer
+ * running) rather than stored twice. axios raises its own errors for a
+ * request that got no answer at all (refused, reset, timed out); those mean
+ * the same.
+ */
+export class RunnerIngestUnavailableError extends Error {
+  // A proxy's error page can be long; the message keeps the start of it.
+  public static readonly MAX_BODY_CHARS: number = 300;
+
+  public readonly statusCode: number;
+
+  public constructor(data: {
+    request: string;
+    statusCode: number;
+    body: unknown;
+  }) {
+    const body: string = JSON.stringify(data.body ?? null) ?? "null";
+
+    super(
+      `${data.request} failed with HTTP ${data.statusCode}: ${
+        body.length > RunnerIngestUnavailableError.MAX_BODY_CHARS
+          ? `${body.slice(0, RunnerIngestUnavailableError.MAX_BODY_CHARS)}…`
+          : body
+      }`,
+    );
+    this.name = "RunnerIngestUnavailableError";
+    this.statusCode = data.statusCode;
+  }
 }
 
 export interface HeartbeatResult {
@@ -159,11 +203,23 @@ export default class AgentClient {
           `Refusing claimed ${String(job.stepType)} job ${job.jobId} at claim time: ${agentRefusal}`,
         );
 
-        await AgentClient.submitJobResult({
-          jobId: job.jobId,
-          success: false,
-          errorMessage: agentRefusal,
-        });
+        /*
+         * Best effort. If the refusal does not land, the job is still not
+         * run: the server times it out once its lease lapses.
+         */
+        try {
+          await AgentClient.submitJobResult({
+            jobId: job.jobId,
+            success: false,
+            errorMessage: agentRefusal,
+          });
+        } catch (err) {
+          logger.warn(
+            `Could not report the claim-time refusal of job ${job.jobId}: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        }
 
         return null;
       }
@@ -195,14 +251,61 @@ export default class AgentClient {
     return false;
   }
 
-  public static async jobHeartbeat(jobId: string): Promise<boolean> {
+  /*
+   * Renew this Runner's lease on a job. The server's first heartbeat for a
+   * job also records when it started (startedAt) and marks it Running.
+   *
+   * Resolves true when the server renewed the lease, and false when it
+   * answered that the job is no longer this Runner's: its lease lapsed and
+   * it was timed out, it already has a result, or the request was refused
+   * (404 and every other 4xx but 408/429). Rejects when the heartbeat may
+   * not have reached the server (no answer, or a status
+   * isRetryableIngestStatus accepts); whether the lease was renewed is then
+   * unknown.
+   *
+   * `timeoutInMs` bounds this one request, for a caller that must not wait
+   * the client's default 30 s on a server that does not answer.
+   */
+  public static async jobHeartbeat(
+    jobId: string,
+    options?: { timeoutInMs?: number | undefined } | undefined,
+  ): Promise<boolean> {
+    const requestConfig: AxiosRequestConfig | undefined = options?.timeoutInMs
+      ? { timeout: options.timeoutInMs }
+      : undefined;
+
     const res: AxiosResponse = await http.post(
       `/job/${encodeURIComponent(jobId)}/heartbeat`,
       authBody(),
+      requestConfig,
     );
-    return res.status >= 200 && res.status < 300;
+
+    if (res.status >= 200 && res.status < 300) {
+      return true;
+    }
+
+    if (isRetryableIngestStatus(res.status)) {
+      throw new RunnerIngestUnavailableError({
+        request: `Job heartbeat for ${jobId}`,
+        statusCode: res.status,
+        body: res.data,
+      });
+    }
+
+    return false;
   }
 
+  /*
+   * Report a job's result.
+   *
+   * Resolves true when the server stored it, and false when the server
+   * answered and will not store it: `{ accepted: false }` (the job is no
+   * longer this Runner's, or already has a result) or a 4xx other than
+   * 408/429. Rejects when the result may not have reached the server (no
+   * answer, or a status isRetryableIngestStatus accepts): it may then be
+   * unrecorded, and sending it again is safe (a second copy of a result the
+   * server did store is refused, not stored twice).
+   */
   public static async submitJobResult(data: {
     jobId: string;
     success: boolean;
@@ -223,9 +326,23 @@ export default class AgentClient {
           : {}),
       }),
     );
+
     if (res.status >= 200 && res.status < 300) {
-      return true;
+      /*
+       * The server answers 200 whether or not it stored the result and says
+       * which in `accepted`. A body without the field is read as stored.
+       */
+      return (res.data as JSONObject | undefined)?.["accepted"] !== false;
     }
+
+    if (isRetryableIngestStatus(res.status)) {
+      throw new RunnerIngestUnavailableError({
+        request: `Result for job ${data.jobId}`,
+        statusCode: res.status,
+        body: res.data,
+      });
+    }
+
     logger.error(
       `submit-job-result rejected (${res.status}): ${JSON.stringify(res.data)}`,
     );
