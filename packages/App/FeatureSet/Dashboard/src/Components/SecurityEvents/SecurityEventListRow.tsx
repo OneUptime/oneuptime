@@ -6,18 +6,35 @@ import {
   SECURITY_EVENT_VOLUME_COLORS,
   toSecurityEventVolumeSeverity,
 } from "./SecurityEventVolume";
+import {
+  SecurityEventAttributeColumn,
+  getSecurityEventAttributeValue,
+} from "./SecurityEventAttributeColumns";
 
 export const SECURITY_EVENT_ROW_TEST_ID: string = "security-event-row";
+
+export const SECURITY_EVENT_ROW_ATTRIBUTE_CHIP_TEST_ID: string =
+  "security-event-row-attribute";
 
 export interface ComponentProps {
   securityEvent: SecurityEvent;
   isSelected?: boolean | undefined;
   onClick?: (() => void) | undefined;
+  /*
+   * Source attributes the viewer chose to see on every row, in their order.
+   * Each gets a chip after the typed ones on the rows that carry it.
+   */
+  attributeColumns?: Array<SecurityEventAttributeColumn> | undefined;
 }
 
 type ChipProps = {
   label: string;
   value: string;
+  // What the label is short for, when it is short for something.
+  labelTitle?: string | undefined;
+  isAttribute?: boolean | undefined;
+  testId?: string | undefined;
+  attributeKey?: string | undefined;
 };
 
 /*
@@ -26,10 +43,40 @@ type ChipProps = {
  * side of an interaction is worse than one that shows nothing.
  */
 const Chip: FunctionComponent<ChipProps> = (props: ChipProps): ReactElement => {
+  /*
+   * A chosen attribute is tinted, so a reader can tell the facts they asked
+   * for from the ones every row carries.
+   */
   return (
-    <span className="inline-flex max-w-[16rem] items-center gap-1 rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-600">
-      <span className="text-gray-400">{props.label}</span>
-      <span className="truncate font-medium text-gray-700" title={props.value}>
+    <span
+      className={`inline-flex max-w-[16rem] items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] ${
+        props.isAttribute
+          ? "border-indigo-100 bg-indigo-50/60 text-indigo-700"
+          : "border-gray-200 bg-gray-50 text-gray-600"
+      }`}
+      data-testid={props.testId}
+      data-attribute-key={props.attributeKey}
+    >
+      {/*
+       * An attribute label can run long once it has grown to tell two keys
+       * apart, so it gives up width too rather than squeezing the value out.
+       */}
+      <span
+        className={
+          props.isAttribute
+            ? "max-w-[9rem] truncate text-indigo-400"
+            : "text-gray-400"
+        }
+        title={props.labelTitle}
+      >
+        {props.label}
+      </span>
+      <span
+        className={`truncate font-medium ${
+          props.isAttribute ? "text-indigo-900" : "text-gray-700"
+        }`}
+        title={props.value}
+      >
         {props.value}
       </span>
     </span>
@@ -42,7 +89,8 @@ const Chip: FunctionComponent<ChipProps> = (props: ChipProps): ReactElement => {
  *
  * Line 1 is the one-line read: severity, when, event class, message.
  * Line 2 is the context a responder scans for: who acted, on what, what
- * happened, and which product said so.
+ * happened, and which product said so — then whichever source attributes
+ * the viewer chose to add.
  */
 const SecurityEventListRow: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -123,6 +171,30 @@ const SecurityEventListRow: FunctionComponent<ComponentProps> = (
             {event.ruleName && <Chip label="rule" value={event.ruleName} />}
             {event.vendorName && (
               <Chip label="vendor" value={event.vendorName} />
+            )}
+            {(props.attributeColumns || []).map(
+              (column: SecurityEventAttributeColumn): ReactElement | null => {
+                const value: string = getSecurityEventAttributeValue(
+                  event,
+                  column.key,
+                );
+
+                if (!value) {
+                  return null;
+                }
+
+                return (
+                  <Chip
+                    key={column.key}
+                    label={column.label}
+                    labelTitle={column.key}
+                    value={value}
+                    isAttribute={true}
+                    testId={SECURITY_EVENT_ROW_ATTRIBUTE_CHIP_TEST_ID}
+                    attributeKey={column.key}
+                  />
+                );
+              },
             )}
           </div>
         </div>
