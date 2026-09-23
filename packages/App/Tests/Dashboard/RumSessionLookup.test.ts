@@ -1,23 +1,47 @@
 import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import { JSONObject } from "Common/Types/JSON";
+import {
+  SESSION_REPLAY_SESSION_ID_BATCH_MAX,
+  SESSION_REPLAY_SESSION_ID_MAX_LENGTH,
+} from "Common/Types/Rum/SessionReplayApi";
 
 /*
  * The shared session-id -> RumSession header lookup behind every inbound
  * replay link (log line, span panel, occurrence table). The contract:
- * one AnalyticsModelAPI read per session id for the life of the page, an
- * in-flight read shared by concurrent callers, an empty answer cached as
- * "no recording", a failure NOT cached so the next caller retries, and a
+ * one /resolve read per session id for the life of the page, an in-flight
+ * read shared by concurrent callers, an empty answer cached as "no
+ * recording", a failure NOT cached so the next caller retries, and a
  * batched form that fills the same cache.
  *
- * AnalyticsModelAPI is mocked before the module loads; the module also pulls
- * in RouteMap (via ReplayPlayerUrlState), which reads `window` on load, so
- * the browser stub is installed first and the imports are deferred.
+ * The read is the bespoke POST /telemetry/rum/session-replay/resolve.
+ * RumSession has no crudApiPath, so the generic AnalyticsModelAPI list it
+ * used to call threw before sending anything and every link silently
+ * resolved to nothing - with a mocked getList these tests could not see it.
+ * They now assert the request that actually leaves the browser.
+ *
+ * API is mocked before the module loads; the module also pulls in RouteMap
+ * (via ReplayPlayerUrlState), which reads `window` on load, so the browser
+ * stub is installed first and the imports are deferred.
  */
 
-jest.mock("Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
+jest.mock("Common/UI/Utils/API/API", () => {
   return {
     __esModule: true,
     default: {
-      getList: jest.fn(),
+      post: jest.fn(),
+    },
+  };
+});
+
+jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
+  return {
+    __esModule: true,
+    default: {
+      getCommonHeaders: (): Record<string, string> => {
+        return { tenantid: "project-1" };
+      },
     },
   };
 });
@@ -27,6 +51,7 @@ const APP_ID: string = "0193c0de-1111-4aaa-8bbb-000000000001";
 const SESSION_A: string = "a1b2c3d4e5f60718293a4b5c6d7e8f90";
 const SESSION_B: string = "b1b2c3d4e5f60718293a4b5c6d7e8f90";
 const START_A: Date = new Date("2026-08-14T10:00:00.000Z");
+const RESOLVE_ROUTE: string = "/telemetry/rum/session-replay/resolve";
 
 type LookupModule =
   typeof import("../../FeatureSet/Dashboard/src/Utils/RumSessionLookup");
@@ -36,19 +61,47 @@ type NavigationClass = (typeof import("Common/UI/Utils/Navigation"))["default"];
 
 let lookup: LookupModule;
 let urlState: UrlStateModule;
-let getListMock: jest.Mock;
+let postMock: jest.Mock;
 
-interface FakeSessionRow {
+interface WireSession {
   sessionId: string;
   rumApplicationId: string;
-  startTime?: Date | string | undefined;
+  startTime?: string | undefined;
+  startTimeUnixMs?: number | string | undefined;
 }
 
-function listResult(rows: Array<FakeSessionRow>): {
-  data: Array<FakeSessionRow>;
-  count: number;
-} {
-  return { data: rows, count: rows.length };
+interface PostedRequest {
+  url: { toString(): string };
+  data: JSONObject;
+  headers: Record<string, string>;
+}
+
+/* The route's response body, as the server serialises it. */
+function resolved(rows: Array<WireSession>): HTTPResponse<JSONObject> {
+  return new HTTPResponse(
+    200,
+    {
+      sessions: rows as unknown as JSONObject,
+      isApplicationScopeTruncated: false,
+    },
+    {},
+  );
+}
+
+function posted(call: number = 0): PostedRequest {
+  const request: PostedRequest | undefined = postMock.mock.calls[call]?.[0] as
+    | PostedRequest
+    | undefined;
+
+  if (!request) {
+    throw new Error(`API.post call ${call} was not made`);
+  }
+
+  return request;
+}
+
+function postedSessionIds(call: number = 0): Array<string> {
+  return posted(call).data["sessionIds"] as Array<string>;
 }
 
 function deferred<T>(): {
@@ -105,11 +158,11 @@ beforeAll(async () => {
     });
   }
 
-  const analyticsModelApi: { default: { getList: jest.Mock } } = (await import(
-    "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI"
-  )) as unknown as { default: { getList: jest.Mock } };
+  const api: { default: { post: jest.Mock } } = (await import(
+    "Common/UI/Utils/API/API"
+  )) as unknown as { default: { post: jest.Mock } };
 
-  getListMock = analyticsModelApi.default.getList;
+  postMock = api.default.post;
 
   lookup = await import(
     "../../FeatureSet/Dashboard/src/Utils/RumSessionLookup"
@@ -128,15 +181,20 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  getListMock.mockReset();
+  postMock.mockReset();
   lookup.clearRumSessionLookupCache();
 });
 
 describe("lookupRumSessionBySessionId", () => {
-  test("reads the header once, selecting the three fields a link needs", async () => {
-    getListMock.mockResolvedValue(
-      listResult([
-        { sessionId: SESSION_A, rumApplicationId: APP_ID, startTime: START_A },
+  test("posts the id to /resolve with the project headers and reads the three link facts", async () => {
+    postMock.mockResolvedValue(
+      resolved([
+        {
+          sessionId: SESSION_A,
+          rumApplicationId: APP_ID,
+          startTime: START_A.toISOString(),
+          startTimeUnixMs: START_A.getTime(),
+        },
       ]),
     );
 
@@ -149,48 +207,77 @@ describe("lookupRumSessionBySessionId", () => {
       rumApplicationId: APP_ID,
       startTime: START_A,
     });
-    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(postMock).toHaveBeenCalledTimes(1);
 
-    const call: Record<string, unknown> = getListMock.mock
-      .calls[0]![0] as Record<string, unknown>;
+    const request: PostedRequest = posted();
 
-    expect(call["query"]).toEqual({ sessionId: SESSION_A });
-    expect(call["select"]).toEqual({
-      sessionId: true,
-      rumApplicationId: true,
-      startTime: true,
-    });
-    expect(call["limit"]).toBe(1);
+    expect(new URL(request.url.toString()).pathname).toMatch(
+      new RegExp(`${RESOLVE_ROUTE}$`),
+    );
+    expect(lookup.RUM_SESSION_RESOLVE_ROUTE).toBe(RESOLVE_ROUTE);
+    /* Exactly the wire body the route reads - no application, no project. */
+    expect(request.data).toEqual({ sessionIds: [SESSION_A] });
+    expect(request.headers).toEqual({ tenantid: "project-1" });
+  });
+
+  test("falls back to the ISO start time, and ClickHouse-quoted numbers parse", async () => {
+    postMock.mockResolvedValueOnce(
+      resolved([
+        {
+          sessionId: SESSION_A,
+          rumApplicationId: APP_ID,
+          startTime: START_A.toISOString(),
+        },
+      ]),
+    );
+
+    expect(
+      (await lookup.lookupRumSessionBySessionId(SESSION_A))?.startTime,
+    ).toEqual(START_A);
+
+    postMock.mockResolvedValueOnce(
+      resolved([
+        {
+          sessionId: SESSION_B,
+          rumApplicationId: APP_ID,
+          startTimeUnixMs: String(START_A.getTime()),
+        },
+      ]),
+    );
+
+    expect(
+      (await lookup.lookupRumSessionBySessionId(SESSION_B))?.startTime,
+    ).toEqual(START_A);
   });
 
   test("a second lookup of the same id is served from the cache", async () => {
-    getListMock.mockResolvedValue(
-      listResult([{ sessionId: SESSION_A, rumApplicationId: APP_ID }]),
+    postMock.mockResolvedValue(
+      resolved([{ sessionId: SESSION_A, rumApplicationId: APP_ID }]),
     );
 
     await lookup.lookupRumSessionBySessionId(SESSION_A);
     await lookup.lookupRumSessionBySessionId(` ${SESSION_A} `);
 
-    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(postedSessionIds()).toEqual([SESSION_A]);
     expect(lookup.getRumSessionLookupCacheSize()).toBe(1);
   });
 
   test("concurrent callers share one in-flight read", async () => {
-    const pending: ReturnType<
-      typeof deferred<{ data: Array<FakeSessionRow>; count: number }>
-    > = deferred<{ data: Array<FakeSessionRow>; count: number }>();
+    const pending: ReturnType<typeof deferred<HTTPResponse<JSONObject>>> =
+      deferred<HTTPResponse<JSONObject>>();
 
-    getListMock.mockReturnValue(pending.promise);
+    postMock.mockReturnValue(pending.promise);
 
     const first: ReturnType<typeof lookup.lookupRumSessionBySessionId> =
       lookup.lookupRumSessionBySessionId(SESSION_A);
     const second: ReturnType<typeof lookup.lookupRumSessionBySessionId> =
       lookup.lookupRumSessionBySessionId(SESSION_A);
 
-    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(postMock).toHaveBeenCalledTimes(1);
 
     pending.resolve(
-      listResult([{ sessionId: SESSION_A, rumApplicationId: APP_ID }]),
+      resolved([{ sessionId: SESSION_A, rumApplicationId: APP_ID }]),
     );
 
     expect((await first)?.rumApplicationId).toBe(APP_ID);
@@ -198,16 +285,22 @@ describe("lookupRumSessionBySessionId", () => {
   });
 
   test("an empty result resolves to undefined and is cached as such", async () => {
-    getListMock.mockResolvedValue(listResult([]));
+    postMock.mockResolvedValue(resolved([]));
 
     expect(await lookup.lookupRumSessionBySessionId(SESSION_A)).toBeUndefined();
     expect(await lookup.lookupRumSessionBySessionId(SESSION_A)).toBeUndefined();
-    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(postMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("a body without a sessions array is no recording, not a crash", async () => {
+    postMock.mockResolvedValue(new HTTPResponse(200, {}, {}));
+
+    expect(await lookup.lookupRumSessionBySessionId(SESSION_A)).toBeUndefined();
   });
 
   test("a row without an application id is no anchor; a blank id never hits the network", async () => {
-    getListMock.mockResolvedValue(
-      listResult([{ sessionId: SESSION_A, rumApplicationId: "" }]),
+    postMock.mockResolvedValue(
+      resolved([{ sessionId: SESSION_A, rumApplicationId: "" }]),
     );
 
     expect(await lookup.lookupRumSessionBySessionId(SESSION_A)).toBeUndefined();
@@ -216,31 +309,54 @@ describe("lookupRumSessionBySessionId", () => {
       expect(await lookup.lookupRumSessionBySessionId(blank)).toBeUndefined();
     }
 
-    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(postMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("an unsolicited row never anchors the id that was asked about", async () => {
+    postMock.mockResolvedValue(
+      resolved([{ sessionId: SESSION_B, rumApplicationId: APP_ID }]),
+    );
+
+    expect(await lookup.lookupRumSessionBySessionId(SESSION_A)).toBeUndefined();
+    /* Nor is it cached under its own id: SESSION_B was never asked for. */
+    expect(lookup.getRumSessionLookupCacheSize()).toBe(1);
   });
 
   test("a failed read rejects and is not cached, so the next caller retries", async () => {
-    getListMock.mockRejectedValueOnce(new Error("503"));
+    postMock.mockResolvedValueOnce(
+      new HTTPErrorResponse(503, { message: "Service Unavailable" }, {}),
+    );
+
+    await expect(
+      lookup.lookupRumSessionBySessionId(SESSION_A),
+    ).rejects.toBeInstanceOf(HTTPErrorResponse);
+    expect(lookup.getRumSessionLookupCacheSize()).toBe(0);
+
+    postMock.mockRejectedValueOnce(new Error("network down"));
 
     await expect(lookup.lookupRumSessionBySessionId(SESSION_A)).rejects.toThrow(
-      "503",
+      "network down",
     );
     expect(lookup.getRumSessionLookupCacheSize()).toBe(0);
 
-    getListMock.mockResolvedValueOnce(
-      listResult([{ sessionId: SESSION_A, rumApplicationId: APP_ID }]),
+    postMock.mockResolvedValueOnce(
+      resolved([{ sessionId: SESSION_A, rumApplicationId: APP_ID }]),
     );
 
     expect(
       (await lookup.lookupRumSessionBySessionId(SESSION_A))?.rumApplicationId,
     ).toBe(APP_ID);
-    expect(getListMock).toHaveBeenCalledTimes(2);
+    expect(postMock).toHaveBeenCalledTimes(3);
   });
 
   test("an unparseable start time is null, not an invalid Date", async () => {
-    getListMock.mockResolvedValue(
-      listResult([
-        { sessionId: SESSION_A, rumApplicationId: APP_ID, startTime: "" },
+    postMock.mockResolvedValue(
+      resolved([
+        {
+          sessionId: SESSION_A,
+          rumApplicationId: APP_ID,
+          startTime: "not-a-date",
+        },
       ]),
     );
 
@@ -248,17 +364,27 @@ describe("lookupRumSessionBySessionId", () => {
       (await lookup.lookupRumSessionBySessionId(SESSION_A))?.startTime,
     ).toBeNull();
   });
+
+  test("an id longer than any replay route reads is no recording, without a request", async () => {
+    const overlong: string = "x".repeat(
+      SESSION_REPLAY_SESSION_ID_MAX_LENGTH + 1,
+    );
+
+    expect(await lookup.lookupRumSessionBySessionId(overlong)).toBeUndefined();
+    expect(await lookup.lookupRumSessionBySessionId(overlong)).toBeUndefined();
+    expect(postMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("lookupRumSessionsBySessionIds", () => {
-  test("fetches only the ids not already cached, in one Includes read, and caches each answer", async () => {
-    getListMock.mockResolvedValueOnce(
-      listResult([{ sessionId: SESSION_A, rumApplicationId: APP_ID }]),
+  test("fetches only the ids not already cached, in one read, and caches each answer", async () => {
+    postMock.mockResolvedValueOnce(
+      resolved([{ sessionId: SESSION_A, rumApplicationId: APP_ID }]),
     );
     await lookup.lookupRumSessionBySessionId(SESSION_A);
 
-    getListMock.mockResolvedValueOnce(
-      listResult([{ sessionId: SESSION_B, rumApplicationId: APP_ID }]),
+    postMock.mockResolvedValueOnce(
+      resolved([{ sessionId: SESSION_B, rumApplicationId: APP_ID }]),
     );
 
     const found: Map<
@@ -271,13 +397,9 @@ describe("lookupRumSessionsBySessionIds", () => {
       "",
     ]);
 
-    expect(getListMock).toHaveBeenCalledTimes(2);
-
-    const batchCall: Record<string, unknown> = getListMock.mock
-      .calls[1]![0] as Record<string, unknown>;
-
-    /* A single missing id goes out as an equality, not a one-element Includes. */
-    expect(batchCall["query"]).toEqual({ sessionId: SESSION_B });
+    expect(postMock).toHaveBeenCalledTimes(2);
+    /* Deduplicated, trimmed, and without the id already cached. */
+    expect(postedSessionIds(1)).toEqual([SESSION_B]);
     expect(Array.from(found.keys()).sort()).toEqual(
       [SESSION_A, SESSION_B].sort(),
     );
@@ -286,12 +408,12 @@ describe("lookupRumSessionsBySessionIds", () => {
     expect(
       (await lookup.lookupRumSessionBySessionId(SESSION_B))?.rumApplicationId,
     ).toBe(APP_ID);
-    expect(getListMock).toHaveBeenCalledTimes(2);
+    expect(postMock).toHaveBeenCalledTimes(2);
   });
 
-  test("two or more missing ids use an Includes query and unknown ids are cached as absent", async () => {
-    getListMock.mockResolvedValueOnce(
-      listResult([{ sessionId: SESSION_A, rumApplicationId: APP_ID }]),
+  test("several missing ids go out in one request and unknown ids are cached as absent", async () => {
+    postMock.mockResolvedValueOnce(
+      resolved([{ sessionId: SESSION_A, rumApplicationId: APP_ID }]),
     );
 
     const found: Map<
@@ -299,40 +421,93 @@ describe("lookupRumSessionsBySessionIds", () => {
       Awaited<ReturnType<typeof lookup.lookupRumSessionBySessionId>>
     > = await lookup.lookupRumSessionsBySessionIds([SESSION_A, SESSION_B]);
 
-    const call: Record<string, unknown> = getListMock.mock
-      .calls[0]![0] as Record<string, unknown>;
-    const query: { sessionId: { toString(): string } } = call["query"] as {
-      sessionId: { toString(): string };
-    };
-
-    expect(query.sessionId.constructor.name).toBe("Includes");
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(postedSessionIds()).toEqual([SESSION_A, SESSION_B]);
     expect(found.size).toBe(1);
     expect(found.get(SESSION_A)?.rumApplicationId).toBe(APP_ID);
 
     expect(await lookup.lookupRumSessionBySessionId(SESSION_B)).toBeUndefined();
-    expect(getListMock).toHaveBeenCalledTimes(1);
+    expect(postMock).toHaveBeenCalledTimes(1);
+  });
+
+  test("a page larger than the server's batch cap is split into requests it accepts", async () => {
+    const ids: Array<string> = Array.from(
+      { length: SESSION_REPLAY_SESSION_ID_BATCH_MAX + 5 },
+      (_value: unknown, index: number): string => {
+        return `session-${index}`;
+      },
+    );
+
+    postMock.mockImplementation(
+      async (request: PostedRequest): Promise<HTTPResponse<JSONObject>> => {
+        return resolved(
+          (request.data["sessionIds"] as Array<string>).map(
+            (sessionId: string): WireSession => {
+              return { sessionId: sessionId, rumApplicationId: APP_ID };
+            },
+          ),
+        );
+      },
+    );
+
+    const found: Map<
+      string,
+      Awaited<ReturnType<typeof lookup.lookupRumSessionBySessionId>>
+    > = await lookup.lookupRumSessionsBySessionIds(ids);
+
+    expect(postMock).toHaveBeenCalledTimes(2);
+    expect(postedSessionIds(0)).toHaveLength(
+      SESSION_REPLAY_SESSION_ID_BATCH_MAX,
+    );
+    expect(postedSessionIds(1)).toEqual(
+      ids.slice(SESSION_REPLAY_SESSION_ID_BATCH_MAX),
+    );
+    expect(found.size).toBe(ids.length);
+  });
+
+  test("an overlong id is answered locally and does not fail the rest of its page", async () => {
+    const overlong: string = "x".repeat(
+      SESSION_REPLAY_SESSION_ID_MAX_LENGTH + 1,
+    );
+
+    postMock.mockResolvedValueOnce(
+      resolved([{ sessionId: SESSION_A, rumApplicationId: APP_ID }]),
+    );
+
+    const found: Map<
+      string,
+      Awaited<ReturnType<typeof lookup.lookupRumSessionBySessionId>>
+    > = await lookup.lookupRumSessionsBySessionIds([SESSION_A, overlong]);
+
+    expect(postMock).toHaveBeenCalledTimes(1);
+    expect(postedSessionIds()).toEqual([SESSION_A]);
+    expect(Array.from(found.keys())).toEqual([SESSION_A]);
+    expect(await lookup.lookupRumSessionBySessionId(overlong)).toBeUndefined();
+    expect(postMock).toHaveBeenCalledTimes(1);
   });
 
   test("a failed batch rejects and leaves nothing cached", async () => {
-    getListMock.mockRejectedValueOnce(new Error("503"));
+    postMock.mockResolvedValueOnce(
+      new HTTPErrorResponse(503, { message: "Service Unavailable" }, {}),
+    );
 
     await expect(
       lookup.lookupRumSessionsBySessionIds([SESSION_A, SESSION_B]),
-    ).rejects.toThrow("503");
+    ).rejects.toBeInstanceOf(HTTPErrorResponse);
     expect(lookup.getRumSessionLookupCacheSize()).toBe(0);
   });
 
   test("no ids means no read", async () => {
     expect((await lookup.lookupRumSessionsBySessionIds([])).size).toBe(0);
     expect((await lookup.lookupRumSessionsBySessionIds(null)).size).toBe(0);
-    expect(getListMock).not.toHaveBeenCalled();
+    expect(postMock).not.toHaveBeenCalled();
   });
 });
 
 describe("resolveReplayMomentRouteForSession", () => {
   test("resolves the application and builds the moment route through the shared builder", async () => {
-    getListMock.mockResolvedValue(
-      listResult([{ sessionId: SESSION_A, rumApplicationId: APP_ID }]),
+    postMock.mockResolvedValue(
+      resolved([{ sessionId: SESSION_A, rumApplicationId: APP_ID }]),
     );
 
     const at: Date = new Date("2026-08-14T10:05:00.000Z");
@@ -362,7 +537,7 @@ describe("resolveReplayMomentRouteForSession", () => {
   });
 
   test("resolves to undefined for a session with no recording, and rejects on a failed lookup", async () => {
-    getListMock.mockResolvedValueOnce(listResult([]));
+    postMock.mockResolvedValueOnce(resolved([]));
 
     expect(
       await lookup.resolveReplayMomentRouteForSession({
@@ -371,13 +546,15 @@ describe("resolveReplayMomentRouteForSession", () => {
       }),
     ).toBeUndefined();
 
-    getListMock.mockRejectedValueOnce(new Error("503"));
+    postMock.mockResolvedValueOnce(
+      new HTTPErrorResponse(503, { message: "Service Unavailable" }, {}),
+    );
 
     await expect(
       lookup.resolveReplayMomentRouteForSession({
         sessionId: SESSION_B,
         at: Date.now(),
       }),
-    ).rejects.toThrow("503");
+    ).rejects.toBeInstanceOf(HTTPErrorResponse);
   });
 });

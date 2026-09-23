@@ -47,6 +47,14 @@ import Permission, {
 import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import UserType from "../../../Types/UserType";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
+import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../../Types/Billing/SubscriptionPlan";
+import {
+  isTestBillingEnabled,
+  setTestBillingEnabled,
+} from "../Enterprise/TestBillingFlag";
 import zlib from "zlib";
 import {
   afterEach,
@@ -133,6 +141,25 @@ jest.mock("../../../Server/Utils/Response", () => {
   };
 });
 
+/*
+ * The replay plan gate reads IsBillingEnabled. It is made a live switch so
+ * the gate can be exercised, and it starts from whatever the environment
+ * says - exactly what every other test in this file has always run under.
+ */
+jest.mock("../../../Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "../Enterprise/TestBillingFlag",
+    ) as typeof import("../Enterprise/TestBillingFlag");
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../Server/EnvironmentConfig",
+  ) as Record<string, unknown>;
+
+  billingFlag.setTestBillingEnabled(actual["IsBillingEnabled"] === true);
+
+  return billingFlag.withLiveBillingFlag(actual);
+});
+
 const LIST_ROUTE: string = "/telemetry/rum/session-replay/list";
 const SUMMARIES_ROUTE: string = "/telemetry/rum/session-replay/summaries";
 const MANIFEST_ROUTE: string = "/telemetry/rum/session-replay/manifest";
@@ -144,6 +171,7 @@ const INGEST_STATUS_ROUTE: string =
   "/telemetry/rum/session-replay/ingest-status";
 const VIEWS_ROUTE: string = "/telemetry/rum/session-replay/views";
 const USERS_ROUTE: string = "/telemetry/rum/session-replay/users";
+const RESOLVE_ROUTE: string = "/telemetry/rum/session-replay/resolve";
 
 /* A visitor id as the recorder mints it: 32 lowercase hex characters. */
 const VISITOR_ID: string = "0123456789abcdef0123456789abcdef";
@@ -569,10 +597,11 @@ describe("Session replay playback API", () => {
   }
 
   describe("guard shape", () => {
-    test("all nine routes are registered and every one carries the three-middleware guard", () => {
+    test("all ten routes are registered and every one carries the three-middleware guard", () => {
       for (const uri of [
         LIST_ROUTE,
         SUMMARIES_ROUTE,
+        RESOLVE_ROUTE,
         USERS_ROUTE,
         MANIFEST_ROUTE,
         CHUNKS_ROUTE,
@@ -630,6 +659,17 @@ describe("Session replay playback API", () => {
       expect(summaryGuard).toBeDefined();
       expect(summaryGuard).not.toBe(listGuard);
       expect(summaryGuard).not.toBe(payloadGuard);
+      /*
+       * Resolve admits every telemetry reader so a replay link on a log line
+       * cannot 422 a Viewer on each expand; the handler filters to the list
+       * scope. Its own instance, so it can never be mistaken for either.
+       */
+      const resolveGuard: RouterFunction | undefined =
+        findRoute(RESOLVE_ROUTE).handlers[2];
+      expect(resolveGuard).toBeDefined();
+      expect(resolveGuard).not.toBe(listGuard);
+      expect(resolveGuard).not.toBe(payloadGuard);
+      expect(resolveGuard).not.toBe(summaryGuard);
     });
   });
 
@@ -646,6 +686,7 @@ describe("Session replay playback API", () => {
     const allRoutes: Array<string> = [
       LIST_ROUTE,
       SUMMARIES_ROUTE,
+      RESOLVE_ROUTE,
       USERS_ROUTE,
       MANIFEST_ROUTE,
       CHUNKS_ROUTE,
@@ -2826,6 +2867,566 @@ describe("Session replay playback API", () => {
       expect(result.thrownToNext).toBeInstanceOf(BadDataException);
       expect(findOneBySpy).not.toHaveBeenCalled();
       expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * Session id -> application, project-wide, for the replay links on log,
+   * span and exception surfaces. There is no application in the request to
+   * authorize, so every guarantee is about what the answer is FILTERED to:
+   * the caller's session-list label scope, and ids that exactly one
+   * application recorded.
+   */
+  describe("resolve", () => {
+    function principalWith(
+      permissions: Array<Permission>,
+      labelIds: Array<ObjectID> = [],
+    ): {
+      request: JSONObject;
+      databaseProps: DatabaseCommonInteractionProps;
+    } {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: permissions,
+        labelIds: labelIds,
+      });
+
+      mockProps(principal.databaseProps);
+      return principal;
+    }
+
+    function projectApplications(
+      applications: Array<{ id: ObjectID; labelIds: Array<ObjectID> }>,
+    ): void {
+      findBySpy.mockResolvedValue(
+        applications.map(
+          (data: { id: ObjectID; labelIds: Array<ObjectID> }) => {
+            const application: RumApplication = new RumApplication();
+            application.id = data.id;
+            application.projectId = projectId;
+            application.labels = data.labelIds.map(
+              (labelId: ObjectID): Label => {
+                const label: Label = new Label();
+                label.id = labelId;
+                return label;
+              },
+            );
+            return application;
+          },
+        ),
+      );
+    }
+
+    /* One grouped row, as ClickHouse returns it after QUALIFY. */
+    function resolvedRow(data: {
+      sessionId: string;
+      rumApplicationId: ObjectID;
+      startTimeUnixMs?: number;
+      matchedApplicationCount?: number | string;
+    }): JSONObject {
+      return {
+        sessionId: data.sessionId,
+        applicationId: data.rumApplicationId.toString(),
+        aggStartTime: data.startTimeUnixMs ?? 1700000000000,
+        /* UInt64: ClickHouse quotes it in JSON. */
+        matchedApplicationCount: data.matchedApplicationCount ?? "1",
+      };
+    }
+
+    function qualifySection(query: string): string {
+      const index: number = query.indexOf("QUALIFY");
+
+      if (index < 0) {
+        throw new Error("Statement has no QUALIFY section");
+      }
+
+      return query.substring(index);
+    }
+
+    function whereSection(query: string): string {
+      return query.substring(query.indexOf("WHERE"), query.indexOf("GROUP BY"));
+    }
+
+    test("resolves a page of ids project-wide, in request order, from one argMax query", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          resolvedRow({
+            sessionId: "session-b",
+            rumApplicationId: applicationAId,
+            startTimeUnixMs: 1700000200000,
+          }),
+          resolvedRow({
+            sessionId: "session-a",
+            rumApplicationId: applicationBId,
+            startTimeUnixMs: 1700000100000,
+          }),
+          /* An unsolicited driver row never reaches the answer. */
+          resolvedRow({
+            sessionId: "not-requested",
+            rumApplicationId: applicationAId,
+          }),
+        ]) as never,
+      );
+
+      const otherProjectId: ObjectID = ObjectID.generate();
+      const result: CallResult = await callRoute({
+        uri: RESOLVE_ROUTE,
+        request: principal.request,
+        body: {
+          sessionIds: ["session-a", "session-b", "session-a", "missing"],
+          /* Caller-supplied tenancy and application are both ignored. */
+          projectId: otherProjectId.toString(),
+          rumApplicationId: applicationAId.toString(),
+        },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.reachedHandler).toBe(true);
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+      expect(chunkQuerySpy).not.toHaveBeenCalled();
+      /* Unrestricted: no application scan, no application load. */
+      expect(findBySpy).not.toHaveBeenCalled();
+      expect(findOneBySpy).not.toHaveBeenCalled();
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+      const values: Array<unknown> = Object.values(statement.query_params);
+
+      expect(statement.query).toContain("sessionId IN (");
+      expect(statement.query).toContain(
+        "GROUP BY projectId, rumApplicationId, sessionId",
+      );
+      expect(statement.query).toContain("argMax(startTime, version)");
+      expect(statement.query).toContain(
+        "count() OVER (PARTITION BY sessionId)",
+      );
+      expect(statement.query).toContain("QUALIFY matchedApplicationCount = 1");
+      expect(statement.query).toContain("retentionDate >= now()");
+      expect(statement.query).not.toContain("rumApplicationId IN (");
+      expect(statement.query).not.toContain("rumApplicationId = ");
+
+      for (const forbiddenColumn of [
+        "identifiedUserKey",
+        "identifiedUserLabel",
+        "identifiedUserTraits",
+        "visitorId",
+        "payload",
+        "entryUrl",
+      ]) {
+        expect(statement.query).not.toContain(forbiddenColumn);
+      }
+
+      expect(values).toContain(projectId.toString());
+      expect(values).not.toContain(otherProjectId.toString());
+      expect(values).not.toContain(applicationAId.toString());
+      expect(values).toContainEqual(["session-a", "session-b", "missing"]);
+
+      expect(result.jsonBody).toEqual({
+        sessions: [
+          {
+            sessionId: "session-a",
+            rumApplicationId: applicationBId.toString(),
+            startTime: new Date(1700000100000),
+            startTimeUnixMs: 1700000100000,
+          },
+          {
+            sessionId: "session-b",
+            rumApplicationId: applicationAId.toString(),
+            startTime: new Date(1700000200000),
+            startTimeUnixMs: 1700000200000,
+          },
+        ],
+        isApplicationScopeTruncated: false,
+      });
+    });
+
+    test.each([
+      { name: "ProjectAdmin", permission: Permission.ProjectAdmin },
+      { name: "TelemetryAdmin", permission: Permission.TelemetryAdmin },
+      {
+        name: "ReadRumSessionReplay",
+        permission: Permission.ReadRumSessionReplay,
+      },
+      /* Watching implies listing, here as on /list. */
+      {
+        name: "ReadRumSessionReplayPayload",
+        permission: Permission.ReadRumSessionReplayPayload,
+      },
+    ])(
+      "an unscoped $name grant resolves across the whole project",
+      async ({ permission }: { permission: Permission }) => {
+        const principal: {
+          request: JSONObject;
+          databaseProps: DatabaseCommonInteractionProps;
+        } = principalWith([permission]);
+
+        headerQuerySpy.mockResolvedValue(
+          fakeResultSet([
+            resolvedRow({
+              sessionId: "session-a",
+              rumApplicationId: applicationAId,
+            }),
+          ]) as never,
+        );
+
+        const result: CallResult = await callRoute({
+          uri: RESOLVE_ROUTE,
+          request: principal.request,
+          body: { sessionIds: ["session-a"] },
+        });
+
+        expect(result.deniedWith).toBeUndefined();
+        expect(result.thrownToNext).toBeUndefined();
+        expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+        expect(
+          (headerQuerySpy.mock.calls[0]![0] as Statement).query,
+        ).not.toContain("rumApplicationId IN (");
+        expect(
+          ((result.jsonBody as JSONObject)["sessions"] as Array<JSONObject>)[0]?.[
+            "rumApplicationId"
+          ],
+        ).toBe(applicationAId.toString());
+      },
+    );
+
+    test("a label-scoped caller is filtered to its applications AFTER the ambiguity count", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplay], [labelAId]);
+
+      projectApplications([
+        { id: applicationAId, labelIds: [labelAId] },
+        { id: applicationBId, labelIds: [labelBId] },
+      ]);
+
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          resolvedRow({
+            sessionId: "session-a",
+            rumApplicationId: applicationAId,
+          }),
+          /*
+           * A row QUALIFY should have removed. Even so, it must never tell
+           * this caller which application recorded session-b.
+           */
+          resolvedRow({
+            sessionId: "session-b",
+            rumApplicationId: applicationBId,
+          }),
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: RESOLVE_ROUTE,
+        request: principal.request,
+        body: { sessionIds: ["session-a", "session-b"] },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(result.thrownToNext).toBeUndefined();
+      expect(findBySpy).toHaveBeenCalledTimes(1);
+
+      const statement: Statement = headerQuerySpy.mock
+        .calls[0]![0] as Statement;
+
+      /*
+       * In QUALIFY, not WHERE: counted before filtering, an id shared with
+       * an application outside the caller's labels still counts as two.
+       */
+      expect(qualifySection(statement.query)).toContain(
+        "rumApplicationId IN (",
+      );
+      expect(whereSection(statement.query)).not.toContain("rumApplicationId");
+      expect(Object.values(statement.query_params)).toContainEqual([
+        applicationAId.toString(),
+      ]);
+      expect(Object.values(statement.query_params)).not.toContainEqual([
+        applicationAId.toString(),
+        applicationBId.toString(),
+      ]);
+
+      expect(result.jsonBody?.["sessions"]).toEqual([
+        {
+          sessionId: "session-a",
+          rumApplicationId: applicationAId.toString(),
+          startTime: new Date(1700000000000),
+          startTimeUnixMs: 1700000000000,
+        },
+      ]);
+    });
+
+    test("a label-scoped caller whose labels reach no application gets an empty success and no query", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplay], [labelAId]);
+
+      projectApplications([{ id: applicationBId, labelIds: [labelBId] }]);
+
+      const result: CallResult = await callRoute({
+        uri: RESOLVE_ROUTE,
+        request: principal.request,
+        body: { sessionIds: ["session-a"] },
+      });
+
+      expect(result.deniedWith).toBeUndefined();
+      expect(result.thrownToNext).toBeUndefined();
+      expect(result.jsonBody).toEqual({
+        sessions: [],
+        isApplicationScopeTruncated: false,
+      });
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    /*
+     * The surfaces that call this are open to every telemetry reader. A 422
+     * for them would reject the Dashboard lookup on every expanded row, and
+     * a rejection is the one answer it does not cache. They hold no list
+     * grant, so the answer is empty - and it is empty WITHOUT a read.
+     */
+    test.each([
+      { name: "Viewer", permission: Permission.Viewer },
+      { name: "ProjectMember", permission: Permission.ProjectMember },
+      { name: "TelemetryMember", permission: Permission.TelemetryMember },
+      { name: "TelemetryViewer", permission: Permission.TelemetryViewer },
+      {
+        name: "ReadTelemetryServiceLog",
+        permission: Permission.ReadTelemetryServiceLog,
+      },
+      {
+        name: "ReadTelemetryServiceTraces",
+        permission: Permission.ReadTelemetryServiceTraces,
+      },
+      {
+        name: "ReadTelemetryException",
+        permission: Permission.ReadTelemetryException,
+      },
+    ])(
+      "a $name without a session-list grant gets an empty success and reads nothing",
+      async ({ permission }: { permission: Permission }) => {
+        const principal: {
+          request: JSONObject;
+          databaseProps: DatabaseCommonInteractionProps;
+        } = principalWith([permission]);
+
+        headerQuerySpy.mockResolvedValue(
+          fakeResultSet([
+            resolvedRow({
+              sessionId: "session-a",
+              rumApplicationId: applicationAId,
+            }),
+          ]) as never,
+        );
+
+        const result: CallResult = await callRoute({
+          uri: RESOLVE_ROUTE,
+          request: principal.request,
+          body: { sessionIds: ["session-a"] },
+        });
+
+        expect(result.deniedWith).toBeUndefined();
+        expect(result.thrownToNext).toBeUndefined();
+        expect(result.reachedHandler).toBe(true);
+        expect(result.jsonBody).toEqual({
+          sessions: [],
+          isApplicationScopeTruncated: false,
+        });
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+        expect(findBySpy).not.toHaveBeenCalled();
+      },
+    );
+
+    test("a role outside both the telemetry and session-list tiers is refused by the guard", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ReadRumSessionReplayAudit]);
+
+      const result: CallResult = await callRoute({
+        uri: RESOLVE_ROUTE,
+        request: principal.request,
+        body: { sessionIds: ["session-a"] },
+      });
+
+      expect(result.deniedWith).toBeInstanceOf(NotAuthorizedException);
+      expect(result.reachedHandler).toBe(false);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("an Owned-scoped list grant is refused rather than widened to the project", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = buildPrincipal({
+        projectId: projectId,
+        userId: userId,
+        permissions: [Permission.ReadRumSessionReplay],
+        scope: PermissionScope.Owned,
+      });
+
+      mockProps(principal.databaseProps);
+      projectApplications([{ id: applicationAId, labelIds: [labelAId] }]);
+
+      const result: CallResult = await callRoute({
+        uri: RESOLVE_ROUTE,
+        request: principal.request,
+        body: { sessionIds: ["session-a"] },
+      });
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("an id recorded under more than one application is left out, not guessed", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          resolvedRow({
+            sessionId: "session-a",
+            rumApplicationId: applicationAId,
+          }),
+          resolvedRow({
+            sessionId: "shared",
+            rumApplicationId: applicationAId,
+            matchedApplicationCount: "2",
+          }),
+        ]) as never,
+      );
+
+      const result: CallResult = await callRoute({
+        uri: RESOLVE_ROUTE,
+        request: principal.request,
+        body: { sessionIds: ["session-a", "shared"] },
+      });
+
+      expect(
+        (result.jsonBody?.["sessions"] as Array<JSONObject>).map(
+          (row: JSONObject): unknown => {
+            return row["sessionId"];
+          },
+        ),
+      ).toEqual(["session-a"]);
+    });
+
+    test("the plan gate refuses before any read", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      principal.databaseProps.currentPlan = PlanType.Free;
+
+      const planCheck: jest.SpyInstance = jest
+        .spyOn(SubscriptionPlan, "isFeatureAccessibleOnCurrentPlan")
+        .mockReturnValue(false);
+
+      const wasBillingEnabled: boolean = isTestBillingEnabled();
+
+      setTestBillingEnabled(true);
+
+      try {
+        const result: CallResult = await callRoute({
+          uri: RESOLVE_ROUTE,
+          request: principal.request,
+          body: { sessionIds: ["session-a"] },
+        });
+
+        expect(result.thrownToNext).toBeInstanceOf(PaymentRequiredException);
+        expect(planCheck).toHaveBeenCalledWith(
+          PlanType.Growth,
+          PlanType.Free,
+          expect.anything(),
+        );
+        expect(findBySpy).not.toHaveBeenCalled();
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+      } finally {
+        setTestBillingEnabled(wasBillingEnabled);
+      }
+    });
+
+    test.each([
+      { name: "a missing array", sessionIds: undefined },
+      { name: "a scalar", sessionIds: "session-a" },
+      { name: "an empty array", sessionIds: [] },
+      { name: "an empty id", sessionIds: [""] },
+      { name: "a numeric id", sessionIds: [123] },
+      {
+        name: "an overlong id",
+        sessionIds: ["x".repeat(MAX_SESSION_REPLAY_SESSION_ID_LENGTH + 1)],
+      },
+      {
+        name: "an oversized batch of one repeated id",
+        sessionIds: Array<string>(
+          MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE + 1,
+        ).fill("session-a"),
+      },
+    ])(
+      "rejects $name before authorization or querying",
+      async ({ sessionIds }: { sessionIds: unknown }) => {
+        const principal: {
+          request: JSONObject;
+          databaseProps: DatabaseCommonInteractionProps;
+        } = principalWith([Permission.ReadRumSessionReplay], [labelAId]);
+
+        const body: JSONObject = {};
+
+        if (sessionIds !== undefined) {
+          body["sessionIds"] = sessionIds as never;
+        }
+
+        const result: CallResult = await callRoute({
+          uri: RESOLVE_ROUTE,
+          request: principal.request,
+          body: body,
+        });
+
+        expect(result.thrownToNext).toBeInstanceOf(BadDataException);
+        expect(findBySpy).not.toHaveBeenCalled();
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+      },
+    );
+
+    test("accepts exactly the batch cap and binds every id once", async () => {
+      const principal: {
+        request: JSONObject;
+        databaseProps: DatabaseCommonInteractionProps;
+      } = principalWith([Permission.ProjectOwner]);
+
+      const sessionIds: Array<string> = Array.from(
+        { length: MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE },
+        (_value: unknown, index: number): string => {
+          return `session-${index}`;
+        },
+      );
+
+      const result: CallResult = await callRoute({
+        uri: RESOLVE_ROUTE,
+        request: principal.request,
+        body: { sessionIds: sessionIds },
+      });
+
+      expect(result.thrownToNext).toBeUndefined();
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+      expect(
+        Object.values(
+          (headerQuerySpy.mock.calls[0]![0] as Statement).query_params,
+        ),
+      ).toContainEqual(sessionIds);
     });
   });
 
