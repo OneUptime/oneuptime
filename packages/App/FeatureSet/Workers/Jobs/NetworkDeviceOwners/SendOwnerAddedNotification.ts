@@ -124,7 +124,7 @@ RunCron(
         continue;
       }
 
-      const users: Array<User> = deviceOwnersMap[
+      const ownerUsers: Array<User> = deviceOwnersMap[
         networkDeviceId
       ] as Array<User>;
 
@@ -146,6 +146,22 @@ RunCron(
         });
 
       if (!networkDevice) {
+        continue;
+      }
+
+      /*
+       * A team row expands to every member row, pending invitations included,
+       * and a pending invitee has no notification settings yet (the defaults
+       * are added on accept). Tell only the accepted members of the project -
+       * the same people findOwners reports as owners.
+       */
+      const users: Array<User> =
+        await TeamMemberService.filterUsersToProjectMembers({
+          projectId: networkDevice.projectId!,
+          users: ownerUsers,
+        });
+
+      if (users.length === 0) {
         continue;
       }
 

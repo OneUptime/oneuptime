@@ -1,5 +1,6 @@
 import {
   SESSION_REPLAY_IDLE_ROLLOVER_MS,
+  SESSION_REPLAY_MAX_OFFLINE_DELAY_MS,
   SESSION_REPLAY_MAX_SESSION_MS,
   SESSION_REPLAY_VISITOR_ID_PATTERN,
 } from "../../Types/Rum/SessionReplay";
@@ -174,6 +175,49 @@ export default class SessionIdentity {
     }
 
     return clientReportedStartUnixMs;
+  }
+
+  /*
+   * How long a chunk waited on the device between being recorded and being
+   * sent: offline mode's queue, a retry backoff, a tab reopened the next day
+   * that uploaded what an offline pagehide persisted.
+   *
+   * Measured entirely on the DEVICE's clock - the send stamp minus the
+   * chunk's own end - so a device clock that is hours wrong still measures
+   * the wait correctly: the error is in both terms and cancels. Ingest uses
+   * it to move its reference instant back by the wait before clamping the
+   * session start, which is what keeps a recording that was uploaded late
+   * on its real timeline instead of pinned to "four hours before it
+   * arrived".
+   *
+   * Zero when the recorder did not say (an older recorder, whose send stamp
+   * is when the chunk closed) or said something impossible, and never more
+   * than SESSION_REPLAY_MAX_OFFLINE_DELAY_MS: a recorder discards what it
+   * held longer than that, so anything claiming more is a broken clock, and
+   * the bound keeps a lying device from filing its session in a partition
+   * from last year.
+   */
+  public static getClientQueueDelayMs(data: {
+    sessionStartUnixMs: number;
+    chunkEndOffsetMs: number;
+    clientSendUnixMs: number;
+  }): number {
+    const recordedUntilUnixMs: number =
+      data.sessionStartUnixMs + data.chunkEndOffsetMs;
+
+    if (
+      !Number.isFinite(recordedUntilUnixMs) ||
+      !Number.isFinite(data.clientSendUnixMs) ||
+      data.sessionStartUnixMs <= 0 ||
+      data.clientSendUnixMs <= recordedUntilUnixMs
+    ) {
+      return 0;
+    }
+
+    return Math.min(
+      data.clientSendUnixMs - recordedUntilUnixMs,
+      SESSION_REPLAY_MAX_OFFLINE_DELAY_MS,
+    );
   }
 
   /*

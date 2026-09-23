@@ -12,6 +12,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Navigation from "Common/UI/Utils/Navigation";
 import Route from "Common/Types/API/Route";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -31,6 +32,9 @@ export const SECURITY_EVENT_DETAIL_OVERVIEW_TAB_ID: string = "overview";
 export const SECURITY_EVENT_DETAIL_ATTRIBUTES_TAB_ID: string = "attributes";
 export const SECURITY_EVENT_DETAIL_JSON_TAB_ID: string = "json";
 
+export const SECURITY_EVENT_DETAIL_JSON_TEST_ID: string =
+  "security-event-detail-json";
+
 export interface ComponentProps {
   securityEvent: SecurityEvent;
   onClose: () => void;
@@ -47,6 +51,14 @@ export interface ComponentProps {
    * correlation graph passes its own so the pivot happens in place.
    */
   onCorrelateObservable?: ((observable: string) => void) | undefined;
+  /*
+   * The attribute keys the list behind the panel shows on its rows, and how
+   * to add or remove one. Lets a reader who finds the attribute they care
+   * about here put it on every row without hunting for it in the picker.
+   * Without a toggle the Attributes tab offers no column action.
+   */
+  attributeColumnKeys?: Array<string> | undefined;
+  onToggleAttributeColumn?: ((attributeKey: string) => void) | undefined;
 }
 
 const FilterByButton: FunctionComponent<{
@@ -66,16 +78,54 @@ const FilterByButton: FunctionComponent<{
   );
 };
 
+/*
+ * Shows or hides one attribute as a chip on the list's rows. Stays visible
+ * (and tinted) while the attribute is shown, so a reader can see which ones
+ * are already on the rows without hovering each.
+ */
+const AttributeColumnButton: FunctionComponent<{
+  attributeKey: string;
+  isShown: boolean;
+  onClick: () => void;
+}> = (props: {
+  attributeKey: string;
+  isShown: boolean;
+  onClick: () => void;
+}): ReactElement => {
+  const label: string = props.isShown
+    ? `Stop showing ${props.attributeKey} on event rows`
+    : `Show ${props.attributeKey} on event rows`;
+
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={props.isShown}
+      title={label}
+      className={`flex-shrink-0 rounded p-0.5 transition-colors hover:bg-gray-100 ${
+        props.isShown
+          ? "text-indigo-600 hover:text-indigo-700"
+          : "text-gray-300 hover:text-indigo-600 group-hover:text-gray-400"
+      }`}
+      onClick={props.onClick}
+    >
+      <Icon icon={IconProp.ViewColumns} className="h-3 w-3" />
+    </button>
+  );
+};
+
 const FieldRow: FunctionComponent<{
   label: string;
   value: ReactElement | string;
   onFilter?: (() => void) | undefined;
   filterLabel?: string | undefined;
+  actions?: ReactElement | undefined;
 }> = (props: {
   label: string;
   value: ReactElement | string;
   onFilter?: (() => void) | undefined;
   filterLabel?: string | undefined;
+  actions?: ReactElement | undefined;
 }): ReactElement => {
   return (
     <div className="group grid grid-cols-3 gap-3 px-3 py-2 text-sm">
@@ -90,6 +140,7 @@ const FieldRow: FunctionComponent<{
             onClick={props.onFilter}
           />
         )}
+        {props.actions}
       </dd>
     </div>
   );
@@ -110,6 +161,14 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
   const [activeTabId, setActiveTabId] = useState<string>(
     SECURITY_EVENT_DETAIL_OVERVIEW_TAB_ID,
   );
+  /*
+   * A detection's attributes hold long values (base64 tokens, escaped JSON
+   * labels) on keys that are already long, so unwrapped lines ran off the
+   * drawer's edge — and the only horizontal scrollbar sat at the bottom of
+   * hundreds of lines. Wrapped by default; unwrapped is still there for
+   * anyone who would rather scroll.
+   */
+  const [isJsonWrapped, setIsJsonWrapped] = useState<boolean>(true);
   const event: SecurityEvent = props.securityEvent;
 
   const overviewFields: Array<SecurityEventDetailField> = useMemo(() => {
@@ -123,6 +182,14 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
   const attributeKeys: Array<string> = useMemo(() => {
     return Object.keys(attributes).sort();
   }, [attributes]);
+
+  const jsonText: string = useMemo(() => {
+    return JSON.stringify(buildSecurityEventJson(event), null, 2);
+  }, [event]);
+
+  const attributeColumnKeys: Set<string> = useMemo(() => {
+    return new Set(props.attributeColumnKeys || []);
+  }, [props.attributeColumnKeys]);
 
   const observables: Array<string> = useMemo(() => {
     return (event.observables || []).filter((observable: string): boolean => {
@@ -152,7 +219,7 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
   const time: Date | null = event.time ? new Date(event.time) : null;
 
   const overview: ReactElement = (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4">
       <dl className="divide-y divide-gray-100 rounded-md border border-gray-200">
         {time && (
           <FieldRow
@@ -225,45 +292,101 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
     </div>
   );
 
-  const attributesTab: ReactElement =
-    attributeKeys.length === 0 ? (
-      <p className="text-sm text-gray-500">
-        No attributes recorded for this event.
-      </p>
-    ) : (
-      <dl className="divide-y divide-gray-100 rounded-md border border-gray-200">
-        {attributeKeys.map((key: string): ReactElement => {
-          const value: string = String(attributes[key] ?? "");
+  const attributesTab: ReactElement = (
+    <div className="p-4">
+      {attributeKeys.length === 0 ? (
+        <p className="text-sm text-gray-500">
+          No attributes recorded for this event.
+        </p>
+      ) : (
+        <dl className="divide-y divide-gray-100 rounded-md border border-gray-200">
+          {attributeKeys.map((key: string): ReactElement => {
+            const value: string = String(attributes[key] ?? "");
 
-          return (
-            <FieldRow
-              key={key}
-              label={key}
-              value={value}
-              filterLabel={`Filter by ${key}`}
-              onFilter={
-                props.onFilterBy && value.length > 0
-                  ? () => {
-                      props.onFilterBy?.(
-                        `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${key}`,
-                        value,
-                      );
-                    }
-                  : undefined
-              }
-            />
-          );
-        })}
-      </dl>
-    );
+            return (
+              <FieldRow
+                key={key}
+                label={key}
+                value={value}
+                filterLabel={`Filter by ${key}`}
+                onFilter={
+                  props.onFilterBy && value.length > 0
+                    ? () => {
+                        props.onFilterBy?.(
+                          `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${key}`,
+                          value,
+                        );
+                      }
+                    : undefined
+                }
+                actions={
+                  props.onToggleAttributeColumn ? (
+                    <AttributeColumnButton
+                      attributeKey={key}
+                      isShown={attributeColumnKeys.has(key)}
+                      onClick={() => {
+                        props.onToggleAttributeColumn?.(key);
+                      }}
+                    />
+                  ) : undefined
+                }
+              />
+            );
+          })}
+        </dl>
+      )}
+    </div>
+  );
 
   const jsonTab: ReactElement = (
-    <pre
-      data-testid="security-event-detail-json"
-      className="overflow-x-auto rounded-md border border-gray-200 bg-gray-50 p-3 text-[11px] leading-relaxed text-gray-800"
-    >
-      {JSON.stringify(buildSecurityEventJson(event), null, 2)}
-    </pre>
+    <div className="px-4 pb-4">
+      {/*
+       * Sticky, because a detection's record runs to hundreds of lines and
+       * the reader who wants to copy it is usually at the bottom by then.
+       */}
+      <div className="sticky top-0 z-10 flex items-center justify-end gap-2 bg-white py-2">
+        <button
+          type="button"
+          aria-pressed={isJsonWrapped}
+          title={
+            isJsonWrapped
+              ? "Stop wrapping long lines"
+              : "Wrap long lines to fit the panel"
+          }
+          className={`inline-flex items-center rounded-md border px-2 py-1 text-xs transition-colors ${
+            isJsonWrapped
+              ? "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+              : "border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+          onClick={() => {
+            setIsJsonWrapped(!isJsonWrapped);
+          }}
+        >
+          Wrap lines
+        </button>
+        <CopyTextButton
+          textToBeCopied={jsonText}
+          size="sm"
+          variant="soft"
+          label="Copy JSON"
+          title="Copy JSON to clipboard"
+        />
+      </div>
+      <pre
+        data-testid={SECURITY_EVENT_DETAIL_JSON_TEST_ID}
+        className={`rounded-md border border-gray-200 bg-gray-50 p-3 text-[11px] leading-relaxed text-gray-800 ${
+          isJsonWrapped
+            ? "whitespace-pre-wrap break-words"
+            : /*
+               * Unwrapped, the block scrolls within itself so its sideways
+               * scrollbar is on screen, not below the last of its lines.
+               */
+              "max-h-[70vh] overflow-auto whitespace-pre"
+        }`}
+      >
+        {jsonText}
+      </pre>
+    </div>
   );
 
   const tabs: Array<TelemetryDetailPanelTab> = [

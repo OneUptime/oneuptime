@@ -125,7 +125,9 @@ RunCron(
         continue;
       }
 
-      const users: Array<User> = monitorOwnersMap[monitorId] as Array<User>;
+      const ownerUsers: Array<User> = monitorOwnersMap[
+        monitorId
+      ] as Array<User>;
 
       // get all scheduled events of all the projects.
       const monitor: Monitor | null = await MonitorService.findOneById({
@@ -151,6 +153,22 @@ RunCron(
       });
 
       if (!monitor) {
+        continue;
+      }
+
+      /*
+       * A team row expands to every member row, pending invitations included,
+       * and a pending invitee has no notification settings yet (the defaults
+       * are added on accept). Tell only the accepted members of the project -
+       * the same people findOwners reports as owners.
+       */
+      const users: Array<User> =
+        await TeamMemberService.filterUsersToProjectMembers({
+          projectId: monitor.projectId!,
+          users: ownerUsers,
+        });
+
+      if (users.length === 0) {
         continue;
       }
 

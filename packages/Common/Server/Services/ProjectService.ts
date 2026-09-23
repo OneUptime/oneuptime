@@ -2792,7 +2792,16 @@ These are no longer recorded against the project and have to be cancelled by han
       },
     );
 
-    return TeamMemberService.getUsersInTeams(teamIds);
+    /*
+     * Accepted rows only. A pending invitation to an owner team grants no
+     * ProjectOwner permission and comes with no notification settings, so the
+     * owner jobs that fall back to this list recorded such invitees as
+     * notified while nothing reached them, and the owner emails sent from here
+     * reached someone who never joined. Acceptance is per team row, so this
+     * also leaves out a member of another team whose invitation to the owner
+     * team is still pending.
+     */
+    return TeamMemberService.getUsersInTeams(teamIds, { acceptedOnly: true });
   }
 
   @CaptureSpan()

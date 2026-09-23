@@ -46,6 +46,7 @@ The script at `/v1/recorder.js` is a small loader. It fetches your application's
 | `data-oneuptime-user-ref` | no | The end-user reference known at page load (a user id, never an email you would not want stored). The same thing `identify()` sets later; it is the only form that works for [Record a specific user's next session](#recording-a-specific-users-next-session). |
 | `data-oneuptime-respect-do-not-track` | no | Defaults to honouring Do Not Track and Global Privacy Control. Set it to `"false"` to record regardless of the signal; see [Do Not Track](#do-not-track). |
 | `data-oneuptime-debug` | no | `"true"` prints the recorder's decisions to the console. See [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting). |
+| `data-oneuptime-offline-storage` | no | Set it to `"false"` to keep chunks recorded while the visitor is offline in memory only, instead of also in the browser's IndexedDB. See [Offline mode](#offline-mode). |
 
 The same options can be supplied on a global instead of the tag, which is what tag managers and bundled installs use:
 
@@ -57,6 +58,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   userRef: "user-123", // optional
   respectDoNotTrack: true, // optional
   debug: false, // optional
+  offlineStorage: true, // optional; false keeps offline chunks in memory only
 };
 ```
 
@@ -118,7 +120,7 @@ Import `OneUptimeReplay` directly, or call `useOneUptimeReplay()` below the prov
 
 | Method | What it does |
 | --- | --- |
-| `start(options)` | Fetch policy and start capture. Required options are `host`, `token`, `appIdentifier` and `mobileAppIdentifier`; `appName` and `appVersion` are optional display metadata. |
+| `start(options)` | Fetch policy and start capture. Required options are `host`, `token`, `appIdentifier` and `mobileAppIdentifier`; `appName` and `appVersion` are optional display metadata, and `connectivity` is an optional network-state source for [offline mode](#offline-mode). |
 | `stop()` | Flush what can be sent, stop capture and detach lifecycle handlers. |
 | `identify(userRef, traits?)` | Attach the signed-in user and optional traits, subject to **Capture user identity**. |
 | `setTags(tags)` / `addTag(key, value)` | Replace all searchable session tags, or add one tag without replacing the others. |
@@ -606,6 +608,18 @@ Honest limits, so "armed" is not misread as "guaranteed":
 - Your page must supply the reference **at load time** — the `data-oneuptime-user-ref` attribute or `userRef` on the init global — because the target is matched when the policy is fetched, before the recorder artifact exists. A reference set later via `identify()` is too late for that page load, though it still makes the session searchable by `user:`.
 - Consent still applies. A targeted session in _Require explicit_ mode uploads nothing until your page grants consent.
 - The target expires after 24 hours, is consumed by the first matching page load, and only a keyed hash of the reference is stored server-side.
+
+## Offline mode
+
+Both recorders keep recording when the device loses its connection, and upload everything they recorded, in order and under the same session, when it comes back. Nothing needs configuring.
+
+- **An outage is not a failure.** A request that never reaches OneUptime does not count against the recorder's circuit breaker or against the chunk, however long the outage lasts. Throttles from the server are waited out the same way. (The browser recorder still counts a failure before its very first successful upload, because that is also what an ad blocker refusing the upload URL looks like.)
+- **It uploads as soon as it can.** The browser recorder sends nothing while the browser reports itself offline and drains the backlog on the browser's `online` event; the React Native SDK retries with a gentle backoff, again when the app returns to the foreground, and immediately if you pass a `connectivity` source such as NetInfo: `connectivity: { subscribe: (listener) => NetInfo.addEventListener((state) => listener(state.isConnected)) }`.
+- **A closed tab or a killed app loses nothing.** The browser recorder also writes what it has queued to the browser's IndexedDB (database `oneuptime-session-replay`), including the last seconds of a tab closed while offline, and the next page of your application that loads with a connection uploads it. The React Native SDK keeps its queue in AsyncStorage, compressed, and uploads it on the next launch. An app launched with no connection records under the last policy it was given (at most three days old) and fetches a fresh one when it can.
+- **Recordings keep their real time.** A session recorded on a flight and uploaded on landing appears in the session list at the time it happened, not the time it arrived.
+- **Bounded and private.** The browser queue holds up to 240 chunks or 4 MB, the mobile outbox 240 chunks or 3 MB compressed; past that the oldest chunks are dropped and the player shows the gap. What is stored is the same masked content that would have been uploaded, is deleted after three days if it was never sent, and is deleted at once by `revokeConsent()`. A page that has not been given consent uploads nothing an earlier page stored. Set `data-oneuptime-offline-storage="false"` to keep queued chunks in memory only.
+
+A web page that is _loaded_ while offline does not record: the recorder has to fetch your application's policy from OneUptime before it starts.
 
 ## What is not recorded
 

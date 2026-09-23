@@ -126,7 +126,9 @@ RunCron(
         continue;
       }
 
-      const users: Array<User> = incidentOwnersMap[incidentId] as Array<User>;
+      const ownerUsers: Array<User> = incidentOwnersMap[
+        incidentId
+      ] as Array<User>;
 
       // get all scheduled events of all the projects.
       const incident: Incident | null = await IncidentService.findOneById({
@@ -158,6 +160,22 @@ RunCron(
       });
 
       if (!incident) {
+        continue;
+      }
+
+      /*
+       * A team row expands to every member row, pending invitations included,
+       * and a pending invitee has no notification settings yet (the defaults
+       * are added on accept). Tell only the accepted members of the project -
+       * the same people findOwners reports as owners.
+       */
+      const users: Array<User> =
+        await TeamMemberService.filterUsersToProjectMembers({
+          projectId: incident.projectId!,
+          users: ownerUsers,
+        });
+
+      if (users.length === 0) {
         continue;
       }
 

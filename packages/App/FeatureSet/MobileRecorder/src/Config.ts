@@ -4,6 +4,7 @@ import {
   MOBILE_RECORDER_KIND,
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
   SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_MAX_OFFLINE_DELAY_MS,
   SESSION_REPLAY_MAX_USER_REF_LENGTH,
   SESSION_REPLAY_RECORDER_KIND_HEADER,
   SESSION_REPLAY_USER_REF_HEADER,
@@ -12,6 +13,7 @@ import {
   SessionReplayConsentMode,
   SessionReplayMaskingMode,
 } from "./Contract";
+import { ReplayStorage } from "./Storage";
 
 export const CONFIG_FETCH_TIMEOUT_MS: number = 5_000;
 
@@ -50,6 +52,28 @@ export interface MobileReplayStartOptions {
   captureIntervalMs?: number;
   fetch?: ReplayFetch;
   debug?: boolean;
+  /**
+   * Optional connectivity source for offline mode. Recording never depends
+   * on it: without one, a lost connection is noticed when an upload fails
+   * and the backlog is retried with backoff and whenever the app returns to
+   * the foreground. With one, nothing is attempted while it says the device
+   * is offline, and the backlog uploads the moment it says it is back. With
+   * `@react-native-community/netinfo`:
+   *
+   *   connectivity: {
+   *     subscribe: (listener) =>
+   *       NetInfo.addEventListener((state) => listener(state.isConnected)),
+   *   }
+   */
+  connectivity?: ReplayConnectivity;
+}
+
+export interface ReplayConnectivity {
+  /**
+   * Call `listener` with whether the device has a connection now and on
+   * every change (null when unknown), and return a function that stops.
+   */
+  subscribe(listener: (isConnected: boolean | null) => void): () => void;
 }
 
 export interface ResolvedReplayConfig {
@@ -294,6 +318,101 @@ export function normalizeReplayConfig(value: unknown): ResolvedReplayConfig {
     resolved.disabledReason = "disabled";
   }
   return resolved;
+}
+
+/*
+ * Offline mode: the last policy the server gave this app, kept so that an
+ * app launched WITHOUT a connection still records - and uploads when the
+ * connection returns - instead of failing closed on a config request that
+ * could never succeed. Only ever used when the config request itself failed
+ * to get an answer (see isRetryablePolicyFailure's callers); an answer
+ * saying replay is off deletes it. Never older than the offline delay, and
+ * never "targeted": record-next-session is a live decision the server makes
+ * again when the connection is back.
+ */
+interface CachedReplayConfig {
+  savedAtUnixMs: number;
+  config: ResolvedReplayConfig;
+}
+
+export function replayConfigCacheKey(namespace: string): string {
+  return `@oneuptime/replay/${namespace}/config`;
+}
+
+export async function saveReplayConfig(
+  storage: ReplayStorage,
+  namespace: string,
+  config: ResolvedReplayConfig,
+  nowUnixMs: number,
+): Promise<void> {
+  try {
+    if (!config.enabled) {
+      await storage.removeItem(replayConfigCacheKey(namespace));
+      return;
+    }
+
+    const cached: CachedReplayConfig = {
+      savedAtUnixMs: nowUnixMs,
+      config: { ...config, isTargeted: false },
+    };
+    await storage.setItem(
+      replayConfigCacheKey(namespace),
+      JSON.stringify(cached),
+    );
+  } catch {
+    /* A policy that is not cached only means an offline launch does not record. */
+  }
+}
+
+/* Consent withdrawn: nothing of the recorder's stays on the device. */
+export async function forgetReplayConfig(
+  storage: ReplayStorage,
+  namespace: string,
+): Promise<void> {
+  try {
+    await storage.removeItem(replayConfigCacheKey(namespace));
+  } catch {
+    /* Best-effort privacy cleanup. */
+  }
+}
+
+export async function loadCachedReplayConfig(
+  storage: ReplayStorage,
+  namespace: string,
+  nowUnixMs: number,
+): Promise<ResolvedReplayConfig | null> {
+  try {
+    const raw: string | null = await storage.getItem(
+      replayConfigCacheKey(namespace),
+    );
+    if (!raw) {
+      return null;
+    }
+
+    const cached: Partial<CachedReplayConfig> = JSON.parse(
+      raw,
+    ) as Partial<CachedReplayConfig>;
+    const age: number = nowUnixMs - Number(cached.savedAtUnixMs);
+    if (
+      !Number.isFinite(age) ||
+      age < 0 ||
+      age > SESSION_REPLAY_MAX_OFFLINE_DELAY_MS ||
+      !cached.config ||
+      typeof cached.config !== "object"
+    ) {
+      return null;
+    }
+
+    /* Re-validated like a fresh response: storage is not trusted. */
+    const config: ResolvedReplayConfig = normalizeReplayConfig({
+      ...cached.config,
+      directive: cached.config.enabled === true ? "continue" : "stop",
+      isTargeted: false,
+    });
+    return config.enabled ? config : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchReplayConfig(
