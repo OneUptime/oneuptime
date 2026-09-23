@@ -52,10 +52,14 @@ import CreateWorkflowModal from "../../../../App/FeatureSet/Dashboard/src/Compon
 import Workflow from "../../../Models/DatabaseModels/Workflow";
 import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
 import ObjectID from "../../../Types/ObjectID";
+import { JSONObject } from "../../../Types/JSON";
 import {
   WorkflowTemplate,
+  WorkflowTemplateCategories,
+  WorkflowTemplateCategory,
   WorkflowTemplateVariable,
   getWorkflowTemplate,
+  getWorkflowTemplatesByCategory,
 } from "../../../Types/Workflow/Templates";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -71,6 +75,22 @@ const WORKFLOW_ID: ObjectID = new ObjectID(
 const SLACK_TEMPLATE_ID: string = "incident-created-slack";
 const EMAIL_TEMPLATE_ID: string = "scheduled-email-digest";
 const ZERO_CONFIG_TEMPLATE_ID: string = "manual-log";
+
+const JIRA_TEMPLATE_IDS: Array<string> = [
+  "jira-create-issue-for-incident",
+  "jira-transition-issue-on-incident-state",
+  "jira-comment-from-private-note",
+  "jira-comment-from-public-note",
+  "jira-comment-on-incident-update",
+  "jira-declare-incident-from-issue",
+  "jira-status-to-incident-state",
+  "jira-comment-to-private-note",
+  "jira-issue-changes-to-private-note",
+];
+const JIRA_CREATE_ISSUE_TEMPLATE_ID: string = "jira-create-issue-for-incident";
+/** Receives a Jira webhook and writes to OneUptime only: nothing to configure. */
+const JIRA_WEBHOOK_ONLY_TEMPLATE_ID: string = "jira-status-to-incident-state";
+const JIRA_TOKEN_VARIABLE: string = "jiraBasicAuthToken";
 
 interface ModelCreateArguments {
   model: Workflow | WorkflowVariable;
@@ -209,6 +229,93 @@ const createdWorkflow: CreatedWorkflowFunction = (): Workflow => {
   workflow.id = WORKFLOW_ID;
   workflow.name = "Created workflow";
   return workflow;
+};
+
+type SearchTemplatesFunction = (query: string) => void;
+
+const searchTemplates: SearchTemplatesFunction = (query: string): void => {
+  fireEvent.change(screen.getByTestId("workflow-template-search"), {
+    target: { value: query },
+  });
+};
+
+type GetStepContentFunction = () => HTMLElement;
+
+const getStepContent: GetStepContentFunction = (): HTMLElement => {
+  return screen.getByTestId("workflow-wizard-step-content");
+};
+
+const TEMPLATE_CARD_TEST_ID_PREFIX: string = "workflow-template-card-";
+const VARIABLE_INPUT_TEST_ID_PREFIX: string = "workflow-variable-";
+
+type TestIdSuffixesFunction = (
+  container: HTMLElement,
+  prefix: string,
+) => Array<string>;
+
+/** What follows the prefix on each matching test id, in document order. */
+const testIdSuffixes: TestIdSuffixesFunction = (
+  container: HTMLElement,
+  prefix: string,
+): Array<string> => {
+  return within(container)
+    .queryAllByTestId((testId: string) => {
+      return testId.startsWith(prefix);
+    })
+    .map((element: HTMLElement): string => {
+      return (element.getAttribute("data-testid") || "").slice(prefix.length);
+    });
+};
+
+type SectionHeadingsFunction = () => Array<string>;
+
+/** The section headings of the pick step, in the order they show. */
+const sectionHeadings: SectionHeadingsFunction = (): Array<string> => {
+  return within(getStepContent())
+    .queryAllByRole("heading")
+    .map((heading: HTMLElement): string => {
+      return heading.textContent || "";
+    });
+};
+
+type SectionOfFunction = (heading: string) => HTMLElement;
+
+/** A pick-step section: its heading and the cards under it. */
+const sectionOf: SectionOfFunction = (heading: string): HTMLElement => {
+  return within(getStepContent()).getByRole("heading", { name: heading })
+    .parentElement as HTMLElement;
+};
+
+type TemplateNamesFunction = (templateIds: Array<string>) => Array<string>;
+
+const templateNames: TemplateNamesFunction = (
+  templateIds: Array<string>,
+): Array<string> => {
+  return templateIds.map((templateId: string): string => {
+    return getTemplate(templateId).name;
+  });
+};
+
+type ArgumentsOfComponentFunction = (
+  graph: JSONObject,
+  componentId: string,
+) => JSONObject;
+
+const argumentsOfComponent: ArgumentsOfComponentFunction = (
+  graph: JSONObject,
+  componentId: string,
+): JSONObject => {
+  const node: JSONObject | undefined = (
+    graph["nodes"] as Array<JSONObject>
+  ).find((candidate: JSONObject) => {
+    return (candidate["data"] as JSONObject)["id"] === componentId;
+  });
+
+  if (!node) {
+    throw new Error(`The graph has no component "${componentId}".`);
+  }
+
+  return (node["data"] as JSONObject)["arguments"] as JSONObject;
 };
 
 beforeEach(() => {
@@ -557,5 +664,289 @@ describe("CreateWorkflowModal creation orchestration", () => {
     expect((failedVariable as unknown as { isSecret: boolean }).isSecret).toBe(
       true,
     );
+  });
+});
+
+describe("CreateWorkflowModal Jira templates", () => {
+  test("the picker has a Jira section holding the nine Jira templates", () => {
+    renderModal();
+
+    expect(
+      testIdSuffixes(
+        sectionOf(WorkflowTemplateCategory.Jira),
+        TEMPLATE_CARD_TEST_ID_PREFIX,
+      ).sort(),
+    ).toEqual(templateNames(JIRA_TEMPLATE_IDS).sort());
+  });
+
+  /*
+   * The picker walks WorkflowTemplateCategories, not the templates, so a
+   * category missing from that list would hide all of its templates with no
+   * error anywhere.
+   */
+  test("sections follow the declared category order, Jira included", () => {
+    renderModal();
+
+    expect(sectionHeadings()).toEqual([
+      "Blank",
+      ...WorkflowTemplateCategories.filter(
+        (category: WorkflowTemplateCategory) => {
+          return getWorkflowTemplatesByCategory(category).length > 0;
+        },
+      ),
+    ]);
+    expect(sectionHeadings()).toContain(WorkflowTemplateCategory.Jira);
+  });
+
+  /*
+   * Search reads the name, description, teaches line and category, trimmed
+   * and case-insensitively. The category alone brings every Jira template
+   * back, and nothing outside Jira mentions it, so the result is exactly the
+   * Jira section — with no "Start from scratch" card above it.
+   */
+  test("searching for jira shows exactly the nine Jira templates", () => {
+    renderModal();
+
+    for (const query of ["jira", "JIRA", "  Jira  "]) {
+      searchTemplates(query);
+
+      expect({
+        query: query,
+        headings: sectionHeadings(),
+        cards: testIdSuffixes(
+          getStepContent(),
+          TEMPLATE_CARD_TEST_ID_PREFIX,
+        ).sort(),
+      }).toEqual({
+        query: query,
+        headings: [WorkflowTemplateCategory.Jira],
+        cards: templateNames(JIRA_TEMPLATE_IDS).sort(),
+      });
+    }
+  });
+
+  /*
+   * The badge is how someone can tell, before choosing, which Jira templates
+   * need a Jira API token. The two webhook-only ones need nothing at all.
+   */
+  test("each Jira card says how many settings it needs", () => {
+    renderModal();
+
+    const expectedBadges: Record<string, string | null> = {
+      "jira-create-issue-for-incident": "Needs 5 settings",
+      "jira-transition-issue-on-incident-state": "Needs 2 settings",
+      "jira-comment-from-private-note": "Needs 2 settings",
+      "jira-comment-from-public-note": "Needs 2 settings",
+      "jira-comment-on-incident-update": "Needs 2 settings",
+      "jira-declare-incident-from-issue": "Needs 2 settings",
+      "jira-status-to-incident-state": null,
+      "jira-comment-to-private-note": "Needs 2 settings",
+      "jira-issue-changes-to-private-note": null,
+    };
+
+    for (const templateId of JIRA_TEMPLATE_IDS) {
+      const card: HTMLElement = screen.getByTestId(
+        `${TEMPLATE_CARD_TEST_ID_PREFIX}${getTemplate(templateId).name}`,
+      );
+
+      expect({
+        template: templateId,
+        badge: within(card).queryByText(/^Needs \d+ settings?$/)?.textContent,
+      }).toEqual({
+        template: templateId,
+        badge: expectedBadges[templateId] || undefined,
+      });
+    }
+  });
+
+  test("the create-issue template asks for its five settings and masks only the token", () => {
+    renderModal();
+    const template: WorkflowTemplate = goToConfigure(
+      JIRA_CREATE_ISSUE_TEMPLATE_ID,
+    );
+
+    expect(
+      testIdSuffixes(getStepContent(), VARIABLE_INPUT_TEST_ID_PREFIX),
+    ).toEqual([
+      "jiraBaseUrl",
+      JIRA_TOKEN_VARIABLE,
+      "jiraProjectKey",
+      "jiraIssueType",
+      "oneuptimeUrl",
+    ]);
+
+    const token: HTMLInputElement = getVariableInput(JIRA_TOKEN_VARIABLE);
+
+    expect(token).toHaveAttribute("type", "password");
+    expect(token).toHaveAttribute("autocomplete", "new-password");
+    expect(token).toHaveAttribute("spellcheck", "false");
+
+    /*
+     * The site URL is not a secret, and masking it would hide the typo that
+     * sends every request to the wrong host.
+     */
+    const baseUrl: HTMLInputElement = getVariableInput("jiraBaseUrl");
+
+    expect(baseUrl).toHaveAttribute("type", "text");
+    expect(baseUrl).not.toHaveAttribute("autocomplete");
+    expect(baseUrl).not.toHaveAttribute("spellcheck", "false");
+
+    for (const variable of template.variables) {
+      expect({
+        variable: variable.name,
+        type: getVariableInput(variable.name).getAttribute("type"),
+      }).toEqual({
+        variable: variable.name,
+        type: variable.name === JIRA_TOKEN_VARIABLE ? "password" : "text",
+      });
+    }
+  });
+
+  test("the create-issue template reports every missing setting and creates nothing", () => {
+    renderModal();
+    const template: WorkflowTemplate = goToConfigure(
+      JIRA_CREATE_ISSUE_TEMPLATE_ID,
+    );
+
+    submit();
+
+    expect(template.variables).toHaveLength(5);
+
+    for (const variable of template.variables) {
+      expect(
+        screen.getByText(`${variable.title} is required.`),
+      ).toBeInTheDocument();
+    }
+
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  test("creating from the create-issue template writes a disabled workflow, then its five settings with only the token secret", async () => {
+    const created: Workflow = createdWorkflow();
+
+    mockCreate.mockImplementation(
+      async (
+        data: ModelCreateArguments,
+      ): Promise<{ data: Workflow | WorkflowVariable }> => {
+        if (data.modelType === Workflow) {
+          return { data: created };
+        }
+
+        return { data: data.model };
+      },
+    );
+
+    const harness: ModalHarness = renderModal();
+    goToConfigure(JIRA_CREATE_ISSUE_TEMPLATE_ID);
+
+    const token: string = "cHJpeWFAYWNtZS5jb206QVRBVFQzeEZmR0YwUzNjcjN0";
+    const values: Record<string, string> = {
+      jiraBaseUrl: "https://acme.atlassian.net",
+      jiraBasicAuthToken: token,
+      jiraProjectKey: "OPS",
+      jiraIssueType: "Task",
+      oneuptimeUrl: "https://oneuptime.com",
+    };
+
+    for (const [name, value] of Object.entries(values)) {
+      fillVariable(name, value);
+    }
+
+    submit();
+
+    await waitFor(() => {
+      expect(harness.onCreated).toHaveBeenCalledWith(created);
+    });
+
+    const createArguments: Array<ModelCreateArguments> =
+      mockCreate.mock.calls.map((call: Array<unknown>) => {
+        return call[0] as ModelCreateArguments;
+      });
+
+    expect(createArguments).toHaveLength(6);
+    expect(createArguments[0]?.modelType).toBe(Workflow);
+
+    /*
+     * The workflow goes out switched off and carrying only the reference: the
+     * token itself is written to the secret variable row and nowhere else.
+     */
+    const workflow: Workflow = createArguments[0]?.model as Workflow;
+    const graph: JSONObject = workflow.graph as JSONObject;
+
+    expect(workflow.isEnabled).toBe(false);
+    expect(
+      argumentsOfComponent(graph, "create-issue-1")["request-headers"],
+    ).toEqual({
+      Authorization: "Basic {{local.variables.jiraBasicAuthToken}}",
+    });
+    expect(JSON.stringify(graph)).not.toContain(token);
+
+    expect(
+      createArguments.slice(1).map((data: ModelCreateArguments) => {
+        expect(data.modelType).toBe(WorkflowVariable);
+
+        const variable: WorkflowVariable = data.model as WorkflowVariable;
+
+        return {
+          name: variable.name,
+          content: variable.content,
+          isSecret: (variable as unknown as { isSecret: boolean }).isSecret,
+          workflowId: variable.workflowId?.toString(),
+          projectId: variable.projectId?.toString(),
+        };
+      }),
+    ).toEqual(
+      Object.entries(values).map(([name, value]: [string, string]) => {
+        return {
+          name: name,
+          content: value,
+          isSecret: name === JIRA_TOKEN_VARIABLE,
+          workflowId: WORKFLOW_ID.toString(),
+          projectId: PROJECT_ID.toString(),
+        };
+      }),
+    );
+    expect(mockDeleteItem).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A template that declares nothing must not show an empty Configure step,
+   * and must not write any variable rows: the webhook URL it needs is the
+   * one the created workflow's trigger shows.
+   */
+  test("a webhook-only Jira template skips Configure and creates only the workflow", async () => {
+    const created: Workflow = createdWorkflow();
+
+    mockCreate.mockResolvedValue({ data: created });
+
+    const harness: ModalHarness = renderModal();
+    const template: WorkflowTemplate = selectTemplate(
+      JIRA_WEBHOOK_ONLY_TEMPLATE_ID,
+    );
+
+    expect(template.variables).toEqual([]);
+    expectActiveStep("Name");
+    expect(
+      within(getProgress()).queryByText("Configure"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+      "Create Workflow",
+    );
+
+    submit();
+
+    await waitFor(() => {
+      expect(harness.onCreated).toHaveBeenCalledWith(created);
+    });
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+
+    const data: ModelCreateArguments = mockCreate.mock
+      .calls[0]?.[0] as ModelCreateArguments;
+    const workflow: Workflow = data.model as Workflow;
+
+    expect(data.modelType).toBe(Workflow);
+    expect(workflow.name).toBe(template.workflowName);
+    expect(workflow.isEnabled).toBe(false);
   });
 });
