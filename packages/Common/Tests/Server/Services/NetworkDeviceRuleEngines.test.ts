@@ -19,6 +19,7 @@ import RuleCriteria, {
   RuleCriteriaFilter,
   RuleCriteriaOperator,
 } from "../../../Types/Rules/RuleCriteria";
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import { describe, expect, it, afterEach, beforeEach } from "@jest/globals";
 
 /*
@@ -606,6 +607,10 @@ describe("NetworkDeviceOwnerRuleEngineService - wildcard patterns", () => {
      */
     jest.spyOn(NetworkDeviceOwnerUserService, "findBy").mockResolvedValue([]);
     jest.spyOn(NetworkDeviceOwnerTeamService, "findBy").mockResolvedValue([]);
+    // Owner users here are project members; OwnerRuleAssignment.test.ts covers ones who left.
+    jest
+      .spyOn(TeamMemberService, "isUserMemberOfProject")
+      .mockResolvedValue(true);
   });
 
   afterEach(() => {

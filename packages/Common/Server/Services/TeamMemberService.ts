@@ -58,6 +58,9 @@ import ProjectOnCallCalendarFeedService from "./ProjectOnCallCalendarFeedService
 import OnCallCalendarFeedCache from "../Infrastructure/OnCallCalendarFeedCache";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
 import OnCallDutyPolicyScheduleLayerUser from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
+import ProjectLeaveResourceCleanup, {
+  ProjectLeaveResourceCleanupResult,
+} from "../Utils/TeamMember/ProjectLeaveResourceCleanup";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 
 /*
@@ -724,9 +727,9 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
     /*
      * remove-user-from-project deletes every membership of one user in one
      * deleteBy, so the same (user, project) can appear several times here;
-     * the on-call cleanup is idempotent but not free, so run it once.
+     * the leave cleanups are idempotent but not free, so run them once.
      */
-    const onCallCleanupDone: Set<string> = new Set<string>();
+    const leaveCleanupDone: Set<string> = new Set<string>();
 
     /*
      * Whether ANY of the deleted rows for a (user, project) was an ACCEPTED
@@ -801,16 +804,26 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       /*
        * Before the notification settings go: the "removed from on-call
        * policy" notices the cleanup triggers should still reach the person,
-       * exactly as they would for a manual removal.
+       * exactly as they would for a manual removal. Then their roles on open
+       * incidents and their owner rows (see
+       * cleanupResourceAssignmentsIfUserLeftProject).
        */
       const cleanupKey: string = `${item.userId?.toString()}:${item.projectId?.toString()}`;
-      if (!onCallCleanupDone.has(cleanupKey) && item.userId && item.projectId) {
-        onCallCleanupDone.add(cleanupKey);
+      if (!leaveCleanupDone.has(cleanupKey) && item.userId && item.projectId) {
+        leaveCleanupDone.add(cleanupKey);
         await this.cleanupOnCallAssignmentsIfUserLeftProject({
           projectId: item.projectId,
           userId: item.userId,
           hadAcceptedMembership: acceptedMembershipKeys.has(cleanupKey),
         });
+        await this.cleanupResourceAssignmentsIfUserLeftProject({
+          projectId: item.projectId,
+          userId: item.userId,
+        });
+        /*
+         * After the resource cleanup: its "removed as owner / role" workspace
+         * posts can still mention the person through their chat account link.
+         */
         await this.removeWorkspaceAccountLinksIfUserLeftProject({
           projectId: item.projectId,
           userId: item.userId,
@@ -870,6 +883,46 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         projectId: data.projectId,
         userId: data.userId,
         rotateSharedFeeds: data.hadAcceptedMembership !== false,
+      });
+    } catch (err) {
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Take a departed user off the project's open incidents and episodes (their
+   * roles) and off everything they own, under the same rule as
+   * cleanupOnCallAssignmentsIfUserLeftProject: only once they hold no
+   * accepted membership in any team of the project. A revoked invitation runs
+   * it too — a pending invitee has no business owning anything either.
+   * Best-effort: never throws into the delete path. See
+   * ProjectLeaveResourceCleanup.cleanupForUserLeavingProject for what goes.
+   */
+  @CaptureSpan()
+  public async cleanupResourceAssignmentsIfUserLeftProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<ProjectLeaveResourceCleanupResult | null> {
+    try {
+      if (
+        await this.isUserMemberOfProject({
+          projectId: data.projectId,
+          userId: data.userId,
+        })
+      ) {
+        return null;
+      }
+
+      return await ProjectLeaveResourceCleanup.cleanupForUserLeavingProject({
+        projectId: data.projectId,
+        userId: data.userId,
       });
     } catch (err) {
       logger.error(
@@ -1568,6 +1621,123 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       60_000,
     );
     return teamIds;
+  }
+
+  /*
+   * Whether the user holds an accepted membership in any team of the project.
+   * A pending invitee is not a member yet, and someone removed from every
+   * team is not one any more — their notification settings are gone, so
+   * nothing addressed to them from this project reaches them.
+   */
+  @CaptureSpan()
+  public async isUserMemberOfProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<boolean> {
+    const count: PositiveNumber = await this.countBy({
+      query: {
+        projectId: data.projectId,
+        userId: data.userId,
+        hasAcceptedInvitation: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return count.toNumber() > 0;
+  }
+
+  /*
+   * The ids among `userIds` that belong to members of the project (see
+   * isUserMemberOfProject), in their input order, each once. Ids stored in
+   * saved configuration can arrive as plain strings; they come back as ids.
+   */
+  @CaptureSpan()
+  public async getProjectMemberUserIds(data: {
+    projectId: ObjectID;
+    userIds: Array<ObjectID | string>;
+  }): Promise<Array<ObjectID>> {
+    const requested: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+    for (const userId of data.userIds) {
+      const value: string = userId?.toString() || "";
+
+      if (value && !requested.has(value.toLowerCase())) {
+        requested.set(value.toLowerCase(), new ObjectID(value));
+      }
+    }
+
+    if (requested.size === 0) {
+      return [];
+    }
+
+    const members: Array<TeamMember> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        userId: QueryHelper.any(Array.from(requested.values())),
+        hasAcceptedInvitation: true,
+      },
+      select: {
+        userId: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const memberIds: Set<string> = new Set<string>(
+      members.map((member: TeamMember): string => {
+        return member.userId?.toString().toLowerCase() || "";
+      }),
+    );
+
+    return Array.from(requested.entries())
+      .filter(([key]: [string, ObjectID]): boolean => {
+        return memberIds.has(key);
+      })
+      .map(([, userId]: [string, ObjectID]): ObjectID => {
+        return userId;
+      });
+  }
+
+  /*
+   * `users` without the ones who are not members of the project. Owner lists
+   * use it so an owner who left is neither notified nor reported as
+   * notified, and a resource whose owners have all left falls back to the
+   * project owners.
+   */
+  @CaptureSpan()
+  public async filterUsersToProjectMembers(data: {
+    projectId: ObjectID;
+    users: Array<User>;
+  }): Promise<Array<User>> {
+    if (data.users.length === 0) {
+      return [];
+    }
+
+    const memberIds: Set<string> = new Set<string>(
+      (
+        await this.getProjectMemberUserIds({
+          projectId: data.projectId,
+          userIds: data.users
+            .map((user: User): string => {
+              return user?.id?.toString() || "";
+            })
+            .filter(Boolean),
+        })
+      ).map((userId: ObjectID): string => {
+        return userId.toString().toLowerCase();
+      }),
+    );
+
+    return data.users.filter((user: User): boolean => {
+      return Boolean(
+        user?.id && memberIds.has(user.id.toString().toLowerCase()),
+      );
+    });
   }
 }
 

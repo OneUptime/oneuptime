@@ -3,6 +3,7 @@
  * @jest/globals export: that export's SpiedFunction type does not accept what
  * jest.spyOn returns with this repo's jest-mock version.
  */
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import Label from "../../../Models/DatabaseModels/Label";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
@@ -230,6 +231,10 @@ beforeEach(() => {
   findSloSpy = jest
     .spyOn(ServiceLevelObjectiveService, "findOneById")
     .mockResolvedValue(sloDetails());
+  // Owner users here are project members; OwnerRuleAssignment.test.ts covers ones who left.
+  jest
+    .spyOn(TeamMemberService, "isUserMemberOfProject")
+    .mockResolvedValue(true);
 });
 
 afterEach(() => {
