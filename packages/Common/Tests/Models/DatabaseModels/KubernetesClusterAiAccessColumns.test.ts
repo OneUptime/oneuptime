@@ -418,7 +418,9 @@ describe("KubernetesCluster AI access columns", () => {
         /does not ask/,
       );
       expect(text).toMatch(/destructive commands \(Denied tier\) never run/);
-      expect(text).toMatch(/a node drain and a node taint always need a human/);
+      expect(text).toMatch(
+        /a node drain, a node taint and a patch of a Node always need a human/,
+      );
       expect(text).toMatch(
         /breaker trips or another unattended round already holds the cluster/,
       );

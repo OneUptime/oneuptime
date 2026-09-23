@@ -333,8 +333,8 @@ describe("KubectlExecutor answers the cross-caller write-scope table", () => {
    * --overrides makes kubectl create whatever object its value describes (a
    * cluster-admin ClusterRoleBinding, a privileged Job) while -n names a
    * listed namespace. Refused on every Runner before kubectl starts — by the
-   * shared policy, or by the write scope on its own when the policy lets
-   * the flag through.
+   * Runner's own argv guard (since round four; it runs first), the shared
+   * policy, or the write scope on its own when both let the flag through.
    */
   test.each(
     OBJECT_REPLACING_SCOPE_CASES.map(
@@ -359,12 +359,15 @@ describe("KubectlExecutor answers the cross-caller write-scope table", () => {
         const refusedByScope: boolean =
           REFUSED_BY_THE_RUNNER.test(message) &&
           message.includes(`"${entry.flag}"`);
+        const refusedByGuard: boolean =
+          REFUSED_BY_THE_RUNNER.test(message) &&
+          message.includes(`the ${entry.flag} flag is not allowed`);
 
         answers.push(
           `${runner.label}: ${
             spawned
               ? "spawned kubectl"
-              : refusedByPolicy || refusedByScope
+              : refusedByPolicy || refusedByScope || refusedByGuard
                 ? "refused before kubectl"
                 : `refused otherwise: ${message}`
           }`,

@@ -111,10 +111,12 @@ image`, or a patch of an image field, is a riskier change that runs the new
 image as the workload's own ServiceAccount with its Secrets, and a human
 approves it unless the cluster bypasses approvals or its allowlist names the
 command. The policy never runs a write in kube-system, kube-public or
-kube-node-lease, a drain or a taint without a human, and the Runner never
-writes its own namespace. RBAC cannot exclude namespaces from a
-ClusterRoleBinding, so on the cluster-wide default those lines are held by
-the policy and the Runner, not by RBAC.
+kube-node-lease, a drain, a taint or a patch of a Node without a human; it
+refuses `expose --overrides` (and --override-type), which could make kubectl
+create any object at all; and the Runner never writes its own namespace.
+RBAC cannot exclude namespaces from a ClusterRoleBinding, so on the
+cluster-wide default those lines are held by the policy and the Runner, not
+by RBAC.
 */ -}}
 apiVersion: v1
 kind: ServiceAccount
@@ -369,11 +371,11 @@ Node operations: cordon, uncordon, taint and drain. Nodes are cluster-scoped
 and draining one evicts pods in every namespace (kube-system and this
 release's own included), so this cannot be scoped to
 aiAccess.remediation.namespaces. That is also why the policy never runs a
-drain or a taint without a human, in any mode, Bypass approval included. It
-is its own role so it can be switched off with
-aiAccess.remediation.nodeOperations=false, which also tells the Runner
-(ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS below) to refuse node operations
-before it spawns kubectl.
+drain, a taint or a patch of a Node (a patch can write the Node's taints)
+without a human, in any mode, Bypass approval included. It is its own role
+so it can be switched off with aiAccess.remediation.nodeOperations=false,
+which also tells the Runner (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS below)
+to refuse node operations before it spawns kubectl.
 */}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

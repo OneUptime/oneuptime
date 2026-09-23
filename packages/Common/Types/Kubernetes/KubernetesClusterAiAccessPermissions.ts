@@ -1,4 +1,4 @@
-import Permission from "../Permission";
+import Permission, { PermissionHelper } from "../Permission";
 
 /*
  * Who may change what OneUptime AI is allowed to do on a Kubernetes cluster.
@@ -35,3 +35,20 @@ export const KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS: Array<Permission> = [
   Permission.ProjectAdmin,
   Permission.ReadRunbookCredential,
 ];
+
+/*
+ * Why deleting an in-cluster Runner is a two-step remedy. The binding's
+ * foreign key is ON DELETE SET NULL, so a deleted Runner's clusters are
+ * left with no Runner bound, and registration never binds a cluster that
+ * had one (left_unbound_by_operator): the fresh Runner the agent registers
+ * is used only once someone selects it on the cluster's AI page. Selecting
+ * a Runner loosens AI access, so it needs one of these permissions — which
+ * whoever deleted the Runner may not hold. Here, not in
+ * KubernetesClusterAiAccessService, so RunnerService (which that service
+ * imports) can name it too without an import cycle.
+ */
+export function getDeletedAgentRunnerRebindNote(): string {
+  return `Deleting a Runner leaves the clusters it was bound to with no Runner bound, and a registering Runner never binds a cluster that had one. Selecting a Runner needs one of these permissions: ${PermissionHelper.getPermissionTitles(
+    KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
+  ).join(", ")}.`;
+}

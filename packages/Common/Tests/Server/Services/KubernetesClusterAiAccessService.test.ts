@@ -35,6 +35,7 @@ import {
   KubernetesAiAccessGapCode,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  KubernetesRunnerPosture,
   getKubernetesAgentRunnerName,
   isTransientKubernetesAgentRegistrationRefusal,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
@@ -1950,6 +1951,131 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         allowNodeOperations: false,
         clusterIdentifier: "prod-us",
         inCluster: true,
+      });
+    });
+
+    /*
+     * Round four, defence in depth: an agent image older than the write
+     * scope's registration fields registers with neither writeNamespaces
+     * nor podNamespace (only its heartbeat sends them). Storing that body
+     * as it is emptied the scope the row held, so until the first
+     * heartbeat every server-side check read the Runner as cluster-wide
+     * with no namespace of its own. A field the body leaves out keeps what
+     * the row last reported; a field it sends wins.
+     */
+    describe("a registration body that leaves out the write scope (an older agent image)", () => {
+      const STORED_SCOPE: Record<string, unknown> = {
+        inCluster: true,
+        allowWrites: true,
+        clusterIdentifier: "prod-us",
+        writeNamespaces: ["web", "api"],
+        podNamespace: "oneuptime-agent",
+        allowNodeOperations: true,
+      };
+
+      async function storedAfterRegistering(
+        posture: KubernetesRunnerPosture,
+      ): Promise<Record<string, unknown>> {
+        jest
+          .spyOn(KubernetesClusterService, "findOneBy")
+          .mockResolvedValue(fakeCluster({ aiAccessRunnerId: RUNNER_ID }));
+        mockRunnerLookups({
+          bound: offlineAgentRunner({
+            hostInfo: { kubernetes: { ...STORED_SCOPE } },
+          }),
+        });
+
+        await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+          projectId: PROJECT_ID,
+          clusterIdentifier: "prod-us",
+          posture,
+        });
+
+        expect(runnerUpdates).toHaveLength(1);
+
+        return (
+          runnerUpdates[0]!.data["hostInfo"] as {
+            kubernetes: Record<string, unknown>;
+          }
+        ).kubernetes;
+      }
+
+      it("keeps the write namespaces and the pod namespace the row holds", async () => {
+        const stored: Record<string, unknown> = await storedAfterRegistering({
+          allowWrites: true,
+          allowNodeOperations: false,
+          writeNamespaces: undefined,
+          podNamespace: undefined,
+        });
+
+        expect(stored["writeNamespaces"]).toEqual(["web", "api"]);
+        expect(stored["podNamespace"]).toBe("oneuptime-agent");
+        // What the body did send still replaces what the row held.
+        expect(stored["allowNodeOperations"]).toBe(false);
+        expect(stored["clusterIdentifier"]).toBe("prod-us");
+        expect(stored["inCluster"]).toBe(true);
+      });
+
+      it("keeps each field it leaves out on its own", async () => {
+        const stored: Record<string, unknown> = await storedAfterRegistering({
+          allowWrites: true,
+          writeNamespaces: ["payments"],
+        });
+
+        expect(stored["writeNamespaces"]).toEqual(["payments"]);
+        expect(stored["podNamespace"]).toBe("oneuptime-agent");
+      });
+
+      // Negative control: an explicit empty list is the chart's cluster-wide scope.
+      it("negative control: a body that sends an empty list stores cluster-wide", async () => {
+        const stored: Record<string, unknown> = await storedAfterRegistering({
+          allowWrites: true,
+          writeNamespaces: [],
+          podNamespace: "oneuptime-agent",
+        });
+
+        expect(stored["writeNamespaces"]).toEqual([]);
+        expect(stored["podNamespace"]).toBe("oneuptime-agent");
+      });
+
+      it("negative control: a first registration has nothing to keep", async () => {
+        jest
+          .spyOn(KubernetesClusterService, "findOneBy")
+          .mockResolvedValue(fakeCluster({ aiAccessRunnerId: undefined }));
+        mockRunnerLookups({});
+
+        await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+          projectId: PROJECT_ID,
+          clusterIdentifier: "prod-us",
+          posture: { allowWrites: true },
+        });
+
+        const stored: Record<string, unknown> = (
+          createdRunner!.hostInfo as { kubernetes: Record<string, unknown> }
+        ).kubernetes;
+
+        expect(stored["writeNamespaces"]).toBeUndefined();
+        expect(stored["podNamespace"]).toBeUndefined();
+      });
+
+      it("keepStoredWriteScope leaves a posture alone when the row reported none", () => {
+        const reported: KubernetesRunnerPosture = {
+          allowWrites: true,
+          inCluster: true,
+        };
+
+        expect(
+          KubernetesClusterAiAccessService.keepStoredWriteScope({
+            reported,
+            stored: undefined,
+          }),
+        ).toEqual(reported);
+        expect(
+          KubernetesClusterAiAccessService.keepStoredWriteScope({
+            reported,
+            stored: { inCluster: true, podNamespace: undefined },
+          }),
+        ).toEqual(reported);
       });
     });
 

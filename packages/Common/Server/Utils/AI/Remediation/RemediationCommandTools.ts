@@ -109,10 +109,11 @@ import logger from "../../Logger";
  *              evaluateForAutoExecution approves them: SafeWrite, RiskyWrite
  *              matching the cluster's allowlist, or anything short of Denied
  *              on a BypassApproval cluster — never a write in a protected
- *              namespace, nor a node drain or taint. Everything else is
- *              refused with an explanation — including kubectl reads, which
- *              belong to run_kubectl: a read sent through the execute tool
- *              would count as an executed fix.
+ *              namespace, nor a node drain, a node taint or a patch of a
+ *              Node. Everything else is refused with an explanation —
+ *              including kubectl reads, which belong to run_kubectl: a
+ *              read sent through the execute tool would count as an
+ *              executed fix.
  *
  * The cluster a kubectl change targets is re-read LIVE before every
  * command: the run's snapshot is minutes old, and an operator who turned
@@ -129,12 +130,12 @@ import logger from "../../Logger";
  * the reason: never composed, approved and enqueued only to be refused.
  *
  * A kubectl change refused only because it needs a human (a riskier change
- * on an Automatic cluster, a protected-namespace write, a node drain or
- * taint, a cluster moved to "ask for approval", a tripped breaker, another
- * AI run holding the cluster) is kept: a cluster round that executed
- * nothing proposes those commands for one-click approval when it settles —
- * unless the run saw the cluster stop allowing AI remediation, which drops
- * everything kept for it.
+ * on an Automatic cluster, a protected-namespace write, a node drain, a
+ * node taint or a patch of a Node, a cluster moved to "ask for approval", a
+ * tripped breaker, another AI run holding the cluster) is kept: a cluster
+ * round that executed nothing proposes those commands for one-click
+ * approval when it settles — unless the run saw the cluster stop allowing
+ * AI remediation, which drops everything kept for it.
  *
  * What a kubectl change's job did is read the way every kubectl job is
  * read (KubectlJobRunner.readFinishedJob). One that certainly never reached
@@ -210,8 +211,25 @@ const CLUSTER_BREAKER_LOCK_ACQUIRE_TIMEOUT_MS: number = 20_000;
 
 export type RemediationCommandMode = "Suggest" | "FullAuto";
 
-// Verbs that never run on their own in any mode, whatever the allowlist says.
+/*
+ * Verbs that never run on their own in any mode, whatever the allowlist
+ * says. A patch of a Node never does either; the policy marks all three
+ * requiresHuman, and describeAlwaysHumanNodeChange names each.
+ */
 const ALWAYS_ASKS_NODE_VERBS: Set<string> = new Set<string>(["drain", "taint"]);
+
+/*
+ * The node change a verdict with requiresHuman (outside a protected
+ * namespace) describes, in the words the canonical mode text uses: "a node
+ * drain", "a node taint", "a patch of a Node".
+ */
+function describeAlwaysHumanNodeChange(verb: string): string {
+  if (ALWAYS_ASKS_NODE_VERBS.has(verb)) {
+    return `a node ${verb}`;
+  }
+
+  return verb === "patch" ? "a patch of a Node" : `this kubectl ${verb}`;
+}
 
 function quoteList(values: Array<string>): string {
   return values
@@ -1605,11 +1623,14 @@ export default class RemediationCommandToolkit {
   /*
    * Why a kubectl change the policy allows did not run on its own, for the
    * model (text) and for the card a human approves (approvalReason). Named
-   * for what actually holds it back: a protected namespace and a node drain
-   * or taint need a human in EVERY mode — Bypass approval and the allowlist
-   * included — so "riskier change on a cluster that only runs safe changes"
-   * would be false for them (a Bypass cluster runs riskier changes, and a
-   * one-object restart in kube-system is not a riskier change).
+   * for what actually holds it back: a protected namespace, a node drain, a
+   * node taint and a patch of a Node need a human in EVERY mode — Bypass
+   * approval and the allowlist included — so "riskier change on a cluster
+   * that only runs safe changes" would be false for them (a Bypass cluster
+   * runs riskier changes, and a one-object restart in kube-system is not a
+   * riskier change). The node rule is read off the policy's verdict
+   * (requiresHuman), not the verb, so every change the policy holds to it
+   * is named for it.
    */
   private describeNeedsAHuman(data: {
     cluster: KubernetesClusterAiAccessStatus;
@@ -1632,10 +1653,11 @@ export default class RemediationCommandToolkit {
       };
     }
 
-    if (ALWAYS_ASKS_NODE_VERBS.has(verb)) {
+    if (verdict.requiresHuman === true || ALWAYS_ASKS_NODE_VERBS.has(verb)) {
+      const change: string = describeAlwaysHumanNodeChange(verb);
       return {
-        text: `${verdict.reason} The command was NOT executed: a node ${verb} always needs a human, in every mode — Bypass approval and the cluster's allowlist included. ${whereItGoes} Do NOT hunt for a worse substitute; cordon one node (a safe change) only when that alone is genuinely the right fix.`,
-        approvalReason: `a node ${verb} always needs a human, in every mode`,
+        text: `${verdict.reason} The command was NOT executed: ${change} always needs a human, in every mode — Bypass approval and the cluster's allowlist included. ${whereItGoes} Do NOT hunt for a worse substitute (a node drain, a node taint and a patch of a Node all need a human just the same); cordon one node (a safe change) only when that alone is genuinely the right fix.`,
+        approvalReason: `${change} always needs a human, in every mode`,
       };
     }
 

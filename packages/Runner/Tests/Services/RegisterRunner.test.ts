@@ -337,16 +337,21 @@ describe("Register.describeKubernetesAgentRegistrationFailure", () => {
   describe("a 403 that needs an operator", () => {
     const HOLDINGS: string =
       'Runner "kubernetes-agent/prod-us" is offline, but it holds more than an in-cluster Runner\'s defaults. In Project Settings > Runners, turn off "Runs Runbooks" on it, or delete the Runner.';
+    // The server's own words since round four: delete, then select.
     const OTHER_CLUSTER: string =
-      'Runner "kubernetes-agent/prod-us" reports that it is the in-cluster Runner of a different cluster. Rename or delete that Runner.';
+      'Delete Runner "kubernetes-agent/prod-us" under Project Settings → Runners (an in-cluster Runner cannot be renamed) and, once the agent registers a fresh one on its next retry, select it on the AI page of cluster "prod-us" as its Runner.';
 
     test.each([
       [
         "runner_holds_more_than_defaults",
         HOLDINGS,
-        "Project Settings > Runners",
+        "take those away from that Runner, or delete it and then select the fresh Runner this pod registers on the cluster's AI page as its Runner",
       ],
-      ["runner_belongs_to_another_cluster", OTHER_CLUSTER, "Rename or delete"],
+      [
+        "runner_belongs_to_another_cluster",
+        OTHER_CLUSTER,
+        "Delete that Runner in Project Settings > Runners (an in-cluster Runner cannot be renamed) and then select the fresh Runner this pod registers on the cluster's AI page as its Runner",
+      ],
     ])(
       "%s says an operator must act, never that it clears by itself",
       (reason: string, serverReason: string, expected: string) => {
@@ -354,6 +359,8 @@ describe("Register.describeKubernetesAgentRegistrationFailure", () => {
 
         expect(message).toContain("an operator must act");
         expect(message).toContain(expected);
+        // An in-cluster Runner cannot be renamed; the Runner never says so.
+        expect(message).not.toContain("Rename or delete");
         expect(message).toContain(`Server said: ${serverReason}`);
         expect(message).toContain("restart this pod after the fix");
         expect(message).not.toContain("still looks online");

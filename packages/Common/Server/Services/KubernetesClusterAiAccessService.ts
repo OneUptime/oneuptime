@@ -16,8 +16,7 @@ import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Version from "../../Types/Version";
 import MonitorStep from "../../Types/Monitor/MonitorStep";
-import { PermissionHelper } from "../../Types/Permission";
-import { KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
+import { getDeletedAgentRunnerRebindNote } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
 import {
   RUNNER_ALIVE_WINDOW_IN_MINUTES,
@@ -153,19 +152,10 @@ export const REMEDIATION_WRITE_ACCESS_NEXT_STEP: string =
   'Grant the in-cluster Runner write access with a helm upgrade that adds --set aiAccess.remediation.enabled=true; the complete commands are under "Let AI apply fixes (write access)" on the cluster\'s AI page. List the namespaces AI may fix in aiAccess.remediation.namespaces (without it the write role is bound cluster-wide), and add aiAccess.remediation.nodeOperations=false to keep fixes off nodes.';
 
 /*
- * Why deleting an in-cluster Runner is a two-step remedy. The binding's
- * foreign key is ON DELETE SET NULL, so a deleted Runner's clusters are
- * left with no Runner bound, and registration never binds a cluster that
- * had one (left_unbound_by_operator): the fresh Runner the agent registers
- * is used only once someone selects it on the cluster's AI page. Selecting
- * a Runner loosens AI access, so it needs one of these permissions — which
- * whoever deleted the Runner may not hold.
+ * Why deleting an in-cluster Runner is a two-step remedy (the helper lives
+ * with the permissions it names, so RunnerService can use it too).
  */
-export function getDeletedAgentRunnerRebindNote(): string {
-  return `Deleting a Runner leaves the clusters it was bound to with no Runner bound, and a registering Runner never binds a cluster that had one. Selecting a Runner needs one of these permissions: ${PermissionHelper.getPermissionTitles(
-    KUBERNETES_AI_ACCESS_ADMIN_PERMISSIONS,
-  ).join(", ")}.`;
-}
+export { getDeletedAgentRunnerRebindNote };
 
 /*
  * Runner.name and KubernetesCluster.clusterIdentifier are both ShortText
@@ -1187,14 +1177,15 @@ class KubernetesClusterAiAccessServiceClass {
       throw new BadDataException("Cluster could not be resolved.");
     }
 
-    const posture: KubernetesRunnerPosture = {
+    /*
+     * What the row stores: the body's posture, with the cluster and
+     * in-cluster set by the service. A re-key may fill in the write scope
+     * an older agent image left out of its body (keepStoredWriteScope).
+     */
+    let posture: KubernetesRunnerPosture = {
       ...data.posture,
       clusterIdentifier,
       inCluster: true,
-    };
-
-    const hostInfo: JSONObject = {
-      kubernetes: posture as unknown as JSONObject,
     };
 
     // What a re-key decision reads off an existing agent Runner row.
@@ -1265,11 +1256,16 @@ class KubernetesClusterAiAccessServiceClass {
         previousRunnerKey: data.previousRunnerKey,
       });
 
+      posture = this.keepStoredWriteScope({
+        reported: posture,
+        stored: parseKubernetesRunnerPosture(runner.hostInfo),
+      });
+
       await RunnerService.updateOneById({
         id: runner.id!,
         data: {
           key: runnerKey,
-          hostInfo,
+          hostInfo: { kubernetes: posture as unknown as JSONObject },
           lastAlive: OneUptimeDate.getCurrentDate(),
           connectionStatus: RunnerConnectionStatus.Connected,
           ...(data.agentVersion
@@ -1292,7 +1288,7 @@ class KubernetesClusterAiAccessServiceClass {
       newRunner.canRunRunbooks = false;
       newRunner.canRunCodeFixTasks = false;
       newRunner.canRunAiCommands = true;
-      newRunner.hostInfo = hostInfo;
+      newRunner.hostInfo = { kubernetes: posture as unknown as JSONObject };
       newRunner.lastAlive = OneUptimeDate.getCurrentDate();
       newRunner.connectionStatus = RunnerConnectionStatus.Connected;
       if (data.agentVersion) {
@@ -1433,6 +1429,40 @@ class KubernetesClusterAiAccessServiceClass {
       isFirstBind: bindingState === "first_bind",
       bindingState,
     };
+  }
+
+  /*
+   * The posture a re-keyed agent Runner row stores. An agent image older
+   * than the write scope's registration fields sends neither
+   * writeNamespaces nor podNamespace when it registers (its heartbeat
+   * does). Storing that body as it is would clear the scope the row
+   * already holds, and every server-side check — the enqueue chokepoint,
+   * the remediation toolkit, the cluster's AI page — would read the Runner
+   * as cluster-wide with no namespace of its own until its first
+   * heartbeat. So a field the body leaves out keeps the value the row last
+   * reported; a field it sends wins, an explicit empty list (cluster-wide)
+   * included. Keeping a stored value can only make the server refuse more
+   * than the Runner would, never less, until the heartbeat corrects it.
+   */
+  public keepStoredWriteScope(data: {
+    reported: KubernetesRunnerPosture;
+    stored: KubernetesRunnerPosture | undefined;
+  }): KubernetesRunnerPosture {
+    const { reported, stored } = data;
+    const posture: KubernetesRunnerPosture = { ...reported };
+
+    if (
+      reported.writeNamespaces === undefined &&
+      stored?.writeNamespaces !== undefined
+    ) {
+      posture.writeNamespaces = [...stored.writeNamespaces];
+    }
+
+    if (reported.podNamespace === undefined && stored?.podNamespace) {
+      posture.podNamespace = stored.podNamespace;
+    }
+
+    return posture;
   }
 
   /*

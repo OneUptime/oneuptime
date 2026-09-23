@@ -769,10 +769,34 @@ function readPositionals(args: Array<string>): PositionalsReading {
 }
 
 /*
- * The object tokens of a command, split the way kubectl (and the policy)
- * split positionals: every token after the verb for delete; for the other
- * object verbs, the leading tokens after the verb (and the subcommand, for
- * rollout and set) that are not KEY=VALUE or KEY- pairs.
+ * The commands that read the words after their objects as updates, KEY=VALUE
+ * or KEY- (kubectl's GetResourcesAndPairs for label, annotate and set image,
+ * SplitEnvironmentFromResources for set env, and taint's own split) — the
+ * shared policy's readsObjectsThenPairs. For these, and only these, the
+ * objects end at the first such word. Every other verb hands kubectl's
+ * resource builder ALL of its words, `=` or not, and kubectl goes on to the
+ * next object when one fails: with the pinned kubectl v1.36.4 against a
+ * fake API server, `patch pod/a=b node/n1` PATCHed the Node after the
+ * missing pod's error. (taint never gets here: it is a node verb.)
+ */
+function readsObjectsThenPairs(verb: string, subcommand: string): boolean {
+  if (verb === "label" || verb === "annotate" || verb === "taint") {
+    return true;
+  }
+
+  return verb === "set" && (subcommand === "image" || subcommand === "env");
+}
+
+/*
+ * The object tokens of a command, split the way kubectl splits positionals:
+ * every token after the verb for delete; for label, annotate, set image and
+ * set env (readsObjectsThenPairs), the leading tokens after the verb (and
+ * the subcommand) that are not KEY=VALUE or KEY- pairs; for set selector,
+ * every token after the subcommand but the last, which kubectl always reads
+ * as the selector expression (getResourcesAndSelector); for every other
+ * object verb, every token after the verb (and the subcommand, for rollout
+ * and set). So `label pod web-1 node/n1=x` names only the pod, while `patch
+ * pod/a=b node/n1` names the Node.
  */
 function objectTokens(verb: string, positionals: Array<string>): Array<string> {
   if (verb === "delete") {
@@ -780,9 +804,20 @@ function objectTokens(verb: string, positionals: Array<string>): Array<string> {
   }
 
   const start: number = verb === "rollout" || verb === "set" ? 2 : 1;
+  const words: Array<string> = positionals.slice(start);
+  const subcommand: string = (positionals[1] || "").toLowerCase();
+
+  if (verb === "set" && subcommand === "selector") {
+    return words.slice(0, -1);
+  }
+
+  if (!readsObjectsThenPairs(verb, subcommand)) {
+    return words;
+  }
+
   const tokens: Array<string> = [];
 
-  for (const token of positionals.slice(start)) {
+  for (const token of words) {
     if (token.includes("=") || token.endsWith("-")) {
       break;
     }

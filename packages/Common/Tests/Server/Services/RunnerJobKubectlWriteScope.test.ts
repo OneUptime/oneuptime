@@ -3,9 +3,11 @@ import RunnerJobService, {
 } from "../../../Server/Services/RunnerJobService";
 import AIRunService from "../../../Server/Services/AIRunService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
+import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
 import RunnerService from "../../../Server/Services/RunnerService";
 import AIRun from "../../../Models/DatabaseModels/AIRun";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
+import RunbookCredential from "../../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../../Models/DatabaseModels/Runner";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
 import AIRunType from "../../../Types/AI/AIRunType";
@@ -18,6 +20,7 @@ import {
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import RunnerJobOrigin from "../../../Types/Runbook/RunnerJobOrigin";
+import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import KubectlPolicy from "../../../Utils/AiRemediation/KubectlPolicy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -542,5 +545,322 @@ describe("RunnerJobService.getRunnerWriteScopeRefusal words the Runner's rule fo
       expect(message?.endsWith(".")).toBe(true);
       expect(message).not.toContain("this Runner");
     }
+  });
+});
+
+/*
+ * Round four: an ordinary Runner that reaches the cluster through a
+ * Kubernetes credential now reports its write limits too (what it was
+ * started with: ONEUPTIME_KUBECTL_WRITE_NAMESPACES and
+ * ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS on its own host), so the
+ * chokepoint refuses its out-of-scope writes before they are enqueued. No
+ * chart configures such a Runner: each refusal must name the Runner's own
+ * environment variables, never the Kubernetes agent chart's values, and
+ * the in-cluster Runner's refusals keep naming the chart.
+ */
+describe("RunnerJobService names where each kind of Runner sets its write scope", () => {
+  // What an ordinary Runner started with a scope reports on every heartbeat.
+  const CREDENTIAL_RUNNER: KubernetesRunnerPosture = {
+    inCluster: false,
+    allowWrites: true,
+    allowNodeOperations: false,
+    writeNamespaces: ["prod"],
+  };
+
+  // The Kubernetes agent's in-cluster Runner with the same limits.
+  const AGENT_RUNNER: KubernetesRunnerPosture = {
+    inCluster: true,
+    allowWrites: true,
+    allowNodeOperations: false,
+    writeNamespaces: ["prod"],
+    podNamespace: "oneuptime-agent",
+  };
+
+  const CHART_WORDS: Array<string> = [
+    "Kubernetes agent",
+    "aiAccess.remediation",
+    "upgrade the agent",
+  ];
+
+  function refusalFor(
+    command: string,
+    posture: KubernetesRunnerPosture,
+    usesCredential: boolean,
+  ): string {
+    const message: string | null =
+      RunnerJobServiceClass.getRunnerWriteScopeRefusal({
+        policy: KubectlPolicy.evaluateCommand(command),
+        posture,
+        usesCredential,
+      });
+
+    expect({ command, refused: message !== null }).toEqual({
+      command,
+      refused: true,
+    });
+
+    return message!;
+  }
+
+  describe("a credential Runner", () => {
+    it("node operations: names ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS on its host, and a restart", () => {
+      const message: string = refusalFor(
+        "kubectl cordon n1",
+        CREDENTIAL_RUNNER,
+        true,
+      );
+
+      expect(message).toContain(
+        "it was started with ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS (or ONEUPTIME_KUBECTL_ALLOW_WRITES) set to something other than true on its host",
+      );
+      expect(message).toContain(
+        "To let OneUptime AI change nodes, set ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=true on that Runner's host and restart it.",
+      );
+      expect(message).toContain("It was not enqueued.");
+    });
+
+    it("a write it cannot read, refused as a possible node operation, names the same switch", () => {
+      const message: string = refusalFor(
+        "kubectl label node/n1 pod-1 x=y -n prod",
+        CREDENTIAL_RUNNER,
+        true,
+      );
+
+      expect(message).toContain("cannot tell for certain whether");
+      expect(message).toContain(
+        "ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=true on that Runner's host",
+      );
+    });
+
+    it("outside its scope: names ONEUPTIME_KUBECTL_WRITE_NAMESPACES on its host, and how to add the namespace", () => {
+      const message: string = refusalFor(
+        "kubectl rollout restart deployment/pay -n payments",
+        CREDENTIAL_RUNNER,
+        true,
+      );
+
+      expect(message).toContain('namespace "payments"');
+      expect(message).toContain(
+        '("prod": ONEUPTIME_KUBECTL_WRITE_NAMESPACES on that Runner\'s host)',
+      );
+      expect(message).toContain(
+        'To let OneUptime AI change "payments", add it to ONEUPTIME_KUBECTL_WRITE_NAMESPACES on that Runner\'s host and restart it.',
+      );
+    });
+
+    it("a Namespace object outside its scope names the same list", () => {
+      const message: string = refusalFor(
+        "kubectl label namespace staging team=a -n prod",
+        CREDENTIAL_RUNNER,
+        true,
+      );
+
+      expect(message).toContain('the Namespace object "staging"');
+      expect(message).toContain(
+        "add it to ONEUPTIME_KUBECTL_WRITE_NAMESPACES on that Runner's host",
+      );
+    });
+
+    it("a cluster-scoped object: names ONEUPTIME_KUBECTL_WRITE_NAMESPACES on its host", () => {
+      const message: string = refusalFor(
+        "kubectl annotate ingressclass nginx note=x -n prod",
+        CREDENTIAL_RUNNER,
+        true,
+      );
+
+      expect(message).toContain(
+        "ingressclass objects, which are cluster-scoped",
+      );
+      expect(message).toContain(
+        '("prod": ONEUPTIME_KUBECTL_WRITE_NAMESPACES on that Runner\'s host)',
+      );
+    });
+
+    it("never names the Kubernetes agent chart", () => {
+      for (const command of [
+        "kubectl cordon n1",
+        "kubectl rollout restart deployment/pay -n payments",
+        "kubectl label namespace staging team=a -n prod",
+        "kubectl annotate ingressclass nginx note=x -n prod",
+        `kubectl patch pod/a=b node/n1 -n prod -p '{}'`,
+      ]) {
+        const message: string = refusalFor(command, CREDENTIAL_RUNNER, true);
+
+        for (const word of CHART_WORDS) {
+          expect({ command, word, said: message.includes(word) }).toEqual({
+            command,
+            word,
+            said: false,
+          });
+        }
+      }
+    });
+  });
+
+  // Negative control: the in-cluster Runner's refusals name its chart.
+  describe("the in-cluster Runner", () => {
+    it("node operations: names the chart value and the upgrade", () => {
+      const message: string = refusalFor(
+        "kubectl cordon n1",
+        AGENT_RUNNER,
+        false,
+      );
+
+      expect(message).toContain(
+        "its Kubernetes agent was installed with aiAccess.remediation.nodeOperations=false (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS)",
+      );
+      expect(message).toContain(
+        "To let OneUptime AI change nodes, upgrade the agent with --set aiAccess.remediation.nodeOperations=true.",
+      );
+      expect(message).not.toContain("on that Runner's host");
+    });
+
+    it("outside its scope and cluster-scoped objects: names the chart's namespaces", () => {
+      const outside: string = refusalFor(
+        "kubectl rollout restart deployment/pay -n payments",
+        AGENT_RUNNER,
+        false,
+      );
+      const clusterScoped: string = refusalFor(
+        "kubectl annotate ingressclass nginx note=x -n prod",
+        AGENT_RUNNER,
+        false,
+      );
+
+      expect(outside).toContain(
+        '("prod": aiAccess.remediation.namespaces on the Kubernetes agent chart, ONEUPTIME_KUBECTL_WRITE_NAMESPACES)',
+      );
+      expect(outside).toContain(
+        'To let OneUptime AI change "payments", add it to aiAccess.remediation.namespaces and upgrade the agent.',
+      );
+      expect(clusterScoped).toContain(
+        "aiAccess.remediation.namespaces on the Kubernetes agent chart",
+      );
+
+      for (const message of [outside, clusterScoped]) {
+        expect(message).not.toContain("on that Runner's host");
+      }
+    });
+  });
+});
+
+/*
+ * The same wording end to end: an AI remediation write enqueued for a
+ * cluster reached through a credential, on an ordinary Runner that
+ * reported its scope.
+ */
+describe("RunnerJobService.enqueueAiKubectlCommand refuses a credential Runner's out-of-scope write in its own words", () => {
+  const CREDENTIAL_ID: ObjectID = new ObjectID(
+    "88888888-8888-4888-8888-888888888888",
+  );
+  let createdRows: Array<RunnerJob>;
+
+  function ordinaryRunner(posture: KubernetesRunnerPosture): Runner {
+    return {
+      id: RUNNER_ID,
+      _id: RUNNER_ID.toString(),
+      projectId: PROJECT_ID,
+      name: "platform-ops-runner",
+      hostInfo: { kubernetes: { ...posture } },
+    } as unknown as Runner;
+  }
+
+  beforeEach(() => {
+    createdRows = [];
+    jest
+      .spyOn(RunnerJobService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest.spyOn(AIRunService, "findOneBy").mockResolvedValue({
+      runType: AIRunType.RemediationExecution,
+    } as unknown as AIRun);
+    jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue({
+      id: CREDENTIAL_ID,
+      _id: CREDENTIAL_ID.toString(),
+      name: "prod-us kubeconfig",
+      credentialType: RunbookCredentialType.Kubernetes,
+    } as unknown as RunbookCredential);
+    jest
+      .spyOn(RunnerJobService, "create")
+      .mockImplementation(async (data: unknown): Promise<RunnerJob> => {
+        const row: RunnerJob = (data as { data: RunnerJob }).data;
+        createdRows.push(row);
+        return row;
+      });
+    jest.spyOn(KubernetesClusterService, "findOneBy").mockResolvedValue({
+      id: CLUSTER_ID,
+      _id: CLUSTER_ID.toString(),
+      projectId: PROJECT_ID,
+      name: "prod-us",
+      clusterIdentifier: "prod-us",
+      aiAccessRunnerId: RUNNER_ID,
+      aiAccessCredentialId: CREDENTIAL_ID,
+      isAiInvestigationEnabled: true,
+      aiRemediationMode: KubernetesAiRemediationMode.Automatic,
+    } as unknown as KubernetesCluster);
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+      ordinaryRunner({
+        inCluster: false,
+        allowWrites: true,
+        allowNodeOperations: false,
+        writeNamespaces: ["prod"],
+      }),
+    );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function enqueue(command: string): Promise<RunnerJob> {
+    return RunnerJobService.enqueueAiKubectlCommand({
+      projectId: PROJECT_ID,
+      origin: RunnerJobOrigin.AiRemediation,
+      autoRemediationSuggestionId: SUGGESTION_ID,
+      kubernetesClusterId: CLUSTER_ID,
+      stepId: "ai-command-1",
+      targetAgentId: RUNNER_ID,
+      credentialId: CREDENTIAL_ID.toString(),
+      command,
+      timeoutInMs: 30000,
+    });
+  }
+
+  async function refusal(command: string): Promise<string> {
+    try {
+      await enqueue(command);
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadDataException);
+      return (error as Error).message;
+    }
+
+    throw new Error(`expected "${command}" to be refused`);
+  }
+
+  it.each([
+    [
+      "a node operation",
+      "kubectl cordon n1",
+      "ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=true on that Runner's host",
+    ],
+    [
+      "a write outside its namespaces",
+      "kubectl rollout restart deployment/pay -n payments",
+      "add it to ONEUPTIME_KUBECTL_WRITE_NAMESPACES on that Runner's host",
+    ],
+  ])(
+    "refuses %s, naming the Runner's own setting",
+    async (_label: string, command: string, expected: string) => {
+      const message: string = await refusal(command);
+
+      expect(message).toContain(expected);
+      expect(message).not.toContain("Kubernetes agent chart");
+      expect(createdRows).toHaveLength(0);
+    },
+  );
+
+  it("negative control: a write inside its scope is enqueued", async () => {
+    await enqueue("kubectl rollout restart deployment/web -n prod");
+
+    expect(createdRows).toHaveLength(1);
   });
 });

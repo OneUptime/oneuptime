@@ -15,6 +15,7 @@ import {
   getKubernetesAgentRunnerName,
   isKubernetesAgentRunnerName,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { getDeletedAgentRunnerRebindNote } from "../../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import ObjectID from "../../../Types/ObjectID";
 import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
@@ -270,6 +271,16 @@ describe("RunnerService hooks keep the kubernetes-agent marker server-owned", ()
 
       expect(message).toContain('Runner "kubernetes-agent/prod"');
       expect(message).toContain("cannot be renamed");
+      /*
+       * Deleting it leaves the cluster with no Runner bound, and the agent's
+       * fresh Runner never binds itself: the delete remedy names the select
+       * step, and who may take it.
+       */
+      expect(message).toContain(
+        "or delete the Runner, let the agent register a fresh one (on its next retry, within a minute) and then select the new Runner on the cluster's AI page as its Runner.",
+      );
+      expect(message).toContain(getDeletedAgentRunnerRebindNote());
+      expect(message).toContain("Project Owner");
     });
 
     it("refuses a case-only rename of an agent row", async () => {

@@ -100,13 +100,19 @@ within a minute by default — like every other capability.
 OneUptime AI runs kubectl through a Runner: read-only during investigations,
 policy-tiered changes during remediations. The Runner re-checks every
 command itself before it starts: its own argv guard (no credential,
-cluster, file or verbose-logging flags, in any spelling kubectl accepts),
-the shared kubectl policy, the write switch, the node switch and the
-namespace scope above. The Kubernetes agent's Runner reports that scope
-(`writeNamespaces`, `podNamespace`, `allowNodeOperations`) when it registers
-and on every heartbeat, and OneUptime applies the same scope before a fix is
-proposed, approved or enqueued, so a write that Runner would refuse is
-refused there first rather than reaching it as a failed fix.
+cluster, file or verbose-logging flags, and no `--overrides` or
+`--override-type`, in any spelling kubectl accepts), the shared kubectl
+policy, the write switch, the node switch and the namespace scope above.
+The Kubernetes agent's Runner reports that scope (`writeNamespaces`,
+`podNamespace`, `allowNodeOperations`) when it registers and on every
+heartbeat, and OneUptime applies the same scope when a fix is proposed or
+approved, and again before it is enqueued, so a write that Runner would
+refuse is refused there first rather than reaching it as a failed fix.
+Whatever the cluster's mode, a drain, a taint or a `patch` of a Node never
+runs without a human's approval (a patch can set, replace or clear the
+Node's taints as surely as `kubectl taint` does), and `kubectl expose
+--overrides` is refused outright: kubectl would create whatever object the
+override describes, of any kind and in any namespace.
 The Kubernetes agent chart's in-cluster Runner uses its pod's own
 ServiceAccount; any other Runner uses the Kubernetes credential bound to it
 on the cluster's AI page, written to a private temporary kubeconfig for the
@@ -129,10 +135,13 @@ these limits on every heartbeat (`allowWrites`, `allowNodeOperations` and
 `writeNamespaces`, with `inCluster` always `false`). It never reports a
 cluster name or a pod namespace, so OneUptime never mistakes it for a
 cluster's in-cluster Runner. OneUptime applies the namespace list and the
-node switch before a fix is proposed, approved or enqueued, just as it does
-for the Kubernetes agent's Runner. The Runner itself still checks every
-command, so some refusals appear only in the command's result on the
-cluster's AI page, not as a missing setup step:
+node switch when a fix is proposed or approved, and again before it is
+enqueued, just as it does for the Kubernetes agent's Runner, so a write
+outside them is refused before it reaches this host, and the refusal names
+the variable to change here (`ONEUPTIME_KUBECTL_WRITE_NAMESPACES` or
+`ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS`, then restart the Runner). The
+Runner itself still checks every command, so some refusals appear only in
+the command's result on the cluster's AI page, not as a missing setup step:
 
 - a write other than a node operation, refused because
   `ONEUPTIME_KUBECTL_ALLOW_WRITES` is off;

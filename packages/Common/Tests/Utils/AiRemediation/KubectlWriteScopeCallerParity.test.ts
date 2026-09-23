@@ -550,9 +550,16 @@ describe("each caller words the same refusal for its own reader", () => {
         );
         expect(runnerRefusal.reason).toContain("this Runner");
 
-        // No chart configures a credential Runner.
+        /*
+         * No chart configures a credential Runner: neither server caller
+         * names the agent chart's values to it.
+         */
         if (runner.usesCredential) {
-          expect(toolkit).not.toContain("Kubernetes agent chart");
+          for (const message of [chokepoint, toolkit]) {
+            expect(message).not.toContain("Kubernetes agent chart");
+            expect(message).not.toContain("aiAccess.remediation");
+            expect(message).not.toContain("upgrade the agent");
+          }
         }
       }
     }

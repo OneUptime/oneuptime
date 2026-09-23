@@ -124,10 +124,12 @@ const childProcessMock: {
 /* eslint-enable @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires */
 
 import KubectlExecutor, {
+  KUBECTL_NUL_REPLACEMENT,
   KubectlExecResult,
   formatKubectlOutput,
   formatRequestTimeout,
   getRequestTimeoutMs,
+  replaceNulCharacters,
 } from "../../Services/KubectlExecutor";
 import { MAX_OUTPUT_BYTES } from "../../Config";
 import KubernetesPosture from "../../Utils/KubernetesPosture";
@@ -1085,6 +1087,50 @@ describe("KubectlExecutor", () => {
 
       expect((result.errorMessage || "").length).toBeLessThan(600);
       expect(result.errorMessage).toMatch(/^Exit code 1: Error: z+\.\.\.$/);
+    });
+
+    /*
+     * Round four (runner-results-1): kubectl can print U+0000 (a
+     * ConfigMap value, a log line), which a Postgres text column rejects.
+     * A server older than the one that replaces it itself refused the
+     * whole result and the job was reported as lost, so the Runner
+     * replaces it with U+FFFD before formatting, in the output and in the
+     * errorMessage alike.
+     */
+    test("replaces U+0000 in stdout and stderr with U+FFFD before formatting", async () => {
+      childProcessMock.__set({
+        exitCode: 1,
+        stdout: "key: a\u0000b\n",
+        stderr: "error: bad\u0000byte\n",
+      });
+
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: READ_PAYLOAD,
+        timeoutInMs: 30000,
+        origin: "AiInvestigation",
+      });
+
+      expect(result.output).not.toContain("\u0000");
+      expect(result.output).toBe(
+        "[stdout]\nkey: a\uFFFDb\n\n[stderr]\nerror: bad\uFFFDbyte\n",
+      );
+      expect(result.errorMessage).toBe("Exit code 1: error: bad\uFFFDbyte");
+      expect(KUBECTL_NUL_REPLACEMENT).toBe("\uFFFD");
+      expect(replaceNulCharacters("\u0000x\u0000")).toBe("\uFFFDx\uFFFD");
+    });
+
+    test("negative control: output without U+0000 is unchanged", async () => {
+      expect(replaceNulCharacters("a\uFFFDb c\td\n")).toBe("a\uFFFDb c\td\n");
+
+      childProcessMock.__set({ exitCode: 0, stdout: "key: ab\n", stderr: "" });
+
+      const result: KubectlExecResult = await KubectlExecutor.execute({
+        payload: READ_PAYLOAD,
+        timeoutInMs: 30000,
+        origin: "AiInvestigation",
+      });
+
+      expect(result.output).toBe("[stdout]\nkey: ab\n");
     });
   });
 

@@ -15,6 +15,7 @@ import { JSONObject } from "../../Types/JSON";
 import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { RUNNER_ALIVE_WINDOW_IN_MINUTES } from "../../Types/Runner/RunnerLiveStatus";
+import { getDeletedAgentRunnerRebindNote } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import {
   KUBERNETES_AGENT_RUNNER_NAME_PREFIX,
   KubernetesRunnerPosture,
@@ -286,7 +287,7 @@ export class Service extends DatabaseService<Model> {
 
       if (renames && Service.isKubernetesAgentName(runner.name)) {
         throw new BadDataException(
-          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart registered, and its name is how OneUptime recognises it (and keeps credentials, secrets and shell work away from it), so it cannot be renamed. Use its description instead, or delete the Runner and let the agent register a fresh one.`,
+          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart registered, and its name is how OneUptime recognises it (and keeps credentials, secrets and shell work away from it), so it cannot be renamed. Use its description instead, or delete the Runner, let the agent register a fresh one (on its next retry, within a minute) and then select the new Runner on the cluster's AI page as its Runner. ${getDeletedAgentRunnerRebindNote()}`,
         );
       }
 

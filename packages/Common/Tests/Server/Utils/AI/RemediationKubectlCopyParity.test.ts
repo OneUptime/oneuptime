@@ -24,7 +24,9 @@ import {
   KubernetesClusterAiAccessStatus,
   PROTECTED_KUBERNETES_NAMESPACES,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
-import KubectlPolicy from "../../../../Utils/AiRemediation/KubectlPolicy";
+import KubectlPolicy, {
+  KubectlAutoExecutionVerdict,
+} from "../../../../Utils/AiRemediation/KubectlPolicy";
 import { UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY } from "../../../../Server/Utils/AI/ClusterAccess/ClusterAccessContext";
 import ObjectID from "../../../../Types/ObjectID";
 import { afterEach, describe, expect, it } from "@jest/globals";
@@ -43,7 +45,8 @@ const NOBODY_IS_ASKED_PATTERN: RegExp =
  *   restate the canonical KubernetesAiRemediationMode / KubectlCommandTier
  *   semantics: SafeWrite is ONE named object; scale to zero, deleting a job,
  *   drain, taint and multi-object forms are riskier; a protected-namespace
- *   write and a node drain or taint always need a human; destructive
+ *   write, a node drain, a node taint and a patch of a Node always need a
+ *   human; destructive
  *   commands never run; the allowlist is token-wise;
  * - each example they name is tiered that way by KubectlPolicy itself — so
  *   the copy cannot drift from the policy unnoticed;
@@ -144,6 +147,35 @@ describe("the shared kubectl tier summaries match what KubectlPolicy does", () =
     }
   });
 
+  /*
+   * Round four: a patch of a Node can set, replace or clear its taints, so
+   * the policy holds it to the drain and taint rule. The summary the model
+   * reads names it next to them.
+   */
+  it.each([
+    `kubectl patch node n1 -p '{"spec":{"unschedulable":true}}'`,
+    "kubectl drain n1 --ignore-daemonsets",
+    "kubectl taint nodes n1 dedicated=ai:NoSchedule",
+  ])(
+    "%s asks a human even with approvals bypassed and an allowlist that names it, and the summary says so",
+    (command: string) => {
+      const verdict: KubectlAutoExecutionVerdict =
+        KubectlPolicy.evaluateForAutoExecution({
+          command,
+          allowlistPatterns: [command],
+          bypassApproval: true,
+        });
+
+      expect(verdict.verdict).toBe(
+        AiRemediationCommandPolicyVerdict.RequiresApproval,
+      );
+      expect(verdict.requiresHuman).toBe(true);
+      expect(KUBECTL_ALWAYS_ASKS_SUMMARY).toContain(
+        "a node drain, a node taint and a patch of a Node always need a human",
+      );
+    },
+  );
+
   it("the summaries name what each tier covers, in the canonical words", () => {
     expect(KUBECTL_SAFE_CHANGES_SUMMARY).toContain("exactly ONE named object");
     expect(KUBECTL_SAFE_CHANGES_SUMMARY).toContain("delete of one named pod");
@@ -159,7 +191,11 @@ describe("the shared kubectl tier summaries match what KubectlPolicy does", () =
     ]) {
       expect(KUBECTL_RISKIER_CHANGES_SUMMARY).toContain(riskier);
     }
-    expect(KUBECTL_ALWAYS_ASKS_SUMMARY).toContain("a node drain or taint");
+    expect(KUBECTL_ALWAYS_ASKS_SUMMARY).toContain(
+      "a node drain, a node taint and a patch of a Node",
+    );
+    // The round-three wording, which left the Node patch out.
+    expect(KUBECTL_ALWAYS_ASKS_SUMMARY).not.toContain("a node drain or taint");
     expect(KUBECTL_ALWAYS_ASKS_SUMMARY).toContain("in every mode");
     expect(KUBECTL_NEVER_RUNS_SUMMARY).toContain("--image");
     expect(KUBECTL_NEVER_RUNS_SUMMARY).toContain("not JSON");
@@ -264,6 +300,8 @@ describe("the cluster personas use the shared summaries — and none of the stal
         "kubectl uncordon <node>",
         "resources, drain, taint",
         "a node drain or taint",
+        "a node drain, a node taint",
+        "a patch of a Node",
       ]) {
         expect(persona).not.toContain(offer);
       }

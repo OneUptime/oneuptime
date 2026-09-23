@@ -448,6 +448,35 @@ export const PARITY_CASES: Array<KubectlWriteScopeParityCase> = [
     command: "kubectl annotate nodes.example.com n1 x=y",
     expected: "RRRRRRARA",
   },
+  /*
+   * A word with an `=` (or a trailing `-`) is one more object to every verb
+   * but label, annotate, taint, set image and set env: kubectl v1.36.4
+   * PATCHed the Node in `patch pod/a=b node/n1` after the missing pod's
+   * error. The scope used to stop reading objects at such a word on every
+   * verb, so what followed it went unjudged.
+   */
+  {
+    label: "a Node patched after a word kubectl reads as one more object",
+    command: `kubectl patch pod/a=b node/n1 -n web -p '{"spec":{"unschedulable":true}}'`,
+    expected: "AARRARRAR",
+  },
+  {
+    label:
+      "an unlisted Namespace object patched after a word kubectl reads as one more object",
+    command: `kubectl patch pod/a=b namespace/staging -n web -p '{"metadata":{"annotations":{"a":"b"}}}'`,
+    expected: "ARRARRARR",
+  },
+  {
+    label: "a PriorityClass patched after a word ending in -",
+    command: `kubectl patch pod/x- priorityclass/high -n web -p '{"value":1}'`,
+    expected: "ARRARRARR",
+  },
+  // Negative control: label's KEY=VALUE words are updates, never objects.
+  {
+    label: "a label whose update key reads like a Node",
+    command: "kubectl label pod web-1 node/n1=x -n web",
+    expected: "AAAAARAAR",
+  },
 ];
 
 /*

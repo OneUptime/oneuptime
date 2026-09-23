@@ -855,7 +855,7 @@ export default class RemediationExecutionRunner {
                 KubernetesAiRemediationMode.BypassApproval
                   ? `its operator bypassed approvals: every fix the policy allows runs on its own, except what always needs a human (${
                       clusterChanges.allowNodeOperations
-                        ? "a write in a protected namespace, a node drain or a node taint"
+                        ? "a write in a protected namespace, a node drain, a node taint or a patch of a Node"
                         : "a write in a protected namespace"
                     }) — and the round becomes a proposal if the hourly circuit breaker trips or another unattended round holds the cluster`
                   : "Automatic remediation is enabled for it: safe fixes (and shapes on the cluster's kubectl allowlist) run on their own, and a riskier fix never runs without a human's one-click approval"
@@ -1981,7 +1981,9 @@ export default class RemediationExecutionRunner {
       if (data.clusterTarget.kubectlAllowlist.length > 0) {
         lines.push(
           `Riskier kubectl commands matching these operator-authored patterns may also auto-execute (${KUBECTL_ALLOWLIST_SUMMARY}; never a write in a protected namespace${
-            changes.allowNodeOperations ? ", a node drain or a taint" : ""
+            changes.allowNodeOperations
+              ? ", a node drain, a node taint or a patch of a Node"
+              : ""
           }):`,
         );
         for (const pattern of data.clusterTarget.kubectlAllowlist.slice(

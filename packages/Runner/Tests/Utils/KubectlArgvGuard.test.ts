@@ -639,3 +639,113 @@ describe("KubectlArgvGuard agrees with the shared policy", () => {
     expect(refusal(policy.args)).not.toBeNull();
   });
 });
+
+/*
+ * Round four (PR #3953 review, WS4-1), defence in depth: --overrides makes
+ * `kubectl expose` (and `kubectl run`) create whatever its value describes
+ * — real kubectl v1.36.4 POSTed a cluster-admin ClusterRoleBinding for
+ * `expose deployment web -n prod --port=80 --overrides=...`. The shared
+ * policy denies the flag; the guard refuses it on its own too, in every
+ * spelling kubectl reads as it.
+ */
+describe("KubectlArgvGuard: flags that replace the object kubectl creates", () => {
+  const NAMESPACE_OVERRIDE: string =
+    '{"apiVersion":"v1","kind":"Namespace","metadata":{"name":"ai-made"}}';
+
+  test.each([
+    [
+      "--overrides=<json>",
+      [
+        "expose",
+        "deployment",
+        "web",
+        "-n",
+        "web",
+        "--port=80",
+        `--overrides=${NAMESPACE_OVERRIDE}`,
+      ],
+      "--overrides",
+    ],
+    [
+      "--overrides with its value as the next token",
+      [
+        "expose",
+        "deployment",
+        "web",
+        "-n",
+        "web",
+        "--port=80",
+        "--overrides",
+        NAMESPACE_OVERRIDE,
+      ],
+      "--overrides",
+    ],
+    [
+      "--override-type",
+      ["expose", "deployment", "web", "--port=80", "--override-type=json"],
+      "--override-type",
+    ],
+    [
+      "--override_type, which kubectl reads as --override-type",
+      ["expose", "deployment", "web", "--port=80", "--override_type=merge"],
+      "--override_type",
+    ],
+    [
+      "--Overrides in mixed case (stricter than kubectl)",
+      ["expose", "deployment", "web", "--port=80", "--Overrides={}"],
+      "--Overrides",
+    ],
+    [
+      "the flag before the verb",
+      [`--overrides=${NAMESPACE_OVERRIDE}`, "expose", "deployment", "web"],
+      "--overrides",
+    ],
+    [
+      "--overrides on run",
+      ["run", "debug", "--image=busybox", `--overrides=${NAMESPACE_OVERRIDE}`],
+      "--overrides",
+    ],
+    [
+      "after the -- separator (stricter than kubectl)",
+      ["expose", "deployment", "web", "--", "--overrides={}"],
+      "--overrides",
+    ],
+  ])("refuses %s", (_label: string, args: Array<string>, flag: string) => {
+    const reason: string | null = refusal(args);
+
+    expect(reason).toContain(`the ${flag} flag is not allowed on this Runner`);
+    expect(reason).toContain("replaces the object kubectl creates");
+  });
+
+  test("both flags are on the guard's own list", () => {
+    expect(KubectlArgvGuard.deniedLongFlags).toContain("overrides");
+    expect(KubectlArgvGuard.deniedLongFlags).toContain("override-type");
+  });
+
+  // Negative controls: the words appear, but not as the flag.
+  test.each([
+    [
+      "expose without it",
+      ["expose", "deployment", "web", "-n", "web", "--port=80"],
+    ],
+    [
+      "a label pair that spells it",
+      ["label", "pod", "web-1", "overrides=x", "-n", "web"],
+    ],
+    [
+      "--overwrite, which starts the same way",
+      ["label", "pod", "web-1", "a=b", "--overwrite", "-n", "web"],
+    ],
+  ])("still allows %s", (_label: string, args: Array<string>) => {
+    expect(refusal(args)).toBeNull();
+  });
+
+  test("both layers refuse expose --overrides", () => {
+    const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
+      `kubectl expose deployment web -n web --port=80 --overrides='${NAMESPACE_OVERRIDE}'`,
+    );
+
+    expect(policy.tier).toBe(KubectlCommandTier.Denied);
+    expect(refusal(policy.args)).toContain("--overrides");
+  });
+});

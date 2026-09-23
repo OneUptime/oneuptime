@@ -1040,8 +1040,8 @@ describe("RemediationCommandToolkit tells the model the Runner's scope as the Ru
     );
     expect(getKubectlAlwaysAsksSummary(off)).toBe(
       KUBECTL_ALWAYS_ASKS_SUMMARY.replace(
-        "and a node drain or taint always need",
-        "always needs",
+        ", a node drain, a node taint and a patch of a Node always need",
+        " always needs",
       ),
     );
 

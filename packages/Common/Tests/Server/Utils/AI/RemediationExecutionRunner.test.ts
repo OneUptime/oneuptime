@@ -1159,11 +1159,12 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
     );
     /*
      * The canonical Bypass exceptions (round-three review): a node taint
-     * needs a human like a drain, and the breaker or another round's hold
-     * turns the round into a proposal.
+     * needs a human like a drain — and, since round four, a patch of a
+     * Node too — and the breaker or another round's hold turns the round
+     * into a proposal.
      */
     expect(request.get().questionOverride).toContain(
-      "a write in a protected namespace, a node drain or a node taint",
+      "a write in a protected namespace, a node drain, a node taint or a patch of a Node",
     );
     expect(request.get().questionOverride).toContain(
       "the round becomes a proposal if the hourly circuit breaker trips or another unattended round holds the cluster",
@@ -1612,6 +1613,7 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
       "a node drain or taint",
       "a node drain or a node taint",
       "a node drain or a taint",
+      "a patch of a Node",
     ];
 
     function postureWithNodeOperations(
@@ -1728,7 +1730,7 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
         expect(context).toContain(KUBECTL_AUTOMATIC_MODE_SUMMARY);
         expect(context).toContain(KUBECTL_ALWAYS_ASKS_SUMMARY);
         expect(context).toContain(
-          "never a write in a protected namespace, a node drain or a taint):",
+          "never a write in a protected namespace, a node drain, a node taint or a patch of a Node):",
         );
         expect(context).not.toContain("no node operations");
         expect(request.get().personaOverride).toContain(
@@ -1743,7 +1745,7 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
       },
     );
 
-    it("negative control: a Bypass round with node operations on names the drain and the taint among its exceptions", async () => {
+    it("negative control: a Bypass round with node operations on names the drain, the taint and the Node patch among its exceptions", async () => {
       mockSuggestionHonouringSelect(clusterRow());
       mockCluster(KubernetesAiRemediationMode.BypassApproval, true);
       const request: { get: () => InvestigationRequest } = captureRequest();
@@ -1751,7 +1753,7 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
       await run();
 
       expect(request.get().questionOverride).toContain(
-        "a write in a protected namespace, a node drain or a node taint",
+        "a write in a protected namespace, a node drain, a node taint or a patch of a Node",
       );
       expect(request.get().contextSummary).toContain(
         KUBECTL_RISKIER_CHANGES_SUMMARY,

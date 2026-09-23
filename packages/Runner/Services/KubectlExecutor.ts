@@ -139,6 +139,23 @@ const JOB_CACHE_DIR_NAME: string = "cache";
 const STDOUT_HEADER: string = "[stdout]\n";
 const STDERR_HEADER: string = "[stderr]\n";
 
+/*
+ * U+0000, which kubectl can print (a ConfigMap value, a log line, a
+ * binary annotation) and a Postgres text column cannot hold: a server
+ * older than the one that replaces it itself rejects the whole result
+ * (22021), and the job is then reported as lost. Replaced before the
+ * output is formatted, with the character the server uses
+ * (RUNNER_JOB_UNSTORABLE_CHARACTER_REPLACEMENT), so a reader sees that
+ * something was there.
+ */
+// eslint-disable-next-line no-control-regex
+const NUL_CHARACTER_PATTERN: RegExp = /\u0000/g;
+export const KUBECTL_NUL_REPLACEMENT: string = "\uFFFD";
+
+export function replaceNulCharacters(text: string): string {
+  return text.replace(NUL_CHARACTER_PATTERN, KUBECTL_NUL_REPLACEMENT);
+}
+
 function headBytes(s: string, maxBytes: number): string {
   return Buffer.from(s, "utf8")
     .subarray(0, Math.max(0, maxBytes))
@@ -942,8 +959,12 @@ export default class KubectlExecutor {
           }
           settled = true;
 
-          const stdout: string = Buffer.concat(stdoutChunks).toString("utf8");
-          const stderr: string = stderrTail.toString("utf8");
+          const stdout: string = replaceNulCharacters(
+            Buffer.concat(stdoutChunks).toString("utf8"),
+          );
+          const stderr: string = replaceNulCharacters(
+            stderrTail.toString("utf8"),
+          );
           const output: string = formatKubectlOutput({
             stdout,
             stderr,

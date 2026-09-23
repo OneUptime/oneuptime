@@ -512,9 +512,9 @@ export default class Register {
 
     switch (data.reason) {
       case "runner_holds_more_than_defaults":
-        return `This does not clear on its own: an operator must act. The in-cluster Runner row for cluster "${data.clusterName}" is offline but holds more than an in-cluster Runner's defaults (credentials, secrets, "Runs Runbooks" or "Runs AI Code Fixes", or another cluster's AI access), and a new pod cannot prove it is the instance that held them. In Project Settings > Runners, take those away from that Runner or delete it — the server's own words follow. ${retry}`;
+        return `This does not clear on its own: an operator must act. The in-cluster Runner row for cluster "${data.clusterName}" is offline but holds more than an in-cluster Runner's defaults (credentials, secrets, "Runs Runbooks" or "Runs AI Code Fixes", or another cluster's AI access), and a new pod cannot prove it is the instance that held them. In Project Settings > Runners, take those away from that Runner, or delete it and then select the fresh Runner this pod registers on the cluster's AI page as its Runner (a deleted Runner leaves the cluster with no Runner bound, and a fresh one never binds itself) — the server's own words follow. ${retry}`;
       case "runner_belongs_to_another_cluster":
-        return `This does not clear on its own: an operator must act. The Runner row this cluster's in-cluster Runner registers as belongs to a different cluster. Rename or delete that Runner in Project Settings > Runners, or give this install its own clusterName on the Kubernetes agent chart — the server's own words follow. ${retry}`;
+        return `This does not clear on its own: an operator must act. The Runner row this cluster's in-cluster Runner registers as belongs to a different cluster. Delete that Runner in Project Settings > Runners (an in-cluster Runner cannot be renamed) and then select the fresh Runner this pod registers on the cluster's AI page as its Runner, or give this install its own clusterName on the Kubernetes agent chart — the server's own words follow. ${retry}`;
       default:
         if (data.reason) {
           return `The server refused the registration (reason "${data.reason}") and did not say that the refusal clears on its own, so an operator must act on what it says — the server's own words follow. ${retry}`;
@@ -662,7 +662,7 @@ export default class Register {
        */
       logger.warn(
         result.data["bindingState"] === "left_unbound_by_operator"
-          ? `Cluster "${KUBERNETES_AGENT_CLUSTER_NAME}" has no Runner bound in the dashboard (an operator cleared it), so OneUptime AI will not use this in-cluster Runner until you select it on the cluster's AI page.`
+          ? `Cluster "${KUBERNETES_AGENT_CLUSTER_NAME}" has no Runner bound in the dashboard (an operator cleared it, or its Runner was deleted), so OneUptime AI will not use this in-cluster Runner until you select it on the cluster's AI page.`
           : `Cluster "${KUBERNETES_AGENT_CLUSTER_NAME}" is bound to a different Runner in the dashboard, so OneUptime AI will not use this in-cluster Runner until you select it on the cluster's AI page.`,
         { runnerName: RUNNER_NAME } as LogAttributes,
       );

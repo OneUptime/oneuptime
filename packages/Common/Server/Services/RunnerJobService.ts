@@ -22,6 +22,7 @@ import KubectlWriteScope, {
 import ToolResultSerializer from "../Utils/AI/Toolbox/Serializer";
 import {
   KUBECTL_ALLOW_NODE_OPERATIONS_ENV,
+  KUBECTL_ALLOW_WRITES_ENV,
   KUBECTL_WRITE_NAMESPACES_ENV,
   KubectlCommandTier,
   KubernetesAiRemediationMode,
@@ -235,6 +236,18 @@ function describeSeconds(milliseconds: number): string {
   return `${Math.max(1, Math.round(milliseconds / 1000))}s`;
 }
 
+// Where a Runner's write scope is set, as a refusal words it.
+interface RunnerWriteScopeSettings {
+  // Why the Runner refuses node operations (a clause).
+  nodeOperationsOff: string;
+  // How to let it change nodes (a clause, after "To let OneUptime AI change nodes, ").
+  allowNodeOperations: string;
+  // Where its write namespaces are set (after the listed namespaces).
+  namespaces: string;
+  // How to add a namespace to them (after 'To let OneUptime AI change "x", ').
+  addNamespace: string;
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -248,12 +261,18 @@ export class Service extends DatabaseService<Model> {
    * reported instead of what it was started with. Refusing here means
    * nothing is approved, enqueued or counted by the cluster's circuit
    * breaker only to be refused on the Runner (or answered Forbidden by the
-   * API server). Each refusal names the chart value to change.
+   * API server). Each refusal names the setting to change where that
+   * Runner is configured (getRunnerWriteScopeSettings): the Kubernetes
+   * agent chart's values for the in-cluster Runner, the Runner's own
+   * environment on its host for a Runner that reaches the cluster through
+   * a credential.
    *
-   * - writeNamespaces (aiAccess.remediation.namespaces) and podNamespace
-   *   are the Runner's scope; a Runner that did not report one has none.
-   * - allowNodeOperations === false (aiAccess.remediation.nodeOperations):
-   *   no node operation. A Runner that never said (absent) is not
+   * - writeNamespaces (aiAccess.remediation.namespaces, or a credential
+   *   Runner's ONEUPTIME_KUBECTL_WRITE_NAMESPACES) and podNamespace are the
+   *   Runner's scope; a Runner that did not report one has none.
+   * - allowNodeOperations === false (aiAccess.remediation.nodeOperations,
+   *   or a credential Runner's ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS): no
+   *   node operation. A Runner that never said (absent) is not
    *   second-guessed.
    * - usesCredential: a write that names no namespace lands in "default"
    *   through a credential's kubeconfig, and in the pod's own namespace
@@ -286,12 +305,50 @@ export class Service extends DatabaseService<Model> {
         usesCredential: data.usesCredential,
       });
 
-    return refusal ? Service.describeRunnerWriteScopeRefusal(refusal) : null;
+    return refusal
+      ? Service.describeRunnerWriteScopeRefusal(
+          refusal,
+          Service.getRunnerWriteScopeSettings(data.usesCredential),
+        )
+      : null;
+  }
+
+  /*
+   * Where the target Runner's write scope is set, in the words a refusal
+   * uses. The in-cluster Runner is the Kubernetes agent's: its chart sets
+   * the scope (and the environment variables behind it), and an upgrade
+   * changes it. A Runner that reaches the cluster through a Kubernetes
+   * credential is an ordinary Runner no chart configures: it reports what
+   * it was started with — ONEUPTIME_KUBECTL_WRITE_NAMESPACES and
+   * ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS on its own host — and a
+   * restart picks up a change.
+   */
+  private static getRunnerWriteScopeSettings(
+    usesCredential: boolean,
+  ): RunnerWriteScopeSettings {
+    if (usesCredential) {
+      return {
+        nodeOperationsOff: `it was started with ${KUBECTL_ALLOW_NODE_OPERATIONS_ENV} (or ${KUBECTL_ALLOW_WRITES_ENV}) set to something other than true on its host`,
+        allowNodeOperations: `set ${KUBECTL_ALLOW_NODE_OPERATIONS_ENV}=true on that Runner's host and restart it`,
+        namespaces: `${KUBECTL_WRITE_NAMESPACES_ENV} on that Runner's host`,
+        addNamespace: `add it to ${KUBECTL_WRITE_NAMESPACES_ENV} on that Runner's host and restart it`,
+      };
+    }
+
+    return {
+      nodeOperationsOff: `its Kubernetes agent was installed with aiAccess.remediation.nodeOperations=false (${KUBECTL_ALLOW_NODE_OPERATIONS_ENV})`,
+      allowNodeOperations:
+        "upgrade the agent with --set aiAccess.remediation.nodeOperations=true",
+      namespaces: `aiAccess.remediation.namespaces on the Kubernetes agent chart, ${KUBECTL_WRITE_NAMESPACES_ENV}`,
+      addNamespace:
+        "add it to aiAccess.remediation.namespaces and upgrade the agent",
+    };
   }
 
   // A write-scope refusal, worded for whoever enqueued the command.
   private static describeRunnerWriteScopeRefusal(
     refusal: KubectlWriteScopeRefusal,
+    settings: RunnerWriteScopeSettings,
   ): string {
     const command: string = `"${refusal.displayCommand}"`;
     const wouldRefuse: string =
@@ -300,9 +357,7 @@ export class Service extends DatabaseService<Model> {
       .map((allowed: string) => {
         return `"${allowed}"`;
       })
-      .join(
-        ", ",
-      )}: aiAccess.remediation.namespaces on the Kubernetes agent chart, ${KUBECTL_WRITE_NAMESPACES_ENV}`;
+      .join(", ")}: ${settings.namespaces}`;
     const namespace: string = refusal.namespace || "";
     const fix: string = refusal.fix ? ` ${refusal.fix}` : "";
 
@@ -312,7 +367,7 @@ export class Service extends DatabaseService<Model> {
           refusal.uncertainty === null
             ? `${command} changes a node`
             : `The cluster's Runner cannot tell for certain whether ${command} changes a node (${refusal.uncertainty})`
-        }, and the cluster's Runner does not allow node operations (cordon, uncordon, drain, taint, or labelling, annotating or patching a Node): its Kubernetes agent was installed with aiAccess.remediation.nodeOperations=false (${KUBECTL_ALLOW_NODE_OPERATIONS_ENV}), ${wouldRefuse}${fix} To let OneUptime AI change nodes, upgrade the agent with --set aiAccess.remediation.nodeOperations=true.`;
+        }, and the cluster's Runner does not allow node operations (cordon, uncordon, drain, taint, or labelling, annotating or patching a Node): ${settings.nodeOperationsOff}, ${wouldRefuse}${fix} To let OneUptime AI change nodes, ${settings.allowNodeOperations}.`;
       case "objects_uncertain":
       case "namespace_uncertain":
         return `The cluster's Runner cannot tell for certain which ${
@@ -351,7 +406,7 @@ export class Service extends DatabaseService<Model> {
                   ? " (the command names none, so kubectl would use that one)"
                   : ""
               }`
-        }, which is outside the namespaces the cluster's Runner lets OneUptime AI change (${scopeList}), ${wouldRefuse} To let OneUptime AI change "${namespace}", add it to aiAccess.remediation.namespaces and upgrade the agent.`;
+        }, which is outside the namespaces the cluster's Runner lets OneUptime AI change (${scopeList}), ${wouldRefuse} To let OneUptime AI change "${namespace}", ${settings.addNamespace}.`;
       default: {
         const unhandled: never = refusal.code;
         return unhandled;

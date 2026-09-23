@@ -230,16 +230,21 @@ export function getKubectlRiskierChangesSummary(
   }scale to zero, deleting a workload or a job, create job --from=cronjob/<name>, and any change that touches several objects at once`;
 }
 
-// Asks a human whatever the cluster's mode, allowlist included.
+/*
+ * Asks a human whatever the cluster's mode, allowlist included: a
+ * protected-namespace write, and — where the Runner may change nodes at
+ * all — a node drain, a node taint and a patch of a Node (the canonical
+ * mode text in KubernetesClusterAiAccess).
+ */
 export function getKubectlAlwaysAsksSummary(
   options: KubectlChangeSummaryOptions,
 ): string {
   return `a write in a protected namespace (${PROTECTED_KUBERNETES_NAMESPACES.join(
     ", ",
-  )}) ${
+  )})${
     options.allowNodeOperations
-      ? "and a node drain or taint always need"
-      : "always needs"
+      ? ", a node drain, a node taint and a patch of a Node always need"
+      : " always needs"
   } a human, in every mode — Bypass approval and the allowlist included`;
 }
 

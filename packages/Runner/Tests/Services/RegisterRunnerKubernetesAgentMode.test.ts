@@ -584,7 +584,9 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
 
     expect(
       warnLog.some((entry: unknown) => {
-        return String(entry).includes("an operator cleared it");
+        return String(entry).includes(
+          "(an operator cleared it, or its Runner was deleted)",
+        );
       }),
     ).toBe(true);
     expect(
@@ -943,7 +945,7 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
 
     const OTHER_CLUSTER: JSONObject = {
       message:
-        'Runner "kubernetes-agent/prod-us" reports that it is the in-cluster Runner of a different cluster. Rename or delete that Runner.',
+        'Delete Runner "kubernetes-agent/prod-us" under Project Settings → Runners (an in-cluster Runner cannot be renamed) and, once the agent registers a fresh one on its next retry, select it on the AI page of cluster "prod-us" as its Runner.',
       reason: "runner_belongs_to_another_cluster",
     };
 
@@ -965,7 +967,11 @@ describe("Register.registerRunner in kubernetes-agent mode", () => {
 
     test.each([
       ["runner_holds_more_than_defaults", HOLDINGS, 'turn off "Runs Runbooks"'],
-      ["runner_belongs_to_another_cluster", OTHER_CLUSTER, "Rename or delete"],
+      [
+        "runner_belongs_to_another_cluster",
+        OTHER_CLUSTER,
+        "once the agent registers a fresh one on its next retry, select it",
+      ],
     ])(
       "%s is retried every 5 minutes and explained once, as operator action",
       async (_reason: string, body: JSONObject, serverWords: string) => {

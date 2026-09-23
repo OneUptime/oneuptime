@@ -30,7 +30,9 @@
  *     --from-file, --from-env-file, --cert, --key), that turn kubectl into a
  *     raw API client (--raw), that write files (--cache-dir, --profile,
  *     --profile-output, --log-file, --log-dir) or that log request bodies
- *     (-v, --vmodule). Combined short-flag clusters are walked character by
+ *     (-v, --vmodule), and flags that replace the object kubectl creates
+ *     with whatever their value describes (--overrides, --override-type on
+ *     expose and run). Combined short-flag clusters are walked character by
  *     character the way pflag does, so `-Rf`, `-Af` and `-pf` are caught as
  *     well as `-f`, and an inline value such as `-nweb` is a value, not four
  *     flags.
@@ -90,6 +92,22 @@ const DENIED_LONG_FLAGS: Set<string> = new Set<string>([
   "log-dir",
   "v",
   "vmodule",
+  // They replace the object kubectl creates (see OBJECT_REPLACING_LONG_FLAGS).
+  "overrides",
+  "override-type",
+]);
+
+/*
+ * Long flags (in DENIED_LONG_FLAGS) that replace the object kubectl builds
+ * — `kubectl expose` and `kubectl run` merge --overrides into the Service or
+ * Pod they generate, and create whatever the merge describes: a
+ * ClusterRoleBinding, a Namespace, a privileged Job. The shared policy
+ * denies them too; refused here as well, so no parser drift can let one
+ * through.
+ */
+const OBJECT_REPLACING_LONG_FLAGS: Set<string> = new Set<string>([
+  "overrides",
+  "override-type",
 ]);
 
 // Short flags refused wherever they appear, alone or inside a cluster.
@@ -169,6 +187,10 @@ function normalizeLongFlagName(name: string): string {
 
 function describeDeniedFlag(flag: string): string {
   return `the ${flag} flag is not allowed on this Runner (OneUptime AI may only use the cluster access this Runner was given, and kubectl may never read or write files on the Runner's host, use another identity, or issue raw API requests)`;
+}
+
+function describeObjectReplacingFlag(flag: string): string {
+  return `the ${flag} flag is not allowed on this Runner (it replaces the object kubectl creates with whatever its value describes — any kind, in any namespace — so what the command changes cannot be known before it runs)`;
 }
 
 function describeFileBackedOutput(value: string): string {
@@ -305,6 +327,10 @@ export default class KubectlArgvGuard {
       EXPLAIN_RECURSIVE_VALUES.has(eq >= 0 ? token.slice(eq + 1) : "")
     ) {
       return null;
+    }
+
+    if (OBJECT_REPLACING_LONG_FLAGS.has(normalized)) {
+      return describeObjectReplacingFlag(`--${name}`);
     }
 
     if (DENIED_LONG_FLAGS.has(normalized) || normalized.startsWith("as-")) {

@@ -1285,7 +1285,8 @@ describe("RemediationCommandToolkit drops what it kept for a cluster the run saw
 /*
  * The reason a kept change carries onto the approval card names what
  * actually holds it back (PR #3953 review, remediation-r2-05). A write in a
- * protected namespace — and a node drain or taint — needs a human in EVERY
+ * protected namespace — and a node drain, a node taint or a patch of a
+ * Node — needs a human in EVERY
  * mode, so "a riskier change on a cluster that only runs safe changes" would
  * be false on a Bypass cluster, and for a one-object restart in kube-system.
  */
@@ -1359,6 +1360,58 @@ describe("RemediationCommandToolkit says why a kept change needs a human", () =>
 
     expect(kept.reason).toContain("a node drain always needs a human");
     expect(kept.reason).not.toContain("riskier change");
+  });
+
+  /*
+   * Round four: a patch of a Node always needs a human too (it can write
+   * the Node's taints). The toolkit reads that off the policy's verdict
+   * (requiresHuman), not the verb: a Bypass cluster runs every other patch
+   * on its own, so "does not allow it without a human" would be false.
+   */
+  it.each([
+    ["an Automatic cluster", KubernetesAiRemediationMode.Automatic],
+    ["a Bypass cluster", KubernetesAiRemediationMode.BypassApproval],
+  ])(
+    "on %s, a patch of a Node names the Node patch — it needs a human in every mode",
+    async (_label: string, mode: KubernetesAiRemediationMode) => {
+      const kept: { reason: string; text: string } = await keptReason(
+        mode,
+        `kubectl patch node n1 -p '{"spec":{"unschedulable":true}}'`,
+      );
+
+      expect(kept.reason).toBe(
+        "a patch of a Node always needs a human, in every mode",
+      );
+      expect(kept.reason).not.toContain("riskier change");
+      expect(kept.reason).not.toContain("does not allow it");
+      expect(kept.text).toContain(
+        "kubectl patch of a Node can set, replace or clear its taints",
+      );
+      expect(kept.text).toContain(
+        "a patch of a Node always needs a human, in every mode — Bypass approval and the cluster's allowlist included",
+      );
+    },
+  );
+
+  it("a taint names the taint, not a patch of a Node", async () => {
+    const kept: { reason: string; text: string } = await keptReason(
+      KubernetesAiRemediationMode.BypassApproval,
+      "kubectl taint nodes n1 dedicated=ai:NoSchedule",
+    );
+
+    expect(kept.reason).toBe(
+      "a node taint always needs a human, in every mode",
+    );
+  });
+
+  it("negative control: a patch of a Deployment on an Automatic cluster is still a riskier change", async () => {
+    const kept: { reason: string; text: string } = await keptReason(
+      KubernetesAiRemediationMode.Automatic,
+      `kubectl patch deployment web -n web -p '{"spec":{"replicas":2}}'`,
+    );
+
+    expect(kept.reason).toContain("riskier change");
+    expect(kept.reason).not.toContain("always needs a human");
   });
 
   it("negative control: an ordinary riskier change on an Automatic cluster is still a riskier change, and the allowlist is named", async () => {

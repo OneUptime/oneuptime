@@ -1124,8 +1124,9 @@ class AutoRemediationRuleEngineServiceClass {
    * one is proposed only if verification shows they did not recover the
    * signal, by the follow-up round, which asks);
    * BypassApproval clusters run FullAuto for every change the policy
-   * allows (a protected-namespace write, a node drain or a node taint
-   * still asks); clusters on "ask for approval" run Suggest. One
+   * allows (a protected-namespace write, a node drain, a node taint or a
+   * patch of a Node still asks); clusters on "ask for approval" run
+   * Suggest. One
    * suggestion per cluster per subject from this hook; and at most one
    * UNATTENDED AI run per cluster at a time, whatever the subject — a round
    * that finds another round, or a rule-driven run, still changing the
@@ -1304,7 +1305,8 @@ class AutoRemediationRuleEngineServiceClass {
      * for the follow-up; a BypassApproval cluster runs every round
      * unattended, follow-ups included — that is what its operator chose.
      * (What needs a human in every mode — a protected-namespace write, a
-     * node drain or taint — is still proposed, never run, inside the round.)
+     * node drain, a node taint, a patch of a Node — is still proposed,
+     * never run, inside the round.)
      */
     const isBypass: boolean =
       cluster.remediationMode === KubernetesAiRemediationMode.BypassApproval;
