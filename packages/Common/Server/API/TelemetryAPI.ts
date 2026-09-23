@@ -145,6 +145,7 @@ import SessionReplayReadService, {
   SessionReplayListFilters,
   SessionReplayListResult,
   SessionReplayManifest,
+  SessionReplayResolvedSession,
   SessionReplaySessionHeader,
   SessionReplaySessionIdentity,
   SessionReplaySummary,
@@ -3608,6 +3609,40 @@ const requireSessionReplaySummaryAccess: Array<RequestHandler> = [
   }),
 ];
 
+/*
+ * Resolving a session id to its application, for the replay links on the
+ * log, span and exception surfaces. Those surfaces are open to every
+ * telemetry reader, most of whom hold no replay grant, so this guard admits
+ * the telemetry read tiers as well as the session-list permissions: a 422
+ * here would reject the Dashboard's lookup on every row a Viewer expands,
+ * and a rejection is the one answer that lookup does not cache.
+ *
+ * The guard is not what protects the data. The handler resolves the
+ * caller's session-list label scope and filters every row to it, so a
+ * caller holding no list grant reaches no application and receives an
+ * empty success - the same fail-closed shape /summaries gives an audit-only
+ * reviewer. It projects only what /list already shows to a list-capable
+ * caller: the application and the start time.
+ */
+const SESSION_REPLAY_RESOLVE_PERMISSIONS: Array<Permission> = [
+  ...SESSION_REPLAY_LIST_PERMISSIONS,
+  Permission.ProjectMember,
+  Permission.Viewer,
+  Permission.TelemetryMember,
+  Permission.TelemetryViewer,
+  Permission.ReadTelemetryServiceLog,
+  Permission.ReadTelemetryServiceTraces,
+  Permission.ReadTelemetryException,
+];
+
+const requireSessionReplayResolveAccess: Array<RequestHandler> = [
+  UserMiddleware.getUserMiddleware,
+  UserMiddleware.requireUserAuthentication,
+  UserMiddleware.requirePermission({
+    permissions: SESSION_REPLAY_RESOLVE_PERMISSIONS,
+  }),
+];
+
 const SESSION_REPLAY_PAYLOAD_PERMISSIONS: Array<Permission> = [
   Permission.ProjectOwner,
   Permission.ProjectAdmin,
@@ -4592,9 +4627,10 @@ const readSessionIdFromBody: ReadSessionIdFromBodyFunction = (
 type ReadSessionIdsFromBodyFunction = (body: JSONObject) => Array<string>;
 
 /*
- * The summaries route accepts one audit-table page at a time. Validate the
- * raw array before de-duplicating it so repeated values cannot be used to
- * bypass the request-size ceiling, then preserve first-occurrence order.
+ * The summaries and resolve routes accept one page of ids at a time.
+ * Validate the raw array before de-duplicating it so repeated values cannot
+ * be used to bypass the request-size ceiling, then preserve first-occurrence
+ * order.
  */
 const readSessionIdsFromBody: ReadSessionIdsFromBodyFunction = (
   body: JSONObject,
@@ -5254,6 +5290,72 @@ router.post(
 
       return Response.sendJsonObjectResponse(req, res, {
         sessions: sessions as unknown as JSONArray,
+      });
+    } catch (err: unknown) {
+      next(err);
+    }
+  },
+);
+
+// --- Session Replay Resolve Endpoint ---
+
+/*
+ * Session id -> the application that recorded it, project-wide. A log line,
+ * a span and an exception occurrence each carry a sessionId but not the RUM
+ * application, and the player route needs both. RumSession has no
+ * crudApiPath (see the note above the guards), so the Dashboard cannot ask
+ * the generic analytics API; this is its one read for it.
+ *
+ * There is no application to assert access to - finding it is the point -
+ * so the query is restricted to the applications the caller's session-list
+ * labels reach, exactly as /for-exception is. A caller whose grant reaches
+ * none gets an empty success without a query; an Owned-scoped grant is
+ * refused, as on every other replay route. Ids recorded under more than one
+ * application are left out rather than guessed (see resolveSessions).
+ */
+router.post(
+  "/telemetry/rum/session-replay/resolve",
+  ...requireSessionReplayResolveAccess,
+  async (
+    req: ExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const databaseProps: DatabaseCommonInteractionProps =
+        await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+      if (!databaseProps?.tenantId) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid Project ID"),
+        );
+      }
+
+      assertSessionReplayPlan(databaseProps);
+
+      const projectId: ObjectID = databaseProps.tenantId;
+      const body: JSONObject = req.body as JSONObject;
+      const sessionIds: Array<string> = readSessionIdsFromBody(body);
+
+      const accessibleApplications: AccessibleRumApplications =
+        await resolveAccessibleRumApplicationIds({
+          projectId: projectId,
+          databaseProps: databaseProps,
+          permissions: SESSION_REPLAY_LIST_PERMISSIONS,
+        });
+
+      const sessions: Array<SessionReplayResolvedSession> =
+        await SessionReplayReadService.resolveSessions({
+          projectId: projectId,
+          sessionIds: sessionIds,
+          accessibleRumApplicationIds: accessibleApplications.applicationIds,
+        });
+
+      return Response.sendJsonObjectResponse(req, res, {
+        sessions: sessions as unknown as JSONArray,
+        isApplicationScopeTruncated: accessibleApplications.isTruncated,
       });
     } catch (err: unknown) {
       next(err);

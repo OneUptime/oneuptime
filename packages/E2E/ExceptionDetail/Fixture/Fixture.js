@@ -45,7 +45,6 @@ import User from "Common/Models/DatabaseModels/User";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import Span, { SpanKind } from "Common/Models/AnalyticsModels/Span";
 import Log from "Common/Models/AnalyticsModels/Log";
-import RumSession from "Common/Models/AnalyticsModels/RumSession";
 import Color from "Common/Types/Color";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
@@ -764,17 +763,6 @@ AnalyticsModelAPI.getList = async (options) => {
     }
   } else if (options.modelType === Log) {
     items = makeLogs(options.query);
-  } else if (options.modelType === RumSession) {
-    items =
-      replayMode === "session"
-        ? [
-            Object.assign(new RumSession(), {
-              sessionId: SESSION_ID,
-              rumApplicationId: new ObjectID(RUM_APPLICATION_ID),
-              startTime: new Date(NOW - 9 * MINUTE),
-            }),
-          ]
-        : [];
   }
 
   return {
@@ -886,6 +874,31 @@ async function handleApi(method, options) {
       );
     }
     return ok({ aiAgentTaskId: TASK_IDS[body.taskType || "FixException"] });
+  }
+
+  /*
+   * The occurrence table's replay links resolve session -> application
+   * here. RumSession has no generic list API, so a getList stub for it
+   * would describe a read the page can never make.
+   */
+  if (url.includes("/telemetry/rum/session-replay/resolve")) {
+    const requested = Array.isArray(body.sessionIds) ? body.sessionIds : [];
+    const startTime = new Date(NOW - 9 * MINUTE);
+
+    return ok({
+      sessions:
+        replayMode === "session" && requested.includes(SESSION_ID)
+          ? [
+              {
+                sessionId: SESSION_ID,
+                rumApplicationId: RUM_APPLICATION_ID,
+                startTime: startTime.toISOString(),
+                startTimeUnixMs: startTime.getTime(),
+              },
+            ]
+          : [],
+      isApplicationScopeTruncated: false,
+    });
   }
 
   if (url.includes("/telemetry/rum/session-replay/for-exception")) {

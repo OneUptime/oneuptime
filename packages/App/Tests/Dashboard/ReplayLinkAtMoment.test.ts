@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import RumSession from "Common/Models/AnalyticsModels/RumSession";
 import Span from "Common/Models/AnalyticsModels/Span";
 
 /*
@@ -312,6 +313,21 @@ describe("every inbound surface builds its player URL through the shared builder
     expect(source).toContain("buildReplayMomentRoute(");
     expect(source).not.toContain("RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW");
     expect(source).not.toContain("populateRouteParams");
+  });
+
+  /*
+   * RumSession has no crudApiPath, so AnalyticsModelAPI.getList throws for
+   * it before sending a request, and every link on every surface resolved
+   * to nothing. The lookup's own suite mocks the transport, so this pins
+   * the transport itself.
+   */
+  test("RumSessionLookup reads through /resolve, never the generic analytics list", () => {
+    const source: string = readSource("Utils/RumSessionLookup.ts");
+
+    expect(source).toContain('"/telemetry/rum/session-replay/resolve"');
+    expect(source).not.toContain("AnalyticsModelAPI");
+    /* The premise: there is no generic read to go through. */
+    expect(new RumSession().crudApiPath).toBeUndefined();
   });
 });
 
