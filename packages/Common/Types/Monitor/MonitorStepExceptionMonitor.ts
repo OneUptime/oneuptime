@@ -16,6 +16,15 @@ export default interface MonitorStepExceptionMonitor {
    * undefined.
    */
   entityKeys?: Array<string> | undefined;
+  /*
+   * Deployment environments (the `deployment.environment` resource attribute,
+   * stored on each occurrence's `environment` column). Matched exactly, like
+   * the Exception Explorer's `env:` filter, so an occurrence with no
+   * environment never matches a scoped monitor. Optional: monitors saved
+   * before this field existed have it undefined, which means every
+   * environment.
+   */
+  environments?: Array<string> | undefined;
   exceptionTypes: Array<string>;
   message: string;
   includeResolved: boolean;
@@ -46,6 +55,15 @@ export class MonitorStepExceptionMonitorUtil {
       query.entityKeys = new Includes(monitorStepExceptionMonitor.entityKeys);
     }
 
+    const environments: Array<string> =
+      MonitorStepExceptionMonitorUtil.normalizeEnvironments(
+        monitorStepExceptionMonitor.environments,
+      );
+
+    if (environments.length > 0) {
+      query.environment = new Includes(environments);
+    }
+
     if (
       monitorStepExceptionMonitor.exceptionTypes &&
       monitorStepExceptionMonitor.exceptionTypes.length > 0
@@ -71,10 +89,42 @@ export class MonitorStepExceptionMonitorUtil {
     return query;
   }
 
+  /*
+   * Steps written through the API are stored without passing through
+   * fromJSON, so this accepts what a caller might plausibly send — a list, or
+   * a single environment as a bare string — and drops blanks and duplicates.
+   * Values are trimmed but otherwise kept as-is: matching is exact and
+   * case-sensitive, the same as the Explorer.
+   */
+  public static normalizeEnvironments(environments: unknown): Array<string> {
+    const values: Array<unknown> = Array.isArray(environments)
+      ? environments
+      : typeof environments === "string"
+        ? [environments]
+        : [];
+
+    const normalized: Array<string> = [];
+
+    for (const value of values) {
+      if (typeof value !== "string") {
+        continue;
+      }
+
+      const environment: string = value.trim();
+
+      if (environment && !normalized.includes(environment)) {
+        normalized.push(environment);
+      }
+    }
+
+    return normalized;
+  }
+
   public static getDefault(): MonitorStepExceptionMonitor {
     return {
       telemetryServiceIds: [],
       entityKeys: [],
+      environments: [],
       exceptionTypes: [],
       message: "",
       includeResolved: false,
@@ -89,6 +139,9 @@ export class MonitorStepExceptionMonitorUtil {
         (json["telemetryServiceIds"] as Array<JSONObject>) || [],
       ),
       entityKeys: (json["entityKeys"] as Array<string>) || [],
+      environments: MonitorStepExceptionMonitorUtil.normalizeEnvironments(
+        json["environments"],
+      ),
       exceptionTypes: (json["exceptionTypes"] as Array<string>) || [],
       message: (json["message"] as string) || "",
       includeResolved: Boolean(json["includeResolved"]) || false,
@@ -102,6 +155,9 @@ export class MonitorStepExceptionMonitorUtil {
     return {
       telemetryServiceIds: ObjectID.toJSONArray(monitor.telemetryServiceIds),
       entityKeys: monitor.entityKeys || [],
+      environments: MonitorStepExceptionMonitorUtil.normalizeEnvironments(
+        monitor.environments,
+      ),
       exceptionTypes: monitor.exceptionTypes,
       message: monitor.message,
       includeResolved: monitor.includeResolved,

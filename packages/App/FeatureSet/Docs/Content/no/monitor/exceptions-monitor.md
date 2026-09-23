@@ -8,6 +8,7 @@ Unntak-monitorer teller og filtrerer unntak som samsvarer med spesifikke kriteri
 
 - Varsle ved topper i unntak i applikasjonene dine
 - Overvåke spesifikke unntakstyper
+- Avgrense varsler til et utrullingsmiljø som `production`
 - Søke etter unntak etter feilmelding
 - Spore løste og aktive unntak separat
 - Oppdage stabilitetsproblemer i applikasjoner fra feilmønstre
@@ -31,10 +32,35 @@ Velg én eller flere tjenester det skal overvåkes unntak fra. Tjenester må sen
 | Filter           | Beskrivelse                                                                   | Påkrevd |
 | ---------------- | ----------------------------------------------------------------------------- | ------- |
 | Exception Types  | Filtrer etter unntakstypens navn (f.eks. `NullPointerException`, `TypeError`) | Nei     |
+| Environments     | Filtrer etter utrullingsmiljø (f.eks. `production`, `staging`)                | Nei     |
 | Message          | Tekstsøk i unntaksmeldinger                                                   | Nei     |
 | Include Resolved | Inkluder unntak som er merket som løst (standard: false)                      | Nei     |
 | Include Archived | Inkluder unntak som er arkivert (standard: false)                             | Nei     |
 | Time Window      | Hvor langt tilbake det skal søkes etter unntak (i sekunder, standard: 60)     | Nei     |
+
+### Miljøer
+
+Miljøer hentes fra OpenTelemetry-ressursattributtet `deployment.environment` på hvert unntak, den samme verdien som unntaksutforskeren filtrerer på med `env:production`. Skriv inn ett miljø, eller flere atskilt med komma; et unntak telles når miljøet samsvarer med ett av dem.
+
+Samsvaret må være eksakt og skiller mellom store og små bokstaver: `production` samsvarer ikke med `Production` eller `prod`. Unntak uten miljø telles ikke når dette filteret er satt. La det stå tomt for å telle unntak fra alle miljøer, inkludert unntak uten miljø.
+
+Miljøfilteret kombineres med alle andre filtre, så en monitor som er avgrenset til én telemetritjeneste og `production`, teller bare produksjonsunntakene til den tjenesten.
+
+Når du oppretter monitoren via API-et, setter du `environments` på stegets `exceptionMonitor` til en liste med miljønavn:
+
+```json
+{
+  "exceptionMonitor": {
+    "telemetryServiceIds": [],
+    "environments": ["production"],
+    "exceptionTypes": [],
+    "message": "",
+    "includeResolved": false,
+    "includeArchived": false,
+    "lastXSecondsOfExceptions": 300
+  }
+}
+```
 
 ## Overvåkingskriterier
 
@@ -69,6 +95,14 @@ Velg én eller flere tjenester det skal overvåkes unntak fra. Tjenester må sen
 - **Check On**: Exception Count
 - **Filtertype**: Greater Than
 - **Verdi**: 0
+
+#### Varsle bare ved produksjonsunntak
+
+- **Miljøer**: `production`
+- **Tidsvindu**: 300 sekunder
+- **Check On**: Exception Count
+- **Filtertype**: Greater Than
+- **Verdi**: 5
 
 #### Overvåke unntak som inneholder en spesifikk melding
 

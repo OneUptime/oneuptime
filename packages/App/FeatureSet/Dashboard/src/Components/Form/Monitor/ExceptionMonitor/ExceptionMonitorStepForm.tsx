@@ -50,6 +50,7 @@ export interface ComponentProps {
 type ExceptionMonitorFormValues = {
   message: string;
   exceptionTypesInput: string;
+  environmentsInput: string;
   telemetryServiceIds: Array<string>;
   entityKeys: Array<string>;
   includeResolved: boolean;
@@ -71,10 +72,12 @@ const DURATION_OPTIONS: Array<{ label: string; value: number }> = [
   { label: "Last 24 hours", value: 86400 },
 ];
 
-type ParseExceptionTypesFunction = (input: string) => Array<string>;
+type ParseCommaSeparatedListFunction = (input: string) => Array<string>;
 
-const parseExceptionTypes: ParseExceptionTypesFunction = (input: string) => {
-  return input
+const parseCommaSeparatedList: ParseCommaSeparatedListFunction = (
+  input: string,
+) => {
+  return (input || "")
     .split(",")
     .map((item: string): string => {
       return item.trim();
@@ -94,6 +97,9 @@ const toFormValues: ToFormValuesFunction = (
   return {
     message: monitor.message || "",
     exceptionTypesInput: monitor.exceptionTypes.join(", "),
+    environmentsInput: MonitorStepExceptionMonitorUtil.normalizeEnvironments(
+      monitor.environments,
+    ).join(", "),
     telemetryServiceIds: monitor.telemetryServiceIds.map(
       (id: ObjectID): string => {
         return id.toString();
@@ -126,7 +132,10 @@ const toMonitorConfig: ToMonitorConfigFunction = (
     entityKeys: (values.entityKeys || []).filter((key: string): boolean => {
       return Boolean(key);
     }),
-    exceptionTypes: parseExceptionTypes(values.exceptionTypesInput),
+    environments: MonitorStepExceptionMonitorUtil.normalizeEnvironments(
+      parseCommaSeparatedList(values.environmentsInput),
+    ),
+    exceptionTypes: parseCommaSeparatedList(values.exceptionTypesInput),
     message: values.message || "",
     includeResolved: values.includeResolved || false,
     includeArchived: values.includeArchived || false,
@@ -400,6 +409,17 @@ const ExceptionMonitorStepForm: FunctionComponent<ComponentProps> = (
             description:
               "Provide a comma-separated list of exception types to monitor.",
             placeholder: "TypeError, NullReferenceException",
+            hideOptionalLabel: true,
+          },
+          {
+            field: {
+              environmentsInput: true,
+            },
+            fieldType: FormFieldSchemaType.Text,
+            title: "Environments",
+            description:
+              "Comma-separated deployment environments to monitor (the deployment.environment resource attribute). Matched exactly and case-sensitively, like env: in the Exceptions explorer. Leave empty to monitor every environment.",
+            placeholder: "production, staging",
             hideOptionalLabel: true,
           },
           {

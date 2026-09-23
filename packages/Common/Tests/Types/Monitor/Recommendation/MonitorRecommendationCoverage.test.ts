@@ -898,4 +898,57 @@ describe("MonitorRecommendationUtil.getCoveredRecommendationMonitorIds", () => {
 
     expect(covered.size).toBe(0);
   });
+
+  it("does not let an environment-scoped exception monitor cover the every-environment recommendation", () => {
+    const args: MonitorRecommendationArgs = buildArgs();
+
+    const serviceRecommendations: Array<MonitorRecommendation> =
+      MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.Service,
+      );
+
+    const unhandledExceptions: MonitorRecommendation | undefined =
+      serviceRecommendations.find((recommendation: MonitorRecommendation) => {
+        return recommendation.templateId === "service-unhandled-exceptions";
+      });
+
+    expect(unhandledExceptions).toBeDefined();
+
+    const buildExceptionMonitor: (
+      environments: Array<string> | undefined,
+    ) => ExistingRecommendationMonitor = (
+      environments: Array<string> | undefined,
+    ): ExistingRecommendationMonitor => {
+      const monitor: ExistingRecommendationMonitor = buildMonitorFor(
+        [unhandledExceptions!],
+        args,
+      );
+      const step: MonitorStep = monitor.monitorSteps[0]!;
+
+      step.setExceptionMonitor({
+        ...step.data!.exceptionMonitor!,
+        environments: environments,
+      });
+
+      return monitor;
+    };
+
+    for (const environments of [undefined, []]) {
+      expect(
+        MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
+          recommendations: [unhandledExceptions!],
+          existingMonitors: [buildExceptionMonitor(environments)],
+          args: args,
+        }).size,
+      ).toBe(1);
+    }
+
+    expect(
+      MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
+        recommendations: [unhandledExceptions!],
+        existingMonitors: [buildExceptionMonitor(["production"])],
+        args: args,
+      }).size,
+    ).toBe(0);
+  });
 });
