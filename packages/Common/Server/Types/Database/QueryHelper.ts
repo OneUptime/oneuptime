@@ -866,6 +866,28 @@ export default class QueryHelper {
     );
   }
 
+  /**
+   * Matches a jsonb column that contains `value` (Postgres `@>`). For an array
+   * of objects, `[{ id: "C123" }]` matches any array holding an object whose
+   * `id` is "C123", whatever its other keys. The value travels as a bound
+   * parameter, never as SQL.
+   */
+  @CaptureSpan()
+  public static jsonContains(
+    value: JSONObject | Array<JSONObject>,
+  ): FindWhereProperty<any> {
+    const rid: string = Text.generateRandomText(10);
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} @> CAST(:${rid} AS JSONB))`;
+      },
+      {
+        [rid]: JSON.stringify(value),
+      },
+    ) as FindWhereProperty<any>;
+  }
+
   @CaptureSpan()
   public static lessThan<T extends number | Date>(
     value: T,

@@ -1,5 +1,6 @@
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRuleTable from "../../Components/Workspace/WorkspaceNotificationRulesTable";
+import MicrosoftTeamsReactionNotesTips from "../../Components/MicrosoftTeams/MicrosoftTeamsReactionNotesTips";
 import PageComponentProps from "../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
 import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
@@ -52,10 +53,16 @@ const IncidentsPage: FunctionComponent<
   return (
     <div>
       {isMicrosoftTeamsConnected && (
-        <WorkspaceNotificationRuleTable
-          workspaceType={WorkspaceType.MicrosoftTeams}
-          eventType={NotificationRuleEventType.ScheduledMaintenance}
-        />
+        <>
+          <WorkspaceNotificationRuleTable
+            workspaceType={WorkspaceType.MicrosoftTeams}
+            eventType={NotificationRuleEventType.ScheduledMaintenance}
+          />
+          <MicrosoftTeamsReactionNotesTips
+            resourceName="scheduled maintenance event"
+            supportsPublicNotes={true}
+          />
+        </>
       )}
       {!isMicrosoftTeamsConnected && (
         <div>

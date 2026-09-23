@@ -42,7 +42,7 @@ Azure Account - You can create one by going to https://azure.com.
 
 **Note:** The Bot Framework handles message delivery using Resource-Specific Consent (RSC) permissions defined in the Teams app manifest. These permissions are:
    - **ChannelMessage.Send.Group** - Allows the bot to send messages to team channels
-   - **ChannelMessage.Read.Group** - Allows the bot to read channel messages for interactive commands
+   - **ChannelMessage.Read.Group** - Allows the bot to read channel messages for interactive commands, and to see 📌 / 📣 reactions so reacted messages are saved as incident, alert and scheduled maintenance notes
    - **Channel.Create.Group** - Allows the bot to create channels when needed
    - **ChatMessage.Read.Chat** - Allows the bot to read messages in chats it has been added to (for interactive commands)
    - **ChatMember.Read.Chat** - Allows the bot to read the members of chats it has been added to (to name chats in OneUptime)

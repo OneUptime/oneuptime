@@ -1857,6 +1857,145 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   }
 
   /*
+   * The most recently active threads of a channel, raw Graph chatMessage
+   * objects with their replies expanded, reactions included. Graph orders
+   * threads by the last change anywhere in them — and adding a reaction is a
+   * change — so the first page holds every thread that was just reacted to.
+   *
+   * Reads with the app token, which the ChannelMessage.Read.Group
+   * resource-specific permission in the OneUptime Teams app lets into the
+   * channels of teams the app is installed in. Throws on a Graph error.
+   */
+  @CaptureSpan()
+  public static async getRecentChannelMessagesWithReplies(data: {
+    authToken: string;
+    projectId: ObjectID;
+    teamId: string;
+    channelId: string;
+    top?: number | undefined;
+  }): Promise<Array<JSONObject>> {
+    if (!data.teamId || !data.channelId) {
+      throw new BadDataException(
+        "teamId and channelId are required to read Microsoft Teams channel messages",
+      );
+    }
+
+    const accessToken: string = await this.getValidAccessToken({
+      authToken: data.authToken,
+      projectId: data.projectId,
+    });
+
+    const top: number = Math.min(Math.max(data.top || 50, 1), 50);
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.get<JSONObject>({
+        url: URL.fromString(
+          `https://graph.microsoft.com/v1.0/teams/${encodeURIComponent(
+            data.teamId,
+          )}/channels/${encodeURIComponent(data.channelId)}/messages?$top=${top}&$expand=replies`,
+        ),
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error("Error reading Microsoft Teams channel messages:", {
+        projectId: data.projectId.toString(),
+        channelId: data.channelId,
+        teamId: data.teamId,
+      });
+      logger.error(response);
+      throw response;
+    }
+
+    return (
+      ((response.jsonData as JSONObject)?.["value"] as
+        | Array<JSONObject>
+        | undefined) || []
+    );
+  }
+
+  /*
+   * Posts a plain (markdown) message as a reply in a channel thread, as the
+   * bot. `parentMessageId` is the id of the thread's first message.
+   */
+  @CaptureSpan()
+  public static async sendTextReplyToChannelThread(data: {
+    projectId: ObjectID;
+    teamId: string;
+    channelId: string;
+    parentMessageId: string;
+    text: string;
+  }): Promise<void> {
+    if (!MicrosoftTeamsAppClientId) {
+      throw new BadDataException(
+        "Microsoft Teams App Client ID not configured",
+      );
+    }
+
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    if (!projectAuth || !projectAuth.miscData) {
+      throw new BadDataException(
+        "Microsoft Teams integration not found for this project",
+      );
+    }
+
+    const tenantId: string | undefined = projectAuth.workspaceProjectId;
+
+    if (!tenantId) {
+      throw new BadDataException(
+        "Tenant ID not found in Microsoft Teams integration",
+      );
+    }
+
+    const miscData: MicrosoftTeamsMiscData =
+      projectAuth.miscData as MicrosoftTeamsMiscData;
+
+    const installedTeam: MicrosoftTeamsInstalledTeam | undefined =
+      this.indexInstalledTeamsByGraphTeamId(miscData.installedTeams)[
+        data.teamId
+      ];
+
+    const conversationReference: ConversationReference = {
+      bot: {
+        id: MicrosoftTeamsAppClientId,
+        name: "OneUptime Bot",
+      },
+      conversation: {
+        // A channel conversation id with ;messageid= addresses that thread.
+        id: `${data.channelId};messageid=${data.parentMessageId}`,
+        isGroup: true,
+        conversationType: "channel",
+        tenantId: tenantId,
+      } as ConversationReference["conversation"],
+      channelId: "msteams",
+      serviceUrl:
+        installedTeam?.serviceUrl || "https://smba.trafficmanager.net/teams/",
+    };
+
+    const adapter: CloudAdapter = this.getBotAdapter();
+
+    await adapter.continueConversationAsync(
+      MicrosoftTeamsAppClientId,
+      conversationReference,
+      async (context: TurnContext) => {
+        await context.sendActivity({
+          type: "message",
+          text: data.text,
+          textFormat: "markdown",
+        });
+      },
+    );
+  }
+
+  /*
    * True when an error is Microsoft's "bot is not in this conversation"
    * rejection from a proactive Bot Framework send.
    */
