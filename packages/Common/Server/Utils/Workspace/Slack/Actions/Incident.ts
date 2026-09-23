@@ -39,13 +39,18 @@ import MonitorStatusService from "../../../../Services/MonitorStatusService";
 import Label from "../../../../../Models/DatabaseModels/Label";
 import LabelService from "../../../../Services/LabelService";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
-import AccessTokenService from "../../../../Services/AccessTokenService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAuthTokenService";
 import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
+import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
+import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
+import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SlackActionAuthorization from "./Authorization";
 
 export default class SlackIncidentActions {
   @CaptureSpan()
@@ -557,6 +562,17 @@ export default class SlackIncidentActions {
         response_action: "clear",
       });
 
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: IncidentStateTimeline,
+          action: "acknowledge this incident",
+          resources: [{ service: IncidentService, id: incidentId }],
+        }))
+      ) {
+        return;
+      }
+
       const isAlreadyAcknowledged: boolean =
         await IncidentService.isIncidentAcknowledged({
           incidentId: incidentId,
@@ -688,6 +704,17 @@ export default class SlackIncidentActions {
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: IncidentStateTimeline,
+          action: "resolve this incident",
+          resources: [{ service: IncidentService, id: incidentId }],
+        }))
+      ) {
+        return;
+      }
 
       const isAlreadyResolved: boolean =
         await IncidentService.isIncidentResolved({
@@ -950,18 +977,24 @@ export default class SlackIncidentActions {
 
     const stateId: ObjectID = new ObjectID(stateString);
 
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: IncidentStateTimeline,
+        action: "change the state of this incident",
+        resources: [{ service: IncidentService, id: incidentId }],
+      });
+
+    if (!props) {
+      return;
+    }
+
     await IncidentService.updateOneById({
       id: incidentId,
       data: {
         currentIncidentStateId: stateId,
       },
-      props:
-        await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
-          {
-            userId: data.slackRequest.userId!,
-            projectId: data.slackRequest.projectId!,
-          },
-        ),
+      props: props,
     });
 
     // Log the button interaction
@@ -1055,6 +1088,37 @@ export default class SlackIncidentActions {
         response_action: "clear",
       });
 
+      if (
+        !data.slackRequest.viewValues ||
+        !data.slackRequest.viewValues["onCallPolicy"]
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid View Values"),
+        );
+      }
+
+      const onCallPolicyString: string =
+        data.slackRequest.viewValues["onCallPolicy"].toString();
+
+      // get the on-call policy id.
+      const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: OnCallDutyPolicyExecutionLog,
+          action: "execute an on-call policy for this incident",
+          resources: [
+            { service: IncidentService, id: incidentId },
+            { service: OnCallDutyPolicyService, id: onCallPolicyId },
+          ],
+        }))
+      ) {
+        return;
+      }
+
       const isAlreadyResolved: boolean =
         await IncidentService.isIncidentResolved({
           incidentId: incidentId,
@@ -1084,23 +1148,6 @@ export default class SlackIncidentActions {
 
         return;
       }
-
-      if (
-        !data.slackRequest.viewValues ||
-        !data.slackRequest.viewValues["onCallPolicy"]
-      ) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException("Invalid View Values"),
-        );
-      }
-
-      const onCallPolicyString: string =
-        data.slackRequest.viewValues["onCallPolicy"].toString();
-
-      // get the on-call policy id.
-      const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
 
       await OnCallDutyPolicyService.executePolicy(onCallPolicyId, {
         triggeredByIncidentId: incidentId,
@@ -1175,6 +1222,21 @@ export default class SlackIncidentActions {
     Response.sendJsonObjectResponse(req, res, {
       response_action: "clear",
     });
+
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType:
+          noteType === "public" ? IncidentPublicNote : IncidentInternalNote,
+        action:
+          noteType === "public"
+            ? "add a public note to this incident"
+            : "add a private note to this incident",
+        resources: [{ service: IncidentService, id: incidentId }],
+      }))
+    ) {
+      return;
+    }
 
     // if public note then, add a note.
     if (noteType === "public") {
@@ -1445,6 +1507,26 @@ export default class SlackIncidentActions {
     }
 
     const oneUptimeUserId: ObjectID = userAuth.userId;
+
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: {
+          userId: oneUptimeUserId,
+          projectId: projectId,
+          projectAuthToken: authToken,
+          slackUserId: userId,
+        },
+        modelType: isPrivateNoteEmoji
+          ? IncidentInternalNote
+          : IncidentPublicNote,
+        action: isPrivateNoteEmoji
+          ? "add a private note to this incident"
+          : "add a public note to this incident",
+        resources: [{ service: IncidentService, id: incidentId }],
+      }))
+    ) {
+      return;
+    }
 
     // Fetch the message text using the timestamp
     let messageText: string | null = null;

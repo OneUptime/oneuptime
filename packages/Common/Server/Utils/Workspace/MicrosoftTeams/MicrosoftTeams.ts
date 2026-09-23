@@ -107,11 +107,11 @@ import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
  * their logs, traces, metrics, incidents and monitors.
  */
 import type { ObservabilityAssistantResult } from "../../AI/Chat/ObservabilityAssistant";
-import AccessTokenService from "../../../Services/AccessTokenService";
+import WorkspaceActionAuthorization from "../WorkspaceActionAuthorization";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import AIService, { AI_DISABLED_MESSAGE } from "../../../Services/AIService";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
-import TeamMemberService from "../../../Services/TeamMemberService";
 
 // Microsoft Teams apps should always be single-tenant
 const MICROSOFT_TEAMS_APP_TYPE: string = "SingleTenant";
@@ -3348,6 +3348,23 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       return;
     }
 
+    // The user's real permission props - the assistant's tools run under these.
+    let props: DatabaseCommonInteractionProps;
+    try {
+      props = await WorkspaceActionAuthorization.getProjectMemberProps({
+        userId: oneUptimeUserId,
+        projectId: projectId,
+      });
+    } catch (error) {
+      // A linked Teams account whose user has since left the project.
+      if (error instanceof NotAuthorizedException) {
+        await turnContext.sendActivity(error.message);
+        return;
+      }
+
+      throw error;
+    }
+
     /*
      * The project's AI kill switch, read before we acknowledge. The catch
      * around the assistant below answers every failure with the same generic
@@ -3403,15 +3420,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     try {
-      // Build the user's real permission props - the assistant's tools run under these.
-      const props: DatabaseCommonInteractionProps =
-        await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
-          {
-            userId: oneUptimeUserId,
-            projectId: projectId,
-          },
-        );
-
       /*
        * Loaded on demand via require(): importing the AI toolbox at module top
        * pulls the entire observability tool graph — and its database
@@ -4000,41 +4008,34 @@ All monitoring checks are passing normally.`;
           userLookupParamsRes,
         );
 
-      const isIncidentAction: boolean =
-        MicrosoftTeamsIncidentActions.isIncidentAction({ actionType });
-      const isAlertAction: boolean = MicrosoftTeamsAlertActions.isAlertAction({
-        actionType,
-      });
+      /*
+       * Every action runs as a current member of the project, with that
+       * member's own permissions. A linked Teams account outlives the
+       * membership it was linked under, so the link alone proves nothing.
+       * Throws NotAuthorizedException, answered in the catch below.
+       */
+      const databaseProps: DatabaseCommonInteractionProps =
+        await WorkspaceActionAuthorization.getProjectMemberProps({
+          userId: oneUptimeUserId,
+          projectId: projectId,
+        });
 
-      if (isIncidentAction || isAlertAction) {
-        const databaseProps: DatabaseCommonInteractionProps =
-          await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
-            {
-              userId: oneUptimeUserId,
-              projectId: projectId,
-            },
-          );
-
-        databaseProps.userTeamIds = await TeamMemberService.getTeamIdsForUser(
-          oneUptimeUserId,
+      // Handle incident actions
+      if (MicrosoftTeamsIncidentActions.isIncidentAction({ actionType })) {
+        await MicrosoftTeamsIncidentActions.handleBotIncidentAction({
+          actionType,
+          actionValue,
+          value,
           projectId,
-        );
+          oneUptimeUserId,
+          databaseProps,
+          turnContext: data.turnContext,
+        });
+        return;
+      }
 
-        // Handle incident actions
-        if (isIncidentAction) {
-          await MicrosoftTeamsIncidentActions.handleBotIncidentAction({
-            actionType,
-            actionValue,
-            value,
-            projectId,
-            oneUptimeUserId,
-            databaseProps,
-            turnContext: data.turnContext,
-          });
-          return;
-        }
-
-        // Handle alert actions
+      // Handle alert actions
+      if (MicrosoftTeamsAlertActions.isAlertAction({ actionType })) {
         await MicrosoftTeamsAlertActions.handleBotAlertAction({
           actionType,
           actionValue,
@@ -4057,6 +4058,7 @@ All monitoring checks are passing normally.`;
           value,
           projectId,
           oneUptimeUserId,
+          databaseProps,
           turnContext: data.turnContext,
         });
         return;
@@ -4075,6 +4077,7 @@ All monitoring checks are passing normally.`;
             value,
             projectId,
             oneUptimeUserId,
+            databaseProps,
             turnContext: data.turnContext,
           },
         );
@@ -4089,6 +4092,7 @@ All monitoring checks are passing normally.`;
           value,
           projectId,
           oneUptimeUserId,
+          databaseProps,
           turnContext: data.turnContext,
         });
         return;
@@ -4111,6 +4115,7 @@ All monitoring checks are passing normally.`;
             authToken: "",
             payloadType: "invoke",
           } as MicrosoftTeamsRequest,
+          databaseProps,
         );
         return;
       }
@@ -4125,6 +4130,15 @@ All monitoring checks are passing normally.`;
         return;
       }
     } catch (error) {
+      // Tell the user why they were refused; the message is written for them.
+      if (error instanceof NotAuthorizedException) {
+        logger.debug("Bot invoke activity refused: " + error.message, {
+          actionType: actionType,
+        });
+        await data.turnContext.sendActivity(error.message);
+        return;
+      }
+
       logger.error("Error handling bot invoke activity:", {
         actionType: actionType,
       });

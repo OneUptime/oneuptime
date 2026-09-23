@@ -1,8 +1,18 @@
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import type { TurnContext } from "botbuilder";
 import type { SpyInstance } from "jest-mock";
 import { FindOperator } from "typeorm";
 import Alert from "../../../../Models/DatabaseModels/Alert";
+import AlertStateTimeline from "../../../../Models/DatabaseModels/AlertStateTimeline";
+import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
+import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import AlertOwnerTeam from "../../../../Models/DatabaseModels/AlertOwnerTeam";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import IncidentOwnerTeam from "../../../../Models/DatabaseModels/IncidentOwnerTeam";
@@ -644,6 +654,22 @@ describe("MicrosoftTeamsActionAuthorization", (): void => {
 });
 
 describe("MicrosoftTeamsIncidentActions authorization", (): void => {
+  /*
+   * The dashboard-equivalent check (create a IncidentStateTimeline on a readable
+   * incident) has its own tests in WorkspaceActionAuthorization.test.ts. Stub
+   * it here so these tests keep pinning the incident-update check that sits
+   * next to it.
+   */
+  let assertCanCreateSpy: SpyInstance<
+    typeof WorkspaceActionAuthorization.assertCanCreate
+  >;
+
+  beforeEach((): void => {
+    assertCanCreateSpy = jest
+      .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
+      .mockResolvedValue();
+  });
+
   const incidentActions: ReadonlyArray<IncidentActionTestCase> = [
     {
       actionType: MicrosoftTeamsIncidentActionType.AckIncident,
@@ -715,6 +741,12 @@ describe("MicrosoftTeamsIncidentActions authorization", (): void => {
         turnContext,
       });
 
+      expect(assertCanCreateSpy).toHaveBeenCalledTimes(1);
+      expect(assertCanCreateSpy.mock.calls[0]![0]).toMatchObject({
+        props: databaseProps,
+        modelType: IncidentStateTimeline,
+        resources: [{ service: IncidentService, id: incidentId }],
+      });
       expect(authorizationSpy).toHaveBeenCalledTimes(1);
       expect(authorizationSpy).toHaveBeenCalledWith({
         incidentId,
@@ -749,6 +781,10 @@ describe("MicrosoftTeamsIncidentActions authorization", (): void => {
       turnContext,
     });
 
+    expect(assertCanCreateSpy.mock.calls[0]![0]).toMatchObject({
+      modelType: IncidentStateTimeline,
+      resources: [{ service: IncidentService, id: incidentId }],
+    });
     expect(updateSpy).toHaveBeenCalledTimes(1);
     const updateArgs: Parameters<typeof IncidentService.updateOneById>[0] =
       updateSpy.mock.calls[0]![0];
@@ -759,6 +795,22 @@ describe("MicrosoftTeamsIncidentActions authorization", (): void => {
 });
 
 describe("MicrosoftTeamsAlertActions authorization", (): void => {
+  /*
+   * The dashboard-equivalent check (create a AlertStateTimeline on a readable
+   * alert) has its own tests in WorkspaceActionAuthorization.test.ts. Stub
+   * it here so these tests keep pinning the alert-update check that sits
+   * next to it.
+   */
+  let assertCanCreateSpy: SpyInstance<
+    typeof WorkspaceActionAuthorization.assertCanCreate
+  >;
+
+  beforeEach((): void => {
+    assertCanCreateSpy = jest
+      .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
+      .mockResolvedValue();
+  });
+
   const alertActions: ReadonlyArray<AlertActionTestCase> = [
     {
       actionType: MicrosoftTeamsAlertActionType.AckAlert,
@@ -836,6 +888,12 @@ describe("MicrosoftTeamsAlertActions authorization", (): void => {
         turnContext,
       });
 
+      expect(assertCanCreateSpy).toHaveBeenCalledTimes(1);
+      expect(assertCanCreateSpy.mock.calls[0]![0]).toMatchObject({
+        props: databaseProps,
+        modelType: AlertStateTimeline,
+        resources: [{ service: AlertService, id: alertId }],
+      });
       expect(authorizationSpy).toHaveBeenCalledTimes(1);
       expect(authorizationSpy).toHaveBeenCalledWith({
         alertId,
@@ -870,6 +928,10 @@ describe("MicrosoftTeamsAlertActions authorization", (): void => {
       turnContext,
     });
 
+    expect(assertCanCreateSpy.mock.calls[0]![0]).toMatchObject({
+      modelType: AlertStateTimeline,
+      resources: [{ service: AlertService, id: alertId }],
+    });
     expect(updateSpy).toHaveBeenCalledTimes(1);
     const updateArgs: Parameters<typeof AlertService.updateOneById>[0] =
       updateSpy.mock.calls[0]![0];

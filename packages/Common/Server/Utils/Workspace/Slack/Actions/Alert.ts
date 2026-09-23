@@ -21,7 +21,6 @@ import UserNotificationEventType from "../../../../../Types/UserNotification/Use
 import AlertState from "../../../../../Models/DatabaseModels/AlertState";
 import AlertStateService from "../../../../Services/AlertStateService";
 import logger from "../../../Logger";
-import AccessTokenService from "../../../../Services/AccessTokenService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
 import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAuthTokenService";
@@ -30,6 +29,11 @@ import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProj
 import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import AlertStateTimeline from "../../../../../Models/DatabaseModels/AlertStateTimeline";
+import AlertInternalNote from "../../../../../Models/DatabaseModels/AlertInternalNote";
+import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SlackActionAuthorization from "./Authorization";
 
 export default class SlackAlertActions {
   @CaptureSpan()
@@ -103,6 +107,17 @@ export default class SlackAlertActions {
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: AlertStateTimeline,
+          action: "acknowledge this alert",
+          resources: [{ service: AlertService, id: alertId }],
+        }))
+      ) {
+        return;
+      }
 
       const isAlreadyAcknowledged: boolean =
         await AlertService.isAlertAcknowledged({
@@ -231,6 +246,17 @@ export default class SlackAlertActions {
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: AlertStateTimeline,
+          action: "resolve this alert",
+          resources: [{ service: AlertService, id: alertId }],
+        }))
+      ) {
+        return;
+      }
 
       const isAlreadyResolved: boolean = await AlertService.isAlertResolved({
         alertId: alertId,
@@ -489,18 +515,24 @@ export default class SlackAlertActions {
 
     const stateId: ObjectID = new ObjectID(stateString);
 
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: AlertStateTimeline,
+        action: "change the state of this alert",
+        resources: [{ service: AlertService, id: alertId }],
+      });
+
+    if (!props) {
+      return;
+    }
+
     await AlertService.updateOneById({
       id: alertId,
       data: {
         currentAlertStateId: stateId,
       },
-      props:
-        await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
-          {
-            userId: data.slackRequest.userId!,
-            projectId: data.slackRequest.projectId!,
-          },
-        ),
+      props: props,
     });
 
     // Log the button interaction
@@ -593,6 +625,37 @@ export default class SlackAlertActions {
         response_action: "clear",
       });
 
+      if (
+        !data.slackRequest.viewValues ||
+        !data.slackRequest.viewValues["onCallPolicy"]
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid View Values"),
+        );
+      }
+
+      const onCallPolicyString: string =
+        data.slackRequest.viewValues["onCallPolicy"].toString();
+
+      // get the on-call policy id.
+      const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: OnCallDutyPolicyExecutionLog,
+          action: "execute an on-call policy for this alert",
+          resources: [
+            { service: AlertService, id: alertId },
+            { service: OnCallDutyPolicyService, id: onCallPolicyId },
+          ],
+        }))
+      ) {
+        return;
+      }
+
       const isAlreadyResolved: boolean = await AlertService.isAlertResolved({
         alertId: alertId,
       });
@@ -618,23 +681,6 @@ export default class SlackAlertActions {
 
         return;
       }
-
-      if (
-        !data.slackRequest.viewValues ||
-        !data.slackRequest.viewValues["onCallPolicy"]
-      ) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException("Invalid View Values"),
-        );
-      }
-
-      const onCallPolicyString: string =
-        data.slackRequest.viewValues["onCallPolicy"].toString();
-
-      // get the on-call policy id.
-      const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
 
       await OnCallDutyPolicyService.executePolicy(onCallPolicyId, {
         triggeredByAlertId: alertId,
@@ -691,6 +737,17 @@ export default class SlackAlertActions {
     Response.sendJsonObjectResponse(req, res, {
       response_action: "clear",
     });
+
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: AlertInternalNote,
+        action: "add a private note to this alert",
+        resources: [{ service: AlertService, id: alertId }],
+      }))
+    ) {
+      return;
+    }
 
     await AlertInternalNoteService.addNote({
       alertId: alertId!,
@@ -919,6 +976,22 @@ export default class SlackAlertActions {
     }
 
     const oneUptimeUserId: ObjectID = userAuth.userId;
+
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: {
+          userId: oneUptimeUserId,
+          projectId: projectId,
+          projectAuthToken: authToken,
+          slackUserId: userId,
+        },
+        modelType: AlertInternalNote,
+        action: "add a private note to this alert",
+        resources: [{ service: AlertService, id: alertId }],
+      }))
+    ) {
+      return;
+    }
 
     // Fetch the message text using the timestamp
     let messageText: string | null = null;
