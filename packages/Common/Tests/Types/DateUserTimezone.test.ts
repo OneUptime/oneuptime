@@ -12,15 +12,28 @@
  */
 import OneUptimeDate from "../../Types/Date";
 import Timezone from "../../Types/Timezone";
+import TimezoneAlias, {
+  LEGACY_TIMEZONE_NAMES,
+} from "../../Types/TimezoneAlias";
 import moment from "moment-timezone";
 
 const NY: Timezone = Timezone.AmericaNew_York;
 const ADAK: Timezone = Timezone.AmericaAdak;
 const KOLKATA: Timezone = Timezone.AsiaKolkata;
 
+/*
+ * The zone this process reports, in the name OneUptimeDate uses for it. On
+ * a machine in India the raw guess is "Asia/Calcutta" and the answer is
+ * "Asia/Kolkata"; elsewhere the two are usually the same.
+ */
+const currentGuess: () => string = (): string => {
+  return TimezoneAlias.getCanonicalTimezone(moment.tz.guess());
+};
+
 describe("OneUptimeDate user timezone", () => {
   afterEach(() => {
-    // Never leak an override into the rest of the suite.
+    // Never leak an override (or a pinned guess) into the rest of the suite.
+    jest.restoreAllMocks();
     OneUptimeDate.setUserTimezone(null);
   });
 
@@ -28,7 +41,7 @@ describe("OneUptimeDate user timezone", () => {
     it("falls back to the browser / process zone when no user timezone is set", () => {
       expect(OneUptimeDate.getUserTimezone()).toBeNull();
       expect(OneUptimeDate.getCurrentTimezone().toString()).toBe(
-        moment.tz.guess(),
+        currentGuess(),
       );
     });
 
@@ -55,7 +68,7 @@ describe("OneUptimeDate user timezone", () => {
 
       expect(OneUptimeDate.getUserTimezone()).toBeNull();
       expect(OneUptimeDate.getCurrentTimezone().toString()).toBe(
-        moment.tz.guess(),
+        currentGuess(),
       );
     });
 
@@ -64,12 +77,172 @@ describe("OneUptimeDate user timezone", () => {
 
       expect(OneUptimeDate.getUserTimezone()).toBeNull();
       expect(OneUptimeDate.getCurrentTimezone().toString()).toBe(
-        moment.tz.guess(),
+        currentGuess(),
       );
       // Formatting still works.
       expect(
         OneUptimeDate.toDateTimeLocalString(new Date("2026-07-09T13:00:00Z")),
       ).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
+    });
+  });
+
+  /*
+   * The picker offers each clock under one name, and legacy names — the
+   * ones tzdata keeps only for backward compatibility — are not among them.
+   * Both ways a zone enters OneUptimeDate translate: the browser's guess
+   * (Chromium reports the ICU spelling, "Asia/Calcutta"), and the saved
+   * profile zone (an older build saved that guess as it was).
+   */
+  describe("legacy timezone names", () => {
+    test.each([
+      ["Asia/Calcutta", Timezone.AsiaKolkata],
+      ["Europe/Kiev", Timezone.EuropeKyiv],
+      ["Singapore", Timezone.AsiaSingapore],
+      ["Asia/Saigon", Timezone.AsiaHo_Chi_Minh],
+      ["America/Godthab", Timezone.AmericaNuuk],
+      ["US/Pacific", Timezone.AmericaLos_Angeles],
+      ["Etc/UTC", Timezone.UTC],
+    ])(
+      "reports a browser guess of %s as %s",
+      (guess: string, current: Timezone) => {
+        jest.spyOn(moment.tz, "guess").mockReturnValue(guess);
+
+        expect(OneUptimeDate.getUserTimezone()).toBeNull();
+        expect(OneUptimeDate.getCurrentTimezone()).toBe(current);
+      },
+    );
+
+    it("reports a current browser guess exactly as it is", () => {
+      jest.spyOn(moment.tz, "guess").mockReturnValue("Asia/Kuala_Lumpur");
+
+      // A real place sharing Singapore's clock, not a legacy name.
+      expect(OneUptimeDate.getCurrentTimezone()).toBe(
+        Timezone.AsiaKuala_Lumpur,
+      );
+    });
+
+    it("passes a guess newer than the enum through untouched", () => {
+      jest.spyOn(moment.tz, "guess").mockReturnValue("America/Coyhaique");
+
+      expect(OneUptimeDate.getCurrentTimezone().toString()).toBe(
+        "America/Coyhaique",
+      );
+    });
+
+    it("reads a translated guess on the same clock as the raw one", () => {
+      jest.spyOn(moment.tz, "guess").mockReturnValue("Asia/Calcutta");
+
+      const instant: Date = new Date("2026-07-09T17:00:00Z");
+
+      expect(OneUptimeDate.getCurrentTimezoneString()).toBe("IST");
+      // 17:00 UTC is 22:30 in Kolkata (UTC+5:30).
+      expect(OneUptimeDate.getLocalTimeString(instant)).toBe("22:30");
+      expect(OneUptimeDate.toDateTimeLocalString(instant)).toBe(
+        "2026-07-09T22:30:00",
+      );
+    });
+
+    it("still prefers the user timezone over a translated guess", () => {
+      jest.spyOn(moment.tz, "guess").mockReturnValue("Asia/Calcutta");
+
+      OneUptimeDate.setUserTimezone(NY);
+
+      expect(OneUptimeDate.getCurrentTimezone()).toBe(NY);
+    });
+
+    test.each([
+      ["Asia/Calcutta", Timezone.AsiaKolkata],
+      ["Europe/Kiev", Timezone.EuropeKyiv],
+      ["Singapore", Timezone.AsiaSingapore],
+      ["GB", Timezone.EuropeLondon],
+      ["US/Eastern", Timezone.AmericaNew_York],
+      ["EST5EDT", Timezone.AmericaNew_York],
+      ["Zulu", Timezone.UTC],
+      ["Etc/Greenwich", Timezone.GMT],
+    ])("keeps a saved %s as %s", (saved: string, current: Timezone) => {
+      OneUptimeDate.setUserTimezone(saved as Timezone);
+
+      expect(OneUptimeDate.getUserTimezone()).toBe(current);
+      expect(OneUptimeDate.getCurrentTimezone()).toBe(current);
+    });
+
+    test.each([
+      ["asia/calcutta", Timezone.AsiaKolkata],
+      ["ASIA/CALCUTTA", Timezone.AsiaKolkata],
+      [" Asia/Calcutta ", Timezone.AsiaKolkata],
+      ["us/pacific", Timezone.AmericaLos_Angeles],
+      ["america/new_york", Timezone.AmericaNew_York],
+      [" Europe/London", Timezone.EuropeLondon],
+    ])(
+      "keeps a saved %p in the enum's spelling, %s",
+      (saved: string, current: Timezone) => {
+        OneUptimeDate.setUserTimezone(saved as Timezone);
+
+        expect(OneUptimeDate.getUserTimezone()).toBe(current);
+      },
+    );
+
+    it("keeps US/Pacific-New as Los Angeles, although moment dropped it", () => {
+      // tzdata removed the name in 2020b; moment no longer resolves it.
+      expect(moment.tz.zone("US/Pacific-New")).toBeNull();
+
+      OneUptimeDate.setUserTimezone(Timezone.USPacificNew);
+
+      expect(OneUptimeDate.getUserTimezone()).toBe(Timezone.AmericaLos_Angeles);
+      // 17:00 UTC on Jul 9 is 10:00 in Los Angeles (PDT).
+      expect(
+        OneUptimeDate.toDateTimeLocalString(new Date("2026-07-09T17:00:00Z")),
+      ).toBe("2026-07-09T10:00:00");
+    });
+
+    it("reads a saved legacy name on the clock the user always had", () => {
+      OneUptimeDate.setUserTimezone(Timezone.AsiaCalcutta);
+
+      const instant: Date = new Date("2026-07-09T17:00:00Z");
+
+      expect(OneUptimeDate.getLocalTimeString(instant)).toBe("22:30");
+      expect(
+        OneUptimeDate.fromDateTimeLocalString("2026-07-09T22:30").toISOString(),
+      ).toBe("2026-07-09T17:00:00.000Z");
+    });
+
+    it("keeps every legacy name as its current name", () => {
+      const legacyNames: Array<[string, Timezone]> = Object.entries(
+        LEGACY_TIMEZONE_NAMES,
+      ) as Array<[string, Timezone]>;
+
+      expect(legacyNames.length).toBeGreaterThan(100);
+
+      for (const [legacy, current] of legacyNames) {
+        OneUptimeDate.setUserTimezone(legacy as Timezone);
+
+        // Every current name is a zone moment resolves, so none is dropped.
+        expect({
+          legacy: legacy,
+          kept: OneUptimeDate.getUserTimezone(),
+        }).toEqual({ legacy: legacy, kept: current });
+      }
+    });
+
+    it.each(["Not/AZone", "", "   ", "Mars/Olympus"])(
+      "still drops %p, which is not a zone in any spelling",
+      (saved: string) => {
+        OneUptimeDate.setUserTimezone(NY);
+        OneUptimeDate.setUserTimezone(saved as Timezone);
+
+        expect(OneUptimeDate.getUserTimezone()).toBeNull();
+      },
+    );
+
+    it("drops a saved value that is not a string at all", () => {
+      /*
+       * LocalStorage.getItem JSON-parses what it reads, so a corrupt value
+       * can arrive as a number.
+       */
+      expect(() => {
+        OneUptimeDate.setUserTimezone(42 as unknown as Timezone);
+      }).not.toThrow();
+      expect(OneUptimeDate.getUserTimezone()).toBeNull();
     });
   });
 

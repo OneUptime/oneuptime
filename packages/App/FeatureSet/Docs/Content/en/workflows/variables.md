@@ -8,13 +8,14 @@ There are two variable scopes, plus component outputs produced during a run.
 
 Project-wide values you save once and reuse anywhere. Think API keys, URLs, channel names — anything you don't want to copy into ten different workflows.
 
-Find them under **Workflows → Global Variables**. Each has:
+Find them under **Workflows → Global Variables**. **Create Workflow Variable** creates a static variable, which has:
 
 - **Name** — how you'll reference it. At least two characters, no spaces, and only letters, numbers, hyphens and underscores. `UPPER_SNAKE_CASE` is a good habit because it stands out in your blocks.
 - **Description** — optional, free text to remind you what it's for.
-- **Type** — **Static value** (the default) or **OAuth 2.0 access token**. The rest of this list is for static values; OAuth 2.0 variables have [their own section](#oauth-20-variables-tokens-that-refresh-themselves) below. The type can't be changed after the variable is saved.
-- **Secret** — when on, the value is scrubbed out of run logs and step traces.
 - **Content** — the actual value. It's a long-text field, so multi-line values work.
+- **Secret** — when on, the value is scrubbed out of run logs and step traces.
+
+To create an **OAuth 2.0 access token** variable instead, open the **More** menu (**⋯**) next to **Create Workflow Variable** and choose **Create OAuth 2.0 Variable**. OAuth 2.0 variables have [their own section](#oauth-20-variables-tokens-that-refresh-themselves) below. A variable's type can't be changed after it's saved.
 
 Use a global variable in any workflow with:
 
@@ -24,11 +25,18 @@ Use a global variable in any workflow with:
 
 For example, if you saved your PagerDuty key as `PAGERDUTY_KEY`, any block can use it as `{{global.variables.PAGERDUTY_KEY}}` — the editor stores the reference, and workflow logging scrubs the resolved secret value.
 
-To change a variable, use the buttons on its row. **Edit Details** changes the name, description and secret flag (and an OAuth 2.0 variable's settings). **Update Content** replaces a static value. The saved content can't be read back, so you type the new value in full. You can also update a variable over the API, which is covered at the end of this page. Global and workflow variables are a Growth plan feature.
+The list shows each variable's name, type and description. Click **View** on a row to open the variable's page, where you can do everything else:
+
+- **Edit Variable** changes the name, the description and — for a static variable that isn't secret yet — the secret flag. Once a variable is secret it stays secret.
+- **Update Content** replaces a static value. The saved content can't be read back, so you type the new value in full.
+- **Use in Workflows** shows the exact reference to paste into your blocks, with a copy button.
+- **Delete Workflow Variable** deletes it, after asking you to confirm.
+
+You can also update a variable over the API, which is covered at the end of this page. Global and workflow variables are a Growth plan feature.
 
 ## Local workflow variables
 
-Variables scoped to one workflow, managed under **Workflow Variables** in that workflow's left menu. Reference them with:
+Variables scoped to one workflow, managed under **Workflow Variables** in that workflow's left menu. They work the same way as global variables: **Create Workflow Variable** creates a static variable, the **More** menu (**⋯**) creates an OAuth 2.0 variable, and **View** opens a variable's own page. Reference them with:
 
 ```
 {{local.variables.NAME}}
@@ -66,23 +74,25 @@ Authorization: Bearer {{global.variables.CRM_API_TOKEN}}
 - **Additional Parameters**: extra form fields for the token request, such as `audience` for Auth0 or `resource` for Azure AD v1. Anyone who can read the variable can read these, so don't put secrets here.
 - **Client Authentication**: whether the client ID and secret go in an HTTP Basic header (the default) or in the request body. If your provider answers `invalid_client`, try the other one.
 
-When you save a new OAuth 2.0 variable, OneUptime fetches its first token straight away and tells you what the provider said. A typo in the secret or the URL shows up then, not hours later in a failed run.
+When you save a new OAuth 2.0 variable, OneUptime fetches its first token straight away and tells you what the provider said. A typo in the secret or the URL shows up then, not hours later in a failed run. (Fetching a token writes to the variable, so this needs permission to edit workflow variables. If you can create variables but not edit them, the first workflow run that uses the variable fetches its token instead.)
 
-### The Token column
+The variable's page (click **View** on its row) has an **OAuth 2.0 Settings** card. **Edit Settings** changes the token URL, client ID, scope, additional parameters and client authentication; the grant type is fixed once saved.
 
-The **Token** column on the variables table shows one of:
+### The Access Token card
+
+The **Access Token** card on an OAuth 2.0 variable's page shows one of:
 
 - **Valid**: the cached token hasn't expired yet.
 - **Expired**: normal for a variable no workflow has used lately. The next run that uses it fetches a new token.
 - **Not fetched yet**: no token has been fetched since the variable was created or its settings changed.
 - **No expiry reported**: the provider didn't say when the token expires, so each run fetches a new one.
-- **Refresh failed**: the last attempt to get a token failed. The provider's reason is shown. The next successful refresh clears it.
+- **Refresh failed**: the last attempt to get a token failed. The provider's reason is shown in full, with when it happened. The next successful refresh clears it.
 
-**Refresh now**, under the status in the Token column, fetches a new token straight away. Use it to check new settings without running a workflow. The **Update Credentials** button on the row replaces the client secret or the refresh token, then fetches a token with them. Changing any setting (token URL, client ID, scope and so on) discards the cached token, so the next run fetches one with the new settings.
+**Refresh now**, under the status, fetches a new token straight away. Use it to check new settings without running a workflow. **Update Credentials**, on the **OAuth 2.0 Settings** card, replaces the client secret or the refresh token, then fetches a token with them. Changing any setting (token URL, client ID, scope and so on) discards the cached token, so the next run fetches one with the new settings.
 
 ### When the provider says no
 
-The step that needed the token fails before it runs, and the run log names the variable and quotes the provider's answer, for example `Could not get an OAuth 2.0 access token for {{global.variables.CRM_API_TOKEN}}: The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.` The same reason appears in the Token column. `invalid_grant` on a Refresh Token variable almost always means the refresh token itself has expired or been revoked, and **Update Credentials** is the fix.
+The step that needed the token fails before it runs, and the run log names the variable and quotes the provider's answer, for example `Could not get an OAuth 2.0 access token for {{global.variables.CRM_API_TOKEN}}: The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.` The same reason appears on the variable's **Access Token** card. `invalid_grant` on a Refresh Token variable almost always means the refresh token itself has expired or been revoked, and **Update Credentials** is the fix.
 
 If the refresh fails while the cached token hasn't actually expired yet (it was only inside the one-minute margin), the step goes ahead with the cached token and the log says so.
 

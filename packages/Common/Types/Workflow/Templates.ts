@@ -3809,7 +3809,7 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             url: "{{local.variables.forwardUrl}}",
             "request-body": [
               "{",
-              '  "id": "{{local.components.incident-on-create-1.returnValues.model._id.value}}",',
+              '  "id": "{{local.components.incident-on-create-1.returnValues.model._id}}",',
               '  "number": "{{local.components.incident-on-create-1.returnValues.model.incidentNumber}}",',
               '  "title": "{{local.components.incident-on-create-1.returnValues.model.title}}",',
               '  "severity": "{{local.components.incident-on-create-1.returnValues.model.incidentSeverity.name}}",',
@@ -4280,7 +4280,7 @@ const TEMPLATE_DEFINITIONS: Array<TemplateDefinition> = [
             url: "{{local.variables.forwardUrl}}",
             "request-body": [
               "{",
-              '  "eventId": "{{local.components.monitor-status-timeline-on-create-1.returnValues.model._id.value}}",',
+              '  "eventId": "{{local.components.monitor-status-timeline-on-create-1.returnValues.model._id}}",',
               '  "monitor": "{{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitor.name}}",',
               '  "status": "{{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitorStatus.name}}",',
               '  "isOffline": {{local.components.monitor-status-timeline-on-create-1.returnValues.model.monitorStatus.isOfflineState}}',

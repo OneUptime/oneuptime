@@ -4798,6 +4798,8 @@
   "Should status page subscribers be notified when this note is posted?": "Should status page subscribers be notified when this note is posted?",
   "Should status page subscribers be notified?": "Should status page subscribers be notified?",
   "Unticked by default because status page subscribers were not notified when this incident was declared.": "Unticked by default because status page subscribers were not notified when this incident was declared.",
+  "Unticked by default because status page subscribers were not notified when this episode was created.": "Unticked by default because status page subscribers were not notified when this episode was created.",
+  "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.": "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.",
   "Should the new monitor be disabled when its duplicated?": "Should the new monitor be disabled when its duplicated?",
   "Show Announcement At": "Show Announcement At",
   "Show Announcement History (in days)": "Show Announcement History (in days)",
@@ -6459,5 +6461,6 @@
   "VMware vCenter Updated": "VMware vCenter Updated",
   "Matching event types: {{count}}": "Matching event types: {{count}}",
   "Times are shown in {{abbreviation}}.": "Times are shown in {{abbreviation}}.",
-  "Planned window · times in {{abbreviation}}": "Planned window · times in {{abbreviation}}"
+  "Planned window · times in {{abbreviation}}": "Planned window · times in {{abbreviation}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "This is in your timezone - {{abbreviation}} ({{timezone}})."
 }

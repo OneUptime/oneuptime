@@ -94,7 +94,10 @@ const MonitorConnectionCard: FunctionComponent<ComponentProps> = (
     }
 
     if (props.kind === MonitorOverviewSetupKind.InboundEmail) {
-      const address: string | null = getIncomingEmailAddress(secretKey);
+      const address: string | null = getIncomingEmailAddress(
+        secretKey,
+        monitor.incomingEmailCustomLocalPart,
+      );
 
       if (!address) {
         return (

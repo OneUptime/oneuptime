@@ -154,11 +154,11 @@ describe("bundle hygiene", (): void => {
     /*
      * 90 KB since the session-replay overhaul (web vitals, the retrying
      * transport, cross-tab adoption, attribute masking, the public API and
-     * click/custom/visibility events); esbuild.config.js carries the
-     * measurement (87.5 KB) and the itemised reason. Asserted here as well
-     * as there on purpose - see the loader note below.
+     * click/custom/visibility events), 92 KB since offline mode;
+     * esbuild.config.js carries the measurements and the itemised reasons.
+     * Asserted here as well as there on purpose - see the loader note below.
      */
-    expect(recorderGzip).toBeLessThanOrEqual(90 * 1024);
+    expect(recorderGzip).toBeLessThanOrEqual(92 * 1024);
     expect(loaderGzip).toBeGreaterThan(0);
 
     /*
@@ -219,7 +219,7 @@ describe("bundle hygiene", (): void => {
     /* A distinctive rrweb internal that would appear if it were bundled. */
     expect(loaderBundle).not.toContain("rrweb");
     expect(loaderBundle).not.toContain("takeFullSnapshot");
-    expect(loaderBundle.length).toBeLessThan(13 * 1024);
+    expect(loaderBundle.length).toBeLessThan(13.5 * 1024);
   });
 
   it("contains the recorder itself", (): void => {

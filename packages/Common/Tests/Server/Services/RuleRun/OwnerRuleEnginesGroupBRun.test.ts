@@ -99,7 +99,8 @@ import {
 } from "../../../../Server/Utils/Rules/RuleRun/RuleApplication";
 import ObjectID from "../../../../Types/ObjectID";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
-import { afterEach, describe, expect, it } from "@jest/globals";
+import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
  * Contract under test - "Run now" for the owner rule engines of the Podman,
@@ -727,6 +728,13 @@ function expectNotifying(testCase: EngineCase, write: OwnerWrite): void {
     expect(write.isOwnerNotified).toBeUndefined();
   }
 }
+
+beforeEach(() => {
+  // Owner users here are project members; OwnerRuleAssignment.test.ts covers ones who left.
+  jest
+    .spyOn(TeamMemberService, "isUserMemberOfProject")
+    .mockResolvedValue(true);
+});
 
 afterEach(() => {
   jest.restoreAllMocks();

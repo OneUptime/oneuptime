@@ -34,8 +34,14 @@ import ObjectID from "../../Types/ObjectID";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { applyIncidentSelfPrivacyFilter } from "../Utils/Incident/IncidentPrivacyFilter";
 import ProjectScopedReferenceValidator, {
+  HeldRelationIds,
+  ProjectScopedReference,
+  ProjectScopedRelation,
   resolveReferenceId,
+  resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import Query from "../Types/Database/Query";
+import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import UserNotificationEventType from "../../Types/UserNotification/UserNotificationEventType";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
@@ -610,11 +616,27 @@ export class Service extends DatabaseService<Model> {
         updateBy.data.serviceLevelObjectives,
       ).length > 0;
 
+    /*
+     * The monitors, on-call policies and labels lists, when the update
+     * rewrites them. An empty list only removes rows and needs no check.
+     */
+    const relations: Array<ProjectScopedRelation> =
+      this.getProjectScopedRelations().filter(
+        (relation: ProjectScopedRelation) => {
+          return (
+            resolveReferenceIds(
+              (updateBy.data as Dictionary<unknown>)[relation.column],
+            ).length > 0
+          );
+        },
+      );
+
     if (
       !incidentStateId &&
       !incidentSeverityId &&
       !changeMonitorStatusToId &&
-      !hasServiceLevelObjectiveIds
+      !hasServiceLevelObjectiveIds &&
+      relations.length === 0
     ) {
       return;
     }
@@ -627,6 +649,17 @@ export class Service extends DatabaseService<Model> {
       ? [updateBy.props.tenantId]
       : await this.getProjectIdsForUpdateQuery(updateBy);
 
+    const heldIds: HeldRelationIds | undefined =
+      relations.length > 0
+        ? await ProjectScopedReferenceValidator.getHeldRelationIds({
+            service: this as unknown as DatabaseService<DatabaseBaseModel>,
+            query: updateBy.query as Query<DatabaseBaseModel>,
+            columns: relations.map((relation: ProjectScopedRelation) => {
+              return relation.column;
+            }),
+          })
+        : undefined;
+
     for (const projectId of projectIds) {
       if (hasServiceLevelObjectiveIds) {
         await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
@@ -638,32 +671,70 @@ export class Service extends DatabaseService<Model> {
         );
       }
 
-      if (!incidentStateId && !incidentSeverityId && !changeMonitorStatusToId) {
+      const references: Array<ProjectScopedReference> = [
+        {
+          modelName: "Incident State",
+          id: incidentStateId,
+          service: IncidentStateService,
+        },
+        {
+          modelName: "Incident Severity",
+          id: incidentSeverityId,
+          service: IncidentSeverityService,
+        },
+        {
+          modelName: "Monitor Status",
+          id: changeMonitorStatusToId,
+          service: MonitorStatusService,
+        },
+        ...ProjectScopedReferenceValidator.getRelationReferences({
+          payload: updateBy.data,
+          relations: relations,
+          projectId: projectId,
+          heldIds: heldIds,
+        }),
+      ];
+
+      if (
+        references.every((reference: ProjectScopedReference) => {
+          return !reference.id;
+        })
+      ) {
         continue;
       }
 
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
         subject: "incident",
-        references: [
-          {
-            modelName: "Incident State",
-            id: incidentStateId,
-            service: IncidentStateService,
-          },
-          {
-            modelName: "Incident Severity",
-            id: incidentSeverityId,
-            service: IncidentSeverityService,
-          },
-          {
-            modelName: "Monitor Status",
-            id: changeMonitorStatusToId,
-            service: MonitorStatusService,
-          },
-        ],
+        references: references,
       });
     }
+  }
+
+  /*
+   * The many-to-many lists whose ids must belong to the incident's project.
+   * Built per call rather than at module load: these services sit in an
+   * import graph that loops back to this one, and a module-level table would
+   * capture whichever of them had not finished loading yet as undefined.
+   */
+  private getProjectScopedRelations(): Array<ProjectScopedRelation> {
+    return [
+      {
+        column: "monitors",
+        modelName: "Monitor",
+        service: MonitorService,
+      },
+      {
+        column: "labels",
+        modelName: "Label",
+        service: LabelService,
+      },
+      {
+        column: "onCallDutyPolicies",
+        modelName: "On-Call Policy",
+        service: OnCallDutyPolicyService,
+      },
+    ];
   }
 
   private async getProjectIdsForUpdateQuery(
@@ -977,6 +1048,14 @@ export class Service extends DatabaseService<Model> {
      * caller, an incident template or a monitor criteria, and none of those
      * paths checked that the record belongs to this project. Persisting
      * another project's id leaves that project undeletable, so reject it here.
+     *
+     * The monitors, on-call policies and labels lists are checked for the same
+     * reason and a worse one: onCreateSuccess changes the status of every
+     * listed monitor and executes every listed on-call policy, so another
+     * project's ids here would page that project's on-call and flip its
+     * monitors for this project's incident. Lists copied from the template
+     * above are checked like any other payload.
+     *
      * Runs before the counter increment so a rejected create does not burn an
      * incident number.
      */
@@ -1003,6 +1082,10 @@ export class Service extends DatabaseService<Model> {
             resolveReferenceId(createBy.data.changeMonitorStatusTo),
           service: MonitorStatusService,
         },
+        ...ProjectScopedReferenceValidator.getRelationReferences({
+          payload: createBy.data,
+          relations: this.getProjectScopedRelations(),
+        }),
       ],
     });
 
@@ -1905,6 +1988,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
         },
         select: {
           _id: true,
+          projectId: true,
           user: {
             _id: true,
             email: true,
@@ -1926,6 +2010,7 @@ ${incident.remediationNotes || "No remediation notes provided."}
         },
         select: {
           _id: true,
+          projectId: true,
           teamId: true,
         },
         skip: 0,
@@ -1963,7 +2048,18 @@ ${incident.remediationNotes || "No remediation notes provided."}
       }
     }
 
-    return users;
+    const projectId: ObjectID | undefined =
+      ownerUsers[0]?.projectId || ownerTeams[0]?.projectId;
+
+    if (!projectId) {
+      return [];
+    }
+
+    // Owners who left the project are not notified, nor listed as notified.
+    return await TeamMemberService.filterUsersToProjectMembers({
+      projectId: projectId,
+      users: users,
+    });
   }
 
   @CaptureSpan()

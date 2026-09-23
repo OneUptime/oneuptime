@@ -6,28 +6,39 @@ import CopyableButton from "Common/UI/Components/CopyableButton/CopyableButton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
+import IncomingEmailMonitorAddress from "Common/Utils/Monitor/IncomingEmailMonitorAddress";
 
 export interface ComponentProps {
   secretKey: ObjectID;
+  // The monitor's custom address name, when it has one. It replaces the generated address.
+  customLocalPart?: string | undefined;
 }
 
 /*
  * The address an incoming-email monitor receives on, or null when this
  * server has no inbound email domain configured (so there is no address to
- * show). Shared with the monitor overview's connection card.
+ * show). A custom address, when set, is the live one: the generated
+ * monitor-{secretKey} address stops working. Shared with the monitor
+ * overview's connection card and the settings page.
  */
-export function getIncomingEmailAddress(secretKey: ObjectID): string | null {
-  if (!INBOUND_EMAIL_DOMAIN) {
-    return null;
-  }
-
-  return `monitor-${secretKey.toString()}@${INBOUND_EMAIL_DOMAIN}`;
+export function getIncomingEmailAddress(
+  secretKey: ObjectID | undefined,
+  customLocalPart?: string | undefined,
+): string | null {
+  return IncomingEmailMonitorAddress.getAddress({
+    secretKey: secretKey,
+    customLocalPart: customLocalPart,
+    inboundDomain: INBOUND_EMAIL_DOMAIN,
+  });
 }
 
 const IncomingEmailMonitorLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const emailAddress: string | null = getIncomingEmailAddress(props.secretKey);
+  const emailAddress: string | null = getIncomingEmailAddress(
+    props.secretKey,
+    props.customLocalPart,
+  );
 
   if (!emailAddress) {
     return (

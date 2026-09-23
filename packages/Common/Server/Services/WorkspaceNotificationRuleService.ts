@@ -1332,6 +1332,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       notificationRuleId: string;
       userIds: Array<ObjectID>;
     }> = await this.getUsersIdsToInviteToChannel({
+      projectId: data.projectId,
       notificationRules: data.notificationRules,
     });
 
@@ -1979,6 +1980,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
   @CaptureSpan()
   public async getUsersIdsToInviteToChannel(data: {
+    projectId: ObjectID;
     notificationRules: Array<WorkspaceNotificationRule>;
   }): Promise<
     Array<{
@@ -2056,10 +2058,21 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }
       }
 
-      if (inviteUserIds.length > 0) {
+      /*
+       * The rule is saved configuration and can name a user who has since
+       * left the project (and a team can hold pending invitees): only
+       * members are invited.
+       */
+      const memberUserIds: Array<ObjectID> =
+        await TeamMemberService.getProjectMemberUserIds({
+          projectId: data.projectId,
+          userIds: inviteUserIds,
+        });
+
+      if (memberUserIds.length > 0) {
         result.push({
           notificationRuleId: workspaceNotificationRule.id!.toString(),
-          userIds: inviteUserIds,
+          userIds: memberUserIds,
         });
       }
     }

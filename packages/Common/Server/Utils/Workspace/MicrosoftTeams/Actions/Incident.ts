@@ -33,6 +33,12 @@ import BadDataException from "../../../../../Types/Exception/BadDataException";
 import URL from "../../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import MicrosoftTeamsActionAuthorization from "./Authorization";
+import WorkspaceProjectReferenceValidator from "../../WorkspaceProjectReferenceValidator";
+import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
+import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
+import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
+import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 
 export default class MicrosoftTeamsIncidentActions {
   @CaptureSpan()
@@ -321,6 +327,13 @@ export default class MicrosoftTeamsIncidentActions {
 
       const incidentId: ObjectID = new ObjectID(actionValue);
 
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: IncidentStateTimeline,
+        action: "acknowledge this incident",
+        resources: [{ service: IncidentService, id: incidentId }],
+      });
+
       await MicrosoftTeamsActionAuthorization.assertCanUpdateIncident({
         incidentId: incidentId,
         projectId: projectId,
@@ -341,6 +354,13 @@ export default class MicrosoftTeamsIncidentActions {
       }
 
       const incidentId: ObjectID = new ObjectID(actionValue);
+
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: IncidentStateTimeline,
+        action: "resolve this incident",
+        resources: [{ service: IncidentService, id: incidentId }],
+      });
 
       await MicrosoftTeamsActionAuthorization.assertCanUpdateIncident({
         incidentId: incidentId,
@@ -434,6 +454,24 @@ export default class MicrosoftTeamsIncidentActions {
         // Submit the note
         const incidentId: ObjectID = new ObjectID(actionValue);
 
+        if (noteType !== "public" && noteType !== "private") {
+          await turnContext.sendActivity(
+            "Unable to add note: invalid note type.",
+          );
+          return;
+        }
+
+        await WorkspaceActionAuthorization.assertCanCreate({
+          props: databaseProps,
+          modelType:
+            noteType === "public" ? IncidentPublicNote : IncidentInternalNote,
+          action:
+            noteType === "public"
+              ? "add a public note to this incident"
+              : "add a private note to this incident",
+          resources: [{ service: IncidentService, id: incidentId }],
+        });
+
         if (noteType === "public") {
           await IncidentPublicNoteService.addNote({
             incidentId: incidentId,
@@ -513,15 +551,22 @@ export default class MicrosoftTeamsIncidentActions {
       if (onCallPolicyId) {
         // Execute the policy
         const incidentId: ObjectID = new ObjectID(actionValue);
+        const policyId: ObjectID = new ObjectID(onCallPolicyId.toString());
 
-        await OnCallDutyPolicyService.executePolicy(
-          new ObjectID(onCallPolicyId.toString()),
-          {
-            triggeredByIncidentId: incidentId,
-            userNotificationEventType:
-              UserNotificationEventType.IncidentCreated,
-          },
-        );
+        await WorkspaceActionAuthorization.assertCanCreate({
+          props: databaseProps,
+          modelType: OnCallDutyPolicyExecutionLog,
+          action: "execute an on-call policy for this incident",
+          resources: [
+            { service: IncidentService, id: incidentId },
+            { service: OnCallDutyPolicyService, id: policyId },
+          ],
+        });
+
+        await OnCallDutyPolicyService.executePolicy(policyId, {
+          triggeredByIncidentId: incidentId,
+          userNotificationEventType: UserNotificationEventType.IncidentCreated,
+        });
 
         await turnContext.sendActivity(
           "✅ On-call policy executed successfully.",
@@ -583,6 +628,13 @@ export default class MicrosoftTeamsIncidentActions {
         // Update the state
         const incidentId: ObjectID = new ObjectID(actionValue);
 
+        await WorkspaceActionAuthorization.assertCanCreate({
+          props: databaseProps,
+          modelType: IncidentStateTimeline,
+          action: "change the state of this incident",
+          resources: [{ service: IncidentService, id: incidentId }],
+        });
+
         await IncidentService.updateOneById({
           id: incidentId,
           data: {
@@ -628,110 +680,17 @@ export default class MicrosoftTeamsIncidentActions {
       }
 
       try {
-        // Create the incident
-        const incident: Incident = new Incident();
-        incident.title = title;
-        incident.description = description;
-        incident.projectId = projectId;
-        incident.createdByUserId = oneUptimeUserId;
-        incident.incidentSeverityId = new ObjectID(severityId);
-        incident.rootCause = `Incident created via Microsoft Teams`;
-
-        // Parse monitors
-        if (monitorIds) {
-          const monitorIdArray: Array<string> = monitorIds
-            .split(",")
-            .map((id: string) => {
-              return id.trim();
-            })
-            .filter((id: string) => {
-              return id;
-            });
-          if (monitorIdArray.length > 0) {
-            incident.monitors = monitorIdArray.map((id: string) => {
-              const monitor: Monitor = new Monitor();
-              monitor.id = new ObjectID(id);
-              return monitor;
-            });
-          }
-        }
-
-        // Parse labels
-        if (labelIds) {
-          const labelIdArray: Array<string> = labelIds
-            .split(",")
-            .map((id: string) => {
-              return id.trim();
-            })
-            .filter((id: string) => {
-              return id;
-            });
-          if (labelIdArray.length > 0) {
-            incident.labels = labelIdArray.map((id: string) => {
-              const label: Label = new Label();
-              label.id = new ObjectID(id);
-              return label;
-            });
-          }
-        }
-
-        // Parse on-call policies
-        if (onCallPolicyIds) {
-          const policyIdArray: Array<string> = onCallPolicyIds
-            .split(",")
-            .map((id: string) => {
-              return id.trim();
-            })
-            .filter((id: string) => {
-              return id;
-            });
-          if (policyIdArray.length > 0) {
-            incident.onCallDutyPolicies = policyIdArray.map((id: string) => {
-              const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
-              policy.id = new ObjectID(id);
-              return policy;
-            });
-          }
-        }
-
-        // Save the incident
-        const createdIncident: Incident = await IncidentService.create({
-          data: incident,
-          props: {
-            isRoot: true,
-          },
+        const createdIncident: Incident = await this.createIncidentInProject({
+          projectId,
+          oneUptimeUserId,
+          title,
+          description,
+          severityId,
+          monitorIds,
+          monitorStatusId,
+          labelIds,
+          onCallPolicyIds,
         });
-
-        logger.debug(
-          "Incident created successfully: " + createdIncident.id?.toString(),
-          {
-            projectId: projectId.toString(),
-            incidentId: createdIncident.id?.toString(),
-          },
-        );
-
-        // Update monitor status if specified
-        if (monitorStatusId && monitorIds) {
-          const monitorIdArray: Array<string> = monitorIds
-            .split(",")
-            .map((id: string) => {
-              return id.trim();
-            })
-            .filter((id: string) => {
-              return id;
-            });
-          for (const monitorId of monitorIdArray) {
-            await MonitorService.updateOneById({
-              id: new ObjectID(monitorId),
-              data: {
-                currentMonitorStatusId: new ObjectID(monitorStatusId),
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-          }
-        }
 
         // Hide the form card by deleting it first
         if (turnContext.activity.replyToId) {
@@ -769,6 +728,119 @@ export default class MicrosoftTeamsIncidentActions {
         actionType +
         " you requested is not implemented yet.",
     );
+  }
+
+  /*
+   * Every id below comes from the submitted card, not from the form we sent,
+   * and the writes run as root. So they are checked against the linked project
+   * before anything is created, and the monitor status write is scoped to that
+   * project as well.
+   */
+  private static async createIncidentInProject(data: {
+    projectId: ObjectID;
+    oneUptimeUserId: ObjectID;
+    title: string;
+    description: string;
+    severityId: string;
+    monitorIds: string;
+    monitorStatusId: string;
+    labelIds: string;
+    onCallPolicyIds: string;
+  }): Promise<Incident> {
+    const { projectId } = data;
+
+    const monitorIdArray: Array<ObjectID> =
+      WorkspaceProjectReferenceValidator.parseCommaSeparatedIds(
+        data.monitorIds,
+      );
+    const labelIdArray: Array<ObjectID> =
+      WorkspaceProjectReferenceValidator.parseCommaSeparatedIds(data.labelIds);
+    const policyIdArray: Array<ObjectID> =
+      WorkspaceProjectReferenceValidator.parseCommaSeparatedIds(
+        data.onCallPolicyIds,
+      );
+    const monitorStatusId: ObjectID | undefined =
+      data.monitorStatusId && monitorIdArray.length > 0
+        ? new ObjectID(data.monitorStatusId)
+        : undefined;
+
+    await WorkspaceProjectReferenceValidator.validateReferencesBelongToProject({
+      projectId: projectId,
+      subject: "incident",
+      monitorIds: monitorIdArray,
+      labelIds: labelIdArray,
+      onCallDutyPolicyIds: policyIdArray,
+      monitorStatusId: monitorStatusId,
+    });
+
+    // Create the incident
+    const incident: Incident = new Incident();
+    incident.title = data.title;
+    incident.description = data.description;
+    incident.projectId = projectId;
+    incident.createdByUserId = data.oneUptimeUserId;
+    incident.incidentSeverityId = new ObjectID(data.severityId);
+    incident.rootCause = `Incident created via Microsoft Teams`;
+
+    if (monitorIdArray.length > 0) {
+      incident.monitors = monitorIdArray.map((id: ObjectID) => {
+        const monitor: Monitor = new Monitor();
+        monitor.id = id;
+        return monitor;
+      });
+    }
+
+    if (labelIdArray.length > 0) {
+      incident.labels = labelIdArray.map((id: ObjectID) => {
+        const label: Label = new Label();
+        label.id = id;
+        return label;
+      });
+    }
+
+    if (policyIdArray.length > 0) {
+      incident.onCallDutyPolicies = policyIdArray.map((id: ObjectID) => {
+        const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+        policy.id = id;
+        return policy;
+      });
+    }
+
+    // Save the incident
+    const createdIncident: Incident = await IncidentService.create({
+      data: incident,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    logger.debug(
+      "Incident created successfully: " + createdIncident.id?.toString(),
+      {
+        projectId: projectId.toString(),
+        incidentId: createdIncident.id?.toString(),
+      },
+    );
+
+    // Update monitor status if specified
+    if (monitorStatusId) {
+      for (const monitorId of monitorIdArray) {
+        await MonitorService.updateOneBy({
+          query: {
+            _id: monitorId.toString(),
+            projectId: projectId,
+          },
+          data: {
+            currentMonitorStatusId: monitorStatusId,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    }
+
+    return createdIncident;
   }
 
   private static buildAddIncidentNoteCard(incidentId: string): JSONObject {
@@ -1041,110 +1113,17 @@ export default class MicrosoftTeamsIncidentActions {
           projectId: projectId,
         });
 
-      // Create the incident
-      const incident: Incident = new Incident();
-      incident.title = title;
-      incident.description = description;
-      incident.projectId = projectId;
-      incident.createdByUserId = oneUptimeUserId;
-      incident.incidentSeverityId = new ObjectID(severityId);
-      incident.rootCause = `Incident created via Microsoft Teams`;
-
-      // Parse monitors
-      if (monitorIds) {
-        const monitorIdArray: Array<string> = monitorIds
-          .split(",")
-          .map((id: string) => {
-            return id.trim();
-          })
-          .filter((id: string) => {
-            return id;
-          });
-        if (monitorIdArray.length > 0) {
-          incident.monitors = monitorIdArray.map((id: string) => {
-            const monitor: Monitor = new Monitor();
-            monitor.id = new ObjectID(id);
-            return monitor;
-          });
-        }
-      }
-
-      // Parse labels
-      if (labelIds) {
-        const labelIdArray: Array<string> = labelIds
-          .split(",")
-          .map((id: string) => {
-            return id.trim();
-          })
-          .filter((id: string) => {
-            return id;
-          });
-        if (labelIdArray.length > 0) {
-          incident.labels = labelIdArray.map((id: string) => {
-            const label: Label = new Label();
-            label.id = new ObjectID(id);
-            return label;
-          });
-        }
-      }
-
-      // Parse on-call policies
-      if (onCallPolicyIds) {
-        const policyIdArray: Array<string> = onCallPolicyIds
-          .split(",")
-          .map((id: string) => {
-            return id.trim();
-          })
-          .filter((id: string) => {
-            return id;
-          });
-        if (policyIdArray.length > 0) {
-          incident.onCallDutyPolicies = policyIdArray.map((id: string) => {
-            const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
-            policy.id = new ObjectID(id);
-            return policy;
-          });
-        }
-      }
-
-      // Save the incident
-      const createdIncident: Incident = await IncidentService.create({
-        data: incident,
-        props: {
-          isRoot: true,
-        },
+      await this.createIncidentInProject({
+        projectId,
+        oneUptimeUserId,
+        title,
+        description,
+        severityId,
+        monitorIds,
+        monitorStatusId,
+        labelIds,
+        onCallPolicyIds,
       });
-
-      logger.debug(
-        "Incident created successfully: " + createdIncident.id?.toString(),
-        {
-          projectId: projectId.toString(),
-          incidentId: createdIncident.id?.toString(),
-        },
-      );
-
-      // Update monitor status if specified
-      if (monitorStatusId && monitorIds) {
-        const monitorIdArray: Array<string> = monitorIds
-          .split(",")
-          .map((id: string) => {
-            return id.trim();
-          })
-          .filter((id: string) => {
-            return id;
-          });
-        for (const monitorId of monitorIdArray) {
-          await MonitorService.updateOneById({
-            id: new ObjectID(monitorId),
-            data: {
-              currentMonitorStatusId: new ObjectID(monitorStatusId),
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-      }
 
       logger.debug("New incident created from Microsoft Teams successfully", {
         projectId: projectId.toString(),

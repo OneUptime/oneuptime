@@ -1443,9 +1443,27 @@ export default class SessionReplayIngestService {
       }
     }
 
+    /*
+     * Offline mode: a chunk the device queued while it had no connection
+     * was not sent when it was recorded, so "receive time minus its start
+     * offset" is later than the session really began by exactly the time it
+     * sat in that queue - hours, for a flight. The recorder stamps the send
+     * time on the envelope as it actually sends, so the device's own clock
+     * says how long that was, and the reference instant moves back by it.
+     * Without this every chunk uploaded more than four hours late dragged
+     * its whole session to "four hours before it arrived".
+     */
+    const queueDelayMs: number = SessionIdentity.getClientQueueDelayMs({
+      sessionStartUnixMs: data.envelope.sessionStartUnixMs,
+      chunkEndOffsetMs: data.envelope.chunkEndOffsetMs,
+      clientSendUnixMs: data.envelope.clientSendUnixMs,
+    });
+
     const referenceUnixMs: number = Math.max(
       0,
-      data.jobData.serverReceiveUnixMs - data.envelope.chunkStartOffsetMs,
+      data.jobData.serverReceiveUnixMs -
+        data.envelope.chunkStartOffsetMs -
+        queueDelayMs,
     );
 
     const startUnixMs: number = SessionIdentity.clampSessionStart(

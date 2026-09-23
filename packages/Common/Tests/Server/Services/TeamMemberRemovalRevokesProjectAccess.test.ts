@@ -293,6 +293,9 @@ describe("TeamMemberService - removing a membership revokes the cached project a
       .spyOn(TeamMemberService, "cleanupOnCallAssignmentsIfUserLeftProject")
       .mockResolvedValue(null);
     jest
+      .spyOn(TeamMemberService, "cleanupResourceAssignmentsIfUserLeftProject")
+      .mockResolvedValue(null);
+    jest
       .spyOn(
         UserNotificationSettingService,
         "removeDefaultNotificationSettingsForUser",

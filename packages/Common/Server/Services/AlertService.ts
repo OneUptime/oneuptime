@@ -1194,6 +1194,7 @@ ${alert.remediationNotes || "No remediation notes provided."}
         },
         select: {
           _id: true,
+          projectId: true,
           user: {
             _id: true,
             email: true,
@@ -1215,6 +1216,7 @@ ${alert.remediationNotes || "No remediation notes provided."}
         },
         select: {
           _id: true,
+          projectId: true,
           teamId: true,
         },
         skip: 0,
@@ -1252,7 +1254,18 @@ ${alert.remediationNotes || "No remediation notes provided."}
       }
     }
 
-    return users;
+    const projectId: ObjectID | undefined =
+      ownerUsers[0]?.projectId || ownerTeams[0]?.projectId;
+
+    if (!projectId) {
+      return [];
+    }
+
+    // Owners who left the project are not notified, nor listed as notified.
+    return await TeamMemberService.filterUsersToProjectMembers({
+      projectId: projectId,
+      users: users,
+    });
   }
 
   @CaptureSpan()

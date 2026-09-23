@@ -536,7 +536,9 @@ export const RumRoutePath: Dictionary<string> = {
 export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOWS_LOGS]: "logs",
   [PageMap.WORKFLOWS_VARIABLES]: "variables",
+  [PageMap.WORKFLOWS_VARIABLE_VIEW]: `variables/${RouteParams.ModelID}`,
   [PageMap.WORKFLOW_VARIABLES]: `${RouteParams.ModelID}/variables`,
+  [PageMap.WORKFLOW_VARIABLE_VIEW]: `${RouteParams.ModelID}/variables/${RouteParams.SubModelID}`,
   [PageMap.WORKFLOW_BUILDER]: `${RouteParams.ModelID}/builder`,
   [PageMap.WORKFLOW_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.WORKFLOW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -6319,9 +6321,21 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.WORKFLOWS_VARIABLE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/workflows/${
+      WorkflowRoutePath[PageMap.WORKFLOWS_VARIABLE_VIEW]
+    }`,
+  ),
+
   [PageMap.WORKFLOW_VARIABLES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/workflows/${
       WorkflowRoutePath[PageMap.WORKFLOW_VARIABLES]
+    }`,
+  ),
+
+  [PageMap.WORKFLOW_VARIABLE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/workflows/${
+      WorkflowRoutePath[PageMap.WORKFLOW_VARIABLE_VIEW]
     }`,
   ),
 

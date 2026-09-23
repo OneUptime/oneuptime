@@ -4798,6 +4798,8 @@
   "Should status page subscribers be notified when this note is posted?": "Skal abonnenter på statussiden underrettes, når denne note offentliggøres?",
   "Should status page subscribers be notified?": "Skal abonnenter på statussiden underrettes?",
   "Unticked by default because status page subscribers were not notified when this incident was declared.": "Ikke markeret som standard, fordi abonnenter på statussiden ikke blev underrettet, da denne hændelse blev erklæret.",
+  "Unticked by default because status page subscribers were not notified when this episode was created.": "Ikke markeret som standard, fordi abonnenter på statussiden ikke blev underrettet, da denne episode blev oprettet.",
+  "Unticked by default because status page subscribers were not notified when this scheduled maintenance event was created.": "Ikke markeret som standard, fordi abonnenter på statussiden ikke blev underrettet, da denne planlagte vedligeholdelse blev oprettet.",
   "Should the new monitor be disabled when its duplicated?": "Skal den nye overvågning deaktiveres, når den duplikeres?",
   "Show Announcement At": "Vis meddelelse den",
   "Show Announcement History (in days)": "Vis meddelelseshistorik (i dage)",
@@ -6459,5 +6461,6 @@
   "VMware vCenter Updated": "VMware vCenter opdateret",
   "Matching event types: {{count}}": "Matchende begivenhedstyper: {{count}}",
   "Times are shown in {{abbreviation}}.": "Tidspunkter vises i tidszonen {{abbreviation}}.",
-  "Planned window · times in {{abbreviation}}": "Planlagt tidsvindue · tidspunkter i {{abbreviation}}"
+  "Planned window · times in {{abbreviation}}": "Planlagt tidsvindue · tidspunkter i {{abbreviation}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Dette tidspunkt er i din tidszone - {{abbreviation}} ({{timezone}})."
 }

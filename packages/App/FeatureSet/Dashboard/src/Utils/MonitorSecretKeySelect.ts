@@ -27,13 +27,25 @@ export const MONITOR_SECRET_KEY_COLUMNS: Array<keyof Monitor> = [
   "incomingEmailSecretKey",
 ];
 
+/*
+ * Every column that carries a monitor credential: the three keys, plus an
+ * Incoming Email monitor's custom address name, which replaces the
+ * key-derived address while it is set and is gated exactly like the keys.
+ * The pages that show an inbound address need both to know which address is
+ * live, so they are fetched (and withheld) together.
+ */
+export const MONITOR_CREDENTIAL_COLUMNS: Array<keyof Monitor> = [
+  ...MONITOR_SECRET_KEY_COLUMNS,
+  "incomingEmailCustomLocalPart",
+];
+
 export type GetReadableMonitorSecretKeySelectFunction = () => Select<Monitor>;
 
 export const getReadableMonitorSecretKeySelect: GetReadableMonitorSecretKeySelectFunction =
   (): Select<Monitor> => {
     const select: Select<Monitor> = {};
 
-    for (const column of MONITOR_SECRET_KEY_COLUMNS) {
+    for (const column of MONITOR_CREDENTIAL_COLUMNS) {
       if (PermissionGate.canReadColumn(new Monitor(), column as string)) {
         (select as Record<string, boolean>)[column as string] = true;
       }

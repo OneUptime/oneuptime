@@ -188,6 +188,30 @@ export const SESSION_REPLAY_KEEPALIVE_MAX_BYTES: number = 56 * 1024;
 export const SESSION_REPLAY_MAX_FLUSH_FAILURES: number = 3;
 
 /*
+ * Offline mode: how long a recorder may hold a chunk it could not upload.
+ *
+ * A device that loses its connection keeps recording, queues what it
+ * records (in memory, and in IndexedDB or AsyncStorage so a closed tab or a
+ * killed app does not lose it) and uploads the backlog when the network
+ * returns. Past this age a queued chunk is discarded on the device instead.
+ *
+ * The server uses the same bound from the other side: a chunk's
+ * clientSendUnixMs minus its end is how long it sat in that queue, measured
+ * on the device's own clock, and ingest allows exactly that much extra
+ * lateness before it stops trusting the recording's start time (see
+ * SessionIdentity.getClientQueueDelayMs). Without it every chunk that
+ * arrived more than four hours after it was recorded was pinned to "four
+ * hours before it arrived".
+ *
+ * Three days: long enough for a flight, a weekend without signal or a
+ * device left in a drawer, and deliberately well inside the seven days an
+ * erasure tombstone lives, so a chunk of a session somebody asked to erase
+ * can never outlive the tombstone that refuses it.
+ */
+export const SESSION_REPLAY_MAX_OFFLINE_DELAY_MS: number =
+  3 * 24 * 60 * 60 * 1000;
+
+/*
  * Content type carried on every chunk POST.
  *
  * application/octet-stream because customers put a web application

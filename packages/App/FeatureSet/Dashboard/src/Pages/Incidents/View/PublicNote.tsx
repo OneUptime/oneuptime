@@ -87,6 +87,13 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
 
     setNotifySubscribersByDefault(null);
     setIncidentError("");
+    /*
+     * Drop a template or AI draft from the previous incident. The table
+     * remounts once this incident's flag loads and opens its create form
+     * when a draft is present, which would post the old draft on this
+     * incident.
+     */
+    setInitialValuesForIncident({});
 
     ModelAPI.getItem<Incident>({
       modelType: Incident,

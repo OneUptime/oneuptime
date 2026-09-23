@@ -653,12 +653,20 @@ export default class ScheduledMaintenancePublicNote extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * No static defaultValue here: when a create leaves this out, the service
+   * takes it from the scheduled maintenance event (see
+   * PublicNoteSubscriberNotificationDefault), and a fixed "true" in the
+   * published API schema would be wrong for events created without notifying
+   * subscribers. The database default only applies when the event cannot be
+   * found.
+   */
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     title: "Should subscribers be notified?",
-    description: "Should subscribers be notified about this note?",
-    defaultValue: true,
+    description:
+      "Should subscribers be notified about this note? If left out, this follows the scheduled maintenance event: true when subscribers were notified that the event was created, false when it was created without notifying them.",
     example: true,
   })
   @Column({

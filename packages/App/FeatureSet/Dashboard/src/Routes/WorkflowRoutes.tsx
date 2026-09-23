@@ -10,6 +10,7 @@ import { Route as PageRoute, Routes } from "react-router-dom";
 // Pages
 import Workflows from "../Pages/Workflow/Workflows";
 import WorkflowsVariables from "../Pages/Workflow/Variable";
+import WorkflowsVariableView from "../Pages/Workflow/VariableView";
 import WorkflowsLogs from "../Pages/Workflow/Logs";
 import WorkflowLogs from "../Pages/Workflow/View/Logs";
 import WorkflowDelete from "../Pages/Workflow/View/Delete";
@@ -18,6 +19,7 @@ import WorkflowOverview from "../Pages/Workflow/View/Index";
 import WorkflowOwners from "../Pages/Workflow/View/Owners";
 import WorkflowAuditLogs from "../Pages/Workflow/View/AuditLogs";
 import WorkflowVariables from "../Pages/Workflow/View/Variable";
+import WorkflowVariableView from "../Pages/Workflow/View/VariableView";
 import WorkflowSettings from "../Pages/Workflow/View/Settings";
 import WorkflowSettingsOwnerRules from "../Pages/Workflow/Settings/OwnerRules";
 import WorkflowSettingsLabelRules from "../Pages/Workflow/Settings/LabelRules";
@@ -46,6 +48,16 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
             <WorkflowsVariables
               {...props}
               pageRoute={RouteMap[PageMap.WORKFLOWS_VARIABLES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={WorkflowRoutePath[PageMap.WORKFLOWS_VARIABLE_VIEW] || ""}
+          element={
+            <WorkflowsVariableView
+              {...props}
+              pageRoute={RouteMap[PageMap.WORKFLOWS_VARIABLE_VIEW] as Route}
             />
           }
         />
@@ -142,6 +154,16 @@ const WorkflowRoutes: FunctionComponent<ComponentProps> = (
             <WorkflowVariables
               {...props}
               pageRoute={RouteMap[PageMap.WORKFLOW_VARIABLES] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.WORKFLOW_VARIABLE_VIEW, 2)}
+          element={
+            <WorkflowVariableView
+              {...props}
+              pageRoute={RouteMap[PageMap.WORKFLOW_VARIABLE_VIEW] as Route}
             />
           }
         />

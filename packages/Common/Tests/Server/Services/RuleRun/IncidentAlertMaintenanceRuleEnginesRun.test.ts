@@ -82,6 +82,7 @@ import RuleCriteria, {
   RuleCriteriaOperator,
 } from "../../../../Types/Rules/RuleCriteria";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
+import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -862,6 +863,10 @@ beforeEach(() => {
   // Silence the logs the failure-path tests deliberately provoke.
   jest.spyOn(console, "error").mockImplementation(() => {});
   jest.spyOn(console, "warn").mockImplementation(() => {});
+  // Owner users here are project members; OwnerRuleAssignment.test.ts covers ones who left.
+  jest
+    .spyOn(TeamMemberService, "isUserMemberOfProject")
+    .mockResolvedValue(true);
 });
 
 afterEach(() => {

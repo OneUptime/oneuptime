@@ -12,6 +12,7 @@ import IncidentStateService from "./IncidentStateService";
 import UserService from "./UserService";
 import IncidentMemberService from "./IncidentMemberService";
 import IncidentRoleService from "./IncidentRoleService";
+import TeamMemberService from "./TeamMemberService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -965,6 +966,20 @@ ${createdItem.rootCause}`,
 
     if (existingMembership) {
       // User is already assigned to this incident, don't assign again
+      return;
+    }
+
+    /*
+     * Whoever changed the state is not necessarily a member: a master admin,
+     * or someone acting on a link or session from before they left the
+     * project. Only a member can be the commander.
+     */
+    if (
+      !(await TeamMemberService.isUserMemberOfProject({
+        projectId: data.projectId,
+        userId: data.userId,
+      }))
+    ) {
       return;
     }
 

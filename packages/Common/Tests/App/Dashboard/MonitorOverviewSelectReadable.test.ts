@@ -6,7 +6,10 @@ import {
   MONITOR_OVERVIEW_STATUS_ROW_LIMIT,
   MONITOR_OVERVIEW_STATUS_ROW_SELECT,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorOverviewSelect";
-import { MONITOR_SECRET_KEY_COLUMNS } from "../../../../App/FeatureSet/Dashboard/src/Utils/MonitorSecretKeySelect";
+import {
+  MONITOR_CREDENTIAL_COLUMNS,
+  MONITOR_SECRET_KEY_COLUMNS,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/MonitorSecretKeySelect";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorProbe from "../../../Models/DatabaseModels/MonitorProbe";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
@@ -189,13 +192,22 @@ describe("the overview selects never name a secret-key column", () => {
   ])("%s", (_name: string, select: SelectObject) => {
     const text: string = JSON.stringify(select);
 
-    for (const secretColumn of MONITOR_SECRET_KEY_COLUMNS) {
+    for (const secretColumn of MONITOR_CREDENTIAL_COLUMNS) {
       expect(text).not.toContain(secretColumn as string);
     }
   });
 
   test("the list being checked is the three secret columns", () => {
     expect([...MONITOR_SECRET_KEY_COLUMNS].sort()).toEqual([
+      "incomingEmailSecretKey",
+      "incomingRequestSecretKey",
+      "serverMonitorSecretKey",
+    ]);
+  });
+
+  test("the custom inbound email address is checked with them", () => {
+    expect([...MONITOR_CREDENTIAL_COLUMNS].sort()).toEqual([
+      "incomingEmailCustomLocalPart",
       "incomingEmailSecretKey",
       "incomingRequestSecretKey",
       "serverMonitorSecretKey",

@@ -268,6 +268,33 @@ describe("MonitorSetupCard", () => {
     expect(String(mockEmailLinkProps[0]!["secretKey"])).toBe(SECRET);
   });
 
+  test("email setup hands IncomingEmailMonitorLink the custom address name", () => {
+    const monitor: Monitor = editorMonitor();
+    monitor.incomingEmailCustomLocalPart = "nightly-backups";
+
+    renderInRouter(
+      <MonitorSetupCard
+        monitorId={MONITOR_ID}
+        kind={MonitorOverviewSetupKind.InboundEmail}
+        monitor={monitor}
+      />,
+    );
+
+    expect(mockEmailLinkProps[0]!["customLocalPart"]).toBe("nightly-backups");
+  });
+
+  test("email setup passes no custom name when the monitor has none", () => {
+    renderInRouter(
+      <MonitorSetupCard
+        monitorId={MONITOR_ID}
+        kind={MonitorOverviewSetupKind.InboundEmail}
+        monitor={editorMonitor()}
+      />,
+    );
+
+    expect(mockEmailLinkProps[0]!["customLocalPart"]).toBeUndefined();
+  });
+
   test("server setup reuses the agent documentation cards", () => {
     renderInRouter(
       <MonitorSetupCard
@@ -375,6 +402,41 @@ describe("MonitorConnectionCard", () => {
     expect(screen.getByTestId("monitor-connection-meta")).toHaveTextContent(
       "Last email 5 minutes ago",
     );
+  });
+
+  test("email with a custom address shows that address, not the generated one", () => {
+    /*
+     * The generated address stops working once a custom one is set, so
+     * showing it here would send people to a dead address.
+     */
+    const monitor: Monitor = editorMonitor();
+    monitor.incomingEmailCustomLocalPart = "nightly-backups";
+
+    const view: RenderResult = renderInRouter(
+      <MonitorConnectionCard
+        monitorId={MONITOR_ID}
+        kind={MonitorOverviewSetupKind.InboundEmail}
+        monitor={monitor}
+      />,
+    );
+
+    expect(screen.getByTestId("monitor-connection-value")).toHaveTextContent(
+      "nightly-backups@inbound.example.com",
+    );
+    expect(view.container.innerHTML).not.toContain(`monitor-${SECRET}`);
+  });
+
+  test("getIncomingEmailAddress prefers the custom name over the key", () => {
+    expect(
+      getIncomingEmailAddress(new ObjectID(SECRET), "nightly-backups"),
+    ).toBe("nightly-backups@inbound.example.com");
+    expect(getIncomingEmailAddress(new ObjectID(SECRET))).toBe(
+      `monitor-${SECRET}@inbound.example.com`,
+    );
+    expect(getIncomingEmailAddress(undefined, "nightly-backups")).toBe(
+      "nightly-backups@inbound.example.com",
+    );
+    expect(getIncomingEmailAddress(undefined)).toBeNull();
   });
 
   test("email on a server with no inbound domain says there is no address", () => {

@@ -53,7 +53,8 @@ import {
   PublicNoteEmojis,
 } from "../Utils/Workspace/Slack/Actions/ActionTypes";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
-import AccessTokenService from "../Services/AccessTokenService";
+import WorkspaceActionAuthorization from "../Utils/Workspace/WorkspaceActionAuthorization";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObservabilityAssistant from "../Utils/AI/Chat/ObservabilityAssistant";
 import { AIChatCitation } from "../../Types/AI/AIChatTypes";
 
@@ -1588,13 +1589,21 @@ export default class SlackAPI {
       | Array<{ role: "user" | "assistant"; content: string }>
       | undefined;
   }): Promise<string> {
-    const props: DatabaseCommonInteractionProps =
-      await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
-        {
-          userId: data.userId,
-          projectId: data.projectId,
-        },
-      );
+    let props: DatabaseCommonInteractionProps;
+
+    try {
+      props = await WorkspaceActionAuthorization.getProjectMemberProps({
+        userId: data.userId,
+        projectId: data.projectId,
+      });
+    } catch (err) {
+      // A linked Slack account whose user has since left the project.
+      if (err instanceof NotAuthorizedException) {
+        return err.message;
+      }
+
+      throw err;
+    }
 
     const result: {
       contentInMarkdown: string;

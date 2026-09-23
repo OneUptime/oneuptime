@@ -9,6 +9,8 @@ import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import MonitorService from "../../../../Services/MonitorService";
 import Monitor from "../../../../../Models/DatabaseModels/Monitor";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
 
 export default class MicrosoftTeamsMonitorActions {
   @CaptureSpan()
@@ -66,9 +68,11 @@ export default class MicrosoftTeamsMonitorActions {
     value: JSONObject;
     projectId: ObjectID;
     oneUptimeUserId: ObjectID;
+    databaseProps: DatabaseCommonInteractionProps;
     turnContext: TurnContext;
   }): Promise<void> {
-    const { actionType, actionValue, projectId, turnContext } = data;
+    const { actionType, actionValue, projectId, databaseProps, turnContext } =
+      data;
 
     if (actionType === MicrosoftTeamsMonitorActionType.ViewMonitor) {
       if (!actionValue) {
@@ -118,14 +122,11 @@ export default class MicrosoftTeamsMonitorActions {
         return;
       }
 
-      await MonitorService.updateOneById({
-        id: new ObjectID(actionValue),
-        data: {
-          disableActiveMonitoring: false,
-        },
-        props: {
-          isRoot: true,
-        },
+      await this.setActiveMonitoring({
+        monitorId: new ObjectID(actionValue),
+        disableActiveMonitoring: false,
+        props: databaseProps,
+        action: "enable this monitor",
       });
 
       await turnContext.sendActivity("✅ Monitor enabled successfully.");
@@ -140,14 +141,11 @@ export default class MicrosoftTeamsMonitorActions {
         return;
       }
 
-      await MonitorService.updateOneById({
-        id: new ObjectID(actionValue),
-        data: {
-          disableActiveMonitoring: true,
-        },
-        props: {
-          isRoot: true,
-        },
+      await this.setActiveMonitoring({
+        monitorId: new ObjectID(actionValue),
+        disableActiveMonitoring: true,
+        props: databaseProps,
+        action: "disable this monitor",
       });
 
       await turnContext.sendActivity("✅ Monitor disabled successfully.");
@@ -160,5 +158,44 @@ export default class MicrosoftTeamsMonitorActions {
         actionType +
         " you requested is not implemented yet.",
     );
+  }
+
+  /*
+   * Enabling or disabling a monitor is an ordinary Monitor update, so it runs
+   * with the user's own props: the permission layer then applies the same
+   * role, label and project scoping the dashboard would. An update that
+   * matched no row means the monitor is not one this user may change here.
+   */
+  private static async setActiveMonitoring(data: {
+    monitorId: ObjectID;
+    disableActiveMonitoring: boolean;
+    props: DatabaseCommonInteractionProps;
+    action: string;
+  }): Promise<void> {
+    let updatedCount: number = 0;
+
+    try {
+      updatedCount = await MonitorService.updateOneById({
+        id: data.monitorId,
+        data: {
+          disableActiveMonitoring: data.disableActiveMonitoring,
+        },
+        props: data.props,
+      });
+    } catch (err) {
+      if (err instanceof NotAuthorizedException) {
+        throw new NotAuthorizedException(
+          `You do not have permission to ${data.action}. ${err.message}`,
+        );
+      }
+
+      throw err;
+    }
+
+    if (updatedCount === 0) {
+      throw new NotAuthorizedException(
+        `You do not have permission to ${data.action}: the monitor was not found in this project, or you do not have access to it.`,
+      );
+    }
   }
 }

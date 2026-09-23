@@ -13,6 +13,7 @@ import {
   UptimeStatusDuration,
 } from "../../Types/StatusPage/UptimeDailyAggregate";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
+import TimezoneAlias from "../../Types/TimezoneAlias";
 import { formatDurationCompact } from "../Slo/SloDuration";
 import UptimeUtil from "../Uptime/UptimeUtil";
 
@@ -550,8 +551,15 @@ export default class MonitorUptimeSummaryUtil {
    * The zone the day buckets are cut in. Missing means UTC; anything that
    * is not an IANA name is refused rather than silently read as UTC, because
    * a caller who sent "Europe/Lodnon" would otherwise get bars that are off
-   * by an hour and no hint why. The canonical spelling is returned, so the
-   * value handed to the database is always one it knows.
+   * by an hour and no hint why.
+   *
+   * The current name is returned, so the value handed to the database is
+   * always one it knows. moment answers a legacy name with that same name
+   * (its zone for "Asia/Calcutta" is called "Asia/Calcutta"), and Chromium
+   * reports Asia/Calcutta for India, but the Postgres in the shipped images
+   * has no legacy tzdata links and rejects several of them in AT TIME ZONE.
+   * So TimezoneAlias translates first — which also lets through
+   * US/Pacific-New, a name tzdata removed and moment no longer resolves.
    */
   public static parseTimezone(raw: unknown): string {
     if (typeof raw !== "string") {
@@ -564,10 +572,12 @@ export default class MonitorUptimeSummaryUtil {
       return "UTC";
     }
 
+    const currentName: string = TimezoneAlias.getCanonicalTimezone(trimmed);
+
     let zoneName: string | null = null;
 
     try {
-      zoneName = Moment.tz.zone(trimmed)?.name || null;
+      zoneName = Moment.tz.zone(currentName)?.name || null;
     } catch {
       zoneName = null;
     }

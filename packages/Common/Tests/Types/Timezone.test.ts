@@ -124,6 +124,7 @@ describe("enum Timezone", () => {
     expect(Timezone["AmericaCayman"]).toEqual("America/Cayman");
     expect(Timezone["AmericaChicago"]).toEqual("America/Chicago");
     expect(Timezone["AmericaChihuahua"]).toEqual("America/Chihuahua");
+    expect(Timezone["AmericaCiudad_Juarez"]).toEqual("America/Ciudad_Juarez");
     expect(Timezone["AmericaCoral_Harbour"]).toEqual("America/Coral_Harbour");
     expect(Timezone["AmericaCordoba"]).toEqual("America/Cordoba");
     expect(Timezone["AmericaCosta_Rica"]).toEqual("America/Costa_Rica");
@@ -224,6 +225,7 @@ describe("enum Timezone", () => {
     expect(Timezone["AmericaNorth_DakotaNew_Salem"]).toEqual(
       "America/North_Dakota/New_Salem",
     );
+    expect(Timezone["AmericaNuuk"]).toEqual("America/Nuuk");
     expect(Timezone["AmericaOjinaga"]).toEqual("America/Ojinaga");
     expect(Timezone["AmericaPanama"]).toEqual("America/Panama");
     expect(Timezone["AmericaPangnirtung"]).toEqual("America/Pangnirtung");
@@ -352,6 +354,7 @@ describe("enum Timezone", () => {
     expect(Timezone["AsiaPontianak"]).toEqual("Asia/Pontianak");
     expect(Timezone["AsiaPyongyang"]).toEqual("Asia/Pyongyang");
     expect(Timezone["AsiaQatar"]).toEqual("Asia/Qatar");
+    expect(Timezone["AsiaQostanay"]).toEqual("Asia/Qostanay");
     expect(Timezone["AsiaQyzylorda"]).toEqual("Asia/Qyzylorda");
     expect(Timezone["AsiaRangoon"]).toEqual("Asia/Rangoon");
     expect(Timezone["AsiaRiyadh"]).toEqual("Asia/Riyadh");
@@ -503,6 +506,7 @@ describe("enum Timezone", () => {
     expect(Timezone["EuropeKaliningrad"]).toEqual("Europe/Kaliningrad");
     expect(Timezone["EuropeKiev"]).toEqual("Europe/Kiev");
     expect(Timezone["EuropeKirov"]).toEqual("Europe/Kirov");
+    expect(Timezone["EuropeKyiv"]).toEqual("Europe/Kyiv");
     expect(Timezone["EuropeLisbon"]).toEqual("Europe/Lisbon");
     expect(Timezone["EuropeLjubljana"]).toEqual("Europe/Ljubljana");
     expect(Timezone["EuropeLondon"]).toEqual("Europe/London");
@@ -592,6 +596,7 @@ describe("enum Timezone", () => {
     expect(Timezone["PacificGuam"]).toEqual("Pacific/Guam");
     expect(Timezone["PacificHonolulu"]).toEqual("Pacific/Honolulu");
     expect(Timezone["PacificJohnston"]).toEqual("Pacific/Johnston");
+    expect(Timezone["PacificKanton"]).toEqual("Pacific/Kanton");
     expect(Timezone["PacificKiritimati"]).toEqual("Pacific/Kiritimati");
     expect(Timezone["PacificKosrae"]).toEqual("Pacific/Kosrae");
     expect(Timezone["PacificKwajalein"]).toEqual("Pacific/Kwajalein");

@@ -231,15 +231,21 @@ const replaceAllInsensitive: ReplaceAllInsensitiveFunction = (
   return result + haystack.slice(cursor);
 };
 
+/*
+ * Rewrites one string. `sweep` applies it to every string -- and every object
+ * key -- in a payload, so the two value boundaries below share one walk.
+ */
+type RedactTextFunction = (text: string) => string;
+
 type SweepFunction = (
   value: JSONValue,
-  secret: string,
+  redactText: RedactTextFunction,
   depth: number,
 ) => JSONValue;
 
 const sweep: SweepFunction = (
   value: JSONValue,
-  secret: string,
+  redactText: RedactTextFunction,
   depth: number,
 ): JSONValue => {
   // Same reasoning as `walk`: below the ceiling we cannot vouch for the value.
@@ -252,12 +258,12 @@ const sweep: SweepFunction = (
   }
 
   if (typeof value === "string") {
-    return replaceAllInsensitive(value, secret);
+    return redactText(value);
   }
 
   if (Array.isArray(value)) {
     return value.map((item: JSONValue) => {
-      return sweep(item, secret, depth + 1);
+      return sweep(item, redactText, depth + 1);
     });
   }
 
@@ -281,9 +287,9 @@ const sweep: SweepFunction = (
    * a value -- and a redacted key still serialises into the stored jsonb.
    */
   for (const key of Object.keys(source)) {
-    result[replaceAllInsensitive(key, secret)] = sweep(
+    result[redactText(key)] = sweep(
       source[key] as JSONValue,
-      secret,
+      redactText,
       depth + 1,
     );
   }
@@ -311,11 +317,122 @@ export const redactMonitorSecret: RedactMonitorSecretFunction = <T>(
     return payload;
   }
 
-  return sweep(payload as JSONValue, secret, 0) as T;
+  return sweep(
+    payload as JSONValue,
+    (text: string): string => {
+      return replaceAllInsensitive(text, secret);
+    },
+    0,
+  ) as T;
+};
+
+export type RedactMonitorEmailAddressFunction = <T>(
+  payload: T,
+  address: {
+    localPart: string | null | undefined;
+    domain: string | null | undefined;
+  },
+) => T;
+
+// Characters that can sit inside an email local part (RFC 5322 atext, roughly).
+const LOCAL_PART_CHARACTER: RegExp = /[a-z0-9!#$%&'*+/=?^_`{|}~.-]/i;
+
+type ReplaceAddressLocalPartFunction = (
+  haystack: string,
+  needle: string,
+  localPartLength: number,
+) => string;
+
+/*
+ * Masks the local part of every whole-address occurrence of `needle`
+ * (`localPart@domain`, or `localPart@` when the domain is unknown), keeping
+ * the `@domain` after it. "Whole" means the match does not start in the middle
+ * of a longer local part: with a custom name of `backups`,
+ * `nightly-backups@...` is a different mailbox and is left alone.
+ */
+const replaceAddressLocalPart: ReplaceAddressLocalPartFunction = (
+  haystack: string,
+  needle: string,
+  localPartLength: number,
+): string => {
+  const lowerHaystack: string = haystack.toLowerCase();
+  const lowerNeedle: string = needle.toLowerCase();
+
+  let result: string = "";
+  let cursor: number = 0;
+  let index: number = lowerHaystack.indexOf(lowerNeedle);
+
+  while (index !== -1) {
+    const previous: string | undefined =
+      index > 0 ? haystack.charAt(index - 1) : undefined;
+
+    const isWholeAddress: boolean =
+      previous === undefined || !LOCAL_PART_CHARACTER.test(previous);
+
+    // `index >= cursor`: never start a match inside one already masked.
+    if (isWholeAddress && index >= cursor) {
+      result += haystack.slice(cursor, index) + REDACTED;
+      cursor = index + localPartLength;
+    }
+
+    index = lowerHaystack.indexOf(lowerNeedle, index + 1);
+  }
+
+  return result + haystack.slice(cursor);
+};
+
+/*
+ * Value boundary for a CUSTOM incoming-email address.
+ *
+ * A monitor with a custom address (`Monitor.incomingEmailCustomLocalPart`)
+ * receives mail at `{name}@{inboundDomain}` instead of the generated
+ * `monitor-{secretKey}@` one, so the name plays the part the secret key plays
+ * above: whoever reads it can mail the monitor. The same copies of the
+ * recipient -- `emailTo`, `To:`, `Delivered-To:`, `Received:` -- would carry
+ * it into columns read-only principals can select.
+ *
+ * Unlike a secret key, a custom name is an ordinary word ("backups"), so
+ * sweeping for it as a bare substring would mangle subjects, bodies and --
+ * worse -- the sender's own address (`backups@acme.example` is evidence, and
+ * the "Email from" criteria read it). So this masks only the name where it is
+ * the local part of the monitor's own address on the inbound domain, and
+ * keeps `@domain`: `[REDACTED]@inbound.example.com`.
+ *
+ * If the domain is unknown it falls back to masking `{name}@` on any domain.
+ * That over-redacts, which is the safe direction for a credential.
+ */
+export const redactMonitorEmailAddress: RedactMonitorEmailAddressFunction = <T>(
+  payload: T,
+  address: {
+    localPart: string | null | undefined;
+    domain: string | null | undefined;
+  },
+): T => {
+  if (payload === null || payload === undefined) {
+    return payload;
+  }
+
+  if (typeof address.localPart !== "string" || !address.localPart) {
+    return payload;
+  }
+
+  const localPart: string = address.localPart;
+  const needle: string = address.domain
+    ? `${localPart}@${address.domain}`
+    : `${localPart}@`;
+
+  return sweep(
+    payload as JSONValue,
+    (text: string): string => {
+      return replaceAddressLocalPart(text, needle, localPart.length);
+    },
+    0,
+  ) as T;
 };
 
 export default {
   stripAgentCredentials,
   redactForPersistence,
   redactMonitorSecret,
+  redactMonitorEmailAddress,
 };

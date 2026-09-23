@@ -1,6 +1,7 @@
 import DatabaseConfig from "../DatabaseConfig";
 import {
   AllowedActiveMonitorCountInFreePlan,
+  InboundEmailDomain,
   IsBillingEnabled,
 } from "../EnvironmentConfig";
 import { UpdateResult } from "typeorm";
@@ -100,6 +101,7 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
 import NetworkDeviceMonitorTemplateUtil from "../../Utils/Monitor/NetworkDeviceMonitorTemplateUtil";
+import IncomingEmailMonitorAddress from "../../Utils/Monitor/IncomingEmailMonitorAddress";
 import ProbeMonitorsNotification, {
   ProbeAffectedMonitor,
   ProbeMonitorsNotificationContent,
@@ -679,6 +681,10 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    if (updateDataKeys.includes("incomingEmailCustomLocalPart")) {
+      await this.validateIncomingEmailCustomLocalPartUpdate(updateBy);
+    }
+
     const isMonitorStepsWritten: boolean =
       updateDataKeys.includes("monitorSteps");
     const isMonitorTemplateWritten: boolean = RelationIdUtil.isWritten(
@@ -1138,6 +1144,122 @@ export class Service extends DatabaseService<Model> {
     }
 
     return ids;
+  }
+
+  /*
+   * Guards a write to incomingEmailCustomLocalPart, the custom name of an
+   * Incoming Email monitor's inbound address (see IncomingEmailMonitorAddress).
+   *
+   * Normalizes the value in place -- the stored name is always the bare,
+   * lowercased local part, whatever the caller typed -- and refuses a name
+   * that is malformed, reserved, or already another monitor's address. Every
+   * project shares the one inbound domain, so "taken" is checked across ALL
+   * monitors, not just this project's. The column's unique index is the
+   * backstop for two writes racing past this check; this is what gives the
+   * person a readable message in the common case.
+   *
+   * null or "" clears the custom name, which puts the generated
+   * monitor-{secretKey} address back in service.
+   */
+  private async validateIncomingEmailCustomLocalPartUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const data: Record<string, unknown> = updateBy.data as unknown as Record<
+      string,
+      unknown
+    >;
+
+    const rawValue: unknown = data["incomingEmailCustomLocalPart"];
+
+    if (rawValue === null || rawValue === undefined || rawValue === "") {
+      data["incomingEmailCustomLocalPart"] = null;
+      return;
+    }
+
+    if (typeof rawValue !== "string") {
+      throw new BadDataException(
+        "Incoming email custom address must be a string.",
+      );
+    }
+
+    const localPart: string =
+      IncomingEmailMonitorAddress.normalizeCustomLocalPart({
+        value: rawValue,
+        inboundDomain: InboundEmailDomain,
+      });
+
+    data["incomingEmailCustomLocalPart"] = localPart;
+
+    /*
+     * Two rows are enough to know the write targets more than one monitor,
+     * which is itself the error: one address cannot route to two monitors.
+     */
+    const targets: Array<Model> = await this.findBy({
+      query:
+        !updateBy.props.isRoot && updateBy.props.tenantId
+          ? { ...updateBy.query, projectId: updateBy.props.tenantId }
+          : updateBy.query,
+      select: {
+        _id: true,
+        monitorType: true,
+      },
+      limit: 2,
+      skip: 0,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    if (targets.length > 1) {
+      throw new BadDataException(
+        "A custom email address can only be set on one monitor at a time.",
+      );
+    }
+
+    const target: Model | undefined = targets[0];
+
+    // Nothing matched: the update writes nothing, so there is nothing to guard.
+    if (!target) {
+      return;
+    }
+
+    if (target.monitorType !== MonitorType.IncomingEmail) {
+      throw new BadDataException(
+        "Custom email addresses can only be set on Incoming Email monitors.",
+      );
+    }
+
+    const holders: Array<Model> = await this.findBy({
+      query: {
+        incomingEmailCustomLocalPart: localPart,
+      },
+      select: {
+        _id: true,
+      },
+      limit: 2,
+      skip: 0,
+      props: {
+        isRoot: true,
+        ignoreHooks: true,
+      },
+    });
+
+    const isTakenByAnotherMonitor: boolean = holders.some((holder: Model) => {
+      return holder.id?.toString() !== target.id?.toString();
+    });
+
+    if (isTakenByAnotherMonitor) {
+      const address: string =
+        IncomingEmailMonitorAddress.getAddress({
+          customLocalPart: localPart,
+          inboundDomain: InboundEmailDomain,
+        }) || localPart;
+
+      throw new BadDataException(
+        `The email address ${address} is already used by another monitor. Please choose a different name.`,
+      );
+    }
   }
 
   private async getProjectIdsForUpdateQuery(
@@ -2007,6 +2129,7 @@ ${createdItem.description?.trim() || "No description provided."}
         },
         select: {
           _id: true,
+          projectId: true,
           user: {
             _id: true,
             email: true,
@@ -2028,6 +2151,7 @@ ${createdItem.description?.trim() || "No description provided."}
         },
         select: {
           _id: true,
+          projectId: true,
           teamId: true,
         },
         skip: 0,
@@ -2065,7 +2189,18 @@ ${createdItem.description?.trim() || "No description provided."}
       }
     }
 
-    return users;
+    const projectId: ObjectID | undefined =
+      ownerUsers[0]?.projectId || ownerTeams[0]?.projectId;
+
+    if (!projectId) {
+      return [];
+    }
+
+    // Owners who left the project are not notified, nor listed as notified.
+    return await TeamMemberService.filterUsersToProjectMembers({
+      projectId: projectId,
+      users: users,
+    });
   }
 
   @CaptureSpan()
