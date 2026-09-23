@@ -17,6 +17,7 @@ import {
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
+import SessionReplayWireEncoding from "Common/Utils/Rum/SessionReplayWireEncoding";
 
 /*
  * Wire decoder for a session-replay chunk POST. The body is one or more
@@ -947,5 +948,181 @@ describe("SessionReplayEnvelopeParser.parse — additive fields", () => {
 
       expect("capabilities" in result.frames[0]!.envelope).toBe(false);
     }
+  });
+});
+
+/*
+ * Recorders now write each envelope line through SessionReplayWireEncoding,
+ * so a customer's web application firewall does not read the chunk as a
+ * smuggled HTTP request (CRS rule 921110): `%`, `&` and `http/` go out as
+ * JSON escapes, and a space precedes the newline. The parser was not
+ * changed for it - JSON.parse already reads both - and these tests keep it
+ * that way: an escaped frame and a plain one mean exactly the same thing.
+ */
+describe("SessionReplayEnvelopeParser.parse — the firewall-safe frame encoding", () => {
+  function encodedFrameBuffer(frame: Frame): Buffer {
+    const payloadBuf: Buffer = Buffer.from(frame.payload, "utf-8");
+    const envelope: JSONObject = {
+      ...frame.envelope,
+      payloadBytes: payloadBuf.length,
+    };
+
+    return Buffer.concat([
+      Buffer.from(
+        SessionReplayWireEncoding.encodeEnvelopeLine(envelope),
+        "utf-8",
+      ),
+      payloadBuf,
+    ]);
+  }
+
+  const hostile: JSONObject = baseEnvelope({
+    url: "https://shop.example.com/search/gadget+case%20x%0Ay?a=REDACTED&b=REDACTED",
+    routes: [
+      "https://shop.example.com/widget%20list",
+      "https://shop.example.com/",
+    ],
+    fidelityNotices: ["50%&more"],
+    meta: {
+      entryUrl: "https://shop.example.com/%E6%97%A5%E6%9C%AC",
+      browserName: "Chrome",
+      browserVersion: "140",
+      osName: "macOS",
+      deviceType: "desktop",
+      viewportWidth: 1440,
+      viewportHeight: 900,
+      identifiedUserRef: "bridget&co",
+      identifiedUserTraits: {
+        name: "Bridget Jones",
+        note: "GET /v1/users HTTP/1.1 & 50%",
+      },
+      tags: { plan: "Budget & Co" },
+    },
+  });
+
+  test("an escaped envelope parses to exactly what the plain one does", () => {
+    const plain: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(frameBuffer({ envelope: hostile, payload: "[]" }));
+    const encoded: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(encodedFrameBuffer({ envelope: hostile, payload: "[]" }));
+
+    expect(encoded.frames[0]!.envelope).toEqual(plain.frames[0]!.envelope);
+    expect(encoded.frames[0]!.envelope.url).toBe(hostile["url"]);
+    expect(encoded.frames[0]!.envelope.meta?.identifiedUserTraits).toEqual({
+      name: "Bridget Jones",
+      note: "GET /v1/users HTTP/1.1 & 50%",
+    });
+  });
+
+  test("the escapes really are on the wire, and the space before the newline", () => {
+    const body: Buffer = encodedFrameBuffer({
+      envelope: hostile,
+      payload: "[]",
+    });
+    const newline: number = body.indexOf(0x0a);
+    const line: string = body.subarray(0, newline).toString("utf-8");
+
+    expect(line).not.toMatch(/[%&]|http\//i);
+    expect(body[newline - 1]).toBe(0x20);
+  });
+
+  test("several escaped frames back to back keep their payloads byte for byte", () => {
+    const payloads: Array<string> = [
+      '[{"text":"50\\u0025 off \\u0026 more HTTP\\/1.1"}]',
+      "",
+      "[1,2,3]",
+    ];
+
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        Buffer.concat(
+          payloads.map((payload: string, index: number): Buffer => {
+            return encodedFrameBuffer({
+              envelope: { ...hostile, chunkIndex: index },
+              payload: payload,
+            });
+          }),
+        ),
+      );
+
+    expect(result.frames).toHaveLength(3);
+
+    result.frames.forEach(
+      (frame: (typeof result.frames)[0], index: number): void => {
+        expect(frame.envelope.chunkIndex).toBe(index);
+        expect(frame.payload.toString("utf-8")).toBe(payloads[index]);
+      },
+    );
+
+    /* And the identity payload still decodes to the text the page showed. */
+    expect(JSON.parse(result.frames[0]!.payload.toString("utf-8"))).toEqual([
+      { text: "50% off & more HTTP/1.1" },
+    ]);
+  });
+
+  test("a body mixing an old recorder's frame with a new one parses both", () => {
+    const result: Extract<SessionReplayParseResult, { isValid: true }> =
+      parseValid(
+        Buffer.concat([
+          frameBuffer({
+            envelope: { ...hostile, chunkIndex: 0 },
+            payload: "old",
+          }),
+          encodedFrameBuffer({
+            envelope: { ...hostile, chunkIndex: 1 },
+            payload: "new",
+          }),
+        ]),
+      );
+
+    expect(result.frames[0]!.envelope).toEqual({
+      ...result.frames[1]!.envelope,
+      chunkIndex: 0,
+      payloadBytes: 3,
+    });
+    expect(result.frames[1]!.payload.toString("utf-8")).toBe("new");
+  });
+
+  test("the raw frame view is the escaped line verbatim, for byte-exact restaging", () => {
+    const body: Buffer = encodedFrameBuffer({
+      envelope: hostile,
+      payload: "[]",
+    });
+
+    expect(Buffer.compare(parseValid(body).frames[0]!.raw, body)).toBe(0);
+  });
+
+  test("the 8 KiB envelope ceiling counts the escaped line, space included", () => {
+    /*
+     * The recorder measures the same line (and stops at 7 KiB); pin where
+     * the parser's edge is so the two cannot drift apart unnoticed.
+     */
+    const lineOfLength: (bytes: number) => Buffer = (bytes: number): Buffer => {
+      const bare: string = SessionReplayWireEncoding.encodeEnvelopeLine({
+        ...baseEnvelope(),
+        payloadBytes: 0,
+        pad: "",
+      });
+      const padding: number = bytes - Buffer.byteLength(bare, "utf-8");
+
+      return Buffer.from(
+        SessionReplayWireEncoding.encodeEnvelopeLine({
+          ...baseEnvelope(),
+          payloadBytes: 0,
+          pad: "x".repeat(padding),
+        }),
+        "utf-8",
+      );
+    };
+
+    /* 8192 bytes of JSON-and-space, then the newline: the largest allowed. */
+    const largest: Buffer = lineOfLength(8 * 1024 + 1);
+    expect(largest.indexOf(0x0a)).toBe(8 * 1024);
+    expect(parseValid(largest).frames).toHaveLength(1);
+
+    const tooLarge: Buffer = lineOfLength(8 * 1024 + 2);
+    expect(
+      parseError(Buffer.concat([tooLarge, Buffer.from("x".repeat(64))])),
+    ).toBe(SessionReplayEnvelopeError.EnvelopeTooLarge);
   });
 });

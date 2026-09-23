@@ -3,6 +3,8 @@ import zlib from "zlib";
 import { BASE_URL } from "../../../Config";
 import { APIResponse, Locator, Page, expect } from "@playwright/test";
 import URL from "Common/Types/API/URL";
+import { SESSION_REPLAY_CONTENT_TYPE } from "Common/Types/Rum/SessionReplay";
+import SessionReplayWireEncoding from "Common/Utils/Rum/SessionReplayWireEncoding";
 import { gotoProjectPage } from "./ProductOnboarding";
 
 /*
@@ -38,8 +40,13 @@ import { gotoProjectPage } from "./ProductOnboarding";
 const WIRE_VERSION: number = 1;
 const SCHEMA_VERSION: number = 1;
 
-const CHUNK_CONTENT_TYPE: string =
-  "application/vnd.oneuptime.session-replay.v1";
+/*
+ * What the recorder sends, so the live server is exercised with the exact
+ * request a customer's browser makes (octet-stream, and an envelope line a
+ * web application firewall lets through). The legacy vendor type and the
+ * bare JSON.stringify line are covered by the ingest unit tests.
+ */
+const CHUNK_CONTENT_TYPE: string = SESSION_REPLAY_CONTENT_TYPE;
 
 /* The recorder flushes a chunk every 15 seconds. */
 export const SESSION_REPLAY_CHUNK_MS: number = 15000;
@@ -391,7 +398,12 @@ export const buildSessionReplayFrame: BuildSessionReplayFrameFunction = (
       : payload;
 
   return Buffer.concat([
-    new Uint8Array(Buffer.from(`${JSON.stringify(envelope)}\n`, "utf8")),
+    new Uint8Array(
+      Buffer.from(
+        SessionReplayWireEncoding.encodeEnvelopeLine(envelope),
+        "utf8",
+      ),
+    ),
     payloadBytes,
   ]);
 };
