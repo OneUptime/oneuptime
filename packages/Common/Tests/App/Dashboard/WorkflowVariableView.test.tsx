@@ -2561,17 +2561,170 @@ describe("everything the list's row actions used to do", () => {
   });
 });
 
+/*
+ * The page wrappers key WorkflowVariableView by the ids they read from the
+ * route. React Router keeps the page mounted when only a param changes, so
+ * without the key, going straight from one variable's page to another's would
+ * hand the new variable to the old instance - with the old one's modals, notes
+ * and requests still attached to it.
+ */
 describe("the page wrappers", () => {
+  /*
+   * The variable a wrapper moves on to: another one, of the other kind, so
+   * the layout alone says which variable is on screen.
+   */
+  function otherStaticVariable(
+    overrides?: Partial<Record<string, unknown>>,
+  ): WorkflowVariable {
+    return staticVariable({
+      _id: OTHER_VARIABLE_ID.toString(),
+      name: "OTHER",
+      ...(overrides || {}),
+    });
+  }
+
+  function contentNote(): HTMLElement {
+    return screen.getByTestId("workflow-variable-content-note");
+  }
+
+  // Sets the page's "Content updated" note, which lives only in the page.
+  function markContentUpdated(): void {
+    fireEvent.click(screen.getByTestId("card-button:Update Content"));
+
+    act(() => {
+      capturedContentModalProps?.onSuccess();
+    });
+
+    expect(contentNote()).toHaveTextContent("Content updated.");
+  }
+
+  // The other variable's page, whole, and nothing of the previous one's.
+  function expectOtherStaticVariableShown(): void {
+    expect(screen.queryByTestId("page-loader")).not.toBeInTheDocument();
+    expect(screen.getByTestId("card:Content")).toBeInTheDocument();
+    expect(screen.queryByTestId("card:Access Token")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("token-status")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`detail:${OAUTH_SETTINGS_CARD}`),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("token-refresh-modal")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("update-content-modal"),
+    ).not.toBeInTheDocument();
+    expect(detail(DETAILS_CARD).modelDetailProps.modelId.toString()).toBe(
+      OTHER_VARIABLE_ID.toString(),
+    );
+    expect(capturedDeleteProps?.modelId.toString()).toBe(
+      OTHER_VARIABLE_ID.toString(),
+    );
+
+    // The variable the page acts on is the one it read for OTHER.
+    fireEvent.click(screen.getByTestId("card-button:Update Content"));
+    expect(capturedContentModalProps?.variable.name).toBe("OTHER");
+
+    // Closed again, so the check can run again later in the same test.
+    act(() => {
+      capturedContentModalProps?.onClose();
+    });
+  }
+
+  type WrapperUnderTest = {
+    renderPage: () => ReturnType<typeof render>;
+    moveToOtherVariable: (result: ReturnType<typeof render>) => void;
+    // An OAuth 2.0 variable, so it has a Refresh now.
+    previousVariable: () => WorkflowVariable;
+  };
+
+  type HeldRefreshRace = {
+    refresh: Deferred<unknown>;
+    otherRead: Deferred<unknown>;
+    previousFollowUpRead: Deferred<unknown>;
+  };
+
+  /*
+   * The race the key closes: Refresh now on an OAuth 2.0 variable, its request
+   * still out, and the page moves straight to another variable. The refresh,
+   * the other variable's read and the read the refresh makes afterwards are
+   * all held, so each test picks the order they land in.
+   */
+  async function startRefreshThenMove(
+    wrapper: WrapperUnderTest,
+  ): Promise<HeldRefreshRace> {
+    const refresh: Deferred<unknown> = deferred<unknown>();
+    apiPost.mockReturnValue(refresh.promise);
+
+    getItem.mockResolvedValueOnce(wrapper.previousVariable());
+    const otherRead: Deferred<unknown> = holdNextRead();
+    const previousFollowUpRead: Deferred<unknown> = holdNextRead();
+
+    const result: ReturnType<typeof render> = wrapper.renderPage();
+
+    await waitForPage();
+    expectOAuthPageShown();
+
+    await clickRefreshNow();
+
+    expect(apiPost).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId("refresh-now")).toBeDisabled();
+
+    wrapper.moveToOtherVariable(result);
+
+    await waitForReads(2);
+    expect(getItemCall(1).id.toString()).toBe(OTHER_VARIABLE_ID.toString());
+    expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+    expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
+
+    return { refresh, otherRead, previousFollowUpRead };
+  }
+
+  /*
+   * The previous variable's page is gone, but its refresh still finishes -
+   * and reads its own variable again, as it always does afterwards.
+   */
+  async function finishPreviousRefresh(race: HeldRefreshRace): Promise<void> {
+    await act(async () => {
+      race.refresh.resolve({
+        data: { oauthAccessTokenExpiresAt: TOKEN_EXPIRES_AT },
+      });
+    });
+
+    await waitForReads(3);
+    expect(getItemCall(2).id.toString()).toBe(VARIABLE_ID.toString());
+  }
+
   describe("Workflows > Global Variables > View Variable", () => {
-    function renderGlobalPage(): void {
-      render(
+    function globalPage(): ReactElement {
+      return (
         <GlobalWorkflowVariableViewPage
           {...({} as unknown as React.ComponentProps<
             typeof GlobalWorkflowVariableViewPage
           >)}
-        />,
+        />
       );
     }
+
+    function renderGlobalPage(): ReturnType<typeof render> {
+      return render(globalPage());
+    }
+
+    // What following a link to another variable's page does to the wrapper.
+    function moveGlobalPageTo(
+      result: ReturnType<typeof render>,
+      variableId: ObjectID,
+    ): void {
+      lastParams = { 0: variableId };
+      result.rerender(globalPage());
+    }
+
+    const globalWrapper: WrapperUnderTest = {
+      renderPage: renderGlobalPage,
+      moveToOtherVariable: (result: ReturnType<typeof render>): void => {
+        moveGlobalPageTo(result, OTHER_VARIABLE_ID);
+      },
+      previousVariable: (): WorkflowVariable => {
+        return oauthVariable();
+      },
+    };
 
     beforeEach(() => {
       // /dashboard/:projectId/workflows/variables/:id
@@ -2627,18 +2780,211 @@ describe("the page wrappers", () => {
         await screen.findByText(/This variable belongs to a workflow/),
       ).toBeInTheDocument();
     });
+
+    describe("moving straight to another variable's page", () => {
+      test("mounts a fresh page: the loader again, a read of the new variable, and no note from the previous one", async () => {
+        getItem.mockResolvedValueOnce(staticVariable());
+        const otherRead: Deferred<unknown> = holdNextRead();
+
+        const result: ReturnType<typeof render> = renderGlobalPage();
+
+        await waitForPage();
+
+        markContentUpdated();
+
+        moveGlobalPageTo(result, OTHER_VARIABLE_ID);
+
+        await waitForReads(2);
+        expect(getItemCall(1).id.toString()).toBe(OTHER_VARIABLE_ID.toString());
+        expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+        expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
+
+        await act(async () => {
+          otherRead.resolve(otherStaticVariable());
+        });
+
+        await waitForPage();
+
+        expect(contentNote()).toHaveTextContent("Hidden.");
+        expectOtherStaticVariableShown();
+      });
+
+      // The content modal was for the previous variable's content.
+      test("an open content modal does not follow onto the new variable's page", async () => {
+        getItem.mockResolvedValueOnce(staticVariable());
+        const otherRead: Deferred<unknown> = holdNextRead();
+
+        const result: ReturnType<typeof render> = renderGlobalPage();
+
+        await waitForPage();
+
+        fireEvent.click(screen.getByTestId("card-button:Update Content"));
+        expect(screen.getByTestId("update-content-modal")).toBeInTheDocument();
+
+        moveGlobalPageTo(result, OTHER_VARIABLE_ID);
+
+        await waitForReads(2);
+
+        await act(async () => {
+          otherRead.resolve(otherStaticVariable());
+        });
+
+        await waitForPage();
+
+        expectOtherStaticVariableShown();
+      });
+
+      test("the previous variable's token outcome does not follow onto the new variable's page", async () => {
+        getItem.mockResolvedValue(oauthVariable());
+
+        const result: ReturnType<typeof render> = renderGlobalPage();
+
+        await waitForPage();
+
+        await clickRefreshNow();
+        await waitForOutcome();
+        // The read the refresh makes afterwards.
+        await waitForReads(2);
+
+        expect(screen.getByTestId("token-refresh-modal")).toBeInTheDocument();
+
+        const otherRead: Deferred<unknown> = holdNextRead();
+
+        moveGlobalPageTo(result, OTHER_VARIABLE_ID);
+
+        await waitForReads(3);
+        expect(getItemCall(2).id.toString()).toBe(OTHER_VARIABLE_ID.toString());
+        expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+
+        await act(async () => {
+          otherRead.resolve(otherStaticVariable());
+        });
+
+        await waitForPage();
+
+        expectOtherStaticVariableShown();
+      });
+
+      /*
+       * One instance for both variables would show the previous variable's
+       * outcome modal over the new page, and its follow-up read would put the
+       * previous variable back on screen.
+       */
+      test("a token refresh still out for the previous variable never lands on the new variable's page", async () => {
+        const race: HeldRefreshRace = await startRefreshThenMove(globalWrapper);
+
+        await act(async () => {
+          race.otherRead.resolve(otherStaticVariable());
+        });
+
+        await waitForPage();
+        expectOtherStaticVariableShown();
+
+        await finishPreviousRefresh(race);
+
+        await act(async () => {
+          race.previousFollowUpRead.resolve(oauthVariable());
+        });
+
+        expectOtherStaticVariableShown();
+      });
+
+      /*
+       * One instance for both variables would let the refresh's follow-up read
+       * outdate the new variable's read, and when that follow-up failed the
+       * page would sit on the loader for good.
+       */
+      test("a token refresh that settles while the new variable loads leaves that load alone", async () => {
+        const race: HeldRefreshRace = await startRefreshThenMove(globalWrapper);
+
+        await finishPreviousRefresh(race);
+
+        await act(async () => {
+          race.previousFollowUpRead.reject(
+            new Error("The API is unreachable."),
+          );
+        });
+
+        // Still waiting for the variable the page is on.
+        expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+        expect(
+          screen.queryByTestId("token-refresh-modal"),
+        ).not.toBeInTheDocument();
+
+        await act(async () => {
+          race.otherRead.resolve(otherStaticVariable());
+        });
+
+        await waitForPage();
+
+        expect(
+          screen.queryByText("The API is unreachable."),
+        ).not.toBeInTheDocument();
+        expectOtherStaticVariableShown();
+      });
+
+      // A re-render of the same route is not a new page.
+      test("a re-render for the same variable keeps the page as it is", async () => {
+        getItem.mockResolvedValueOnce(staticVariable());
+
+        const result: ReturnType<typeof render> = renderGlobalPage();
+
+        await waitForPage();
+        pageLoaderRenderCount = 0;
+
+        markContentUpdated();
+
+        // The same id, as a new ObjectID - as Navigation hands it back.
+        moveGlobalPageTo(result, new ObjectID(VARIABLE_ID.toString()));
+
+        await act(async () => {
+          await Promise.resolve();
+        });
+
+        expect(getItem).toHaveBeenCalledTimes(1);
+        expectNoLoaderSinceLoad();
+        expect(contentNote()).toHaveTextContent("Content updated.");
+        expect(screen.getByTestId("model-delete")).toBeInTheDocument();
+      });
+    });
   });
 
   describe("Workflow > Workflow Variables > View Variable", () => {
-    function renderLocalPage(): void {
-      render(
+    function localPage(): ReactElement {
+      return (
         <LocalWorkflowVariableViewPage
           {...({} as unknown as React.ComponentProps<
             typeof LocalWorkflowVariableViewPage
           >)}
-        />,
+        />
       );
     }
+
+    function renderLocalPage(): ReturnType<typeof render> {
+      return render(localPage());
+    }
+
+    // What following a link to another variable's page does to the wrapper.
+    function moveLocalPageTo(
+      result: ReturnType<typeof render>,
+      params: { variableId: ObjectID; workflowId: ObjectID },
+    ): void {
+      lastParams = { 0: params.variableId, 2: params.workflowId };
+      result.rerender(localPage());
+    }
+
+    const localWrapper: WrapperUnderTest = {
+      renderPage: renderLocalPage,
+      moveToOtherVariable: (result: ReturnType<typeof render>): void => {
+        moveLocalPageTo(result, {
+          variableId: OTHER_VARIABLE_ID,
+          workflowId: WORKFLOW_ID,
+        });
+      },
+      previousVariable: (): WorkflowVariable => {
+        return localOAuthVariable();
+      },
+    };
 
     beforeEach(() => {
       // /dashboard/:projectId/workflows/:id/variables/:subModelId
@@ -2724,6 +3070,158 @@ describe("the page wrappers", () => {
         screen.queryByText("This variable does not belong to this workflow."),
       ).not.toBeInTheDocument();
       expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
+    });
+
+    describe("moving straight to another variable's page", () => {
+      test("another variable of the workflow mounts a fresh page, without the previous one's open modal", async () => {
+        getItem.mockResolvedValueOnce(localStaticVariable());
+        const otherRead: Deferred<unknown> = holdNextRead();
+
+        const result: ReturnType<typeof render> = renderLocalPage();
+
+        await waitForPage();
+
+        fireEvent.click(screen.getByTestId("card-button:Update Content"));
+        expect(screen.getByTestId("update-content-modal")).toBeInTheDocument();
+
+        moveLocalPageTo(result, {
+          variableId: OTHER_VARIABLE_ID,
+          workflowId: WORKFLOW_ID,
+        });
+
+        await waitForReads(2);
+        expect(getItemCall(1).id.toString()).toBe(OTHER_VARIABLE_ID.toString());
+        expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+        expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
+
+        await act(async () => {
+          otherRead.resolve(otherStaticVariable({ workflowId: WORKFLOW_ID }));
+        });
+
+        await waitForPage();
+
+        expect(contentNote()).toHaveTextContent("Hidden.");
+        expectOtherStaticVariableShown();
+      });
+
+      /*
+       * The same variable id under another workflow is another page: the scope
+       * check, the reference and the way back after a delete all hang on the
+       * workflow.
+       */
+      test("another workflow's page mounts a fresh page too", async () => {
+        getItem.mockResolvedValueOnce(localStaticVariable());
+        const nextRead: Deferred<unknown> = holdNextRead();
+
+        const result: ReturnType<typeof render> = renderLocalPage();
+
+        await waitForPage();
+
+        fireEvent.click(screen.getByTestId("card-button:Update Content"));
+        expect(screen.getByTestId("update-content-modal")).toBeInTheDocument();
+
+        moveLocalPageTo(result, {
+          variableId: VARIABLE_ID,
+          workflowId: OTHER_WORKFLOW_ID,
+        });
+
+        await waitForReads(2);
+        expect(getItemCall(1).id.toString()).toBe(VARIABLE_ID.toString());
+        expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+        expect(screen.queryByTestId("model-delete")).not.toBeInTheDocument();
+
+        await act(async () => {
+          nextRead.resolve(staticVariable({ workflowId: OTHER_WORKFLOW_ID }));
+        });
+
+        await waitForPage();
+
+        expect(
+          screen.queryByTestId("update-content-modal"),
+        ).not.toBeInTheDocument();
+        expect(contentNote()).toHaveTextContent("Hidden.");
+
+        act(() => {
+          capturedDeleteProps?.onDeleteSuccess();
+        });
+
+        expect(String(navigate.mock.calls[0]![0])).toBe(
+          `/dashboard/${PROJECT_ID.toString()}/workflows/${OTHER_WORKFLOW_ID.toString()}/variables`,
+        );
+      });
+
+      test("a token refresh still out for the previous variable never lands on the new variable's page", async () => {
+        const race: HeldRefreshRace = await startRefreshThenMove(localWrapper);
+
+        await act(async () => {
+          race.otherRead.resolve(
+            otherStaticVariable({ workflowId: WORKFLOW_ID }),
+          );
+        });
+
+        await waitForPage();
+        expectOtherStaticVariableShown();
+
+        await finishPreviousRefresh(race);
+
+        await act(async () => {
+          race.previousFollowUpRead.resolve(localOAuthVariable());
+        });
+
+        expectOtherStaticVariableShown();
+      });
+
+      test("a token refresh that settles while the new variable loads leaves that load alone", async () => {
+        const race: HeldRefreshRace = await startRefreshThenMove(localWrapper);
+
+        await finishPreviousRefresh(race);
+
+        await act(async () => {
+          race.previousFollowUpRead.reject(
+            new Error("The API is unreachable."),
+          );
+        });
+
+        expect(screen.getByTestId("page-loader")).toBeInTheDocument();
+
+        await act(async () => {
+          race.otherRead.resolve(
+            otherStaticVariable({ workflowId: WORKFLOW_ID }),
+          );
+        });
+
+        await waitForPage();
+
+        expectOtherStaticVariableShown();
+      });
+
+      // A re-render of the same route is not a new page.
+      test("a re-render for the same workflow and variable keeps the page as it is", async () => {
+        getItem.mockResolvedValueOnce(localStaticVariable());
+
+        const result: ReturnType<typeof render> = renderLocalPage();
+
+        await waitForPage();
+        pageLoaderRenderCount = 0;
+
+        fireEvent.click(screen.getByTestId("card-button:Update Content"));
+        expect(screen.getByTestId("update-content-modal")).toBeInTheDocument();
+
+        // The same ids, as new ObjectIDs - as Navigation hands them back.
+        moveLocalPageTo(result, {
+          variableId: new ObjectID(VARIABLE_ID.toString()),
+          workflowId: new ObjectID(WORKFLOW_ID.toString()),
+        });
+
+        await act(async () => {
+          await Promise.resolve();
+        });
+
+        expect(getItem).toHaveBeenCalledTimes(1);
+        expectNoLoaderSinceLoad();
+        expect(screen.getByTestId("update-content-modal")).toBeInTheDocument();
+        expect(screen.getByTestId("model-delete")).toBeInTheDocument();
+      });
     });
   });
 });

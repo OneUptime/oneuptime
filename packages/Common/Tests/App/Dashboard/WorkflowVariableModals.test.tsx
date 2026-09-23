@@ -25,7 +25,9 @@ import {
  *   - a failed write stays on screen, with the reason and with what the user
  *     typed, instead of looking like a save that worked;
  *   - only what was typed is written, and only to the variable that was open;
- *   - the token result names what was saved and quotes the identity provider.
+ *   - the token result names what was saved and passes on why a fetch failed,
+ *     worded the same whoever turned it down - never as the identity provider
+ *     saying no.
  *
  * BasicFormModal and ConfirmModal are replaced by prop recorders: what is under
  * test is what each modal hands them and what it does when their callbacks
@@ -1206,8 +1208,12 @@ describe("WorkflowVariableTokenRefreshModal", () => {
   });
 
   describe("after the identity provider refused", () => {
-    // The provider's own words are the thing somebody needs to read.
-    test("says so and quotes the provider", () => {
+    /*
+     * The provider's own words are the thing somebody needs to read. They
+     * already name the token endpoint, so the modal adds no "it said no" of
+     * its own.
+     */
+    test("says it could not fetch one and passes on the provider's words", () => {
       renderRefreshModal({
         variableName: "API_TOKEN",
         error:
@@ -1215,13 +1221,14 @@ describe("WorkflowVariableTokenRefreshModal", () => {
       });
 
       expect(confirm().title).toBe("Could Not Fetch an Access Token");
-      expect(confirm().description).toContain('"API_TOKEN"');
-      expect(confirm().description).toContain("it said no");
-      expect(confirm().description).toContain(
-        "The token endpoint refused the request (HTTP 401): invalid_client.",
+      expect(confirm().description).toBe(
+        'OneUptime could not fetch an access token for "API_TOKEN": The token endpoint refused the request (HTTP 401): invalid_client.',
       );
       expect(confirm().description).not.toContain("valid until");
-      expect(confirm().description).not.toContain("did not ask");
+      expect(confirm().description).not.toContain("said no");
+      expect(confirm().description).not.toContain(
+        "asked your identity provider",
+      );
     });
 
     // An error wins over a stale expiry: the token was not fetched.
@@ -1254,22 +1261,25 @@ describe("WorkflowVariableTokenRefreshModal", () => {
 
   /*
    * A 401, 403 or 422 from the refresh route: OneUptime turned the request
-   * down, so the identity provider never heard of it. Saying "it said no"
-   * would send somebody off to check a client secret nobody tried.
+   * down, so the identity provider never heard of it. Wording it as the
+   * provider saying no would send somebody off to check a client secret nobody
+   * tried, so it reads like any other failure, with OneUptime's own reason.
    */
   describe("after OneUptime itself refused", () => {
-    test("says the identity provider was not asked, and quotes OneUptime", () => {
+    test("says it could not fetch one, and quotes OneUptime", () => {
       renderRefreshModal({
         variableName: "API_TOKEN",
         error: "You do not have permission to update this variable.",
-        isRefusedByOneUptime: true,
       });
 
       expect(confirm().title).toBe("Could Not Fetch an Access Token");
       expect(confirm().description).toBe(
-        'OneUptime did not ask your identity provider for an access token for "API_TOKEN": You do not have permission to update this variable.',
+        'OneUptime could not fetch an access token for "API_TOKEN": You do not have permission to update this variable.',
       );
       expect(confirm().description).not.toContain("said no");
+      expect(confirm().description).not.toContain(
+        "asked your identity provider",
+      );
       expect(confirm().description).not.toContain("valid until");
     });
 
@@ -1278,12 +1288,11 @@ describe("WorkflowVariableTokenRefreshModal", () => {
         variableName: "API_TOKEN",
         savedWhat: "Client secret",
         error: "You do not have permission to update this variable.",
-        isRefusedByOneUptime: true,
       });
 
       expect(confirm().title).toBe("Could Not Fetch an Access Token");
       expect(confirm().description).toBe(
-        'Client secret saved. OneUptime did not ask your identity provider for an access token for "API_TOKEN": You do not have permission to update this variable.',
+        'Client secret saved. OneUptime could not fetch an access token for "API_TOKEN": You do not have permission to update this variable.',
       );
     });
 
@@ -1291,7 +1300,6 @@ describe("WorkflowVariableTokenRefreshModal", () => {
       const handles: { onClose: VoidMock } = renderRefreshModal({
         variableName: "API_TOKEN",
         error: "Not authorized.",
-        isRefusedByOneUptime: true,
       });
 
       expect(confirm().submitButtonText).toBe("Close");
@@ -1336,7 +1344,9 @@ describe("WorkflowVariableTokenRefreshModal", () => {
           "Client secret and refresh token saved. ",
         ),
       ).toBe(true);
-      expect(confirm().description).toContain("invalid_client");
+      expect(confirm().description).toBe(
+        'Client secret and refresh token saved. OneUptime could not fetch an access token for "API_TOKEN": invalid_client',
+      );
     });
 
     test("says nothing about a save when nothing was saved", () => {
@@ -1395,11 +1405,12 @@ describe("WorkflowVariableTokenRefreshModal", () => {
 
     /*
      * The real route answers a caller who may not update the variable with
-     * NotAuthorizedException, a 422 error response. Its status code alone must
-     * carry through to the wording. (API.getFriendlyMessage is mocked in this
-     * file and words anything that is not an Error as "Request failed.".)
+     * NotAuthorizedException, a 422 error response. The identity provider was
+     * never asked, so nothing may read as it saying no. (API.getFriendlyMessage
+     * is mocked in this file and words anything that is not an Error as
+     * "Request failed.".)
      */
-    test("a 422 is reported as OneUptime refusing, not the provider", async () => {
+    test("a 422 is worded like any other failure, not as the provider saying no", async () => {
       apiPost.mockResolvedValue(
         new HTTPErrorResponse(
           422,
@@ -1413,20 +1424,18 @@ describe("WorkflowVariableTokenRefreshModal", () => {
         savedWhat: "Client secret",
       });
 
-      expect(outcome.isRefusedByOneUptime).toBe(true);
-
       renderRefreshModal(outcome);
 
       expect(apiPost).toHaveBeenCalledTimes(1);
       expect(confirm().title).toBe("Could Not Fetch an Access Token");
       expect(confirm().description).toBe(
-        'Client secret saved. OneUptime did not ask your identity provider for an access token for "API_TOKEN": Request failed.',
+        'Client secret saved. OneUptime could not fetch an access token for "API_TOKEN": Request failed.',
       );
       expect(confirm().description).not.toContain("said no");
     });
 
-    // A 400 is the route passing on the provider's own refusal.
-    test("a 400 is still reported as the provider saying no", async () => {
+    // A 400 is the route passing on the provider's refusal: worded the same.
+    test("a 400 is worded the same way", async () => {
       apiPost.mockResolvedValue(
         new HTTPErrorResponse(400, { message: "invalid_client" }, {}),
       );
@@ -1435,15 +1444,15 @@ describe("WorkflowVariableTokenRefreshModal", () => {
         variable: oauthVariable(),
       });
 
-      expect(outcome.isRefusedByOneUptime).toBe(false);
-
       renderRefreshModal(outcome);
 
       expect(confirm().title).toBe("Could Not Fetch an Access Token");
-      expect(confirm().description).toContain(
-        'OneUptime asked your identity provider for an access token for "API_TOKEN" and it said no',
+      expect(confirm().description).toBe(
+        'OneUptime could not fetch an access token for "API_TOKEN": Request failed.',
       );
-      expect(confirm().description).not.toContain("did not ask");
+      expect(confirm().description).not.toContain(
+        "asked your identity provider",
+      );
     });
 
     test("a variable with no id is refused without a request", async () => {
@@ -1456,6 +1465,166 @@ describe("WorkflowVariableTokenRefreshModal", () => {
       expect(apiPost).not.toHaveBeenCalled();
       expect(confirm().title).toBe("Could Not Fetch an Access Token");
       expect(confirm().description).toContain("no id");
+    });
+
+    /*
+     * Every way a fetch can fail, before and after a save, as the page shows
+     * it. Some never reach the identity provider and the one that does
+     * already names the token endpoint in its reason, so none may read as the
+     * provider being asked, or saying no.
+     */
+    describe("never words a failure as the identity provider saying no", () => {
+      type FailureCase = {
+        label: string;
+        // Sets up API.post; a variable with no id sends no request at all.
+        arrange: () => void;
+        variable: () => WorkflowVariable;
+        // What this file's API.getFriendlyMessage mock makes of the failure.
+        reason: string;
+      };
+
+      const FAILURES: Array<FailureCase> = [
+        {
+          label: "a token endpoint's refusal (400)",
+          arrange: (): void => {
+            apiPost.mockResolvedValue(
+              new HTTPErrorResponse(
+                400,
+                {
+                  message:
+                    "The token endpoint refused the request (HTTP 400): invalid_grant - The refresh token has expired.",
+                },
+                {},
+              ),
+            );
+          },
+          variable: (): WorkflowVariable => {
+            return oauthVariable();
+          },
+          reason: "Request failed.",
+        },
+        {
+          label: "OneUptime's permission refusal (422)",
+          arrange: (): void => {
+            apiPost.mockResolvedValue(
+              new HTTPErrorResponse(
+                422,
+                {
+                  message:
+                    "You do not have permission to update this variable.",
+                },
+                {},
+              ),
+            );
+          },
+          variable: (): WorkflowVariable => {
+            return oauthVariable();
+          },
+          reason: "Request failed.",
+        },
+        {
+          label: "a variable that no longer exists (400)",
+          arrange: (): void => {
+            apiPost.mockResolvedValue(
+              new HTTPErrorResponse(
+                400,
+                {
+                  message:
+                    "Workflow variable not found, or you do not have access to it.",
+                },
+                {},
+              ),
+            );
+          },
+          variable: (): WorkflowVariable => {
+            return oauthVariable();
+          },
+          reason: "Request failed.",
+        },
+        {
+          label: "a server error (500)",
+          arrange: (): void => {
+            apiPost.mockResolvedValue(
+              new HTTPErrorResponse(
+                500,
+                { message: "Internal server error." },
+                {},
+              ),
+            );
+          },
+          variable: (): WorkflowVariable => {
+            return oauthVariable();
+          },
+          reason: "Request failed.",
+        },
+        {
+          label: "a network error",
+          arrange: (): void => {
+            apiPost.mockImplementation(
+              rejectWith(new Error("Network request failed.")),
+            );
+          },
+          variable: (): WorkflowVariable => {
+            return oauthVariable();
+          },
+          reason: "Network request failed.",
+        },
+        {
+          label: "a variable with no id",
+          arrange: (): void => {
+            // Nothing to arrange: no request goes out.
+          },
+          variable: (): WorkflowVariable => {
+            return oauthVariable({ id: null });
+          },
+          reason: "This variable has no id. Refresh the page and try again.",
+        },
+      ];
+
+      type FailureAfterSave = FailureCase & {
+        savedWhat: string | undefined;
+        saved: string;
+      };
+
+      const FAILURES_WITH_AND_WITHOUT_A_SAVE: Array<FailureAfterSave> =
+        FAILURES.flatMap((failure: FailureCase): Array<FailureAfterSave> => {
+          return [
+            { ...failure, savedWhat: undefined, saved: "nothing saved" },
+            {
+              ...failure,
+              savedWhat: "Client secret",
+              saved: "client secret saved",
+            },
+          ];
+        });
+
+      test.each(FAILURES_WITH_AND_WITHOUT_A_SAVE)(
+        "$label, $saved",
+        async (entry: FailureAfterSave) => {
+          entry.arrange();
+
+          const outcome: TokenRefreshOutcome = await fetchTokenRefreshOutcome({
+            variable: entry.variable(),
+            savedWhat: entry.savedWhat,
+          });
+
+          renderRefreshModal(outcome);
+
+          const prefix: string = entry.savedWhat
+            ? `${entry.savedWhat} saved. `
+            : "";
+
+          expect(confirm().title).toBe("Could Not Fetch an Access Token");
+          expect(confirm().description).toBe(
+            `${prefix}OneUptime could not fetch an access token for "API_TOKEN": ${entry.reason}`,
+          );
+          expect(confirm().description).not.toContain("said no");
+          expect(confirm().description).not.toContain(
+            "asked your identity provider",
+          );
+          expect(confirm().description).not.toContain("did not ask");
+        },
+      );
     });
   });
 });

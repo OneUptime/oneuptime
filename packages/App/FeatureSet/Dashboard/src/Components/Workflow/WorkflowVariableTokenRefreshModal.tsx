@@ -8,9 +8,10 @@ import {
 } from "../../Utils/Workflow/WorkflowVariableUtil";
 
 /*
- * What happened when OneUptime asked the identity provider for a token - after
- * an OAuth 2.0 variable was created, or after its credentials were replaced.
- * Shown until dismissed: a refusal quotes the provider, and that is the thing
+ * What happened when OneUptime tried to fetch a token - after an OAuth 2.0
+ * variable was created, after its credentials were replaced, or on Refresh
+ * now. Shown until dismissed: a failure carries the reason (the token
+ * endpoint's own answer, when it got that far), and that is the thing
  * somebody needs to read.
  *
  * It opens as soon as the request goes out, with a spinner, rather than when
