@@ -57,8 +57,70 @@ import WorkspaceActionAuthorization from "../Utils/Workspace/WorkspaceActionAuth
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObservabilityAssistant from "../Utils/AI/Chat/ObservabilityAssistant";
 import { AIChatCitation } from "../../Types/AI/AIChatTypes";
+import WorkspaceOAuthState, {
+  WorkspaceOAuthFlow,
+  WorkspaceOAuthStateRecord,
+} from "../Utils/Workspace/WorkspaceOAuthState";
 
 export default class SlackAPI {
+  private static getInstallRedirectUri(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): string {
+    return `${AppApiClientUrl.toString()}/slack/auth/${data.projectId.toString()}/${data.userId.toString()}`;
+  }
+
+  private static getUserSignInRedirectUri(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): string {
+    return `${SlackAPI.getInstallRedirectUri(data)}/user`;
+  }
+
+  /*
+   * Spends the `state` Slack hands back and returns the project and user it
+   * was issued for, or null when the callback must be refused.
+   *
+   * The ids in the redirect path are only there because Slack matches
+   * redirect URIs by prefix; they are never used. They must still agree with
+   * the state, so a hand-edited path is refused rather than quietly ignored.
+   */
+  private static async consumeStateForCallback(data: {
+    req: ExpressRequest;
+    flow: WorkspaceOAuthFlow;
+  }): Promise<WorkspaceOAuthStateRecord | null> {
+    let stateRecord: WorkspaceOAuthStateRecord | null = null;
+
+    try {
+      stateRecord = await WorkspaceOAuthState.consume({
+        req: data.req,
+        state: data.req.query["state"]?.toString(),
+        flows: [data.flow],
+      });
+    } catch (err) {
+      logger.error(err, getLogAttributesFromRequest(data.req as any));
+      return null;
+    }
+
+    if (!stateRecord) {
+      return null;
+    }
+
+    if (
+      data.req.params["projectId"]?.toString() !==
+        stateRecord.projectId.toString() ||
+      data.req.params["userId"]?.toString() !== stateRecord.userId.toString()
+    ) {
+      logger.warn(
+        "Slack OAuth callback refused: the redirect path does not match the project and user the state was issued for.",
+        getLogAttributesFromRequest(data.req as any),
+      );
+      return null;
+    }
+
+    return stateRecord;
+  }
+
   public getRouter(): ExpressRouter {
     const router: ExpressRouter = Express.getRouter();
 
@@ -86,6 +148,120 @@ export default class SlackAPI {
       },
     );
 
+    /*
+     * Start installing OneUptime into a Slack workspace for this project.
+     *
+     * Returns the Slack authorize URL for the dashboard to navigate to. The
+     * redirect path still names the project and user (existing Slack app
+     * configurations register /api/slack/auth as a prefix), but the callback
+     * does not trust it: it trusts the single-use `state` recorded here, for
+     * a signed-in member allowed to manage the project's workspace
+     * connections. See WorkspaceOAuthState.
+     */
+    router.get(
+      "/slack/install-url",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: databaseProps,
+            allowedPermissions:
+              WorkspaceOAuthState.MANAGE_CONNECTION_PERMISSIONS,
+            errorMessage:
+              "You do not have permission to connect this project to Slack.",
+          });
+
+          if (!SlackAppClientId) {
+            throw new BadDataException("Slack App Client ID is not set");
+          }
+
+          const userId: ObjectID = databaseProps.userId!;
+
+          const { state } = await WorkspaceOAuthState.create({
+            req,
+            res,
+            flow: WorkspaceOAuthFlow.SlackInstall,
+            projectId: projectId,
+            userId: userId,
+          });
+
+          const scopes: JSONObject = (
+            (SlackAppManifest as unknown as JSONObject)[
+              "oauth_config"
+            ] as JSONObject
+          )["scopes"] as JSONObject;
+
+          const authorizationUrl: string = `https://slack.com/oauth/v2/authorize?scope=${encodeURIComponent(
+            ((scopes["bot"] as Array<string>) || []).join(","),
+          )}&user_scope=${encodeURIComponent(
+            ((scopes["user"] as Array<string>) || []).join(","),
+          )}&client_id=${encodeURIComponent(
+            SlackAppClientId,
+          )}&redirect_uri=${encodeURIComponent(
+            SlackAPI.getInstallRedirectUri({ projectId, userId }),
+          )}&state=${encodeURIComponent(state)}`;
+
+          return Response.sendJsonObjectResponse(req, res, {
+            authorizationUrl: authorizationUrl,
+          });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
+    /*
+     * Start "sign in with Slack" for the calling user, in a project already
+     * connected to a Slack workspace. Same single-use state as above.
+     */
+    router.get(
+      "/slack/sign-in-url",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const databaseProps: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(databaseProps);
+
+          if (!SlackAppClientId) {
+            throw new BadDataException("Slack App Client ID is not set");
+          }
+
+          const userId: ObjectID = databaseProps.userId!;
+
+          const { state } = await WorkspaceOAuthState.create({
+            req,
+            res,
+            flow: WorkspaceOAuthFlow.SlackUserSignIn,
+            projectId: projectId,
+            userId: userId,
+          });
+
+          const authorizationUrl: string = `https://slack.com/openid/connect/authorize?response_type=code&scope=${encodeURIComponent(
+            "openid profile email",
+          )}&client_id=${encodeURIComponent(
+            SlackAppClientId,
+          )}&redirect_uri=${encodeURIComponent(
+            SlackAPI.getUserSignInRedirectUri({ projectId, userId }),
+          )}&state=${encodeURIComponent(state)}`;
+
+          return Response.sendJsonObjectResponse(req, res, {
+            authorizationUrl: authorizationUrl,
+          });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
     // this is project specific auth endpoint.
     router.get(
       "/slack/auth/:projectId/:userId",
@@ -106,25 +282,22 @@ export default class SlackAPI {
           );
         }
 
-        const projectId: string | undefined =
-          req.params["projectId"]?.toString();
-        const userId: string | undefined = req.params["userId"]?.toString();
+        const stateRecord: WorkspaceOAuthStateRecord | null =
+          await SlackAPI.consumeStateForCallback({
+            req,
+            flow: WorkspaceOAuthFlow.SlackInstall,
+          });
 
-        if (!projectId) {
+        if (!stateRecord) {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Invalid ProjectID in request"),
+            new BadRequestException(WorkspaceOAuthState.INVALID_STATE_MESSAGE),
           );
         }
 
-        if (!userId) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid UserID in request"),
-          );
-        }
+        const projectId: string = stateRecord.projectId.toString();
+        const userId: string = stateRecord.userId.toString();
 
         // if there's an error query param.
         const error: string | undefined = req.query["error"]?.toString();
@@ -155,15 +328,14 @@ export default class SlackAPI {
 
         // get access token from slack api.
 
-        const redirectUri: URL = URL.fromString(
-          `${AppApiClientUrl.toString()}/slack/auth/${projectId}/${userId}`,
-        );
-
         const requestBody: JSONObject = {
           code: code,
           client_id: SlackAppClientId,
           client_secret: SlackAppClientSecret,
-          redirect_uri: redirectUri.toString(),
+          redirect_uri: SlackAPI.getInstallRedirectUri({
+            projectId: stateRecord.projectId,
+            userId: stateRecord.userId,
+          }),
         };
 
         /*
@@ -329,25 +501,22 @@ export default class SlackAPI {
           );
         }
 
-        const projectId: string | undefined =
-          req.params["projectId"]?.toString();
-        const userId: string | undefined = req.params["userId"]?.toString();
+        const stateRecord: WorkspaceOAuthStateRecord | null =
+          await SlackAPI.consumeStateForCallback({
+            req,
+            flow: WorkspaceOAuthFlow.SlackUserSignIn,
+          });
 
-        if (!projectId) {
+        if (!stateRecord) {
           return Response.sendErrorResponse(
             req,
             res,
-            new BadDataException("Invalid ProjectID in request"),
+            new BadRequestException(WorkspaceOAuthState.INVALID_STATE_MESSAGE),
           );
         }
 
-        if (!userId) {
-          return Response.sendErrorResponse(
-            req,
-            res,
-            new BadDataException("Invalid UserID in request"),
-          );
-        }
+        const projectId: string = stateRecord.projectId.toString();
+        const userId: string = stateRecord.userId.toString();
 
         // if there's an error query param.
         const error: string | undefined = req.query["error"]?.toString();
@@ -378,15 +547,14 @@ export default class SlackAPI {
 
         // get access token from slack api.
 
-        const redirectUri: URL = URL.fromString(
-          `${AppApiClientUrl.toString()}/slack/auth/${projectId}/${userId}/user`,
-        );
-
         const requestBody: JSONObject = {
           code: code,
           client_id: SlackAppClientId,
           client_secret: SlackAppClientSecret,
-          redirect_uri: redirectUri.toString(),
+          redirect_uri: SlackAPI.getUserSignInRedirectUri({
+            projectId: stateRecord.projectId,
+            userId: stateRecord.userId,
+          }),
         };
 
         // Same as above: the body holds the client secret and the auth code.
