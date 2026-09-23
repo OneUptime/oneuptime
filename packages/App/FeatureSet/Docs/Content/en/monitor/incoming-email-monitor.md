@@ -36,6 +36,26 @@ For example: `monitor-abc123def456@inbound.yourdomain.com`
 
 You can copy this address from the monitor details page and configure your external systems to send emails to it.
 
+## Resetting or Customizing the Email Address
+
+Go to the monitor's **Settings** tab. The **Incoming Email Address** card shows the current address and offers two ways to replace it:
+
+- **Reset Address** gives the monitor a new, randomly generated `monitor-{secret-key}@{inbound-domain}` address. Use this if the address has leaked or you want to cut off whatever is sending to it. If the monitor has a custom address, resetting removes it.
+- **Customize Address** lets you choose the part before the @, for example `nightly-backups@{inbound-domain}`. You can type the name or paste the whole address.
+
+Both actions ask you to confirm first and then show the new address with a copy button. **The old address stops working immediately**: email sent to it is ignored, so update every system that sends email to this monitor.
+
+Custom address rules:
+
+- 3 to 64 characters: lowercase letters, numbers, dots (`.`), hyphens (`-`) and underscores (`_`). It must start and end with a letter or a number. Uppercase input is lowercased for you.
+- The domain is always the server's inbound email domain.
+- The name must not already be used by another monitor. Every project on the server shares the inbound domain, so the name must be unique across all of them.
+- Names in the form `monitor-{id}` are reserved for generated addresses, and mailbox names such as `admin`, `postmaster`, `abuse` and `webmaster` are reserved for the domain itself.
+
+A custom address is just as much a credential as a generated one: anyone who knows it can send email that this monitor evaluates. Generated addresses are practically impossible to guess, but a short, obvious name is not. Pick something hard to guess if that matters to you.
+
+API users can do the same through the Monitor API: set `incomingEmailCustomLocalPart` to the name to use a custom address, or set it to `null` to go back to the generated one. Resetting means writing a new `incomingEmailSecretKey` and setting `incomingEmailCustomLocalPart` to `null` in the same update.
+
 ## What you get out of the box
 
 A new Incoming Email Monitor is created with two criteria that read the email body:
@@ -201,7 +221,7 @@ If you're self-hosting OneUptime, you need to configure an inbound email provide
 
 ## Things to Consider
 
-- **Email Address Security:** The monitor email address contains a secret key. Treat it like a password and don't share it publicly.
+- **Email Address Security:** The monitor email address works like a password: anyone who knows it can send email to the monitor. Don't share it publicly, and reset it from the monitor's **Settings** tab if it leaks.
 - **Email Size:** Very large emails (with large attachments) may be truncated or rejected by the email provider.
 - **Processing Time:** Emails are processed asynchronously. There may be a few seconds delay between sending an email and alert creation.
 - **Case Insensitivity:** All string comparisons (Contains, Equals, etc.) are case-insensitive.

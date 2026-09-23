@@ -51,6 +51,7 @@ jest.mock("Common/UI/Utils/Permission", () => {
 });
 
 import {
+  MONITOR_CREDENTIAL_COLUMNS,
   MONITOR_SECRET_KEY_COLUMNS,
   getReadableMonitorSecretKeySelect,
 } from "../../FeatureSet/Dashboard/src/Utils/MonitorSecretKeySelect";
@@ -96,11 +97,11 @@ describe("getReadableMonitorSecretKeySelect", () => {
     },
   );
 
-  it("asks for all three keys for a project owner", () => {
+  it("asks for all three keys and the custom email address for a project owner", () => {
     mockPermissions.all = [Permission.ProjectOwner];
 
     expect(selectedColumns().sort()).toEqual(
-      [...MONITOR_SECRET_KEY_COLUMNS].sort(),
+      [...MONITOR_CREDENTIAL_COLUMNS].sort(),
     );
   });
 
@@ -110,7 +111,7 @@ describe("getReadableMonitorSecretKeySelect", () => {
     Permission.MonitorAdmin,
     Permission.MonitorMember,
     Permission.EditProjectMonitor,
-  ])("asks for all three keys for %s", (permission: Permission) => {
+  ])("asks for every credential column for %s", (permission: Permission) => {
     /*
      * Monitor > Settings has to render the current key for anyone who can
      * reset it, and Monitor > Documentation has to render the agent install
@@ -119,16 +120,43 @@ describe("getReadableMonitorSecretKeySelect", () => {
     mockPermissions.all = [permission];
 
     expect(selectedColumns().sort()).toEqual(
-      [...MONITOR_SECRET_KEY_COLUMNS].sort(),
+      [...MONITOR_CREDENTIAL_COLUMNS].sort(),
     );
   });
 
-  it("asks for all three keys for a master admin with no project permissions", () => {
+  it("asks for every credential column for a master admin with no project permissions", () => {
     mockUser.isMasterAdmin = true;
     mockPermissions.all = [];
 
     expect(selectedColumns().sort()).toEqual(
-      [...MONITOR_SECRET_KEY_COLUMNS].sort(),
+      [...MONITOR_CREDENTIAL_COLUMNS].sort(),
+    );
+  });
+
+  it("asks for the custom email address together with the email key", () => {
+    /*
+     * A custom address replaces the key-derived one, so a page that knew the
+     * key but not the custom name would show an address that no longer works.
+     */
+    mockPermissions.all = [Permission.MonitorMember];
+
+    expect(selectedColumns()).toEqual(
+      expect.arrayContaining([
+        "incomingEmailSecretKey",
+        "incomingEmailCustomLocalPart",
+      ]),
+    );
+  });
+
+  it("withholds the custom email address from a Viewer, like the keys", () => {
+    mockPermissions.all = [Permission.Viewer];
+
+    expect(selectedColumns()).not.toContain("incomingEmailCustomLocalPart");
+  });
+
+  it("the credential list is the three keys plus the custom email address", () => {
+    expect([...MONITOR_CREDENTIAL_COLUMNS].sort()).toEqual(
+      [...MONITOR_SECRET_KEY_COLUMNS, "incomingEmailCustomLocalPart"].sort(),
     );
   });
 

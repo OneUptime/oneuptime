@@ -1,4 +1,5 @@
 import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
+import IncomingEmailAddressSettings from "../../../Components/Monitor/IncomingEmailMonitor/IncomingEmailAddressSettings";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
@@ -222,28 +223,13 @@ const MonitorCriteria: FunctionComponent<
 
         {monitor?.monitorType === MonitorType.IncomingEmail ? (
           <div className="mt-5">
-            <ResetObjectID<Monitor>
-              modelType={Monitor}
-              onUpdateComplete={async () => {
+            <IncomingEmailAddressSettings
+              monitorId={modelId}
+              secretKey={monitor.incomingEmailSecretKey}
+              customLocalPart={monitor.incomingEmailCustomLocalPart}
+              onAddressChanged={async () => {
                 await fetchItem();
               }}
-              fieldName={"incomingEmailSecretKey"}
-              title={"Reset Incoming Email Secret Key"}
-              description={
-                <p className="mt-2">
-                  Your current incoming email secret key is {"  "}
-                  <InlineCode
-                    text={
-                      monitor.incomingEmailSecretKey?.toString() ||
-                      "No key generated"
-                    }
-                  />{" "}
-                  Resetting the secret key will generate a new key and change
-                  the email address for this monitor. You will need to update
-                  any systems sending emails to the old address.
-                </p>
-              }
-              modelId={modelId}
             />
           </div>
         ) : (

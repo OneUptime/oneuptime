@@ -5,6 +5,7 @@ import { AddSloLabelAndOwnerRules1794100000000 } from "./1794100000000-AddSloLab
 import { AddSloMonitorRuleMonitorType1794200000000 } from "./1794200000000-AddSloMonitorRuleMonitorType";
 import { AddOAuth2WorkflowVariables1794300000000 } from "./1794300000000-AddOAuth2WorkflowVariables";
 import { AddKubernetesClusterAiAccess1794400000000 } from "./1794400000000-AddKubernetesClusterAiAccess";
+import { AddIncomingEmailCustomAddressToMonitor1794500000000 } from "./1794500000000-AddIncomingEmailCustomAddressToMonitor";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1210,4 +1211,5 @@ export default [
   AddSloMonitorRuleMonitorType1794200000000,
   AddOAuth2WorkflowVariables1794300000000,
   AddKubernetesClusterAiAccess1794400000000,
+  AddIncomingEmailCustomAddressToMonitor1794500000000,
 ];
