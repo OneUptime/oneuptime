@@ -1477,7 +1477,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             workspaceType: WorkspaceType.MicrosoftTeams,
             teamId: data.workspaceMessagePayload.teamId,
           },
-          error: err instanceof Error ? err.message : String(err),
+          error: WorkspaceBase.getSendErrorMessage(err),
         });
       }
     }
@@ -1526,7 +1526,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         logger.error(e);
         workspaceMessageResponse.errors!.push({
           channel: channel,
-          error: e instanceof Error ? e.message : String(e),
+          error: WorkspaceBase.getSendErrorMessage(e),
         });
       }
     }
@@ -1574,7 +1574,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           logger.error(e);
           workspaceMessageResponse.errors!.push({
             channel: chatAsChannel,
-            error: e instanceof Error ? e.message : String(e),
+            error: WorkspaceBase.getSendErrorMessage(e),
           });
         }
       }

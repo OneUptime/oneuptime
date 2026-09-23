@@ -2,6 +2,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import Card from "Common/UI/Components/Card/Card";
@@ -23,6 +24,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import SendTestNotificationButton from "../Workspace/SendTestNotificationButton";
 
 interface TeamItem {
   id: string;
@@ -38,15 +40,49 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
   const [teams, setTeams] = useState<Array<TeamItem>>([]);
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
   const [channels, setChannels] = useState<Array<ChannelItem>>([]);
+  /*
+   * The team `channels` was loaded for. selectedTeamId is what the dropdown
+   * shows, which changes the moment a team is picked - before its channels
+   * have arrived. Anything that has to name the team a listed channel is in
+   * (the row key, the team a test is sent to) uses this instead.
+   */
+  const [channelsTeamId, setChannelsTeamId] = useState<string>("");
   const [isLoadingTeams, setIsLoadingTeams] = useState<boolean>(true);
   const [isLoadingChannels, setIsLoadingChannels] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [sendingTestCount, setSendingTestCount] = useState<number>(0);
+
+  /*
+   * Picking team B and then team C starts two loads, and nothing makes them
+   * finish in order. If B's response lands last it would show B's channels
+   * under a dropdown that says C. Only the most recent load may touch the
+   * list, the error or the loading flag.
+   *
+   * Each load is identified by a sequence number rather than by its team id:
+   * picking the same team twice (react-select fires onChange again for the
+   * selected option), B -> C -> B, or Refresh Channels all start a second load
+   * for the same team, and an older one of those must not end the loading
+   * state or post its error over the newer one. A ref, not state, because each
+   * load reads it after its await, long after the render that started it.
+   */
+  const latestChannelLoadIdRef: React.MutableRefObject<number> =
+    useRef<number>(0);
 
   const loadChannels: (teamId: string) => Promise<void> = async (
     teamId: string,
   ): Promise<void> => {
+    latestChannelLoadIdRef.current += 1;
+    const loadId: number = latestChannelLoadIdRef.current;
+
     if (!teamId) {
       setChannels([]);
+      setChannelsTeamId("");
+      /*
+       * A load still in flight for the previous team will now skip its own
+       * cleanup (it is no longer the latest), so the spinner it started has
+       * to be stopped here.
+       */
+      setIsLoadingChannels(false);
       return;
     }
 
@@ -61,6 +97,10 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
           ),
           headers: ModelAPI.getCommonHeaders(),
         });
+
+      if (latestChannelLoadIdRef.current !== loadId) {
+        return;
+      }
 
       if (response instanceof HTTPErrorResponse) {
         throw response;
@@ -81,10 +121,15 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
         });
 
       setChannels(list);
+      setChannelsTeamId(teamId);
     } catch (err) {
-      setError(API.getFriendlyErrorMessage(err as Exception));
+      if (latestChannelLoadIdRef.current === loadId) {
+        setError(API.getFriendlyErrorMessage(err as Exception));
+      }
     } finally {
-      setIsLoadingChannels(false);
+      if (latestChannelLoadIdRef.current === loadId) {
+        setIsLoadingChannels(false);
+      }
     }
   };
 
@@ -151,16 +196,39 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
     },
   );
 
+  type SendingTestChangeFunction = (isSending: boolean) => void;
+
+  /*
+   * Refreshing, or switching team, swaps the list for a loader, which
+   * unmounts every row - and a row whose test is still in flight would then
+   * have nowhere to show its result, so the user would never learn whether
+   * it arrived. Both controls stay disabled until every test in flight has
+   * settled. Clamped at zero so a stray extra "false" can never leave them
+   * locked.
+   */
+  const onSendingTestChange: SendingTestChangeFunction = (
+    isSending: boolean,
+  ): void => {
+    setSendingTestCount((count: number): number => {
+      return Math.max(0, count + (isSending ? 1 : -1));
+    });
+  };
+
   return (
     <Card
       title="Microsoft Teams Channels"
-      description="Browse the channels OneUptime can see in your teams. Use these names when a notification rule posts to an existing channel."
+      description="Browse the channels OneUptime can see in your teams. Use these names when a notification rule posts to an existing channel. Use Send Test to confirm OneUptime can post to a channel."
       buttons={[
         {
           title: "Refresh Channels",
           buttonStyle: ButtonStyleType.NORMAL,
           icon: IconProp.Refresh,
           isLoading: isLoadingChannels,
+          disabled: sendingTestCount > 0,
+          tooltip:
+            sendingTestCount > 0
+              ? "Wait for the test notification to finish sending."
+              : undefined,
           onClick: () => {
             loadChannels(selectedTeamId).catch((err: Exception) => {
               setError(API.getFriendlyErrorMessage(err));
@@ -204,6 +272,7 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
                 options={teamOptions}
                 value={selectedTeamOption}
                 placeholder="Select a team"
+                disabled={sendingTestCount > 0}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ) => {
@@ -233,9 +302,19 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
                   <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 overflow-hidden bg-white">
                     {channels.map((channel: ChannelItem) => {
                       return (
+                        /*
+                         * Keyed by team as well as channel. Each row holds the
+                         * Sent / Failed result of its own test, and that
+                         * result belongs to one team's channel. The list is
+                         * replaced by a loader during every reload, which
+                         * already starts each row fresh, so the composite key
+                         * is defence in depth: React can never hand an old
+                         * result to a row of another team with the same
+                         * channel id.
+                         */
                         <li
-                          key={channel.id}
-                          className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                          key={`${channelsTeamId}:${channel.id}`}
+                          className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
                         >
                           <div className="h-9 w-9 flex flex-none items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
                             <Icon
@@ -245,11 +324,32 @@ const MicrosoftTeamsChannelsCard: FunctionComponent = (): ReactElement => {
                               className="h-5 w-5"
                             />
                           </div>
-                          <div className="min-w-0 flex-1">
+                          {/*
+                           * A floor rather than min-w-0: on a phone a name
+                           * allowed to shrink to nothing gives the whole row
+                           * to the Send Test control. With a floor the
+                           * control wraps onto its own line instead.
+                           */}
+                          <div className="min-w-[8rem] flex-1">
                             <div className="font-medium text-gray-900 truncate">
                               {channel.name}
                             </div>
                           </div>
+                          <SendTestNotificationButton
+                            route="/microsoft-teams/channels/test"
+                            requestBody={{
+                              /*
+                               * The team this list was loaded for, which is
+                               * the team this channel is in - not the
+                               * dropdown's value, which moves ahead of it.
+                               */
+                              teamId: channelsTeamId,
+                              channelId: channel.id,
+                            }}
+                            destinationName={channel.name}
+                            workspaceName="Microsoft Teams"
+                            onSendingChange={onSendingTestChange}
+                          />
                         </li>
                       );
                     })}
