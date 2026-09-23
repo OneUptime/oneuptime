@@ -6457,5 +6457,7 @@
   "VMware vCenter Created": "VMware vCenter作成済み",
   "VMware vCenter Restored": "VMware vCenter復元済み",
   "VMware vCenter Updated": "VMware vCenter更新済み",
-  "Matching event types: {{count}}": "一致するイベントタイプ: {{count}}"
+  "Matching event types: {{count}}": "一致するイベントタイプ: {{count}}",
+  "Times are shown in {{abbreviation}}.": "時刻は {{abbreviation}} タイムゾーンで表示されます。",
+  "Planned window · times in {{abbreviation}}": "予定時間枠 · 時刻は {{abbreviation}} で表示"
 }

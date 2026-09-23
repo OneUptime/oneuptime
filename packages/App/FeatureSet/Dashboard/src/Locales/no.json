@@ -6457,5 +6457,7 @@
   "VMware vCenter Created": "VMware vCenter opprettet",
   "VMware vCenter Restored": "VMware vCenter gjenopprettet",
   "VMware vCenter Updated": "VMware vCenter oppdatert",
-  "Matching event types: {{count}}": "Samsvarende hendelsestyper: {{count}}"
+  "Matching event types: {{count}}": "Samsvarende hendelsestyper: {{count}}",
+  "Times are shown in {{abbreviation}}.": "Tidspunkter vises i tidssonen {{abbreviation}}.",
+  "Planned window · times in {{abbreviation}}": "Planlagt tidsvindu · tidspunkter i {{abbreviation}}"
 }

@@ -1,10 +1,20 @@
 import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../Types/Date";
+import Dictionary from "../../../Types/Dictionary";
 import IconProp from "../../../Types/Icon/IconProp";
+import useTranslateValue from "../../Utils/Translation";
 import Icon from "../Icon/Icon";
 import Input, { InputType } from "../Input/Input";
 import Modal, { ModalWidth } from "../Modal/Modal";
+
+/*
+ * The note under the form naming the zone the times are in. It is one
+ * locale key with the zone as a placeholder: glued onto the English text, the
+ * zone made every rendered string unique, so it never matched a translation.
+ */
+export const TIMEZONE_NOTE_TEMPLATE: string =
+  "Times are shown in {{abbreviation}}.";
 
 export interface ComponentProps {
   /*
@@ -66,6 +76,7 @@ export function getCustomTimeRangeError(
 const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const { translateString } = useTranslateValue();
   const [startDate, setStartDate] = useState<Date | null>(
     props.initialValue?.startValue || null,
   );
@@ -117,6 +128,20 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
 
     return OneUptimeDate.fromString(changedValue as string);
   };
+
+  /*
+   * Looked up with its placeholder still in it and filled in here, which also
+   * works where no i18next instance is ready to interpolate.
+   */
+  const timezoneValues: Dictionary<string> = {
+    abbreviation: OneUptimeDate.getCurrentTimezoneString(),
+  };
+
+  const timezoneNote: string = (
+    translateString(TIMEZONE_NOTE_TEMPLATE) || TIMEZONE_NOTE_TEMPLATE
+  ).replace(/\{\{(\w+)\}\}/g, (placeholder: string, name: string): string => {
+    return timezoneValues[name] ?? placeholder;
+  });
 
   const isQuickFillActive: (minutes: number) => boolean = (
     minutes: number,
@@ -267,9 +292,7 @@ const CustomTimeRangeModal: FunctionComponent<ComponentProps> = (
           </div>
         )}
 
-        <div className="text-xs text-gray-400">
-          Times are shown in {OneUptimeDate.getCurrentTimezoneString()}.
-        </div>
+        <div className="text-xs text-gray-400">{timezoneNote}</div>
       </div>
     </Modal>
   );
