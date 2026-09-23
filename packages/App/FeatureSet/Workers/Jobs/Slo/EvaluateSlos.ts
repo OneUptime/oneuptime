@@ -47,6 +47,10 @@ import AlertService from "Common/Server/Services/AlertService";
 import AlertSeverityService from "Common/Server/Services/AlertSeverityService";
 import IncidentService from "Common/Server/Services/IncidentService";
 import IncidentSeverityService from "Common/Server/Services/IncidentSeverityService";
+import LabelService from "Common/Server/Services/LabelService";
+import OnCallDutyPolicyService from "Common/Server/Services/OnCallDutyPolicyService";
+import DatabaseService from "Common/Server/Services/DatabaseService";
+import ProjectScopedReferenceValidator from "Common/Server/Utils/Database/ProjectScopedReferenceValidator";
 import AlertOwnerTeamService from "Common/Server/Services/AlertOwnerTeamService";
 import AlertOwnerUserService from "Common/Server/Services/AlertOwnerUserService";
 import IncidentOwnerTeamService from "Common/Server/Services/IncidentOwnerTeamService";
@@ -2568,12 +2572,35 @@ async function declareBurnRateIncident(data: {
     incident.isPrivate = true;
   }
 
+  /*
+   * IncidentService refuses an on-call policy or label from another project.
+   * The rule only checks the ids an edit adds, so one saved before that check
+   * can still hold such an id — and a refused create would stop this rule
+   * declaring incidents at all. Drop those and log them instead.
+   */
   incident.onCallDutyPolicies = toIdStubs(
-    rule.incidentOnCallDutyPolicies,
+    await getRecordsUsableInProject({
+      projectId: context.projectId,
+      ruleId: ruleId,
+      records: rule.incidentOnCallDutyPolicies,
+      modelName: "on-call policy",
+      service: OnCallDutyPolicyService,
+      logAttributes: logAttributes,
+    }),
     OnCallDutyPolicy,
   );
 
-  const labels: Array<Label> = toIdStubs(rule.incidentLabels, Label);
+  const labels: Array<Label> = toIdStubs(
+    await getRecordsUsableInProject({
+      projectId: context.projectId,
+      ruleId: ruleId,
+      records: rule.incidentLabels,
+      modelName: "label",
+      service: LabelService,
+      logAttributes: logAttributes,
+    }),
+    Label,
+  );
 
   if (labels.length > 0) {
     incident.labels = labels;
@@ -2640,6 +2667,65 @@ function toIdStub<TModel extends DatabaseBaseModel>(
   const stub: TModel = new modelType();
   stub._id = id.toString();
   return stub;
+}
+
+/*
+ * The rule's records that its project can still use, logging the rest. See
+ * ProjectScopedReferenceValidator.filterUsableInProject.
+ */
+async function getRecordsUsableInProject<
+  TModel extends DatabaseBaseModel,
+>(data: {
+  projectId: ObjectID;
+  ruleId: ObjectID;
+  records: Array<TModel> | undefined;
+  modelName: string;
+  service: DatabaseService<DatabaseBaseModel>;
+  logAttributes: LogAttributes;
+}): Promise<Array<TModel>> {
+  const records: Array<TModel> = (data.records || []).filter(
+    (record: TModel): boolean => {
+      return Boolean(record.id);
+    },
+  );
+
+  if (records.length === 0) {
+    return records;
+  }
+
+  const result: {
+    usableIds: Array<ObjectID | string>;
+    droppedIds: Array<ObjectID | string>;
+  } = await ProjectScopedReferenceValidator.filterUsableInProject({
+    projectId: data.projectId,
+    ids: records.map((record: TModel): ObjectID => {
+      return record.id!;
+    }),
+    service: data.service,
+  });
+
+  if (result.droppedIds.length > 0) {
+    logger.error(
+      `Slo:EvaluateSlos - Burn rate rule ${data.ruleId.toString()} references ${data.modelName} ${result.droppedIds
+        .map((id: ObjectID | string): string => {
+          return id.toString();
+        })
+        .join(
+          ", ",
+        )}, which does not exist in this project. Declaring the incident without it.`,
+      data.logAttributes,
+    );
+  }
+
+  const usableIds: Set<string> = new Set<string>(
+    result.usableIds.map((id: ObjectID | string): string => {
+      return id.toString().toLowerCase();
+    }),
+  );
+
+  return records.filter((record: TModel): boolean => {
+    return usableIds.has(record.id!.toString().toLowerCase());
+  });
 }
 
 function toIdStubs<TModel extends DatabaseBaseModel>(
