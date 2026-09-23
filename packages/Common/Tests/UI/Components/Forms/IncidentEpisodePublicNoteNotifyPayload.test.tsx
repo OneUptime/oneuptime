@@ -46,13 +46,7 @@ interface CapturedModalProps {
   };
 }
 
-interface CapturedTableProps {
-  createInitialValues?: FormValues<IncidentEpisodePublicNote> | undefined;
-  formFields?: Fields<IncidentEpisodePublicNote> | undefined;
-}
-
 let modalRenders: Array<CapturedModalProps> = [];
-let tableRenders: Array<CapturedTableProps> = [];
 
 jest.mock("../../../../UI/Utils/Permission", () => {
   return {
@@ -139,14 +133,24 @@ jest.mock("../../../../UI/Utils/ModelAPI/ModelAPI", () => {
         ) as JSONObject;
         return { data: {} };
       },
+      // The Public Notes page's composer posts through create.
+      create: async (data: {
+        model: IncidentEpisodePublicNote;
+        modelType: typeof IncidentEpisodePublicNote;
+      }): Promise<{ data: JSONObject }> => {
+        capturedPayload = JSON.parse(
+          JSON.stringify(BaseModel.toJSON(data.model, data.modelType)),
+        ) as JSONObject;
+        return { data: {} };
+      },
     },
   };
 });
 
 /*
- * The feed's modal and the page's table are prop recorders here: the tests
- * take the notify field and seeded values they are handed and run those
- * through the real ModelForm.
+ * The feed's modal is a prop recorder here: the tests take the notify field
+ * and seeded values it is handed and run those through the real ModelForm.
+ * The Public Notes page is rendered for real, composer and all.
  */
 jest.mock("../../../../UI/Components/ModelFormModal/ModelFormModal", () => {
   return {
@@ -154,16 +158,6 @@ jest.mock("../../../../UI/Components/ModelFormModal/ModelFormModal", () => {
     default: (props: CapturedModalProps): ReactElement => {
       modalRenders.push(props);
       return <div data-testid="note-modal" />;
-    },
-  };
-});
-
-jest.mock("../../../../UI/Components/ModelTable/ModelTable", () => {
-  return {
-    __esModule: true,
-    default: (props: CapturedTableProps): ReactElement => {
-      tableRenders.push(props);
-      return <div data-testid="public-note-table" />;
     },
   };
 });
@@ -327,7 +321,6 @@ function findNotifyField(
 beforeEach(() => {
   window.localStorage.clear();
   modalRenders = [];
-  tableRenders = [];
   pageEpisode = null;
 });
 
@@ -500,6 +493,11 @@ describe("what the episode dashboard hands the form", () => {
     );
   }
 
+  /*
+   * The Public Notes page itself: it loads the episode's notify setting, then
+   * draws the notes feed, whose composer posts the note. The note is typed in
+   * the real markdown editor's source mode.
+   */
   async function renderWithPageWiring(
     notifyOnEpisodeCreated: boolean,
   ): Promise<void> {
@@ -518,7 +516,7 @@ describe("what the episode dashboard hands the form", () => {
     const project: Project = new Project();
     project._id = PROJECT_ID;
 
-    const view: RenderResult = render(
+    render(
       <EpisodePublicNote
         pageRoute={new Route("/dashboard/incidents/episodes/public-notes")}
         currentProject={project}
@@ -526,19 +524,48 @@ describe("what the episode dashboard hands the form", () => {
       />,
     );
 
-    await waitFor(() => {
-      expect(screen.getByTestId("public-note-table")).toBeInTheDocument();
+    const prompt: HTMLElement = await screen.findByTestId(
+      "note-composer-prompt",
+    );
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(prompt.querySelector("button")!);
     });
 
-    const tableProps: CapturedTableProps =
-      tableRenders[tableRenders.length - 1]!;
+    await screen.findByTestId("note-composer");
 
-    view.unmount();
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTitle("Switch to markdown source"));
+    });
+  }
 
-    await renderForm(
-      [noteField, findNotifyField(tableProps.formFields)],
-      tableProps.createInitialValues,
-    );
+  function pageNotifyCheckbox(): HTMLInputElement {
+    return screen.getByRole("checkbox", {
+      name: "Notify status page subscribers",
+    }) as HTMLInputElement;
+  }
+
+  async function writePageNote(): Promise<void> {
+    await act(async (): Promise<void> => {
+      fireEvent.change(
+        screen
+          .getByTestId("note-composer")
+          .querySelector("textarea") as HTMLTextAreaElement,
+        { target: { value: NOTE_TEXT } },
+      );
+    });
+  }
+
+  async function submitPageNote(): Promise<JSONObject> {
+    await act(async (): Promise<void> => {
+      fireEvent.click(screen.getByTestId("note-submit"));
+    });
+
+    if (!capturedPayload) {
+      throw new Error("The composer did not post");
+    }
+
+    return capturedPayload;
   }
 
   test("the feed's form on a quiet episode sends an explicit false", async () => {
@@ -569,32 +596,46 @@ describe("what the episode dashboard hands the form", () => {
     expect(payload[NOTIFY_FIELD]).toBe(true);
   });
 
-  test("the Public Notes page's form on a quiet episode sends an explicit false", async () => {
+  test("the Public Notes page's composer on a quiet episode sends an explicit false", async () => {
     await renderWithPageWiring(false);
 
-    expect(notifyCheckbox()).not.toBeChecked();
+    expect(pageNotifyCheckbox()).not.toBeChecked();
     expect(
       screen.getByText(
         PublicNoteSubscriberNotificationDefault.quietIncidentEpisodeDescription,
       ),
     ).toBeInTheDocument();
 
-    await writeNote();
-    const payload: JSONObject = await submit();
+    await writePageNote();
+    const payload: JSONObject = await submitPageNote();
 
+    expect(payload["note"]).toBe(NOTE_TEXT);
     expect(Object.keys(payload)).toContain(NOTIFY_FIELD);
     expect(payload[NOTIFY_FIELD]).toBe(false);
+    expect(payload["incidentEpisodeId"]).toMatchObject({ value: EPISODE_ID });
+    expect(payload["projectId"]).toMatchObject({ value: PROJECT_ID });
   });
 
-  test("the Public Notes page's form on an episode that notified sends true", async () => {
+  test("the Public Notes page's composer on an episode that notified sends true", async () => {
     await renderWithPageWiring(true);
 
-    expect(notifyCheckbox()).toBeChecked();
-    expect(screen.getByText(NOTIFYING_DESCRIPTION)).toBeInTheDocument();
+    expect(pageNotifyCheckbox()).toBeChecked();
 
-    await writeNote();
-    const payload: JSONObject = await submit();
+    await writePageNote();
+    const payload: JSONObject = await submitPageNote();
 
     expect(payload[NOTIFY_FIELD]).toBe(true);
+  });
+
+  test("unticking the page's box on an episode that notified sends false", async () => {
+    await renderWithPageWiring(true);
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(pageNotifyCheckbox());
+    });
+    await writePageNote();
+    const payload: JSONObject = await submitPageNote();
+
+    expect(payload[NOTIFY_FIELD]).toBe(false);
   });
 });
