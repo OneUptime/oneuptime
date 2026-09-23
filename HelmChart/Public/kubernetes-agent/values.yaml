@@ -1224,7 +1224,11 @@ serviceAccount:
 # (clusterName). No dashboard steps: after `helm upgrade` the cluster's AI
 # page in OneUptime shows "Connected". An ingestion key with a Pinned Service
 # Name cannot register the Runner. If a registration is refused, the Runner's
-# log says whether it clears on its own or what to change.
+# log says whether it clears on its own or what to change. Removing what the
+# Runner row holds keeps the cluster's binding; if you delete the Runner
+# instead, the agent registers a fresh one, but a registration never
+# re-binds a cluster that had a Runner bound, so select the new Runner on
+# the cluster's AI page afterwards.
 #
 # What it can do is decided in two places, and they do different jobs:
 #   * RBAC, here. aiAccess.enabled grants the Runner's ServiceAccount
@@ -1247,10 +1251,12 @@ serviceAccount:
 #     Secret objects, pod-template security patches, patches that replace
 #     the pod spec or a whole containers list (`$patch: replace`, a merge
 #     patch of `containers`, a JSON-patch replace/remove of the pod spec),
-#     `set serviceaccount`, `create deployment|cronjob|job --image`, patch
-#     bodies that are not JSON, labels/annotations on Namespace objects
-#     picked by --all or a selector, any write to RBAC objects, CRDs,
-#     APIServices, admission webhooks or admission policies,
+#     `set serviceaccount`, `create deployment|cronjob|job --image`,
+#     `expose --overrides` (which can create any kind of object instead of a
+#     Service), pod-template patches of host ports, hostUsers or
+#     runtimeClassName, patch bodies that are not JSON, labels/annotations
+#     on Namespace objects picked by --all or a selector, any write to RBAC
+#     objects, CRDs, APIServices, admission webhooks or admission policies,
 #     `--all-namespaces` writes and `delete --all` in every mode, even with
 #     a human approving. It does not refuse changing an
 #     image: `set image` (or a patch of an image field) is a riskier change
@@ -1259,13 +1265,15 @@ serviceAccount:
 #     its allowlist names the command.
 #     In every mode, "bypass approval" included, a write in kube-system,
 #     kube-public or kube-node-lease (a custom resource is judged by its
-#     namespace, even one named like a built-in kind), a drain and a taint
-#     always wait for a human (a drain evicts pods in every namespace, those
-#     three and the agent's own included), and the Runner never changes its
-#     own namespace, anything outside remediation.namespaces, or a node
-#     when remediation.nodeOperations is false. OneUptime reads that scope
-#     from what the Runner reports and refuses such a fix when it is
-#     proposed or approved, before the Runner would refuse it.
+#     namespace, even one named like a built-in kind), a drain, a taint and
+#     a patch of a node always wait for a human (a drain evicts pods in
+#     every namespace, those three and the agent's own included, and a
+#     NoExecute taint does too, whether `kubectl taint` or a node patch sets
+#     it), and the Runner never changes its own namespace, anything outside
+#     remediation.namespaces, or a node when remediation.nodeOperations is
+#     false. OneUptime reads that scope from what the Runner reports and
+#     refuses such a fix when it is proposed or approved, before the Runner
+#     would refuse it.
 #     The cluster's AI page decides whether AI may investigate (read-only
 #     kubectl), and whether it may remediate:
 #       - "ask for approval": a human approves the exact kubectl plan with
@@ -1328,10 +1336,14 @@ aiAccess:
     # list. Take a namespace off the list before you delete it (if it is
     # already gone, drop it on the next upgrade). To go back to cluster-wide
     # on a release that stores a list, pass
-    # `--set aiAccess.remediation.namespaces=null` (or
-    # `--set-json 'aiAccess.remediation.namespaces=[]'`); leaving the flag
-    # out under --reuse-values keeps the stored list, and `={}` is read by
-    # Helm as one empty name, which the schema rejects.
+    # `--set-json 'aiAccess.remediation.namespaces=[]'` (Helm 3.10+); leaving
+    # the flag out under --reuse-values keeps the stored list, and `={}` is
+    # read by Helm as one empty name, which the schema rejects.
+    # `--set aiAccess.remediation.namespaces=null` does not reset a stored
+    # list under --reuse-values: Helm keeps the stored list, and on a release
+    # installed before aiAccess existed the upgrade fails this schema. `=null`
+    # only works with --reset-then-reuse-values (Helm 3.14+) in place of
+    # --reuse-values.
     #
     # Empty (the default, so the one-flag setup keeps working) binds it
     # cluster-wide with a ClusterRoleBinding. RBAC cannot leave namespaces
@@ -1346,8 +1358,8 @@ aiAccess:
     # Node operations: cordon/uncordon/taint (patch on nodes) and drain
     # (create on pods/eviction). Nodes are cluster-scoped and a drain evicts
     # pods in every namespace, so these are bound cluster-wide in a role of
-    # their own whatever `namespaces` says, and a drain or a taint always
-    # waits for a human, in every mode. On by default with
+    # their own whatever `namespaces` says, and a drain, a taint or a patch
+    # of a node always waits for a human, in every mode. On by default with
     # remediation.enabled; set false to keep OneUptime AI's fixes off nodes:
     # the chart then grants no node RBAC and tells the Runner
     # (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false), which refuses cordon,

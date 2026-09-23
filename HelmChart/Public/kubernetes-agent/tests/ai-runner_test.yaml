@@ -22,9 +22,26 @@
 #     ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS, "true" only when the node role
 #     is rendered) and where it runs (ONEUPTIME_RUNNER_POD_NAMESPACE), and
 #     never let aiAccess.extraEnv replace any of that;
-#   * keep a stored aiAccess.remediation.namespaces list across
-#     `--reuse-values` upgrades, and go back to cluster-wide only on the
-#     resets the docs name (`=null`, or `--set-json ...=[]`);
+#   * keep a stored aiAccess.remediation.namespaces list when an upgrade
+#     leaves the flag out, and go back to cluster-wide on an empty list —
+#     the reset the docs name, `--set-json
+#     'aiAccess.remediation.namespaces=[]'`, which works under
+#     `--reuse-values` too. A null does it only WITHOUT --reuse-values:
+#     under it Helm drops a null override whose key the stored values hold
+#     (the stored list survives), and on a release from a chart that
+#     predates aiAccess the null reaches the schema and fails the upgrade.
+#     helm-unittest renders from values files, which is the no-reuse path,
+#     so it cannot show either; the real helm binary against a stored
+#     release does. To check by hand: write the stored release (chart
+#     metadata and values, config) as a YAML list into a file named by
+#     HELM_MEMORY_DRIVER_DATA, set HELM_DRIVER=memory, point KUBECONFIG at a
+#     stub API server that answers /version, /api and /apis, and run the
+#     page's flags as `helm upgrade <release> <chart> --dry-run
+#     --post-renderer <tee>`. On a release from a chart without aiAccess the
+#     empty list renders the remediation ClusterRoleBinding and `=null`
+#     fails with "aiAccess.remediation.namespaces: Invalid type. Expected:
+#     array, given: null"; on a release storing [web, api] the empty list
+#     renders the ClusterRoleBinding and `=null` keeps both RoleBindings;
 #   * render on a release whose stored values predate the block: `helm
 #     upgrade --reuse-values` feeds the templates the previous release's
 #     values, so on an install from a chart without aiAccess
@@ -670,9 +687,12 @@ tests:
             value: "true"
 
   # `helm upgrade --reuse-values` keeps a stored namespace list, so the docs
-  # tell operators to reset it with `--set aiAccess.remediation.namespaces=null`
-  # (or `--set-json 'aiAccess.remediation.namespaces=[]'`), never `={}`. These
-  # render each against a release that stores [web].
+  # tell operators to reset it with
+  # `--set-json 'aiAccess.remediation.namespaces=[]'`, never `={}`. These
+  # render each against values that list [web]. A values file is not
+  # --reuse-values: the null case below is the no-reuse path (a values file
+  # plus `--set ...=null`, or --reset-then-reuse-values), which is the only
+  # place a null resets the list.
   - it: keeps a stored namespace list when an upgrade leaves the namespaces flag out
     values:
       - values/ai-remediation-stored-namespaces.yaml
@@ -699,7 +719,7 @@ tests:
             name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
             value: web
 
-  - it: goes back to the cluster-wide binding when a stored namespace list is reset to null
+  - it: goes back to the cluster-wide binding when a namespace list is reset to null without --reuse-values
     values:
       - values/ai-remediation-stored-namespaces.yaml
     set:
@@ -724,7 +744,8 @@ tests:
             name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
             value: ""
 
-  - it: goes back to the cluster-wide binding when a stored namespace list is reset to an empty list
+  # The reset every doc and the cluster AI page name.
+  - it: goes back to the cluster-wide binding when a stored namespace list is reset to an empty list, as --set-json 'aiAccess.remediation.namespaces=[]' does
     values:
       - values/ai-remediation-stored-namespaces.yaml
     set:
@@ -738,6 +759,10 @@ tests:
       - documentIndex: 4
         isKind:
           of: ClusterRoleBinding
+      - documentIndex: 4
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
       - documentIndex: 7
         contains:
           path: spec.template.spec.containers[0].env
@@ -753,7 +778,8 @@ tests:
       aiAccess.enabled: true
       aiAccess.remediation.enabled: true
       # Helm's --set reads `{}` as a list holding one empty string, not as an
-      # empty list, which is why the docs name `=null` as the reset instead.
+      # empty list, which is why the docs name
+      # `--set-json 'aiAccess.remediation.namespaces=[]'` as the reset instead.
       aiAccess.remediation.namespaces:
         - ""
     asserts:
@@ -1179,6 +1205,35 @@ tests:
           content:
             name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
             value: "true"
+
+  # The page's cluster-wide command on a release from a chart without
+  # aiAccess: `.Values.aiAccess.remediation` is {enabled: true} plus the
+  # empty list --set-json adds, which the schema accepts (a null here is
+  # what fails it under --reuse-values, where no stored value swallows it).
+  - it: renders the empty-list reset on a release from a chart without aiAccess, with the cluster-wide binding
+    values:
+      - values/legacy-pre-aiaccess-ai-remediation.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.remediation.namespaces: []
+    asserts:
+      - hasDocuments:
+          count: 8
+      - documentIndex: 4
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 4
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: ""
 
   - it: falls back to the default repository and an IfNotPresent pull when a release from a chart without aiAccess pins only the image tag
     values:

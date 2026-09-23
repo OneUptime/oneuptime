@@ -12,8 +12,12 @@ import path from "path";
  *   fails the whole install or upgrade (collector included). Every copy
  *   that offers the value says the namespaces must already exist, and how
  *   to go back to cluster-wide on a release that stores a list
- *   (`=null`, or `--set-json ...=[]`; `={}` is one empty name and fails the
- *   schema, and leaving the flag out under --reuse-values keeps the list).
+ *   (`--set-json 'aiAccess.remediation.namespaces=[]'`; `={}` is one empty
+ *   name and fails the schema, leaving the flag out under --reuse-values
+ *   keeps the list, and — round four — `--set ...=null` does not reset a
+ *   stored list under --reuse-values, and fails the schema on a release
+ *   from a chart without aiAccess; KubernetesAiAccessDocsRoundFour.test.ts
+ *   holds every copy to that).
  * - aiAccess.remediation.nodeOperations=false reaches the Runner
  *   (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS), which then refuses node
  *   operations; the docs say so rather than "RBAC only".
@@ -91,7 +95,12 @@ const REGISTRATION_COPY: Array<string> = [
 const LINE_BREAK_PATTERN: RegExp = /\s*\n\s*#?\s*/g;
 
 const MUST_EXIST_PATTERN: RegExp = /must already exist/;
-const NULL_RESET_PATTERN: RegExp = /aiAccess\.remediation\.namespaces=null/;
+/*
+ * The reset that works under --reuse-values: an empty JSON list. It
+ * replaced `--set aiAccess.remediation.namespaces=null` in round four.
+ */
+const EMPTY_LIST_RESET_PATTERN: RegExp =
+  /--set-json 'aiAccess\.remediation\.namespaces=\[\]'/;
 // A reset written the way Helm reads as one empty namespace name.
 const EMPTY_BRACES_RESET_PATTERN: RegExp =
   /--set "?aiAccess\.remediation\.namespaces=\{\}/;
@@ -138,12 +147,12 @@ describe("aiAccess.remediation.namespaces in the docs", () => {
       expect({
         file: relative(file),
         mustExist: MUST_EXIST_PATTERN.test(text),
-        nullReset: NULL_RESET_PATTERN.test(text),
+        emptyListReset: EMPTY_LIST_RESET_PATTERN.test(text),
         emptyBracesReset: EMPTY_BRACES_RESET_PATTERN.test(text),
       }).toEqual({
         file: relative(file),
         mustExist: true,
-        nullReset: true,
+        emptyListReset: true,
         emptyBracesReset: false,
       });
     });
@@ -185,7 +194,12 @@ describe("aiAccess.remediation.namespaces in the docs", () => {
         file: relative(file),
         found: start !== -1,
         notFound: section.includes('namespaces "<name>" not found'),
-        reset: NULL_RESET_PATTERN.test(section),
+        /*
+         * Round four: the recovery names the empty-list reset. Under the
+         * --reuse-values upgrade these sections show, `=null` kept the
+         * stale list, so the recovery upgrade failed with the same error.
+         */
+        reset: EMPTY_LIST_RESET_PATTERN.test(section),
       }).toEqual({
         file: relative(file),
         found: true,

@@ -143,21 +143,22 @@ export const REMEDIATION_MODE_LABELS: Record<
   [KubernetesAiRemediationMode.Automatic]:
     "Automatic — safe fixes run on their own, riskier ones are proposed for your one-click approval",
   [KubernetesAiRemediationMode.BypassApproval]:
-    "Bypass approval — every allowed fix runs on its own, except that protected namespaces, node drains and taints still need a human, and a tripped circuit breaker or another unattended round on the cluster turns a run into a proposal",
+    "Bypass approval — every allowed fix runs on its own, except that protected namespaces and node drains, taints and patches still need a human, and a tripped circuit breaker or another unattended round on the cluster turns a run into a proposal",
 };
 
 /*
  * What holds in every mode, Bypass approval included — the canonical
  * comment's "In EVERY mode" paragraph, clause for clause: the Denied tier,
- * the protected namespaces, a node drain and a node taint, the in-cluster
- * Runner's own namespace and write scope, and the two cases in which an
- * unattended run becomes a proposal.
+ * the protected namespaces, a node drain, a node taint and a patch of a
+ * node (the policy holds a taint written as a node patch to the same rule),
+ * the in-cluster Runner's own namespace and write scope, and the two cases
+ * in which an unattended run becomes a proposal.
  */
 export function getEveryModeProtectionsSentence(): string {
   return `destructive commands (deleting namespaces, volumes, nodes, secrets or CRDs; exec; apply) never run; a write in ${formatNameList(
     PROTECTED_KUBERNETES_NAMESPACES,
     "or",
-  )}, a node drain and a node taint always need a human; the in-cluster Runner never changes its own namespace or anything outside the namespaces its chart may write; and an unattended run becomes a proposal when the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster`;
+  )}, a node drain, a node taint and a patch of a node always need a human; the in-cluster Runner never changes its own namespace or anything outside the namespaces its chart may write; and an unattended run becomes a proposal when the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster`;
 }
 
 export function getRemediationModeFieldDescription(): string {
@@ -1506,12 +1507,12 @@ function AdminPermissionNote(): ReactElement {
  * What an allowlist entry is, in KubectlPolicy's words (the allowlist
  * section of its header): matched word by word, the verb — and the
  * subcommand of rollout, set or create — written out rather than `*`, more
- * than one word, and never promoting a drain, a taint or a protected-
- * namespace write. The form refuses anything else with
+ * than one word, and never promoting a drain, a taint, a patch of a node
+ * or a protected-namespace write. The form refuses anything else with
  * describeAllowlistPatternProblem's own message.
  */
 const ALLOWLIST_FIELD_DESCRIPTION: string =
-  'Optional, used in Automatic mode only. One pattern per line: a riskier kubectl command (set image, patch, scale to zero, deleting workloads) that matches a pattern also runs without approval. Patterns are compared word by word — * matches exactly one word, and flags must be written out; a leading "kubectl" is optional — for example: kubectl set image deployment/web * -n web. Write the verb (and the subcommand of rollout, set or create) out, never as *, and use more than one word: other entries are refused. A wildcard for the object or the namespace pre-approves a whole class of changes, and saving one asks you to confirm. Not needed in Bypass approval mode, where every allowed change already runs on its own. Destructive commands, node drains and taints, and the protected namespaces never run unattended.';
+  'Optional, used in Automatic mode only. One pattern per line: a riskier kubectl command (set image, patch, scale to zero, deleting workloads) that matches a pattern also runs without approval. Patterns are compared word by word — * matches exactly one word, and flags must be written out; a leading "kubectl" is optional — for example: kubectl set image deployment/web * -n web. Write the verb (and the subcommand of rollout, set or create) out, never as *, and use more than one word: other entries are refused. A wildcard for the object or the namespace pre-approves a whole class of changes, and saving one asks you to confirm. Not needed in Bypass approval mode, where every allowed change already runs on its own. Destructive commands, node drains, taints and patches, and the protected namespaces never run unattended.';
 
 /*
  * The Runner the form would bind: the picker's value when the picker is
@@ -2663,7 +2664,7 @@ const KubernetesClusterAI: FunctionComponent<
                 with kubectl during investigations
                 {status.remediationMode ===
                 KubernetesAiRemediationMode.BypassApproval
-                  ? " and apply every fix the policy allows on its own, riskier ones included — except that a write in a protected namespace, a node drain or a node taint still asks a human, and a run past the hourly circuit breaker, or while another unattended round holds this cluster, is proposed for approval instead."
+                  ? " and apply every fix the policy allows on its own, riskier ones included — except that a write in a protected namespace, a node drain, a node taint or a patch of a node still asks a human, and a run past the hourly circuit breaker, or while another unattended round holds this cluster, is proposed for approval instead."
                   : status.remediationMode ===
                       KubernetesAiRemediationMode.Automatic
                     ? allowlistInEffect.length > 0
@@ -2800,7 +2801,7 @@ const KubernetesClusterAI: FunctionComponent<
                   status.credentialName
                     ? ` and its Kubernetes credential "${status.credentialName}"`
                     : ""
-                }: what a fix may change there is bounded by that credential's RBAC, not by these commands, which apply to the Kubernetes agent's in-cluster Runner.`
+                }: what a fix may change there is bounded by that credential's RBAC and by the write limits the Runner was started with, if any (ONEUPTIME_KUBECTL_WRITE_NAMESPACES, ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false), not by these commands, which apply to the Kubernetes agent's in-cluster Runner. The Runner reports those limits, so a fix outside them is refused when it is proposed or approved, before it reaches the Runner.`
               : runnerWriteAccess === "read-only RBAC"
                 ? "The in-cluster Runner has read-only RBAC, so the cluster would refuse every kubectl change. Grant write access with one of these commands."
                 : runnerWriteAccess

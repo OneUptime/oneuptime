@@ -17,10 +17,22 @@
 #       image` runs a new image as the workload's own ServiceAccount and is
 #       a riskier change a human approves (or that Bypass approval runs);
 #   (e) say that every listed namespace must already exist (a missing one
-#       fails every upgrade), that a drain or a taint always waits for a
-#       human, and that nodeOperations=false reaches the Runner too;
+#       fails every upgrade), that a drain, a taint or a patch of a node
+#       always waits for a human, and that nodeOperations=false reaches the
+#       Runner too;
 #   (f) keep the settings an operator picked on the AI page before the
-#       install, and point at the Runner's log for a refused registration.
+#       install, and point at the Runner's log for a refused registration —
+#       and say that a deleted Runner's fresh replacement must be selected on
+#       the cluster's AI page, because a registration never re-binds a
+#       cluster that had a Runner bound;
+#   (g) name `--set-json 'aiAccess.remediation.namespaces=[]'` as the way
+#       back to cluster-wide. The upgrade lines here use --reuse-values, and
+#       under it Helm drops `--set aiAccess.remediation.namespaces=null`
+#       whenever the stored values hold the key (the stored list survives),
+#       and on a release from a chart without aiAccess the null reaches the
+#       schema and fails the upgrade. helm-unittest renders from values
+#       files, so it cannot show either; the real helm binary against a
+#       stored release (HELM_DRIVER=memory) does.
 #
 # helm-unittest only hands raw text to the regex asserts for NOTES.txt (for a
 # manifest template they see nil), which is why these live in their own suite
@@ -103,6 +115,11 @@ tests:
       # A refused registration explains itself in the Runner's log.
       - matchRegexRaw:
           pattern: "A refused\nregistration says whether it clears on its own or what to change \\(an\ningestion key with a Pinned Service Name cannot register the Runner\\)"
+      # Deleting the Runner leaves the cluster unbound (the binding's foreign
+      # key nulls it, and registration never re-binds such a cluster), so the
+      # step after the delete is selecting the fresh Runner.
+      - matchRegexRaw:
+          pattern: "If you delete the Runner so the agent registers a fresh one, select the new\nRunner on the cluster's AI page afterwards: a registration never re-binds a\ncluster that had a Runner bound."
 
   - it: NOTES say what cluster-wide write access amounts to and what holds the line in the system namespaces
     templates:
@@ -134,12 +151,18 @@ tests:
           pattern: "It still allows changing an image \\(set image, or a patch of an\nimage field\\) as a riskier change: the new image runs as the workload's own\nServiceAccount, with its Secrets, and a human approves it unless the cluster\nbypasses approvals or its allowlist names the command."
       - matchRegexRaw:
           pattern: "create deployment/cronjob/job --image, patch bodies that are\nnot JSON"
+      # --overrides decides what kind of object `kubectl expose` creates (a
+      # Job with any pod spec, say), so the policy refuses it.
+      - matchRegexRaw:
+          pattern: "patches that replace the pod spec or a whole containers list,\nexpose --overrides\\)"
       # The cluster-wide branch suggests listing namespaces; they must exist.
       - matchRegexRaw:
           pattern: "\\(every listed namespace must already exist\\):\n  --set \"aiAccess.remediation.namespaces=\\{web,api\\}\""
-      # A drain evicts pods everywhere, so it never runs unattended.
+      # A drain evicts pods everywhere, and a taint — whether `kubectl taint`
+      # or a patch of the node writes it — can too, so none of them runs
+      # unattended.
       - matchRegexRaw:
-          pattern: "A drain\nevicts pods in every namespace, kube-system and oneuptime included, so a drain\nor a taint always waits for a human, in every mode"
+          pattern: "A drain\nevicts pods in every namespace, kube-system and oneuptime included, so a drain,\na taint or a patch of a node always waits for a human, in every mode"
 
   - it: NOTES name the namespaces write access is bound in when they are listed
     templates:
@@ -163,8 +186,14 @@ tests:
       # say so, and how to go back to cluster-wide.
       - matchRegexRaw:
           pattern: "Each listed namespace must already exist: the chart creates a RoleBinding in\neach and never creates a namespace, so a missing one fails every install or\nupgrade with 'namespaces \"<name>\" not found'."
+      # The reset that works under --reuse-values, which every upgrade line
+      # these notes print uses; `=null` is named only as what does not work.
       - matchRegexRaw:
-          pattern: "Take a namespace off the list\nbefore you delete it; --set aiAccess.remediation.namespaces=null goes back to\ncluster-wide."
+          pattern: "Take a namespace off the list\nbefore you delete it; --set-json 'aiAccess.remediation.namespaces=\\[\\]' goes\nback to cluster-wide \\(--set aiAccess.remediation.namespaces=null does not\nreset a stored list under --reuse-values\\)."
+      # The old advice, which kept the stored list (and so the upgrade that
+      # failed on a deleted namespace kept failing).
+      - notMatchRegexRaw:
+          pattern: "namespaces=null goes back"
       # The Runner refuses node operations too, not only RBAC.
       - matchRegexRaw:
           pattern: "Node operations \\(cordon, uncordon, taint, drain\\) are off: the chart grants no\nnode RBAC, and the Runner refuses them before it runs kubectl."

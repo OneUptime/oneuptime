@@ -720,9 +720,13 @@ describe("remediation mode labels", () => {
     for (const namespace of ["kube-system", "kube-public", "kube-node-lease"]) {
       expect(description).toContain(namespace);
     }
-    // The canonical comment's words: "a node drain and a node taint".
+    /*
+     * The canonical comment's words ("a node drain and a node taint"),
+     * plus a patch of a node, which round four holds to the same rule:
+     * a taint written as `kubectl patch node` is the same change.
+     */
     expect(description).toMatch(
-      /a node drain and a node taint always need a human/,
+      /a node drain, a node taint and a patch of a node always need a human/,
     );
     expect(description).toMatch(/circuit breaker/);
     expect(description).toMatch(/never changes its own namespace/);
@@ -2135,6 +2139,8 @@ describe("Kubernetes cluster AI page", () => {
       expect(banner).toHaveTextContent("protected namespace");
       expect(banner).toHaveTextContent("drain");
       expect(banner).toHaveTextContent("a node taint");
+      // Round four: a patch of a node asks a human in Bypass approval too.
+      expect(banner).toHaveTextContent("a patch of a node still asks a human");
       expect(banner).toHaveTextContent("circuit breaker");
       // The canonical comment's second proposal case.
       expect(banner).toHaveTextContent(
@@ -2273,12 +2279,22 @@ describe("Kubernetes cluster AI page", () => {
       const clusterWide: string = textOf("ai-access-helm-remediation-command");
       expect(clusterWide.startsWith("helm repo update")).toBe(true);
       expect(clusterWide).toContain("--set aiAccess.remediation.enabled=true");
+      /*
+       * Round four: the reset that works under --reuse-values. `=null` kept
+       * a stored list there, and failed the schema on installs from a
+       * chart without aiAccess.
+       */
+      expect(clusterWide).toContain(
+        "--set-json 'aiAccess.remediation.namespaces=[]'",
+      );
+      expect(clusterWide).not.toContain("namespaces=null");
       expect(clusterWide).toBe(getAiAccessHelmCommands().enableRemediation);
 
       /*
        * Under each command, what the chart and the server do with the list:
-       * every namespace must already exist, `=null` resets a stored list,
-       * and a write outside it is refused before it reaches the Runner.
+       * every namespace must already exist, the empty-list `--set-json`
+       * resets a stored list (`=null` does not, under --reuse-values), and
+       * a write outside it is refused before it reaches the Runner.
        */
       const scopedNote: string = textOf(
         "ai-access-helm-remediation-scoped-note",
@@ -2286,11 +2302,19 @@ describe("Kubernetes cluster AI page", () => {
       expect(scopedNote).toBe(getAiAccessScopedCommandNote());
       expect(scopedNote).toContain("must already exist");
       expect(scopedNote).toContain(
-        "--set aiAccess.remediation.namespaces=null",
+        "--set-json 'aiAccess.remediation.namespaces=[]' resets it to cluster-wide",
+      );
+      expect(scopedNote).toContain(
+        "--set aiAccess.remediation.namespaces=null does not reset a stored list under --reuse-values",
       );
       expect(scopedNote).toContain("refused when it is proposed or approved");
-      expect(textOf("ai-access-helm-remediation-note")).toBe(
-        getAiAccessClusterWideCommandNote(),
+      const clusterWideNote: string = textOf("ai-access-helm-remediation-note");
+      expect(clusterWideNote).toBe(getAiAccessClusterWideCommandNote());
+      expect(clusterWideNote).toContain(
+        "--set-json 'aiAccess.remediation.namespaces=[]' resets a namespace list stored on the release",
+      );
+      expect(clusterWideNote).not.toContain(
+        "--set aiAccess.remediation.namespaces=null resets",
       );
 
       const disclosure: HTMLElement = screen.getByTestId(
@@ -2349,13 +2373,24 @@ describe("Kubernetes cluster AI page", () => {
       );
       openAiPage();
 
-      expect(
-        await screen.findByTestId(
-          "ai-access-remediation-setup",
-          {},
-          { timeout: WAIT_TIMEOUT },
-        ),
-      ).toHaveTextContent("bounded by that credential's RBAC");
+      const setup: HTMLElement = await screen.findByTestId(
+        "ai-access-remediation-setup",
+        {},
+        { timeout: WAIT_TIMEOUT },
+      );
+      expect(setup).toHaveTextContent("bounded by that credential's RBAC");
+      /*
+       * Round four: an ordinary Runner reports the write limits it was
+       * started with, so the page names them — and that a fix outside
+       * them is refused before it reaches the Runner — instead of leaving
+       * everything to the credential's RBAC.
+       */
+      expect(setup).toHaveTextContent(
+        "the write limits the Runner was started with, if any (ONEUPTIME_KUBECTL_WRITE_NAMESPACES, ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false)",
+      );
+      expect(setup).toHaveTextContent(
+        "The Runner reports those limits, so a fix outside them is refused when it is proposed or approved, before it reaches the Runner.",
+      );
       expect(
         screen.queryByTestId("ai-access-runner-write-access"),
       ).not.toBeInTheDocument();

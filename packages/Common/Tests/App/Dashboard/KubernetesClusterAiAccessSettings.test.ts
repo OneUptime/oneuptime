@@ -134,6 +134,63 @@ const MATCHES_NEARLY_EVERYTHING_REGEX: RegExp = /nearly/;
 const ANY_IMAGE_ANY_SERVICE_ACCOUNT_REGEX: RegExp =
   /any image as any ServiceAccount/;
 
+/*
+ * The reset of aiAccess.remediation.namespaces that works under
+ * `helm upgrade --reuse-values`, as the page prints it. `--set ...=null`
+ * does not: Helm drops a null override whose key the release's stored
+ * values hold (the stored list survives), and on a release from a chart
+ * without aiAccess the null reaches the values schema and fails the
+ * upgrade. Reproduced with the real helm binary against a stored release;
+ * helm-unittest renders from values files and cannot show it.
+ */
+const EMPTY_LIST_RESET_FLAG: string =
+  "--set-json 'aiAccess.remediation.namespaces=[]'";
+// A backslash-newline line continuation, which the shell reads as a space.
+const LINE_CONTINUATION_REGEX: RegExp = /\\\n/g;
+// One shell word: a run of unquoted, single-quoted or double-quoted parts.
+const SHELL_WORD_REGEX: RegExp = /(?:[^\s'"]+|'[^']*'|"[^"]*")+/g;
+// The quotes around one quoted part of a shell word.
+const SHELL_QUOTED_PART_REGEX: RegExp = /'([^']*)'|"([^"]*)"/g;
+// A --set value that sets the namespace list to null.
+const NULL_NAMESPACES_VALUE_REGEX: RegExp =
+  /^aiAccess\.remediation\.namespaces=null$/;
+
+/*
+ * The argv of the `helm upgrade` line in a copy-paste command, the way a
+ * POSIX shell splits it: line continuations joined, quotes removed. Only
+ * what the page's commands use (no escapes inside quotes, no expansion).
+ */
+function getHelmUpgradeArgv(command: string): Array<string> {
+  const line: string | undefined = command
+    .replace(LINE_CONTINUATION_REGEX, " ")
+    .split("\n")
+    .find((candidate: string): boolean => {
+      return candidate.trim().startsWith("helm upgrade ");
+    });
+  if (!line) {
+    return [];
+  }
+  return (line.match(SHELL_WORD_REGEX) || []).map((word: string): string => {
+    return word.replace(
+      SHELL_QUOTED_PART_REGEX,
+      (_quoted: string, single?: string, double?: string): string => {
+        return single ?? double ?? "";
+      },
+    );
+  });
+}
+
+// The value each occurrence of `flag` takes in an argv.
+function getFlagValues(argv: Array<string>, flag: string): Array<string> {
+  const values: Array<string> = [];
+  argv.forEach((word: string, index: number) => {
+    if (word === flag && index + 1 < argv.length) {
+      values.push(argv[index + 1]!);
+    }
+  });
+  return values;
+}
+
 function grant(
   permissions: Array<Permission>,
   blocked: Array<Permission> = [],
@@ -418,17 +475,84 @@ describe("helm upgrades", () => {
      * Replaces the pin that the cluster-wide command names no namespaces:
      * under --reuse-values that left a list stored by the scoped command in
      * force, so "write access across the cluster" bound the role only
-     * where the old list said. It now resets the list.
+     * where the old list said. It now resets the list — with an empty JSON
+     * list, not `=null` (round four: under --reuse-values Helm dropped the
+     * null and kept a stored list, and on an install from a chart without
+     * aiAccess the null failed the values schema, so the command failed
+     * for every existing install).
      */
-    expect(clusterWide).toContain("--set aiAccess.remediation.namespaces=null");
+    expect(clusterWide).toContain(EMPTY_LIST_RESET_FLAG);
+    expect(clusterWide).not.toContain("namespaces=null");
     expect(clusterWide).not.toContain(AI_ACCESS_EXAMPLE_WRITE_NAMESPACES);
     expect(clusterWide).not.toContain("nodeOperations");
   });
 
   /*
+   * What helm receives, not only what the page prints: the shell hands
+   * `--set-json` one word, `aiAccess.remediation.namespaces=[]` (the single
+   * quotes keep a shell such as zsh from reading `[]` as a glob), whose
+   * value is an empty JSON list — a value the chart's schema (namespaces is
+   * an array) accepts and that replaces a stored list under --reuse-values.
+   */
+  test("the cluster-wide command hands helm an empty JSON list for the namespaces", () => {
+    const argv: Array<string> = getHelmUpgradeArgv(
+      getAiAccessHelmCommands().enableRemediation,
+    );
+    expect(argv).toContain("--reuse-values");
+
+    const setJson: Array<string> = getFlagValues(argv, "--set-json");
+    expect(setJson).toEqual(["aiAccess.remediation.namespaces=[]"]);
+    const assignment: string = setJson[0]!;
+    const separator: number = assignment.indexOf("=");
+    expect(assignment.slice(0, separator)).toBe(
+      "aiAccess.remediation.namespaces",
+    );
+    expect(JSON.parse(assignment.slice(separator + 1))).toEqual([]);
+
+    // Negative control: the helper does read a null reset where one is.
+    const withNull: Array<string> = getHelmUpgradeArgv(
+      "helm repo update\nhelm upgrade r c --reuse-values \\\n  --set aiAccess.remediation.namespaces=null",
+    );
+    expect(
+      getFlagValues(withNull, "--set").some((setting: string): boolean => {
+        return NULL_NAMESPACES_VALUE_REGEX.test(setting);
+      }),
+    ).toBe(true);
+  });
+
+  /*
+   * No command the page prints pairs --reuse-values (which every one of
+   * them uses) with a null namespace list: that pairing is the one that
+   * keeps a stored list, or fails the upgrade on an install from a chart
+   * without aiAccess.
+   */
+  test("no command pairs --reuse-values with a null namespace list", () => {
+    expect(allCommands()).toHaveLength(3);
+    for (const command of allCommands()) {
+      const argv: Array<string> = getHelmUpgradeArgv(command);
+      expect({
+        command,
+        reuseValues: argv.includes("--reuse-values"),
+        nullNamespaces: getFlagValues(argv, "--set").some(
+          (setting: string): boolean => {
+            return NULL_NAMESPACES_VALUE_REGEX.test(setting);
+          },
+        ),
+        nullText: command.includes("namespaces=null"),
+      }).toEqual({
+        command,
+        reuseValues: true,
+        nullNamespaces: false,
+        nullText: false,
+      });
+    }
+  });
+
+  /*
    * What the page says under the two write-access commands: every listed
    * namespace must already exist (the chart never creates one, and a
-   * missing one fails the whole upgrade), `=null` resets a stored list,
+   * missing one fails the whole upgrade), the empty-list `--set-json`
+   * resets a stored list (and `=null` does not, under --reuse-values),
    * turning node operations back on takes `=true` under --reuse-values,
    * and a write outside the list is refused before it reaches the Runner.
    */
@@ -438,20 +562,42 @@ describe("helm upgrades", () => {
     expect(note).toContain("Every namespace you list must already exist");
     expect(note).toContain("never creates a namespace");
     expect(note).toContain('namespaces "<name>" not found');
-    expect(note).toContain("--set aiAccess.remediation.namespaces=null");
+    expect(note).toContain(
+      `${EMPTY_LIST_RESET_FLAG} resets it to cluster-wide, as the next command does.`,
+    );
+    // The round-three claim, which Helm does not honour under --reuse-values.
+    expect(note).not.toContain("=null resets it to cluster-wide");
+    expect(note).toContain(
+      "--set aiAccess.remediation.namespaces=null does not reset a stored list under --reuse-values",
+    );
+    expect(note).toContain(
+      "it only works with --reset-then-reuse-values (Helm 3.14+) in place of --reuse-values",
+    );
     expect(note).toContain(
       "a fix anywhere else is refused when it is proposed or approved, and the Runner refuses it again",
     );
     expect(note).toContain("set it to true to let AI cordon");
-    expect(note).toContain("a drain or a taint still waits for a human");
+    /*
+     * Round four: a patch of a node joins the drain and the taint (a taint
+     * written as a node patch is the same change), and it still waits for
+     * a human when node operations are turned on.
+     */
+    expect(note).toContain(
+      "a drain, a taint or a patch of a node still waits for a human",
+    );
     // The old advice: dropping the line keeps a stored false under --reuse-values.
     expect(note).not.toContain("leave that line out");
   });
 
   test("the cluster-wide command's note says the list is reset and node operations are kept", () => {
     const note: string = getAiAccessClusterWideCommandNote();
-    expect(note).toContain("--set aiAccess.remediation.namespaces=null");
+    expect(note.startsWith(`${EMPTY_LIST_RESET_FLAG} resets`)).toBe(true);
     expect(note).toContain("bound cluster-wide");
+    expect(note).toContain("--set-json needs Helm 3.10 or later");
+    expect(note).toContain(
+      "--set aiAccess.remediation.namespaces=null does not reset a stored list under --reuse-values",
+    );
+    expect(note).toContain("--reset-then-reuse-values (Helm 3.14+)");
     expect(note).toContain("Node operations keep the release's setting");
   });
 
@@ -2420,12 +2566,24 @@ describe("the mode copy follows the canonical description", () => {
       .replace(COMMENT_LINE_BREAK_REGEX, " ");
   }
 
-  // Each clause of the canonical "In EVERY mode" paragraph.
+  // Clauses of the canonical "In EVERY mode" paragraph the page repeats verbatim.
   const EVERY_MODE_CLAUSES: Array<string> = [
-    "a node drain and a node taint always need a human",
     "never changes its own namespace or anything outside the namespaces its chart may write",
     "the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster",
   ];
+
+  /*
+   * The node clause. The canonical comment names a node drain and a node
+   * taint ("a node drain and a node taint always need a human"); the page
+   * adds a patch of a node, which the policy holds to the same rule since
+   * round four (a NoExecute taint written with `kubectl patch node` is the
+   * same change as `kubectl taint`). Matched as a shape, so the canonical
+   * comment may name the node patch too without flagging this copy.
+   */
+  const NODE_CLAUSE_SHAPE_REGEX: RegExp =
+    /a node drain(,| and) a node taint[^;]{0,120} always need a human/;
+  const PAGE_NODE_CLAUSE: string =
+    "a node drain, a node taint and a patch of a node always need a human";
 
   test("the canonical comment still says what the page repeats", () => {
     const canonical: string = getCanonicalModeComment();
@@ -2440,6 +2598,21 @@ describe("the mode copy follows the canonical description", () => {
         inCanonical: true,
       });
     }
+    expect(canonical).toMatch(NODE_CLAUSE_SHAPE_REGEX);
+  });
+
+  // Negative control: the shape does not accept a clause that drops the taint.
+  test("the node clause shape needs both the drain and the taint", () => {
+    expect(PAGE_NODE_CLAUSE).toMatch(NODE_CLAUSE_SHAPE_REGEX);
+    expect("a node drain and a node taint always need a human").toMatch(
+      NODE_CLAUSE_SHAPE_REGEX,
+    );
+    expect("a node drain always needs a human").not.toMatch(
+      NODE_CLAUSE_SHAPE_REGEX,
+    );
+    expect(
+      "a node drain and a patch of a node always need a human",
+    ).not.toMatch(NODE_CLAUSE_SHAPE_REGEX);
   });
 
   test("every mode's protections name the drain, the taint, the Runner's scope and both proposal cases", () => {
@@ -2450,6 +2623,13 @@ describe("the mode copy follows the canonical description", () => {
         said: true,
       });
     }
+    /*
+     * Replaces the pin on "a node drain and a node taint always need a
+     * human": round four adds a patch of a node, which a human must
+     * approve in every mode too.
+     */
+    expect(sentence).toContain(PAGE_NODE_CLAUSE);
+    expect(sentence).toMatch(NODE_CLAUSE_SHAPE_REGEX);
     for (const namespace of PROTECTED_KUBERNETES_NAMESPACES) {
       expect(sentence).toContain(namespace);
     }
@@ -2475,7 +2655,8 @@ describe("the mode copy follows the canonical description", () => {
       REMEDIATION_MODE_LABELS[KubernetesAiRemediationMode.BypassApproval];
     for (const exception of [
       "protected namespaces",
-      "node drains and taints",
+      // Round four: a patch of a node joins the drain and the taint.
+      "node drains, taints and patches",
       "circuit breaker",
       "another unattended round",
     ]) {

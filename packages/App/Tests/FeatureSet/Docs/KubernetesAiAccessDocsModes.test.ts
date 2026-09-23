@@ -22,10 +22,13 @@ import path from "path";
  *   unattended round is still changing or verifying the same cluster, and
  *   the follow-up after a rollback that did not complete asks too.
  * - Some lines hold in every mode, Bypass approval included: protected
- *   namespaces, a drain and a taint always need a human (a drain evicts
- *   pods in every namespace, kube-system and the agent's own included), and
- *   the Runner never changes its own namespace. A copy that promises the
- *   protected-namespace line without the drain line overclaims.
+ *   namespaces, a drain, a taint and a patch of a node always need a human
+ *   (a drain evicts pods in every namespace, kube-system and the agent's
+ *   own included, and so does a NoExecute taint, whichever command writes
+ *   it), and the Runner never changes its own namespace. A copy that
+ *   promises the protected-namespace line without the drain line
+ *   overclaims. KubernetesAiAccessDocsRoundFour.test.ts checks the node
+ *   patch in each copy.
  */
 
 const PACKAGES_ROOT: string = path.resolve(__dirname, "../../../..");
@@ -253,8 +256,13 @@ describe("the every-mode lines", () => {
     expect(lines).toContain(
       "- A write in **kube-system**, **kube-public** or **kube-node-lease** always needs a human.",
     );
+    /*
+     * Round four adds a `patch` of a node to the drain and the taint: a
+     * NoExecute taint written as a node patch evicts pods like `kubectl
+     * taint` does, and the policy now holds it to the same rule.
+     */
     expect(lines).toContain(
-      "- A `drain` or a `taint` always needs a human. Draining a node evicts pods in every namespace — the three above and the agent's own included",
+      "- A `drain`, a `taint` or a `patch` of a node always needs a human. Draining a node evicts pods in every namespace — the three above and the agent's own included",
     );
     expect(lines).toContain(
       "- The Runner never changes anything in its own namespace",

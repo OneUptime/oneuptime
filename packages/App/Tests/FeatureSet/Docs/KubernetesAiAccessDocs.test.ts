@@ -674,10 +674,21 @@ describe("the AI page's write-access commands", () => {
     getAiAccessHelmCommands();
   const note: string = getAiAccessScopedCommandNote();
 
+  /*
+   * Round four: the reset is the empty JSON list. `--set ...=null` does not
+   * reset a stored list under --reuse-values (Helm drops the null when the
+   * stored values hold the key), and fails the chart's schema on a release
+   * from a chart without aiAccess, where nothing swallows it.
+   */
   it("says every listed namespace must already exist, and how to reset the list", () => {
     expect(note).toContain("Every namespace you list must already exist");
     expect(note).toContain('namespaces "<name>" not found');
-    expect(note).toContain("--set aiAccess.remediation.namespaces=null");
+    expect(note).toContain(
+      "--set-json 'aiAccess.remediation.namespaces=[]' resets it to cluster-wide",
+    );
+    expect(note).toContain(
+      "--set aiAccess.remediation.namespaces=null does not reset a stored list under --reuse-values",
+    );
   });
 
   /*
@@ -687,8 +698,9 @@ describe("the AI page's write-access commands", () => {
    */
   it("makes the cluster-wide command cluster-wide on a release that stored a list", () => {
     expect(commands.enableRemediation).toContain(
-      "--set aiAccess.remediation.namespaces=null",
+      "--set-json 'aiAccess.remediation.namespaces=[]'",
     );
+    expect(commands.enableRemediation).not.toContain("=null");
     expect(commands.enableRemediationScoped).not.toContain("=null");
     expect(note).not.toContain("leave that line out");
     expect(note).toContain("set it to true to let AI cordon");
