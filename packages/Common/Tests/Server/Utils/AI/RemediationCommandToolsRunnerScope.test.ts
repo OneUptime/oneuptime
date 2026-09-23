@@ -122,6 +122,36 @@ function cluster(
   };
 }
 
+/*
+ * What an ordinary Runner that runs kubectl through a Kubernetes credential
+ * reports (round 4): what it was started with — writes, the node switch and
+ * ONEUPTIME_KUBECTL_WRITE_NAMESPACES — never a cluster, a pod namespace or
+ * inCluster.
+ */
+const CREDENTIAL_SCOPED: KubernetesRunnerPosture = {
+  inCluster: false,
+  allowWrites: true,
+  writeNamespaces: ["prod"],
+  allowNodeOperations: false,
+};
+
+// The cluster reached through a dashboard-created Runner and a credential.
+function credentialCluster(
+  posture: KubernetesRunnerPosture | null = CREDENTIAL_SCOPED,
+): KubernetesClusterAiAccessStatus {
+  return cluster(posture, {
+    runner: {
+      id: RUNNER_ID.toString(),
+      name: "platform-ops-runner",
+      isOnline: true,
+      canRunAiCommands: true,
+      posture: posture || undefined,
+    },
+    accessMethod: "credential",
+    credentialId: "55555555-5555-4555-8555-555555555555",
+  });
+}
+
 function refusalFor(
   command: string,
   target: KubernetesClusterAiAccessStatus = cluster(),
@@ -280,15 +310,75 @@ describe("RemediationCommandToolkit.getRunnerScopeRefusal — the Runner's repor
     ).toBeNull();
   });
 
+  /*
+   * Round 4: this used to pair an agent row and an in-cluster posture with
+   * a credential — a Runner the enqueue path refuses a credential for. A
+   * credential Runner now reports its own scope, and is pre-checked by it.
+   */
   it('reads a missing -n on a credential kubeconfig as "default", as the Runner does', () => {
-    const viaCredential: KubernetesClusterAiAccessStatus = cluster(SCOPED, {
-      accessMethod: "credential",
-      credentialId: "55555555-5555-4555-8555-555555555555",
+    expect(
+      refusalFor("kubectl rollout restart deployment/web", credentialCluster()),
+    ).toContain('would run it in "default"');
+  });
+
+  describe("a credential Runner, by the scope it reports", () => {
+    it.each([
+      [
+        "a write outside its write namespaces",
+        "kubectl rollout restart deployment/pay -n staging",
+        'would change namespace "staging", outside the namespaces',
+      ],
+      [
+        "a node operation with its node switch off",
+        "kubectl cordon n1",
+        "node operations turned off (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS on the Runner's host)",
+      ],
+      [
+        "a cluster-scoped object behind a listed -n",
+        "kubectl annotate sc.storage standard note=x -n prod",
+        "storageclass objects, which are cluster-scoped",
+      ],
+    ])("refuses %s", (_label: string, command: string, expected: string) => {
+      expect(KubectlPolicy.evaluateCommand(command).tier).not.toBe(
+        KubectlCommandTier.Denied,
+      );
+
+      const refusal: string | null = refusalFor(command, credentialCluster());
+
+      expect(refusal).toContain(expected);
+      // No chart configures it: never send an operator to one.
+      expect(refusal).not.toContain("Kubernetes agent chart");
+      expect(refusal).not.toContain("aiAccess.remediation");
     });
 
-    expect(
-      refusalFor("kubectl rollout restart deployment/web", viaCredential),
-    ).toContain('would run it in "default"');
+    it("names the variable its write namespaces come from", () => {
+      expect(
+        refusalFor(
+          "kubectl rollout restart deployment/pay -n staging",
+          credentialCluster(),
+        ),
+      ).toContain(
+        `It only lets OneUptime AI change "prod" (ONEUPTIME_KUBECTL_WRITE_NAMESPACES on the Runner's host).`,
+      );
+    });
+
+    it("negative control: lets through a write in its write namespaces", () => {
+      expect(
+        refusalFor(
+          "kubectl rollout restart deployment/web -n prod",
+          credentialCluster(),
+        ),
+      ).toBeNull();
+    });
+
+    it("negative control: the same Runner reporting nothing is left to the Runner", () => {
+      expect(
+        refusalFor(
+          "kubectl rollout restart deployment/pay -n staging",
+          credentialCluster(null),
+        ),
+      ).toBeNull();
+    });
   });
 
   it("matches namespaces case-insensitively, the way the Runner compares them", () => {
@@ -791,15 +881,12 @@ describe("RemediationCommandToolkit tells the model the Runner's scope as the Ru
   });
 
   it("says nothing about objects outside every namespace when the Runner has no namespace scope, or reported none", () => {
-    const unscoped: KubernetesClusterAiAccessStatus = cluster(
-      {
-        inCluster: false,
-        allowWrites: true,
-        writeNamespaces: [],
-        allowNodeOperations: true,
-      },
-      { accessMethod: "credential" },
-    );
+    const unscoped: KubernetesClusterAiAccessStatus = credentialCluster({
+      inCluster: false,
+      allowWrites: true,
+      writeNamespaces: [],
+      allowNodeOperations: true,
+    });
 
     expect(
       RemediationCommandToolkit.describeRunnerObjectScope(unscoped),
@@ -813,6 +900,77 @@ describe("RemediationCommandToolkit tells the model the Runner's scope as the Ru
     expect(
       RemediationCommandToolkit.describeRunnerWriteScope(cluster(null)),
     ).toBe("not reported by the Runner; its RBAC decides");
+  });
+
+  /*
+   * Round 4: a credential Runner reports the scope it was started with, so
+   * the model is told that scope — "not reported" is only for a Runner
+   * that reported none of it (one that predates the write scope and so
+   * enforces none).
+   */
+  it("tells the model a credential Runner's reported scope, never that it reported none", () => {
+    const scope: string =
+      RemediationCommandToolkit.describeRunnerWriteScope(credentialCluster());
+
+    expect(scope).toContain('writes only in namespaces "prod"');
+    expect(scope).toContain("no node operations");
+    expect(scope).toContain(
+      'a Namespace object is judged by its name, not by -n, so name each one: only "prod"',
+    );
+    expect(scope).toContain("cluster-scoped objects other than nodes");
+    expect(scope).not.toContain("not reported");
+    // It has no namespace of its own to protect.
+    expect(scope).not.toContain("never in its own namespace");
+  });
+
+  it.each<[string, KubernetesRunnerPosture | null, boolean]>([
+    ["no posture at all", null, false],
+    [
+      "a posture with none of the scope (an older Runner)",
+      { inCluster: false, allowWrites: true, kubectlVersion: "v1.31.4" },
+      false,
+    ],
+    [
+      "only its write namespaces (cluster-wide)",
+      { inCluster: false, allowWrites: true, writeNamespaces: [] },
+      true,
+    ],
+    [
+      "only its node switch",
+      { inCluster: false, allowWrites: true, allowNodeOperations: true },
+      true,
+    ],
+    [
+      "only its own namespace",
+      { inCluster: true, allowWrites: true, podNamespace: "oneuptime-agent" },
+      true,
+    ],
+  ])(
+    "says 'not reported' exactly when the Runner reported no scope: %s",
+    (
+      _label: string,
+      posture: KubernetesRunnerPosture | null,
+      reported: boolean,
+    ) => {
+      const scope: string = RemediationCommandToolkit.describeRunnerWriteScope(
+        credentialCluster(posture),
+      );
+
+      expect(scope === "not reported by the Runner; its RBAC decides").toBe(
+        !reported,
+      );
+    },
+  );
+
+  it("list_command_targets states a credential Runner's reported scope, and offers it no node operation", async () => {
+    const text: string = await listTargets(credentialCluster());
+
+    expect(text).toContain('writes only in namespaces "prod"');
+    expect(text).toContain("no node operations");
+    expect(text).not.toContain("not reported by the Runner");
+    expect(text).toContain(
+      getKubectlSafeChangesSummary({ allowNodeOperations: false }),
+    );
   });
 
   it("list_command_targets gives the object rules their own field, each within the serializer's cap", async () => {

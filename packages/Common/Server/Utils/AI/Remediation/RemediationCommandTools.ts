@@ -29,6 +29,8 @@ import {
   getKubectlSafeChangesSummary,
 } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import {
+  KUBECTL_ALLOW_NODE_OPERATIONS_ENV,
+  KUBECTL_WRITE_NAMESPACES_ENV,
   KubectlCommandTier,
   KubernetesAiAccessGap,
   KubernetesAiRemediationMode,
@@ -581,10 +583,13 @@ export default class RemediationCommandToolkit {
 
   /*
    * Where the cluster's bound Runner lets AI-composed kubectl writes land,
-   * as it last reported (its posture): the namespaces its chart scoped it
-   * to, its own namespace (never), whether it may change nodes, and how it
-   * judges objects that live outside every namespace. The whole scope, for
-   * a prompt; list_command_targets gives its two halves a field each.
+   * as it last reported (its posture): the namespaces it may write in (the
+   * Kubernetes agent's chart, or a credential Runner's own
+   * ONEUPTIME_KUBECTL_WRITE_NAMESPACES), its own namespace (never), whether
+   * it may change nodes, and how it judges objects that live outside every
+   * namespace. The whole scope, for a prompt; list_command_targets gives its
+   * two halves a field each. "Not reported" only for a Runner that reported
+   * none of it (one that predates the write scope, which enforces none).
    */
   public static describeRunnerWriteScope(
     cluster: KubernetesClusterAiAccessStatus,
@@ -598,6 +603,24 @@ export default class RemediationCommandToolkit {
   }
 
   /*
+   * Did the Runner report its write scope — its write namespaces, its own
+   * namespace or its node switch? Every Runner that enforces one reports it
+   * (the Kubernetes agent's and a credential Runner alike); a posture
+   * without any of the three is a Runner that predates the scope, where its
+   * RBAC alone decides.
+   */
+  private static reportsWriteScope(
+    posture: KubernetesRunnerPosture | undefined,
+  ): posture is KubernetesRunnerPosture {
+    return Boolean(
+      posture &&
+        (posture.writeNamespaces !== undefined ||
+          RemediationCommandToolkit.normalizeNamespace(posture.podNamespace) ||
+          posture.allowNodeOperations !== undefined),
+    );
+  }
+
+  /*
    * The namespaces the Runner writes in, its own (never), and the node
    * switch.
    */
@@ -607,7 +630,7 @@ export default class RemediationCommandToolkit {
     const posture: KubernetesRunnerPosture | undefined =
       cluster.runner?.posture;
 
-    if (!posture) {
+    if (!RemediationCommandToolkit.reportsWriteScope(posture)) {
       return "not reported by the Runner; its RBAC decides";
     }
 
@@ -701,7 +724,11 @@ export default class RemediationCommandToolkit {
    * inputs the Runner reported: its write namespaces, its own namespace,
    * its node switch (absent is not second-guessed), and where a missing -n
    * lands — the Runner pod's own namespace in-cluster, "default" for a
-   * kubeconfig built from a credential.
+   * kubeconfig built from a credential. The Kubernetes agent's Runner
+   * reports its chart's scope; a credential Runner reports the one it was
+   * started with (ONEUPTIME_KUBECTL_WRITE_NAMESPACES, and the node switch),
+   * with no namespace of its own. A Runner that reported no scope enforces
+   * none, and is not second-guessed.
    *
    * One sentence (or two) the model or a human can act on; callers add
    * what happened.
@@ -713,7 +740,7 @@ export default class RemediationCommandToolkit {
     const posture: KubernetesRunnerPosture | undefined =
       data.cluster.runner?.posture;
 
-    if (!posture) {
+    if (!RemediationCommandToolkit.reportsWriteScope(posture)) {
       return null;
     }
 
@@ -741,8 +768,39 @@ export default class RemediationCommandToolkit {
       ? RemediationCommandToolkit.describeRunnerScopeRefusal({
           refusal,
           runnerLabel: `the Runner of cluster "${data.cluster.clusterName}"`,
+          settings: RemediationCommandToolkit.getRunnerScopeSettings(
+            data.cluster,
+          ),
         })
       : null;
+  }
+
+  /*
+   * Where the bound Runner's write scope is set, for a refusal to name: the
+   * Kubernetes agent chart's values for the agent's in-cluster Runner (by
+   * its server-owned name, or its posture), the Runner's own environment
+   * for any other — a credential Runner, which no chart configures.
+   */
+  private static getRunnerScopeSettings(
+    cluster: KubernetesClusterAiAccessStatus,
+  ): { namespaces: string; nodeOperations: string } {
+    const isAgentRunner: boolean =
+      isKubernetesAgentRunnerName(cluster.runner?.name) ||
+      isKubernetesAgentRunnerPosture(cluster.runner?.posture);
+
+    if (isAgentRunner) {
+      return {
+        namespaces:
+          "aiAccess.remediation.namespaces on the Kubernetes agent chart",
+        nodeOperations:
+          "aiAccess.remediation.nodeOperations=false on the Kubernetes agent chart",
+      };
+    }
+
+    return {
+      namespaces: `${KUBECTL_WRITE_NAMESPACES_ENV} on the Runner's host`,
+      nodeOperations: `${KUBECTL_ALLOW_NODE_OPERATIONS_ENV} on the Runner's host`,
+    };
   }
 
   // A write-scope refusal, worded for the model and the approval card.
@@ -750,13 +808,15 @@ export default class RemediationCommandToolkit {
     refusal: KubectlWriteScopeRefusal;
     // "the Runner of cluster ..." — the subject of the refusal.
     runnerLabel: string;
+    // Where that Runner's write namespaces and node switch are set.
+    settings: { namespaces: string; nodeOperations: string };
   }): string {
-    const { refusal, runnerLabel } = data;
+    const { refusal, runnerLabel, settings } = data;
     const command: string = `"${refusal.displayCommand}"`;
     const capitalizedRunnerLabel: string = `${runnerLabel.charAt(0).toUpperCase()}${runnerLabel.slice(1)}`;
     const scope: string =
       refusal.writeNamespaces.length > 0
-        ? ` It only lets OneUptime AI change ${quoteList(refusal.writeNamespaces)} (aiAccess.remediation.namespaces on the Kubernetes agent chart).`
+        ? ` It only lets OneUptime AI change ${quoteList(refusal.writeNamespaces)} (${settings.namespaces}).`
         : "";
     const namespace: string = refusal.namespace || "";
     const fix: string = refusal.fix ? ` ${refusal.fix}` : "";
@@ -772,7 +832,7 @@ export default class RemediationCommandToolkit {
           refusal.uncertainty === null
             ? `${command} changes a node, and ${runnerLabel}`
             : `${capitalizedRunnerLabel} cannot tell for certain whether ${command} changes a node (${refusal.uncertainty}), and it`
-        } has node operations turned off (aiAccess.remediation.nodeOperations=false on the Kubernetes agent chart): it refuses cordon, uncordon, drain, taint and label/annotate/patch of nodes.${fix} Fix it without changing nodes, or leave the node change to a human.`;
+        } has node operations turned off (${settings.nodeOperations}): it refuses cordon, uncordon, drain, taint and label/annotate/patch of nodes.${fix} Fix it without changing nodes, or leave the node change to a human.`;
       case "objects_uncertain":
       case "namespace_uncertain":
         return `${capitalizedRunnerLabel} cannot tell for certain which ${

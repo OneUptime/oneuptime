@@ -24,6 +24,15 @@
  * chokepoint and the toolkit must give the pinned answer. The Runner's
  * KubectlWriteScopeExecutorParity test runs the same table through the
  * executor itself.
+ *
+ * Round 4: the credential rows used to hand both server callers a posture
+ * no credential Runner reported (a kubernetes-agent/<cluster> row carrying
+ * a credential, which the enqueue path refuses outright), so their green
+ * server columns proved nothing about a real credential Runner — which
+ * then reported no posture at all, and was never pre-checked. A credential
+ * Runner now reports what it was started with; each row's server inputs
+ * are the realistic ones (a dashboard-created Runner, accessMethod
+ * "credential", the posture parsed from the hostInfo such a Runner sends).
  * ---------------------------------------------------------------------------
  */
 
@@ -36,23 +45,33 @@ import KubectlPolicy, {
   KubectlTokenizeResult,
 } from "../../../Utils/AiRemediation/KubectlPolicy";
 import { Service as RunnerJobServiceClass } from "../../../Server/Services/RunnerJobService";
+import { Service as RunnerServiceClass } from "../../../Server/Services/RunnerService";
 import RemediationCommandToolkit from "../../../Server/Utils/AI/Remediation/RemediationCommandTools";
 import {
   KubectlCommandTier,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
   KubernetesRunnerPosture,
+  isInClusterPostureForCluster,
+  isKubernetesAgentRunnerName,
+  isKubernetesAgentRunnerPosture,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import {
+  KubectlWriteScopeObjectReplacingCase,
   KubectlWriteScopeParityCase,
   KubectlWriteScopeParityRunner,
   KubectlWriteScopePolicyDeniedCase,
   NAME_EACH_NAMESPACE_OBJECT,
+  OBJECT_REPLACING_SCOPE_CASES,
   PARITY_CASES,
   PARITY_CLUSTER_IDENTIFIER,
+  PARITY_CREDENTIAL_RUNNER_NAME,
   PARITY_RUNNERS,
   POLICY_DENIED_SCOPE_CASES,
+  accessMethodOf,
+  hostInfoOf,
   postureOf,
+  runnerNameOf,
 } from "./KubectlWriteScopeParityCases";
 import { describe, expect, test } from "@jest/globals";
 
@@ -94,7 +113,11 @@ function askChokepoint(
   });
 }
 
-// The cluster's readiness status as the toolkit reads it for this Runner.
+/*
+ * The cluster's readiness status as the toolkit reads it for this Runner:
+ * the agent's own row in-cluster, a dashboard-created Runner with the
+ * credential otherwise.
+ */
 function statusOf(
   runner: KubectlWriteScopeParityRunner,
 ): KubernetesClusterAiAccessStatus {
@@ -104,12 +127,12 @@ function statusOf(
     clusterIdentifier: PARITY_CLUSTER_IDENTIFIER,
     runner: {
       id: "44444444-4444-4444-8444-444444444444",
-      name: `kubernetes-agent/${PARITY_CLUSTER_IDENTIFIER}`,
+      name: runnerNameOf(runner),
       isOnline: true,
       canRunAiCommands: true,
       posture: postureOf(runner),
     },
-    accessMethod: runner.usesCredential ? "credential" : "in_cluster",
+    accessMethod: accessMethodOf(runner),
     ...(runner.usesCredential
       ? { credentialId: "55555555-5555-4555-8555-555555555555" }
       : {}),
@@ -177,6 +200,64 @@ describe("the table itself", () => {
         }).toEqual({ runner: runner.label, refuses: true });
       },
     );
+  });
+
+  /*
+   * Each row is a Runner that can exist: a credential Runner is an
+   * ordinary dashboard Runner — never an agent row, which the enqueue path
+   * refuses a credential for — and reports exactly
+   * { inCluster: false, allowWrites, allowNodeOperations, writeNamespaces };
+   * an in-cluster Runner is the agent of THIS cluster.
+   */
+  test("every Runner is one production has: the credential ones are ordinary Runners reporting what they were started with", () => {
+    const credentialRunners: Array<KubectlWriteScopeParityRunner> =
+      PARITY_RUNNERS.filter((runner: KubectlWriteScopeParityRunner) => {
+        return runner.usesCredential;
+      });
+
+    // The table keeps credential Runners scoped, unscoped and with nodes off.
+    expect(credentialRunners.length).toBeGreaterThanOrEqual(3);
+
+    for (const runner of PARITY_RUNNERS) {
+      const name: string = runnerNameOf(runner);
+      const posture: KubernetesRunnerPosture = postureOf(runner);
+      const isAgentRow: boolean = RunnerServiceClass.isKubernetesAgentRunnerRow(
+        { name, hostInfo: hostInfoOf(runner) },
+      );
+
+      if (runner.usesCredential) {
+        expect({ runner: runner.label, name, isAgentRow }).toEqual({
+          runner: runner.label,
+          name: PARITY_CREDENTIAL_RUNNER_NAME,
+          isAgentRow: false,
+        });
+        expect(isKubernetesAgentRunnerName(name)).toBe(false);
+        expect(isKubernetesAgentRunnerPosture(posture)).toBe(false);
+        expect(hostInfoOf(runner)).toEqual({
+          kubernetes: {
+            inCluster: false,
+            allowWrites: true,
+            allowNodeOperations: runner.allowNodeOperations,
+            writeNamespaces: runner.writeNamespaces,
+          },
+        });
+        expect(posture.clusterIdentifier).toBeUndefined();
+        expect(posture.podNamespace).toBeUndefined();
+        expect(statusOf(runner).accessMethod).toBe("credential");
+        expect(statusOf(runner).credentialId).toBeDefined();
+        continue;
+      }
+
+      expect({ runner: runner.label, isAgentRow }).toEqual({
+        runner: runner.label,
+        isAgentRow: true,
+      });
+      expect(
+        isInClusterPostureForCluster(posture, PARITY_CLUSTER_IDENTIFIER),
+      ).toBe(true);
+      expect(statusOf(runner).accessMethod).toBe("in_cluster");
+      expect(statusOf(runner).credentialId).toBeUndefined();
+    }
   });
 });
 
@@ -331,6 +412,88 @@ describe("a write the policy denies never reaches the scope in any caller", () =
   );
 });
 
+/*
+ * --overrides lets `kubectl expose` (or run) create any object at all, so
+ * what the write changes cannot be read from the argv. The shared policy
+ * denies the flag; the scope refuses it on its own, so no path depends on
+ * the other.
+ */
+describe("a write whose object --overrides replaces is refused on every path", () => {
+  const LEAVE_OUT_OVERRIDES: string =
+    "Leave out --overrides and --override-type";
+
+  test.each(
+    OBJECT_REPLACING_SCOPE_CASES.map(
+      (entry: KubectlWriteScopeObjectReplacingCase) => {
+        return [entry.label, entry] as [
+          string,
+          KubectlWriteScopeObjectReplacingCase,
+        ];
+      },
+    ),
+  )("%s", (_label: string, entry: KubectlWriteScopeObjectReplacingCase) => {
+    const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
+      entry.command,
+    );
+
+    expect(policy.args.length).toBeGreaterThan(0);
+
+    // The scope's own verdict, whatever the policy decides about the flag.
+    const handed: KubectlPolicyResult = {
+      ...policy,
+      tier: KubectlCommandTier.RiskyWrite,
+      reason: "",
+    };
+    const answers: Array<string> = [];
+    const expected: Array<string> = [];
+
+    for (const runner of PARITY_RUNNERS) {
+      const refusal: KubectlWriteScopeRefusal | null =
+        KubectlWriteScope.getRefusal({
+          command: handed,
+          writeNamespaces: runner.writeNamespaces,
+          podNamespace: runner.podNamespace,
+          allowNodeOperations: runner.allowNodeOperations,
+          usesCredential: runner.usesCredential,
+        });
+      const chokepoint: string | null = askChokepoint(handed, runner);
+      // The toolkit tiers the command itself: a denial is the policy's.
+      const toolkit: string | null = askToolkit(entry.command, runner);
+
+      answers.push(
+        `${runner.label}: ${refusal?.code || "none"}, names the flag ${Boolean(
+          refusal?.uncertainty?.includes(`"${entry.flag}"`),
+        )}, fix ${Boolean(refusal?.fix.startsWith(LEAVE_OUT_OVERRIDES))}, chokepoint ${
+          chokepoint !== null && chokepoint.includes(`"${entry.flag}"`)
+        }, toolkit ${
+          policy.tier === KubectlCommandTier.Denied || toolkit !== null
+        }`,
+      );
+      expected.push(
+        `${runner.label}: ${
+          runner.allowNodeOperations ? "objects_uncertain" : "node_operations"
+        }, names the flag true, fix true, chokepoint true, toolkit true`,
+      );
+    }
+
+    expect(answers).toEqual(expected);
+  });
+
+  // Negative control: the same expose without the flag is a Service in -n.
+  test("the same expose without --overrides is judged by -n", () => {
+    const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
+      "kubectl expose deployment web -n web --port=80",
+    );
+    // Scoped to web and api, in-cluster.
+    const runner: KubectlWriteScopeParityRunner = PARITY_RUNNERS[1]!;
+
+    expect(policy.tier).toBe(KubectlCommandTier.RiskyWrite);
+    expect(askRunner(policy, runner)).toBeNull();
+    expect(askChokepoint(policy, runner)).toBeNull();
+    expect(askToolkit(policy.displayCommand, runner)).toBeNull();
+  });
+});
+
 describe("each caller words the same refusal for its own reader", () => {
   test("every refusal the server gives is whole sentences, in the server's voice", () => {
     for (const entry of PARITY_CASES) {
@@ -386,6 +549,11 @@ describe("each caller words the same refusal for its own reader", () => {
           `the runner of cluster "${PARITY_CLUSTER_IDENTIFIER}"`,
         );
         expect(runnerRefusal.reason).toContain("this Runner");
+
+        // No chart configures a credential Runner.
+        if (runner.usesCredential) {
+          expect(toolkit).not.toContain("Kubernetes agent chart");
+        }
       }
     }
   });
@@ -467,6 +635,106 @@ describe("each caller words the same refusal for its own reader", () => {
 
     // Negative control: the same write with that posture reported.
     expect(askChokepoint(policy, PARITY_RUNNERS[1]!)).not.toBeNull();
+  });
+
+  /*
+   * What the credential Runner's report is worth: without it (every
+   * credential Runner before round 4, and any older one still), both
+   * server callers let through every write its own configuration refuses —
+   * approved, enqueued and counted by the circuit breaker, then refused on
+   * the Runner. With it, they agree with the Runner on every row above.
+   */
+  test("negative control: without its reported scope, a credential Runner's refusals are all left to the Runner", () => {
+    const leftToTheRunner: Array<string> = [];
+
+    PARITY_RUNNERS.forEach(
+      (runner: KubectlWriteScopeParityRunner, index: number) => {
+        if (!runner.usesCredential) {
+          return;
+        }
+
+        const status: KubernetesClusterAiAccessStatus = statusOf(runner);
+        const unreported: KubernetesClusterAiAccessStatus = {
+          ...status,
+          runner: { ...status.runner!, posture: undefined },
+        };
+
+        for (const entry of PARITY_CASES) {
+          if (entry.expected.charAt(index) !== "R") {
+            continue;
+          }
+
+          const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
+            entry.command,
+          );
+
+          expect(askRunner(policy, runner)).not.toBeNull();
+          expect(
+            RunnerJobServiceClass.getRunnerWriteScopeRefusal({
+              policy,
+              posture: undefined,
+              usesCredential: true,
+            }),
+          ).toBeNull();
+          expect(
+            RemediationCommandToolkit.getRunnerScopeRefusal({
+              cluster: unreported,
+              command: entry.command,
+            }),
+          ).toBeNull();
+
+          leftToTheRunner.push(`${runner.label}: ${entry.command}`);
+        }
+      },
+    );
+
+    // Every credential Runner in the table refuses something.
+    expect(leftToTheRunner.length).toBeGreaterThanOrEqual(3);
+  });
+
+  /*
+   * The credential Runner's scope is its own configuration, not a chart's:
+   * its refusals name the variables it was started with.
+   */
+  test("the toolkit names a credential Runner's own settings, never the agent chart's", () => {
+    const scoped: KubectlWriteScopeParityRunner = PARITY_RUNNERS.find(
+      (runner: KubectlWriteScopeParityRunner) => {
+        return runner.usesCredential && runner.writeNamespaces.length === 1;
+      },
+    )!;
+    const nodesOff: KubectlWriteScopeParityRunner = PARITY_RUNNERS.find(
+      (runner: KubectlWriteScopeParityRunner) => {
+        return runner.usesCredential && !runner.allowNodeOperations;
+      },
+    )!;
+    const outside: string = askToolkit(
+      "kubectl rollout restart deployment/pay -n payments",
+      scoped,
+    )!;
+    const node: string = askToolkit("kubectl cordon n1", nodesOff)!;
+
+    expect(outside).toContain(
+      `It only lets OneUptime AI change "prod" (ONEUPTIME_KUBECTL_WRITE_NAMESPACES on the Runner's host).`,
+    );
+    expect(node).toContain(
+      "node operations turned off (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS on the Runner's host)",
+    );
+
+    for (const message of [outside, node]) {
+      expect(message).not.toContain("Kubernetes agent chart");
+    }
+
+    // Negative control: the agent's Runner names its chart's values.
+    const agent: KubectlWriteScopeParityRunner = PARITY_RUNNERS[2]!;
+
+    expect(
+      askToolkit("kubectl rollout restart deployment/pay -n payments", agent),
+    ).toContain(
+      "aiAccess.remediation.namespaces on the Kubernetes agent chart",
+    );
+    expect(askToolkit("kubectl cordon n1", agent)).toContain(
+      "aiAccess.remediation.nodeOperations=false on the Kubernetes agent chart",
+    );
   });
 
   test("an older Runner that never reported its node switch is not second-guessed", () => {

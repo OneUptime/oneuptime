@@ -215,6 +215,16 @@ const KINDS_ONLY_THE_SCOPE_KNOWS: Array<string> = [
   "clustertrustbundle",
   "deviceclass",
   "resourceslice",
+  // Round 4: the rest of upstream's built-in cluster-scoped kinds.
+  "storageversionmigration",
+  "tokenreview",
+  "selfsubjectreview",
+  "subjectaccessreview",
+  "selfsubjectaccessreview",
+  "selfsubjectrulesreview",
+  "storageversion",
+  "devicetaintrule",
+  "resourcepoolstatusrequest",
 ];
 
 /*
@@ -328,9 +338,16 @@ describe("the scope's cluster-scoped kinds match the policy's", () => {
   });
 
   /*
-   * kubectl reads RESOURCE.GROUP: a group-qualified spelling is the
-   * built-in kind only in that kind's own group; anything else is some
-   * custom resource, which the scope judges by -n like a namespaced one.
+   * kubectl reads RESOURCE.VERSION.GROUP, then RESOURCE.GROUP: a
+   * group-qualified spelling is the built-in kind in that kind's own group,
+   * in ANY PREFIX of it (client-go's "group prefixing": "sc.storage",
+   * "storageclasses.stor"; after a version, for a short name only:
+   * "sc.v1.storage"), and with no group at all ("sc.", "nodes.v1."). Any
+   * other group is some custom resource, which the scope judges by -n like
+   * a namespaced one; the core group never matches a prefix. (Round 3
+   * pinned "only in that kind's own group", which kubectl does not follow;
+   * KubectlWriteScopeKubectlSpellings holds the reading to what the real
+   * kubectl resolved.)
    */
   test.each([
     ["nodes.v1.", "node"],
@@ -344,6 +361,23 @@ describe("the scope's cluster-scoped kinds match the policy's", () => {
       "customresourcedefinition",
     ],
     ["Nodes", "node"],
+    ["sc.storage", "storageclass"],
+    ["sc.stor", "storageclass"],
+    ["sc.v1.storage", "storageclass"],
+    ["sc.", "storageclass"],
+    ["sc.foo.", "storageclass"],
+    ["storageclasses.stor", "storageclass"],
+    ["storageclasses.v1.", "storageclass"],
+    ["StorageClass.storage", "storageclass"],
+    ["pc.scheduling", "priorityclass"],
+    ["csr.cert", "certificatesigningrequest"],
+    ["csr.certificates", "certificatesigningrequest"],
+    ["vac.storage", "volumeattributesclass"],
+    ["ip", "ipaddress"],
+    ["ip.networking", "ipaddress"],
+    ["ingressclasses.networking", "ingressclass"],
+    ["crd.apiext", "customresourcedefinition"],
+    ["no.x.", "node"],
   ])("%s is the built-in %s", (spelling: string, kind: string) => {
     expect(KubectlWriteScope.getClusterScopedKind(spelling)).toBe(kind);
   });
@@ -355,6 +389,14 @@ describe("the scope's cluster-scoped kinds match the policy's", () => {
     "nodes.v1.example.com",
     "widgets.example.com",
     "pods",
+    // kubectl rejects each of these.
+    "sc.foo",
+    "sc.x.storage",
+    "storageclasses.v1.storage",
+    "clusterroles.v1.rbac",
+    "nodes.core",
+    "no.x",
+    "nodes.x.",
   ])("%s is not a built-in cluster-scoped kind", (spelling: string) => {
     expect(KubectlWriteScope.getClusterScopedKind(spelling)).toBeNull();
   });

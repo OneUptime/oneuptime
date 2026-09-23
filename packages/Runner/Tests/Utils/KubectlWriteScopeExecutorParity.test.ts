@@ -11,10 +11,30 @@
  * KubectlWriteScopeCallerParity pins the two server callers to the table;
  * this pins KubectlExecutor.execute to it — a refused cell must never reach
  * kubectl, an allowed one must.
+ *
+ * Each row runs as the Runner it describes: an in-cluster row as the
+ * Kubernetes agent's Runner, a credential row as an ordinary Runner (not
+ * in agent mode, no ServiceAccount of its own) handed the credential — and
+ * the posture each reports on its heartbeat is the one the server callers
+ * are asked with.
  * ---------------------------------------------------------------------------
  */
 
 import type { EventEmitter as NodeEventEmitter } from "events";
+
+jest.mock("../../Services/RunnerClient", () => {
+  return {
+    __esModule: true,
+    default: { heartbeat: jest.fn(), disconnect: jest.fn() },
+  };
+});
+
+jest.mock("../../Services/RegisterRunner", () => {
+  return {
+    __esModule: true,
+    default: { registerRunner: jest.fn(), tryRegisterRunner: jest.fn() },
+  };
+});
 
 jest.mock("Common/Server/Utils/Logger", () => {
   return {
@@ -67,6 +87,7 @@ const childProcessMock: { spawn: jest.Mock } = require("child_process");
 import KubectlExecutor, {
   KubectlExecResult,
 } from "../../Services/KubectlExecutor";
+import { getHostInfo } from "../../Jobs/Heartbeat";
 import KubernetesPosture from "../../Utils/KubernetesPosture";
 import KubernetesAgentMode from "../../Utils/KubernetesAgentMode";
 import KubectlPolicy, {
@@ -75,16 +96,23 @@ import KubectlPolicy, {
 import KubectlWriteScope from "Common/Utils/AiRemediation/KubectlWriteScope";
 import { JSONObject } from "Common/Types/JSON";
 import {
+  KubectlWriteScopeObjectReplacingCase,
   KubectlWriteScopeParityCase,
   KubectlWriteScopeParityRunner,
   KubectlWriteScopePolicyDeniedCase,
   NAME_EACH_NAMESPACE_OBJECT,
+  OBJECT_REPLACING_SCOPE_CASES,
   PARITY_CASES,
   PARITY_CLUSTER_IDENTIFIER,
   PARITY_RUNNERS,
   POLICY_DENIED_SCOPE_CASES,
+  postureOf,
 } from "Common/Tests/Utils/AiRemediation/KubectlWriteScopeParityCases";
-import { KubectlCommandTier } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import {
+  KubectlCommandTier,
+  KubernetesRunnerPosture,
+  parseKubernetesRunnerPosture,
+} from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 
 // Every refusal the executor gives before spawning starts this way.
 const REFUSED_BY_THE_RUNNER: RegExp = /^Refused by the Runner: /;
@@ -98,8 +126,18 @@ const CREDENTIAL: JSONObject = {
   token: "sa-token-abc",
 };
 
-// The Runner this row describes, as the executor sees its configuration.
+/*
+ * The Runner this row describes, as the executor sees its configuration:
+ * the Kubernetes agent's Runner for an in-cluster row, an ordinary Runner
+ * (no agent mode, no ServiceAccount of its own) for a credential row.
+ */
 function configure(runner: KubectlWriteScopeParityRunner): void {
+  jest
+    .spyOn(KubernetesAgentMode, "isActive")
+    .mockReturnValue(!runner.usesCredential);
+  jest
+    .spyOn(KubernetesPosture, "canUseOwnServiceAccount")
+    .mockReturnValue(!runner.usesCredential);
   jest
     .spyOn(KubernetesPosture, "getWriteNamespaces")
     .mockReturnValue([...runner.writeNamespaces]);
@@ -112,6 +150,30 @@ function configure(runner: KubectlWriteScopeParityRunner): void {
   jest
     .spyOn(KubernetesPosture, "getAllowNodeOperationsSetting")
     .mockReturnValue(runner.allowNodeOperations ? "true" : "false");
+}
+
+/*
+ * The fields of a posture the write scope reads (and, for a Runner that
+ * must never look like an agent, its cluster identity), for comparing.
+ */
+function scopeOf(
+  posture: KubernetesRunnerPosture | undefined,
+  withIdentity: boolean,
+): JSONObject | null {
+  if (!posture) {
+    return null;
+  }
+
+  return {
+    inCluster: posture.inCluster ?? null,
+    allowWrites: posture.allowWrites ?? null,
+    allowNodeOperations: posture.allowNodeOperations ?? null,
+    writeNamespaces: posture.writeNamespaces ?? null,
+    podNamespace: posture.podNamespace ?? null,
+    ...(withIdentity
+      ? { clusterIdentifier: posture.clusterIdentifier ?? null }
+      : {}),
+  };
 }
 
 async function run(
@@ -140,11 +202,7 @@ async function run(
 
 describe("KubectlExecutor answers the cross-caller write-scope table", () => {
   beforeEach(() => {
-    jest
-      .spyOn(KubernetesPosture, "canUseOwnServiceAccount")
-      .mockReturnValue(true);
     jest.spyOn(KubernetesPosture, "allowsWrites").mockReturnValue(true);
-    jest.spyOn(KubernetesAgentMode, "isActive").mockReturnValue(true);
     jest
       .spyOn(KubectlExecutor, "getOwnClusterIdentifier")
       .mockReturnValue(PARITY_CLUSTER_IDENTIFIER);
@@ -269,6 +327,94 @@ describe("KubectlExecutor answers the cross-caller write-scope table", () => {
     expect(result.success).toBe(false);
     expect(result.errorMessage).toMatch(REFUSED_BY_THE_RUNNER_POLICY);
     expect(childProcessMock.spawn).not.toHaveBeenCalled();
+  });
+
+  /*
+   * --overrides makes kubectl create whatever object its value describes (a
+   * cluster-admin ClusterRoleBinding, a privileged Job) while -n names a
+   * listed namespace. Refused on every Runner before kubectl starts — by the
+   * shared policy, or by the write scope on its own when the policy lets
+   * the flag through.
+   */
+  test.each(
+    OBJECT_REPLACING_SCOPE_CASES.map(
+      (entry: KubectlWriteScopeObjectReplacingCase) => {
+        return [entry.label, entry] as [
+          string,
+          KubectlWriteScopeObjectReplacingCase,
+        ];
+      },
+    ),
+  )(
+    "%s: never reaches kubectl on any Runner",
+    async (_label: string, entry: KubectlWriteScopeObjectReplacingCase) => {
+      const answers: Array<string> = [];
+
+      for (const runner of PARITY_RUNNERS) {
+        const result: KubectlExecResult = await run(entry, runner);
+        const spawned: boolean = childProcessMock.spawn.mock.calls.length > 0;
+        const message: string = result.errorMessage || "";
+        const refusedByPolicy: boolean =
+          REFUSED_BY_THE_RUNNER_POLICY.test(message);
+        const refusedByScope: boolean =
+          REFUSED_BY_THE_RUNNER.test(message) &&
+          message.includes(`"${entry.flag}"`);
+
+        answers.push(
+          `${runner.label}: ${
+            spawned
+              ? "spawned kubectl"
+              : refusedByPolicy || refusedByScope
+                ? "refused before kubectl"
+                : `refused otherwise: ${message}`
+          }`,
+        );
+      }
+
+      expect(answers).toEqual(
+        PARITY_RUNNERS.map((runner: KubectlWriteScopeParityRunner) => {
+          return `${runner.label}: refused before kubectl`;
+        }),
+      );
+    },
+  );
+
+  /*
+   * The server callers are asked with postureOf(row): it must be what this
+   * Runner reports on its heartbeat, field for field where the scope reads
+   * it. The agent's cluster identity comes from its chart's environment,
+   * so it is the one field not compared for in-cluster rows. A credential
+   * Runner reports its write limits since round 4 (an older one reported
+   * nothing, which the server callers leave to the Runner).
+   */
+  test("the posture each Runner reports on its heartbeat is the one the server callers are asked with", async () => {
+    jest
+      .spyOn(KubernetesPosture, "detectKubectlVersion")
+      .mockResolvedValue("v1.36.4");
+
+    for (const runner of PARITY_RUNNERS) {
+      configure(runner);
+
+      const reported: KubernetesRunnerPosture | undefined =
+        parseKubernetesRunnerPosture(await getHostInfo());
+      const expected: JSONObject | null = scopeOf(
+        postureOf(runner),
+        runner.usesCredential,
+      );
+      const actual: JSONObject | null = scopeOf(
+        reported,
+        runner.usesCredential,
+      );
+
+      if (runner.usesCredential && actual === null) {
+        continue;
+      }
+
+      expect({ runner: runner.label, reported: actual }).toEqual({
+        runner: runner.label,
+        reported: expected,
+      });
+    }
   });
 
   /*

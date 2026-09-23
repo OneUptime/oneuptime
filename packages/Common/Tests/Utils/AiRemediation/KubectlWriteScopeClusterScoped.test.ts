@@ -351,6 +351,91 @@ describe("other cluster-scoped objects are outside every listed namespace", () =
     ).toContain("cluster-scoped");
   });
 
+  /*
+   * Round 4: the same objects in the other spellings kubectl resolves to
+   * them — a group prefix ("group prefixing"), a version before a short
+   * name's prefix, no group at all, and IPAddress's short name "ip". Each
+   * used to read as a namespaced custom resource, judged by the listed -n.
+   */
+  const CLUSTER_SCOPED_SPELLING_WRITES: Array<string> = [
+    "kubectl annotate sc.storage standard storageclass.kubernetes.io/is-default-class=true --overwrite",
+    `kubectl patch storageclasses.stor standard -p '{"allowVolumeExpansion":true}'`,
+    `kubectl patch sc.v1.storage standard -p '{"allowVolumeExpansion":true}'`,
+    "kubectl annotate sc. standard note=x",
+    "kubectl label storageclasses.v1. standard team=a",
+    "kubectl annotate sc.foo. standard note=x",
+    `kubectl patch pc.scheduling high -p '{"value":1}'`,
+    `kubectl patch csr.cert csr-1 -p '{"metadata":{"labels":{"a":"b"}}}'`,
+    "kubectl annotate csr.certificates csr-1 note=x",
+    "kubectl annotate vac.storage gold note=x",
+    "kubectl annotate ingressclasses.networking nginx note=x",
+    "kubectl delete volumeattachments.stor va-1",
+    "kubectl delete ip 10.96.0.10",
+    "kubectl delete ip.networking 10.96.0.10",
+    "kubectl delete ip.net 10.96.0.10",
+    "kubectl annotate runtimeclasses.node gvisor note=x",
+    "kubectl annotate devicetaintrules dtr-1 note=x",
+  ];
+
+  test.each(CLUSTER_SCOPED_SPELLING_WRITES)(
+    "`%s -n prod` is refused on a Runner scoped to prod",
+    (command: string) => {
+      const reason: string | null = verdict(`${command} -n prod`, {
+        writeNamespaces: ["prod"],
+        podNamespace: null,
+        usesCredential: true,
+      });
+
+      expect(reason).toContain("cluster-scoped");
+      expect(reason).toContain("whatever -n says");
+      expect(reason).not.toContain("-n <namespace>");
+    },
+  );
+
+  test.each(CLUSTER_SCOPED_SPELLING_WRITES)(
+    "`%s` is left to RBAC when no list is set, even in-cluster with no -n",
+    (command: string) => {
+      expect(verdict(command, { writeNamespaces: [] })).toBeNull();
+    },
+  );
+
+  /*
+   * Negative controls: namespaced built-ins in their group spellings, a
+   * custom resource, and spellings kubectl rejects ("sc.x.storage": no API
+   * version; "nodes.core": the core group never prefix-matches) stay
+   * judged by -n.
+   */
+  test.each([
+    ["kubectl annotate deploy.apps web a=b -n prod", null],
+    ["kubectl annotate deploy web a=b -n staging", "outside the namespaces"],
+    ["kubectl annotate widgets.example.com x a=b -n prod", null],
+    ["kubectl annotate sc.x.storage standard a=b -n prod", null],
+    ["kubectl annotate sc.x.storage standard a=b -n staging", "outside"],
+    ["kubectl annotate storageclasses.example.io x a=b -n staging", "outside"],
+  ])("`%s` is judged by -n", (command: string, expected: string | null) => {
+    const reason: string | null = verdictWithoutPolicy(command, {
+      writeNamespaces: ["prod"],
+      podNamespace: null,
+      usesCredential: true,
+    });
+
+    if (expected === null) {
+      expect(reason).toBeNull();
+    } else {
+      expect(reason).toContain(expected);
+      expect(reason).not.toContain("cluster-scoped");
+    }
+  });
+
+  test("`label nodes.core` is no Node: kubectl rejects it, and it is not a node operation", () => {
+    const targets: KubectlWriteTargets = KubectlWriteScope.resolveTargets(
+      argsOf("kubectl label nodes.core n1 a=b -n prod"),
+    );
+
+    expect(targets.touchesNodes).toBe(false);
+    expect(targets.namespaced).toBe(true);
+  });
+
   // Negative control: an ordinary namespaced write in scope still runs.
   test("`patch deployment web -n web` is let through under the same list", () => {
     expect(

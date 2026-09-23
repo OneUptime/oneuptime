@@ -68,13 +68,22 @@ import KubectlPolicy, { normalizeKubectlFlagName } from "./KubectlPolicy";
  * A write that changes several kinds of object meets every rule that
  * applies to one of them. Reads are never restricted.
  *
- * Only the built-in cluster-scoped kinds are known here (by every name
- * kubectl resolves: plural, singular, short name, Kind case and
- * group-qualified in their own API group). A custom resource is read as
- * namespaced — nobody can run discovery before deciding — so a
- * cluster-scoped custom resource is judged by -n like a namespaced one. On
- * the in-cluster Runner with a write-namespace list its RoleBindings cannot
- * grant one anyway; elsewhere the credential's RBAC bounds it.
+ * Only the built-in cluster-scoped kinds are known here — every one the API
+ * server serves — by every name kubectl resolves: plural, singular, short
+ * name and Kind case, bare or group-qualified the way kubectl qualifies
+ * them (its own API group, any prefix of it — "sc.storage", "csr.cert" —
+ * or none: "sc.", "storageclasses.v1."; see clusterScopedKindOf). A custom
+ * resource is read as namespaced — nobody can run discovery before
+ * deciding — so a cluster-scoped custom resource is judged by -n like a
+ * namespaced one. On the in-cluster Runner with a write-namespace list its
+ * RoleBindings cannot grant one anyway; elsewhere the credential's RBAC
+ * bounds it.
+ *
+ * A flag that replaces the object kubectl builds (--overrides and
+ * --override-type, on expose and run) makes what the write changes
+ * unreadable: kubectl creates whatever object the flag's value describes.
+ * Such a write is uncertain on every verb, whatever the shared policy
+ * decides about the flag.
  *
  * The objects and the namespace are read the way kubectl reads the argv:
  * every flag by its arity (the same table the shared policy parses with —
@@ -120,7 +129,8 @@ const OBJECT_VERBS: Set<string> = new Set<string>([
 /*
  * Verbs that make a NEW namespaced object from the one they name (a
  * Service, a HorizontalPodAutoscaler) in the namespace -n names, whatever
- * kind the named object is.
+ * kind the named object is. That holds only without --overrides, which
+ * lets expose create any object at all (see OBJECT_REPLACING_FLAGS).
  */
 const CREATES_NAMESPACED_OBJECT_VERBS: Set<string> = new Set<string>([
   "expose",
@@ -174,119 +184,244 @@ const CREATE_CLUSTER_SCOPED_KINDS: Record<string, string> = {
 };
 
 /*
- * The built-in kinds that live outside any namespace, and the API group
- * each lives in. A group-qualified spelling counts only in that group
- * (`storageclasses.storage.k8s.io`, `nodes.v1.`); `nodes.example.com` is
- * some custom resource. A superset of the shared policy's
+ * A built-in kind that lives outside any namespace, the way discovery
+ * describes it: its API group ("" for the core group), its plural resource
+ * name and its short names. kubectl knows it by exactly those, its
+ * singular (the key below) and its Kind, which is the singular in another
+ * case.
+ */
+interface ClusterScopedKind {
+  group: string;
+  plural: string;
+  shortNames: Array<string>;
+}
+
+/*
+ * EVERY built-in cluster-scoped kind the Kubernetes API server serves
+ * (upstream discovery, api/discovery/aggregated_v2.json and api__v1.json of
+ * v1.36), keyed by its singular — alpha and beta kinds included, since a
+ * cluster may switch them on. A superset of the shared policy's
  * CLUSTER_SCOPED_KINDS (the scope test pins that parity through the
  * policy's own verdicts).
  */
-const CLUSTER_SCOPED_KIND_GROUPS: Record<string, string> = {
-  node: "",
-  namespace: "",
-  persistentvolume: "",
-  componentstatus: "",
-  storageclass: "storage.k8s.io",
-  csidriver: "storage.k8s.io",
-  csinode: "storage.k8s.io",
-  volumeattachment: "storage.k8s.io",
-  volumeattributesclass: "storage.k8s.io",
-  customresourcedefinition: "apiextensions.k8s.io",
-  apiservice: "apiregistration.k8s.io",
-  mutatingwebhookconfiguration: "admissionregistration.k8s.io",
-  validatingwebhookconfiguration: "admissionregistration.k8s.io",
-  validatingadmissionpolicy: "admissionregistration.k8s.io",
-  validatingadmissionpolicybinding: "admissionregistration.k8s.io",
-  mutatingadmissionpolicy: "admissionregistration.k8s.io",
-  mutatingadmissionpolicybinding: "admissionregistration.k8s.io",
-  clusterrole: "rbac.authorization.k8s.io",
-  clusterrolebinding: "rbac.authorization.k8s.io",
-  priorityclass: "scheduling.k8s.io",
-  ingressclass: "networking.k8s.io",
-  ipaddress: "networking.k8s.io",
-  servicecidr: "networking.k8s.io",
-  runtimeclass: "node.k8s.io",
-  certificatesigningrequest: "certificates.k8s.io",
-  clustertrustbundle: "certificates.k8s.io",
-  flowschema: "flowcontrol.apiserver.k8s.io",
-  prioritylevelconfiguration: "flowcontrol.apiserver.k8s.io",
-  deviceclass: "resource.k8s.io",
-  resourceslice: "resource.k8s.io",
+const BUILTIN_CLUSTER_SCOPED_KINDS: Record<string, ClusterScopedKind> = {
+  node: { group: "", plural: "nodes", shortNames: ["no"] },
+  namespace: { group: "", plural: "namespaces", shortNames: ["ns"] },
+  persistentvolume: {
+    group: "",
+    plural: "persistentvolumes",
+    shortNames: ["pv"],
+  },
+  componentstatus: {
+    group: "",
+    plural: "componentstatuses",
+    shortNames: ["cs"],
+  },
+  storageclass: {
+    group: "storage.k8s.io",
+    plural: "storageclasses",
+    shortNames: ["sc"],
+  },
+  csidriver: { group: "storage.k8s.io", plural: "csidrivers", shortNames: [] },
+  csinode: { group: "storage.k8s.io", plural: "csinodes", shortNames: [] },
+  volumeattachment: {
+    group: "storage.k8s.io",
+    plural: "volumeattachments",
+    shortNames: [],
+  },
+  volumeattributesclass: {
+    group: "storage.k8s.io",
+    plural: "volumeattributesclasses",
+    shortNames: ["vac"],
+  },
+  storageversionmigration: {
+    group: "storagemigration.k8s.io",
+    plural: "storageversionmigrations",
+    shortNames: [],
+  },
+  customresourcedefinition: {
+    group: "apiextensions.k8s.io",
+    plural: "customresourcedefinitions",
+    shortNames: ["crd", "crds"],
+  },
+  apiservice: {
+    group: "apiregistration.k8s.io",
+    plural: "apiservices",
+    shortNames: [],
+  },
+  mutatingwebhookconfiguration: {
+    group: "admissionregistration.k8s.io",
+    plural: "mutatingwebhookconfigurations",
+    shortNames: [],
+  },
+  validatingwebhookconfiguration: {
+    group: "admissionregistration.k8s.io",
+    plural: "validatingwebhookconfigurations",
+    shortNames: [],
+  },
+  validatingadmissionpolicy: {
+    group: "admissionregistration.k8s.io",
+    plural: "validatingadmissionpolicies",
+    shortNames: [],
+  },
+  validatingadmissionpolicybinding: {
+    group: "admissionregistration.k8s.io",
+    plural: "validatingadmissionpolicybindings",
+    shortNames: [],
+  },
+  mutatingadmissionpolicy: {
+    group: "admissionregistration.k8s.io",
+    plural: "mutatingadmissionpolicies",
+    shortNames: [],
+  },
+  mutatingadmissionpolicybinding: {
+    group: "admissionregistration.k8s.io",
+    plural: "mutatingadmissionpolicybindings",
+    shortNames: [],
+  },
+  clusterrole: {
+    group: "rbac.authorization.k8s.io",
+    plural: "clusterroles",
+    shortNames: [],
+  },
+  clusterrolebinding: {
+    group: "rbac.authorization.k8s.io",
+    plural: "clusterrolebindings",
+    shortNames: [],
+  },
+  tokenreview: {
+    group: "authentication.k8s.io",
+    plural: "tokenreviews",
+    shortNames: [],
+  },
+  selfsubjectreview: {
+    group: "authentication.k8s.io",
+    plural: "selfsubjectreviews",
+    shortNames: [],
+  },
+  subjectaccessreview: {
+    group: "authorization.k8s.io",
+    plural: "subjectaccessreviews",
+    shortNames: [],
+  },
+  selfsubjectaccessreview: {
+    group: "authorization.k8s.io",
+    plural: "selfsubjectaccessreviews",
+    shortNames: [],
+  },
+  selfsubjectrulesreview: {
+    group: "authorization.k8s.io",
+    plural: "selfsubjectrulesreviews",
+    shortNames: [],
+  },
+  priorityclass: {
+    group: "scheduling.k8s.io",
+    plural: "priorityclasses",
+    shortNames: ["pc"],
+  },
+  ingressclass: {
+    group: "networking.k8s.io",
+    plural: "ingressclasses",
+    shortNames: [],
+  },
+  ipaddress: {
+    group: "networking.k8s.io",
+    plural: "ipaddresses",
+    shortNames: ["ip"],
+  },
+  servicecidr: {
+    group: "networking.k8s.io",
+    plural: "servicecidrs",
+    shortNames: [],
+  },
+  runtimeclass: {
+    group: "node.k8s.io",
+    plural: "runtimeclasses",
+    shortNames: [],
+  },
+  certificatesigningrequest: {
+    group: "certificates.k8s.io",
+    plural: "certificatesigningrequests",
+    shortNames: ["csr"],
+  },
+  clustertrustbundle: {
+    group: "certificates.k8s.io",
+    plural: "clustertrustbundles",
+    shortNames: [],
+  },
+  flowschema: {
+    group: "flowcontrol.apiserver.k8s.io",
+    plural: "flowschemas",
+    shortNames: [],
+  },
+  prioritylevelconfiguration: {
+    group: "flowcontrol.apiserver.k8s.io",
+    plural: "prioritylevelconfigurations",
+    shortNames: [],
+  },
+  storageversion: {
+    group: "internal.apiserver.k8s.io",
+    plural: "storageversions",
+    shortNames: [],
+  },
+  deviceclass: {
+    group: "resource.k8s.io",
+    plural: "deviceclasses",
+    shortNames: [],
+  },
+  devicetaintrule: {
+    group: "resource.k8s.io",
+    plural: "devicetaintrules",
+    shortNames: [],
+  },
+  resourceslice: {
+    group: "resource.k8s.io",
+    plural: "resourceslices",
+    shortNames: [],
+  },
+  resourcepoolstatusrequest: {
+    group: "resource.k8s.io",
+    plural: "resourcepoolstatusrequests",
+    shortNames: [],
+  },
 };
 
-// Every name kubectl resolves to one of those kinds (lowercased).
-const CLUSTER_SCOPED_KIND_NAMES: Record<string, string> = {
-  no: "node",
-  nodes: "node",
-  node: "node",
-  ns: "namespace",
-  namespaces: "namespace",
-  namespace: "namespace",
-  pv: "persistentvolume",
-  persistentvolumes: "persistentvolume",
-  persistentvolume: "persistentvolume",
-  cs: "componentstatus",
-  componentstatuses: "componentstatus",
-  componentstatus: "componentstatus",
-  sc: "storageclass",
-  storageclasses: "storageclass",
-  storageclass: "storageclass",
-  csidrivers: "csidriver",
-  csidriver: "csidriver",
-  csinodes: "csinode",
-  csinode: "csinode",
-  volumeattachments: "volumeattachment",
-  volumeattachment: "volumeattachment",
-  vac: "volumeattributesclass",
-  volumeattributesclasses: "volumeattributesclass",
-  volumeattributesclass: "volumeattributesclass",
-  crd: "customresourcedefinition",
-  crds: "customresourcedefinition",
-  customresourcedefinitions: "customresourcedefinition",
-  customresourcedefinition: "customresourcedefinition",
-  apiservices: "apiservice",
-  apiservice: "apiservice",
-  mutatingwebhookconfigurations: "mutatingwebhookconfiguration",
-  mutatingwebhookconfiguration: "mutatingwebhookconfiguration",
-  validatingwebhookconfigurations: "validatingwebhookconfiguration",
-  validatingwebhookconfiguration: "validatingwebhookconfiguration",
-  validatingadmissionpolicies: "validatingadmissionpolicy",
-  validatingadmissionpolicy: "validatingadmissionpolicy",
-  validatingadmissionpolicybindings: "validatingadmissionpolicybinding",
-  validatingadmissionpolicybinding: "validatingadmissionpolicybinding",
-  mutatingadmissionpolicies: "mutatingadmissionpolicy",
-  mutatingadmissionpolicy: "mutatingadmissionpolicy",
-  mutatingadmissionpolicybindings: "mutatingadmissionpolicybinding",
-  mutatingadmissionpolicybinding: "mutatingadmissionpolicybinding",
-  clusterroles: "clusterrole",
-  clusterrole: "clusterrole",
-  clusterrolebindings: "clusterrolebinding",
-  clusterrolebinding: "clusterrolebinding",
-  pc: "priorityclass",
-  priorityclasses: "priorityclass",
-  priorityclass: "priorityclass",
-  ingressclasses: "ingressclass",
-  ingressclass: "ingressclass",
-  ipaddresses: "ipaddress",
-  ipaddress: "ipaddress",
-  servicecidrs: "servicecidr",
-  servicecidr: "servicecidr",
-  runtimeclasses: "runtimeclass",
-  runtimeclass: "runtimeclass",
-  csr: "certificatesigningrequest",
-  certificatesigningrequests: "certificatesigningrequest",
-  certificatesigningrequest: "certificatesigningrequest",
-  clustertrustbundles: "clustertrustbundle",
-  clustertrustbundle: "clustertrustbundle",
-  flowschemas: "flowschema",
-  flowschema: "flowschema",
-  prioritylevelconfigurations: "prioritylevelconfiguration",
-  prioritylevelconfiguration: "prioritylevelconfiguration",
-  deviceclasses: "deviceclass",
-  deviceclass: "deviceclass",
-  resourceslices: "resourceslice",
-  resourceslice: "resourceslice",
-};
+// A name kubectl resolves to a cluster-scoped kind, and whether it is short.
+interface ClusterScopedKindName {
+  kind: string;
+  isShortName: boolean;
+}
+
+/*
+ * Every name kubectl resolves to one of those kinds (lowercased): plural,
+ * singular and short names. A Kind ("StorageClass") is its singular once
+ * lowercased, which is how kubectl matches it too.
+ */
+function buildClusterScopedKindNames(): Record<string, ClusterScopedKindName> {
+  const names: Record<string, ClusterScopedKindName> = {};
+
+  for (const kind of Object.keys(BUILTIN_CLUSTER_SCOPED_KINDS)) {
+    const definition: ClusterScopedKind = BUILTIN_CLUSTER_SCOPED_KINDS[kind]!;
+
+    names[kind] = { kind, isShortName: false };
+    names[definition.plural] = { kind, isShortName: false };
+
+    for (const shortName of definition.shortNames) {
+      names[shortName] = { kind, isShortName: true };
+    }
+  }
+
+  return names;
+}
+
+const CLUSTER_SCOPED_KIND_NAMES: Record<string, ClusterScopedKindName> =
+  buildClusterScopedKindNames();
+
+/*
+ * An API version as Kubernetes spells one ("v1", "v1beta2", "v2alpha1"):
+ * the middle segment of "RESOURCE.VERSION.GROUP".
+ */
+const API_VERSION_SEGMENT: RegExp = /^v\d+(?:(?:alpha|beta)\d+)?$/;
 
 /*
  * Flags by arity, mirroring the shared policy's KNOWN_FLAGS (every flag
@@ -512,10 +647,35 @@ interface PositionalsReading {
   positionals: Array<string>;
   // Why the positionals cannot be split for certain, or null.
   uncertainty: string | null;
+  /*
+   * The first flag that replaces the object kubectl builds (see
+   * OBJECT_REPLACING_FLAGS), as written without its value, or null.
+   */
+  objectReplacingFlag: string | null;
 }
 
 function describeUnknownFlag(flag: string): string {
   return `"${flag}" is a flag the write scope does not know, so whether it takes the next word as its value cannot be told`;
+}
+
+/*
+ * Flags that replace the object kubectl builds with one the flag's value
+ * describes: kubectl merges --overrides (a JSON merge, strategic merge or
+ * JSON patch, per --override-type) into the Service `kubectl expose`
+ * generates — or the Pod `kubectl run` does — and then picks the REST
+ * mapping, and so the kind and the namespace it creates in, from the
+ * merged object. `kubectl expose deployment web -n prod --overrides=...`
+ * can therefore create a ClusterRoleBinding, a PriorityClass, a Namespace
+ * or a privileged Job instead of a Service in prod. Read by their
+ * normalized name ("--override_type" is "--override-type" to kubectl).
+ */
+const OBJECT_REPLACING_FLAGS: Set<string> = new Set<string>([
+  "overrides",
+  "override-type",
+]);
+
+function describeObjectReplacingFlag(flag: string): string {
+  return `"${flag}" lets kubectl create whatever object its value describes instead of the one the command names — of any kind, in any namespace — so what the command changes cannot be read from it`;
 }
 
 /*
@@ -530,6 +690,7 @@ function readPositionals(args: Array<string>): PositionalsReading {
   const positionals: Array<string> = [];
   let verb: string | undefined = undefined;
   let afterDoubleDash: boolean = false;
+  let objectReplacingFlag: string | null = null;
 
   for (let i: number = 0; i < args.length; i++) {
     const token: string = args[i]!;
@@ -549,13 +710,20 @@ function readPositionals(args: Array<string>): PositionalsReading {
 
     if (token.startsWith("--")) {
       const eq: number = token.indexOf("=");
-      const name: string = normalizeKubectlFlagName(
-        eq >= 0 ? token.slice(2, eq) : token.slice(2),
-      );
+      const written: string = eq >= 0 ? token.slice(0, eq) : token;
+      const name: string = normalizeKubectlFlagName(written.slice(2));
       const arity: FlagArity | null = lookupFlagArity(name, verb);
 
       if (arity === null) {
-        return { positionals, uncertainty: describeUnknownFlag(token) };
+        return {
+          positionals,
+          uncertainty: describeUnknownFlag(token),
+          objectReplacingFlag,
+        };
+      }
+
+      if (objectReplacingFlag === null && OBJECT_REPLACING_FLAGS.has(name)) {
+        objectReplacingFlag = written;
       }
 
       if (eq < 0 && arity === "value") {
@@ -575,6 +743,7 @@ function readPositionals(args: Array<string>): PositionalsReading {
         return {
           positionals,
           uncertainty: describeUnknownFlag(`-${letter}`),
+          objectReplacingFlag,
         };
       }
 
@@ -596,7 +765,7 @@ function readPositionals(args: Array<string>): PositionalsReading {
     }
   }
 
-  return { positionals, uncertainty: null };
+  return { positionals, uncertainty: null, objectReplacingFlag };
 }
 
 /*
@@ -682,10 +851,54 @@ function readObjectReferences(tokens: Array<string>): ObjectReferencesReading {
 }
 
 /*
+ * Does a group written after a kind name match that kind's own group, the
+ * way kubectl matches it? An empty group matches the name in every group
+ * (as the bare name does); otherwise the kind's own group, or — kubectl's
+ * "group prefixing" fallback when no group matches exactly — any prefix of
+ * it. The core group is never a prefix match ("nodes.core" is an error).
+ */
+function writtenGroupNamesKindGroup(data: {
+  written: string;
+  group: string;
+  prefixMatches: boolean;
+}): boolean {
+  if (data.written === "" || data.written === data.group) {
+    return true;
+  }
+
+  return (
+    data.prefixMatches &&
+    data.group !== "" &&
+    data.group.startsWith(data.written)
+  );
+}
+
+/*
  * The built-in cluster-scoped kind a written kind names, or null for any
  * other kind (namespaced, or a custom resource whose scope this reader
- * cannot see). kubectl reads "RESOURCE.GROUP" and "RESOURCE.VERSION.GROUP"
- * ("nodes.v1." for the core group); only the kind's own group counts.
+ * cannot see). Read the way kubectl's resource builder reads it
+ * (schema.ParseResourceArg, then client-go's shortcut expander and REST
+ * mapper):
+ *
+ *   - with two dots or more, first as "RESOURCE.VERSION.GROUP". A short
+ *     name there matches its kind in any group that GROUP is a prefix of
+ *     ("sc.v1.storage"), and in every group when GROUP is empty — whatever
+ *     the version, which the expansion drops ("sc.v1.", "sc.foo.", "no.x.").
+ *     A plural or singular name matches with an empty GROUP or its own,
+ *     after a real API version ("nodes.v1.", "storageclasses.v1.") or none
+ *     ("nodes..");
+ *   - then as "RESOURCE.GROUP", GROUP being everything after the first dot:
+ *     empty ("sc.", "nodes."), the kind's own group, or any prefix of it
+ *     ("sc.storage", "storageclasses.stor", "csr.cert", "ip.net",
+ *     "storageclasses.storage.").
+ *
+ * The core group is never a prefix match: "nodes.core" and "no.x" are
+ * errors in kubectl, and "nodes.example.com" is some custom resource.
+ *
+ * A custom resource that shares a name, a short name or a group prefix with
+ * a built-in kind loses to it — discovery lists the built-in groups first,
+ * and kubectl takes the first match — so the prefix spellings are the
+ * built-in kind exactly as the bare name is.
  */
 function clusterScopedKindOf(rawKind: string): string | null {
   const lower: string = rawKind.trim().toLowerCase();
@@ -696,25 +909,48 @@ function clusterScopedKindOf(rawKind: string): string | null {
     return null;
   }
 
-  const kind: string = CLUSTER_SCOPED_KIND_NAMES[head]!;
+  const name: ClusterScopedKindName = CLUSTER_SCOPED_KIND_NAMES[head]!;
 
   if (dot < 0) {
-    return kind;
+    return name.kind;
   }
 
-  const group: string = CLUSTER_SCOPED_KIND_GROUPS[kind] ?? "";
+  const group: string = BUILTIN_CLUSTER_SCOPED_KINDS[name.kind]!.group;
   const qualifier: string = lower.slice(dot + 1);
-
-  // RESOURCE.GROUP
-  if (qualifier === group) {
-    return kind;
-  }
-
-  // RESOURCE.VERSION.GROUP
   const versionDot: number = qualifier.indexOf(".");
 
-  if (versionDot >= 0 && qualifier.slice(versionDot + 1) === group) {
-    return kind;
+  // RESOURCE.VERSION.GROUP
+  if (versionDot >= 0) {
+    const version: string = qualifier.slice(0, versionDot);
+    const versionedGroup: string = qualifier.slice(versionDot + 1);
+
+    // A short name's expansion keeps no version when no group is written.
+    if (name.isShortName && versionedGroup === "") {
+      return name.kind;
+    }
+
+    if (
+      (version === "" || API_VERSION_SEGMENT.test(version)) &&
+      writtenGroupNamesKindGroup({
+        written: versionedGroup,
+        group,
+        // With a version, only a short name falls back to a group prefix.
+        prefixMatches: name.isShortName || version === "",
+      })
+    ) {
+      return name.kind;
+    }
+  }
+
+  // RESOURCE.GROUP
+  if (
+    writtenGroupNamesKindGroup({
+      written: qualifier,
+      group,
+      prefixMatches: true,
+    })
+  ) {
+    return name.kind;
   }
 
   return null;
@@ -729,6 +965,11 @@ export interface KubectlWriteTargets {
   verb: string;
   // Why the objects cannot be read for certain, or null.
   uncertainty: string | null;
+  /*
+   * With an uncertainty, what to change in the command so its objects can
+   * be read, as a sentence for whoever composes it; "" otherwise.
+   */
+  uncertaintyFix: string;
   // A node operation: a node verb, or a Node among the objects.
   touchesNodes: boolean;
   // The Namespace objects it names, lowercased, in order.
@@ -1054,6 +1295,8 @@ const FIX_PUT_THE_NAMESPACE_FIRST: string =
   "Put the namespace first so it cannot be misread: kubectl -n <namespace> ...";
 const FIX_NAME_THE_OBJECTS: string =
   'Name the objects right after the verb (TYPE NAME or TYPE/NAME) and give each flag its value with "=" (--selector=app=web).';
+const FIX_LEAVE_OUT_OVERRIDES: string =
+  "Leave out --overrides and --override-type, so kubectl creates only the object the command itself describes.";
 const FIX_NAME_EACH_NAMESPACE_OBJECT: string = "Name each Namespace object.";
 const FIX_NAME_ONE_NAMESPACE: string =
   "Name one namespace with -n <namespace>.";
@@ -1294,6 +1537,7 @@ export default class KubectlWriteScope {
     const targets: KubectlWriteTargets = {
       verb: "",
       uncertainty: null,
+      uncertaintyFix: "",
       touchesNodes: false,
       namespaceObjects: [],
       unnamedNamespaceObjects: false,
@@ -1305,12 +1549,27 @@ export default class KubectlWriteScope {
 
     if (reading.uncertainty !== null) {
       targets.uncertainty = reading.uncertainty;
+      targets.uncertaintyFix = FIX_NAME_THE_OBJECTS;
       return targets;
     }
 
     const positionals: Array<string> = reading.positionals;
     const verb: string = (positionals[0] || "").toLowerCase();
     targets.verb = verb;
+
+    /*
+     * --overrides decides what kubectl creates, whatever the verb and the
+     * objects say (see OBJECT_REPLACING_FLAGS) — on every verb, not only
+     * expose, so this reading never depends on the shared policy denying
+     * the flag first.
+     */
+    if (reading.objectReplacingFlag !== null) {
+      targets.uncertainty = describeObjectReplacingFlag(
+        reading.objectReplacingFlag,
+      );
+      targets.uncertaintyFix = FIX_LEAVE_OUT_OVERRIDES;
+      return targets;
+    }
 
     // cordon, uncordon, drain and taint only ever act on nodes.
     if (NODE_VERBS.has(verb)) {
@@ -1324,6 +1583,7 @@ export default class KubectlWriteScope {
 
       if (!hasOwn(CREATE_SUBCOMMAND_SCOPES, subcommand)) {
         targets.uncertainty = `"create ${subcommand}" is not a kubectl create subcommand the write scope knows`;
+        targets.uncertaintyFix = FIX_NAME_THE_OBJECTS;
         return targets;
       }
 
@@ -1360,13 +1620,15 @@ export default class KubectlWriteScope {
 
     if (references.uncertainty !== null) {
       targets.uncertainty = references.uncertainty;
+      targets.uncertaintyFix = FIX_NAME_THE_OBJECTS;
       return targets;
     }
 
     /*
      * No object at all is a kubectl error; judging it as namespaced keeps
      * the stricter rule. expose and autoscale make a namespaced Service or
-     * HorizontalPodAutoscaler whatever they name.
+     * HorizontalPodAutoscaler whatever they name (--overrides, which could
+     * make it anything else, was refused as uncertain above).
      */
     if (
       references.references.length === 0 ||
@@ -1523,7 +1785,7 @@ export default class KubectlWriteScope {
     ) {
       return refuse("node_operations", {
         uncertainty: targets.uncertainty,
-        fix: targets.uncertainty === null ? "" : FIX_NAME_THE_OBJECTS,
+        fix: targets.uncertainty === null ? "" : targets.uncertaintyFix,
       });
     }
 
@@ -1549,7 +1811,7 @@ export default class KubectlWriteScope {
 
       return refuse("objects_uncertain", {
         uncertainty: targets.uncertainty,
-        fix: FIX_NAME_THE_OBJECTS,
+        fix: targets.uncertaintyFix,
       });
     }
 
