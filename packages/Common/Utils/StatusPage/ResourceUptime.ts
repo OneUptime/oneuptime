@@ -181,12 +181,8 @@ export default class StatusPageResourceUptimeUtil {
       | Dictionary<MergedDowntimeTotals>
       | null
       | undefined;
-    ignoreResourceShowUptimePercent?: boolean | undefined;
   }): number | null {
-    if (
-      !data.statusPageResource.showUptimePercent &&
-      !data.ignoreResourceShowUptimePercent
-    ) {
+    if (!data.statusPageResource.showUptimePercent) {
       return null;
     }
 
@@ -316,7 +312,6 @@ export default class StatusPageResourceUptimeUtil {
           uptimeWindow: data.uptimeWindow,
           uptimeDailyAggregate: data.uptimeDailyAggregate,
           monitorGroupMergedDowntime: data.monitorGroupMergedDowntime,
-          ignoreResourceShowUptimePercent: true,
         });
 
       if (calculateUptimePercentOfResource !== null) {
