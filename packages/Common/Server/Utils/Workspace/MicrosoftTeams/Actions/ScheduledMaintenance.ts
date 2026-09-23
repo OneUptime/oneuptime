@@ -33,6 +33,7 @@ import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import OneUptimeDate from "../../../../../Types/Date";
 import URL from "../../../../../Types/API/URL";
+import WorkspaceProjectReferenceValidator from "../../WorkspaceProjectReferenceValidator";
 
 export default class MicrosoftTeamsScheduledMaintenanceActions {
   @CaptureSpan()
@@ -193,89 +194,14 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           scheduledMaintenanceObj.endsAt =
             OneUptimeDate.fromString(endDateTime);
 
-          // Parse monitors
-          if (monitorIds) {
-            const monitorIdArray: Array<string> = monitorIds
-              .split(",")
-              .map((id: string) => {
-                return id.trim();
-              })
-              .filter((id: string) => {
-                return id;
-              });
-            if (monitorIdArray.length > 0) {
-              scheduledMaintenanceObj.monitors = monitorIdArray.map(
-                (id: string) => {
-                  const monitor: Monitor = new Monitor();
-                  monitor.id = new ObjectID(id);
-                  return monitor;
-                },
-              );
-            }
-          }
-
-          // Parse labels
-          if (labelIds) {
-            const labelIdArray: Array<string> = labelIds
-              .split(",")
-              .map((id: string) => {
-                return id.trim();
-              })
-              .filter((id: string) => {
-                return id;
-              });
-            if (labelIdArray.length > 0) {
-              scheduledMaintenanceObj.labels = labelIdArray.map(
-                (id: string) => {
-                  const label: Label = new Label();
-                  label.id = new ObjectID(id);
-                  return label;
-                },
-              );
-            }
-          }
-
-          // Save the scheduled maintenance
           const createdScheduledMaintenance: ScheduledMaintenance =
-            await ScheduledMaintenanceService.create({
-              data: scheduledMaintenanceObj,
-              props: {
-                isRoot: true,
-              },
+            await this.createScheduledMaintenanceInProject({
+              scheduledMaintenance: scheduledMaintenanceObj,
+              projectId: request.projectId,
+              monitorIds,
+              monitorStatusId,
+              labelIds,
             });
-
-          logger.debug(
-            "Scheduled maintenance created successfully: " +
-              createdScheduledMaintenance.id?.toString(),
-            {
-              projectId: request.projectId.toString(),
-              scheduledMaintenanceId:
-                createdScheduledMaintenance.id?.toString(),
-            },
-          );
-
-          // Update monitor status if specified
-          if (monitorStatusId && monitorIds) {
-            const monitorIdArray: Array<string> = monitorIds
-              .split(",")
-              .map((id: string) => {
-                return id.trim();
-              })
-              .filter((id: string) => {
-                return id;
-              });
-            for (const monitorId of monitorIdArray) {
-              await MonitorService.updateOneById({
-                id: new ObjectID(monitorId),
-                data: {
-                  currentMonitorStatusId: new ObjectID(monitorStatusId),
-                },
-                props: {
-                  isRoot: true,
-                },
-              });
-            }
-          }
 
           // Hide the form card by deleting it first
           if (turnContext.activity.replyToId) {
@@ -794,84 +720,13 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       scheduledMaintenance.startsAt = OneUptimeDate.fromString(startDate);
       scheduledMaintenance.endsAt = OneUptimeDate.fromString(endDate);
 
-      // Parse monitors
-      if (monitorIds) {
-        const monitorIdArray: Array<string> = monitorIds
-          .split(",")
-          .map((id: string) => {
-            return id.trim();
-          })
-          .filter((id: string) => {
-            return id;
-          });
-        if (monitorIdArray.length > 0) {
-          scheduledMaintenance.monitors = monitorIdArray.map((id: string) => {
-            const monitor: Monitor = new Monitor();
-            monitor.id = new ObjectID(id);
-            return monitor;
-          });
-        }
-      }
-
-      // Parse labels
-      if (labelIds) {
-        const labelIdArray: Array<string> = labelIds
-          .split(",")
-          .map((id: string) => {
-            return id.trim();
-          })
-          .filter((id: string) => {
-            return id;
-          });
-        if (labelIdArray.length > 0) {
-          scheduledMaintenance.labels = labelIdArray.map((id: string) => {
-            const label: Label = new Label();
-            label.id = new ObjectID(id);
-            return label;
-          });
-        }
-      }
-
-      // Save the scheduled maintenance
-      const createdScheduledMaintenance: ScheduledMaintenance =
-        await ScheduledMaintenanceService.create({
-          data: scheduledMaintenance,
-          props: {
-            isRoot: true,
-          },
-        });
-
-      logger.debug(
-        "Scheduled maintenance created successfully: " +
-          createdScheduledMaintenance.id?.toString(),
-        {
-          projectId: projectId.toString(),
-          scheduledMaintenanceId: createdScheduledMaintenance.id?.toString(),
-        },
-      );
-
-      // Update monitor status if specified
-      if (monitorStatusId && monitorIds) {
-        const monitorIdArray: Array<string> = monitorIds
-          .split(",")
-          .map((id: string) => {
-            return id.trim();
-          })
-          .filter((id: string) => {
-            return id;
-          });
-        for (const monitorId of monitorIdArray) {
-          await MonitorService.updateOneById({
-            id: new ObjectID(monitorId),
-            data: {
-              currentMonitorStatusId: new ObjectID(monitorStatusId),
-            },
-            props: {
-              isRoot: true,
-            },
-          });
-        }
-      }
+      await this.createScheduledMaintenanceInProject({
+        scheduledMaintenance,
+        projectId,
+        monitorIds,
+        monitorStatusId,
+        labelIds,
+      });
 
       logger.debug(
         "New scheduled maintenance created from Microsoft Teams successfully",
@@ -888,6 +743,95 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       );
       logger.error(error);
     }
+  }
+
+  /*
+   * Every id below comes from the submitted card, not from the form we sent,
+   * and the writes run as root. So they are checked against the linked project
+   * before anything is created, and the monitor status write is scoped to that
+   * project as well.
+   */
+  private static async createScheduledMaintenanceInProject(data: {
+    scheduledMaintenance: ScheduledMaintenance;
+    projectId: ObjectID;
+    monitorIds: string;
+    monitorStatusId: string;
+    labelIds: string;
+  }): Promise<ScheduledMaintenance> {
+    const { scheduledMaintenance, projectId } = data;
+
+    const monitorIdArray: Array<ObjectID> =
+      WorkspaceProjectReferenceValidator.parseCommaSeparatedIds(
+        data.monitorIds,
+      );
+    const labelIdArray: Array<ObjectID> =
+      WorkspaceProjectReferenceValidator.parseCommaSeparatedIds(data.labelIds);
+    const monitorStatusId: ObjectID | undefined =
+      data.monitorStatusId && monitorIdArray.length > 0
+        ? new ObjectID(data.monitorStatusId)
+        : undefined;
+
+    await WorkspaceProjectReferenceValidator.validateReferencesBelongToProject({
+      projectId: projectId,
+      subject: "scheduled maintenance event",
+      monitorIds: monitorIdArray,
+      labelIds: labelIdArray,
+      monitorStatusId: monitorStatusId,
+    });
+
+    if (monitorIdArray.length > 0) {
+      scheduledMaintenance.monitors = monitorIdArray.map((id: ObjectID) => {
+        const monitor: Monitor = new Monitor();
+        monitor.id = id;
+        return monitor;
+      });
+    }
+
+    if (labelIdArray.length > 0) {
+      scheduledMaintenance.labels = labelIdArray.map((id: ObjectID) => {
+        const label: Label = new Label();
+        label.id = id;
+        return label;
+      });
+    }
+
+    // Save the scheduled maintenance
+    const createdScheduledMaintenance: ScheduledMaintenance =
+      await ScheduledMaintenanceService.create({
+        data: scheduledMaintenance,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    logger.debug(
+      "Scheduled maintenance created successfully: " +
+        createdScheduledMaintenance.id?.toString(),
+      {
+        projectId: projectId.toString(),
+        scheduledMaintenanceId: createdScheduledMaintenance.id?.toString(),
+      },
+    );
+
+    // Update monitor status if specified
+    if (monitorStatusId) {
+      for (const monitorId of monitorIdArray) {
+        await MonitorService.updateOneBy({
+          query: {
+            _id: monitorId.toString(),
+            projectId: projectId,
+          },
+          data: {
+            currentMonitorStatusId: monitorStatusId,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      }
+    }
+
+    return createdScheduledMaintenance;
   }
 
   public static async buildNewScheduledMaintenanceCard(

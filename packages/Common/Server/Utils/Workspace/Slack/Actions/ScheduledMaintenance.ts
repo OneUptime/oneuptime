@@ -42,6 +42,7 @@ import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProj
 import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import WorkspaceProjectReferenceValidator from "../../WorkspaceProjectReferenceValidator";
 import ScheduledMaintenanceStateTimeline from "../../../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import ScheduledMaintenancePublicNote from "../../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceInternalNote from "../../../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
@@ -250,6 +251,20 @@ export default class SlackScheduledMaintenanceActions {
         });
         return;
       }
+
+      /*
+       * The event is created as root from ids in the submitted view, so check
+       * they belong to this project. ScheduledMaintenanceService only checks
+       * the monitor status on create.
+       */
+      await WorkspaceProjectReferenceValidator.validateReferencesBelongToProject(
+        {
+          projectId: slackRequest.projectId!,
+          subject: "scheduled maintenance event",
+          monitorIds: scheduledMaintenanceMonitors,
+          labelIds: scheduledMaintenanceLabels,
+        },
+      );
 
       const scheduledMaintenance: ScheduledMaintenance =
         new ScheduledMaintenance();

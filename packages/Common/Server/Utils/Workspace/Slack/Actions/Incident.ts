@@ -45,6 +45,7 @@ import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAut
 import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import WorkspaceProjectReferenceValidator from "../../WorkspaceProjectReferenceValidator";
 import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
 import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
@@ -181,6 +182,21 @@ export default class SlackIncidentActions {
       const monitorStatusId: ObjectID | undefined = monitorStatus
         ? new ObjectID(monitorStatus)
         : undefined;
+
+      /*
+       * The incident is created as root from ids in the submitted view, so
+       * check they belong to this project. IncidentService only checks the
+       * severity and the monitor status on create.
+       */
+      await WorkspaceProjectReferenceValidator.validateReferencesBelongToProject(
+        {
+          projectId: slackRequest.projectId!,
+          subject: "incident",
+          monitorIds: incidentMonitors,
+          labelIds: incidentLabels,
+          onCallDutyPolicyIds: incidentOnCallPolicies,
+        },
+      );
 
       const incident: Incident = new Incident();
       incident.title = title;
