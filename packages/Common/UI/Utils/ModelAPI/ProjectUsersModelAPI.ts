@@ -141,6 +141,24 @@ export default class ProjectUsersModelAPI extends ModelAPI {
       return ModelAPI.deleteItem<TBaseModel>(data);
     }
 
+    await this.removeUserFromProject({
+      userId: userId,
+      requestOptions: data.requestOptions,
+    });
+  }
+
+  /**
+   * Removes one user from the current project - every team they belong to in
+   * it - in a single `remove-user-from-project` request. See deleteItem for
+   * why this must not be a DELETE per membership.
+   *
+   * Public so that every "remove from project" in the product goes through the
+   * same all-or-nothing request, not just the Users table's.
+   */
+  public static async removeUserFromProject(data: {
+    userId: ObjectID;
+    requestOptions?: RequestOptions | undefined;
+  }): Promise<void> {
     const url: URL = URL.fromString(APP_API_URL.toString())
       .addRoute(new TeamMember().getCrudApiPath()!)
       .addRoute("/remove-user-from-project");
@@ -149,7 +167,7 @@ export default class ProjectUsersModelAPI extends ModelAPI {
       await API.post<JSONObject>({
         url: url,
         data: {
-          userId: userId.toString(),
+          userId: data.userId.toString(),
         },
         headers: ModelAPI.getCommonHeaders(data.requestOptions),
       });
