@@ -77,8 +77,19 @@ jest.mock("Common/Server/Services/UserNotificationSettingService", () => {
   return { __esModule: true, default: { sendUserNotification: jest.fn() } };
 });
 
+// Every owner here is a project member; membership has its own suite.
 jest.mock("Common/Server/Services/TeamMemberService", () => {
-  return { __esModule: true, default: { getUsersInTeams: jest.fn() } };
+  return {
+    __esModule: true,
+    default: {
+      getUsersInTeams: jest.fn(),
+      filterUsersToProjectMembers: jest.fn(
+        async (data: { users: Array<unknown> }): Promise<Array<unknown>> => {
+          return data.users;
+        },
+      ),
+    },
+  };
 });
 
 jest.mock("Common/Server/Utils/PushNotificationUtil", () => {
