@@ -8,9 +8,14 @@ import SecurityEvent from "../../../Models/AnalyticsModels/SecurityEvent";
 import OcsfSeverity from "../../../Types/SecurityEvent/OcsfSeverity";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import SecurityEventListRow, {
+  SECURITY_EVENT_ROW_ATTRIBUTE_CHIP_TEST_ID,
   SECURITY_EVENT_ROW_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventListRow";
 import { SECURITY_EVENT_VOLUME_COLORS } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventVolume";
+import {
+  SecurityEventAttributeColumn,
+  buildSecurityEventAttributeColumns,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventAttributeColumns";
 
 /*
  * One security event as a dense list row — the shape the logs and traces
@@ -29,7 +34,11 @@ function event(fields: Partial<SecurityEvent> = {}): SecurityEvent {
 
 function renderRow(
   securityEvent: SecurityEvent,
-  props: { isSelected?: boolean; onClick?: () => void } = {},
+  props: {
+    isSelected?: boolean;
+    onClick?: () => void;
+    attributeColumns?: Array<SecurityEventAttributeColumn>;
+  } = {},
 ): void {
   render(<SecurityEventListRow securityEvent={securityEvent} {...props} />);
 }
@@ -210,5 +219,153 @@ describe("opening an event", () => {
     renderRow(event({ message: "Failed logon" }));
 
     expect(row()).not.toHaveAttribute("aria-pressed");
+  });
+});
+
+/*
+ * Source attributes the viewer chose to see on every row — the fields a
+ * Google SecOps detection buries hundreds deep in `attributes`, like the
+ * target's first name or the office it sits in.
+ */
+describe("chosen attribute columns", () => {
+  const FIRST_NAME_KEY: string =
+    "collectionElements.0.references.0.event.target.user.firstName";
+  const CITY_KEY: string =
+    "collectionElements.0.references.0.event.target.user.personalAddress.city";
+  const ADDRESS_KEY: string =
+    "collectionElements.0.references.0.event.target.user.personalAddress.name";
+
+  const COLUMNS: Array<SecurityEventAttributeColumn> =
+    buildSecurityEventAttributeColumns([FIRST_NAME_KEY, CITY_KEY, ADDRESS_KEY]);
+
+  const DETECTION: SecurityEvent = event({
+    className: "Detection Finding",
+    message: "Mass_Password_Reset_Modification",
+    targetUser: "jdoe@example.com",
+    vendorName: "Google",
+    attributes: {
+      [FIRST_NAME_KEY]: "jdoe",
+      [CITY_KEY]: "Springfield",
+      [ADDRESS_KEY]: "100 Example Ave",
+      "collectionElements.0.references.0.event.target.user.title": "WB Unit",
+    },
+  });
+
+  function attributeChips(): Array<HTMLElement> {
+    return screen.queryAllByTestId(SECURITY_EVENT_ROW_ATTRIBUTE_CHIP_TEST_ID);
+  }
+
+  test("each chosen attribute gets a labelled chip with the event's value", () => {
+    renderRow(DETECTION, { attributeColumns: COLUMNS });
+
+    for (const [label, value] of [
+      ["user.firstName", "jdoe"],
+      ["personalAddress.city", "Springfield"],
+      ["personalAddress.name", "100 Example Ave"],
+    ]) {
+      const labelNode: HTMLElement = screen.getByText(label as string);
+      expect(labelNode.parentElement).toHaveTextContent(value as string);
+    }
+  });
+
+  test("the chips follow the viewer's order", () => {
+    renderRow(DETECTION, {
+      attributeColumns: buildSecurityEventAttributeColumns([
+        CITY_KEY,
+        FIRST_NAME_KEY,
+      ]),
+    });
+
+    expect(
+      attributeChips().map((chip: HTMLElement): string => {
+        return chip.getAttribute("data-attribute-key") || "";
+      }),
+    ).toEqual([CITY_KEY, FIRST_NAME_KEY]);
+  });
+
+  test("the label's tooltip names the full key, the value's the full value", () => {
+    renderRow(DETECTION, { attributeColumns: COLUMNS });
+
+    expect(screen.getByText("user.firstName")).toHaveAttribute(
+      "title",
+      FIRST_NAME_KEY,
+    );
+    expect(screen.getByText("100 Example Ave")).toHaveAttribute(
+      "title",
+      "100 Example Ave",
+    );
+  });
+
+  test("an attribute this event does not carry gets no chip at all", () => {
+    renderRow(
+      event({
+        message: "another rule",
+        attributes: { [CITY_KEY]: "Austin", [FIRST_NAME_KEY]: "   " },
+      }),
+      { attributeColumns: COLUMNS },
+    );
+
+    expect(attributeChips()).toHaveLength(1);
+    expect(attributeChips()[0]).toHaveTextContent("Austin");
+    expect(screen.queryByText("user.firstName")).toBeNull();
+    expect(screen.queryByText("personalAddress.name")).toBeNull();
+  });
+
+  test("an event with no attributes at all renders as before", () => {
+    renderRow(event({ principalUser: "alice" }), {
+      attributeColumns: COLUMNS,
+    });
+
+    expect(attributeChips()).toHaveLength(0);
+    expect(screen.getByText("user")).toBeInTheDocument();
+  });
+
+  test("they come after the typed chips, which stay exactly as they were", () => {
+    renderRow(DETECTION, { attributeColumns: COLUMNS });
+
+    const chipLine: HTMLElement = attributeChips()[0]!
+      .parentElement as HTMLElement;
+    const chipLabels: Array<string> = Array.from(chipLine.children).map(
+      (chip: Element): string => {
+        return chip.firstElementChild?.textContent || "";
+      },
+    );
+
+    expect(chipLabels).toEqual([
+      "target user",
+      "vendor",
+      "user.firstName",
+      "personalAddress.city",
+      "personalAddress.name",
+    ]);
+  });
+
+  test("no chosen attributes, no attribute chips — even on an event that has them", () => {
+    renderRow(DETECTION);
+
+    expect(attributeChips()).toHaveLength(0);
+    expect(row()).not.toHaveTextContent("Springfield");
+  });
+
+  test("a chosen attribute chip is set apart from the typed ones", () => {
+    renderRow(DETECTION, { attributeColumns: COLUMNS });
+
+    const typedChip: HTMLElement = screen.getByText("vendor")
+      .parentElement as HTMLElement;
+
+    expect(attributeChips()[0]!.className).not.toBe(typedChip.className);
+  });
+
+  test("clicking an attribute chip still opens the event", () => {
+    const onClick: MockFunction = getJestMockFunction();
+
+    renderRow(DETECTION, {
+      attributeColumns: COLUMNS,
+      onClick: onClick as unknown as () => void,
+    });
+
+    fireEvent.click(screen.getByText("Springfield"));
+
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 });

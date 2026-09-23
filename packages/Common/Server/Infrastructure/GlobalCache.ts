@@ -328,6 +328,41 @@ export default abstract class GlobalCache {
     return result === 1;
   }
 
+  /*
+   * Atomic read-and-remove: return the value and delete the key in one
+   * evaluation, so exactly one caller ever sees it.
+   *
+   * This is the primitive for single-use tokens (OAuth `state` nonces and the
+   * like). `getString()` followed by `deleteKey()` is a check-then-act race:
+   * two requests replaying the same token in the same instant would both read
+   * it before either deleted it, and both would be honoured. A Lua script
+   * rather than GETDEL keeps this working on Redis versions older than 6.2.
+   *
+   * The key is passed as KEYS[1] rather than inlined into the script body so
+   * the script stays correct on Redis Cluster, which routes by declared keys.
+   */
+  @CaptureSpan()
+  public static async getAndDeleteString(
+    namespace: string,
+    key: string,
+  ): Promise<string | null> {
+    const client: ClientType | null = Redis.getClient();
+
+    if (!client || !Redis.isConnected()) {
+      throw new DatabaseNotConnectedException("Cache is not connected");
+    }
+
+    const result: unknown = await client.eval(
+      "local value = redis.call('GET', KEYS[1]) " +
+        "if value then redis.call('DEL', KEYS[1]) end " +
+        "return value",
+      1,
+      `${namespace}-${key}`,
+    );
+
+    return typeof result === "string" && result ? result : null;
+  }
+
   @CaptureSpan()
   public static async deleteKey(namespace: string, key: string): Promise<void> {
     const client: ClientType | null = Redis.getClient();

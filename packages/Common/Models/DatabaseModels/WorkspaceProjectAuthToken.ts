@@ -110,13 +110,18 @@ export interface MicrosoftTeamsMiscData extends MiscData {
 
 export type WorkspaceMiscData = SlackMiscData | MicrosoftTeamsMiscData;
 
+/*
+ * This row is the binding everything downstream trusts: which Slack workspace
+ * or Microsoft 365 tenant a project's bot token belongs to. For Teams the
+ * server even mints a fresh Graph app token for whatever tenant
+ * `workspaceProjectId` names. So it is created only by the Slack / Microsoft
+ * Teams connect flows, which prove the workspace or tenant before writing it
+ * (see WorkspaceOAuthState), and never through the CRUD API — where it could
+ * name any tenant at all.
+ */
 @TenantColumn("projectId")
 @TableAccessControl({
-  create: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-  ],
+  create: [],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -271,11 +276,8 @@ class WorkspaceProjectAuthToken extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-    ],
+    // Repointing a connection to another workspace or tenant is server-only; see the table comment.
+    update: [],
   })
   @TableColumn({
     title: "Project ID in Workspace",

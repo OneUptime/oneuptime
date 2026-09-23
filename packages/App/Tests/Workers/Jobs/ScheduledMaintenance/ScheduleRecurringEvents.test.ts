@@ -93,6 +93,32 @@ jest.mock("Common/Server/Services/ScheduledMaintenanceOwnerTeamService", () => {
   return { __esModule: true, default: { create: jest.fn() } };
 });
 
+/*
+ * The lookup services only identify which table a list is checked against;
+ * the filter itself is mocked below and tested in Common.
+ */
+jest.mock("Common/Server/Services/MonitorService", () => {
+  return { __esModule: true, default: { name: "MonitorService" } };
+});
+
+jest.mock("Common/Server/Services/LabelService", () => {
+  return { __esModule: true, default: { name: "LabelService" } };
+});
+
+jest.mock("Common/Server/Services/StatusPageService", () => {
+  return { __esModule: true, default: { name: "StatusPageService" } };
+});
+
+jest.mock(
+  "Common/Server/Utils/Database/ProjectScopedReferenceValidator",
+  () => {
+    return {
+      __esModule: true,
+      default: { filterUsableInProject: jest.fn() },
+    };
+  },
+);
+
 import ScheduledMaintenanceService from "Common/Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceTemplateService from "Common/Server/Services/ScheduledMaintenanceTemplateService";
 import ScheduledMaintenanceTemplateOwnerUserService from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerUserService";
@@ -103,6 +129,12 @@ import PostgresErrorTranslator from "Common/Server/Utils/Database/PostgresErrorT
 import logger from "Common/Server/Utils/Logger";
 import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
+import Label from "Common/Models/DatabaseModels/Label";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import LabelService from "Common/Server/Services/LabelService";
+import MonitorService from "Common/Server/Services/MonitorService";
+import StatusPageService from "Common/Server/Services/StatusPageService";
+import ProjectScopedReferenceValidator from "Common/Server/Utils/Database/ProjectScopedReferenceValidator";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -206,6 +238,13 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
     (
       ScheduledMaintenanceTemplateOwnerTeamService.findAllBy as jest.Mock
     ).mockResolvedValue([] as never);
+
+    // Every record belongs to the template's project unless a test says not.
+    (
+      ProjectScopedReferenceValidator.filterUsableInProject as jest.Mock
+    ).mockImplementation((async (data: { ids: Array<string> }) => {
+      return { usableIds: data.ids, droppedIds: [] };
+    }) as never);
   });
 
   test("carries every affected resource from the template onto the recurrence", async () => {
@@ -270,6 +309,123 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
     expect(idsOn(created[0]!.hosts)).toEqual([]);
     expect(idsOn(created[0]!.services)).toEqual([]);
     expect(idsOn(created[0]!.monitors)).toEqual(["monitor-1"]);
+  });
+
+  describe("references the template's project cannot use", () => {
+    /*
+     * ScheduledMaintenanceService refuses another project's monitor, label or
+     * status page. Templates never had those lists checked, so an old one can
+     * still hold such an id — and a refused create here would skip the event
+     * on every recurrence, because scheduleNextEventAt has already moved on.
+     */
+    function templateWithLists(): ScheduledMaintenanceTemplate {
+      const template: ScheduledMaintenanceTemplate = recurringTemplate();
+      template.monitors = [
+        stub(Monitor, "monitor-1"),
+        stub(Monitor, "foreign-monitor"),
+      ];
+      template.labels = [stub(Label, "label-1"), stub(Label, "foreign-label")];
+      template.statusPages = [
+        stub(StatusPage, "status-page-1"),
+        stub(StatusPage, "foreign-status-page"),
+      ];
+      return template;
+    }
+
+    beforeEach(() => {
+      (
+        ScheduledMaintenanceTemplateService.findAllBy as jest.Mock
+      ).mockResolvedValue([templateWithLists()] as never);
+
+      (
+        ProjectScopedReferenceValidator.filterUsableInProject as jest.Mock
+      ).mockImplementation((async (data: { ids: Array<string> }) => {
+        return {
+          usableIds: data.ids.filter((id: string) => {
+            return !id.startsWith("foreign-");
+          }),
+          droppedIds: data.ids.filter((id: string) => {
+            return id.startsWith("foreign-");
+          }),
+        };
+      }) as never);
+    });
+
+    test("creates the event with only the records the project can use", async () => {
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(created).toHaveLength(1);
+      expect(idsOn(created[0]!.monitors)).toEqual(["monitor-1"]);
+      expect(idsOn(created[0]!.labels)).toEqual(["label-1"]);
+      expect(idsOn(created[0]!.statusPages)).toEqual(["status-page-1"]);
+
+      // Lists the service does not check are copied as they are.
+      expect(idsOn(created[0]!.hosts)).toEqual(["host-1"]);
+    });
+
+    test("checks each list against its own model and the template's project", async () => {
+      await mockCapturedJobs[JOB_NAME]!();
+
+      const calls: Array<{
+        projectId: ObjectID;
+        ids: Array<string>;
+        service: unknown;
+      }> = (
+        ProjectScopedReferenceValidator.filterUsableInProject as jest.Mock
+      ).mock.calls.map((call: Array<unknown>) => {
+        return call[0] as {
+          projectId: ObjectID;
+          ids: Array<string>;
+          service: unknown;
+        };
+      });
+
+      expect(
+        calls.map((call: { ids: Array<string>; service: unknown }) => {
+          return { ids: call.ids, service: call.service };
+        }),
+      ).toEqual([
+        { ids: ["monitor-1", "foreign-monitor"], service: MonitorService },
+        {
+          ids: ["status-page-1", "foreign-status-page"],
+          service: StatusPageService,
+        },
+        { ids: ["label-1", "foreign-label"], service: LabelService },
+      ]);
+
+      for (const call of calls) {
+        expect(call.projectId).toBe(PROJECT_ID);
+      }
+    });
+
+    test("logs what it dropped", async () => {
+      await mockCapturedJobs[JOB_NAME]!();
+
+      const logged: string = JSON.stringify(
+        (logger.error as jest.Mock).mock.calls,
+      );
+
+      expect(logged).toContain("monitor foreign-monitor");
+      expect(logged).toContain("label foreign-label");
+      expect(logged).toContain("status page foreign-status-page");
+    });
+
+    test("does not look up an empty list", async () => {
+      const template: ScheduledMaintenanceTemplate = recurringTemplate();
+      template.labels = [];
+      template.statusPages = [];
+
+      (
+        ScheduledMaintenanceTemplateService.findAllBy as jest.Mock
+      ).mockResolvedValue([template] as never);
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(
+        ProjectScopedReferenceValidator.filterUsableInProject,
+      ).toHaveBeenCalledTimes(1);
+      expect(idsOn(created[0]!.labels)).toEqual([]);
+    });
   });
 
   describe("owners (issue #3394)", () => {

@@ -1,5 +1,8 @@
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
-import WorkspaceBase, { WorkspaceSendMessageResponse } from "./WorkspaceBase";
+import WorkspaceBase, {
+  WorkspaceChannel,
+  WorkspaceSendMessageResponse,
+} from "./WorkspaceBase";
 import SlackWorkspace from "./Slack/Slack";
 import MicrosoftTeamsUtil from "./MicrosoftTeams/MicrosoftTeams";
 import BadDataException from "../../../Types/Exception/BadDataException";
@@ -45,51 +48,11 @@ export default class WorkspaceUtil {
       let userStringToAppend: string = "";
 
       if (data.userId) {
-        const workspaceUserToken: WorkspaceUserAuthToken | null =
-          await WorkspaceUserAuthTokenService.getUserAuth({
-            userId: data.userId,
-            workspaceType: workspaceType,
-            projectId: data.projectId,
-          });
-
-        if (workspaceUserToken && workspaceUserToken.workspaceUserId) {
-          const projectAuthToken: WorkspaceProjectAuthToken | null =
-            await WorkspaceProjectAuthTokenService.getProjectAuth({
-              projectId: data.projectId,
-              workspaceType: workspaceType,
-            });
-
-          if (!projectAuthToken || !projectAuthToken.authToken) {
-            userStringToAppend = "";
-          } else {
-            const workspaceUsername: string | null =
-              await this.getUserNameFromWorkspace({
-                userId: workspaceUserToken.workspaceUserId,
-                workspaceType: workspaceType,
-                authToken: projectAuthToken.authToken,
-                projectId: data.projectId,
-              });
-
-            if (!workspaceUsername) {
-              const userstring: string =
-                await UserService.getUserMarkdownString({
-                  userId: data.userId,
-                  projectId: data.projectId,
-                });
-
-              userStringToAppend = `${userstring} `;
-            }
-
-            userStringToAppend = `@${workspaceUsername} `;
-          }
-        } else {
-          const userstring: string = await UserService.getUserMarkdownString({
-            userId: data.userId,
-            projectId: data.projectId,
-          });
-
-          userStringToAppend = `${userstring} `;
-        }
+        userStringToAppend = await this.getUserStringForWorkspace({
+          userId: data.userId,
+          projectId: data.projectId,
+          workspaceType: workspaceType,
+        });
       }
 
       messageBlocksByWorkspaceType.push({
@@ -104,6 +67,108 @@ export default class WorkspaceUtil {
     }
 
     return messageBlocksByWorkspaceType;
+  }
+
+  /*
+   * The "who did this" prefix of a workspace message: `@name ` when the user
+   * linked their account in that workspace, their OneUptime name otherwise.
+   *
+   * This must never throw. It runs before a message is posted anywhere, and a
+   * failed lookup used to abort the whole post — for every workspace, not just
+   * the one whose lookup failed. Microsoft Teams made that the common case:
+   * Graph's GET /users/{id} needs the User.Read.All application permission,
+   * which OneUptime does not ask for, so every note (a note always carries its
+   * author) from a user who had linked Teams was dropped from the incident and
+   * alert channels of Slack and Teams alike.
+   */
+  @CaptureSpan()
+  public static async getUserStringForWorkspace(data: {
+    // this is oneuptime user id.
+    userId: ObjectID;
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+  }): Promise<string> {
+    let workspaceUsername: string | null = null;
+
+    try {
+      const workspaceUserToken: WorkspaceUserAuthToken | null =
+        await WorkspaceUserAuthTokenService.getUserAuth({
+          userId: data.userId,
+          workspaceType: data.workspaceType,
+          projectId: data.projectId,
+        });
+
+      if (workspaceUserToken && workspaceUserToken.workspaceUserId) {
+        workspaceUsername = await this.getWorkspaceUsernameForUserToken({
+          workspaceUserToken: workspaceUserToken,
+          workspaceType: data.workspaceType,
+          projectId: data.projectId,
+        });
+      }
+    } catch (err) {
+      logger.warn(
+        `Could not resolve the ${data.workspaceType} username of the user. Falling back to their OneUptime name.`,
+        { projectId: data.projectId?.toString() },
+      );
+      logger.warn(err, { projectId: data.projectId?.toString() });
+    }
+
+    if (workspaceUsername) {
+      return `@${workspaceUsername} `;
+    }
+
+    try {
+      const userString: string = await UserService.getUserMarkdownString({
+        userId: data.userId,
+        projectId: data.projectId,
+      });
+
+      return userString ? `${userString} ` : "";
+    } catch (err) {
+      logger.warn("Could not resolve the OneUptime name of the user.", {
+        projectId: data.projectId?.toString(),
+      });
+      logger.warn(err, { projectId: data.projectId?.toString() });
+      return "";
+    }
+  }
+
+  private static async getWorkspaceUsernameForUserToken(data: {
+    workspaceUserToken: WorkspaceUserAuthToken;
+    workspaceType: WorkspaceType;
+    projectId: ObjectID;
+  }): Promise<string | null> {
+    /*
+     * Teams: use the display name captured when the user linked their account
+     * (it came from Graph's /me with their own delegated token). Reading it
+     * back later through /users/{id} needs User.Read.All, which the app token
+     * does not have.
+     */
+    if (data.workspaceType === WorkspaceType.MicrosoftTeams) {
+      const displayName: unknown =
+        data.workspaceUserToken.miscData?.["displayName"];
+
+      if (typeof displayName === "string" && displayName.trim()) {
+        return displayName.trim();
+      }
+    }
+
+    const projectAuthToken: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+      });
+
+    if (!projectAuthToken || !projectAuthToken.authToken) {
+      return null;
+    }
+
+    return await this.getUserNameFromWorkspace({
+      userId: data.workspaceUserToken.workspaceUserId!,
+      workspaceType: data.workspaceType,
+      authToken: projectAuthToken.authToken,
+      projectId: data.projectId,
+    });
   }
 
   @CaptureSpan()
@@ -210,15 +275,44 @@ export default class WorkspaceUtil {
         continue;
       }
 
-      const result: WorkspaceSendMessageResponse =
-        await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).sendMessage({
-          userId: botUserId || "",
-          authToken: projectAuthToken.authToken,
-          projectId: data.projectId,
-          workspaceMessagePayload: messagePayloadByWorkspace,
-        });
+      /*
+       * One destination failing outright (a Teams rule with no team picked,
+       * a revoked token) must not stop the payloads after it: each payload is
+       * a different channel, often in a different workspace.
+       */
+      try {
+        const result: WorkspaceSendMessageResponse =
+          await WorkspaceUtil.getWorkspaceTypeUtil(workspaceType).sendMessage({
+            userId: botUserId || "",
+            authToken: projectAuthToken.authToken,
+            projectId: data.projectId,
+            workspaceMessagePayload: messagePayloadByWorkspace,
+          });
 
-      responses.push(result);
+        responses.push(result);
+      } catch (err) {
+        logger.error(
+          `Error posting message to ${workspaceType} as bot`,
+          workspaceLogAttributes,
+        );
+        logger.error(err, workspaceLogAttributes);
+
+        responses.push({
+          workspaceType: workspaceType,
+          threads: [],
+          errors: [
+            {
+              channel: WorkspaceUtil.describePayloadDestination(
+                messagePayloadByWorkspace,
+              ),
+              error:
+                err instanceof Error
+                  ? err.message
+                  : String(err || "Failed to send message"),
+            },
+          ],
+        });
+      }
     }
 
     logger.debug(
@@ -229,6 +323,29 @@ export default class WorkspaceUtil {
     logger.debug(JSON.stringify(responses, null, 2), workspaceLogAttributes);
 
     return responses;
+  }
+
+  // The destination a payload was addressed to, for error logs.
+  public static describePayloadDestination(
+    payload: WorkspaceMessagePayload,
+  ): WorkspaceChannel {
+    const destination: string =
+      payload.channelIds?.[0] ||
+      payload.channelNames?.[0] ||
+      payload.chatIds?.[0] ||
+      "";
+
+    const channel: WorkspaceChannel = {
+      id: payload.channelIds?.[0] || payload.chatIds?.[0] || "",
+      name: destination,
+      workspaceType: payload.workspaceType,
+    };
+
+    if (payload.teamId) {
+      channel.teamId = payload.teamId;
+    }
+
+    return channel;
   }
 
   @CaptureSpan()

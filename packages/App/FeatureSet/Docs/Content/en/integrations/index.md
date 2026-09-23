@@ -39,7 +39,7 @@ OneUptime Incident → On Create  ──►  API component  ──►  Jira / Pa
 | Tool                                                                  | Direction            | What it does                                                                  |
 | --------------------------------------------------------------------- | -------------------- | ----------------------------------------------------------------------------- |
 | [Zabbix](/docs/integrations/zabbix)                                   | Inbound              | Turn Zabbix problems into OneUptime incidents (and resolve them on recovery). |
-| [Jira](/docs/integrations/jira)                                       | Outbound (+ inbound) | Open a Jira issue for every incident; sync status back.                       |
+| [Jira](/docs/integrations/jira)                                       | Outbound (+ inbound) | Open a Jira issue for every incident or alert; sync status and comments back. |
 | [PagerDuty](/docs/integrations/pagerduty)                             | Outbound (+ inbound) | Trigger and resolve PagerDuty events from OneUptime incidents.                |
 | [Opsgenie](/docs/integrations/opsgenie)                               | Outbound (+ inbound) | Create and close Opsgenie alerts.                                             |
 | [ServiceNow](/docs/integrations/servicenow)                           | Outbound (+ inbound) | Open ServiceNow incidents from OneUptime.                                     |

@@ -35,8 +35,14 @@ import AlertOwnerUser from "../../Models/DatabaseModels/AlertOwnerUser";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectScopedReferenceValidator, {
+  HeldRelationIds,
+  ProjectScopedReference,
+  ProjectScopedRelation,
   resolveReferenceId,
+  resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import Query from "../Types/Database/Query";
+import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
 import AlertStateTimeline from "../../Models/DatabaseModels/AlertStateTimeline";
 import User from "../../Models/DatabaseModels/User";
@@ -315,6 +321,10 @@ export class Service extends DatabaseService<Model> {
       ) ||
       resolveReferenceId(updateBy.data.monitorStatusWhenThisAlertWasCreated);
 
+    const monitorId: ObjectID | string | undefined =
+      resolveReferenceId(updateBy.data.monitorId) ||
+      resolveReferenceId(updateBy.data.monitor);
+
     /*
      * The SLOs this alert affects: a relation list the API accepts on update.
      * Checked for the same reason as on create; see
@@ -325,11 +335,28 @@ export class Service extends DatabaseService<Model> {
         updateBy.data.serviceLevelObjectives,
       ).length > 0;
 
+    /*
+     * The on-call policies and labels lists, when the update rewrites them.
+     * An empty list only removes rows and needs no check.
+     */
+    const relations: Array<ProjectScopedRelation> =
+      this.getProjectScopedRelations().filter(
+        (relation: ProjectScopedRelation) => {
+          return (
+            resolveReferenceIds(
+              (updateBy.data as Dictionary<unknown>)[relation.column],
+            ).length > 0
+          );
+        },
+      );
+
     if (
       !alertStateId &&
       !alertSeverityId &&
       !monitorStatusId &&
-      !hasServiceLevelObjectiveIds
+      !monitorId &&
+      !hasServiceLevelObjectiveIds &&
+      relations.length === 0
     ) {
       return;
     }
@@ -342,6 +369,17 @@ export class Service extends DatabaseService<Model> {
       ? [updateBy.props.tenantId]
       : await this.getProjectIdsForUpdateQuery(updateBy);
 
+    const heldIds: HeldRelationIds | undefined =
+      relations.length > 0
+        ? await ProjectScopedReferenceValidator.getHeldRelationIds({
+            service: this as unknown as DatabaseService<DatabaseBaseModel>,
+            query: updateBy.query as Query<DatabaseBaseModel>,
+            columns: relations.map((relation: ProjectScopedRelation) => {
+              return relation.column;
+            }),
+          })
+        : undefined;
+
     for (const projectId of projectIds) {
       if (hasServiceLevelObjectiveIds) {
         await SloRecordReferenceValidator.validateServiceLevelObjectivesBelongToProject(
@@ -353,32 +391,70 @@ export class Service extends DatabaseService<Model> {
         );
       }
 
-      if (!alertStateId && !alertSeverityId && !monitorStatusId) {
+      const references: Array<ProjectScopedReference> = [
+        {
+          modelName: "Alert State",
+          id: alertStateId,
+          service: AlertStateService,
+        },
+        {
+          modelName: "Alert Severity",
+          id: alertSeverityId,
+          service: AlertSeverityService,
+        },
+        {
+          modelName: "Monitor Status",
+          id: monitorStatusId,
+          service: MonitorStatusService,
+        },
+        {
+          modelName: "Monitor",
+          id: monitorId,
+          service: MonitorService,
+        },
+        ...ProjectScopedReferenceValidator.getRelationReferences({
+          payload: updateBy.data,
+          relations: relations,
+          projectId: projectId,
+          heldIds: heldIds,
+        }),
+      ];
+
+      if (
+        references.every((reference: ProjectScopedReference) => {
+          return !reference.id;
+        })
+      ) {
         continue;
       }
 
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
         subject: "alert",
-        references: [
-          {
-            modelName: "Alert State",
-            id: alertStateId,
-            service: AlertStateService,
-          },
-          {
-            modelName: "Alert Severity",
-            id: alertSeverityId,
-            service: AlertSeverityService,
-          },
-          {
-            modelName: "Monitor Status",
-            id: monitorStatusId,
-            service: MonitorStatusService,
-          },
-        ],
+        references: references,
       });
     }
+  }
+
+  /*
+   * The many-to-many lists whose ids must belong to the alert's project.
+   * Built per call rather than at module load: these services sit in an
+   * import graph that loops back to this one, and a module-level table would
+   * capture whichever of them had not finished loading yet as undefined.
+   */
+  private getProjectScopedRelations(): Array<ProjectScopedRelation> {
+    return [
+      {
+        column: "labels",
+        modelName: "Label",
+        service: LabelService,
+      },
+      {
+        column: "onCallDutyPolicies",
+        modelName: "On-Call Policy",
+        service: OnCallDutyPolicyService,
+      },
+    ];
   }
 
   private async getProjectIdsForUpdateQuery(
@@ -443,8 +519,16 @@ export class Service extends DatabaseService<Model> {
      * The severity and the monitor status stamped on the alert come from the
      * monitor criteria or the API caller, neither of which checked that the
      * record belongs to this project. Persisting another project's id leaves
-     * that project undeletable. Runs before the counter increment so a
-     * rejected create does not burn an alert number.
+     * that project undeletable, so reject it here.
+     *
+     * The monitor, on-call policies and labels are checked too, for a worse
+     * reason: onCreateSuccess executes every listed on-call policy, so
+     * another project's policy here would page that project's on-call for
+     * this project's alert, and the alert's feed (read as root) would name
+     * another project's monitor.
+     *
+     * Runs before the counter increment so a rejected create does not burn an
+     * alert number.
      */
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
@@ -468,6 +552,17 @@ export class Service extends DatabaseService<Model> {
             ),
           service: MonitorStatusService,
         },
+        {
+          modelName: "Monitor",
+          id:
+            resolveReferenceId(createBy.data.monitorId) ||
+            resolveReferenceId(createBy.data.monitor),
+          service: MonitorService,
+        },
+        ...ProjectScopedReferenceValidator.getRelationReferences({
+          payload: createBy.data,
+          relations: this.getProjectScopedRelations(),
+        }),
       ],
     });
 

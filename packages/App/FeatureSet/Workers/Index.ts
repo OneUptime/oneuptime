@@ -159,6 +159,9 @@ import "./Jobs/StatusPage/SendReportsToSubscribers";
 // Workspace Notification Summaries
 import "./Jobs/WorkspaceNotificationSummary/SendSummary";
 
+// Microsoft Teams: save pinned / megaphoned channel messages as notes
+import "./Jobs/MicrosoftTeams/SyncReactionNotes";
+
 // Owner Email Burst Rollups
 import "./Jobs/EmailRollup/FlushDueRollups";
 

@@ -9,7 +9,6 @@ import {
 import type { SpyInstance } from "jest-mock";
 import Incident from "../../../../../Models/DatabaseModels/Incident";
 import TeamMember from "../../../../../Models/DatabaseModels/TeamMember";
-import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import AccessTokenService from "../../../../../Server/Services/AccessTokenService";
@@ -551,14 +550,17 @@ describe("Slack emoji reactions", (): void => {
     projectAuth.projectId = projectId;
     projectAuth.authToken = projectAuthToken;
     jest
-      .spyOn(WorkspaceProjectAuthTokenService, "findOneBy")
-      .mockResolvedValue(projectAuth);
+      .spyOn(WorkspaceProjectAuthTokenService, "findBy")
+      .mockResolvedValue([projectAuth]);
 
-    const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
-    log.incidentId = ObjectID.generate();
+    // The channel is the one OneUptime created for this incident.
+    const incident: Incident = new Incident();
+    incident.id = ObjectID.generate();
+    incident.projectId = projectId;
+    jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(incident);
     jest
       .spyOn(WorkspaceNotificationLogService, "findOneBy")
-      .mockResolvedValue(log);
+      .mockResolvedValue(null);
     jest
       .spyOn(IncidentService, "getIncidentNumber")
       .mockResolvedValue({ number: 7, numberWithPrefix: "#7" });
@@ -584,10 +586,10 @@ describe("Slack emoji reactions", (): void => {
       arrange();
       mockIncidentChannel();
       const fetchMessageSpy: SpyInstance<
-        typeof SlackUtil.getMessageByTimestamp
+        typeof SlackUtil.getMessageDetailsByTimestamp
       > = jest
-        .spyOn(SlackUtil, "getMessageByTimestamp")
-        .mockResolvedValue("Someone else's message");
+        .spyOn(SlackUtil, "getMessageDetailsByTimestamp")
+        .mockResolvedValue({ text: "Someone else's message", threadTs: null });
       const addNoteSpy: SpyInstance<typeof IncidentPublicNoteService.addNote> =
         jest
           .spyOn(IncidentPublicNoteService, "addNote")

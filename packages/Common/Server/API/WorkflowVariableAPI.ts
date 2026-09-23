@@ -126,7 +126,7 @@ export default class WorkflowVariableAPI extends BaseAPI<
              * The identity provider's answer is the useful part - it is what
              * the person has to fix - so it goes back as the error message.
              * WorkflowVariableOAuthToken has already written it to the
-             * variable, where the table shows it.
+             * variable, where its page's Access Token card shows it.
              */
             return Response.sendErrorResponse(
               req,
