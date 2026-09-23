@@ -28,14 +28,11 @@ import {
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
-import RunnerJob from "../../Models/DatabaseModels/RunnerJob";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import KubernetesClusterService from "../Services/KubernetesClusterService";
 import KubernetesClusterAiAccessService from "../Services/KubernetesClusterAiAccessService";
-import RunnerJobService, {
-  Service as RunnerJobServiceClass,
-} from "../Services/RunnerJobService";
+import RunnerJobService from "../Services/RunnerJobService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
 import { holdsAnyUnblockedPermission } from "../Utils/Runbook/RunbookExecutePermission";
@@ -178,7 +175,7 @@ function assertCanEditCluster(
  *   it, so they are exact;
  * - a few per minute and a cumulative ceiling per hour per cluster, and a
  *   few per minute per user across clusters — the per-user count is read
- *   and the test's first job is created under a per-user lock, so a user's
+ *   and the test's first command run under a per-user lock, so a user's
  *   concurrent requests on different clusters are counted one after the
  *   other. Counted on the RunnerJob rows the test creates, which every API
  *   node shares.
@@ -200,7 +197,11 @@ export const AI_ACCESS_TEST_RESERVATION_NAMESPACE: string =
 export const AI_ACCESS_TEST_USER_LOCK_NAMESPACE: string =
   "kubernetes-ai-access-test-user";
 
-// Held from the per-user count until the test's first job exists.
+/*
+ * Held from the per-user count until the test's first command has finished.
+ * The lock refreshes itself while it is held; the timeout is how long it
+ * outlives a request that died holding it.
+ */
 const AI_ACCESS_TEST_USER_LOCK_TIMEOUT_MS: number = 30_000;
 const AI_ACCESS_TEST_USER_LOCK_ACQUIRE_TIMEOUT_MS: number = 15_000;
 
@@ -355,9 +356,14 @@ async function assertClusterAccessTestMayRun(data: {
 
 /*
  * The per-user limit spans clusters, so the cluster reservation does not
- * serialize it: the count is read and the test's first job created under a
- * per-user lock (held only that long), so a user's concurrent tests on
- * different clusters cannot all read the same count.
+ * serialize it: the count is read and the test's first command run under a
+ * per-user lock, so a user's concurrent tests on different clusters cannot
+ * all read the same count. The lock is held until that first command has
+ * finished, because KubectlJobRunner.run enqueues and waits in one call and
+ * the job it creates is what the next count must see. That is seconds for
+ * a Runner that is online (the test refuses to start for one that is not);
+ * a second test of the same user started meanwhile waits up to the acquire
+ * timeout and is then told one of theirs is still starting.
  */
 async function lockUserForAccessTestStart(
   userId: ObjectID,
@@ -414,78 +420,46 @@ async function assertUserMayStartAccessTest(data: {
 }
 
 /*
- * One access-test command, in two steps: enqueued through the kubectl
- * chokepoint as an access test (policy, read-only rule and current binding
- * still apply; the investigation switch and the project's investigation
- * brake do not), then waited on and shaped with the same redaction every
- * kubectl output gets before anyone sees it. Two steps because the first
- * command's job must exist before the per-user lock is released, and the
- * wait must not hold that lock. A timeout reads in kubectl's words ("did
- * not pick up … Nothing was run", or "what the command did is unknown"):
- * RunnerJobService writes them onto the row itself for AI kubectl jobs.
+ * One access-test command, run the way every AI kubectl command is
+ * (KubectlJobRunner.run): enqueued through the kubectl chokepoint as an
+ * access test — policy, the read-only rule and the current binding still
+ * apply; the investigation switch and the project's investigation brake do
+ * not — then waited on, read and recorded exactly like an investigation's
+ * command:
+ *
+ * - whether kubectl ran is read from the row (never ran, ran, or unknown for
+ *   a job a Runner took and went silent on), and a timeout is worded in
+ *   kubectl's terms ("did not pick up … Nothing was run", "what the command
+ *   did is unknown"), never a runbook step's;
+ * - the output and the error get the shared kubectl redaction and cap;
+ * - only a success or an ACCESS failure (never claimed, refused, timed out,
+ *   could not reach, authenticate to or was not authorized by the API
+ *   server) becomes the cluster's "Last verified" / "Last error". A command
+ *   that ran and failed for any other reason says nothing about the access
+ *   and must neither set nor clear it.
+ *
+ * No AI run: an access test has none to keep alive.
  */
-async function enqueueAccessTestCommand(data: {
+async function runAccessTestCommand(data: {
   projectId: ObjectID;
   clusterId: ObjectID;
   runnerId: ObjectID;
   credentialId?: string | undefined;
   command: string;
   stepId: string;
-}): Promise<RunnerJob> {
-  return RunnerJobService.enqueueAiKubectlCommand({
+}): Promise<KubectlJobOutcome> {
+  return KubectlJobRunner.run({
     projectId: data.projectId,
     origin: RunnerJobOrigin.AiInvestigation,
     kubernetesClusterId: data.clusterId,
-    stepId: data.stepId,
-    targetAgentId: data.runnerId,
+    targetRunnerId: data.runnerId,
     credentialId: data.credentialId,
     command: data.command,
+    stepId: data.stepId,
     timeoutInMs: DEFAULT_KUBECTL_TIMEOUT_MS,
     claimTimeoutInMs: KUBECTL_CLAIM_TIMEOUT_MS,
     isAccessTest: true,
   });
-}
-
-async function awaitAccessTestCommand(data: {
-  job: RunnerJob;
-  clusterId: ObjectID;
-  command: string;
-}): Promise<KubectlJobOutcome> {
-  const job: RunnerJob = data.job;
-
-  const terminalJob: RunnerJob = await RunnerJobService.pollUntilTerminal({
-    jobId: job.id!,
-    claimTimeoutInMs: KUBECTL_CLAIM_TIMEOUT_MS,
-    executionTimeoutInMs: DEFAULT_KUBECTL_TIMEOUT_MS,
-  });
-
-  const succeeded: boolean = terminalJob.status === RunnerJobStatus.Succeeded;
-
-  const errorMessage: string | undefined = succeeded
-    ? undefined
-    : RunnerJobServiceClass.redactAiJobText(
-        terminalJob.errorMessage ||
-          `Command ended with status ${terminalJob.status}.`,
-      );
-
-  // Best-effort bookkeeping for the cluster's AI page; never throws.
-  await KubernetesClusterAiAccessService.recordCommandOutcome({
-    clusterId: data.clusterId,
-    succeeded,
-    errorMessage,
-  });
-
-  return {
-    jobId: job.id!.toString(),
-    succeeded,
-    exitCode: terminalJob.exitCode,
-    output: KubectlJobRunner.redactAndCap(terminalJob.output || "").text,
-    errorMessage,
-    displayCommand: String(
-      (job.payload as { displayCommand?: string } | undefined)
-        ?.displayCommand || data.command,
-    ),
-  };
 }
 
 /*
@@ -583,10 +557,11 @@ router.post(
 );
 
 /*
- * Start the test: under this user's lock, check the per-user limit and
- * create the first command's job, so the next concurrent test of this user
- * counts it. The limit refusal is thrown (the route answers 429); a refusal
- * from the chokepoint is returned as the first command's failure.
+ * Start the test: under this user's lock, check the per-user limit and run
+ * the first command, so the next concurrent test of this user counts its
+ * job (see lockUserForAccessTestStart). The limit refusal is thrown (the
+ * route answers 429); a refusal from the chokepoint, or a wait that broke,
+ * is returned as the first command's failure.
  */
 async function startAccessTest(data: {
   projectId: ObjectID;
@@ -595,7 +570,7 @@ async function startAccessTest(data: {
   runnerId: ObjectID;
   credentialId?: string | undefined;
   command: string;
-}): Promise<{ job?: RunnerJob | undefined; error?: unknown }> {
+}): Promise<{ outcome?: KubectlJobOutcome | undefined; error?: unknown }> {
   const userLock: SemaphoreMutex = await lockUserForAccessTestStart(
     data.userId,
   );
@@ -607,7 +582,7 @@ async function startAccessTest(data: {
     });
 
     try {
-      const job: RunnerJob = await enqueueAccessTestCommand({
+      const outcome: KubectlJobOutcome = await runAccessTestCommand({
         projectId: data.projectId,
         clusterId: data.clusterId,
         runnerId: data.runnerId,
@@ -619,7 +594,7 @@ async function startAccessTest(data: {
         }),
       });
 
-      return { job };
+      return { outcome };
     } catch (error) {
       return { error };
     }
@@ -715,15 +690,17 @@ router.post(
         const results: Array<JSONObject> = [];
         let allSucceeded: boolean = true;
 
-        const start: { job?: RunnerJob | undefined; error?: unknown } =
-          await startAccessTest({
-            projectId: tenantId,
-            clusterId: cluster.id!,
-            userId: props.userId!,
-            runnerId,
-            credentialId: status.credentialId,
-            command: AI_ACCESS_TEST_COMMANDS[0]!,
-          });
+        const start: {
+          outcome?: KubectlJobOutcome | undefined;
+          error?: unknown;
+        } = await startAccessTest({
+          projectId: tenantId,
+          clusterId: cluster.id!,
+          userId: props.userId!,
+          runnerId,
+          credentialId: status.credentialId,
+          command: AI_ACCESS_TEST_COMMANDS[0]!,
+        });
 
         for (
           let index: number = 0;
@@ -731,16 +708,15 @@ router.post(
           index++
         ) {
           const command: string = AI_ACCESS_TEST_COMMANDS[index]!;
-          let job: RunnerJob | undefined = undefined;
           let failure: unknown = undefined;
           let outcome: KubectlJobOutcome | undefined = undefined;
 
           if (index === 0) {
-            job = start.job;
+            outcome = start.outcome;
             failure = start.error;
           } else {
             try {
-              job = await enqueueAccessTestCommand({
+              outcome = await runAccessTestCommand({
                 projectId: tenantId,
                 clusterId: cluster.id!,
                 runnerId,
@@ -750,18 +726,6 @@ router.post(
                   commandNumber: index + 1,
                   userId: props.userId!,
                 }),
-              });
-            } catch (error) {
-              failure = error;
-            }
-          }
-
-          if (job) {
-            try {
-              outcome = await awaitAccessTestCommand({
-                job,
-                clusterId: cluster.id!,
-                command,
               });
             } catch (error) {
               failure = error;

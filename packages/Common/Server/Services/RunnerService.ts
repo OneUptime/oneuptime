@@ -431,6 +431,35 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The kubernetes-agent Runner rows (isKubernetesAgentRunnerRow) among the
+   * Runners an EntityArray payload names, in whatever shape it arrived
+   * (readRunnerIds). Read as root, so the rule holds for an id of any
+   * project: a guard built on this fails closed.
+   */
+  @CaptureSpan()
+  public async findKubernetesAgentRunners(
+    runners: unknown,
+  ): Promise<Array<Model>> {
+    const ids: Array<ObjectID> = Service.readRunnerIds(runners);
+
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const rows: Array<Model> = await this.findBy({
+      query: { _id: QueryHelper.any(ids) },
+      select: { _id: true, name: true, hostInfo: true },
+      limit: ids.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return rows.filter((runner: Model) => {
+      return Service.isKubernetesAgentRunnerRow(runner);
+    });
+  }
+
+  /*
    * Refuses to assign credential material (a RunbookCredential or a
    * RunbookSecret) to a kubernetes-agent Runner. Such a Runner row is minted
    * and re-keyed with the project's telemetry ingestion key — a credential
@@ -447,23 +476,9 @@ export class Service extends DatabaseService<Model> {
     // What is being assigned, for the message: "credential" or "secret".
     assignedWhat: string;
   }): Promise<void> {
-    const ids: Array<ObjectID> = Service.readRunnerIds(data.runners);
-
-    if (ids.length === 0) {
-      return;
-    }
-
-    const runners: Array<Model> = await this.findBy({
-      query: { _id: QueryHelper.any(ids) },
-      select: { _id: true, name: true, hostInfo: true },
-      limit: ids.length,
-      skip: 0,
-      props: { isRoot: true },
-    });
-
-    const agentRunner: Model | undefined = runners.find((runner: Model) => {
-      return Service.isKubernetesAgentRunnerRow(runner);
-    });
+    const agentRunner: Model | undefined = (
+      await this.findKubernetesAgentRunners(data.runners)
+    )[0];
 
     if (agentRunner) {
       throw new BadDataException(

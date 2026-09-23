@@ -66,7 +66,11 @@ import {
  *   (counted under a per-user lock) — checked before anything is enqueued;
  * - /status and /test show the credential's name only to a caller who may
  *   read credentials;
- * - an access-test command that times out reads in kubectl's words;
+ * - /test runs each command through KubectlJobRunner.run, like every AI
+ *   kubectl command: an access-test command that times out reads in
+ *   kubectl's words (never ran, or unknown for a job a Runner took and went
+ *   silent on), and only a success or an ACCESS failure becomes the
+ *   cluster's Last verified / Last error;
  * - /test enqueues through the kubectl chokepoint AS AN ACCESS TEST, so it
  *   is exempt from the investigation switch and never spends the project's
  *   investigation brake; it keeps going only while commands succeed, and a
@@ -1205,8 +1209,8 @@ describe("KubernetesClusterAiAccessAPI", () => {
   /*
    * IP-3: an access-test command that nobody picked up used to read "No
    * runbook agent picked up this step … then try again" — in the results
-   * and as the cluster's Last error. The row itself now carries kubectl's
-   * words (RunnerJobService.pollUntilTerminal), so every reader agrees.
+   * and as the cluster's Last error. It now runs through KubectlJobRunner,
+   * which words a timeout from what the row says about the claim.
    */
   describe("POST /kubernetes-cluster/ai-access/test — timeouts read in kubectl's words", () => {
     test("an unclaimed first command says nothing was run, in the results and the recorded error", async () => {
@@ -1259,6 +1263,390 @@ describe("KubernetesClusterAiAccessAPI", () => {
       )[0]!;
       expect(result["errorMessage"]).toBe(
         "error: You must be logged in to the server",
+      );
+    });
+  });
+
+  /*
+   * Round three: the access test used to wait on its jobs itself
+   * (pollUntilTerminal) and record every outcome as the cluster's Last
+   * verified / Last error. It now runs each command through
+   * KubectlJobRunner.run, so it reads a finished job exactly like an
+   * investigation does: never ran, ran, or unknown; kubectl-worded
+   * timeouts; and only a success or an ACCESS failure recorded on the
+   * cluster. Its limits and its response shape are unchanged.
+   */
+  describe("POST /kubernetes-cluster/ai-access/test — runs like every AI kubectl command", () => {
+    const CLAIMED_AT: Date = new Date("2026-09-22T10:00:00.000Z");
+
+    // The row a TimedOut job leaves, as the claim-state read sees it.
+    function timedOutRow(claim: {
+      claimedAt?: Date | undefined;
+      assignedAgentId?: ObjectID | undefined;
+    }): RunnerJob {
+      return {
+        status: RunnerJobStatus.TimedOut,
+        ...claim,
+      } as unknown as RunnerJob;
+    }
+
+    function results(): Array<JSONObject> {
+      return lastResponse()["results"] as Array<JSONObject>;
+    }
+
+    function recordedOutcomes(): Array<{
+      succeeded: boolean;
+      errorMessage?: string | undefined;
+    }> {
+      return outcomeSpy.mock.calls.map((call: Array<unknown>) => {
+        return call[0] as { succeeded: boolean; errorMessage?: string };
+      });
+    }
+
+    test("hands each command to KubectlJobRunner.run as an access test with no AI run", async () => {
+      const runSpy: jest.SpyInstance = jest.spyOn(KubectlJobRunner, "run");
+
+      await callRoute(TEST_ROUTE);
+
+      expect(runSpy).toHaveBeenCalledTimes(2);
+
+      for (const [index, call] of runSpy.mock.calls.entries()) {
+        const data: Record<string, unknown> = call[0] as Record<
+          string,
+          unknown
+        >;
+        expect(data["isAccessTest"]).toBe(true);
+        expect(data["aiRunId"]).toBeUndefined();
+        expect(data["origin"]).toBe(RunnerJobOrigin.AiInvestigation);
+        expect(data["projectId"]!.toString()).toBe(PROJECT_ID.toString());
+        expect(data["kubernetesClusterId"]!.toString()).toBe(
+          CLUSTER_ID.toString(),
+        );
+        expect(data["targetRunnerId"]!.toString()).toBe(RUNNER_ID.toString());
+        expect(data["credentialId"]).toBe(CREDENTIAL_ID);
+        expect(data["stepId"]).toBe(
+          `ai-access-test-${index + 1}-${USER_ID.toString()}`,
+        );
+        // The same windows as before: a minute to claim, 30 s to run.
+        expect(data["claimTimeoutInMs"]).toBe(60_000);
+        expect(data["timeoutInMs"]).toBe(30_000);
+      }
+    });
+
+    test("keeps the response shape: five fields per command, nothing more", async () => {
+      await callRoute(TEST_ROUTE);
+
+      const response: JSONObject = lastResponse();
+      expect(Object.keys(response).sort()).toEqual(
+        ["message", "ok", "results", "status"].sort(),
+      );
+
+      for (const result of results()) {
+        expect(Object.keys(result).sort()).toEqual(
+          ["command", "errorMessage", "exitCode", "output", "succeeded"].sort(),
+        );
+      }
+
+      expect(results()[1]).toEqual({
+        command: "kubectl auth can-i --list",
+        succeeded: true,
+        exitCode: 0,
+        output: "Client Version: v1.31.4",
+        errorMessage: null,
+      });
+    });
+
+    test("a first command no Runner picked up says nothing was run, and is recorded as the access failure it is", async () => {
+      pollSpy.mockResolvedValue(timedOutRow({}));
+      const claimRead: jest.SpyInstance = jest
+        .spyOn(RunnerJobService, "findOneById")
+        .mockResolvedValue(timedOutRow({}));
+
+      await callRoute(TEST_ROUTE);
+
+      // Whether a Runner took it is read back from the row.
+      expect(claimRead).toHaveBeenCalledTimes(1);
+      expect(results()).toHaveLength(1);
+      const errorMessage: string = String(results()[0]!["errorMessage"]);
+      expect(errorMessage).toContain("did not pick up this kubectl command");
+      expect(errorMessage).toContain("within 60s");
+      expect(errorMessage).toContain("Nothing was run on the cluster.");
+      expect(errorMessage).not.toMatch(/runbook/i);
+      expect(errorMessage).not.toMatch(/\bstep\b/i);
+      expect(results()[0]!["exitCode"]).toBeNull();
+
+      expect(recordedOutcomes()).toEqual([
+        expect.objectContaining({ succeeded: false, errorMessage }),
+      ]);
+    });
+
+    test("a command a Runner took and went silent on reads as unknown, never as 'nothing was run'", async () => {
+      pollSpy.mockResolvedValue(timedOutRow({}));
+      jest
+        .spyOn(RunnerJobService, "findOneById")
+        .mockResolvedValue(
+          timedOutRow({ claimedAt: CLAIMED_AT, assignedAgentId: RUNNER_ID }),
+        );
+
+      await callRoute(TEST_ROUTE);
+
+      const errorMessage: string = String(results()[0]!["errorMessage"]);
+      expect(errorMessage).toContain("The Runner took this kubectl command");
+      expect(errorMessage).toContain("is unknown");
+      expect(errorMessage).not.toContain("Nothing was run");
+      expect(errorMessage).not.toMatch(/runbook/i);
+
+      // A Runner that stops answering is still about the access.
+      expect(recordedOutcomes()).toEqual([
+        expect.objectContaining({ succeeded: false, errorMessage }),
+      ]);
+    });
+
+    test("a claim that cannot be read back is unknown too, never 'nothing was run'", async () => {
+      pollSpy.mockResolvedValue(timedOutRow({}));
+      jest
+        .spyOn(RunnerJobService, "findOneById")
+        .mockRejectedValue(new Error("database is restarting"));
+
+      await callRoute(TEST_ROUTE);
+
+      const errorMessage: string = String(results()[0]!["errorMessage"]);
+      expect(errorMessage).toContain("could not be read");
+      expect(errorMessage).not.toContain("Nothing was run");
+    });
+
+    test("the second command's timeout reads in kubectl's words too", async () => {
+      pollSpy
+        .mockResolvedValueOnce({
+          status: RunnerJobStatus.Succeeded,
+          exitCode: 0,
+          output: "Client Version: v1.31.4",
+        } as unknown as RunnerJob)
+        .mockResolvedValueOnce(timedOutRow({}));
+      jest
+        .spyOn(RunnerJobService, "findOneById")
+        .mockResolvedValue(timedOutRow({}));
+
+      await callRoute(TEST_ROUTE);
+
+      expect(results()).toHaveLength(2);
+      expect(results()[0]!["succeeded"]).toBe(true);
+      expect(String(results()[1]!["errorMessage"])).toContain(
+        "Nothing was run on the cluster.",
+      );
+      expect(lastResponse()["ok"]).toBe(false);
+    });
+
+    test("a refusal before kubectl was spawned is an access failure: reported and recorded", async () => {
+      pollSpy.mockResolvedValue({
+        status: RunnerJobStatus.Failed,
+        errorMessage:
+          "This Runner does not run kubectl for this cluster any more. It was not run.",
+      } as unknown as RunnerJob);
+
+      await callRoute(TEST_ROUTE);
+
+      expect(results()[0]).toMatchObject({
+        succeeded: false,
+        exitCode: null,
+        output: "",
+      });
+      expect(String(results()[0]!["errorMessage"])).toContain("It was not run");
+      expect(recordedOutcomes()).toEqual([
+        expect.objectContaining({ succeeded: false }),
+      ]);
+    });
+
+    test("a command that ran and failed for a reason that is not about access is reported but never becomes the cluster's Last error", async () => {
+      pollSpy.mockResolvedValue({
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        output:
+          "[stderr]\nError from server (NotFound): the server could not find the requested resource",
+        errorMessage:
+          "Exit code 1: Error from server (NotFound): the server could not find the requested resource",
+      } as unknown as RunnerJob);
+
+      await callRoute(TEST_ROUTE);
+
+      expect(results()).toHaveLength(1);
+      expect(results()[0]).toMatchObject({ succeeded: false, exitCode: 1 });
+      expect(String(results()[0]!["errorMessage"])).toContain("NotFound");
+      expect(lastResponse()["ok"]).toBe(false);
+      // Neither set nor cleared.
+      expect(outcomeSpy).not.toHaveBeenCalled();
+    });
+
+    test("negative control: the API server refusing the Runner IS about access, and is recorded", async () => {
+      pollSpy.mockResolvedValue({
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        output:
+          '[stderr]\nError from server (Forbidden): pods is forbidden: User "system:serviceaccount:oneuptime:runner" cannot list resource "pods"',
+        errorMessage:
+          'Exit code 1: Error from server (Forbidden): pods is forbidden: User "system:serviceaccount:oneuptime:runner" cannot list resource "pods"',
+      } as unknown as RunnerJob);
+
+      await callRoute(TEST_ROUTE);
+
+      expect(recordedOutcomes()).toEqual([
+        expect.objectContaining({
+          succeeded: false,
+          errorMessage: expect.stringContaining("Forbidden"),
+        }),
+      ]);
+    });
+
+    test("a first success clears the Last error and a later non-access failure leaves it cleared", async () => {
+      pollSpy
+        .mockResolvedValueOnce({
+          status: RunnerJobStatus.Succeeded,
+          exitCode: 0,
+          output: "Client Version: v1.31.4",
+        } as unknown as RunnerJob)
+        .mockResolvedValueOnce({
+          status: RunnerJobStatus.Failed,
+          exitCode: 1,
+          output: "[stderr]\nerror: unknown flag: --list",
+          errorMessage: "Exit code 1: error: unknown flag: --list",
+        } as unknown as RunnerJob);
+
+      await callRoute(TEST_ROUTE);
+
+      expect(recordedOutcomes()).toEqual([
+        expect.objectContaining({ succeeded: true }),
+      ]);
+      expect(results()[1]).toMatchObject({ succeeded: false, exitCode: 1 });
+    });
+
+    test("an error message is redacted before anyone sees it or it is recorded", async () => {
+      pollSpy.mockResolvedValue({
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        errorMessage:
+          "Exit code 1: error: You must be logged in to the server (token=eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJydW5uZXIifQ.c2lnbmF0dXJlc2lnbmF0dXJl)",
+      } as unknown as RunnerJob);
+
+      await callRoute(TEST_ROUTE);
+
+      const errorMessage: string = String(results()[0]!["errorMessage"]);
+      expect(errorMessage).toContain("logged in");
+      expect(errorMessage).not.toContain(
+        "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJydW5uZXIifQ",
+      );
+      expect(recordedOutcomes()[0]!.errorMessage).toBe(errorMessage);
+    });
+
+    /*
+     * KubectlJobRunner.run enqueues and waits in one call, so the per-user
+     * lock is held until the first command has finished: that is what makes
+     * the next test of the same user count this one's job.
+     */
+    test("holds the user's lock until the first command finished, so a second test of the same user counts it", async () => {
+      const OTHER_CLUSTER: ObjectID = new ObjectID(
+        "66666666-6666-4666-8666-666666666666",
+      );
+      clusterFind.mockImplementation(
+        async (args: unknown): Promise<KubernetesCluster> => {
+          const id: string = String(
+            (args as { query: Record<string, unknown> }).query["_id"],
+          );
+          return {
+            id: new ObjectID(id),
+            _id: id,
+            projectId: PROJECT_ID,
+            name: id,
+          } as unknown as KubernetesCluster;
+        },
+      );
+
+      const userCounts: Array<number> = [];
+      countSpy.mockImplementation(
+        async (args: unknown): Promise<PositiveNumber> => {
+          const query: Record<string, unknown> = (
+            args as { query: Record<string, unknown> }
+          ).query;
+          if (query["kubernetesClusterId"] || query["status"]) {
+            return new PositiveNumber(0);
+          }
+          const firstCommands: number = enqueueSpy.mock.calls.filter(
+            (call: Array<unknown>) => {
+              return String(
+                (call[0] as Record<string, unknown>)["stepId"],
+              ).startsWith("ai-access-test-1-");
+            },
+          ).length;
+          userCounts.push(firstCommands);
+          return new PositiveNumber(firstCommands);
+        },
+      );
+
+      let releaseFirstCommand: (job: RunnerJob) => void = (): void => {
+        return undefined;
+      };
+      pollSpy.mockReturnValueOnce(
+        new Promise<RunnerJob>((resolve: (job: RunnerJob) => void) => {
+          releaseFirstCommand = resolve;
+        }),
+      );
+
+      const first: Promise<RouteCallResult> = callRoute(TEST_ROUTE, {
+        clusterId: CLUSTER_ID.toString(),
+      });
+
+      for (let i: number = 0; i < 50 && pollSpy.mock.calls.length < 1; i++) {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      }
+
+      const second: Promise<RouteCallResult> = callRoute(TEST_ROUTE, {
+        clusterId: OTHER_CLUSTER.toString(),
+      });
+
+      for (let i: number = 0; i < 50; i++) {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      }
+
+      // The second test waits on the lock: it has not counted yet.
+      expect(userCounts).toEqual([0]);
+      expect(enqueueSpy).toHaveBeenCalledTimes(1);
+
+      releaseFirstCommand({
+        status: RunnerJobStatus.Succeeded,
+        exitCode: 0,
+        output: "ok",
+      } as unknown as RunnerJob);
+
+      const settled: Array<RouteCallResult> = await Promise.all([
+        first,
+        second,
+      ]);
+
+      expect(settled[0]!.nextCallCount).toBe(0);
+      expect(settled[1]!.nextCallCount).toBe(0);
+      // ...and when it does, the first test's job is in its count.
+      expect(userCounts).toEqual([0, 1]);
+    });
+
+    test("releases the user's lock after a first command that failed or could not start", async () => {
+      pollSpy.mockResolvedValue({
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        errorMessage: "error: You must be logged in to the server",
+      } as unknown as RunnerJob);
+      await callRoute(TEST_ROUTE);
+      expect(heldLocks.size).toBe(0);
+
+      enqueueSpy.mockRejectedValue(
+        new BadDataException("kubectl access is not allowed right now."),
+      );
+      await callRoute(TEST_ROUTE);
+      expect(heldLocks.size).toBe(0);
+      expect(String(results()[0]!["errorMessage"])).toContain(
+        "kubectl access is not allowed right now.",
       );
     });
   });

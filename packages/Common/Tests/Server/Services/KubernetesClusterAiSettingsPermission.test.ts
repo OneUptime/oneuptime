@@ -194,12 +194,21 @@ const LOOSENING_WRITES: Array<[string, Record<string, unknown>]> = [
     "add a kubectl allowlist pattern",
     { aiKubectlCommandAllowlist: ["kubectl set image deployment/web *"] },
   ],
-  ["add a wildcard-only allowlist", { aiKubectlCommandAllowlist: ["*"] }],
+  /*
+   * These two were ["*"] and ["kubectl *"]. A * where the verb goes is no
+   * longer a valid entry (KubectlPolicy.describeAllowlistPatternProblem),
+   * and validity is checked before who may loosen, so those now read as a
+   * BadDataException for every caller. The broadest valid entries stand in.
+   */
   [
-    "pair Automatic with a blanket allowlist",
+    "add an allowlist entry for every object in every namespace",
+    { aiKubectlCommandAllowlist: ["kubectl delete * * -n *"] },
+  ],
+  [
+    "pair Automatic with a broad allowlist",
     {
       aiRemediationMode: KubernetesAiRemediationMode.Automatic,
-      aiKubectlCommandAllowlist: ["kubectl *"],
+      aiKubectlCommandAllowlist: ["kubectl set image * * -n web"],
     },
   ],
   ["bind a Runner by id", { aiAccessRunnerId: RUNNER_ID }],
@@ -680,7 +689,8 @@ describe("KubernetesCluster AI access: who may make AI do more", () => {
               aiAccessCredentialId: CREDENTIAL_ID,
               isAiInvestigationEnabled: true,
               aiRemediationMode: KubernetesAiRemediationMode.BypassApproval,
-              aiKubectlCommandAllowlist: ["kubectl *"],
+              // Was "kubectl *", no longer a valid entry for anyone.
+              aiKubectlCommandAllowlist: ["kubectl delete * * -n *"],
             },
             { isRoot: true },
           ),

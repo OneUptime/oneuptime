@@ -5,6 +5,7 @@ import KubernetesClusterAiAccessService, {
   MAX_KUBERNETES_AGENT_RUNNER_NAME_LENGTH,
   MAX_NEW_KUBERNETES_AGENT_RUNNERS_PER_PROJECT_PER_HOUR,
   RegisterKubernetesAgentRunnerResult,
+  REMEDIATION_WRITE_ACCESS_NEXT_STEP,
   getKubernetesAgentRunnerNameForCluster,
   getPreviousInstanceRetryAfterSeconds,
 } from "../../../Server/Services/KubernetesClusterAiAccessService";
@@ -262,7 +263,13 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
 
     expect(gapCodes(status)).toEqual(["runner_missing"]);
     expect(status.gaps[0]?.title).toBe("The bound Runner was just deleted");
-    expect(status.gaps[0]?.nextStep).toContain("Reload this page");
+    /*
+     * Round three: gap next steps are shown verbatim on incident pages too,
+     * where "this page" would be the incident. They name the cluster's AI
+     * page instead (was "Reload this page").
+     */
+    expect(status.gaps[0]?.nextStep).toContain("Reload the cluster's AI page");
+    expect(status.gaps[0]?.nextStep).not.toContain("this page");
     expect(status.isInvestigationReady).toBe(false);
   });
 
@@ -275,7 +282,7 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
    * selecting the Runner on the AI page.
    */
   describe("no Runner bound, but this cluster's agent Runner is registered", () => {
-    it("tells the operator to select that Runner on this page, not to run helm", async () => {
+    it("tells the operator to select that Runner on the cluster's AI page, not to run helm", async () => {
       const findOneBy: jest.SpyInstance = jest
         .spyOn(RunnerService, "findOneBy")
         .mockResolvedValue(fakeRunner());
@@ -294,7 +301,9 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
       expect(status.gaps[0]?.nextStep).toContain(
         'Select the kubernetes-agent Runner "kubernetes-agent/prod-us"',
       );
-      expect(status.gaps[0]?.nextStep).toContain("on this page");
+      // Round three: named, not "on this page" (shown on incident pages too).
+      expect(status.gaps[0]?.nextStep).toContain("on the cluster's AI page");
+      expect(status.gaps[0]?.nextStep).not.toContain("this page");
       expect(status.gaps[0]?.nextStep).not.toContain("aiAccess.enabled=true");
       expect(status.gaps[0]?.blocks).toBe("both");
       expect(status.isInvestigationReady).toBe(false);
@@ -408,8 +417,9 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
       expect(gapCodes(status)).toEqual(["runner_offline"]);
       expect(status.gaps[0]?.title).toBe("The in-cluster Runner signed off");
       expect(status.gaps[0]?.description).toContain("uninstalled");
+      // Round three: was "clear the Runner on this page".
       expect(status.gaps[0]?.nextStep).toContain(
-        "clear the Runner on this page",
+        "clear the Runner on the cluster's AI page",
       );
       expect(status.gaps[0]?.nextStep).toContain("aiAccess.enabled=true");
       expect(status.gaps[0]?.nextStep).not.toContain("component=ai-runner");
@@ -1123,8 +1133,33 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
     expect(status.gaps[0]?.nextStep).toContain(
       "aiAccess.remediation.enabled=true",
     );
+    expect(status.gaps[0]?.nextStep).toBe(REMEDIATION_WRITE_ACCESS_NEXT_STEP);
     expect(status.isInvestigationReady).toBe(true);
     expect(status.isRemediationReady).toBe(false);
+  });
+
+  /*
+   * Round three: the read-only gap used to give only a bare
+   * "--set aiAccess.remediation.enabled=true", which grants write RBAC
+   * cluster-wide and to every node. It now points at the AI page's
+   * write-access section (the complete commands) and names the two values
+   * that bound where the write role reaches.
+   */
+  it("points the read-only gap at the AI page's write-access section and the values that scope it", () => {
+    expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
+      "--set aiAccess.remediation.enabled=true",
+    );
+    expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
+      '"Let AI apply fixes (write access)" on the cluster\'s AI page',
+    );
+    expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
+      "aiAccess.remediation.namespaces",
+    );
+    expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain(
+      "aiAccess.remediation.nodeOperations=false",
+    );
+    expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).toContain("cluster-wide");
+    expect(REMEDIATION_WRITE_ACCESS_NEXT_STEP).not.toContain("this page");
   });
 
   it("does not raise the read-only gap when remediation is off", async () => {
@@ -1851,6 +1886,60 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       // Said plainly: no key was presented, and why it was admitted anyway.
       expect(feed).toContain("WITHOUT proof of continuity");
       expect(feed).toContain("had stopped heartbeating");
+    });
+
+    /*
+     * Round three (follow-up e): the write scope a restarted pod reports is
+     * stored on the re-keyed row at once, replacing what the previous pod
+     * reported, so a scope changed by a helm upgrade is known before the
+     * first heartbeat. The service, not the body, still says which cluster.
+     */
+    it("stores the restarted Runner's reported write scope on the re-keyed row", async () => {
+      jest
+        .spyOn(KubernetesClusterService, "findOneBy")
+        .mockResolvedValue(fakeCluster({ aiAccessRunnerId: RUNNER_ID }));
+      mockRunnerLookups({
+        bound: offlineAgentRunner({
+          hostInfo: {
+            kubernetes: {
+              inCluster: true,
+              allowWrites: true,
+              clusterIdentifier: "prod-us",
+              writeNamespaces: ["legacy"],
+              allowNodeOperations: true,
+            },
+          },
+        }),
+      });
+
+      await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+        projectId: PROJECT_ID,
+        clusterIdentifier: "prod-us",
+        posture: {
+          allowWrites: true,
+          writeNamespaces: ["web", "api"],
+          podNamespace: "oneuptime-agent",
+          allowNodeOperations: false,
+          clusterIdentifier: "someone-else",
+          inCluster: false,
+        },
+      });
+
+      expect(runnerUpdates).toHaveLength(1);
+      expect(
+        (
+          runnerUpdates[0]!.data["hostInfo"] as {
+            kubernetes: Record<string, unknown>;
+          }
+        ).kubernetes,
+      ).toEqual({
+        allowWrites: true,
+        writeNamespaces: ["web", "api"],
+        podNamespace: "oneuptime-agent",
+        allowNodeOperations: false,
+        clusterIdentifier: "prod-us",
+        inCluster: true,
+      });
     });
 
     it("also admits a Runner that signed off (Disconnected) even though its last heartbeat is recent", async () => {

@@ -139,6 +139,18 @@ export const CLUSTER_AI_ACCESS_SELECT: Record<string, boolean> = {
 const MAX_CLUSTERS_PER_SUBJECT: number = 10;
 
 /*
+ * What to do about an in-cluster Runner that reports read-only RBAC while
+ * remediation is on. It points at the AI page's write-access section, which
+ * carries the complete helm commands (a bare --set line would miss the
+ * chart index refresh and --reuse-values), and names the two values that
+ * bound what the write role reaches: the namespaces it is bound in and the
+ * node switch. Shown verbatim on incident pages too, so it names the page
+ * rather than saying "this page".
+ */
+export const REMEDIATION_WRITE_ACCESS_NEXT_STEP: string =
+  'Grant the in-cluster Runner write access with a helm upgrade that adds --set aiAccess.remediation.enabled=true; the complete commands are under "Let AI apply fixes (write access)" on the cluster\'s AI page. List the namespaces AI may fix in aiAccess.remediation.namespaces (without it the write role is bound cluster-wide), and add aiAccess.remediation.nodeOperations=false to keep fixes off nodes.';
+
+/*
  * Runner.name and KubernetesCluster.clusterIdentifier are both ShortText
  * columns. A cluster name longer than the column can never become a cluster
  * row, so registration refuses it up front with a message that says so.
@@ -354,7 +366,7 @@ class KubernetesClusterAiAccessServiceClass {
           description:
             "The Runner this cluster was bound to was deleted while its status was being read.",
           nextStep:
-            "Reload this page, then bind another Runner here or reinstall the in-cluster Runner with --set aiAccess.enabled=true.",
+            "Reload the cluster's AI page, then bind another Runner there, or reinstall the in-cluster Runner with --set aiAccess.enabled=true.",
           blocks: "both",
         });
       } else {
@@ -446,7 +458,7 @@ class KubernetesClusterAiAccessServiceClass {
                 : "a Kubernetes agent's in-cluster Runner"
             }. It runs kubectl with its own ServiceAccount only and is never given a credential, so the Kubernetes credential selected for this cluster cannot be used through it.`,
             nextStep:
-              "Create a Runner under Project Settings → Runners, assign the Kubernetes credential to it and select both on this page — or install the in-cluster Runner on THIS cluster with --set aiAccess.enabled=true, which needs no credential.",
+              "Create a Runner under Project Settings → Runners, assign the Kubernetes credential to it and select both on the cluster's AI page — or install the in-cluster Runner on THIS cluster with --set aiAccess.enabled=true, which needs no credential.",
             blocks: "both",
           });
         } else if (cluster.aiAccessCredentialId) {
@@ -485,7 +497,7 @@ class KubernetesClusterAiAccessServiceClass {
                   ? `"${credential.name}" is not a Kubernetes credential.`
                   : `"${credential.name}" is not assigned to Runner "${runner.name}".`,
               nextStep:
-                "Create a Kubernetes credential (API server URL + ServiceAccount token) under Project Settings → Runner Credentials, assign it to the Runner, and select it on this cluster's AI page.",
+                "Create a Kubernetes credential (API server URL + ServiceAccount token) under Project Settings → Runner Credentials, assign it to the Runner, and select it on the cluster's AI page.",
               blocks: "both",
             });
           } else {
@@ -537,8 +549,7 @@ class KubernetesClusterAiAccessServiceClass {
             title: "The in-cluster Runner is read-only",
             description:
               "The Kubernetes agent was installed without write access, so kubectl changes would be refused by the cluster.",
-            nextStep:
-              "Upgrade the agent with --set aiAccess.remediation.enabled=true to grant the Runner's ServiceAccount the write verbs OneUptime AI may use.",
+            nextStep: REMEDIATION_WRITE_ACCESS_NEXT_STEP,
             blocks: "remediation",
           });
         }
@@ -552,7 +563,7 @@ class KubernetesClusterAiAccessServiceClass {
         description:
           "OneUptime AI will investigate incidents and alerts on this cluster with OneUptime data only — it will not run kubectl.",
         nextStep:
-          'Turn on "Let AI investigate with kubectl" on this cluster\'s AI page.',
+          'Turn on "Let AI investigate with kubectl" on the cluster\'s AI page.',
         blocks: "investigation",
       });
     }
@@ -564,7 +575,7 @@ class KubernetesClusterAiAccessServiceClass {
         description:
           "OneUptime AI will diagnose but never propose or apply a fix on this cluster.",
         nextStep:
-          'Set "AI remediation" to "Ask for approval", "Automatic" or "Bypass approval" on this cluster\'s AI page.',
+          'Set "AI remediation" to "Ask for approval", "Automatic" or "Bypass approval" on the cluster\'s AI page.',
         blocks: "remediation",
       });
     }
@@ -697,8 +708,8 @@ class KubernetesClusterAiAccessServiceClass {
           ? `Runner "${runner.name}" shut down cleanly after its last heartbeat at ${lastAliveText}: the Kubernetes agent was uninstalled or upgraded with aiAccess turned off, or its Runner pod is being replaced.`
           : `Runner "${runner.name}" shut down cleanly after its last heartbeat at ${lastAliveText}: its container was stopped.`,
         nextStep: isAgentRunner
-          ? "If the agent was uninstalled or aiAccess was turned off on purpose, clear the Runner on this page. Otherwise upgrade the agent with --set aiAccess.enabled=true and the Runner reconnects within a minute."
-          : "Start the Runner container again, or bind another Runner on this page.",
+          ? "If the agent was uninstalled or aiAccess was turned off on purpose, clear the Runner on the cluster's AI page. Otherwise upgrade the agent with --set aiAccess.enabled=true and the Runner reconnects within a minute."
+          : "Start the Runner container again, or bind another Runner on the cluster's AI page.",
         blocks: "both",
       };
     }
@@ -805,7 +816,7 @@ class KubernetesClusterAiAccessServiceClass {
         description: `Runner "${agentRunner.name}", this cluster's in-cluster Runner, is registered${
           isOnline ? " and online" : " but not online right now"
         }, but no Runner is bound to this cluster, so OneUptime AI does not use it. A registering Runner never re-binds a cluster that had a Runner bound before (or already ran kubectl) — its binding was cleared by an operator, or the Runner it was bound to was deleted.`,
-        nextStep: `Select the kubernetes-agent Runner "${agentRunner.name}" as this cluster's Runner on this page (leave the credential empty). No helm change is needed.`,
+        nextStep: `Select the kubernetes-agent Runner "${agentRunner.name}" on the cluster's AI page as its Runner (leave the credential empty). No helm change is needed.`,
         blocks: "both",
       };
     }
@@ -816,7 +827,7 @@ class KubernetesClusterAiAccessServiceClass {
       description:
         "OneUptime AI runs kubectl through a Runner. None is bound to this cluster yet.",
       nextStep:
-        "Upgrade the Kubernetes agent with --set aiAccess.enabled=true to install an in-cluster Runner (one command), or bind an existing Runner and a Kubernetes credential on this cluster's AI page.",
+        "Upgrade the Kubernetes agent with --set aiAccess.enabled=true to install an in-cluster Runner (one command), or bind an existing Runner and a Kubernetes credential on the cluster's AI page.",
       blocks: "both",
     };
   }

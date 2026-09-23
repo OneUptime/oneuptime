@@ -721,7 +721,14 @@ describe("KubernetesClusterService AI access binding guard", () => {
     it.each([
       [{ aiRemediationMode: KubernetesAiRemediationMode.BypassApproval }],
       [{ aiRemediationMode: KubernetesAiRemediationMode.Automatic }],
-      [{ aiKubectlCommandAllowlist: ["*"] }],
+      /*
+       * Was ["*"]. A * where the verb goes is no longer a valid entry
+       * (KubectlPolicy.describeAllowlistPatternProblem), and validity is
+       * checked before who may loosen, so "*" now reads as a BadDataException
+       * for every caller (pinned below). A valid entry that is as broad as
+       * one can be still exercises the escalation.
+       */
+      [{ aiKubectlCommandAllowlist: ["kubectl delete * * -n *"] }],
     ])(
       "refuses %p from a Settings Member and accepts it from a Project Admin",
       async (data: Record<string, unknown>) => {
@@ -734,6 +741,22 @@ describe("KubernetesClusterService AI access binding guard", () => {
         await expect(
           hooks().onBeforeUpdate(updateBy(data, adminProps())),
         ).resolves.toBeDefined();
+      },
+    );
+
+    it.each([[["*"]], [["kubectl *"]], [["* * -n web"]]])(
+      "refuses the verb-glob allowlist %p as invalid for every caller, before who may loosen is judged",
+      async (allowlist: Array<string>) => {
+        for (const props of [
+          userProps(PROJECT_ID, [Permission.SettingsMember]),
+          adminProps(),
+        ]) {
+          await expect(
+            hooks().onBeforeUpdate(
+              updateBy({ aiKubectlCommandAllowlist: allowlist }, props),
+            ),
+          ).rejects.toThrow(BadDataException);
+        }
       },
     );
   });
@@ -1385,6 +1408,9 @@ describe("KubernetesClusterService AI remediation settings validation", () => {
         ["kubectl scale deployment/web --replicas=*"],
         ["* deployment/web -n web"],
         ["* * -n web"],
+        ["*"],
+        ["kubectl *"],
+        ["kubectl delete * * -n *"],
         [`kubectl get ${"x ".repeat(70)}`],
       ])(
         "refuses %p exactly when KubectlPolicy says it cannot be used",
