@@ -41,6 +41,7 @@ import ProjectScopedReferenceValidator, {
   resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
 import Query from "../Types/Database/Query";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
@@ -336,8 +337,9 @@ export class Service extends DatabaseService<Model> {
       ).length > 0;
 
     /*
-     * The on-call policies and labels lists, when the update rewrites them.
-     * An empty list only removes rows and needs no check.
+     * The on-call policies, labels and affected-resource lists, when the
+     * update rewrites them. An empty list only removes rows and needs no
+     * check.
      */
     const relations: Array<ProjectScopedRelation> =
       this.getProjectScopedRelations().filter(
@@ -454,6 +456,7 @@ export class Service extends DatabaseService<Model> {
         modelName: "On-Call Policy",
         service: OnCallDutyPolicyService,
       },
+      ...getAffectedResourceRelations(),
     ];
   }
 
@@ -525,7 +528,8 @@ export class Service extends DatabaseService<Model> {
      * reason: onCreateSuccess executes every listed on-call policy, so
      * another project's policy here would page that project's on-call for
      * this project's alert, and the alert's feed (read as root) would name
-     * another project's monitor.
+     * another project's monitor. The affected-resource lists likewise: see
+     * getAffectedResourceRelations.
      *
      * Runs before the counter increment so a rejected create does not burn an
      * alert number.

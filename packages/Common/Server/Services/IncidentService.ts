@@ -40,6 +40,7 @@ import ProjectScopedReferenceValidator, {
   resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
 import Query from "../Types/Database/Query";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import SloRecordReferenceValidator from "../Utils/Slo/SloRecordReferenceValidator";
@@ -617,8 +618,9 @@ export class Service extends DatabaseService<Model> {
       ).length > 0;
 
     /*
-     * The monitors, on-call policies and labels lists, when the update
-     * rewrites them. An empty list only removes rows and needs no check.
+     * The monitors, on-call policies, labels and affected-resource lists,
+     * when the update rewrites them. An empty list only removes rows and
+     * needs no check.
      */
     const relations: Array<ProjectScopedRelation> =
       this.getProjectScopedRelations().filter(
@@ -734,6 +736,7 @@ export class Service extends DatabaseService<Model> {
         modelName: "On-Call Policy",
         service: OnCallDutyPolicyService,
       },
+      ...getAffectedResourceRelations(),
     ];
   }
 
@@ -1053,8 +1056,9 @@ export class Service extends DatabaseService<Model> {
      * reason and a worse one: onCreateSuccess changes the status of every
      * listed monitor and executes every listed on-call policy, so another
      * project's ids here would page that project's on-call and flip its
-     * monitors for this project's incident. Lists copied from the template
-     * above are checked like any other payload.
+     * monitors for this project's incident. The affected-resource lists are
+     * checked too (see getAffectedResourceRelations). Lists copied from the
+     * template above are checked like any other payload.
      *
      * Runs before the counter increment so a rejected create does not burn an
      * incident number.
