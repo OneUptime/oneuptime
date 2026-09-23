@@ -32,6 +32,13 @@ import { describe, expect, it } from "@jest/globals";
  *     protectedNamespace, and evaluateForAutoExecution never auto-approves
  *     it — not with bypassApproval, not with an allowlist of "*". Reads
  *     there stay Read.
+ *  5. The every-mode protections hold for node-wide evictions too: `kubectl
+ *     drain` and `kubectl taint` (any effect, NoExecute included) move pods
+ *     in every namespace — kube-system and the agent's own — without naming
+ *     one, so they are RiskyWrite with requiresHuman, and
+ *     evaluateForAutoExecution never auto-approves them: not in Bypass
+ *     approval, not through any allowlist entry. cordon/uncordon only stop
+ *     scheduling and stay SafeWrite.
  * Everything outside the SafeWrite shape is RiskyWrite (a human approves,
  * or the operator allowlists or bypasses), never silently Denied — the
  * negative controls pin that nothing a documented fix needs was lost.
@@ -327,12 +334,11 @@ const WRONG_KIND_FOR_SAFE_WRITE: Array<string> = [
   "kubectl annotate ingress web -n web example.com/owner=sre",
   "kubectl annotate sa default -n web eks.amazonaws.com/role-arn=arn:aws:iam::1:role/x",
   "kubectl annotate serviceaccount default -n web example.com/owner=sre",
-  "kubectl label clusterrole my-role a=b",
-  "kubectl label clusterrolebinding x a=b",
-  "kubectl label role/x -n web a=b",
-  "kubectl label rolebinding x -n web a=b",
-  "kubectl label validatingwebhookconfiguration gatekeeper a=b",
-  "kubectl label mutatingwebhookconfigurations/x a=b",
+  /*
+   * Labels on roles, bindings and webhook configurations used to be listed
+   * here as RiskyWrite. Every write to an RBAC, admission or API-extension
+   * kind is Denied now (KubectlPolicyDenials.test.ts pins them).
+   */
   "kubectl label networkpolicy np -n web a=b",
   "kubectl label configmap app-config -n web reloaded=1",
   "kubectl label pvc data -n web a=b",
@@ -494,6 +500,64 @@ const NOT_PROTECTED: Array<[string, KubectlCommandTier]> = [
   ["kubectl label ns web team=a -n kube-system", KubectlCommandTier.RiskyWrite],
   // A pod NAMED like a protected namespace is just a pod.
   ["kubectl delete pod kube-system -n web", KubectlCommandTier.SafeWrite],
+];
+
+/*
+ * ---- Node-wide evictions: always a human -----------------------------------
+ *
+ * With each, the allowlist entries an operator could write for it — the
+ * command itself and the wildcard shapes — none of which may promote it.
+ */
+const NODE_WIDE_EVICTIONS: Array<[string, Array<string>]> = [
+  [
+    "kubectl drain node-1 --ignore-daemonsets",
+    [
+      "kubectl drain * --ignore-daemonsets",
+      "kubectl drain node-* --ignore-daemonsets",
+    ],
+  ],
+  [
+    "kubectl drain node-1 --ignore-daemonsets --delete-emptydir-data --force",
+    ["kubectl drain * --ignore-daemonsets --delete-emptydir-data --force"],
+  ],
+  ["kubectl drain node-1", ["kubectl drain *", "drain node-1"]],
+  [
+    "kubectl drain node-1 --ignore-daemonsets --timeout=120s --grace-period=30",
+    ["kubectl drain * --ignore-daemonsets --timeout=* --grace-period=*"],
+  ],
+  [
+    "kubectl drain -l pool=spare --ignore-daemonsets",
+    ["kubectl drain -l * --ignore-daemonsets"],
+  ],
+  ["kubectl drain node-1 -n kube-system", ["kubectl drain * -n *"]],
+  [
+    "kubectl taint nodes node-1 dedicated=db:NoExecute",
+    ["kubectl taint nodes * *", "kubectl taint nodes node-1 *"],
+  ],
+  [
+    "kubectl taint nodes node-1 dedicated=db:NoSchedule",
+    ["kubectl taint nodes * *", "kubectl taint nodes node-1 dedicated=db:*"],
+  ],
+  [
+    "kubectl taint nodes node-1 dedicated=db:PreferNoSchedule --overwrite",
+    ["kubectl taint nodes * * --overwrite"],
+  ],
+  ["kubectl taint node/node-1 dedicated-", ["kubectl taint node/* *"]],
+  [
+    "kubectl taint nodes --all dedicated=db:NoExecute",
+    ["kubectl taint nodes --all *"],
+  ],
+  [
+    "kubectl taint no node-1 k=v:NoExecute -n kube-system",
+    ["kubectl taint no * * -n *"],
+  ],
+];
+
+// Neighbours that must keep running unattended where they did before.
+const NODE_WIDE_NEIGHBOURS: Array<string> = [
+  "kubectl cordon node-1",
+  "kubectl uncordon node-1",
+  "kubectl uncordon node/node-1",
 ];
 
 describe("KubectlPolicy SafeWrite scope", () => {
@@ -795,9 +859,110 @@ describe("KubectlPolicy SafeWrite scope", () => {
     });
   });
 
+  describe("a node drain or taint always needs a human, in every mode", () => {
+    it.each(NODE_WIDE_EVICTIONS)(
+      "tiers %s RiskyWrite with requiresHuman, and nothing runs it unattended",
+      (command: string, entries: Array<string>) => {
+        const result: KubectlPolicyResult =
+          KubectlPolicy.evaluateCommand(command);
+        expect(result.tier).toBe(KubectlCommandTier.RiskyWrite);
+        expect(result.requiresHuman).toBe(true);
+        // Node verbs name no namespace: the flag is not the protected-namespace one.
+        expect(result.protectedNamespace).toBeUndefined();
+        expect(result.reason).toContain("in every namespace");
+        expect(result.reason).toContain("kube-system");
+
+        for (const entry of entries) {
+          // The entries are valid and do match: the rule, not a miss, stops them.
+          expect(
+            KubectlPolicy.describeAllowlistPatternProblem(entry),
+          ).toBeNull();
+          expect(
+            KubectlPolicy.matchesAllowlist({
+              args: result.args,
+              allowlistPatterns: [entry],
+            }),
+          ).toBe(true);
+        }
+
+        for (const options of [
+          {},
+          { bypassApproval: true },
+          { allowlistPatterns: [command] },
+          { allowlistPatterns: entries },
+          { allowlistPatterns: [command, ...entries], bypassApproval: true },
+        ]) {
+          const verdict: KubectlAutoExecutionVerdict = autoVerdict(
+            command,
+            options,
+          );
+          expect(verdict.verdict).toBe(
+            AiRemediationCommandPolicyVerdict.RequiresApproval,
+          );
+          expect(verdict.requiresHuman).toBe(true);
+          expect(verdict.reason).toContain(
+            "Neither bypassing approvals nor the cluster's allowlist applies to a node drain or taint",
+          );
+        }
+      },
+    );
+
+    it.each(NODE_WIDE_NEIGHBOURS)(
+      "negative control: %s stays SafeWrite and runs unattended",
+      (command: string) => {
+        const result: KubectlPolicyResult =
+          KubectlPolicy.evaluateCommand(command);
+        expect(result.tier).toBe(KubectlCommandTier.SafeWrite);
+        expect(result.requiresHuman).toBeUndefined();
+        expect(autoVerdict(command).verdict).toBe(
+          AiRemediationCommandPolicyVerdict.AutoApproved,
+        );
+        expect(autoVerdict(command, { bypassApproval: true }).verdict).toBe(
+          AiRemediationCommandPolicyVerdict.AutoApproved,
+        );
+      },
+    );
+
+    it("negative control: other riskier node and workload changes still run under Bypass approval or a matching entry", () => {
+      for (const command of [
+        "kubectl label node node-1 pool=spare",
+        "kubectl cordon node-1 node-2",
+        'kubectl patch deployment web -n web -p \'{"spec":{"replicas":2}}\'',
+        "kubectl set image deployment/web web=img:2 -n web",
+      ]) {
+        const result: KubectlPolicyResult =
+          KubectlPolicy.evaluateCommand(command);
+        expect(result.tier).toBe(KubectlCommandTier.RiskyWrite);
+        expect(result.requiresHuman).toBeUndefined();
+        expect(autoVerdict(command, { bypassApproval: true }).verdict).toBe(
+          AiRemediationCommandPolicyVerdict.AutoApproved,
+        );
+        expect(
+          autoVerdict(command, { allowlistPatterns: [command] }).verdict,
+        ).toBe(AiRemediationCommandPolicyVerdict.AutoApproved);
+        expect(autoVerdict(command).requiresHuman).toBeUndefined();
+      }
+    });
+
+    it("marks a protected-namespace refusal as needing a human too", () => {
+      const verdict: KubectlAutoExecutionVerdict = autoVerdict(
+        "kubectl rollout restart deployment/coredns -n kube-system",
+        { bypassApproval: true },
+      );
+      expect(verdict.verdict).toBe(
+        AiRemediationCommandPolicyVerdict.RequiresApproval,
+      );
+      expect(verdict.requiresHuman).toBe(true);
+    });
+  });
+
   describe("evaluateCommand and evaluateArgs agree on every table above", () => {
     const allCommands: Array<string> = [
       ...SINGLE_OBJECT_SAFE_WRITES,
+      ...NODE_WIDE_EVICTIONS.map(([command]: [string, Array<string>]) => {
+        return command;
+      }),
+      ...NODE_WIDE_NEIGHBOURS,
       ...NOT_ONE_NAMED_OBJECT,
       ...ONE_OBJECT_MATRIX.flatMap(
         (row: {

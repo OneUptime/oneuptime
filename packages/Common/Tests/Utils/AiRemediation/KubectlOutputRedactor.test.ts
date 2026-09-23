@@ -31,6 +31,9 @@ import { describe, expect, it } from "@jest/globals";
  *     of credential-like keys and still parses.
  *  9. `kubectl describe configmap`'s "KEY:" / "----" / value layout loses a
  *     credential-like key's whole value, however many lines it has.
+ * 10. Every rule runs in linear time: ~200 KB shaped to make a regex
+ *     backtrack (long dotted runs, flag runs, quote runs, deep indentation)
+ *     is redacted in well under a second.
  */
 
 const PASSWORD_B64: string = "cGFzc3dvcmQ=";
@@ -1219,6 +1222,152 @@ describe("KubectlOutputRedactor", () => {
       expect(result.redactionCount).toBe(2);
     });
 
+    it("masks a URL password after any scheme spelling, and leaves a non-scheme alone", () => {
+      const result: KubectlOutputRedaction = redact(
+        lines(
+          "mongodb+srv://app:hunter2@cluster0.example.net/db",
+          "HTTPS://admin:s3cr3t@internal.example.com",
+          "url=(postgres://app:hunter2@db)",
+          "'amqp://guest:guest@rabbit:5672'",
+          "see.postgres://app:hunter2@db and x-redis://:pw@cache",
+          `${"a.".repeat(2000)}postgres://app:hunter2@db`,
+          "1://app:hunter2@db",
+        ),
+      );
+
+      expect(result.text).toBe(
+        lines(
+          `mongodb+srv://app:${MARKER}@cluster0.example.net/db`,
+          `HTTPS://admin:${MARKER}@internal.example.com`,
+          `url=(postgres://app:${MARKER}@db)`,
+          `'amqp://guest:${MARKER}@rabbit:5672'`,
+          `see.postgres://app:${MARKER}@db and x-redis://:${MARKER}@cache`,
+          `${"a.".repeat(2000)}postgres://app:${MARKER}@db`,
+          // A scheme starts with a letter.
+          "1://app:hunter2@db",
+        ),
+      );
+    });
+
+    /*
+     * The URL rule used to start its match at the scheme,
+     * /(\b[a-z][a-z0-9+.-]*:\/\/)…/, which retried from every word boundary
+     * of a long dotted run and backtracked through the whole run each time
+     * (200 KB of "eyJ.eyJ.…" took over 30 seconds). It now starts at "://"
+     * and checks the scheme behind it. This pins that the rewrite masks
+     * exactly what the scheme-first pattern masked, over a seeded corpus of
+     * URL-shaped strings with every awkward neighbour a scheme, a user or a
+     * password can have.
+     */
+    it("masks exactly what the scheme-first URL pattern masked", () => {
+      const schemeFirst: RegExp =
+        /(\b[a-z][a-z0-9+.-]*:\/\/)([^\s/:@"']*):([^\s/@"']+)@/gi;
+      /*
+       * No "=": with it, a password such as "2p1=" is also padded base64,
+       * which another rule masks — this compares the URL rule alone.
+       */
+      const junk: Array<string> = [
+        " ",
+        "x",
+        ".",
+        "-",
+        "+",
+        "_",
+        "1",
+        "(",
+        "'",
+        '"',
+        "/",
+        ":",
+        "@",
+        "A",
+      ];
+      const scheme: Array<string> = [
+        "a",
+        "b",
+        "Z",
+        "1",
+        ".",
+        "-",
+        "+",
+        "_",
+        "p",
+        "g",
+      ];
+      const user: Array<string> = [
+        "u",
+        "1",
+        ".",
+        "-",
+        "_",
+        "%",
+        "@",
+        ":",
+        "/",
+        " ",
+      ];
+      const pass: Array<string> = [
+        "p",
+        "2",
+        ":",
+        "!",
+        "#",
+        "%",
+        ".",
+        "-",
+        "/",
+        "@",
+        " ",
+        "'",
+      ];
+      let state: number = 3953;
+      const random: () => number = (): number => {
+        state = (state * 1103515245 + 12345) & 0x7fffffff;
+        return state / 0x7fffffff;
+      };
+      const word: (alphabet: Array<string>, max: number) => string = (
+        alphabet: Array<string>,
+        max: number,
+      ): string => {
+        let text: string = "";
+        const length: number = Math.floor(random() * (max + 1));
+        for (let i: number = 0; i < length; i++) {
+          text += alphabet[Math.floor(random() * alphabet.length)];
+        }
+        return text;
+      };
+
+      const maskSchemeFirst: (text: string) => string = (
+        text: string,
+      ): string => {
+        return text.replace(
+          schemeFirst,
+          (_match: string, prefix: string, name: string): string => {
+            return `${prefix}${name}:${MARKER}@`;
+          },
+        );
+      };
+
+      let maskedByBoth: number = 0;
+
+      for (let sample: number = 0; sample < 10000; sample++) {
+        const text: string = `${word(junk, 3)}${word(scheme, 5)}://${word(user, 3)}${random() < 0.8 ? ":" : ""}${word(pass, 4)}${random() < 0.8 ? "@" : ""}${word(junk, 3)}`;
+        const expected: string = maskSchemeFirst(text);
+
+        if (expected !== text) {
+          maskedByBoth++;
+        }
+
+        expect({ text, redacted: redact(text).text }).toEqual({
+          text,
+          redacted: expected,
+        });
+      }
+
+      // The corpus is not vacuous: hundreds of samples carry a password.
+      expect(maskedByBoth).toBeGreaterThan(700);
+    });
+
     it("masks Bearer and Basic authorization tokens but not prose", () => {
       const result: KubectlOutputRedaction = redact(
         lines(
@@ -2234,6 +2383,95 @@ describe("KubectlOutputRedactor", () => {
       expect(result.text).toBe(text);
       expect(result.redactionCount).toBe(0);
     });
+  });
+
+  /*
+   * Pod logs are attacker-influenced text, and the redactor runs on the
+   * server for every kubectl output. Every rule must stay linear on a large
+   * input shaped to make a regex backtrack: ~200 KB of repeated key=value
+   * text, long flag runs, runs of quotes and escaped quotes, deep YAML
+   * indentation, long dotted runs (the URL rule's old worst case, over 30
+   * seconds for "eyJ.eyJ.…") and the like. Each finishes in well under a
+   * second on a laptop; the bound leaves room for a loaded CI runner while
+   * still catching anything quadratic.
+   */
+  describe("linear time on large, adversarial output", () => {
+    const size: number = 200 * 1024;
+    const fill: (unit: string) => string = (unit: string): string => {
+      return unit.repeat(Math.ceil(size / unit.length)).slice(0, size);
+    };
+    const boundMs: number = 3000;
+
+    const adversarial: Array<[string, string]> = [
+      [
+        "repeated key=value lines",
+        fill("password=hunter2 user=admin token=abc123 level=info\n"),
+      ],
+      [
+        "repeated key=value on one line",
+        fill("password=hunter2 user=admin token=abc123 "),
+      ],
+      ["a long run of credential flags", fill("--password ")],
+      ["flags glued with =", fill("--password=--password=")],
+      ["a tool's short password flag, repeated", fill("mysql -p -p ")],
+      ["double quotes", fill('"')],
+      ["single quotes", fill("'")],
+      ["JSON key/value openings", fill('"a":"')],
+      ["escaped quotes", fill('\\"')],
+      [
+        "escaped JSON env pairs",
+        fill('\\"name\\":\\"PASSWORD\\",\\"value\\":\\"'),
+      ],
+      ["JSON env pairs", fill('"name":"PASSWORD","value":"')],
+      ["one-line JSON credentials", `{${fill('"password":"x",')}}`],
+      [
+        "deep YAML indentation",
+        Array.from({ length: 2000 }, (_value: unknown, index: number) => {
+          return `${" ".repeat(index % 400)}password: x`;
+        }).join("\n"),
+      ],
+      [
+        "a deep Secret data block",
+        `kind: Secret\ndata:\n${Array.from(
+          { length: 3000 },
+          (_value: unknown, index: number) => {
+            return `${" ".repeat(2 + (index % 300))}k${index}: dmFsdWU=`;
+          },
+        ).join("\n")}`,
+      ],
+      ["one long word", fill("a")],
+      ["a long base64 run", fill("QUJD")],
+      ["padded base64 words", fill("QUJD=")],
+      ["Bearer, repeated", fill("Bearer ")],
+      ["a long dotted run (JWT-like)", fill("eyJ.")],
+      ["a long dotted run", fill("a.")],
+      ["a long dotted run ending in a URL", `${fill("a.")}://u:p@h`],
+      ["scheme separators", fill("a://")],
+      ["URLs with credentials", fill("https://user:pass@")],
+      ["dashes", fill("-")],
+      ["PEM openings", fill("-----BEGIN ")],
+      ["an env list", fill("- name: API_KEY\n  value: abc\n")],
+      ["an args list", fill("- --password\n")],
+      ["escaped line breaks", fill("\\npassword=x")],
+      [
+        "describe's data layout",
+        `Data\n====\n${fill("password:\n----\nvalue\n")}`,
+      ],
+      ["quoted flag pairs", fill('"--password","')],
+      ["keys without a space after the colon", fill("password:x ")],
+    ];
+
+    it.each(adversarial)(
+      "redacts %s in linear time",
+      (_label: string, text: string) => {
+        const started: number = Date.now();
+        const result: KubectlOutputRedaction = redact(text);
+        const elapsedMs: number = Date.now() - started;
+
+        expect(result.text.length).toBeGreaterThan(0);
+        expect(elapsedMs).toBeLessThan(boundMs);
+      },
+    );
   });
 
   describe("shape", () => {

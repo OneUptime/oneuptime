@@ -18,11 +18,17 @@ import { describe, expect, it } from "@jest/globals";
  *  2. A `*` globs inside ONE token and never matches whitespace.
  *  3. A flag in the command must be spelled literally in the pattern (only a
  *     value after "=" may glob); a bare `*` never stands for a flag.
- *  4. The allowlist promotes only RiskyWrite: never a Denied command, and
- *     never a write in a protected namespace.
- *  5. Entry normalization is the Bash lane's: non-strings and blank entries
- *     are skipped, only the first 100 entries are read, and an entry longer
- *     than 500 characters is ignored; case matters.
+ *  4. The allowlist promotes only RiskyWrite: never a Denied command, never
+ *     a write in a protected namespace, and never a drain or taint (which
+ *     always need a human) — however exactly an entry matches them. An
+ *     entry for `kubectl patch ... -p *` never promotes a body the policy
+ *     denies.
+ *  5. Entry normalization: non-strings and blank entries are skipped, only
+ *     the first 100 entries are read, and every entry
+ *     describeAllowlistPatternProblem refuses (longer than 500 characters,
+ *     untokenizable, a `*` where the verb goes, ...) is ignored; case
+ *     matters. The validity and broadness rules themselves are pinned in
+ *     KubectlAllowlistValidatorParity.test.ts.
  *
  * The widened commands below are the ones the review showed a whole-string
  * glob auto-approved: extra resources before the image pair (kubectl's
@@ -129,7 +135,48 @@ const INTENDED_MATCHES: Array<[string, string]> = [
     'kubectl patch deployment web -n web -p \'{"spec":{"replicas":2}}\'',
     "kubectl patch deployment web -n web -p *",
   ],
-  // A flag spelled literally, globbing only its value.
+  /*
+   * A flag spelled literally, globbing only its value. (These rows used
+   * `kubectl drain`, which the allowlist no longer promotes at all — see
+   * DRAIN_AND_TAINT_MATCHES.)
+   */
+  [
+    "kubectl scale deployment/web --replicas=0 -n web --timeout=120s",
+    "kubectl scale deployment/web --replicas=* -n web --timeout=*",
+  ],
+  [
+    "kubectl delete job migrate-42 -n web --grace-period=30",
+    "kubectl delete job migrate-* -n web --grace-period=*",
+  ],
+  // "kubectl" optional in the pattern, and quoting in the pattern tokenizes too.
+  ["kubectl delete job migrate-42 -n web", "delete job migrate-42 -n web"],
+  [
+    "kubectl delete job migrate-42 -n web",
+    "KUBECTL delete job migrate-42 -n web",
+  ],
+  ["delete job migrate-42 -n web", "kubectl delete job migrate-42 -n web"],
+  [
+    'kubectl patch deployment web -n web -p \'{"spec": {"replicas": 2}}\'',
+    'kubectl patch deployment web -n web -p \'{"spec": {"replicas": *}}\'',
+  ],
+  // Whitespace between tokens is not significant.
+  [
+    "kubectl  delete   job  migrate-42 -n  web",
+    "kubectl delete job migrate-42    -n web",
+  ],
+  // A literal pattern with no glob at all.
+  [
+    "kubectl rollout restart deployment -n web",
+    "kubectl rollout restart deployment -n web",
+  ],
+  ["kubectl delete job migrate-42 -n web", "kubectl delete job * -n web"],
+];
+
+/*
+ * [command, pattern] pairs the matcher still matches word for word — but a
+ * drain or taint always needs a human, so no entry promotes them.
+ */
+const DRAIN_AND_TAINT_MATCHES: Array<[string, string]> = [
   [
     "kubectl drain node-1 --ignore-daemonsets --timeout=120s",
     "kubectl drain * --ignore-daemonsets --timeout=*",
@@ -138,26 +185,32 @@ const INTENDED_MATCHES: Array<[string, string]> = [
     "kubectl drain node-7 --ignore-daemonsets",
     "kubectl drain node-* --ignore-daemonsets",
   ],
-  // "kubectl" optional in the pattern, and quoting in the pattern tokenizes too.
   [
     "kubectl drain node-1 --ignore-daemonsets",
     "drain node-1 --ignore-daemonsets",
   ],
   [
-    'kubectl patch deployment web -n web -p \'{"spec": {"replicas": 2}}\'',
-    'kubectl patch deployment web -n web -p \'{"spec": {"replicas": *}}\'',
+    "kubectl taint nodes node-1 dedicated=db:NoExecute",
+    "kubectl taint nodes * dedicated=db:*",
   ],
-  // Whitespace between tokens is not significant.
-  [
-    "kubectl  drain   node-1  --ignore-daemonsets",
-    "kubectl drain node-1    --ignore-daemonsets",
-  ],
-  // A literal pattern with no glob at all.
-  [
-    "kubectl rollout restart deployment -n web",
-    "kubectl rollout restart deployment -n web",
-  ],
-  ["kubectl delete job migrate-42 -n web", "kubectl delete job * -n web"],
+];
+
+/*
+ * Patch bodies an allowlisted `-p *` shape reaches that the policy denies,
+ * in every body syntax the policy used to accept — the entry must never
+ * promote them, with Bypass approval off or on.
+ */
+const DENIED_BODIES_UNDER_PATCH_ENTRY: Array<string> = [
+  // JSON touching a forbidden field, plainly or escaped.
+  `kubectl patch deployment web -n web -p '{"spec":{"template":{"spec":{"serviceAccountName":"default"}}}}'`,
+  `kubectl patch deployment web -n web -p '{"spec":{"template":{"spec":{"serviceAccount\\u004eame":"default"}}}}'`,
+  `kubectl patch deployment web -n web -p '{"spec":{"template":{"spec":{"$setElementOrder/volumes":[]}}}}'`,
+  `kubectl patch deployment web -n web -p '{"spec":{"template":{"spec":{"containers":[{"name":"web","command":["sh"]}]}}}}'`,
+  // Bodies that are not JSON (a YAML tag needs a space, which * never matches).
+  "kubectl patch deployment web -n web -p spec:{template:{spec:{hostNetwork:true}}}",
+  "kubectl patch deployment web -n web -p spec:{replicas:2}",
+  "kubectl patch deployment web -n web -p '!!binary'",
+  "kubectl patch deployment web -n web -p '[&a{op:add},*a]'",
 ];
 
 describe("KubectlPolicy cluster allowlist (token by token)", () => {
@@ -194,6 +247,53 @@ describe("KubectlPolicy cluster allowlist (token by token)", () => {
   });
 
   describe("what the allowlist can never promote", () => {
+    it.each(DRAIN_AND_TAINT_MATCHES)(
+      "matches %s with %s word for word, but never promotes a drain or taint",
+      (command: string, pattern: string) => {
+        expect(matches(command, [pattern])).toBe(true);
+        const verdict: KubectlAutoExecutionVerdict = verdictFor(command, [
+          pattern,
+        ]);
+        expect(verdict.tier).toBe(KubectlCommandTier.RiskyWrite);
+        expect(verdict.verdict).toBe(
+          AiRemediationCommandPolicyVerdict.RequiresApproval,
+        );
+        expect(verdict.requiresHuman).toBe(true);
+        expect(verdict.reason).not.toContain(
+          "Matched the cluster's kubectl allowlist",
+        );
+      },
+    );
+
+    it.each(DENIED_BODIES_UNDER_PATCH_ENTRY)(
+      "never promotes %s through `kubectl patch deployment web -n web -p *`",
+      (command: string) => {
+        const pattern: string = "kubectl patch deployment web -n web -p *";
+        // The entry matches word for word; the policy's Denied is what stops it.
+        expect(matches(command, [pattern])).toBe(true);
+        for (const bypassApproval of [false, true]) {
+          expect(
+            KubectlPolicy.evaluateForAutoExecution({
+              command,
+              allowlistPatterns: [pattern],
+              bypassApproval,
+            }).verdict,
+          ).toBe(AiRemediationCommandPolicyVerdict.Denied);
+        }
+      },
+    );
+
+    it("negative control: the same entry still promotes a JSON body that only changes replicas", () => {
+      const command: string = `kubectl patch deployment web -n web -p '{"spec":{"replicas":3}}'`;
+      const verdict: KubectlAutoExecutionVerdict = verdictFor(command, [
+        "kubectl patch deployment web -n web -p *",
+      ]);
+      expect(verdict.verdict).toBe(
+        AiRemediationCommandPolicyVerdict.AutoApproved,
+      );
+      expect(verdict.reason).toContain("allowlist");
+    });
+
     it("never lifts a Denied command", () => {
       for (const [command, pattern] of [
         ["kubectl delete namespace web", "kubectl delete * *"],
@@ -293,11 +393,36 @@ describe("KubectlPolicy cluster allowlist (token by token)", () => {
       ).toBe(false);
     });
 
-    it("keeps a lone * to one-token commands", () => {
-      expect(matches("kubectl drain", ["*"])).toBe(true);
-      expect(matches("kubectl drain", ["kubectl *"])).toBe(true);
-      expect(matches(command, ["*"])).toBe(false);
-      expect(matches(command, ["kubectl *"])).toBe(false);
+    /*
+     * A lone `*` (or "kubectl *") used to match every one-word command. A
+     * `*` where the verb goes is no longer a valid entry, and the matcher
+     * skips every invalid entry, stored ones included.
+     */
+    it("skips a lone * — it stands for the verb, which an entry must write out", () => {
+      for (const lone of ["*", "kubectl *", "**", "kubectl*"]) {
+        expect(
+          KubectlPolicy.describeAllowlistPatternProblem(lone),
+        ).not.toBeNull();
+        expect(matches("kubectl drain", [lone])).toBe(false);
+        expect(matches("kubectl cordon", [lone])).toBe(false);
+        expect(matches(command, [lone])).toBe(false);
+      }
+    });
+
+    it("skips an entry written for the old whole-command glob", () => {
+      const setImage: string =
+        "kubectl set image deployment/web web=nginx:2 -n web";
+      expect(matches(setImage, ["* set image deployment/web * -n web"])).toBe(
+        false,
+      );
+      expect(matches(setImage, ["kubectl * deployment/web * -n web"])).toBe(
+        false,
+      );
+      // The same shape with the verb written out matches.
+      expect(matches(setImage, [SET_IMAGE_PATTERN])).toBe(true);
+      expect(matches(setImage, ["set image deployment/web * -n web"])).toBe(
+        true,
+      );
     });
   });
 });

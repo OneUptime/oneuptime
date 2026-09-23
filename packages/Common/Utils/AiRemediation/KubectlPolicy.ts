@@ -52,21 +52,51 @@ import CommandPolicy from "./CommandPolicy";
  * least RiskyWrite and carries `protectedNamespace`: evaluateForAutoExecution
  * never runs it without a human, whatever the mode or allowlist.
  *
- * Denied is what no one should be asked to approve from an AI plan: changes
- * to who may do what (creating or changing roles and role bindings, creating
- * ServiceAccounts, ClusterRole aggregation labels, set subject, set
- * serviceaccount, auth reconcile, certificate approve/deny); wiring
- * identity, privileges, host access, Secrets or a new program into a pod
- * (patch bodies touching POD_SECURITY_PATCH_KEYS, Pod Security Admission
- * labels, set env --from=secret/..., create job --image — only
- * `create job NAME --from=cronjob/NAME` re-runs existing code); deleting
- * cluster-level kinds in any spelling; anything that names a resource
- * CATEGORY (all, api-extensions, ...) in a write, because kubectl expands a
- * category into many kinds before this policy could see them; and anything
- * kubectl would not run as the command we read — a verb or create/set
- * subcommand it does not have (kubectl would run a kubectl-<word> plugin
- * from the Runner's PATH), one not written in lowercase (cobra matches
- * case-sensitively), or a namespace set twice (pflag keeps the last one).
+ * `kubectl drain` and `kubectl taint` are RiskyWrite and carry
+ * `requiresHuman` for the same reason. A drain evicts every pod on the node
+ * and a taint decides which pods the node keeps (a NoExecute taint evicts
+ * the rest), in EVERY namespace — kube-system and the OneUptime agent's own
+ * included — although the command names no namespace at all. So, like a
+ * protected-namespace write, evaluateForAutoExecution never runs one without
+ * a human: not in Bypass approval, not through the allowlist. cordon and
+ * uncordon only stop or resume scheduling on the node and stay SafeWrite.
+ *
+ * Denied is what no one should be asked to approve from an AI plan:
+ *   - Changes to who may do what, or to what the API server admits and
+ *     serves: EVERY write (label, annotate, patch, set, scale, rollout,
+ *     delete, ...) on the RBAC kinds (roles, cluster roles and their
+ *     bindings) and on the admission and API-extension kinds (validating /
+ *     mutating webhook configurations, validating / mutating admission
+ *     policies and their bindings, APIServices, CRDs), in every spelling
+ *     kubectl accepts; creating RBAC objects or ServiceAccounts; set
+ *     subject; set serviceaccount; auth reconcile; certificate approve/deny.
+ *     Reading these kinds stays Read.
+ *   - Wiring identity, privileges, host access, Secrets or a new program
+ *     into a pod: patch bodies touching POD_SECURITY_PATCH_KEYS, Pod
+ *     Security Admission labels, set env --from=secret/..., and creating a
+ *     workload that runs an image named in the command — `create
+ *     deployment` and `create cronjob` (kubectl requires --image for both)
+ *     and `create job --image`. Only `create job NAME --from=cronjob/NAME`
+ *     stays, as RiskyWrite: it re-runs the CronJob's existing spec. `set
+ *     image` is different on purpose: it changes the image of a workload
+ *     that already exists, under the identity, security context and mounts
+ *     that workload already has, and a rollback puts the old image back —
+ *     so it is RiskyWrite, and a human, the allowlist or Bypass approval
+ *     decides.
+ *   - A patch body that is not JSON. kubectl reads any other body as YAML
+ *     1.1, whose tags (`!!binary`), anchors, aliases and merge keys can
+ *     spell a field name that appears nowhere in the text, so a body is
+ *     only ever checked — and only ever run — as JSON (see
+ *     findPatchBodyProblem).
+ *   - Deleting cluster-level kinds (NEVER_DELETE_KINDS) in any spelling.
+ *   - Anything that names a resource CATEGORY (all, api-extensions, ...)
+ *     in a write, because kubectl expands a category into many kinds before
+ *     this policy could see them.
+ *   - Anything kubectl would not run as the command we read — a verb or
+ *     create/set subcommand it does not have (kubectl would run a
+ *     kubectl-<word> plugin from the Runner's PATH), one not written in
+ *     lowercase (cobra matches case-sensitively), or a namespace set twice
+ *     (pflag keeps the last one).
  *
  * Three more things are Denied because their OUTPUT is the problem, not the
  * verb. Secret objects are off-limits in every verb (get, describe, label,
@@ -84,24 +114,56 @@ import CommandPolicy from "./CommandPolicy";
  * lets an operator pre-approve RiskyWrite SHAPES in Automatic mode. It is
  * matched token by token against the argv kubectl will get, never as one
  * glob over the rendered string (see matchesAllowlist):
- *   - A pattern is tokenized exactly like a command (shell quoting, a leading
- *     "kubectl" optional) and must have the SAME number of tokens as the
- *     command, so `*` can never absorb an extra resource, a selector, a
- *     second -n or any other extra argument.
+ *   - A pattern is tokenized exactly like a command: shell quoting, and a
+ *     leading "kubectl" (in any case) is optional, in a pattern exactly as
+ *     in a command — "kubectl set image ..." and "set image ..." are the
+ *     same entry. It must have the SAME number of tokens as the command, so
+ *     `*` can never absorb an extra resource, a selector, a second -n or
+ *     any other extra argument.
  *   - Each pattern token matches exactly one argv token. A `*` inside a
  *     token is a glob within that one token and never matches whitespace:
  *     `web=*` matches `web=nginx:1.27`, `deployment/*` matches
  *     `deployment/api`, and `-p *` matches a patch body written without
- *     spaces.
+ *     spaces. A `*` is one word, so a leading `*` stands for the verb,
+ *     never for "kubectl".
  *   - Flags must be spelled in the pattern to be present in the command: a
  *     command token that is a flag is only matched by a pattern token that
  *     spells the same flag literally (`-n`, `--replicas=*`); a `*` never
  *     stands for a flag.
- *   - Case-sensitive. Up to 100 non-blank patterns of at most 500
- *     characters are read; longer ones and ones that do not tokenize are
- *     skipped.
- *   - The allowlist never promotes a Denied command, and never a write in a
- *     protected namespace.
+ *   - Case-sensitive. The first 100 non-blank entries are read.
+ *   - The allowlist never promotes a Denied command, never a write in a
+ *     protected namespace, and never a drain or taint.
+ *
+ * Which entries are valid is decided in ONE place,
+ * describeAllowlistPatternProblem: the server refuses to save anything
+ * else, the AI page refuses it in the form, and matchesAllowlist skips it —
+ * so an entry either works as written or is refused where it is typed. An
+ * entry is valid when it is:
+ *   - a non-blank string of at most 500 characters, on one line, with
+ *     balanced quotes and at most 64 words (a bare "kubectl" names no
+ *     command);
+ *   - that names its kubectl verb written out: lowercase, no `*` — and, for
+ *     rollout, set and create (and auth, cluster-info and top when it names
+ *     one), its subcommand the same way. A wildcard verb or subcommand
+ *     would pre-approve every KIND of change at once, and a leading `*`
+ *     written for "kubectl" (the old whole-command glob) never matched
+ *     anything;
+ *   - whose verb is one OneUptime AI may run at all; and
+ *   - whose flags the policy reads: a flag this policy refuses or does not
+ *     know, or a non-global flag before the verb, makes every command the
+ *     entry could match Denied.
+ *
+ * An entry is BROAD (isBroadAllowlistPattern; the AI page asks for an
+ * explicit confirmation before saving one) when a `*` stands for the
+ * namespace, for an object the command acts on (a kind, a name, a
+ * TYPE/NAME, or an extra object ahead of the update), or for a selector or
+ * --from source. A `*` in a VALUE keeps the entry about the objects it
+ * names: the image pair in the documented `kubectl set image deployment/web
+ * * -n web` (kubectl reads that last word either as the image update or as
+ * another object with no update, which it refuses), a patch body, a replica
+ * count, a revision, or the name of the Job `create job * --from=cronjob/X`
+ * makes. Entries the allowlist can never promote — reads, drain and taint —
+ * pre-approve nothing and are never broad.
  */
 
 export interface KubectlPolicyResult {
@@ -128,6 +190,13 @@ export interface KubectlPolicyResult {
    * bypassApproval, not through the allowlist.
    */
   protectedNamespace?: string | undefined;
+  /*
+   * Set on a node drain or taint (see the header). Such a command is
+   * RiskyWrite and evaluateForAutoExecution never runs it without a human,
+   * exactly like a protected-namespace write: it moves pods in every
+   * namespace, kube-system and the agent's own included.
+   */
+  requiresHuman?: boolean | undefined;
 }
 
 /*
@@ -146,6 +215,13 @@ export interface KubectlAutoExecutionVerdict {
   verdict: AiRemediationCommandPolicyVerdict;
   tier: KubectlCommandTier;
   reason: string;
+  /*
+   * True when nothing an operator can configure lets this command run
+   * unattended — a write in a protected namespace, or a node drain or taint
+   * — so an approval card should say that (the reason does), not that the
+   * cluster "only runs safe changes". Absent otherwise.
+   */
+  requiresHuman?: boolean | undefined;
 }
 
 export interface KubectlTokenizeResult {
@@ -637,6 +713,51 @@ const NODE_VERBS: Set<string> = new Set<string>([
 ]);
 
 /*
+ * Node verbs that move pods off a node in every namespace (a drain evicts
+ * them; a NoExecute taint makes the node evict them, and any taint decides
+ * which pods it keeps). They carry `requiresHuman`: nothing an operator sets
+ * on the cluster runs them unattended (see the header).
+ */
+const ALWAYS_HUMAN_VERBS: Set<string> = new Set<string>(["drain", "taint"]);
+
+/*
+ * The write verbs evaluateArgs tiers in a branch of their own (the ones that
+ * can be SafeWrite). With READ_VERBS, RISKY_WRITE_VERBS and the two
+ * read-only command groups below, these are every verb OneUptime AI may run;
+ * evaluateArgs refuses any other word as an unknown verb.
+ */
+const OWN_BRANCH_WRITE_VERBS: Set<string> = new Set<string>([
+  "rollout",
+  "delete",
+  "scale",
+  "cordon",
+  "uncordon",
+  "label",
+  "annotate",
+]);
+
+const READ_COMMAND_GROUPS: Set<string> = new Set<string>([
+  "cluster-info",
+  "auth",
+]);
+
+// Verbs whose subcommand must be written out for the command to run at all.
+const SUBCOMMAND_REQUIRED_VERBS: Set<string> = new Set<string>([
+  "rollout",
+  "set",
+  "create",
+]);
+
+function isVerbOneUptimeAiMayRun(verb: string): boolean {
+  return (
+    READ_VERBS.has(verb) ||
+    RISKY_WRITE_VERBS.has(verb) ||
+    OWN_BRANCH_WRITE_VERBS.has(verb) ||
+    READ_COMMAND_GROUPS.has(verb)
+  );
+}
+
+/*
  * Verbs with nothing to offer an SRE agent, or that open an interactive or
  * long-lived channel, or that could rewrite objects from input we do not
  * support. Listed explicitly so the reason names the verb; any verb not in
@@ -740,15 +861,39 @@ const RESOURCE_CATEGORIES: Set<string> = new Set<string>([
 
 /*
  * Kinds that decide who may do what. OneUptime AI never creates or changes
- * them (a new or widened binding is a privilege grant, not a fix), and never
- * deletes them (NEVER_DELETE_KINDS). Reading them stays Read: an
- * investigation needs to see why something is Forbidden.
+ * them in any write verb — label and annotate included (a label on a
+ * ClusterRole can aggregate its rules into admin/edit/view) — because a new
+ * or widened binding is a privilege grant, not a fix; nor does it delete
+ * them (NEVER_DELETE_KINDS). Reading them stays Read: an investigation needs
+ * to see why something is Forbidden.
  */
 const RBAC_KINDS: Set<string> = new Set<string>([
   "role",
   "clusterrole",
   "rolebinding",
   "clusterrolebinding",
+]);
+
+/*
+ * Kinds that decide, for the whole cluster, what the API server admits and
+ * serves: admission webhooks and admission policies (and their bindings)
+ * accept, reject or rewrite every object written; an APIService routes a
+ * whole API group to a Service; a CRD defines (and converts) a whole kind.
+ * Emptying a webhook's rules, setting a policy binding to Audit or
+ * repointing an APIService switches a cluster control off as surely as
+ * deleting it (which NEVER_DELETE_KINDS already refuses) — the same reason
+ * Pod Security Admission labels are Denied. So every write verb on these is
+ * Denied; reading them stays Read.
+ */
+const ADMISSION_AND_API_EXTENSION_KINDS: Set<string> = new Set<string>([
+  "mutatingwebhookconfiguration",
+  "validatingwebhookconfiguration",
+  "validatingadmissionpolicy",
+  "validatingadmissionpolicybinding",
+  "mutatingadmissionpolicy",
+  "mutatingadmissionpolicybinding",
+  "apiservice",
+  "customresourcedefinition",
 ]);
 
 /*
@@ -917,7 +1062,9 @@ const RBAC_AGGREGATION_KEY_PREFIX: string =
 /*
  * Field names a `kubectl patch` body may never touch, matched by key name
  * (case-insensitively) anywhere in the body — strategic-merge and merge
- * patches (JSON or YAML) as keys, JSON patches as path segments. Each one
+ * patches as keys, JSON patches as path segments. Bodies are JSON only (a
+ * body JSON.parse rejects is Denied outright; see findPatchBodyProblem), so
+ * the walker sees exactly the keys kubectl applies. Each one
  * changes which identity, privileges, host access, Secrets or program a pod
  * runs with. With write RBAC on a workload that is the same as running any
  * image as any ServiceAccount in the namespace and reading every Secret it
@@ -999,6 +1146,17 @@ const DENIED_CREATE_KINDS: Set<string> = new Set<string>([
   "role",
   "rolebinding",
   "serviceaccount",
+]);
+
+/*
+ * `kubectl create` subcommands that start a NEW workload running the image
+ * named in the command: kubectl requires --image for both (it refuses them
+ * without one), so every such command runs an arbitrary image as a new
+ * program in the cluster — Denied, like `create job --image`.
+ */
+const IMAGE_WORKLOAD_CREATE_KINDS: Set<string> = new Set<string>([
+  "deployment",
+  "cronjob",
 ]);
 
 // Cluster-scoped objects `kubectl create` can make (for the namespace rule).
@@ -1340,45 +1498,59 @@ function isPodSecurityKey(key: string): boolean {
   return isDomainOrSubdomain(keyDomain(key), POD_SECURITY_KEY_DOMAIN);
 }
 
+function isRbacAggregationKey(key: string): boolean {
+  return key.toLowerCase().startsWith(RBAC_AGGREGATION_KEY_PREFIX);
+}
+
+const MAX_PATCH_BODY_DEPTH: number = 64;
+
 /*
- * The first field a patch body touches that POD_SECURITY_PATCH_KEYS
- * forbids, or a Pod Security Admission label, or null. A body that parses
- * as JSON is walked (keys, and the path/from of JSON-patch operations,
- * decoded, so a \u escape or a ~1 cannot hide a name). Anything else is
- * YAML to kubectl; it is refused outright when it carries a backslash (a
- * YAML escape could spell a key we would not see) and otherwise scanned
- * word by word, which over-approximates on the safe side.
+ * findForbiddenJsonField's answer for a body nested past
+ * MAX_PATCH_BODY_DEPTH. It can never equal a field it reports, which are
+ * POD_SECURITY_PATCH_KEYS and Pod Security Admission label keys.
  */
-function findForbiddenPatchField(body: string): string | null {
+const PATCH_BODY_TOO_DEEP: string = "\0too-deep";
+
+/*
+ * Why a `kubectl patch` body may not run, or null. The body must be JSON,
+ * and the JSON is walked for POD_SECURITY_PATCH_KEYS and Pod Security
+ * Admission labels (keys, and the path/from of JSON-patch operations,
+ * decoded, so a \u escape or a ~1 cannot hide a name).
+ *
+ * Why JSON only: kubectl sends a body whose first non-space byte is "{" to
+ * the API server byte for byte, and decodes every other body as YAML 1.1
+ * (apimachinery's yaml.ToJSON) — including a "[" body such as a JSON patch.
+ * YAML honours type tags, anchors, aliases and merge keys, so `!!binary
+ * c2VydmljZUFjY291bnROYW1l` is the key serviceAccountName although that
+ * word appears nowhere in the text; no scan of the text can see what
+ * kubectl will apply. A body that IS valid JSON decodes to the same keys
+ * and paths either way: in JSON, tag, anchor and merge-key syntax can only
+ * sit inside quoted strings, where YAML reads it as plain text, and a
+ * repeated key keeps its last value in JSON.parse and in kubectl alike.
+ * Every patch a fix needs can be written as JSON.
+ */
+function findPatchBodyProblem(body: string): string | null {
   let parsed: unknown = undefined;
-  let isJson: boolean = false;
 
   try {
     parsed = JSON.parse(body);
-    isJson = true;
   } catch {
-    isJson = false;
+    return `kubectl patch with a body that is not JSON is never allowed for OneUptime AI: kubectl reads any other body as YAML, whose tags, anchors and merge keys can spell a field name that appears nowhere in the text (write the patch body as JSON, e.g. -p '{"spec":{"replicas":3}}')`;
   }
 
-  if (isJson) {
-    return findForbiddenJsonField(parsed, 0);
+  const field: string | null = findForbiddenJsonField(parsed, 0);
+
+  if (field === null) {
+    return null;
   }
 
-  if (body.includes("\\")) {
-    return "an escape sequence (write the patch body as plain JSON)";
+  if (field === PATCH_BODY_TOO_DEEP) {
+    return `kubectl patch with a body nested more than ${MAX_PATCH_BODY_DEPTH} levels deep is never allowed for OneUptime AI (no fix needs one)`;
   }
 
-  if (body.toLowerCase().includes(POD_SECURITY_KEY_DOMAIN)) {
-    return `${POD_SECURITY_KEY_DOMAIN}/`;
-  }
-
-  for (const word of body.match(/[A-Za-z0-9_]+/g) || []) {
-    if (POD_SECURITY_PATCH_KEYS.has(word.toLowerCase())) {
-      return word;
-    }
-  }
-
-  return null;
+  return isPodSecurityKey(field)
+    ? `kubectl patch of ${field} is never allowed for OneUptime AI: Pod Security Admission reads these labels to decide whether privileged pods may run in a namespace`
+    : `kubectl patch that touches ${field} is never allowed for OneUptime AI: it changes which identity, privileges, host access, Secrets or program a pod runs with (patch other fields, or use set image / set env / set resources)`;
 }
 
 function forbiddenFieldInName(name: string): string | null {
@@ -1405,8 +1577,8 @@ function forbiddenFieldInPath(path: string): string | null {
 
 function findForbiddenJsonField(value: unknown, depth: number): string | null {
   // Nesting this deep is not a patch a fix needs; refuse rather than recurse.
-  if (depth > 64) {
-    return "a patch body nested more than 64 levels deep";
+  if (depth > MAX_PATCH_BODY_DEPTH) {
+    return PATCH_BODY_TOO_DEEP;
   }
 
   if (Array.isArray(value)) {
@@ -1482,6 +1654,118 @@ export const KUBECTL_ALLOWLIST_MAX_PATTERN_LENGTH: number =
 
 function isFlagToken(token: string): boolean {
   return token.startsWith("-") && token !== "-";
+}
+
+// What tokenize() says for a command (or an allowlist entry) with no verb.
+const NO_VERB_MESSAGE: string = "The command names no kubectl verb.";
+
+// An allowlist entry as matchesAllowlist reads it (see readAllowlistEntry).
+interface AllowlistEntry {
+  // The entry's words without the optional leading "kubectl"; set when valid.
+  args?: Array<string> | undefined;
+  // pflag's reading of those words; set when valid.
+  parsed?: ParsedArgs | undefined;
+  // Why the entry is invalid, for the person who typed it; set when invalid.
+  problem?: string | undefined;
+}
+
+/*
+ * Flags whose value picks WHICH objects (or namespace) a command acts on —
+ * the namespace, a selector, --all, the source object of --from — so a `*`
+ * in their value makes an allowlist entry broad.
+ */
+const WIDENING_FLAGS: Array<string> = [
+  "n",
+  "namespace",
+  "l",
+  "selector",
+  "field-selector",
+  "pod-selector",
+  "all",
+  "A",
+  "all-namespaces",
+  "from",
+];
+
+// For the "write the subcommand out" message.
+const SUBCOMMAND_EXAMPLES: Record<string, string> = {
+  rollout: "restart deployment/web -n web",
+  set: "image deployment/web * -n web",
+  create: "job manual-run --from=cronjob/nightly -n web",
+  auth: "can-i get pods",
+  top: "pod -n web",
+};
+
+function subcommandExample(verb: string): string {
+  const example: string | undefined = Object.prototype.hasOwnProperty.call(
+    SUBCOMMAND_EXAMPLES,
+    verb,
+  )
+    ? SUBCOMMAND_EXAMPLES[verb]
+    : undefined;
+  return example ? `, as in "kubectl ${verb} ${example}"` : "";
+}
+
+function hasWildcard(token: string): boolean {
+  return token.includes("*");
+}
+
+/*
+ * Whether evaluateForAutoExecution can ever promote a command with this verb
+ * through the allowlist: never a read (it runs anyway), and never a drain or
+ * taint (it always needs a human).
+ */
+function allowlistMayPromote(verb: string, subcommand: string): boolean {
+  if (
+    READ_VERBS.has(verb) ||
+    READ_COMMAND_GROUPS.has(verb) ||
+    ALWAYS_HUMAN_VERBS.has(verb)
+  ) {
+    return false;
+  }
+
+  return !(
+    verb === "rollout" &&
+    (subcommand === "status" || subcommand === "history")
+  );
+}
+
+/*
+ * The commands whose words after the objects are UPDATES kubectl requires
+ * (label, annotate, set image, and set env unless -e/--env/--from supply the
+ * variables): with no update word, kubectl refuses the command outright.
+ */
+function readsUpdatePairs(
+  verb: string,
+  subcommand: string,
+  flags: Map<string, Array<string>>,
+): boolean {
+  if (verb === "label" || verb === "annotate") {
+    return true;
+  }
+
+  if (verb !== "set") {
+    return false;
+  }
+
+  if (subcommand === "image") {
+    return true;
+  }
+
+  return (
+    subcommand === "env" &&
+    !flags.has("e") &&
+    !flags.has("env") &&
+    !flags.has("from")
+  );
+}
+
+/*
+ * An update word (KEY=VALUE or KEY-) in an allowlist entry: every word it
+ * matches is one too, so it can never stand for another object.
+ */
+function isUpdatePairToken(token: string): boolean {
+  return token.includes("=") || (token.endsWith("-") && token !== "-");
 }
 
 /*
@@ -1652,7 +1936,7 @@ export default class KubectlPolicy {
     }
 
     if (args.length === 0) {
-      return { errorMessage: "The command names no kubectl verb." };
+      return { errorMessage: NO_VERB_MESSAGE };
     }
 
     return { args };
@@ -1701,7 +1985,7 @@ export default class KubectlPolicy {
     };
 
     if (args.length === 0) {
-      return deny("The command names no kubectl verb.");
+      return deny(NO_VERB_MESSAGE);
     }
 
     if (args.length > MAX_TOKENS) {
@@ -1732,7 +2016,7 @@ export default class KubectlPolicy {
     }
 
     if (!verb) {
-      return deny("The command names no kubectl verb.");
+      return deny(NO_VERB_MESSAGE);
     }
 
     /*
@@ -1861,7 +2145,8 @@ export default class KubectlPolicy {
     /*
      * The result for a command that may run. A write that lands in (or
      * targets) a protected namespace is lifted from SafeWrite to RiskyWrite
-     * and marked, so evaluateForAutoExecution never runs it unattended.
+     * and marked, and a drain or taint is marked too, so
+     * evaluateForAutoExecution never runs either unattended.
      */
     const allowed: (
       tier: KubectlCommandTier,
@@ -1884,7 +2169,19 @@ export default class KubectlPolicy {
         result.namespace = namespace;
       }
 
-      if (tier === KubectlCommandTier.Read || !protectedNamespace) {
+      if (tier === KubectlCommandTier.Read) {
+        return result;
+      }
+
+      if (ALWAYS_HUMAN_VERBS.has(verb)) {
+        result.requiresHuman = true;
+        result.reason =
+          verb === "drain"
+            ? "kubectl drain evicts every pod on the node, in every namespace (kube-system and the OneUptime agent's own included), so a human always approves it"
+            : "kubectl taint decides which pods a node keeps, in every namespace (kube-system and the OneUptime agent's own included; a NoExecute taint evicts the rest at once), so a human always approves it";
+      }
+
+      if (!protectedNamespace) {
         return result;
       }
 
@@ -1951,6 +2248,13 @@ export default class KubectlPolicy {
         return deny(
           `kubectl create ${rawSubcommand || "(missing subcommand)"} is not a kubectl create subcommand OneUptime AI may run (for a word it does not know, kubectl would look for a kubectl-create-${rawSubcommand || "<name>"} plugin on the Runner and run it)`,
           `create ${subcommand}`,
+        );
+      }
+
+      if (IMAGE_WORKLOAD_CREATE_KINDS.has(createKind)) {
+        return deny(
+          `kubectl create ${createKind} starts a new workload running the image named in its --image flag (kubectl requires one): a new program in the cluster, not a fix. OneUptime AI changes existing workloads (set image, rollout undo) and re-runs an existing CronJob with kubectl create job NAME --from=cronjob/NAME`,
+          `create ${createKind}`,
         );
       }
 
@@ -2081,6 +2385,16 @@ export default class KubectlPolicy {
       );
     }
 
+    /*
+     * A ClusterRole aggregation label names the grant it makes, so the
+     * refusal names it too. Aggregation reads labels only; the same key as
+     * an annotation is refused as a plain RBAC write below.
+     */
+    const clusterRoleAggregationKey: string | undefined =
+      verb === "label" && targets.kinds.has("clusterrole")
+        ? labelKeys(verb, parsed.positionals).find(isRbacAggregationKey)
+        : undefined;
+
     if (OBJECT_VERBS.has(verb)) {
       for (const kind of targets.kinds) {
         if (RESOURCE_CATEGORIES.has(kind)) {
@@ -2090,14 +2404,28 @@ export default class KubectlPolicy {
           );
         }
 
-        if (
-          RBAC_KINDS.has(kind) &&
-          verb !== "label" &&
-          verb !== "annotate" &&
-          verb !== "delete"
-        ) {
+        // Deleting these is refused by NEVER_DELETE_KINDS, with its own reason.
+        if (verb === "delete") {
+          continue;
+        }
+
+        if (RBAC_KINDS.has(kind)) {
+          if (clusterRoleAggregationKey) {
+            return deny(
+              `kubectl ${verb} of ${clusterRoleAggregationKey} on a ClusterRole is never allowed for OneUptime AI: it merges the role's rules into admin/edit/view and so grants them to everyone bound to those, a privilege grant, not a fix`,
+              `${verb} clusterrole`,
+            );
+          }
+
           return deny(
             `kubectl ${verb} on ${kind} objects is never allowed for OneUptime AI: roles and role bindings decide who may do what in the cluster, and changing them is a privilege grant, not a fix (a human makes RBAC changes)`,
+            `${verb} ${kind}`,
+          );
+        }
+
+        if (ADMISSION_AND_API_EXTENSION_KINDS.has(kind)) {
+          return deny(
+            `kubectl ${verb} on ${kind} objects is never allowed for OneUptime AI: admission webhooks and policies, APIServices and CRDs decide what the API server admits and serves for the whole cluster, and changing one can switch a cluster control off as surely as deleting it (a human makes that change)`,
             `${verb} ${kind}`,
           );
         }
@@ -2313,19 +2641,6 @@ export default class KubectlPolicy {
         }
       }
 
-      // Aggregation reads labels only; an annotation there is just text.
-      if (verb === "label" && targets.kinds.has("clusterrole")) {
-        const aggregationKey: string | undefined = keys.find((key: string) => {
-          return key.toLowerCase().startsWith(RBAC_AGGREGATION_KEY_PREFIX);
-        });
-        if (aggregationKey) {
-          return deny(
-            `kubectl ${verb} of ${aggregationKey} on a ClusterRole is never allowed for OneUptime AI: it merges the role's rules into admin/edit/view and so grants them to everyone bound to those, a privilege grant, not a fix`,
-            `${verb} clusterrole`,
-          );
-        }
-      }
-
       if (hasAll || hasSelector) {
         return allowed(
           KubectlCommandTier.RiskyWrite,
@@ -2374,14 +2689,9 @@ export default class KubectlPolicy {
       ];
 
       for (const body of bodies) {
-        const field: string | null = findForbiddenPatchField(body);
-        if (field) {
-          return deny(
-            isPodSecurityKey(field)
-              ? `kubectl patch of ${field} is never allowed for OneUptime AI: Pod Security Admission reads these labels to decide whether privileged pods may run in a namespace`
-              : `kubectl patch that touches ${field} is never allowed for OneUptime AI: it changes which identity, privileges, host access, Secrets or program a pod runs with (patch other fields, or use set image / set env / set resources)`,
-            "patch",
-          );
+        const problem: string | null = findPatchBodyProblem(body);
+        if (problem) {
+          return deny(problem, "patch");
         }
       }
     }
@@ -2407,9 +2717,9 @@ export default class KubectlPolicy {
    * Read and SafeWrite auto-approve; RiskyWrite auto-approves only when the
    * cluster bypasses approvals or the operator allowlisted its exact shape
    * (matchesAllowlist: token by token, see the allowlist section in the
-   * header); Denied stays Denied; and a write in a protected namespace always
-   * needs a human. Suggest mode never consults this — everything there is
-   * RequiresApproval by construction.
+   * header); Denied stays Denied; and a write in a protected namespace, a
+   * node drain and a taint always need a human. Suggest mode never consults
+   * this — everything there is RequiresApproval by construction.
    */
   public static evaluateForAutoExecution(data: {
     command: string;
@@ -2418,7 +2728,8 @@ export default class KubectlPolicy {
      * The cluster's operator chose to never be asked: RiskyWrite auto-approves
      * too. Denied stays Denied — that tier is what "even with approval"
      * means, and bypassing approval cannot grant more than approval would.
-     * Nor does it reach a protected namespace (kube-system and friends).
+     * Nor does it reach a protected namespace (kube-system and friends), a
+     * drain or a taint.
      */
     bypassApproval?: boolean | undefined;
   }): KubectlAutoExecutionVerdict {
@@ -2451,6 +2762,17 @@ export default class KubectlPolicy {
         verdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
         tier: result.tier,
         reason: `Requires human approval: ${result.reason}. Neither bypassing approvals nor the cluster's allowlist applies in ${result.protectedNamespace}.`,
+        requiresHuman: true,
+      };
+    }
+
+    // Nor does anything let it drain or taint a node on its own.
+    if (result.requiresHuman) {
+      return {
+        verdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
+        tier: result.tier,
+        reason: `Requires human approval: ${result.reason}. Neither bypassing approvals nor the cluster's allowlist applies to a node drain or taint.`,
+        requiresHuman: true,
       };
     }
 
@@ -2515,12 +2837,13 @@ export default class KubectlPolicy {
       .slice(0, MAX_ALLOWLIST_PATTERNS);
 
     for (const pattern of patterns) {
-      if (pattern.length > MAX_ALLOWLIST_PATTERN_LENGTH) {
-        continue;
-      }
-
-      const tokenized: KubectlTokenizeResult = KubectlPolicy.tokenize(pattern);
-      const patternArgs: Array<string> | undefined = tokenized.args;
+      /*
+       * An entry describeAllowlistPatternProblem refuses is skipped, so what
+       * the matcher reads and what the server and the AI page accept are
+       * one set — including an entry stored before a rule was added.
+       */
+      const patternArgs: Array<string> | undefined =
+        KubectlPolicy.readAllowlistEntry(pattern).args;
 
       if (!patternArgs || patternArgs.length !== args.length) {
         continue;
@@ -2542,110 +2865,182 @@ export default class KubectlPolicy {
 
   /*
    * Why an allowlist entry cannot work, in words for the person typing it —
-   * or null when matchesAllowlist will read it. The server validates saves
-   * with this and the AI page validates its form with it, so neither can
-   * accept an entry the matcher would silently skip. (The entry count is
-   * checked by the callers against KUBECTL_ALLOWLIST_MAX_PATTERNS.)
+   * or null when it is valid. This is the ONE definition of a valid entry
+   * (see the allowlist section of the header): the server validates saves
+   * with it, the AI page validates its form with it, and matchesAllowlist
+   * skips every entry it refuses, so no entry is stored that the matcher
+   * would silently ignore. (The entry count is checked by the callers
+   * against KUBECTL_ALLOWLIST_MAX_PATTERNS.)
    */
   public static describeAllowlistPatternProblem(
     pattern: unknown,
   ): string | null {
-    if (typeof pattern !== "string" || pattern.trim().length === 0) {
-      return "An allowlist entry cannot be blank.";
-    }
-
-    if (pattern.length > MAX_ALLOWLIST_PATTERN_LENGTH) {
-      return `An allowlist entry can be at most ${MAX_ALLOWLIST_PATTERN_LENGTH} characters long.`;
-    }
-
-    const tokenized: KubectlTokenizeResult = KubectlPolicy.tokenize(pattern);
-
-    if (!tokenized.args) {
-      return `"${pattern}" is not one kubectl command line: ${
-        tokenized.errorMessage || "it could not be split into arguments"
-      }`;
-    }
-
-    if (tokenized.args.length === 0) {
-      return `"${pattern}" names no kubectl command.`;
-    }
-
-    return null;
+    return KubectlPolicy.readAllowlistEntry(pattern).problem || null;
   }
 
   /*
-   * Does this allowlist entry pre-approve more than one specific change?
-   * True when a wildcard stands for the verb, the namespace or the object
-   * the command acts on (`kubectl delete * -n web`, `kubectl scale
-   * deployment/* --replicas=* -n web`, `kubectl patch deployment web -n *`).
-   * A wildcard in a VALUE — the image in `kubectl set image deployment/web
-   * * -n web`, a replica count — keeps the entry about one object. The AI
-   * page asks for an explicit confirmation before saving a broad entry.
+   * Does this allowlist entry pre-approve riskier changes beyond the objects
+   * it names? True when a `*` stands for the namespace, for an object the
+   * command acts on, or for a selector or --from source — see the allowlist
+   * section of the header. The AI page asks for an explicit confirmation
+   * before saving a broad entry.
+   *
+   * The entry is read with the policy's own tokenizer and flag parser, the
+   * way matchesAllowlist reads it (a leading "kubectl" is dropped once, in
+   * any case), so every spelling of -n (`-n *`, `-n=*`, `--namespace=*`, a
+   * cluster such as `-An *`) is seen, and a value flag's `*` (`-p *`,
+   * `--replicas *`) is never mistaken for an object. An invalid entry is
+   * never broad: it is refused before anyone could be asked to confirm it.
    */
   public static isBroadAllowlistPattern(pattern: unknown): boolean {
-    if (KubectlPolicy.describeAllowlistPatternProblem(pattern) !== null) {
+    const entry: AllowlistEntry = KubectlPolicy.readAllowlistEntry(pattern);
+
+    if (!entry.parsed) {
       return false;
     }
 
-    let args: Array<string> = KubectlPolicy.tokenize(pattern as string).args!;
+    const parsed: ParsedArgs = entry.parsed;
+    const verb: string = parsed.positionals[0] || "";
+    const subcommand: string = parsed.positionals[1] || "";
 
-    if (args[0]?.toLowerCase() === "kubectl") {
-      args = args.slice(1);
+    // Reads, drains and taints are never promoted: the entry pre-approves nothing.
+    if (!allowlistMayPromote(verb, subcommand)) {
+      return false;
     }
 
-    const positional: Array<string> = [];
-
-    for (let i: number = 0; i < args.length; i++) {
-      const token: string = args[i]!;
-
-      if (token === "-n" || token === "--namespace") {
-        if ((args[i + 1] || "").includes("*")) {
-          return true;
-        }
-        i++;
-        continue;
-      }
-
-      if (
-        (token.startsWith("-n") && !token.startsWith("--")) ||
-        token.startsWith("--namespace=")
-      ) {
-        const value: string = token.startsWith("--namespace=")
-          ? token.slice("--namespace=".length)
-          : token.slice(2).replace(/^=/, "");
-
+    for (const flag of WIDENING_FLAGS) {
+      for (const value of parsed.flags.get(flag) || []) {
         if (value.includes("*")) {
           return true;
         }
-        continue;
-      }
-
-      if (!isFlagToken(token)) {
-        positional.push(token);
       }
     }
 
-    const verbLength: number = SUBCOMMAND_VERBS.has(positional[0] || "")
-      ? 2
-      : 1;
-    const verbTokens: Array<string> = positional.slice(0, verbLength);
-    const objectTokens: Array<string> = positional.slice(
-      verbLength,
-      verbLength + 1,
+    // A wildcard in create's positionals names the NEW object, not an existing one.
+    if (verb === "create") {
+      return false;
+    }
+
+    let operands: Array<string> = parsed.positionals.slice(
+      SUBCOMMAND_VERBS.has(verb) ? 2 : 1,
     );
 
-    // TYPE NAME: the name follows the kind.
-    if (objectTokens[0] && !objectTokens[0].includes("/")) {
-      const name: string | undefined = positional[verbLength + 1];
+    // kubectl set selector reads its LAST word as the selector expression.
+    if (verb === "set" && subcommand === "selector") {
+      operands = operands.slice(0, -1);
+    }
 
-      if (name !== undefined) {
-        objectTokens.push(name);
+    if (!readsUpdatePairs(verb, subcommand, parsed.flags)) {
+      return operands.some(hasWildcard);
+    }
+
+    /*
+     * label, annotate, set image and set env read their operands the way
+     * kubectl's GetResourcesAndPairs does: objects first, then the updates
+     * (KEY=VALUE or KEY-), and an object after an update is an error. So a
+     * wildcard can stand for an object only before the first update, and
+     * only when another word follows it: a wildcard that is the LAST word
+     * is read either as the update or as one more object with no update at
+     * all, which kubectl refuses ("at least one ... update is required").
+     */
+    for (let i: number = 0; i < operands.length; i++) {
+      const operand: string = operands[i]!;
+
+      if (isUpdatePairToken(operand)) {
+        return false;
+      }
+
+      if (hasWildcard(operand) && i < operands.length - 1) {
+        return true;
       }
     }
 
-    return [...verbTokens, ...objectTokens].some((token: string) => {
-      return token.includes("*");
-    });
+    return false;
+  }
+
+  /*
+   * An allowlist entry read the way matchesAllowlist reads it: its argv
+   * (the optional leading "kubectl" dropped by tokenize) and its parse when
+   * it is valid, or the problem that makes it invalid.
+   */
+  private static readAllowlistEntry(pattern: unknown): AllowlistEntry {
+    if (typeof pattern !== "string" || pattern.trim().length === 0) {
+      return { problem: "An allowlist entry cannot be blank." };
+    }
+
+    if (pattern.length > MAX_ALLOWLIST_PATTERN_LENGTH) {
+      return {
+        problem: `An allowlist entry can be at most ${MAX_ALLOWLIST_PATTERN_LENGTH} characters long.`,
+      };
+    }
+
+    const shown: string = pattern.trim();
+    const namesNoCommand: string = `"${shown}" names no kubectl command: write out the command it pre-approves, such as "kubectl set image deployment/web * -n web".`;
+    const tokenized: KubectlTokenizeResult = KubectlPolicy.tokenize(pattern);
+
+    if (!tokenized.args) {
+      return {
+        problem:
+          tokenized.errorMessage === NO_VERB_MESSAGE
+            ? namesNoCommand
+            : `"${shown}" cannot be read as one kubectl command: ${
+                tokenized.errorMessage || "it could not be split into words."
+              }`,
+      };
+    }
+
+    const parsed: ParsedArgs = KubectlPolicy.parseArgs(tokenized.args);
+    const verb: string | undefined = parsed.positionals[0];
+
+    if (verb === undefined) {
+      return { problem: namesNoCommand };
+    }
+
+    if (hasWildcard(verb)) {
+      return {
+        problem: `"${shown}" has a * where the kubectl verb goes. A * stands for exactly one word, and the first word is the verb (the leading "kubectl" is optional and never needs a wildcard), so write the verb out, as in "kubectl set image deployment/web * -n web".`,
+      };
+    }
+
+    if (verb !== verb.toLowerCase()) {
+      return {
+        problem: `"${shown}" can never match a command that runs: kubectl matches commands case-sensitively, so "${verb}" is not kubectl ${verb.toLowerCase()} (write the verb in lowercase).`,
+      };
+    }
+
+    if (!isVerbOneUptimeAiMayRun(verb)) {
+      return {
+        problem: `"${shown}" can never match a command that runs: kubectl ${verb} is not a command OneUptime AI may run.`,
+      };
+    }
+
+    if (SUBCOMMAND_VERBS.has(verb)) {
+      const subcommand: string | undefined = parsed.positionals[1];
+
+      if (subcommand === undefined) {
+        if (SUBCOMMAND_REQUIRED_VERBS.has(verb)) {
+          return {
+            problem: `"${shown}" names no kubectl ${verb} subcommand: write it out${subcommandExample(verb)}.`,
+          };
+        }
+      } else if (hasWildcard(subcommand)) {
+        return {
+          problem: `"${shown}" has a * where the kubectl ${verb} subcommand goes: a * stands for exactly one word, and the subcommand decides what kind of change runs, so write it out${subcommandExample(verb)}.`,
+        };
+      } else if (subcommand !== subcommand.toLowerCase()) {
+        return {
+          problem: `"${shown}" can never match a command that runs: kubectl matches commands case-sensitively, so "${subcommand}" is not the kubectl ${verb} ${subcommand.toLowerCase()} command (write the subcommand in lowercase).`,
+        };
+      }
+    }
+
+    if (parsed.violation) {
+      return {
+        problem: `"${shown}" can never match a command that runs: ${parsed.violation}.`,
+      };
+    }
+
+    return { args: tokenized.args, parsed };
   }
 
   public static isReadOnly(command: string): boolean {

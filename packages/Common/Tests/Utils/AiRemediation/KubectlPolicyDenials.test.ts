@@ -12,27 +12,41 @@ import { describe, expect, it } from "@jest/globals";
  * Contract under test — what the kubectl policy refuses in EVERY mode, even
  * with a human approving (Denied), beyond the verb and flag basics pinned in
  * KubectlPolicy.test.ts:
- *  1. Changes to who may do what: creating RBAC kinds or ServiceAccounts,
- *     patching roles and bindings, set subject, set serviceaccount, auth
- *     reconcile, certificate approve/deny, ClusterRole aggregation labels,
- *     deleting roles and bindings.
+ *  1. Changes to who may do what, or to what the API server admits and
+ *     serves: creating RBAC kinds or ServiceAccounts, set subject, set
+ *     serviceaccount, auth reconcile, certificate approve/deny, and EVERY
+ *     write verb (label, annotate, patch, set, scale, rollout, ...; delete
+ *     through the never-delete list) on roles, cluster roles, their
+ *     bindings, admission webhook configurations, admission policies and
+ *     their bindings, APIServices and CRDs, in every spelling kubectl
+ *     accepts. Reading them stays Read.
  *  2. Wiring identity, privileges, host access, Secrets or a new program into
- *     a pod: patch bodies that touch POD_SECURITY_PATCH_KEYS (by key name, in
- *     JSON, YAML, strategic-merge directives and JSON-patch paths, escapes
- *     decoded), Pod Security Admission labels on namespaces, set env
- *     --from=secret/..., and create job --image (only `create job NAME
- *     --from=cronjob/NAME` stays, as RiskyWrite).
- *  3. Resource categories in any write (all, api-extensions, ...), and every
+ *     a pod: patch bodies that touch POD_SECURITY_PATCH_KEYS (by key name,
+ *     in strategic-merge and merge keys, strategic-merge directives and
+ *     JSON-patch paths, escapes decoded), Pod Security Admission labels on
+ *     namespaces, set env --from=secret/..., and every create subcommand
+ *     that starts a workload from an image named in the command (create
+ *     deployment, create cronjob, create job --image; only `create job NAME
+ *     --from=cronjob/NAME` stays, as RiskyWrite, and `set image` on an
+ *     existing workload stays RiskyWrite).
+ *  3. A patch body that is not JSON, whatever it says: kubectl decodes any
+ *     other body as YAML, whose tags, anchors and merge keys can spell a
+ *     forbidden field that appears nowhere in the text (checked against the
+ *     pinned kubectl v1.36.4 with `patch --local`: each tagged body below
+ *     really changed serviceAccountName, hostNetwork or hostPID).
+ *  4. Resource categories in any write (all, api-extensions, ...), and every
  *     NEVER_DELETE kind in every spelling kubectl accepts.
- *  4. Anything that could run something other than the command we read: the
+ *  5. Anything that could run something other than the command we read: the
  *     kuberc and plugin verbs, any unknown verb or create/set subcommand
  *     (kubectl would run a kubectl-<word> plugin), a verb or subcommand not
  *     in lowercase, and a namespace set twice (the last one wins).
- *  5. Every kubectl v1.36 global flag except -n/--namespace,
+ *  6. Every kubectl v1.36 global flag except -n/--namespace,
  *     --request-timeout and --match-server-version, in every spelling —
  *     "_" for "-" included, because kubectl normalizes it.
- *  6. Property: every command in every Denied table here stays Denied under
- *     bypassApproval and under an allowlist of ["*"] or ["kubectl *"].
+ *  7. Property: every command in every Denied table here stays Denied under
+ *     bypassApproval, under an allowlist entry that is the command itself,
+ *     and under the broadest valid entry of its shape (every word after the
+ *     verb a wildcard).
  */
 
 function tier(command: string): KubectlCommandTier {
@@ -81,6 +95,16 @@ const DENIED_IDENTITY_AND_RBAC_SHAPES: Array<string> = [
   "kubectl label clusterrole x rbac.authorization.k8s.io/aggregate-to-view=true --overwrite",
   "kubectl label clusterrole/x rbac.authorization.k8s.io/aggregate-to-edit=true",
   "kubectl label clusterroles.rbac.authorization.k8s.io x rbac.authorization.k8s.io/aggregate-to-view=true",
+  /*
+   * These three were pinned RiskyWrite before: a plain label or annotation
+   * on an RBAC object. Every write verb on an RBAC kind is Denied now — a
+   * label on a ClusterRole can aggregate its rules, and none of them is a
+   * workload fix.
+   */
+  "kubectl label clusterrole x team=a",
+  "kubectl annotate rolebinding x -n web owner=sre",
+  // Aggregation reads LABELS, but an annotation on a role is still an RBAC write.
+  "kubectl annotate clusterrole x rbac.authorization.k8s.io/aggregate-to-admin=true",
   "kubectl delete rolebinding x -n web",
   "kubectl delete role x -n web",
   "kubectl delete roles/x -n web",
@@ -107,17 +131,6 @@ const ALLOWED_IDENTITY_NEIGHBOURS: Array<[string, KubectlCommandTier]> = [
   ["kubectl auth whoami", KubectlCommandTier.Read],
   ["kubectl get csr", KubectlCommandTier.Read],
   ["kubectl get serviceaccounts -n web", KubectlCommandTier.Read],
-  // Labels and annotations on RBAC objects that are not aggregation: RiskyWrite.
-  ["kubectl label clusterrole x team=a", KubectlCommandTier.RiskyWrite],
-  [
-    "kubectl annotate rolebinding x -n web owner=sre",
-    KubectlCommandTier.RiskyWrite,
-  ],
-  // Aggregation reads LABELS; the same key as an annotation grants nothing.
-  [
-    "kubectl annotate clusterrole x rbac.authorization.k8s.io/aggregate-to-admin=true",
-    KubectlCommandTier.RiskyWrite,
-  ],
   // A label key that names a kind is not that kind.
   [
     "kubectl label pod web-1 -n web rolebinding=x",
@@ -131,10 +144,12 @@ const ALLOWED_IDENTITY_NEIGHBOURS: Array<[string, KubectlCommandTier]> = [
     "kubectl create job x --from=cronjob/y -n web",
     KubectlCommandTier.RiskyWrite,
   ],
-  [
-    "kubectl create deployment web --image=nginx -n web",
-    KubectlCommandTier.RiskyWrite,
-  ],
+  /*
+   * `create deployment web --image=nginx` used to be pinned RiskyWrite here;
+   * it starts a new workload from an image named in the command and is
+   * Denied now (see DENIED_IMAGE_WORKLOAD_CREATES). Changing an EXISTING
+   * workload's image stays RiskyWrite (set image, below).
+   */
   [
     "kubectl create configmap app --from-literal=a=b -n web",
     KubectlCommandTier.RiskyWrite,
@@ -171,6 +186,147 @@ const ALLOWED_IDENTITY_NEIGHBOURS: Array<[string, KubectlCommandTier]> = [
   ],
 ];
 
+/*
+ * The cluster-control kinds, each in the spellings kubectl accepts: plural,
+ * singular, Kind case, short name and group-qualified (with and without a
+ * version). The second element says whether the kind is namespaced.
+ */
+const CLUSTER_CONTROL_KIND_SPELLINGS: Array<[string, boolean]> = [
+  ["role", true],
+  ["roles", true],
+  ["Role", true],
+  ["roles.rbac.authorization.k8s.io", true],
+  ["roles.v1.rbac.authorization.k8s.io", true],
+  ["rolebinding", true],
+  ["rolebindings", true],
+  ["RoleBinding", true],
+  ["rolebindings.rbac.authorization.k8s.io", true],
+  ["clusterrole", false],
+  ["clusterroles", false],
+  ["ClusterRole", false],
+  ["clusterroles.rbac.authorization.k8s.io", false],
+  ["clusterrolebinding", false],
+  ["clusterrolebindings", false],
+  ["clusterrolebindings.rbac.authorization.k8s.io", false],
+  ["validatingwebhookconfiguration", false],
+  ["validatingwebhookconfigurations", false],
+  ["ValidatingWebhookConfiguration", false],
+  ["validatingwebhookconfigurations.admissionregistration.k8s.io", false],
+  ["validatingwebhookconfigurations.v1.admissionregistration.k8s.io", false],
+  ["mutatingwebhookconfiguration", false],
+  ["mutatingwebhookconfigurations", false],
+  ["MutatingWebhookConfiguration", false],
+  ["mutatingwebhookconfigurations.admissionregistration.k8s.io", false],
+  ["validatingadmissionpolicy", false],
+  ["validatingadmissionpolicies", false],
+  ["validatingadmissionpolicies.admissionregistration.k8s.io", false],
+  ["validatingadmissionpolicybinding", false],
+  ["validatingadmissionpolicybindings", false],
+  ["validatingadmissionpolicybindings.admissionregistration.k8s.io", false],
+  ["mutatingadmissionpolicy", false],
+  ["mutatingadmissionpolicies", false],
+  ["mutatingadmissionpolicies.v1beta1.admissionregistration.k8s.io", false],
+  ["mutatingadmissionpolicybinding", false],
+  ["mutatingadmissionpolicybindings", false],
+  ["apiservice", false],
+  ["apiservices", false],
+  ["APIService", false],
+  ["apiservices.apiregistration.k8s.io", false],
+  ["apiservices.v1.apiregistration.k8s.io", false],
+  ["crd", false],
+  ["crds", false],
+  ["customresourcedefinition", false],
+  ["CustomResourceDefinition", false],
+  ["customresourcedefinitions.apiextensions.k8s.io", false],
+  ["customresourcedefinitions.v1.apiextensions.k8s.io", false],
+];
+
+/*
+ * Every write verb that takes objects, for one object of `kind` (named
+ * "KIND NAME" or "KIND/NAME", by selector, by --all, or in a comma list with
+ * an ordinary kind). delete is covered by the never-delete table.
+ */
+function clusterControlWrites(
+  kind: string,
+  namespaced: boolean,
+): Array<string> {
+  const ns: string = namespaced ? " -n web" : "";
+  return [
+    `kubectl label ${kind} x team=a${ns}`,
+    `kubectl label ${kind}/x team=a --overwrite${ns}`,
+    `kubectl label ${kind} -l app=x team=a${ns}`,
+    `kubectl label pod,${kind} x team=a -n web`,
+    `kubectl annotate ${kind} x owner=sre${ns}`,
+    `kubectl annotate ${kind} --all owner=sre${ns}`,
+    `kubectl patch ${kind} x -p '{"metadata":{"labels":{"a":"b"}}}'${ns}`,
+    `kubectl patch ${kind}/x --type=merge -p '{"spec":{}}'${ns}`,
+    `kubectl patch ${kind} x --type=json -p '[{"op":"replace","path":"/webhooks/0/rules","value":[]}]'${ns}`,
+    `kubectl scale ${kind}/x --replicas=1${ns}`,
+    `kubectl set env ${kind}/x A=b${ns}`,
+    `kubectl set image ${kind}/x c=img:1${ns}`,
+    `kubectl set resources ${kind}/x --limits=cpu=1${ns}`,
+    `kubectl set selector ${kind}/x app=x${ns}`,
+    `kubectl rollout restart ${kind}/x${ns}`,
+    `kubectl rollout undo ${kind} x${ns}`,
+    `kubectl taint ${kind} x k=v:NoSchedule${ns}`,
+    `kubectl expose ${kind} x --port=80${ns}`,
+    `kubectl autoscale ${kind} x --min=1 --max=2${ns}`,
+  ];
+}
+
+// A few of the rows above, for the property tests at the bottom.
+const DENIED_CLUSTER_CONTROL_WRITES: Array<string> = [
+  'kubectl patch validatingwebhookconfiguration gatekeeper --type=json -p \'[{"op":"replace","path":"/webhooks/0/rules","value":[]}]\'',
+  'kubectl patch validatingwebhookconfigurations.admissionregistration.k8s.io/gatekeeper --type=json -p \'[{"op":"replace","path":"/webhooks/0/failurePolicy","value":"Ignore"}]\'',
+  'kubectl patch mutatingwebhookconfiguration istio-sidecar-injector -p \'{"webhooks":[{"name":"x","rules":[]}]}\'',
+  'kubectl patch validatingadmissionpolicybinding restricted-pods --type=merge -p \'{"spec":{"validationActions":["Audit"]}}\'',
+  'kubectl patch apiservice v1beta1.metrics.k8s.io --type=merge -p \'{"spec":{"service":{"name":"x","namespace":"web"}}}\'',
+  'kubectl patch crd certificates.cert-manager.io --type=merge -p \'{"spec":{"conversion":{"strategy":"None"}}}\'',
+  "kubectl label validatingwebhookconfiguration gatekeeper a=b",
+  "kubectl label mutatingwebhookconfigurations/x a=b",
+  "kubectl annotate crd certificates.cert-manager.io a=b",
+  "kubectl label clusterrole my-role a=b",
+  "kubectl label clusterrolebinding x a=b",
+  "kubectl label role/x -n web a=b",
+  "kubectl label rolebinding x -n web a=b",
+  "kubectl patch validatingwebhookconfiguration -l app=gatekeeper -p '{}'",
+  "kubectl label rolebinding x -n kube-system a=b",
+];
+
+// Reading the same kinds stays Read: an investigation needs to see them.
+const CLUSTER_CONTROL_READS: Array<string> = [
+  "kubectl get validatingwebhookconfiguration gatekeeper -o yaml",
+  "kubectl get validatingwebhookconfigurations",
+  "kubectl describe apiservice v1beta1.metrics.k8s.io",
+  "kubectl get crd certificates.cert-manager.io -o yaml",
+  "kubectl get validatingadmissionpolicybindings",
+  "kubectl describe mutatingwebhookconfiguration istio-sidecar-injector",
+  "kubectl get clusterroles",
+  "kubectl describe rolebinding x -n web",
+];
+
+// Neighbours: the same verbs on ordinary kinds keep their tiers.
+const CLUSTER_CONTROL_NEIGHBOURS: Array<[string, KubectlCommandTier]> = [
+  ["kubectl label pod web-1 -n web team=a", KubectlCommandTier.SafeWrite],
+  ["kubectl label ns web team=a", KubectlCommandTier.RiskyWrite],
+  [
+    "kubectl annotate svc web -n web example.com/owner=sre",
+    KubectlCommandTier.RiskyWrite,
+  ],
+  [
+    'kubectl patch deployment web -n web -p \'{"spec":{"replicas":2}}\'',
+    KubectlCommandTier.RiskyWrite,
+  ],
+  [
+    'kubectl patch certificates.cert-manager.io web -n web --type=merge -p \'{"spec":{"renewBefore":"48h"}}\'',
+    KubectlCommandTier.RiskyWrite,
+  ],
+  [
+    "kubectl label pod web-1 -n web validatingwebhookconfiguration=x",
+    KubectlCommandTier.SafeWrite,
+  ],
+];
+
 // ---- 2. Running a different program or identity ------------------------------
 
 const DENIED_CREATE_JOB_SHAPES: Array<string> = [
@@ -186,6 +342,42 @@ const DENIED_CREATE_JOB_SHAPES: Array<string> = [
   "kubectl create job x --from=cronjob/y --from=cronjob/z -n web",
   "kubectl create job x y --from=cronjob/z -n web",
   "kubectl create job x --from=cronjob/y -n web -- sh",
+];
+
+/*
+ * Every create subcommand that makes a pod template, with an image named in
+ * the command or a program after `--`: a new program in the cluster, the
+ * same thing `create job --image` and a patch touching command/args are
+ * refused for. kubectl requires --image for create deployment and create
+ * cronjob (checked against the pinned v1.36.4: `required flag(s) "image" not
+ * set`), so both are Denied in every form — with and without a command, in
+ * every alias.
+ */
+const DENIED_IMAGE_WORKLOAD_CREATES: Array<string> = [
+  "kubectl create deployment web --image=nginx -n web",
+  "kubectl create deployment x --image=busybox -n web -- sh -c evil",
+  "kubectl create deploy x --image=busybox --replicas=2 -n web -- sh",
+  "kubectl create deployment x --image=busybox -r 3 --port=80 -n web",
+  "kubectl create deployment x -n web",
+  "kubectl create cronjob x --image=busybox --schedule='* * * * *' -n web -- sh -c evil",
+  "kubectl create cj x --image=busybox --schedule='* * * * *' -n web -- date",
+  "kubectl create cronjob x --image=nginx --schedule='0 * * * *' -n web",
+  "kubectl create cronjob x --schedule='0 * * * *' -n web",
+  "kubectl create -n web cronjob x --image=nginx --schedule='0 * * * *'",
+  "kubectl create deployment x --image=busybox -n web --dry-run=client -o yaml",
+];
+
+/*
+ * The pod-template create subcommands in every alias kubectl accepts, for
+ * the parity test: each one refuses an image named in the command and a
+ * program after `--`.
+ */
+const POD_TEMPLATE_CREATE_SUBCOMMANDS: Array<string> = [
+  "deployment",
+  "deploy",
+  "cronjob",
+  "cj",
+  "job",
 ];
 
 const ALLOWED_CREATE_JOB_SHAPES: Array<string> = [
@@ -234,11 +426,18 @@ const DENIED_PATCH_BODIES: Array<string> = [
   ...POD_SECURITY_FIELDS.map((field: string) => {
     return podTemplatePatch(`{"${field}":true}`);
   }),
+  // ... as a merge-patch key ...
+  ...POD_SECURITY_FIELDS.map((field: string) => {
+    return `kubectl patch deployment web -n web --type=merge -p '{"spec":{"template":{"spec":{"${field}":true}}}}'`;
+  }),
   // ... as a JSON-patch path segment ...
   ...POD_SECURITY_FIELDS.map((field: string) => {
     return `kubectl patch deployment web -n web --type=json -p '[{"op":"add","path":"/spec/template/spec/containers/0/${field}","value":1}]'`;
   }),
-  // ... and as a YAML key.
+  /*
+   * ... and as a YAML key. Still Denied, but now because the body is not
+   * JSON at all (see NON_JSON_PATCH_BODIES), not because the word was found.
+   */
   ...POD_SECURITY_FIELDS.map((field: string) => {
     return `kubectl patch deployment web -n web -p 'spec: {template: {spec: {${field}: x}}}'`;
   }),
@@ -270,19 +469,89 @@ const DENIED_PATCH_BODIES: Array<string> = [
   podTemplatePatch(
     '{"containers":[{"name":"web","$deleteFromPrimitiveList/args":["--safe"]}]}',
   ),
-  // A YAML body with an escape could spell a key we would not see.
-  "kubectl patch deployment web -n web -p 'spec: {template: {spec: {\"serviceAccount\\x4eame\": admin}}}'",
   // Pod Security Admission labels, through patch.
   'kubectl patch ns web -p \'{"metadata":{"labels":{"pod-security.kubernetes.io/enforce":"privileged"}}}\'',
   'kubectl patch namespace web --type=json -p \'[{"op":"remove","path":"/metadata/labels/pod-security.kubernetes.io~1enforce"}]\'',
-  "kubectl patch ns web -p 'metadata: {labels: {pod-security.kubernetes.io/enforce: privileged}}'",
   // Both spellings of the flag.
   'kubectl patch deployment web -n web --patch \'{"spec":{"template":{"spec":{"hostPID":true}}}}\'',
   'kubectl patch deployment web -n web --patch=\'{"spec":{"template":{"spec":{"hostIPC":true}}}}\'',
+  // The body kubectl uses is the last one; every body is checked.
+  'kubectl patch deployment web -n web -p \'{"spec":{"replicas":2}}\' --patch=\'{"spec":{"template":{"spec":{"hostPID":true}}}}\'',
 ];
 
+/*
+ * ---- 3. Patch bodies that are not JSON ---------------------------------------
+ *
+ * kubectl sends a body starting with "{" to the API server unchanged and
+ * decodes every other body — a JSON patch's "[" included — as YAML 1.1. A
+ * YAML tag builds a key or a JSON-patch path out of base64, so the field
+ * name appears nowhere in the text: `!!binary c2VydmljZUFjY291bnROYW1l` is
+ * serviceAccountName, aG9zdE5ldHdvcms= is hostNetwork, aG9zdFBJRA== is
+ * hostPID. The old check scanned a non-JSON body for literal words and tiered
+ * these RiskyWrite (AutoApproved under Bypass approval); the pinned kubectl
+ * applied every one of them.
+ */
+const TAGGED_YAML_PATCH_BODIES: Array<string> = [
+  // strategic merge (the default type)
+  "kubectl patch deployment web -n web -p 'spec: {template: {spec: {!!binary c2VydmljZUFjY291bnROYW1l: default}}}'",
+  "kubectl patch deployment web -n web --type=strategic -p 'spec: {template: {spec: {!!binary aG9zdE5ldHdvcms=: true}}}'",
+  "kubectl patch deployment web -n web -p 'spec: {template: {spec: {? !!binary aG9zdFBJRA== : true}}}'",
+  // merge
+  "kubectl patch deployment web -n web --type=merge -p 'spec: {template: {spec: {? !!binary aG9zdE5ldHdvcms= : true}}}'",
+  "kubectl patch deployment web -n web --type merge -p 'spec: {template: {spec: {!!binary c2VydmljZUFjY291bnROYW1l: default}}}'",
+  // json: the path is the tagged value
+  "kubectl patch deployment web -n web --type=json -p '[{op: replace, path: !!binary L3NwZWMvdGVtcGxhdGUvc3BlYy9zZXJ2aWNlQWNjb3VudE5hbWU=, value: default}]'",
+  "kubectl patch deployment web -n web --type=json -p '[{op: add, path: !!binary L3NwZWMvdGVtcGxhdGUvc3BlYy9ob3N0TmV0d29yaw==, value: true}]'",
+  // The verbatim tag form, and a %TAG-free local tag.
+  "kubectl patch deployment web -n web -p 'spec: {template: {spec: {!<tag:yaml.org,2002:binary> aG9zdFBJRA==: true}}}'",
+  "kubectl patch deployment web -n web --type=merge -p 'spec: {template: {spec: {!<tag:yaml.org,2002:binary> c2VydmljZUFjY291bnROYW1l: default}}}'",
+  // A Pod Security Admission label spelled through a tag.
+  "kubectl patch ns web -p 'metadata: {labels: {!!binary cG9kLXNlY3VyaXR5Lmt1YmVybmV0ZXMuaW8vZW5mb3JjZQ==: privileged}}'",
+  // Anchors, aliases and merge keys.
+  "kubectl patch deployment web -n web -p 'spec: {template: {spec: {a: &k hostNetwork, *k : true}}}'",
+  "kubectl patch deployment web -n web --type=merge -p 'spec: {<<: {replicas: 4}}'",
+  "kubectl patch deployment web -n web --type=json -p '[&op {op: replace, path: /spec/replicas, value: 2}, *op]'",
+];
+
+/*
+ * Plain YAML with only harmless fields is Denied too, although kubectl
+ * would apply it: the policy cannot tell harmless YAML from tagged YAML
+ * without decoding YAML exactly as kubectl does, and every patch a fix needs
+ * can be written as JSON (the refusal says so). These were RiskyWrite
+ * before.
+ */
+const PLAIN_YAML_PATCH_BODIES: Array<string> = [
+  "kubectl patch deployment web -n web -p 'spec: {replicas: 2}'",
+  "kubectl patch deployment web -n web --type=merge -p 'spec: {replicas: 2}'",
+  "kubectl patch deployment web -n web --type=json -p '[{op: replace, path: /spec/replicas, value: 3}]'",
+  "kubectl patch cronjob nightly -n web -p 'spec: {suspend: true}'",
+  "kubectl patch ns web -p 'metadata: {labels: {pod-security.kubernetes.io/enforce: privileged}}'",
+  // A YAML escape, the old check's only refusal besides the word scan.
+  "kubectl patch deployment web -n web -p 'spec: {template: {spec: {\"serviceAccount\\x4eame\": admin}}}'",
+  // Not a body at all.
+  "kubectl patch deployment web -n web -p ''",
+  "kubectl patch deployment web -n web -p replicas=2",
+  /*
+   * Almost JSON: a JSON patch with a trailing comment (kubectl decodes a "["
+   * body as YAML and would apply it), and a trailing comma.
+   */
+  'kubectl patch deployment web -n web --type=json -p \'[{"op":"replace","path":"/spec/replicas","value":3}] # c\'',
+  'kubectl patch deployment web -n web -p \'{"spec":{"replicas":2},}\'',
+];
+
+const NON_JSON_PATCH_BODIES: Array<string> = [
+  ...TAGGED_YAML_PATCH_BODIES,
+  ...PLAIN_YAML_PATCH_BODIES,
+];
+
+/*
+ * Negative controls: JSON bodies that change only what a fix changes stay
+ * RiskyWrite — and so still run under Bypass approval or a matching
+ * allowlist entry.
+ */
 const ALLOWED_PATCH_BODIES: Array<string> = [
   'kubectl patch deployment web -n web -p \'{"spec":{"replicas":2}}\'',
+  'kubectl patch deployment web -n web --type=merge -p \'{"spec":{"replicas":2}}\'',
   podTemplatePatch(
     '{"containers":[{"name":"web","resources":{"limits":{"memory":"1Gi"}}}]}',
   ),
@@ -294,14 +563,26 @@ const ALLOWED_PATCH_BODIES: Array<string> = [
   // A forbidden word as a VALUE is just text in a JSON body.
   'kubectl patch deployment web -n web -p \'{"metadata":{"annotations":{"note":"fixed command args volumes"}}}\'',
   'kubectl patch deployment web -n web -p \'{"metadata":{"annotations":{"path":"/spec/command"}}}\'',
+  // YAML syntax inside a JSON string is only text, to JSON and YAML alike.
+  'kubectl patch deployment web -n web -p \'{"metadata":{"annotations":{"note":"!!binary c2VydmljZUFjY291bnROYW1l &a *a <<"}}}\'',
   'kubectl patch deployment web -n web --type=json -p \'[{"op":"replace","path":"/spec/replicas","value":3}]\'',
+  'kubectl patch deployment web -n web --type=json -p \'[ {"op":"replace","path":"/spec/replicas","value":3} ]\'',
   'kubectl patch cronjob nightly -n web -p \'{"spec":{"suspend":true}}\'',
   'kubectl patch hpa web -n web -p \'{"spec":{"minReplicas":3}}\'',
-  "kubectl patch deployment web -n web -p 'spec: {replicas: 2}'",
   'kubectl patch pdb web -n web -p \'{"spec":{"minAvailable":1}}\'',
+  "kubectl patch deployment web -n web -p '{}'",
 ];
 
-// ---- 3. Categories and never-delete kinds, in every spelling ---------------------
+// Allowlist entries an operator could write for patches (all valid, none broad).
+const PATCH_ALLOWLIST_ENTRIES: Array<string> = [
+  "kubectl patch deployment web -n web -p *",
+  "kubectl patch deployment web -n web --type=merge -p *",
+  "kubectl patch deployment web -n web --type=json -p *",
+  "kubectl patch deployment web -n web --type=strategic -p *",
+  "kubectl patch deployment web -n web --type merge -p *",
+];
+
+// ---- 4. Categories and never-delete kinds, in every spelling ---------------------
 
 const DENIED_CATEGORY_WRITES: Array<string> = [
   "kubectl delete api-extensions -l app.kubernetes.io/instance=cert-manager",
@@ -398,7 +679,7 @@ const DENIED_NEVER_DELETE_SPELLINGS: Array<string> = [
   "kubectl delete -n web --dry-run=server pvc data-0",
 ];
 
-// ---- 4. Verbs and subcommands kubectl would not run as written --------------------
+// ---- 5. Verbs and subcommands kubectl would not run as written --------------------
 
 const DENIED_VERB_SHAPES: Array<string> = [
   "kubectl kuberc view",
@@ -443,7 +724,7 @@ const DENIED_VERB_SHAPES: Array<string> = [
   "kubectl get pods -n web -n web",
 ];
 
-// ---- 5. Global flags ------------------------------------------------------------
+// ---- 6. Global flags ------------------------------------------------------------
 
 /*
  * kubectl v1.36.4's global flags. Every one may change which credentials,
@@ -557,13 +838,49 @@ const ALLOWED_GLOBAL_FLAG_SHAPES: Array<[string, KubectlCommandTier]> = [
 
 const ALL_DENIED_COMMANDS: Array<string> = [
   ...DENIED_IDENTITY_AND_RBAC_SHAPES,
+  ...DENIED_CLUSTER_CONTROL_WRITES,
   ...DENIED_CREATE_JOB_SHAPES,
+  ...DENIED_IMAGE_WORKLOAD_CREATES,
   ...DENIED_PATCH_BODIES,
+  ...NON_JSON_PATCH_BODIES,
   ...DENIED_CATEGORY_WRITES,
   ...DENIED_NEVER_DELETE_SPELLINGS,
   ...DENIED_VERB_SHAPES,
   ...DENIED_GLOBAL_FLAG_SHAPES,
 ];
+
+/*
+ * The broadest allowlist entry of a command's shape: the verb (and a
+ * subcommand) kept, every flag spelled as written with any "=value" globbed,
+ * and every other word a wildcard. It is a valid entry whenever the verb is
+ * one OneUptime AI may run, and it matches the command whenever no word has
+ * a space in it.
+ */
+function broadestShapeOf(command: string): string {
+  const args: Array<string> = KubectlPolicy.tokenize(command).args || [];
+  const keep: number = [
+    "rollout",
+    "set",
+    "create",
+    "auth",
+    "cluster-info",
+    "top",
+  ].includes(args[0] || "")
+    ? 2
+    : 1;
+  return [
+    "kubectl",
+    ...args.map((arg: string, index: number) => {
+      if (index < keep) {
+        return arg;
+      }
+      if (arg.startsWith("-") && arg !== "-") {
+        return arg.includes("=") ? `${arg.slice(0, arg.indexOf("="))}=*` : arg;
+      }
+      return "*";
+    }),
+  ].join(" ");
+}
 
 describe("KubectlPolicy denials", () => {
   describe("changes to who may do what are Denied", () => {
@@ -611,6 +928,86 @@ describe("KubectlPolicy denials", () => {
     });
   });
 
+  describe("every write to an RBAC, admission or API-extension kind is Denied", () => {
+    it.each(CLUSTER_CONTROL_KIND_SPELLINGS)(
+      "denies every write verb on %s, and nothing lifts it",
+      (kind: string, namespaced: boolean) => {
+        for (const command of clusterControlWrites(kind, namespaced)) {
+          const result: KubectlPolicyResult =
+            KubectlPolicy.evaluateCommand(command);
+          expect({ command, tier: result.tier }).toEqual({
+            command,
+            tier: KubectlCommandTier.Denied,
+          });
+          expect(result.reason).toContain("is never allowed for OneUptime AI");
+
+          const verdict: KubectlAutoExecutionVerdict =
+            KubectlPolicy.evaluateForAutoExecution({
+              command,
+              allowlistPatterns: [command, broadestShapeOf(command)],
+              bypassApproval: true,
+            });
+          expect({ command, verdict: verdict.verdict }).toEqual({
+            command,
+            verdict: AiRemediationCommandPolicyVerdict.Denied,
+          });
+        }
+
+        // Deleting one is refused by the never-delete list.
+        expect(
+          tier(`kubectl delete ${kind} x${namespaced ? " -n web" : ""}`),
+        ).toBe(KubectlCommandTier.Denied);
+        // Reading one stays Read.
+        expect(tier(`kubectl get ${kind} x -o yaml`)).toBe(
+          KubectlCommandTier.Read,
+        );
+        expect(tier(`kubectl describe ${kind}/x`)).toBe(
+          KubectlCommandTier.Read,
+        );
+      },
+    );
+
+    it.each(DENIED_CLUSTER_CONTROL_WRITES)("denies %s", (command: string) => {
+      expect(tier(command)).toBe(KubectlCommandTier.Denied);
+    });
+
+    it.each(CLUSTER_CONTROL_READS)("keeps %s Read", (command: string) => {
+      expect(tier(command)).toBe(KubectlCommandTier.Read);
+      expect(
+        KubectlPolicy.evaluateForAutoExecution({
+          command,
+          allowlistPatterns: [],
+        }).verdict,
+      ).toBe(AiRemediationCommandPolicyVerdict.AutoApproved);
+    });
+
+    it.each(CLUSTER_CONTROL_NEIGHBOURS)(
+      "keeps the neighbour %s at %s",
+      (command: string, expected: KubectlCommandTier) => {
+        expect(tier(command)).toBe(expected);
+      },
+    );
+
+    it("says what an admission or API-extension change does, and who makes it", () => {
+      const text: string = reason(
+        'kubectl patch validatingadmissionpolicybinding restricted-pods --type=merge -p \'{"spec":{"validationActions":["Audit"]}}\'',
+      );
+      expect(text).toContain(
+        "validatingadmissionpolicybinding objects is never allowed",
+      );
+      expect(text).toContain("what the API server admits and serves");
+      expect(text).toContain("a human makes that change");
+      expect(
+        KubectlPolicy.evaluateCommand(
+          "kubectl label apiservices.apiregistration.k8s.io/v1beta1.metrics.k8s.io a=b",
+        ).verb,
+      ).toBe("label apiservice");
+      expect(reason("kubectl annotate rolebinding x -n web a=b")).toContain(
+        "privilege grant",
+      );
+    });
+  });
+
   describe("create job only re-runs an existing CronJob", () => {
     it.each(DENIED_CREATE_JOB_SHAPES)("denies %s", (command: string) => {
       expect(tier(command)).toBe(KubectlCommandTier.Denied);
@@ -630,6 +1027,98 @@ describe("KubectlPolicy denials", () => {
       expect(reason("kubectl create job x -n web")).toContain(
         "--from=cronjob/NAME",
       );
+    });
+  });
+
+  describe("no create subcommand starts a workload from an image named in the command", () => {
+    it.each(DENIED_IMAGE_WORKLOAD_CREATES)("denies %s", (command: string) => {
+      const result: KubectlPolicyResult =
+        KubectlPolicy.evaluateCommand(command);
+      expect(result.tier).toBe(KubectlCommandTier.Denied);
+      expect(result.verb).toMatch(/^create (deployment|cronjob)$/);
+      // It says why (a new program running an image) and what to do instead.
+      expect(result.reason).toContain("image");
+      expect(result.reason).toContain("new program");
+      expect(result.reason).toContain("--from=cronjob/NAME");
+      expect(
+        KubectlPolicy.evaluateForAutoExecution({
+          command,
+          allowlistPatterns: [command, broadestShapeOf(command)],
+          bypassApproval: true,
+        }).verdict,
+      ).toBe(AiRemediationCommandPolicyVerdict.Denied);
+    });
+
+    it.each(POD_TEMPLATE_CREATE_SUBCOMMANDS)(
+      "create %s: an image in the command or a program after -- is Denied, whatever else it says",
+      (subcommand: string) => {
+        const schedule: string =
+          subcommand === "cronjob" || subcommand === "cj"
+            ? " --schedule='*/5 * * * *'"
+            : "";
+        for (const command of [
+          `kubectl create ${subcommand} x --image=busybox${schedule} -n web`,
+          `kubectl create ${subcommand} x --image busybox${schedule} -n web`,
+          `kubectl create ${subcommand} x --image=busybox${schedule} -n web -- sh -c 'id'`,
+          `kubectl create ${subcommand} x --image=registry.example.com/web:1.2.3${schedule} -n web --dry-run=client`,
+          `kubectl create -n web ${subcommand} x --image=busybox${schedule}`,
+          `kubectl create ${subcommand} x --image=busybox${schedule} -n kube-system`,
+        ]) {
+          expect({ command, tier: tier(command) }).toEqual({
+            command,
+            tier: KubectlCommandTier.Denied,
+          });
+          expect(
+            KubectlPolicy.evaluateForAutoExecution({
+              command,
+              allowlistPatterns: [command],
+              bypassApproval: true,
+            }).verdict,
+          ).toBe(AiRemediationCommandPolicyVerdict.Denied);
+        }
+      },
+    );
+
+    it("keeps re-running an existing CronJob, and changing an existing workload's image, RiskyWrite (negative controls)", () => {
+      for (const command of [
+        "kubectl create job x --from=cronjob/y -n web",
+        "kubectl create job manual-run --from=cj/nightly -n web",
+        "kubectl set image deployment/web web=img:2 -n web",
+        "kubectl set image cronjob/nightly job=img:2 -n web",
+      ]) {
+        expect({ command, tier: tier(command) }).toEqual({
+          command,
+          tier: KubectlCommandTier.RiskyWrite,
+        });
+        // A human, the allowlist or Bypass approval decides.
+        expect(
+          KubectlPolicy.evaluateForAutoExecution({
+            command,
+            allowlistPatterns: [],
+          }).verdict,
+        ).toBe(AiRemediationCommandPolicyVerdict.RequiresApproval);
+        expect(
+          KubectlPolicy.evaluateForAutoExecution({
+            command,
+            allowlistPatterns: [command],
+          }).verdict,
+        ).toBe(AiRemediationCommandPolicyVerdict.AutoApproved);
+        expect(
+          KubectlPolicy.evaluateForAutoExecution({
+            command,
+            allowlistPatterns: [],
+            bypassApproval: true,
+          }).verdict,
+        ).toBe(AiRemediationCommandPolicyVerdict.AutoApproved);
+      }
+
+      // The other create subcommands make no pod template and keep their tier.
+      expect(
+        tier("kubectl create configmap app --from-literal=a=b -n web"),
+      ).toBe(KubectlCommandTier.RiskyWrite);
+      expect(
+        tier("kubectl create service clusterip web --tcp=80:8080 -n web"),
+      ).toBe(KubectlCommandTier.RiskyWrite);
     });
   });
 
@@ -675,6 +1164,132 @@ describe("KubectlPolicy denials", () => {
           '{"spec":{"template":{"spec":{"serviceAccountName":"admin"}}}}',
         ]).tier,
       ).toBe(KubectlCommandTier.Denied);
+    });
+
+    it("refuses a body nested deeper than any fix needs", () => {
+      const deep: string = `${"[".repeat(70)}1${"]".repeat(70)}`;
+      const result: KubectlPolicyResult = KubectlPolicy.evaluateArgs([
+        "patch",
+        "deployment",
+        "web",
+        "-n",
+        "web",
+        "--type=json",
+        "-p",
+        deep,
+      ]);
+      expect(result.tier).toBe(KubectlCommandTier.Denied);
+      expect(result.reason).toContain("nested more than 64 levels deep");
+      // Nested within the bound, the same body is walked and allowed.
+      const shallow: string = `${"[".repeat(10)}1${"]".repeat(10)}`;
+      expect(
+        KubectlPolicy.evaluateArgs([
+          "patch",
+          "deployment",
+          "web",
+          "-n",
+          "web",
+          "--type=json",
+          "-p",
+          shallow,
+        ]).tier,
+      ).toBe(KubectlCommandTier.RiskyWrite);
+    });
+  });
+
+  describe("a patch body that is not JSON is Denied, whatever it spells", () => {
+    it.each(TAGGED_YAML_PATCH_BODIES)(
+      "denies the YAML-tagged body %s",
+      (command: string) => {
+        const result: KubectlPolicyResult =
+          KubectlPolicy.evaluateCommand(command);
+        expect(result.tier).toBe(KubectlCommandTier.Denied);
+        expect(result.verb).toBe("patch");
+        expect(result.reason).toContain("not JSON");
+      },
+    );
+
+    it.each(PLAIN_YAML_PATCH_BODIES)(
+      "denies the non-JSON body %s, harmless fields or not",
+      (command: string) => {
+        const result: KubectlPolicyResult =
+          KubectlPolicy.evaluateCommand(command);
+        expect(result.tier).toBe(KubectlCommandTier.Denied);
+        expect(result.reason).toContain("not JSON");
+      },
+    );
+
+    it.each(NON_JSON_PATCH_BODIES)(
+      "denies %s in the Runner too, and neither Bypass approval nor any allowlist entry lifts it",
+      (command: string) => {
+        const args: Array<string> = KubectlPolicy.tokenize(command).args!;
+        // The Runner re-evaluates the argv it received, with the same result.
+        expect(KubectlPolicy.evaluateArgs(args).tier).toBe(
+          KubectlCommandTier.Denied,
+        );
+
+        for (const allowlistPatterns of [
+          [],
+          [command],
+          PATCH_ALLOWLIST_ENTRIES,
+          [broadestShapeOf(command)],
+        ]) {
+          for (const bypassApproval of [true, false]) {
+            const verdict: KubectlAutoExecutionVerdict =
+              KubectlPolicy.evaluateForAutoExecution({
+                command,
+                allowlistPatterns,
+                bypassApproval,
+              });
+            expect(verdict.verdict).toBe(
+              AiRemediationCommandPolicyVerdict.Denied,
+            );
+          }
+        }
+      },
+    );
+
+    it("tells the model to write the body as JSON", () => {
+      const text: string = reason(
+        "kubectl patch deployment web -n web -p 'spec: {replicas: 2}'",
+      );
+      expect(text).toContain("write the patch body as JSON");
+      expect(text).toContain("tags, anchors and merge keys");
+    });
+
+    it.each(ALLOWED_PATCH_BODIES)(
+      "negative control: the JSON body %s stays RiskyWrite, and Bypass approval runs it",
+      (command: string) => {
+        expect(tier(command)).toBe(KubectlCommandTier.RiskyWrite);
+        expect(
+          KubectlPolicy.evaluateForAutoExecution({
+            command,
+            allowlistPatterns: [],
+            bypassApproval: true,
+          }).verdict,
+        ).toBe(AiRemediationCommandPolicyVerdict.AutoApproved);
+        expect(
+          KubectlPolicy.evaluateForAutoExecution({
+            command,
+            allowlistPatterns: [],
+          }).verdict,
+        ).toBe(AiRemediationCommandPolicyVerdict.RequiresApproval);
+      },
+    );
+
+    it("negative control: the same change written as JSON is Denied for the field it touches, not for its syntax", () => {
+      for (const command of [
+        podTemplatePatch('{"serviceAccountName":"default"}'),
+        `kubectl patch deployment web -n web --type=merge -p '{"spec":{"template":{"spec":{"hostNetwork":true}}}}'`,
+        `kubectl patch deployment web -n web --type=json -p '[{"op":"replace","path":"/spec/template/spec/serviceAccountName","value":"default"}]'`,
+        podTemplatePatch('{"hostPID":true}'),
+      ]) {
+        const result: KubectlPolicyResult =
+          KubectlPolicy.evaluateCommand(command);
+        expect(result.tier).toBe(KubectlCommandTier.Denied);
+        expect(result.reason).toContain("kubectl patch that touches");
+        expect(result.reason).not.toContain("not JSON");
+      }
     });
   });
 
@@ -821,7 +1436,17 @@ describe("KubectlPolicy denials", () => {
       "keeps %s Denied under bypass and a permissive allowlist",
       (command: string) => {
         expect(tier(command)).toBe(KubectlCommandTier.Denied);
-        for (const allowlistPatterns of [["*"], ["kubectl *"], [command], []]) {
+        /*
+         * ["*"] and ["kubectl *"] used to be the permissive entries here;
+         * a wildcard verb is no longer a valid entry (the matcher skips it),
+         * so the broadest VALID entry of the command's own shape stands in.
+         */
+        for (const allowlistPatterns of [
+          [broadestShapeOf(command)],
+          [command],
+          [command, broadestShapeOf(command)],
+          [],
+        ]) {
           for (const bypassApproval of [true, false, undefined]) {
             const verdict: KubectlAutoExecutionVerdict =
               KubectlPolicy.evaluateForAutoExecution({
@@ -852,6 +1477,12 @@ describe("KubectlPolicy denials", () => {
       ),
       ...ALLOWED_CREATE_JOB_SHAPES,
       ...ALLOWED_PATCH_BODIES,
+      ...CLUSTER_CONTROL_READS,
+      ...CLUSTER_CONTROL_NEIGHBOURS.map(
+        ([command]: [string, KubectlCommandTier]) => {
+          return command;
+        },
+      ),
       ...ALLOWED_CATEGORY_READS,
       ...ALLOWED_GLOBAL_FLAG_SHAPES.map(
         ([command]: [string, KubectlCommandTier]) => {

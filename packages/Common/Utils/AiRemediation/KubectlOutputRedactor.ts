@@ -158,9 +158,16 @@ const LIST_ITEM_PREFIX_REGEX: RegExp = /^-(?:[ \t]+|$)/;
 
 const LEADING_WHITESPACE_REGEX: RegExp = /^[ \t]*/;
 
-// scheme://user:password@host — the password only; an empty user still counts.
+/*
+ * scheme://user:password@host — the password only; an empty user still
+ * counts. The match starts at "://" and the scheme is checked by a
+ * lookbehind, so the scan stays linear: a pattern that STARTS with the
+ * scheme retries `[a-z][a-z0-9+.-]*` from every word boundary of a long
+ * dotted run ("eyJ.eyJ.eyJ…", "a.b.c.…") and backtracks through the whole
+ * run each time — 200 KB of pod log took over 30 seconds on one thread.
+ */
 const URL_CREDENTIAL_REGEX: RegExp =
-  /(\b[a-z][a-z0-9+.-]*:\/\/)([^\s/:@"']*):([^\s/@"']+)@/gi;
+  /:\/\/(?<=\b[a-z][a-z0-9+.-]*:\/\/)([^\s/:@"']*):([^\s/@"']+)@/gi;
 
 const BEARER_TOKEN_REGEX: RegExp = /\b(Bearer)[ \t]+([A-Za-z0-9._~+/-]{8,}=*)/g;
 
@@ -1028,9 +1035,9 @@ function applyInlineRules(text: string): { text: string; count: number } {
 
   result = result.replace(
     URL_CREDENTIAL_REGEX,
-    (_match: string, scheme: string, user: string): string => {
+    (_match: string, user: string): string => {
       count++;
-      return `${scheme}${user}:${KUBECTL_REDACTED_MARKER}@`;
+      return `://${user}:${KUBECTL_REDACTED_MARKER}@`;
     },
   );
 
