@@ -5,12 +5,21 @@ import ScheduledMaintenanceTemplateOwnerUserService from "./ScheduledMaintenance
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
+import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import LabelService from "./LabelService";
+import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
+import StatusPageService from "./StatusPageService";
 import Dictionary from "../../Types/Dictionary";
 import ProjectScopedReferenceValidator, {
+  HeldRelationIds,
   ProjectScopedReference,
+  ProjectScopedRelation,
   resolveReferenceId,
+  resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
+import Query from "../Types/Database/Query";
 import CreateBy from "../Types/Database/CreateBy";
 import OneUptimeDate from "../../Types/Date";
 import Recurring from "../../Types/Events/Recurring";
@@ -120,7 +129,13 @@ export class Service extends DatabaseService<Model> {
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: createBy.props.tenantId || createBy.data.projectId,
       subject: "scheduled maintenance template",
-      references: this.getProjectScopedReferences(createBy.data),
+      references: [
+        ...this.getProjectScopedReferences(createBy.data),
+        ...ProjectScopedReferenceValidator.getRelationReferences({
+          payload: createBy.data,
+          relations: this.getProjectScopedRelations(),
+        }),
+      ],
     });
 
     if (createBy.data.isRecurringEvent) {
@@ -275,6 +290,10 @@ export class Service extends DatabaseService<Model> {
    * A template is copied onto every event created from it, so an id belonging
    * to another project here becomes a cross-project reference on each of those
    * events — and the referenced project can then no longer be deleted.
+   *
+   * The same goes for the monitors, labels, status pages and affected-resource
+   * lists. ScheduledMaintenanceService checks those lists, so a foreign id
+   * saved here made every event created from this template fail.
    */
   private async validateProjectScopedReferences(
     updateBy: UpdateBy<Model>,
@@ -282,10 +301,23 @@ export class Service extends DatabaseService<Model> {
     const references: Array<ProjectScopedReference> =
       this.getProjectScopedReferences(updateBy.data);
 
+    // An empty list only removes rows and needs no check.
+    const relations: Array<ProjectScopedRelation> =
+      this.getProjectScopedRelations().filter(
+        (relation: ProjectScopedRelation) => {
+          return (
+            resolveReferenceIds(
+              (updateBy.data as Dictionary<unknown>)[relation.column],
+            ).length > 0
+          );
+        },
+      );
+
     if (
       references.every((reference: ProjectScopedReference) => {
         return !reference.id;
-      })
+      }) &&
+      relations.length === 0
     ) {
       return;
     }
@@ -298,13 +330,60 @@ export class Service extends DatabaseService<Model> {
       ? [updateBy.props.tenantId]
       : await this.getProjectIdsForUpdateQuery(updateBy);
 
+    // See ProjectScopedReferenceValidator.getRelationReferences.
+    const heldIds: HeldRelationIds | undefined =
+      relations.length > 0
+        ? await ProjectScopedReferenceValidator.getHeldRelationIds({
+            service: this as unknown as DatabaseService<DatabaseBaseModel>,
+            query: updateBy.query as Query<DatabaseBaseModel>,
+            columns: relations.map((relation: ProjectScopedRelation) => {
+              return relation.column;
+            }),
+          })
+        : undefined;
+
     for (const projectId of projectIds) {
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
         subject: "scheduled maintenance template",
-        references: references,
+        references: [
+          ...references,
+          ...ProjectScopedReferenceValidator.getRelationReferences({
+            payload: updateBy.data,
+            relations: relations,
+            projectId: projectId,
+            heldIds: heldIds,
+          }),
+        ],
       });
     }
+  }
+
+  /*
+   * The many-to-many lists whose ids must belong to the template's project.
+   * Built per call rather than at module load: these services sit in an
+   * import graph that loops back to this one, and a module-level table would
+   * capture whichever of them had not finished loading yet as undefined.
+   */
+  private getProjectScopedRelations(): Array<ProjectScopedRelation> {
+    return [
+      {
+        column: "monitors",
+        modelName: "Monitor",
+        service: MonitorService,
+      },
+      {
+        column: "labels",
+        modelName: "Label",
+        service: LabelService,
+      },
+      {
+        column: "statusPages",
+        modelName: "Status Page",
+        service: StatusPageService,
+      },
+      ...getAffectedResourceRelations(this.getModel()),
+    ];
   }
 
   private getProjectScopedReferences(

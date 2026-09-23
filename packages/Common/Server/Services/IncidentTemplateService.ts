@@ -6,16 +6,25 @@ import IncidentTemplateOwnerTeamService from "./IncidentTemplateOwnerTeamService
 import IncidentTemplateOwnerUserService from "./IncidentTemplateOwnerUserService";
 import IncidentSeverityService from "./IncidentSeverityService";
 import IncidentStateService from "./IncidentStateService";
+import LabelService from "./LabelService";
+import MonitorService from "./MonitorService";
 import MonitorStatusService from "./MonitorStatusService";
+import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
 import ObjectID from "../../Types/ObjectID";
 import Model from "../../Models/DatabaseModels/IncidentTemplate";
+import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectScopedReferenceValidator, {
+  HeldRelationIds,
   ProjectScopedReference,
+  ProjectScopedRelation,
   resolveReferenceId,
+  resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
+import Query from "../Types/Database/Query";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import OwnerRuleAssignment from "../Utils/Rules/OwnerRuleAssignment";
 import QueryDeepPartialEntity from "../../Types/Database/PartialEntity";
@@ -30,6 +39,11 @@ export class Service extends DatabaseService<Model> {
    * belonging to another project here becomes a cross-project reference on
    * each of those incidents — and the referenced project can then no longer be
    * deleted. Reject it where it enters instead.
+   *
+   * The same goes for the monitors, labels, on-call policies and
+   * affected-resource lists. IncidentService checks the lists it copies from
+   * the template, so a foreign id saved here made every incident created from
+   * this template fail.
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
@@ -41,7 +55,13 @@ export class Service extends DatabaseService<Model> {
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
       subject: "incident template",
-      references: this.getProjectScopedReferences(createBy.data),
+      references: [
+        ...this.getProjectScopedReferences(createBy.data),
+        ...ProjectScopedReferenceValidator.getRelationReferences({
+          payload: createBy.data,
+          relations: this.getProjectScopedRelations(),
+        }),
+      ],
     });
 
     return { createBy, carryForward: null };
@@ -54,10 +74,23 @@ export class Service extends DatabaseService<Model> {
     const references: Array<ProjectScopedReference> =
       this.getProjectScopedReferences(updateBy.data);
 
+    // An empty list only removes rows and needs no check.
+    const relations: Array<ProjectScopedRelation> =
+      this.getProjectScopedRelations().filter(
+        (relation: ProjectScopedRelation) => {
+          return (
+            resolveReferenceIds(
+              (updateBy.data as Dictionary<unknown>)[relation.column],
+            ).length > 0
+          );
+        },
+      );
+
     if (
       references.every((reference: ProjectScopedReference) => {
         return !reference.id;
-      })
+      }) &&
+      relations.length === 0
     ) {
       return { updateBy, carryForward: null };
     }
@@ -70,15 +103,62 @@ export class Service extends DatabaseService<Model> {
       ? [updateBy.props.tenantId]
       : await this.getProjectIdsForUpdateQuery(updateBy);
 
+    // See ProjectScopedReferenceValidator.getRelationReferences.
+    const heldIds: HeldRelationIds | undefined =
+      relations.length > 0
+        ? await ProjectScopedReferenceValidator.getHeldRelationIds({
+            service: this as unknown as DatabaseService<DatabaseBaseModel>,
+            query: updateBy.query as Query<DatabaseBaseModel>,
+            columns: relations.map((relation: ProjectScopedRelation) => {
+              return relation.column;
+            }),
+          })
+        : undefined;
+
     for (const projectId of projectIds) {
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
         subject: "incident template",
-        references: references,
+        references: [
+          ...references,
+          ...ProjectScopedReferenceValidator.getRelationReferences({
+            payload: updateBy.data,
+            relations: relations,
+            projectId: projectId,
+            heldIds: heldIds,
+          }),
+        ],
       });
     }
 
     return { updateBy, carryForward: null };
+  }
+
+  /*
+   * The many-to-many lists whose ids must belong to the template's project.
+   * Built per call rather than at module load: these services sit in an
+   * import graph that loops back to this one, and a module-level table would
+   * capture whichever of them had not finished loading yet as undefined.
+   */
+  private getProjectScopedRelations(): Array<ProjectScopedRelation> {
+    return [
+      {
+        column: "monitors",
+        modelName: "Monitor",
+        service: MonitorService,
+      },
+      {
+        column: "labels",
+        modelName: "Label",
+        service: LabelService,
+      },
+      {
+        column: "onCallDutyPolicies",
+        modelName: "On-Call Policy",
+        service: OnCallDutyPolicyService,
+      },
+      ...getAffectedResourceRelations(this.getModel()),
+    ];
   }
 
   private getProjectScopedReferences(

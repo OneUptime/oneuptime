@@ -18,19 +18,25 @@ import OwnerRuleAssignment from "Common/Server/Utils/Rules/OwnerRuleAssignment";
 import Recurring from "Common/Types/Events/Recurring";
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseService from "Common/Server/Services/DatabaseService";
+import DockerHostService from "Common/Server/Services/DockerHostService";
+import HostService from "Common/Server/Services/HostService";
+import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
 import LabelService from "Common/Server/Services/LabelService";
 import MonitorService from "Common/Server/Services/MonitorService";
+import PodmanHostService from "Common/Server/Services/PodmanHostService";
+import ServiceService from "Common/Server/Services/ServiceService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
 import ProjectScopedReferenceValidator from "Common/Server/Utils/Database/ProjectScopedReferenceValidator";
 import ObjectID from "Common/Types/ObjectID";
 
 /*
- * ScheduledMaintenanceService refuses a monitor, label or status page that
- * belongs to another project or no longer exists. Templates never had those
- * lists checked, so an older one can still hold such an id, and this job
- * creates every recurrence from them. Refusing here would skip the event on
- * every run (scheduleNextEventAt has already moved on by then), so keep what
- * the template's project can use and log the rest.
+ * ScheduledMaintenanceService refuses a monitor, label, status page or
+ * affected resource (host, cluster, service...) that belongs to another
+ * project or no longer exists. Templates did not always have those lists
+ * checked, so an older one can still hold such an id, and this job creates
+ * every recurrence from them. Refusing here would skip the event on every run
+ * (scheduleNextEventAt has already moved on by then), so keep what the
+ * template's project can use and log the rest.
  */
 async function getRecordsUsableInProject<
   TModel extends DatabaseBaseModel,
@@ -210,12 +216,39 @@ RunCron(
           modelName: "monitor",
           service: MonitorService,
         }))!;
-        scheduledMaintenanceEvent.hosts = recurringTemplate.hosts!;
+        scheduledMaintenanceEvent.hosts = (await getRecordsUsableInProject({
+          template: recurringTemplate,
+          records: recurringTemplate.hosts,
+          modelName: "host",
+          service: HostService,
+        }))!;
         scheduledMaintenanceEvent.kubernetesClusters =
-          recurringTemplate.kubernetesClusters!;
-        scheduledMaintenanceEvent.dockerHosts = recurringTemplate.dockerHosts!;
-        scheduledMaintenanceEvent.podmanHosts = recurringTemplate.podmanHosts!;
-        scheduledMaintenanceEvent.services = recurringTemplate.services!;
+          (await getRecordsUsableInProject({
+            template: recurringTemplate,
+            records: recurringTemplate.kubernetesClusters,
+            modelName: "Kubernetes cluster",
+            service: KubernetesClusterService,
+          }))!;
+        scheduledMaintenanceEvent.dockerHosts =
+          (await getRecordsUsableInProject({
+            template: recurringTemplate,
+            records: recurringTemplate.dockerHosts,
+            modelName: "Docker host",
+            service: DockerHostService,
+          }))!;
+        scheduledMaintenanceEvent.podmanHosts =
+          (await getRecordsUsableInProject({
+            template: recurringTemplate,
+            records: recurringTemplate.podmanHosts,
+            modelName: "Podman host",
+            service: PodmanHostService,
+          }))!;
+        scheduledMaintenanceEvent.services = (await getRecordsUsableInProject({
+          template: recurringTemplate,
+          records: recurringTemplate.services,
+          modelName: "service",
+          service: ServiceService,
+        }))!;
         scheduledMaintenanceEvent.statusPages =
           (await getRecordsUsableInProject({
             template: recurringTemplate,
