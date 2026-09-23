@@ -416,6 +416,11 @@ export default class ProjectScopedReferenceValidator {
    * Read as root, like the services' own project fallback for updates, so the
    * result is keyed by each record's project and a caller only ever gets the
    * exemption for the project being checked.
+   *
+   * One read per column. A find that selects several many-to-many relations
+   * joins them all and returns a row for every combination of their ids, and
+   * an alert or incident can save sixteen lists in one update (the dashboard
+   * sends every affected-resource list back on each edit).
    */
   public static async getHeldRelationIds(data: {
     service: DatabaseService<DatabaseBaseModel>;
@@ -432,62 +437,63 @@ export default class ProjectScopedReferenceValidator {
       return heldIds;
     }
 
-    const select: Dictionary<unknown> = {
-      _id: true,
-      [tenantColumnName]: true,
-    };
-
     for (const column of data.columns) {
-      select[column] = {
-        _id: true,
-      };
-    }
+      const records: Array<DatabaseBaseModel> = await data.service.findBy({
+        query: data.query,
+        select: {
+          _id: true,
+          [tenantColumnName]: true,
+          [column]: {
+            _id: true,
+          },
+        } as Select<DatabaseBaseModel>,
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
 
-    const records: Array<DatabaseBaseModel> = await data.service.findBy({
-      query: data.query,
-      select: select as Select<DatabaseBaseModel>,
-      limit: LIMIT_MAX,
-      skip: 0,
-      props: {
-        isRoot: true,
-      },
-    });
+      // Per project, the ids every record read so far holds in this column.
+      const heldInColumn: Map<string, Set<string>> = new Map();
 
-    for (const record of records) {
-      const projectId: string = normalizeId(
-        record.getValue<ObjectID>(tenantColumnName)?.toString() || "",
-      );
+      for (const record of records) {
+        const projectId: string = normalizeId(
+          record.getValue<ObjectID>(tenantColumnName)?.toString() || "",
+        );
 
-      if (!projectId) {
-        continue;
-      }
+        if (!projectId) {
+          continue;
+        }
 
-      const heldByRecord: Dictionary<Set<string>> = {};
-
-      for (const column of data.columns) {
-        heldByRecord[column] = new Set(
+        const heldByRecord: Set<string> = new Set(
           resolveReferenceIds(record.getValue(column)).map(
             (id: ObjectID | string) => {
               return normalizeId(id.toString());
             },
           ),
         );
-      }
 
-      const heldInProject: Dictionary<Set<string>> | undefined =
-        heldIds.get(projectId);
+        const heldSoFar: Set<string> | undefined = heldInColumn.get(projectId);
 
-      if (!heldInProject) {
-        heldIds.set(projectId, heldByRecord);
-        continue;
-      }
-
-      for (const column of data.columns) {
-        heldInProject[column] = new Set(
-          Array.from(heldInProject[column] || []).filter((id: string) => {
-            return heldByRecord[column]?.has(id);
-          }),
+        heldInColumn.set(
+          projectId,
+          heldSoFar
+            ? new Set(
+                Array.from(heldSoFar).filter((id: string) => {
+                  return heldByRecord.has(id);
+                }),
+              )
+            : heldByRecord,
         );
+      }
+
+      for (const [projectId, held] of heldInColumn) {
+        if (!heldIds.has(projectId)) {
+          heldIds.set(projectId, {});
+        }
+
+        heldIds.get(projectId)![column] = held;
       }
     }
 

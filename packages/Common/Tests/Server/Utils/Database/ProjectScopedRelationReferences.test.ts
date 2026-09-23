@@ -177,7 +177,12 @@ describe("ProjectScopedReferenceValidator.getHeldRelationIds", () => {
     jest.restoreAllMocks();
   });
 
-  it("reads the matched rows as root with their project and the listed relations", async () => {
+  it("reads the matched rows as root with their project, one relation per query", async () => {
+    /*
+     * Loading several many-to-many relations in one find joins them all,
+     * so a row comes back for every combination of their ids. An alert
+     * saves up to sixteen lists at once, so each is read on its own.
+     */
     const findBy: SpyInstance<typeof IncidentService.findBy> = jest
       .spyOn(IncidentService, "findBy")
       .mockResolvedValue([]);
@@ -190,19 +195,23 @@ describe("ProjectScopedReferenceValidator.getHeldRelationIds", () => {
       columns: ["monitors", "labels"],
     });
 
-    expect(findBy).toHaveBeenCalledTimes(1);
+    expect(findBy).toHaveBeenCalledTimes(2);
 
-    const args: Parameters<typeof IncidentService.findBy>[0] =
-      findBy.mock.calls[0]![0];
+    const selects: Array<unknown> = findBy.mock.calls.map(
+      (call: Parameters<typeof IncidentService.findBy>) => {
+        const args: Parameters<typeof IncidentService.findBy>[0] = call[0];
 
-    expect(args.query).toBe(query);
-    expect(args.select).toEqual({
-      _id: true,
-      projectId: true,
-      monitors: { _id: true },
-      labels: { _id: true },
-    });
-    expect(args.props).toEqual({ isRoot: true });
+        expect(args.query).toBe(query);
+        expect(args.props).toEqual({ isRoot: true });
+
+        return args.select;
+      },
+    );
+
+    expect(selects).toEqual([
+      { _id: true, projectId: true, monitors: { _id: true } },
+      { _id: true, projectId: true, labels: { _id: true } },
+    ]);
   });
 
   it("counts an id as held only when every matched row in the project holds it", async () => {

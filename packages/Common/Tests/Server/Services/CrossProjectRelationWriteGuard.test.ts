@@ -10,32 +10,61 @@ import { FindOperator } from "typeorm";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
+import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DockerHost from "../../../Models/DatabaseModels/DockerHost";
+import DockerResource from "../../../Models/DatabaseModels/DockerResource";
+import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
+import Host from "../../../Models/DatabaseModels/Host";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentTemplate from "../../../Models/DatabaseModels/IncidentTemplate";
+import IoTFleet from "../../../Models/DatabaseModels/IoTFleet";
+import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
+import KubernetesContainer from "../../../Models/DatabaseModels/KubernetesContainer";
+import KubernetesResource from "../../../Models/DatabaseModels/KubernetesResource";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
+import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
+import PodmanResource from "../../../Models/DatabaseModels/PodmanResource";
+import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
+import ServiceModel from "../../../Models/DatabaseModels/Service";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
 import AlertService from "../../../Server/Services/AlertService";
 import AlertSeverityService from "../../../Server/Services/AlertSeverityService";
 import AlertStateService from "../../../Server/Services/AlertStateService";
+import CephClusterService from "../../../Server/Services/CephClusterService";
 import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
+import DockerHostService from "../../../Server/Services/DockerHostService";
+import DockerResourceService from "../../../Server/Services/DockerResourceService";
+import DockerSwarmClusterService from "../../../Server/Services/DockerSwarmClusterService";
+import HostService from "../../../Server/Services/HostService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import IncidentSeverityService from "../../../Server/Services/IncidentSeverityService";
 import IncidentStateService from "../../../Server/Services/IncidentStateService";
 import IncidentTemplateService from "../../../Server/Services/IncidentTemplateService";
+import IoTFleetService from "../../../Server/Services/IoTFleetService";
+import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
+import KubernetesContainerService from "../../../Server/Services/KubernetesContainerService";
+import KubernetesResourceService from "../../../Server/Services/KubernetesResourceService";
 import LabelService from "../../../Server/Services/LabelService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
+import PodmanHostService from "../../../Server/Services/PodmanHostService";
+import PodmanResourceService from "../../../Server/Services/PodmanResourceService";
 import ProjectService from "../../../Server/Services/ProjectService";
+import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "../../../Server/Services/ScheduledMaintenanceStateService";
+import ServiceService from "../../../Server/Services/ServiceService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
+import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
+import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 
 /*
@@ -47,6 +76,13 @@ import ObjectID from "../../../Types/ObjectID";
  * IncidentService then changed the status of those foreign monitors and
  * executed the foreign on-call policies for this project's incident, and
  * AlertService did the same with an alert's on-call policies.
+ *
+ * Alerts and incidents also carry the affected-resource lists — hosts,
+ * clusters, container hosts, services and the rest — that the dashboard's
+ * resource picker edits. A foreign id there put this project's alert on the
+ * other project's resource Activity tab and badge counts, and put the other
+ * project's resource names into this project's views, which read the
+ * relation as root.
  *
  * These tests drive the real ProjectScopedReferenceValidator through the
  * service hooks and only stub the lookups it makes, so a foreign or unknown id
@@ -82,6 +118,154 @@ const SECOND_INCIDENT_ID: string = "a2eb67d4-bd2e-4186-9187-dad799c9316d";
 const EVENT_ID: string = "c3d4e5f6-a7b8-4c9d-8e0f-1a2b3c4d5e6f";
 const ALERT_ID: string = "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f7a";
 const SECOND_ALERT_ID: string = "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f7b";
+
+/*
+ * Every affected-resource list alerts and incidents share, with one record
+ * in this project and one in another project for each.
+ */
+interface ResourceList {
+  column: string;
+  modelName: string;
+  model: new () => DatabaseBaseModel;
+  service: { findBy: unknown };
+  ownId: string;
+  foreignId: string;
+}
+
+function resourceList(
+  index: number,
+  column: string,
+  modelName: string,
+  model: new () => DatabaseBaseModel,
+  service: { findBy: unknown },
+): ResourceList {
+  const suffix: string = index.toString().padStart(12, "0");
+
+  return {
+    column: column,
+    modelName: modelName,
+    model: model,
+    service: service,
+    ownId: `e0a1b2c3-d4e5-4f60-8a1b-${suffix}`,
+    foreignId: `e1a1b2c3-d4e5-4f60-8a1b-${suffix}`,
+  };
+}
+
+const RESOURCE_LISTS: Array<ResourceList> = [
+  resourceList(1, "hosts", "Host", Host, HostService),
+  resourceList(
+    2,
+    "kubernetesClusters",
+    "Kubernetes Cluster",
+    KubernetesCluster,
+    KubernetesClusterService,
+  ),
+  resourceList(
+    3,
+    "kubernetesResources",
+    "Kubernetes Resource",
+    KubernetesResource,
+    KubernetesResourceService,
+  ),
+  resourceList(
+    4,
+    "kubernetesContainers",
+    "Kubernetes Container",
+    KubernetesContainer,
+    KubernetesContainerService,
+  ),
+  resourceList(5, "dockerHosts", "Docker Host", DockerHost, DockerHostService),
+  resourceList(6, "podmanHosts", "Podman Host", PodmanHost, PodmanHostService),
+  resourceList(
+    7,
+    "proxmoxClusters",
+    "Proxmox Cluster",
+    ProxmoxCluster,
+    ProxmoxClusterService,
+  ),
+  resourceList(
+    8,
+    "vmwareVCenters",
+    "VMware vCenter",
+    VMwareVCenter,
+    VMwareVCenterService,
+  ),
+  resourceList(9, "iotFleets", "IoT Fleet", IoTFleet, IoTFleetService),
+  resourceList(
+    10,
+    "dockerSwarmClusters",
+    "Docker Swarm Cluster",
+    DockerSwarmCluster,
+    DockerSwarmClusterService,
+  ),
+  resourceList(
+    11,
+    "cephClusters",
+    "Ceph Cluster",
+    CephCluster,
+    CephClusterService,
+  ),
+  resourceList(
+    12,
+    "dockerResources",
+    "Docker Resource",
+    DockerResource,
+    DockerResourceService,
+  ),
+  resourceList(
+    13,
+    "podmanResources",
+    "Podman Resource",
+    PodmanResource,
+    PodmanResourceService,
+  ),
+  resourceList(14, "services", "Service", ServiceModel, ServiceService),
+];
+
+function hostList(): ResourceList {
+  return RESOURCE_LISTS[0]!;
+}
+
+/*
+ * The payload for one resource per list, `pick` choosing which of the two
+ * records. Relation stubs, like an API create sends them.
+ */
+function resourcesOf(
+  pick: (list: ResourceList) => string,
+): Dictionary<Array<DatabaseBaseModel>> {
+  const payload: Dictionary<Array<DatabaseBaseModel>> = {};
+
+  for (const list of RESOURCE_LISTS) {
+    payload[list.column] = [stubOf(list.model, pick(list))];
+  }
+
+  return payload;
+}
+
+// Asserts one error names every foreign resource.
+async function expectEveryForeignResourceNamed(
+  write: Promise<unknown>,
+): Promise<void> {
+  let message: string = "";
+
+  try {
+    await write;
+  } catch (err) {
+    message = (err as Error).message;
+  }
+
+  expect(message).toContain("belong to a different project: ");
+
+  for (const list of RESOURCE_LISTS) {
+    expect(message).toContain(`${list.modelName} "${nameOf(list.foreignId)}"`);
+  }
+}
+
+function expectNoResourceLookedUp(): void {
+  for (const list of RESOURCE_LISTS) {
+    expect(list.service.findBy).not.toHaveBeenCalled();
+  }
+}
 
 function nameOf(id: string): string {
   return `record ${id}`;
@@ -157,6 +341,15 @@ function registerRecords(): void {
         withProject(new AlertSeverity(), ALERT_SEVERITY_ID, PROJECT_ID),
       ],
     },
+    ...RESOURCE_LISTS.map((list: ResourceList) => {
+      return {
+        service: list.service,
+        records: [
+          withProject(new list.model(), list.ownId, PROJECT_ID),
+          withProject(new list.model(), list.foreignId, OTHER_PROJECT_ID),
+        ],
+      };
+    }),
   ];
 
   for (const { service, records } of byService) {
@@ -384,6 +577,83 @@ describe("cross-project relation guard on write", () => {
       expect(MonitorService.findBy).not.toHaveBeenCalled();
       expect(LabelService.findBy).not.toHaveBeenCalled();
       expect(OnCallDutyPolicyService.findBy).not.toHaveBeenCalled();
+      expectNoResourceLookedUp();
+    });
+
+    test.each(RESOURCE_LISTS)(
+      "rejects another project's $modelName",
+      async (list: ResourceList) => {
+        await expect(
+          callHook(IncidentService, "onBeforeCreate", {
+            data: incidentWith({
+              [list.column]: [stubOf(list.model, list.foreignId)],
+            } as Partial<Incident>),
+            props: { tenantId: PROJECT_ID },
+          }),
+        ).rejects.toThrow(foreignMessage(list.modelName, list.foreignId));
+
+        expect(counter).not.toHaveBeenCalled();
+      },
+    );
+
+    test("names every foreign affected resource in one error", async () => {
+      await expectEveryForeignResourceNamed(
+        callHook(IncidentService, "onBeforeCreate", {
+          data: incidentWith(
+            resourcesOf((list: ResourceList) => {
+              return list.foreignId;
+            }) as Partial<Incident>,
+          ),
+          props: { tenantId: PROJECT_ID },
+        }),
+      );
+
+      expect(counter).not.toHaveBeenCalled();
+    });
+
+    test("rejects an affected resource id that matches no record", async () => {
+      await expect(
+        callHook(IncidentService, "onBeforeCreate", {
+          data: incidentWith({ hosts: [stubOf(Host, UNKNOWN_ID)] }),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(`do not exist: Host "${UNKNOWN_ID}"`);
+    });
+
+    test("affected resources copied from an incident template are checked too", async () => {
+      const template: IncidentTemplate = new IncidentTemplate();
+      template._id = TEMPLATE_ID;
+      template.hosts = [stubOf(Host, hostList().foreignId)];
+
+      jest
+        .spyOn(IncidentTemplateService, "findOneBy")
+        .mockResolvedValue(template as never);
+
+      await expect(
+        callHook(IncidentService, "onBeforeCreate", {
+          data: incidentWith({
+            createdIncidentTemplateId: TEMPLATE_ID,
+          }),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(foreignMessage("Host", hostList().foreignId));
+
+      expect(counter).not.toHaveBeenCalled();
+    });
+
+    test("accepts this project's record on every affected-resource list", async () => {
+      await expect(
+        callHook(IncidentService, "onBeforeCreate", {
+          data: incidentWith(
+            resourcesOf((list: ResourceList) => {
+              return list.ownId;
+            }) as Partial<Incident>,
+          ),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
+
+      expect(counter).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -408,6 +678,7 @@ describe("cross-project relation guard on write", () => {
       monitorIds?: Array<string>;
       labelIds?: Array<string>;
       policyIds?: Array<string>;
+      resourceIds?: Dictionary<Array<string>>;
     }): Incident {
       const incident: Incident = new Incident();
       incident._id = data.id;
@@ -421,6 +692,15 @@ describe("cross-project relation guard on write", () => {
       incident.onCallDutyPolicies = (data.policyIds || []).map((id: string) => {
         return stubOf(OnCallDutyPolicy, id);
       });
+      for (const list of RESOURCE_LISTS) {
+        Object.assign(incident, {
+          [list.column]: (data.resourceIds?.[list.column] || []).map(
+            (id: string) => {
+              return stubOf(list.model, id);
+            },
+          ),
+        });
+      }
       return incident;
     }
 
@@ -584,6 +864,110 @@ describe("cross-project relation guard on write", () => {
 
       expect(IncidentService.findBy).not.toHaveBeenCalled();
       expect(MonitorService.findBy).not.toHaveBeenCalled();
+      expectNoResourceLookedUp();
+    });
+
+    test.each(RESOURCE_LISTS)(
+      "rejects adding another project's $modelName",
+      async (list: ResourceList) => {
+        matchedIncidents = [
+          storedIncident({
+            id: INCIDENT_ID,
+            projectId: PROJECT_ID,
+            resourceIds: { [list.column]: [list.ownId] },
+          }),
+        ];
+
+        await expect(
+          callHook(IncidentService, "onBeforeUpdate", {
+            // Bare uuid strings, as the dashboard's resource picker saves them.
+            data: { [list.column]: [list.ownId, list.foreignId] },
+            query: { _id: INCIDENT_ID },
+            props: { tenantId: PROJECT_ID },
+          }),
+        ).rejects.toThrow(foreignMessage(list.modelName, list.foreignId));
+      },
+    );
+
+    test("names every foreign affected resource in one error", async () => {
+      matchedIncidents = [
+        storedIncident({ id: INCIDENT_ID, projectId: PROJECT_ID }),
+      ];
+
+      await expectEveryForeignResourceNamed(
+        callHook(IncidentService, "onBeforeUpdate", {
+          data: resourcesOf((list: ResourceList) => {
+            return list.foreignId;
+          }),
+          query: { _id: INCIDENT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      );
+    });
+
+    test("re-saving a resource list keeps a resource the incident already holds", async () => {
+      matchedIncidents = [
+        storedIncident({
+          id: INCIDENT_ID,
+          projectId: PROJECT_ID,
+          resourceIds: { hosts: [hostList().foreignId] },
+        }),
+      ];
+
+      await expect(
+        callHook(IncidentService, "onBeforeUpdate", {
+          data: {
+            hosts: [hostList().foreignId.toUpperCase(), hostList().ownId],
+          },
+          query: { _id: INCIDENT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
+
+      // Only the added host was looked up.
+      expect(HostService.findBy).toHaveBeenCalledTimes(1);
+    });
+
+    test("updates without a tenant check resources against the matched incident's project", async () => {
+      matchedIncidents = [
+        storedIncident({ id: INCIDENT_ID, projectId: PROJECT_ID }),
+      ];
+
+      await expect(
+        callHook(IncidentService, "onBeforeUpdate", {
+          data: { services: [{ _id: RESOURCE_LISTS[13]!.foreignId }] },
+          query: { _id: INCIDENT_ID },
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(
+        foreignMessage("Service", RESOURCE_LISTS[13]!.foreignId),
+      );
+    });
+
+    test("accepts this project's resources on every list and clearing one", async () => {
+      matchedIncidents = [
+        storedIncident({
+          id: INCIDENT_ID,
+          projectId: PROJECT_ID,
+          resourceIds: { hosts: [hostList().ownId] },
+        }),
+      ];
+
+      const data: Dictionary<Array<string>> = {};
+
+      for (const list of RESOURCE_LISTS) {
+        data[list.column] = [list.ownId];
+      }
+
+      data["hosts"] = [];
+
+      await expect(
+        callHook(IncidentService, "onBeforeUpdate", {
+          data: data,
+          query: { _id: INCIDENT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
     });
   });
 
@@ -749,6 +1133,81 @@ describe("cross-project relation guard on write", () => {
       expect(MonitorService.findBy).not.toHaveBeenCalled();
       expect(LabelService.findBy).not.toHaveBeenCalled();
       expect(OnCallDutyPolicyService.findBy).not.toHaveBeenCalled();
+      expectNoResourceLookedUp();
+    });
+
+    test.each(RESOURCE_LISTS)(
+      "rejects another project's $modelName",
+      async (list: ResourceList) => {
+        await expect(
+          callHook(AlertService, "onBeforeCreate", {
+            data: alertWith({
+              [list.column]: [stubOf(list.model, list.foreignId)],
+            } as Partial<Alert>),
+            props: { tenantId: PROJECT_ID },
+          }),
+        ).rejects.toThrow(foreignMessage(list.modelName, list.foreignId));
+
+        expect(counter).not.toHaveBeenCalled();
+      },
+    );
+
+    test("names every foreign affected resource in one error", async () => {
+      await expectEveryForeignResourceNamed(
+        callHook(AlertService, "onBeforeCreate", {
+          data: alertWith(
+            resourcesOf((list: ResourceList) => {
+              return list.foreignId;
+            }) as Partial<Alert>,
+          ),
+          props: { tenantId: PROJECT_ID },
+        }),
+      );
+
+      expect(counter).not.toHaveBeenCalled();
+    });
+
+    test("rejects an affected resource id that matches no record", async () => {
+      await expect(
+        callHook(AlertService, "onBeforeCreate", {
+          data: alertWith({ hosts: [stubOf(Host, UNKNOWN_ID)] }),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(`do not exist: Host "${UNKNOWN_ID}"`);
+    });
+
+    test("root creates check resources against the project on the payload", async () => {
+      // MonitorAlert attaches resolved resources and creates as root.
+      const alert: Alert = alertWith({
+        kubernetesClusters: [
+          stubOf(KubernetesCluster, RESOURCE_LISTS[1]!.foreignId),
+        ],
+      });
+      alert.projectId = PROJECT_ID;
+
+      await expect(
+        callHook(AlertService, "onBeforeCreate", {
+          data: alert,
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(
+        foreignMessage("Kubernetes Cluster", RESOURCE_LISTS[1]!.foreignId),
+      );
+    });
+
+    test("accepts this project's record on every affected-resource list", async () => {
+      await expect(
+        callHook(AlertService, "onBeforeCreate", {
+          data: alertWith(
+            resourcesOf((list: ResourceList) => {
+              return list.ownId;
+            }) as Partial<Alert>,
+          ),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
+
+      expect(counter).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -768,6 +1227,7 @@ describe("cross-project relation guard on write", () => {
       projectId: ObjectID;
       labelIds?: Array<string>;
       policyIds?: Array<string>;
+      resourceIds?: Dictionary<Array<string>>;
     }): Alert {
       const alert: Alert = new Alert();
       alert._id = data.id;
@@ -778,6 +1238,15 @@ describe("cross-project relation guard on write", () => {
       alert.onCallDutyPolicies = (data.policyIds || []).map((id: string) => {
         return stubOf(OnCallDutyPolicy, id);
       });
+      for (const list of RESOURCE_LISTS) {
+        Object.assign(alert, {
+          [list.column]: (data.resourceIds?.[list.column] || []).map(
+            (id: string) => {
+              return stubOf(list.model, id);
+            },
+          ),
+        });
+      }
       return alert;
     }
 
@@ -916,6 +1385,130 @@ describe("cross-project relation guard on write", () => {
       expect(MonitorService.findBy).not.toHaveBeenCalled();
       expect(LabelService.findBy).not.toHaveBeenCalled();
       expect(OnCallDutyPolicyService.findBy).not.toHaveBeenCalled();
+      expectNoResourceLookedUp();
+    });
+
+    test.each(RESOURCE_LISTS)(
+      "rejects adding another project's $modelName",
+      async (list: ResourceList) => {
+        matchedAlerts = [
+          storedAlert({
+            id: ALERT_ID,
+            projectId: PROJECT_ID,
+            resourceIds: { [list.column]: [list.ownId] },
+          }),
+        ];
+
+        await expect(
+          callHook(AlertService, "onBeforeUpdate", {
+            // Bare uuid strings, as the dashboard's resource picker saves them.
+            data: { [list.column]: [list.ownId, list.foreignId] },
+            query: { _id: ALERT_ID },
+            props: { tenantId: PROJECT_ID },
+          }),
+        ).rejects.toThrow(foreignMessage(list.modelName, list.foreignId));
+      },
+    );
+
+    test("names every foreign affected resource in one error", async () => {
+      matchedAlerts = [storedAlert({ id: ALERT_ID, projectId: PROJECT_ID })];
+
+      await expectEveryForeignResourceNamed(
+        callHook(AlertService, "onBeforeUpdate", {
+          data: resourcesOf((list: ResourceList) => {
+            return list.foreignId;
+          }),
+          query: { _id: ALERT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      );
+    });
+
+    test("re-saving a resource list keeps a resource the alert already holds", async () => {
+      /*
+       * Alerts linked before this guard can hold another project's
+       * resource. The dashboard saves every list back on each edit, so
+       * refusing what the alert already has would lock the user out.
+       */
+      matchedAlerts = [
+        storedAlert({
+          id: ALERT_ID,
+          projectId: PROJECT_ID,
+          resourceIds: { hosts: [hostList().foreignId] },
+        }),
+      ];
+
+      await expect(
+        callHook(AlertService, "onBeforeUpdate", {
+          data: {
+            hosts: [hostList().foreignId.toUpperCase(), hostList().ownId],
+          },
+          query: { _id: ALERT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
+
+      // Only the added host was looked up.
+      expect(HostService.findBy).toHaveBeenCalledTimes(1);
+    });
+
+    test("a resource held by one matched alert is still checked for the others", async () => {
+      matchedAlerts = [
+        storedAlert({
+          id: ALERT_ID,
+          projectId: PROJECT_ID,
+          resourceIds: { hosts: [hostList().foreignId] },
+        }),
+        storedAlert({ id: SECOND_ALERT_ID, projectId: PROJECT_ID }),
+      ];
+
+      await expect(
+        callHook(AlertService, "onBeforeUpdate", {
+          data: { hosts: [hostList().foreignId] },
+          query: {},
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(foreignMessage("Host", hostList().foreignId));
+    });
+
+    test("updates without a tenant check resources against the matched alert's project", async () => {
+      matchedAlerts = [storedAlert({ id: ALERT_ID, projectId: PROJECT_ID })];
+
+      await expect(
+        callHook(AlertService, "onBeforeUpdate", {
+          data: { services: [{ _id: RESOURCE_LISTS[13]!.foreignId }] },
+          query: { _id: ALERT_ID },
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(
+        foreignMessage("Service", RESOURCE_LISTS[13]!.foreignId),
+      );
+    });
+
+    test("accepts this project's resources on every list and clearing one", async () => {
+      matchedAlerts = [
+        storedAlert({
+          id: ALERT_ID,
+          projectId: PROJECT_ID,
+          resourceIds: { hosts: [hostList().ownId] },
+        }),
+      ];
+
+      const data: Dictionary<Array<string>> = {};
+
+      for (const list of RESOURCE_LISTS) {
+        data[list.column] = [list.ownId];
+      }
+
+      data["hosts"] = [];
+
+      await expect(
+        callHook(AlertService, "onBeforeUpdate", {
+          data: data,
+          query: { _id: ALERT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
     });
   });
 
