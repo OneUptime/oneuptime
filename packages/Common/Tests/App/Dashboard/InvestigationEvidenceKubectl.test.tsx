@@ -55,6 +55,11 @@ jest.mock(
 import InvestigationEvidenceList from "../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationReport/InvestigationEvidenceList";
 import { InvestigationEvidenceItem } from "../../../Types/AI/InvestigationEvidence";
 import {
+  InvestigationEvidenceCheckedEntry,
+  ParsedInvestigationReport,
+  parseInvestigationReport,
+} from "../../../Utils/AI/InvestigationReport";
+import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
@@ -200,5 +205,118 @@ describe("InvestigationEvidenceList kubectl items", () => {
     expect(details).not.toHaveTextContent("What was queried");
     // Nothing is fetched for a kubectl command.
     expect(postMock).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A run that predates structured evidence shows the report's own
+ * "Evidence checked" lines. A cluster tool's line says what the call did
+ * ("— succeeded", "— kubectl returned an error", "— 2 cluster(s)") and the
+ * parser keeps that as the entry's outcome; its rowCount is only the
+ * engine's tally (1 for a kubectl command that succeeded). The pill must
+ * show the outcome, never "1 row" or "No rows" for a kubectl line.
+ */
+describe("InvestigationEvidenceList legacy kubectl lines", () => {
+  function legacyEntries(): Array<InvestigationEvidenceCheckedEntry> {
+    const parsed: ParsedInvestigationReport = parseInvestigationReport(
+      [
+        "**Summary** — web pods are pending.",
+        "",
+        "**Evidence checked**",
+        '- **[C1]** kubectl describe pod web-1 -n web on cluster "prod-us" — succeeded',
+        '- **[C2]** kubectl get pods -n web on cluster "prod-us" — kubectl returned an error',
+        "- **[C3]** Clusters OneUptime AI can inspect — 2 cluster(s)",
+        '- **[C4]** kubectl logs web-1 -n web on cluster "prod-us" — result unknown',
+        "- **[C5]** Max(latency) — 5 row(s)",
+      ].join("\n"),
+    );
+
+    return parsed.evidenceChecked;
+  }
+
+  function renderLegacyList(
+    entries: Array<InvestigationEvidenceCheckedEntry>,
+  ): void {
+    render(
+      <InvestigationEvidenceList
+        items={[]}
+        legacyEntries={entries}
+        subjectType="incident"
+        subjectId={INCIDENT_ID}
+        runId={RUN_ID}
+      />,
+    );
+  }
+
+  test("the parser keeps each cluster line's outcome (the fixture is what the list gets)", () => {
+    const entries: Array<InvestigationEvidenceCheckedEntry> = legacyEntries();
+
+    expect(
+      entries.map((entry: InvestigationEvidenceCheckedEntry) => {
+        return [entry.citationId, entry.rowCount, entry.outcome];
+      }),
+    ).toEqual([
+      ["C1", 1, "succeeded"],
+      ["C2", 0, "kubectl returned an error"],
+      ["C3", 2, "2 cluster(s)"],
+      ["C4", 0, "result unknown"],
+      ["C5", 5, undefined],
+    ]);
+  });
+
+  test("shows a kubectl line's outcome, never a row count", () => {
+    renderLegacyList(legacyEntries());
+
+    expect(within(row("C1")).getByText("Succeeded")).toBeVisible();
+    expect(
+      within(row("C2")).getByText("kubectl returned an error"),
+    ).toBeVisible();
+    expect(within(row("C4")).getByText("Result unknown")).toBeVisible();
+
+    for (const citationId of ["C1", "C2", "C4"]) {
+      expect(row(citationId)).not.toHaveTextContent(/\b1 row\b/);
+      expect(row(citationId)).not.toHaveTextContent("No rows");
+    }
+  });
+
+  test("shows a cluster listing's outcome as written, not as rows", () => {
+    renderLegacyList(legacyEntries());
+
+    expect(within(row("C3")).getByText("2 cluster(s)")).toBeVisible();
+    expect(row("C3")).not.toHaveTextContent("2 rows");
+  });
+
+  test("styles a kubectl error as an error, like the structured items do", () => {
+    renderLegacyList(legacyEntries());
+
+    expect(
+      within(row("C2")).getByText("kubectl returned an error").className,
+    ).toContain("amber");
+    expect(within(row("C2")).getByText("C2").className).toContain("amber");
+    // A kubectl command that succeeded, or whose result is unknown, is not.
+    expect(within(row("C1")).getByText("Succeeded").className).not.toContain(
+      "amber",
+    );
+    expect(
+      within(row("C4")).getByText("Result unknown").className,
+    ).not.toContain("amber");
+  });
+
+  // Negative control: a telemetry query's line has no outcome and keeps its rows.
+  test("keeps a telemetry query line's row count", () => {
+    renderLegacyList(legacyEntries());
+
+    expect(within(row("C5")).getByText("5 rows")).toBeVisible();
+  });
+
+  // Negative control: an entry without an outcome counts rows, as before.
+  test("counts rows for an entry that carries no outcome", () => {
+    renderLegacyList([
+      { citationId: "C1", label: "Active incidents (7 total)", rowCount: 7 },
+      { citationId: "C2", label: "Monitors (2 found)", rowCount: 0 },
+    ]);
+
+    expect(within(row("C1")).getByText("7 rows")).toBeVisible();
+    expect(within(row("C2")).getByText("No rows")).toBeVisible();
   });
 });

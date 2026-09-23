@@ -45,10 +45,19 @@ import {
   AiRemediationCommandExecutionStatus,
   AiRemediationCommandPolicyVerdict,
   AiRemediationPlanExecutionStatus,
+  KUBECTL_ALWAYS_ASKS_SUMMARY,
+  KUBECTL_AUTOMATIC_MODE_SUMMARY,
+  KUBECTL_RISKIER_CHANGES_SUMMARY,
+  KUBECTL_SAFE_CHANGES_SUMMARY,
+  getKubectlAlwaysAsksSummary,
+  getKubectlAutomaticModeSummary,
+  getKubectlRiskierChangesSummary,
+  getKubectlSafeChangesSummary,
 } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
+  KubernetesRunnerPosture,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { JSONObject } from "../../../../Types/JSON";
 import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
@@ -1581,6 +1590,173 @@ describe("RemediationExecutionRunner.executeRemediation — cluster rounds", () 
     expect(countBy).not.toHaveBeenCalled();
     expect(incidentFeed).not.toHaveBeenCalled();
     expect(suggestionUpdate).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A Runner that reported node operations off
+   * (aiAccess.remediation.nodeOperations=false) refuses every node
+   * operation, approved or not. The round's prompt — persona, question and
+   * the per-cluster context — must never offer one as a fix there: not
+   * among the safe or riskier changes, not as something to propose for a
+   * human, not as an undo, not on the allowlist line.
+   */
+  describe("a Runner with node operations off is never offered a node operation", () => {
+    /*
+     * How the prompt offers a node operation. The refusal itself ("no node
+     * operations (cordon, uncordon, drain, taint, ...)") is not an offer.
+     */
+    const NODE_OPERATION_OFFERS: Array<string> = [
+      "cordon/uncordon of one node",
+      "kubectl uncordon <node>",
+      "resources, drain, taint",
+      "a node drain or taint",
+      "a node drain or a node taint",
+      "a node drain or a taint",
+    ];
+
+    function postureWithNodeOperations(
+      allowNodeOperations: boolean | undefined,
+    ): KubernetesRunnerPosture {
+      return { inCluster: true, allowWrites: true, allowNodeOperations };
+    }
+
+    function mockCluster(
+      remediationMode: KubernetesAiRemediationMode,
+      allowNodeOperations: boolean | undefined,
+    ): void {
+      const status: KubernetesClusterAiAccessStatus = clusterStatus({
+        remediationMode,
+        kubectlAllowlist: ["kubectl set image deployment/web * -n web"],
+      });
+
+      (
+        KubernetesClusterAiAccessService.getStatusForCluster as unknown as jest.SpyInstance
+      ).mockResolvedValue({
+        ...status,
+        runner: {
+          ...status.runner!,
+          posture: postureWithNodeOperations(allowNodeOperations),
+        },
+      });
+    }
+
+    function wholePrompt(request: InvestigationRequest): string {
+      return [
+        request.personaOverride || "",
+        request.questionOverride || "",
+        request.contextSummary || "",
+      ].join("\n");
+    }
+
+    function offersIn(text: string): Array<string> {
+      return NODE_OPERATION_OFFERS.filter((offer: string) => {
+        return text.includes(offer);
+      });
+    }
+
+    const OFF: { allowNodeOperations: boolean } = {
+      allowNodeOperations: false,
+    };
+
+    it.each([
+      KubernetesAiRemediationMode.Automatic,
+      KubernetesAiRemediationMode.BypassApproval,
+    ])(
+      "a FullAuto round on a %s cluster",
+      async (remediationMode: KubernetesAiRemediationMode) => {
+        mockSuggestionHonouringSelect(clusterRow());
+        mockCluster(remediationMode, false);
+        const request: { get: () => InvestigationRequest } = captureRequest();
+
+        await run();
+
+        const context: string = request.get().contextSummary || "";
+
+        expect(offersIn(wholePrompt(request.get()))).toEqual([]);
+        expect(context).toContain(
+          remediationMode === KubernetesAiRemediationMode.Automatic
+            ? getKubectlAutomaticModeSummary(OFF)
+            : getKubectlRiskierChangesSummary(OFF),
+        );
+        expect(context).toContain(getKubectlAlwaysAsksSummary(OFF));
+        expect(request.get().personaOverride).toContain(
+          getKubectlSafeChangesSummary(OFF),
+        );
+        // The allowlist line names only what still applies.
+        expect(context).toContain("never a write in a protected namespace):");
+        // What the Runner refuses is still said, once, as a refusal.
+        expect(context).toContain("no node operations (cordon, uncordon");
+      },
+    );
+
+    it("a planning round (Ask for approval)", async () => {
+      mockSuggestionHonouringSelect(
+        clusterRow({
+          executionMode: AutoRemediationExecutionMode.Suggest,
+          autoResolveOnRecovery: false,
+        }),
+      );
+      mockCluster(KubernetesAiRemediationMode.RequireApproval, false);
+      const request: { get: () => InvestigationRequest } = captureRequest();
+
+      await run();
+
+      expect(request.get().personaOverride).toContain(
+        "REMEDIATION PLANNING run on a Kubernetes cluster",
+      );
+      expect(offersIn(wholePrompt(request.get()))).toEqual([]);
+      expect(request.get().personaOverride).toContain(
+        getKubectlSafeChangesSummary(OFF),
+      );
+    });
+
+    // Negative controls: node operations on, or never reported (not second-guessed).
+    it.each<[string, boolean | undefined]>([
+      ["on", true],
+      ["never reported", undefined],
+    ])(
+      "offers every change when node operations are %s",
+      async (_label: string, allowNodeOperations: boolean | undefined) => {
+        mockSuggestionHonouringSelect(clusterRow());
+        mockCluster(KubernetesAiRemediationMode.Automatic, allowNodeOperations);
+        const request: { get: () => InvestigationRequest } = captureRequest();
+
+        await run();
+
+        const context: string = request.get().contextSummary || "";
+
+        expect(context).toContain(KUBECTL_AUTOMATIC_MODE_SUMMARY);
+        expect(context).toContain(KUBECTL_ALWAYS_ASKS_SUMMARY);
+        expect(context).toContain(
+          "never a write in a protected namespace, a node drain or a taint):",
+        );
+        expect(context).not.toContain("no node operations");
+        expect(request.get().personaOverride).toContain(
+          KUBECTL_SAFE_CHANGES_SUMMARY,
+        );
+        expect(request.get().personaOverride).toContain(
+          KUBECTL_RISKIER_CHANGES_SUMMARY,
+        );
+        expect(request.get().personaOverride).toContain(
+          "kubectl uncordon <node>",
+        );
+      },
+    );
+
+    it("negative control: a Bypass round with node operations on names the drain and the taint among its exceptions", async () => {
+      mockSuggestionHonouringSelect(clusterRow());
+      mockCluster(KubernetesAiRemediationMode.BypassApproval, true);
+      const request: { get: () => InvestigationRequest } = captureRequest();
+
+      await run();
+
+      expect(request.get().questionOverride).toContain(
+        "a write in a protected namespace, a node drain or a node taint",
+      );
+      expect(request.get().contextSummary).toContain(
+        KUBECTL_RISKIER_CHANGES_SUMMARY,
+      );
+    });
   });
 
   /*

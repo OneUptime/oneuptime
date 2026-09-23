@@ -200,18 +200,58 @@ export const DEFAULT_COMMAND_TIMEOUT_MS: number = 60 * 1000;
  * so a prompt can never describe a tier the policy no longer has.
  */
 
+/*
+ * Each summary that names a node operation also comes without it, for a
+ * cluster whose Runner reported node operations off
+ * (aiAccess.remediation.nodeOperations=false): that Runner refuses every
+ * node operation, approved or not, so the model is never offered one there
+ * (list_command_targets and the cluster round's prompt). The constants are
+ * the full wording.
+ */
+export interface KubectlChangeSummaryOptions {
+  allowNodeOperations: boolean;
+}
+
 // SafeWrite: what an Automatic cluster runs without a human.
-export const KUBECTL_SAFE_CHANGES_SUMMARY: string =
-  "rollout restart/undo/pause/resume of one workload, scale of one workload to a non-zero replica count, delete of one named pod, cordon/uncordon of one node, and label/annotate of one pod or workload with unreserved keys — each on exactly ONE named object (TYPE/NAME, e.g. deployment/web), never a selector, --all, several names or a bare kind";
+export function getKubectlSafeChangesSummary(
+  options: KubectlChangeSummaryOptions,
+): string {
+  return `rollout restart/undo/pause/resume of one workload, scale of one workload to a non-zero replica count, delete of one named pod, ${
+    options.allowNodeOperations ? "cordon/uncordon of one node, " : ""
+  }and label/annotate of one pod or workload with unreserved keys — each on exactly ONE named object (TYPE/NAME, e.g. deployment/web), never a selector, --all, several names or a bare kind`;
+}
 
 // RiskyWrite: needs a human unless the allowlist names it or approvals are bypassed.
-export const KUBECTL_RISKIER_CHANGES_SUMMARY: string =
-  "patch, set image/env/resources, drain, taint, scale to zero, deleting a workload or a job, create job --from=cronjob/<name>, and any change that touches several objects at once";
+export function getKubectlRiskierChangesSummary(
+  options: KubectlChangeSummaryOptions,
+): string {
+  return `patch, set image/env/resources, ${
+    options.allowNodeOperations ? "drain, taint, " : ""
+  }scale to zero, deleting a workload or a job, create job --from=cronjob/<name>, and any change that touches several objects at once`;
+}
 
 // Asks a human whatever the cluster's mode, allowlist included.
-export const KUBECTL_ALWAYS_ASKS_SUMMARY: string = `a write in a protected namespace (${PROTECTED_KUBERNETES_NAMESPACES.join(
-  ", ",
-)}) and a node drain or taint always need a human, in every mode — Bypass approval and the allowlist included`;
+export function getKubectlAlwaysAsksSummary(
+  options: KubectlChangeSummaryOptions,
+): string {
+  return `a write in a protected namespace (${PROTECTED_KUBERNETES_NAMESPACES.join(
+    ", ",
+  )}) ${
+    options.allowNodeOperations
+      ? "and a node drain or taint always need"
+      : "always needs"
+  } a human, in every mode — Bypass approval and the allowlist included`;
+}
+
+export const KUBECTL_SAFE_CHANGES_SUMMARY: string =
+  getKubectlSafeChangesSummary({ allowNodeOperations: true });
+
+export const KUBECTL_RISKIER_CHANGES_SUMMARY: string =
+  getKubectlRiskierChangesSummary({ allowNodeOperations: true });
+
+export const KUBECTL_ALWAYS_ASKS_SUMMARY: string = getKubectlAlwaysAsksSummary({
+  allowNodeOperations: true,
+});
 
 // Denied: never runs, whoever approves it.
 export const KUBECTL_NEVER_RUNS_SUMMARY: string =
@@ -221,12 +261,27 @@ export const KUBECTL_NEVER_RUNS_SUMMARY: string =
 export const KUBECTL_ALLOWLIST_SUMMARY: string =
   "the cluster's kubectl allowlist is matched token by token: a pattern must have exactly as many tokens as the command, a * matches within one token only, and a flag must be spelled as the pattern spells it";
 
-export const KUBECTL_AUTOMATIC_MODE_SUMMARY: string = `Automatic: safe changes run without a human (${KUBECTL_SAFE_CHANGES_SUMMARY}). A riskier change (${KUBECTL_RISKIER_CHANGES_SUMMARY}) never runs without one: when the round could only find riskier fixes it ends by proposing exactly those for one-click approval; when it also ran safe fixes, a riskier fix is proposed only if verification shows the safe ones did not recover the signal (the follow-up round, which asks). Shapes on the cluster's kubectl allowlist run on their own.`;
+export function getKubectlAutomaticModeSummary(
+  options: KubectlChangeSummaryOptions,
+): string {
+  return `Automatic: safe changes run without a human (${getKubectlSafeChangesSummary(
+    options,
+  )}). A riskier change (${getKubectlRiskierChangesSummary(
+    options,
+  )}) never runs without one: when the round could only find riskier fixes it ends by proposing exactly those for one-click approval; when it also ran safe fixes, a riskier fix is proposed only if verification shows the safe ones did not recover the signal (the follow-up round, which asks). Shapes on the cluster's kubectl allowlist run on their own.`;
+}
 
+export const KUBECTL_AUTOMATIC_MODE_SUMMARY: string =
+  getKubectlAutomaticModeSummary({ allowNodeOperations: true });
+
+/*
+ * Interpolated into prompts and feed copy on its own, so it names the
+ * exceptions instead of pointing at a list "below".
+ */
 export const KUBECTL_BYPASS_MODE_SUMMARY: string =
-  "Bypass approval: AI does not ask. Every change the policy allows — safe AND riskier — runs on its own, follow-up rounds included.";
+  "Bypass approval: AI does not ask. Every change the policy allows — safe AND riskier — runs on its own, follow-up rounds included, except for what always needs a human.";
 
-export const KUBECTL_EVERY_MODE_LIMITS_SUMMARY: string = `In every mode, Bypass approval included: ${KUBECTL_NEVER_RUNS_SUMMARY}; ${KUBECTL_ALWAYS_ASKS_SUMMARY}; the cluster's in-cluster Runner never changes its own namespace, nor a namespace outside the ones its chart lets it change, nor nodes when its chart turned node operations off; and the hourly per-cluster circuit breaker turns an unattended run into a proposal.`;
+export const KUBECTL_EVERY_MODE_LIMITS_SUMMARY: string = `In every mode, Bypass approval included: ${KUBECTL_NEVER_RUNS_SUMMARY}; ${KUBECTL_ALWAYS_ASKS_SUMMARY}; the cluster's in-cluster Runner never changes its own namespace, nor a namespace outside the ones its chart lets it change, nor nodes when its chart turned node operations off; and an unattended run becomes a proposal when the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster.`;
 
 export class AiRemediationCommandPlanUtil {
   /*

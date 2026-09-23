@@ -343,6 +343,9 @@ describe("the scope is compared the way the Runner's configuration reads it", ()
   });
 });
 
+// Namespace objects a write does not name: a selector reaches them.
+const UNNAMED_NAMESPACE_OBJECTS: string = "kubectl label ns -l env=prod team=a";
+
 interface FactsCase {
   label: string;
   command: KubectlWriteScopeCommand;
@@ -392,9 +395,13 @@ function factsCases(): Array<FactsCase> {
       code: "verb_mismatch",
       fix: "",
     },
+    /*
+     * The policy denies this before any caller asks the scope (see the
+     * test after this table); the scope refuses it on its own too.
+     */
     {
       label: "Namespace objects it does not name",
-      command: writeOf("kubectl label ns -l env=prod team=a"),
+      command: riskyWriteOf(UNNAMED_NAMESPACE_OBJECTS, "label"),
       scope: scoped,
       code: "unnamed_namespace_objects",
       fix: "Name each Namespace object.",
@@ -527,6 +534,25 @@ describe("the facts behind every refusal", () => {
     );
 
     expect(Array.from(covered).sort()).toEqual(Object.keys(everyCode).sort());
+  });
+
+  /*
+   * Why that case is built with an explicit tier: the shared policy denies
+   * a write to Namespace objects it does not name, so no caller ever hands
+   * the scope one — the scope's own refusal is defense in depth.
+   */
+  test("the policy denies the unnamed Namespace-object write before the scope is asked", () => {
+    const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
+      UNNAMED_NAMESPACE_OBJECTS,
+    );
+
+    expect(policy.tier).toBe(KubectlCommandTier.Denied);
+    expect(policy.reason).toContain("name each Namespace object");
+
+    // The scope, handed the policy's own verdict, judges it as a write too.
+    expect(refusalOf(policy, { writeNamespaces: ["web", "api"] })?.code).toBe(
+      "unnamed_namespace_objects",
+    );
   });
 
   test("the verb cross-check reports both readings", () => {

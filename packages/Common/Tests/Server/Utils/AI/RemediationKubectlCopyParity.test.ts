@@ -12,6 +12,11 @@ import {
   KUBECTL_NEVER_RUNS_SUMMARY,
   KUBECTL_RISKIER_CHANGES_SUMMARY,
   KUBECTL_SAFE_CHANGES_SUMMARY,
+  KubectlChangeSummaryOptions,
+  getKubectlAlwaysAsksSummary,
+  getKubectlAutomaticModeSummary,
+  getKubectlRiskierChangesSummary,
+  getKubectlSafeChangesSummary,
 } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import {
   KubectlCommandTier,
@@ -162,14 +167,19 @@ describe("the shared kubectl tier summaries match what KubectlPolicy does", () =
       "never changes its own namespace",
     );
     /*
-     * Loosened in the round-three review: the canonical comment now words
-     * this clause "an unattended run becomes a proposal when the hourly
-     * per-cluster circuit breaker trips or another unattended round
-     * already holds the cluster", and the shared summary may follow it in
-     * the Types lane; either wording names the breaker and the proposal.
+     * The canonical comment's last clause, word for word: the breaker AND
+     * another unattended round holding the cluster both turn a run into a
+     * proposal.
      */
-    expect(KUBECTL_EVERY_MODE_LIMITS_SUMMARY).toContain("circuit breaker");
-    expect(KUBECTL_EVERY_MODE_LIMITS_SUMMARY).toContain("proposal");
+    expect(
+      KUBECTL_EVERY_MODE_LIMITS_SUMMARY.endsWith(
+        "and an unattended run becomes a proposal when the hourly per-cluster circuit breaker trips or another unattended round already holds the cluster.",
+      ),
+    ).toBe(true);
+    // The earlier copy named only the breaker.
+    expect(KUBECTL_EVERY_MODE_LIMITS_SUMMARY).not.toContain(
+      "circuit breaker turns an unattended run into a proposal",
+    );
   });
 
   it("the Automatic and Bypass summaries state the canonical mode semantics", () => {
@@ -185,10 +195,15 @@ describe("the shared kubectl tier summaries match what KubectlPolicy does", () =
     );
     // KubernetesAiRemediationMode.BypassApproval's doc comment.
     expect(KUBECTL_BYPASS_MODE_SUMMARY).toContain("AI does not ask.");
-    // No trailing period: the canonical sentence goes on with its exceptions.
+    /*
+     * The canonical sentence goes on with its exceptions. The summary is
+     * interpolated into prompts and feed copy on its own, so it names them
+     * rather than pointing "below".
+     */
     expect(KUBECTL_BYPASS_MODE_SUMMARY).toContain(
-      "Every change the policy allows — safe AND riskier — runs on its own, follow-up rounds included",
+      "Every change the policy allows — safe AND riskier — runs on its own, follow-up rounds included, except for what always needs a human.",
     );
+    expect(KUBECTL_BYPASS_MODE_SUMMARY).not.toContain("below");
   });
 });
 
@@ -220,6 +235,67 @@ describe("the cluster personas use the shared summaries — and none of the stal
     });
     expect(persona).toContain("EXCEPT that");
     expect(persona).toContain("proposes it to a human for one-click approval");
+  });
+
+  /*
+   * A cluster whose Runner turned node operations off: the personas use
+   * the same summaries without the node operations, and offer none.
+   */
+  it.each([
+    ["Automatic", false],
+    ["Bypass approval", true],
+  ])(
+    "%s persona for a Runner with node operations off",
+    (_label: string, bypassApproval: boolean) => {
+      const off: KubectlChangeSummaryOptions = { allowNodeOperations: false };
+      const persona: string = buildClusterFullAutoPersona({
+        bypassApproval,
+        changes: off,
+      });
+
+      if (!bypassApproval) {
+        expect(persona).toContain(getKubectlAutomaticModeSummary(off));
+      }
+      expect(persona).toContain(getKubectlSafeChangesSummary(off));
+      expect(persona).toContain(getKubectlRiskierChangesSummary(off));
+      expect(persona).toContain(getKubectlAlwaysAsksSummary(off));
+      for (const offer of [
+        "cordon/uncordon of one node",
+        "kubectl uncordon <node>",
+        "resources, drain, taint",
+        "a node drain or taint",
+      ]) {
+        expect(persona).not.toContain(offer);
+      }
+      for (const stale of STALE_PHRASES) {
+        expect(persona).not.toContain(stale);
+      }
+    },
+  );
+
+  // Negative control: omitted or on, the persona is the full one.
+  it.each([false, true])(
+    "a persona built with node operations on is the default one (bypass %s)",
+    (bypassApproval: boolean) => {
+      expect(
+        buildClusterFullAutoPersona({
+          bypassApproval,
+          changes: { allowNodeOperations: true },
+        }),
+      ).toBe(buildClusterFullAutoPersona({ bypassApproval }));
+    },
+  );
+
+  it("the Automatic summary without node operations differs only by them", () => {
+    expect(getKubectlAutomaticModeSummary({ allowNodeOperations: true })).toBe(
+      KUBECTL_AUTOMATIC_MODE_SUMMARY,
+    );
+    expect(getKubectlAutomaticModeSummary({ allowNodeOperations: false })).toBe(
+      KUBECTL_AUTOMATIC_MODE_SUMMARY.replace(
+        "cordon/uncordon of one node, ",
+        "",
+      ).replace("drain, taint, ", ""),
+    );
   });
 });
 

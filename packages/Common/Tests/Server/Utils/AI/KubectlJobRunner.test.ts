@@ -105,9 +105,12 @@ describe("KubectlJobRunner.didKubectlRun", () => {
       true,
     ],
     /*
-     * The finding: a fast kubectl (under the Runner's 10 s job heartbeat)
-     * whose result was lost leaves claimedAt set and startedAt null. It
-     * may well have run — for a write, it may have been applied.
+     * The finding: a claimed job whose start heartbeat never landed (the
+     * Runner's one best-effort heartbeat before the step runs got no
+     * answer, or an older Runner's fast kubectl finished before its first
+     * heartbeat, 10 s in) and whose result was lost leaves claimedAt set
+     * and startedAt null. It may well have run — for a write, it may have
+     * been applied.
      */
     [
       "a job a Runner claimed and never heartbeated",
@@ -223,7 +226,7 @@ describe("KubectlJobRunner.getRunState", () => {
       KubectlRunState.NotRun,
     ],
     [
-      "a job a Runner claimed and never heartbeated (a fast kubectl whose result was lost)",
+      "a job a Runner claimed and never heartbeated (its start heartbeat and its result both lost)",
       { status: RunnerJobStatus.TimedOut, wasClaimed: true, wasStarted: false },
       KubectlRunState.Unknown,
     ],
@@ -683,12 +686,15 @@ describe("KubectlJobRunner.run", () => {
 
   /*
    * The finding (IP-1): the Runner claims the job, kubectl finishes in 2 s,
-   * and the result POST is lost (a 502, an OOM-killed pod). The Runner's
-   * first job heartbeat comes 10 s into execution, so startedAt was never
-   * written: the row has claimedAt and assignedAgentId and nothing else.
-   * The command may well have run, so it must never read as "not run".
+   * and the result POST is lost (a 502, an OOM-killed pod). The Runner
+   * announces a step with one best-effort heartbeat (capped at 5 s) right
+   * before handing it to its executor, and runs it anyway when that gets
+   * no answer — and an older Runner's first heartbeat came 10 s in — so
+   * startedAt may never have been written: the row has claimedAt and
+   * assignedAgentId and nothing else. The command may well have run, so it
+   * must never read as "not run".
    */
-  it("reports a fast kubectl a Runner claimed whose result was lost as unknown, never as not run", async () => {
+  it("reports a kubectl a Runner claimed, with no start heartbeat and no result, as unknown, never as not run", async () => {
     poll.mockResolvedValue(
       fakeJob({
         status: RunnerJobStatus.TimedOut,

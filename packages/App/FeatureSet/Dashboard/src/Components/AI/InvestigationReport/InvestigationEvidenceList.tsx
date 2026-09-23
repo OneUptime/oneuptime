@@ -118,6 +118,41 @@ function getRowCountPillClassName(
   }`;
 }
 
+// A legacy kubectl line whose command returned an error.
+const LEGACY_KUBECTL_ERROR_OUTCOME_REGEX: RegExp =
+  /^kubectl\s+returned\s+an\s+error$/i;
+
+interface LegacyEntryOutcome {
+  label: string;
+  isError: boolean;
+}
+
+/*
+ * A legacy "Evidence checked" line's pill. A cluster tool's line says what
+ * the call did instead of counting rows ("succeeded", "kubectl returned an
+ * error", "2 cluster(s)"), and its rowCount is only the engine's tally of
+ * that (1 for a kubectl command that succeeded) — so it shows the outcome
+ * as written, sentence-cased like the structured items' pills ("kubectl"
+ * stays lowercase), never "1 row". A telemetry query's line has no outcome
+ * and keeps its row count.
+ */
+function describeLegacyEntryOutcome(
+  entry: InvestigationEvidenceCheckedEntry,
+): LegacyEntryOutcome {
+  const outcome: string = (entry.outcome || "").trim();
+
+  if (!outcome) {
+    return { label: formatRowCount(entry.rowCount), isError: false };
+  }
+
+  return {
+    label: outcome.startsWith("kubectl")
+      ? outcome
+      : `${outcome.charAt(0).toUpperCase()}${outcome.slice(1)}`,
+    isError: LEGACY_KUBECTL_ERROR_OUTCOME_REGEX.test(outcome),
+  };
+}
+
 function prefersReducedMotion(): boolean {
   return (
     typeof window !== "undefined" &&
@@ -606,6 +641,9 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
           })
         : props.legacyEntries.map(
             (entry: InvestigationEvidenceCheckedEntry): ReactElement => {
+              const legacyOutcome: LegacyEntryOutcome =
+                describeLegacyEntryOutcome(entry);
+
               return (
                 <li
                   key={entry.citationId}
@@ -621,7 +659,12 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                   tabIndex={-1}
                   className={`flex items-center gap-3 px-4 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5 ${getRowClassName(entry.citationId)}`}
                 >
-                  <span className={getCitationBadgeClassName(entry.rowCount)}>
+                  <span
+                    className={getCitationBadgeClassName(
+                      entry.rowCount,
+                      legacyOutcome.isError,
+                    )}
+                  >
                     {entry.citationId}
                   </span>
                   <span
@@ -630,8 +673,13 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                   >
                     {formatEvidenceLabel(entry.label)}
                   </span>
-                  <span className={getRowCountPillClassName(entry.rowCount)}>
-                    {formatRowCount(entry.rowCount)}
+                  <span
+                    className={getRowCountPillClassName(
+                      entry.rowCount,
+                      legacyOutcome.isError,
+                    )}
+                  >
+                    {legacyOutcome.label}
                   </span>
                 </li>
               );

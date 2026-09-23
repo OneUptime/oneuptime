@@ -22,6 +22,10 @@
  * comparing the callers) keeps three callers that drift the same way from
  * passing.
  *
+ * Every case is a write the shared policy lets through: a command it
+ * denies never reaches the scope in any caller, so it cannot be a row here
+ * (see POLICY_DENIED_SCOPE_CASES).
+ *
  * Imported by the Common parity test (the shared rule and both server
  * wrappers) and by the Runner's KubectlWriteScopeExecutorParity test (the
  * executor, end to end).
@@ -271,11 +275,6 @@ export const PARITY_CASES: Array<KubectlWriteScopeParityCase> = [
     expected: "RRRRRRARR",
   },
   {
-    label: "Namespace objects it does not name",
-    command: "kubectl label ns --all team=a",
-    expected: "RRRRRRARR",
-  },
-  {
     label: "create namespace",
     command: "kubectl create namespace staging",
     expected: "ARRARRARR",
@@ -308,3 +307,49 @@ export const PARITY_CASES: Array<KubectlWriteScopeParityCase> = [
     expected: "RRRRRRARA",
   },
 ];
+
+/*
+ * Writes to Namespace objects the command does not name — --all, a label or
+ * field selector, a bare kind. They could include kube-system's Namespace
+ * object, so the shared kubectl policy denies them outright ("name each
+ * Namespace object"), and every caller refuses them there, before the write
+ * scope is asked: the Runner re-evaluates the argv it receives, and the
+ * enqueue chokepoint and the toolkit evaluate the command first. The scope
+ * keeps its own unnamed_namespace_objects refusal as defense in depth
+ * (KubectlWriteScopeEntryPoint and KubectlWriteScopeClusterScoped hand it
+ * such a command with an explicit tier), but no caller can reach it — so
+ * these are not rows of the table above. Each caller's test holds it to
+ * the policy's refusal instead.
+ */
+export interface KubectlWriteScopePolicyDeniedCase {
+  label: string;
+  command: string;
+}
+
+// What the policy's reason for each of them says to do.
+export const NAME_EACH_NAMESPACE_OBJECT: string = "name each Namespace object";
+
+export const POLICY_DENIED_SCOPE_CASES: Array<KubectlWriteScopePolicyDeniedCase> =
+  [
+    {
+      label: "Namespace objects changed with --all",
+      command: "kubectl label ns --all team=a",
+    },
+    {
+      label: "Namespace objects changed by a label selector",
+      command: "kubectl label namespaces -l env=prod team=a",
+    },
+    {
+      label: "Namespace objects changed by a field selector",
+      command:
+        "kubectl annotate ns --field-selector metadata.name=kube-system note=x",
+    },
+    {
+      label: "Namespace objects behind a -n kubectl ignores for them",
+      command: "kubectl label ns --all team=a -n web",
+    },
+    {
+      label: "a bare Namespace kind, which names no object at all",
+      command: "kubectl label ns team=a",
+    },
+  ];

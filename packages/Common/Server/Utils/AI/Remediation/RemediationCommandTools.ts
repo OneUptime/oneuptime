@@ -20,9 +20,13 @@ import {
   KUBECTL_NEVER_RUNS_SUMMARY,
   KUBECTL_RISKIER_CHANGES_SUMMARY,
   KUBECTL_SAFE_CHANGES_SUMMARY,
+  KubectlChangeSummaryOptions,
   MAX_COMMAND_TIMEOUT_MS,
   MAX_PLAN_COMMANDS,
   MIN_COMMAND_TIMEOUT_MS,
+  getKubectlAlwaysAsksSummary,
+  getKubectlRiskierChangesSummary,
+  getKubectlSafeChangesSummary,
 } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import {
   KubectlCommandTier,
@@ -463,6 +467,11 @@ export default class RemediationCommandToolkit {
     }
 
     for (const cluster of this.getClusterTargets()) {
+      const changes: KubectlChangeSummaryOptions =
+        RemediationCommandToolkit.getChangeSummaryOptions(cluster);
+      const objectScope: string | null =
+        RemediationCommandToolkit.describeRunnerObjectScope(cluster);
+
       rows.push({
         targetType: "KubernetesCluster",
         kubernetesClusterId: cluster.clusterId,
@@ -477,11 +486,13 @@ export default class RemediationCommandToolkit {
          * the model cut off mid-sentence.
          */
         remediationMode: this.describeClusterModeForLlm(cluster),
-        safeChanges: KUBECTL_SAFE_CHANGES_SUMMARY,
-        riskierChanges: KUBECTL_RISKIER_CHANGES_SUMMARY,
-        alwaysNeedsAHuman: KUBECTL_ALWAYS_ASKS_SUMMARY,
+        safeChanges: getKubectlSafeChangesSummary(changes),
+        riskierChanges: getKubectlRiskierChangesSummary(changes),
+        alwaysNeedsAHuman: getKubectlAlwaysAsksSummary(changes),
         neverRuns: KUBECTL_NEVER_RUNS_SUMMARY,
-        writeScope: RemediationCommandToolkit.describeRunnerWriteScope(cluster),
+        writeScope:
+          RemediationCommandToolkit.describeRunnerNamespaceScope(cluster),
+        ...(objectScope ? { objectScope } : {}),
         kubectlAllowlist:
           cluster.kubectlAllowlist.length > 0
             ? cluster.kubectlAllowlist.join(" | ")
@@ -552,11 +563,45 @@ export default class RemediationCommandToolkit {
   }
 
   /*
+   * Which kubectl changes the model may be offered on this cluster. A
+   * Runner that reported node operations off refuses every one, approved
+   * or not, so no node operation is offered there; a Runner that never
+   * reported the switch (older, or outside the chart) is not second-
+   * guessed. list_command_targets and the cluster round's prompt both ask
+   * this.
+   */
+  public static getChangeSummaryOptions(
+    cluster: KubernetesClusterAiAccessStatus,
+  ): KubectlChangeSummaryOptions {
+    return {
+      allowNodeOperations:
+        cluster.runner?.posture?.allowNodeOperations !== false,
+    };
+  }
+
+  /*
    * Where the cluster's bound Runner lets AI-composed kubectl writes land,
    * as it last reported (its posture): the namespaces its chart scoped it
-   * to, its own namespace (never), and whether it may change nodes.
+   * to, its own namespace (never), whether it may change nodes, and how it
+   * judges objects that live outside every namespace. The whole scope, for
+   * a prompt; list_command_targets gives its two halves a field each.
    */
   public static describeRunnerWriteScope(
+    cluster: KubernetesClusterAiAccessStatus,
+  ): string {
+    const namespaces: string =
+      RemediationCommandToolkit.describeRunnerNamespaceScope(cluster);
+    const objects: string | null =
+      RemediationCommandToolkit.describeRunnerObjectScope(cluster);
+
+    return objects ? `${namespaces}; ${objects}` : namespaces;
+  }
+
+  /*
+   * The namespaces the Runner writes in, its own (never), and the node
+   * switch.
+   */
+  public static describeRunnerNamespaceScope(
     cluster: KubernetesClusterAiAccessStatus,
   ): string {
     const posture: KubernetesRunnerPosture | undefined =
@@ -589,7 +634,59 @@ export default class RemediationCommandToolkit {
 
     if (posture.allowNodeOperations === false) {
       parts.push(
-        "no node operations (cordon, uncordon, drain, taint, label/annotate/patch of nodes)",
+        "no node operations (cordon, uncordon, drain, taint, label/annotate/patch of nodes): fix it without changing nodes",
+      );
+    }
+
+    return parts.join("; ");
+  }
+
+  /*
+   * How the Runner judges what lives outside every namespace, as
+   * KubectlWriteScope does — or null when it has no namespace scope to
+   * judge them by (no write list and no namespace of its own), where RBAC
+   * decides. A Namespace object is judged by its name, never by -n; any
+   * other cluster-scoped object but a Node (the node switch governs those)
+   * is outside every listed namespace, so it is refused while a list is
+   * set.
+   */
+  public static describeRunnerObjectScope(
+    cluster: KubernetesClusterAiAccessStatus,
+  ): string | null {
+    const posture: KubernetesRunnerPosture | undefined =
+      cluster.runner?.posture;
+
+    if (!posture) {
+      return null;
+    }
+
+    const writeNamespaces: Array<string> =
+      RemediationCommandToolkit.normalizeNamespaces(posture.writeNamespaces);
+    const podNamespace: string = RemediationCommandToolkit.normalizeNamespace(
+      posture.podNamespace,
+    );
+
+    if (writeNamespaces.length === 0 && !podNamespace) {
+      return null;
+    }
+
+    const namespaceObjects: Array<string> = [];
+
+    if (writeNamespaces.length > 0) {
+      namespaceObjects.push(`only ${quoteList(writeNamespaces)}`);
+    }
+
+    if (podNamespace) {
+      namespaceObjects.push(`never "${podNamespace}"`);
+    }
+
+    const parts: Array<string> = [
+      `a Namespace object is judged by its name, not by -n, so name each one: ${namespaceObjects.join(", ")}`,
+    ];
+
+    if (writeNamespaces.length > 0) {
+      parts.push(
+        "cluster-scoped objects other than nodes (PersistentVolumes, StorageClasses, IngressClasses, PriorityClasses, ...) live outside every namespace, so they are refused whatever -n says",
       );
     }
 

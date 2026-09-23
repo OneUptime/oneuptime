@@ -1514,16 +1514,18 @@ describe("KubectlInvestigationToolkit run_kubectl when kubectl never ran", () =>
   });
 
   /*
-   * IP-1: a Runner took the job and no result came back. The realistic row
-   * has claimedAt and assignedAgentId but no startedAt — the Runner's first
-   * job heartbeat comes 10 s into execution, so a fast kubectl whose result
-   * POST was lost never set it. It may have run: no citation (there is no
-   * output), no breaker (the Runner is alive enough to claim), and never
-   * "refused" or "did not run".
+   * IP-1: a Runner took the job and no result came back. The row may have
+   * claimedAt and assignedAgentId but no startedAt — the Runner announces a
+   * step with one best-effort heartbeat (capped at 5 s) right before its
+   * executor gets it, and runs it anyway when that gets no answer (an
+   * older Runner's first heartbeat came 10 s in) — or startedAt too, which
+   * does not prove kubectl ran either. It may have run: no citation (there
+   * is no output), no breaker (the Runner is alive enough to claim), and
+   * never "refused" or "did not run".
    */
   it.each<[string, Partial<Record<string, unknown>>]>([
     [
-      "never heartbeated (a fast kubectl whose result was lost)",
+      "never heartbeated (its start heartbeat and its result both lost)",
       {
         claimedAt: new Date("2026-09-22T10:00:00.000Z"),
         assignedAgentId: RUNNER_ID,

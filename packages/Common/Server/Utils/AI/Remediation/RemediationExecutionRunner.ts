@@ -23,13 +23,14 @@ import {
   AiRemediationPlanExecutionStatus,
   AiRemediationRollbackStatus,
   KUBECTL_ALLOWLIST_SUMMARY,
-  KUBECTL_ALWAYS_ASKS_SUMMARY,
-  KUBECTL_AUTOMATIC_MODE_SUMMARY,
   KUBECTL_BYPASS_MODE_SUMMARY,
   KUBECTL_NEVER_RUNS_SUMMARY,
-  KUBECTL_RISKIER_CHANGES_SUMMARY,
-  KUBECTL_SAFE_CHANGES_SUMMARY,
+  KubectlChangeSummaryOptions,
   MAX_PLAN_COMMANDS,
+  getKubectlAlwaysAsksSummary,
+  getKubectlAutomaticModeSummary,
+  getKubectlRiskierChangesSummary,
+  getKubectlSafeChangesSummary,
 } from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import { Indigo500 } from "../../../../Types/BrandColors";
 import {
@@ -262,17 +263,23 @@ const KUBECTL_RESULT_UNKNOWN_RULE: string =
 
 /*
  * The kubectl rules every cluster persona states, in the shared words of
- * AiRemediationCommandPlan's KUBECTL_*_SUMMARY constants — which restate
+ * AiRemediationCommandPlan's KUBECTL_*_SUMMARY wording — which restates
  * the tier and mode doc comments in KubernetesClusterAiAccess — so no
- * prompt describes a tier the policy no longer has.
+ * prompt describes a tier the policy no longer has. On a cluster whose
+ * Runner reported node operations off (changes.allowNodeOperations false)
+ * no node operation is offered: that Runner refuses every one, approved or
+ * not (RemediationCommandToolkit.getChangeSummaryOptions).
  */
-function buildClusterFramingRules(data: { bypassApproval: boolean }): string {
+function buildClusterFramingRules(data: {
+  bypassApproval: boolean;
+  changes: KubectlChangeSummaryOptions;
+}): string {
   return `- Kubectl commands run through the cluster's own Runner. Compose them as one line starting with "kubectl", always with -n <namespace> for namespaced objects. Diagnose first with run_kubectl (describe the failing pod, read its events and logs, check node capacity and pending-pod reasons, check rollout history) — it is read-only and does not count as a remediation command.
-- Safe changes: ${KUBECTL_SAFE_CHANGES_SUMMARY}. Riskier changes (${KUBECTL_RISKIER_CHANGES_SUMMARY}) ${
+- Safe changes: ${getKubectlSafeChangesSummary(data.changes)}. Riskier changes (${getKubectlRiskierChangesSummary(data.changes)}) ${
     data.bypassApproval
       ? "also run without a human on this cluster — its operator bypassed approvals — so use one when it is the right fix, but never as a shortcut when a safe change would do"
       : "need a human"
-  }. Whatever the mode, ${KUBECTL_ALWAYS_ASKS_SUMMARY}. ${capitalizeFirst(
+  }. Whatever the mode, ${getKubectlAlwaysAsksSummary(data.changes)}. ${capitalizeFirst(
     KUBECTL_NEVER_RUNS_SUMMARY,
   )} — never propose them.
 - The cluster's Runner only writes where its writeScope (list_command_targets) says: a write in another namespace, in the Runner's own namespace, or to a node when node operations are off is refused before it runs.
@@ -280,9 +287,22 @@ function buildClusterFramingRules(data: { bypassApproval: boolean }): string {
 - A pod stuck in Pending is usually a scheduling problem (insufficient CPU/memory on nodes, a node selector/affinity/taint nobody satisfies, an unbound PVC, a missing image pull secret): describe the pod and read its Events before deciding. Deleting the pod rarely fixes scheduling; fixing capacity, the selector or the claim does.`;
 }
 
-const CLUSTER_FRAMING_RULES: string = buildClusterFramingRules({
-  bypassApproval: false,
-});
+// Every change the policy knows, node operations included.
+const ALL_KUBECTL_CHANGES: KubectlChangeSummaryOptions = {
+  allowNodeOperations: true,
+};
+
+/*
+ * The undo examples a cluster persona gives, in the order it gives them;
+ * uncordon only where the Runner may change nodes.
+ */
+function describeKubectlUndoExamples(
+  changes: KubectlChangeSummaryOptions,
+): string {
+  return `kubectl rollout undo deployment/<name> -n <namespace> (this also undoes a set image/env/resources or a patch of the pod template), kubectl scale deployment/<name> --replicas=<previous count> -n <namespace>${
+    changes.allowNodeOperations ? ", kubectl uncordon <node>" : ""
+  }`;
+}
 
 /*
  * The FullAuto persona differs between an Automatic cluster and a
@@ -295,7 +315,12 @@ const CLUSTER_FRAMING_RULES: string = buildClusterFramingRules({
  */
 export function buildClusterFullAutoPersona(data: {
   bypassApproval: boolean;
+  // The bound Runner's node switch; omitted, every change is offered.
+  changes?: KubectlChangeSummaryOptions | undefined;
 }): string {
+  const changes: KubectlChangeSummaryOptions =
+    data.changes || ALL_KUBECTL_CHANGES;
+
   return `You are OneUptime AI, OneUptime's autonomous AI Site Reliability Engineer, and this is a REMEDIATION EXECUTION run on a Kubernetes cluster whose operator ${
     data.bypassApproval
       ? "chose to bypass approvals entirely"
@@ -310,15 +335,15 @@ How to work:
 3. Verify each action: after a change, run_kubectl to observe its effect (pod phase, rollout status, events) before deciding whether more is needed. ${KUBECTL_RESULT_UNKNOWN_RULE}
 4. Know your limits — ${
     data.bypassApproval
-      ? `${KUBECTL_BYPASS_MODE_SUMMARY} Every kubectl change the policy allows executes inline without asking anyone, EXCEPT that ${KUBECTL_ALWAYS_ASKS_SUMMARY}: submit such a change with execute_remediation_command anyway — it will NOT run, but it is recorded, and when this round ends having run no other change OneUptime AI proposes it to a human for one-click approval. ${UNATTENDED_RUN_BECOMES_PROPOSAL_RULE} Prefer the safe form of a fix when both would work, and never propose a destructive command (they are refused).`
-      : `${KUBECTL_AUTOMATIC_MODE_SUMMARY} So only safe kubectl changes (and allowlisted ones) execute inline. If the right fix is riskier — or is something that always needs a human (${KUBECTL_ALWAYS_ASKS_SUMMARY}) — do NOT hunt for a worse safe substitute: submit the exact kubectl command with execute_remediation_command anyway. It will NOT run, but it is recorded, and when this round ends having run no other change OneUptime AI proposes it to a human for one-click approval. Put it in your final recommendations too. (If you also run a safe change, the riskier one stays in your recommendations; should the service not recover, a follow-up round proposes the next plan for approval.) ${UNATTENDED_RUN_BECOMES_PROPOSAL_RULE}`
+      ? `${KUBECTL_BYPASS_MODE_SUMMARY} Every kubectl change the policy allows executes inline without asking anyone, EXCEPT that ${getKubectlAlwaysAsksSummary(changes)}: submit such a change with execute_remediation_command anyway — it will NOT run, but it is recorded, and when this round ends having run no other change OneUptime AI proposes it to a human for one-click approval. ${UNATTENDED_RUN_BECOMES_PROPOSAL_RULE} Prefer the safe form of a fix when both would work, and never propose a destructive command (they are refused).`
+      : `${getKubectlAutomaticModeSummary(changes)} So only safe kubectl changes (and allowlisted ones) execute inline. If the right fix is riskier — or is something that always needs a human (${getKubectlAlwaysAsksSummary(changes)}) — do NOT hunt for a worse safe substitute: submit the exact kubectl command with execute_remediation_command anyway. It will NOT run, but it is recorded, and when this round ends having run no other change OneUptime AI proposes it to a human for one-click approval. Put it in your final recommendations too. (If you also run a safe change, the riskier one stays in your recommendations; should the service not recover, a follow-up round proposes the next plan for approval.) ${UNATTENDED_RUN_BECOMES_PROPOSAL_RULE}`
   }
 5. Always pass a rollbackCommand when the change has an undo — it is what runs if the service has not recovered by the end of the verification window. ${
     data.bypassApproval
-      ? "Undo examples: kubectl rollout undo deployment/<name> -n <namespace> (this also undoes a set image/env/resources or a patch of the pod template), kubectl scale deployment/<name> --replicas=<previous count> -n <namespace>, kubectl uncordon <node>."
-      : "A rollback must itself be a safe change on ONE named object, because it runs unattended: kubectl rollout undo deployment/<name> -n <namespace> (this also undoes a set image/env/resources or a patch of the pod template), kubectl scale deployment/<name> --replicas=<previous count> -n <namespace>, kubectl uncordon <node>. Never pass set image, patch or another riskier command as a rollback — it is refused."
+      ? `Undo examples: ${describeKubectlUndoExamples(changes)}.`
+      : `A rollback must itself be a safe change on ONE named object, because it runs unattended: ${describeKubectlUndoExamples(changes)}. Never pass set image, patch or another riskier command as a rollback — it is refused.`
   }
-${buildClusterFramingRules({ bypassApproval: data.bypassApproval })}
+${buildClusterFramingRules({ bypassApproval: data.bypassApproval, changes })}
 ${SHARED_FRAMING_RULES}
 
 Write your final answer with exactly these markdown sections:
@@ -333,15 +358,25 @@ Write your final answer with exactly these markdown sections:
   }.`;
 }
 
-const CLUSTER_SUGGEST_PERSONA: string = `You are OneUptime AI, OneUptime's autonomous AI Site Reliability Engineer, and this is a REMEDIATION PLANNING run on a Kubernetes cluster: diagnose the failure with kubectl and compose a minimal kubectl plan that a human will approve with one click. NOTHING you propose executes until a human approves it.
+/*
+ * The cluster planning persona. Like the FullAuto one, it offers node
+ * operations only where the bound Runner may run them.
+ */
+export function buildClusterSuggestPersona(data: {
+  changes?: KubectlChangeSummaryOptions | undefined;
+}): string {
+  const changes: KubectlChangeSummaryOptions =
+    data.changes || ALL_KUBECTL_CHANGES;
+
+  return `You are OneUptime AI, OneUptime's autonomous AI Site Reliability Engineer, and this is a REMEDIATION PLANNING run on a Kubernetes cluster: diagnose the failure with kubectl and compose a minimal kubectl plan that a human will approve with one click. NOTHING you propose executes until a human approves it.
 
 How to work:
 1. Diagnose with run_kubectl and your read tools (describe the failing pod, read its events and logs, check node capacity, rollout history). If an investigation's root cause analysis is included below, start from it and verify it against the cluster.
 2. Compose the SMALLEST plan that addresses the diagnosed cause and record it with propose_remediation_commands using stepType Kubectl and the cluster's kubernetesClusterId (at most once — a later call replaces the earlier plan). Do not propose diagnostic-only commands; propose the fix.
-3. Give every state-changing command a rollbackCommand when an undo exists (kubectl rollout undo deployment/<name> -n <namespace>, kubectl scale deployment/<name> --replicas=<previous count> -n <namespace>, kubectl uncordon <node>) — it runs unattended if the service has not recovered after the plan, so make it a safe change on ONE named object.
+3. Give every state-changing command a rollbackCommand when an undo exists (${describeKubectlUndoExamples(changes)}) — it runs unattended if the service has not recovered after the plan, so make it a safe change on ONE named object.
 4. If a previous plan for this signal already ran and did not recover the service (listed below), do NOT propose the same commands again — propose a different approach, or propose nothing and explain what a human should look at.
 5. If you cannot diagnose the cause, or no safe plan exists, propose NOTHING and say why.
-${CLUSTER_FRAMING_RULES}
+${buildClusterFramingRules({ bypassApproval: false, changes })}
 ${SHARED_FRAMING_RULES}
 
 Write your final answer with exactly these markdown sections:
@@ -350,6 +385,7 @@ Write your final answer with exactly these markdown sections:
 **Proposed remediation** — why these kubectl commands fix the diagnosed cause (or why you proposed none).
 **Risks** — what could go wrong if the plan runs.
 **Verification** — what should confirm recovery after the plan runs.`;
+}
 
 export default class RemediationExecutionRunner {
   /*
@@ -785,14 +821,19 @@ export default class RemediationExecutionRunner {
       ...(readToolkit ? readToolkit.buildTools() : []),
     ];
 
+    const clusterChanges: KubectlChangeSummaryOptions = resolvedClusterTarget
+      ? RemediationCommandToolkit.getChangeSummaryOptions(resolvedClusterTarget)
+      : ALL_KUBECTL_CHANGES;
+
     const persona: string = resolvedClusterTarget
       ? resolvedMode === "FullAuto"
         ? buildClusterFullAutoPersona({
             bypassApproval:
               resolvedClusterTarget.remediationMode ===
               KubernetesAiRemediationMode.BypassApproval,
+            changes: clusterChanges,
           })
-        : CLUSTER_SUGGEST_PERSONA
+        : buildClusterSuggestPersona({ changes: clusterChanges })
       : resolvedMode === "FullAuto"
         ? FULLAUTO_PERSONA
         : SUGGEST_PERSONA;
@@ -812,7 +853,11 @@ export default class RemediationExecutionRunner {
             ? `A signal has been declared on Kubernetes cluster "${resolvedClusterTarget.clusterName}" and ${
                 resolvedClusterTarget.remediationMode ===
                 KubernetesAiRemediationMode.BypassApproval
-                  ? "its operator bypassed approvals: every fix the policy allows runs on its own, except what always needs a human (a write in a protected namespace, a node drain or a node taint) — and the round becomes a proposal if the hourly circuit breaker trips or another unattended round holds the cluster"
+                  ? `its operator bypassed approvals: every fix the policy allows runs on its own, except what always needs a human (${
+                      clusterChanges.allowNodeOperations
+                        ? "a write in a protected namespace, a node drain or a node taint"
+                        : "a write in a protected namespace"
+                    }) — and the round becomes a proposal if the hourly circuit breaker trips or another unattended round holds the cluster`
                   : "Automatic remediation is enabled for it: safe fixes (and shapes on the cluster's kubectl allowlist) run on their own, and a riskier fix never runs without a human's one-click approval"
               }. Diagnose with kubectl and remediate now.`
             : `A signal has been declared on Kubernetes cluster "${resolvedClusterTarget.clusterName}". Diagnose it with kubectl and compose a kubectl plan for human approval.`
@@ -1899,6 +1944,13 @@ export default class RemediationExecutionRunner {
     }
 
     if (data.clusterTarget) {
+      /*
+       * What the bound Runner may be asked to change: never a node
+       * operation when it reported node operations off.
+       */
+      const changes: KubectlChangeSummaryOptions =
+        RemediationCommandToolkit.getChangeSummaryOptions(data.clusterTarget);
+
       lines.push("");
       lines.push("# The cluster");
       lines.push(
@@ -1912,8 +1964,8 @@ export default class RemediationExecutionRunner {
         data.mode === "FullAuto"
           ? data.clusterTarget.remediationMode ===
             KubernetesAiRemediationMode.BypassApproval
-            ? `Remediation mode: ${KUBECTL_BYPASS_MODE_SUMMARY} Every kubectl change the policy allows (safe AND riskier: ${KUBECTL_RISKIER_CHANGES_SUMMARY}) executes inline via execute_remediation_command without asking anyone — except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}; submit such a change anyway and it is recorded and proposed for one-click approval if this round runs no other change. ${capitalizeFirst(UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY)}. ${capitalizeFirst(KUBECTL_NEVER_RUNS_SUMMARY)}. Still act minimally and verify each change.`
-            : `Remediation mode: ${KUBECTL_AUTOMATIC_MODE_SUMMARY} Safe kubectl changes execute inline via execute_remediation_command. A riskier one — or one that always needs a human (${KUBECTL_ALWAYS_ASKS_SUMMARY}) — never runs inline: submit it with execute_remediation_command anyway and it is refused but recorded; if this round runs no other change, OneUptime AI proposes the recorded change(s) for one-click approval when the round ends. Put it in your recommendations too. ${capitalizeFirst(UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY)}.`
+            ? `Remediation mode: ${KUBECTL_BYPASS_MODE_SUMMARY} Every kubectl change the policy allows (safe AND riskier: ${getKubectlRiskierChangesSummary(changes)}) executes inline via execute_remediation_command without asking anyone — except that ${getKubectlAlwaysAsksSummary(changes)}; submit such a change anyway and it is recorded and proposed for one-click approval if this round runs no other change. ${capitalizeFirst(UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY)}. ${capitalizeFirst(KUBECTL_NEVER_RUNS_SUMMARY)}. Still act minimally and verify each change.`
+            : `Remediation mode: ${getKubectlAutomaticModeSummary(changes)} Safe kubectl changes execute inline via execute_remediation_command. A riskier one — or one that always needs a human (${getKubectlAlwaysAsksSummary(changes)}) — never runs inline: submit it with execute_remediation_command anyway and it is refused but recorded; if this round runs no other change, OneUptime AI proposes the recorded change(s) for one-click approval when the round ends. Put it in your recommendations too. ${capitalizeFirst(UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY)}.`
           : "Remediation mode: a human approves — record your plan with propose_remediation_commands.",
       );
       lines.push(
@@ -1928,7 +1980,9 @@ export default class RemediationExecutionRunner {
       }
       if (data.clusterTarget.kubectlAllowlist.length > 0) {
         lines.push(
-          `Riskier kubectl commands matching these operator-authored patterns may also auto-execute (${KUBECTL_ALLOWLIST_SUMMARY}; never a write in a protected namespace, a node drain or a taint):`,
+          `Riskier kubectl commands matching these operator-authored patterns may also auto-execute (${KUBECTL_ALLOWLIST_SUMMARY}; never a write in a protected namespace${
+            changes.allowNodeOperations ? ", a node drain or a taint" : ""
+          }):`,
         );
         for (const pattern of data.clusterTarget.kubectlAllowlist.slice(
           0,

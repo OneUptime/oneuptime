@@ -29,9 +29,11 @@
 
 import KubectlWriteScope, {
   KubectlWriteScopeRefusal,
+  KubectlWriteScopeRefusalCode,
 } from "../../../Utils/AiRemediation/KubectlWriteScope";
 import KubectlPolicy, {
   KubectlPolicyResult,
+  KubectlTokenizeResult,
 } from "../../../Utils/AiRemediation/KubectlPolicy";
 import { Service as RunnerJobServiceClass } from "../../../Server/Services/RunnerJobService";
 import RemediationCommandToolkit from "../../../Server/Utils/AI/Remediation/RemediationCommandTools";
@@ -44,9 +46,12 @@ import {
 import {
   KubectlWriteScopeParityCase,
   KubectlWriteScopeParityRunner,
+  KubectlWriteScopePolicyDeniedCase,
+  NAME_EACH_NAMESPACE_OBJECT,
   PARITY_CASES,
   PARITY_CLUSTER_IDENTIFIER,
   PARITY_RUNNERS,
+  POLICY_DENIED_SCOPE_CASES,
   postureOf,
 } from "./KubectlWriteScopeParityCases";
 import { describe, expect, test } from "@jest/globals";
@@ -212,6 +217,120 @@ describe("the Runner, the enqueue chokepoint and the toolkit give the same answe
   });
 });
 
+/*
+ * A write to Namespace objects the command does not name could include
+ * kube-system's, so the shared policy denies it before any caller asks the
+ * scope. It is not a row of the table: this pins that every caller's path
+ * refuses it through the policy, and that the scope, handed it anyway,
+ * still refuses it on its own.
+ */
+describe("a write the policy denies never reaches the scope in any caller", () => {
+  test.each(
+    POLICY_DENIED_SCOPE_CASES.map(
+      (entry: KubectlWriteScopePolicyDeniedCase) => {
+        return [entry.label, entry] as [
+          string,
+          KubectlWriteScopePolicyDeniedCase,
+        ];
+      },
+    ),
+  )(
+    "%s: denied by the policy on every path",
+    (_label: string, entry: KubectlWriteScopePolicyDeniedCase) => {
+      // The chokepoint and the toolkit evaluate the command first.
+      const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
+        entry.command,
+      );
+
+      expect(policy.tier).toBe(KubectlCommandTier.Denied);
+      expect(policy.reason).toContain(NAME_EACH_NAMESPACE_OBJECT);
+
+      // The Runner re-evaluates the argv it receives, before its scope.
+      const onTheRunner: KubectlPolicyResult = KubectlPolicy.evaluateArgs(
+        policy.args,
+      );
+
+      expect(onTheRunner.tier).toBe(KubectlCommandTier.Denied);
+      expect(onTheRunner.reason).toBe(policy.reason);
+
+      /*
+       * Neither server caller words a scope refusal for it: each leaves a
+       * Denied command to the policy's own refusal (which
+       * RunnerJobKubectlWriteScope and RemediationCommandToolsRunnerScope
+       * pin), so the scope's wording is never what a reader sees.
+       */
+      for (const runner of PARITY_RUNNERS) {
+        expect({
+          runner: runner.label,
+          chokepoint: askChokepoint(policy, runner),
+          toolkit: askToolkit(entry.command, runner),
+        }).toEqual({ runner: runner.label, chokepoint: null, toolkit: null });
+      }
+    },
+  );
+
+  /*
+   * Defense in depth: the same argv, judged as a RiskyWrite, is still
+   * refused by the scope on every Runner that has a scope at all — which
+   * is every Runner but one scoped nowhere (a credential with no write
+   * namespaces), where RBAC decides.
+   */
+  test.each(
+    POLICY_DENIED_SCOPE_CASES.map(
+      (entry: KubectlWriteScopePolicyDeniedCase) => {
+        return [entry.label, entry] as [
+          string,
+          KubectlWriteScopePolicyDeniedCase,
+        ];
+      },
+    ),
+  )(
+    "%s: the scope refuses it on its own too",
+    (_label: string, entry: KubectlWriteScopePolicyDeniedCase) => {
+      const tokenized: KubectlTokenizeResult = KubectlPolicy.tokenize(
+        entry.command,
+      );
+      const args: Array<string> = tokenized.args || [];
+      const answers: Array<string> = [];
+
+      for (const runner of PARITY_RUNNERS) {
+        const refusal: KubectlWriteScopeRefusal | null =
+          KubectlWriteScope.getRefusal({
+            command: {
+              args,
+              tier: KubectlCommandTier.RiskyWrite,
+              verb: args[0] || "",
+              displayCommand: KubectlPolicy.renderDisplayCommand(args),
+            },
+            writeNamespaces: runner.writeNamespaces,
+            podNamespace: runner.podNamespace,
+            allowNodeOperations: runner.allowNodeOperations,
+            usesCredential: runner.usesCredential,
+          });
+        const code: KubectlWriteScopeRefusalCode | "none" = refusal
+          ? refusal.code
+          : "none";
+
+        answers.push(`${runner.label}: ${code}`);
+      }
+
+      expect(answers).toEqual(
+        PARITY_RUNNERS.map((runner: KubectlWriteScopeParityRunner) => {
+          const scoped: boolean =
+            runner.podNamespace !== null ||
+            runner.writeNamespaces.some((namespace: string) => {
+              return namespace.trim().length > 0;
+            });
+
+          return `${runner.label}: ${
+            scoped ? "unnamed_namespace_objects" : "none"
+          }`;
+        }),
+      );
+    },
+  );
+});
+
 describe("each caller words the same refusal for its own reader", () => {
   test("every refusal the server gives is whole sentences, in the server's voice", () => {
     for (const entry of PARITY_CASES) {
@@ -229,8 +348,28 @@ describe("each caller words the same refusal for its own reader", () => {
           continue;
         }
 
-        const chokepoint: string = askChokepoint(policy, runner) || "";
-        const toolkit: string = askToolkit(entry.command, runner) || "";
+        const chokepointRefusal: string | null = askChokepoint(policy, runner);
+        const toolkitRefusal: string | null = askToolkit(entry.command, runner);
+
+        /*
+         * A refusal the Runner gives and a server caller does not is a
+         * parity failure, not a wording one: say so rather than judge the
+         * wording of nothing.
+         */
+        expect({
+          command: entry.command,
+          runner: runner.label,
+          chokepointRefuses: chokepointRefusal !== null,
+          toolkitRefuses: toolkitRefusal !== null,
+        }).toEqual({
+          command: entry.command,
+          runner: runner.label,
+          chokepointRefuses: true,
+          toolkitRefuses: true,
+        });
+
+        const chokepoint: string = chokepointRefusal || "";
+        const toolkit: string = toolkitRefusal || "";
 
         for (const message of [chokepoint, toolkit]) {
           expect(message.startsWith(" ")).toBe(false);
@@ -250,6 +389,56 @@ describe("each caller words the same refusal for its own reader", () => {
       }
     }
   });
+
+  /*
+   * The codes no policy verdict reaches — the policy denies a write across
+   * every namespace and one to Namespace objects it does not name, and the
+   * verb it reports is the one the scope reads — are still worded as whole
+   * sentences by the chokepoint, which words whatever verdict it is handed.
+   * (The toolkit evaluates the command itself, so it can never meet them.)
+   */
+  test.each([
+    [
+      "unnamed_namespace_objects",
+      "kubectl label ns -l env=prod team=a",
+      "label",
+    ],
+    ["all_namespaces", "kubectl label pods --all -A tier=x", "label"],
+    ["verb_mismatch", "kubectl label pod web-1 x=y -n web", "annotate"],
+  ])(
+    "the chokepoint words %s as whole sentences too",
+    (code: string, command: string, verb: string) => {
+      const tokenized: KubectlTokenizeResult = KubectlPolicy.tokenize(command);
+      const args: Array<string> = tokenized.args || [];
+      const handed: KubectlPolicyResult = {
+        tier: KubectlCommandTier.RiskyWrite,
+        reason: "",
+        args,
+        verb,
+        displayCommand: KubectlPolicy.renderDisplayCommand(args),
+      };
+      // Scoped to web and api, in-cluster.
+      const runner: KubectlWriteScopeParityRunner = PARITY_RUNNERS[1]!;
+
+      expect(
+        KubectlWriteScope.getRefusal({
+          command: handed,
+          writeNamespaces: runner.writeNamespaces,
+          podNamespace: runner.podNamespace,
+          allowNodeOperations: runner.allowNodeOperations,
+          usesCredential: runner.usesCredential,
+        })?.code,
+      ).toBe(code);
+
+      const message: string = askChokepoint(handed, runner) || "";
+
+      expect(message.startsWith(" ")).toBe(false);
+      expect(message.endsWith(".")).toBe(true);
+      expect(message).not.toContain("this Runner");
+      expect(message).toContain(handed.displayCommand);
+      expect(message).toContain("It was not enqueued.");
+    },
+  );
 
   test("a Runner that reported no posture is not second-guessed by either server caller", () => {
     const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(

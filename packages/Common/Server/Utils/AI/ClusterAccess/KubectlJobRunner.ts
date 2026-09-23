@@ -220,9 +220,14 @@ export interface KubectlTerminalJobFacts {
   wasClaimed?: boolean | undefined;
   /*
    * Whether the Runner heartbeated the job (startedAt). Implies it was
-   * claimed, but its absence proves nothing: the Runner's first job
-   * heartbeat comes a full JOB_HEARTBEAT_INTERVAL_MS (10 s by default)
-   * into execution, so a fast kubectl whose result was lost never set it.
+   * claimed, but its absence proves nothing: the Runner sends one
+   * best-effort heartbeat (capped at 5 s) right before it hands a step
+   * that passed its own checks to its executor, and runs the step anyway
+   * when that heartbeat gets no answer — so a kubectl whose announcement
+   * was lost and whose result was lost too never set it (nor did an older
+   * Runner's fast kubectl, whose first heartbeat came 10 s in). Its
+   * presence does not prove kubectl ran either: the executor's own checks
+   * come after the announcement.
    */
   wasStarted?: boolean | undefined;
 }
@@ -452,9 +457,13 @@ export default class KubectlJobRunner {
    * text, with one exception: the Runner's own "Killed (timeout …)" for a
    * kubectl it spawned and killed. A TimedOut job no Runner claimed never
    * ran; one a Runner claimed (or whose claim could not be read) is
-   * Unknown, whether or not it was ever heartbeated: startedAt is written
-   * by the Runner's first job heartbeat, 10 s into execution, so a fast
-   * kubectl whose result was lost never set it.
+   * Unknown, whether or not it was ever heartbeated. startedAt is written
+   * by the Runner's first job heartbeat — one best-effort heartbeat
+   * (capped at 5 s) sent right before a step that passed the Runner's own
+   * checks is handed to its executor, which also turns Claimed into
+   * Running — so neither way is it proof: the step runs even when that
+   * heartbeat gets no answer (and an older Runner's first heartbeat came
+   * 10 s in), and the executor's own checks come after it.
    *
    * A Failed row with no exit code and no output is read as NotRun: that
    * is how every refusal before kubectl is spawned (the claim ingress, the

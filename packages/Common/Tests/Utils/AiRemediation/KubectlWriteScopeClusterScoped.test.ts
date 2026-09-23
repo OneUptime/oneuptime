@@ -248,16 +248,35 @@ describe("a Namespace object is judged by its name, not by -n", () => {
     ).toContain('Namespace object "staging"');
   });
 
+  /*
+   * The shared policy denies these first (they could reach kube-system's
+   * Namespace object), so the executor never asks the scope about them;
+   * handed one anyway, with an explicit tier, the scope refuses it on its
+   * own.
+   */
   test.each([
     "kubectl label namespaces --all team=a",
     "kubectl label ns -l env=prod team=a",
   ])(
-    "`%s` changes Namespace objects it does not name, and is refused",
+    "`%s` changes Namespace objects it does not name: the policy denies it, and the scope refuses it too",
     (command: string) => {
+      const policy: KubectlPolicyResult = KubectlPolicy.evaluateArgs(
+        argsOf(command),
+      );
+
+      expect(policy.tier).toBe(KubectlCommandTier.Denied);
+      expect(policy.reason).toContain("name each Namespace object");
+
       for (const scope of [{ writeNamespaces }, { writeNamespaces: [] }]) {
-        expect(verdict(command, scope)).toContain(
-          "Namespace objects without naming them",
-        );
+        const reason: string | null = verdictWithoutPolicy(command, {
+          ...scope,
+          verb: "label",
+        });
+
+        expect(reason).toContain("Namespace objects without naming them");
+        expect(reason).toContain("Name each Namespace object.");
+        // -n does not apply to a Namespace object; never suggest one.
+        expect(reason).not.toContain("-n <namespace>");
       }
     },
   );

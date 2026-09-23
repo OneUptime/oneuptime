@@ -77,13 +77,20 @@ import { JSONObject } from "Common/Types/JSON";
 import {
   KubectlWriteScopeParityCase,
   KubectlWriteScopeParityRunner,
+  KubectlWriteScopePolicyDeniedCase,
+  NAME_EACH_NAMESPACE_OBJECT,
   PARITY_CASES,
   PARITY_CLUSTER_IDENTIFIER,
   PARITY_RUNNERS,
+  POLICY_DENIED_SCOPE_CASES,
 } from "Common/Tests/Utils/AiRemediation/KubectlWriteScopeParityCases";
+import { KubectlCommandTier } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
 
 // Every refusal the executor gives before spawning starts this way.
 const REFUSED_BY_THE_RUNNER: RegExp = /^Refused by the Runner: /;
+// A refusal by the Runner's own evaluation of the shared policy.
+const REFUSED_BY_THE_RUNNER_POLICY: RegExp =
+  /^Refused by the Runner's kubectl policy: /;
 
 const CREDENTIAL: JSONObject = {
   credentialType: "Kubernetes",
@@ -108,7 +115,7 @@ function configure(runner: KubectlWriteScopeParityRunner): void {
 }
 
 async function run(
-  entry: KubectlWriteScopeParityCase,
+  entry: { command: string },
   runner: KubectlWriteScopeParityRunner,
 ): Promise<KubectlExecResult> {
   const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
@@ -180,6 +187,88 @@ describe("KubectlExecutor answers the cross-caller write-scope table", () => {
     }
 
     expect(disagreements).toEqual([]);
+  });
+
+  /*
+   * Not rows of the table: a write to Namespace objects it does not name
+   * never reaches the scope. The executor evaluates the argv with the
+   * shared policy first, which denies it (it could include kube-system's
+   * Namespace object), so on every Runner — even one scoped nowhere — it is
+   * refused as the policy's, and kubectl never starts.
+   */
+  test.each(
+    POLICY_DENIED_SCOPE_CASES.map(
+      (entry: KubectlWriteScopePolicyDeniedCase) => {
+        return [entry.label, entry] as [
+          string,
+          KubectlWriteScopePolicyDeniedCase,
+        ];
+      },
+    ),
+  )(
+    "%s: the policy refuses it on every Runner, before the scope",
+    async (_label: string, entry: KubectlWriteScopePolicyDeniedCase) => {
+      const answers: Array<string> = [];
+
+      for (const runner of PARITY_RUNNERS) {
+        const result: KubectlExecResult = await run(entry, runner);
+        const spawned: boolean = childProcessMock.spawn.mock.calls.length > 0;
+        const message: string = result.errorMessage || "";
+        const refusedByPolicy: boolean =
+          !result.success &&
+          REFUSED_BY_THE_RUNNER_POLICY.test(message) &&
+          message.includes(NAME_EACH_NAMESPACE_OBJECT);
+
+        answers.push(
+          `${runner.label}: ${
+            spawned
+              ? "spawned kubectl"
+              : refusedByPolicy
+                ? "refused by the policy"
+                : `refused otherwise: ${message}`
+          }`,
+        );
+      }
+
+      expect(answers).toEqual(
+        PARITY_RUNNERS.map((runner: KubectlWriteScopeParityRunner) => {
+          return `${runner.label}: refused by the policy`;
+        }),
+      );
+    },
+  );
+
+  /*
+   * The executor tiers the argv itself: a payload that calls the same argv
+   * a RiskyWrite does not carry it past the policy.
+   */
+  test("the payload's tier does not carry a denied write past the policy", async () => {
+    const entry: KubectlWriteScopePolicyDeniedCase =
+      POLICY_DENIED_SCOPE_CASES[0]!;
+    const policy: KubectlPolicyResult = KubectlPolicy.evaluateCommand(
+      entry.command,
+    );
+
+    expect(policy.tier).toBe(KubectlCommandTier.Denied);
+
+    configure(PARITY_RUNNERS[6]!);
+    childProcessMock.spawn.mockClear();
+
+    const result: KubectlExecResult = await KubectlExecutor.execute({
+      payload: {
+        args: policy.args,
+        displayCommand: policy.displayCommand,
+        tier: KubectlCommandTier.RiskyWrite,
+        clusterIdentifier: PARITY_CLUSTER_IDENTIFIER,
+      },
+      credential: CREDENTIAL,
+      timeoutInMs: 30000,
+      origin: "AiRemediation",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toMatch(REFUSED_BY_THE_RUNNER_POLICY);
+    expect(childProcessMock.spawn).not.toHaveBeenCalled();
   });
 
   /*

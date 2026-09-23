@@ -366,11 +366,6 @@ describe("RunnerJobService.enqueueAiKubectlCommand refuses writes the Runner's p
         `kubectl patch pv pv-1 -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}' -n web`,
         "cluster-scoped",
       ],
-      [
-        "Namespace objects it does not name",
-        "kubectl label ns --all team=a",
-        "without naming them",
-      ],
     ])(
       "refuses %s, as the Runner does",
       async (_label: string, command: string, expected: string) => {
@@ -381,6 +376,19 @@ describe("RunnerJobService.enqueueAiKubectlCommand refuses writes the Runner's p
         expect(createdRows).toHaveLength(0);
       },
     );
+
+    /*
+     * Namespace objects a write does not name (`--all`, a selector) could
+     * include kube-system's, so the kubectl policy denies such a write
+     * outright before the scope is consulted. The chokepoint still refuses
+     * it and still creates nothing.
+     */
+    it("refuses Namespace objects it does not name through the policy, before the scope", async () => {
+      const message: string = await refusal("kubectl label ns --all team=a");
+
+      expect(message).toContain("name each Namespace object");
+      expect(createdRows).toHaveLength(0);
+    });
 
     it.each([
       [
@@ -517,7 +525,7 @@ describe("RunnerJobService.getRunnerWriteScopeRefusal words the Runner's rule fo
       "kubectl rollout restart deployment/x -n oneuptime-agent",
       "kubectl label namespace staging team=a -n web",
       "kubectl label ns oneuptime-agent team=a -n web",
-      "kubectl label ns --all team=a",
+      // (`label ns --all` never reaches the scope: the policy denies it.)
       "kubectl create priorityclass high --value=1000",
       "kubectl label node/n1 pod-1 x=y -n web",
     ]) {

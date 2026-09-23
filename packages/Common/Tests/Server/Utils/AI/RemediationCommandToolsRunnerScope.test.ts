@@ -16,12 +16,23 @@ import AutoRemediationSuggestion from "../../../../Models/DatabaseModels/AutoRem
 import RunnerJob from "../../../../Models/DatabaseModels/RunnerJob";
 import AutoRemediationSuggestionStatus from "../../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import {
+  KUBECTL_ALWAYS_ASKS_SUMMARY,
+  KUBECTL_RISKIER_CHANGES_SUMMARY,
+  KUBECTL_SAFE_CHANGES_SUMMARY,
+  getKubectlAlwaysAsksSummary,
+  getKubectlRiskierChangesSummary,
+  getKubectlSafeChangesSummary,
+} from "../../../../Types/AutoRemediation/AiRemediationCommandPlan";
+import {
   KubectlCommandTier,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
   KubernetesRunnerPosture,
 } from "../../../../Types/Kubernetes/KubernetesClusterAiAccess";
-import KubectlPolicy from "../../../../Utils/AiRemediation/KubectlPolicy";
+import KubectlPolicy, {
+  KubectlPolicyResult,
+} from "../../../../Utils/AiRemediation/KubectlPolicy";
+import { NAME_EACH_NAMESPACE_OBJECT } from "../../../Utils/AiRemediation/KubectlWriteScopeParityCases";
 import RunnerJobStatus from "../../../../Types/Runbook/RunnerJobStatus";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
@@ -47,7 +58,9 @@ import { afterEach, describe, expect, it } from "@jest/globals";
  *   nodes) are refused when node operations are off, and are never
  *   namespace-scoped (a node has no namespace);
  * - a Namespace object is judged by its name and any other cluster-scoped
- *   object is outside every listed namespace, whatever -n says;
+ *   object is outside every listed namespace, whatever -n says; a write to
+ *   Namespace objects it does not name never gets that far — the kubectl
+ *   policy denies it first, and the toolkit refuses it there;
  * - a command the Runner cannot read for certain is refused, because the
  *   Runner refuses it — the toolkit asks the Runner's own rule
  *   (KubectlWriteScope.getRefusal) with the posture it reported, so it
@@ -349,11 +362,6 @@ describe("RemediationCommandToolkit.getRunnerScopeRefusal — the Runner's repor
         'would change the Namespace object "oneuptime-agent", where the Runner of cluster "prod-us" itself runs',
       ],
       [
-        "Namespace objects it does not name",
-        "kubectl label ns --all team=a",
-        "without naming them",
-      ],
-      [
         "a PersistentVolume behind a listed -n",
         `kubectl patch pv pv-1 -p '{"spec":{"persistentVolumeReclaimPolicy":"Retain"}}' -n web`,
         "persistentvolume objects, which are cluster-scoped",
@@ -372,6 +380,36 @@ describe("RemediationCommandToolkit.getRunnerScopeRefusal — the Runner's repor
       // -n means nothing for these objects; never tell the model to add one.
       expect(refusal).not.toContain("-n <namespace>");
     });
+
+    /*
+     * Namespace objects a write does not name (--all, a selector, a bare
+     * kind) could include kube-system's, so the kubectl policy denies the
+     * write outright. getRunnerScopeRefusal leaves a Denied command to the
+     * policy — the toolkit refuses it there (see the execute test below) —
+     * so it gives no scope refusal of its own for it, on any posture.
+     */
+    it.each([
+      "kubectl label ns --all team=a",
+      "kubectl label namespaces -l env=prod team=a",
+      "kubectl label ns team=a",
+    ])(
+      "leaves `%s`, which names no Namespace object, to the policy that denies it",
+      (command: string) => {
+        const policy: KubectlPolicyResult =
+          KubectlPolicy.evaluateCommand(command);
+
+        expect(policy.tier).toBe(KubectlCommandTier.Denied);
+        expect(policy.reason).toContain(NAME_EACH_NAMESPACE_OBJECT);
+
+        for (const posture of [
+          SCOPED,
+          { ...SCOPED, writeNamespaces: [] },
+          { ...SCOPED, allowNodeOperations: true },
+        ]) {
+          expect(refusalFor(command, cluster(posture))).toBeNull();
+        }
+      },
+    );
 
     /*
      * The toolkit's old reading judged this by the missing -n and refused
@@ -552,6 +590,29 @@ describe("RemediationCommandToolkit refuses a write its cluster's Runner would r
     expect(enqueueKubectl).not.toHaveBeenCalled();
   });
 
+  it("refuses a write to Namespace objects it does not name through the policy, before the scope: nothing is enqueued, recorded or proposed", async () => {
+    mockServices(cluster());
+    const toolkit: RemediationCommandToolkit = buildToolkit();
+
+    const outcome: ToolCallOutcome = await tool(
+      toolkit,
+      "execute_remediation_command",
+    ).execute(kubectlArgs("kubectl label ns --all team=a"));
+
+    expect(outcome.success).toBe(false);
+    expect(outcome.textForLlm).toContain(
+      "Denied by the kubectl command policy",
+    );
+    expect(outcome.textForLlm).toContain(NAME_EACH_NAMESPACE_OBJECT);
+    // The policy's refusal, not the scope's wording of it.
+    expect(outcome.textForLlm).not.toContain("without naming them");
+    expect(enqueueKubectl).not.toHaveBeenCalled();
+    expect(persist).not.toHaveBeenCalled();
+    expect(toolkit.getExecutedCommands()).toHaveLength(0);
+    // Denied never runs, whoever approves it: nothing to propose.
+    expect(toolkit.getCommandsNeedingApproval()).toHaveLength(0);
+  });
+
   it("refuses a node operation on a Runner whose node operations are off, and does not keep it for a proposal", async () => {
     mockServices(cluster());
     const toolkit: RemediationCommandToolkit = buildToolkit({
@@ -650,5 +711,197 @@ describe("RemediationCommandToolkit refuses a write its cluster's Runner would r
       'never in its own namespace "oneuptime-agent"',
     );
     expect(outcome.textForLlm).toContain("no node operations");
+  });
+});
+
+// A node operation, named in any of the change summaries.
+const NODE_OPERATION_WORDS_REGEX: RegExp = /cordon|drain|taint/;
+// The serializer caps every list_command_targets field at this many characters.
+const SERIALIZER_FIELD_CAP: number = 500;
+
+/*
+ * What the model is told about the Runner's scope must be what the Runner
+ * enforces (KubectlWriteScope): a Namespace object is judged by its name,
+ * other cluster-scoped objects are refused while a write-namespace list is
+ * set, and on a Runner with node operations off no node operation is ever
+ * offered as a fix — it would be refused, approved or not.
+ */
+describe("RemediationCommandToolkit tells the model the Runner's scope as the Runner enforces it", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function listTargets(
+    target: KubernetesClusterAiAccessStatus,
+  ): Promise<string> {
+    mockServices(target);
+    const outcome: ToolCallOutcome = await tool(
+      buildToolkit({ clusterTargets: [target] }),
+      "list_command_targets",
+    ).execute({});
+
+    expect(outcome.success).toBe(true);
+
+    return outcome.textForLlm;
+  }
+
+  it("says a Namespace object is judged by its name and cluster-scoped objects are refused, on a scoped Runner", () => {
+    const scope: string =
+      RemediationCommandToolkit.describeRunnerWriteScope(cluster());
+
+    expect(scope).toContain(
+      'a Namespace object is judged by its name, not by -n, so name each one: only "web", "api", never "oneuptime-agent"',
+    );
+    expect(scope).toContain(
+      "cluster-scoped objects other than nodes (PersistentVolumes, StorageClasses",
+    );
+    expect(scope).toContain("refused whatever -n says");
+
+    // What it says is what the Runner's rule does with that posture.
+    expect(
+      refusalFor("kubectl label namespace staging team=a -n web"),
+    ).not.toBeNull();
+    expect(
+      refusalFor(
+        `kubectl patch storageclass standard -p '{"allowVolumeExpansion":true}' -n web`,
+      ),
+    ).toContain("cluster-scoped");
+    expect(refusalFor("kubectl label namespace web team=a")).toBeNull();
+  });
+
+  // Negative control: without a list, cluster-scoped objects are left to RBAC.
+  it("says only the Runner's own Namespace object is off limits when no write list is set", () => {
+    const clusterWide: KubernetesClusterAiAccessStatus = cluster({
+      ...SCOPED,
+      writeNamespaces: [],
+    });
+    const scope: string =
+      RemediationCommandToolkit.describeRunnerWriteScope(clusterWide);
+
+    expect(scope).toContain(
+      'a Namespace object is judged by its name, not by -n, so name each one: never "oneuptime-agent"',
+    );
+    expect(scope).not.toContain("cluster-scoped");
+    expect(
+      refusalFor(
+        `kubectl patch storageclass standard -p '{"allowVolumeExpansion":true}'`,
+        clusterWide,
+      ),
+    ).toBeNull();
+  });
+
+  it("says nothing about objects outside every namespace when the Runner has no namespace scope, or reported none", () => {
+    const unscoped: KubernetesClusterAiAccessStatus = cluster(
+      {
+        inCluster: false,
+        allowWrites: true,
+        writeNamespaces: [],
+        allowNodeOperations: true,
+      },
+      { accessMethod: "credential" },
+    );
+
+    expect(
+      RemediationCommandToolkit.describeRunnerObjectScope(unscoped),
+    ).toBeNull();
+    expect(RemediationCommandToolkit.describeRunnerWriteScope(unscoped)).toBe(
+      "writes in any namespace its RBAC allows",
+    );
+    expect(
+      RemediationCommandToolkit.describeRunnerObjectScope(cluster(null)),
+    ).toBeNull();
+    expect(
+      RemediationCommandToolkit.describeRunnerWriteScope(cluster(null)),
+    ).toBe("not reported by the Runner; its RBAC decides");
+  });
+
+  it("list_command_targets gives the object rules their own field, each within the serializer's cap", async () => {
+    const text: string = await listTargets(cluster());
+
+    expect(text).toContain("objectScope");
+    expect(text).toContain("a Namespace object is judged by its name");
+    expect(text).toContain("PersistentVolumes, StorageClasses");
+    expect(text).not.toContain("[truncated]");
+    expect(
+      RemediationCommandToolkit.describeRunnerNamespaceScope(cluster()).length,
+    ).toBeLessThan(SERIALIZER_FIELD_CAP);
+    expect(
+      RemediationCommandToolkit.describeRunnerObjectScope(cluster())!.length,
+    ).toBeLessThan(SERIALIZER_FIELD_CAP);
+  });
+
+  it("list_command_targets offers no node operation on a Runner with node operations off", async () => {
+    // SCOPED reports allowNodeOperations: false.
+    const text: string = await listTargets(cluster());
+
+    expect(text).toContain(
+      getKubectlSafeChangesSummary({ allowNodeOperations: false }),
+    );
+    expect(text).toContain(
+      getKubectlRiskierChangesSummary({ allowNodeOperations: false }),
+    );
+    expect(text).toContain(
+      getKubectlAlwaysAsksSummary({ allowNodeOperations: false }),
+    );
+    expect(text).not.toContain(KUBECTL_SAFE_CHANGES_SUMMARY);
+    expect(text).not.toContain(KUBECTL_RISKIER_CHANGES_SUMMARY);
+    expect(text).not.toContain(KUBECTL_ALWAYS_ASKS_SUMMARY);
+    expect(text).not.toContain("cordon/uncordon of one node");
+    // The only node words left are the refusal itself.
+    expect(text).toContain("no node operations");
+  });
+
+  // Negative controls: node operations on, or never reported.
+  it.each<[string, boolean | undefined]>([
+    ["on", true],
+    ["never reported (an older Runner is not second-guessed)", undefined],
+  ])(
+    "list_command_targets offers the full summaries when node operations are %s",
+    async (_label: string, allowNodeOperations: boolean | undefined) => {
+      const text: string = await listTargets(
+        cluster({ ...SCOPED, allowNodeOperations }),
+      );
+
+      expect(text).toContain(KUBECTL_SAFE_CHANGES_SUMMARY);
+      expect(text).toContain(KUBECTL_RISKIER_CHANGES_SUMMARY);
+      expect(text).toContain(KUBECTL_ALWAYS_ASKS_SUMMARY);
+      expect(text).not.toContain("no node operations");
+    },
+  );
+
+  it("the summaries without node operations differ from the full ones only by them", () => {
+    const off: { allowNodeOperations: boolean } = {
+      allowNodeOperations: false,
+    };
+
+    expect(getKubectlSafeChangesSummary(off)).toBe(
+      KUBECTL_SAFE_CHANGES_SUMMARY.replace("cordon/uncordon of one node, ", ""),
+    );
+    expect(getKubectlRiskierChangesSummary(off)).toBe(
+      KUBECTL_RISKIER_CHANGES_SUMMARY.replace("drain, taint, ", ""),
+    );
+    expect(getKubectlAlwaysAsksSummary(off)).toBe(
+      KUBECTL_ALWAYS_ASKS_SUMMARY.replace(
+        "and a node drain or taint always need",
+        "always needs",
+      ),
+    );
+
+    for (const summary of [
+      getKubectlSafeChangesSummary(off),
+      getKubectlRiskierChangesSummary(off),
+      getKubectlAlwaysAsksSummary(off),
+    ]) {
+      expect(summary).not.toMatch(NODE_OPERATION_WORDS_REGEX);
+    }
+
+    // Negative control: the full summaries do name node operations.
+    for (const summary of [
+      KUBECTL_SAFE_CHANGES_SUMMARY,
+      KUBECTL_RISKIER_CHANGES_SUMMARY,
+      KUBECTL_ALWAYS_ASKS_SUMMARY,
+    ]) {
+      expect(summary).toMatch(NODE_OPERATION_WORDS_REGEX);
+    }
   });
 });
