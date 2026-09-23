@@ -94,6 +94,17 @@ jest.mock("Common/Server/Services/ScheduledMaintenanceOwnerTeamService", () => {
 });
 
 /*
+ * OwnerRuleAssignment.createOwner skips a user owner who is not a member of
+ * the project; the membership check itself is tested in Common.
+ */
+jest.mock("Common/Server/Services/TeamMemberService", () => {
+  return {
+    __esModule: true,
+    default: { isUserMemberOfProject: jest.fn() },
+  };
+});
+
+/*
  * The lookup services only identify which table a list is checked against;
  * the filter itself is mocked below and tested in Common.
  */
@@ -107,6 +118,26 @@ jest.mock("Common/Server/Services/LabelService", () => {
 
 jest.mock("Common/Server/Services/StatusPageService", () => {
   return { __esModule: true, default: { name: "StatusPageService" } };
+});
+
+jest.mock("Common/Server/Services/HostService", () => {
+  return { __esModule: true, default: { name: "HostService" } };
+});
+
+jest.mock("Common/Server/Services/KubernetesClusterService", () => {
+  return { __esModule: true, default: { name: "KubernetesClusterService" } };
+});
+
+jest.mock("Common/Server/Services/DockerHostService", () => {
+  return { __esModule: true, default: { name: "DockerHostService" } };
+});
+
+jest.mock("Common/Server/Services/PodmanHostService", () => {
+  return { __esModule: true, default: { name: "PodmanHostService" } };
+});
+
+jest.mock("Common/Server/Services/ServiceService", () => {
+  return { __esModule: true, default: { name: "ServiceService" } };
 });
 
 jest.mock(
@@ -125,6 +156,7 @@ import ScheduledMaintenanceTemplateOwnerUserService from "Common/Server/Services
 import ScheduledMaintenanceTemplateOwnerTeamService from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerTeamService";
 import ScheduledMaintenanceOwnerUserService from "Common/Server/Services/ScheduledMaintenanceOwnerUserService";
 import ScheduledMaintenanceOwnerTeamService from "Common/Server/Services/ScheduledMaintenanceOwnerTeamService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import PostgresErrorTranslator from "Common/Server/Utils/Database/PostgresErrorTranslator";
 import logger from "Common/Server/Utils/Logger";
 import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
@@ -134,6 +166,11 @@ import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import LabelService from "Common/Server/Services/LabelService";
 import MonitorService from "Common/Server/Services/MonitorService";
 import StatusPageService from "Common/Server/Services/StatusPageService";
+import HostService from "Common/Server/Services/HostService";
+import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
+import DockerHostService from "Common/Server/Services/DockerHostService";
+import PodmanHostService from "Common/Server/Services/PodmanHostService";
+import ServiceService from "Common/Server/Services/ServiceService";
 import ProjectScopedReferenceValidator from "Common/Server/Utils/Database/ProjectScopedReferenceValidator";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
@@ -245,6 +282,11 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
     ).mockImplementation((async (data: { ids: Array<string> }) => {
       return { usableIds: data.ids, droppedIds: [] };
     }) as never);
+
+    // Every template owner is still a project member unless a test says not.
+    (TeamMemberService.isUserMemberOfProject as jest.Mock).mockResolvedValue(
+      true as never,
+    );
   });
 
   test("carries every affected resource from the template onto the recurrence", async () => {
@@ -313,16 +355,34 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
 
   describe("references the template's project cannot use", () => {
     /*
-     * ScheduledMaintenanceService refuses another project's monitor, label or
-     * status page. Templates never had those lists checked, so an old one can
-     * still hold such an id — and a refused create here would skip the event
-     * on every recurrence, because scheduleNextEventAt has already moved on.
+     * ScheduledMaintenanceService refuses another project's monitor, label,
+     * status page or affected resource. Templates did not always have those
+     * lists checked, so an old one can still hold such an id — and a refused
+     * create here would skip the event on every recurrence, because
+     * scheduleNextEventAt has already moved on.
      */
     function templateWithLists(): ScheduledMaintenanceTemplate {
       const template: ScheduledMaintenanceTemplate = recurringTemplate();
       template.monitors = [
         stub(Monitor, "monitor-1"),
         stub(Monitor, "foreign-monitor"),
+      ];
+      template.hosts = [stub(Host, "host-1"), stub(Host, "foreign-host")];
+      template.kubernetesClusters = [
+        stub(KubernetesCluster, "k8s-1"),
+        stub(KubernetesCluster, "foreign-k8s"),
+      ];
+      template.dockerHosts = [
+        stub(DockerHost, "docker-1"),
+        stub(DockerHost, "foreign-docker"),
+      ];
+      template.podmanHosts = [
+        stub(PodmanHost, "podman-1"),
+        stub(PodmanHost, "foreign-podman"),
+      ];
+      template.services = [
+        stub(Service, "service-1"),
+        stub(Service, "foreign-service"),
       ];
       template.labels = [stub(Label, "label-1"), stub(Label, "foreign-label")];
       template.statusPages = [
@@ -356,11 +416,13 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
 
       expect(created).toHaveLength(1);
       expect(idsOn(created[0]!.monitors)).toEqual(["monitor-1"]);
+      expect(idsOn(created[0]!.hosts)).toEqual(["host-1"]);
+      expect(idsOn(created[0]!.kubernetesClusters)).toEqual(["k8s-1"]);
+      expect(idsOn(created[0]!.dockerHosts)).toEqual(["docker-1"]);
+      expect(idsOn(created[0]!.podmanHosts)).toEqual(["podman-1"]);
+      expect(idsOn(created[0]!.services)).toEqual(["service-1"]);
       expect(idsOn(created[0]!.labels)).toEqual(["label-1"]);
       expect(idsOn(created[0]!.statusPages)).toEqual(["status-page-1"]);
-
-      // Lists the service does not check are copied as they are.
-      expect(idsOn(created[0]!.hosts)).toEqual(["host-1"]);
     });
 
     test("checks each list against its own model and the template's project", async () => {
@@ -386,6 +448,14 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
         }),
       ).toEqual([
         { ids: ["monitor-1", "foreign-monitor"], service: MonitorService },
+        { ids: ["host-1", "foreign-host"], service: HostService },
+        {
+          ids: ["k8s-1", "foreign-k8s"],
+          service: KubernetesClusterService,
+        },
+        { ids: ["docker-1", "foreign-docker"], service: DockerHostService },
+        { ids: ["podman-1", "foreign-podman"], service: PodmanHostService },
+        { ids: ["service-1", "foreign-service"], service: ServiceService },
         {
           ids: ["status-page-1", "foreign-status-page"],
           service: StatusPageService,
@@ -406,8 +476,23 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
       );
 
       expect(logged).toContain("monitor foreign-monitor");
+      expect(logged).toContain("host foreign-host");
+      expect(logged).toContain("Kubernetes cluster foreign-k8s");
+      expect(logged).toContain("Docker host foreign-docker");
+      expect(logged).toContain("Podman host foreign-podman");
+      expect(logged).toContain("service foreign-service");
       expect(logged).toContain("label foreign-label");
       expect(logged).toContain("status page foreign-status-page");
+    });
+
+    test("an unusable id costs the event nothing else", async () => {
+      // The event is still created, not skipped, and nothing is logged as a failure of the job.
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(ScheduledMaintenanceService.create).toHaveBeenCalledTimes(1);
+      expect(
+        JSON.stringify((logger.error as jest.Mock).mock.calls),
+      ).not.toContain("Error creating event for template");
     });
 
     test("does not look up an empty list", async () => {
@@ -421,10 +506,16 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
 
       await mockCapturedJobs[JOB_NAME]!();
 
-      expect(
-        ProjectScopedReferenceValidator.filterUsableInProject,
-      ).toHaveBeenCalledTimes(1);
+      const services: Array<unknown> = (
+        ProjectScopedReferenceValidator.filterUsableInProject as jest.Mock
+      ).mock.calls.map((call: Array<unknown>) => {
+        return (call[0] as { service: unknown }).service;
+      });
+
+      expect(services).not.toContain(LabelService);
+      expect(services).not.toContain(StatusPageService);
       expect(idsOn(created[0]!.labels)).toEqual([]);
+      expect(idsOn(created[0]!.statusPages)).toEqual([]);
     });
   });
 
@@ -504,6 +595,48 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
         1,
       );
       expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    test("a template owner who has left the project is not copied onto the new event", async () => {
+      /*
+       * The template's owner list is saved configuration and can still name
+       * a user removed from the project since. The recurrence must not make
+       * them an owner of new work - and must still copy everyone else.
+       */
+      (
+        ScheduledMaintenanceOwnerUserService.create as jest.Mock
+      ).mockResolvedValue({} as never);
+      (TeamMemberService.isUserMemberOfProject as jest.Mock).mockImplementation(
+        (async (data: { userId: ObjectID }) => {
+          return data.userId.toString() !== USER_A.toString();
+        }) as never,
+      );
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(userIdsWritten()).toEqual([USER_B.toString()]);
+      expect(ScheduledMaintenanceOwnerTeamService.create).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(logger.error).not.toHaveBeenCalled();
+
+      const checked: Array<{ projectId: ObjectID; userId: ObjectID }> = (
+        TeamMemberService.isUserMemberOfProject as jest.Mock
+      ).mock.calls.map((call: Array<unknown>) => {
+        return call[0] as { projectId: ObjectID; userId: ObjectID };
+      });
+
+      expect(
+        checked.map((call: { projectId: ObjectID; userId: ObjectID }) => {
+          return {
+            projectId: call.projectId.toString(),
+            userId: call.userId.toString(),
+          };
+        }),
+      ).toEqual([
+        { projectId: PROJECT_ID.toString(), userId: USER_A.toString() },
+        { projectId: PROJECT_ID.toString(), userId: USER_B.toString() },
+      ]);
     });
 
     test("any other owner failure is still reported", async () => {

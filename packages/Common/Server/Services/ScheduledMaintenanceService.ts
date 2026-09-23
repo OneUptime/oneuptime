@@ -37,6 +37,7 @@ import ProjectScopedReferenceValidator, {
   resolveReferenceId,
   resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
 import Query from "../Types/Database/Query";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -669,9 +670,10 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
    * An update can repoint a scheduled maintenance event at another project's
    * state or monitor status just as easily as a create can, and the result is
    * the same: the referenced project can no longer be deleted. The same goes
-   * for the monitors, labels and status pages lists, which put the event on
-   * another project's monitors and status pages. Only the columns actually
-   * being written are checked, so ordinary updates cost no extra queries.
+   * for the monitors, labels, status pages and affected-resource lists, which
+   * put the event on another project's monitors, status pages, hosts and so
+   * on. Only the columns actually being written are checked, so ordinary
+   * updates cost no extra queries.
    */
   private async validateProjectScopedReferences(
     updateBy: UpdateBy<Model>,
@@ -779,6 +781,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
         modelName: "Status Page",
         service: StatusPageService,
       },
+      ...getAffectedResourceRelations(this.getModel()),
     ];
   }
 
@@ -992,7 +995,10 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
      * The monitors, labels and status pages lists are checked too: the event
      * changes the status of every listed monitor and notifies the subscribers
      * of every listed status page, so another project's ids here would act on
-     * that project's monitors and message its subscribers.
+     * that project's monitors and message its subscribers. So are the
+     * affected-resource lists (see getAffectedResourceRelations): a listed
+     * network site's uptime excludes the window, and every listed resource
+     * shows the event on its Activity tab.
      *
      * Runs before the counter increment so a rejected create does not burn an
      * event number.

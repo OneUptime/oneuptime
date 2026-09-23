@@ -38,6 +38,7 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import SlackMonitorActions from "../Utils/Workspace/Slack/Actions/Monitor";
 import SlackOnCallDutyActions from "../Utils/Workspace/Slack/Actions/OnCallDutyPolicy";
 import WorkspaceProjectAuthToken, {
+  SlackChannelCache,
   SlackMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import UserMiddleware from "../Middleware/UserAuthorization";
@@ -63,8 +64,90 @@ import WorkspaceOAuthState, {
   WorkspaceOAuthFlow,
   WorkspaceOAuthStateRecord,
 } from "../Utils/Workspace/WorkspaceOAuthState";
+import OneUptimeDate from "../../Types/Date";
 
 export default class SlackAPI {
+  // Generous: the server-side channel fetch caches up to ~100k channels.
+  public static readonly MAX_CHANNEL_CACHE_ENTRIES: number = 100000;
+
+  // Slack caps channel names at 80 characters.
+  private static readonly MAX_CHANNEL_NAME_LENGTH: number = 255;
+
+  // Slack channel ids are short upper-case alphanumerics, e.g. C0123456789.
+  private static readonly CHANNEL_ID_PATTERN: RegExp = /^[A-Za-z0-9]{1,64}$/;
+
+  private static readonly RESERVED_CHANNEL_KEYS: Array<string> = [
+    "__proto__",
+    "constructor",
+    "prototype",
+  ];
+
+  /*
+   * Turns the channel-cache editor's `{ [channelName]: channelId }` map into
+   * the stored cache shape, keyed by lower-cased name. Blank rows are dropped,
+   * as the editor always did; anything that is not a name and a Slack channel
+   * id is refused.
+   */
+  public static parseChannelCacheInput(input: unknown): SlackChannelCache {
+    if (!input || typeof input !== "object" || Array.isArray(input)) {
+      throw new BadDataException(
+        "channels must be an object mapping Slack channel names to channel IDs.",
+      );
+    }
+
+    const entries: Array<[string, unknown]> = Object.entries(input);
+
+    if (entries.length > SlackAPI.MAX_CHANNEL_CACHE_ENTRIES) {
+      throw new BadDataException(
+        `A Slack channel list can hold at most ${SlackAPI.MAX_CHANNEL_CACHE_ENTRIES} channels.`,
+      );
+    }
+
+    const lastUpdated: string = OneUptimeDate.toString(
+      OneUptimeDate.getCurrentDate(),
+    );
+
+    const channelCache: SlackChannelCache = {};
+
+    for (const [rawName, rawId] of entries) {
+      if (typeof rawId !== "string") {
+        throw new BadDataException(
+          `The channel ID for "${rawName}" must be a string.`,
+        );
+      }
+
+      const name: string = rawName.trim();
+      const id: string = rawId.trim();
+
+      if (!name || !id) {
+        continue;
+      }
+
+      const key: string = name.toLowerCase();
+
+      if (
+        name.length > SlackAPI.MAX_CHANNEL_NAME_LENGTH ||
+        SlackAPI.RESERVED_CHANNEL_KEYS.includes(key)
+      ) {
+        throw new BadDataException(`"${name}" is not a valid channel name.`);
+      }
+
+      if (!SlackAPI.CHANNEL_ID_PATTERN.test(id)) {
+        throw new BadDataException(
+          `"${id}" is not a valid Slack channel ID (for example C0123456789).`,
+        );
+      }
+
+      channelCache[key] = {
+        id: id,
+        name: name,
+        lastUpdated: lastUpdated,
+      };
+    }
+
+    return channelCache;
+  }
+
   private static getInstallRedirectUri(data: {
     projectId: ObjectID;
     userId: ObjectID;
@@ -1095,6 +1178,53 @@ export default class SlackAPI {
             ?.channelCache || {};
 
         return Response.sendJsonObjectResponse(req, res, channelCache as any);
+      },
+    );
+
+    /*
+     * Save the dashboard's edited Slack channel list for the current project.
+     *
+     * The channel cache lives in WorkspaceProjectAuthToken.miscData, which is
+     * not writable through the CRUD API because other connections keep
+     * server-trusted values there. This route writes the channel cache and
+     * nothing else, for a member allowed to manage the project's workspace
+     * connections. The body is `{ channels: { [channelName]: channelId } }`.
+     */
+    router.put(
+      "/slack/channel-cache",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions:
+              WorkspaceOAuthState.MANAGE_CONNECTION_PERMISSIONS,
+            errorMessage:
+              "You do not have permission to edit this project's Slack channels.",
+          });
+
+          const channelCache: SlackChannelCache =
+            SlackAPI.parseChannelCacheInput(
+              (req.body as JSONObject | undefined)?.["channels"],
+            );
+
+          await WorkspaceProjectAuthTokenService.replaceSlackChannelCache({
+            projectId: projectId,
+            channelCache: channelCache,
+          });
+
+          return Response.sendJsonObjectResponse(req, res, {
+            channelCache: channelCache as unknown as JSONObject,
+          });
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
       },
     );
 

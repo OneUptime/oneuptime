@@ -425,9 +425,8 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {showChannelsModal && projectAuthTokenId ? (
+      {showChannelsModal && isProjectAccountConnected ? (
         <SlackChannelCacheModal
-          projectAuthTokenId={projectAuthTokenId}
           onClose={() => {
             return setShowChannelsModal(false);
           }}

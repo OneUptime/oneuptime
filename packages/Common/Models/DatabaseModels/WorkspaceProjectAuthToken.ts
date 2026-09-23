@@ -79,17 +79,22 @@ export interface MicrosoftTeamsInstalledTeam {
   addedAt?: string | undefined;
 }
 
+export interface SlackChannelCacheEntry {
+  id: string;
+  name: string;
+  lastUpdated: string;
+}
+
+// Keyed by the lower-cased channel name.
+export interface SlackChannelCache {
+  [channelName: string]: SlackChannelCacheEntry;
+}
+
 export interface SlackMiscData extends MiscData {
   teamId: string;
   teamName: string;
   botUserId: string;
-  channelCache?: {
-    [channelName: string]: {
-      id: string;
-      name: string;
-      lastUpdated: string;
-    };
-  };
+  channelCache?: SlackChannelCache;
 }
 
 /*
@@ -346,11 +351,14 @@ class WorkspaceProjectAuthToken extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-    ],
+    /*
+     * Server-only. For Microsoft Teams this holds values the server trusts:
+     * the Bot Framework service URLs proactive sends go to (with the bot's
+     * token attached), the tenant and its consent state.
+     * The Slack channel cache, the only part the dashboard edits, is saved
+     * through PUT /slack/channel-cache, which writes nothing else.
+     */
+    update: [],
   })
   /*
    * Readable by every project Viewer, so it must never hold a credential.

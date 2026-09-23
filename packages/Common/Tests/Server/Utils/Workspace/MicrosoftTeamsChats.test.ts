@@ -1373,6 +1373,48 @@ describe("MicrosoftTeamsUtil.sendAdaptiveCardToChat", () => {
     );
   });
 
+  /*
+   * botbuilder attaches the bot's Bot Framework token to the request whatever
+   * host the serviceUrl names (see MicrosoftTeamsServiceUrl).
+   */
+  test("a chat whose stored serviceUrl is not a Microsoft host is refused before the Bot Framework is called", async () => {
+    const chat: MicrosoftTeamsChat = buildChat({
+      id: "19:tampered@thread.v2",
+      serviceUrl: "https://attacker.example.com/",
+    });
+    mockProjectAuthWithChats({ chats: { [chat.id]: chat } });
+    const capturedRefs: Array<ConversationReference> = installFakeBotAdapter();
+
+    await expect(
+      MicrosoftTeamsUtil.sendAdaptiveCardToChat({
+        chatId: chat.id,
+        projectId: ObjectID.generate(),
+        adaptiveCard: ADAPTIVE_CARD,
+      }),
+    ).rejects.toThrow(BadDataException);
+
+    expect(capturedRefs).toHaveLength(0);
+  });
+
+  test("a chat captured in GCC High keeps its government-cloud serviceUrl", async () => {
+    const chat: MicrosoftTeamsChat = buildChat({
+      id: "19:gcch@thread.v2",
+      serviceUrl: "https://smba.infra.gov.teams.microsoft.us/teams",
+    });
+    mockProjectAuthWithChats({ chats: { [chat.id]: chat } });
+    const capturedRefs: Array<ConversationReference> = installFakeBotAdapter();
+
+    await MicrosoftTeamsUtil.sendAdaptiveCardToChat({
+      chatId: chat.id,
+      projectId: ObjectID.generate(),
+      adaptiveCard: ADAPTIVE_CARD,
+    });
+
+    expect(capturedRefs[0]!.serviceUrl).toBe(
+      "https://smba.infra.gov.teams.microsoft.us/teams",
+    );
+  });
+
   test("threadId is empty string when sendActivity returns no response", async () => {
     const chat: MicrosoftTeamsChat = buildChat({ id: "19:noresp@thread.v2" });
     mockProjectAuthWithChats({ chats: { [chat.id]: chat } });
