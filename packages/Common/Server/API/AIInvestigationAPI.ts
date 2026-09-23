@@ -46,6 +46,7 @@ import Permission, {
 } from "../../Types/Permission";
 import {
   KubernetesAiAccessGap,
+  KubernetesAiAccessGapCode,
   KubernetesAiAccessRunnerSummary,
   KubernetesClusterAiAccessStatus,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
@@ -546,6 +547,40 @@ export const RESTRICTED_GAP_DESCRIPTION: string =
   "Someone who can view this Kubernetes cluster can see the details on its AI page.";
 
 /*
+ * Stand in for a gap's next step on a row whose viewer cannot read the
+ * cluster. The service's next steps are written for the cluster's AI page
+ * and may name the Runner to select ('Select the kubernetes-agent Runner
+ * "kubernetes-agent/<cluster identifier>" …'), the credential, or the
+ * cluster identifier — none of which such a viewer is shown — and point at
+ * a page they cannot open. A project-level gap is fixed in Project
+ * Settings instead.
+ */
+export const RESTRICTED_GAP_NEXT_STEP: string =
+  "Ask someone who can edit this Kubernetes cluster's AI access to fix it on the cluster's AI page.";
+
+export const RESTRICTED_PROJECT_GAP_NEXT_STEP: string =
+  "Ask a project admin to change this under Project Settings → AI.";
+
+/*
+ * The gaps fixed in Project Settings rather than on the cluster. Every
+ * other code — including one added later — gets the cluster-level text,
+ * which names nothing, so a new code can never leak its service text.
+ */
+const PROJECT_LEVEL_GAP_CODES: ReadonlyArray<KubernetesAiAccessGapCode> = [
+  "project_ai_disabled",
+  "project_auto_remediation_disabled",
+  "project_ai_command_execution_disabled",
+  "llm_provider_missing",
+];
+
+// The next step a viewer who cannot read the cluster sees for a gap.
+export function getRestrictedGapNextStep(code: string): string {
+  return PROJECT_LEVEL_GAP_CODES.includes(code as KubernetesAiAccessGapCode)
+    ? RESTRICTED_PROJECT_GAP_NEXT_STEP
+    : RESTRICTED_GAP_NEXT_STEP;
+}
+
+/*
  * Stands in for a credential_missing gap description when the viewer can
  * read the cluster but not credentials: those descriptions name the
  * credential.
@@ -598,7 +633,14 @@ export function toPanelClusterAccess(
           : gap.code === "credential_missing" && !visibility.canReadCredentials
             ? RESTRICTED_CREDENTIAL_GAP_DESCRIPTION
             : gap.description,
-        nextStep: gap.nextStep,
+        /*
+         * A reader of the cluster keeps the actionable step — it names the
+         * Runner they would select, and no credential. Everyone else gets
+         * a generic one: the step can name what the row withholds.
+         */
+        nextStep: !visibility.canReadCluster
+          ? getRestrictedGapNextStep(gap.code)
+          : gap.nextStep,
         blocks: gap.blocks,
       };
     },

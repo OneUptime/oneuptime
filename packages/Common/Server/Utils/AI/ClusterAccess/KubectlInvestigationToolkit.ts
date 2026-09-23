@@ -23,6 +23,7 @@ import KubectlJobRunner, {
   KUBECTL_CLAIM_TIMEOUT_MS,
   KUBECTL_OUTPUT_TRUNCATED_SUFFIX,
   KubectlJobOutcome,
+  KubectlRunState,
 } from "./KubectlJobRunner";
 import {
   LIST_CLUSTER_ACCESS_TOOL_NAME,
@@ -53,14 +54,21 @@ import {
  *  - what counts as evidence. A command that never reached kubectl (no
  *    Runner claimed it, or the server or Runner refused it) is a failed
  *    tool call: it mints no citation and is not counted as run anywhere.
- *    A command that ran and exited non-zero is still evidence ("Forbidden",
- *    "NotFound" are findings), cited with rowCount 0;
- *  - a per-cluster breaker. The Runner lives in the cluster being
+ *    Neither does one a Runner took whose result never came back — it has
+ *    no output to cite — but that one is recorded as "result unknown",
+ *    never as "did not run". A command that ran and exited non-zero is
+ *    still evidence ("Forbidden", "NotFound" are findings), cited with
+ *    rowCount 0;
+ *  - a per-Runner breaker. An in-cluster Runner lives in the cluster being
  *    investigated, so it is most likely to be evicted or crashlooping
  *    exactly when an investigation needs it, and still reads as online for
- *    a few minutes. Once one command goes unclaimed, the cluster is
- *    unreachable for the rest of the run: later commands for it fail at
- *    once instead of each waiting out another claim window.
+ *    a few minutes. Once one command goes unclaimed, its Runner is
+ *    unreachable for the rest of the run: later commands for any cluster
+ *    it serves fail at once instead of each waiting out another claim
+ *    window. An in-cluster Runner serves exactly one cluster, so there
+ *    this is a per-cluster breaker; an external Runner can serve several,
+ *    and "nobody claimed the job" is a fact about the Runner (jobs are
+ *    claimed by Runner, never by cluster).
  */
 
 export {
@@ -103,21 +111,71 @@ export interface KubectlInvestigationToolkitOptions {
 // A reason that already ends a sentence.
 const SENTENCE_END_PATTERN: RegExp = /[.!?]$/;
 
+/*
+ * How the run's persisted event starts for a kubectl command a Runner took
+ * whose result never came back, so the investigation panel can tell it
+ * from a command that never ran. The dashboard keeps the same text
+ * (Components/AI/ClusterToolFormat.ts); a parity test pins the two.
+ */
+export const KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX: string =
+  "kubectl result unknown:";
+
+// The Runner an unclaimed command tripped the breaker for.
+interface UnreachableRunner {
+  // The claim window the unclaimed command was given.
+  claimWindowMs: number;
+  // The cluster that command was for.
+  clusterName: string;
+}
+
 export default class KubectlInvestigationToolkit {
   private options: KubectlInvestigationToolkitOptions;
   private commandsRun: number = 0;
   /*
-   * Clusters whose Runner left a command unclaimed in this run, with the
-   * claim window it was given — the breaker described above.
+   * Runners (by id) that left a command unclaimed in this run — the
+   * breaker described above.
    */
-  private unreachableClusters: Map<string, number> = new Map<string, number>();
+  private unreachableRunners: Map<string, UnreachableRunner> = new Map<
+    string,
+    UnreachableRunner
+  >();
 
   public constructor(options: KubectlInvestigationToolkitOptions) {
     this.options = options;
   }
 
+  // Whether the Runner serving this cluster tripped the breaker.
   public isClusterUnreachable(clusterId: string): boolean {
-    return this.unreachableClusters.has(clusterId);
+    return this.getTrippedRunner(clusterId) !== undefined;
+  }
+
+  private getTrippedRunner(clusterId: string): UnreachableRunner | undefined {
+    const cluster: KubernetesClusterAiAccessStatus | undefined =
+      this.options.clusters.find(
+        (candidate: KubernetesClusterAiAccessStatus) => {
+          return candidate.clusterId === clusterId;
+        },
+      );
+
+    if (!cluster || !cluster.runner) {
+      return undefined;
+    }
+
+    return this.unreachableRunners.get(cluster.runner.id);
+  }
+
+  // The other ready clusters the same Runner serves.
+  private getOtherClustersOnRunner(
+    cluster: KubernetesClusterAiAccessStatus,
+  ): Array<KubernetesClusterAiAccessStatus> {
+    return this.getReadyClusters().filter(
+      (candidate: KubernetesClusterAiAccessStatus) => {
+        return (
+          candidate.clusterId !== cluster.clusterId &&
+          candidate.runner?.id === cluster.runner?.id
+        );
+      },
+    );
   }
 
   public getReadyClusters(): Array<KubernetesClusterAiAccessStatus> {
@@ -280,15 +338,21 @@ export default class KubectlInvestigationToolkit {
     /*
      * The breaker: checked before the budget is planned, a command is
      * spent or anything is enqueued, so a dead Runner costs one claim
-     * window per run rather than one per command.
+     * window per run rather than one per command — or per cluster it
+     * serves.
      */
-    const unreachableClaimWindowMs: number | undefined =
-      this.unreachableClusters.get(cluster.clusterId);
+    const tripped: UnreachableRunner | undefined = this.unreachableRunners.get(
+      cluster.runner.id,
+    );
 
-    if (unreachableClaimWindowMs !== undefined) {
+    if (tripped !== undefined) {
       return this.failure(
-        `Cluster "${cluster.clusterName}"'s Runner did not pick up an earlier command within ${KubectlInvestigationToolkit.describeSeconds(
-          unreachableClaimWindowMs,
+        `Runner "${cluster.runner.name}", which serves cluster "${cluster.clusterName}", did not pick up an earlier command${
+          tripped.clusterName !== cluster.clusterName
+            ? ` (for cluster "${tripped.clusterName}")`
+            : ""
+        } within ${KubectlInvestigationToolkit.describeSeconds(
+          tripped.claimWindowMs,
         )}, so the cluster is treated as unreachable for the rest of this investigation. Nothing was run. Do not call run_kubectl on this cluster again: continue with OneUptime telemetry and say in **Cluster access** that the cluster's Runner did not respond.`,
         `kubectl was not run on cluster "${cluster.clusterName}": its Runner did not pick up an earlier command, so the cluster was unreachable for the rest of this investigation.`,
       );
@@ -356,16 +420,50 @@ export default class KubectlInvestigationToolkit {
     }
 
     if (outcome.claimTimedOut === true) {
-      this.unreachableClusters.set(
-        cluster.clusterId,
-        budget.plan.claimTimeoutInMs,
-      );
+      this.unreachableRunners.set(cluster.runner.id, {
+        claimWindowMs: budget.plan.claimTimeoutInMs,
+        clusterName: cluster.clusterName,
+      });
+
+      const alsoUnreachable: Array<KubernetesClusterAiAccessStatus> =
+        this.getOtherClustersOnRunner(cluster);
 
       return this.failure(
         `kubectl was NOT run on cluster "${cluster.clusterName}": its Runner did not pick up "${outcome.displayCommand}" within ${KubectlInvestigationToolkit.describeSeconds(
           budget.plan.claimTimeoutInMs,
-        )} (it may be offline, restarting or busy). The cluster is treated as unreachable for the rest of this investigation — do not call run_kubectl on it again. Continue with OneUptime telemetry and say in **Cluster access** that the cluster's Runner did not respond.`,
+        )} (it may be offline, restarting or busy). The cluster is treated as unreachable for the rest of this investigation — do not call run_kubectl on it again.${
+          alsoUnreachable.length > 0
+            ? ` The same Runner "${cluster.runner.name}" serves ${alsoUnreachable
+                .map((other: KubernetesClusterAiAccessStatus) => {
+                  return `"${other.clusterName}"`;
+                })
+                .join(
+                  ", ",
+                )}, so ${alsoUnreachable.length === 1 ? "that cluster is" : "those clusters are"} unreachable too.`
+            : ""
+        } Continue with OneUptime telemetry and say in **Cluster access** that the cluster's Runner did not respond.`,
         `kubectl was not run on cluster "${cluster.clusterName}": its Runner did not pick up the command in time.`,
+      );
+    }
+
+    /*
+     * A Runner took the command and no result came back: kubectl may have
+     * run (a fast command whose result was lost, a Runner killed right
+     * after it returned) or not. There is no output to cite, so it is a
+     * failed call like a refusal — but it is never recorded as "did not
+     * run", and the panel counts it on its own.
+     */
+    if (outcome.runState === KubectlRunState.Unknown) {
+      const redactedReason: string = KubectlOutputRedactor.redact(
+        outcome.errorMessage || "No result came back for this command.",
+      ).text.trim();
+      const reason: string = SENTENCE_END_PATTERN.test(redactedReason)
+        ? redactedReason
+        : `${redactedReason}.`;
+
+      return this.failure(
+        `No kubectl result came back from cluster "${cluster.clusterName}" for "${outcome.displayCommand}": ${reason} Nothing from this command is evidence. Continue with OneUptime telemetry and mention in **Cluster access** that the cluster's Runner stopped responding.`,
+        `${KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX} the Runner of cluster "${cluster.clusterName}" took the command, but no result came back, so whether it ran is unknown.`,
       );
     }
 

@@ -1,8 +1,13 @@
 import KubectlInvestigationToolkit, {
   INVESTIGATION_MAX_WALL_CLOCK_MS,
+  KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX,
   LIST_CLUSTER_ACCESS_TOOL_NAME,
   RUN_KUBECTL_TOOL_NAME,
 } from "../../../../Server/Utils/AI/ClusterAccess/KubectlInvestigationToolkit";
+import {
+  isKubectlResultUnknownMessage,
+  KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX as DASHBOARD_KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX,
+} from "../../../../../App/FeatureSet/Dashboard/src/Components/AI/ClusterToolFormat";
 import KubectlJobRunner, {
   KUBECTL_CLAIM_TIMEOUT_MS,
   KUBECTL_OUTPUT_TRUNCATED_SUFFIX,
@@ -55,8 +60,10 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  * - a job failure becomes a tool failure the model can continue from,
  *   never a thrown error that kills the investigation;
  * - only a command that reached kubectl is evidence (cited, counted as
- *   run); one that never ran is a failed call, and one no Runner claimed
- *   makes its cluster unreachable for the rest of the run.
+ *   run); one that never ran is a failed call, one a Runner took whose
+ *   result never came back is a failed call marked "result unknown"
+ *   (never "did not run"), and one no Runner claimed makes its Runner —
+ *   and every cluster it serves — unreachable for the rest of the run.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -1296,7 +1303,8 @@ describe("KubectlInvestigationToolkit run_kubectl when kubectl never ran", () =>
     );
   });
 
-  it("keeps the breaker per cluster: another ready cluster still runs", async () => {
+  // Negative control for the per-Runner breaker: another Runner is not tripped.
+  it("keeps the breaker per Runner: a cluster on another Runner still runs", async () => {
     const toolkit: KubectlInvestigationToolkit = twoClusterToolkit();
 
     await runOn(toolkit, CLUSTER_ID);
@@ -1318,6 +1326,151 @@ describe("KubectlInvestigationToolkit run_kubectl when kubectl never ran", () =>
       false,
     );
   });
+
+  /*
+   * IP-4: two clusters bound to the same external Runner, each with its
+   * own credential. Jobs are claimed by Runner, never by cluster, so an
+   * unclaimed command on one says the other's commands will not be
+   * claimed either.
+   */
+  function sharedRunnerToolkit(): KubectlInvestigationToolkit {
+    const sharedRunner: KubernetesClusterAiAccessStatus["runner"] = {
+      id: RUNNER_ID.toString(),
+      name: "ops-runner",
+      isOnline: true,
+      canRunAiCommands: true,
+    };
+
+    return new KubectlInvestigationToolkit({
+      projectId: PROJECT_ID,
+      aiRunId: RUN_ID,
+      clusters: [
+        readyCluster({
+          runner: sharedRunner,
+          accessMethod: "credential",
+          credentialId: "11111111-1111-4111-8111-111111111111",
+        }),
+        readyCluster({
+          clusterId: OTHER_CLUSTER_ID.toString(),
+          clusterName: "prod-eu",
+          clusterIdentifier: "prod-eu",
+          runner: sharedRunner,
+          accessMethod: "credential",
+          credentialId: "55555555-5555-4555-8555-555555555555",
+        }),
+      ],
+    });
+  }
+
+  it("trips the breaker for every cluster on the Runner that left a command unclaimed", async () => {
+    const toolkit: KubectlInvestigationToolkit = sharedRunnerToolkit();
+
+    const first: ToolCallOutcome = await runOn(toolkit, CLUSTER_ID);
+
+    // The trip message tells the model the other cluster is gone too.
+    expect(first.textForLlm).toContain(
+      'The same Runner "ops-runner" serves "prod-eu", so that cluster is unreachable too.',
+    );
+
+    const plan: jest.SpyInstance = jest.spyOn(KubectlWaitBudget, "plan");
+    const second: ToolCallOutcome = await runOn(toolkit, OTHER_CLUSTER_ID);
+
+    expect(second.success).toBe(false);
+    expect(second.result).toBeUndefined();
+    expect(second.textForLlm).toContain(
+      "treated as unreachable for the rest of this investigation",
+    );
+    expect(second.textForLlm).toContain('Runner "ops-runner"');
+    expect(second.textForLlm).toContain('serves cluster "prod-eu"');
+    expect(second.textForLlm).toContain('(for cluster "prod-us")');
+    expect(second.textForLlm).toContain("Nothing was run");
+    expect(second.errorMessage).toBe(
+      'kubectl was not run on cluster "prod-eu": its Runner did not pick up an earlier command, so the cluster was unreachable for the rest of this investigation.',
+    );
+    // No second claim window was waited out.
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(plan).not.toHaveBeenCalled();
+    expect(toolkit.getCommandsRun()).toBe(1);
+    expect(toolkit.isClusterUnreachable(CLUSTER_ID.toString())).toBe(true);
+    expect(toolkit.isClusterUnreachable(OTHER_CLUSTER_ID.toString())).toBe(
+      true,
+    );
+
+    const listing: ToolCallOutcome = await getTool(
+      toolkit,
+      LIST_CLUSTER_ACCESS_TOOL_NAME,
+    ).execute({});
+    const lines: Array<string> = listing.textForLlm.split("\n");
+
+    expect(lines).toHaveLength(2);
+    for (const line of lines) {
+      expect(line).toContain("UNREACHABLE for the rest of this investigation");
+      expect(line).toContain('its Runner "ops-runner"');
+    }
+  });
+
+  /*
+   * Negative controls: on a shared Runner, only an UNCLAIMED command trips
+   * the breaker. A command that was claimed and went silent, ran and
+   * exited non-zero, or was refused by the Runner leaves the other
+   * cluster's commands running.
+   */
+  it.each<[string, () => void]>([
+    [
+      "was claimed and then went silent",
+      (): void => {
+        claimRead.mockResolvedValue(
+          claimRow({
+            claimedAt: new Date("2026-09-22T10:00:00.000Z"),
+            assignedAgentId: RUNNER_ID,
+          }),
+        );
+      },
+    ],
+    [
+      "ran and exited non-zero",
+      (): void => {
+        poll.mockResolvedValueOnce(
+          fakeJob({
+            status: RunnerJobStatus.Failed,
+            exitCode: 1,
+            errorMessage: "Exit code 1",
+            output:
+              '[stderr]\nError from server (NotFound): pods "x" not found',
+          }),
+        );
+      },
+    ],
+    [
+      "was refused by the Runner",
+      (): void => {
+        poll.mockResolvedValueOnce(
+          fakeJob({
+            status: RunnerJobStatus.Failed,
+            exitCode: undefined,
+            output: "",
+            errorMessage: "Refused by the Runner: --kubeconfig is not allowed.",
+          }),
+        );
+      },
+    ],
+  ])(
+    "does not trip the shared Runner's breaker for a command that %s",
+    async (_label: string, arrange: () => void) => {
+      arrange();
+      const toolkit: KubectlInvestigationToolkit = sharedRunnerToolkit();
+
+      await runOn(toolkit, CLUSTER_ID);
+      poll.mockResolvedValue(fakeJob());
+      const other: ToolCallOutcome = await runOn(toolkit, OTHER_CLUSTER_ID);
+
+      expect(other.success).toBe(true);
+      expect(enqueue).toHaveBeenCalledTimes(2);
+      expect(toolkit.isClusterUnreachable(OTHER_CLUSTER_ID.toString())).toBe(
+        false,
+      );
+    },
+  );
 
   it("reports the claim window actually planned for the command", async () => {
     const NOW_MS: number = 1_700_000_000_000;
@@ -1362,28 +1515,61 @@ describe("KubectlInvestigationToolkit run_kubectl when kubectl never ran", () =>
     expect(claimRead).not.toHaveBeenCalled();
   });
 
-  it("does not trip the breaker when a Runner claimed the job and then went silent", async () => {
-    claimRead.mockResolvedValue(
-      claimRow({
+  /*
+   * IP-1: a Runner took the job and no result came back. The realistic row
+   * has claimedAt and assignedAgentId but no startedAt — the Runner's first
+   * job heartbeat comes 10 s into execution, so a fast kubectl whose result
+   * POST was lost never set it. It may have run: no citation (there is no
+   * output), no breaker (the Runner is alive enough to claim), and never
+   * "refused" or "did not run".
+   */
+  it.each<[string, Partial<Record<string, unknown>>]>([
+    [
+      "never heartbeated (a fast kubectl whose result was lost)",
+      {
         claimedAt: new Date("2026-09-22T10:00:00.000Z"),
         assignedAgentId: RUNNER_ID,
-        startedAt: new Date("2026-09-22T10:00:01.000Z"),
-      }),
-    );
-    const toolkit: KubectlInvestigationToolkit = singleClusterToolkit();
+        startedAt: null,
+      },
+    ],
+    [
+      "heartbeated and then went silent",
+      {
+        claimedAt: new Date("2026-09-22T10:00:00.000Z"),
+        assignedAgentId: RUNNER_ID,
+        startedAt: new Date("2026-09-22T10:00:10.000Z"),
+      },
+    ],
+  ])(
+    "reports a job a Runner claimed and %s as result unknown, not as run or not run",
+    async (_label: string, row: Partial<Record<string, unknown>>) => {
+      claimRead.mockResolvedValue(claimRow(row));
+      const toolkit: KubectlInvestigationToolkit = singleClusterToolkit();
 
-    const first: ToolCallOutcome = await runOn(toolkit);
-    await runOn(toolkit);
+      const first: ToolCallOutcome = await runOn(toolkit);
 
-    expect(enqueue).toHaveBeenCalledTimes(2);
-    expect(toolkit.isClusterUnreachable(CLUSTER_ID.toString())).toBe(false);
-    // It ran: a completed (cited) call with a FAILED body and rowCount 0.
-    expect(first.success).toBe(true);
-    expect(first.result?.rowCount).toBe(0);
-    expect(first.textForLlm).toContain("did not report a result");
-    expect(first.textForLlm).not.toContain("runbook");
-    expect(first.textForLlm).not.toContain("try again");
-  });
+      // Nothing came back, so there is nothing to cite...
+      expect(first.success).toBe(false);
+      expect(first.result).toBeUndefined();
+      expect(first.textForLlm).toContain("did not report a result");
+      expect(first.textForLlm).toContain("Whether it ran");
+      expect(first.textForLlm).not.toContain("runbook");
+      expect(first.textForLlm).not.toContain("try again");
+      // ...and the persisted event says so, in a form the panel can tell apart.
+      expect(first.errorMessage).toBe(
+        `${KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX} the Runner of cluster "prod-us" took the command, but no result came back, so whether it ran is unknown.`,
+      );
+      expect(first.errorMessage).not.toContain("refused");
+      expect(first.errorMessage).not.toContain("did not run");
+      expect(first.errorMessage).not.toContain("not run");
+      expect(isKubectlResultUnknownMessage(first.errorMessage)).toBe(true);
+
+      // The Runner claimed it, so the breaker stays open.
+      await runOn(toolkit);
+      expect(enqueue).toHaveBeenCalledTimes(2);
+      expect(toolkit.isClusterUnreachable(CLUSTER_ID.toString())).toBe(false);
+    },
+  );
 
   it("does not trip the breaker when the claim state cannot be read", async () => {
     claimRead.mockRejectedValue(new Error("database unavailable"));
@@ -1394,10 +1580,20 @@ describe("KubectlInvestigationToolkit run_kubectl when kubectl never ran", () =>
     // Nothing is known to have run, so nothing is cited...
     expect(outcome.success).toBe(false);
     expect(outcome.result).toBeUndefined();
-    // ...but nothing is known to be unreachable either.
+    // ...nor is it said not to have run...
+    expect(isKubectlResultUnknownMessage(outcome.errorMessage)).toBe(true);
+    // ...and nothing is known to be unreachable either.
     expect(toolkit.isClusterUnreachable(CLUSTER_ID.toString())).toBe(false);
     await runOn(toolkit);
     expect(enqueue).toHaveBeenCalledTimes(2);
+  });
+
+  // Negative control: an unclaimed job still says the Runner did not pick it up.
+  it("keeps the never-ran wording for a job no Runner claimed", async () => {
+    const outcome: ToolCallOutcome = await runOn(singleClusterToolkit());
+
+    expect(outcome.errorMessage).toContain("did not pick up");
+    expect(isKubectlResultUnknownMessage(outcome.errorMessage)).toBe(false);
   });
 
   it.each([
@@ -1439,6 +1635,7 @@ describe("KubectlInvestigationToolkit run_kubectl when kubectl never ran", () =>
       expect(outcome.errorMessage).toBe(
         'No kubectl result came back from cluster "prod-us": the command was refused, or the Runner did not run it.',
       );
+      expect(isKubectlResultUnknownMessage(outcome.errorMessage)).toBe(false);
       // A refusal is fast, not a dead Runner: the breaker stays open.
       expect(toolkit.isClusterUnreachable(CLUSTER_ID.toString())).toBe(false);
       // A refusal is an access problem, so the cluster's page shows it.
@@ -1589,5 +1786,33 @@ describe("KubectlJobRunner keeps the AI run alive while it waits", () => {
     jest.advanceTimersByTime(60_000);
 
     expect(touch).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * The server writes the "result unknown" marker into the run's persisted
+ * event; the dashboard reads it to count such a command apart from one
+ * that never ran. Two definitions (the dashboard cannot import server
+ * code), one text.
+ */
+describe("the kubectl result-unknown event marker", () => {
+  it("is the same text on the server and in the dashboard", () => {
+    expect(DASHBOARD_KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX).toBe(
+      KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX,
+    );
+  });
+
+  it("does not match the never-ran wording", () => {
+    expect(
+      isKubectlResultUnknownMessage(
+        'No kubectl result came back from cluster "prod-us": the command was refused, or the Runner did not run it.',
+      ),
+    ).toBe(false);
+    expect(
+      isKubectlResultUnknownMessage(
+        'kubectl was not run on cluster "prod-us": its Runner did not pick up the command in time.',
+      ),
+    ).toBe(false);
+    expect(isKubectlResultUnknownMessage(undefined)).toBe(false);
   });
 });

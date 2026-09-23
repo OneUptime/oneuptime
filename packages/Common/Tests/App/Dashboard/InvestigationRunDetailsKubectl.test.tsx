@@ -314,6 +314,21 @@ describe("describeKubectlUsage", () => {
     ],
     [{ notRun: 1 }, "1 kubectl command did not run"],
     [{ notRun: 2 }, "2 kubectl commands did not run"],
+    /*
+     * A command a Runner took whose result never came back may have run:
+     * it is never folded into "did not run".
+     */
+    [{ unknown: 1 }, "1 kubectl command returned no result"],
+    [{ unknown: 2 }, "2 kubectl commands returned no result"],
+    [
+      { notRun: 1, unknown: 2 },
+      "3 kubectl commands without a result (1 did not run, 2 returned no result)",
+    ],
+    [
+      { executed: 2, succeeded: 1, notRun: 1, unknown: 1 },
+      "2 kubectl commands (1 failed, 1 did not run, 1 returned no result)",
+    ],
+    [{ executed: 1, succeeded: 1, unknown: 0 }, "1 kubectl command"],
   ])(
     "%j -> %s",
     (
@@ -325,4 +340,44 @@ describe("describeKubectlUsage", () => {
       ).toBe(expected);
     },
   );
+});
+
+/*
+ * IP-6: the Evidence tab describes a kubectl call as a kubectl command —
+ * never as a query with rows it could load — while telemetry queries keep
+ * their row counts.
+ */
+describe("InvestigationRunDetails evidence intro", () => {
+  function openEvidence(): string {
+    fireEvent.click(screen.getByTestId("investigation-details-toggle"));
+    return (
+      screen.getByRole("tabpanel", { name: /^Evidence checked/ }).textContent ||
+      ""
+    );
+  }
+
+  test("does not promise rows for kubectl calls", () => {
+    renderDetails();
+
+    const panel: string = openEvidence();
+    expect(panel).toContain(
+      "Every telemetry query and kubectl call OneUptime AI made. Expand one to see what it asked — and, for a telemetry query, the rows it returned.",
+    );
+    expect(panel).not.toContain("Every query OneUptime AI ran.");
+  });
+
+  // Negative control: telemetry-only evidence keeps its intro.
+  test("keeps the query intro for telemetry-only evidence", () => {
+    renderDetails({
+      evidence: [
+        evidenceItem("query_metrics", 80, "Max(latency)"),
+        evidenceItem("search_logs", 12, "Logs"),
+      ],
+      kubectlActivity: activity(),
+    });
+
+    expect(openEvidence()).toContain(
+      "Every query OneUptime AI ran. Expand one to see what it asked and the rows it returned.",
+    );
+  });
 });

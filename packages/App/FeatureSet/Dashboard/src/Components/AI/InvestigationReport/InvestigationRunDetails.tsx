@@ -62,7 +62,9 @@ const USAGE_ICON_CLASS_NAME: string = "h-3.5 w-3.5 flex-shrink-0 text-gray-400";
 /*
  * The usage line's kubectl item, or null when the run never tried kubectl.
  * Only commands that ran on the cluster are counted as commands; those
- * that returned an error or never ran are said alongside, never folded in.
+ * that returned an error, never ran, or were taken by a Runner that never
+ * reported back (whether they ran is unknown) are said alongside, never
+ * folded in.
  */
 export function describeKubectlUsage(
   activity: KubectlActivitySummary | undefined,
@@ -77,15 +79,26 @@ export function describeKubectlUsage(
     executed - Math.min(executed, Math.max(0, activity.succeeded)),
   );
   const notRun: number = Math.max(0, activity.notRun);
+  const unknown: number = Math.max(0, activity.unknown || 0);
 
-  if (executed === 0 && notRun === 0) {
+  if (executed === 0 && notRun === 0 && unknown === 0) {
     return null;
   }
 
-  if (executed === 0) {
+  if (executed === 0 && unknown === 0) {
     return `${notRun.toLocaleString()} kubectl ${
       notRun === 1 ? "command" : "commands"
     } did not run`;
+  }
+
+  if (executed === 0 && notRun === 0) {
+    return `${unknown.toLocaleString()} kubectl ${
+      unknown === 1 ? "command" : "commands"
+    } returned no result`;
+  }
+
+  if (executed === 0) {
+    return `${(notRun + unknown).toLocaleString()} kubectl commands without a result (${notRun.toLocaleString()} did not run, ${unknown.toLocaleString()} returned no result)`;
   }
 
   const notes: Array<string> = [];
@@ -96,6 +109,10 @@ export function describeKubectlUsage(
 
   if (notRun > 0) {
     notes.push(`${notRun.toLocaleString()} did not run`);
+  }
+
+  if (unknown > 0) {
+    notes.push(`${unknown.toLocaleString()} returned no result`);
   }
 
   return `${executed.toLocaleString()} kubectl ${
@@ -296,6 +313,11 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
           return !isClusterToolName(item.toolName);
         }).length
       : props.legacyEntries.length;
+  const hasClusterEvidence: boolean = props.evidence.some(
+    (item: InvestigationEvidenceItem): boolean => {
+      return isClusterToolName(item.toolName);
+    },
+  );
   const stepCount: number = countActivitySteps(props.events);
   const tabs: Array<DetailsTab> = [];
 
@@ -412,9 +434,16 @@ const InvestigationRunDetails: FunctionComponent<ComponentProps> = (
           className={panelFocusClassName}
         >
           <p className="px-4 pb-1 pt-3 text-xs leading-5 text-gray-500 sm:px-5">
-            {props.evidence.length > 0
-              ? "Every query OneUptime AI ran. Expand one to see what it asked and the rows it returned."
-              : "Every query OneUptime AI ran while investigating."}
+            {/*
+              A kubectl command is not a query and has no rows to load, so
+              a list with cluster calls in it promises rows only for the
+              telemetry queries.
+            */}
+            {props.evidence.length === 0
+              ? "Every query OneUptime AI ran while investigating."
+              : hasClusterEvidence
+                ? "Every telemetry query and kubectl call OneUptime AI made. Expand one to see what it asked — and, for a telemetry query, the rows it returned."
+                : "Every query OneUptime AI ran. Expand one to see what it asked and the rows it returned."}
           </p>
           <InvestigationEvidenceList
             items={props.evidence}

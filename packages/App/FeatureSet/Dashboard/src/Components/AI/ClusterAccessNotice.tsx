@@ -93,14 +93,40 @@ function toCount(value: number | undefined): number {
 }
 
 /*
+ * Why commands that did not run and commands whose result never came back
+ * produced nothing, for a run where no command ran: "the cluster's Runner
+ * took it but never reported back, so whether it ran is unknown".
+ */
+function describeCommandsWithoutResult(
+  notRun: number,
+  unknown: number,
+): string {
+  if (notRun === 0) {
+    return `the cluster's Runner took ${
+      unknown === 1 ? "it" : "them"
+    } but never reported back, so whether ${
+      unknown === 1 ? "it" : "they"
+    } ran is unknown`;
+  }
+
+  return `${notRun.toLocaleString()} could not run (the cluster's Runner did not pick ${
+    notRun === 1 ? "it" : "them"
+  } up, or ${
+    notRun === 1 ? "it was" : "they were"
+  } refused), and the Runner took ${unknown.toLocaleString()} more but never reported back`;
+}
+
+/*
  * The past-tense sentence for a finished run, or null when the run's own
  * kubectl usage is unknown (older API replicas, or a run whose events have
  * not been loaded) — never guessed from the current configuration.
  *
  * "Ran" is only ever said of commands that reached kubectl. Commands that
- * returned an error, and commands that never ran (the cluster's Runner did
- * not pick them up, or they were refused), are named separately, so an
- * unreachable cluster is never reported as inspected.
+ * returned an error, commands that never ran (the cluster's Runner did
+ * not pick them up, or they were refused) and commands a Runner took but
+ * never reported back on (whether they ran is unknown) are named
+ * separately, so an unreachable cluster is never reported as inspected
+ * and a command that may have run is never reported as never run.
  */
 export function describeFinishedRunKubectlUsage(
   activity: KubectlActivitySummary | undefined,
@@ -113,9 +139,22 @@ export function describeFinishedRunKubectlUsage(
   const succeeded: number = Math.min(executed, toCount(activity.succeeded));
   const failed: number = executed - succeeded;
   const notRun: number = toCount(activity.notRun);
+  const unknown: number = toCount(activity.unknown);
 
-  if (executed === 0 && notRun === 0) {
+  if (executed === 0 && notRun === 0 && unknown === 0) {
     return { text: DATA_ONLY_RUN_TEXT, tone: "none" };
+  }
+
+  if (executed === 0 && unknown > 0) {
+    return {
+      text: `OneUptime AI tried ${pluralizeCommands(
+        notRun + unknown,
+      )}, but no result came back from the cluster — ${describeCommandsWithoutResult(
+        notRun,
+        unknown,
+      )}. This investigation used OneUptime data only; see Investigation activity for why.`,
+      tone: "failed",
+    };
   }
 
   if (executed === 0) {
@@ -134,11 +173,15 @@ export function describeFinishedRunKubectlUsage(
   if (succeeded === 0) {
     return {
       text: `OneUptime AI tried ${pluralizeCommands(
-        executed + notRun,
+        executed + notRun + unknown,
       )}, but none succeeded — kubectl returned an error for ${
         executed === 1 ? "the one that ran" : `all ${executed} that ran`
-      }${
-        notRun > 0 ? ` and ${notRun.toLocaleString()} could not run` : ""
+      }${notRun > 0 ? ` and ${notRun.toLocaleString()} could not run` : ""}${
+        unknown > 0
+          ? ` and ${unknown.toLocaleString()} returned no result (whether ${
+              unknown === 1 ? "it" : "they"
+            } ran is unknown)`
+          : ""
       }. See Investigation activity for each result.`,
       tone: "failed",
     };
@@ -152,6 +195,14 @@ export function describeFinishedRunKubectlUsage(
 
   if (notRun > 0) {
     notes.push(`${notRun.toLocaleString()} more could not run`);
+  }
+
+  if (unknown > 0) {
+    notes.push(
+      `${unknown.toLocaleString()} more returned no result, so whether ${
+        unknown === 1 ? "it" : "they"
+      } ran is unknown`,
+    );
   }
 
   return {

@@ -8,6 +8,7 @@ import ChatActivityFeed, {
   KubectlActivitySummary,
   summarizeKubectlActivity,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/ChatActivityFeed";
+import { KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/ClusterToolFormat";
 import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import { AIRunEventResultSummary } from "../../../Types/AI/AIChatTypes";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
@@ -25,6 +26,9 @@ import ObjectID from "../../../Types/ObjectID";
  * that never did — never picked up by the cluster's Runner, refused, out of
  * budget — as ToolCallFailed. A ToolCallFailed kubectl call therefore never
  * counts as run, and a cluster tool call never counts as a telemetry query.
+ * A command a Runner took whose result never came back is a ToolCallFailed
+ * marked "kubectl result unknown:" — counted on its own, never as "did not
+ * run", because it may have run.
  */
 
 interface StepEvent {
@@ -50,21 +54,26 @@ function events(steps: Array<StepEvent>): Array<AIRunEvent> {
   });
 }
 
+// What the server persists for a command a Runner took and never reported on.
+const RESULT_UNKNOWN_MESSAGE: string = `${KUBECTL_RESULT_UNKNOWN_EVENT_PREFIX} the Runner of cluster "prod-us" took the command, but no result came back, so whether it ran is unknown.`;
+
 function kubectl(
-  outcome: "succeeded" | "errored" | "not-run",
+  outcome: "succeeded" | "errored" | "not-run" | "unknown",
 ): Array<StepEvent> {
   return [
     {
       eventType: AIRunEventType.ToolCallStarted,
       toolName: RUN_KUBECTL_TOOL_NAME,
     },
-    outcome === "not-run"
+    outcome === "not-run" || outcome === "unknown"
       ? {
           eventType: AIRunEventType.ToolCallFailed,
           toolName: RUN_KUBECTL_TOOL_NAME,
           resultSummary: {
             errorMessage:
-              'kubectl was not run on cluster "prod-us": its Runner did not pick up the command in time.',
+              outcome === "unknown"
+                ? RESULT_UNKNOWN_MESSAGE
+                : 'kubectl was not run on cluster "prod-us": its Runner did not pick up the command in time.',
           },
         }
       : {
@@ -110,9 +119,61 @@ describe("summarizeKubectlActivity", () => {
       executed: 2,
       succeeded: 1,
       notRun: 1,
+      unknown: 0,
       // 3 run_kubectl + 1 list_cluster_access started; query_metrics is not.
       clusterToolCalls: 4,
     });
+  });
+
+  test("counts a command whose result never came back on its own, never as not run", () => {
+    const summary: KubectlActivitySummary = summarizeKubectlActivity(
+      events([
+        { eventType: AIRunEventType.RunStarted },
+        ...kubectl("unknown"),
+        ...kubectl("unknown"),
+        ...kubectl("not-run"),
+        ...kubectl("succeeded"),
+      ]),
+    );
+
+    expect(summary).toEqual({
+      executed: 1,
+      succeeded: 1,
+      notRun: 1,
+      unknown: 2,
+      clusterToolCalls: 4,
+    });
+  });
+
+  // Negative control: other failure texts stay "not run".
+  test("counts a refusal, a budget stop and an unmarked failure as not run", () => {
+    const summary: KubectlActivitySummary = summarizeKubectlActivity(
+      events([
+        {
+          eventType: AIRunEventType.ToolCallFailed,
+          toolName: RUN_KUBECTL_TOOL_NAME,
+          resultSummary: {
+            errorMessage:
+              'No kubectl result came back from cluster "prod-us": the command was refused, or the Runner did not run it.',
+          },
+        },
+        {
+          eventType: AIRunEventType.ToolCallFailed,
+          toolName: RUN_KUBECTL_TOOL_NAME,
+          resultSummary: {
+            errorMessage:
+              "Not enough time is left in this investigation's budget to run another kubectl command.",
+          },
+        },
+        {
+          eventType: AIRunEventType.ToolCallFailed,
+          toolName: RUN_KUBECTL_TOOL_NAME,
+        },
+      ]),
+    );
+
+    expect(summary.notRun).toBe(3);
+    expect(summary.unknown).toBe(0);
   });
 
   test("a run whose every kubectl call failed to run has executed nothing", () => {
@@ -139,6 +200,7 @@ describe("summarizeKubectlActivity", () => {
       executed: 0,
       succeeded: 0,
       notRun: 0,
+      unknown: 0,
       clusterToolCalls: 1,
     });
   });
@@ -151,11 +213,18 @@ describe("summarizeKubectlActivity", () => {
           ...telemetry("search_logs", 3),
         ]),
       ),
-    ).toEqual({ executed: 0, succeeded: 0, notRun: 0, clusterToolCalls: 0 });
+    ).toEqual({
+      executed: 0,
+      succeeded: 0,
+      notRun: 0,
+      unknown: 0,
+      clusterToolCalls: 0,
+    });
     expect(summarizeKubectlActivity([])).toEqual({
       executed: 0,
       succeeded: 0,
       notRun: 0,
+      unknown: 0,
       clusterToolCalls: 0,
     });
   });
@@ -181,6 +250,7 @@ describe("summarizeKubectlActivity", () => {
       executed: 1,
       succeeded: 0,
       notRun: 0,
+      unknown: 0,
       clusterToolCalls: 1,
     });
   });
@@ -238,6 +308,36 @@ describe("ChatActivityFeed kubectl steps", () => {
     // A kubectl command has no rows to count, and is never "retried".
     expect(screen.queryByText(/row/)).toBeNull();
     expect(screen.queryByText(/retrying/)).toBeNull();
+  });
+
+  test("says a command whose result never came back may have run", () => {
+    render(
+      <ChatActivityFeed
+        events={events([...kubectl("unknown")])}
+        hideChrome={true}
+      />,
+    );
+
+    expect(
+      screen.getByText("· no result came back — it may have run"),
+    ).toBeVisible();
+    expect(screen.queryByText(/did not run/)).toBeNull();
+  });
+
+  test("counts a cluster listing in clusters, not rows", () => {
+    render(
+      <ChatActivityFeed
+        events={events([
+          ...telemetry(LIST_CLUSTER_ACCESS_TOOL_NAME, 2),
+          ...telemetry(LIST_CLUSTER_ACCESS_TOOL_NAME, 1),
+        ])}
+        hideChrome={true}
+      />,
+    );
+
+    expect(screen.getByText("· 2 clusters")).toBeVisible();
+    expect(screen.getByText("· 1 cluster")).toBeVisible();
+    expect(screen.queryByText(/row/)).toBeNull();
   });
 
   test("leaves other tools' steps as they were", () => {

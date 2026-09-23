@@ -3,10 +3,16 @@ import {
   ANALYSIS_COMPLETION_CLOCK_SKEW_MS,
   ANALYSIS_FINALIZATION_TIMEOUT_MS,
   canViewerReadCredentialNames,
+  getRestrictedGapNextStep,
+  InvestigationPanelClusterAccess,
   isAnalysisPendingForRun,
   RESTRICTED_CREDENTIAL_GAP_DESCRIPTION,
   RESTRICTED_GAP_DESCRIPTION,
+  RESTRICTED_GAP_NEXT_STEP,
+  RESTRICTED_PROJECT_GAP_NEXT_STEP,
+  toPanelClusterAccess,
 } from "../../../Server/API/AIInvestigationAPI";
+import Runner from "../../../Models/DatabaseModels/Runner";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Permission, { UserPermission } from "../../../Types/Permission";
@@ -19,6 +25,7 @@ import PostedRootCause from "../../../Server/Utils/AI/SRE/PostedRootCause";
 import InvestigationEligibility from "../../../Server/Utils/AI/SRE/InvestigationEligibility";
 import KubernetesClusterAiAccessService from "../../../Server/Services/KubernetesClusterAiAccessService";
 import {
+  KubernetesAiAccessGap,
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
@@ -1657,13 +1664,16 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
         remediationMode: KubernetesAiRemediationMode.RequireApproval,
         isRemediationReady: true,
         evaluatedAt: "2026-09-14T18:00:00.000Z",
+        /*
+         * Next steps are replaced too (IP-5): the service writes them for
+         * the cluster's AI page, and they can name the Runner to select.
+         */
         gaps: [
           {
             code: "credential_missing",
             title: "The Kubernetes credential is not usable by the Runner",
             description: RESTRICTED_GAP_DESCRIPTION,
-            nextStep:
-              "Create a Kubernetes credential, assign it to the Runner, and select it on this cluster's AI page.",
+            nextStep: RESTRICTED_GAP_NEXT_STEP,
             blocks: "both",
           },
           {
@@ -1671,11 +1681,71 @@ describe("AIInvestigationAPI latest-investigation cluster access", () => {
             title:
               "The bound Runner is the in-cluster Runner of a different cluster",
             description: RESTRICTED_GAP_DESCRIPTION,
-            nextStep: "Install the in-cluster Runner on THIS cluster.",
+            nextStep: RESTRICTED_GAP_NEXT_STEP,
             blocks: "both",
           },
         ],
       });
+    });
+
+    /*
+     * IP-5: the no_runner_bound gap as KubernetesClusterAiAccessService
+     * builds it when this cluster's agent Runner is registered but unbound.
+     * Its next step names the Runner ("kubernetes-agent/<cluster
+     * identifier>"), which the summary row otherwise withholds.
+     */
+    const NO_RUNNER_BOUND_GAP: KubernetesAiAccessGap = {
+      code: "no_runner_bound",
+      title: "The in-cluster Runner is installed but not selected",
+      description:
+        'Runner "kubernetes-agent/prod-us", this cluster\'s in-cluster Runner, is registered and online, but no Runner is bound to this cluster, so OneUptime AI does not use it.',
+      nextStep:
+        'Select the kubernetes-agent Runner "kubernetes-agent/prod-us" as this cluster\'s Runner on this page (leave the credential empty). No helm change is needed.',
+      blocks: "both",
+    };
+
+    it("never passes a Runner-naming next step to an incident-only viewer", async () => {
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue(viewerWithPermissions([Permission.IncidentViewer]));
+      clusterFindBy.mockRejectedValue(
+        new NotAuthorizedException(
+          "You do not have permissions to read Kubernetes Cluster.",
+        ),
+      );
+      getStatuses.mockResolvedValue([
+        detailedStatus({ runner: null, gaps: [NO_RUNNER_BOUND_GAP] }),
+      ]);
+
+      await callIncidentRoute();
+
+      const row: JSONObject = sentClusterAccess()[0]!;
+      expectNoClusterDetails(row);
+      expect(row["gaps"]).toEqual([
+        {
+          code: "no_runner_bound",
+          title: "The in-cluster Runner is installed but not selected",
+          description: RESTRICTED_GAP_DESCRIPTION,
+          nextStep: RESTRICTED_GAP_NEXT_STEP,
+          blocks: "both",
+        },
+      ]);
+    });
+
+    // Negative control: a reader of the cluster keeps the actionable step.
+    it("keeps the Runner-naming next step for a viewer who can read the cluster", async () => {
+      getStatuses.mockResolvedValue([
+        detailedStatus({ runner: null, gaps: [NO_RUNNER_BOUND_GAP] }),
+      ]);
+      clusterFindBy.mockResolvedValue([readableCluster(CLUSTER_ID)]);
+
+      await callIncidentRoute();
+
+      const gaps: Array<JSONObject> = sentClusterAccess()[0]![
+        "gaps"
+      ] as Array<JSONObject>;
+      expect(gaps[0]!["nextStep"]).toBe(NO_RUNNER_BOUND_GAP.nextStep);
+      expect(gaps[0]!["nextStep"]).toContain("kubernetes-agent/prod-us");
     });
 
     it("checks readability with the viewer's own tenant-pinned props, never as root", async () => {
@@ -2155,5 +2225,156 @@ describe("isAnalysisPendingForRun", () => {
         currentDate: now,
       }),
     ).toBe(false);
+  });
+});
+
+/*
+ * IP-5, at the function: a row for a viewer who cannot read the cluster
+ * carries no service-written gap text at all — not the description, not
+ * the next step — whatever the service writes next.
+ */
+describe("toPanelClusterAccess gap next steps", () => {
+  function statusWithGaps(
+    gaps: Array<KubernetesAiAccessGap>,
+  ): KubernetesClusterAiAccessStatus {
+    return { ...clusterAccessStatus(), gaps };
+  }
+
+  const RUNNER_NAMING_GAP: KubernetesAiAccessGap = {
+    code: "no_runner_bound",
+    title: "The in-cluster Runner is installed but not selected",
+    description: 'Runner "kubernetes-agent/prod-us" is registered.',
+    nextStep:
+      'Select the kubernetes-agent Runner "kubernetes-agent/prod-us" as this cluster\'s Runner on this page (leave the credential empty). No helm change is needed.',
+    blocks: "both",
+  };
+
+  const PROJECT_GAP: KubernetesAiAccessGap = {
+    code: "project_ai_disabled",
+    title: "AI is disabled for this project",
+    description: "OneUptime AI is switched off at the project level.",
+    nextStep: "Enable AI under Project Settings → AI.",
+    blocks: "both",
+  };
+
+  it("replaces every next step for a viewer who cannot read the cluster", () => {
+    const row: InvestigationPanelClusterAccess = toPanelClusterAccess(
+      statusWithGaps([RUNNER_NAMING_GAP, PROJECT_GAP]),
+      { canReadCluster: false, canReadCredentials: false },
+    );
+
+    expect(
+      row.gaps.map((gap: KubernetesAiAccessGap): string => {
+        return gap.nextStep;
+      }),
+    ).toEqual([RESTRICTED_GAP_NEXT_STEP, RESTRICTED_PROJECT_GAP_NEXT_STEP]);
+    expect(JSON.stringify(row)).not.toContain("kubernetes-agent/prod-us");
+  });
+
+  it("keeps every next step for a viewer who can read the cluster, with or without credential read", () => {
+    for (const canReadCredentials of [true, false]) {
+      const row: InvestigationPanelClusterAccess = toPanelClusterAccess(
+        statusWithGaps([RUNNER_NAMING_GAP, PROJECT_GAP]),
+        { canReadCluster: true, canReadCredentials },
+      );
+
+      expect(
+        row.gaps.map((gap: KubernetesAiAccessGap): string => {
+          return gap.nextStep;
+        }),
+      ).toEqual([RUNNER_NAMING_GAP.nextStep, PROJECT_GAP.nextStep]);
+    }
+  });
+
+  it("gives a project-level gap the project-settings step and everything else the cluster step", () => {
+    for (const code of [
+      "project_ai_disabled",
+      "project_auto_remediation_disabled",
+      "project_ai_command_execution_disabled",
+      "llm_provider_missing",
+    ]) {
+      expect(getRestrictedGapNextStep(code)).toBe(
+        RESTRICTED_PROJECT_GAP_NEXT_STEP,
+      );
+    }
+
+    for (const code of [
+      "no_runner_bound",
+      "runner_offline",
+      "credential_missing",
+      "credential_on_agent_runner",
+      // A code added later falls back to the step that names nothing.
+      "a_gap_code_from_the_future",
+    ]) {
+      expect(getRestrictedGapNextStep(code)).toBe(RESTRICTED_GAP_NEXT_STEP);
+    }
+
+    for (const text of [
+      RESTRICTED_GAP_NEXT_STEP,
+      RESTRICTED_PROJECT_GAP_NEXT_STEP,
+    ]) {
+      expect(text).not.toContain("Runner");
+      expect(text).not.toContain("credential");
+      expect(text).not.toContain("this page");
+    }
+  });
+
+  /*
+   * A contract with the service rather than a fixture: the gap the real
+   * KubernetesClusterAiAccessService builds for a registered but unbound
+   * agent Runner never reaches a restricted viewer's row with the Runner's
+   * name in it.
+   */
+  it("strips the Runner name from the service's own no_runner_bound gap", async () => {
+    const service: {
+      findAgentRunnerForCluster: (
+        cluster: KubernetesCluster,
+      ) => Promise<Runner | null>;
+      getRunnerPresence: (runner: Runner) => { isOnline: boolean };
+      getNoRunnerBoundGap: (
+        cluster: KubernetesCluster,
+      ) => Promise<KubernetesAiAccessGap>;
+    } = KubernetesClusterAiAccessService as unknown as {
+      findAgentRunnerForCluster: (
+        cluster: KubernetesCluster,
+      ) => Promise<Runner | null>;
+      getRunnerPresence: (runner: Runner) => { isOnline: boolean };
+      getNoRunnerBoundGap: (
+        cluster: KubernetesCluster,
+      ) => Promise<KubernetesAiAccessGap>;
+    };
+    const agentRunner: Runner = new Runner(new ObjectID(RUNNER_ID));
+    agentRunner.name = "kubernetes-agent/prod-us-identifier";
+    const findAgentRunner: SpyInstance<
+      (cluster: KubernetesCluster) => Promise<Runner | null>
+    > = jest
+      .spyOn(service, "findAgentRunnerForCluster")
+      .mockResolvedValue(agentRunner);
+    const presence: SpyInstance<(runner: Runner) => { isOnline: boolean }> =
+      jest.spyOn(service, "getRunnerPresence").mockReturnValue({
+        isOnline: true,
+      });
+
+    try {
+      const gap: KubernetesAiAccessGap = await service.getNoRunnerBoundGap(
+        new KubernetesCluster(new ObjectID(CLUSTER_ID)),
+      );
+
+      // The service's text does name it...
+      expect(gap.nextStep).toContain("kubernetes-agent/prod-us-identifier");
+
+      const restricted: InvestigationPanelClusterAccess = toPanelClusterAccess(
+        statusWithGaps([gap]),
+        { canReadCluster: false, canReadCredentials: false },
+      );
+
+      // ...and the restricted row does not.
+      expect(JSON.stringify(restricted)).not.toContain(
+        "kubernetes-agent/prod-us-identifier",
+      );
+    } finally {
+      findAgentRunner.mockRestore();
+      presence.mockRestore();
+    }
   });
 });

@@ -54,8 +54,8 @@ export const KUBECTL_KILLED_ON_TIMEOUT_PREFIX: string = "Killed (timeout";
  * the cluster's AI access; every other failure of a command that ran
  * (NotFound, a bad flag, an unknown resource type) is about the command
  * the model chose and must not overwrite the cluster's "Last error".
- * Matched against kubectl's stderr only: stdout is cluster data (pod logs
- * say "connection refused" all the time).
+ * Matched against kubectl's stderr only, one line at a time: stdout is
+ * cluster data (pod logs say "connection refused" all the time).
  */
 const KUBECTL_ACCESS_ERROR_PATTERNS: Array<RegExp> = [
   /Error from server \((Forbidden|Unauthorized)\)/,
@@ -76,6 +76,88 @@ const KUBECTL_ACCESS_ERROR_PATTERNS: Array<RegExp> = [
   /net\/http: request canceled/,
 ];
 
+/*
+ * kubectl's prefix for an error the API server returned. The API server
+ * was reached, authenticated the request and answered, so the transport
+ * words on such a line ("dial tcp", "connection refused", "i/o timeout",
+ * "x509:") are about a component BEHIND it — the kubelet a pod's logs are
+ * proxied from, an aggregated API, a conversion webhook — not about the
+ * AI's access. Only the API server's own authentication and authorization
+ * refusals on such a line are access.
+ */
+const API_SERVER_ANSWERED_PATTERN: RegExp = /^Error from server\b/;
+
+const API_SERVER_REFUSED_ACCESS_PATTERNS: Array<RegExp> = [
+  /^Error from server \((Forbidden|Unauthorized)\)/,
+  / is forbidden: User ".*" cannot /,
+  /\(Unauthorized\)/,
+  /the server has asked for the client to provide credentials/,
+];
+
+/*
+ * A Forbidden that refuses the CHANGE rather than the caller: an admission
+ * webhook, Pod Security, a quota, a namespace being deleted. The access
+ * works; the request would not be accepted from anyone.
+ */
+const CHANGE_REJECTED_PATTERNS: Array<RegExp> = [
+  /admission webhook/i,
+  /violates PodSecurity/,
+  /exceeded quota/,
+  /because it is being terminated/,
+];
+
+/*
+ * Node-side failures kubectl reports for a request the API server passed
+ * on: the kubelet it proxies to (port 10250) is unreachable, refuses the
+ * API server itself ("Forbidden (user=kube-apiserver, ...)"), or the
+ * container is gone — what "kubectl logs" prints for a pod on a NotReady
+ * node, exactly when an investigation is looking at one. Never access,
+ * whatever else the line says.
+ */
+const NODE_SIDE_ERROR_PATTERNS: Array<RegExp> = [
+  /error dialing backend/i,
+  /unable to upgrade connection/i,
+  /error upgrading connection/i,
+  /container not found/i,
+  /:10250\//,
+  /Forbidden \(user=/,
+];
+
+// The Runner's errorMessage for a kubectl that exited non-zero.
+const EXIT_CODE_PREFIX_PATTERN: RegExp = /^Exit code (?:-?\d+|\?)(?::[ \t]*|$)/;
+
+const STDERR_SECTION_MARKER: string = "[stderr]\n";
+
+/*
+ * The part of the model's kubectl output kept for kubectl's own stderr
+ * when the whole does not fit: kubectl says why it failed at the END of
+ * its output, so a large partial table must never push that out. stdout
+ * gets the rest of the cap (and stderr more, when stdout is short).
+ */
+export const KUBECTL_STDERR_CHARS_FOR_LLM: number = 2_000;
+
+const STDERR_CUT_NOTE: string = "... [earlier stderr truncated]\n";
+
+/*
+ * What is known about whether kubectl ran for a finished job:
+ *
+ *  - Ran: kubectl ran. It left an exit code or output, or the Runner
+ *    killed the kubectl it had spawned at its timeout;
+ *  - NotRun: it certainly never reached kubectl. No Runner claimed the
+ *    job, or the server or the Runner refused it (or could not start
+ *    kubectl) and reported so;
+ *  - Unknown: a Runner took the job and no result came back. kubectl may
+ *    have run to completion — a fast command whose result POST was lost,
+ *    a Runner pod killed right after kubectl returned — or never started.
+ *    Never to be read as "did not run": a write in this state may have
+ *    been applied.
+ */
+export enum KubectlRunState {
+  Ran = "Ran",
+  NotRun = "NotRun",
+  Unknown = "Unknown",
+}
+
 export interface KubectlJobOutcome {
   jobId: string;
   succeeded: boolean;
@@ -91,13 +173,22 @@ export interface KubectlJobOutcome {
   errorMessage?: string | undefined;
   displayCommand: string;
   /*
-   * Whether kubectl actually ran on the cluster. False when the job never
-   * reached kubectl: no Runner claimed it, the server or the Runner refused
-   * it before spawning kubectl, or kubectl could not be started. Such a
-   * command produced no evidence, so it is never cited or counted as run.
-   * Absent on an outcome a caller assembled from its own wait.
+   * Whether kubectl ran, or may have run, on the cluster. False ONLY when
+   * the job certainly never reached kubectl: no Runner claimed it, the
+   * server or the Runner refused it before spawning kubectl, or kubectl
+   * could not be started. Such a command produced no evidence, so it is
+   * never cited or counted as run. True includes a job a Runner took whose
+   * result never came back (runState Unknown), which must never be treated
+   * as "nothing happened". Absent on an outcome a caller assembled from
+   * its own wait.
    */
   executed?: boolean | undefined;
+  /*
+   * The three-way answer behind `executed`: only Ran left output that may
+   * be cited as evidence. Absent on an outcome a caller assembled from its
+   * own wait.
+   */
+  runState?: KubectlRunState | undefined;
   /*
    * True only when no Runner claimed the job within its claim window: the
    * cluster's Runner is offline, restarting or busy, and the next command
@@ -120,16 +211,28 @@ export interface KubectlTerminalJobFacts {
   output?: string | null | undefined;
   errorMessage?: string | null | undefined;
   /*
-   * Whether the Runner reported the job running (startedAt). Only read for
-   * a TimedOut job, whose row alone cannot say whether kubectl ran.
+   * Whether a Runner claimed the job (claimedAt or assignedAgentId on its
+   * row). Only read for a TimedOut job, whose row alone cannot say.
+   * Undefined when it is not known, which assumes nothing: the run state
+   * is Unknown, never NotRun.
+   */
+  wasClaimed?: boolean | undefined;
+  /*
+   * Whether the Runner heartbeated the job (startedAt). Implies it was
+   * claimed, but its absence proves nothing: the Runner's first job
+   * heartbeat comes a full JOB_HEARTBEAT_INTERVAL_MS (10 s by default)
+   * into execution, so a fast kubectl whose result was lost never set it.
    */
   wasStarted?: boolean | undefined;
 }
 
-interface KubectlJobClaimState {
-  // Undefined when the row could not be re-read: nothing is assumed.
+/*
+ * What the job row says about who took a TimedOut job. Each field is
+ * undefined when the row could not be re-read: nothing is assumed.
+ */
+export interface KubectlJobClaimState {
   wasClaimed: boolean | undefined;
-  wasStarted: boolean;
+  wasStarted: boolean | undefined;
 }
 
 export interface RedactedKubectlOutput {
@@ -158,6 +261,13 @@ export default class KubectlJobRunner {
      * window KubectlWaitBudget planned so claim + execution fit the budget.
      */
     claimTimeoutInMs?: number | undefined;
+    /*
+     * The cluster AI page's "Test access" check (no aiRunId): enqueued as
+     * an access test, so the chokepoint exempts it from the investigation
+     * switch and brake, and its timeouts are worded in kubectl terms like
+     * every other kubectl job's.
+     */
+    isAccessTest?: boolean | undefined;
   }): Promise<KubectlJobOutcome> {
     const claimTimeoutInMs: number =
       data.claimTimeoutInMs ?? KUBECTL_CLAIM_TIMEOUT_MS;
@@ -174,6 +284,7 @@ export default class KubectlJobRunner {
       command: data.command,
       timeoutInMs: data.timeoutInMs,
       claimTimeoutInMs,
+      ...(data.isAccessTest === true ? { isAccessTest: true } : {}),
     });
 
     const displayCommand: string = String(
@@ -193,9 +304,10 @@ export default class KubectlJobRunner {
     /*
      * A TimedOut row cannot say on its own whether a Runner ever took the
      * job (the timeout write re-reads it without claimedAt), and that is
-     * the one fact that separates "the Runner is unreachable" from "the
-     * Runner took it and went silent". Read it back from the row rather
-     * than guessing from the reason text.
+     * the one fact that separates "the Runner is unreachable" (nothing
+     * ran) from "the Runner took it and went silent" (whether it ran is
+     * unknown). Read it back from the row rather than guessing from the
+     * reason text.
      */
     const claimState: KubectlJobClaimState =
       terminalJob.status === RunnerJobStatus.TimedOut
@@ -207,10 +319,12 @@ export default class KubectlJobRunner {
       exitCode: terminalJob.exitCode,
       output: terminalJob.output,
       errorMessage: terminalJob.errorMessage,
+      wasClaimed: claimState.wasClaimed,
       wasStarted: claimState.wasStarted,
     };
 
-    const executed: boolean = KubectlJobRunner.didKubectlRun(facts);
+    const runState: KubectlRunState = KubectlJobRunner.getRunState(facts);
+    const executed: boolean = runState !== KubectlRunState.NotRun;
     const claimTimedOut: boolean =
       terminalJob.status === RunnerJobStatus.TimedOut &&
       claimState.wasClaimed === false;
@@ -241,6 +355,7 @@ export default class KubectlJobRunner {
           ),
       displayCommand,
       executed,
+      runState,
       claimTimedOut,
       isAccessFailure,
     };
@@ -267,29 +382,54 @@ export default class KubectlJobRunner {
    * Did kubectl run on the cluster? Decided from what only a spawned
    * kubectl leaves behind — an exit code, or output — never from reason
    * text, with one exception: the Runner's own "Killed (timeout …)" for a
-   * kubectl it spawned and killed. A TimedOut job ran only if the Runner
-   * reported it running before it went silent.
+   * kubectl it spawned and killed. A TimedOut job no Runner claimed never
+   * ran; one a Runner claimed (or whose claim could not be read) is
+   * Unknown, whether or not it was ever heartbeated: startedAt is written
+   * by the Runner's first job heartbeat, 10 s into execution, so a fast
+   * kubectl whose result was lost never set it.
+   *
+   * A Failed row with no exit code and no output is read as NotRun: that
+   * is how every refusal before kubectl is spawned (the claim ingress, the
+   * Runner's guard, policy and scope checks, a missing kubectl) reports.
+   * It is only as good as the Runner's reporting: a Runner that falls back
+   * to a bare error after kubectl ran (its result POST threw) must send
+   * the exit code and output it has, or this reads a command that ran as
+   * one that did not.
    */
-  public static didKubectlRun(job: KubectlTerminalJobFacts): boolean {
+  public static getRunState(job: KubectlTerminalJobFacts): KubectlRunState {
     if (job.status === RunnerJobStatus.Succeeded) {
-      return true;
+      return KubectlRunState.Ran;
     }
 
     if (typeof job.exitCode === "number") {
-      return true;
-    }
-
-    if (job.status === RunnerJobStatus.TimedOut) {
-      return job.wasStarted === true;
+      return KubectlRunState.Ran;
     }
 
     if ((job.output || "").trim().length > 0) {
-      return true;
+      return KubectlRunState.Ran;
     }
 
-    return (job.errorMessage || "").startsWith(
-      KUBECTL_KILLED_ON_TIMEOUT_PREFIX,
-    );
+    if (job.status === RunnerJobStatus.TimedOut) {
+      return job.wasClaimed === false && job.wasStarted !== true
+        ? KubectlRunState.NotRun
+        : KubectlRunState.Unknown;
+    }
+
+    return (job.errorMessage || "").startsWith(KUBECTL_KILLED_ON_TIMEOUT_PREFIX)
+      ? KubectlRunState.Ran
+      : KubectlRunState.NotRun;
+  }
+
+  /*
+   * Could kubectl have run on the cluster? False ONLY when it certainly did
+   * not (KubectlRunState.NotRun), so a caller that must never forget or
+   * repeat a command it may have applied — a remediation write, its
+   * rollback, the audit trail — can read false as "nothing happened". True
+   * includes Unknown: a caller that needs evidence (output it may cite)
+   * asks getRunState for Ran instead.
+   */
+  public static didKubectlRun(job: KubectlTerminalJobFacts): boolean {
+    return KubectlJobRunner.getRunState(job) !== KubectlRunState.NotRun;
   }
 
   /*
@@ -297,15 +437,18 @@ export default class KubectlJobRunner {
    * command the model chose? Everything that kept kubectl from running is
    * access (an unclaimed job, a Runner or server refusal, a missing
    * kubectl); so is a timeout. A kubectl that ran and exited non-zero is
-   * access only when its stderr says it could not reach, authenticate to
-   * or was not authorized by the API server.
+   * access only when a line of its stderr says it could not reach,
+   * authenticate to or was not authorized by the API server — never when
+   * the API server answered and a component behind it (the kubelet a
+   * pod's logs come from, a webhook, an aggregated API) failed, and never
+   * when the change itself was rejected (admission, quota).
    */
   public static isAccessFailure(job: KubectlTerminalJobFacts): boolean {
     if (job.status === RunnerJobStatus.Succeeded) {
       return false;
     }
 
-    if (!KubectlJobRunner.didKubectlRun(job)) {
+    if (KubectlJobRunner.getRunState(job) !== KubectlRunState.Ran) {
       return true;
     }
 
@@ -319,13 +462,54 @@ export default class KubectlJobRunner {
       return true;
     }
 
-    const diagnostics: string = `${KubectlJobRunner.getStderr(
-      job.output || "",
-    )}\n${errorMessage}`;
+    const lines: Array<string> = [
+      ...KubectlJobRunner.getStderr(job.output || "").split("\n"),
+      ...errorMessage.split("\n"),
+    ];
 
-    return KUBECTL_ACCESS_ERROR_PATTERNS.some((pattern: RegExp) => {
-      return pattern.test(diagnostics);
-    });
+    for (const line of lines) {
+      if (KubectlJobRunner.isAccessErrorLine(line)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /*
+   * One line of kubectl's stderr (or of the Runner's "Exit code N: <last
+   * stderr line>" errorMessage) read on its own, so a node-side error on
+   * one line never borrows an access word from another.
+   */
+  private static isAccessErrorLine(rawLine: string): boolean {
+    const line: string = rawLine.trim().replace(EXIT_CODE_PREFIX_PATTERN, "");
+
+    if (!line) {
+      return false;
+    }
+
+    if (KubectlJobRunner.matchesAny(NODE_SIDE_ERROR_PATTERNS, line)) {
+      return false;
+    }
+
+    if (API_SERVER_ANSWERED_PATTERN.test(line)) {
+      return (
+        KubectlJobRunner.matchesAny(API_SERVER_REFUSED_ACCESS_PATTERNS, line) &&
+        !KubectlJobRunner.matchesAny(CHANGE_REJECTED_PATTERNS, line)
+      );
+    }
+
+    return KubectlJobRunner.matchesAny(KUBECTL_ACCESS_ERROR_PATTERNS, line);
+  }
+
+  private static matchesAny(patterns: Array<RegExp>, line: string): boolean {
+    for (const pattern of patterns) {
+      if (pattern.test(line)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /*
@@ -335,9 +519,10 @@ export default class KubectlJobRunner {
    * classify the failure.
    */
   private static getStderr(output: string): string {
-    const marker: string = "[stderr]\n";
-    const index: number = output.lastIndexOf(marker);
-    return index === -1 ? "" : output.slice(index + marker.length);
+    const index: number = output.lastIndexOf(STDERR_SECTION_MARKER);
+    return index === -1
+      ? ""
+      : output.slice(index + STDERR_SECTION_MARKER.length);
   }
 
   /*
@@ -357,9 +542,13 @@ export default class KubectlJobRunner {
       )} — it may be offline, restarting or busy with other work. Nothing was run on the cluster.`;
     }
 
-    return `The Runner did not report a result for this kubectl command in time — it stopped responding, or kubectl outlived its ${KubectlJobRunner.describeSeconds(
+    if (data.wasClaimed === undefined) {
+      return "No result came back for this kubectl command in time, and whether a Runner picked it up could not be read. What the command did is unknown.";
+    }
+
+    return `The Runner took this kubectl command but did not report a result in time — it stopped responding, or kubectl outlived its ${KubectlJobRunner.describeSeconds(
       data.executionTimeoutInMs,
-    )} timeout. What the command did is unknown.`;
+    )} timeout. Whether it ran, and what it did, is unknown.`;
   }
 
   private static describeSeconds(milliseconds: number): string {
@@ -367,11 +556,14 @@ export default class KubectlJobRunner {
   }
 
   /*
-   * Whether a Runner ever claimed (and started) the job. Best effort: a
-   * failed read leaves the claim unknown, which trips nothing and claims
-   * nothing ran.
+   * Whether a Runner ever claimed (and heartbeated) the job, read back
+   * from its row. Best effort: a failed read leaves both unknown, which
+   * assumes nothing — it neither calls the Runner unreachable (no breaker
+   * trips) nor says nothing ran (the run state is Unknown). Public so a
+   * caller that waits on a kubectl job itself reads a TimedOut job the
+   * same way.
    */
-  private static async readClaimState(
+  public static async readClaimState(
     jobId: ObjectID,
   ): Promise<KubectlJobClaimState> {
     try {
@@ -387,7 +579,7 @@ export default class KubectlJobRunner {
       });
 
       if (!row) {
-        return { wasClaimed: undefined, wasStarted: false };
+        return { wasClaimed: undefined, wasStarted: undefined };
       }
 
       return {
@@ -398,7 +590,7 @@ export default class KubectlJobRunner {
       logger.error(
         `kubectl job ${jobId.toString()}: could not read whether a Runner claimed it: ${error}`,
       );
-      return { wasClaimed: undefined, wasStarted: false };
+      return { wasClaimed: undefined, wasStarted: undefined };
     }
   }
 
@@ -439,6 +631,10 @@ export default class KubectlJobRunner {
    * material, base64 — then the generic tool-result rules (cloud keys,
    * emails, addresses, long hex), then the shared cap. A value both passes
    * recognise is counted by both, so the count is an upper bound.
+   *
+   * The cap keeps kubectl's own "[stderr]" section — the Runner puts it
+   * last, and its last lines say why kubectl failed — and spends the rest
+   * on stdout from the top. A cut stderr keeps its tail.
    */
   public static redactAndCap(
     output: string,
@@ -449,15 +645,72 @@ export default class KubectlJobRunner {
     const generic: { text: string; count: number } =
       ToolResultSerializer.redact(structured.text);
     const redactionCount: number = structured.redactionCount + generic.count;
+    const text: string = generic.text;
 
-    if (generic.text.length <= maxChars) {
-      return { text: generic.text, redactionCount, isTruncated: false };
+    if (text.length <= maxChars) {
+      return { text, redactionCount, isTruncated: false };
     }
 
+    const stderrIndex: number = text.lastIndexOf(STDERR_SECTION_MARKER);
+    const hasStderrSection: boolean =
+      stderrIndex === 0 ||
+      (stderrIndex > 0 && text.charAt(stderrIndex - 1) === "\n");
+
+    if (!hasStderrSection) {
+      return {
+        text: `${text.slice(0, maxChars)}${KUBECTL_OUTPUT_TRUNCATED_SUFFIX}`,
+        redactionCount,
+        isTruncated: true,
+      };
+    }
+
+    // The Runner joins the two sections with one newline.
+    const stdoutSection: string =
+      stderrIndex > 0 ? text.slice(0, stderrIndex - 1) : "";
+    const stderrBody: string = text.slice(
+      stderrIndex + STDERR_SECTION_MARKER.length,
+    );
+
+    /*
+     * stderr always gets its own share, and more when stdout is short
+     * enough to leave room.
+     */
+    const stderrBudget: number = Math.max(
+      Math.min(KUBECTL_STDERR_CHARS_FOR_LLM, Math.floor(maxChars / 2)),
+      maxChars - (stdoutSection ? stdoutSection.length + 1 : 0),
+    );
+
+    let stderrSection: string = `${STDERR_SECTION_MARKER}${stderrBody}`;
+    let isStderrCut: boolean = false;
+
+    if (stderrSection.length > stderrBudget) {
+      const keptChars: number = Math.max(
+        0,
+        stderrBudget - STDERR_SECTION_MARKER.length - STDERR_CUT_NOTE.length,
+      );
+      stderrSection = `${STDERR_SECTION_MARKER}${STDERR_CUT_NOTE}${stderrBody.slice(
+        stderrBody.length - keptChars,
+      )}`;
+      isStderrCut = true;
+    }
+
+    if (!stdoutSection) {
+      return { text: stderrSection, redactionCount, isTruncated: isStderrCut };
+    }
+
+    const stdoutBudget: number = Math.max(
+      0,
+      maxChars - stderrSection.length - 1,
+    );
+    const isStdoutCut: boolean = stdoutSection.length > stdoutBudget;
+    const keptStdout: string = isStdoutCut
+      ? `${stdoutSection.slice(0, stdoutBudget)}${KUBECTL_OUTPUT_TRUNCATED_SUFFIX}`
+      : stdoutSection;
+
     return {
-      text: `${generic.text.slice(0, maxChars)}${KUBECTL_OUTPUT_TRUNCATED_SUFFIX}`,
+      text: `${keptStdout}\n${stderrSection}`,
       redactionCount,
-      isTruncated: true,
+      isTruncated: isStdoutCut || isStderrCut,
     };
   }
 

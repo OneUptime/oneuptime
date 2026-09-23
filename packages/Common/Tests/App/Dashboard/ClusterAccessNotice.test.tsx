@@ -198,6 +198,54 @@ describe("describeFinishedRunKubectlUsage", () => {
       "OneUptime AI ran 1 read-only kubectl command during this investigation.",
     );
   });
+
+  /*
+   * IP-1: the cluster's Runner took the command, kubectl finished, and the
+   * result never came back (a lost result POST, a Runner killed right
+   * after). It may have run, so it is never "did not pick it up, or it was
+   * refused" — and never "ran" either.
+   */
+  test("never says a command whose result never came back was not picked up or refused", () => {
+    const usage: FinishedRunKubectlUsage | null =
+      describeFinishedRunKubectlUsage(activity({ unknown: 1 }));
+
+    expect(usage?.tone).toBe("failed");
+    expect(usage?.text).toBe(
+      "OneUptime AI tried 1 read-only kubectl command, but no result came back from the cluster — the cluster's Runner took it but never reported back, so whether it ran is unknown. This investigation used OneUptime data only; see Investigation activity for why.",
+    );
+    expect(usage?.text).not.toContain("did not pick");
+    expect(usage?.text).not.toContain("refused");
+    expect(usage?.text).not.toContain("none ran");
+    expect(usageText(activity({ unknown: 2 }))).toContain(
+      "the cluster's Runner took them but never reported back, so whether they ran is unknown",
+    );
+  });
+
+  test("names commands that could not run and commands whose result never came back apart", () => {
+    expect(usageText(activity({ notRun: 1, unknown: 2 }))).toBe(
+      "OneUptime AI tried 3 read-only kubectl commands, but no result came back from the cluster — 1 could not run (the cluster's Runner did not pick it up, or it was refused), and the Runner took 2 more but never reported back. This investigation used OneUptime data only; see Investigation activity for why.",
+    );
+    expect(
+      usageText(activity({ executed: 1, succeeded: 0, notRun: 1, unknown: 1 })),
+    ).toBe(
+      "OneUptime AI tried 3 read-only kubectl commands, but none succeeded — kubectl returned an error for the one that ran and 1 could not run and 1 returned no result (whether it ran is unknown). See Investigation activity for each result.",
+    );
+    expect(
+      describeFinishedRunKubectlUsage(
+        activity({ executed: 2, succeeded: 2, unknown: 1 }),
+      ),
+    ).toEqual({
+      text: "OneUptime AI ran 2 read-only kubectl commands during this investigation (1 more returned no result, so whether it ran is unknown — see Investigation activity).",
+      tone: "ran",
+    });
+  });
+
+  // Negative control: without the new bucket, the wording is unchanged.
+  test("keeps the never-ran wording when every command was unclaimed or refused", () => {
+    expect(usageText(activity({ notRun: 2, unknown: 0 }))).toBe(
+      "OneUptime AI tried 2 read-only kubectl commands, but none ran on the cluster — the cluster's Runner did not pick them up, or they were refused. This investigation used OneUptime data only; see Investigation activity for why.",
+    );
+  });
 });
 
 describe("parseClusterAccess", () => {
@@ -560,6 +608,22 @@ describe("ClusterAccessNotice", () => {
       expect(usage).not.toHaveTextContent("ran 3");
       expect(usage).toHaveTextContent("none ran on the cluster");
       expect(noticeText()).not.toContain("had read-only kubectl access");
+    });
+
+    test("says a run whose only command lost its result may have run it", () => {
+      render(
+        <ClusterAccessNotice
+          clusterAccess={[makeStatus()]}
+          isRunFinished={true}
+          kubectlActivity={activity({ unknown: 1 })}
+        />,
+      );
+
+      const usage: HTMLElement = screen.getByTestId("cluster-access-run-usage");
+      expect(usage).toHaveAttribute("data-tone", "failed");
+      expect(usage).toHaveTextContent("whether it ran is unknown");
+      expect(usage).not.toHaveTextContent("did not pick");
+      expect(usage).not.toHaveTextContent("refused");
     });
 
     test("does not show a run whose kubectl calls all returned an error as an inspection", () => {

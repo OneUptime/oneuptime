@@ -11,8 +11,15 @@ import AlertAIContextBuilder, {
   AlertContextData,
 } from "../../../../Server/Utils/AI/AlertAIContextBuilder";
 import AIMemory from "../../../../Server/Utils/AI/SRE/AIMemory";
+import AIConfidenceSignal from "../../../../Server/Utils/AI/SRE/ConfidenceSignal";
+import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
+import {
+  parseInvestigationReport,
+  ParsedInvestigationReport,
+} from "../../../../Utils/AI/InvestigationReport";
 import ObservabilityAssistant, {
   ObservabilityAssistantExtraTool,
+  ObservabilityAssistantRequest,
   ObservabilityAssistantResult,
   ObservabilityAssistantStep,
 } from "../../../../Server/Utils/AI/Chat/ObservabilityAssistant";
@@ -466,5 +473,263 @@ describe("AIInvestigationEngine appends additionalInstructions to the persona", 
     expect(failed?.resultSummary?.errorMessage).toBe(
       'kubectl was not run on cluster "prod-us": its Runner did not pick up the command in time.',
     );
+  });
+});
+
+/*
+ * IP-6: the report posted to the incident timeline describes a kubectl
+ * call as a kubectl command — it succeeded, or kubectl returned an error —
+ * never in rows, and the footer never counts cluster calls as queries run
+ * across the customer's telemetry. The dashboard parses the same text, so
+ * the server block must still read as the server's.
+ */
+describe("AIInvestigationEngine's posted report and kubectl", () => {
+  function citation(
+    id: string,
+    toolName: string,
+    rowCount: number,
+    label: string,
+  ): AIChatCitation {
+    return { id, toolName, label, rowCount, queryArguments: {} };
+  }
+
+  function result(
+    citations: Array<AIChatCitation>,
+    toolCallCount: number,
+  ): ObservabilityAssistantResult {
+    return {
+      contentInMarkdown: "**Summary** — the pod is pending [C1].",
+      citations,
+      totalTokens: 100,
+      llmCallCount: 2,
+      toolCallCount,
+      modelName: "gpt-4.1-mini",
+    };
+  }
+
+  const MIXED_CITATIONS: Array<AIChatCitation> = [
+    citation("C1", "query_metrics", 5, "Max(latency)"),
+    citation(
+      "C2",
+      RUN_KUBECTL_TOOL_NAME,
+      0,
+      'kubectl get pods -n web on cluster "prod-us"',
+    ),
+    citation(
+      "C3",
+      RUN_KUBECTL_TOOL_NAME,
+      1,
+      'kubectl describe pod web-1 -n web on cluster "prod-us"',
+    ),
+    citation(
+      "C4",
+      LIST_CLUSTER_ACCESS_TOOL_NAME,
+      2,
+      "Clusters OneUptime AI can inspect",
+    ),
+  ];
+
+  test("describes each kubectl citation by its outcome, never in rows", () => {
+    // 2 telemetry queries; 1 listing + 3 run_kubectl (one never ran).
+    const markdown: string = AIInvestigationEngine.buildBrandedMarkdown(
+      result(MIXED_CITATIONS, 6),
+      "**Summary** — the pod is pending [C1].",
+      4,
+    );
+
+    expect(markdown).toContain(
+      '- **[C2]** kubectl get pods -n web on cluster "prod-us" — kubectl returned an error',
+    );
+    expect(markdown).toContain(
+      '- **[C3]** kubectl describe pod web-1 -n web on cluster "prod-us" — succeeded',
+    );
+    expect(markdown).toContain(
+      "- **[C4]** Clusters OneUptime AI can inspect — 2 cluster(s)",
+    );
+    // Negative control: a telemetry query keeps its rows.
+    expect(markdown).toContain("- **[C1]** Max(latency) — 5 row(s)");
+    expect(markdown).not.toMatch(/kubectl[^\n]*row\(s\)/);
+    expect(markdown).not.toMatch(/Clusters OneUptime AI can inspect — 2 row/);
+  });
+
+  test("counts telemetry queries and kubectl commands apart in the footer", () => {
+    const markdown: string = AIInvestigationEngine.buildBrandedMarkdown(
+      result(MIXED_CITATIONS, 6),
+      "**Summary** — x.",
+      4,
+    );
+
+    expect(markdown).toContain(
+      "*Investigated automatically by OneUptime AI — read-only, 2 queries run across your own telemetry and 2 kubectl commands run on your Kubernetes clusters using gpt-4.1-mini. This is an AI-generated first pass; verify before acting.*",
+    );
+    expect(markdown).not.toContain("6 queries");
+  });
+
+  // Negative control: a telemetry-only report is unchanged.
+  test("keeps the telemetry-only footer as it was", () => {
+    const markdown: string = AIInvestigationEngine.buildBrandedMarkdown(
+      result([citation("C1", "search_logs", 3, "Logs")], 1),
+      "**Summary** — x.",
+    );
+
+    expect(markdown).toContain("- **[C1]** Logs — 3 row(s)");
+    expect(markdown).toContain(
+      "— read-only, 1 query run across your own telemetry using gpt-4.1-mini.",
+    );
+  });
+
+  test("never says 0 queries for a report built only from kubectl", () => {
+    const markdown: string = AIInvestigationEngine.buildBrandedMarkdown(
+      result(
+        [
+          citation(
+            "C1",
+            RUN_KUBECTL_TOOL_NAME,
+            1,
+            'kubectl describe pod web-1 -n web on cluster "prod-us"',
+          ),
+        ],
+        1,
+      ),
+      "**Summary** — x [C1].",
+      1,
+    );
+
+    expect(markdown).toContain(
+      "— read-only, 1 kubectl command run on your Kubernetes clusters using gpt-4.1-mini.",
+    );
+    expect(markdown).not.toContain("quer");
+  });
+
+  test("names neither when the cluster calls ran nothing and no telemetry was queried", () => {
+    const markdown: string = AIInvestigationEngine.buildBrandedMarkdown(
+      result(
+        [
+          citation(
+            "C1",
+            LIST_CLUSTER_ACCESS_TOOL_NAME,
+            1,
+            "Clusters OneUptime AI can inspect",
+          ),
+        ],
+        2,
+      ),
+      "**Summary** — x.",
+      2,
+    );
+
+    expect(markdown).toContain(
+      "— read-only, no telemetry queries or kubectl commands run using gpt-4.1-mini.",
+    );
+  });
+
+  /*
+   * The dashboard reads the posted text back: a footer whose query count
+   * is 0, or lower than the block's row entries, makes the block the
+   * model's. Every shape above must still be the server's block.
+   */
+  test.each<[string, Array<AIChatCitation>, number, number]>([
+    ["mixed", MIXED_CITATIONS, 6, 4],
+    [
+      "kubectl only",
+      [
+        citation("C1", RUN_KUBECTL_TOOL_NAME, 1, "kubectl get pods"),
+        citation("C2", RUN_KUBECTL_TOOL_NAME, 0, "kubectl get nodes"),
+      ],
+      2,
+      2,
+    ],
+    [
+      "a cluster listing only",
+      [citation("C1", LIST_CLUSTER_ACCESS_TOOL_NAME, 1, "Clusters")],
+      1,
+      1,
+    ],
+    ["telemetry only", [citation("C1", "search_logs", 3, "Logs")], 1, 0],
+  ])(
+    "keeps the %s evidence block the server's when the dashboard parses it",
+    (
+      _label: string,
+      citations: Array<AIChatCitation>,
+      toolCallCount: number,
+      clusterToolCallCount: number,
+    ) => {
+      const report: ParsedInvestigationReport = parseInvestigationReport(
+        AIInvestigationEngine.buildBrandedMarkdown(
+          result(citations, toolCallCount),
+          "**Summary** — the pod is pending.\n\n**Most likely root cause** — x.",
+          clusterToolCallCount,
+        ),
+      );
+
+      expect(report.bodyMarkdown).not.toContain("Evidence checked");
+      expect(report.footer?.modelName).toBe("gpt-4.1-mini");
+    },
+  );
+
+  test("the engine posts the report with the cluster calls it counted", async () => {
+    jest
+      .spyOn(AIRunEventService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    jest
+      .spyOn(AIRunEventService, "create")
+      .mockResolvedValue({} as unknown as AIRunEvent);
+    jest.spyOn(AIRunService, "attemptStatusTransition").mockResolvedValue(1);
+    jest
+      .spyOn(AIConfidenceSignal, "computeConfidenceSignal")
+      .mockResolvedValue({
+        confident: true,
+        codeFixRecommended: false,
+        source: "classification",
+      });
+    jest
+      .spyOn(ObservabilityAssistant, "answerQuestion")
+      .mockImplementation(
+        async (
+          data: ObservabilityAssistantRequest,
+        ): Promise<ObservabilityAssistantResult> => {
+          for (const toolName of [
+            "query_metrics",
+            LIST_CLUSTER_ACCESS_TOOL_NAME,
+            RUN_KUBECTL_TOOL_NAME,
+            RUN_KUBECTL_TOOL_NAME,
+          ]) {
+            await data.onStep!({ type: "tool_started", toolName });
+          }
+          return result(
+            [
+              citation("C1", "query_metrics", 5, "Max(latency)"),
+              citation("C2", RUN_KUBECTL_TOOL_NAME, 1, "kubectl get pods"),
+            ],
+            4,
+          );
+        },
+      );
+    const postAnalysis: jest.Mock = jest.fn(async (): Promise<void> => {});
+
+    try {
+      await AIInvestigationEngine.executeRun({
+        aiRunId,
+        projectId,
+        attemptCount: 1,
+        request: {
+          feature: "Test Investigation",
+          contextSummary: "# Subject",
+          postAnalysis:
+            postAnalysis as unknown as InvestigationRequest["postAnalysis"],
+        },
+      });
+
+      expect(postAnalysis).toHaveBeenCalledTimes(1);
+      const posted: string = (
+        postAnalysis.mock.calls[0]![0] as { analysisMarkdown: string }
+      ).analysisMarkdown;
+      expect(posted).toContain(
+        "read-only, 1 query run across your own telemetry and 1 kubectl command run on your Kubernetes clusters",
+      );
+      expect(posted).toContain("- **[C2]** kubectl get pods — succeeded");
+    } finally {
+      jest.restoreAllMocks();
+    }
   });
 });

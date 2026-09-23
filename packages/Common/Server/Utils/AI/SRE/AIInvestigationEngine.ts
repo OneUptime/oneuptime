@@ -10,6 +10,10 @@ import AIRunStatus from "../../../../Types/AI/AIRunStatus";
 import AIRunCodeFixRecommendation from "../../../../Types/AI/AIRunCodeFixRecommendation";
 import AIRunEventType from "../../../../Types/AI/AIRunEventType";
 import AIRunEvent from "../../../../Models/DatabaseModels/AIRunEvent";
+import {
+  LIST_CLUSTER_ACCESS_TOOL_NAME,
+  RUN_KUBECTL_TOOL_NAME,
+} from "../../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
 import Project from "../../../../Models/DatabaseModels/Project";
 import LlmProvider from "../../../../Models/DatabaseModels/LlmProvider";
 import AIRunService from "../../../Services/AIRunService";
@@ -71,6 +75,17 @@ const CODE_FIX_RECOMMENDATION_PERSIST_ATTEMPTS: number = 3;
  */
 const PERMANENT_FAILURE_RE: RegExp =
   /no llm provider configured|llm provider type is not configured|token budget exhausted/i;
+
+/*
+ * The tools that reach a Kubernetes cluster rather than the project's
+ * telemetry: their calls are kubectl commands (or a listing of clusters),
+ * never "queries run across your own telemetry". Named from the pure
+ * constants module — the kubectl toolkit itself imports this engine.
+ */
+const CLUSTER_TOOL_NAMES: ReadonlyArray<string> = [
+  RUN_KUBECTL_TOOL_NAME,
+  LIST_CLUSTER_ACCESS_TOOL_NAME,
+];
 
 // Maps a live agent step to the AIRunEvent type persisted for the glass-box trail.
 const STEP_EVENT_TYPE: Record<ObservabilityAssistantStepType, AIRunEventType> =
@@ -288,12 +303,26 @@ export default class AIInvestigationEngine {
     });
 
     /*
+     * Cluster tool calls this attempt started. The run's toolCallCount
+     * includes them, and the posted report must not call them telemetry
+     * queries.
+     */
+    let clusterToolCallCount: number = 0;
+
+    /*
      * Live narration: persist each LLM/tool step as an AIRunEvent so the UI can
      * "watch it think" by polling the run's events. Best-effort, ordered.
      */
     const onStep: (step: ObservabilityAssistantStep) => Promise<void> = async (
       step: ObservabilityAssistantStep,
     ): Promise<void> => {
+      if (
+        step.type === "tool_started" &&
+        CLUSTER_TOOL_NAMES.includes(step.toolName || "")
+      ) {
+        clusterToolCallCount++;
+      }
+
       /*
        * A completed tool call also records the citation it minted (label +
        * deep-link target) and — via toolArguments below — the arguments it
@@ -526,6 +555,7 @@ export default class AIInvestigationEngine {
       const investigationAnalysisMarkdown: string = this.buildBrandedMarkdown(
         result,
         analysis,
+        clusterToolCallCount,
       );
 
       await request.postAnalysis({
@@ -776,10 +806,25 @@ export default class AIInvestigationEngine {
     return false;
   }
 
-  // Wrap the agent's analysis with AI branding + an evidence list.
-  private static buildBrandedMarkdown(
+  /*
+   * Wrap the agent's analysis with AI branding + an evidence list. This is
+   * the text posted to the subject's timeline, so each cluster call is
+   * described as what it was — a kubectl command that succeeded or where
+   * kubectl returned an error, a listing of clusters — never in rows, and
+   * the footer counts telemetry queries and kubectl commands apart.
+   *
+   * The dashboard's report parser reads this text back (InvestigationReport
+   * keeps a copy of the format): it recognises a "— N row(s)" entry, and
+   * checks the block against the footer's "N queries run" (a block with
+   * more row entries than queries, or under "0 queries run", is read as the
+   * model's). So a run that made no cluster call posts exactly what it
+   * always has, and a run that did writes its telemetry count only when it
+   * is not zero.
+   */
+  public static buildBrandedMarkdown(
     result: ObservabilityAssistantResult,
     analysisMarkdown: string,
+    clusterToolCallCount: number = 0,
   ): string {
     let markdown: string = `## 🧠 AI — Automated Root Cause Analysis\n\n${analysisMarkdown}`;
 
@@ -788,17 +833,87 @@ export default class AIInvestigationEngine {
     if (citations.length > 0) {
       markdown += `\n\n**Evidence checked**`;
       for (const citation of citations.slice(0, 15)) {
+        const clusterOutcome: string | null =
+          AIInvestigationEngine.describeClusterCitationOutcome(citation);
+
+        if (clusterOutcome !== null) {
+          markdown += `\n- **[${citation.id}]** ${citation.label} — ${clusterOutcome}`;
+          continue;
+        }
+
         markdown += `\n- **[${citation.id}]** ${citation.label} — ${citation.rowCount} row(s)`;
       }
     }
 
-    markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${result.toolCallCount} quer${
-      result.toolCallCount === 1 ? "y" : "ies"
-    } run across your own telemetry${
+    if (clusterToolCallCount <= 0) {
+      markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${result.toolCallCount} quer${
+        result.toolCallCount === 1 ? "y" : "ies"
+      } run across your own telemetry${
+        result.modelName ? ` using ${result.modelName}` : ""
+      }. This is an AI-generated first pass; verify before acting.*`;
+
+      return markdown;
+    }
+
+    const telemetryQueryCount: number = Math.max(
+      0,
+      result.toolCallCount - clusterToolCallCount,
+    );
+    // Only commands that reached kubectl are cited, so only they are "run".
+    const kubectlCommandCount: number = citations.filter(
+      (citation: AIChatCitation): boolean => {
+        return citation.toolName === RUN_KUBECTL_TOOL_NAME;
+      },
+    ).length;
+    const counts: Array<string> = [];
+
+    if (telemetryQueryCount > 0) {
+      counts.push(
+        `${telemetryQueryCount} quer${
+          telemetryQueryCount === 1 ? "y" : "ies"
+        } run across your own telemetry`,
+      );
+    }
+
+    if (kubectlCommandCount > 0) {
+      counts.push(
+        `${kubectlCommandCount} kubectl ${
+          kubectlCommandCount === 1 ? "command" : "commands"
+        } run on your Kubernetes clusters`,
+      );
+    }
+
+    if (counts.length === 0) {
+      counts.push("no telemetry queries or kubectl commands run");
+    }
+
+    markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${counts.join(
+      " and ",
+    )}${
       result.modelName ? ` using ${result.modelName}` : ""
     }. This is an AI-generated first pass; verify before acting.*`;
 
     return markdown;
+  }
+
+  /*
+   * What one cited cluster call returned, in its own terms, or null for a
+   * telemetry query (whose rowCount really is rows). A kubectl command's
+   * rowCount is 1 when kubectl completed and 0 when it ran and returned an
+   * error; a cluster listing's is the number of clusters it listed.
+   */
+  private static describeClusterCitationOutcome(
+    citation: AIChatCitation,
+  ): string | null {
+    if (citation.toolName === RUN_KUBECTL_TOOL_NAME) {
+      return citation.rowCount > 0 ? "succeeded" : "kubectl returned an error";
+    }
+
+    if (citation.toolName === LIST_CLUSTER_ACCESS_TOOL_NAME) {
+      return `${citation.rowCount} cluster(s)`;
+    }
+
+    return null;
   }
 
   // Refresh lastHeartbeatAt so a long-running investigation isn't swept as stale.
