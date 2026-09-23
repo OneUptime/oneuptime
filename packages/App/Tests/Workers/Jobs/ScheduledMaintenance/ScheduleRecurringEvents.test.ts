@@ -94,6 +94,17 @@ jest.mock("Common/Server/Services/ScheduledMaintenanceOwnerTeamService", () => {
 });
 
 /*
+ * OwnerRuleAssignment.createOwner skips a user owner who is not a member of
+ * the project; the membership check itself is tested in Common.
+ */
+jest.mock("Common/Server/Services/TeamMemberService", () => {
+  return {
+    __esModule: true,
+    default: { isUserMemberOfProject: jest.fn() },
+  };
+});
+
+/*
  * The lookup services only identify which table a list is checked against;
  * the filter itself is mocked below and tested in Common.
  */
@@ -145,6 +156,7 @@ import ScheduledMaintenanceTemplateOwnerUserService from "Common/Server/Services
 import ScheduledMaintenanceTemplateOwnerTeamService from "Common/Server/Services/ScheduledMaintenanceTemplateOwnerTeamService";
 import ScheduledMaintenanceOwnerUserService from "Common/Server/Services/ScheduledMaintenanceOwnerUserService";
 import ScheduledMaintenanceOwnerTeamService from "Common/Server/Services/ScheduledMaintenanceOwnerTeamService";
+import TeamMemberService from "Common/Server/Services/TeamMemberService";
 import PostgresErrorTranslator from "Common/Server/Utils/Database/PostgresErrorTranslator";
 import logger from "Common/Server/Utils/Logger";
 import ScheduledMaintenanceOwnerUser from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
@@ -270,6 +282,11 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
     ).mockImplementation((async (data: { ids: Array<string> }) => {
       return { usableIds: data.ids, droppedIds: [] };
     }) as never);
+
+    // Every template owner is still a project member unless a test says not.
+    (TeamMemberService.isUserMemberOfProject as jest.Mock).mockResolvedValue(
+      true as never,
+    );
   });
 
   test("carries every affected resource from the template onto the recurrence", async () => {
@@ -578,6 +595,48 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
         1,
       );
       expect(logger.error).not.toHaveBeenCalled();
+    });
+
+    test("a template owner who has left the project is not copied onto the new event", async () => {
+      /*
+       * The template's owner list is saved configuration and can still name
+       * a user removed from the project since. The recurrence must not make
+       * them an owner of new work - and must still copy everyone else.
+       */
+      (
+        ScheduledMaintenanceOwnerUserService.create as jest.Mock
+      ).mockResolvedValue({} as never);
+      (TeamMemberService.isUserMemberOfProject as jest.Mock).mockImplementation(
+        (async (data: { userId: ObjectID }) => {
+          return data.userId.toString() !== USER_A.toString();
+        }) as never,
+      );
+
+      await mockCapturedJobs[JOB_NAME]!();
+
+      expect(userIdsWritten()).toEqual([USER_B.toString()]);
+      expect(ScheduledMaintenanceOwnerTeamService.create).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(logger.error).not.toHaveBeenCalled();
+
+      const checked: Array<{ projectId: ObjectID; userId: ObjectID }> = (
+        TeamMemberService.isUserMemberOfProject as jest.Mock
+      ).mock.calls.map((call: Array<unknown>) => {
+        return call[0] as { projectId: ObjectID; userId: ObjectID };
+      });
+
+      expect(
+        checked.map((call: { projectId: ObjectID; userId: ObjectID }) => {
+          return {
+            projectId: call.projectId.toString(),
+            userId: call.userId.toString(),
+          };
+        }),
+      ).toEqual([
+        { projectId: PROJECT_ID.toString(), userId: USER_A.toString() },
+        { projectId: PROJECT_ID.toString(), userId: USER_B.toString() },
+      ]);
     });
 
     test("any other owner failure is still reported", async () => {
