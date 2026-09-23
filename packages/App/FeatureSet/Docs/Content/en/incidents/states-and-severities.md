@@ -135,7 +135,7 @@ The practical consequence: any custom state you add keeps incidents in this list
 
 A state change can email your status page subscribers, but it goes through several gates. Understanding them saves a lot of "why didn't anyone get notified" debugging.
 
-Notification is requested per timeline row by **Notify Status Page Subscribers** (`shouldStatusPageSubscribersBeNotified`), the checkbox on the state-change modal and on the manual timeline form. When it is off, the row is stored with a skipped status and an explanation. When it is on, the row is queued and a background job picks it up — the job runs every minute, so delivery is quick but not instantaneous.
+Notification is requested per timeline row by **Notify Status Page Subscribers** (`shouldStatusPageSubscribersBeNotified`), the checkbox on the state-change modal and on the manual timeline form. On the state-change modal it starts off when the incident was declared without notifying subscribers. The same checkbox also decides whether the modal's public note notifies anyone. When it is off, the row is stored with a skipped status and an explanation. When it is on, the row is queued and a background job picks it up — the job runs every minute, so delivery is quick but not instantaneous.
 
 **The queued row is then skipped when any of these hold:**
 

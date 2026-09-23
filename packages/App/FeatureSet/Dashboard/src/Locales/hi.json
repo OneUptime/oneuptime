@@ -4797,6 +4797,7 @@
   "Should status page subscribers be notified when this incident is created?": "जब यह घटना बनाई जाती है तो क्या स्थिति पृष्ठ के सब्सक्राइबर को सूचित किया जाना चाहिए?",
   "Should status page subscribers be notified when this note is posted?": "जब यह नोट पोस्ट किया जाता है तो क्या स्थिति पृष्ठ के सब्सक्राइबर को सूचित किया जाना चाहिए?",
   "Should status page subscribers be notified?": "क्या स्थिति पृष्ठ के सब्सक्राइबर को सूचित किया जाना चाहिए?",
+  "Unticked by default because status page subscribers were not notified when this incident was declared.": "डिफ़ॉल्ट रूप से अनचेक, क्योंकि इस घटना की घोषणा के समय स्थिति पृष्ठ के सब्सक्राइबर को सूचित नहीं किया गया था।",
   "Should the new monitor be disabled when its duplicated?": "नया मॉनिटर डुप्लिकेट होने पर क्या उसे अक्षम किया जाना चाहिए?",
   "Show Announcement At": "घोषणा यहाँ दिखाएं",
   "Show Announcement History (in days)": "घोषणा इतिहास दिखाएं (दिनों में)",

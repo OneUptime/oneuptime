@@ -653,12 +653,19 @@ export default class IncidentPublicNote extends BaseModel {
     ],
     update: [],
   })
+  /*
+   * No static defaultValue here: when a create leaves this out, the service
+   * takes it from the incident (see PublicNoteSubscriberNotificationDefault),
+   * and a fixed "true" in the published API schema would be wrong for
+   * incidents declared without notifying subscribers. The database default
+   * only applies when the incident cannot be found.
+   */
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
     title: "Should subscribers be notified?",
-    description: "Should subscribers be notified about this note?",
-    defaultValue: true,
+    description:
+      "Should subscribers be notified about this note? If left out, this follows the incident: true when subscribers were notified that the incident was declared, false when it was declared without notifying them.",
   })
   @Column({
     type: ColumnType.Boolean,

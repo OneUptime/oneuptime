@@ -32,10 +32,15 @@ import StatusPageSubscriberNotificationStatus from "Common/Types/StatusPage/Stat
 import SubscriberNotificationStatus from "../../../Components/StatusPageSubscribers/SubscriberNotificationStatus";
 import { getNotifySubscribersOfUpdateFormField } from "../../../Components/StatusPageSubscribers/SubscriberUpdateNotificationFormField";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
+import Incident from "Common/Models/DatabaseModels/Incident";
+import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
+import PageLoader from "Common/UI/Components/Loader/PageLoader";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import React, {
   Fragment,
   FunctionComponent,
   ReactElement,
+  useEffect,
   useState,
 } from "react";
 import AttachmentList from "../../../Components/Attachment/AttachmentList";
@@ -66,6 +71,49 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
   const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
   const [showGenerateFromAIModal, setShowGenerateFromAIModal] =
     useState<boolean>(false);
+  /*
+   * Where "Notify Status Page Subscribers" starts on a new note: off when
+   * the incident was declared without notifying subscribers. Null until the
+   * incident loads - the create form reads its starting values once, so it
+   * must not open before this is known.
+   */
+  const [notifySubscribersByDefault, setNotifySubscribersByDefault] = useState<
+    boolean | null
+  >(null);
+  const [incidentError, setIncidentError] = useState<string>("");
+
+  useEffect(() => {
+    let isStale: boolean = false;
+
+    setNotifySubscribersByDefault(null);
+    setIncidentError("");
+
+    ModelAPI.getItem<Incident>({
+      modelType: Incident,
+      id: modelId,
+      select: {
+        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+      },
+    })
+      .then((incident: Incident | null) => {
+        if (!isStale) {
+          setNotifySubscribersByDefault(
+            PublicNoteSubscriberNotificationDefault.shouldNotifyForIncident(
+              incident,
+            ),
+          );
+        }
+      })
+      .catch((err: unknown) => {
+        if (!isStale) {
+          setIncidentError(API.getFriendlyMessage(err));
+        }
+      });
+
+    return () => {
+      isStale = true;
+    };
+  }, [modelId.toString()]);
 
   const generateNoteFromAI: (
     data: GenerateAIRequestData,
@@ -200,6 +248,14 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
       setIsLoading(false);
     };
 
+  if (incidentError) {
+    return <ErrorMessage message={incidentError} />;
+  }
+
+  if (notifySubscribersByDefault === null) {
+    return <PageLoader isVisible={true} />;
+  }
+
   return (
     <Fragment>
       <ModelTable<IncidentPublicNote>
@@ -212,7 +268,17 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
         }}
         isDeleteable={true}
         showCreateForm={Object.keys(initialValuesForIncident).length > 0}
-        createInitialValues={initialValuesForIncident}
+        /*
+         * The notify flag is seeded as a value, not only as the field's
+         * default: the form drops a false default, and an unsent flag would
+         * fall back to notifying. It is kept out of initialValuesForIncident,
+         * whose keys are what open the form from a template or AI draft.
+         */
+        createInitialValues={{
+          shouldStatusPageSubscribersBeNotifiedOnNoteCreated:
+            notifySubscribersByDefault,
+          ...initialValuesForIncident,
+        }}
         isCreateable={true}
         showViewIdButton={true}
         isEditable={true}
@@ -287,9 +353,11 @@ const PublicNote: FunctionComponent<PageComponentProps> = (
 
             title: "Notify Status Page Subscribers",
             stepId: "more",
-            description: "Should status page subscribers be notified?",
+            description: notifySubscribersByDefault
+              ? "Should status page subscribers be notified?"
+              : PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
             fieldType: FormFieldSchemaType.Checkbox,
-            defaultValue: true,
+            defaultValue: notifySubscribersByDefault,
             required: false,
           },
           getNotifySubscribersOfUpdateFormField<IncidentPublicNote>({
