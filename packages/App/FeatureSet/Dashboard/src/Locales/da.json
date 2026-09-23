@@ -6459,5 +6459,6 @@
   "VMware vCenter Updated": "VMware vCenter opdateret",
   "Matching event types: {{count}}": "Matchende begivenhedstyper: {{count}}",
   "Times are shown in {{abbreviation}}.": "Tidspunkter vises i tidszonen {{abbreviation}}.",
-  "Planned window · times in {{abbreviation}}": "Planlagt tidsvindue · tidspunkter i {{abbreviation}}"
+  "Planned window · times in {{abbreviation}}": "Planlagt tidsvindue · tidspunkter i {{abbreviation}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Dette tidspunkt er i din tidszone - {{abbreviation}} ({{timezone}})."
 }

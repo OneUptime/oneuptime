@@ -6459,5 +6459,6 @@
   "VMware vCenter Updated": "VMware vCenter actualizado",
   "Matching event types: {{count}}": "Tipos de eventos coincidentes: {{count}}",
   "Times are shown in {{abbreviation}}.": "Las horas se muestran en la zona horaria {{abbreviation}}.",
-  "Planned window · times in {{abbreviation}}": "Ventana programada · horas en {{abbreviation}}"
+  "Planned window · times in {{abbreviation}}": "Ventana programada · horas en {{abbreviation}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Esta hora está en tu zona horaria - {{abbreviation}} ({{timezone}})."
 }

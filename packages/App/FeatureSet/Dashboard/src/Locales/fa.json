@@ -6459,5 +6459,6 @@
   "VMware vCenter Updated": "VMware vCenter به‌روزرسانی شد",
   "Matching event types: {{count}}": "نوع رویدادهای منطبق: {{count}}",
   "Times are shown in {{abbreviation}}.": "زمان‌ها در منطقه زمانی {{abbreviation}} نمایش داده می‌شوند.",
-  "Planned window · times in {{abbreviation}}": "پنجره زمانی برنامه‌ریزی‌شده · زمان‌ها به وقت {{abbreviation}}"
+  "Planned window · times in {{abbreviation}}": "پنجره زمانی برنامه‌ریزی‌شده · زمان‌ها به وقت {{abbreviation}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "این زمان بر اساس منطقه زمانی شماست — {{abbreviation}} ({{timezone}})."
 }

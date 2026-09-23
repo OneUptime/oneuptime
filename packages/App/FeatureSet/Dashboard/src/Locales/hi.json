@@ -6459,5 +6459,6 @@
   "VMware vCenter Updated": "VMware vCenter अपडेट किया गया",
   "Matching event types: {{count}}": "मेल खाने वाले इवेंट प्रकार: {{count}}",
   "Times are shown in {{abbreviation}}.": "समय {{abbreviation}} टाइमज़ोन में दिखाया जाता है।",
-  "Planned window · times in {{abbreviation}}": "अनुसूचित समय विंडो · समय {{abbreviation}} में"
+  "Planned window · times in {{abbreviation}}": "अनुसूचित समय विंडो · समय {{abbreviation}} में",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "यह समय आपके टाइमज़ोन में है - {{abbreviation}} ({{timezone}})।"
 }

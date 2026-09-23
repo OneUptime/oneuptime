@@ -6459,5 +6459,6 @@
   "VMware vCenter Updated": "VMware vCenter обновлён",
   "Matching event types: {{count}}": "Подходящие типы событий: {{count}}",
   "Times are shown in {{abbreviation}}.": "Время показано в часовом поясе {{abbreviation}}.",
-  "Planned window · times in {{abbreviation}}": "Плановое окно · время в {{abbreviation}}"
+  "Planned window · times in {{abbreviation}}": "Плановое окно · время в {{abbreviation}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Время указано в вашем часовом поясе — {{abbreviation}} ({{timezone}})."
 }

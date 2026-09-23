@@ -6459,5 +6459,6 @@
   "VMware vCenter Updated": "VMware vCenter更新済み",
   "Matching event types: {{count}}": "一致するイベントタイプ: {{count}}",
   "Times are shown in {{abbreviation}}.": "時刻は {{abbreviation}} タイムゾーンで表示されます。",
-  "Planned window · times in {{abbreviation}}": "予定時間枠 · 時刻は {{abbreviation}} で表示"
+  "Planned window · times in {{abbreviation}}": "予定時間枠 · 時刻は {{abbreviation}} で表示",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "この時刻はお使いのタイムゾーンで表示されています - {{abbreviation}} ({{timezone}})。"
 }
