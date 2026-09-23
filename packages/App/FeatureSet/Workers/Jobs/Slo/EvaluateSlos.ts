@@ -2383,9 +2383,23 @@ async function createBurnRateAlert(data: {
     alert.isPrivate = true;
   }
 
-  // On-call policy id-stubs, the MonitorAlert pattern.
+  /*
+   * On-call policy id-stubs, the MonitorAlert pattern. AlertService refuses
+   * an on-call policy or label from another project, and the rule only checks
+   * the ids an edit adds, so one saved before that check can still hold such
+   * an id — and a refused create would stop this rule raising alerts at all.
+   * Drop those and log them instead, as the incident half below does.
+   */
   alert.onCallDutyPolicies = toIdStubs(
-    rule.onCallDutyPolicies,
+    await getRecordsUsableInProject({
+      output: "alert",
+      projectId: context.projectId,
+      ruleId: ruleId,
+      records: rule.onCallDutyPolicies,
+      modelName: "on-call policy",
+      service: OnCallDutyPolicyService,
+      logAttributes: logAttributes,
+    }),
     OnCallDutyPolicy,
   );
 
@@ -2393,7 +2407,18 @@ async function createBurnRateAlert(data: {
    * Set only when the rule has labels, so a rule without any hands the create
    * path exactly what it always did.
    */
-  const labels: Array<Label> = toIdStubs(rule.alertLabels, Label);
+  const labels: Array<Label> = toIdStubs(
+    await getRecordsUsableInProject({
+      output: "alert",
+      projectId: context.projectId,
+      ruleId: ruleId,
+      records: rule.alertLabels,
+      modelName: "label",
+      service: LabelService,
+      logAttributes: logAttributes,
+    }),
+    Label,
+  );
 
   if (labels.length > 0) {
     alert.labels = labels;
@@ -2580,6 +2605,7 @@ async function declareBurnRateIncident(data: {
    */
   incident.onCallDutyPolicies = toIdStubs(
     await getRecordsUsableInProject({
+      output: "incident",
       projectId: context.projectId,
       ruleId: ruleId,
       records: rule.incidentOnCallDutyPolicies,
@@ -2592,6 +2618,7 @@ async function declareBurnRateIncident(data: {
 
   const labels: Array<Label> = toIdStubs(
     await getRecordsUsableInProject({
+      output: "incident",
       projectId: context.projectId,
       ruleId: ruleId,
       records: rule.incidentLabels,
@@ -2676,6 +2703,7 @@ function toIdStub<TModel extends DatabaseBaseModel>(
 async function getRecordsUsableInProject<
   TModel extends DatabaseBaseModel,
 >(data: {
+  output: BurnRateOutputKind;
   projectId: ObjectID;
   ruleId: ObjectID;
   records: Array<TModel> | undefined;
@@ -2712,7 +2740,7 @@ async function getRecordsUsableInProject<
         })
         .join(
           ", ",
-        )}, which does not exist in this project. Declaring the incident without it.`,
+        )}, which does not exist in this project. Creating the ${data.output} without it.`,
       data.logAttributes,
     );
   }
