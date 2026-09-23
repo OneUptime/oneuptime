@@ -6457,5 +6457,8 @@
   "VMware vCenter Created": "VMware vCenter Created",
   "VMware vCenter Restored": "VMware vCenter Restored",
   "VMware vCenter Updated": "VMware vCenter Updated",
-  "Matching event types: {{count}}": "Matching event types: {{count}}"
+  "Matching event types: {{count}}": "Matching event types: {{count}}",
+  "Times are shown in {{abbreviation}}.": "Times are shown in {{abbreviation}}.",
+  "Planned window · times in {{abbreviation}}": "Planned window · times in {{abbreviation}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "This is in your timezone - {{abbreviation}} ({{timezone}})."
 }

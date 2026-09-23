@@ -38,8 +38,10 @@ import MicrosoftTeamsIncidentActions from "../../../../Server/Utils/Workspace/Mi
 import MicrosoftTeamsScheduledMaintenanceActions from "../../../../Server/Utils/Workspace/MicrosoftTeams/Actions/ScheduledMaintenance";
 import SlackActionType from "../../../../Server/Utils/Workspace/Slack/Actions/ActionTypes";
 import { SlackRequest } from "../../../../Server/Utils/Workspace/Slack/Actions/Auth";
+import SlackActionAuthorization from "../../../../Server/Utils/Workspace/Slack/Actions/Authorization";
 import SlackIncidentActions from "../../../../Server/Utils/Workspace/Slack/Actions/Incident";
 import SlackScheduledMaintenanceActions from "../../../../Server/Utils/Workspace/Slack/Actions/ScheduledMaintenance";
+import WorkspaceActionAuthorization from "../../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
 import WorkspaceProjectReferenceValidator from "../../../../Server/Utils/Workspace/WorkspaceProjectReferenceValidator";
 import URL from "../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -530,8 +532,16 @@ describe("Microsoft Teams bot: SubmitNewScheduledMaintenance", (): void => {
         payloadType: "invoke",
         userId: USER_ID.toString(),
       },
+      { userId: USER_ID, tenantId: PROJECT_ID },
     );
   }
+
+  beforeEach((): void => {
+    // Create permission is covered by the workspace authorization tests.
+    jest
+      .spyOn(WorkspaceActionAuthorization, "assertCanCreate")
+      .mockResolvedValue();
+  });
 
   test("creates the event and writes monitor status only within the linked project", async (): Promise<void> => {
     const writes: WriteSpies = spyOnMonitorWrites();
@@ -799,6 +809,10 @@ describe("Slack: SubmitNewScheduledMaintenance", (): void => {
 
   beforeEach((): void => {
     jest.spyOn(Response, "sendJsonObjectResponse").mockImplementation(() => {});
+    // Create permission is covered by the Slack authorization tests.
+    jest
+      .spyOn(SlackActionAuthorization, "authorize")
+      .mockResolvedValue({ userId: USER_ID, tenantId: PROJECT_ID });
   });
 
   test("creates an event whose references all belong to the project", async (): Promise<void> => {

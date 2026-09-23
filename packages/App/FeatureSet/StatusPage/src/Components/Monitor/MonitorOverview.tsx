@@ -10,6 +10,7 @@ import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import { UptimeDayBucket } from "Common/Types/StatusPage/UptimeDailyAggregate";
+import { MergedDowntimeTotals } from "Common/Types/StatusPage/MergedDowntimeTotals";
 import UptimeDailyAggregateUtil from "Common/Utils/StatusPage/UptimeDailyAggregateUtil";
 import MonitorStatusTimelne from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
@@ -44,6 +45,14 @@ export interface ComponentProps {
    * cap dropped, and paint both with defaultBarColor.
    */
   uptimeBuckets?: Array<UptimeDayBucket> | undefined;
+  /*
+   * A monitor group's merged downtime from the server: the time at least one
+   * of its monitors was down, over the time any of them was recorded, from
+   * every row. What the uptime percentage of a monitor-group resource is
+   * read from - a group has no buckets of its own. It does not paint the
+   * bars.
+   */
+  mergedDowntime?: MergedDowntimeTotals | undefined;
   /*
    * The zone uptimeBuckets were cut in (UptimeDailyAggregate.timezone). The
    * bars are drawn on that zone's days so each bar is exactly one bucket.
@@ -131,7 +140,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
        * those days - it read 99.876% for a monitor that was up 99.667% of
        * its sixty days. The buckets are measured from every row.
        */
-      const uptimePercentFromBuckets: number | null = props.uptimeBuckets
+      let uptimePercent: number | null = props.uptimeBuckets
         ? UptimeDailyAggregateUtil.getUptimePercent({
             buckets: props.uptimeBuckets,
             downtimeMonitorStatusIds: props.downtimeMonitorStatuses
@@ -144,24 +153,37 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
         : null;
 
       /*
-       * Otherwise (a monitor group, or buckets that cover nothing) measure
-       * uptime over the same window the history chart is drawn for. Without
-       * this an open (endsAt = null) row that started before the window
+       * A monitor group, from the server's merged figure, for the same
+       * reason: it too is measured from every row. A group's rows here are
+       * also merged by priority, which lets a later-starting, longer-running
+       * row of one monitor cut another monitor's outage short.
+       */
+      if (uptimePercent === null && props.mergedDowntime) {
+        uptimePercent = UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+          coveredSeconds: props.mergedDowntime.coveredSeconds,
+          downtimeSeconds: props.mergedDowntime.downtimeSeconds,
+          precision: precision,
+        });
+      }
+
+      /*
+       * Otherwise (no reading, or one that covers nothing) measure uptime
+       * over the same window the history chart is drawn for. Without this
+       * an open (endsAt = null) row that started before the window
        * contributes its whole duration, and the denominator becomes "first
        * event -> now" rather than the window.
        */
-      const uptimePercent: number =
-        uptimePercentFromBuckets !== null
-          ? uptimePercentFromBuckets
-          : UptimeUtil.calculateUptimePercentage(
-              props.monitorStatusTimeline,
-              precision,
-              props.downtimeMonitorStatuses,
-              {
-                startDate: props.startDate,
-                endDate: props.endDate,
-              },
-            );
+      if (uptimePercent === null) {
+        uptimePercent = UptimeUtil.calculateUptimePercentage(
+          props.monitorStatusTimeline,
+          precision,
+          props.downtimeMonitorStatuses,
+          {
+            startDate: props.startDate,
+            endDate: props.endDate,
+          },
+        );
+      }
 
       return (
         <div

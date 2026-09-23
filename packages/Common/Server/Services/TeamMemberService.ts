@@ -58,6 +58,7 @@ import ProjectOnCallCalendarFeedService from "./ProjectOnCallCalendarFeedService
 import OnCallCalendarFeedCache from "../Infrastructure/OnCallCalendarFeedCache";
 import { OnCallShiftChangeReason } from "../Utils/OnCall/OnCallShiftChangeListeners";
 import OnCallDutyPolicyScheduleLayerUser from "../../Models/DatabaseModels/OnCallDutyPolicyScheduleLayerUser";
+import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 
 /*
  * What cleanupOnCallAssignmentsForUserLeavingProject did, for logging and
@@ -810,6 +811,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
           userId: item.userId,
           hadAcceptedMembership: acceptedMembershipKeys.has(cleanupKey),
         });
+        await this.removeWorkspaceAccountLinksIfUserLeftProject({
+          projectId: item.projectId,
+          userId: item.userId,
+        });
       }
 
       await UserNotificationSettingService.removeDefaultNotificationSettingsForUser(
@@ -875,6 +880,70 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         } as LogAttributes,
       );
       return null;
+    }
+  }
+
+  /**
+   * A user who has left the project must stop acting in it from Slack or
+   * Microsoft Teams. Their WorkspaceUserAuthToken rows for the project are
+   * what map a chat account to them, and nothing removed those rows on leave:
+   * only uninstalling the app or disconnecting the workspace did. So once the
+   * user holds no accepted membership in ANY team of the project, delete them.
+   * Deleting through the service also removes the Slack / Teams notification
+   * methods that point at them (see WorkspaceUserAuthTokenService).
+   *
+   * The chat handlers check membership on every action as well; this keeps
+   * the table from holding links for people who are gone. Best-effort: never
+   * throws into the delete path. Returns how many links were removed.
+   */
+  @CaptureSpan()
+  public async removeWorkspaceAccountLinksIfUserLeftProject(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<number> {
+    try {
+      const remaining: PositiveNumber = await this.countBy({
+        query: {
+          projectId: data.projectId,
+          userId: data.userId,
+          hasAcceptedInvitation: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (remaining.toNumber() > 0) {
+        return 0;
+      }
+
+      return await WorkspaceUserAuthTokenService.deleteBy({
+        query: {
+          projectId: data.projectId,
+          userId: data.userId,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        "Error removing the Slack / Microsoft Teams account links of a user who left the project (best-effort).",
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+      logger.error(
+        err as Error,
+        {
+          projectId: data.projectId.toString(),
+          userId: data.userId.toString(),
+        } as LogAttributes,
+      );
+      return 0;
     }
   }
 

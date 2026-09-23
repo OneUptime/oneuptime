@@ -45,6 +45,8 @@ import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import { UptimeDailyAggregate } from "Common/Types/StatusPage/UptimeDailyAggregate";
 import UptimeDailyAggregateUtil from "Common/Utils/StatusPage/UptimeDailyAggregateUtil";
+import { MergedDowntimeTotals } from "Common/Types/StatusPage/MergedDowntimeTotals";
+import MonitorGroupMergedDowntimeUtil from "Common/Utils/StatusPage/MonitorGroupMergedDowntimeUtil";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
 import ScheduledMaintenanceStateTimeline from "Common/Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
@@ -188,6 +190,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
    */
   const [uptimeDailyAggregate, setUptimeDailyAggregate] =
     useState<UptimeDailyAggregate | null>(null);
+  /*
+   * Server-merged downtime per monitor group, keyed by monitor group id: what
+   * a monitor group's uptime percentage is read from, for the same reason.
+   * Empty from a server that predates it, and a group then falls back to its
+   * rows.
+   */
+  const [monitorGroupMergedDowntime, setMonitorGroupMergedDowntime] = useState<
+    Dictionary<MergedDowntimeTotals>
+  >({});
   const [resourceGroups, setResourceGroups] = useState<Array<StatusPageGroup>>(
     [],
   );
@@ -413,6 +424,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
         UptimeDailyAggregateUtil.fromJSON(
           data["uptimeDailyAggregate"] as JSONObject,
         );
+      const monitorGroupMergedDowntime: Dictionary<MergedDowntimeTotals> =
+        MonitorGroupMergedDowntimeUtil.fromJSON(
+          data["monitorGroupMergedDowntime"] as JSONObject,
+        );
       const resourceGroups: Array<StatusPageGroup> = BaseModel.fromJSONArray(
         (data["resourceGroups"] as JSONArray) || [],
         StatusPageGroup,
@@ -506,6 +521,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setEpisodeStateTimelines(episodeStateTimelines);
       setMonitorStatusTimelines(monitorStatusTimelines);
       setUptimeDailyAggregate(uptimeDailyAggregate);
+      setMonitorGroupMergedDowntime(monitorGroupMergedDowntime);
       setResourceGroups(resourceGroups);
       setMonitorStatuses(monitorStatuses);
       setStatusPage(statusPage);
@@ -738,6 +754,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
               allStatusPageGroups: resourceGroups,
               statusPageGroupTreeIndex: groupTreeIndex,
               uptimeDailyAggregate: uptimeDailyAggregate,
+              monitorGroupMergedDowntime: monitorGroupMergedDowntime,
             },
           )
         : null;
@@ -785,6 +802,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     statusPage,
     monitorsInGroup,
     uptimeDailyAggregate,
+    monitorGroupMergedDowntime,
     startDate,
     endDate,
     t,
@@ -889,9 +907,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
              * resource's reading. A GROUP resource deliberately gets none:
              * its status at any moment is the highest-priority status among
              * its monitors, and summing per-monitor day buckets would count
-             * two monitors down at the same time as twice the downtime.
-             * Groups keep the old event-derived behaviour until the
-             * aggregate is computed per resource server-side.
+             * two monitors down at the same time as twice the downtime. A
+             * group's uptime percentage is read from the server's merged
+             * figure instead (below); its bars keep the old event-derived
+             * behaviour until there is a merged reading per day.
              */
             uptimeBuckets={UptimeDailyAggregateUtil.getBucketsForMonitor(
               uptimeDailyAggregate,
@@ -998,6 +1017,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
               },
             )}
             downtimeMonitorStatuses={statusPage?.downtimeMonitorStatuses || []}
+            /*
+             * The group's uptime percentage: the time at least one of its
+             * monitors was down, merged by the server from every row. Its
+             * rows are what the page-wide cap left, merged by priority.
+             */
+            mergedDowntime={
+              monitorGroupMergedDowntime[
+                resource.monitorGroupId?.toString() || ""
+              ]
+            }
             startDate={uptimeStripStartDate}
             endDate={uptimeStripEndDate}
             /*
@@ -1037,6 +1066,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     statusPage,
     monitorStatusTimelines,
     uptimeDailyAggregate,
+    monitorGroupMergedDowntime,
     monitorsInGroup,
     monitorGroupCurrentStatuses,
     uptimeStripStartDate,
@@ -1065,6 +1095,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
         monitorsInGroup,
         uptimeWindow: { startDate, endDate },
         uptimeDailyAggregate,
+        monitorGroupMergedDowntime,
       },
     );
   }, [
@@ -1072,6 +1103,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     statusPage,
     monitorStatusTimelines,
     uptimeDailyAggregate,
+    monitorGroupMergedDowntime,
     statusPageResources,
     resourceGroups,
     monitorsInGroup,
@@ -1305,6 +1337,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
               monitorsInGroup: monitorsInGroup,
               uptimeWindow: { startDate: startDate, endDate: endDate },
               uptimeDailyAggregate: uptimeDailyAggregate,
+              monitorGroupMergedDowntime: monitorGroupMergedDowntime,
             });
           if (percent !== null) {
             uptimePercents.push(percent);

@@ -30,6 +30,10 @@ import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProj
 import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import AlertEpisodeStateTimeline from "../../../../../Models/DatabaseModels/AlertEpisodeStateTimeline";
+import AlertEpisodeInternalNote from "../../../../../Models/DatabaseModels/AlertEpisodeInternalNote";
+import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import SlackActionAuthorization from "./Authorization";
 
 export default class SlackAlertEpisodeActions {
   @CaptureSpan()
@@ -105,6 +109,17 @@ export default class SlackAlertEpisodeActions {
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: AlertEpisodeStateTimeline,
+          action: "acknowledge this alert episode",
+          resources: [{ service: AlertEpisodeService, id: episodeId }],
+        }))
+      ) {
+        return;
+      }
 
       const isAlreadyAcknowledged: boolean =
         await AlertEpisodeService.isEpisodeAcknowledged({
@@ -225,6 +240,17 @@ export default class SlackAlertEpisodeActions {
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: AlertEpisodeStateTimeline,
+          action: "resolve this alert episode",
+          resources: [{ service: AlertEpisodeService, id: episodeId }],
+        }))
+      ) {
+        return;
+      }
 
       const isAlreadyResolved: boolean =
         await AlertEpisodeService.isEpisodeResolved(episodeId);
@@ -457,6 +483,17 @@ export default class SlackAlertEpisodeActions {
 
     const stateId: ObjectID = new ObjectID(stateString);
 
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: AlertEpisodeStateTimeline,
+        action: "change the state of this alert episode",
+        resources: [{ service: AlertEpisodeService, id: episodeId }],
+      }))
+    ) {
+      return;
+    }
+
     await AlertEpisodeService.changeEpisodeState({
       projectId: data.slackRequest.projectId!,
       episodeId: episodeId,
@@ -560,6 +597,37 @@ export default class SlackAlertEpisodeActions {
         response_action: "clear",
       });
 
+      if (
+        !data.slackRequest.viewValues ||
+        !data.slackRequest.viewValues["onCallPolicy"]
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid View Values"),
+        );
+      }
+
+      const onCallPolicyString: string =
+        data.slackRequest.viewValues["onCallPolicy"].toString();
+
+      // get the on-call policy id.
+      const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: OnCallDutyPolicyExecutionLog,
+          action: "execute an on-call policy for this alert episode",
+          resources: [
+            { service: AlertEpisodeService, id: episodeId },
+            { service: OnCallDutyPolicyService, id: onCallPolicyId },
+          ],
+        }))
+      ) {
+        return;
+      }
+
       const isAlreadyResolved: boolean =
         await AlertEpisodeService.isEpisodeResolved(episodeId);
 
@@ -578,23 +646,6 @@ export default class SlackAlertEpisodeActions {
 
         return;
       }
-
-      if (
-        !data.slackRequest.viewValues ||
-        !data.slackRequest.viewValues["onCallPolicy"]
-      ) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException("Invalid View Values"),
-        );
-      }
-
-      const onCallPolicyString: string =
-        data.slackRequest.viewValues["onCallPolicy"].toString();
-
-      // get the on-call policy id.
-      const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
 
       await OnCallDutyPolicyService.executePolicy(onCallPolicyId, {
         triggeredByAlertEpisodeId: episodeId,
@@ -644,6 +695,17 @@ export default class SlackAlertEpisodeActions {
     Response.sendJsonObjectResponse(req, res, {
       response_action: "clear",
     });
+
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: AlertEpisodeInternalNote,
+        action: "add a private note to this alert episode",
+        resources: [{ service: AlertEpisodeService, id: episodeId }],
+      }))
+    ) {
+      return;
+    }
 
     await AlertEpisodeInternalNoteService.addNote({
       alertEpisodeId: episodeId!,
@@ -856,6 +918,22 @@ export default class SlackAlertEpisodeActions {
     }
 
     const oneUptimeUserId: ObjectID = userAuth.userId;
+
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: {
+          userId: oneUptimeUserId,
+          projectId: projectId,
+          projectAuthToken: authToken,
+          slackUserId: userId,
+        },
+        modelType: AlertEpisodeInternalNote,
+        action: "add a private note to this alert episode",
+        resources: [{ service: AlertEpisodeService, id: episodeId }],
+      }))
+    ) {
+      return;
+    }
 
     // Fetch the message text using the timestamp
     let messageText: string | null = null;

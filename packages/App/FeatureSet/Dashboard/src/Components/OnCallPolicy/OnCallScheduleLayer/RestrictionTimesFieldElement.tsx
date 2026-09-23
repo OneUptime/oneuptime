@@ -36,20 +36,60 @@ export interface ComponentProps {
   timezone?: string | undefined;
 }
 
+type CopyRestrictionTimesFunction = (
+  value: RestrictionTimes,
+) => RestrictionTimes;
+
+/*
+ * A copy of the restrictions that shares nothing with the value it was made
+ * from, so editing it never changes the caller's object. RestrictionTimes.
+ * fromJSON alone does not give that: it hands back an instance it is given,
+ * and an instance built from JSON keeps the JSON's day / weekly objects.
+ */
+const copyRestrictionTimes: CopyRestrictionTimesFunction = (
+  value: RestrictionTimes,
+): RestrictionTimes => {
+  const source: RestrictionTimes = RestrictionTimes.fromJSON(value);
+  const copy: RestrictionTimes = new RestrictionTimes();
+
+  copy.restictionType = source.restictionType;
+  copy.dayRestrictionTimes = source.dayRestrictionTimes
+    ? { ...source.dayRestrictionTimes }
+    : null;
+  copy.weeklyRestrictionTimes = (source.weeklyRestrictionTimes || []).map(
+    (weeklyRestriction: WeeklyResctriction): WeeklyResctriction => {
+      return { ...weeklyRestriction };
+    },
+  );
+
+  return copy;
+};
+
 const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [restrictionTimes, setRestrictionTimes] = useState<
     RestrictionTimes | undefined
-  >(props.value ? RestrictionTimes.fromJSON(props.value) : undefined);
+  >(props.value ? copyRestrictionTimes(props.value) : undefined);
 
   useEffect(() => {
     if (props.value) {
-      setRestrictionTimes(RestrictionTimes.fromJSON(props.value));
+      setRestrictionTimes(copyRestrictionTimes(props.value));
     } else {
       setRestrictionTimes(undefined);
     }
   }, [props.value]);
+
+  /*
+   * Every edit starts from a copy of the current restrictions, so neither this
+   * component's state nor the value the form holds is changed in place.
+   */
+  const getEditableRestrictionTimes: () => RestrictionTimes =
+    (): RestrictionTimes => {
+      return restrictionTimes
+        ? copyRestrictionTimes(restrictionTimes)
+        : new RestrictionTimes();
+    };
 
   /*
    * Display a stored instant in the TimePicker as its wall-clock IN THE SCHEDULE
@@ -115,12 +155,8 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
             onChange={(value: any) => {
               const date: Date = timePickerValueToStoredDate(value);
 
-              let tempRestrictionTimes: RestrictionTimes | undefined =
-                restrictionTimes;
-
-              if (!tempRestrictionTimes) {
-                tempRestrictionTimes = new RestrictionTimes();
-              }
+              const tempRestrictionTimes: RestrictionTimes =
+                getEditableRestrictionTimes();
 
               if (!tempRestrictionTimes.dayRestrictionTimes) {
                 tempRestrictionTimes.dayRestrictionTimes = {
@@ -144,12 +180,8 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
             onChange={(value: any) => {
               const date: Date = timePickerValueToStoredDate(value);
 
-              let tempRestrictionTimes: RestrictionTimes | undefined =
-                restrictionTimes;
-
-              if (!tempRestrictionTimes) {
-                tempRestrictionTimes = new RestrictionTimes();
-              }
+              const tempRestrictionTimes: RestrictionTimes =
+                getEditableRestrictionTimes();
 
               if (!tempRestrictionTimes.dayRestrictionTimes) {
                 tempRestrictionTimes.dayRestrictionTimes = {
@@ -229,13 +261,8 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                       {getWeeklyTimeRestriction({
                         weeklyRestriction,
                         onChange: (value: WeeklyResctriction) => {
-                          let tempRestrictionTimes:
-                            | RestrictionTimes
-                            | undefined = restrictionTimes;
-
-                          if (!tempRestrictionTimes) {
-                            tempRestrictionTimes = new RestrictionTimes();
-                          }
+                          const tempRestrictionTimes: RestrictionTimes =
+                            getEditableRestrictionTimes();
 
                           if (!tempRestrictionTimes.weeklyRestrictionTimes) {
                             tempRestrictionTimes.weeklyRestrictionTimes = [];
@@ -247,13 +274,8 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                           updateRestrictionTimes(tempRestrictionTimes);
                         },
                         onDelete: () => {
-                          let tempRestrictionTimes:
-                            | RestrictionTimes
-                            | undefined = restrictionTimes;
-
-                          if (!tempRestrictionTimes) {
-                            tempRestrictionTimes = new RestrictionTimes();
-                          }
+                          const tempRestrictionTimes: RestrictionTimes =
+                            getEditableRestrictionTimes();
 
                           if (!tempRestrictionTimes.weeklyRestrictionTimes) {
                             tempRestrictionTimes.weeklyRestrictionTimes = [];
@@ -281,12 +303,8 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
               buttonStyle={ButtonStyleType.NORMAL}
               icon={IconProp.Add}
               onClick={() => {
-                let tempRestrictionTimes: RestrictionTimes | undefined =
-                  restrictionTimes;
-
-                if (!tempRestrictionTimes) {
-                  tempRestrictionTimes = new RestrictionTimes();
-                }
+                const tempRestrictionTimes: RestrictionTimes =
+                  getEditableRestrictionTimes();
 
                 if (!tempRestrictionTimes.weeklyRestrictionTimes) {
                   tempRestrictionTimes.weeklyRestrictionTimes = [];
@@ -330,19 +348,22 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                   params.weeklyRestriction.startDay,
                 )}
                 onChange={(value: any) => {
-                  params.weeklyRestriction.startDay = value;
+                  const weeklyRestriction: WeeklyResctriction = {
+                    ...params.weeklyRestriction,
+                    startDay: value,
+                  };
 
                   // move start time to the new start day (in the schedule tz)
-                  if (params.weeklyRestriction.startTime) {
-                    params.weeklyRestriction.startTime =
+                  if (weeklyRestriction.startTime) {
+                    weeklyRestriction.startTime =
                       OneUptimeDate.moveDateToTheDayOfWeek(
-                        params.weeklyRestriction.startTime,
+                        weeklyRestriction.startTime,
                         OneUptimeDate.getCurrentDate(),
                         value,
                         props.timezone,
                       );
                   }
-                  params.onChange(params.weeklyRestriction);
+                  params.onChange(weeklyRestriction);
                 }}
               />
             </div>
@@ -358,15 +379,15 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                    * move date to the day of the week from the start day, in the
                    * schedule timezone so the weekday boundary matches the engine.
                    */
-                  params.weeklyRestriction.startTime =
-                    OneUptimeDate.moveDateToTheDayOfWeek(
+                  params.onChange({
+                    ...params.weeklyRestriction,
+                    startTime: OneUptimeDate.moveDateToTheDayOfWeek(
                       date,
                       OneUptimeDate.getCurrentDate(),
                       params.weeklyRestriction.startDay,
                       props.timezone,
-                    );
-
-                  params.onChange(params.weeklyRestriction);
+                    ),
+                  });
                 }}
               />
             </div>
@@ -383,19 +404,22 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                   params.weeklyRestriction.endDay,
                 )}
                 onChange={(value: any) => {
-                  params.weeklyRestriction.endDay = value;
+                  const weeklyRestriction: WeeklyResctriction = {
+                    ...params.weeklyRestriction,
+                    endDay: value,
+                  };
 
                   // move end time to the new end day (in the schedule tz)
-                  if (params.weeklyRestriction.endTime) {
-                    params.weeklyRestriction.endTime =
+                  if (weeklyRestriction.endTime) {
+                    weeklyRestriction.endTime =
                       OneUptimeDate.moveDateToTheDayOfWeek(
-                        params.weeklyRestriction.endTime,
+                        weeklyRestriction.endTime,
                         OneUptimeDate.getCurrentDate(),
                         value,
                         props.timezone,
                       );
                   }
-                  params.onChange(params.weeklyRestriction);
+                  params.onChange(weeklyRestriction);
                 }}
               />
             </div>
@@ -411,15 +435,15 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
                    * move date to the day of the week from the end day, in the
                    * schedule timezone so the weekday boundary matches the engine.
                    */
-                  params.weeklyRestriction.endTime =
-                    OneUptimeDate.moveDateToTheDayOfWeek(
+                  params.onChange({
+                    ...params.weeklyRestriction,
+                    endTime: OneUptimeDate.moveDateToTheDayOfWeek(
                       date,
                       OneUptimeDate.getCurrentDate(),
                       params.weeklyRestriction.endDay,
                       props.timezone,
-                    );
-
-                  params.onChange(params.weeklyRestriction);
+                    ),
+                  });
                 }}
               />
             </div>
@@ -458,12 +482,20 @@ const RestrictionTimesFieldElement: FunctionComponent<ComponentProps> = (
     <div>
       <BasicRadioButtons
         onChange={(value: string) => {
-          let tempRestrictionTimes: RestrictionTimes | undefined =
-            restrictionTimes;
-
-          if (!tempRestrictionTimes) {
-            tempRestrictionTimes = new RestrictionTimes();
+          /*
+           * BasicRadioButtons also reports its initialValue through onChange,
+           * on mount and whenever it changes - e.g. when the form's saved
+           * value arrives. That is the type already selected, not the user
+           * picking an option, so it must not reset the restrictions to the
+           * defaults below. It did, which replaced a layer's saved hours with
+           * 00:00-01:00 every time its edit form was opened and saved.
+           */
+          if (value === (restrictionTimes?.restictionType ?? "")) {
+            return;
           }
+
+          const tempRestrictionTimes: RestrictionTimes =
+            getEditableRestrictionTimes();
 
           if (value === RestrictionType.None) {
             // remove all restrictions

@@ -8,6 +8,7 @@ import {
   UptimeDailyAggregate,
   UptimeDayBucket,
 } from "../../../Types/StatusPage/UptimeDailyAggregate";
+import { MergedDowntimeTotals } from "../../../Types/StatusPage/MergedDowntimeTotals";
 import UptimeUtil, { UptimeWindow } from "../../../Utils/Uptime/UptimeUtil";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
@@ -686,8 +687,10 @@ describe("StatusPageResourceUptimeUtil", () => {
    * whose sixty days were 99.667% read 99.876%.
    *
    * The fix measures a single-monitor resource from the server's per-day
-   * buckets (uptimeDailyAggregate), which are summed from every row. Before
-   * it these helpers took no aggregate at all, so each test below that
+   * buckets (uptimeDailyAggregate), which are summed from every row, and a
+   * monitor-group resource from the server's merged downtime
+   * (monitorGroupMergedDowntime, the last block). Before it these helpers
+   * took no aggregate at all, so each test below that
    * passes one fails against the old code (it does not compile, and the old
    * row path returns the "old reading" each test also pins).
    *
@@ -1168,7 +1171,7 @@ describe("StatusPageResourceUptimeUtil", () => {
         },
       );
 
-      test("a monitor-group resource ignores the aggregate and is measured from its rows", () => {
+      test("a monitor-group resource ignores the aggregate and, with no merged downtime, is measured from its rows", () => {
         /*
          * A group's status at any moment is the worst of its monitors', which
          * per-monitor day sums cannot express. Every bucket below says 0%,
@@ -1445,7 +1448,7 @@ describe("StatusPageResourceUptimeUtil", () => {
         ).toBe(75);
       });
 
-      test("a monitor-group resource on the same page is still measured from its rows", () => {
+      test("a monitor-group resource on the same page, with no merged downtime, is still measured from its rows", () => {
         const fixture: ReturnType<typeof makeRollUpFixture> =
           makeRollUpFixture();
 
@@ -1488,6 +1491,454 @@ describe("StatusPageResourceUptimeUtil", () => {
             },
           ),
         ).toBe(81.66);
+      });
+    });
+
+    /*
+     * A monitor-group resource (monitors A and B) is down whenever at least
+     * one of its monitors is, which the day buckets cannot say, so it is
+     * measured from the server's merged downtime: the union of its monitors'
+     * downtime over the union of their coverage, from every row.
+     *
+     * Its rows are wrong about it in two ways. The cap leaves only the
+     * newest of them, and their merge (UptimeUtil.getNonOverlappingMonitorEvents)
+     * keeps one event at a time by priority, so a later-starting,
+     * longer-running Operational row of one monitor cuts another monitor's
+     * outage short. Before monitorGroupMergedDowntime these helpers only had
+     * the rows, so each test below that passes it fails against the old code,
+     * which gives the "old reading" each test also pins.
+     */
+    describe("a monitor group, from the server's merged downtime (monitorGroupMergedDowntime)", () => {
+      const OTHER_MONITOR_GROUP: ObjectID = new ObjectID(
+        "66666666-6666-4666-8666-666666666666",
+      );
+
+      // six days down in sixty covered: 90%.
+      const SIX_DAYS_DOWN: MergedDowntimeTotals = {
+        coveredSeconds: 60 * DAY_SECONDS,
+        downtimeSeconds: 6 * DAY_SECONDS,
+      };
+
+      function mergedFor(
+        entries: Array<[ObjectID, MergedDowntimeTotals]>,
+      ): Dictionary<MergedDowntimeTotals> {
+        const merged: Dictionary<MergedDowntimeTotals> = {};
+
+        for (const entry of entries) {
+          merged[entry[0].toString()] = entry[1];
+        }
+
+        return merged;
+      }
+
+      function monitorsOfTheGroup(): Dictionary<Array<ObjectID>> {
+        return {
+          [MONITOR_GROUP.toString()]: [MONITOR_A, MONITOR_B],
+          [OTHER_MONITOR_GROUP.toString()]: [MONITOR_D],
+        };
+      }
+
+      // what survives the cap: a minute of A Offline yesterday, B quiet.
+      function cappedTails(): Array<MonitorStatusTimeline> {
+        return [...flappingTail(MONITOR_A), ...operationalTail(MONITOR_B)];
+      }
+
+      /*
+       * Every row is here: A Offline for the first six days, B Operational
+       * throughout. B's row starts with A's outage and runs past it, so the
+       * row merge ends the outage the moment B's row starts.
+       */
+      function outageErasedByTheRowMerge(): Array<MonitorStatusTimeline> {
+        return [
+          ...sixDaysOfflineRows(MONITOR_A),
+          makeRow({
+            monitorId: MONITOR_B,
+            status: operational(),
+            startsAt: WINDOW.startDate,
+          }),
+        ];
+      }
+
+      function groupUptime(data: {
+        rows: Array<MonitorStatusTimeline>;
+        precision?: UptimePrecision | undefined;
+        resource?: StatusPageResource | undefined;
+        uptimeDailyAggregate?: UptimeDailyAggregate | undefined;
+        monitorGroupMergedDowntime?:
+          | Dictionary<MergedDowntimeTotals>
+          | null
+          | undefined;
+      }): number | null {
+        return StatusPageResourceUptimeUtil.calculateUptimePercentOfResource({
+          statusPageResource:
+            data.resource ||
+            monitorGroupResource({ monitorGroupId: MONITOR_GROUP }),
+          monitorStatusTimelines: data.rows,
+          precision: data.precision || UptimePrecision.TWO_DECIMAL,
+          downtimeMonitorStatuses: downtimeStatuses(),
+          monitorsInGroup: monitorsOfTheGroup(),
+          uptimeWindow: WINDOW,
+          uptimeDailyAggregate: data.uptimeDailyAggregate,
+          monitorGroupMergedDowntime: data.monitorGroupMergedDowntime,
+        });
+      }
+
+      describe("calculateUptimePercentOfResource", () => {
+        test.each([
+          ["the capped rows hold only its last day", cappedTails, 99.96],
+          [
+            "every row is there, but B's Operational row erases A's outage in the row merge",
+            outageErasedByTheRowMerge,
+            100,
+          ],
+        ])(
+          "a monitor group reads its merged downtime when %s",
+          (
+            _name: string,
+            rows: () => Array<MonitorStatusTimeline>,
+            oldReading: number,
+          ) => {
+            // what the page showed before: the rows alone.
+            expect(groupUptime({ rows: rows() })).toBe(oldReading);
+
+            expect(
+              groupUptime({
+                rows: rows(),
+                monitorGroupMergedDowntime: mergedFor([
+                  [MONITOR_GROUP, SIX_DAYS_DOWN],
+                ]),
+              }),
+            ).toBe(90);
+          },
+        );
+
+        test.each([
+          [UptimePrecision.NO_DECIMAL, 99],
+          [UptimePrecision.ONE_DECIMAL, 99.6],
+          [UptimePrecision.TWO_DECIMAL, 99.66],
+          [UptimePrecision.THREE_DECIMAL, 99.666],
+        ])(
+          "the merged reading honours the requested precision (%s -> %s)",
+          (precision: UptimePrecision, expected: number) => {
+            // the chainflip figure: 17,270 s down in sixty covered days.
+            expect(
+              groupUptime({
+                rows: cappedTails(),
+                precision: precision,
+                monitorGroupMergedDowntime: mergedFor([
+                  [
+                    MONITOR_GROUP,
+                    {
+                      coveredSeconds: 60 * DAY_SECONDS,
+                      downtimeSeconds: 17270,
+                    },
+                  ],
+                ]),
+              }),
+            ).toBe(expected);
+          },
+        );
+
+        test("the day aggregate is still never read for a monitor group, whatever it holds", () => {
+          const allOffline: Array<UptimeDayBucket> = [
+            fullDay(0, OFFLINE_ID, DAY_SECONDS),
+          ];
+
+          expect(
+            groupUptime({
+              rows: outageErasedByTheRowMerge(),
+              uptimeDailyAggregate: aggregateOf([
+                [MONITOR_A, allOffline],
+                [MONITOR_B, allOffline],
+                [MONITOR_GROUP, allOffline],
+              ]),
+              monitorGroupMergedDowntime: mergedFor([
+                [MONITOR_GROUP, SIX_DAYS_DOWN],
+              ]),
+            }),
+          ).toBe(90);
+        });
+
+        test.each([
+          [
+            "nothing was recorded for it",
+            (): Dictionary<MergedDowntimeTotals> => {
+              return mergedFor([
+                [MONITOR_GROUP, { coveredSeconds: 0, downtimeSeconds: 0 }],
+              ]);
+            },
+          ],
+          [
+            "only another monitor group has a figure",
+            (): Dictionary<MergedDowntimeTotals> => {
+              return mergedFor([
+                [
+                  OTHER_MONITOR_GROUP,
+                  {
+                    coveredSeconds: 60 * DAY_SECONDS,
+                    downtimeSeconds: 60 * DAY_SECONDS,
+                  },
+                ],
+              ]);
+            },
+          ],
+          [
+            "the payload predates the figure, which parses as empty",
+            (): Dictionary<MergedDowntimeTotals> => {
+              return {};
+            },
+          ],
+          [
+            "it is omitted",
+            (): undefined => {
+              return undefined;
+            },
+          ],
+          [
+            "it is null",
+            (): null => {
+              return null;
+            },
+          ],
+        ])(
+          "a monitor group falls back to its rows, exactly as before, when %s",
+          (
+            _name: string,
+            makeMerged: () =>
+              | Dictionary<MergedDowntimeTotals>
+              | null
+              | undefined,
+          ) => {
+            /*
+             * No reading is not a perfect reading: with nothing merged, the
+             * rows are still the best account there is. B joins when A
+             * recovers, so the row merge keeps A's six days (90%).
+             */
+            const rows: Array<MonitorStatusTimeline> = [
+              ...sixDaysOfflineRows(MONITOR_A),
+              makeRow({
+                monitorId: MONITOR_B,
+                status: operational(),
+                startsAt: new Date(WINDOW.startDate.getTime() + 6 * DAY_MS),
+              }),
+            ];
+
+            const fromRows: number | null = groupUptime({ rows: rows });
+
+            expect(fromRows).toBe(90);
+
+            expect(
+              groupUptime({
+                rows: rows,
+                monitorGroupMergedDowntime: makeMerged(),
+              }),
+            ).toBe(fromRows);
+          },
+        );
+
+        test("a resource that names a monitor is measured as that monitor, even if it names a monitor group too", () => {
+          const resource: StatusPageResource = monitorResource({
+            monitorId: MONITOR_A,
+          });
+          resource.monitorGroupId = MONITOR_GROUP;
+
+          // the group was down the whole time: 0%, which must not be read.
+          const merged: Dictionary<MergedDowntimeTotals> = mergedFor([
+            [
+              MONITOR_GROUP,
+              {
+                coveredSeconds: 60 * DAY_SECONDS,
+                downtimeSeconds: 60 * DAY_SECONDS,
+              },
+            ],
+          ]);
+
+          // from the monitor's buckets...
+          expect(
+            groupUptime({
+              resource: resource,
+              rows: sixDaysOfflineRows(MONITOR_A),
+              precision: UptimePrecision.THREE_DECIMAL,
+              uptimeDailyAggregate: aggregateOf([
+                [MONITOR_A, chainflipBuckets()],
+              ]),
+              monitorGroupMergedDowntime: merged,
+            }),
+          ).toBe(CHAINFLIP_UPTIME_THREE_DECIMAL);
+
+          // ...and without them, from the monitor's own rows.
+          expect(
+            groupUptime({
+              resource: resource,
+              rows: sixDaysOfflineRows(MONITOR_A),
+              precision: UptimePrecision.THREE_DECIMAL,
+              monitorGroupMergedDowntime: merged,
+            }),
+          ).toBe(90);
+        });
+
+        test("a monitor resource never reads a merged figure, even one filed under its own monitor's id", () => {
+          expect(
+            groupUptime({
+              resource: monitorResource({ monitorId: MONITOR_A }),
+              rows: operationalTail(MONITOR_A),
+              precision: UptimePrecision.THREE_DECIMAL,
+              uptimeDailyAggregate: aggregateOf([
+                [MONITOR_A, chainflipBuckets()],
+              ]),
+              monitorGroupMergedDowntime: mergedFor([
+                [
+                  MONITOR_A,
+                  {
+                    coveredSeconds: 60 * DAY_SECONDS,
+                    downtimeSeconds: 60 * DAY_SECONDS,
+                  },
+                ],
+              ]),
+            }),
+          ).toBe(CHAINFLIP_UPTIME_THREE_DECIMAL);
+        });
+
+        test("a monitor group that hides its uptime percent still reports nothing", () => {
+          const resource: StatusPageResource = monitorGroupResource({
+            monitorGroupId: MONITOR_GROUP,
+          });
+          resource.showUptimePercent = false;
+
+          expect(
+            groupUptime({
+              resource: resource,
+              rows: cappedTails(),
+              monitorGroupMergedDowntime: mergedFor([
+                [MONITOR_GROUP, SIX_DAYS_DOWN],
+              ]),
+            }),
+          ).toBeNull();
+        });
+      });
+
+      /*
+       * Parent group: the monitor group (A + B, merged 90%). Child group:
+       * monitor C (buckets 80%). The ungrouped OTHER monitor group (D,
+       * merged 70%). Every row is a quiet Operational tail, so measured from
+       * the rows alone both monitor groups are 100%.
+       */
+      function makeMixedPage(): {
+        groups: Array<StatusPageGroup>;
+        resources: Array<StatusPageResource>;
+        rows: Array<MonitorStatusTimeline>;
+        aggregate: UptimeDailyAggregate;
+        merged: Dictionary<MergedDowntimeTotals>;
+      } {
+        return {
+          groups: [
+            makeStatusPageGroup({ id: PARENT_GROUP }),
+            makeStatusPageGroup({ id: CHILD_GROUP, parentId: PARENT_GROUP }),
+          ],
+          resources: [
+            monitorGroupResource({
+              monitorGroupId: MONITOR_GROUP,
+              groupId: PARENT_GROUP,
+            }),
+            monitorResource({ monitorId: MONITOR_C, groupId: CHILD_GROUP }),
+            monitorGroupResource({ monitorGroupId: OTHER_MONITOR_GROUP }),
+          ],
+          rows: [
+            ...operationalTail(MONITOR_A),
+            ...operationalTail(MONITOR_B),
+            ...operationalTail(MONITOR_C),
+            ...operationalTail(MONITOR_D),
+          ],
+          aggregate: aggregateOf([
+            [MONITOR_C, [fullDay(0, DEGRADED_ID, 17280)]],
+          ]),
+          merged: mergedFor([
+            [MONITOR_GROUP, SIX_DAYS_DOWN],
+            [
+              OTHER_MONITOR_GROUP,
+              {
+                coveredSeconds: 60 * DAY_SECONDS,
+                downtimeSeconds: 18 * DAY_SECONDS,
+              },
+            ],
+          ]),
+        };
+      }
+
+      test("a status page group averages a monitor group's merged reading with the rest of its subtree", () => {
+        const page: ReturnType<typeof makeMixedPage> = makeMixedPage();
+
+        // (90 + 80) / 2.
+        expect(
+          StatusPageResourceUptimeUtil.calculateAvgUptimePercentOfStatusPageGroup(
+            {
+              statusPageGroup: page.groups[0]!,
+              monitorStatusTimelines: page.rows,
+              precision: UptimePrecision.TWO_DECIMAL,
+              downtimeMonitorStatuses: downtimeStatuses(),
+              statusPageResources: page.resources,
+              monitorsInGroup: monitorsOfTheGroup(),
+              uptimeWindow: WINDOW,
+              allStatusPageGroups: page.groups,
+              uptimeDailyAggregate: page.aggregate,
+              monitorGroupMergedDowntime: page.merged,
+            },
+          ),
+        ).toBe(85);
+
+        // the old reading: the monitor group from its capped rows, (100 + 80) / 2.
+        expect(
+          StatusPageResourceUptimeUtil.calculateAvgUptimePercentOfStatusPageGroup(
+            {
+              statusPageGroup: page.groups[0]!,
+              monitorStatusTimelines: page.rows,
+              precision: UptimePrecision.TWO_DECIMAL,
+              downtimeMonitorStatuses: downtimeStatuses(),
+              statusPageResources: page.resources,
+              monitorsInGroup: monitorsOfTheGroup(),
+              uptimeWindow: WINDOW,
+              allStatusPageGroups: page.groups,
+              uptimeDailyAggregate: page.aggregate,
+            },
+          ),
+        ).toBe(90);
+      });
+
+      test("the page average reaches a monitor group's merged reading, in a group or not", () => {
+        const page: ReturnType<typeof makeMixedPage> = makeMixedPage();
+
+        // parent subtree (90 + 80) / 2 = 85, ungrouped monitor group 70 -> 77.5.
+        expect(
+          StatusPageResourceUptimeUtil.calculateAvgUptimePercentageOfAllResources(
+            {
+              monitorStatusTimelines: page.rows,
+              precision: UptimePrecision.TWO_DECIMAL,
+              downtimeMonitorStatuses: downtimeStatuses(),
+              statusPageResources: page.resources,
+              resourceGroups: page.groups,
+              monitorsInGroup: monitorsOfTheGroup(),
+              uptimeWindow: WINDOW,
+              uptimeDailyAggregate: page.aggregate,
+              monitorGroupMergedDowntime: page.merged,
+            },
+          ),
+        ).toBe(77.5);
+
+        // the old reading: both monitor groups 100% -> (90 + 100) / 2.
+        expect(
+          StatusPageResourceUptimeUtil.calculateAvgUptimePercentageOfAllResources(
+            {
+              monitorStatusTimelines: page.rows,
+              precision: UptimePrecision.TWO_DECIMAL,
+              downtimeMonitorStatuses: downtimeStatuses(),
+              statusPageResources: page.resources,
+              resourceGroups: page.groups,
+              monitorsInGroup: monitorsOfTheGroup(),
+              uptimeWindow: WINDOW,
+              uptimeDailyAggregate: page.aggregate,
+            },
+          ),
+        ).toBe(95);
       });
     });
   });

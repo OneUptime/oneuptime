@@ -11,6 +11,11 @@ import IncidentEpisodeService from "../../../../Services/IncidentEpisodeService"
 import IncidentEpisode from "../../../../../Models/DatabaseModels/IncidentEpisode";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { TurnContext } from "botbuilder";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import IncidentEpisodeStateTimeline from "../../../../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
+import IncidentEpisodeInternalNote from "../../../../../Models/DatabaseModels/IncidentEpisodeInternalNote";
+import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 import { JSONObject, JSONValue } from "../../../../../Types/JSON";
 import IncidentEpisodeInternalNoteService from "../../../../Services/IncidentEpisodeInternalNoteService";
 import OnCallDutyPolicyService from "../../../../Services/OnCallDutyPolicyService";
@@ -228,6 +233,7 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
     value: JSONObject;
     projectId: ObjectID;
     oneUptimeUserId: ObjectID;
+    databaseProps: DatabaseCommonInteractionProps;
     turnContext: TurnContext;
   }): Promise<void> {
     const {
@@ -236,6 +242,7 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
       value,
       projectId,
       oneUptimeUserId,
+      databaseProps,
       turnContext,
     } = data;
 
@@ -249,8 +256,17 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         return;
       }
 
+      const episodeId: ObjectID = new ObjectID(actionValue);
+
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: IncidentEpisodeStateTimeline,
+        action: "acknowledge this incident episode",
+        resources: [{ service: IncidentEpisodeService, id: episodeId }],
+      });
+
       await IncidentEpisodeService.acknowledgeEpisode(
-        new ObjectID(actionValue),
+        episodeId,
         oneUptimeUserId,
       );
       await turnContext.sendActivity("Incident episode acknowledged.");
@@ -268,10 +284,16 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         return;
       }
 
-      await IncidentEpisodeService.resolveEpisode(
-        new ObjectID(actionValue),
-        oneUptimeUserId,
-      );
+      const episodeId: ObjectID = new ObjectID(actionValue);
+
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: IncidentEpisodeStateTimeline,
+        action: "resolve this incident episode",
+        resources: [{ service: IncidentEpisodeService, id: episodeId }],
+      });
+
+      await IncidentEpisodeService.resolveEpisode(episodeId, oneUptimeUserId);
       await turnContext.sendActivity("Incident episode resolved.");
       return;
     }
@@ -364,6 +386,13 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
         // Submit the note
         const episodeId: ObjectID = new ObjectID(actionValue);
 
+        await WorkspaceActionAuthorization.assertCanCreate({
+          props: databaseProps,
+          modelType: IncidentEpisodeInternalNote,
+          action: "add a private note to this incident episode",
+          resources: [{ service: IncidentEpisodeService, id: episodeId }],
+        });
+
         await IncidentEpisodeInternalNoteService.addNote({
           incidentEpisodeId: episodeId,
           note: note.toString(),
@@ -435,15 +464,23 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
       if (onCallPolicyId) {
         // Execute the policy
         const episodeId: ObjectID = new ObjectID(actionValue);
+        const policyId: ObjectID = new ObjectID(onCallPolicyId.toString());
 
-        await OnCallDutyPolicyService.executePolicy(
-          new ObjectID(onCallPolicyId.toString()),
-          {
-            triggeredByIncidentEpisodeId: episodeId,
-            userNotificationEventType:
-              UserNotificationEventType.IncidentEpisodeCreated,
-          },
-        );
+        await WorkspaceActionAuthorization.assertCanCreate({
+          props: databaseProps,
+          modelType: OnCallDutyPolicyExecutionLog,
+          action: "execute an on-call policy for this incident episode",
+          resources: [
+            { service: IncidentEpisodeService, id: episodeId },
+            { service: OnCallDutyPolicyService, id: policyId },
+          ],
+        });
+
+        await OnCallDutyPolicyService.executePolicy(policyId, {
+          triggeredByIncidentEpisodeId: episodeId,
+          userNotificationEventType:
+            UserNotificationEventType.IncidentEpisodeCreated,
+        });
 
         await turnContext.sendActivity("On-call policy executed successfully.");
 
@@ -504,6 +541,13 @@ export default class MicrosoftTeamsIncidentEpisodeActions {
       if (incidentStateId) {
         // Update the state
         const episodeId: ObjectID = new ObjectID(actionValue);
+
+        await WorkspaceActionAuthorization.assertCanCreate({
+          props: databaseProps,
+          modelType: IncidentEpisodeStateTimeline,
+          action: "change the state of this incident episode",
+          resources: [{ service: IncidentEpisodeService, id: episodeId }],
+        });
 
         await IncidentEpisodeService.changeEpisodeState({
           projectId: projectId,

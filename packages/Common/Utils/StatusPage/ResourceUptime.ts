@@ -9,6 +9,7 @@ import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageGroupTreeUtil, { StatusPageGroupTreeIndex } from "./GroupTree";
 import UptimeUtil, { UptimeWindow } from "../Uptime/UptimeUtil";
 import { UptimeDailyAggregate } from "../../Types/StatusPage/UptimeDailyAggregate";
+import { MergedDowntimeTotals } from "../../Types/StatusPage/MergedDowntimeTotals";
 import UptimeDailyAggregateUtil from "./UptimeDailyAggregateUtil";
 
 export default class StatusPageResourceUptimeUtil {
@@ -161,10 +162,25 @@ export default class StatusPageResourceUptimeUtil {
      * is measured from its buckets rather than from monitorStatusTimelines,
      * which arrive under a 10,000 row cap across the whole page and on a page
      * with a flapping monitor hold only its last few days. A monitor-group
-     * resource is still measured from the rows: its status at any moment is
-     * the worst of its monitors', which per-monitor sums cannot express.
+     * resource never reads them: it is down whenever at least one of its
+     * monitors is, which per-monitor sums cannot express - see
+     * monitorGroupMergedDowntime.
      */
     uptimeDailyAggregate?: UptimeDailyAggregate | null | undefined;
+    /*
+     * The server's merged downtime for each monitor group, keyed by monitor
+     * group id (the overview payload's monitorGroupMergedDowntime, parsed by
+     * MonitorGroupMergedDowntimeUtil). When supplied, a monitor-group resource
+     * is measured from it: the time at least one of its monitors was down,
+     * over the time any of them was recorded, merged from every row. Its rows
+     * here are capped like any other, and their merge
+     * (UptimeUtil.getNonOverlappingMonitorEvents) lets a later-starting,
+     * longer-running row of another monitor cut an outage short.
+     */
+    monitorGroupMergedDowntime?:
+      | Dictionary<MergedDowntimeTotals>
+      | null
+      | undefined;
   }): number | null {
     if (!data.statusPageResource.showUptimePercent) {
       return null;
@@ -188,6 +204,37 @@ export default class StatusPageResourceUptimeUtil {
       // buckets that cover nothing fall back to the rows, as before.
       if (uptimePercentFromBuckets !== null) {
         return uptimePercentFromBuckets;
+      }
+    }
+
+    /*
+     * A resource that names a monitor is measured as that monitor, even if
+     * it names a monitor group too - its rows below are picked the same way.
+     */
+    if (
+      data.monitorGroupMergedDowntime &&
+      data.statusPageResource.monitorGroupId &&
+      !data.statusPageResource.monitorId
+    ) {
+      const merged: MergedDowntimeTotals | undefined =
+        data.monitorGroupMergedDowntime[
+          data.statusPageResource.monitorGroupId.toString()
+        ];
+
+      const uptimePercentFromMergedDowntime: number | null = merged
+        ? UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+            coveredSeconds: merged.coveredSeconds,
+            downtimeSeconds: merged.downtimeSeconds,
+            precision: data.precision,
+          })
+        : null;
+
+      /*
+       * Nothing recorded for the group, or a payload from a server that
+       * predates the figure: the rows, as before.
+       */
+      if (uptimePercentFromMergedDowntime !== null) {
+        return uptimePercentFromMergedDowntime;
       }
     }
 
@@ -230,6 +277,11 @@ export default class StatusPageResourceUptimeUtil {
     statusPageGroupTreeIndex?: StatusPageGroupTreeIndex | undefined;
     /* See calculateUptimePercentOfResource. */
     uptimeDailyAggregate?: UptimeDailyAggregate | null | undefined;
+    /* See calculateUptimePercentOfResource. */
+    monitorGroupMergedDowntime?:
+      | Dictionary<MergedDowntimeTotals>
+      | null
+      | undefined;
   }): number | null {
     if (!data.statusPageGroup.showUptimePercent) {
       return null;
@@ -259,6 +311,7 @@ export default class StatusPageResourceUptimeUtil {
           monitorsInGroup: data.monitorsInGroup,
           uptimeWindow: data.uptimeWindow,
           uptimeDailyAggregate: data.uptimeDailyAggregate,
+          monitorGroupMergedDowntime: data.monitorGroupMergedDowntime,
         });
 
       if (calculateUptimePercentOfResource !== null) {
@@ -366,6 +419,11 @@ export default class StatusPageResourceUptimeUtil {
     uptimeWindow?: UptimeWindow | undefined;
     /* See calculateUptimePercentOfResource. */
     uptimeDailyAggregate?: UptimeDailyAggregate | null | undefined;
+    /* See calculateUptimePercentOfResource. */
+    monitorGroupMergedDowntime?:
+      | Dictionary<MergedDowntimeTotals>
+      | null
+      | undefined;
   }): number | null {
     const showUptimePercentage: boolean = Boolean(
       data.statusPageResources.find((item: StatusPageResource) => {
@@ -412,6 +470,7 @@ export default class StatusPageResourceUptimeUtil {
               allStatusPageGroups: data.resourceGroups,
               statusPageGroupTreeIndex: groupTreeIndex,
               uptimeDailyAggregate: data.uptimeDailyAggregate,
+              monitorGroupMergedDowntime: data.monitorGroupMergedDowntime,
             });
 
           if (groupUptimePercent !== null) {
@@ -455,6 +514,7 @@ export default class StatusPageResourceUptimeUtil {
           monitorsInGroup: data.monitorsInGroup,
           uptimeWindow: data.uptimeWindow,
           uptimeDailyAggregate: data.uptimeDailyAggregate,
+          monitorGroupMergedDowntime: data.monitorGroupMergedDowntime,
         });
 
       if (calculateUptimePercentOfResource !== null) {
