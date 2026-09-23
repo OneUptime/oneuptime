@@ -29,8 +29,11 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   Runner list arrives in (models, serialised relations, ids);
  * - ordinary Runners, including ones that live in a pod, are unaffected.
  *
- * "Agent" is decided from the server-owned name marker
- * (kubernetes-agent/...), never from the posture a Runner reports.
+ * "Agent" is one rule (RunnerService.isKubernetesAgentRunnerRow), failing
+ * closed on either fact: the server-owned name marker (kubernetes-agent/...,
+ * compared case-insensitively; RunnerService refuses a non-root rename into
+ * or out of it) or an agent posture (in-cluster AND naming a cluster, which
+ * only the kubernetes-agent binary reports).
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -43,14 +46,50 @@ const AGENT_RUNNER_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
 
+/*
+ * An ordinary Runner that happens to live in a pod. Before round two this
+ * fixture also carried a cluster identity (an AGENT posture) — a posture
+ * only the kubernetes-agent binary ever reports, and which now marks a row
+ * as an agent on its own (see the posture-only case below).
+ */
 function hostRunner(): Runner {
   return {
     id: HOST_RUNNER_ID,
     _id: HOST_RUNNER_ID.toString(),
     name: "office-runner",
     hostInfo: {
+      kubernetes: { inCluster: true },
+    },
+  } as unknown as Runner;
+}
+
+// An agent row renamed by root: no name marker, agent posture intact.
+const RENAMED_AGENT_RUNNER_ID: ObjectID = new ObjectID(
+  "55555555-5555-4555-8555-555555555555",
+);
+
+function renamedAgentRunner(): Runner {
+  return {
+    id: RENAMED_AGENT_RUNNER_ID,
+    _id: RENAMED_AGENT_RUNNER_ID.toString(),
+    name: "prod in-cluster runner",
+    hostInfo: {
       kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
     },
+  } as unknown as Runner;
+}
+
+// A case variant of the marker, heartbeat without a posture.
+const CASE_VARIANT_AGENT_RUNNER_ID: ObjectID = new ObjectID(
+  "66666666-6666-4666-8666-666666666666",
+);
+
+function caseVariantAgentRunner(): Runner {
+  return {
+    id: CASE_VARIANT_AGENT_RUNNER_ID,
+    _id: CASE_VARIANT_AGENT_RUNNER_ID.toString(),
+    name: "Kubernetes-Agent/prod-us",
+    hostInfo: {},
   } as unknown as Runner;
 }
 
@@ -116,7 +155,12 @@ describe("kubernetes-agent Runners never hold credentials or run shell work", ()
           idFilter.objectLiteralParameters || {},
         )[0] as Array<string>;
 
-        return [hostRunner(), agentRunner()].filter((runner: Runner) => {
+        return [
+          hostRunner(),
+          agentRunner(),
+          renamedAgentRunner(),
+          caseVariantAgentRunner(),
+        ].filter((runner: Runner) => {
           return ids.includes(runner.id!.toString());
         });
       });
@@ -234,6 +278,17 @@ describe("kubernetes-agent Runners never hold credentials or run shell work", ()
             props: { isRoot: true },
           } as unknown as UpdateBy<RunbookCredential>),
         ).rejects.toThrow(BadDataException);
+      }
+    });
+
+    it("refuses an agent row recognised by its posture only, or by a case variant of the marker", async () => {
+      for (const runner of [renamedAgentRunner(), caseVariantAgentRunner()]) {
+        await expect(
+          createHook.onBeforeCreate({
+            data: kubernetesCredential([runner]),
+            props: { isRoot: true },
+          } as CreateBy<RunbookCredential>),
+        ).rejects.toThrow(/never given a credential/);
       }
     });
 

@@ -1617,6 +1617,109 @@ describe("POST /claim-next-job never hands a kubernetes-agent Runner credential 
     expect(claimArgs).not.toHaveProperty("allowedStepTypes");
   });
 
+  /*
+   * "Is an agent" is ONE rule for everything the claim decides: the name
+   * marker, compared case-insensitively as the database compares it, OR an
+   * agent posture. Round one narrowed the step types on name-or-posture but
+   * refused credentials (and secret substitution) on the case-sensitive
+   * name alone, so a renamed agent row was narrowed to kubectl and still
+   * handed a credential.
+   */
+  const RENAMED_AGENT_ROWS: Array<[string, string, JSONObject]> = [
+    ["a case variant of the marker", "Kubernetes-Agent/prod-a", {}],
+    [
+      "a name without the marker but an agent posture",
+      "office",
+      { kubernetes: { inCluster: true, clusterIdentifier: "prod-a" } },
+    ],
+  ];
+
+  test.each(RENAMED_AGENT_ROWS)(
+    "refuses credential material to a row with %s, never resolving the credential",
+    async (_label: string, name: string, hostInfo: JSONObject) => {
+      claimNextJobSpy.mockResolvedValue(
+        credentialedKubectlJob(ObjectID.generate().toString()),
+      );
+
+      await callRoute({
+        uri: CLAIM_ROUTE,
+        agent: runnerRow({ name, hostInfo }),
+      });
+
+      expect(RunbookCredentialsUtil.resolveForJob).not.toHaveBeenCalled();
+      expect(submitResultSpy).toHaveBeenCalledTimes(1);
+      expect(
+        (submitResultSpy.mock.calls[0]![0] as { errorMessage: string })
+          .errorMessage,
+      ).toBe(RunnerIngressAPI.AGENT_RUNNER_CREDENTIAL_REFUSAL);
+      expect(lastJsonResponse()).toEqual({ job: null });
+      expect(JSON.stringify(lastJsonResponse())).not.toContain(
+        "PROD-B-WRITE-SA-TOKEN",
+      );
+    },
+  );
+
+  test.each(RENAMED_AGENT_ROWS)(
+    "narrows a row with %s to kubectl",
+    async (_label: string, name: string, hostInfo: JSONObject) => {
+      await callRoute({
+        uri: CLAIM_ROUTE,
+        agent: runnerRow({ name, hostInfo }),
+        body: { stepTypes: ["Kubectl", "Bash", "SSH"] },
+      });
+
+      const claimArgs: Record<string, unknown> = claimNextJobSpy.mock
+        .calls[0]![0] as Record<string, unknown>;
+      expect(claimArgs["allowedStepTypes"]).toEqual([RunbookStepType.Kubectl]);
+    },
+  );
+
+  test.each(RENAMED_AGENT_ROWS)(
+    "never substitutes runbook secrets for a row with %s",
+    async (_label: string, name: string, hostInfo: JSONObject) => {
+      claimNextJobSpy.mockResolvedValue({
+        id: JOB_ID,
+        origin: RunnerJobOrigin.Runbook,
+        runbookExecutionId: ObjectID.generate(),
+        stepId: "step-1",
+        stepType: RunbookStepType.Bash,
+        script: SECRET_PLACEHOLDER_SCRIPT,
+        timeoutInMs: 60_000,
+      } as unknown as RunnerJob);
+
+      await callRoute({
+        uri: CLAIM_ROUTE,
+        agent: runnerRow({ name, hostInfo }),
+      });
+
+      expect(RunbookSecretsUtil.loadForAgent).not.toHaveBeenCalled();
+      expect(RunbookSecretsUtil.populateInScript).not.toHaveBeenCalled();
+    },
+  );
+
+  test("negative control: an ordinary Runner in a pod (no cluster identity) receives the credential, un-narrowed", async () => {
+    claimNextJobSpy.mockResolvedValue(
+      credentialedKubectlJob(ObjectID.generate().toString()),
+    );
+
+    await callRoute({
+      uri: CLAIM_ROUTE,
+      agent: runnerRow({
+        name: "office",
+        hostInfo: { kubernetes: { inCluster: true } },
+      }),
+    });
+
+    expect(submitResultSpy).not.toHaveBeenCalled();
+    expect(RunbookCredentialsUtil.resolveForJob).toHaveBeenCalledTimes(1);
+    expect(
+      (lastJsonResponse()["job"] as JSONObject)["credential"],
+    ).toBeDefined();
+    const claimArgs: Record<string, unknown> = claimNextJobSpy.mock
+      .calls[0]![0] as Record<string, unknown>;
+    expect(claimArgs).not.toHaveProperty("allowedStepTypes");
+  });
+
   test("negative control: the agent Runner's own credential-less kubectl for its cluster is still served", async () => {
     claimNextJobSpy.mockResolvedValue({
       ...credentialedKubectlJob("unused"),

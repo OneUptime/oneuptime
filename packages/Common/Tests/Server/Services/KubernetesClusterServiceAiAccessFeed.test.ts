@@ -424,6 +424,42 @@ describe("KubernetesClusterService AI access feed", () => {
     );
   });
 
+  /*
+   * The operator's write has committed by the time the "configured" marker
+   * is written. A marker write that fails must not also swallow the record
+   * of who switched the cluster to Bypass approval: the feed item is
+   * started first, and the failure is still reported to the caller.
+   */
+  it("records the change even when the configured marker cannot be written, and still reports that failure", async () => {
+    (
+      KubernetesClusterService.updateBy as unknown as jest.SpyInstance
+    ).mockRejectedValue(new Error("marker write failed"));
+
+    const onUpdate: OnUpdate<KubernetesCluster> = await service.onBeforeUpdate(
+      updateBy(
+        { aiRemediationMode: KubernetesAiRemediationMode.BypassApproval },
+        adminProps(),
+      ),
+    );
+
+    await expect(
+      service.onUpdateSuccess(onUpdate, [CLUSTER_ID]),
+    ).rejects.toThrow("marker write failed");
+
+    for (const result of aiFeedWriter.mock.results) {
+      await result.value;
+    }
+
+    const item: FeedItem = onlyItem(
+      feedItems.mock.calls.map((call: Array<unknown>) => {
+        return call[0] as FeedItem;
+      }),
+    );
+    expect(item.feedInfoInMarkdown).toContain(
+      "AI remediation changed from **Ask for approval** to **Bypass approval**",
+    );
+  });
+
   describe("server writes post no AI access item", () => {
     it("the in-cluster Runner's registration (root) records its own bind, not this one", async () => {
       expect(

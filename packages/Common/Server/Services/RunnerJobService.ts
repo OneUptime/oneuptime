@@ -18,11 +18,12 @@ import KubectlPolicy, {
 import KubectlOutputRedactor from "../../Utils/AiRemediation/KubectlOutputRedactor";
 import ToolResultSerializer from "../Utils/AI/Toolbox/Serializer";
 import {
+  KUBECTL_ALLOW_NODE_OPERATIONS_ENV,
+  KUBECTL_WRITE_NAMESPACES_ENV,
   KubectlCommandTier,
   KubernetesAiRemediationMode,
   KubernetesRunnerPosture,
   isInClusterPostureForCluster,
-  isKubernetesAgentRunnerName,
   parseKubernetesRunnerPosture,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 import RunbookCredentialType from "../../Types/Runbook/RunbookCredentialType";
@@ -34,7 +35,7 @@ import Runner from "../../Models/DatabaseModels/Runner";
 import AIRunService from "./AIRunService";
 import KubernetesClusterService from "./KubernetesClusterService";
 import RunbookCredentialService from "./RunbookCredentialService";
-import RunnerService from "./RunnerService";
+import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
 import QueryHelper from "../Types/Database/QueryHelper";
 
 /*
@@ -128,9 +129,317 @@ function unwrapRows(result: unknown): Array<JSONObject> {
   return [];
 }
 
+/*
+ * ---- What a kubectl write acts on, for the Runner's own write scope ------
+ *
+ * The in-cluster Runner refuses, before spawning kubectl, a write its posture
+ * rules out: a namespace outside the ones its chart bound write RBAC in, its
+ * own namespace, and node operations when the chart granted none. The
+ * enqueue chokepoint refuses those same writes up front (so nothing is
+ * approved, enqueued or counted by the circuit breaker only to be refused),
+ * and it must never refuse MORE than the Runner would: node operations and
+ * other cluster-scoped objects are not in any namespace. Only what is
+ * certain is read here; anything else is left to the Runner.
+ */
+
+// Verbs whose objects are always nodes.
+const NODE_OPERATION_VERBS: Set<string> = new Set<string>([
+  "cordon",
+  "uncordon",
+  "drain",
+  "taint",
+]);
+
+// Spellings of the Node kind.
+const NODE_KIND_TOKENS: Set<string> = new Set<string>(["node", "nodes", "no"]);
+
+// Spellings of the other cluster-scoped kinds a write could name.
+const CLUSTER_SCOPED_KIND_TOKENS: Set<string> = new Set<string>([
+  "namespace",
+  "namespaces",
+  "ns",
+  "persistentvolume",
+  "persistentvolumes",
+  "pv",
+  "storageclass",
+  "storageclasses",
+  "sc",
+  "priorityclass",
+  "priorityclasses",
+  "pc",
+  "ingressclass",
+  "ingressclasses",
+  "runtimeclass",
+  "runtimeclasses",
+  "csidriver",
+  "csidrivers",
+  "csinode",
+  "csinodes",
+  "volumeattachment",
+  "volumeattachments",
+]);
+
+// Verbs whose second word is a subcommand, not the object.
+const SUBCOMMAND_VERBS: Set<string> = new Set<string>(["rollout", "set"]);
+
+// Flags that take the NEXT token as their value when written without "=".
+const VALUE_FLAGS: Set<string> = new Set<string>([
+  "-n",
+  "--namespace",
+  "-l",
+  "--selector",
+  "--field-selector",
+  "-p",
+  "--patch",
+  "--type",
+  "-o",
+  "--output",
+  "-c",
+  "--container",
+  "--timeout",
+  "--grace-period",
+  "--replicas",
+  "--current-replicas",
+  "--resource-version",
+  "--field-manager",
+  "--to-revision",
+  "--image",
+]);
+
+export interface KubectlWriteTarget {
+  // cordon/uncordon/drain/taint, or label/annotate/patch of a Node.
+  isNodeOperation: boolean;
+  // The object lives outside any namespace (a node, a Namespace, a PV, ...).
+  isClusterScoped: boolean;
+}
+
+/*
+ * The kind a kubectl argv (without the leading "kubectl") acts on, lowercased
+ * and without an API group ("deployments.apps" -> "deployments"), or "" when
+ * it cannot be read: the first positional after the verb (after the
+ * subcommand for rollout and set; the subcommand itself for create), with
+ * TYPE/NAME read as TYPE.
+ */
+export function readKubectlObjectKind(args: Array<string>): string {
+  const positionals: Array<string> = [];
+
+  for (let i: number = 0; i < args.length; i++) {
+    const token: string = args[i] || "";
+
+    if (token === "--") {
+      break;
+    }
+
+    if (token.startsWith("-") && token !== "-") {
+      if (!token.includes("=") && VALUE_FLAGS.has(token)) {
+        i++;
+      }
+      continue;
+    }
+
+    positionals.push(token);
+  }
+
+  const verb: string = (positionals[0] || "").toLowerCase();
+  const objectIndex: number = SUBCOMMAND_VERBS.has(verb) ? 2 : 1;
+  const objectToken: string = (positionals[objectIndex] || "").toLowerCase();
+  const kind: string = objectToken.includes("/")
+    ? objectToken.slice(0, objectToken.indexOf("/"))
+    : objectToken;
+
+  return kind.split(".")[0] || "";
+}
+
+export function describeKubectlWriteTarget(
+  policy: KubectlPolicyResult,
+): KubectlWriteTarget {
+  const verb: string = (policy.verb.split(" ")[0] || "").toLowerCase();
+
+  if (NODE_OPERATION_VERBS.has(verb)) {
+    return { isNodeOperation: true, isClusterScoped: true };
+  }
+
+  const kind: string = readKubectlObjectKind(policy.args);
+
+  if (NODE_KIND_TOKENS.has(kind)) {
+    return { isNodeOperation: true, isClusterScoped: true };
+  }
+
+  return {
+    isNodeOperation: false,
+    isClusterScoped: CLUSTER_SCOPED_KIND_TOKENS.has(kind),
+  };
+}
+
+/*
+ * Why a timed-out job timed out, in words that fit what it was. A runbook
+ * step is waited on by a runbook agent; an AI-composed kubectl command is
+ * run by the cluster's Runner, and for it the difference between "nobody
+ * picked it up" (nothing ran) and "it was picked up and then went silent"
+ * (what it did is unknown) is what the access test, the AI page's command
+ * history and a remediation run must each be told — so the row itself
+ * carries it, and every reader shows the same text.
+ */
+export type RunnerJobTimeoutKind = "unclaimed" | "lease_expired" | "overall";
+
+export function describeRunnerJobTimeout(data: {
+  kind: RunnerJobTimeoutKind;
+  /*
+   * Whether any Runner claimed the job. A job still Pending when the
+   * overall window ran out was never picked up, whatever its claim deadline
+   * said, and a kubectl command is worded that way ("nothing was run").
+   */
+  wasClaimed?: boolean | undefined;
+  origin: RunnerJobOrigin | undefined;
+  stepType: RunbookStepType | undefined;
+  claimTimeoutInMs: number;
+  executionTimeoutInMs: number;
+}): string {
+  const isAiKubectl: boolean =
+    data.stepType === RunbookStepType.Kubectl &&
+    AI_COMMAND_JOB_ORIGINS.includes(data.origin || RunnerJobOrigin.Runbook);
+
+  if (!isAiKubectl) {
+    switch (data.kind) {
+      case "unclaimed":
+        return "No runbook agent picked up this step before the wait window expired. The agent may be offline — check that it is running and reachable, then try again.";
+      case "lease_expired":
+        return "The runbook agent stopped responding while this step was running. The agent may have crashed or lost its network connection — check that it is still online, then try running the runbook again.";
+      default:
+        return "This step ran longer than the allowed execution window. Increase the timeout on the step or make the script complete faster.";
+    }
+  }
+
+  /*
+   * A change that may have been applied must not read as "try again": for
+   * a remediation command, say to look first.
+   */
+  const checkFirst: string =
+    data.origin === RunnerJobOrigin.AiRemediation
+      ? " Check the cluster before running a change again."
+      : "";
+
+  const kind: RunnerJobTimeoutKind =
+    data.kind === "overall" && data.wasClaimed === false
+      ? "unclaimed"
+      : data.kind;
+
+  switch (kind) {
+    case "unclaimed":
+      return `The cluster's Runner did not pick up this kubectl command within ${describeSeconds(
+        data.claimTimeoutInMs,
+      )} — it may be offline, restarting or busy with other work. Nothing was run on the cluster.`;
+    case "lease_expired":
+      return `The cluster's Runner stopped responding while this kubectl command was running — it may have restarted or lost its connection. What the command did is unknown.${checkFirst}`;
+    default:
+      return `The cluster's Runner did not report a result for this kubectl command in time — kubectl may have outlived its ${describeSeconds(
+        data.executionTimeoutInMs,
+      )} timeout. What the command did is unknown.${checkFirst}`;
+  }
+}
+
+function describeSeconds(milliseconds: number): string {
+  return `${Math.max(1, Math.round(milliseconds / 1000))}s`;
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * Why the target Runner, by its own reported posture, will refuse this
+   * kubectl WRITE — or null when nothing it reported rules the write out.
+   * The Runner applies the same scope before it spawns kubectl; refusing
+   * here means nothing is approved, enqueued or counted by the cluster's
+   * circuit breaker only to be refused on the Runner (or answered Forbidden
+   * by the API server). Each refusal names the chart value to change.
+   *
+   * - allowNodeOperations === false (the chart's
+   *   aiAccess.remediation.nodeOperations): no node operation. A Runner
+   *   that never said (absent) is not second-guessed.
+   * - a namespaced write outside a non-empty writeNamespaces
+   *   (aiAccess.remediation.namespaces), or into the Runner's own
+   *   podNamespace. A write that names no namespace lands in the pod's own
+   *   namespace in-cluster and in "default" through a credential's
+   *   kubeconfig, exactly as the Runner reads it. Node operations and other
+   *   cluster-scoped objects are in no namespace.
+   *
+   * Reads are never refused for scope.
+   */
+  public static getRunnerWriteScopeRefusal(data: {
+    policy: KubectlPolicyResult;
+    posture: KubernetesRunnerPosture | undefined;
+    usesCredential: boolean;
+  }): string | null {
+    const { policy, posture } = data;
+
+    if (
+      !posture ||
+      policy.tier === KubectlCommandTier.Read ||
+      policy.tier === KubectlCommandTier.Denied
+    ) {
+      return null;
+    }
+
+    const target: KubectlWriteTarget = describeKubectlWriteTarget(policy);
+
+    if (target.isNodeOperation) {
+      if (posture.allowNodeOperations === false) {
+        return `"${policy.displayCommand}" changes a node, and the cluster's Runner does not allow node operations (cordon, uncordon, drain, taint, or labelling, annotating or patching a Node): its Kubernetes agent was installed with aiAccess.remediation.nodeOperations=false (${KUBECTL_ALLOW_NODE_OPERATIONS_ENV}), so the Runner would refuse it. It was not enqueued. To let OneUptime AI change nodes, upgrade the agent with --set aiAccess.remediation.nodeOperations=true.`;
+      }
+
+      return null;
+    }
+
+    if (target.isClusterScoped) {
+      return null;
+    }
+
+    const writeNamespaces: Array<string> = (posture.writeNamespaces || [])
+      .map((namespace: string) => {
+        return namespace.trim().toLowerCase();
+      })
+      .filter((namespace: string) => {
+        return namespace.length > 0;
+      });
+    const podNamespace: string = (posture.podNamespace || "")
+      .trim()
+      .toLowerCase();
+
+    if (writeNamespaces.length === 0 && !podNamespace) {
+      return null;
+    }
+
+    const explicitNamespace: string = (policy.namespace || "")
+      .trim()
+      .toLowerCase();
+    const namespace: string =
+      explicitNamespace || (data.usesCredential ? "default" : podNamespace);
+
+    if (!namespace) {
+      return null;
+    }
+
+    const where: string = explicitNamespace
+      ? `namespace "${namespace}"`
+      : `namespace "${namespace}" (the command names none, so kubectl would use that one)`;
+
+    if (podNamespace && namespace === podNamespace) {
+      return `"${policy.displayCommand}" would change ${where}, the namespace the cluster's in-cluster Runner itself runs in. OneUptime AI never changes it — a change there could scale away the Kubernetes agent or the Runner — so the Runner would refuse it. It was not enqueued. Name the namespace of the workload to fix with -n <namespace>.`;
+    }
+
+    if (writeNamespaces.length > 0 && !writeNamespaces.includes(namespace)) {
+      return `"${policy.displayCommand}" would change ${where}, which is outside the namespaces the cluster's Runner lets OneUptime AI change (${writeNamespaces
+        .map((allowed: string) => {
+          return `"${allowed}"`;
+        })
+        .join(
+          ", ",
+        )}: aiAccess.remediation.namespaces on the Kubernetes agent chart, ${KUBECTL_WRITE_NAMESPACES_ENV}), so the Runner would refuse it. It was not enqueued. To let OneUptime AI change "${namespace}", add it to aiAccess.remediation.namespaces and upgrade the agent.`;
+    }
+
+    return null;
   }
 
   @CaptureSpan()
@@ -275,7 +584,7 @@ export class Service extends DatabaseService<Model> {
         _id: data.targetAgentId.toString(),
         projectId: data.projectId,
       },
-      select: { _id: true, name: true },
+      select: { _id: true, name: true, hostInfo: true },
       props: { isRoot: true },
     });
 
@@ -285,7 +594,8 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    if (isKubernetesAgentRunnerName(targetRunner.name)) {
+    // The one "is an agent row" rule: the name marker or an agent posture.
+    if (RunnerServiceClass.isKubernetesAgentRunnerRow(targetRunner)) {
       throw new BadDataException(
         `Runner "${targetRunner.name}" is a cluster's in-cluster Runner: it runs kubectl through its cluster only, never ${data.stepType} commands. Target the Kubernetes cluster instead, or pick a Runner you created under Project Settings → Runners.`,
       );
@@ -592,10 +902,10 @@ export class Service extends DatabaseService<Model> {
        * A kubernetes-agent Runner is never handed credential material: its
        * identity is issued with the project's telemetry ingestion key, so
        * anyone holding that key could come to hold the credential too. The
-       * claim path refuses it as well; refusing here keeps the job from
-       * ever existing.
+       * claim path refuses it as well (by the same name-or-posture rule);
+       * refusing here keeps the job from ever existing.
        */
-      if (isKubernetesAgentRunnerName(targetRunner.name)) {
+      if (RunnerServiceClass.isKubernetesAgentRunnerRow(targetRunner)) {
         throw new BadDataException(
           `Runner "${targetRunner.name}" is a cluster's in-cluster Runner and is never given a credential, so a kubectl command for cluster "${clusterLabel}" that needs one cannot run on it. Create a Runner under Project Settings → Runners, assign the Kubernetes credential to it and select both on the cluster's AI page.`,
         );
@@ -624,10 +934,10 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    if (!data.credentialId) {
-      const posture: KubernetesRunnerPosture | undefined =
-        parseKubernetesRunnerPosture(targetRunner.hostInfo);
+    const posture: KubernetesRunnerPosture | undefined =
+      parseKubernetesRunnerPosture(targetRunner.hostInfo);
 
+    if (!data.credentialId) {
       if (!isInClusterPostureForCluster(posture, clusterIdentifier)) {
         throw new BadDataException(
           `A kubectl command without a Kubernetes credential can only run on the in-cluster Runner of cluster "${
@@ -642,6 +952,26 @@ export class Service extends DatabaseService<Model> {
               : "runs outside the cluster"
           }. Select a Kubernetes credential for this Runner on the cluster's AI page, or install the in-cluster Runner on this cluster.`,
         );
+      }
+    }
+
+    /*
+     * A remediation write the Runner's own posture says it will refuse — a
+     * namespace outside its write scope, its own namespace, or a node
+     * operation its chart did not grant — is refused here, before it can be
+     * approved, enqueued or counted by the cluster's circuit breaker, with
+     * the chart value that would allow it. Reads are never refused for
+     * scope.
+     */
+    if (data.origin === RunnerJobOrigin.AiRemediation) {
+      const scopeRefusal: string | null = Service.getRunnerWriteScopeRefusal({
+        policy,
+        posture,
+        usesCredential: Boolean(data.credentialId),
+      });
+
+      if (scopeRefusal) {
+        throw new BadDataException(scopeRefusal);
       }
     }
 
@@ -1122,6 +1452,9 @@ export class Service extends DatabaseService<Model> {
           startedAt: true,
           completedAt: true,
           assignedAgentId: true,
+          // The timeout reason is worded for what the job is.
+          origin: true,
+          stepType: true,
         },
         props: { isRoot: true },
       });
@@ -1137,39 +1470,38 @@ export class Service extends DatabaseService<Model> {
       }
 
       const now: Date = OneUptimeDate.getCurrentDate();
+      let timeoutKind: RunnerJobTimeoutKind | null = null;
 
-      // Pending with claim deadline elapsed -> no agent picked it up.
       if (
         job.status === RunnerJobStatus.Pending &&
         job.claimDeadlineAt &&
         now > job.claimDeadlineAt
       ) {
-        return this.timeoutJob({
-          jobId: data.jobId,
-          reason:
-            "No runbook agent picked up this step before the wait window expired. The agent may be offline — check that it is running and reachable, then try again.",
-        });
-      }
-
-      // Claimed/Running with lease elapsed -> agent went silent.
-      if (
+        // Pending with claim deadline elapsed -> no agent picked it up.
+        timeoutKind = "unclaimed";
+      } else if (
         (job.status === RunnerJobStatus.Claimed ||
           job.status === RunnerJobStatus.Running) &&
         job.leaseExpiresAt &&
         now > job.leaseExpiresAt
       ) {
-        return this.timeoutJob({
-          jobId: data.jobId,
-          reason:
-            "The runbook agent stopped responding while this step was running. The agent may have crashed or lost its network connection — check that it is still online, then try running the runbook again.",
-        });
+        // Claimed/Running with lease elapsed -> agent went silent.
+        timeoutKind = "lease_expired";
+      } else if (now > overallDeadline) {
+        timeoutKind = "overall";
       }
 
-      if (now > overallDeadline) {
+      if (timeoutKind) {
         return this.timeoutJob({
           jobId: data.jobId,
-          reason:
-            "This step ran longer than the allowed execution window. Increase the timeout on the step or make the script complete faster.",
+          reason: describeRunnerJobTimeout({
+            kind: timeoutKind,
+            wasClaimed: job.status !== RunnerJobStatus.Pending,
+            origin: job.origin,
+            stepType: job.stepType,
+            claimTimeoutInMs: data.claimTimeoutInMs,
+            executionTimeoutInMs: data.executionTimeoutInMs,
+          }),
         });
       }
 
@@ -1213,6 +1545,12 @@ export class Service extends DatabaseService<Model> {
       RunnerJobStatus.Cancelled,
     ]);
 
+    /*
+     * The claim facts come back with the row, so a caller can tell whether
+     * any Runner ever picked the job up (claimedAt / assignedAgentId) or
+     * started it (startedAt) — "nothing ran" versus "unknown" — without a
+     * second read.
+     */
     const updated: Model | null = await this.findOneById({
       id: data.jobId,
       select: {
@@ -1222,6 +1560,9 @@ export class Service extends DatabaseService<Model> {
         exitCode: true,
         errorMessage: true,
         completedAt: true,
+        claimedAt: true,
+        startedAt: true,
+        assignedAgentId: true,
       },
       props: { isRoot: true },
     });

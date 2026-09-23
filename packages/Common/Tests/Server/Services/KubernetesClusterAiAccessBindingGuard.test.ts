@@ -1,7 +1,5 @@
 import KubernetesClusterService, {
   AI_ACCESS_CREDENTIAL_REFUSAL,
-  MAX_KUBECTL_ALLOWLIST_PATTERNS,
-  MAX_KUBECTL_ALLOWLIST_PATTERN_LENGTH,
   getAiAccessCredentialRefusal,
 } from "../../../Server/Services/KubernetesClusterService";
 import RunbookCredentialService from "../../../Server/Services/RunbookCredentialService";
@@ -22,8 +20,10 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import RunbookCredentialType from "../../../Types/Runbook/RunbookCredentialType";
-import CommandPolicy from "../../../Utils/AiRemediation/CommandPolicy";
-import KubectlPolicy from "../../../Utils/AiRemediation/KubectlPolicy";
+import KubectlPolicy, {
+  KUBECTL_ALLOWLIST_MAX_PATTERNS,
+  KUBECTL_ALLOWLIST_MAX_PATTERN_LENGTH,
+} from "../../../Utils/AiRemediation/KubectlPolicy";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
@@ -210,11 +210,18 @@ describe("KubernetesClusterService AI access binding guard", () => {
     runnerLookup = jest
       .spyOn(RunnerService, "findOneBy")
       .mockResolvedValue({ id: RUNNER_ID } as unknown as Runner);
+    /*
+     * Assigned to RUNNER_ID: an operator's binding of a Runner and a
+     * credential together must be a pair that can work (the credential is
+     * assigned to the Runner) — see "the Runner and credential bound
+     * together must be able to work" below.
+     */
     credentialLookup = jest
       .spyOn(RunbookCredentialService, "findOneBy")
       .mockResolvedValue({
         id: CREDENTIAL_ID,
         credentialType: RunbookCredentialType.Kubernetes,
+        runners: [{ id: RUNNER_ID, _id: RUNNER_ID.toString() }],
       } as unknown as RunbookCredential);
     /*
      * The cluster lives in PROJECT_ID. A read scoped to another project
@@ -839,6 +846,239 @@ describe("KubernetesClusterService AI access binding guard", () => {
 });
 
 /*
+ * Known follow-up 9: the dashboard stopped offering these pairs, but the API
+ * and Terraform could still bind them. An operator's binding must be a pair
+ * that can work, per cluster, judged only where the pair changes (the AI
+ * page re-posts unchanged values):
+ * - another cluster's kubernetes-agent Runner cannot be bound (by its name
+ *   for another cluster, or a posture naming another cluster);
+ * - a credential never goes with another cluster's agent Runner;
+ * - a credential must be assigned to the Runner it is bound with — except
+ *   with THIS cluster's agent Runner, whose own ServiceAccount wins.
+ */
+describe("KubernetesClusterService: the Runner and credential bound together must be able to work", () => {
+  const OTHER_AGENT_ID: ObjectID = new ObjectID(
+    "66666666-6666-4666-8666-666666666666",
+  );
+  const OWN_AGENT_ID: ObjectID = new ObjectID(
+    "77777777-7777-4777-8777-777777777777",
+  );
+  // Another cluster's agent row renamed by root: only its posture marks it.
+  const RENAMED_OTHER_AGENT_ID: ObjectID = new ObjectID(
+    "88888888-8888-4888-8888-888888888888",
+  );
+
+  const runners: Record<string, Runner> = {
+    [RENAMED_OTHER_AGENT_ID.toString()]: {
+      id: RENAMED_OTHER_AGENT_ID,
+      name: "prod-eu in-cluster runner",
+      hostInfo: {
+        kubernetes: { inCluster: true, clusterIdentifier: "prod-eu" },
+      },
+    } as unknown as Runner,
+    [RUNNER_ID.toString()]: {
+      id: RUNNER_ID,
+      name: "office-runner",
+      hostInfo: {},
+    } as unknown as Runner,
+    [OTHER_AGENT_ID.toString()]: {
+      id: OTHER_AGENT_ID,
+      name: "kubernetes-agent/prod-eu",
+      hostInfo: {
+        kubernetes: { inCluster: true, clusterIdentifier: "prod-eu" },
+      },
+    } as unknown as Runner,
+    [OWN_AGENT_ID.toString()]: {
+      id: OWN_AGENT_ID,
+      name: "kubernetes-agent/prod-us",
+      hostInfo: {
+        kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
+      },
+    } as unknown as Runner,
+  };
+
+  let runnerLookup: jest.SpyInstance;
+  let credentialLookup: jest.SpyInstance;
+  let current: Record<string, unknown>;
+
+  function assignedCredential(assignedTo: Array<ObjectID>): RunbookCredential {
+    return {
+      id: CREDENTIAL_ID,
+      credentialType: RunbookCredentialType.Kubernetes,
+      runners: assignedTo.map((id: ObjectID) => {
+        return { id, _id: id.toString() };
+      }),
+    } as unknown as RunbookCredential;
+  }
+
+  beforeEach(() => {
+    current = {
+      id: CLUSTER_ID,
+      projectId: PROJECT_ID,
+      clusterIdentifier: "prod-us",
+    };
+    runnerLookup = jest
+      .spyOn(RunnerService, "findOneBy")
+      .mockImplementation(async (args: unknown): Promise<Runner | null> => {
+        const query: Record<string, unknown> = (
+          args as { query: Record<string, unknown> }
+        ).query;
+        return runners[String(query["_id"])] || null;
+      });
+    credentialLookup = jest
+      .spyOn(RunbookCredentialService, "findOneBy")
+      .mockResolvedValue(assignedCredential([RUNNER_ID]));
+    jest
+      .spyOn(KubernetesClusterService, "findBy")
+      .mockImplementation(async (): Promise<Array<KubernetesCluster>> => {
+        return [current as unknown as KubernetesCluster];
+      });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function refusalOf(data: Record<string, unknown>): Promise<string> {
+    try {
+      await hooks().onBeforeUpdate(updateBy(data));
+    } catch (error) {
+      expect(error).toBeInstanceOf(BadDataException);
+      return (error as Error).message;
+    }
+
+    throw new Error("expected the binding to be refused");
+  }
+
+  it("refuses binding another cluster's in-cluster Runner", async () => {
+    const message: string = await refusalOf({
+      aiAccessRunnerId: OTHER_AGENT_ID,
+    });
+
+    expect(message).toContain('Runner "kubernetes-agent/prod-eu"');
+    expect(message).toContain("another cluster");
+  });
+
+  it("refuses a renamed agent row of another cluster by its posture", async () => {
+    await refusalOf({
+      aiAccessRunner: { _id: RENAMED_OTHER_AGENT_ID.toString() },
+    });
+  });
+
+  it("negative control: THIS cluster's agent Runner and an ordinary Runner bind", async () => {
+    await expect(
+      hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: OWN_AGENT_ID })),
+    ).resolves.toBeDefined();
+    await expect(
+      hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: RUNNER_ID })),
+    ).resolves.toBeDefined();
+  });
+
+  it("refuses a credential with another cluster's agent Runner that is already bound", async () => {
+    current["aiAccessRunnerId"] = OTHER_AGENT_ID;
+
+    const message: string = await refusalOf({
+      aiAccessCredentialId: CREDENTIAL_ID,
+    });
+
+    expect(message).toContain("never given a credential");
+  });
+
+  it("refuses a credential that is not assigned to the chosen Runner", async () => {
+    credentialLookup.mockResolvedValue(assignedCredential([]));
+
+    const message: string = await refusalOf({
+      aiAccessRunnerId: RUNNER_ID,
+      aiAccessCredentialId: CREDENTIAL_ID,
+    });
+
+    // Never names the credential: the refusal is readable to cluster editors.
+    expect(message).toContain('is not assigned to Runner "office-runner"');
+    expect(message).toContain("Runner Credentials");
+  });
+
+  it("refuses switching the Runner while an unassigned credential stays bound", async () => {
+    current["aiAccessRunnerId"] = OWN_AGENT_ID;
+    current["aiAccessCredentialId"] = CREDENTIAL_ID;
+    credentialLookup.mockResolvedValue(assignedCredential([OWN_AGENT_ID]));
+
+    await refusalOf({ aiAccessRunnerId: RUNNER_ID });
+  });
+
+  it("negative control: the same credential assigned to the Runner binds", async () => {
+    await expect(
+      hooks().onBeforeUpdate(
+        updateBy({
+          aiAccessRunnerId: RUNNER_ID,
+          aiAccessCredentialId: CREDENTIAL_ID,
+        }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("negative control: with THIS cluster's agent a stale credential is no obstacle (in-cluster access wins)", async () => {
+    current["aiAccessCredentialId"] = CREDENTIAL_ID;
+    credentialLookup.mockResolvedValue(assignedCredential([]));
+
+    await expect(
+      hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: OWN_AGENT_ID })),
+    ).resolves.toBeDefined();
+  });
+
+  it("negative control: re-posting an unchanged pair is not judged again", async () => {
+    current["aiAccessRunnerId"] = OTHER_AGENT_ID;
+    current["aiAccessCredentialId"] = CREDENTIAL_ID;
+
+    await expect(
+      hooks().onBeforeUpdate(
+        updateBy({
+          isAiInvestigationEnabled: true,
+          aiAccessRunnerId: OTHER_AGENT_ID,
+          aiAccessCredentialId: CREDENTIAL_ID,
+        }),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("negative control: clearing the Runner never needs a pair check", async () => {
+    current["aiAccessRunnerId"] = OTHER_AGENT_ID;
+    current["aiAccessCredentialId"] = CREDENTIAL_ID;
+
+    await expect(
+      hooks().onBeforeUpdate(updateBy({ aiAccessRunnerId: null })),
+    ).resolves.toBeDefined();
+  });
+
+  it("negative control: the server's own (root) writes are not operator choices", async () => {
+    await expect(
+      hooks().onBeforeUpdate(
+        updateBy(
+          { aiAccessRunnerId: OTHER_AGENT_ID, aiAccessCredentialId: null },
+          rootProps(),
+        ),
+      ),
+    ).resolves.toBeDefined();
+    expect(runnerLookup).toHaveBeenCalledTimes(1);
+  });
+
+  it("applies to an operator's create too", async () => {
+    await expect(
+      hooks().onBeforeCreate(
+        createBy(
+          {
+            projectId: PROJECT_ID,
+            name: "prod-us",
+            clusterIdentifier: "prod-us",
+            aiAccessRunnerId: OTHER_AGENT_ID,
+          },
+          { isMasterAdmin: true, userId: ObjectID.generate() },
+        ),
+      ),
+    ).rejects.toThrow(/another cluster/);
+  });
+});
+
+/*
  * aiRemediationMode is a plain text column and aiKubectlCommandAllowlist
  * untyped JSON; their readers map anything unusable to Disabled / "no
  * pattern". Without write-side validation an API or Terraform write of
@@ -934,14 +1174,18 @@ describe("KubernetesClusterService AI remediation settings validation", () => {
         ["kubectl scale *", null],
         /Pattern 2 of the kubectl allowlist must be text \(got null\)/,
       ],
-      [[""], /Pattern 1 of the kubectl allowlist is empty/],
-      [["   "], /Pattern 1 of the kubectl allowlist is empty/],
+      [[""], /Pattern 1 of the kubectl allowlist cannot be used/],
+      [["   "], /Pattern 1 of the kubectl allowlist cannot be used/],
+      // No verb at all: the matcher can never use it.
+      [["kubectl"], /Pattern 1 of the kubectl allowlist cannot be used/],
+      // Unbalanced quotes: not one kubectl command line.
       [
-        ["set image deployment/web *"],
-        /Pattern 1 of the kubectl allowlist \("set image deployment\/web \*"\) must start with "kubectl " or with a \* wildcard/,
+        [
+          "kubectl scale deployment/web --replicas=*",
+          'kubectl patch deployment/web -p \'{"spec":',
+        ],
+        /Pattern 2 of the kubectl allowlist cannot be used/,
       ],
-      [["kubectlscale *"], /must start with "kubectl "/],
-      [["Kubectl scale *"], /must start with "kubectl "/],
     ])("refuses %p", async (value: unknown, message: RegExp) => {
       await expect(
         update({ aiKubectlCommandAllowlist: value }),
@@ -951,41 +1195,61 @@ describe("KubernetesClusterService AI remediation settings validation", () => {
       ).rejects.toThrow(BadDataException);
     });
 
-    it(`refuses more than ${MAX_KUBECTL_ALLOWLIST_PATTERNS} patterns`, async () => {
+    it("refuses a pattern that is not one kubectl command line, saying how patterns are matched", async () => {
+      await expect(
+        update({ aiKubectlCommandAllowlist: ["kubectl get\npods"] }),
+      ).rejects.toThrow(/cannot be used/);
+
+      let message: string = "";
+      try {
+        await update({ aiKubectlCommandAllowlist: ["kubectl"] });
+      } catch (error) {
+        message = (error as Error).message;
+      }
+
+      expect(message).toContain("word by word");
+      // The stale rule from the whole-command matcher is gone for good.
+      expect(message).not.toContain("whole command");
+      expect(message).not.toContain('must start with "kubectl "');
+    });
+
+    it(`refuses more than ${KUBECTL_ALLOWLIST_MAX_PATTERNS} patterns`, async () => {
       const patterns: Array<string> = [];
-      for (let i: number = 0; i <= MAX_KUBECTL_ALLOWLIST_PATTERNS; i++) {
+      for (let i: number = 0; i <= KUBECTL_ALLOWLIST_MAX_PATTERNS; i++) {
         patterns.push(`kubectl scale deployment/web-${i} --replicas=*`);
       }
 
       await expect(
         update({ aiKubectlCommandAllowlist: patterns }),
       ).rejects.toThrow(
-        `The kubectl allowlist can hold at most ${MAX_KUBECTL_ALLOWLIST_PATTERNS} patterns (got ${MAX_KUBECTL_ALLOWLIST_PATTERNS + 1}).`,
+        `The kubectl allowlist can hold at most ${KUBECTL_ALLOWLIST_MAX_PATTERNS} patterns (got ${KUBECTL_ALLOWLIST_MAX_PATTERNS + 1}).`,
       );
 
       // Negative control: exactly the limit is fine.
       const written: UpdateBy<KubernetesCluster> = await update({
         aiKubectlCommandAllowlist: patterns.slice(
           0,
-          MAX_KUBECTL_ALLOWLIST_PATTERNS,
+          KUBECTL_ALLOWLIST_MAX_PATTERNS,
         ),
       });
       expect(writtenAllowlist(written)).toHaveLength(
-        MAX_KUBECTL_ALLOWLIST_PATTERNS,
+        KUBECTL_ALLOWLIST_MAX_PATTERNS,
       );
     });
 
-    it(`refuses a pattern longer than ${MAX_KUBECTL_ALLOWLIST_PATTERN_LENGTH} characters`, async () => {
+    it(`refuses a pattern longer than ${KUBECTL_ALLOWLIST_MAX_PATTERN_LENGTH} characters`, async () => {
       const prefix: string = "kubectl set image deployment/";
       const tooLong: string =
         prefix +
-        "a".repeat(MAX_KUBECTL_ALLOWLIST_PATTERN_LENGTH + 1 - prefix.length);
+        "a".repeat(KUBECTL_ALLOWLIST_MAX_PATTERN_LENGTH + 1 - prefix.length);
       const atLimit: string = tooLong.slice(0, -1);
 
       await expect(
         update({ aiKubectlCommandAllowlist: [tooLong] }),
       ).rejects.toThrow(
-        /Pattern 1 of the kubectl allowlist is 501 characters long; the most is 500/,
+        new RegExp(
+          `Pattern 1 of the kubectl allowlist cannot be used: .*${KUBECTL_ALLOWLIST_MAX_PATTERN_LENGTH} characters`,
+        ),
       );
 
       const written: UpdateBy<KubernetesCluster> = await update({
@@ -994,28 +1258,39 @@ describe("KubernetesClusterService AI remediation settings validation", () => {
       expect(writtenAllowlist(written)).toEqual([atLimit]);
     });
 
-    it("accepts patterns that start with kubectl or with a wildcard, trimmed", async () => {
+    /*
+     * Round one refused these for not starting with "kubectl " (the old
+     * whole-command glob). The matcher compares word by word and the
+     * leading "kubectl" is optional in any case, so they are real,
+     * matching patterns.
+     */
+    it("accepts patterns with or without a leading kubectl, in any case, trimmed", async () => {
       const written: UpdateBy<KubernetesCluster> = await update({
         aiKubectlCommandAllowlist: [
           "  kubectl set image deployment/web * -n web  ",
-          "* set image deployment/api *",
+          "set image deployment/web * -n web",
+          "Kubectl scale deployment/web --replicas=*",
           "kubectl\tscale deployment/web --replicas=*",
         ],
       });
 
       expect(writtenAllowlist(written)).toEqual([
         "kubectl set image deployment/web * -n web",
-        "* set image deployment/api *",
+        "set image deployment/web * -n web",
+        "Kubectl scale deployment/web --replicas=*",
         "kubectl\tscale deployment/web --replicas=*",
       ]);
     });
 
     it("stores a JSON-encoded array (a form the readers already accept) as the array", async () => {
       const written: UpdateBy<KubernetesCluster> = await update({
-        aiKubectlCommandAllowlist: '["kubectl scale *"]',
+        aiKubectlCommandAllowlist:
+          '["kubectl scale deployment/web --replicas=*"]',
       });
 
-      expect(writtenAllowlist(written)).toEqual(["kubectl scale *"]);
+      expect(writtenAllowlist(written)).toEqual([
+        "kubectl scale deployment/web --replicas=*",
+      ]);
     });
 
     it("stores an empty text field and null as no allowlist, and keeps an empty list", async () => {
@@ -1061,12 +1336,12 @@ describe("KubernetesClusterService AI remediation settings validation", () => {
             {
               projectId: PROJECT_ID,
               name: "prod-us",
-              aiKubectlCommandAllowlist: ["set image *"],
+              aiKubectlCommandAllowlist: ["kubectl"],
             },
             rootProps(),
           ),
         ),
-      ).rejects.toThrow(/must start with "kubectl "/);
+      ).rejects.toThrow(/cannot be used/);
     });
 
     /*
@@ -1076,89 +1351,141 @@ describe("KubernetesClusterService AI remediation settings validation", () => {
      * patterns (past them it skips silently, which is what the validator
      * exists to prevent).
      */
-    describe("agrees with the matcher", () => {
-      const setImage: string = KubectlPolicy.renderDisplayCommand([
-        "set",
-        "image",
-        "deployment/web",
-        "web=nginx:2",
-        "-n",
-        "web",
-      ]);
+    /*
+     * The validator and the matcher must not drift apart: the server keeps
+     * exactly the entries KubectlPolicy says the matcher can use, an
+     * accepted pattern matches the command it describes, and the limits are
+     * exactly where the matcher starts ignoring patterns (past them it skips
+     * silently, which is what the validator exists to prevent). Round one
+     * checked this against CommandPolicy — the Bash lane's glob — which is
+     * not the matcher the cluster allowlist runs through.
+     */
+    describe("agrees with the kubectl matcher (KubectlPolicy)", () => {
+      function argsOf(command: string): Array<string> {
+        return KubectlPolicy.tokenize(command).args || [];
+      }
 
-      it("an accepted kubectl-prefixed pattern matches its command", async () => {
+      const SET_IMAGE_ARGS: Array<string> = argsOf(
+        "kubectl set image deployment/web web=nginx:2 -n web",
+      );
+
+      /*
+       * The one definition: every entry below is accepted by the server
+       * exactly when describeAllowlistPatternProblem finds nothing wrong
+       * with it — whatever that function decides, now or later.
+       */
+      it.each([
+        [""],
+        ["kubectl"],
+        ["kubectl get\npods"],
+        ['kubectl patch deployment/web -p \'{"spec":'],
+        ["set image deployment/web * -n web"],
+        ["Kubectl set image deployment/web * -n web"],
+        ["kubectl set image deployment/web * -n web"],
+        ["kubectl scale deployment/web --replicas=*"],
+        ["* deployment/web -n web"],
+        ["* * -n web"],
+        [`kubectl get ${"x ".repeat(70)}`],
+      ])(
+        "refuses %p exactly when KubectlPolicy says it cannot be used",
+        async (pattern: string) => {
+          const problem: string | null =
+            KubectlPolicy.describeAllowlistPatternProblem(pattern.trim());
+
+          if (problem) {
+            await expect(
+              update({ aiKubectlCommandAllowlist: [pattern] }),
+            ).rejects.toThrow(BadDataException);
+          } else {
+            const written: UpdateBy<KubernetesCluster> = await update({
+              aiKubectlCommandAllowlist: [pattern],
+            });
+            expect(writtenAllowlist(written)).toEqual([pattern.trim()]);
+
+            // Whatever the server keeps, the matcher can read.
+            expect(
+              KubectlPolicy.tokenize(pattern.trim()).args?.length,
+            ).toBeGreaterThan(0);
+          }
+        },
+      );
+
+      it.each([
+        ["kubectl set image deployment/web * -n web"],
+        ["set image deployment/web * -n web"],
+        [" kubectl set image deployment/web web=* -n web "],
+      ])(
+        "an accepted %p matches the command it describes",
+        async (pattern: string) => {
+          const written: UpdateBy<KubernetesCluster> = await update({
+            aiKubectlCommandAllowlist: [pattern],
+          });
+
+          expect(
+            KubectlPolicy.matchesAllowlist({
+              args: SET_IMAGE_ARGS,
+              allowlistPatterns: writtenAllowlist(written) as Array<string>,
+            }),
+          ).toBe(true);
+        },
+      );
+
+      it("negative control: an accepted pattern for another object does not match", async () => {
         const written: UpdateBy<KubernetesCluster> = await update({
-          aiKubectlCommandAllowlist: [" kubectl set image deployment/web * "],
+          aiKubectlCommandAllowlist: [
+            "kubectl set image deployment/api * -n web",
+          ],
         });
 
         expect(
-          CommandPolicy.matchesAllowlist({
-            command: setImage,
+          KubectlPolicy.matchesAllowlist({
+            args: SET_IMAGE_ARGS,
             allowlistPatterns: writtenAllowlist(written) as Array<string>,
-          }),
-        ).toBe(true);
-      });
-
-      it("an accepted leading-wildcard pattern matches its command", async () => {
-        const written: UpdateBy<KubernetesCluster> = await update({
-          aiKubectlCommandAllowlist: ["* set image deployment/web *"],
-        });
-
-        expect(
-          CommandPolicy.matchesAllowlist({
-            command: setImage,
-            allowlistPatterns: writtenAllowlist(written) as Array<string>,
-          }),
-        ).toBe(true);
-      });
-
-      it("a refused pattern without the kubectl prefix could never have matched", () => {
-        expect(
-          CommandPolicy.matchesAllowlist({
-            command: setImage,
-            allowlistPatterns: ["set image deployment/web *"],
           }),
         ).toBe(false);
       });
 
-      it(`the matcher ignores a pattern past the ${MAX_KUBECTL_ALLOWLIST_PATTERNS}th, which is why more are refused`, () => {
+      it(`the matcher ignores a pattern past the ${KUBECTL_ALLOWLIST_MAX_PATTERNS}th, which is why more are refused`, () => {
         const filler: Array<string> = [];
-        for (let i: number = 0; i < MAX_KUBECTL_ALLOWLIST_PATTERNS; i++) {
+        for (let i: number = 0; i < KUBECTL_ALLOWLIST_MAX_PATTERNS; i++) {
           filler.push(`kubectl scale deployment/other-${i} --replicas=*`);
         }
 
+        const pattern: string = "kubectl set image deployment/web * -n web";
+
         expect(
-          CommandPolicy.matchesAllowlist({
-            command: setImage,
-            allowlistPatterns: [...filler, "kubectl set image *"],
+          KubectlPolicy.matchesAllowlist({
+            args: SET_IMAGE_ARGS,
+            allowlistPatterns: [...filler, pattern],
           }),
         ).toBe(false);
         expect(
-          CommandPolicy.matchesAllowlist({
-            command: setImage,
-            allowlistPatterns: [...filler.slice(1), "kubectl set image *"],
+          KubectlPolicy.matchesAllowlist({
+            args: SET_IMAGE_ARGS,
+            allowlistPatterns: [...filler.slice(1), pattern],
           }),
         ).toBe(true);
       });
 
-      it(`the matcher ignores a pattern longer than ${MAX_KUBECTL_ALLOWLIST_PATTERN_LENGTH} characters, which is why one is refused`, () => {
+      it(`the matcher ignores a pattern longer than ${KUBECTL_ALLOWLIST_MAX_PATTERN_LENGTH} characters, which is why one is refused`, () => {
         const padded: (length: number) => string = (length: number): string => {
           const head: string = "kubectl set image deployment/web ";
-          return head + "*".repeat(length - head.length);
+          const tail: string = " -n web";
+          return head + "*".repeat(length - head.length - tail.length) + tail;
         };
 
         expect(
-          CommandPolicy.matchesAllowlist({
-            command: setImage,
+          KubectlPolicy.matchesAllowlist({
+            args: SET_IMAGE_ARGS,
             allowlistPatterns: [
-              padded(MAX_KUBECTL_ALLOWLIST_PATTERN_LENGTH + 1),
+              padded(KUBECTL_ALLOWLIST_MAX_PATTERN_LENGTH + 1),
             ],
           }),
         ).toBe(false);
         expect(
-          CommandPolicy.matchesAllowlist({
-            command: setImage,
-            allowlistPatterns: [padded(MAX_KUBECTL_ALLOWLIST_PATTERN_LENGTH)],
+          KubectlPolicy.matchesAllowlist({
+            args: SET_IMAGE_ARGS,
+            allowlistPatterns: [padded(KUBECTL_ALLOWLIST_MAX_PATTERN_LENGTH)],
           }),
         ).toBe(true);
       });
@@ -1362,6 +1689,104 @@ describe("KubernetesClusterService AI access configured marker", () => {
     for (const write of markerWrites()) {
       expect(write.data["aiAccessConfiguredAt"]).not.toBeNull();
     }
+  });
+
+  /*
+   * Known follow-up 12: registration binds a cluster an operator configured
+   * before installing the chart, and leaves one alone that had a Runner
+   * bound before. "A Runner was bound here" is its own never-cleared
+   * marker, stamped on every bind — here, an operator's.
+   */
+  describe("the Runner-bound marker", () => {
+    function boundMarkerWrites(): Array<{
+      query: Record<string, unknown>;
+      data: Record<string, unknown>;
+      props: DatabaseCommonInteractionProps;
+    }> {
+      return markerWrites().filter(
+        (write: { data: Record<string, unknown> }) => {
+          return "aiAccessRunnerBoundAt" in write.data;
+        },
+      );
+    }
+
+    it.each([
+      [{ aiAccessRunnerId: RUNNER_ID }],
+      [{ aiAccessRunner: { _id: RUNNER_ID.toString() } }],
+    ])(
+      "is stamped, where it is not set yet, when an operator binds a Runner: %p",
+      async (data: Record<string, unknown>) => {
+        await runUpdate(data, adminProps());
+
+        const writes: Array<{
+          query: Record<string, unknown>;
+          data: Record<string, unknown>;
+          props: DatabaseCommonInteractionProps;
+        }> = boundMarkerWrites();
+        expect(writes).toHaveLength(1);
+        expect(writes[0]!.data["aiAccessRunnerBoundAt"]).toBeInstanceOf(Date);
+        expect(Object.keys(writes[0]!.data)).toEqual(["aiAccessRunnerBoundAt"]);
+        expect(Object.keys(writes[0]!.query).sort()).toEqual(
+          ["_id", "aiAccessRunnerBoundAt"].sort(),
+        );
+        // Conditional on IS NULL: the first bind's time is kept.
+        expect(writes[0]!.query["aiAccessRunnerBoundAt"]).not.toBeInstanceOf(
+          Date,
+        );
+        expect(writes[0]!.props.isRoot).toBe(true);
+      },
+    );
+
+    it("negative control: clearing the Runner, or any other AI setting, does not stamp it", async () => {
+      jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue({
+        id: CREDENTIAL_ID,
+        credentialType: RunbookCredentialType.Kubernetes,
+        runners: [],
+      } as unknown as RunbookCredential);
+
+      await runUpdate({ aiAccessRunnerId: null }, adminProps());
+      await runUpdate(
+        { aiRemediationMode: KubernetesAiRemediationMode.Automatic },
+        adminProps(),
+      );
+      await runUpdate({ aiAccessCredentialId: CREDENTIAL_ID }, adminProps());
+
+      expect(boundMarkerWrites()).toHaveLength(0);
+    });
+
+    it("negative control: a root write (registration stamps its own) does not stamp it", async () => {
+      await runUpdate({ aiAccessRunnerId: RUNNER_ID }, rootProps());
+
+      expect(boundMarkerWrites()).toHaveLength(0);
+    });
+
+    it("is stamped on an operator's create that binds a Runner", async () => {
+      const create: CreateBy<KubernetesCluster> = createBy(
+        {
+          projectId: PROJECT_ID,
+          name: "prod-us",
+          aiAccessRunnerId: RUNNER_ID,
+        },
+        { isMasterAdmin: true, userId: ObjectID.generate() },
+      );
+      const onCreate: OnCreate<KubernetesCluster> =
+        await hooks().onBeforeCreate(create);
+
+      jest
+        .spyOn(
+          KubernetesClusterService as unknown as {
+            writeKubernetesClusterCreatedFeed: () => Promise<void>;
+          },
+          "writeKubernetesClusterCreatedFeed",
+        )
+        .mockResolvedValue(undefined);
+
+      await hooks().onCreateSuccess(onCreate, {
+        id: CLUSTER_ID,
+      } as unknown as KubernetesCluster);
+
+      expect(boundMarkerWrites()).toHaveLength(1);
+    });
   });
 
   describe("on create", () => {

@@ -20,8 +20,12 @@ import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
  *   approved it;
  * - its identity is minted with the project's telemetry ingestion key, so
  *   it must never be handed AI-composed shell work or an SSH credential;
- * - the decision keys on the server-owned NAME marker, never on the
- *   posture the Runner rewrites on every heartbeat;
+ * - the decision is the one "is an agent row" rule
+ *   (RunnerService.isKubernetesAgentRunnerRow), failing closed on either
+ *   fact: the server-owned NAME marker (compared case-insensitively; a
+ *   non-root rename into or out of it is refused), which survives a
+ *   heartbeat that drops the posture, OR an agent posture, which only the
+ *   kubernetes-agent binary reports;
  * - the target must be one of the project's Runners at all.
  *
  * Refusing here (not only in the tool that lists hosts) also stops a plan
@@ -134,6 +138,34 @@ describe("RunnerJobService.enqueueAiCommand never targets a kubernetes-agent Run
     expect(create).not.toHaveBeenCalled();
   });
 
+  /*
+   * Round one keyed this refusal on the case-sensitive name alone, so an
+   * agent row renamed out of the marker (or to a case variant of it) was
+   * accepted as a Bash/SSH host.
+   */
+  it.each([
+    [
+      "a name without the marker but an agent posture",
+      {
+        name: "prod in-cluster runner",
+        hostInfo: {
+          kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
+        },
+      },
+    ],
+    ["a case variant of the marker", { name: "Kubernetes-Agent/prod-us" }],
+  ])(
+    "refuses a Bash job for a row with %s",
+    async (_label: string, row: Record<string, unknown>) => {
+      runnerLookup.mockResolvedValue(runner(row));
+
+      await expect(RunnerJobService.enqueueAiCommand(args())).rejects.toThrow(
+        /never Bash commands/,
+      );
+      expect(create).not.toHaveBeenCalled();
+    },
+  );
+
   it("refuses a target Runner that is not in the project", async () => {
     runnerLookup.mockResolvedValue(null);
 
@@ -149,12 +181,18 @@ describe("RunnerJobService.enqueueAiCommand never targets a kubernetes-agent Run
     expect(query["projectId"]).toBe(PROJECT_ID);
   });
 
-  it("negative control: an ordinary Runner in a pod (in-cluster posture, own name) still gets its Bash job", async () => {
+  /*
+   * Before round two this fixture also named a cluster — an agent posture,
+   * which only the kubernetes-agent binary reports and which now marks the
+   * row as an agent on its own (the case above). An ordinary Runner that
+   * lives in a pod reports no cluster identity.
+   */
+  it("negative control: an ordinary Runner in a pod (in-cluster, no cluster identity, own name) still gets its Bash job", async () => {
     runnerLookup.mockResolvedValue(
       runner({
         name: "pod-runner",
         hostInfo: {
-          kubernetes: { inCluster: true, clusterIdentifier: "prod-us" },
+          kubernetes: { inCluster: true },
         },
       }),
     );

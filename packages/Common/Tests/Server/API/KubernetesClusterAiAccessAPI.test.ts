@@ -1,4 +1,8 @@
 import CommonAPI from "../../../Server/API/CommonAPI";
+import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
+import Semaphore, {
+  SemaphoreMutex,
+} from "../../../Server/Infrastructure/Semaphore";
 import KubernetesClusterAiAccessService from "../../../Server/Services/KubernetesClusterAiAccessService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import RunnerJobService from "../../../Server/Services/RunnerJobService";
@@ -20,6 +24,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import ServiceUnavailableException from "../../../Types/Exception/ServiceUnavailableException";
 import TooManyRequestsException from "../../../Types/Exception/TooManyRequestsException";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -55,8 +60,13 @@ import {
  *   missing one, and nothing past the lookup runs;
  * - /status needs only read access; /test needs edit access to the cluster
  *   (a block row is a denial, not a grant) and says so in its own words;
- * - /test has its own limits — one test at a time per cluster, a few per
- *   minute per cluster and per user — checked before anything is enqueued;
+ * - /test has its own limits — one test at a time per cluster (an atomic
+ *   reservation, so concurrent requests cannot all start), a few per minute
+ *   and a ceiling per hour per cluster, and a few per minute per user
+ *   (counted under a per-user lock) — checked before anything is enqueued;
+ * - /status and /test show the credential's name only to a caller who may
+ *   read credentials;
+ * - an access-test command that times out reads in kubectl's words;
  * - /test enqueues through the kubectl chokepoint AS AN ACCESS TEST, so it
  *   is exempt from the investigation switch and never spends the project's
  *   investigation brake; it keeps going only while commands succeed, and a
@@ -214,6 +224,20 @@ async function callRoute(
   };
 }
 
+/*
+ * The per-cluster hourly count and the per-minute count differ only in how
+ * far back createdAt reaches: an hour, or a minute.
+ */
+function isWithinTheLastHourOnly(query: Record<string, unknown>): boolean {
+  const filter: { objectLiteralParameters?: Record<string, unknown> } =
+    (query["createdAt"] as {
+      objectLiteralParameters?: Record<string, unknown>;
+    }) || {};
+  const since: unknown = Object.values(filter.objectLiteralParameters || {})[0];
+
+  return since instanceof Date && Date.now() - since.getTime() > 10 * 60 * 1000;
+}
+
 function lastResponse(): JSONObject {
   const calls: Array<Array<unknown>> = sendJsonObjectResponseMock.mock
     .calls as Array<Array<unknown>>;
@@ -339,10 +363,22 @@ describe("KubernetesClusterAiAccessAPI", () => {
   let countSpy: jest.SpyInstance;
   let outcomeSpy: jest.SpyInstance;
 
-  // What the three access-test counters answer, by which query asks.
+  // What the access-test counters answer, by which query asks.
   let inFlightTests: number;
   let recentTestsForCluster: number;
+  let testsForClusterThisHour: number;
   let recentTestsByUser: number;
+
+  /*
+   * An in-memory stand-in for Redis: SET NX and compare-and-delete with the
+   * semantics GlobalCache gives them, and a mutex per key that queues its
+   * waiters, as redis-semaphore's does.
+   */
+  let cacheKeys: Map<string, string>;
+  let reserveSpy: jest.SpyInstance;
+  let releaseSpy: jest.SpyInstance;
+  let lockSpy: jest.SpyInstance;
+  let heldLocks: Map<string, Promise<void>>;
 
   beforeAll(async () => {
     /*
@@ -357,7 +393,81 @@ describe("KubernetesClusterAiAccessAPI", () => {
 
     inFlightTests = 0;
     recentTestsForCluster = 0;
+    testsForClusterThisHour = 0;
     recentTestsByUser = 0;
+
+    cacheKeys = new Map<string, string>();
+    reserveSpy = jest
+      .spyOn(GlobalCache, "setStringIfNotExists")
+      .mockImplementation(
+        async (
+          namespace: string,
+          key: string,
+          value: string,
+        ): Promise<boolean> => {
+          const cacheKey: string = `${namespace}-${key}`;
+          if (cacheKeys.has(cacheKey)) {
+            return false;
+          }
+          cacheKeys.set(cacheKey, value);
+          return true;
+        },
+      );
+    releaseSpy = jest
+      .spyOn(GlobalCache, "deleteKeyIfValue")
+      .mockImplementation(
+        async (
+          namespace: string,
+          key: string,
+          value: string,
+        ): Promise<boolean> => {
+          const cacheKey: string = `${namespace}-${key}`;
+          if (cacheKeys.get(cacheKey) !== value) {
+            return false;
+          }
+          cacheKeys.delete(cacheKey);
+          return true;
+        },
+      );
+
+    heldLocks = new Map<string, Promise<void>>();
+    lockSpy = jest
+      .spyOn(Semaphore, "lock")
+      .mockImplementation(
+        async (data: {
+          key: string;
+          namespace: string;
+        }): Promise<SemaphoreMutex> => {
+          const lockKey: string = `${data.namespace}-${data.key}`;
+
+          while (heldLocks.has(lockKey)) {
+            await heldLocks.get(lockKey);
+          }
+
+          let unlock: () => void = (): void => {
+            return undefined;
+          };
+          heldLocks.set(
+            lockKey,
+            new Promise<void>((resolve: () => void) => {
+              unlock = resolve;
+            }),
+          );
+
+          return {
+            lockKey,
+            unlock: (): void => {
+              heldLocks.delete(lockKey);
+              unlock();
+            },
+          } as unknown as SemaphoreMutex;
+        },
+      );
+    jest
+      .spyOn(Semaphore, "release")
+      .mockImplementation(async (mutex: SemaphoreMutex): Promise<void> => {
+        (mutex as unknown as { unlock: () => void }).unlock();
+      });
 
     propsSpy = jest
       .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
@@ -408,7 +518,11 @@ describe("KubernetesClusterAiAccessAPI", () => {
         }
 
         if (query["kubernetesClusterId"]) {
-          return new PositiveNumber(recentTestsForCluster);
+          return new PositiveNumber(
+            isWithinTheLastHourOnly(query)
+              ? testsForClusterThisHour
+              : recentTestsForCluster,
+          );
         }
 
         return new PositiveNumber(recentTestsByUser);
@@ -801,6 +915,442 @@ describe("KubernetesClusterAiAccessAPI", () => {
       expect(Object.values(stepFilter.objectLiteralParameters || {})).toEqual([
         "ai-access-test-1-%",
       ]);
+    });
+
+    test("refuses once the cluster was tested 30 times in the last hour; admits at 29", async () => {
+      testsForClusterThisHour = 30;
+
+      const refused: RouteCallResult = await callRoute(TEST_ROUTE);
+
+      expect(refused.thrownToNext).toBeInstanceOf(TooManyRequestsException);
+      expect((refused.thrownToNext as Error).message).toContain(
+        "30 times in the last hour",
+      );
+      expect(enqueueSpy).not.toHaveBeenCalled();
+
+      jest.clearAllMocks();
+      testsForClusterThisHour = 29;
+
+      const admitted: RouteCallResult = await callRoute(TEST_ROUTE);
+
+      expect(admitted.nextCallCount).toBe(0);
+      expect(enqueueSpy).toHaveBeenCalledTimes(2);
+    });
+
+    /*
+     * Access-test jobs have no AI run, so the project's investigation brake
+     * (which counts rows WITH one) never sees them — the hourly ceiling
+     * above is theirs.
+     */
+    test("the chokepoint is told it is an access test, so it stays out of the investigation brake", async () => {
+      await callRoute(TEST_ROUTE);
+
+      for (const call of enqueueSpy.mock.calls) {
+        expect((call[0] as Record<string, unknown>)["isAccessTest"]).toBe(true);
+        expect((call[0] as Record<string, unknown>)["aiRunId"]).toBeUndefined();
+      }
+    });
+  });
+
+  /*
+   * SIA-5: the limits used to be count-then-enqueue with nothing reserved,
+   * so concurrent requests all read "nothing running" and all started.
+   */
+  describe("POST /kubernetes-cluster/ai-access/test — the limits are atomic", () => {
+    function deferred(): {
+      promise: Promise<RunnerJob>;
+      resolve: (job: RunnerJob) => void;
+    } {
+      let resolve: (job: RunnerJob) => void = (): void => {
+        return undefined;
+      };
+      const promise: Promise<RunnerJob> = new Promise<RunnerJob>(
+        (done: (job: RunnerJob) => void) => {
+          resolve = done;
+        },
+      );
+      return { promise, resolve };
+    }
+
+    const SUCCEEDED: RunnerJob = {
+      status: RunnerJobStatus.Succeeded,
+      exitCode: 0,
+      output: "ok",
+    } as unknown as RunnerJob;
+
+    test("two tests started together for one cluster: exactly one runs, the other is told one is running", async () => {
+      const held: {
+        promise: Promise<RunnerJob>;
+        resolve: (job: RunnerJob) => void;
+      } = deferred();
+      pollSpy.mockReturnValue(held.promise);
+
+      const first: Promise<RouteCallResult> = callRoute(TEST_ROUTE);
+      const second: Promise<RouteCallResult> = callRoute(TEST_ROUTE);
+
+      const secondResult: RouteCallResult = await second;
+      expect(secondResult.thrownToNext).toBeInstanceOf(
+        TooManyRequestsException,
+      );
+      expect((secondResult.thrownToNext as Error).message).toContain(
+        "already running",
+      );
+
+      held.resolve(SUCCEEDED);
+      pollSpy.mockResolvedValue(SUCCEEDED);
+      const firstResult: RouteCallResult = await first;
+
+      expect(firstResult.nextCallCount).toBe(0);
+      // Both of the ONE test's commands, and nothing from the other.
+      expect(enqueueSpy).toHaveBeenCalledTimes(2);
+    });
+
+    /*
+     * Negative control: with a reservation that always succeeds (what
+     * round one had — no reservation at all), the same two requests both
+     * start, because the row counts read zero for both. This is what the
+     * test above guards against.
+     */
+    test("negative control: without the reservation both would run", async () => {
+      reserveSpy.mockResolvedValue(true);
+      const held: {
+        promise: Promise<RunnerJob>;
+        resolve: (job: RunnerJob) => void;
+      } = deferred();
+      pollSpy.mockReturnValue(held.promise);
+
+      const first: Promise<RouteCallResult> = callRoute(TEST_ROUTE);
+      const second: Promise<RouteCallResult> = callRoute(TEST_ROUTE);
+
+      // Let both reach their first command.
+      for (let i: number = 0; i < 50 && enqueueSpy.mock.calls.length < 2; i++) {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 0);
+        });
+      }
+
+      held.resolve(SUCCEEDED);
+      pollSpy.mockResolvedValue(SUCCEEDED);
+      await Promise.all([first, second]);
+
+      expect(enqueueSpy.mock.calls.length).toBeGreaterThan(2);
+    });
+
+    test("releases the reservation when the test ends, so the next one is admitted", async () => {
+      await callRoute(TEST_ROUTE);
+
+      expect(reserveSpy).toHaveBeenCalledTimes(1);
+      const [namespace, key, token] = reserveSpy.mock.calls[0] as [
+        string,
+        string,
+        string,
+      ];
+      expect(key).toBe(CLUSTER_ID.toString());
+      expect(releaseSpy).toHaveBeenCalledWith(namespace, key, token);
+      expect(cacheKeys.size).toBe(0);
+
+      const again: RouteCallResult = await callRoute(TEST_ROUTE);
+      expect(again.nextCallCount).toBe(0);
+    });
+
+    test("releases it after a failed command, a refused limit and a transport gap too", async () => {
+      pollSpy.mockResolvedValue({
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        errorMessage: "error: You must be logged in to the server",
+      } as unknown as RunnerJob);
+      await callRoute(TEST_ROUTE);
+      expect(cacheKeys.size).toBe(0);
+
+      recentTestsForCluster = 3;
+      const refused: RouteCallResult = await callRoute(TEST_ROUTE);
+      expect(refused.thrownToNext).toBeInstanceOf(TooManyRequestsException);
+      expect(cacheKeys.size).toBe(0);
+
+      recentTestsForCluster = 0;
+      statusSpy.mockResolvedValue(
+        readyStatus({ gaps: [gap("runner_offline")] }),
+      );
+      await callRoute(TEST_ROUTE);
+      expect(cacheKeys.size).toBe(0);
+    });
+
+    test("a reservation that cannot be checked fails closed, and nothing is enqueued", async () => {
+      reserveSpy.mockRejectedValue(new Error("Cache is not connected"));
+
+      const result: RouteCallResult = await callRoute(TEST_ROUTE);
+
+      expect(result.thrownToNext).toBeInstanceOf(ServiceUnavailableException);
+      expect(countSpy).not.toHaveBeenCalled();
+      expect(enqueueSpy).not.toHaveBeenCalled();
+    });
+
+    test("a held reservation refuses the test before anything is counted", async () => {
+      cacheKeys.set(
+        `kubernetes-ai-access-test-${CLUSTER_ID.toString()}`,
+        "someone-else",
+      );
+
+      const result: RouteCallResult = await callRoute(TEST_ROUTE);
+
+      expect(result.thrownToNext).toBeInstanceOf(TooManyRequestsException);
+      expect(countSpy).not.toHaveBeenCalled();
+      // Never releases someone else's reservation.
+      expect(cacheKeys.size).toBe(1);
+    });
+
+    /*
+     * The per-user limit spans clusters, so the cluster reservation does
+     * not serialize it: the user's count is read and the first job created
+     * under a per-user lock.
+     */
+    function userAtFiveOfSixOnTwoClusters(): ObjectID {
+      const OTHER_CLUSTER: ObjectID = new ObjectID(
+        "66666666-6666-4666-8666-666666666666",
+      );
+      clusterFind.mockImplementation(
+        async (args: unknown): Promise<KubernetesCluster> => {
+          const id: string = String(
+            (args as { query: Record<string, unknown> }).query["_id"],
+          );
+          return {
+            id: new ObjectID(id),
+            _id: id,
+            projectId: PROJECT_ID,
+            name: id,
+          } as unknown as KubernetesCluster;
+        },
+      );
+
+      // The user's count: 5 before, plus every first command created since.
+      countSpy.mockImplementation(
+        async (args: unknown): Promise<PositiveNumber> => {
+          const query: Record<string, unknown> = (
+            args as { query: Record<string, unknown> }
+          ).query;
+          if (query["kubernetesClusterId"] || query["status"]) {
+            return new PositiveNumber(0);
+          }
+          const firstCommands: number = enqueueSpy.mock.calls.filter(
+            (call: Array<unknown>) => {
+              return String(
+                (call[0] as Record<string, unknown>)["stepId"],
+              ).startsWith("ai-access-test-1-");
+            },
+          ).length;
+          return new PositiveNumber(5 + firstCommands);
+        },
+      );
+
+      return OTHER_CLUSTER;
+    }
+
+    test("a user at 5 of 6 starting tests on two clusters at once gets exactly one", async () => {
+      const OTHER_CLUSTER: ObjectID = userAtFiveOfSixOnTwoClusters();
+
+      const results: Array<RouteCallResult> = await Promise.all([
+        callRoute(TEST_ROUTE, { clusterId: CLUSTER_ID.toString() }),
+        callRoute(TEST_ROUTE, { clusterId: OTHER_CLUSTER.toString() }),
+      ]);
+
+      const refused: Array<RouteCallResult> = results.filter(
+        (result: RouteCallResult) => {
+          return result.thrownToNext instanceof TooManyRequestsException;
+        },
+      );
+      expect(refused).toHaveLength(1);
+      expect((refused[0]!.thrownToNext as Error).message).toContain(
+        "You ran 6 AI access tests",
+      );
+      expect(
+        lockSpy.mock.calls.every((call: Array<unknown>) => {
+          return (call[0] as { key: string }).key === USER_ID.toString();
+        }),
+      ).toBe(true);
+    });
+
+    // Negative control: without the per-user lock both read 5 and both run.
+    test("negative control: without the per-user lock both would start", async () => {
+      const OTHER_CLUSTER: ObjectID = userAtFiveOfSixOnTwoClusters();
+      lockSpy.mockResolvedValue({
+        unlock: (): void => {
+          return undefined;
+        },
+      } as unknown as SemaphoreMutex);
+
+      const results: Array<RouteCallResult> = await Promise.all([
+        callRoute(TEST_ROUTE, { clusterId: CLUSTER_ID.toString() }),
+        callRoute(TEST_ROUTE, { clusterId: OTHER_CLUSTER.toString() }),
+      ]);
+
+      expect(
+        results.filter((result: RouteCallResult) => {
+          return result.thrownToNext instanceof TooManyRequestsException;
+        }),
+      ).toHaveLength(0);
+    });
+
+    test("a user lock that cannot be had refuses with 429, and nothing is enqueued", async () => {
+      lockSpy.mockRejectedValue(new Error("lock timeout"));
+
+      const result: RouteCallResult = await callRoute(TEST_ROUTE);
+
+      expect(result.thrownToNext).toBeInstanceOf(TooManyRequestsException);
+      expect(enqueueSpy).not.toHaveBeenCalled();
+      // And the cluster's reservation was released on the way out.
+      expect(cacheKeys.size).toBe(0);
+    });
+  });
+
+  /*
+   * IP-3: an access-test command that nobody picked up used to read "No
+   * runbook agent picked up this step … then try again" — in the results
+   * and as the cluster's Last error. The row itself now carries kubectl's
+   * words (RunnerJobService.pollUntilTerminal), so every reader agrees.
+   */
+  describe("POST /kubernetes-cluster/ai-access/test — timeouts read in kubectl's words", () => {
+    test("an unclaimed first command says nothing was run, in the results and the recorded error", async () => {
+      pollSpy.mockRestore();
+      jest.spyOn(RunnerJobService, "findOneById").mockResolvedValue({
+        status: RunnerJobStatus.Pending,
+        origin: RunnerJobOrigin.AiInvestigation,
+        stepType: "Kubectl",
+        claimDeadlineAt: new Date(Date.now() - 1000),
+      } as unknown as RunnerJob);
+      const timeoutSpy: jest.SpyInstance = jest
+        .spyOn(RunnerJobService, "timeoutJob")
+        .mockImplementation(
+          async (data: { reason: string }): Promise<RunnerJob> => {
+            return {
+              status: RunnerJobStatus.TimedOut,
+              errorMessage: data.reason,
+            } as unknown as RunnerJob;
+          },
+        );
+
+      await callRoute(TEST_ROUTE);
+
+      expect(timeoutSpy).toHaveBeenCalledTimes(1);
+      const result: JSONObject = (
+        lastResponse()["results"] as Array<JSONObject>
+      )[0]!;
+      expect(result["succeeded"]).toBe(false);
+      expect(String(result["errorMessage"])).toContain("Nothing was run");
+      expect(String(result["errorMessage"])).toMatch(/kubectl/);
+      expect(String(result["errorMessage"])).not.toMatch(/runbook/i);
+      expect(String(result["errorMessage"])).not.toMatch(/\bstep\b/i);
+
+      const recorded: { errorMessage?: string } = outcomeSpy.mock
+        .calls[0]![0] as { errorMessage?: string };
+      expect(recorded.errorMessage).toBe(result["errorMessage"]);
+    });
+
+    test("negative control: a command that ran and failed keeps kubectl's own error", async () => {
+      pollSpy.mockResolvedValue({
+        status: RunnerJobStatus.Failed,
+        exitCode: 1,
+        errorMessage: "error: You must be logged in to the server",
+      } as unknown as RunnerJob);
+
+      await callRoute(TEST_ROUTE);
+
+      const result: JSONObject = (
+        lastResponse()["results"] as Array<JSONObject>
+      )[0]!;
+      expect(result["errorMessage"]).toBe(
+        "error: You must be logged in to the server",
+      );
+    });
+  });
+
+  /*
+   * The cluster's AI page shows the credential's NAME only to someone who
+   * may read credentials — the rule its credential picker and the
+   * investigation panel apply. Reading the cluster is not enough.
+   */
+  describe("the credential is shown only to callers who may read credentials", () => {
+    const CREDENTIAL_GAP: KubernetesAiAccessGap = {
+      code: "credential_missing",
+      title: "The Kubernetes credential is not usable by the Runner",
+      description:
+        '"prod-us kubeconfig" is not assigned to Runner "office-runner".',
+      nextStep: "Assign it.",
+      blocks: "both",
+    };
+
+    test("/status withholds the credential's id and name, and the gap text that names it", async () => {
+      propsSpy.mockResolvedValue(
+        userProps({ permissions: [Permission.ReadKubernetesCluster] }),
+      );
+      statusSpy.mockResolvedValue(readyStatus({ gaps: [CREDENTIAL_GAP] }));
+
+      await callRoute(STATUS_ROUTE);
+
+      const response: JSONObject = lastResponse();
+      expect(response).not.toHaveProperty("credentialId");
+      expect(response).not.toHaveProperty("credentialName");
+      expect(JSON.stringify(response)).not.toContain("prod-us kubeconfig");
+      const gaps: Array<JSONObject> = response["gaps"] as Array<JSONObject>;
+      expect(gaps[0]!["description"]).toContain(
+        "Someone who can view Runner credentials",
+      );
+      // Everything else a cluster reader may see is still there.
+      expect(response["accessMethod"]).toBe("credential");
+      expect(response["clusterId"]).toBe(CLUSTER_ID.toString());
+    });
+
+    test("a block row for credential read is a denial even with a grant", async () => {
+      propsSpy.mockResolvedValue(
+        userProps({
+          permissions: [
+            Permission.ReadKubernetesCluster,
+            Permission.ReadRunbookCredential,
+          ],
+          blocked: [Permission.ReadRunbookCredential],
+        }),
+      );
+
+      await callRoute(STATUS_ROUTE);
+
+      expect(lastResponse()).not.toHaveProperty("credentialName");
+    });
+
+    test("negative control: a caller who may read credentials sees them", async () => {
+      propsSpy.mockResolvedValue(
+        userProps({
+          permissions: [
+            Permission.ReadKubernetesCluster,
+            Permission.ReadRunbookCredential,
+          ],
+        }),
+      );
+      statusSpy.mockResolvedValue(readyStatus({ gaps: [CREDENTIAL_GAP] }));
+
+      await callRoute(STATUS_ROUTE);
+
+      const response: JSONObject = lastResponse();
+      expect(response["credentialId"]).toBe(CREDENTIAL_ID);
+      expect(response["credentialName"]).toBe("prod-us kubeconfig");
+      expect(
+        (response["gaps"] as Array<JSONObject>)[0]!["description"],
+      ).toContain("prod-us kubeconfig");
+    });
+
+    test("/test withholds them from its status too, yet still runs through the bound credential", async () => {
+      propsSpy.mockResolvedValue(
+        userProps({ permissions: [Permission.EditKubernetesCluster] }),
+      );
+
+      await callRoute(TEST_ROUTE);
+
+      expect(
+        (enqueueSpy.mock.calls[0]![0] as Record<string, unknown>)[
+          "credentialId"
+        ],
+      ).toBe(CREDENTIAL_ID);
+      const status: JSONObject = lastResponse()["status"] as JSONObject;
+      expect(status).not.toHaveProperty("credentialName");
+      expect(status).not.toHaveProperty("credentialId");
     });
   });
 });

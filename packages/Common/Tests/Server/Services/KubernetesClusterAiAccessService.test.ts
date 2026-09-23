@@ -1,10 +1,12 @@
 import KubernetesClusterAiAccessService, {
+  KubernetesAgentRegistrationRefusedException,
   KubernetesClusterAiAccessProjectGates,
   MAX_KUBERNETES_AGENT_RUNNERS_PER_PROJECT,
   MAX_KUBERNETES_AGENT_RUNNER_NAME_LENGTH,
   MAX_NEW_KUBERNETES_AGENT_RUNNERS_PER_PROJECT_PER_HOUR,
   RegisterKubernetesAgentRunnerResult,
   getKubernetesAgentRunnerNameForCluster,
+  getPreviousInstanceRetryAfterSeconds,
 } from "../../../Server/Services/KubernetesClusterAiAccessService";
 import KubernetesClusterFeedService from "../../../Server/Services/KubernetesClusterFeedService";
 import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
@@ -33,6 +35,7 @@ import {
   KubernetesAiRemediationMode,
   KubernetesClusterAiAccessStatus,
   getKubernetesAgentRunnerName,
+  isTransientKubernetesAgentRegistrationRefusal,
 } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
@@ -109,6 +112,14 @@ function fakeRunner(overrides: Partial<Record<string, unknown>> = {}): Runner {
     name: "kubernetes-agent/prod-us",
     lastAlive: OneUptimeDate.getCurrentDate(),
     canRunAiCommands: true,
+    /*
+     * What registration gives an agent row. Readiness now reads these for
+     * an offline agent row (they would block its re-registration), so the
+     * fixture carries the agent defaults rather than leaving them unset
+     * (which reads as "Runs Runbooks" on).
+     */
+    canRunRunbooks: false,
+    canRunCodeFixTasks: false,
     hostInfo: {
       kubernetes: {
         inCluster: true,
@@ -129,10 +140,28 @@ function gapCodes(
 }
 
 describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
+  /*
+   * What an offline agent Runner of this cluster holds beyond the agent
+   * defaults (readiness asks, because holdings stop it re-registering).
+   * Nothing, unless a test says otherwise.
+   */
+  let credentialCountSpy: jest.SpyInstance;
+  let secretCountSpy: jest.SpyInstance;
+  let boundClusterCountSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.spyOn(logger, "error").mockImplementation((): void => {
       return undefined;
     });
+    credentialCountSpy = jest
+      .spyOn(RunbookCredentialService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    secretCountSpy = jest
+      .spyOn(RunbookSecretService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
+    boundClusterCountSpy = jest
+      .spyOn(KubernetesClusterService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0));
   });
 
   afterEach(() => {
@@ -155,6 +184,38 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
     expect(status.runner?.isOnline).toBe(true);
     expect(status.runner?.posture?.allowWrites).toBe(true);
     expect(status.kubectlAllowlist).toEqual([]);
+  });
+
+  /*
+   * The Runner's write scope reaches the status (and so the AI page and
+   * the planner) as the Runner reported it: the namespaces it lets AI
+   * change, its own namespace, and whether node operations are allowed.
+   */
+  it("reports the bound Runner's write scope in its posture", async () => {
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+      fakeRunner({
+        hostInfo: {
+          kubernetes: {
+            inCluster: true,
+            allowWrites: true,
+            clusterIdentifier: "prod-us",
+            writeNamespaces: ["web", "api"],
+            podNamespace: "oneuptime-agent",
+            allowNodeOperations: false,
+          },
+        },
+      }),
+    );
+
+    const status: KubernetesClusterAiAccessStatus =
+      await KubernetesClusterAiAccessService.getStatusForClusterModel({
+        cluster: fakeCluster(),
+        gates: READY_GATES,
+      });
+
+    expect(status.runner?.posture?.writeNamespaces).toEqual(["web", "api"]);
+    expect(status.runner?.posture?.podNamespace).toBe("oneuptime-agent");
+    expect(status.runner?.posture?.allowNodeOperations).toBe(false);
   });
 
   it("reports no_runner_bound with the install step and blocks both when the cluster has no Runner and none is registered for it", async () => {
@@ -415,6 +476,143 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
         });
 
       expect(status.gaps[0]?.title).toBe("The Runner has never connected");
+    });
+
+    /*
+     * A restarted agent pod cannot present the key its predecessor held, so
+     * a row holding more than the agent defaults is refused on every
+     * registration — "it reconnects within a minute" would be false.
+     */
+    describe("an offline agent Runner that holds more than the defaults", () => {
+      it('says it cannot re-register and names "Runs Runbooks" instead of promising a reconnect', async () => {
+        jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+          fakeRunner({
+            connectionStatus: RunnerConnectionStatus.Disconnected,
+            canRunRunbooks: true,
+          }),
+        );
+
+        const status: KubernetesClusterAiAccessStatus =
+          await KubernetesClusterAiAccessService.getStatusForClusterModel({
+            cluster: fakeCluster(),
+            gates: READY_GATES,
+          });
+
+        expect(gapCodes(status)).toEqual(["runner_offline"]);
+        const gap: KubernetesAiAccessGap = status.gaps[0]!;
+        expect(gap.title).toContain("cannot re-register");
+        expect(gap.description).toContain('"Runs Runbooks" is on');
+        expect(gap.nextStep).toContain(
+          'on Runner "kubernetes-agent/prod-us": turn off "Runs Runbooks"',
+        );
+        expect(gap.nextStep).toContain("delete the Runner");
+        expect(gap.nextStep).not.toContain("reconnects within a minute");
+        expect(gap.nextStep).not.toContain("aiAccess.enabled=true");
+        expect(gap.blocks).toBe("both");
+      });
+
+      it("names assigned credentials, secrets and other clusters bound to it, counted for THIS cluster", async () => {
+        credentialCountSpy.mockResolvedValue(new PositiveNumber(1));
+        secretCountSpy.mockResolvedValue(new PositiveNumber(2));
+        boundClusterCountSpy.mockResolvedValue(new PositiveNumber(1));
+        jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+          fakeRunner({
+            lastAlive: OneUptimeDate.getSomeMinutesAgo(30),
+          }),
+        );
+
+        const status: KubernetesClusterAiAccessStatus =
+          await KubernetesClusterAiAccessService.getStatusForClusterModel({
+            cluster: fakeCluster(),
+            gates: READY_GATES,
+          });
+
+        const gap: KubernetesAiAccessGap = status.gaps[0]!;
+        expect(gap.description).toContain("1 Runner credential(s) assigned");
+        expect(gap.description).toContain("2 runbook secret(s) assigned");
+        expect(gap.description).toContain(
+          "the AI access Runner of 1 other cluster(s)",
+        );
+        // "Runs Runbooks" is off on this row, so it is not named.
+        expect(gap.description).not.toContain("Runs Runbooks");
+
+        const clusterQuery: Record<string, unknown> = (
+          boundClusterCountSpy.mock.calls[0]![0] as {
+            query: Record<string, unknown>;
+          }
+        ).query;
+        expect(clusterQuery["_id"]).toBeDefined();
+        expect(typeof clusterQuery["_id"]).not.toBe("string");
+      });
+
+      it("negative control: a signed-off agent row with nothing extra keeps the reconnect wording", async () => {
+        jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+          fakeRunner({
+            connectionStatus: RunnerConnectionStatus.Disconnected,
+          }),
+        );
+
+        const status: KubernetesClusterAiAccessStatus =
+          await KubernetesClusterAiAccessService.getStatusForClusterModel({
+            cluster: fakeCluster(),
+            gates: READY_GATES,
+          });
+
+        expect(status.gaps[0]?.title).toBe("The in-cluster Runner signed off");
+        expect(status.gaps[0]?.nextStep).toContain("aiAccess.enabled=true");
+      });
+
+      it("negative control: an online agent row is never counted", async () => {
+        jest
+          .spyOn(RunnerService, "findOneBy")
+          .mockResolvedValue(fakeRunner({ canRunRunbooks: true }));
+
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster(),
+          gates: READY_GATES,
+        });
+
+        expect(credentialCountSpy).not.toHaveBeenCalled();
+      });
+
+      it("negative control: another cluster's agent row is not judged by this cluster's holdings", async () => {
+        jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+          fakeRunner({
+            name: "kubernetes-agent/prod-eu",
+            connectionStatus: RunnerConnectionStatus.Disconnected,
+            canRunRunbooks: true,
+            hostInfo: {
+              kubernetes: { inCluster: true, clusterIdentifier: "prod-eu" },
+            },
+          }),
+        );
+
+        const status: KubernetesClusterAiAccessStatus =
+          await KubernetesClusterAiAccessService.getStatusForClusterModel({
+            cluster: fakeCluster(),
+            gates: READY_GATES,
+          });
+
+        expect(status.gaps[0]?.title).toBe("The in-cluster Runner signed off");
+        expect(credentialCountSpy).not.toHaveBeenCalled();
+      });
+
+      it("never throws: a failed holdings lookup falls back to the plain offline gap", async () => {
+        credentialCountSpy.mockRejectedValue(new Error("db down"));
+        jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+          fakeRunner({
+            connectionStatus: RunnerConnectionStatus.Disconnected,
+          }),
+        );
+
+        const status: KubernetesClusterAiAccessStatus =
+          await KubernetesClusterAiAccessService.getStatusForClusterModel({
+            cluster: fakeCluster(),
+            gates: READY_GATES,
+          });
+
+        expect(status.gaps[0]?.title).toBe("The in-cluster Runner signed off");
+      });
     });
 
     it("still reports the sign-off once the last heartbeat has also aged out", async () => {
@@ -732,6 +930,65 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
       expect(status.accessMethod).toBe("none");
     });
 
+    /*
+     * An agent row renamed (only root can rename one now) keeps its agent
+     * posture, and the posture alone marks it: the one "is an agent row"
+     * rule fails closed on the name OR the posture.
+     */
+    it("keyed on the name OR the posture: a row with another cluster's agent posture but no marker cannot carry a credential", async () => {
+      jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
+        fakeRunner({
+          name: "prod-eu in-cluster runner",
+          hostInfo: {
+            kubernetes: {
+              inCluster: true,
+              allowWrites: true,
+              clusterIdentifier: "prod-eu",
+            },
+          },
+        }),
+      );
+      jest.spyOn(RunbookCredentialService, "findOneBy").mockResolvedValue({
+        id: CREDENTIAL_ID,
+        _id: CREDENTIAL_ID.toString(),
+        name: "prod-us kubeconfig",
+        credentialType: "Kubernetes",
+        runners: [{ id: RUNNER_ID, _id: RUNNER_ID.toString() }],
+      } as unknown as RunbookCredential);
+
+      const status: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster({ aiAccessCredentialId: CREDENTIAL_ID }),
+          gates: READY_GATES,
+        });
+
+      expect(gapCodes(status)).toEqual(["credential_on_agent_runner"]);
+      expect(status.accessMethod).toBe("none");
+      expect(status.credentialId).toBeUndefined();
+    });
+
+    it("keyed on a case variant of the marker too", async () => {
+      jest
+        .spyOn(RunnerService, "findOneBy")
+        .mockResolvedValue(
+          fakeRunner({ name: "Kubernetes-Agent/prod-eu", hostInfo: {} }),
+        );
+
+      const status: KubernetesClusterAiAccessStatus =
+        await KubernetesClusterAiAccessService.getStatusForClusterModel({
+          cluster: fakeCluster({ aiAccessCredentialId: CREDENTIAL_ID }),
+          gates: READY_GATES,
+        });
+
+      expect(gapCodes(status)).toEqual(["credential_on_agent_runner"]);
+    });
+
+    /*
+     * Before round two this fixture reported a cluster identity too (an
+     * agent posture). An ordinary Runner in a pod never does — only the
+     * kubernetes-agent binary reports one — and such a posture now marks
+     * the row as an agent (the case above).
+     */
     it("negative control: a dashboard Runner that happens to live in a pod still uses an assigned credential", async () => {
       jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
         fakeRunner({
@@ -740,7 +997,6 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
             kubernetes: {
               inCluster: true,
               allowWrites: true,
-              clusterIdentifier: "prod-eu",
             },
           },
         }),
@@ -788,15 +1044,17 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
       jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(
         fakeRunner({
           /*
-           * A dashboard Runner living in another cluster's pod: an agent
-           * row here would be the credential_on_agent_runner case above.
+           * A dashboard Runner living in a pod: an agent row here would be
+           * the credential_on_agent_runner case above. Before round two
+           * this fixture also named a cluster — an agent posture, which
+           * only the kubernetes-agent binary reports and which now marks
+           * the row as an agent on its own.
            */
           name: "pod-runner",
           hostInfo: {
             kubernetes: {
               inCluster: true,
               allowWrites: true,
-              clusterIdentifier: "prod-eu",
             },
           },
         }),
@@ -1200,8 +1458,12 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
   }
 
   /*
-   * Answers the two Runner lookups registration makes — by bound id and by
-   * agent name — separately, so a test can put a different row behind each.
+   * Answers the two Runner lookups registration makes — by agent name, and
+   * by bound id — separately, so a test can put a different row behind
+   * each. Registration finds the row it re-keys by NAME only, so without an
+   * explicit `byName` the name lookup answers with the bound row exactly
+   * when that row carries the name being looked up (compared the way
+   * findWithSameText compares), as Postgres would.
    */
   function mockRunnerLookups(data: {
     bound?: Runner | null | undefined;
@@ -1218,7 +1480,24 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
           return data.bound ?? null;
         }
 
-        return data.byName ?? null;
+        if (data.byName !== undefined) {
+          return data.byName;
+        }
+
+        const nameFilter: {
+          objectLiteralParameters?: Record<string, unknown>;
+        } = query["name"] as {
+          objectLiteralParameters?: Record<string, unknown>;
+        };
+        const lookedUp: unknown = Object.values(
+          nameFilter?.objectLiteralParameters || {},
+        )[0];
+
+        return data.bound &&
+          typeof lookedUp === "string" &&
+          (data.bound.name || "").trim().toLowerCase() === lookedUp
+          ? data.bound
+          : null;
       });
   }
 
@@ -1310,6 +1589,44 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         ...overrides,
       });
     }
+
+    /*
+     * The write scope the Runner reports at registration is stored at once,
+     * so the enqueue chokepoint (and the AI page) know it before the first
+     * heartbeat — and the service, not the body, says which cluster and that
+     * it is in-cluster.
+     */
+    it("stores the Runner's reported write scope with the posture, the cluster identity its own", async () => {
+      jest
+        .spyOn(KubernetesClusterService, "findOneBy")
+        .mockResolvedValue(neverConfiguredCluster());
+      mockRunnerLookups({});
+
+      await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+        projectId: PROJECT_ID,
+        clusterIdentifier: "prod-us",
+        posture: {
+          allowWrites: true,
+          writeNamespaces: ["web"],
+          podNamespace: "oneuptime-agent",
+          allowNodeOperations: false,
+          clusterIdentifier: "someone-else",
+          inCluster: false,
+        },
+      });
+
+      expect(
+        (createdRunner!.hostInfo as { kubernetes: Record<string, unknown> })
+          .kubernetes,
+      ).toEqual({
+        allowWrites: true,
+        writeNamespaces: ["web"],
+        podNamespace: "oneuptime-agent",
+        allowNodeOperations: false,
+        clusterIdentifier: "prod-us",
+        inCluster: true,
+      });
+    });
 
     it("creates a kubectl-only Runner, binds the cluster, turns investigation on and remediation to ask-for-approval", async () => {
       jest
@@ -1934,6 +2251,47 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       expect(createdRunner).not.toBeNull();
     });
 
+    /*
+     * Round one re-keyed the BOUND row whenever its posture named this
+     * cluster. A posture is whatever the Runner last heartbeated, so a row
+     * renamed out of the agent marker (its name guards gone) was still
+     * handed the ingestion-key identity. The row is found by NAME only.
+     */
+    it("never re-keys a bound row that only CLAIMS to be this cluster's agent by its posture", async () => {
+      jest
+        .spyOn(KubernetesClusterService, "findOneBy")
+        .mockResolvedValue(fakeCluster({ aiAccessRunnerId: OTHER_RUNNER_ID }));
+      const lookups: jest.SpyInstance = mockRunnerLookups({
+        bound: offlineAgentRunner({
+          id: OTHER_RUNNER_ID,
+          _id: OTHER_RUNNER_ID.toString(),
+          name: "prod-us in-cluster runner",
+        }),
+      });
+
+      const result: RegisterKubernetesAgentRunnerResult =
+        await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+          projectId: PROJECT_ID,
+          clusterIdentifier: "prod-us",
+          posture: { allowWrites: true },
+        });
+
+      expect(result.bindingState).toBe("bound_to_other_runner");
+      expect(result.isBoundToCluster).toBe(false);
+      // The bound row keeps its key; this cluster's agent row is minted.
+      expect(runnerUpdates).toHaveLength(0);
+      expect(createdRunner).not.toBeNull();
+      expect(createdRunner!.name).toBe("kubernetes-agent/prod-us");
+      expect(clusterUpdates).toHaveLength(0);
+
+      // The row to re-key was looked up by name, first.
+      const firstQuery: Record<string, unknown> = (
+        lookups.mock.calls[0]![0] as { query: Record<string, unknown> }
+      ).query;
+      expect(firstQuery["_id"]).toBeUndefined();
+      expect(firstQuery["name"]).toBeDefined();
+    });
+
     it("does reuse the bound agent when its posture names this cluster in a different case", async () => {
       jest
         .spyOn(KubernetesClusterService, "findOneBy")
@@ -2027,8 +2385,10 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
    * What Postgres actually leaves after an operator deletes the bound agent
    * Runner: the FK (ON DELETE SET NULL) has already cleared
    * aiAccessRunnerId, and the row is gone, so there is no agent row by name
-   * either. Only the never-cleared aiAccessConfiguredAt marker remembers
-   * the cluster was configured.
+   * either. The never-cleared aiAccessRunnerBoundAt marker remembers that a
+   * Runner WAS bound (round one keyed this on aiAccessConfiguredAt, which
+   * also left an operator who configured the cluster before installing the
+   * chart unbound — known follow-up 12).
    */
   describe("re-registration after the bound agent Runner was deleted (the FK ON DELETE SET NULL state)", () => {
     function clusterAfterRunnerDelete(
@@ -2042,6 +2402,7 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         aiAccessLastVerifiedAt: undefined,
         aiAccessLastError: undefined,
         aiAccessConfiguredAt: OneUptimeDate.getSomeMinutesAgo(60 * 24),
+        aiAccessRunnerBoundAt: OneUptimeDate.getSomeMinutesAgo(60 * 24),
         ...overrides,
       });
     }
@@ -2142,12 +2503,13 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
       expect(gap.nextStep).not.toContain("aiAccess.enabled=true");
     });
 
-    it("negative control: without the marker (and no other history) the same cluster still first-binds", async () => {
-      jest
-        .spyOn(KubernetesClusterService, "findOneBy")
-        .mockResolvedValue(
-          clusterAfterRunnerDelete({ aiAccessConfiguredAt: undefined }),
-        );
+    it("negative control: without either marker (and no other history) the same cluster still first-binds", async () => {
+      jest.spyOn(KubernetesClusterService, "findOneBy").mockResolvedValue(
+        clusterAfterRunnerDelete({
+          aiAccessConfiguredAt: undefined,
+          aiAccessRunnerBoundAt: undefined,
+        }),
+      );
       mockRunnerLookups({});
 
       const result: RegisterKubernetesAgentRunnerResult =
@@ -2162,6 +2524,204 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
         isAiInvestigationEnabled: true,
         aiRemediationMode: KubernetesAiRemediationMode.RequireApproval,
       });
+    });
+
+    /*
+     * The marker that decides it is "a Runner was bound", not "configured":
+     * with only aiAccessConfiguredAt left, the cluster is the pre-configured
+     * case below and is bound, switches untouched.
+     */
+    it("negative control: with only the configured marker it binds, keeping the operator's switches", async () => {
+      jest
+        .spyOn(KubernetesClusterService, "findOneBy")
+        .mockResolvedValue(
+          clusterAfterRunnerDelete({ aiAccessRunnerBoundAt: undefined }),
+        );
+      mockRunnerLookups({});
+
+      const result: RegisterKubernetesAgentRunnerResult =
+        await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+          projectId: PROJECT_ID,
+          clusterIdentifier: "prod-us",
+          posture: { allowWrites: true },
+        });
+
+      expect(result.bindingState).toBe("bound_keeping_operator_settings");
+    });
+  });
+
+  /*
+   * Known follow-up 12: an operator who opens the AI page and picks a
+   * remediation mode (or flips a switch) BEFORE installing the chart stamps
+   * aiAccessConfiguredAt. That must not strand the cluster unbound: no
+   * Runner was ever bound, so the agent Runner is bound — and not one of the
+   * operator's settings moves.
+   */
+  describe("a cluster configured on the AI page before the chart was installed", () => {
+    function preConfiguredCluster(
+      overrides: Partial<Record<string, unknown>> = {},
+    ): KubernetesCluster {
+      return fakeCluster({
+        aiAccessRunnerId: undefined,
+        aiAccessCredentialId: undefined,
+        isAiInvestigationEnabled: false,
+        aiRemediationMode: KubernetesAiRemediationMode.Automatic,
+        aiAccessLastVerifiedAt: undefined,
+        aiAccessLastError: undefined,
+        aiAccessConfiguredAt: OneUptimeDate.getSomeMinutesAgo(10),
+        aiAccessRunnerBoundAt: undefined,
+        ...overrides,
+      });
+    }
+
+    it("binds the agent Runner and changes no switch", async () => {
+      jest
+        .spyOn(KubernetesClusterService, "findOneBy")
+        .mockResolvedValue(preConfiguredCluster());
+      mockRunnerLookups({});
+
+      const result: RegisterKubernetesAgentRunnerResult =
+        await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+          projectId: PROJECT_ID,
+          clusterIdentifier: "prod-us",
+          posture: { allowWrites: true },
+        });
+
+      expect(result.bindingState).toBe("bound_keeping_operator_settings");
+      expect(result.isBoundToCluster).toBe(true);
+      expect(result.isFirstBind).toBe(false);
+      expect(createdRunner).not.toBeNull();
+
+      expect(clusterUpdates).toHaveLength(1);
+      // Only the binding and its marker: no switch, no credential, no mode.
+      expect(Object.keys(clusterUpdates[0]!).sort()).toEqual(
+        ["aiAccessRunnerBoundAt", "aiAccessRunnerId"].sort(),
+      );
+      expect(String(clusterUpdates[0]!["aiAccessRunnerId"])).toBe(
+        RUNNER_ID.toString(),
+      );
+      expect(clusterUpdates[0]!["aiAccessRunnerBoundAt"]).toBeInstanceOf(Date);
+    });
+
+    it("says so honestly on the feed: bound, and the operator's settings kept", async () => {
+      jest
+        .spyOn(KubernetesClusterService, "findOneBy")
+        .mockResolvedValue(preConfiguredCluster());
+      mockRunnerLookups({});
+
+      await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+        projectId: PROJECT_ID,
+        clusterIdentifier: "prod-us",
+        posture: { allowWrites: true },
+      });
+
+      const feed: string = String(feedItems[0]!["feedInfoInMarkdown"]);
+      expect(feed).toContain("was bound as this cluster's AI access Runner");
+      expect(feed).toContain("no AI setting was changed");
+      expect(feed).toContain("AI investigation with kubectl is off");
+      expect(feed).toContain('AI remediation is "Automatic"');
+      expect(feed).not.toContain("left unbound");
+    });
+
+    it("keeps an investigation switch the operator turned on, too", async () => {
+      jest.spyOn(KubernetesClusterService, "findOneBy").mockResolvedValue(
+        preConfiguredCluster({
+          isAiInvestigationEnabled: true,
+          aiRemediationMode: KubernetesAiRemediationMode.Disabled,
+        }),
+      );
+      mockRunnerLookups({});
+
+      await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+        projectId: PROJECT_ID,
+        clusterIdentifier: "prod-us",
+        posture: { allowWrites: true },
+      });
+
+      // Disabled stays Disabled: the chart's intent never overrides a choice.
+      expect(clusterUpdates[0]).not.toHaveProperty("aiRemediationMode");
+      expect(clusterUpdates[0]).not.toHaveProperty("isAiInvestigationEnabled");
+    });
+
+    it("also re-keys and binds this cluster's agent row that already existed", async () => {
+      jest
+        .spyOn(KubernetesClusterService, "findOneBy")
+        .mockResolvedValue(preConfiguredCluster());
+      mockRunnerLookups({ byName: offlineAgentRunner() });
+
+      const result: RegisterKubernetesAgentRunnerResult =
+        await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+          projectId: PROJECT_ID,
+          clusterIdentifier: "prod-us",
+          posture: { allowWrites: true },
+        });
+
+      expect(result.bindingState).toBe("bound_keeping_operator_settings");
+      expect(runnerUpdates).toHaveLength(1);
+      expect(clusterUpdates[0]!["aiAccessRunnerId"]).toBe(RUNNER_ID);
+    });
+
+    it("negative control: once a Runner was bound, the same cluster is left unbound", async () => {
+      jest.spyOn(KubernetesClusterService, "findOneBy").mockResolvedValue(
+        preConfiguredCluster({
+          aiAccessRunnerBoundAt: OneUptimeDate.getSomeMinutesAgo(5),
+        }),
+      );
+      mockRunnerLookups({});
+
+      const result: RegisterKubernetesAgentRunnerResult =
+        await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+          projectId: PROJECT_ID,
+          clusterIdentifier: "prod-us",
+          posture: { allowWrites: true },
+        });
+
+      expect(result.bindingState).toBe("left_unbound_by_operator");
+      expect(clusterUpdates).toHaveLength(0);
+    });
+
+    it("negative control: a recorded command outcome also leaves it unbound", async () => {
+      for (const history of [
+        { aiAccessLastVerifiedAt: OneUptimeDate.getSomeMinutesAgo(5) },
+        { aiAccessLastError: "Forbidden" },
+      ]) {
+        clusterUpdates.length = 0;
+        jest
+          .spyOn(KubernetesClusterService, "findOneBy")
+          .mockResolvedValue(preConfiguredCluster(history));
+        mockRunnerLookups({});
+
+        const result: RegisterKubernetesAgentRunnerResult =
+          await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+            projectId: PROJECT_ID,
+            clusterIdentifier: "prod-us",
+            posture: { allowWrites: true },
+          });
+
+        expect(result.bindingState).toBe("left_unbound_by_operator");
+        expect(clusterUpdates).toHaveLength(0);
+      }
+    });
+
+    it("a first bind stamps the bound marker too", async () => {
+      jest.spyOn(KubernetesClusterService, "findOneBy").mockResolvedValue(
+        preConfiguredCluster({
+          aiAccessConfiguredAt: undefined,
+          aiRemediationMode: KubernetesAiRemediationMode.Disabled,
+        }),
+      );
+      mockRunnerLookups({});
+
+      const result: RegisterKubernetesAgentRunnerResult =
+        await KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+          projectId: PROJECT_ID,
+          clusterIdentifier: "prod-us",
+          posture: { allowWrites: true },
+        });
+
+      expect(result.bindingState).toBe("first_bind");
+      expect(clusterUpdates[0]!["aiAccessRunnerBoundAt"]).toBeInstanceOf(Date);
+      expect(clusterUpdates[0]!["aiAccessConfiguredAt"]).toBeInstanceOf(Date);
     });
   });
 
@@ -2552,12 +3112,18 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
    * configured".
    */
   describe("a cluster an operator unbound stays unbound", () => {
+    /*
+     * Round one read "an agent row already existed" as the history that
+     * meant "cleared on purpose"; the record of that is now the
+     * never-cleared aiAccessRunnerBoundAt marker every bind stamps.
+     */
     it("re-keys the existing agent row but neither re-binds nor flips a switch", async () => {
       jest.spyOn(KubernetesClusterService, "findOneBy").mockResolvedValue(
         fakeCluster({
           aiAccessRunnerId: undefined,
           isAiInvestigationEnabled: false,
           aiRemediationMode: KubernetesAiRemediationMode.Disabled,
+          aiAccessRunnerBoundAt: OneUptimeDate.getSomeMinutesAgo(60),
         }),
       );
       mockRunnerLookups({ byName: offlineAgentRunner() });
@@ -2646,6 +3212,188 @@ describe("KubernetesClusterAiAccessService.registerKubernetesAgentRunner", () =>
 
       expect(result.bindingState).toBe("first_bind");
       expect(clusterUpdates).toHaveLength(1);
+    });
+  });
+
+  /*
+   * Every 403 says WHICH refusal it is, so the Runner can tell a wait that
+   * clears on its own from one that needs an operator (and retry the first
+   * when it says). Round one read every 403 as "the previous instance is
+   * still online".
+   */
+  describe("registration refusals carry a machine-readable reason", () => {
+    async function refusalOf(
+      promise: Promise<unknown>,
+    ): Promise<KubernetesAgentRegistrationRefusedException> {
+      try {
+        await promise;
+      } catch (error) {
+        expect(error).toBeInstanceOf(
+          KubernetesAgentRegistrationRefusedException,
+        );
+        // Still a 403 for anything that reads it as a ForbiddenException.
+        expect(error).toBeInstanceOf(ForbiddenException);
+        return error as KubernetesAgentRegistrationRefusedException;
+      }
+
+      throw new Error("expected the registration to be refused");
+    }
+
+    it("previous_instance_online, with when to try again", async () => {
+      jest
+        .spyOn(KubernetesClusterService, "findOneBy")
+        .mockResolvedValue(fakeCluster({ aiAccessRunnerId: RUNNER_ID }));
+      mockRunnerLookups({
+        bound: onlineAgentRunner({
+          lastAlive: OneUptimeDate.getSomeMinutesAgo(2),
+        }),
+      });
+
+      const refusal: KubernetesAgentRegistrationRefusedException =
+        await refusalOf(
+          KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+            projectId: PROJECT_ID,
+            clusterIdentifier: "prod-us",
+            posture: { allowWrites: true },
+          }),
+        );
+
+      expect(refusal.reason).toBe("previous_instance_online");
+      expect(
+        isTransientKubernetesAgentRegistrationRefusal(refusal.reason),
+      ).toBe(true);
+      // Admitted once the last heartbeat is 5 minutes old: ~3 minutes away.
+      expect(refusal.retryAfterSeconds).toBeGreaterThanOrEqual(170);
+      expect(refusal.retryAfterSeconds).toBeLessThanOrEqual(181);
+    });
+
+    it("runner_holds_more_than_defaults, with the instruction first and no retry hint", async () => {
+      jest
+        .spyOn(KubernetesClusterService, "findOneBy")
+        .mockResolvedValue(fakeCluster({ aiAccessRunnerId: RUNNER_ID }));
+      mockRunnerLookups({
+        bound: signedOffAgentRunner({ canRunRunbooks: true }),
+      });
+
+      const refusal: KubernetesAgentRegistrationRefusedException =
+        await refusalOf(
+          KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+            projectId: PROJECT_ID,
+            clusterIdentifier: "prod-us",
+            posture: { allowWrites: true },
+          }),
+        );
+
+      expect(refusal.reason).toBe("runner_holds_more_than_defaults");
+      expect(
+        isTransientKubernetesAgentRegistrationRefusal(refusal.reason),
+      ).toBe(false);
+      expect(refusal.retryAfterSeconds).toBeUndefined();
+      expect(
+        refusal.message.startsWith(
+          'Under Project Settings → Runners, on Runner "kubernetes-agent/prod-us": turn off "Runs Runbooks"',
+        ),
+      ).toBe(true);
+      // Only what it actually holds is asked for.
+      expect(refusal.message).not.toContain('turn off "Runs AI Code Fixes"');
+      expect(refusal.message).not.toContain("unassign");
+    });
+
+    /*
+     * The Runner logs only the first 500 characters of the server's reason.
+     * The whole instruction must fit in them even for a long cluster name
+     * and every kind of holding at once.
+     */
+    it("keeps the full instruction within the first 500 characters for a 100-character cluster name", async () => {
+      const longName: string = "x".repeat(100);
+      credentialCountSpy.mockResolvedValue(new PositiveNumber(3));
+      secretCountSpy.mockResolvedValue(new PositiveNumber(2));
+      boundClusterCountSpy.mockResolvedValue(new PositiveNumber(4));
+      jest.spyOn(KubernetesClusterService, "findOneBy").mockResolvedValue(
+        fakeCluster({
+          aiAccessRunnerId: RUNNER_ID,
+          clusterIdentifier: longName,
+        }),
+      );
+      mockRunnerLookups({
+        bound: signedOffAgentRunner({
+          name: getKubernetesAgentRunnerNameForCluster(longName),
+          canRunRunbooks: true,
+          canRunCodeFixTasks: true,
+          hostInfo: {
+            kubernetes: { inCluster: true, clusterIdentifier: longName },
+          },
+        }),
+      });
+
+      const refusal: KubernetesAgentRegistrationRefusedException =
+        await refusalOf(
+          KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+            projectId: PROJECT_ID,
+            clusterIdentifier: longName,
+            posture: { allowWrites: true },
+          }),
+        );
+
+      const head: string = refusal.message.slice(0, 500);
+      expect(head).toContain("delete the Runner");
+      expect(head).toContain('"Runs Runbooks"');
+      expect(head).toContain('"Runs AI Code Fixes"');
+      expect(head).toContain("3 Runner credential(s)");
+      expect(head).toContain("2 runbook secret(s)");
+      expect(head).toContain("4 other cluster(s)");
+    });
+
+    it("runner_belongs_to_another_cluster, with no retry hint", async () => {
+      jest
+        .spyOn(KubernetesClusterService, "findOneBy")
+        .mockResolvedValue(fakeCluster({ aiAccessRunnerId: undefined }));
+      mockRunnerLookups({
+        byName: offlineAgentRunner({
+          hostInfo: {
+            kubernetes: { inCluster: true, clusterIdentifier: "prod-eu" },
+          },
+        }),
+      });
+
+      const refusal: KubernetesAgentRegistrationRefusedException =
+        await refusalOf(
+          KubernetesClusterAiAccessService.registerKubernetesAgentRunner({
+            projectId: PROJECT_ID,
+            clusterIdentifier: "prod-us",
+            posture: { allowWrites: true },
+          }),
+        );
+
+      expect(refusal.reason).toBe("runner_belongs_to_another_cluster");
+      expect(refusal.retryAfterSeconds).toBeUndefined();
+      expect(refusal.message.startsWith("Rename or delete Runner")).toBe(true);
+    });
+
+    it("getPreviousInstanceRetryAfterSeconds counts down to the end of the alive window, never below 1s", () => {
+      const now: Date = new Date("2026-09-22T12:00:00.000Z");
+
+      expect(
+        getPreviousInstanceRetryAfterSeconds({
+          lastAlive: new Date("2026-09-22T11:59:00.000Z"),
+          now,
+        }),
+      ).toBe(240);
+      expect(
+        getPreviousInstanceRetryAfterSeconds({
+          lastAlive: new Date("2026-09-22T11:55:00.500Z"),
+          now,
+        }),
+      ).toBe(1);
+      expect(
+        getPreviousInstanceRetryAfterSeconds({
+          lastAlive: new Date("2026-09-22T11:00:00.000Z"),
+          now,
+        }),
+      ).toBe(1);
+      expect(
+        getPreviousInstanceRetryAfterSeconds({ lastAlive: undefined, now }),
+      ).toBe(1);
     });
   });
 

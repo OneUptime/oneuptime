@@ -65,6 +65,32 @@ export function holdsAnyPermission(data: {
   );
 }
 
+/*
+ * Like holdsAnyPermission, but for deciding what a caller may SEE: a block
+ * row for any of `allowed` is a denial even when a grant is also present —
+ * a block row may be limited to some labels, and the caller of this cannot
+ * tell which object it would cover. Root and master admins see everything.
+ */
+export function holdsAnyUnblockedPermission(data: {
+  props: DatabaseCommonInteractionProps;
+  projectId: ObjectID;
+  allowed: ReadonlyArray<Permission>;
+}): boolean {
+  if (data.props.isRoot || data.props.isMasterAdmin) {
+    return true;
+  }
+
+  const permissions: Array<UserPermission> =
+    data.props.userTenantAccessPermission?.[data.projectId.toString()]
+      ?.permissions || [];
+
+  const isBlocked: boolean = permissions.some((p: UserPermission): boolean => {
+    return p.isBlockPermission === true && data.allowed.includes(p.permission);
+  });
+
+  return !isBlocked && holdsAnyPermission(data);
+}
+
 function assertHoldsAny(data: {
   props: DatabaseCommonInteractionProps;
   projectId: ObjectID;
@@ -112,6 +138,7 @@ export default {
   RUNBOOK_EXECUTE_PERMISSIONS,
   RUNBOOK_ADVANCE_PERMISSIONS,
   holdsAnyPermission,
+  holdsAnyUnblockedPermission,
   assertCanExecuteRunbooks,
   assertCanAdvanceRunbookExecutions,
 };

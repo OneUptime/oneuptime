@@ -198,7 +198,8 @@ export default class Runner extends BaseModel {
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: true,
     title: "Name",
-    description: "Friendly name for this agent",
+    description:
+      'Friendly name for this agent. Names starting with "kubernetes-agent/" are reserved for the in-cluster Runners the Kubernetes agent chart registers, and such a Runner cannot be renamed.',
     example: "prod-eu-west-1-agent",
   })
   @Column({
@@ -469,7 +470,7 @@ export default class Runner extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Runs Runbooks",
     description:
-      "Whether this Runner executes runbook steps. On by default — this is why most Runners are installed.",
+      "Whether this Runner executes runbook steps. On by default — this is why most Runners are installed. It cannot be turned on for an in-cluster Runner the Kubernetes agent chart registered, which runs kubectl only.",
     defaultValue: true,
     isDefaultValueColumn: true,
   })
@@ -511,7 +512,7 @@ export default class Runner extends BaseModel {
     type: TableColumnType.Boolean,
     title: "Runs AI Code Fixes",
     description:
-      "Whether this Runner works in your code repository to open AI fix pull requests. Off by default; it requires a connected code repository.",
+      "Whether this Runner works in your code repository to open AI fix pull requests. Off by default; it requires a connected code repository. It cannot be turned on for an in-cluster Runner the Kubernetes agent chart registered, which runs kubectl only.",
     defaultValue: false,
     isDefaultValueColumn: true,
   })

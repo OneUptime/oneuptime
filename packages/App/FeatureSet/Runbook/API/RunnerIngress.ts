@@ -2,9 +2,12 @@ import RunnerAuthorization from "../Middleware/RunnerAuthorization";
 import { RunnerExpressRequest } from "../Types/Request";
 import RunbookSecretsUtil from "../Utils/Secrets";
 import RunbookCredentialsUtil from "../Utils/Credentials";
-import RunnerService from "Common/Server/Services/RunnerService";
+import RunnerService, {
+  Service as RunnerServiceClass,
+} from "Common/Server/Services/RunnerService";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import KubernetesClusterAiAccessService, {
+  KubernetesAgentRegistrationRefusedException,
   RegisterKubernetesAgentRunnerResult,
 } from "Common/Server/Services/KubernetesClusterAiAccessService";
 import TelemetryIngest, {
@@ -23,12 +26,12 @@ import RunbookStepType, {
 import {
   KubernetesRunnerPosture,
   isInClusterPostureForCluster,
-  isKubernetesAgentRunnerName,
-  isKubernetesAgentRunnerPosture,
   parseKubernetesRunnerPosture,
 } from "Common/Types/Kubernetes/KubernetesClusterAiAccess";
+import StatusCode from "Common/Types/API/StatusCode";
 import Version from "Common/Types/Version";
 import { JSONObject } from "Common/Types/JSON";
+import logger from "Common/Server/Utils/Logger";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerJob from "Common/Models/DatabaseModels/RunnerJob";
 import RunbookSecret from "Common/Models/DatabaseModels/RunbookSecret";
@@ -161,17 +164,7 @@ export default class RunnerIngressAPI {
           clusterIdentifier: clusterName.trim(),
           agentVersion,
           previousRunnerKey,
-          posture: {
-            allowWrites: body["allowWrites"] === true,
-            kubectlVersion:
-              typeof body["kubectlVersion"] === "string"
-                ? (body["kubectlVersion"] as string)
-                : undefined,
-            agentChartVersion:
-              typeof body["agentChartVersion"] === "string"
-                ? (body["agentChartVersion"] as string)
-                : undefined,
-          },
+          posture: RunnerIngressAPI.parseRegistrationPosture(body),
         });
 
       return Response.sendJsonObjectResponse(req, res, {
@@ -187,8 +180,73 @@ export default class RunnerIngressAPI {
         },
       });
     } catch (err) {
+      /*
+       * A refusal says WHICH refusal it is, so the Runner can tell a wait
+       * that clears on its own (previous_instance_online, with when to try
+       * again) from one that needs an operator — the generic error body is
+       * `{ message }` only.
+       */
+      if (err instanceof KubernetesAgentRegistrationRefusedException) {
+        RunnerIngressAPI.sendRegistrationRefusal(req, res, err);
+        return;
+      }
+
       next(err);
     }
+  }
+
+  /*
+   * The 403 a refused registration answers with: the message, the
+   * machine-readable reason and, for a refusal that clears on its own, when
+   * to try again — in the body (retryAfterSeconds) and as a Retry-After
+   * header, both of which the Runner honours.
+   */
+  public static sendRegistrationRefusal(
+    req: ExpressRequest,
+    res: ExpressResponse,
+    refusal: KubernetesAgentRegistrationRefusedException,
+  ): void {
+    logger.warn(
+      `Runner ingress: refused a kubernetes-agent registration (${refusal.reason}): ${refusal.message}`,
+    );
+
+    const body: JSONObject = {
+      message: refusal.message,
+      reason: refusal.reason,
+    };
+
+    if (refusal.retryAfterSeconds !== undefined) {
+      body["retryAfterSeconds"] = refusal.retryAfterSeconds;
+      res.set("Retry-After", String(refusal.retryAfterSeconds));
+    }
+
+    Response.sendJsonObjectResponse(req, res, body, {
+      statusCode: new StatusCode(403),
+    });
+  }
+
+  /*
+   * The posture a registering Runner reports about itself, read the way the
+   * heartbeat's is (parseKubernetesRunnerPosture), so a registration stores
+   * the same fields a heartbeat would — the write namespaces, the pod's own
+   * namespace and whether node operations are allowed included — instead of
+   * leaving them unknown until the first heartbeat. Which cluster, and that
+   * it is in-cluster, the service sets itself.
+   */
+  public static parseRegistrationPosture(
+    body: JSONObject,
+  ): KubernetesRunnerPosture {
+    const reported: KubernetesRunnerPosture =
+      parseKubernetesRunnerPosture({ kubernetes: body }) || {};
+
+    return {
+      allowWrites: reported.allowWrites === true,
+      kubectlVersion: reported.kubectlVersion,
+      agentChartVersion: reported.agentChartVersion,
+      writeNamespaces: reported.writeNamespaces,
+      podNamespace: reported.podNamespace,
+      allowNodeOperations: reported.allowNodeOperations,
+    };
   }
 
   public async heartbeat(
@@ -293,21 +351,27 @@ export default class RunnerIngressAPI {
        *    inside it would bypass the tier policy and the read-only switch
        *    entirely.
        *
-       * "Is an agent" is decided from the row NAME, which only the server
-       * writes at registration, as well as from the posture. The posture
-       * alone is not enough: the Runner rewrites hostInfo on every
-       * heartbeat, so a Runner minted with the ingestion key could drop its
-       * posture and be served shell work.
+       * "Is an agent" is ONE rule for everything this claim decides — the
+       * step types, the secret substitution and the credential refusal
+       * (RunnerService.isKubernetesAgentRunnerRow): the row NAME marker,
+       * which only registration writes (RunnerService refuses a non-root
+       * rename into or out of it, compared case-insensitively), OR an agent
+       * posture. The posture alone is not enough — the Runner rewrites
+       * hostInfo on every heartbeat, so a Runner minted with the ingestion
+       * key could drop it — and the name alone is not either: failing
+       * closed on either fact costs an ordinary Runner nothing, since only
+       * the kubernetes-agent binary reports an agent posture.
        */
       const body: JSONObject = (req.body as JSONObject) || {};
       const posture: KubernetesRunnerPosture | undefined =
         parseKubernetesRunnerPosture(agent.hostInfo);
-      const isAgentRunnerRow: boolean = isKubernetesAgentRunnerName(agent.name);
+      const isAgentRunnerRow: boolean =
+        RunnerServiceClass.isKubernetesAgentRunnerRow(agent);
 
       let allowedStepTypes: Array<RunbookStepType> | undefined =
         RunnerIngressAPI.parseRequestedStepTypes(body["stepTypes"]);
 
-      if (isAgentRunnerRow || isKubernetesAgentRunnerPosture(posture)) {
+      if (isAgentRunnerRow) {
         allowedStepTypes = (
           allowedStepTypes || RUNNER_EXECUTED_STEP_TYPES
         ).filter((stepType: RunbookStepType) => {

@@ -73,7 +73,15 @@ describe("ResourceFeedUtil.getUpdatedColumnsWorthRecording", () => {
     expect(ResourceFeedUtil.getUpdatedColumnsWorthRecording({})).toEqual([]);
   });
 
-  test("the whitelist covers every column the dashboard can edit", () => {
+  /*
+   * The whitelist is shared by ten resource types, so it covers the edits
+   * their settings pages have in common — not every column a dashboard can
+   * edit. A Kubernetes cluster's AI access settings are dashboard-editable
+   * too, but they get their own, more specific feed items
+   * (KubernetesClusterService), so they must stay out of the generic "was
+   * updated" one.
+   */
+  test("the whitelist covers the edits every resource's settings page has in common", () => {
     for (const column of [
       "name",
       "description",
@@ -83,6 +91,18 @@ describe("ResourceFeedUtil.getUpdatedColumnsWorthRecording", () => {
       "telemetryRetentionConfig",
     ]) {
       expect(MEANINGFUL_UPDATE_COLUMNS).toContain(column);
+    }
+  });
+
+  test("leaves out the AI access settings, which record their own feed items", () => {
+    for (const column of [
+      "aiAccessRunnerId",
+      "aiAccessCredentialId",
+      "isAiInvestigationEnabled",
+      "aiRemediationMode",
+      "aiKubectlCommandAllowlist",
+    ]) {
+      expect(MEANINGFUL_UPDATE_COLUMNS).not.toContain(column);
     }
   });
 });

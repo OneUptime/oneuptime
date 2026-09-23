@@ -11,6 +11,7 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
+import ServiceUnavailableException from "../../Types/Exception/ServiceUnavailableException";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ObjectID from "../../Types/ObjectID";
 import { JSONObject } from "../../Types/JSON";
@@ -25,14 +26,19 @@ import {
   KubernetesAiAccessGap,
   KubernetesClusterAiAccessStatus,
 } from "../../Types/Kubernetes/KubernetesClusterAiAccess";
+import { KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS } from "../../Types/Kubernetes/KubernetesClusterAiAccessPermissions";
 import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import RunnerJob from "../../Models/DatabaseModels/RunnerJob";
+import GlobalCache from "../Infrastructure/GlobalCache";
+import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import KubernetesClusterService from "../Services/KubernetesClusterService";
 import KubernetesClusterAiAccessService from "../Services/KubernetesClusterAiAccessService";
 import RunnerJobService, {
   Service as RunnerJobServiceClass,
 } from "../Services/RunnerJobService";
 import QueryHelper from "../Types/Database/QueryHelper";
+import logger from "../Utils/Logger";
+import { holdsAnyUnblockedPermission } from "../Utils/Runbook/RunbookExecutePermission";
 import KubectlJobRunner, {
   KUBECTL_CLAIM_TIMEOUT_MS,
   KubectlJobOutcome,
@@ -47,16 +53,19 @@ const router: ExpressRouter = Express.getRouter();
  *
  *   POST /kubernetes-cluster/ai-access/status  { clusterId }
  *     The readiness checklist: can OneUptime AI reach this cluster, what
- *     may it do, and what is missing. Requires read access to the cluster.
+ *     may it do, and what is missing. Requires read access to the cluster;
+ *     the credential's name (and descriptions that name it) additionally
+ *     need permission to read credentials.
  *
  *   POST /kubernetes-cluster/ai-access/test    { clusterId }
  *     Runs `kubectl version` and `kubectl auth can-i --list` through the
  *     bound Runner and returns their output, so an operator can see the
  *     access work (and the RBAC the Runner actually has) before an incident
  *     does. Read-only, but it spends Runner time, so it requires edit access
- *     to the cluster and has its own limits (one at a time per cluster, a
- *     few per minute per cluster and per user) instead of spending the
- *     project's investigation budget.
+ *     to the cluster and has its own limits instead of spending the
+ *     project's investigation budget: one test at a time per cluster (an
+ *     atomic reservation), a few per minute and a cumulative ceiling per
+ *     hour per cluster, and a few per minute per user.
  */
 
 async function getLoggedInProps(
@@ -157,22 +166,46 @@ function assertCanEditCluster(
 
 /*
  * The access test's own limits. It enqueues real Runner jobs and holds the
- * request open while they run, so it is bounded where it is triggered —
- * one test at a time per cluster, a few per minute per cluster and per
- * user — and never counted against the project-wide investigation brake
- * (the chokepoint keeps access-test jobs out of it), so no amount of
- * testing can starve real incident investigations. Counted on the RunnerJob
- * rows the test creates, which every API node shares.
+ * request open while they run, so it is bounded where it is triggered and
+ * never counted against the project-wide investigation brake (the
+ * chokepoint keeps access-test jobs out of it), so no amount of testing can
+ * starve real incident investigations:
+ *
+ * - one test at a time per cluster: an atomic reservation (Redis SET NX,
+ *   released when the test ends and expiring on its own after the longest
+ *   a test can run), so concurrent requests cannot all read "nothing
+ *   running" and all start. The per-cluster counts below are read inside
+ *   it, so they are exact;
+ * - a few per minute and a cumulative ceiling per hour per cluster, and a
+ *   few per minute per user across clusters — the per-user count is read
+ *   and the test's first job is created under a per-user lock, so a user's
+ *   concurrent requests on different clusters are counted one after the
+ *   other. Counted on the RunnerJob rows the test creates, which every API
+ *   node shares.
  */
 export const MAX_AI_ACCESS_TESTS_PER_CLUSTER_PER_MINUTE: number = 3;
+export const MAX_AI_ACCESS_TESTS_PER_CLUSTER_PER_HOUR: number = 30;
 export const MAX_AI_ACCESS_TESTS_PER_USER_PER_MINUTE: number = 6;
 
 /*
  * A test job older than this is past both of its windows (claim plus
  * execution, twice over), so a row a crashed request left Pending never
- * blocks the next test for good.
+ * blocks the next test for good — and neither does a reservation a crashed
+ * request never released.
  */
 const AI_ACCESS_TEST_MAX_DURATION_MINUTES: number = 4;
+
+export const AI_ACCESS_TEST_RESERVATION_NAMESPACE: string =
+  "kubernetes-ai-access-test";
+export const AI_ACCESS_TEST_USER_LOCK_NAMESPACE: string =
+  "kubernetes-ai-access-test-user";
+
+// Held from the per-user count until the test's first job exists.
+const AI_ACCESS_TEST_USER_LOCK_TIMEOUT_MS: number = 30_000;
+const AI_ACCESS_TEST_USER_LOCK_ACQUIRE_TIMEOUT_MS: number = 15_000;
+
+const ALREADY_RUNNING_MESSAGE: string =
+  "An AI access test is already running for this cluster. Wait for it to finish, then run it again.";
 
 const AI_ACCESS_TEST_COMMANDS: Array<string> = [
   "kubectl version",
@@ -193,10 +226,67 @@ export function getAiAccessTestStepId(data: {
   return `${AI_ACCESS_TEST_STEP_ID_PREFIX}${data.commandNumber}-${data.userId.toString()}`;
 }
 
-async function assertAccessTestMayRun(data: {
+/*
+ * Take this cluster's one access-test slot, atomically, and return the
+ * token that releases it — or refuse: 429 while another test holds it, 503
+ * when the reservation cannot be checked at all (failing closed: the
+ * reservation is what makes "one at a time" true under concurrency).
+ */
+async function reserveClusterForAccessTest(
+  clusterId: ObjectID,
+): Promise<string> {
+  const token: string = ObjectID.generate().toString();
+  let isReserved: boolean = false;
+
+  try {
+    isReserved = await GlobalCache.setStringIfNotExists(
+      AI_ACCESS_TEST_RESERVATION_NAMESPACE,
+      clusterId.toString(),
+      token,
+      { expiresInSeconds: AI_ACCESS_TEST_MAX_DURATION_MINUTES * 60 },
+    );
+  } catch (error) {
+    logger.error(
+      `KubernetesClusterAiAccessAPI: could not reserve the AI access test of cluster ${clusterId.toString()}: ${error}`,
+    );
+    throw new ServiceUnavailableException(
+      "The AI access test could not start right now. Try again in a moment.",
+    );
+  }
+
+  if (!isReserved) {
+    throw new TooManyRequestsException(ALREADY_RUNNING_MESSAGE);
+  }
+
+  return token;
+}
+
+// Best effort: the reservation expires on its own if this fails.
+async function releaseClusterReservation(data: {
+  clusterId: ObjectID;
+  token: string;
+}): Promise<void> {
+  try {
+    await GlobalCache.deleteKeyIfValue(
+      AI_ACCESS_TEST_RESERVATION_NAMESPACE,
+      data.clusterId.toString(),
+      data.token,
+    );
+  } catch (error) {
+    logger.error(
+      `KubernetesClusterAiAccessAPI: could not release the AI access test reservation of cluster ${data.clusterId.toString()}; it expires on its own: ${error}`,
+    );
+  }
+}
+
+/*
+ * The per-cluster limits, read while this request holds the cluster's
+ * reservation — so no other test of this cluster can be counting (or
+ * creating rows) at the same time.
+ */
+async function assertClusterAccessTestMayRun(data: {
   projectId: ObjectID;
   clusterId: ObjectID;
-  userId: ObjectID;
 }): Promise<void> {
   const inFlight: number = (
     await RunnerJobService.countBy({
@@ -218,9 +308,7 @@ async function assertAccessTestMayRun(data: {
   ).toNumber();
 
   if (inFlight > 0) {
-    throw new TooManyRequestsException(
-      "An AI access test is already running for this cluster. Wait for it to finish, then run it again.",
-    );
+    throw new TooManyRequestsException(ALREADY_RUNNING_MESSAGE);
   }
 
   const testsForCluster: number = (
@@ -241,6 +329,70 @@ async function assertAccessTestMayRun(data: {
     );
   }
 
+  /*
+   * The cumulative ceiling: access-test jobs are kept out of the project's
+   * investigation brake, so without this nothing would bound them over an
+   * hour.
+   */
+  const testsForClusterThisHour: number = (
+    await RunnerJobService.countBy({
+      query: {
+        projectId: data.projectId,
+        kubernetesClusterId: data.clusterId,
+        stepId: QueryHelper.startsWith(`${AI_ACCESS_TEST_STEP_ID_PREFIX}1-`),
+        createdAt: QueryHelper.greaterThan(OneUptimeDate.getSomeHoursAgo(1)),
+      },
+      props: { isRoot: true },
+    })
+  ).toNumber();
+
+  if (testsForClusterThisHour >= MAX_AI_ACCESS_TESTS_PER_CLUSTER_PER_HOUR) {
+    throw new TooManyRequestsException(
+      `This cluster's AI access was tested ${testsForClusterThisHour} times in the last hour, which is its limit (${MAX_AI_ACCESS_TESTS_PER_CLUSTER_PER_HOUR}). Try again later.`,
+    );
+  }
+}
+
+/*
+ * The per-user limit spans clusters, so the cluster reservation does not
+ * serialize it: the count is read and the test's first job created under a
+ * per-user lock (held only that long), so a user's concurrent tests on
+ * different clusters cannot all read the same count.
+ */
+async function lockUserForAccessTestStart(
+  userId: ObjectID,
+): Promise<SemaphoreMutex> {
+  try {
+    return await Semaphore.lock({
+      key: userId.toString(),
+      namespace: AI_ACCESS_TEST_USER_LOCK_NAMESPACE,
+      lockTimeout: AI_ACCESS_TEST_USER_LOCK_TIMEOUT_MS,
+      acquireTimeout: AI_ACCESS_TEST_USER_LOCK_ACQUIRE_TIMEOUT_MS,
+    });
+  } catch (error) {
+    logger.error(
+      `KubernetesClusterAiAccessAPI: could not take the AI access test lock of user ${userId.toString()}: ${error}`,
+    );
+    throw new TooManyRequestsException(
+      "Another AI access test of yours is starting right now. Try again in a moment.",
+    );
+  }
+}
+
+async function releaseUserLock(mutex: SemaphoreMutex): Promise<void> {
+  try {
+    await Semaphore.release(mutex);
+  } catch (error) {
+    logger.error(
+      `KubernetesClusterAiAccessAPI: could not release an AI access test user lock; it expires on its own: ${error}`,
+    );
+  }
+}
+
+async function assertUserMayStartAccessTest(data: {
+  projectId: ObjectID;
+  userId: ObjectID;
+}): Promise<void> {
   const testsByUser: number = (
     await RunnerJobService.countBy({
       query: {
@@ -262,22 +414,25 @@ async function assertAccessTestMayRun(data: {
 }
 
 /*
- * One access-test command: enqueued through the kubectl chokepoint as an
- * access test (policy, read-only rule and current binding still apply; the
- * investigation switch and the project's investigation brake do not),
- * waited on, and shaped with the same redaction every kubectl output gets
- * before anyone sees it. Enqueue and wait are two steps here, like the
- * remediation toolkit, because KubectlJobRunner.run has no access-test mode.
+ * One access-test command, in two steps: enqueued through the kubectl
+ * chokepoint as an access test (policy, read-only rule and current binding
+ * still apply; the investigation switch and the project's investigation
+ * brake do not), then waited on and shaped with the same redaction every
+ * kubectl output gets before anyone sees it. Two steps because the first
+ * command's job must exist before the per-user lock is released, and the
+ * wait must not hold that lock. A timeout reads in kubectl's words ("did
+ * not pick up … Nothing was run", or "what the command did is unknown"):
+ * RunnerJobService writes them onto the row itself for AI kubectl jobs.
  */
-async function runAccessTestCommand(data: {
+async function enqueueAccessTestCommand(data: {
   projectId: ObjectID;
   clusterId: ObjectID;
   runnerId: ObjectID;
   credentialId?: string | undefined;
   command: string;
   stepId: string;
-}): Promise<KubectlJobOutcome> {
-  const job: RunnerJob = await RunnerJobService.enqueueAiKubectlCommand({
+}): Promise<RunnerJob> {
+  return RunnerJobService.enqueueAiKubectlCommand({
     projectId: data.projectId,
     origin: RunnerJobOrigin.AiInvestigation,
     kubernetesClusterId: data.clusterId,
@@ -289,6 +444,14 @@ async function runAccessTestCommand(data: {
     claimTimeoutInMs: KUBECTL_CLAIM_TIMEOUT_MS,
     isAccessTest: true,
   });
+}
+
+async function awaitAccessTestCommand(data: {
+  job: RunnerJob;
+  clusterId: ObjectID;
+  command: string;
+}): Promise<KubectlJobOutcome> {
+  const job: RunnerJob = data.job;
 
   const terminalJob: RunnerJob = await RunnerJobService.pollUntilTerminal({
     jobId: job.id!,
@@ -325,6 +488,56 @@ async function runAccessTestCommand(data: {
   };
 }
 
+/*
+ * Stands in for a gap description that names the Kubernetes credential,
+ * for a caller who may read the cluster but not credentials.
+ */
+export const RESTRICTED_CREDENTIAL_GAP_DESCRIPTION: string =
+  "The Kubernetes credential this cluster's Runner needs is missing or cannot be used. Someone who can view Runner credentials can see which one on this page.";
+
+/*
+ * The status as this caller may see it. Reading the cluster shows its
+ * readiness; the credential's name — and gap descriptions that name it —
+ * additionally need permission to read credentials, the rule the AI page's
+ * credential picker and the investigation panel apply. The credential id is
+ * left out with it. Everything the route itself does uses the full status.
+ */
+export function toViewerStatus(data: {
+  status: KubernetesClusterAiAccessStatus;
+  canReadCredentials: boolean;
+}): KubernetesClusterAiAccessStatus {
+  if (data.canReadCredentials) {
+    return data.status;
+  }
+
+  const viewerStatus: KubernetesClusterAiAccessStatus = {
+    ...data.status,
+    gaps: data.status.gaps.map(
+      (gap: KubernetesAiAccessGap): KubernetesAiAccessGap => {
+        return gap.code === "credential_missing"
+          ? { ...gap, description: RESTRICTED_CREDENTIAL_GAP_DESCRIPTION }
+          : gap;
+      },
+    ),
+  };
+
+  delete viewerStatus.credentialId;
+  delete viewerStatus.credentialName;
+
+  return viewerStatus;
+}
+
+function canReadCredentials(
+  props: DatabaseCommonInteractionProps,
+  projectId: ObjectID,
+): boolean {
+  return holdsAnyUnblockedPermission({
+    props,
+    projectId,
+    allowed: KUBERNETES_AI_ACCESS_CREDENTIAL_PERMISSIONS,
+  });
+}
+
 router.post(
   "/kubernetes-cluster/ai-access/status",
   UserMiddleware.getUserMiddleware,
@@ -356,7 +569,10 @@ router.post(
       Response.sendJsonObjectResponse(
         req,
         res,
-        status as unknown as JSONObject,
+        toViewerStatus({
+          status,
+          canReadCredentials: canReadCredentials(props, tenantId),
+        }) as unknown as JSONObject,
       );
       return;
     } catch (err) {
@@ -365,6 +581,60 @@ router.post(
     }
   },
 );
+
+/*
+ * Start the test: under this user's lock, check the per-user limit and
+ * create the first command's job, so the next concurrent test of this user
+ * counts it. The limit refusal is thrown (the route answers 429); a refusal
+ * from the chokepoint is returned as the first command's failure.
+ */
+async function startAccessTest(data: {
+  projectId: ObjectID;
+  clusterId: ObjectID;
+  userId: ObjectID;
+  runnerId: ObjectID;
+  credentialId?: string | undefined;
+  command: string;
+}): Promise<{ job?: RunnerJob | undefined; error?: unknown }> {
+  const userLock: SemaphoreMutex = await lockUserForAccessTestStart(
+    data.userId,
+  );
+
+  try {
+    await assertUserMayStartAccessTest({
+      projectId: data.projectId,
+      userId: data.userId,
+    });
+
+    try {
+      const job: RunnerJob = await enqueueAccessTestCommand({
+        projectId: data.projectId,
+        clusterId: data.clusterId,
+        runnerId: data.runnerId,
+        credentialId: data.credentialId,
+        command: data.command,
+        stepId: getAiAccessTestStepId({
+          commandNumber: 1,
+          userId: data.userId,
+        }),
+      });
+
+      return { job };
+    } catch (error) {
+      return { error };
+    }
+  } finally {
+    await releaseUserLock(userLock);
+  }
+}
+
+function describeFailure(error: unknown): string {
+  if (error === undefined || error === null) {
+    return "The command could not be started.";
+  }
+
+  return error instanceof Error ? error.message : String(error);
+}
 
 router.post(
   "/kubernetes-cluster/ai-access/test",
@@ -386,65 +656,129 @@ router.post(
 
       assertCanEditCluster(props, tenantId);
 
-      await assertAccessTestMayRun({
-        projectId: tenantId,
-        clusterId: cluster.id!,
-        userId: props.userId!,
-      });
-
-      const status: KubernetesClusterAiAccessStatus | null =
-        await KubernetesClusterAiAccessService.getStatusForCluster({
-          clusterId: cluster.id!,
-          projectId: tenantId,
-        });
-
-      if (!status) {
-        throw new BadDataException("Kubernetes cluster not found.");
-      }
-
-      /*
-       * The test needs a reachable Runner, not the investigation switch:
-       * an operator checks access BEFORE turning AI on. Only gaps that
-       * block the transport itself stop it.
-       */
-      const transportGap: KubernetesAiAccessGap | undefined = status.gaps.find(
-        (gap: KubernetesAiAccessGap) => {
-          return (
-            gap.blocks === "both" &&
-            gap.code !== "project_ai_disabled" &&
-            gap.code !== "llm_provider_missing"
-          );
-        },
+      const viewerCanReadCredentials: boolean = canReadCredentials(
+        props,
+        tenantId,
       );
 
-      if (transportGap || !status.runner) {
-        Response.sendJsonObjectResponse(req, res, {
-          ok: false,
-          message: transportGap
-            ? `${transportGap.title}. ${transportGap.nextStep}`
-            : "No Runner is bound to this cluster.",
-          results: [],
-          status: status as unknown as JSONObject,
+      // One test at a time per cluster: an atomic reservation, held to the end.
+      const reservation: string = await reserveClusterForAccessTest(
+        cluster.id!,
+      );
+
+      try {
+        await assertClusterAccessTestMayRun({
+          projectId: tenantId,
+          clusterId: cluster.id!,
         });
-        return;
-      }
 
-      const results: Array<JSONObject> = [];
-      let allSucceeded: boolean = true;
+        const status: KubernetesClusterAiAccessStatus | null =
+          await KubernetesClusterAiAccessService.getStatusForCluster({
+            clusterId: cluster.id!,
+            projectId: tenantId,
+          });
 
-      for (const command of AI_ACCESS_TEST_COMMANDS) {
-        try {
-          const outcome: KubectlJobOutcome = await runAccessTestCommand({
+        if (!status) {
+          throw new BadDataException("Kubernetes cluster not found.");
+        }
+
+        /*
+         * The test needs a reachable Runner, not the investigation switch:
+         * an operator checks access BEFORE turning AI on. Only gaps that
+         * block the transport itself stop it.
+         */
+        const transportGap: KubernetesAiAccessGap | undefined =
+          status.gaps.find((gap: KubernetesAiAccessGap) => {
+            return (
+              gap.blocks === "both" &&
+              gap.code !== "project_ai_disabled" &&
+              gap.code !== "llm_provider_missing"
+            );
+          });
+
+        if (transportGap || !status.runner) {
+          Response.sendJsonObjectResponse(req, res, {
+            ok: false,
+            message: transportGap
+              ? `${transportGap.title}. ${transportGap.nextStep}`
+              : "No Runner is bound to this cluster.",
+            results: [],
+            status: toViewerStatus({
+              status,
+              canReadCredentials: viewerCanReadCredentials,
+            }) as unknown as JSONObject,
+          });
+          return;
+        }
+
+        const runnerId: ObjectID = new ObjectID(status.runner.id);
+        const results: Array<JSONObject> = [];
+        let allSucceeded: boolean = true;
+
+        const start: { job?: RunnerJob | undefined; error?: unknown } =
+          await startAccessTest({
             projectId: tenantId,
             clusterId: cluster.id!,
-            runnerId: new ObjectID(status.runner.id),
+            userId: props.userId!,
+            runnerId,
             credentialId: status.credentialId,
-            command,
-            stepId: getAiAccessTestStepId({
-              commandNumber: results.length + 1,
-              userId: props.userId!,
-            }),
+            command: AI_ACCESS_TEST_COMMANDS[0]!,
           });
+
+        for (
+          let index: number = 0;
+          index < AI_ACCESS_TEST_COMMANDS.length;
+          index++
+        ) {
+          const command: string = AI_ACCESS_TEST_COMMANDS[index]!;
+          let job: RunnerJob | undefined = undefined;
+          let failure: unknown = undefined;
+          let outcome: KubectlJobOutcome | undefined = undefined;
+
+          if (index === 0) {
+            job = start.job;
+            failure = start.error;
+          } else {
+            try {
+              job = await enqueueAccessTestCommand({
+                projectId: tenantId,
+                clusterId: cluster.id!,
+                runnerId,
+                credentialId: status.credentialId,
+                command,
+                stepId: getAiAccessTestStepId({
+                  commandNumber: index + 1,
+                  userId: props.userId!,
+                }),
+              });
+            } catch (error) {
+              failure = error;
+            }
+          }
+
+          if (job) {
+            try {
+              outcome = await awaitAccessTestCommand({
+                job,
+                clusterId: cluster.id!,
+                command,
+              });
+            } catch (error) {
+              failure = error;
+            }
+          }
+
+          if (!outcome) {
+            allSucceeded = false;
+            results.push({
+              command,
+              succeeded: false,
+              exitCode: null,
+              output: "",
+              errorMessage: describeFailure(failure),
+            });
+            break;
+          }
 
           allSucceeded = allSucceeded && outcome.succeeded;
 
@@ -459,35 +793,32 @@ router.post(
           if (!outcome.succeeded) {
             break;
           }
-        } catch (error) {
-          allSucceeded = false;
-          results.push({
-            command,
-            succeeded: false,
-            exitCode: null,
-            output: "",
-            errorMessage:
-              error instanceof Error ? error.message : String(error),
-          });
-          break;
         }
-      }
 
-      const refreshed: KubernetesClusterAiAccessStatus | null =
-        await KubernetesClusterAiAccessService.getStatusForCluster({
-          clusterId: cluster.id!,
-          projectId: tenantId,
+        const refreshed: KubernetesClusterAiAccessStatus | null =
+          await KubernetesClusterAiAccessService.getStatusForCluster({
+            clusterId: cluster.id!,
+            projectId: tenantId,
+          });
+
+        Response.sendJsonObjectResponse(req, res, {
+          ok: allSucceeded,
+          message: allSucceeded
+            ? `OneUptime AI can run kubectl on "${cluster.name}" through Runner "${status.runner.name}".`
+            : "kubectl could not run successfully — see the command output below.",
+          results,
+          status: toViewerStatus({
+            status: refreshed || status,
+            canReadCredentials: viewerCanReadCredentials,
+          }) as unknown as JSONObject,
         });
-
-      Response.sendJsonObjectResponse(req, res, {
-        ok: allSucceeded,
-        message: allSucceeded
-          ? `OneUptime AI can run kubectl on "${cluster.name}" through Runner "${status.runner.name}".`
-          : "kubectl could not run successfully — see the command output below.",
-        results,
-        status: (refreshed || status) as unknown as JSONObject,
-      });
-      return;
+        return;
+      } finally {
+        await releaseClusterReservation({
+          clusterId: cluster.id!,
+          token: reservation,
+        });
+      }
     } catch (err) {
       next(err);
       return;

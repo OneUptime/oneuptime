@@ -1,16 +1,30 @@
 import DatabaseService from "./DatabaseService";
+import AutoRemediationSuggestionService from "./AutoRemediationSuggestionService";
 import KubernetesClusterLabelRuleEngineService from "./KubernetesClusterLabelRuleEngineService";
 import KubernetesClusterOwnerRuleEngineService from "./KubernetesClusterOwnerRuleEngineService";
 import RunbookCredentialService from "./RunbookCredentialService";
-import RunnerService from "./RunnerService";
+import RunnerService, { Service as RunnerServiceClass } from "./RunnerService";
 import UserService from "./UserService";
+import AutoRemediationSuggestion from "../../Models/DatabaseModels/AutoRemediationSuggestion";
 import Model from "../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../Models/DatabaseModels/Label";
 import RunbookCredential from "../../Models/DatabaseModels/RunbookCredential";
 import Runner from "../../Models/DatabaseModels/Runner";
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
+import Select from "../Types/Database/Select";
 import UpdateBy from "../Types/Database/UpdateBy";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
+import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
+import {
+  AiRemediationCommand,
+  AiRemediationCommandExecutionStatus,
+  AiRemediationCommandPlan,
+  AiRemediationCommandPlanUtil,
+} from "../../Types/AutoRemediation/AiRemediationCommandPlan";
+import KubectlPolicy, {
+  KUBECTL_ALLOWLIST_MAX_PATTERNS,
+} from "../../Utils/AiRemediation/KubectlPolicy";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import { holdsAnyPermission } from "../Utils/Runbook/RunbookExecutePermission";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -79,13 +93,27 @@ export const AI_ACCESS_SETTING_KEYS: Array<string> = [
 ];
 
 /*
- * Bounds on the cluster's kubectl allowlist. CommandPolicy.matchesAllowlist
- * silently ignores every pattern past the 100th and every pattern longer
- * than 500 characters, so a longer list would be stored and then never take
- * effect. The allowlist tests pin these against the matcher's behavior.
+ * What the binding checks read off a Runner and a credential: whether the
+ * Runner is a kubernetes-agent row (and whose), and which Runners the
+ * credential is assigned to.
  */
-export const MAX_KUBECTL_ALLOWLIST_PATTERNS: number = 100;
-export const MAX_KUBECTL_ALLOWLIST_PATTERN_LENGTH: number = 500;
+const AI_ACCESS_BINDING_RUNNER_SELECT: Select<Runner> = {
+  _id: true,
+  name: true,
+  hostInfo: true,
+};
+
+const AI_ACCESS_BINDING_CREDENTIAL_SELECT: Select<RunbookCredential> = {
+  _id: true,
+  credentialType: true,
+  runners: { _id: true },
+};
+
+// Runner and credential rows the binding checks already loaded, by id.
+interface AiAccessBindingRows {
+  runners: Map<string, Runner>;
+  credentials: Map<string, RunbookCredential>;
+}
 
 const KUBECTL_ALLOWLIST_SHAPE_HINT: string =
   'The kubectl allowlist must be a JSON array of kubectl command patterns, for example ["kubectl set image deployment/web * -n web"].';
@@ -145,6 +173,11 @@ export function getAiAccessCredentialRefusal(): string {
  */
 export interface AiAccessSettingsSnapshot {
   projectId?: ObjectID | undefined;
+  /*
+   * Which cluster this is, for "is the chosen Runner THIS cluster's agent
+   * Runner?" (validateAiAccessBindingPairs). Not an AI setting itself.
+   */
+  clusterIdentifier?: string | undefined;
   isAiInvestigationEnabled: boolean;
   aiRemediationMode: KubernetesAiRemediationMode;
   aiKubectlCommandAllowlist: Array<string>;
@@ -169,6 +202,30 @@ const NEVER_CONFIGURED_AI_ACCESS: AiAccessSettingsSnapshot = {
  */
 export interface AiAccessWriteCarryForward {
   previousAiAccessSettings: Record<string, AiAccessSettingsSnapshot>;
+}
+
+/*
+ * Handed from onBeforeDelete to onDeleteSuccess: the cluster-level AI
+ * remediation rounds still in flight on the clusters being deleted, read
+ * before the foreign key nulls their link, and the clusters' names.
+ */
+interface ClusterDeleteCarryForward {
+  inFlightRounds: Array<AutoRemediationSuggestion>;
+  clusterNames: Record<string, string>;
+}
+
+function getClusterDeleteCarryForward(
+  carryForward: unknown,
+): ClusterDeleteCarryForward | null {
+  if (
+    carryForward &&
+    typeof carryForward === "object" &&
+    "inFlightRounds" in carryForward
+  ) {
+    return carryForward as ClusterDeleteCarryForward;
+  }
+
+  return null;
 }
 
 // What loosening an operator's write would do to one cluster.
@@ -210,10 +267,29 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
-    await this.validateAiAccessBindingsBelongToProject({
-      data,
-      projectId,
-    });
+    const loaded: AiAccessBindingRows =
+      await this.validateAiAccessBindingsBelongToProject({
+        data,
+        projectId,
+      });
+
+    // An operator's binding must also be a pair that can work.
+    if (!createBy.props.isRoot) {
+      await this.validateAiAccessBindingPairs({
+        data,
+        clusters: [
+          {
+            ...NEVER_CONFIGURED_AI_ACCESS,
+            projectId,
+            clusterIdentifier:
+              typeof data["clusterIdentifier"] === "string"
+                ? (data["clusterIdentifier"] as string)
+                : undefined,
+          },
+        ],
+        loaded,
+      });
+    }
 
     return {
       createBy,
@@ -271,10 +347,16 @@ export class Service extends DatabaseService<Model> {
         ? [updateBy.props.tenantId]
         : await this.getProjectIdsForUpdateQuery(updateBy);
 
+      const loaded: AiAccessBindingRows = {
+        runners: new Map<string, Runner>(),
+        credentials: new Map<string, RunbookCredential>(),
+      };
+
       for (const projectId of projectIds) {
         await this.validateAiAccessBindingsBelongToProject({
           data,
           projectId,
+          loaded,
         });
       }
 
@@ -290,9 +372,192 @@ export class Service extends DatabaseService<Model> {
           projectId: undefined,
         });
       }
+
+      /*
+       * An operator's binding must also be a pair that can work, judged
+       * per cluster against what it is bound to now (read above). The
+       * server's own writes — registration binds this cluster's agent Runner
+       * and clears the credential — are not operator choices.
+       */
+      if (carryForward) {
+        await this.validateAiAccessBindingPairs({
+          data,
+          clusters: Object.values(carryForward.previousAiAccessSettings),
+          loaded,
+        });
+      }
     }
 
     return { updateBy, carryForward };
+  }
+
+  /*
+   * A cluster-level AI remediation round (a suggestion the cluster's mode
+   * produced, not a rule) still Planning or waiting in Suggested for the
+   * cluster being deleted can never finish: its kubectl names a cluster
+   * that is about to be gone, and the foreign key nulls its link. Read here,
+   * before the delete, which ones there are; settled in onDeleteSuccess for
+   * the clusters that were actually deleted (the delete may still be
+   * refused after this hook runs).
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    let inFlightRounds: Array<AutoRemediationSuggestion> = [];
+    const clusterNames: Record<string, string> = {};
+
+    try {
+      const clusters: Array<Model> = await this.findBy({
+        query: {
+          ...deleteBy.query,
+          ...(deleteBy.props.tenantId
+            ? { projectId: deleteBy.props.tenantId }
+            : {}),
+        },
+        select: { _id: true, name: true, clusterIdentifier: true },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+      const clusterIds: Array<ObjectID> = [];
+
+      for (const cluster of clusters) {
+        if (cluster.id) {
+          clusterIds.push(cluster.id);
+          clusterNames[cluster.id.toString()] =
+            cluster.name || cluster.clusterIdentifier || "this cluster";
+        }
+      }
+
+      if (clusterIds.length > 0) {
+        inFlightRounds = await AutoRemediationSuggestionService.findBy({
+          query: {
+            kubernetesClusterId: QueryHelper.any(clusterIds),
+            status: QueryHelper.any([
+              AutoRemediationSuggestionStatus.Planning,
+              AutoRemediationSuggestionStatus.Suggested,
+            ]),
+          },
+          select: {
+            _id: true,
+            status: true,
+            kubernetesClusterId: true,
+            rationaleMarkdown: true,
+            commandPlan: true,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        });
+      }
+    } catch (error) {
+      /*
+       * Best effort: a failed read must not block deleting the cluster;
+       * the rounds then fail on their next command as the cluster is gone.
+       */
+      logger.error(
+        `KubernetesClusterService: could not read the in-flight AI remediation rounds of the cluster(s) being deleted: ${error}`,
+      );
+    }
+
+    const carryForward: ClusterDeleteCarryForward = {
+      inFlightRounds,
+      clusterNames,
+    };
+
+    return { deleteBy, carryForward };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedItemIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    const carryForward: ClusterDeleteCarryForward | null =
+      getClusterDeleteCarryForward(onDelete.carryForward);
+
+    if (carryForward && carryForward.inFlightRounds.length > 0) {
+      const deleted: Set<string> = new Set<string>(
+        deletedItemIds.map((id: ObjectID) => {
+          return id.toString();
+        }),
+      );
+
+      for (const suggestion of carryForward.inFlightRounds) {
+        const clusterId: string =
+          suggestion.kubernetesClusterId?.toString() || "";
+
+        if (!deleted.has(clusterId)) {
+          continue;
+        }
+
+        await this.settleRoundOfDeletedCluster({
+          suggestion,
+          clusterName: carryForward.clusterNames[clusterId] || "this cluster",
+          deletedByUserId: onDelete.deleteBy.props.userId,
+        });
+      }
+    }
+
+    return onDelete;
+  }
+
+  /*
+   * Settle one in-flight cluster-level round of a deleted cluster the way a
+   * human dismissal settles it (the conditional status transition, so a
+   * planner finishing at the same moment loses cleanly and writes nothing),
+   * with a note on the suggestion saying why — and, for a round that had
+   * already run commands, that those changes were made and nothing was
+   * rolled back. Best effort: a settle that fails must not fail the delete
+   * that already happened.
+   */
+  private async settleRoundOfDeletedCluster(data: {
+    suggestion: AutoRemediationSuggestion;
+    clusterName: string;
+    deletedByUserId?: ObjectID | undefined;
+  }): Promise<void> {
+    const { suggestion } = data;
+
+    try {
+      const plan: AiRemediationCommandPlan | null =
+        AiRemediationCommandPlanUtil.parse(suggestion.commandPlan);
+      // A Skipped command never ran; any other execution record may have.
+      const executedCount: number = (plan?.commands || []).filter(
+        (command: AiRemediationCommand) => {
+          return (
+            command.execution !== undefined &&
+            command.execution.status !==
+              AiRemediationCommandExecutionStatus.Skipped
+          );
+        },
+      ).length;
+
+      const note: string =
+        executedCount > 0
+          ? `**Dismissed: the Kubernetes cluster "${data.clusterName}" this remediation was for was deleted.** ${executedCount} command(s) had already run on it before; nothing was rolled back and no further command will run.`
+          : `**Dismissed: the Kubernetes cluster "${data.clusterName}" this remediation was for was deleted.** None of its kubectl commands ran, and none will.`;
+
+      await AutoRemediationSuggestionService.attemptStatusTransition({
+        suggestionId: suggestion.id!,
+        fromStatus: suggestion.status!,
+        set: {
+          status: AutoRemediationSuggestionStatus.Dismissed,
+          dismissedAt: OneUptimeDate.getCurrentDate(),
+          ...(data.deletedByUserId
+            ? { dismissedByUserId: data.deletedByUserId.toString() }
+            : {}),
+          rationaleMarkdown: suggestion.rationaleMarkdown
+            ? `${note}\n\n${suggestion.rationaleMarkdown}`
+            : note,
+        },
+      });
+    } catch (error) {
+      logger.error(
+        `KubernetesClusterService: could not settle AI remediation suggestion ${suggestion.id?.toString()} of a deleted cluster: ${error}`,
+      );
+    }
   }
 
   private isAiAccessSettingWritten(data: JSONObject): boolean {
@@ -488,6 +753,7 @@ export class Service extends DatabaseService<Model> {
       select: {
         _id: true,
         projectId: true,
+        clusterIdentifier: true,
         isAiInvestigationEnabled: true,
         aiRemediationMode: true,
         aiKubectlCommandAllowlist: true,
@@ -513,6 +779,7 @@ export class Service extends DatabaseService<Model> {
 
       settings[clusterId] = {
         projectId: cluster.projectId,
+        clusterIdentifier: cluster.clusterIdentifier,
         isAiInvestigationEnabled: cluster.isAiInvestigationEnabled === true,
         aiRemediationMode: readStoredRemediationMode(cluster.aiRemediationMode),
         aiKubectlCommandAllowlist: readStoredKubectlAllowlist(
@@ -541,12 +808,22 @@ export class Service extends DatabaseService<Model> {
    * WHO may bind is decided before this runs (assertMayChangeAiAccess); this
    * only decides WHAT may be bound. Clearing a binding (null) is always
    * allowed.
+   *
+   * Returns the rows it loaded (with what validateAiAccessBindingPairs
+   * reads off them), so the pair check does not look them up again.
    */
   @CaptureSpan()
   private async validateAiAccessBindingsBelongToProject(data: {
     data: JSONObject;
     projectId: ObjectID | undefined;
-  }): Promise<void> {
+    // Filled with what this call loads, when given.
+    loaded?: AiAccessBindingRows | undefined;
+  }): Promise<AiAccessBindingRows> {
+    const loaded: AiAccessBindingRows = data.loaded || {
+      runners: new Map<string, Runner>(),
+      credentials: new Map<string, RunbookCredential>(),
+    };
+
     const runnerId: ObjectID | null = RelationIdUtil.readConsistent(
       data.data,
       AI_ACCESS_RUNNER_KEYS,
@@ -560,7 +837,7 @@ export class Service extends DatabaseService<Model> {
     );
 
     if (!runnerId && !credentialId) {
-      return;
+      return loaded;
     }
 
     if (!data.projectId) {
@@ -575,7 +852,7 @@ export class Service extends DatabaseService<Model> {
           _id: runnerId.toString(),
           projectId: data.projectId,
         },
-        select: { _id: true },
+        select: AI_ACCESS_BINDING_RUNNER_SELECT,
         props: { isRoot: true },
       });
 
@@ -584,6 +861,8 @@ export class Service extends DatabaseService<Model> {
           "Runner not found or it does not belong to this project.",
         );
       }
+
+      loaded.runners.set(runnerId.toString(), runner);
     }
 
     if (credentialId) {
@@ -593,7 +872,7 @@ export class Service extends DatabaseService<Model> {
             _id: credentialId.toString(),
             projectId: data.projectId,
           },
-          select: { _id: true, credentialType: true },
+          select: AI_ACCESS_BINDING_CREDENTIAL_SELECT,
           props: { isRoot: true },
         });
 
@@ -603,7 +882,198 @@ export class Service extends DatabaseService<Model> {
       ) {
         throw new BadDataException(AI_ACCESS_CREDENTIAL_REFUSAL);
       }
+
+      loaded.credentials.set(credentialId.toString(), credential);
     }
+
+    return loaded;
+  }
+
+  /*
+   * Whether the Runner and credential a write leaves a cluster with can
+   * work together — checked for an operator's write (the dashboard no
+   * longer offers these pairs, but the API and Terraform can still send
+   * them), per cluster the write reaches, and only where the pair actually
+   * changes (the AI page re-posts unchanged values):
+   *
+   * - a kubernetes-agent Runner of ANOTHER cluster is refused: its
+   *   ServiceAccount reaches only the cluster its pod runs in, and it is
+   *   never given a credential, so it can never reach this one. This
+   *   cluster's own agent Runner (by its name for this cluster, or a
+   *   posture naming it) is of course fine.
+   * - a credential together with a kubernetes-agent Runner of another
+   *   cluster is refused — such a Runner is never handed credential
+   *   material (this cluster's own agent ignores a credential: in-cluster
+   *   access wins).
+   * - a credential the chosen Runner is not assigned is refused: the claim
+   *   path resolves a credential only for a Runner it is assigned to, so
+   *   every command would fail.
+   */
+  @CaptureSpan()
+  private async validateAiAccessBindingPairs(data: {
+    data: JSONObject;
+    clusters: Array<AiAccessSettingsSnapshot>;
+    loaded: AiAccessBindingRows;
+  }): Promise<void> {
+    const isRunnerWritten: boolean = isAnyKeyWritten(
+      data.data,
+      AI_ACCESS_RUNNER_KEYS,
+    );
+    const isCredentialWritten: boolean = isAnyKeyWritten(
+      data.data,
+      AI_ACCESS_CREDENTIAL_KEYS,
+    );
+
+    if (!isRunnerWritten && !isCredentialWritten) {
+      return;
+    }
+
+    const writtenRunnerId: string | null =
+      RelationIdUtil.readConsistent(
+        data.data,
+        AI_ACCESS_RUNNER_KEYS,
+        "AI access Runner",
+      )?.toString() || null;
+    const writtenCredentialId: string | null =
+      RelationIdUtil.readConsistent(
+        data.data,
+        AI_ACCESS_CREDENTIAL_KEYS,
+        "AI access credential",
+      )?.toString() || null;
+
+    for (const cluster of data.clusters) {
+      const runnerId: string | null = isRunnerWritten
+        ? writtenRunnerId
+        : cluster.aiAccessRunnerId;
+      const credentialId: string | null = isCredentialWritten
+        ? writtenCredentialId
+        : cluster.aiAccessCredentialId;
+      const isRunnerChanged: boolean = runnerId !== cluster.aiAccessRunnerId;
+      const isCredentialChanged: boolean =
+        credentialId !== cluster.aiAccessCredentialId;
+
+      if (!runnerId || (!isRunnerChanged && !isCredentialChanged)) {
+        continue;
+      }
+
+      const runner: Runner | null = await this.loadBindingRunner({
+        runnerId,
+        projectId: cluster.projectId,
+        loaded: data.loaded,
+      });
+
+      // A bound Runner that is gone is the Runner delete race: nothing to pair.
+      if (!runner) {
+        continue;
+      }
+
+      const isAgentRunner: boolean =
+        RunnerServiceClass.isKubernetesAgentRunnerRow(runner);
+      const isThisClustersAgent: boolean =
+        RunnerServiceClass.isKubernetesAgentRunnerOfCluster(
+          runner,
+          cluster.clusterIdentifier,
+        );
+
+      if (isAgentRunner && !isThisClustersAgent && isRunnerChanged) {
+        throw new BadDataException(
+          `Runner "${runner.name}" is the in-cluster Runner the Kubernetes agent chart installed on another cluster. Its ServiceAccount reaches only the cluster its pod runs in, and it is never given a credential, so it cannot run kubectl for this cluster. Install the in-cluster Runner on this cluster with --set aiAccess.enabled=true, or bind a Runner you created under Project Settings → Runners together with a Kubernetes credential for this cluster.`,
+        );
+      }
+
+      if (!credentialId || isThisClustersAgent) {
+        continue;
+      }
+
+      if (isAgentRunner) {
+        throw new BadDataException(
+          `Runner "${runner.name}" is an in-cluster Runner the Kubernetes agent chart installed: it runs kubectl with its own ServiceAccount only and is never given a credential. Clear the credential, or bind a Runner you created under Project Settings → Runners that the credential is assigned to.`,
+        );
+      }
+
+      const credential: RunbookCredential | null =
+        await this.loadBindingCredential({
+          credentialId,
+          projectId: cluster.projectId,
+          loaded: data.loaded,
+        });
+
+      // A bound credential that is gone is reported by the readiness check.
+      if (!credential) {
+        continue;
+      }
+
+      const isAssigned: boolean = (credential.runners || []).some(
+        (assigned: Runner) => {
+          return (
+            (assigned.id?.toString() || assigned._id?.toString()) === runnerId
+          );
+        },
+      );
+
+      if (!isAssigned) {
+        throw new BadDataException(
+          `The Kubernetes credential is not assigned to Runner "${runner.name}", so that Runner could never use it for this cluster (a credential is handed only to the Runners it is assigned to). Assign it to the Runner under Project Settings → Runner Credentials first, or choose a credential that is assigned to it.`,
+        );
+      }
+    }
+  }
+
+  private async loadBindingRunner(data: {
+    runnerId: string;
+    projectId: ObjectID | undefined;
+    loaded: AiAccessBindingRows;
+  }): Promise<Runner | null> {
+    const cached: Runner | undefined = data.loaded.runners.get(data.runnerId);
+
+    if (cached) {
+      return cached;
+    }
+
+    const runner: Runner | null = await RunnerService.findOneBy({
+      query: {
+        _id: data.runnerId,
+        ...(data.projectId ? { projectId: data.projectId } : {}),
+      },
+      select: AI_ACCESS_BINDING_RUNNER_SELECT,
+      props: { isRoot: true },
+    });
+
+    if (runner) {
+      data.loaded.runners.set(data.runnerId, runner);
+    }
+
+    return runner;
+  }
+
+  private async loadBindingCredential(data: {
+    credentialId: string;
+    projectId: ObjectID | undefined;
+    loaded: AiAccessBindingRows;
+  }): Promise<RunbookCredential | null> {
+    const cached: RunbookCredential | undefined = data.loaded.credentials.get(
+      data.credentialId,
+    );
+
+    if (cached) {
+      return cached;
+    }
+
+    const credential: RunbookCredential | null =
+      await RunbookCredentialService.findOneBy({
+        query: {
+          _id: data.credentialId,
+          ...(data.projectId ? { projectId: data.projectId } : {}),
+        },
+        select: AI_ACCESS_BINDING_CREDENTIAL_SELECT,
+        props: { isRoot: true },
+      });
+
+    if (credential) {
+      data.loaded.credentials.set(data.credentialId, credential);
+    }
+
+    return credential;
   }
 
   @CaptureSpan()
@@ -649,6 +1119,10 @@ export class Service extends DatabaseService<Model> {
         ?.writesAiAccessSettings === true
     ) {
       await this.markAiAccessConfigured([createdItem.id]);
+
+      if (this.bindsRunner(onCreate.createBy.data as unknown as JSONObject)) {
+        await this.markAiAccessRunnerBound([createdItem.id]);
+      }
     }
 
     if (createdItem.projectId && createdItem.id) {
@@ -1054,14 +1528,10 @@ export class Service extends DatabaseService<Model> {
       getAiAccessWriteCarryForward(onUpdate.carryForward);
 
     /*
-     * Awaited, unlike the feed: registration reads the marker to tell an
-     * operator's "off" from a cluster nobody ever configured, so a save that
-     * could not record it must not look like one that did.
+     * The feed items first, fire and forget: the operator's write has
+     * committed, so who changed what AI may do is recorded even when the
+     * marker writes below fail (and the save reports that failure).
      */
-    if (aiAccessWrite && updatedItemIds.length > 0) {
-      await this.markAiAccessConfigured(updatedItemIds);
-    }
-
     this.writeKubernetesClusterUpdatedFeed(onUpdate, updatedItemIds).catch(
       (error: Error) => {
         logger.error(error);
@@ -1078,7 +1548,61 @@ export class Service extends DatabaseService<Model> {
       });
     }
 
+    /*
+     * Awaited, unlike the feed: registration reads the markers to tell an
+     * operator's "off" (or a cleared binding) from a cluster nobody ever
+     * configured, so a save that could not record them must not look like
+     * one that did.
+     */
+    if (aiAccessWrite && updatedItemIds.length > 0) {
+      await this.markAiAccessConfigured(updatedItemIds);
+
+      if (this.bindsRunner(onUpdate.updateBy.data as unknown as JSONObject)) {
+        await this.markAiAccessRunnerBound(updatedItemIds);
+      }
+    }
+
     return onUpdate;
+  }
+
+  // The write binds a Runner (not merely clears the binding).
+  private bindsRunner(data: JSONObject | undefined): boolean {
+    return Boolean(
+      data &&
+        RelationIdUtil.readConsistent(
+          data,
+          AI_ACCESS_RUNNER_KEYS,
+          "AI access Runner",
+        ),
+    );
+  }
+
+  /*
+   * Set aiAccessRunnerBoundAt on each cluster that does not have it yet —
+   * "a Runner was bound here", never cleared. Registration reads it to leave
+   * a cluster whose binding was later cleared (or whose Runner was deleted)
+   * unbound, while still binding one an operator only configured before
+   * installing the chart. Written as root after the operator's own write
+   * succeeded; the column's update ACL is empty.
+   */
+  @CaptureSpan()
+  private async markAiAccessRunnerBound(
+    clusterIds: Array<ObjectID>,
+  ): Promise<void> {
+    await this.updateBy({
+      query: {
+        _id: QueryHelper.any(clusterIds),
+        aiAccessRunnerBoundAt: QueryHelper.isNull(),
+      },
+      data: {
+        aiAccessRunnerBoundAt: OneUptimeDate.getCurrentDate(),
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
   }
 
   /*
@@ -1505,12 +2029,14 @@ function readStoredKubectlAllowlist(value: unknown): Array<string> {
  *
  * - anything but an array (a JSON-encoded array in a string is accepted, the
  *   form the readers already understand, and stored as the array);
- * - an entry that is not text, or is empty once trimmed;
- * - more than MAX_KUBECTL_ALLOWLIST_PATTERNS entries, or an entry longer than
- *   MAX_KUBECTL_ALLOWLIST_PATTERN_LENGTH — the matcher skips those silently;
- * - an entry that cannot match any command: the matcher compares against
- *   the full rendered command, which always starts with "kubectl", so a
- *   pattern must start with "kubectl " or with a "*" wildcard.
+ * - an entry that is not text;
+ * - more than KUBECTL_ALLOWLIST_MAX_PATTERNS entries — the matcher skips
+ *   every pattern past that silently;
+ * - an entry KubectlPolicy.describeAllowlistPatternProblem says the matcher
+ *   cannot use (blank, too long, not one kubectl command line, no verb).
+ *   That is the ONE definition of a valid entry, shared with the AI page:
+ *   KubectlPolicy.matchesAllowlist compares word by word, `*` stands for
+ *   exactly one word, and the leading "kubectl" is optional.
  */
 export function normalizeKubectlAllowlistForWrite(
   value: unknown,
@@ -1537,9 +2063,9 @@ export function normalizeKubectlAllowlistForWrite(
     throw new BadDataException(KUBECTL_ALLOWLIST_SHAPE_HINT);
   }
 
-  if (raw.length > MAX_KUBECTL_ALLOWLIST_PATTERNS) {
+  if (raw.length > KUBECTL_ALLOWLIST_MAX_PATTERNS) {
     throw new BadDataException(
-      `The kubectl allowlist can hold at most ${MAX_KUBECTL_ALLOWLIST_PATTERNS} patterns (got ${raw.length}).`,
+      `The kubectl allowlist can hold at most ${KUBECTL_ALLOWLIST_MAX_PATTERNS} patterns (got ${raw.length}).`,
     );
   }
 
@@ -1552,23 +2078,17 @@ export function normalizeKubectlAllowlistForWrite(
       );
     }
 
+    // Stored trimmed, so it is judged exactly as it will be read.
     const pattern: string = entry.trim();
 
-    if (pattern.length === 0) {
-      throw new BadDataException(`${position} is empty.`);
-    }
+    const problem: string | null =
+      KubectlPolicy.describeAllowlistPatternProblem(pattern);
 
-    if (pattern.length > MAX_KUBECTL_ALLOWLIST_PATTERN_LENGTH) {
+    if (problem) {
       throw new BadDataException(
-        `${position} is ${pattern.length} characters long; the most is ${MAX_KUBECTL_ALLOWLIST_PATTERN_LENGTH}.`,
-      );
-    }
-
-    const collapsed: string = pattern.replace(/\s+/g, " ");
-
-    if (!collapsed.startsWith("kubectl ") && !collapsed.startsWith("*")) {
-      throw new BadDataException(
-        `${position} ("${pattern}") must start with "kubectl " or with a * wildcard: patterns are matched against the whole command, which always starts with kubectl.`,
+        `${position} cannot be used: ${
+          problem.endsWith(".") ? problem : `${problem}.`
+        } Patterns are compared with the command word by word; * stands for exactly one word, and the leading "kubectl" is optional.`,
       );
     }
 

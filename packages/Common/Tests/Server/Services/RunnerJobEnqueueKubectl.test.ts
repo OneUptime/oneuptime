@@ -375,12 +375,43 @@ describe("RunnerJobService.enqueueAiKubectlCommand", () => {
       expect(createdRows).toHaveLength(0);
     });
 
-    it("negative control: a dashboard Runner living in another cluster's pod may carry the credential", async () => {
+    /*
+     * The one "is an agent row" rule fails closed on the name OR the
+     * posture: an agent row renamed (only root can) keeps its posture.
+     */
+    it("refuses a credential job for a row with an agent posture but no name marker, or a case-variant marker", async () => {
+      for (const runner of [
+        fakeRunner({
+          name: "prod-eu in-cluster runner",
+          hostInfo: {
+            kubernetes: { inCluster: true, clusterIdentifier: "prod-eu" },
+          },
+        }),
+        fakeRunner({ name: "Kubernetes-Agent/prod-eu", hostInfo: {} }),
+      ]) {
+        runnerLookup.mockResolvedValue(runner);
+
+        await expect(
+          RunnerJobService.enqueueAiKubectlCommand(
+            args({ credentialId: CREDENTIAL_ID }),
+          ),
+        ).rejects.toThrow(/is never given a credential/);
+      }
+
+      expect(createdRows).toHaveLength(0);
+    });
+
+    /*
+     * Before round two this fixture's posture named a cluster (an agent
+     * posture, which only the kubernetes-agent binary reports). A dashboard
+     * Runner that merely lives in a pod reports no cluster identity.
+     */
+    it("negative control: a dashboard Runner living in a pod may carry the credential", async () => {
       runnerLookup.mockResolvedValue(
         fakeRunner({
           name: "pod-runner",
           hostInfo: {
-            kubernetes: { inCluster: true, clusterIdentifier: "prod-eu" },
+            kubernetes: { inCluster: true },
           },
         }),
       );
