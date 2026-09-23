@@ -6457,5 +6457,6 @@
   "VMware vCenter Created": "VMware vCenter ساخته شد",
   "VMware vCenter Restored": "VMware vCenter بازیابی شد",
   "VMware vCenter Updated": "VMware vCenter به‌روزرسانی شد",
-  "Matching event types: {{count}}": "نوع رویدادهای منطبق: {{count}}"
+  "Matching event types: {{count}}": "نوع رویدادهای منطبق: {{count}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "این زمان بر اساس منطقه زمانی شماست — {{abbreviation}} ({{timezone}})."
 }

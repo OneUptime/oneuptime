@@ -6457,5 +6457,6 @@
   "VMware vCenter Created": "VMware vCenter 생성됨",
   "VMware vCenter Restored": "VMware vCenter 복원됨",
   "VMware vCenter Updated": "VMware vCenter 업데이트됨",
-  "Matching event types: {{count}}": "일치하는 이벤트 유형: {{count}}"
+  "Matching event types: {{count}}": "일치하는 이벤트 유형: {{count}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "이 시간은 사용자의 시간대 기준입니다 - {{abbreviation}} ({{timezone}})."
 }

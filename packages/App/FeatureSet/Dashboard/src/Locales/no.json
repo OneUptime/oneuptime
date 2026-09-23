@@ -6457,5 +6457,6 @@
   "VMware vCenter Created": "VMware vCenter opprettet",
   "VMware vCenter Restored": "VMware vCenter gjenopprettet",
   "VMware vCenter Updated": "VMware vCenter oppdatert",
-  "Matching event types: {{count}}": "Samsvarende hendelsestyper: {{count}}"
+  "Matching event types: {{count}}": "Samsvarende hendelsestyper: {{count}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Dette tidspunktet er i din tidssone - {{abbreviation}} ({{timezone}})."
 }

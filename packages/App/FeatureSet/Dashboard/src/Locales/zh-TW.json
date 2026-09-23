@@ -6457,5 +6457,6 @@
   "VMware vCenter Created": "VMware vCenter 已建立",
   "VMware vCenter Restored": "VMware vCenter 已還原",
   "VMware vCenter Updated": "VMware vCenter 已更新",
-  "Matching event types: {{count}}": "符合的事件類型：{{count}}"
+  "Matching event types: {{count}}": "符合的事件類型：{{count}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "此時間以您的時區為準 - {{abbreviation}} ({{timezone}})。"
 }

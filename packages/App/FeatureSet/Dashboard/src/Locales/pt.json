@@ -6457,5 +6457,6 @@
   "VMware vCenter Created": "VMware vCenter criado",
   "VMware vCenter Restored": "VMware vCenter restaurado",
   "VMware vCenter Updated": "VMware vCenter atualizado",
-  "Matching event types: {{count}}": "Tipos de evento correspondentes: {{count}}"
+  "Matching event types: {{count}}": "Tipos de evento correspondentes: {{count}}",
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).": "Este horário está no seu fuso horário - {{abbreviation}} ({{timezone}})."
 }
