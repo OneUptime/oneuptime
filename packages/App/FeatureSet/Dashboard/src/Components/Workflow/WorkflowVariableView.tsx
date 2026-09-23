@@ -18,6 +18,7 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import Select from "Common/Types/BaseDatabase/Select";
@@ -139,42 +140,92 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
     null,
   );
 
+  /*
+   * Bumped by every load (and on unmount). A response only lands if no newer
+   * load has started since, so a slow read of the previous variable - after
+   * moving from one variable's page to another's - can never replace the one
+   * on screen.
+   */
+  const loadGenerationRef: React.MutableRefObject<number> = useRef<number>(0);
+
+  useEffect(() => {
+    return () => {
+      loadGenerationRef.current++;
+    };
+  }, []);
+
+  /*
+   * A foreground load (opening the page, Refresh on the error) owns the whole
+   * page: it shows the loader and, if it fails, the error. A background reload
+   * - after a save or a token refresh, to pick up what that wrote - does not:
+   * the page is already showing a variable that exists, and swapping it for an
+   * error would also take down the token refresh result, which is the one
+   * thing somebody needs to read at that moment. A failed background reload
+   * leaves the page as it was.
+   */
   const loadVariable: (options?: {
-    showLoader?: boolean | undefined;
+    isBackground?: boolean | undefined;
   }) => Promise<void> = async (options?: {
-    showLoader?: boolean | undefined;
+    isBackground?: boolean | undefined;
   }): Promise<void> => {
-    if (options?.showLoader) {
+    const isBackground: boolean = Boolean(options?.isBackground);
+
+    loadGenerationRef.current++;
+    const generation: number = loadGenerationRef.current;
+
+    if (!isBackground) {
       setIsLoading(true);
     }
 
+    let item: WorkflowVariable | null = null;
+    let loadError: string = "";
+
     try {
-      const item: WorkflowVariable | null =
-        await ModelAPI.getItem<WorkflowVariable>({
-          modelType: WorkflowVariable,
-          id: props.variableId,
-          select: WORKFLOW_VARIABLE_VIEW_SELECT,
-        });
-
-      if (!item) {
-        setVariable(null);
-        setError(
-          "This variable could not be found. It may have been deleted, or you may not have access to it.",
-        );
-      } else {
-        const scopeError: string | null = getVariableScopeError({
-          variable: item,
-          workflowId: props.workflowId,
-        });
-
-        setVariable(scopeError ? null : item);
-        setError(scopeError || "");
-      }
+      item = await ModelAPI.getItem<WorkflowVariable>({
+        modelType: WorkflowVariable,
+        id: props.variableId,
+        select: WORKFLOW_VARIABLE_VIEW_SELECT,
+      });
     } catch (err) {
-      setVariable(null);
-      setError(API.getFriendlyMessage(err));
+      loadError = API.getFriendlyMessage(err);
     }
 
+    if (generation !== loadGenerationRef.current) {
+      return;
+    }
+
+    /*
+     * The API answers a missing, deleted or out-of-tenant id with an empty
+     * object rather than null, and ModelAPI turns that into a WorkflowVariable
+     * with nothing set - so "no id" is what not-found looks like here. It is
+     * checked before the scope, so a local page reports a missing variable as
+     * missing rather than as one that belongs to another workflow.
+     */
+    if (!loadError && (!item || !item.id)) {
+      loadError =
+        "This variable could not be found. It may have been deleted, or you may not have access to it.";
+    }
+
+    if (!loadError && item) {
+      loadError =
+        getVariableScopeError({
+          variable: item,
+          workflowId: props.workflowId,
+        }) || "";
+    }
+
+    if (loadError) {
+      if (!isBackground) {
+        setVariable(null);
+        setError(loadError);
+        setIsLoading(false);
+      }
+
+      return;
+    }
+
+    setVariable(item);
+    setError("");
     setIsLoading(false);
   };
 
@@ -182,7 +233,7 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
     setVariable(null);
     setError("");
     setContentUpdated(false);
-    void loadVariable({ showLoader: true });
+    void loadVariable();
   }, [props.variableId.toString(), props.workflowId?.toString()]);
 
   if (isLoading) {
@@ -194,7 +245,7 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
       <ErrorMessage
         message={error || "This variable could not be loaded."}
         onRefreshClick={() => {
-          void loadVariable({ showLoader: true });
+          void loadVariable();
         }}
       />
     );
@@ -250,7 +301,7 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
     setIsRefreshingToken(false);
 
     // The refresh wrote the expiry, or the failure, to the variable.
-    await loadVariable();
+    await loadVariable({ isBackground: true });
   };
 
   /*
@@ -284,7 +335,7 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
         isEditable={true}
         editButtonText="Edit Variable"
         onSaveSuccess={() => {
-          void loadVariable();
+          void loadVariable({ isBackground: true });
         }}
         formFields={detailFormFields}
         modelDetailProps={{
@@ -491,7 +542,7 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
           editButtonText="Edit Settings"
           onSaveSuccess={() => {
             // A settings change discards the cached token.
-            void loadVariable();
+            void loadVariable({ isBackground: true });
           }}
           formFields={getOAuthSettingsFormFields()}
           modelDetailProps={{

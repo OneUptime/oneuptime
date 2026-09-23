@@ -74,7 +74,7 @@ Authorization: Bearer {{global.variables.CRM_API_TOKEN}}
 - **Additional Parameters**: extra form fields for the token request, such as `audience` for Auth0 or `resource` for Azure AD v1. Anyone who can read the variable can read these, so don't put secrets here.
 - **Client Authentication**: whether the client ID and secret go in an HTTP Basic header (the default) or in the request body. If your provider answers `invalid_client`, try the other one.
 
-When you save a new OAuth 2.0 variable, OneUptime fetches its first token straight away and tells you what the provider said. A typo in the secret or the URL shows up then, not hours later in a failed run.
+When you save a new OAuth 2.0 variable, OneUptime fetches its first token straight away and tells you what the provider said. A typo in the secret or the URL shows up then, not hours later in a failed run. (Fetching a token writes to the variable, so this needs permission to edit workflow variables. If you can create variables but not edit them, the first workflow run that uses the variable fetches its token instead.)
 
 The variable's page (click **View** on its row) has an **OAuth 2.0 Settings** card. **Edit Settings** changes the token URL, client ID, scope, additional parameters and client authentication; the grant type is fixed once saved.
 
@@ -86,7 +86,7 @@ The **Access Token** card on an OAuth 2.0 variable's page shows one of:
 - **Expired**: normal for a variable no workflow has used lately. The next run that uses it fetches a new token.
 - **Not fetched yet**: no token has been fetched since the variable was created or its settings changed.
 - **No expiry reported**: the provider didn't say when the token expires, so each run fetches a new one.
-- **Refresh failed**: the last attempt to get a token failed. The provider's reason is shown. The next successful refresh clears it.
+- **Refresh failed**: the last attempt to get a token failed. The provider's reason is shown in full, with when it happened. The next successful refresh clears it.
 
 **Refresh now**, under the status, fetches a new token straight away. Use it to check new settings without running a workflow. **Update Credentials**, on the **OAuth 2.0 Settings** card, replaces the client secret or the refresh token, then fetches a token with them. Changing any setting (token URL, client ID, scope and so on) discards the cached token, so the next run fetches one with the new settings.
 

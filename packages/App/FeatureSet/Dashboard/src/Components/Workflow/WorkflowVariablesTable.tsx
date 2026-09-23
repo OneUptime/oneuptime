@@ -157,6 +157,22 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
     setRefreshToggle(OneUptimeDate.getCurrentDate().toISOString());
 
     /*
+     * Creating a variable and refreshing its token are different permissions:
+     * the refresh route writes the token to the variable, so it checks for
+     * update, and a member may create variables without being allowed to edit
+     * them. Asking anyway would only bring back OneUptime's refusal. Such a
+     * variable gets its first token the first time a workflow uses it.
+     */
+    const updateGate: PermissionGateResult = PermissionGate.check(
+      new WorkflowVariable(),
+      ModelAction.Update,
+    );
+
+    if (!updateGate.isAllowed) {
+      return;
+    }
+
+    /*
      * Fetch the first token straight away. A mistyped secret or token URL then
      * shows up while the person who typed it is still looking, rather than as
      * a failed workflow run hours later.
