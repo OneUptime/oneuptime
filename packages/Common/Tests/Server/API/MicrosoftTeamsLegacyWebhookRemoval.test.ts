@@ -7,6 +7,9 @@ import AccessTokenService from "../../../Server/Services/AccessTokenService";
 import AlertService from "../../../Server/Services/AlertService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
+import TeamMember from "../../../Models/DatabaseModels/TeamMember";
+import WorkspaceActionAuthorization from "../../../Server/Utils/Workspace/WorkspaceActionAuthorization";
+import { UserTenantAccessPermission } from "../../../Types/Permission";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
 import {
@@ -269,10 +272,10 @@ describe("Microsoft Teams inbound route authentication", () => {
     const projectAuth: WorkspaceProjectAuthToken =
       new WorkspaceProjectAuthToken();
     projectAuth.projectId = projectId;
-
-    const databaseProps: DatabaseCommonInteractionProps = {
-      userId: userId,
-      tenantId: projectId,
+    const tenantPermission: UserTenantAccessPermission = {
+      _type: "UserTenantAccessPermission",
+      projectId: projectId,
+      permissions: [],
     };
 
     jest
@@ -285,17 +288,21 @@ describe("Microsoft Teams inbound route authentication", () => {
     jest
       .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
       .mockResolvedValue(userId);
+    const membershipSpy: SpyInstance<typeof TeamMemberService.findBy> = jest
+      .spyOn(TeamMemberService, "findBy")
+      .mockResolvedValue(
+        teamIds.map((teamId: ObjectID): TeamMember => {
+          const member: TeamMember = new TeamMember();
+          member.teamId = teamId;
+          return member;
+        }),
+      );
     jest
-      .spyOn(
-        AccessTokenService,
-        "getDatabaseCommonInteractionPropsByUserAndProject",
-      )
-      .mockResolvedValue(databaseProps);
-    const getTeamIdsSpy: SpyInstance<
-      typeof TeamMemberService.getTeamIdsForUser
-    > = jest
-      .spyOn(TeamMemberService, "getTeamIdsForUser")
-      .mockResolvedValue(teamIds);
+      .spyOn(AccessTokenService, "getUserTenantAccessPermission")
+      .mockResolvedValue(tenantPermission);
+    jest
+      .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
+      .mockResolvedValue(null);
     const handleIncidentSpy: SpyInstance<
       typeof MicrosoftTeamsIncidentActions.handleBotIncidentAction
     > = jest
@@ -324,21 +331,35 @@ describe("Microsoft Teams inbound route authentication", () => {
       turnContext: turnContext,
     });
 
-    expect(getTeamIdsSpy).toHaveBeenCalledWith(userId, projectId);
-    expect(databaseProps.userTeamIds).toEqual(teamIds);
+    // Membership is read from TeamMember itself, accepted rows only.
+    expect(membershipSpy.mock.calls[0]![0].query).toMatchObject({
+      userId: userId,
+      projectId: projectId,
+      hasAcceptedInvitation: true,
+    });
     expect(handleIncidentSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         projectId: projectId,
         oneUptimeUserId: userId,
         databaseProps: expect.objectContaining({
+          userId: userId,
+          tenantId: projectId,
           userTeamIds: teamIds,
+          userTenantAccessPermission: {
+            [projectId.toString()]: tenantPermission,
+          },
         }),
         turnContext: turnContext,
       }),
     );
   });
 
-  test("does not load incident or alert permissions for an unrelated Bot action", async () => {
+  /*
+   * A linked Teams account outlives the membership it was linked under. The
+   * link alone must not let someone who has left the project act in it, from
+   * any card - not only incident and alert ones.
+   */
+  test("refuses every Bot action from a linked user who is no longer a project member", async () => {
     const projectId: ObjectID = ObjectID.generate();
     const userId: ObjectID = ObjectID.generate();
     const projectAuth: WorkspaceProjectAuthToken =
@@ -355,19 +376,90 @@ describe("Microsoft Teams inbound route authentication", () => {
     jest
       .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
       .mockResolvedValue(userId);
-    const databasePropsSpy: SpyInstance<
-      typeof AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject
+    jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([]);
+    const tenantPermissionSpy: SpyInstance<
+      typeof AccessTokenService.getUserTenantAccessPermission
     > = jest
-      .spyOn(
-        AccessTokenService,
-        "getDatabaseCommonInteractionPropsByUserAndProject",
-      )
-      .mockRejectedValue(new Error("unexpected permission lookup"));
-    const getTeamIdsSpy: SpyInstance<
-      typeof TeamMemberService.getTeamIdsForUser
+      .spyOn(AccessTokenService, "getUserTenantAccessPermission")
+      .mockRejectedValue(new Error("a non-member's cached permission"));
+    const handleIncidentSpy: SpyInstance<
+      typeof MicrosoftTeamsIncidentActions.handleBotIncidentAction
     > = jest
-      .spyOn(TeamMemberService, "getTeamIdsForUser")
-      .mockRejectedValue(new Error("unexpected team lookup"));
+      .spyOn(MicrosoftTeamsIncidentActions, "handleBotIncidentAction")
+      .mockResolvedValue();
+    const handleMonitorSpy: SpyInstance<
+      typeof MicrosoftTeamsMonitorActions.handleBotMonitorAction
+    > = jest
+      .spyOn(MicrosoftTeamsMonitorActions, "handleBotMonitorAction")
+      .mockResolvedValue();
+
+    for (const action of [
+      MicrosoftTeamsIncidentActionType.AckIncident,
+      MicrosoftTeamsMonitorActionType.DisableMonitor,
+    ]) {
+      const turnContext: TurnContext = {
+        sendActivity: jest.fn(async (): Promise<void> => {}),
+      } as unknown as TurnContext;
+
+      await MicrosoftTeamsUtil.handleBotInvokeActivity({
+        activity: {
+          channelData: {
+            tenant: {
+              id: "connected-tenant-id",
+            },
+          },
+          from: {
+            aadObjectId: "linked-teams-user-aad-object-id",
+          },
+          value: {
+            action: action,
+            actionValue: ObjectID.generate().toString(),
+          },
+        },
+        turnContext: turnContext,
+      });
+
+      expect(turnContext.sendActivity).toHaveBeenCalledWith(
+        WorkspaceActionAuthorization.NOT_A_PROJECT_MEMBER_MESSAGE,
+      );
+    }
+
+    expect(tenantPermissionSpy).not.toHaveBeenCalled();
+    expect(handleIncidentSpy).not.toHaveBeenCalled();
+    expect(handleMonitorSpy).not.toHaveBeenCalled();
+  });
+
+  test("hands the member's props to monitor actions too", async () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const userId: ObjectID = ObjectID.generate();
+    const teamId: ObjectID = ObjectID.generate();
+    const projectAuth: WorkspaceProjectAuthToken =
+      new WorkspaceProjectAuthToken();
+    projectAuth.projectId = projectId;
+
+    jest
+      .spyOn(MicrosoftTeamsUtil, "resolveProjectByTenantId")
+      .mockResolvedValue({
+        projectAuth: projectAuth,
+        isAmbiguous: false,
+        candidateProjectIds: [projectId],
+      });
+    jest
+      .spyOn(MicrosoftTeamsAuthAction, "getOneUptimeUserIdFromTeamsUserId")
+      .mockResolvedValue(userId);
+    const member: TeamMember = new TeamMember();
+    member.teamId = teamId;
+    jest.spyOn(TeamMemberService, "findBy").mockResolvedValue([member]);
+    jest
+      .spyOn(AccessTokenService, "getUserTenantAccessPermission")
+      .mockResolvedValue({
+        _type: "UserTenantAccessPermission",
+        projectId: projectId,
+        permissions: [],
+      });
+    jest
+      .spyOn(AccessTokenService, "getUserGlobalAccessPermission")
+      .mockResolvedValue(null);
     const handleMonitorSpy: SpyInstance<
       typeof MicrosoftTeamsMonitorActions.handleBotMonitorAction
     > = jest
@@ -395,8 +487,11 @@ describe("Microsoft Teams inbound route authentication", () => {
       turnContext: turnContext,
     });
 
-    expect(databasePropsSpy).not.toHaveBeenCalled();
-    expect(getTeamIdsSpy).not.toHaveBeenCalled();
     expect(handleMonitorSpy).toHaveBeenCalledTimes(1);
+    const databaseProps: DatabaseCommonInteractionProps =
+      handleMonitorSpy.mock.calls[0]![0].databaseProps;
+    expect(databaseProps.userId).toBe(userId);
+    expect(databaseProps.tenantId).toBe(projectId);
+    expect(databaseProps.userTeamIds).toEqual([teamId]);
   });
 });

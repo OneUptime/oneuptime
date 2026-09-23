@@ -33,6 +33,11 @@ import BadDataException from "../../../../../Types/Exception/BadDataException";
 import URL from "../../../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import MicrosoftTeamsActionAuthorization from "./Authorization";
+import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import IncidentStateTimeline from "../../../../../Models/DatabaseModels/IncidentStateTimeline";
+import IncidentPublicNote from "../../../../../Models/DatabaseModels/IncidentPublicNote";
+import IncidentInternalNote from "../../../../../Models/DatabaseModels/IncidentInternalNote";
+import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
 
 export default class MicrosoftTeamsIncidentActions {
   @CaptureSpan()
@@ -321,6 +326,13 @@ export default class MicrosoftTeamsIncidentActions {
 
       const incidentId: ObjectID = new ObjectID(actionValue);
 
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: IncidentStateTimeline,
+        action: "acknowledge this incident",
+        resources: [{ service: IncidentService, id: incidentId }],
+      });
+
       await MicrosoftTeamsActionAuthorization.assertCanUpdateIncident({
         incidentId: incidentId,
         projectId: projectId,
@@ -341,6 +353,13 @@ export default class MicrosoftTeamsIncidentActions {
       }
 
       const incidentId: ObjectID = new ObjectID(actionValue);
+
+      await WorkspaceActionAuthorization.assertCanCreate({
+        props: databaseProps,
+        modelType: IncidentStateTimeline,
+        action: "resolve this incident",
+        resources: [{ service: IncidentService, id: incidentId }],
+      });
 
       await MicrosoftTeamsActionAuthorization.assertCanUpdateIncident({
         incidentId: incidentId,
@@ -434,6 +453,24 @@ export default class MicrosoftTeamsIncidentActions {
         // Submit the note
         const incidentId: ObjectID = new ObjectID(actionValue);
 
+        if (noteType !== "public" && noteType !== "private") {
+          await turnContext.sendActivity(
+            "Unable to add note: invalid note type.",
+          );
+          return;
+        }
+
+        await WorkspaceActionAuthorization.assertCanCreate({
+          props: databaseProps,
+          modelType:
+            noteType === "public" ? IncidentPublicNote : IncidentInternalNote,
+          action:
+            noteType === "public"
+              ? "add a public note to this incident"
+              : "add a private note to this incident",
+          resources: [{ service: IncidentService, id: incidentId }],
+        });
+
         if (noteType === "public") {
           await IncidentPublicNoteService.addNote({
             incidentId: incidentId,
@@ -513,15 +550,22 @@ export default class MicrosoftTeamsIncidentActions {
       if (onCallPolicyId) {
         // Execute the policy
         const incidentId: ObjectID = new ObjectID(actionValue);
+        const policyId: ObjectID = new ObjectID(onCallPolicyId.toString());
 
-        await OnCallDutyPolicyService.executePolicy(
-          new ObjectID(onCallPolicyId.toString()),
-          {
-            triggeredByIncidentId: incidentId,
-            userNotificationEventType:
-              UserNotificationEventType.IncidentCreated,
-          },
-        );
+        await WorkspaceActionAuthorization.assertCanCreate({
+          props: databaseProps,
+          modelType: OnCallDutyPolicyExecutionLog,
+          action: "execute an on-call policy for this incident",
+          resources: [
+            { service: IncidentService, id: incidentId },
+            { service: OnCallDutyPolicyService, id: policyId },
+          ],
+        });
+
+        await OnCallDutyPolicyService.executePolicy(policyId, {
+          triggeredByIncidentId: incidentId,
+          userNotificationEventType: UserNotificationEventType.IncidentCreated,
+        });
 
         await turnContext.sendActivity(
           "✅ On-call policy executed successfully.",
@@ -582,6 +626,13 @@ export default class MicrosoftTeamsIncidentActions {
       if (incidentStateId) {
         // Update the state
         const incidentId: ObjectID = new ObjectID(actionValue);
+
+        await WorkspaceActionAuthorization.assertCanCreate({
+          props: databaseProps,
+          modelType: IncidentStateTimeline,
+          action: "change the state of this incident",
+          resources: [{ service: IncidentService, id: incidentId }],
+        });
 
         await IncidentService.updateOneById({
           id: incidentId,

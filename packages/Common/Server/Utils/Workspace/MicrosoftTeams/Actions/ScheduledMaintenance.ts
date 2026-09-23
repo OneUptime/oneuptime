@@ -8,6 +8,12 @@ import { MicrosoftTeamsScheduledMaintenanceActionType } from "./ActionTypes";
 import logger from "../../../Logger";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import { TurnContext } from "botbuilder";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../../../../Types/Exception/NotAuthorizedException";
+import WorkspaceActionAuthorization from "../../WorkspaceActionAuthorization";
+import ScheduledMaintenanceStateTimeline from "../../../../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
+import ScheduledMaintenancePublicNote from "../../../../../Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import ScheduledMaintenanceInternalNote from "../../../../../Models/DatabaseModels/ScheduledMaintenanceInternalNote";
 import { JSONObject } from "../../../../../Types/JSON";
 import ObjectID from "../../../../../Types/ObjectID";
 import ScheduledMaintenanceService from "../../../../Services/ScheduledMaintenanceService";
@@ -117,6 +123,7 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
     turnContext: TurnContext,
     actionPayload: JSONObject,
     request: MicrosoftTeamsRequest,
+    databaseProps: DatabaseCommonInteractionProps,
   ): Promise<void> {
     try {
       // Handle new scheduled maintenance creation separately (doesn't need existing ID)
@@ -159,6 +166,12 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           );
           return;
         }
+
+        await WorkspaceActionAuthorization.assertCanCreate({
+          props: databaseProps,
+          modelType: ScheduledMaintenance,
+          action: "create a scheduled maintenance event",
+        });
 
         try {
           // Create the scheduled maintenance
@@ -311,8 +324,11 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
       }
 
       const scheduledMaintenance: ScheduledMaintenance | null =
-        await ScheduledMaintenanceService.findOneById({
-          id: scheduledMaintenanceId,
+        await ScheduledMaintenanceService.findOneBy({
+          query: {
+            _id: scheduledMaintenanceId,
+            projectId: request.projectId,
+          },
           select: {
             _id: true,
             title: true,
@@ -345,6 +361,18 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           break;
 
         case MicrosoftTeamsScheduledMaintenanceActionType.MarkAsOngoing: {
+          await WorkspaceActionAuthorization.assertCanCreate({
+            props: databaseProps,
+            modelType: ScheduledMaintenanceStateTimeline,
+            action: "mark this scheduled maintenance event as ongoing",
+            resources: [
+              {
+                service: ScheduledMaintenanceService,
+                id: scheduledMaintenanceId,
+              },
+            ],
+          });
+
           const ongoingState: ScheduledMaintenanceState =
             await ScheduledMaintenanceStateService.getOngoingScheduledMaintenanceState(
               {
@@ -370,6 +398,18 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         }
 
         case MicrosoftTeamsScheduledMaintenanceActionType.MarkAsComplete: {
+          await WorkspaceActionAuthorization.assertCanCreate({
+            props: databaseProps,
+            modelType: ScheduledMaintenanceStateTimeline,
+            action: "mark this scheduled maintenance event as complete",
+            resources: [
+              {
+                service: ScheduledMaintenanceService,
+                id: scheduledMaintenanceId,
+              },
+            ],
+          });
+
           const completedState: ScheduledMaintenanceState =
             await ScheduledMaintenanceStateService.getCompletedScheduledMaintenanceState(
               {
@@ -416,6 +456,22 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
             return;
           }
 
+          await WorkspaceActionAuthorization.assertCanCreate({
+            props: databaseProps,
+            modelType: isPublic
+              ? ScheduledMaintenancePublicNote
+              : ScheduledMaintenanceInternalNote,
+            action: isPublic
+              ? "add a public note to this scheduled maintenance event"
+              : "add a private note to this scheduled maintenance event",
+            resources: [
+              {
+                service: ScheduledMaintenanceService,
+                id: scheduledMaintenanceId,
+              },
+            ],
+          });
+
           if (isPublic) {
             await ScheduledMaintenancePublicNoteService.addNote({
               scheduledMaintenanceId: scheduledMaintenanceId,
@@ -459,6 +515,18 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
         case MicrosoftTeamsScheduledMaintenanceActionType.SubmitChangeScheduledMaintenanceState: {
           const stateId: ObjectID = actionPayload["stateId"] as ObjectID;
 
+          await WorkspaceActionAuthorization.assertCanCreate({
+            props: databaseProps,
+            modelType: ScheduledMaintenanceStateTimeline,
+            action: "change the state of this scheduled maintenance event",
+            resources: [
+              {
+                service: ScheduledMaintenanceService,
+                id: scheduledMaintenanceId,
+              },
+            ],
+          });
+
           await ScheduledMaintenanceService.updateOneById({
             id: scheduledMaintenanceId,
             data: {
@@ -490,6 +558,12 @@ export default class MicrosoftTeamsScheduledMaintenanceActions {
           break;
       }
     } catch (error) {
+      // Tell the user why they were refused; the message is written for them.
+      if (error instanceof NotAuthorizedException) {
+        await turnContext.sendActivity(error.message);
+        return;
+      }
+
       logger.error(`Error handling scheduled maintenance action: ${error}`, {
         actionType: actionType,
       });

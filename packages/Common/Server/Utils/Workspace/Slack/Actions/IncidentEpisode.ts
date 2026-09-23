@@ -31,6 +31,11 @@ import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProj
 import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import IncidentEpisodeStateTimeline from "../../../../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
+import IncidentEpisodeInternalNote from "../../../../../Models/DatabaseModels/IncidentEpisodeInternalNote";
+import IncidentEpisodePublicNote from "../../../../../Models/DatabaseModels/IncidentEpisodePublicNote";
+import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import SlackActionAuthorization from "./Authorization";
 
 export default class SlackIncidentEpisodeActions {
   @CaptureSpan()
@@ -106,6 +111,17 @@ export default class SlackIncidentEpisodeActions {
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: IncidentEpisodeStateTimeline,
+          action: "acknowledge this incident episode",
+          resources: [{ service: IncidentEpisodeService, id: episodeId }],
+        }))
+      ) {
+        return;
+      }
 
       const isAlreadyAcknowledged: boolean =
         await IncidentEpisodeService.isEpisodeAcknowledged({
@@ -227,6 +243,17 @@ export default class SlackIncidentEpisodeActions {
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: IncidentEpisodeStateTimeline,
+          action: "resolve this incident episode",
+          resources: [{ service: IncidentEpisodeService, id: episodeId }],
+        }))
+      ) {
+        return;
+      }
 
       const isAlreadyResolved: boolean =
         await IncidentEpisodeService.isEpisodeResolved(episodeId);
@@ -455,6 +482,17 @@ export default class SlackIncidentEpisodeActions {
 
     const stateId: ObjectID = new ObjectID(stateString);
 
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: IncidentEpisodeStateTimeline,
+        action: "change the state of this incident episode",
+        resources: [{ service: IncidentEpisodeService, id: episodeId }],
+      }))
+    ) {
+      return;
+    }
+
     await IncidentEpisodeService.changeEpisodeState({
       projectId: data.slackRequest.projectId!,
       episodeId: episodeId,
@@ -555,6 +593,37 @@ export default class SlackIncidentEpisodeActions {
         response_action: "clear",
       });
 
+      if (
+        !data.slackRequest.viewValues ||
+        !data.slackRequest.viewValues["onCallPolicy"]
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid View Values"),
+        );
+      }
+
+      const onCallPolicyString: string =
+        data.slackRequest.viewValues["onCallPolicy"].toString();
+
+      // get the on-call policy id.
+      const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: OnCallDutyPolicyExecutionLog,
+          action: "execute an on-call policy for this incident episode",
+          resources: [
+            { service: IncidentEpisodeService, id: episodeId },
+            { service: OnCallDutyPolicyService, id: onCallPolicyId },
+          ],
+        }))
+      ) {
+        return;
+      }
+
       const isAlreadyResolved: boolean =
         await IncidentEpisodeService.isEpisodeResolved(episodeId);
 
@@ -573,23 +642,6 @@ export default class SlackIncidentEpisodeActions {
 
         return;
       }
-
-      if (
-        !data.slackRequest.viewValues ||
-        !data.slackRequest.viewValues["onCallPolicy"]
-      ) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException("Invalid View Values"),
-        );
-      }
-
-      const onCallPolicyString: string =
-        data.slackRequest.viewValues["onCallPolicy"].toString();
-
-      // get the on-call policy id.
-      const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
 
       await OnCallDutyPolicyService.executePolicy(onCallPolicyId, {
         triggeredByIncidentEpisodeId: episodeId,
@@ -658,6 +710,23 @@ export default class SlackIncidentEpisodeActions {
     Response.sendJsonObjectResponse(req, res, {
       response_action: "clear",
     });
+
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType:
+          noteType === "public"
+            ? IncidentEpisodePublicNote
+            : IncidentEpisodeInternalNote,
+        action:
+          noteType === "public"
+            ? "add a public note to this incident episode"
+            : "add a private note to this incident episode",
+        resources: [{ service: IncidentEpisodeService, id: episodeId }],
+      }))
+    ) {
+      return;
+    }
 
     // if public note then, add a note.
     if (noteType === "public") {
@@ -898,6 +967,22 @@ export default class SlackIncidentEpisodeActions {
     }
 
     const oneUptimeUserId: ObjectID = userAuth.userId;
+
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: {
+          userId: oneUptimeUserId,
+          projectId: projectId,
+          projectAuthToken: authToken,
+          slackUserId: userId,
+        },
+        modelType: IncidentEpisodeInternalNote,
+        action: "add a private note to this incident episode",
+        resources: [{ service: IncidentEpisodeService, id: episodeId }],
+      }))
+    ) {
+      return;
+    }
 
     // Fetch the message text using the timestamp
     let messageText: string | null = null;
