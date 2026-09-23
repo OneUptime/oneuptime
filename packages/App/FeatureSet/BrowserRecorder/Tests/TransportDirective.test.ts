@@ -1017,12 +1017,23 @@ describe("Transport directives and diagnostics", (): void => {
       globalRecord()["fetch"] = jest
         .fn()
         .mockRejectedValue(new Error("offline"));
+
+      /*
+       * The endpoint has answered this transport, so a request that never
+       * reaches it is the network going away: chunk-held-offline.
+       */
       await transport.send(envelope, "[{}]");
+
+      /*
+       * A fresh transport whose FIRST request never arrives cannot tell the
+       * network from a blocker, so it records chunk-post-failed.
+       */
+      await makeTransport().send(envelope, "[{}]");
 
       /*
        * The offline failure above put the first transport into a retry
        * backoff, during which nothing is posted - so the auth failure and
-       * the terminal path run on a second transport with the same token.
+       * the terminal path run on another transport with the same token.
        */
       const second: Transport = makeTransport();
 
@@ -1042,6 +1053,7 @@ describe("Transport directives and diagnostics", (): void => {
           "chunk-accepted",
           "server-directive",
           "chunk-refused",
+          "chunk-held-offline",
           "chunk-post-failed",
           "chunk-rejected-terminal",
           "transport-disabled",
