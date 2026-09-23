@@ -399,9 +399,14 @@ export default class StatusPageGroupNestingLayoutUtil {
       return StatusPageGroupRollupKind.None;
     }
 
-    if (data.showUptimePercent && !data.isCurrentlyDown) {
+    if (
+      data.showUptimePercent &&
+      (!data.isCurrentlyDown || !data.showCurrentStatus)
+    ) {
       return data.uptimePercent === null
-        ? StatusPageGroupRollupKind.None
+        ? data.showCurrentStatus
+          ? StatusPageGroupRollupKind.CurrentStatus
+          : StatusPageGroupRollupKind.None
         : StatusPageGroupRollupKind.UptimePercent;
     }
 
