@@ -107,6 +107,11 @@ jobs:
       - name: Run Session Replay UI regressions
         working-directory: packages/E2E
         run: npm run test-session-replay-ui
+      # Runs even if the replay suite failed, so one run reports both.
+      - name: Run User Flows UI regressions
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        run: npm run test-user-flows-ui
       - name: Upload browser screenshots and failure traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -115,6 +120,8 @@ jobs:
           path: |
             output/playwright/session-replay-ui/*.png
             output/playwright/session-replay-ui/test-results
+            output/playwright/user-flows-ui/*.png
+            output/playwright/user-flows-ui/test-results
           retention-days: 7
 
   dashboard-offline-ui:

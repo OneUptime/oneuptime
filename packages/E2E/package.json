@@ -23,6 +23,7 @@
     "test-label-rule-transfer": "playwright test --config playwright.label-rules.config.ts",
     "test-label-rule-transfer-ui": "playwright test --config playwright.label-rules-ui.config.ts",
     "test-session-replay-ui": "playwright test --config playwright.session-replay-ui.config.ts",
+    "test-user-flows-ui": "playwright test --config playwright.user-flows-ui.config.ts",
     "test-slo-burn-rate-ui": "playwright test --config playwright.slo-burn-rate.config.ts",
     "test-incoming-call-policies-ui": "playwright test --config playwright.incoming-call-policies.config.ts",
     "test-exception-detail-ui": "playwright test --config playwright.exception-detail-ui.config.ts",
