@@ -279,12 +279,48 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
     ];
   }
 
+  /*
+   * The server builds the Microsoft URL and records a single-use `state` for
+   * this user and project; the callback trusts only that record. The browser
+   * never chooses the project or user a connection is written to.
+   */
+  type NavigateToAuthorizationUrlFunction = (route: string) => Promise<void>;
+
+  const navigateToAuthorizationUrl: NavigateToAuthorizationUrlFunction = async (
+    route: string,
+  ): Promise<void> => {
+    try {
+      setError(null);
+
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.get<JSONObject>({
+          url: URL.fromURL(APP_API_URL).addRoute(route),
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      const authorizationUrl: string | undefined = (
+        response.data as JSONObject
+      )["authorizationUrl"] as string | undefined;
+
+      if (!authorizationUrl) {
+        throw new Error(
+          "OneUptime could not start the Microsoft Teams connection. Please try again.",
+        );
+      }
+
+      Navigation.navigate(URL.fromString(authorizationUrl));
+    } catch (error) {
+      setError(<div>{API.getFriendlyErrorMessage(error as Exception)}</div>);
+    }
+  };
+
   const connectWithTeams: VoidFunction = (): void => {
     if (MicrosoftTeamsAppClientId) {
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-      const userId: ObjectID | null = UserUtil.getUserId();
-
-      if (!projectId) {
+      if (!ProjectUtil.getCurrentProjectId()) {
         setError(
           <div>
             Looks like you have not selected any project. Please select a
@@ -294,7 +330,7 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      if (!userId) {
+      if (!UserUtil.getUserId()) {
         setError(
           <div>
             Looks like you are not logged in. Please login to continue.
@@ -303,27 +339,11 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      // Use static redirect URI (no projectId/userId in path) and encode both values in the state param.
-      const redirectUri: string = `${APP_API_URL}/microsoft-teams/auth`;
-      const scopes: string =
-        "https://graph.microsoft.com/User.Read https://graph.microsoft.com/Team.ReadBasic.All https://graph.microsoft.com/Channel.ReadBasic.All https://graph.microsoft.com/ChannelMessage.Send";
-      const state: string = `${projectId.toString()}:${userId.toString()}`;
-
-      if (!isProjectAccountConnected) {
-        // Install the app and connect the project
-        Navigation.navigate(
-          URL.fromString(
-            `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(state)}`,
-          ),
-        );
-      } else {
-        // if project account is already connected then we just need to sign in with Teams and not install the app.
-        Navigation.navigate(
-          URL.fromString(
-            `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${MicrosoftTeamsAppClientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&state=${encodeURIComponent(state)}`,
-          ),
-        );
-      }
+      navigateToAuthorizationUrl("/microsoft-teams/sign-in-url").catch(
+        (error: Exception) => {
+          setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+        },
+      );
     } else {
       setError(
         <div>
@@ -358,19 +378,15 @@ const MicrosoftTeamsIntegration: FunctionComponent<ComponentProps> = (
   };
 
   const startAdminConsent: VoidFunction = (): void => {
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    const userId: ObjectID | null = UserUtil.getUserId();
-    if (!projectId || !userId) {
+    if (!ProjectUtil.getCurrentProjectId() || !UserUtil.getUserId()) {
       setError(<div>Missing project or user context.</div>);
       return;
     }
-    const state: string = `${projectId.toString()}:${userId.toString()}`;
-    Navigation.navigate(
-      URL.fromString(
-        `${HOME_URL.toString()}api/microsoft-teams/admin-consent?state=${encodeURIComponent(
-          state,
-        )}`,
-      ),
+
+    navigateToAuthorizationUrl("/microsoft-teams/admin-consent").catch(
+      (error: Exception) => {
+        setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+      },
     );
   };
 
