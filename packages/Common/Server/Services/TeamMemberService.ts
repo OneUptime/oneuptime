@@ -744,8 +744,57 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
       }
     }
 
+    /*
+     * Revoke first, once per (user, project), each on its own. A delete can
+     * cover several users - a team, a SCIM group - and a failure in one
+     * user's cleanup below must not leave a later one with the permissions of
+     * the membership that was just removed: their cached entries would still
+     * list the project, and nothing would refresh them again. A failure is
+     * reported once everything else has run.
+     */
+    const refreshedKeys: Set<string> = new Set<string>();
+    let refreshError: Error | null = null;
+
     for (const item of onDelete.carryForward as Array<TeamMember>) {
-      await this.refreshTokens(item.userId!, item.projectId!);
+      if (!item.userId || !item.projectId) {
+        continue;
+      }
+
+      const refreshKey: string = `${item.userId.toString()}:${item.projectId.toString()}`;
+
+      if (refreshedKeys.has(refreshKey)) {
+        continue;
+      }
+
+      refreshedKeys.add(refreshKey);
+
+      try {
+        await this.refreshTokens(item.userId, item.projectId);
+      } catch (err) {
+        refreshError = refreshError || (err as Error);
+
+        logger.error(
+          err as Error,
+          {
+            projectId: item.projectId.toString(),
+            userId: item.userId.toString(),
+          } as LogAttributes,
+        );
+
+        // Fall back to dropping the cached entries: a missing entry is rebuilt from the memberships.
+        await AccessTokenService.clearCachedPermissions(
+          item.userId,
+          item.projectId,
+        ).catch((clearError: Error) => {
+          logger.error(clearError, {
+            projectId: item.projectId?.toString(),
+            userId: item.userId?.toString(),
+          } as LogAttributes);
+        });
+      }
+    }
+
+    for (const item of onDelete.carryForward as Array<TeamMember>) {
       await this.syncSubscriptionSeatsAfterMembershipChange(item.projectId!);
 
       /*
@@ -767,6 +816,10 @@ export class TeamMemberService extends DatabaseService<TeamMember> {
         item.userId!,
         item.projectId!,
       );
+    }
+
+    if (refreshError) {
+      throw refreshError;
     }
 
     return onDelete;
