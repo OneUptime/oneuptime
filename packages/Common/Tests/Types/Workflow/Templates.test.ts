@@ -46,8 +46,11 @@ import ComponentMetadata, {
   Port,
   ReturnValue,
 } from "../../../Types/Workflow/Component";
-import { JSONObject, JSONValue } from "../../../Types/JSON";
+import { JSONObject, JSONValue, ObjectType } from "../../../Types/JSON";
 import IconProp from "../../../Types/Icon/IconProp";
+import ObjectID from "../../../Types/ObjectID";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Incident from "../../../Models/DatabaseModels/Incident";
 import {
   LintGraphEdge,
   LintGraphNode,
@@ -269,9 +272,13 @@ const selectCovers: SelectCoversFunction = (
     return true;
   }
 
-  // The runtime always adds _id to the select it issues.
-  if (path.length === 1 && (path[0] === "_id" || path[0] === "id")) {
-    return true;
+  /*
+   * The runtime always adds _id to the select it issues. It is a plain string,
+   * not a wrapper, so nothing can be read beneath it — `_id.value` is not
+   * covered however the select is written.
+   */
+  if (path[0] === "_id" || path[0] === "id") {
+    return path.length === 1;
   }
 
   if (!select || typeof select !== "object" || Array.isArray(select)) {
@@ -567,6 +574,31 @@ describe("workflow template runtime contracts", () => {
       "on-call-duty-policy-execution-log-on-update",
     );
     expect(trigger.args?.["listen-on"]).toEqual({ status: true });
+  });
+
+  /*
+   * Pins the serialization the per-template id check relies on. A database
+   * trigger hands its record to the workflow through BaseModel.toJSON, which
+   * wraps ObjectID foreign keys as { _type, value } but leaves the record's
+   * own primary key — declared `@PrimaryGeneratedColumn("uuid") _id?: string`
+   * — as the bare string it is.
+   */
+  test("a record's own _id serializes as a plain string, its foreign keys as a wrapper", () => {
+    const id: string = ObjectID.generate().toString();
+    const projectId: ObjectID = ObjectID.generate();
+
+    const incident: Incident = new Incident();
+    incident._id = id;
+    incident.projectId = projectId;
+
+    const json: JSONObject = BaseModel.toJSON(incident, Incident);
+
+    expect(typeof json["_id"]).toBe("string");
+    expect(json["_id"]).toBe(id);
+    expect(json["projectId"]).toEqual({
+      _type: ObjectType.ObjectID,
+      value: projectId.toString(),
+    });
   });
 
   test("credential-bearing destination URLs are treated as secrets", () => {
@@ -939,6 +971,49 @@ describe.each(
         reference: reference.raw,
         covered: selectCovers(select, fieldPath),
       }).toEqual({ reference: reference.raw, covered: true });
+    }
+  });
+
+  /*
+   * `.value` is right for a foreign key and wrong for the record's own id, and
+   * the two look alike. projectId, incidentId and the like are ObjectIDs, which
+   * toJSON wraps as { _type, value }, so they are read as `.projectId.value`.
+   * The record's own primary key is a plain uuid string, so `.model._id.value`
+   * finds nothing, the reference is left unresolved, and the POSTed body
+   * carries the literal {{…}} text instead of the id. Related records nested
+   * under the model serialize the same way, so this holds at any depth.
+   */
+  test("no record id is read through a .value wrapper it does not have", () => {
+    for (const reference of referencesOf(templateId)) {
+      if (
+        reference.parsed.rootType !== ReferenceRootType.ComponentReturnValue
+      ) {
+        continue;
+      }
+
+      if (
+        reference.parsed.returnValueId !== "model" &&
+        reference.parsed.returnValueId !== "models"
+      ) {
+        continue;
+      }
+
+      // local . components . <id> . returnValues . model . <field...>
+      const fieldPath: Array<string> = reference.inner.split(".").slice(5);
+
+      const readsIdValue: boolean = fieldPath.some(
+        (segment: string, index: number): boolean => {
+          return (
+            (segment === "_id" || segment === "id") &&
+            fieldPath[index + 1] === "value"
+          );
+        },
+      );
+
+      expect({
+        reference: reference.raw,
+        readsIdValue: readsIdValue,
+      }).toEqual({ reference: reference.raw, readsIdValue: false });
     }
   });
 
