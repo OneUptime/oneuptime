@@ -7,11 +7,9 @@ import {
   ContainerDatabaseClassification,
   DATABASE_OPERATOR_LABEL_KEYS,
   DATABASE_WORKLOAD_NAME_LABEL_VALUES,
-  effectiveExecutable,
   groupKubernetesDatabaseCandidates,
   hasDatabaseWorkloadLabels,
   ImageClassification,
-  isNonServerCommand,
   KubernetesDatabaseCandidate,
   KubernetesDatabaseGroup,
   KubernetesPodLike,
@@ -20,6 +18,11 @@ import {
   parseImageVersion,
   pickMostSpecificDatabaseSystem,
 } from "../../../Types/DatabaseServer/DatabaseContainerClassifier";
+import {
+  ContainerCommandRole,
+  classifyContainerCommand,
+  isNonServerCommand,
+} from "../../../Types/DatabaseServer/DatabaseContainerCommand";
 import { buildWorkloadDatabaseServerIdentifier } from "../../../Types/DatabaseServer/DatabaseEndpoint";
 import { describe, expect, test } from "@jest/globals";
 
@@ -27,7 +30,7 @@ type ContainerFixture = {
   name: string;
   image: string;
   ports?: Array<{ containerPort?: number }>;
-  command?: Array<string>;
+  command?: Array<string | null>;
   args?: Array<string>;
 };
 
@@ -2357,35 +2360,41 @@ describe("classifyImage — registries, republishers and sidecars", () => {
   });
 });
 
-describe("effectiveExecutable / isNonServerCommand", () => {
-  test.each([
-    [{}, null],
-    [{ command: [], args: [] }, null],
-    [{ args: ["postgres", "-c", "max_connections=200"] }, "postgres"],
-    [{ args: ["-c", "config_file=/etc/pg.conf"] }, "-c"],
+describe("classifyContainerCommand / isNonServerCommand", () => {
+  test.each<
     [
-      { command: ["docker-entrypoint.sh"], args: ["postgres"] },
-      "docker-entrypoint.sh",
-    ],
-    [{ command: ["/usr/bin/psql", "-h", "db"] }, "psql"],
-    [{ args: ["psql", "-h", "prod-db"] }, "psql"],
-    [{ command: ["redis-cli"], args: ["-h", "cache"] }, "redis-cli"],
-    [{ command: ["sh", "-c", "psql -h db -f /x.sql"] }, "psql"],
+      {
+        command?: Array<string | null> | undefined;
+        args?: Array<string | null> | undefined;
+      },
+      ContainerCommandRole,
+    ]
+  >([
+    [{}, "server"],
+    [{ command: [], args: [] }, "server"],
+    [{ args: ["postgres", "-c", "max_connections=200"] }, "server"],
+    [{ args: ["-c", "config_file=/etc/pg.conf"] }, "server"],
+    [{ command: ["docker-entrypoint.sh"], args: ["postgres"] }, "server"],
+    [{ command: ["/usr/bin/psql", "-h", "db"] }, "client"],
+    [{ args: ["psql", "-h", "prod-db"] }, "client"],
+    [{ command: ["redis-cli"], args: ["-h", "cache"] }, "client"],
+    [{ command: ["sh", "-c", "psql -h db -f /x.sql"] }, "client"],
     [
       { command: ["/bin/bash"], args: ["-ec", "exec redis-server /conf"] },
-      "redis-server",
+      "server",
     ],
     [
       { command: ["/bin/bash", "-c"], args: ["/opt/bitnami/scripts/start.sh"] },
-      "start.sh",
+      "server",
     ],
-    [{ command: ["bash"] }, "bash"],
-    [{ command: ["sh", "-x"] }, "sh"],
-    [{ args: ["sleep", "infinity"] }, "sleep"],
-    [{ command: ["SH", "-C", "  SLEEP  3600"] }, "sleep"],
-    [{ command: ["sh", "-c", "exec"] }, "sh"],
-    [{ command: ["tini", "--", "psql"] }, "tini"],
-    [{ command: [null, "x"] }, null],
+    [{ command: ["bash"] }, "keep-alive"],
+    [{ command: ["sh", "-x"] }, "keep-alive"],
+    [{ args: ["sleep", "infinity"] }, "keep-alive"],
+    [{ command: ["SH", "-c", "  SLEEP  3600"] }, "keep-alive"],
+    [{ command: ["sh", "-c", "exec"] }, "server"],
+    [{ command: ["tini", "--", "psql"] }, "server"],
+    [{ command: [null, "x"] }, "server"],
+    [{ command: ["redis-sentinel", "/conf"] }, "companion"],
   ])(
     "%j → %s",
     (
@@ -2393,9 +2402,9 @@ describe("effectiveExecutable / isNonServerCommand", () => {
         command?: Array<string | null> | undefined;
         args?: Array<string | null> | undefined;
       },
-      program: string | null,
+      role: ContainerCommandRole,
     ) => {
-      expect(effectiveExecutable(container)).toBe(program);
+      expect(classifyContainerCommand(container)).toBe(role);
     },
   );
 
@@ -2614,6 +2623,230 @@ describe("classifyKubernetesPod — client runs and one-off pods are not databas
         }),
       ),
     ).toMatchObject({ containerName: "postgres", version: "16.3" });
+  });
+});
+
+describe("classifyKubernetesPod — servers started through shells and scripts are databases", () => {
+  const MONGOD_SCRIPT: string =
+    '\nif [ -e "/hooks/version-upgrade" ]; then\n\t#run post-start hook to handle version changes (if exists)\n    /hooks/version-upgrade\nfi\n\n# wait for config and keyfile to be created by the agent\n while ! [ -f /data/automation-mongod.conf -a -f /var/lib/mongodb-mms-automation/authentication/keyfile ]; do sleep 3 ; done ; sleep 2 ;\n\n# start mongod with this configuration\nexec mongod -f /data/automation-mongod.conf;\n\n';
+
+  function mongoCommunityPod(command: Array<string | null>): KubernetesPodLike {
+    return pod({
+      name: "orders-mongo-0",
+      labels: { app: "orders-mongo-svc" },
+      owner: { kind: "StatefulSet", name: "orders-mongo" },
+      containers: [
+        {
+          name: "mongod",
+          image: "quay.io/mongodb/mongodb-community-server:7.0.12-ubi8",
+          command,
+        },
+        {
+          name: "mongodb-agent",
+          image: "quay.io/mongodb/mongodb-agent-ubi:107.0.12.8669-1",
+          command: ["/bin/bash", "-c", "agent/mongodb-agent -noDaemonize"],
+        },
+      ],
+    });
+  }
+
+  test("regression: a MongoDB Community Operator member (newline-led sh -c script) is MongoDB", () => {
+    expect(
+      classifyKubernetesPod(
+        mongoCommunityPod(["/bin/sh", "-c", MONGOD_SCRIPT]),
+      ),
+    ).toMatchObject({
+      system: "mongodb",
+      workloadKind: "StatefulSet",
+      workloadName: "orders-mongo",
+      containerName: "mongod",
+      version: "7.0.12",
+    });
+    // A script the projection could not read is still a possible server.
+    expect(
+      classifyKubernetesPod(mongoCommunityPod(["/bin/sh", "-c", null])),
+    ).toMatchObject({ system: "mongodb", containerName: "mongod" });
+  });
+
+  test("regression: CockroachDB's StatefulSet (bash -ecx 'exec cockroach start') is CockroachDB, plain or chart-labelled", () => {
+    for (const labels of [
+      { app: "cockroachdb" },
+      {
+        "app.kubernetes.io/name": "cockroachdb",
+        "app.kubernetes.io/instance": "crdb",
+      },
+    ]) {
+      expect(
+        classifyKubernetesPod(
+          pod({
+            name: "cockroachdb-0",
+            labels,
+            owner: { kind: "StatefulSet", name: "cockroachdb" },
+            containers: [
+              {
+                name: "cockroachdb",
+                image: "cockroachdb/cockroach:v24.1.0",
+                ports: [port(26257), port(8080)],
+                command: [
+                  "/bin/bash",
+                  "-ecx",
+                  "exec /cockroach/cockroach start --logtostderr --insecure --join cockroachdb-0.cockroachdb",
+                ],
+              },
+            ],
+          }),
+        ),
+      ).toMatchObject({ system: "cockroachdb", containerName: "cockroachdb" });
+    }
+  });
+
+  test.each([
+    [["/bin/bash", "/scripts/start-redis.sh"]],
+    [["sh", "/docker-entrypoint-initdb.d/run.sh"]],
+    [["bash", "-cex", "exec redis-server /conf/redis.conf"]],
+    [["bash", "-c", "#!/bin/bash\nset -euo pipefail\nexec redis-server"]],
+    [["sh", "-c", "sleep 5 && exec redis-server /conf/redis.conf"]],
+    [
+      [
+        "sh",
+        "-c",
+        "cat /tmpl > /etc/redis.conf; exec redis-server /etc/redis.conf",
+      ],
+    ],
+    [
+      [
+        "sh",
+        "-c",
+        "until nslookup redis-0.redis; do sleep 2; done\nexec redis-server",
+      ],
+    ],
+    [["sh", "-c", "\texec redis-server"]],
+  ])(
+    "regression: a StatefulSet started with %j is Redis",
+    (command: Array<string>) => {
+      expect(
+        classifyKubernetesPod(
+          pod({
+            name: "cache-0",
+            owner: { kind: "StatefulSet", name: "cache" },
+            containers: [
+              {
+                name: "redis",
+                image: "redis:7.2",
+                ports: [port(6379)],
+                command,
+              },
+            ],
+          }),
+        ),
+      ).toMatchObject({ system: "redis", containerName: "redis" });
+    },
+  );
+
+  test("a Sentinel in the database image is not the database: the server container is picked", () => {
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "cache-ha-server-0",
+          owner: { kind: "StatefulSet", name: "cache-ha-server" },
+          containers: [
+            {
+              name: "sentinel",
+              image: "redis:7.2",
+              ports: [port(26379)],
+              command: ["redis-sentinel", "/data/conf/sentinel.conf"],
+            },
+            {
+              name: "redis",
+              image: "redis:7.2",
+              ports: [port(6379)],
+              command: ["redis-server", "/data/conf/redis.conf"],
+            },
+          ],
+        }),
+      ),
+    ).toMatchObject({ system: "redis", containerName: "redis", ports: [6379] });
+  });
+
+  test("a Sentinel-only pod in the database image is not a database", () => {
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "rfs-cache-5d8f-x",
+          labels: { "pod-template-hash": "5d8f" },
+          owner: { kind: "ReplicaSet", name: "rfs-cache-5d8f" },
+          containers: [
+            {
+              name: "sentinel",
+              image: "redis:7.2",
+              ports: [port(26379)],
+              command: ["redis-server", "/redis/sentinel.conf", "--sentinel"],
+            },
+          ],
+        }),
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("classifyKubernetesPod — a labelled pod whose database container does not run", () => {
+  function labelledPod(sidecar: ContainerFixture): KubernetesPodLike {
+    return pod({
+      name: "orders-postgresql-0",
+      labels: {
+        "app.kubernetes.io/name": "postgresql",
+        "app.kubernetes.io/instance": "orders",
+      },
+      owner: { kind: "StatefulSet", name: "orders-postgresql" },
+      containers: [
+        {
+          name: "postgresql",
+          image: "docker.io/bitnami/postgresql:16.2.0",
+          ports: [port(5432)],
+          command: ["sleep"],
+          args: ["infinity"],
+        },
+        sidecar,
+      ],
+    });
+  }
+
+  test.each([
+    [
+      {
+        name: "metrics",
+        image: "docker.io/bitnami/postgres-exporter:0.15.0-debian-12-r14",
+        ports: [port(9187)],
+      },
+    ],
+    [
+      {
+        name: "pgbouncer",
+        image: "docker.io/bitnami/pgbouncer:1.22.0",
+        ports: [port(6432)],
+      },
+    ],
+    [{ name: "istio-proxy", image: "docker.io/istio/proxyv2:1.22.0" }],
+    [
+      {
+        name: "sentinel",
+        image: "docker.io/bitnami/redis-sentinel:7.2",
+        ports: [port(26379)],
+      },
+    ],
+  ])(
+    "regression: only %j still runs → not a member (never the sidecar's version and ports)",
+    (sidecar: ContainerFixture) => {
+      expect(classifyKubernetesPod(labelledPod(sidecar))).toBeNull();
+    },
+  );
+
+  test("an unrecognised running container is still a possible database", () => {
+    expect(
+      classifyKubernetesPod(
+        labelledPod({ name: "custom", image: "acme/pg-custom:3" }),
+      ),
+    ).toMatchObject({ system: "postgresql", containerName: "custom" });
   });
 });
 

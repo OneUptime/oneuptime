@@ -11,6 +11,11 @@ import {
   DATABASE_WORKLOAD_NAME_LABEL_VALUES,
 } from "Common/Types/DatabaseServer/DatabaseContainerClassifier";
 import {
+  CONTAINER_COMMAND_KNOWN_WORDS,
+  containerCommandProjectionSql,
+  reduceContainerCommand,
+} from "Common/Types/DatabaseServer/DatabaseContainerCommand";
+import {
   keyForContainer,
   keyForKubernetesDeployment,
   keyForKubernetesPod,
@@ -515,20 +520,12 @@ function allContainerRows(): Array<ContainerFixture> {
   return rows;
 }
 
-const SHELL_PROGRAM_REGEX: RegExp = /(^|\/)(sh|bash|ash|dash|zsh)$/i;
-const SHELL_SCRIPT_FLAG_REGEX: RegExp = /^-[a-z]*c$/i;
-
-function firstWord(value: unknown, allowExec: boolean): string | null {
-  if (typeof value !== "string" && typeof value !== "number") {
-    return null;
-  }
-  const match: RegExpExecArray | null = (
-    allowExec ? /^(?:exec\s+)?[^\s;&|=]+/ : /^[^\s;&|=]+/
-  ).exec(String(value).trim());
-  return match ? match[0] : null;
-}
-
-// What CANDIDATE_PODS_SQL's projection returns for a stored spec.
+/*
+ * What CANDIDATE_PODS_SQL's projection returns for a stored spec. The
+ * command reduction is reduceContainerCommand, the JavaScript twin of the
+ * containerCommandProjectionSql fragment the query embeds (held to Postgres
+ * by Common's DatabaseContainerCommandPostgres test).
+ */
 function projectLikeSql(spec: unknown): Array<Record<string, unknown>> {
   const containers: unknown = isRecord(spec) ? spec["containers"] : undefined;
   if (!Array.isArray(containers)) {
@@ -541,12 +538,6 @@ function projectLikeSql(spec: unknown): Array<Record<string, unknown>> {
         ...(Array.isArray(entry["command"]) ? entry["command"] : []),
         ...(Array.isArray(entry["args"]) ? entry["args"] : []),
       ];
-      const shellScript: boolean =
-        typeof argv[0] === "string" &&
-        SHELL_PROGRAM_REGEX.test(argv[0]) &&
-        typeof argv[1] === "string" &&
-        SHELL_SCRIPT_FLAG_REGEX.test(argv[1]);
-      const flag: string | null = shellScript ? String(argv[1]) : null;
       return {
         name: entry["name"] ?? null,
         image: entry["image"] ?? null,
@@ -557,11 +548,7 @@ function projectLikeSql(spec: unknown): Array<Record<string, unknown>> {
                 return declared["containerPort"] ?? null;
               })
           : [],
-        command: [
-          firstWord(argv[0], false),
-          flag,
-          flag ? firstWord(argv[2], true) : null,
-        ],
+        command: reduceContainerCommand(argv),
       };
     });
 }
@@ -1453,6 +1440,7 @@ describe("Kubernetes: which rows are read, and how", () => {
     expect(candidates.params[4]).toEqual(["postgres:16.2"]);
     expect(typeof candidates.params[5]).toBe("string");
     expect(candidates.params[6]).toBe(MAX_CANDIDATE_PODS_PER_CLUSTER);
+    expect(candidates.params[7]).toEqual([...CONTAINER_COMMAND_KNOWN_WORDS]);
 
     // Pods are never loaded through the ORM (that would load whole specs).
     expect(
@@ -1469,10 +1457,19 @@ describe("Kubernetes: which rows are read, and how", () => {
     expect(CANDIDATE_PODS_SQL.match(/"spec"/g)).toHaveLength(2);
     expect(CANDIDATE_PODS_SQL).toContain(`r."spec" -> 'containers'`);
     expect(CANDIDATE_PODS_SQL).not.toMatch(/r\."spec"\s+AS/);
-    // Each argument is cut to its first word, and only the first three are looked at.
-    expect(CANDIDATE_PODS_SQL).toContain("a.argv ->> 0");
-    expect(CANDIDATE_PODS_SQL).not.toContain("a.argv ->> 3");
-    expect(CANDIDATE_PODS_SQL).not.toMatch(/'argv'|'args',|'command', a\.argv/);
+    /*
+     * command ++ args leaves only as the reduction Common's
+     * containerCommandProjectionSql computes (executed against Postgres by
+     * its twin test): the program, a shell's flags, known command names.
+     */
+    expect(CANDIDATE_PODS_SQL).toContain(
+      `'command', ${containerCommandProjectionSql({
+        argv: "v.argv",
+        knownWords: "$8::text[]",
+      })}`,
+    );
+    expect(CANDIDATE_PODS_SQL).not.toMatch(/'argv'|'args',|'command', v\.argv/);
+    expect(CANDIDATE_PODS_SQL).not.toContain("btrim(v.argv");
     // Fair truncation: namespaces are ordered by a per-run salted hash.
     expect(CANDIDATE_PODS_SQL).toContain(`md5(r."namespaceKey" || $6::text)`);
     expect(CANDIDATE_PODS_SQL).toContain(`r."deletedAt" IS NULL`);
@@ -2122,6 +2119,128 @@ describe("Kubernetes: what is upserted", () => {
     await runTick();
 
     expect(databaseService.upsertWorkloadDatabase).not.toHaveBeenCalled();
+  });
+
+  test("regression: servers started through shells and scripts are discovered through the projection", async () => {
+    arrange({
+      clusters: [cluster({ id: CLUSTER_A })],
+      pods: [
+        // MongoDB Community Operator: a newline-led `sh -c` script.
+        pod({
+          name: "orders-mongo-0",
+          labels: { app: "orders-mongo-svc" },
+          owner: { kind: "StatefulSet", name: "orders-mongo" },
+          containers: [
+            {
+              name: "mongod",
+              image: "quay.io/mongodb/mongodb-community-server:7.0.12-ubi8",
+              command: [
+                "/bin/sh",
+                "-c",
+                '\nif [ -e "/hooks/version-upgrade" ]; then\n\t#run post-start hook\n    /hooks/version-upgrade\nfi\n\n# wait for the agent\n while ! [ -f /data/automation-mongod.conf ]; do sleep 3 ; done ; sleep 2 ;\n\n# start mongod\nexec mongod -f /data/automation-mongod.conf;\n',
+              ],
+            },
+            {
+              name: "mongodb-agent",
+              image: "quay.io/mongodb/mongodb-agent-ubi:107.0.12.8669-1",
+              command: ["/bin/bash", "-c", "agent/mongodb-agent -noDaemonize"],
+            },
+          ],
+        }),
+        // CockroachDB's own StatefulSet: `bash -ecx`.
+        pod({
+          name: "cockroachdb-0",
+          labels: { app: "cockroachdb" },
+          owner: { kind: "StatefulSet", name: "cockroachdb" },
+          containers: [
+            {
+              name: "cockroachdb",
+              image: "cockroachdb/cockroach:v24.1.0",
+              ports: [{ containerPort: 26257 }],
+              command: [
+                "/bin/bash",
+                "-ecx",
+                `exec /cockroach/cockroach start --insecure --join cockroachdb-0.cockroachdb --password ${SECRET}`,
+              ],
+            },
+          ],
+        }),
+        // A script file.
+        pod({
+          name: "tidb-0",
+          owner: { kind: "StatefulSet", name: "tidb" },
+          containers: [
+            {
+              name: "tidb",
+              image: "pingcap/tidb:v8.1.0",
+              ports: [{ containerPort: 4000 }],
+              command: ["/bin/sh", "/usr/local/bin/tidb_start_script.sh"],
+            },
+          ],
+        }),
+        // A keep-alive word first, the server after it.
+        pod({
+          name: "cache-0",
+          owner: { kind: "StatefulSet", name: "cache" },
+          containers: [
+            {
+              name: "redis",
+              image: "redis:7.2",
+              ports: [{ containerPort: 6379 }],
+              command: ["sh", "-c", "sleep 5 && exec redis-server /conf"],
+            },
+          ],
+        }),
+        // Still not databases: a client script and a Sentinel.
+        pod({
+          name: "migrate-6d9f-x",
+          labels: { "pod-template-hash": "6d9f" },
+          owner: { kind: "ReplicaSet", name: "migrate-6d9f" },
+          containers: [
+            {
+              name: "migrate",
+              image: "postgres:16",
+              command: [
+                "sh",
+                "-c",
+                `until pg_isready -h db; do sleep 1; done; PGPASSWORD=${SECRET} psql -h db -f /m.sql`,
+              ],
+            },
+          ],
+        }),
+        pod({
+          name: "rfs-cache-5d8f-x",
+          labels: { "pod-template-hash": "5d8f" },
+          owner: { kind: "ReplicaSet", name: "rfs-cache-5d8f" },
+          containers: [
+            {
+              name: "sentinel",
+              image: "redis:7.2",
+              ports: [{ containerPort: 26379 }],
+              command: ["redis-server", "/redis/sentinel.conf", "--sentinel"],
+            },
+          ],
+        }),
+      ],
+    });
+
+    await runTick();
+
+    expect(
+      finalUpserts()
+        .map((args: UpsertArgs): string => {
+          return `${args.dbSystem} ${args.workloadKind}/${args.workloadName} x${args.instanceCount}`;
+        })
+        .sort(),
+    ).toEqual([
+      "cockroachdb StatefulSet/cockroachdb x1",
+      "mongodb StatefulSet/orders-mongo x1",
+      "redis StatefulSet/cache x1",
+      "tidb StatefulSet/tidb x1",
+    ]);
+    // Only the reduction left Postgres: no script text, no secret.
+    expect(JSON.stringify(upserts())).not.toContain(SECRET);
+    expect(allLoggedText()).not.toContain(SECRET);
   });
 
   test("images missing from a spec are filled in from KubernetesContainer rows", async () => {
@@ -3710,7 +3829,7 @@ describe("member evidence", () => {
 // ---- toKubernetesPodLike -------------------------------------------------------------
 
 describe("toKubernetesPodLike", () => {
-  test("keeps only name, image, declared ports and the command head", () => {
+  test("keeps only name, image, declared ports and the reduced command", () => {
     expect(
       toKubernetesPodLike({
         namespaceKey: "shop",
@@ -3740,7 +3859,7 @@ describe("toKubernetesPodLike", () => {
             image: "docker.io/library/postgres:16.2",
             ports: [{ containerPort: 5432 }],
             // `postgres -c password=…` is not a shell: nothing past the program.
-            command: ["postgres", null, null],
+            command: ["postgres"],
           },
         ],
       },

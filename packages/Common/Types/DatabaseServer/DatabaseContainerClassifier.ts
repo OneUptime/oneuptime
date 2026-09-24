@@ -7,6 +7,7 @@ import {
   getMoreSpecificDatabaseSystem,
   isSameDatabaseFamily,
 } from "./DatabaseSystem";
+import { isNonServerCommand } from "./DatabaseContainerCommand";
 
 /*
  * "Is this pod / container a database, and which one?" — the pure classifier
@@ -28,8 +29,10 @@ import {
  * What it refuses, on purpose: exporters, operators, admin UIs, poolers and
  * proxies, backup tools (they run DB images or talk to one but are not one);
  * batch pods (Job / CronJob owners — `pg_dump` runs the postgres image);
- * finished pods; client and debug runs of a database image (`psql`,
- * `redis-cli`, `sleep infinity`, an interactive shell); an owner-less pod
+ * finished pods; client, debug and Sentinel runs of a database image
+ * (`psql`, `redis-cli`, `sleep infinity`, an interactive shell,
+ * `redis-sentinel` — only on positive evidence, see
+ * DatabaseContainerCommand); an owner-less pod
  * that declares no port (`kubectl run --rm -it psql --image=postgres`);
  * Docker containers started by Testcontainers, `docker compose run` or the
  * kubelet; and an application pod that merely has a database SIDECAR
@@ -37,7 +40,9 @@ import {
  *
  * It NEVER reads environment variables: pod specs in the inventory keep
  * direct env values verbatim, passwords included. Only container name,
- * image, declared ports and the program a container starts are read.
+ * image, declared ports and what a container's command line runs (its
+ * program, a shell's flags and the known command names of its script)
+ * are read.
  */
 
 export type ImageClassification =
@@ -52,8 +57,8 @@ export interface KubernetesContainerLike {
   ports?: Array<{ containerPort?: number | undefined }> | undefined;
   /*
    * The container's command and args as Kubernetes has them (the program
-   * started is `command` followed by `args`). Only the leading program name
-   * is ever looked at — see effectiveExecutable.
+   * started is `command` followed by `args`), or the reduction
+   * CANDIDATE_PODS_SQL projects as `command` — see DatabaseContainerCommand.
    */
   command?: Array<string | null> | undefined;
   args?: Array<string | null> | undefined;
@@ -625,145 +630,6 @@ export function classifyImage(image: unknown): ImageClassification {
   return { kind: "unknown" };
 }
 
-// ---- what a container runs ---------------------------------------------------
-
-/*
- * Programs that are never a database server even in a database image: the
- * engines' own clients and dump tools, and keep-alive / debug commands
- * (`kubectl run -it --image=postgres -- bash`, `sleep infinity`).
- */
-const NON_SERVER_EXECUTABLES: ReadonlySet<string> = new Set<string>([
-  "psql",
-  "pg_dump",
-  "pg_dumpall",
-  "pg_restore",
-  "pg_basebackup",
-  "pg_isready",
-  "pgbench",
-  "mysql",
-  "mysqldump",
-  "mysqladmin",
-  "mysqlsh",
-  "mysqlpump",
-  "mariadb",
-  "mariadb-dump",
-  "mariadb-admin",
-  "mongo",
-  "mongosh",
-  "mongodump",
-  "mongorestore",
-  "mongoexport",
-  "mongoimport",
-  "redis-cli",
-  "redis-benchmark",
-  "valkey-cli",
-  "valkey-benchmark",
-  "keydb-cli",
-  "cqlsh",
-  "clickhouse-client",
-  "sqlcmd",
-  "sqlplus",
-  "cypher-shell",
-  "influx",
-  "cbq",
-  "sleep",
-  "tail",
-  "cat",
-  "true",
-  "sh",
-  "bash",
-  "ash",
-  "dash",
-  "zsh",
-]);
-
-const SHELL_EXECUTABLES: ReadonlySet<string> = new Set<string>([
-  "sh",
-  "bash",
-  "ash",
-  "dash",
-  "zsh",
-]);
-
-// `-c`, `-ec`, `-lc`, `-euc`: the shell runs the next argument as a script.
-const SHELL_SCRIPT_FLAG_REGEX: RegExp = /^-[a-z]*c$/;
-
-function programName(value: string): string {
-  const trimmed: string = value.trim().toLowerCase();
-  return trimmed.substring(trimmed.lastIndexOf("/") + 1);
-}
-
-function stringList(value: unknown): Array<string> {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  const result: Array<string> = [];
-  for (const entry of value) {
-    if (typeof entry !== "string") {
-      // A gap (null) ends what we can trust about the command line.
-      break;
-    }
-    result.push(entry);
-  }
-  return result;
-}
-
-/**
- * The program a Kubernetes container starts, lowercased without its path:
- * the first word of `command` + `args`, looking through `sh -c` (and
- * `exec`) at the script's first word. Null when neither is set — the image's
- * own entrypoint runs, which for a database image is the server.
- */
-export function effectiveExecutable(container: {
-  command?: Array<string | null> | undefined;
-  args?: Array<string | null> | undefined;
-}): string | null {
-  const command: Array<string> = stringList(container?.command);
-  const argv: Array<string> =
-    command.length > 0
-      ? [...command, ...stringList(container?.args)]
-      : stringList(container?.args);
-
-  const first: string | undefined = argv[0];
-  if (first === undefined || !first.trim()) {
-    return null;
-  }
-
-  const program: string = programName(first);
-  if (!SHELL_EXECUTABLES.has(program)) {
-    return program;
-  }
-
-  const flag: string | undefined = argv[1];
-  const script: string | undefined = argv[2];
-  if (
-    flag === undefined ||
-    script === undefined ||
-    !SHELL_SCRIPT_FLAG_REGEX.test(flag.trim().toLowerCase())
-  ) {
-    // An interactive shell.
-    return program;
-  }
-
-  const words: Array<string> = script
-    .trim()
-    .split(/\s+/)
-    .filter((word: string): boolean => {
-      return word.length > 0;
-    });
-  const word: string | undefined = words[0] === "exec" ? words[1] : words[0];
-  return word ? programName(word) : program;
-}
-
-// True when the container runs a client, a dump tool or a keep-alive, not a server.
-export function isNonServerCommand(container: {
-  command?: Array<string | null> | undefined;
-  args?: Array<string | null> | undefined;
-}): boolean {
-  const program: string | null = effectiveExecutable(container);
-  return program !== null && NON_SERVER_EXECUTABLES.has(program);
-}
-
 // ---- Kubernetes pods -----------------------------------------------------
 
 interface ContainerView {
@@ -838,6 +704,24 @@ const NON_MEMBER_IMAGE_REASONS: ReadonlySet<string> = new Set<string>([
   "admin-ui",
   "backup",
 ]);
+
+/*
+ * False for a container whose image is never the database process itself:
+ * a mesh proxy / log shipper, or an image excluded as a pooler, exporter,
+ * admin UI, backup tool or companion (Sentinel, agent). An "operator" image
+ * still could be — Percona ships its postgres operand in one.
+ */
+function couldBeDatabaseProcess(container: ContainerView): boolean {
+  const classification: ImageClassification = container.classification;
+  if (classification.kind === "infrastructure-sidecar") {
+    return false;
+  }
+  return !(
+    classification.kind === "excluded" &&
+    (NON_MEMBER_IMAGE_REASONS.has(classification.reason) ||
+      classification.reason === "companion")
+  );
+}
 
 const PRIMARY_ROLE_VALUES: ReadonlySet<string> = new Set<string>([
   "primary",
@@ -1335,9 +1219,9 @@ function readPorts(declaredPorts: unknown): Array<number> {
 }
 
 /*
- * Reads ONLY name, image, declared ports and the leading program of
- * command/args — never `env` (see the file header), never by spreading the
- * container object.
+ * Reads ONLY name, image, declared ports and what command/args run —
+ * never `env` (see the file header), never by spreading the container
+ * object.
  */
 function readContainers(pod: KubernetesPodLike): Array<ContainerView> {
   const containers: unknown = pod.spec?.containers;
@@ -1575,12 +1459,15 @@ export function classifyKubernetesPod(
 
     /*
      * A chart's test hook or a debug pod is labelled like the cluster but
-     * only runs a client: with no container left that could be the server,
-     * it is not a member.
+     * only runs a client, and a member whose database container is held
+     * asleep (diagnostic mode) may still run its exporter, pooler or mesh
+     * proxy: with no running container left that could be the server, it
+     * is not a member — a sidecar's image, version and ports never stand in
+     * for the database's.
      */
     const serverContainers: Array<ContainerView> = containers.filter(
       (container: ContainerView): boolean => {
-        return !container.nonServer;
+        return !container.nonServer && couldBeDatabaseProcess(container);
       },
     );
     if (containers.length > 0 && serverContainers.length === 0) {

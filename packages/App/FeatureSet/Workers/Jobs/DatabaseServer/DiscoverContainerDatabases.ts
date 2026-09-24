@@ -47,6 +47,10 @@ import {
   groupKubernetesDatabaseCandidates,
   pickMostSpecificDatabaseSystem,
 } from "Common/Types/DatabaseServer/DatabaseContainerClassifier";
+import {
+  CONTAINER_COMMAND_KNOWN_WORDS,
+  containerCommandProjectionSql,
+} from "Common/Types/DatabaseServer/DatabaseContainerCommand";
 import { getDatabaseSystemFamily } from "Common/Types/DatabaseServer/DatabaseSystem";
 import {
   buildDatabaseServerDisplayName,
@@ -804,20 +808,21 @@ WHERE r."projectId" = $1
  * The pods that could be a database — an operator / chart label key, a
  * database chart name, or a KubernetesContainer running a database image —
  * each with its spec PROJECTED in Postgres: per container its name, image,
- * declared containerPorts and, of `command ++ args`, only the program
- * (its first word) and — when that program is a shell run with a `-c`-style
- * flag — the flag and the program its script starts (the script's first
- * word, after an optional `exec`): enough for classifyKubernetesPod to tell
- * a server from a client run. Words stop at `=`, so a `PGPASSWORD=…` prefix
- * yields only its name. env, every other argument and the rest of the spec
- * never leave the database.
+ * declared containerPorts and `command ++ args` REDUCED by
+ * containerCommandProjectionSql to what classifyKubernetesPod needs to tell
+ * a server from a client, keep-alive or Sentinel run: the program's first
+ * word and, for a shell, its flags and the command names each of its
+ * arguments would run — every name not on CONTAINER_COMMAND_KNOWN_WORDS
+ * replaced by "?". env, argument values, script text and the rest of the
+ * spec never leave the database.
  *
  * Ordered by a per-run salted hash of the namespace, so a cluster over the
  * cap has a different set of namespaces left out each run, never the same
  * alphabetical tail.
  *
  * $1 projectId, $2 kubernetesClusterId, $3 operator label keys,
- * $4 chart names (lowercase), $5 database images, $6 run salt, $7 limit.
+ * $4 chart names (lowercase), $5 database images, $6 run salt, $7 limit,
+ * $8 CONTAINER_COMMAND_KNOWN_WORDS.
  */
 export const CANDIDATE_PODS_SQL: string = `/* ${JOB_NAME}: candidate database pods */
 SELECT
@@ -842,13 +847,10 @@ SELECT
           ) WITH ORDINALITY AS p(value, ordinality)
           WHERE jsonb_typeof(p.value) = 'object'
         ), '[]'::jsonb),
-        'command', jsonb_build_array(
-          substring(btrim(a.argv ->> 0) from '^[^[:space:];&|=]+'),
-          CASE WHEN a.shell_script THEN a.argv ->> 1 END,
-          CASE WHEN a.shell_script
-            THEN substring(btrim(a.argv ->> 2) from '^(?:exec[[:space:]]+)?[^[:space:];&|=]+')
-          END
-        )
+        'command', ${containerCommandProjectionSql({
+          argv: "v.argv",
+          knownWords: "$8::text[]",
+        })}
       )
       ORDER BY c.ordinality
     )
@@ -863,15 +865,6 @@ SELECT
         || (CASE WHEN jsonb_typeof(c.value -> 'args') = 'array'
           THEN c.value -> 'args' ELSE '[]'::jsonb END) AS argv
     ) AS v
-    CROSS JOIN LATERAL (
-      SELECT
-        v.argv AS argv,
-        COALESCE(
-          (v.argv ->> 0) ~* '(^|/)(sh|bash|ash|dash|zsh)$'
-            AND (v.argv ->> 1) ~* '^-[a-z]*c$',
-          false
-        ) AS shell_script
-    ) AS a
     WHERE jsonb_typeof(c.value) = 'object'
   ), '[]'::jsonb) AS "containers"
 FROM "KubernetesResource" r
@@ -1142,6 +1135,7 @@ async function loadCandidatePods(data: {
         data.databaseImages,
         data.runSalt,
         MAX_CANDIDATE_PODS_PER_CLUSTER,
+        [...CONTAINER_COMMAND_KNOWN_WORDS],
       ],
     ),
   );
