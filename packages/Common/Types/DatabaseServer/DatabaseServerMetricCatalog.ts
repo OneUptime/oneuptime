@@ -3,9 +3,17 @@ import { getDatabaseSystemMetricsEngine } from "./DatabaseSystem";
 
 /*
  * The curated engine metrics a Database's Overview charts, per engine, from
- * the OpenTelemetry Collector contrib DB receivers. Only metrics the
- * receiver emits BY DEFAULT are listed, so a stock receiver config fills
- * every chart. Names are lowercase, exactly as ingest stores them.
+ * the OpenTelemetry Collector contrib DB receivers. Only metrics that arrive
+ * on the Database Agent's default setup are listed: ones the receiver emits
+ * by default, plus the few optional ones the agent's config for that
+ * receiver switches on (`enabledByDefault: false` — a team running its own
+ * collector must switch them on too, and their descriptions say so). Every
+ * entry was seen arriving from collector-contrib 0.161.0 against a real
+ * server, not just read off the receiver's metadata: SQL Server's
+ * performance-counter metrics that only a Windows host reports, and Oracle's
+ * session / process limits a pluggable database never returns, are left
+ * out, because their tiles would stay empty forever on a default setup.
+ * Names are lowercase, exactly as ingest stores them.
  *
  * `kind` decides how a metric is drawn:
  *   - "gauge" — a value at a point in time (Gauge and non-monotonic
@@ -66,6 +74,12 @@ export interface DatabaseServerMetricDefinition {
   seriesKeys?: ReadonlyArray<string> | undefined;
   // Attribute keys the receiver repeats one value across (pooled).
   duplicatedAcross?: ReadonlyArray<string> | undefined;
+  /*
+   * False for a metric the receiver only emits once switched on; the
+   * Database Agent's config for the receiver switches it on. Absent means
+   * the receiver emits it by default.
+   */
+  enabledByDefault?: boolean | undefined;
 }
 
 /*
@@ -78,6 +92,13 @@ export const DATABASE_SERVER_INSTANCE_ATTRIBUTE_KEYS: ReadonlyArray<string> = [
   "resource.server.address",
   "resource.server.port",
 ];
+
+/*
+ * Appended to the description of every `enabledByDefault: false` entry, so
+ * the tile's (i) tells a team running its own collector what to switch on.
+ */
+const AGENT_ENABLED_NOTE: string =
+  " Off by default in the collector's receiver; the Database Agent switches it on, and your own collector has to enable it too.";
 
 // postgresqlreceiver reports per-database metrics under either spelling.
 const POSTGRESQL_DATABASE_KEYS: ReadonlyArray<string> = [
@@ -437,8 +458,13 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     },
 
     /*
-     * SQL Server — sqlserverreceiver (default-on; the *.rate metrics are
-     * receiver-computed per-second gauges, not counters).
+     * SQL Server — sqlserverreceiver. The *.rate metrics are
+     * receiver-computed per-second gauges, not counters. Connected directly
+     * (the Database Agent's setup, and the only one off Windows) the
+     * receiver reads sys.dm_os_performance_counters, which has no
+     * sqlserver.transaction.rate or sqlserver.transaction_log.usage — those
+     * come from Windows performance counters only — so compilations,
+     * deadlocks and blocked processes stand in for them.
      */
     {
       system: "microsoft.sql_server",
@@ -462,14 +488,13 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     },
     {
       system: "microsoft.sql_server",
-      metricName: "sqlserver.transaction.rate",
-      title: "Transactions",
+      metricName: "sqlserver.batch.sql_compilation.rate",
+      title: "SQL compilations",
       description:
-        "Transactions started per second, added up across databases.",
-      unit: "transactions/s",
+        "SQL compilations per second. Many compilations next to few batch requests means query plans are not being reused.",
+      unit: "compilations/s",
       aggregation: AggregationType.Avg,
       kind: "gauge",
-      seriesKeys: ["resource.sqlserver.database.name"],
       seriesCombine: "sum",
     },
     {
@@ -506,16 +531,34 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     },
     {
       system: "microsoft.sql_server",
-      metricName: "sqlserver.transaction_log.usage",
-      title: "Transaction log usage",
-      description: "Percentage of the transaction log in use (fullest log).",
-      unit: "%",
+      metricName: "sqlserver.deadlock.rate",
+      title: "Deadlocks",
+      description: `Deadlocks per second.${AGENT_ENABLED_NOTE}`,
+      unit: "deadlocks/s",
+      aggregation: AggregationType.Avg,
+      kind: "gauge",
+      seriesCombine: "sum",
+      enabledByDefault: false,
+    },
+    {
+      system: "microsoft.sql_server",
+      metricName: "sqlserver.processes.blocked",
+      title: "Blocked processes",
+      description: `Sessions waiting on a lock another session holds (the peak in each interval).${AGENT_ENABLED_NOTE}`,
+      unit: "processes",
       aggregation: AggregationType.Max,
       kind: "gauge",
-      seriesCombine: "max",
+      seriesCombine: "sum",
+      enabledByDefault: false,
     },
 
-    // Oracle — oracledbreceiver (all default-on).
+    /*
+     * Oracle — oracledbreceiver. A connection to a pluggable database
+     * (FREEPDB1, ORCLPDB1: the usual setup) never returns
+     * oracledb.sessions.limit or oracledb.processes.usage, so the Overview
+     * reads DB time, the SGA and tablespace fullness instead — all
+     * off-by-default metrics the Database Agent switches on.
+     */
     {
       system: "oracle.db",
       metricName: "oracledb.sessions.usage",
@@ -530,28 +573,45 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
     },
     {
       system: "oracle.db",
-      metricName: "oracledb.sessions.limit",
-      title: "Session limit",
-      description: "Maximum number of sessions allowed.",
-      unit: "sessions",
+      metricName: "oracledb.db.time",
+      title: "DB time",
+      description: `Seconds user sessions spent in database calls, per second: the average number of active sessions.${AGENT_ENABLED_NOTE}`,
+      unit: "s",
       aggregation: AggregationType.Max,
-      kind: "gauge",
-      seriesCombine: "max",
+      kind: "counter",
+      // Background processes' time is not the load users put on it.
+      attributes: { "oracledb.session.type": "foreground" },
+      seriesCombine: "sum",
+      enabledByDefault: false,
     },
     {
       system: "oracle.db",
-      metricName: "oracledb.processes.usage",
-      title: "Processes",
-      description: "Number of processes in use.",
-      unit: "processes",
+      metricName: "oracledb.sga.usage",
+      title: "SGA in use",
+      description: `Memory in the System Global Area: the buffer cache, shared pool and every other component added up.${AGENT_ENABLED_NOTE}`,
+      unit: "bytes",
       aggregation: AggregationType.Avg,
       kind: "gauge",
+      seriesKeys: ["oracledb.sga.component.name"],
       seriesCombine: "sum",
+      enabledByDefault: false,
+    },
+    {
+      system: "oracle.db",
+      metricName: "oracledb.tablespace.utilization",
+      title: "Fullest tablespace",
+      description: `How full the fullest tablespace is.${AGENT_ENABLED_NOTE}`,
+      unit: "fraction",
+      aggregation: AggregationType.Max,
+      kind: "gauge",
+      seriesKeys: ["tablespace_name", "oracle.db.pdb"],
+      seriesCombine: "max",
+      enabledByDefault: false,
     },
     {
       system: "oracle.db",
       metricName: "oracledb.tablespace_size.usage",
-      title: "Tablespace usage",
+      title: "Largest tablespace",
       description: "Bytes used in the largest tablespace.",
       unit: "bytes",
       aggregation: AggregationType.Max,
@@ -577,17 +637,6 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
       description:
         "User commits per second, every pluggable database added up.",
       unit: "commits",
-      aggregation: AggregationType.Max,
-      kind: "counter",
-      seriesCombine: "sum",
-    },
-    {
-      system: "oracle.db",
-      metricName: "oracledb.user_rollbacks",
-      title: "Rollbacks",
-      description:
-        "User rollbacks per second, every pluggable database added up.",
-      unit: "rollbacks",
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",

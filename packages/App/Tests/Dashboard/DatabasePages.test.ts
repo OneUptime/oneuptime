@@ -247,6 +247,34 @@ describe("the Logs / Traces / Metrics tabs", () => {
     expect(modal).not.toContain("attributes");
   });
 
+  test("the chart's Create monitor is scoped by the database's id, and refuses what it cannot watch", () => {
+    const metrics: string = readCode("Pages/Database/View/Metrics.tsx");
+    expect(between(metrics, "<DatabaseMetricChartModal", "/>")).toContain(
+      "databaseServerId={modelId}",
+    );
+
+    const modal: string = readCode(
+      "Components/DatabaseServer/DatabaseMetricChartModal.tsx",
+    );
+    expect(modal).toContain("fetchDatabaseMetricCarriesServerId({");
+    expect(modal).toContain("getDatabaseMetricMonitorBlocker({");
+    expect(modal).toContain("buildDatabaseMetricMonitorRoute(");
+    expect(modal).toContain("disabled={true}");
+
+    const link: string = readCode(
+      "Pages/Database/Utils/DatabaseMetricMonitorLink.ts",
+    );
+    // The same stamp the curated alert templates filter on.
+    expect(link).toContain(
+      "[DATABASE_SERVER_ID_SCOPE_ATTRIBUTE]: databaseServerIdText(",
+    );
+    expect(link).toContain(
+      "MetricExplorerUrl.buildQueryParamsFromMetricViewData(viewData)",
+    );
+    expect(link).toContain("RouteMap[PageMap.MONITOR_CREATE] as Route");
+    expect(link).toContain("if (data.spec.isRate) {");
+  });
+
   test("Logs puts the keys in the log query and names the chips", () => {
     const code: string = readCode("Pages/Database/View/Logs.tsx");
 
@@ -266,6 +294,29 @@ describe("the Logs / Traces / Metrics tabs", () => {
     expect(banner).toContain("PageMap.DATABASE_SERVER_VIEW_ENDPOINTS");
     expect(banner).toContain("PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION");
     expect(banner).toContain("No telemetry scope yet");
+    expect(banner).toContain("Matched by its id only");
+  });
+
+  test.each([
+    ["Logs", "logs"],
+    ["Traces", "traces"],
+    ["Metrics", "metrics"],
+  ])(
+    "%s shows the 'id only' hint above the viewer for a row scoped by its row key alone",
+    (tab: string, signal: string) => {
+      const code: string = readCode(`Pages/Database/View/${tab}.tsx`);
+      const viewer: string = between(code, "return ( <Fragment>", "};");
+
+      expect(code).toContain("isIdOnly,");
+      expect(viewer).toContain(
+        `{isIdOnly ? ( <div className="mb-4"> <DatabaseServerUnscopedBanner modelId={modelId} signal="${signal}" variant="id-only" />`,
+      );
+    },
+  );
+
+  test("the hook derives 'id only' through the scope helper", () => {
+    const hook: string = readCode(SCOPE_HOOK);
+    expect(hook).toContain("isDatabaseServerScopedByIdOnly(source)");
   });
 });
 
@@ -366,6 +417,24 @@ describe("the Overview", () => {
     expect(section).toContain('result.definition.kind === "counter"');
   });
 
+  test("what 'not connected' suggests follows the engine's metrics source, not the receiver flag", () => {
+    const section: string = readCode(
+      "Components/DatabaseServer/DatabaseEngineMetricsSection.tsx",
+    );
+    expect(section).toContain("getDatabaseEngineMetricsSource(");
+    expect(section).toContain("getDatabaseAgentEngine(data.dbSystem)");
+    expect(section).not.toContain("hasCollectorReceiver");
+    expect(code).toContain("dbSystem={r.dbSystem}");
+    expect(code).not.toContain("hasCollectorReceiver");
+  });
+
+  test("a row scoped by its id alone says so above the overview", () => {
+    expect(code).toContain(
+      "const isIdOnly: boolean = isDatabaseServerScopedByIdOnly(source);",
+    );
+    expect(code).toContain('variant={isScoped ? "id-only" : "unscoped"}');
+  });
+
   test("a connected database with nothing to chart is not called disconnected", () => {
     const section: string = readCode(
       "Components/DatabaseServer/DatabaseEngineMetricsSection.tsx",
@@ -403,7 +472,19 @@ describe("the Databases list", () => {
       "field: { serverPort: true, }",
     );
     expect(address).toContain("required: true");
-    expect(address).toContain("Never localhost");
+    // The help, the check and the hint come from the form helper.
+    expect(address).toContain(
+      "description: DATABASE_SERVER_ADDRESS_DESCRIPTION,",
+    );
+    expect(address).toContain("return validateDatabaseServerAddress(values);");
+    expect(address).toContain(
+      "const hint: string | null = getDatabaseServerAddressHint(values);",
+    );
+    const helper: string = readCode(
+      "Pages/Database/Utils/DatabaseManualEndpointForm.ts",
+    );
+    expect(helper).toContain("Never localhost");
+    expect(helper).toContain("parseManualDatabaseEndpoint(");
 
     const port: string = between(
       formFields,
@@ -548,6 +629,14 @@ describe("Endpoints", () => {
     expect(hook).toContain("PRIMARY_ENDPOINT_DELETE_MESSAGE");
     expect(code).toContain("selectMoreFields={{ isPrimary: true, }}");
   });
+
+  test("'Added by' names each source, a workload's Kubernetes Service included", () => {
+    const column: string = between(code, 'title: "Added by"', "title:");
+    expect(column).toContain("getDatabaseEndpointSourceLabel(item.source)");
+    expect(column).toContain("color={label.isUser ? Blue : Gray500}");
+    // Last Matched is maintained now; it stays.
+    expect(code).toContain("field: { lastMatchedAt: true, }");
+  });
 });
 
 describe("Settings, Delete and Documentation", () => {
@@ -688,5 +777,76 @@ describe("label and owner rules", () => {
     expect(readSource("Pages/Database/Settings/LabelRules.tsx")).toContain(
       "matches every PostgreSQL database",
     );
+  });
+});
+
+/*
+ * The reverse of a database's "Runs on" / "Workload" links: the Kubernetes
+ * StatefulSet / Deployment / pod pages and the Docker / Podman container
+ * pages show the Database discovered on them, through the one shared
+ * component (one query; nothing rendered without a match).
+ */
+describe("'Open database' on the workload and container pages", () => {
+  test.each([
+    ["Pages/Kubernetes/View/StatefulSetDetail.tsx", "StatefulSet"],
+    ["Pages/Kubernetes/View/DeploymentDetail.tsx", "Deployment"],
+    ["Pages/Kubernetes/View/PodDetail.tsx", "Pod"],
+  ])(
+    "%s asks by cluster, namespace and workload names once its object loaded",
+    (file: string, kind: string) => {
+      const code: string = readCode(file);
+      const badge: string = between(
+        code,
+        "<DatabaseServerWorkloadBadge",
+        "<Tabs tabs={tabs}",
+      );
+
+      expect(code).toContain(
+        'from "../../../Components/DatabaseServer/DatabaseServerWorkloadBadge"',
+      );
+      expect(badge).toContain("isLoadingObject ? null");
+      expect(badge).toContain('platform: "kubernetes"');
+      expect(badge).toContain("parentId: modelId,");
+      expect(badge).toContain("namespace: ");
+      expect(badge).toContain(`kind: "${kind}"`);
+    },
+  );
+
+  test("the pod page hands its owners and containers to the classifier", () => {
+    const badge: string = between(
+      readCode("Pages/Kubernetes/View/PodDetail.tsx"),
+      "<DatabaseServerWorkloadBadge",
+      "<Tabs tabs={tabs}",
+    );
+    expect(badge).toContain(
+      "ownerReferences: podObject?.metadata.ownerReferences,",
+    );
+    expect(badge).toContain("containers: podObject?.spec.containers,");
+  });
+
+  test.each([
+    ["Pages/Docker/View/ContainerDetail.tsx", "docker"],
+    ["Pages/Podman/View/ContainerDetail.tsx", "podman"],
+  ])("%s asks by its host and container", (file: string, platform: string) => {
+    const badge: string = between(
+      readCode(file),
+      "<DatabaseServerWorkloadBadge",
+      "<Tabs tabs={tabs}",
+    );
+    expect(badge).toContain(`platform: "${platform}"`);
+    expect(badge).toContain("parentId: modelId,");
+    expect(badge).toContain("getContainerDatabaseWorkloadNames({");
+    expect(badge).toContain("containerName: containerName,");
+    expect(badge).toContain("imageName: containerImage,");
+  });
+
+  test("the component asks one lean query and links the database page", () => {
+    const code: string = readCode(
+      "Components/DatabaseServer/DatabaseServerWorkloadBadge.tsx",
+    );
+    expect(code.match(/ModelAPI\.getList</g)).toHaveLength(1);
+    expect(code).toContain("select: { _id: true, name: true, dbSystem: true }");
+    expect(code).toContain("RouteMap[PageMap.DATABASE_SERVER_VIEW] as Route");
+    expect(code).toContain("if (rows.length === 0) { return <></>; }");
   });
 });

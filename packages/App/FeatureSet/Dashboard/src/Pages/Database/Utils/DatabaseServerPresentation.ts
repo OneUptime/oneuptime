@@ -308,6 +308,27 @@ export function getDatabaseEndpointLabel(
 }
 
 /**
+ * The Endpoints tab's "Added by" pill for an endpoint's `source`: "user" is
+ * an alias a person added; "workload" a Service name container discovery
+ * claimed for the Kubernetes workload the database runs as (released again
+ * when the workload stops producing it); "auto", and anything older or
+ * unknown, what telemetry found.
+ */
+export function getDatabaseEndpointSourceLabel(source: unknown): {
+  text: string;
+  isUser: boolean;
+} {
+  const value: string = text(source).toLowerCase();
+  if (value === "user") {
+    return { text: "Added by a person", isUser: true };
+  }
+  if (value === "workload") {
+    return { text: "Discovered (Kubernetes Service)", isUser: false };
+  }
+  return { text: "Discovered", isUser: false };
+}
+
+/**
  * The list's "Runs on" cell: "Kubernetes · prod-cluster", "Docker ·
  * build-host-1", "Podman", or "—" for a database only seen from outside
  * (its endpoint is already in the Name column).
@@ -459,9 +480,31 @@ export function formatDatabaseSeconds(
 }
 
 /**
+ * A 0..1 share as a percentage: "85%", "4.2%", "0.04%" — a nearly empty
+ * tablespace is not rounded to a misleading "0%" until it truly is.
+ */
+export function formatDatabaseFraction(
+  value: number | null | undefined,
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "—";
+  }
+  const percent: number = value * 100;
+  const abs: number = Math.abs(percent);
+  const text: string =
+    abs < 1
+      ? percent.toFixed(2).replace(/\.?0+$/, "")
+      : abs < 10
+        ? percent.toFixed(1).replace(/\.0$/, "")
+        : String(Math.round(percent));
+  return `${text || "0"}%`;
+}
+
+/**
  * A catalog metric's value for its tile: bytes as KiB/MiB/GiB, seconds as
- * s/min/h/d, other units as a compact count followed by the unit. Counters
- * are rates, so they read "12.5 commits/s".
+ * s/min/h/d, a "fraction" (a 0..1 share) as a percentage, other units as a
+ * compact count followed by the unit. Counters are rates, so they read
+ * "12.5 commits/s".
  */
 export function formatDatabaseMetricValue(
   value: number | null | undefined,
@@ -493,6 +536,9 @@ export function formatDatabaseMetricValue(
   }
   if (cleanUnit === "s") {
     return formatDatabaseSeconds(value);
+  }
+  if (cleanUnit === "fraction") {
+    return formatDatabaseFraction(value);
   }
   const count: string = formatDatabaseCount(value);
   return cleanUnit ? `${count} ${cleanUnit}` : count;

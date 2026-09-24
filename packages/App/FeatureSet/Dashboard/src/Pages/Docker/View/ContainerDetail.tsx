@@ -5,12 +5,15 @@ import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import Card from "Common/UI/Components/Card/Card";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
   useMemo,
   useState,
 } from "react";
+import DatabaseServerWorkloadBadge from "../../../Components/DatabaseServer/DatabaseServerWorkloadBadge";
+import { getContainerDatabaseWorkloadNames } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -295,7 +298,26 @@ const DockerHostContainerDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <Fragment>
+      {/*
+       * The Database discovered in this container, if any: by its name, or
+       * the Swarm / Compose service discovery groups a database image under.
+       */}
+      <DatabaseServerWorkloadBadge
+        resourceLabel="container"
+        target={{
+          platform: "docker",
+          parentId: modelId,
+          workloadNames: getContainerDatabaseWorkloadNames({
+            containerName: containerName,
+            imageName: containerImage,
+          }),
+        }}
+      />
+      <Tabs tabs={tabs} onTabChange={() => {}} />
+    </Fragment>
+  );
 };
 
 export default DockerHostContainerDetail;

@@ -2,6 +2,7 @@ import {
   DatabaseServerScopeSource,
   buildDatabaseServerEntityKeyDisplays,
   getDatabaseServerScopeKeys,
+  isDatabaseServerScopedByIdOnly,
 } from "../../Pages/Database/Utils/DatabaseTelemetryScope";
 import { LockedEntityKeyDisplayMap } from "../../Utils/LockedEntityKeyChips";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
@@ -20,7 +21,10 @@ import { useEffect, useMemo, useState } from "react";
  * the locked-chip names from them through DatabaseTelemetryScope. The Logs,
  * Traces and Metrics tabs all read this one hook so none of them can build
  * the scope differently, and each checks `keys.length` before it mounts a
- * viewer (an empty set is "unscoped", never "the whole project").
+ * viewer (an empty set is "unscoped", never "the whole project"). A loaded
+ * row always has its row key; `isIdOnly` says when that is ALL it has (no
+ * endpoint, no members), so a tab can say that only telemetry sent with the
+ * database's id will show.
  */
 
 export interface UseDatabaseServerTelemetryScopeResult {
@@ -28,6 +32,8 @@ export interface UseDatabaseServerTelemetryScopeResult {
   endpoints: Array<string>;
   keys: Array<string>;
   entityKeyDisplays: LockedEntityKeyDisplayMap;
+  // Scoped by the row key alone: no parseable endpoint, no members.
+  isIdOnly: boolean;
   isLoading: boolean;
   error: string;
 }
@@ -146,11 +152,16 @@ const useDatabaseServerTelemetryScope: (
     return databaseServer ? buildDatabaseServerEntityKeyDisplays(source) : {};
   }, [source]);
 
+  const isIdOnly: boolean = useMemo(() => {
+    return databaseServer ? isDatabaseServerScopedByIdOnly(source) : false;
+  }, [source]);
+
   return {
     databaseServer,
     endpoints,
     keys,
     entityKeyDisplays,
+    isIdOnly,
     isLoading,
     error,
   };

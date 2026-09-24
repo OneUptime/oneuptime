@@ -24,6 +24,7 @@ const DatabaseServerTraces: FunctionComponent<
   const {
     keys,
     entityKeyDisplays,
+    isIdOnly,
     isLoading,
     error,
     databaseServer,
@@ -44,7 +45,9 @@ const DatabaseServerTraces: FunctionComponent<
 
   /*
    * No keys means no scope, and the viewer would fall back to every trace
-   * in the project. Show what is actually true instead.
+   * in the project. Show what is actually true instead. (A loaded row always
+   * has its row key, so this is a defensive guard; a row with ONLY its row
+   * key gets the viewer plus an "id only" hint.)
    */
   if (!isDatabaseServerScoped(keys)) {
     return <DatabaseServerUnscopedBanner modelId={modelId} signal="traces" />;
@@ -52,6 +55,17 @@ const DatabaseServerTraces: FunctionComponent<
 
   return (
     <Fragment>
+      {isIdOnly ? (
+        <div className="mb-4">
+          <DatabaseServerUnscopedBanner
+            modelId={modelId}
+            signal="traces"
+            variant="id-only"
+          />
+        </div>
+      ) : (
+        <></>
+      )}
       <TracesViewer
         entityKeysFilter={keys}
         entityKeyDisplays={entityKeyDisplays}

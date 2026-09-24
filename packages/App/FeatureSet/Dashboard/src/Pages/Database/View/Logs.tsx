@@ -35,6 +35,7 @@ const DatabaseServerLogs: FunctionComponent<
   const {
     keys,
     entityKeyDisplays,
+    isIdOnly,
     isLoading,
     error,
     databaseServer,
@@ -43,7 +44,9 @@ const DatabaseServerLogs: FunctionComponent<
 
   /*
    * Null for an empty key set: an empty Includes drops the predicate and
-   * would show the whole project's logs as this database's.
+   * would show the whole project's logs as this database's. (A loaded row
+   * always has its row key, so the banner below is a defensive guard; a row
+   * with ONLY its row key gets the viewer plus an "id only" hint.)
    */
   const logQuery: Query<Log> | null = useMemo(() => {
     const entityKeys: Includes | null =
@@ -72,6 +75,17 @@ const DatabaseServerLogs: FunctionComponent<
 
   return (
     <Fragment>
+      {isIdOnly ? (
+        <div className="mb-4">
+          <DatabaseServerUnscopedBanner
+            modelId={modelId}
+            signal="logs"
+            variant="id-only"
+          />
+        </div>
+      ) : (
+        <></>
+      )}
       <DashboardLogsViewer
         id={`database-server-logs-${modelId.toString()}`}
         logQuery={logQuery}

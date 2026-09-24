@@ -39,7 +39,9 @@ import { getDatabaseServerSignalEntityKeys } from "Common/Utils/Telemetry/Databa
  * logs as its own. getDatabaseServerEntityKeysQueryValue returns null for an
  * empty set and every page checks isDatabaseServerScoped before it mounts a
  * viewer or issues a query. (A loaded row always has its row key, so only a
- * source without an id can come back empty.)
+ * source without an id can come back empty; a row whose ONLY key is its row
+ * key is told apart by isDatabaseServerScopedByIdOnly, so its pages can say
+ * that only id-linked telemetry will show.)
  *
  * Pure (no React, no API): the pages, the Overview query helper and the
  * plain-node tests share it.
@@ -144,6 +146,30 @@ export function getDatabaseServerMemberScopeKeys(
     dbSystem: source.dbSystem,
     memberEntityKeys: source.memberEntityKeys,
   });
+}
+
+/**
+ * True when the row key is ALL a loaded database is scoped by: no stored
+ * endpoint parses and it runs as no pod or container. Its pages then show
+ * only telemetry linked by `oneuptime.database.server.id` (the Database
+ * Agent's DATABASE_SERVER_ID) — never its applications' queries, which are
+ * matched by endpoint. False without an id or a project (that source is
+ * unscoped, not linked-only).
+ */
+export function isDatabaseServerScopedByIdOnly(
+  source: DatabaseServerScopeSource | null | undefined,
+): boolean {
+  if (
+    !source ||
+    !databaseServerIdText(source.id) ||
+    !projectIdText(source.projectId)
+  ) {
+    return false;
+  }
+  return (
+    getDatabaseServerScopeKeys({ ...source, id: null }).length === 0 &&
+    getDatabaseServerScopeKeys(source).length > 0
+  );
 }
 
 /** True only for a non-empty key set. */

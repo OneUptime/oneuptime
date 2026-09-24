@@ -59,6 +59,7 @@ import {
   getDatabaseServerMemberScopeKeys,
   getDatabaseServerScopeKeys,
   isDatabaseServerScoped,
+  isDatabaseServerScopedByIdOnly,
 } from "../Utils/DatabaseTelemetryScope";
 import {
   DatabaseCallingService,
@@ -85,7 +86,6 @@ import {
   getDatabaseRunsOnLabel,
   getDatabaseRuntimePlatform,
   getDatabaseWorkloadLabel,
-  hasCollectorReceiver,
   isDatabaseServerLive,
 } from "../Utils/DatabaseServerPresentation";
 
@@ -122,7 +122,9 @@ function formatMs(value: number | null): string {
  *
  * Every query goes through Utils/DatabaseServerTelemetryQueries, scoped by
  * the database's entity keys. With no keys at all the page issues no
- * telemetry query and shows the "no telemetry scope yet" banner.
+ * telemetry query and shows the "no telemetry scope yet" banner; a database
+ * whose only key is its row key (no endpoint, no members) says above the
+ * overview that only data sent with its id can show.
  */
 const DatabaseServerOverview: FunctionComponent<
   PageComponentProps
@@ -439,6 +441,8 @@ const DatabaseServerOverview: FunctionComponent<
   const isScoped: boolean = isDatabaseServerScoped(
     getDatabaseServerScopeKeys(source),
   );
+  // Only its row key: only data sent with its id can show.
+  const isIdOnly: boolean = isDatabaseServerScopedByIdOnly(source);
   const memberCount: number = getDatabaseServerMemberScopeKeys(source).length;
   const formattedEndpoints: Array<string> =
     getDatabaseServerFormattedEndpoints(source);
@@ -638,9 +642,12 @@ const DatabaseServerOverview: FunctionComponent<
 
   return (
     <Fragment>
-      {!isScoped ? (
+      {!isScoped || isIdOnly ? (
         <div className="mb-6">
-          <DatabaseServerUnscopedBanner modelId={modelId} />
+          <DatabaseServerUnscopedBanner
+            modelId={modelId}
+            variant={isScoped ? "id-only" : "unscoped"}
+          />
         </div>
       ) : (
         <></>
@@ -730,7 +737,7 @@ const DatabaseServerOverview: FunctionComponent<
           engineLabel={engineLabel}
           status={engineStatus}
           hasCatalog={getDatabaseServerMetrics(r.dbSystem).length > 0}
-          hasCollectorReceiver={hasCollectorReceiver(r.dbSystem)}
+          dbSystem={r.dbSystem}
           lastReceivedAt={
             r.collectorLastSeenAt ? new Date(r.collectorLastSeenAt) : null
           }

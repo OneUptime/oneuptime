@@ -31,7 +31,9 @@ import { getDatabaseMetricsRangeFromSearch } from "../Utils/DatabaseServerTeleme
  * explorer the viewer opens by default scopes by attributes only, so it
  * would chart the metric across the whole project. The chart opens on the
  * range the list is showing, and gets the metric's unit so its values read
- * in it.
+ * in it — and the database's id, which its "Create monitor" scopes the
+ * monitor by (the explorer's own create-monitor action is not reachable
+ * from here).
  */
 
 interface SelectedMetric {
@@ -60,6 +62,7 @@ const DatabaseServerMetrics: FunctionComponent<
   const {
     keys,
     entityKeyDisplays,
+    isIdOnly,
     isLoading,
     error,
     databaseServer,
@@ -80,7 +83,9 @@ const DatabaseServerMetrics: FunctionComponent<
 
   /*
    * No keys means no scope, and the viewer would fall back to every metric
-   * in the project. Show what is actually true instead.
+   * in the project. Show what is actually true instead. (A loaded row always
+   * has its row key, so this is a defensive guard; a row with ONLY its row
+   * key gets the viewer plus an "id only" hint.)
    */
   if (!isDatabaseServerScoped(keys)) {
     return <DatabaseServerUnscopedBanner modelId={modelId} signal="metrics" />;
@@ -88,6 +93,17 @@ const DatabaseServerMetrics: FunctionComponent<
 
   return (
     <Fragment>
+      {isIdOnly ? (
+        <div className="mb-4">
+          <DatabaseServerUnscopedBanner
+            modelId={modelId}
+            signal="metrics"
+            variant="id-only"
+          />
+        </div>
+      ) : (
+        <></>
+      )}
       <MetricsViewer
         entityKeysFilter={keys}
         entityKeyDisplays={entityKeyDisplays}
@@ -111,6 +127,7 @@ const DatabaseServerMetrics: FunctionComponent<
             databaseServer.projectId || ProjectUtil.getCurrentProjectId()
           }
           dbSystem={databaseServer.dbSystem}
+          databaseServerId={modelId}
           initialTimeRange={listRange}
           onClose={(): void => {
             setSelectedMetric(null);

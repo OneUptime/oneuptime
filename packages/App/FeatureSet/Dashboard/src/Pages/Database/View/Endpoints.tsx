@@ -11,6 +11,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import { getDatabaseEndpointSourceLabel } from "../Utils/DatabaseServerPresentation";
 
 /*
  * The endpoints a database is known by — the ONE thing that decides which
@@ -127,13 +128,10 @@ const DatabaseServerEndpoints: FunctionComponent<
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: DatabaseServerEndpoint): ReactElement => {
-              const isUser: boolean =
-                String(item.source || "").toLowerCase() === "user";
+              const label: { text: string; isUser: boolean } =
+                getDatabaseEndpointSourceLabel(item.source);
               return (
-                <Pill
-                  text={isUser ? "Added by a person" : "Discovered"}
-                  color={isUser ? Blue : Gray500}
-                />
+                <Pill text={label.text} color={label.isUser ? Blue : Gray500} />
               );
             },
           },

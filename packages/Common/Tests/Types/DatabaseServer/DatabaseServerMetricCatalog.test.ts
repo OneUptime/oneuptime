@@ -13,6 +13,28 @@ import {
 } from "../../../Types/DatabaseServer/DatabaseSystem";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+
+const AGENT_CONFIG_DIR: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "..",
+  "agents",
+  "DatabaseAgent",
+  "configs",
+);
+
+// The Database Agent's config for a receiver (sqlserver.yaml, oracledb.yaml).
+function readAgentConfig(receiver: string): string {
+  return fs.readFileSync(
+    path.join(AGENT_CONFIG_DIR, `${receiver}.yaml`),
+    "utf8",
+  );
+}
 
 const CURATED_SYSTEMS: Array<string> = [
   "postgresql",
@@ -43,8 +65,8 @@ const KNOWN_CUMULATIVE_COUNTERS: Array<string> = [
   "mongodb.cache.operations",
   "oracledb.executions",
   "oracledb.user_commits",
-  "oracledb.user_rollbacks",
   "oracledb.physical_reads",
+  "oracledb.db.time",
 ];
 
 /*
@@ -58,15 +80,20 @@ const KNOWN_GAUGES: Array<string> = [
   "redis.commands",
   "redis.memory.used",
   "sqlserver.batch.request.rate",
-  "sqlserver.transaction.rate",
+  "sqlserver.batch.sql_compilation.rate",
   "sqlserver.lock.wait.rate",
+  "sqlserver.deadlock.rate",
+  "sqlserver.processes.blocked",
   "sqlserver.page.buffer_cache.hit_ratio",
   "oracledb.sessions.usage",
+  "oracledb.sga.usage",
+  "oracledb.tablespace.utilization",
 ];
 
 /*
- * Off-by-default receiver metrics (otel-db-receivers.md §8.5). The catalog
- * lists only what a stock receiver emits, so none of these may appear.
+ * Off-by-default receiver metrics (otel-db-receivers.md §8.5) the Database
+ * Agent does NOT switch on. Nothing arrives for them on a default setup, so
+ * none of these may appear.
  */
 const OFF_BY_DEFAULT: Array<string> = [
   "postgresql.deadlocks",
@@ -82,8 +109,25 @@ const OFF_BY_DEFAULT: Array<string> = [
   "redis.cmd.latency",
   "mongodb.replica_set.lag",
   "mongodb.lock.deadlock.count",
-  "sqlserver.deadlock.rate",
-  "sqlserver.processes.blocked",
+  "sqlserver.lock.timeout.rate",
+  "sqlserver.memory.usage",
+  "oracledb.logons",
+  "oracledb.transaction.rollbacks",
+];
+
+/*
+ * Default-on in the receiver's metadata, yet measured never to arrive on
+ * the Database Agent's default setups (collector-contrib 0.161.0): SQL
+ * Server 2022 on Linux, connected directly, has no Windows performance
+ * counters behind the first two; Oracle Free 23 connected to its pluggable
+ * database (FREEPDB1) returned neither of the last two in 90 seconds. A
+ * tile for one of them would stay empty forever.
+ */
+const NEVER_ARRIVE_ON_DEFAULT_SETUPS: Array<string> = [
+  "sqlserver.transaction.rate",
+  "sqlserver.transaction_log.usage",
+  "oracledb.processes.usage",
+  "oracledb.sessions.limit",
 ];
 
 /*
@@ -120,8 +164,10 @@ const RECEIVER_DATAPOINT_ATTRIBUTES: Record<string, Array<string>> = {
   "oracledb.tablespace_size.usage": ["tablespace_name", "oracle.db.pdb"],
   "oracledb.executions": ["oracle.db.pdb"],
   "oracledb.user_commits": ["oracle.db.pdb"],
-  "oracledb.user_rollbacks": ["oracle.db.pdb"],
   "oracledb.physical_reads": ["oracle.db.pdb"],
+  "oracledb.db.time": ["oracledb.session.type"],
+  "oracledb.sga.usage": ["oracledb.sga.component.name"],
+  "oracledb.tablespace.utilization": ["tablespace_name", "oracle.db.pdb"],
 };
 
 function metricByName(name: string): DatabaseServerMetricDefinition {
@@ -274,7 +320,7 @@ describe("DATABASE_SERVER_METRICS", () => {
   });
 
   test.each(OFF_BY_DEFAULT)(
-    "%s (off by default in the receiver) is not curated",
+    "%s (off by default, and left off by the agent) is not curated",
     (name: string) => {
       expect(
         DATABASE_SERVER_METRICS.some(
@@ -285,6 +331,110 @@ describe("DATABASE_SERVER_METRICS", () => {
       ).toBe(false);
     },
   );
+
+  test.each(NEVER_ARRIVE_ON_DEFAULT_SETUPS)(
+    "%s (never arrives on the agent's default setup) is not curated",
+    (name: string) => {
+      expect(entriesNamed(name)).toEqual([]);
+    },
+  );
+
+  /*
+   * An optional receiver metric is curated only because the Database Agent
+   * switches it on; if the agent's config stopped doing so, the tile would
+   * go empty. Every other entry must not be switched OFF by the agent.
+   */
+  test("every off-by-default entry is switched on by the agent's config for its receiver", () => {
+    const optional: Array<DatabaseServerMetricDefinition> =
+      DATABASE_SERVER_METRICS.filter(
+        (metric: DatabaseServerMetricDefinition): boolean => {
+          return metric.enabledByDefault === false;
+        },
+      );
+    expect(
+      optional
+        .map((metric: DatabaseServerMetricDefinition): string => {
+          return metric.metricName;
+        })
+        .sort(),
+    ).toEqual([
+      "oracledb.db.time",
+      "oracledb.sga.usage",
+      "oracledb.tablespace.utilization",
+      "sqlserver.deadlock.rate",
+      "sqlserver.processes.blocked",
+    ]);
+
+    for (const metric of optional) {
+      const receiver: string = getDatabaseSystemDescriptor(metric.system)!
+        .receiverTypes[0]!;
+      const config: string = readAgentConfig(receiver);
+      expect({
+        metric: metric.metricName,
+        enabledByAgent: config.includes(
+          `      ${metric.metricName}:\n        enabled: true`,
+        ),
+      }).toEqual({ metric: metric.metricName, enabledByAgent: true });
+      // The tile's (i) tells a team with its own collector to switch it on.
+      expect(metric.description).toContain("Off by default");
+      expect(metric.description).toContain("Database Agent switches it on");
+    }
+  });
+
+  test("no default-on entry is switched off by the agent", () => {
+    for (const metric of DATABASE_SERVER_METRICS) {
+      const descriptor: DatabaseSystemDescriptor | null =
+        getDatabaseSystemDescriptor(metric.system);
+      const config: string = readAgentConfig(descriptor!.receiverTypes[0]!);
+      expect({
+        metric: metric.metricName,
+        disabled: config.includes(
+          `      ${metric.metricName}:\n        enabled: false`,
+        ),
+      }).toEqual({ metric: metric.metricName, disabled: false });
+      if (metric.enabledByDefault !== false) {
+        expect(metric.description).not.toContain("Off by default");
+      }
+    }
+  });
+
+  test("SQL Server's tiles are the ones a directly connected server fills", () => {
+    expect(
+      getDatabaseServerMetrics("microsoft.sql_server").map(
+        (metric: DatabaseServerMetricDefinition): string => {
+          return metric.metricName;
+        },
+      ),
+    ).toEqual([
+      "sqlserver.user.connection.count",
+      "sqlserver.batch.request.rate",
+      "sqlserver.batch.sql_compilation.rate",
+      "sqlserver.page.buffer_cache.hit_ratio",
+      "sqlserver.page.life_expectancy",
+      "sqlserver.lock.wait.rate",
+      "sqlserver.deadlock.rate",
+      "sqlserver.processes.blocked",
+    ]);
+  });
+
+  test("Oracle's tiles are the ones a pluggable-database connection fills", () => {
+    expect(
+      getDatabaseServerMetrics("oracle.db").map(
+        (metric: DatabaseServerMetricDefinition): string => {
+          return metric.metricName;
+        },
+      ),
+    ).toEqual([
+      "oracledb.sessions.usage",
+      "oracledb.db.time",
+      "oracledb.sga.usage",
+      "oracledb.tablespace.utilization",
+      "oracledb.tablespace_size.usage",
+      "oracledb.executions",
+      "oracledb.user_commits",
+      "oracledb.physical_reads",
+    ]);
+  });
 });
 
 /*
@@ -398,8 +548,8 @@ describe("how each metric's series combine", () => {
       "postgresql.replication.data_delay",
       "postgresql.db_size",
       "postgresql.wal.age",
-      "sqlserver.transaction_log.usage",
       "oracledb.tablespace_size.usage",
+      "oracledb.tablespace.utilization",
     ]) {
       expect({ name, combine: metricByName(name).seriesCombine }).toEqual({
         name,
@@ -427,10 +577,42 @@ describe("how each metric's series combine", () => {
       "postgresql.connection.max",
       "postgresql.database.count",
       "mysql.buffer_pool.limit",
-      "oracledb.sessions.limit",
     ]) {
       expect(metricByName(name).seriesCombine).toBe("max");
     }
+  });
+
+  test("Oracle DB time is the users' load: foreground sessions only, as a rate", () => {
+    const dbTime: DatabaseServerMetricDefinition =
+      metricByName("oracledb.db.time");
+    expect(dbTime.kind).toBe("counter");
+    expect(dbTime.attributes).toEqual({
+      "oracledb.session.type": "foreground",
+    });
+    expect(dbTime.unit).toBe("s");
+  });
+
+  test("the SGA adds its components; tablespace fullness is a 0..1 share", () => {
+    const sga: DatabaseServerMetricDefinition =
+      metricByName("oracledb.sga.usage");
+    expect(sga.seriesKeys).toEqual(["oracledb.sga.component.name"]);
+    expect(sga.seriesCombine).toBe("sum");
+    expect(sga.unit).toBe("bytes");
+
+    const fullest: DatabaseServerMetricDefinition = metricByName(
+      "oracledb.tablespace.utilization",
+    );
+    // The receiver reports 0..1 (unit "1"); the tile shows a percentage.
+    expect(fullest.unit).toBe("fraction");
+    expect(fullest.aggregation).toBe(AggregationType.Max);
+  });
+
+  test("SQL Server's blocked processes keep the peak of each interval", () => {
+    const blocked: DatabaseServerMetricDefinition = metricByName(
+      "sqlserver.processes.blocked",
+    );
+    expect(blocked.aggregation).toBe(AggregationType.Max);
+    expect(blocked.kind).toBe("gauge");
   });
 });
 

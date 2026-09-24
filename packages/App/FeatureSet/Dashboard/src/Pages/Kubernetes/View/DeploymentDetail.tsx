@@ -9,11 +9,14 @@ import MetricQueryConfigData, {
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
+import DatabaseServerWorkloadBadge from "../../../Components/DatabaseServer/DatabaseServerWorkloadBadge";
+import { getKubernetesDatabaseWorkloadNames } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -344,7 +347,32 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <Fragment>
+      {/*
+       * The Database discovered on this Deployment, if any. Asked once the
+       * object (and so its namespace) has loaded.
+       */}
+      <DatabaseServerWorkloadBadge
+        resourceLabel="Deployment"
+        target={
+          isLoadingObject
+            ? null
+            : {
+                platform: "kubernetes",
+                parentId: modelId,
+                namespace: objectData?.metadata.namespace,
+                workloadNames: getKubernetesDatabaseWorkloadNames({
+                  kind: "Deployment",
+                  name: deploymentName,
+                  labels: objectData?.metadata.labels,
+                }),
+              }
+        }
+      />
+      <Tabs tabs={tabs} onTabChange={() => {}} />
+    </Fragment>
+  );
 };
 
 export default KubernetesClusterDeploymentDetail;

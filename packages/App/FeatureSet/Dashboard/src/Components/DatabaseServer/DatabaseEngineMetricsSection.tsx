@@ -11,7 +11,12 @@ import {
   formatDatabaseMetricValue,
   getDatabaseEngineMetricsStatusLabel,
 } from "../../Pages/Database/Utils/DatabaseServerPresentation";
+import { getDatabaseAgentEngine } from "../../Pages/Database/Utils/DocumentationMarkdown";
 import { getDatabaseServerMetricId } from "Common/Types/DatabaseServer/DatabaseServerMetricCatalog";
+import {
+  DatabaseEngineMetricsSource,
+  getDatabaseEngineMetricsSource,
+} from "Common/Types/DatabaseServer/DatabaseSystem";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -36,6 +41,14 @@ import React, { FunctionComponent, ReactElement } from "react";
  * and "Disconnected" (an agent reported, then stopped — red, with when it
  * last did) are different situations and read differently: a database found
  * from traces or containers is never told its agent "stopped reporting".
+ *
+ * What "not connected" suggests follows where the engine's metrics come
+ * from (DatabaseSystem's getDatabaseEngineMetricsSource), the same source
+ * the Documentation tab builds its guide from: the Database Agent for an
+ * engine it ships a config for, a ready-made collector config for any other
+ * receiver, Prometheus endpoint, cloud monitoring API or custom exporter —
+ * and nothing to connect only for an engine that runs inside the
+ * application's own process.
  */
 
 export interface ComponentProps {
@@ -44,8 +57,8 @@ export interface ComponentProps {
   status: DatabaseEngineMetricsStatus;
   // Whether the engine has a curated metric set at all.
   hasCatalog: boolean;
-  // Whether an OpenTelemetry Collector receiver exists for the engine.
-  hasCollectorReceiver: boolean;
+  // The row's engine: decides how its engine metrics are connected.
+  dbSystem?: string | null | undefined;
   // When engine metrics last arrived (collectorLastSeenAt), if ever.
   lastReceivedAt?: Date | null | undefined;
   results: Array<DatabaseEngineMetricResult>;
@@ -93,30 +106,101 @@ export const EngineMetricsStatusPill: FunctionComponent<{
   );
 };
 
+// The Documentation-tab link for an engine connected by a collector config.
+export const ENGINE_METRICS_CONNECT_LINK_LABEL: string =
+  "Connect engine metrics →";
+
+export const ENGINE_METRICS_INSTALL_AGENT_LINK_LABEL: string =
+  "Install the Database Agent →";
+
+export const ENGINE_METRICS_CHECK_AGENT_LINK_LABEL: string =
+  "Check the agent setup →";
+
+export interface EngineMetricsGuidance {
+  // Why the metrics are missing, and what to do about it.
+  description: string;
+  // The Documentation-tab link, or null when there is nothing to set up.
+  linkLabel: string | null;
+}
+
+function whatEngineMetricsAre(engine: string): string {
+  return `Connections, throughput, cache hit ratio, locks and replication come from the ${engine} engine itself`;
+}
+
 /**
  * What the "no engine metrics" card says for a database whose metrics are
- * not arriving: why, and what to do about it.
+ * not arriving — why, and what to do about it — and which link it offers.
  */
-export function getEngineMetricsMissingDescription(data: {
+export function getEngineMetricsGuidance(data: {
   status: DatabaseEngineMetricsStatus;
   engineLabel: string;
-  hasCollectorReceiver: boolean;
+  dbSystem?: string | null | undefined;
   lastReceivedAt?: Date | null | undefined;
-}): string {
+}): EngineMetricsGuidance {
+  const engine: string = data.engineLabel;
+
   if (data.status === DatabaseEngineMetricsStatus.Disconnected) {
     const since: string = data.lastReceivedAt
       ? ` The last engine metrics arrived ${OneUptimeDate.getDateAsLocalFormattedString(
           data.lastReceivedAt,
         )}.`
       : "";
-    return `The Database Agent (or OpenTelemetry Collector) that sent engine metrics for this ${data.engineLabel} database has stopped reporting.${since} Check that the agent is running, then its connection to the database.`;
+    return {
+      description: `The Database Agent (or OpenTelemetry Collector) that sent engine metrics for this ${engine} database has stopped reporting.${since} Check that the agent is running, then its connection to the database.`,
+      linkLabel: ENGINE_METRICS_CHECK_AGENT_LINK_LABEL,
+    };
   }
 
-  if (data.hasCollectorReceiver) {
-    return `Connections, throughput, cache hit ratio, locks and replication come from the ${data.engineLabel} engine itself, and no Database Agent or OpenTelemetry Collector has sent them for this database yet. Install the OneUptime Database Agent (or point your own OpenTelemetry Collector at it) to see them here.`;
-  }
+  const source: DatabaseEngineMetricsSource = getDatabaseEngineMetricsSource(
+    data.dbSystem,
+  );
 
-  return `There is no OpenTelemetry Collector receiver for ${data.engineLabel}, so this page shows what your applications report about it: the queries they send and the services that call it.`;
+  switch (source.kind) {
+    case "embedded":
+      return {
+        description: `${engine} runs inside your application's process, so there is no database server to collect engine metrics from. This page shows what your applications report about it: the queries they send and the services that call it.`,
+        linkLabel: null,
+      };
+    case "receiver":
+      if (getDatabaseAgentEngine(data.dbSystem)) {
+        return {
+          description: `${whatEngineMetricsAre(engine)}, and no Database Agent or OpenTelemetry Collector has sent them for this database yet. Install the OneUptime Database Agent (or point your own OpenTelemetry Collector at it) to see them here.`,
+          linkLabel: ENGINE_METRICS_INSTALL_AGENT_LINK_LABEL,
+        };
+      }
+      return {
+        description: `${whatEngineMetricsAre(engine)}, and no OpenTelemetry Collector has sent them for this database yet. The collector has a receiver for ${engine}: the Documentation tab has a ready-made collector config that sends its metrics here.`,
+        linkLabel: ENGINE_METRICS_CONNECT_LINK_LABEL,
+      };
+    case "prometheus":
+      return {
+        description: `The OpenTelemetry Collector has no dedicated receiver for ${engine}, but ${engine} serves Prometheus metrics itself, so its engine metrics can still be collected: the Documentation tab has a ready-made collector config that scrapes them and sends them here.`,
+        linkLabel: ENGINE_METRICS_CONNECT_LINK_LABEL,
+      };
+    case "cloud-monitoring":
+      return {
+        description: `${engine} is a managed service: its engine metrics come from the provider's monitoring API, not from a connection to the database. The Documentation tab shows how to bring them into a collector and attach them to this database.`,
+        linkLabel: ENGINE_METRICS_CONNECT_LINK_LABEL,
+      };
+    default:
+      return {
+        description: `The OpenTelemetry Collector has no ready-made receiver for ${engine}, but its metrics can still be collected: the Documentation tab explains the options and has the collector config that attaches them to this database.`,
+        linkLabel: ENGINE_METRICS_CONNECT_LINK_LABEL,
+      };
+  }
+}
+
+/**
+ * The description half of getEngineMetricsGuidance, for callers that only
+ * need the words.
+ */
+export function getEngineMetricsMissingDescription(data: {
+  status: DatabaseEngineMetricsStatus;
+  engineLabel: string;
+  dbSystem?: string | null | undefined;
+  lastReceivedAt?: Date | null | undefined;
+}): string {
+  return getEngineMetricsGuidance(data).description;
 }
 
 const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
@@ -167,6 +251,12 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
   if (!hasData) {
     const isDisconnected: boolean =
       props.status === DatabaseEngineMetricsStatus.Disconnected;
+    const guidance: EngineMetricsGuidance = getEngineMetricsGuidance({
+      status: props.status,
+      engineLabel: props.engineLabel,
+      dbSystem: props.dbSystem,
+      lastReceivedAt: props.lastReceivedAt,
+    });
 
     return (
       <Card
@@ -175,12 +265,7 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
             ? ENGINE_METRICS_DISCONNECTED_TITLE
             : ENGINE_METRICS_NOT_CONNECTED_TITLE
         }
-        description={getEngineMetricsMissingDescription({
-          status: props.status,
-          engineLabel: props.engineLabel,
-          hasCollectorReceiver: props.hasCollectorReceiver,
-          lastReceivedAt: props.lastReceivedAt,
-        })}
+        description={guidance.description}
       >
         <div
           data-testid={
@@ -191,14 +276,12 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
           className="flex flex-wrap items-center gap-4"
         >
           <EngineMetricsStatusPill status={props.status} />
-          {props.hasCollectorReceiver ? (
+          {guidance.linkLabel ? (
             <AppLink
               to={documentationRoute}
               className="text-sm font-medium text-indigo-600 hover:underline"
             >
-              {isDisconnected
-                ? "Check the agent setup →"
-                : "Install the Database Agent →"}
+              {guidance.linkLabel}
             </AppLink>
           ) : (
             <></>

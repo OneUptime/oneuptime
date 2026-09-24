@@ -68,10 +68,12 @@ export const OPEN_DATABASE_LABEL: string = "Open database";
  *   2. for a cluster-local endpoint, its `@cluster`-qualified twins;
  *   3. every stored endpoint on the same HOST, any port or cluster — a
  *      database on a non-default port (PgBouncer on 6432, a managed
- *      Postgres on 25060), and for a single-label Kubernetes name
- *      (`postgres`) the `postgres.<namespace>.svc.cluster.local` forms the
- *      in-cluster callers were recorded with. Rows of another engine family
- *      are ignored; a known port must match exactly.
+ *      Postgres on 25060), and for a Kubernetes short name the expanded
+ *      forms the in-cluster callers were recorded with: `postgres` →
+ *      `postgres.<namespace>.svc.cluster.local`, `postgres.data` →
+ *      `postgres.data.svc.cluster.local` (any cluster), `mongo-0.mongo-hl`
+ *      → `mongo-0.mongo-hl.<namespace>.svc.cluster.local`. Rows of another
+ *      engine family are ignored; a known port must match exactly.
  *
  * Wherever more than one database is left, the one on the engine's default
  * port is taken when it is the only one there; otherwise no link — opening
@@ -173,32 +175,93 @@ const DNS_LABEL_PATTERN: RegExp = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
 
 const ALL_DIGITS_PATTERN: RegExp = /^\d+$/;
 
+// A StatefulSet pod's name: `<statefulset>-<ordinal>` (`mongo-0`).
+const POD_ORDINAL_PATTERN: RegExp = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?-\d+$/;
+
+const KUBERNETES_SERVICE_SUFFIX: string = ".svc.cluster.local";
+
+/*
+ * Second labels that make a two-label name a private DNS zone, never a
+ * Kubernetes `<service>.<namespace>` (the ingest identity rules read
+ * `db.internal` the same way).
+ */
+const NON_NAMESPACE_TOP_LABELS: ReadonlySet<string> = new Set<string>([
+  "local",
+  "internal",
+  "localdomain",
+]);
+
 function isSingleLabelHost(host: string): boolean {
   return DNS_LABEL_PATTERN.test(host) && !ALL_DIGITS_PATTERN.test(host);
 }
 
 /*
+ * `<a>.<b>`: the short name a pod reaches a Service in another namespace by
+ * (`postgres.data`), or a StatefulSet member in its own
+ * (`mongo-0.mongo-headless`). A node carries it as the raw server.address,
+ * with no caller context, so it reads as a domain; the endpoints stored for
+ * it are the Service FQDN the in-cluster callers were keyed with.
+ */
+function isTwoLabelKubernetesHost(host: string): boolean {
+  const labels: Array<string> = host.split(".");
+  return (
+    labels.length === 2 &&
+    DNS_LABEL_PATTERN.test(labels[0]!) &&
+    DNS_LABEL_PATTERN.test(labels[1]!) &&
+    !ALL_DIGITS_PATTERN.test(labels[1]!) &&
+    !NON_NAMESPACE_TOP_LABELS.has(labels[1]!)
+  );
+}
+
+// `<nodeHost>.<namespace>.svc.cluster.local`, any one namespace label.
+function isServiceInAnyNamespace(
+  nodeHost: string,
+  storedHost: string,
+): boolean {
+  const prefix: string = `${nodeHost}.`;
+  if (
+    !storedHost.startsWith(prefix) ||
+    !storedHost.endsWith(KUBERNETES_SERVICE_SUFFIX)
+  ) {
+    return false;
+  }
+  const namespace: string = storedHost.substring(
+    prefix.length,
+    storedHost.length - KUBERNETES_SERVICE_SUFFIX.length,
+  );
+  return DNS_LABEL_PATTERN.test(namespace);
+}
+
+/*
  * True when a stored endpoint host is the node's host: the same canonical
- * host, or — for a single-label node name — that name as a Service in any
- * namespace (`postgres` → `postgres.<ns>.svc.cluster.local`).
+ * host, or a Kubernetes short name's expanded forms —
+ *
+ *   - a single label as a Service in any namespace (`postgres` →
+ *     `postgres.<ns>.svc.cluster.local`);
+ *   - two labels as the Service in THAT namespace (`postgres.data` →
+ *     `postgres.data.svc.cluster.local`, qualified with any cluster — the
+ *     qualifier is not part of the host);
+ *   - a StatefulSet member behind its headless Service, in any namespace
+ *     (`mongo-0.mongo-headless` →
+ *     `mongo-0.mongo-headless.<ns>.svc.cluster.local`).
  */
 function isSameHost(nodeHost: string, storedHost: string): boolean {
   if (storedHost === nodeHost) {
     return true;
   }
-  if (!isSingleLabelHost(nodeHost)) {
+  if (isSingleLabelHost(nodeHost)) {
+    return isServiceInAnyNamespace(nodeHost, storedHost);
+  }
+  if (!isTwoLabelKubernetesHost(nodeHost)) {
     return false;
   }
-  const prefix: string = `${nodeHost}.`;
-  const suffix: string = ".svc.cluster.local";
-  if (!storedHost.startsWith(prefix) || !storedHost.endsWith(suffix)) {
-    return false;
+  if (storedHost === `${nodeHost}${KUBERNETES_SERVICE_SUFFIX}`) {
+    return true;
   }
-  const namespace: string = storedHost.substring(
-    prefix.length,
-    storedHost.length - suffix.length,
+  return (
+    POD_ORDINAL_PATTERN.test(nodeHost.split(".")[0]!) &&
+    isServiceInAnyNamespace(nodeHost, storedHost)
   );
-  return DNS_LABEL_PATTERN.test(namespace);
 }
 
 interface SameHostCandidate {
@@ -222,7 +285,8 @@ async function resolveDatabaseServerIdForHost(data: {
 
   const hostPart: string = host.includes(":") ? `[${host}]` : host;
   const prefixes: Array<string> = [`${hostPart}:`];
-  if (isSingleLabelHost(host)) {
+  // A Kubernetes short name is stored in its expanded `<host>.….svc.…` forms.
+  if (isSingleLabelHost(host) || isTwoLabelKubernetesHost(host)) {
     prefixes.push(`${host}.`);
   }
 

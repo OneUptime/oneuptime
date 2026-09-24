@@ -124,7 +124,11 @@ jest.mock("../../../UI/Components/Card/Card", () => {
 
 import DatabaseServerElement from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DatabaseServerElement";
 import DatabaseServersElement from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DatabaseServersElement";
-import DatabaseServerUnscopedBanner from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DatabaseServerUnscopedBanner";
+import DatabaseServerUnscopedBanner, {
+  DATABASE_SERVER_ID_ONLY_TITLE,
+  getDatabaseServerScopeBannerDescription,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DatabaseServerUnscopedBanner";
+import { isDatabaseServerScopedByIdOnly } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseTelemetryScope";
 import DatabaseCallingServicesCard, {
   getCallingServicesFooter,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DatabaseCallingServicesCard";
@@ -132,6 +136,8 @@ import DatabaseEngineMetricsSection, {
   ENGINE_METRICS_DISCONNECTED_TITLE,
   ENGINE_METRICS_NO_DATA_TITLE,
   ENGINE_METRICS_NOT_CONNECTED_TITLE,
+  EngineMetricsGuidance,
+  getEngineMetricsGuidance,
   getEngineMetricsMissingDescription,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DatabaseEngineMetricsSection";
 import DatabaseMetricChartModal from "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DatabaseMetricChartModal";
@@ -145,6 +151,8 @@ import {
 import {
   DatabaseEngineMetricsStatus,
   DatabaseRuntimePlatform,
+  formatDatabaseFraction,
+  formatDatabaseMetricValue,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerPresentation";
 import {
   DatabaseEngineMetricResult,
@@ -255,6 +263,115 @@ describe("DatabaseServerUnscopedBanner", () => {
     expect(
       screen.getByRole("region", { name: "No telemetry scope yet" }),
     ).toHaveTextContent("no telemetry can be attributed to it");
+  });
+
+  test("the 'id only' hint says only data sent with its id shows, and how to get more", () => {
+    render(
+      inRouter(
+        <DatabaseServerUnscopedBanner
+          modelId={MODEL_ID}
+          signal="metrics"
+          variant="id-only"
+        />,
+      ),
+    );
+
+    const card: HTMLElement = screen.getByRole("region", {
+      name: DATABASE_SERVER_ID_ONLY_TITLE,
+    });
+    expect(card).toHaveTextContent(
+      "what shows here is only the metrics sent with its id",
+    );
+    expect(card).toHaveTextContent("DATABASE_SERVER_ID");
+    expect(card).toHaveTextContent("oneuptime.database.server.id.");
+    // Never claims nothing can be attributed: the row key is a real scope.
+    expect(card).not.toHaveTextContent("can be attributed");
+    expect(
+      screen.queryByRole("region", { name: "No telemetry scope yet" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(card).getByTestId("database-server-unscoped-banner"),
+    ).toHaveAttribute("data-variant", "id-only");
+    expect(
+      within(card).getByRole("link", { name: /Add an endpoint/ }),
+    ).toHaveAttribute("href", databasePath("/endpoints"));
+    expect(
+      within(card).getByRole("link", { name: /Connect the Database Agent/ }),
+    ).toHaveAttribute("href", databasePath("/documentation"));
+  });
+
+  test("the description for each variant", () => {
+    expect(getDatabaseServerScopeBannerDescription("unscoped", "logs")).toBe(
+      "This database has no endpoint and no Kubernetes or container members yet, so no logs can be attributed to it.",
+    );
+    expect(getDatabaseServerScopeBannerDescription("id-only")).toBe(
+      "This database has no endpoint and no Kubernetes or container members yet, so what shows here is only the telemetry sent with its id. The queries your applications send it are matched by endpoint.",
+    );
+  });
+});
+
+/*
+ * A loaded row always has its row key, so "unscoped" only happens without a
+ * project; "id only" is a row whose row key is its whole scope.
+ */
+describe("isDatabaseServerScopedByIdOnly", () => {
+  const PROJECT: string = "10000000-0000-4000-8000-000000000001";
+
+  test("a row with no parseable endpoint and no members is scoped by its id alone", () => {
+    expect(
+      isDatabaseServerScopedByIdOnly({
+        projectId: PROJECT,
+        id: MODEL_ID,
+        endpoints: ["localhost:5432", "not a host", { endpoint: null }],
+        dbSystem: "postgresql",
+        memberEntityKeys: {},
+      }),
+    ).toBe(true);
+    expect(
+      isDatabaseServerScopedByIdOnly({
+        projectId: PROJECT,
+        id: MODEL_ID.toString(),
+        endpoints: [],
+      }),
+    ).toBe(true);
+  });
+
+  test("an endpoint or a member is more than the id", () => {
+    expect(
+      isDatabaseServerScopedByIdOnly({
+        projectId: PROJECT,
+        id: MODEL_ID,
+        endpoints: ["db.prod.internal:5432"],
+        dbSystem: "postgresql",
+      }),
+    ).toBe(false);
+    expect(
+      isDatabaseServerScopedByIdOnly({
+        projectId: PROJECT,
+        id: MODEL_ID,
+        endpoints: [],
+        dbSystem: "postgresql",
+        memberEntityKeys: { "0123456789abcdef": "2026-09-23T10:00:00.000Z" },
+      }),
+    ).toBe(false);
+  });
+
+  test("without an id or a project it is unscoped, not id-only", () => {
+    expect(
+      isDatabaseServerScopedByIdOnly({
+        projectId: PROJECT,
+        id: null,
+        endpoints: [],
+      }),
+    ).toBe(false);
+    expect(
+      isDatabaseServerScopedByIdOnly({
+        projectId: null,
+        id: MODEL_ID,
+        endpoints: [],
+      }),
+    ).toBe(false);
+    expect(isDatabaseServerScopedByIdOnly(null)).toBe(false);
   });
 });
 
@@ -395,7 +512,7 @@ describe("DatabaseEngineMetricsSection", () => {
   function renderSection(data: {
     status: DatabaseEngineMetricsStatus;
     results: Array<DatabaseEngineMetricResult>;
-    hasCollectorReceiver?: boolean;
+    dbSystem?: string;
     hasCatalog?: boolean;
     isLoading?: boolean;
     lastReceivedAt?: Date | null;
@@ -408,7 +525,7 @@ describe("DatabaseEngineMetricsSection", () => {
           engineLabel={data.engineLabel || "PostgreSQL"}
           status={data.status}
           hasCatalog={data.hasCatalog ?? true}
-          hasCollectorReceiver={data.hasCollectorReceiver ?? true}
+          dbSystem={data.dbSystem ?? "postgresql"}
           lastReceivedAt={data.lastReceivedAt}
           results={data.results}
           isLoading={data.isLoading ?? false}
@@ -485,23 +602,128 @@ describe("DatabaseEngineMetricsSection", () => {
       getEngineMetricsMissingDescription({
         status: DatabaseEngineMetricsStatus.NotConnected,
         engineLabel: "MySQL",
-        hasCollectorReceiver: true,
+        dbSystem: "mysql",
       }),
     ).toContain("no Database Agent or OpenTelemetry Collector has sent them");
     expect(
       getEngineMetricsMissingDescription({
         status: DatabaseEngineMetricsStatus.Disconnected,
         engineLabel: "MySQL",
-        hasCollectorReceiver: true,
+        dbSystem: "mysql",
       }),
     ).toContain("has stopped reporting");
-    expect(
-      getEngineMetricsMissingDescription({
+    // The engine's metrics CAN be collected: never "there is no receiver".
+    for (const dbSystem of [
+      "cockroachdb",
+      "couchdb",
+      "aws.dynamodb",
+      "ibm.db2",
+      "acme-unknown-db",
+    ]) {
+      const text: string = getEngineMetricsMissingDescription({
         status: DatabaseEngineMetricsStatus.NotConnected,
-        engineLabel: "CockroachDB",
-        hasCollectorReceiver: false,
-      }),
-    ).toContain("There is no OpenTelemetry Collector receiver for CockroachDB");
+        engineLabel: "X",
+        dbSystem,
+      });
+      expect({
+        dbSystem,
+        saysNoReceiver: text.includes("There is no OpenTelemetry Collector"),
+        pointsAtGuide: text.includes("Documentation tab"),
+      }).toEqual({ dbSystem, saysNoReceiver: false, pointsAtGuide: true });
+    }
+  });
+
+  /*
+   * What "not connected" offers follows where the engine's metrics come
+   * from — the same source the Documentation tab builds its guide from.
+   */
+  test.each([
+    [
+      "an engine the Database Agent ships a config for",
+      "mysql",
+      "MySQL",
+      "Install the OneUptime Database Agent",
+      "Install the Database Agent →",
+    ],
+    [
+      "a fork the agent monitors with its family's config",
+      "mariadb",
+      "MariaDB",
+      "Install the OneUptime Database Agent",
+      "Install the Database Agent →",
+    ],
+    [
+      "an engine with a collector receiver but no agent config",
+      "couchdb",
+      "CouchDB",
+      "ready-made collector config",
+      "Connect engine metrics →",
+    ],
+    [
+      "an engine that serves Prometheus metrics",
+      "cockroachdb",
+      "CockroachDB",
+      "serves Prometheus metrics itself",
+      "Connect engine metrics →",
+    ],
+    [
+      "a managed service read from its provider's monitoring API",
+      "aws.dynamodb",
+      "Amazon DynamoDB",
+      "provider's monitoring API",
+      "Connect engine metrics →",
+    ],
+    [
+      "an engine with no ready-made path",
+      "ibm.db2",
+      "IBM Db2",
+      "can still be collected",
+      "Connect engine metrics →",
+    ],
+    [
+      "an engine OneUptime does not know",
+      "acme-unknown-db",
+      "acme-unknown-db",
+      "can still be collected",
+      "Connect engine metrics →",
+    ],
+  ])(
+    "not connected, %s: says how and links the Documentation tab",
+    (
+      _case: string,
+      dbSystem: string,
+      engineLabel: string,
+      wording: string,
+      linkLabel: string,
+    ) => {
+      renderSection({
+        status: DatabaseEngineMetricsStatus.NotConnected,
+        results: [],
+        hasCatalog: false,
+        dbSystem,
+        engineLabel,
+      });
+
+      const card: HTMLElement = screen.getByRole("region", {
+        name: ENGINE_METRICS_NOT_CONNECTED_TITLE,
+      });
+      expect(card).toHaveTextContent(wording);
+      expect(card).not.toHaveTextContent("There is no OpenTelemetry Collector");
+      expect(card).not.toHaveTextContent("stopped");
+      const link: HTMLElement = within(card).getByRole("link");
+      expect(link).toHaveTextContent(linkLabel);
+      expect(link).toHaveAttribute("href", databasePath("/documentation"));
+    },
+  );
+
+  test("a disconnected engine always offers the setup check, whatever its source", () => {
+    const guidance: EngineMetricsGuidance = getEngineMetricsGuidance({
+      status: DatabaseEngineMetricsStatus.Disconnected,
+      engineLabel: "CockroachDB",
+      dbSystem: "cockroachdb",
+    });
+    expect(guidance.description).toContain("has stopped reporting");
+    expect(guidance.linkLabel).toBe("Check the agent setup →");
   });
 
   test("connected with nothing in range: points at the Metrics tab, not the install guide", () => {
@@ -545,20 +767,30 @@ describe("DatabaseEngineMetricsSection", () => {
     ).toHaveAttribute("href", databasePath("/metrics"));
   });
 
-  test("an engine without a collector receiver offers no connect link", () => {
+  test("an engine inside the application's process has nothing to connect, and says so", () => {
     renderSection({
       status: DatabaseEngineMetricsStatus.NotConnected,
       results: [],
-      hasCollectorReceiver: false,
+      hasCatalog: false,
+      dbSystem: "sqlite",
+      engineLabel: "SQLite",
     });
 
     const card: HTMLElement = screen.getByRole("region", {
       name: ENGINE_METRICS_NOT_CONNECTED_TITLE,
     });
     expect(card).toHaveTextContent(
-      "There is no OpenTelemetry Collector receiver",
+      "SQLite runs inside your application's process",
     );
+    expect(card).toHaveTextContent("the queries they send");
     expect(within(card).queryByRole("link")).not.toBeInTheDocument();
+    expect(
+      getEngineMetricsGuidance({
+        status: DatabaseEngineMetricsStatus.NotConnected,
+        engineLabel: "DuckDB",
+        dbSystem: "duckdb",
+      }).linkLabel,
+    ).toBeNull();
   });
 
   test("with data: a tile per catalog metric and a chart per metric with points", () => {
@@ -648,6 +880,56 @@ describe("DatabaseEngineMetricsSection", () => {
     );
     expect(duplicateKeyWarnings).toEqual([]);
     consoleError.mockRestore();
+  });
+
+  test("Oracle's tiles read in their own units: a fullness as a percentage, DB time per second", () => {
+    const oracle: Array<DatabaseServerMetricDefinition> =
+      getDatabaseServerMetrics("oracle.db");
+    const values: Record<string, number> = {
+      "oracledb.tablespace.utilization": 0.853,
+      "oracledb.sga.usage": 1610612736,
+      "oracledb.db.time": 0.35,
+    };
+
+    renderSection({
+      status: DatabaseEngineMetricsStatus.Connected,
+      engineLabel: "Oracle",
+      dbSystem: "oracle.db",
+      results: oracle.map((definition: DatabaseServerMetricDefinition) => {
+        const value: number | undefined = values[definition.metricName];
+        return toEngineMetricResult(
+          definition,
+          value === undefined ? [] : [{ x: at(0), y: value }],
+        );
+      }),
+    });
+
+    const tile: (title: string) => HTMLElement = (
+      title: string,
+    ): HTMLElement => {
+      return screen
+        .getAllByTestId("database-engine-metric-tile")
+        .find((element: HTMLElement): boolean => {
+          return (element.textContent || "").startsWith(title);
+        })!;
+    };
+    expect(tile("Fullest tablespace")).toHaveTextContent("85%");
+    expect(tile("SGA in use")).toHaveTextContent("1.5 GiB");
+    expect(tile("DB time")).toHaveTextContent("0.35 s/s");
+    // No tile for a metric a pluggable database never reports.
+    expect(screen.queryByText("Session limit")).not.toBeInTheDocument();
+    expect(screen.queryByText("Processes")).not.toBeInTheDocument();
+  });
+
+  test("a 0..1 share reads as a percentage without rounding a small one away", () => {
+    expect(formatDatabaseFraction(0.853)).toBe("85%");
+    expect(formatDatabaseFraction(0.042)).toBe("4.2%");
+    expect(formatDatabaseFraction(0.000389)).toBe("0.04%");
+    expect(formatDatabaseFraction(0)).toBe("0%");
+    expect(formatDatabaseFraction(1)).toBe("100%");
+    expect(formatDatabaseFraction(null)).toBe("—");
+    expect(formatDatabaseFraction(Number.NaN)).toBe("—");
+    expect(formatDatabaseMetricValue(0.5, "fraction", "gauge")).toBe("50%");
   });
 
   test("with data from a stopped agent, the header still says so", () => {

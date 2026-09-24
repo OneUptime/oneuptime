@@ -21,16 +21,25 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * A database's Logs, Traces and Metrics tabs, rendered for real with the
  * viewers replaced by markers. What they must get right:
  *
- *   - the viewer is scoped by EXACTLY the database's key set — its endpoint
- *     keys and its member keys — and nothing else;
- *   - a database with no keys renders the "no telemetry scope" banner and
- *     never mounts a viewer (an unscoped viewer shows the whole project);
- *   - each key's locked chip is named (endpoint / instance), not a hash;
+ *   - the viewer is scoped by EXACTLY the database's key set — its row key
+ *     (telemetry sent with its id), its endpoint keys and its member keys —
+ *     and nothing else;
+ *   - a loaded row always has its row key, so a database with no endpoint
+ *     and no members still mounts the viewer, scoped by that key alone, with
+ *     an "id only" hint above it;
+ *   - a source with no key at all (no project to hash the keys with) renders
+ *     the "no telemetry scope" banner and never mounts a viewer (an
+ *     unscoped viewer shows the whole project);
+ *   - each key's locked chip is named (database / endpoint / instance), not
+ *     a hash;
  *   - loading, lookup errors and a missing row render their own states.
  */
 
 const MODEL_ID_STRING: string = "84858d6c-1111-4aaa-8bbb-000000000001";
 const PROJECT_ID_STRING: string = "10000000-0000-4000-8000-000000000001";
+
+// What ProjectUtil.getCurrentProjectId returns; null for "no project".
+let mockCurrentProjectId: string | null = PROJECT_ID_STRING;
 
 const getItemMock: MockFunction = getJestMockFunction();
 const getListMock: MockFunction = getJestMockFunction();
@@ -90,7 +99,9 @@ jest.mock("../../../UI/Utils/Project", () => {
         const { default: ObjectIDType } = jest.requireActual(
           "../../../Types/ObjectID",
         ) as { default: new (id: string) => unknown };
-        return new ObjectIDType("10000000-0000-4000-8000-000000000001");
+        return mockCurrentProjectId
+          ? new ObjectIDType(mockCurrentProjectId)
+          : null;
       },
     },
   };
@@ -119,9 +130,14 @@ jest.mock(
   () => {
     return {
       __esModule: true,
-      default: (props: { signal?: string }) => {
+      default: (props: { signal?: string; variant?: string }) => {
         return (
-          <div data-testid="database-unscoped-banner">{props.signal || ""}</div>
+          <div
+            data-testid="database-unscoped-banner"
+            data-variant={props.variant || "unscoped"}
+          >
+            {props.signal || ""}
+          </div>
         );
       },
     };
@@ -197,6 +213,7 @@ import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import {
   keyForDatabaseEndpoint,
+  keyForDatabaseServerRow,
   keyForKubernetesPod,
 } from "../../../Utils/Telemetry/EntityKey";
 
@@ -205,6 +222,12 @@ const PAGE_PROPS: PageComponentProps = {
   currentProject: null,
   hasPaymentMethod: true,
 };
+
+// Telemetry sent with this database's id (oneuptime.database.server.id).
+const ROW_KEY: string = keyForDatabaseServerRow(
+  PROJECT_ID_STRING,
+  MODEL_ID_STRING,
+);
 
 const POD_KEY: string = keyForKubernetesPod(PROJECT_ID_STRING, {
   clusterName: "prod",
@@ -219,11 +242,14 @@ const ENDPOINT_KEY: string = keyForDatabaseEndpoint(PROJECT_ID_STRING, {
 
 function databaseServer(data: {
   memberEntityKeys?: Record<string, string> | undefined;
+  withoutProject?: boolean | undefined;
 }): DatabaseServer {
   const item: DatabaseServer = new DatabaseServer();
   item.id = new ObjectID(MODEL_ID_STRING);
   item.name = "PostgreSQL db.prod.internal:5432";
-  item.projectId = new ObjectID(PROJECT_ID_STRING);
+  if (!data.withoutProject) {
+    item.projectId = new ObjectID(PROJECT_ID_STRING);
+  }
   item.dbSystem = "postgresql";
   if (data.memberEntityKeys) {
     item.memberEntityKeys = data.memberEntityKeys;
@@ -309,6 +335,7 @@ function scopedKeys(tab: string, props: ViewerProps): Array<string> {
 }
 
 beforeEach(() => {
+  mockCurrentProjectId = PROJECT_ID_STRING;
   getItemMock.mockReset();
   getListMock.mockReset();
   logsViewerMock.mockReset();
@@ -322,7 +349,7 @@ afterEach(() => {
 });
 
 describe.each(TABS)("the database %s tab", (tab: string, tabCase: TabCase) => {
-  test("scopes the viewer by the endpoint and member keys, and nothing else", async () => {
+  test("scopes the viewer by the row, endpoint and member keys, and nothing else", async () => {
     getItemMock.mockResolvedValue(
       databaseServer({
         memberEntityKeys: { [POD_KEY]: "2026-09-23T10:00:00.000Z" },
@@ -334,12 +361,29 @@ describe.each(TABS)("the database %s tab", (tab: string, tabCase: TabCase) => {
     await screen.findByTestId(tabCase.viewerTestId);
 
     expect(screen.getAllByTestId(tabCase.viewerTestId)).toHaveLength(1);
+    // Scoped by an endpoint too: no "id only" hint, no unscoped banner.
     expect(
       screen.queryByTestId("database-unscoped-banner"),
     ).not.toBeInTheDocument();
 
     const props: ViewerProps = lastProps(tabCase.viewerMock);
-    expect(scopedKeys(tab, props)).toEqual([ENDPOINT_KEY, POD_KEY]);
+    expect(scopedKeys(tab, props)).toEqual([ROW_KEY, ENDPOINT_KEY, POD_KEY]);
+  });
+
+  test("the row key is first even for a database with an endpoint only", async () => {
+    getItemMock.mockResolvedValue(databaseServer({}));
+    getListMock.mockResolvedValue(endpointRows(["db.prod.internal:5432"]));
+
+    render(<tabCase.Page {...PAGE_PROPS} />);
+    await screen.findByTestId(tabCase.viewerTestId);
+
+    expect(scopedKeys(tab, lastProps(tabCase.viewerMock))).toEqual([
+      ROW_KEY,
+      ENDPOINT_KEY,
+    ]);
+    expect(
+      screen.queryByTestId("database-unscoped-banner"),
+    ).not.toBeInTheDocument();
   });
 
   test("names every key's locked chip", async () => {
@@ -361,6 +405,10 @@ describe.each(TABS)("the database %s tab", (tab: string, tabCase: TabCase) => {
       { displayKey: string; displayValue: string }
     >;
 
+    expect(displays[ROW_KEY]).toEqual({
+      displayKey: "Database",
+      displayValue: "PostgreSQL db.prod.internal:5432",
+    });
     expect(displays[ENDPOINT_KEY]).toEqual({
       displayKey: "Database Endpoint",
       displayValue: "db.prod.internal:5432",
@@ -405,23 +453,47 @@ describe.each(TABS)("the database %s tab", (tab: string, tabCase: TabCase) => {
     expect(itemRequest.select["memberEntityKeys"]).toBe(true);
   });
 
-  test("a database with no keys shows the banner and never mounts the viewer", async () => {
+  test("a database with no usable endpoint and no members is scoped by its row key, with an 'id only' hint", async () => {
     getItemMock.mockResolvedValue(databaseServer({}));
+    // Neither stored value parses to an endpoint key.
     getListMock.mockResolvedValue(
       endpointRows(["localhost:5432", "not a host"]),
     );
+
+    render(<tabCase.Page {...PAGE_PROPS} />);
+    await screen.findByTestId(tabCase.viewerTestId);
+
+    // The viewer IS mounted: data sent with the database's id is its own.
+    expect(scopedKeys(tab, lastProps(tabCase.viewerMock))).toEqual([ROW_KEY]);
+
+    const hint: HTMLElement = screen.getByTestId("database-unscoped-banner");
+    expect(hint).toHaveAttribute("data-variant", "id-only");
+    expect(hint).toHaveTextContent(tabCase.signal);
+    // The hint sits above the viewer.
+    expect(
+      hint.compareDocumentPosition(screen.getByTestId(tabCase.viewerTestId)) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a source with no key at all shows the unscoped banner and never mounts the viewer", async () => {
+    // No project to hash any key with: nothing, not everything.
+    mockCurrentProjectId = null;
+    getItemMock.mockResolvedValue(databaseServer({ withoutProject: true }));
+    getListMock.mockResolvedValue(endpointRows(["db.prod.internal:5432"]));
 
     render(<tabCase.Page {...PAGE_PROPS} />);
     const banner: HTMLElement = await screen.findByTestId(
       "database-unscoped-banner",
     );
 
+    expect(banner).toHaveAttribute("data-variant", "unscoped");
     expect(banner).toHaveTextContent(tabCase.signal);
     expect(screen.queryByTestId(tabCase.viewerTestId)).not.toBeInTheDocument();
     expect(tabCase.viewerMock).not.toHaveBeenCalled();
   });
 
-  test("a workload-only database (members, no endpoint) is still scoped", async () => {
+  test("a workload-only database (members, no endpoint) is still scoped, with no hint", async () => {
     getItemMock.mockResolvedValue(
       databaseServer({
         memberEntityKeys: { [POD_KEY]: "2026-09-23T10:00:00.000Z" },
@@ -432,7 +504,13 @@ describe.each(TABS)("the database %s tab", (tab: string, tabCase: TabCase) => {
     render(<tabCase.Page {...PAGE_PROPS} />);
     await screen.findByTestId(tabCase.viewerTestId);
 
-    expect(scopedKeys(tab, lastProps(tabCase.viewerMock))).toEqual([POD_KEY]);
+    expect(scopedKeys(tab, lastProps(tabCase.viewerMock))).toEqual([
+      ROW_KEY,
+      POD_KEY,
+    ]);
+    expect(
+      screen.queryByTestId("database-unscoped-banner"),
+    ).not.toBeInTheDocument();
   });
 
   test("shows the loader while loading", () => {
@@ -536,12 +614,16 @@ describe("the database Metrics tab's row click", () => {
       "postgresql.backends",
     );
     const chart: ViewerProps = lastProps(metricChartMock);
-    expect(chart["keys"]).toEqual([ENDPOINT_KEY, POD_KEY]);
+    expect(chart["keys"]).toEqual([ROW_KEY, ENDPOINT_KEY, POD_KEY]);
     expect(chart["keys"]).toEqual(
       lastProps(metricsViewerMock)["entityKeysFilter"],
     );
     expect(chart["dbSystem"]).toBe("postgresql");
     expect((chart["projectId"] as ObjectID).toString()).toBe(PROJECT_ID_STRING);
+    // The chart's "Create monitor" scopes the monitor by this id.
+    expect((chart["databaseServerId"] as ObjectID).toString()).toBe(
+      MODEL_ID_STRING,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Close chart" }));
     expect(

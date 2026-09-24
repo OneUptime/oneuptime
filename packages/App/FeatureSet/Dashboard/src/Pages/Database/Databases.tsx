@@ -43,6 +43,12 @@ import DatabaseServerSummaryStrip from "../../Components/DatabaseServer/Database
 import DatabaseRunsOnLink from "../../Components/DatabaseServer/DatabaseRunsOnLink";
 import { computeDatabaseServerIdsForEngineMetricsStatuses } from "./Utils/DatabaseEngineMetricsFilter";
 import {
+  DATABASE_SERVER_ADDRESS_DESCRIPTION,
+  getDatabaseServerAddressHint,
+  validateDatabaseServerAddress,
+} from "./Utils/DatabaseManualEndpointForm";
+import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import {
   DatabaseEngineMetricsStatus,
   DatabaseOption,
   getDatabaseDiscoverySourceOptions,
@@ -267,8 +273,34 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             fieldType: FormFieldSchemaType.Text,
             required: true,
             placeholder: "db.prod.internal",
-            description:
-              "The host name or IP your applications connect to — what their traces report as server.address. Never localhost.",
+            description: DATABASE_SERVER_ADDRESS_DESCRIPTION,
+            /*
+             * Checked here with the same interpretation the identity rules
+             * use, so a typo'd user@host or a qualifier on a public name is
+             * explained before the form is sent.
+             */
+            customValidation: (
+              values: FormValues<DatabaseServer>,
+            ): string | null => {
+              return validateDatabaseServerAddress(values);
+            },
+            // Advice only: an unqualified cluster-local address still works.
+            getFooterElement: (
+              values: FormValues<DatabaseServer>,
+            ): ReactElement | undefined => {
+              const hint: string | null = getDatabaseServerAddressHint(values);
+              if (!hint) {
+                return undefined;
+              }
+              return (
+                <p
+                  className="mt-1 text-xs text-amber-700"
+                  data-testid="database-server-address-hint"
+                >
+                  {hint}
+                </p>
+              );
+            },
           },
           {
             field: {

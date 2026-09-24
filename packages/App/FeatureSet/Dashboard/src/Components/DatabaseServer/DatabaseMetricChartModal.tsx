@@ -12,6 +12,14 @@ import {
   formatDatabaseMetricUnitValue,
   formatDatabaseMetricValue,
 } from "../../Pages/Database/Utils/DatabaseServerPresentation";
+import {
+  buildDatabaseMetricMonitorRoute,
+  buildDatabaseMetricMonitorViewData,
+  fetchDatabaseMetricCarriesServerId,
+  getDatabaseMetricMonitorBlocker,
+} from "../../Pages/Database/Utils/DatabaseMetricMonitorLink";
+import AppLink from "../AppLink/AppLink";
+import Route from "Common/Types/API/Route";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import { findDatabaseServerMetricByName } from "Common/Types/DatabaseServer/DatabaseServerMetricCatalog";
@@ -47,6 +55,11 @@ import React, {
  * series, a delta counter by its Sum per bucket. What it is comes from its
  * newest stored point (fetchDatabaseMetricShape); values are formatted in
  * the metric's own unit.
+ *
+ * "Create monitor" opens Monitor Create pre-seeded with this metric, scoped
+ * by the database's id (DatabaseMetricMonitorLink) — or, for a metric that
+ * cannot become such a monitor (a cumulative counter, a metric that does
+ * not carry the id), stays disabled and says why.
  */
 
 export interface ComponentProps {
@@ -57,6 +70,8 @@ export interface ComponentProps {
   keys: Array<string>;
   projectId: ObjectID | string | null | undefined;
   dbSystem?: string | null | undefined;
+  // The database's id: what "Create monitor" scopes the monitor by.
+  databaseServerId?: ObjectID | string | null | undefined;
   // The range the metric list was showing; the past hour when not given.
   initialTimeRange?: RangeStartAndEndDateTime | undefined;
   onClose: () => void;
@@ -65,6 +80,9 @@ export interface ComponentProps {
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
 };
+
+const DATABASE_METRIC_MONITOR_BLOCKER_ID: string =
+  "database-metric-monitor-blocker";
 
 export const DATABASE_METRIC_AGGREGATION_LABELS: Partial<
   Record<AggregationType, string>
@@ -150,6 +168,99 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
     pickedAggregation && spec.aggregations.includes(pickedAggregation)
       ? pickedAggregation
       : spec.defaultAggregation;
+
+  /*
+   * Whether the metric carries the database's id, for "Create monitor":
+   * undefined while checking, null when it cannot be told. Not asked for a
+   * rate (it is refused anyway) or without an id to scope by.
+   */
+  const monitorScopeId: string = props.databaseServerId
+    ? props.databaseServerId.toString()
+    : "";
+  const [carriesServerId, setCarriesServerId] = useState<
+    boolean | null | undefined
+  >(undefined);
+  const hasShape: boolean = shape !== null;
+
+  useEffect(() => {
+    if (!monitorScopeId || !hasShape || spec.isRate) {
+      setCarriesServerId(null);
+      return;
+    }
+
+    let ignore: boolean = false;
+    const range: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+    setCarriesServerId(undefined);
+    fetchDatabaseMetricCarriesServerId({
+      projectId: props.projectId,
+      keys: props.keys,
+      start: range.startValue,
+      end: range.endValue,
+      metricName: props.metricName,
+      databaseServerId: monitorScopeId,
+    })
+      .then((carries: boolean | null): void => {
+        if (!ignore) {
+          setCarriesServerId(carries);
+        }
+      })
+      .catch((): void => {
+        if (!ignore) {
+          setCarriesServerId(null);
+        }
+      });
+
+    return (): void => {
+      ignore = true;
+    };
+  }, [
+    monitorScopeId,
+    hasShape,
+    spec.isRate,
+    timeRange,
+    props.metricName,
+    props.keys,
+    props.projectId,
+  ]);
+
+  const monitorBlocker: string | null = getDatabaseMetricMonitorBlocker({
+    spec,
+    carriesServerId: carriesServerId === undefined ? null : carriesServerId,
+  });
+
+  // Null while the id check runs, and whenever the metric is refused.
+  const monitorRoute: Route | null = useMemo(() => {
+    if (
+      !monitorScopeId ||
+      monitorBlocker ||
+      !chartWindow ||
+      carriesServerId === undefined
+    ) {
+      return null;
+    }
+    return buildDatabaseMetricMonitorRoute(
+      buildDatabaseMetricMonitorViewData({
+        spec,
+        databaseServerId: monitorScopeId,
+        aggregationType: aggregation,
+        startAndEndDate: new InBetween<Date>(
+          chartWindow.start,
+          chartWindow.end,
+        ),
+        rangeToken: timeRange.range,
+      }),
+    );
+  }, [
+    monitorScopeId,
+    monitorBlocker,
+    carriesServerId,
+    spec,
+    aggregation,
+    chartWindow,
+    timeRange,
+  ]);
 
   useEffect(() => {
     if (!shape) {
@@ -260,13 +371,56 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
           ) : (
             <span />
           )}
-          <TelemetryTimeRangePicker
-            value={timeRange}
-            onChange={(value: RangeStartAndEndDateTime): void => {
-              setTimeRange(value);
-            }}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <TelemetryTimeRangePicker
+              value={timeRange}
+              onChange={(value: RangeStartAndEndDateTime): void => {
+                setTimeRange(value);
+              }}
+            />
+            {monitorScopeId && monitorRoute ? (
+              <AppLink
+                to={monitorRoute}
+                className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+              >
+                Create monitor
+              </AppLink>
+            ) : (
+              <></>
+            )}
+            {monitorScopeId && !monitorRoute ? (
+              <button
+                type="button"
+                disabled={true}
+                aria-describedby={
+                  monitorBlocker
+                    ? DATABASE_METRIC_MONITOR_BLOCKER_ID
+                    : undefined
+                }
+                title={
+                  monitorBlocker ||
+                  "Checking whether this metric carries this database's id…"
+                }
+                className="inline-flex cursor-not-allowed items-center rounded-md border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400"
+              >
+                Create monitor
+              </button>
+            ) : (
+              <></>
+            )}
+          </div>
         </div>
+        {monitorScopeId && monitorBlocker ? (
+          <p
+            id={DATABASE_METRIC_MONITOR_BLOCKER_ID}
+            className="mb-3 text-xs text-amber-700"
+            data-testid="database-metric-monitor-blocker"
+          >
+            {monitorBlocker}
+          </p>
+        ) : (
+          <></>
+        )}
         {spec.note ? (
           <p
             className="mb-3 text-xs text-gray-500"

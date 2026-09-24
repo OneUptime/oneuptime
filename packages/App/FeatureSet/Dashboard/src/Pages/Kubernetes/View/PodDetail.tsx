@@ -8,11 +8,14 @@ import MetricQueryConfigData, {
 } from "Common/Types/Metrics/MetricQueryConfigData";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
   useState,
 } from "react";
+import DatabaseServerWorkloadBadge from "../../../Components/DatabaseServer/DatabaseServerWorkloadBadge";
+import { getKubernetesDatabaseWorkloadNames } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -477,7 +480,37 @@ const KubernetesClusterPodDetail: FunctionComponent<
     },
   ];
 
-  return <Tabs tabs={tabs} onTabChange={() => {}} />;
+  return (
+    <Fragment>
+      {/*
+       * The Database this pod is a member of, if any — by the workloads
+       * that own it and by how discovery classifies it. Asked once the pod
+       * object (its namespace, owners and containers) has loaded.
+       */}
+      <DatabaseServerWorkloadBadge
+        resourceLabel="pod"
+        target={
+          isLoadingObject
+            ? null
+            : {
+                platform: "kubernetes",
+                parentId: modelId,
+                namespace: podObject?.metadata.namespace,
+                workloadNames: getKubernetesDatabaseWorkloadNames({
+                  kind: "Pod",
+                  name: podName,
+                  namespace: podObject?.metadata.namespace,
+                  phase: podObject?.status.phase,
+                  labels: podObject?.metadata.labels,
+                  ownerReferences: podObject?.metadata.ownerReferences,
+                  containers: podObject?.spec.containers,
+                }),
+              }
+        }
+      />
+      <Tabs tabs={tabs} onTabChange={() => {}} />
+    </Fragment>
+  );
 };
 
 export default KubernetesClusterPodDetail;

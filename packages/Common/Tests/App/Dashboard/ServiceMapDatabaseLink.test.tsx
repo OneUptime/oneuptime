@@ -673,6 +673,172 @@ describe("resolving a single-label Kubernetes name", () => {
   });
 });
 
+/*
+ * A pod that calls `postgres.data` (the Service `postgres` in namespace
+ * `data`) is keyed by ingest as `postgres.data.svc.cluster.local:5432@<its
+ * cluster>` and that is what the database owns. The Service Map node only
+ * has the raw address with no caller context, so it reads `postgres.data`
+ * as a domain: before this rule the node linked to nothing.
+ */
+describe("resolving a two-label Kubernetes name", () => {
+  test("`postgres.data` finds the Service FQDN its in-cluster callers were keyed with", async () => {
+    useTable([
+      {
+        owner: DATABASE_ID,
+        endpoint: "postgres.data.svc.cluster.local:5432@prod-eu",
+        dbSystem: "postgresql",
+      },
+    ]);
+
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "postgres.data",
+      }),
+    ).resolves.toBe(databasePage(DATABASE_ID));
+    expect(prefixQueries()).toEqual(["postgres.data:", "postgres.data."]);
+  });
+
+  test("with an explicit port, and unqualified (a single-cluster project)", async () => {
+    useTable([
+      {
+        owner: DATABASE_ID,
+        endpoint: "postgres.data.svc.cluster.local:6432",
+      },
+    ]);
+
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "postgres.data:6432",
+      }),
+    ).resolves.toBe(databasePage(DATABASE_ID));
+  });
+
+  test("the same Service qualified in two clusters, owned by one database, is one link", async () => {
+    useTable([
+      {
+        owner: DATABASE_ID,
+        endpoint: "postgres.data.svc.cluster.local:5432@prod-eu",
+      },
+      {
+        owner: DATABASE_ID,
+        endpoint: "postgres.data.svc.cluster.local:5432@prod-us",
+      },
+    ]);
+
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "postgres.data",
+      }),
+    ).resolves.toBe(databasePage(DATABASE_ID));
+  });
+
+  test("two clusters' databases of that Service name are never guessed between", async () => {
+    useTable([
+      {
+        owner: DATABASE_ID,
+        endpoint: "postgres.data.svc.cluster.local:5432@prod-eu",
+      },
+      {
+        owner: OTHER_DATABASE_ID,
+        endpoint: "postgres.data.svc.cluster.local:5432@prod-us",
+      },
+    ]);
+
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "postgres.data",
+      }),
+    ).resolves.toBeNull();
+  });
+
+  test("a StatefulSet member behind its headless Service matches in any namespace", async () => {
+    useTable([
+      {
+        owner: DATABASE_ID,
+        endpoint: "mongo-0.mongo-headless.shop.svc.cluster.local:27017@c1",
+        dbSystem: "mongodb",
+      },
+    ]);
+
+    await expect(
+      linkFor({
+        "db.system.name": "mongodb",
+        "server.address": "mongo-0.mongo-headless",
+      }),
+    ).resolves.toBe(databasePage(DATABASE_ID));
+  });
+
+  test("a non-member two-label name does not take a namespace it never named", async () => {
+    // `postgres.data` is the Service in `data`, not a member in `shop`.
+    useTable([
+      {
+        owner: DATABASE_ID,
+        endpoint: "postgres.data.shop.svc.cluster.local:5432@c1",
+      },
+    ]);
+
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "postgres.data",
+      }),
+    ).resolves.toBeNull();
+  });
+
+  test("real domains that merely share the prefix are someone else", async () => {
+    useTable([
+      { owner: DATABASE_ID, endpoint: "postgres.data.example.com:5432" },
+      { owner: OTHER_DATABASE_ID, endpoint: "postgres.data.io:5432" },
+    ]);
+
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "postgres.data",
+      }),
+    ).resolves.toBeNull();
+  });
+
+  test("a private-zone name (.internal, .local) is never read as a namespace", async () => {
+    useTable([
+      {
+        owner: DATABASE_ID,
+        endpoint: "db.internal.svc.cluster.local:5432@c1",
+      },
+    ]);
+
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "db.internal",
+      }),
+    ).resolves.toBeNull();
+    // Nothing looked up beyond the host's own prefix.
+    expect(prefixQueries()).not.toContain("db.internal.");
+  });
+
+  test("another engine family's Service of that name is not this node's database", async () => {
+    useTable([
+      {
+        owner: DATABASE_ID,
+        endpoint: "cache.data.svc.cluster.local:6379@c1",
+        dbSystem: "redis",
+      },
+    ]);
+
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "cache.data:6379",
+      }),
+    ).resolves.toBeNull();
+  });
+});
+
 describe("resolveDatabaseServerLink", () => {
   test("links a database node to its DatabaseServer page", async () => {
     useTable([{ owner: DATABASE_ID, endpoint: "db.prod.example.com:5432" }]);
