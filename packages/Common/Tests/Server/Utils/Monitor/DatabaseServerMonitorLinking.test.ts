@@ -178,7 +178,14 @@ describe("probe monitors name the database they connect to", () => {
     ]);
   });
 
-  test("a SQL Server named instance is the server, not part of its host", () => {
+  test("a SQL Server named instance is the instance, never the default instance's port", () => {
+    /*
+     * The form pre-fills 1433 for SQL Server, but the probe's driver (mssql)
+     * splits `host\instance` into an instance name and DROPS the port — it
+     * asks SQL Browser for the named instance's own port. So the port the
+     * monitor carries names nothing: reading it would land a REPORTING
+     * outage on the default instance that answers on 1433.
+     */
     const refs: SeriesResourceRefs = refsFor(
       monitorWithStep(MonitorType.Database, {
         databaseMonitor: {
@@ -189,7 +196,73 @@ describe("probe monitors name the database they connect to", () => {
       }),
     );
 
-    expect(refs.databaseServerEndpoints).toEqual(["sql.prod.internal:1433"]);
+    expect(refs.databaseServerEndpoints).toEqual([
+      "sql.prod.internal\\reporting",
+    ]);
+  });
+
+  test("a SQL Query monitor on a named instance names the instance too, whatever its port", () => {
+    const refs: SeriesResourceRefs = refsFor(
+      monitorWithStep(MonitorType.SQLQuery, {
+        sqlMonitor: {
+          databaseType: SqlDatabaseType.MicrosoftSqlServer,
+          host: "sql.prod.internal\\REPORTING",
+          port: "1500",
+          databaseName: "reports",
+          query: "select 1",
+        },
+      }),
+    );
+
+    expect(refs.databaseServerEndpoints).toEqual([
+      "sql.prod.internal\\reporting",
+    ]);
+  });
+
+  test("MSSQLSERVER is the default instance, on the engine's default port", () => {
+    expect(
+      refsFor(
+        monitorWithStep(MonitorType.Database, {
+          databaseMonitor: {
+            databaseType: SqlDatabaseType.MicrosoftSqlServer,
+            host: "sql.prod.internal\\MSSQLSERVER",
+            port: 1433,
+          },
+        }),
+      ).databaseServerEndpoints,
+    ).toEqual(["sql.prod.internal:1433"]);
+  });
+
+  test("a SQL Server host without an instance keeps the port the monitor connects to", () => {
+    expect(
+      refsFor(
+        monitorWithStep(MonitorType.Database, {
+          databaseMonitor: {
+            databaseType: SqlDatabaseType.MicrosoftSqlServer,
+            host: "sql.prod.internal",
+            port: 14330,
+          },
+        }),
+      ).databaseServerEndpoints,
+    ).toEqual(["sql.prod.internal:14330"]);
+  });
+
+  test("a trailing backslash with no instance name keeps the port (the driver does too)", () => {
+    /*
+     * mssql only drops the port when the instance name is non-empty, so
+     * `host\` still connects to the port the monitor names.
+     */
+    expect(
+      refsFor(
+        monitorWithStep(MonitorType.Database, {
+          databaseMonitor: {
+            databaseType: SqlDatabaseType.MicrosoftSqlServer,
+            host: "sql.prod.internal\\",
+            port: 14330,
+          },
+        }),
+      ).databaseServerEndpoints,
+    ).toEqual(["sql.prod.internal:14330"]);
   });
 
   test("an explicit non-default port is kept", () => {

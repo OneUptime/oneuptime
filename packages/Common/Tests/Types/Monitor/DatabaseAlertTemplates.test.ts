@@ -48,6 +48,8 @@ import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import RollingTime from "../../../Types/RollingTime/RollingTime";
 import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
+import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
+import ValueFormatter from "../../../Utils/ValueFormatter";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -966,6 +968,18 @@ describe("DatabaseAlertTemplates — the monitor step each template builds", () 
 type SamplesByAlias = Record<string, Array<number>>;
 
 /*
+ * The native unit of every metric a template reads, keyed the way the worker
+ * loads it from MetricType (lowercased name → the receiver's own unit). The
+ * evaluator falls back to it when a query carries no legend unit, and the
+ * alert and incident text is formatted in it.
+ */
+const NATIVE_UNITS_BY_METRIC_NAME: Record<string, string> = {};
+
+for (const metric of DATABASE_ALERT_METRICS) {
+  NATIVE_UNITS_BY_METRIC_NAME[metric.metricName.toLowerCase()] = metric.unit;
+}
+
+/*
  * What the telemetry worker hands the evaluator: one aggregated result per
  * query (in query order), then one per formula, evaluated by the same
  * MetricFormulaEvaluator the worker uses.
@@ -1011,7 +1025,22 @@ function buildResponse(
     metricResult: results,
     metricViewConfig: viewConfig,
     monitorId: ObjectID.generate(),
+    nativeUnitsByMetricName: NATIVE_UNITS_BY_METRIC_NAME,
   };
+}
+
+// The root cause one criteria filter writes, or null when it is not met.
+async function getRootCause(
+  step: MonitorStep,
+  filter: CriteriaFilter,
+  response: MetricMonitorResponse,
+): Promise<string | null> {
+  return await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
+    dataToProcess: response,
+    // A copy: the evaluator writes its context back onto the filter.
+    criteriaFilter: JSON.parse(JSON.stringify(filter)) as CriteriaFilter,
+    monitorStep: step,
+  });
 }
 
 async function isInstanceMet(
@@ -1022,13 +1051,7 @@ async function isInstanceMet(
   const results: Array<boolean> = [];
 
   for (const filter of instance.data!.filters) {
-    const rootCause: string | null =
-      await MetricMonitorCriteria.isMonitorInstanceCriteriaFilterMet({
-        dataToProcess: response,
-        // A copy: the evaluator writes its context back onto the filter.
-        criteriaFilter: JSON.parse(JSON.stringify(filter)) as CriteriaFilter,
-        monitorStep: step,
-      });
+    const rootCause: string | null = await getRootCause(step, filter, response);
 
     results.push(rootCause !== null);
   }
@@ -1053,6 +1076,134 @@ async function evaluate(
     breached: await isInstanceMet(step, getUnhealthy(step), response),
     healthy: await isInstanceMet(step, getHealthy(step), response),
   };
+}
+
+/*
+ * One datapoint row as ingest stores it: the metric, its datapoint
+ * attributes plus the database stamp every resource block of the batch
+ * carries, and the one-minute bucket the scrape lands in.
+ */
+interface ReceiverRow {
+  minute: number;
+  metricName: string;
+  attributes: Record<string, string>;
+  value: number;
+}
+
+function foldBucket(
+  values: Array<number>,
+  aggregationType: MetricsAggregationType,
+): number {
+  switch (aggregationType) {
+    case MetricsAggregationType.Sum:
+      return values.reduce((total: number, value: number): number => {
+        return total + value;
+      }, 0);
+    case MetricsAggregationType.Avg:
+      return (
+        values.reduce((total: number, value: number): number => {
+          return total + value;
+        }, 0) / values.length
+      );
+    case MetricsAggregationType.Min:
+      return Math.min(...values);
+    case MetricsAggregationType.Max:
+      return Math.max(...values);
+    case MetricsAggregationType.Count:
+      return values.length;
+    default:
+      throw new Error(`No test fold for ${aggregationType}`);
+  }
+}
+
+/*
+ * What the worker's ClickHouse query does with raw rows: keep the rows of the
+ * query's metric whose attributes match every filter (the database scope
+ * included), and fold each minute bucket with the query's aggregation. The
+ * templates' aggregation contract is about exactly this step, so a receiver
+ * quirk — a metric recorded twice in one scrape — has to go through it to be
+ * caught.
+ */
+function aggregateRows(
+  step: MonitorStep,
+  rows: Array<ReceiverRow>,
+): SamplesByAlias {
+  const samplesByAlias: SamplesByAlias = {};
+
+  for (const queryConfig of getViewConfig(step).queryConfigs) {
+    const filterData: MetricQueryConfigData["metricQueryData"]["filterData"] =
+      queryConfig.metricQueryData.filterData;
+    const filters: Record<string, unknown> = (filterData.attributes ||
+      {}) as Record<string, unknown>;
+    const valuesByMinute: Map<number, Array<number>> = new Map<
+      number,
+      Array<number>
+    >();
+
+    for (const row of rows) {
+      const matches: boolean =
+        row.metricName === filterData.metricName &&
+        Object.keys(filters).every((key: string): boolean => {
+          return row.attributes[key] === filters[key];
+        });
+
+      if (!matches) {
+        continue;
+      }
+
+      valuesByMinute.set(row.minute, [
+        ...(valuesByMinute.get(row.minute) || []),
+        row.value,
+      ]);
+    }
+
+    samplesByAlias[queryConfig.metricAliasData!.metricVariable!] = Array.from(
+      valuesByMinute.keys(),
+    )
+      .sort((a: number, b: number): number => {
+        return a - b;
+      })
+      .map((minute: number): number => {
+        return foldBucket(
+          valuesByMinute.get(minute)!,
+          filterData.aggegationType as MetricsAggregationType,
+        );
+      });
+  }
+
+  return samplesByAlias;
+}
+
+async function evaluateRows(
+  templateId: string,
+  rows: Array<ReceiverRow>,
+): Promise<{ breached: boolean; healthy: boolean }> {
+  const step: MonitorStep = getTemplate(templateId).getMonitorStep(buildArgs());
+
+  return await evaluate(templateId, aggregateRows(step, rows));
+}
+
+// Rows a receiver records on every scrape of a ten-minute window.
+function everyMinute(
+  rows: Array<Omit<ReceiverRow, "minute">>,
+  minutes: number = 10,
+): Array<ReceiverRow> {
+  const all: Array<ReceiverRow> = [];
+
+  for (let minute: number = 0; minute < minutes; minute++) {
+    for (const row of rows) {
+      all.push({
+        ...row,
+        minute: minute,
+        attributes: {
+          ...row.attributes,
+          [DATABASE_SERVER_ID_SCOPE_ATTRIBUTE]: DATABASE_SERVER_ID,
+        },
+      });
+    }
+  }
+
+  return all;
 }
 
 describe("DatabaseAlertTemplates — behaviour against receiver data", () => {
@@ -1121,6 +1272,58 @@ describe("DatabaseAlertTemplates — behaviour against receiver data", () => {
         await evaluate("database-postgresql-replica-replay-lag", {
           pg_replay_lag: [0, 1, 2],
         }),
+      ).toEqual({ breached: false, healthy: true });
+    });
+
+    test("the slowest replica's replay delay fires, whatever the other operations read", async () => {
+      /*
+       * postgresql.wal.delay as the receiver records it: seconds as a
+       * double, one row per replica and operation.
+       */
+      const replica: (
+        client: string,
+        replay: number,
+      ) => Array<Omit<ReceiverRow, "minute">> = (
+        client: string,
+        replay: number,
+      ): Array<Omit<ReceiverRow, "minute">> => {
+        return [
+          {
+            metricName: "postgresql.wal.delay",
+            attributes: { operation: "write", replication_client: client },
+            value: 0.002,
+          },
+          {
+            metricName: "postgresql.wal.delay",
+            attributes: { operation: "flush", replication_client: client },
+            value: 0.004,
+          },
+          {
+            metricName: "postgresql.wal.delay",
+            attributes: { operation: "replay", replication_client: client },
+            value: replay,
+          },
+        ];
+      };
+
+      expect(
+        await evaluateRows(
+          "database-postgresql-replica-replay-lag",
+          everyMinute(
+            [...replica("10.0.0.7", 0.3), ...replica("10.0.0.8", 45.5)],
+            5,
+          ),
+        ),
+      ).toEqual({ breached: true, healthy: false });
+
+      expect(
+        await evaluateRows(
+          "database-postgresql-replica-replay-lag",
+          everyMinute(
+            [...replica("10.0.0.7", 0.3), ...replica("10.0.0.8", 0.6)],
+            5,
+          ),
+        ),
       ).toEqual({ breached: false, healthy: true });
     });
 
@@ -1519,18 +1722,333 @@ describe("DatabaseAlertTemplates — behaviour against receiver data", () => {
     });
   });
 
-  describe("MongoDB health (opt-in gauge)", () => {
-    test("fires on 0 and recovers on 1", async () => {
+  describe("Elasticsearch JVM heap (the receiver records heap.used twice per scrape)", () => {
+    const GIB: number = 1073741824;
+
+    /*
+     * One scrape of a healthy three-node cluster exactly as the v0.161.0
+     * receiver records it: per node, from _nodes/stats, heap max, heap used
+     * and heap utilization (a 0..1 share); and once more at CLUSTER level,
+     * from _cluster/stats, jvm.memory.heap.used for the whole cluster — with
+     * no matching heap.max. Both resource blocks carry the database stamp.
+     */
+    function clusterScrape(
+      utilizationByNode: Array<number>,
+    ): Array<Omit<ReceiverRow, "minute">> {
+      const rows: Array<Omit<ReceiverRow, "minute">> = [];
+      let clusterUsed: number = 0;
+
+      utilizationByNode.forEach((utilization: number, index: number) => {
+        const node: Record<string, string> = {
+          "elasticsearch.node.name": `node-${index + 1}`,
+        };
+        const used: number = utilization * 4 * GIB;
+        clusterUsed += used;
+
+        rows.push(
+          {
+            metricName: "jvm.memory.heap.max",
+            attributes: node,
+            value: 4 * GIB,
+          },
+          { metricName: "jvm.memory.heap.used", attributes: node, value: used },
+          {
+            metricName: "jvm.memory.heap.utilization",
+            attributes: node,
+            value: utilization,
+          },
+        );
+      });
+
+      rows.push({
+        metricName: "jvm.memory.heap.used",
+        attributes: {},
+        value: clusterUsed,
+      });
+
+      return rows;
+    }
+
+    test("the fixture holds the trap: Σ heap.used / Σ heap.max reads 100% on a cluster at 50%", () => {
+      const rows: Array<ReceiverRow> = everyMinute(
+        clusterScrape([0.5, 0.5, 0.5]),
+        1,
+      );
+      const sum: (metricName: string) => number = (
+        metricName: string,
+      ): number => {
+        return rows
+          .filter((row: ReceiverRow): boolean => {
+            return row.metricName === metricName;
+          })
+          .reduce((total: number, row: ReceiverRow): number => {
+            return total + row.value;
+          }, 0);
+      };
+
       expect(
-        await evaluate("database-mongodb-unhealthy", {
-          mongodb_health: [0, 0, 0],
-        }),
-      ).toEqual({ breached: true, healthy: false });
+        (sum("jvm.memory.heap.used") / sum("jvm.memory.heap.max")) * 100,
+      ).toBe(100);
+    });
+
+    test("a cluster at 50% heap is healthy", async () => {
       expect(
-        await evaluate("database-mongodb-unhealthy", {
-          mongodb_health: [1, 1, 1],
-        }),
+        await evaluateRows(
+          "database-elasticsearch-jvm-heap-high",
+          everyMinute(clusterScrape([0.5, 0.5, 0.5])),
+        ),
       ).toEqual({ breached: false, healthy: true });
     });
+
+    test("a single-node cluster at 50% heap is healthy too", async () => {
+      expect(
+        await evaluateRows(
+          "database-elasticsearch-jvm-heap-high",
+          everyMinute(clusterScrape([0.5])),
+        ),
+      ).toEqual({ breached: false, healthy: true });
+    });
+
+    test("one node held at 90% fires, even while the cluster average is low", async () => {
+      expect(
+        await evaluateRows(
+          "database-elasticsearch-jvm-heap-high",
+          everyMinute(clusterScrape([0.3, 0.9, 0.3])),
+        ),
+      ).toEqual({ breached: true, healthy: false });
+    });
+
+    test("holds its status inside the recovery dead band", async () => {
+      // 80%: below the 85% breach, above the 76.5% recovery.
+      expect(
+        await evaluateRows(
+          "database-elasticsearch-jvm-heap-high",
+          everyMinute(clusterScrape([0.8, 0.5, 0.5])),
+        ),
+      ).toEqual({ breached: false, healthy: false });
+    });
+
+    test("reads the per-node utilization with Max, compared in percent", () => {
+      const step: MonitorStep = getTemplate(
+        "database-elasticsearch-jvm-heap-high",
+      ).getMonitorStep(buildArgs());
+
+      expect(
+        getViewConfig(step).queryConfigs.map(
+          (queryConfig: MetricQueryConfigData) => {
+            return [
+              queryConfig.metricQueryData.filterData.metricName,
+              queryConfig.metricQueryData.filterData.aggegationType,
+            ];
+          },
+        ),
+      ).toEqual([["jvm.memory.heap.utilization", MetricsAggregationType.Max]]);
+      expect(getUnhealthy(step).data!.filters[0]!.metricMonitorOptions).toEqual(
+        expect.objectContaining({ metricAlias: "elasticsearch_heap_percent" }),
+      );
+    });
+  });
+
+  describe("Redis fragmentation reads as the ratio it is, not a percentage", () => {
+    test("the alert text says 1.62 against 1.5, never 162% against 150%", async () => {
+      /*
+       * redis.memory.fragmentation_ratio has the dimensionless unit "1" and
+       * a `_ratio` name, which the notification formatter otherwise takes for
+       * a 0..1 fraction and renders ×100. It is not one: healthy is ~1.0.
+       */
+      const step: MonitorStep = getTemplate(
+        "database-redis-memory-fragmentation",
+      ).getMonitorStep(buildArgs());
+      const rootCause: string | null = await getRootCause(
+        step,
+        getUnhealthy(step).data!.filters[0]!,
+        buildResponse(step, {
+          redis_fragmentation_ratio: [1.62, 1.62, 1.62],
+          redis_fragmentation_memory_used: [4294967296, 4294967296, 4294967296],
+        }),
+      );
+
+      expect(rootCause).not.toBeNull();
+      expect(rootCause).toContain("1.62");
+      expect(rootCause).toContain("1.5");
+      expect(rootCause).not.toContain("%");
+      expect(rootCause).not.toContain("162");
+    });
+
+    test.each(TEMPLATE_CASES)(
+      "%s never compares a raw >1 ratio the formatter would render ×100",
+      (_id: string, template: DatabaseAlertTemplate) => {
+        const step: MonitorStep = template.getMonitorStep(buildArgs());
+
+        for (const queryConfig of getViewConfig(step).queryConfigs) {
+          const metricName: string = queryConfig.metricQueryData.filterData
+            .metricName as string;
+          const nativeUnit: string | undefined =
+            getDatabaseAlertMetric(metricName)?.unit;
+
+          if (
+            nativeUnit !== "1" ||
+            !ValueFormatter.isFractionMetric(metricName)
+          ) {
+            continue;
+          }
+
+          /*
+           * A genuine 0..1 share (a `.utilization`) is compared through a
+           * ×100 formula instead; anything else must say it is no fraction.
+           */
+          if (metricName.endsWith(".utilization")) {
+            continue;
+          }
+
+          expect(queryConfig.metricAliasData?.legendUnit).toBeDefined();
+          expect(queryConfig.metricAliasData?.legendUnit).not.toBe("1");
+        }
+      },
+    );
+  });
+
+  describe("byte thresholds read as the round figure their label names", () => {
+    /*
+     * The alert text formats bytes on the dashboard's decimal ladder
+     * (1,000 B = 1 KB), so a "1 GB" threshold written as 1073741824 reached
+     * on-call as "1.07 GB". Every byte threshold is the decimal figure its
+     * label names.
+     */
+    function byteComparisons(
+      template: DatabaseAlertTemplate,
+    ): Array<{ threshold: number; label: string }> {
+      const step: MonitorStep = template.getMonitorStep(buildArgs());
+      const unhealthy: MonitorCriteriaInstance = getUnhealthy(step);
+      const comparisons: Array<{ threshold: number; label: string }> = [];
+
+      for (const filter of unhealthy.data!.filters) {
+        const queryConfig: MetricQueryConfigData | undefined = getViewConfig(
+          step,
+        ).queryConfigs.find((candidate: MetricQueryConfigData): boolean => {
+          return (
+            candidate.metricAliasData?.metricVariable ===
+            filter.metricMonitorOptions?.metricAlias
+          );
+        });
+        const metricName: string | undefined = queryConfig?.metricQueryData
+          .filterData.metricName as string | undefined;
+
+        if (
+          !metricName ||
+          getDatabaseAlertMetric(metricName)?.unit !== "By" ||
+          queryConfig?.metricAliasData?.legendUnit
+        ) {
+          continue;
+        }
+
+        comparisons.push({
+          threshold: Number(filter.value),
+          // The breach's name carries its own label; a second filter's is in the description.
+          label: `${unhealthy.data!.name} ${unhealthy.data!.description}`,
+        });
+      }
+
+      return comparisons;
+    }
+
+    test.each(TEMPLATE_CASES)(
+      "%s names each byte threshold as the alert text renders it",
+      (_id: string, template: DatabaseAlertTemplate) => {
+        for (const comparison of byteComparisons(template)) {
+          expect(comparison.label).toContain(
+            MetricValueFormatter.format({
+              value: comparison.threshold,
+              unit: "By",
+            }),
+          );
+        }
+      },
+    );
+
+    test("the byte-lag alert says 1 GB, the figure its name promises", async () => {
+      const step: MonitorStep = getTemplate(
+        "database-postgresql-replication-byte-lag",
+      ).getMonitorStep(buildArgs());
+      const rootCause: string | null = await getRootCause(
+        step,
+        getUnhealthy(step).data!.filters[0]!,
+        buildResponse(step, {
+          pg_replication_delay: [1500000000, 1600000000, 1700000000],
+        }),
+      );
+
+      expect(rootCause).toContain("1 GB");
+      expect(rootCause).not.toContain("1.07 GB");
+    });
+  });
+});
+
+/*
+ * Receiver behaviour the metadata does not show, each measured against the
+ * v0.161.0 source. A template reading any of these watches nothing.
+ */
+describe("DatabaseAlertTemplates — signals that can never fire are not offered", () => {
+  test("no template reads mongodb.health, which can only ever read 1", () => {
+    /*
+     * The receiver records mongodb.health from serverStatus's `ok` — only
+     * after serverStatus SUCCEEDED (it returns early on the error the Go
+     * driver makes of an ok:0 reply). A member in RECOVERING or ROLLBACK
+     * still answers ok:1, and a server that is down emits nothing, which
+     * "Engine Metrics Stopped" already covers.
+     */
+    expect(getDatabaseAlertTemplateById("database-mongodb-unhealthy")).toBe(
+      undefined,
+    );
+    expect(getDatabaseAlertMetric("mongodb.health")).toBeUndefined();
+
+    for (const template of ALL_TEMPLATES) {
+      expect(template.metricNames).not.toContain("mongodb.health");
+    }
+  });
+
+  test("no template reads postgresql.wal.lag, which a default-on feature gate replaces", () => {
+    /*
+     * `postgresqlreceiver.preciselagmetrics` is a BETA gate in 0.161.0 —
+     * enabled by default — under which the receiver records
+     * postgresql.wal.delay INSTEAD of postgresql.wal.lag. wal.delay is off
+     * by default, so the Database Agent enables it.
+     */
+    expect(getDatabaseAlertMetric("postgresql.wal.lag")).toBeUndefined();
+
+    for (const template of ALL_TEMPLATES) {
+      expect(template.metricNames).not.toContain("postgresql.wal.lag");
+    }
+
+    expect(
+      getTemplate("database-postgresql-replica-replay-lag").metricNames,
+    ).toEqual(["postgresql.wal.delay"]);
+    expect(getDatabaseAlertMetric("postgresql.wal.delay")).toEqual(
+      expect.objectContaining({ kind: "gauge", unit: "s" }),
+    );
+  });
+
+  test("no template sums a metric the receiver records at two levels in one scrape", () => {
+    /*
+     * The Elasticsearch receiver records jvm.memory.heap.used per node AND
+     * once more for the whole cluster (from _cluster/stats), in the same
+     * scrape and with the same stamp: any Sum over it double counts.
+     */
+    const recordedTwicePerScrape: Array<string> = ["jvm.memory.heap.used"];
+
+    for (const template of ALL_TEMPLATES) {
+      for (const queryConfig of getViewConfig(
+        template.getMonitorStep(buildArgs()),
+      ).queryConfigs) {
+        const filterData: MetricQueryConfigData["metricQueryData"]["filterData"] =
+          queryConfig.metricQueryData.filterData;
+
+        if (recordedTwicePerScrape.includes(filterData.metricName as string)) {
+          expect(filterData.aggegationType).not.toBe(
+            MetricsAggregationType.Sum,
+          );
+        }
+      }
+    }
   });
 });

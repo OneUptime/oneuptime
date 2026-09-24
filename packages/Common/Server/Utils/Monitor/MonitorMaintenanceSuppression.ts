@@ -1,12 +1,20 @@
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import OneUptimeDate from "../../../Types/Date";
+import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorEvaluationSummary from "../../../Types/Monitor/MonitorEvaluationSummary";
 import ObjectID from "../../../Types/ObjectID";
 import { PerSeriesCriteriaMatch } from "../../../Types/Probe/ProbeApiIngestResponse";
 import ScheduledMaintenanceService from "../../Services/ScheduledMaintenanceService";
+import logger from "../Logger";
 import CaptureSpan from "../Telemetry/CaptureSpan";
+import MonitorResourceContextUtil from "./MonitorResourceContext";
+import MonitorStepResourceIdentity from "./MonitorStepResourceIdentity";
 import SeriesResourceLabels, {
   SeriesResourceRefs,
 } from "./SeriesResourceLabels";
+import { SeriesResolvedResourceIds } from "./SeriesResourceLinker";
 
 /*
  * Ids and names of one resource type that are currently inside an
@@ -61,6 +69,23 @@ export interface MaintainedResourceKeys {
 }
 
 /*
+ * What scheduled maintenance silences in ONE evaluation: the breaching
+ * series whose own resource is under maintenance (grouped monitors), and —
+ * when the monitor's own configuration names a database — the whole
+ * evaluation. See getMaintenanceSuppression.
+ */
+export interface MonitorMaintenanceSuppressionResult {
+  suppressedSeriesFingerprints: Set<string>;
+  /*
+   * The databases under an ongoing maintenance window that silence every
+   * incident and alert this evaluation would create. Empty unless the
+   * monitor names at least one database and every resource it names is
+   * under maintenance.
+   */
+  suppressingDatabaseServerIds: Array<string>;
+}
+
+/*
  * Per-series counterpart to the whole-monitor
  * `disableActiveMonitoringBecauseOfScheduledMaintenanceEvent` flag.
  *
@@ -108,6 +133,225 @@ export default class MonitorMaintenanceSuppression {
       matchesPerSeries: input.matchesPerSeries,
       maintained,
     });
+  }
+
+  /*
+   * Everything scheduled maintenance silences in one evaluation: the
+   * per-series set above, plus the whole evaluation when the monitor's OWN
+   * configuration names a database under maintenance.
+   *
+   * The second half exists because series labels only exist on grouped
+   * criteria, and a database's monitors are not grouped: every monitor its
+   * Recommendations tab creates, and every one built from a database chart,
+   * is ungrouped and scoped by the `oneuptime.database.server.id` filter,
+   * and a Database Health or SQL Query probe names its database by the
+   * host:port it connects to. Without it, "Engine Metrics Stopped" paged
+   * on-call for the very upgrade the team had put the database into
+   * maintenance for.
+   *
+   * A monitor is silenced only while EVERY resource its configuration
+   * names is under maintenance: an ungrouped monitor cannot say which of
+   * two databases (or which of a database and the service calling it)
+   * breached, and silencing it for one would hide an outage on the other.
+   * Scoped to monitors that name a database — the resource whose monitors
+   * are all ungrouped by design; monitors of other resources keep the
+   * per-series behaviour.
+   *
+   * The caller skips CREATION only: the monitor's status timeline and the
+   * resolve path for already-open incidents and alerts are untouched, the
+   * same contract as the per-series set and dependency suppression.
+   *
+   * Costs nothing for a monitor that names no database and has no
+   * per-series matches, one query (the ongoing events, shared by both
+   * halves) otherwise, and the monitor's resource lookups only while a
+   * database of the project is under maintenance.
+   */
+  @CaptureSpan()
+  public static async getMaintenanceSuppression(input: {
+    monitor: Monitor;
+    matchesPerSeries?: Array<PerSeriesCriteriaMatch> | undefined;
+  }): Promise<MonitorMaintenanceSuppressionResult> {
+    const result: MonitorMaintenanceSuppressionResult = {
+      suppressedSeriesFingerprints: new Set<string>(),
+      suppressingDatabaseServerIds: [],
+    };
+
+    const projectId: ObjectID | undefined = input.monitor.projectId;
+
+    if (!projectId) {
+      return result;
+    }
+
+    const hasSeries: boolean = Boolean(
+      input.matchesPerSeries && input.matchesPerSeries.length > 0,
+    );
+
+    const namesDatabase: boolean = this.monitorNamesDatabase(input.monitor);
+
+    if (!hasSeries && !namesDatabase) {
+      return result;
+    }
+
+    const maintained: MaintainedResourceKeys =
+      await this.getResourcesUnderOngoingMaintenance(projectId);
+
+    if (!this.hasAnyMaintainedResource(maintained)) {
+      return result;
+    }
+
+    if (hasSeries) {
+      result.suppressedSeriesFingerprints =
+        this.getSuppressedFingerprintsForMaintainedResources({
+          matchesPerSeries: input.matchesPerSeries || [],
+          maintained,
+        });
+    }
+
+    if (namesDatabase && maintained.databaseServers.ids.size > 0) {
+      /*
+       * Resolved rather than read raw: an id or endpoint that names no
+       * database of THIS project (deleted, mistyped, another tenant's)
+       * silences nothing. The resolver never throws — a failed lookup
+       * resolves to nothing, which keeps the monitor alerting.
+       */
+      const resolved: SeriesResolvedResourceIds =
+        await MonitorResourceContextUtil.resolveResourceContextForMonitor({
+          monitor: input.monitor,
+        });
+
+      result.suppressingDatabaseServerIds =
+        this.getSuppressingDatabaseServerIds({
+          resolved: resolved,
+          maintained: maintained,
+        });
+    }
+
+    return result;
+  }
+
+  public static isMonitorSuppressed(
+    result: MonitorMaintenanceSuppressionResult,
+  ): boolean {
+    return result.suppressingDatabaseServerIds.length > 0;
+  }
+
+  /*
+   * Pure decision step of the whole-monitor half, split out so it can be
+   * unit tested without a database: the databases the monitor names, when
+   * it names at least one and every resource it names (of every type) is
+   * under an ongoing maintenance window; otherwise none.
+   */
+  public static getSuppressingDatabaseServerIds(input: {
+    resolved: SeriesResolvedResourceIds;
+    maintained: MaintainedResourceKeys;
+  }): Array<string> {
+    const resolved: SeriesResolvedResourceIds = input.resolved;
+    const maintained: MaintainedResourceKeys = input.maintained;
+
+    if (resolved.databaseServerIds.length === 0) {
+      return [];
+    }
+
+    const namedByType: Array<{ ids: Array<string>; keys: ResourceKeySet }> = [
+      { ids: resolved.hostIds, keys: maintained.hosts },
+      { ids: resolved.dockerHostIds, keys: maintained.dockerHosts },
+      { ids: resolved.podmanHostIds, keys: maintained.podmanHosts },
+      {
+        ids: resolved.kubernetesClusterIds,
+        keys: maintained.kubernetesClusters,
+      },
+      { ids: resolved.serviceIds, keys: maintained.services },
+      { ids: resolved.proxmoxClusterIds, keys: maintained.proxmoxClusters },
+      { ids: resolved.vmwareVCenterIds, keys: maintained.vmwareVCenters },
+      { ids: resolved.cephClusterIds, keys: maintained.cephClusters },
+      {
+        ids: resolved.dockerSwarmClusterIds,
+        keys: maintained.dockerSwarmClusters,
+      },
+      { ids: resolved.iotFleetIds, keys: maintained.iotFleets },
+      { ids: resolved.databaseServerIds, keys: maintained.databaseServers },
+    ];
+
+    for (const named of namedByType) {
+      for (const id of named.ids) {
+        if (!named.keys.ids.has(id)) {
+          return [];
+        }
+      }
+    }
+
+    return [...resolved.databaseServerIds];
+  }
+
+  /*
+   * Record, on the monitor's evaluation summary, what one matching
+   * criteria did NOT create because the monitor is silenced as a whole —
+   * the counterpart of the "suppressed by scheduled maintenance" events
+   * the creators record per series. Only what the criteria would have
+   * created is recorded.
+   */
+  public static recordMonitorSuppressed(input: {
+    evaluationSummary?: MonitorEvaluationSummary | undefined;
+    criteriaInstance: MonitorCriteriaInstance;
+    suppression: MonitorMaintenanceSuppressionResult;
+  }): void {
+    const databases: string =
+      input.suppression.suppressingDatabaseServerIds.length === 1
+        ? `the database ${input.suppression.suppressingDatabaseServerIds[0]} this monitor watches is`
+        : `the databases ${input.suppression.suppressingDatabaseServerIds.join(", ")} this monitor watches are`;
+
+    logger.debug(
+      `Skipping incident and alert creation for criteria ${input.criteriaInstance.data?.id}: ${databases} under an active scheduled maintenance window.`,
+    );
+
+    if (!input.evaluationSummary) {
+      return;
+    }
+
+    if (input.criteriaInstance.data?.createIncidents) {
+      input.evaluationSummary.events.push({
+        type: "incident-skipped",
+        title: "Incident suppressed by scheduled maintenance",
+        message: `Skipped creating incidents because ${databases} under an active scheduled maintenance window. This monitor's status still updates normally; open incidents still auto-resolve.`,
+        relatedCriteriaId: input.criteriaInstance.data?.id,
+        at: OneUptimeDate.getCurrentDate(),
+      });
+    }
+
+    if (input.criteriaInstance.data?.createAlerts) {
+      input.evaluationSummary.events.push({
+        type: "alert-skipped",
+        title: "Alert suppressed by scheduled maintenance",
+        message: `Skipped creating alerts because ${databases} under an active scheduled maintenance window. This monitor's status still updates normally; open alerts still auto-resolve.`,
+        relatedCriteriaId: input.criteriaInstance.data?.id,
+        at: OneUptimeDate.getCurrentDate(),
+      });
+    }
+  }
+
+  /*
+   * Whether the monitor's own configuration names a database — the pure,
+   * query-free gate in front of the maintenance lookup. The step JSON is
+   * not schema-checked, so an unreadable one names nothing rather than
+   * throwing out of the evaluation.
+   */
+  private static monitorNamesDatabase(monitor: Monitor): boolean {
+    try {
+      const refs: SeriesResourceRefs =
+        MonitorStepResourceIdentity.extractResourceRefsFromMonitor({
+          monitor: monitor,
+        });
+
+      return (
+        refs.databaseServerIds.length > 0 ||
+        refs.databaseServerEndpoints.length > 0
+      );
+    } catch (err) {
+      logger.error(
+        `Failed to read the resources monitor ${monitor.id?.toString()} names for maintenance suppression: ${err}`,
+      );
+      return false;
+    }
   }
 
   /*

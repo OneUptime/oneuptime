@@ -94,13 +94,20 @@ import {
  *     over three databases and two scrapes, divided by Σ max_connections over
  *     the same two scrapes, is exactly "connections / limit". (MongoDB even
  *     repeats its server-wide connection counts once per database; the
- *     repetition cancels the same way.)
+ *     repetition cancels the same way.) That only holds while each side is
+ *     recorded the same way on every scrape: the Elasticsearch receiver
+ *     records jvm.memory.heap.used once per node AND once more for the whole
+ *     cluster, with no matching heap.max, so a Sum/Sum heap ratio reads
+ *     double — which is why the heap template reads the per-node
+ *     utilization instead.
  *   - A per-server level uses Max (worst replica, fullest log, largest
- *     database) or Min (lowest page life expectancy, lowest uptime) — the
- *     aggregation IS the reduction, which is why none of these needs a
- *     group-by and why every alert reads as "this database", not as a series.
- *   - Averages are used only where a cluster-wide mean is the honest number
- *     (Elasticsearch heap across nodes), and the template says so.
+ *     database, hottest node) or Min (lowest page life expectancy, lowest
+ *     uptime) — the aggregation IS the reduction, which is why none of these
+ *     needs a group-by and why every alert reads as "this database", not as
+ *     a series.
+ *   - Averages are used only to smooth a level one server reports once per
+ *     scrape (Redis's fragmentation ratio and the memory it is judged
+ *     against), where a single noisy reading should not decide.
  *
  * Optional receiver metrics (disabled by default in the receiver) are used
  * only where the OneUptime Database Agent enables them, and every such
@@ -112,8 +119,18 @@ import {
  * A receiver's metadata says what it CAN emit, not what a given setup
  * returns, so a metric is only used here once it has been seen arriving from
  * the Database Agent's own config on its default setup (collector-contrib
- * 0.161.0). Two engines differ from their metadata:
+ * 0.161.0), or its receiver's source shows when it is recorded. Five
+ * engines differ from their metadata:
  *
+ *   - PostgreSQL: the receiver's `postgresqlreceiver.preciselagmetrics`
+ *     feature gate is beta — on by default — and under it the replication
+ *     time lag is recorded as postgresql.wal.delay INSTEAD of
+ *     postgresql.wal.lag. wal.delay is off by default; the agent enables it.
+ *   - MongoDB: mongodb.health is recorded from serverStatus's `ok` only
+ *     after serverStatus succeeded, so it can only ever read 1 and no
+ *     template reads it.
+ *   - Elasticsearch records jvm.memory.heap.used twice per scrape (see the
+ *     aggregation contract above).
  *   - SQL Server connected directly — the agent's setup, and the only one
  *     off Windows — is read through sys.dm_os_performance_counters. That view
  *     has no transaction-log usage and no average lock wait time (Windows
@@ -124,8 +141,9 @@ import {
  *     setup) returns no SESSIONS / PROCESSES limits, so no
  *     "percent of the limit" template can be built for it.
  *
- * The tests pin both: no template reads a metric measured never to arrive,
- * and no template thresholds a SQL Server rate.
+ * The tests pin all of it: no template reads a metric measured never to
+ * arrive or one that can never fire, none sums a metric recorded twice per
+ * scrape, and none thresholds a SQL Server rate.
  */
 
 export type DatabaseAlertTemplateCategory =
@@ -252,10 +270,16 @@ export const DATABASE_ALERT_METRICS: ReadonlyArray<DatabaseAlertMetric> = [
   {
     engine: "postgresql",
     receiver: "postgresql",
-    metricName: "postgresql.wal.lag",
+    /*
+     * Not postgresql.wal.lag: the `postgresqlreceiver.preciselagmetrics`
+     * gate is beta (on by default) in 0.161.0, and under it the receiver
+     * records this metric INSTEAD — so wal.lag never arrives (see the
+     * module header).
+     */
+    metricName: "postgresql.wal.delay",
     kind: "gauge",
     unit: "s",
-    enabledByDefault: true,
+    enabledByDefault: false,
   },
   {
     engine: "postgresql",
@@ -370,14 +394,6 @@ export const DATABASE_ALERT_METRICS: ReadonlyArray<DatabaseAlertMetric> = [
   {
     engine: "mongodb",
     receiver: "mongodb",
-    metricName: "mongodb.health",
-    kind: "gauge",
-    unit: "1",
-    enabledByDefault: false,
-  },
-  {
-    engine: "mongodb",
-    receiver: "mongodb",
     metricName: "mongodb.uptime",
     kind: "elapsed",
     unit: "ms",
@@ -479,18 +495,16 @@ export const DATABASE_ALERT_METRICS: ReadonlyArray<DatabaseAlertMetric> = [
   {
     engine: "elasticsearch",
     receiver: "elasticsearch",
-    metricName: "jvm.memory.heap.used",
+    /*
+     * A 0..1 share of the node's heap maximum, recorded per node only. Not
+     * jvm.memory.heap.used / heap.max: the receiver records heap.used a
+     * second time, for the whole cluster, in the same scrape (see the
+     * aggregation contract in the module header).
+     */
+    metricName: "jvm.memory.heap.utilization",
     kind: "gauge",
-    unit: "By",
-    enabledByDefault: true,
-  },
-  {
-    engine: "elasticsearch",
-    receiver: "elasticsearch",
-    metricName: "jvm.memory.heap.max",
-    kind: "gauge",
-    unit: "By",
-    enabledByDefault: true,
+    unit: "1",
+    enabledByDefault: false,
   },
 
   // Memcached — memcachedreceiver.
@@ -623,6 +637,13 @@ interface DatabaseQuerySpec {
   aggregationType: MetricsAggregationType;
   // Datapoint attribute filters on top of the database scope.
   attributes?: Record<string, string> | undefined;
+  /*
+   * The unit the alert and incident text formats the query's values in.
+   * Left unset, the evaluator falls back to the metric's native unit, which
+   * is right for every metric but a dimensionless one the formatter would
+   * misread (see the Redis fragmentation template).
+   */
+  legendUnit?: string | undefined;
 }
 
 interface DatabaseCriteriaSpec {
@@ -713,7 +734,7 @@ function buildDatabaseQuery(data: {
       title: data.title,
       description: data.title,
       legend: data.title,
-      legendUnit: undefined,
+      legendUnit: data.spec.legendUnit,
     },
     metricQueryData: {
       filterData: {
@@ -1127,14 +1148,14 @@ const postgresqlTemplates: Array<DatabaseAlertTemplate> = [
     id: "database-postgresql-replica-replay-lag",
     name: "Replica Replay Lag",
     description:
-      "Alert when the slowest replica stays 30 seconds or more behind this primary in replaying WAL. Reads postgresql.wal.lag (operation = replay), which the primary reports per connected replica.",
+      "Alert when the slowest replica stays 30 seconds or more behind this primary in replaying WAL. Reads postgresql.wal.delay (operation = replay), which the primary reports per connected replica and the receiver only emits once it is enabled (the Database Agent enables it).",
     category: "Replication",
     severity: "Warning",
     engine: POSTGRESQL,
     queries: [
       {
         alias: "pg_replay_lag",
-        metricName: "postgresql.wal.lag",
+        metricName: "postgresql.wal.delay",
         aggregationType: MetricsAggregationType.Max,
         attributes: { operation: "replay" },
       },
@@ -1166,7 +1187,8 @@ const postgresqlTemplates: Array<DatabaseAlertTemplate> = [
     criteria: {
       metricAlias: "pg_replication_delay",
       filterType: FilterType.GreaterThanOrEqualTo,
-      threshold: 1073741824,
+      // Decimal, like the byte ladder the alert text formats with: "1 GB".
+      threshold: 1000000000,
       thresholdLabel: "at or above 1 GB",
       incidentDescription:
         "A replica has fallen 1 GB or more of WAL behind. The primary must keep that WAL until the replica catches up, so its disk fills as well; check the replica's disk throughput and the network link.",
@@ -1191,7 +1213,8 @@ const postgresqlTemplates: Array<DatabaseAlertTemplate> = [
     criteria: {
       metricAlias: "pg_database_size",
       filterType: FilterType.GreaterThanOrEqualTo,
-      threshold: 536870912000,
+      // Decimal, like the byte ladder the alert text formats with: "500 GB".
+      threshold: 500000000000,
       thresholdLabel: "at or above 500 GB",
       incidentDescription:
         "A database has grown past its size budget. Check for table and index bloat (autovacuum keeping up?), unbounded tables such as event logs, and how much headroom the volume has left.",
@@ -1381,6 +1404,14 @@ const redisTemplates: Array<DatabaseAlertTemplate> = [
         alias: "redis_fragmentation_ratio",
         metricName: "redis.memory.fragmentation_ratio",
         aggregationType: MetricsAggregationType.Avg,
+        /*
+         * The receiver's unit is the dimensionless "1", which on a `_ratio`
+         * name the alert text reads as a 0..1 fraction and renders ×100
+         * ("162.00% ... 150.00%"). This ratio is no fraction — healthy is
+         * about 1.0 — so it is labelled with an annotation-only unit, which
+         * formats as the bare number.
+         */
+        legendUnit: "{ratio}",
       },
       {
         alias: "redis_fragmentation_memory_used",
@@ -1397,7 +1428,8 @@ const redisTemplates: Array<DatabaseAlertTemplate> = [
       additionalFilter: {
         metricAlias: "redis_fragmentation_memory_used",
         filterType: FilterType.GreaterThanOrEqualTo,
-        value: 268435456,
+        // Decimal, like the byte ladder the alert text formats with: "256 MB".
+        value: 256000000,
         label: "redis.memory.used is at or above 256 MB",
       },
       incidentDescription:
@@ -1493,31 +1525,13 @@ const mongodbTemplates: Array<DatabaseAlertTemplate> = [
         "mongod is about to refuse new connections. Check which clients hold them (db.currentOp, $currentOp grouped by client) — usually a driver pool sized far above what the application needs, multiplied across every replica of it.",
     },
   }),
-  buildDatabaseTemplate({
-    id: "database-mongodb-unhealthy",
-    name: "Server Reports Unhealthy",
-    description:
-      "Alert when the server reports itself unhealthy. Reads mongodb.health, which the receiver only emits once it is enabled (the Database Agent enables it).",
-    category: "Availability",
-    severity: "Critical",
-    engine: MONGODB,
-    queries: [
-      {
-        alias: "mongodb_health",
-        metricName: "mongodb.health",
-        aggregationType: MetricsAggregationType.Min,
-      },
-    ],
-    criteria: {
-      metricAlias: "mongodb_health",
-      filterType: FilterType.LessThan,
-      threshold: 1,
-      thresholdLabel: "at 0 (unhealthy)",
-      isBinaryMetric: true,
-      incidentDescription:
-        "mongod reports itself unhealthy. Check rs.status() for the member's state and the server log for the reason.",
-    },
-  }),
+  /*
+   * No "server reports unhealthy" template on mongodb.health: the receiver
+   * records it from serverStatus's `ok` only after serverStatus succeeded,
+   * so it can only ever read 1 — a server that is down emits nothing
+   * (Engine Metrics Stopped covers that), and a replica-set member in
+   * RECOVERING or ROLLBACK still answers ok:1.
+   */
 ];
 
 // --- SQL Server ---
@@ -1787,35 +1801,45 @@ const elasticsearchTemplates: Array<DatabaseAlertTemplate> = [
         "Cluster-state updates are queueing on the master. GET _cluster/pending_tasks shows what — dynamic mapping updates from a field explosion and mass index creation are the usual causes.",
     },
   }),
-  buildPercentOfLimitTemplate({
+  buildDatabaseTemplate({
     id: "database-elasticsearch-jvm-heap-high",
     name: "JVM Heap Pressure",
     description:
-      "Alert when JVM heap used stays at 85% of the heap maximum, averaged across the cluster's nodes. Sustained pressure means long GC pauses and circuit breakers tripping next.",
+      "Alert when a node's JVM heap stays at 85% of its maximum or more. Sustained pressure means long GC pauses and circuit breakers tripping next. Reads jvm.memory.heap.utilization, which the receiver only emits once it is enabled (the Database Agent enables it).",
     category: "Memory",
     severity: "Warning",
     engine: ELASTICSEARCH,
-    /*
-     * Summed across nodes on both sides, so this is the CLUSTER's heap
-     * utilization. Picking out one hot node needs a group-by on
-     * `elasticsearch.node.name`, which the alert title cannot yet name —
-     * a node-level template is a follow-up once that label is registered.
-     */
-    numerator: {
-      alias: "elasticsearch_heap_used",
-      metricName: "jvm.memory.heap.used",
-      aggregationType: MetricsAggregationType.Sum,
+    queries: [
+      {
+        alias: "elasticsearch_heap_utilization",
+        metricName: "jvm.memory.heap.utilization",
+        /*
+         * The hottest node: heap pressure is a per-node failure (that
+         * node's breakers trip, its GC stalls), which a cluster-wide mean
+         * hides. Not a Sum/Sum of jvm.memory.heap.used over heap.max —
+         * the receiver records heap.used once per node AND once for the
+         * whole cluster in the same scrape, so that ratio reads double.
+         */
+        aggregationType: MetricsAggregationType.Max,
+      },
+    ],
+    // The receiver reports a 0..1 share; the monitor compares a percentage.
+    formula: {
+      alias: "elasticsearch_heap_percent",
+      expression: "elasticsearch_heap_utilization * 100",
+      legendUnit: "%",
     },
-    denominator: {
-      alias: "elasticsearch_heap_max",
-      metricName: "jvm.memory.heap.max",
-      aggregationType: MetricsAggregationType.Sum,
-    },
-    resultAlias: "elasticsearch_heap_percent",
-    thresholdPercent: 85,
     rollingTime: RollingTime.Past10Minutes,
-    incidentDescription:
-      "Elasticsearch heap has stayed above 85%. Check GET _nodes/stats/breaker and fielddata usage; large aggregations, too many shards per node and unbounded fielddata are the usual causes.",
+    criteria: {
+      metricAlias: "elasticsearch_heap_percent",
+      filterType: FilterType.GreaterThanOrEqualTo,
+      threshold: 85,
+      thresholdLabel: "at or above 85%",
+      subject:
+        "jvm.memory.heap.utilization (the fullest node's heap) as a percentage",
+      incidentDescription:
+        "A node's Elasticsearch heap has stayed above 85%. GET _nodes/stats/jvm,breaker shows which node and how close its breakers are; large aggregations, too many shards per node and unbounded fielddata are the usual causes.",
+    },
   }),
 ];
 

@@ -281,7 +281,16 @@ export default class MonitorStepResourceIdentity {
       return null;
     }
 
-    const port: unknown = connection.port;
+    const system: string | null = this.getSqlDatabaseSystem(
+      connection.databaseType,
+    );
+
+    const port: unknown = this.isSqlServerNamedInstance({
+      host: host,
+      system: system,
+    })
+      ? null
+      : connection.port;
 
     return SeriesResourceLabels.buildDatabaseEndpointRef({
       address: host,
@@ -290,8 +299,35 @@ export default class MonitorStepResourceIdentity {
         (typeof port === "string" && !port.includes("{{"))
           ? port
           : null,
-      system: this.getSqlDatabaseSystem(connection.databaseType),
+      system: system,
     });
+  }
+
+  /*
+   * True when a SQL Server probe connects to a NAMED instance
+   * (`host\instance`). The probe's driver (mssql) splits the host at its
+   * last backslash into an instance name and, when that name is non-empty,
+   * drops the port: it asks SQL Browser for the instance's own port. So the
+   * form's port — pre-filled with 1433 — names nothing, and passing it on
+   * would canonicalize the endpoint to `host:1433`, the DEFAULT instance, and
+   * land a named instance's outage on another server. Without it the
+   * endpoint stays `host\instance` (MSSQLSERVER, the default instance, still
+   * becomes `host:1433`).
+   */
+  private static isSqlServerNamedInstance(input: {
+    host: string;
+    system: string | null;
+  }): boolean {
+    if (input.system !== "microsoft.sql_server") {
+      return false;
+    }
+
+    const backslashIndex: number = input.host.lastIndexOf("\\");
+
+    return (
+      backslashIndex >= 0 &&
+      input.host.substring(backslashIndex + 1).trim().length > 0
+    );
   }
 
   /*
