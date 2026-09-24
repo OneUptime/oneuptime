@@ -443,6 +443,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/incidents/notes-owners-and-feed",
       },
       {
+        title: "Linked Alerts",
+        url: "/docs/incidents/linked-alerts",
+      },
+      {
         title: "Incident Settings & Automation",
         url: "/docs/incidents/settings",
       },

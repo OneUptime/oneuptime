@@ -20,7 +20,7 @@ Open **Incidents** in the left navigation, then expand **Settings** at the botto
 | **Custom Fields**        | Define extra fields that appear on every incident.                                           |
 | **Measurements**         | Define named durations — time to detect, time to mitigate — computed for every incident.     |
 | **Incident Roles**       | Define the roles you assign responders to, such as Incident Commander.                       |
-| **More Settings**        | The incident and incident episode number prefixes.                                           |
+| **More Settings**        | The incident and incident episode number prefixes, and the linked alert switches.            |
 
 **Incident State** and **Incident Severity** are covered in depth on [Incident States & Severities](/docs/incidents/states-and-severities) — the rest of this page picks up from **Incident Templates**.
 
@@ -186,6 +186,15 @@ Go to **Incidents → Settings → More Settings** (`/dashboard/{projectId}/inci
 
 Leave either empty to keep the default `#` prefix; the unset field displays `# (default)`. Save with **Update**. The prefixed value is stored on the incident as `incidentNumberWithPrefix`, which is what the incidents list and the incident header render.
 
+## Linked alert switches
+
+Linking alerts to an incident never changes their state on its own. Two project switches, on the **Linked Alerts** card of **Incidents → Settings → More Settings**, let the incident move its linked alerts along with it:
+
+- **Acknowledge Linked Alerts When Incident Is Acknowledged** — acknowledging the incident acknowledges every linked alert that is not acknowledged yet, which stops those alerts' on-call escalations.
+- **Resolve Linked Alerts When Incident Is Resolved** — resolving the incident resolves every linked alert that is not resolved yet, except an alert that is still linked to another incident that is not resolved.
+
+Both are off by default, and only Project Owners and Project Admins can change them, with the card's **Update** button. States are compared by their order, so custom states count; alerts never move backwards, reopening an incident does not reopen its alerts, and an alert linked to an incident that is already acknowledged or resolved is brought in line as it is linked. [Linked Alerts](/docs/incidents/linked-alerts) has the full rules, including why resolving an alert whose monitor is still failing makes the monitor raise a fresh one.
+
 ## Rules that run when an incident is created
 
 **Incidents → Rules** holds eight rule engines. They all do the same job — look at an incident the moment it is created, and act if it matches — but they differ in what they do and in how multiple matching rules resolve.
@@ -257,6 +266,7 @@ For building the rest of the workflow, see [Authoring a Workflow](/docs/workflow
 - [Declaring an Incident](/docs/incidents/declaring-incidents) — the declare wizard, templates and the API.
 - [Incident States & Severities](/docs/incidents/states-and-severities) — the state and severity settings pages and what the flags do.
 - [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — where note templates get used.
+- [Linked Alerts](/docs/incidents/linked-alerts) — linking alerts to incidents and what the linked alert switches do.
 - [Subscribers & Announcements](/docs/status-pages/subscribers) — who hears about an incident outside your team.
 - [Workflows Overview](/docs/workflows/index) — automating on top of incident triggers.
 - [Runbooks Overview](/docs/runbooks/index) — the procedures runbook rules attach.
