@@ -3092,9 +3092,9 @@ describe("Session replay playback API", () => {
           (headerQuerySpy.mock.calls[0]![0] as Statement).query,
         ).not.toContain("rumApplicationId IN (");
         expect(
-          ((result.jsonBody as JSONObject)["sessions"] as Array<JSONObject>)[0]?.[
-            "rumApplicationId"
-          ],
+          (
+            (result.jsonBody as JSONObject)["sessions"] as Array<JSONObject>
+          )[0]?.["rumApplicationId"],
         ).toBe(applicationAId.toString());
       },
     );

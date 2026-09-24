@@ -485,7 +485,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       });
 
       logger.debug("Microsoft Teams access token refreshed successfully");
-      logger.debug(`New token expires at: ${OneUptimeDate.toString(expiryDate)}`);
+      logger.debug(
+        `New token expires at: ${OneUptimeDate.toString(expiryDate)}`,
+      );
 
       return newAccessToken;
     } catch (error) {
