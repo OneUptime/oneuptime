@@ -41,6 +41,15 @@ export interface DatabaseSystemDescriptor {
   // `app.kubernetes.io/name` values of the common Helm charts (Bitnami & co).
   kubernetesChartNames: ReadonlyArray<string>;
   hasCollectorReceiver: boolean;
+  /*
+   * The engine this one is a fork or wire-compatible drop-in of ("redis" for
+   * Valkey, "mysql" for MariaDB, "cassandra" for ScyllaDB). Client libraries
+   * cannot tell the two apart, so a span reports the family's value while an
+   * image or a receiver can name the fork; getDatabaseSystemFamily lets both
+   * land on one row, and a stronger source refines the engine to the fork.
+   * Absent for an engine that is its own family.
+   */
+  family?: string | undefined;
 }
 
 export const DATABASE_SYSTEMS: ReadonlyArray<DatabaseSystemDescriptor> = [
@@ -504,6 +513,32 @@ export function getDatabaseSystemDescriptor(
 
 export function isKnownDatabaseSystem(system: unknown): boolean {
   return getDatabaseSystemDescriptor(system) !== null;
+}
+
+/**
+ * The engine family a system belongs to: the `family` of a fork or drop-in
+ * ("valkey" → "redis", "mariadb" → "mysql"), the system itself for an engine
+ * that is its own family, and the canonicalized raw value for an unknown one.
+ * Aliases are accepted. Empty or non-string input is null.
+ */
+export function getDatabaseSystemFamily(system: unknown): string | null {
+  const descriptor: DatabaseSystemDescriptor | null =
+    getDatabaseSystemDescriptor(system);
+  if (descriptor) {
+    return descriptor.family || descriptor.system;
+  }
+  const canonical: string = canonicalRaw(system);
+  return canonical || null;
+}
+
+/**
+ * True when two engine values describe the same family — the same engine,
+ * aliases of it, or a fork and the engine it forks. A span that says "redis"
+ * and an image that says "valkey" are the same database seen twice.
+ */
+export function isSameDatabaseFamily(a: unknown, b: unknown): boolean {
+  const familyA: string | null = getDatabaseSystemFamily(a);
+  return familyA !== null && familyA === getDatabaseSystemFamily(b);
 }
 
 /**
