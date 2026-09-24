@@ -10,6 +10,9 @@ import CephClusterFeed, {
 import CloudResourceFeed, {
   CloudResourceFeedEventType,
 } from "../../../Models/DatabaseModels/CloudResourceFeed";
+import DatabaseServerFeed, {
+  DatabaseServerFeedEventType,
+} from "../../../Models/DatabaseModels/DatabaseServerFeed";
 import DockerHostFeed, {
   DockerHostFeedEventType,
 } from "../../../Models/DatabaseModels/DockerHostFeed";
@@ -43,10 +46,10 @@ import { describe, expect, test } from "@jest/globals";
  * Nine infrastructure and catalog resources gained an activity feed at once -
  * Kubernetes clusters, Docker and Podman hosts, Docker Swarm / Proxmox / Ceph
  * clusters, servers, cloud resources and catalog services - and VMware vCenters
- * joined them later. They were generated from one template, which is exactly
- * why they need a sweep rather than hand-written assertions: a template applied
- * nine times fails in the same place nine times, and a tenth resource added
- * later by hand will not match it at all.
+ * and databases joined them later. They were generated from one template,
+ * which is exactly why they need a sweep rather than hand-written assertions:
+ * a template applied nine times fails in the same place nine times, and a
+ * tenth resource added later by hand will not match it at all.
  *
  * The properties pinned here are the ones that are invisible until they are
  * wrong in production:
@@ -244,6 +247,22 @@ const FEED_MODELS: Array<FeedModelSpec> = [
     ],
   },
   {
+    name: "DatabaseServerFeed",
+    modelType: DatabaseServerFeed,
+    relationProperty: "databaseServer",
+    foreignKeyColumn: "databaseServerId",
+    eventTypeColumn: "databaseServerFeedEventType",
+    crudApiPath: "/database-server-feed",
+    eventTypeEnum: DatabaseServerFeedEventType,
+    sharedEventTypes: [],
+    resourceEventTypes: [
+      "DatabaseServerCreated",
+      "DatabaseServerUpdated",
+      "DatabaseServerArchived",
+      "DatabaseServerRestored",
+    ],
+  },
+  {
     name: "ServiceLevelObjectiveFeed",
     modelType: ServiceLevelObjectiveFeed,
     relationProperty: "serviceLevelObjective",
@@ -285,7 +304,7 @@ function permissionExists(permission: Permission): boolean {
 describe("Resource activity feed models", () => {
   test("the inventory is not empty", () => {
     // Guards every test.each below against passing on an empty list.
-    expect(FEED_MODELS.length).toBe(11);
+    expect(FEED_MODELS.length).toBe(12);
   });
 
   test.each(FEED_MODELS)(

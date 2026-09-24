@@ -1,6 +1,7 @@
 import Alert from "../../../Models/DatabaseModels/Alert";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -137,6 +138,11 @@ export const TELEMETRY_ENTITY_TYPES: Record<
     modelType: CloudResource,
     nameFields: ["name", "resourceIdentifier"],
   },
+  [ServiceType.DatabaseServer]: {
+    label: "Database",
+    modelType: DatabaseServer,
+    nameFields: ["name"],
+  },
   [ServiceType.NetworkDevice]: {
     label: "Network Device",
     modelType: NetworkDevice,
@@ -190,6 +196,7 @@ export const TELEMETRY_ENTITY_RESOLUTION_ORDER: Array<ServiceType> = [
   ServiceType.KubernetesCluster,
   ServiceType.ServerlessFunction,
   ServiceType.CloudResource,
+  ServiceType.DatabaseServer,
   ServiceType.IoTDevice,
   ServiceType.ProxmoxCluster,
   ServiceType.CephCluster,

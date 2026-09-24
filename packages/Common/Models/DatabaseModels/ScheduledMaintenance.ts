@@ -1,4 +1,5 @@
 import CephCluster from "./CephCluster";
+import DatabaseServer from "./DatabaseServer";
 import DockerHost from "./DockerHost";
 import PodmanHost from "./PodmanHost";
 import Host from "./Host";
@@ -1048,6 +1049,60 @@ export default class ScheduledMaintenance extends BaseModel {
     },
   })
   public cephClusters?: Array<CephCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.CreateProjectScheduledMaintenance,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.ScheduledMaintenanceViewer,
+      Permission.ReadProjectScheduledMaintenance,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.ScheduledMaintenanceAdmin,
+      Permission.ScheduledMaintenanceMember,
+      Permission.EditProjectScheduledMaintenance,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: DatabaseServer,
+    title: "Databases",
+    description: "List of databases affected by this event.",
+  })
+  @ManyToMany(
+    () => {
+      return DatabaseServer;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "ScheduledMaintenanceDatabaseServer",
+    inverseJoinColumn: {
+      name: "databaseServerId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "scheduledMaintenanceId",
+      referencedColumnName: "_id",
+    },
+  })
+  public databaseServers?: Array<DatabaseServer> = undefined;
 
   @ColumnAccessControl({
     create: [

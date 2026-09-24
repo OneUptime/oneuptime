@@ -70,6 +70,15 @@ const META_BY_TYPE: Record<EntityType, EntityTypeMeta> = {
   [EntityType.Database]: { label: "Database", color: "#7c3aed" },
   [EntityType.RemoteService]: { label: "Remote Service", color: "#0f766e" },
   /*
+   * Membership-only (never a registry row, so never a graph node in
+   * practice); listed so the Record stays total and a stray key still reads
+   * as part of the database family.
+   */
+  [EntityType.DatabaseServer]: {
+    label: "Database Endpoint",
+    color: "#8b5cf6",
+  },
+  /*
    * Inventory-mirrored types. Greens, to read as one family distinct from the
    * telemetry-derived types above — on the graph these are things OneUptime
    * polls rather than things that report in.

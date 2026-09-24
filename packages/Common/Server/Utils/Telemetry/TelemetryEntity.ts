@@ -15,6 +15,14 @@ import { ONEUPTIME_LABEL_ATTRIBUTE_PREFIX } from "./OneuptimeLabel";
 import crypto from "crypto";
 
 /*
+ * `keyForContainer` moved to the isomorphic EntityKey module (the Databases
+ * product needs it in the browser too). Re-exported here so the existing
+ * server-side importers (MetricService's container rollup read path and its
+ * tests) keep working unchanged.
+ */
+export { keyForContainer } from "../../../Utils/Telemetry/EntityKey";
+
+/*
  * Generalized OpenTelemetry entity extraction (the identity layer of the
  * entity model — see Internal/Docs/OpenTelemetryEntities.md, phase 1).
  *
@@ -1448,25 +1456,4 @@ export default class InventoryItem {
     }
     return out;
   }
-}
-
-/**
- * `container.id` is the container identity (mirrors the container
- * resolver above — id-only). Read-side helper in the mold of
- * `EntityKey.keyForHost` & co.; it lives here rather than in the
- * isomorphic EntityKey module because its only consumer today is the
- * server-side container metric-rollup read path
- * (`MetricService.tryBuildEntityAggregateMVStatement` against
- * `MetricItemAggMV1mByContainer`), so there is no reason to widen the
- * browser bundle. Pass the raw `container.id` attribute value.
- */
-export function keyForContainer(
-  projectId: string,
-  containerId: string,
-): string {
-  return computeEntityKeyShared({
-    projectId,
-    entityType: EntityType.Container,
-    identifyingAttributes: { "container.id": containerId },
-  });
 }

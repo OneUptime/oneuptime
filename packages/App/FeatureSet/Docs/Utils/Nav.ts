@@ -810,6 +810,17 @@ const DocsNav: NavGroup[] = [
         title: "VMware Agent",
         url: "/docs/telemetry/vmware",
       },
+      /*
+       * The Databases hub (auto-detection, the Database Agent, Kubernetes,
+       * endpoints). Pages are resolved by substring match on the URL
+       * (Docs/Index.ts), so a request for this hub would land on any EARLIER
+       * link whose URL contains "telemetry/databases" — keep future
+       * telemetry/databases-* pages after this entry.
+       */
+      {
+        title: "Databases",
+        url: "/docs/telemetry/databases",
+      },
       {
         title: "Serverless Functions",
         url: "/docs/telemetry/serverless-functions",

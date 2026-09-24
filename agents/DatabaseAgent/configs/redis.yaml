@@ -1,0 +1,171 @@
+# OneUptime Database Agent — Redis (and Valkey, which speaks the same
+# protocol and INFO format).
+#
+# ONE agent monitors ONE Redis server. The resource processor below stamps
+# every batch with that server's identity (server.address / server.port),
+# so a second server added to this pipeline would be merged into the first
+# one in OneUptime. Run a second agent (a second install directory) for a
+# second server — in a Redis replication setup, one per primary and one per
+# replica.
+#
+# install.sh downloads this file as otel-collector-config.yaml next to
+# docker-compose.yml. Every ${env:...} below comes from the .env file that
+# docker-compose.yml passes through; see README.md for what each one means.
+
+receivers:
+  redis:
+    # host:port the agent CONNECTS to. This may be localhost:6379 when the
+    # agent runs next to the server — the identity OneUptime shows comes
+    # from DATABASE_SERVER_ADDRESS / DATABASE_SERVER_PORT below, never
+    # from this value.
+    endpoint: "${env:DATABASE_ENDPOINT}"
+    transport: tcp
+    # Optional. With Redis 6+ ACLs, a user allowed only INFO and PING (see
+    # README.md). Leave DATABASE_USERNAME empty for a requirepass-only
+    # server, and both empty for a server without authentication.
+    username: "${env:DATABASE_USERNAME}"
+    password: "${env:DATABASE_PASSWORD}"
+    collection_interval: "${env:DATABASE_COLLECTION_INTERVAL}"
+    initial_delay: 1s
+    tls:
+      # true (the default in docker-compose.yml) connects WITHOUT TLS.
+      # false turns TLS on; insecure_skip_verify true then accepts a
+      # certificate the image does not trust.
+      # The placeholders are deliberately UNQUOTED: a quoted "${env:...}"
+      # is a string and fails these boolean fields at startup.
+      insecure: ${env:DATABASE_TLS_INSECURE}
+      insecure_skip_verify: ${env:DATABASE_TLS_INSECURE_SKIP_VERIFY}
+    resource_attributes:
+      # Off by default upstream: without them a Redis batch carries nothing
+      # that says which server it came from. The resource processor below
+      # overwrites both with the identity you configured; they are enabled
+      # so the receiver's own view is there if you remove that stamp.
+      server.address:
+        enabled: true
+      server.port:
+        enabled: true
+    metrics:
+      # Off by default upstream; OneUptime's database overview uses them
+      # (memory headroom against maxmemory, primary/replica role, replica
+      # offset for replication lag, per-command latency percentiles).
+      redis.maxmemory:
+        enabled: true
+      redis.role:
+        enabled: true
+      redis.replication.replica_offset:
+        enabled: true
+      redis.cmd.latency:
+        enabled: true
+      # Other optional metrics the receiver can emit, all off by default.
+      # Enable any of them the same way if you want them in OneUptime:
+      #   redis.cmd.calls                     (calls per command)
+      #   redis.cmd.usec                      (CPU time per command)
+      #   redis.mode                          (standalone / cluster / sentinel)
+      #   redis.cluster.state                 (Redis Cluster state; needs cluster mode)
+      #   redis.cluster.slots_fail            (Redis Cluster slots in fail state)
+      #   redis.memory.used_memory_overhead   (memory used by server internals)
+
+  # Optional: ship the Redis log file. Uncomment this receiver, add a logs
+  # pipeline for it at the bottom, and mount the server's log directory at
+  # /var/log/database in docker-compose.yml, e.g.
+  #   - /var/log/redis:/var/log/database:ro
+  # The collector runs as a non-root user, so the files must be readable
+  # by "other" (or run the container as a user in the redis group).
+  # filelog:
+  #   include:
+  #     - /var/log/database/*.log
+  #   start_at: end
+
+processors:
+  # The identity of this database in OneUptime. OneUptime registers the
+  # database from server.address + server.port (engine-agnostic) and joins
+  # it to the commands your applications send to the same host:port, so
+  # DATABASE_SERVER_ADDRESS must be the name applications use to reach the
+  # server — never localhost. Keep it stable: changing it later registers
+  # a second database.
+  resource:
+    attributes:
+      - key: db.system.name
+        value: redis
+        action: upsert
+      - key: server.address
+        value: "${env:DATABASE_SERVER_ADDRESS}"
+        action: upsert
+      # Unquoted on purpose: server.port is an integer attribute.
+      - key: server.port
+        value: ${env:DATABASE_SERVER_PORT}
+        action: upsert
+      # Tells OneUptime this batch was stamped by the Database Agent on
+      # purpose, so server.address is trusted as the identity even when
+      # it looks like a container id.
+      - key: oneuptime.database.agent
+        value: "true"
+        action: upsert
+      # Shown as the agent version on the database's page. Keep it in step
+      # with the image pin in docker-compose.yml.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
+      # Defensive: the receiver does not set service.name, but
+      # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
+      # routes a batch by service.name first, so one that slipped through
+      # would register a phantom Service instead of this database. Do not
+      # remove this delete.
+      - key: service.name
+        action: delete
+  # The two OPTIONAL identity attributes. They are set here rather than in
+  # the resource processor above because that processor refuses to start
+  # when a value is empty, and both variables are empty unless you need
+  # them. Each is set from its variable and removed again when the
+  # variable is empty, so an unset one never reaches OneUptime at all.
+  #   oneuptime.database.server.id (DATABASE_SERVER_ID): the id of an
+  #     existing database in OneUptime (Databases → the database →
+  #     Documentation shows it). When set, the data joins that database
+  #     directly instead of being matched by address.
+  #   k8s.cluster.name (KUBERNETES_CLUSTER_NAME), Kubernetes only: the
+  #     cluster name you gave the OneUptime Kubernetes agent. It qualifies
+  #     cluster-local addresses (<service>.<namespace>.svc.cluster.local),
+  #     which are only unique inside one cluster.
+  transform/optional_identity:
+    error_mode: ignore
+    metric_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+      - set(resource.attributes["k8s.cluster.name"], "${env:KUBERNETES_CLUSTER_NAME}")
+      - delete_key(resource.attributes, "k8s.cluster.name") where resource.attributes["k8s.cluster.name"] == ""
+    log_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+      - set(resource.attributes["k8s.cluster.name"], "${env:KUBERNETES_CLUSTER_NAME}")
+      - delete_key(resource.attributes, "k8s.cluster.name") where resource.attributes["k8s.cluster.name"] == ""
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+# Deliberately NO resourcedetection processor: its `system` detector adds
+# the host.name / os.type of the machine this agent runs on, which would
+# make that machine look like the thing being monitored (a Host in
+# OneUptime) instead of the database named above.
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [redis]
+      processors: [memory_limiter, resource, transform/optional_identity, batch]
+      exporters: [otlphttp]
+    # Redis has no query events. Uncomment together with the filelog
+    # receiver above to ship the Redis log file:
+    # logs:
+    #   receivers: [filelog]
+    #   processors: [memory_limiter, resource, transform/optional_identity, batch]
+    #   exporters: [otlphttp]

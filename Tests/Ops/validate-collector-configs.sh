@@ -103,6 +103,29 @@ ENV_ARGS=(
   -e "VCENTER_PASSWORD=validate-only"
   -e "VCENTER_INSECURE_SKIP_VERIFY=true"
   -e "VCENTER_COLLECTION_INTERVAL=2m"
+  # The Database Agent (one config per engine under agents/DatabaseAgent/
+  # configs). The postgresql receiver splits the endpoint as host:port and
+  # refuses an empty username or password, the TLS flags and the two event
+  # toggles are unquoted booleans, and the interval is a duration — so give
+  # them the shapes install.sh writes. Query events are ON here because that
+  # is the stricter path (the mongodb receiver validates its top-query
+  # settings only when the event is enabled).
+  -e "DATABASE_SYSTEM=validate-only"
+  -e "DATABASE_ENDPOINT=db.example.com:5432"
+  -e "DATABASE_SERVER_ADDRESS=db.example.com"
+  -e "DATABASE_SERVER_PORT=5432"
+  -e "DATABASE_USERNAME=validate-only"
+  -e "DATABASE_PASSWORD=validate-only"
+  -e "DATABASE_TLS_INSECURE=true"
+  -e "DATABASE_TLS_INSECURE_SKIP_VERIFY=false"
+  -e "DATABASE_COLLECTION_INTERVAL=30s"
+  -e "DATABASE_QUERY_EVENTS=true"
+  # The two optional identity variables are EMPTY in a default install, and
+  # an empty value is exactly what the resource processor refuses to start
+  # with ("Either field value ... must be specified"). Validate that case:
+  # the configs set them from a transform processor instead.
+  -e "DATABASE_SERVER_ID="
+  -e "KUBERNETES_CLUSTER_NAME="
 )
 
 failures=0
@@ -132,6 +155,14 @@ for agent in DockerAgent PodmanAgent DockerSwarmAgent VMwareAgent; do
   # bind mount cannot pick up anything else from the agent directory.
   cp "${REPO_ROOT}/agents/${agent}/otel-collector-config.yaml" "${WORK_DIR}/${agent}.yaml"
   validate "${agent}" "${WORK_DIR}/${agent}.yaml"
+done
+
+# The Database Agent ships one config per engine; install.sh downloads the
+# chosen one as otel-collector-config.yaml. Every one of them is validated.
+DATABASE_AGENT_ENGINES=(postgresql mysql redis mongodb)
+for engine in "${DATABASE_AGENT_ENGINES[@]}"; do
+  cp "${REPO_ROOT}/agents/DatabaseAgent/configs/${engine}.yaml" "${WORK_DIR}/DatabaseAgent-${engine}.yaml"
+  validate "DatabaseAgent / ${engine}" "${WORK_DIR}/DatabaseAgent-${engine}.yaml"
 done
 
 # The Kubernetes agent, both of its collector ConfigMaps, rendered from the
@@ -219,6 +250,34 @@ console.log(listed.join(" "));
   "${WORK_DIR}/VMwareAgent-all-metrics.yaml"
 validate "VMwareAgent, every optional metric its config lists enabled" \
   "${WORK_DIR}/VMwareAgent-all-metrics.yaml"
+
+# Each Database Agent config lists its receiver's other optional metrics in a
+# comment and tells users to enable any of them "the same way". A metric the
+# pinned collector does not know is a config that refuses to start, so
+# validate every config once more with every listed metric switched on.
+for engine in "${DATABASE_AGENT_ENGINES[@]}"; do
+  node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [source, out, engine] = process.argv.slice(1);
+const text = fs.readFileSync(source, "utf8");
+const pattern = new RegExp(`^\\s*#\\s+(${engine}\\.[a-z0-9_.]+)\\s`, "gm");
+const listed = [...text.matchAll(pattern)].map((match) => match[1]);
+if (listed.length === 0) {
+  throw new Error(`${source}: found no optional ${engine} metrics to enable`);
+}
+const config = yaml.load(text);
+for (const metric of listed) {
+  config.receivers[engine].metrics[metric] = { enabled: true };
+}
+fs.writeFileSync(out, yaml.dump(config));
+console.log(listed.join(" "));
+' "${REPO_ROOT}/agents/DatabaseAgent/configs/${engine}.yaml" \
+    "${WORK_DIR}/DatabaseAgent-${engine}-all-metrics.yaml" "${engine}"
+  validate "DatabaseAgent / ${engine}, every optional metric its config lists enabled" \
+    "${WORK_DIR}/DatabaseAgent-${engine}-all-metrics.yaml"
+done
 
 if [ "${failures}" -ne 0 ]; then
   echo

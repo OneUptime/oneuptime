@@ -1,4 +1,5 @@
 import CephCluster from "./CephCluster";
+import DatabaseServer from "./DatabaseServer";
 import DockerHost from "./DockerHost";
 import DockerResource from "./DockerResource";
 import PodmanHost from "./PodmanHost";
@@ -1186,6 +1187,60 @@ export default class Incident extends BaseModel {
     },
   })
   public cephClusters?: Array<CephCluster> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: DatabaseServer,
+    title: "Databases",
+    description: "List of databases affected by this incident.",
+  })
+  @ManyToMany(
+    () => {
+      return DatabaseServer;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "IncidentDatabaseServer",
+    inverseJoinColumn: {
+      name: "databaseServerId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: {
+      name: "incidentId",
+      referencedColumnName: "_id",
+    },
+  })
+  public databaseServers?: Array<DatabaseServer> = undefined;
 
   @ColumnAccessControl({
     create: [

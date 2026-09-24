@@ -22,6 +22,8 @@ const STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES: Array<string> = [
   "CloudResourceOwnerRule",
   "DashboardLabelRule",
   "DashboardOwnerRule",
+  "DatabaseServerLabelRule",
+  "DatabaseServerOwnerRule",
   "DockerHostLabelRule",
   "DockerHostOwnerRule",
   "DockerSwarmClusterLabelRule",
@@ -110,8 +112,8 @@ function getRegisteredModelType(modelName: string): ModelType {
 
 describe("static match-criteria rule model inheritance", () => {
   it("keeps the explicit model inventory complete and duplicate-free", () => {
-    expect(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).toHaveLength(76);
-    expect(new Set(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).size).toBe(76);
+    expect(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).toHaveLength(78);
+    expect(new Set(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).size).toBe(78);
   });
 
   it.each(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES)(

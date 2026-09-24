@@ -87,6 +87,20 @@ enum EntityType {
   Database = "database",
   RemoteService = "remote.service",
   /*
+   * A database SERVER endpoint (host[:port][@cluster]) — the identity the
+   * Databases product (the DatabaseServer table) scopes telemetry by.
+   * OneUptime-defined and MEMBERSHIP-ONLY: ingest appends its key to the
+   * `entityKeys` of every DB CLIENT span, `db.client.*` datapoint and DB
+   * receiver batch that names the endpoint (see
+   * `EntityKey.keyForDatabaseEndpoint`), but no resolver ever emits it and it
+   * is never promoted to an InventoryItem row, so it has no prune TTL. The
+   * key is deliberately engine-agnostic (no `db.system.name`), so a
+   * CockroachDB that clients reach over the PostgreSQL wire protocol still
+   * joins. Distinct from `Database` above, which is a logical database
+   * inferred by the dependency cron and keyed by engine + namespace.
+   */
+  DatabaseServer = "database.server",
+  /*
    * Inventory-mirrored types. Unlike everything above, these are never
    * derived from an OTLP resource — the estate they describe is collected
    * by pollers (SNMP, cloud APIs, MQTT) into rich typed tables, and the

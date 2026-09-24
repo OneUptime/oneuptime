@@ -121,6 +121,19 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     description:
       "A database or cache your services query, discovered from their client spans.",
   },
+  /*
+   * "Database" is taken by the logical, span-inferred type above, and the
+   * singular labels must stay unique. This type is membership-only: it keys
+   * telemetry for the Databases product and never becomes an inventory row.
+   */
+  [EntityType.DatabaseServer]: {
+    label: "Database Endpoint",
+    pluralLabel: "Database Endpoints",
+    category: InventoryCategory.Applications,
+    icon: IconProp.Database,
+    description:
+      "A database server address (host and port) that queries and database metrics are attributed to. It scopes telemetry for a database in the Databases product and is never listed as an inventory item of its own.",
+  },
   [EntityType.RemoteService]: {
     label: "Remote Service",
     pluralLabel: "Remote Services",

@@ -3,6 +3,7 @@ import InventoryItem, {
   EntityAttributes,
   EntityExtractionResult,
   ExtractedEntity,
+  keyForContainer as keyForContainerFromTelemetryEntity,
   MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH,
   ResourceEntityRef,
   RetiredEntityIdentity,
@@ -20,6 +21,9 @@ import {
   keyForProxmoxCluster,
   keyForCephCluster,
   keyForVMwareVCenter,
+  keyForKubernetesPod,
+  keyForKubernetesDeployment,
+  keyForContainer,
 } from "../../../../Utils/Telemetry/EntityKey";
 import logger from "../../../../Server/Utils/Logger";
 import { describe, expect, test } from "@jest/globals";
@@ -1149,6 +1153,167 @@ describe("read-side keyFor* helpers match ingest-side extraction", () => {
       EntityType.CephCluster,
     );
     expect(keyForCephCluster(PROJECT, "ceph-prod")).toBe(stamped!.entityKey);
+  });
+
+  /*
+   * The Databases product scopes a Kubernetes / Docker / Podman database's
+   * telemetry by its members' keys, computed by the worker (and the browser)
+   * from inventory rows — so each must equal what ingest stamps.
+   */
+  test("keyForKubernetesPod matches the pod entity stamped from cluster + namespace + pod name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      {
+        "k8s.cluster.name": "prod-eu",
+        "k8s.namespace.name": "shop",
+        "k8s.pod.name": "pg-main-1",
+        "k8s.pod.uid": "8a1c-uid",
+        "k8s.node.name": "node-3",
+        "container.id": "abc123def456",
+      },
+      EntityType.KubernetesPod,
+    );
+    expect(stamped).toBeDefined();
+    expect(
+      keyForKubernetesPod(PROJECT, {
+        clusterName: "prod-eu",
+        namespace: "shop",
+        podName: "pg-main-1",
+      }),
+    ).toBe(stamped!.entityKey);
+  });
+
+  test("keyForKubernetesPod canonicalizes like ingest", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      {
+        "k8s.cluster.name": "Prod-EU",
+        "k8s.namespace.name": "Shop",
+        "k8s.pod.name": "PG-Main-1",
+      },
+      EntityType.KubernetesPod,
+    );
+    expect(
+      keyForKubernetesPod(PROJECT, {
+        clusterName: "  prod-eu ",
+        namespace: "shop",
+        podName: "pg-main-1",
+      }),
+    ).toBe(stamped!.entityKey);
+  });
+
+  test("keyForKubernetesPod matches a resource without cluster / namespace only when given none", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "k8s.pod.name": "pg-0" },
+      EntityType.KubernetesPod,
+    );
+    expect(keyForKubernetesPod(PROJECT, { podName: "pg-0" })).toBe(
+      stamped!.entityKey,
+    );
+    expect(
+      keyForKubernetesPod(PROJECT, {
+        clusterName: " ",
+        namespace: "",
+        podName: "pg-0",
+      }),
+    ).toBe(stamped!.entityKey);
+    expect(
+      keyForKubernetesPod(PROJECT, { clusterName: "prod", podName: "pg-0" }),
+    ).not.toBe(stamped!.entityKey);
+  });
+
+  test("keyForKubernetesDeployment matches the deployment entity stamped from k8s.deployment.name", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      {
+        "k8s.cluster.name": "prod-eu",
+        "k8s.namespace.name": "shop",
+        "k8s.deployment.name": "cache",
+        "k8s.pod.name": "cache-7d9f8b6c5d-x2x4z",
+        "k8s.replicaset.name": "cache-7d9f8b6c5d",
+      },
+      EntityType.KubernetesDeployment,
+    );
+    expect(stamped).toBeDefined();
+    expect(
+      keyForKubernetesDeployment(PROJECT, {
+        clusterName: "prod-eu",
+        namespace: "shop",
+        deploymentName: "cache",
+      }),
+    ).toBe(stamped!.entityKey);
+    // The namespace is part of the identity.
+    expect(
+      keyForKubernetesDeployment(PROJECT, {
+        clusterName: "prod-eu",
+        deploymentName: "cache",
+      }),
+    ).not.toBe(stamped!.entityKey);
+  });
+
+  test("keyForKubernetesDeployment without cluster / namespace matches a bare resource", () => {
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      { "k8s.deployment.name": "Cache" },
+      EntityType.KubernetesDeployment,
+    );
+    expect(
+      keyForKubernetesDeployment(PROJECT, {
+        clusterName: null,
+        namespace: undefined,
+        deploymentName: "cache",
+      }),
+    ).toBe(stamped!.entityKey);
+  });
+
+  test("keyForContainer matches the container entity stamped from container.id", () => {
+    const fullId: string =
+      "3f9a1b2c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8";
+    const stamped: ExtractedEntity | undefined = entityOfType(
+      {
+        "container.id": fullId,
+        "container.name": "shop-postgres-1",
+        "container.runtime": "docker",
+        "host.name": "build-host-1",
+      },
+      EntityType.Container,
+    );
+    expect(stamped).toBeDefined();
+    expect(keyForContainer(PROJECT, fullId)).toBe(stamped!.entityKey);
+    expect(keyForContainer(PROJECT, fullId.toUpperCase())).toBe(
+      stamped!.entityKey,
+    );
+    // The short id is a different identity: callers must pass the full id.
+    expect(keyForContainer(PROJECT, fullId.slice(0, 12))).not.toBe(
+      stamped!.entityKey,
+    );
+  });
+
+  test("keyForContainer re-exported from TelemetryEntity is the EntityKey helper", () => {
+    expect(keyForContainerFromTelemetryEntity).toBe(keyForContainer);
+  });
+});
+
+describe("database.server is membership-only (never resolver-emitted)", () => {
+  test("a DB receiver resource derives no database.server entity", () => {
+    expect(
+      typesFor({
+        "db.system.name": "postgresql",
+        "server.address": "db.prod",
+        "server.port": "5432",
+        "service.instance.id": "db.prod:5432",
+        "host.name": "collector-1",
+      }),
+    ).not.toContain(EntityType.DatabaseServer);
+  });
+
+  test("an app resource with k8s + container attributes derives none either", () => {
+    expect(
+      typesFor({
+        "service.name": "checkout",
+        "k8s.cluster.name": "prod",
+        "k8s.namespace.name": "shop",
+        "k8s.pod.name": "checkout-1",
+        "container.id": "abc123def456",
+        "server.address": "pg.shop.svc.cluster.local",
+      }),
+    ).not.toContain(EntityType.DatabaseServer);
   });
 });
 
