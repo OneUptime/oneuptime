@@ -389,7 +389,7 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       children: (
         <Card
           title={`Node Metrics: ${nodeName}`}
-          description="CPU, memory, filesystem, and network usage for this node over the last 6 hours."
+          description="CPU, memory, filesystem, and network usage for this node over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab
             queryConfigs={[cpuQuery, memoryQuery, filesystemQuery]}

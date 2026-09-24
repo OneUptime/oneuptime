@@ -456,7 +456,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
       children: (
         <Card
           title={`Pod Metrics: ${podName}`}
-          description="CPU, memory, and container-level resource usage for this pod over the last 6 hours."
+          description="CPU, memory, and container-level resource usage for this pod over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab
             queryConfigs={[podCpuQuery, podMemoryQuery, cpuQuery, memoryQuery]}

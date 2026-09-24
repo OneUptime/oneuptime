@@ -172,7 +172,7 @@ const KubernetesClusterContainerDetail: FunctionComponent<
       children: (
         <Card
           title="Container Logs"
-          description="Logs for this container from the last 6 hours."
+          description="Logs for this container in the selected time range (the past hour by default)."
         >
           {/*
            * No pod on this page: the empty podName is dropped from the
@@ -194,7 +194,7 @@ const KubernetesClusterContainerDetail: FunctionComponent<
       children: (
         <Card
           title={`Container Metrics: ${containerName}`}
-          description="CPU and memory usage for this container over the last 6 hours."
+          description="CPU and memory usage for this container over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>

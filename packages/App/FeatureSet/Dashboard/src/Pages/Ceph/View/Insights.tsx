@@ -105,7 +105,8 @@ function getCapacityQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "pool_stored",
         title: "Stored Bytes per Pool",
-        description: "Bytes stored per pool (after replication).",
+        description:
+          "Bytes clients stored in each pool, before replication copies (Ceph's STORED figure).",
         legend: "Stored",
         legendUnit: "bytes",
         metricName: "ceph_pool_stored",

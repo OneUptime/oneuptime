@@ -310,7 +310,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
       children: (
         <Card
           title={`Job Metrics: ${jobName}`}
-          description="CPU and memory usage for pods in this job over the last 6 hours."
+          description="CPU and memory usage for pods in this job over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>

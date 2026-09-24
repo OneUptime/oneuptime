@@ -325,7 +325,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
       children: (
         <Card
           title={`Deployment Metrics: ${deploymentName}`}
-          description="CPU and memory usage for pods in this deployment over the last 6 hours."
+          description="CPU and memory usage for pods in this deployment over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>
