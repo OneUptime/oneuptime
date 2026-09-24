@@ -20,7 +20,9 @@ import { getActiveSignalIndex } from "./ReplaySignals";
  * from the chunks loaded so far - that is a real number, qualified by the
  * coverage note. A telemetry tab (Logs, Traces, and the server half of
  * Errors) has no number until its fetch has completed: "Logs 0" before
- * the request returns would read as "this session logged nothing".
+ * the request returns would read as "this session logged nothing". A
+ * fetch that partly failed is no better: the rows it did load read "N+",
+ * and with none it has no number at all.
  */
 
 export interface ReplayRailTabDefinition {
@@ -128,6 +130,17 @@ export interface ReplayRailTabModel {
   lockedPermission: string | null;
   errorMessage: string | null;
   isTruncated: boolean;
+  /*
+   * The slot's ids were capped (ReplayBackendSignalsSlot.isTraceIdSetCapped):
+   * the rows of some traces were never asked for, as opposed to a read
+   * hitting the row cap. Decides what the "N+" badge's tooltip says.
+   */
+  isTraceIdSetCapped: boolean;
+  /*
+   * A read behind the count failed (an error slot that kept rows): the
+   * count is what did load, a lower bound, so it renders as "N+".
+   */
+  isPartial: boolean;
 }
 
 function countInTab(
@@ -192,6 +205,15 @@ export function buildRailTabModels(args: {
         } else if (!hasRows) {
           count = null;
         }
+
+        /*
+         * A failed read claims nothing: "Logs 0" when the trace-id read
+         * that finds OTLP logs failed says the backend has none. What did
+         * load is still shown, as a lower bound (isPartial).
+         */
+        if (status === "error" && count === 0) {
+          count = null;
+        }
       }
 
       return {
@@ -206,6 +228,8 @@ export function buildRailTabModels(args: {
         lockedPermission: slot?.lockedPermission || null,
         errorMessage: slot?.errorMessage || null,
         isTruncated: slot?.isTruncated === true,
+        isTraceIdSetCapped: slot?.isTraceIdSetCapped === true,
+        isPartial: status === "error" && count !== null,
       };
     },
   );

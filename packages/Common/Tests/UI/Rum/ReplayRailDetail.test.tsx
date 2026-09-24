@@ -418,6 +418,92 @@ describe("ReplayRailDetail network", () => {
     ).toBeInTheDocument();
   });
 
+  /*
+   * Review round 3: a truncated Traces slot left rows out, so the request's
+   * trace may simply never have been fetched. The detail used to blame
+   * propagation or export first.
+   */
+  it("says a row-capped fetch may have left the trace out before blaming propagation", () => {
+    const request: ReplaySignal = networkSignal();
+
+    renderDetail(request, {
+      signals: [request],
+      spanSlot: {
+        status: "ready",
+        rowCount: 500,
+        isTruncated: true,
+        fetchedAtUnixMs: START_UNIX_MS,
+      },
+    });
+
+    const note: HTMLElement = screen.getByText(
+      /No span in the loaded traces carries trace/,
+    );
+    const text: string = note.textContent || "";
+
+    expect(text).toContain(
+      "Only the first 500 spans were fetched, so this trace's spans may be among the rows left out.",
+    );
+    expect(text).toContain(
+      "If it is not, the backend either did not receive the traceparent",
+    );
+    expect(text.indexOf("left out")).toBeLessThan(
+      text.indexOf("did not receive the traceparent"),
+    );
+    expect(text).not.toContain("more traces than one fetch names");
+  });
+
+  it("says an id-capped fetch may not have asked for the trace at all", () => {
+    const request: ReplaySignal = networkSignal();
+
+    renderDetail(request, {
+      signals: [request],
+      spanSlot: {
+        status: "ready",
+        rowCount: 12,
+        isTruncated: true,
+        isTraceIdSetCapped: true,
+        fetchedAtUnixMs: START_UNIX_MS,
+      },
+    });
+
+    const text: string =
+      screen.getByText(/No span in the loaded traces carries trace/)
+        .textContent || "";
+
+    expect(text).toContain(
+      "This session has more traces than one fetch names, so this may be one of the traces whose rows were not fetched.",
+    );
+    expect(text.indexOf("were not fetched")).toBeLessThan(
+      text.indexOf("did not receive the traceparent"),
+    );
+    expect(text).not.toContain("Only the first");
+  });
+
+  it("keeps blaming propagation or export alone when nothing was left out", () => {
+    const request: ReplaySignal = networkSignal();
+
+    renderDetail(request, {
+      signals: [request],
+      spanSlot: {
+        status: "ready",
+        rowCount: 3,
+        isTruncated: false,
+        fetchedAtUnixMs: START_UNIX_MS,
+      },
+    });
+
+    const text: string =
+      screen.getByText(/No span in the loaded traces carries trace/)
+        .textContent || "";
+
+    expect(text).toContain(
+      "the backend either did not receive the traceparent or has not exported the span yet",
+    );
+    expect(text).not.toContain("left out");
+    expect(text).not.toContain("were not fetched");
+  });
+
   it("renders no backend block at all for a request without a trace id", () => {
     renderDetail(networkSignal({ traceId: null }));
 

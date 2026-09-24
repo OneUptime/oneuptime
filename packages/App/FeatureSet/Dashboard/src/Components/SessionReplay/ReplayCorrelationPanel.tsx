@@ -968,10 +968,12 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
           ) : (
             <p data-testid="details-correlation-web">
               While a session uploads, requests the page makes to its own origin
-              carry the session&apos;s trace context, so backend spans are
-              stamped with its id at ingest and backend logs and exceptions join
-              it by trace id - no code needed. An API on another origin links by
-              trace id once it is listed in <em>Trace propagation origins</em>.{" "}
+              carry the session&apos;s trace context automatically, unless{" "}
+              <em>Same-origin trace propagation</em> is turned off in the Replay
+              Policy, so backend spans are stamped with its id at ingest and
+              backend logs and exceptions join it by trace id - no code needed.
+              An API on another origin links by trace id once it is listed in{" "}
+              <em>Trace propagation origins</em>.{" "}
               <code>OneUptimeReplay.onSessionChange()</code> is optional, for
               stamping the page&apos;s own browser telemetry.
             </p>

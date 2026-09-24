@@ -180,6 +180,8 @@ export function buildOnSessionChangeSnippet(): string {
   return `// Optional. Only if this page also runs the OpenTelemetry browser SDK:
 // stamps its own spans (page loads, route changes, errors) with the
 // replay session id. Requests to your own origin are linked without it.
+// Fires as soon as the recorder starts - before consent or a trigger - so
+// gate on your own consent state if that matters.
 let replaySessionId = null;
 
 (window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([

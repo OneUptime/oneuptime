@@ -258,6 +258,35 @@ describe("ReplayCorrelationPanel Session tab", () => {
     ).not.toBeInTheDocument();
   });
 
+  /*
+   * Same-origin propagation is a per-application switch, off for anyone
+   * who followed the redirect/download fix. The copy used to state the
+   * automatic link unconditionally, so an operator with the switch off
+   * (or a session recorded with it off) was told something false and
+   * given no reason for an empty rail.
+   */
+  it("qualifies the automatic link on a web recording with the Same-origin trace propagation switch", () => {
+    renderPanel();
+
+    const copy: HTMLElement = screen.getByTestId("details-correlation-web");
+
+    expect(copy).toHaveTextContent(
+      "carry the session's trace context automatically, unless Same-origin trace propagation is turned off in the Replay Policy, so backend spans are stamped",
+    );
+    /* The switch is named the way the Replay Policy page titles it. */
+    expect(
+      within(copy).getByText("Same-origin trace propagation").tagName,
+    ).toBe("EM");
+  });
+
+  it("does not mention the web-only switch on a mobile recording", () => {
+    renderPanel({ details: makeDetails({ recorderKind: "rn-view-tree" }) });
+
+    expect(
+      screen.getByText(/Mobile traces and logs reach this rail/),
+    ).not.toHaveTextContent("Same-origin trace propagation");
+  });
+
   it("organizes metadata into named, semantic sections", () => {
     renderPanel();
 

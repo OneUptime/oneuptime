@@ -32,19 +32,38 @@ export interface ReplayRailEmptyCopyArgs {
   recorderCapabilities: ReadonlyArray<string> | null | undefined;
   /* Whether any chunk has been decoded yet (rows fill in as chunks load). */
   hasLoadedFootage: boolean;
+  /*
+   * A React Native recording. Its SDK adds nothing to the app's requests,
+   * so the web copy (own-origin requests, Trace propagation origins) would
+   * be false; the manual onSessionChange step is its only link.
+   */
+  isMobileReplay?: boolean | undefined;
 }
 
 /*
- * How backend rows reach a recording, for the empty Logs and Traces tabs.
- * There is no snippet any more, because there is no code to add: while a
- * session uploads, the recorder puts traceparent and a tracestate member
- * carrying the session id on the page's requests to its OWN origin, span
- * ingest stamps the session id on every span that inherits it, and the
- * rail joins logs and exceptions by trace id. The one step left to a
- * customer is the cross-origin one, so that is the action the copy names.
+ * How backend rows reach a web recording, for the empty Logs and Traces
+ * tabs. There is no snippet any more, because there is no code to add:
+ * while a session uploads, the recorder puts traceparent and a tracestate
+ * member carrying the session id on the page's requests to its OWN origin,
+ * span ingest stamps the session id on every span that inherits it, and
+ * the rail joins logs and exceptions by trace id - unless the application
+ * turned that off, which the copy says rather than promising a link the
+ * switch removed. The one step left to a customer is the cross-origin one,
+ * so that is the action the copy names.
  */
 export const REPLAY_RAIL_CROSS_ORIGIN_STEP: string =
   "For an API on another origin, add it to Trace propagation origins on the Replay Policy page; it must allow traceparent in Access-Control-Allow-Headers, and its requests then match by trace id.";
+
+export const REPLAY_RAIL_SAME_ORIGIN_SWITCH_CAVEAT: string =
+  "unless Same-origin trace propagation is turned off in the Replay Policy";
+
+/*
+ * React Native: the SDK patches no fetch or XHR and ignores Trace
+ * propagation origins, so nothing links on its own and the manual
+ * onSessionChange step is the only action there is.
+ */
+export const REPLAY_RAIL_MOBILE_NO_AUTO_LINK: string =
+  "The React Native SDK adds nothing to your app's requests, so nothing links on its own.";
 
 const TAB_NOUNS: Record<ReplayRailTabId, string> = {
   all: "signals",
@@ -134,7 +153,8 @@ function capitalise(text: string): string {
  * exist > the telemetry slot's own state (loading / locked / error) >
  * "nothing was recorded" copy specific to the tab, which for telemetry
  * tabs explains how backend rows reach a recording and the one step that
- * is still the customer's (an API on another origin).
+ * is still the customer's (an API on another origin on the web; the
+ * onSessionChange wiring on React Native, where nothing is automatic).
  */
 export function getRailEmptyCopy(
   args: ReplayRailEmptyCopyArgs,
@@ -158,23 +178,40 @@ export function getRailEmptyCopy(
     return filteredCopy(args.tabId);
   }
 
+  const isMobileReplay: boolean = args.isMobileReplay === true;
+
   switch (args.tabId) {
     case "logs":
+      if (isMobileReplay) {
+        return {
+          title: "No backend logs matched this session",
+          detail: `${REPLAY_RAIL_MOBILE_NO_AUTO_LINK} Stamp session.id on your OpenTelemetry logs and spans with OneUptimeReplay.onSessionChange() and update it whenever the session rotates; those rows then land here on the session clock.`,
+        };
+      }
+
       return {
         title: "No backend logs matched this session",
-        detail: `Requests this page makes to its own origin carry the session's trace context automatically, so backend logs written inside those requests' traces land here by trace id, on the session clock. ${REPLAY_RAIL_CROSS_ORIGIN_STEP}`,
+        detail: `Requests this page makes to its own origin carry the session's trace context automatically, ${REPLAY_RAIL_SAME_ORIGIN_SWITCH_CAVEAT}, so backend logs written inside those requests' traces land here by trace id, on the session clock. ${REPLAY_RAIL_CROSS_ORIGIN_STEP}`,
       };
     case "traces":
+      if (isMobileReplay) {
+        return {
+          title: "No backend traces matched this session",
+          detail: `${REPLAY_RAIL_MOBILE_NO_AUTO_LINK} Stamp session.id on your OpenTelemetry spans with OneUptimeReplay.onSessionChange() and update it whenever the session rotates; those spans then land here on the session clock.`,
+        };
+      }
+
       return {
         title: "No backend traces matched this session",
-        detail: `Requests this page makes to its own origin carry a traceparent and this session's id in tracestate automatically, so spans from every backend service that continues W3C trace context are linked at ingest. ${REPLAY_RAIL_CROSS_ORIGIN_STEP}`,
+        detail: `Requests this page makes to its own origin carry a traceparent and this session's id in tracestate automatically, ${REPLAY_RAIL_SAME_ORIGIN_SWITCH_CAVEAT}, so spans from every backend service that continues W3C trace context are linked at ingest. ${REPLAY_RAIL_CROSS_ORIGIN_STEP}`,
       };
     case "errors":
       if (args.isExpiredFootage) {
         return {
           title: "No server exceptions matched this session",
-          detail:
-            "The recording's own errors expired with the footage; exceptions your backend reported on this session's requests would still show here.",
+          detail: isMobileReplay
+            ? "The recording's own errors expired with the footage; server exceptions stamped with this session's id would still show here."
+            : "The recording's own errors expired with the footage; exceptions your backend reported on this session's requests would still show here.",
         };
       }
 

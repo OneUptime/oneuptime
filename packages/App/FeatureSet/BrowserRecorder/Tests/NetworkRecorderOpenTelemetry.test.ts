@@ -1,5 +1,8 @@
 import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
-import NetworkRecorder, { RecordedRequest } from "../src/NetworkRecorder";
+import NetworkRecorder, {
+  NetworkRecorderOptions,
+  RecordedRequest,
+} from "../src/NetworkRecorder";
 
 /*
  * The REAL @opentelemetry/instrumentation-fetch (0.220, from Common's
@@ -84,7 +87,14 @@ describe("NetworkRecorder around the real OpenTelemetry FetchInstrumentation", (
     globalRecord["fetch"] = savedFetch;
   });
 
-  beforeEach((): void => {
+  /*
+   * The page's OpenTelemetry (with this FetchInstrumentation config) inside,
+   * then the recorder (with these options) outside it.
+   */
+  function install(
+    instrumentationConfig: Record<string, unknown> = {},
+    recorderOptions: Partial<NetworkRecorderOptions> = {},
+  ): void {
     wire = [];
     completed = [];
 
@@ -127,7 +137,10 @@ describe("NetworkRecorder around the real OpenTelemetry FetchInstrumentation", (
       setTracerProvider: (provider: unknown) => void;
       enable: () => void;
       disable: () => void;
-    } = new otel.FetchInstrumentation({ enabled: false });
+    } = new otel.FetchInstrumentation({
+      ...instrumentationConfig,
+      enabled: false,
+    });
 
     fetchInstrumentation.setTracerProvider(provider);
     fetchInstrumentation.enable();
@@ -154,10 +167,25 @@ describe("NetworkRecorder around the real OpenTelemetry FetchInstrumentation", (
       getSessionIdForPropagation: (): string | null => {
         return SESSION_ID;
       },
+      ...recorderOptions,
     });
 
     recorder.start(window);
+  }
+
+  beforeEach((): void => {
+    install();
   });
+
+  /* Tear down the default setup and install another. */
+  function reinstall(
+    instrumentationConfig: Record<string, unknown>,
+    recorderOptions: Partial<NetworkRecorderOptions>,
+  ): void {
+    recorder?.stop(window);
+    instrumentation?.disable();
+    install(instrumentationConfig, recorderOptions);
+  }
 
   afterEach((): void => {
     recorder?.stop(window);
@@ -256,5 +284,71 @@ describe("NetworkRecorder around the real OpenTelemetry FetchInstrumentation", (
     expect(wireTraceId).toBeDefined();
     expect(wire[0]?.headers.get("tracestate")).toBeNull();
     expect(completed[0]?.rollupTraceId).toBe(wireTraceId);
+  });
+
+  /*
+   * fetch(url) with NO init on a request the recorder adds nothing to.
+   * OpenTelemetry builds its own `args[1] || {}` and sets its traceparent
+   * there, so the recorder's read-back used to find nothing: the request
+   * went out with OpenTelemetry's traceparent, and the network row had no
+   * trace id to join the backend on. The recorder now hands it an empty
+   * init it keeps.
+   */
+  const expectWireIdRecorded: (label: string) => void = (
+    label: string,
+  ): void => {
+    const wireTraceId: string | undefined = TRACEPARENT_SHAPE.exec(
+      wire[0]?.headers.get("traceparent") || "",
+    )?.[1];
+
+    expect([label, wireTraceId]).toEqual([label, expect.any(String)]);
+    expect([label, completed[0]?.request.traceId]).toEqual([
+      label,
+      wireTraceId,
+    ]);
+    expect([label, completed[0]?.rollupTraceId]).toEqual([label, wireTraceId]);
+  };
+
+  it("records OpenTelemetry's id for fetch(url) with no init, same-origin propagation off", async (): Promise<void> => {
+    reinstall({}, { sameOriginTracePropagation: false });
+
+    await window.fetch("/api/orders");
+
+    expect(wire[0]?.headers.get("tracestate")).toBeNull();
+    expectWireIdRecorded("policy off");
+  });
+
+  it("records OpenTelemetry's id for fetch(url) with no init while the session is not uploading", async (): Promise<void> => {
+    reinstall(
+      {},
+      {
+        getSessionIdForPropagation: (): string | null => {
+          return null;
+        },
+      },
+    );
+
+    await window.fetch("/api/orders");
+    await window.fetch(new URL("https://shop.example.com/api/items"));
+
+    expect(wire[0]?.headers.get("tracestate")).toBeNull();
+    expectWireIdRecorded("not uploading, string");
+
+    wire.shift();
+    completed.shift();
+
+    expectWireIdRecorded("not uploading, URL");
+  });
+
+  it("records OpenTelemetry's id for fetch(url) with no init to an API only OpenTelemetry propagates to", async (): Promise<void> => {
+    reinstall(
+      { propagateTraceHeaderCorsUrls: [/api\.other\.example/] },
+      { tracePropagationOrigins: [] },
+    );
+
+    await window.fetch("https://api.other.example/v2/items");
+
+    expect(wire[0]?.headers.get("tracestate")).toBeNull();
+    expectWireIdRecorded("cross-origin, OpenTelemetry's list only");
   });
 });

@@ -197,15 +197,28 @@ describe("SessionTraceState", () => {
       }
     });
 
-    it("does no parsing work on oversized or over-long lists", () => {
-      const huge: string = `oneuptime=sid:${SESSION_ID},${"a=b,".repeat(3000)}`;
+    it("reads no session out of oversized or over-long lists but still strips ours", () => {
+      const others: string = "a=b,".repeat(3000);
+      const huge: string = `oneuptime=sid:${SESSION_ID};p:${PARENT_ID},${others}`;
+      const parsedHuge: ParsedSessionTraceState = parseSessionTraceState(huge);
+
+      expect(parsedHuge.sessionTraceState).toBeNull();
+      expect(parsedHuge.remainingTraceState).toBe("a=b,".repeat(2999) + "a=b");
+      expect(parsedHuge.remainingTraceState).not.toContain(SESSION_ID);
+
+      const many: string = `${"k=v,".repeat(80)}oneuptime=sid:${SESSION_ID}`;
+      const parsedMany: ParsedSessionTraceState = parseSessionTraceState(many);
+
+      expect(parsedMany.sessionTraceState).toBeNull();
+      expect(parsedMany.remainingTraceState).toBe("k=v,".repeat(79) + "k=v");
+    });
+
+    it("leaves an oversized list with no member of ours untouched", () => {
+      const huge: string = "a=b,".repeat(3000);
       expect(parseSessionTraceState(huge)).toEqual({
         sessionTraceState: null,
         remainingTraceState: huge,
       });
-
-      const many: string = `${"k=v,".repeat(80)}oneuptime=sid:${SESSION_ID}`;
-      expect(parseSessionTraceState(many).sessionTraceState).toBeNull();
     });
 
     it("accepts a long but legitimate list that ends with our member", () => {

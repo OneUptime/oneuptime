@@ -410,6 +410,35 @@ describe("Install snippet builders", () => {
     expect(snippet).not.toContain("session.tab.id");
   });
 
+  /*
+   * Index.onSessionChange tells the listener the id as soon as a recorder
+   * exists - before consent under Require explicit, before an on-error
+   * trigger, even for an unsampled session - and the processor then stamps
+   * every browser span from the first page load. The docs warn about it;
+   * the snippet people actually copy has to as well.
+   */
+  it("the correlation snippet carries the consent caveat", () => {
+    const snippet: string = buildOnSessionChangeSnippet();
+    const commentText: string = snippet
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("// ");
+      })
+      .map((line: string): string => {
+        return line.slice(3);
+      })
+      .join(" ");
+
+    expect(commentText).toContain(
+      "Fires as soon as the recorder starts - before consent or a trigger - so gate on your own consent state if that matters.",
+    );
+    /* A comment above the code, so it cannot change what the snippet does. */
+    expect(snippet.indexOf("gate on your own consent state")).toBeLessThan(
+      snippet.indexOf("let replaySessionId = null;"),
+    );
+    expect(snippet).toMatch(/^\/\/ Optional\./);
+  });
+
   it("the correlation snippet queues the listener, so it works before the recorder loads", () => {
     const snippet: string = buildOnSessionChangeSnippet();
 

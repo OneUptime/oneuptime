@@ -8,9 +8,10 @@
  * What is recorded: method, scrubbed URL, status, duration, request and
  * response SIZE in bytes, which primitive issued it, and whether the page
  * aborted it. What is never recorded: request or response bodies, and the
- * Authorization and Cookie headers. Not "masked" - never read. A body is
- * measured for its byte length only, and only for shapes whose length can
- * be read without consuming them.
+ * Authorization and Cookie headers - never recorded or inspected; a
+ * request's headers are copied only to re-send it with traceparent /
+ * tracestate added. A body is measured for its byte length only, and only
+ * for shapes whose length can be read without consuming them.
  *
  * What is ADDED to the page's requests, and only ever these two headers:
  *
@@ -18,10 +19,12 @@
  *   on by default, and only while the session is uploading): a
  *   `traceparent`, unless the request has one or a tracer inside our
  *   wrapper will add one, and `tracestate: oneuptime=sid:<session id>`,
- *   unless the request has a tracestate. A same-origin request is never
- *   CORS-preflighted, so no allowlist is needed, and a stock OpenTelemetry
- *   backend carries tracestate onto every span it exports - which is how
- *   ingest stamps backend spans with the session without customer code.
+ *   unless the request has a tracestate. Never to a POST to an
+ *   OpenTelemetry export path (see OTLP_EXPORT_PATH). A same-origin
+ *   request is never CORS-preflighted, so no allowlist is needed, and a
+ *   stock OpenTelemetry backend carries tracestate onto every span it
+ *   exports - which is how ingest stamps backend spans with the session
+ *   without customer code.
  * - Origins the customer listed in Trace propagation origins: a
  *   `traceparent` only, exactly as before; each entry is a statement that
  *   the API behind it allows that one header cross-origin.
@@ -62,16 +65,182 @@ const HTTP_ORIGIN_PATTERN: RegExp = /^https?:\/\//i;
 const SESSION_ID_PATTERN: RegExp = /^[0-9a-f]{32}$/;
 
 /*
+ * The paths an OpenTelemetry exporter posts to (OTLP/HTTP). A page that
+ * proxies its browser exporter through its own origin must not have those
+ * requests annotated: each export would become a forced-sampled backend
+ * trace stamped with the session, filling the replay's Traces tab with the
+ * telemetry pipeline's own traffic. An OTLP/HTTP export is always a POST,
+ * so only a POST is skipped: a GET /api/v1/logs is the app's own endpoint
+ * (an audit-log page), and its backend spans should link like any other.
+ */
+const OTLP_EXPORT_PATH: RegExp = /\/v1\/(traces|logs|metrics)\/?$/;
+
+/*
+ * The fields the agent checks below read. Any of them may be missing or
+ * shaped differently at runtime; that throws inside the caller's try, and a
+ * check that throws is a no.
+ */
+interface AgentGlobal {
+  getInitConfiguration: () => { allowedTracingUrls: Array<unknown> };
+  getInternalContext: () => unknown;
+  init: { distributed_tracing: { enabled: unknown } };
+  initializedAgents: Record<string, AgentGlobal>;
+  isActive: () => unknown;
+  serviceFactory: {
+    getService: (name: string) => { get: (key: string) => unknown };
+  };
+}
+
+interface TracingUrlOption {
+  match?: unknown;
+  propagatorTypes?: Array<string> | null;
+}
+
+/*
  * Browser agents that put their own traceparent on same-origin requests
  * without wrapping fetch the shimmer way (see isInstrumented). Adding ours
  * as well would give an XHR two traceparent values, which no backend can
- * parse, so the recorder stands down on traceparent when one is present.
+ * parse, so the recorder stands down on traceparent for one of them - but
+ * only while it is configured to trace THIS request. Each defines its global
+ * whether or not it traces, and a request left to an agent that adds no
+ * traceparent reaches the backend with a tracestate alone, which no W3C
+ * propagator reads: nothing links. Each check gets the agent's global and
+ * the request's absolute URL, and is asked at request time, because agents
+ * load and initialise late.
  */
-const PROPAGATING_AGENT_GLOBALS: Array<string> = [
-  "NREUM",
-  "newrelic",
-  "elasticApm",
-  "DD_RUM",
+type AgentCheck = (agent: AgentGlobal, href: string) => unknown;
+
+const PROPAGATING_AGENTS: Array<[string, AgentCheck]> = [
+  /*
+   * Datadog RUM traces only the URLs in allowedTracingUrls (empty by
+   * default), matched its own way - a string by prefix, a RegExp by test, a
+   * function by calling it, an entry that throws skipped - and the FIRST
+   * matching entry's propagatorTypes (absent: the default, which includes
+   * tracecontext) decide whether a traceparent goes out. The async stub and
+   * an SDK not yet initialised have no config, and have patched nothing.
+   *
+   * And only for a session it tracks. The init configuration is readable
+   * whether or not Datadog started, but its tracer injects nothing before
+   * start, before consent (trackingConsent "not-granted"), after a failed
+   * init, or for a session sessionSampleRate left untracked - exactly the
+   * cases where getInternalContext() is undefined (and the stub has none).
+   *
+   * A tracked session that traceSampleRate leaves out (under the default
+   * traceContextInjection "sampled") gets no traceparent from Datadog
+   * either. Datadog decides that per session from a hash of its id; that
+   * is not replicated here, so the recorder stands down for it too and
+   * such a request does not link. Guessing wrong the other way would put
+   * two traceparent values on an XHR, which breaks the page's request.
+   */
+  [
+    "DD_RUM",
+    (agent: AgentGlobal, href: string): unknown => {
+      /* Missing on the async stub: the call throws, which is a no. */
+      if (!agent.getInternalContext()) {
+        return false;
+      }
+
+      for (const entry of agent.getInitConfiguration().allowedTracingUrls) {
+        const option: TracingUrlOption =
+          entry && typeof entry === "object" && !(entry instanceof RegExp)
+            ? (entry as TracingUrlOption)
+            : { match: entry };
+        const match: unknown = option.match;
+        let matched: unknown = false;
+
+        try {
+          matched =
+            typeof match === "function"
+              ? match(href)
+              : match instanceof RegExp
+                ? match.test(href)
+                : typeof match === "string" && href.indexOf(match) === 0;
+        } catch {
+          /* Skipped, as Datadog skips it. */
+        }
+
+        if (matched) {
+          return (
+            !option.propagatorTypes ||
+            option.propagatorTypes.indexOf("tracecontext") >= 0
+          );
+        }
+      }
+
+      return false;
+    },
+  ],
+
+  /*
+   * New Relic adds a traceparent only with distributed tracing on. The CDN
+   * snippet configures NREUM.init; the npm agent (@newrelic/browser-agent)
+   * leaves NREUM.init empty and keeps its configuration on the instance it
+   * registers in NREUM.initializedAgents, so both are read. A page runs
+   * one agent, rarely two: the walk is bounded all the same.
+   */
+  [
+    "NREUM",
+    (agent: AgentGlobal): unknown => {
+      const configured: Array<AgentGlobal> = [agent];
+
+      try {
+        for (const key of Object.keys(agent.initializedAgents).slice(0, 4)) {
+          configured.push(agent.initializedAgents[key] as AgentGlobal);
+        }
+      } catch {
+        /* No npm agent registered. */
+      }
+
+      for (const candidate of configured) {
+        try {
+          if (candidate.init.distributed_tracing.enabled) {
+            return true;
+          }
+        } catch {
+          /* This one has no distributed tracing configuration. */
+        }
+      }
+
+      return false;
+    },
+  ],
+
+  /*
+   * Elastic APM adds a traceparent only while active, with distributedTracing
+   * on (its default), and under the W3C header name: with the legacy
+   * distributedTracingHeaderName "elastic-apm-traceparent" the value goes
+   * out under a header no W3C propagator reads. The agent has no getConfig;
+   * its configuration lives in its ConfigService. A configuration that
+   * cannot be read counts as Elastic's defaults, which trace.
+   */
+  [
+    "elasticApm",
+    (agent: AgentGlobal): unknown => {
+      if (!agent.isActive()) {
+        return false;
+      }
+
+      let tracing: unknown = true;
+      let header: unknown = null;
+
+      try {
+        const config: { get: (key: string) => unknown } =
+          agent.serviceFactory.getService("ConfigService");
+
+        tracing = config.get("distributedTracing");
+        header = config.get("distributedTracingHeaderName");
+      } catch {
+        /* Elastic's defaults: on, under "traceparent". */
+      }
+
+      return (
+        tracing !== false &&
+        (header === null ||
+          header === undefined ||
+          String(header).toLowerCase() === "traceparent")
+      );
+    },
+  ],
 ];
 
 export type RequestInitiator = "fetch" | "xhr";
@@ -255,6 +424,12 @@ interface XhrState {
   aborted: boolean;
 
   /*
+   * open(method, url, false): a synchronous request, whose network error is
+   * THROWN from send() with no loadend at all.
+   */
+  sync: boolean;
+
+  /*
    * The page's own xhr.timeout expired (axios's timeout, for one); loadend
    * reports status 0 for that too, and it is no reason to trip the breaker.
    */
@@ -326,6 +501,13 @@ export default class NetworkRecorder {
    * propagation stays off for the rest of this page load.
    */
   private sameOriginTripped: boolean = false;
+
+  /*
+   * The first stand-down for a vendor agent (see PROPAGATING_AGENTS) has
+   * been logged. Once per page load: the question it answers is "why does
+   * this request carry a tracestate and no traceparent", not how often.
+   */
+  private agentStandDownLogged: boolean = false;
 
   /*
    * The fetch / XHR send we wrapped is itself a tracer's wrapper, which
@@ -490,6 +672,48 @@ export default class NetworkRecorder {
     };
 
     /*
+     * Send one annotation's arguments, then read back what a tracer INSIDE
+     * our wrapper put on them. OpenTelemetry's FetchInstrumentation is
+     * loaded first, so the async recorder wraps outside it, and it sets its
+     * traceparent on the arguments we hand it: it replaces init.headers
+     * with a Headers of its own, or sets the header on a Request in place.
+     * Read back after the synchronous call, that is the id really on the
+     * wire - treated as the page's own.
+     *
+     * fetch(url) is fetch(url, {}), but such a tracer builds a PRIVATE
+     * options object for a call without one (`args[1] || {}`), so a string
+     * or URL call is handed an empty init we keep. Never beside a Request:
+     * the tracer would then build a new Request we never see, instead of
+     * setting the header on this one in place.
+     */
+    const dispatch: (annotation: FetchAnnotation) => Promise<Response> = (
+      annotation: FetchAnnotation,
+    ): Promise<Response> => {
+      if (
+        this.fetchPropagates &&
+        (annotation.init === undefined || annotation.init === null) &&
+        (typeof annotation.input === "string" ||
+          annotation.input instanceof URL)
+      ) {
+        annotation.init = {};
+      }
+
+      const promise: Promise<Response> = send(
+        annotation.input,
+        annotation.init,
+      );
+
+      if (annotation.traceId === null) {
+        annotation.traceId = NetworkRecorder.readTraceId(
+          annotation.input,
+          annotation.init,
+        );
+      }
+
+      return promise;
+    };
+
+    /*
      * An arrow function rather than a `function` expression: the wrapper does
      * not need its own `this`, and closing over the instance lexically avoids
      * aliasing `this` into a local.
@@ -514,7 +738,7 @@ export default class NetworkRecorder {
       let sent: FetchAnnotation;
 
       try {
-        sent = this.annotateFetch(input, init, url, windowRef);
+        sent = this.annotateFetch(input, init, url, method, windowRef);
       } catch {
         sent = {
           input: input,
@@ -525,22 +749,10 @@ export default class NetworkRecorder {
         };
       }
 
-      const promise: Promise<Response> = send(sent.input, sent.init);
+      const promise: Promise<Response> = dispatch(sent);
 
       if (this.options.isSelfRequest(url)) {
         return promise;
-      }
-
-      /*
-       * A tracer INSIDE our wrapper (OpenTelemetry's FetchInstrumentation
-       * is loaded first, so the async recorder wraps outside it) sets its
-       * traceparent on the arguments we just handed it: it replaces
-       * init.headers with a Headers of its own, or sets the header on a
-       * Request in place. Read back after the synchronous call, that is
-       * the id really on the wire - treated as the page's own.
-       */
-      if (sent.traceId === null) {
-        sent.traceId = NetworkRecorder.readTraceId(sent.input, sent.init);
       }
 
       /*
@@ -575,26 +787,37 @@ export default class NetworkRecorder {
             return response;
           },
           (error: unknown): Promise<Response> => {
+            /*
+             * The page's own AbortSignal.timeout() - a slow endpoint is
+             * not a header problem, and it is still the failure the user
+             * waited for. Anything else on an aborted signal is the page
+             * cancelling its own request (see wasAborted).
+             */
+            const timedOut: boolean =
+              NetworkRecorder.errorName(error) === "TimeoutError";
+            const aborted: boolean =
+              !timedOut && NetworkRecorder.wasAborted(error, input, init);
+
             if (
               annotation.sameOrigin &&
-              this.tripSameOrigin(
-                NetworkRecorder.isNetworkFailure(error),
-                retryable,
-              ) &&
+              this.tripSameOrigin(!timedOut && !aborted, retryable) &&
               retryable
             ) {
               /*
                * Once more with the page's own arguments, settled - and
-               * recorded - as the one request the page made. Only a trace
-               * id the page itself set is still on the wire.
+               * recorded - as the one request the page made, with the
+               * trace id read back from THIS attempt: ours is gone, and
+               * a tracer inside our wrapper sets a new one.
                */
-              return settle(send(input, init), {
+              const retry: FetchAnnotation = {
                 input: input,
                 init: init,
-                traceId: annotation.minted ? null : annotation.traceId,
+                traceId: null,
                 minted: false,
                 sameOrigin: false,
-              });
+              };
+
+              return settle(dispatch(retry), retry);
             }
 
             /*
@@ -611,7 +834,7 @@ export default class NetworkRecorder {
               traceId: annotation.traceId,
               initiator: "fetch",
               requestBytes: requestBytes,
-              aborted: NetworkRecorder.isAbortError(error),
+              aborted: aborted,
               minted: annotation.minted,
             });
 
@@ -637,6 +860,7 @@ export default class NetworkRecorder {
     input: RequestInfo | URL,
     init: RequestInit | undefined,
     url: string,
+    method: string,
     windowRef: Window,
   ): FetchAnnotation {
     const untouched: FetchAnnotation = {
@@ -656,7 +880,11 @@ export default class NetworkRecorder {
       return untouched;
     }
 
-    const sessionId: string | null = this.propagationFor(url, windowRef);
+    const sessionId: string | null = this.propagationFor(
+      url,
+      method,
+      windowRef,
+    );
 
     if (sessionId === null) {
       return untouched;
@@ -700,11 +928,12 @@ export default class NetworkRecorder {
       return untouched;
     }
 
-    const added: HeadersToAdd = NetworkRecorder.headersToAdd(
+    const added: HeadersToAdd = this.headersToAdd(
       sessionId,
       pageTraceParent !== null,
       pageTraceState !== null,
       this.fetchPropagates,
+      url,
       windowRef,
     );
 
@@ -721,14 +950,24 @@ export default class NetworkRecorder {
     };
 
     if (isRequest) {
+      const request: Request = input as Request;
+
       for (const pair of added.pairs) {
         (headers as Headers).set(pair[0], pair[1]);
       }
 
-      annotation.input = new (requestConstructor as typeof Request)(
-        input as Request,
-        { headers: headers as Headers },
-      );
+      /*
+       * Any non-empty init resets the copy's referrer to the client and
+       * its policy to the document default, so a page's no-referrer (or
+       * its own same-origin referrer) would silently become the full page
+       * URL as Referer. Both round-trip: "about:client" is the client, ""
+       * is no-referrer.
+       */
+      annotation.input = new (requestConstructor as typeof Request)(request, {
+        headers: headers as Headers,
+        referrer: request.referrer,
+        referrerPolicy: request.referrerPolicy,
+      });
 
       return annotation;
     }
@@ -756,13 +995,15 @@ export default class NetworkRecorder {
    * unparseable, and that tracer's browser span should stay the parent),
    * plus our tracestate member unless the request has a tracestate -
    * carrying the minted parent id as `p` only when the traceparent is
-   * ours. The visitor id is never in either.
+   * ours. The visitor id is never in either. On a stand-down the tracestate
+   * is still added: the tracer that adds the traceparent runs after us.
    */
-  private static headersToAdd(
+  private headersToAdd(
     sessionId: string,
     hasTraceParent: boolean,
     hasTraceState: boolean,
     innerPropagates: boolean,
+    url: string,
     windowRef: Window,
   ): HeadersToAdd {
     const added: HeadersToAdd = { pairs: [], minted: null };
@@ -771,7 +1012,7 @@ export default class NetworkRecorder {
       !hasTraceParent &&
       !(
         sessionId &&
-        (innerPropagates || NetworkRecorder.hasPropagatingAgent(windowRef))
+        (innerPropagates || this.hasPropagatingAgent(url, windowRef))
       )
     ) {
       added.minted = NetworkRecorder.generateTraceParent();
@@ -854,18 +1095,19 @@ export default class NetworkRecorder {
         this.originalXhrSetRequestHeader;
 
       const sessionId: string | null = setHeader
-        ? this.propagationFor(state.url, windowRef)
+        ? this.propagationFor(state.url, state.method, windowRef)
         : null;
 
       if (!setHeader || sessionId === null) {
         return;
       }
 
-      const added: HeadersToAdd = NetworkRecorder.headersToAdd(
+      const added: HeadersToAdd = this.headersToAdd(
         sessionId,
         state.hasPageTraceParent,
         state.hasPageTraceState,
         this.xhrPropagates,
+        state.url,
         windowRef,
       );
 
@@ -886,16 +1128,54 @@ export default class NetworkRecorder {
       }
     };
 
-    const recordRequest: (outcome: RequestOutcome) => void = (
-      outcome: RequestOutcome,
+    /*
+     * One request's end, however it ended: the breaker, then the record.
+     * The state is spent here, so a request is recorded once even if a
+     * synchronous send both fired loadend and threw. A re-open()ed XHR
+     * replaces its state object; a stale listener from an earlier send
+     * must not record its old method/url/traceId against the new request's
+     * response (and its startedAtMs would span both requests, feeding a
+     * fictitious duration to the slow-request trigger).
+     */
+    const finishXhr: (
+      xhr: XMLHttpRequest,
+      state: XhrState,
+      status: number,
+    ) => void = (
+      xhr: XMLHttpRequest,
+      state: XhrState,
+      status: number,
     ): void => {
-      this.record(outcome);
-    };
+      if (xhrState.get(xhr) !== state) {
+        return;
+      }
 
-    const tripSameOrigin: (isNetworkFailure: boolean) => void = (
-      isNetworkFailure: boolean,
-    ): void => {
-      this.tripSameOrigin(isNetworkFailure, false);
+      xhrState.delete(xhr);
+
+      /*
+       * An XHR cannot be retried behind the page's back - its events have
+       * already fired, or its exception has been thrown - so a failed
+       * same-origin XHR only trips the breaker for the requests after it.
+       */
+      if (state.sameOrigin) {
+        this.tripSameOrigin(
+          status === 0 && !state.aborted && !state.timedOut,
+          false,
+        );
+      }
+
+      this.record({
+        method: state.method,
+        rawUrl: state.url,
+        status: status,
+        durationMs: Date.now() - state.startedAtMs,
+        responseBytes: NetworkRecorder.readXhrResponseSize(xhr),
+        traceId: state.traceId,
+        initiator: "xhr",
+        requestBytes: state.requestBytes,
+        aborted: state.aborted,
+        minted: state.minted,
+      });
     };
 
     prototype["open"] = function patchedOpen(
@@ -915,6 +1195,7 @@ export default class NetworkRecorder {
         sameOrigin: false,
         armed: false,
         aborted: false,
+        sync: rest.length > 0 && !rest[0],
         timedOut: false,
         requestBytes: null,
       });
@@ -970,8 +1251,11 @@ export default class NetworkRecorder {
       ...args: Array<unknown>
     ): void {
       const state: XhrState | undefined = xhrState.get(this);
+      const armed: boolean = Boolean(
+        state && !state.armed && !isSelfRequest(state.url),
+      );
 
-      if (state && !state.armed && !isSelfRequest(state.url)) {
+      if (state && armed) {
         annotateXhr(this, state);
 
         state.armed = true;
@@ -1006,46 +1290,34 @@ export default class NetworkRecorder {
         this.addEventListener(
           "loadend",
           (): void => {
-            /*
-             * A re-open()ed XHR replaces its state object; a stale
-             * listener from an earlier send must not record its old
-             * method/url/traceId against the new request's response
-             * (and its startedAtMs would span both requests, feeding
-             * a fictitious duration to the slow-request trigger).
-             */
-            if (xhrState.get(this) !== state) {
-              return;
-            }
-
-            /*
-             * An XHR cannot be retried behind the page's back - its
-             * events have already fired - so a failed same-origin XHR
-             * only trips the breaker for the requests after it.
-             */
-            if (state.sameOrigin) {
-              tripSameOrigin(
-                this.status === 0 && !state.aborted && !state.timedOut,
-              );
-            }
-
-            recordRequest({
-              method: state.method,
-              rawUrl: state.url,
-              status: this.status,
-              durationMs: Date.now() - state.startedAtMs,
-              responseBytes: NetworkRecorder.readXhrResponseSize(this),
-              traceId: state.traceId,
-              initiator: "xhr",
-              requestBytes: state.requestBytes,
-              aborted: state.aborted,
-              minted: state.minted,
-            });
+            finishXhr(this, state, this.status);
           },
           { once: true },
         );
       }
 
-      (originalSend as (...args: Array<unknown>) => void).apply(this, args);
+      if (!state || !armed || !state.sync) {
+        (originalSend as (...args: Array<unknown>) => void).apply(this, args);
+        return;
+      }
+
+      /*
+       * A synchronous request's network error is THROWN from send(),
+       * before any readystatechange, error or loadend, so the listener
+       * above never hears it. Caught here only to trip the breaker and
+       * record the request; the page gets its own exception, unchanged.
+       */
+      try {
+        (originalSend as (...args: Array<unknown>) => void).apply(this, args);
+      } catch (error) {
+        const name: unknown = NetworkRecorder.errorName(error);
+
+        state.aborted = name === "AbortError";
+        state.timedOut = name === "TimeoutError";
+        finishXhr(this, state, 0);
+
+        throw error;
+      }
     };
 
     this.installedXhrSend = prototype["send"];
@@ -1163,29 +1435,42 @@ export default class NetworkRecorder {
    * for a navigation tearing the request down.
    */
   public static isAbortError(error: unknown): boolean {
-    if (!error || typeof error !== "object") {
-      return false;
-    }
+    return NetworkRecorder.errorName(error) === "AbortError";
+  }
 
-    const name: unknown = (error as Record<string, unknown>)["name"];
-
-    return name === "AbortError";
+  /* A rejection's `name`, or undefined for one that is not an object. */
+  private static errorName(error: unknown): unknown {
+    return error && typeof error === "object"
+      ? (error as Record<string, unknown>)["name"]
+      : undefined;
   }
 
   /*
-   * A rejection for a reason the page did not choose: not its own abort,
-   * and not its own AbortSignal.timeout() - a slow endpoint is not a
-   * header problem.
+   * Did the page cancel this request? An AbortError says so, and so does
+   * the request's own signal - init.signal when the init has one, else a
+   * Request input's - being aborted by the time it failed: abort() with a
+   * reason (controller.abort(new Error("route changed")), abort("unmount"))
+   * rejects fetch with that reason itself, not with an AbortError.
    */
-  private static isNetworkFailure(error: unknown): boolean {
-    return (
-      !NetworkRecorder.isAbortError(error) &&
-      !(
-        error &&
-        typeof error === "object" &&
-        (error as Record<string, unknown>)["name"] === "TimeoutError"
-      )
-    );
+  private static wasAborted(
+    error: unknown,
+    input: RequestInfo | URL,
+    init: RequestInit | undefined,
+  ): boolean {
+    if (NetworkRecorder.isAbortError(error)) {
+      return true;
+    }
+
+    try {
+      const signal: AbortSignal | null | undefined =
+        init && init.signal !== undefined
+          ? init.signal
+          : (input as Request).signal;
+
+      return Boolean(signal && signal.aborted);
+    } catch {
+      return false;
+    }
   }
 
   /*
@@ -1195,8 +1480,9 @@ export default class NetworkRecorder {
    * and a target that does not (a presigned storage URL, a CDN, a
    * short-link host) fails the request at the network level. The first
    * annotated request that fails that way switches same-origin
-   * propagation off for the rest of this page load; offline is not that
-   * failure. Returns whether this failure counted.
+   * propagation off for the rest of this page load; the page's own abort
+   * or timeout, and offline, are not that failure. Returns whether this
+   * failure counted.
    */
   private tripSameOrigin(isNetworkFailure: boolean, retried: boolean): boolean {
     if (
@@ -1262,7 +1548,8 @@ export default class NetworkRecorder {
    * What a request to this URL may carry. null: nothing. "": a minted
    * traceparent and nothing else - an origin listed in Trace propagation
    * origins. A session id: the same-origin set, when the request goes to
-   * the page's own origin, the policy is on, the breaker has not tripped
+   * the page's own origin and is not a POST to an OpenTelemetry export path
+   * (see OTLP_EXPORT_PATH), the policy is on, the breaker has not tripped
    * and the recorder hands out a session id right now; a listed origin
    * that is also the page's own gets the same-origin set whenever it is
    * available and the listed treatment otherwise.
@@ -1276,7 +1563,11 @@ export default class NetworkRecorder {
    * answers null: when we cannot say where a header would go, we do not
    * add one.
    */
-  private propagationFor(url: string, windowRef: Window): string | null {
+  private propagationFor(
+    url: string,
+    method: string,
+    windowRef: Window,
+  ): string | null {
     /*
      * A wrapper that outlived stop() must not annotate the page's requests
      * either: the recorder is no longer here to report the trace id, so the
@@ -1287,11 +1578,7 @@ export default class NetworkRecorder {
     }
 
     try {
-      const resolved: URL = new URL(
-        url,
-        (windowRef.document && windowRef.document.baseURI) ||
-          windowRef.location.href,
-      );
+      const resolved: URL = NetworkRecorder.resolve(url, windowRef);
 
       /* Origins only make sense for http(s); blob:, data:, ws: never match. */
       if (resolved.protocol !== "https:" && resolved.protocol !== "http:") {
@@ -1303,6 +1590,7 @@ export default class NetworkRecorder {
       if (
         origin === this.pageOrigin &&
         !this.sameOriginTripped &&
+        !(method === "POST" && OTLP_EXPORT_PATH.test(resolved.pathname)) &&
         this.options.getSessionIdForPropagation
       ) {
         const sessionId: string | null =
@@ -1317,6 +1605,15 @@ export default class NetworkRecorder {
     } catch {
       return null;
     }
+  }
+
+  /* A request URL resolved the way fetch and XHR resolve it; may throw. */
+  private static resolve(url: string, windowRef: Window): URL {
+    return new URL(
+      url,
+      (windowRef.document && windowRef.document.baseURI) ||
+        windowRef.location.href,
+    );
   }
 
   /*
@@ -1379,15 +1676,48 @@ export default class NetworkRecorder {
     return false;
   }
 
-  /* See PROPAGATING_AGENT_GLOBALS. Read at request time: agents load late. */
-  private static hasPropagatingAgent(windowRef: Window): boolean {
-    try {
-      return PROPAGATING_AGENT_GLOBALS.some((name: string): boolean => {
-        return Boolean((windowRef as unknown as Record<string, unknown>)[name]);
-      });
-    } catch {
-      return false;
+  /*
+   * Is a vendor agent configured to put its own traceparent on this
+   * request (see PROPAGATING_AGENTS)? A check that throws - a shape we
+   * cannot read, an async stub with no config yet - is a no. The first
+   * stand-down is logged, naming the agent, because it is otherwise
+   * invisible: DevTools shows our tracestate, and the traceparent is the
+   * agent's to add.
+   */
+  private hasPropagatingAgent(url: string, windowRef: Window): boolean {
+    for (const [name, check] of PROPAGATING_AGENTS) {
+      try {
+        const agent: unknown = (
+          windowRef as unknown as Record<string, unknown>
+        )[name];
+
+        if (
+          !agent ||
+          !check(
+            agent as AgentGlobal,
+            NetworkRecorder.resolve(url, windowRef).href,
+          )
+        ) {
+          continue;
+        }
+      } catch {
+        continue;
+      }
+
+      if (!this.agentStandDownLogged) {
+        this.agentStandDownLogged = true;
+
+        debugLog(
+          "same-origin-propagation",
+          "Another tracing agent adds the traceparent to same-origin requests; the recorder adds only its tracestate.",
+          { enabled: true, reason: "agent-stand-down", agent: name },
+        );
+      }
+
+      return true;
     }
+
+    return false;
   }
 
   private static normaliseOrigins(entries: Array<string>): Array<string> {
@@ -1482,9 +1812,11 @@ export default class NetworkRecorder {
    * Only a PLAIN init is copied. `{ ...init }` copies own enumerable
    * properties, and a Request or class instance passed as init keeps
    * method, body and headers behind prototype getters: its copy is an
-   * empty object, which turns the page's POST into a bare GET. (A plain
-   * object from another realm passes: its prototype's prototype is null
-   * too.)
+   * empty object, which turns the page's POST into a bare GET. Plain means
+   * a null prototype or an Object.prototype - this realm's, or another
+   * realm's, which has a null prototype of its own and an own
+   * hasOwnProperty. Any other chain (Object.create(defaults), even when
+   * defaults has a null prototype) keeps what the spread would lose.
    *
    * The tricky headers shape is the iterable one: HeadersInit's sequence
    * branch accepts ANY iterable of pairs — a Map, a Headers from another
@@ -1504,7 +1836,9 @@ export default class NetworkRecorder {
 
       if (
         typeof init !== "object" ||
-        (prototype !== null && Object.getPrototypeOf(prototype) !== null)
+        (prototype !== null &&
+          (Object.getPrototypeOf(prototype) !== null ||
+            !Object.prototype.hasOwnProperty.call(prototype, "hasOwnProperty")))
       ) {
         return null;
       }

@@ -448,13 +448,46 @@ describe("Same-origin trace propagation setting", () => {
       "the visitor id is never sent",
       "redirects to another origin",
       "Access-Control-Allow-Headers",
-      "retries a failed GET once",
+      "retries a failed body-less fetch GET or HEAD once",
     ]) {
       expect({ phrase, found: description.includes(phrase) }).toEqual({
         phrase,
         found: true,
       });
     }
+  });
+
+  /*
+   * Review round 2. The toggle used to say the recorder "retries a failed
+   * GET once" - but an XHR GET (axios in the browser) and any fetch with a
+   * body or another method are never retried. And it told operators to set
+   * a remoteParentSampled delegate without saying where: TraceIdRatioBased
+   * decides differently per language SDK, so the delegate belongs on the
+   * first hop only. Turning the switch off also leaves an own origin listed
+   * in Trace propagation origins getting a traceparent.
+   */
+  test("the toggle's description states the retry rule, the first-hop sampling scope and the listed-own-origin caveat", () => {
+    const description: string = formFieldDescription(
+      APP_SETTINGS_PAGE.match(SAME_ORIGIN_FORM_FIELD_PATTERN)?.index ?? 0,
+    );
+
+    for (const phrase of [
+      "retries a failed body-less fetch GET or HEAD once; an XMLHttpRequest cannot be retried",
+      "set a remoteParentSampled ratio delegate only on the service(s) your pages call directly, never on the services they call",
+      "ratio decisions differ between language SDKs",
+      "tail sampling in an OpenTelemetry Collector",
+      "take your own origin out of Trace propagation origins if you listed it there",
+    ]) {
+      expect({ phrase, found: description.includes(phrase) }).toEqual({
+        phrase,
+        found: true,
+      });
+    }
+
+    expect(description).not.toContain("retries a failed GET once");
+    expect(description).not.toContain(
+      "set a remoteParentSampled delegate to keep ratio sampling",
+    );
   });
 
   test("the origins list is described as the cross-origin one, not as 'never inject'", () => {

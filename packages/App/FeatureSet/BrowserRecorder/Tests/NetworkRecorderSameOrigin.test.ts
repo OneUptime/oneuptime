@@ -6,6 +6,9 @@ import UrlScrubber from "Common/Utils/Rum/UrlScrubber";
 import { DebugRecord, clearDebugRecords, getDebugRecords } from "../src/Debug";
 import NetworkRecorder, { RecordedRequest } from "../src/NetworkRecorder";
 
+/* Node's vm, for a plain object from another realm. */
+declare function require(id: string): unknown;
+
 /*
  * Same-origin trace propagation: the requests a page makes to its OWN
  * origin carry a traceparent and `tracestate: oneuptime=sid:<session>`, so
@@ -42,12 +45,26 @@ interface RecorderOptions {
   isSelfRequest?: (url: string) => boolean;
 }
 
+interface FakeRequestInit {
+  method?: string | undefined;
+  mode?: string | undefined;
+  headers?: HeadersInit | undefined;
+  body?: string | undefined;
+  signal?: AbortSignal | undefined;
+  referrer?: string | undefined;
+  referrerPolicy?: string | undefined;
+}
+
 /*
  * A Request stand-in. jsdom ships no Request constructor, so the page's
  * "same-realm Request" is this class installed as window.Request. It keeps
  * the semantics the recorder depends on: init.headers REPLACES the input's
- * headers, the input's body is proxied (the input becomes used), and a
- * used input throws.
+ * headers, the input's body is proxied (the input becomes used), a used
+ * input throws, the signal follows the input's, and - the Fetch spec's
+ * constructor step - ANY non-empty init resets the referrer to the client
+ * ("about:client") and the referrer policy to "" unless the init carries
+ * them itself. Members set to undefined do not count, as in WebIDL.
+ * Tests/NetworkRecorderRealRequest.test.ts runs the platform's own.
  */
 class FakeRequest {
   public readonly url: string;
@@ -55,23 +72,28 @@ class FakeRequest {
   public readonly mode: string;
   public readonly headers: Headers;
   public readonly body: string | null;
+  public readonly signal: AbortSignal | null;
+  public readonly referrer: string;
+  public readonly referrerPolicy: string;
   public bodyUsed: boolean = false;
 
-  public constructor(
-    input: string | FakeRequest,
-    init?: {
-      method?: string;
-      mode?: string;
-      headers?: HeadersInit;
-      body?: string;
-    },
-  ) {
+  public constructor(input: string | FakeRequest, init?: FakeRequestInit) {
     const source: FakeRequest | null =
       input instanceof FakeRequest ? input : null;
 
     if (source && source.bodyUsed) {
       throw new TypeError("Request body is already used");
     }
+
+    const given: Record<string, unknown> = (init || {}) as Record<
+      string,
+      unknown
+    >;
+    const nonEmpty: boolean = Object.keys(given).some(
+      (key: string): boolean => {
+        return given[key] !== undefined;
+      },
+    );
 
     this.url = source
       ? source.url
@@ -87,6 +109,33 @@ class FakeRequest {
     );
     this.body =
       init && init.body !== undefined ? init.body : source ? source.body : null;
+    this.signal =
+      init && init.signal !== undefined
+        ? init.signal
+        : source
+          ? source.signal
+          : null;
+
+    if (init && init.referrer !== undefined) {
+      const parsed: URL | null = init.referrer
+        ? new URL(init.referrer, document.baseURI)
+        : null;
+
+      this.referrer = !parsed
+        ? ""
+        : parsed.href === "about:client" || parsed.origin !== PAGE_ORIGIN
+          ? "about:client"
+          : parsed.href;
+    } else {
+      this.referrer = source && !nonEmpty ? source.referrer : "about:client";
+    }
+
+    this.referrerPolicy =
+      init && init.referrerPolicy !== undefined
+        ? init.referrerPolicy
+        : source && !nonEmpty
+          ? source.referrerPolicy
+          : "";
 
     if (source && source.body !== null) {
       source.bodyUsed = true;
@@ -550,24 +599,83 @@ describe("safety of the page's arguments", (): void => {
     expect(mock.mock.calls[0]?.[1]).toBe(init);
   });
 
-  it("accepts a plain object from another realm (its prototype's prototype is null)", async (): Promise<void> => {
-    const mock: FetchMock = installFetch();
-    const foreignPrototype: Record<string, unknown> = Object.create(
-      null,
-    ) as Record<string, unknown>;
-    const init: RequestInit = Object.assign(Object.create(foreignPrototype), {
-      method: "PUT",
+  it("accepts a plain object from another realm, and a null-prototype one", async (): Promise<void> => {
+    const vm: {
+      runInNewContext: (code: string) => unknown;
+    } = require("vm") as { runInNewContext: (code: string) => unknown };
+
+    /* A real other realm: its Object.prototype is not ours. */
+    const foreign: RequestInit = vm.runInNewContext(
+      '({ method: "PUT", body: "{}", headers: { "x-a": "1" } })',
+    ) as RequestInit;
+
+    expect(Object.getPrototypeOf(foreign)).not.toBe(Object.prototype);
+
+    const bare: RequestInit = Object.assign(Object.create(null), {
+      method: "PATCH",
+      body: "{}",
     }) as RequestInit;
 
-    startRecorder();
+    for (const init of [foreign, bare]) {
+      const mock: FetchMock = installFetch();
 
-    await window.fetch("/api/orders", init);
+      startRecorder();
 
-    const sent: RequestInit = mock.mock.calls[0]?.[1] as RequestInit;
+      await window.fetch("/api/orders", init);
 
-    expect(sent).not.toBe(init);
-    expect(sent.method).toBe("PUT");
-    expect(sentHeaders(mock).get("tracestate")).toContain(SESSION_ID);
+      const sent: RequestInit = mock.mock.calls[0]?.[1] as RequestInit;
+
+      expect(sent).not.toBe(init);
+      expect(sent.method).toBe(init.method);
+      expect(sent.body).toBe("{}");
+      expect(sentHeaders(mock).get("tracestate")).toContain(SESSION_ID);
+
+      recorder?.stop(window);
+      recorder = null;
+    }
+
+    expect(new Headers(foreign.headers).get("traceparent")).toBeNull();
+  });
+
+  /*
+   * Object.create(defaults), where defaults has a null prototype: the
+   * prototype's prototype is null, as it is for another realm's plain
+   * object, but method and body are INHERITED - the spread copy would lose
+   * them and turn the page's POST into a bare GET.
+   */
+  it("sends an init that inherits its fields from a null-prototype object untouched", async (): Promise<void> => {
+    const defaults: Record<string, unknown> = Object.assign(
+      Object.create(null),
+      { method: "POST", body: "payload" },
+    ) as Record<string, unknown>;
+    const init: RequestInit = Object.create(defaults) as RequestInit;
+
+    /* Not quite Object.prototype either: a null prototype, no hasOwnProperty. */
+    const lookalike: Record<string, unknown> = Object.create(null) as Record<
+      string,
+      unknown
+    >;
+
+    lookalike["method"] = "DELETE";
+
+    const inheriting: RequestInit = Object.create(lookalike) as RequestInit;
+
+    for (const pageInit of [init, inheriting]) {
+      const mock: FetchMock = installFetch();
+
+      startRecorder();
+
+      await window.fetch("/api/orders", pageInit);
+
+      expect(mock.mock.calls[0]?.[1]).toBe(pageInit);
+      expect(completed[0]?.request.method).toBe(pageInit.method);
+
+      recorder?.stop(window);
+      recorder = null;
+    }
+
+    expect(init.method).toBe("POST");
+    expect(init.body).toBe("payload");
   });
 
   /*
@@ -836,6 +944,45 @@ describe("Request inputs", (): void => {
     expect(request.headers.get("tracestate")).toBeNull();
   });
 
+  /*
+   * new Request(request, { headers }) is a non-empty init, which resets the
+   * copy's referrer to the client and its policy to the document default:
+   * a page's no-referrer became the full page URL as Referer, and its own
+   * same-origin referrer became the document URL. Both are carried through.
+   */
+  it("keeps the page Request's referrer and referrerPolicy through the rebuild", async (): Promise<void> => {
+    const choices: Array<FakeRequestInit> = [
+      { referrerPolicy: "no-referrer" },
+      { referrer: "" },
+      { referrer: "", referrerPolicy: "unsafe-url" },
+      { referrer: `${PAGE_ORIGIN}/landing`, referrerPolicy: "same-origin" },
+      { referrerPolicy: "strict-origin" },
+      {},
+    ];
+
+    for (const choice of choices) {
+      const mock: FetchMock = installFetch();
+      const request: FakeRequest = new FakeRequest("/api/redeem", choice);
+
+      startRecorder();
+
+      await window.fetch(request as unknown as RequestInfo);
+
+      const sent: FakeRequest = mock.mock.calls[0]?.[0] as FakeRequest;
+
+      /* Rebuilt - it carries ours - and nothing else about it changed. */
+      expect(sent).not.toBe(request);
+      expect(sent.headers.get("tracestate")).toContain(SESSION_ID);
+      expect([sent.referrer, sent.referrerPolicy]).toEqual([
+        request.referrer,
+        request.referrerPolicy,
+      ]);
+
+      recorder?.stop(window);
+      recorder = null;
+    }
+  });
+
   it("keeps a Request's own traceparent and adds only the tracestate", async (): Promise<void> => {
     const mock: FetchMock = installFetch();
     const request: FakeRequest = new FakeRequest("/api/x", {
@@ -958,7 +1105,10 @@ describe("listed cross-origin APIs", (): void => {
   it("still mint whatever other tracer is on the page", async (): Promise<void> => {
     const mock: FetchMock = installFetch();
 
-    windowRecord["NREUM"] = {};
+    /* Configured to trace: the same-origin path would stand down for it. */
+    windowRecord["NREUM"] = {
+      init: { distributed_tracing: { enabled: true } },
+    };
 
     try {
       startRecorder({ origins: ["https://api.allowed.example"] });
@@ -991,6 +1141,164 @@ describe("listed cross-origin APIs", (): void => {
     expect(sentHeaders(mock, 0).get("tracestate")).toContain(SESSION_ID);
     expect(sentHeaders(mock, 1).get("traceparent")).toMatch(TRACEPARENT_SHAPE);
     expect(sentHeaders(mock, 1).get("tracestate")).toBeNull();
+  });
+});
+
+/*
+ * A page that proxies its browser OpenTelemetry exporter through its own
+ * origin posts to .../v1/traces, /v1/logs and /v1/metrics every few
+ * seconds. Annotated, each export became a forced-sampled backend trace
+ * stamped with the session - the replay's Traces tab filled with the
+ * telemetry pipeline's own traffic.
+ */
+describe("OpenTelemetry export paths on the page's own origin", (): void => {
+  it("get nothing added to a POST, and the page's init goes out as it was", async (): Promise<void> => {
+    const paths: Array<string> = [
+      "/v1/traces",
+      "/api/otel/v1/traces",
+      "/otlp/v1/logs",
+      `${PAGE_ORIGIN}/telemetry/v1/metrics`,
+      "/api/otel/v1/traces/",
+      "/api/otel/v1/traces?batch=1",
+    ];
+
+    for (const path of paths) {
+      const mock: FetchMock = installFetch();
+      const init: RequestInit = { method: "POST", body: "{}" };
+
+      startRecorder();
+
+      await window.fetch(path, init);
+
+      expect([path, mock.mock.calls[0]?.[1]]).toEqual([path, init]);
+      expect(mock.mock.calls[0]?.[1]).toBe(init);
+      expect(sentHeaders(mock).get("traceparent")).toBeNull();
+      expect(sentHeaders(mock).get("tracestate")).toBeNull();
+
+      recorder?.stop(window);
+      recorder = null;
+    }
+  });
+
+  /*
+   * An OTLP/HTTP export is always a POST. The same path read with any
+   * other method is the app's own endpoint - an audit-log page's
+   * GET /api/v1/logs, an analytics dashboard's GET /api/v1/metrics - and
+   * its backend spans link like any other request's.
+   */
+  it("annotates any other method on those paths: the app's own endpoints", async (): Promise<void> => {
+    const requests: Array<[string, RequestInit | undefined]> = [
+      ["/api/v1/logs", undefined],
+      ["/api/v1/metrics", { method: "GET" }],
+      ["/v1/traces", { method: "HEAD" }],
+      ["/api/v1/logs", { method: "DELETE" }],
+      ["/api/v1/traces", { method: "PUT", body: "{}" }],
+    ];
+
+    for (const [path, init] of requests) {
+      const mock: FetchMock = installFetch();
+
+      startRecorder();
+
+      await window.fetch(path, init);
+
+      const traceparent: string | null = sentHeaders(mock).get("traceparent");
+
+      expect([path, init?.method, traceparent]).toEqual([
+        path,
+        init?.method,
+        expect.stringMatching(TRACEPARENT_SHAPE),
+      ]);
+      expect(sentHeaders(mock).get("tracestate")).toContain(SESSION_ID);
+
+      recorder?.stop(window);
+      recorder = null;
+    }
+  });
+
+  it("skips a POST however the method is spelled or carried", async (): Promise<void> => {
+    const stopRecorder: () => void = (): void => {
+      recorder?.stop(window);
+      recorder = null;
+    };
+
+    windowRecord["Request"] = FakeRequest;
+
+    try {
+      const lowercase: FetchMock = installFetch();
+
+      startRecorder();
+
+      await window.fetch("/otel/v1/traces", { method: "post", body: "{}" });
+
+      expect(sentHeaders(lowercase).get("traceparent")).toBeNull();
+      expect(sentHeaders(lowercase).get("tracestate")).toBeNull();
+
+      stopRecorder();
+
+      /* A POST Request: sent as the page built it, not rebuilt. */
+      const request: FetchMock = installFetch();
+      const exported: FakeRequest = new FakeRequest("/otel/v1/traces", {
+        method: "POST",
+        body: "{}",
+      });
+
+      startRecorder();
+
+      await window.fetch(exported as unknown as Request);
+
+      expect(request.mock.calls[0]?.[0]).toBe(exported);
+      expect(sentHeaders(request).get("traceparent")).toBeNull();
+      expect(sentHeaders(request).get("tracestate")).toBeNull();
+
+      stopRecorder();
+
+      /* A GET Request to the same path is the app's own read: annotated. */
+      const read: FetchMock = installFetch();
+
+      startRecorder();
+
+      await window.fetch(new FakeRequest("/api/v1/logs") as unknown as Request);
+
+      expect(sentHeaders(read).get("traceparent")).toMatch(TRACEPARENT_SHAPE);
+      expect(sentHeaders(read).get("tracestate")).toContain(SESSION_ID);
+    } finally {
+      delete windowRecord["Request"];
+    }
+  });
+
+  it("does not match paths that only look alike", async (): Promise<void> => {
+    for (const path of [
+      "/api/v1/tracesx",
+      "/api/v1/traces/123",
+      "/v2/traces",
+      "/api/v1/log",
+    ]) {
+      const mock: FetchMock = installFetch();
+
+      startRecorder();
+
+      await window.fetch(path);
+
+      expect([path, sentHeaders(mock).get("tracestate")]).toEqual([
+        path,
+        expect.stringContaining(SESSION_ID),
+      ]);
+
+      recorder?.stop(window);
+      recorder = null;
+    }
+  });
+
+  it("keeps the listed treatment when the page listed its own origin", async (): Promise<void> => {
+    const mock: FetchMock = installFetch();
+
+    startRecorder({ origins: [PAGE_ORIGIN] });
+
+    await window.fetch("/api/otel/v1/traces", { method: "POST", body: "{}" });
+
+    expect(sentHeaders(mock).get("traceparent")).toMatch(TRACEPARENT_SHAPE);
+    expect(sentHeaders(mock).get("tracestate")).toBeNull();
   });
 });
 
@@ -1328,33 +1636,603 @@ describe("tracers inside our wrapper", (): void => {
     expect(sentHeaders(mock).get("traceparent")).toMatch(TRACEPARENT_SHAPE);
   });
 
-  it("stands down while a propagating agent global is present, read at request time", async (): Promise<void> => {
-    for (const agent of ["NREUM", "newrelic", "elasticApm", "DD_RUM"]) {
+  /*
+   * Vendor agents define their global whether or not they trace, so the
+   * recorder stands down for one only while it is configured to put a
+   * traceparent on THIS request. Standing down for an agent that adds none
+   * sent a tracestate with no traceparent, which no W3C propagator reads:
+   * Datadog RUM with its default config or for a session it does not
+   * track, New Relic without distributed tracing, an inactive Elastic agent
+   * or one with distributedTracing off - none of them ever linked. The
+   * fixtures model each agent's real public shape.
+   */
+  interface AgentCase {
+    name: string;
+    global: string;
+    value: unknown;
+    standsDown: boolean;
+  }
+
+  /*
+   * Datadog RUM 7.x's public API: getInitConfiguration() returns a copy of
+   * the init options - readable whether or not Datadog started - and
+   * getInternalContext() the context of the session it tracks, undefined
+   * before start, before consent, after a failed init, and for a session
+   * sessionSampleRate left untracked. Its tracer injects nothing then.
+   */
+  const DATADOG_CONTEXT: Record<string, unknown> = {
+    application_id: "7f2d8a1e-3b4c-4d5e-8f60-718293a4b5c6",
+    session_id: "3c5e2c6b-0b1f-4d3a-9f64-1f4e0a7b2c9d",
+    view: {
+      id: "5a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+      url: `${PAGE_ORIGIN}/checkout`,
+      referrer: "",
+    },
+    user_action: undefined,
+  };
+
+  const datadog: (
+    config: unknown,
+    tracked?: boolean,
+  ) => Record<string, unknown> = (
+    config: unknown,
+    tracked: boolean = true,
+  ): Record<string, unknown> => {
+    return {
+      getInitConfiguration: (): unknown => {
+        return config;
+      },
+      getInternalContext: (): unknown => {
+        return tracked ? DATADOG_CONTEXT : undefined;
+      },
+    };
+  };
+
+  /*
+   * @elastic/apm-rum 5.x: window.elasticApm is an ApmBase, which has no
+   * getConfig. Its configuration is read through its ConfigService, with
+   * Elastic's defaults merged in.
+   */
+  const elastic: (
+    active: boolean,
+    config?: Record<string, unknown>,
+  ) => Record<string, unknown> = (
+    active: boolean,
+    config: Record<string, unknown> = {},
+  ): Record<string, unknown> => {
+    const merged: Record<string, unknown> = {
+      distributedTracing: true,
+      distributedTracingHeaderName: "traceparent",
+      ...config,
+    };
+
+    return {
+      isActive: (): boolean => {
+        return active;
+      },
+      serviceFactory: {
+        getService: (name: string): unknown => {
+          return name === "ConfigService"
+            ? {
+                get: (key: string): unknown => {
+                  return merged[key];
+                },
+              }
+            : undefined;
+        },
+      },
+    };
+  };
+
+  /*
+   * @newrelic/browser-agent from npm: NREUM.init stays empty, and each
+   * agent instance registers itself, with its merged init, in
+   * NREUM.initializedAgents under a 16-character id.
+   */
+  const newRelicNpm: (...enabled: Array<unknown>) => Record<string, unknown> = (
+    ...enabled: Array<unknown>
+  ): Record<string, unknown> => {
+    const agents: Record<string, unknown> = {};
+
+    enabled.forEach((value: unknown, index: number): void => {
+      agents[`a1b2c3d4e5f6071${index}`] = {
+        init: { distributed_tracing: { enabled: value } },
+      };
+    });
+
+    return { init: {}, initializedAgents: agents };
+  };
+
+  const agentCases: Array<AgentCase> = [
+    /* Datadog RUM: allowedTracingUrls decides, matched Datadog's way. */
+    { name: "DD_RUM bare", global: "DD_RUM", value: {}, standsDown: false },
+    {
+      name: "DD_RUM async stub",
+      global: "DD_RUM",
+      value: { q: [], onReady: (): void => {} },
+      standsDown: false,
+    },
+    {
+      name: "DD_RUM not initialised",
+      global: "DD_RUM",
+      value: datadog(undefined, false),
+      standsDown: false,
+    },
+    {
+      name: "DD_RUM default config",
+      global: "DD_RUM",
+      value: datadog({ applicationId: "a", clientToken: "t" }),
+      standsDown: false,
+    },
+    {
+      name: "DD_RUM empty allowedTracingUrls",
+      global: "DD_RUM",
+      value: datadog({ allowedTracingUrls: [] }),
+      standsDown: false,
+    },
+    {
+      name: "DD_RUM another origin listed",
+      global: "DD_RUM",
+      value: datadog({ allowedTracingUrls: ["https://api.other.example"] }),
+      standsDown: false,
+    },
+    {
+      name: "DD_RUM string prefix",
+      global: "DD_RUM",
+      value: datadog({ allowedTracingUrls: [`${PAGE_ORIGIN}/api`] }),
+      standsDown: true,
+    },
+    {
+      name: "DD_RUM string that is not a prefix",
+      global: "DD_RUM",
+      value: datadog({ allowedTracingUrls: ["/api"] }),
+      standsDown: false,
+    },
+    {
+      name: "DD_RUM RegExp",
+      global: "DD_RUM",
+      value: datadog({ allowedTracingUrls: [/shop\.example\.com\/api/] }),
+      standsDown: true,
+    },
+    {
+      name: "DD_RUM function",
+      global: "DD_RUM",
+      value: datadog({
+        allowedTracingUrls: [
+          (url: string): boolean => {
+            return url === `${PAGE_ORIGIN}/api/x`;
+          },
+        ],
+      }),
+      standsDown: true,
+    },
+    {
+      name: "DD_RUM option without propagatorTypes (the default has tracecontext)",
+      global: "DD_RUM",
+      value: datadog({ allowedTracingUrls: [{ match: PAGE_ORIGIN }] }),
+      standsDown: true,
+    },
+    {
+      name: "DD_RUM option with tracecontext",
+      global: "DD_RUM",
+      value: datadog({
+        allowedTracingUrls: [
+          { match: /shop/, propagatorTypes: ["datadog", "tracecontext"] },
+        ],
+      }),
+      standsDown: true,
+    },
+    {
+      name: "DD_RUM option with datadog headers only",
+      global: "DD_RUM",
+      value: datadog({
+        allowedTracingUrls: [
+          { match: PAGE_ORIGIN, propagatorTypes: ["datadog", "b3"] },
+        ],
+      }),
+      standsDown: false,
+    },
+    {
+      name: "DD_RUM first matching entry decides",
+      global: "DD_RUM",
+      value: datadog({
+        allowedTracingUrls: [
+          { match: PAGE_ORIGIN, propagatorTypes: ["datadog"] },
+          PAGE_ORIGIN,
+        ],
+      }),
+      standsDown: false,
+    },
+    {
+      name: "DD_RUM entry that throws is skipped",
+      global: "DD_RUM",
+      value: datadog({
+        allowedTracingUrls: [
+          (): boolean => {
+            throw new Error("page bug");
+          },
+          PAGE_ORIGIN,
+        ],
+      }),
+      standsDown: true,
+    },
+    {
+      name: "DD_RUM getInitConfiguration throws",
+      global: "DD_RUM",
+      value: {
+        getInitConfiguration: (): unknown => {
+          throw new Error("not ready");
+        },
+        getInternalContext: (): unknown => {
+          return DATADOG_CONTEXT;
+        },
+      },
+      standsDown: false,
+    },
+
+    /*
+     * Datadog RUM: the URL matches, but its tracer injects only for a
+     * session it tracks. Before start, before consent (trackingConsent
+     * "not-granted"), after a failed init (no clientToken or service) and
+     * for a session sessionSampleRate left out, getInternalContext() is
+     * undefined - and the configuration still names the URL.
+     */
+    {
+      name: "DD_RUM matched, no getInternalContext",
+      global: "DD_RUM",
+      value: {
+        getInitConfiguration: (): unknown => {
+          return { allowedTracingUrls: [PAGE_ORIGIN] };
+        },
+      },
+      standsDown: false,
+    },
+    {
+      name: "DD_RUM matched, no tracked session (untracked, no consent, not started, failed init)",
+      global: "DD_RUM",
+      value: datadog(
+        { allowedTracingUrls: [PAGE_ORIGIN], sessionSampleRate: 20 },
+        false,
+      ),
+      standsDown: false,
+    },
+    {
+      name: "DD_RUM matched, getInternalContext throws",
+      global: "DD_RUM",
+      value: {
+        getInitConfiguration: (): unknown => {
+          return { allowedTracingUrls: [PAGE_ORIGIN] };
+        },
+        getInternalContext: (): unknown => {
+          throw new Error("page bug");
+        },
+      },
+      standsDown: false,
+    },
+    {
+      name: "DD_RUM matched, tracked session",
+      global: "DD_RUM",
+      value: datadog({ allowedTracingUrls: [PAGE_ORIGIN] }),
+      standsDown: true,
+    },
+    {
+      name: "DD_RUM matched, tracked session of a sampled application",
+      global: "DD_RUM",
+      value: datadog({
+        allowedTracingUrls: [PAGE_ORIGIN],
+        sessionSampleRate: 20,
+      }),
+      standsDown: true,
+    },
+    {
+      name: 'DD_RUM matched, traceSampleRate 0 with traceContextInjection "all" (Datadog injects anyway)',
+      global: "DD_RUM",
+      value: datadog({
+        allowedTracingUrls: [PAGE_ORIGIN],
+        traceSampleRate: 0,
+        traceContextInjection: "all",
+      }),
+      standsDown: true,
+    },
+    /*
+     * Under the default traceContextInjection "sampled", Datadog decides
+     * per session from a hash of its id whether to inject. That is not
+     * replicated: the recorder stands down (such a request does not link)
+     * rather than risk two traceparent values on an XHR.
+     */
+    {
+      name: 'DD_RUM matched, traceSampleRate below 100 under "sampled" (not replicated: stands down)',
+      global: "DD_RUM",
+      value: datadog({
+        allowedTracingUrls: [PAGE_ORIGIN],
+        sessionSampleRate: 50,
+        traceSampleRate: 0,
+      }),
+      standsDown: true,
+    },
+
+    /* New Relic: only with distributed tracing on. */
+    { name: "NREUM bare", global: "NREUM", value: {}, standsDown: false },
+    {
+      name: "NREUM distributed tracing off",
+      global: "NREUM",
+      value: { init: { distributed_tracing: { enabled: false } } },
+      standsDown: false,
+    },
+    {
+      name: "NREUM distributed tracing on",
+      global: "NREUM",
+      value: { init: { distributed_tracing: { enabled: true } } },
+      standsDown: true,
+    },
+    {
+      name: "NREUM npm agent, distributed tracing on",
+      global: "NREUM",
+      value: newRelicNpm(true),
+      standsDown: true,
+    },
+    {
+      name: "NREUM npm agent, distributed tracing at its default (off)",
+      global: "NREUM",
+      value: newRelicNpm(undefined),
+      standsDown: false,
+    },
+    {
+      name: "NREUM npm agents, the second with distributed tracing on",
+      global: "NREUM",
+      value: newRelicNpm(false, true),
+      standsDown: true,
+    },
+    {
+      name: "NREUM npm agent registered with no configuration",
+      global: "NREUM",
+      value: { init: {}, initializedAgents: { a1b2c3d4e5f60718: {} } },
+      standsDown: false,
+    },
+    {
+      name: "NREUM initializedAgents that is not an object",
+      global: "NREUM",
+      value: { initializedAgents: null },
+      standsDown: false,
+    },
+    {
+      name: "newrelic API global alone",
+      global: "newrelic",
+      value: { setCustomAttribute: (): void => {} },
+      standsDown: false,
+    },
+
+    /*
+     * Elastic APM: only an active agent with distributed tracing on, under
+     * the W3C header name.
+     */
+    {
+      name: "elasticApm bare",
+      global: "elasticApm",
+      value: {},
+      standsDown: false,
+    },
+    {
+      name: "elasticApm inactive",
+      global: "elasticApm",
+      value: elastic(false),
+      standsDown: false,
+    },
+    {
+      name: "elasticApm active, Elastic's defaults",
+      global: "elasticApm",
+      value: elastic(true),
+      standsDown: true,
+    },
+    {
+      name: "elasticApm active, distributedTracing: false",
+      global: "elasticApm",
+      value: elastic(true, { distributedTracing: false }),
+      standsDown: false,
+    },
+    {
+      name: "elasticApm active, the legacy elastic-apm-traceparent header name",
+      global: "elasticApm",
+      value: elastic(true, {
+        distributedTracingHeaderName: "elastic-apm-traceparent",
+      }),
+      standsDown: false,
+    },
+    {
+      name: "elasticApm active, an empty header name (Elastic sends nothing)",
+      global: "elasticApm",
+      value: elastic(true, { distributedTracingHeaderName: "" }),
+      standsDown: false,
+    },
+    {
+      name: "elasticApm active, the W3C header name in another case",
+      global: "elasticApm",
+      value: elastic(true, { distributedTracingHeaderName: "Traceparent" }),
+      standsDown: true,
+    },
+    {
+      name: "elasticApm active, no header name set",
+      global: "elasticApm",
+      value: elastic(true, { distributedTracingHeaderName: undefined }),
+      standsDown: true,
+    },
+    {
+      name: "elasticApm active, configuration unreadable (Elastic's defaults trace)",
+      global: "elasticApm",
+      value: {
+        isActive: (): boolean => {
+          return true;
+        },
+      },
+      standsDown: true,
+    },
+    {
+      name: "elasticApm active, a getConfig the real agent does not have is not read",
+      global: "elasticApm",
+      value: {
+        ...elastic(true),
+        getConfig: (): unknown => {
+          return { distributedTracing: false };
+        },
+      },
+      standsDown: true,
+    },
+  ];
+
+  it("stands down only for a vendor agent configured to trace the request, read at request time", async (): Promise<void> => {
+    for (const agentCase of agentCases) {
       const mock: FetchMock = installFetch();
 
       startRecorder();
 
       await window.fetch("/api/before-agent");
 
-      windowRecord[agent] = {};
+      windowRecord[agentCase.global] = agentCase.value;
 
       try {
         await window.fetch("/api/x");
       } finally {
-        delete windowRecord[agent];
+        delete windowRecord[agentCase.global];
       }
 
-      expect(sentHeaders(mock, 0).get("traceparent")).toMatch(
-        TRACEPARENT_SHAPE,
-      );
-      expect(sentHeaders(mock, 1).get("traceparent")).toBeNull();
-      expect(sentHeaders(mock, 1).get("tracestate")).toBe(
-        `oneuptime=sid:${SESSION_ID}`,
-      );
+      const before: Headers = sentHeaders(mock, 0);
+      const after: Headers = sentHeaders(mock, 1);
+
+      expect([agentCase.name, before.get("traceparent")]).toEqual([
+        agentCase.name,
+        expect.stringMatching(TRACEPARENT_SHAPE),
+      ]);
+
+      if (agentCase.standsDown) {
+        /* The agent adds the traceparent; the session still rides along. */
+        expect([agentCase.name, after.get("traceparent")]).toEqual([
+          agentCase.name,
+          null,
+        ]);
+        expect(after.get("tracestate")).toBe(`oneuptime=sid:${SESSION_ID}`);
+      } else {
+        const minted: RegExpExecArray | null = TRACEPARENT_SHAPE.exec(
+          after.get("traceparent") || "",
+        );
+
+        expect([agentCase.name, minted !== null]).toEqual([
+          agentCase.name,
+          true,
+        ]);
+        expect(after.get("tracestate")).toBe(
+          `oneuptime=sid:${SESSION_ID};p:${minted?.[2]}`,
+        );
+      }
 
       recorder?.stop(window);
       recorder = null;
     }
+  });
+
+  it("hands Datadog's matcher the request's absolute URL", async (): Promise<void> => {
+    const seen: Array<string> = [];
+
+    installFetch();
+
+    windowRecord["DD_RUM"] = datadog({
+      allowedTracingUrls: [
+        (url: string): boolean => {
+          seen.push(url);
+          return false;
+        },
+      ],
+    });
+
+    try {
+      startRecorder();
+
+      await window.fetch("/api/orders?page=2");
+      await window.fetch(new URL(`${PAGE_ORIGIN}/api/items`));
+    } finally {
+      delete windowRecord["DD_RUM"];
+    }
+
+    expect(seen).toEqual([
+      `${PAGE_ORIGIN}/api/orders?page=2`,
+      `${PAGE_ORIGIN}/api/items`,
+    ]);
+  });
+
+  it("logs the first vendor stand-down once per page load, naming the agent", async (): Promise<void> => {
+    installFetch();
+
+    windowRecord["NREUM"] = {
+      init: { distributed_tracing: { enabled: true } },
+    };
+
+    try {
+      startRecorder();
+
+      await window.fetch("/api/a");
+      await window.fetch("/api/b");
+    } finally {
+      delete windowRecord["NREUM"];
+    }
+
+    const standDowns: Array<DebugRecord> = debugRecords(
+      "same-origin-propagation",
+    ).filter((record: DebugRecord): boolean => {
+      return record.detail?.["reason"] === "agent-stand-down";
+    });
+
+    expect(standDowns).toHaveLength(1);
+    expect(standDowns[0]?.level).toBe("info");
+    expect(standDowns[0]?.detail).toEqual({
+      enabled: true,
+      reason: "agent-stand-down",
+      agent: "NREUM",
+    });
+  });
+
+  it("logs no vendor stand-down for an agent that is not tracing, or behind a `__wrapped` fetch", async (): Promise<void> => {
+    const standDowns: () => Array<DebugRecord> = (): Array<DebugRecord> => {
+      return debugRecords("same-origin-propagation").filter(
+        (record: DebugRecord): boolean => {
+          return record.detail?.["reason"] === "agent-stand-down";
+        },
+      );
+    };
+
+    /* Present, not tracing: ours is minted, and there is nothing to say. */
+    const plain: FetchMock = installFetch();
+
+    windowRecord["DD_RUM"] = datadog({ allowedTracingUrls: [] });
+
+    try {
+      startRecorder();
+
+      await window.fetch("/api/a");
+    } finally {
+      delete windowRecord["DD_RUM"];
+    }
+
+    expect(sentHeaders(plain).get("traceparent")).toMatch(TRACEPARENT_SHAPE);
+    expect(standDowns()).toHaveLength(0);
+
+    recorder?.stop(window);
+    recorder = null;
+
+    /* A shimmer-marked tracer inside ours is the reason, not the agent. */
+    const inner: FetchMock = jest.fn().mockResolvedValue(okResponse());
+
+    windowRecord["fetch"] = markedWrapper(inner, { __wrapped: true });
+    windowRecord["DD_RUM"] = datadog({ allowedTracingUrls: [PAGE_ORIGIN] });
+
+    try {
+      startRecorder();
+
+      await window.fetch("/api/a");
+    } finally {
+      delete windowRecord["DD_RUM"];
+    }
+
+    expectStoodDown(inner);
+    expect(standDowns()).toHaveLength(0);
   });
 
   /*
@@ -1457,6 +2335,183 @@ describe("tracers inside our wrapper", (): void => {
 
     expect(sentHeaders(mock).get("tracestate")).toBeNull();
     expect(completed[0]?.rollupTraceId).toBe(INNER_TRACE_ID);
+  });
+
+  /*
+   * fetch(url) with no init, on a request the recorder adds nothing to:
+   * the inner tracer used to build a PRIVATE options object (`init || {}`)
+   * and set its traceparent there, out of the read-back's reach. It is now
+   * handed an empty init the recorder keeps - fetch(url, {}) is the same
+   * request.
+   */
+  it("reads back from fetch(url) with no init when it adds nothing itself", async (): Promise<void> => {
+    const setups: Array<{ label: string; options: RecorderOptions }> = [
+      { label: "policy off", options: { policy: false } },
+      {
+        label: "not uploading",
+        options: {
+          sessionId: (): string | null => {
+            return null;
+          },
+        },
+      },
+    ];
+
+    for (const setup of setups) {
+      for (const input of ["/api/x", new URL(`${PAGE_ORIGIN}/api/y`)]) {
+        const mock: FetchMock = jest.fn().mockResolvedValue(okResponse());
+
+        windowRecord["fetch"] = otelLikeFetch(mock);
+
+        startRecorder(setup.options);
+
+        await window.fetch(input);
+
+        expect([setup.label, sentHeaders(mock).get("traceparent")]).toEqual([
+          setup.label,
+          INNER_TRACEPARENT,
+        ]);
+        expect(sentHeaders(mock).get("tracestate")).toBeNull();
+        expect([setup.label, completed[0]?.rollupTraceId]).toEqual([
+          setup.label,
+          INNER_TRACE_ID,
+        ]);
+
+        recorder?.stop(window);
+        recorder = null;
+      }
+    }
+  });
+
+  it("hands an inner tracer fetch(url, null) as fetch(url, {}), and leaves a Request with no second argument", async (): Promise<void> => {
+    const calls: Array<Array<unknown>> = [];
+    const inner: FetchMock = jest.fn().mockResolvedValue(okResponse());
+
+    windowRecord["fetch"] = markedWrapper(
+      (...args: Array<unknown>): unknown => {
+        calls.push(args);
+        return inner(...args);
+      },
+      { __wrapped: true },
+    );
+
+    windowRecord["Request"] = FakeRequest;
+
+    try {
+      startRecorder({ policy: false });
+
+      await window.fetch("/api/a", null as unknown as RequestInit);
+      await window.fetch(new FakeRequest("/api/b") as unknown as RequestInfo);
+    } finally {
+      delete windowRecord["Request"];
+    }
+
+    expect(calls[0]).toEqual(["/api/a", {}]);
+
+    /* Beside a Request an init would make OpenTelemetry build a new one. */
+    expect(calls[1]).toHaveLength(1);
+  });
+
+  it("hands nothing extra to a fetch no tracer wraps", async (): Promise<void> => {
+    const mock: FetchMock = installFetch();
+
+    startRecorder({ policy: false });
+
+    await window.fetch("/api/x");
+
+    expect(mock.mock.calls[0]).toEqual(["/api/x"]);
+  });
+
+  /*
+   * The breaker's retry is a new request: the inner tracer gives it a new
+   * span and traceparent. The recorded row used to keep the FIRST
+   * attempt's read-back id, so "Backend for this request" opened the
+   * failed attempt's trace instead of the one that answered.
+   */
+  it("records the retry's own traceparent from an inner tracer, not the failed attempt's", async (): Promise<void> => {
+    const attemptIds: Array<string> = ["1".repeat(32), "2".repeat(32)];
+
+    for (const init of [undefined, { headers: { "x-a": "1" } }]) {
+      let attempt: number = 0;
+      const inner: FetchMock = jest
+        .fn()
+        .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+        .mockResolvedValue(okResponse());
+
+      windowRecord["fetch"] = markedWrapper(
+        (input: unknown, pageInit?: unknown): unknown => {
+          const options: Record<string, unknown> = (pageInit || {}) as Record<
+            string,
+            unknown
+          >;
+          const headers: Headers = new Headers(
+            options["headers"] as HeadersInit | undefined,
+          );
+
+          headers.set(
+            "traceparent",
+            `00-${attemptIds[attempt++]}-${"d".repeat(16)}-01`,
+          );
+          options["headers"] = headers;
+
+          return inner(input, options);
+        },
+        { __wrapped: true },
+      );
+
+      startRecorder();
+
+      const response: Response = await window.fetch("/download/1", init);
+
+      expect(response.status).toBe(200);
+      expect(inner).toHaveBeenCalledTimes(2);
+
+      /* The retry is the page's own call: no session on it. */
+      expect(sentHeaders(inner, 1).get("tracestate")).toBeNull();
+      expect(sentHeaders(inner, 1).get("traceparent")).toContain(attemptIds[1]);
+
+      expect(completed).toHaveLength(1);
+      expect(completed[0]?.request.traceId).toBe(attemptIds[1]);
+      expect(completed[0]?.rollupTraceId).toBe(attemptIds[1]);
+
+      recorder?.stop(window);
+      recorder = null;
+    }
+  });
+
+  it("records no trace id on a retry when nothing on the retry carries one", async (): Promise<void> => {
+    const mock: FetchMock = jest
+      .fn()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValue(okResponse());
+
+    windowRecord["fetch"] = mock;
+
+    startRecorder();
+
+    await window.fetch("/download/1");
+
+    expect(completed[0]?.request.traceId).toBeUndefined();
+    expect(completed[0]?.rollupTraceId).toBeNull();
+  });
+
+  it("keeps the page's own traceparent on a retry", async (): Promise<void> => {
+    const mock: FetchMock = jest
+      .fn()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValue(okResponse());
+
+    windowRecord["fetch"] = mock;
+
+    startRecorder();
+
+    await window.fetch("/download/1", {
+      headers: { traceparent: PAGE_TRACEPARENT },
+    });
+
+    expect(mock).toHaveBeenCalledTimes(2);
+    expect(completed[0]?.request.traceId).toBe(PAGE_TRACE_ID);
+    expect(completed[0]?.rollupTraceId).toBe(PAGE_TRACE_ID);
   });
 });
 
@@ -1664,6 +2719,142 @@ describe("the redirect breaker", (): void => {
     expect(mock).toHaveBeenCalledTimes(2);
     expect(sentHeaders(mock, 1).get("tracestate")).toContain(SESSION_ID);
     expect(debugRecords("same-origin-propagation-tripped")).toHaveLength(0);
+  });
+
+  /*
+   * controller.abort(reason) rejects fetch with the REASON itself - an
+   * Error named "Error", or a string - not an AbortError. A route change
+   * cancelling its in-flight request used to trip the breaker (propagation
+   * off for the rest of the page), fire a pointless retry, and record the
+   * cancellation as a failure. The page's aborted signal says what it was.
+   */
+  it("is not tripped, retried or counted as an error when the page aborts with a reason of its own", async (): Promise<void> => {
+    /* What native fetch does with an aborted signal: reject with its reason. */
+    const abortable: () => FetchMock = (): FetchMock => {
+      return jest.fn(
+        (input: unknown, init?: RequestInit): Promise<Response> => {
+          const signal: AbortSignal | null | undefined =
+            init && init.signal !== undefined
+              ? init.signal
+              : (input as FakeRequest).signal;
+
+          if (!signal) {
+            return Promise.resolve(okResponse());
+          }
+
+          return new Promise<Response>(
+            (_resolve: unknown, reject: (reason: unknown) => void): void => {
+              signal.addEventListener("abort", (): void => {
+                reject(signal.reason);
+              });
+            },
+          );
+        },
+      );
+    };
+
+    const reasons: Array<unknown> = [new Error("route changed"), "unmount"];
+
+    for (const reason of reasons) {
+      for (const shape of ["init", "request"]) {
+        const mock: FetchMock = abortable();
+        const controller: AbortController = new AbortController();
+
+        windowRecord["fetch"] = mock;
+        windowRecord["Request"] = FakeRequest;
+
+        try {
+          startRecorder();
+
+          const pending: Promise<Response> =
+            shape === "init"
+              ? window.fetch("/api/slow", { signal: controller.signal })
+              : window.fetch(
+                  new FakeRequest("/api/slow", {
+                    signal: controller.signal,
+                  }) as unknown as RequestInfo,
+                );
+
+          controller.abort(reason);
+
+          /* The page gets its own reason back, unchanged. */
+          await expect(pending).rejects.toBe(reason);
+
+          /* No retry: an aborted signal would only reject it again. */
+          expect(mock).toHaveBeenCalledTimes(1);
+
+          expect(completed).toHaveLength(1);
+          expect(completed[0]?.request.aborted).toBe(true);
+          expect(completed[0]?.request.isError).toBe(false);
+          expect(debugRecords("same-origin-propagation-tripped")).toHaveLength(
+            0,
+          );
+
+          /* Propagation is still on. */
+          await window.fetch("/api/after");
+
+          expect([
+            String(reason),
+            shape,
+            sentHeaders(mock, 1).get("tracestate"),
+          ]).toEqual([
+            String(reason),
+            shape,
+            expect.stringContaining(SESSION_ID),
+          ]);
+        } finally {
+          delete windowRecord["Request"];
+          recorder?.stop(window);
+          recorder = null;
+        }
+      }
+    }
+  });
+
+  it("records a timeout on the page's signal as the failure it is, without tripping", async (): Promise<void> => {
+    const timeout: Error = new Error("signal timed out");
+
+    timeout.name = "TimeoutError";
+
+    const controller: AbortController = new AbortController();
+    const mock: FetchMock = jest
+      .fn()
+      .mockImplementationOnce((): Promise<Response> => {
+        controller.abort(timeout);
+        return Promise.reject(timeout);
+      })
+      .mockResolvedValue(okResponse());
+
+    windowRecord["fetch"] = mock;
+
+    startRecorder();
+
+    await expect(
+      window.fetch("/api/slow", { signal: controller.signal }),
+    ).rejects.toBe(timeout);
+
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(completed[0]?.request.aborted).toBeUndefined();
+    expect(completed[0]?.request.isError).toBe(true);
+    expect(debugRecords("same-origin-propagation-tripped")).toHaveLength(0);
+  });
+
+  it("still trips on a network failure while the page's signal is not aborted", async (): Promise<void> => {
+    const controller: AbortController = new AbortController();
+    const mock: FetchMock = jest
+      .fn()
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValue(okResponse());
+
+    windowRecord["fetch"] = mock;
+
+    startRecorder();
+
+    await window.fetch("/download/1", { signal: controller.signal });
+
+    expect(mock).toHaveBeenCalledTimes(2);
+    expect(debugRecords("same-origin-propagation-tripped")).toHaveLength(1);
+    expect(completed[0]?.request.aborted).toBeUndefined();
   });
 
   it("is not tripped by a request we added nothing to", async (): Promise<void> => {
@@ -1874,6 +3065,29 @@ describe("same-origin XHR", (): void => {
     expect(setHeaderSpy).not.toHaveBeenCalled();
   });
 
+  /* @elastic/apm-rum's shape: no getConfig, a ConfigService. */
+  function elasticXhrAgent(
+    active: boolean,
+    distributedTracing: boolean,
+  ): Record<string, unknown> {
+    return {
+      isActive: (): boolean => {
+        return active;
+      },
+      serviceFactory: {
+        getService: (): unknown => {
+          return {
+            get: (key: string): unknown => {
+              return key === "distributedTracing"
+                ? distributedTracing
+                : "traceparent";
+            },
+          };
+        },
+      },
+    };
+  }
+
   it("stands down on traceparent for a `__wrapped` send, and for an agent global", (): void => {
     Object.defineProperty(sendSpy, "__wrapped", {
       value: true,
@@ -1897,7 +3111,7 @@ describe("same-origin XHR", (): void => {
     setHeaderSpy.mockClear();
 
     delete (sendSpy as unknown as Record<string, unknown>)["__wrapped"];
-    windowRecord["elasticApm"] = {};
+    windowRecord["elasticApm"] = elasticXhrAgent(true, true);
 
     try {
       startRecorder();
@@ -1913,6 +3127,244 @@ describe("same-origin XHR", (): void => {
     } finally {
       delete windowRecord["elasticApm"];
     }
+  });
+
+  it("mints for an agent that is present but not tracing, and matches Datadog against the XHR's absolute URL", (): void => {
+    startRecorder();
+
+    /* Inactive, then active with distributedTracing: false. */
+    for (const agent of [
+      elasticXhrAgent(false, true),
+      elasticXhrAgent(true, false),
+    ]) {
+      windowRecord["elasticApm"] = agent;
+
+      try {
+        const untraced: XMLHttpRequest = new XMLHttpRequest();
+
+        untraced.open("GET", "/api/x");
+        untraced.send();
+
+        expect(headersSet()["traceparent"]?.[0]).toMatch(TRACEPARENT_SHAPE);
+      } finally {
+        delete windowRecord["elasticApm"];
+      }
+
+      setHeaderSpy.mockClear();
+    }
+
+    let context: unknown = {
+      session_id: "3c5e2c6b-0b1f-4d3a-9f64-1f4e0a7b2c9d",
+    };
+
+    windowRecord["DD_RUM"] = {
+      getInitConfiguration: (): unknown => {
+        return { allowedTracingUrls: [`${PAGE_ORIGIN}/api/`] };
+      },
+      getInternalContext: (): unknown => {
+        return context;
+      },
+    };
+
+    try {
+      const traced: XMLHttpRequest = new XMLHttpRequest();
+
+      traced.open("POST", "/api/orders");
+      traced.send("{}");
+
+      expect(headersSet()).toEqual({
+        tracestate: [`oneuptime=sid:${SESSION_ID}`],
+      });
+
+      setHeaderSpy.mockClear();
+
+      const untraced: XMLHttpRequest = new XMLHttpRequest();
+
+      untraced.open("GET", "/static/x.json");
+      untraced.send();
+
+      expect(headersSet()["traceparent"]?.[0]).toMatch(TRACEPARENT_SHAPE);
+
+      setHeaderSpy.mockClear();
+
+      /*
+       * The same URL once Datadog tracks no session (sampled out, consent
+       * withdrawn): its tracer adds nothing, so ours goes out.
+       */
+      context = undefined;
+
+      const untracked: XMLHttpRequest = new XMLHttpRequest();
+
+      untracked.open("POST", "/api/orders");
+      untracked.send("{}");
+
+      expect(headersSet()["traceparent"]?.[0]).toMatch(TRACEPARENT_SHAPE);
+    } finally {
+      delete windowRecord["DD_RUM"];
+    }
+  });
+
+  it("adds nothing to a POST to an OpenTelemetry export path on the page's own origin", (): void => {
+    startRecorder();
+
+    const exporter: XMLHttpRequest = new XMLHttpRequest();
+
+    exporter.open("POST", "/api/otel/v1/traces");
+    exporter.send("{}");
+
+    expect(setHeaderSpy).not.toHaveBeenCalled();
+
+    /* Lowercase is still a POST; open() normalises it. */
+    const lowercase: XMLHttpRequest = new XMLHttpRequest();
+
+    lowercase.open("post", "/otel/v1/logs");
+    lowercase.send("{}");
+
+    expect(setHeaderSpy).not.toHaveBeenCalled();
+  });
+
+  it("annotates a GET to such a path: the app's own endpoint", (): void => {
+    startRecorder();
+
+    const auditLog: XMLHttpRequest = new XMLHttpRequest();
+
+    auditLog.open("GET", "/api/v1/logs");
+    auditLog.send();
+
+    expect(headersSet()["traceparent"]?.[0]).toMatch(TRACEPARENT_SHAPE);
+    expect(headersSet()["tracestate"]?.[0]).toContain(SESSION_ID);
+  });
+
+  /*
+   * open(method, url, false): a synchronous request's network error is
+   * THROWN from send() before any readystatechange, error or loadend, so
+   * the loadend listener never heard it - the breaker never tripped, and
+   * every later sync request to a redirecting endpoint kept failing.
+   */
+  it("trips the breaker and records a synchronous XHR whose send() throws, rethrowing the page's exception", (): void => {
+    const failure: DOMException = new DOMException(
+      "A network error occurred.",
+      "NetworkError",
+    );
+
+    sendSpy.mockImplementationOnce((): void => {
+      throw failure;
+    });
+
+    startRecorder();
+
+    const failed: XMLHttpRequest = new XMLHttpRequest();
+
+    failed.open("GET", "/download/1", false);
+
+    let thrown: unknown = null;
+
+    try {
+      failed.send();
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBe(failure);
+    expect(sendSpy).toHaveBeenCalledTimes(1);
+
+    expect(debugRecords("same-origin-propagation-tripped")).toHaveLength(1);
+    expect(debugRecords("same-origin-propagation-tripped")[0]?.detail).toEqual({
+      retried: false,
+    });
+
+    expect(completed).toHaveLength(1);
+    expect(completed[0]?.request.status).toBe(0);
+    expect(completed[0]?.request.isError).toBe(true);
+    expect(completed[0]?.request.initiator).toBe("xhr");
+
+    /* A platform that ALSO fired loadend does not make it two requests. */
+    finish(failed, 0);
+
+    expect(completed).toHaveLength(1);
+
+    setHeaderSpy.mockClear();
+
+    const next: XMLHttpRequest = new XMLHttpRequest();
+
+    next.open("GET", "/api/next", false);
+    next.send();
+
+    expect(setHeaderSpy).not.toHaveBeenCalled();
+  });
+
+  it("treats open(method, url, undefined) as synchronous, as the platform does", (): void => {
+    sendSpy.mockImplementationOnce((): void => {
+      throw new DOMException("A network error occurred.", "NetworkError");
+    });
+
+    startRecorder();
+
+    const xhr: XMLHttpRequest = new XMLHttpRequest();
+
+    (xhr.open as (...args: Array<unknown>) => void)("GET", "/api/x", undefined);
+
+    expect((): void => {
+      xhr.send();
+    }).toThrow("A network error occurred.");
+    expect(debugRecords("same-origin-propagation-tripped")).toHaveLength(1);
+  });
+
+  it("records a synchronous XHR that succeeds once, and is not tripped by one that times out", (): void => {
+    startRecorder();
+
+    /* A sync send fires loadend before it returns. */
+    sendSpy.mockImplementationOnce(function (this: XMLHttpRequest): void {
+      finish(this, 200);
+    });
+
+    const ok: XMLHttpRequest = new XMLHttpRequest();
+
+    ok.open("GET", "/api/ok", false);
+    ok.send();
+
+    expect(completed).toHaveLength(1);
+    expect(completed[0]?.request.status).toBe(200);
+
+    const timeout: DOMException = new DOMException("timed out", "TimeoutError");
+
+    sendSpy.mockImplementationOnce((): void => {
+      throw timeout;
+    });
+
+    const slow: XMLHttpRequest = new XMLHttpRequest();
+
+    slow.open("GET", "/api/slow", false);
+
+    expect((): void => {
+      slow.send();
+    }).toThrow(timeout);
+
+    expect(completed).toHaveLength(2);
+    expect(debugRecords("same-origin-propagation-tripped")).toHaveLength(0);
+  });
+
+  it("leaves an asynchronous send() that throws to the page, unrecorded and untripped", (): void => {
+    const failure: DOMException = new DOMException(
+      "The object is in an invalid state.",
+      "InvalidStateError",
+    );
+
+    sendSpy.mockImplementationOnce((): void => {
+      throw failure;
+    });
+
+    startRecorder();
+
+    const xhr: XMLHttpRequest = new XMLHttpRequest();
+
+    xhr.open("GET", "/api/x", true);
+
+    expect((): void => {
+      xhr.send();
+    }).toThrow(failure);
+    expect(completed).toHaveLength(0);
+    expect(debugRecords("same-origin-propagation-tripped")).toHaveLength(0);
   });
 
   it("annotates once per open(), however often send() is called", (): void => {

@@ -152,9 +152,21 @@ const RECORDER_MAX_BYTES = 320 * 1024;
  * cross-tab claim so that copy is uploaded exactly once. Measured after:
  * recorder.js 306.3 KB raw / 90.1 KB gzip (92296 bytes); before it
  * 298.5 KB / 87.9 KB (90018 bytes).
+ *
+ * Raised from 92 KB to 93 KB on 2026-09-24 for automatic same-origin trace
+ * propagation (issue #3979, src/NetworkRecorder.ts): the page's own
+ * requests carry a traceparent and a tracestate naming the session, so
+ * backend telemetry links to the recording with no customer code - plus
+ * the redirect breaker that turns it off when a redirect target refuses
+ * the headers, the read-back of a traceparent a tracer inside our wrapper
+ * set, and the per-agent checks that leave the traceparent to Datadog, New
+ * Relic or Elastic only while that agent will really add one. Measured
+ * after: recorder.js 311368 bytes raw / 94178 gzip; before the feature
+ * 306282 / 92376. The loader is unchanged at 13322 / 4907. The new budget
+ * is the measured size plus about 1 KB, rounded up to a whole KB.
  */
 const LOADER_MAX_GZIP_BYTES = 5 * 1024;
-const RECORDER_MAX_GZIP_BYTES = 92 * 1024;
+const RECORDER_MAX_GZIP_BYTES = 93 * 1024;
 
 function isInside(directory, candidate) {
   const withSeparator = directory.endsWith(path.sep)

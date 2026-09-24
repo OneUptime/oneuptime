@@ -54,10 +54,16 @@ import {
  *
  * No ids means read A alone, which is exactly the rail before trace ids.
  * A is the read that decides the slot: when it fails the slot is locked or
- * errored as before. B is best effort: when it fails, A's rows are shown
- * as they are, because a tab that works without B must not break with it.
- * So is the grouped span read: a role that may read logs but not traces
- * gets a 403 there and simply loses the span-derived ids.
+ * errored as before. When only B fails, A's rows are still published - a
+ * tab that works without B must not blank with it - but on an ERROR slot
+ * saying some linked rows did not load, so the rail keeps them on screen
+ * beside a Retry instead of passing a partial answer off as the whole one
+ * ("No backend logs matched" is false when the read that finds them
+ * failed). B's ids are not counted as read, so a later reload names them
+ * again. A 403 on B alone (not expected: both reads share the model's ACL)
+ * leaves the slot ready, since no retry could change it. The grouped span
+ * read stays best effort: a role that may read logs but not traces gets a
+ * 403 there and simply loses the span-derived ids.
  *
  * WINDOWS. Each read is bounded to the session's [start, end] padded by a
  * few minutes on either side, because server stamps lag the browser and a
@@ -69,13 +75,19 @@ import {
  * are merged (deduped, time-ascending) and cut back to that limit; when
  * either read came back full, or the merge overflowed, the slot is flagged
  * truncated and the rail defaults its scope toggle to "+-30s around
- * playhead", where 500 rows is plenty.
+ * playhead", where 500 rows is plenty. B names at most
+ * REPLAY_BACKEND_TRACE_IDS_CAP ids; when the session had more (the grouped
+ * span read came back full, or the sources together passed the cap) the
+ * rows of the traces left out were never asked for, so that is truncation
+ * too (isTraceIdSetCapped says why).
  *
  * GENERATIONS. A load bumps the slot's generation and captures it; a
  * response whose generation is no longer current (the store was disposed
  * or reloaded) is dropped on the floor rather than overwriting fresher
  * rows - the same guard the ChunkLoader uses for chunk fetches. A and B
- * settle inside one generation, so a stale B can never land either.
+ * settle inside one generation, so a stale B can never land either, and a
+ * B whose generation went stale while it waited for its ids (the grouped
+ * span read can take tens of seconds) is never sent at all.
  */
 
 /* Server stamps lag the recording; widen the window so nothing is clipped. */
@@ -83,6 +95,15 @@ export const REPLAY_BACKEND_SIGNALS_WINDOW_PADDING_MS: number = 5 * 60 * 1000;
 
 /* Live sessions re-read their backend rows this often. */
 export const REPLAY_BACKEND_SIGNALS_LIVE_REFRESH_MS: number = 60 * 1000;
+
+/*
+ * How often the rail asks the store whether a refresh is due; the store's
+ * isBackendRefreshDue decides. The tick is much shorter than the refresh
+ * interval on purpose: an interval as long as the refresh itself misses
+ * the due moment by any latency at all and waits a whole second interval,
+ * so "once a minute" ran every two minutes.
+ */
+export const REPLAY_BACKEND_SIGNALS_REFRESH_TICK_MS: number = 5 * 1000;
 
 /*
  * The most trace ids one trace-id read names (~34 KB of request body at
@@ -95,9 +116,16 @@ export const REPLAY_BACKEND_SESSION_TRACE_IDS_LIMIT: number =
   REPLAY_BACKEND_TRACE_IDS_CAP;
 
 /*
- * New recording trace ids reload the ready slots once the decoder has
- * been quiet this long, so a burst of chunks costs one reload, not one per
- * chunk.
+ * New recording trace ids reload the ready slots once the decoder has been
+ * quiet this long, so a burst of chunks costs one reload, not one per
+ * chunk. A session whose footage is still being RECORDED (a tab is still
+ * open: isManifestRecordingLive) never takes this path: its chunks keep
+ * arriving (one every flush interval, each with new ids), so a debounce
+ * would re-run every read every few seconds; its once-a-minute refresh
+ * re-reads with every id known by then instead. A session whose tabs have
+ * all closed keeps this pickup while the finalizer has yet to reach it
+ * (10-15 minutes): its footage is complete, so the ids only grow as the
+ * viewer's decoder works through it, as on a finalized session.
  */
 export const REPLAY_BACKEND_RECORDING_RELOAD_DEBOUNCE_MS: number = 3 * 1000;
 
@@ -391,6 +419,34 @@ export function isBackendListTruncated<T extends AnalyticsBaseModel>(
   );
 }
 
+/*
+ * The grouped span read came back holding as many ids as it may, or the
+ * server says there were more: some of the session's traces are missing
+ * from it. It sorts by traceId, not time, so the ones left out are spread
+ * across the whole session rather than being its tail.
+ */
+export function isSessionTraceIdListCapped(
+  result: ListResult<Span> | null | undefined,
+): boolean {
+  if (!result) {
+    return false;
+  }
+
+  const length: number = Array.isArray(result.data) ? result.data.length : 0;
+
+  if (result.hasMore === true) {
+    return true;
+  }
+
+  if (length >= REPLAY_BACKEND_SESSION_TRACE_IDS_LIMIT) {
+    return true;
+  }
+
+  return (
+    typeof result.count === "number" && result.count > length && length > 0
+  );
+}
+
 function toUnixMs(value: unknown): number | null {
   if (value instanceof Date) {
     const ms: number = value.getTime();
@@ -628,6 +684,30 @@ export function classifyBackendSignalsFailure(
   };
 }
 
+/*
+ * The copy for a slot whose session-id read worked but whose trace-id read
+ * failed: the rows on screen are real, just not all of them. Same numbers
+ * as classifyBackendSignalsFailure (status, else the transport's message).
+ */
+export function describePartialBackendSignalsFailure(
+  error: unknown,
+  kind: ReplayBackendSignalKind,
+): string {
+  const noun: string = KIND_NOUNS[kind];
+  const statusCode: number | null = readStatusCode(error);
+  const message: string = readErrorMessage(error).trim();
+
+  if (statusCode !== null && statusCode > 0) {
+    return `Some linked ${noun} did not load (HTTP ${statusCode}). Retry.`;
+  }
+
+  if (message.length > 0) {
+    return `Some linked ${noun} did not load: ${message}. Retry.`;
+  }
+
+  return `Some linked ${noun} did not load. Retry.`;
+}
+
 /* ---- The store. ---- */
 
 export interface ReplayBackendSignalsRows {
@@ -651,6 +731,12 @@ export interface ReplayBackendSignalsStoreOptions {
   endTimeUnixMs: number | null;
   /* Live sessions refresh; finalized ones are read once per page. */
   isFinalized: boolean;
+  /*
+   * Footage is still being recorded (isManifestRecordingLive: some tab is
+   * still open). Decides whether new recording ids wait for the live
+   * refresh or get the debounced reload. Defaults to !isFinalized.
+   */
+  isRecordingLive?: boolean | undefined;
   /* The session header's trace ids (manifest.details.traceIds). */
   traceIds?: ReadonlyArray<string> | undefined;
   /* Injected for tests; defaults to Date.now and ModelAPI.getList. */
@@ -686,7 +772,19 @@ export function makeIdleBackendSignalsState(): ReplayBackendSignalsState {
   };
 }
 
-/* A finished slot older than the refresh interval, on a live session. */
+/* The id-cap flag to carry onto a slot that keeps another's rows. */
+function traceIdSetCapOf(slot: ReplayBackendSignalsSlot): {
+  isTraceIdSetCapped?: boolean;
+} {
+  return slot.isTraceIdSetCapped === true ? { isTraceIdSetCapped: true } : {};
+}
+
+/*
+ * A finished slot older than the refresh interval, on a live session. The
+ * age runs from when the slot's load STARTED (fetchedAtUnixMs), so a read
+ * that took a few hundred milliseconds is still due one interval after
+ * the last one began, not one interval plus its latency.
+ */
 export function isBackendRefreshDue(
   slot: ReplayBackendSignalsSlot,
   nowUnixMs: number,
@@ -709,18 +807,40 @@ export function isBackendRefreshDue(
   );
 }
 
+/* A list of trace ids, and whether ids were left out of it at a cap. */
+interface CappedTraceIds {
+  ids: Array<string>;
+  isCapped: boolean;
+}
+
 /* The grouped span read, shared by the log and exception loads. */
 interface SessionTraceIdsRead {
   windowStartUnixMs: number;
   windowEndUnixMs: number;
   isInFlight: boolean;
-  /* Never rejects: a failure resolves to no ids. */
-  promise: Promise<Array<string>>;
+  /* Never rejects: a failure resolves to no ids, not capped. */
+  promise: Promise<CappedTraceIds>;
 }
 
 type TraceReadOutcome<T extends AnalyticsBaseModel> =
-  | { ok: true; result: ListResult<T> | null }
-  | { ok: false };
+  | {
+      ok: true;
+      /* null when B did not run (no ids, A failed, or the load went stale). */
+      result: ListResult<T> | null;
+      namedTraceIds: Array<string>;
+      isTraceIdSetCapped: boolean;
+    }
+  | { ok: false; error: unknown };
+
+/* One kind's read A and read B, merged. */
+interface ReplayBackendKindRead<T extends AnalyticsBaseModel>
+  extends ReplayBackendMergedRows<T> {
+  /* The ids a SUCCESSFUL read B named; empty when B did not run or failed. */
+  namedTraceIds: Array<string>;
+  isTraceIdSetCapped: boolean;
+  /* Read B's failure; null when it succeeded or did not run. */
+  traceReadFailure: { error: unknown } | null;
+}
 
 /*
  * Holds the three slots and their rows; the rail binds it with
@@ -733,6 +853,7 @@ export class ReplayBackendSignalsStore {
   private startTimeUnixMs: number;
   private endTimeUnixMs: number | null;
   private isFinalized: boolean;
+  private isRecordingLive: boolean;
   private headerTraceIds: Array<string>;
   /* Only ever grows: a tab switch hands the player another tab's rows. */
   private readonly recordingTraceIds: Array<string>;
@@ -755,6 +876,10 @@ export class ReplayBackendSignalsStore {
     this.startTimeUnixMs = options.startTimeUnixMs;
     this.endTimeUnixMs = options.endTimeUnixMs;
     this.isFinalized = options.isFinalized;
+    this.isRecordingLive =
+      typeof options.isRecordingLive === "boolean"
+        ? options.isRecordingLive
+        : !options.isFinalized;
     this.headerTraceIds = normalizeReplayTraceIds(
       [options.traceIds],
       Number.POSITIVE_INFINITY,
@@ -808,14 +933,22 @@ export class ReplayBackendSignalsStore {
 
   /*
    * Session facts can arrive after construction (manifest refresh). New
-   * header trace ids are picked up by the next load or live refresh.
+   * header trace ids are picked up by the next load or live refresh. When
+   * the footage stops being recorded (the last tab closed) or the session
+   * finalizes, recording ids that arrived since the last live refresh get
+   * one debounced reload: from then on new ids take the debounce, and on
+   * a finalized session the live refresh stops altogether.
    */
   public setSessionBounds(args: {
     startTimeUnixMs?: number | undefined;
     endTimeUnixMs?: number | null | undefined;
     isFinalized?: boolean | undefined;
+    isRecordingLive?: boolean | undefined;
     traceIds?: ReadonlyArray<string> | undefined;
   }): void {
+    const wasFinalized: boolean = this.isFinalized;
+    const wasRecording: boolean = this.isFootageBeingRecorded();
+
     if (typeof args.startTimeUnixMs === "number") {
       this.startTimeUnixMs = args.startTimeUnixMs;
     }
@@ -828,11 +961,22 @@ export class ReplayBackendSignalsStore {
       this.isFinalized = args.isFinalized;
     }
 
+    if (typeof args.isRecordingLive === "boolean") {
+      this.isRecordingLive = args.isRecordingLive;
+    }
+
     if (args.traceIds !== undefined) {
       this.headerTraceIds = normalizeReplayTraceIds(
         [args.traceIds],
         Number.POSITIVE_INFINITY,
       );
+    }
+
+    if (
+      (wasRecording && !this.isFootageBeingRecorded()) ||
+      (!wasFinalized && this.isFinalized)
+    ) {
+      this.scheduleRecordingReload();
     }
   }
 
@@ -841,8 +985,10 @@ export class ReplayBackendSignalsStore {
    * player calls this whenever its decoded signals change; ids it already
    * knows are ignored). When the set grows, every READY slot whose read B
    * did not name the new ids is re-read once the decoder has been quiet
-   * for REPLAY_BACKEND_RECORDING_RELOAD_DEBOUNCE_MS. Idle slots stay idle,
-   * locked and failed ones keep their state.
+   * for REPLAY_BACKEND_RECORDING_RELOAD_DEBOUNCE_MS - unless footage is
+   * still being recorded: then the ids are only remembered and the next
+   * live refresh (refreshIfDue) names them. Idle slots stay idle, locked
+   * and failed ones keep their state.
    */
   public setRecordingTraceIds(ids: ReadonlyArray<string>): void {
     if (this.isDisposed) {
@@ -903,6 +1049,11 @@ export class ReplayBackendSignalsStore {
 
     this.generations[kind]++;
     const generation: number = this.generations[kind];
+    /*
+     * The settled slot's fetchedAtUnixMs: the refresh interval runs from
+     * when this load began, not from when it settled (isBackendRefreshDue).
+     */
+    const startedAtUnixMs: number = this.now();
 
     /*
      * Keep the previous rows visible during a refresh; a live rail that
@@ -912,87 +1063,81 @@ export class ReplayBackendSignalsStore {
       status: "loading",
       rowCount: current.rowCount,
       isTruncated: current.isTruncated,
+      ...traceIdSetCapOf(current),
       fetchedAtUnixMs: current.fetchedAtUnixMs,
     });
 
     const window: InBetween<Date> = this.getWindow();
     const recordingCountAtStart: number = this.recordingTraceIds.length;
-    const namedTraceIds: Array<string> = [];
 
     try {
-      let merged: ReplayBackendMergedRows<AnalyticsBaseModel>;
+      let read: ReplayBackendKindRead<AnalyticsBaseModel>;
       let rows: ReplayBackendSignalsRows;
 
       if (kind === "log") {
-        const result: ReplayBackendMergedRows<Log> = await this.readKind<Log>({
+        const result: ReplayBackendKindRead<Log> = await this.readKind<Log>({
           kind: kind,
+          generation: generation,
           window: window,
           build: buildBackendLogsRequest,
           timeOf: (row: Log): unknown => {
             return row.time;
           },
           keyOf: backendRowIdKey,
-          namedTraceIds: namedTraceIds,
         });
 
         if (!this.isCurrent(kind, generation)) {
           return;
         }
 
-        merged = result;
+        read = result;
         rows = { ...this.snapshot.rows, log: result.rows };
       } else if (kind === "span") {
-        const result: ReplayBackendMergedRows<Span> = await this.readKind<Span>(
-          {
-            kind: kind,
-            window: window,
-            build: buildBackendSpansRequest,
-            timeOf: (row: Span): unknown => {
-              return row.startTime;
-            },
-            keyOf: backendSpanRowKey,
-            namedTraceIds: namedTraceIds,
+        const result: ReplayBackendKindRead<Span> = await this.readKind<Span>({
+          kind: kind,
+          generation: generation,
+          window: window,
+          build: buildBackendSpansRequest,
+          timeOf: (row: Span): unknown => {
+            return row.startTime;
           },
-        );
+          keyOf: backendSpanRowKey,
+        });
 
         if (!this.isCurrent(kind, generation)) {
           return;
         }
 
-        merged = result;
+        read = result;
         rows = { ...this.snapshot.rows, span: result.rows };
       } else {
-        const result: ReplayBackendMergedRows<ExceptionInstance> =
+        const result: ReplayBackendKindRead<ExceptionInstance> =
           await this.readKind<ExceptionInstance>({
             kind: kind,
+            generation: generation,
             window: window,
             build: buildBackendExceptionsRequest,
             timeOf: (row: ExceptionInstance): unknown => {
               return row.time;
             },
             keyOf: backendRowIdKey,
-            namedTraceIds: namedTraceIds,
           });
 
         if (!this.isCurrent(kind, generation)) {
           return;
         }
 
-        merged = result;
+        read = result;
         rows = { ...this.snapshot.rows, exception: result.rows };
       }
 
-      this.namedTraceIds[kind] = new Set<string>(namedTraceIds);
+      /* A failed B named nothing, so a later reload names its ids again. */
+      this.namedTraceIds[kind] = new Set<string>(read.namedTraceIds);
 
       this.publish({
         slots: {
           ...this.snapshot.slots,
-          [kind]: {
-            status: "ready",
-            rowCount: merged.rowCount,
-            isTruncated: merged.isTruncated,
-            fetchedAtUnixMs: this.now(),
-          },
+          [kind]: this.settledSlot(kind, read, startedAtUnixMs),
         },
         rows: rows,
       });
@@ -1016,7 +1161,7 @@ export class ReplayBackendSignalsStore {
           rowCount: null,
           isTruncated: false,
           lockedPermission: failure.lockedPermission,
-          fetchedAtUnixMs: this.now(),
+          fetchedAtUnixMs: startedAtUnixMs,
         });
       } else {
         /* A failed refresh keeps the last good rows and count on screen. */
@@ -1024,8 +1169,9 @@ export class ReplayBackendSignalsStore {
           status: "error",
           rowCount: previous.rowCount,
           isTruncated: previous.isTruncated,
+          ...traceIdSetCapOf(previous),
           errorMessage: failure.errorMessage,
-          fetchedAtUnixMs: this.now(),
+          fetchedAtUnixMs: startedAtUnixMs,
         });
       }
     }
@@ -1060,8 +1206,10 @@ export class ReplayBackendSignalsStore {
 
   /*
    * The 60s live refresh: re-read every settled slot that has gone stale.
-   * Idle slots stay idle (a tab nobody opened is not fetched on a timer)
-   * and locked slots stay locked (permissions do not change by the minute).
+   * The rail calls this every REPLAY_BACKEND_SIGNALS_REFRESH_TICK_MS and
+   * this decides; a tick that finds nothing due costs nothing. Idle slots
+   * stay idle (a tab nobody opened is not fetched on a timer) and locked
+   * slots stay locked (permissions do not change by the minute).
    */
   public async refreshIfDue(): Promise<Array<ReplayBackendSignalKind>> {
     const due: Array<ReplayBackendSignalKind> = this.getRefreshDueKinds();
@@ -1097,17 +1245,18 @@ export class ReplayBackendSignalsStore {
    * the grouped span read, which runs alongside A). A failure of A rejects
    * at once, without waiting for B (the caller turns it into a locked or
    * error slot, and a B not yet started is skipped). A failure of B
-   * resolves to A's rows alone.
+   * resolves to A's rows with the failure beside them. B is not sent when
+   * the load went stale (dispose, or a newer load of the kind) while its
+   * ids were being read: the response would only be dropped.
    */
   private async readKind<T extends AnalyticsBaseModel>(args: {
     kind: ReplayBackendSignalKind;
+    generation: number;
     window: InBetween<Date>;
     build: (input: ReplayBackendQueryInput) => ReplayBackendListRequest<T>;
     timeOf: (row: T) => unknown;
     keyOf: (row: T) => string | null;
-    /* Filled with the ids read B named, empty when it did not run. */
-    namedTraceIds: Array<string>;
-  }): Promise<ReplayBackendMergedRows<T>> {
+  }): Promise<ReplayBackendKindRead<T>> {
     const sessionRead: Promise<ListResult<T>> = this.fetchList<T>(
       args.build({ sessionId: this.sessionId, window: args.window }),
     );
@@ -1117,25 +1266,34 @@ export class ReplayBackendSignalsStore {
       args.kind,
       args.window,
     )
-      .then(async (traceIds: Array<string>): Promise<ListResult<T> | null> => {
-        if (traceIds.length === 0 || hasSessionReadFailed) {
-          return null;
+      .then(async (traceIds: CappedTraceIds): Promise<TraceReadOutcome<T>> => {
+        if (
+          traceIds.ids.length === 0 ||
+          hasSessionReadFailed ||
+          !this.isCurrent(args.kind, args.generation)
+        ) {
+          return {
+            ok: true,
+            result: null,
+            namedTraceIds: [],
+            isTraceIdSetCapped: false,
+          };
         }
 
-        args.namedTraceIds.push(...traceIds);
-
-        return await this.fetchList<T>(
-          args.build({ traceIds: traceIds, window: args.window }),
+        const result: ListResult<T> = await this.fetchList<T>(
+          args.build({ traceIds: traceIds.ids, window: args.window }),
         );
+
+        return {
+          ok: true,
+          result: result,
+          namedTraceIds: traceIds.ids,
+          isTraceIdSetCapped: traceIds.isCapped,
+        };
       })
-      .then(
-        (result: ListResult<T> | null): TraceReadOutcome<T> => {
-          return { ok: true, result: result };
-        },
-        (): TraceReadOutcome<T> => {
-          return { ok: false };
-        },
-      );
+      .catch((error: unknown): TraceReadOutcome<T> => {
+        return { ok: false, error: error };
+      });
 
     let sessionResult: ListResult<T>;
 
@@ -1148,39 +1306,107 @@ export class ReplayBackendSignalsStore {
 
     const trace: TraceReadOutcome<T> = await traceRead;
 
-    return mergeBackendRows<T>({
+    if (!trace.ok) {
+      return {
+        ...mergeBackendRows<T>({
+          sessionRead: sessionResult,
+          traceRead: null,
+          timeOf: args.timeOf,
+          keyOf: args.keyOf,
+        }),
+        namedTraceIds: [],
+        isTraceIdSetCapped: false,
+        traceReadFailure: { error: trace.error },
+      };
+    }
+
+    const merged: ReplayBackendMergedRows<T> = mergeBackendRows<T>({
       sessionRead: sessionResult,
-      traceRead: trace.ok ? trace.result : null,
+      traceRead: trace.result,
       timeOf: args.timeOf,
       keyOf: args.keyOf,
     });
+
+    return {
+      rows: merged.rows,
+      rowCount: merged.rowCount,
+      isTruncated: merged.isTruncated || trace.isTraceIdSetCapped,
+      namedTraceIds: trace.namedTraceIds,
+      isTraceIdSetCapped: trace.isTraceIdSetCapped,
+      traceReadFailure: null,
+    };
+  }
+
+  /*
+   * The slot a settled load publishes. Read B failing turns what would be
+   * a ready slot into an error slot that still counts the rows it has (see
+   * the class comment); a 403 on B alone stays ready, as no retry could
+   * change it. Stamped with the load's start (see isBackendRefreshDue).
+   */
+  private settledSlot(
+    kind: ReplayBackendSignalKind,
+    read: ReplayBackendKindRead<AnalyticsBaseModel>,
+    startedAtUnixMs: number,
+  ): ReplayBackendSignalsSlot {
+    const slot: ReplayBackendSignalsSlot = {
+      status: "ready",
+      rowCount: read.rowCount,
+      isTruncated: read.isTruncated,
+      ...(read.isTraceIdSetCapped ? { isTraceIdSetCapped: true } : {}),
+      fetchedAtUnixMs: startedAtUnixMs,
+    };
+
+    if (
+      read.traceReadFailure !== null &&
+      classifyBackendSignalsFailure(read.traceReadFailure.error, kind)
+        .status !== "locked"
+    ) {
+      slot.status = "error";
+      slot.errorMessage = describePartialBackendSignalsFailure(
+        read.traceReadFailure.error,
+        kind,
+      );
+    }
+
+    return slot;
   }
 
   /*
    * The ids read B names for a kind. Spans: recording then header ids -
    * spans stamped with the session id already arrive through read A.
    * Logs and exceptions: those plus the session's span-derived trace ids,
-   * because a backend log is only ever reachable by its trace id.
+   * because a backend log is only ever reachable by its trace id. Capped
+   * when the grouped span read was, or when the sources together hold
+   * more ids than one read names.
    */
   private async collectTraceIds(
     kind: ReplayBackendSignalKind,
     window: InBetween<Date>,
-  ): Promise<Array<string>> {
-    if (kind === "span") {
-      return normalizeReplayTraceIds([
-        this.recordingTraceIds,
-        this.headerTraceIds,
-      ]);
-    }
-
-    const sessionTraceIds: Array<string> =
-      await this.readSessionTraceIds(window);
-
-    return normalizeReplayTraceIds([
+  ): Promise<CappedTraceIds> {
+    const sources: Array<ReadonlyArray<string>> = [
       this.recordingTraceIds,
       this.headerTraceIds,
-      sessionTraceIds,
-    ]);
+    ];
+    let isSessionReadCapped: boolean = false;
+
+    if (kind !== "span") {
+      const sessionTraceIds: CappedTraceIds =
+        await this.readSessionTraceIds(window);
+
+      sources.push(sessionTraceIds.ids);
+      isSessionReadCapped = sessionTraceIds.isCapped;
+    }
+
+    const all: Array<string> = normalizeReplayTraceIds(
+      sources,
+      Number.POSITIVE_INFINITY,
+    );
+
+    return {
+      ids: all.slice(0, REPLAY_BACKEND_TRACE_IDS_CAP),
+      isCapped:
+        isSessionReadCapped || all.length > REPLAY_BACKEND_TRACE_IDS_CAP,
+    };
   }
 
   /*
@@ -1191,9 +1417,11 @@ export class ReplayBackendSignalsStore {
    * whose window end moves with "now". A failure is not remembered (the
    * next load tries again) unless it was a 403.
    */
-  private readSessionTraceIds(window: InBetween<Date>): Promise<Array<string>> {
+  private readSessionTraceIds(
+    window: InBetween<Date>,
+  ): Promise<CappedTraceIds> {
     if (this.isSessionTraceIdsReadForbidden) {
-      return Promise.resolve([]);
+      return Promise.resolve({ ids: [], isCapped: false });
     }
 
     const windowStartUnixMs: number = window.startValue.getTime();
@@ -1225,27 +1453,30 @@ export class ReplayBackendSignalsStore {
       windowStartUnixMs: windowStartUnixMs,
       windowEndUnixMs: windowEndUnixMs,
       isInFlight: true,
-      promise: Promise.resolve([]),
+      promise: Promise.resolve({ ids: [], isCapped: false }),
     };
 
     read.promise = request.then(
-      (result: ListResult<Span>): Array<string> => {
+      (result: ListResult<Span>): CappedTraceIds => {
         read.isInFlight = false;
 
         const data: Array<Span> = Array.isArray(result?.data)
           ? result.data
           : [];
 
-        return normalizeReplayTraceIds(
-          [
-            data.map((row: Span): unknown => {
-              return row.traceId;
-            }),
-          ],
-          REPLAY_BACKEND_SESSION_TRACE_IDS_LIMIT,
-        );
+        return {
+          ids: normalizeReplayTraceIds(
+            [
+              data.map((row: Span): unknown => {
+                return row.traceId;
+              }),
+            ],
+            REPLAY_BACKEND_SESSION_TRACE_IDS_LIMIT,
+          ),
+          isCapped: isSessionTraceIdListCapped(result),
+        };
       },
-      (error: unknown): Array<string> => {
+      (error: unknown): CappedTraceIds => {
         read.isInFlight = false;
 
         if (this.sessionTraceIdsRead === read) {
@@ -1256,7 +1487,7 @@ export class ReplayBackendSignalsStore {
           this.isSessionTraceIdsReadForbidden = true;
         }
 
-        return [];
+        return { ids: [], isCapped: false };
       },
     );
 
@@ -1297,9 +1528,22 @@ export class ReplayBackendSignalsStore {
     );
   }
 
-  /* (Re)starts the debounce; nothing to do while no ready slot is behind. */
+  /* Some tab is still recording: new chunks, and new ids, keep coming. */
+  private isFootageBeingRecorded(): boolean {
+    return !this.isFinalized && this.isRecordingLive;
+  }
+
+  /*
+   * (Re)starts the debounce; nothing to do while no ready slot is behind,
+   * nor while footage is still being recorded - see
+   * REPLAY_BACKEND_RECORDING_RELOAD_DEBOUNCE_MS.
+   */
   private scheduleRecordingReload(): void {
-    if (this.isDisposed || this.getRecordingReloadKinds().length === 0) {
+    if (
+      this.isDisposed ||
+      this.isFootageBeingRecorded() ||
+      this.getRecordingReloadKinds().length === 0
+    ) {
       return;
     }
 

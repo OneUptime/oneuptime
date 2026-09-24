@@ -305,6 +305,34 @@ describe("RumApplication session replay configuration", () => {
     }
   });
 
+  /*
+   * TraceIdRatioBased hashes the trace id differently in each language SDK
+   * (and the OTel spec recommends it for root spans only), so a ratio
+   * delegate for sampled remote parents on every service of a polyglot
+   * backend drops spans from traces the first hop kept. The description
+   * used to recommend the delegate without saying where it goes.
+   */
+  it("scopes the remote-parent ratio delegate in the description to the first hop", () => {
+    const description: string =
+      getColumn("sessionReplaySameOriginTracePropagation").description || "";
+
+    for (const phrase of [
+      "remoteParentSampled ratio delegate only on the service(s) your pages call directly",
+      "never on the services they call",
+      "ratio decisions differ between language SDKs",
+      "tail sampling in an OpenTelemetry Collector",
+    ]) {
+      expect({ phrase, found: description.includes(phrase) }).toEqual({
+        phrase,
+        found: true,
+      });
+    }
+
+    expect(description).not.toContain(
+      "(set a remoteParentSampled delegate to keep ratio sampling)",
+    );
+  });
+
   it("gives same-origin trace propagation the identity switch's narrower create and update ACL", () => {
     const accessControl: Dictionary<ColumnAccessControl> =
       model.getColumnAccessControlForAllColumns();

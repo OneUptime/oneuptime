@@ -20,6 +20,7 @@ import SpanService from "Common/Server/Services/SpanService";
 import RumSessionChunkService from "Common/Server/Services/RumSessionChunkService";
 import RumSessionService from "Common/Server/Services/RumSessionService";
 import AnalyticsDatabaseService, {
+  ClickhouseExecuteOptions,
   MigrationExecuteOptions,
 } from "Common/Server/Services/AnalyticsDatabaseService";
 import {
@@ -29,6 +30,7 @@ import {
 import {
   SQL,
   Statement,
+  StatementParameter,
 } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Select from "Common/Server/Types/Database/Select";
@@ -64,8 +66,18 @@ import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
  *    of the same traces that were never stamped carry no session id, and
  *    the Dashboard's replay rail still shows them as part of the
  *    recording by joining on trace id. So each batch also erases every
- *    Log, ExceptionInstance and Span row whose trace id appears on a span
- *    stamped with one of the batch's session ids.
+ *    Log, ExceptionInstance and Span row of the traces that belong to the
+ *    batch ALONE: every stamped span in the trace carries one of the
+ *    batch's session ids, and nothing in it started well before the
+ *    first of them or well after the last. A trace that other sessions
+ *    also stamped, that predates the session, or that went on without it
+ *    keeps its rows apart from the spans stamped with an erased id (the
+ *    session-id delete takes those) - see
+ *    buildErasedSessionTraceIdStatement for why a stamp alone does not
+ *    make a trace the subject's. Ownership is judged per batch of
+ *    MAX_SESSION_IDS_PER_MUTATION sessions, so a trace shared by erased
+ *    sessions that land in different batches can look shared to each
+ *    batch and keep its unstamped rows.
  *
  *  - A tombstone is written BEFORE anything is deleted. Chunks live in
  *    Redis staging for hours and the queue retries, so without a
@@ -99,6 +111,12 @@ import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
  *    caps set how much lands per run — and because a run skips sessions
  *    that are already tombstoned, a large erasure cannot submit new
  *    mutations faster than ClickHouse finishes the previous ones.
+ *
+ *    The trace-id deletes are the one part not capped per run: a batch
+ *    adds one mutation per table for every MAX_TRACE_IDS_PER_MUTATION
+ *    traces it owns, which is one for a typical batch. Capping them would
+ *    mean leaving rows behind with nothing left to find them by (see
+ *    readErasedSessionTraceIds).
  *
  *  - Erasure removes the PIN too. A pinned recording keeps a Postgres
  *    RumSessionPin row that the Dashboard renders as "Pinned"; leaving it
@@ -152,24 +170,70 @@ const PER_RUN_LIMIT_CLAUSE: string = ` LIMIT ${MAX_SESSION_IDS_PER_REQUEST_PER_R
 
 /*
  * Trace ids per ALTER ... DELETE when erasing the telemetry joined to a
- * batch of sessions by trace id. The same ceiling as the session-id
- * mutations, for the same reason: an IN list this size plans cheaply.
+ * batch of sessions by trace id. Ten thousand, so that a typical batch
+ * (fewer than ten thousand traces for its thousand sessions) adds exactly
+ * one mutation to each of Log, ExceptionInstance and Span - the
+ * same as its session-id deletes - rather than one per thousand ids.
+ *
+ * What bounds it is how the ids travel, not planning cost (an IN set is a
+ * hash set either way). They are bound as Array(String) parameters, and
+ * @clickhouse/client sends query parameters in the request URL, not the
+ * body. Three ClickHouse limits apply, each measured on 24.8 and 26.7:
+ *  - http_max_field_value_size, 128 KiB per parameter, counted on the
+ *    URL-ENCODED value. A 32-hex id costs 41 bytes there with its quotes
+ *    and comma (%27 ... %27 %2C), so one parameter takes at most ~3,190
+ *    of them and ten thousand fail with "HTML Form Exception: Field value
+ *    too long". MAX_TRACE_ID_BYTES_PER_PARAMETER splits a mutation's ids
+ *    over several parameters, OR-ed together (buildTraceDeleteStatement).
+ *  - http_max_uri_size, 1 MiB for the whole URL, which ~25,000 such ids
+ *    already fill. MAX_TRACE_ID_BYTES_PER_MUTATION stays at half of it;
+ *    ten thousand 32-hex ids take about 410 KB.
+ *  - max_query_size, 256 KiB by default. ON CLUSTER DDL is queued with the
+ *    parameters substituted as literals, and 26.7's DDL worker parses that
+ *    text under max_query_size (24.8's does not check): past ~7,000 ids
+ *    it fails with "Max query size exceeded". TRACE_DELETE_EXECUTE_OPTIONS
+ *    raises it for these statements; the queued task carries the setting
+ *    to every host.
  */
-export const MAX_TRACE_IDS_PER_MUTATION: number = 1000;
+export const MAX_TRACE_IDS_PER_MUTATION: number = 10000;
+
+/* See MAX_TRACE_IDS_PER_MUTATION: under 128 KiB with room to spare. */
+export const MAX_TRACE_ID_BYTES_PER_PARAMETER: number = 100 * 1024;
 
 /*
- * Distinct trace ids materialised per batch of erased sessions. Every
- * thousand of them costs one mutation on each of Log, ExceptionInstance
- * and Span, so this bounds a batch to thirty trace-id mutations on top of
- * its five session-id ones. A batch that reaches the cap is logged: the
- * rows joined by the trace ids past it carry no session id, so nothing
- * links them to the erased recording once it is gone, and they expire
- * with telemetry retention.
+ * See MAX_TRACE_IDS_PER_MUTATION: half of the 1 MiB URI limit. It also
+ * bounds the literal text of the queued DDL, which is never longer than
+ * the URL-encoded ids.
  */
-export const MAX_TRACE_IDS_PER_SESSION_BATCH: number = 10000;
+export const MAX_TRACE_ID_BYTES_PER_MUTATION: number = 512 * 1024;
 
-/* Raw SQL for the same reason as PER_RUN_LIMIT_CLAUSE. */
-const TRACE_ID_LOOKUP_LIMIT_CLAUSE: string = ` LIMIT ${MAX_TRACE_IDS_PER_SESSION_BATCH}`;
+/*
+ * The trace-id deletes' max_query_size: twice the most query text
+ * MAX_TRACE_ID_BYTES_PER_MUTATION lets them produce.
+ */
+export const TRACE_DELETE_MAX_QUERY_SIZE: number = 1024 * 1024;
+
+/*
+ * MigrationExecuteOptions (see eraseSessionRowsFromTable for why) plus the
+ * larger max_query_size the trace-id deletes need.
+ */
+export const TRACE_DELETE_EXECUTE_OPTIONS: ClickhouseExecuteOptions = {
+  ...MigrationExecuteOptions,
+  clickhouseSettings: {
+    ...MigrationExecuteOptions.clickhouseSettings,
+    max_query_size: String(TRACE_DELETE_MAX_QUERY_SIZE),
+  },
+};
+
+/*
+ * How long before a trace's earliest stamped span, or after its latest
+ * one, its other spans may start and the trace still count as the batch's
+ * own: clock skew between the page's backend services, not a trace that
+ * was running before the session joined it (a server-rendered page's own
+ * trace) or one that other, unrecorded visitors went on extending after
+ * it (a page traceparent reused for everyone who loads the cached page).
+ */
+export const TRACE_OWNERSHIP_SKEW_MINUTES: number = 10;
 
 /* Requests processed per run, to bound the job's wall clock. */
 const MAX_REQUESTS_PER_RUN: number = 200;
@@ -182,6 +246,12 @@ const MAX_REQUESTS_PER_RUN: number = 200;
  * repeated mutation submission, whereas NOT re-running leaves the request
  * stuck in a non-terminal state forever with the subject's data possibly
  * only half deleted.
+ *
+ * The reclaim does not finish a half-erased batch, though. It runs the
+ * request with its attempts unchanged, i.e. as a first attempt, which
+ * skips the sessions the dead run had already tombstoned; it erases what
+ * that run never started and brings the request to a terminal state (see
+ * "Chunks first, header LAST" in eraseSessionBatch).
  *
  * Comfortably longer than the job's own 60 minute timeout, so a run that
  * is merely slow is never treated as dead by the next run.
@@ -576,12 +646,88 @@ export function buildSessionDeleteStatement(data: {
   return statement;
 }
 
+const URL_SAFE_ID: RegExp = /^[0-9A-Za-z]*$/;
+
+/*
+ * What one trace id costs in the request URL once @clickhouse/client has
+ * quoted it into an Array(String) parameter and URL-encoded it. Exact for
+ * the hex ids ingest stores (the id, two %27 and a %2C); for anything else
+ * an upper bound (every byte backslash-escaped, then percent-encoded).
+ */
+export function traceIdUrlBytes(traceId: string): number {
+  if (URL_SAFE_ID.test(traceId)) {
+    return traceId.length + 9;
+  }
+
+  return 6 * Buffer.byteLength(traceId, "utf8") + 9;
+}
+
+/* Consecutive groups of at most maxCount ids and maxBytes URL bytes. */
+function groupTraceIds(
+  traceIds: Array<string>,
+  maxCount: number,
+  maxBytes: number,
+): Array<Array<string>> {
+  const groups: Array<Array<string>> = [];
+  let current: Array<string> = [];
+  let currentBytes: number = 0;
+
+  for (const traceId of traceIds) {
+    const bytes: number = traceIdUrlBytes(traceId);
+
+    if (
+      current.length > 0 &&
+      (current.length >= maxCount || currentBytes + bytes > maxBytes)
+    ) {
+      groups.push(current);
+      current = [];
+      currentBytes = 0;
+    }
+
+    current.push(traceId);
+    currentBytes += bytes;
+  }
+
+  if (current.length > 0) {
+    groups.push(current);
+  }
+
+  return groups;
+}
+
+/*
+ * One mutation's worth of trace ids per chunk: at most
+ * MAX_TRACE_IDS_PER_MUTATION ids and MAX_TRACE_ID_BYTES_PER_MUTATION URL
+ * bytes, in their original order.
+ */
+export function chunkTraceIds(traceIds: Array<string>): Array<Array<string>> {
+  return groupTraceIds(
+    traceIds,
+    MAX_TRACE_IDS_PER_MUTATION,
+    MAX_TRACE_ID_BYTES_PER_MUTATION,
+  );
+}
+
+/* One bound parameter's worth: at most MAX_TRACE_ID_BYTES_PER_PARAMETER. */
+export function splitTraceIdParameters(
+  traceIds: Array<string>,
+): Array<Array<string>> {
+  return groupTraceIds(
+    traceIds,
+    Number.POSITIVE_INFINITY,
+    MAX_TRACE_ID_BYTES_PER_PARAMETER,
+  );
+}
+
 /*
  * The trace-id counterpart of buildSessionDeleteStatement: the same
  * mutation on the LOCAL storage table, constrained by project and by a
- * materialised list of trace ids. The ids are bound as an Array(String)
- * parameter like the session ids are, never a subquery - see
- * readErasedSessionTraceIds for why a subquery would erase nothing.
+ * materialised list of trace ids. The ids are bound as Array(String)
+ * parameters like the session ids are, never a subquery - see
+ * readErasedSessionTraceIds for why a subquery would erase nothing - and
+ * split over as many parameters as ClickHouse's per-parameter size limit
+ * needs (see MAX_TRACE_IDS_PER_MUTATION), OR-ed together. An empty list
+ * matches nothing.
  */
 export function buildTraceDeleteStatement(data: {
   databaseName: string;
@@ -591,7 +737,7 @@ export function buildTraceDeleteStatement(data: {
 }): Statement {
   const localTableName: string = getStorageTableName(data.tableName);
 
-  return SQL`
+  const statement: Statement = SQL`
       ALTER TABLE ${data.databaseName}.${localTableName}`
     .append(onClusterClause())
     .append(
@@ -599,11 +745,31 @@ export function buildTraceDeleteStatement(data: {
       DELETE WHERE projectId = ${{
         type: TableColumnType.ObjectID,
         value: data.projectId,
-      }} AND traceId IN ${{
+      }} AND (`,
+    );
+
+  const parameters: Array<Array<string>> = splitTraceIdParameters(
+    data.traceIds,
+  );
+
+  if (parameters.length === 0) {
+    statement.append("0");
+  }
+
+  parameters.forEach((traceIds: Array<string>, index: number): void => {
+    if (index > 0) {
+      statement.append(" OR ");
+    }
+
+    statement.append(
+      SQL`traceId IN ${{
         type: TableColumnType.Text,
-        value: new Includes(data.traceIds),
+        value: new Includes(traceIds),
       }}`,
     );
+  });
+
+  return statement.append(")");
 }
 
 /*
@@ -653,7 +819,7 @@ async function eraseSessionRowsFromTable(data: {
 /*
  * The services whose rows are erased by trace id, in submission order.
  * Span is last: its rows are where readErasedSessionTraceIds finds the
- * ids, so a run that dies after deleting a chunk's logs and exceptions
+ * ids, so a run that fails after deleting a chunk's logs and exceptions
  * but before its spans still finds those ids again on the retry.
  */
 const TRACE_JOINED_TELEMETRY_SERVICES: Array<
@@ -662,20 +828,16 @@ const TRACE_JOINED_TELEMETRY_SERVICES: Array<
 
 /*
  * Erase every Log, ExceptionInstance and Span row carrying one of these
- * trace ids, MAX_TRACE_IDS_PER_MUTATION ids per mutation. Chunks run one
- * after another for the same reason session batches do: parallel
- * mutations on one table multiply merge pressure without finishing
- * sooner.
+ * trace ids, one chunkTraceIds chunk per mutation. Chunks run one after
+ * another for the same reason session batches do: parallel mutations on
+ * one table multiply merge pressure without finishing sooner.
  */
 async function eraseTraceRows(data: {
   databaseName: string;
   projectId: ObjectID;
   traceIds: Array<string>;
 }): Promise<void> {
-  for (const traceIds of chunkSessionIds(
-    data.traceIds,
-    MAX_TRACE_IDS_PER_MUTATION,
-  )) {
+  for (const traceIds of chunkTraceIds(data.traceIds)) {
     for (const service of TRACE_JOINED_TELEMETRY_SERVICES) {
       await service.execute(
         buildTraceDeleteStatement({
@@ -684,7 +846,7 @@ async function eraseTraceRows(data: {
           projectId: data.projectId,
           traceIds: traceIds,
         }),
-        MigrationExecuteOptions,
+        TRACE_DELETE_EXECUTE_OPTIONS,
       );
     }
   }
@@ -718,14 +880,66 @@ async function countChunksForSessions(data: {
 }
 
 /*
- * The trace ids of the spans stamped with these sessions' ids.
+ * Every trace that spans stamped with the batch's session ids belong to,
+ * each flagged with whether it belongs to the batch ALONE and may
+ * therefore be erased by trace id.
+ *
+ * A stamp shows that a session took part in a trace, not that the trace
+ * is the session's. The recorder adds its tracestate member to any
+ * same-origin request that has none, including one whose traceparent the
+ * PAGE set - a hard-coded or server-rendered id that a cached page hands
+ * to every visitor - so one trace can carry many visitors' sessions. And
+ * any HTTP client can send a traceparent naming a known trace next to a
+ * tracestate naming its own session. Erasing every stamped trace whole
+ * would take other visitors' telemetry with it, or let a visitor have a
+ * trace of their choosing erased.
+ *
+ * So ownedByBatch holds only when:
+ *  - every stamped span of the trace carries one of the batch's session
+ *    ids, and there is at least one. Once that holds, "stamped" and
+ *    "stamped by the batch" are the same spans, which is why the time test
+ *    can say sessionId != '' instead of binding the batch a third time;
+ *  - none of its spans started more than TRACE_OWNERSHIP_SKEW_MINUTES
+ *    before its earliest stamped span or after its latest one. A trace
+ *    that was running before the session joined it (a server-rendered
+ *    page's own trace) is not the session's; nor is one that went on
+ *    after it, like a page traceparent a cached page hands to every
+ *    visitor: the visitors the recorder is not uploading for (sampled
+ *    out, no consent yet, the script blocked) send it with no tracestate,
+ *    so their spans and logs in it carry no stamp at all and only the
+ *    time can tell them apart from the session's own.
+ * The other candidates keep their rows, except the spans stamped with an
+ * erased id, which the session-id delete removes like any other.
+ *
+ * "Other sessions" means sessions outside THIS batch: ownership is judged
+ * per batch of MAX_SESSION_IDS_PER_MUTATION sessions. A trace stamped by
+ * erased sessions that land in different batches looks shared to every
+ * batch whose lookup still sees another batch's stamps (the session-id
+ * delete is asynchronous, so the next batch usually does), and then keeps
+ * its unstamped rows until retention removes them. Their stamped spans
+ * still go with each batch's session-id delete.
  *
  * Only span-derived ids, never RumSession.traceIds: the header also holds
- * trace ids the PAGE set on its requests, and a page-set id can be shared
- * well beyond one visit (a hard-coded or server-rendered traceparent), so
- * erasing by it could take unrelated users' telemetry with it. A span that
- * ingest stamped with the session's id is what ties a trace to the
- * session.
+ * the trace ids the recording merely observed (page-set ids, and ids of
+ * requests to other origins listed in Trace propagation origins, which
+ * carry no session stamp at all), and none of them says whose a trace is.
+ *
+ * Every candidate comes back with its flag, rather than being filtered out
+ * with HAVING, so the caller can report how many it skipped. One statement
+ * per batch, with no LIMIT: the candidate subquery and the GROUP BY have
+ * to see every candidate before the first row can be flagged, so paging
+ * this statement would re-run both scans of the project's span history
+ * for every page. The response is one small row per candidate trace;
+ * ORDER BY traceId sorts just those rows, so a retry chunks its deletes
+ * the same way. `traceId != ''` leaves out spans with no trace id.
+ *
+ * GLOBAL IN, not IN: both sides read the Distributed Span table, and a
+ * plain IN over a Distributed subquery is rejected on a multi-shard
+ * cluster (Code 288, distributed_product_mode = 'deny'). GLOBAL builds the
+ * candidate set once on the initiator and ships it to every shard; on a
+ * single shard it is a semantic no-op. The grouping runs over the
+ * Distributed table as well, so the flag sees every shard's spans of a
+ * trace whatever the sharding key.
  *
  * No time bound, because none of this job's deletes have one either.
  */
@@ -734,16 +948,44 @@ export function buildErasedSessionTraceIdStatement(data: {
   projectId: ObjectID;
   sessionIds: Array<string>;
 }): Statement {
+  const projectId: StatementParameter = {
+    type: TableColumnType.ObjectID,
+    value: data.projectId,
+  };
+  const batchSessionIds: StatementParameter = {
+    type: TableColumnType.Text,
+    value: new Includes(data.sessionIds),
+  };
+
+  /*
+   * The skew is a compile-time constant appended as raw SQL: a template
+   * substitution in the SQL tag would become an Identifier placeholder.
+   */
   return SQL`
-    SELECT DISTINCT traceId AS traceId
+    SELECT
+      traceId,
+      countIf(sessionId != '' AND sessionId NOT IN ${batchSessionIds}) = 0
+        AND countIf(sessionId != '') > 0
+        AND min(startTime) >= minIf(startTime, sessionId != '')`
+    .append(
+      ` - INTERVAL ${TRACE_OWNERSHIP_SKEW_MINUTES} MINUTE
+        AND max(startTime) <= maxIf(startTime, sessionId != '') + INTERVAL ${TRACE_OWNERSHIP_SKEW_MINUTES} MINUTE AS ownedByBatch`,
+    )
+    .append(
+      SQL`
     FROM ${data.databaseName}.${AnalyticsTableName.Span}
-    WHERE projectId = ${{
-      type: TableColumnType.ObjectID,
-      value: data.projectId,
-    }} AND sessionId IN ${{
-      type: TableColumnType.Text,
-      value: new Includes(data.sessionIds),
-    }} AND traceId != ''`.append(TRACE_ID_LOOKUP_LIMIT_CLAUSE);
+    WHERE projectId = ${projectId}
+      AND traceId != ''
+      AND traceId GLOBAL IN (
+        SELECT DISTINCT traceId
+        FROM ${data.databaseName}.${AnalyticsTableName.Span}
+        WHERE projectId = ${projectId}
+          AND sessionId IN ${batchSessionIds}
+          AND traceId != ''
+      )
+    GROUP BY traceId
+    ORDER BY traceId`,
+    );
 }
 
 /*
@@ -763,11 +1005,33 @@ function isErasableTraceId(traceId: unknown): traceId is string {
 }
 
 /*
+ * ClickHouse renders the boolean as UInt8, which JSON carries as a number.
+ * Anything else is read as "not owned": skipping a trace leaves its rows to
+ * retention, deleting a wrong one cannot be undone.
+ */
+function isOwnedByBatch(value: unknown): boolean {
+  return value === 1 || value === "1" || value === true;
+}
+
+/*
  * Materialise the batch's trace ids BEFORE any delete is submitted, as a
  * literal list. ALTER ... DELETE is asynchronous, so a mutation carrying
  * `traceId IN (SELECT traceId FROM Span WHERE sessionId IN ...)` could be
  * evaluated after the session-id delete on Span had already rewritten
  * the parts it reads, match nothing, and leave the joined rows behind.
+ *
+ * The whole list is read before the first delete, and there is no cap.
+ * The session-id delete on Span removes the stamped spans a later read
+ * would find the rest by, and on a first attempt the next run skips these
+ * sessions altogether because they are tombstoned by then - so a cap
+ * could not be picked up again later; it could only leave rows behind
+ * while the request reported Completed.
+ *
+ * One lookup per batch, read whole: executeQuery answers in ClickHouse's
+ * JSON format, which @clickhouse/client can only buffer, and the rows are
+ * small (a trace id and a flag), so even a batch naming a hundred thousand
+ * traces is a few megabytes. See buildErasedSessionTraceIdStatement for
+ * why it is not paged.
  *
  * Through the migration pool, with its progress headers: with no time
  * bound this reads the project's whole span history through the sessionId
@@ -780,28 +1044,41 @@ async function readErasedSessionTraceIds(data: {
   projectId: ObjectID;
   sessionIds: Array<string>;
 }): Promise<Array<string>> {
+  const traceIds: Set<string> = new Set<string>();
+  let candidates: number = 0;
+  let skipped: number = 0;
+
   const resultSet: ClickhouseJsonResultSet = (await SpanService.executeQuery(
-    buildErasedSessionTraceIdStatement(data),
+    buildErasedSessionTraceIdStatement({
+      databaseName: data.databaseName,
+      projectId: data.projectId,
+      sessionIds: data.sessionIds,
+    }),
     MigrationExecuteOptions,
   )) as unknown as ClickhouseJsonResultSet;
 
   const parsed: { data: Array<JSONObject> } = await resultSet.json();
-  const rows: Array<JSONObject> = parsed.data || [];
 
-  if (rows.length >= MAX_TRACE_IDS_PER_SESSION_BATCH) {
-    logger.warn(
-      `${JOB_NAME}: the ${data.sessionIds.length} erased session(s) in this batch for project ${data.projectId.toString()} reach at least ${MAX_TRACE_IDS_PER_SESSION_BATCH} distinct traces; logs, exceptions and spans joined by trace ids past that cap were NOT removed.`,
-    );
-  }
-
-  const traceIds: Set<string> = new Set<string>();
-
-  for (const row of rows) {
+  for (const row of parsed.data || []) {
     const traceId: unknown = row["traceId"];
 
-    if (isErasableTraceId(traceId)) {
-      traceIds.add(traceId);
+    if (!isErasableTraceId(traceId)) {
+      continue;
     }
+
+    candidates++;
+
+    if (isOwnedByBatch(row["ownedByBatch"])) {
+      traceIds.add(traceId);
+    } else {
+      skipped++;
+    }
+  }
+
+  if (skipped > 0) {
+    logger.info(
+      `${JOB_NAME}: ${skipped} of ${candidates} trace(s) stamped with erased sessions in project ${data.projectId.toString()} are shared with other sessions, or have spans that started more than ${TRACE_OWNERSHIP_SKEW_MINUTES} minutes before or after theirs; they are not erased by trace id, only their spans stamped with the erased ids are`,
+    );
   }
 
   return Array.from(traceIds);
@@ -957,8 +1234,8 @@ export async function eraseSessionBatch(data: {
   });
 
   /*
-   * Read before ANY delete of this batch is submitted: the deletes on Span
-   * below remove the very rows this list comes from.
+   * Read, all of it, before ANY delete of this batch is submitted: the
+   * deletes on Span below remove the very rows this list comes from.
    */
   const traceIds: Array<string> = await readErasedSessionTraceIds({
     databaseName: data.databaseName,
@@ -969,11 +1246,23 @@ export async function eraseSessionBatch(data: {
   /*
    * Chunks first, header LAST. The header is how three of the four request
    * types find a session at all, so every row that is only reachable
-   * through it has to be queued for deletion before it goes: a run that
-   * dies in between leaves the session listed but unplayable, which is a
-   * recoverable state the retry finds and finishes. Deleting the header
-   * earlier would leave orphaned payload rows (or correlated telemetry)
-   * that nothing would ever find again.
+   * through it has to be queued for deletion before it goes. Deleting the
+   * header earlier would leave orphaned payload rows (or correlated
+   * telemetry) that nothing would ever find again.
+   *
+   * What becomes of a batch that stops part-way depends on how it stops.
+   * A statement that THROWS sends the request back to Pending with its
+   * attempts counted (up to MAX_ERASURE_ATTEMPTS), and a retry does not
+   * skip tombstoned sessions, so it finds this batch again - through the
+   * header, which is still there, or the request's own id list - and
+   * submits every delete again. A worker that DIES instead (a crash,
+   * an OOM kill, a pod eviction or restart) leaves the request InProgress
+   * with its attempts unchanged, and the stale reclaim then runs it as a
+   * FIRST attempt, which skips tombstoned sessions: whatever this batch
+   * had not submitted yet (trace-id deletes, session-id deletes, the
+   * header) stays behind until retention removes it, and the session can
+   * stay listed but unplayable. This order keeps what a dead worker leaves
+   * behind small; it does not make that case recoverable.
    */
   await eraseSessionRowsFromTable({
     service: RumSessionChunkService,
@@ -984,14 +1273,14 @@ export async function eraseSessionBatch(data: {
 
   /*
    * The telemetry joined to the sessions by trace id. Before the
-   * session-id delete on Span, so that a run which dies part-way through
+   * session-id delete on Span, so that a run which fails part-way through
    * leaves the stamped spans that name the remaining trace ids in place,
    * and the retry materialises the same list again rather than an empty
    * one.
    */
   if (traceIds.length > 0) {
     logger.info(
-      `${JOB_NAME}: erasing the logs, exceptions and spans of ${traceIds.length} trace(s) stamped with erased sessions in project ${data.projectId.toString()}`,
+      `${JOB_NAME}: erasing the logs, exceptions and spans of ${traceIds.length} trace(s) that belong to erased sessions alone in project ${data.projectId.toString()}`,
     );
 
     await eraseTraceRows({

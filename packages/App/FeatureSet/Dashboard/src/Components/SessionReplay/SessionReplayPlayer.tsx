@@ -1247,6 +1247,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       startTimeUnixMs: manifest.startTimeUnixMs,
       endTimeUnixMs: manifest.endTimeUnixMs,
       isFinalized: manifest.isFinalized,
+      /* Still recording: new ids wait for the live refresh, not a debounce. */
+      isRecordingLive: isManifestRecordingLive(manifest),
       /* Header ids: backend rows of these traces join the rail by trace id. */
       traceIds: manifest.details.traceIds,
     });
@@ -1484,6 +1486,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         backendStore?.setSessionBounds({
           endTimeUnixMs: refreshed.endTimeUnixMs,
           isFinalized: refreshed.isFinalized,
+          isRecordingLive: isManifestRecordingLive(refreshed),
           traceIds: refreshed.details.traceIds,
         });
       } catch {
@@ -2959,6 +2962,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
           loaderRef.current?.getExtractedChunkIndexes().length ?? null,
         totalChunkCount: chunks.length > 0 ? chunks.length : null,
         recorderCapabilities: manifest.recorderCapabilities,
+        /* React Native links only through onSessionChange; the empty tabs say so. */
+        isMobileReplay: isMobileSessionReplay(manifest.details.recorderKind),
         onShowOnStage: handleShowOnStage,
         onCopyLink: copySignalLink,
         onTelemetrySignalsChange: handleTelemetrySignalsChange,

@@ -1123,6 +1123,39 @@ describe("backend signals joined by trace id", () => {
     expect(bounds).toContain("traceIds: refreshed.details.traceIds");
   });
 
+  /*
+   * Review round 3: the store skips the 3 s recording-id reload only while
+   * footage is still being RECORDED. A session whose tabs have all closed
+   * but that is not finalized yet (10-15 minutes) must keep the reload, so
+   * the store is told isManifestRecordingLive at creation and on each poll.
+   */
+  test("the store learns whether footage is still being recorded, at creation and on every poll", () => {
+    const creation: string = slice(
+      SOURCE,
+      "const store: ReplayBackendSignalsStore = new ReplayBackendSignalsStore({",
+      "});",
+    );
+
+    expect(creation).toContain(
+      "isRecordingLive: isManifestRecordingLive(manifest)",
+    );
+
+    const pollEffect: string = slice(
+      SOURCE,
+      "const poll: () => Promise<void>",
+      "}, [\n    isAwaitingFinalization,\n    viewId,",
+    );
+    const bounds: string = slice(
+      pollEffect,
+      "backendStore?.setSessionBounds({",
+      "});",
+    );
+
+    expect(bounds).toContain(
+      "isRecordingLive: isManifestRecordingLive(refreshed)",
+    );
+  });
+
   test("the decoded recording's trace ids feed the store whenever the recording rows change", () => {
     expect(SOURCE).toMatch(
       /import \{[^}]*\brecordingTraceIdsFromSignals,?[^}]*\} from "\.\/Rail\/ReplayBackendSignals";/,
@@ -1135,6 +1168,26 @@ describe("backend signals joined by trace id", () => {
       SOURCE.indexOf("backendStore.setRecordingTraceIds("),
     ).toBeGreaterThan(
       SOURCE.indexOf("const recordingSignals: Array<ReplaySignal> = useMemo("),
+    );
+  });
+
+  /*
+   * Review round 2: the rail's empty Logs and Traces copy is web-only (own
+   * origin, Trace propagation origins). A React Native recording must be
+   * told so, or it is promised an automatic link its SDK never makes.
+   */
+  test("the rail is told when the recording is a React Native one", () => {
+    const railProps: string = slice(
+      SOURCE,
+      "<ReplayRailClocked\n      clock={engine}",
+      "/>",
+    );
+
+    expect(railProps).toContain(
+      "isMobileReplay: isMobileSessionReplay(manifest.details.recorderKind)",
+    );
+    expect(SOURCE).toMatch(
+      /import \{[^}]*\bisMobileSessionReplay,?[^}]*\} from "\.\/ReplayRecorderKind";/,
     );
   });
 

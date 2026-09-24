@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import {
   act,
+  cleanup,
   fireEvent,
   render,
   screen,
@@ -26,16 +27,19 @@ import Log from "../../../Models/AnalyticsModels/Log";
 import Span from "../../../Models/AnalyticsModels/Span";
 import AnalyticsBaseModel from "../../../Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
+import Includes from "../../../Types/BaseDatabase/Includes";
 import LogSeverity from "../../../Types/Log/LogSeverity";
 import ReplayRail, {
   ReplayRailHandle,
   ReplayRailProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayRail";
 import {
+  REPLAY_BACKEND_SIGNALS_LIVE_REFRESH_MS,
   ReplayBackendListRequest,
   ReplayBackendSignalsStore,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayBackendSignals";
 import {
+  ReplayBackendSignalsSlot,
   ReplayRailTabId,
   ReplaySignal,
   ReplaySignalKind,
@@ -43,6 +47,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignalTypes";
 import {
   REPLAY_CLICK_EVENTS_CAPABILITY,
+  REPLAY_RAIL_SAME_ORIGIN_SWITCH_CAVEAT,
   getRailEmptyCopy,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayRailEmptyCopy";
 import { SESSION_REPLAY_RECORDER_CAPABILITIES } from "../../../Types/Rum/SessionReplay";
@@ -299,6 +304,86 @@ function makeStore(options: {
           : options.exceptions || [];
 
     return listResult(data as Array<T>);
+  };
+
+  return {
+    store: new ReplayBackendSignalsStore({
+      sessionId: SESSION_ID,
+      startTimeUnixMs: START_UNIX_MS,
+      endTimeUnixMs: START_UNIX_MS + 60_000,
+      isFinalized: true,
+      fetchList: fetchList,
+    }),
+    calls: calls,
+  };
+}
+
+/*
+ * A store whose log reads answer by key: read A (by session id), read B
+ * (by trace id, when the grouped span read or the header named ids) and
+ * the grouped span read each have their own answer, so a test can fail B
+ * alone or cap the id set.
+ */
+function makeTraceJoinStore(options: {
+  sessionLogs?: Array<Log>;
+  traceLogs?: Array<Log>;
+  rejectTraceRead?: unknown;
+  sessionTraceIds?: Array<string>;
+  sessionTraceIdsHasMore?: boolean;
+}): { store: ReplayBackendSignalsStore; calls: Array<string> } {
+  const calls: Array<string> = [];
+
+  const fetchList: <T extends AnalyticsBaseModel>(
+    request: ReplayBackendListRequest<T>,
+  ) => Promise<ListResult<T>> = async <T extends AnalyticsBaseModel>(
+    request: ReplayBackendListRequest<T>,
+  ): Promise<ListResult<T>> => {
+    const query: Record<string, unknown> = request.query as Record<
+      string,
+      unknown
+    >;
+    const isLogRead: boolean = (request.modelType as unknown) === Log;
+
+    if (request.groupBy !== undefined) {
+      calls.push("span-ids");
+
+      const rows: Array<Span> = (options.sessionTraceIds || []).map(
+        (traceId: string): Span => {
+          const row: Span = new Span();
+
+          row.traceId = traceId;
+
+          return row;
+        },
+      );
+
+      return {
+        ...listResult(rows as Array<AnalyticsBaseModel> as Array<T>),
+        hasMore: options.sessionTraceIdsHasMore === true,
+      };
+    }
+
+    if (query["traceId"] instanceof Includes) {
+      calls.push(`${isLogRead ? "log" : "other"}-by-trace`);
+
+      if (options.rejectTraceRead !== undefined) {
+        throw options.rejectTraceRead;
+      }
+
+      return listResult(
+        (isLogRead
+          ? options.traceLogs || []
+          : []) as Array<AnalyticsBaseModel> as Array<T>,
+      );
+    }
+
+    calls.push(`${isLogRead ? "log" : "other"}-by-session`);
+
+    return listResult(
+      (isLogRead
+        ? options.sessionLogs || []
+        : []) as Array<AnalyticsBaseModel> as Array<T>,
+    );
   };
 
   return {
@@ -1199,6 +1284,262 @@ describe("ReplayRail telemetry tabs", () => {
       expect(calls).toEqual(["log", "span", "log"]);
     });
   });
+
+  /*
+   * Review round 2: the trace-id read is the only read that finds OTLP
+   * logs, and its failure used to publish a ready slot - "No backend logs
+   * matched this session", no Retry, until a page reload.
+   */
+  it("keeps the session read's rows beside a Retry when only the trace-id read fails", async () => {
+    const { store, calls } = makeTraceJoinStore({
+      sessionLogs: [makeLog("aaaaaaaaaaaaaaaaaaaaaaaa", 5000, "stamped log")],
+      sessionTraceIds: [TRACE_ID],
+      rejectTraceRead: new HTTPErrorResponse(502, { message: "bad" }, {}),
+    });
+
+    renderRail({ backendStore: store, activeTab: "logs" });
+
+    await waitFor((): void => {
+      expect(store.getSnapshot().slots.log.status).toBe("error");
+    });
+
+    expect(rows()).toHaveLength(1);
+    expect(rows()[0]).toHaveTextContent("stamped log");
+    expect(
+      screen.getByText(
+        "Some linked backend logs did not load (HTTP 502). Retry.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("rail-empty")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Retry"));
+
+    await waitFor((): void => {
+      expect(
+        calls.filter((call: string): boolean => {
+          return call === "log-by-trace";
+        }),
+      ).toHaveLength(2);
+    });
+  });
+
+  it("says the logs did not load, with a Retry, when the session read is empty and the trace-id read fails", async () => {
+    const { store } = makeTraceJoinStore({
+      sessionTraceIds: [TRACE_ID],
+      rejectTraceRead: new HTTPErrorResponse(504, { message: "timeout" }, {}),
+    });
+
+    renderRail({ backendStore: store, activeTab: "logs" });
+
+    await waitFor((): void => {
+      expect(store.getSnapshot().slots.log.status).toBe("error");
+    });
+
+    const empty: HTMLElement = screen.getByTestId("rail-empty");
+
+    expect(empty).toHaveTextContent("Backend logs did not load");
+    expect(empty).toHaveTextContent(
+      "Some linked backend logs did not load (HTTP 504). Retry.",
+    );
+    expect(empty).not.toHaveTextContent("No backend logs matched");
+    expect(within(empty).getByText("Retry")).toBeInTheDocument();
+  });
+
+  /*
+   * Review round 2: a session with more traces than one trace-id read
+   * names used to show an exact count and no notice.
+   */
+  it("marks the count and names the cause when the session's trace ids were capped", async () => {
+    const { store } = makeTraceJoinStore({
+      traceLogs: [makeLog("bbbbbbbbbbbbbbbbbbbbbbbb", 5000, "joined log")],
+      sessionTraceIds: [TRACE_ID],
+      sessionTraceIdsHasMore: true,
+    });
+
+    renderRail({ backendStore: store, activeTab: "logs", scope: "session" });
+
+    await waitFor((): void => {
+      expect(screen.getByTestId("rail-tab-logs")).toHaveTextContent("Logs1+");
+    });
+
+    const notice: HTMLElement = screen.getByTestId("rail-slot-truncated");
+
+    expect(notice).toHaveTextContent(
+      "This session has more traces than one fetch names, so the rows of some of its traces were not fetched; the scope defaults to ±30s around the playhead",
+    );
+    expect(notice).not.toHaveTextContent("Only the first");
+  });
+
+  it("keeps the row-cap wording for a slot that hit the row cap", async () => {
+    const logs: Array<Log> = [];
+
+    for (let i: number = 0; i < 500; i++) {
+      logs.push(
+        makeLog(i.toString(16).padStart(24, "0"), 1000 + i, `row ${i}`),
+      );
+    }
+
+    const { store } = makeStore({ logs: logs });
+
+    renderRail({ backendStore: store, activeTab: "logs", scope: "session" });
+
+    await waitFor((): void => {
+      expect(screen.getByTestId("rail-slot-truncated")).toHaveTextContent(
+        "Only the first 500 rows were fetched; the scope defaults to ±30s",
+      );
+    });
+
+    expect(screen.getByTestId("rail-tab-badge-logs")).toHaveTextContent("500+");
+    expect(screen.getByTestId("rail-tab-badge-logs")).toHaveAttribute(
+      "title",
+      "The first 500 rows; the fetch was capped",
+    );
+  });
+
+  /*
+   * Review round 3: the notice named the id cap, but the badge's tooltip
+   * still described the row cap ("The first N rows").
+   */
+  it("gives an id-capped tab's badge the notice's cause, not the row cap's", async () => {
+    const { store } = makeTraceJoinStore({
+      traceLogs: [makeLog("bbbbbbbbbbbbbbbbbbbbbbbb", 5000, "joined log")],
+      sessionTraceIds: [TRACE_ID],
+      sessionTraceIdsHasMore: true,
+    });
+
+    renderRail({ backendStore: store, activeTab: "logs", scope: "session" });
+
+    await waitFor((): void => {
+      expect(screen.getByTestId("rail-tab-logs")).toHaveTextContent("Logs1+");
+    });
+
+    const title: string =
+      screen.getByTestId("rail-tab-badge-logs").getAttribute("title") || "";
+
+    expect(title).toContain(
+      "this session has more traces than one fetch names, so the rows of some of its traces were not fetched",
+    );
+    expect(title).not.toContain("The first");
+  });
+
+  /*
+   * Review round 3: a failed trace-id read left an error slot whose count
+   * the badge still showed as the whole answer - "Logs 0" when nothing
+   * loaded (the backend "has no logs"), "Logs 1" when only read A did.
+   */
+  it("badges a partly failed fetch's rows as a lower bound", async () => {
+    const { store } = makeTraceJoinStore({
+      sessionLogs: [makeLog("aaaaaaaaaaaaaaaaaaaaaaaa", 5000, "stamped log")],
+      sessionTraceIds: [TRACE_ID],
+      rejectTraceRead: new HTTPErrorResponse(502, { message: "bad" }, {}),
+    });
+
+    renderRail({ backendStore: store, activeTab: "all" });
+
+    await act(async (): Promise<void> => {
+      await store.load("log");
+    });
+
+    expect(store.getSnapshot().slots.log.status).toBe("error");
+    expect(screen.getByTestId("rail-tab-logs")).toHaveTextContent("Logs1+");
+    expect(screen.getByTestId("rail-tab-badge-logs")).toHaveAttribute(
+      "title",
+      "1 loaded; some rows did not load",
+    );
+  });
+
+  it("claims no count when a partly failed fetch loaded nothing", async () => {
+    const { store } = makeTraceJoinStore({
+      sessionTraceIds: [TRACE_ID],
+      rejectTraceRead: new HTTPErrorResponse(504, { message: "timeout" }, {}),
+    });
+
+    renderRail({ backendStore: store, activeTab: "all" });
+
+    await act(async (): Promise<void> => {
+      await store.load("log");
+    });
+
+    expect(store.getSnapshot().slots.log.status).toBe("error");
+    expect(store.getSnapshot().slots.log.rowCount).toBe(0);
+    expect(screen.getByTestId("rail-tab-logs")).toHaveTextContent(/^Logs$/);
+    expect(screen.queryByTestId("rail-tab-badge-logs")).not.toBeInTheDocument();
+  });
+
+  /*
+   * Review round 3: the rail ticked refreshIfDue every 60 s against a 60 s
+   * age, so a tab opened between ticks - or any read latency - made the
+   * next tick miss and the refresh ran every two minutes.
+   */
+  it("re-reads a live session's open tab about a minute after the first read, even when it was opened between ticks and reads take time", async () => {
+    jest.useFakeTimers({
+      doNotFake: ["performance", "hrtime", "nextTick", "queueMicrotask"],
+    });
+
+    try {
+      const t0: number = Date.now();
+      const reads: Array<number> = [];
+      const store: ReplayBackendSignalsStore = new ReplayBackendSignalsStore({
+        sessionId: SESSION_ID,
+        startTimeUnixMs: START_UNIX_MS,
+        endTimeUnixMs: null,
+        isFinalized: false,
+        isRecordingLive: true,
+        fetchList: <T extends AnalyticsBaseModel>(
+          _request: ReplayBackendListRequest<T>,
+        ): Promise<ListResult<T>> => {
+          reads.push(Date.now() - t0);
+
+          return new Promise<ListResult<T>>(
+            (resolve: (value: ListResult<T>) => void): void => {
+              setTimeout((): void => {
+                resolve(listResult<T>([]));
+              }, 300);
+            },
+          );
+        },
+      });
+
+      renderRail({ backendStore: store, isFinalized: false });
+
+      const advance: (ms: number) => Promise<void> = async (
+        ms: number,
+      ): Promise<void> => {
+        for (let elapsed: number = 0; elapsed < ms; elapsed += 100) {
+          await act(async (): Promise<void> => {
+            jest.advanceTimersByTime(100);
+          });
+        }
+      };
+
+      /* Opened 7 s in: between two ticks of any interval started at mount. */
+      await advance(7_000);
+      fireEvent.click(screen.getByTestId("rail-tab-traces"));
+      await advance(1_000);
+
+      expect(reads).toHaveLength(1);
+
+      /*
+       * One interval plus a 5 s tick plus the latency, spelled out so a
+       * longer tick cannot loosen it. A rail ticking every 60 s read again
+       * only at 120 s here.
+       */
+      const oneRefreshLateMs: number =
+        REPLAY_BACKEND_SIGNALS_LIVE_REFRESH_MS + 5_000 + 300;
+
+      await advance(oneRefreshLateMs);
+
+      expect(reads).toHaveLength(2);
+      expect((reads[1] as number) - (reads[0] as number)).toBeLessThanOrEqual(
+        oneRefreshLateMs,
+      );
+
+      cleanup();
+      store.dispose();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
 
 describe("ReplayRail empty copy", () => {
@@ -1247,26 +1588,160 @@ describe("ReplayRail empty copy", () => {
    * still the customer's: listing an API on another origin.
    */
   for (const tabId of ["logs", "traces"] as Array<ReplayRailTabId>) {
-    it(`explains the automatic link and the cross-origin step on ${tabId}, with no manual snippet`, () => {
+    for (const isMobileReplay of [undefined, false]) {
+      it(`explains the automatic link and the cross-origin step on ${tabId} of a web recording (isMobileReplay ${String(isMobileReplay)}), with no manual snippet`, () => {
+        renderRail({
+          signals: [],
+          activeTab: tabId,
+          backendStore: null,
+          isMobileReplay: isMobileReplay,
+        });
+
+        const empty: HTMLElement = screen.getByTestId("rail-empty");
+
+        expect(empty).toHaveAttribute("data-tab", tabId);
+        expect(empty).toHaveTextContent("own origin");
+        expect(empty).toHaveTextContent("automatically");
+        expect(empty).toHaveTextContent("Trace propagation origins");
+        expect(empty).toHaveTextContent("Access-Control-Allow-Headers");
+        expect(empty).toHaveTextContent("by trace id");
+
+        /* Nothing to paste: no code block, no manual hook, no server step. */
+        expect(empty.querySelector("pre")).toBeNull();
+        expect(empty).not.toHaveTextContent("onSessionChange");
+        expect(empty).not.toHaveTextContent("resource.attributes");
+        expect(empty).not.toHaveTextContent("baggage");
+        expect(empty).not.toHaveTextContent(/server side/i);
+        expect(empty).not.toHaveTextContent("React Native");
+      });
+    }
+
+    /*
+     * Review round 2: the application can turn the same-origin link off
+     * (the documented fix for a redirect that drops the headers); the copy
+     * must not promise a link the switch removed.
+     */
+    it(`qualifies the automatic link on ${tabId} with the Same-origin trace propagation switch`, () => {
       renderRail({ signals: [], activeTab: tabId, backendStore: null });
 
       const empty: HTMLElement = screen.getByTestId("rail-empty");
 
-      expect(empty).toHaveAttribute("data-tab", tabId);
-      expect(empty).toHaveTextContent("own origin");
-      expect(empty).toHaveTextContent("automatically");
-      expect(empty).toHaveTextContent("Trace propagation origins");
-      expect(empty).toHaveTextContent("Access-Control-Allow-Headers");
-      expect(empty).toHaveTextContent("by trace id");
-
-      /* Nothing to paste: no code block, no manual hook, no server step. */
-      expect(empty.querySelector("pre")).toBeNull();
-      expect(empty).not.toHaveTextContent("onSessionChange");
-      expect(empty).not.toHaveTextContent("resource.attributes");
-      expect(empty).not.toHaveTextContent("baggage");
-      expect(empty).not.toHaveTextContent(/server side/i);
+      expect(REPLAY_RAIL_SAME_ORIGIN_SWITCH_CAVEAT).toBe(
+        "unless Same-origin trace propagation is turned off in the Replay Policy",
+      );
+      expect(empty).toHaveTextContent(
+        "automatically, unless Same-origin trace propagation is turned off in the Replay Policy, so",
+      );
     });
   }
+
+  /*
+   * Review round 2: the React Native SDK patches no fetch or XHR and
+   * ignores Trace propagation origins, so the web copy told a mobile
+   * customer that linking was automatic and gave a step that does
+   * nothing. onSessionChange is the only link there is.
+   */
+  it("gives a React Native recording the onSessionChange step and none of the web copy", () => {
+    const readySlot: Parameters<typeof getRailEmptyCopy>[0]["slot"] = {
+      status: "ready",
+      rowCount: 0,
+      isTruncated: false,
+      fetchedAtUnixMs: START_UNIX_MS,
+    };
+
+    for (const tabId of ["logs", "traces"] as Array<ReplayRailTabId>) {
+      for (const isExpiredFootage of [false, true]) {
+        const copy: ReturnType<typeof getRailEmptyCopy> = getRailEmptyCopy({
+          tabId: tabId,
+          isFiltering: false,
+          hadRowsBeforeFilter: false,
+          slot: readySlot,
+          isExpiredFootage: isExpiredFootage,
+          recorderCapabilities: null,
+          hasLoadedFootage: true,
+          isMobileReplay: true,
+        });
+        const text: string = `${copy.title} ${copy.detail}`;
+
+        expect(copy.title).toBe(
+          tabId === "logs"
+            ? "No backend logs matched this session"
+            : "No backend traces matched this session",
+        );
+        expect(copy.detail).toContain(
+          "The React Native SDK adds nothing to your app's requests, so nothing links on its own.",
+        );
+        expect(copy.detail).toContain("OneUptimeReplay.onSessionChange()");
+        expect(copy.detail).toContain("session.id");
+        expect(copy.detail).toContain("update it whenever the session rotates");
+        expect(copy.detail).toContain("on the session clock");
+        expect(text).not.toContain("own origin");
+        expect(text).not.toContain("Trace propagation origins");
+        expect(text).not.toContain("Same-origin trace propagation");
+        expect(text).not.toContain("automatically");
+        expect(text).not.toContain("tracestate");
+        expect(copy.snippet).toBeUndefined();
+      }
+    }
+
+    const logs: ReturnType<typeof getRailEmptyCopy> = getRailEmptyCopy({
+      tabId: "logs",
+      isFiltering: false,
+      hadRowsBeforeFilter: false,
+      slot: readySlot,
+      isExpiredFootage: false,
+      recorderCapabilities: null,
+      hasLoadedFootage: true,
+      isMobileReplay: true,
+    });
+
+    expect(logs.detail).toBe(
+      "The React Native SDK adds nothing to your app's requests, so nothing links on its own. Stamp session.id on your OpenTelemetry logs and spans with OneUptimeReplay.onSessionChange() and update it whenever the session rotates; those rows then land here on the session clock.",
+    );
+
+    /* Expired errors: no claim about "this session's requests" either. */
+    const errors: ReturnType<typeof getRailEmptyCopy> = getRailEmptyCopy({
+      tabId: "errors",
+      isFiltering: false,
+      hadRowsBeforeFilter: false,
+      slot: readySlot,
+      isExpiredFootage: true,
+      recorderCapabilities: null,
+      hasLoadedFootage: true,
+      isMobileReplay: true,
+    });
+
+    expect(errors.detail).not.toContain("requests");
+    expect(errors.detail).toContain("stamped with this session's id");
+  });
+
+  it("renders the React Native copy on the rail when the player says the recording is mobile", () => {
+    for (const tabId of ["logs", "traces"] as Array<ReplayRailTabId>) {
+      const view: RenderResult = renderRail({
+        signals: [],
+        activeTab: tabId,
+        backendStore: null,
+        isMobileReplay: true,
+      });
+
+      const empty: HTMLElement = screen.getByTestId("rail-empty");
+
+      expect(empty).toHaveAttribute("data-tab", tabId);
+      expect(empty).toHaveTextContent("React Native SDK adds nothing");
+      expect(empty).toHaveTextContent("OneUptimeReplay.onSessionChange()");
+      expect(empty).not.toHaveTextContent("own origin");
+      expect(empty).not.toHaveTextContent("Trace propagation origins");
+
+      /* The same rail flips back to the web copy for a web recording. */
+      view.rerender({ isMobileReplay: false });
+      expect(screen.getByTestId("rail-empty")).toHaveTextContent("own origin");
+      expect(screen.getByTestId("rail-empty")).not.toHaveTextContent(
+        "onSessionChange",
+      );
+
+      cleanup();
+    }
+  });
 
   it("says tracestate carries the session id on Traces, and a trace-id join on Logs", () => {
     const readySlot: Parameters<typeof getRailEmptyCopy>[0]["slot"] = {
@@ -1307,7 +1782,7 @@ describe("ReplayRail empty copy", () => {
     expect(logs.snippet).toBeUndefined();
   });
 
-  it("never prescribes the manual session.id wiring on any telemetry tab, in any state", () => {
+  it("never prescribes the manual session.id wiring on any telemetry tab of a web recording, in any state", () => {
     const telemetryTabs: Array<ReplayRailTabId> = ["logs", "traces", "errors"];
     const slots: Array<Parameters<typeof getRailEmptyCopy>[0]["slot"]> = [
       {
@@ -1336,32 +1811,36 @@ describe("ReplayRail empty copy", () => {
     for (const tabId of telemetryTabs) {
       for (const slot of slots) {
         for (const isExpiredFootage of [false, true]) {
-          const copy: ReturnType<typeof getRailEmptyCopy> = getRailEmptyCopy({
-            tabId: tabId,
-            isFiltering: false,
-            hadRowsBeforeFilter: false,
-            slot: slot,
-            isExpiredFootage: isExpiredFootage,
-            recorderCapabilities: null,
-            hasLoadedFootage: true,
-          });
-          const text: string = [copy.title, copy.detail, copy.snippet || ""]
-            .join(" ")
-            .trim();
+          /* Web only: unset and an explicit false are both a web recording. */
+          for (const isMobileReplay of [undefined, false]) {
+            const copy: ReturnType<typeof getRailEmptyCopy> = getRailEmptyCopy({
+              tabId: tabId,
+              isFiltering: false,
+              hadRowsBeforeFilter: false,
+              slot: slot,
+              isExpiredFootage: isExpiredFootage,
+              recorderCapabilities: null,
+              hasLoadedFootage: true,
+              isMobileReplay: isMobileReplay,
+            });
+            const text: string = [copy.title, copy.detail, copy.snippet || ""]
+              .join(" ")
+              .trim();
 
-          seen.push(text);
+            seen.push(text);
 
-          if (manualStep.test(text)) {
-            throw new Error(
-              `${tabId} (${slot?.status}, expired=${isExpiredFootage}) still prescribes a manual step: ${text}`,
-            );
+            if (manualStep.test(text)) {
+              throw new Error(
+                `${tabId} (${slot?.status}, expired=${isExpiredFootage}) still prescribes a manual step: ${text}`,
+              );
+            }
           }
         }
       }
     }
 
-    /* 3 tabs x 3 slot states x 2 footage states, none of them blank. */
-    expect(seen).toHaveLength(18);
+    /* 3 tabs x 3 slot states x 2 footage states x 2 web flags, none blank. */
+    expect(seen).toHaveLength(36);
     expect(
       seen.every((text: string): boolean => {
         return text.length > 20;
@@ -1540,6 +2019,112 @@ describe("ReplayRail pure helpers", () => {
     expect(byId["logs"]).toBeNull();
     expect(byId["traces"]).toBeNull();
     expect(byId["errors"]).toBe(1);
+  });
+
+  /* Review round 3: an error slot is a partial answer, never a claimed 0. */
+  it("buildRailTabModels treats an error slot as partial: rows are a lower bound, none is no count", () => {
+    const slot: (
+      overrides: Partial<ReplayBackendSignalsSlot>,
+    ) => ReplayBackendSignalsSlot = (
+      overrides: Partial<ReplayBackendSignalsSlot>,
+    ): ReplayBackendSignalsSlot => {
+      return {
+        status: "error",
+        rowCount: 0,
+        isTruncated: false,
+        errorMessage: "Some linked rows did not load (HTTP 504). Retry.",
+        fetchedAtUnixMs: START_UNIX_MS,
+        ...overrides,
+      };
+    };
+    const byId: (
+      models: ReturnType<typeof buildRailTabModels>,
+      id: ReplayRailTabId,
+    ) => ReturnType<typeof buildRailTabModels>[number] = (
+      models: ReturnType<typeof buildRailTabModels>,
+      id: ReplayRailTabId,
+    ): ReturnType<typeof buildRailTabModels>[number] => {
+      return models.find((model: { id: ReplayRailTabId }): boolean => {
+        return model.id === id;
+      }) as ReturnType<typeof buildRailTabModels>[number];
+    };
+
+    /* Nothing loaded at all: no number, on Logs, Traces and Errors alike. */
+    const empty: ReturnType<typeof buildRailTabModels> = buildRailTabModels({
+      signals: [],
+      matchingSignals: null,
+      slots: { log: slot({}), span: slot({}), exception: slot({}) },
+    });
+
+    for (const id of ["logs", "traces", "errors"] as Array<ReplayRailTabId>) {
+      expect(byId(empty, id).count).toBeNull();
+      expect(byId(empty, id).isPartial).toBe(false);
+    }
+
+    /* Rows that did load: counted, and flagged as a lower bound. */
+    const partial: ReturnType<typeof buildRailTabModels> = buildRailTabModels({
+      signals: [
+        makeSignal("log", 1000, { id: "log:a", source: "telemetry" }),
+        makeSignal("log", 2000, { id: "log:b", source: "telemetry" }),
+        makeSignal("client-error", 3000, { id: "rec:0:9" }),
+      ],
+      matchingSignals: null,
+      slots: {
+        log: slot({ rowCount: 2 }),
+        span: slot({ status: "ready" }),
+        exception: slot({}),
+      },
+    });
+
+    expect(byId(partial, "logs").count).toBe(2);
+    expect(byId(partial, "logs").isPartial).toBe(true);
+    /* The client half is real; the failed server half makes it a lower bound. */
+    expect(byId(partial, "errors").count).toBe(1);
+    expect(byId(partial, "errors").isPartial).toBe(true);
+    /* A read that succeeded may say 0. */
+    expect(byId(partial, "traces").count).toBe(0);
+    expect(byId(partial, "traces").isPartial).toBe(false);
+  });
+
+  it("buildRailTabModels carries the id-cap flag so the badge can name its cause", () => {
+    const models: ReturnType<typeof buildRailTabModels> = buildRailTabModels({
+      signals: [makeSignal("log", 1000, { id: "log:a", source: "telemetry" })],
+      matchingSignals: null,
+      slots: {
+        log: {
+          status: "ready",
+          rowCount: 1,
+          isTruncated: true,
+          isTraceIdSetCapped: true,
+          fetchedAtUnixMs: START_UNIX_MS,
+        },
+        span: {
+          status: "ready",
+          rowCount: 0,
+          isTruncated: true,
+          fetchedAtUnixMs: START_UNIX_MS,
+        },
+        exception: {
+          status: "idle",
+          rowCount: null,
+          isTruncated: false,
+          fetchedAtUnixMs: null,
+        },
+      },
+    });
+    const logs: ReturnType<typeof buildRailTabModels>[number] | undefined =
+      models.find((model: { id: ReplayRailTabId }): boolean => {
+        return model.id === "logs";
+      });
+    const traces: ReturnType<typeof buildRailTabModels>[number] | undefined =
+      models.find((model: { id: ReplayRailTabId }): boolean => {
+        return model.id === "traces";
+      });
+
+    expect(logs?.isTraceIdSetCapped).toBe(true);
+    expect(logs?.isTruncated).toBe(true);
+    expect(traces?.isTraceIdSetCapped).toBe(false);
+    expect(traces?.isTruncated).toBe(true);
   });
 });
 

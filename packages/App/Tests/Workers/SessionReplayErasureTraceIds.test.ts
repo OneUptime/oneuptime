@@ -39,6 +39,13 @@ import {
  * them too, which means reading the stamped spans' trace ids BEFORE any
  * delete (ALTER ... DELETE is asynchronous: a subquery evaluated after the
  * Span delete would match nothing) and then deleting by a literal list.
+ *
+ * Only the traces that belong to the erased sessions ALONE go by trace id:
+ * a stamp shows a session took part in a trace (a page-set traceparent is
+ * stamped too, and a tracestate can be forged), not that the trace is the
+ * session's. The lookup flags each candidate; the flag's SQL semantics were
+ * checked against ClickHouse 24.8 and 26.7, and these tests pin its shape
+ * and how the job acts on it.
  */
 
 jest.mock("../../FeatureSet/Workers/Utils/Cron", () => {
@@ -114,12 +121,19 @@ jest.mock("Common/Server/Infrastructure/Redis", () => {
 import {
   buildErasedSessionTraceIdStatement,
   buildTraceDeleteStatement,
+  chunkTraceIds,
   eraseSessionBatch,
   getErasedSessionsKey,
   MAX_SESSION_IDS_PER_MUTATION,
+  MAX_TRACE_ID_BYTES_PER_MUTATION,
+  MAX_TRACE_ID_BYTES_PER_PARAMETER,
   MAX_TRACE_IDS_PER_MUTATION,
-  MAX_TRACE_IDS_PER_SESSION_BATCH,
   processErasureRequest,
+  splitTraceIdParameters,
+  TRACE_DELETE_EXECUTE_OPTIONS,
+  TRACE_DELETE_MAX_QUERY_SIZE,
+  TRACE_OWNERSHIP_SKEW_MINUTES,
+  traceIdUrlBytes,
   writeErasureTombstones,
 } from "../../FeatureSet/Workers/Jobs/Rum/ProcessSessionErasureRequests";
 
@@ -131,6 +145,10 @@ const sessionB: string = "2a1d0b5c7e3f48a9b2c4d6e8f0a11223";
 const traceOne: string = "4bf92f3577b34da6a3ce929d0e0e4736";
 const traceTwo: string = "0af7651916cd43dd8448eb211c80319c";
 const traceThree: string = "5b8aa5a2d2c872e8321cf37308d69df2";
+
+/* ClickHouse's own limits on a request's URL, measured on 24.8 and 26.7. */
+const HTTP_MAX_FIELD_VALUE_SIZE: number = 128 * 1024;
+const HTTP_MAX_URI_SIZE: number = 1024 * 1024;
 
 type DeleteLabel = "chunks" | "headers" | "logs" | "spans" | "exceptions";
 type DeleteColumn = "sessionId" | "traceId";
@@ -157,12 +175,17 @@ function resultSetOf(rows: Array<JSONObject>): unknown {
   };
 }
 
-function traceRows(ids: Array<unknown>): Array<JSONObject> {
+/* Lookup rows as ClickHouse returns them: owned (1) unless told otherwise. */
+function traceRows(
+  ids: Array<unknown>,
+  ownedByBatch: unknown = 1,
+): Array<JSONObject> {
   return ids.map((id: unknown): JSONObject => {
-    return { traceId: id } as JSONObject;
+    return { traceId: id, ownedByBatch: ownedByBatch } as JSONObject;
   });
 }
 
+/* Ascending, so the rows are in the order the lookup's ORDER BY gives. */
 function hexIds(count: number, seed: string): Array<string> {
   return Array.from(
     { length: count },
@@ -172,17 +195,38 @@ function hexIds(count: number, seed: string): Array<string> {
   );
 }
 
-/* The one Array(String) parameter each of these statements binds. */
-function boundIds(statement: Statement): Array<string> {
-  const arrays: Array<unknown> = Object.values(statement.query_params).filter(
+function concat(arrays: Array<Array<string>>): Array<string> {
+  return arrays.reduce((all: Array<string>, next: Array<string>) => {
+    return all.concat(next);
+  }, []);
+}
+
+/* Every Array(String) parameter a statement binds, in order. */
+function arrayParams(statement: Statement): Array<Array<string>> {
+  return Object.values(statement.query_params).filter(
     (value: unknown): boolean => {
       return Array.isArray(value);
     },
-  );
+  ) as Array<Array<string>>;
+}
 
-  expect(arrays.length).toBe(1);
+/* The ids a delete or a chunk count binds, across all its parameters. */
+function boundIds(statement: Statement): Array<string> {
+  const arrays: Array<Array<string>> = arrayParams(statement);
 
-  return arrays[0] as Array<string>;
+  expect(arrays.length).toBeGreaterThan(0);
+
+  return concat(arrays);
+}
+
+/* The lookup binds the batch twice (subquery, ownership test): one list. */
+function lookupSessionIds(statement: Statement): Array<string> {
+  const arrays: Array<Array<string>> = arrayParams(statement);
+
+  expect(arrays.length).toBe(2);
+  expect(arrays[1]).toEqual(arrays[0]);
+
+  return arrays[0]!;
 }
 
 function deleteColumnOf(statement: Statement): DeleteColumn {
@@ -195,6 +239,17 @@ function deleteColumnOf(statement: Statement): DeleteColumn {
   }
 
   throw new Error(`Unrecognised delete statement: ${statement.query}`);
+}
+
+/* The URL-encoded size @clickhouse/client gives one Array(String) of hex ids. */
+function encodedParameterBytes(ids: Array<string>): number {
+  const formatted: string = `[${ids
+    .map((id: string): string => {
+      return `'${id}'`;
+    })
+    .join(",")}]`;
+
+  return new URLSearchParams({ v: formatted }).toString().length - 2;
 }
 
 function installHarness(data: {
@@ -223,8 +278,9 @@ function installHarness(data: {
   }) as never);
 
   /*
-   * The header table must never be a source of trace ids: a page-set id in
-   * RumSession.traceIds can be shared far beyond the erased visit.
+   * The header table is never a source of trace ids: RumSession.traceIds
+   * lists the ids the recording observed (page-set ids, requests to listed
+   * cross-origin APIs), which say nothing about whose a trace is.
    */
   jest.spyOn(RumSessionService, "executeQuery").mockImplementation(((
     statement: Statement,
@@ -235,13 +291,17 @@ function installHarness(data: {
     );
   }) as never);
 
+  /*
+   * The trace-id lookup: one statement per batch, answered with every
+   * candidate row, as ClickHouse answers a query with no LIMIT.
+   */
   jest.spyOn(SpanService, "executeQuery").mockImplementation(((
     statement: Statement,
     options?: ClickhouseExecuteOptions,
   ): Promise<unknown> => {
     events.push({
       kind: "read-trace-ids",
-      ids: boundIds(statement),
+      ids: lookupSessionIds(statement),
       statement: statement,
       options: options,
     });
@@ -309,9 +369,20 @@ function installHarness(data: {
 function deletes(
   events: Array<HarnessEvent>,
   column?: DeleteColumn,
+  label?: DeleteLabel,
 ): Array<HarnessEvent> {
   return events.filter((event: HarnessEvent): boolean => {
-    return event.kind === "delete" && (!column || event.column === column);
+    return (
+      event.kind === "delete" &&
+      (!column || event.column === column) &&
+      (!label || event.label === label)
+    );
+  });
+}
+
+function reads(events: Array<HarnessEvent>): Array<HarnessEvent> {
+  return events.filter((event: HarnessEvent): boolean => {
+    return event.kind === "read-trace-ids";
   });
 }
 
@@ -322,6 +393,24 @@ function sequenceOf(events: Array<HarnessEvent>): Array<string> {
       ? `${event.label}:${event.column}`
       : event.kind;
   });
+}
+
+/* Every trace id each table's trace-id deletes carried, in order. */
+function traceIdsDeletedFrom(
+  events: Array<HarnessEvent>,
+  label: DeleteLabel,
+): Array<string> {
+  return concat(
+    deletes(events, "traceId", label).map(
+      (event: HarnessEvent): Array<string> => {
+        return event.ids;
+      },
+    ),
+  );
+}
+
+function normalized(statement: Statement): string {
+  return statement.query.replace(/\s+/g, " ");
 }
 
 beforeEach(() => {
@@ -341,45 +430,89 @@ describe("the trace-id lookup statement", () => {
     projectId: projectId,
     sessionIds: [sessionA, sessionB],
   });
+  const query: string = normalized(statement);
 
-  test("reads distinct trace ids from the Span table, through the Distributed table", () => {
-    expect(statement.query).toContain("SELECT DISTINCT traceId AS traceId");
-    expect(Object.values(statement.query_params)).toContain(
-      AnalyticsTableName.Span,
-    );
-    expect(Object.values(statement.query_params)).not.toContain(
-      `${AnalyticsTableName.Span}Local`,
-    );
-    expect(Object.values(statement.query_params)).toContain(databaseName);
+  test("reads the Span table, through the Distributed table, on both sides", () => {
+    const params: Array<unknown> = Object.values(statement.query_params);
+
+    expect(
+      params.filter((value: unknown): boolean => {
+        return value === AnalyticsTableName.Span;
+      }).length,
+    ).toBe(2);
+    expect(params).not.toContain(`${AnalyticsTableName.Span}Local`);
+    expect(params).toContain(databaseName);
   });
 
   test("is scoped to the project and to the batch's session ids, bound rather than inlined", () => {
-    expect(statement.query).toContain("projectId =");
-    expect(statement.query).toContain("sessionId IN");
-    expect(statement.query).toContain("Array(String)");
-    expect(statement.query).not.toContain(sessionA);
-    expect(Object.values(statement.query_params)).toContain(
-      projectId.toString(),
-    );
-    expect(boundIds(statement)).toEqual([sessionA, sessionB]);
-  });
-
-  test("skips spans with no trace id", () => {
-    expect(statement.query).toContain("traceId != ''");
-  });
-
-  test("is bounded by a raw LIMIT, not an Identifier placeholder", () => {
+    expect(query).toContain("WHERE projectId = {p");
+    expect(query).toContain("AND sessionId IN {p");
+    expect(query).toContain("Array(String)");
+    expect(query).not.toContain(sessionA);
     expect(
-      statement.query.endsWith(`LIMIT ${MAX_TRACE_IDS_PER_SESSION_BATCH}`),
-    ).toBe(true);
-    expect(statement.query).not.toMatch(/LIMIT \{p\d+:/);
+      Object.values(statement.query_params).filter((value: unknown) => {
+        return value === projectId.toString();
+      }).length,
+    ).toBe(2);
+    expect(lookupSessionIds(statement)).toEqual([sessionA, sessionB]);
   });
 
-  test("never reads the header table, whose traceIds include page-set ids", () => {
+  test("candidates are the traces of spans stamped with the batch's ids, via GLOBAL IN", () => {
+    /*
+     * Both sides read the Distributed table; a plain IN over a Distributed
+     * subquery is Code 288 on a multi-shard cluster.
+     */
+    expect(query).toMatch(
+      /AND traceId GLOBAL IN \( SELECT DISTINCT traceId FROM \{p\d+:Identifier\}\.\{p\d+:Identifier\} WHERE projectId = \{p\d+:String\} AND sessionId IN \{p\d+:Array\(String\)\} AND traceId != '' \)/,
+    );
+    expect(query).not.toMatch(/traceId IN \(\s*SELECT/);
+  });
+
+  test("flags a trace as the batch's own only when no other session stamped it and nothing in it starts well before or after its stamps", () => {
+    /*
+     * Both time bounds: a trace that was running before the session (a
+     * server-rendered page's own trace) and one that other, unrecorded
+     * visitors went on extending with no stamp (a reused page traceparent)
+     * are not the session's.
+     */
+    expect(query).toContain(
+      `countIf(sessionId != '' AND sessionId NOT IN {p0:Array(String)}) = 0 AND countIf(sessionId != '') > 0 AND min(startTime) >= minIf(startTime, sessionId != '') - INTERVAL ${TRACE_OWNERSHIP_SKEW_MINUTES} MINUTE AND max(startTime) <= maxIf(startTime, sessionId != '') + INTERVAL ${TRACE_OWNERSHIP_SKEW_MINUTES} MINUTE AS ownedByBatch`,
+    );
+    expect(TRACE_OWNERSHIP_SKEW_MINUTES).toBe(10);
+    /* One row per candidate trace, flag and all: nothing is filtered away. */
+    expect(query).toContain("GROUP BY traceId");
+    expect(query).not.toContain("HAVING");
+    expect(query).not.toContain("DISTINCT traceId AS traceId");
+  });
+
+  test("is one pass per batch: no LIMIT and no keyset, ordered by traceId", () => {
+    /*
+     * The candidate subquery and the GROUP BY have to see every candidate
+     * before the first row is flagged, so a paged lookup re-ran both scans
+     * of the project's span history for every page.
+     */
+    expect(query.endsWith("GROUP BY traceId ORDER BY traceId")).toBe(true);
+    expect(query).not.toContain("LIMIT");
+    expect(query).not.toContain("traceId >");
+    expect(query).not.toContain("OFFSET");
+  });
+
+  test("leaves out spans with no trace id, on both sides", () => {
+    expect(query.match(/AND traceId != ''/g)?.length).toBe(2);
+    /* Bound: the project twice and the batch twice, nothing else. */
+    expect(Object.keys(statement.query_params).length).toBe(8);
+    expect(
+      Object.values(statement.query_params).filter((value: unknown) => {
+        return value === "";
+      }),
+    ).toEqual([]);
+  });
+
+  test("never reads the header table: its traceIds are ids the recording observed, not ones it owns", () => {
     expect(Object.values(statement.query_params)).not.toContain(
       AnalyticsTableName.RumSession,
     );
-    expect(statement.query).not.toContain("traceIds");
+    expect(query).not.toContain("traceIds");
   });
 });
 
@@ -414,22 +547,167 @@ describe("the trace-id delete statement", () => {
       traceIds: [traceOne, traceTwo],
     });
 
-    expect(statement.query).toContain("projectId =");
-    expect(statement.query).toContain("traceId IN");
-    expect(statement.query).toContain("Array(String)");
+    expect(normalized(statement)).toMatch(
+      /DELETE WHERE projectId = \{p\d+:String\} AND \(traceId IN \{p\d+:Array\(String\)\}\)$/,
+    );
     expect(statement.query).not.toContain("SELECT");
     expect(statement.query).not.toContain("sessionId");
     expect(statement.query).not.toContain(traceOne);
     expect(Object.values(statement.query_params)).toContain(
       projectId.toString(),
     );
-    expect(boundIds(statement)).toEqual([traceOne, traceTwo]);
+    expect(arrayParams(statement)).toEqual([[traceOne, traceTwo]]);
   });
 
-  test("the per-mutation ceiling matches the session-id deletes", () => {
-    expect(MAX_TRACE_IDS_PER_MUTATION).toBe(1000);
-    expect(MAX_TRACE_IDS_PER_MUTATION).toBe(MAX_SESSION_IDS_PER_MUTATION);
-    expect(MAX_TRACE_IDS_PER_SESSION_BATCH).toBe(10000);
+  test("a full mutation's ids are split over OR-ed parameters that each fit ClickHouse's field limit", () => {
+    const ids: Array<string> = hexIds(MAX_TRACE_IDS_PER_MUTATION, "a");
+    const statement: Statement = buildTraceDeleteStatement({
+      databaseName: databaseName,
+      tableName: AnalyticsTableName.Log,
+      projectId: projectId,
+      traceIds: ids,
+    });
+    const parameters: Array<Array<string>> = arrayParams(statement);
+
+    /* One id list would be ~410 KB: "Field value too long". */
+    expect(parameters.length).toBeGreaterThan(1);
+    expect(concat(parameters)).toEqual(ids);
+
+    let urlBytes: number = 0;
+
+    for (const parameter of parameters) {
+      const bytes: number = encodedParameterBytes(parameter);
+
+      expect(bytes).toBeLessThanOrEqual(MAX_TRACE_ID_BYTES_PER_PARAMETER);
+      expect(bytes).toBeLessThan(HTTP_MAX_FIELD_VALUE_SIZE);
+      urlBytes += bytes;
+    }
+
+    expect(urlBytes).toBeLessThan(HTTP_MAX_URI_SIZE / 2);
+
+    const clauses: Array<string> = normalized(statement)
+      .split(" AND (")[1]!
+      .replace(/\)$/, "")
+      .split(" OR ");
+
+    expect(clauses.length).toBe(parameters.length);
+
+    for (const clause of clauses) {
+      expect(clause).toMatch(/^traceId IN \{p\d+:Array\(String\)\}$/);
+    }
+  });
+
+  test("an empty list matches nothing rather than rendering invalid SQL", () => {
+    const statement: Statement = buildTraceDeleteStatement({
+      databaseName: databaseName,
+      tableName: AnalyticsTableName.Log,
+      projectId: projectId,
+      traceIds: [],
+    });
+
+    expect(normalized(statement)).toMatch(/AND \(0\)$/);
+    expect(arrayParams(statement)).toEqual([]);
+  });
+});
+
+describe("trace-id mutation sizing", () => {
+  test("ten thousand ids per mutation, inside ClickHouse's URL and query-size limits", () => {
+    expect(MAX_TRACE_IDS_PER_MUTATION).toBe(10000);
+    expect(MAX_TRACE_IDS_PER_MUTATION).toBeGreaterThan(
+      MAX_SESSION_IDS_PER_MUTATION,
+    );
+    expect(MAX_TRACE_ID_BYTES_PER_PARAMETER).toBeLessThan(
+      HTTP_MAX_FIELD_VALUE_SIZE,
+    );
+    expect(MAX_TRACE_ID_BYTES_PER_MUTATION).toBeLessThanOrEqual(
+      HTTP_MAX_URI_SIZE / 2,
+    );
+    /* A full mutation of 32-hex ids is bounded by count, not bytes. */
+    expect(
+      traceIdUrlBytes(traceOne) * MAX_TRACE_IDS_PER_MUTATION,
+    ).toBeLessThanOrEqual(MAX_TRACE_ID_BYTES_PER_MUTATION);
+    /*
+     * The queued ON CLUSTER text holds the ids as literals; it is never
+     * longer than their URL form, so this bounds it twice over.
+     */
+    expect(TRACE_DELETE_MAX_QUERY_SIZE).toBeGreaterThanOrEqual(
+      2 * MAX_TRACE_ID_BYTES_PER_MUTATION,
+    );
+  });
+
+  test("traceIdUrlBytes is exact for hex ids and an upper bound for anything else", () => {
+    expect(traceIdUrlBytes(traceOne)).toBe(
+      encodedParameterBytes([traceOne, traceOne]) -
+        encodedParameterBytes([traceOne]),
+    );
+
+    for (const odd of ["a'b\\c d", "trace/é", "\t\n'"]) {
+      const escaped: string = odd
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'")
+        .replace(/\t/g, "\\t")
+        .replace(/\n/g, "\\n");
+      const actual: number =
+        new URLSearchParams({ v: `'${escaped}',` }).toString().length - 2;
+
+      expect(traceIdUrlBytes(odd)).toBeGreaterThanOrEqual(actual);
+    }
+  });
+
+  test("chunkTraceIds cuts at ten thousand ids, in order, every id once, no trailing empty chunk", () => {
+    const ids: Array<string> = hexIds(25000, "a");
+    const chunks: Array<Array<string>> = chunkTraceIds(ids);
+
+    expect(
+      chunks.map((chunk: Array<string>): number => {
+        return chunk.length;
+      }),
+    ).toEqual([10000, 10000, 5000]);
+    expect(concat(chunks)).toEqual(ids);
+    expect(chunkTraceIds(hexIds(20000, "b")).length).toBe(2);
+    expect(chunkTraceIds([])).toEqual([]);
+  });
+
+  test("chunkTraceIds cuts earlier when the ids are long, so the URL still fits", () => {
+    const longIds: Array<string> = hexIds(2000, "c").map(
+      (id: string): string => {
+        return id.repeat(16);
+      },
+    );
+    const chunks: Array<Array<string>> = chunkTraceIds(longIds);
+
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(concat(chunks)).toEqual(longIds);
+
+    for (const chunk of chunks) {
+      const bytes: number = chunk.reduce((sum: number, id: string) => {
+        return sum + traceIdUrlBytes(id);
+      }, 0);
+
+      expect(bytes).toBeLessThanOrEqual(MAX_TRACE_ID_BYTES_PER_MUTATION);
+    }
+  });
+
+  test("splitTraceIdParameters keeps every parameter under the field limit, and never drops an id", () => {
+    const ids: Array<string> = hexIds(MAX_TRACE_IDS_PER_MUTATION, "d");
+    const parameters: Array<Array<string>> = splitTraceIdParameters(ids);
+
+    expect(concat(parameters)).toEqual(ids);
+
+    for (const parameter of parameters) {
+      expect(encodedParameterBytes(parameter)).toBeLessThanOrEqual(
+        MAX_TRACE_ID_BYTES_PER_PARAMETER,
+      );
+    }
+
+    /* An id over the budget on its own still gets a parameter of its own. */
+    const huge: string = "e".repeat(MAX_TRACE_ID_BYTES_PER_PARAMETER);
+
+    expect(splitTraceIdParameters([traceOne, huge, traceTwo])).toEqual([
+      [traceOne],
+      [huge],
+      [traceTwo],
+    ]);
   });
 });
 
@@ -459,15 +737,9 @@ describe("eraseSessionBatch erases the telemetry joined by trace id", () => {
     expect(readIndex).toBeGreaterThanOrEqual(0);
     expect(firstDeleteIndex).toBeGreaterThan(readIndex);
 
-    /* Exactly one read, for exactly this batch's sessions. */
-    const reads: Array<HarnessEvent> = harness.events.filter(
-      (event: HarnessEvent): boolean => {
-        return event.kind === "read-trace-ids";
-      },
-    );
-
-    expect(reads.length).toBe(1);
-    expect(reads[0]!.ids).toEqual([sessionA, sessionB]);
+    /* Exactly one lookup, for exactly this batch's sessions. */
+    expect(reads(harness.events).length).toBe(1);
+    expect(reads(harness.events)[0]!.ids).toEqual([sessionA, sessionB]);
   });
 
   test("Log, ExceptionInstance and Span rows are deleted by the materialised trace ids, on top of the session-id deletes", async () => {
@@ -539,8 +811,8 @@ describe("eraseSessionBatch erases the telemetry joined by trace id", () => {
     ]);
   });
 
-  test("more than one mutation's worth of trace ids is chunked at MAX_TRACE_IDS_PER_MUTATION", async () => {
-    const ids: Array<string> = hexIds(2500, "a");
+  test("a typical batch - up to ten thousand traces - adds exactly one trace-id mutation per table", async () => {
+    const ids: Array<string> = hexIds(9999, "a");
     const harness: Harness = installHarness({ traceIdRows: traceRows(ids) });
 
     await eraseSessionBatch({
@@ -549,36 +821,43 @@ describe("eraseSessionBatch erases the telemetry joined by trace id", () => {
       sessionIds: [sessionA],
     });
 
-    const byTrace: Array<HarnessEvent> = deletes(harness.events, "traceId");
+    expect(
+      deletes(harness.events, "traceId").map((event: HarnessEvent): string => {
+        return `${event.label}:${event.ids.length}`;
+      }),
+    ).toEqual(["logs:9999", "exceptions:9999", "spans:9999"]);
+  });
+
+  test("more than one mutation's worth of trace ids is chunked at MAX_TRACE_IDS_PER_MUTATION", async () => {
+    const ids: Array<string> = hexIds(25000, "a");
+    const harness: Harness = installHarness({ traceIdRows: traceRows(ids) });
+
+    await eraseSessionBatch({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionIds: [sessionA],
+    });
 
     /* Three chunks, each submitted to Log, then ExceptionInstance, then Span. */
     expect(
-      byTrace.map((event: HarnessEvent): string => {
+      deletes(harness.events, "traceId").map((event: HarnessEvent): string => {
         return `${event.label}:${event.ids.length}`;
       }),
     ).toEqual([
-      "logs:1000",
-      "exceptions:1000",
-      "spans:1000",
-      "logs:1000",
-      "exceptions:1000",
-      "spans:1000",
-      "logs:500",
-      "exceptions:500",
-      "spans:500",
+      "logs:10000",
+      "exceptions:10000",
+      "spans:10000",
+      "logs:10000",
+      "exceptions:10000",
+      "spans:10000",
+      "logs:5000",
+      "exceptions:5000",
+      "spans:5000",
     ]);
 
-    for (const label of ["logs", "exceptions", "spans"]) {
-      const covered: Array<string> = byTrace
-        .filter((event: HarnessEvent): boolean => {
-          return event.label === label;
-        })
-        .flatMap((event: HarnessEvent): Array<string> => {
-          return event.ids;
-        });
-
+    for (const label of ["logs", "exceptions", "spans"] as Array<DeleteLabel>) {
       /* Every id once, none twice. */
-      expect(covered).toEqual(ids);
+      expect(traceIdsDeletedFrom(harness.events, label)).toEqual(ids);
     }
   });
 
@@ -623,7 +902,7 @@ describe("eraseSessionBatch erases the telemetry joined by trace id", () => {
       "pins",
     ]);
     expect(logger.info).not.toHaveBeenCalledWith(
-      expect.stringContaining("trace(s) stamped"),
+      expect.stringContaining("trace(s)"),
     );
   });
 
@@ -725,7 +1004,7 @@ describe("eraseSessionBatch erases the telemetry joined by trace id", () => {
     }
   });
 
-  test("the read and the deletes go through the migration pool", async () => {
+  test("the read and the deletes go through the migration pool; the trace-id deletes get room for their query text", async () => {
     const harness: Harness = installHarness({
       traceIdRows: traceRows([traceOne]),
     });
@@ -736,61 +1015,33 @@ describe("eraseSessionBatch erases the telemetry joined by trace id", () => {
       sessionIds: [sessionA],
     });
 
-    const read: HarnessEvent | undefined = harness.events.find(
-      (event: HarnessEvent): boolean => {
-        return event.kind === "read-trace-ids";
-      },
-    );
-
     /*
      * An unbounded read of the project's span history can outlast the App
      * pool's 58s socket-idle timer before its first byte.
      */
-    expect(read?.options).toBe(MigrationExecuteOptions);
-    expect(read?.options?.useMigrationConnection).toBe(true);
+    expect(reads(harness.events)[0]!.options).toBe(MigrationExecuteOptions);
+    expect(reads(harness.events)[0]!.options?.useMigrationConnection).toBe(
+      true,
+    );
 
     for (const event of deletes(harness.events, "traceId")) {
+      expect(event.options).toBe(TRACE_DELETE_EXECUTE_OPTIONS);
+    }
+
+    /*
+     * Everything MigrationExecuteOptions carries, plus max_query_size: the
+     * queued ON CLUSTER text holds the ids as literals, and 26.7 parses it
+     * under max_query_size (256 KiB by default).
+     */
+    expect(TRACE_DELETE_EXECUTE_OPTIONS.useMigrationConnection).toBe(true);
+    expect(TRACE_DELETE_EXECUTE_OPTIONS.clickhouseSettings).toEqual({
+      ...MigrationExecuteOptions.clickhouseSettings,
+      max_query_size: String(TRACE_DELETE_MAX_QUERY_SIZE),
+    });
+
+    for (const event of deletes(harness.events, "sessionId")) {
       expect(event.options).toBe(MigrationExecuteOptions);
     }
-  });
-
-  test("a batch that reaches the cap is logged, and still erases what it read", async () => {
-    const harness: Harness = installHarness({
-      traceIdRows: traceRows(hexIds(MAX_TRACE_IDS_PER_SESSION_BATCH, "c")),
-    });
-
-    await eraseSessionBatch({
-      databaseName: databaseName,
-      projectId: projectId,
-      sessionIds: [sessionA],
-    });
-
-    expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining("NOT removed"),
-    );
-    expect(logger.warn).toHaveBeenCalledWith(
-      expect.stringContaining(projectId.toString()),
-    );
-
-    const byTrace: Array<HarnessEvent> = deletes(harness.events, "traceId");
-
-    expect(byTrace.length).toBe(
-      (MAX_TRACE_IDS_PER_SESSION_BATCH / MAX_TRACE_IDS_PER_MUTATION) * 3,
-    );
-  });
-
-  test("a batch below the cap logs no warning", async () => {
-    installHarness({
-      traceIdRows: traceRows(hexIds(MAX_TRACE_IDS_PER_SESSION_BATCH - 1, "d")),
-    });
-
-    await eraseSessionBatch({
-      databaseName: databaseName,
-      projectId: projectId,
-      sessionIds: [sessionA],
-    });
-
-    expect(logger.warn).not.toHaveBeenCalled();
   });
 
   test("a failed trace-id read submits no delete at all", async () => {
@@ -816,7 +1067,7 @@ describe("eraseSessionBatch erases the telemetry joined by trace id", () => {
 
   test("a failed trace-id delete leaves Span's session-id delete and the header for the retry", async () => {
     const harness: Harness = installHarness({
-      traceIdRows: traceRows(hexIds(1500, "e")),
+      traceIdRows: traceRows(hexIds(15000, "e")),
       failDelete: (
         label: DeleteLabel,
         column: DeleteColumn,
@@ -824,7 +1075,7 @@ describe("eraseSessionBatch erases the telemetry joined by trace id", () => {
       ): boolean => {
         /* The second chunk's ExceptionInstance mutation is refused. */
         return (
-          label === "exceptions" && column === "traceId" && ids.length === 500
+          label === "exceptions" && column === "traceId" && ids.length === 5000
         );
       },
     });
@@ -851,6 +1102,219 @@ describe("eraseSessionBatch erases the telemetry joined by trace id", () => {
       "spans:traceId",
       "logs:traceId",
     ]);
+  });
+});
+
+/*
+ * Shared and pre-dated traces. The recorder stamps a page-set traceparent
+ * too (it adds its member whenever a same-origin request has no
+ * tracestate), so a server-rendered id cached for many visitors carries
+ * every one of their sessions; and a forged tracestate can pull a known
+ * trace into a session. Neither kind of trace is the erased session's to
+ * take with it.
+ */
+describe("eraseSessionBatch erases by trace id only the traces the batch owns alone", () => {
+  test("a trace another session also stamped is not in the delete list; the batch's own stamped spans still go", async () => {
+    const harness: Harness = installHarness({
+      traceIdRows: [
+        ...traceRows([traceTwo]),
+        /* also stamped by a session outside the batch */
+        ...traceRows([traceOne], 0),
+        ...traceRows([traceThree]),
+      ],
+    });
+
+    await eraseSessionBatch({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionIds: [sessionA],
+    });
+
+    for (const label of ["logs", "exceptions", "spans"] as Array<DeleteLabel>) {
+      expect(traceIdsDeletedFrom(harness.events, label)).toEqual([
+        traceTwo,
+        traceThree,
+      ]);
+    }
+
+    /*
+     * Its spans stamped with the erased id are the session's own: the
+     * session-id delete on Span takes them, whatever the trace.
+     */
+    expect(deletes(harness.events, "sessionId", "spans").length).toBe(1);
+    expect(deletes(harness.events, "sessionId", "spans")[0]!.ids).toEqual([
+      sessionA,
+    ]);
+  });
+
+  test("a trace that started before the session (flagged not owned) is not in the delete list", async () => {
+    const harness: Harness = installHarness({
+      traceIdRows: [...traceRows([traceTwo], 0), ...traceRows([traceThree])],
+    });
+
+    await eraseSessionBatch({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionIds: [sessionA],
+    });
+
+    expect(traceIdsDeletedFrom(harness.events, "logs")).toEqual([traceThree]);
+  });
+
+  test("when no candidate is owned, nothing is deleted by trace id and the session-id deletes still run", async () => {
+    const harness: Harness = installHarness({
+      traceIdRows: traceRows([traceOne, traceTwo], 0),
+    });
+
+    await eraseSessionBatch({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionIds: [sessionA],
+    });
+
+    expect(deletes(harness.events, "traceId")).toEqual([]);
+    expect(deletes(harness.events, "sessionId").length).toBe(5);
+  });
+
+  test("only a real true flag counts as owned; anything else is skipped", async () => {
+    const harness: Harness = installHarness({
+      traceIdRows: [
+        { traceId: hexIds(1, "1")[0]!, ownedByBatch: 1 },
+        { traceId: hexIds(1, "2")[0]!, ownedByBatch: "1" },
+        { traceId: hexIds(1, "3")[0]!, ownedByBatch: true },
+        { traceId: hexIds(1, "4")[0]!, ownedByBatch: 0 },
+        { traceId: hexIds(1, "5")[0]!, ownedByBatch: "0" },
+        { traceId: hexIds(1, "6")[0]!, ownedByBatch: null },
+        { traceId: hexIds(1, "7")[0]!, ownedByBatch: "true" },
+        { traceId: hexIds(1, "8")[0]! },
+      ] as Array<JSONObject>,
+    });
+
+    await eraseSessionBatch({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionIds: [sessionA],
+    });
+
+    expect(traceIdsDeletedFrom(harness.events, "logs")).toEqual([
+      hexIds(1, "1")[0]!,
+      hexIds(1, "2")[0]!,
+      hexIds(1, "3")[0]!,
+    ]);
+  });
+
+  test("how many candidates were skipped is logged", async () => {
+    installHarness({
+      traceIdRows: [
+        ...traceRows([traceTwo, traceThree], 0),
+        ...traceRows([traceOne]),
+      ],
+    });
+
+    await eraseSessionBatch({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionIds: [sessionA],
+    });
+
+    expect(logger.info).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `2 of 3 trace(s) stamped with erased sessions in project ${projectId.toString()} are shared with other sessions, or have spans that started more than ${TRACE_OWNERSHIP_SKEW_MINUTES} minutes before or after theirs`,
+      ),
+    );
+  });
+
+  test("nothing skipped, nothing logged about skipping", async () => {
+    installHarness({ traceIdRows: traceRows([traceOne]) });
+
+    await eraseSessionBatch({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionIds: [sessionA],
+    });
+
+    expect(logger.info).not.toHaveBeenCalledWith(
+      expect.stringContaining("shared with other sessions"),
+    );
+  });
+});
+
+/*
+ * No cap, and one lookup per batch. The first lookup stopped at 10,000 ids
+ * per batch, logged a warning and let the request complete, and the
+ * session-id delete on Span then removed the stamped spans the rest could
+ * have been found by. The next one paged by 10,000, but every page re-ran
+ * the whole aggregation (two scans of the project's span history) before
+ * its LIMIT threw most of it away.
+ */
+describe("eraseSessionBatch reads every trace id in one lookup before any delete", () => {
+  test("more than ten thousand ids: one lookup, all before the first delete, every id deleted exactly once", async () => {
+    const ids: Array<string> = hexIds(25000, "a");
+    const harness: Harness = installHarness({ traceIdRows: traceRows(ids) });
+
+    await eraseSessionBatch({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionIds: [sessionA],
+    });
+
+    const lookups: Array<HarnessEvent> = reads(harness.events);
+
+    expect(lookups.length).toBe(1);
+    expect(normalized(lookups[0]!.statement!)).not.toContain("LIMIT");
+
+    const firstDeleteIndex: number = harness.events.findIndex(
+      (event: HarnessEvent): boolean => {
+        return event.kind === "delete";
+      },
+    );
+
+    expect(firstDeleteIndex).toBeGreaterThan(
+      harness.events.indexOf(lookups[0]!),
+    );
+
+    for (const label of ["logs", "exceptions", "spans"] as Array<DeleteLabel>) {
+      expect(traceIdsDeletedFrom(harness.events, label)).toEqual(ids);
+    }
+
+    expect(logger.warn).not.toHaveBeenCalled();
+  });
+
+  test("exactly ten thousand ids is not taken as a full page: one lookup, nothing read again", async () => {
+    const ids: Array<string> = hexIds(10000, "b");
+    const harness: Harness = installHarness({ traceIdRows: traceRows(ids) });
+
+    await eraseSessionBatch({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionIds: [sessionA],
+    });
+
+    expect(reads(harness.events).length).toBe(1);
+    expect(traceIdsDeletedFrom(harness.events, "spans")).toEqual(ids);
+  });
+
+  test("skipped and unusable ids among many are left out, the rest all deleted", async () => {
+    const ids: Array<string> = hexIds(10002, "c");
+    const rows: Array<JSONObject> = traceRows(ids);
+
+    rows[9999]!["ownedByBatch"] = 0;
+    rows.push({ traceId: "", ownedByBatch: 1 });
+
+    const harness: Harness = installHarness({ traceIdRows: rows });
+
+    await eraseSessionBatch({
+      databaseName: databaseName,
+      projectId: projectId,
+      sessionIds: [sessionA],
+    });
+
+    expect(reads(harness.events).length).toBe(1);
+    expect(traceIdsDeletedFrom(harness.events, "logs")).toEqual(
+      ids.filter((_id: string, index: number): boolean => {
+        return index !== 9999;
+      }),
+    );
   });
 });
 
@@ -913,19 +1377,19 @@ describe("processErasureRequest erases the trace-joined telemetry per batch", ()
       request: explicitRequest({ ids: ids }),
     });
 
-    const reads: Array<number> = [];
+    const readIndexes: Array<number> = [];
 
     harness.events.forEach((event: HarnessEvent, index: number): void => {
       if (event.kind === "read-trace-ids") {
-        reads.push(index);
+        readIndexes.push(index);
       }
     });
 
-    expect(reads.length).toBe(2);
-    expect(harness.events[reads[0]!]!.ids).toEqual(
+    expect(readIndexes.length).toBe(2);
+    expect(harness.events[readIndexes[0]!]!.ids).toEqual(
       ids.slice(0, MAX_SESSION_IDS_PER_MUTATION),
     );
-    expect(harness.events[reads[1]!]!.ids).toEqual(
+    expect(harness.events[readIndexes[1]!]!.ids).toEqual(
       ids.slice(MAX_SESSION_IDS_PER_MUTATION),
     );
 
@@ -936,12 +1400,55 @@ describe("processErasureRequest erases the trace-joined telemetry per batch", ()
       },
     );
 
-    expect(reads[1]!).toBeGreaterThan(firstPins);
-    expect(harness.events[reads[1]! + 1]!.kind).toBe("delete");
+    expect(readIndexes[1]!).toBeGreaterThan(firstPins);
+    expect(harness.events[readIndexes[1]! + 1]!.kind).toBe("delete");
+
+    /*
+     * One lookup per batch, and each judges ownership against its own
+     * sessions only (the NOT IN set is the batch, which lookupSessionIds
+     * checks): a trace stamped by sessions in different batches looks
+     * shared to a lookup that still sees the other batch's stamps.
+     */
+    for (const index of readIndexes) {
+      expect(
+        arrayParams(harness.events[index]!.statement!).map(
+          (sessionIds: Array<string>): number => {
+            return sessionIds.length;
+          },
+        ),
+      ).toEqual(
+        index === readIndexes[0]
+          ? [MAX_SESSION_IDS_PER_MUTATION, MAX_SESSION_IDS_PER_MUTATION]
+          : [1, 1],
+      );
+    }
 
     /* One set of three trace-id deletes per batch. */
     expect(deletes(harness.events, "traceId").length).toBe(6);
     expect(requestHarness.markCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  test("a batch naming more than twenty thousand traces completes after one lookup, every one of them erased", async () => {
+    const traceIds: Array<string> = hexIds(20001, "a");
+    const harness: Harness = installHarness({
+      traceIdRows: traceRows(traceIds),
+    });
+    const requestHarness: RequestHarness = installRequestHarness();
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: explicitRequest({ ids: [sessionA] }),
+    });
+
+    expect(requestHarness.markCompleted).toHaveBeenCalledTimes(1);
+    expect(requestHarness.updateOneById).not.toHaveBeenCalled();
+    expect(reads(harness.events).length).toBe(1);
+
+    for (const label of ["logs", "exceptions", "spans"] as Array<DeleteLabel>) {
+      expect(traceIdsDeletedFrom(harness.events, label)).toEqual(traceIds);
+    }
+
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 
   test("a failed trace-id read requeues the request as a retry, with nothing deleted", async () => {
@@ -988,11 +1495,7 @@ describe("processErasureRequest erases the trace-joined telemetry per batch", ()
       request: explicitRequest({ ids: [sessionA], attempts: 1 }),
     });
 
-    expect(
-      harness.events.filter((event: HarnessEvent): boolean => {
-        return event.kind === "read-trace-ids";
-      }).length,
-    ).toBe(1);
+    expect(reads(harness.events).length).toBe(1);
     expect(deletes(harness.events, "traceId").length).toBe(3);
   });
 

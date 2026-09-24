@@ -36,8 +36,9 @@ export const SESSION_TRACE_STATE_KEY: string = "oneuptime";
  * Hostile-input bounds for the parser. W3C caps a well-formed header at 32
  * members, and the OpenTelemetry JS SDK at 512 characters, but other SDKs
  * only cap member count and member length, so a legitimate value carrying
- * other vendors' members can be longer than 512. These bound the WORK, not
- * what counts as valid.
+ * other vendors' members can be longer than 512. Past these a value is not
+ * one the recorder wrote, so no session is read out of it - but our
+ * members are still stripped from it.
  */
 const MAX_TRACE_STATE_LENGTH: number = 8192;
 const MAX_TRACE_STATE_MEMBERS: number = 64;
@@ -111,18 +112,21 @@ export function parseSessionTraceState(
    * Fast path, and the path almost every span takes: no member of ours,
    * nothing to parse and nothing to strip.
    */
-  if (
-    traceState.indexOf(SESSION_TRACE_STATE_KEY) === -1 ||
-    traceState.length > MAX_TRACE_STATE_LENGTH
-  ) {
+  if (traceState.indexOf(SESSION_TRACE_STATE_KEY) === -1) {
     return { sessionTraceState: null, remainingTraceState: traceState };
   }
 
   const members: Array<string> = traceState.split(",");
 
-  if (members.length > MAX_TRACE_STATE_MEMBERS) {
-    return { sessionTraceState: null, remainingTraceState: traceState };
-  }
+  /*
+   * Past the bounds nothing is READ as a session - a value this far out of
+   * spec is not one the recorder wrote - but our members are still
+   * stripped, so an id cannot survive in the raw trace state just because
+   * the value around it was oversized.
+   */
+  const isWithinBounds: boolean =
+    traceState.length <= MAX_TRACE_STATE_LENGTH &&
+    members.length <= MAX_TRACE_STATE_MEMBERS;
 
   let sessionTraceState: SessionTraceState | null = null;
   let sawSessionMember: boolean = false;
@@ -149,10 +153,8 @@ export function parseSessionTraceState(
      * one can still hold an id, and the point of stripping is that no id
      * survives outside the sessionId column.
      */
-    if (!sawSessionMember && equalsIndex !== -1) {
-      sessionTraceState = readSessionMemberValue(
-        member.slice(equalsIndex + 1),
-      );
+    if (isWithinBounds && !sawSessionMember && equalsIndex !== -1) {
+      sessionTraceState = readSessionMemberValue(member.slice(equalsIndex + 1));
     }
 
     sawSessionMember = true;
