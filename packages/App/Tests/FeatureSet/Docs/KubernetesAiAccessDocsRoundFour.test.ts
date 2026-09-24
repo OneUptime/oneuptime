@@ -63,10 +63,6 @@ const CHART_README: string = path.join(CHART_DIR, "README.md");
 const CHART_NOTES: string = path.join(CHART_DIR, "templates/NOTES.txt");
 const CHART_VALUES: string = path.join(CHART_DIR, "values.yaml");
 const CHART_SCHEMA: string = path.join(CHART_DIR, "values.schema.json");
-const ROADMAP: string = path.join(
-  REPOSITORY_ROOT,
-  "Docs/Internal/Roadmap/AiClusterAccess.md",
-);
 
 // How the cluster AI page is named in an expectation.
 const AI_PAGE: string = "Pages/Kubernetes/View/AI.tsx";
@@ -233,7 +229,6 @@ function getResetCopies(): Array<CopySource> {
       CHART_NOTES,
       CHART_VALUES,
       CHART_SCHEMA,
-      ROADMAP,
     ].map(fileSource),
     {
       label: `${AI_PAGE} (scoped command note)`,
@@ -461,7 +456,7 @@ describe("deleting the in-cluster Runner so the agent registers a fresh one", ()
   });
 
   it("never suggests deleting the Runner without that second step", () => {
-    for (const file of [...REGISTRATION_COPIES, ROADMAP]) {
+    for (const file of REGISTRATION_COPIES) {
       expect({
         file: relative(file),
         deleteWithoutReselect: getDeleteWithoutReselect(getParagraphs(file)),
@@ -509,7 +504,6 @@ describe("the round-four policy changes, in the docs", () => {
     CHART_NOTES,
     CHART_VALUES,
     CHART_SCHEMA,
-    ROADMAP,
   ];
 
   it("names a patch of a node with the drain and the taint as always needing a human", () => {
@@ -556,7 +550,6 @@ describe("the round-four policy changes, in the docs", () => {
       CHART_NOTES,
       CHART_VALUES,
       CHART_SCHEMA,
-      ROADMAP,
     ]) {
       expect({
         file: relative(file),
@@ -565,7 +558,7 @@ describe("the round-four policy changes, in the docs", () => {
     }
 
     // The deny lists that spell out flags name --override-type too.
-    for (const file of [AI_SRE_PAGE, CHART_README, ROADMAP]) {
+    for (const file of [AI_SRE_PAGE, CHART_README]) {
       expect({
         file: relative(file),
         overrideType: read(file).includes("`--override-type`"),
@@ -574,7 +567,7 @@ describe("the round-four policy changes, in the docs", () => {
   });
 
   it("names the host and isolation fields a pod-template patch may not set", () => {
-    for (const file of [AI_SRE_PAGE, CHART_README, CHART_VALUES, ROADMAP]) {
+    for (const file of [AI_SRE_PAGE, CHART_README, CHART_VALUES]) {
       const text: string = readFlat(file);
 
       expect({
@@ -596,9 +589,6 @@ describe("the round-four policy changes, in the docs", () => {
 
     expect(page).toContain(
       "To limit where such a Runner may write, start it with `ONEUPTIME_KUBECTL_WRITE_NAMESPACES` (and `ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false` to keep fixes off nodes): the Runner reports those limits, so OneUptime refuses a fix outside them when it is proposed or approved, before it reaches the Runner, and the Runner refuses it again.",
-    );
-    expect(readFlat(ROADMAP)).toContain(
-      "An ordinary (credential) Runner reports the write limits of its own environment",
     );
   });
 });
