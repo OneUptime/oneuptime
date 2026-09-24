@@ -106,6 +106,34 @@ export const REPLAY_BACKEND_SIGNALS_LIVE_REFRESH_MS: number = 60 * 1000;
 export const REPLAY_BACKEND_SIGNALS_REFRESH_TICK_MS: number = 5 * 1000;
 
 /*
+ * The least rest a live slot gets after its load settles before it is due
+ * again. The interval runs from the load's START so a fast read keeps a
+ * steady once-a-minute cadence, but a slow one - a struggling ClickHouse
+ * can take the grouped read and read B to the 45 s query cap each - must
+ * not be re-run the moment it settles, by every open viewer, against the
+ * backend that made it slow.
+ */
+export const REPLAY_BACKEND_SIGNALS_MIN_REST_MS: number = 30 * 1000;
+
+/*
+ * The fetchedAtUnixMs a load that started at startedAtUnixMs and settles
+ * at settledAtUnixMs leaves on its slot: its start, unless that would make
+ * the slot due again sooner than REPLAY_BACKEND_SIGNALS_MIN_REST_MS after
+ * it settled.
+ */
+export function getBackendRefreshStamp(
+  startedAtUnixMs: number,
+  settledAtUnixMs: number,
+): number {
+  return Math.max(
+    startedAtUnixMs,
+    settledAtUnixMs -
+      (REPLAY_BACKEND_SIGNALS_LIVE_REFRESH_MS -
+        REPLAY_BACKEND_SIGNALS_MIN_REST_MS),
+  );
+}
+
+/*
  * The most trace ids one trace-id read names (~34 KB of request body at
  * the cap). Recording ids fill it first, then header ids, then span ids.
  */
@@ -783,7 +811,8 @@ function traceIdSetCapOf(slot: ReplayBackendSignalsSlot): {
  * A finished slot older than the refresh interval, on a live session. The
  * age runs from when the slot's load STARTED (fetchedAtUnixMs), so a read
  * that took a few hundred milliseconds is still due one interval after
- * the last one began, not one interval plus its latency.
+ * the last one began, not one interval plus its latency - and a slow read
+ * still rests REPLAY_BACKEND_SIGNALS_MIN_REST_MS (getBackendRefreshStamp).
  */
 export function isBackendRefreshDue(
   slot: ReplayBackendSignalsSlot,
@@ -1051,7 +1080,8 @@ export class ReplayBackendSignalsStore {
     const generation: number = this.generations[kind];
     /*
      * The settled slot's fetchedAtUnixMs: the refresh interval runs from
-     * when this load began, not from when it settled (isBackendRefreshDue).
+     * when this load began, not from when it settled (isBackendRefreshDue),
+     * with a minimum rest after a slow one (getBackendRefreshStamp).
      */
     const startedAtUnixMs: number = this.now();
 
@@ -1137,7 +1167,11 @@ export class ReplayBackendSignalsStore {
       this.publish({
         slots: {
           ...this.snapshot.slots,
-          [kind]: this.settledSlot(kind, read, startedAtUnixMs),
+          [kind]: this.settledSlot(
+            kind,
+            read,
+            getBackendRefreshStamp(startedAtUnixMs, this.now()),
+          ),
         },
         rows: rows,
       });
@@ -1154,6 +1188,10 @@ export class ReplayBackendSignalsStore {
       const failure: ReplayBackendSignalsFailure =
         classifyBackendSignalsFailure(error, kind);
       const previous: ReplayBackendSignalsSlot = this.snapshot.slots[kind];
+      const refreshStamp: number = getBackendRefreshStamp(
+        startedAtUnixMs,
+        this.now(),
+      );
 
       if (failure.status === "locked") {
         this.patchSlot(kind, {
@@ -1161,7 +1199,7 @@ export class ReplayBackendSignalsStore {
           rowCount: null,
           isTruncated: false,
           lockedPermission: failure.lockedPermission,
-          fetchedAtUnixMs: startedAtUnixMs,
+          fetchedAtUnixMs: refreshStamp,
         });
       } else {
         /* A failed refresh keeps the last good rows and count on screen. */
@@ -1171,7 +1209,7 @@ export class ReplayBackendSignalsStore {
           isTruncated: previous.isTruncated,
           ...traceIdSetCapOf(previous),
           errorMessage: failure.errorMessage,
-          fetchedAtUnixMs: startedAtUnixMs,
+          fetchedAtUnixMs: refreshStamp,
         });
       }
     }

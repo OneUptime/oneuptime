@@ -45,6 +45,7 @@ import {
   REPLAY_BACKEND_RECORDING_RELOAD_DEBOUNCE_MS,
   REPLAY_BACKEND_SESSION_TRACE_IDS_LIMIT,
   REPLAY_BACKEND_SIGNALS_LIVE_REFRESH_MS,
+  REPLAY_BACKEND_SIGNALS_MIN_REST_MS,
   REPLAY_BACKEND_SIGNALS_REFRESH_TICK_MS,
   REPLAY_BACKEND_SIGNALS_WINDOW_PADDING_MS,
   REPLAY_BACKEND_SIGNAL_PERMISSIONS,
@@ -63,6 +64,7 @@ import {
   buildSessionTraceIdsRequest,
   classifyBackendSignalsFailure,
   describePartialBackendSignalsFailure,
+  getBackendRefreshStamp,
   isBackendListTruncated,
   isBackendRefreshDue,
   isSessionTraceIdListCapped,
@@ -870,6 +872,65 @@ describe("live refresh", () => {
 
     now = startedAt + REPLAY_BACKEND_SIGNALS_LIVE_REFRESH_MS;
     expect(store.getRefreshDueKinds()).toEqual(["log", "span"]);
+  });
+
+  /*
+   * Final review: with the interval measured from the load's START, a read
+   * slower than the interval was due again the moment it settled, so on a
+   * struggling backend every open live viewer re-ran A, the grouped read
+   * and B back to back. A slow load - succeeded or failed - now rests at
+   * least REPLAY_BACKEND_SIGNALS_MIN_REST_MS after it settles.
+   */
+  test("a slow load, succeeded or failed, rests the minimum after it settles instead of being due at once", async () => {
+    let now: number = START_UNIX_MS + 60_000;
+    const startedAt: number = now;
+    const { store, fetcher } = makeStore({
+      isFinalized: false,
+      endTimeUnixMs: null,
+      now: (): number => {
+        return now;
+      },
+    });
+
+    const logs: Promise<void> = store.load("log");
+    const spans: Promise<void> = store.load("span");
+
+    /* Both reads take 80 s, longer than the refresh interval. */
+    now += 80_000;
+    const settledAt: number = now;
+    fetcher.resolve(0, listResult(makeLogs(1)));
+    fetcher.reject(1, new HTTPErrorResponse(504, { message: "slow" }, {}));
+    await Promise.all([logs, spans]);
+
+    expect(store.getSlot("log").status).toBe("ready");
+    expect(store.getSlot("span").status).toBe("error");
+    expect(store.getRefreshDueKinds()).toEqual([]);
+
+    now = settledAt + REPLAY_BACKEND_SIGNALS_MIN_REST_MS - 1;
+    expect(store.getRefreshDueKinds()).toEqual([]);
+
+    now = settledAt + REPLAY_BACKEND_SIGNALS_MIN_REST_MS;
+    expect(store.getRefreshDueKinds()).toEqual(["log", "span"]);
+    expect(store.getSlot("log").fetchedAtUnixMs).toBeGreaterThan(startedAt);
+  });
+
+  test("getBackendRefreshStamp: the load's start, unless that leaves less than the minimum rest", () => {
+    expect(REPLAY_BACKEND_SIGNALS_MIN_REST_MS).toBe(30_000);
+    expect(REPLAY_BACKEND_SIGNALS_MIN_REST_MS).toBeLessThan(
+      REPLAY_BACKEND_SIGNALS_LIVE_REFRESH_MS,
+    );
+
+    /* Fast and moderately slow reads keep the start: a steady cadence. */
+    expect(getBackendRefreshStamp(1_000_000, 1_000_300)).toBe(1_000_000);
+    expect(getBackendRefreshStamp(1_000_000, 1_030_000)).toBe(1_000_000);
+
+    /* Slower reads are due exactly the minimum rest after they settle. */
+    const settledAt: number = 1_080_000;
+    const stamp: number = getBackendRefreshStamp(1_000_000, settledAt);
+
+    expect(stamp + REPLAY_BACKEND_SIGNALS_LIVE_REFRESH_MS).toBe(
+      settledAt + REPLAY_BACKEND_SIGNALS_MIN_REST_MS,
+    );
   });
 });
 
