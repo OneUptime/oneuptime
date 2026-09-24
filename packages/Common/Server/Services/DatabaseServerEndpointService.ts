@@ -138,9 +138,14 @@ export class Service extends DatabaseService<Model> {
       },
     );
 
-    if (!endpoint) {
+    /*
+     * The parser treats an out-of-range port as "no port" and would quietly
+     * fill in the engine default - right for telemetry, wrong for a value a
+     * person typed and expects to be kept.
+     */
+    if (!endpoint || hasOutOfRangePort(data.endpoint)) {
       throw new BadDataException(
-        `${describeRejectedValue(data.endpoint)} is not a valid host[:port] endpoint. Enter a host name or IP address with an optional port, for example orders-db.internal:5432. Loopback addresses such as localhost cannot be used, because every application reaches its own.`,
+        `${describeRejectedValue(data.endpoint)} is not a valid host[:port] endpoint. Enter a host name or IP address with an optional port (1-65535), for example orders-db.internal:5432. Loopback addresses such as localhost cannot be used, because every application reaches its own.`,
       );
     }
 
@@ -403,6 +408,44 @@ export async function getOwnedByOtherDatabaseMessage(
     : "another database";
 
   return `${formattedEndpoint} already belongs to ${ownerLabel}. An endpoint can belong to only one database in a project - remove it from that database first.`;
+}
+
+/*
+ * True when a typed "host:port" (optionally "[v6]:port" and/or "@cluster")
+ * names a port outside 1-65535. A bare IPv6 address has no port to check.
+ */
+export function hasOutOfRangePort(value: unknown): boolean {
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  let address: string = value.trim();
+
+  // URL forms carry userinfo, not a cluster, after "@".
+  if (!/^(?:jdbc:)?[a-z][a-z0-9+.-]*:\/\//i.test(address)) {
+    const atIndex: number = address.lastIndexOf("@");
+    if (atIndex >= 0) {
+      address = address.substring(0, atIndex);
+    }
+  } else {
+    address = address.replace(/^(?:jdbc:)?[a-z][a-z0-9+.-]*:\/\//i, "");
+    address = address.substring(address.lastIndexOf("@") + 1);
+    address = address.split(/[/?#;]/)[0] || "";
+  }
+
+  const colonCount: number = (address.match(/:/g) || []).length;
+  const match: RegExpMatchArray | null =
+    address.startsWith("[") || colonCount === 1
+      ? address.match(/:(\d+)$/)
+      : null;
+
+  if (!match) {
+    return false;
+  }
+
+  const port: number = Number(match[1]);
+
+  return !Number.isInteger(port) || port < 1 || port > 65535;
 }
 
 function describeRejectedValue(value: unknown): string {

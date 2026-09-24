@@ -3,6 +3,7 @@ import DatabaseServerEndpointService, {
   DatabaseServerEndpointClaimResult,
   DatabaseServerEndpointOwner,
   getOwnedByOtherDatabaseMessage,
+  hasOutOfRangePort,
 } from "./DatabaseServerEndpointService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import DatabaseServerLabelRuleEngineService from "./DatabaseServerLabelRuleEngineService";
@@ -2003,7 +2004,13 @@ function parseManualEndpoint(data: {
     system: data.dbSystem,
   });
 
-  if (!parsed) {
+  const hasPortField: boolean =
+    data.serverPort !== undefined &&
+    data.serverPort !== null &&
+    data.serverPort !== "";
+
+  // A port field, when filled, replaces whatever port the address carried.
+  if (!parsed || (!hasPortField && hasOutOfRangePort(address))) {
     throw new BadDataException(
       `"${
         address.length > 100 ? `${address.substring(0, 100)}…` : address
@@ -2013,11 +2020,7 @@ function parseManualEndpoint(data: {
 
   const endpoint: DatabaseEndpoint = { ...parsed };
 
-  if (
-    data.serverPort !== undefined &&
-    data.serverPort !== null &&
-    data.serverPort !== ""
-  ) {
+  if (hasPortField) {
     const port: number = Number(data.serverPort);
 
     if (!Number.isInteger(port) || port < 1 || port > MAX_PORT) {

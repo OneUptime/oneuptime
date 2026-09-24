@@ -21,6 +21,7 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
 import DatabaseServerEndpointService, {
   DatabaseServerEndpointClaimResult,
   DatabaseServerEndpointOwner,
+  hasOutOfRangePort,
 } from "../../../Server/Services/DatabaseServerEndpointService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
@@ -209,6 +210,38 @@ describe("DatabaseServerEndpointService.findOwnerByEndpoint", () => {
       );
 
     expect(result!.isPrimary).toBe(false);
+  });
+});
+
+/*
+ * The endpoint parser reads an out-of-range port as "no port" (right for
+ * telemetry). A person's typed value must be refused instead of having the
+ * engine default quietly substituted.
+ */
+describe("hasOutOfRangePort", () => {
+  test.each([
+    ["db.internal:99999", true],
+    ["db.internal:0", true],
+    ["db.internal:65536", true],
+    ["[2001:db8::1]:70000", true],
+    ["db.internal:70000@prod", true],
+    ["postgresql://user@db.internal:99999/orders", true],
+    ["db.internal:5432", false],
+    ["db.internal:65535", false],
+    ["db.internal", false],
+    ["db.internal:5432@prod", false],
+    ["[2001:db8::1]:5432", false],
+    // A bare IPv6 address has no port to check.
+    ["2001:db8::99999", false],
+    ["postgresql://user:secret@db.internal:5432/orders", false],
+    ["", false],
+  ])("%s -> %s", (value: string, expected: boolean) => {
+    expect(hasOutOfRangePort(value)).toBe(expected);
+  });
+
+  test("a non-string is never out of range", () => {
+    expect(hasOutOfRangePort(5432)).toBe(false);
+    expect(hasOutOfRangePort(undefined)).toBe(false);
   });
 });
 

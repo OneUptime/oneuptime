@@ -360,6 +360,19 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
     );
   });
 
+  test("a valid port field overrides a bad port typed into the address", async () => {
+    const created: DatabaseServer = await DatabaseServerService.create(
+      manualRequest({
+        serverAddress: "orders-db.internal:99999",
+        serverPort: 5433,
+      }),
+    );
+
+    expect(created.databaseIdentifier).toBe(
+      "postgresql|orders-db.internal:5433",
+    );
+  });
+
   test("an IPv6 address takes the port field without being mangled", async () => {
     const created: DatabaseServer = await DatabaseServerService.create(
       manualRequest({ serverAddress: "2001:db8::10", serverPort: 5433 }),
@@ -392,6 +405,11 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
       "localhost",
       { serverAddress: "localhost" },
       '"localhost" is not a valid host[:port] endpoint.',
+    ],
+    [
+      "an out-of-range port typed into the address",
+      { serverAddress: "orders-db.internal:99999" },
+      '"orders-db.internal:99999" is not a valid host[:port] endpoint.',
     ],
     [
       "a port of 0",
