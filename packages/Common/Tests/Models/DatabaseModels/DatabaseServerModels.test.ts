@@ -996,13 +996,23 @@ describe("Databases (DatabaseServer) models", () => {
       ).toBe("jsonb");
     });
 
-    test("new rows render sensibly: 0 instances, collector disconnected, not archived", () => {
+    test("new rows render sensibly: 0 instances, no collector status, not archived", () => {
       expect(columnArgs(DatabaseServer, "instanceCount").options.default).toBe(
         0,
       );
+      /*
+       * "disconnected" means a collector reported and stopped. A row found
+       * from traces, containers or by hand never had one, so it must not be
+       * born claiming one "disconnected": no DB default, NULL until a
+       * collector reports.
+       */
       expect(
         columnArgs(DatabaseServer, "otelCollectorStatus").options.default,
-      ).toBe("disconnected");
+      ).toBeUndefined();
+      expect(
+        columnArgs(DatabaseServer, "otelCollectorStatus").options.nullable,
+      ).toBe(true);
+      expect(new DatabaseServer().otelCollectorStatus).toBeUndefined();
       expect(columnArgs(DatabaseServer, "isArchived").options.default).toBe(
         false,
       );
@@ -1013,6 +1023,7 @@ describe("Databases (DatabaseServer) models", () => {
 
       // No DB default where "unknown" must stay NULL.
       for (const column of [
+        "otelCollectorStatus",
         "lastSeenAt",
         "collectorLastSeenAt",
         "autoArchivedAt",

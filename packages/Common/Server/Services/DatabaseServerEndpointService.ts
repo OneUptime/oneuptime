@@ -20,8 +20,9 @@ import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException
 import ObjectID from "../../Types/ObjectID";
 import {
   DatabaseEndpoint,
+  ManualDatabaseEndpoint,
   formatDatabaseEndpoint,
-  parseDatabaseEndpointString,
+  parseManualDatabaseEndpoint,
 } from "../../Types/DatabaseServer/DatabaseEndpoint";
 
 /*
@@ -56,9 +57,6 @@ export interface DatabaseServerEndpointOwner {
   lastMatchedAt?: Date | undefined;
 }
 
-// How much of a rejected value an error message repeats back.
-const MAX_ECHOED_VALUE_LENGTH: number = 100;
-
 /*
  * "Last matched" is refreshed at most this often per endpoint: often enough
  * that a stale alias stands out on the Endpoints tab, rarely enough that a
@@ -66,8 +64,9 @@ const MAX_ECHOED_VALUE_LENGTH: number = 100;
  */
 export const ENDPOINT_MATCH_REFRESH_SECONDS: number = 60 * 60;
 
-// "postgresql://", "jdbc:mysql://" - a connection URL rather than host:port.
-const URL_SCHEME_PATTERN: RegExp = /^(?:jdbc:)?[a-z][a-z0-9+.-]*:\/\//i;
+// What an alias looks like, for the refusal of an empty one.
+const ENDPOINT_EXAMPLE: string =
+  "Enter the host name or IP address applications use to reach this database, with an optional port, for example orders-db.example.com:5432.";
 
 /*
  * The endpoints a database is reached at. Every endpoint belongs to at most
@@ -77,8 +76,8 @@ const URL_SCHEME_PATTERN: RegExp = /^(?:jdbc:)?[a-z][a-z0-9+.-]*:\/\//i;
  *
  * Endpoints are stored canonical (formatDatabaseEndpoint), because the
  * telemetry entity key of a database is derived from the endpoint string -
- * a person typing "Orders-DB.internal" must land on the same key ingest
- * computes for `server.address=orders-db.internal`.
+ * a person typing "Orders-DB.example.com" must land on the same key ingest
+ * computes for `server.address=orders-db.example.com`.
  */
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -165,10 +164,15 @@ export class Service extends DatabaseService<Model> {
     /*
      * Canonicalize with the database's own context: its engine supplies the
      * default port, and for a database discovered on Kubernetes its
-     * namespace expands a bare service name and its cluster qualifies a
-     * cluster-local name - exactly what ingest does for the pods calling it.
+     * namespace expands a bare service name (and `<service>.<namespace>` to
+     * the Service's full name) and its cluster qualifies a cluster-local
+     * name - exactly what ingest does for the pods calling it. A value that
+     * cannot be used - `user@host`, a cluster qualifier on a public host, a
+     * loopback name, a port outside 1-65535 - is refused with a message
+     * saying what to change, never read as something else or quietly given
+     * the engine's default port.
      */
-    const endpoint: DatabaseEndpoint | null = parseDatabaseEndpointString(
+    const manual: ManualDatabaseEndpoint = parseManualDatabaseEndpoint(
       data.endpoint,
       {
         system: databaseServer.dbSystem || "",
@@ -178,14 +182,13 @@ export class Service extends DatabaseService<Model> {
       },
     );
 
-    /*
-     * The parser treats an out-of-range port as "no port" and would quietly
-     * fill in the engine default - right for telemetry, wrong for a value a
-     * person typed and expects to be kept.
-     */
-    if (!endpoint || hasOutOfRangePort(data.endpoint)) {
+    const endpoint: DatabaseEndpoint | null = manual.endpoint;
+
+    if (!endpoint) {
       throw new BadDataException(
-        `${describeRejectedValue(data.endpoint)} is not a valid host[:port] endpoint. Enter a host name or IP address with an optional port (1-65535), for example orders-db.internal:5432. Loopback addresses such as localhost cannot be used, because every application reaches its own.`,
+        typeof data.endpoint !== "string" || !data.endpoint.trim()
+          ? `Endpoint is required. ${ENDPOINT_EXAMPLE}`
+          : manual.error || `This is not a valid endpoint. ${ENDPOINT_EXAMPLE}`,
       );
     }
 
@@ -682,8 +685,8 @@ function classifyOwner(
 }
 
 /*
- * "orders-db.internal:5432 already belongs to the database "PostgreSQL
- * orders-db.internal:5432"" - naming the owner is the only way a person can
+ * "orders-db.example.com:5432 already belongs to the database "PostgreSQL
+ * orders-db.example.com:5432"" - naming the owner is the only way a person can
  * find and fix the conflict. But only a database the caller can READ is
  * named: with label- or Owned-scoped permissions the owner may be a row they
  * are not allowed to see, and then it is just "another database". Without
@@ -710,58 +713,6 @@ export async function getOwnedByOtherDatabaseMessage(
     : "another database";
 
   return `${formattedEndpoint} already belongs to ${ownerLabel}. An endpoint can belong to only one database in a project - remove it from that database first.`;
-}
-
-/*
- * True when a typed "host:port" (optionally "[v6]:port" and/or "@cluster")
- * names a port outside 1-65535. A bare IPv6 address has no port to check.
- */
-export function hasOutOfRangePort(value: unknown): boolean {
-  if (typeof value !== "string") {
-    return false;
-  }
-
-  let address: string = value.trim();
-
-  // URL forms carry userinfo, not a cluster, after "@".
-  if (!URL_SCHEME_PATTERN.test(address)) {
-    const atIndex: number = address.lastIndexOf("@");
-    if (atIndex >= 0) {
-      address = address.substring(0, atIndex);
-    }
-  } else {
-    address = address.replace(URL_SCHEME_PATTERN, "");
-    address = address.substring(address.lastIndexOf("@") + 1);
-    address = address.split(/[/?#;]/)[0] || "";
-  }
-
-  const colonCount: number = (address.match(/:/g) || []).length;
-  const match: RegExpMatchArray | null =
-    address.startsWith("[") || colonCount === 1
-      ? address.match(/:(\d+)$/)
-      : null;
-
-  if (!match) {
-    return false;
-  }
-
-  const port: number = Number(match[1]);
-
-  return !Number.isInteger(port) || port < 1 || port > 65535;
-}
-
-function describeRejectedValue(value: unknown): string {
-  if (typeof value !== "string" || !value.trim()) {
-    return "An empty value";
-  }
-
-  const trimmed: string = value.trim();
-
-  return `"${
-    trimmed.length > MAX_ECHOED_VALUE_LENGTH
-      ? `${trimmed.substring(0, MAX_ECHOED_VALUE_LENGTH)}…`
-      : trimmed
-  }"`;
 }
 
 export default new Service();

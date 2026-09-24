@@ -21,7 +21,6 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
 import DatabaseServerEndpointService, {
   DatabaseServerEndpointClaimResult,
   DatabaseServerEndpointOwner,
-  hasOutOfRangePort,
 } from "../../../Server/Services/DatabaseServerEndpointService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
@@ -215,38 +214,6 @@ describe("DatabaseServerEndpointService.findOwnerByEndpoint", () => {
       );
 
     expect(result!.isPrimary).toBe(false);
-  });
-});
-
-/*
- * The endpoint parser reads an out-of-range port as "no port" (right for
- * telemetry). A person's typed value must be refused instead of having the
- * engine default quietly substituted.
- */
-describe("hasOutOfRangePort", () => {
-  test.each([
-    ["db.internal:99999", true],
-    ["db.internal:0", true],
-    ["db.internal:65536", true],
-    ["[2001:db8::1]:70000", true],
-    ["db.internal:70000@prod", true],
-    ["postgresql://user@db.internal:99999/orders", true],
-    ["db.internal:5432", false],
-    ["db.internal:65535", false],
-    ["db.internal", false],
-    ["db.internal:5432@prod", false],
-    ["[2001:db8::1]:5432", false],
-    // A bare IPv6 address has no port to check.
-    ["2001:db8::99999", false],
-    ["postgresql://user:secret@db.internal:5432/orders", false],
-    ["", false],
-  ])("%s -> %s", (value: string, expected: boolean) => {
-    expect(hasOutOfRangePort(value)).toBe(expected);
-  });
-
-  test("a non-string is never out of range", () => {
-    expect(hasOutOfRangePort(5432)).toBe(false);
-    expect(hasOutOfRangePort(undefined)).toBe(false);
   });
 });
 
@@ -930,17 +897,55 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
     });
   });
 
+  /*
+   * Every refusal says what to change. The example is a public name:
+   * `.internal` names are network-scoped now, so they are no longer the
+   * example of an address that works everywhere.
+   */
   test.each([
-    ["an empty value", "", "An empty value is not a valid host[:port]"],
+    [
+      "an empty value",
+      "",
+      "Endpoint is required. Enter the host name or IP address applications use to reach this database, with an optional port, for example orders-db.example.com:5432.",
+    ],
+    [
+      "a blank value",
+      "   ",
+      "Endpoint is required. Enter the host name or IP address applications use to reach this database, with an optional port, for example orders-db.example.com:5432.",
+    ],
     [
       "localhost",
       "localhost:5432",
-      '"localhost:5432" is not a valid host[:port]',
+      '"localhost:5432" is a loopback or host-local address, such as localhost or host.docker.internal. Every application reaches its own, so it cannot identify one database.',
     ],
-    ["a loopback IP", "127.0.0.1", '"127.0.0.1" is not a valid host[:port]'],
-    ["a port out of range", "db.internal:99999", "is not a valid host[:port]"],
+    ["a loopback IP", "127.0.0.1", '"127.0.0.1" is a loopback or host-local'],
+    [
+      "a host-relative name",
+      "host.minikube.internal:5432",
+      '"host.minikube.internal:5432" is a loopback or host-local',
+    ],
+    [
+      "something that is not an address",
+      "orders db",
+      '"orders db" is not a valid host[:port] endpoint. Enter a host name or IP address with an optional port, for example orders-db.example.com:5432.',
+    ],
+    [
+      "user@host (psql habit)",
+      "admin@10.0.0.5:5432",
+      '"admin@10.0.0.5:5432" looks like user@host. Remove "admin@": the database user does not belong in an endpoint.',
+    ],
+    [
+      "a dotted user name before a public host",
+      "john.doe@orders-db.example.com",
+      'Remove "john.doe@"',
+    ],
+    [
+      "a cluster qualifier on a public host",
+      "orders-db.example.com@prod",
+      '"orders-db.example.com" resolves the same way everywhere, so it cannot take a Kubernetes cluster qualifier. Remove "@prod".',
+    ],
   ])(
-    "refuses %s with a message saying what a valid endpoint is",
+    "refuses %s with a message saying what to change",
     async (_label: string, value: string, message: string) => {
       const error: unknown = await DatabaseServerEndpointService.create({
         data: aliasRequest(value),
@@ -951,10 +956,122 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
 
       expect(error).toBeInstanceOf(BadDataException);
       expect((error as Error).message).toContain(message);
-      expect((error as Error).message).toContain("orders-db.internal:5432");
+      expect((error as Error).message).not.toContain("orders-db.internal");
       expect(save).not.toHaveBeenCalled();
+      expect(findOwner).not.toHaveBeenCalled();
     },
   );
+
+  /*
+   * A port a person typed is kept or refused - never read as "no port" and
+   * quietly replaced by the engine default, which is right for telemetry
+   * and wrong for a typed value.
+   */
+  test.each([
+    ["orders-db.example.com:99999"],
+    ["orders-db.example.com:0"],
+    ["orders-db.example.com:65536"],
+    ["[2001:db8::1]:70000"],
+    ["pg.shop.svc.cluster.local:70000@prod"],
+    ["postgresql://app@orders-db.example.com:99999/orders"],
+  ])("refuses the out-of-range port in %s", async (value: string) => {
+    const error: unknown = await DatabaseServerEndpointService.create({
+      data: aliasRequest(value),
+      props: memberProps(),
+    }).catch((e: unknown) => {
+      return e;
+    });
+
+    expect(error).toBeInstanceOf(BadDataException);
+    expect((error as Error).message).toContain(
+      "has a port outside 1-65535. Enter a port between 1 and 65535.",
+    );
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["orders-db.example.com:65535", "orders-db.example.com:65535"],
+    ["orders-db.example.com:1", "orders-db.example.com:1"],
+    ["[2001:db8::1]:5432", "[2001:db8::1]:5432"],
+    // A bare IPv6 address carries no port: the engine default fills it.
+    ["2001:db8::1", "[2001:db8::1]:5432"],
+    [
+      "postgresql://app:secret@orders-db.example.com:6432/orders",
+      "orders-db.example.com:6432",
+    ],
+    [
+      "pg.shop.svc.cluster.local:6432@prod",
+      "pg.shop.svc.cluster.local:6432@prod",
+    ],
+  ])("keeps the port typed in %s", async (value: string, expected: string) => {
+    const created: DatabaseServerEndpoint =
+      await DatabaseServerEndpointService.create({
+        data: aliasRequest(value),
+        props: memberProps(),
+      });
+
+    expect(created.endpoint).toBe(expected);
+  });
+
+  test("`<service>.<namespace>` on a Kubernetes database is the Service's full name in its cluster", async () => {
+    addDatabase({
+      kubernetesNamespace: "data",
+      clusterIdentifier: "prod-cluster",
+    });
+
+    const created: DatabaseServerEndpoint =
+      await DatabaseServerEndpointService.create({
+        data: aliasRequest("orders-db.billing:5433"),
+        props: memberProps(),
+      });
+
+    expect(created.endpoint).toBe(
+      "orders-db.billing.svc.cluster.local:5433@prod-cluster",
+    );
+  });
+
+  test("a cluster-local name typed on a Kubernetes database is qualified with its cluster", async () => {
+    addDatabase({
+      kubernetesNamespace: "data",
+      clusterIdentifier: "prod-cluster",
+    });
+
+    const created: DatabaseServerEndpoint =
+      await DatabaseServerEndpointService.create({
+        data: aliasRequest("10.0.4.12"),
+        props: memberProps(),
+      });
+
+    expect(created.endpoint).toBe("10.0.4.12:5432@prod-cluster");
+  });
+
+  /*
+   * The manual-create form refuses an unqualified Kubernetes Service name in
+   * a project with clusters and suggests adding it here as well: an alias
+   * is the explicit way to also match a Database Agent or applications that
+   * do not report their cluster.
+   */
+  test("an unqualified cluster-local alias on a database outside Kubernetes is kept as typed", async () => {
+    const created: DatabaseServerEndpoint =
+      await DatabaseServerEndpointService.create({
+        data: aliasRequest("pg.shop.svc.cluster.local"),
+        props: memberProps(),
+      });
+
+    expect(created.endpoint).toBe("pg.shop.svc.cluster.local:5432");
+  });
+
+  test("a SQL Server named instance alias keeps its instance and gets no default port", async () => {
+    addDatabase({ dbSystem: "mssql" });
+
+    const created: DatabaseServerEndpoint =
+      await DatabaseServerEndpointService.create({
+        data: aliasRequest("SQL1.corp.example.com\\INST01"),
+        props: memberProps(),
+      });
+
+    expect(created.endpoint).toBe("sql1.corp.example.com\\inst01");
+  });
 
   test("an endpoint another database owns is refused, naming that database", async () => {
     addDatabase({

@@ -4015,17 +4015,23 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     /*
      * The lock is taken by the sub-SELECT and inherited by the UPDATE within
      * the same implicit transaction, so the outer write never blocks either.
-     * RETURNING is how the affected-row count comes back: TypeORM's `query()`
-     * surfaces the driver's rows and a bare UPDATE returns none, so without it
-     * a skipped write is indistinguishable from an applied one.
+     *
+     * The UPDATE sits in a CTE so the statement is a SELECT of the rows it
+     * wrote. TypeORM's postgres `query()` answers a top-level UPDATE with
+     * `[rows, rowCount]` - an array of length 2 whether or not anything was
+     * written - so a bare `UPDATE ... RETURNING` made every skipped write
+     * read as applied. A SELECT comes back as its rows: one when the row
+     * was written, none when it was locked or no longer exists.
      */
-    const sql: string = `UPDATE "${metadata.tableName}" SET ${setClauses.join(
-      ", ",
-    )} WHERE "${primaryColumnName}" IN (SELECT "${primaryColumnName}" FROM "${
+    const sql: string = `WITH "updated" AS (UPDATE "${
       metadata.tableName
-    }" WHERE "${primaryColumnName}" = $${
+    }" SET ${setClauses.join(", ")} WHERE "${primaryColumnName}" IN (SELECT "${
+      primaryColumnName
+    }" FROM "${metadata.tableName}" WHERE "${primaryColumnName}" = $${
       params.length
-    } FOR UPDATE SKIP LOCKED) RETURNING "${primaryColumnName}"`;
+    } FOR UPDATE SKIP LOCKED) RETURNING "${primaryColumnName}") SELECT "${
+      primaryColumnName
+    }" FROM "updated"`;
 
     const result: unknown = await repository.manager.query(sql, params);
 

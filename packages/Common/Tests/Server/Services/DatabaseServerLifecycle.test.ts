@@ -47,6 +47,11 @@ import Label from "../../../Models/DatabaseModels/Label";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseServerDiscoverySource from "../../../Types/DatabaseServer/DatabaseServerDiscoverySource";
 import { DatabaseEndpoint } from "../../../Types/DatabaseServer/DatabaseEndpoint";
+import {
+  DATABASE_SYSTEMS,
+  DatabaseSystemDescriptor,
+  getMoreSpecificDatabaseSystem,
+} from "../../../Types/DatabaseServer/DatabaseSystem";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import { getJestSpyOn } from "../../Spy";
@@ -376,6 +381,100 @@ describe("decideDatabaseSystem", () => {
     expect(decide(["postgresql", null], ["mysql", ClientSpans])).toEqual({
       system: "mysql",
       evidence: ClientSpans,
+    });
+  });
+
+  test("a sibling fork is a different engine, not a refinement: only stronger evidence moves it", () => {
+    expect(decide(["tidb", Container], ["mariadb", ClientSpans])).toBeNull();
+    expect(decide(["tidb", ClientSpans], ["mariadb", Container])).toEqual({
+      system: "mariadb",
+      evidence: Container,
+    });
+  });
+
+  test("an engine outside the catalog is never refined by a fork - only replaced on stronger evidence", () => {
+    expect(decide(["acmedb", Container], ["mariadb", Container])).toBeNull();
+    expect(decide(["acmedb", ClientSpans], ["mariadb", Container])).toEqual({
+      system: "mariadb",
+      evidence: Container,
+    });
+  });
+
+  /*
+   * ONE rule for "more specific": within a family, what decideDatabaseSystem
+   * does is exactly what getMoreSpecificDatabaseSystem (the rule the docs
+   * state) says - for every pair of catalogued engines, whatever evidence
+   * either side carries short of a person's choice.
+   */
+  describe("agrees with getMoreSpecificDatabaseSystem across the catalog", () => {
+    const systems: Array<string> = DATABASE_SYSTEMS.map(
+      (descriptor: DatabaseSystemDescriptor): string => {
+        return descriptor.system;
+      },
+    );
+    const evidences: Array<DatabaseSystemEvidence> = [
+      Collector,
+      Container,
+      ClientSpans,
+    ];
+
+    test("the catalog has forks to check", () => {
+      expect(
+        DATABASE_SYSTEMS.filter((descriptor: DatabaseSystemDescriptor) => {
+          return Boolean(descriptor.family);
+        }).length,
+      ).toBeGreaterThan(5);
+    });
+
+    test("a refinement is taken on any evidence, and a fork is undone on none", () => {
+      const disagreements: Array<string> = [];
+      let refinements: number = 0;
+      let undoings: number = 0;
+
+      for (const current of systems) {
+        for (const observed of systems) {
+          if (current === observed) {
+            continue;
+          }
+
+          const refines: boolean =
+            getMoreSpecificDatabaseSystem(current, observed) === observed;
+          const undoes: boolean =
+            getMoreSpecificDatabaseSystem(observed, current) === current;
+
+          if (!refines && !undoes) {
+            continue;
+          }
+
+          if (refines) {
+            refinements++;
+          } else {
+            undoings++;
+          }
+
+          for (const currentEvidence of evidences) {
+            for (const incomingEvidence of evidences) {
+              const decision: DatabaseSystemDetermination | null = decide(
+                [current, currentEvidence],
+                [observed, incomingEvidence],
+              );
+              const expected: DatabaseSystemDetermination | null = refines
+                ? { system: observed, evidence: incomingEvidence }
+                : null;
+
+              if (JSON.stringify(decision) !== JSON.stringify(expected)) {
+                disagreements.push(
+                  `${current} (${currentEvidence}) seen as ${observed} (${incomingEvidence}): ${JSON.stringify(decision)}`,
+                );
+              }
+            }
+          }
+        }
+      }
+
+      expect(disagreements).toEqual([]);
+      expect(refinements).toBeGreaterThan(5);
+      expect(undoings).toBe(refinements);
     });
   });
 });
@@ -980,11 +1079,18 @@ describe("DatabaseServerService.upsertWorkloadDatabase - lifecycle", () => {
       );
     });
 
-    test("a row created in this run is not re-weighed", async () => {
+    test("a row created in this run is neither re-weighed nor written a second time", async () => {
       await DatabaseServerService.upsertWorkloadDatabase(input());
 
       const created: DatabaseServer = Array.from(world.rows.values())[0]!;
-      expect("dbSystemSource" in lastWriteFor(created)).toBe(false);
+      // The create itself wrote every workload column.
+      expect(created.dbSystem).toBe("redis");
+      expect(created.dbSystemSource).toBeUndefined();
+      expect(
+        world.writes.filter((write: { id: string }) => {
+          return write.id === created.id!.toString();
+        }),
+      ).toEqual([]);
     });
 
     test("while a collector reports the engine's own version, the image tag does not overwrite it", async () => {
@@ -1024,7 +1130,7 @@ describe("DatabaseServerService.upsertWorkloadDatabase - lifecycle", () => {
       expect(lastWriteFor(row)["dbVersion"]).toBe("7.2");
     });
 
-    test("the workload's last sighting is stamped on every run", async () => {
+    test("the workload's last sighting is stamped once it was last written long ago", async () => {
       const row: DatabaseServer = workloadRow({
         workloadLastSeenAt: new Date(Date.now() - 3 * HOUR_MS),
       });
@@ -1035,6 +1141,303 @@ describe("DatabaseServerService.upsertWorkloadDatabase - lifecycle", () => {
       expect(
         (lastWriteFor(row)["workloadLastSeenAt"] as Date).getTime(),
       ).toBeGreaterThanOrEqual(before);
+    });
+  });
+
+  /*
+   * Discovery sees every workload every five minutes. Rewriting a row whose
+   * columns would not change (the member-key JSON included) costs a write
+   * per database per run for nothing, so it is skipped while the row was
+   * written within the last quarter hour - which keeps its lastSeenAt inside
+   * the dashboard's 30-minute "seen recently" window, and far inside the
+   * hour after which a workload counts as gone.
+   */
+  describe("a workload seen again with nothing new", () => {
+    const MEMBER_KEY_A: string = "0123456789abcdef";
+    const MEMBER_KEY_B: string = "fedcba9876543210";
+
+    // The row exactly as input() would write it, last written `ageMs` ago.
+    function unchangedRow(
+      ageMs: number,
+      overrides: Partial<DatabaseServer> = {},
+    ): DatabaseServer {
+      const writtenAt: Date = new Date(Date.now() - ageMs);
+      return workloadRow({
+        instanceCount: 1,
+        dbVersion: "7.2",
+        workloadKind: "StatefulSet",
+        workloadName: "redis",
+        kubernetesNamespace: "cache",
+        kubernetesClusterId: new ObjectID(CLUSTER_ID.toString()),
+        dbSystemSource: DatabaseSystemEvidence.Container,
+        memberEntityKeys: { [MEMBER_KEY_A]: writtenAt.toISOString() },
+        lastSeenAt: writtenAt,
+        workloadLastSeenAt: writtenAt,
+        ...overrides,
+      });
+    }
+
+    function writesFor(row: DatabaseServer): Array<Record<string, unknown>> {
+      return world.writes
+        .filter((write: { id: string }) => {
+          return write.id === row.id!.toString();
+        })
+        .map((write: { data: Record<string, unknown> }) => {
+          return write.data;
+        });
+    }
+
+    function seenAgain(
+      overrides: Partial<UpsertWorkloadDatabaseData> = {},
+    ): UpsertWorkloadDatabaseData {
+      return input({ memberKeysSeenNow: [MEMBER_KEY_A], ...overrides });
+    }
+
+    test("a row written five minutes ago is not rewritten - and is returned as it was read", async () => {
+      const row: DatabaseServer = unchangedRow(5 * MINUTE_MS);
+      const writtenAt: Date = row.lastSeenAt!;
+
+      const result: DatabaseServer | null =
+        await DatabaseServerService.upsertWorkloadDatabase(seenAgain());
+
+      expect(result).toBe(row);
+      expect(writesFor(row)).toEqual([]);
+      expect(row.lastSeenAt).toBe(writtenAt);
+      expect(row.memberEntityKeys).toEqual({
+        [MEMBER_KEY_A]: writtenAt.toISOString(),
+      });
+    });
+
+    test("its endpoints are still claimed and refreshed", async () => {
+      const row: DatabaseServer = unchangedRow(5 * MINUTE_MS);
+      own(SERVICE_ALIAS, row, {
+        lastMatchedAt: new Date(Date.now() - 2 * HOUR_MS),
+      });
+
+      await DatabaseServerService.upsertWorkloadDatabase(seenAgain());
+
+      expect(writesFor(row)).toEqual([]);
+      // The Service alias is re-stamped, the pod alias claimed.
+      expect(refresh.mock.calls[0]![0].endpoints).toEqual([SERVICE_ALIAS]);
+      expect(
+        world.claims.map((claim: any) => {
+          return claim.endpoint;
+        }),
+      ).toEqual([POD_ALIAS]);
+      expect(release).toHaveBeenCalled();
+    });
+
+    test("an auto-archived row is still restored", async () => {
+      const row: DatabaseServer = unchangedRow(5 * MINUTE_MS, {
+        isArchived: true,
+        autoArchivedAt: new Date(Date.now() - HOUR_MS),
+      });
+
+      await DatabaseServerService.upsertWorkloadDatabase(seenAgain());
+
+      expect(writesFor(row)).toEqual([]);
+      expect(
+        rawQuery.mock.calls.some((call: Array<unknown>) => {
+          return String(call[0]).includes(`WITH "restored" AS`);
+        }),
+      ).toBe(true);
+    });
+
+    test("14 minutes after the last write it is still skipped, 16 minutes after it is written - so lastSeenAt never ages past the 30-minute seen-recently window", async () => {
+      const recent: DatabaseServer = unchangedRow(14 * MINUTE_MS);
+      await DatabaseServerService.upsertWorkloadDatabase(seenAgain());
+      expect(writesFor(recent)).toEqual([]);
+
+      world.rows.clear();
+      const stale: DatabaseServer = unchangedRow(16 * MINUTE_MS);
+      const before: number = Date.now();
+      await DatabaseServerService.upsertWorkloadDatabase(seenAgain());
+
+      const writes: Array<Record<string, unknown>> = writesFor(stale);
+      expect(writes).toHaveLength(1);
+      expect((writes[0]!["lastSeenAt"] as Date).getTime()).toBeGreaterThan(
+        before - 1,
+      );
+      expect(
+        (writes[0]!["workloadLastSeenAt"] as Date).getTime(),
+      ).toBeGreaterThan(before - 1);
+      // The member keys' own timestamps move with it.
+      expect(
+        Date.parse(
+          (writes[0]!["memberEntityKeys"] as Record<string, string>)[
+            MEMBER_KEY_A
+          ]!,
+        ),
+      ).toBeGreaterThan(before - 1);
+    });
+
+    test("an application querying the row keeps lastSeenAt fresh - the workload's own stamp still decides", async () => {
+      const row: DatabaseServer = unchangedRow(5 * MINUTE_MS, {
+        workloadLastSeenAt: new Date(Date.now() - 20 * MINUTE_MS),
+      });
+
+      await DatabaseServerService.upsertWorkloadDatabase(seenAgain());
+
+      expect(writesFor(row)).toHaveLength(1);
+    });
+
+    test("a row with no liveness stamp is written", async () => {
+      const row: DatabaseServer = unchangedRow(5 * MINUTE_MS);
+      delete row.lastSeenAt;
+
+      await DatabaseServerService.upsertWorkloadDatabase(seenAgain());
+
+      expect(writesFor(row)).toHaveLength(1);
+    });
+
+    test("a new member (a pod restarted under a new name) is written at once", async () => {
+      const row: DatabaseServer = unchangedRow(5 * MINUTE_MS);
+
+      await DatabaseServerService.upsertWorkloadDatabase(
+        seenAgain({ memberKeysSeenNow: [MEMBER_KEY_A, MEMBER_KEY_B] }),
+      );
+
+      const write: Record<string, unknown> = lastWriteFor(row);
+      expect(
+        Object.keys(
+          write["memberEntityKeys"] as Record<string, unknown>,
+        ).sort(),
+      ).toEqual([MEMBER_KEY_A, MEMBER_KEY_B].sort());
+      expect(row.memberEntityKeys).toBe(write["memberEntityKeys"]);
+    });
+
+    test("a member that aged out is dropped at once", async () => {
+      const row: DatabaseServer = unchangedRow(5 * MINUTE_MS, {
+        memberEntityKeys: {
+          [MEMBER_KEY_A]: new Date(Date.now() - 5 * MINUTE_MS).toISOString(),
+          [MEMBER_KEY_B]: new Date(
+            Date.now() - 31 * 24 * HOUR_MS,
+          ).toISOString(),
+        },
+      });
+
+      await DatabaseServerService.upsertWorkloadDatabase(seenAgain());
+
+      expect(
+        Object.keys(
+          lastWriteFor(row)["memberEntityKeys"] as Record<string, unknown>,
+        ),
+      ).toEqual([MEMBER_KEY_A]);
+    });
+
+    test.each([
+      ["the instance count", { instanceCount: 3 }, "instanceCount", 3],
+      ["the image version", { dbVersion: "7.4" }, "dbVersion", "7.4"],
+      [
+        "the workload kind",
+        { workloadKind: "Deployment" },
+        "workloadKind",
+        "Deployment",
+      ],
+      [
+        "the workload name",
+        { workloadName: "redis-main" },
+        "workloadName",
+        "redis-main",
+      ],
+      [
+        "the namespace",
+        { kubernetesNamespace: "cache-v2" },
+        "kubernetesNamespace",
+        "cache-v2",
+      ],
+    ])(
+      "a change of %s is written at once",
+      async (
+        _label: string,
+        change: Partial<UpsertWorkloadDatabaseData>,
+        column: string,
+        value: unknown,
+      ) => {
+        const row: DatabaseServer = unchangedRow(5 * MINUTE_MS);
+
+        await DatabaseServerService.upsertWorkloadDatabase(seenAgain(change));
+
+        expect(lastWriteFor(row)[column]).toBe(value);
+      },
+    );
+
+    test("a scaled-to-zero row whose pods came back is written at once", async () => {
+      const row: DatabaseServer = unchangedRow(5 * MINUTE_MS, {
+        instanceCount: 0,
+      });
+
+      await DatabaseServerService.upsertWorkloadDatabase(seenAgain());
+
+      expect(lastWriteFor(row)["instanceCount"]).toBe(1);
+      expect(row.instanceCount).toBe(1);
+    });
+
+    test("another parent is written at once, compared by id", async () => {
+      const otherCluster: ObjectID = new ObjectID(
+        "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      );
+      const row: DatabaseServer = unchangedRow(5 * MINUTE_MS);
+
+      await DatabaseServerService.upsertWorkloadDatabase(
+        seenAgain({ kubernetesClusterId: otherCluster }),
+      );
+
+      expect(String(lastWriteFor(row)["kubernetesClusterId"])).toBe(
+        otherCluster.toString(),
+      );
+    });
+
+    test("the same parent as another ObjectID instance, in another case, is no change", async () => {
+      const row: DatabaseServer = unchangedRow(5 * MINUTE_MS, {
+        kubernetesClusterId: new ObjectID(CLUSTER_ID.toString().toUpperCase()),
+      });
+
+      await DatabaseServerService.upsertWorkloadDatabase(seenAgain());
+
+      expect(writesFor(row)).toEqual([]);
+    });
+
+    test("an image that refines the engine is written at once, with its feed item", async () => {
+      const row: DatabaseServer = unchangedRow(5 * MINUTE_MS);
+
+      await DatabaseServerService.upsertWorkloadDatabase(
+        seenAgain({ dbSystem: "valkey" }),
+      );
+
+      expect(lastWriteFor(row)["dbSystem"]).toBe("valkey");
+      expect(row.dbSystem).toBe("valkey");
+      await flushPromises();
+      expect(feed).toHaveBeenCalledWith(
+        expect.objectContaining({
+          databaseServerFeedEventType:
+            DatabaseServerFeedEventType.DatabaseServerUpdated,
+        }),
+      );
+    });
+
+    test("stronger evidence for the same engine is recorded at once", async () => {
+      const row: DatabaseServer = unchangedRow(5 * MINUTE_MS, {
+        dbSystemSource: DatabaseSystemEvidence.ClientSpans,
+      });
+
+      await DatabaseServerService.upsertWorkloadDatabase(seenAgain());
+
+      expect(lastWriteFor(row)["dbSystemSource"]).toBe(
+        DatabaseSystemEvidence.Container,
+      );
+    });
+
+    test("a version the live collector reported is no change, however the image is tagged", async () => {
+      const row: DatabaseServer = unchangedRow(5 * MINUTE_MS, {
+        dbVersion: "7.2.4",
+        collectorLastSeenAt: new Date(Date.now() - 2 * MINUTE_MS),
+      });
+
+      await DatabaseServerService.upsertWorkloadDatabase(seenAgain());
+
+      expect(writesFor(row)).toEqual([]);
+      expect(row.dbVersion).toBe("7.2.4");
     });
   });
 
@@ -1493,6 +1896,82 @@ describe("DatabaseServerService.findOrCreateByEndpoint - lifecycle", () => {
     });
 
     expect(row.isArchived).toBe(false);
+  });
+
+  /*
+   * Two writers saw the endpoint unowned; ours lost the claim. The row that
+   * won is the owner, and our report is a sighting of it like any other: a
+   * fork our client named refines the family engine it was created with.
+   */
+  test("losing the create race, the report still refines the winner's engine", async () => {
+    const winner: DatabaseServer = databaseRow({
+      name: "MySQL orders-db.example.com:5432",
+      dbSystem: "mysql",
+      databaseIdentifier: "mysql|orders-db.example.com:5432",
+      discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+    });
+    findOwner
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(ownedBy(winner));
+    findOneBy.mockResolvedValue(winner);
+    getJestSpyOn(
+      DatabaseServerEndpointService,
+      "claimEndpoint",
+    ).mockResolvedValue("owned-by-other");
+    const deleteBy: jest.SpyInstance = getJestSpyOn(
+      service,
+      "deleteBy",
+    ).mockResolvedValue(1);
+
+    const result: DatabaseServer | null =
+      await DatabaseServerService.findOrCreateByEndpoint({
+        projectId: PROJECT_ID,
+        dbSystem: "mariadb",
+        endpoint: ENDPOINT,
+        discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+        allowCreate: true,
+      });
+
+    expect(result).toBe(winner);
+    // Our orphan is gone...
+    expect(deleteBy).toHaveBeenCalledTimes(1);
+    // ...and the winner now shows the fork, renamed from its generated name.
+    const write: any = writes.mock.calls[0]![0];
+    expect(write.id.toString()).toBe(winner.id!.toString());
+    expect(write.data).toEqual({
+      dbSystem: "mariadb",
+      dbSystemSource: "client-spans",
+      name: "MariaDB orders-db.example.com:5432",
+    });
+    expect(write.expectedData).toEqual({ dbSystem: "mysql" });
+    expect(winner.dbSystem).toBe("mariadb");
+  });
+
+  test("losing the create race, a family name never undoes the winner's fork", async () => {
+    const winner: DatabaseServer = databaseRow({
+      dbSystem: "mariadb",
+      discoverySource: DatabaseServerDiscoverySource.Collector,
+    });
+    findOwner
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(ownedBy(winner));
+    findOneBy.mockResolvedValue(winner);
+    getJestSpyOn(
+      DatabaseServerEndpointService,
+      "claimEndpoint",
+    ).mockResolvedValue("owned-by-other");
+    getJestSpyOn(service, "deleteBy").mockResolvedValue(1);
+
+    await DatabaseServerService.findOrCreateByEndpoint({
+      projectId: PROJECT_ID,
+      dbSystem: "mysql",
+      endpoint: ENDPOINT,
+      discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+      allowCreate: true,
+    });
+
+    expect(writes).not.toHaveBeenCalled();
+    expect(winner.dbSystem).toBe("mariadb");
   });
 
   describe("the collector's auto-create budget", () => {

@@ -944,8 +944,11 @@ export default class DatabaseServer extends BaseModel {
   /*
    * Collector liveness ONLY: "connected" while an OTel Collector database
    * receiver (or the OneUptime Database Agent) keeps reporting engine metrics for
-   * this database. A database that is merely queried by applications, or seen as
-   * a container, stays "disconnected" here - lastSeenAt is the any-source signal.
+   * this database, "disconnected" once it has stopped (the stale-collector
+   * sweep). Empty (NULL) while no collector ever reported - no DB default, so
+   * a database that is merely queried by applications, seen as a container or
+   * added by hand never claims a collector that "disconnected". lastSeenAt is
+   * the any-source signal.
    */
   @ColumnAccessControl({
     create: [],
@@ -967,14 +970,13 @@ export default class DatabaseServer extends BaseModel {
     canReadOnRelationQuery: true,
     title: "OTel Collector Status",
     description:
-      "Whether engine metrics are currently being received from a collector / agent for this database (connected) or not (disconnected).",
+      "Whether engine metrics are currently being received from a collector / agent for this database (connected) or a collector reported and has stopped (disconnected). Empty when no collector has ever reported.",
     example: "connected",
   })
   @Column({
     nullable: true,
     type: ColumnType.ShortText,
     length: ColumnLength.ShortText,
-    default: "disconnected",
   })
   public otelCollectorStatus?: string = undefined;
 

@@ -391,6 +391,190 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
     expect(created.databaseIdentifier).toBe("postgresql|10.0.1.5:5432");
   });
 
+  test("a value the form cannot use is refused before anything is looked up", async () => {
+    await expect(
+      DatabaseServerService.create(
+        manualRequest({ serverAddress: "admin@10.0.0.5:5432" }),
+      ),
+    ).rejects.toThrow(BadDataException);
+
+    expect(findOwner).not.toHaveBeenCalled();
+    expect(findSameIdentity).not.toHaveBeenCalled();
+  });
+
+  test("an address naming its cluster keeps the qualifier in its identity and endpoint", async () => {
+    const clusters: jest.SpyInstance = getJestSpyOn(
+      service,
+      "findKubernetesClusterNames",
+    ).mockResolvedValue(["prod"]);
+
+    const created: DatabaseServer = await DatabaseServerService.create(
+      manualRequest({ serverAddress: "pg.shop.svc.cluster.local:5432@Prod" }),
+    );
+
+    expect(created.serverAddress).toBe("pg.shop.svc.cluster.local");
+    expect(created.databaseIdentifier).toBe(
+      "postgresql|pg.shop.svc.cluster.local:5432@prod",
+    );
+    expect(claim.mock.calls[0]![0].endpoint).toBe(
+      "pg.shop.svc.cluster.local:5432@prod",
+    );
+    // Already qualified: nothing to advise, no cluster lookup.
+    expect(clusters).not.toHaveBeenCalled();
+  });
+
+  test("the port field replaces a SQL Server named instance - the port already names it", async () => {
+    const created: DatabaseServer = await DatabaseServerService.create(
+      manualRequest({
+        dbSystem: "mssql",
+        serverAddress: "sql1.corp.example.com\\INST01",
+        serverPort: 14330,
+      }),
+    );
+
+    expect(created.serverAddress).toBe("sql1.corp.example.com");
+    expect(created.serverPort).toBe(14330);
+    expect(claim.mock.calls[0]![0].endpoint).toBe(
+      "sql1.corp.example.com:14330",
+    );
+  });
+
+  test("without a port, a SQL Server named instance is part of the host and gets no default port", async () => {
+    const created: DatabaseServer = await DatabaseServerService.create(
+      manualRequest({
+        dbSystem: "mssql",
+        serverAddress: "sql1.corp.example.com\\INST01",
+      }),
+    );
+
+    expect(created.serverAddress).toBe("sql1.corp.example.com\\inst01");
+    expect(created.serverPort).toBeUndefined();
+    expect(claim.mock.calls[0]![0].endpoint).toBe(
+      "sql1.corp.example.com\\inst01",
+    );
+  });
+
+  /*
+   * A Kubernetes Service name only resolves inside one cluster, and pods
+   * whose telemetry goes through the Kubernetes agent report that cluster:
+   * their calls are keyed `<endpoint>@<cluster>`. A manual row holding only
+   * the unqualified name would stay empty while discovery creates a second
+   * row for the qualified one - so in a project with clusters the person is
+   * asked to name the cluster.
+   */
+  describe("a Kubernetes Service name typed without its cluster", () => {
+    let clusters: jest.SpyInstance;
+
+    beforeEach(() => {
+      clusters = getJestSpyOn(
+        service,
+        "findKubernetesClusterNames",
+      ).mockResolvedValue(["prod-eu", "staging"]);
+    });
+
+    test("is refused in a project with clusters, naming the qualified form and the project's clusters", async () => {
+      const error: Error = (await DatabaseServerService.create(
+        manualRequest({ serverAddress: "pg.shop.svc.cluster.local" }),
+      ).catch((e: unknown) => {
+        return e;
+      })) as Error;
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error.message).toBe(
+        "pg.shop.svc.cluster.local:5432 only resolves inside one Kubernetes cluster or private network. Applications that report their cluster (k8s.cluster.name) are matched to pg.shop.svc.cluster.local:5432@<cluster name> instead, so name the cluster the way they report it, for example pg.shop.svc.cluster.local:5432@prod-eu (this project's clusters: prod-eu, staging). To also match a Database Agent or applications that do not report their cluster, add pg.shop.svc.cluster.local:5432 as an endpoint on the database's Endpoints tab once it is created.",
+      );
+      expect(clusters).toHaveBeenCalledWith(PROJECT_ID);
+      expect(save).not.toHaveBeenCalled();
+      expect(claim).not.toHaveBeenCalled();
+    });
+
+    test("the short `<service>.<namespace>.svc` form is the same name", async () => {
+      await expect(
+        DatabaseServerService.create(
+          manualRequest({ serverAddress: "pg.shop.svc:6432" }),
+        ),
+      ).rejects.toThrow("pg.shop.svc.cluster.local:6432@prod-eu");
+      expect(save).not.toHaveBeenCalled();
+    });
+
+    test("a StatefulSet member's name is refused the same way", async () => {
+      await expect(
+        DatabaseServerService.create(
+          manualRequest({
+            serverAddress: "pg-0.pg-headless.shop.svc.cluster.local",
+          }),
+        ),
+      ).rejects.toThrow("pg-0.pg-headless.shop.svc.cluster.local:5432@prod-eu");
+    });
+
+    test("is accepted as typed in a project without clusters - nothing could report the qualified form", async () => {
+      clusters.mockResolvedValue([]);
+
+      const created: DatabaseServer = await DatabaseServerService.create(
+        manualRequest({ serverAddress: "pg.shop.svc.cluster.local" }),
+      );
+
+      expect(created.databaseIdentifier).toBe(
+        "postgresql|pg.shop.svc.cluster.local:5432",
+      );
+      expect(claim.mock.calls[0]![0].endpoint).toBe(
+        "pg.shop.svc.cluster.local:5432",
+      );
+    });
+
+    test("an address another database already holds is answered with that first", async () => {
+      findOwner.mockResolvedValue({
+        databaseServerId: OTHER_DATABASE_ID,
+        isPrimary: false,
+      });
+      getJestSpyOn(
+        service,
+        "getDatabaseServerNameIfReadable",
+      ).mockResolvedValue("Redis shop/pg");
+
+      await expect(
+        DatabaseServerService.create(
+          manualRequest({ serverAddress: "pg.shop.svc.cluster.local" }),
+        ),
+      ).rejects.toThrow(
+        'pg.shop.svc.cluster.local:5432 already belongs to the database "Redis shop/pg".',
+      );
+      expect(clusters).not.toHaveBeenCalled();
+    });
+
+    test.each([
+      ["a private IP", "10.0.1.5", "postgresql|10.0.1.5:5432"],
+      [
+        "a private-zone name",
+        "orders-db.corp.internal",
+        "postgresql|orders-db.corp.internal:5432",
+      ],
+      ["a .local name", "orders-db.local", "postgresql|orders-db.local:5432"],
+    ])(
+      "%s stays a valid unqualified endpoint - virtual machines and the Database Agent report it that way",
+      async (_label: string, address: string, identifier: string) => {
+        const created: DatabaseServer = await DatabaseServerService.create(
+          manualRequest({ serverAddress: address }),
+        );
+
+        expect(created.databaseIdentifier).toBe(identifier);
+        expect(clusters).not.toHaveBeenCalled();
+      },
+    );
+
+    test("clusters that cannot be read never fail the create", async () => {
+      clusters.mockRejectedValue(new Error("connection terminated"));
+
+      const created: DatabaseServer = await DatabaseServerService.create(
+        manualRequest({ serverAddress: "pg.shop.svc.cluster.local" }),
+      );
+
+      expect(created.databaseIdentifier).toBe(
+        "postgresql|pg.shop.svc.cluster.local:5432",
+      );
+    });
+  });
+
   test.each([
     [
       "no engine",
@@ -400,17 +584,52 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
     [
       "no address",
       { serverAddress: "" },
-      "Server address is required. Enter the host name or IP address applications use to reach this database.",
+      "Server address is required. Enter the host name or IP address applications use to reach this database, for example orders-db.example.com:5432.",
     ],
     [
       "localhost",
       { serverAddress: "localhost" },
-      '"localhost" is not a valid host[:port] endpoint.',
+      '"localhost" is a loopback or host-local address, such as localhost or host.docker.internal. Every application reaches its own, so it cannot identify one database.',
+    ],
+    [
+      "a host-relative Docker name",
+      { serverAddress: "host.docker.internal:5432" },
+      '"host.docker.internal:5432" is a loopback or host-local address',
     ],
     [
       "an out-of-range port typed into the address",
       { serverAddress: "orders-db.example.com:99999" },
-      '"orders-db.example.com:99999" is not a valid host[:port] endpoint.',
+      '"orders-db.example.com:99999" has a port outside 1-65535. Enter a port between 1 and 65535.',
+    ],
+    [
+      "an out-of-range port inside a connection URL",
+      { serverAddress: "postgresql://app@orders-db.example.com:70000/orders" },
+      "has a port outside 1-65535.",
+    ],
+    [
+      "user@host - the user name read as the host before",
+      { serverAddress: "admin@10.0.0.5:5432" },
+      '"admin@10.0.0.5:5432" looks like user@host. Remove "admin@": the database user does not belong in an endpoint.',
+    ],
+    [
+      "a dotted user name before the host",
+      { serverAddress: "john.doe@orders-db.example.com" },
+      'Remove "john.doe@"',
+    ],
+    [
+      "a cluster qualifier on a public host - dropped silently before",
+      { serverAddress: "orders-db.example.com@prod" },
+      '"orders-db.example.com" resolves the same way everywhere, so it cannot take a Kubernetes cluster qualifier. Remove "@prod".',
+    ],
+    [
+      "a cluster qualifier on a bare service name",
+      { serverAddress: "postgres@prod" },
+      '"postgres" is a single-label name, which only means one Service once its namespace is known. Enter it with the namespace, for example postgres.<namespace>@prod.',
+    ],
+    [
+      "something that is not an address",
+      { serverAddress: "orders db" },
+      '"orders db" is not a valid host[:port] endpoint. Enter a host name or IP address with an optional port, for example orders-db.example.com:5432.',
     ],
     [
       "a port of 0",
@@ -657,6 +876,36 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
     expect(created.databaseIdentifier).toBe(
       "postgresql|kubernetes:prod/data/statefulset/orders",
     );
+  });
+});
+
+describe("DatabaseServerService.findKubernetesClusterNames", () => {
+  test("reads a few of the project's live cluster names, sorted", async () => {
+    const query: jest.Mock = mockRawQuery([
+      { clusterIdentifier: " prod-eu " },
+      { clusterIdentifier: "staging" },
+      { clusterIdentifier: "" },
+      { clusterIdentifier: null },
+    ]);
+
+    await expect(
+      service.findKubernetesClusterNames(PROJECT_ID),
+    ).resolves.toEqual(["prod-eu", "staging"]);
+
+    const [sql, params] = query.mock.calls[0] as [string, Array<unknown>];
+    expect(sql).toContain(`FROM "KubernetesCluster" kc`);
+    expect(sql).toContain(`kc."projectId" = $1`);
+    expect(sql).toContain(`kc."deletedAt" IS NULL`);
+    expect(sql).toContain(`ORDER BY kc."clusterIdentifier" ASC`);
+    expect(params).toEqual([PROJECT_ID.toString(), 10]);
+  });
+
+  test("an unexpected driver answer is no clusters", async () => {
+    mockRawQuery(null);
+
+    await expect(
+      service.findKubernetesClusterNames(PROJECT_ID),
+    ).resolves.toEqual([]);
   });
 });
 

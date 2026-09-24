@@ -4,7 +4,6 @@ import DatabaseServerEndpointService, {
   DatabaseServerEndpointOwner,
   ENDPOINT_MATCH_REFRESH_SECONDS,
   getOwnedByOtherDatabaseMessage,
-  hasOutOfRangePort,
 } from "./DatabaseServerEndpointService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import DatabaseServerLabelRuleEngineService from "./DatabaseServerLabelRuleEngineService";
@@ -42,18 +41,20 @@ import DatabaseServerDiscoverySource, {
 import {
   DatabaseEndpoint,
   DatabaseEndpointScope,
+  ManualDatabaseEndpoint,
   buildDatabaseServerDisplayName,
   buildDatabaseServerIdentifier,
   formatDatabaseEndpoint,
   getDatabaseEndpointScope,
   parseDatabaseEndpointString,
+  parseManualDatabaseEndpoint,
 } from "../../Types/DatabaseServer/DatabaseEndpoint";
 import {
   DATABASE_SYSTEMS,
   DatabaseSystemDescriptor,
   getDatabaseSystemDisplayName,
   getDatabaseSystemFamily,
-  isSameDatabaseFamily,
+  getMoreSpecificDatabaseSystem,
   normalizeDatabaseSystem,
 } from "../../Types/DatabaseServer/DatabaseSystem";
 import OneUptimeDate from "../../Types/Date";
@@ -129,7 +130,31 @@ const WORKLOAD_GONE_MINUTES: number = 60;
  */
 const WORKLOAD_ALIAS_RELEASE_MINUTES: number = 120;
 
-const MAX_PORT: number = 65535;
+/*
+ * A workload row whose columns discovery would write back unchanged is only
+ * rewritten once this long has passed since it was last written: discovery
+ * runs every five minutes, and rewriting every row every run (the member-key
+ * JSON included) costs a write per database per run for nothing. Its
+ * lastSeenAt is then at most this plus one discovery interval old - inside
+ * the dashboard's 30-minute "seen recently" window
+ * (DATABASE_SERVER_LIVE_WINDOW_MINUTES), and far inside
+ * WORKLOAD_GONE_MINUTES and the auto-archive sweep's one-hour margin behind
+ * its parent - so a skipped write never makes a live workload look inactive
+ * or gone.
+ */
+const WORKLOAD_REFRESH_MINUTES: number = 15;
+
+// How many of the project's cluster names a manual-create refusal lists.
+const MAX_LISTED_CLUSTER_NAMES: number = 10;
+
+/*
+ * A Kubernetes Service DNS name - `<service>.<namespace>.svc.<cluster
+ * domain>`, or `<pod>.<service>.<namespace>.svc.…` for a StatefulSet member
+ * - which only a pod inside one cluster can resolve. The canonical form the
+ * endpoint parser expands `<service>.<namespace>.svc` to.
+ */
+const KUBERNETES_SERVICE_HOST_PATTERN: RegExp =
+  /^(?:[a-z0-9_-]+\.){1,2}[a-z0-9_-]+\.svc\..+$/;
 
 /*
  * The columns every discovery caller gets back. Enough to key telemetry
@@ -156,11 +181,20 @@ const DISCOVERY_SELECT: Select<Model> = {
   autoArchivedAt: true,
 };
 
+/*
+ * The workload path also compares what it would write with what the row
+ * holds (see workloadColumnsChanged), so it reads every column it writes.
+ */
 const WORKLOAD_SELECT: Select<Model> = {
   ...DISCOVERY_SELECT,
   memberEntityKeys: true,
   dbVersion: true,
   collectorLastSeenAt: true,
+  instanceCount: true,
+  workloadKind: true,
+  dockerHostId: true,
+  podmanHostId: true,
+  lastSeenAt: true,
 };
 
 /*
@@ -350,7 +384,9 @@ interface AutoCreateCount {
  *   - discovery only ever un-archives a row it archived itself
  *     (autoArchivedAt), never one a person archived;
  *   - an engine a person chose is never changed, and a weaker source never
- *     changes an engine a stronger one determined (DatabaseSystemEvidence).
+ *     changes an engine a stronger one determined (DatabaseSystemEvidence)
+ *     - except to refine it to a fork, which any source may do and none
+ *     undoes (decideDatabaseSystem, getMoreSpecificDatabaseSystem).
  */
 export class Service extends DatabaseService<Model> {
   /*
@@ -395,6 +431,12 @@ export class Service extends DatabaseService<Model> {
    * The create permission is checked FIRST, before any lookup: the refusals
    * below name databases, and a caller who may not add a database must not
    * be able to use them to learn what exists.
+   *
+   * The typed address is read by parseManualDatabaseEndpoint, whose refusals
+   * say what to change (`user@host`, a cluster qualifier on a public host, a
+   * loopback name, a port out of range), and a Kubernetes Service name typed
+   * without its cluster is refused in a project that has clusters (see
+   * refuseUnqualifiedKubernetesServiceName).
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
@@ -424,11 +466,12 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    const endpoint: DatabaseEndpoint = parseManualEndpoint({
+    const manual: ManualDatabaseEndpoint = parseManualEndpoint({
       serverAddress: data.serverAddress,
       serverPort: data.serverPort,
       dbSystem: dbSystem,
     });
+    const endpoint: DatabaseEndpoint = manual.endpoint!;
 
     const formatted: string = formatDatabaseEndpoint(endpoint);
 
@@ -443,6 +486,14 @@ export class Service extends DatabaseService<Model> {
         await getOwnedByOtherDatabaseMessage(formatted, owner, createBy.props),
       );
     }
+
+    await this.refuseUnqualifiedKubernetesServiceName({
+      projectId: projectId,
+      manual: manual,
+      serverAddress: data.serverAddress,
+      serverPort: data.serverPort,
+      dbSystem: dbSystem,
+    });
 
     const databaseIdentifier: string = buildDatabaseServerIdentifier(
       dbSystem,
@@ -1626,29 +1677,41 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
-    await this.updateColumnsByIdWithoutHooks({
-      id: row.id,
-      data: update as unknown as PartialEntity<Model>,
-    });
-
-    row.memberEntityKeys = memberEntityKeys;
-    row.instanceCount = instanceCount;
-    row.lastSeenAt = now;
-    row.workloadLastSeenAt = now;
     row.workloadIdentifier = workloadIdentifier;
 
-    if (engine) {
-      row.dbSystemSource = engine.evidence;
-      if (typeof update["dbSystem"] === "string") {
-        row.dbSystem = update["dbSystem"];
-      }
-      if (typeof update["name"] === "string") {
-        row.name = update["name"];
-      }
-    }
+    /*
+     * Nothing but the liveness stamps would change, and the row was written
+     * recently: skip the write (see WORKLOAD_REFRESH_MINUTES). The row is
+     * returned as it was read. Aliases and the auto-archive restore above
+     * and below still run on every sighting.
+     */
+    if (
+      workloadColumnsChanged(row, update) ||
+      !this.isWorkloadRowFresh(row, now)
+    ) {
+      await this.updateColumnsByIdWithoutHooks({
+        id: row.id,
+        data: update as unknown as PartialEntity<Model>,
+      });
 
-    if (typeof update["dbVersion"] === "string") {
-      row.dbVersion = update["dbVersion"];
+      row.memberEntityKeys = memberEntityKeys;
+      row.instanceCount = instanceCount;
+      row.lastSeenAt = now;
+      row.workloadLastSeenAt = now;
+
+      if (engine) {
+        row.dbSystemSource = engine.evidence;
+        if (typeof update["dbSystem"] === "string") {
+          row.dbSystem = update["dbSystem"];
+        }
+        if (typeof update["name"] === "string") {
+          row.name = update["name"];
+        }
+      }
+
+      if (typeof update["dbVersion"] === "string") {
+        row.dbVersion = update["dbVersion"];
+      }
     }
 
     if (engine && previousSystem && row.dbSystem !== previousSystem) {
@@ -1808,6 +1871,27 @@ export class Service extends DatabaseService<Model> {
         -this.getCollectorStaleThresholdMinutes(),
       ).getTime()
     );
+  }
+
+  /*
+   * True when the workload path wrote this row within
+   * WORKLOAD_REFRESH_MINUTES: both liveness stamps it writes are that fresh.
+   */
+  private isWorkloadRowFresh(row: Model, now: Date): boolean {
+    const freshAfter: number = OneUptimeDate.addRemoveMinutes(
+      now,
+      -WORKLOAD_REFRESH_MINUTES,
+    ).getTime();
+
+    for (const stamp of [row.lastSeenAt, row.workloadLastSeenAt]) {
+      const time: number = stamp ? new Date(stamp).getTime() : NaN;
+
+      if (!Number.isFinite(time) || time <= freshAfter) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   /*
@@ -2575,7 +2659,9 @@ export class Service extends DatabaseService<Model> {
 
     /*
      * A collector-created row is connected from its first moment; every
-     * other source leaves otelCollectorStatus at its "disconnected" default.
+     * other source leaves otelCollectorStatus empty - no collector has
+     * reported, so none has "disconnected" either (the column has no
+     * default).
      */
     if (data.discoverySource === DatabaseServerDiscoverySource.Collector) {
       newRow.otelCollectorStatus = "connected";
@@ -2661,8 +2747,21 @@ export class Service extends DatabaseService<Model> {
         owner.databaseServerId,
       );
 
-      if (ownerRow && !this.isWorkloadGone(ownerRow)) {
-        await this.restoreIfAutoArchived(ownerRow);
+      if (ownerRow) {
+        // The same sighting findOrCreateByEndpoint gives an owner it finds first.
+        const evidence: DatabaseSystemEvidence | null =
+          getDatabaseSystemEvidenceForSource(data.discoverySource);
+
+        if (evidence) {
+          await this.applyDatabaseSystemEvidence(ownerRow, {
+            system: data.dbSystem,
+            evidence: evidence,
+          });
+        }
+
+        if (!this.isWorkloadGone(ownerRow)) {
+          await this.restoreIfAutoArchived(ownerRow);
+        }
       }
 
       return ownerRow;
@@ -2823,6 +2922,106 @@ export class Service extends DatabaseService<Model> {
         ? await getOwnedByOtherDatabaseMessage(data.endpoint, owner, data.props)
         : `${data.endpoint} already belongs to another database. An endpoint can belong to only one database in a project.`,
     );
+  }
+
+  /*
+   * A Kubernetes Service name typed without its cluster
+   * (`pg.shop.svc.cluster.local`, no `@<cluster>`) in a project that has
+   * Kubernetes clusters. Pods whose telemetry goes through the Kubernetes
+   * agent report their cluster, so their calls are keyed
+   * `<endpoint>@<cluster>`: a row holding only the unqualified name would
+   * stay empty while discovery creates a second row for the qualified one.
+   * The person is asked to name the cluster instead, from the project's own
+   * cluster names.
+   *
+   * Only Service names: a private IP or a private-zone name (`.internal`,
+   * `.local`) is also what virtual machines and the Database Agent report,
+   * unqualified, so it stays a valid manual endpoint. And only in a project
+   * with clusters - without one, nothing could report the qualified form.
+   * If the clusters cannot be read the create goes ahead: the advice is not
+   * worth failing the create for.
+   */
+  private async refuseUnqualifiedKubernetesServiceName(data: {
+    projectId: ObjectID;
+    manual: ManualDatabaseEndpoint;
+    serverAddress: unknown;
+    serverPort: unknown;
+    dbSystem: string;
+  }): Promise<void> {
+    const endpoint: DatabaseEndpoint | null = data.manual.endpoint;
+
+    if (
+      !endpoint ||
+      !data.manual.clusterQualifierHint ||
+      !KUBERNETES_SERVICE_HOST_PATTERN.test(endpoint.host)
+    ) {
+      return;
+    }
+
+    let clusterNames: Array<string> = [];
+
+    try {
+      clusterNames = await this.findKubernetesClusterNames(data.projectId);
+    } catch (error) {
+      logger.warn(
+        `DatabaseServerService: could not read the Kubernetes clusters of project ${data.projectId.toString()}; adding ${formatDatabaseEndpoint(endpoint)} unqualified: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+
+      return;
+    }
+
+    if (clusterNames.length === 0) {
+      return;
+    }
+
+    // The same value again, now with the cluster names the advice lists.
+    const advice: string | null = parseManualDatabaseEndpoint(
+      data.serverAddress,
+      {
+        system: data.dbSystem,
+        port: data.serverPort,
+        knownClusterNames: clusterNames,
+      },
+    ).clusterQualifierHint;
+
+    throw new BadDataException(
+      `${advice || data.manual.clusterQualifierHint} To also match a Database Agent or applications that do not report their cluster, add ${formatDatabaseEndpoint(
+        endpoint,
+      )} as an endpoint on the database's Endpoints tab once it is created.`,
+    );
+  }
+
+  // The project's Kubernetes cluster names (k8s.cluster.name), a few, sorted.
+  private async findKubernetesClusterNames(
+    projectId: ObjectID,
+  ): Promise<Array<string>> {
+    const rows: unknown = await this.getRepository().manager.query(
+      `SELECT DISTINCT kc."clusterIdentifier" AS "clusterIdentifier"
+        FROM "KubernetesCluster" kc
+        WHERE kc."projectId" = $1
+          AND kc."deletedAt" IS NULL
+          AND kc."clusterIdentifier" IS NOT NULL
+          AND kc."clusterIdentifier" <> ''
+        ORDER BY kc."clusterIdentifier" ASC
+        LIMIT $2`,
+      [projectId.toString(), MAX_LISTED_CLUSTER_NAMES],
+    );
+
+    const names: Array<string> = [];
+
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const name: unknown = (row as { clusterIdentifier?: unknown })
+        ?.clusterIdentifier;
+
+      if (typeof name === "string" && name.trim()) {
+        names.push(name.trim());
+      }
+    }
+
+    return names;
   }
 
   /*
@@ -3233,57 +3432,106 @@ export class Service extends DatabaseService<Model> {
 }
 
 /*
- * The endpoint a person typed into the create form. The port field, when
- * filled, wins over a port inside the address; the engine's default port
- * fills a missing one.
+ * The endpoint a person typed into the create form, read by
+ * parseManualDatabaseEndpoint: the port field, when filled, replaces any
+ * port in the address (and a SQL Server `\instance`), the engine's default
+ * port fills a missing one, and a value that cannot be used is refused with
+ * a message saying what to change. The result always has an endpoint.
  */
 function parseManualEndpoint(data: {
   serverAddress: unknown;
   serverPort: unknown;
   dbSystem: string;
-}): DatabaseEndpoint {
-  const address: string =
-    typeof data.serverAddress === "string" ? data.serverAddress.trim() : "";
+}): ManualDatabaseEndpoint {
+  const manual: ManualDatabaseEndpoint = parseManualDatabaseEndpoint(
+    data.serverAddress,
+    {
+      system: data.dbSystem,
+      port: data.serverPort,
+    },
+  );
 
-  if (!address) {
+  if (!manual.endpoint) {
     throw new BadDataException(
-      "Server address is required. Enter the host name or IP address applications use to reach this database.",
+      manual.error ||
+        "Enter the host name or IP address applications use to reach this database, for example orders-db.example.com:5432.",
     );
   }
 
-  const parsed: DatabaseEndpoint | null = parseDatabaseEndpointString(address, {
-    system: data.dbSystem,
-  });
+  return manual;
+}
 
-  const hasPortField: boolean =
-    data.serverPort !== undefined &&
-    data.serverPort !== null &&
-    data.serverPort !== "";
-
-  // A port field, when filled, replaces whatever port the address carried.
-  if (!parsed || (!hasPortField && hasOutOfRangePort(address))) {
-    throw new BadDataException(
-      `"${
-        address.length > 100 ? `${address.substring(0, 100)}…` : address
-      }" is not a valid host[:port] endpoint. Enter a host name or IP address with an optional port, for example orders-db.internal:5432. Loopback addresses such as localhost cannot be used, because every application reaches its own.`,
-    );
-  }
-
-  const endpoint: DatabaseEndpoint = { ...parsed };
-
-  if (hasPortField) {
-    const port: number = Number(data.serverPort);
-
-    if (!Number.isInteger(port) || port < 1 || port > MAX_PORT) {
-      throw new BadDataException(
-        `Server port must be a whole number between 1 and ${MAX_PORT}.`,
-      );
+/*
+ * True when writing `update` (the workload path's columns) would change the
+ * row beyond its liveness: a member key added or aged out, the instance
+ * count, the version, the workload's kind / name / namespace / parent, or
+ * the engine. lastSeenAt / workloadLastSeenAt and the member keys' own
+ * timestamps are liveness, refreshed at least every
+ * WORKLOAD_REFRESH_MINUTES anyway.
+ */
+export function workloadColumnsChanged(
+  row: Model,
+  update: Record<string, unknown>,
+): boolean {
+  for (const [column, value] of Object.entries(update)) {
+    if (column === "lastSeenAt" || column === "workloadLastSeenAt") {
+      continue;
     }
 
-    endpoint.port = port;
+    if (column === "memberEntityKeys") {
+      if (!hasSameMemberKeys(row.memberEntityKeys, value)) {
+        return true;
+      }
+      continue;
+    }
+
+    if (
+      !isSameColumnValue(
+        (row as unknown as Record<string, unknown>)[column],
+        value,
+      )
+    ) {
+      return true;
+    }
   }
 
-  return endpoint;
+  return false;
+}
+
+// An id compares by its text (ObjectID or string), anything else strictly.
+function isSameColumnValue(current: unknown, next: unknown): boolean {
+  if (current instanceof ObjectID || next instanceof ObjectID) {
+    return (
+      current !== null &&
+      current !== undefined &&
+      next !== null &&
+      next !== undefined &&
+      String(current).toLowerCase() === String(next).toLowerCase()
+    );
+  }
+
+  return current === next;
+}
+
+// The same member keys, whatever their timestamps.
+function hasSameMemberKeys(stored: unknown, merged: unknown): boolean {
+  const keysOf: (value: unknown) => Array<string> = (
+    value: unknown,
+  ): Array<string> => {
+    return value && typeof value === "object" && !Array.isArray(value)
+      ? Object.keys(value as Record<string, unknown>).sort()
+      : [];
+  };
+
+  const storedKeys: Array<string> = keysOf(stored);
+  const mergedKeys: Array<string> = keysOf(merged);
+
+  return (
+    storedKeys.length === mergedKeys.length &&
+    storedKeys.every((key: string, index: number): boolean => {
+      return key === mergedKeys[index];
+    })
+  );
 }
 
 /*
@@ -3428,14 +3676,17 @@ export function getStoredDatabaseSystemEvidence(row: {
  * The engine (and the evidence for it) a row should carry once `incoming`
  * evidence arrives, or null to leave the row as it is:
  *   - an engine a person chose is never changed;
- *   - a different engine family replaces the current engine only on strictly
- *     stronger evidence (the image says CockroachDB where a pgx client said
- *     PostgreSQL); equal or weaker evidence never flips it back and forth;
- *   - within one family, any source may REFINE the family's own engine to a
- *     fork of it (redis -> valkey): a client, an image or a receiver can
- *     each be the only one that knows. A fork is never downgraded back to
- *     the family engine, and one fork replaces another only on strictly
- *     stronger evidence;
+ *   - within one family, SPECIFICITY decides, whatever the source - the
+ *     rule getMoreSpecificDatabaseSystem encodes, and the one the docs
+ *     describe: a fork refines the family's own engine (mysql -> mariadb,
+ *     postgresql -> cockroachdb), because a client, an image or a receiver
+ *     can each be the only one that knows; and the family's engine never
+ *     undoes a fork, because a client or a family receiver cannot tell them
+ *     apart (a span or the mysql receiver saying "mysql" leaves MariaDB);
+ *   - any other different engine - another family, a sibling fork, an
+ *     unknown engine - replaces the current one only on strictly stronger
+ *     evidence (the image says CockroachDB where a client said MySQL);
+ *     equal or weaker evidence never flips it back and forth;
  *   - the same engine on stronger evidence keeps the engine but records the
  *     stronger evidence, so weaker evidence cannot move it later.
  * A row with no engine takes the incoming one. Pure.
@@ -3486,24 +3737,19 @@ export function decideDatabaseSystem(data: {
       : null;
   }
 
-  if (isSameDatabaseFamily(currentSystem, incomingSystem)) {
-    const currentIsFamilyEngine: boolean =
-      getDatabaseSystemFamily(currentSystem) === currentSystem;
-    const incomingIsFamilyEngine: boolean =
-      getDatabaseSystemFamily(incomingSystem) === incomingSystem;
+  // The incoming engine is a fork of the current one: a refinement.
+  if (
+    getMoreSpecificDatabaseSystem(currentSystem, incomingSystem) ===
+    incomingSystem
+  ) {
+    return incoming;
+  }
 
-    if (currentIsFamilyEngine && !incomingIsFamilyEngine) {
-      return incoming;
-    }
-
-    if (
-      !currentIsFamilyEngine &&
-      !incomingIsFamilyEngine &&
-      incomingRank > currentRank
-    ) {
-      return incoming;
-    }
-
+  // The current engine is a fork of the incoming one: never undone.
+  if (
+    getMoreSpecificDatabaseSystem(incomingSystem, currentSystem) ===
+    currentSystem
+  ) {
     return null;
   }
 

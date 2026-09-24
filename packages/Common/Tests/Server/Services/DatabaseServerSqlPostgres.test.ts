@@ -1107,6 +1107,144 @@ describePostgres("Databases SQL against Postgres", () => {
     ).toEqual(["pg.data.svc.cluster.local:5432@prod"]);
   });
 
+  test("a workload seen again with nothing new is not rewritten; a change is written at once", async () => {
+    const cluster: ObjectID = await insertRow("KubernetesCluster", {
+      projectId: projectId,
+      lastSeenAt: new Date(),
+    });
+    const input: any = {
+      projectId: projectId,
+      workloadIdentifier: "mysql|kubernetes:prod/shop/statefulset/orders",
+      dbSystem: "mysql",
+      displayName: "MySQL shop/orders",
+      discoverySource: DatabaseServerDiscoverySource.Kubernetes,
+      aliases: ["orders.shop.svc.cluster.local:3306@prod"],
+      memberKeysSeenNow: ["0123456789abcdef"],
+      instanceCount: 1,
+      dbVersion: "8.0",
+      kubernetesClusterId: cluster,
+      kubernetesNamespace: "shop",
+      workloadKind: "StatefulSet",
+      workloadName: "orders",
+      allowCreate: true,
+    };
+
+    const row: DatabaseServer | null =
+      await DatabaseServerService.upsertWorkloadDatabase(input);
+    const created: any = await databaseState(row!.id!);
+
+    // Every column the workload path reads back exists on the migrated table.
+    const again: DatabaseServer | null =
+      await DatabaseServerService.upsertWorkloadDatabase(input);
+    expect(again!.id!.toString()).toBe(row!.id!.toString());
+    const unchanged: any = await databaseState(row!.id!);
+    expect(unchanged.updatedAt.toISOString()).toBe(
+      created.updatedAt.toISOString(),
+    );
+    expect(unchanged.lastSeenAt.toISOString()).toBe(
+      created.lastSeenAt.toISOString(),
+    );
+    expect(unchanged.version).toBe(created.version);
+
+    await DatabaseServerService.upsertWorkloadDatabase({
+      ...input,
+      instanceCount: 3,
+      dbSystem: "mariadb",
+    });
+    const changed: any = await databaseState(row!.id!);
+    expect(changed.instanceCount).toBe(3);
+    expect(changed.dbSystem).toBe("mariadb");
+    expect(changed.name).toBe("MariaDB shop/orders");
+    expect(changed.lastSeenAt.getTime()).toBeGreaterThanOrEqual(
+      created.lastSeenAt.getTime(),
+    );
+
+    // A quarter of an hour on, an unchanged workload refreshes its liveness.
+    await database.query(
+      `UPDATE "${schema}"."DatabaseServer" SET "lastSeenAt" = $1, "workloadLastSeenAt" = $1 WHERE "_id" = $2`,
+      [ago(20 * 60 * 1000), row!.id!.toString()],
+    );
+    const before: number = Date.now();
+    await DatabaseServerService.upsertWorkloadDatabase({
+      ...input,
+      instanceCount: 3,
+      dbSystem: "mariadb",
+    });
+    const refreshed: any = await databaseState(row!.id!);
+    expect(refreshed.workloadLastSeenAt.getTime()).toBeGreaterThanOrEqual(
+      before - 1000,
+    );
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * The collector status is only ever a collector's
+   * -------------------------------------------------------------------------
+   */
+  test("a database found from traces stores no collector status - and the sweep leaves it empty", async () => {
+    const traces: DatabaseServer | null =
+      await DatabaseServerService.findOrCreateByEndpoint({
+        projectId: projectId,
+        dbSystem: "postgresql",
+        endpoint: { host: "orders-db.example.com", port: 5432 },
+        discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+        allowCreate: true,
+      });
+    const collector: DatabaseServer | null =
+      await DatabaseServerService.findOrCreateByEndpoint({
+        projectId: projectId,
+        dbSystem: "postgresql",
+        endpoint: { host: "billing-db.example.com", port: 5432 },
+        discoverySource: DatabaseServerDiscoverySource.Collector,
+        allowCreate: true,
+      });
+
+    expect((await databaseState(traces!.id!)).otelCollectorStatus).toBeNull();
+    expect((await databaseState(collector!.id!)).otelCollectorStatus).toBe(
+      "connected",
+    );
+
+    await DatabaseServerService.markDisconnectedDatabaseServers();
+
+    expect((await databaseState(traces!.id!)).otelCollectorStatus).toBeNull();
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * The cluster names a manual create's refusal lists
+   * -------------------------------------------------------------------------
+   */
+  test("the cluster names are the project's live clusters, sorted", async () => {
+    for (const clusterIdentifier of ["staging", "prod-eu"]) {
+      await insertRow("KubernetesCluster", {
+        projectId: projectId,
+        clusterIdentifier: clusterIdentifier,
+      });
+    }
+    await insertRow("KubernetesCluster", {
+      projectId: projectId,
+      clusterIdentifier: "decommissioned",
+      deletedAt: new Date(),
+    });
+    await insertRow("KubernetesCluster", {
+      projectId: projectId,
+      clusterIdentifier: "",
+    });
+    await insertRow("KubernetesCluster", {
+      projectId: otherProjectId,
+      clusterIdentifier: "theirs",
+    });
+
+    await expect(
+      (DatabaseServerService as any).findKubernetesClusterNames(projectId),
+    ).resolves.toEqual(["prod-eu", "staging"]);
+    await expect(
+      (DatabaseServerService as any).findKubernetesClusterNames(
+        ObjectID.generate(),
+      ),
+    ).resolves.toEqual([]);
+  });
+
   /*
    * -------------------------------------------------------------------------
    * A person adding an alias: label- and Owned-scoped edit permission
@@ -1264,6 +1402,139 @@ describePostgres("Databases SQL against Postgres", () => {
         `SELECT "_id" FROM "${schema}"."DatabaseServerEndpoint"`,
       );
       expect(rows).toHaveLength(0);
+    });
+
+    test("an alias the form cannot use is refused with what to change, and nothing is written", async () => {
+      const ours: ObjectID = await insertDatabase({});
+
+      await expect(
+        DatabaseServerEndpointService.create({
+          data: alias(ours, "admin@10.0.0.5:5432"),
+          props: scopedProps(PermissionScope.All),
+        }),
+      ).rejects.toThrow('Remove "admin@"');
+      await expect(
+        DatabaseServerEndpointService.create({
+          data: alias(ours, "orders-db.example.com:70000"),
+          props: scopedProps(PermissionScope.All),
+        }),
+      ).rejects.toThrow("has a port outside 1-65535");
+      expect(await endpointsOf(ours)).toHaveLength(0);
+    });
+  });
+
+  /*
+   * -------------------------------------------------------------------------
+   * A person adding a database: the real create pipeline
+   * -------------------------------------------------------------------------
+   */
+  describe("a person adding a database", () => {
+    beforeEach(() => {
+      // The Created feed item names its creator from the User table, not cloned here.
+      jest
+        .spyOn(DatabaseServerService as any, "writeDatabaseServerCreatedFeed")
+        .mockResolvedValue(undefined);
+    });
+
+    function creatorProps(): DatabaseCommonInteractionProps {
+      return {
+        userId: userId,
+        tenantId: projectId,
+        userGlobalAccessPermission: {
+          projectIds: [projectId],
+          globalPermissions: [Permission.Public, Permission.User],
+          _type: "UserGlobalAccessPermission",
+        },
+        userTenantAccessPermission: {
+          [projectId.toString()]: {
+            projectId: projectId,
+            permissions: [
+              Permission.CreateDatabaseServer,
+              Permission.ReadDatabaseServer,
+            ].map((permission: Permission): UserPermission => {
+              return {
+                permission,
+                labelIds: [],
+                isBlockPermission: false,
+                _type: "UserPermission",
+              };
+            }),
+            _type: "UserTenantAccessPermission",
+          },
+        },
+        userTeamIds: [],
+      };
+    }
+
+    function manual(serverAddress: string): DatabaseServer {
+      const data: DatabaseServer = new DatabaseServer();
+      data.dbSystem = "postgresql";
+      data.serverAddress = serverAddress;
+      return data;
+    }
+
+    test("an unqualified Kubernetes Service name is refused in a project with clusters, naming them", async () => {
+      await insertRow("KubernetesCluster", {
+        projectId: projectId,
+        clusterIdentifier: "prod-eu",
+      });
+
+      await expect(
+        DatabaseServerService.create({
+          data: manual("pg.shop.svc.cluster.local"),
+          props: creatorProps(),
+        }),
+      ).rejects.toThrow(
+        "for example pg.shop.svc.cluster.local:5432@prod-eu (this project's clusters: prod-eu)",
+      );
+      const rows: Array<any> = await database.query(
+        `SELECT "_id" FROM "${schema}"."DatabaseServer"`,
+      );
+      expect(rows).toHaveLength(0);
+
+      const created: DatabaseServer = await DatabaseServerService.create({
+        data: manual("pg.shop.svc.cluster.local@prod-eu"),
+        props: creatorProps(),
+      });
+      expect((await databaseState(created.id!)).databaseIdentifier).toBe(
+        "postgresql|pg.shop.svc.cluster.local:5432@prod-eu",
+      );
+      expect(await endpointsOf(created.id!)).toEqual([
+        expect.objectContaining({
+          endpoint: "pg.shop.svc.cluster.local:5432@prod-eu",
+          source: "user",
+          isPrimary: true,
+        }),
+      ]);
+      // ...and a database found from traces has no collector status.
+      expect((await databaseState(created.id!)).otelCollectorStatus).toBeNull();
+    });
+
+    test("the same name is accepted as typed in a project without clusters, and a private IP always is", async () => {
+      await insertRow("KubernetesCluster", {
+        projectId: otherProjectId,
+        clusterIdentifier: "theirs",
+      });
+
+      const service: DatabaseServer = await DatabaseServerService.create({
+        data: manual("pg.shop.svc.cluster.local"),
+        props: creatorProps(),
+      });
+      expect((await databaseState(service.id!)).databaseIdentifier).toBe(
+        "postgresql|pg.shop.svc.cluster.local:5432",
+      );
+
+      await insertRow("KubernetesCluster", {
+        projectId: projectId,
+        clusterIdentifier: "prod-eu",
+      });
+      const privateIp: DatabaseServer = await DatabaseServerService.create({
+        data: manual("10.0.1.5"),
+        props: creatorProps(),
+      });
+      expect((await databaseState(privateIp.id!)).databaseIdentifier).toBe(
+        "postgresql|10.0.1.5:5432",
+      );
     });
   });
 });
