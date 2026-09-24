@@ -67,6 +67,17 @@ const KNOWN_CUMULATIVE_COUNTERS: Array<string> = [
   "oracledb.user_commits",
   "oracledb.physical_reads",
   "oracledb.db.time",
+  /*
+   * Named "*.rate", but over a direct connection the receiver passes SQL
+   * Server's cumulative cntr_value through: a live capture read
+   * batch.request.rate 8, 13, 18, 23, 28, 33 on consecutive 10 s scrapes of
+   * an idle server. Charted as a gauge they would show an ever-growing
+   * number labelled per second.
+   */
+  "sqlserver.batch.request.rate",
+  "sqlserver.batch.sql_compilation.rate",
+  "sqlserver.lock.wait.rate",
+  "sqlserver.deadlock.rate",
 ];
 
 /*
@@ -79,10 +90,6 @@ const KNOWN_GAUGES: Array<string> = [
   "postgresql.db_size",
   "redis.commands",
   "redis.memory.used",
-  "sqlserver.batch.request.rate",
-  "sqlserver.batch.sql_compilation.rate",
-  "sqlserver.lock.wait.rate",
-  "sqlserver.deadlock.rate",
   "sqlserver.processes.blocked",
   "sqlserver.page.buffer_cache.hit_ratio",
   "oracledb.sessions.usage",
@@ -301,9 +308,31 @@ describe("DATABASE_SERVER_METRICS", () => {
     expect(metricByName(name).kind).toBe("gauge");
   });
 
-  test("SQL Server's metrics are all receiver-computed gauges", () => {
+  test("SQL Server's *.rate metrics are charted as rates of running totals", () => {
+    /*
+     * The agent connects directly, where the receiver reports each
+     * "per second" counter as SQL Server's cumulative cntr_value.
+     */
+    const kinds: Record<string, string> = {};
     for (const metric of getDatabaseServerMetrics("microsoft.sql_server")) {
-      expect(metric.kind).toBe("gauge");
+      kinds[metric.metricName] = metric.kind;
+    }
+    expect(kinds).toEqual({
+      "sqlserver.user.connection.count": "gauge",
+      "sqlserver.batch.request.rate": "counter",
+      "sqlserver.batch.sql_compilation.rate": "counter",
+      "sqlserver.page.buffer_cache.hit_ratio": "gauge",
+      "sqlserver.page.life_expectancy": "gauge",
+      "sqlserver.lock.wait.rate": "counter",
+      "sqlserver.deadlock.rate": "counter",
+      "sqlserver.processes.blocked": "gauge",
+    });
+    for (const metric of getDatabaseServerMetrics("microsoft.sql_server")) {
+      if (metric.kind === "counter") {
+        // A rate is computed from the latest total in each bucket.
+        expect(metric.aggregation).toBe(AggregationType.Max);
+        expect(metric.unit).not.toContain("/s");
+      }
     }
   });
 
