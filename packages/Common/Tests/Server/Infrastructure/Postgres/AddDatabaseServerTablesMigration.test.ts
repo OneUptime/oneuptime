@@ -316,12 +316,26 @@ describe("AddDatabaseServerTables1795000000000", () => {
     );
     expect(statement).toContain('"dbSystem" character varying(100) NOT NULL');
     expect(statement).toContain('"memberEntityKeys" jsonb');
+    /*
+     * No default: a database no collector has ever reported for has no
+     * engine-metrics status at all, rather than claiming "disconnected".
+     */
     expect(statement).toContain(
-      "\"otelCollectorStatus\" character varying(100) DEFAULT 'disconnected'",
+      '"otelCollectorStatus" character varying(100),',
     );
+    expect(statement).not.toContain("DEFAULT 'disconnected'");
     expect(statement).toContain(
       '"collectorLastSeenAt" TIMESTAMP WITH TIME ZONE',
     );
+    // Lifecycle and engine-evidence columns.
+    expect(statement).toContain(
+      '"manuallyRestoredAt" TIMESTAMP WITH TIME ZONE',
+    );
+    expect(statement).toContain('"dbSystemSource" character varying(100)');
+    expect(statement).toContain(
+      '"workloadLastSeenAt" TIMESTAMP WITH TIME ZONE',
+    );
+    expect(statement).toContain('"automaticAssignments" jsonb');
     expect(statement).toContain('"autoArchivedAt" TIMESTAMP WITH TIME ZONE');
     expect(statement).toContain('"isArchived" boolean NOT NULL DEFAULT false');
     expect(statement).toContain('"telemetryRetentionConfig" jsonb');
