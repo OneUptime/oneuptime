@@ -852,6 +852,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENT_VIEW_SLA]: `${RouteParams.ModelID}/sla`,
   [PageMap.INCIDENT_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
   [PageMap.INCIDENT_VIEW_RUNBOOKS]: `${RouteParams.ModelID}/runbooks`,
+  [PageMap.INCIDENT_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
 };
 
 export const AlertsRoutePath: Dictionary<string> = {
@@ -916,6 +917,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERT_VIEW_INTERNAL_NOTE]: `${RouteParams.ModelID}/internal-notes`,
   [PageMap.ALERT_VIEW_RUNBOOKS]: `${RouteParams.ModelID}/runbooks`,
   [PageMap.ALERT_VIEW_AUDIT_LOGS]: `${RouteParams.ModelID}/audit-logs`,
+  [PageMap.ALERT_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.ALERT_EPISODE_VIEW_AUDIT_LOGS]: `episodes/${RouteParams.ModelID}/audit-logs`,
 };
 
@@ -1488,6 +1490,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERT_VIEW_INCIDENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERT_VIEW_INCIDENTS]
+    }`,
+  ),
+
   // Alert Settings Routes
   [PageMap.ALERTS_SETTINGS_STATE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
@@ -1995,6 +2003,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENT_VIEW_RUNBOOKS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENT_VIEW_RUNBOOKS]
+    }`,
+  ),
+
+  [PageMap.INCIDENT_VIEW_ALERTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENT_VIEW_ALERTS]
     }`,
   ),
 

@@ -76,6 +76,65 @@ const IncidentMoreSettings: FunctionComponent<ComponentProps> = (
           modelId: ProjectUtil.getCurrentProjectId()!,
         }}
       />
+
+      {/*
+       * A card of its own: a CardModelDetail writes every field it holds on
+       * Update, so sharing a card with the number prefixes would let saving
+       * one overwrite the other.
+       */}
+      <CardModelDetail<Project>
+        name="Linked Alerts"
+        cardProps={{
+          title: "Linked Alerts",
+          description:
+            "Choose whether the alerts linked to an incident follow it when the incident is acknowledged or resolved. Both are off by default. Alerts are never moved back to an earlier state, and reopening an incident does not reopen its alerts.",
+        }}
+        isEditable={true}
+        editButtonText={"Update"}
+        formFields={[
+          {
+            field: {
+              acknowledgeLinkedAlertsWhenIncidentAcknowledged: true,
+            },
+            title: "Acknowledge Linked Alerts When Incident Is Acknowledged",
+            description:
+              "When the incident is acknowledged, acknowledge every alert linked to it. This stops those alerts' on-call escalations and reminders. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
+            required: false,
+            fieldType: FormFieldSchemaType.Toggle,
+          },
+          {
+            field: {
+              resolveLinkedAlertsWhenIncidentResolved: true,
+            },
+            title: "Resolve Linked Alerts When Incident Is Resolved",
+            description:
+              "When the incident is resolved, resolve every alert linked to it - except alerts that are still linked to another incident that is not resolved yet. Alerts linked to an incident that is already resolved are resolved as they are linked.",
+            required: false,
+            fieldType: FormFieldSchemaType.Toggle,
+          },
+        ]}
+        modelDetailProps={{
+          modelType: Project,
+          id: "model-detail-project-incident-linked-alerts",
+          fields: [
+            {
+              field: {
+                acknowledgeLinkedAlertsWhenIncidentAcknowledged: true,
+              },
+              title: "Acknowledge Linked Alerts When Incident Is Acknowledged",
+              fieldType: FieldType.Boolean,
+            },
+            {
+              field: {
+                resolveLinkedAlertsWhenIncidentResolved: true,
+              },
+              title: "Resolve Linked Alerts When Incident Is Resolved",
+              fieldType: FieldType.Boolean,
+            },
+          ],
+          modelId: ProjectUtil.getCurrentProjectId()!,
+        }}
+      />
     </>
   );
 };
