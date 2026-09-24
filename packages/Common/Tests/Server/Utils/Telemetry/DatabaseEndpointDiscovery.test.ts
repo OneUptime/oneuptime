@@ -136,18 +136,22 @@ describe("buildDatabaseEndpointSql", () => {
     for (const index of addressOrder) {
       expect(index).toBeGreaterThan(0);
     }
-    expect([...addressOrder].sort((a: number, b: number) => a - b)).toEqual(
-      addressOrder,
-    );
+    expect(
+      [...addressOrder].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(addressOrder);
 
     const portOrder: Array<number> = DATABASE_PORT_ATTRIBUTES.map(
       (key: string): number => {
         return sql.indexOf(`attributes['${key}'] != ''`);
       },
     );
-    expect([...portOrder].sort((a: number, b: number) => a - b)).toEqual(
-      portOrder,
-    );
+    expect(
+      [...portOrder].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(portOrder);
   });
 
   test("keeps the caller's namespace only for dotless addresses", () => {

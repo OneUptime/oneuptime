@@ -17,6 +17,7 @@ import {
   keyForVMwareVCenter,
 } from "../../../../Utils/Telemetry/EntityKey";
 import { getDatabaseServerTelemetryEntityKeys } from "../../../../Utils/Telemetry/DatabaseServerEntityKeys";
+import { getDatabaseServerScopeKeys } from "../../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseTelemetryScope";
 import { RESOURCE_FACET_CATALOG_KEYS } from "../../../../Types/Telemetry/ResourceFacetCatalog";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 
@@ -703,6 +704,40 @@ describe("ResourceEntityFilter", () => {
       // No attribute branch: no single resource attribute names a database.
       expect(scopes[0]!.attributeKey).toBeUndefined();
       expect(scopes[0]!.attributeValues).toBeUndefined();
+    });
+
+    test("equals what the Database page's own scope helper (DatabaseTelemetryScope) queries for the same row", async () => {
+      databaseServerFindBy.mockResolvedValue([POSTGRES_ROW]);
+      databaseServerEndpointFindBy.mockResolvedValue(
+        ENDPOINT_ROWS.filter((row: Record<string, unknown>): boolean => {
+          return row["databaseServerId"] === RESOURCE_ID;
+        }),
+      );
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { databaseServerId: [RESOURCE_ID] },
+        });
+
+      /*
+       * The page loads the row and its endpoints (primary first) and hands
+       * them to getDatabaseServerScopeKeys; the explorer facet must select
+       * exactly those rows, key for key and in the same order.
+       */
+      const pageKeys: Array<string> = getDatabaseServerScopeKeys({
+        projectId: PROJECT_ID,
+        endpoints: endpointsOf(RESOURCE_ID).map(
+          (endpoint: string): { endpoint: string } => {
+            return { endpoint };
+          },
+        ),
+        dbSystem: POSTGRES_ROW["dbSystem"] as string,
+        memberEntityKeys: POSTGRES_ROW["memberEntityKeys"],
+      });
+
+      expect(pageKeys.length).toBeGreaterThan(0);
+      expect(scopes[0]!.entityKeys).toEqual(pageKeys);
     });
 
     test("the key set is the endpoint keys ingest stamps plus the member keys — engine default port applied", async () => {

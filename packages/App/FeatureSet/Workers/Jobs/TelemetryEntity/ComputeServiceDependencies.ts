@@ -189,6 +189,13 @@ async function loadServiceEntityKeys(
   return keyByName;
 }
 
+interface DatabaseEndpointMatch {
+  row: DatabaseServer | null;
+  created: boolean;
+  // A create the policy allowed but the project's auto-create budget refused.
+  overBudget: boolean;
+}
+
 /*
  * One discovered endpoint → its DatabaseServer row, or null. Looked up
  * first WITHOUT permission to create, so an endpoint that already has a row
@@ -201,7 +208,7 @@ async function findOrCreateDatabaseServerForEndpoint(data: {
   discovered: DiscoveredDatabaseEndpoint;
   minCalls: number;
   budget: AutoCreateBudget;
-}): Promise<{ row: DatabaseServer | null; created: boolean }> {
+}): Promise<DatabaseEndpointMatch> {
   const lookup: {
     projectId: ObjectID;
     dbSystem: string;
@@ -221,17 +228,20 @@ async function findOrCreateDatabaseServerForEndpoint(data: {
     });
 
   if (existing) {
-    return { row: existing, created: false };
+    return { row: existing, created: false, overBudget: false };
   }
 
   if (
     !isDatabaseEndpointAutoCreateCandidate({
       discovered: data.discovered,
       minCalls: data.minCalls,
-    }) ||
-    !(await data.budget.allowsCreate(data.projectId))
+    })
   ) {
-    return { row: null, created: false };
+    return { row: null, created: false, overBudget: false };
+  }
+
+  if (!(await data.budget.allowsCreate(data.projectId))) {
+    return { row: null, created: false, overBudget: true };
   }
 
   const created: DatabaseServer | null =
@@ -244,7 +254,7 @@ async function findOrCreateDatabaseServerForEndpoint(data: {
     data.budget.recordCreate(data.projectId);
   }
 
-  return { row: created, created: Boolean(created) };
+  return { row: created, created: Boolean(created), overBudget: false };
 }
 
 /**
@@ -274,6 +284,12 @@ export async function discoverDatabaseServersForProject(args: {
         ),
       );
 
+    if (rows.length >= MAX_DATABASE_ENDPOINT_ROWS) {
+      logger.warn(
+        `ComputeServiceDependencies: project ${args.projectId} called at least ${MAX_DATABASE_ENDPOINT_ROWS} database endpoint groups in the window; only the busiest ${MAX_DATABASE_ENDPOINT_ROWS} were matched to databases this run`,
+      );
+    }
+
     const endpoints: Array<DiscoveredDatabaseEndpoint> =
       resolveDatabaseEndpointRows(rows);
 
@@ -287,16 +303,21 @@ export async function discoverDatabaseServersForProject(args: {
 
     let sighted: number = 0;
     let created: number = 0;
+    let overBudget: number = 0;
 
     for (const discovered of endpoints) {
       try {
-        const result: { row: DatabaseServer | null; created: boolean } =
+        const result: DatabaseEndpointMatch =
           await findOrCreateDatabaseServerForEndpoint({
             projectId: projectId,
             discovered: discovered,
             minCalls: minCalls,
             budget: budget,
           });
+
+        if (result.overBudget) {
+          overBudget++;
+        }
 
         if (!result.row || !result.row.id) {
           continue;
@@ -313,6 +334,12 @@ export async function discoverDatabaseServersForProject(args: {
           `ComputeServiceDependencies: database endpoint ${formatDatabaseEndpoint(discovered.endpoint)} failed for project ${args.projectId}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
+    }
+
+    if (overBudget > 0) {
+      logger.warn(
+        `ComputeServiceDependencies: ${overBudget} new database endpoint(s) called by client spans were not created because project ${args.projectId} reached its auto-create budget (DATABASE_SERVER_AUTO_CREATE_BUDGET)`,
+      );
     }
 
     if (sighted > 0) {

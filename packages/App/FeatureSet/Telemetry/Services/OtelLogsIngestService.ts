@@ -610,10 +610,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
                   clusterName: stampClusterName,
                 })
               : {}),
-            ...(databaseServerId && databaseServerName
+            ...(databaseServerId
               ? TelemetryUtil.getAttributesForDatabaseServerIdAndName({
                   databaseServerId,
-                  databaseServerName,
+                  databaseServerName:
+                    databaseServerName || this.DATABASE_SERVER_FALLBACK_NAME,
                 })
               : {}),
             ...TelemetryUtil.getAttributes({

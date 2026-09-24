@@ -879,6 +879,57 @@ describe("database servers from client spans", () => {
     expect(createAttempts()).toHaveLength(0);
     expect(databaseServerMock.isUnderAutoCreateBudget).toHaveBeenCalledTimes(1);
     expect(databaseServerMock.recordSighting).not.toHaveBeenCalled();
+    // The skipped creates are named once, with the project.
+    expect(logger.warn as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(logger.warn as jest.Mock).toHaveBeenCalledWith(
+      expect.stringContaining("2 new database endpoint(s)"),
+    );
+    expect(logger.warn as jest.Mock).toHaveBeenCalledWith(
+      expect.stringContaining(PROJECT_ID),
+    );
+  });
+
+  test("an endpoint the policy refuses is not counted as over budget", async () => {
+    arrange({ databases: [databaseRow({ callCount: "1" })] });
+    arrangeDatabaseRows([]);
+    databaseServerMock.isUnderAutoCreateBudget.mockResolvedValue(false);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(logger.warn as jest.Mock).not.toHaveBeenCalled();
+  });
+
+  test("a query at its row cap is logged as partially matched", async () => {
+    const capped: Array<unknown> = [];
+    for (let index: number = 0; index < MAX_DATABASE_ENDPOINT_ROWS; index++) {
+      capped.push(
+        databaseRow({
+          serverAddress: `db-${index}.example.com`,
+          callCount: "1",
+        }),
+      );
+    }
+    arrange({ databases: capped });
+    arrangeDatabaseRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(logger.warn as jest.Mock).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `at least ${MAX_DATABASE_ENDPOINT_ROWS} database endpoint groups`,
+      ),
+    );
+    // Every row the cap let through is still matched.
+    expect(findOrCreateCalls()).toHaveLength(MAX_DATABASE_ENDPOINT_ROWS);
+  });
+
+  test("a query below its row cap logs no warning", async () => {
+    arrange({ databases: [databaseRow({})] });
+    arrangeDatabaseRows(["orders.cjd8.eu-west-1.rds.amazonaws.com:5432"]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(logger.warn as jest.Mock).not.toHaveBeenCalled();
   });
 
   test("the budget is read again after every create", async () => {
@@ -899,6 +950,9 @@ describe("database servers from client spans", () => {
     // Busiest first: a.example.com got the last slot.
     expect(Array.from(existing)).toEqual(["a.example.com:5432"]);
     expect(databaseServerMock.isUnderAutoCreateBudget).toHaveBeenCalledTimes(2);
+    expect(logger.warn as jest.Mock).toHaveBeenCalledWith(
+      expect.stringContaining("2 new database endpoint(s)"),
+    );
   });
 
   test("an unreadable budget fails closed", async () => {

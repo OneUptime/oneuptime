@@ -538,6 +538,15 @@ export default abstract class OtelIngestBaseService {
    *      / docker container name  →  ServiceType.OpenTelemetry,
    *      primaryEntityId = Service._id (created on first contact via
    *      `telemetryServiceFromName`).
+   *   1b. Else if a DatabaseServer was discovered — the batch is that
+   *      database's engine telemetry (collector DB receiver or the
+   *      Database Agent) → ServiceType.DatabaseServer, primaryEntityId =
+   *      DatabaseServer._id, serviceName `database/<name>`. Above the Host
+   *      branch: such a batch carries the host.name / os.type of the
+   *      machine the collector runs on, which is not what it describes.
+   *      The caller passes no databaseServerId when the same block also
+   *      carries host metrics, so a host agent that scrapes a database on
+   *      the side stays a Host.
    *   2. Else if a Host was auto-discovered for this batch →
    *      ServiceType.Host, primaryEntityId = Host._id. Avoids the old
    *      `host/<name>` phantom-Service duplication.
@@ -563,13 +572,6 @@ export default abstract class OtelIngestBaseService {
    *      still route via #1 — cluster discovery and the
    *      attribute-scoped dashboards work regardless, but per-cluster
    *      retention only applies to batches that land here.
-   *   1b. (Above the Host branch, below service.name) a DatabaseServer
-   *      whose engine telemetry this batch is (collector DB receiver or
-   *      the Database Agent) → ServiceType.DatabaseServer,
-   *      primaryEntityId = DatabaseServer._id, serviceName
-   *      `database/<name>`. The caller passes no databaseServerId when the
-   *      same block also carries host metrics, so a host agent that
-   *      scrapes a database on the side stays a Host.
    *   4c. Else if a VMwareVCenter was discovered → ServiceType.VMwareVCenter,
    *      primaryEntityId = vCenter row id, serviceName `vmware/<name>`.
    *      The OTel `vcenter` receiver does not synthesize a service.name,
@@ -774,7 +776,7 @@ export default abstract class OtelIngestBaseService {
       return await OTelIngestService.buildResourceMetadataForNonService({
         serviceName: data.databaseServerName
           ? `database/${data.databaseServerName}`
-          : "Database",
+          : this.DATABASE_SERVER_FALLBACK_NAME,
         resourceId: data.databaseServerId,
         primaryEntityType: ServiceType.DatabaseServer,
         projectId: data.projectId,
@@ -2537,6 +2539,15 @@ export default abstract class OtelIngestBaseService {
 
     return getDatabaseReceiverSystemHint(scopeNames);
   }
+
+  /*
+   * What a database's telemetry is called when its batch names neither an
+   * engine nor an endpoint (a bare `oneuptime.database.server.id` link): the
+   * `database/<name>` service name falls back to it, and so does the
+   * `oneuptime.database.server.name` stamp — the id stamp monitors link by
+   * is never skipped for want of a name.
+   */
+  protected static readonly DATABASE_SERVER_FALLBACK_NAME: string = "Database";
 
   /*
    * The name ingest shows for a database's telemetry — the

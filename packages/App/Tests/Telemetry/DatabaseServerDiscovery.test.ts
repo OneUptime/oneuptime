@@ -1511,6 +1511,37 @@ describe("metrics pillar wiring", () => {
     ).toBe(DATABASE_ID);
   });
 
+  test("a bare linked id (no engine, no address) still stamps the id, under the fallback name", async () => {
+    const spies: PillarSpies = setup(new ObjectID(LINKED_ID));
+
+    await OtelMetricsIngestService.processMetricsFromQueue(
+      request({
+        resourceAttributes: { "oneuptime.database.server.id": LINKED_ID },
+        scopes: [{ name: "otelcol/prometheusreceiver", metrics: ["pg_up"] }],
+      }),
+    );
+
+    expect(spies.discoverDatabase).toHaveBeenCalledWith(
+      expect.objectContaining({ receiverSystemHint: null }),
+    );
+    expect(spies.resolveResource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        databaseServerId: new ObjectID(LINKED_ID),
+        databaseServerName: null,
+        databaseServerEndpoint: null,
+      }),
+    );
+
+    const row: JSONObject | undefined = spies.rows.find((r: JSONObject) => {
+      return r["name"] === "pg_up";
+    });
+    expect(row).toBeDefined();
+    const rowAttributes: JSONObject = row!["attributes"] as JSONObject;
+    // Monitors link by the id stamp; it is never skipped for want of a name.
+    expect(rowAttributes["oneuptime.database.server.id"]).toBe(LINKED_ID);
+    expect(rowAttributes["oneuptime.database.server.name"]).toBe("Database");
+  });
+
   test("an application block: no hint, no database, nothing stamped", async () => {
     const spies: PillarSpies = setup(null);
 
@@ -1697,6 +1728,32 @@ describe("logs pillar wiring", () => {
         databaseServerEndpoint: { host: ENDPOINT_HOST, port: 5432 },
       }),
     );
+  });
+
+  test("a bare linked id still stamps the id on log rows, under the fallback name", async () => {
+    const spies: PillarSpies = setup(new ObjectID(LINKED_ID));
+
+    await OtelLogsIngestService.processLogsFromQueue(
+      request({
+        resourceAttributes: { "oneuptime.database.server.id": LINKED_ID },
+        scopeName:
+          "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/filelogreceiver",
+      }),
+    );
+
+    expect(spies.resolveResource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        databaseServerId: new ObjectID(LINKED_ID),
+        databaseServerName: null,
+        databaseServerEndpoint: null,
+      }),
+    );
+    expect(spies.rows).toHaveLength(1);
+    const rowAttributes: JSONObject = spies.rows[0]![
+      "attributes"
+    ] as JSONObject;
+    expect(rowAttributes["oneuptime.database.server.id"]).toBe(LINKED_ID);
+    expect(rowAttributes["oneuptime.database.server.name"]).toBe("Database");
   });
 
   test("an application log block passes no database anywhere", async () => {
