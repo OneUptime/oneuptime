@@ -150,6 +150,10 @@ const DNS_LABEL_REGEX: RegExp = /^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$/;
 
 const HOSTNAME_LABEL_REGEX: RegExp = /^[a-z0-9_-]{1,63}$/;
 
+const DIGITS_ONLY_REGEX: RegExp = /^\d+$/;
+
+const IPV6_CHARACTERS_REGEX: RegExp = /^[0-9a-f:.]+$/;
+
 const IPV4_REGEX: RegExp = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 
 const IPV6_GROUP_REGEX: RegExp = /^[0-9a-f]{1,4}$/;
@@ -191,7 +195,7 @@ function parseIpv6Groups(text: string): Array<number> | null {
     value = value.substring(0, zoneIndex);
   }
 
-  if (!value.includes(":") || !/^[0-9a-f:.]+$/.test(value)) {
+  if (!value.includes(":") || !IPV6_CHARACTERS_REGEX.test(value)) {
     return null;
   }
 
@@ -316,7 +320,7 @@ function isValidHostname(host: string): boolean {
    * A top-level label is never all digits (RFC 3696 §2), so "999.1.1.1" or
    * "12345" is a mangled address, not a name.
    */
-  return !/^\d+$/.test(labels[labels.length - 1]!);
+  return !DIGITS_ONLY_REGEX.test(labels[labels.length - 1]!);
 }
 
 function toValidPort(value: unknown): number | null {
@@ -325,7 +329,7 @@ function toValidPort(value: unknown): number | null {
     numeric = value;
   } else if (typeof value === "string") {
     const trimmed: string = value.trim();
-    if (!/^\d+$/.test(trimmed)) {
+    if (!DIGITS_ONLY_REGEX.test(trimmed)) {
       return null;
     }
     numeric = Number(trimmed);
@@ -400,7 +404,7 @@ export function parseHostAndPort(raw: unknown): ParsedHostAndPort | null {
   if (commaIndex >= 0) {
     const afterComma: string = value.substring(commaIndex + 1).trim();
     value = value.substring(0, commaIndex).trim();
-    if (/^\d+$/.test(afterComma)) {
+    if (DIGITS_ONLY_REGEX.test(afterComma)) {
       portText = afterComma;
     }
   }
@@ -476,7 +480,7 @@ export function parseHostAndPort(raw: unknown): ParsedHostAndPort | null {
   let port: number | null = null;
   if (portText !== null && portText.trim() !== "") {
     const trimmedPort: string = portText.trim();
-    if (!/^\d+$/.test(trimmedPort)) {
+    if (!DIGITS_ONLY_REGEX.test(trimmedPort)) {
       return null;
     }
     port = toValidPort(trimmedPort);

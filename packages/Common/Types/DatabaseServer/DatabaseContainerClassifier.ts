@@ -260,6 +260,15 @@ const IMAGE_REPOSITORY_REGEX: RegExp = /^[a-z0-9._/-]+$/;
 // A bare image id (untagged docker_stats image) names no repository.
 const BARE_IMAGE_ID_REGEX: RegExp = /^(?:sha256:)?[0-9a-f]{12,64}$/;
 
+/*
+ * Version sources in an image reference: a Spilo image name carries the
+ * PostgreSQL major, a Percona tag carries "ppg<version>", any other tag
+ * starts with it.
+ */
+const SPILO_IMAGE_REGEX: RegExp = /^spilo-(\d+)$/;
+const PERCONA_POSTGRESQL_TAG_REGEX: RegExp = /(?:^|-)ppg(\d+(?:\.\d+)?)(?:-|$)/;
+const IMAGE_TAG_VERSION_REGEX: RegExp = /^v?(\d+(?:\.\d+){0,2})/;
+
 interface SplitImageReference {
   repository: string;
   tag: string | null;
@@ -362,7 +371,7 @@ export function parseImageVersion(image: unknown): string | null {
     return null;
   }
 
-  const spilo: RegExpExecArray | null = /^spilo-(\d+)$/.exec(
+  const spilo: RegExpExecArray | null = SPILO_IMAGE_REGEX.exec(
     basenameOf(split.repository),
   );
   if (spilo) {
@@ -373,13 +382,14 @@ export function parseImageVersion(image: unknown): string | null {
     return null;
   }
 
-  const percona: RegExpExecArray | null =
-    /(?:^|-)ppg(\d+(?:\.\d+)?)(?:-|$)/.exec(split.tag);
+  const percona: RegExpExecArray | null = PERCONA_POSTGRESQL_TAG_REGEX.exec(
+    split.tag,
+  );
   if (percona) {
     return percona[1]!;
   }
 
-  const version: RegExpExecArray | null = /^v?(\d+(?:\.\d+){0,2})/.exec(
+  const version: RegExpExecArray | null = IMAGE_TAG_VERSION_REGEX.exec(
     split.tag,
   );
   return version ? version[1]! : null;

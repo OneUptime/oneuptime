@@ -462,7 +462,9 @@ describe("Databases docs", (): void => {
         const block: string | undefined = codeBlocks(
           section(markdown, heading),
         ).find((text: string): boolean => {
-          return /^ONEUPTIME_URL=/m.test(text);
+          return text.split("\n").some((line: string): boolean => {
+            return line.startsWith("ONEUPTIME_URL=");
+          });
         });
 
         expect({ heading, sample: Boolean(block) }).toEqual({

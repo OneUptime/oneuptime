@@ -316,8 +316,10 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
       kind: "counter",
     },
 
-    // SQL Server — sqlserverreceiver (default-on; the *.rate metrics are
-    // receiver-computed per-second gauges, not counters).
+    /*
+     * SQL Server — sqlserverreceiver (default-on; the *.rate metrics are
+     * receiver-computed per-second gauges, not counters).
+     */
     {
       system: "microsoft.sql_server",
       metricName: "sqlserver.user.connection.count",
