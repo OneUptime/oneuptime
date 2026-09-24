@@ -407,7 +407,10 @@ export class Service extends DatabaseService<Model> {
       return null;
     }
 
-    const dbSystem: string | null = normalizeDatabaseSystem(data.dbSystem);
+    // An unknown engine is kept verbatim, so clamp it to its column.
+    const dbSystem: string | null = cleanShortText(
+      normalizeDatabaseSystem(data.dbSystem),
+    );
 
     if (!dbSystem) {
       return null;
@@ -960,7 +963,9 @@ export class Service extends DatabaseService<Model> {
       return null;
     }
 
-    const dbSystem: string | null = normalizeDatabaseSystem(data.dbSystem);
+    const dbSystem: string | null = cleanShortText(
+      normalizeDatabaseSystem(data.dbSystem),
+    );
 
     if (!dbSystem) {
       return null;

@@ -10,18 +10,23 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import { DatabaseServerMetricDefinition } from "Common/Types/DatabaseServer/DatabaseServerMetricCatalog";
+import {
+  DatabaseServerMetricDefinition,
+  getDatabaseServerMetrics,
+} from "Common/Types/DatabaseServer/DatabaseServerMetricCatalog";
 import ObjectID from "Common/Types/ObjectID";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 
 /*
- * The Database Overview's own aggregate queries. Every query here is scoped
- * by `entityKeys: new Includes(keys)` — the database's key set from
- * DatabaseTelemetryScope — and NOTHING is sent for an empty key set: the
- * builders return null and the fetchers resolve to an empty result without
- * touching the API. (An empty Includes drops the predicate server side, so
- * a database with no parseable endpoint would otherwise chart the whole
- * project as its own traffic.)
+ * The Database pages' own aggregate queries: the Overview's sections and
+ * the Metrics tab's in-place chart of a clicked metric (the metric explorer
+ * scopes by attributes only, so it cannot chart one database). Every query
+ * here is scoped by `entityKeys: new Includes(keys)` — the database's key
+ * set from DatabaseTelemetryScope — and NOTHING is sent for an empty key
+ * set: the builders return null and the fetchers resolve to an empty result
+ * without touching the API. (An empty Includes drops the predicate server
+ * side, so a database with no parseable endpoint would otherwise chart the
+ * whole project as its own traffic.)
  *
  * Kept local to the Databases product rather than added to
  * Components/TelemetryResource/telemetryMetrics, which scopes by attribute
@@ -616,4 +621,97 @@ export function hasEngineMetricData(
   return results.some((result: DatabaseEngineMetricResult): boolean => {
     return result.series.length > 0;
   });
+}
+
+/*
+ * The aggregations the in-place metric chart (the Metrics tab's row click)
+ * offers for a metric outside the engine's curated set. A curated counter
+ * is not offered a choice: it is charted as a rate, which only Max per
+ * bucket gives (see the catalog).
+ */
+export const DATABASE_METRIC_CHART_AGGREGATIONS: ReadonlyArray<AggregationType> =
+  [
+    AggregationType.Avg,
+    AggregationType.Max,
+    AggregationType.Min,
+    AggregationType.Sum,
+  ];
+
+/** How one metric, clicked on a database's Metrics tab, is charted. */
+export interface DatabaseMetricChartSpec {
+  metricName: string;
+  // The catalog title for a curated metric, else the metric name.
+  title: string;
+  // The engine's catalog entry for this metric, when it has one.
+  definition: DatabaseServerMetricDefinition | null;
+  defaultAggregation: AggregationType;
+  // A curated counter: charted as a per-second rate, never re-aggregated.
+  isRate: boolean;
+}
+
+/**
+ * The chart spec for a metric of this database: a curated metric keeps the
+ * catalog's aggregation and title (a counter becomes a per-second rate);
+ * any other metric is averaged per bucket, like the metric explorer does.
+ */
+export function getDatabaseMetricChartSpec(
+  metricName: string,
+  dbSystem: string | null | undefined,
+): DatabaseMetricChartSpec {
+  const name: string = (metricName || "").trim();
+  const definition: DatabaseServerMetricDefinition | null =
+    getDatabaseServerMetrics(dbSystem).find(
+      (candidate: DatabaseServerMetricDefinition): boolean => {
+        return candidate.metricName === name;
+      },
+    ) || null;
+
+  if (!definition) {
+    return {
+      metricName: name,
+      title: name,
+      definition: null,
+      defaultAggregation: AggregationType.Avg,
+      isRate: false,
+    };
+  }
+
+  const isRate: boolean = definition.kind === "counter";
+
+  return {
+    metricName: name,
+    title: isRate ? `${definition.title} (per second)` : definition.title,
+    definition: definition,
+    defaultAggregation: definition.aggregation,
+    isRate: isRate,
+  };
+}
+
+/**
+ * The series for the in-place metric chart, over the database's keys. A
+ * curated counter is fetched with its catalog aggregation and converted to
+ * a per-second rate whatever `aggregationType` says. Empty (no API call)
+ * when unscoped or on failure.
+ */
+export async function fetchDatabaseMetricChartSeries(
+  window: DatabaseQueryWindow & {
+    spec: DatabaseMetricChartSpec;
+    aggregationType: AggregationType;
+  },
+): Promise<Array<DatabaseTimePoint>> {
+  const aggregationType: AggregationType =
+    window.spec.isRate && window.spec.definition
+      ? window.spec.definition.aggregation
+      : window.aggregationType;
+
+  const raw: Array<DatabaseTimePoint> = await fetchDatabaseMetricSeries({
+    projectId: window.projectId,
+    keys: window.keys,
+    start: window.start,
+    end: window.end,
+    metricName: window.spec.metricName,
+    aggregationType: aggregationType,
+  });
+
+  return window.spec.isRate ? counterSeriesToRatePerSecond(raw) : raw;
 }

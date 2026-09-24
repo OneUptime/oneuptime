@@ -102,7 +102,11 @@ function details(
   } as unknown as DatabaseServer;
 }
 
-function criteria(field: string, operator: RuleCriteriaOperator, value: any): RuleCriteria {
+function criteria(
+  field: string,
+  operator: RuleCriteriaOperator,
+  value: any,
+): RuleCriteria {
   return {
     schemaVersion: RULE_CRITERIA_SCHEMA_VERSION,
     filterCondition: FilterCondition.All,
@@ -239,9 +243,9 @@ describe("DatabaseServerLabelRuleEngineService", () => {
       databaseServerDescriptionPattern: true,
       labelsToAdd: { _id: true },
     });
-    expect(DatabaseServerLabelRuleEngineService.resourceSelectForRuleRun).toEqual(
-      { _id: true, projectId: true },
-    );
+    expect(
+      DatabaseServerLabelRuleEngineService.resourceSelectForRuleRun,
+    ).toEqual({ _id: true, projectId: true });
   });
 
   test("on create: reads the project's enabled rules, capped, and applies them", async () => {
@@ -260,7 +264,11 @@ describe("DatabaseServerLabelRuleEngineService", () => {
     expect(findBy.props.isRoot).toBe(true);
 
     expect(writes).toEqual([
-      { relation: "labels", of: DATABASE_ID.toString(), ids: [LABEL_A.toString()] },
+      {
+        relation: "labels",
+        of: DATABASE_ID.toString(),
+        ids: [LABEL_A.toString()],
+      },
     ]);
     // Synced in memory, so the owner engine that runs next can match on it.
     expect(
@@ -357,7 +365,10 @@ describe("DatabaseServerLabelRuleEngineService", () => {
       await DatabaseServerLabelRuleEngineService.applyRulesToExistingResource({
         resource: target(),
         rules: [
-          labelRule({ namePattern: "^PostgreSQL", labelsToAdd: [LABEL_A, LABEL_B] }),
+          labelRule({
+            namePattern: "^PostgreSQL",
+            labelsToAdd: [LABEL_A, LABEL_B],
+          }),
         ],
         allowOwnerNotification: false,
       });
@@ -497,9 +508,9 @@ describe("DatabaseServerOwnerRuleEngineService", () => {
       ownerUsers: { _id: true },
       ownerTeams: { _id: true },
     });
-    expect(DatabaseServerOwnerRuleEngineService.resourceSelectForRuleRun).toEqual(
-      { _id: true, projectId: true },
-    );
+    expect(
+      DatabaseServerOwnerRuleEngineService.resourceSelectForRuleRun,
+    ).toEqual({ _id: true, projectId: true });
   });
 
   test("on create: adds the matching rule's owners to this database, notified", async () => {

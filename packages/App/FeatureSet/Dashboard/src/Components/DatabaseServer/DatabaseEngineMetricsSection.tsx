@@ -26,7 +26,8 @@ import React, { FunctionComponent, ReactElement } from "react";
  * Gauges show their latest value, counters a per-second rate computed
  * client-side. A database whose engine metrics never arrived gets a
  * "not connected" card pointing at its prefilled Documentation tab instead
- * of a wall of empty charts.
+ * of a wall of empty charts; a connected one with nothing to chart (a quiet
+ * range, or an engine without a curated set) points at its Metrics tab.
  */
 
 export interface ComponentProps {
@@ -45,6 +46,14 @@ export interface ComponentProps {
 
 export const ENGINE_METRICS_NOT_CONNECTED_TITLE: string =
   "Engine metrics not connected";
+
+/*
+ * Connected, yet nothing to chart: no curated metric arrived in the range,
+ * or the engine has no curated set at all. The agent is fine, so the card
+ * points at the full Metrics tab rather than at the install guide.
+ */
+export const ENGINE_METRICS_NO_DATA_TITLE: string =
+  "No engine metrics in this range";
 
 const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -67,6 +76,32 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
   }
 
   const hasData: boolean = hasEngineMetricData(props.results);
+
+  if (!hasData && props.status === DatabaseEngineMetricsStatus.Connected) {
+    const description: string = props.hasCatalog
+      ? `The Database Agent for this ${props.engineLabel} database is connected, but none of its overview metrics arrived in the selected range. Widen the range, or open Metrics to see everything it reports.`
+      : `Engine metrics for this ${props.engineLabel} database are connected, but there is no curated overview for ${props.engineLabel} yet. Open Metrics to see everything it reports.`;
+
+    return (
+      <Card title={ENGINE_METRICS_NO_DATA_TITLE} description={description}>
+        <div
+          data-testid="database-engine-metrics-no-data"
+          className="flex flex-wrap items-center gap-4"
+        >
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
+            <Icon icon={IconProp.Database} className="h-3 w-3" />
+            {getDatabaseEngineMetricsStatusLabel(props.status)}
+          </span>
+          <AppLink
+            to={metricsRoute}
+            className="text-sm font-medium text-indigo-600 hover:underline"
+          >
+            All metrics →
+          </AppLink>
+        </div>
+      </Card>
+    );
+  }
 
   if (!hasData) {
     const description: string =

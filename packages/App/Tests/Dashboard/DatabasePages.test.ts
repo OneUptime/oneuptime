@@ -195,6 +195,24 @@ describe("the Logs / Traces / Metrics tabs", () => {
     }
   });
 
+  test("a metric row charts in place with the same keys, never in the attribute-scoped explorer", () => {
+    const code: string = readCode("Pages/Database/View/Metrics.tsx");
+    const viewer: string = between(code, "<MetricsViewer", "/>");
+
+    expect(viewer).toContain("onMetricClick={(metric: MetricType): void =>");
+    expect(code).toContain("<DatabaseMetricChartModal");
+    expect(between(code, "<DatabaseMetricChartModal", "/>")).toContain(
+      "keys={keys}",
+    );
+
+    const modal: string = readCode(
+      "Components/DatabaseServer/DatabaseMetricChartModal.tsx",
+    );
+    expect(modal).toContain("fetchDatabaseMetricChartSeries({");
+    expect(modal).not.toContain("PageMap.METRIC_VIEW");
+    expect(modal).not.toContain("attributes");
+  });
+
   test("Logs puts the keys in the log query and names the chips", () => {
     const code: string = readCode("Pages/Database/View/Logs.tsx");
 
@@ -273,6 +291,22 @@ describe("the Overview", () => {
     expect(section).toContain("PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION");
     expect(section).toContain("formatDatabaseMetricValue(");
     expect(section).toContain('result.definition.kind === "counter"');
+  });
+
+  test("a connected database with nothing to chart is not called disconnected", () => {
+    const section: string = readCode(
+      "Components/DatabaseServer/DatabaseEngineMetricsSection.tsx",
+    );
+    const connected: string = between(
+      section,
+      "if (!hasData && props.status === DatabaseEngineMetricsStatus.Connected)",
+      "if (!hasData) {",
+    );
+
+    expect(connected).toContain("ENGINE_METRICS_NO_DATA_TITLE");
+    expect(connected).toContain("props.hasCatalog");
+    expect(connected).toContain("to={metricsRoute}");
+    expect(connected).not.toContain("documentationRoute");
   });
 });
 
@@ -369,6 +403,23 @@ describe("the Databases list", () => {
     expect(
       code.indexOf("{count === 0 && ( <DatabaseDocumentationCard"),
     ).toBeGreaterThan(code.indexOf("<ModelTable<DatabaseServer>"));
+  });
+});
+
+describe("Archived", () => {
+  const code: string = readCode("Pages/Database/Archived.tsx");
+
+  test("View opens the database's own page, not an unrouted archived/<id> URL", () => {
+    expect(code).not.toContain("viewPageRoute=");
+    expect(between(code, "onViewPage={", "columns={[")).toContain(
+      "RouteMap[PageMap.DATABASE_SERVER_VIEW] as Route",
+    );
+  });
+
+  test("lists archived rows only and offers unarchive", () => {
+    expect(code).toContain("query={{ isArchived: true, }}");
+    expect(code).toContain("buttons: [...unarchiveBulkActions]");
+    expect(code).toContain("isCreateable={false}");
   });
 });
 

@@ -44,6 +44,9 @@ export interface DatabaseServerEndpointOwner {
 // How much of a rejected value an error message repeats back.
 const MAX_ECHOED_VALUE_LENGTH: number = 100;
 
+// "postgresql://", "jdbc:mysql://" - a connection URL rather than host:port.
+const URL_SCHEME_PATTERN: RegExp = /^(?:jdbc:)?[a-z][a-z0-9+.-]*:\/\//i;
+
 /*
  * The endpoints a database is reached at. Every endpoint belongs to at most
  * one database per project: the (projectId, endpoint) unique index enforces
@@ -422,13 +425,13 @@ export function hasOutOfRangePort(value: unknown): boolean {
   let address: string = value.trim();
 
   // URL forms carry userinfo, not a cluster, after "@".
-  if (!/^(?:jdbc:)?[a-z][a-z0-9+.-]*:\/\//i.test(address)) {
+  if (!URL_SCHEME_PATTERN.test(address)) {
     const atIndex: number = address.lastIndexOf("@");
     if (atIndex >= 0) {
       address = address.substring(0, atIndex);
     }
   } else {
-    address = address.replace(/^(?:jdbc:)?[a-z][a-z0-9+.-]*:\/\//i, "");
+    address = address.replace(URL_SCHEME_PATTERN, "");
     address = address.substring(address.lastIndexOf("@") + 1);
     address = address.split(/[/?#;]/)[0] || "";
   }

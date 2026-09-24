@@ -581,6 +581,7 @@ describe("the install guide embeds the real agent configuration", () => {
 
 describe("no other product's concepts leaked into the Databases pages", () => {
   const databaseDir: string = path.join(DASHBOARD_SRC, "Pages", "Database");
+  const TS_FILE_PATTERN: RegExp = /\.tsx?$/;
 
   function walk(directory: string): Array<string> {
     const out: Array<string> = [];
@@ -588,7 +589,7 @@ describe("no other product's concepts leaked into the Databases pages", () => {
       const absolute: string = path.join(directory, item.name);
       if (item.isDirectory()) {
         out.push(...walk(absolute));
-      } else if (/\.tsx?$/.test(item.name)) {
+      } else if (TS_FILE_PATTERN.test(item.name)) {
         out.push(absolute);
       }
     }

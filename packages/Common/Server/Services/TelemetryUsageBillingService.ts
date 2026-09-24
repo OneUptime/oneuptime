@@ -488,8 +488,7 @@ export class Service extends DatabaseService<Model> {
    * Map of resourceId -> retainTelemetryDataForDays for every resource in
    * the project that can own telemetry (Service, Host, DockerHost,
    * KubernetesCluster, ProxmoxCluster, VMwareVCenter, CephCluster,
-   * DatabaseServer). Used to
-   * scale billed
+   * DatabaseServer). Used to scale billed
    * cost by the actual retention applied to each resource's telemetry.
    * Resources without an override (and the unattributed bucket) fall back
    * to the project default.

@@ -414,7 +414,7 @@ export function getDatabaseAgentInstallationMarkdown(data: {
 | \`DATABASE_SERVER_ADDRESS\` | \`${identity.serverAddress}\` |
 | \`DATABASE_SERVER_PORT\` | \`${serverPortText}\` |
 
-Every block below is prefilled with these values. \`DATABASE_SERVER_ID\` links the agent's data to this database directly, whatever its address — keep it set, especially for a private IP or a name that only resolves inside your network.${
+Every block below is prefilled with these values. \`DATABASE_SERVER_ID\` is stamped on the agent's data as \`oneuptime.database.server.id\` and links it to this database directly, whatever its address — keep it set, especially for a private IP or a name that only resolves inside your network.${
         identity.isPrefilled
           ? ""
           : " This database has no address yet, so replace `db.internal` with the host name your applications use to reach it."

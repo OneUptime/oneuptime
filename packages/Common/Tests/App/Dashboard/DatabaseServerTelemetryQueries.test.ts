@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import {
+  DATABASE_METRIC_CHART_AGGREGATIONS,
   DatabaseCallingService,
   DatabaseEngineMetricResult,
+  DatabaseMetricChartSpec,
   DatabaseQueryMetrics,
   DatabaseTimePoint,
   EMPTY_DATABASE_QUERY_METRICS,
@@ -12,8 +14,10 @@ import {
   counterSeriesToRatePerSecond,
   fetchDatabaseCallingServices,
   fetchDatabaseEngineMetrics,
+  fetchDatabaseMetricChartSeries,
   fetchDatabaseMetricSeries,
   fetchDatabaseQueryMetrics,
+  getDatabaseMetricChartSpec,
   hasEngineMetricData,
   latestOfSeries,
   meanOfSeries,
@@ -650,6 +654,131 @@ describe("fetchers with a scope", () => {
           expect(engine.value).toBe(160);
         }
       },
+    );
+  });
+});
+
+/*
+ * The Metrics tab charts a clicked metric in place (the metric explorer
+ * scopes by attributes only and would chart the whole project): the same
+ * key-set scope, the catalog's aggregation and title for a curated metric,
+ * and a curated counter as a per-second rate whatever aggregation is asked.
+ */
+describe("the Metrics tab's in-place metric chart", () => {
+  test("a curated gauge keeps its catalog title and aggregation", () => {
+    const spec: DatabaseMetricChartSpec = getDatabaseMetricChartSpec(
+      "postgresql.backends",
+      "postgres",
+    );
+
+    expect(spec.definition?.metricName).toBe("postgresql.backends");
+    expect(spec.title).toBe("Connections");
+    expect(spec.defaultAggregation).toBe(AggregationType.Avg);
+    expect(spec.isRate).toBe(false);
+  });
+
+  test("a curated counter is a per-second rate", () => {
+    const spec: DatabaseMetricChartSpec = getDatabaseMetricChartSpec(
+      "postgresql.commits",
+      "postgresql",
+    );
+
+    expect(spec.title).toBe("Commits (per second)");
+    expect(spec.defaultAggregation).toBe(AggregationType.Max);
+    expect(spec.isRate).toBe(true);
+  });
+
+  test("any other metric is averaged under its own name", () => {
+    for (const [metricName, dbSystem] of [
+      ["db.client.operation.duration", "postgresql"],
+      // A curated name of ANOTHER engine is not curated for this one.
+      ["postgresql.commits", "mysql"],
+      ["k8s.pod.cpu.utilization", null],
+    ] as Array<[string, string | null]>) {
+      const spec: DatabaseMetricChartSpec = getDatabaseMetricChartSpec(
+        metricName,
+        dbSystem,
+      );
+      expect(spec.definition).toBeNull();
+      expect(spec.title).toBe(metricName);
+      expect(spec.defaultAggregation).toBe(AggregationType.Avg);
+      expect(spec.isRate).toBe(false);
+    }
+    expect(DATABASE_METRIC_CHART_AGGREGATIONS).toContain(AggregationType.Avg);
+  });
+
+  test("never queries without keys", async () => {
+    expect(
+      await fetchDatabaseMetricChartSeries({
+        projectId: PROJECT_ID,
+        keys: [],
+        start: START,
+        end: END,
+        spec: getDatabaseMetricChartSpec("postgresql.backends", "postgresql"),
+        aggregationType: AggregationType.Avg,
+      }),
+    ).toEqual([]);
+    expect(aggregateMock).not.toHaveBeenCalled();
+  });
+
+  test("charts a metric over the key set with the chosen aggregation", async () => {
+    aggregateMock.mockResolvedValue(
+      result([
+        { timestamp: at(0), value: 4 },
+        { timestamp: at(1), value: 6 },
+      ]),
+    );
+
+    const points: Array<DatabaseTimePoint> =
+      await fetchDatabaseMetricChartSeries({
+        projectId: PROJECT_ID,
+        keys: [KEY_A, KEY_B],
+        start: START,
+        end: END,
+        spec: getDatabaseMetricChartSpec(
+          "db.client.operation.duration",
+          "postgresql",
+        ),
+        aggregationType: AggregationType.Max,
+      });
+
+    expect(points).toEqual([
+      { x: at(0), y: 4 },
+      { x: at(1), y: 6 },
+    ]);
+    const call: AggregateRequest = aggregateMock.mock.calls[0]![0];
+    expect(call.modelType).toBe(Metric);
+    expect(call.aggregateBy["aggregationType"]).toBe(AggregationType.Max);
+    const query: Record<string, unknown> = call.aggregateBy["query"] as Record<
+      string,
+      unknown
+    >;
+    expect(query["name"]).toBe("db.client.operation.duration");
+    expect((query["entityKeys"] as Includes).values).toEqual([KEY_A, KEY_B]);
+    expect(query["attributes"]).toBeUndefined();
+  });
+
+  test("a curated counter ignores the chosen aggregation and becomes a rate", async () => {
+    aggregateMock.mockResolvedValue(
+      result([
+        { timestamp: at(0), value: 0 },
+        { timestamp: at(1), value: 600 },
+      ]),
+    );
+
+    const points: Array<DatabaseTimePoint> =
+      await fetchDatabaseMetricChartSeries({
+        projectId: PROJECT_ID,
+        keys: [KEY_A],
+        start: START,
+        end: END,
+        spec: getDatabaseMetricChartSpec("postgresql.commits", "postgresql"),
+        aggregationType: AggregationType.Sum,
+      });
+
+    expect(points).toEqual([{ x: at(1), y: 10 }]);
+    expect(aggregateMock.mock.calls[0]![0].aggregateBy["aggregationType"]).toBe(
+      AggregationType.Max,
     );
   });
 });

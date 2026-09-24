@@ -7,7 +7,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -31,6 +37,7 @@ const getListMock: MockFunction = getJestMockFunction();
 const logsViewerMock: MockFunction = getJestMockFunction();
 const tracesViewerMock: MockFunction = getJestMockFunction();
 const metricsViewerMock: MockFunction = getJestMockFunction();
+const metricChartMock: MockFunction = getJestMockFunction();
 
 // The arrow wrappers are load bearing: jest.mock is hoisted above the mocks.
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
@@ -160,12 +167,31 @@ jest.mock(
   },
 );
 
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/DatabaseServer/DatabaseMetricChartModal",
+  () => {
+    return {
+      __esModule: true,
+      default: (props: { metricName: string; onClose: () => void }) => {
+        metricChartMock(props);
+        return (
+          <div data-testid="database-metric-chart-modal">
+            {props.metricName}
+            <button onClick={props.onClose}>Close chart</button>
+          </div>
+        );
+      },
+    };
+  },
+);
+
 import DatabaseServerLogs from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Logs";
 import DatabaseServerMetrics from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Metrics";
 import DatabaseServerTraces from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Traces";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "../../../Models/DatabaseModels/DatabaseServerEndpoint";
+import MetricType from "../../../Models/DatabaseModels/MetricType";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
@@ -288,6 +314,7 @@ beforeEach(() => {
   logsViewerMock.mockReset();
   tracesViewerMock.mockReset();
   metricsViewerMock.mockReset();
+  metricChartMock.mockReset();
 });
 
 afterEach(() => {
@@ -390,9 +417,7 @@ describe.each(TABS)("the database %s tab", (tab: string, tabCase: TabCase) => {
     );
 
     expect(banner).toHaveTextContent(tabCase.signal);
-    expect(
-      screen.queryByTestId(tabCase.viewerTestId),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId(tabCase.viewerTestId)).not.toBeInTheDocument();
     expect(tabCase.viewerMock).not.toHaveBeenCalled();
   });
 
@@ -458,5 +483,69 @@ describe("the database Logs tab", () => {
     expect(props["showFilters"]).toBe(true);
     expect(props["enableRealtime"]).toBe(true);
     expect(props["noLogsMessage"]).toBe("No logs found for this database.");
+  });
+});
+
+/*
+ * A metric row opens the metric explorer by default, which scopes by
+ * attributes only and would chart the metric across the whole project. The
+ * Metrics tab takes the click instead and charts the metric in place, over
+ * the same key set the list is scoped by.
+ */
+describe("the database Metrics tab's row click", () => {
+  function clickMetric(name: string): void {
+    const onMetricClick: (metric: MetricType) => void = lastProps(
+      metricsViewerMock,
+    )["onMetricClick"] as (metric: MetricType) => void;
+    const metric: MetricType = new MetricType();
+    metric.name = name;
+    act(() => {
+      onMetricClick(metric);
+    });
+  }
+
+  test("takes the click instead of opening the explorer", async () => {
+    getItemMock.mockResolvedValue(databaseServer({}));
+    getListMock.mockResolvedValue(endpointRows(["db.prod.internal:5432"]));
+
+    render(<DatabaseServerMetrics {...PAGE_PROPS} />);
+    await screen.findByTestId("metrics-viewer");
+
+    const props: ViewerProps = lastProps(metricsViewerMock);
+    expect(typeof props["onMetricClick"]).toBe("function");
+    expect(props["disableMetricDrillDown"]).toBeUndefined();
+    expect(
+      screen.queryByTestId("database-metric-chart-modal"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("charts the clicked metric in place over the same key set", async () => {
+    getItemMock.mockResolvedValue(
+      databaseServer({
+        memberEntityKeys: { [POD_KEY]: "2026-09-23T10:00:00.000Z" },
+      }),
+    );
+    getListMock.mockResolvedValue(endpointRows(["db.prod.internal:5432"]));
+
+    render(<DatabaseServerMetrics {...PAGE_PROPS} />);
+    await screen.findByTestId("metrics-viewer");
+
+    clickMetric("postgresql.backends");
+
+    expect(screen.getByTestId("database-metric-chart-modal")).toHaveTextContent(
+      "postgresql.backends",
+    );
+    const chart: ViewerProps = lastProps(metricChartMock);
+    expect(chart["keys"]).toEqual([ENDPOINT_KEY, POD_KEY]);
+    expect(chart["keys"]).toEqual(
+      lastProps(metricsViewerMock)["entityKeysFilter"],
+    );
+    expect(chart["dbSystem"]).toBe("postgresql");
+    expect((chart["projectId"] as ObjectID).toString()).toBe(PROJECT_ID_STRING);
+
+    fireEvent.click(screen.getByRole("button", { name: "Close chart" }));
+    expect(
+      screen.queryByTestId("database-metric-chart-modal"),
+    ).not.toBeInTheDocument();
   });
 });

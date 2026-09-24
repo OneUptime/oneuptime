@@ -302,9 +302,8 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
   });
 
   test("claims the canonical endpoint as the row's primary, added by a person", async () => {
-    const created: DatabaseServer = await DatabaseServerService.create(
-      manualRequest(),
-    );
+    const created: DatabaseServer =
+      await DatabaseServerService.create(manualRequest());
 
     expect(claim).toHaveBeenCalledTimes(1);
     const call: any = claim.mock.calls[0]![0];
@@ -316,16 +315,15 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
   });
 
   test("runs the label then owner rules and records who created it", async () => {
-    const created: DatabaseServer = await DatabaseServerService.create(
-      manualRequest(),
-    );
+    const created: DatabaseServer =
+      await DatabaseServerService.create(manualRequest());
     await flushPromises();
 
     expect(sideEffects.labelRules).toHaveBeenCalledWith(created);
     expect(sideEffects.ownerRules).toHaveBeenCalledWith(created);
-    expect(
-      sideEffects.labelRules.mock.invocationCallOrder[0]!,
-    ).toBeLessThan(sideEffects.ownerRules.mock.invocationCallOrder[0]!);
+    expect(sideEffects.labelRules.mock.invocationCallOrder[0]!).toBeLessThan(
+      sideEffects.ownerRules.mock.invocationCallOrder[0]!,
+    );
 
     const feed: any = sideEffects.feed.mock.calls[0]![0];
     expect(feed.databaseServerFeedEventType).toBe(
@@ -351,7 +349,10 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
 
   test("the port field wins over a port typed into the address", async () => {
     const created: DatabaseServer = await DatabaseServerService.create(
-      manualRequest({ serverAddress: "orders-db.internal:6000", serverPort: 6432 }),
+      manualRequest({
+        serverAddress: "orders-db.internal:6000",
+        serverPort: 6432,
+      }),
     );
 
     expect(created.serverPort).toBe(6432);
@@ -462,9 +463,7 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
   });
 
   test("the same engine + endpoint twice is refused before the unique index can", async () => {
-    findSameIdentity.mockResolvedValue(
-      databaseRow({ name: "Orders primary" }),
-    );
+    findSameIdentity.mockResolvedValue(databaseRow({ name: "Orders primary" }));
 
     await expect(DatabaseServerService.create(manualRequest())).rejects.toThrow(
       'A PostgreSQL database at orders-db.internal:5432 already exists: "Orders primary".',
@@ -479,12 +478,10 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
 
   test("losing the endpoint to a concurrent writer removes the new row and names the winner", async () => {
     claim.mockResolvedValue("owned-by-other");
-    findOwner
-      .mockResolvedValueOnce(null)
-      .mockResolvedValueOnce({
-        databaseServerId: OTHER_DATABASE_ID,
-        isPrimary: true,
-      });
+    findOwner.mockResolvedValueOnce(null).mockResolvedValueOnce({
+      databaseServerId: OTHER_DATABASE_ID,
+      isPrimary: true,
+    });
     getJestSpyOn(service, "getDatabaseServerName").mockResolvedValue(
       "PostgreSQL orders-db.internal:5432",
     );
@@ -535,7 +532,7 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
           manualRequest({ [column]: value } as Partial<DatabaseServer>),
         ),
       ).rejects.toThrow(
-        `User is not allowed to Create on ${column} column of Database`,
+        `User is not allowed to create on ${column} column of Database`,
       );
       expect(save).not.toHaveBeenCalled();
     },
@@ -932,6 +929,22 @@ describe("DatabaseServerService.findOrCreateByEndpoint", () => {
     expect(create).not.toHaveBeenCalled();
   });
 
+  test("an unknown engine is kept, clamped to its column", async () => {
+    await DatabaseServerService.findOrCreateByEndpoint({
+      projectId: PROJECT_ID,
+      dbSystem: `  ${"Q".repeat(300)} `,
+      endpoint: ORDERS_ENDPOINT,
+      discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+      allowCreate: true,
+    });
+
+    const row: DatabaseServer = create.mock.calls[0]![0].data;
+    expect(row.dbSystem).toBe("q".repeat(100));
+    expect(row.databaseIdentifier).toBe(
+      `${"q".repeat(100)}|orders-db.internal:5432`,
+    );
+  });
+
   test("an endpoint without a host is ignored before any read", async () => {
     await expect(
       DatabaseServerService.findOrCreateByEndpoint({
@@ -1103,9 +1116,9 @@ describe("DatabaseServerService.upsertWorkloadDatabase", () => {
   let rawQuery: jest.Mock;
   let logs: ReturnType<typeof silenceLogs>;
 
-  const WORKLOAD: string = "postgresql|kubernetes:prod/data/statefulset/orders-db";
-  const SERVICE_ALIAS: string =
-    "orders-db.data.svc.cluster.local:5432@prod";
+  const WORKLOAD: string =
+    "postgresql|kubernetes:prod/data/statefulset/orders-db";
+  const SERVICE_ALIAS: string = "orders-db.data.svc.cluster.local:5432@prod";
   const POD_ALIAS: string =
     "orders-db-0.orders-db-hl.data.svc.cluster.local:5432@prod";
   const UNQUALIFIED_ALIAS: string = "orders-db.data.svc.cluster.local:5432";
@@ -1187,7 +1200,17 @@ describe("DatabaseServerService.upsertWorkloadDatabase", () => {
 
     getJestSpyOn(DatabaseServerEndpointService, "findBy").mockImplementation(
       async (findBy: any) => {
-        const wanted: Array<string> = findBy.query.endpoint.value;
+        expect(findBy.query.projectId).toBe(PROJECT_ID);
+        /*
+         * QueryHelper.any is a Raw operator: the endpoints ride in its bound
+         * parameters, not in its value.
+         */
+        const wanted: Array<string> = [];
+        for (const values of Object.values(
+          findBy.query.endpoint.objectLiteralParameters || {},
+        )) {
+          wanted.push(...(values as Array<string>));
+        }
         const rows: Array<DatabaseServerEndpoint> = [];
         for (const endpoint of wanted) {
           const ownerId: string | undefined = world.owners.get(endpoint);
@@ -1306,9 +1329,7 @@ describe("DatabaseServerService.upsertWorkloadDatabase", () => {
         workloadIdentifier: WORKLOAD,
         memberEntityKeys: {
           [MEMBER_KEY_B]: new Date(now - 7 * 24 * 3600 * 1000).toISOString(),
-          [MEMBER_KEY_OLD]: new Date(
-            now - 45 * 24 * 3600 * 1000,
-          ).toISOString(),
+          [MEMBER_KEY_OLD]: new Date(now - 45 * 24 * 3600 * 1000).toISOString(),
         },
       }),
     );
@@ -1318,7 +1339,9 @@ describe("DatabaseServerService.upsertWorkloadDatabase", () => {
     const keys: Record<string, string> = lastWriteFor(existing)[
       "memberEntityKeys"
     ] as Record<string, string>;
-    expect(Object.keys(keys).sort()).toEqual([MEMBER_KEY_A, MEMBER_KEY_B].sort());
+    expect(Object.keys(keys).sort()).toEqual(
+      [MEMBER_KEY_A, MEMBER_KEY_B].sort(),
+    );
     expect(Date.parse(keys[MEMBER_KEY_A]!)).toBeGreaterThanOrEqual(now - 1000);
     expect(existing.memberEntityKeys).toBe(keys);
   });
@@ -1649,12 +1672,15 @@ describe("DatabaseServerService.upsertWorkloadDatabase", () => {
   test.each([
     ["an empty workload identifier", { workloadIdentifier: "  " }],
     ["an empty engine", { dbSystem: "" }],
-  ])("%s answers null without a read", async (_label: string, overrides: any) => {
-    await expect(
-      DatabaseServerService.upsertWorkloadDatabase(input(overrides)),
-    ).resolves.toBeNull();
-    expect(service.findOneBy).not.toHaveBeenCalled();
-  });
+  ])(
+    "%s answers null without a read",
+    async (_label: string, overrides: any) => {
+      await expect(
+        DatabaseServerService.upsertWorkloadDatabase(input(overrides)),
+      ).resolves.toBeNull();
+      expect(service.findOneBy).not.toHaveBeenCalled();
+    },
+  );
 });
 
 /*
@@ -1745,9 +1771,9 @@ describe("DatabaseServerService liveness", () => {
         "otelCollectorStatus",
       ]);
       expect(lastWrite()["otelCollectorStatus"]).toBe("connected");
-      expect((lastWrite()["lastSeenAt"] as Date).getTime()).toBeGreaterThanOrEqual(
-        before,
-      );
+      expect(
+        (lastWrite()["lastSeenAt"] as Date).getTime(),
+      ).toBeGreaterThanOrEqual(before);
       expect(lastWrite()["collectorLastSeenAt"]).toEqual(
         lastWrite()["lastSeenAt"],
       );
@@ -2075,9 +2101,9 @@ describe("DatabaseServerService.autoArchiveStaleDatabaseServers", () => {
           new RegExp(`NOT EXISTS \\(\\s*SELECT 1 FROM "${table}"`),
         );
       }
-      expect(
-        (sql.match(/"projectId" = ds\."projectId"/g) || []).length,
-      ).toBe(7);
+      expect((sql.match(/"projectId" = ds\."projectId"/g) || []).length).toBe(
+        7,
+      );
       expect((sql.match(/"deletedAt" IS NULL/g) || []).length).toBe(8);
       expect(sql).toContain(`e."source" = 'user'`);
 
@@ -2133,7 +2159,9 @@ describe("DatabaseServerService.autoArchiveStaleDatabaseServers", () => {
       const before: number = Date.now();
       await DatabaseServerService.autoArchiveStaleDatabaseServers();
 
-      const cutoff: Date = (query.mock.calls[0]![1] as Array<unknown>)[0] as Date;
+      const cutoff: Date = (
+        query.mock.calls[0]![1] as Array<unknown>
+      )[0] as Date;
       expect(before - cutoff.getTime()).toBeLessThanOrEqual(
         24 * 3600 * 1000 + 5000,
       );

@@ -7,7 +7,6 @@ import LabelsElement from "Common/UI/Components/Label/Labels";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
@@ -56,7 +55,21 @@ const DatabaseArchivedPage: FunctionComponent<
         showViewIdButton={true}
         noItemsMessage={"No archived databases."}
         showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
+        onViewPage={(item: DatabaseServer): Promise<Route> => {
+          /*
+           * A database's page lives at /databases/<id>; the default view
+           * route (this list's URL + /<id>) would be /databases/archived/<id>,
+           * which no route matches.
+           */
+          return Promise.resolve(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DATABASE_SERVER_VIEW] as Route,
+              {
+                modelId: new ObjectID(item._id as string),
+              },
+            ),
+          );
+        }}
         searchableFields={["name", "description", "serverAddress"]}
         filters={[]}
         columns={[

@@ -415,9 +415,10 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
     findParent.mockResolvedValue(parentDatabase());
     findOwner = getJestSpyOn(service, "findOwnerByEndpoint");
     findOwner.mockResolvedValue(null);
-    getJestSpyOn(DatabaseServerService, "getDatabaseServerName").mockResolvedValue(
-      "PostgreSQL orders-db.internal:5432",
-    );
+    getJestSpyOn(
+      DatabaseServerService,
+      "getDatabaseServerName",
+    ).mockResolvedValue("PostgreSQL orders-db.internal:5432");
   });
 
   test("canonicalizes what was typed and forces a removable user alias", async () => {
@@ -519,7 +520,11 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
 
   test.each([
     ["an empty value", "", "An empty value is not a valid host[:port]"],
-    ["localhost", "localhost:5432", '"localhost:5432" is not a valid host[:port]'],
+    [
+      "localhost",
+      "localhost:5432",
+      '"localhost:5432" is not a valid host[:port]',
+    ],
     ["a loopback IP", "127.0.0.1", '"127.0.0.1" is not a valid host[:port]'],
     ["a port out of range", "db.internal:99999", "is not a valid host[:port]"],
   ])(
@@ -562,9 +567,10 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
 
   test("a nameless owner still produces a readable refusal", async () => {
     findOwner.mockResolvedValue(owner(OTHER_DATABASE_ID));
-    getJestSpyOn(DatabaseServerService, "getDatabaseServerName").mockRejectedValue(
-      new Error("row gone"),
-    );
+    getJestSpyOn(
+      DatabaseServerService,
+      "getDatabaseServerName",
+    ).mockRejectedValue(new Error("row gone"));
 
     await expect(
       DatabaseServerEndpointService.create({
