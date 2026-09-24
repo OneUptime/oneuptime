@@ -89,7 +89,7 @@ const NAME_RELATIONS: Array<[string, string, string]> = [
   ["ceph.cluster.name", "cephClusters", "name"],
   ["docker.swarm.cluster.name", "dockerSwarmClusters", "name"],
   ["iot.fleet.name", "iotFleets", "name"],
-  ["oneuptime.database.server.name", "databaseServers", "name"],
+  // Not oneuptime.database.server.name: see "database overlays match by id".
   ["service.name", "services", "name"],
   ["oneuptime.service.name", "services", "name"],
 ];
@@ -846,5 +846,147 @@ describe("event overlay resource scope", () => {
     getEventOverlayScope([query]);
     expect(JSON.stringify(query)).toBe(before);
     expect(membership.values).toEqual([RESOURCE_B, RESOURCE_A]);
+  });
+});
+
+/*
+ * Ingest stamps `oneuptime.database.server.name` from the batch ("PostgreSQL
+ * orders-db.internal:5432", or "Database" for a batch linked by id alone),
+ * never from the row: a database created or renamed by hand ("Orders DB")
+ * or detected as a workload has another name, and names are not unique. So
+ * database overlays match by id only.
+ */
+describe("database overlays match by id, never by the stamped display name", () => {
+  const STAMPED_NAME: string = "PostgreSQL orders-db.internal:5432";
+
+  test.each(["", "resource."])(
+    "a %soneuptime.database.server.name filter alone overlays no incident or alert",
+    (prefix: string) => {
+      const result: EventOverlayScope = scope({
+        [`${prefix}oneuptime.database.server.name`]: STAMPED_NAME,
+      });
+
+      // Never matched against DatabaseServer.name…
+      expect(JSON.stringify(result.incidentQueries)).not.toContain(
+        "databaseServers",
+      );
+      // …and never widened to every incident in the project.
+      expectSuppressed(result);
+      // Change events carry attributes, so they still match the exact value.
+      expect(result.changeEventQueries).toEqual([
+        {
+          attributes: {
+            [`${prefix}oneuptime.database.server.name`]: STAMPED_NAME,
+          },
+        },
+      ]);
+    },
+  );
+
+  test("the literal fallback name 'Database' never selects a row named 'Database'", () => {
+    const result: EventOverlayScope = scope({
+      "oneuptime.database.server.name": "Database",
+    });
+
+    expectSuppressed(result);
+  });
+
+  test.each([
+    ["oneuptime.database.server.id"],
+    ["resource.oneuptime.database.server.id"],
+    ["databaseServerId"],
+  ])(
+    "with %s next to it, the id alone scopes — a name that differs from the row's cannot drop the overlays",
+    (idKey: string) => {
+      const result: EventOverlayScope = scope({
+        [idKey]: RESOURCE_A,
+        "oneuptime.database.server.name": STAMPED_NAME,
+      });
+
+      expect(result.incidentQueries).toEqual([
+        { databaseServers: { _id: RESOURCE_A } },
+      ]);
+      expect(result.alertQueries).toEqual([
+        { databaseServers: { _id: RESOURCE_A } },
+      ]);
+      expect(result.changeEventQueries).toEqual([
+        { attributes: { [idKey]: RESOURCE_A } },
+      ]);
+    },
+  );
+
+  test("a polymorphic DatabaseServer primary entity scopes by id; the name is ignored", () => {
+    const result: EventOverlayScope = getEventOverlayScope([
+      {
+        metricQueryData: {
+          filterData: {
+            metricName: "postgresql.backends",
+            primaryEntityType: ServiceType.DatabaseServer,
+            primaryEntityId: RESOURCE_A,
+            attributes: {
+              "resource.oneuptime.database.server.name": STAMPED_NAME,
+            },
+          },
+        },
+      } as unknown as MetricQueryConfigData,
+    ]);
+
+    expect(result.incidentQueries).toEqual([
+      { databaseServers: { _id: RESOURCE_A } },
+    ]);
+    expect(result.alertQueries).toEqual([
+      { databaseServers: { _id: RESOURCE_A } },
+    ]);
+  });
+
+  test("a primary entity of ANOTHER type does not excuse a database name", () => {
+    const result: EventOverlayScope = getEventOverlayScope([
+      {
+        metricQueryData: {
+          filterData: {
+            metricName: "postgresql.backends",
+            primaryEntityType: ServiceType.Host,
+            primaryEntityId: RESOURCE_A,
+            attributes: { "oneuptime.database.server.name": STAMPED_NAME },
+          },
+        },
+      } as unknown as MetricQueryConfigData,
+    ]);
+
+    expectSuppressed(result);
+  });
+
+  test("an event scope naming only the database's display name overlays nothing", () => {
+    const query: MetricQueryConfigData = config();
+    query.eventScope = { "oneuptime.database.server.name": STAMPED_NAME };
+
+    const result: EventOverlayScope = getEventOverlayScope([query]);
+
+    expectSuppressed(result);
+  });
+
+  test("an event scope with the database's id and name is scoped by the id", () => {
+    const query: MetricQueryConfigData = config();
+    query.eventScope = {
+      "oneuptime.database.server.id": RESOURCE_A,
+      "oneuptime.database.server.name": STAMPED_NAME,
+    };
+
+    const result: EventOverlayScope = getEventOverlayScope([query]);
+
+    expect(result.incidentQueries).toEqual([
+      { databaseServers: { _id: RESOURCE_A } },
+    ]);
+  });
+
+  test("a membership of display names is refused like a single one", () => {
+    expectSuppressed(
+      scope({
+        "oneuptime.database.server.name": new Includes([
+          STAMPED_NAME,
+          "Redis cache.internal:6379",
+        ]),
+      }),
+    );
   });
 });

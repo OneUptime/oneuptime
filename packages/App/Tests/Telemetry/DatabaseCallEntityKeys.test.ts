@@ -377,6 +377,39 @@ describe("DatabaseCallEntityKeyResolver", () => {
     expect(resolveSpy).toHaveBeenCalledTimes(4);
   });
 
+  test("two SQL Server named instances on one host are two keys — the memo never merges them", () => {
+    const resolveSpy: jest.SpyInstance = jest.spyOn(
+      DatabaseTelemetryResolverModule,
+      "resolveDatabaseCallTarget",
+    );
+    const resolver: DatabaseCallEntityKeyResolver =
+      new DatabaseCallEntityKeyResolver(PROJECT_ID);
+    const call: Record<string, unknown> = {
+      "db.system.name": "microsoft.sql_server",
+      "server.address": "sql1.corp.example.com",
+    };
+
+    const inst01: string | null = resolver.getEntityKey(
+      { ...call, "db.mssql.instance_name": "INST01" },
+      CALLER,
+    );
+    const inst02: string | null = resolver.getEntityKey(
+      { ...call, "db.namespace": "INST02|orders" },
+      CALLER,
+    );
+    const inst01Again: string | null = resolver.getEntityKey(
+      { ...call, "db.mssql.instance_name": "INST01" },
+      CALLER,
+    );
+
+    expect(inst01).not.toBeNull();
+    expect(inst02).not.toBeNull();
+    expect(inst01).not.toBe(inst02);
+    expect(inst01Again).toBe(inst01);
+    // Each distinct instance is resolved once; the repeat is memoized.
+    expect(resolveSpy).toHaveBeenCalledTimes(2);
+  });
+
   test("a string port and a number port land on the same key", () => {
     const resolver: DatabaseCallEntityKeyResolver =
       new DatabaseCallEntityKeyResolver(PROJECT_ID);

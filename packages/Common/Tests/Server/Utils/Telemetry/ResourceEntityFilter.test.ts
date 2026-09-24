@@ -9,6 +9,7 @@ import {
   keyForCephCluster,
   keyForContainer,
   keyForDatabaseEndpoint,
+  keyForDatabaseServerRow,
   keyForDockerSwarmCluster,
   keyForHost,
   keyForKubernetesCluster,
@@ -674,10 +675,16 @@ describe("ResourceEntityFilter", () => {
       });
     }
 
+    // The key ingest stamps on every batch that resolved to a row.
+    function rowKey(id: string): string {
+      return keyForDatabaseServerRow(PROJECT, id);
+    }
+
     // What the Database page computes for one row (the shared helper).
     function pageKeysFor(row: Record<string, unknown>): Array<string> {
       return getDatabaseServerSignalEntityKeys({
         projectId: PROJECT,
+        databaseServerId: row["_id"] as string,
         endpoints: endpointsOf(row["_id"] as string),
         dbSystem: row["dbSystem"] as string,
         memberEntityKeys: row["memberEntityKeys"],
@@ -727,6 +734,7 @@ describe("ResourceEntityFilter", () => {
        */
       const pageKeys: Array<string> = getDatabaseServerScopeKeys({
         projectId: PROJECT_ID,
+        id: new ObjectID(RESOURCE_ID),
         endpoints: endpointsOf(RESOURCE_ID).map(
           (endpoint: string): { endpoint: string } => {
             return { endpoint };
@@ -740,7 +748,7 @@ describe("ResourceEntityFilter", () => {
       expect(scopes[0]!.entityKeys).toEqual(pageKeys);
     });
 
-    test("the key set is the endpoint keys ingest stamps plus the member keys — engine default port applied", async () => {
+    test("the key set is the row key and endpoint keys ingest stamps plus the member keys — engine default port applied", async () => {
       databaseServerFindBy.mockResolvedValue([POSTGRES_ROW]);
       databaseServerEndpointFindBy.mockResolvedValue(
         ENDPOINT_ROWS.filter((row: Record<string, unknown>): boolean => {
@@ -756,6 +764,8 @@ describe("ResourceEntityFilter", () => {
 
       expect(new Set(scopes[0]!.entityKeys)).toEqual(
         new Set<string>([
+          // Telemetry linked by oneuptime.database.server.id, any address.
+          rowKey(RESOURCE_ID),
           keyForDatabaseEndpoint(PROJECT, {
             host: "db.prod.example.com",
             port: 5432,
@@ -823,7 +833,9 @@ describe("ResourceEntityFilter", () => {
         });
 
       expect(scopes[0]!.entityKeys).toEqual([
+        rowKey(RESOURCE_ID),
         keyForDatabaseEndpoint(PROJECT, { host: "pg.example.com", port: 5432 }),
+        rowKey(OTHER_RESOURCE_ID),
         keyForDatabaseEndpoint(PROJECT, {
           host: "redis.example.com",
           port: 6379,
@@ -919,16 +931,18 @@ describe("ResourceEntityFilter", () => {
         });
 
       expect(scopes[0]!.entityKeys).toEqual([
+        rowKey(RESOURCE_ID),
         keyForDatabaseEndpoint(PROJECT, {
           host: "db.prod.example.com",
           port: 5432,
         }),
       ]);
+      expect(scopes[0]!.entityKeys).not.toContain(rowKey(OTHER_RESOURCE_ID));
     });
 
-    test("a database with no endpoints and no members keeps the id-only predicate — never an empty hasAny", async () => {
+    test("a database with no endpoints and no members is still selected by its row key — linked telemetry that reported no address", async () => {
       databaseServerFindBy.mockResolvedValue([
-        { _id: RESOURCE_ID, dbSystem: "postgresql", memberEntityKeys: null },
+        { _id: RESOURCE_ID, dbSystem: "memcached", memberEntityKeys: null },
       ]);
       databaseServerEndpointFindBy.mockResolvedValue([]);
 
@@ -938,13 +952,39 @@ describe("ResourceEntityFilter", () => {
           selections: { databaseServerId: [RESOURCE_ID] },
         });
 
-      expect(scopes).toEqual([{ entityIds: [RESOURCE_ID], entityKeys: [] }]);
+      expect(scopes).toEqual([
+        { entityIds: [RESOURCE_ID], entityKeys: [rowKey(RESOURCE_ID)] },
+      ]);
 
       const statement: Statement = new Statement();
       appendResourceScopeFilters(statement, scopes);
       expect(statement.query).toBe(
-        "AND (primaryEntityId IN ({p0:Array(String)}))",
+        "AND (primaryEntityId IN ({p0:Array(String)}) OR hasAny(entityKeys, {p1:Array(String)}))",
       );
+      expect(statement.query_params).toStrictEqual({
+        p0: [RESOURCE_ID],
+        p1: [rowKey(RESOURCE_ID)],
+      });
+    });
+
+    test("a row whose endpoint is owned elsewhere still selects its linked host-agent rows (not primary-keyed on it) by the row key", async () => {
+      /*
+       * A host agent's block that also scrapes a database keeps its Host as
+       * the primary entity; only the row key (and the id stamp) ties it to
+       * the database. The id branch alone would miss it.
+       */
+      databaseServerFindBy.mockResolvedValue([
+        { _id: RESOURCE_ID, dbSystem: "postgresql", memberEntityKeys: {} },
+      ]);
+      databaseServerEndpointFindBy.mockResolvedValue([]);
+
+      const scopes: Array<ResourceEntityScope> =
+        await ResourceEntityFilter.resolveScopes({
+          projectId: PROJECT_ID,
+          selections: { databaseServerId: [RESOURCE_ID] },
+        });
+
+      expect(scopes[0]!.entityKeys).toContain(rowKey(RESOURCE_ID));
     });
 
     test("unparseable endpoints and malformed member keys are skipped, never thrown on", async () => {
@@ -973,6 +1013,7 @@ describe("ResourceEntityFilter", () => {
         });
 
       expect(scopes[0]!.entityKeys).toEqual([
+        rowKey(RESOURCE_ID),
         keyForDatabaseEndpoint(PROJECT, {
           host: "db.prod.example.com",
           port: 5432,
@@ -1005,10 +1046,12 @@ describe("ResourceEntityFilter", () => {
         });
 
       expect(scopes[0]!.entityKeys).toEqual([
+        rowKey(RESOURCE_ID),
         keyForDatabaseEndpoint(PROJECT, {
           host: "db.prod.example.com",
           port: 5432,
         }),
+        rowKey(OTHER_RESOURCE_ID),
       ]);
     });
 
@@ -1035,7 +1078,7 @@ describe("ResourceEntityFilter", () => {
       },
     );
 
-    test("compiles to id OR hasAny(entityKeys) — the receiver batches primary-keyed on the row, and every span naming an endpoint", async () => {
+    test("compiles to id OR hasAny(entityKeys) — the receiver batches primary-keyed or row-keyed on the row, and every span naming an endpoint", async () => {
       databaseServerFindBy.mockResolvedValue([
         { _id: RESOURCE_ID, dbSystem: "postgresql", memberEntityKeys: {} },
       ]);
@@ -1059,6 +1102,7 @@ describe("ResourceEntityFilter", () => {
       expect(statement.query_params).toStrictEqual({
         p0: [RESOURCE_ID],
         p1: [
+          rowKey(RESOURCE_ID),
           keyForDatabaseEndpoint(PROJECT, {
             host: "db.prod.example.com",
             port: 5432,

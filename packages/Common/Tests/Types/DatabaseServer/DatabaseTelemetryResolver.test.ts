@@ -2,14 +2,18 @@ import {
   DATABASE_ADDRESS_ATTRIBUTES,
   DATABASE_PORT_ATTRIBUTES,
   DATABASE_SYSTEM_ATTRIBUTES,
+  isStableCollectorEndpoint,
   resolveDatabaseCallTarget,
   resolveDatabaseFromResourceAttributes,
 } from "../../../Types/DatabaseServer/DatabaseTelemetryResolver";
 import {
+  buildDatabaseCallerContext,
+  canonicalizeDatabaseEndpoint,
   DatabaseCallerContext,
   DatabaseEndpoint,
   DatabaseEndpointScope,
 } from "../../../Types/DatabaseServer/DatabaseEndpoint";
+import { normalizeDatabaseSystem } from "../../../Types/DatabaseServer/DatabaseSystem";
 import { describe, expect, test } from "@jest/globals";
 
 type CallTarget = {
@@ -24,6 +28,8 @@ type ResourceResolution = {
   linkedDatabaseServerId: string | null;
   displayName: string | null;
   version: string | null;
+  endpointIsStable: boolean;
+  allowCreate: boolean;
 } | null;
 
 const VM_CALLER: DatabaseCallerContext = {
@@ -296,12 +302,60 @@ describe("resolveDatabaseCallTarget", () => {
 
   test("unknown engines still resolve (the key is engine-agnostic)", () => {
     expect(
-      callTarget({ "db.system.name": "tidb", "server.address": "tidb.prod" }),
+      callTarget({
+        "db.system.name": "acme-db",
+        "server.address": "acme.prod",
+      }),
     ).toEqual({
-      system: "tidb",
-      endpoint: { host: "tidb.prod", port: null },
+      system: "acme-db",
+      endpoint: { host: "acme.prod", port: null },
       scope: "global",
     });
+  });
+
+  test("a SQL Server named instance beside the address is read like the canonicalizer defines it", () => {
+    const base: Record<string, unknown> = {
+      "db.system.name": "microsoft.sql_server",
+      "server.address": "sql1.corp.example.com",
+    };
+
+    for (const [attributes, instance] of [
+      [{ ...base, "db.mssql.instance_name": "INST01" }, "INST01"],
+      [{ ...base, "db.namespace": "INST02|orders" }, "INST02"],
+    ] as Array<[Record<string, unknown>, string]>) {
+      expect(callTarget(attributes)?.endpoint).toEqual(
+        canonicalizeDatabaseEndpoint({
+          system: "microsoft.sql_server",
+          address: "sql1.corp.example.com",
+          instance,
+          caller: VM_CALLER,
+          purpose: "client-call",
+        }),
+      );
+    }
+
+    // Two instances on one host are two servers…
+    expect(
+      callTarget({ ...base, "db.mssql.instance_name": "INST01" })?.endpoint,
+    ).not.toEqual(
+      callTarget({ ...base, "db.mssql.instance_name": "INST02" })?.endpoint,
+    );
+  });
+
+  test("an instance-shaped db.namespace means nothing for another engine", () => {
+    expect(
+      callTarget({
+        "db.system.name": "postgresql",
+        "server.address": "db.prod.example.com",
+        "db.namespace": "INST01|orders",
+        "db.mssql.instance_name": "INST01",
+      })?.endpoint,
+    ).toEqual(
+      callTarget({
+        "db.system.name": "postgresql",
+        "server.address": "db.prod.example.com",
+      })?.endpoint,
+    );
   });
 
   test("a missing caller is treated as ephemeral, never throws", () => {
@@ -351,16 +405,19 @@ describe("resolveDatabaseFromResourceAttributes — which batches are databases"
       linkedDatabaseServerId: null,
       displayName: "PostgreSQL db.prod:5432",
       version: null,
+      endpointIsStable: true,
+      allowCreate: true,
     });
   });
 
   test("the hint is refined by db.system.name (MariaDB via the mysql receiver)", () => {
+    // The stamp wins, normalized the way the engine catalog normalizes it.
     expect(
       fromResource(
         { "db.system.name": "mariadb", "server.address": "db.prod" },
         "mysql",
       )?.system,
-    ).toBe("mysql");
+    ).toBe(normalizeDatabaseSystem("mariadb"));
     expect(
       fromResource(
         { "db.system.name": "cockroachdb", "server.address": "crdb.prod" },
@@ -406,6 +463,9 @@ describe("resolveDatabaseFromResourceAttributes — which batches are databases"
         linkedDatabaseServerId: LINKED_ID,
         displayName: null,
         version: null,
+        // No endpoint: nothing to create a row for or claim as an alias.
+        endpointIsStable: false,
+        allowCreate: false,
       },
     );
     expect(
@@ -462,13 +522,22 @@ describe("resolveDatabaseFromResourceAttributes — endpoint precedence", () => 
     ).toEqual({ host: "ora.prod", port: 1521 });
   });
 
-  test("service.instance.id host\\instance drops the instance (SQL Server)", () => {
-    expect(
-      fromResource(
-        { "service.instance.id": "sql.prod\\REPORTING" },
-        "microsoft.sql_server",
-      )?.endpoint,
-    ).toEqual({ host: "sql.prod", port: 1433 });
+  test("service.instance.id host\\instance is read through the endpoint canonicalizer (SQL Server)", () => {
+    const endpoint: DatabaseEndpoint | null | undefined = fromResource(
+      { "service.instance.id": "sql.prod\\REPORTING" },
+      "microsoft.sql_server",
+    )?.endpoint;
+
+    // The server is the address part; a named instance never replaces it.
+    expect(endpoint?.host.split("\\")[0]).toBe("sql.prod");
+    expect(endpoint).toEqual(
+      canonicalizeDatabaseEndpoint({
+        system: "microsoft.sql_server",
+        address: "sql.prod\\REPORTING",
+        caller: buildDatabaseCallerContext({}),
+        purpose: "collector",
+      }),
+    );
   });
 
   test("a UUID-shaped service.instance.id is ignored (MySQL / MongoDB)", () => {
@@ -778,10 +847,353 @@ describe("resolveDatabaseFromResourceAttributes — descriptive fields", () => {
     expect(
       fromResource({ "server.address": "db.prod" }, `${CONTRIB}kafkareceiver`),
     ).toBeNull();
-    expect(fromResource({ "server.address": "db.prod" }, "tidb")).toBeNull();
+    expect(fromResource({ "server.address": "db.prod" }, "acme-db")).toBeNull();
     // An alias of a known engine is fine.
     expect(
       fromResource({ "server.address": "db.prod" }, "postgres")?.system,
     ).toBe("postgresql");
+  });
+});
+
+/*
+ * Which collector endpoints may become a server's identity. A pod IP or a
+ * name a collector made up from its own namespace keys the rows (so a row
+ * that owns it finds them) but never creates a row or becomes an alias:
+ * every pod restart would otherwise add another database.
+ */
+describe("resolveDatabaseFromResourceAttributes — stable identities (endpointIsStable / allowCreate)", () => {
+  // A receiver_creator + k8s_observer batch: the scraped pod's IP and identity.
+  const RECEIVER_CREATOR: Record<string, unknown> = {
+    "server.address": "10.42.1.17",
+    "server.port": "5432",
+    "k8s.pod.name": "postgres-0",
+    "k8s.namespace.name": "prod",
+    "k8s.cluster.name": "prod-eu",
+  };
+
+  test("a pod IP qualified with its cluster keys the rows but is not stable", () => {
+    const resolved: ResourceResolution = fromResource(
+      RECEIVER_CREATOR,
+      "postgresql",
+    );
+
+    expect(resolved?.endpoint).toEqual({
+      host: "10.42.1.17",
+      port: 5432,
+      kubernetesClusterName: "prod-eu",
+    });
+    expect(resolved?.endpointIsStable).toBe(false);
+    expect(resolved?.allowCreate).toBe(false);
+  });
+
+  test("a rolling restart's new pod IPs never become new databases", () => {
+    for (const address of ["10.42.3.88", "10.42.7.4", "10.42.9.201"]) {
+      const resolved: ResourceResolution = fromResource(
+        { ...RECEIVER_CREATOR, "server.address": address },
+        "postgresql",
+      );
+      expect(resolved?.endpoint?.host).toBe(address);
+      expect(resolved?.allowCreate).toBe(false);
+    }
+  });
+
+  test("the same pod IP without a cluster is LOCAL, and not stable either", () => {
+    const resolved: ResourceResolution = fromResource(
+      { ...RECEIVER_CREATOR, "k8s.cluster.name": undefined },
+      "postgresql",
+    );
+
+    expect(resolved?.endpoint).toEqual({ host: "10.42.1.17", port: 5432 });
+    expect(resolved?.endpointIsStable).toBe(false);
+    expect(resolved?.allowCreate).toBe(false);
+  });
+
+  test.each([["k8s.pod.name"], ["k8s.pod.uid"]])(
+    "an IP reported for a pod (%s) is not stable even when it is public",
+    (key: string) => {
+      const resolved: ResourceResolution = fromResource(
+        {
+          "server.address": "34.120.7.9",
+          [key]: key === "k8s.pod.uid" ? LINKED_ID : "redis-master-0",
+        },
+        "redis",
+      );
+
+      expect(resolved?.endpoint).toEqual({ host: "34.120.7.9", port: 6379 });
+      expect(resolved?.endpointIsStable).toBe(false);
+      expect(resolved?.allowCreate).toBe(false);
+    },
+  );
+
+  test("a public IP a VM collector was pointed at is a stable identity", () => {
+    const resolved: ResourceResolution = fromResource(
+      {
+        "server.address": "34.120.7.9",
+        "host.name": "collector-vm-1",
+        "os.type": "linux",
+      },
+      "mysql",
+    );
+
+    expect(resolved?.endpoint).toEqual({ host: "34.120.7.9", port: 3306 });
+    expect(resolved?.endpointIsStable).toBe(true);
+    expect(resolved?.allowCreate).toBe(true);
+  });
+
+  test("the Database Agent's cluster-qualified private IP is keyed but not stable", () => {
+    expect(
+      fromResource(
+        {
+          "server.address": "10.0.0.5",
+          "k8s.cluster.name": "prod",
+          "oneuptime.database.agent": "true",
+        },
+        "postgresql",
+      ),
+    ).toMatchObject({
+      endpoint: {
+        host: "10.0.0.5",
+        port: 5432,
+        kubernetesClusterName: "prod",
+      },
+      endpointIsStable: false,
+      allowCreate: false,
+    });
+  });
+
+  test("a sidecar's pod hostname expanded with the collector's own namespace is not a Service", () => {
+    // The receiver substituted os.Hostname() (the pod name) for localhost.
+    const resolved: ResourceResolution = fromResource(
+      {
+        "server.address": "orders-api-7c9d8f6b5-x2k4q",
+        "k8s.namespace.name": "prod",
+        "k8s.cluster.name": "c1",
+      },
+      "postgresql",
+    );
+
+    expect(resolved?.endpoint).toEqual({
+      host: "orders-api-7c9d8f6b5-x2k4q.prod.svc.cluster.local",
+      port: 5432,
+      kubernetesClusterName: "c1",
+    });
+    expect(resolved?.endpointIsStable).toBe(false);
+    expect(resolved?.allowCreate).toBe(false);
+  });
+
+  test("a single-label Service name keys exactly like the detected workload's alias, and joins it instead of creating", () => {
+    const resolved: ResourceResolution = fromResource(
+      {
+        "server.address": "postgres",
+        "k8s.namespace.name": "prod",
+        "k8s.cluster.name": "c1",
+      },
+      "postgresql",
+    );
+
+    // The alias DiscoverContainerDatabases stores: postgres.prod.svc.cluster.local:5432@c1.
+    expect(resolved?.endpoint).toEqual({
+      host: "postgres.prod.svc.cluster.local",
+      port: 5432,
+      kubernetesClusterName: "c1",
+    });
+    expect(resolved?.allowCreate).toBe(false);
+  });
+
+  test.each([
+    ["a Service FQDN", "postgres.prod.svc.cluster.local"],
+    [
+      "a StatefulSet member behind a headless Service",
+      "postgres-0.postgres.prod.svc.cluster.local",
+    ],
+    ["the short .svc form", "postgres.prod.svc"],
+  ])(
+    "%s written out with the cluster stamped is a stable identity",
+    (_label: string, address: string) => {
+      const resolved: ResourceResolution = fromResource(
+        {
+          "server.address": address,
+          "k8s.namespace.name": "monitoring",
+          "k8s.cluster.name": "c1",
+        },
+        "postgresql",
+      );
+
+      expect(resolved?.endpoint?.kubernetesClusterName).toBe("c1");
+      expect(resolved?.endpointIsStable).toBe(true);
+      expect(resolved?.allowCreate).toBe(true);
+    },
+  );
+
+  test("a stable collector's loopback rewritten to its FQDN host.name is stable", () => {
+    const resolved: ResourceResolution = fromResource(
+      {
+        "server.address": "localhost",
+        "host.name": "db-1.corp.example.com",
+        "os.type": "linux",
+      },
+      "postgresql",
+    );
+
+    expect(resolved?.endpoint).toEqual({
+      host: "db-1.corp.example.com",
+      port: 5432,
+    });
+    expect(resolved?.endpointIsStable).toBe(true);
+    expect(resolved?.allowCreate).toBe(true);
+  });
+
+  test("a loopback rewritten to a single-label host.name stays LOCAL", () => {
+    const resolved: ResourceResolution = fromResource(
+      {
+        "server.address": "localhost",
+        "host.name": "db01",
+        "os.type": "linux",
+      },
+      "postgresql",
+    );
+
+    expect(resolved?.endpoint).toEqual({ host: "db01", port: 5432 });
+    expect(resolved?.endpointIsStable).toBe(false);
+    expect(resolved?.allowCreate).toBe(false);
+  });
+
+  test("an unknown engine keys and may be joined, but never creates a row", () => {
+    const resolved: ResourceResolution = fromResource({
+      "db.system.name": "acme-db",
+      "server.address": "acme.prod.example.com",
+      "server.port": "7000",
+    });
+
+    expect(resolved?.system).toBe("acme-db");
+    expect(resolved?.endpointIsStable).toBe(true);
+    expect(resolved?.allowCreate).toBe(false);
+  });
+
+  test("a cloud-API engine (a shared regional host) never creates a row", () => {
+    const resolved: ResourceResolution = fromResource({
+      "db.system.name": "aws.dynamodb",
+      "server.address": "dynamodb.us-east-1.amazonaws.com",
+      "server.port": "443",
+    });
+
+    expect(resolved?.endpointIsStable).toBe(true);
+    expect(resolved?.allowCreate).toBe(false);
+  });
+
+  test("a linked id with a pod IP still resolves the link, endpoint not stable", () => {
+    expect(
+      fromResource(
+        { ...RECEIVER_CREATOR, "oneuptime.database.server.id": LINKED_ID },
+        "postgresql",
+      ),
+    ).toMatchObject({
+      linkedDatabaseServerId: LINKED_ID,
+      endpointIsStable: false,
+      allowCreate: false,
+    });
+  });
+});
+
+describe("isStableCollectorEndpoint", () => {
+  test("LOCAL endpoints are never stable", () => {
+    const endpoints: Array<DatabaseEndpoint> = [
+      { host: "pg-primary", port: 5432 },
+      { host: "10.0.3.7", port: 5432 },
+      { host: "postgres.prod.svc.cluster.local", port: 5432 },
+    ];
+    for (const endpoint of endpoints) {
+      expect(
+        isStableCollectorEndpoint({
+          rawHost: endpoint.host,
+          endpoint,
+          attributes: {},
+        }),
+      ).toBe(false);
+    }
+  });
+
+  test("an FQDN is stable whatever resource reported it", () => {
+    expect(
+      isStableCollectorEndpoint({
+        rawHost: "db.prod.example.com",
+        endpoint: { host: "db.prod.example.com", port: 5432 },
+        attributes: { "k8s.pod.name": "collector-0" },
+      }),
+    ).toBe(true);
+  });
+
+  test("the pod rule reads the stored resource.-prefixed spelling too", () => {
+    expect(
+      isStableCollectorEndpoint({
+        rawHost: "34.120.7.9",
+        endpoint: { host: "34.120.7.9", port: 5432 },
+        attributes: { "resource.k8s.pod.name": "pg-0" },
+      }),
+    ).toBe(false);
+  });
+
+  test("an IPv6 global address from a VM is stable; qualified with a cluster it is not", () => {
+    expect(
+      isStableCollectorEndpoint({
+        rawHost: "2001:db8::10",
+        endpoint: { host: "2001:db8::10", port: 5432 },
+        attributes: {},
+      }),
+    ).toBe(true);
+    expect(
+      isStableCollectorEndpoint({
+        rawHost: "fd00::10",
+        endpoint: {
+          host: "fd00::10",
+          port: 5432,
+          kubernetesClusterName: "c1",
+        },
+        attributes: {},
+      }),
+    ).toBe(false);
+  });
+
+  test("a SQL Server named instance is judged by its network host", () => {
+    expect(
+      isStableCollectorEndpoint({
+        rawHost: "sql.prod.example.com",
+        endpoint: { host: "sql.prod.example.com\\reporting", port: null },
+        attributes: {},
+      }),
+    ).toBe(true);
+    expect(
+      isStableCollectorEndpoint({
+        rawHost: "34.120.7.9",
+        endpoint: { host: "34.120.7.9\\reporting", port: null },
+        attributes: { "k8s.pod.name": "mssql-0" },
+      }),
+    ).toBe(false);
+  });
+
+  test("garbage input is not stable and never throws", () => {
+    expect(
+      isStableCollectorEndpoint(
+        undefined as unknown as {
+          rawHost: string;
+          endpoint: DatabaseEndpoint;
+          attributes: Record<string, unknown>;
+        },
+      ),
+    ).toBe(false);
+    expect(
+      isStableCollectorEndpoint({
+        rawHost: "",
+        endpoint: null as unknown as DatabaseEndpoint,
+        attributes: {},
+      }),
+    ).toBe(false);
+    expect(
+      isStableCollectorEndpoint({
+        rawHost: undefined as unknown as string,
+        endpoint: { host: "db.prod.example.com", port: 5432 },
+        attributes: undefined as unknown as Record<string, unknown>,
+      }),
+    ).toBe(true);
   });
 });

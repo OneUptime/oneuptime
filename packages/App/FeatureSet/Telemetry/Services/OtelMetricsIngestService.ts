@@ -1048,9 +1048,10 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           ]);
 
           /*
-           * The same pure gate autoDiscoverDatabaseServer ran: its endpoint
-           * keys this block's rows even when no row exists for it (a
-           * LOCAL-scope endpoint), and it names the rows.
+           * The same pure gate autoDiscoverDatabaseServer ran: it names the
+           * rows, and its endpoint keys them when no row claimed the batch
+           * by id — even when no row exists for it (a LOCAL-scope
+           * endpoint). The resolved row's key is added by the resolver.
            */
           const databaseServerResource: DatabaseServerResourceResolution | null =
             this.resolveDatabaseServerResource({
@@ -1086,12 +1087,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
           } = this.scanHostInfraStatsFromMetrics(scopeMetricsForScan);
 
           /*
-           * A block that also carries host metrics (system.* / process.*)
-           * is a host agent that happens to scrape a database too: the
-           * Host is still discovered and stays primary, and the database
-           * only gets its key and stamp. Otherwise the database IS the
-           * resource — the Host gate refuses and the database routes the
-           * rows.
+           * A resource block that ITSELF also carries host metrics
+           * (system.* / process.*) is a host agent's: the Host is still
+           * discovered and stays primary, and the database only gets its
+           * keys and stamp. Otherwise the database IS the resource — the
+           * Host gate refuses and the database routes the rows. Note the
+           * exemption is per block: every collector receiver emits its own
+           * ResourceMetrics, so a DB receiver sharing a pipeline with
+           * hostmetrics is still a block of its own, and the database's.
            */
           const primaryDatabaseServerId: ObjectID | null =
             hostInfraStats.hasInfraSignal ? null : databaseServerId;
@@ -1144,9 +1147,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               rumApplicationId,
               databaseServerId: primaryDatabaseServerId,
               databaseServerName,
-              databaseServerEndpoint: databaseServerResource
-                ? databaseServerResource.endpoint
-                : null,
+              stampedDatabaseServerId: databaseServerId,
+              databaseServerEndpoint: this.getDatabaseEndpointForEntityKey({
+                resolution: databaseServerResource,
+                databaseServerId,
+              }),
               entityRefs: resourceEntityRefs,
             });
           const serviceName: string = serviceMetadata.serviceName;
@@ -1226,6 +1231,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            * (hostmetrics emits one ResourceMetrics per scraper) — the
            * agent's scrape interval (typically 30-60s) naturally rate-
            * limits subsequent batches.
+           *
+           * Not for a database's engine block: its host.name is the
+           * collector's machine (or, for the sqlserver / oracledb
+           * receivers, the database server's own name), so a heartbeat
+           * would be charted on the database's Metrics tab and keep a
+           * same-named Host looking up after its own agent died. The name
+           * is not marked as heartbeated either, so a hostmetrics block for
+           * the same host later in this payload still emits the Host's.
            */
           const heartbeatHostName: string | null =
             OtelIngestBaseService.getHostNameFromAttributes(
@@ -1233,6 +1246,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             );
           if (
             heartbeatHostName &&
+            !primaryDatabaseServerId &&
             !hostHeartbeatHostNames.has(heartbeatHostName)
           ) {
             hostHeartbeatHostNames.add(heartbeatHostName);

@@ -74,6 +74,7 @@ import { reconcileEntityRegistryThrottled } from "Common/Server/Utils/Telemetry/
 import {
   canonicalizeEntityValue,
   keyForDatabaseEndpoint,
+  keyForDatabaseServerRow,
 } from "Common/Utils/Telemetry/EntityKey";
 import { normalizeHostIpAddresses } from "Common/Utils/Telemetry/HostIpAddresses";
 import Dictionary from "Common/Types/Dictionary";
@@ -110,6 +111,14 @@ export type DatabaseServerResourceResolution = {
   linkedDatabaseServerId: string | null;
   displayName: string | null;
   version: string | null;
+  /*
+   * Whether the endpoint may become a server's identity — created as a row
+   * or claimed as an alias (never a pod IP or a namespace-expanded single
+   * label; see isStableCollectorEndpoint).
+   */
+  endpointIsStable: boolean;
+  // Whether the endpoint may create a row by itself (stable + creatable engine).
+  allowCreate: boolean;
 };
 
 export default abstract class OtelIngestBaseService {
@@ -542,11 +551,16 @@ export default abstract class OtelIngestBaseService {
    *      database's engine telemetry (collector DB receiver or the
    *      Database Agent) → ServiceType.DatabaseServer, primaryEntityId =
    *      DatabaseServer._id, serviceName `database/<name>`. Above the Host
-   *      branch: such a batch carries the host.name / os.type of the
-   *      machine the collector runs on, which is not what it describes.
-   *      The caller passes no databaseServerId when the same block also
-   *      carries host metrics, so a host agent that scrapes a database on
-   *      the side stays a Host.
+   *      and KubernetesCluster branches — deliberately: such a batch
+   *      carries the host.name / os.type (or k8s.cluster.name) of where the
+   *      collector runs, which is not what it describes, so a receiver
+   *      batch that used to land on that Host or cluster now belongs to the
+   *      database, with the database's retention. The only exception is a
+   *      single resource block that itself also carries host metrics
+   *      (system.* / process.*): the metrics caller then passes no
+   *      databaseServerId and the block stays a Host. A collector's
+   *      receivers each emit their own resource block, so a database
+   *      receiver added to a hostmetrics pipeline is NOT such a block.
    *   2. Else if a Host was auto-discovered for this batch →
    *      ServiceType.Host, primaryEntityId = Host._id. Avoids the old
    *      `host/<name>` phantom-Service duplication.
@@ -604,13 +618,27 @@ export default abstract class OtelIngestBaseService {
     cloudResourceId?: ObjectID | null;
     rumApplicationId?: ObjectID | null;
     iotFleetId?: ObjectID | null;
+    /*
+     * The database this block is the engine telemetry of AND describes —
+     * the primary-entity candidate. Also keeps the heuristic Host entity
+     * (the collector machine's host.name) off the block's entity keys.
+     */
     databaseServerId?: ObjectID | null;
     databaseServerName?: string | null;
     /*
-     * The database endpoint this batch is the engine telemetry of (see
-     * resolveDatabaseServerResource). Keys the rows even when no
-     * DatabaseServer row exists for it (a LOCAL-scope endpoint), so a row
-     * created or aliased later finds the telemetry that came before it.
+     * The database whose `oneuptime.database.server.id` the block's rows are
+     * stamped with, primary or not (a host agent's block that also scrapes a
+     * database keeps its Host primary). Its row key is appended, so the
+     * rows are that database's telemetry whatever endpoint — or none — the
+     * batch reported. `databaseServerId` is keyed the same way.
+     */
+    stampedDatabaseServerId?: ObjectID | null;
+    /*
+     * The database endpoint whose key the rows carry (see
+     * getDatabaseEndpointForEntityKey): the batch's endpoint when no row
+     * claimed the batch by id. Keys the rows even when no DatabaseServer row
+     * exists for it (a LOCAL-scope endpoint), so a row created or aliased
+     * later finds the telemetry that came before it.
      */
     databaseServerEndpoint?: DatabaseEndpoint | null;
     /*
@@ -645,11 +673,22 @@ export default abstract class OtelIngestBaseService {
         prefixKeysWithString: "",
       });
 
+    /*
+     * A database's own engine telemetry carries the host.name of the
+     * machine its collector runs on (or, for the sqlserver / oracledb
+     * receivers, the database server's name) — not a Host this batch
+     * describes. The heuristic Host entity would mint an Inventory Host for
+     * it and put the database's rows on that Host's pages, so it is left
+     * out; a producer's explicit entity_refs still win.
+     */
     const extraction: EntityExtractionResult =
       InventoryItem.extractEntitiesWithRetirements({
         projectId: data.projectId.toString(),
         attributes: flatAttributes,
         entityRefs: data.entityRefs,
+        ...(data.databaseServerId
+          ? { suppressHeuristicEntityTypes: [EntityType.Host] }
+          : {}),
       });
     const entities: Array<ExtractedEntity> = extraction.entities;
 
@@ -666,15 +705,21 @@ export default abstract class OtelIngestBaseService {
     metadata.scalarEntityKeys = this.scalarEntityKeysFromEntities(entities);
 
     /*
-     * A database's own telemetry also belongs to its endpoint. The key is
-     * membership-only (EntityType.DatabaseServer is never resolver-emitted
-     * nor promoted to an InventoryItem), so it is appended here, after the
-     * extraction, and never reaches the registry reconciliation below.
+     * A database's own telemetry also belongs to its row and/or its
+     * endpoint. Both keys are membership-only (EntityType.DatabaseServer is
+     * never resolver-emitted nor promoted to an InventoryItem), so they are
+     * appended here, after the extraction, and never reach the registry
+     * reconciliation below.
      */
     metadata.entityKeys = this.withDatabaseEndpointEntityKey({
       entityKeys: metadata.entityKeys,
       projectId: data.projectId,
       endpoint: data.databaseServerEndpoint,
+    });
+    metadata.entityKeys = this.withDatabaseServerRowEntityKeys({
+      entityKeys: metadata.entityKeys,
+      projectId: data.projectId,
+      databaseServerIds: [data.databaseServerId, data.stampedDatabaseServerId],
     });
 
     /*
@@ -2621,6 +2666,81 @@ export default abstract class OtelIngestBaseService {
     return [...entityKeys, endpointKey];
   }
 
+  /*
+   * `entityKeys` plus the row key of each database given (nulls skipped,
+   * duplicates collapsed), as a NEW array when anything was added — the
+   * input may be shared. The row key is what makes linked telemetry the
+   * database's: a batch whose endpoint the row does not own (or that
+   * reported none) still carries it.
+   */
+  protected static withDatabaseServerRowEntityKeys(data: {
+    entityKeys: Array<string> | undefined;
+    projectId: ObjectID;
+    databaseServerIds: Array<ObjectID | null | undefined>;
+  }): Array<string> {
+    const entityKeys: Array<string> = data.entityKeys || [];
+    const added: Array<string> = [];
+
+    for (const databaseServerId of data.databaseServerIds || []) {
+      const id: string = databaseServerId ? databaseServerId.toString() : "";
+      if (!id) {
+        continue;
+      }
+      const rowKey: string = keyForDatabaseServerRow(
+        data.projectId.toString(),
+        id,
+      );
+      if (!entityKeys.includes(rowKey) && !added.includes(rowKey)) {
+        added.push(rowKey);
+      }
+    }
+
+    return added.length > 0 ? [...entityKeys, ...added] : entityKeys;
+  }
+
+  /*
+   * The endpoint whose key a database batch's rows carry, given what the
+   * pure gate resolved and the row discovery returned:
+   *
+   *   - no resolution, or no endpoint → none;
+   *   - the batch names a row by `oneuptime.database.server.id` and
+   *     discovery returned THAT row → none. The row key places the rows;
+   *     the reported address may be owned by another database (its page
+   *     must not show them) or by no one yet (a row that claims it later
+   *     must not inherit them), so it never keys them;
+   *   - the batch names a row but discovery returned nothing (the link was
+   *     not in the project and the endpoint resolved to no row, or
+   *     discovery failed) → none: the batch is not provably anyone's but
+   *     the row it names;
+   *   - otherwise (resolved by its endpoint, or not resolved at all) → the
+   *     endpoint. Discovery by endpoint returns the endpoint's owner, so
+   *     the key is that row's; unresolved, it waits for a row to own it.
+   */
+  protected static getDatabaseEndpointForEntityKey(data: {
+    resolution: DatabaseServerResourceResolution | null;
+    databaseServerId: ObjectID | null;
+  }): DatabaseEndpoint | null {
+    const resolution: DatabaseServerResourceResolution | null = data.resolution;
+
+    if (!resolution || !resolution.endpoint) {
+      return null;
+    }
+
+    if (resolution.linkedDatabaseServerId) {
+      if (!data.databaseServerId) {
+        return null;
+      }
+      if (
+        data.databaseServerId.toString().toLowerCase() ===
+        resolution.linkedDatabaseServerId.toLowerCase()
+      ) {
+        return null;
+      }
+    }
+
+    return resolution.endpoint;
+  }
+
   private static hasAttributeKey(attributes: JSONArray, key: string): boolean {
     for (const attribute of attributes) {
       if (attribute && (attribute as JSONObject)["key"] === key) {
@@ -2641,17 +2761,24 @@ export default abstract class OtelIngestBaseService {
    *   1. `oneuptime.database.server.id` (the agent config from the in-app
    *      docs stamps it): that row, if it is in this project. The endpoint
    *      the batch reports is claimed for it as an alias when it is a
-   *      GLOBAL-scope endpoint nobody owns, so application traces to the
-   *      same address join the row too. An endpoint another row owns is
-   *      never taken.
+   *      stable (GLOBAL-scope, not a pod IP) endpoint nobody owns, so
+   *      application traces to the same address join the row too. An
+   *      endpoint another row owns is never taken. The rows reach the
+   *      database's pages through its row key either way (see
+   *      getDatabaseEndpointForEntityKey), whatever address they report.
    *   2. Otherwise (or when the linked row is gone) the endpoint:
    *      DatabaseServerService.findOrCreateByEndpoint with discovery source
-   *      "collector". A LOCAL-scope endpoint only ever joins a row that
-   *      already owns it.
+   *      "collector". Only a stable endpoint of an auto-creatable engine
+   *      may create a row (resolution.allowCreate); any other endpoint —
+   *      LOCAL scope, a pod IP, a namespace-expanded single label, an
+   *      unknown engine — only ever joins a row that already owns it.
+   *      findOrCreateByEndpoint may also decline to create (the project's
+   *      auto-create budget); the batch then simply resolves to no row.
    *
    * Then, behind the "database-server" maintenance fence, the collector
    * heartbeat (agent + engine version) and oneuptime.label.* promotion.
-   * Never throws.
+   * Never throws: null (no row) is always a valid answer, and the caller
+   * then routes the batch as it would any other.
    */
   @CaptureSpan()
   protected static async autoDiscoverDatabaseServer(data: {
@@ -2682,6 +2809,7 @@ export default abstract class OtelIngestBaseService {
           projectId: data.projectId,
           linkedDatabaseServerId: resolved.linkedDatabaseServerId,
           endpoint: resolved.endpoint,
+          endpointIsStable: resolved.endpointIsStable,
         });
       }
 
@@ -2739,13 +2867,22 @@ export default abstract class OtelIngestBaseService {
    * The row a batch's `oneuptime.database.server.id` names, when it exists
    * in this project; null otherwise (the caller then falls back to the
    * endpoint). The id is untrusted input, hence findByIdInProject.
+   *
+   * Cached per (id, observed endpoint), not per id: the claim of the
+   * observed endpoint runs only on a miss, so an id-only key would claim at
+   * most one address per id per TTL — a changed DATABASE_SERVER_ADDRESS, or
+   * several agents (primary, replicas) sharing one id, would leave every
+   * other address unclaimed for up to an hour.
    */
   private static async findLinkedDatabaseServerId(data: {
     projectId: ObjectID;
     linkedDatabaseServerId: string;
     endpoint: DatabaseEndpoint | null;
+    endpointIsStable: boolean;
   }): Promise<string | null> {
-    const cacheKey: string = `${data.projectId.toString()}:id:${data.linkedDatabaseServerId}`;
+    const cacheKey: string = `${data.projectId.toString()}:id:${
+      data.linkedDatabaseServerId
+    }:${data.endpoint ? formatDatabaseEndpoint(data.endpoint) : "-"}`;
 
     const cachedId: string | null = await this.getEntityIdFromCaches(
       this.DATABASE_SERVER_ID_CACHE_NAMESPACE,
@@ -2777,6 +2914,7 @@ export default abstract class OtelIngestBaseService {
       projectId: data.projectId,
       databaseServerId: new ObjectID(databaseServerIdStr),
       endpoint: data.endpoint,
+      endpointIsStable: data.endpointIsStable,
     });
 
     /*
@@ -2797,21 +2935,24 @@ export default abstract class OtelIngestBaseService {
   }
 
   /*
-   * Claim the endpoint a linked batch reports as an alias of its row, so the
-   * row's key set covers it. Only a GLOBAL-scope endpoint is ever claimed —
-   * a single-label name or an unqualified private IP means different
-   * servers in different networks and never becomes anyone's alias
-   * automatically — and only when it is free: "owned-by-other" is a final
-   * answer, never a takeover. Returns false only when the claim itself
-   * failed.
+   * Claim the endpoint a linked batch reports as an alias of its row, so
+   * application traces to that address join the row too. (The batch's own
+   * rows do not need it: they carry the row key.) Only a stable endpoint is
+   * ever claimed — a single-label name or an unqualified private IP means
+   * different servers in different networks, and a pod IP is reassigned on
+   * every restart, so none of them becomes anyone's alias automatically —
+   * and only when it is free: "owned-by-other" is a final answer, never a
+   * takeover. Returns false only when the claim itself failed.
    */
   private static async claimObservedDatabaseEndpoint(data: {
     projectId: ObjectID;
     databaseServerId: ObjectID;
     endpoint: DatabaseEndpoint | null;
+    endpointIsStable: boolean;
   }): Promise<boolean> {
     if (
       !data.endpoint ||
+      !data.endpointIsStable ||
       getDatabaseEndpointScope(data.endpoint) !== "global"
     ) {
       return true;
@@ -2848,8 +2989,10 @@ export default abstract class OtelIngestBaseService {
 
   /*
    * The row that owns this endpoint, or a new one (discovery source
-   * "collector"). Null when nothing owns it and none may be created — a
-   * LOCAL-scope endpoint — which is memoed briefly rather than cached.
+   * "collector") when the resolution allows creating one. Null when nothing
+   * owns it and none may be created — a LOCAL-scope endpoint, an ephemeral
+   * one (a pod IP), an unknown engine, or a project over its auto-create
+   * budget — which is memoed briefly rather than cached.
    */
   private static async findOrCreateDatabaseServerIdByEndpoint(data: {
     projectId: ObjectID;
@@ -2868,7 +3011,17 @@ export default abstract class OtelIngestBaseService {
       return cachedId;
     }
 
-    const unresolvedKey: string = `${this.DATABASE_SERVER_ID_CACHE_NAMESPACE}:${cacheKey}`;
+    const allowCreate: boolean = data.resolved.allowCreate === true;
+
+    /*
+     * The memo remembers "no row, and this batch could not make one". A
+     * batch that MAY create one (the same endpoint reported from a stable
+     * context) must not be turned away by it, so the answer is memoed per
+     * permission.
+     */
+    const unresolvedKey: string = `${this.DATABASE_SERVER_ID_CACHE_NAMESPACE}:${cacheKey}:${
+      allowCreate ? "create" : "join"
+    }`;
     if (this.unresolvedDatabaseServerMemo.get(unresolvedKey)) {
       return null;
     }
@@ -2880,7 +3033,7 @@ export default abstract class OtelIngestBaseService {
         endpoint: data.endpoint,
         discoverySource: DatabaseServerDiscoverySource.Collector,
         displayName: data.resolved.displayName || undefined,
-        allowCreate: true,
+        allowCreate: allowCreate,
       });
 
     if (!databaseServer || !databaseServer._id) {
@@ -3688,9 +3841,11 @@ export default abstract class OtelIngestBaseService {
    *      pointing back at them via dockerHostId / kubernetesClusterId.
    *      Nor to a DatabaseServer: a collector DB receiver's batch carries
    *      the host.name / os.type of the machine the collector runs on, not
-   *      of anything the batch describes. (Callers pass no databaseServerId
-   *      for a block that also carries host metrics — a host agent that
-   *      scrapes a database on the side is still a Host.)
+   *      of anything the batch describes. (The metrics caller passes no
+   *      databaseServerId for a resource block that itself also carries
+   *      system.* / process.* metrics, which stays a Host. Each collector
+   *      receiver emits its own block, so a DB receiver next to hostmetrics
+   *      in one pipeline is still the database's.)
    *   4. One of:
    *        - os.type resource attribute (set by the resourcedetection
    *          system detector via native OS calls — app SDKs typically

@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   DATABASE_ENDPOINT_CHIP_KEY,
   DATABASE_MEMBER_CHIP_KEY,
+  DATABASE_SERVER_CHIP_KEY,
   buildDatabaseServerEntityKeyDisplays,
   getDatabaseServerEndpointScopeKeys,
   getDatabaseServerEntityKeysQueryValue,
@@ -17,6 +18,7 @@ import { getDatabaseServerSignalEntityKeys } from "../../../Utils/Telemetry/Data
 import {
   keyForContainer,
   keyForDatabaseEndpoint,
+  keyForDatabaseServerRow,
   keyForKubernetesPod,
 } from "../../../Utils/Telemetry/EntityKey";
 
@@ -377,5 +379,134 @@ describe("getDatabaseServerFormattedEndpoints", () => {
 
   test("is empty for a missing source", () => {
     expect(getDatabaseServerFormattedEndpoints(null)).toEqual([]);
+  });
+});
+
+/*
+ * The row's id in the source adds its ROW key: what ingest stamps on every
+ * batch that resolved to the row — the Database Agent linked by
+ * DATABASE_SERVER_ID whatever address it reports, a memcached receiver with
+ * no address at all. Every tab and the Overview must include it, or linked
+ * telemetry reaches the database and is never shown.
+ */
+describe("the row key (telemetry linked by oneuptime.database.server.id)", () => {
+  const ROW_ID: string = "66666666-6666-4666-8666-666666666666";
+  const ROW_KEY: string = keyForDatabaseServerRow(PROJECT_ID, ROW_ID);
+
+  const source: {
+    projectId: string;
+    id: string;
+    endpoints: Array<string>;
+    dbSystem: string;
+    memberEntityKeys: Record<string, string>;
+    name: string;
+  } = {
+    projectId: PROJECT_ID,
+    id: ROW_ID,
+    endpoints: ["postgres.prod.svc.cluster.local:5432@cluster-a"],
+    dbSystem: "postgresql",
+    memberEntityKeys: { [POD_KEY]: "2026-09-23T10:00:00.000Z" },
+    name: "Orders DB",
+  };
+
+  test("the full scope starts with the row key, then endpoints, then members", () => {
+    expect(getDatabaseServerScopeKeys(source)).toEqual([
+      ROW_KEY,
+      keyForDatabaseEndpoint(PROJECT_ID, {
+        host: "postgres.prod.svc.cluster.local",
+        port: 5432,
+        kubernetesClusterName: "cluster-a",
+      }),
+      POD_KEY,
+    ]);
+  });
+
+  test("the endpoint scope (queries, engine metrics) includes it; the member-only runtime scope does not", () => {
+    expect(getDatabaseServerEndpointScopeKeys(source)).toEqual([
+      ROW_KEY,
+      keyForDatabaseEndpoint(PROJECT_ID, {
+        host: "postgres.prod.svc.cluster.local",
+        port: 5432,
+        kubernetesClusterName: "cluster-a",
+      }),
+    ]);
+    expect(getDatabaseServerMemberScopeKeys(source)).toEqual([POD_KEY]);
+    expect(getDatabaseServerMemberScopeKeys(source)).not.toContain(ROW_KEY);
+  });
+
+  test("an ObjectID id keys exactly like its string form", () => {
+    expect(
+      getDatabaseServerScopeKeys({ ...source, id: new ObjectID(ROW_ID) }),
+    ).toEqual(getDatabaseServerScopeKeys(source));
+  });
+
+  test("a row with no endpoint and no member is scoped by its row key alone — never unscoped, never the whole project", () => {
+    const keys: Array<string> = getDatabaseServerScopeKeys({
+      projectId: PROJECT_ID,
+      id: ROW_ID,
+      endpoints: [],
+      dbSystem: "memcached",
+      memberEntityKeys: null,
+    });
+
+    expect(keys).toEqual([ROW_KEY]);
+    expect(isDatabaseServerScoped(keys)).toBe(true);
+    expect(getDatabaseServerEntityKeysQueryValue(keys)!.values).toEqual([
+      ROW_KEY,
+    ]);
+  });
+
+  test("without an id (or a blank one) the scope is the endpoint and member keys only", () => {
+    for (const id of [undefined, null, "", "   "]) {
+      expect(
+        getDatabaseServerScopeKeys({ ...source, id: id as string }),
+      ).not.toContain(ROW_KEY);
+    }
+    expect(
+      getDatabaseServerScopeKeys({
+        projectId: PROJECT_ID,
+        id: "",
+        endpoints: [],
+        memberEntityKeys: null,
+      }),
+    ).toEqual([]);
+  });
+
+  test("regression: the Documentation tab's prefilled agent address is LOCAL, but the linked batch still matches the page", () => {
+    /*
+     * The agent reports the Service FQDN without the cluster (the row owns
+     * only the @cluster-a alias), so its endpoint key is not in scope — the
+     * row key ingest stamps for the link is.
+     */
+    const keys: Array<string> = getDatabaseServerScopeKeys(source);
+    expect(keys).not.toContain(
+      keyForDatabaseEndpoint(PROJECT_ID, {
+        host: "postgres.prod.svc.cluster.local",
+        port: 5432,
+      }),
+    );
+    expect(keys).toContain(ROW_KEY);
+  });
+
+  test("the row key's chip reads 'Database: <name>', falling back to the engine", () => {
+    expect(buildDatabaseServerEntityKeyDisplays(source)[ROW_KEY]).toEqual({
+      displayKey: DATABASE_SERVER_CHIP_KEY,
+      displayValue: "Orders DB",
+    });
+    expect(
+      buildDatabaseServerEntityKeyDisplays({ ...source, name: "  " })[ROW_KEY],
+    ).toEqual({
+      displayKey: DATABASE_SERVER_CHIP_KEY,
+      displayValue: "PostgreSQL",
+    });
+    expect(
+      buildDatabaseServerEntityKeyDisplays(source)[ROW_KEY],
+    ).not.toHaveProperty("searchAttributes");
+  });
+
+  test("the chips still cover exactly the keys the viewers are scoped by", () => {
+    expect(
+      Object.keys(buildDatabaseServerEntityKeyDisplays(source)).sort(),
+    ).toEqual([...getDatabaseServerScopeKeys(source)].sort());
   });
 });

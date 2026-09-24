@@ -6,10 +6,15 @@ import {
   DatabaseEndpoint,
   DatabaseEndpointScope,
   getDatabaseEndpointScope,
+  isHostRelativeDatabaseHost,
+  isIpLiteralHost,
+  isLoopbackDatabaseHost,
   parseHostAndPort,
   ParsedHostAndPort,
+  readDatabaseInstanceName,
 } from "./DatabaseEndpoint";
 import {
+  isAutoCreatableDatabaseSystem,
   isKnownDatabaseSystem,
   normalizeDatabaseSystem,
 } from "./DatabaseSystem";
@@ -177,11 +182,21 @@ export function resolveDatabaseCallTarget(input: {
     DATABASE_PORT_ATTRIBUTES,
   );
 
+  /*
+   * A SQL Server named instance the span names beside its address (null for
+   * every other engine): two instances on one host are two servers. The
+   * discovery cron hands its grouped instance column back in as
+   * `db.mssql.instance_name`, so both read it here, alike.
+   */
   const endpoint: DatabaseEndpoint | null = canonicalizeDatabaseEndpoint({
     system,
     address: typeof address === "string" ? address : String(address),
     port:
       typeof port === "string" || typeof port === "number" ? port : undefined,
+    instance: readDatabaseInstanceName({
+      system,
+      getAttribute: input.getAttribute,
+    }),
     caller: input.caller || { isEphemeral: true },
     purpose: "client-call",
   });
@@ -220,6 +235,98 @@ function isNonIdentityHost(
   return CONTAINER_ID_HOST_REGEX.test(value);
 }
 
+/*
+ * Resource attributes that say the batch describes ONE Kubernetes pod — a
+ * `receiver_creator` + `k8s_observer` collector stamps the scraped pod's
+ * identity on every batch it produces for it.
+ */
+const POD_IDENTITY_ATTRIBUTES: ReadonlyArray<string> = [
+  "k8s.pod.name",
+  "k8s.pod.uid",
+];
+
+function isSingleLabelHost(host: string): boolean {
+  return !host.includes(".") && !isIpLiteralHost(host);
+}
+
+/*
+ * The network host of an endpoint host: a SQL Server named instance
+ * (`sql1.corp\inst01`) is part of the endpoint's identity but says nothing
+ * about the address it is reached at.
+ */
+function networkHostOf(host: string): string {
+  const value: string = host.trim().toLowerCase();
+  const instanceStart: number = value.indexOf("\\");
+  return instanceStart >= 0 ? value.substring(0, instanceStart) : value;
+}
+
+/**
+ * Whether a collector-reported endpoint names ONE server stably enough to
+ * become its identity — to create a DatabaseServer row, or to be claimed as
+ * an alias of the row a batch is linked to. Stable means GLOBAL scope and
+ * none of the addresses a collector's own context makes up:
+ *
+ * - a pod IP: an IP literal qualified with a cluster (a pod or ClusterIP
+ *   address) or reported for a pod (`k8s.pod.name` / `k8s.pod.uid`, the
+ *   `receiver_creator` pattern). Every restart hands the pod a new one, and
+ *   each would become another row that never joins the Kubernetes-detected
+ *   database, which owns Service DNS names, not pod IPs;
+ * - a single-label name expanded into `<name>.<namespace>.svc.cluster.local`
+ *   only because the COLLECTOR runs in that namespace: it may be a Service,
+ *   or a pod hostname a receiver substituted for `localhost` (a sidecar's
+ *   os.Hostname()) — nothing tells them apart.
+ *
+ * The endpoint still keys the batch's rows either way, so a row that owns it
+ * (the Kubernetes-detected workload's Service DNS alias, an alias a person
+ * added, a DATABASE_SERVER_ID link) finds the telemetry. `rawHost` is the
+ * host as parsed from the attribute, before canonicalization.
+ */
+export function isStableCollectorEndpoint(input: {
+  rawHost: string;
+  endpoint: DatabaseEndpoint;
+  attributes: Record<string, unknown>;
+}): boolean {
+  if (!input || !input.endpoint || typeof input.endpoint.host !== "string") {
+    return false;
+  }
+
+  const endpoint: DatabaseEndpoint = input.endpoint;
+  const host: string = networkHostOf(endpoint.host);
+
+  if (getDatabaseEndpointScope(endpoint) !== "global") {
+    return false;
+  }
+
+  if (isIpLiteralHost(host)) {
+    const clusterQualified: boolean = Boolean(
+      typeof endpoint.kubernetesClusterName === "string" &&
+        endpoint.kubernetesClusterName.trim(),
+    );
+    const reportedForPod: boolean = POD_IDENTITY_ATTRIBUTES.some(
+      (key: string): boolean => {
+        return readAttribute(input.attributes || {}, key) !== null;
+      },
+    );
+    if (clusterQualified || reportedForPod) {
+      return false;
+    }
+  }
+
+  const rawHost: string =
+    typeof input.rawHost === "string" ? networkHostOf(input.rawHost) : "";
+  if (
+    rawHost &&
+    isSingleLabelHost(rawHost) &&
+    !isLoopbackDatabaseHost(rawHost) &&
+    !isHostRelativeDatabaseHost(rawHost) &&
+    host !== rawHost
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 /**
  * Whether a resource batch is a database's own telemetry, and which server.
  *
@@ -236,6 +343,12 @@ function isNonIdentityHost(
  *   `mongodb_atlas.host.name` (+ `mongodb_atlas.process.port`) that
  *   canonicalizes to a real host. There is deliberately NO `host.name`
  *   fallback: a central collector scraping N servers would merge them all.
+ * - `endpointIsStable`: see isStableCollectorEndpoint — whether the endpoint
+ *   may become a server's identity (created, or claimed as an alias).
+ * - `allowCreate`: whether the batch may create a DatabaseServer row for its
+ *   endpoint by itself — a stable endpoint of an engine that may be
+ *   auto-created (known, not a cloud-API or in-process database). Otherwise
+ *   it only joins a row that already owns the endpoint.
  *
  * Null when neither an endpoint nor a linked id identifies the server.
  */
@@ -248,6 +361,8 @@ export function resolveDatabaseFromResourceAttributes(input: {
   linkedDatabaseServerId: string | null;
   displayName: string | null;
   version: string | null;
+  endpointIsStable: boolean;
+  allowCreate: boolean;
 } | null {
   const attributes: Record<string, unknown> =
     input && input.attributes && typeof input.attributes === "object"
@@ -316,6 +431,7 @@ export function resolveDatabaseFromResourceAttributes(input: {
   ];
 
   let endpoint: DatabaseEndpoint | null = null;
+  let rawHost: string = "";
   for (const candidate of candidates) {
     if (!candidate.address) {
       continue;
@@ -338,6 +454,7 @@ export function resolveDatabaseFromResourceAttributes(input: {
       continue;
     }
     endpoint = canonical;
+    rawHost = parsed.host;
     break;
   }
 
@@ -353,6 +470,10 @@ export function resolveDatabaseFromResourceAttributes(input: {
     }
   }
 
+  const endpointIsStable: boolean = endpoint
+    ? isStableCollectorEndpoint({ rawHost, endpoint, attributes })
+    : false;
+
   return {
     system,
     endpoint,
@@ -361,5 +482,7 @@ export function resolveDatabaseFromResourceAttributes(input: {
       ? buildDatabaseServerDisplayName({ system, endpoint })
       : null,
     version,
+    endpointIsStable,
+    allowCreate: endpointIsStable && isAutoCreatableDatabaseSystem(system),
   };
 }

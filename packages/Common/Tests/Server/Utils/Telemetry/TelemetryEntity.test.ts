@@ -2503,3 +2503,133 @@ describe("InventoryItem.parseEntityRefs", () => {
     expect(InventoryItem.parseEntityRefs("nope")).toEqual([]);
   });
 });
+
+/*
+ * A database's engine telemetry carries the host.name of the machine its
+ * collector runs on (or, for sqlserver / oracledb, the database server's
+ * name). Ingest asks the extractor to leave the heuristic Host out of such a
+ * batch; everything else — and anything a producer declared — is untouched.
+ */
+describe("extractEntitiesWithRetirements — suppressHeuristicEntityTypes", () => {
+  const collectorAttributes: EntityAttributes = {
+    "host.name": "collector-vm-1",
+    "os.type": "linux",
+    "server.address": "orders-db.example.com",
+  };
+
+  test("drops the heuristic Host of a database receiver batch", () => {
+    const unsuppressed: EntityExtractionResult =
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: PROJECT,
+        attributes: collectorAttributes,
+      });
+    const suppressed: EntityExtractionResult =
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: PROJECT,
+        attributes: collectorAttributes,
+        suppressHeuristicEntityTypes: [EntityType.Host],
+      });
+
+    // Without suppression the collector machine becomes a Host entity…
+    expect(unsuppressed.entities).toContainEqual(
+      expect.objectContaining({
+        entityType: EntityType.Host,
+        entityKey: keyForHost(PROJECT, "collector-vm-1"),
+      }),
+    );
+    // …with it, neither the entity nor its key is there.
+    expect(suppressed.entities).not.toContainEqual(
+      expect.objectContaining({ entityType: EntityType.Host }),
+    );
+    expect(
+      suppressed.entities.map((entity: ExtractedEntity): string => {
+        return entity.entityKey;
+      }),
+    ).not.toContain(keyForHost(PROJECT, "collector-vm-1"));
+  });
+
+  test("the sqlserver receiver's own host.name mints no phantom Host", () => {
+    const result: EntityExtractionResult =
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: PROJECT,
+        attributes: { "host.name": "SQLPROD01" },
+        suppressHeuristicEntityTypes: [EntityType.Host],
+      });
+
+    expect(result.entities).toEqual([]);
+  });
+
+  test("only the listed types are dropped: a Kubernetes pod identity stays", () => {
+    const attributes: EntityAttributes = {
+      "host.name": "worker-3",
+      "k8s.pod.name": "postgres-0",
+      "k8s.namespace.name": "prod",
+      "k8s.cluster.name": "prod-eu",
+    };
+
+    const unsuppressed: Array<string> =
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: PROJECT,
+        attributes,
+      }).entities.map((entity: ExtractedEntity): string => {
+        return entity.entityKey;
+      });
+    const suppressed: Array<string> =
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: PROJECT,
+        attributes,
+        suppressHeuristicEntityTypes: [EntityType.Host],
+      }).entities.map((entity: ExtractedEntity): string => {
+        return entity.entityKey;
+      });
+
+    expect(suppressed).toEqual(unsuppressed);
+    expect(suppressed).toContain(
+      keyForKubernetesPod(PROJECT, {
+        clusterName: "prod-eu",
+        namespace: "prod",
+        podName: "postgres-0",
+      }),
+    );
+  });
+
+  test("a Host a producer declared through entity_refs is never suppressed", () => {
+    const result: EntityExtractionResult =
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: PROJECT,
+        attributes: collectorAttributes,
+        entityRefs: [{ type: "host", idKeys: ["host.name"] }],
+        suppressHeuristicEntityTypes: [EntityType.Host],
+      });
+
+    expect(result.entities).toEqual([
+      expect.objectContaining({
+        entityType: EntityType.Host,
+        entityKey: keyForHost(PROJECT, "collector-vm-1"),
+      }),
+    ]);
+  });
+
+  test("an empty or absent list changes nothing", () => {
+    const baseline: EntityExtractionResult =
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: PROJECT,
+        attributes: collectorAttributes,
+      });
+
+    expect(
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: PROJECT,
+        attributes: collectorAttributes,
+        suppressHeuristicEntityTypes: [],
+      }),
+    ).toEqual(baseline);
+    expect(
+      InventoryItem.extractEntitiesWithRetirements({
+        projectId: PROJECT,
+        attributes: collectorAttributes,
+        suppressHeuristicEntityTypes: undefined,
+      }),
+    ).toEqual(baseline);
+  });
+});

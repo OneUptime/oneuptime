@@ -136,18 +136,22 @@ function findIdentifierColumn(
 }
 
 /*
- * A Database's telemetry is every row carrying one of its entity keys: the
- * `database.server` key of each endpoint it owns (DatabaseServerEndpoint
- * rows — stamped on application CLIENT spans, `db.client.*` datapoints and
- * receiver batches that name it) and its member keys (the pods / containers
- * it runs as). Computed by getDatabaseServerSignalEntityKeys — the same
- * helper, over the same inputs, the Database page scopes its Logs / Traces
- * / Metrics tabs with — so the explorer facet and the page select the same
- * rows. Endpoints are read in the page's order (primary first, then oldest)
- * so the helper's per-row cap keeps the same keys on both sides.
+ * A Database's telemetry is every row carrying one of its entity keys: its
+ * row key (stamped on every batch that resolved to the row — by its
+ * `oneuptime.database.server.id` link or by an endpoint it owns — whether or
+ * not the row is the batch's primary entity), the `database.server` key of
+ * each endpoint it owns (DatabaseServerEndpoint rows — stamped on
+ * application CLIENT spans, `db.client.*` datapoints and receiver batches
+ * that name it) and its member keys (the pods / containers it runs as).
+ * Computed by getDatabaseServerSignalEntityKeys — the same helper, over the
+ * same inputs, the Database page scopes its Logs / Traces / Metrics tabs
+ * with — so the explorer facet and the page select the same rows. Endpoints
+ * are read in the page's order (primary first, then oldest) so the helper's
+ * per-row cap keeps the same keys on both sides.
  *
  * The `primaryEntityId` branch the scope always keeps covers the receiver
- * batches that are primary-keyed on the row itself.
+ * batches that are primary-keyed on the row itself, including those
+ * ingested before the row key existed.
  */
 async function resolveDatabaseServerEntityKeys(data: {
   projectId: ObjectID;
@@ -221,6 +225,7 @@ async function resolveDatabaseServerEntityKeys(data: {
 
     for (const key of getDatabaseServerSignalEntityKeys({
       projectId: projectIdString,
+      databaseServerId: rowId,
       endpoints: endpointsByRow.get(rowId) || [],
       dbSystem: typeof dbSystem === "string" ? dbSystem : undefined,
       memberEntityKeys: row["memberEntityKeys"],

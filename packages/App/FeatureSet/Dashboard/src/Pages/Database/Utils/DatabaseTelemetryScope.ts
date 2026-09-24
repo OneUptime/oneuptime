@@ -10,29 +10,36 @@ import {
 } from "Common/Types/DatabaseServer/DatabaseEndpoint";
 import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
 import ObjectID from "Common/Types/ObjectID";
-import { keyForDatabaseEndpoint } from "Common/Utils/Telemetry/EntityKey";
+import {
+  keyForDatabaseEndpoint,
+  keyForDatabaseServerRow,
+} from "Common/Utils/Telemetry/EntityKey";
 import { getDatabaseServerSignalEntityKeys } from "Common/Utils/Telemetry/DatabaseServerEntityKeys";
 
 /*
  * How a Database is scoped onto raw telemetry.
  *
- * A DatabaseServer row has no attribute of its own on telemetry: ingest
- * stamps an entity key per database ENDPOINT (every DB client span, every
- * `db.client.*` datapoint that names a server, every DB receiver batch) and
- * the Kubernetes pods / Docker / Podman containers a database runs as carry
- * their own member keys. The row's telemetry is therefore
- * `hasAny(entityKeys, <its endpoint keys ∪ its member keys>)`, and the one
- * isomorphic definition of that key set is
+ * Ingest ties telemetry to a DatabaseServer row through entity keys: the
+ * row's own key on every batch that resolved to it (by its
+ * `oneuptime.database.server.id` link or by an endpoint it owns — the
+ * Database Agent linked by id reports whatever address it was given, or
+ * none), a key per database ENDPOINT (every DB client span, every
+ * `db.client.*` datapoint that names a server, a receiver batch no row
+ * resolved yet), and the Kubernetes pods / Docker / Podman containers a
+ * database runs as carry their own member keys. The row's telemetry is
+ * therefore `hasAny(entityKeys, <its row key ∪ its endpoint keys ∪ its
+ * member keys>)`, and the one isomorphic definition of that key set is
  * Common/Utils/Telemetry/DatabaseServerEntityKeys. This module wraps it for
  * the Logs, Traces, Metrics and Overview tabs so none of them builds the
  * set — or decides what an empty set means — on its own.
  *
  * THE RULE THAT MATTERS: an empty key set is "unscoped", never "everything".
- * An empty `Includes` drops the predicate server side, so a database with no
- * parseable endpoint and no members would show the whole project's logs as
- * its own. getDatabaseServerEntityKeysQueryValue returns null for an empty
- * set and every page checks isDatabaseServerScoped before it mounts a viewer
- * or issues a query.
+ * An empty `Includes` drops the predicate server side, so a source with no
+ * id, no parseable endpoint and no members would show the whole project's
+ * logs as its own. getDatabaseServerEntityKeysQueryValue returns null for an
+ * empty set and every page checks isDatabaseServerScoped before it mounts a
+ * viewer or issues a query. (A loaded row always has its row key, so only a
+ * source without an id can come back empty.)
  *
  * Pure (no React, no API): the pages, the Overview query helper and the
  * plain-node tests share it.
@@ -41,6 +48,12 @@ import { getDatabaseServerSignalEntityKeys } from "Common/Utils/Telemetry/Databa
 /** The subset of a DatabaseServer row the scope depends on. */
 export interface DatabaseServerScopeSource {
   projectId: string | ObjectID | null | undefined;
+  /*
+   * The row's id. Its row key is how telemetry linked by
+   * `oneuptime.database.server.id` reaches the page, so every tab passes it;
+   * without it only endpoint- and member-keyed telemetry is in scope.
+   */
+  id?: string | ObjectID | null | undefined;
   /*
    * The row's stored endpoints (DatabaseServerEndpoint.endpoint values), as
    * strings or as the partially selected models themselves.
@@ -53,6 +66,7 @@ export interface DatabaseServerScopeSource {
   memberEntityKeys?: unknown;
 }
 
+export const DATABASE_SERVER_CHIP_KEY: string = "Database";
 export const DATABASE_ENDPOINT_CHIP_KEY: string = "Database Endpoint";
 export const DATABASE_MEMBER_CHIP_KEY: string = "Database Instance";
 
@@ -65,10 +79,17 @@ function projectIdText(
   return projectId.toString().trim();
 }
 
+function databaseServerIdText(id: DatabaseServerScopeSource["id"]): string {
+  if (!id) {
+    return "";
+  }
+  return id.toString().trim();
+}
+
 /**
- * Every entity key that belongs to the database: one per parseable stored
- * endpoint, then its member keys (most recent first). Deduped and capped by
- * the shared helper. Empty means "nothing to query".
+ * Every entity key that belongs to the database: its row key, one per
+ * parseable stored endpoint, then its member keys (most recent first).
+ * Deduped and capped by the shared helper. Empty means "nothing to query".
  */
 export function getDatabaseServerScopeKeys(
   source: DatabaseServerScopeSource | null | undefined,
@@ -78,6 +99,7 @@ export function getDatabaseServerScopeKeys(
   }
   return getDatabaseServerSignalEntityKeys({
     projectId: projectIdText(source.projectId),
+    databaseServerId: databaseServerIdText(source.id),
     endpoints: source.endpoints,
     dbSystem: source.dbSystem,
     memberEntityKeys: source.memberEntityKeys,
@@ -85,10 +107,11 @@ export function getDatabaseServerScopeKeys(
 }
 
 /**
- * Only the endpoint keys — what the database's CALLERS stamp. The Overview's
- * "Queries from applications" and engine-metrics sections read these: the
- * client spans and the receiver batches carry an endpoint key, never a
- * member key.
+ * The row key and the endpoint keys — what the database's CALLERS and its
+ * collectors stamp. The Overview's "Queries from applications" and
+ * engine-metrics sections read these: client spans carry an endpoint key,
+ * receiver batches the row key (linked or resolved) or an endpoint key,
+ * never a member key.
  */
 export function getDatabaseServerEndpointScopeKeys(
   source: DatabaseServerScopeSource | null | undefined,
@@ -98,6 +121,7 @@ export function getDatabaseServerEndpointScopeKeys(
   }
   return getDatabaseServerSignalEntityKeys({
     projectId: projectIdText(source.projectId),
+    databaseServerId: databaseServerIdText(source.id),
     endpoints: source.endpoints,
     dbSystem: source.dbSystem,
     memberEntityKeys: null,
@@ -143,12 +167,14 @@ export function getDatabaseServerEntityKeysQueryValue(
 }
 
 /**
- * How the viewers' locked chips name each key: an endpoint key reads
- * "Database Endpoint: db.prod:5432", a member key "Database Instance:
- * <database name> (3f9a1b2c)". The keys are hashes nobody can read, so the
- * chip carries what the key stands for. No search syntax is attached: the
- * endpoint key is stamped on span attributes and resource attributes alike,
- * so no single attribute search reproduces it.
+ * How the viewers' locked chips name each key: the row key reads
+ * "Database: <database name>", an endpoint key "Database Endpoint:
+ * db.prod:5432", a member key "Database Instance: <database name>
+ * (3f9a1b2c)". The keys are hashes nobody can read, so the chip carries what
+ * the key stands for. No search syntax is attached: the endpoint key is
+ * stamped on span attributes and resource attributes alike, so no single
+ * attribute search reproduces it, and the row key's attribute
+ * (`oneuptime.database.server.id`) is not a resource attribute.
  */
 export function buildDatabaseServerEntityKeyDisplays(
   source:
@@ -161,6 +187,18 @@ export function buildDatabaseServerEntityKeyDisplays(
 
   if (!source || !projectId) {
     return displays;
+  }
+
+  const name: string =
+    (typeof source.name === "string" && source.name.trim()) ||
+    getDatabaseSystemDisplayName(source.dbSystem);
+
+  const databaseServerId: string = databaseServerIdText(source.id);
+  if (databaseServerId) {
+    displays[keyForDatabaseServerRow(projectId, databaseServerId)] = {
+      displayKey: DATABASE_SERVER_CHIP_KEY,
+      displayValue: name,
+    };
   }
 
   const items: Array<string | { endpoint?: string | null | undefined }> =
@@ -186,10 +224,6 @@ export function buildDatabaseServerEntityKeyDisplays(
       displays[key] = display;
     }
   }
-
-  const name: string =
-    (typeof source.name === "string" && source.name.trim()) ||
-    getDatabaseSystemDisplayName(source.dbSystem);
 
   for (const key of getDatabaseServerMemberScopeKeys(source)) {
     if (!Object.prototype.hasOwnProperty.call(displays, key)) {

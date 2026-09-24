@@ -454,10 +454,12 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
           ]);
 
           /*
-           * The same pure gate autoDiscoverDatabaseServer ran: its endpoint
-           * keys this block's rows even when no row exists for it (a
-           * LOCAL-scope endpoint), and it names the rows. Logs carry no
-           * host metrics, so a database batch is always the database's.
+           * The same pure gate autoDiscoverDatabaseServer ran: it names the
+           * rows, and its endpoint keys them when no row claimed the batch
+           * by id — even when no row exists for it (a LOCAL-scope
+           * endpoint). The resolved row's key is added by the resolver.
+           * Logs carry no host metrics, so a database batch is always the
+           * database's.
            */
           const databaseServerResource: DatabaseServerResourceResolution | null =
             this.resolveDatabaseServerResource({
@@ -550,9 +552,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               rumApplicationId,
               databaseServerId,
               databaseServerName,
-              databaseServerEndpoint: databaseServerResource
-                ? databaseServerResource.endpoint
-                : null,
+              stampedDatabaseServerId: databaseServerId,
+              databaseServerEndpoint: this.getDatabaseEndpointForEntityKey({
+                resolution: databaseServerResource,
+                databaseServerId,
+              }),
               entityRefs: resourceEntityRefs,
             });
           const serviceName: string = serviceMetadata.serviceName;

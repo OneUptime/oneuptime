@@ -319,7 +319,9 @@ export function keyForContainer(
 /**
  * Key for a database SERVER endpoint — the `database.server` membership key
  * ingest appends to DB client spans, `db.client.*` datapoints and DB
- * receiver batches, and the Databases product queries by.
+ * receiver batches that did not resolve to a row by its id, and the
+ * Databases product queries by (next to the row's own key,
+ * `keyForDatabaseServerRow`).
  *
  * Pass an endpoint already canonicalized by
  * `Types/DatabaseServer/DatabaseEndpoint` (canonical host, default port
@@ -355,6 +357,44 @@ export function keyForDatabaseEndpoint(
     projectId,
     entityType: EntityType.DatabaseServer,
     identifyingAttributes,
+  });
+}
+
+/**
+ * Identity attribute of a DatabaseServer ROW key — the attribute ingest
+ * stamps on the same telemetry (see `TelemetryUtil.getAttributesForDatabaseServerIdAndName`).
+ */
+export const DATABASE_SERVER_ROW_IDENTITY_ATTRIBUTE: string =
+  "oneuptime.database.server.id";
+
+/**
+ * Key for one DatabaseServer ROW, the `database.server` membership key that
+ * ties telemetry to the database it was attributed to rather than to an
+ * address. Ingest appends it to every row of a batch that resolved to a
+ * DatabaseServer — as the primary entity, or only through the
+ * `oneuptime.database.server.id` stamp — and the database's own key set
+ * (`getDatabaseServerSignalEntityKeys`) always contains it.
+ *
+ * Endpoint keys alone cannot carry that: a Database Agent linked by
+ * `DATABASE_SERVER_ID` may report an address the row does not own (a
+ * cluster-local name without its cluster, a private IP, an address another
+ * database owns) or no address at all (memcached, elasticsearch), and its
+ * data would then land on no database's page — or on the wrong one.
+ *
+ * Distinct from `keyForDatabaseEndpoint` (same entity type, different
+ * identifying attribute), so a row key never equals an endpoint key. Pass
+ * the row's id; it is canonicalized (lowercased) like every identity value.
+ */
+export function keyForDatabaseServerRow(
+  projectId: string,
+  databaseServerId: string,
+): string {
+  return computeEntityKey({
+    projectId,
+    entityType: EntityType.DatabaseServer,
+    identifyingAttributes: {
+      [DATABASE_SERVER_ROW_IDENTITY_ATTRIBUTE]: databaseServerId,
+    },
   });
 }
 

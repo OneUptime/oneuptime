@@ -1,4 +1,4 @@
-import { keyForDatabaseEndpoint } from "./EntityKey";
+import { keyForDatabaseEndpoint, keyForDatabaseServerRow } from "./EntityKey";
 import {
   DatabaseEndpoint,
   parseDatabaseEndpointString,
@@ -10,6 +10,10 @@ import {
  * Metrics / Overview), the explorer facet and anything else that scopes by
  * database. A row's keys are:
  *
+ *   - its ROW key (keyForDatabaseServerRow): ingest stamps it on every batch
+ *     that resolved to this row — by its `oneuptime.database.server.id`
+ *     link or by an endpoint it owns — so linked telemetry is this
+ *     database's whatever address (or none) the batch reported;
  *   - one `database.server` key per stored endpoint (DatabaseServerEndpoint
  *     rows): exactly the endpoints Settings shows, no derived twins, so what
  *     the page queries is what the user can see and edit;
@@ -182,12 +186,30 @@ export function mergeDatabaseServerMemberKeys(
   return merged;
 }
 
+/*
+ * A row id as text: a string or anything with a string form (an ObjectID),
+ * trimmed; "" when there is none.
+ */
+function databaseServerIdText(value: unknown): string {
+  if (typeof value === "string") {
+    return value.trim();
+  }
+  if (value && typeof value === "object") {
+    const text: unknown = (value as { toString: () => unknown }).toString();
+    return typeof text === "string" && text !== "[object Object]"
+      ? text.trim()
+      : "";
+  }
+  return "";
+}
+
 /**
- * Every entity key that belongs to a DatabaseServer: the `database.server`
- * key of each parseable stored endpoint (engine default port applied, as
- * ingest does), then its member keys (valid 16-hex keys only, most recent
- * first). Deduped, stable, capped at 200 with endpoint keys first so a large
- * member set never evicts an endpoint.
+ * Every entity key that belongs to a DatabaseServer: its row key (when the
+ * row's id is given), then the `database.server` key of each parseable
+ * stored endpoint (engine default port applied, as ingest does), then its
+ * member keys (valid 16-hex keys only, most recent first). Deduped, stable,
+ * capped at 200 with the row key first and endpoint keys next, so a large
+ * member set never evicts either.
  *
  * An empty result means "nothing to query" — callers must NEVER turn it into
  * an empty `Includes` (that drops the predicate and scopes to the whole
@@ -195,6 +217,13 @@ export function mergeDatabaseServerMemberKeys(
  */
 export function getDatabaseServerSignalEntityKeys(input: {
   projectId: string;
+  /*
+   * The row's id. Its row key is what ingest stamps on telemetry linked to
+   * the row by `oneuptime.database.server.id`; leave it out only for a key
+   * set that must not include linked telemetry (the member-only runtime
+   * scope).
+   */
+  databaseServerId?: string | { toString: () => string } | null | undefined;
   endpoints:
     | Array<string | { endpoint?: string | null | undefined }>
     | null
@@ -216,6 +245,11 @@ export function getDatabaseServerSignalEntityKeys(input: {
       keys.push(key);
     }
   };
+
+  const databaseServerId: string = databaseServerIdText(input.databaseServerId);
+  if (databaseServerId) {
+    push(keyForDatabaseServerRow(projectId, databaseServerId));
+  }
 
   for (const item of Array.isArray(input.endpoints) ? input.endpoints : []) {
     const value: unknown =

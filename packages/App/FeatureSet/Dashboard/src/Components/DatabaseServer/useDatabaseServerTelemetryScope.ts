@@ -15,9 +15,9 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { useEffect, useMemo, useState } from "react";
 
 /*
- * Loads what a Database's telemetry tabs scope by — the row (engine, member
- * keys) and its stored endpoints — and derives the entity-key set and the
- * locked-chip names from them through DatabaseTelemetryScope. The Logs,
+ * Loads what a Database's telemetry tabs scope by — the row (its id, engine,
+ * member keys) and its stored endpoints — and derives the entity-key set and
+ * the locked-chip names from them through DatabaseTelemetryScope. The Logs,
  * Traces and Metrics tabs all read this one hook so none of them can build
  * the scope differently, and each checks `keys.length` before it mounts a
  * viewer (an empty set is "unscoped", never "the whole project").
@@ -122,12 +122,17 @@ const useDatabaseServerTelemetryScope: (
       return {
         projectId:
           databaseServer?.projectId || ProjectUtil.getCurrentProjectId(),
+        /*
+         * The row key: telemetry linked by oneuptime.database.server.id is
+         * this database's whatever address the agent reported.
+         */
+        id: modelId,
         endpoints: endpoints,
         dbSystem: databaseServer?.dbSystem,
         memberEntityKeys: databaseServer?.memberEntityKeys,
         name: databaseServer?.name,
       };
-    }, [databaseServer, endpoints]);
+    }, [databaseServer, endpoints, modelId.toString()]);
 
   /*
    * Memoised on the loaded row: the viewers key their query and chip memos

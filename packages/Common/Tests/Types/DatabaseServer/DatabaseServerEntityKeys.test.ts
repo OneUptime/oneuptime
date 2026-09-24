@@ -7,8 +7,10 @@ import {
   mergeDatabaseServerMemberKeys,
 } from "../../../Utils/Telemetry/DatabaseServerEntityKeys";
 import {
+  DATABASE_SERVER_ROW_IDENTITY_ATTRIBUTE,
   keyForContainer,
   keyForDatabaseEndpoint,
+  keyForDatabaseServerRow,
   keyForKubernetesDeployment,
   keyForKubernetesPod,
 } from "../../../Utils/Telemetry/EntityKey";
@@ -773,5 +775,178 @@ describe("getDatabaseServerSignalEntityKeys", () => {
       getDatabaseServerSignalEntityKeys(input),
     );
     expect(getDatabaseServerSignalEntityKeys(input).slice(2)).toEqual([M1, M2]);
+  });
+});
+
+/*
+ * The ROW key. Telemetry linked to a database by
+ * `oneuptime.database.server.id` must reach that database's pages whatever
+ * address it reported — a cluster-local name without its cluster, a private
+ * IP, an address another row owns, or none at all. Endpoint keys cannot
+ * carry that; the row key, stamped by ingest and always part of the row's
+ * key set, does.
+ */
+describe("keyForDatabaseServerRow", () => {
+  const ROW_ID: string = "66666666-6666-4666-8666-666666666666";
+
+  test("hashes oneuptime.database.server.id under the database.server type", () => {
+    expect(DATABASE_SERVER_ROW_IDENTITY_ATTRIBUTE).toBe(
+      "oneuptime.database.server.id",
+    );
+    expect(keyForDatabaseServerRow(PROJECT, ROW_ID)).toBe(
+      expectedKey(PROJECT, EntityType.DatabaseServer, {
+        "oneuptime.database.server.id": ROW_ID,
+      }),
+    );
+  });
+
+  test("an upper-case or padded id is the same row", () => {
+    expect(keyForDatabaseServerRow(PROJECT, ` ${ROW_ID.toUpperCase()} `)).toBe(
+      keyForDatabaseServerRow(PROJECT, ROW_ID),
+    );
+  });
+
+  test("never equals an endpoint key, another row's key or another project's", () => {
+    const rowKey: string = keyForDatabaseServerRow(PROJECT, ROW_ID);
+    expect(rowKey).not.toBe(
+      keyForDatabaseEndpoint(PROJECT, { host: ROW_ID, port: null }),
+    );
+    expect(rowKey).not.toBe(
+      keyForDatabaseServerRow(PROJECT, "77777777-7777-4777-8777-777777777777"),
+    );
+    expect(rowKey).not.toBe(keyForDatabaseServerRow("another-project", ROW_ID));
+    expect(rowKey).toMatch(/^[0-9a-f]{16}$/);
+  });
+});
+
+describe("getDatabaseServerSignalEntityKeys — the row key", () => {
+  const ROW_ID: string = "66666666-6666-4666-8666-666666666666";
+  const ROW_KEY: string = keyForDatabaseServerRow(PROJECT, ROW_ID);
+  const M1: string = hexKey(0x1);
+
+  test("comes first, before the endpoint and member keys", () => {
+    expect(
+      getDatabaseServerSignalEntityKeys({
+        projectId: PROJECT,
+        databaseServerId: ROW_ID,
+        endpoints: ["db.prod:5432"],
+        dbSystem: "postgresql",
+        memberEntityKeys: { [M1]: isoDaysAgo(1) },
+      }),
+    ).toEqual([
+      ROW_KEY,
+      keyForDatabaseEndpoint(PROJECT, { host: "db.prod", port: 5432 }),
+      M1,
+    ]);
+  });
+
+  test("an ObjectID-like id (anything with a string form) keys like its string", () => {
+    expect(
+      getDatabaseServerSignalEntityKeys({
+        projectId: PROJECT,
+        databaseServerId: {
+          toString: (): string => {
+            return ROW_ID;
+          },
+        },
+        endpoints: null,
+        memberEntityKeys: null,
+      }),
+    ).toEqual([ROW_KEY]);
+  });
+
+  test("a row with no endpoint and no member is still scoped — by its row key", () => {
+    // memcached / elasticsearch linked by id alone report no address at all.
+    expect(
+      getDatabaseServerSignalEntityKeys({
+        projectId: PROJECT,
+        databaseServerId: ROW_ID,
+        endpoints: [],
+        dbSystem: "memcached",
+        memberEntityKeys: null,
+      }),
+    ).toEqual([ROW_KEY]);
+  });
+
+  test("a blank or missing id adds nothing (the member-only scope passes none)", () => {
+    for (const blank of ["", "   ", null, undefined]) {
+      expect(
+        getDatabaseServerSignalEntityKeys({
+          projectId: PROJECT,
+          databaseServerId: blank,
+          endpoints: null,
+          memberEntityKeys: { [M1]: isoDaysAgo(1) },
+        }),
+      ).toEqual([M1]);
+    }
+    expect(
+      getDatabaseServerSignalEntityKeys({
+        projectId: PROJECT,
+        databaseServerId: {} as unknown as string,
+        endpoints: null,
+        memberEntityKeys: null,
+      }),
+    ).toEqual([]);
+  });
+
+  test("without a project there is still nothing, id or not", () => {
+    expect(
+      getDatabaseServerSignalEntityKeys({
+        projectId: "",
+        databaseServerId: ROW_ID,
+        endpoints: ["db.prod:5432"],
+        memberEntityKeys: null,
+      }),
+    ).toEqual([]);
+  });
+
+  test("never evicted by the 200-key cap, and the endpoints stay ahead of the members", () => {
+    const members: Record<string, string> = {};
+    for (let index: number = 0; index < 300; index++) {
+      members[hexKey(0x5000 + index)] = isoDaysAgo(1);
+    }
+    const keys: Array<string> = getDatabaseServerSignalEntityKeys({
+      projectId: PROJECT,
+      databaseServerId: ROW_ID,
+      endpoints: ["db.prod:5432"],
+      dbSystem: "postgresql",
+      memberEntityKeys: members,
+    });
+    expect(keys.length).toBe(MAX_DATABASE_SERVER_ENTITY_KEYS);
+    expect(keys[0]).toBe(ROW_KEY);
+    expect(keys[1]).toBe(
+      keyForDatabaseEndpoint(PROJECT, { host: "db.prod", port: 5432 }),
+    );
+  });
+
+  test("regression: a linked agent with the cluster-local address the Documentation tab prefills lands on a multi-cluster workload row's page", () => {
+    // The row the worker made in a TWO-cluster project: qualified aliases only.
+    const pageKeys: Array<string> = getDatabaseServerSignalEntityKeys({
+      projectId: PROJECT,
+      databaseServerId: ROW_ID,
+      endpoints: buildKubernetesDatabaseAliases({
+        system: "postgresql",
+        namespace: "prod",
+        clusterName: "cluster-a",
+        serviceNames: ["postgres"],
+        ports: [],
+        includeUnqualified: false,
+      }),
+      dbSystem: "postgresql",
+      memberEntityKeys: null,
+    });
+
+    /*
+     * The agent reports server.address=postgres.prod.svc.cluster.local with
+     * no k8s.cluster.name: a LOCAL endpoint whose key the row never owns.
+     */
+    const agentEndpointKey: string = keyForDatabaseEndpoint(PROJECT, {
+      host: "postgres.prod.svc.cluster.local",
+      port: 5432,
+    });
+    expect(pageKeys).not.toContain(agentEndpointKey);
+
+    // The row key ingest stamps for the linked id is what the page matches.
+    expect(pageKeys).toContain(keyForDatabaseServerRow(PROJECT, ROW_ID));
   });
 });

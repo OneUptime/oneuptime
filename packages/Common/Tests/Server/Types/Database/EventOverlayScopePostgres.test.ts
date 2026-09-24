@@ -99,11 +99,6 @@ const NATURAL_IDENTITIES: Array<NaturalIdentityDefinition> = [
     column: "name",
   },
   {
-    attribute: "resource.oneuptime.database.server.name",
-    relation: "databaseServers",
-    column: "name",
-  },
-  {
     attribute: "resource.host.name",
     relation: "hosts",
     column: "hostIdentifier",

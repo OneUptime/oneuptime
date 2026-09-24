@@ -1,4 +1,5 @@
 import {
+  DATABASE_INSTANCE_ATTRIBUTES,
   DatabaseCallerContext,
   DatabaseEndpoint,
   DatabaseEndpointScope,
@@ -56,12 +57,14 @@ export const DATABASE_CLIENT_METRIC_PREFIX: string = "db.client.";
 
 /*
  * Every attribute resolveDatabaseCallTarget can read, in one list, so the
- * memo key covers exactly the inputs that decide the answer.
+ * memo key covers exactly the inputs that decide the answer — including the
+ * SQL Server named instance (two instances on one host are two servers).
  */
 const DATABASE_CALL_ATTRIBUTES: ReadonlyArray<string> = [
   ...DATABASE_SYSTEM_ATTRIBUTES,
   ...DATABASE_ADDRESS_ATTRIBUTES,
   ...DATABASE_PORT_ATTRIBUTES,
+  ...DATABASE_INSTANCE_ATTRIBUTES,
 ];
 
 /*

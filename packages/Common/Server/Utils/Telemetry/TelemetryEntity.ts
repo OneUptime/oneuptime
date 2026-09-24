@@ -219,11 +219,18 @@ export default class InventoryItem {
    * entries is usable and extraction falls back to heuristics. We never infer a
    * retirement across that boundary; in particular, an explicitly referenced
    * Host must remain authoritative on a Kubernetes resource.
+   *
+   * `suppressHeuristicEntityTypes` drops those types from the HEURISTIC
+   * resolvers only — for a resource the caller knows the heuristic would
+   * misread (a database receiver's batch carries the host.name of the
+   * machine the collector runs on, which is not what it describes). A type a
+   * producer declared through `entity_refs` is never suppressed.
    */
   public static extractEntitiesWithRetirements(data: {
     projectId: string;
     attributes: EntityAttributes;
     entityRefs?: Array<ResourceEntityRef> | undefined;
+    suppressHeuristicEntityTypes?: ReadonlyArray<EntityType> | undefined;
   }): EntityExtractionResult {
     let out: Array<ExtractedEntity> = [];
     const hasAuthoritativeEntityRefs: boolean = Boolean(
@@ -293,9 +300,15 @@ export default class InventoryItem {
   private static entitiesFromResolvers(data: {
     projectId: string;
     attributes: EntityAttributes;
+    suppressHeuristicEntityTypes?: ReadonlyArray<EntityType> | undefined;
   }): Array<ExtractedEntity> {
     const out: Array<ExtractedEntity> = [];
     const seen: Set<string> = new Set<string>();
+    const suppressed: ReadonlyArray<EntityType> = Array.isArray(
+      data.suppressHeuristicEntityTypes,
+    )
+      ? data.suppressHeuristicEntityTypes
+      : [];
 
     for (const resolve of this.resolvers) {
       const identity: {
@@ -303,7 +316,7 @@ export default class InventoryItem {
         id: Dictionary<string>;
       } | null = resolve(data.attributes);
 
-      if (!identity) {
+      if (!identity || suppressed.includes(identity.entityType)) {
         continue;
       }
 

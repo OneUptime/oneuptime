@@ -39,6 +39,25 @@ function attributeAliases(...keys: Array<string>): Array<string> {
   });
 }
 
+/*
+ * A database is matched by id only. Ingest stamps both
+ * `oneuptime.database.server.id` and `oneuptime.database.server.name` on a
+ * database's own telemetry, but the name is a display name derived from the
+ * batch ("PostgreSQL db.prod:5432", or "Database" for a batch linked by id
+ * alone) — never read from the row, so it differs from DatabaseServer.name
+ * for a database created or renamed by hand or detected as a workload, and
+ * DatabaseServer.name is not unique. See the handling after the mapping
+ * loop in buildQueryScope.
+ */
+const DATABASE_SERVER_ID_KEYS: Array<string> = [
+  "databaseServerId",
+  "databaseServerIds",
+  ...attributeAliases("oneuptime.database.server.id"),
+];
+const DATABASE_SERVER_NAME_KEYS: Array<string> = attributeAliases(
+  "oneuptime.database.server.name",
+);
+
 const RESOURCE_MAPPINGS: Array<ResourceMapping> = [
   { relation: "monitors", ids: ["monitorId", "monitorIds"] },
   {
@@ -131,19 +150,12 @@ const RESOURCE_MAPPINGS: Array<ResourceMapping> = [
     nameColumn: "name",
   },
   /*
-   * Ingest stamps both attributes on DB receiver batches (the Database
-   * Agent / an OTel Collector DB receiver). The stamped name is the row's
-   * display name, e.g. "PostgreSQL db.prod:5432".
+   * Ids only: the stamped `oneuptime.database.server.name` is not the row's
+   * name (see DATABASE_SERVER_ID_KEYS).
    */
   {
     relation: "databaseServers",
-    ids: [
-      "databaseServerId",
-      "databaseServerIds",
-      ...attributeAliases("oneuptime.database.server.id"),
-    ],
-    names: attributeAliases("oneuptime.database.server.name"),
-    nameColumn: "name",
+    ids: DATABASE_SERVER_ID_KEYS,
   },
   {
     relation: "services",
@@ -494,6 +506,41 @@ function buildQueryScope(config: MetricQueryConfigData): EventOverlayScope {
         [relation, mapping.nameColumn!],
       );
     }
+  }
+
+  /*
+   * `oneuptime.database.server.name` never scopes by itself (see
+   * DATABASE_SERVER_ID_KEYS). Next to the database's id it adds nothing —
+   * the id already selects the database's events, and requiring the name to
+   * match too would drop them whenever the display name differs. Alone it
+   * is refused: no incident or alert overlays, rather than another
+   * database's (a same-named row, one literally named "Database") or, if
+   * the key were simply ignored, every incident in the project.
+   */
+  const primaryEntityTypes: Array<string> | null =
+    Object.prototype.hasOwnProperty.call(attributes, "primaryEntityType")
+      ? exactValues(attributes["primaryEntityType"])
+      : null;
+  const hasDatabaseServerId: boolean =
+    hasAny(attributes, DATABASE_SERVER_ID_KEYS) ||
+    (Object.prototype.hasOwnProperty.call(attributes, "primaryEntityId") &&
+      primaryEntityTypes?.length === 1 &&
+      primaryEntityTypes[0] === ServiceType.DatabaseServer);
+  for (const key of DATABASE_SERVER_NAME_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(attributes, key)) {
+      continue;
+    }
+    isScoped = true;
+    consumedKeys.add(key);
+    if (hasDatabaseServerId) {
+      continue;
+    }
+    incidentQueries = [];
+    alertQueries = [];
+    const values: Array<string> | null = exactValues(attributes[key]);
+    changeEventQueries = values
+      ? addPredicate(changeEventQueries, ["attributes", key], values)
+      : [];
   }
 
   /*
