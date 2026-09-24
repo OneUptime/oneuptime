@@ -51,6 +51,13 @@ export interface MaintainedResourceKeys {
    */
   iotFleets: ResourceKeySet;
   services: ResourceKeySet;
+  /*
+   * Databases are the reverse of the name-only clusters above: a series
+   * identifies one only by the `oneuptime.database.server.id` stamp (see
+   * DatabaseServerIdLabelKeys), so only the id set is ever matched; the
+   * name set exists for shape parity and is never filled.
+   */
+  databaseServers: ResourceKeySet;
 }
 
 /*
@@ -72,7 +79,7 @@ export interface MaintainedResourceKeys {
  * other 90 hosts keep alerting. It covers every resource type a
  * maintenance event can attach to AND a series can identify: Host,
  * DockerHost, KubernetesCluster, ProxmoxCluster, VMwareVCenter,
- * CephCluster, and Service.
+ * CephCluster, DatabaseServer, and Service.
  */
 export default class MonitorMaintenanceSuppression {
   /*
@@ -163,7 +170,11 @@ export default class MonitorMaintenanceSuppression {
         ) ||
         this.intersects(refs.iotFleetNames, input.maintained.iotFleets.names) ||
         this.intersects(refs.serviceIds, input.maintained.services.ids) ||
-        this.intersects(refs.serviceNames, input.maintained.services.names);
+        this.intersects(refs.serviceNames, input.maintained.services.names) ||
+        this.intersects(
+          refs.databaseServerIds,
+          input.maintained.databaseServers.ids,
+        );
 
       if (isUnderMaintenance) {
         suppressed.add(series.fingerprint);
@@ -205,16 +216,17 @@ export default class MonitorMaintenanceSuppression {
       maintained.iotFleets.ids.size > 0 ||
       maintained.iotFleets.names.size > 0 ||
       maintained.services.ids.size > 0 ||
-      maintained.services.names.size > 0
+      maintained.services.names.size > 0 ||
+      maintained.databaseServers.ids.size > 0
     );
   }
 
   /*
    * Collect the ids + identifiers of every Host / DockerHost /
    * PodmanHost / KubernetesCluster / ProxmoxCluster / VMwareVCenter /
-   * CephCluster / DockerSwarmCluster / IoTFleet / Service attached to an ongoing
-   * maintenance event in this project. Monitors attached
-   * to the event are intentionally not collected here — those are
+   * CephCluster / DockerSwarmCluster / IoTFleet / Service / DatabaseServer
+   * attached to an ongoing maintenance event in this project. Monitors
+   * attached to the event are intentionally not collected here — those are
    * already handled upstream by the whole-monitor disable flag, which
    * short-circuits evaluation before we ever reach per-series creation.
    */
@@ -235,6 +247,7 @@ export default class MonitorMaintenanceSuppression {
       },
       iotFleets: { ids: new Set<string>(), names: new Set<string>() },
       services: { ids: new Set<string>(), names: new Set<string>() },
+      databaseServers: { ids: new Set<string>(), names: new Set<string>() },
     };
 
     const ongoingEvents: Array<ScheduledMaintenance> =
@@ -257,6 +270,7 @@ export default class MonitorMaintenanceSuppression {
           dockerSwarmClusters: { _id: true, name: true },
           iotFleets: { _id: true, name: true },
           services: { _id: true, name: true },
+          databaseServers: { _id: true },
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
@@ -319,6 +333,10 @@ export default class MonitorMaintenanceSuppression {
       }
       for (const service of event.services || []) {
         this.addKey(maintained.services, service._id, service.name);
+      }
+      for (const databaseServer of event.databaseServers || []) {
+        // Id only — the display name is not an identity (see the interface).
+        this.addKey(maintained.databaseServers, databaseServer._id, undefined);
       }
     }
 

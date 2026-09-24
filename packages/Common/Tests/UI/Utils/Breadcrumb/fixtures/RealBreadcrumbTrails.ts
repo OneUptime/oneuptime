@@ -472,6 +472,71 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
     titles: ["Project", "Dashboards", "Settings", "Owner Rules"],
   },
   {
+    getter: "getDatabaseBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/databases",
+    titles: ["Project", "Databases"],
+  },
+  {
+    getter: "getDatabaseBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/databases/archived",
+    titles: ["Project", "Databases", "Archived"],
+  },
+  {
+    getter: "getDatabaseBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/databases/documentation",
+    titles: ["Project", "Databases", "Documentation"],
+  },
+  {
+    getter: "getDatabaseBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/databases/:id",
+    titles: ["Project", "Databases", "View Database"],
+  },
+  {
+    getter: "getDatabaseBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/databases/:id/delete",
+    titles: ["Project", "Databases", "View Database", "Delete Database"],
+  },
+  {
+    getter: "getDatabaseBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/databases/:id/documentation",
+    titles: ["Project", "Databases", "View Database", "Documentation"],
+  },
+  {
+    getter: "getDatabaseBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/databases/:id/endpoints",
+    titles: ["Project", "Databases", "View Database", "Endpoints"],
+  },
+  {
+    getter: "getDatabaseBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/databases/:id/feed",
+    titles: ["Project", "Databases", "View Database", "Feed"],
+  },
+  {
+    getter: "getDatabaseBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/databases/:id/logs",
+    titles: ["Project", "Databases", "View Database", "Logs"],
+  },
+  {
+    getter: "getDatabaseBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/databases/:id/metrics",
+    titles: ["Project", "Databases", "View Database", "Metrics"],
+  },
+  {
+    getter: "getDatabaseBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/databases/:id/owners",
+    titles: ["Project", "Databases", "View Database", "Owners"],
+  },
+  {
+    getter: "getDatabaseBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/databases/:id/settings",
+    titles: ["Project", "Databases", "View Database", "Settings"],
+  },
+  {
+    getter: "getDatabaseBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/databases/:id/traces",
+    titles: ["Project", "Databases", "View Database", "Traces"],
+  },
+  {
     getter: "getDockerBreadcrumbs",
     pagePattern: "/dashboard/:projectId/docker",
     titles: ["Project", "Docker", "Hosts"],

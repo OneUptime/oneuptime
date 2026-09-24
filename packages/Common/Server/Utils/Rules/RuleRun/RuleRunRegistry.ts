@@ -28,6 +28,11 @@ import DashboardLabelRule from "../../../../Models/DatabaseModels/DashboardLabel
 import DashboardOwnerRule from "../../../../Models/DatabaseModels/DashboardOwnerRule";
 import DashboardOwnerTeam from "../../../../Models/DatabaseModels/DashboardOwnerTeam";
 import DashboardOwnerUser from "../../../../Models/DatabaseModels/DashboardOwnerUser";
+import DatabaseServer from "../../../../Models/DatabaseModels/DatabaseServer";
+import DatabaseServerLabelRule from "../../../../Models/DatabaseModels/DatabaseServerLabelRule";
+import DatabaseServerOwnerRule from "../../../../Models/DatabaseModels/DatabaseServerOwnerRule";
+import DatabaseServerOwnerTeam from "../../../../Models/DatabaseModels/DatabaseServerOwnerTeam";
+import DatabaseServerOwnerUser from "../../../../Models/DatabaseModels/DatabaseServerOwnerUser";
 import DockerHost from "../../../../Models/DatabaseModels/DockerHost";
 import DockerHostLabelRule from "../../../../Models/DatabaseModels/DockerHostLabelRule";
 import DockerHostOwnerRule from "../../../../Models/DatabaseModels/DockerHostOwnerRule";
@@ -176,6 +181,11 @@ import DashboardLabelRuleService from "../../../Services/DashboardLabelRuleServi
 import DashboardOwnerRuleEngineService from "../../../Services/DashboardOwnerRuleEngineService";
 import DashboardOwnerRuleService from "../../../Services/DashboardOwnerRuleService";
 import DashboardService from "../../../Services/DashboardService";
+import DatabaseServerLabelRuleEngineService from "../../../Services/DatabaseServerLabelRuleEngineService";
+import DatabaseServerLabelRuleService from "../../../Services/DatabaseServerLabelRuleService";
+import DatabaseServerOwnerRuleEngineService from "../../../Services/DatabaseServerOwnerRuleEngineService";
+import DatabaseServerOwnerRuleService from "../../../Services/DatabaseServerOwnerRuleService";
+import DatabaseServerService from "../../../Services/DatabaseServerService";
 import DockerHostLabelRuleEngineService from "../../../Services/DockerHostLabelRuleEngineService";
 import DockerHostLabelRuleService from "../../../Services/DockerHostLabelRuleService";
 import DockerHostOwnerRuleEngineService from "../../../Services/DockerHostOwnerRuleEngineService";
@@ -439,6 +449,21 @@ const RULE_RUN_DEFINITIONS: Record<ResourceRuleRunType, RuleRunDefinition> = {
     resourceService: DashboardService,
     engine: DashboardOwnerRuleEngineService,
     ownerModelTypes: [DashboardOwnerUser, DashboardOwnerTeam],
+  }),
+  [RuleRunType.DatabaseServerLabelRule]: defineRuleRun({
+    ruleModelType: DatabaseServerLabelRule,
+    resourceModelType: DatabaseServer,
+    ruleService: DatabaseServerLabelRuleService,
+    resourceService: DatabaseServerService,
+    engine: DatabaseServerLabelRuleEngineService,
+  }),
+  [RuleRunType.DatabaseServerOwnerRule]: defineRuleRun({
+    ruleModelType: DatabaseServerOwnerRule,
+    resourceModelType: DatabaseServer,
+    ruleService: DatabaseServerOwnerRuleService,
+    resourceService: DatabaseServerService,
+    engine: DatabaseServerOwnerRuleEngineService,
+    ownerModelTypes: [DatabaseServerOwnerUser, DatabaseServerOwnerTeam],
   }),
   [RuleRunType.DockerHostLabelRule]: defineRuleRun({
     ruleModelType: DockerHostLabelRule,

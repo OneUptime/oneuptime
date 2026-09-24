@@ -78,6 +78,8 @@
       "topologyDescription": "サービスとインフラストラクチャがどのようにつながっているかを確認します。",
       "servicesTitle": "サービス",
       "servicesDescription": "実行中のすべてのサービスをカタログ化。",
+      "databasesTitle": "データベース",
+      "databasesDescription": "アプリケーションがクエリするすべてのデータベースとエンジンメトリクス。",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Kubernetesクラスターを監視。",
       "dockerTitle": "Docker",

@@ -34,9 +34,11 @@ jest.mock(
 import AffectedResourcesDisplay, {
   getAffectedResourcesGridClassName,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesDisplay";
+import AffectedResourcesCell from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesCell";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Service from "../../../Models/DatabaseModels/Service";
 import Host from "../../../Models/DatabaseModels/Host";
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import Color from "../../../Types/Color";
 
 const LONG_MONITOR_NAME: string =
@@ -238,5 +240,103 @@ describe("AffectedResourcesDisplay item names", () => {
     expect(label).toHaveClass("truncate");
     expect(label.parentElement).toHaveClass("min-w-0");
     expect(count).toHaveClass("flex-shrink-0");
+  });
+});
+
+describe("AffectedResourcesDisplay databases", () => {
+  const DATABASE_ID: string = "dddddddd-dddd-4ddd-8ddd-ddddddddddd1";
+
+  const buildDatabase: (id: string, name: string) => DatabaseServer = (
+    id: string,
+    name: string,
+  ): DatabaseServer => {
+    const database: DatabaseServer = new DatabaseServer();
+    database._id = id;
+    database.name = name;
+    return database;
+  };
+
+  test("attached databases get their own card, counted with the rest", () => {
+    render(
+      <AffectedResourcesDisplay
+        monitors={MONITORS}
+        databaseServers={[
+          buildDatabase(DATABASE_ID, "PostgreSQL db.prod:5432"),
+          buildDatabase(
+            "dddddddd-dddd-4ddd-8ddd-ddddddddddd2",
+            "Redis cache.prod:6379",
+          ),
+        ]}
+      />,
+    );
+
+    const grid: HTMLElement = screen.getByTestId("affected-resources-grid");
+    expect(within(grid).getByText("Databases")).toBeInTheDocument();
+    expect(
+      within(grid).getByText("PostgreSQL db.prod:5432"),
+    ).toBeInTheDocument();
+    expect(within(grid).getByText("Redis cache.prod:6379")).toBeInTheDocument();
+    expect(screen.getByText("4 resources")).toBeInTheDocument();
+    expect(screen.getByText("across 2 categories")).toBeInTheDocument();
+  });
+
+  test("a database links to its own page", () => {
+    render(
+      <AffectedResourcesDisplay
+        databaseServers={[
+          buildDatabase(DATABASE_ID, "PostgreSQL db.prod:5432"),
+        ]}
+      />,
+    );
+
+    const link: HTMLElement | null = screen
+      .getByText("PostgreSQL db.prod:5432")
+      .closest("a");
+    expect(link).not.toBeNull();
+    expect(link!.getAttribute("href")).toContain(`/databases/${DATABASE_ID}`);
+  });
+
+  test("databases alone are not the empty state", () => {
+    render(
+      <AffectedResourcesDisplay
+        databaseServers={[buildDatabase(DATABASE_ID, "MySQL orders:3306")]}
+        emptyMessage="Nothing hit."
+      />,
+    );
+
+    expect(screen.queryByText("Nothing hit.")).toBeNull();
+    expect(screen.getByText("1 resource")).toBeInTheDocument();
+    expect(screen.getByText("across 1 category")).toBeInTheDocument();
+  });
+
+  test("the table cell lists a database beside the other resources", () => {
+    render(
+      <AffectedResourcesCell
+        services={SERVICES}
+        databaseServers={[
+          buildDatabase(DATABASE_ID, "PostgreSQL db.prod:5432"),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("checkout-api")).toBeInTheDocument();
+    const database: HTMLElement = screen.getByText("PostgreSQL db.prod:5432");
+    expect(database.closest("a")!.getAttribute("href")).toContain(
+      `/databases/${DATABASE_ID}`,
+    );
+  });
+
+  test("hideDatabaseServers drops the card", () => {
+    render(
+      <AffectedResourcesDisplay
+        monitors={MONITORS}
+        databaseServers={[buildDatabase(DATABASE_ID, "MySQL orders:3306")]}
+        hideDatabaseServers={true}
+      />,
+    );
+
+    expect(screen.queryByText("Databases")).toBeNull();
+    expect(screen.queryByText("MySQL orders:3306")).toBeNull();
+    expect(screen.getByText("2 resources")).toBeInTheDocument();
   });
 });

@@ -55,22 +55,24 @@ function formatCount(n: number): string {
 export function describeDatabaseSourceBreakdown(
   bySource: Record<string, number>,
 ): string {
-  const entries: Array<{ source: DatabaseServerDiscoverySource; count: number }> =
-    DATABASE_SERVER_DISCOVERY_SOURCES.map(
-      (
-        source: DatabaseServerDiscoverySource,
-      ): { source: DatabaseServerDiscoverySource; count: number } => {
-        const count: number = Number(bySource?.[source]) || 0;
-        return { source, count };
-      },
-    ).filter(
-      (entry: {
-        source: DatabaseServerDiscoverySource;
-        count: number;
-      }): boolean => {
-        return entry.count > 0;
-      },
-    );
+  const entries: Array<{
+    source: DatabaseServerDiscoverySource;
+    count: number;
+  }> = DATABASE_SERVER_DISCOVERY_SOURCES.map(
+    (
+      source: DatabaseServerDiscoverySource,
+    ): { source: DatabaseServerDiscoverySource; count: number } => {
+      const count: number = Number(bySource?.[source]) || 0;
+      return { source, count };
+    },
+  ).filter(
+    (entry: {
+      source: DatabaseServerDiscoverySource;
+      count: number;
+    }): boolean => {
+      return entry.count > 0;
+    },
+  );
 
   entries.sort(
     (

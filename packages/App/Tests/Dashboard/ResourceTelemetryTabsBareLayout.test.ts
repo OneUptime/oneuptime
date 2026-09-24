@@ -507,6 +507,7 @@ const LOGS_TAB_TABLE: Array<[string]> = TABS.filter((tab: TelemetryTab) => {
 const UNCARDED_LOGS_TABS: Array<[string, string, string]> = [
   ["Ceph", "Cluster Logs", "ceph-cluster-logs"],
   ["Cloud", "Cloud Environment Logs", "cloud-resource-logs"],
+  ["Database", "Database Logs", "database-server-logs"],
   ["Docker", "Container Logs", "docker-host-logs"],
   ["DockerSwarm", "Cluster Logs", "docker-swarm-cluster-logs"],
   ["Host", "Host Logs", "host-logs"],

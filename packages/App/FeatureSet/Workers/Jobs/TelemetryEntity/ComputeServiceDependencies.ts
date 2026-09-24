@@ -1,16 +1,24 @@
 import RunCron from "../../Utils/Cron";
+import AutoCreateBudget from "../DatabaseServer/AutoCreateBudget";
 import logger from "Common/Server/Utils/Logger";
 import SpanService from "Common/Server/Services/SpanService";
 import MetricService from "Common/Server/Services/MetricService";
 import ServiceService from "Common/Server/Services/ServiceService";
 import InventoryItemService from "Common/Server/Services/InventoryItemService";
 import InventoryItemRelationshipService from "Common/Server/Services/InventoryItemRelationshipService";
+import DatabaseServerService from "Common/Server/Services/DatabaseServerService";
 import Service from "Common/Models/DatabaseModels/Service";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
+import DatabaseServerDiscoverySource from "Common/Types/DatabaseServer/DatabaseServerDiscoverySource";
+import {
+  DatabaseEndpoint,
+  formatDatabaseEndpoint,
+} from "Common/Types/DatabaseServer/DatabaseEndpoint";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import { EntityRelationshipEdge } from "Common/Utils/Telemetry/EntityRelationship";
 import {
@@ -36,6 +44,14 @@ import {
   toEdgeMetrics,
   toExtractedDependencyEntity,
 } from "Common/Server/Utils/Telemetry/ServiceDependencyDiscovery";
+import {
+  DatabaseEndpointRow,
+  DiscoveredDatabaseEndpoint,
+  buildDatabaseEndpointSql,
+  getDatabaseServerMinCalls,
+  isDatabaseEndpointAutoCreateCandidate,
+  resolveDatabaseEndpointRows,
+} from "Common/Server/Utils/Telemetry/DatabaseEndpointDiscovery";
 
 /*
  * "TelemetryEntity:ComputeServiceDependencies"
@@ -58,6 +74,13 @@ import {
  * A service's entity key hashes its NAME (keyForService), so span
  * primaryEntityIds are resolved to Service rows and the registry's service
  * rows are matched by name — never by id.
+ *
+ * The same window also feeds the Databases product: the database endpoints
+ * DB CLIENT spans call are matched to their DatabaseServer rows (created,
+ * conservatively, when new) and sighted — see
+ * discoverDatabaseServersForProject. That step is isolated from the edges:
+ * it neither changes the dependency queries nor the Database registry
+ * identity above, and neither side's failure costs the other its run.
  */
 
 // CronTime.ts has no ten-minute constant; this job is its only user.
@@ -69,6 +92,8 @@ export const WINDOW_MINUTES: number = 15;
 const MAX_ENTRY_SPANS: number = 500000;
 const MAX_ROWS_PER_SOURCE: number = 1000;
 const MAX_PROJECTS_PER_RUN: number = 1000;
+// Grouped database endpoint rows read per project per run, busiest first.
+export const MAX_DATABASE_ENDPOINT_ROWS: number = 500;
 
 interface JsonResultSet<T> {
   json: () => Promise<{ data: Array<T> }>;
@@ -164,11 +189,163 @@ async function loadServiceEntityKeys(
   return keyByName;
 }
 
+/*
+ * One discovered endpoint → its DatabaseServer row, or null. Looked up
+ * first WITHOUT permission to create, so an endpoint that already has a row
+ * (the steady state) costs no budget query; only a miss that passes the
+ * conservative create policy asks the project's auto-create budget and tries
+ * again with creation allowed (see AutoCreateBudget).
+ */
+async function findOrCreateDatabaseServerForEndpoint(data: {
+  projectId: ObjectID;
+  discovered: DiscoveredDatabaseEndpoint;
+  minCalls: number;
+  budget: AutoCreateBudget;
+}): Promise<{ row: DatabaseServer | null; created: boolean }> {
+  const lookup: {
+    projectId: ObjectID;
+    dbSystem: string;
+    endpoint: DatabaseEndpoint;
+    discoverySource: DatabaseServerDiscoverySource;
+  } = {
+    projectId: data.projectId,
+    dbSystem: data.discovered.system,
+    endpoint: data.discovered.endpoint,
+    discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+  };
+
+  const existing: DatabaseServer | null =
+    await DatabaseServerService.findOrCreateByEndpoint({
+      ...lookup,
+      allowCreate: false,
+    });
+
+  if (existing) {
+    return { row: existing, created: false };
+  }
+
+  if (
+    !isDatabaseEndpointAutoCreateCandidate({
+      discovered: data.discovered,
+      minCalls: data.minCalls,
+    }) ||
+    !(await data.budget.allowsCreate(data.projectId))
+  ) {
+    return { row: null, created: false };
+  }
+
+  const created: DatabaseServer | null =
+    await DatabaseServerService.findOrCreateByEndpoint({
+      ...lookup,
+      allowCreate: true,
+    });
+
+  if (created) {
+    data.budget.recordCreate(data.projectId);
+  }
+
+  return { row: created, created: Boolean(created) };
+}
+
+/**
+ * Databases from client spans: every database endpoint the project's DB
+ * CLIENT spans called in the window is matched to its DatabaseServer row —
+ * created when new, busy enough, global-scope, named by host and of an
+ * auto-creatable engine, within budget — and that row is sighted
+ * (lastSeenAt). Each endpoint is isolated from the next, and the whole step
+ * from the dependency sources: it never throws. Returns how many rows were
+ * sighted.
+ */
+export async function discoverDatabaseServersForProject(args: {
+  projectId: string;
+  startSql: string;
+  endSql: string;
+}): Promise<number> {
+  try {
+    const rows: Array<DatabaseEndpointRow> =
+      await readRows<DatabaseEndpointRow>(
+        SpanService.executeQuery(
+          buildDatabaseEndpointSql({
+            projectId: args.projectId,
+            startSql: args.startSql,
+            endSql: args.endSql,
+            maxRows: MAX_DATABASE_ENDPOINT_ROWS,
+          }),
+        ),
+      );
+
+    const endpoints: Array<DiscoveredDatabaseEndpoint> =
+      resolveDatabaseEndpointRows(rows);
+
+    if (endpoints.length === 0) {
+      return 0;
+    }
+
+    const projectId: ObjectID = new ObjectID(args.projectId);
+    const minCalls: number = getDatabaseServerMinCalls();
+    const budget: AutoCreateBudget = new AutoCreateBudget();
+
+    let sighted: number = 0;
+    let created: number = 0;
+
+    for (const discovered of endpoints) {
+      try {
+        const result: { row: DatabaseServer | null; created: boolean } =
+          await findOrCreateDatabaseServerForEndpoint({
+            projectId: projectId,
+            discovered: discovered,
+            minCalls: minCalls,
+            budget: budget,
+          });
+
+        if (!result.row || !result.row.id) {
+          continue;
+        }
+
+        if (result.created) {
+          created++;
+        }
+
+        await DatabaseServerService.recordSighting(result.row.id);
+        sighted++;
+      } catch (err) {
+        logger.error(
+          `ComputeServiceDependencies: database endpoint ${formatDatabaseEndpoint(discovered.endpoint)} failed for project ${args.projectId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    if (sighted > 0) {
+      logger.debug(
+        `ComputeServiceDependencies: sighted ${sighted} database(s) (${created} new) from client spans for project ${args.projectId}.`,
+      );
+    }
+
+    return sighted;
+  } catch (err) {
+    logger.error(
+      `ComputeServiceDependencies: database endpoint discovery failed for project ${args.projectId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return 0;
+  }
+}
+
 export async function computeDependenciesForProject(args: {
   projectId: string;
   startSql: string;
   endSql: string;
 }): Promise<number> {
+  /*
+   * Databases from the same window. Started next to the dependency sources
+   * and awaited before anything below can return early, so it runs whether
+   * or not the window produced a single edge. It never rejects.
+   */
+  const databaseDiscovery: Promise<number> = discoverDatabaseServersForProject({
+    projectId: args.projectId,
+    startSql: args.startSql,
+    endSql: args.endSql,
+  });
+
   const window: DependencyQueryWindow = {
     projectId: args.projectId,
     startSql: args.startSql,
@@ -223,6 +400,8 @@ export async function computeDependenciesForProject(args: {
       );
     }),
   ]);
+
+  await databaseDiscovery;
 
   if (
     traceRows.length === 0 &&

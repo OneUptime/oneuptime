@@ -82,12 +82,10 @@ export function getDatabaseBreadcrumbs(path: string): Array<Link> | undefined {
       "View Database",
       "Alerts",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE, [
-      "Project",
-      "Databases",
-      "View Database",
-      "Scheduled Maintenance",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE,
+      ["Project", "Databases", "View Database", "Scheduled Maintenance"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATABASE_SERVER_VIEW_FEED, [
       "Project",
       "Databases",
@@ -112,12 +110,10 @@ export function getDatabaseBreadcrumbs(path: string): Array<Link> | undefined {
       "View Database",
       "Settings",
     ]),
-    ...BuildBreadcrumbLinksByTitles(PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION, [
-      "Project",
-      "Databases",
-      "View Database",
-      "Documentation",
-    ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION,
+      ["Project", "Databases", "View Database", "Documentation"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATABASE_SERVER_VIEW_DELETE, [
       "Project",
       "Databases",

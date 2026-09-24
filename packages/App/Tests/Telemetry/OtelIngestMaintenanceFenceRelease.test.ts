@@ -44,6 +44,7 @@ import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import CloudResourceService from "Common/Server/Services/CloudResourceService";
 import CloudResourceInstanceService from "Common/Server/Services/CloudResourceInstanceService";
+import DatabaseServerService from "Common/Server/Services/DatabaseServerService";
 import DockerHostService from "Common/Server/Services/DockerHostService";
 import DockerSwarmClusterService from "Common/Server/Services/DockerSwarmClusterService";
 import HostService from "Common/Server/Services/HostService";
@@ -218,6 +219,19 @@ const FENCE_CASES: Array<FenceCase> = [
         service: CloudResourceInstanceService,
         method: "recordInstance",
       },
+    },
+  },
+  {
+    name: "autoDiscoverDatabaseServer",
+    method: "autoDiscoverDatabaseServer",
+    scope: "database-server",
+    attributes: [
+      stringAttribute("db.system.name", "postgresql"),
+      stringAttribute("server.address", "orders-db.example.com"),
+    ] as JSONArray,
+    gated: {
+      service: DatabaseServerService,
+      method: "recordCollectorHeartbeat",
     },
   },
   {

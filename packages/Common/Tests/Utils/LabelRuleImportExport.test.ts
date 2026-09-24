@@ -85,6 +85,11 @@ const criteriaByType: Record<string, [string, string, string]> = {
     "dashboardDescriptionPattern",
     "dashboardLabels",
   ],
+  DatabaseServerLabelRule: [
+    "databaseServerNamePattern",
+    "databaseServerDescriptionPattern",
+    "databaseServerLabels",
+  ],
   DockerHostLabelRule: [
     "dockerHostNamePattern",
     "dockerHostDescriptionPattern",

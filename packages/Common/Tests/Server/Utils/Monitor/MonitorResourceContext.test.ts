@@ -19,6 +19,7 @@ jest.mock("../../../../Server/Utils/PasswordHash", () => {
 });
 
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import DatabaseServerService from "../../../../Server/Services/DatabaseServerService";
 import HostService from "../../../../Server/Services/HostService";
 import KubernetesClusterService from "../../../../Server/Services/KubernetesClusterService";
 import ServiceService from "../../../../Server/Services/ServiceService";
@@ -136,6 +137,7 @@ describe("MonitorResourceContext", () => {
     stubService("dockerHost", DockerHostService, []);
     stubService("kubernetesCluster", KubernetesClusterService, []);
     stubService("service", ServiceService, []);
+    stubService("databaseServer", DatabaseServerService, []);
   });
 
   afterEach(() => {
@@ -345,5 +347,65 @@ describe("MonitorResourceContext", () => {
     expect(resolved.dockerHostIds).toEqual(["docker-1"]);
     expect(resolved.hostIds).toEqual([]);
     expect(HostService.findBy).not.toHaveBeenCalled();
+  });
+
+  test("resolves the database a metric monitor's id filter names, by primary key", async () => {
+    stubService("databaseServer", DatabaseServerService, [
+      { _id: "d0000000-0000-4000-8000-000000000001" },
+    ]);
+
+    const resolved: SeriesResolvedResourceIds =
+      await MonitorResourceContextUtil.resolveResourceContextForMonitor({
+        monitor: monitorWith(MonitorType.Metrics, {
+          metricMonitor: {
+            metricViewConfig: metricViewConfigWith({
+              "oneuptime.database.server.id":
+                "d0000000-0000-4000-8000-000000000001",
+            }),
+          },
+        }),
+      });
+
+    expect(resolved).toEqual({
+      ...MonitorResourceContextUtil.emptyContext(),
+      databaseServerIds: ["d0000000-0000-4000-8000-000000000001"],
+    });
+
+    const databaseQueries: Array<JSONObject> = capturedQueries
+      .filter((entry: { service: string }): boolean => {
+        return entry.service === "databaseServer";
+      })
+      .map((entry: { query: JSONObject }): JSONObject => {
+        return entry.query;
+      });
+
+    expect(databaseQueries).toHaveLength(1);
+    expect(String(databaseQueries[0]!["projectId"])).toBe(
+      PROJECT_ID.toString(),
+    );
+    expect(databaseQueries[0]!["_id"]).toBeDefined();
+    expect(databaseQueries[0]!["name"]).toBeUndefined();
+  });
+
+  test("a database display-name filter costs zero round-trips", async () => {
+    const resolved: SeriesResolvedResourceIds =
+      await MonitorResourceContextUtil.resolveResourceContextForMonitor({
+        monitor: monitorWith(MonitorType.Metrics, {
+          metricMonitor: {
+            metricViewConfig: metricViewConfigWith({
+              "oneuptime.database.server.name": "PostgreSQL db.prod:5432",
+            }),
+          },
+        }),
+      });
+
+    expect(resolved).toEqual(MonitorResourceContextUtil.emptyContext());
+    expect(capturedQueries).toHaveLength(0);
+  });
+
+  test("the empty context carries an empty database list", () => {
+    expect(MonitorResourceContextUtil.emptyContext().databaseServerIds).toEqual(
+      [],
+    );
   });
 });

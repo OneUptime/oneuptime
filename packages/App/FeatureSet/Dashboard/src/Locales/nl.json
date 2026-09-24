@@ -78,6 +78,8 @@
       "topologyDescription": "Bekijk hoe uw services en infrastructuur met elkaar verbonden zijn.",
       "servicesTitle": "Services",
       "servicesDescription": "Catalogiseer elke service die je draait.",
+      "databasesTitle": "Databases",
+      "databasesDescription": "Elke database die uw applicaties bevragen, met engine-metrieken.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Bewaak Kubernetes-clusters.",
       "dockerTitle": "Docker",

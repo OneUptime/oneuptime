@@ -78,6 +78,8 @@
       "topologyDescription": "See how your services and infrastructure connect.",
       "servicesTitle": "Services",
       "servicesDescription": "Catalog every service you run.",
+      "databasesTitle": "Databases",
+      "databasesDescription": "Every database your applications query, with engine metrics.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Monitor Kubernetes clusters.",
       "dockerTitle": "Docker",

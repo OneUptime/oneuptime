@@ -1,4 +1,5 @@
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
 import Host from "../../../Models/DatabaseModels/Host";
@@ -14,6 +15,7 @@ import { JSONObject } from "../../../Types/JSON";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import CephClusterService from "../../Services/CephClusterService";
+import DatabaseServerService from "../../Services/DatabaseServerService";
 import DockerHostService from "../../Services/DockerHostService";
 import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService";
 import HostService from "../../Services/HostService";
@@ -69,6 +71,7 @@ export interface SeriesLinkableModel {
   cephClusters?: Array<CephCluster> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
+  databaseServers?: Array<DatabaseServer> | undefined;
 }
 
 /*
@@ -86,6 +89,7 @@ export interface SeriesResolvedResourceIds {
   cephClusterIds: Array<string>;
   dockerSwarmClusterIds: Array<string>;
   iotFleetIds: Array<string>;
+  databaseServerIds: Array<string>;
 }
 
 /*
@@ -171,7 +175,12 @@ export default class SeriesResourceLinker {
      * Proxmox / VMware / Ceph / Docker Swarm / IoT carry no
      * `oneuptime.*.id` stamp at ingest — they are addressable by name
      * only — so their `ids` lists are empty by construction, not by
-     * omission.
+     * omission. Databases are the reverse: addressable by the
+     * `oneuptime.database.server.id` stamp only (see
+     * DatabaseServerIdLabelKeys), so their `names` list is empty.
+     *
+     * The Promise.all below destructures by POSITION: a new entry goes at
+     * the end of this list AND at the end of that destructure.
      */
     const specs: Array<ResourceResolutionSpec> = [
       {
@@ -236,6 +245,12 @@ export default class SeriesResourceLinker {
         nameColumn: "name",
         findBy: IoTFleetService.findBy.bind(IoTFleetService),
       },
+      {
+        ids: refs.databaseServerIds,
+        names: [],
+        nameColumn: "name",
+        findBy: DatabaseServerService.findBy.bind(DatabaseServerService),
+      },
     ];
 
     const [
@@ -249,6 +264,7 @@ export default class SeriesResourceLinker {
       cephClusterIds,
       dockerSwarmClusterIds,
       iotFleetIds,
+      databaseServerIds,
     ] = await Promise.all(
       specs.map((spec: ResourceResolutionSpec): Promise<Array<string>> => {
         return this.resolveResourceIds({
@@ -273,6 +289,7 @@ export default class SeriesResourceLinker {
       cephClusterIds: cephClusterIds || [],
       dockerSwarmClusterIds: dockerSwarmClusterIds || [],
       iotFleetIds: iotFleetIds || [],
+      databaseServerIds: databaseServerIds || [],
     };
   }
 
@@ -434,6 +451,16 @@ export default class SeriesResourceLinker {
         resolved.iotFleetIds,
         (): IoTFleet => {
           return new IoTFleet();
+        },
+      );
+    }
+
+    if (resolved.databaseServerIds.length > 0) {
+      model.databaseServers = this.mergeById(
+        model.databaseServers,
+        resolved.databaseServerIds,
+        (): DatabaseServer => {
+          return new DatabaseServer();
         },
       );
     }

@@ -22,6 +22,7 @@ import Alert from "../../../../Models/DatabaseModels/Alert";
 import Host from "../../../../Models/DatabaseModels/Host";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import CephClusterService from "../../../../Server/Services/CephClusterService";
+import DatabaseServerService from "../../../../Server/Services/DatabaseServerService";
 import DockerHostService from "../../../../Server/Services/DockerHostService";
 import DockerSwarmClusterService from "../../../../Server/Services/DockerSwarmClusterService";
 import HostService from "../../../../Server/Services/HostService";
@@ -115,6 +116,15 @@ const RESOURCE_SERVICES: Array<ResourceServiceUnderTest> = [
     nameColumn: "name",
   },
   { relation: "iotFleets", service: IoTFleetService, nameColumn: "name" },
+  /*
+   * Databases resolve by the `oneuptime.database.server.id` stamp only,
+   * so `nameColumn` is never queried for them (see the database tests).
+   */
+  {
+    relation: "databaseServers",
+    service: DatabaseServerService,
+    nameColumn: "name",
+  },
 ];
 
 /*
@@ -195,6 +205,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     cephClusterIds: [],
     dockerSwarmClusterIds: [],
     iotFleetIds: [],
+    databaseServerIds: [],
   };
 }
 
@@ -535,6 +546,7 @@ describe("SeriesResourceLinker.linkSeriesResourcesToModel", () => {
         "ceph.cluster.name": "ceph-1",
         "docker.swarm.cluster.name": "swarm-1",
         "iot.fleet.name": "fleet-1",
+        "oneuptime.database.server.id": "d0000000-0000-4000-8000-000000000001",
       },
       projectId: PROJECT_ID,
     });
@@ -551,8 +563,8 @@ describe("SeriesResourceLinker.linkSeriesResourcesToModel", () => {
       }
     }
 
-    // 10 types, and hosts get an extra query for the id stamp.
-    expect(assertedQueries).toBe(11);
+    // 11 types, and hosts get an extra query for the id stamp.
+    expect(assertedQueries).toBe(12);
   });
 
   test("does not link a resource that belongs to another project", async () => {
@@ -677,6 +689,227 @@ describe("SeriesResourceLinker.resolveResourcesFromSeriesLabels", () => {
     expect(resolved.vmwareVCenterIds).toEqual([]);
     expect(resolved.cephClusterIds).toEqual([]);
     expect(resolved.dockerSwarmClusterIds).toEqual([]);
+    expect(resolved.databaseServerIds).toEqual([]);
+  });
+
+  test("returns the database a series names by its id stamp", async () => {
+    rowsByRelation.set("databaseServers", [
+      { _id: "d0000000-0000-4000-8000-000000000001" },
+    ]);
+
+    const resolved: SeriesResolvedResourceIds =
+      await SeriesResourceLinker.resolveResourcesFromSeriesLabels({
+        seriesLabels: {
+          "oneuptime.database.server.id":
+            "d0000000-0000-4000-8000-000000000001",
+        },
+        projectId: PROJECT_ID,
+      });
+
+    expect(resolved).toEqual({
+      ...emptyResourceContext(),
+      databaseServerIds: ["d0000000-0000-4000-8000-000000000001"],
+    });
+  });
+});
+
+describe("SeriesResourceLinker — databases", () => {
+  test.each([
+    ["oneuptime.database.server.id"],
+    ["resource.oneuptime.database.server.id"],
+  ])(
+    "links the database a series identifies by the %s stamp",
+    async (key: string) => {
+      rowsByRelation.set("databaseServers", [
+        { _id: "d0000000-0000-4000-8000-000000000001" },
+      ]);
+
+      const alert: Alert = new Alert();
+
+      await SeriesResourceLinker.linkSeriesResourcesToModel({
+        model: alert,
+        seriesLabels: { [key]: "d0000000-0000-4000-8000-000000000001" },
+        projectId: PROJECT_ID,
+      });
+
+      expect(idsOn(alert, "databaseServers")).toEqual([
+        "d0000000-0000-4000-8000-000000000001",
+      ]);
+      expect(callCount("databaseServers")).toBe(1);
+
+      const query: JSONObject = relationQueries("databaseServers")[0]!;
+      expect(query["projectId"]).toBe(PROJECT_ID);
+      expect(includesValues(query["_id"])).toEqual([
+        "d0000000-0000-4000-8000-000000000001",
+      ]);
+      // Id stamp only: the lookup must never widen to the name column.
+      expect(query["name"]).toBeUndefined();
+    },
+  );
+
+  test.each([
+    ["oneuptime.database.server.name"],
+    ["resource.oneuptime.database.server.name"],
+  ])(
+    "never resolves a database from the %s display-name stamp",
+    async (key: string) => {
+      /*
+       * The display name is neither unique ("PostgreSQL pg:5432" in two
+       * clusters) nor stable (users rename databases), so a name-only
+       * series links no database rather than every same-named one.
+       */
+      rowsByRelation.set("databaseServers", [
+        { _id: "d0000000-0000-4000-8000-000000000001" },
+      ]);
+
+      const alert: Alert = new Alert();
+
+      await SeriesResourceLinker.linkSeriesResourcesToModel({
+        model: alert,
+        seriesLabels: { [key]: "PostgreSQL db.prod:5432" },
+        projectId: PROJECT_ID,
+      });
+
+      expect(callCount("databaseServers")).toBe(0);
+      expect(alert.databaseServers).toBeUndefined();
+    },
+  );
+
+  test("a malformed database id stamp issues no lookup and links nothing", async () => {
+    /*
+     * A user-typed DATABASE_SERVER_ID that is not a UUID would make the
+     * uuid primary-key query throw out of alert / incident creation.
+     */
+    rowsByRelation.set("databaseServers", [
+      { _id: "d0000000-0000-4000-8000-000000000001" },
+    ]);
+
+    const alert: Alert = new Alert();
+
+    await SeriesResourceLinker.linkSeriesResourcesToModel({
+      model: alert,
+      seriesLabels: {
+        "resource.oneuptime.database.server.id": "prod-postgres",
+      },
+      projectId: PROJECT_ID,
+    });
+
+    expect(callCount("databaseServers")).toBe(0);
+    expect(alert.databaseServers).toBeUndefined();
+  });
+
+  test("looks up every database id of a multi-valued label in one query", async () => {
+    rowsByRelation.set("databaseServers", [
+      { _id: "d0000000-0000-4000-8000-000000000001" },
+      { _id: "d0000000-0000-4000-8000-000000000002" },
+    ]);
+
+    const incident: Incident = new Incident();
+
+    await SeriesResourceLinker.linkSeriesResourcesToModel({
+      model: incident,
+      seriesLabels: {
+        "oneuptime.database.server.id": [
+          "d0000000-0000-4000-8000-000000000001",
+          "d0000000-0000-4000-8000-000000000002",
+        ],
+      },
+      projectId: PROJECT_ID,
+    });
+
+    expect(callCount("databaseServers")).toBe(1);
+    expect(
+      includesValues(relationQueries("databaseServers")[0]!["_id"]).sort(),
+    ).toEqual([
+      "d0000000-0000-4000-8000-000000000001",
+      "d0000000-0000-4000-8000-000000000002",
+    ]);
+    expect(idsOn(incident, "databaseServers").sort()).toEqual([
+      "d0000000-0000-4000-8000-000000000001",
+      "d0000000-0000-4000-8000-000000000002",
+    ]);
+  });
+
+  test("does not link a database id stamp from another project", async () => {
+    /*
+     * The fake findBy answers [] — as the real, project-scoped query does
+     * for a stale or hostile id that belongs to another tenant.
+     */
+    const alert: Alert = new Alert();
+
+    await SeriesResourceLinker.linkSeriesResourcesToModel({
+      model: alert,
+      seriesLabels: {
+        "oneuptime.database.server.id": "f0000000-0000-4000-8000-000000000001",
+      },
+      projectId: OTHER_PROJECT_ID,
+    });
+
+    expect(relationQueries("databaseServers")[0]!["projectId"]).toBe(
+      OTHER_PROJECT_ID,
+    );
+    expect(alert.databaseServers).toBeUndefined();
+  });
+
+  test("links the database alongside the service of the same series", async () => {
+    /*
+     * A database receiver batch carries no service.name, but a monitor can
+     * group by both a service attribute and the database stamp; the two
+     * relations must both be filled and must not interfere.
+     */
+    rowsByRelation.set("databaseServers", [
+      { _id: "d0000000-0000-4000-8000-000000000001" },
+    ]);
+    rowsByRelation.set("services", [{ _id: "service-1" }]);
+
+    const alert: Alert = new Alert();
+
+    await SeriesResourceLinker.linkSeriesResourcesToModel({
+      model: alert,
+      seriesLabels: {
+        "oneuptime.database.server.id": "d0000000-0000-4000-8000-000000000001",
+        "service.name": "checkout",
+      },
+      projectId: PROJECT_ID,
+    });
+
+    expect(idsOn(alert, "databaseServers")).toEqual([
+      "d0000000-0000-4000-8000-000000000001",
+    ]);
+    expect(idsOn(alert, "services")).toEqual(["service-1"]);
+    expect(alert.hosts).toBeUndefined();
+  });
+
+  test("merges the step-config database with the label one, deduping", async () => {
+    rowsByRelation.set("databaseServers", [
+      { _id: "d0000000-0000-4000-8000-000000000001" },
+    ]);
+
+    const alert: Alert = new Alert();
+
+    await SeriesResourceLinker.linkSeriesResourcesToModel({
+      model: alert,
+      seriesLabels: {
+        "oneuptime.database.server.id": "d0000000-0000-4000-8000-000000000001",
+      },
+      projectId: PROJECT_ID,
+    });
+
+    SeriesResourceLinker.attachResolvedResources({
+      model: alert,
+      resolved: {
+        ...emptyResourceContext(),
+        databaseServerIds: [
+          "d0000000-0000-4000-8000-000000000001",
+          "d0000000-0000-4000-8000-000000000002",
+        ],
+      },
+    });
+
+    expect(idsOn(alert, "databaseServers")).toEqual([
+      "d0000000-0000-4000-8000-000000000001",
+      "d0000000-0000-4000-8000-000000000002",
+    ]);
   });
 });
 
@@ -799,6 +1032,7 @@ describe("SeriesResourceLinker.attachResolvedResources", () => {
     expect(alert.cephClusters).toBeUndefined();
     expect(alert.dockerSwarmClusters).toBeUndefined();
     expect(alert.iotFleets).toBeUndefined();
+    expect(alert.databaseServers).toBeUndefined();
   });
 
   test("attaches to an incident the same way", () => {

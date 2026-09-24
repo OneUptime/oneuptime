@@ -190,6 +190,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     cephClusterIds: [],
     dockerSwarmClusterIds: [],
     iotFleetIds: [],
+    databaseServerIds: [],
   };
 }
 

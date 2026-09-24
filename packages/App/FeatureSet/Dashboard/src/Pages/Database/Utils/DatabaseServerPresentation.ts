@@ -217,6 +217,29 @@ export function getDatabaseWorkloadLabel(
   return parts.join("/");
 }
 
+export interface DatabaseEndpointLabelSource extends DatabaseRunsOnSource {
+  serverPort?: number | null | undefined;
+}
+
+/**
+ * The second line of a database's name: the endpoint it is known by
+ * ("db.prod:5432", "[2001:db8::1]:5432"), or — for a workload detected
+ * without an address — the workload itself ("payments/StatefulSet/postgres").
+ */
+export function getDatabaseEndpointLabel(
+  source: DatabaseEndpointLabelSource | null | undefined,
+): string {
+  const address: string = text(source?.serverAddress);
+  if (address) {
+    const host: string = address.includes(":") ? `[${address}]` : address;
+    const port: number | null | undefined = source?.serverPort;
+    return typeof port === "number" && Number.isFinite(port) && port > 0
+      ? `${host}:${port}`
+      : host;
+  }
+  return getDatabaseWorkloadLabel(source);
+}
+
 /**
  * The list's "Runs on" cell: "Kubernetes · prod-cluster", "Docker ·
  * build-host-1", "Podman", or "—" for a database only seen from outside
@@ -385,10 +408,13 @@ export function formatDatabaseMetricValue(
   const cleanUnit: string = (unit || "").trim();
 
   if (kind === "counter") {
+    // Rates are rarely whole numbers; keep two decimals below 10, one below 1000.
     const rate: string =
       Math.abs(value) < 10
         ? value.toFixed(2).replace(/\.?0+$/, "") || "0"
-        : formatDatabaseCount(value);
+        : Math.abs(value) < 1000
+          ? value.toFixed(1).replace(/\.0$/, "")
+          : formatDatabaseCount(value);
     if (cleanUnit === "bytes") {
       return `${formatDatabaseBytes(value)}/s`;
     }

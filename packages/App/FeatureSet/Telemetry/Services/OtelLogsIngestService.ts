@@ -34,7 +34,9 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import LogsQueueService from "./Queue/LogsQueueService";
-import OtelIngestBaseService from "./OtelIngestBaseService";
+import OtelIngestBaseService, {
+  DatabaseServerResourceResolution,
+} from "./OtelIngestBaseService";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import {
   TELEMETRY_EXCEPTION_FLUSH_BATCH_SIZE,
@@ -376,9 +378,20 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             );
 
           /*
+           * A collector-contrib DB receiver names itself in its scope
+           * (`.../receiver/postgresqlreceiver`); that engine is the hint
+           * the database gate needs to accept a receiver batch that
+           * carries no explicit `db.system.name`.
+           */
+          const databaseReceiverSystemHint: string | null =
+            this.getDatabaseReceiverSystemHintFromScopes(
+              resourceLog["scopeLogs"] as JSONArray | undefined,
+            );
+
+          /*
            * Auto-discover Kubernetes cluster, Docker host, Proxmox
-           * cluster, VMware vCenter and Ceph cluster from resource
-           * attributes. They look at disjoint attributes and don't
+           * cluster, VMware vCenter, Ceph cluster and database server from
+           * resource attributes. They look at disjoint attributes and don't
            * share state, so we issue all Postgres lookups concurrently
            * and only wait once. The cluster id is also what the
            * inventory hook below keys its buffer on. (There is no
@@ -394,7 +407,9 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             vmwareVCenterId,
             cephClusterId,
             dockerSwarmClusterId,
+            databaseServerId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -431,7 +446,26 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               projectId,
               attributes: resourceAttributes_raw,
             }),
+            this.autoDiscoverDatabaseServer({
+              projectId,
+              attributes: resourceAttributes_raw,
+              receiverSystemHint: databaseReceiverSystemHint,
+            }),
           ]);
+
+          /*
+           * The same pure gate autoDiscoverDatabaseServer ran: its endpoint
+           * keys this block's rows even when no row exists for it (a
+           * LOCAL-scope endpoint), and it names the rows. Logs carry no
+           * host metrics, so a database batch is always the database's.
+           */
+          const databaseServerResource: DatabaseServerResourceResolution | null =
+            this.resolveDatabaseServerResource({
+              attributes: resourceAttributes_raw,
+              receiverSystemHint: databaseReceiverSystemHint,
+            });
+          const databaseServerName: string | null =
+            this.getDatabaseServerDisplayName(databaseServerResource);
 
           /*
            * Docker Swarm inventory eligibility — the agent's inventory
@@ -478,6 +512,7 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
             dockerHostId,
             podmanHostId,
             kubernetesClusterId,
+            databaseServerId,
           });
 
           const serverlessFunctionId: ObjectID | null =
@@ -513,6 +548,11 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               serverlessFunctionId,
               cloudResourceId,
               rumApplicationId,
+              databaseServerId,
+              databaseServerName,
+              databaseServerEndpoint: databaseServerResource
+                ? databaseServerResource.endpoint
+                : null,
               entityRefs: resourceEntityRefs,
             });
           const serviceName: string = serviceMetadata.serviceName;
@@ -568,6 +608,12 @@ export default class OtelLogsIngestService extends OtelIngestBaseService {
               ? TelemetryUtil.getAttributesForKubernetesClusterIdAndName({
                   kubernetesClusterId,
                   clusterName: stampClusterName,
+                })
+              : {}),
+            ...(databaseServerId && databaseServerName
+              ? TelemetryUtil.getAttributesForDatabaseServerIdAndName({
+                  databaseServerId,
+                  databaseServerName,
                 })
               : {}),
             ...TelemetryUtil.getAttributes({

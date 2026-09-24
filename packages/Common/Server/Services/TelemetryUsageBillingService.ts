@@ -32,6 +32,7 @@ import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import VMwareVCenterService from "./VMwareVCenterService";
 import CephClusterService from "./CephClusterService";
+import DatabaseServerService from "./DatabaseServerService";
 import IoTFleetService from "./IoTFleetService";
 import Host from "../../Models/DatabaseModels/Host";
 import DockerHost from "../../Models/DatabaseModels/DockerHost";
@@ -41,6 +42,7 @@ import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
 import IoTFleet from "../../Models/DatabaseModels/IoTFleet";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
+import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
 import ServiceType from "../../Types/Telemetry/ServiceType";
 import {
   AverageSpanRowSizeInBytes,
@@ -485,7 +487,8 @@ export class Service extends DatabaseService<Model> {
   /*
    * Map of resourceId -> retainTelemetryDataForDays for every resource in
    * the project that can own telemetry (Service, Host, DockerHost,
-   * KubernetesCluster, ProxmoxCluster, VMwareVCenter, CephCluster). Used to
+   * KubernetesCluster, ProxmoxCluster, VMwareVCenter, CephCluster,
+   * DatabaseServer). Used to
    * scale billed
    * cost by the actual retention applied to each resource's telemetry.
    * Resources without an override (and the unattributed bucket) fall back
@@ -624,6 +627,31 @@ export class Service extends DatabaseService<Model> {
         retentionByServiceId.set(
           cephCluster.id.toString(),
           cephCluster.retainTelemetryDataForDays,
+        );
+      }
+    }
+
+    /*
+     * Databases are mostly auto-discovered (collector, client spans,
+     * Kubernetes / Docker / Podman), so a project can hold hundreds of
+     * them. Only rows carrying an override matter here — read just those.
+     */
+    const databaseServers: Array<DatabaseServer> =
+      await DatabaseServerService.findBy({
+        query: {
+          projectId: projectId,
+          retainTelemetryDataForDays: QueryHelper.notNull(),
+        },
+        select: { _id: true, retainTelemetryDataForDays: true },
+        skip: 0,
+        limit: LIMIT_MAX,
+        props: { isRoot: true },
+      });
+    for (const databaseServer of databaseServers) {
+      if (databaseServer.id && databaseServer.retainTelemetryDataForDays) {
+        retentionByServiceId.set(
+          databaseServer.id.toString(),
+          databaseServer.retainTelemetryDataForDays,
         );
       }
     }

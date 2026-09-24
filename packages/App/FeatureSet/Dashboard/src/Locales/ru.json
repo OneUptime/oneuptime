@@ -78,6 +78,8 @@
       "topologyDescription": "Посмотрите, как связаны ваши сервисы и инфраструктура.",
       "servicesTitle": "Сервисы",
       "servicesDescription": "Каталогизируйте каждый сервис, который вы запускаете.",
+      "databasesTitle": "Базы данных",
+      "databasesDescription": "Все базы данных, к которым обращаются ваши приложения, с метриками движка.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Мониторинг кластеров Kubernetes.",
       "dockerTitle": "Docker",

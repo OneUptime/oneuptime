@@ -1,10 +1,16 @@
 import EntityRelationshipType from "Common/Types/Telemetry/EntityRelationshipType";
 import EntityType from "Common/Types/Telemetry/EntityType";
+import ObjectID from "Common/Types/ObjectID";
+import DatabaseServerDiscoverySource from "Common/Types/DatabaseServer/DatabaseServerDiscoverySource";
 import { EntityRelationshipEdge } from "Common/Utils/Telemetry/EntityRelationship";
 import {
   computeEntityKey,
   keyForService,
 } from "Common/Utils/Telemetry/EntityKey";
+import {
+  DATABASE_ENDPOINT_SQL_MARKER,
+  DATABASE_SERVER_MIN_CALLS_ENV,
+} from "Common/Server/Utils/Telemetry/DatabaseEndpointDiscovery";
 
 /*
  * "TelemetryEntity:ComputeServiceDependencies" turns the recent telemetry window
@@ -62,6 +68,16 @@ jest.mock("Common/Server/Services/InventoryItemRelationshipService", () => {
     default: { reconcileRelationships: jest.fn() },
   };
 });
+jest.mock("Common/Server/Services/DatabaseServerService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOrCreateByEndpoint: jest.fn(),
+      recordSighting: jest.fn(),
+      isUnderAutoCreateBudget: jest.fn(),
+    },
+  };
+});
 
 import logger from "Common/Server/Utils/Logger";
 import SpanService from "Common/Server/Services/SpanService";
@@ -69,7 +85,12 @@ import MetricService from "Common/Server/Services/MetricService";
 import ServiceService from "Common/Server/Services/ServiceService";
 import InventoryItemService from "Common/Server/Services/InventoryItemService";
 import InventoryItemRelationshipService from "Common/Server/Services/InventoryItemRelationshipService";
-import { computeDependenciesForProject } from "../../../../FeatureSet/Workers/Jobs/TelemetryEntity/ComputeServiceDependencies";
+import DatabaseServerService from "Common/Server/Services/DatabaseServerService";
+import {
+  MAX_DATABASE_ENDPOINT_ROWS,
+  computeDependenciesForProject,
+  discoverDatabaseServersForProject,
+} from "../../../../FeatureSet/Workers/Jobs/TelemetryEntity/ComputeServiceDependencies";
 
 const JOB_NAME: string = "TelemetryEntity:ComputeServiceDependencies";
 
@@ -101,6 +122,15 @@ const relationshipMock: { reconcileRelationships: jest.Mock } =
   InventoryItemRelationshipService as unknown as {
     reconcileRelationships: jest.Mock;
   };
+const databaseServerMock: {
+  findOrCreateByEndpoint: jest.Mock;
+  recordSighting: jest.Mock;
+  isUnderAutoCreateBudget: jest.Mock;
+} = DatabaseServerService as unknown as {
+  findOrCreateByEndpoint: jest.Mock;
+  recordSighting: jest.Mock;
+  isUnderAutoCreateBudget: jest.Mock;
+};
 
 function rows(data: Array<unknown>): {
   json: () => Promise<{ data: Array<unknown> }>;
@@ -118,10 +148,18 @@ interface Sources {
   traced?: Array<unknown> | Error;
   clients?: Array<unknown> | Error;
   graph?: Array<unknown> | Error;
+  // Rows of the database endpoint discovery query (routed by its marker).
+  databases?: Array<unknown> | Error;
 }
 
 function arrange(sources: Sources): void {
   spanMock.executeQuery.mockImplementation(async (sql: string) => {
+    if (sql.includes(DATABASE_ENDPOINT_SQL_MARKER)) {
+      if (sources.databases instanceof Error) {
+        throw sources.databases;
+      }
+      return rows(sources.databases || []);
+    }
     if (sql.includes("SELECT DISTINCT projectId")) {
       return rows(
         (sources.projects || []).map((projectId: string) => {
@@ -178,6 +216,13 @@ beforeEach(() => {
   ]);
   inventoryMock.reconcileEntities.mockResolvedValue(undefined);
   relationshipMock.reconcileRelationships.mockResolvedValue(undefined);
+  // Reset, not just cleared: a test below may swap an implementation.
+  databaseServerMock.findOrCreateByEndpoint.mockReset();
+  databaseServerMock.findOrCreateByEndpoint.mockResolvedValue(null);
+  databaseServerMock.recordSighting.mockReset();
+  databaseServerMock.recordSighting.mockResolvedValue(undefined);
+  databaseServerMock.isUnderAutoCreateBudget.mockReset();
+  databaseServerMock.isUnderAutoCreateBudget.mockResolvedValue(true);
 });
 
 const WINDOW: { projectId: string; startSql: string; endSql: string } = {
@@ -461,5 +506,565 @@ describe("the cron run", () => {
         return String(call[0]).includes("INNER JOIN");
       }),
     ).toBe(true);
+  });
+});
+
+/*
+ * ---- Databases from client spans --------------------------------------------
+ *
+ * The same run matches the database endpoints DB CLIENT spans call to their
+ * DatabaseServer rows (creating them conservatively) and sights them. It is
+ * an isolated step: it runs even when the window produced no edge, a failure
+ * on either side never costs the other its run, and it never touches the
+ * dependency queries or the Database registry identity.
+ */
+
+interface FindOrCreateArgs {
+  projectId: ObjectID;
+  dbSystem: string;
+  endpoint: {
+    host: string;
+    port: number | null;
+    kubernetesClusterName?: string;
+  };
+  discoverySource: DatabaseServerDiscoverySource;
+  allowCreate: boolean;
+}
+
+function databaseRow(
+  overrides: Record<string, unknown>,
+): Record<string, unknown> {
+  return {
+    dbSystem: "postgresql",
+    serverAddress: "orders.cjd8.eu-west-1.rds.amazonaws.com",
+    serverPort: "5432",
+    callerNamespace: "",
+    callerCluster: "",
+    callCount: "250",
+    ...overrides,
+  };
+}
+
+function findOrCreateCalls(): Array<FindOrCreateArgs> {
+  return databaseServerMock.findOrCreateByEndpoint.mock.calls.map(
+    (call: Array<unknown>): FindOrCreateArgs => {
+      return call[0] as FindOrCreateArgs;
+    },
+  );
+}
+
+function createAttempts(): Array<FindOrCreateArgs> {
+  return findOrCreateCalls().filter((args: FindOrCreateArgs): boolean => {
+    return args.allowCreate;
+  });
+}
+
+function databaseSql(): Array<string> {
+  return spanMock.executeQuery.mock.calls
+    .map((call: Array<unknown>): string => {
+      return String(call[0]);
+    })
+    .filter((sql: string): boolean => {
+      return sql.includes(DATABASE_ENDPOINT_SQL_MARKER);
+    });
+}
+
+// A stand-in for the real service: rows exist for `known`, created when allowed.
+function arrangeDatabaseRows(known: Array<string>): Set<string> {
+  const existing: Set<string> = new Set<string>(known);
+  databaseServerMock.findOrCreateByEndpoint.mockImplementation(
+    async (args: FindOrCreateArgs) => {
+      const endpoint: string = `${args.endpoint.host}:${args.endpoint.port}${
+        args.endpoint.kubernetesClusterName
+          ? `@${args.endpoint.kubernetesClusterName}`
+          : ""
+      }`;
+      if (existing.has(endpoint)) {
+        return { id: new ObjectID(`db-${endpoint}`) };
+      }
+      if (!args.allowCreate) {
+        return null;
+      }
+      existing.add(endpoint);
+      return { id: new ObjectID(`db-${endpoint}`) };
+    },
+  );
+  return existing;
+}
+
+describe("database servers from client spans", () => {
+  let savedMinCalls: string | undefined;
+
+  beforeEach(() => {
+    savedMinCalls = process.env[DATABASE_SERVER_MIN_CALLS_ENV];
+    delete process.env[DATABASE_SERVER_MIN_CALLS_ENV];
+  });
+
+  afterEach(() => {
+    if (savedMinCalls === undefined) {
+      delete process.env[DATABASE_SERVER_MIN_CALLS_ENV];
+    } else {
+      process.env[DATABASE_SERVER_MIN_CALLS_ENV] = savedMinCalls;
+    }
+  });
+
+  test("runs even when every dependency source is empty", async () => {
+    arrange({ databases: [databaseRow({})] });
+    arrangeDatabaseRows(["orders.cjd8.eu-west-1.rds.amazonaws.com:5432"]);
+
+    expect(await computeDependenciesForProject(WINDOW)).toBe(0);
+
+    expect(databaseServerMock.findOrCreateByEndpoint).toHaveBeenCalledTimes(1);
+    expect(databaseServerMock.recordSighting).toHaveBeenCalledTimes(1);
+    expect(databaseServerMock.recordSighting.mock.calls[0]![0].toString()).toBe(
+      new ObjectID(
+        "db-orders.cjd8.eu-west-1.rds.amazonaws.com:5432",
+      ).toString(),
+    );
+    // The edge side still wrote nothing.
+    expect(relationshipMock.reconcileRelationships).not.toHaveBeenCalled();
+    expect(inventoryMock.reconcileEntities).not.toHaveBeenCalled();
+  });
+
+  test("reads one bounded, project- and window-scoped query", async () => {
+    arrange({});
+
+    await computeDependenciesForProject(WINDOW);
+
+    const sql: Array<string> = databaseSql();
+    expect(sql).toHaveLength(1);
+    expect(sql[0]).toContain(`projectId = '${PROJECT_ID}'`);
+    expect(sql[0]).toContain(`startTime >= ${WINDOW.startSql}`);
+    expect(sql[0]).toContain(`startTime < ${WINDOW.endSql}`);
+    expect(sql[0]).toContain(`LIMIT ${MAX_DATABASE_ENDPOINT_ROWS}`);
+    expect(sql[0]).toContain("kind = 'SPAN_KIND_CLIENT'");
+  });
+
+  test("leaves the dependency queries exactly as they were", async () => {
+    arrange({});
+
+    await computeDependenciesForProject(WINDOW);
+
+    const dependencySql: Array<string> = spanMock.executeQuery.mock.calls
+      .map((call: Array<unknown>): string => {
+        return String(call[0]);
+      })
+      .filter((sql: string): boolean => {
+        return !sql.includes(DATABASE_ENDPOINT_SQL_MARKER);
+      });
+    // Trace-linked + client-span dependency queries, both untouched.
+    expect(dependencySql).toHaveLength(2);
+    for (const sql of dependencySql) {
+      expect(sql).not.toContain(DATABASE_ENDPOINT_SQL_MARKER);
+      expect(sql).not.toContain("resource.k8s.cluster.name");
+    }
+    expect(metricMock.executeQuery).toHaveBeenCalledTimes(1);
+  });
+
+  test("the Database registry identity of the edges is unchanged", async () => {
+    arrange({
+      clients: [
+        {
+          callerServiceId: IDS["api"],
+          dbSystem: "postgresql",
+          dbNamespace: "oneuptime",
+          serverAddress: "postgres.oneuptime.svc.cluster.local:5432",
+          callCount: "4000",
+          errorCount: "0",
+          avgDurationNano: "4000000",
+        },
+      ],
+      databases: [
+        databaseRow({
+          serverAddress: "postgres.oneuptime.svc.cluster.local",
+          callerCluster: "prod",
+          callCount: "4000",
+        }),
+      ],
+    });
+    arrangeDatabaseRows([]);
+
+    expect(await computeDependenciesForProject(WINDOW)).toBe(1);
+
+    const postgresKey: string = computeEntityKey({
+      projectId: PROJECT_ID,
+      entityType: EntityType.Database,
+      identifyingAttributes: {
+        "db.system.name": "postgresql",
+        "server.address": "postgres.oneuptime.svc.cluster.local",
+        "db.namespace": "oneuptime",
+      },
+    });
+    const registered: Array<{ entityType: EntityType; entityKey: string }> =
+      inventoryMock.reconcileEntities.mock.calls[0][0].entities;
+    expect(
+      registered.map(
+        (entity: { entityType: EntityType; entityKey: string }) => {
+          return [entity.entityType, entity.entityKey];
+        },
+      ),
+    ).toEqual([[EntityType.Database, postgresKey]]);
+    expect(reconciledEdges()[0]).toMatchObject({
+      fromEntityKey: API_KEY,
+      toEntityKey: postgresKey,
+    });
+
+    // …while the Databases product got its row under the canonical endpoint.
+    expect(createAttempts()).toHaveLength(1);
+    expect(createAttempts()[0]!.endpoint).toEqual({
+      host: "postgres.oneuptime.svc.cluster.local",
+      port: 5432,
+      kubernetesClusterName: "prod",
+    });
+  });
+
+  test("an existing row is matched WITHOUT create permission, sighted, and costs no budget query", async () => {
+    arrange({ databases: [databaseRow({ callCount: "1" })] });
+    arrangeDatabaseRows(["orders.cjd8.eu-west-1.rds.amazonaws.com:5432"]);
+
+    expect(
+      await discoverDatabaseServersForProject({
+        projectId: PROJECT_ID,
+        startSql: WINDOW.startSql,
+        endSql: WINDOW.endSql,
+      }),
+    ).toBe(1);
+
+    const calls: Array<FindOrCreateArgs> = findOrCreateCalls();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.allowCreate).toBe(false);
+    expect(calls[0]!.projectId.toString()).toBe(PROJECT_ID);
+    expect(calls[0]!.dbSystem).toBe("postgresql");
+    expect(calls[0]!.discoverySource).toBe(
+      DatabaseServerDiscoverySource.ClientSpans,
+    );
+    expect(calls[0]!.endpoint).toEqual({
+      host: "orders.cjd8.eu-west-1.rds.amazonaws.com",
+      port: 5432,
+    });
+    expect(databaseServerMock.isUnderAutoCreateBudget).not.toHaveBeenCalled();
+    expect(databaseServerMock.recordSighting).toHaveBeenCalledTimes(1);
+  });
+
+  test("a new, busy, global host endpoint of a known engine is created within budget and sighted", async () => {
+    arrange({ databases: [databaseRow({ dbSystem: "postgres" })] });
+    const existing: Set<string> = arrangeDatabaseRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(
+      findOrCreateCalls().map((args: FindOrCreateArgs): boolean => {
+        return args.allowCreate;
+      }),
+    ).toEqual([false, true]);
+    expect(createAttempts()[0]!.dbSystem).toBe("postgresql");
+    expect(
+      String(databaseServerMock.isUnderAutoCreateBudget.mock.calls[0]![0]),
+    ).toBe(PROJECT_ID);
+    expect(existing.has("orders.cjd8.eu-west-1.rds.amazonaws.com:5432")).toBe(
+      true,
+    );
+    expect(databaseServerMock.recordSighting).toHaveBeenCalledTimes(1);
+  });
+
+  const NEVER_CREATED: Array<{ why: string; row: Record<string, unknown> }> = [
+    {
+      why: "a LOCAL single-label name",
+      row: { serverAddress: "postgres", callerNamespace: "" },
+    },
+    {
+      why: "an unqualified cluster-local Service name",
+      row: {
+        serverAddress: "orders",
+        callerNamespace: "shop",
+        callerCluster: "",
+      },
+    },
+    { why: "a public IP literal", row: { serverAddress: "34.120.1.9" } },
+    {
+      why: "a cluster-qualified private IP",
+      row: { serverAddress: "10.0.0.5", callerCluster: "prod" },
+    },
+    {
+      why: "an unknown engine",
+      row: { dbSystem: "acmedb", serverAddress: "acme.example.com" },
+    },
+    {
+      why: "a cloud-API engine",
+      row: {
+        dbSystem: "aws.dynamodb",
+        serverAddress: "dynamodb.us-east-1.amazonaws.com",
+        serverPort: "443",
+      },
+    },
+    { why: "fewer calls than the minimum (10)", row: { callCount: "9" } },
+  ];
+
+  for (const entry of NEVER_CREATED) {
+    test(`never creates for ${entry.why}, but still looks it up`, async () => {
+      arrange({ databases: [databaseRow(entry.row)] });
+      arrangeDatabaseRows([]);
+
+      await computeDependenciesForProject(WINDOW);
+
+      expect(findOrCreateCalls()).toHaveLength(1);
+      expect(findOrCreateCalls()[0]!.allowCreate).toBe(false);
+      expect(createAttempts()).toHaveLength(0);
+      expect(databaseServerMock.isUnderAutoCreateBudget).not.toHaveBeenCalled();
+      expect(databaseServerMock.recordSighting).not.toHaveBeenCalled();
+    });
+  }
+
+  test("the call minimum is read from DATABASE_SERVER_MIN_CALLS", async () => {
+    process.env[DATABASE_SERVER_MIN_CALLS_ENV] = "3";
+    arrange({ databases: [databaseRow({ callCount: "5" })] });
+    arrangeDatabaseRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(createAttempts()).toHaveLength(1);
+  });
+
+  test("calls to one endpoint from several rows add up towards the minimum", async () => {
+    arrange({
+      databases: [
+        databaseRow({ serverAddress: "db.example.com", callCount: "4" }),
+        databaseRow({ serverAddress: "DB.example.com:5432", callCount: "6" }),
+      ],
+    });
+    arrangeDatabaseRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(createAttempts()).toHaveLength(1);
+    expect(createAttempts()[0]!.endpoint).toEqual({
+      host: "db.example.com",
+      port: 5432,
+    });
+  });
+
+  test("a cluster-qualified Service FQDN is created", async () => {
+    arrange({
+      databases: [
+        databaseRow({
+          serverAddress: "orders",
+          callerNamespace: "shop",
+          callerCluster: "prod-eu",
+        }),
+      ],
+    });
+    arrangeDatabaseRows([]);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(createAttempts()[0]!.endpoint).toEqual({
+      host: "orders.shop.svc.cluster.local",
+      port: 5432,
+      kubernetesClusterName: "prod-eu",
+    });
+  });
+
+  test("over budget: nothing is created, and the budget is asked once per project", async () => {
+    arrange({
+      databases: [
+        databaseRow({ serverAddress: "a.example.com" }),
+        databaseRow({ serverAddress: "b.example.com" }),
+      ],
+    });
+    arrangeDatabaseRows([]);
+    databaseServerMock.isUnderAutoCreateBudget.mockResolvedValue(false);
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(createAttempts()).toHaveLength(0);
+    expect(databaseServerMock.isUnderAutoCreateBudget).toHaveBeenCalledTimes(1);
+    expect(databaseServerMock.recordSighting).not.toHaveBeenCalled();
+  });
+
+  test("the budget is read again after every create", async () => {
+    arrange({
+      databases: [
+        databaseRow({ serverAddress: "a.example.com", callCount: "30" }),
+        databaseRow({ serverAddress: "b.example.com", callCount: "20" }),
+        databaseRow({ serverAddress: "c.example.com", callCount: "10" }),
+      ],
+    });
+    const existing: Set<string> = arrangeDatabaseRows([]);
+    databaseServerMock.isUnderAutoCreateBudget
+      .mockResolvedValueOnce(true)
+      .mockResolvedValueOnce(false);
+
+    await computeDependenciesForProject(WINDOW);
+
+    // Busiest first: a.example.com got the last slot.
+    expect(Array.from(existing)).toEqual(["a.example.com:5432"]);
+    expect(databaseServerMock.isUnderAutoCreateBudget).toHaveBeenCalledTimes(2);
+  });
+
+  test("an unreadable budget fails closed", async () => {
+    arrange({ databases: [databaseRow({})] });
+    arrangeDatabaseRows([]);
+    databaseServerMock.isUnderAutoCreateBudget.mockRejectedValue(
+      new Error("count timed out"),
+    );
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(createAttempts()).toHaveLength(0);
+    expect(logger.error as jest.Mock).toHaveBeenCalledWith(
+      expect.stringContaining("count timed out"),
+    );
+  });
+
+  test("loopback and unparseable addresses never reach the service", async () => {
+    arrange({
+      databases: [
+        databaseRow({ serverAddress: "localhost" }),
+        databaseRow({ serverAddress: "127.0.0.1" }),
+        databaseRow({ serverAddress: "[REDACTED]" }),
+      ],
+    });
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(databaseServerMock.findOrCreateByEndpoint).not.toHaveBeenCalled();
+  });
+
+  describe("isolation", () => {
+    test("a failing database query is logged and the edges are still computed", async () => {
+      arrange({
+        traced: [
+          {
+            callerServiceId: IDS["probe"],
+            calleeServiceId: IDS["api"],
+            callCount: 1,
+            errorCount: 0,
+            avgDurationNano: 1,
+          },
+        ],
+        databases: new Error("Memory limit exceeded (database)"),
+      });
+
+      expect(await computeDependenciesForProject(WINDOW)).toBe(1);
+
+      expect(relationshipMock.reconcileRelationships).toHaveBeenCalledTimes(1);
+      expect(logger.error as jest.Mock).toHaveBeenCalledTimes(1);
+      expect(logger.error as jest.Mock).toHaveBeenCalledWith(
+        expect.stringContaining("database endpoint discovery failed"),
+      );
+    });
+
+    test("failing dependency sources never stop the database step", async () => {
+      arrange({
+        traced: new Error("trace query failed"),
+        clients: new Error("client query failed"),
+        graph: new Error("graph query failed"),
+        databases: [databaseRow({})],
+      });
+      arrangeDatabaseRows(["orders.cjd8.eu-west-1.rds.amazonaws.com:5432"]);
+
+      expect(await computeDependenciesForProject(WINDOW)).toBe(0);
+
+      expect(databaseServerMock.recordSighting).toHaveBeenCalledTimes(1);
+      expect((logger.error as jest.Mock).mock.calls.length).toBe(3);
+    });
+
+    test("one endpoint failing is logged and the next endpoint is still sighted", async () => {
+      arrange({
+        databases: [
+          databaseRow({ serverAddress: "a.example.com", callCount: "30" }),
+          databaseRow({ serverAddress: "b.example.com", callCount: "20" }),
+        ],
+      });
+      databaseServerMock.findOrCreateByEndpoint.mockImplementation(
+        async (args: FindOrCreateArgs) => {
+          if (args.endpoint.host === "a.example.com") {
+            throw new Error("claim race lost badly");
+          }
+          return { id: new ObjectID("db-b") };
+        },
+      );
+
+      await computeDependenciesForProject(WINDOW);
+
+      expect(logger.error as jest.Mock).toHaveBeenCalledWith(
+        expect.stringContaining("a.example.com:5432"),
+      );
+      expect(logger.error as jest.Mock).toHaveBeenCalledWith(
+        expect.stringContaining("claim race lost badly"),
+      );
+      expect(databaseServerMock.recordSighting).toHaveBeenCalledTimes(1);
+      expect(
+        databaseServerMock.recordSighting.mock.calls[0]![0].toString(),
+      ).toBe(new ObjectID("db-b").toString());
+    });
+
+    test("a failing sighting is logged and the next endpoint continues", async () => {
+      arrange({
+        databases: [
+          databaseRow({ serverAddress: "a.example.com", callCount: "30" }),
+          databaseRow({ serverAddress: "b.example.com", callCount: "20" }),
+        ],
+      });
+      arrangeDatabaseRows(["a.example.com:5432", "b.example.com:5432"]);
+      databaseServerMock.recordSighting
+        .mockRejectedValueOnce(new Error("heartbeat failed"))
+        .mockResolvedValueOnce(undefined);
+
+      await expect(
+        discoverDatabaseServersForProject({
+          projectId: PROJECT_ID,
+          startSql: WINDOW.startSql,
+          endSql: WINDOW.endSql,
+        }),
+      ).resolves.toBe(1);
+
+      expect(databaseServerMock.recordSighting).toHaveBeenCalledTimes(2);
+      expect(logger.error as jest.Mock).toHaveBeenCalledWith(
+        expect.stringContaining("heartbeat failed"),
+      );
+    });
+
+    test("never rejects, whatever fails underneath it", async () => {
+      spanMock.executeQuery.mockImplementation(() => {
+        throw new Error("synchronous client failure");
+      });
+
+      await expect(
+        discoverDatabaseServersForProject({
+          projectId: PROJECT_ID,
+          startSql: WINDOW.startSql,
+          endSql: WINDOW.endSql,
+        }),
+      ).resolves.toBe(0);
+    });
+  });
+
+  test("the cron runs the database step for every project, even one whose edges fail", async () => {
+    arrange({
+      projects: [PROJECT_ID, OTHER_PROJECT_ID],
+      traced: [
+        {
+          callerServiceId: IDS["probe"],
+          calleeServiceId: IDS["api"],
+          callCount: 1,
+          errorCount: 0,
+          avgDurationNano: 1,
+        },
+      ],
+      databases: [databaseRow({})],
+    });
+    arrangeDatabaseRows(["orders.cjd8.eu-west-1.rds.amazonaws.com:5432"]);
+    serviceMock.findBy.mockRejectedValue(new Error("connection reset"));
+
+    await mockCapturedJobs[JOB_NAME]!();
+
+    const projectsQueried: Array<string> = databaseSql().map((sql: string) => {
+      return sql.match(/projectId = '([^']+)'/)![1]!;
+    });
+    expect(projectsQueried.sort()).toEqual(
+      [PROJECT_ID, OTHER_PROJECT_ID].sort(),
+    );
+    expect(databaseServerMock.recordSighting).toHaveBeenCalledTimes(2);
   });
 });

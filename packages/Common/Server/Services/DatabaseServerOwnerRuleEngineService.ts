@@ -104,7 +104,10 @@ class DatabaseServerOwnerRuleEngineServiceClass
    */
   @CaptureSpan()
   public async applyRulesToExistingResource(
-    data: ApplyRulesToExistingResourceData<DatabaseServer, DatabaseServerOwnerRule>,
+    data: ApplyRulesToExistingResourceData<
+      DatabaseServer,
+      DatabaseServerOwnerRule
+    >,
   ): Promise<RuleApplicationResult> {
     try {
       return await this.applyRules({
@@ -293,7 +296,8 @@ class DatabaseServerOwnerRuleEngineServiceClass
     await DatabaseServerFeedService.createDatabaseServerFeedItem({
       databaseServerId: databaseServer.id,
       projectId: databaseServer.projectId,
-      databaseServerFeedEventType: DatabaseServerFeedEventType.OwnerRuleExecuted,
+      databaseServerFeedEventType:
+        DatabaseServerFeedEventType.OwnerRuleExecuted,
       displayColor: Purple500,
       feedInfoInMarkdown: `👥 Owners were added to ${await DatabaseServerService.getDatabaseServerMarkdownLink(
         databaseServer.projectId,
@@ -322,7 +326,10 @@ class DatabaseServerOwnerRuleEngineServiceClass
       ],
       emptyResult: true,
       matchesLegacyRule: (legacyRule: DatabaseServerOwnerRule): boolean => {
-        return this.doesDatabaseServerMatchLegacyRule(databaseServer, legacyRule);
+        return this.doesDatabaseServerMatchLegacyRule(
+          databaseServer,
+          legacyRule,
+        );
       },
     });
   }
@@ -355,7 +362,11 @@ class DatabaseServerOwnerRuleEngineServiceClass
     if (
       rule.databaseServerNamePattern &&
       (!databaseServer.name ||
-        !this.testRegex(rule.databaseServerNamePattern, databaseServer.name, rule))
+        !this.testRegex(
+          rule.databaseServerNamePattern,
+          databaseServer.name,
+          rule,
+        ))
     ) {
       return false;
     }

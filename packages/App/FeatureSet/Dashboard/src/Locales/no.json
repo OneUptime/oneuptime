@@ -78,6 +78,8 @@
       "topologyDescription": "Se hvordan tjenestene og infrastrukturen din henger sammen.",
       "servicesTitle": "Tjenester",
       "servicesDescription": "Katalogiser hver tjeneste du kjører.",
+      "databasesTitle": "Databaser",
+      "databasesDescription": "Alle databaser applikasjonene dine spør mot, med motormålinger.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Overvåk Kubernetes-klynger.",
       "dockerTitle": "Docker",

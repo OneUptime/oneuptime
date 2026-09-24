@@ -347,11 +347,12 @@ describe("Products menu sections", () => {
     expect(resources.items).toEqual([
       "Inventory",
       "Services",
+      "Databases",
       "Real User Monitoring",
     ]);
   });
 
-  test("regrouping lost no product: all 40 are still listed exactly once", () => {
+  test("regrouping lost no product: all 41 are still listed exactly once", () => {
     openProductsMenu();
 
     const titles: Array<string> = readMenuSections().flatMap(
@@ -359,8 +360,8 @@ describe("Products menu sections", () => {
         return section.items;
       },
     );
-    expect(titles).toHaveLength(40);
-    expect(new Set(titles).size).toBe(40);
+    expect(titles).toHaveLength(41);
+    expect(new Set(titles).size).toBe(41);
   });
 });
 

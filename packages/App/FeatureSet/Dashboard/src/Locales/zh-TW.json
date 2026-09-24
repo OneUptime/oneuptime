@@ -78,6 +78,8 @@
       "topologyDescription": "查看您的服務與基礎設施如何連接。",
       "servicesTitle": "服務",
       "servicesDescription": "為運行的每個服務建立目錄。",
+      "databasesTitle": "資料庫",
+      "databasesDescription": "應用程式查詢的每個資料庫，以及引擎指標。",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "監測 Kubernetes 叢集。",
       "dockerTitle": "Docker",

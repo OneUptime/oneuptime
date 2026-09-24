@@ -113,6 +113,7 @@ const NAV_DESCRIPTION_KEYS: Array<string> = [
   "navbar.items.dashboardsDescription",
   "navbar.items.workflowsDescription",
   "navbar.items.projectSettingsDescription",
+  "navbar.items.databasesDescription",
 ];
 
 // Single words that are legitimately spelled the same in some languages.

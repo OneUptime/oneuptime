@@ -32,7 +32,12 @@ import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import MetricCatalog from "../Utils/MetricCatalog";
 import MetricsQueueService from "./Queue/MetricsQueueService";
-import OtelIngestBaseService from "./OtelIngestBaseService";
+import OtelIngestBaseService, {
+  DatabaseServerResourceResolution,
+} from "./OtelIngestBaseService";
+import DatabaseCallEntityKeyResolver, {
+  DatabaseCallerSource,
+} from "./DatabaseCallEntityKeys";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TELEMETRY_METRIC_FLUSH_BATCH_SIZE } from "../Config";
 import MetricPipelineRuleService, {
@@ -561,6 +566,19 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         continue;
       }
 
+      const sms: JSONArray = (rm["scopeMetrics"] as JSONArray) || [];
+
+      /*
+       * A database's engine telemetry (collector DB receiver, Database
+       * Agent) carries the host.name / os.type of the machine the collector
+       * runs on, not of anything it describes — the same batches
+       * autoDiscoverHost refuses. One that also carries host metrics is a
+       * host agent and is enriched as usual.
+       */
+      if (this.isDatabaseEngineResourceWithoutHostMetrics(ras, sms)) {
+        continue;
+      }
+
       let entry: HostEnrichmentEntry | undefined = aggregator.get(hostName);
       if (!entry) {
         entry = {
@@ -621,7 +639,6 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         );
       }
 
-      const sms: JSONArray = (rm["scopeMetrics"] as JSONArray) || [];
       const stats: {
         hasInfraSignal: boolean;
         cpuCores?: number;
@@ -751,6 +768,14 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
         metricCatalog.metricNameServiceNameMap;
       let totalMetricsProcessed: number = 0;
       const projectId: ObjectID = (req as TelemetryRequest).projectId;
+
+      /*
+       * `db.client.*` datapoints that name a database server get that
+       * server's endpoint key on their own row. Memoized for this request
+       * only — see DatabaseCallEntityKeys.
+       */
+      const databaseCallEntityKeys: DatabaseCallEntityKeyResolver =
+        new DatabaseCallEntityKeyResolver(projectId);
 
       /*
        * Hosts already heartbeated in this batch. The hostmetrics receiver
@@ -941,10 +966,22 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               resourceMetric["resource"] as JSONObject | undefined,
             );
 
+          const scopeMetricsForScan: JSONArray =
+            (resourceMetric["scopeMetrics"] as JSONArray) || [];
+
+          /*
+           * A collector-contrib DB receiver names itself in its scope
+           * (`.../receiver/postgresqlreceiver`); that engine is the hint
+           * the database gate needs to accept a receiver batch that
+           * carries no explicit `db.system.name`.
+           */
+          const databaseReceiverSystemHint: string | null =
+            this.getDatabaseReceiverSystemHintFromScopes(scopeMetricsForScan);
+
           /*
            * Auto-discover Kubernetes cluster, Docker host, Proxmox
-           * cluster, VMware vCenter and Ceph cluster from resource
-           * attributes. The lookups are independent — they read
+           * cluster, VMware vCenter, Ceph cluster and database server from
+           * resource attributes. The lookups are independent — they read
            * different attributes and don't share state — so issue them
            * concurrently to collapse per-resource latency.
            * autoDiscoverHost still has to wait below because it
@@ -959,7 +996,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             cephClusterId,
             dockerSwarmClusterId,
             iotFleetId,
+            databaseServerId,
           ]: [
+            ObjectID | null,
             ObjectID | null,
             ObjectID | null,
             ObjectID | null,
@@ -1001,7 +1040,25 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               projectId,
               attributes: resourceAttributes_raw,
             }),
+            this.autoDiscoverDatabaseServer({
+              projectId,
+              attributes: resourceAttributes_raw,
+              receiverSystemHint: databaseReceiverSystemHint,
+            }),
           ]);
+
+          /*
+           * The same pure gate autoDiscoverDatabaseServer ran: its endpoint
+           * keys this block's rows even when no row exists for it (a
+           * LOCAL-scope endpoint), and it names the rows.
+           */
+          const databaseServerResource: DatabaseServerResourceResolution | null =
+            this.resolveDatabaseServerResource({
+              attributes: resourceAttributes_raw,
+              receiverSystemHint: databaseReceiverSystemHint,
+            });
+          const databaseServerName: string | null =
+            this.getDatabaseServerDisplayName(databaseServerResource);
 
           /*
            * VMware identity lives in the RESOURCE attributes (one OTLP
@@ -1021,15 +1078,23 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            * totalMemoryBytes, processCount) — collapses everything
            * into a single Host upsert per resource batch.
            */
-          const scopeMetricsForScan: JSONArray =
-            (resourceMetric["scopeMetrics"] as JSONArray) || [];
-
           const hostInfraStats: {
             hasInfraSignal: boolean;
             cpuCores?: number;
             totalMemoryBytes?: number;
             processCount?: number;
           } = this.scanHostInfraStatsFromMetrics(scopeMetricsForScan);
+
+          /*
+           * A block that also carries host metrics (system.* / process.*)
+           * is a host agent that happens to scrape a database too: the
+           * Host is still discovered and stays primary, and the database
+           * only gets its key and stamp. Otherwise the database IS the
+           * resource — the Host gate refuses and the database routes the
+           * rows.
+           */
+          const primaryDatabaseServerId: ObjectID | null =
+            hostInfraStats.hasInfraSignal ? null : databaseServerId;
 
           const hostId: ObjectID | null = await this.autoDiscoverHost({
             projectId,
@@ -1038,6 +1103,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             dockerHostId,
             podmanHostId,
             kubernetesClusterId,
+            databaseServerId: primaryDatabaseServerId,
             cpuCores: hostInfraStats.cpuCores,
             totalMemoryBytes: hostInfraStats.totalMemoryBytes,
             processCount: hostInfraStats.processCount,
@@ -1076,6 +1142,11 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
               serverlessFunctionId,
               cloudResourceId,
               rumApplicationId,
+              databaseServerId: primaryDatabaseServerId,
+              databaseServerName,
+              databaseServerEndpoint: databaseServerResource
+                ? databaseServerResource.endpoint
+                : null,
               entityRefs: resourceEntityRefs,
             });
           const serviceName: string = serviceMetadata.serviceName;
@@ -1125,11 +1196,26 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                   clusterName: stampClusterName,
                 })
               : {}),
+            ...(databaseServerId && databaseServerName
+              ? TelemetryUtil.getAttributesForDatabaseServerIdAndName({
+                  databaseServerId,
+                  databaseServerName,
+                })
+              : {}),
             ...TelemetryUtil.getAttributes({
               items: resourceAttributes_raw,
               prefixKeysWithString: "resource",
             }),
           };
+
+          /*
+           * The calling application's side of `db.client.*` endpoint
+           * canonicalization (namespace, cluster), built lazily on this
+           * block's first such datapoint.
+           */
+          const databaseCaller: DatabaseCallerSource = new DatabaseCallerSource(
+            resourceAttributes,
+          );
 
           /*
            * Synthetic per-host heartbeat. Lets users alert on "host went
@@ -1618,6 +1704,18 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                             ? { isMonotonic: isMonotonic }
                             : {}),
                         });
+
+                        /*
+                         * A `db.client.*` datapoint that names a server
+                         * belongs to that database too. Read off the FINAL
+                         * row (after the pipeline rules), and added as a new
+                         * array — the row's entityKeys is the resource's
+                         * shared array until then.
+                         */
+                        databaseCallEntityKeys.appendToDatabaseClientMetricRow(
+                          metricRow,
+                          databaseCaller,
+                        );
 
                         dbMetrics.push(metricRow);
                         totalMetricsProcessed++;

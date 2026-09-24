@@ -199,8 +199,8 @@ describe("buildAffectedResourcesFacet maps each resource type to its relation", 
       },
     );
 
-    const options: Array<FilterChipDropdownOption> =
-      await alertFacet().loadOptions!(PROJECT_ID, "");
+    const options: Array<FilterChipDropdownOption> = await alertFacet()
+      .loadOptions!(PROJECT_ID, "");
 
     const database: FilterChipDropdownOption | undefined = options.find(
       (option: FilterChipDropdownOption): boolean => {
@@ -238,9 +238,7 @@ describe("buildAffectedResourcesFacet maps each resource type to its relation", 
     expect(matched.sort()).toEqual(["alert-1", "alert-3"]);
     const relations: Array<string> = getListMock.mock.calls.map(
       (call: Array<unknown>): string => {
-        return Object.keys(
-          (call[0] as { query: JSONObject }).query,
-        )
+        return Object.keys((call[0] as { query: JSONObject }).query)
           .filter((key: string): boolean => {
             return key !== "projectId";
           })

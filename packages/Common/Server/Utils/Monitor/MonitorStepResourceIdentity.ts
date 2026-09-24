@@ -439,6 +439,7 @@ export default class MonitorStepResourceIdentity {
       iotFleetNames: [],
       serviceIds: [],
       serviceNames: [],
+      databaseServerIds: [],
     };
   }
 

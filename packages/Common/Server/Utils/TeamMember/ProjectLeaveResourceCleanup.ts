@@ -15,6 +15,7 @@ import CephClusterOwnerUserService from "../../Services/CephClusterOwnerUserServ
 import CloudResourceOwnerUserService from "../../Services/CloudResourceOwnerUserService";
 import DashboardOwnerUserService from "../../Services/DashboardOwnerUserService";
 import DatabaseService from "../../Services/DatabaseService";
+import DatabaseServerOwnerUserService from "../../Services/DatabaseServerOwnerUserService";
 import DockerHostOwnerUserService from "../../Services/DockerHostOwnerUserService";
 import DockerSwarmClusterOwnerUserService from "../../Services/DockerSwarmClusterOwnerUserService";
 import HostOwnerUserService from "../../Services/HostOwnerUserService";
@@ -147,6 +148,7 @@ export default class ProjectLeaveResourceCleanup {
       ownerUserTable(CephClusterOwnerUserService, "cephClusterId"),
       ownerUserTable(CloudResourceOwnerUserService, "cloudResourceId"),
       ownerUserTable(DashboardOwnerUserService, "dashboardId"),
+      ownerUserTable(DatabaseServerOwnerUserService, "databaseServerId"),
       ownerUserTable(DockerHostOwnerUserService, "dockerHostId"),
       ownerUserTable(
         DockerSwarmClusterOwnerUserService,

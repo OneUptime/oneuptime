@@ -104,6 +104,7 @@ export default class MonitorResourceContextUtil {
       cephClusterIds: [],
       dockerSwarmClusterIds: [],
       iotFleetIds: [],
+      databaseServerIds: [],
     };
   }
 }

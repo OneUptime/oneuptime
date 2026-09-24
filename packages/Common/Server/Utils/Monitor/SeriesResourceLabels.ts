@@ -1,4 +1,5 @@
 import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
 
 /*
  * A grouped metric monitor (e.g. group-by `resource.host.name`) emits
@@ -156,6 +157,30 @@ export const IoTFleetNameLabelKeys: ReadonlyArray<string> = [
 ];
 
 /*
+ * Database identity rides the `oneuptime.database.server.id` stamp ingest
+ * adds to a database's own telemetry (collector / Database Agent receiver
+ * batches — see Telemetry.getAttributesForDatabaseServerIdAndName) and its
+ * ClickHouse `resource.`-prefixed twin, which the Database Agent also sets
+ * as an input resource attribute. Id keys only, on purpose: the
+ * `oneuptime.database.server.name` stamp is a display name ("PostgreSQL
+ * db.prod:5432"), which is neither unique per project (it drops the
+ * endpoint's `@cluster` qualifier, and the same namespace/workload can run
+ * in two clusters) nor stable (users rename databases). Resolving it would
+ * link an incident to — and let maintenance on one database silence — every
+ * same-named database. A monitor that should link its events to a database
+ * groups (or filters) by `oneuptime.database.server.id`.
+ *
+ * Unlike the host id stamp, the `resource.`-prefixed value can be typed by a
+ * user (the agent's DATABASE_SERVER_ID), so extractResourceRefs keeps only
+ * UUID-shaped values: a malformed one would make the primary-key lookup
+ * throw out of alert / incident creation.
+ */
+export const DatabaseServerIdLabelKeys: ReadonlyArray<string> = [
+  "resource.oneuptime.database.server.id",
+  "oneuptime.database.server.id",
+];
+
+/*
  * Services come from OTel-ingested telemetry. The ingest pipeline
  * auto-creates a Service row keyed by `service.name`, so any series
  * label carrying that attribute (raw or prefixed) tells us the emitting
@@ -211,6 +236,7 @@ export const AllResourceIdentityLabelKeys: ReadonlyArray<string> = [
   ...VMwareVCenterNameLabelKeys,
   ...CephClusterNameLabelKeys,
   ...IoTFleetNameLabelKeys,
+  ...DatabaseServerIdLabelKeys,
   ...ServiceIdLabelKeys,
   ...ServiceNameLabelKeys,
 ];
@@ -238,6 +264,8 @@ export interface SeriesResourceRefs {
   iotFleetNames: Array<string>;
   serviceIds: Array<string>;
   serviceNames: Array<string>;
+  // Id-only: see DatabaseServerIdLabelKeys for why there is no name list.
+  databaseServerIds: Array<string>;
 }
 
 export default class SeriesResourceLabels {
@@ -324,6 +352,12 @@ export default class SeriesResourceLabels {
       ),
       serviceIds: this.collectLabelValues(seriesLabels, ServiceIdLabelKeys),
       serviceNames: this.collectLabelValues(seriesLabels, ServiceNameLabelKeys),
+      databaseServerIds: this.collectLabelValues(
+        seriesLabels,
+        DatabaseServerIdLabelKeys,
+      ).filter((value: string): boolean => {
+        return ObjectID.isValidUUID(value);
+      }),
     };
   }
 }

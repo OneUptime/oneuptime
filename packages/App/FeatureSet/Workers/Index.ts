@@ -255,6 +255,12 @@ import "./Jobs/Cloud/CleanupStaleResources";
 // Serverless function disconnection sweeper + instance inventory cleanup.
 import "./Jobs/Serverless/CleanupStaleResources";
 
+// Database collector disconnection sweeper + auto-archive of stale discovered databases.
+import "./Jobs/DatabaseServer/CleanupStaleResources";
+
+// Database workload discovery on connected Kubernetes clusters and Docker / Podman hosts.
+import "./Jobs/DatabaseServer/DiscoverContainerDatabases";
+
 // Telemetry entity registry: TTL prune + span-derived service map edges.
 import "./Jobs/TelemetryEntity/PruneStaleEntities";
 import "./Jobs/TelemetryEntity/ComputeServiceDependencies";

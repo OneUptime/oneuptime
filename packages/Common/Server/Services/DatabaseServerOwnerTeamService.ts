@@ -82,7 +82,8 @@ export class Service extends DatabaseService<Model> {
       await DatabaseServerFeedService.createDatabaseServerFeedItem({
         databaseServerId: databaseServerId,
         projectId: projectId,
-        databaseServerFeedEventType: DatabaseServerFeedEventType.OwnerTeamRemoved,
+        databaseServerFeedEventType:
+          DatabaseServerFeedEventType.OwnerTeamRemoved,
         displayColor: Red500,
         feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Removed team **${team.name}** as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
           projectId,
@@ -121,7 +122,8 @@ export class Service extends DatabaseService<Model> {
         await DatabaseServerFeedService.createDatabaseServerFeedItem({
           databaseServerId: databaseServerId,
           projectId: projectId,
-          databaseServerFeedEventType: DatabaseServerFeedEventType.OwnerTeamAdded,
+          databaseServerFeedEventType:
+            DatabaseServerFeedEventType.OwnerTeamAdded,
           displayColor: Gray500,
           feedInfoInMarkdown: `👨🏻‍👩🏻‍👦🏻 Added team **${team.name}** as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
             projectId,

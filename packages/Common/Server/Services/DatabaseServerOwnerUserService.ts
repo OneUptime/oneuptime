@@ -83,7 +83,8 @@ export class Service extends DatabaseService<Model> {
       await DatabaseServerFeedService.createDatabaseServerFeedItem({
         databaseServerId: databaseServerId,
         projectId: projectId,
-        databaseServerFeedEventType: DatabaseServerFeedEventType.OwnerUserRemoved,
+        databaseServerFeedEventType:
+          DatabaseServerFeedEventType.OwnerUserRemoved,
         displayColor: Red500,
         feedInfoInMarkdown: `👨🏻‍💻 Removed **${user.name.toString()}** (${user.email?.toString()}) as an owner of ${await DatabaseServerService.getDatabaseServerMarkdownLink(
           projectId,

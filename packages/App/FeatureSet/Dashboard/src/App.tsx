@@ -234,6 +234,9 @@ const ServerlessRoutes: LazyRoutes = lazy(() => {
 const CloudResourceRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/CloudResourceRoutes");
 });
+const DatabaseRoutes: LazyRoutes = lazy(() => {
+  return import("./Routes/DatabaseRoutes");
+});
 const RumApplicationRoutes: LazyRoutes = lazy(() => {
   return import("./Routes/RumApplicationRoutes");
 });
@@ -745,6 +748,12 @@ const App: () => JSX.Element = () => {
             <PageRoute
               path={RouteMap[PageMap.CLOUD_ROOT]?.toString() || ""}
               element={<CloudResourceRoutes {...commonPageProps} />}
+            />
+
+            {/* Databases */}
+            <PageRoute
+              path={RouteMap[PageMap.DATABASE_ROOT]?.toString() || ""}
+              element={<DatabaseRoutes {...commonPageProps} />}
             />
 
             {/* Real User Monitoring */}

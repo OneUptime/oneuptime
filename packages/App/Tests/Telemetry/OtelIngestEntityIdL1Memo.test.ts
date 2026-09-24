@@ -43,6 +43,7 @@ import OtelIngestBaseService from "../../FeatureSet/Telemetry/Services/OtelInges
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import CephClusterService from "Common/Server/Services/CephClusterService";
 import CloudResourceService from "Common/Server/Services/CloudResourceService";
+import DatabaseServerService from "Common/Server/Services/DatabaseServerService";
 import DockerHostService from "Common/Server/Services/DockerHostService";
 import DockerSwarmClusterService from "Common/Server/Services/DockerSwarmClusterService";
 import HostService from "Common/Server/Services/HostService";
@@ -218,6 +219,27 @@ const DISCOVER_CASES: Array<DiscoverCase> = [
       method: "findOrCreateByResourceIdentifier",
     },
     maintenance: { service: CloudResourceService, method: "updateLastSeen" },
+  },
+  {
+    name: "autoDiscoverDatabaseServer",
+    method: "autoDiscoverDatabaseServer",
+    namespace: "database-server-id",
+    /*
+     * An explicit stamp (engine + a global-scope address), so the case needs
+     * no receiver hint and runs through the endpoint path.
+     */
+    attributes: [
+      stringAttribute("db.system.name", "postgresql"),
+      stringAttribute("server.address", "orders-db.example.com"),
+    ] as JSONArray,
+    findOrCreate: {
+      service: DatabaseServerService,
+      method: "findOrCreateByEndpoint",
+    },
+    maintenance: {
+      service: DatabaseServerService,
+      method: "recordCollectorHeartbeat",
+    },
   },
   {
     name: "autoDiscoverRum",

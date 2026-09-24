@@ -90,7 +90,10 @@ class DatabaseServerLabelRuleEngineServiceClass
    */
   @CaptureSpan()
   public async applyRulesToExistingResource(
-    data: ApplyRulesToExistingResourceData<DatabaseServer, DatabaseServerLabelRule>,
+    data: ApplyRulesToExistingResourceData<
+      DatabaseServer,
+      DatabaseServerLabelRule
+    >,
   ): Promise<RuleApplicationResult> {
     try {
       return await this.applyRules({
@@ -216,7 +219,8 @@ class DatabaseServerLabelRuleEngineServiceClass
     await DatabaseServerFeedService.createDatabaseServerFeedItem({
       databaseServerId: databaseServer.id,
       projectId: databaseServer.projectId,
-      databaseServerFeedEventType: DatabaseServerFeedEventType.LabelRuleExecuted,
+      databaseServerFeedEventType:
+        DatabaseServerFeedEventType.LabelRuleExecuted,
       displayColor: Purple500,
       feedInfoInMarkdown: `🏷️ ${newLabelIds.length} label(s) were attached to ${await DatabaseServerService.getDatabaseServerMarkdownLink(
         databaseServer.projectId,
@@ -245,7 +249,10 @@ class DatabaseServerLabelRuleEngineServiceClass
       ],
       emptyResult: true,
       matchesLegacyRule: (legacyRule: DatabaseServerLabelRule): boolean => {
-        return this.doesDatabaseServerMatchLegacyRule(databaseServer, legacyRule);
+        return this.doesDatabaseServerMatchLegacyRule(
+          databaseServer,
+          legacyRule,
+        );
       },
     });
   }
@@ -278,7 +285,11 @@ class DatabaseServerLabelRuleEngineServiceClass
     if (
       rule.databaseServerNamePattern &&
       (!databaseServer.name ||
-        !this.testRegex(rule.databaseServerNamePattern, databaseServer.name, rule))
+        !this.testRegex(
+          rule.databaseServerNamePattern,
+          databaseServer.name,
+          rule,
+        ))
     ) {
       return false;
     }

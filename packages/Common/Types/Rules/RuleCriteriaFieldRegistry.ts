@@ -122,6 +122,16 @@ export const RULE_CRITERIA_FIELDS_BY_MODEL: Readonly<
     "dashboardNamePattern",
     "dashboardDescriptionPattern",
   ],
+  DatabaseServerLabelRule: [
+    "databaseServerLabels",
+    "databaseServerNamePattern",
+    "databaseServerDescriptionPattern",
+  ],
+  DatabaseServerOwnerRule: [
+    "databaseServerLabels",
+    "databaseServerNamePattern",
+    "databaseServerDescriptionPattern",
+  ],
   DockerHostLabelRule: [
     "dockerHostLabels",
     "dockerHostNamePattern",

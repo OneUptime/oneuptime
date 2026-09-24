@@ -78,6 +78,8 @@
       "topologyDescription": "Veja como seus serviços e sua infraestrutura se conectam.",
       "servicesTitle": "Serviços",
       "servicesDescription": "Catalogue cada serviço que você executa.",
+      "databasesTitle": "Bancos de dados",
+      "databasesDescription": "Todos os bancos de dados que seus aplicativos consultam, com métricas do mecanismo.",
       "kubernetesTitle": "Kubernetes",
       "kubernetesDescription": "Monitore clusters Kubernetes.",
       "dockerTitle": "Docker",

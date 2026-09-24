@@ -659,7 +659,10 @@ describe("ResourceEntityFilter", () => {
       },
       // A legacy port-less alias: the engine default port applies.
       { databaseServerId: RESOURCE_ID, endpoint: "pg-replica.example.com" },
-      { databaseServerId: OTHER_RESOURCE_ID, endpoint: "cache.example.com:6379" },
+      {
+        databaseServerId: OTHER_RESOURCE_ID,
+        endpoint: "cache.example.com:6379",
+      },
     ];
 
     function endpointsOf(id: string): Array<string> {
@@ -945,7 +948,11 @@ describe("ResourceEntityFilter", () => {
     test("the same endpoint key reached twice is bound once", async () => {
       databaseServerFindBy.mockResolvedValue([
         { _id: RESOURCE_ID, dbSystem: "postgresql", memberEntityKeys: {} },
-        { _id: OTHER_RESOURCE_ID, dbSystem: "postgresql", memberEntityKeys: {} },
+        {
+          _id: OTHER_RESOURCE_ID,
+          dbSystem: "postgresql",
+          memberEntityKeys: {},
+        },
       ]);
       // Port-less and explicit-default forms name the same listener.
       databaseServerEndpointFindBy.mockResolvedValue([

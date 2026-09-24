@@ -14,6 +14,7 @@ import Incident from "../../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import AlertService from "../../../../Server/Services/AlertService";
 import CephClusterService from "../../../../Server/Services/CephClusterService";
+import DatabaseServerService from "../../../../Server/Services/DatabaseServerService";
 import DockerHostService from "../../../../Server/Services/DockerHostService";
 import DockerSwarmClusterService from "../../../../Server/Services/DockerSwarmClusterService";
 import HostService from "../../../../Server/Services/HostService";
@@ -152,6 +153,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     cephClusterIds: [],
     dockerSwarmClusterIds: [],
     iotFleetIds: [],
+    databaseServerIds: [],
   };
 }
 
@@ -173,6 +175,7 @@ describe("Alerts link the resources their series identifies", () => {
   let cephClusterRows: Array<{ _id: string }> = [];
   let dockerSwarmClusterRows: Array<{ _id: string }> = [];
   let iotFleetRows: Array<{ _id: string }> = [];
+  let databaseServerRows: Array<{ _id: string }> = [];
 
   let resourceContext: SeriesResolvedResourceIds;
 
@@ -190,6 +193,7 @@ describe("Alerts link the resources their series identifies", () => {
     cephClusterRows = [];
     dockerSwarmClusterRows = [];
     iotFleetRows = [];
+    databaseServerRows = [];
 
     resourceContext = emptyResourceContext();
 
@@ -249,6 +253,9 @@ describe("Alerts link the resources their series identifies", () => {
       });
     jest.spyOn(IoTFleetService, "findBy").mockImplementation(async () => {
       return iotFleetRows as never;
+    });
+    jest.spyOn(DatabaseServerService, "findBy").mockImplementation(async () => {
+      return databaseServerRows as never;
     });
 
     jest
@@ -336,6 +343,7 @@ describe("Alerts link the resources their series identifies", () => {
     cephClusterRows = [{ _id: "ceph-1" }];
     dockerSwarmClusterRows = [{ _id: "swarm-1" }];
     iotFleetRows = [{ _id: "fleet-1" }];
+    databaseServerRows = [{ _id: "d0000000-0000-4000-8000-000000000001" }];
 
     await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
       criteriaInstance: criteriaInstance(),
@@ -356,6 +364,8 @@ describe("Alerts link the resources their series identifies", () => {
             "ceph.cluster.name": "ceph",
             "docker.swarm.cluster.name": "swarm",
             "iot.fleet.name": "fleet",
+            "oneuptime.database.server.id":
+              "d0000000-0000-4000-8000-000000000001",
           },
           "fp-1",
         ),
@@ -375,6 +385,115 @@ describe("Alerts link the resources their series identifies", () => {
     expect(idsOn(alert.cephClusters)).toEqual(["ceph-1"]);
     expect(idsOn(alert.dockerSwarmClusters)).toEqual(["swarm-1"]);
     expect(idsOn(alert.iotFleets)).toEqual(["fleet-1"]);
+    expect(idsOn(alert.databaseServers)).toEqual([
+      "d0000000-0000-4000-8000-000000000001",
+    ]);
+  });
+
+  it("links the database when the series is grouped by oneuptime.database.server.id", async () => {
+    /*
+     * A metric monitor over a database's own engine metrics (collector /
+     * Database Agent), grouped by the stamp ingest puts on every such row.
+     */
+    databaseServerRows = [{ _id: "d0000000-0000-4000-8000-000000000001" }];
+
+    await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: monitor(),
+      dataToProcess: dataToProcess,
+      rootCause: "Connections are above 90% of max_connections",
+      autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
+      matchesPerSeries: [
+        series(
+          {
+            "oneuptime.database.server.id":
+              "d0000000-0000-4000-8000-000000000001",
+            "oneuptime.database.server.name": "PostgreSQL db.prod:5432",
+          },
+          "fp-1",
+        ),
+      ],
+      props: {},
+    });
+
+    expect(createdAlerts).toHaveLength(1);
+    expect(idsOn(createdAlerts[0]!.databaseServers)).toEqual([
+      "d0000000-0000-4000-8000-000000000001",
+    ]);
+    // A database batch names no host; nothing else may be linked.
+    expect(createdAlerts[0]!.hosts).toBeUndefined();
+    expect(createdAlerts[0]!.services).toBeUndefined();
+  });
+
+  it("gives each database series its own database", async () => {
+    jest.spyOn(DatabaseServerService, "findBy").mockImplementation((async (
+      args: unknown,
+    ): Promise<Array<{ _id: string | undefined }>> => {
+      const query: JSONObject = (args as { query: JSONObject }).query;
+      const includes: { values?: Array<string> } = query["_id"] as {
+        values?: Array<string>;
+      };
+      return [{ _id: String((includes.values || [])[0]) }];
+    }) as never);
+
+    await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: monitor(),
+      dataToProcess: dataToProcess,
+      rootCause: "Replication lag is above 30s",
+      autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
+      matchesPerSeries: [
+        series(
+          {
+            "oneuptime.database.server.id":
+              "d0000000-0000-4000-8000-00000000000a",
+          },
+          "fp-1",
+        ),
+        series(
+          {
+            "oneuptime.database.server.id":
+              "d0000000-0000-4000-8000-00000000000b",
+          },
+          "fp-2",
+        ),
+      ],
+      props: {},
+    });
+
+    expect(createdAlerts).toHaveLength(2);
+    expect(idsOn(createdAlerts[0]!.databaseServers)).toEqual([
+      "d0000000-0000-4000-8000-00000000000a",
+    ]);
+    expect(idsOn(createdAlerts[1]!.databaseServers)).toEqual([
+      "d0000000-0000-4000-8000-00000000000b",
+    ]);
+  });
+
+  it("still attaches the step-config database to an ungrouped alert", async () => {
+    /*
+     * An ungrouped metric monitor scoped by the attribute filter
+     * `oneuptime.database.server.id = …` names the database only through
+     * its step config (MonitorStepResourceIdentity → MonitorResourceContext).
+     */
+    resourceContext = {
+      ...emptyResourceContext(),
+      databaseServerIds: ["d0000000-0000-4000-8000-000000000001"],
+    };
+
+    await MonitorAlert.criteriaMetCreateAlertsAndUpdateMonitorStatus({
+      criteriaInstance: criteriaInstance(),
+      monitor: monitor(),
+      dataToProcess: dataToProcess,
+      rootCause: "Deadlocks detected",
+      autoResolveCriteriaInstanceIdAlertIdsDictionary: NO_AUTO_RESOLVE,
+      props: {},
+    });
+
+    expect(idsOn(createdAlerts[0]!.databaseServers)).toEqual([
+      "d0000000-0000-4000-8000-000000000001",
+    ]);
+    expect(DatabaseServerService.findBy).not.toHaveBeenCalled();
   });
 
   it("gives each series its own resource, with no cross-contamination", async () => {

@@ -447,6 +447,50 @@ interface Props {
    * for incident embeds. Standalone explorer pages leave this unset.
    */
   disableUrlSync?: boolean | undefined;
+  /*
+   * Row click behaviour. By default a row opens the metric in the explorer
+   * (METRIC_VIEW), carrying the list's ATTRIBUTE scope. An entity-key scope
+   * cannot travel there — the explorer charts by attribute filters only
+   * (`entityKeys` reaches it just as the event-overlay scope) — so a list
+   * scoped by `entityKeysFilter` alone, like a Database page, would open a
+   * chart of the metric across the whole project.
+   *
+   * `onMetricClick` hands the click to the host instead (e.g. to chart the
+   * metric in place with its own entity-key scope). `disableMetricDrillDown`
+   * makes rows plain, non-interactive entries. `onMetricClick` wins when
+   * both are set.
+   */
+  onMetricClick?: ((metric: MetricType) => void) | undefined;
+  disableMetricDrillDown?: boolean | undefined;
+}
+
+/*
+ * What a row click does (see Props.onMetricClick / disableMetricDrillDown):
+ * the host's handler, nothing (undefined — the row renders as a plain,
+ * non-interactive entry), or the default explorer navigation.
+ */
+export function getMetricRowClickHandler(data: {
+  metric: MetricType;
+  onMetricClick?: ((metric: MetricType) => void) | undefined;
+  disableMetricDrillDown?: boolean | undefined;
+  navigate: (metric: MetricType) => void;
+}): (() => void) | undefined {
+  const onMetricClick: ((metric: MetricType) => void) | undefined =
+    data.onMetricClick;
+
+  if (onMetricClick) {
+    return (): void => {
+      onMetricClick(data.metric);
+    };
+  }
+
+  if (data.disableMetricDrillDown) {
+    return undefined;
+  }
+
+  return (): void => {
+    data.navigate(data.metric);
+  };
 }
 
 const MetricsViewer: FunctionComponent<Props> = (
@@ -1660,9 +1704,12 @@ const MetricsViewer: FunctionComponent<Props> = (
             sparklineLoading={sparklineLoading}
             lastValue={sparklineLastValue[name]}
             serviceIds={props.serviceIdsToDisplay}
-            onClick={() => {
-              handleRowClick(metric);
-            }}
+            onClick={getMetricRowClickHandler({
+              metric,
+              onMetricClick: props.onMetricClick,
+              disableMetricDrillDown: props.disableMetricDrillDown,
+              navigate: handleRowClick,
+            })}
           />
         );
       }}

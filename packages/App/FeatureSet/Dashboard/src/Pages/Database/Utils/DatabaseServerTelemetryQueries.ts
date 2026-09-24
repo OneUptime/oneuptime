@@ -1,9 +1,6 @@
 import { getDatabaseServerEntityKeysQueryValue } from "./DatabaseTelemetryScope";
 import Metric from "Common/Models/AnalyticsModels/Metric";
-import Span, {
-  SpanKind,
-  SpanStatus,
-} from "Common/Models/AnalyticsModels/Span";
+import Span, { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
@@ -253,8 +250,7 @@ export function counterSeriesToRatePerSecond(
   for (let i: number = 1; i < sorted.length; i++) {
     const previous: DatabaseTimePoint = sorted[i - 1]!;
     const current: DatabaseTimePoint = sorted[i]!;
-    const seconds: number =
-      (current.x.getTime() - previous.x.getTime()) / 1000;
+    const seconds: number = (current.x.getTime() - previous.x.getTime()) / 1000;
     const delta: number = current.y - previous.y;
     if (seconds <= 0 || delta < 0) {
       continue;
@@ -539,19 +535,17 @@ export async function fetchDatabaseMetricSeries(
   }
 
   try {
-    const result: AggregatedResult = await AnalyticsModelAPI.aggregate<Metric>(
-      {
-        modelType: Metric,
-        aggregateBy: aggregateBy<Metric>({
-          query: query,
-          aggregationType: window.aggregationType,
-          aggregateColumnName: "value",
-          timestampColumnName: "time",
-          start: window.start,
-          end: window.end,
-        }),
-      },
-    );
+    const result: AggregatedResult = await AnalyticsModelAPI.aggregate<Metric>({
+      modelType: Metric,
+      aggregateBy: aggregateBy<Metric>({
+        query: query,
+        aggregationType: window.aggregationType,
+        aggregateColumnName: "value",
+        timestampColumnName: "time",
+        start: window.start,
+        end: window.end,
+      }),
+    });
     return aggregatedResultToTimePoints(result);
   } catch {
     return [];

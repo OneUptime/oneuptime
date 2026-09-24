@@ -12,6 +12,7 @@ import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerResource from "../../../Models/DatabaseModels/DockerResource";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -40,6 +41,7 @@ import AlertSeverityService from "../../../Server/Services/AlertSeverityService"
 import AlertStateService from "../../../Server/Services/AlertStateService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
+import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import DockerHostService from "../../../Server/Services/DockerHostService";
 import DockerResourceService from "../../../Server/Services/DockerResourceService";
 import DockerSwarmClusterService from "../../../Server/Services/DockerSwarmClusterService";
@@ -220,6 +222,17 @@ const RESOURCE_LISTS: Array<ResourceList> = [
     PodmanResourceService,
   ),
   resourceList(14, "services", "Service", ServiceModel, ServiceService),
+  /*
+   * Appended, not inserted next to cephClusters: tests below address
+   * services as RESOURCE_LISTS[13].
+   */
+  resourceList(
+    15,
+    "databaseServers",
+    "Database",
+    DatabaseServer,
+    DatabaseServerService,
+  ),
 ];
 
 function hostList(): ResourceList {

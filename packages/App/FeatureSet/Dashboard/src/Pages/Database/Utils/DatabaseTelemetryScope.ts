@@ -56,7 +56,9 @@ export interface DatabaseServerScopeSource {
 export const DATABASE_ENDPOINT_CHIP_KEY: string = "Database Endpoint";
 export const DATABASE_MEMBER_CHIP_KEY: string = "Database Instance";
 
-function projectIdText(projectId: DatabaseServerScopeSource["projectId"]): string {
+function projectIdText(
+  projectId: DatabaseServerScopeSource["projectId"],
+): string {
   if (!projectId) {
     return "";
   }
@@ -161,7 +163,9 @@ export function buildDatabaseServerEntityKeyDisplays(
     return displays;
   }
 
-  for (const item of Array.isArray(source.endpoints) ? source.endpoints : []) {
+  const items: Array<string | { endpoint?: string | null | undefined }> =
+    Array.isArray(source.endpoints) ? source.endpoints : [];
+  for (const item of items) {
     const value: unknown =
       item && typeof item === "object"
         ? (item as { endpoint?: unknown }).endpoint
@@ -208,9 +212,9 @@ export function getDatabaseServerFormattedEndpoints(
   source: DatabaseServerScopeSource | null | undefined,
 ): Array<string> {
   const formatted: Array<string> = [];
-  for (const item of Array.isArray(source?.endpoints)
-    ? source!.endpoints
-    : []) {
+  const items: Array<string | { endpoint?: string | null | undefined }> =
+    source && Array.isArray(source.endpoints) ? source.endpoints : [];
+  for (const item of items) {
     const value: unknown =
       item && typeof item === "object"
         ? (item as { endpoint?: unknown }).endpoint

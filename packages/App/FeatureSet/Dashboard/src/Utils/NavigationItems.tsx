@@ -413,6 +413,40 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       iconColor: "indigo",
       category: resourcesCategory,
     },
+    /*
+     * Databases span every platform (traces, Kubernetes, Docker, Podman, the
+     * Database Agent), so they sit with the cross-platform catalogs rather
+     * than in Infrastructure. Keep the copy and keywords clear of the short
+     * aliases of Real User Monitoring and Kubernetes: searching either alias
+     * must still narrow the catalog to exactly one product.
+     */
+    {
+      title: t("navbar.items.databasesTitle", "Databases"),
+      keywords: [
+        "database",
+        "db",
+        "postgres",
+        "postgresql",
+        "mysql",
+        "mariadb",
+        "redis",
+        "valkey",
+        "mongodb",
+        "sql server",
+        "database monitoring",
+      ],
+      description: t(
+        "navbar.items.databasesDescription",
+        "Every database your applications query, with engine metrics.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.DATABASE_SERVERS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.DATABASE_SERVERS],
+      icon: IconProp.Database,
+      iconColor: "indigo",
+      category: resourcesCategory,
+    },
     {
       title: t("navbar.items.rumTitle"),
       keywords: [

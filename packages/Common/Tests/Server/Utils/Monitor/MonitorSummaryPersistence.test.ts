@@ -144,6 +144,7 @@ describe("The monitor summary is stored on the incident / alert it created", () 
         cephClusterIds: [],
         dockerSwarmClusterIds: [],
         iotFleetIds: [],
+        databaseServerIds: [],
       });
 
     jest

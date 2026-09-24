@@ -25,6 +25,7 @@ import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import ProxmoxCluster from "../../Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
 import CephCluster from "../../Models/DatabaseModels/CephCluster";
+import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
 import DockerSwarmCluster from "../../Models/DatabaseModels/DockerSwarmCluster";
 import ServerlessFunction from "../../Models/DatabaseModels/ServerlessFunction";
 import CloudResource from "../../Models/DatabaseModels/CloudResource";
@@ -37,6 +38,7 @@ import KubernetesClusterService from "./KubernetesClusterService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import VMwareVCenterService from "./VMwareVCenterService";
 import CephClusterService from "./CephClusterService";
+import DatabaseServerService from "./DatabaseServerService";
 import DockerSwarmClusterService from "./DockerSwarmClusterService";
 import ServerlessFunctionService from "./ServerlessFunctionService";
 import CloudResourceService from "./CloudResourceService";
@@ -1058,6 +1060,23 @@ export default class OTelIngestService {
       return {
         retainTelemetryDataForDays: cluster?.retainTelemetryDataForDays ?? null,
         telemetryRetentionConfig: cluster?.telemetryRetentionConfig ?? null,
+      };
+    }
+    if (primaryEntityType === ServiceType.DatabaseServer) {
+      const databaseServer: DatabaseServer | null =
+        await DatabaseServerService.findOneById({
+          id: resourceId,
+          select: {
+            retainTelemetryDataForDays: true,
+            telemetryRetentionConfig: true,
+          },
+          props: { isRoot: true },
+        });
+      return {
+        retainTelemetryDataForDays:
+          databaseServer?.retainTelemetryDataForDays ?? null,
+        telemetryRetentionConfig:
+          databaseServer?.telemetryRetentionConfig ?? null,
       };
     }
     if (primaryEntityType === ServiceType.DockerSwarmCluster) {

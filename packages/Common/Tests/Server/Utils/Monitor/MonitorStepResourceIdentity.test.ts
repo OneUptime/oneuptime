@@ -699,3 +699,132 @@ describe("MonitorStepResourceIdentity — multiple steps", () => {
     expect(refs.serviceNames).toEqual(["checkout-api"]);
   });
 });
+
+describe("MonitorStepResourceIdentity — databases", () => {
+  test.each([
+    ["oneuptime.database.server.id"],
+    ["resource.oneuptime.database.server.id"],
+  ])(
+    "an ungrouped metric monitor filtered by %s names that database",
+    (key: string) => {
+      /*
+       * A database's engine metrics carry the `oneuptime.database.server.id`
+       * stamp; a monitor scoped to one database with that filter must link
+       * its alerts / incidents to it even though it is ungrouped.
+       */
+      const refs: SeriesResourceRefs = refsFor(
+        monitorWithSteps(MonitorType.Metrics, [
+          {
+            metricMonitor: {
+              metricViewConfig: metricViewConfigWith({
+                [key]: "d0000000-0000-4000-8000-000000000001",
+              }),
+            },
+          },
+        ]),
+      );
+
+      expect(refs.databaseServerIds).toEqual([
+        "d0000000-0000-4000-8000-000000000001",
+      ]);
+      expect(refs.serviceNames).toEqual([]);
+      expect(refs.hostNames).toEqual([]);
+      expect(MonitorStepResourceIdentity.isEmpty(refs)).toBe(false);
+    },
+  );
+
+  test("the database display-name filter names nothing", () => {
+    const refs: SeriesResourceRefs = refsFor(
+      monitorWithSteps(MonitorType.Metrics, [
+        {
+          metricMonitor: {
+            metricViewConfig: metricViewConfigWith({
+              "oneuptime.database.server.name": "PostgreSQL db.prod:5432",
+            }),
+          },
+        },
+      ]),
+    );
+
+    expect(MonitorStepResourceIdentity.isEmpty(refs)).toBe(true);
+  });
+
+  test("names every database its queries filter on, deduped across steps", () => {
+    const refs: SeriesResourceRefs = refsFor(
+      monitorWithSteps(MonitorType.Metrics, [
+        {
+          metricMonitor: {
+            metricViewConfig: {
+              queryConfigs: [
+                {
+                  metricQueryData: {
+                    filterData: {
+                      metricName: "postgresql.backends",
+                      attributes: {
+                        "oneuptime.database.server.id":
+                          "d0000000-0000-4000-8000-000000000001",
+                      },
+                    },
+                  },
+                },
+                {
+                  metricQueryData: {
+                    filterData: {
+                      metricName: "mysql.threads",
+                      attributes: {
+                        "oneuptime.database.server.id":
+                          "d0000000-0000-4000-8000-000000000002",
+                      },
+                    },
+                  },
+                },
+              ],
+              formulaConfigs: [],
+            },
+          },
+        },
+        {
+          metricMonitor: {
+            metricViewConfig: metricViewConfigWith({
+              "oneuptime.database.server.id":
+                "d0000000-0000-4000-8000-000000000001",
+            }),
+          },
+        },
+      ]),
+    );
+
+    expect(refs.databaseServerIds.sort()).toEqual([
+      "d0000000-0000-4000-8000-000000000001",
+      "d0000000-0000-4000-8000-000000000002",
+    ]);
+  });
+
+  test("a database filter and a service filter on one step name both", () => {
+    const refs: SeriesResourceRefs = refsFor(
+      monitorWithSteps(MonitorType.Metrics, [
+        {
+          metricMonitor: {
+            metricViewConfig: metricViewConfigWith({
+              "oneuptime.database.server.id":
+                "d0000000-0000-4000-8000-000000000001",
+              "service.name": "checkout-api",
+            }),
+          },
+        },
+      ]),
+    );
+
+    expect(refs.databaseServerIds).toEqual([
+      "d0000000-0000-4000-8000-000000000001",
+    ]);
+    expect(refs.serviceNames).toEqual(["checkout-api"]);
+  });
+
+  test("the empty refs carry an empty database list", () => {
+    const refs: SeriesResourceRefs = MonitorStepResourceIdentity.emptyRefs();
+
+    expect(refs.databaseServerIds).toEqual([]);
+    expect(MonitorStepResourceIdentity.isEmpty(refs)).toBe(true);
+  });
+});

@@ -281,7 +281,9 @@ export class Service extends DatabaseService<Model> {
 
     data.dbSystem = dbSystem;
     data.serverAddress = endpoint.host;
-    data.serverPort = endpoint.port === null ? undefined : endpoint.port;
+    if (endpoint.port !== null) {
+      data.serverPort = endpoint.port;
+    }
     data.databaseIdentifier = databaseIdentifier;
     // First creator wins, and a person creating it is "manual" - whatever was sent.
     data.discoverySource = DatabaseServerDiscoverySource.Manual;
@@ -791,16 +793,16 @@ export class Service extends DatabaseService<Model> {
           LIMIT $4
         ),
         "archived" AS (
-          UPDATE "DatabaseServer" target
+          UPDATE "DatabaseServer" stale
           SET "isArchived" = true,
             "archivedAt" = $2,
             "autoArchivedAt" = $2,
             "archivedByUserId" = NULL,
             "updatedAt" = CURRENT_TIMESTAMP
           FROM "candidates"
-          WHERE target."_id" = "candidates"."_id"
-            AND target."isArchived" = false
-          RETURNING target."_id" AS "_id", target."projectId" AS "projectId"
+          WHERE stale."_id" = "candidates"."_id"
+            AND stale."isArchived" = false
+          RETURNING stale."_id" AS "_id", stale."projectId" AS "projectId"
         )
         SELECT "_id", "projectId" FROM "archived"`,
         [
@@ -970,13 +972,12 @@ export class Service extends DatabaseService<Model> {
     );
 
     // Who owns each alias today: one query, reused by adoption and claiming.
-    const ownersByEndpoint: Map<string, string> =
-      await this.findEndpointOwners(
-        projectId,
-        aliases.map((alias: WorkloadAlias): string => {
-          return alias.endpoint;
-        }),
-      );
+    const ownersByEndpoint: Map<string, string> = await this.findEndpointOwners(
+      projectId,
+      aliases.map((alias: WorkloadAlias): string => {
+        return alias.endpoint;
+      }),
+    );
 
     let row: Model | null = await this.findByWorkloadIdentifier(
       projectId,
@@ -1030,53 +1031,59 @@ export class Service extends DatabaseService<Model> {
       now,
     );
 
-    const update: PartialEntity<Model> = {
+    const instanceCount: number = toInstanceCount(data.instanceCount);
+
+    /*
+     * A plain record: PartialEntity's deep partial of the JSON member-key
+     * column is too deep for the compiler to instantiate.
+     */
+    const update: Record<string, unknown> = {
       memberEntityKeys: memberEntityKeys,
-      instanceCount: toInstanceCount(data.instanceCount),
+      instanceCount: instanceCount,
       lastSeenAt: now,
     };
 
     const workloadKind: string | null = cleanShortText(data.workloadKind);
     if (workloadKind) {
-      update.workloadKind = workloadKind;
+      update["workloadKind"] = workloadKind;
     }
 
     const workloadName: string | null = cleanLongText(data.workloadName);
     if (workloadName) {
-      update.workloadName = workloadName;
+      update["workloadName"] = workloadName;
     }
 
     const kubernetesNamespace: string | null = cleanShortText(
       data.kubernetesNamespace,
     );
     if (kubernetesNamespace) {
-      update.kubernetesNamespace = kubernetesNamespace;
+      update["kubernetesNamespace"] = kubernetesNamespace;
     }
 
     if (data.kubernetesClusterId) {
-      update.kubernetesClusterId = data.kubernetesClusterId;
+      update["kubernetesClusterId"] = data.kubernetesClusterId;
     }
 
     if (data.dockerHostId) {
-      update.dockerHostId = data.dockerHostId;
+      update["dockerHostId"] = data.dockerHostId;
     }
 
     if (data.podmanHostId) {
-      update.podmanHostId = data.podmanHostId;
+      update["podmanHostId"] = data.podmanHostId;
     }
 
     const dbVersion: string | null = cleanShortText(data.dbVersion);
     if (dbVersion) {
-      update.dbVersion = dbVersion;
+      update["dbVersion"] = dbVersion;
     }
 
     await this.updateColumnsByIdWithoutHooks({
       id: row.id,
-      data: update,
+      data: update as unknown as PartialEntity<Model>,
     });
 
     row.memberEntityKeys = memberEntityKeys;
-    row.instanceCount = update.instanceCount as number;
+    row.instanceCount = instanceCount;
     row.lastSeenAt = now;
     row.workloadIdentifier = workloadIdentifier;
 
@@ -1249,9 +1256,7 @@ export class Service extends DatabaseService<Model> {
     const newRow: Model = new Model();
     newRow.projectId = input.projectId;
     newRow.name = truncateShortText(
-      (typeof input.displayName === "string"
-        ? input.displayName.trim()
-        : "") ||
+      (typeof input.displayName === "string" ? input.displayName.trim() : "") ||
         buildDatabaseServerDisplayName({
           system: data.dbSystem,
           namespace: input.kubernetesNamespace,
@@ -1845,12 +1850,16 @@ export class Service extends DatabaseService<Model> {
           [row.id.toString(), row.projectId.toString()],
         );
 
-      row.isArchived = false;
-      row.autoArchivedAt = undefined;
-
+      /*
+       * Nothing matched: a person restored it, or archived it themselves, in
+       * the meantime. Their state stands - the in-memory row is left as read.
+       */
       if (!Array.isArray(restored) || restored.length === 0) {
         return false;
       }
+
+      row.isArchived = false;
+      delete row.autoArchivedAt;
 
       await DatabaseServerFeedService.createDatabaseServerFeedItem({
         databaseServerId: row.id,
@@ -1990,12 +1999,9 @@ function parseManualEndpoint(data: {
     );
   }
 
-  const parsed: DatabaseEndpoint | null = parseDatabaseEndpointString(
-    address,
-    {
-      system: data.dbSystem,
-    },
-  );
+  const parsed: DatabaseEndpoint | null = parseDatabaseEndpointString(address, {
+    system: data.dbSystem,
+  });
 
   if (!parsed) {
     throw new BadDataException(
@@ -2042,10 +2048,9 @@ function canonicalizeWorkloadAliases(
       break;
     }
 
-    const parsed: DatabaseEndpoint | null = parseDatabaseEndpointString(
-      alias,
-      { system: dbSystem },
-    );
+    const parsed: DatabaseEndpoint | null = parseDatabaseEndpointString(alias, {
+      system: dbSystem,
+    });
 
     if (!parsed) {
       continue;
