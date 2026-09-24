@@ -1039,6 +1039,88 @@ describe("DatabaseServerService.upsertWorkloadDatabase - lifecycle", () => {
       );
     });
 
+    test("a row stored under the old fork-keyed identifier is re-keyed to the family key while the fork is still reported - not duplicated", async () => {
+      const legacyWorkload: string =
+        "valkey|kubernetes:prod/cache/statefulset/redis";
+      const row: DatabaseServer = workloadRow({
+        name: "Valkey cache/redis",
+        dbSystem: "valkey",
+        databaseIdentifier: legacyWorkload,
+        workloadIdentifier: legacyWorkload,
+      });
+      own(SERVICE_ALIAS, row, { isPrimary: true });
+
+      // What buildWorkloadDatabaseServerIdentifier produces for Valkey now.
+      const result: DatabaseServer | null =
+        await DatabaseServerService.upsertWorkloadDatabase(
+          input({
+            workloadIdentifier: WORKLOAD,
+            dbSystem: "valkey",
+            displayName: "Valkey cache/redis",
+          }),
+        );
+
+      expect(result).toBe(row);
+      expect(Array.from(world.rows.values())).toHaveLength(1);
+      expect(row.workloadIdentifier).toBe(WORKLOAD);
+      // A compare-and-set on the legacy identifier.
+      const rekey: any = world.writes.find((write: any) => {
+        return write.data.workloadIdentifier === WORKLOAD;
+      });
+      expect(rekey.expected).toEqual({ workloadIdentifier: legacyWorkload });
+      expect(row.dbSystem).toBe("valkey");
+      expect(world.endpoints.get(SERVICE_ALIAS)!.databaseServerId).toBe(
+        row.id!.toString(),
+      );
+
+      // The next run finds it by the family key: nothing re-keyed again.
+      const writesBefore: number = world.writes.length;
+      const again: DatabaseServer | null =
+        await DatabaseServerService.upsertWorkloadDatabase(
+          input({
+            workloadIdentifier: WORKLOAD,
+            dbSystem: "valkey",
+            displayName: "Valkey cache/redis",
+          }),
+        );
+      expect(again).toBe(row);
+      expect(Array.from(world.rows.values())).toHaveLength(1);
+      expect(
+        world.writes.slice(writesBefore).some((write: any) => {
+          return "workloadIdentifier" in write.data;
+        }),
+      ).toBe(false);
+    });
+
+    test("the engine-family lookup asks for every legacy key of the family - the reported fork's too - but never the family key itself", async () => {
+      const findBy: jest.SpyInstance = service.findBy as jest.SpyInstance;
+
+      await DatabaseServerService.upsertWorkloadDatabase(
+        input({ workloadIdentifier: WORKLOAD, dbSystem: "valkey" }),
+      );
+
+      const lookup: any = findBy.mock.calls.find((call: any) => {
+        return Boolean(call[0].query.workloadIdentifier);
+      });
+      const candidates: Array<string> = [];
+      for (const values of Object.values(
+        lookup[0].query.workloadIdentifier.objectLiteralParameters || {},
+      )) {
+        candidates.push(...(values as Array<string>));
+      }
+      expect(candidates).toContain(
+        "valkey|kubernetes:prod/cache/statefulset/redis",
+      );
+      expect(candidates).toContain(
+        "keydb|kubernetes:prod/cache/statefulset/redis",
+      );
+      expect(candidates).not.toContain(WORKLOAD);
+      // Nothing to adopt: one new row, under the family key.
+      const rows: Array<DatabaseServer> = Array.from(world.rows.values());
+      expect(rows).toHaveLength(1);
+      expect(rows[0]!.workloadIdentifier).toBe(WORKLOAD);
+    });
+
     test("a workload of another engine family is a different database - never re-keyed", async () => {
       workloadRow({
         workloadIdentifier:

@@ -3,8 +3,9 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * The Databases list's "Engine metrics" filter. A never-connected row
- * stores otelCollectorStatus "disconnected" (the column default), so
- * filtering that column alone put every database found from traces or
+ * stores no otelCollectorStatus (NULL), but one written before the column's
+ * "disconnected" default was dropped still reads "disconnected", so
+ * filtering that column alone put those databases found from traces or
  * containers under "Disconnected". The filter resolves each status to the
  * rows getDatabaseEngineMetricsStatus gives it, through collectorLastSeenAt
  * as well as the status column.

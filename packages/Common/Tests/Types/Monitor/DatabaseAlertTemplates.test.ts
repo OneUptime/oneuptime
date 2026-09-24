@@ -46,6 +46,7 @@ import MonitorStepMetricViewConfigUtil from "../../../Types/Monitor/MonitorStepM
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
+import RollingTime from "../../../Types/RollingTime/RollingTime";
 import MetricFormulaEvaluator from "../../../Utils/Metrics/MetricFormulaEvaluator";
 import { describe, expect, test } from "@jest/globals";
 
@@ -586,6 +587,167 @@ describe("DatabaseAlertTemplates — every metric is one the receiver emits and 
         metricSwitchPattern(metric.metricName, false),
       );
     }
+  });
+});
+
+/*
+ * Default-on in the receivers' metadata, yet measured never to arrive on the
+ * Database Agent's default setups (collector-contrib 0.161.0): SQL Server
+ * 2022 on Linux, connected directly, reads sys.dm_os_performance_counters,
+ * which has none of the first three (Windows performance counters only);
+ * Oracle Free 23 connected to its pluggable database (FREEPDB1) returned
+ * none of the last three. The Overview's catalog leaves the same ones out.
+ */
+const NEVER_ARRIVE_ON_AGENT_SETUPS: Array<string> = [
+  "sqlserver.transaction.rate",
+  "sqlserver.transaction_log.usage",
+  "sqlserver.lock.wait_time.avg",
+  "oracledb.sessions.limit",
+  "oracledb.processes.usage",
+  "oracledb.processes.limit",
+];
+
+/*
+ * Every metric seen arriving in those two runs, from the agent's own configs
+ * (agents/DatabaseAgent/configs/sqlserver.yaml and oracledb.yaml).
+ */
+const SEEN_ARRIVING_FROM_AGENT: Record<string, Array<string>> = {
+  sqlserver: [
+    "sqlserver.batch.request.rate",
+    "sqlserver.batch.sql_compilation.rate",
+    "sqlserver.batch.sql_recompilation.rate",
+    "sqlserver.cpu.utilization",
+    "sqlserver.database.io",
+    "sqlserver.database.latency",
+    "sqlserver.deadlock.rate",
+    "sqlserver.lock.wait.rate",
+    "sqlserver.memory.grants.pending.count",
+    "sqlserver.page.buffer_cache.hit_ratio",
+    "sqlserver.page.life_expectancy",
+    "sqlserver.processes.blocked",
+    "sqlserver.user.connection.count",
+  ],
+  oracledb: [
+    "oracledb.cpu_time",
+    "oracledb.db.time",
+    "oracledb.enqueue_deadlocks",
+    "oracledb.exchange_deadlocks",
+    "oracledb.executions",
+    "oracledb.hard_parses",
+    "oracledb.logical_reads",
+    "oracledb.parse_calls",
+    "oracledb.pga_memory",
+    "oracledb.physical_reads",
+    "oracledb.sessions.usage",
+    "oracledb.sga.limit",
+    "oracledb.sga.usage",
+    "oracledb.tablespace.utilization",
+    "oracledb.tablespace_size.limit",
+    "oracledb.tablespace_size.usage",
+    "oracledb.user_commits",
+    "oracledb.user_rollbacks",
+  ],
+};
+
+describe("DatabaseAlertTemplates — only metrics that arrive on the Database Agent's default setup", () => {
+  test.each(NEVER_ARRIVE_ON_AGENT_SETUPS)(
+    "%s (never arrives on the agent's default setup) is neither registered nor read",
+    (metricName: string) => {
+      expect(getDatabaseAlertMetric(metricName)).toBeUndefined();
+
+      for (const template of ALL_TEMPLATES) {
+        expect(template.metricNames).not.toContain(metricName);
+      }
+    },
+  );
+
+  test.each(Object.keys(SEEN_ARRIVING_FROM_AGENT))(
+    "every metric a %s template reads was seen arriving from the agent",
+    (receiver: string) => {
+      const templates: Array<DatabaseAlertTemplate> = ALL_TEMPLATES.filter(
+        (template: DatabaseAlertTemplate): boolean => {
+          return template.receiver === receiver;
+        },
+      );
+
+      expect(templates.length).toBeGreaterThan(1);
+
+      for (const template of templates) {
+        for (const metricName of template.metricNames) {
+          expect(SEEN_ARRIVING_FROM_AGENT[receiver]).toContain(metricName);
+        }
+      }
+    },
+  );
+
+  test("no template thresholds a SQL Server '/sec' metric, a since-start total over a direct connection", () => {
+    /*
+     * Measured: sqlserver.batch.request.rate read 8, 13, 18, 23 on
+     * consecutive 10-second scrapes of an idle server — the counter's raw
+     * value, not a per-second rate. A threshold on one fires on the first
+     * deadlock and never clears.
+     */
+    const sqlServerRate: RegExp = /^sqlserver\..*\.rate$/;
+
+    for (const template of ALL_TEMPLATES) {
+      for (const metricName of template.metricNames) {
+        expect(sqlServerRate.test(metricName)).toBe(false);
+      }
+    }
+
+    expect(getDatabaseAlertMetric("sqlserver.deadlock.rate")).toBeUndefined();
+    expect(
+      UNALERTABLE_DATABASE_COUNTERS.some(
+        (counter: { metricName: string }): boolean => {
+          return counter.metricName === "sqlserver.deadlock.rate";
+        },
+      ),
+    ).toBe(true);
+  });
+
+  test("every Engine Metrics Stopped heartbeat reads a metric the receiver emits by default", () => {
+    /*
+     * The heartbeat going silent IS the alert. One that only an agent
+     * config switches on would fire, forever, the moment it was created on a
+     * database fed by a team's own collector that left it off.
+     */
+    for (const engine of getDatabaseEnginesWithAlertTemplates()) {
+      const heartbeat: DatabaseAlertTemplate =
+        getDatabaseAlertTemplates(engine)[0]!;
+
+      expect(heartbeat.name).toBe("Engine Metrics Stopped");
+
+      for (const metricName of heartbeat.metricNames) {
+        expect(getDatabaseAlertMetric(metricName)!.enabledByDefault).toBe(true);
+      }
+    }
+  });
+
+  test("SQL Server's and Oracle's sets, in display order", () => {
+    expect(
+      getDatabaseAlertTemplates("microsoft.sql_server").map(
+        (template: DatabaseAlertTemplate): string => {
+          return template.id;
+        },
+      ),
+    ).toEqual([
+      "database-sqlserver-engine-metrics-stopped",
+      "database-sqlserver-buffer-cache-hit-ratio-low",
+      "database-sqlserver-page-life-expectancy-low",
+      "database-sqlserver-sessions-blocked",
+      "database-sqlserver-memory-grants-pending",
+    ]);
+
+    expect(
+      getDatabaseAlertTemplates("oracle.db").map(
+        (template: DatabaseAlertTemplate): string => {
+          return template.id;
+        },
+      ),
+    ).toEqual([
+      "database-oracle-engine-metrics-stopped",
+      "database-oracle-tablespace-nearly-full",
+    ]);
   });
 });
 
@@ -1207,12 +1369,52 @@ describe("DatabaseAlertTemplates — behaviour against receiver data", () => {
   });
 
   describe("SQL Server", () => {
-    test("a transaction log at 95% fires", async () => {
+    test("blocked sessions seen throughout the window fire; a short burst does not", async () => {
       expect(
-        await evaluate("database-sqlserver-transaction-log-full", {
-          sqlserver_log_usage: [95, 96, 97],
+        await evaluate("database-sqlserver-sessions-blocked", {
+          sqlserver_processes_blocked: [1, 3, 2],
         }),
       ).toEqual({ breached: true, healthy: false });
+
+      // One minute of blocking is ordinary lock contention, not a chain.
+      expect(
+        await evaluate("database-sqlserver-sessions-blocked", {
+          sqlserver_processes_blocked: [0, 6, 0],
+        }),
+      ).toEqual({ breached: false, healthy: false });
+
+      expect(
+        await evaluate("database-sqlserver-sessions-blocked", {
+          sqlserver_processes_blocked: [0, 0, 0],
+        }),
+      ).toEqual({ breached: false, healthy: true });
+    });
+
+    test("blocked sessions keep the worst scrape of each minute, over ten minutes", () => {
+      const step: MonitorStep = getTemplate(
+        "database-sqlserver-sessions-blocked",
+      ).getMonitorStep(buildArgs());
+
+      expect(
+        getViewConfig(step).queryConfigs[0]!.metricQueryData.filterData
+          .aggegationType,
+      ).toBe(MetricsAggregationType.Max);
+      expect(step.data!.metricMonitor!.rollingTime).toBe(
+        RollingTime.Past10Minutes,
+      );
+    });
+
+    test("queries waiting for a memory grant fire when sustained and recover at 0", async () => {
+      expect(
+        await evaluate("database-sqlserver-memory-grants-pending", {
+          sqlserver_memory_grants_pending: [2, 4, 1],
+        }),
+      ).toEqual({ breached: true, healthy: false });
+      expect(
+        await evaluate("database-sqlserver-memory-grants-pending", {
+          sqlserver_memory_grants_pending: [0, 0, 0],
+        }),
+      ).toEqual({ breached: false, healthy: true });
     });
 
     test("page life expectancy fires LOW and recovers high", async () => {
@@ -1226,6 +1428,57 @@ describe("DatabaseAlertTemplates — behaviour against receiver data", () => {
           sqlserver_page_life_expectancy: [3000, 3100, 3200],
         }),
       ).toEqual({ breached: false, healthy: true });
+    });
+  });
+
+  describe("Oracle tablespace fullness (a 0..1 share, compared in percent)", () => {
+    test("the fullest tablespace at 93% fires", async () => {
+      expect(
+        await evaluate("database-oracle-tablespace-nearly-full", {
+          oracle_tablespace_utilization: [0.93, 0.95, 0.94],
+        }),
+      ).toEqual({ breached: true, healthy: false });
+    });
+
+    test("recovers well below the threshold and holds inside the dead band", async () => {
+      expect(
+        await evaluate("database-oracle-tablespace-nearly-full", {
+          oracle_tablespace_utilization: [0.5, 0.52, 0.51],
+        }),
+      ).toEqual({ breached: false, healthy: true });
+
+      // 85%: below the 90% breach, above the 81% recovery.
+      expect(
+        await evaluate("database-oracle-tablespace-nearly-full", {
+          oracle_tablespace_utilization: [0.85, 0.85, 0.85],
+        }),
+      ).toEqual({ breached: false, healthy: false });
+    });
+
+    test("a raw 0..1 value is never compared against 90 directly", async () => {
+      /*
+       * Without the percentage formula a full tablespace (1.0) would sit far
+       * below a threshold of 90 and never fire.
+       */
+      expect(
+        await evaluate("database-oracle-tablespace-nearly-full", {
+          oracle_tablespace_utilization: [1, 1, 1],
+        }),
+      ).toEqual({ breached: true, healthy: false });
+
+      const step: MonitorStep = getTemplate(
+        "database-oracle-tablespace-nearly-full",
+      ).getMonitorStep(buildArgs());
+
+      expect(getUnhealthy(step).data!.filters[0]!.metricMonitorOptions).toEqual(
+        expect.objectContaining({
+          metricAlias: "oracle_tablespace_percent",
+        }),
+      );
+      expect(
+        getViewConfig(step).queryConfigs[0]!.metricQueryData.filterData
+          .aggegationType,
+      ).toBe(MetricsAggregationType.Max);
     });
   });
 

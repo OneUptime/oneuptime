@@ -77,7 +77,9 @@ export const OPEN_DATABASE_LABEL: string = "Open database";
  *
  * Wherever more than one database is left, the one on the engine's default
  * port is taken when it is the only one there; otherwise no link — opening
- * the wrong database is worse than offering none.
+ * the wrong database is worse than offering none. For the same reason a
+ * node whose stamped endpoint is blank — the server saw its calls reach
+ * more than one database server — gets no link at all.
  */
 export interface DatabaseEntityEndpoint {
   // Canonical `host:port` (the explicit port, else the engine default).
@@ -121,7 +123,19 @@ export const getDatabaseEntityEndpoint: GetDatabaseEntityEndpointFunction = (
   // A canonical endpoint stamped by the server wins: it has the real port.
   const stamped: unknown =
     descriptive?.[DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE];
-  if (typeof stamped === "string" && stamped.trim()) {
+
+  /*
+   * Stamped but blank: the server saw this node's calls reach more than one
+   * database server (ServiceDependencyDiscovery's
+   * mergeDependencyEntityDescriptions). The address and same-host fallbacks
+   * below could still pick the one of them that happens to have a row, so
+   * the node names no endpoint at all.
+   */
+  if (typeof stamped === "string" && !stamped.trim()) {
+    return null;
+  }
+
+  if (typeof stamped === "string") {
     const stampedEndpoint: DatabaseEndpoint | null =
       parseDatabaseEndpointString(stamped, { system });
     if (stampedEndpoint) {

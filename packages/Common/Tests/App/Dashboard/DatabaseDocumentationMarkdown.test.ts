@@ -850,6 +850,56 @@ describe("a database's own guide", () => {
     expect(MARKDOWN_SOURCE).not.toContain("needs a rate");
   });
 
+  test("points at Create monitor on the Metrics tab's charts", () => {
+    expect(
+      guideFor({
+        id: DATABASE_ID,
+        dbSystem: "postgresql",
+        serverAddress: "db.example.com",
+      }),
+    ).toContain(
+      "A chart opened from this database's **Metrics** tab has **Create monitor**",
+    );
+  });
+
+  /*
+   * Measured on SQL Server 2022 on Linux through the agent's config:
+   * sqlserver.batch.request.rate read 8, 13, 18, 23 on consecutive scrapes
+   * of an idle server — the counter's raw total, not a rate.
+   */
+  test("warns SQL Server readers that sqlserver.*.rate metrics are since-start totals, and only them", () => {
+    const sqlServer: string = guideFor({
+      id: DATABASE_ID,
+      dbSystem: "mssql",
+      serverAddress: "sql.example.com",
+    });
+
+    expect(sqlServer).toContain(
+      "`sqlserver.*.rate` metrics behave like counters",
+    );
+    expect(sqlServer).toContain("total since the server started");
+    // The value it recommends instead is one a SQL Server template reads.
+    expect(sqlServer).toContain("`sqlserver.processes.blocked`");
+    expect(
+      getDatabaseAlertTemplates("microsoft.sql_server").some(
+        (template: DatabaseAlertTemplate): boolean => {
+          return template.metricNames.includes("sqlserver.processes.blocked");
+        },
+      ),
+    ).toBe(true);
+
+    for (const system of ["postgresql", "mysql", "oracle.db", "redis"]) {
+      expect({
+        system,
+        warns: guideFor({
+          id: DATABASE_ID,
+          dbSystem: system,
+          serverAddress: "db.example.com",
+        }).includes("sqlserver.*.rate"),
+      }).toEqual({ system, warns: false });
+    }
+  });
+
   test("a Kubernetes database gets the Deployment for its namespace", () => {
     const markdown: string = getDatabaseAgentInstallationMarkdown({
       oneuptimeUrl: URL,

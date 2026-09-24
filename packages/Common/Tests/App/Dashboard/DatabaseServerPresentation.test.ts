@@ -117,10 +117,11 @@ describe("getDatabaseEngineMetricsStatus", () => {
   });
 
   /*
-   * The audit's scenario: every row created from client spans, Kubernetes,
-   * Docker, Podman or by hand stores otelCollectorStatus "disconnected" —
-   * the column default — with no collectorLastSeenAt. It never had an
-   * agent, so it is NOT CONNECTED, never a red "Disconnected".
+   * The audit's scenario: a row created from client spans, Kubernetes,
+   * Docker, Podman or by hand before the column's default was dropped
+   * stores otelCollectorStatus "disconnected" with no collectorLastSeenAt
+   * (rows created since store no status at all). It never had an agent, so
+   * it is NOT CONNECTED, never a red "Disconnected".
    */
   test("the stored 'disconnected' default with no collector sighting is NOT CONNECTED", () => {
     for (const row of [

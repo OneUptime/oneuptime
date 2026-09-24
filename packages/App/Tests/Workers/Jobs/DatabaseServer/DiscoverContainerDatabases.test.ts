@@ -1625,6 +1625,150 @@ describe("Kubernetes: what is upserted", () => {
     );
   });
 
+  test("a StatefulSet mid-rollout from redis to valkey is ONE Valkey database: one identifier, upserted once, every pod a member", async () => {
+    const cachePod: (index: number, image: string) => PodRow = (
+      index: number,
+      image: string,
+    ): PodRow => {
+      return pod({
+        name: `cache-${index}`,
+        owner: { kind: "StatefulSet", name: "cache" },
+        containers: [
+          { name: "server", image, ports: [{ containerPort: 6379 }] },
+        ],
+      });
+    };
+    arrange({
+      clusters: [cluster({ id: CLUSTER_A })],
+      pods: [
+        cachePod(0, "redis:7.2.4"),
+        cachePod(1, "redis:7.2.4"),
+        cachePod(2, "valkey/valkey:8.0.1"),
+      ],
+    });
+
+    await runTick();
+
+    const identity: string = "redis|kubernetes:prod-eu/shop/statefulset/cache";
+    expect(
+      finalUpserts().map((args: UpsertArgs): string => {
+        return args.workloadIdentifier;
+      }),
+    ).toEqual([identity]);
+    // One lookup, one create attempt - never a second group on the same row.
+    expect(
+      upserts().filter((args: UpsertArgs): boolean => {
+        return !args.allowCreate;
+      }),
+    ).toHaveLength(1);
+    for (const args of upserts()) {
+      expect(args.dbSystem).toBe("valkey");
+      expect(args.instanceCount).toBe(3);
+    }
+    const args: UpsertArgs = upsertFor(identity);
+    expect(args.displayName).toBe("Valkey shop/cache");
+    expect(args.dbVersion).toBe("8.0.1");
+    expect(args.memberKeysSeenNow).toEqual(
+      ["cache-0", "cache-1", "cache-2"].map((podName: string) => {
+        return keyForKubernetesPod(PROJECT_A, {
+          clusterName: "prod-eu",
+          namespace: "shop",
+          podName,
+        });
+      }),
+    );
+  });
+
+  test("an operator-deployed Vitess is found by its labels: the vtgates are the database, the tablets and control plane are not", async () => {
+    const vitessLabels: (component: string) => Record<string, string> = (
+      component: string,
+    ): Record<string, string> => {
+      return {
+        "planetscale.com/cluster": "example",
+        "planetscale.com/component": component,
+      };
+    };
+    arrange({
+      clusters: [cluster({ id: CLUSTER_A })],
+      pods: [
+        pod({
+          name: "example-zone1-vtgate-bc6cde92-6bd99c6888-vwcj5",
+          namespaceKey: "vitess",
+          labels: {
+            ...vitessLabels("vtgate"),
+            "pod-template-hash": "6bd99c6888",
+          },
+          owner: {
+            kind: "ReplicaSet",
+            name: "example-zone1-vtgate-bc6cde92-6bd99c6888",
+          },
+          containers: [
+            {
+              name: "vtgate",
+              image: "vitess/lite:v19.0.4",
+              command: ["/vt/bin/vtgate"],
+              ports: [{ containerPort: 3306 }],
+            },
+          ],
+        }),
+        pod({
+          name: "example-vttablet-zone1-2469782763-bfadd780",
+          namespaceKey: "vitess",
+          labels: vitessLabels("vttablet"),
+          owner: { kind: "VitessShard", name: "example-commerce-x-x" },
+          containers: [
+            { name: "vttablet", image: "vitess/lite:v19.0.4" },
+            {
+              name: "mysqld",
+              image: "mysql:8.0.30",
+              ports: [{ containerPort: 3306 }],
+            },
+          ],
+        }),
+        pod({
+          name: "example-zone1-vtctld-1d4dcad0-59d8498459-kwz6b",
+          namespaceKey: "vitess",
+          labels: vitessLabels("vtctld"),
+          owner: {
+            kind: "ReplicaSet",
+            name: "example-zone1-vtctld-1d4dcad0-59d8498459",
+          },
+          containers: [{ name: "vtctld", image: "vitess/lite:v19.0.4" }],
+        }),
+      ],
+    });
+
+    await runTick();
+
+    const identity: string = "mysql|kubernetes:prod-eu/vitess/cluster/example";
+    expect(
+      finalUpserts().map((args: UpsertArgs): string => {
+        return args.workloadIdentifier;
+      }),
+    ).toEqual([identity]);
+    const args: UpsertArgs = upsertFor(identity);
+    expect(args.dbSystem).toBe("vitess");
+    expect(args.displayName).toBe("Vitess vitess/example");
+    expect(args.workloadKind).toBe("Cluster");
+    expect(args.dbVersion).toBe("19.0.4");
+    expect(args.instanceCount).toBe(1);
+    expect(args.memberKeysSeenNow).toEqual([
+      keyForKubernetesPod(PROJECT_A, {
+        clusterName: "prod-eu",
+        namespace: "vitess",
+        podName: "example-zone1-vtgate-bc6cde92-6bd99c6888-vwcj5",
+      }),
+      keyForKubernetesDeployment(PROJECT_A, {
+        clusterName: "prod-eu",
+        namespace: "vitess",
+        deploymentName: "example-zone1-vtgate-bc6cde92",
+      }),
+    ]);
+    expect(args.aliases).toContain(
+      "example-zone1-vtgate-bc6cde92.vitess.svc.cluster.local:3306@prod-eu",
+    );
+  });
+
   test("aliases are the Services and headless member names, cluster-qualified when the project has several clusters", async () => {
     arrange({
       clusters: [cluster({ id: CLUSTER_A })],
@@ -2855,6 +2999,51 @@ describe("Docker and Podman", () => {
     expect(args.kubernetesClusterId).toBeUndefined();
   });
 
+  test("a Compose service moving from redis to valkey is ONE Valkey database, upserted once per run", async () => {
+    arrange({
+      dockerHosts: [host({ id: DOCKER_HOST })],
+      dockerContainers: {
+        [DOCKER_HOST]: [
+          container({
+            name: "shop-cache-1",
+            containerId: FULL_ID_1,
+            imageName: "redis:7.2.4",
+            labels: composeLabels("shop", "cache"),
+          }),
+          container({
+            name: "shop-cache-2",
+            containerId: FULL_ID_2,
+            imageName: "valkey/valkey:8.0.1",
+            labels: composeLabels("shop", "cache"),
+          }),
+        ],
+      },
+    });
+
+    await runTick();
+
+    const identity: string = "redis|docker:docker-host-1/shop-cache";
+    expect(
+      finalUpserts().map((args: UpsertArgs): string => {
+        return args.workloadIdentifier;
+      }),
+    ).toEqual([identity]);
+    expect(
+      upserts().filter((args: UpsertArgs): boolean => {
+        return !args.allowCreate;
+      }),
+    ).toHaveLength(1);
+    const args: UpsertArgs = upsertFor(identity);
+    expect(args.dbSystem).toBe("valkey");
+    expect(args.displayName).toBe("Valkey shop-cache");
+    expect(args.dbVersion).toBe("8.0.1");
+    expect(args.instanceCount).toBe(2);
+    expect(args.memberKeysSeenNow).toEqual([
+      keyForContainer(PROJECT_A, FULL_ID_1),
+      keyForContainer(PROJECT_A, FULL_ID_2),
+    ]);
+  });
+
   test("Compose replicas (by their labels) fold into one workload; short ids are not member keys", async () => {
     arrange({
       dockerHosts: [host({ id: DOCKER_HOST })],
@@ -3362,6 +3551,99 @@ describe("groupContainerDatabases", () => {
     ]);
     expect(groups[0]!.instanceCount).toBe(1);
     expect(groups[0]!.mayCreate).toBe(false);
+  });
+
+  describe("a fork and its family engine in one workload are ONE database", () => {
+    test("the most specific engine, whichever container sorts first", () => {
+      for (const [first, second] of [
+        ["redis:7.2.4", "valkey/valkey:8.0.1"],
+        ["valkey/valkey:8.0.1", "redis:7.2.4"],
+      ] as Array<[string, string]>) {
+        const groups: Array<ContainerDatabaseGroup> = groupContainerDatabases([
+          container({
+            name: "cache-1",
+            imageName: first,
+            labels: composeLabels("x", "cache"),
+          }),
+          container({
+            name: "cache-2",
+            imageName: second,
+            labels: composeLabels("x", "cache"),
+          }),
+        ]);
+        expect(groups).toHaveLength(1);
+        expect(groups[0]).toMatchObject({
+          system: "valkey",
+          workloadName: "x-cache",
+          containerNames: ["cache-1", "cache-2"],
+          instanceCount: 2,
+          // The version of a member running the engine shown.
+          version: "8.0.1",
+        });
+      }
+    });
+
+    test("more containers of the family engine never undo the fork", () => {
+      const groups: Array<ContainerDatabaseGroup> = groupContainerDatabases([
+        container({
+          name: "db-1",
+          imageName: "mysql:8.0.36",
+          labels: composeLabels("x", "db"),
+        }),
+        container({
+          name: "db-2",
+          imageName: "mysql:8.0.36",
+          labels: composeLabels("x", "db"),
+        }),
+        container({
+          name: "db-3",
+          imageName: "mariadb:11.4.2",
+          labels: composeLabels("x", "db"),
+        }),
+      ]);
+      expect(groups).toHaveLength(1);
+      expect(groups[0]).toMatchObject({
+        system: "mariadb",
+        instanceCount: 3,
+        version: "11.4.2",
+      });
+    });
+
+    test("a member of the shown engine without a version leaves the version empty, not another engine's", () => {
+      const groups: Array<ContainerDatabaseGroup> = groupContainerDatabases([
+        container({
+          name: "cache-1",
+          imageName: "redis:7.2.4",
+          labels: composeLabels("x", "cache"),
+        }),
+        container({
+          name: "cache-2",
+          imageName: "valkey/valkey",
+          labels: composeLabels("x", "cache"),
+        }),
+      ]);
+      expect(groups[0]).toMatchObject({ system: "valkey", version: null });
+    });
+
+    test("engines of different families in one workload stay two databases", () => {
+      const groups: Array<ContainerDatabaseGroup> = groupContainerDatabases([
+        container({
+          name: "svc-1",
+          imageName: "redis:7",
+          labels: composeLabels("x", "svc"),
+        }),
+        container({
+          name: "svc-2",
+          imageName: "postgres:16",
+          labels: composeLabels("x", "svc"),
+        }),
+      ]);
+      expect(
+        groups.map((group: ContainerDatabaseGroup): string => {
+          return `${group.system}:${group.containerNames.join(",")}`;
+        }),
+      ).toEqual(["postgresql:svc-2", "redis:svc-1"]);
+    });
   });
 });
 

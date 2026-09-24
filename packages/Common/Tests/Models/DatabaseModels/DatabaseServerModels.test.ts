@@ -39,6 +39,11 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
+import {
+  buildDatabaseServerIdentifier,
+  buildWorkloadDatabaseServerIdentifier,
+} from "../../../Types/DatabaseServer/DatabaseEndpoint";
+import { getDatabaseSystemFamily } from "../../../Types/DatabaseServer/DatabaseSystem";
 import { describe, expect, test } from "@jest/globals";
 import { getMetadataArgsStorage } from "typeorm";
 import { ColumnMetadataArgs } from "typeorm/metadata-args/ColumnMetadataArgs";
@@ -1041,6 +1046,33 @@ describe("Databases (DatabaseServer) models", () => {
           default: columnArgs(DatabaseServer, column).options.default,
         }).toEqual({ column, default: undefined });
       }
+    });
+
+    test("the identifier columns document the family-keyed prefix, and their examples use it", () => {
+      for (const column of ["databaseIdentifier", "workloadIdentifier"]) {
+        const metadata: TableColumnMetadata =
+          model.getTableColumnMetadata(column);
+        expect(metadata.description).toContain("family");
+        expect(metadata.description).toContain("mysql|");
+        const prefix: string = String(metadata.example).split("|")[0]!;
+        expect(getDatabaseSystemFamily(prefix)).toBe(prefix);
+      }
+      expect(model.getTableColumnMetadata("databaseIdentifier").example).toBe(
+        buildDatabaseServerIdentifier("postgresql", {
+          host: "orders-db.internal",
+          port: 5432,
+        }),
+      );
+      expect(model.getTableColumnMetadata("workloadIdentifier").example).toBe(
+        buildWorkloadDatabaseServerIdentifier({
+          system: "postgresql",
+          platform: "kubernetes",
+          parentName: "prod-cluster",
+          namespace: "data",
+          workloadKind: "StatefulSet",
+          workloadName: "orders-db",
+        }),
+      );
     });
 
     test("slug is computed from name and is never user-writable", () => {

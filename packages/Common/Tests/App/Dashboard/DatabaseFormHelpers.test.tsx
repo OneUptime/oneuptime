@@ -1,6 +1,9 @@
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import {
   DATABASE_SERVER_ADDRESS_DESCRIPTION,
+  DATABASE_SERVER_SERVICE_NAME_CLUSTER_REQUIRED,
   getDatabaseServerAddressHint,
   validateDatabaseServerAddress,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseManualEndpointForm";
@@ -14,7 +17,8 @@ import { getDatabaseEndpointSourceLabel } from "../../../../App/FeatureSet/Dashb
  * inside one cluster or private network, `host\INSTANCE` for a SQL Server
  * named instance, never `user@host`), its validation refuses what could
  * never become an endpoint with a message that says what to change, and its
- * hint offers the `@<cluster>` form without forcing it.
+ * hint offers the `@<cluster>` form — saying, for a Kubernetes Service name,
+ * that the server requires it once the project has a Kubernetes cluster.
  *
  * The Endpoints tab's "Added by" pill: which of discovery's claims an
  * endpoint is.
@@ -25,7 +29,9 @@ describe("the create form's Server Address help", () => {
     expect(DATABASE_SERVER_ADDRESS_DESCRIPTION).toContain(
       "pg.shop.svc.cluster.local:5432@prod-eu",
     );
-    expect(DATABASE_SERVER_ADDRESS_DESCRIPTION).toContain("pg.shop");
+    expect(DATABASE_SERVER_ADDRESS_DESCRIPTION).toContain(
+      "(pg.shop.svc.cluster.local, pg.shop.svc)",
+    );
     expect(DATABASE_SERVER_ADDRESS_DESCRIPTION).toContain("private IP");
     expect(DATABASE_SERVER_ADDRESS_DESCRIPTION).toContain("host\\INSTANCE");
     expect(DATABASE_SERVER_ADDRESS_DESCRIPTION).toContain(
@@ -49,6 +55,42 @@ describe("the create form's Server Address help", () => {
         }),
       }).toEqual({ example, error: null });
     }
+  });
+
+  /*
+   * Regression: the help gave `pg.shop` as a cluster-only name, but the
+   * create form has no namespace to complete it with, so it reads as an
+   * ordinary two-label domain — no cluster advice, and a database no pod's
+   * calls would match.
+   */
+  test("every cluster-only example the help gives is read as cluster-only on the create form", () => {
+    const examples: Array<string> = (
+      DATABASE_SERVER_ADDRESS_DESCRIPTION.match(
+        /one Kubernetes cluster \(([^)]+)\)/,
+      ) as RegExpMatchArray
+    )[1]!.split(", ");
+
+    expect(examples).toEqual(["pg.shop.svc.cluster.local", "pg.shop.svc"]);
+
+    for (const serverAddress of examples) {
+      expect({
+        serverAddress,
+        advises: Boolean(
+          getDatabaseServerAddressHint({
+            dbSystem: "postgresql",
+            serverAddress,
+          })?.includes("@<cluster name>"),
+        ),
+      }).toEqual({ serverAddress, advises: true });
+    }
+
+    // The old example: a two-label domain here, never cluster-only.
+    expect(
+      getDatabaseServerAddressHint({
+        dbSystem: "postgresql",
+        serverAddress: "pg.shop",
+      }),
+    ).toBeNull();
   });
 });
 
@@ -156,6 +198,57 @@ describe("getDatabaseServerAddressHint", () => {
         serverAddress,
         advises: Boolean(hint?.includes("@<cluster name>")),
       }).toEqual({ serverAddress, advises: true });
+    }
+  });
+
+  test("a Kubernetes Service name is told the cluster is required where clusters exist", () => {
+    for (const serverAddress of [
+      "pg.shop.svc.cluster.local",
+      "pg.shop.svc",
+      "pg.shop.svc.cluster.local:5433",
+      "mongo-0.mongo-hl.data.svc.cluster.local",
+    ]) {
+      const hint: string | null = getDatabaseServerAddressHint({
+        dbSystem: "postgresql",
+        serverAddress,
+      });
+      expect({
+        serverAddress,
+        advises: Boolean(hint?.includes("@<cluster name>")),
+        required: Boolean(
+          hint?.endsWith(DATABASE_SERVER_SERVICE_NAME_CLUSTER_REQUIRED),
+        ),
+      }).toEqual({ serverAddress, advises: true, required: true });
+    }
+  });
+
+  test("says 'required' on exactly the test the server's refusal applies", () => {
+    // DatabaseServerService refuses when both of these hold (and clusters exist).
+    const service: string = fs.readFileSync(
+      path.join(__dirname, "../../../Server/Services/DatabaseServerService.ts"),
+      "utf8",
+    );
+    const refusal: string = service.substring(
+      service.indexOf("private async refuseUnqualifiedKubernetesServiceName"),
+    );
+
+    expect(refusal).toContain("!data.manual.clusterQualifierHint");
+    expect(refusal).toContain("!isKubernetesServiceDnsHost(endpoint.host)");
+  });
+
+  test("a private IP or private-zone name is only advised, never told it is required", () => {
+    for (const serverAddress of ["10.0.0.5", "db.internal", "pg.local:5432"]) {
+      const hint: string | null = getDatabaseServerAddressHint({
+        dbSystem: "postgresql",
+        serverAddress,
+      });
+      expect({
+        serverAddress,
+        advises: Boolean(hint?.includes("@<cluster name>")),
+        required: Boolean(
+          hint?.includes(DATABASE_SERVER_SERVICE_NAME_CLUSTER_REQUIRED),
+        ),
+      }).toEqual({ serverAddress, advises: true, required: false });
     }
   });
 

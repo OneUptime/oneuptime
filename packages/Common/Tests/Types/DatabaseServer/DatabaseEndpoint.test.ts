@@ -17,6 +17,7 @@ import {
   isHostRelativeDatabaseHost,
   isIpLiteralHost,
   isKubernetesDatabaseCaller,
+  isKubernetesServiceDnsHost,
   isLinkLocalIpHost,
   isLoopbackDatabaseHost,
   isPrivateIpHost,
@@ -2591,5 +2592,66 @@ describe("the new parsing paths stay linear on hostile input", () => {
     ).toBeNull();
 
     expect(performance.now() - started).toBeLessThan(2000);
+  });
+});
+
+describe("isKubernetesServiceDnsHost", () => {
+  test.each([
+    "pg.shop.svc.cluster.local",
+    "pg.shop.svc",
+    "pg.shop.svc.corp.k8s",
+    "pg-0.pg-headless.shop.svc.cluster.local",
+    "PG.Shop.SVC.cluster.local.",
+    " pg.shop.svc.cluster.local ",
+    "mssql.data.svc.cluster.local\\inst01",
+  ])("%j is a Kubernetes Service name", (host: string) => {
+    expect(isKubernetesServiceDnsHost(host)).toBe(true);
+  });
+
+  test.each([
+    "pg",
+    "pg.shop",
+    "db.internal",
+    "orders-db.corp.internal",
+    "orders-db.local",
+    "10.0.1.5",
+    "orders-db.example.com",
+    "svc.cluster.local",
+    "a.b.c.d.svc.cluster.local",
+    "pg.shop.svcx.cluster.local",
+    "",
+    null as unknown as string,
+    42 as unknown as string,
+  ])("%j is not", (host: string) => {
+    expect(isKubernetesServiceDnsHost(host)).toBe(false);
+  });
+
+  test("it is the test the endpoint parser expands Service names with", () => {
+    for (const typed of [
+      "pg.shop.svc",
+      "pg.shop.svc.cluster.local",
+      "pg-0.pg-hl.shop.svc",
+    ]) {
+      const parsed: ManualDatabaseEndpoint = parseManualDatabaseEndpoint(
+        typed,
+        { system: PG_SYSTEM },
+      );
+      expect(parsed.endpoint!.host.endsWith(".svc.cluster.local")).toBe(true);
+      expect(isKubernetesServiceDnsHost(parsed.endpoint!.host)).toBe(true);
+    }
+  });
+
+  test("stays linear on hostile input", () => {
+    const started: number = performance.now();
+
+    expect(isKubernetesServiceDnsHost("a".repeat(200_000))).toBe(false);
+    expect(isKubernetesServiceDnsHost(`${"a.".repeat(100_000)}svc`)).toBe(
+      false,
+    );
+    expect(isKubernetesServiceDnsHost(`a.b${".".repeat(200_000)}x`)).toBe(
+      false,
+    );
+
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 });

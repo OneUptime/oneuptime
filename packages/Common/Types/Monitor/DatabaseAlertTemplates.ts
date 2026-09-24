@@ -106,6 +106,26 @@ import {
  * only where the OneUptime Database Agent enables them, and every such
  * template names the metric in its description so a team running its own
  * collector knows what to switch on.
+ *
+ * WHAT ACTUALLY ARRIVES
+ *
+ * A receiver's metadata says what it CAN emit, not what a given setup
+ * returns, so a metric is only used here once it has been seen arriving from
+ * the Database Agent's own config on its default setup (collector-contrib
+ * 0.161.0). Two engines differ from their metadata:
+ *
+ *   - SQL Server connected directly — the agent's setup, and the only one
+ *     off Windows — is read through sys.dm_os_performance_counters. That view
+ *     has no transaction-log usage and no average lock wait time (Windows
+ *     performance counters only), and its "/sec" counters come through as
+ *     since-start totals, so every `sqlserver.*.rate` metric only ever grows
+ *     there and is no threshold's input.
+ *   - Oracle connected to a pluggable database (FREEPDB1, ORCLPDB1: the usual
+ *     setup) returns no SESSIONS / PROCESSES limits, so no
+ *     "percent of the limit" template can be built for it.
+ *
+ * The tests pin both: no template reads a metric measured never to arrive,
+ * and no template thresholds a SQL Server rate.
  */
 
 export type DatabaseAlertTemplateCategory =
@@ -372,15 +392,12 @@ export const DATABASE_ALERT_METRICS: ReadonlyArray<DatabaseAlertMetric> = [
     enabledByDefault: true,
   },
 
-  // SQL Server — sqlserverreceiver (the *.rate / *.avg values are gauges).
-  {
-    engine: "microsoft.sql_server",
-    receiver: "sqlserver",
-    metricName: "sqlserver.transaction_log.usage",
-    kind: "gauge",
-    unit: "%",
-    enabledByDefault: true,
-  },
+  /*
+   * SQL Server — sqlserverreceiver, connected directly. Each of these is a
+   * point-in-time value in sys.dm_os_performance_counters (the hit ratio is
+   * computed against its base counter), unlike the "/sec" counters, which
+   * arrive as since-start totals (see the module header).
+   */
   {
     engine: "microsoft.sql_server",
     receiver: "sqlserver",
@@ -400,10 +417,19 @@ export const DATABASE_ALERT_METRICS: ReadonlyArray<DatabaseAlertMetric> = [
   {
     engine: "microsoft.sql_server",
     receiver: "sqlserver",
-    metricName: "sqlserver.lock.wait_time.avg",
+    metricName: "sqlserver.processes.blocked",
     kind: "gauge",
-    unit: "ms",
-    enabledByDefault: true,
+    unit: "{processes}",
+    enabledByDefault: false,
+  },
+  {
+    engine: "microsoft.sql_server",
+    receiver: "sqlserver",
+    // A non-monotonic sum: a gauge in all but name.
+    metricName: "sqlserver.memory.grants.pending.count",
+    kind: "gauge",
+    unit: "{grants}",
+    enabledByDefault: false,
   },
   {
     engine: "microsoft.sql_server",
@@ -426,26 +452,11 @@ export const DATABASE_ALERT_METRICS: ReadonlyArray<DatabaseAlertMetric> = [
   {
     engine: "oracle.db",
     receiver: "oracledb",
-    metricName: "oracledb.sessions.limit",
+    // A 0..1 share of the tablespace's maximum size.
+    metricName: "oracledb.tablespace.utilization",
     kind: "gauge",
-    unit: "{sessions}",
-    enabledByDefault: true,
-  },
-  {
-    engine: "oracle.db",
-    receiver: "oracledb",
-    metricName: "oracledb.processes.usage",
-    kind: "gauge",
-    unit: "{processes}",
-    enabledByDefault: true,
-  },
-  {
-    engine: "oracle.db",
-    receiver: "oracledb",
-    metricName: "oracledb.processes.limit",
-    kind: "gauge",
-    unit: "{processes}",
-    enabledByDefault: true,
+    unit: "1",
+    enabledByDefault: false,
   },
 
   // Elasticsearch — elasticsearchreceiver.
@@ -522,14 +533,17 @@ export const DATABASE_ALERT_METRICS: ReadonlyArray<DatabaseAlertMetric> = [
 /*
  * The alert-worthy signals a team will ask for first, and why none of them is
  * a template. Every one is a cumulative monotonic counter (verified against
- * the v0.161.0 receiver metadata), so the monitor path — which has no rate —
- * can only compare its since-restart total against a threshold. They remain
- * visible on the database's Metrics tab, which charts counters as a rate.
+ * the v0.161.0 receiver metadata) — or, like SQL Server's deadlock "rate",
+ * a gauge whose value on the agent's direct connection is the since-start
+ * total — so the monitor path, which has no rate, can only compare its
+ * since-restart total against a threshold. They remain visible on the
+ * database's Metrics tab.
  *
  * The honest workaround for a team that needs one of these alerted today is
  * a `cumulativetodelta` processor in its collector pipeline, which turns the
  * counter into per-interval deltas that a Sum over the window does threshold
- * correctly.
+ * correctly. That processor only converts sums, so it leaves SQL Server's
+ * deadlock total (typed a gauge) as it is.
  */
 export const UNALERTABLE_DATABASE_COUNTERS: ReadonlyArray<{
   engine: string;
@@ -570,6 +584,11 @@ export const UNALERTABLE_DATABASE_COUNTERS: ReadonlyArray<{
     engine: "mongodb",
     metricName: "mongodb.lock.deadlock.count",
     wouldAlertOn: "lock deadlocks",
+  },
+  {
+    engine: "microsoft.sql_server",
+    metricName: "sqlserver.deadlock.rate",
+    wouldAlertOn: "deadlocks",
   },
   {
     engine: "oracle.db",
@@ -1517,30 +1536,6 @@ const sqlServerTemplates: Array<DatabaseAlertTemplate> = [
     metricAlias: "sqlserver_heartbeat",
   }),
   buildDatabaseTemplate({
-    id: "database-sqlserver-transaction-log-full",
-    name: "Transaction Log Nearly Full",
-    description:
-      "Alert when the fullest transaction log stays at 90% or more. A full log stops every write to that database.",
-    category: "Storage",
-    severity: "Critical",
-    engine: SQL_SERVER,
-    queries: [
-      {
-        alias: "sqlserver_log_usage",
-        metricName: "sqlserver.transaction_log.usage",
-        aggregationType: MetricsAggregationType.Max,
-      },
-    ],
-    criteria: {
-      metricAlias: "sqlserver_log_usage",
-      filterType: FilterType.GreaterThanOrEqualTo,
-      threshold: 90,
-      thresholdLabel: "at or above 90%",
-      incidentDescription:
-        "A transaction log is nearly full. Check log_reuse_wait_desc in sys.databases: a missing log backup, a long-open transaction or a lagging replica is what stops the log from being reused.",
-    },
-  }),
-  buildDatabaseTemplate({
     id: "database-sqlserver-buffer-cache-hit-ratio-low",
     name: "Buffer Cache Hit Ratio Low",
     description:
@@ -1591,27 +1586,53 @@ const sqlServerTemplates: Array<DatabaseAlertTemplate> = [
     },
   }),
   buildDatabaseTemplate({
-    id: "database-sqlserver-lock-wait-time-high",
-    name: "Lock Waits Slow",
+    id: "database-sqlserver-sessions-blocked",
+    name: "Sessions Blocked",
     description:
-      "Alert when the average wait of lock requests that had to wait stays at 500 ms or more — blocking chains.",
+      "Alert when sessions waiting on another session's lock are seen throughout ten minutes — a blocking chain that is not clearing. Reads sqlserver.processes.blocked, which the receiver only emits once it is enabled (the Database Agent enables it).",
     category: "Performance",
     severity: "Warning",
     engine: SQL_SERVER,
     queries: [
       {
-        alias: "sqlserver_lock_wait_time",
-        metricName: "sqlserver.lock.wait_time.avg",
+        alias: "sqlserver_processes_blocked",
+        metricName: "sqlserver.processes.blocked",
+        // The worst scrape of each minute, across every agent reporting it.
+        aggregationType: MetricsAggregationType.Max,
+      },
+    ],
+    rollingTime: RollingTime.Past10Minutes,
+    criteria: {
+      metricAlias: "sqlserver_processes_blocked",
+      filterType: FilterType.GreaterThanOrEqualTo,
+      threshold: 1,
+      thresholdLabel: "at or above 1 blocked session",
+      incidentDescription:
+        "Sessions have been blocked on locks for ten minutes. Find the head of the blocking chain in sys.dm_exec_requests (blocking_session_id) and what it is waiting on — usually a transaction an application opened and never committed.",
+    },
+  }),
+  buildDatabaseTemplate({
+    id: "database-sqlserver-memory-grants-pending",
+    name: "Queries Waiting for Memory",
+    description:
+      "Alert when queries stay queued for a memory grant for five minutes — they cannot start until workspace memory frees up. Reads sqlserver.memory.grants.pending.count, which the receiver only emits once it is enabled (the Database Agent enables it).",
+    category: "Memory",
+    severity: "Warning",
+    engine: SQL_SERVER,
+    queries: [
+      {
+        alias: "sqlserver_memory_grants_pending",
+        metricName: "sqlserver.memory.grants.pending.count",
         aggregationType: MetricsAggregationType.Max,
       },
     ],
     criteria: {
-      metricAlias: "sqlserver_lock_wait_time",
+      metricAlias: "sqlserver_memory_grants_pending",
       filterType: FilterType.GreaterThanOrEqualTo,
-      threshold: 500,
-      thresholdLabel: "at or above 500 ms",
+      threshold: 1,
+      thresholdLabel: "at or above 1 pending grant",
       incidentDescription:
-        "Queries are waiting half a second or more for locks. Find the head of the blocking chain in sys.dm_exec_requests (blocking_session_id) and what it is waiting on.",
+        "Queries are waiting for workspace memory before they can run. sys.dm_exec_query_memory_grants lists them (grant_time is NULL for the waiters) next to the sorts and hashes holding the memory; then check max server memory.",
     },
   }),
 ];
@@ -1624,58 +1645,52 @@ const ORACLE: DatabaseTemplateEngine = {
   displayName: "Oracle",
 };
 
+/*
+ * No "percent of the SESSIONS / PROCESSES limit" template: a connection to a
+ * pluggable database, the usual setup, never returns either limit, so such a
+ * monitor would watch nothing (see the module header).
+ */
 const oracleTemplates: Array<DatabaseAlertTemplate> = [
   buildEngineMetricsStoppedTemplate({
     id: "database-oracle-engine-metrics-stopped",
     engine: ORACLE,
-    metricName: "oracledb.sessions.limit",
+    // One row per session type and status on every scrape: never empty.
+    metricName: "oracledb.sessions.usage",
     metricAlias: "oracle_heartbeat",
   }),
-  buildPercentOfLimitTemplate({
-    id: "database-oracle-sessions-near-limit",
-    name: "Sessions Near Limit",
+  buildDatabaseTemplate({
+    id: "database-oracle-tablespace-nearly-full",
+    name: "Tablespace Nearly Full",
     description:
-      "Alert when sessions reach 90% of the SESSIONS limit. Past it Oracle refuses logins with ORA-00018.",
-    category: "Connections",
+      "Alert when the fullest tablespace stays at 90% or more of its maximum size. A full tablespace refuses to extend the segments in it (ORA-01653; ORA-01652 for TEMP). Reads oracledb.tablespace.utilization, which the receiver only emits once it is enabled (the Database Agent enables it).",
+    category: "Storage",
     severity: "Critical",
     engine: ORACLE,
-    numerator: {
-      alias: "oracle_sessions_used",
-      metricName: "oracledb.sessions.usage",
-      aggregationType: MetricsAggregationType.Sum,
+    queries: [
+      {
+        alias: "oracle_tablespace_utilization",
+        metricName: "oracledb.tablespace.utilization",
+        // The fullest tablespace, of any pluggable database.
+        aggregationType: MetricsAggregationType.Max,
+      },
+    ],
+    // The receiver reports a 0..1 share; the monitor compares a percentage.
+    formula: {
+      alias: "oracle_tablespace_percent",
+      expression: "oracle_tablespace_utilization * 100",
+      legendUnit: "%",
     },
-    denominator: {
-      alias: "oracle_sessions_limit",
-      metricName: "oracledb.sessions.limit",
-      aggregationType: MetricsAggregationType.Sum,
+    rollingTime: RollingTime.Past10Minutes,
+    criteria: {
+      metricAlias: "oracle_tablespace_percent",
+      filterType: FilterType.GreaterThanOrEqualTo,
+      threshold: 90,
+      thresholdLabel: "at or above 90%",
+      subject:
+        "oracledb.tablespace.utilization (the fullest tablespace) as a percentage",
+      incidentDescription:
+        "A tablespace is nearly full. DBA_TABLESPACE_USAGE_METRICS shows which one: add a datafile, raise its datafiles' MAXSIZE, or purge what grew. For TEMP, look for the sort or hash join spilling to disk.",
     },
-    resultAlias: "oracle_sessions_percent",
-    thresholdPercent: 90,
-    incidentDescription:
-      "Oracle is close to its SESSIONS limit. Check v$session for inactive sessions a connection pool is holding and for a runaway client.",
-  }),
-  buildPercentOfLimitTemplate({
-    id: "database-oracle-processes-near-limit",
-    name: "Processes Near Limit",
-    description:
-      "Alert when processes reach 90% of the PROCESSES limit. Past it Oracle refuses new connections with ORA-00020.",
-    category: "Connections",
-    severity: "Critical",
-    engine: ORACLE,
-    numerator: {
-      alias: "oracle_processes_used",
-      metricName: "oracledb.processes.usage",
-      aggregationType: MetricsAggregationType.Sum,
-    },
-    denominator: {
-      alias: "oracle_processes_limit",
-      metricName: "oracledb.processes.limit",
-      aggregationType: MetricsAggregationType.Sum,
-    },
-    resultAlias: "oracle_processes_percent",
-    thresholdPercent: 90,
-    incidentDescription:
-      "Oracle is close to its PROCESSES limit. Dedicated-server connections each take a process — check v$process for the programs holding them.",
   }),
 ];
 

@@ -18,7 +18,9 @@ import {
   KubernetesPoolerService,
   normalizeImageRepository,
   parseImageVersion,
+  pickMostSpecificDatabaseSystem,
 } from "../../../Types/DatabaseServer/DatabaseContainerClassifier";
+import { buildWorkloadDatabaseServerIdentifier } from "../../../Types/DatabaseServer/DatabaseEndpoint";
 import { describe, expect, test } from "@jest/globals";
 
 type ContainerFixture = {
@@ -1012,6 +1014,240 @@ describe("classifyKubernetesPod — operators and charts", () => {
   });
 });
 
+describe("classifyKubernetesPod — the Vitess operator", () => {
+  /*
+   * What the operator (planetscale/vitess-operator) stamps on every pod of a
+   * VitessCluster: `planetscale.com/cluster` and `planetscale.com/component`.
+   * Every component runs `vitess/lite`; the vttablets add a mysqld.
+   */
+  function vitessPod(data: {
+    name: string;
+    component: string | null;
+    owner?: { kind: string; name: string } | null;
+    containers: Array<ContainerFixture>;
+    extraLabels?: Record<string, string>;
+  }): KubernetesPodLike {
+    const labels: Record<string, string> = {
+      "planetscale.com/cluster": "example",
+      ...(data.extraLabels || {}),
+    };
+    if (data.component !== null) {
+      labels["planetscale.com/component"] = data.component;
+    }
+    return pod({
+      name: data.name,
+      namespace: "vitess",
+      labels,
+      owner: data.owner === undefined ? null : data.owner,
+      containers: data.containers,
+    });
+  }
+
+  test("vtgate is the database: the VitessCluster, on vitess/lite", () => {
+    const candidate: KubernetesDatabaseCandidate | null = classifyKubernetesPod(
+      vitessPod({
+        name: "example-zone1-vtgate-bc6cde92-6bd99c6888-vwcj5",
+        component: "vtgate",
+        extraLabels: {
+          "planetscale.com/cell": "zone1",
+          "pod-template-hash": "6bd99c6888",
+        },
+        owner: {
+          kind: "ReplicaSet",
+          name: "example-zone1-vtgate-bc6cde92-6bd99c6888",
+        },
+        containers: [
+          {
+            name: "vtgate",
+            image: "vitess/lite:v19.0.4",
+            command: ["/vt/bin/vtgate"],
+            args: ["--cell=zone1", "--mysql_server_port=3306"],
+            ports: [port(15000), port(15999), port(3306)],
+          },
+        ],
+      }),
+    );
+
+    expect(candidate).toMatchObject({
+      system: "vitess",
+      namespace: "vitess",
+      workloadKind: "Cluster",
+      workloadName: "example",
+      ownerKind: "Deployment",
+      ownerName: "example-zone1-vtgate-bc6cde92",
+      operator: "vitess-operator",
+      role: null,
+      containerName: "vtgate",
+      image: "vitess/lite:v19.0.4",
+      version: "19.0.4",
+      // The cell's vtgate Deployment - the operator hashes Service names.
+      serviceNames: ["example", "example-zone1-vtgate-bc6cde92"],
+      evidence: [
+        "label:planetscale.com/cluster=example",
+        "image:vitess/lite:v19.0.4",
+      ],
+    });
+    // Without the labels, vitess/lite is no database at all.
+    expect(classifyImage("vitess/lite:v19.0.4").kind).not.toBe("database");
+  });
+
+  test("a vtgate on the dedicated vitess/vtgate image is the same database", () => {
+    expect(
+      classifyKubernetesPod(
+        vitessPod({
+          name: "example-zone2-vtgate-0a1b2c3d-7f8e9d-abcde",
+          component: "vtgate",
+          owner: { kind: "Deployment", name: "example-zone2-vtgate-0a1b2c3d" },
+          containers: [
+            {
+              name: "vtgate",
+              image: "vitess/vtgate:v19.0.4",
+              ports: [port(3306)],
+            },
+          ],
+        }),
+      ),
+    ).toMatchObject({
+      system: "vitess",
+      workloadKind: "Cluster",
+      workloadName: "example",
+    });
+  });
+
+  test.each(["vttablet", "vtctld", "vtorc", "vtbackup", "vtadmin", "etcd"])(
+    "%s pods belong to the VitessCluster but are not members",
+    (component: string) => {
+      expect(
+        classifyKubernetesPod(
+          vitessPod({
+            name: `example-${component}-zone1-2469782763-bfadd780`,
+            component,
+            owner: { kind: "VitessShard", name: "example-commerce-x-x" },
+            containers: [
+              {
+                name: component,
+                image: "vitess/lite:v19.0.4",
+                ports: [port(15000), port(15999)],
+              },
+            ],
+          }),
+        ),
+      ).toBeNull();
+    },
+  );
+
+  test("a vttablet's mysqld container never makes it a MySQL database of its own", () => {
+    const tablet: KubernetesPodLike = vitessPod({
+      name: "example-vttablet-zone1-2548885007-46a852d0",
+      component: "vttablet",
+      extraLabels: {
+        "planetscale.com/keyspace": "commerce",
+        "planetscale.com/shard": "x-x",
+        "planetscale.com/tablet-type": "replica",
+      },
+      owner: { kind: "VitessShard", name: "example-commerce-x-x-2b3c4d5e" },
+      containers: [
+        {
+          name: "vttablet",
+          image: "vitess/lite:v19.0.4",
+          ports: [port(15000), port(15999)],
+        },
+        { name: "mysqld", image: "mysql:8.0.30", ports: [port(3306)] },
+        { name: "mysqld-exporter", image: "prom/mysqld-exporter:v0.14.0" },
+      ],
+    });
+    expect(classifyKubernetesPod(tablet)).toBeNull();
+
+    /*
+     * The labels decide, not the neighbours: a tablet pod whose only
+     * server is its mysqld is not a member either, though the image alone
+     * would make it MySQL.
+     */
+    const mysqldOnly: KubernetesPodLike = {
+      ...tablet,
+      spec: {
+        containers: [
+          { name: "mysqld", image: "mysql:8.0.30", ports: [port(3306)] },
+          { name: "mysqld-exporter", image: "prom/mysqld-exporter:v0.14.0" },
+        ],
+      },
+    };
+    expect(classifyKubernetesPod(mysqldOnly)).toBeNull();
+    expect(classifyKubernetesPod({ ...mysqldOnly, labels: {} })).toMatchObject({
+      system: "mysql",
+    });
+  });
+
+  test("a VitessCluster pod without a component is not guessed a member", () => {
+    expect(
+      classifyKubernetesPod(
+        vitessPod({
+          name: "example-x",
+          component: null,
+          owner: { kind: "Deployment", name: "example-x" },
+          containers: [{ name: "x", image: "vitess/lite:v19.0.4" }],
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("the cells' vtgates fold into ONE database, keyed in the mysql family", () => {
+    const vtgate: (
+      cell: string,
+      suffix: string,
+    ) => KubernetesDatabaseCandidate = (
+      cell: string,
+      suffix: string,
+    ): KubernetesDatabaseCandidate => {
+      return classifyKubernetesPod(
+        vitessPod({
+          name: `example-${cell}-vtgate-${suffix}-5d6f7-abcde`,
+          component: "vtgate",
+          owner: {
+            kind: "Deployment",
+            name: `example-${cell}-vtgate-${suffix}`,
+          },
+          containers: [
+            {
+              name: "vtgate",
+              image: "vitess/lite:v19.0.4",
+              ports: [port(3306)],
+            },
+          ],
+        }),
+      )!;
+    };
+
+    const groups: Array<KubernetesDatabaseGroup> =
+      groupKubernetesDatabaseCandidates([
+        vtgate("zone2", "0a1b2c3d"),
+        vtgate("zone1", "bc6cde92"),
+      ]);
+
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toMatchObject({
+      system: "vitess",
+      workloadKind: "Cluster",
+      workloadName: "example",
+      operator: "vitess-operator",
+      ownerWorkloads: [
+        { kind: "Deployment", name: "example-zone1-vtgate-bc6cde92" },
+        { kind: "Deployment", name: "example-zone2-vtgate-0a1b2c3d" },
+      ],
+    });
+    expect(
+      buildWorkloadDatabaseServerIdentifier({
+        system: groups[0]!.system,
+        platform: "kubernetes",
+        parentName: "prod",
+        namespace: groups[0]!.namespace,
+        workloadKind: groups[0]!.workloadKind,
+        workloadName: groups[0]!.workloadName,
+      }),
+    ).toBe("mysql|kubernetes:prod/vitess/cluster/example");
+  });
+});
+
 describe("classifyKubernetesPod — images", () => {
   test("a plain StatefulSet running postgres", () => {
     expect(
@@ -1517,6 +1753,165 @@ describe("groupKubernetesDatabaseCandidates", () => {
     ]);
   });
 
+  describe("a fork and its family engine on one workload are ONE database", () => {
+    function cacheMember(
+      name: string,
+      image: string,
+    ): KubernetesDatabaseCandidate {
+      return classifyKubernetesPod(
+        pod({
+          name,
+          namespace: "cache",
+          owner: { kind: "StatefulSet", name: "cache" },
+          containers: [{ name: "server", image, ports: [port(6379)] }],
+        }),
+        { statefulSetServiceNames: { cache: "cache-headless" } },
+      )!;
+    }
+
+    function identifierOf(group: KubernetesDatabaseGroup): string {
+      return buildWorkloadDatabaseServerIdentifier({
+        system: group.system,
+        platform: "kubernetes",
+        parentName: "prod",
+        namespace: group.namespace,
+        workloadKind: group.workloadKind,
+        workloadName: group.workloadName,
+      });
+    }
+
+    test("mid-rollout from redis to valkey: one group, the fork's engine, every pod", () => {
+      const groups: Array<KubernetesDatabaseGroup> =
+        groupKubernetesDatabaseCandidates([
+          cacheMember("cache-0", "redis:7.2.4"),
+          cacheMember("cache-1", "redis:7.2.4"),
+          cacheMember("cache-2", "valkey/valkey:8.0.1"),
+        ]);
+
+      expect(groups).toHaveLength(1);
+      expect(groups[0]).toMatchObject({
+        system: "valkey",
+        workloadKind: "StatefulSet",
+        workloadName: "cache",
+        podNames: ["cache-0", "cache-1", "cache-2"],
+        // Image and version describe the engine shown, not the first pod.
+        image: "valkey/valkey:8.0.1",
+        version: "8.0.1",
+        podServiceNames: [
+          { podName: "cache-0", serviceName: "cache-headless" },
+          { podName: "cache-1", serviceName: "cache-headless" },
+          { podName: "cache-2", serviceName: "cache-headless" },
+        ],
+      });
+      expect(identifierOf(groups[0]!)).toBe(
+        "redis|kubernetes:prod/cache/statefulset/cache",
+      );
+    });
+
+    test("a fork is never undone by more pods of the family engine, and order never matters", () => {
+      const members: Array<KubernetesDatabaseCandidate> = [
+        cacheMember("cache-2", "redis:7.2.4"),
+        cacheMember("cache-0", "valkey/valkey:8.0.1"),
+        cacheMember("cache-1", "redis:7.2.4"),
+      ];
+      const groups: Array<KubernetesDatabaseGroup> =
+        groupKubernetesDatabaseCandidates(members);
+
+      expect(
+        groups.map((group: KubernetesDatabaseGroup) => {
+          return group.system;
+        }),
+      ).toEqual(["valkey"]);
+      expect(groups).toEqual(
+        groupKubernetesDatabaseCandidates([...members].reverse()),
+      );
+    });
+
+    test("MySQL and MariaDB pods of one StatefulSet are one MariaDB", () => {
+      const member: (
+        name: string,
+        image: string,
+      ) => KubernetesDatabaseCandidate = (
+        name: string,
+        image: string,
+      ): KubernetesDatabaseCandidate => {
+        return classifyKubernetesPod(
+          pod({
+            name,
+            owner: { kind: "StatefulSet", name: "orders" },
+            containers: [{ name: "db", image, ports: [port(3306)] }],
+          }),
+        )!;
+      };
+      const groups: Array<KubernetesDatabaseGroup> =
+        groupKubernetesDatabaseCandidates([
+          member("orders-0", "mariadb:11.4.2"),
+          member("orders-1", "mysql:8.0.36"),
+        ]);
+      expect(groups).toHaveLength(1);
+      expect(groups[0]).toMatchObject({
+        system: "mariadb",
+        podNames: ["orders-0", "orders-1"],
+        version: "11.4.2",
+      });
+    });
+
+    test("engines of different families on one workload stay two databases", () => {
+      const base: KubernetesDatabaseCandidate = cacheMember(
+        "cache-0",
+        "redis:7.2.4",
+      );
+      const groups: Array<KubernetesDatabaseGroup> =
+        groupKubernetesDatabaseCandidates([
+          base,
+          { ...base, system: "memcached", podName: "cache-1" },
+        ]);
+      expect(
+        groups.map((group: KubernetesDatabaseGroup): string => {
+          return `${group.system}:${group.podNames.join(",")}`;
+        }),
+      ).toEqual(["memcached:cache-1", "redis:cache-0"]);
+    });
+
+    test("a pooler still reaches its cluster whatever engine of the family the cluster shows", () => {
+      const cluster: KubernetesDatabaseGroup = {
+        ...groupKubernetesDatabaseCandidates([
+          cnpgMember(
+            "pg-main-1",
+            "primary",
+            "ghcr.io/cloudnative-pg/postgresql:16",
+          ),
+        ])[0]!,
+        system: "cockroachdb",
+      };
+      expect(
+        attachPoolerServices(
+          [cluster],
+          [
+            {
+              system: "postgresql",
+              namespace: "data",
+              clusterName: "pg-main",
+              serviceName: "pg-main-pooler-rw",
+            },
+            {
+              system: "mysql",
+              namespace: "data",
+              clusterName: "pg-main",
+              serviceName: "not-this-one",
+            },
+          ],
+        )[0]!.serviceNames,
+      ).toEqual([
+        "pg-main",
+        "pg-main-rw",
+        "pg-main-ro",
+        "pg-main-r",
+        "pg-main-pooler-rw",
+      ]);
+    });
+  });
+
   test("input order does not change the result", () => {
     const members: Array<KubernetesDatabaseCandidate> = [
       cnpgMember(
@@ -1564,6 +1959,39 @@ describe("groupKubernetesDatabaseCandidates", () => {
         undefined as unknown as Array<KubernetesDatabaseCandidate>,
       ),
     ).toEqual([]);
+  });
+});
+
+describe("pickMostSpecificDatabaseSystem", () => {
+  test.each([
+    [["redis"], "redis"],
+    [["redis", "redis", "valkey"], "valkey"],
+    [["valkey", "valkey", "redis"], "valkey"],
+    [["mysql", "mariadb"], "mariadb"],
+    [["mariadb", "mysql", "mysql", "mysql"], "mariadb"],
+    [["postgresql", "cockroachdb"], "cockroachdb"],
+    // Two forks that do not refine each other: the more reported one.
+    [["keydb", "valkey", "valkey"], "valkey"],
+    [["keydb", "keydb", "valkey"], "keydb"],
+    // ...the first by name on a tie, whatever the order.
+    [["valkey", "keydb"], "keydb"],
+    [["keydb", "valkey"], "keydb"],
+    [["redis", "valkey", "keydb"], "keydb"],
+  ])("%j -> %s", (systems: Array<string>, expected: string) => {
+    expect(pickMostSpecificDatabaseSystem(systems)).toBe(expected);
+    expect(pickMostSpecificDatabaseSystem([...systems].reverse())).toBe(
+      expected,
+    );
+  });
+
+  test("nothing to pick is null; junk entries are ignored", () => {
+    expect(pickMostSpecificDatabaseSystem([])).toBeNull();
+    expect(
+      pickMostSpecificDatabaseSystem(undefined as unknown as Array<string>),
+    ).toBeNull();
+    expect(
+      pickMostSpecificDatabaseSystem(["", null as unknown as string, "valkey"]),
+    ).toBe("valkey");
   });
 });
 
@@ -2539,6 +2967,14 @@ describe("hasDatabaseWorkloadLabels — the store-side pre-filter's twin", () =>
     },
     { "clickhouse.altinity.com/chi": "demo" },
     { "cassandra.datastax.com/cluster": "demo" },
+    {
+      "planetscale.com/cluster": "example",
+      "planetscale.com/component": "vtgate",
+    },
+    {
+      "planetscale.com/cluster": "example",
+      "planetscale.com/component": "vttablet",
+    },
     { "app.kubernetes.io/name": "postgresql" },
     { "app.kubernetes.io/name": " Redis " },
     { "app.kubernetes.io/name": "mongodb-sharded" },

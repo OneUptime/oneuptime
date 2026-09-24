@@ -2,7 +2,10 @@ import {
   DATABASE_SYSTEMS,
   DatabaseSystemDescriptor,
   getDatabaseSystemDescriptor,
+  getDatabaseSystemFamily,
   getDefaultDatabasePort,
+  getMoreSpecificDatabaseSystem,
+  isSameDatabaseFamily,
 } from "./DatabaseSystem";
 
 /*
@@ -12,8 +15,9 @@ import {
  * Evidence, strongest first:
  *   1. operator / Helm chart LABELS on a Kubernetes pod (CloudNativePG,
  *      Zalando, Crunchy, Percona, the Oracle MySQL operator, ECK, Altinity,
- *      cass-operator, Bitnami-style `app.kubernetes.io/name`) — they also
- *      name the logical cluster, its role and its Services;
+ *      cass-operator, the Vitess operator, Bitnami-style
+ *      `app.kubernetes.io/name`) — they also name the logical cluster, its
+ *      role and its Services;
  *   2. the container IMAGE, matched on the normalized repository or its
  *      basename EXACTLY (never a substring: `acme/redis-cache-warmer` is not
  *      Redis). Normalization drops the registry, `library/`, the tag and the
@@ -923,6 +927,7 @@ export const DATABASE_OPERATOR_LABEL_KEYS: ReadonlyArray<string> = [
   "elasticsearch.k8s.elastic.co/cluster-name",
   "clickhouse.altinity.com/chi",
   "cassandra.datastax.com/cluster",
+  "planetscale.com/cluster",
 ];
 
 // Lowercase `app.kubernetes.io/name` values a chart / Percona rule matches.
@@ -1205,6 +1210,41 @@ const OPERATOR_RULES: ReadonlyArray<OperatorRule> = [
           ]
         : [],
       evidence: `label:cassandra.datastax.com/cluster=${cluster}`,
+    };
+  },
+
+  /*
+   * The Vitess operator (PlanetScale). It runs every component on the same
+   * `vitess/lite` image, so only `planetscale.com/component` tells them
+   * apart. The database clients connect to is vtgate, speaking MySQL; the
+   * vttablets (each with its own mysqld), vtctld, vtorc, vtbackup, vtadmin,
+   * the etcd lockserver and the backup-storage subcontroller are parts of
+   * the VitessCluster, not members. vtgate Services carry a hash suffix
+   * (`<cluster>-vtgate-<hash>`), so none are guessed: the owner
+   * Deployment's name is added, as for any Deployment.
+   */
+  (labels: Record<string, unknown>): OperatorRuleResult => {
+    const cluster: string | null = labelValue(
+      labels,
+      "planetscale.com/cluster",
+    );
+    if (!cluster) {
+      return null;
+    }
+    const component: string | null = labelValue(
+      labels,
+      "planetscale.com/component",
+    );
+    if (!component || component.toLowerCase() !== "vtgate") {
+      return "skip";
+    }
+    return {
+      operator: "vitess-operator",
+      system: "vitess",
+      clusterName: cluster,
+      role: null,
+      serviceNames: [],
+      evidence: `label:planetscale.com/cluster=${cluster}`,
     };
   },
 
@@ -1710,11 +1750,53 @@ function compareStrings(a: string, b: string): number {
 }
 
 /**
+ * The engine of a database whose members report several engines of one
+ * family: the most specific of them (getMoreSpecificDatabaseSystem). A
+ * StatefulSet mid-rollout from a redis image to a valkey image is ONE
+ * Valkey database, as its family-keyed identifier
+ * (buildWorkloadDatabaseServerIdentifier) already says. The engines are
+ * folded most-reported first, then by name, so member order never changes
+ * the answer; of two forks that do not refine each other (valkey and keydb)
+ * the more reported one stays, the first by name on a tie. Null when no
+ * engine is given.
+ */
+export function pickMostSpecificDatabaseSystem(
+  systems: Array<string>,
+): string | null {
+  const counts: Map<string, number> = new Map<string, number>();
+
+  for (const system of Array.isArray(systems) ? systems : []) {
+    if (typeof system === "string" && system) {
+      counts.set(system, (counts.get(system) || 0) + 1);
+    }
+  }
+
+  const ordered: Array<string> = Array.from(counts.keys()).sort(
+    (a: string, b: string): number => {
+      return (
+        (counts.get(b) || 0) - (counts.get(a) || 0) || compareStrings(a, b)
+      );
+    },
+  );
+
+  let result: string | null = null;
+
+  for (const system of ordered) {
+    result = getMoreSpecificDatabaseSystem(result, system);
+  }
+
+  return result;
+}
+
+/**
  * Fold per-pod candidates into one entry per database workload
- * (system + namespace + workloadKind + workloadName). Member pods, ports,
+ * (engine FAMILY + namespace + workloadKind + workloadName - the parts of
+ * its family-keyed identifier). The group's engine is the most specific its
+ * members report (pickMostSpecificDatabaseSystem). Member pods, ports,
  * Service names and owner workloads are unioned; image and version come
- * from the primary member when one is known, else from the first pod by
- * name. Deterministic: groups and pod names are sorted.
+ * from the primary member running that engine when one is known, else from
+ * the first such pod by name. Deterministic: groups and pod names are
+ * sorted.
  */
 export function groupKubernetesDatabaseCandidates(
   candidates: Array<KubernetesDatabaseCandidate>,
@@ -1733,7 +1815,7 @@ export function groupKubernetesDatabaseCandidates(
       continue;
     }
     const key: string = [
-      candidate.system,
+      getDatabaseSystemFamily(candidate.system) || candidate.system,
       candidate.namespace,
       candidate.workloadKind,
       candidate.workloadName,
@@ -1752,10 +1834,25 @@ export function groupKubernetesDatabaseCandidates(
       },
     );
     const first: KubernetesDatabaseCandidate = sorted[0]!;
+    const system: string =
+      pickMostSpecificDatabaseSystem(
+        sorted.map((member: KubernetesDatabaseCandidate): string => {
+          return member.system;
+        }),
+      ) || first.system;
+
+    // Image and version describe the engine the group is shown as.
+    const runningSystem: Array<KubernetesDatabaseCandidate> = sorted.filter(
+      (member: KubernetesDatabaseCandidate): boolean => {
+        return member.system === system;
+      },
+    );
+    const pool: Array<KubernetesDatabaseCandidate> =
+      runningSystem.length > 0 ? runningSystem : sorted;
     const representative: KubernetesDatabaseCandidate =
-      sorted.find((member: KubernetesDatabaseCandidate): boolean => {
+      pool.find((member: KubernetesDatabaseCandidate): boolean => {
         return member.role === "primary";
-      }) || first;
+      }) || pool[0]!;
 
     const podNames: Array<string> = uniqueNonEmpty(
       sorted.map((member: KubernetesDatabaseCandidate): string => {
@@ -1824,7 +1921,7 @@ export function groupKubernetesDatabaseCandidates(
     );
 
     groups.push({
-      system: first.system,
+      system,
       namespace: first.namespace,
       workloadKind: first.workloadKind,
       workloadName: first.workloadName,
@@ -1859,9 +1956,9 @@ export function groupKubernetesDatabaseCandidates(
 }
 
 /**
- * Add each pooler's Service to the operator cluster it pools (same engine,
- * namespace and cluster name). Returns new group objects; a pooler whose
- * cluster has no group this run is dropped.
+ * Add each pooler's Service to the operator cluster it pools (same engine
+ * family, namespace and cluster name). Returns new group objects; a pooler
+ * whose cluster has no group this run is dropped.
  */
 export function attachPoolerServices(
   groups: Array<KubernetesDatabaseGroup>,
@@ -1883,7 +1980,7 @@ export function attachPoolerServices(
         .filter((pooler: KubernetesPoolerService): boolean => {
           return (
             Boolean(pooler) &&
-            pooler.system === group.system &&
+            isSameDatabaseFamily(pooler.system, group.system) &&
             pooler.namespace === group.namespace &&
             pooler.clusterName === group.workloadName
           );

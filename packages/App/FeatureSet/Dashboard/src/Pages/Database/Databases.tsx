@@ -128,8 +128,9 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
       /*
        * Connected / Disconnected (an agent reported, then stopped) / Not
        * connected (none ever did). The last two differ by collectorLastSeenAt,
-       * not by the status column — every never-connected row stores the
-       * "disconnected" default — so the chip resolves row ids.
+       * not by the status column — a never-connected row stores no status
+       * (NULL), and one written before the column's default was dropped
+       * reads "disconnected" — so the chip resolves row ids.
        */
       key: "otelCollectorStatus",
       label: "Engine metrics",

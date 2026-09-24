@@ -15,17 +15,18 @@ import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 /*
  * The Databases list's "Engine metrics" filter. One status takes two
  * columns to express — a database found from traces or containers stores
- * otelCollectorStatus "disconnected" (the column default) without ever
- * having had an agent — so the filter cannot write one column. It resolves
- * the chosen statuses to row ids instead (ResourceFacet
- * computeMatchingResourceIds), with exactly the rules
- * getDatabaseEngineMetricsStatus applies to a row:
+ * no otelCollectorStatus (NULL) until a collector reports, but rows
+ * written before the column's "disconnected" default was dropped still
+ * read "disconnected" without ever having had an agent — so the filter
+ * cannot write one column. It resolves the chosen statuses to row ids
+ * instead (ResourceFacet computeMatchingResourceIds), with exactly the
+ * rules getDatabaseEngineMetricsStatus applies to a row:
  *
  *   - Connected: otelCollectorStatus = "connected";
  *   - Disconnected: not "connected", and collectorLastSeenAt set — a
  *     collector reported once and stopped;
  *   - Not connected: never reported — collectorLastSeenAt empty, status
- *     empty or the "disconnected" default.
+ *     empty (NULL) or an old row's "disconnected" default.
  */
 
 /** The DatabaseServer query that selects one engine-metrics status. */

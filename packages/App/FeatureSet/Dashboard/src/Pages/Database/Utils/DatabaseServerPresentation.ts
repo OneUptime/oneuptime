@@ -98,11 +98,12 @@ function isValidTimestamp(value: Date | string | null | undefined): boolean {
  *     every batch).
  *   - Disconnected: a collector DID report (`collectorLastSeenAt`, which only
  *     the collector path writes) and has stopped.
- *   - Not connected: nothing ever reported. That includes a row whose
- *     `otelCollectorStatus` reads "disconnected" with no collectorLastSeenAt
- *     — the column's default, which every row found from traces, Kubernetes,
- *     Docker, Podman or by hand is created with. Such a row never had an
- *     agent, so it must not be told one "stopped reporting".
+ *   - Not connected: nothing ever reported. A row found from traces,
+ *     Kubernetes, Docker, Podman or by hand stores no `otelCollectorStatus`
+ *     (NULL) until a collector reports; one created before the column's
+ *     "disconnected" default was dropped reads "disconnected" with no
+ *     collectorLastSeenAt. Either way it never had an agent, so it must not
+ *     be told one "stopped reporting".
  */
 export function getDatabaseEngineMetricsStatus(
   source: DatabaseEngineMetricsStatusSource | null | undefined,
@@ -144,8 +145,9 @@ export function getDatabaseEngineMetricsStatusOptions(): Array<DatabaseOption> {
 /*
  * Which rows one engine-metrics status selects — exactly the rows
  * getDatabaseEngineMetricsStatus maps to it. A status takes TWO columns to
- * express (a never-connected row stores the "disconnected" default), so the
- * list's filter resolves these to row ids instead of writing one column:
+ * express (a never-connected row stores no status, or — written before the
+ * column's default was dropped — "disconnected"), so the list's filter
+ * resolves these to row ids instead of writing one column:
  *
  *   - "connected": otelCollectorStatus = "connected";
  *   - "reported-and-stopped": not connected, collectorLastSeenAt set;

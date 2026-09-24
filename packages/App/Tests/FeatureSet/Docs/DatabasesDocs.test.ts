@@ -5,9 +5,11 @@ import {
   getCollectorReceiverComponentName,
   getDatabaseSystemDescriptor,
   getDatabaseSystemDisplayName,
+  getDatabaseReceiverSystemHint,
   getDatabaseSystemMetricsEngine,
   isAutoCreatableDatabaseSystem,
   normalizeDatabaseSystem,
+  refineDatabaseSystemFromVersion,
 } from "Common/Types/DatabaseServer/DatabaseSystem";
 import {
   DatabaseServerMetricDefinition,
@@ -23,7 +25,11 @@ import {
   NETWORK_SCOPED_NAME_SUFFIXES,
 } from "Common/Types/DatabaseServer/DatabaseEndpoint";
 import { classifyContainer } from "Common/Types/DatabaseServer/DatabaseContainerClassifier";
-import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
+import {
+  DatabaseAlertTemplate,
+  getDatabaseAlertTemplates,
+} from "Common/Types/Monitor/DatabaseAlertTemplates";
+import { resolveDatabaseFromResourceAttributes } from "Common/Types/DatabaseServer/DatabaseTelemetryResolver";
 import {
   DatabaseEngineMetricsStatus,
   getDatabaseEngineMetricsStatusLabel,
@@ -971,6 +977,115 @@ describe("Databases docs", (): void => {
     );
   });
 
+  function ownCollectorRuleOne(): string {
+    return (
+      section(readPage(), "## Using your own OpenTelemetry Collector").split(
+        "\n",
+      ) as Array<string>
+    ).find((line: string): boolean => {
+      return line.startsWith("1. **Every batch must name the server.**");
+    }) as string;
+  }
+
+  /*
+   * Regression: the page said SAP HANA batches were ignored until stamped.
+   * The resolver reads saphana.host now: a real hostname attaches (and may
+   * create), a single-label one only ever joins.
+   */
+  it("says SAP HANA batches attach by HANA's own hostname, and a single-label one never creates", (): void => {
+    const ruleOne: string = ownCollectorRuleOne();
+    const hint: string | null = getDatabaseReceiverSystemHint([
+      "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/saphanareceiver",
+    ]);
+
+    expect(ruleOne).toContain(
+      "The `saphana` receiver's batches attach by HANA's own hostname",
+    );
+    expect(ruleOne).toContain(
+      "a single-label name — which only joins a database that already has it and never creates one",
+    );
+    expect(ruleOne).toContain(
+      `SAP HANA's default port, ${getDatabaseSystemDescriptor("sap.hana")?.defaultPort}`,
+    );
+
+    const named: ReturnType<typeof resolveDatabaseFromResourceAttributes> =
+      resolveDatabaseFromResourceAttributes({
+        attributes: {
+          "db.system": "saphana",
+          "saphana.host": "hana.prod.example.com",
+        },
+        receiverSystemHint: hint,
+      });
+
+    expect(named?.endpoint).toEqual({
+      host: "hana.prod.example.com",
+      port: 30015,
+    });
+    expect(named?.allowCreate).toBe(true);
+
+    const singleLabel: ReturnType<
+      typeof resolveDatabaseFromResourceAttributes
+    > = resolveDatabaseFromResourceAttributes({
+      attributes: { "db.system": "saphana", "saphana.host": "hana01" },
+      receiverSystemHint: hint,
+    });
+
+    // Still an endpoint to join a database by, never one to create from.
+    expect(singleLabel?.endpoint?.host).toBe("hana01");
+    expect(singleLabel?.allowCreate).toBe(false);
+
+    // The receiver is not among the ones "ignored until you stamp".
+    const ignored: string = ruleOne.substring(
+      ruleOne.indexOf("Receivers that report none of them"),
+      ruleOne.indexOf("are ignored until"),
+    );
+
+    expect(ignored).not.toContain("HANA");
+  });
+
+  it("names the forks a server's version string refines, with an example the code refines", (): void => {
+    const ruleOne: string = ownCollectorRuleOne();
+    const example: RegExpMatchArray | null = ruleOne.match(
+      /`db\.system\.version`[^`]*reads `([^`…]+)…` on (\w+)/,
+    );
+
+    expect(example).not.toBeNull();
+
+    const [, version, forkName] = example as RegExpMatchArray;
+
+    expect(
+      getDatabaseSystemDisplayName(
+        refineDatabaseSystemFromVersion("mysql", version as string),
+      ),
+    ).toBe(forkName);
+
+    // Every other fork the resolver refines to by version is named too.
+    const refinable: Array<string> = DATABASE_SYSTEMS.filter(
+      (descriptor: DatabaseSystemDescriptor): boolean => {
+        return Boolean(descriptor.versionPattern);
+      },
+    ).map((descriptor: DatabaseSystemDescriptor): string => {
+      return descriptor.displayName;
+    });
+
+    expect(refinable).toContain(forkName);
+
+    for (const displayName of refinable) {
+      expect({ displayName, named: ruleOne.includes(displayName) }).toEqual({
+        displayName,
+        named: true,
+      });
+    }
+
+    // ...and the agent's mysql config switches the version attribute on.
+    expect(readConfig("mysql")).toMatch(
+      /\n\s+db\.system\.version:\s*\n\s+enabled:\s*true/,
+    );
+    expect(ruleOne).toContain(
+      "stamping `db.system.name` with the fork's name is the reliable way",
+    );
+  });
+
   /*
    * The engine table is the page's promise about every engine OneUptime
    * knows: what it normalises spans to, its default port, its family,
@@ -1357,6 +1472,127 @@ describe("Databases docs", (): void => {
         });
       }
     });
+
+    function templateMetrics(engine: string): Array<string> {
+      return getDatabaseAlertTemplates(engine).flatMap(
+        (template: DatabaseAlertTemplate): Array<string> => {
+          return template.metricNames;
+        },
+      );
+    }
+
+    /*
+     * Regression: SQL Server's transaction-log and lock-wait-time templates
+     * and Oracle's session / process limit templates read metrics that never
+     * arrive on the agent's default setup, so the monitors watched nothing.
+     */
+    it("says why SQL Server and Oracle have no log, lock-wait or limit monitor, and the library agrees", (): void => {
+      const recommended: string = section(
+        readPage(),
+        "### Recommended monitors",
+      );
+      const sqlServer: Array<string> = templateMetrics("microsoft.sql_server");
+      const oracle: Array<string> = templateMetrics("oracle.db");
+
+      expect(recommended).toContain(
+        "SQL Server has no transaction-log or lock-wait-time monitor",
+      );
+      expect(recommended).toContain(
+        "Oracle none on its session or process limit",
+      );
+
+      for (const absent of [
+        "sqlserver.transaction_log.usage",
+        "sqlserver.lock.wait_time.avg",
+      ]) {
+        expect(sqlServer).not.toContain(absent);
+      }
+      for (const absent of [
+        "oracledb.sessions.limit",
+        "oracledb.processes.usage",
+        "oracledb.processes.limit",
+      ]) {
+        expect(oracle).not.toContain(absent);
+      }
+
+      // What the list promises instead is what the templates read.
+      expect(recommended).toContain("blocked sessions");
+      expect(sqlServer).toContain("sqlserver.processes.blocked");
+      expect(recommended).toContain("full tablespaces");
+      expect(oracle).toContain("oracledb.tablespace.utilization");
+    });
+
+    it("warns that SQL Server's rates are since-start totals, and no template thresholds one", (): void => {
+      const whatToAlertOn: string = section(readPage(), "### What to alert on");
+      const sqlServer: Array<string> = templateMetrics("microsoft.sql_server");
+
+      expect(whatToAlertOn).toContain("`sqlserver.*.rate` metrics");
+      expect(whatToAlertOn).toContain("total since the server started");
+
+      const rateSuffix: RegExp = /\.rate$/;
+
+      for (const metricName of sqlServer) {
+        expect({ metricName, isRate: rateSuffix.test(metricName) }).toEqual({
+          metricName,
+          isRate: false,
+        });
+      }
+
+      // The point-in-time values it recommends instead are the ones read.
+      expect(whatToAlertOn).toContain(
+        "blocked sessions, pending memory grants, page life expectancy, buffer cache hit ratio",
+      );
+      expect(sqlServer).toEqual(
+        expect.arrayContaining([
+          "sqlserver.processes.blocked",
+          "sqlserver.memory.grants.pending.count",
+          "sqlserver.page.life_expectancy",
+          "sqlserver.page.buffer_cache.hit_ratio",
+        ]),
+      );
+    });
+
+    it("describes Create monitor on a Metrics-tab chart and the two cases it refuses", (): void => {
+      const built: string = section(readPage(), "### Monitors you build");
+      const dashboard: string = path.join(
+        REPO_ROOT,
+        "packages/App/FeatureSet/Dashboard/src",
+      );
+      const modal: string = fs.readFileSync(
+        path.join(
+          dashboard,
+          "Components/DatabaseServer/DatabaseMetricChartModal.tsx",
+        ),
+        "utf8",
+      );
+      const metricsTab: string = fs.readFileSync(
+        path.join(dashboard, "Pages/Database/View/Metrics.tsx"),
+        "utf8",
+      );
+      const link: string = fs.readFileSync(
+        path.join(
+          dashboard,
+          "Pages/Database/Utils/DatabaseMetricMonitorLink.ts",
+        ),
+        "utf8",
+      );
+
+      expect(built).toContain("**Metrics** tab has **Create monitor**");
+      expect(built).toContain(
+        "filtered on the database's `oneuptime.database.server.id`",
+      );
+      expect(metricsTab).toContain("<DatabaseMetricChartModal");
+      expect(modal).toContain("Create monitor");
+      expect(link).toContain("[DATABASE_SERVER_ID_SCOPE_ATTRIBUTE]");
+
+      // The two blockers the page names.
+      expect(built).toContain("for a cumulative counter");
+      expect(link).toMatch(/export const DATABASE_METRIC_MONITOR_RATE_BLOCKER/);
+      expect(built).toContain("a metric that does not carry the database's id");
+      expect(link).toMatch(
+        /export const DATABASE_METRIC_MONITOR_NOT_LINKED_BLOCKER/,
+      );
+    });
   });
 
   /*
@@ -1729,6 +1965,58 @@ describe("Databases docs", (): void => {
           ),
         }).toEqual({ page, linked: true });
       }
+    });
+
+    it("promises Open database on exactly the pages that render it", (): void => {
+      const markdown: string = readPage();
+      const pages: string = path.join(
+        REPO_ROOT,
+        "packages/App/FeatureSet/Dashboard/src/Pages",
+      );
+      const rendersBadge: (relative: string) => boolean = (
+        relative: string,
+      ): boolean => {
+        return fs
+          .readFileSync(path.join(pages, relative), "utf8")
+          .includes("<DatabaseServerWorkloadBadge");
+      };
+
+      expect(section(markdown, "### From Kubernetes")).toContain(
+        "the workload's StatefulSet or Deployment page, and each of its pods' pages, name the database it runs with an **Open database** link",
+      );
+      for (const relative of [
+        "Kubernetes/View/StatefulSetDetail.tsx",
+        "Kubernetes/View/DeploymentDetail.tsx",
+        "Kubernetes/View/PodDetail.tsx",
+      ]) {
+        expect({ relative, renders: rendersBadge(relative) }).toEqual({
+          relative,
+          renders: true,
+        });
+      }
+
+      expect(section(markdown, "### From Docker and Podman")).toContain(
+        "each container's page links back to its database (**Open database**)",
+      );
+      for (const relative of [
+        "Docker/View/ContainerDetail.tsx",
+        "Podman/View/ContainerDetail.tsx",
+      ]) {
+        expect({ relative, renders: rendersBadge(relative) }).toEqual({
+          relative,
+          renders: true,
+        });
+      }
+
+      expect(
+        fs.readFileSync(
+          path.join(
+            REPO_ROOT,
+            "packages/App/FeatureSet/Dashboard/src/Components/DatabaseServer/DatabaseServerWorkloadBadge.tsx",
+          ),
+          "utf8",
+        ),
+      ).toContain("Open database");
     });
   });
 

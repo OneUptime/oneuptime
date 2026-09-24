@@ -46,6 +46,7 @@ import {
   buildDatabaseServerIdentifier,
   formatDatabaseEndpoint,
   getDatabaseEndpointScope,
+  isKubernetesServiceDnsHost,
   parseDatabaseEndpointString,
   parseManualDatabaseEndpoint,
 } from "../../Types/DatabaseServer/DatabaseEndpoint";
@@ -146,15 +147,6 @@ const WORKLOAD_REFRESH_MINUTES: number = 15;
 
 // How many of the project's cluster names a manual-create refusal lists.
 const MAX_LISTED_CLUSTER_NAMES: number = 10;
-
-/*
- * A Kubernetes Service DNS name - `<service>.<namespace>.svc.<cluster
- * domain>`, or `<pod>.<service>.<namespace>.svc.…` for a StatefulSet member
- * - which only a pod inside one cluster can resolve. The canonical form the
- * endpoint parser expands `<service>.<namespace>.svc` to.
- */
-const KUBERNETES_SERVICE_HOST_PATTERN: RegExp =
-  /^(?:[a-z0-9_-]+\.){1,2}[a-z0-9_-]+\.svc\..+$/;
 
 /*
  * The columns every discovery caller gets back. Enough to key telemetry
@@ -1989,14 +1981,18 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * The row of the SAME workload under another engine of the same family. A
-   * workload's identifier starts with its engine, so an image moving from
-   * Redis to Valkey - or the classifier learning to tell MariaDB from MySQL -
-   * would otherwise turn one database into two: a new row with none of the
-   * endpoints, history, labels or incident links of the old one. Instead the
-   * old row is re-keyed to the new identifier (a compare-and-set, like
-   * adoption) and the engine evidence is weighed as usual. Two candidates is
-   * ambiguous and adopts neither.
+   * The row of the SAME workload stored under another identifier of its
+   * engine family. Identifiers are family-keyed
+   * (buildWorkloadDatabaseServerIdentifier: a Valkey workload keys as
+   * `redis|...`), so a workload re-classified within its family (Redis to
+   * Valkey, MySQL to MariaDB) keeps its identifier and never gets here. What
+   * does get here is a row written under the old ENGINE-keyed identifiers
+   * (`valkey|...`, `mariadb|...`), whatever engine the workload reports
+   * now - the fork itself included. Without this adoption it would become a
+   * second database: a new row with none of the endpoints, history, labels
+   * or incident links of the old one. Instead the old row is re-keyed to the
+   * family key (a compare-and-set, like adoption) and the engine evidence is
+   * weighed as usual. Two candidates is ambiguous and adopts neither.
    */
   private async adoptSameWorkloadOfEngineFamily(data: {
     projectId: ObjectID;
@@ -2010,12 +2006,13 @@ export class Service extends DatabaseService<Model> {
     }
 
     const workload: string = data.workloadIdentifier.substring(separator + 1);
+    // Every engine of the family - the reported one too - but the key itself.
     const candidates: Array<string> = getDatabaseSystemsOfFamily(data.dbSystem)
-      .filter((system: string): boolean => {
-        return system !== data.dbSystem;
-      })
       .map((system: string): string => {
         return truncateLongText(`${system}|${workload}`.toLowerCase());
+      })
+      .filter((candidate: string): boolean => {
+        return candidate !== data.workloadIdentifier;
       });
 
     if (candidates.length === 0) {
@@ -2686,7 +2683,7 @@ export class Service extends DatabaseService<Model> {
       });
       createdHere = true;
     } catch (error) {
-      // Same engine + endpoint created by a racing writer.
+      // Same engine family + endpoint created by a racing writer.
       const existing: Model | null = await this.findOneBy({
         query: {
           projectId: data.projectId,
@@ -2953,7 +2950,7 @@ export class Service extends DatabaseService<Model> {
     if (
       !endpoint ||
       !data.manual.clusterQualifierHint ||
-      !KUBERNETES_SERVICE_HOST_PATTERN.test(endpoint.host)
+      !isKubernetesServiceDnsHost(endpoint.host)
     ) {
       return;
     }

@@ -40,7 +40,12 @@ import Label from "../../../Models/DatabaseModels/Label";
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseServerDiscoverySource from "../../../Types/DatabaseServer/DatabaseServerDiscoverySource";
-import { DatabaseEndpoint } from "../../../Types/DatabaseServer/DatabaseEndpoint";
+import {
+  DatabaseEndpoint,
+  ManualDatabaseEndpoint,
+  isKubernetesServiceDnsHost,
+  parseManualDatabaseEndpoint,
+} from "../../../Types/DatabaseServer/DatabaseEndpoint";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
@@ -562,6 +567,68 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
       },
     );
 
+    /*
+     * The create form runs parseManualDatabaseEndpoint in the browser and
+     * shows its clusterQualifierHint only as advice; only the server knows
+     * whether the project has clusters. Its refusal is that same hint, with
+     * the project's cluster names filled in.
+     */
+    test("the refusal is the form's own advice, with the project's clusters named", async () => {
+      const typed: { serverAddress: string; serverPort: number } = {
+        serverAddress: "pg.shop.svc",
+        serverPort: 6432,
+      };
+      const inTheBrowser: ManualDatabaseEndpoint = parseManualDatabaseEndpoint(
+        typed.serverAddress,
+        { system: "postgresql", port: typed.serverPort },
+      );
+      expect(inTheBrowser.error).toBeNull();
+      expect(inTheBrowser.clusterQualifierHint).not.toBeNull();
+
+      const error: unknown = await DatabaseServerService.create(
+        manualRequest(typed),
+      ).catch((e: unknown) => {
+        return e;
+      });
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(
+        (error as Error).message.startsWith(
+          parseManualDatabaseEndpoint(typed.serverAddress, {
+            system: "postgresql",
+            port: typed.serverPort,
+            knownClusterNames: ["prod-eu", "staging"],
+          }).clusterQualifierHint!,
+        ),
+      ).toBe(true);
+    });
+
+    test.each([
+      ["a Service name", "pg.shop.svc.cluster.local", true],
+      ["the short Service form", "pg.shop.svc", true],
+      ["a StatefulSet member", "pg-0.pg-hl.shop.svc.cluster.local", true],
+      ["a private IP", "10.0.1.5", false],
+      ["a private-zone name", "orders-db.corp.internal", false],
+    ])(
+      "%s: refused exactly when it is a Kubernetes Service name the form would advise on",
+      async (_label: string, address: string, refused: boolean) => {
+        expect(
+          isKubernetesServiceDnsHost(
+            parseManualDatabaseEndpoint(address, { system: "postgresql" })
+              .endpoint!.host,
+          ),
+        ).toBe(refused);
+
+        const outcome: unknown = await DatabaseServerService.create(
+          manualRequest({ serverAddress: address }),
+        ).catch((e: unknown) => {
+          return e;
+        });
+
+        expect(outcome instanceof BadDataException).toBe(refused);
+      },
+    );
+
     test("clusters that cannot be read never fail the create", async () => {
       clusters.mockRejectedValue(new Error("connection terminated"));
 
@@ -659,6 +726,30 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
       expect((error as Error).message).toContain(message);
       expect(save).not.toHaveBeenCalled();
       expect(claim).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each([
+    { serverAddress: "localhost" },
+    { serverAddress: "admin@10.0.0.5:5432" },
+    { serverAddress: "orders-db.example.com@prod" },
+    { serverAddress: "postgres@prod" },
+    { serverAddress: "orders db" },
+    { serverAddress: "orders-db.example.com:99999" },
+    { serverPort: 70000 },
+  ])(
+    "the create form's check and the server say the same thing: %j",
+    async (overrides: any) => {
+      const request: { data: DatabaseServer } = manualRequest(overrides);
+      const inTheBrowser: ManualDatabaseEndpoint = parseManualDatabaseEndpoint(
+        request.data.serverAddress,
+        { system: "postgresql", port: request.data.serverPort },
+      );
+      expect(inTheBrowser.error).toBeTruthy();
+
+      await expect(
+        DatabaseServerService.create(manualRequest(overrides)),
+      ).rejects.toThrow(new BadDataException(inTheBrowser.error!));
     },
   );
 

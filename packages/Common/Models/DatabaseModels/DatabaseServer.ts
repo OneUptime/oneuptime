@@ -102,7 +102,8 @@ import {
 @SlugifyColumn("name", "slug")
 /*
  * DB-level identity guard. Every discovery path find-or-creates by
- * databaseIdentifier ("<system>|<endpoint>" or the workload form), and several
+ * databaseIdentifier ("<family>|<endpoint>" or the workload form - the
+ * engine FAMILY, so a fork such as MariaDB keys as mysql), and several
  * ingest pods / worker runs can race on the same database - only this index
  * collapses them into one row. The display name is deliberately NOT unique:
  * two engines can legitimately share a host name.
@@ -379,7 +380,7 @@ export default class DatabaseServer extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Database Identifier",
     description:
-      "Stable identity of this database within the project: the engine and its canonical endpoint joined with '|' (e.g. postgresql|orders-db.internal:5432), or the workload form for databases discovered on Kubernetes / Docker / Podman (e.g. postgresql|kubernetes:prod-cluster/data/statefulset/orders-db). Computed by the server for manually added databases.",
+      "Stable identity of this database within the project: the engine family and its canonical endpoint joined with '|' (e.g. postgresql|orders-db.internal:5432), or the workload form for databases discovered on Kubernetes / Docker / Podman (e.g. postgresql|kubernetes:prod-cluster/data/statefulset/orders-db). A fork keys like the engine it forks (a MariaDB database is mysql|..., a Valkey one redis|...), so learning which of the two a database is never changes its identity. Computed by the server for manually added databases.",
     example: "postgresql|orders-db.internal:5432",
   })
   @Column({
@@ -413,7 +414,7 @@ export default class DatabaseServer extends BaseModel {
     type: TableColumnType.LongText,
     title: "Workload Identifier",
     description:
-      "Identity of the Kubernetes / Docker / Podman workload this database runs as, e.g. postgresql|kubernetes:prod-cluster/data/statefulset/orders-db. Empty for databases that are only known by their endpoint.",
+      "Identity of the Kubernetes / Docker / Podman workload this database runs as, e.g. postgresql|kubernetes:prod-cluster/data/statefulset/orders-db. The prefix is the engine family, not the engine (a MariaDB workload is mysql|..., a Valkey one redis|...). Empty for databases that are only known by their endpoint.",
     example: "postgresql|kubernetes:prod-cluster/data/statefulset/orders-db",
   })
   @Column({

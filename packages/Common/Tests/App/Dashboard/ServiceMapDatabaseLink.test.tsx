@@ -283,6 +283,31 @@ describe("getDatabaseEntityEndpoint", () => {
     });
   });
 
+  test.each([[""], ["   "]])(
+    "a stamped but blank endpoint (%j: the calls reached several servers) names none, whatever the address says",
+    (stamped: string) => {
+      expect(
+        getDatabaseEntityEndpoint(
+          {
+            "db.system.name": "postgresql",
+            "server.address": "db.prod.example.com",
+            "server.port": "5432",
+          },
+          { [DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE]: stamped },
+        ),
+      ).toBeNull();
+    },
+  );
+
+  test("a stamped endpoint that does not parse still falls back to the address", () => {
+    expect(
+      getDatabaseEntityEndpoint(
+        { "db.system.name": "postgresql", "server.address": "pg.example.com" },
+        { [DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE]: "localhost" },
+      ),
+    ).toMatchObject({ endpoint: "pg.example.com:5432" });
+  });
+
   test("an unknown engine has no default port, so the endpoint is the host alone", () => {
     expect(
       getDatabaseEntityEndpoint({
@@ -870,6 +895,30 @@ describe("resolveDatabaseServerLink", () => {
     expect(link?.label).toBe("Open database");
     expect(link?.route.toString()).toContain(`/databases/${DATABASE_ID}`);
     expect(calls()[0]!.query["endpoint"]).toBe("db.prod.example.com:5432");
+  });
+
+  test("an ambiguous node (blank stamped endpoint) is no link, even when one server on its host has a row", async () => {
+    /*
+     * The node's calls reached pg.example.com:5432 AND :6432; only the first
+     * has a database. The same-host fallback would have opened it.
+     */
+    useTable([{ owner: DATABASE_ID, endpoint: "pg.example.com:5432" }]);
+
+    await expect(
+      linkFor(
+        { "db.system.name": "postgresql", "server.address": "pg.example.com" },
+        { [DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE]: "", "server.port": "" },
+      ),
+    ).resolves.toBeNull();
+    expect(getListMock).not.toHaveBeenCalled();
+
+    // Without the ambiguity marker the same node does link.
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "pg.example.com",
+      }),
+    ).resolves.toBe(databasePage(DATABASE_ID));
   });
 
   test("a node without an address costs no request", async () => {

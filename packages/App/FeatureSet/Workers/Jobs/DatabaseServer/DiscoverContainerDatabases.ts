@@ -45,7 +45,9 @@ import {
   classifyKubernetesPod,
   classifyKubernetesPoolerPod,
   groupKubernetesDatabaseCandidates,
+  pickMostSpecificDatabaseSystem,
 } from "Common/Types/DatabaseServer/DatabaseContainerClassifier";
+import { getDatabaseSystemFamily } from "Common/Types/DatabaseServer/DatabaseSystem";
 import {
   buildDatabaseServerDisplayName,
   buildKubernetesDatabaseAliases,
@@ -1507,12 +1509,16 @@ async function discoverKubernetesCluster(data: {
 // ---- Docker / Podman ------------------------------------------------------
 
 /**
- * Container rows → one entry per database workload (engine + Swarm /
- * Compose service, else the container name). Stopped containers and rows
- * the host's latest inventory no longer refreshes are ignored; only full
- * 64-hex ids become member keys; instanceCount counts running members and
- * mayCreate says whether one of them has lived MIN_OBSERVED_LIFETIME_MS.
- * Deterministic order.
+ * Container rows → one entry per database workload (engine FAMILY + Swarm /
+ * Compose service, else the container name - the parts of its family-keyed
+ * identifier). The group's engine is the most specific its members report
+ * (pickMostSpecificDatabaseSystem: a Compose service moved from redis to
+ * valkey is one Valkey database while both run), and its version the first
+ * one, by container name, of a member running that engine. Stopped
+ * containers and rows the host's latest inventory no longer refreshes are
+ * ignored; only full 64-hex ids become member keys; instanceCount counts
+ * running members and mayCreate says whether one of them has lived
+ * MIN_OBSERVED_LIFETIME_MS. Deterministic order.
  */
 export function groupContainerDatabases(
   rows: Array<ContainerRowLike>,
@@ -1521,6 +1527,11 @@ export function groupContainerDatabases(
     string,
     ContainerDatabaseGroup
   >();
+  // Per group, the engine and version each member reports, by container name.
+  const reportsByKey: Map<
+    string,
+    Array<{ system: string; version: string | null }>
+  > = new Map<string, Array<{ system: string; version: string | null }>>();
 
   const live: Array<ContainerRowLike> = (
     Array.isArray(rows) ? rows : []
@@ -1554,7 +1565,9 @@ export function groupContainerDatabases(
       continue;
     }
 
-    const key: string = `${classification.system}\u0000${classification.workloadName}`;
+    const family: string =
+      getDatabaseSystemFamily(classification.system) || classification.system;
+    const key: string = `${family}\u0000${classification.workloadName}`;
     let group: ContainerDatabaseGroup | undefined = byKey.get(key);
     if (!group) {
       group = {
@@ -1574,6 +1587,14 @@ export function groupContainerDatabases(
     }
     group.containerNames.push(classification.containerName);
 
+    const reports: Array<{ system: string; version: string | null }> =
+      reportsByKey.get(key) || [];
+    reports.push({
+      system: classification.system,
+      version: classification.version,
+    });
+    reportsByKey.set(key, reports);
+
     const containerId: string = readText(row.containerId);
     if (
       FULL_CONTAINER_ID_REGEX.test(containerId) &&
@@ -1589,10 +1610,27 @@ export function groupContainerDatabases(
         group.mayCreate = true;
       }
     }
+  }
 
-    if (!group.version && classification.version) {
-      group.version = classification.version;
-    }
+  for (const [key, group] of byKey) {
+    const reports: Array<{ system: string; version: string | null }> =
+      reportsByKey.get(key) || [];
+    const system: string =
+      pickMostSpecificDatabaseSystem(
+        reports.map(
+          (report: { system: string; version: string | null }): string => {
+            return report.system;
+          },
+        ),
+      ) || group.system;
+
+    group.system = system;
+    group.version =
+      reports.find(
+        (report: { system: string; version: string | null }): boolean => {
+          return report.system === system && Boolean(report.version);
+        },
+      )?.version || null;
   }
 
   return Array.from(byKey.values()).sort(

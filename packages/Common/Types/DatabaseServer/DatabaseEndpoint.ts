@@ -929,6 +929,25 @@ export function isClusterScopedDatabaseHost(host: string): boolean {
 }
 
 /**
+ * True for a Kubernetes Service DNS name — `<service>.<namespace>.svc`, with
+ * or without its cluster domain (`.svc.cluster.local`), or
+ * `<pod>.<service>.<namespace>.svc…` for a StatefulSet member — which only a
+ * pod inside one cluster can resolve. The same test the endpoint parser
+ * expands such names with. Case and a trailing dot are ignored, as is a
+ * `\instance`; a port or `@cluster` is not part of a host.
+ */
+export function isKubernetesServiceDnsHost(host: string): boolean {
+  if (typeof host !== "string") {
+    return false;
+  }
+  const value: string = trimTrailingCharacter(
+    splitDatabaseHostInstance(host.trim().toLowerCase()).host.trim(),
+    ".",
+  );
+  return value.length > 0 && KUBERNETES_SERVICE_DNS_REGEX.test(value);
+}
+
+/**
  * True when the caller runs in Kubernetes as far as its context tells: it
  * has a namespace or a cluster (or the discovery query said so, see
  * DatabaseCallerContext.runsInKubernetes).
