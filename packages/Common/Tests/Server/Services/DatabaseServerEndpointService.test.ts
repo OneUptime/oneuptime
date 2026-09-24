@@ -52,7 +52,8 @@ import { getJestSpyOn } from "../../Spy";
  *     the parent database's engine / namespace / cluster, source and
  *     isPrimary are forced, and a collision names the database that owns the
  *     endpoint;
- *   - a person can never remove the primary endpoint.
+ *   - removing an endpoint is an edit of its database, label and Owned
+ *     scopes included, and a person can never remove the primary endpoint.
  *
  * The repository is faked - no Postgres, no Redis.
  */
@@ -1169,42 +1170,131 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
   });
 });
 
+/*
+ * Removing an endpoint is an EDIT of the database it belongs to, exactly
+ * like adding one: it decides which traffic that database's pages show, and
+ * frees the endpoint for another database to claim. So a label- or
+ * Owned-scoped editor may only remove the endpoints of the rows they edit,
+ * and a person can never remove a database's primary endpoint.
+ */
 describe("DatabaseServerEndpointService - removing endpoints", () => {
   let findBy: jest.SpyInstance;
+  let findParent: jest.SpyInstance;
   let repositoryDelete: jest.Mock;
+  let databases: Array<FakeDatabase>;
+  let endpoints: Array<DatabaseServerEndpoint>;
+
+  function addDatabase(overrides: {
+    id: ObjectID;
+    labelIds?: Array<string>;
+  }): void {
+    const row: DatabaseServer = parentDatabase();
+    row._id = overrides.id.toString();
+    row.projectId = PROJECT_ID;
+    databases.push({ row: row, labelIds: overrides.labelIds || [] });
+  }
+
+  function addEndpoint(overrides: {
+    databaseServerId: ObjectID;
+    endpoint: string;
+    isPrimary?: boolean;
+    projectId?: ObjectID;
+  }): DatabaseServerEndpoint {
+    const row: DatabaseServerEndpoint = new DatabaseServerEndpoint(
+      ObjectID.generate(),
+    );
+    row.projectId = overrides.projectId || PROJECT_ID;
+    row.databaseServerId = overrides.databaseServerId;
+    row.endpoint = overrides.endpoint;
+    row.isPrimary = Boolean(overrides.isPrimary);
+    row.source = overrides.isPrimary ? "auto" : "user";
+    endpoints.push(row);
+    return row;
+  }
+
+  function removeEndpoint(
+    endpoint: DatabaseServerEndpoint,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<number> {
+    return DatabaseServerEndpointService.deleteBy({
+      query: { _id: endpoint.id!.toString() },
+      limit: 1,
+      skip: 0,
+      props: props,
+    });
+  }
 
   beforeEach(() => {
+    databases = [];
+    endpoints = [];
     repositoryDelete = jest.fn(async () => {
       return { affected: 1 };
     }) as any;
     getJestSpyOn(service, "getRepository").mockReturnValue({
       delete: repositoryDelete,
     } as never);
-    findBy = getJestSpyOn(service, "findBy");
+    getJestSpyOn(service, "onTriggerWorkflow").mockResolvedValue(
+      undefined as never,
+    );
+    getJestSpyOn(service, "onTriggerRealtime").mockResolvedValue(
+      undefined as never,
+    );
+    // The endpoint table: matched by id, project and isPrimary, as root reads it.
+    findBy = getJestSpyOn(service, "findBy").mockImplementation(
+      async (findBy: any) => {
+        return endpoints.filter((endpoint: DatabaseServerEndpoint) => {
+          const ids: Array<string> | null = operatorValues(findBy.query._id);
+          const projects: Array<string> | null = operatorValues(
+            findBy.query.projectId,
+          );
+          return (
+            (!ids || ids.includes(endpoint.id!.toString())) &&
+            (!projects || projects.includes(endpoint.projectId!.toString())) &&
+            (findBy.query.isPrimary === undefined ||
+              endpoint.isPrimary === findBy.query.isPrimary)
+          );
+        });
+      },
+    );
+    // The delete's own read, after DatabaseService scoped it.
+    getJestSpyOn(service, "_findBy").mockImplementation(async (input: any) => {
+      return endpoints.filter((endpoint: DatabaseServerEndpoint) => {
+        const ids: Array<string> | null = operatorValues(input.query._id);
+        const projects: Array<string> | null = operatorValues(
+          input.query.projectId,
+        );
+        return (
+          (!ids || ids.includes(endpoint.id!.toString())) &&
+          (!projects || projects.includes(endpoint.projectId!.toString()))
+        );
+      });
+    });
+    findParent = getJestSpyOn(DatabaseServerService, "findOneBy");
+    findParent.mockImplementation(async (findOneBy: any) => {
+      const found: FakeDatabase | undefined = databases.find(
+        (database: FakeDatabase) => {
+          return fakeRowMatches(database, findOneBy.query);
+        },
+      );
+      return found ? found.row : null;
+    });
   });
 
   test("a person cannot remove the primary endpoint", async () => {
-    const primary: DatabaseServerEndpoint = new DatabaseServerEndpoint();
-    primary.endpoint = "orders-db.example.com:5432";
-    findBy.mockResolvedValue([primary]);
+    addDatabase({ id: DATABASE_ID });
+    const primary: DatabaseServerEndpoint = addEndpoint({
+      databaseServerId: DATABASE_ID,
+      endpoint: "orders-db.example.com:5432",
+      isPrimary: true,
+    });
 
-    await expect(
-      DatabaseServerEndpointService.deleteBy({
-        query: { _id: ObjectID.generate().toString() },
-        limit: 1,
-        skip: 0,
-        props: memberProps(),
-      }),
-    ).rejects.toThrow(
+    await expect(removeEndpoint(primary, memberProps())).rejects.toThrow(
       "orders-db.example.com:5432 is the primary endpoint of this database and cannot be removed.",
     );
     expect(repositoryDelete).not.toHaveBeenCalled();
   });
 
-  test("the primary check only looks inside the caller's project", async () => {
-    findBy.mockResolvedValue([
-      Object.assign(new DatabaseServerEndpoint(), { endpoint: "x:1" }),
-    ]);
+  test("the lookup only looks inside the caller's project, as root", async () => {
     const endpointId: string = ObjectID.generate().toString();
 
     await DatabaseServerEndpointService.deleteBy({
@@ -1218,26 +1308,152 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
 
     const call: any = findBy.mock.calls[0]![0];
     expect(call.query._id).toBe(endpointId);
-    expect(call.query.isPrimary).toBe(true);
     // The request tenant wins over whatever project the query named.
-    expect(call.query.projectId).toBe(PROJECT_ID);
+    expect(call.query.projectId).toEqual(PROJECT_ID);
     expect(call.props.isRoot).toBe(true);
   });
 
-  test("an alias passes the guard", async () => {
-    findBy.mockResolvedValue([]);
-    const onBeforeDelete: (deleteBy: any) => Promise<any> =
-      service.onBeforeDelete.bind(service);
-    const deleteBy: any = {
-      query: { _id: ObjectID.generate().toString() },
-      limit: 1,
-      skip: 0,
-      props: memberProps(),
-    };
+  test("an endpoint in another project is never matched, so nothing is removed or revealed", async () => {
+    addDatabase({ id: DATABASE_ID });
+    const foreign: DatabaseServerEndpoint = addEndpoint({
+      databaseServerId: DATABASE_ID,
+      endpoint: "orders-db.example.com:5432",
+      isPrimary: true,
+      projectId: OTHER_PROJECT_ID,
+    });
 
-    await expect(onBeforeDelete(deleteBy)).resolves.toEqual({
-      deleteBy: deleteBy,
-      carryForward: null,
+    await expect(removeEndpoint(foreign, memberProps())).resolves.toBe(0);
+    expect(findParent).not.toHaveBeenCalled();
+  });
+
+  test("an alias of a database the caller may edit is removed", async () => {
+    addDatabase({ id: DATABASE_ID });
+    const alias: DatabaseServerEndpoint = addEndpoint({
+      databaseServerId: DATABASE_ID,
+      endpoint: "orders-replica.example.com:5432",
+    });
+
+    await expect(removeEndpoint(alias, memberProps())).resolves.toBe(1);
+    expect(repositoryDelete).toHaveBeenCalledTimes(1);
+  });
+
+  describe("scoped edit permission", () => {
+    test("an editor scoped to label A removes an alias of a database labelled A", async () => {
+      addDatabase({ id: DATABASE_ID, labelIds: [LABEL_TEAM_A] });
+      const alias: DatabaseServerEndpoint = addEndpoint({
+        databaseServerId: DATABASE_ID,
+        endpoint: "orders-replica.example.com:5432",
+      });
+
+      await expect(
+        removeEndpoint(alias, labelScopedEditorProps(LABEL_TEAM_A)),
+      ).resolves.toBe(1);
+      expect(repositoryDelete).toHaveBeenCalledTimes(1);
+    });
+
+    test("an editor scoped to label A cannot remove an alias of a database labelled only B", async () => {
+      addDatabase({ id: OTHER_DATABASE_ID, labelIds: [LABEL_TEAM_B] });
+      const alias: DatabaseServerEndpoint = addEndpoint({
+        databaseServerId: OTHER_DATABASE_ID,
+        endpoint: "payments-db.example.com:5432",
+      });
+
+      const error: unknown = await removeEndpoint(
+        alias,
+        labelScopedEditorProps(LABEL_TEAM_A),
+      ).catch((e: unknown) => {
+        return e;
+      });
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect((error as Error).message).toBe(
+        "Database not found, or you do not have permission to edit it. Removing an endpoint from a database needs permission to edit that database.",
+      );
+      expect(repositoryDelete).not.toHaveBeenCalled();
+    });
+
+    test("another team's PRIMARY endpoint is refused as not editable - its endpoint is not echoed", async () => {
+      addDatabase({ id: OTHER_DATABASE_ID, labelIds: [LABEL_TEAM_B] });
+      const primary: DatabaseServerEndpoint = addEndpoint({
+        databaseServerId: OTHER_DATABASE_ID,
+        endpoint: "payments-db.example.com:5432",
+        isPrimary: true,
+      });
+
+      const error: unknown = await removeEndpoint(
+        primary,
+        labelScopedEditorProps(LABEL_TEAM_A),
+      ).catch((e: unknown) => {
+        return e;
+      });
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect((error as Error).message).not.toContain("payments-db");
+    });
+
+    test("an unlabelled database is outside a label-scoped editor's reach", async () => {
+      addDatabase({ id: DATABASE_ID, labelIds: [] });
+      const alias: DatabaseServerEndpoint = addEndpoint({
+        databaseServerId: DATABASE_ID,
+        endpoint: "orders-replica.example.com:5432",
+      });
+
+      await expect(
+        removeEndpoint(alias, labelScopedEditorProps(LABEL_TEAM_A)),
+      ).rejects.toThrow("Database not found, or you do not have permission");
+      expect(repositoryDelete).not.toHaveBeenCalled();
+    });
+
+    test("an Owned-scoped editor removes an alias of a database they own", async () => {
+      addDatabase({ id: DATABASE_ID });
+      const alias: DatabaseServerEndpoint = addEndpoint({
+        databaseServerId: DATABASE_ID,
+        endpoint: "orders-replica.example.com:5432",
+      });
+      jest
+        .spyOn(OwnedScopePermission as any, "getAllowedResourceIds")
+        .mockResolvedValue([DATABASE_ID]);
+
+      await expect(
+        removeEndpoint(alias, ownedScopeEditorProps()),
+      ).resolves.toBe(1);
+    });
+
+    test("an Owned-scoped editor cannot remove an alias of a database they do not own", async () => {
+      addDatabase({ id: DATABASE_ID });
+      const alias: DatabaseServerEndpoint = addEndpoint({
+        databaseServerId: DATABASE_ID,
+        endpoint: "orders-replica.example.com:5432",
+      });
+      jest
+        .spyOn(OwnedScopePermission as any, "getAllowedResourceIds")
+        .mockResolvedValue([OTHER_DATABASE_ID]);
+
+      await expect(
+        removeEndpoint(alias, ownedScopeEditorProps()),
+      ).rejects.toThrow("Database not found, or you do not have permission");
+      expect(repositoryDelete).not.toHaveBeenCalled();
+    });
+
+    test("a Viewer is refused by the permission check before any lookup", async () => {
+      addDatabase({ id: DATABASE_ID });
+      const alias: DatabaseServerEndpoint = addEndpoint({
+        databaseServerId: DATABASE_ID,
+        endpoint: "orders-replica.example.com:5432",
+      });
+
+      const error: unknown = await removeEndpoint(
+        alias,
+        memberProps([Permission.Viewer]),
+      ).catch((e: unknown) => {
+        return e;
+      });
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect((error as Error).message).not.toContain("Database not found");
+      expect(findBy).not.toHaveBeenCalled();
+      expect(findParent).not.toHaveBeenCalled();
+      expect(repositoryDelete).not.toHaveBeenCalled();
     });
   });
 
@@ -1253,6 +1469,7 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
     });
 
     expect(findBy).not.toHaveBeenCalled();
+    expect(findParent).not.toHaveBeenCalled();
   });
 });
 

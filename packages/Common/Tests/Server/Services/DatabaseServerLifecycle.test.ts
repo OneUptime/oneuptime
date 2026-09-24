@@ -26,6 +26,7 @@ import DatabaseServerService, {
   getDatabaseSystemEvidenceForSource,
   getDatabaseSystemsOfFamily,
   getStoredDatabaseSystemEvidence,
+  hasDiscoveryGeneratedName,
   renameForDatabaseSystem,
 } from "../../../Server/Services/DatabaseServerService";
 import DatabaseServerEndpointService, {
@@ -145,6 +146,44 @@ function mockRawQuery(result: unknown = []): jest.Mock {
     manager: { query },
   } as never);
   return query;
+}
+
+/*
+ * The engine compare-and-sets applyDatabaseSystemEvidence ran, among every
+ * raw statement of a test: their SQL and parameters.
+ */
+interface RawStatement {
+  sql: string;
+  params: Array<unknown>;
+}
+
+function isEngineWrite(sql: unknown): boolean {
+  return typeof sql === "string" && sql.includes('SET "dbSystemSource" =');
+}
+
+function engineWrites(query: jest.Mock): Array<RawStatement> {
+  return query.mock.calls
+    .filter((call: Array<unknown>) => {
+      return isEngineWrite(call[0]);
+    })
+    .map((call: Array<unknown>): RawStatement => {
+      return { sql: call[0] as string, params: call[1] as Array<unknown> };
+    });
+}
+
+/*
+ * Postgres answering the engine compare-and-set: `matched` rows back (the
+ * row as written, name included) or none when another writer got there
+ * first. Every other statement answers `others`.
+ */
+function answerEngineWrites(
+  query: jest.Mock,
+  matched: Array<{ _id: string; name: string }>,
+  others: unknown = [],
+): void {
+  query.mockImplementation(async (sql: unknown) => {
+    return isEngineWrite(sql) ? matched : others;
+  });
 }
 
 function withEnv(name: string, value: string | undefined): () => void {
@@ -296,18 +335,18 @@ describe("decideDatabaseSystem", () => {
 
   test.each([
     [
-      "an image refines a collector's Redis to Valkey",
+      "an image refines a collector's Redis to Valkey (the redis receiver cannot tell them apart; the image names the engine)",
       "redis",
       Collector,
       "valkey",
       Container,
     ],
     [
-      "client spans refine a collector's MySQL to MariaDB",
+      "a collector names the fork an image's family engine hid",
       "mysql",
-      Collector,
+      Container,
       "mariadb",
-      ClientSpans,
+      Collector,
     ],
     [
       "an image refines trace-found PostgreSQL to CockroachDB",
@@ -317,8 +356,15 @@ describe("decideDatabaseSystem", () => {
       Container,
     ],
     ["equal evidence may refine too", "redis", Container, "keydb", Container],
+    [
+      "client spans may refine what only client spans named",
+      "mysql",
+      ClientSpans,
+      "mariadb",
+      ClientSpans,
+    ],
   ])(
-    "within one family any source may refine the family engine to a fork: %s",
+    "within one family a fork refines the family engine on evidence at least as strong, or from an image: %s",
     (
       _label: string,
       currentSystem: string,
@@ -335,9 +381,110 @@ describe("decideDatabaseSystem", () => {
     },
   );
 
-  test("a fork is never downgraded back to its family engine - not even by a collector (the mysql receiver cannot tell MariaDB apart)", () => {
+  /*
+   * A client names the protocol it speaks, not always the server it
+   * reached: MariaDB Connector/J (jdbc:mariadb:) reports "mariadb" against a
+   * MySQL server. So a fork named only by client spans never overrides what
+   * an image or a collector determined - and never lowers that evidence.
+   */
+  test.each([
+    [
+      "client spans cannot turn an image's MySQL into MariaDB",
+      "mysql",
+      Container,
+      "mariadb",
+    ],
+    [
+      "client spans cannot turn a collector's MySQL into MariaDB",
+      "mysql",
+      Collector,
+      "mariadb",
+    ],
+    [
+      "client spans cannot turn a collector's Redis into Valkey",
+      "redis",
+      Collector,
+      "valkey",
+    ],
+    [
+      "client spans cannot turn an image's PostgreSQL into CockroachDB",
+      "postgresql",
+      Container,
+      "cockroachdb",
+    ],
+  ])(
+    "a fork named only by weaker evidence refines nothing: %s",
+    (
+      _label: string,
+      currentSystem: string,
+      currentEvidence: DatabaseSystemEvidence,
+      incomingSystem: string,
+    ) => {
+      expect(
+        decide([currentSystem, currentEvidence], [incomingSystem, ClientSpans]),
+      ).toBeNull();
+    },
+  );
+
+  test("a fork is never downgraded back to its family engine by a collector or client spans (the mysql receiver cannot tell MariaDB apart)", () => {
     expect(decide(["mariadb", Container], ["mysql", Collector])).toBeNull();
     expect(decide(["valkey", ClientSpans], ["redis", Collector])).toBeNull();
+    expect(decide(["mariadb", ClientSpans], ["mysql", ClientSpans])).toBeNull();
+    expect(decide(["mariadb", Collector], ["mysql", Collector])).toBeNull();
+  });
+
+  test("an image naming the family engine undoes a fork that only client spans named", () => {
+    expect(decide(["mariadb", ClientSpans], ["mysql", Container])).toEqual({
+      system: "mysql",
+      evidence: Container,
+    });
+    expect(decide(["valkey", null], ["redis", Container])).toEqual({
+      system: "redis",
+      evidence: Container,
+    });
+    // An image or a collector that named the fork is not overruled by an image.
+    expect(decide(["mariadb", Container], ["mysql", Container])).toBeNull();
+    expect(decide(["mariadb", Collector], ["mysql", Container])).toBeNull();
+  });
+
+  /*
+   * The review's sequence: a MySQL StatefulSet whose applications use
+   * MariaDB Connector/J. The spans never move the engine, so the image and
+   * the collector keep being heard.
+   */
+  test("a MySQL server reached through a MariaDB client stays MySQL, whatever order the evidence arrives in", () => {
+    type Stored = [string, DatabaseSystemEvidence | null];
+
+    function apply(
+      stored: Stored,
+      incoming: [string, DatabaseSystemEvidence],
+    ): Stored {
+      const decision: DatabaseSystemDetermination | null = decide(
+        stored,
+        incoming,
+      );
+      return decision ? [decision.system, decision.evidence] : stored;
+    }
+
+    let fromImage: Stored = ["mysql", Container];
+    fromImage = apply(fromImage, ["mariadb", ClientSpans]);
+    expect(fromImage).toEqual(["mysql", Container]);
+    fromImage = apply(fromImage, ["mysql", Collector]);
+    expect(fromImage).toEqual(["mysql", Collector]);
+
+    let fromTraces: Stored = ["mariadb", ClientSpans];
+    fromTraces = apply(fromTraces, ["mysql", Container]);
+    expect(fromTraces).toEqual(["mysql", Container]);
+    fromTraces = apply(fromTraces, ["mariadb", ClientSpans]);
+    expect(fromTraces).toEqual(["mysql", Container]);
+  });
+
+  test("client spans never move a collector's Redis, so only an image naming the engine refines it later", () => {
+    expect(decide(["redis", Collector], ["valkey", ClientSpans])).toBeNull();
+    expect(decide(["redis", Collector], ["keydb", Container])).toEqual({
+      system: "keydb",
+      evidence: Container,
+    });
   });
 
   test("one fork replaces another only on stronger evidence", () => {
@@ -426,7 +573,19 @@ describe("decideDatabaseSystem", () => {
       ).toBeGreaterThan(5);
     });
 
-    test("a refinement is taken on any evidence, and a fork is undone on none", () => {
+    /*
+     * A refinement is taken on evidence at least as strong as what named the
+     * current engine, or from an image (it names the exact engine); a fork
+     * is undone only by an image, and only when no more than client spans
+     * named it.
+     */
+    test("a refinement is taken on evidence at least as strong or from an image, and a fork is undone only by an image over client spans", () => {
+      const rank: Record<DatabaseSystemEvidence, number> = {
+        [Manual]: 4,
+        [Collector]: 3,
+        [Container]: 2,
+        [ClientSpans]: 1,
+      };
       const disagreements: Array<string> = [];
       let refinements: number = 0;
       let undoings: number = 0;
@@ -458,9 +617,23 @@ describe("decideDatabaseSystem", () => {
                 [current, currentEvidence],
                 [observed, incomingEvidence],
               );
-              const expected: DatabaseSystemDetermination | null = refines
-                ? { system: observed, evidence: incomingEvidence }
-                : null;
+              let expected: DatabaseSystemDetermination | null = null;
+
+              if (
+                refines &&
+                (rank[incomingEvidence] >= rank[currentEvidence] ||
+                  incomingEvidence === Container)
+              ) {
+                expected = { system: observed, evidence: incomingEvidence };
+              }
+
+              if (
+                undoes &&
+                incomingEvidence === Container &&
+                currentEvidence === ClientSpans
+              ) {
+                expected = { system: observed, evidence: Container };
+              }
 
               if (JSON.stringify(decision) !== JSON.stringify(expected)) {
                 disagreements.push(
@@ -535,6 +708,59 @@ describe("engine evidence of a row", () => {
     expect(getStoredDatabaseSystemEvidence({ discoverySource: "manual" })).toBe(
       DatabaseSystemEvidence.Manual,
     );
+  });
+});
+
+describe("hasDiscoveryGeneratedName", () => {
+  test("true while the row carries the endpoint or workload name discovery generated for its engine", () => {
+    expect(
+      hasDiscoveryGeneratedName({
+        name: "Redis redis.cache.svc.cluster.local:6379",
+        dbSystem: "redis",
+        serverAddress: "redis.cache.svc.cluster.local",
+        serverPort: 6379,
+      }),
+    ).toBe(true);
+    expect(
+      hasDiscoveryGeneratedName({
+        name: "PostgreSQL data/orders",
+        dbSystem: "postgresql",
+        kubernetesNamespace: "data",
+        workloadName: "orders",
+      }),
+    ).toBe(true);
+    expect(
+      hasDiscoveryGeneratedName({
+        name: "PostgreSQL db.example.com",
+        dbSystem: "postgres",
+        serverAddress: "db.example.com",
+      }),
+    ).toBe(true);
+  });
+
+  test("false for a name a person chose, a name of another engine, or nothing to compare with", () => {
+    const endpoint: {
+      dbSystem: string;
+      serverAddress: string;
+      serverPort: number;
+    } = {
+      dbSystem: "redis",
+      serverAddress: "redis.cache.svc.cluster.local",
+      serverPort: 6379,
+    };
+    expect(
+      hasDiscoveryGeneratedName({ ...endpoint, name: "Orders cache (prod)" }),
+    ).toBe(false);
+    expect(
+      hasDiscoveryGeneratedName({
+        ...endpoint,
+        name: "Valkey redis.cache.svc.cluster.local:6379",
+      }),
+    ).toBe(false);
+    expect(hasDiscoveryGeneratedName({ ...endpoint, name: "  " })).toBe(false);
+    expect(
+      hasDiscoveryGeneratedName({ name: "Redis", dbSystem: "redis" }),
+    ).toBe(false);
   });
 });
 
@@ -684,6 +910,21 @@ describe("DatabaseServerService.upsertWorkloadDatabase - lifecycle", () => {
         ...overrides,
       }),
     );
+  }
+
+  // A row application traces created for the Service name, as discovery named it.
+  function traceDuplicate(
+    overrides: Partial<DatabaseServer> = {},
+  ): DatabaseServer {
+    return databaseRow({
+      name: "Redis redis.cache.svc.cluster.local:6379",
+      dbSystem: "redis",
+      databaseIdentifier: "redis|redis.cache.svc.cluster.local:6379@prod",
+      serverAddress: "redis.cache.svc.cluster.local",
+      serverPort: 6379,
+      discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+      ...overrides,
+    });
   }
 
   function own(
@@ -877,15 +1118,33 @@ describe("DatabaseServerService.upsertWorkloadDatabase - lifecycle", () => {
       },
     );
 
-    // Raw SQL: the untouched-duplicate lookup, and restores.
+    /*
+     * Raw SQL: the untouched-duplicate lookup, and restores. The lookup's
+     * SQL-side conditions are world.untouchedTraceRows plus a person's
+     * restore within the grace window ($4); it answers the columns the
+     * service reads back.
+     */
     rawQuery = jest.fn(async (sql: string, params: Array<unknown>) => {
       if (sql.includes(`ds."workloadIdentifier" IS NULL`)) {
         return (params[1] as Array<string>)
           .filter((id: string) => {
-            return world.untouchedTraceRows.has(id);
+            const row: DatabaseServer | undefined = world.rows.get(id);
+            return (
+              world.untouchedTraceRows.has(id) &&
+              (!row?.manuallyRestoredAt ||
+                row.manuallyRestoredAt < (params[3] as Date)) &&
+              !(row?.description || "").trim()
+            );
           })
           .map((id: string) => {
-            return { _id: id };
+            const row: DatabaseServer | undefined = world.rows.get(id);
+            return {
+              _id: id,
+              name: row?.name ?? null,
+              dbSystem: row?.dbSystem ?? null,
+              serverAddress: row?.serverAddress ?? null,
+              serverPort: row?.serverPort ?? null,
+            };
           });
       }
       return [];
@@ -1589,13 +1848,7 @@ describe("DatabaseServerService.upsertWorkloadDatabase - lifecycle", () => {
 
     test("the create race: an untouched duplicate that application traces created hands its endpoint over", async () => {
       const row: DatabaseServer = workloadRow();
-      const duplicate: DatabaseServer = addRow(
-        databaseRow({
-          name: "Redis redis.cache.svc.cluster.local:6379",
-          dbSystem: "redis",
-          discoverySource: DatabaseServerDiscoverySource.ClientSpans,
-        }),
-      );
+      const duplicate: DatabaseServer = addRow(traceDuplicate());
       own(SERVICE_ALIAS, duplicate, { source: "auto", isPrimary: true });
       world.untouchedTraceRows.add(duplicate.id!.toString());
       hasPrimary.mockResolvedValue(false);
@@ -1622,9 +1875,96 @@ describe("DatabaseServerService.upsertWorkloadDatabase - lifecycle", () => {
       expect(sql).toContain(`ds."_id" = ANY($2::uuid[])`);
       expect(sql).toContain(`ds."discoverySource" = $3`);
       expect(sql).toContain(`NOT EXISTS`);
+      // A person's recent Restore and a person's description are investment.
+      expect(sql).toContain(
+        `(ds."manuallyRestoredAt" IS NULL OR ds."manuallyRestoredAt" < $4)`,
+      );
+      expect(sql).toContain(`COALESCE(BTRIM(ds."description"), '') = ''`);
       expect(params[0]).toBe(PROJECT_ID.toString());
       expect(params[1]).toEqual([duplicate.id!.toString()]);
       expect(params[2]).toBe("client-spans");
+      // The same grace a person's Restore gets from the archive sweep.
+      const thirtyDays: number = 30 * 24 * HOUR_MS;
+      const graceCutoff: number = (params[3] as Date).getTime();
+      expect(Date.now() - graceCutoff).toBeGreaterThanOrEqual(
+        thirtyDays - 5000,
+      );
+      expect(Date.now() - graceCutoff).toBeLessThanOrEqual(thirtyDays + 5000);
+    });
+
+    /*
+     * Moving a row's endpoints empties it: the sweep then archives it. So a
+     * row a person renamed, described or restored from the archive is theirs,
+     * whatever the untouched predicate says - its endpoints stay, and the
+     * workload takes only what nobody invested in.
+     */
+    test.each([
+      ["a person renamed it", { name: "Orders cache (prod)" }],
+      ["a person described it", { description: "Checkout sessions" }],
+      [
+        "a person restored it from the archive last week",
+        { manuallyRestoredAt: new Date(Date.now() - 7 * 24 * HOUR_MS) },
+      ],
+    ])(
+      "a trace-discovered duplicate keeps its endpoints when %s",
+      async (_label: string, overrides: Partial<DatabaseServer>) => {
+        workloadRow();
+        const kept: DatabaseServer = addRow(traceDuplicate(overrides));
+        own(SERVICE_ALIAS, kept, { source: "auto", isPrimary: true });
+        world.untouchedTraceRows.add(kept.id!.toString());
+        const other: DatabaseServer = addRow(
+          traceDuplicate({
+            serverAddress: "redis-0.redis-hl.cache.svc.cluster.local",
+            name: "Redis redis-0.redis-hl.cache.svc.cluster.local:6379",
+          }),
+        );
+        own(POD_ALIAS, other, { source: "auto", isPrimary: true });
+        world.untouchedTraceRows.add(other.id!.toString());
+
+        await DatabaseServerService.upsertWorkloadDatabase(input());
+
+        expect(world.endpoints.get(SERVICE_ALIAS)!.databaseServerId).toBe(
+          kept.id!.toString(),
+        );
+        // ...while the untouched one hands its endpoint over.
+        expect(world.transfers).toHaveLength(1);
+        expect(world.transfers[0].fromDatabaseServerId.toString()).toBe(
+          other.id!.toString(),
+        );
+      },
+    );
+
+    test("a Restore older than the grace window no longer holds the endpoints", async () => {
+      workloadRow();
+      const duplicate: DatabaseServer = addRow(
+        traceDuplicate({
+          manuallyRestoredAt: new Date(Date.now() - 45 * 24 * HOUR_MS),
+        }),
+      );
+      own(SERVICE_ALIAS, duplicate, { source: "auto", isPrimary: true });
+      world.untouchedTraceRows.add(duplicate.id!.toString());
+
+      await DatabaseServerService.upsertWorkloadDatabase(input());
+
+      expect(world.transfers).toHaveLength(1);
+    });
+
+    test("a duplicate whose engine a fork refined still carries its generated name, and hands over", async () => {
+      workloadRow({ dbSystem: "valkey", name: "Valkey cache/redis" });
+      const duplicate: DatabaseServer = addRow(
+        traceDuplicate({
+          dbSystem: "valkey",
+          name: "Valkey redis.cache.svc.cluster.local:6379",
+        }),
+      );
+      own(SERVICE_ALIAS, duplicate, { source: "auto", isPrimary: true });
+      world.untouchedTraceRows.add(duplicate.id!.toString());
+
+      await DatabaseServerService.upsertWorkloadDatabase(
+        input({ dbSystem: "valkey" }),
+      );
+
+      expect(world.transfers).toHaveLength(1);
     });
 
     test("a trace-discovered row somebody invested in keeps its endpoint", async () => {
@@ -1868,6 +2208,10 @@ describe("DatabaseServerService.findOrCreateByEndpoint - lifecycle", () => {
     });
     findOwner.mockResolvedValue(ownedBy(row));
     findOneBy.mockResolvedValue(row);
+    answerEngineWrites(rawQuery, [
+      { _id: row.id!.toString(), name: "MySQL orders-db.example.com:5432" },
+    ]);
+    const feed: jest.SpyInstance = mockFeed();
 
     const result: DatabaseServer | null =
       await DatabaseServerService.findOrCreateByEndpoint({
@@ -1880,18 +2224,126 @@ describe("DatabaseServerService.findOrCreateByEndpoint - lifecycle", () => {
 
     expect(result).toBe(row);
     expect(create).not.toHaveBeenCalled();
-    expect(writes).toHaveBeenCalledTimes(1);
-    const write: any = writes.mock.calls[0]![0];
-    expect(write.id.toString()).toBe(row.id!.toString());
-    expect(write.data).toEqual({
-      dbSystem: "mysql",
-      dbSystemSource: "collector",
-      name: "MySQL orders-db.example.com:5432",
-    });
-    expect(write.expectedData).toEqual({ dbSystem: "postgresql" });
-    expect(write.skipUpdateDateColumn).toBe(false);
+    expect(writes).not.toHaveBeenCalled();
+    const statements: Array<RawStatement> = engineWrites(rawQuery);
+    expect(statements).toHaveLength(1);
+    const { sql, params } = statements[0]!;
+    expect(sql).toContain('"dbSystem" = $2');
+    // The name moves only while it is still the generated one that was read.
+    expect(sql).toContain(
+      '"name" = CASE WHEN "name" IS NOT DISTINCT FROM $3 THEN $4 ELSE "name" END',
+    );
+    expect(sql).toContain('"updatedAt" = CURRENT_TIMESTAMP');
+    // Compare-and-set on the engine AND the evidence it was weighed against.
+    expect(sql).toContain('"dbSystem" IS NOT DISTINCT FROM $7');
+    expect(sql).toContain('"dbSystemSource" IS NOT DISTINCT FROM $8');
+    expect(sql).toContain('"deletedAt" IS NULL');
+    expect(sql).toContain('RETURNING "_id", "name"');
+    expect(params).toEqual([
+      "collector",
+      "mysql",
+      "PostgreSQL orders-db.example.com:5432",
+      "MySQL orders-db.example.com:5432",
+      row.id!.toString(),
+      PROJECT_ID.toString(),
+      "postgresql",
+      null,
+    ]);
     expect(row.dbSystem).toBe("mysql");
+    expect(row.dbSystemSource).toBe("collector");
     expect(row.name).toBe("MySQL orders-db.example.com:5432");
+    expect(feed).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * Two writers read the row at once and both decide to change the engine:
+   * only the one whose compare-and-set matched may say so. The other leaves
+   * its in-memory row as read and writes no feed item.
+   */
+  test("a writer that loses the engine compare-and-set changes nothing and announces nothing", async () => {
+    const row: DatabaseServer = databaseRow({
+      name: "Redis cache.example.com:6379",
+      dbSystem: "redis",
+      serverAddress: "cache.example.com",
+      serverPort: 6379,
+      discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+    });
+    findOwner.mockResolvedValue(ownedBy(row));
+    findOneBy.mockResolvedValue(row);
+    answerEngineWrites(rawQuery, []);
+    const feed: jest.SpyInstance = mockFeed();
+
+    const result: DatabaseServer | null =
+      await DatabaseServerService.findOrCreateByEndpoint({
+        projectId: PROJECT_ID,
+        dbSystem: "valkey",
+        endpoint: { host: "cache.example.com", port: 6379 },
+        discoverySource: DatabaseServerDiscoverySource.Collector,
+        allowCreate: false,
+      });
+
+    expect(result).toBe(row);
+    expect(engineWrites(rawQuery)).toHaveLength(1);
+    expect(row.dbSystem).toBe("redis");
+    expect(row.dbSystemSource).toBeUndefined();
+    expect(row.name).toBe("Redis cache.example.com:6379");
+    expect(feed).not.toHaveBeenCalled();
+  });
+
+  test("the compare-and-set carries the evidence as read, so a concurrent stronger report is not overwritten", async () => {
+    const row: DatabaseServer = databaseRow({
+      discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+      dbSystemSource: DatabaseSystemEvidence.ClientSpans,
+    });
+    findOwner.mockResolvedValue(ownedBy(row));
+    findOneBy.mockResolvedValue(row);
+    answerEngineWrites(rawQuery, [
+      { _id: row.id!.toString(), name: row.name! },
+    ]);
+
+    await DatabaseServerService.findOrCreateByEndpoint({
+      projectId: PROJECT_ID,
+      dbSystem: "postgres",
+      endpoint: ENDPOINT,
+      discoverySource: DatabaseServerDiscoverySource.Collector,
+      allowCreate: false,
+    });
+
+    const { sql, params } = engineWrites(rawQuery)[0]!;
+    // Same engine, stronger evidence: bookkeeping, no rename, no updatedAt.
+    expect(sql).not.toContain('"dbSystem" = $');
+    expect(sql).not.toContain('"name" =');
+    expect(sql).not.toContain('"updatedAt"');
+    expect(params).toEqual([
+      "collector",
+      row.id!.toString(),
+      PROJECT_ID.toString(),
+      "postgresql",
+      "client-spans",
+    ]);
+    expect(row.dbSystemSource).toBe("collector");
+  });
+
+  test("a person's rename made after the read survives the engine change: the database answers with their name", async () => {
+    const row: DatabaseServer = databaseRow({
+      discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+    });
+    findOwner.mockResolvedValue(ownedBy(row));
+    findOneBy.mockResolvedValue(row);
+    answerEngineWrites(rawQuery, [
+      { _id: row.id!.toString(), name: "Orders (prod)" },
+    ]);
+
+    await DatabaseServerService.findOrCreateByEndpoint({
+      projectId: PROJECT_ID,
+      dbSystem: "mysql",
+      endpoint: ENDPOINT,
+      discoverySource: DatabaseServerDiscoverySource.Collector,
+      allowCreate: false,
+    });
+
+    expect(row.dbSystem).toBe("mysql");
+    expect(row.name).toBe("Orders (prod)");
   });
 
   test("client spans reporting a different engine change nothing on a collector row", async () => {
@@ -1909,7 +2361,7 @@ describe("DatabaseServerService.findOrCreateByEndpoint - lifecycle", () => {
       allowCreate: false,
     });
 
-    expect(writes).not.toHaveBeenCalled();
+    expect(engineWrites(rawQuery)).toHaveLength(0);
     expect(row.dbSystem).toBe("postgresql");
   });
 
@@ -1919,7 +2371,7 @@ describe("DatabaseServerService.findOrCreateByEndpoint - lifecycle", () => {
     });
     findOwner.mockResolvedValue(ownedBy(row));
     findOneBy.mockResolvedValue(row);
-    writes.mockRejectedValue(new Error("connection terminated"));
+    rawQuery.mockRejectedValue(new Error("connection terminated"));
 
     await expect(
       DatabaseServerService.findOrCreateByEndpoint({
@@ -1934,7 +2386,15 @@ describe("DatabaseServerService.findOrCreateByEndpoint - lifecycle", () => {
     expect(logs.warn).toHaveBeenCalled();
   });
 
-  test("an auto-archived row of a workload that is gone is NOT brought back by a stale alias", async () => {
+  /*
+   * The row of a workload that is gone, archived by discovery: application
+   * traces never restore it, so a trace naming one of its endpoints is not
+   * a sighting of it either. The trace path gets no row back - it records
+   * no lastSeenAt on it and claims no sibling endpoints for it - and
+   * nothing about the row changes: not its engine, not its endpoint's
+   * "last matched".
+   */
+  test("an auto-archived row of a workload that is gone is not a trace's to sight: no row, no restore, no write", async () => {
     const row: DatabaseServer = databaseRow({
       workloadIdentifier: "redis|kubernetes:prod/cache/deployment/redis",
       workloadLastSeenAt: new Date(Date.now() - 8 * 24 * HOUR_MS),
@@ -1948,15 +2408,124 @@ describe("DatabaseServerService.findOrCreateByEndpoint - lifecycle", () => {
     const result: DatabaseServer | null =
       await DatabaseServerService.findOrCreateByEndpoint({
         projectId: PROJECT_ID,
-        dbSystem: "postgresql",
+        dbSystem: "mysql",
         endpoint: ENDPOINT,
         discoverySource: DatabaseServerDiscoverySource.ClientSpans,
         allowCreate: false,
       });
 
-    expect(result).toBe(row);
+    expect(result).toBeNull();
     expect(rawQuery).not.toHaveBeenCalled();
+    expect(writes).not.toHaveBeenCalled();
+    expect(mark).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
     expect(row.isArchived).toBe(true);
+  });
+
+  test("a collector reporting that retired row still resolves to it - its heartbeat is what restores it", async () => {
+    const row: DatabaseServer = databaseRow({
+      workloadIdentifier: "postgresql|kubernetes:prod/data/statefulset/pg",
+      workloadLastSeenAt: new Date(Date.now() - 8 * 24 * HOUR_MS),
+      discoverySource: DatabaseServerDiscoverySource.Kubernetes,
+      isArchived: true,
+      autoArchivedAt: new Date(),
+    });
+    findOwner.mockResolvedValue(ownedBy(row));
+    findOneBy.mockResolvedValue(row);
+
+    await expect(
+      DatabaseServerService.findOrCreateByEndpoint({
+        projectId: PROJECT_ID,
+        dbSystem: "postgresql",
+        endpoint: ENDPOINT,
+        discoverySource: DatabaseServerDiscoverySource.Collector,
+        allowCreate: false,
+      }),
+    ).resolves.toBe(row);
+  });
+
+  test("a workload row archived while its workload was still reporting is sighted and restored as before", async () => {
+    const row: DatabaseServer = databaseRow({
+      workloadIdentifier: "postgresql|kubernetes:prod/data/statefulset/pg",
+      workloadLastSeenAt: new Date(Date.now() - 10 * 60 * 1000),
+      discoverySource: DatabaseServerDiscoverySource.Kubernetes,
+      isArchived: true,
+      autoArchivedAt: new Date(),
+    });
+    findOwner.mockResolvedValue(ownedBy(row));
+    findOneBy.mockResolvedValue(row);
+    rawQuery.mockResolvedValue([{ _id: row.id!.toString() }]);
+
+    await expect(
+      DatabaseServerService.findOrCreateByEndpoint({
+        projectId: PROJECT_ID,
+        dbSystem: "postgresql",
+        endpoint: ENDPOINT,
+        discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+        allowCreate: false,
+      }),
+    ).resolves.toBe(row);
+    expect(row.isArchived).toBe(false);
+  });
+
+  test("losing the create race to a retired workload row: the trace gets no row back", async () => {
+    const retired: DatabaseServer = databaseRow({
+      workloadIdentifier: "postgresql|kubernetes:prod/data/statefulset/pg",
+      workloadLastSeenAt: new Date(Date.now() - 8 * 24 * HOUR_MS),
+      discoverySource: DatabaseServerDiscoverySource.Kubernetes,
+      isArchived: true,
+      autoArchivedAt: new Date(),
+    });
+    findOwner
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(ownedBy(retired));
+    findOneBy.mockResolvedValue(retired);
+    getJestSpyOn(
+      DatabaseServerEndpointService,
+      "claimEndpoint",
+    ).mockResolvedValue("owned-by-other");
+    getJestSpyOn(service, "deleteBy").mockResolvedValue(1);
+
+    await expect(
+      DatabaseServerService.findOrCreateByEndpoint({
+        projectId: PROJECT_ID,
+        dbSystem: "postgresql",
+        endpoint: ENDPOINT,
+        discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+        allowCreate: true,
+      }),
+    ).resolves.toBeNull();
+    expect(rawQuery).not.toHaveBeenCalled();
+    expect(retired.isArchived).toBe(true);
+  });
+
+  test("the identifier race landing on a retired workload row: the trace neither claims the endpoint for it nor restores it", async () => {
+    const retired: DatabaseServer = databaseRow({
+      workloadIdentifier: "postgresql|kubernetes:prod/data/statefulset/pg",
+      workloadLastSeenAt: new Date(Date.now() - 8 * 24 * HOUR_MS),
+      discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+      isArchived: true,
+      autoArchivedAt: new Date(),
+    });
+    create.mockRejectedValue(new Error("duplicate key value"));
+    findOneBy.mockResolvedValue(retired);
+    const claim: jest.SpyInstance = getJestSpyOn(
+      DatabaseServerEndpointService,
+      "claimEndpoint",
+    ).mockResolvedValue("claimed");
+
+    await expect(
+      DatabaseServerService.findOrCreateByEndpoint({
+        projectId: PROJECT_ID,
+        dbSystem: "postgresql",
+        endpoint: ENDPOINT,
+        discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+        allowCreate: true,
+      }),
+    ).resolves.toBeNull();
+    expect(claim).not.toHaveBeenCalled();
+    expect(rawQuery).not.toHaveBeenCalled();
+    expect(retired.isArchived).toBe(true);
   });
 
   test("an auto-archived row that is not a gone workload is restored as before", async () => {
@@ -2004,6 +2573,12 @@ describe("DatabaseServerService.findOrCreateByEndpoint - lifecycle", () => {
       service,
       "deleteBy",
     ).mockResolvedValue(1);
+    answerEngineWrites(rawQuery, [
+      {
+        _id: winner.id!.toString(),
+        name: "MariaDB orders-db.example.com:5432",
+      },
+    ]);
 
     const result: DatabaseServer | null =
       await DatabaseServerService.findOrCreateByEndpoint({
@@ -2018,15 +2593,19 @@ describe("DatabaseServerService.findOrCreateByEndpoint - lifecycle", () => {
     // Our orphan is gone...
     expect(deleteBy).toHaveBeenCalledTimes(1);
     // ...and the winner now shows the fork, renamed from its generated name.
-    const write: any = writes.mock.calls[0]![0];
-    expect(write.id.toString()).toBe(winner.id!.toString());
-    expect(write.data).toEqual({
-      dbSystem: "mariadb",
-      dbSystemSource: "client-spans",
-      name: "MariaDB orders-db.example.com:5432",
-    });
-    expect(write.expectedData).toEqual({ dbSystem: "mysql" });
+    const { params } = engineWrites(rawQuery)[0]!;
+    expect(params).toEqual([
+      "client-spans",
+      "mariadb",
+      "MySQL orders-db.example.com:5432",
+      "MariaDB orders-db.example.com:5432",
+      winner.id!.toString(),
+      PROJECT_ID.toString(),
+      "mysql",
+      null,
+    ]);
     expect(winner.dbSystem).toBe("mariadb");
+    expect(winner.name).toBe("MariaDB orders-db.example.com:5432");
   });
 
   test("losing the create race, a family name never undoes the winner's fork", async () => {
@@ -2052,7 +2631,7 @@ describe("DatabaseServerService.findOrCreateByEndpoint - lifecycle", () => {
       allowCreate: true,
     });
 
-    expect(writes).not.toHaveBeenCalled();
+    expect(engineWrites(rawQuery)).toHaveLength(0);
     expect(winner.dbSystem).toBe("mariadb");
   });
 
@@ -2204,6 +2783,7 @@ describe("DatabaseServerService.recordCollectorHeartbeat - engine evidence", () 
   let cache: Map<string, string>;
   let findOneById: jest.SpyInstance;
   let writes: jest.SpyInstance;
+  let rawQuery: jest.Mock;
 
   beforeEach(() => {
     silenceLogs();
@@ -2232,7 +2812,7 @@ describe("DatabaseServerService.recordCollectorHeartbeat - engine evidence", () 
       "updateColumnsByIdWithoutHooks",
     ).mockResolvedValue(undefined);
     findOneById = getJestSpyOn(service, "findOneById");
-    mockRawQuery([]);
+    rawQuery = mockRawQuery([]);
   });
 
   afterEach(() => {
@@ -2251,17 +2831,28 @@ describe("DatabaseServerService.recordCollectorHeartbeat - engine evidence", () 
     });
     row._id = DATABASE_ID.toString();
     findOneById.mockResolvedValue(row);
+    answerEngineWrites(rawQuery, [
+      { _id: DATABASE_ID.toString(), name: "MySQL data/orders" },
+    ]);
 
     await DatabaseServerService.recordCollectorHeartbeat(DATABASE_ID, {
       dbSystem: "mysql",
     });
 
-    expect(writes).toHaveBeenCalledTimes(1);
-    expect(writes.mock.calls[0]![0].data).toEqual({
-      dbSystem: "mysql",
-      dbSystemSource: "collector",
-      name: "MySQL data/orders",
-    });
+    expect(writes).not.toHaveBeenCalled();
+    const statements: Array<RawStatement> = engineWrites(rawQuery);
+    expect(statements).toHaveLength(1);
+    expect(statements[0]!.params).toEqual([
+      "collector",
+      "mysql",
+      "PostgreSQL data/orders",
+      "MySQL data/orders",
+      DATABASE_ID.toString(),
+      PROJECT_ID.toString(),
+      "postgresql",
+      null,
+    ]);
+    expect(row.name).toBe("MySQL data/orders");
 
     // Later batches in the same window never look again.
     SingleFlight.clear();
@@ -2278,15 +2869,18 @@ describe("DatabaseServerService.recordCollectorHeartbeat - engine evidence", () 
     });
     row._id = DATABASE_ID.toString();
     findOneById.mockResolvedValue(row);
+    answerEngineWrites(rawQuery, [
+      { _id: DATABASE_ID.toString(), name: row.name! },
+    ]);
 
     await DatabaseServerService.recordCollectorHeartbeat(DATABASE_ID, {
       dbSystem: "postgres",
     });
 
-    expect(writes.mock.calls[0]![0].data).toEqual({
-      dbSystemSource: "collector",
-    });
-    expect(writes.mock.calls[0]![0].skipUpdateDateColumn).toBe(true);
+    const { sql, params } = engineWrites(rawQuery)[0]!;
+    expect(params[0]).toBe("collector");
+    expect(sql).not.toContain('"updatedAt"');
+    expect(row.dbSystemSource).toBe("collector");
   });
 
   test("no reported engine, no engine write", async () => {
@@ -2299,6 +2893,7 @@ describe("DatabaseServerService.recordCollectorHeartbeat - engine evidence", () 
     await DatabaseServerService.recordCollectorHeartbeat(DATABASE_ID, {});
 
     expect(writes).not.toHaveBeenCalled();
+    expect(engineWrites(rawQuery)).toHaveLength(0);
   });
 });
 

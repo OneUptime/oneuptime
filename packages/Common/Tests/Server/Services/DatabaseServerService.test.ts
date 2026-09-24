@@ -27,6 +27,7 @@ import DatabaseServerEndpointService, {
 import DatabaseServerFeedService from "../../../Server/Services/DatabaseServerFeedService";
 import DatabaseServerLabelRuleEngineService from "../../../Server/Services/DatabaseServerLabelRuleEngineService";
 import DatabaseServerOwnerRuleEngineService from "../../../Server/Services/DatabaseServerOwnerRuleEngineService";
+import KubernetesClusterService from "../../../Server/Services/KubernetesClusterService";
 import UserService from "../../../Server/Services/UserService";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
@@ -36,6 +37,7 @@ import logger from "../../../Server/Utils/Logger";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "../../../Models/DatabaseModels/DatabaseServerEndpoint";
 import { DatabaseServerFeedEventType } from "../../../Models/DatabaseModels/DatabaseServerFeed";
+import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../../Models/DatabaseModels/Label";
 import URL from "../../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -46,7 +48,9 @@ import {
   isKubernetesServiceDnsHost,
   parseManualDatabaseEndpoint,
 } from "../../../Types/DatabaseServer/DatabaseEndpoint";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -410,8 +414,8 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
   test("an address naming its cluster keeps the qualifier in its identity and endpoint", async () => {
     const clusters: jest.SpyInstance = getJestSpyOn(
       service,
-      "findKubernetesClusterNames",
-    ).mockResolvedValue(["prod"]);
+      "hasKubernetesClusters",
+    ).mockResolvedValue(true);
 
     const created: DatabaseServer = await DatabaseServerService.create(
       manualRequest({ serverAddress: "pg.shop.svc.cluster.local:5432@Prod" }),
@@ -469,12 +473,25 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
    */
   describe("a Kubernetes Service name typed without its cluster", () => {
     let clusters: jest.SpyInstance;
+    let clusterReads: jest.SpyInstance;
+
+    function clusterRows(names: Array<string>): Array<KubernetesCluster> {
+      return names.map((name: string): KubernetesCluster => {
+        const cluster: KubernetesCluster = new KubernetesCluster();
+        cluster.clusterIdentifier = name;
+        return cluster;
+      });
+    }
 
     beforeEach(() => {
       clusters = getJestSpyOn(
         service,
-        "findKubernetesClusterNames",
-      ).mockResolvedValue(["prod-eu", "staging"]);
+        "hasKubernetesClusters",
+      ).mockResolvedValue(true);
+      clusterReads = getJestSpyOn(
+        KubernetesClusterService,
+        "findBy",
+      ).mockResolvedValue(clusterRows(["prod-eu", "staging"]));
     });
 
     test("is refused in a project with clusters, naming the qualified form and the project's clusters", async () => {
@@ -491,6 +508,76 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
       expect(clusters).toHaveBeenCalledWith(PROJECT_ID);
       expect(save).not.toHaveBeenCalled();
       expect(claim).not.toHaveBeenCalled();
+    });
+
+    /*
+     * Cluster names are the Kubernetes clusters' own resource, with their own
+     * read permission and label scope: the refusal names only the clusters
+     * the caller may read, read through their own permissions.
+     */
+    test("the clusters named are read with the caller's own permissions", async () => {
+      const request: {
+        data: DatabaseServer;
+        props: DatabaseCommonInteractionProps;
+      } = manualRequest({ serverAddress: "pg.shop.svc.cluster.local" });
+
+      await DatabaseServerService.create(request).catch(() => {
+        return null;
+      });
+
+      expect(clusterReads).toHaveBeenCalledTimes(1);
+      const read: any = clusterReads.mock.calls[0]![0];
+      expect(read.query).toEqual({ projectId: PROJECT_ID });
+      expect(read.select).toEqual({ clusterIdentifier: true });
+      expect(read.sort).toEqual({ clusterIdentifier: SortOrder.Ascending });
+      expect(read.limit).toBe(10);
+      expect(read.props).toBe(request.props);
+      expect(read.props.isRoot).toBeFalsy();
+    });
+
+    test("a caller who may read only some clusters sees only those", async () => {
+      clusterReads.mockResolvedValue(clusterRows(["prod-eu"]));
+
+      const error: Error = (await DatabaseServerService.create(
+        manualRequest({ serverAddress: "pg.shop.svc.cluster.local" }),
+      ).catch((e: unknown) => {
+        return e;
+      })) as Error;
+
+      expect(error.message).toContain("(this project's clusters: prod-eu)");
+      expect(error.message).not.toContain("staging");
+    });
+
+    test("a caller who may not read clusters is still refused, with the generic `@<cluster>` advice and no cluster named", async () => {
+      clusterReads.mockRejectedValue(
+        new NotAuthorizedException(
+          "You do not have permission to read Kubernetes clusters.",
+        ),
+      );
+
+      const error: Error = (await DatabaseServerService.create(
+        manualRequest({ serverAddress: "pg.shop.svc.cluster.local" }),
+      ).catch((e: unknown) => {
+        return e;
+      })) as Error;
+
+      expect(error).toBeInstanceOf(BadDataException);
+      expect(error.message).toBe(
+        "pg.shop.svc.cluster.local:5432 only resolves inside one Kubernetes cluster or private network. Applications that report their cluster (k8s.cluster.name) are matched to pg.shop.svc.cluster.local:5432@<cluster name> instead, so name the cluster the way they report it. To also match a Database Agent or applications that do not report their cluster, add pg.shop.svc.cluster.local:5432 as an endpoint on the database's Endpoints tab once it is created.",
+      );
+      expect(save).not.toHaveBeenCalled();
+    });
+
+    test("no readable cluster at all gives the generic advice too", async () => {
+      clusterReads.mockResolvedValue([]);
+
+      await expect(
+        DatabaseServerService.create(
+          manualRequest({ serverAddress: "pg.shop.svc.cluster.local" }),
+        ),
+      ).rejects.toThrow(
+        "so name the cluster the way they report it. To also match",
+      );
     });
 
     test("the short `<service>.<namespace>.svc` form is the same name", async () => {
@@ -513,7 +600,7 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
     });
 
     test("is accepted as typed in a project without clusters - nothing could report the qualified form", async () => {
-      clusters.mockResolvedValue([]);
+      clusters.mockResolvedValue(false);
 
       const created: DatabaseServer = await DatabaseServerService.create(
         manualRequest({ serverAddress: "pg.shop.svc.cluster.local" }),
@@ -970,32 +1057,65 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
   });
 });
 
-describe("DatabaseServerService.findKubernetesClusterNames", () => {
-  test("reads a few of the project's live cluster names, sorted", async () => {
-    const query: jest.Mock = mockRawQuery([
-      { clusterIdentifier: " prod-eu " },
-      { clusterIdentifier: "staging" },
-      { clusterIdentifier: "" },
-      { clusterIdentifier: null },
-    ]);
+describe("DatabaseServerService.hasKubernetesClusters", () => {
+  test("asks whether the project has one live, named cluster - reading no name", async () => {
+    const query: jest.Mock = mockRawQuery([{ found: 1 }]);
 
-    await expect(
-      service.findKubernetesClusterNames(PROJECT_ID),
-    ).resolves.toEqual(["prod-eu", "staging"]);
+    await expect(service.hasKubernetesClusters(PROJECT_ID)).resolves.toBe(true);
 
     const [sql, params] = query.mock.calls[0] as [string, Array<unknown>];
     expect(sql).toContain(`FROM "KubernetesCluster" kc`);
     expect(sql).toContain(`kc."projectId" = $1`);
     expect(sql).toContain(`kc."deletedAt" IS NULL`);
-    expect(sql).toContain(`ORDER BY kc."clusterIdentifier" ASC`);
-    expect(params).toEqual([PROJECT_ID.toString(), 10]);
+    expect(sql).toContain(`kc."clusterIdentifier" <> ''`);
+    expect(sql).toContain("LIMIT 1");
+    expect(sql).not.toContain(`AS "clusterIdentifier"`);
+    expect(params).toEqual([PROJECT_ID.toString()]);
   });
 
-  test("an unexpected driver answer is no clusters", async () => {
+  test("none, or an unexpected driver answer, is no clusters", async () => {
+    mockRawQuery([]);
+    await expect(service.hasKubernetesClusters(PROJECT_ID)).resolves.toBe(
+      false,
+    );
+
     mockRawQuery(null);
+    await expect(service.hasKubernetesClusters(PROJECT_ID)).resolves.toBe(
+      false,
+    );
+  });
+});
+
+describe("DatabaseServerService.findReadableKubernetesClusterNames", () => {
+  function clusterRow(name: string | undefined): KubernetesCluster {
+    const cluster: KubernetesCluster = new KubernetesCluster();
+    if (name !== undefined) {
+      cluster.clusterIdentifier = name;
+    }
+    return cluster;
+  }
+
+  test("the names the caller may read, trimmed and deduped, empty ones dropped", async () => {
+    getJestSpyOn(KubernetesClusterService, "findBy").mockResolvedValue([
+      clusterRow(" prod-eu "),
+      clusterRow("prod-eu"),
+      clusterRow("staging"),
+      clusterRow(""),
+      clusterRow(undefined),
+    ]);
 
     await expect(
-      service.findKubernetesClusterNames(PROJECT_ID),
+      service.findReadableKubernetesClusterNames(PROJECT_ID, memberProps()),
+    ).resolves.toEqual(["prod-eu", "staging"]);
+  });
+
+  test("a caller refused the read gets no names, never an error", async () => {
+    getJestSpyOn(KubernetesClusterService, "findBy").mockRejectedValue(
+      new NotAuthorizedException("no"),
+    );
+
+    await expect(
+      service.findReadableKubernetesClusterNames(PROJECT_ID, memberProps()),
     ).resolves.toEqual([]);
   });
 });
@@ -1037,7 +1157,9 @@ describe("DatabaseServerService.findOrCreateByEndpoint", () => {
   });
 
   test("returns the row that owns the endpoint, without creating anything", async () => {
-    const existing: DatabaseServer = databaseRow();
+    const existing: DatabaseServer = databaseRow({
+      discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+    });
     findOwner.mockResolvedValue({
       databaseServerId: existing.id,
       isPrimary: true,
@@ -1092,6 +1214,7 @@ describe("DatabaseServerService.findOrCreateByEndpoint", () => {
 
   test("an owner that discovery auto-archived is restored when seen again", async () => {
     const archived: DatabaseServer = databaseRow({
+      discoverySource: DatabaseServerDiscoverySource.Collector,
       isArchived: true,
       autoArchivedAt: new Date("2026-09-01T00:00:00.000Z"),
     });
@@ -1131,6 +1254,7 @@ describe("DatabaseServerService.findOrCreateByEndpoint", () => {
 
   test("a restore that lost to someone else writes no second feed item", async () => {
     const archived: DatabaseServer = databaseRow({
+      discoverySource: DatabaseServerDiscoverySource.Collector,
       isArchived: true,
       autoArchivedAt: new Date(),
     });
@@ -1152,6 +1276,7 @@ describe("DatabaseServerService.findOrCreateByEndpoint", () => {
 
   test("a row a PERSON archived is never un-archived by discovery", async () => {
     const archivedByPerson: DatabaseServer = databaseRow({
+      discoverySource: DatabaseServerDiscoverySource.Collector,
       isArchived: true,
       archivedByUserId: USER_ID,
     });
@@ -2643,6 +2768,46 @@ describe("DatabaseServerService.autoArchiveStaleDatabaseServers", () => {
       "restored automatically as soon as it is seen again",
     );
     expect(item.userId).toBeUndefined();
+  });
+
+  /*
+   * Application traces never bring back an archived workload row (its
+   * workload is gone by then), so its feed item does not promise they will.
+   */
+  test("a workload's archive feed item says only its workload or a collector brings it back", async () => {
+    const workload: ObjectID = ObjectID.generate();
+    const traces: ObjectID = ObjectID.generate();
+    const query: jest.Mock = mockRawQuery([
+      {
+        _id: workload.toString(),
+        projectId: PROJECT_ID.toString(),
+        workloadIdentifier: "postgresql|kubernetes:prod/data/statefulset/pg",
+      },
+      {
+        _id: traces.toString(),
+        projectId: PROJECT_ID.toString(),
+        workloadIdentifier: null,
+      },
+    ]);
+
+    await DatabaseServerService.autoArchiveStaleDatabaseServers();
+
+    const [sql] = query.mock.calls[0] as [string, Array<unknown>];
+    expect(sql).toContain(
+      `RETURNING stale."_id" AS "_id", stale."projectId" AS "projectId", stale."workloadIdentifier" AS "workloadIdentifier"`,
+    );
+    const workloadItem: any = feed.mock.calls[0]![0];
+    expect(workloadItem.databaseServerId.toString()).toBe(workload.toString());
+    expect(workloadItem.moreInformationInMarkdown).toContain(
+      "It is restored automatically when its Kubernetes, Docker or Podman workload, or a collector, reports it again - application traces alone do not restore it.",
+    );
+    expect(workloadItem.moreInformationInMarkdown).not.toContain(
+      "as soon as it is seen again",
+    );
+    const tracesItem: any = feed.mock.calls[1]![0];
+    expect(tracesItem.moreInformationInMarkdown).toContain(
+      "restored automatically as soon as it is seen again",
+    );
   });
 
   test("the day count follows DATABASE_SERVER_AUTO_ARCHIVE_DAYS", async () => {

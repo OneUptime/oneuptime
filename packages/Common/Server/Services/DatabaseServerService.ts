@@ -8,10 +8,12 @@ import DatabaseServerEndpointService, {
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import DatabaseServerLabelRuleEngineService from "./DatabaseServerLabelRuleEngineService";
 import DatabaseServerOwnerRuleEngineService from "./DatabaseServerOwnerRuleEngineService";
+import KubernetesClusterService from "./KubernetesClusterService";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Model from "../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "../../Models/DatabaseModels/DatabaseServerEndpoint";
 import { DatabaseServerFeedEventType } from "../../Models/DatabaseModels/DatabaseServerFeed";
+import KubernetesCluster from "../../Models/DatabaseModels/KubernetesCluster";
 import Label from "../../Models/DatabaseModels/Label";
 import DatabaseConfig from "../DatabaseConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
@@ -32,6 +34,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import URL from "../../Types/API/URL";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import { Blue500, Gray500, Green500, Yellow500 } from "../../Types/BrandColors";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
@@ -377,8 +380,8 @@ interface AutoCreateCount {
  *     (autoArchivedAt), never one a person archived;
  *   - an engine a person chose is never changed, and a weaker source never
  *     changes an engine a stronger one determined (DatabaseSystemEvidence)
- *     - except to refine it to a fork, which any source may do and none
- *     undoes (decideDatabaseSystem, getMoreSpecificDatabaseSystem).
+ *     - a container image may still refine it to a fork, and undo a fork
+ *     only client spans named (decideDatabaseSystem).
  */
 export class Service extends DatabaseService<Model> {
   /*
@@ -485,6 +488,7 @@ export class Service extends DatabaseService<Model> {
       serverAddress: data.serverAddress,
       serverPort: data.serverPort,
       dbSystem: dbSystem,
+      props: createBy.props,
     });
 
     const databaseIdentifier: string = buildDatabaseServerIdentifier(
@@ -644,7 +648,9 @@ export class Service extends DatabaseService<Model> {
    * the row's (a stronger source may correct or refine it, a weaker one
    * never does), and a row discovery archived is restored - unless it is
    * the row of a workload that is gone, which a stale alias must not bring
-   * back.
+   * back. Application traces get null for such a row (isRetiredWorkloadRow):
+   * a trace that cannot restore it does not sight it either, so the trace
+   * path records no lastSeenAt on it and claims no endpoints for it.
    *
    * Races. Two writers can see the endpoint unowned at once. The row insert
    * is guarded by the (projectId, databaseIdentifier) unique index - the
@@ -677,22 +683,14 @@ export class Service extends DatabaseService<Model> {
         owner.databaseServerId,
       );
 
+      if (ownerRow && this.isRetiredFor(ownerRow, data.discoverySource)) {
+        return null;
+      }
+
       await DatabaseServerEndpointService.markEndpointMatched(owner);
 
       if (ownerRow) {
-        const evidence: DatabaseSystemEvidence | null =
-          getDatabaseSystemEvidenceForSource(data.discoverySource);
-
-        if (evidence) {
-          await this.applyDatabaseSystemEvidence(ownerRow, {
-            system: data.dbSystem,
-            evidence: evidence,
-          });
-        }
-
-        if (!this.isWorkloadGone(ownerRow)) {
-          await this.restoreIfAutoArchived(ownerRow);
-        }
+        await this.recordOwnerSighting(ownerRow, data);
       }
 
       return ownerRow;
@@ -813,7 +811,7 @@ export class Service extends DatabaseService<Model> {
    * auto-archived is restored, and `dbSystem` (the engine the receiver or the
    * agent reported) is weighed as collector evidence - it corrects an engine
    * a container image or client spans guessed, and refines a family engine
-   * to a fork, but never overrides a person's choice or downgrades a fork.
+   * to a fork, but never overrides a person's choice or undoes a fork.
    */
   @CaptureSpan()
   public async recordCollectorHeartbeat(
@@ -1068,7 +1066,9 @@ export class Service extends DatabaseService<Model> {
    *
    * The row is marked autoArchivedAt, which is what lets discovery restore
    * it the moment it is seen again - and never restore one a person
-   * archived. Bounded per run. Returns how many rows were archived.
+   * archived. A workload's row is brought back only by its workload or a
+   * collector, never by application traces (isRetiredWorkloadRow), and its
+   * feed item says so. Bounded per run. Returns how many rows were archived.
    */
   @CaptureSpan()
   public async autoArchiveStaleDatabaseServers(): Promise<number> {
@@ -1080,9 +1080,12 @@ export class Service extends DatabaseService<Model> {
       -Math.max(MANUAL_RESTORE_GRACE_DAYS, days),
     );
 
-    const archived: Array<{ _id: string; projectId: string }> =
-      await this.getRepository().manager.query(
-        `WITH "candidates" AS (
+    const archived: Array<{
+      _id: string;
+      projectId: string;
+      workloadIdentifier?: string | null;
+    }> = await this.getRepository().manager.query(
+      `WITH "candidates" AS (
           SELECT ds."_id"
           FROM "DatabaseServer" ds
           LEFT JOIN "KubernetesCluster" kc
@@ -1116,23 +1119,23 @@ export class Service extends DatabaseService<Model> {
           FROM "candidates"
           WHERE stale."_id" = "candidates"."_id"
             AND stale."isArchived" = false
-          RETURNING stale."_id" AS "_id", stale."projectId" AS "projectId"
+          RETURNING stale."_id" AS "_id", stale."projectId" AS "projectId", stale."workloadIdentifier" AS "workloadIdentifier"
         )
-        SELECT "_id", "projectId" FROM "archived"`,
-        [
-          cutoff,
-          now,
-          DatabaseServerDiscoverySource.Manual,
-          AUTO_ARCHIVE_BATCH_SIZE,
-          restoreGraceCutoff,
-        ],
-      );
+        SELECT "_id", "projectId", "workloadIdentifier" FROM "archived"`,
+      [
+        cutoff,
+        now,
+        DatabaseServerDiscoverySource.Manual,
+        AUTO_ARCHIVE_BATCH_SIZE,
+        restoreGraceCutoff,
+      ],
+    );
 
-    const rows: Array<{ _id: string; projectId: string }> = Array.isArray(
-      archived,
-    )
-      ? archived
-      : [];
+    const rows: Array<{
+      _id: string;
+      projectId: string;
+      workloadIdentifier?: string | null;
+    }> = Array.isArray(archived) ? archived : [];
 
     for (const row of rows) {
       if (!row || !row._id || !row.projectId) {
@@ -1143,6 +1146,7 @@ export class Service extends DatabaseService<Model> {
         databaseServerId: new ObjectID(row._id.toString()),
         projectId: new ObjectID(row.projectId.toString()),
         days: days,
+        isWorkload: Boolean(row.workloadIdentifier),
       });
     }
 
@@ -1635,8 +1639,9 @@ export class Service extends DatabaseService<Model> {
 
     /*
      * The image is evidence of the engine: it corrects what client spans
-     * guessed for a row this workload adopted, and refines a family engine
-     * to a fork (redis -> valkey). A row created here already has it.
+     * guessed for a row this workload adopted, refines a family engine to a
+     * fork (redis -> valkey) and undoes a fork only client spans named. A
+     * row created here already has it.
      */
     const previousSystem: string | undefined = row.dbSystem;
     const engine: DatabaseSystemDetermination | null = createdHere
@@ -1723,8 +1728,12 @@ export class Service extends DatabaseService<Model> {
    * Weigh new evidence of a row's engine (see decideDatabaseSystem) and, if
    * it wins, write it: the engine, the evidence behind it, and the
    * auto-generated name when the row still carries the old one - a name a
-   * person chose is kept. A compare-and-set on the engine read, so two
-   * writers weighing at once cannot interleave. Never throws.
+   * person chose is kept. One compare-and-set on the engine AND the
+   * evidence that were weighed (writeDatabaseSystemIfUnchanged): a writer
+   * that loses it to a concurrent one changes nothing - not the row in
+   * memory, not the feed - so two writers weighing at once never both
+   * announce the change, and stronger evidence written meanwhile is never
+   * overwritten with weaker. Never throws.
    */
   private async applyDatabaseSystemEvidence(
     row: Model,
@@ -1733,7 +1742,7 @@ export class Service extends DatabaseService<Model> {
       evidence: DatabaseSystemEvidence;
     },
   ): Promise<void> {
-    if (!row.id || !row.dbSystem) {
+    if (!row.id || !row.projectId || !row.dbSystem) {
       return;
     }
 
@@ -1753,38 +1762,43 @@ export class Service extends DatabaseService<Model> {
     const engineChanged: boolean =
       decision.system !== normalizeDatabaseSystem(previousSystem);
 
-    const update: PartialEntity<Model> = {
-      dbSystemSource: decision.evidence,
-    };
+    const renamed: string | null = engineChanged
+      ? renameForDatabaseSystem(row, decision.system)
+      : null;
 
-    if (engineChanged) {
-      update.dbSystem = decision.system;
-
-      const renamed: string | null = renameForDatabaseSystem(
-        row,
-        decision.system,
-      );
-
-      if (renamed) {
-        update.name = renamed;
-      }
-    }
+    let written: { name: string | null } | null = null;
 
     try {
-      await this.updateColumnsByIdWithoutHooks({
+      written = await this.writeDatabaseSystemIfUnchanged({
         id: row.id,
-        data: update,
-        expectedData: {
+        projectId: row.projectId,
+        evidence: decision.evidence,
+        system: engineChanged ? decision.system : undefined,
+        rename:
+          renamed && row.name ? { from: row.name, to: renamed } : undefined,
+        expected: {
           dbSystem: previousSystem,
+          dbSystemSource: row.dbSystemSource || null,
         },
-        // Recording stronger evidence for the same engine is bookkeeping.
-        skipUpdateDateColumn: !engineChanged,
       });
     } catch (error) {
       logger.warn(
         `DatabaseServerService: could not update the engine of database ${row.id.toString()}: ${
           error instanceof Error ? error.message : String(error)
         }`,
+      );
+
+      return;
+    }
+
+    /*
+     * Another writer changed the engine or its evidence since this row was
+     * read (or the row is gone): theirs stands, and the change is theirs to
+     * announce.
+     */
+    if (!written) {
+      logger.debug(
+        `DatabaseServerService: the engine of database ${row.id.toString()} changed while ${decision.evidence} evidence was weighed; left as the other writer set it.`,
       );
 
       return;
@@ -1798,8 +1812,8 @@ export class Service extends DatabaseService<Model> {
 
     row.dbSystem = decision.system;
 
-    if (update.name) {
-      row.name = update.name as string;
+    if (written.name) {
+      row.name = written.name;
     }
 
     await this.writeEngineCorrectedFeed({
@@ -1807,6 +1821,81 @@ export class Service extends DatabaseService<Model> {
       previousSystem: previousSystem,
       evidence: decision.evidence,
     });
+  }
+
+  /*
+   * The write of applyDatabaseSystemEvidence: the evidence, and - when the
+   * engine changes - the engine, updatedAt and the generated name. The name
+   * only moves while it is still `rename.from`, so a person renaming the
+   * row meanwhile keeps their name. Matches only while the engine and its
+   * evidence are still what was read. Returns the row's name as written, or
+   * null when nothing matched.
+   */
+  private async writeDatabaseSystemIfUnchanged(data: {
+    id: ObjectID;
+    projectId: ObjectID;
+    evidence: DatabaseSystemEvidence;
+    system?: string | undefined;
+    rename?: { from: string; to: string } | undefined;
+    expected: {
+      dbSystem: string;
+      dbSystemSource: string | null;
+    };
+  }): Promise<{ name: string | null } | null> {
+    const params: Array<unknown> = [data.evidence];
+    const sets: Array<string> = [`"dbSystemSource" = $1`];
+
+    if (data.system) {
+      params.push(data.system);
+      sets.push(`"dbSystem" = $${params.length}`);
+
+      if (data.rename) {
+        params.push(data.rename.from, data.rename.to);
+        sets.push(
+          `"name" = CASE WHEN "name" IS NOT DISTINCT FROM $${
+            params.length - 1
+          } THEN $${params.length} ELSE "name" END`,
+        );
+      }
+
+      // Recording stronger evidence for the same engine is bookkeeping.
+      sets.push(`"updatedAt" = CURRENT_TIMESTAMP`);
+    }
+
+    params.push(
+      data.id.toString(),
+      data.projectId.toString(),
+      data.expected.dbSystem,
+      data.expected.dbSystemSource,
+    );
+    const at: number = params.length - 3;
+
+    /*
+     * A CTE, so the statement is a SELECT of the row it wrote: TypeORM
+     * answers a bare UPDATE with [rows, rowCount], matched or not.
+     */
+    const written: unknown = await this.getRepository().manager.query(
+      `WITH "written" AS (
+        UPDATE "DatabaseServer"
+        SET ${sets.join(", ")}
+        WHERE "_id" = $${at}
+          AND "projectId" = $${at + 1}
+          AND "deletedAt" IS NULL
+          AND "dbSystem" IS NOT DISTINCT FROM $${at + 2}
+          AND "dbSystemSource" IS NOT DISTINCT FROM $${at + 3}
+        RETURNING "_id", "name"
+      )
+      SELECT "_id", "name" FROM "written"`,
+      params,
+    );
+
+    if (!Array.isArray(written) || written.length === 0) {
+      return null;
+    }
+
+    const name: unknown = (written[0] as { name?: unknown })?.name;
+
+    return { name: typeof name === "string" ? name : null };
   }
 
   private async writeEngineCorrectedFeed(data: {
@@ -1840,7 +1929,7 @@ export class Service extends DatabaseService<Model> {
         )}** (it was shown as ${getDatabaseSystemDisplayName(
           data.previousSystem,
         )}), from ${DATABASE_SYSTEM_EVIDENCE_LABEL[data.evidence]}.`,
-        moreInformationInMarkdown: `Client libraries of wire-compatible databases report the engine they speak to, so a database first seen in application traces can be named after the wrong engine. A stronger source - a container image, a collector receiver or the Database Agent - corrects it, and a fork (MariaDB, Valkey, ScyllaDB ...) refines the engine it forks. An engine a person chose is never changed.`,
+        moreInformationInMarkdown: `Client libraries of wire-compatible databases report the engine they speak to, so a database first seen in application traces can be named after the wrong engine. A stronger source - a container image, a collector receiver or the Database Agent - corrects it. A fork (MariaDB, Valkey, ScyllaDB ...) refines the engine it forks when a source at least as strong names it, or its container image does; application traces alone never override an image or a collector. An engine a person chose is never changed.`,
       });
     } catch (error) {
       logger.warn(
@@ -1908,6 +1997,61 @@ export class Service extends DatabaseService<Model> {
       new Date(row.workloadLastSeenAt).getTime() <
       OneUptimeDate.addRemoveMinutes(now, -WORKLOAD_GONE_MINUTES).getTime()
     );
+  }
+
+  /*
+   * True for a row discovery archived after its Kubernetes / Docker /
+   * Podman workload went away (every such row: the sweep only archives a
+   * row unseen for days, far past WORKLOAD_GONE_MINUTES). Only its workload
+   * or a collector restores it - application traces still naming one of
+   * its endpoints do not.
+   */
+  private isRetiredWorkloadRow(row: Model): boolean {
+    return Boolean(
+      row.isArchived && row.autoArchivedAt && this.isWorkloadGone(row),
+    );
+  }
+
+  /*
+   * isRetiredWorkloadRow, for a report from `source`: application traces
+   * cannot bring the row back, so it is not theirs to sight either.
+   */
+  private isRetiredFor(
+    row: Model,
+    source: DatabaseServerDiscoverySource,
+  ): boolean {
+    return (
+      source === DatabaseServerDiscoverySource.ClientSpans &&
+      this.isRetiredWorkloadRow(row)
+    );
+  }
+
+  /*
+   * What a report of an endpoint tells the row that owns it: the engine it
+   * names is weighed as evidence (applyDatabaseSystemEvidence), and a row
+   * discovery archived is restored - unless its workload is gone, which
+   * only the workload path or a collector heartbeat brings back.
+   */
+  private async recordOwnerSighting(
+    ownerRow: Model,
+    data: {
+      dbSystem: string;
+      discoverySource: DatabaseServerDiscoverySource;
+    },
+  ): Promise<void> {
+    const evidence: DatabaseSystemEvidence | null =
+      getDatabaseSystemEvidenceForSource(data.discoverySource);
+
+    if (evidence) {
+      await this.applyDatabaseSystemEvidence(ownerRow, {
+        system: data.dbSystem,
+        evidence: evidence,
+      });
+    }
+
+    if (!this.isWorkloadGone(ownerRow)) {
+      await this.restoreIfAutoArchived(ownerRow);
+    }
   }
 
   private async findByWorkloadIdentifier(
@@ -2508,6 +2652,7 @@ export class Service extends DatabaseService<Model> {
 
     const traceDuplicateIds: Set<string> = await this.findUntouchedTraceRows(
       data.projectId,
+      data.now,
       owners
         .filter((owner: Model): boolean => {
           return (
@@ -2583,41 +2728,78 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * Of `databaseServerIds`, the trace-discovered rows nobody invested in
-   * (UNTOUCHED_DATABASE_SERVER_PREDICATE): duplicates of a workload whose
-   * endpoints the workload may take over.
+   * Of `databaseServerIds`, the trace-discovered rows nobody invested in:
+   * duplicates of a workload whose endpoints the workload may take over.
+   * Taking them empties the row, which the sweep then archives, so beyond
+   * UNTOUCHED_DATABASE_SERVER_PREDICATE a person's Restore within the grace
+   * the sweep gives it, a description and a name that is not the one
+   * discovery generated (hasDiscoveryGeneratedName) all count as investment.
    */
   private async findUntouchedTraceRows(
     projectId: ObjectID,
+    now: Date,
     databaseServerIds: Array<string>,
   ): Promise<Set<string>> {
     if (databaseServerIds.length === 0) {
       return new Set<string>();
     }
 
+    const restoreGraceCutoff: Date = OneUptimeDate.addRemoveDays(
+      now,
+      -Math.max(MANUAL_RESTORE_GRACE_DAYS, this.getAutoArchiveDays()),
+    );
+
     const rows: unknown = await this.getRepository().manager.query(
-      `SELECT ds."_id" AS "_id"
+      `SELECT ds."_id" AS "_id", ds."name" AS "name", ds."dbSystem" AS "dbSystem",
+          ds."serverAddress" AS "serverAddress", ds."serverPort" AS "serverPort"
         FROM "DatabaseServer" ds
         WHERE ds."projectId" = $1
           AND ds."_id" = ANY($2::uuid[])
           AND ds."deletedAt" IS NULL
           AND ds."workloadIdentifier" IS NULL
           AND ds."discoverySource" = $3
+          AND (ds."manuallyRestoredAt" IS NULL OR ds."manuallyRestoredAt" < $4)
+          AND COALESCE(BTRIM(ds."description"), '') = ''
           AND ${UNTOUCHED_DATABASE_SERVER_PREDICATE}`,
       [
         projectId.toString(),
         databaseServerIds,
         DatabaseServerDiscoverySource.ClientSpans,
+        restoreGraceCutoff,
       ],
     );
 
     const ids: Set<string> = new Set<string>();
 
     for (const row of Array.isArray(rows) ? rows : []) {
-      const id: unknown = (row as { _id?: unknown })?._id;
-      if (id) {
-        ids.add(String(id).toLowerCase());
+      const found: {
+        _id?: unknown;
+        name?: unknown;
+        dbSystem?: unknown;
+        serverAddress?: unknown;
+        serverPort?: unknown;
+      } = (row || {}) as Record<string, unknown>;
+
+      if (
+        !found._id ||
+        !hasDiscoveryGeneratedName({
+          name: typeof found.name === "string" ? found.name : undefined,
+          dbSystem:
+            typeof found.dbSystem === "string" ? found.dbSystem : undefined,
+          serverAddress:
+            typeof found.serverAddress === "string"
+              ? found.serverAddress
+              : undefined,
+          serverPort:
+            found.serverPort === null || found.serverPort === undefined
+              ? undefined
+              : Number(found.serverPort),
+        })
+      ) {
+        continue;
       }
+
+      ids.add(String(found._id).toLowerCase());
     }
 
     return ids;
@@ -2699,6 +2881,11 @@ export class Service extends DatabaseService<Model> {
         throw error;
       }
 
+      // Neither claimed for nor restored by a trace (isRetiredWorkloadRow).
+      if (this.isRetiredFor(existing, data.discoverySource)) {
+        return null;
+      }
+
       row = existing;
     }
 
@@ -2744,21 +2931,13 @@ export class Service extends DatabaseService<Model> {
         owner.databaseServerId,
       );
 
+      // The same sighting findOrCreateByEndpoint gives an owner it finds first.
+      if (ownerRow && this.isRetiredFor(ownerRow, data.discoverySource)) {
+        return null;
+      }
+
       if (ownerRow) {
-        // The same sighting findOrCreateByEndpoint gives an owner it finds first.
-        const evidence: DatabaseSystemEvidence | null =
-          getDatabaseSystemEvidenceForSource(data.discoverySource);
-
-        if (evidence) {
-          await this.applyDatabaseSystemEvidence(ownerRow, {
-            system: data.dbSystem,
-            evidence: evidence,
-          });
-        }
-
-        if (!this.isWorkloadGone(ownerRow)) {
-          await this.restoreIfAutoArchived(ownerRow);
-        }
+        await this.recordOwnerSighting(ownerRow, data);
       }
 
       return ownerRow;
@@ -2928,8 +3107,10 @@ export class Service extends DatabaseService<Model> {
    * agent report their cluster, so their calls are keyed
    * `<endpoint>@<cluster>`: a row holding only the unqualified name would
    * stay empty while discovery creates a second row for the qualified one.
-   * The person is asked to name the cluster instead, from the project's own
-   * cluster names.
+   * The person is asked to name the cluster instead, from the cluster names
+   * they may read - a cluster is its own resource, with its own read
+   * permission and label scope, so a caller who may read none gets the
+   * generic `<endpoint>@<cluster>` advice.
    *
    * Only Service names: a private IP or a private-zone name (`.internal`,
    * `.local`) is also what virtual machines and the Database Agent report,
@@ -2944,6 +3125,7 @@ export class Service extends DatabaseService<Model> {
     serverAddress: unknown;
     serverPort: unknown;
     dbSystem: string;
+    props: DatabaseCommonInteractionProps;
   }): Promise<void> {
     const endpoint: DatabaseEndpoint | null = data.manual.endpoint;
 
@@ -2955,10 +3137,10 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    let clusterNames: Array<string> = [];
+    let hasClusters: boolean = false;
 
     try {
-      clusterNames = await this.findKubernetesClusterNames(data.projectId);
+      hasClusters = await this.hasKubernetesClusters(data.projectId);
     } catch (error) {
       logger.warn(
         `DatabaseServerService: could not read the Kubernetes clusters of project ${data.projectId.toString()}; adding ${formatDatabaseEndpoint(endpoint)} unqualified: ${
@@ -2970,19 +3152,22 @@ export class Service extends DatabaseService<Model> {
       return;
     }
 
-    if (clusterNames.length === 0) {
+    if (!hasClusters) {
       return;
     }
 
+    const clusterNames: Array<string> =
+      await this.findReadableKubernetesClusterNames(data.projectId, data.props);
+
     // The same value again, now with the cluster names the advice lists.
-    const advice: string | null = parseManualDatabaseEndpoint(
-      data.serverAddress,
-      {
-        system: data.dbSystem,
-        port: data.serverPort,
-        knownClusterNames: clusterNames,
-      },
-    ).clusterQualifierHint;
+    const advice: string | null =
+      clusterNames.length > 0
+        ? parseManualDatabaseEndpoint(data.serverAddress, {
+            system: data.dbSystem,
+            port: data.serverPort,
+            knownClusterNames: clusterNames,
+          }).clusterQualifierHint
+        : null;
 
     throw new BadDataException(
       `${advice || data.manual.clusterQualifierHint} To also match a Database Agent or applications that do not report their cluster, add ${formatDatabaseEndpoint(
@@ -2991,30 +3176,72 @@ export class Service extends DatabaseService<Model> {
     );
   }
 
-  // The project's Kubernetes cluster names (k8s.cluster.name), a few, sorted.
-  private async findKubernetesClusterNames(
-    projectId: ObjectID,
-  ): Promise<Array<string>> {
+  /*
+   * True when the project has a live Kubernetes cluster with a name
+   * (k8s.cluster.name). Read as root: whether a cluster could report the
+   * qualified form decides the refusal, whoever asks - but no name is read.
+   */
+  private async hasKubernetesClusters(projectId: ObjectID): Promise<boolean> {
     const rows: unknown = await this.getRepository().manager.query(
-      `SELECT DISTINCT kc."clusterIdentifier" AS "clusterIdentifier"
+      `SELECT 1 AS "found"
         FROM "KubernetesCluster" kc
         WHERE kc."projectId" = $1
           AND kc."deletedAt" IS NULL
           AND kc."clusterIdentifier" IS NOT NULL
           AND kc."clusterIdentifier" <> ''
-        ORDER BY kc."clusterIdentifier" ASC
-        LIMIT $2`,
-      [projectId.toString(), MAX_LISTED_CLUSTER_NAMES],
+        LIMIT 1`,
+      [projectId.toString()],
     );
+
+    return Array.isArray(rows) && rows.length > 0;
+  }
+
+  /*
+   * A few of the project's cluster names, sorted - only those the caller may
+   * read, through their own KubernetesCluster permissions (label scope
+   * included). A caller refused the read gets none. Never throws.
+   */
+  private async findReadableKubernetesClusterNames(
+    projectId: ObjectID,
+    props: DatabaseCommonInteractionProps,
+  ): Promise<Array<string>> {
+    let clusters: Array<KubernetesCluster> = [];
+
+    try {
+      clusters = await KubernetesClusterService.findBy({
+        query: {
+          projectId: projectId,
+        },
+        select: {
+          clusterIdentifier: true,
+        },
+        sort: {
+          clusterIdentifier: SortOrder.Ascending,
+        },
+        limit: MAX_LISTED_CLUSTER_NAMES,
+        skip: 0,
+        props: props,
+      });
+    } catch (error) {
+      logger.debug(
+        `DatabaseServerService: no Kubernetes cluster names readable for the manual create in project ${projectId.toString()}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+
+      return [];
+    }
 
     const names: Array<string> = [];
 
-    for (const row of Array.isArray(rows) ? rows : []) {
-      const name: unknown = (row as { clusterIdentifier?: unknown })
-        ?.clusterIdentifier;
+    for (const cluster of clusters) {
+      const name: string =
+        typeof cluster.clusterIdentifier === "string"
+          ? cluster.clusterIdentifier.trim()
+          : "";
 
-      if (typeof name === "string" && name.trim()) {
-        names.push(name.trim());
+      if (name && !names.includes(name)) {
+        names.push(name);
       }
     }
 
@@ -3396,11 +3623,21 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * The archive feed item. A workload's row says what brings it back: its
+   * workload or a collector, never application traces (see
+   * isRetiredWorkloadRow).
+   */
   private async writeAutoArchiveFeed(data: {
     databaseServerId: ObjectID;
     projectId: ObjectID;
     days: number;
+    isWorkload: boolean;
   }): Promise<void> {
+    const restoredBy: string = data.isWorkload
+      ? "It is restored automatically when its Kubernetes, Docker or Podman workload, or a collector, reports it again - application traces alone do not restore it."
+      : "It is restored automatically as soon as it is seen again.";
+
     try {
       await DatabaseServerFeedService.createDatabaseServerFeedItem({
         databaseServerId: data.databaseServerId,
@@ -3416,7 +3653,7 @@ export class Service extends DatabaseService<Model> {
         }.`,
         moreInformationInMarkdown: `No collector, application trace or container inventory has reported this database for ${data.days} ${
           data.days === 1 ? "day" : "days"
-        } while the Kubernetes cluster or container host it was found on (if any) kept reporting, and nobody has labelled it, owned it, linked it to an incident, alert or scheduled maintenance, added an endpoint to it, changed its retention or recently restored it from the archive. Labels and owners that rules or telemetry attached on their own do not count. It is restored automatically as soon as it is seen again.`,
+        } while the Kubernetes cluster or container host it was found on (if any) kept reporting, and nobody has labelled it, owned it, linked it to an incident, alert or scheduled maintenance, added an endpoint to it, changed its retention or recently restored it from the archive. Labels and owners that rules or telemetry attached on their own do not count. ${restoredBy}`,
       });
     } catch (error) {
       logger.warn(
@@ -3671,15 +3908,20 @@ export function getStoredDatabaseSystemEvidence(row: {
 
 /**
  * The engine (and the evidence for it) a row should carry once `incoming`
- * evidence arrives, or null to leave the row as it is:
+ * evidence arrives, or null to leave the row as it is. The evidence stored
+ * is always the evidence that named the engine the row then shows.
  *   - an engine a person chose is never changed;
- *   - within one family, SPECIFICITY decides, whatever the source - the
- *     rule getMoreSpecificDatabaseSystem encodes, and the one the docs
- *     describe: a fork refines the family's own engine (mysql -> mariadb,
- *     postgresql -> cockroachdb), because a client, an image or a receiver
- *     can each be the only one that knows; and the family's engine never
- *     undoes a fork, because a client or a family receiver cannot tell them
- *     apart (a span or the mysql receiver saying "mysql" leaves MariaDB);
+ *   - within one family, a fork refines the family's own engine (mysql ->
+ *     mariadb, postgresql -> cockroachdb) on evidence at least as strong as
+ *     what named the current engine, or from a container image, which names
+ *     the exact engine where a family receiver cannot (the redis receiver
+ *     says "redis" for Valkey). Client spans alone never refine what an
+ *     image or a collector determined: a client names the protocol it
+ *     speaks, and MariaDB Connector/J says "mariadb" to a MySQL server;
+ *   - the family's engine undoes a fork only when an image names it and
+ *     nothing stronger than client spans named the fork. A collector or a
+ *     client never undoes one, because they cannot tell them apart (the
+ *     mysql receiver says "mysql" for MariaDB);
  *   - any other different engine - another family, a sibling fork, an
  *     unknown engine - replaces the current one only on strictly stronger
  *     evidence (the image says CockroachDB where a client said MySQL);
@@ -3734,23 +3976,45 @@ export function decideDatabaseSystem(data: {
       : null;
   }
 
+  const fromImage: boolean =
+    incoming.evidence === DatabaseSystemEvidence.Container;
+
   // The incoming engine is a fork of the current one: a refinement.
   if (
     getMoreSpecificDatabaseSystem(currentSystem, incomingSystem) ===
     incomingSystem
   ) {
-    return incoming;
+    return incomingRank >= currentRank || fromImage ? incoming : null;
   }
 
-  // The current engine is a fork of the incoming one: never undone.
+  /*
+   * The current engine is a fork of the incoming one: only an image undoes
+   * a fork, and only one no more than client spans named.
+   */
   if (
     getMoreSpecificDatabaseSystem(incomingSystem, currentSystem) ===
     currentSystem
   ) {
-    return null;
+    return fromImage && incomingRank > currentRank ? incoming : null;
   }
 
   return incomingRank > currentRank ? incoming : null;
+}
+
+// The columns a row's generated name is built from.
+export interface DatabaseServerNameSource {
+  name?: string | undefined;
+  dbSystem?: string | undefined;
+  serverAddress?: string | undefined;
+  serverPort?: number | undefined;
+  kubernetesNamespace?: string | undefined;
+  workloadName?: string | undefined;
+}
+
+interface GeneratedNameForm {
+  endpoint?: DatabaseEndpoint | undefined;
+  namespace?: string | undefined;
+  workloadName?: string | undefined;
 }
 
 /**
@@ -3760,27 +4024,44 @@ export function decideDatabaseSystem(data: {
  * kept: null.
  */
 export function renameForDatabaseSystem(
-  row: {
-    name?: string | undefined;
-    dbSystem?: string | undefined;
-    serverAddress?: string | undefined;
-    serverPort?: number | undefined;
-    kubernetesNamespace?: string | undefined;
-    workloadName?: string | undefined;
-  },
+  row: DatabaseServerNameSource,
   newSystem: string,
 ): string | null {
+  const form: GeneratedNameForm | null = findGeneratedNameForm(row);
+
+  if (!form) {
+    return null;
+  }
+
+  const renamed: string = truncateShortText(
+    buildDatabaseServerDisplayName({ system: newSystem, ...form }),
+  );
+
+  return renamed !== (row.name || "").trim() ? renamed : null;
+}
+
+/**
+ * True while the row carries the name discovery generated for it and its
+ * engine (see renameForDatabaseSystem): a name no generated form produces
+ * is one a person chose.
+ */
+export function hasDiscoveryGeneratedName(
+  row: DatabaseServerNameSource,
+): boolean {
+  return findGeneratedNameForm(row) !== null;
+}
+
+// The generated form the row's name matches, or null when a person named it.
+function findGeneratedNameForm(
+  row: DatabaseServerNameSource,
+): GeneratedNameForm | null {
   const name: string = typeof row.name === "string" ? row.name.trim() : "";
 
   if (!name || !row.dbSystem) {
     return null;
   }
 
-  const forms: Array<{
-    endpoint?: DatabaseEndpoint | undefined;
-    namespace?: string | undefined;
-    workloadName?: string | undefined;
-  }> = [];
+  const forms: Array<GeneratedNameForm> = [];
 
   if (row.serverAddress) {
     forms.push({
@@ -3807,11 +4088,7 @@ export function renameForDatabaseSystem(
     );
 
     if (generated === name) {
-      const renamed: string = truncateShortText(
-        buildDatabaseServerDisplayName({ system: newSystem, ...form }),
-      );
-
-      return renamed !== name ? renamed : null;
+      return form;
     }
   }
 

@@ -229,6 +229,17 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * A person removing endpoints. Removing one is an EDIT of the database it
+   * belongs to, exactly like adding one (onBeforeCreate): it decides which
+   * traffic that database's pages show, and frees the endpoint for another
+   * database to claim. DatabaseService scopes a delete to the project only -
+   * the endpoint has no labels of its own, and the parent's label and Owned
+   * scopes never reach a delete - so the caller must be allowed to edit
+   * every database the delete would touch, checked here: the delete
+   * permission FIRST (so a caller without it learns nothing), then the
+   * parents, and only then the primary guard, whose refusal names the
+   * endpoint.
+   *
    * The primary endpoint is what the database was created from; discovery
    * would claim it straight back, and a manually added database would lose
    * the only endpoint its telemetry is keyed by. Aliases can be removed.
@@ -241,32 +252,65 @@ export class Service extends DatabaseService<Model> {
       return { deleteBy: deleteBy, carryForward: null };
     }
 
-    const query: Query<Model> = {
-      ...deleteBy.query,
-      isPrimary: true,
-    };
+    // The project the caller was checked in, whatever project the query named.
+    const query: Query<Model> =
+      await ModelPermission.checkDeleteQueryPermission(
+        Model,
+        deleteBy.query,
+        deleteBy.props,
+      );
 
-    // Never answer about rows outside the project the caller was checked in.
-    if (deleteBy.props.tenantId) {
-      query.projectId = deleteBy.props.tenantId;
-    }
-
-    const primaryEndpoints: Array<Model> = await this.findBy({
+    const matched: Array<Model> = await this.findBy({
       query: query,
       select: {
         _id: true,
+        projectId: true,
+        databaseServerId: true,
         endpoint: true,
+        isPrimary: true,
       },
-      limit: 1,
+      limit: LIMIT_MAX,
       skip: 0,
       props: {
         isRoot: true,
       },
     });
 
-    if (primaryEndpoints.length > 0) {
-      const endpoint: string =
-        primaryEndpoints[0]!.endpoint || "The primary endpoint";
+    const checked: Set<string> = new Set<string>();
+
+    for (const endpoint of matched) {
+      const databaseServerId: string | undefined =
+        endpoint.databaseServerId?.toString();
+      const projectId: ObjectID | undefined =
+        deleteBy.props.tenantId || endpoint.projectId || undefined;
+
+      if (!databaseServerId || !projectId || checked.has(databaseServerId)) {
+        continue;
+      }
+
+      const databaseServer: DatabaseServer | null =
+        await this.findEditableDatabaseServer({
+          projectId: projectId,
+          databaseServerId: new ObjectID(databaseServerId),
+          props: deleteBy.props,
+        });
+
+      // The same answer onBeforeCreate gives: no probing for ids.
+      if (!databaseServer) {
+        throw new NotAuthorizedException(
+          "Database not found, or you do not have permission to edit it. Removing an endpoint from a database needs permission to edit that database.",
+        );
+      }
+
+      checked.add(databaseServerId);
+    }
+
+    const primary: Model | undefined = matched.find((endpoint: Model) => {
+      return Boolean(endpoint.isPrimary);
+    });
+
+    if (primary) {
+      const endpoint: string = primary.endpoint || "The primary endpoint";
 
       throw new BadDataException(
         `${endpoint} is the primary endpoint of this database and cannot be removed. Add another endpoint as an alias instead, or delete the database.`,
