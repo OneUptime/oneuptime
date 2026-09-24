@@ -21,7 +21,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * The (i) tooltips on the network site pages, RENDERED: the site Overview
  * hero, the summary strip above the Sites list, the Status Timeline tab's
- * uptime cards and daily strip, and the Child Sites list's Status column.
+ * uptime cards and daily strip, the Child Sites and Devices tabs' columns,
+ * and the Network Map's Sites section above the site cards.
  *
  * Only the network and the ModelTable are replaced. Every metric title is
  * checked for an (i) whose tooltip is the matching
@@ -131,6 +132,9 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/NetworkSiteMetricDescriptions";
 import NetworkSiteStatusTimelinePage from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/View/StatusTimeline";
 import NetworkSiteChildSites from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/View/ChildSites";
+import NetworkSiteDevices from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/View/Devices";
+import NetworkMapSection from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkSite/NetworkMapSection";
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/NetworkDeviceMetricDescriptions";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
@@ -138,6 +142,7 @@ import NetworkEndpoint from "../../../Models/DatabaseModels/NetworkEndpoint";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteStatusTimeline from "../../../Models/DatabaseModels/NetworkSiteStatusTimeline";
 import { Green } from "../../../Types/BrandColors";
+import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import ObjectID from "../../../Types/ObjectID";
 
 const DESCRIPTIONS: Record<NetworkSiteMetric, string> =
@@ -566,5 +571,109 @@ describe("the Child Sites tab", () => {
       "Site Type": undefined,
       Status: DESCRIPTIONS.childSiteStatus,
     });
+  });
+});
+
+// ------------------------------------------------------------ Devices tab
+
+describe("the site's Devices tab", () => {
+  test("Status and Interfaces explain themselves; the metadata columns do not", async () => {
+    await renderAndSettle(<NetworkSiteDevices {...PAGE_PROPS} />);
+
+    expect(modelTableMock).toHaveBeenCalled();
+
+    const props: { columns: Array<{ title: string; headerTooltip?: string }> } =
+      modelTableMock.mock.calls[modelTableMock.mock.calls.length - 1]![0] as {
+        columns: Array<{ title: string; headerTooltip?: string }>;
+      };
+    const tooltips: Record<string, string | undefined> = {};
+
+    for (const column of props.columns) {
+      tooltips[column.title] = column.headerTooltip;
+    }
+
+    expect(tooltips).toEqual({
+      Status: DESCRIPTIONS.siteDeviceStatus,
+      Name: undefined,
+      Hostname: undefined,
+      Vendor: undefined,
+      "Interfaces (Up / Down)":
+        NETWORK_DEVICE_METRIC_DESCRIPTIONS.deviceInterfacesUpDown,
+      "Last Seen": undefined,
+    });
+  });
+
+  test("a monitor-backed device the tab calls Up is what its Status text promises", async () => {
+    await renderAndSettle(<NetworkSiteDevices {...PAGE_PROPS} />);
+
+    const props: {
+      columns: Array<{
+        title: string;
+        getElement?: (item: NetworkDevice) => React.ReactElement;
+      }>;
+    } = modelTableMock.mock.calls[modelTableMock.mock.calls.length - 1]![0] as {
+      columns: Array<{
+        title: string;
+        getElement?: (item: NetworkDevice) => React.ReactElement;
+      }>;
+    };
+    const statusColumn:
+      | {
+          title: string;
+          getElement?: (item: NetworkDevice) => React.ReactElement;
+        }
+      | undefined = props.columns.find((column: { title: string }): boolean => {
+      return column.title === "Status";
+    });
+
+    // Bound to a monitor that is Degraded: not offline, so Up here.
+    const device: NetworkDevice = new NetworkDevice();
+    device.monitoringMethod = NetworkDeviceMonitoringMethod.Monitor;
+    device.monitorId = new ObjectID("88888888-8888-4888-8888-888888888888");
+    device.currentMonitorStatus = status(DEGRADED_ID, false);
+
+    render(statusColumn!.getElement!(device));
+
+    expect(screen.getByText("Up")).toBeInTheDocument();
+    expect(screen.queryByText("Degraded")).not.toBeInTheDocument();
+    expect(DESCRIPTIONS.siteDeviceStatus).toContain(
+      "Down only when its bound monitor reports it offline and Up otherwise",
+    );
+  });
+});
+
+// ------------------------------------------------ Network Map Sites band
+
+describe("the Network Map's Sites section", () => {
+  test("with a description, the title gets an (i) that explains the cards", async () => {
+    render(
+      <NetworkMapSection
+        title="Sites"
+        count={12}
+        hint="Click a site to drill in."
+        description={DESCRIPTIONS.siteCards}
+      >
+        <div>cards</div>
+      </NetworkMapSection>,
+    );
+
+    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(infoButtonNames()).toEqual(["About Sites"]);
+    await expectExplained("Sites", DESCRIPTIONS.siteCards);
+  });
+
+  test("without one (the WAN links, or no cards), it stands alone", () => {
+    render(
+      <NetworkMapSection
+        title="WAN links"
+        count={3}
+        hint="Connections between these top-level sites."
+      >
+        <div>links</div>
+      </NetworkMapSection>,
+    );
+
+    expect(screen.getByText("WAN links")).toBeInTheDocument();
+    expect(infoButtonNames()).toEqual([]);
   });
 });

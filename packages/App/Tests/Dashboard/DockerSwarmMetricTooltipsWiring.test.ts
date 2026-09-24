@@ -422,6 +422,143 @@ describe("Docker Swarm list pages", () => {
   });
 });
 
+describe("Docker Swarm Stacks list", () => {
+  const code: string = readCode("Stacks.tsx");
+
+  test("imports the Docker Swarm descriptions", () => {
+    expect(code).toContain(IMPORT_LINE);
+  });
+
+  test("the Services column explains its count", () => {
+    const services: string = between(code, 'title: "Services",', "},");
+
+    expect(services).toContain('key: "serviceCount",');
+    expect(services).toContain(
+      "description: DOCKER_SWARM_METRIC_DESCRIPTIONS.stackServices,",
+    );
+  });
+
+  test('the built-in Status column (which reads "N services") says it is not a health check', () => {
+    const props: string = between(code, "builtInColumnDescriptions={{", "}}");
+
+    expect(props).toContain(
+      "status: DOCKER_SWARM_METRIC_DESCRIPTIONS.stackStatusColumn,",
+    );
+    // Stacks carry no CPU or memory, and the columns are switched off.
+    expect(code).toContain("showResourceMetrics={false}");
+    expect(props).not.toContain("cpu:");
+    expect(props).not.toContain("memory:");
+  });
+
+  test("the page references its two keys and no other", () => {
+    expect(referencedKeys(code)).toEqual([
+      "stackStatusColumn",
+      "stackServices",
+    ]);
+  });
+});
+
+describe("Docker Swarm Clusters list (Pages/DockerSwarm/Clusters.tsx)", () => {
+  const code: string = readCode(path.join("..", "Clusters.tsx"));
+  const columns: string = between(code, "columns={[", "onViewPage=");
+
+  function column(title: string): string {
+    const found: Array<string> = columns
+      .split("{ field: {")
+      .slice(1)
+      .filter((block: string): boolean => {
+        return block.includes(`title: "${title}",`);
+      });
+
+    expect(found).toHaveLength(1);
+    return found[0]!;
+  }
+
+  const COUNT_COLUMNS: Array<[string, string, Array<string>]> = [
+    ["Nodes", "clusterListNodes", ["nodeCount", "readyNodeCount"]],
+    ["Services", "clusterListServices", ["serviceCount"]],
+    ["Tasks", "clusterListTasks", ["taskCount", "runningTaskCount"]],
+  ];
+
+  test("imports the Docker Swarm descriptions by its own relative path", () => {
+    expect(code).toContain(
+      'import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";',
+    );
+  });
+
+  test.each(COUNT_COLUMNS)(
+    "the %s column reads the cached cluster counts and explains them with .%s",
+    (title: string, key: string, fields: Array<string>) => {
+      const block: string = column(title);
+
+      expect(block).toContain(
+        `headerTooltip: DOCKER_SWARM_METRIC_DESCRIPTIONS.${key},`,
+      );
+      for (const field of fields) {
+        expect(block).toContain(`${field}: true,`);
+      }
+    },
+  );
+
+  test("the Nodes column turns red unless every node is ready, as its text says", () => {
+    const nodes: string = column("Nodes");
+
+    expect(nodes).toContain("const allReady: boolean = ready >= total;");
+    expect(nodes).toContain('allReady ? "text-gray-900" : "text-red-700"');
+  });
+
+  test("status, version and ownership columns stay plain", () => {
+    for (const title of [
+      "Name",
+      "Status",
+      "Docker Version",
+      "Last Seen",
+      "Labels",
+      "Owners",
+    ]) {
+      expect({
+        title,
+        tooltip: column(title).includes("headerTooltip"),
+      }).toEqual({ title, tooltip: false });
+    }
+    expect(countOf(columns, "headerTooltip:")).toBe(COUNT_COLUMNS.length);
+    expect(code).not.toContain("<InfoTooltip");
+  });
+
+  test("the page references its three keys and no other", () => {
+    expect(referencedKeys(code)).toEqual([
+      "clusterListNodes",
+      "clusterListServices",
+      "clusterListTasks",
+    ]);
+  });
+});
+
+describe("the Docker Swarm tooltip record", () => {
+  test("every key is shown by one of the Swarm pages", () => {
+    const shown: Set<string> = new Set<string>();
+
+    for (const file of [
+      "Index.tsx",
+      "ServiceDetail.tsx",
+      "TaskDetail.tsx",
+      "Services.tsx",
+      "Tasks.tsx",
+      "Nodes.tsx",
+      "Stacks.tsx",
+      path.join("..", "Clusters.tsx"),
+    ]) {
+      for (const key of referencedKeys(readCode(file))) {
+        shown.add(key);
+      }
+    }
+
+    expect(Array.from(shown).sort()).toEqual(
+      Object.keys(DOCKER_SWARM_METRIC_DESCRIPTIONS).sort(),
+    );
+  });
+});
+
 describe("Docker Swarm Insights charts", () => {
   const code: string = readCode("Insights.tsx");
   const CHARTS: Array<[string, string]> = [

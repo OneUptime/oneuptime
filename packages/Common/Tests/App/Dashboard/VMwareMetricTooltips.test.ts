@@ -10,6 +10,7 @@ import {
   expectTitleExplained,
   metricDescriptionProblems,
 } from "./MetricDescriptionRules";
+import AggregationIntervalUtil from "../../../Types/BaseDatabase/AggregationIntervalUtil";
 
 /*
  * The (i) texts on the VMware (vCenter) pages. The shared rules keep them
@@ -265,13 +266,77 @@ describe("VMware metric descriptions: the time window each number covers", () =>
     "overviewHostMemory",
     "overviewVmCpuReady",
   ] as Array<VMwareMetric>)(
-    "%s names the whole-range fallback the code takes",
+    "%s names the whole-range fallback the code takes, and when it is usual",
     (key: VMwareMetric) => {
       // meanInRecentWindow falls back to every point when the window is empty.
       expect(OVERVIEW).toContain("if (count === 0) {");
-      expect(D[key]).toContain("the whole range if those minutes have no data");
+      /*
+       * The window is empty not only when data stops, but whenever no bucket
+       * STARTS in it - which past 12 hours is most of the time (below). The
+       * same words as the Kubernetes, Proxmox and container host tiles.
+       */
+      expect(D[key]).toContain(
+        "(often the whole range on ranges over 12 hours or without recent data)",
+      );
+      expect(D[key]).not.toContain("if those minutes have no data");
     },
   );
+
+  test("past 12 hours a bucket is wider than the tile window, so one seldom starts in it", () => {
+    // The overview never pins a bucket size, so the window-derived one applies.
+    expect(OVERVIEW).not.toContain("aggregationInterval");
+
+    const end: Date = new Date("2026-09-24T12:00:00.000Z");
+    const tileWindowMs: number = tileWindowMinutes * 60_000;
+    const bucketMsFor: (hours: number) => number = (hours: number): number => {
+      return AggregationIntervalUtil.getAggregationIntervalMs(
+        AggregationIntervalUtil.getAggregationIntervalForWindow({
+          startDate: new Date(end.getTime() - hours * 3_600_000),
+          endDate: end,
+        }),
+      );
+    };
+
+    expect(bucketMsFor(12)).toBeLessThanOrEqual(tileWindowMs);
+    for (const hours of [13, 24, 72, 24 * 7, 24 * 30]) {
+      expect(bucketMsFor(hours)).toBeGreaterThanOrEqual(3 * tileWindowMs);
+    }
+  });
+
+  test("the agent status names the disconnect delay the server applies", () => {
+    /*
+     * A vCenter is marked disconnected once lastSeenAt is 15 minutes old, by
+     * a job that runs every 5 minutes - the words Proxmox and Kubernetes use.
+     */
+    const service: string = fs.readFileSync(
+      path.join(COMMON_ROOT, "Server", "Services", "VMwareVCenterService.ts"),
+      "utf8",
+    );
+    const job: string = fs.readFileSync(
+      path.join(
+        COMMON_ROOT,
+        "..",
+        "App",
+        "FeatureSet",
+        "Workers",
+        "Jobs",
+        "VMware",
+        "CleanupStaleResources.ts",
+      ),
+      "utf8",
+    );
+    const disconnect: string = service.slice(
+      service.indexOf("public async markDisconnectedVCenters()"),
+    );
+
+    expect(disconnect.replace(WHITESPACE, " ")).toContain(
+      "OneUptimeDate.getCurrentDate(), -15, );",
+    );
+    expect(job).toContain("schedule: EVERY_FIVE_MINUTE");
+    expect(D.overviewAgentStatus).toContain(
+      "about 15 to 20 minutes after data stops arriving",
+    );
+  });
 
   test("every recent-window tile really goes through meanInRecentWindow", () => {
     for (const stat of [

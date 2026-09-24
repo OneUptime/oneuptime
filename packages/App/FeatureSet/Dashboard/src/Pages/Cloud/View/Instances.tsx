@@ -18,6 +18,7 @@ import {
   isCloudInstanceLive,
 } from "../Utils/CloudResourceTelemetryScope";
 import { CLOUD_INSTANCE_IDENTITY_ATTRIBUTES } from "Common/Utils/Telemetry/CloudInstanceIdentity";
+import { CLOUD_INSTANCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
 
 /*
  * The copy names the identity chain from the same constant ingest walks, so
@@ -105,6 +106,7 @@ const CloudResourceInstances: FunctionComponent<
           {
             field: { latestCpuPercent: true },
             title: "CPU",
+            headerTooltip: CLOUD_INSTANCE_METRIC_DESCRIPTIONS.cpu,
             type: FieldType.Element,
             getElement: (item: CloudResourceInstance): ReactElement => {
               return (
@@ -121,6 +123,7 @@ const CloudResourceInstances: FunctionComponent<
           {
             field: { latestMemoryBytes: true },
             title: "Memory",
+            headerTooltip: CLOUD_INSTANCE_METRIC_DESCRIPTIONS.memory,
             type: FieldType.Element,
             getElement: (item: CloudResourceInstance): ReactElement => {
               return (

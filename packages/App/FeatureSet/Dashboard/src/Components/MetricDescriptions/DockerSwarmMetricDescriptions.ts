@@ -15,6 +15,14 @@
  *    by the 5-minute ingest fence), on a 5-minute cleanup: gone roughly
  *    10-25 minutes after removal, depending on where in the snapshot cycle
  *    it happened.
+ *  - The Clusters list reads the counts cached on the cluster row
+ *    (nodeCount, serviceCount, taskCount and their ready / running parts),
+ *    which ingest rewrites from each inventory batch. They are the latest
+ *    snapshot itself, so unlike the overview (which counts inventory rows)
+ *    a removed resource leaves them at the next snapshot, not after pruning.
+ *  - A Stack row's state is the literal "<N> services" and its serviceCount
+ *    the same N: how many services carry that com.docker.stack.namespace
+ *    label, whatever their replica health.
  *  - The Volumes count lists the volumes of whichever node runs the
  *    inventory poller (normally one manager; more if the compose file is
  *    run on several nodes).
@@ -48,7 +56,12 @@ export type DockerSwarmMetric =
   | "taskCpuColumn"
   | "taskMemoryColumn"
   | "nodeUsageColumns"
-  | "serviceUsageColumns";
+  | "serviceUsageColumns"
+  | "stackServices"
+  | "stackStatusColumn"
+  | "clusterListNodes"
+  | "clusterListServices"
+  | "clusterListTasks";
 
 export const DOCKER_SWARM_METRIC_DESCRIPTIONS: Record<
   DockerSwarmMetric,
@@ -77,15 +90,25 @@ export const DOCKER_SWARM_METRIC_DESCRIPTIONS: Record<
   taskCpu:
     "CPU used by this task's container at the last reading the OneUptime agent sent (it reads every 30 seconds). Unlike the Tasks list, this page keeps showing that reading even when it is more than 15 minutes old.",
   taskMemory:
-    "Memory used by this task's container at the agent's last reading, not counting file cache the system can reclaim. This page keeps showing that reading even when it is more than 15 minutes old.",
+    "Memory used by this task's container at the agent's last reading, not counting file cache the system has not used recently. This page keeps showing that reading even when it is more than 15 minutes old.",
   taskCpuColumn:
     "CPU used by each task's container at the OneUptime agent's latest reading, shown only when that reading is under 15 minutes old. Tasks on nodes where the agent does not run show N/A.",
   taskMemoryColumn:
-    "Memory used by each task's container at the agent's latest reading, not counting reclaimable file cache, shown only when that reading is under 15 minutes old. Tasks on nodes without the agent show N/A.",
+    "Memory used by each task's container at the agent's latest reading, not counting file cache the system has not used recently, shown only when that reading is under 15 minutes old. Tasks on nodes without the agent show N/A.",
   nodeUsageColumns:
     "Swarm CPU and memory are collected per task container, not per node, so these columns show N/A for nodes. The Tasks list shows each task's node and what it is using.",
   serviceUsageColumns:
     "Swarm CPU and memory are collected per task container, not per service, so these columns show N/A for services. The Tasks list names each task's service and shows what it is using.",
+  stackServices:
+    "How many services carry this stack's name, which Docker adds to every service a stack deploys. They count whatever their state, including ones scaled to 0; from the agent's latest inventory snapshot, taken every 5 minutes by default.",
+  stackStatusColumn:
+    "For a stack the status only repeats its service count from the latest inventory snapshot; it is not a health check. The Services list shows whether each service has all its copies running.",
+  clusterListNodes:
+    "Nodes in the swarm at the agent's latest inventory snapshot (taken every 5 minutes by default), shown as ready out of total. Ready means the managers see the node as up; the figure turns red when any node is not ready.",
+  clusterListServices:
+    "Services defined in the swarm at the agent's latest inventory snapshot, whatever their state, including ones scaled to 0. The cluster's overview shows how many have every wanted copy running.",
+  clusterListTasks:
+    "Tasks Swarm wants running at the latest inventory snapshot (one task is one container of a service), shown as how many are actually running out of that total. The rest are still starting, or have stopped or failed.",
 };
 
 /*
@@ -113,9 +136,9 @@ export const DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS: Record<
   clusterMemoryPercent:
     "Memory as a percent of each container's memory limit, or of the node's total memory when the service sets no limit. One line per container, averaged per interval.",
   taskMemory:
-    "Memory used by each container, not counting file cache the system can reclaim. One line per container, averaged per interval.",
+    "Memory used by each container, not counting file cache the system has not used recently. One line per container, averaged per interval.",
   topTasksCpu:
-    "The highest CPU reading of each container in each interval, so short spikes are not averaged away. By default only the 10 containers that peaked highest are drawn; 100% is one CPU core.",
+    "The highest CPU reading of each container in each interval, so short spikes are not averaged away. By default only the 10 containers that peaked highest are drawn; 100% is one full CPU core.",
   topTasksMemory:
     "The highest memory use of each container in each interval, so short spikes are not averaged away. By default only the 10 containers that peaked highest are drawn.",
   taskProcesses:

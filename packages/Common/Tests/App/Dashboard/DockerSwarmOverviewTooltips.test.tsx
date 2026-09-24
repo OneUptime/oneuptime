@@ -132,6 +132,7 @@ import DockerSwarmClusterNodeDetail from "../../../../App/FeatureSet/Dashboard/s
 import DockerSwarmClusterTasks from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Tasks";
 import DockerSwarmClusterNodes from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Nodes";
 import DockerSwarmClusterServices from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Services";
+import DockerSwarmClusterStacks from "../../../../App/FeatureSet/Dashboard/src/Pages/DockerSwarm/View/Stacks";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
@@ -160,6 +161,7 @@ type RowInit = Partial<{
   latestMemoryBytes: number;
   metricsUpdatedAt: Date;
   lastSeenAt: Date;
+  attributes: Record<string, unknown>;
 }>;
 
 function row(init: RowInit): DockerSwarmResource {
@@ -699,6 +701,46 @@ describe("Docker Swarm list pages", () => {
     await expectTooltip("Memory", T.serviceUsageColumns);
     expect(
       screen.queryByRole("button", { name: "About Mode" }),
+    ).not.toBeInTheDocument();
+    expectNoNestedControls(result.container);
+  });
+
+  test("Stacks: the Services count and the Status that repeats it are explained", async () => {
+    getListMock.mockImplementation(async () => {
+      return listResult([
+        row({
+          kind: "Stack",
+          externalId: "stack/shop",
+          name: "shop",
+          state: "3 services",
+          attributes: { serviceCount: 3 },
+        }),
+      ]);
+    });
+
+    const result: RenderResult = render(
+      <DockerSwarmClusterStacks {...PAGE_PROPS} />,
+    );
+    await flush();
+
+    expect(screen.getByText("shop")).toBeInTheDocument();
+    // The Status badge and the Services cell show the same count.
+    expect(screen.getByText("3 services")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+
+    await expectTooltip("Services", T.stackServices);
+    await expectTooltip("Status", T.stackStatusColumn);
+
+    expect(
+      screen
+        .getAllByRole("button", { name: /^About / })
+        .map((button: HTMLElement): string => {
+          return button.getAttribute("aria-label") || "";
+        }),
+    ).toEqual(["About Status", "About Services"]);
+    // A stack has no CPU or memory of its own, and no columns for them.
+    expect(
+      screen.queryByRole("columnheader", { name: /^CPU/ }),
     ).not.toBeInTheDocument();
     expectNoNestedControls(result.container);
   });

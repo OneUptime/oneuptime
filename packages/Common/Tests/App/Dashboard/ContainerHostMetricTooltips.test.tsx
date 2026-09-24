@@ -116,6 +116,7 @@ const SENTENCE_END_PATTERN: RegExp = /[.!?](?:\s|$)/;
 const PAST_100_PATTERN: RegExp = /above 100%|more than 100%/;
 const HOST_MEMORY_PATTERN: RegExp = /host's total memory|host memory/;
 const RUNTIME_NAME_PATTERN: RegExp = /docker|podman/i;
+const SLOT_WORD_PATTERN: RegExp = /\bslots?\b/;
 
 /*
  * ---------------------------------------------------------------------------
@@ -233,7 +234,15 @@ describe("container host metric descriptions", () => {
       "the %s tile says it averages only the last 5 minutes, and can fall back to the whole range",
       (key: ContainerHostMetric) => {
         expect(D[key]).toContain("last 5 minutes of the selected range");
-        expect(D[key]).toContain("often the whole range");
+        /*
+         * The same words as the Host, Kubernetes, Proxmox and VMware tiles,
+         * which fall back the same way: past 12 hours a bucket is 15 minutes
+         * or wider, so one seldom starts in the 5-minute window.
+         */
+        expect(D[key]).toContain(
+          "(often the whole range on ranges over 12 hours or without recent data)",
+        );
+        expect(D[key]).not.toContain("long ranges");
       },
     );
 
@@ -269,12 +278,23 @@ describe("container host metric descriptions", () => {
       },
     );
 
-    test("the Peak tiles and charts say the top container is picked per time slot", () => {
+    test("the Peak tiles and charts say the top container is picked per interval", () => {
       expect(D.peakCpu).toContain("busiest container");
-      expect(D.peakCpu).toContain("picked per time slot");
-      expect(D.peakMemory).toContain("picked per time slot");
-      expect(D.peakCpuChart).toContain("different container from slot to slot");
-      expect(D.peakMemoryChart).toContain("in each time slot");
+      expect(D.peakCpu).toContain("picked per interval");
+      expect(D.peakMemory).toContain("picked per interval");
+      expect(D.peakCpuChart).toContain(
+        "different container from one interval to the next",
+      );
+      expect(D.peakMemoryChart).toContain("in each interval");
+    });
+
+    test("the texts say interval, like every other resource page, not time slot", () => {
+      for (const [key, text] of Object.entries(D)) {
+        expect({ key, slot: SLOT_WORD_PATTERN.test(text) }).toEqual({
+          key,
+          slot: false,
+        });
+      }
     });
 
     test("Processes says threads are counted and containers are added up", () => {
@@ -304,15 +324,18 @@ describe("container host metric descriptions", () => {
       for (const key of ["topCpuConsumers", "topMemoryConsumers"] as const) {
         /*
          * The list is cut at five but shows fewer on a host with fewer
-         * containers, and the ranking value is a time slot's average - on a
+         * containers, and the ranking value is an interval's average - on a
          * 30-day range that slot is a whole day, not a "latest reading".
          */
         expect(D[key]).toContain("Up to five containers");
         expect(D[key]).not.toContain("The five containers");
-        expect(D[key]).toContain("average in its latest time slot");
+        expect(D[key]).toContain("average in its latest interval");
         expect(D[key]).not.toContain("latest value");
         expect(D[key]).toContain("last 5 minutes of the selected range");
-        expect(D[key]).toContain("on long ranges, anywhere in it");
+        // The fallback is per host, and usual past 12 hours (see the tiles).
+        expect(D[key]).toContain(
+          "on ranges over 12 hours, often anywhere in it",
+        );
       }
     });
 

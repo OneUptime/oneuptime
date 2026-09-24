@@ -30,7 +30,7 @@ export const SERVERLESS_METRIC_DESCRIPTIONS: Record<ServerlessMetric, string> =
     errorRate:
       "The share of this function's spans in the selected range whose status was set to Error; the line below is how many errored. The bar turns amber at 1% and red at 5%.",
     p95Duration:
-      "p95 means the 95th percentile: 95% of this function's spans (not only whole invocations) finished faster than this and the slowest 5% took longer. Worked out per interval, then averaged over the selected range.",
+      "p95 means the 95th percentile: 95% of this function's spans (not only whole invocations) finished faster than this and the slowest 5% took longer. Worked out for each interval on the chart, then averaged over the selected range, so quiet and busy intervals count equally.",
     instances:
       "Warm copies of this function's runtime (faas.instance) on record, whatever the selected range. One that stops reporting is dropped about 15 minutes later by default while the function keeps reporting; an idle function keeps its last list.",
     invocationsChart:

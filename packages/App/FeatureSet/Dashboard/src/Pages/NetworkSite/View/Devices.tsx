@@ -2,6 +2,8 @@ import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/NetworkDeviceMetricDescriptions";
+import { NETWORK_SITE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/NetworkSiteMetricDescriptions";
 import DeviceStatusUtil, {
   BOUND_MONITOR_PENDING_TOOLTIP,
   DEVICE_STATUS_SELECT,
@@ -92,6 +94,12 @@ const NetworkSiteDevices: FunctionComponent<
               _id: true,
             },
             title: "Status",
+            /*
+             * Not the device list's text: that list prints a monitor-backed
+             * device's own status word, while this one folds it into Up /
+             * Down by whether the monitor calls it offline.
+             */
+            headerTooltip: NETWORK_SITE_METRIC_DESCRIPTIONS.siteDeviceStatus,
             type: FieldType.Element,
             getElement: (item: NetworkDevice): ReactElement => {
               const reachability: DeviceReachabilityResult =
@@ -264,6 +272,9 @@ const NetworkSiteDevices: FunctionComponent<
               interfacesUp: true,
             },
             title: "Interfaces (Up / Down)",
+            // Drawn exactly as on the device list, so it reads the same text.
+            headerTooltip:
+              NETWORK_DEVICE_METRIC_DESCRIPTIONS.deviceInterfacesUpDown,
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: NetworkDevice): ReactElement => {

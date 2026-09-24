@@ -14,12 +14,18 @@
  *   - Pool STORED is the data clients wrote, before replication copies.
  *   - The Pools list IOPS columns always average the last 15 minutes.
  *   - List and detail values older than 15 minutes show as a dash.
+ *   - The OSD list's Age is how long OneUptime has had the OSD in its
+ *     inventory (the row's createdAt), not anything Ceph reports. While the
+ *     cluster stays connected, a row missing from the data for 15 minutes is
+ *     pruned (Workers/Jobs/Ceph/CleanupStaleResources) and re-created when
+ *     the OSD returns, which restarts the clock.
  *
  * Change the fetch, change the words.
  */
 
 export type CephMetric =
   // Cluster overview (Pages/Ceph/View/Index.tsx), also the Clusters list
+  | "inventoryCounts"
   | "health"
   | "activeHealthChecks"
   | "capacityUsed"
@@ -43,6 +49,7 @@ export type CephMetric =
   | "osdUsedColumn"
   | "osdPgsColumn"
   | "osdLatencyColumn"
+  | "osdAgeColumn"
   // OSD detail (Pages/Ceph/View/OsdDetail.tsx)
   | "osdStatus"
   | "osdPlacement"
@@ -72,6 +79,8 @@ export type CephMetric =
   | "clusterCapacity";
 
 export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
+  inventoryCounts:
+    "Counts from the cluster's latest data, not a time range: OSDs (the daemons that store data) that are up out of all OSDs, monitors in quorum out of all known monitors (only the monitor count when quorum is not reported), and pools.",
   health:
     "Ceph's own health verdict from the cluster's latest data: OK, Warning (WARN) when something needs attention, or Error (ERR) when data availability or safety is at risk. Unknown means no health data has arrived yet.",
   activeHealthChecks:
@@ -87,7 +96,7 @@ export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
   problemPgs:
     "Placement groups, the chunks Ceph splits each pool into, that are degraded (missing copies) or undersized (on fewer OSDs than the pool's copy count), from the last 10 minutes of data. A group in both states is counted twice.",
   osdStates:
-    "Every OSD grouped by two flags: up means its daemon is running, and in means Ceph places data on it. Down + In is the risky case, because Ceph still expects data there but the OSD is not running.",
+    "Every OSD (a daemon that stores data, usually one per disk) grouped by two flags: up means its daemon is running, and in means Ceph places data on it. Down + In is the risky case, because Ceph still expects data there but the OSD is not running.",
   osdUpIn:
     "OSDs that are running and holding data. This is the normal, healthy state.",
   osdUpOut:
@@ -97,9 +106,9 @@ export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
   osdDownOut:
     "OSDs that are stopped and excluded from data placement. Ceph has copied, or is still copying, their data to other OSDs.",
   pgStates:
-    "Placement groups by state from the last 10 minutes: clean groups have every copy in place, degraded and undersized ones are missing copies, and Other is the rest, such as peering. A group can be in several states at once, so the segments are approximate.",
+    "Placement groups (the chunks Ceph splits each pool into) by state from the last 10 minutes: clean groups have every copy in place, degraded and undersized ones are missing copies, and Other is the rest, such as peering. A group can be in several states at once, so the segments are approximate.",
   clientIops:
-    "Read and write operations per second from clients, added up across all pools. Worked out for each interval of the selected time range from Ceph's running per-pool operation counters.",
+    "Read and write operations per second (IOPS) from clients, added up across all pools. Worked out for each interval of the selected time range from Ceph's running per-pool operation counters.",
   clientThroughput:
     "Bytes per second clients read from and wrote to the cluster, added up across all pools. Worked out for each interval of the selected time range from Ceph's running per-pool byte counters.",
   largestPools:
@@ -116,6 +125,8 @@ export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
     "How many placement groups, the chunks Ceph splits pools into, the OSD holds; one with far more than its peers carries more data and load. Shows a dash if the OSD has not reported in the last 15 minutes.",
   osdLatencyColumn:
     "The OSD's latest apply and commit latency in milliseconds, as reported by Ceph: how long writes take to reach its disk, where values that stay high point to a slow or failing disk. Shows a dash if it has not reported in the last 15 minutes.",
+  osdAgeColumn:
+    "How long ago OneUptime first saw this OSD in the data the Ceph agent sends, not how old the OSD or its disk is. It starts again from zero if the OSD was missing from that data for more than about 15 minutes.",
   osdStatus:
     "Up means this OSD's daemon is running and responding to the cluster; Down means it has stopped or cannot be reached. From the most recent data the cluster sent.",
   osdPlacement:
@@ -135,9 +146,9 @@ export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
   poolObjectsColumn:
     "Number of RADOS objects in the pool, the units Ceph stores data in. Large files and disk images are split into many objects, so this is not a count of your files.",
   poolReadIopsColumn:
-    "Average read operations per second on the pool over the last 15 minutes, worked out from Ceph's running per-pool counters.",
+    "Average read operations per second (IOPS) on the pool over the last 15 minutes, worked out from Ceph's running per-pool counters.",
   poolWriteIopsColumn:
-    "Average write operations per second on the pool over the last 15 minutes, worked out from Ceph's running per-pool counters.",
+    "Average write operations per second (IOPS) on the pool over the last 15 minutes, worked out from Ceph's running per-pool counters.",
   poolStored:
     "Data stored in this pool, by Ceph's STORED figure: what clients wrote, before replication copies. From the pool's latest report; a dash if that is older than 15 minutes.",
   poolMaxAvail:
@@ -149,7 +160,7 @@ export const CEPH_METRIC_DESCRIPTIONS: Record<CephMetric, string> = {
   poolObjects:
     "Number of RADOS objects in this pool from its latest report. Ceph splits files and disk images into many objects, so this is not the number of your files.",
   poolClientIops:
-    "Read and write operations per second on this pool, worked out for each interval of the selected time range from Ceph's running operation counters.",
+    "Read and write operations per second (IOPS) on this pool, worked out for each interval of the selected time range from Ceph's running operation counters.",
   poolClientThroughput:
     "Bytes per second read from and written to this pool, worked out for each interval of the selected time range from Ceph's running byte counters.",
   daemonStatus:

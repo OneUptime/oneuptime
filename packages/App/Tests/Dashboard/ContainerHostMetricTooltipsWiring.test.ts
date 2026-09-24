@@ -49,6 +49,7 @@ const COLUMN_START: string = '{ title: "';
 const RENDER_LIST_CALL_PATTERN: RegExp =
   /renderList\( "([^"]+)", stats\.\w+, "(cpu|memory)", CONTAINER_HOST_METRIC_DESCRIPTIONS\.(\w+), \)/g;
 const RUNTIME_WORD_PATTERN: RegExp = /docker|podman/i;
+const COLUMN_TITLE_GLOBAL_PATTERN: RegExp = /\}, title: "([^"]*)",/g;
 const DOCKER_TITLE_CASE: RegExp = /Docker/g;
 const DOCKER_LOWER_CASE: RegExp = /docker/g;
 const DOCKER_UPPER_CASE: RegExp = /DOCKER/g;
@@ -260,9 +261,10 @@ describe.each(RUNTIMES)("%s host overview", (runtime: string) => {
 
   test("the tiles and lists still use the window their texts describe", () => {
     /*
-     * The tile texts say "the last 5 minutes of the selected range (on long
-     * ranges, often the whole range)"; the list texts say "up to five" and
-     * "latest time slot". Change any of these and the words go stale.
+     * The tile texts say "the last 5 minutes of the selected range (often
+     * the whole range on ranges over 12 hours or without recent data)"; the
+     * list texts say "up to five" and "latest interval". Change any of these
+     * and the words go stale.
      */
     expect(code).toContain("const TILE_WINDOW_MINUTES: number = 5;");
     expect(code).toContain(
@@ -438,6 +440,42 @@ describe("Docker and Podman pages stay identical", () => {
       expect(readRaw(`Podman/View/${file}`)).toBe(
         asPodman(readRaw(`Docker/View/${file}`)),
       );
+    },
+  );
+
+  test("the host lists differ only in the runtime's name", () => {
+    expect(readRaw("Podman/Hosts.tsx")).toBe(
+      asPodman(readRaw("Docker/Hosts.tsx")),
+    );
+  });
+
+  test.each(RUNTIMES)(
+    "the %s host list shows no metric, so it carries no (i)",
+    (runtime: string) => {
+      /*
+       * Name, Host Identifier, connection Status, Last Seen, Labels and
+       * Owners are facts about the host record. The day a metric column
+       * (containers, CPU, ...) is added it needs a headerTooltip from the
+       * container host record, and this list needs updating.
+       */
+      const code: string = readCode(`${runtime}/Hosts.tsx`);
+      const columns: string = between(code, "columns={[", "onViewPage=");
+      const titles: Array<string> = Array.from(
+        columns.matchAll(COLUMN_TITLE_GLOBAL_PATTERN),
+      ).map((match: RegExpMatchArray): string => {
+        return match[1]!;
+      });
+
+      expect(titles).toEqual([
+        "Name",
+        "Host Identifier",
+        "Status",
+        "Last Seen",
+        "Labels",
+        "Owners",
+      ]);
+      expect(columns).not.toContain("headerTooltip");
+      expect(code).not.toContain(RECORD);
     },
   );
 

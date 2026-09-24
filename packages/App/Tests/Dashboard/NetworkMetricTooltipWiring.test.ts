@@ -688,9 +688,185 @@ describe("the Child Sites tab", () => {
   });
 });
 
+describe("the device Overview's Inventory card", () => {
+  const code: string = readCode(
+    "Components/NetworkDevice/DeviceInventoryCard.tsx",
+  );
+
+  test("the Uptime value carries the hero's Hardware Uptime text", () => {
+    /*
+     * Same column (lastRebootedAt) read against the same clock as the
+     * hero's tile, so the same words - not a second, drifting copy.
+     */
+    expect(code).toContain(INFO_TOOLTIP_IMPORT);
+    expect(code).toContain('const UPTIME_TITLE: string = "Uptime";');
+    expect(
+      between(code, "export const InventoryUptimeValue", "export default"),
+    ).toContain(
+      `<InfoTooltip label={UPTIME_TITLE} text={${deviceRef("hardwareUptime")}} />`,
+    );
+  });
+
+  test("the Uptime field renders that value, and is the only field with an (i)", () => {
+    const field: string = between(code, "title: UPTIME_TITLE,", "field: {");
+
+    expect(field).toContain("getElement: getUptimeElement,");
+    expect(
+      between(code, "const getUptimeElement", "return ( <CardModelDetail"),
+    ).toContain("<InventoryUptimeValue");
+    expect(count(code, "<InfoTooltip")).toBe(1);
+    expect(count(code, `${DEVICE_RECORD}.`)).toBe(1);
+  });
+
+  test("the (i) is beside the boot-time hover, not inside it", () => {
+    const hover: string = between(code, "<Tooltip text=", "</Tooltip>");
+
+    expect(hover).not.toContain("InfoTooltip");
+  });
+});
+
+describe("the site's Devices tab", () => {
+  const code: string = readCode("Pages/NetworkSite/View/Devices.tsx");
+
+  test("the Status column has its own text: a monitor-backed device reads Up / Down here", () => {
+    expect(column(code, "Status")).toContain(
+      `headerTooltip: ${siteRef("siteDeviceStatus")}`,
+    );
+    // Not the device list's, which promises the monitor's own status word.
+    expect(code).not.toContain(deviceRef("deviceStatus"));
+  });
+
+  test("the Interfaces column is drawn like the device list's, so it reads the same text", () => {
+    expect(column(code, "Interfaces (Up / Down)")).toContain(
+      `headerTooltip: ${deviceRef("deviceInterfacesUpDown")}`,
+    );
+  });
+
+  test("Hostname, Last Seen and the other metadata columns have no header (i)", () => {
+    for (const title of ["Hostname", "Last Seen"]) {
+      expect(column(code, title)).not.toContain("headerTooltip");
+    }
+    expect(count(code, "headerTooltip:")).toBe(2);
+  });
+});
+
+describe("the Sites list", () => {
+  const code: string = readCode("Pages/NetworkSite/Sites.tsx");
+
+  test("the Status column explains the rollup it shows", () => {
+    expect(count(code, 'title: "Status",')).toBe(1);
+    expect(column(code, "Status")).toContain(
+      `headerTooltip: ${siteRef("siteStatus")}`,
+    );
+    expect(count(code, "headerTooltip:")).toBe(1);
+  });
+
+  test("the summary strip above it is the one with the tile (i)s", () => {
+    expect(code).toContain("<SiteSummaryCards");
+  });
+});
+
+describe("the Probe Latency Matrix", () => {
+  const code: string = readCode("Pages/NetworkDevice/LatencyMatrix.tsx");
+
+  test("the card title carries the (i) for the bare per-cell numbers", () => {
+    expect(code).toContain(INFO_TOOLTIP_IMPORT);
+    expect(code).toContain(
+      'const MATRIX_TITLE: string = "Probe Latency Matrix";',
+    );
+
+    const title: string = between(code, "<Card title={", "description=");
+
+    expect(title).toContain("{MATRIX_TITLE}");
+    expect(title).toContain(
+      `<InfoTooltip label={MATRIX_TITLE} text={${deviceRef("latencyMatrix")}} />`,
+    );
+  });
+
+  test("the (i) is not inside the Refresh button", () => {
+    expect(between(code, "buttons={[", "]}")).not.toContain("InfoTooltip");
+  });
+});
+
+describe("the Discovery Scans list", () => {
+  const code: string = readCode("Pages/NetworkDevice/Discovery.tsx");
+
+  test("the Responded Hosts column says what it counts", () => {
+    expect(count(code, 'title: "Responded Hosts",')).toBe(1);
+    expect(column(code, "Responded Hosts")).toContain(
+      `headerTooltip: ${deviceRef("discoveryRespondedHosts")}`,
+    );
+  });
+
+  test("it is the only column with a header (i); Status is a progress pill", () => {
+    expect(count(code, "headerTooltip:")).toBe(1);
+    expect(column(code, "Status")).not.toContain("headerTooltip");
+  });
+});
+
+describe("the Network Map", () => {
+  const page: string = readCode("Pages/NetworkSite/NetworkMap.tsx");
+  const section: string = readCode(
+    "Components/NetworkSite/NetworkMapSection.tsx",
+  );
+
+  test("the section title draws the (i) when it is given a description", () => {
+    expect(section).toContain(INFO_TOOLTIP_IMPORT);
+    expect(between(section, "<h3", "</h3>")).toContain(
+      "<InfoTooltip label={props.title} text={props.description} />",
+    );
+  });
+
+  test("the page uses the shared section rather than a local copy", () => {
+    expect(page).toContain(
+      'import MapSection from "../../Components/NetworkSite/NetworkMapSection";',
+    );
+    expect(page).not.toContain("const MapSection");
+  });
+
+  test("both Sites sections that draw cards explain the card figures", () => {
+    const sections: Array<string> = page
+      .split("<MapSection")
+      .slice(1)
+      .map((chunk: string): string => {
+        // Up to the end of the opening tag, where the children begin.
+        return chunk.slice(0, chunk.indexOf("> <"));
+      });
+
+    // Container graph, root card grid, the empty "nothing needs attention" band, WAN links.
+    expect(sections).toHaveLength(4);
+    expect(count(page, siteRef("siteCards"))).toBe(2);
+
+    const described: Array<string> = sections.filter(
+      (chunk: string): boolean => {
+        return chunk.includes("description=");
+      },
+    );
+
+    expect(described).toHaveLength(2);
+
+    for (const chunk of described) {
+      expect(chunk).toContain('title="Sites"');
+    }
+  });
+
+  test("the drilled level's (i) goes away with its cards", () => {
+    expect(page).toContain(
+      `description={levelSites.length > 0 ? ${siteRef("siteCards")} : undefined}`,
+    );
+  });
+
+  test("the WAN links band lists names, and has no (i)", () => {
+    const wan: string = between(page, '<MapSection title="WAN links"', ">");
+
+    expect(wan).not.toContain("description=");
+  });
+});
+
 describe("every description in the two records is wired to exactly the surfaces above", () => {
   const SOURCES: Array<string> = [
     "Components/NetworkDevice/DeviceStatusHero.tsx",
+    "Components/NetworkDevice/DeviceInventoryCard.tsx",
     "Components/NetworkDevice/DeviceLatencyTrend.tsx",
     "Components/NetworkDevice/DeviceSummaryTiles.ts",
     "Components/NetworkDevice/DeviceInterfacesPreview.tsx",
@@ -700,10 +876,15 @@ describe("every description in the two records is wired to exactly the surfaces 
     "Pages/NetworkDevice/View/Interfaces.tsx",
     "Pages/NetworkDevice/Devices.tsx",
     "Pages/NetworkDevice/Overview.tsx",
+    "Pages/NetworkDevice/LatencyMatrix.tsx",
+    "Pages/NetworkDevice/Discovery.tsx",
     "Components/NetworkSite/SiteStatusHero.tsx",
     "Components/NetworkSite/SiteSummaryTiles.ts",
     "Pages/NetworkSite/View/StatusTimeline.tsx",
     "Pages/NetworkSite/View/ChildSites.tsx",
+    "Pages/NetworkSite/View/Devices.tsx",
+    "Pages/NetworkSite/Sites.tsx",
+    "Pages/NetworkSite/NetworkMap.tsx",
   ].map((file: string): string => {
     return readCode(file);
   });

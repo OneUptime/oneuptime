@@ -1,8 +1,9 @@
 /*
- * What each number on the Host pages means, in plain words: the overview,
- * a single process, a Windows service, a systemd unit, and the Processes,
- * Services and Systemd Units lists. Shown in the (i) tooltip beside a tile,
- * chart or column title (and, for the one Detail field, as its caption).
+ * What each number on the Host pages means, in plain words: the Hosts
+ * list, the overview, a single process, a Windows service, a systemd unit,
+ * and the Processes, Services and Systemd Units lists. Shown in the (i)
+ * tooltip beside a tile, chart or column title (and, for the one Detail
+ * field, as its caption).
  *
  * Each text describes what the page actually computes, not what the title
  * suggests. The ones worth knowing before editing a fetch:
@@ -23,6 +24,12 @@
  *    keeps whichever sorts first, so both under-read; the texts say so.
  *  - Service and unit availability are sample counts over at most the
  *    newest 2,000 samples, not time-weighted.
+ *  - The Hosts list's Resources column reads the cached Host columns, not
+ *    telemetry: cpuCores is the first system.cpu.logical.count point (so
+ *    hyperthreads count), totalMemoryBytes is the SUM of every
+ *    system.memory.usage state, and processCount the sum of
+ *    system.processes.count over every status - all written through
+ *    ResourceHeartbeat at most about once a minute.
  *
  * Change the fetch, change the words.
  */
@@ -64,6 +71,8 @@ export type HostMetric =
   | "unitType"
   | "unitStateChanges"
   | "unitStateTimeline"
+  // Hosts list
+  | "hostListResources"
   // Processes, Services and Systemd Units lists
   | "processListCpu"
   | "processListMemory"
@@ -85,7 +94,7 @@ export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
   availabilityChart:
     "Up if OneUptime received metrics from this host in that interval, Down if nothing arrived; the uptime badge is the share of intervals that were up. The newest interval is not judged until its data can arrive, and one missed minute between up ones counts as up.",
   cpuChart:
-    "CPU busy share (user plus system time, averaged across all cores) in each interval of the selected range. 100% means every core was busy for the whole interval.",
+    "Share of CPU time spent running programs and the operating system (user plus system time), averaged across all cores, in each interval of the selected range. 100% means every core was busy for the whole interval.",
   memoryChart:
     "Share of the host's physical memory (RAM) in use in each interval of the selected range, not counting file cache the system can free.",
   diskSpaceChart:
@@ -132,6 +141,8 @@ export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
     "How many times a sample in the selected range showed a different state from the one before it, such as Active to Failed. A failure and recovery that both happen between two samples is not seen.",
   unitStateTimeline:
     "The unit's state across the selected range. Where one point on the chart covers several samples it shows the worst state among them, so a brief failure stays visible.",
+  hostListResources:
+    "Logical CPU cores (each hyperthread counts as one) and total RAM, the sum of every memory state the collector reports; below, processes in any state. All three are the latest values saved on the host, updated at most about once a minute.",
   processListCpu:
     "This process's newest CPU reading from the last 15 minutes, as a share of the host's total capacity (all cores together). The collector sends user, system and wait readings separately and this column shows only one of them, so it can read low.",
   processListMemory:

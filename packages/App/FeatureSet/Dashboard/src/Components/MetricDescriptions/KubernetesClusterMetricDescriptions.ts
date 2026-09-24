@@ -68,7 +68,7 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
 
   // Charts under the tiles - every interval of the selected range.
   availabilityChart:
-    "Whether the cluster's agent sent metrics (a heartbeat) in each interval: Up if any arrived, Down if none did. The badge is the share of intervals that were up over the selected range.",
+    "Whether the cluster's agent sent metrics (a heartbeat) in each interval: Up if any arrived, Down if none did; a lone missed minute between Up ones counts as Up. The badge is the share of Up intervals, leaving out the newest ones still waiting for data.",
   cpuChart:
     "Cluster CPU in use as a share of total allocatable CPU (what Kubernetes can hand out to pods) in each interval. Stays empty when the nodes do not report allocatable CPU.",
   memoryChart:
@@ -99,7 +99,7 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
   namespaces:
     "Namespaces in the latest inventory. A namespace is a named group that keeps one team's or app's resources separate from the rest of the cluster.",
   agentStatus:
-    "Connected while the Kubernetes agent keeps sending data to OneUptime; it switches to Disconnected after about 15 minutes of silence. While disconnected, inventory counts on this page keep their last reported values.",
+    "Connected while the Kubernetes agent keeps sending data to OneUptime; it switches to Disconnected about 15 to 20 minutes after data stops arriving. While disconnected, inventory counts on this page keep their last reported values.",
 
   // Node pressure banner - nodes reporting each condition right now.
   memoryPressure:
@@ -114,9 +114,9 @@ export const KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS: Record<
 
   // Top consumers - each pod's latest minute from the past hour.
   topCpuPods:
-    "The 5 pods using the most CPU, as a share of the allocatable CPU of the node each runs on. Uses each pod's latest minute of data from the past hour, not the time range picker; if nodes report no allocatable CPU, the value is in cores.",
+    "The 5 pods using the most CPU, as a share of the allocatable CPU of the node each runs on (what the node can hand out to pods), or in cores where that is unknown. Uses each pod's latest minute of data from the past hour and ignores the time range picker.",
   topMemoryPods:
-    "The 5 pods using the most memory, as a share of the allocatable memory of the node each runs on, with the amount below. Uses each pod's latest minute of data from the past hour, not the time range picker.",
+    "The 5 pods using the most memory, as a share of the allocatable memory of the node each runs on (what the node can hand out to pods), with the amount below. Uses each pod's latest minute of data from the past hour and ignores the time range picker.",
 
   // Insights page network card.
   networkThroughput:
@@ -221,7 +221,7 @@ export const KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS: Record<
   cpuRequest:
     "Current CPU request and the recommended one: the 95th percentile of hourly CPU usage (95% of hourly readings were lower) plus 25% headroom. Needs 24 hours of data; within 15% counts as right-sized.",
   memoryRequest:
-    "Current memory request and the recommended one: the highest memory peak any replica reached, plus 25% headroom. Shows - when there is under 24 hours of data or no peak (the agent reads peaks from Prometheus).",
+    "Current memory request and the recommended one: the highest memory peak any replica reached, plus 25% headroom. Shows a dash when there is under 24 hours of data or no peak (the agent reads peaks from Prometheus).",
   estimatedSaving:
     "Projected monthly change in cost if this container's recommendation is applied, scaled from the selected range to a 730-hour month. Green is a saving; amber with + is the extra cost of giving it enough.",
 };

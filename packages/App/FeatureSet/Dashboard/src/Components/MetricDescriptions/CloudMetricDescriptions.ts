@@ -30,7 +30,7 @@ export type CloudMetric =
   | "topInstancesByCpu";
 
 export const CLOUD_METRIC_DESCRIPTIONS: Record<CloudMetric, string> = {
-  cpu: "Average of the latest CPU reading of each task or instance seen in the last 15 minutes (ones with none are left out); it ignores the selected time range. Depending on the platform, 100% is one CPU core or the CPU the task was given, so it can exceed 100%.",
+  cpu: "Average of the latest CPU reading of each task or instance seen in the last 15 minutes (ones with none are left out); it ignores the selected time range. Depending on the platform, 100% is one full CPU core or all the CPU the task was given, so it can read above 100%.",
   memory:
     "Memory in use, added up across every task or instance seen in the last 15 minutes from each one's latest reading. It is a live snapshot, so it ignores the selected time range.",
   instances:
@@ -40,7 +40,7 @@ export const CLOUD_METRIC_DESCRIPTIONS: Record<CloudMetric, string> = {
   errorRate:
     "The share of this environment's spans in the selected range whose status was set to Error; the line below is how many errored. The bar turns amber at 1% and red at 5%.",
   p95Latency:
-    "p95 means the 95th percentile: 95% of the spans from this environment finished faster than this and the slowest 5% took longer. Worked out for each interval, then averaged over the selected range.",
+    "p95 means the 95th percentile: 95% of the spans from this environment finished faster than this and the slowest 5% took longer. Worked out for each interval, then averaged over the selected range, so quiet and busy intervals count equally.",
   requestsChart:
     "Spans reported from this environment in each interval, with the ones whose status was Error as a second line. Every service running in the environment counts.",
   memoryChart:
@@ -71,3 +71,27 @@ export const CLOUD_FLEET_METRIC_DESCRIPTIONS: Record<CloudFleetMetric, string> =
     liveInstances:
       "Running tasks, replicas or instances that sent telemetry in the last 15 minutes, across every cloud environment in this project, archived ones included.",
   };
+
+/*
+ * The metric columns of an environment's Instances tab (Pages/Cloud/View/
+ * Instances.tsx). Each is the one point ingest mirrors onto the
+ * CloudResourceInstance row (OtelMetricsIngestService
+ * .bufferCloudResourceSnapshotMetric): a newer reading overwrites it, and
+ * nothing ever clears it - CloudResourceInstanceService.recordInstance only
+ * writes the fields it is given, so telemetry without a reading leaves the
+ * last one in place. The tab has no time picker; these are not averages.
+ *
+ * Within one batch a task-level ECS point (ecs.task.*) beats a
+ * container-level one for the same task, so the text says "preferred" -
+ * a batch that carries only container points still overwrites it.
+ */
+export type CloudInstanceMetric = "cpu" | "memory";
+
+export const CLOUD_INSTANCE_METRIC_DESCRIPTIONS: Record<
+  CloudInstanceMetric,
+  string
+> = {
+  cpu: "The latest CPU reading this task or instance sent - one snapshot, not an average - kept until a newer one arrives. Depending on the platform, 100% is one full CPU core or all the CPU the task was given, so it can read above 100%. A dash means no CPU reading has arrived.",
+  memory:
+    "The latest memory-in-use reading this task or instance sent - one snapshot, not an average or a peak - kept until a newer one arrives. For an ECS task the whole task's figure is preferred over a single container's. A dash means no memory reading has arrived.",
+};

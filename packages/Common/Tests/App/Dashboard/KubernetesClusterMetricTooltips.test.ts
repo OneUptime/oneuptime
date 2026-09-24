@@ -360,6 +360,20 @@ describe("accuracy: the golden tiles and the charts under them", () => {
     expect(CLUSTER.availability).toContain("may still be arriving");
   });
 
+  test("the availability chart names the bridged minute and the newest intervals left out", () => {
+    /*
+     * The same builder as the Host and container host charts
+     * (HeartbeatAvailabilityUtil): a single empty minute between up ones is
+     * bridged, and silent trailing buckets are left out of the badge.
+     */
+    expect(CLUSTER.availabilityChart).toContain(
+      "a lone missed minute between Up ones counts as Up",
+    );
+    expect(CLUSTER.availabilityChart).toContain(
+      "leaving out the newest ones still waiting for data",
+    );
+  });
+
   test("CPU is a share of allocatable CPU, not of node capacity or of cores", () => {
     expect(CLUSTER.cpu).toContain("allocatable CPU");
     expect(CLUSTER.cpuChart).toContain("allocatable CPU");
@@ -524,7 +538,10 @@ describe("accuracy: inventory-snapshot numbers ignore the time range", () => {
   });
 
   test("the agent status names the disconnect threshold", () => {
-    expect(CLUSTER.agentStatus).toContain("about 15 minutes");
+    // The same words as Proxmox and VMware, which disconnect the same way.
+    expect(CLUSTER.agentStatus).toContain(
+      "about 15 to 20 minutes after data stops arriving",
+    );
     expect(CLUSTER.agentStatus).toContain("keep their last reported values");
   });
 
@@ -553,8 +570,14 @@ describe("accuracy: top resource consumers", () => {
   test("both lists read each pod's latest minute from the past hour, not the picker", () => {
     for (const text of [CLUSTER.topCpuPods, CLUSTER.topMemoryPods]) {
       expect(text).toContain("latest minute of data from the past hour");
-      expect(text).toContain("not the time range picker");
+      expect(text).toContain("ignores the time range picker");
       expect(text).toContain("The 5 pods");
+    }
+  });
+
+  test("both lists say what allocatable means", () => {
+    for (const text of [CLUSTER.topCpuPods, CLUSTER.topMemoryPods]) {
+      expect(text).toContain("(what the node can hand out to pods)");
     }
   });
 
@@ -568,7 +591,7 @@ describe("accuracy: top resource consumers", () => {
   });
 
   test("the CPU list admits the value is in cores when allocatable is unknown", () => {
-    expect(CLUSTER.topCpuPods).toContain("the value is in cores");
+    expect(CLUSTER.topCpuPods).toContain("or in cores where that is unknown");
   });
 });
 

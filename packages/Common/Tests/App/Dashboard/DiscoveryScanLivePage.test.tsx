@@ -9,6 +9,7 @@ import {
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import DiscoveryPage from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Discovery";
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/NetworkDeviceMetricDescriptions";
 import ProbeUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Probe";
 import NetworkDeviceDiscoveryScan, {
   DiscoveredNetworkDevice,
@@ -359,6 +360,44 @@ describe("Discovery page live progress wiring", () => {
       );
     expect(column?.field).toEqual({ startedAt: true });
     expect(screen.getByText("Not started")).toBeInTheDocument();
+  });
+
+  test("only the Responded Hosts column carries a header (i), saying what it counts", async () => {
+    await renderPage(
+      scan({
+        status: "Completed",
+        scannedHostCount: 15360,
+        respondedHostCount: 1,
+        discoveredDevices: [
+          { ipAddress: "10.240.0.221", snmpReachable: true },
+          HOST,
+        ],
+      }),
+    );
+
+    const explained: Array<[string, string | undefined]> =
+      capturedTable!.columns
+        .filter((item: Column<NetworkDeviceDiscoveryScan>) => {
+          return Boolean(item.headerTooltip);
+        })
+        .map(
+          (
+            item: Column<NetworkDeviceDiscoveryScan>,
+          ): [string, string | undefined] => {
+            return [item.title, item.headerTooltip];
+          },
+        );
+
+    expect(explained).toEqual([
+      [
+        "Responded Hosts",
+        NETWORK_DEVICE_METRIC_DESCRIPTIONS.discoveryRespondedHosts,
+      ],
+    ]);
+
+    // The cell the (i) explains: SNMP responders, then the ping-only line.
+    expect(screen.getByText("1 of 15360 hosts")).toBeInTheDocument();
+    expect(screen.getByText("+ 1 alive without SNMP")).toBeInTheDocument();
   });
 
   test("reviewing a live result explains that importing is safe while discovery continues", async () => {

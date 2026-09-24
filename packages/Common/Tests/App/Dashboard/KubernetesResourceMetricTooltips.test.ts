@@ -95,6 +95,8 @@ const TITLES: Array<[string, KubernetesResourceMetric]> = [
 
 const AVERAGE_PATTERN: RegExp = /averag/i;
 const SENTENCE_END: RegExp = /[.!?](\s|$)/g;
+const ALLOCATABLE_GLOSS: RegExp =
+  /allocatable (CPU|memory)( on its node)? \(what the node can hand out to pods\)/;
 
 const LIST_LATEST_CPU: Array<KubernetesResourceMetric> = [
   "nodeCpu",
@@ -272,7 +274,7 @@ describe("what each memory percentage is a share of", () => {
       "sum of the memory limits its containers set",
     );
     expect(D.podMemory).toContain(
-      "node's allocatable memory when none sets a limit",
+      "node's allocatable memory (what the node can hand out to pods) when none sets a limit",
     );
   });
 
@@ -295,7 +297,7 @@ describe("workload and namespace columns are sums over pods", () => {
   test.each(ALL_SUMS)(
     "%s says the pods are added up and the total can pass 100%%",
     (key: KubernetesResourceMetric) => {
-      expect(D[key]).toMatch(/added up|summed/);
+      expect(D[key]).toMatch(/added up|summed|the sum of/);
       expect(D[key]).toContain("can pass 100%");
     },
   );
@@ -319,6 +321,23 @@ describe("workload and namespace columns are sums over pods", () => {
     (key: KubernetesResourceMetric) => {
       expect(D[key]).toContain("total amount");
       expect(D[key]).toContain("node's allocatable memory");
+    },
+  );
+
+  /*
+   * "Allocatable" is Kubernetes jargon, and each list page shows only its own
+   * CPU and Memory columns - so every text that divides by it says what it
+   * is, in the same words.
+   */
+  test.each([
+    ...ALL_SUMS,
+    "podCpu",
+    "podMemory",
+    "containerCpu",
+  ] as Array<KubernetesResourceMetric>)(
+    "%s says what allocatable means",
+    (key: KubernetesResourceMetric) => {
+      expect(D[key]).toMatch(ALLOCATABLE_GLOSS);
     },
   );
 

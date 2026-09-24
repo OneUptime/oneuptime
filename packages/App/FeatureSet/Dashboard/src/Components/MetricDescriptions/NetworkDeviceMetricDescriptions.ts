@@ -1,9 +1,9 @@
 /*
  * What each number on the network device pages means, in plain words: the
  * device Overview hero, its interface preview and latency trend, on-demand
- * ping and traceroute, the Interfaces and Traffic tabs, the device list and
- * the Network Overview. Shown in the (i) tooltip beside a tile, column or
- * section title.
+ * ping and traceroute, the Interfaces and Traffic tabs, the device list, the
+ * Network Overview, the Probe Latency Matrix and the Discovery Scans list.
+ * Shown in the (i) tooltip beside a tile, column or section title.
  *
  * Each text describes what the page actually computes, not what the title
  * might suggest:
@@ -16,7 +16,13 @@
  *     so its "max" is the slowest minute, not the slowest ping;
  *   - flow totals are what the device exported, never scaled up for
  *     sampling, and only for flows that STARTED inside the range;
- *   - the endpoint count never shrinks - nothing ages endpoints out.
+ *   - the endpoint count never shrinks - nothing ages endpoints out;
+ *   - the latency matrix is each monitor's LATEST check per probe, and only
+ *     the project's own probes get a column - global probes are not
+ *     project rows, so the endpoint never lists them;
+ *   - a discovery scan's "responded" hosts are the SNMP responders on an
+ *     SNMP scan (ping-only hosts are counted beside them), and the ping
+ *     responders on a ping-only scan.
  *
  * Change the fetch, change the words.
  */
@@ -61,7 +67,9 @@ export type NetworkDeviceMetric =
   | "fleetInterfacesDown"
   | "fleetSites"
   | "fleetEndpoints"
-  | "fleetByVendor";
+  | "fleetByVendor"
+  | "latencyMatrix"
+  | "discoveryRespondedHosts";
 
 export const NETWORK_DEVICE_METRIC_DESCRIPTIONS: Record<
   NetworkDeviceMetric,
@@ -74,6 +82,7 @@ export const NETWORK_DEVICE_METRIC_DESCRIPTIONS: Record<
     "The status last reported by a monitor that watches this device, such as Operational or Offline. It can differ from Reachability because a monitor may also check things like ports going down; Not monitored means no monitor has reported yet.",
   heroInterfaces:
     "Ports on this device from its last successful SNMP walk: up means enabled with a working link, down means enabled with no link. Ports an administrator switched off count in neither and fill the grey rest of the bar.",
+  // Also the Inventory card's Uptime (DeviceInventoryCard.tsx): same column.
   hardwareUptime:
     "Time since the device last restarted, worked out from the uptime counter it reported at its last successful SNMP walk. That counter also restarts with the SNMP agent and rolls over after about 497 days, so it can read short.",
 
@@ -144,6 +153,7 @@ export const NETWORK_DEVICE_METRIC_DESCRIPTIONS: Record<
   // Device list columns (Pages/NetworkDevice/Devices.tsx).
   deviceStatus:
     "Whether each device answered its most recent check, the probe's ping or SNMP walk. A monitor-backed device shows its bound monitor's status instead, and Pending means no result yet.",
+  // Also the site's Devices tab (Pages/NetworkSite/View/Devices.tsx).
   deviceInterfacesUpDown:
     "Enabled ports with a working link / enabled ports with no link, from each device's last successful SNMP walk. Ports switched off by an administrator count in neither; No SNMP means the device is only pinged.",
 
@@ -168,4 +178,12 @@ export const NETWORK_DEVICE_METRIC_DESCRIPTIONS: Record<
     "Hosts such as PCs, phones and printers found in your switches' and routers' address tables (ARP and MAC forwarding tables) during SNMP walks. Every host found so far is counted, including ones not seen recently.",
   fleetByVendor:
     "Device counts for your six most common vendors, as each device reported over SNMP. Devices with no vendor yet, such as ping-only ones, are grouped as Unknown, and each bar is relative to the largest vendor.",
+
+  // Probe Latency Matrix (Pages/NetworkDevice/LatencyMatrix.tsx).
+  latencyMatrix:
+    "How long each monitor's latest check took from each of your probes, such as a ping's round trip or a website's response time. Offline means that check failed, a dash means no result, and faded cells are over 10 minutes old. Global probes are not shown.",
+
+  // Discovery Scans list (Pages/NetworkDevice/Discovery.tsx).
+  discoveryRespondedHosts:
+    "Hosts that answered SNMP out of the addresses swept, with hosts that answered only ping counted separately as alive without SNMP. On a ping-only scan it is the hosts that answered ping. While a scan runs, both cover only what has been swept so far.",
 };

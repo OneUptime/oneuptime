@@ -162,6 +162,12 @@ function tooltipsNestedInInteractive(code: string): number {
   return nested;
 }
 
+// The Hosts list lives one level up, in Pages/Host/Hosts.tsx.
+const HOSTS_LIST_FILE: string = path.join("..", "Hosts.tsx");
+const HOSTS_LIST_IMPORT: string =
+  'import { HOST_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/HostMetricDescriptions";';
+const HOSTS_LIST_KEYS: Array<HostMetric> = ["hostListResources"];
+
 const PAGES: Array<string> = [
   "Overview.tsx",
   "ProcessView.tsx",
@@ -236,7 +242,10 @@ describe("every Host description is shown, once, on the page it describes", () =
   );
 
   test("the pages between them reference every key of the record", () => {
-    const all: Array<string> = Object.values(KEYS_BY_PAGE).flat();
+    const all: Array<string> = [
+      ...Object.values(KEYS_BY_PAGE).flat(),
+      ...HOSTS_LIST_KEYS,
+    ];
 
     expect([...all].sort()).toEqual(
       Object.keys(HOST_METRIC_DESCRIPTIONS).sort(),
@@ -573,5 +582,81 @@ describe.each([
 
   test("header tooltips go through the shared Table, not a hand-drawn (i)", () => {
     expect(code).not.toContain("<InfoTooltip");
+  });
+});
+
+describe("Hosts list (Pages/Host/Hosts.tsx)", () => {
+  const code: string = readCode(HOSTS_LIST_FILE);
+  const columns: string = between(code, "columns={[", "onViewPage=");
+
+  // Each `{ field: {...}, title: "...", ... }` column, split on its field.
+  function column(title: string): string {
+    const found: Array<string> = columns
+      .split("{ field: {")
+      .slice(1)
+      .filter((block: string): boolean => {
+        return block.includes(`title: "${title}",`);
+      });
+
+    expect(found).toHaveLength(1);
+    return found[0]!;
+  }
+
+  test("imports the Host descriptions by its own relative path", () => {
+    expect(readRaw(HOSTS_LIST_FILE)).toContain(HOSTS_LIST_IMPORT);
+  });
+
+  test("references exactly the Hosts list keys", () => {
+    const referenced: Array<string> = Array.from(
+      code.matchAll(REFERENCE_PATTERN),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1]!;
+    });
+
+    expect(referenced).toEqual(HOSTS_LIST_KEYS);
+  });
+
+  test("the Resources column carries its header tooltip", () => {
+    expect(column("Resources")).toContain(
+      "headerTooltip: HOST_METRIC_DESCRIPTIONS.hostListResources,",
+    );
+  });
+
+  test("the Resources cell reads the three cached host columns the text describes", () => {
+    const resources: string = column("Resources");
+    const selectMore: string = between(code, "selectMoreFields={{", "}}");
+
+    expect(resources).toContain("cores: item.cpuCores ?? undefined,");
+    expect(resources).toContain(
+      "memoryBytes: item.totalMemoryBytes ?? undefined,",
+    );
+    expect(resources).toContain("processes: item.processCount ?? undefined,");
+    expect(resources).toContain("{summary.processes} processes");
+    for (const field of ["cpuCores", "totalMemoryBytes", "processCount"]) {
+      expect(selectMore).toContain(`${field}: true,`);
+    }
+  });
+
+  test("name, network, status and ownership columns stay plain", () => {
+    for (const title of [
+      "Name",
+      "OS",
+      "IP Address",
+      "Status",
+      "Last Seen",
+      "Labels",
+      "Owners",
+    ]) {
+      expect({
+        title,
+        tooltip: column(title).includes("headerTooltip"),
+      }).toEqual({ title, tooltip: false });
+    }
+    expect(countOf(columns, "headerTooltip:")).toBe(1);
+  });
+
+  test("the header tooltip goes through ModelTable, not a hand-drawn (i)", () => {
+    expect(code).not.toContain("<InfoTooltip");
+    expect(tooltipsNestedInInteractive(code)).toBe(0);
   });
 });

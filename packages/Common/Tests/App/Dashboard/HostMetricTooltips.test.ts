@@ -89,6 +89,7 @@ const TITLED: Array<[string, HostMetric]> = [
   ["Unit Type", "unitType"],
   ["State Changes", "unitStateChanges"],
   ["State timeline", "unitStateTimeline"],
+  ["Resources", "hostListResources"],
   ["CPU", "processListCpu"],
   ["Memory", "processListMemory"],
   ["Status", "serviceListStatus"],
@@ -133,6 +134,8 @@ const RAW_METRIC_NAME: RegExp = /\b(system|process|windows|systemd)\.[a-z_]+/;
 const PERCENTILE_TOKEN: RegExp = /\bp\d{2}\b/i;
 const RATE_UNIT: RegExp = /bytes per second/i;
 const WHOLE_RANGE: RegExp = /whole[- ]range/;
+const LOGICAL_CORES_FIRST: RegExp = /^Logical CPU cores/;
+const RANGE_OR_AVERAGE: RegExp = /selected range|time range|averag/i;
 
 describe("HOST_METRIC_DESCRIPTIONS reads well", () => {
   test("every text passes the shared rules and none repeats another", () => {
@@ -343,6 +346,14 @@ describe("denominators, units and caps", () => {
     expect(D.cpu).toContain("across all cores");
     expect(D.cpu).toContain("100% means every core was busy");
     expect(D.cpuChart).toContain("100% means every core was busy");
+    // The tile and the chart both add user and system time - one wording.
+    for (const key of ["cpu", "cpuChart"] as Array<HostMetric>) {
+      expect(D[key]).toContain(
+        "spent running programs and the operating system",
+      );
+    }
+    expect(D.cpuChart).toContain("(user plus system time)");
+    expect(D.cpuChart).not.toContain("busy share");
     expect(D.processCpu).toContain("share of all host CPU cores");
     expect(D.processCpuChart).toContain("total CPU capacity");
     expect(D.processListCpu).toContain("all cores together");
@@ -609,5 +620,90 @@ describe("state texts quote the labels the pages render", () => {
   test("state-change counts admit what sampling cannot see", () => {
     expect(D.serviceStateChanges).toContain("between two samples is not seen");
     expect(D.unitStateChanges).toContain("between two samples is not seen");
+  });
+});
+
+describe("the Hosts list Resources column reads cached host columns", () => {
+  /*
+   * The column shows Host.cpuCores, Host.totalMemoryBytes and
+   * Host.processCount - values ingest saves on the host record while it
+   * scans each metrics batch, not telemetry fetched for a range. Each claim
+   * of the text is pinned to the code that fills the column.
+   */
+  const REPO_PACKAGES: string = path.join(__dirname, "..", "..", "..", "..");
+  const ingestBase: string = fs.readFileSync(
+    path.join(
+      REPO_PACKAGES,
+      "App",
+      "FeatureSet",
+      "Telemetry",
+      "Services",
+      "OtelIngestBaseService.ts",
+    ),
+    "utf8",
+  );
+  const hostService: string = fs.readFileSync(
+    path.join(REPO_PACKAGES, "Common", "Server", "Services", "HostService.ts"),
+    "utf8",
+  );
+  const hostDocs: string = fs.readFileSync(
+    path.join(HOST_VIEW_DIR, "..", "Utils", "DocumentationMarkdown.ts"),
+    "utf8",
+  );
+
+  // The branch of scanHostInfraStatsFromMetrics that handles one metric.
+  function scanBranch(metricName: string): string {
+    const start: number = ingestBase.indexOf(`name === "${metricName}"`);
+
+    expect(start).toBeGreaterThan(-1);
+
+    return ingestBase.slice(start, ingestBase.indexOf("continue;", start));
+  }
+
+  test("cores are the logical CPU count, so hyperthreads count", () => {
+    const cores: string = scanBranch("system.cpu.logical.count");
+
+    expect(cores).toContain("this.firstDatapointNumber(m)");
+    expect(cores).toContain("result.cpuCores = Math.round(v);");
+    // The setup guide turns the (off-by-default) logical count on.
+    expect(hostDocs).toContain("system.cpu.logical.count:");
+    expect(D.hostListResources).toMatch(LOGICAL_CORES_FIRST);
+    expect(D.hostListResources).toContain("each hyperthread counts as one");
+  });
+
+  test("total RAM is every memory state added up, and the text says so", () => {
+    const memory: string = scanBranch("system.memory.usage");
+
+    expect(memory).toContain("this.sumDatapointNumbers(m)");
+    expect(memory).toContain("result.totalMemoryBytes = Math.round(v);");
+    expect(D.hostListResources).toContain(
+      "the sum of every memory state the collector reports",
+    );
+  });
+
+  test("processes are summed over every status, as 'in any state' says", () => {
+    const processes: string = scanBranch("system.processes.count");
+
+    expect(processes).toContain("this.sumDatapointNumbers(m)");
+    expect(processes).toContain("result.processCount = Math.round(v);");
+    expect(D.hostListResources).toContain("processes in any state");
+    // The same number as the overview's cached count, in the same words.
+    expect(D.processCountCached).toContain("any state");
+  });
+
+  test("all three ride the host heartbeat, so 'at most about once a minute'", () => {
+    expect(hostService).toContain(
+      "const LAST_SEEN_THROTTLE_SECONDS: number = 60;",
+    );
+    for (const field of ["cpuCores", "totalMemoryBytes", "processCount"]) {
+      expect(hostService).toContain(`metadata.${field} = extra.${field};`);
+    }
+    expect(D.hostListResources).toContain(
+      "latest values saved on the host, updated at most about once a minute",
+    );
+  });
+
+  test("the text claims no time range or average - the list has no time picker", () => {
+    expect(D.hostListResources).not.toMatch(RANGE_OR_AVERAGE);
   });
 });

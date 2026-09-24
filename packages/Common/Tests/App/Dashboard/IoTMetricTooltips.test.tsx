@@ -524,6 +524,7 @@ afterEach(() => {
 // ------------------------------------------------------------------- texts
 
 const OVERVIEW_TITLES: Array<[string, IoTMetric]> = [
+  ["Devices online", "heroDevicesOnline"],
   ["Online Devices", "onlineDevices"],
   ["Total Devices", "totalDevices"],
   ["Avg Battery", "avgBattery"],
@@ -601,6 +602,7 @@ describe("IOT_METRIC_DESCRIPTIONS", () => {
 
   test("the overview tiles say they follow the time range; inventory values say they are the last ones sent", () => {
     for (const key of [
+      "heroDevicesOnline",
       "onlineDevices",
       "totalDevices",
       "avgBattery",
@@ -799,6 +801,87 @@ describe("IoT fleet overview", () => {
 
     expect(modelGetListMock.mock.calls.length).toBe(inventoryCalls);
     expect(screen.getByText("Pump A")).toBeInTheDocument();
+  });
+});
+
+/*
+ * The "2/3 devices online" chip beside the fleet name. Its text claims it
+ * is counted like the Online Devices tile, and that it shows the fleet's
+ * own counts until the heartbeats first load or when none arrived.
+ */
+describe("IoT fleet overview: the devices-online chip", () => {
+  function chipRow(): HTMLElement {
+    return infoButton("Devices online").parentElement as HTMLElement;
+  }
+
+  test("sits in the chip row, with the (i) beside the count and the agent version", async () => {
+    await renderOverview();
+
+    expect(within(chipRow()).getByText("2/3 devices online")).toBeVisible();
+    expect(within(chipRow()).getByText("Agent 0.9.1")).toBeVisible();
+    await expectExplained("Devices online", "heroDevicesOnline");
+  });
+
+  test("shows the same count as the Online Devices tile, from each device's latest heartbeat in the range", async () => {
+    await renderOverview();
+
+    expect(within(chipRow()).getByText("2/3 devices online")).toBeVisible();
+    expect(within(tile("Online Devices")).getByText("2/3")).toBeVisible();
+    // Not the fleet's own 9 of 10.
+    expect(screen.queryByText("9/10 devices online")).not.toBeInTheDocument();
+  });
+
+  test("follows the time range picker", async () => {
+    await renderOverview();
+
+    seriesByName = {
+      iot_device_up: [reading("dev-a", 5, 1), reading("dev-b", 5, 1)],
+    };
+    fireEvent.click(screen.getByRole("button", { name: "Pick past day" }));
+    await flush();
+
+    expect(within(chipRow()).getByText("2/2 devices online")).toBeVisible();
+    expect(IOT_METRIC_DESCRIPTIONS.heroDevicesOnline).toMatch(
+      /selected time range/,
+    );
+  });
+
+  test("with no heartbeats in the range, it falls back to the fleet's most recent counts", async () => {
+    seriesByName = {};
+    await renderOverview();
+
+    expect(within(chipRow()).getByText("9/10 devices online")).toBeVisible();
+    expect(IOT_METRIC_DESCRIPTIONS.heroDevicesOnline).toMatch(
+      /if none arrived in the range, it shows the counts from the fleet's most recent data/,
+    );
+  });
+
+  test("until the heartbeats first load, it shows the fleet's counts while the tiles are still loading", async () => {
+    analyticsAggregateMock.mockImplementation(() => {
+      return new Promise<never>(() => {});
+    });
+    render(<IoTFleetOverview {...PAGE_PROPS} />);
+    await screen.findByText("field-sensors");
+    await flush();
+
+    expect(within(chipRow()).getByText("9/10 devices online")).toBeVisible();
+    // The tiles are skeletons, so their (i)s are not there yet.
+    expectNoInfo("Online Devices");
+    expect(IOT_METRIC_DESCRIPTIONS.heroDevicesOnline).toMatch(
+      /Until the heartbeats first load/,
+    );
+  });
+
+  test("a fleet with no devices has no count chip, so the agent version chip gets no (i)", async () => {
+    seriesByName = {};
+    modelGetItemMock.mockImplementation(async () => {
+      return { ...FLEET, deviceCount: 0, onlineDeviceCount: 0 };
+    });
+    await renderOverview();
+
+    expect(screen.getByText("Agent 0.9.1")).toBeVisible();
+    expect(screen.queryByText(/devices? online$/)).not.toBeInTheDocument();
+    expectNoInfo("Devices online");
   });
 });
 

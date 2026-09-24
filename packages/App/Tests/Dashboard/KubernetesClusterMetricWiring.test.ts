@@ -570,8 +570,23 @@ describe("accuracy anchors: the numbers the overview texts quote", () => {
     const match: RegExpMatchArray | null = service.match(DISCONNECT_MINUTES);
 
     expect(match).not.toBeNull();
+
+    // The job that applies the threshold runs every 5 minutes.
+    const job: string = readSource(
+      path.join(
+        DASHBOARD_SRC,
+        "..",
+        "..",
+        "Workers",
+        "Jobs",
+        "Kubernetes",
+        "CleanupStaleResources.ts",
+      ),
+    );
+
+    expect(job).toContain("schedule: EVERY_FIVE_MINUTE");
     expect(KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.agentStatus).toContain(
-      `about ${match![1]} minutes`,
+      `about ${match![1]} to ${Number(match![1]) + 5} minutes`,
     );
   });
 });

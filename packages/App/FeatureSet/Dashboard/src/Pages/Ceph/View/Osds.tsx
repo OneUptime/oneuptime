@@ -132,6 +132,7 @@ const CephClusterOsds: FunctionComponent<
       showResourceMetrics={false}
       builtInColumnDescriptions={{
         status: CEPH_METRIC_DESCRIPTIONS.osdStatusColumn,
+        age: CEPH_METRIC_DESCRIPTIONS.osdAgeColumn,
       }}
       columns={[
         {

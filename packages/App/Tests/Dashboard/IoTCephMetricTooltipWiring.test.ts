@@ -240,7 +240,56 @@ describe("IoT fleet overview", () => {
     expect(code).toContain(
       "{ATTENTION_TITLE} <InfoTooltip label={ATTENTION_TITLE} text={IOT_METRIC_DESCRIPTIONS.devicesNeedingAttention} />",
     );
-    expect(count(code, INFO_TOOLTIP)).toBe(1);
+  });
+
+  test("the devices-online chip beside the fleet name carries the page's only other (i)", () => {
+    const chips: string = segment(
+      code,
+      "{specChips.length > 0 && (",
+      "</div> )}",
+    );
+
+    expect(chips).toContain(
+      '{hasCountChips && ( <InfoTooltip label="Devices online" text={IOT_METRIC_DESCRIPTIONS.heroDevicesOnline} /> )}',
+    );
+    // The attention card title and this chip row are the only (i)s here.
+    expect(count(code, INFO_TOOLTIP)).toBe(2);
+  });
+
+  /*
+   * The (i) belongs to the count chip, so it is decided before the agent
+   * version chip (metadata) joins the row.
+   */
+  test("the chip row gets its (i) only when the devices count chip is in it", () => {
+    const hero: string = segment(code, "const specChips: Array<{", "return (");
+
+    expect(hero).toMatch(
+      /if \(totalDevices > 0\) \{ specChips\.push\(\{ icon: IconProp\.Cube, label: `\$\{onlineDevices\}\/\$\{totalDevices\} device/,
+    );
+    expect(
+      hero.indexOf("const hasCountChips: boolean = specChips.length > 0;"),
+    ).toBeGreaterThan(hero.indexOf("if (totalDevices > 0) {"));
+    expect(
+      hero.indexOf("const hasCountChips: boolean = specChips.length > 0;"),
+    ).toBeLessThan(hero.indexOf("if (fleet.agentVersion) {"));
+  });
+
+  test("the chip reads the same counts as the Online Devices tile, with the fleet's counts as the fallback its text names", () => {
+    expect(code).toContain(
+      "const totalDevices: number = goldenStats?.totalDevices ?? fleet.deviceCount ?? 0;",
+    );
+    expect(code).toContain(
+      "const onlineDevices: number = goldenStats?.onlineDevices ?? fleet.onlineDeviceCount ?? 0;",
+    );
+    expect(code).toContain(
+      'value={onlinePct === null ? "—" : `${onlineDevices}/${totalDevices}`}',
+    );
+    expect(IOT_METRIC_DESCRIPTIONS.heroDevicesOnline).toContain(
+      "counted like the Online Devices tile",
+    );
+    expect(IOT_METRIC_DESCRIPTIONS.heroDevicesOnline).toContain(
+      "the fleet's most recent data",
+    );
   });
 });
 
@@ -412,6 +461,66 @@ describe("Ceph cluster overview", () => {
     );
   });
 
+  test("the count chips beside the cluster name carry one (i) for the row", () => {
+    const chips: string = segment(
+      code,
+      "{specChips.length > 0 && (",
+      "</div> )}",
+    );
+
+    expect(chips).toContain(
+      '{hasCountChips && ( <InfoTooltip label="Cluster inventory counts" text={CEPH_METRIC_DESCRIPTIONS.inventoryCounts} /> )}',
+    );
+    expect(count(chips, INFO_TOOLTIP)).toBe(1);
+  });
+
+  /*
+   * The OSD, monitor and pool chips are counts; the Ceph version chip is
+   * metadata, so the (i) is decided before it joins the row.
+   */
+  test("the chip row gets its (i) only when a count chip is in it", () => {
+    const hero: string = segment(
+      code,
+      "const specChips: Array<{",
+      "const statusBadgeClass",
+    );
+    const decided: number = hero.indexOf(
+      "const hasCountChips: boolean = specChips.length > 0;",
+    );
+
+    expect(decided).toBeGreaterThan(hero.indexOf("if (cluster.poolCount) {"));
+    expect(decided).toBeLessThan(hero.indexOf("if (cluster.cephVersion) {"));
+  });
+
+  test("the chips read the cluster's latest snapshot and the monitor inventory, as the text says", () => {
+    const hero: string = segment(
+      code,
+      "const specChips: Array<{",
+      "const statusBadgeClass",
+    );
+
+    expect(hero).toContain(
+      "label: `${cluster.osdUpCount || 0}/${cluster.osdCount} OSD",
+    );
+    expect(hero).toContain(
+      'label: `${monsInQuorum || 0}/${monsTotal} mon${monsTotal === 1 ? "" : "s"} in quorum`,',
+    );
+    expect(hero).toContain(
+      'label: `${cluster.monCount} mon${cluster.monCount === 1 ? "" : "s"}`,',
+    );
+    expect(hero).toContain(
+      'label: `${cluster.poolCount} pool${cluster.poolCount === 1 ? "" : "s"}`,',
+    );
+    // Quorum comes from the Mon inventory rows, not from a time series.
+    expect(code).toContain("if (row.inQuorum) { quorum++; }");
+    expect(CEPH_METRIC_DESCRIPTIONS.inventoryCounts).toContain(
+      "latest data, not a time range",
+    );
+    expect(CEPH_METRIC_DESCRIPTIONS.inventoryCounts).toContain(
+      "only the monitor count when quorum is not reported",
+    );
+  });
+
   test.each([
     ["Up + In", "osdUpIn"],
     ["Up + Out", "osdUpOut"],
@@ -517,11 +626,80 @@ describe("Ceph OSD list", () => {
     },
   );
 
-  test("the built-in Status column is explained, and Class is not a metric", () => {
+  test("the built-in Status and Age columns are explained, and Class is not a metric", () => {
     expect(code).toContain(
-      "builtInColumnDescriptions={{ status: CEPH_METRIC_DESCRIPTIONS.osdStatusColumn, }}",
+      "builtInColumnDescriptions={{ status: CEPH_METRIC_DESCRIPTIONS.osdStatusColumn, age: CEPH_METRIC_DESCRIPTIONS.osdAgeColumn, }}",
     );
     expect(code).toContain('{ title: "Class", key: "deviceClass" }');
+  });
+
+  /*
+   * Ceph reports no creation time for an OSD. The Age column is the age of
+   * OneUptime's own inventory row, which is what the text has to say.
+   */
+  test("Age is the inventory row's age, as its text says", () => {
+    expect(code).toContain("age: CephResourceUtils.formatAge(row.createdAt),");
+    expect(CEPH_METRIC_DESCRIPTIONS.osdAgeColumn).toContain(
+      "first saw this OSD",
+    );
+    expect(CEPH_METRIC_DESCRIPTIONS.osdAgeColumn).toContain(
+      "not how old the OSD or its disk is",
+    );
+  });
+
+  /*
+   * "Starts again from zero after about 15 minutes missing": the snapshot
+   * upsert never rewrites createdAt, and the cleanup job deletes rows not
+   * seen for the stale threshold (15 minutes unless overridden), so the
+   * OSD's next appearance inserts a fresh row.
+   */
+  test("the row's createdAt survives upserts and restarts only after the 15-minute prune", () => {
+    const service: string = fs
+      .readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "Common",
+          "Server",
+          "Services",
+          "CephResourceService.ts",
+        ),
+        "utf8",
+      )
+      .replace(WHITESPACE, " ");
+    const cleanup: string = fs
+      .readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "FeatureSet",
+          "Workers",
+          "Jobs",
+          "Ceph",
+          "CleanupStaleResources.ts",
+        ),
+        "utf8",
+      )
+      .replace(WHITESPACE, " ");
+    const upsertUpdate: string = segment(
+      service,
+      'ON CONFLICT ("projectId", "cephClusterId", "kind", "externalId") DO UPDATE SET',
+      "WHERE EXCLUDED",
+    );
+
+    expect(upsertUpdate).toContain('"lastSeenAt" = EXCLUDED."lastSeenAt"');
+    expect(upsertUpdate).not.toContain("createdAt");
+    expect(service).toContain(
+      'DELETE FROM "CephResource" WHERE "cephClusterId" = $1 AND "lastSeenAt" < $2',
+    );
+    expect(service).toContain("return 15; } }");
+    expect(cleanup).toContain("CephResourceService.deleteStaleForCluster({");
+    expect(CEPH_METRIC_DESCRIPTIONS.osdAgeColumn).toContain(
+      "missing from that data for more than about 15 minutes",
+    );
   });
 
   /*

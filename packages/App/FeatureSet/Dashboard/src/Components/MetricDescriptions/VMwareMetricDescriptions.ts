@@ -6,10 +6,12 @@
  * might suggest. Three things differ from tile to tile and are called out:
  *
  *   - the time window: the Host CPU / Host Memory / VM CPU Ready tiles
- *     average only the last 5 minutes of the selected range (falling back
- *     to the whole range), the charts cover the whole range, and everything
- *     read from the inventory (counts, top-5 lists, detail pages, tables)
- *     is the latest report and ignores the time picker;
+ *     average only the buckets that START in the last 5 minutes of the
+ *     selected range, falling back to the whole range when none does -
+ *     usual on ranges over 12 hours, whose buckets are 15 minutes or wider,
+ *     as well as when data stops. The charts cover the whole range, and
+ *     everything read from the inventory (counts, top-5 lists, detail
+ *     pages, tables) is the latest report and ignores the time picker;
  *   - staleness: tables and top-5 lists hide CPU / memory older than 15
  *     minutes, detail pages and some columns show the last value however
  *     old it is;
@@ -106,25 +108,25 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   overviewHostEffectiveness:
     "Clustered ESXi hosts that can run VMs, out of all hosts in clusters, from the latest inventory rather than the selected range. A host in maintenance mode or not responding is not effective, and standalone hosts are not counted.",
   overviewHostCpu:
-    "Share of the combined CPU capacity of all ESXi hosts in use, with bigger hosts counting for more. Averaged over the last 5 minutes of the selected range (the whole range if those minutes have no data); the chart below covers the whole range.",
+    "Share of the combined CPU capacity of all ESXi hosts in use, with bigger hosts counting for more. Averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data); the chart below covers the whole range.",
   overviewHostMemory:
-    "Share of the combined RAM of all ESXi hosts in use, averaged over the last 5 minutes of the selected range (the whole range if those minutes have no data). The line below shows used and total RAM at the latest point.",
+    "Share of the combined RAM of all ESXi hosts in use, averaged over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data). The line below shows used and total RAM at the latest point.",
   overviewDatastores:
     "How full your fullest datastore is (used space as a share of capacity) at its latest report, however old, named below; until the inventory loads, the fullest over the last 5 minutes of the range. Amber from 80%, red from 90%: the levels that mark the vCenter Degraded and Unhealthy.",
   overviewVmCpuReady:
-    "CPU Ready is the share of time a VM was ready to run but had to wait for a physical CPU. This is the average across powered-on VMs over the last 5 minutes of the selected range (the whole range if those minutes have no data), with the busiest VM below; amber from 5%, red from 10%.",
+    "CPU Ready is the share of time a VM was ready to run but had to wait for a physical CPU. Averaged across powered-on VMs over the last 5 minutes of the selected range (often the whole range on ranges over 12 hours or without recent data), with the busiest VM below; amber from 5%, red from 10%.",
   overviewVirtualMachines:
     "Powered-on VMs out of all VMs, templates excluded, from the latest inventory; a VM that is off is not treated as a fault. Power state is inferred from which VMs send CPU data, so a suspended VM counts as off.",
 
   // ---- Overview: golden chart cards -------------------------------------
   overviewHostCpuChart:
-    "CPU in use across all ESXi hosts at each point of the selected range, as a share of their combined CPU capacity. Hosts with more CPU count for more.",
+    "CPU in use across all ESXi hosts in each interval of the selected range, as a share of their combined CPU capacity. Hosts with more CPU count for more.",
   overviewHostMemoryChart:
-    "RAM in use across all ESXi hosts at each point of the selected range, as a share of their combined RAM.",
+    "RAM in use across all ESXi hosts in each interval of the selected range, as a share of their combined RAM.",
   overviewDatastoreUsedChart:
-    "Used space added up across all datastores at each point of the selected range, in bytes.",
+    "Used space added up across all datastores in each interval of the selected range, in bytes.",
   overviewVmCpuReadyChart:
-    "CPU Ready over the selected range: Avg is the average across powered-on VMs and Max the highest single VM at each point. It is the share of time VMs waited for a physical CPU; above 10% they are noticeably slowed.",
+    "CPU Ready over the selected range: Avg is the average across powered-on VMs and Max the highest single VM in each interval. It is the share of time VMs waited for a physical CPU; above 10% they are noticeably slowed.",
 
   // ---- Overview: summary strip ------------------------------------------
   overviewVCenterHealth:
@@ -142,7 +144,7 @@ export const VMWARE_METRIC_DESCRIPTIONS: Record<VMwareMetric, string> = {
   overviewResourcePoolCount:
     "Number of resource pools, which group VMs so they can share and cap CPU and memory. Includes the built-in root pool that every cluster and standalone host has.",
   overviewAgentStatus:
-    "Whether the OneUptime VMware agent is sending data for this vCenter. While it is disconnected the numbers on this page stop updating and may be out of date.",
+    "Whether the OneUptime VMware agent is sending data for this vCenter; it switches to Disconnected about 15 to 20 minutes after data stops arriving. While it is disconnected the numbers on this page stop updating and may be out of date.",
 
   // ---- Overview: Top Resource Consumers ---------------------------------
   topHostsByCpu:

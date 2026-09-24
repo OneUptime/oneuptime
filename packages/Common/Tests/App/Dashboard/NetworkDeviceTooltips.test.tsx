@@ -21,7 +21,8 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 /*
  * The (i) tooltips on the network device pages, RENDERED: the device
  * Overview hero, the summary strip above the device list, the Overview's
- * interface digest, the Network Overview landing page and the Interfaces tab.
+ * interface digest and Inventory uptime, the Network Overview landing page,
+ * the Interfaces tab and the Probe Latency Matrix.
  *
  * Each surface is rendered for real with only the network (ModelAPI, the
  * summary endpoints) and the ModelTable replaced, and every metric title is
@@ -136,8 +137,14 @@ import {
   NETWORK_DEVICE_METRIC_DESCRIPTIONS,
   NetworkDeviceMetric,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/NetworkDeviceMetricDescriptions";
+import { InventoryUptimeValue } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceInventoryCard";
 import NetworkOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Overview";
+import NetworkDeviceLatencyMatrix from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/LatencyMatrix";
 import NetworkDeviceInterfaces from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/View/Interfaces";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import OneUptimeDate from "../../../Types/Date";
+import { JSONObject } from "../../../Types/JSON";
+import API from "../../../UI/Utils/API/API";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
@@ -723,5 +730,123 @@ describe("the Interfaces tab", () => {
       "Errors / sec": DESCRIPTIONS.interfaceErrorsPerSecond,
       Monitored: undefined,
     });
+  });
+});
+
+// ------------------------------------------ the Overview's Inventory card
+
+describe("the Inventory card's Uptime value", () => {
+  const THREE_DAYS_IN_MS: number = 3 * 24 * 60 * 60 * 1000;
+
+  test("carries an (i) named after the field, reading the Hardware Uptime text", async () => {
+    render(
+      <InventoryUptimeValue
+        lastRebootedAt={new Date(Date.now() - THREE_DAYS_IN_MS)}
+      />,
+    );
+
+    expect(infoButtonNames()).toEqual(["About Uptime"]);
+    await expectExplained("Uptime", DESCRIPTIONS.hardwareUptime);
+  });
+
+  test("is the same number as the hero's Hardware Uptime, so one text explains both", async () => {
+    const device: NetworkDevice = probeDevice();
+    const expected: string =
+      OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
+        device.lastRebootedAt as Date,
+        OneUptimeDate.getCurrentDate(),
+      );
+    getItemMock.mockResolvedValue(device);
+
+    await renderAndSettle(
+      <div>
+        <DeviceStatusHero modelId={new ObjectID(DEVICE_ID)} />
+        <InventoryUptimeValue lastRebootedAt={device.lastRebootedAt as Date} />
+      </div>,
+    );
+
+    // Fake timers hold the clock, so both read the same instant.
+    expect(screen.getAllByText(expected)).toHaveLength(2);
+    await expectExplained("Hardware Uptime", DESCRIPTIONS.hardwareUptime);
+    await expectExplained("Uptime", DESCRIPTIONS.hardwareUptime);
+  });
+
+  test("the (i) is beside the value, never inside a link or button", () => {
+    render(
+      <InventoryUptimeValue
+        lastRebootedAt={new Date(Date.now() - THREE_DAYS_IN_MS)}
+      />,
+    );
+
+    const button: HTMLElement = screen.getByRole("button", {
+      name: "About Uptime",
+    });
+
+    expect(button.closest("a")).toBeNull();
+    expect(button.parentElement?.closest("button")).toBeNull();
+  });
+});
+
+// ------------------------------------------------ the Probe Latency Matrix
+
+describe("the Probe Latency Matrix", () => {
+  let postSpy: ReturnType<typeof jest.spyOn> | null = null;
+
+  function matrixResponse(): HTTPResponse<JSONObject> {
+    return new HTTPResponse<JSONObject>(
+      200,
+      {
+        monitors: [{ id: "web", name: "Website" }],
+        probes: [{ id: "rack-3", name: "Rack 3" }],
+        cells: {
+          web: {
+            "rack-3": {
+              monitorId: "web",
+              probeId: "rack-3",
+              hasData: true,
+              latencyInMs: 42,
+              isOnline: true,
+              ageInSeconds: 30,
+            },
+          },
+        },
+      },
+      {},
+    );
+  }
+
+  beforeEach(() => {
+    postSpy = jest.spyOn(API, "post").mockResolvedValue(matrixResponse());
+  });
+
+  afterEach(() => {
+    postSpy?.mockRestore();
+    postSpy = null;
+  });
+
+  test("the card title carries the (i) that says what a cell is", async () => {
+    await renderAndSettle(<NetworkDeviceLatencyMatrix {...PAGE_PROPS} />);
+
+    // The bare number the (i) has to explain.
+    expect(screen.getByText("42 ms")).toBeInTheDocument();
+    expect(screen.getByText("Probe Latency Matrix")).toBeInTheDocument();
+    expect(infoButtonNames()).toEqual(["About Probe Latency Matrix"]);
+    await expectExplained("Probe Latency Matrix", DESCRIPTIONS.latencyMatrix);
+  });
+
+  test("asking what a cell means does not refetch the matrix", async () => {
+    await renderAndSettle(<NetworkDeviceLatencyMatrix {...PAGE_PROPS} />);
+
+    expect(postSpy).toHaveBeenCalledTimes(1);
+
+    const info: HTMLElement = screen.getByRole("button", {
+      name: "About Probe Latency Matrix",
+    });
+
+    fireEvent.click(info);
+    fireEvent.keyDown(info, { key: "Enter" });
+    await flush();
+
+    expect(postSpy).toHaveBeenCalledTimes(1);
   });
 });

@@ -855,6 +855,8 @@ const CephClusterOverview: FunctionComponent<
         label: `${cluster.poolCount} pool${cluster.poolCount === 1 ? "" : "s"}`,
       });
     }
+    // Every chip so far is a count; the Ceph version below is metadata.
+    const hasCountChips: boolean = specChips.length > 0;
     if (cluster.cephVersion) {
       specChips.push({
         icon: IconProp.Info,
@@ -937,7 +939,7 @@ const CephClusterOverview: FunctionComponent<
             </div>
 
             {specChips.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-1.5">
+              <div className="mt-4 flex flex-wrap items-center gap-1.5">
                 {specChips.map(
                   (
                     chip: { icon: IconProp; label: string },
@@ -956,6 +958,16 @@ const CephClusterOverview: FunctionComponent<
                       </span>
                     );
                   },
+                )}
+                {/*
+                 * One (i) for the OSD, monitor and pool count chips; a row
+                 * holding only the version chip is metadata and gets none.
+                 */}
+                {hasCountChips && (
+                  <InfoTooltip
+                    label="Cluster inventory counts"
+                    text={CEPH_METRIC_DESCRIPTIONS.inventoryCounts}
+                  />
                 )}
               </div>
             )}

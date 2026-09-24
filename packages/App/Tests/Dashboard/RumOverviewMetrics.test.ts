@@ -865,6 +865,10 @@ describe("RUM_METRIC_DESCRIPTIONS say what the page computes", () => {
     expect(D.eventDuration).toMatch(/95%/);
     expect(D.eventDuration).toMatch(/averaged/);
     expect(D.eventDuration).toMatch(/each interval/);
+    // Each interval weighs the same, however many events it holds.
+    expect(D.eventDuration).toContain(
+      "so quiet and busy intervals count equally",
+    );
 
     // That is what fetchSpanMetrics really does.
     expect(TELEMETRY_METRICS).toContain("p95DurationMs: meanY(p95Series)");
@@ -901,6 +905,17 @@ describe("RUM_METRIC_DESCRIPTIONS say what the page computes", () => {
     expect(D.pageLoadTime).toMatch(/slowest 5%/);
     expect(D.pageLoadTime).toMatch(/median/);
     expect(D.pageLoadTime).toMatch(/half were faster/);
+    // Introduced the way every other p95 tile introduces it.
+    expect(D.pageLoadTime).toContain("p95 means the 95th percentile");
+  });
+
+  test("pageLoadTime: one percentile over the whole range, not an average of intervals", () => {
+    // The tiles read fetchSpanNameStats' whole-range row, not the chart series.
+    expect(OVERVIEW).toContain(
+      "const pageLoadTimeTile: TileText = describePageLoadTimeTile({ stats: pageLoadStats,",
+    );
+    expect(D.pageLoadTime).toContain("95% of page loads in the selected range");
+    expect(D.pageLoadTime).not.toContain("averaged");
   });
 
   test("webVitals: an average over the range, unlike Google's 75th percentile", () => {
@@ -924,6 +939,17 @@ describe("RUM_METRIC_DESCRIPTIONS say what the page computes", () => {
     expect(thresholds).not.toBeNull();
     expect(D.errorRate).toContain(`amber at ${thresholds![1]}%`);
     expect(D.errorRate).toContain(`red at ${thresholds![2]}%`);
+  });
+
+  test("errorRate: the line under the tile is the count of errored events", () => {
+    const errorRateTile: string = between(
+      OVERVIEW,
+      'title: "Error rate"',
+      'title: "Event duration (p95)"',
+    );
+
+    expect(errorRateTile).toContain("`${formatCompact(m.errors)} errored`");
+    expect(D.errorRate).toContain("the line below is how many errored");
   });
 
   test("logsChart: the error line is Error and Fatal, as the summary counts it", () => {

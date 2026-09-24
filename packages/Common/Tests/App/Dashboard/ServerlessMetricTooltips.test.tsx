@@ -254,8 +254,14 @@ describe("SERVERLESS_METRIC_DESCRIPTIONS", () => {
 
   test("the p95 tile says it is an average of per-interval p95s", () => {
     expect(D.p95Duration).toMatch(/95%/);
-    expect(D.p95Duration).toMatch(/per interval/);
+    expect(D.p95Duration).toContain(
+      "Worked out for each interval on the chart",
+    );
     expect(D.p95Duration).toMatch(/averaged over the selected range/);
+    // The Service, Cloud and RUM p95 tiles say the same.
+    expect(D.p95Duration).toContain(
+      "so quiet and busy intervals count equally",
+    );
   });
 
   test("the p95 chart is per interval and does not claim a range average", () => {

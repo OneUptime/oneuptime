@@ -335,6 +335,7 @@ describe("SERVICE_METRIC_DESCRIPTIONS", () => {
   test("the p95 tile is an average of per-interval p95s; the chart is per interval", () => {
     expect(D.latencyP95).toMatch(/95%/);
     expect(D.latencyP95).toMatch(/averaged over the selected range/);
+    expect(D.latencyP95).toContain("so quiet and busy intervals count equally");
     expect(D.latencyP95Chart).toMatch(/in each interval/);
     expect(D.latencyP95Chart).not.toMatch(/averaged/);
   });
@@ -420,6 +421,10 @@ describe("SERVICE_RUNTIME_METRIC_DESCRIPTIONS and the runtime chart definitions"
       } else {
         expect(def.description).toMatch(/average/);
         expect(def.description).not.toMatch(/the total for the selected range/);
+        // One wording for the tile's window across every runtime chart.
+        expect(def.description).toMatch(
+          /[Aa]s a tile it shows the average over the selected range/,
+        );
       }
     },
   );
@@ -432,6 +437,8 @@ describe("SERVICE_RUNTIME_METRIC_DESCRIPTIONS and the runtime chart definitions"
     "%s: a percentage says what 100%% means",
     (_title: string, def: RuntimeChartDef) => {
       expect(def.description).toMatch(/100%/);
+      // In words, not "100% = ...".
+      expect(def.description).not.toContain("100% =");
     },
   );
 

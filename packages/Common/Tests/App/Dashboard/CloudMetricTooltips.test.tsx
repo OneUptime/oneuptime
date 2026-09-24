@@ -277,6 +277,7 @@ import {
 import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudResourceTelemetryScope";
 import {
   CLOUD_FLEET_METRIC_DESCRIPTIONS,
+  CLOUD_INSTANCE_METRIC_DESCRIPTIONS,
   CLOUD_METRIC_DESCRIPTIONS,
   CloudFleetMetric,
   CloudMetric,
@@ -404,8 +405,18 @@ describe("CLOUD_METRIC_DESCRIPTIONS", () => {
      * for ECS task metrics and docker_stats), so a multi-core task reads
      * above 100%.
      */
-    expect(D.cpu).toMatch(/100% is one CPU core or the CPU the task was given/);
-    expect(D.cpu).toMatch(/can exceed 100%/);
+    // The same reading as the Instances tab's CPU column, so the same words.
+    for (const text of [D.cpu, CLOUD_INSTANCE_METRIC_DESCRIPTIONS.cpu]) {
+      expect(text).toContain(
+        "100% is one full CPU core or all the CPU the task was given, so it can read above 100%",
+      );
+    }
+  });
+
+  test("the p95 tile says each interval counts equally, like the other overview p95 tiles", () => {
+    expect(D.p95Latency).toContain(
+      "then averaged over the selected range, so quiet and busy intervals count equally",
+    );
   });
 
   test("Requests is honest that it counts spans across the environment", () => {
@@ -671,7 +682,7 @@ describe("Cloud environment overview page", () => {
 
     // Tile and top-instances row both show the raw percentage.
     expect(screen.getAllByText("250.0%").length).toBeGreaterThanOrEqual(2);
-    expect(D.cpu).toMatch(/can exceed 100%/);
+    expect(D.cpu).toContain("can read above 100%");
   });
 
   test("Top instances keeps the server's CPU order, so a task with no CPU can lead", async () => {

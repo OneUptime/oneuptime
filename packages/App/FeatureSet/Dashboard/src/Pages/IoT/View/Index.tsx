@@ -568,6 +568,8 @@ const IoTFleetOverview: FunctionComponent<
         } online`,
       });
     }
+    // The devices chip is a count; the agent version below is metadata.
+    const hasCountChips: boolean = specChips.length > 0;
     if (fleet.agentVersion) {
       specChips.push({
         icon: IconProp.Terminal,
@@ -620,7 +622,7 @@ const IoTFleetOverview: FunctionComponent<
             </div>
 
             {specChips.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-1.5">
+              <div className="mt-4 flex flex-wrap items-center gap-1.5">
                 {specChips.map(
                   (
                     chip: { icon: IconProp; label: string },
@@ -639,6 +641,16 @@ const IoTFleetOverview: FunctionComponent<
                       </span>
                     );
                   },
+                )}
+                {/*
+                 * One (i) for the devices-online chip; a row holding only
+                 * the agent version chip is metadata and gets none.
+                 */}
+                {hasCountChips && (
+                  <InfoTooltip
+                    label="Devices online"
+                    text={IOT_METRIC_DESCRIPTIONS.heroDevicesOnline}
+                  />
                 )}
               </div>
             )}

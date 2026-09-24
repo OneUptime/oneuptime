@@ -3,11 +3,13 @@ import fs from "fs";
 import path from "path";
 import {
   SERVICE_METRIC_DESCRIPTIONS,
+  SERVICE_PROFILE_METRIC_DESCRIPTIONS,
   SERVICE_RUNTIME_METRIC_DESCRIPTIONS,
 } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/ServiceMetricDescriptions";
 import { SERVERLESS_METRIC_DESCRIPTIONS } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/ServerlessMetricDescriptions";
 import {
   CLOUD_FLEET_METRIC_DESCRIPTIONS,
+  CLOUD_INSTANCE_METRIC_DESCRIPTIONS,
   CLOUD_METRIC_DESCRIPTIONS,
 } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/CloudMetricDescriptions";
 
@@ -39,12 +41,24 @@ const TILE_TITLE: RegExp = /title: (?:"([^"]+)"|([\w.]+)),/g;
 const CHART_CARD_TITLE: RegExp = /title=(?:"([^"]+)"|\{([\w.]+)\})/;
 const RUNTIME_KEY: RegExp = /key: "([\w-]+)",/g;
 
-function readCode(relativePath: string): string {
+// packages/, for the ingest and server code the texts describe.
+const PACKAGES_ROOT: string = path.join(__dirname, "..", "..", "..");
+
+function codeOf(absolutePath: string): string {
   return fs
-    .readFileSync(path.join(DASHBOARD_SRC, ...relativePath.split("/")), "utf8")
+    .readFileSync(absolutePath, "utf8")
     .replace(BLOCK_COMMENT, " ")
     .replace(LINE_COMMENT, "$1")
     .replace(WHITESPACE, " ");
+}
+
+function readCode(relativePath: string): string {
+  return codeOf(path.join(DASHBOARD_SRC, ...relativePath.split("/")));
+}
+
+// A source outside the dashboard, relative to packages/.
+function readPackageCode(relativePath: string): string {
+  return codeOf(path.join(PACKAGES_ROOT, ...relativePath.split("/")));
 }
 
 function between(source: string, from: string, to: string): string {
@@ -644,5 +658,273 @@ describe("Cloud fleet summary tooltips", () => {
     expect(CLOUD_FLEET_METRIC_DESCRIPTIONS.liveInstances).toMatch(
       /archived ones included/,
     );
+  });
+});
+
+describe("Cloud Instances tab tooltips", () => {
+  const code: string = readCode("Pages/Cloud/View/Instances.tsx");
+  const columnsBlock: string = between(code, "columns={[", "]} />");
+
+  // Column title -> description key, or null for a column with no metric.
+  const EXPECTED_COLUMNS: Record<string, string | null> = {
+    Instance: null,
+    Status: null,
+    CPU: "cpu",
+    Memory: "memory",
+    "Last Seen": null,
+  };
+
+  test("imports its descriptions from the shared module", () => {
+    expect(code).toContain(
+      'import { CLOUD_INSTANCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";',
+    );
+  });
+
+  test("CPU and Memory carry their own text in the header; the other columns carry none", () => {
+    const columns: Array<{ title: string; body: string }> =
+      tileChunks(columnsBlock);
+
+    expect(
+      columns.map((column: { title: string }): string => {
+        return column.title;
+      }),
+    ).toEqual(Object.keys(EXPECTED_COLUMNS));
+
+    for (const column of columns) {
+      const key: string | null = EXPECTED_COLUMNS[column.title] as
+        | string
+        | null;
+
+      expect({
+        title: column.title,
+        headerTooltips: countOf(column.body, "headerTooltip:"),
+      }).toEqual({ title: column.title, headerTooltips: key ? 1 : 0 });
+
+      if (key) {
+        expect(column.body).toContain(
+          `headerTooltip: CLOUD_INSTANCE_METRIC_DESCRIPTIONS.${key},`,
+        );
+      }
+    }
+  });
+
+  test("uses every instance description and no key that does not exist", () => {
+    expect(
+      [
+        ...new Set(referencedKeys(code, "CLOUD_INSTANCE_METRIC_DESCRIPTIONS")),
+      ].sort(),
+    ).toEqual(Object.keys(CLOUD_INSTANCE_METRIC_DESCRIPTIONS).sort());
+  });
+
+  test("'kept until a newer one arrives': ingest only ever writes a reading it has", () => {
+    const service: string = readPackageCode(
+      "Common/Server/Services/CloudResourceInstanceService.ts",
+    );
+    const recordInstance: string = between(
+      service,
+      "public async recordInstance(",
+      "public async deleteStaleForResource(",
+    );
+
+    expect(recordInstance).toContain(
+      "if (data.cpuPercent !== undefined) { fields.latestCpuPercent = data.cpuPercent; }",
+    );
+    expect(recordInstance).toContain(
+      "if (data.memoryBytes !== undefined) { fields.latestMemoryBytes = data.memoryBytes; }",
+    );
+    // The update and the create each write a reading once, and never clear it.
+    expect(countOf(recordInstance, "latestCpuPercent =")).toBe(2);
+    expect(countOf(recordInstance, "latestMemoryBytes =")).toBe(2);
+
+    for (const key of ["cpu", "memory"] as const) {
+      expect(CLOUD_INSTANCE_METRIC_DESCRIPTIONS[key]).toContain(
+        "one snapshot, not an average",
+      );
+      expect(CLOUD_INSTANCE_METRIC_DESCRIPTIONS[key]).toContain(
+        "kept until a newer one arrives",
+      );
+    }
+  });
+
+  test("'can read above 100%': CPU is stored as the receiver sends it, and shown uncapped", () => {
+    const ingest: string = readPackageCode(
+      "App/FeatureSet/Telemetry/Services/OtelMetricsIngestService.ts",
+    );
+    const cpuPercent: string = between(
+      ingest,
+      'case "cpuPercent": {',
+      'case "cpuRatio": {',
+    );
+
+    expect(cpuPercent).toContain("value: rawValue,");
+
+    const cpuColumn: string = between(
+      columnsBlock,
+      'title: "CPU",',
+      'title: "Memory",',
+    );
+
+    expect(cpuColumn).toContain(
+      'formatPercent( typeof item.latestCpuPercent === "number" ? item.latestCpuPercent : null, )',
+    );
+    expect(cpuColumn).not.toContain("Math.min");
+    expect(CLOUD_INSTANCE_METRIC_DESCRIPTIONS.cpu).toContain(
+      "so it can read above 100%",
+    );
+  });
+
+  test("'A dash means no reading has arrived': both cells fall back to the dash formatters", () => {
+    const memoryColumn: string = between(
+      columnsBlock,
+      'title: "Memory",',
+      'title: "Last Seen",',
+    );
+
+    expect(memoryColumn).toContain(
+      'formatBytes( typeof item.latestMemoryBytes === "number" ? item.latestMemoryBytes : null, )',
+    );
+
+    const format: string = readCode(
+      "Components/TelemetryResource/telemetryFormat.ts",
+    );
+
+    for (const formatter of ["formatPercent", "formatBytes"]) {
+      expect(between(format, `export const ${formatter}:`, "};")).toContain(
+        "=== null || !Number.isFinite",
+      );
+    }
+
+    expect(CLOUD_INSTANCE_METRIC_DESCRIPTIONS.cpu).toContain(
+      "A dash means no CPU reading has arrived.",
+    );
+    expect(CLOUD_INSTANCE_METRIC_DESCRIPTIONS.memory).toContain(
+      "A dash means no memory reading has arrived.",
+    );
+  });
+
+  test("'the whole task's figure is preferred': a task-level ECS point outranks a container's", () => {
+    const ingest: string = readPackageCode(
+      "App/FeatureSet/Telemetry/Services/OtelMetricsIngestService.ts",
+    );
+
+    expect(ingest).toContain(
+      "const CLOUD_SNAPSHOT_RANK_CONTAINER: number = 0;",
+    );
+    expect(ingest).toContain("const CLOUD_SNAPSHOT_RANK_TASK: number = 1;");
+    expect(ingest).toContain(
+      '"ecs.task.memory.utilized", { kind: "memoryMegabytes", rank: CLOUD_SNAPSHOT_RANK_TASK }',
+    );
+    expect(ingest).toContain(
+      '"container.memory.utilized", { kind: "memoryMegabytes", rank: CLOUD_SNAPSHOT_RANK_CONTAINER }',
+    );
+    expect(ingest).toContain("return incoming.rank > existing.rank;");
+    expect(CLOUD_INSTANCE_METRIC_DESCRIPTIONS.memory).toContain(
+      "For an ECS task the whole task's figure is preferred over a single container's.",
+    );
+  });
+
+  test("the tab has no time picker, so neither text claims a range", () => {
+    expect(code).not.toContain("TimeRangePicker");
+
+    for (const key of ["cpu", "memory"] as const) {
+      expect(CLOUD_INSTANCE_METRIC_DESCRIPTIONS[key]).not.toContain("range");
+    }
+  });
+});
+
+describe("Service Profiles flame graph tooltip", () => {
+  const code: string = readCode("Pages/Service/View/Profiles.tsx");
+  const text: string = SERVICE_PROFILE_METRIC_DESCRIPTIONS.flamegraph;
+
+  test("imports the text and the (i)", () => {
+    expect(code).toContain(
+      'import { SERVICE_PROFILE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ServiceMetricDescriptions";',
+    );
+    expect(code).toContain(
+      'import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";',
+    );
+  });
+
+  test("the heading above the flame graph carries an (i) with its own text", () => {
+    expect(code).toContain(
+      'const FLAMEGRAPH_TITLE: string = "Where the time is going";',
+    );
+
+    const heading: string = between(
+      code,
+      '<div className="flex items-center gap-1">',
+      "</div>",
+    );
+
+    expect(heading).toContain(
+      '<h3 className="text-sm font-semibold text-gray-900"> {FLAMEGRAPH_TITLE} </h3>',
+    );
+    expect(heading).toContain(
+      "<InfoTooltip label={FLAMEGRAPH_TITLE} text={SERVICE_PROFILE_METRIC_DESCRIPTIONS.flamegraph} />",
+    );
+    // The (i) is a button: never inside another control.
+    expect(heading).not.toContain("<button");
+    expect(heading).not.toContain("<a ");
+    expect(countOf(code, "<InfoTooltip")).toBe(1);
+    // The heading is not hand-typed a second time.
+    expect(countOf(code, "Where the time is going")).toBe(1);
+  });
+
+  test("uses every profile description and no key that does not exist", () => {
+    expect(
+      [
+        ...new Set(referencedKeys(code, "SERVICE_PROFILE_METRIC_DESCRIPTIONS")),
+      ].sort(),
+    ).toEqual(Object.keys(SERVICE_PROFILE_METRIC_DESCRIPTIONS).sort());
+  });
+
+  test("'the time window picked beside it': the flame graph reads the tab's own chips", () => {
+    expect(code).toContain('{ label: "15m", minutes: 15 }');
+    expect(code).toContain('{ label: "7d", minutes: 60 * 24 * 7 }');
+    expect(code).toContain(
+      "OneUptimeDate.addRemoveMinutes(now, -rangeMinutes)",
+    );
+    expect(code).toContain("startTime={startTime} endTime={endTime}");
+    expect(text).toContain("in the time window picked beside it");
+  });
+
+  test("'CPU time by default', and 'every type added together for Everything'", () => {
+    expect(code).toContain('const DEFAULT_PROFILE_TYPE: string = "cpu";');
+    expect(text).toContain("CPU time by default");
+
+    // Everything sends no type, and the server then filters on none.
+    const selector: string = readCode(
+      "Components/Profiles/ProfileTypeSelector.tsx",
+    );
+
+    expect(selector).toContain(
+      'label: "Everything", description: "All profile types", value: undefined,',
+    );
+
+    const util: string = readCode("Utils/ProfileUtil.ts");
+
+    expect(
+      between(util, "public static getQueryProfileTypes(", "switch"),
+    ).toContain("if (!selection) { return undefined; }");
+
+    const server: string = readPackageCode(
+      "Common/Server/Services/ProfileAggregationService.ts",
+    );
+
+    expect(server).toContain(
+      "if (request.profileTypes && request.profileTypes.length > 0) {",
+    );
+    expect(server).toContain("toFloat64(sum(value)) AS totalValue");
+    expect(text).toContain("every type added together for Everything");
+  });
+
+  test("'The functions a bar calls sit below it': children are drawn one row down", () => {
+    const view: string = readCode("Components/Profiles/FlamegraphView.tsx");
+
+    expect(view).toContain("top: `${depth * FRAME_HEIGHT}px`");
+    expect(view).toContain(
+      "renderNode(child, depth + 1, currentOffset, childWidth)",
+    );
+    expect(text).toContain("The functions a bar calls sit below it.");
   });
 });

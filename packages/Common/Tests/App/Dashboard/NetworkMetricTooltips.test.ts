@@ -21,6 +21,21 @@ import SiteUptimeUtil, {
   SiteUptimeMeasurement,
 } from "../../../Utils/NetworkSite/SiteUptimeUtil";
 import NetworkDeviceMonitoringMethod from "../../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
+import SiteHealthRollupPolicy, {
+  DefaultSiteHealthRollupPolicy,
+} from "../../../Types/NetworkSite/SiteHealthRollupPolicy";
+import LatencyMatrixUtil from "../../../Utils/Monitor/LatencyMatrixUtil";
+import LatencyMatrix from "../../../Types/Monitor/LatencyMatrix";
+import { deviceHealthState } from "../../../Utils/NetworkDevice/DeviceHealthStateUtil";
+import NetworkDeviceDiscoveryScan from "../../../Models/DatabaseModels/NetworkDeviceDiscoveryScan";
+import {
+  DiscoveryScanOutcome,
+  summarizeDiscoveryScan,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryScanOutcome";
+import NetworkSiteHierarchyUtil, {
+  ChildAggregate,
+  DEFAULT_UPTIME_WINDOW_DAYS,
+} from "../../../../App/FeatureSet/BaseAPI/Utils/NetworkSiteHierarchyUtil";
 import {
   expectReadableDescriptionRecord,
   expectTitleExplained,
@@ -874,5 +889,460 @@ describe("site texts match SiteUptimeUtil and the rollup", () => {
     expect(settings).toContain("healthRollupPolicy");
     expect(SITE.health).toContain("the worst device status by default");
     expect(SITE.health).toContain("share-of-devices-down rule set in Settings");
+  });
+});
+
+describe("the site list and site Devices texts match what those columns draw", () => {
+  test("the Sites list Status is the same subtree rollup, worst-of unless Settings say otherwise", () => {
+    const siteService: string = readFrom(
+      PACKAGES_ROOT,
+      "Common",
+      "Server",
+      "Services",
+      "NetworkSiteService.ts",
+    );
+
+    expect(siteService).toContain(
+      "...(await this.getDescendantSiteIds(site.id, site.projectId)),",
+    );
+    expect(DefaultSiteHealthRollupPolicy).toBe(
+      SiteHealthRollupPolicy.WorstStatus,
+    );
+    expect(SITE.siteStatus).toContain("every site beneath it");
+    expect(SITE.siteStatus).toContain(
+      "the worst device status unless its Settings set a share-of-devices-down rule",
+    );
+  });
+
+  test("child sites inside a maintenance window do not vote in their ancestors' health", () => {
+    const siteService: string = readFrom(
+      PACKAGES_ROOT,
+      "Common",
+      "Server",
+      "Services",
+      "NetworkSiteService.ts",
+    );
+
+    /*
+     * A site that is itself in maintenance still shows its own outage; only
+     * an ancestor looking down past a maintained subtree drops it.
+     */
+    expect(siteService).toContain(
+      "const suppressesDescendants: boolean = !isSiteUnderMaintenance && maintainedSiteIds.size > 0;",
+    );
+    expect(SITE.siteStatus).toContain(
+      "leaving out child sites under maintenance",
+    );
+  });
+
+  test("No Data is a site with no rolled-up status", () => {
+    const sites: string = readDashboard("Pages", "NetworkSite", "Sites.tsx");
+
+    expect(sites).toContain(
+      'if (!item.currentMonitorStatus) { return <span className="text-sm text-gray-400">No Data</span>; }',
+    );
+    expect(SITE.siteStatus).toContain(
+      "No Data means nothing below it has reported yet",
+    );
+  });
+
+  test("on the site's Devices tab a monitor-backed device is folded into Up / Down by the OFFLINE end", () => {
+    const siteDevices: string = readDashboard(
+      "Pages",
+      "NetworkSite",
+      "View",
+      "Devices.tsx",
+    );
+    const deviceList: string = readDashboard(
+      "Pages",
+      "NetworkDevice",
+      "Devices.tsx",
+    );
+
+    // The tab reads the shared rule for every device, monitor-backed or not.
+    expect(siteDevices).toContain(
+      "const reachability: DeviceReachabilityResult = DeviceStatusUtil.getReachability(item);",
+    );
+    expect(siteDevices).not.toContain("text={item.currentMonitorStatus.name}");
+
+    // ...where a monitor that is Degraded but not offline reads Up.
+    expect(
+      DeviceReachabilityUtil.getStatus({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+        monitorStatusIsOffline: false,
+      }),
+    ).toBe(NetworkDeviceReachability.Up);
+    expect(SITE.siteDeviceStatus).toContain(
+      "Down only when its bound monitor reports it offline and Up otherwise",
+    );
+
+    // The device list prints the monitor's own word instead, so its text differs.
+    expect(deviceList).toContain("text={item.currentMonitorStatus.name}");
+    expect(DEVICE.deviceStatus).toContain(
+      "shows its bound monitor's status instead",
+    );
+    expect(SITE.siteDeviceStatus).not.toBe(DEVICE.deviceStatus);
+  });
+
+  test("the tab's Interfaces column is the device list's, cell for cell", () => {
+    const siteDevices: string = readDashboard(
+      "Pages",
+      "NetworkSite",
+      "View",
+      "Devices.tsx",
+    );
+
+    expect(siteDevices).toContain("if (hasNoSnmpInventory(item)) {");
+    expect(siteDevices).toContain("{NO_SNMP_INTERFACES_LABEL.text}");
+    expect(DEVICE.deviceInterfacesUpDown).toContain(
+      "No SNMP means the device is only pinged",
+    );
+  });
+});
+
+describe("Network Map card texts match the children endpoint", () => {
+  const OPERATIONAL: string = "status-operational";
+  const DEGRADED: string = "status-degraded";
+
+  /*
+   * region (a child of the level in view)
+   *   market
+   *     store1 (unit, Operational)
+   *     store2 (unit, Degraded)
+   *     store3 (unit, never rolled up)
+   */
+  function regionAggregate(): ChildAggregate {
+    return NetworkSiteHierarchyUtil.aggregateChildStats({
+      children: [{ id: "region", siteType: "Region", isUnitLevel: false }],
+      descendants: [
+        {
+          id: "market",
+          siteType: "Market",
+          isUnitLevel: false,
+          parentSiteId: "region",
+          materializedPath: "/region/",
+        },
+        {
+          id: "store1",
+          siteType: "Store",
+          isUnitLevel: true,
+          parentSiteId: "market",
+          materializedPath: "/region/market/",
+          currentMonitorStatusId: OPERATIONAL,
+        },
+        {
+          id: "store2",
+          siteType: "Store",
+          isUnitLevel: true,
+          parentSiteId: "market",
+          materializedPath: "/region/market/",
+          currentMonitorStatusId: DEGRADED,
+        },
+        {
+          id: "store3",
+          siteType: "Store",
+          isUnitLevel: true,
+          parentSiteId: "market",
+          materializedPath: "/region/market/",
+        },
+      ],
+      devices: [
+        { siteId: "store1", healthState: "degraded", deviceCount: 2 },
+        { siteId: "region", healthState: "healthy", deviceCount: 3 },
+      ],
+      operationalStatusIds: new Set<string>([OPERATIONAL]),
+    }).get("region")!;
+  }
+
+  test("a unit that is not operational counts as down on the card - Degraded AND no data", () => {
+    const card: string = readDashboard(
+      "Components",
+      "NetworkSite",
+      "SiteCard.tsx",
+    );
+    const aggregate: ChildAggregate = regionAggregate();
+
+    // Three units below, one operational: the card reads "2 of 3 units down".
+    expect(aggregate.unitStats).toEqual({ totalUnits: 3, operationalUnits: 1 });
+    expect(card).toContain(
+      "const downUnits: number = totalUnits - operationalUnits;",
+    );
+    expect(card).toContain(
+      "leadCaption = `of ${totalUnits} ${pluralUnits(totalUnits)} down`;",
+    );
+
+    expect(SITE.siteCards).toContain("Units are unit-level sites");
+    expect(SITE.siteCards).toContain(
+      "any not operational, even with no data yet, count as down",
+    );
+  });
+
+  test("devices span the whole subtree, and a degraded one answers with a port down", () => {
+    const aggregate: ChildAggregate = regionAggregate();
+
+    // Two at a grandchild unit plus three on the region itself.
+    expect(aggregate.deviceCount).toBe(5);
+    expect(aggregate.deviceStats.degraded).toBe(2);
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    expect(
+      deviceHealthState(
+        {
+          monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+          isReachable: true,
+          lastPolledAt: now,
+          lastSeenAt: now,
+          interfacesDown: 2,
+        },
+        now,
+      ),
+    ).toBe("degraded");
+
+    expect(SITE.siteCards).toContain("Devices span every site below");
+    expect(SITE.siteCards).toContain(
+      "a degraded one answers but has a port down",
+    );
+  });
+
+  test("uptime is 30 days and 'today' is the last 24 hours, maintenance left out", () => {
+    const hierarchyApi: string = readFrom(
+      PACKAGES_ROOT,
+      "App",
+      "FeatureSet",
+      "BaseAPI",
+      "API",
+      "NetworkSiteHierarchy.ts",
+    );
+    const map: string = readDashboard("Pages", "NetworkSite", "NetworkMap.tsx");
+    const card: string = readDashboard(
+      "Components",
+      "NetworkSite",
+      "SiteCard.tsx",
+    );
+
+    // The map asks for no window, so the endpoint's default applies.
+    expect(map).toContain("data: siteId ? { siteId: siteId } : {},");
+    expect(map).not.toContain("uptimeWindowInDays");
+    expect(DEFAULT_UPTIME_WINDOW_DAYS).toBe(30);
+
+    expect(hierarchyApi).toContain(
+      "const dailyWindowStart: Date = SiteUptimeUtil.trailingWindowStart( windowEnd, 1, );",
+    );
+    expect(hierarchyApi).toContain(
+      "SiteUptimeUtil.measureUptime( uptimeRows!, windowStart, windowEnd, childMaintenanceWindows, )",
+    );
+    expect(card).toContain("30d uptime");
+    expect(card).toContain(
+      "{formatUptimePercent(site.dailyUptimePercent)} today",
+    );
+
+    // 'today' quoted: the card's own label, not "as of today".
+    expect(SITE.siteCards).toContain(
+      "Uptime covers 30 days and 'today' the last 24 hours, maintenance left out",
+    );
+  });
+});
+
+describe("Probe Latency Matrix text matches LatencyMatrixUtil and the endpoint", () => {
+  const T0: number = new Date("2026-09-24T10:00:00.000Z").getTime();
+  const MINUTE: number = 60 * 1000;
+
+  function buildMatrix(): LatencyMatrix {
+    return LatencyMatrixUtil.buildMatrix({
+      monitors: [{ id: "web", name: "Website" }],
+      probes: [
+        { id: "own-probe", name: "Rack 3" },
+        { id: "idle-probe", name: "Rack 4" },
+      ],
+      results: [
+        {
+          monitorId: "web",
+          probeId: "own-probe",
+          lastMonitoringLog: {
+            // Two steps: the cell is the one checked MOST RECENTLY.
+            stepA: {
+              monitoredAt: new Date(T0).toISOString(),
+              responseTimeInMs: 80,
+              isOnline: true,
+            },
+            stepB: {
+              monitoredAt: new Date(T0 + 5 * MINUTE).toISOString(),
+              responseTimeInMs: 20,
+              isOnline: true,
+            },
+          },
+        },
+        {
+          // A probe the axis does not list - a global probe - is dropped.
+          monitorId: "web",
+          probeId: "global-probe",
+          lastMonitoringLog: {
+            stepA: {
+              monitoredAt: new Date(T0).toISOString(),
+              responseTimeInMs: 5,
+              isOnline: true,
+            },
+          },
+        },
+      ],
+      now: new Date(T0 + 20 * MINUTE),
+    });
+  }
+
+  test("each cell is the monitor's LATEST check from that probe", () => {
+    const cell: LatencyMatrix["cells"][string][string] =
+      buildMatrix().cells["web"]!["own-probe"]!;
+
+    expect(cell.latencyInMs).toBe(20);
+    expect(cell.ageInSeconds).toBe(15 * 60);
+    expect(DEVICE.latencyMatrix).toContain("each monitor's latest check");
+  });
+
+  test("a probe with no result is a dash, and an old result is faded after 10 minutes", () => {
+    const grid: string = readDashboard(
+      "Components",
+      "NetworkDevice",
+      "LatencyMatrixGrid.tsx",
+    );
+
+    expect(buildMatrix().cells["web"]!["idle-probe"]!.hasData).toBe(false);
+    expect(grid).toContain("if (!cell || !cell.hasData) {");
+    expect(grid).toContain("&mdash;");
+    expect(grid).toContain("const STALE_AGE_IN_SECONDS: number = 600;");
+    expect(grid).toContain("style={isStale ? { opacity: 0.5 } : undefined}");
+    expect(grid).toContain("if (cell.isOnline === false) {");
+
+    expect(DEVICE.latencyMatrix).toContain("Offline means that check failed");
+    expect(DEVICE.latencyMatrix).toContain("a dash means no result");
+    expect(DEVICE.latencyMatrix).toContain(
+      "faded cells are over 10 minutes old",
+    );
+  });
+
+  test("only the project's own probes get a column", () => {
+    const matrixApi: string = readFrom(
+      PACKAGES_ROOT,
+      "App",
+      "FeatureSet",
+      "BaseAPI",
+      "API",
+      "NetworkLatencyMatrix.ts",
+    );
+
+    /*
+     * Global probes have no projectId, so a projectId query never returns
+     * them - and a result from a probe the axis does not list is dropped.
+     */
+    expect(matrixApi).toContain(
+      "const probes: Array<Probe> = await ProbeService.findBy({ query: { projectId: props.tenantId, },",
+    );
+    expect(Object.keys(buildMatrix().cells["web"]!)).toEqual([
+      "own-probe",
+      "idle-probe",
+    ]);
+    expect(DEVICE.latencyMatrix).toContain("from each of your probes");
+    expect(DEVICE.latencyMatrix).toContain("Global probes are not shown");
+  });
+});
+
+describe("the Discovery Scans text matches how the ingest counts responders", () => {
+  function discoveryScan(data: {
+    isSnmpEnabled: boolean;
+    status: string;
+    scannedHostCount: number;
+    respondedHostCount: number;
+    pingOnlyHosts: number;
+  }): NetworkDeviceDiscoveryScan {
+    const hosts: Array<{ ipAddress: string; snmpReachable: boolean }> = [];
+
+    for (let i: number = 0; i < data.respondedHostCount; i++) {
+      hosts.push({ ipAddress: `10.0.0.${i + 1}`, snmpReachable: true });
+    }
+
+    for (let i: number = 0; i < data.pingOnlyHosts; i++) {
+      hosts.push({ ipAddress: `10.0.1.${i + 1}`, snmpReachable: false });
+    }
+
+    return Object.assign(new NetworkDeviceDiscoveryScan(), {
+      cidr: "10.0.0.0/22",
+      isSnmpEnabled: data.isSnmpEnabled,
+      status: data.status,
+      scannedHostCount: data.scannedHostCount,
+      respondedHostCount: data.respondedHostCount,
+      discoveredDevices: hosts,
+    });
+  }
+
+  test("on an SNMP scan the count is the SNMP responders; ping-only hosts are the line beneath", () => {
+    const ingest: string = readFrom(
+      PACKAGES_ROOT,
+      "App",
+      "FeatureSet",
+      "Telemetry",
+      "API",
+      "ProbeIngest",
+      "DiscoveryScan.ts",
+    );
+
+    expect(ingest).toContain('return device["snmpReachable"] !== false;');
+    expect(ingest).toContain(
+      "const respondedHostCount: number = ScanModeUtil.isSnmpEnabled(scan) ? snmpResponderCount : discoveredDevices.length;",
+    );
+
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      discoveryScan({
+        isSnmpEnabled: true,
+        status: "Completed",
+        scannedHostCount: 1022,
+        respondedHostCount: 12,
+        pingOnlyHosts: 30,
+      }),
+    );
+
+    expect(outcome.respondedHostSummary).toBe("12 of 1022 hosts");
+    expect(outcome.pingOnlyHostCount).toBe(30);
+    expect(DEVICE.discoveryRespondedHosts).toContain(
+      "Hosts that answered SNMP out of the addresses swept",
+    );
+    expect(DEVICE.discoveryRespondedHosts).toContain(
+      "hosts that answered only ping counted separately as alive without SNMP",
+    );
+  });
+
+  test("on a ping-only scan the count is the hosts that answered ping", () => {
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      discoveryScan({
+        isSnmpEnabled: false,
+        status: "Completed",
+        scannedHostCount: 1022,
+        respondedHostCount: 40,
+        pingOnlyHosts: 0,
+      }),
+    );
+
+    expect(outcome.respondedHostSummary).toBe("40 of 1022 hosts answered ping");
+    expect(outcome.pingOnlyHostCount).toBe(0);
+    expect(DEVICE.discoveryRespondedHosts).toContain(
+      "On a ping-only scan it is the hosts that answered ping",
+    );
+  });
+
+  test("mid-sweep, the denominator is what has been swept so far", () => {
+    const outcome: DiscoveryScanOutcome = summarizeDiscoveryScan(
+      discoveryScan({
+        isSnmpEnabled: true,
+        status: "In Progress",
+        scannedHostCount: 256,
+        respondedHostCount: 3,
+        pingOnlyHosts: 1,
+      }),
+    );
+
+    expect(outcome.respondedHostSummary).toBe("3 of 256 hosts");
+    expect(outcome.progressSummary).toContain("addresses swept so far");
+    expect(DEVICE.discoveryRespondedHosts).toContain(
+      "While a scan runs, both cover only what has been swept so far",
+    );
   });
 });

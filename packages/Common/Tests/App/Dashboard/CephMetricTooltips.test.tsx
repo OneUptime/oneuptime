@@ -775,6 +775,7 @@ afterEach(() => {
 // ------------------------------------------------------------------- texts
 
 const OVERVIEW_TITLES: Array<[string, CephMetric]> = [
+  ["Cluster inventory counts", "inventoryCounts"],
   ["Cluster health", "health"],
   ["Active Health Checks", "activeHealthChecks"],
   ["Capacity Used", "capacityUsed"],
@@ -800,6 +801,7 @@ const OSD_LIST_TITLES: Array<[string, CephMetric]> = [
   ["Used / Total", "osdUsedColumn"],
   ["PGs", "osdPgsColumn"],
   ["Apply / Commit Latency", "osdLatencyColumn"],
+  ["Age", "osdAgeColumn"],
 ];
 
 const OSD_DETAIL_TITLES: Array<[string, CephMetric]> = [
@@ -892,9 +894,12 @@ describe("CEPH_METRIC_DESCRIPTIONS", () => {
     ["problemPgs", /undersized \(on fewer OSDs than the pool's copy count\)/],
     ["osdStates", /up means its daemon is running/],
     ["osdStates", /in means Ceph places data on it/],
-    ["clientIops", /operations per second/],
-    ["poolReadIopsColumn", /read operations per second/],
-    ["poolWriteIopsColumn", /write operations per second/],
+    ["osdStates", /a daemon that stores data, usually one per disk/],
+    ["pgStates", /chunks Ceph splits each pool into/],
+    ["clientIops", /operations per second \(IOPS\)/],
+    ["poolClientIops", /operations per second \(IOPS\)/],
+    ["poolReadIopsColumn", /read operations per second \(IOPS\)/],
+    ["poolWriteIopsColumn", /write operations per second \(IOPS\)/],
     ["poolObjectsColumn", /not a count of your files/],
     ["capacityUsed", /nearfull/],
   ] as Array<[CephMetric, RegExp]>)(
@@ -1308,6 +1313,110 @@ describe("Ceph cluster overview", () => {
   });
 });
 
+/*
+ * The OSD / monitor / pool count chips beside the cluster name. Their text
+ * says they come from the cluster's latest data rather than a time range,
+ * that quorum is monitors in quorum out of all known monitors, and that
+ * only the monitor count shows when quorum is not reported.
+ */
+describe("Ceph cluster overview: the count chips", () => {
+  function chipRow(): HTMLElement {
+    return infoButton("Cluster inventory counts").parentElement as HTMLElement;
+  }
+
+  function withInventory(overrides: Record<string, Array<Row>>): void {
+    modelGetListMock.mockImplementation(async (args: unknown) => {
+      const kind: string = String(
+        (args as { query: Record<string, unknown> }).query["kind"],
+      );
+      const rows: Array<Row> = overrides[kind] ?? ROWS_BY_KIND[kind] ?? [];
+      return { data: rows, count: rows.length, skip: 0, limit: 100 };
+    });
+  }
+
+  test("the OSD, monitor and pool chips share one (i), and the version chip sits beside them", async () => {
+    await renderOverview();
+
+    expect(within(chipRow()).getByText("3/4 OSDs up")).toBeInTheDocument();
+    expect(
+      within(chipRow()).getByText("3/3 mons in quorum"),
+    ).toBeInTheDocument();
+    expect(within(chipRow()).getByText("3 pools")).toBeInTheDocument();
+    expect(within(chipRow()).getByText("18.2.4")).toBeInTheDocument();
+    expect(within(chipRow()).getAllByRole("button")).toHaveLength(1);
+    await expectExplained("Cluster inventory counts", "inventoryCounts");
+  });
+
+  test("OSDs come from the cluster's latest snapshot and quorum from each monitor's latest state", async () => {
+    modelGetItemMock.mockImplementation(async () => {
+      return { ...CLUSTER, osdCount: 5, osdUpCount: 2 };
+    });
+    withInventory({
+      Mon: MON_ROWS.map((row: Row): Row => {
+        return row["externalId"] === "mon.b"
+          ? { ...row, inQuorum: false }
+          : row;
+      }),
+    });
+    await renderOverview();
+
+    expect(within(chipRow()).getByText("2/5 OSDs up")).toBeInTheDocument();
+    expect(
+      within(chipRow()).getByText("2/3 mons in quorum"),
+    ).toBeInTheDocument();
+    expect(CEPH_METRIC_DESCRIPTIONS.inventoryCounts).toMatch(
+      /monitors in quorum out of all known monitors/,
+    );
+  });
+
+  test("without monitor rows, the chip shows only the monitor count, as the text says", async () => {
+    withInventory({ Mon: [] });
+    await renderOverview();
+
+    expect(within(chipRow()).getByText("3 mons")).toBeInTheDocument();
+    expect(screen.queryByText(/mons in quorum$/)).not.toBeInTheDocument();
+    expect(CEPH_METRIC_DESCRIPTIONS.inventoryCounts).toMatch(
+      /only the monitor count when quorum is not reported/,
+    );
+  });
+
+  test("the chips ignore the chart time range", async () => {
+    await renderOverview();
+
+    const clusterReads: number = modelGetItemMock.mock.calls.length;
+    const inventoryReads: number = modelGetListMock.mock.calls.length;
+
+    fireEvent.click(
+      screen.getAllByRole("button", { name: "Pick past day" })[0]!,
+    );
+    await flush();
+
+    expect(modelGetItemMock.mock.calls.length).toBe(clusterReads);
+    expect(modelGetListMock.mock.calls.length).toBe(inventoryReads);
+    expect(within(chipRow()).getByText("3/4 OSDs up")).toBeInTheDocument();
+    expect(CEPH_METRIC_DESCRIPTIONS.inventoryCounts).toMatch(
+      /latest data, not a time range/,
+    );
+  });
+
+  test("a cluster that has reported only its version gets no (i) on the chip row", async () => {
+    modelGetItemMock.mockImplementation(async () => {
+      return {
+        ...CLUSTER,
+        osdCount: 0,
+        osdUpCount: 0,
+        monCount: 0,
+        poolCount: 0,
+      };
+    });
+    withInventory({ Mon: [] });
+    await renderOverview();
+
+    expect(screen.getByText("18.2.4")).toBeInTheDocument();
+    expectNoInfo("Cluster inventory counts");
+  });
+});
+
 // ------------------------------------------------------------------- lists
 
 async function renderAndSettle(element: React.ReactElement): Promise<void> {
@@ -1330,10 +1439,52 @@ describe("OSD list", () => {
     await renderAndSettle(<CephClusterOsds {...PAGE_PROPS} />);
     await screen.findByText("osd.0");
 
-    for (const title of ["Name", "Host", "Class", "Age"]) {
+    for (const title of ["Name", "Host", "Class"]) {
       expectNoInfo(title);
     }
     expect(allInfoButtons()).toHaveLength(OSD_LIST_TITLES.length);
+  });
+
+  /*
+   * Ceph reports no creation time for an OSD, so Age is how long OneUptime
+   * has had the OSD's inventory row - which is what its text says.
+   */
+  test("Age counts from when OneUptime first recorded the OSD, not from anything Ceph reports", async () => {
+    const rows: Array<Row> = OSD_ROWS.map((row: Row): Row => {
+      // osd.2 was first recorded 10 minutes ago; the rest 3 days ago.
+      return row["externalId"] === "osd.2"
+        ? { ...row, createdAt: minutesAgo(10) }
+        : row;
+    });
+    modelGetListMock.mockImplementation(async () => {
+      return { data: rows, count: rows.length, skip: 0, limit: 100 };
+    });
+
+    await renderAndSettle(<CephClusterOsds {...PAGE_PROPS} />);
+    await screen.findByText("osd.0");
+
+    const ageHeader: HTMLElement = infoButton("Age").closest(
+      "th",
+    ) as HTMLElement;
+    const ageIndex: number = Array.from(
+      ageHeader.parentElement!.children,
+    ).indexOf(ageHeader);
+    expect(ageIndex).toBeGreaterThan(0);
+
+    const cellUnderAge: (name: string) => string = (name: string): string => {
+      const row: HTMLElement = screen
+        .getByText(name)
+        .closest("tr") as HTMLElement;
+      return (row.children[ageIndex]?.textContent || "").trim();
+    };
+
+    expect(cellUnderAge("osd.0")).toBe("3d");
+    expect(cellUnderAge("osd.2")).toBe("10m");
+    // Its 20-minute-old figures do not touch Age: that is the row's age.
+    expect(cellUnderAge("osd.3")).toBe("3d");
+    expect(CEPH_METRIC_DESCRIPTIONS.osdAgeColumn).toMatch(
+      /first saw this OSD in the data the Ceph agent sends, not how old the OSD or its disk is/,
+    );
   });
 
   test("an OSD that has not reported in 15 minutes shows a dash, as the text says", async () => {

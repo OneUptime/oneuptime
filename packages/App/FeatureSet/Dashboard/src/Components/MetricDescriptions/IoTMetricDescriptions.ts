@@ -7,7 +7,9 @@
  *
  *   - The fleet overview tiles follow the time range picker and use each
  *     device's latest reading in that range, falling back to the counts the
- *     fleet sent most recently when the range has no heartbeats.
+ *     fleet sent most recently when the range has no heartbeats. The
+ *     "devices online" chip beside the fleet name shows the same count, and
+ *     shows the fleet's own counts until the heartbeats first load.
  *   - "Devices needing attention", the device detail fields and the Devices
  *     table read the device inventory: the last value each device sent,
  *     whatever the picker says. Only the attention list checks that battery
@@ -19,6 +21,7 @@
 
 export type IoTMetric =
   // Fleet overview (Pages/IoT/View/Index.tsx)
+  | "heroDevicesOnline"
   | "onlineDevices"
   | "totalDevices"
   | "avgBattery"
@@ -41,6 +44,8 @@ export type IoTMetric =
   | "fleetDevices";
 
 export const IOT_METRIC_DESCRIPTIONS: Record<IoTMetric, string> = {
+  heroDevicesOnline:
+    "Devices online out of all devices, counted like the Online Devices tile from each device's latest up/down heartbeat in the selected time range. Until the heartbeats first load, or if none arrived in the range, it shows the counts from the fleet's most recent data.",
   onlineDevices:
     "Devices whose latest up/down heartbeat in the selected time range says they are up, out of every device that sent a heartbeat in that range. If no heartbeats arrived in the range, the counts from the fleet's most recent data are shown.",
   totalDevices:
