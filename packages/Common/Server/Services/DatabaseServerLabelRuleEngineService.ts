@@ -194,6 +194,17 @@ class DatabaseServerLabelRuleEngineServiceClass
       .add(newLabelIds);
 
     /*
+     * A rule attached these, not a person: they must not count as somebody
+     * investing in the database (see autoArchiveStaleDatabaseServers), or a
+     * catch-all rule would keep every discovered database alive forever.
+     */
+    await DatabaseServerService.recordAutomaticAssignments({
+      databaseServerId: databaseServer.id,
+      kind: "labelIds",
+      ids: newLabelIds,
+    });
+
+    /*
      * Sync in-memory databaseServer.labels so a downstream owner-rule engine in
      * the same onCreateSuccess chain can match on rule-added labels.
      */

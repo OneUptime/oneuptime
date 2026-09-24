@@ -29,10 +29,18 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  * ONE OWNER PER ENDPOINT. The unique (projectId, endpoint) index is the
  * invariant everything else leans on: telemetry keys are derived from the
  * endpoint, not from the row, so an endpoint listed on two databases would
- * show the same traffic on both. Discovery claims endpoints as root
- * (source "auto"); people add aliases from the database's Settings
- * (source "user"). The primary endpoint (isPrimary) is written by whichever
- * path created the database and cannot be removed by a person.
+ * show the same traffic on both. Discovery claims endpoints as root -
+ * source "auto" for what telemetry found, "workload" for the Service names
+ * of a Kubernetes database workload - and people add aliases from the
+ * database's Endpoints tab (source "user"). The primary endpoint (isPrimary)
+ * is written by whichever path created the database and cannot be removed
+ * by a person.
+ *
+ * Discovery's own claims are not forever: a "workload" alias the workload no
+ * longer produces is released, and an "auto" / "workload" alias held by a
+ * workload that is gone (or by an untouched trace-discovered duplicate) is
+ * handed to the workload that now serves it. A "user" endpoint is never
+ * released or moved by discovery.
  *
  * No permissions of its own, like CloudResourceInstance: adding or removing an
  * endpoint is an edit of the database, reading one is a read of it. Rows are
@@ -352,7 +360,7 @@ export default class DatabaseServerEndpoint extends BaseModel {
     type: TableColumnType.ShortText,
     title: "Source",
     description:
-      "Who added this endpoint: auto (claimed by discovery) or user (added as an alias from the database's settings).",
+      "Who added this endpoint: auto (found in telemetry), workload (a Service name of the Kubernetes workload the database runs as) or user (added as an alias by a person).",
     example: "user",
   })
   @Column({
@@ -381,7 +389,7 @@ export default class DatabaseServerEndpoint extends BaseModel {
     type: TableColumnType.Date,
     title: "Last Matched At",
     description:
-      "When telemetry or discovery last matched this endpoint to its database.",
+      "When telemetry or discovery last matched this endpoint to its database, refreshed at most once an hour. For a workload endpoint, when the workload last produced it.",
   })
   @Column({
     nullable: true,

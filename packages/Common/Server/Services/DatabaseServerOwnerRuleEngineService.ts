@@ -228,6 +228,8 @@ class DatabaseServerOwnerRuleEngineServiceClass
     );
 
     let ownersAdded: number = 0;
+    const addedUserIds: Array<string> = [];
+    const addedTeamIds: Array<string> = [];
 
     /*
      * The notifying set goes first, so an owner two matching rules disagree
@@ -259,6 +261,7 @@ class DatabaseServerOwnerRuleEngineServiceClass
           })
         ) {
           ownersAdded++;
+          addedUserIds.push(userId);
         }
       }
 
@@ -276,6 +279,7 @@ class DatabaseServerOwnerRuleEngineServiceClass
           })
         ) {
           ownersAdded++;
+          addedTeamIds.push(teamId);
         }
       }
     }
@@ -283,6 +287,21 @@ class DatabaseServerOwnerRuleEngineServiceClass
     if (ownersAdded === 0) {
       return RuleApplicationResultUtil.alreadyApplied();
     }
+
+    /*
+     * A rule added these owners, not a person: they must not count as
+     * somebody investing in the database (see autoArchiveStaleDatabaseServers).
+     */
+    await DatabaseServerService.recordAutomaticAssignments({
+      databaseServerId: databaseServer.id,
+      kind: "ownerUserIds",
+      ids: addedUserIds,
+    });
+    await DatabaseServerService.recordAutomaticAssignments({
+      databaseServerId: databaseServer.id,
+      kind: "ownerTeamIds",
+      ids: addedTeamIds,
+    });
 
     logger.debug(
       `DatabaseServerOwnerRuleEngine added owners to database ${databaseServer.id}`,

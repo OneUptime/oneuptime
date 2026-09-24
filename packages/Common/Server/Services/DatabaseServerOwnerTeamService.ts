@@ -7,13 +7,40 @@ import { Gray500, Red500 } from "../../Types/BrandColors";
 import Team from "../../Models/DatabaseModels/Team";
 import TeamService from "./TeamService";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
+import ModelPermission from "../Types/Database/Permissions/Index";
 import DatabaseServerService from "./DatabaseServerService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A caller adding an owner: the create permission first (so the lookup
+   * below is no way to probe for databases), then the database must be in
+   * the caller's project - by its FK column and its relation object alike.
+   * Root writes (owner rules) choose their own database.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    if (!createBy.props.isRoot) {
+      ModelPermission.checkCreatePermissions(
+        Model,
+        createBy.data,
+        createBy.props,
+      );
+
+      await DatabaseServerService.assertDatabaseServerReferenceInProject(
+        createBy,
+      );
+    }
+
+    return { createBy: createBy, carryForward: null };
   }
 
   @CaptureSpan()
@@ -106,6 +133,18 @@ export class Service extends DatabaseService<Model> {
     const teamId: ObjectID | undefined = createdItem.teamId;
     const createdByUserId: ObjectID | undefined =
       createdItem.createdByUserId || onCreate.createBy.props.userId;
+
+    /*
+     * Added by a person (not an owner rule): whoever added this owner first,
+     * it now counts as somebody investing in the database.
+     */
+    if (databaseServerId && teamId && !onCreate.createBy.props.isRoot) {
+      await DatabaseServerService.forgetAutomaticAssignments({
+        databaseServerId: databaseServerId,
+        kind: "ownerTeamIds",
+        ids: [teamId],
+      });
+    }
 
     if (databaseServerId && teamId && projectId) {
       const team: Team | null = await TeamService.findOneById({

@@ -385,6 +385,54 @@ describe("DatabaseServerLabelRuleEngineService", () => {
     expect(item.moreInformationInMarkdown).toContain("Tag every PostgreSQL");
   });
 
+  /*
+   * A label a rule attached is not a person caring about the database: the
+   * auto-archive sweep must not count it, so it is recorded as automatic.
+   */
+  test("the labels a rule attaches are recorded as automatic - only the ones it actually added", async () => {
+    arrange({ details: details({ labels: [LABEL_A] }) });
+    const record: jest.SpyInstance = getJestSpyOn(
+      DatabaseServerService,
+      "recordAutomaticAssignments",
+    ).mockResolvedValue(undefined);
+
+    await DatabaseServerLabelRuleEngineService.applyRulesToExistingResource({
+      resource: target(),
+      rules: [
+        labelRule({
+          namePattern: "^PostgreSQL",
+          labelsToAdd: [LABEL_A, LABEL_B],
+        }),
+      ],
+      allowOwnerNotification: false,
+    });
+
+    expect(record).toHaveBeenCalledTimes(1);
+    expect(record).toHaveBeenCalledWith({
+      databaseServerId: DATABASE_ID,
+      kind: "labelIds",
+      ids: [LABEL_B.toString()],
+    });
+    // Recorded only after the join-table write succeeded.
+    expect(writes).toHaveLength(1);
+  });
+
+  test("a failed label write records nothing as automatic", async () => {
+    arrange({ failWrite: true });
+    const record: jest.SpyInstance = getJestSpyOn(
+      DatabaseServerService,
+      "recordAutomaticAssignments",
+    ).mockResolvedValue(undefined);
+
+    await DatabaseServerLabelRuleEngineService.applyRulesToExistingResource({
+      resource: target(),
+      rules: [labelRule({ namePattern: "^PostgreSQL" })],
+      allowOwnerNotification: false,
+    });
+
+    expect(record).not.toHaveBeenCalled();
+  });
+
   test("every label already present: matched, nothing written", async () => {
     arrange({ details: details({ labels: [LABEL_A] }) });
 
@@ -559,6 +607,76 @@ describe("DatabaseServerOwnerRuleEngineService", () => {
     expect(createOwnerUser).not.toHaveBeenCalled();
     expect(createOwnerTeam).toHaveBeenCalledTimes(1);
     expect(result).toEqual(RuleApplicationResultUtil.updated(1));
+  });
+
+  /*
+   * An owner a rule added is not a person caring about the database: the
+   * auto-archive sweep must not count it, so it is recorded as automatic.
+   */
+  test("the owners a rule adds are recorded as automatic - users and teams", async () => {
+    arrange({ rules: [ownerRule()] });
+    const record: jest.SpyInstance = getJestSpyOn(
+      DatabaseServerService,
+      "recordAutomaticAssignments",
+    ).mockResolvedValue(undefined);
+
+    await DatabaseServerOwnerRuleEngineService.applyRulesToDatabaseServer(
+      target(),
+    );
+
+    expect(record).toHaveBeenCalledWith({
+      databaseServerId: DATABASE_ID,
+      kind: "ownerUserIds",
+      ids: [USER_ID.toString()],
+    });
+    expect(record).toHaveBeenCalledWith({
+      databaseServerId: DATABASE_ID,
+      kind: "ownerTeamIds",
+      ids: [TEAM_ID.toString()],
+    });
+  });
+
+  test("an owner who was already there - maybe added by a person - is not recorded as automatic", async () => {
+    arrange({ assignedUserIds: [USER_ID] });
+    const record: jest.SpyInstance = getJestSpyOn(
+      DatabaseServerService,
+      "recordAutomaticAssignments",
+    ).mockResolvedValue(undefined);
+
+    await DatabaseServerOwnerRuleEngineService.applyRulesToExistingResource({
+      resource: target(),
+      rules: [ownerRule()],
+      allowOwnerNotification: true,
+    });
+
+    const userCall: any = record.mock.calls.find((call: any) => {
+      return call[0].kind === "ownerUserIds";
+    });
+    expect(userCall[0].ids).toEqual([]);
+    const teamCall: any = record.mock.calls.find((call: any) => {
+      return call[0].kind === "ownerTeamIds";
+    });
+    expect(teamCall[0].ids).toEqual([TEAM_ID.toString()]);
+  });
+
+  test("an owner insert that did not happen is not recorded", async () => {
+    arrange({ rules: [ownerRule()] });
+    createOwnerUser.mockRejectedValue(
+      Object.assign(new Error("duplicate key value"), { code: "23505" }),
+    );
+    const record: jest.SpyInstance = getJestSpyOn(
+      DatabaseServerService,
+      "recordAutomaticAssignments",
+    ).mockResolvedValue(undefined);
+
+    await DatabaseServerOwnerRuleEngineService.applyRulesToDatabaseServer(
+      target(),
+    );
+
+    const userCall: any = record.mock.calls.find((call: any) => {
+      return call[0].kind === "ownerUserIds";
+    });
+    expect(userCall[0].ids).toEqual([]);
   });
 
   test("a run that does not allow notifications adds owners silently", async () => {

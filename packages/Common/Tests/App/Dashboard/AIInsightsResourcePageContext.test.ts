@@ -7,6 +7,7 @@ import { encodeServiceNameForUrl } from "../../../../App/FeatureSet/Dashboard/sr
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import CloudResource from "../../../Models/DatabaseModels/CloudResource";
+import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
 import Host from "../../../Models/DatabaseModels/Host";
@@ -115,6 +116,12 @@ const RESOURCES: Array<ResourceCase> = [
     path: "network-devices",
     modelType: NetworkDevice,
     chip: "This network device",
+  },
+  {
+    type: AIResourceType.DatabaseServer,
+    path: "databases",
+    modelType: DatabaseServer,
+    chip: "This database",
   },
 ];
 
@@ -521,6 +528,40 @@ describe("AI Insights infrastructure routes", () => {
     },
   );
 
+  test("every tab of a database is the database itself - never a child identity", () => {
+    for (const tab of [
+      "endpoints",
+      "traces",
+      "owners",
+      "recommendations",
+      "documentation",
+      "feed",
+    ]) {
+      expect(navigateTo(`databases/${ENTITY_ID}/${tab}`)).toMatchObject({
+        type: AIChatPageContextType.Resource,
+        resourceType: AIResourceType.DatabaseServer,
+        entityId: ENTITY_ID,
+        noun: "database",
+        chipLabel: "This database",
+        isEntity: true,
+      });
+      expect(PageContextUtil.detectPageContext()?.subresource).toBeUndefined();
+    }
+  });
+
+  test("a database page's context survives sanitization for the server", () => {
+    const context: DashboardPageContext = requireContext(
+      `databases/${ENTITY_ID}/metrics`,
+    );
+    expect(
+      AIChatPageContextHelper.sanitize(context as unknown as JSONObject),
+    ).toEqual({
+      type: AIChatPageContextType.Resource,
+      resourceType: AIResourceType.DatabaseServer,
+      entityId: ENTITY_ID,
+    });
+  });
+
   test("does not invent a namespace or confuse a Kubernetes pod name with a UUID", () => {
     const context: DashboardPageContext = requireContext(
       `kubernetes/${ENTITY_ID}/pods/api`,
@@ -574,6 +615,7 @@ describe("AI Insights infrastructure routes", () => {
     "hostile",
     "podman-other",
     "kubernetes-other",
+    "databases-other",
   ])("does not claim unsupported resource page %s", (path: string) => {
     expect(navigateTo(path)).toBeNull();
   });

@@ -27,9 +27,14 @@ import DatabaseServerService from "../../../Server/Services/DatabaseServerServic
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "../../../Models/DatabaseModels/DatabaseServerEndpoint";
 import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster";
+import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
+import logger from "../../../Server/Utils/Logger";
+import OwnedScopePermission from "../../../Server/Types/Database/Permissions/OwnedScopePermission";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
@@ -110,9 +115,9 @@ function owner(
 
 function parentDatabase(
   overrides: {
-    dbSystem?: string;
-    kubernetesNamespace?: string;
-    clusterIdentifier?: string;
+    dbSystem?: string | undefined;
+    kubernetesNamespace?: string | undefined;
+    clusterIdentifier?: string | undefined;
   } = {},
 ): DatabaseServer {
   const database: DatabaseServer = new DatabaseServer(DATABASE_ID);
@@ -160,7 +165,7 @@ describe("DatabaseServerEndpointService.findOwnerByEndpoint", () => {
     const result: DatabaseServerEndpointOwner | null =
       await DatabaseServerEndpointService.findOwnerByEndpoint(
         PROJECT_ID,
-        " orders-db.internal:5432 ",
+        " orders-db.example.com:5432 ",
       );
 
     expect(result).not.toBeNull();
@@ -170,7 +175,7 @@ describe("DatabaseServerEndpointService.findOwnerByEndpoint", () => {
     const call: any = findOneBy.mock.calls[0]![0];
     expect(call.query.projectId).toBe(PROJECT_ID);
     // Stored canonical, so compared byte for byte - trimmed, not lowercased again.
-    expect(call.query.endpoint).toBe("orders-db.internal:5432");
+    expect(call.query.endpoint).toBe("orders-db.example.com:5432");
     expect(call.props.isRoot).toBe(true);
     expect(call.select).toMatchObject({
       databaseServerId: true,
@@ -184,7 +189,7 @@ describe("DatabaseServerEndpointService.findOwnerByEndpoint", () => {
     await expect(
       DatabaseServerEndpointService.findOwnerByEndpoint(
         PROJECT_ID,
-        "orders-db.internal:5432",
+        "orders-db.example.com:5432",
       ),
     ).resolves.toBeNull();
   });
@@ -206,7 +211,7 @@ describe("DatabaseServerEndpointService.findOwnerByEndpoint", () => {
     const result: DatabaseServerEndpointOwner | null =
       await DatabaseServerEndpointService.findOwnerByEndpoint(
         PROJECT_ID,
-        "orders-db.internal:5432",
+        "orders-db.example.com:5432",
       );
 
     expect(result!.isPrimary).toBe(false);
@@ -357,7 +362,7 @@ describe("DatabaseServerEndpointService.claimEndpoint", () => {
 describe("DatabaseServerEndpointService.listEndpoints", () => {
   test("lists one database's endpoints, primary first, deduped", async () => {
     const rows: Array<DatabaseServerEndpoint> = [
-      "orders-db.internal:5432",
+      "orders-db.example.com:5432",
       "orders-replica.internal:5432",
       "orders-replica.internal:5432",
       "",
@@ -378,7 +383,7 @@ describe("DatabaseServerEndpointService.listEndpoints", () => {
       await DatabaseServerEndpointService.listEndpoints(DATABASE_ID);
 
     expect(endpoints).toEqual([
-      "orders-db.internal:5432",
+      "orders-db.example.com:5432",
       "orders-replica.internal:5432",
     ]);
     const call: any = findBy.mock.calls[0]![0];
@@ -391,12 +396,198 @@ describe("DatabaseServerEndpointService.listEndpoints", () => {
   });
 });
 
+/*
+ * A fake DatabaseServer table for the parent lookups. A root lookup is
+ * matched as the service built it (after the REAL update-permission check
+ * scoped it); a caller's own lookup first goes through the REAL
+ * read-permission check, exactly as DatabaseService would run it. So the
+ * project, label and Owned scoping under test is the framework's - the fake
+ * only evaluates the resulting operators.
+ */
+interface FakeDatabase {
+  row: DatabaseServer;
+  labelIds: Array<string>;
+}
+
+function operatorValues(value: unknown): Array<string> | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+
+  if (typeof value === "string" || value instanceof ObjectID) {
+    return [value.toString().toLowerCase()];
+  }
+
+  const operator: any = value;
+
+  if (operator._type === "and" && Array.isArray(operator._value)) {
+    let result: Array<string> | null = null;
+    for (const child of operator._value) {
+      const values: Array<string> | null = operatorValues(child);
+      if (values === null) {
+        continue;
+      }
+      result =
+        result === null
+          ? values
+          : result.filter((item: string) => {
+              return values.includes(item);
+            });
+    }
+    return result;
+  }
+
+  if (operator._type === "equal") {
+    return operatorValues(operator._value);
+  }
+
+  const parameters: unknown =
+    operator._objectLiteralParameters || operator.objectLiteralParameters;
+
+  if (parameters && typeof parameters === "object") {
+    const values: Array<string> = [];
+    for (const parameter of Object.values(parameters)) {
+      for (const item of Array.isArray(parameter) ? parameter : [parameter]) {
+        values.push(String(item).toLowerCase());
+      }
+    }
+    return values;
+  }
+
+  throw new Error(`The fake cannot evaluate ${JSON.stringify(value)}`);
+}
+
+function fakeRowMatches(database: FakeDatabase, query: any): boolean {
+  const ids: Array<string> | null = operatorValues(query._id);
+  if (ids && !ids.includes(database.row.id!.toString())) {
+    return false;
+  }
+
+  const projects: Array<string> | null = operatorValues(query.projectId);
+  if (projects && !projects.includes(database.row.projectId!.toString())) {
+    return false;
+  }
+
+  if (query.labels) {
+    const labelIds: Array<string> | null = operatorValues(query.labels._id);
+    if (
+      labelIds &&
+      !database.labelIds.some((labelId: string) => {
+        return labelIds.includes(labelId);
+      })
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function permissionRow(
+  permission: Permission,
+  overrides: Partial<UserPermission> = {},
+): UserPermission {
+  return {
+    permission,
+    labelIds: [],
+    isBlockPermission: false,
+    _type: "UserPermission",
+    ...overrides,
+  };
+}
+
+function propsWith(
+  permissions: Array<UserPermission>,
+): DatabaseCommonInteractionProps {
+  return {
+    userId: USER_ID,
+    tenantId: PROJECT_ID,
+    userGlobalAccessPermission: {
+      projectIds: [PROJECT_ID],
+      globalPermissions: [Permission.Public, Permission.User],
+      _type: "UserGlobalAccessPermission",
+    },
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        projectId: PROJECT_ID,
+        permissions: permissions,
+        _type: "UserTenantAccessPermission",
+      },
+    },
+    userTeamIds: [],
+  };
+}
+
+// Edit + Read Database, both scoped to one label: a team's own databases.
+function labelScopedEditorProps(
+  labelId: string,
+): DatabaseCommonInteractionProps {
+  return propsWith([
+    permissionRow(Permission.EditDatabaseServer, {
+      labelIds: [new ObjectID(labelId)],
+      scope: PermissionScope.Labels,
+    }),
+    permissionRow(Permission.ReadDatabaseServer, {
+      labelIds: [new ObjectID(labelId)],
+      scope: PermissionScope.Labels,
+    }),
+  ]);
+}
+
+// Edit + Read Database, both only on databases the caller owns.
+function ownedScopeEditorProps(): DatabaseCommonInteractionProps {
+  return propsWith([
+    permissionRow(Permission.EditDatabaseServer, {
+      scope: PermissionScope.Owned,
+    }),
+    permissionRow(Permission.ReadDatabaseServer, {
+      scope: PermissionScope.Owned,
+    }),
+  ]);
+}
+
+const LABEL_TEAM_A: string = "a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1";
+const LABEL_TEAM_B: string = "b2b2b2b2-b2b2-4b2b-8b2b-b2b2b2b2b2b2";
+
 describe("DatabaseServerEndpointService - a person adding an alias (real create pipeline)", () => {
   let save: jest.Mock;
   let findParent: jest.SpyInstance;
   let findOwner: jest.SpyInstance;
+  let databases: Array<FakeDatabase>;
+
+  function addDatabase(
+    overrides: {
+      id?: ObjectID;
+      projectId?: ObjectID;
+      name?: string;
+      labelIds?: Array<string>;
+      dbSystem?: string;
+      kubernetesNamespace?: string;
+      clusterIdentifier?: string;
+    } = {},
+  ): FakeDatabase {
+    const row: DatabaseServer = parentDatabase({
+      dbSystem: overrides.dbSystem,
+      kubernetesNamespace: overrides.kubernetesNamespace,
+      clusterIdentifier: overrides.clusterIdentifier,
+    });
+    row._id = (overrides.id || DATABASE_ID).toString();
+    row.projectId = overrides.projectId || PROJECT_ID;
+    row.name = overrides.name || "PostgreSQL orders-db.example.com:5432";
+    const database: FakeDatabase = {
+      row: row,
+      labelIds: overrides.labelIds || [],
+    };
+    databases = databases.filter((item: FakeDatabase) => {
+      return item.row.id!.toString() !== row.id!.toString();
+    });
+    databases.push(database);
+    return database;
+  }
 
   beforeEach(() => {
+    databases = [];
+    addDatabase();
     save = jest.fn(async (entity: any) => {
       entity._id = ObjectID.generate().toString();
       return entity;
@@ -412,19 +603,33 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
       undefined as never,
     );
     findParent = getJestSpyOn(DatabaseServerService, "findOneBy");
-    findParent.mockResolvedValue(parentDatabase());
+    findParent.mockImplementation(async (findOneBy: any) => {
+      let query: any = findOneBy.query;
+      if (!findOneBy.props?.isRoot) {
+        query = (
+          await ModelPermission.checkReadQueryPermission(
+            DatabaseServer,
+            { ...findOneBy.query },
+            findOneBy.select || null,
+            findOneBy.props,
+          )
+        ).query;
+      }
+      const found: FakeDatabase | undefined = databases.find(
+        (database: FakeDatabase) => {
+          return fakeRowMatches(database, query);
+        },
+      );
+      return found ? found.row : null;
+    });
     findOwner = getJestSpyOn(service, "findOwnerByEndpoint");
     findOwner.mockResolvedValue(null);
-    getJestSpyOn(
-      DatabaseServerService,
-      "getDatabaseServerName",
-    ).mockResolvedValue("PostgreSQL orders-db.internal:5432");
   });
 
   test("canonicalizes what was typed and forces a removable user alias", async () => {
     const created: DatabaseServerEndpoint =
       await DatabaseServerEndpointService.create({
-        data: aliasRequest(" Orders-DB.Internal. ", {
+        data: aliasRequest(" Orders-DB.Example.com. ", {
           // Whatever the caller claims, a person only adds a removable alias.
           isPrimary: true,
           source: "auto",
@@ -433,7 +638,7 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
       });
 
     expect(save).toHaveBeenCalledTimes(1);
-    expect(created.endpoint).toBe("orders-db.internal:5432");
+    expect(created.endpoint).toBe("orders-db.example.com:5432");
     expect(created.isPrimary).toBe(false);
     expect(created.source).toBe("user");
     expect(created.projectId!.toString()).toBe(PROJECT_ID.toString());
@@ -443,35 +648,33 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
     // Ownership was checked against the canonical form, in the caller's project.
     expect(findOwner).toHaveBeenCalledWith(
       PROJECT_ID,
-      "orders-db.internal:5432",
+      "orders-db.example.com:5432",
     );
   });
 
   test("an explicit port is kept, the engine default fills a missing one", async () => {
-    findParent.mockResolvedValue(parentDatabase({ dbSystem: "mysql" }));
+    addDatabase({ dbSystem: "mysql" });
 
     const withPort: DatabaseServerEndpoint =
       await DatabaseServerEndpointService.create({
-        data: aliasRequest("orders-db.internal:3307"),
+        data: aliasRequest("orders-db.example.com:3307"),
         props: memberProps(),
       });
     const withoutPort: DatabaseServerEndpoint =
       await DatabaseServerEndpointService.create({
-        data: aliasRequest("orders-db.internal"),
+        data: aliasRequest("orders-db.example.com"),
         props: memberProps(),
       });
 
-    expect(withPort.endpoint).toBe("orders-db.internal:3307");
-    expect(withoutPort.endpoint).toBe("orders-db.internal:3306");
+    expect(withPort.endpoint).toBe("orders-db.example.com:3307");
+    expect(withoutPort.endpoint).toBe("orders-db.example.com:3306");
   });
 
   test("a bare service name on a Kubernetes database expands in its namespace and cluster", async () => {
-    findParent.mockResolvedValue(
-      parentDatabase({
-        kubernetesNamespace: "data",
-        clusterIdentifier: "prod-cluster",
-      }),
-    );
+    addDatabase({
+      kubernetesNamespace: "data",
+      clusterIdentifier: "prod-cluster",
+    });
 
     const created: DatabaseServerEndpoint =
       await DatabaseServerEndpointService.create({
@@ -484,38 +687,247 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
     );
   });
 
-  test("reads the parent database only inside the caller's project", async () => {
+  test("reads the parent as root, through the caller's EDIT scope, pinned to the caller's project", async () => {
     await DatabaseServerEndpointService.create({
-      data: aliasRequest("orders-db.internal"),
+      data: aliasRequest("orders-db.example.com"),
       props: memberProps(),
     });
 
     const call: any = findParent.mock.calls[0]![0];
-    expect(call.query._id).toBe(DATABASE_ID.toString());
-    expect(call.query.projectId).toBe(PROJECT_ID);
+    expect(call.props).toEqual({ isRoot: true });
+    expect(operatorValues(call.query._id)).toEqual([DATABASE_ID.toString()]);
+    expect(operatorValues(call.query.projectId)).toEqual([
+      PROJECT_ID.toString(),
+    ]);
     expect(call.select.kubernetesCluster).toEqual({ clusterIdentifier: true });
   });
 
-  test("a database in another project is 'not found', and nothing is written", async () => {
-    findParent.mockResolvedValue(null);
+  test("a database in another project is refused, and nothing is written", async () => {
+    addDatabase({ projectId: OTHER_PROJECT_ID });
 
     await expect(
       DatabaseServerEndpointService.create({
-        data: aliasRequest("orders-db.internal"),
+        data: aliasRequest("orders-db.example.com"),
         props: memberProps(),
       }),
-    ).rejects.toThrow("Database not found.");
+    ).rejects.toThrow(
+      "Database not found, or you do not have permission to edit it.",
+    );
     expect(save).not.toHaveBeenCalled();
+    expect(findOwner).not.toHaveBeenCalled();
   });
 
   test("an alias without a database is refused", async () => {
     const data: DatabaseServerEndpoint = new DatabaseServerEndpoint();
-    data.endpoint = "orders-db.internal";
+    data.endpoint = "orders-db.example.com";
 
     await expect(
       DatabaseServerEndpointService.create({ data, props: memberProps() }),
     ).rejects.toThrow("Select the database this endpoint belongs to.");
     expect(save).not.toHaveBeenCalled();
+  });
+
+  /*
+   * TypeORM persists a relation object's id over the FK column's, so the
+   * relation object must be validated exactly like the column.
+   */
+  describe("the database reference", () => {
+    test("a relation object pointing elsewhere than the FK column is refused", async () => {
+      addDatabase({ id: OTHER_DATABASE_ID, projectId: OTHER_PROJECT_ID });
+      const foreign: DatabaseServer = new DatabaseServer(OTHER_DATABASE_ID);
+
+      await expect(
+        DatabaseServerEndpointService.create({
+          data: aliasRequest("orders-db.example.com", {
+            databaseServer: foreign,
+          }),
+          props: memberProps(),
+        }),
+      ).rejects.toThrow("Conflicting database references were provided.");
+      expect(save).not.toHaveBeenCalled();
+      expect(findParent).not.toHaveBeenCalled();
+    });
+
+    test("a relation object alone is validated like the FK column: another project's database is refused", async () => {
+      addDatabase({ id: OTHER_DATABASE_ID, projectId: OTHER_PROJECT_ID });
+      const data: DatabaseServerEndpoint = new DatabaseServerEndpoint();
+      data.endpoint = "orders-db.example.com";
+      data.databaseServer = new DatabaseServer(OTHER_DATABASE_ID);
+
+      await expect(
+        DatabaseServerEndpointService.create({ data, props: memberProps() }),
+      ).rejects.toThrow(
+        "Database not found, or you do not have permission to edit it.",
+      );
+      expect(save).not.toHaveBeenCalled();
+    });
+
+    test("a relation object alone for the caller's own database becomes the FK column - and only that reaches the insert", async () => {
+      const data: DatabaseServerEndpoint = new DatabaseServerEndpoint();
+      data.endpoint = "orders-db.example.com";
+      data.databaseServer = new DatabaseServer(DATABASE_ID);
+
+      await DatabaseServerEndpointService.create({
+        data,
+        props: memberProps(),
+      });
+
+      expect(save).toHaveBeenCalledTimes(1);
+      const saved: any = save.mock.calls[0]![0];
+      expect(saved.databaseServerId.toString()).toBe(DATABASE_ID.toString());
+      expect(saved.databaseServer).toBeUndefined();
+    });
+
+    test("a relation object that agrees with the FK column is dropped, the validated column kept", async () => {
+      await DatabaseServerEndpointService.create({
+        data: aliasRequest("orders-db.example.com", {
+          databaseServer: new DatabaseServer(DATABASE_ID),
+        }),
+        props: memberProps(),
+      });
+
+      const saved: any = save.mock.calls[0]![0];
+      expect(saved.databaseServerId.toString()).toBe(DATABASE_ID.toString());
+      expect(saved.databaseServer).toBeUndefined();
+    });
+  });
+
+  /*
+   * Adding an endpoint decides which traffic a database's pages show, and
+   * that no other database can claim it: it is an edit of that database, so
+   * a label- or Owned-scoped editor may only do it on the rows they edit.
+   */
+  describe("scoped edit permission", () => {
+    test("an editor scoped to label A adds an alias to a database labelled A", async () => {
+      addDatabase({ labelIds: [LABEL_TEAM_A] });
+
+      const created: DatabaseServerEndpoint =
+        await DatabaseServerEndpointService.create({
+          data: aliasRequest("orders-db.example.com"),
+          props: labelScopedEditorProps(LABEL_TEAM_A),
+        });
+
+      expect(save).toHaveBeenCalledTimes(1);
+      expect(created.databaseServerId!.toString()).toBe(DATABASE_ID.toString());
+    });
+
+    test("an editor scoped to label A cannot add an alias to a database labelled only B", async () => {
+      addDatabase({ labelIds: [LABEL_TEAM_B] });
+
+      const error: unknown = await DatabaseServerEndpointService.create({
+        data: aliasRequest("payments-db.example.com"),
+        props: labelScopedEditorProps(LABEL_TEAM_A),
+      }).catch((e: unknown) => {
+        return e;
+      });
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      expect((error as Error).message).toBe(
+        "Database not found, or you do not have permission to edit it. Adding an endpoint to a database needs permission to edit that database.",
+      );
+      expect(save).not.toHaveBeenCalled();
+      // Refused before anything about the endpoint's owner is looked up.
+      expect(findOwner).not.toHaveBeenCalled();
+    });
+
+    test("an unlabelled database is outside a label-scoped editor's reach", async () => {
+      addDatabase({ labelIds: [] });
+
+      await expect(
+        DatabaseServerEndpointService.create({
+          data: aliasRequest("orders-db.example.com"),
+          props: labelScopedEditorProps(LABEL_TEAM_A),
+        }),
+      ).rejects.toThrow("Database not found, or you do not have permission");
+      expect(save).not.toHaveBeenCalled();
+    });
+
+    test("an Owned-scoped editor adds an alias to a database they own", async () => {
+      const allowed: jest.SpyInstance = jest
+        .spyOn(OwnedScopePermission as any, "getAllowedResourceIds")
+        .mockResolvedValue([DATABASE_ID]);
+
+      await DatabaseServerEndpointService.create({
+        data: aliasRequest("orders-db.example.com"),
+        props: ownedScopeEditorProps(),
+      });
+
+      expect(allowed).toHaveBeenCalled();
+      expect(save).toHaveBeenCalledTimes(1);
+    });
+
+    test("an Owned-scoped editor cannot add an alias to a database they do not own", async () => {
+      jest
+        .spyOn(OwnedScopePermission as any, "getAllowedResourceIds")
+        .mockResolvedValue([OTHER_DATABASE_ID]);
+
+      await expect(
+        DatabaseServerEndpointService.create({
+          data: aliasRequest("orders-db.example.com"),
+          props: ownedScopeEditorProps(),
+        }),
+      ).rejects.toThrow("Database not found, or you do not have permission");
+      expect(save).not.toHaveBeenCalled();
+      expect(findOwner).not.toHaveBeenCalled();
+    });
+
+    test("a Viewer is refused by the permission check before any lookup", async () => {
+      const error: unknown = await DatabaseServerEndpointService.create({
+        data: aliasRequest("orders-db.example.com"),
+        props: memberProps([Permission.Viewer]),
+      }).catch((e: unknown) => {
+        return e;
+      });
+
+      expect(error).toBeInstanceOf(NotAuthorizedException);
+      // Neither "Database not found" nor an owner's name: nothing to probe with.
+      expect((error as Error).message).not.toContain("Database not found");
+      expect(findParent).not.toHaveBeenCalled();
+      expect(findOwner).not.toHaveBeenCalled();
+      expect(save).not.toHaveBeenCalled();
+    });
+
+    test("an endpoint owned by a database the scoped caller can read names it", async () => {
+      addDatabase({ labelIds: [LABEL_TEAM_A] });
+      addDatabase({
+        id: OTHER_DATABASE_ID,
+        name: "PostgreSQL payments (team A)",
+        labelIds: [LABEL_TEAM_A],
+      });
+      findOwner.mockResolvedValue(owner(OTHER_DATABASE_ID, true));
+
+      await expect(
+        DatabaseServerEndpointService.create({
+          data: aliasRequest("orders-db.example.com"),
+          props: labelScopedEditorProps(LABEL_TEAM_A),
+        }),
+      ).rejects.toThrow(
+        'orders-db.example.com:5432 already belongs to the database "PostgreSQL payments (team A)".',
+      );
+    });
+
+    test("an endpoint owned by a database the scoped caller cannot read does not reveal its name", async () => {
+      addDatabase({ labelIds: [LABEL_TEAM_A] });
+      addDatabase({
+        id: OTHER_DATABASE_ID,
+        name: "PostgreSQL payments (team B)",
+        labelIds: [LABEL_TEAM_B],
+      });
+      findOwner.mockResolvedValue(owner(OTHER_DATABASE_ID, true));
+
+      const error: unknown = await DatabaseServerEndpointService.create({
+        data: aliasRequest("orders-db.example.com"),
+        props: labelScopedEditorProps(LABEL_TEAM_A),
+      }).catch((e: unknown) => {
+        return e;
+      });
+
+      expect((error as Error).message).toContain(
+        "orders-db.example.com:5432 already belongs to another database.",
+      );
+      expect((error as Error).message).not.toContain("team B");
+      expect(save).not.toHaveBeenCalled();
+    });
   });
 
   test.each([
@@ -545,23 +957,20 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
   );
 
   test("an endpoint another database owns is refused, naming that database", async () => {
+    addDatabase({
+      id: OTHER_DATABASE_ID,
+      name: "PostgreSQL payments-db.example.com:5432",
+    });
     findOwner.mockResolvedValue(owner(OTHER_DATABASE_ID, true));
-    const getName: jest.SpyInstance = getJestSpyOn(
-      DatabaseServerService,
-      "getDatabaseServerName",
-    ).mockResolvedValue("PostgreSQL payments-db.internal:5432");
 
     await expect(
       DatabaseServerEndpointService.create({
-        data: aliasRequest("orders-db.internal"),
+        data: aliasRequest("orders-db.example.com"),
         props: memberProps(),
       }),
     ).rejects.toThrow(
-      'orders-db.internal:5432 already belongs to the database "PostgreSQL payments-db.internal:5432". An endpoint can belong to only one database in a project - remove it from that database first.',
+      'orders-db.example.com:5432 already belongs to the database "PostgreSQL payments-db.example.com:5432". An endpoint can belong to only one database in a project - remove it from that database first.',
     );
-    expect(getName.mock.calls[0]![0]).toEqual({
-      databaseServerId: OTHER_DATABASE_ID,
-    });
     expect(save).not.toHaveBeenCalled();
   });
 
@@ -569,16 +978,16 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
     findOwner.mockResolvedValue(owner(OTHER_DATABASE_ID));
     getJestSpyOn(
       DatabaseServerService,
-      "getDatabaseServerName",
+      "getDatabaseServerNameIfReadable",
     ).mockRejectedValue(new Error("row gone"));
 
     await expect(
       DatabaseServerEndpointService.create({
-        data: aliasRequest("orders-db.internal"),
+        data: aliasRequest("orders-db.example.com"),
         props: memberProps(),
       }),
     ).rejects.toThrow(
-      "orders-db.internal:5432 already belongs to another database.",
+      "orders-db.example.com:5432 already belongs to another database.",
     );
   });
 
@@ -587,11 +996,11 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
 
     await expect(
       DatabaseServerEndpointService.create({
-        data: aliasRequest("ORDERS-DB.internal:5432"),
+        data: aliasRequest("ORDERS-DB.example.com:5432"),
         props: memberProps(),
       }),
     ).rejects.toThrow(
-      "orders-db.internal:5432 is already an endpoint of this database.",
+      "orders-db.example.com:5432 is already an endpoint of this database.",
     );
     expect(save).not.toHaveBeenCalled();
   });
@@ -603,29 +1012,32 @@ describe("DatabaseServerEndpointService - a person adding an alias (real create 
   test("a root-only column is still refused by the column permission check", async () => {
     await expect(
       DatabaseServerEndpointService.create({
-        data: aliasRequest("orders-db.internal", {
+        data: aliasRequest("orders-db.example.com", {
           lastMatchedAt: new Date(),
         }),
         props: memberProps(),
       }),
     ).rejects.toThrow("lastMatchedAt");
     expect(save).not.toHaveBeenCalled();
+    // The column check now runs before the hook reads anything.
+    expect(findParent).not.toHaveBeenCalled();
   });
 
   test("a caller without edit permission on databases cannot add one", async () => {
     await expect(
       DatabaseServerEndpointService.create({
-        data: aliasRequest("orders-db.internal"),
+        data: aliasRequest("orders-db.example.com"),
         props: memberProps([Permission.ReadDatabaseServer]),
       }),
     ).rejects.toThrow();
     expect(save).not.toHaveBeenCalled();
+    expect(findParent).not.toHaveBeenCalled();
   });
 
   test("a root create passes through untouched - discovery owns its own canonical form", async () => {
     const created: DatabaseServerEndpoint =
       await DatabaseServerEndpointService.create({
-        data: aliasRequest("orders-db.internal:5432", {
+        data: aliasRequest("orders-db.example.com:5432", {
           projectId: PROJECT_ID,
           isPrimary: true,
           source: "auto",
@@ -656,7 +1068,7 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
 
   test("a person cannot remove the primary endpoint", async () => {
     const primary: DatabaseServerEndpoint = new DatabaseServerEndpoint();
-    primary.endpoint = "orders-db.internal:5432";
+    primary.endpoint = "orders-db.example.com:5432";
     findBy.mockResolvedValue([primary]);
 
     await expect(
@@ -667,7 +1079,7 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
         props: memberProps(),
       }),
     ).rejects.toThrow(
-      "orders-db.internal:5432 is the primary endpoint of this database and cannot be removed.",
+      "orders-db.example.com:5432 is the primary endpoint of this database and cannot be removed.",
     );
     expect(repositoryDelete).not.toHaveBeenCalled();
   });
@@ -724,5 +1136,385 @@ describe("DatabaseServerEndpointService - removing endpoints", () => {
     });
 
     expect(findBy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * The alias lifecycle: "last matched" kept honest, discovered endpoints moved
+ * or released - never a person's.
+ * ---------------------------------------------------------------------------
+ */
+describe("DatabaseServerEndpointService - endpoint lifecycle", () => {
+  const ENDPOINT_ID: ObjectID = new ObjectID(
+    "33333333-3333-4333-8333-333333333333",
+  );
+  const HOUR_MS: number = 60 * 60 * 1000;
+
+  function ownerRow(
+    overrides: Partial<DatabaseServerEndpointOwner> = {},
+  ): DatabaseServerEndpointOwner {
+    return {
+      databaseServerId: DATABASE_ID,
+      isPrimary: false,
+      endpointId: ENDPOINT_ID,
+      source: "auto",
+      lastMatchedAt: new Date(Date.now() - 2 * HOUR_MS),
+      ...overrides,
+    };
+  }
+
+  function mockRawQuery(result: unknown = []): jest.Mock {
+    const query: jest.Mock = jest.fn(async () => {
+      return result;
+    });
+    getJestSpyOn(service, "getRepository").mockReturnValue({
+      manager: { query },
+    } as never);
+    return query;
+  }
+
+  describe("findOwnerByEndpoint", () => {
+    test("returns the endpoint row itself: id, source and when it last matched", async () => {
+      const row: DatabaseServerEndpoint = new DatabaseServerEndpoint(
+        ENDPOINT_ID,
+      );
+      const lastMatchedAt: Date = new Date("2026-09-01T10:00:00Z");
+      row.databaseServerId = DATABASE_ID;
+      row.isPrimary = false;
+      row.source = "workload";
+      row.lastMatchedAt = lastMatchedAt;
+      const findOneBy: jest.SpyInstance = getJestSpyOn(
+        service,
+        "findOneBy",
+      ).mockResolvedValue(row);
+
+      const result: DatabaseServerEndpointOwner | null =
+        await DatabaseServerEndpointService.findOwnerByEndpoint(
+          PROJECT_ID,
+          "orders-db.example.com:5432",
+        );
+
+      expect(result!.endpointId!.toString()).toBe(ENDPOINT_ID.toString());
+      expect(result!.source).toBe("workload");
+      expect(result!.lastMatchedAt).toBe(lastMatchedAt);
+      expect(findOneBy.mock.calls[0]![0].select).toMatchObject({
+        source: true,
+        lastMatchedAt: true,
+      });
+    });
+  });
+
+  describe("markEndpointMatched", () => {
+    let write: jest.SpyInstance;
+
+    beforeEach(() => {
+      write = getJestSpyOn(
+        service,
+        "updateColumnsByIdWithoutHooks",
+      ).mockResolvedValue(undefined);
+    });
+
+    test("a match after more than an hour moves lastMatchedAt to now, without bumping updatedAt", async () => {
+      const matched: DatabaseServerEndpointOwner = ownerRow();
+      const before: number = Date.now();
+
+      await DatabaseServerEndpointService.markEndpointMatched(matched);
+
+      expect(write).toHaveBeenCalledTimes(1);
+      const call: any = write.mock.calls[0]![0];
+      expect(call.id).toBe(ENDPOINT_ID);
+      expect(call.skipUpdateDateColumn).toBe(true);
+      expect(
+        (call.data.lastMatchedAt as Date).getTime(),
+      ).toBeGreaterThanOrEqual(before);
+      // The caller's copy is refreshed too, so a second call is free.
+      await DatabaseServerEndpointService.markEndpointMatched(matched);
+      expect(write).toHaveBeenCalledTimes(1);
+    });
+
+    test("an endpoint never matched since it was added (a person's alias) gets its first match", async () => {
+      await DatabaseServerEndpointService.markEndpointMatched(
+        ownerRow({ source: "user", lastMatchedAt: undefined }),
+      );
+
+      expect(write).toHaveBeenCalledTimes(1);
+    });
+
+    test("a match within the hour costs no write", async () => {
+      await DatabaseServerEndpointService.markEndpointMatched(
+        ownerRow({ lastMatchedAt: new Date(Date.now() - 10 * 60 * 1000) }),
+      );
+
+      expect(write).not.toHaveBeenCalled();
+    });
+
+    test("a workload alias is left to discovery: its lastMatchedAt says when the workload last produced it", async () => {
+      await DatabaseServerEndpointService.markEndpointMatched(
+        ownerRow({ source: "workload", lastMatchedAt: undefined }),
+      );
+
+      expect(write).not.toHaveBeenCalled();
+    });
+
+    test("nothing to write without the endpoint row's id", async () => {
+      await DatabaseServerEndpointService.markEndpointMatched(
+        owner(DATABASE_ID),
+      );
+      await DatabaseServerEndpointService.markEndpointMatched(null);
+
+      expect(write).not.toHaveBeenCalled();
+    });
+
+    test("a failing write is logged, never thrown", async () => {
+      write.mockRejectedValue(new Error("connection terminated"));
+      const warn: jest.SpyInstance = jest
+        .spyOn(logger, "warn")
+        .mockImplementation(() => {
+          return undefined as never;
+        });
+
+      await expect(
+        DatabaseServerEndpointService.markEndpointMatched(ownerRow()),
+      ).resolves.toBeUndefined();
+      expect(warn).toHaveBeenCalled();
+    });
+  });
+
+  describe("claimEndpoint re-reported by its owner", () => {
+    test("records the match instead of writing the endpoint again", async () => {
+      const existing: DatabaseServerEndpointOwner = ownerRow();
+      getJestSpyOn(service, "findOwnerByEndpoint").mockResolvedValue(existing);
+      const create: jest.SpyInstance = getJestSpyOn(service, "create");
+      const mark: jest.SpyInstance = getJestSpyOn(
+        service,
+        "markEndpointMatched",
+      ).mockResolvedValue(undefined);
+
+      await expect(
+        DatabaseServerEndpointService.claimEndpoint({
+          projectId: PROJECT_ID,
+          databaseServerId: DATABASE_ID,
+          endpoint: "orders-db.example.com:5432",
+          isPrimary: false,
+          source: "auto",
+        }),
+      ).resolves.toBe("already-owned-by-this");
+      expect(mark).toHaveBeenCalledWith(existing);
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    test("an endpoint another database owns is not marked for the claimant", async () => {
+      getJestSpyOn(service, "findOwnerByEndpoint").mockResolvedValue(
+        ownerRow({ databaseServerId: OTHER_DATABASE_ID }),
+      );
+      const mark: jest.SpyInstance = getJestSpyOn(
+        service,
+        "markEndpointMatched",
+      ).mockResolvedValue(undefined);
+
+      await expect(
+        DatabaseServerEndpointService.claimEndpoint({
+          projectId: PROJECT_ID,
+          databaseServerId: DATABASE_ID,
+          endpoint: "orders-db.example.com:5432",
+          isPrimary: false,
+          source: "auto",
+        }),
+      ).resolves.toBe("owned-by-other");
+      expect(mark).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("refreshMatchedEndpoints", () => {
+    test("one statement, only for this database's stale endpoints among those given", async () => {
+      const query: jest.Mock = mockRawQuery([]);
+      const now: Date = new Date("2026-09-24T12:00:00Z");
+      const staleBefore: Date = new Date("2026-09-24T11:00:00Z");
+
+      await DatabaseServerEndpointService.refreshMatchedEndpoints({
+        projectId: PROJECT_ID,
+        databaseServerId: DATABASE_ID,
+        endpoints: ["a.example.com:5432", "b.example.com:5432"],
+        now: now,
+        staleBefore: staleBefore,
+      });
+
+      expect(query).toHaveBeenCalledTimes(1);
+      const [sql, params] = query.mock.calls[0] as [string, Array<unknown>];
+      expect(sql).toContain(`UPDATE "DatabaseServerEndpoint"`);
+      expect(sql).toContain(`SET "lastMatchedAt" = $1`);
+      expect(sql).toContain(`"projectId" = $2`);
+      expect(sql).toContain(`"databaseServerId" = $3`);
+      expect(sql).toContain(`"endpoint" = ANY($4::text[])`);
+      expect(sql).toContain(
+        `("lastMatchedAt" IS NULL OR "lastMatchedAt" < $5)`,
+      );
+      expect(sql).not.toContain(`"updatedAt"`);
+      expect(params).toEqual([
+        now,
+        PROJECT_ID.toString(),
+        DATABASE_ID.toString(),
+        ["a.example.com:5432", "b.example.com:5432"],
+        staleBefore,
+      ]);
+    });
+
+    test("no endpoints, no statement", async () => {
+      const query: jest.Mock = mockRawQuery([]);
+
+      await DatabaseServerEndpointService.refreshMatchedEndpoints({
+        projectId: PROJECT_ID,
+        databaseServerId: DATABASE_ID,
+        endpoints: [],
+        now: new Date(),
+        staleBefore: new Date(),
+      });
+
+      expect(query).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("transferEndpoint", () => {
+    test("moves a discovered endpoint with a compare-and-set on its owner - never a person's", async () => {
+      const query: jest.Mock = mockRawQuery([{ _id: ENDPOINT_ID.toString() }]);
+      const now: Date = new Date();
+
+      await expect(
+        DatabaseServerEndpointService.transferEndpoint({
+          projectId: PROJECT_ID,
+          endpointId: ENDPOINT_ID,
+          fromDatabaseServerId: OTHER_DATABASE_ID,
+          toDatabaseServerId: DATABASE_ID,
+          isPrimary: true,
+          now: now,
+        }),
+      ).resolves.toBe(true);
+
+      const [sql, params] = query.mock.calls[0] as [string, Array<unknown>];
+      expect(sql).toContain(`SET "databaseServerId" = $1`);
+      expect(sql).toContain(`"source" = 'workload'`);
+      expect(sql).toContain(`"isPrimary" = $2`);
+      expect(sql).toContain(`"lastMatchedAt" = $3`);
+      expect(sql).toContain(`WHERE "_id" = $4`);
+      expect(sql).toContain(`"projectId" = $5`);
+      expect(sql).toContain(`"databaseServerId" = $6`);
+      expect(sql).toContain(`COALESCE("source", '') <> 'user'`);
+      expect(sql).toContain(`RETURNING "_id"`);
+      /*
+       * A top-level SELECT over the UPDATE: TypeORM answers a bare UPDATE
+       * with [rows, rowCount], which would always read as "moved".
+       */
+      expect(sql.trim().startsWith(`WITH "moved" AS (`)).toBe(true);
+      expect(sql).toContain(`SELECT "_id" FROM "moved"`);
+      expect(params).toEqual([
+        DATABASE_ID.toString(),
+        true,
+        now,
+        ENDPOINT_ID.toString(),
+        PROJECT_ID.toString(),
+        OTHER_DATABASE_ID.toString(),
+      ]);
+    });
+
+    test("a lost compare-and-set (moved or re-owned meanwhile) answers false", async () => {
+      mockRawQuery([]);
+
+      await expect(
+        DatabaseServerEndpointService.transferEndpoint({
+          projectId: PROJECT_ID,
+          endpointId: ENDPOINT_ID,
+          fromDatabaseServerId: OTHER_DATABASE_ID,
+          toDatabaseServerId: DATABASE_ID,
+          isPrimary: false,
+          now: new Date(),
+        }),
+      ).resolves.toBe(false);
+    });
+  });
+
+  describe("releaseUnproducedWorkloadEndpoints", () => {
+    test("deletes only this database's stale non-primary workload aliases outside the kept set", async () => {
+      const query: jest.Mock = mockRawQuery([
+        { endpoint: "redis.cache.svc.cluster.local:6379" },
+      ]);
+      const staleBefore: Date = new Date("2026-09-24T10:00:00Z");
+
+      await expect(
+        DatabaseServerEndpointService.releaseUnproducedWorkloadEndpoints({
+          projectId: PROJECT_ID,
+          databaseServerId: DATABASE_ID,
+          keepEndpoints: ["redis.cache.svc.cluster.local:6379@prod"],
+          staleBefore: staleBefore,
+        }),
+      ).resolves.toEqual(["redis.cache.svc.cluster.local:6379"]);
+
+      const [sql, params] = query.mock.calls[0] as [string, Array<unknown>];
+      expect(sql).toContain(`DELETE FROM "DatabaseServerEndpoint"`);
+      expect(sql.trim().startsWith(`WITH "released" AS (`)).toBe(true);
+      expect(sql).toContain(`SELECT "endpoint" FROM "released"`);
+      expect(sql).toContain(`"projectId" = $1`);
+      expect(sql).toContain(`"databaseServerId" = $2`);
+      expect(sql).toContain(`"source" = 'workload'`);
+      expect(sql).toContain(`"isPrimary" = false`);
+      expect(sql).toContain(`NOT ("endpoint" = ANY($3::text[]))`);
+      expect(sql).toContain(
+        `("lastMatchedAt" IS NULL OR "lastMatchedAt" < $4)`,
+      );
+      expect(params).toEqual([
+        PROJECT_ID.toString(),
+        DATABASE_ID.toString(),
+        ["redis.cache.svc.cluster.local:6379@prod"],
+        staleBefore,
+      ]);
+    });
+
+    test("an unexpected driver answer releases nothing", async () => {
+      mockRawQuery(undefined);
+
+      await expect(
+        DatabaseServerEndpointService.releaseUnproducedWorkloadEndpoints({
+          projectId: PROJECT_ID,
+          databaseServerId: DATABASE_ID,
+          keepEndpoints: [],
+          staleBefore: new Date(),
+        }),
+      ).resolves.toEqual([]);
+    });
+  });
+
+  describe("hasPrimaryEndpoint", () => {
+    test("asks for a primary endpoint of this database in this project, as root", async () => {
+      const findOneBy: jest.SpyInstance = getJestSpyOn(
+        service,
+        "findOneBy",
+      ).mockResolvedValue(new DatabaseServerEndpoint());
+
+      await expect(
+        DatabaseServerEndpointService.hasPrimaryEndpoint({
+          projectId: PROJECT_ID,
+          databaseServerId: DATABASE_ID,
+        }),
+      ).resolves.toBe(true);
+
+      const call: any = findOneBy.mock.calls[0]![0];
+      expect(call.query).toEqual({
+        projectId: PROJECT_ID,
+        databaseServerId: DATABASE_ID,
+        isPrimary: true,
+      });
+      expect(call.props).toEqual({ isRoot: true });
+    });
+
+    test("false when it has none", async () => {
+      getJestSpyOn(service, "findOneBy").mockResolvedValue(null);
+
+      await expect(
+        DatabaseServerEndpointService.hasPrimaryEndpoint({
+          projectId: PROJECT_ID,
+          databaseServerId: DATABASE_ID,
+        }),
+      ).resolves.toBe(false);
+    });
   });
 });

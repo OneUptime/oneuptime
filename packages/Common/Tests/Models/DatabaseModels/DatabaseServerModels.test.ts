@@ -262,6 +262,10 @@ const DATABASE_SERVER_ROOT_ONLY_COLUMNS: Array<string> = [
   "agentVersion",
   "lastSeenAt",
   "autoArchivedAt",
+  "manuallyRestoredAt",
+  "dbSystemSource",
+  "workloadLastSeenAt",
+  "automaticAssignments",
   "archivedAt",
   "archivedByUser",
   "archivedByUserId",
@@ -932,6 +936,15 @@ describe("Databases (DatabaseServer) models", () => {
         ],
         ["lastSeenAt", TableColumnType.Date, false, undefined],
         ["autoArchivedAt", TableColumnType.Date, false, undefined],
+        ["manuallyRestoredAt", TableColumnType.Date, false, undefined],
+        [
+          "dbSystemSource",
+          TableColumnType.ShortText,
+          false,
+          ColumnLength.ShortText,
+        ],
+        ["workloadLastSeenAt", TableColumnType.Date, false, undefined],
+        ["automaticAssignments", TableColumnType.JSON, false, undefined],
         ["kubernetesClusterId", TableColumnType.ObjectID, false, undefined],
         ["dockerHostId", TableColumnType.ObjectID, false, undefined],
         ["podmanHostId", TableColumnType.ObjectID, false, undefined],
@@ -976,6 +989,9 @@ describe("Databases (DatabaseServer) models", () => {
         "jsonb",
       );
       expect(
+        columnArgs(DatabaseServer, "automaticAssignments").options.type,
+      ).toBe("jsonb");
+      expect(
         columnArgs(DatabaseServer, "telemetryRetentionConfig").options.type,
       ).toBe("jsonb");
     });
@@ -1000,6 +1016,10 @@ describe("Databases (DatabaseServer) models", () => {
         "lastSeenAt",
         "collectorLastSeenAt",
         "autoArchivedAt",
+        "manuallyRestoredAt",
+        "dbSystemSource",
+        "workloadLastSeenAt",
+        "automaticAssignments",
         "workloadIdentifier",
         "memberEntityKeys",
         "discoverySource",

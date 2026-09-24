@@ -11,6 +11,7 @@ import ServerlessFunction from "../../../../Models/DatabaseModels/ServerlessFunc
 import CloudResource from "../../../../Models/DatabaseModels/CloudResource";
 import IoTFleet from "../../../../Models/DatabaseModels/IoTFleet";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
+import DatabaseServer from "../../../../Models/DatabaseModels/DatabaseServer";
 import Metric from "../../../../Models/AnalyticsModels/Metric";
 import Log from "../../../../Models/AnalyticsModels/Log";
 import Span from "../../../../Models/AnalyticsModels/Span";
@@ -55,6 +56,7 @@ import ServerlessFunctionService from "../../../Services/ServerlessFunctionServi
 import CloudResourceService from "../../../Services/CloudResourceService";
 import IoTFleetService from "../../../Services/IoTFleetService";
 import NetworkDeviceService from "../../../Services/NetworkDeviceService";
+import DatabaseServerService from "../../../Services/DatabaseServerService";
 import MetricService from "../../../Services/MetricService";
 import LogAggregationService, {
   HistogramBucket,
@@ -66,7 +68,9 @@ import FindBy from "../../../Types/Database/FindBy";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import DatabaseRequestType from "../../../Types/BaseDatabase/DatabaseRequestType";
 import ModelPermission from "../../../Types/AnalyticsDatabase/ModelPermission";
-import { ResourceEntityScope } from "../../Telemetry/ResourceEntityFilter";
+import ResourceEntityFilter, {
+  ResourceEntityScope,
+} from "../../Telemetry/ResourceEntityFilter";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import {
   ObservabilityTool,
@@ -87,6 +91,17 @@ interface ResourceDescriptor {
   attributeKey?: string;
   keyFor?: (projectId: string, identifier: string) => string;
   runtime?: string;
+  /*
+   * For a resource whose telemetry is not named by one identifier (a
+   * Database owns several endpoints plus the pods / containers it runs as):
+   * its scope, resolved exactly the way the explorer's resource facet and
+   * the resource's own pages resolve it. Called only after the
+   * permission-checked parent read.
+   */
+  resolveResourceScopes?: (data: {
+    projectId: ObjectID;
+    id: ObjectID;
+  }) => Promise<Array<ResourceEntityScope>>;
 }
 
 /*
@@ -273,6 +288,30 @@ const RESOURCE_DESCRIPTORS: Record<AIResourceType, ResourceDescriptor> = {
       "interfacesDown",
       "lastPolledAt",
     ],
+  },
+  [AIResourceType.DatabaseServer]: {
+    model: DatabaseServer,
+    findBy: (data: FindBy<BaseModel>) => {
+      return DatabaseServerService.findBy(data as never);
+    },
+    fields: [
+      "dbSystem",
+      "dbVersion",
+      "serverAddress",
+      "serverPort",
+      "discoverySource",
+      "instanceCount",
+      "collectorLastSeenAt",
+    ],
+    resolveResourceScopes: (data: {
+      projectId: ObjectID;
+      id: ObjectID;
+    }): Promise<Array<ResourceEntityScope>> => {
+      return ResourceEntityFilter.resolveScopes({
+        projectId: data.projectId,
+        selections: { databaseServerId: [data.id.toString()] },
+      });
+    },
   },
 };
 
@@ -503,10 +542,33 @@ export function buildAIResourceTelemetryScope(data: {
   resource: JSONObject;
   projectId: ObjectID;
   signal: ResourceSignal;
+  // From the descriptor's resolveResourceScopes, when it has one.
+  resolvedScopes?: Array<ResourceEntityScope> | undefined;
 }): AIResourceTelemetryScope {
   const descriptor: ResourceDescriptor = RESOURCE_DESCRIPTORS[data.type];
   const note: string =
     "Scope is the parent resource; no individual child identity or namespace was selected. Missing telemetry is not evidence of health.";
+  if (data.type === AIResourceType.DatabaseServer) {
+    /*
+     * Only a resolved scope of THIS database is used; one that could not be
+     * resolved narrows to the row's own collector / agent data, never widens.
+     */
+    const scopes: Array<ResourceEntityScope> = (
+      data.resolvedScopes || []
+    ).filter((scope: ResourceEntityScope): boolean => {
+      return (
+        scope.entityIds.length === 1 &&
+        scope.entityIds[0] === data.id.toString()
+      );
+    });
+    return {
+      resourceScopes:
+        scopes.length > 0
+          ? scopes
+          : [{ entityIds: [data.id.toString()], entityKeys: [] }],
+      note: `${note} A database's telemetry is its own collector / Database Agent data plus everything carrying one of its endpoints or workload members: application database calls, and the logs and metrics of the pods and containers it runs as.`,
+    };
+  }
   if (data.type === AIResourceType.CloudResource) {
     const attributes: Record<string, string> = {};
     for (const [column, key] of [
@@ -707,6 +769,12 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
       resource: resources[0] as unknown as JSONObject,
       projectId: ctx.projectId,
       signal,
+      resolvedScopes: descriptor.resolveResourceScopes
+        ? await descriptor.resolveResourceScopes({
+            projectId: ctx.projectId,
+            id,
+          })
+        : undefined,
     });
     const target: AIChatCitationTarget = resourceTarget(type, id);
     const label: string = `${getAIResourceDefinition(type).label} ${signal}, ${startTime.toISOString()} – ${endTime.toISOString()}`;

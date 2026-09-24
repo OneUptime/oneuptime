@@ -5,6 +5,7 @@ import RouteParams from "../../Utils/RouteParams";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import Host from "Common/Models/DatabaseModels/Host";
@@ -337,6 +338,14 @@ const RESOURCE_PAGES: Record<AIResourceType, ResourcePageDefinition> = {
         collectionPage: PageMap.NETWORK_DEVICE_VIEW_INTERFACES,
       },
     ],
+  },
+  // A database's tabs are all views of the one database: no child identity.
+  [AIResourceType.DatabaseServer]: {
+    listPage: PageMap.DATABASE_SERVERS,
+    detailPage: PageMap.DATABASE_SERVER_VIEW,
+    modelType: DatabaseServer,
+    noun: "database",
+    subresources: [],
   },
 };
 

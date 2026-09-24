@@ -2,12 +2,14 @@ import DatabaseService from "./DatabaseService";
 import DatabaseServerEndpointService, {
   DatabaseServerEndpointClaimResult,
   DatabaseServerEndpointOwner,
+  ENDPOINT_MATCH_REFRESH_SECONDS,
   getOwnedByOtherDatabaseMessage,
   hasOutOfRangePort,
 } from "./DatabaseServerEndpointService";
 import DatabaseServerFeedService from "./DatabaseServerFeedService";
 import DatabaseServerLabelRuleEngineService from "./DatabaseServerLabelRuleEngineService";
 import DatabaseServerOwnerRuleEngineService from "./DatabaseServerOwnerRuleEngineService";
+import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Model from "../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "../../Models/DatabaseModels/DatabaseServerEndpoint";
 import { DatabaseServerFeedEventType } from "../../Models/DatabaseModels/DatabaseServerFeed";
@@ -16,8 +18,10 @@ import DatabaseConfig from "../DatabaseConfig";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import {
   truncateLongText,
   truncateShortText,
@@ -28,6 +32,7 @@ import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ResourceHeartbeat from "../Utils/Telemetry/ResourceHeartbeat";
 import URL from "../../Types/API/URL";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { Blue500, Gray500, Green500, Yellow500 } from "../../Types/BrandColors";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import PartialEntity from "../../Types/Database/PartialEntity";
@@ -44,7 +49,11 @@ import {
   parseDatabaseEndpointString,
 } from "../../Types/DatabaseServer/DatabaseEndpoint";
 import {
+  DATABASE_SYSTEMS,
+  DatabaseSystemDescriptor,
   getDatabaseSystemDisplayName,
+  getDatabaseSystemFamily,
+  isSameDatabaseFamily,
   normalizeDatabaseSystem,
 } from "../../Types/DatabaseServer/DatabaseSystem";
 import OneUptimeDate from "../../Types/Date";
@@ -84,25 +93,60 @@ const MIN_AUTO_ARCHIVE_DAYS: number = 1;
 // Rows archived per sweep; the rest wait for the next five-minute run.
 const AUTO_ARCHIVE_BATCH_SIZE: number = 500;
 
+/*
+ * A person's Restore holds the sweep off this long (or the archive window,
+ * if that is longer) unless discovery sees the database again first.
+ */
+const MANUAL_RESTORE_GRACE_DAYS: number = 30;
+
 const DEFAULT_AUTO_CREATE_BUDGET: number = 500;
+
+/*
+ * The auto-create budget as the ingest hot path reads it: one count per
+ * project per minute per process, bumped locally by every create in between.
+ */
+const AUTO_CREATE_BUDGET_CACHE_MS: number = 60 * 1000;
+// One "budget reached" warning per project per ten minutes per process.
+const AUTO_CREATE_BUDGET_WARNING_MS: number = 10 * 60 * 1000;
 
 // Endpoint aliases one workload may claim per discovery run.
 const MAX_WORKLOAD_ALIASES: number = 100;
+
+/*
+ * A workload discovery has not seen for this long is gone: the endpoints its
+ * row holds may be handed to the workload that serves them now, and seeing
+ * one of them in a trace no longer brings its archived row back. Discovery
+ * runs every five minutes, so this is a dozen missed runs.
+ */
+const WORKLOAD_GONE_MINUTES: number = 60;
+
+/*
+ * A "workload" alias its workload has stopped producing is released once it
+ * has not been produced for this long. Produced aliases are re-stamped at
+ * least hourly (ENDPOINT_MATCH_REFRESH_SECONDS), so this is comfortably
+ * longer than any gap a healthy workload leaves, and one partial run
+ * releases nothing.
+ */
+const WORKLOAD_ALIAS_RELEASE_MINUTES: number = 120;
 
 const MAX_PORT: number = 65535;
 
 /*
  * The columns every discovery caller gets back. Enough to key telemetry
- * (id, project, engine, endpoint), name it (name) and decide on archive
- * handling - but not the member-key map, which only the workload path reads.
+ * (id, project, engine, endpoint), name it (name), decide on archive
+ * handling and weigh new engine evidence - but not the member-key map,
+ * which only the workload path reads.
  */
 const DISCOVERY_SELECT: Select<Model> = {
   _id: true,
   projectId: true,
   name: true,
   dbSystem: true,
+  dbSystemSource: true,
   databaseIdentifier: true,
   workloadIdentifier: true,
+  workloadName: true,
+  workloadLastSeenAt: true,
   discoverySource: true,
   serverAddress: true,
   serverPort: true,
@@ -115,13 +159,122 @@ const DISCOVERY_SELECT: Select<Model> = {
 const WORKLOAD_SELECT: Select<Model> = {
   ...DISCOVERY_SELECT,
   memberEntityKeys: true,
+  dbVersion: true,
+  collectorLastSeenAt: true,
 };
 
-// The rows discovery never creates or archives on its own.
-const NON_AUTO_CREATED_SOURCES: Array<DatabaseServerDiscoverySource> = [
-  DatabaseServerDiscoverySource.Manual,
-  DatabaseServerDiscoverySource.Collector,
-];
+/*
+ * "Nobody invested in this row", as one SQL predicate over `ds` (a
+ * DatabaseServer row): no retention override, and no label, owner, incident
+ * / alert / scheduled-maintenance link or person-added endpoint - each
+ * checked against the row's own project and live rows only. Labels and
+ * owners that rules or ingest attached on their own (automaticAssignments)
+ * do not count: a catch-all rule would otherwise keep every discovered row
+ * alive forever. Shared by the auto-archive sweep and by the workload path
+ * deciding whether a trace-discovered duplicate may hand over its endpoints.
+ */
+const UNTOUCHED_DATABASE_SERVER_PREDICATE: string = `ds."retainTelemetryDataForDays" IS NULL
+            AND (ds."telemetryRetentionConfig" IS NULL OR ds."telemetryRetentionConfig"::text IN ('null', '{}'))
+            AND NOT EXISTS (
+              SELECT 1 FROM "DatabaseServerLabel" l
+              INNER JOIN "Label" lbl ON lbl."_id" = l."labelId"
+              WHERE l."databaseServerId" = ds."_id"
+                AND lbl."projectId" = ds."projectId"
+                AND lbl."deletedAt" IS NULL
+                AND NOT (COALESCE(ds."automaticAssignments" -> 'labelIds', '[]'::jsonb) @> jsonb_build_array(l."labelId"::text))
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM "DatabaseServerOwnerUser" ou
+              WHERE ou."databaseServerId" = ds."_id"
+                AND ou."projectId" = ds."projectId"
+                AND ou."deletedAt" IS NULL
+                AND NOT (COALESCE(ds."automaticAssignments" -> 'ownerUserIds', '[]'::jsonb) @> jsonb_build_array(ou."userId"::text))
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM "DatabaseServerOwnerTeam" ot
+              WHERE ot."databaseServerId" = ds."_id"
+                AND ot."projectId" = ds."projectId"
+                AND ot."deletedAt" IS NULL
+                AND NOT (COALESCE(ds."automaticAssignments" -> 'ownerTeamIds', '[]'::jsonb) @> jsonb_build_array(ot."teamId"::text))
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM "IncidentDatabaseServer" ids
+              INNER JOIN "Incident" i ON i."_id" = ids."incidentId"
+              WHERE ids."databaseServerId" = ds."_id"
+                AND i."projectId" = ds."projectId"
+                AND i."deletedAt" IS NULL
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM "AlertDatabaseServer" ads
+              INNER JOIN "Alert" a ON a."_id" = ads."alertId"
+              WHERE ads."databaseServerId" = ds."_id"
+                AND a."projectId" = ds."projectId"
+                AND a."deletedAt" IS NULL
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM "ScheduledMaintenanceDatabaseServer" sds
+              INNER JOIN "ScheduledMaintenance" sm ON sm."_id" = sds."scheduledMaintenanceId"
+              WHERE sds."databaseServerId" = ds."_id"
+                AND sm."projectId" = ds."projectId"
+                AND sm."deletedAt" IS NULL
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM "DatabaseServerEndpoint" e
+              WHERE e."databaseServerId" = ds."_id"
+                AND e."projectId" = ds."projectId"
+                AND e."source" = 'user'
+                AND e."deletedAt" IS NULL
+            )`;
+
+/*
+ * The labels and owners rules and ingest attach on their own, recorded per
+ * row in DatabaseServer.automaticAssignments under these keys.
+ */
+export type DatabaseServerAutomaticAssignmentKind =
+  | "labelIds"
+  | "ownerUserIds"
+  | "ownerTeamIds";
+
+const AUTOMATIC_ASSIGNMENT_KINDS: ReadonlyArray<DatabaseServerAutomaticAssignmentKind> =
+  ["labelIds", "ownerUserIds", "ownerTeamIds"];
+
+/*
+ * What a row's engine (dbSystem) was determined from, strongest first:
+ *   - manual: a person chose it;
+ *   - collector: an OTel Collector receiver or the Database Agent - the
+ *     engine reporting on itself;
+ *   - container: the image or Helm chart of a Kubernetes / Docker / Podman
+ *     workload;
+ *   - client-spans: what an application's client library called it. A
+ *     wire-compatible client names the engine it speaks to, not the engine
+ *     it reached (pgx says "postgresql" to CockroachDB).
+ */
+export enum DatabaseSystemEvidence {
+  Manual = "manual",
+  Collector = "collector",
+  Container = "container",
+  ClientSpans = "client-spans",
+}
+
+const DATABASE_SYSTEM_EVIDENCE_RANK: Record<DatabaseSystemEvidence, number> = {
+  [DatabaseSystemEvidence.Manual]: 4,
+  [DatabaseSystemEvidence.Collector]: 3,
+  [DatabaseSystemEvidence.Container]: 2,
+  [DatabaseSystemEvidence.ClientSpans]: 1,
+};
+
+const DATABASE_SYSTEM_EVIDENCE_LABEL: Record<DatabaseSystemEvidence, string> = {
+  [DatabaseSystemEvidence.Manual]: "a person",
+  [DatabaseSystemEvidence.Collector]:
+    "its OpenTelemetry Collector receiver or Database Agent",
+  [DatabaseSystemEvidence.Container]: "its container image",
+  [DatabaseSystemEvidence.ClientSpans]: "application traces",
+};
+
+export interface DatabaseSystemDetermination {
+  system: string;
+  evidence: DatabaseSystemEvidence;
+}
 
 export interface FindOrCreateDatabaseServerByEndpointData {
   projectId: ObjectID;
@@ -160,6 +313,25 @@ interface WorkloadAlias {
   parsed: DatabaseEndpoint;
 }
 
+// A stored DatabaseServerEndpoint row, as the workload path weighs it.
+interface StoredEndpoint {
+  endpointId: ObjectID | null;
+  databaseServerId: string;
+  source: string;
+  isPrimary: boolean;
+  lastMatchedAt: Date | null;
+}
+
+interface HeldAlias {
+  alias: WorkloadAlias;
+  stored: StoredEndpoint;
+}
+
+interface AutoCreateCount {
+  count: number;
+  readAtMs: number;
+}
+
 /*
  * The Databases product's root service. A DatabaseServer row is found and
  * created by ENDPOINT (DatabaseServerEndpoint, one owner per endpoint per
@@ -167,12 +339,18 @@ interface WorkloadAlias {
  * can share a host name and a person can rename any row.
  *
  * Invariants every discovery path relies on:
- *   - an endpoint belongs to at most one row; a claim never takes one away
- *     from another row, and an ambiguous match is never tie-broken;
+ *   - an endpoint belongs to at most one row, and an ambiguous match is never
+ *     tie-broken. A claim never takes an endpoint away from a live row: the
+ *     only moves are the workload path handing a DISCOVERED ("auto" /
+ *     "workload") endpoint from a workload that is gone, or from an untouched
+ *     trace-discovered duplicate, to the workload that serves it now. A
+ *     person's ("user") endpoint is never moved or released by discovery;
  *   - a LOCAL-scope endpoint (single-label name, unqualified cluster-local
  *     DNS or private IP) never creates a row and never adopts one;
  *   - discovery only ever un-archives a row it archived itself
- *     (autoArchivedAt), never one a person archived.
+ *     (autoArchivedAt), never one a person archived;
+ *   - an engine a person chose is never changed, and a weaker source never
+ *     changes an engine a stronger one determined (DatabaseSystemEvidence).
  */
 export class Service extends DatabaseService<Model> {
   /*
@@ -183,6 +361,20 @@ export class Service extends DatabaseService<Model> {
   private autoRestoreCheckMemo: InProcessMemo<boolean> =
     new InProcessMemo<boolean>({
       ttlInMs: 60 * 1000,
+      maxEntries: 10_000,
+    });
+
+  // Per project: its auto-created row count, as last read (see getAutoCreateCount).
+  private autoCreateCountMemo: InProcessMemo<AutoCreateCount> =
+    new InProcessMemo<AutoCreateCount>({
+      ttlInMs: AUTO_CREATE_BUDGET_CACHE_MS,
+      maxEntries: 10_000,
+    });
+
+  // Per project: a "budget reached" warning was logged recently.
+  private autoCreateBudgetWarningMemo: InProcessMemo<boolean> =
+    new InProcessMemo<boolean>({
+      ttlInMs: AUTO_CREATE_BUDGET_WARNING_MS,
       maxEntries: 10_000,
     });
 
@@ -199,6 +391,10 @@ export class Service extends DatabaseService<Model> {
    * description, dbSystem, serverAddress, serverPort, databaseIdentifier,
    * discoverySource), because the column permission check runs after this
    * hook. Setting a root-only column here would refuse every manual create.
+   *
+   * The create permission is checked FIRST, before any lookup: the refusals
+   * below name databases, and a caller who may not add a database must not
+   * be able to use them to learn what exists.
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
@@ -209,6 +405,8 @@ export class Service extends DatabaseService<Model> {
     }
 
     const data: Model = createBy.data;
+
+    ModelPermission.checkCreatePermissions(Model, data, createBy.props);
 
     // The tenant column is stamped from props.tenantId only after this hook.
     const projectId: ObjectID | undefined =
@@ -242,7 +440,7 @@ export class Service extends DatabaseService<Model> {
 
     if (owner) {
       throw new BadDataException(
-        await getOwnedByOtherDatabaseMessage(formatted, owner),
+        await getOwnedByOtherDatabaseMessage(formatted, owner, createBy.props),
       );
     }
 
@@ -271,9 +469,17 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (sameIdentity) {
+      // Named only when the caller may read it.
+      const sameIdentityName: string = sameIdentity.id
+        ? await this.getDatabaseServerNameIfReadable({
+            databaseServerId: sameIdentity.id,
+            props: createBy.props,
+          })
+        : "";
+
       throw new BadDataException(
         `A ${getDatabaseSystemDisplayName(dbSystem)} database at ${formatted} already exists${
-          sameIdentity.name ? `: "${sameIdentity.name}"` : ""
+          sameIdentityName ? `: "${sameIdentityName}"` : ""
         }.`,
       );
     }
@@ -313,6 +519,7 @@ export class Service extends DatabaseService<Model> {
         projectId: createdItem.projectId,
         databaseServerId: createdItem.id,
         endpoint: primaryEndpoint,
+        props: onCreate.createBy.props,
       });
     }
 
@@ -336,14 +543,40 @@ export class Service extends DatabaseService<Model> {
 
     /*
      * A person archiving or restoring a row takes it out of discovery's
-     * hands: from now on only a person restores it. Discovery's own archive
-     * and restore are raw writes, so they never reach this hook.
+     * hands: from now on only a person restores it. A person's Restore also
+     * holds off the auto-archive sweep (manuallyRestoredAt), which would
+     * otherwise re-archive a stale row within minutes. Discovery's own
+     * archive and restore are raw writes, so they never reach this hook.
      */
     if (
       ResourceFeedUtil.isArchiveChange(updateData) &&
       !("autoArchivedAt" in updateData)
     ) {
-      await this.clearAutoArchivedAt(updatedItemIds);
+      await this.recordArchiveDecisionByPerson(
+        updatedItemIds,
+        !updateData["isArchived"],
+      );
+    }
+
+    /*
+     * Labels a person saves on a row are theirs, whichever rule or
+     * collector first attached them: they now count as investment.
+     */
+    if ("labels" in updateData) {
+      const labelIds: Array<string> = readRelationIds(updateData["labels"]);
+
+      for (const databaseServerId of updatedItemIds) {
+        await this.forgetAutomaticAssignments({
+          databaseServerId: databaseServerId,
+          kind: "labelIds",
+          ids: labelIds,
+        });
+      }
+    }
+
+    // An engine a person set is never overridden by discovery.
+    if ("dbSystem" in updateData) {
+      await this.recordDatabaseSystemSetByPerson(updatedItemIds);
     }
 
     this.writeDatabaseServerUpdatedFeed(onUpdate, updatedItemIds).catch(
@@ -358,8 +591,17 @@ export class Service extends DatabaseService<Model> {
   /**
    * The database that owns this endpoint - or, when none does and creating
    * is allowed, a new one that does. Returns null when nothing owns the
-   * endpoint and no row may be created for it (creation not allowed, or a
-   * LOCAL-scope endpoint, which only ever joins an existing row).
+   * endpoint and no row may be created for it (creation not allowed, a
+   * LOCAL-scope endpoint, which only ever joins an existing row, or - for
+   * the collector path, which has no budget of its own - a project that has
+   * reached its auto-create budget).
+   *
+   * An owner that is found is also told about the sighting: the endpoint's
+   * lastMatchedAt moves (throttled), the reported engine is weighed against
+   * the row's (a stronger source may correct or refine it, a weaker one
+   * never does), and a row discovery archived is restored - unless it is
+   * the row of a workload that is gone, which a stale alias must not bring
+   * back.
    *
    * Races. Two writers can see the endpoint unowned at once. The row insert
    * is guarded by the (projectId, databaseIdentifier) unique index - the
@@ -392,8 +634,22 @@ export class Service extends DatabaseService<Model> {
         owner.databaseServerId,
       );
 
+      await DatabaseServerEndpointService.markEndpointMatched(owner);
+
       if (ownerRow) {
-        await this.restoreIfAutoArchived(ownerRow);
+        const evidence: DatabaseSystemEvidence | null =
+          getDatabaseSystemEvidenceForSource(data.discoverySource);
+
+        if (evidence) {
+          await this.applyDatabaseSystemEvidence(ownerRow, {
+            system: data.dbSystem,
+            evidence: evidence,
+          });
+        }
+
+        if (!this.isWorkloadGone(ownerRow)) {
+          await this.restoreIfAutoArchived(ownerRow);
+        }
       }
 
       return ownerRow;
@@ -413,6 +669,19 @@ export class Service extends DatabaseService<Model> {
     );
 
     if (!dbSystem) {
+      return null;
+    }
+
+    /*
+     * The trace and container paths ask the budget themselves, once per run
+     * (AutoCreateBudget). The collector path runs on the ingest hot path and
+     * has no run to hang that on, so it is asked here - from a per-process
+     * cache, so a steady stream of known endpoints costs nothing.
+     */
+    if (
+      data.discoverySource === DatabaseServerDiscoverySource.Collector &&
+      !(await this.allowsCollectorAutoCreate(data.projectId, formatted))
+    ) {
       return null;
     }
 
@@ -492,8 +761,16 @@ export class Service extends DatabaseService<Model> {
    * Collector liveness: an OTel Collector database receiver (or the Database
    * Agent) reported engine telemetry for this database. Refreshes lastSeenAt,
    * collectorLastSeenAt and otelCollectorStatus "connected" once per window,
-   * and the agent / engine versions when they change. A row this collector
-   * brings back after it was auto-archived is restored.
+   * and the agent / engine versions when they change. The engine version the
+   * collector reports is the one the row shows: the workload path's image
+   * tag never overwrites it while the collector is live.
+   *
+   * At most once per ten minutes per database, fleet-wide, the row is also
+   * reconciled with what the collector says: one it brings back after it was
+   * auto-archived is restored, and `dbSystem` (the engine the receiver or the
+   * agent reported) is weighed as collector evidence - it corrects an engine
+   * a container image or client spans guessed, and refines a family engine
+   * to a fork, but never overrides a person's choice or downgrades a fork.
    */
   @CaptureSpan()
   public async recordCollectorHeartbeat(
@@ -501,6 +778,7 @@ export class Service extends DatabaseService<Model> {
     extra?: {
       agentVersion?: string | undefined;
       dbVersion?: string | undefined;
+      dbSystem?: string | undefined;
     },
   ): Promise<void> {
     const agentVersion: string | null = cleanShortText(extra?.agentVersion);
@@ -550,7 +828,7 @@ export class Service extends DatabaseService<Model> {
       describe: `database ${databaseServerId.toString()}`,
     });
 
-    await this.restoreAfterHeartbeatIfAutoArchived(databaseServerId);
+    await this.reconcileAfterHeartbeat(databaseServerId, extra?.dbSystem);
   }
 
   /**
@@ -581,7 +859,9 @@ export class Service extends DatabaseService<Model> {
    * removed - manual labels set via the UI survive ingest. The set of
    * labelIds passed in is fingerprinted and cached for 60s so a collector
    * pushing the same labels every batch costs one cache lookup, not a
-   * join-table scan.
+   * join-table scan. The labels this adds are recorded as automatic, so they
+   * never count as somebody investing in the row (a label a person already
+   * put on the row is not re-added, and stays theirs).
    */
   @CaptureSpan()
   public async attachLabels(data: {
@@ -635,6 +915,12 @@ export class Service extends DatabaseService<Model> {
           .relation(Model, "labels")
           .of(databaseServerIdStr)
           .add(toAddIds);
+
+        await this.recordAutomaticAssignments({
+          databaseServerId: data.databaseServerId,
+          kind: "labelIds",
+          ids: toAddIds,
+        });
       }
 
       await GlobalCache.setString(
@@ -720,9 +1006,22 @@ export class Service extends DatabaseService<Model> {
    *
    * "Untouched" is what makes this safe to do unasked: a manually added
    * database is never archived, and neither is one somebody invested in -
-   * labels, owners, a link from an incident / alert / scheduled maintenance,
+   * labels or owners a PERSON added (not the ones rules or ingest attached
+   * on their own), a link from an incident / alert / scheduled maintenance,
    * an endpoint a person added, or a retention override. Every one of those
-   * checks is done in SQL, scoped to the row's project and to live rows.
+   * checks is done in SQL, scoped to the row's project and to live rows
+   * (UNTOUCHED_DATABASE_SERVER_PREDICATE).
+   *
+   * Two more rows are left alone:
+   *   - one a person restored from the archive, until discovery sees it
+   *     again or the grace period passes - their Restore must stick;
+   *   - one whose Kubernetes cluster / Docker / Podman host has gone quiet:
+   *     discovery only visits connected parents, so while the parent is dark
+   *     its databases are unseen for a reason that says nothing about them.
+   *     Staleness is anchored to the parent's own last contact - a row is
+   *     only stale if it went unseen well before its parent did - the way
+   *     the Kubernetes and Docker inventory cleanups keep last-known state.
+   *     A row whose parent was deleted ages out on its own.
    *
    * The row is marked autoArchivedAt, which is what lets discovery restore
    * it the moment it is seen again - and never restore one a person
@@ -733,66 +1032,34 @@ export class Service extends DatabaseService<Model> {
     const days: number = this.getAutoArchiveDays();
     const now: Date = OneUptimeDate.getCurrentDate();
     const cutoff: Date = OneUptimeDate.addRemoveDays(now, -days);
+    const restoreGraceCutoff: Date = OneUptimeDate.addRemoveDays(
+      now,
+      -Math.max(MANUAL_RESTORE_GRACE_DAYS, days),
+    );
 
     const archived: Array<{ _id: string; projectId: string }> =
       await this.getRepository().manager.query(
         `WITH "candidates" AS (
           SELECT ds."_id"
           FROM "DatabaseServer" ds
+          LEFT JOIN "KubernetesCluster" kc
+            ON kc."_id" = ds."kubernetesClusterId" AND kc."deletedAt" IS NULL
+          LEFT JOIN "DockerHost" dh
+            ON dh."_id" = ds."dockerHostId" AND dh."deletedAt" IS NULL
+          LEFT JOIN "PodmanHost" ph
+            ON ph."_id" = ds."podmanHostId" AND ph."deletedAt" IS NULL
           WHERE ds."deletedAt" IS NULL
             AND ds."isArchived" = false
             AND ds."discoverySource" IS NOT NULL
             AND ds."discoverySource" <> $3
             AND COALESCE(ds."lastSeenAt", ds."createdAt") < $1
-            AND ds."retainTelemetryDataForDays" IS NULL
-            AND (ds."telemetryRetentionConfig" IS NULL OR ds."telemetryRetentionConfig"::text IN ('null', '{}'))
-            AND NOT EXISTS (
-              SELECT 1 FROM "DatabaseServerLabel" l
-              INNER JOIN "Label" lbl ON lbl."_id" = l."labelId"
-              WHERE l."databaseServerId" = ds."_id"
-                AND lbl."projectId" = ds."projectId"
-                AND lbl."deletedAt" IS NULL
+            AND COALESCE(ds."lastSeenAt", ds."createdAt") < COALESCE(kc."lastSeenAt", dh."lastSeenAt", ph."lastSeenAt", $2) - INTERVAL '1 hour'
+            AND (
+              ds."manuallyRestoredAt" IS NULL
+              OR ds."manuallyRestoredAt" < $5
+              OR COALESCE(ds."lastSeenAt", ds."createdAt") > ds."manuallyRestoredAt"
             )
-            AND NOT EXISTS (
-              SELECT 1 FROM "DatabaseServerOwnerUser" ou
-              WHERE ou."databaseServerId" = ds."_id"
-                AND ou."projectId" = ds."projectId"
-                AND ou."deletedAt" IS NULL
-            )
-            AND NOT EXISTS (
-              SELECT 1 FROM "DatabaseServerOwnerTeam" ot
-              WHERE ot."databaseServerId" = ds."_id"
-                AND ot."projectId" = ds."projectId"
-                AND ot."deletedAt" IS NULL
-            )
-            AND NOT EXISTS (
-              SELECT 1 FROM "IncidentDatabaseServer" ids
-              INNER JOIN "Incident" i ON i."_id" = ids."incidentId"
-              WHERE ids."databaseServerId" = ds."_id"
-                AND i."projectId" = ds."projectId"
-                AND i."deletedAt" IS NULL
-            )
-            AND NOT EXISTS (
-              SELECT 1 FROM "AlertDatabaseServer" ads
-              INNER JOIN "Alert" a ON a."_id" = ads."alertId"
-              WHERE ads."databaseServerId" = ds."_id"
-                AND a."projectId" = ds."projectId"
-                AND a."deletedAt" IS NULL
-            )
-            AND NOT EXISTS (
-              SELECT 1 FROM "ScheduledMaintenanceDatabaseServer" sds
-              INNER JOIN "ScheduledMaintenance" sm ON sm."_id" = sds."scheduledMaintenanceId"
-              WHERE sds."databaseServerId" = ds."_id"
-                AND sm."projectId" = ds."projectId"
-                AND sm."deletedAt" IS NULL
-            )
-            AND NOT EXISTS (
-              SELECT 1 FROM "DatabaseServerEndpoint" e
-              WHERE e."databaseServerId" = ds."_id"
-                AND e."projectId" = ds."projectId"
-                AND e."source" = 'user'
-                AND e."deletedAt" IS NULL
-            )
+            AND ${UNTOUCHED_DATABASE_SERVER_PREDICATE}
           ORDER BY COALESCE(ds."lastSeenAt", ds."createdAt") ASC
           LIMIT $4
         ),
@@ -814,6 +1081,7 @@ export class Service extends DatabaseService<Model> {
           now,
           DatabaseServerDiscoverySource.Manual,
           AUTO_ARCHIVE_BATCH_SIZE,
+          restoreGraceCutoff,
         ],
       );
 
@@ -839,11 +1107,13 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
-   * How many discovered databases (client spans, Kubernetes, Docker, Podman)
-   * a project may accumulate before discovery stops creating more on its
-   * own. Collector-created and manual rows do not count and are never
-   * blocked: a collector is configured on purpose. Default 500, at least 0
-   * (0 turns auto-creation off).
+   * How many discovered databases (collector, client spans, Kubernetes,
+   * Docker, Podman) a project may accumulate before discovery stops creating
+   * more on its own. Manual rows do not count and are never blocked, and a
+   * database linked to its agent by DATABASE_SERVER_ID never needs a create.
+   * Collector rows count: a collector keyed on pod IPs or pod host names
+   * would otherwise mint rows without bound. Default 500, at least 0 (0
+   * turns auto-creation off).
    */
   public getAutoCreateBudget(): number {
     return readIntegerEnv({
@@ -856,7 +1126,8 @@ export class Service extends DatabaseService<Model> {
   /**
    * True while the project holds fewer live, non-archived discovered
    * databases than getAutoCreateBudget(). Archived rows do not count, so
-   * the auto-archive sweep frees budget.
+   * the auto-archive sweep frees budget. Always reads the count - the
+   * workers call it once per project per run (AutoCreateBudget).
    */
   @CaptureSpan()
   public async isUnderAutoCreateBudget(projectId: ObjectID): Promise<boolean> {
@@ -866,6 +1137,44 @@ export class Service extends DatabaseService<Model> {
       return false;
     }
 
+    return (await this.countAutoCreatedDatabaseServers(projectId)) < budget;
+  }
+
+  /**
+   * isUnderAutoCreateBudget for the ingest hot path: the count is read at
+   * most once a minute per project in this process, and every row this
+   * process creates in between is added to it, so a burst of new endpoints
+   * stops at the budget instead of a minute's worth past it.
+   */
+  @CaptureSpan()
+  public async isUnderAutoCreateBudgetCached(
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    const budget: number = this.getAutoCreateBudget();
+
+    if (budget <= 0) {
+      return false;
+    }
+
+    const key: string = projectId.toString();
+    let cached: AutoCreateCount | undefined = this.autoCreateCountMemo.get(key);
+
+    if (!cached) {
+      cached = {
+        count: await this.countAutoCreatedDatabaseServers(projectId),
+        readAtMs: Date.now(),
+      };
+      this.autoCreateCountMemo.set(key, cached);
+    }
+
+    return cached.count < budget;
+  }
+
+  // Live, non-archived, non-manual rows of one project.
+  @CaptureSpan()
+  public async countAutoCreatedDatabaseServers(
+    projectId: ObjectID,
+  ): Promise<number> {
     const rows: Array<{ count: number | string }> =
       await this.getRepository().manager.query(
         `SELECT COUNT(*)::int AS "count"
@@ -873,15 +1182,11 @@ export class Service extends DatabaseService<Model> {
         WHERE "projectId" = $1
           AND "deletedAt" IS NULL
           AND "isArchived" = false
-          AND COALESCE("discoverySource", '') NOT IN ($2, $3)`,
-        [
-          projectId.toString(),
-          NON_AUTO_CREATED_SOURCES[0],
-          NON_AUTO_CREATED_SOURCES[1],
-        ],
+          AND COALESCE("discoverySource", '') <> $2`,
+        [projectId.toString(), DatabaseServerDiscoverySource.Manual],
       );
 
-    return readCount(rows) < budget;
+    return readCount(rows);
   }
 
   /**
@@ -904,6 +1209,183 @@ export class Service extends DatabaseService<Model> {
     });
 
     return databaseServer?.name || "";
+  }
+
+  /**
+   * The database's name - but only when `props` may read that row (project,
+   * label and Owned scopes applied); "" otherwise, or on any error. Refusal
+   * messages use it, so a caller with scoped permissions is never told the
+   * name of a database they cannot see. Without props (or as root) the name
+   * is read as root.
+   */
+  @CaptureSpan()
+  public async getDatabaseServerNameIfReadable(data: {
+    databaseServerId: ObjectID;
+    props?: DatabaseCommonInteractionProps | undefined;
+  }): Promise<string> {
+    if (!data.props || data.props.isRoot) {
+      return await this.getDatabaseServerName({
+        databaseServerId: data.databaseServerId,
+      });
+    }
+
+    try {
+      const readable: Model | null = await this.findOneBy({
+        query: {
+          _id: data.databaseServerId.toString(),
+        },
+        select: {
+          name: true,
+        },
+        props: data.props,
+      });
+
+      return readable?.name || "";
+    } catch {
+      return "";
+    }
+  }
+
+  /**
+   * Validate the database a child row (an owner, a feed note) is created
+   * for by a caller: the FK column and the relation object must agree
+   * (TypeORM would persist the relation object's id over the column's), and
+   * the database must be in the caller's project. Leaves the validated FK
+   * column as the only reference. Root creates are the caller's business.
+   */
+  @CaptureSpan()
+  public async assertDatabaseServerReferenceInProject<TModel extends BaseModel>(
+    createBy: CreateBy<TModel>,
+  ): Promise<ObjectID> {
+    const data: TModel = createBy.data;
+
+    const projectId: ObjectID | undefined =
+      createBy.props.tenantId ||
+      (data.getColumnValue("projectId") as ObjectID | undefined) ||
+      undefined;
+
+    if (!projectId) {
+      throw new BadDataException("Project ID is required.");
+    }
+
+    const databaseServerId: ObjectID | null = RelationIdUtil.readConsistent(
+      data as unknown as Record<string, unknown>,
+      ["databaseServerId", "databaseServer"],
+      "database",
+    );
+
+    data.setColumnValue("databaseServer", undefined);
+
+    if (!databaseServerId) {
+      throw new BadDataException("Select a database.");
+    }
+
+    const databaseServer: Model | null = await this.findOneBy({
+      query: {
+        _id: databaseServerId.toString(),
+        projectId: projectId,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!databaseServer) {
+      throw new BadDataException("Database not found.");
+    }
+
+    data.setColumnValue("databaseServerId", databaseServerId);
+
+    return databaseServerId;
+  }
+
+  /**
+   * Record labels or owners that a rule or ingest attached to a database on
+   * its own (DatabaseServer.automaticAssignments), so the auto-archive sweep
+   * does not mistake them for a person's investment. One atomic statement;
+   * ids deduped. Never throws - it only annotates a write that happened.
+   */
+  @CaptureSpan()
+  public async recordAutomaticAssignments(data: {
+    databaseServerId: ObjectID;
+    kind: DatabaseServerAutomaticAssignmentKind;
+    ids: Array<ObjectID | string>;
+  }): Promise<void> {
+    const ids: Array<string> = normalizeAssignmentIds(data.ids);
+
+    if (ids.length === 0 || !AUTOMATIC_ASSIGNMENT_KINDS.includes(data.kind)) {
+      return;
+    }
+
+    try {
+      await this.getRepository().manager.query(
+        `UPDATE "DatabaseServer"
+        SET "automaticAssignments" =
+          (CASE WHEN jsonb_typeof("automaticAssignments") = 'object' THEN "automaticAssignments" ELSE '{}'::jsonb END)
+          || jsonb_build_object(
+            $2::text,
+            (
+              SELECT COALESCE(jsonb_agg(DISTINCT assigned.id), '[]'::jsonb)
+              FROM jsonb_array_elements_text(
+                (CASE WHEN jsonb_typeof("automaticAssignments" -> $2::text) = 'array' THEN "automaticAssignments" -> $2::text ELSE '[]'::jsonb END)
+                || $3::jsonb
+              ) AS assigned(id)
+            )
+          )
+        WHERE "_id" = $1`,
+        [data.databaseServerId.toString(), data.kind, JSON.stringify(ids)],
+      );
+    } catch (error) {
+      logger.warn(
+        `DatabaseServerService: could not record automatic ${data.kind} on database ${data.databaseServerId.toString()}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  /**
+   * The opposite of recordAutomaticAssignments: a person (re)added these
+   * labels or owners, so from now on they count as investment. Never throws.
+   */
+  @CaptureSpan()
+  public async forgetAutomaticAssignments(data: {
+    databaseServerId: ObjectID;
+    kind: DatabaseServerAutomaticAssignmentKind;
+    ids: Array<ObjectID | string>;
+  }): Promise<void> {
+    const ids: Array<string> = normalizeAssignmentIds(data.ids);
+
+    if (ids.length === 0 || !AUTOMATIC_ASSIGNMENT_KINDS.includes(data.kind)) {
+      return;
+    }
+
+    try {
+      await this.getRepository().manager.query(
+        `UPDATE "DatabaseServer"
+        SET "automaticAssignments" = "automaticAssignments" || jsonb_build_object(
+          $2::text,
+          (
+            SELECT COALESCE(jsonb_agg(assigned.id), '[]'::jsonb)
+            FROM jsonb_array_elements_text("automaticAssignments" -> $2::text) AS assigned(id)
+            WHERE NOT (assigned.id = ANY($3::text[]))
+          )
+        )
+        WHERE "_id" = $1
+          AND jsonb_typeof("automaticAssignments") = 'object'
+          AND jsonb_typeof("automaticAssignments" -> $2::text) = 'array'`,
+        [data.databaseServerId.toString(), data.kind, ids],
+      );
+    } catch (error) {
+      logger.warn(
+        `DatabaseServerService: could not forget automatic ${data.kind} on database ${data.databaseServerId.toString()}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   @CaptureSpan()
@@ -946,6 +1428,12 @@ export class Service extends DatabaseService<Model> {
     this.autoRestoreCheckMemo.clear();
   }
 
+  // For tests: forget the cached auto-create counts and budget warnings.
+  public clearAutoCreateBudgetMemo(): void {
+    this.autoCreateCountMemo.clear();
+    this.autoCreateBudgetWarningMemo.clear();
+  }
+
   private async upsertWorkloadDatabaseOrThrow(
     data: UpsertWorkloadDatabaseData,
   ): Promise<Model | null> {
@@ -978,18 +1466,27 @@ export class Service extends DatabaseService<Model> {
     );
 
     // Who owns each alias today: one query, reused by adoption and claiming.
-    const ownersByEndpoint: Map<string, string> = await this.findEndpointOwners(
-      projectId,
-      aliases.map((alias: WorkloadAlias): string => {
-        return alias.endpoint;
-      }),
-    );
+    const ownersByEndpoint: Map<string, StoredEndpoint> =
+      await this.findEndpointOwners(
+        projectId,
+        aliases.map((alias: WorkloadAlias): string => {
+          return alias.endpoint;
+        }),
+      );
 
     let row: Model | null = await this.findByWorkloadIdentifier(
       projectId,
       workloadIdentifier,
     );
     let createdHere: boolean = false;
+
+    if (!row) {
+      row = await this.adoptSameWorkloadOfEngineFamily({
+        projectId: projectId,
+        workloadIdentifier: workloadIdentifier,
+        dbSystem: dbSystem,
+      });
+    }
 
     if (!row) {
       row = await this.adoptEndpointDatabaseServer({
@@ -1021,16 +1518,19 @@ export class Service extends DatabaseService<Model> {
       return null;
     }
 
+    const now: Date = OneUptimeDate.getCurrentDate();
+
     await this.claimWorkloadAliases({
       projectId: projectId,
       databaseServerId: row.id,
       workloadIdentifier: workloadIdentifier,
+      discoverySource: data.discoverySource,
       aliases: aliases,
       ownersByEndpoint: ownersByEndpoint,
       primaryEndpoint: createdHere ? aliases[0]?.endpoint : undefined,
+      now: now,
     });
 
-    const now: Date = OneUptimeDate.getCurrentDate();
     const memberEntityKeys: JSONObject = mergeDatabaseServerMemberKeys(
       row.memberEntityKeys,
       Array.isArray(data.memberKeysSeenNow) ? data.memberKeysSeenNow : [],
@@ -1047,6 +1547,7 @@ export class Service extends DatabaseService<Model> {
       memberEntityKeys: memberEntityKeys,
       instanceCount: instanceCount,
       lastSeenAt: now,
+      workloadLastSeenAt: now,
     };
 
     const workloadKind: string | null = cleanShortText(data.workloadKind);
@@ -1078,9 +1579,51 @@ export class Service extends DatabaseService<Model> {
       update["podmanHostId"] = data.podmanHostId;
     }
 
+    /*
+     * The image tag is the version of last resort: while a collector is
+     * reporting the engine's own version (recordCollectorHeartbeat), that
+     * one stands - otherwise the two writers would flip the column between
+     * "16" and "16.4" all day.
+     */
     const dbVersion: string | null = cleanShortText(data.dbVersion);
-    if (dbVersion) {
+    if (dbVersion && (!this.isCollectorFresh(row, now) || !row.dbVersion)) {
       update["dbVersion"] = dbVersion;
+    }
+
+    /*
+     * The image is evidence of the engine: it corrects what client spans
+     * guessed for a row this workload adopted, and refines a family engine
+     * to a fork (redis -> valkey). A row created here already has it.
+     */
+    const previousSystem: string | undefined = row.dbSystem;
+    const engine: DatabaseSystemDetermination | null = createdHere
+      ? null
+      : decideDatabaseSystem({
+          current: {
+            system: row.dbSystem,
+            evidence: getStoredDatabaseSystemEvidence(row),
+          },
+          incoming: {
+            system: dbSystem,
+            evidence: DatabaseSystemEvidence.Container,
+          },
+        });
+
+    if (engine) {
+      update["dbSystemSource"] = engine.evidence;
+
+      if (engine.system !== normalizeDatabaseSystem(row.dbSystem)) {
+        update["dbSystem"] = engine.system;
+
+        const renamed: string | null = renameForDatabaseSystem(
+          row,
+          engine.system,
+        );
+
+        if (renamed) {
+          update["name"] = renamed;
+        }
+      }
     }
 
     await this.updateColumnsByIdWithoutHooks({
@@ -1091,11 +1634,204 @@ export class Service extends DatabaseService<Model> {
     row.memberEntityKeys = memberEntityKeys;
     row.instanceCount = instanceCount;
     row.lastSeenAt = now;
+    row.workloadLastSeenAt = now;
     row.workloadIdentifier = workloadIdentifier;
+
+    if (engine) {
+      row.dbSystemSource = engine.evidence;
+      if (typeof update["dbSystem"] === "string") {
+        row.dbSystem = update["dbSystem"];
+      }
+      if (typeof update["name"] === "string") {
+        row.name = update["name"];
+      }
+    }
+
+    if (typeof update["dbVersion"] === "string") {
+      row.dbVersion = update["dbVersion"];
+    }
+
+    if (engine && previousSystem && row.dbSystem !== previousSystem) {
+      await this.writeEngineCorrectedFeed({
+        row: row,
+        previousSystem: previousSystem,
+        evidence: engine.evidence,
+      });
+    }
 
     await this.restoreIfAutoArchived(row);
 
     return row;
+  }
+
+  /**
+   * Weigh new evidence of a row's engine (see decideDatabaseSystem) and, if
+   * it wins, write it: the engine, the evidence behind it, and the
+   * auto-generated name when the row still carries the old one - a name a
+   * person chose is kept. A compare-and-set on the engine read, so two
+   * writers weighing at once cannot interleave. Never throws.
+   */
+  private async applyDatabaseSystemEvidence(
+    row: Model,
+    incoming: {
+      system: string | null | undefined;
+      evidence: DatabaseSystemEvidence;
+    },
+  ): Promise<void> {
+    if (!row.id || !row.dbSystem) {
+      return;
+    }
+
+    const decision: DatabaseSystemDetermination | null = decideDatabaseSystem({
+      current: {
+        system: row.dbSystem,
+        evidence: getStoredDatabaseSystemEvidence(row),
+      },
+      incoming: incoming,
+    });
+
+    if (!decision) {
+      return;
+    }
+
+    const previousSystem: string = row.dbSystem;
+    const engineChanged: boolean =
+      decision.system !== normalizeDatabaseSystem(previousSystem);
+
+    const update: PartialEntity<Model> = {
+      dbSystemSource: decision.evidence,
+    };
+
+    if (engineChanged) {
+      update.dbSystem = decision.system;
+
+      const renamed: string | null = renameForDatabaseSystem(
+        row,
+        decision.system,
+      );
+
+      if (renamed) {
+        update.name = renamed;
+      }
+    }
+
+    try {
+      await this.updateColumnsByIdWithoutHooks({
+        id: row.id,
+        data: update,
+        expectedData: {
+          dbSystem: previousSystem,
+        },
+        // Recording stronger evidence for the same engine is bookkeeping.
+        skipUpdateDateColumn: !engineChanged,
+      });
+    } catch (error) {
+      logger.warn(
+        `DatabaseServerService: could not update the engine of database ${row.id.toString()}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+
+      return;
+    }
+
+    row.dbSystemSource = decision.evidence;
+
+    if (!engineChanged) {
+      return;
+    }
+
+    row.dbSystem = decision.system;
+
+    if (update.name) {
+      row.name = update.name as string;
+    }
+
+    await this.writeEngineCorrectedFeed({
+      row: row,
+      previousSystem: previousSystem,
+      evidence: decision.evidence,
+    });
+  }
+
+  private async writeEngineCorrectedFeed(data: {
+    row: Model;
+    previousSystem: string;
+    evidence: DatabaseSystemEvidence;
+  }): Promise<void> {
+    const row: Model = data.row;
+
+    if (!row.id || !row.projectId) {
+      return;
+    }
+
+    try {
+      logger.info(
+        `DatabaseServerService: database ${row.id.toString()} is now identified as ${row.dbSystem} (was ${data.previousSystem}), from ${data.evidence} evidence.`,
+        { projectId: row.projectId.toString() } as LogAttributes,
+      );
+
+      await DatabaseServerFeedService.createDatabaseServerFeedItem({
+        databaseServerId: row.id,
+        projectId: row.projectId,
+        databaseServerFeedEventType:
+          DatabaseServerFeedEventType.DatabaseServerUpdated,
+        displayColor: Gray500,
+        feedInfoInMarkdown: `🔎 ${await this.getDatabaseServerMarkdownLink(
+          row.projectId,
+          row.id,
+        )} is now identified as **${getDatabaseSystemDisplayName(
+          row.dbSystem,
+        )}** (it was shown as ${getDatabaseSystemDisplayName(
+          data.previousSystem,
+        )}), from ${DATABASE_SYSTEM_EVIDENCE_LABEL[data.evidence]}.`,
+        moreInformationInMarkdown: `Client libraries of wire-compatible databases report the engine they speak to, so a database first seen in application traces can be named after the wrong engine. A stronger source - a container image, a collector receiver or the Database Agent - corrects it, and a fork (MariaDB, Valkey, ScyllaDB ...) refines the engine it forks. An engine a person chose is never changed.`,
+      });
+    } catch (error) {
+      logger.warn(
+        `DatabaseServerService: could not record the engine change of database ${row.id.toString()}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  private isCollectorFresh(row: Model, now: Date): boolean {
+    if (!row.collectorLastSeenAt) {
+      return false;
+    }
+
+    return (
+      new Date(row.collectorLastSeenAt).getTime() >
+      OneUptimeDate.addRemoveMinutes(
+        now,
+        -this.getCollectorStaleThresholdMinutes(),
+      ).getTime()
+    );
+  }
+
+  /*
+   * True for the row of a Kubernetes / Docker / Podman workload that
+   * discovery has not seen for WORKLOAD_GONE_MINUTES: its endpoints may move
+   * to the workload that replaced it, and a trace still naming one of them
+   * does not bring the row back from the archive.
+   */
+  private isWorkloadGone(
+    row: Model,
+    now: Date = OneUptimeDate.getCurrentDate(),
+  ): boolean {
+    if (!row.workloadIdentifier) {
+      return false;
+    }
+
+    if (!row.workloadLastSeenAt) {
+      return true;
+    }
+
+    return (
+      new Date(row.workloadLastSeenAt).getTime() <
+      OneUptimeDate.addRemoveMinutes(now, -WORKLOAD_GONE_MINUTES).getTime()
+    );
   }
 
   private async findByWorkloadIdentifier(
@@ -1114,12 +1850,15 @@ export class Service extends DatabaseService<Model> {
     });
   }
 
-  // endpoint -> owning databaseServerId, for the endpoints that have one.
+  // endpoint -> the stored endpoint row, for the endpoints that have one.
   private async findEndpointOwners(
     projectId: ObjectID,
     endpoints: Array<string>,
-  ): Promise<Map<string, string>> {
-    const owners: Map<string, string> = new Map<string, string>();
+  ): Promise<Map<string, StoredEndpoint>> {
+    const owners: Map<string, StoredEndpoint> = new Map<
+      string,
+      StoredEndpoint
+    >();
 
     if (endpoints.length === 0) {
       return owners;
@@ -1135,6 +1874,9 @@ export class Service extends DatabaseService<Model> {
           _id: true,
           endpoint: true,
           databaseServerId: true,
+          source: true,
+          isPrimary: true,
+          lastMatchedAt: true,
         },
         limit: LIMIT_MAX,
         skip: 0,
@@ -1145,21 +1887,115 @@ export class Service extends DatabaseService<Model> {
 
     for (const endpointRow of rows) {
       if (endpointRow.endpoint && endpointRow.databaseServerId) {
-        owners.set(
-          endpointRow.endpoint,
-          endpointRow.databaseServerId.toString(),
-        );
+        owners.set(endpointRow.endpoint, {
+          endpointId: endpointRow._id
+            ? new ObjectID(endpointRow._id.toString())
+            : null,
+          databaseServerId: endpointRow.databaseServerId.toString(),
+          source: endpointRow.source || "auto",
+          isPrimary: Boolean(endpointRow.isPrimary),
+          lastMatchedAt: endpointRow.lastMatchedAt
+            ? new Date(endpointRow.lastMatchedAt)
+            : null,
+        });
       }
     }
 
     return owners;
   }
 
+  /*
+   * The row of the SAME workload under another engine of the same family. A
+   * workload's identifier starts with its engine, so an image moving from
+   * Redis to Valkey - or the classifier learning to tell MariaDB from MySQL -
+   * would otherwise turn one database into two: a new row with none of the
+   * endpoints, history, labels or incident links of the old one. Instead the
+   * old row is re-keyed to the new identifier (a compare-and-set, like
+   * adoption) and the engine evidence is weighed as usual. Two candidates is
+   * ambiguous and adopts neither.
+   */
+  private async adoptSameWorkloadOfEngineFamily(data: {
+    projectId: ObjectID;
+    workloadIdentifier: string;
+    dbSystem: string;
+  }): Promise<Model | null> {
+    const separator: number = data.workloadIdentifier.indexOf("|");
+
+    if (separator <= 0) {
+      return null;
+    }
+
+    const workload: string = data.workloadIdentifier.substring(separator + 1);
+    const candidates: Array<string> = getDatabaseSystemsOfFamily(data.dbSystem)
+      .filter((system: string): boolean => {
+        return system !== data.dbSystem;
+      })
+      .map((system: string): string => {
+        return truncateLongText(`${system}|${workload}`.toLowerCase());
+      });
+
+    if (candidates.length === 0) {
+      return null;
+    }
+
+    const rows: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        workloadIdentifier: QueryHelper.any(candidates),
+      },
+      select: {
+        _id: true,
+        workloadIdentifier: true,
+      },
+      limit: 2,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (rows.length !== 1 || !rows[0]!.id || !rows[0]!.workloadIdentifier) {
+      return null;
+    }
+
+    const previousId: ObjectID = rows[0]!.id!;
+    const previousWorkload: string = rows[0]!.workloadIdentifier!;
+
+    try {
+      await this.updateColumnsByIdWithoutHooks({
+        id: previousId,
+        data: {
+          workloadIdentifier: data.workloadIdentifier,
+        },
+        expectedData: {
+          workloadIdentifier: previousWorkload,
+        },
+      });
+
+      logger.info(
+        `DatabaseServerService: workload ${previousWorkload} is now ${data.workloadIdentifier} - the same workload under an engine of the same family; database ${previousId.toString()} kept.`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+    } catch (error) {
+      logger.debug(
+        `DatabaseServerService: re-keying database ${previousId.toString()} to workload ${data.workloadIdentifier} failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+
+    // Whatever happened, the workload index now holds the truth.
+    return await this.findByWorkloadIdentifier(
+      data.projectId,
+      data.workloadIdentifier,
+    );
+  }
+
   private async adoptEndpointDatabaseServer(data: {
     projectId: ObjectID;
     workloadIdentifier: string;
     aliases: Array<WorkloadAlias>;
-    ownersByEndpoint: Map<string, string>;
+    ownersByEndpoint: Map<string, StoredEndpoint>;
   }): Promise<Model | null> {
     /*
      * Only GLOBAL-scope aliases vote. An unqualified cluster-local name or a
@@ -1176,7 +2012,7 @@ export class Service extends DatabaseService<Model> {
 
       const ownerId: string | undefined = data.ownersByEndpoint.get(
         alias.endpoint,
-      );
+      )?.databaseServerId;
 
       if (ownerId) {
         ownerIds.add(ownerId);
@@ -1276,6 +2112,7 @@ export class Service extends DatabaseService<Model> {
     newRow.discoverySource = input.discoverySource;
     newRow.instanceCount = toInstanceCount(input.instanceCount);
     newRow.lastSeenAt = now;
+    newRow.workloadLastSeenAt = now;
     newRow.memberEntityKeys = mergeDatabaseServerMemberKeys(
       undefined,
       Array.isArray(input.memberKeysSeenNow) ? input.memberKeysSeenNow : [],
@@ -1348,42 +2185,77 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
+  /*
+   * Reconcile the workload's endpoints with the aliases this run produced:
+   *   1. claim the unowned ones (source "workload");
+   *   2. take over the ones a DISCOVERED endpoint of another row holds when
+   *      that row is a workload that is gone (a Deployment moved to a
+   *      StatefulSet, an engine reclassified) or an untouched duplicate that
+   *      application traces created (the create race) - never a person's
+   *      endpoint, never a live workload's, collector's or manual row's;
+   *   3. re-stamp lastMatchedAt on the ones already ours (at most hourly);
+   *   4. release this row's "workload" aliases that the workload has not
+   *      produced for WORKLOAD_ALIAS_RELEASE_MINUTES - an unqualified alias
+   *      once the project gained a second cluster, a Service that was
+   *      renamed. Never its primary endpoint, never an "auto" or "user" one.
+   * Each step is best-effort: one failing never stops the next.
+   */
   private async claimWorkloadAliases(data: {
     projectId: ObjectID;
     databaseServerId: ObjectID;
     workloadIdentifier: string;
+    discoverySource: DatabaseServerDiscoverySource;
     aliases: Array<WorkloadAlias>;
-    ownersByEndpoint: Map<string, string>;
+    ownersByEndpoint: Map<string, StoredEndpoint>;
     primaryEndpoint: string | undefined;
+    now: Date;
   }): Promise<void> {
-    const ownedByOthers: Array<string> = [];
+    const ownId: string = data.databaseServerId.toString();
+    const refreshBefore: Date = OneUptimeDate.addRemoveSeconds(
+      data.now,
+      -ENDPOINT_MATCH_REFRESH_SECONDS,
+    );
+
+    const heldByOthers: Array<HeldAlias> = [];
+    const racedByOthers: Array<string> = [];
+    const ownedToRefresh: Array<string> = [];
+    let primaryClaimed: boolean = false;
 
     for (const alias of data.aliases) {
-      const ownerId: string | undefined = data.ownersByEndpoint.get(
+      const stored: StoredEndpoint | undefined = data.ownersByEndpoint.get(
         alias.endpoint,
       );
 
-      if (ownerId === data.databaseServerId.toString()) {
+      if (stored && stored.databaseServerId === ownId) {
+        if (
+          !stored.lastMatchedAt ||
+          stored.lastMatchedAt.getTime() < refreshBefore.getTime()
+        ) {
+          ownedToRefresh.push(alias.endpoint);
+        }
         continue;
       }
 
-      if (ownerId) {
-        ownedByOthers.push(alias.endpoint);
+      if (stored) {
+        heldByOthers.push({ alias: alias, stored: stored });
         continue;
       }
 
       try {
+        const isPrimary: boolean = alias.endpoint === data.primaryEndpoint;
         const result: DatabaseServerEndpointClaimResult =
           await DatabaseServerEndpointService.claimEndpoint({
             projectId: data.projectId,
             databaseServerId: data.databaseServerId,
             endpoint: alias.endpoint,
-            isPrimary: alias.endpoint === data.primaryEndpoint,
-            source: "auto",
+            isPrimary: isPrimary,
+            source: "workload",
           });
 
         if (result === "owned-by-other") {
-          ownedByOthers.push(alias.endpoint);
+          racedByOthers.push(alias.endpoint);
+        } else if (result === "claimed" && isPrimary) {
+          primaryClaimed = true;
         }
       } catch (error) {
         logger.warn(
@@ -1395,6 +2267,91 @@ export class Service extends DatabaseService<Model> {
       }
     }
 
+    let notTaken: Array<string> = heldByOthers.map(
+      (held: HeldAlias): string => {
+        return held.alias.endpoint;
+      },
+    );
+
+    try {
+      notTaken = await this.takeOverWorkloadAliases({
+        projectId: data.projectId,
+        databaseServerId: data.databaseServerId,
+        workloadIdentifier: data.workloadIdentifier,
+        heldByOthers: heldByOthers,
+        /*
+         * A row created in this run whose first alias could not be claimed
+         * has no primary endpoint yet; any other row is asked (lazily).
+         */
+        needsPrimary: data.primaryEndpoint ? !primaryClaimed : undefined,
+        now: data.now,
+      });
+    } catch (error) {
+      logger.warn(
+        `DatabaseServerService: taking over endpoints for workload ${data.workloadIdentifier} failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+    }
+
+    if (ownedToRefresh.length > 0) {
+      try {
+        await DatabaseServerEndpointService.refreshMatchedEndpoints({
+          projectId: data.projectId,
+          databaseServerId: data.databaseServerId,
+          endpoints: ownedToRefresh,
+          now: data.now,
+          staleBefore: refreshBefore,
+        });
+      } catch (error) {
+        logger.warn(
+          `DatabaseServerService: refreshing endpoints of workload ${data.workloadIdentifier} failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+      }
+    }
+
+    // Only Kubernetes workloads produce aliases, so only they can drop one.
+    if (data.discoverySource === DatabaseServerDiscoverySource.Kubernetes) {
+      try {
+        const released: Array<string> =
+          await DatabaseServerEndpointService.releaseUnproducedWorkloadEndpoints(
+            {
+              projectId: data.projectId,
+              databaseServerId: data.databaseServerId,
+              keepEndpoints: data.aliases.map(
+                (alias: WorkloadAlias): string => {
+                  return alias.endpoint;
+                },
+              ),
+              staleBefore: OneUptimeDate.addRemoveMinutes(
+                data.now,
+                -WORKLOAD_ALIAS_RELEASE_MINUTES,
+              ),
+            },
+          );
+
+        if (released.length > 0) {
+          logger.info(
+            `DatabaseServerService: released ${released.length} endpoint(s) workload ${data.workloadIdentifier} no longer serves: ${released.join(", ")}`,
+            { projectId: data.projectId.toString() } as LogAttributes,
+          );
+        }
+      } catch (error) {
+        logger.warn(
+          `DatabaseServerService: releasing endpoints of workload ${data.workloadIdentifier} failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+      }
+    }
+
+    const ownedByOthers: Array<string> = [...notTaken, ...racedByOthers];
+
     if (ownedByOthers.length > 0) {
       /*
        * Expected and stable run to run (another database already lists the
@@ -1405,6 +2362,184 @@ export class Service extends DatabaseService<Model> {
         { projectId: data.projectId.toString() } as LogAttributes,
       );
     }
+  }
+
+  /*
+   * Step 2 of claimWorkloadAliases. Returns the aliases left with their
+   * current owners.
+   */
+  private async takeOverWorkloadAliases(data: {
+    projectId: ObjectID;
+    databaseServerId: ObjectID;
+    workloadIdentifier: string;
+    heldByOthers: Array<HeldAlias>;
+    needsPrimary: boolean | undefined;
+    now: Date;
+  }): Promise<Array<string>> {
+    const notTaken: Array<string> = [];
+    const candidates: Array<HeldAlias> = [];
+
+    for (const held of data.heldByOthers) {
+      if (held.stored.source === "user" || !held.stored.endpointId) {
+        notTaken.push(held.alias.endpoint);
+      } else {
+        candidates.push(held);
+      }
+    }
+
+    if (candidates.length === 0) {
+      return notTaken;
+    }
+
+    const ownerIds: Array<string> = Array.from(
+      new Set<string>(
+        candidates.map((held: HeldAlias): string => {
+          return held.stored.databaseServerId;
+        }),
+      ),
+    );
+
+    const owners: Array<Model> = await this.findBy({
+      query: {
+        projectId: data.projectId,
+        _id: QueryHelper.any(ownerIds),
+      },
+      select: {
+        _id: true,
+        workloadIdentifier: true,
+        workloadLastSeenAt: true,
+        discoverySource: true,
+      },
+      limit: ownerIds.length,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const ownersById: Map<string, Model> = new Map<string, Model>();
+
+    for (const owner of owners) {
+      if (owner.id) {
+        ownersById.set(owner.id.toString(), owner);
+      }
+    }
+
+    const traceDuplicateIds: Set<string> = await this.findUntouchedTraceRows(
+      data.projectId,
+      owners
+        .filter((owner: Model): boolean => {
+          return (
+            Boolean(owner.id) &&
+            !owner.workloadIdentifier &&
+            owner.discoverySource === DatabaseServerDiscoverySource.ClientSpans
+          );
+        })
+        .map((owner: Model): string => {
+          return owner.id!.toString();
+        }),
+    );
+
+    let needsPrimary: boolean | undefined = data.needsPrimary;
+
+    for (const held of candidates) {
+      const owner: Model | undefined = ownersById.get(
+        held.stored.databaseServerId,
+      );
+
+      const goneWorkload: boolean = Boolean(
+        owner &&
+          owner.workloadIdentifier &&
+          owner.workloadIdentifier !== data.workloadIdentifier &&
+          this.isWorkloadGone(owner, data.now),
+      );
+      const traceDuplicate: boolean = traceDuplicateIds.has(
+        held.stored.databaseServerId.toLowerCase(),
+      );
+
+      if (!goneWorkload && !traceDuplicate) {
+        notTaken.push(held.alias.endpoint);
+        continue;
+      }
+
+      if (needsPrimary === undefined) {
+        needsPrimary = !(await DatabaseServerEndpointService.hasPrimaryEndpoint(
+          {
+            projectId: data.projectId,
+            databaseServerId: data.databaseServerId,
+          },
+        ));
+      }
+
+      const moved: boolean =
+        await DatabaseServerEndpointService.transferEndpoint({
+          projectId: data.projectId,
+          endpointId: held.stored.endpointId!,
+          fromDatabaseServerId: new ObjectID(held.stored.databaseServerId),
+          toDatabaseServerId: data.databaseServerId,
+          isPrimary: needsPrimary,
+          now: data.now,
+        });
+
+      if (!moved) {
+        notTaken.push(held.alias.endpoint);
+        continue;
+      }
+
+      needsPrimary = false;
+
+      logger.info(
+        `DatabaseServerService: moved endpoint ${held.alias.endpoint} from database ${held.stored.databaseServerId} (${
+          goneWorkload
+            ? "its workload is gone"
+            : "an untouched duplicate application traces created"
+        }) to workload ${data.workloadIdentifier}.`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+    }
+
+    return notTaken;
+  }
+
+  /*
+   * Of `databaseServerIds`, the trace-discovered rows nobody invested in
+   * (UNTOUCHED_DATABASE_SERVER_PREDICATE): duplicates of a workload whose
+   * endpoints the workload may take over.
+   */
+  private async findUntouchedTraceRows(
+    projectId: ObjectID,
+    databaseServerIds: Array<string>,
+  ): Promise<Set<string>> {
+    if (databaseServerIds.length === 0) {
+      return new Set<string>();
+    }
+
+    const rows: unknown = await this.getRepository().manager.query(
+      `SELECT ds."_id" AS "_id"
+        FROM "DatabaseServer" ds
+        WHERE ds."projectId" = $1
+          AND ds."_id" = ANY($2::uuid[])
+          AND ds."deletedAt" IS NULL
+          AND ds."workloadIdentifier" IS NULL
+          AND ds."discoverySource" = $3
+          AND ${UNTOUCHED_DATABASE_SERVER_PREDICATE}`,
+      [
+        projectId.toString(),
+        databaseServerIds,
+        DatabaseServerDiscoverySource.ClientSpans,
+      ],
+    );
+
+    const ids: Set<string> = new Set<string>();
+
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const id: unknown = (row as { _id?: unknown })?._id;
+      if (id) {
+        ids.add(String(id).toLowerCase());
+      }
+    }
+
+    return ids;
   }
 
   private async createEndpointDatabaseServer(data: {
@@ -1526,7 +2661,7 @@ export class Service extends DatabaseService<Model> {
         owner.databaseServerId,
       );
 
-      if (ownerRow) {
+      if (ownerRow && !this.isWorkloadGone(ownerRow)) {
         await this.restoreIfAutoArchived(ownerRow);
       }
 
@@ -1534,12 +2669,80 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (createdHere) {
+      this.noteAutoCreated(data.projectId);
       this.runCreatedSideEffects(row, undefined);
     } else {
       await this.restoreIfAutoArchived(row);
     }
 
     return row;
+  }
+
+  /*
+   * The collector path's budget gate (see findOrCreateByEndpoint): false
+   * when the project has reached its auto-create budget - warned about once
+   * per project per ten minutes, since ingest would otherwise repeat it for
+   * every batch - or when the count cannot be read (fail closed, like the
+   * workers' AutoCreateBudget).
+   */
+  private async allowsCollectorAutoCreate(
+    projectId: ObjectID,
+    formattedEndpoint: string,
+  ): Promise<boolean> {
+    let underBudget: boolean = false;
+
+    try {
+      underBudget = await this.isUnderAutoCreateBudgetCached(projectId);
+    } catch (error) {
+      logger.error(
+        `DatabaseServerService: auto-create budget check failed for project ${projectId.toString()}; not creating a database for collector endpoint ${formattedEndpoint}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        { projectId: projectId.toString() } as LogAttributes,
+      );
+
+      return false;
+    }
+
+    if (!underBudget) {
+      const key: string = projectId.toString();
+
+      if (!this.autoCreateBudgetWarningMemo.get(key)) {
+        this.autoCreateBudgetWarningMemo.set(key, true);
+
+        logger.warn(
+          `DatabaseServerService: project ${key} reached its auto-create budget (DATABASE_SERVER_AUTO_CREATE_BUDGET=${this.getAutoCreateBudget()}); not creating a database for collector endpoint ${formattedEndpoint} (and further new collector endpoints for the next ten minutes). Raise the budget, or add the database manually and link its agent with DATABASE_SERVER_ID.`,
+          { projectId: key } as LogAttributes,
+        );
+      }
+    }
+
+    return underBudget;
+  }
+
+  // A row was auto-created: count it against the cached budget straight away.
+  private noteAutoCreated(projectId: ObjectID): void {
+    const key: string = projectId.toString();
+    const cached: AutoCreateCount | undefined =
+      this.autoCreateCountMemo.get(key);
+
+    if (!cached) {
+      return;
+    }
+
+    const remainingMs: number =
+      cached.readAtMs + AUTO_CREATE_BUDGET_CACHE_MS - Date.now();
+
+    if (remainingMs <= 0) {
+      this.autoCreateCountMemo.delete(key);
+      return;
+    }
+
+    this.autoCreateCountMemo.set(
+      key,
+      { count: cached.count + 1, readAtMs: cached.readAtMs },
+      remainingMs,
+    );
   }
 
   private async deleteOrphanedDatabaseServer(
@@ -1580,6 +2783,7 @@ export class Service extends DatabaseService<Model> {
     projectId: ObjectID;
     databaseServerId: ObjectID;
     endpoint: string;
+    props: DatabaseCommonInteractionProps;
   }): Promise<void> {
     let claim: DatabaseServerEndpointClaimResult;
 
@@ -1616,7 +2820,7 @@ export class Service extends DatabaseService<Model> {
 
     throw new BadDataException(
       owner
-        ? await getOwnedByOtherDatabaseMessage(data.endpoint, owner)
+        ? await getOwnedByOtherDatabaseMessage(data.endpoint, owner, data.props)
         : `${data.endpoint} already belongs to another database. An endpoint can belong to only one database in a project.`,
     );
   }
@@ -1800,7 +3004,41 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  private async clearAutoArchivedAt(
+  /*
+   * A person archived (restored = false) or restored a row: it is no longer
+   * discovery's archive (autoArchivedAt cleared), and a restore is stamped
+   * so the sweep leaves the row alone until it is seen again or the grace
+   * period passes (manuallyRestoredAt; cleared again on an archive).
+   */
+  private async recordArchiveDecisionByPerson(
+    databaseServerIds: Array<ObjectID>,
+    restored: boolean,
+  ): Promise<void> {
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    for (const databaseServerId of databaseServerIds) {
+      try {
+        await this.updateColumnsByIdWithoutHooks({
+          id: databaseServerId,
+          data: {
+            autoArchivedAt: null,
+            manuallyRestoredAt: restored ? now : null,
+          },
+          skipUpdateDateColumn: true,
+        });
+      } catch (error) {
+        logger.warn(
+          `DatabaseServerService: could not record the ${
+            restored ? "restore" : "archive"
+          } of database ${databaseServerId.toString()}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+  }
+
+  private async recordDatabaseSystemSetByPerson(
     databaseServerIds: Array<ObjectID>,
   ): Promise<void> {
     for (const databaseServerId of databaseServerIds) {
@@ -1808,13 +3046,13 @@ export class Service extends DatabaseService<Model> {
         await this.updateColumnsByIdWithoutHooks({
           id: databaseServerId,
           data: {
-            autoArchivedAt: null,
+            dbSystemSource: DatabaseSystemEvidence.Manual,
           },
           skipUpdateDateColumn: true,
         });
       } catch (error) {
         logger.warn(
-          `DatabaseServerService: could not clear autoArchivedAt on database ${databaseServerId.toString()}: ${
+          `DatabaseServerService: could not record the engine a person set on database ${databaseServerId.toString()}: ${
             error instanceof Error ? error.message : String(error)
           }`,
         );
@@ -1892,8 +3130,14 @@ export class Service extends DatabaseService<Model> {
     }
   }
 
-  private async restoreAfterHeartbeatIfAutoArchived(
+  /*
+   * The throttled part of a collector heartbeat (see recordCollectorHeartbeat):
+   * one primary-key read per database per window, fleet-wide, then the
+   * auto-archive restore and the engine evidence.
+   */
+  private async reconcileAfterHeartbeat(
     databaseServerId: ObjectID,
+    reportedSystem: string | undefined,
   ): Promise<void> {
     const key: string = databaseServerId.toString();
 
@@ -1931,18 +3175,20 @@ export class Service extends DatabaseService<Model> {
     try {
       const row: Model | null = await this.findOneById({
         id: databaseServerId,
-        select: {
-          _id: true,
-          projectId: true,
-          isArchived: true,
-          autoArchivedAt: true,
-        },
+        select: DISCOVERY_SELECT,
         props: {
           isRoot: true,
         },
       });
 
       if (row) {
+        if (reportedSystem) {
+          await this.applyDatabaseSystemEvidence(row, {
+            system: reportedSystem,
+            evidence: DatabaseSystemEvidence.Collector,
+          });
+        }
+
         await this.restoreIfAutoArchived(row);
       }
     } catch (error) {
@@ -1974,7 +3220,7 @@ export class Service extends DatabaseService<Model> {
         }.`,
         moreInformationInMarkdown: `No collector, application trace or container inventory has reported this database for ${data.days} ${
           data.days === 1 ? "day" : "days"
-        }, and nobody has labelled it, owned it, linked it to an incident, alert or scheduled maintenance, added an endpoint to it or changed its retention. It is restored automatically as soon as it is seen again.`,
+        } while the Kubernetes cluster or container host it was found on (if any) kept reporting, and nobody has labelled it, owned it, linked it to an incident, alert or scheduled maintenance, added an endpoint to it, changed its retention or recently restored it from the archive. Labels and owners that rules or telemetry attached on their own do not count. It is restored automatically as soon as it is seen again.`,
       });
     } catch (error) {
       logger.warn(
@@ -2129,6 +3375,276 @@ function readCount(rows: unknown): number {
   const count: number = Number((rows[0] as { count?: unknown })?.count);
 
   return Number.isFinite(count) ? count : 0;
+}
+
+/**
+ * The evidence a discovery source's own engine report carries: what the
+ * collector path, the trace path and the container paths each know. A row's
+ * discoverySource read through this is the evidence its engine was first
+ * set from.
+ */
+export function getDatabaseSystemEvidenceForSource(
+  source: string | null | undefined,
+): DatabaseSystemEvidence | null {
+  switch (source) {
+    case DatabaseServerDiscoverySource.Manual:
+      return DatabaseSystemEvidence.Manual;
+    case DatabaseServerDiscoverySource.Collector:
+      return DatabaseSystemEvidence.Collector;
+    case DatabaseServerDiscoverySource.Kubernetes:
+    case DatabaseServerDiscoverySource.Docker:
+    case DatabaseServerDiscoverySource.Podman:
+      return DatabaseSystemEvidence.Container;
+    case DatabaseServerDiscoverySource.ClientSpans:
+      return DatabaseSystemEvidence.ClientSpans;
+    default:
+      return null;
+  }
+}
+
+/*
+ * The evidence behind a row's current engine: dbSystemSource once anything
+ * refined it, else the source that created the row.
+ */
+export function getStoredDatabaseSystemEvidence(row: {
+  dbSystemSource?: string | undefined;
+  discoverySource?: string | undefined;
+}): DatabaseSystemEvidence | null {
+  const stored: string | undefined = row.dbSystemSource;
+
+  if (
+    stored &&
+    Object.values(DatabaseSystemEvidence).includes(
+      stored as DatabaseSystemEvidence,
+    )
+  ) {
+    return stored as DatabaseSystemEvidence;
+  }
+
+  return getDatabaseSystemEvidenceForSource(row.discoverySource);
+}
+
+/**
+ * The engine (and the evidence for it) a row should carry once `incoming`
+ * evidence arrives, or null to leave the row as it is:
+ *   - an engine a person chose is never changed;
+ *   - a different engine family replaces the current engine only on strictly
+ *     stronger evidence (the image says CockroachDB where a pgx client said
+ *     PostgreSQL); equal or weaker evidence never flips it back and forth;
+ *   - within one family, any source may REFINE the family's own engine to a
+ *     fork of it (redis -> valkey): a client, an image or a receiver can
+ *     each be the only one that knows. A fork is never downgraded back to
+ *     the family engine, and one fork replaces another only on strictly
+ *     stronger evidence;
+ *   - the same engine on stronger evidence keeps the engine but records the
+ *     stronger evidence, so weaker evidence cannot move it later.
+ * A row with no engine takes the incoming one. Pure.
+ */
+export function decideDatabaseSystem(data: {
+  current: {
+    system: string | null | undefined;
+    evidence: DatabaseSystemEvidence | null;
+  };
+  incoming: {
+    system: string | null | undefined;
+    evidence: DatabaseSystemEvidence;
+  };
+}): DatabaseSystemDetermination | null {
+  const incomingSystem: string | null = cleanShortText(
+    normalizeDatabaseSystem(data.incoming.system),
+  );
+
+  if (!incomingSystem) {
+    return null;
+  }
+
+  const incoming: DatabaseSystemDetermination = {
+    system: incomingSystem,
+    evidence: data.incoming.evidence,
+  };
+
+  const currentSystem: string | null = normalizeDatabaseSystem(
+    data.current.system,
+  );
+
+  if (!currentSystem) {
+    return incoming;
+  }
+
+  if (data.current.evidence === DatabaseSystemEvidence.Manual) {
+    return null;
+  }
+
+  const currentRank: number = data.current.evidence
+    ? DATABASE_SYSTEM_EVIDENCE_RANK[data.current.evidence]
+    : 0;
+  const incomingRank: number = DATABASE_SYSTEM_EVIDENCE_RANK[incoming.evidence];
+
+  if (incomingSystem === currentSystem) {
+    return incomingRank > currentRank
+      ? { system: currentSystem, evidence: incoming.evidence }
+      : null;
+  }
+
+  if (isSameDatabaseFamily(currentSystem, incomingSystem)) {
+    const currentIsFamilyEngine: boolean =
+      getDatabaseSystemFamily(currentSystem) === currentSystem;
+    const incomingIsFamilyEngine: boolean =
+      getDatabaseSystemFamily(incomingSystem) === incomingSystem;
+
+    if (currentIsFamilyEngine && !incomingIsFamilyEngine) {
+      return incoming;
+    }
+
+    if (
+      !currentIsFamilyEngine &&
+      !incomingIsFamilyEngine &&
+      incomingRank > currentRank
+    ) {
+      return incoming;
+    }
+
+    return null;
+  }
+
+  return incomingRank > currentRank ? incoming : null;
+}
+
+/**
+ * The row's name for a new engine - but only when the row still carries the
+ * name discovery generated for its old engine (endpoint form "PostgreSQL
+ * db:5432" or workload form "PostgreSQL ns/name"). A name a person chose is
+ * kept: null.
+ */
+export function renameForDatabaseSystem(
+  row: {
+    name?: string | undefined;
+    dbSystem?: string | undefined;
+    serverAddress?: string | undefined;
+    serverPort?: number | undefined;
+    kubernetesNamespace?: string | undefined;
+    workloadName?: string | undefined;
+  },
+  newSystem: string,
+): string | null {
+  const name: string = typeof row.name === "string" ? row.name.trim() : "";
+
+  if (!name || !row.dbSystem) {
+    return null;
+  }
+
+  const forms: Array<{
+    endpoint?: DatabaseEndpoint | undefined;
+    namespace?: string | undefined;
+    workloadName?: string | undefined;
+  }> = [];
+
+  if (row.serverAddress) {
+    forms.push({
+      endpoint: {
+        host: row.serverAddress,
+        port:
+          typeof row.serverPort === "number" && row.serverPort > 0
+            ? row.serverPort
+            : null,
+      },
+    });
+  }
+
+  if (row.workloadName) {
+    forms.push({
+      namespace: row.kubernetesNamespace,
+      workloadName: row.workloadName,
+    });
+  }
+
+  for (const form of forms) {
+    const generated: string = truncateShortText(
+      buildDatabaseServerDisplayName({ system: row.dbSystem, ...form }),
+    );
+
+    if (generated === name) {
+      const renamed: string = truncateShortText(
+        buildDatabaseServerDisplayName({ system: newSystem, ...form }),
+      );
+
+      return renamed !== name ? renamed : null;
+    }
+  }
+
+  return null;
+}
+
+/*
+ * Every catalogued engine of `system`'s family, the family's own engine
+ * first ("valkey" -> redis, valkey, keydb, ...). An engine outside the
+ * catalog is a family of one.
+ */
+export function getDatabaseSystemsOfFamily(system: string): Array<string> {
+  const family: string | null = getDatabaseSystemFamily(system);
+
+  if (!family) {
+    return [];
+  }
+
+  const systems: Array<string> = [family];
+
+  for (const descriptor of DATABASE_SYSTEMS as ReadonlyArray<DatabaseSystemDescriptor>) {
+    if (
+      (descriptor.family || descriptor.system) === family &&
+      !systems.includes(descriptor.system)
+    ) {
+      systems.push(descriptor.system);
+    }
+  }
+
+  return systems;
+}
+
+/*
+ * The ids in a relation payload (an update's `labels`): model instances,
+ * `{ _id }` / `{ id }` objects, ObjectIDs or id strings. Anything else is
+ * skipped.
+ */
+function readRelationIds(value: unknown): Array<string> {
+  const ids: Array<string> = [];
+
+  for (const item of Array.isArray(value) ? value : []) {
+    let id: unknown = item;
+
+    if (item && typeof item === "object" && !(item instanceof ObjectID)) {
+      id =
+        (item as { _id?: unknown; id?: unknown })._id ||
+        (item as { _id?: unknown; id?: unknown }).id;
+    }
+
+    const text: string =
+      id instanceof ObjectID || typeof id === "string" ? id.toString() : "";
+
+    if (text) {
+      ids.push(text);
+    }
+  }
+
+  return ids;
+}
+
+/*
+ * Assignment ids as automaticAssignments stores them: lowercase UUID strings
+ * (what Postgres prints for a uuid column), deduped, invalid ones dropped.
+ */
+function normalizeAssignmentIds(ids: Array<ObjectID | string>): Array<string> {
+  const result: Array<string> = [];
+
+  for (const id of Array.isArray(ids) ? ids : []) {
+    const text: string = (id ? id.toString() : "").trim().toLowerCase();
+
+    if (text && ObjectID.isValidUUID(text) && !result.includes(text)) {
+      result.push(text);
+    }
+  }
+
+  return result;
 }
 
 function fingerprintLabelIds(labelIds: Array<ObjectID>): string {

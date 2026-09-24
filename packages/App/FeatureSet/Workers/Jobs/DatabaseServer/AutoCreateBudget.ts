@@ -5,7 +5,10 @@ import ObjectID from "Common/Types/ObjectID";
 /*
  * The per-project auto-create budget as the discovery jobs apply it
  * (DatabaseServerService.getAutoCreateBudget — default 500 discovered,
- * non-archived rows per project).
+ * non-archived rows per project, collector-created rows included). The
+ * collector path at ingest has no run to hang this on and applies the same
+ * budget itself, from a per-process cache, inside
+ * DatabaseServerService.findOrCreateByEndpoint.
  *
  * Discovery always LOOKS a database up first, without permission to create,
  * and asks the budget only on a miss: in steady state every database

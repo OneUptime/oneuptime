@@ -84,6 +84,36 @@ describe("infrastructure resource context validation", () => {
     ).toBeUndefined();
   });
 
+  test("Databases reuse the telemetry catalog's facet and label", () => {
+    expect(getAIResourceDefinition(AIResourceType.DatabaseServer)).toEqual(
+      expect.objectContaining({
+        type: AIResourceType.DatabaseServer,
+        facetKey: "databaseServerId",
+        serviceType: ServiceType.DatabaseServer,
+        label: "Database",
+        pluralLabel: "Databases",
+      }),
+    );
+  });
+
+  test.each([
+    { kind: AIResourceSubresourceKind.Instance },
+    { kind: AIResourceSubresourceKind.Pod, key: "postgres-0" },
+    { kind: AIResourceSubresourceKind.Container, key: "postgres" },
+  ])(
+    "a database has no child identity - %p is refused rather than widened",
+    (subresource: JSONObject) => {
+      expect(
+        AIChatPageContextHelper.sanitize(
+          resource({
+            resourceType: AIResourceType.DatabaseServer,
+            subresource,
+          }),
+        ),
+      ).toBeUndefined();
+    },
+  );
+
   test("IoT fleet telemetry keeps its historical discriminator", () => {
     expect(getAIResourceDefinition(AIResourceType.IoTFleet)).toEqual(
       expect.objectContaining({

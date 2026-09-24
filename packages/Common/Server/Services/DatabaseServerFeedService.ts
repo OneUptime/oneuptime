@@ -10,6 +10,10 @@ import DatabaseServerFeed, {
   DatabaseServerFeedEventType,
 } from "../../Models/DatabaseModels/DatabaseServerFeed";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import CreateBy from "../Types/Database/CreateBy";
+import { OnCreate } from "../Types/Database/Hooks";
+import ModelPermission from "../Types/Database/Permissions/Index";
+import DatabaseServerService from "./DatabaseServerService";
 
 export class Service extends DatabaseService<DatabaseServerFeed> {
   public constructor() {
@@ -18,6 +22,31 @@ export class Service extends DatabaseService<DatabaseServerFeed> {
     if (IsBillingEnabled) {
       this.hardDeleteItemsOlderThanInDays("createdAt", 3 * 365); // 3 years
     }
+  }
+
+  /*
+   * A caller posting to a database's feed: the create permission first (so
+   * the lookup below is no way to probe for databases), then the database
+   * must be in the caller's project - by its FK column and its relation
+   * object alike. The feed items the product writes itself are root.
+   */
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<DatabaseServerFeed>,
+  ): Promise<OnCreate<DatabaseServerFeed>> {
+    if (!createBy.props.isRoot) {
+      ModelPermission.checkCreatePermissions(
+        DatabaseServerFeed,
+        createBy.data,
+        createBy.props,
+      );
+
+      await DatabaseServerService.assertDatabaseServerReferenceInProject(
+        createBy,
+      );
+    }
+
+    return { createBy: createBy, carryForward: null };
   }
 
   @CaptureSpan()

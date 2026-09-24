@@ -5,13 +5,18 @@ import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import ModelPermission from "../Types/Database/Permissions/Index";
 import Query from "../Types/Database/Query";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
+import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../Types/ObjectID";
 import {
   DatabaseEndpoint,
@@ -20,11 +25,17 @@ import {
 } from "../../Types/DatabaseServer/DatabaseEndpoint";
 
 /*
- * Who added an endpoint: "auto" when a discovery path claimed it, "user" when
- * a person added it (an alias from the database's Endpoints tab, or the
- * address typed into the create form of a manually added database).
+ * Who added an endpoint:
+ *   - "auto": a telemetry path claimed it (the endpoint an application trace
+ *     or a collector reported);
+ *   - "workload": container discovery claimed it as a Service name of the
+ *     Kubernetes workload the database runs as - released again once the
+ *     workload stops producing it;
+ *   - "user": a person added it (an alias from the database's Endpoints tab,
+ *     or the address typed into the create form of a manually added
+ *     database). Discovery never releases or moves a "user" endpoint.
  */
-export type DatabaseServerEndpointSource = "auto" | "user";
+export type DatabaseServerEndpointSource = "auto" | "workload" | "user";
 
 /*
  * The outcome of claimEndpoint. Discovery only ever needs to know whether the
@@ -39,10 +50,21 @@ export type DatabaseServerEndpointClaimResult =
 export interface DatabaseServerEndpointOwner {
   databaseServerId: ObjectID;
   isPrimary: boolean;
+  // The endpoint row itself, when it was read (findOwnerByEndpoint reads it).
+  endpointId?: ObjectID | undefined;
+  source?: string | undefined;
+  lastMatchedAt?: Date | undefined;
 }
 
 // How much of a rejected value an error message repeats back.
 const MAX_ECHOED_VALUE_LENGTH: number = 100;
+
+/*
+ * "Last matched" is refreshed at most this often per endpoint: often enough
+ * that a stale alias stands out on the Endpoints tab, rarely enough that a
+ * busy endpoint costs one write an hour, not one per lookup.
+ */
+export const ENDPOINT_MATCH_REFRESH_SECONDS: number = 60 * 60;
 
 // "postgresql://", "jdbc:mysql://" - a connection URL rather than host:port.
 const URL_SCHEME_PATTERN: RegExp = /^(?:jdbc:)?[a-z][a-z0-9+.-]*:\/\//i;
@@ -67,6 +89,15 @@ export class Service extends DatabaseService<Model> {
    * A person adding an alias. Root writes (the discovery paths, through
    * claimEndpoint) pass through untouched: they already hold a canonical
    * endpoint and handle ownership themselves.
+   *
+   * Adding an endpoint is an EDIT of the database it is added to: it decides
+   * which traffic that database's pages show and - one owner per endpoint -
+   * that no other database can claim it. So the caller must be allowed to
+   * edit that very row, label and Owned scopes included. DatabaseService
+   * checks the create permission only after this hook, and never scopes a
+   * create to the parent row, so both happen here - the create permission
+   * FIRST, so a caller without it learns nothing about which databases exist
+   * or who owns an endpoint.
    */
   @CaptureSpan()
   protected override async onBeforeCreate(
@@ -77,6 +108,8 @@ export class Service extends DatabaseService<Model> {
     }
 
     const data: Model = createBy.data;
+
+    ModelPermission.checkCreatePermissions(Model, data, createBy.props);
 
     /*
      * The tenant column is stamped from props.tenantId only after this hook,
@@ -92,37 +125,41 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
-    if (!data.databaseServerId) {
+    /*
+     * The reference arrives as the FK column or as a relation object, and
+     * TypeORM persists the relation object's id over the column's. Read both
+     * spellings, refuse a payload whose two spellings disagree, and leave the
+     * validated column as the only one that can reach the insert.
+     */
+    const databaseServerId: ObjectID | null = RelationIdUtil.readConsistent(
+      data as unknown as Record<string, unknown>,
+      ["databaseServerId", "databaseServer"],
+      "database",
+    );
+
+    data.setColumnValue("databaseServer", undefined);
+
+    if (!databaseServerId) {
       throw new BadDataException(
         "Select the database this endpoint belongs to.",
       );
     }
 
-    const databaseServerId: ObjectID = new ObjectID(
-      data.databaseServerId.toString(),
-    );
-
     const databaseServer: DatabaseServer | null =
-      await DatabaseServerService.findOneBy({
-        query: {
-          _id: databaseServerId.toString(),
-          projectId: projectId,
-        },
-        select: {
-          _id: true,
-          dbSystem: true,
-          kubernetesNamespace: true,
-          kubernetesCluster: {
-            clusterIdentifier: true,
-          },
-        },
-        props: {
-          isRoot: true,
-        },
+      await this.findEditableDatabaseServer({
+        projectId: projectId,
+        databaseServerId: databaseServerId,
+        props: createBy.props,
       });
 
+    /*
+     * One answer for "no such database in this project" and "a database you
+     * may not edit", so the refusal is not a way to probe for ids.
+     */
     if (!databaseServer) {
-      throw new BadDataException("Database not found.");
+      throw new NotAuthorizedException(
+        "Database not found, or you do not have permission to edit it. Adding an endpoint to a database needs permission to edit that database.",
+      );
     }
 
     /*
@@ -171,7 +208,7 @@ export class Service extends DatabaseService<Model> {
       }
 
       throw new BadDataException(
-        await getOwnedByOtherDatabaseMessage(formatted, owner),
+        await getOwnedByOtherDatabaseMessage(formatted, owner, createBy.props),
       );
     }
 
@@ -260,6 +297,8 @@ export class Service extends DatabaseService<Model> {
         _id: true,
         databaseServerId: true,
         isPrimary: true,
+        source: true,
+        lastMatchedAt: true,
       },
       props: {
         isRoot: true,
@@ -273,7 +312,212 @@ export class Service extends DatabaseService<Model> {
     return {
       databaseServerId: new ObjectID(row.databaseServerId.toString()),
       isPrimary: Boolean(row.isPrimary),
+      endpointId: row._id ? new ObjectID(row._id.toString()) : undefined,
+      source: row.source || undefined,
+      lastMatchedAt: row.lastMatchedAt || undefined,
     };
+  }
+
+  /**
+   * Record that telemetry just matched this endpoint to its database: moves
+   * lastMatchedAt to now, at most once per ENDPOINT_MATCH_REFRESH_SECONDS
+   * (decided from the lastMatchedAt the owner lookup already read, so a
+   * fresh endpoint costs nothing). A "workload" endpoint is left alone: its
+   * lastMatchedAt says when the workload last produced it, which is what
+   * decides whether discovery may release it. Never throws.
+   */
+  @CaptureSpan()
+  public async markEndpointMatched(
+    owner: DatabaseServerEndpointOwner | null,
+  ): Promise<void> {
+    if (!owner || !owner.endpointId || owner.source === "workload") {
+      return;
+    }
+
+    const now: Date = OneUptimeDate.getCurrentDate();
+
+    if (
+      owner.lastMatchedAt &&
+      OneUptimeDate.isAfter(
+        owner.lastMatchedAt,
+        OneUptimeDate.addRemoveSeconds(now, -ENDPOINT_MATCH_REFRESH_SECONDS),
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await this.updateColumnsByIdWithoutHooks({
+        id: owner.endpointId,
+        data: {
+          lastMatchedAt: now,
+        },
+        skipUpdateDateColumn: true,
+      });
+      owner.lastMatchedAt = now;
+    } catch (error) {
+      logger.warn(
+        `DatabaseServerEndpointService: could not record a match of endpoint ${owner.endpointId.toString()}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  /**
+   * Move lastMatchedAt to `now` on those of `endpoints` this database owns
+   * whose lastMatchedAt is empty or older than `staleBefore` - one
+   * statement, however many endpoints. The workload path calls it for the
+   * aliases a discovery run produced again.
+   */
+  @CaptureSpan()
+  public async refreshMatchedEndpoints(data: {
+    projectId: ObjectID;
+    databaseServerId: ObjectID;
+    endpoints: Array<string>;
+    now: Date;
+    staleBefore: Date;
+  }): Promise<void> {
+    if (data.endpoints.length === 0) {
+      return;
+    }
+
+    await this.getRepository().manager.query(
+      `UPDATE "DatabaseServerEndpoint"
+      SET "lastMatchedAt" = $1
+      WHERE "projectId" = $2
+        AND "databaseServerId" = $3
+        AND "endpoint" = ANY($4::text[])
+        AND ("lastMatchedAt" IS NULL OR "lastMatchedAt" < $5)
+        AND "deletedAt" IS NULL`,
+      [
+        data.now,
+        data.projectId.toString(),
+        data.databaseServerId.toString(),
+        data.endpoints,
+        data.staleBefore,
+      ],
+    );
+  }
+
+  /**
+   * Hand a discovered endpoint to another database: the workload that now
+   * serves it. A compare-and-set on the current owner, and never a "user"
+   * endpoint - those only a person moves. The endpoint becomes a "workload"
+   * endpoint of its new owner, matched now. True when it moved.
+   */
+  @CaptureSpan()
+  public async transferEndpoint(data: {
+    projectId: ObjectID;
+    endpointId: ObjectID;
+    fromDatabaseServerId: ObjectID;
+    toDatabaseServerId: ObjectID;
+    isPrimary: boolean;
+    now: Date;
+  }): Promise<boolean> {
+    /*
+     * Wrapped in a CTE so the statement is a SELECT: TypeORM answers a bare
+     * UPDATE with [rows, rowCount], which would read as "moved" every time.
+     */
+    const moved: unknown = await this.getRepository().manager.query(
+      `WITH "moved" AS (
+        UPDATE "DatabaseServerEndpoint"
+        SET "databaseServerId" = $1,
+          "source" = 'workload',
+          "isPrimary" = $2,
+          "lastMatchedAt" = $3,
+          "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "_id" = $4
+          AND "projectId" = $5
+          AND "databaseServerId" = $6
+          AND COALESCE("source", '') <> 'user'
+          AND "deletedAt" IS NULL
+        RETURNING "_id"
+      )
+      SELECT "_id" FROM "moved"`,
+      [
+        data.toDatabaseServerId.toString(),
+        data.isPrimary,
+        data.now,
+        data.endpointId.toString(),
+        data.projectId.toString(),
+        data.fromDatabaseServerId.toString(),
+      ],
+    );
+
+    return Array.isArray(moved) && moved.length > 0;
+  }
+
+  /**
+   * Release the "workload" endpoints of one database that its workload no
+   * longer produces: not in `keepEndpoints` and not matched since
+   * `staleBefore` (so one partial discovery run releases nothing). Never the
+   * primary endpoint, never an "auto" or "user" one. Returns the endpoints
+   * released.
+   */
+  @CaptureSpan()
+  public async releaseUnproducedWorkloadEndpoints(data: {
+    projectId: ObjectID;
+    databaseServerId: ObjectID;
+    keepEndpoints: Array<string>;
+    staleBefore: Date;
+  }): Promise<Array<string>> {
+    // A CTE for the same reason as transferEndpoint: a SELECT's rows come back.
+    const released: unknown = await this.getRepository().manager.query(
+      `WITH "released" AS (
+        DELETE FROM "DatabaseServerEndpoint"
+        WHERE "projectId" = $1
+          AND "databaseServerId" = $2
+          AND "source" = 'workload'
+          AND "isPrimary" = false
+          AND NOT ("endpoint" = ANY($3::text[]))
+          AND ("lastMatchedAt" IS NULL OR "lastMatchedAt" < $4)
+        RETURNING "endpoint"
+      )
+      SELECT "endpoint" FROM "released"`,
+      [
+        data.projectId.toString(),
+        data.databaseServerId.toString(),
+        data.keepEndpoints,
+        data.staleBefore,
+      ],
+    );
+
+    if (!Array.isArray(released)) {
+      return [];
+    }
+
+    return released
+      .map((row: unknown): string => {
+        const endpoint: unknown = (row as { endpoint?: unknown })?.endpoint;
+        return typeof endpoint === "string" ? endpoint : "";
+      })
+      .filter((endpoint: string): boolean => {
+        return endpoint.length > 0;
+      });
+  }
+
+  // True when the database has a primary endpoint.
+  @CaptureSpan()
+  public async hasPrimaryEndpoint(data: {
+    projectId: ObjectID;
+    databaseServerId: ObjectID;
+  }): Promise<boolean> {
+    const primary: Model | null = await this.findOneBy({
+      query: {
+        projectId: data.projectId,
+        databaseServerId: data.databaseServerId,
+        isPrimary: true,
+      },
+      select: {
+        _id: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return Boolean(primary);
   }
 
   /**
@@ -303,7 +547,17 @@ export class Service extends DatabaseService<Model> {
       await this.findOwnerByEndpoint(data.projectId, endpoint);
 
     if (existingOwner) {
-      return classifyOwner(existingOwner, data.databaseServerId);
+      const result: DatabaseServerEndpointClaimResult = classifyOwner(
+        existingOwner,
+        data.databaseServerId,
+      );
+
+      // Re-reported by the database that owns it: that is a match.
+      if (result === "already-owned-by-this") {
+        await this.markEndpointMatched(existingOwner);
+      }
+
+      return result;
     }
 
     try {
@@ -375,6 +629,47 @@ export class Service extends DatabaseService<Model> {
 
     return endpoints;
   }
+
+  /**
+   * The database a caller adds an endpoint to, read only if the caller may
+   * EDIT it: the update permission check scopes the lookup exactly the way
+   * an update of that row would be scoped (project, label-scoped and
+   * Owned-scoped grants, block permissions). Null when the row does not
+   * exist in the project or the caller may not edit it - deliberately the
+   * same answer.
+   */
+  @CaptureSpan()
+  public async findEditableDatabaseServer(data: {
+    projectId: ObjectID;
+    databaseServerId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<DatabaseServer | null> {
+    const editableQuery: Query<DatabaseServer> =
+      await ModelPermission.checkUpdateQueryPermissions(
+        DatabaseServer,
+        {
+          _id: data.databaseServerId.toString(),
+          projectId: data.projectId,
+        },
+        {},
+        data.props,
+      );
+
+    return await DatabaseServerService.findOneBy({
+      query: editableQuery,
+      select: {
+        _id: true,
+        dbSystem: true,
+        kubernetesNamespace: true,
+        kubernetesCluster: {
+          clusterIdentifier: true,
+        },
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
 }
 
 function classifyOwner(
@@ -389,18 +684,22 @@ function classifyOwner(
 /*
  * "orders-db.internal:5432 already belongs to the database "PostgreSQL
  * orders-db.internal:5432"" - naming the owner is the only way a person can
- * find and fix the conflict, and the caller was already checked in this
- * project, so the name is theirs to see.
+ * find and fix the conflict. But only a database the caller can READ is
+ * named: with label- or Owned-scoped permissions the owner may be a row they
+ * are not allowed to see, and then it is just "another database". Without
+ * props (a root path) the name is read as root.
  */
 export async function getOwnedByOtherDatabaseMessage(
   formattedEndpoint: string,
   owner: DatabaseServerEndpointOwner,
+  props?: DatabaseCommonInteractionProps | undefined,
 ): Promise<string> {
   let ownerName: string = "";
 
   try {
-    ownerName = await DatabaseServerService.getDatabaseServerName({
+    ownerName = await DatabaseServerService.getDatabaseServerNameIfReadable({
       databaseServerId: owner.databaseServerId,
+      props: props,
     });
   } catch {
     // The name only decorates the message; the refusal stands without it.

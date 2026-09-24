@@ -1094,6 +1094,146 @@ export default class DatabaseServer extends BaseModel {
   })
   public autoArchivedAt?: Date = undefined;
 
+  /*
+   * Set when a PERSON restores the row from the archive (a hooked update to
+   * isArchived=false), cleared when a person archives it. The auto-archive
+   * sweep leaves such a row alone until discovery sees it again or a long
+   * grace period passes - otherwise a Restore of a stale discovered database
+   * would be undone by the next five-minute sweep.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDatabaseServer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Manually Restored At",
+    description:
+      "When a person last restored this database from the archive. Automatic archiving leaves it alone until it is seen again or a grace period passes.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public manuallyRestoredAt?: Date = undefined;
+
+  /*
+   * Which evidence set dbSystem (DatabaseSystemEvidence in
+   * DatabaseServerService): manual > collector > container > client-spans.
+   * A stronger source may correct the engine a weaker one guessed (a pgx
+   * client saying "postgresql" for CockroachDB), any source may refine an
+   * engine to a fork of it (redis -> valkey), and nothing ever downgrades.
+   * Empty on a row whose engine was set by the path that created it - its
+   * discoverySource then says which evidence that was.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDatabaseServer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    title: "Database Engine Source",
+    description:
+      "What the database engine was last determined from: manual, collector, container or client-spans. Stronger evidence may correct the engine; weaker evidence never changes it.",
+    example: "container",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public dbSystemSource?: string = undefined;
+
+  /*
+   * When Kubernetes / Docker / Podman discovery last saw this row's workload.
+   * Unlike lastSeenAt, application traces and collector heartbeats never move
+   * it, so it is what tells a workload that is gone (its endpoints may be
+   * handed to the workload that replaced it) from one that is merely quiet.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDatabaseServer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    title: "Workload Last Seen At",
+    description:
+      "When Kubernetes, Docker or Podman discovery last saw the workload this database runs as. Empty for a database that is not a discovered workload.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public workloadLastSeenAt?: Date = undefined;
+
+  /*
+   * The labels and owners that rules and ingest attached to this row on their
+   * own ({ labelIds, ownerUserIds, ownerTeamIds }, ids as lowercase strings).
+   * The auto-archive sweep counts only the OTHER labels and owners as a sign
+   * that somebody cares about the row, so a catch-all label or owner rule
+   * cannot keep every discovered database alive forever. A person adding
+   * one of these labels or owners again takes it off the list.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadDatabaseServer,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Automatic Assignments",
+    description:
+      "Label and owner ids that label rules, owner rules or telemetry attached automatically. Maintained by OneUptime.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public automaticAssignments?: JSONObject = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,

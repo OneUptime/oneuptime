@@ -21,9 +21,14 @@ import DatabaseServerService from "Common/Server/Services/DatabaseServerService"
  *      Discovery creates rows on its own, so without this sweep a
  *      decommissioned database, or a connection string seen once in a
  *      trace, would sit in the list forever. Manual rows and rows a
- *      person invested in (labels, owners, incident / alert / scheduled
- *      maintenance links, user-added endpoints, retention overrides)
- *      are never archived; a row archived here comes back by itself
+ *      person invested in (labels and owners a PERSON added — not the
+ *      ones label / owner rules or telemetry attached — incident / alert
+ *      / scheduled maintenance links, user-added endpoints, retention
+ *      overrides) are never archived. Neither is a row a person just
+ *      restored from the archive (until it is seen again, or a grace
+ *      period passes), nor one whose Kubernetes cluster / Docker / Podman
+ *      host has itself gone quiet: last-known state is kept while the
+ *      parent is disconnected. A row archived here comes back by itself
  *      the next time any discovery path sees it. Bounded per run.
  * ------------------------------------------------------------------
  */

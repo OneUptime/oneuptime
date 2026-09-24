@@ -83,7 +83,7 @@ const CLUSTER_ID: ObjectID = new ObjectID(
 );
 
 const ORDERS_ENDPOINT: DatabaseEndpoint = {
-  host: "orders-db.internal",
+  host: "orders-db.example.com",
   port: 5432,
 };
 
@@ -126,9 +126,9 @@ function memberProps(
 function databaseRow(overrides: Partial<DatabaseServer> = {}): DatabaseServer {
   const row: DatabaseServer = new DatabaseServer(ObjectID.generate());
   row.projectId = PROJECT_ID;
-  row.name = "PostgreSQL orders-db.internal:5432";
+  row.name = "PostgreSQL orders-db.example.com:5432";
   row.dbSystem = "postgresql";
-  row.databaseIdentifier = "postgresql|orders-db.internal:5432";
+  row.databaseIdentifier = "postgresql|orders-db.example.com:5432";
   row.isArchived = false;
   Object.assign(row, overrides);
   return row;
@@ -171,7 +171,7 @@ interface SideEffectSpies {
 
 function mockSideEffects(): SideEffectSpies {
   getJestSpyOn(service, "getDatabaseServerMarkdownLink").mockResolvedValue(
-    "[Database PostgreSQL orders-db.internal:5432](/db)",
+    "[Database PostgreSQL orders-db.example.com:5432](/db)",
   );
   getJestSpyOn(UserService, "getUserMarkdownString").mockResolvedValue(
     "Jane Doe (jane@example.com)",
@@ -243,7 +243,7 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
   } {
     const data: DatabaseServer = new DatabaseServer();
     data.dbSystem = "postgres";
-    data.serverAddress = "Orders-DB.Internal";
+    data.serverAddress = "Orders-DB.Example.com";
     Object.assign(data, overrides);
     return { data: data, props: memberProps() };
   }
@@ -289,13 +289,13 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
 
     expect(save).toHaveBeenCalledTimes(1);
     expect(created.dbSystem).toBe("postgresql");
-    expect(created.serverAddress).toBe("orders-db.internal");
+    expect(created.serverAddress).toBe("orders-db.example.com");
     expect(created.serverPort).toBe(5432);
     expect(created.databaseIdentifier).toBe(
-      "postgresql|orders-db.internal:5432",
+      "postgresql|orders-db.example.com:5432",
     );
     expect(created.discoverySource).toBe("manual");
-    expect(created.name).toBe("PostgreSQL orders-db.internal:5432");
+    expect(created.name).toBe("PostgreSQL orders-db.example.com:5432");
     expect(created.projectId!.toString()).toBe(PROJECT_ID.toString());
     expect(created.createdByUserId!.toString()).toBe(USER_ID.toString());
     expect(created.slug).toBeTruthy();
@@ -309,7 +309,7 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
     const call: any = claim.mock.calls[0]![0];
     expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
     expect(call.databaseServerId.toString()).toBe(created.id!.toString());
-    expect(call.endpoint).toBe("orders-db.internal:5432");
+    expect(call.endpoint).toBe("orders-db.example.com:5432");
     expect(call.isPrimary).toBe(true);
     expect(call.source).toBe("user");
   });
@@ -335,7 +335,7 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
       "**Discovered from**: Added manually",
     );
     expect(feed.moreInformationInMarkdown).toContain(
-      "postgresql|orders-db.internal:5432",
+      "postgresql|orders-db.example.com:5432",
     );
   });
 
@@ -350,27 +350,27 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
   test("the port field wins over a port typed into the address", async () => {
     const created: DatabaseServer = await DatabaseServerService.create(
       manualRequest({
-        serverAddress: "orders-db.internal:6000",
+        serverAddress: "orders-db.example.com:6000",
         serverPort: 6432,
       }),
     );
 
     expect(created.serverPort).toBe(6432);
     expect(created.databaseIdentifier).toBe(
-      "postgresql|orders-db.internal:6432",
+      "postgresql|orders-db.example.com:6432",
     );
   });
 
   test("a valid port field overrides a bad port typed into the address", async () => {
     const created: DatabaseServer = await DatabaseServerService.create(
       manualRequest({
-        serverAddress: "orders-db.internal:99999",
+        serverAddress: "orders-db.example.com:99999",
         serverPort: 5433,
       }),
     );
 
     expect(created.databaseIdentifier).toBe(
-      "postgresql|orders-db.internal:5433",
+      "postgresql|orders-db.example.com:5433",
     );
   });
 
@@ -409,8 +409,8 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
     ],
     [
       "an out-of-range port typed into the address",
-      { serverAddress: "orders-db.internal:99999" },
-      '"orders-db.internal:99999" is not a valid host[:port] endpoint.',
+      { serverAddress: "orders-db.example.com:99999" },
+      '"orders-db.example.com:99999" is not a valid host[:port] endpoint.',
     ],
     [
       "a port of 0",
@@ -448,17 +448,91 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
       databaseServerId: OTHER_DATABASE_ID,
       isPrimary: true,
     });
-    getJestSpyOn(service, "getDatabaseServerName").mockResolvedValue(
-      "CockroachDB orders-db.internal:5432",
-    );
+    const nameIfReadable: jest.SpyInstance = getJestSpyOn(
+      service,
+      "getDatabaseServerNameIfReadable",
+    ).mockResolvedValue("CockroachDB orders-db.example.com:5432");
 
     await expect(DatabaseServerService.create(manualRequest())).rejects.toThrow(
-      'orders-db.internal:5432 already belongs to the database "CockroachDB orders-db.internal:5432".',
+      'orders-db.example.com:5432 already belongs to the database "CockroachDB orders-db.example.com:5432".',
     );
     expect(findOwner).toHaveBeenCalledWith(
       PROJECT_ID,
-      "orders-db.internal:5432",
+      "orders-db.example.com:5432",
     );
+    // The owner is named only through the caller's own read permission.
+    const nameCall: any = nameIfReadable.mock.calls[0]![0];
+    expect(nameCall.databaseServerId).toBe(OTHER_DATABASE_ID);
+    expect(nameCall.props.userId).toBe(USER_ID);
+    expect(nameCall.props.isRoot).toBeFalsy();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  test("an owner the caller cannot read is not named", async () => {
+    findOwner.mockResolvedValue({
+      databaseServerId: OTHER_DATABASE_ID,
+      isPrimary: true,
+    });
+    getJestSpyOn(service, "getDatabaseServerNameIfReadable").mockResolvedValue(
+      "",
+    );
+    const rootName: jest.SpyInstance = getJestSpyOn(
+      service,
+      "getDatabaseServerName",
+    ).mockResolvedValue("Payments (team B only)");
+
+    const error: Error = (await DatabaseServerService.create(
+      manualRequest(),
+    ).catch((e: unknown) => {
+      return e;
+    })) as Error;
+
+    expect(error.message).toContain(
+      "orders-db.example.com:5432 already belongs to another database.",
+    );
+    expect(error.message).not.toContain("Payments");
+    expect(rootName).not.toHaveBeenCalled();
+  });
+
+  test("the same identity held by a row the caller cannot read is not named", async () => {
+    findSameIdentity.mockImplementation(async (findOneBy: any) => {
+      // The identity lookup runs as root; the name lookup as the caller.
+      return findOneBy.props.isRoot
+        ? databaseRow({ name: "Payments (team B only)" })
+        : null;
+    });
+
+    const error: Error = (await DatabaseServerService.create(
+      manualRequest(),
+    ).catch((e: unknown) => {
+      return e;
+    })) as Error;
+
+    expect(error.message).toBe(
+      "A PostgreSQL database at orders-db.example.com:5432 already exists.",
+    );
+  });
+
+  test("a caller who may not add databases learns nothing: refused before any lookup", async () => {
+    findOwner.mockResolvedValue({
+      databaseServerId: OTHER_DATABASE_ID,
+      isPrimary: true,
+    });
+    const request: {
+      data: DatabaseServer;
+      props: DatabaseCommonInteractionProps;
+    } = manualRequest();
+    request.props = memberProps([Permission.ReadDatabaseServer]);
+
+    const error: Error = (await DatabaseServerService.create(request).catch(
+      (e: unknown) => {
+        return e;
+      },
+    )) as Error;
+
+    expect(error.message).not.toContain("already belongs");
+    expect(findOwner).not.toHaveBeenCalled();
+    expect(findSameIdentity).not.toHaveBeenCalled();
     expect(save).not.toHaveBeenCalled();
   });
 
@@ -466,12 +540,12 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
     findSameIdentity.mockResolvedValue(databaseRow({ name: "Orders primary" }));
 
     await expect(DatabaseServerService.create(manualRequest())).rejects.toThrow(
-      'A PostgreSQL database at orders-db.internal:5432 already exists: "Orders primary".',
+      'A PostgreSQL database at orders-db.example.com:5432 already exists: "Orders primary".',
     );
     const call: any = findSameIdentity.mock.calls[0]![0];
     expect(call.query.projectId).toBe(PROJECT_ID);
     expect(call.query.databaseIdentifier).toBe(
-      "postgresql|orders-db.internal:5432",
+      "postgresql|orders-db.example.com:5432",
     );
     expect(save).not.toHaveBeenCalled();
   });
@@ -482,13 +556,16 @@ describe("DatabaseServerService - manual create (real create pipeline)", () => {
       databaseServerId: OTHER_DATABASE_ID,
       isPrimary: true,
     });
-    getJestSpyOn(service, "getDatabaseServerName").mockResolvedValue(
-      "PostgreSQL orders-db.internal:5432",
-    );
+    const nameIfReadable: jest.SpyInstance = getJestSpyOn(
+      service,
+      "getDatabaseServerNameIfReadable",
+    ).mockResolvedValue("PostgreSQL orders-db.example.com:5432");
 
     await expect(DatabaseServerService.create(manualRequest())).rejects.toThrow(
-      'orders-db.internal:5432 already belongs to the database "PostgreSQL orders-db.internal:5432".',
+      'orders-db.example.com:5432 already belongs to the database "PostgreSQL orders-db.example.com:5432".',
     );
+    // Named through the creating caller's own read permission.
+    expect(nameIfReadable.mock.calls[0]![0].props.userId).toBe(USER_ID);
 
     expect(save).toHaveBeenCalledTimes(1);
     const savedId: string = (save.mock.calls[0]![0] as any)._id;
@@ -639,7 +716,7 @@ describe("DatabaseServerService.findOrCreateByEndpoint", () => {
     expect(result).toBe(existing);
     expect(findOwner).toHaveBeenCalledWith(
       PROJECT_ID,
-      "orders-db.internal:5432",
+      "orders-db.example.com:5432",
     );
     const lookup: any = findOneBy.mock.calls[0]![0];
     expect(lookup.query._id).toBe(existing.id!.toString());
@@ -866,9 +943,11 @@ describe("DatabaseServerService.findOrCreateByEndpoint", () => {
     const row: DatabaseServer = call.data;
     expect(row.projectId).toBe(PROJECT_ID);
     expect(row.dbSystem).toBe("postgresql");
-    expect(row.name).toBe("PostgreSQL orders-db.internal:5432");
-    expect(row.databaseIdentifier).toBe("postgresql|orders-db.internal:5432");
-    expect(row.serverAddress).toBe("orders-db.internal");
+    expect(row.name).toBe("PostgreSQL orders-db.example.com:5432");
+    expect(row.databaseIdentifier).toBe(
+      "postgresql|orders-db.example.com:5432",
+    );
+    expect(row.serverAddress).toBe("orders-db.example.com");
     expect(row.serverPort).toBe(5432);
     expect(row.discoverySource).toBe("client-spans");
     expect(row.lastSeenAt!.getTime()).toBeGreaterThanOrEqual(before);
@@ -879,7 +958,7 @@ describe("DatabaseServerService.findOrCreateByEndpoint", () => {
     expect(claim).toHaveBeenCalledWith({
       projectId: PROJECT_ID,
       databaseServerId: row.id,
-      endpoint: "orders-db.internal:5432",
+      endpoint: "orders-db.example.com:5432",
       isPrimary: true,
       source: "auto",
     });
@@ -941,7 +1020,7 @@ describe("DatabaseServerService.findOrCreateByEndpoint", () => {
     const row: DatabaseServer = create.mock.calls[0]![0].data;
     expect(row.dbSystem).toBe("q".repeat(100));
     expect(row.databaseIdentifier).toBe(
-      `${"q".repeat(100)}|orders-db.internal:5432`,
+      `${"q".repeat(100)}|orders-db.example.com:5432`,
     );
   });
 
@@ -978,7 +1057,7 @@ describe("DatabaseServerService.findOrCreateByEndpoint", () => {
     expect(result).toBe(winner);
     const refetch: any = findOneBy.mock.calls[0]![0];
     expect(refetch.query.databaseIdentifier).toBe(
-      "postgresql|orders-db.internal:5432",
+      "postgresql|orders-db.example.com:5432",
     );
     expect(refetch.query.projectId).toBe(PROJECT_ID);
     expect(deleteBy).not.toHaveBeenCalled();
@@ -1198,6 +1277,21 @@ describe("DatabaseServerService.upsertWorkloadDatabase", () => {
       },
     );
 
+    // Rows by a list of workload identifiers (the engine-family lookup).
+    getJestSpyOn(service, "findBy").mockImplementation(async (findBy: any) => {
+      const wanted: Array<string> = [];
+      for (const values of Object.values(
+        findBy.query.workloadIdentifier?.objectLiteralParameters || {},
+      )) {
+        wanted.push(...(values as Array<string>));
+      }
+      return Array.from(world.rows.values()).filter((row: DatabaseServer) => {
+        return Boolean(
+          row.workloadIdentifier && wanted.includes(row.workloadIdentifier),
+        );
+      });
+    });
+
     getJestSpyOn(DatabaseServerEndpointService, "findBy").mockImplementation(
       async (findBy: any) => {
         expect(findBy.query.projectId).toBe(PROJECT_ID);
@@ -1281,6 +1375,7 @@ describe("DatabaseServerService.upsertWorkloadDatabase", () => {
       databaseRow({
         workloadIdentifier: WORKLOAD,
         databaseIdentifier: WORKLOAD,
+        discoverySource: DatabaseServerDiscoverySource.Kubernetes,
         otelCollectorStatus: "connected",
       }),
     );
@@ -1305,21 +1400,28 @@ describe("DatabaseServerService.upsertWorkloadDatabase", () => {
       CLUSTER_ID.toString(),
     );
     expect(write["dbVersion"]).toBe("16.4");
+    // Only this path stamps when the workload was last seen.
+    expect((write["workloadLastSeenAt"] as Date).getTime()).toBe(
+      (write["lastSeenAt"] as Date).getTime(),
+    );
     expect("otelCollectorStatus" in write).toBe(false);
     expect("collectorLastSeenAt" in write).toBe(false);
     // Neither discovery source nor the name a person may have chosen.
     expect("discoverySource" in write).toBe(false);
     expect("name" in write).toBe(false);
+    // Same engine, same evidence: nothing to record about the engine.
+    expect("dbSystem" in write).toBe(false);
+    expect("dbSystemSource" in write).toBe(false);
     expect(existing.otelCollectorStatus).toBe("connected");
 
-    // Already ours: not re-claimed. New: claimed as a plain auto alias.
+    // Already ours: not re-claimed. New: claimed as a workload alias.
     expect(
       world.claims.map((claim: any) => {
         return claim.endpoint;
       }),
     ).toEqual([POD_ALIAS]);
     expect(world.claims[0].isPrimary).toBe(false);
-    expect(world.claims[0].source).toBe("auto");
+    expect(world.claims[0].source).toBe("workload");
   });
 
   test("merges member keys - a pod restarted last week keeps its key, a stale one ages out", async () => {
@@ -1475,7 +1577,7 @@ describe("DatabaseServerService.upsertWorkloadDatabase", () => {
     expect(world.claims[0]).toMatchObject({
       endpoint: SERVICE_ALIAS,
       isPrimary: true,
-      source: "auto",
+      source: "workload",
     });
     expect(world.claims[1]).toMatchObject({
       endpoint: POD_ALIAS,
@@ -1860,12 +1962,18 @@ describe("DatabaseServerService liveness", () => {
       await DatabaseServerService.recordCollectorHeartbeat(DATABASE_ID);
 
       expect(findOneById).toHaveBeenCalledTimes(1);
-      expect(findOneById.mock.calls[0]![0].select).toEqual({
+      // The archive state, plus what weighing engine evidence needs.
+      expect(findOneById.mock.calls[0]![0].select).toMatchObject({
         _id: true,
         projectId: true,
         isArchived: true,
         autoArchivedAt: true,
+        dbSystem: true,
+        dbSystemSource: true,
+        discoverySource: true,
+        name: true,
       });
+      expect(findOneById.mock.calls[0]![0].props).toEqual({ isRoot: true });
       expect(rawQuery).toHaveBeenCalledTimes(1);
       expect(archived.isArchived).toBe(false);
 
@@ -2104,8 +2212,58 @@ describe("DatabaseServerService.autoArchiveStaleDatabaseServers", () => {
       expect((sql.match(/"projectId" = ds\."projectId"/g) || []).length).toBe(
         7,
       );
-      expect((sql.match(/"deletedAt" IS NULL/g) || []).length).toBe(8);
+      // The row, its seven investment joins and its three possible parents.
+      expect((sql.match(/"deletedAt" IS NULL/g) || []).length).toBe(11);
       expect(sql).toContain(`e."source" = 'user'`);
+
+      /*
+       * Only a PERSON's labels and owners count: the ones rules and ingest
+       * attached (automaticAssignments) are excluded inside each join.
+       */
+      expect(sql).toContain(
+        `NOT (COALESCE(ds."automaticAssignments" -> 'labelIds', '[]'::jsonb) @> jsonb_build_array(l."labelId"::text))`,
+      );
+      expect(sql).toContain(
+        `NOT (COALESCE(ds."automaticAssignments" -> 'ownerUserIds', '[]'::jsonb) @> jsonb_build_array(ou."userId"::text))`,
+      );
+      expect(sql).toContain(
+        `NOT (COALESCE(ds."automaticAssignments" -> 'ownerTeamIds', '[]'::jsonb) @> jsonb_build_array(ot."teamId"::text))`,
+      );
+
+      /*
+       * Staleness is anchored to the cluster / host the row was found on:
+       * while the parent is dark, its databases are not "unseen".
+       */
+      expect(sql).toMatch(
+        /LEFT JOIN "KubernetesCluster" kc\s+ON kc\."_id" = ds\."kubernetesClusterId" AND kc\."deletedAt" IS NULL/,
+      );
+      expect(sql).toMatch(
+        /LEFT JOIN "DockerHost" dh\s+ON dh\."_id" = ds\."dockerHostId" AND dh\."deletedAt" IS NULL/,
+      );
+      expect(sql).toMatch(
+        /LEFT JOIN "PodmanHost" ph\s+ON ph\."_id" = ds\."podmanHostId" AND ph\."deletedAt" IS NULL/,
+      );
+      expect(sql).toContain(
+        `COALESCE(ds."lastSeenAt", ds."createdAt") < COALESCE(kc."lastSeenAt", dh."lastSeenAt", ph."lastSeenAt", $2) - INTERVAL '1 hour'`,
+      );
+
+      /*
+       * A person's Restore holds until the row is seen again or the grace
+       * period (30 days, or the archive window if longer) passes.
+       */
+      expect(sql).toContain(`ds."manuallyRestoredAt" IS NULL`);
+      expect(sql).toContain(`ds."manuallyRestoredAt" < $5`);
+      expect(sql).toContain(
+        `COALESCE(ds."lastSeenAt", ds."createdAt") > ds."manuallyRestoredAt"`,
+      );
+      const graceCutoff: Date = params[4] as Date;
+      const thirtyDays: number = 30 * 24 * 3600 * 1000;
+      expect(before - graceCutoff.getTime()).toBeGreaterThanOrEqual(
+        thirtyDays - 1000,
+      );
+      expect(before - graceCutoff.getTime()).toBeLessThanOrEqual(
+        thirtyDays + 5000,
+      );
 
       // Marked as discovery's own archive, bounded, and never re-archiving.
       expect(sql).toContain(`"autoArchivedAt" = $2`);
@@ -2113,6 +2271,7 @@ describe("DatabaseServerService.autoArchiveStaleDatabaseServers", () => {
       expect(sql).toContain(`stale."isArchived" = false`);
       expect(sql).toContain("LIMIT $4");
       expect(params[3]).toBe(500);
+      expect(params).toHaveLength(5);
     } finally {
       restore();
     }
@@ -2237,7 +2396,7 @@ describe("DatabaseServerService auto-create budget", () => {
     }
   });
 
-  test("counts live, non-archived DISCOVERED rows of this project only", async () => {
+  test("counts live, non-archived DISCOVERED rows of this project only - collector rows included", async () => {
     const query: jest.Mock = mockRawQuery([{ count: 499 }]);
     const restore: () => void = withEnv(
       "DATABASE_SERVER_AUTO_CREATE_BUDGET",
@@ -2253,8 +2412,12 @@ describe("DatabaseServerService auto-create budget", () => {
       expect(sql).toContain(`"projectId" = $1`);
       expect(sql).toContain(`"deletedAt" IS NULL`);
       expect(sql).toContain(`"isArchived" = false`);
-      expect(sql).toContain(`COALESCE("discoverySource", '') NOT IN ($2, $3)`);
-      expect(params).toEqual([PROJECT_ID.toString(), "manual", "collector"]);
+      /*
+       * Only a person's rows are exempt. A collector keyed on pod IPs mints
+       * rows too, so its rows count against the budget.
+       */
+      expect(sql).toContain(`COALESCE("discoverySource", '') <> $2`);
+      expect(params).toEqual([PROJECT_ID.toString(), "manual"]);
     } finally {
       restore();
     }
@@ -2324,14 +2487,26 @@ describe("DatabaseServerService.onUpdateSuccess", () => {
     "a person setting isArchived=%s clears autoArchivedAt",
     async (isArchived: boolean) => {
       const id: ObjectID = ObjectID.generate();
+      const before: number = Date.now();
 
       await service.onUpdateSuccess(onUpdate({ isArchived }), [id]);
 
-      expect(clearWrites).toHaveBeenCalledWith({
-        id: id,
-        data: { autoArchivedAt: null },
-        skipUpdateDateColumn: true,
-      });
+      expect(clearWrites).toHaveBeenCalledTimes(1);
+      const write: any = clearWrites.mock.calls[0]![0];
+      expect(write.id).toBe(id);
+      expect(write.skipUpdateDateColumn).toBe(true);
+      expect(write.data.autoArchivedAt).toBeNull();
+      /*
+       * A Restore is stamped so the sweep leaves the row alone; an archive
+       * clears the stamp.
+       */
+      if (isArchived) {
+        expect(write.data.manuallyRestoredAt).toBeNull();
+      } else {
+        expect(
+          (write.data.manuallyRestoredAt as Date).getTime(),
+        ).toBeGreaterThanOrEqual(before);
+      }
       await flushPromises();
       expect(feed.mock.calls[0]![0].databaseServerFeedEventType).toBe(
         isArchived
@@ -2450,7 +2625,7 @@ describe("DatabaseServerService names and links", () => {
   test("links to /databases/<id> and names the database in feed markdown", async () => {
     const id: ObjectID = ObjectID.generate();
     getJestSpyOn(service, "findOneById").mockResolvedValue(
-      databaseRow({ name: "PostgreSQL orders-db.internal:5432" }),
+      databaseRow({ name: "PostgreSQL orders-db.example.com:5432" }),
     );
     getJestSpyOn(DatabaseConfig, "getDashboardUrl").mockResolvedValue(
       URL.fromString("https://oneuptime.example.com/dashboard"),
@@ -2460,7 +2635,7 @@ describe("DatabaseServerService names and links", () => {
       await DatabaseServerService.getDatabaseServerMarkdownLink(PROJECT_ID, id);
 
     expect(markdown).toBe(
-      `[Database PostgreSQL orders-db.internal:5432](https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/databases/${id.toString()})`,
+      `[Database PostgreSQL orders-db.example.com:5432](https://oneuptime.example.com/dashboard/${PROJECT_ID.toString()}/databases/${id.toString()})`,
     );
   });
 
