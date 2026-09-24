@@ -130,12 +130,23 @@ declare module "@stripe/stripe-js/pure" {
 /*
  * jspdf and jspdf-autotable are Dashboard-only dependencies (the AI chat PDF
  * export). Common tests reach Components/AIChat/Export through imported
- * Dashboard sources, which name the packages in `import type` only - nothing
- * loads them at runtime - but the type checker still has to resolve them when
+ * Dashboard sources; those load the packages only through a dynamic import
+ * the tests never reach, but the type checker still has to resolve them when
  * it compiles those files from within Common, where they are not installed.
- * Shorthand declarations, because the export code uses much of jsPDF's API
- * and a narrow copy of it would only drift: Dashboard's own compile checks
- * those files against the packages' real declarations.
+ *
+ * Only the names the export code uses are declared, and jsPDF's API is `any`:
+ * the code draws with much of it, and a narrow copy would only drift.
+ * Dashboard's own compile checks those files against the packages' real
+ * declarations. (A shorthand `declare module "jspdf";` is not enough: its
+ * named imports are values, and the code uses jsPDF and UserOptions as types.)
  */
-declare module "jspdf";
-declare module "jspdf-autotable";
+declare module "jspdf" {
+  export type jsPDF = any;
+  export const jsPDF: new (options?: Record<string, unknown>) => jsPDF;
+}
+
+declare module "jspdf-autotable" {
+  export type UserOptions = any;
+  const autoTable: (doc: any, options: UserOptions) => void;
+  export default autoTable;
+}
