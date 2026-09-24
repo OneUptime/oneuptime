@@ -377,11 +377,12 @@ describe("MonitorStepResourceIdentity — monitor types with no resource identit
     MonitorType.SSLCertificate,
     MonitorType.Domain,
     MonitorType.DNS,
-    MonitorType.SQLQuery,
     /*
-     * A database health step names a host:port, which is not one of the
-     * buckets SeriesResourceRefs carries.
+     * A SQL Query / Database Health step names the database it connects to
+     * by host:port (see DatabaseServerMonitorLinking.test.ts) — but a step
+     * with no connection block, as here, names nothing.
      */
+    MonitorType.SQLQuery,
     MonitorType.Database,
     MonitorType.SyntheticMonitor,
     MonitorType.CustomJavaScriptCode,

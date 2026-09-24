@@ -3,9 +3,14 @@ import RecommendationResourceRegistry, {
 } from "../../FeatureSet/Dashboard/src/Components/Recommendations/RecommendationResourceRegistry";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Service from "Common/Models/DatabaseModels/Service";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import TechStack from "Common/Types/Service/TechStack";
 import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
-import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import {
+  MonitorRecommendation,
+  MonitorRecommendationContext,
+  MonitorRecommendationResourceType,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 
 /*
  * This registry is the only place that knows which Postgres model a resource
@@ -61,6 +66,7 @@ const EXPECTED_IDENTIFIER_FIELD: Record<
   [MonitorRecommendationResourceType.IoTDevice]: "name",
   [MonitorRecommendationResourceType.RumApplication]: "_id",
   [MonitorRecommendationResourceType.Service]: "_id",
+  [MonitorRecommendationResourceType.DatabaseServer]: "_id",
 };
 
 function getDefinitionOrFail(
@@ -567,8 +573,12 @@ describe("RecommendationResourceRegistry", () => {
             definition.resourceType,
           ),
         ).toBeDefined();
+        /*
+         * Every recommendation the type can ever produce: a database's
+         * context-free set is empty by design (no engine, nothing applies).
+         */
         expect(
-          MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationCatalog.getAllPossibleRecommendations(
             definition.resourceType,
           ).length,
         ).toBeGreaterThan(0);
@@ -792,6 +802,176 @@ describe("RecommendationResourceRegistry", () => {
           Boolean(definition.readContext),
         );
       }
+    });
+  });
+
+  /*
+   * A database's recommendations depend on its engine AND on whether its
+   * engine metrics ever arrived. Both are read off the fetched row; a slip in
+   * either reads as a normal page with the wrong cards on it — PostgreSQL
+   * monitors on a Redis server, or a batch of monitors over metrics a
+   * span-discovered database will never send.
+   */
+  describe("database context", () => {
+    function buildDatabaseModel(values: {
+      dbSystem?: unknown;
+      collectorLastSeenAt?: unknown;
+    }): BaseModel {
+      const model: DatabaseServer = new DatabaseServer();
+      const record: Record<string, unknown> = model as unknown as Record<
+        string,
+        unknown
+      >;
+
+      record["dbSystem"] = values.dbSystem;
+      record["collectorLastSeenAt"] = values.collectorLastSeenAt;
+
+      return model;
+    }
+
+    function readDatabaseContext(values: {
+      dbSystem?: unknown;
+      collectorLastSeenAt?: unknown;
+    }): MonitorRecommendationContext {
+      return RecommendationResourceRegistry.readContext({
+        resourceType: MonitorRecommendationResourceType.DatabaseServer,
+        model: buildDatabaseModel(values),
+      });
+    }
+
+    test("selects the engine and the collector heartbeat along with the id and name", () => {
+      expect(
+        RecommendationResourceRegistry.getSelect(
+          MonitorRecommendationResourceType.DatabaseServer,
+        ),
+      ).toEqual({
+        _id: true,
+        name: true,
+        dbSystem: true,
+        collectorLastSeenAt: true,
+      });
+    });
+
+    test("reads the engine and whether engine metrics were ever seen", () => {
+      expect(
+        readDatabaseContext({
+          dbSystem: "postgresql",
+          collectorLastSeenAt: new Date(),
+        }),
+      ).toEqual({
+        databaseEngine: "postgresql",
+        databaseEngineMetricsReported: true,
+      });
+    });
+
+    test("accepts the heartbeat as the JSON string the API may hand back", () => {
+      expect(
+        readDatabaseContext({
+          dbSystem: "redis",
+          collectorLastSeenAt: "2026-09-01T10:00:00.000Z",
+        }).databaseEngineMetricsReported,
+      ).toBe(true);
+    });
+
+    test("reports a database that never had engine metrics as such", () => {
+      for (const collectorLastSeenAt of [undefined, null, "", "   ", 0, {}]) {
+        expect(
+          readDatabaseContext({
+            dbSystem: "postgresql",
+            collectorLastSeenAt: collectorLastSeenAt,
+          }).databaseEngineMetricsReported,
+        ).toBe(false);
+      }
+    });
+
+    test("reports a missing or non-string engine as null, never as a guess", () => {
+      for (const dbSystem of [undefined, null, "", "  ", 42, ["postgresql"]]) {
+        expect(readDatabaseContext({ dbSystem: dbSystem }).databaseEngine).toBe(
+          null,
+        );
+      }
+    });
+
+    test("the context narrows the catalog to the engine's recommendations", () => {
+      const forPostgres: Array<string> =
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.DatabaseServer,
+          readDatabaseContext({
+            dbSystem: "postgresql",
+            collectorLastSeenAt: new Date(),
+          }),
+        ).map((recommendation: MonitorRecommendation) => {
+          return recommendation.templateId;
+        });
+
+      expect(forPostgres.length).toBeGreaterThan(0);
+      for (const templateId of forPostgres) {
+        expect(templateId.startsWith("database-postgresql-")).toBe(true);
+      }
+
+      // Same engine, no engine metrics yet: nothing.
+      expect(
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.DatabaseServer,
+          readDatabaseContext({ dbSystem: "postgresql" }),
+        ),
+      ).toEqual([]);
+    });
+
+    test("explains each of the three states the page can be in", () => {
+      const connected: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.DatabaseServer,
+          context: {
+            databaseEngine: "postgresql",
+            databaseEngineMetricsReported: true,
+          },
+        });
+
+      const notConnected: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.DatabaseServer,
+          context: {
+            databaseEngine: "postgresql",
+            databaseEngineMetricsReported: false,
+          },
+        });
+
+      const noLibrary: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.DatabaseServer,
+          context: {
+            databaseEngine: "cassandra",
+            databaseEngineMetricsReported: true,
+          },
+        });
+
+      const noEngine: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.DatabaseServer,
+          context: { databaseEngine: null },
+        });
+
+      // Every state gets a note, and no two states share one.
+      for (const note of [connected, notConnected, noLibrary, noEngine]) {
+        expect(note).toBeTruthy();
+      }
+      expect(
+        new Set<string | undefined>([
+          connected,
+          notConnected,
+          noLibrary,
+          noEngine,
+        ]).size,
+      ).toBe(4);
+
+      // Each names the engine and what the user can do about it.
+      expect(connected).toContain("PostgreSQL");
+      expect(connected).toContain("oneuptime.database.server.id");
+      expect(notConnected).toContain("PostgreSQL");
+      expect(notConnected).toContain("Database Agent");
+      expect(noLibrary).toContain("Cassandra");
+      expect(noLibrary).toContain("oneuptime.database.server.id");
     });
   });
 });

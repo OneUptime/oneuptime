@@ -104,6 +104,10 @@ export function getDatabaseBreadcrumbs(path: string): Array<Link> | undefined {
       "View Database",
       "Endpoints",
     ]),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS,
+      ["Project", "Databases", "View Database", "Recommendations"],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATABASE_SERVER_VIEW_SETTINGS, [
       "Project",
       "Databases",

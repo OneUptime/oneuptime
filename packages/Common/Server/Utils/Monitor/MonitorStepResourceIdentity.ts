@@ -4,6 +4,8 @@ import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData"
 import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import SqlConnectionConfig from "../../../Types/Monitor/SqlConnectionConfig";
+import SqlDatabaseType from "../../../Types/Monitor/SqlDatabaseType";
 import ObjectID from "../../../Types/ObjectID";
 import SeriesResourceLabels, {
   SeriesResourceRefs,
@@ -23,10 +25,12 @@ import SeriesResourceLabels, {
  * This module answers the same question from the other, always-present
  * side: "which resources does this MONITOR'S OWN CONFIGURATION point
  * at". A host monitor names its host, a Kubernetes monitor names its
- * cluster, a log monitor names its telemetry services, and any monitor
- * with a metric query can carry resource identity in its attribute
- * filters (e.g. `oneuptime.service.name = checkout-api`). None of that
- * depends on the criteria being grouped.
+ * cluster, a log monitor names its telemetry services, a Database Health
+ * or SQL Query monitor names the host:port of the database it connects
+ * to, and any monitor with a metric query can carry resource identity in
+ * its attribute filters (e.g. `oneuptime.service.name = checkout-api`,
+ * `oneuptime.database.server.id = <id>`, `server.address = db.prod`).
+ * None of that depends on the criteria being grouped.
  *
  * Both modules emit the SAME `SeriesResourceRefs` shape, so the single
  * nine-way resolver in SeriesResourceLinker serves both, and the two can
@@ -150,6 +154,174 @@ export default class MonitorStepResourceIdentity {
       monitorType: input.monitorType,
       refs: input.refs,
     });
+
+    /*
+     * 4. Databases. The two probe monitors that connect to a database — the
+     *    Database Health monitor and the SQL Query monitor — name its
+     *    host:port; metric and trace queries over database telemetry name it
+     *    by `server.address` filter; a log query names it by the
+     *    `oneuptime.database.server.id` stamp its lines carry. All resolve
+     *    to the DatabaseServer that owns the endpoint (or has the id), so
+     *    their alerts and incidents land on that database.
+     */
+    this.collectDatabaseRefs({
+      stepData: stepData,
+      monitorType: input.monitorType,
+      refs: input.refs,
+    });
+  }
+
+  private static collectDatabaseRefs(input: {
+    stepData: NonNullable<MonitorStep["data"]>;
+    monitorType: MonitorType;
+    refs: SeriesResourceRefs;
+  }): void {
+    const stepData: NonNullable<MonitorStep["data"]> = input.stepData;
+
+    const probeEndpoint: string | null = this.getProbeDatabaseEndpoint({
+      stepData: stepData,
+      monitorType: input.monitorType,
+    });
+
+    if (probeEndpoint) {
+      input.refs.databaseServerEndpoints.push(probeEndpoint);
+    }
+
+    /*
+     * Per QUERY, not over the merged filter map the other resource types
+     * use: a port and an engine only mean something next to the address
+     * they were written with, and one step can hold queries on two servers.
+     */
+    for (const viewConfig of this.getMetricViewConfigs(stepData)) {
+      const queryConfigs: Array<MetricQueryConfigData> = Array.isArray(
+        viewConfig?.queryConfigs,
+      )
+        ? viewConfig.queryConfigs
+        : [];
+
+      for (const queryConfig of queryConfigs) {
+        const filterData: unknown = queryConfig?.metricQueryData?.filterData;
+
+        if (!filterData || typeof filterData !== "object") {
+          continue;
+        }
+
+        const metricName: unknown = (filterData as Record<string, unknown>)[
+          "metricName"
+        ];
+
+        input.refs.databaseServerEndpoints.push(
+          ...SeriesResourceLabels.extractDatabaseEndpoints({
+            attributes: this.asAttributeRecord(
+              (filterData as Record<string, unknown>)["attributes"],
+            ),
+            metricName: typeof metricName === "string" ? metricName : null,
+          }),
+        );
+      }
+    }
+
+    /*
+     * Trace monitors filter span attributes. A DB client span names its
+     * server by `server.address` / `server.port` / `db.system.name`, so a
+     * Traces monitor on "error spans calling orders-db" names that database.
+     */
+    const traceAttributes: Record<string, unknown> = this.asAttributeRecord(
+      stepData.traceMonitor?.attributes,
+    );
+
+    input.refs.databaseServerEndpoints.push(
+      ...SeriesResourceLabels.extractDatabaseEndpoints({
+        attributes: traceAttributes,
+      }),
+    );
+
+    /*
+     * Log monitors filter log attributes, and a database's own log lines
+     * (the receiver's query events, or the engine log file the Database
+     * Agent ships) carry the `oneuptime.database.server.id` stamp. Id keys
+     * only — the log query's other attribute filters are left to the
+     * resource types that already read them.
+     */
+    input.refs.databaseServerIds.push(
+      ...SeriesResourceLabels.extractDatabaseServerIds(
+        this.asAttributeRecord(stepData.logMonitor?.attributes) as JSONObject,
+      ),
+    );
+  }
+
+  /*
+   * The canonical endpoint a Database Health or SQL Query monitor connects
+   * to, or null.
+   *
+   * A host holding a `{{monitorSecrets.x}}` reference is skipped: the secret
+   * is only resolved when the step is handed to a probe, and the reference
+   * text is not an address. The probe's port is explicit in the form, and
+   * the engine supplies the default when it is missing.
+   */
+  private static getProbeDatabaseEndpoint(input: {
+    stepData: NonNullable<MonitorStep["data"]>;
+    monitorType: MonitorType;
+  }): string | null {
+    let connection: SqlConnectionConfig | undefined;
+
+    if (input.monitorType === MonitorType.Database) {
+      connection = input.stepData.databaseMonitor;
+    } else if (input.monitorType === MonitorType.SQLQuery) {
+      connection = input.stepData.sqlMonitor;
+    }
+
+    if (!connection || typeof connection !== "object") {
+      return null;
+    }
+
+    const host: unknown = connection.host;
+
+    if (typeof host !== "string" || !host.trim() || host.includes("{{")) {
+      return null;
+    }
+
+    const port: unknown = connection.port;
+
+    return SeriesResourceLabels.buildDatabaseEndpointRef({
+      address: host,
+      port:
+        typeof port === "number" ||
+        (typeof port === "string" && !port.includes("{{"))
+          ? port
+          : null,
+      system: this.getSqlDatabaseSystem(connection.databaseType),
+    });
+  }
+
+  /*
+   * The semconv `db.system.name` of a probe engine, for the default port.
+   * SqlDatabaseType's values are display names ("Microsoft SQL Server") that
+   * normalizeDatabaseSystem does not know, so they are mapped here.
+   */
+  private static getSqlDatabaseSystem(databaseType: unknown): string | null {
+    switch (databaseType) {
+      case SqlDatabaseType.PostgreSQL:
+        return "postgresql";
+      case SqlDatabaseType.MySQL:
+        return "mysql";
+      case SqlDatabaseType.MicrosoftSqlServer:
+        return "microsoft.sql_server";
+      default:
+        return null;
+    }
+  }
+
+  /*
+   * A filter map as a plain record, or {} — step JSON is not schema-checked,
+   * so the value here can be anything the API or an import wrote.
+   */
+  private static asAttributeRecord(value: unknown): Record<string, unknown> {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      return {};
+    }
+
+    return value as Record<string, unknown>;
   }
 
   private static getDeclaredIdentifier(input: {
@@ -314,10 +486,30 @@ export default class MonitorStepResourceIdentity {
   }
 
   /*
+   * Every metric view config a step can carry. Each infra monitor type
+   * keeps its metric view config under its own key, so read them all —
+   * exactly the set MonitorStep's own metric-view-config resolver knows
+   * about.
+   */
+  private static getMetricViewConfigs(
+    stepData: NonNullable<MonitorStep["data"]>,
+  ): Array<MetricsViewConfig | undefined> {
+    return [
+      stepData.metricMonitor?.metricViewConfig,
+      stepData.hostMonitor?.metricViewConfig,
+      stepData.kubernetesMonitor?.metricViewConfig,
+      stepData.dockerMonitor?.metricViewConfig,
+      stepData.podmanMonitor?.metricViewConfig,
+      stepData.proxmoxMonitor?.metricViewConfig,
+      stepData.vmwareMonitor?.metricViewConfig,
+      stepData.cephMonitor?.metricViewConfig,
+      stepData.dockerSwarmMonitor?.metricViewConfig,
+      stepData.iotMonitor?.metricViewConfig,
+    ];
+  }
+
+  /*
    * The attribute filters of every metric query on the step, merged.
-   * Each infra monitor type keeps its metric view config under its own
-   * key, so read them all — exactly the set MonitorStep's own
-   * metric-view-config resolver knows about.
    *
    * Values accumulate into an ARRAY per key rather than overwriting: a
    * step can hold several queries, and two of them filtering
@@ -330,20 +522,8 @@ export default class MonitorStepResourceIdentity {
   private static collectMetricFilterAttributes(input: {
     stepData: NonNullable<MonitorStep["data"]>;
   }): JSONObject {
-    const stepData: NonNullable<MonitorStep["data"]> = input.stepData;
-
-    const viewConfigs: Array<MetricsViewConfig | undefined> = [
-      stepData.metricMonitor?.metricViewConfig,
-      stepData.hostMonitor?.metricViewConfig,
-      stepData.kubernetesMonitor?.metricViewConfig,
-      stepData.dockerMonitor?.metricViewConfig,
-      stepData.podmanMonitor?.metricViewConfig,
-      stepData.proxmoxMonitor?.metricViewConfig,
-      stepData.vmwareMonitor?.metricViewConfig,
-      stepData.cephMonitor?.metricViewConfig,
-      stepData.dockerSwarmMonitor?.metricViewConfig,
-      stepData.iotMonitor?.metricViewConfig,
-    ];
+    const viewConfigs: Array<MetricsViewConfig | undefined> =
+      this.getMetricViewConfigs(input.stepData);
 
     const valuesByKey: Map<string, Array<string>> = new Map<
       string,
@@ -440,6 +620,7 @@ export default class MonitorStepResourceIdentity {
       serviceIds: [],
       serviceNames: [],
       databaseServerIds: [],
+      databaseServerEndpoints: [],
     };
   }
 

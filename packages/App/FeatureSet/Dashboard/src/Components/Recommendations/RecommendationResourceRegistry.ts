@@ -10,6 +10,9 @@ import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
 import Service from "Common/Models/DatabaseModels/Service";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
+import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
 import TechStack from "Common/Types/Service/TechStack";
 import {
   SERVICE_LANGUAGE_DISPLAY_NAMES,
@@ -64,7 +67,7 @@ export interface RecommendationResourceDefinition {
   contextFieldNames?: Array<string> | undefined;
   /*
    * What this resource type knows about ONE of its resources that changes
-   * which recommendations apply. Absent for the nine resource types whose
+   * which recommendations apply. Absent for the resource types whose
    * recommendation set is a constant.
    */
   readContext?:
@@ -103,6 +106,9 @@ export interface RecommendationResourceDefinition {
  *                                  the RumApplication row id
  *   Service     _id                same — primaryEntityId is the Service row
  *                                  id for OpenTelemetry telemetry
+ *   Database    _id                the `oneuptime.database.server.id` stamp
+ *                                  every template query filters on is the
+ *                                  DatabaseServer row id
  *
  * The five `name` rows mean renaming one of those resources orphans its
  * existing monitors from the diff — they will show as available again. That is
@@ -230,6 +236,74 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
             : undefined,
         }),
       };
+    },
+  },
+  /*
+   * A database's recommendations depend on its engine (`dbSystem`, a required
+   * column) and on whether its engine metrics have ever arrived
+   * (`collectorLastSeenAt`, stamped by ingest on every collector / Database
+   * Agent batch). The second is what stops the page from offering a
+   * span-discovered database a set of monitors over metrics nobody sends.
+   *
+   * `collectorLastSeenAt` rather than `otelCollectorStatus`: the status flips
+   * to "disconnected" the moment the collector stops, which is exactly when
+   * the "Engine Metrics Stopped" recommendation matters most.
+   */
+  {
+    resourceType: MonitorRecommendationResourceType.DatabaseServer,
+    modelType: DatabaseServer,
+    identifierFieldName: "_id",
+    displayNameFieldName: "name",
+    contextFieldNames: ["dbSystem", "collectorLastSeenAt"],
+    readContext: (model: BaseModel): MonitorRecommendationContext => {
+      const record: Record<string, unknown> = model as unknown as Record<
+        string,
+        unknown
+      >;
+
+      const dbSystem: unknown = record["dbSystem"];
+      const collectorLastSeenAt: unknown = record["collectorLastSeenAt"];
+
+      return {
+        databaseEngine:
+          typeof dbSystem === "string" && dbSystem.trim()
+            ? dbSystem.trim()
+            : null,
+        /*
+         * The API hands a Date column back as a Date or as its JSON string,
+         * depending on the path; either means "seen". Anything else — null,
+         * undefined, an empty string — means never.
+         */
+        databaseEngineMetricsReported:
+          collectorLastSeenAt instanceof Date ||
+          (typeof collectorLastSeenAt === "string" &&
+            collectorLastSeenAt.trim().length > 0),
+      };
+    },
+    describeContext: (
+      context: MonitorRecommendationContext,
+    ): string | undefined => {
+      if (!context.databaseEngine) {
+        return "This database has no engine recorded, and every recommended database monitor reads one engine's own metrics, so none apply to it.";
+      }
+
+      const engineName: string = getDatabaseSystemDisplayName(
+        context.databaseEngine,
+      );
+
+      const templateCount: number = getDatabaseAlertTemplates(
+        context.databaseEngine,
+      ).length;
+
+      if (templateCount === 0) {
+        return `OneUptime does not ship recommended monitors for ${engineName} yet. You can still alert on this database: create a Metrics monitor that filters on oneuptime.database.server.id (shown on the Documentation tab), and its alerts and incidents will appear on this database.`;
+      }
+
+      if (context.databaseEngineMetricsReported === false) {
+        return `No engine metrics have arrived from this database yet, and every recommended monitor for ${engineName} reads them. Connect the Database Agent or a collector database receiver (see the Documentation tab), and the ${templateCount} ${engineName} recommendations appear here.`;
+      }
+
+      return `Recommended for ${engineName}, from the metrics its collector receiver reports. Each monitor is scoped to this database by oneuptime.database.server.id, so its alerts and incidents appear on this database's tabs.`;
     },
   },
 ];

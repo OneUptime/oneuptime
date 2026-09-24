@@ -482,6 +482,7 @@ export const DatabaseRoutePath: Dictionary<string> = {
   [PageMap.DATABASE_SERVER_VIEW_FEED]: `${RouteParams.ModelID}/feed`,
   [PageMap.DATABASE_SERVER_VIEW_OWNERS]: `${RouteParams.ModelID}/owners`,
   [PageMap.DATABASE_SERVER_VIEW_ENDPOINTS]: `${RouteParams.ModelID}/endpoints`,
+  [PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.DATABASE_SERVER_VIEW_SETTINGS]: `${RouteParams.ModelID}/settings`,
   [PageMap.DATABASE_SERVER_VIEW_DOCUMENTATION]: `${RouteParams.ModelID}/documentation`,
   [PageMap.DATABASE_SERVER_VIEW_DELETE]: `${RouteParams.ModelID}/delete`,
@@ -4860,6 +4861,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.DATABASE_SERVER_VIEW_ENDPOINTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/databases/${
       DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_ENDPOINTS]
+    }`,
+  ),
+
+  [PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/databases/${
+      DatabaseRoutePath[PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS]
     }`,
   ),
 

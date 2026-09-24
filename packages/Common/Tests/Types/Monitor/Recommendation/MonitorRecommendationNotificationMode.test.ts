@@ -168,7 +168,9 @@ const ALL_RECOMMENDATIONS: Array<MonitorRecommendation> =
 const ONE_PER_RESOURCE_TYPE: Array<MonitorRecommendation> =
   MonitorRecommendationCatalog.getResourceTypeDefinitions().map(
     (definition: MonitorRecommendationResourceTypeDefinition) => {
-      return definition.getRecommendations()[0]!;
+      return MonitorRecommendationCatalog.getAllPossibleRecommendations(
+        definition.resourceType,
+      )[0]!;
     },
   );
 
@@ -194,7 +196,7 @@ describe("MonitorRecommendationNotificationMode", () => {
     it("has recommendations to test at all", () => {
       // Guards every for-loop in this file against a vacuous pass.
       expect(ALL_RECOMMENDATIONS.length).toBeGreaterThan(0);
-      expect(ONE_PER_RESOURCE_TYPE.length).toBe(11);
+      expect(ONE_PER_RESOURCE_TYPE.length).toBe(12);
     });
 
     it("ships every unhealthy criteria with createIncidents AND createAlerts true, and both arrays populated", () => {

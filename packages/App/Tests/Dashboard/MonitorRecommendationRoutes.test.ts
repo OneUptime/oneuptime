@@ -109,6 +109,8 @@ beforeAll(async () => {
       PageMap.RUM_APPLICATION_VIEW_RECOMMENDATIONS,
     [MonitorRecommendationResourceType.Service]:
       PageMap.SERVICE_VIEW_RECOMMENDATIONS,
+    [MonitorRecommendationResourceType.DatabaseServer]:
+      PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS,
   };
 });
 
@@ -123,8 +125,14 @@ describe("Monitor recommendation page wiring", () => {
       expect(
         MonitorRecommendationCatalog.getResourceTypeDefinition(resourceType),
       ).toBeDefined();
+      /*
+       * Every recommendation the type can EVER offer, not the context-free
+       * subset: a database with no known engine is (correctly) offered
+       * nothing, yet its page is very much wired.
+       */
       expect(
-        MonitorRecommendationCatalog.getRecommendations(resourceType).length,
+        MonitorRecommendationCatalog.getAllPossibleRecommendations(resourceType)
+          .length,
       ).toBeGreaterThan(0);
     }
   });

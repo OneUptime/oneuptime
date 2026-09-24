@@ -105,6 +105,7 @@ const PAGE_FOLDER_BY_RESOURCE_TYPE: Record<
   [MonitorRecommendationResourceType.IoTDevice]: "IoT",
   [MonitorRecommendationResourceType.RumApplication]: "Rum",
   [MonitorRecommendationResourceType.Service]: "Service",
+  [MonitorRecommendationResourceType.DatabaseServer]: "Database",
 };
 
 /*
@@ -145,7 +146,7 @@ describe("the resource-type table this file loops over", () => {
    * ever empty or short, every one of those tests would pass by never running.
    */
   test("covers every member of the enum", () => {
-    expect(ALL_RESOURCE_TYPES.length).toBe(11);
+    expect(ALL_RESOURCE_TYPES.length).toBe(12);
     expect(RESOURCE_CASES.length).toBe(ALL_RESOURCE_TYPES.length);
 
     for (const resourceCase of RESOURCE_CASES) {

@@ -1,5 +1,6 @@
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
+import DatabaseServerEndpoint from "../../../Models/DatabaseModels/DatabaseServerEndpoint";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "../../../Models/DatabaseModels/DockerSwarmCluster";
 import Host from "../../../Models/DatabaseModels/Host";
@@ -15,6 +16,7 @@ import { JSONObject } from "../../../Types/JSON";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import CephClusterService from "../../Services/CephClusterService";
+import DatabaseServerEndpointService from "../../Services/DatabaseServerEndpointService";
 import DatabaseServerService from "../../Services/DatabaseServerService";
 import DockerHostService from "../../Services/DockerHostService";
 import DockerSwarmClusterService from "../../Services/DockerSwarmClusterService";
@@ -175,9 +177,11 @@ export default class SeriesResourceLinker {
      * Proxmox / VMware / Ceph / Docker Swarm / IoT carry no
      * `oneuptime.*.id` stamp at ingest — they are addressable by name
      * only — so their `ids` lists are empty by construction, not by
-     * omission. Databases are the reverse: addressable by the
-     * `oneuptime.database.server.id` stamp only (see
-     * DatabaseServerIdLabelKeys), so their `names` list is empty.
+     * omission. Databases are the reverse: never addressable by name (see
+     * DatabaseServerIdLabelKeys), so their `names` list is empty — they
+     * resolve by the `oneuptime.database.server.id` stamp here, and by an
+     * endpoint they own through the DatabaseServerEndpoint table below
+     * (the endpoint lives on a separate table, so it cannot be a spec).
      *
      * The Promise.all below destructures by POSITION: a new entry goes at
      * the end of this list AND at the end of that destructure.
@@ -253,6 +257,25 @@ export default class SeriesResourceLinker {
       },
     ];
 
+    const [resolvedBySpec, databaseServerIdsByEndpoint] = await Promise.all([
+      Promise.all(
+        specs.map((spec: ResourceResolutionSpec): Promise<Array<string>> => {
+          return this.resolveResourceIds({
+            ids: spec.ids,
+            names: spec.names,
+            nameColumn: spec.nameColumn,
+            projectId: input.projectId,
+            nameMatch: input.nameMatch,
+            findBy: spec.findBy,
+          });
+        }),
+      ),
+      this.resolveDatabaseServerIdsByEndpoint({
+        endpoints: refs.databaseServerEndpoints || [],
+        projectId: input.projectId,
+      }),
+    ]);
+
     const [
       hostIds,
       dockerHostIds,
@@ -264,18 +287,18 @@ export default class SeriesResourceLinker {
       cephClusterIds,
       dockerSwarmClusterIds,
       iotFleetIds,
-      databaseServerIds,
-    ] = await Promise.all(
-      specs.map((spec: ResourceResolutionSpec): Promise<Array<string>> => {
-        return this.resolveResourceIds({
-          ids: spec.ids,
-          names: spec.names,
-          nameColumn: spec.nameColumn,
-          projectId: input.projectId,
-          nameMatch: input.nameMatch,
-          findBy: spec.findBy,
-        });
-      }),
+      databaseServerIdsById,
+    ] = resolvedBySpec;
+
+    /*
+     * A database can be named twice — by its id stamp and by an endpoint it
+     * owns — so the two answers are unioned, not concatenated.
+     */
+    const databaseServerIds: Array<string> = Array.from(
+      new Set<string>([
+        ...(databaseServerIdsById || []),
+        ...databaseServerIdsByEndpoint,
+      ]),
     );
 
     return {
@@ -289,8 +312,57 @@ export default class SeriesResourceLinker {
       cephClusterIds: cephClusterIds || [],
       dockerSwarmClusterIds: dockerSwarmClusterIds || [],
       iotFleetIds: iotFleetIds || [],
-      databaseServerIds: databaseServerIds || [],
+      databaseServerIds: databaseServerIds,
     };
+  }
+
+  /*
+   * The databases that own these canonical endpoints in this project.
+   *
+   * An exact match on DatabaseServerEndpoint.endpoint, which is stored in the
+   * same canonical form the refs were built in (formatDatabaseEndpoint) —
+   * the (projectId, endpoint) unique index guarantees at most one owner per
+   * endpoint, so an endpoint can never link two databases. Project-scoped
+   * like every other lookup here; costs zero round-trips when the monitor
+   * names no endpoint, which is every monitor that is not about a database.
+   */
+  private static async resolveDatabaseServerIdsByEndpoint(input: {
+    endpoints: Array<string>;
+    projectId: ObjectID;
+  }): Promise<Array<string>> {
+    const endpoints: Array<string> = Array.from(
+      new Set<string>(
+        input.endpoints.filter((endpoint: string): boolean => {
+          return typeof endpoint === "string" && endpoint.length > 0;
+        }),
+      ),
+    );
+
+    if (endpoints.length === 0) {
+      return [];
+    }
+
+    const rows: Array<DatabaseServerEndpoint> =
+      await DatabaseServerEndpointService.findBy({
+        query: {
+          projectId: input.projectId,
+          endpoint: new Includes(endpoints),
+        },
+        select: { _id: true, databaseServerId: true },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: { isRoot: true },
+      });
+
+    const databaseServerIds: Set<string> = new Set<string>();
+
+    for (const row of rows) {
+      if (row.databaseServerId) {
+        databaseServerIds.add(row.databaseServerId.toString());
+      }
+    }
+
+    return Array.from(databaseServerIds);
   }
 
   /*

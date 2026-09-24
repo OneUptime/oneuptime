@@ -1,5 +1,14 @@
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  DatabaseEndpoint,
+  canonicalizeDatabaseEndpoint,
+  formatDatabaseEndpoint,
+} from "../../../Types/DatabaseServer/DatabaseEndpoint";
+import {
+  DATABASE_SYSTEMS,
+  normalizeDatabaseSystem,
+} from "../../../Types/DatabaseServer/DatabaseSystem";
 
 /*
  * A grouped metric monitor (e.g. group-by `resource.host.name`) emits
@@ -181,6 +190,60 @@ export const DatabaseServerIdLabelKeys: ReadonlyArray<string> = [
 ];
 
 /*
+ * The attributes that name a database by the ENDPOINT it listens on: the
+ * semconv `server.address` / `server.port` a DB client span, a `db.client.*`
+ * datapoint and a Database Agent batch all carry, plus the engine
+ * (`db.system.name`, legacy `db.system`) that supplies the default port
+ * semconv leaves out, and the Kubernetes namespace / cluster that
+ * canonicalization needs for cluster-local names.
+ *
+ * Read ONLY from a monitor's own configuration — an attribute FILTER on a
+ * metric or trace query (see MonitorStepResourceIdentity) — and resolved
+ * through the project's DatabaseServerEndpoint rows. Never from series
+ * labels, on purpose:
+ *
+ *   - `server.address` is the generic OTel peer attribute, set on every HTTP
+ *     client span too. A filter the user wrote is a deliberate statement of
+ *     which server a monitor watches; a group-by value is whatever peer a
+ *     series happened to call.
+ *   - Series identity also drives maintenance suppression
+ *     (MonitorMaintenanceSuppression), which matches databases by id only.
+ *     Linking a series by endpoint without suppressing it by endpoint is the
+ *     linked-but-not-silenced divergence the header of this file exists to
+ *     prevent.
+ *
+ * For the same first reason these keys are NOT resource-identity keys and are
+ * absent from AllResourceIdentityLabelKeys: a monitor script may legitimately
+ * record which server it measured.
+ */
+export const DatabaseServerAddressLabelKeys: ReadonlyArray<string> = [
+  "resource.server.address",
+  "server.address",
+];
+
+export const DatabaseServerPortLabelKeys: ReadonlyArray<string> = [
+  "resource.server.port",
+  "server.port",
+];
+
+export const DatabaseSystemLabelKeys: ReadonlyArray<string> = [
+  "resource.db.system.name",
+  "db.system.name",
+  "resource.db.system",
+  "db.system",
+];
+
+export const DatabaseKubernetesNamespaceLabelKeys: ReadonlyArray<string> = [
+  "resource.k8s.namespace.name",
+  "k8s.namespace.name",
+];
+
+export const DatabaseKubernetesClusterLabelKeys: ReadonlyArray<string> = [
+  "resource.k8s.cluster.name",
+  "k8s.cluster.name",
+];
+
+/*
  * Services come from OTel-ingested telemetry. The ingest pipeline
  * auto-creates a Service row keyed by `service.name`, so any series
  * label carrying that attribute (raw or prefixed) tells us the emitting
@@ -266,6 +329,14 @@ export interface SeriesResourceRefs {
   serviceNames: Array<string>;
   // Id-only: see DatabaseServerIdLabelKeys for why there is no name list.
   databaseServerIds: Array<string>;
+  /*
+   * Canonical endpoints ("db.prod:5432", formatDatabaseEndpoint) a monitor's
+   * configuration names — a probe Database Health / SQL Query target, or a
+   * `server.address` filter. Resolved to databaseServerIds through the
+   * project's DatabaseServerEndpoint rows. Always empty from series labels:
+   * see DatabaseServerAddressLabelKeys.
+   */
+  databaseServerEndpoints: Array<string>;
 }
 
 export default class SeriesResourceLabels {
@@ -352,12 +423,198 @@ export default class SeriesResourceLabels {
       ),
       serviceIds: this.collectLabelValues(seriesLabels, ServiceIdLabelKeys),
       serviceNames: this.collectLabelValues(seriesLabels, ServiceNameLabelKeys),
-      databaseServerIds: this.collectLabelValues(
-        seriesLabels,
-        DatabaseServerIdLabelKeys,
-      ).filter((value: string): boolean => {
-        return ObjectID.isValidUUID(value);
-      }),
+      databaseServerIds: this.extractDatabaseServerIds(seriesLabels),
+      // Never from series labels — see DatabaseServerAddressLabelKeys.
+      databaseServerEndpoints: [],
     };
+  }
+
+  /*
+   * The `oneuptime.database.server.id` values an attribute map carries, UUID
+   * shaped only (see DatabaseServerIdLabelKeys for why).
+   */
+  public static extractDatabaseServerIds(
+    attributes: JSONObject,
+  ): Array<string> {
+    return this.collectLabelValues(
+      attributes,
+      DatabaseServerIdLabelKeys,
+    ).filter((value: string): boolean => {
+      return ObjectID.isValidUUID(value);
+    });
+  }
+
+  /*
+   * The canonical database endpoint a (host, port, engine) triple names, as
+   * it is stored on DatabaseServerEndpoint rows — or null when it names no
+   * identifiable server.
+   *
+   * Canonicalized exactly as ingest canonicalizes what a client call saw
+   * (`canonicalizeDatabaseEndpoint`, purpose "client-call"), so the lookup is
+   * an exact string match: one host spelling, the engine's default port when
+   * none is given, Kubernetes service names expanded with the namespace, and
+   * cluster-local names qualified with the cluster when one is known.
+   * Loopback and host-relative names are null — "localhost:5432" is a
+   * different server for every caller, so it can never identify one row.
+   */
+  public static buildDatabaseEndpointRef(input: {
+    address: unknown;
+    port?: unknown;
+    system?: string | null | undefined;
+    kubernetesNamespace?: string | null | undefined;
+    kubernetesClusterName?: string | null | undefined;
+  }): string | null {
+    if (typeof input.address !== "string" || !input.address.trim()) {
+      return null;
+    }
+
+    const port: string | number | null =
+      typeof input.port === "number" || typeof input.port === "string"
+        ? input.port
+        : null;
+
+    const endpoint: DatabaseEndpoint | null = canonicalizeDatabaseEndpoint({
+      system: normalizeDatabaseSystem(input.system) || "",
+      address: input.address,
+      port: port,
+      caller: {
+        kubernetesNamespace: input.kubernetesNamespace || null,
+        kubernetesClusterName: input.kubernetesClusterName || null,
+        hostName: null,
+        isEphemeral: true,
+      },
+      purpose: "client-call",
+    });
+
+    return endpoint ? formatDatabaseEndpoint(endpoint) : null;
+  }
+
+  /*
+   * Every database endpoint ONE query's attribute filter names: each
+   * `server.address` value, with the port the filter gives, else the default
+   * port of the engine the filter (or, failing that, the metric's receiver
+   * prefix — `postgresql.backends` is PostgreSQL's) names.
+   *
+   * Takes one query's raw filter, not a merged map, because the port and the
+   * engine only mean something next to the address they were written with.
+   * Values may be strings, numbers or arrays of either; anything else (a
+   * Search or Includes matcher) names no single server and is skipped.
+   */
+  public static extractDatabaseEndpoints(input: {
+    attributes: Record<string, unknown> | null | undefined;
+    metricName?: string | null | undefined;
+  }): Array<string> {
+    const attributes: Record<string, unknown> =
+      input.attributes && typeof input.attributes === "object"
+        ? input.attributes
+        : {};
+
+    const addresses: Array<string> = this.collectScalarValues(
+      attributes,
+      DatabaseServerAddressLabelKeys,
+    );
+
+    if (addresses.length === 0) {
+      return [];
+    }
+
+    const ports: Array<string> = this.collectScalarValues(
+      attributes,
+      DatabaseServerPortLabelKeys,
+    );
+
+    const system: string | null =
+      this.collectScalarValues(attributes, DatabaseSystemLabelKeys)[0] ||
+      this.getDatabaseSystemFromMetricName(input.metricName);
+
+    const kubernetesNamespace: string | undefined = this.collectScalarValues(
+      attributes,
+      DatabaseKubernetesNamespaceLabelKeys,
+    )[0];
+
+    const kubernetesClusterName: string | undefined = this.collectScalarValues(
+      attributes,
+      DatabaseKubernetesClusterLabelKeys,
+    )[0];
+
+    const endpoints: Set<string> = new Set<string>();
+
+    for (const address of addresses) {
+      for (const port of ports.length > 0 ? ports : [null]) {
+        const endpoint: string | null = this.buildDatabaseEndpointRef({
+          address: address,
+          port: port,
+          system: system,
+          kubernetesNamespace: kubernetesNamespace,
+          kubernetesClusterName: kubernetesClusterName,
+        });
+
+        if (endpoint) {
+          endpoints.add(endpoint);
+        }
+      }
+    }
+
+    return Array.from(endpoints);
+  }
+
+  /*
+   * The engine whose collector receiver emits `metricName`, from the
+   * receivers' metric prefixes (`postgresql.`, `redis.`, ...). Null for
+   * anything else — `db.client.*` included, which every engine's clients
+   * emit alike.
+   */
+  private static getDatabaseSystemFromMetricName(
+    metricName: string | null | undefined,
+  ): string | null {
+    if (typeof metricName !== "string" || !metricName) {
+      return null;
+    }
+
+    const name: string = metricName.trim().toLowerCase();
+
+    for (const descriptor of DATABASE_SYSTEMS) {
+      for (const prefix of descriptor.receiverMetricPrefixes) {
+        if (name.startsWith(prefix)) {
+          return descriptor.system;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * Like collectLabelValues, but a filter value may also be a number (a port
+   * typed into the query form) — stringified — and anything that is not a
+   * plain scalar is dropped rather than coerced into "[object Object]".
+   */
+  private static collectScalarValues(
+    attributes: Record<string, unknown>,
+    keys: ReadonlyArray<string>,
+  ): Array<string> {
+    const found: Set<string> = new Set<string>();
+
+    const add: (value: unknown) => void = (value: unknown): void => {
+      if (typeof value === "string" && value.trim().length > 0) {
+        found.add(value.trim());
+      } else if (typeof value === "number" && Number.isFinite(value)) {
+        found.add(String(value));
+      }
+    };
+
+    for (const key of keys) {
+      const value: unknown = attributes[key];
+
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          add(item);
+        }
+      } else {
+        add(value);
+      }
+    }
+
+    return Array.from(found);
   }
 }

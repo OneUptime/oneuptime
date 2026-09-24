@@ -528,6 +528,11 @@ const realBreadcrumbTrails: Array<BreadcrumbTrailFixture> = [
   },
   {
     getter: "getDatabaseBreadcrumbs",
+    pagePattern: "/dashboard/:projectId/databases/:id/recommendations",
+    titles: ["Project", "Databases", "View Database", "Recommendations"],
+  },
+  {
+    getter: "getDatabaseBreadcrumbs",
     pagePattern: "/dashboard/:projectId/databases/:id/settings",
     titles: ["Project", "Databases", "View Database", "Settings"],
   },

@@ -23,6 +23,7 @@ import DatabaseServerScheduledMaintenance from "../Pages/Database/View/Scheduled
 import DatabaseServerFeed from "../Pages/Database/View/Feed";
 import DatabaseServerOwners from "../Pages/Database/View/Owners";
 import DatabaseServerEndpoints from "../Pages/Database/View/Endpoints";
+import DatabaseServerRecommendations from "../Pages/Database/View/Recommendations";
 import DatabaseServerDocumentation from "../Pages/Database/View/Documentation";
 import DatabaseServerDelete from "../Pages/Database/View/Delete";
 import DatabaseServerLabelRule from "Common/Models/DatabaseModels/DatabaseServerLabelRule";
@@ -250,6 +251,20 @@ const DatabaseRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.DATABASE_SERVER_VIEW_ENDPOINTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS,
+          )}
+          element={
+            <DatabaseServerRecommendations
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS] as Route
               }
             />
           }

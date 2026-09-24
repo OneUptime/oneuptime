@@ -20,6 +20,8 @@ import Alert from "Common/Models/DatabaseModels/Alert";
 import AlertState from "Common/Models/DatabaseModels/AlertState";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
+import RecommendationsSideMenuItem from "../../../Components/Recommendations/RecommendationsSideMenuItem";
+import { MonitorRecommendationResourceType } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -223,6 +225,25 @@ const DatabaseServerSideMenu: FunctionComponent<ComponentProps> = (
               ),
             ),
           }}
+        />
+
+        {/*
+         * Next to the Incidents and Alerts it fills: the recommended monitors
+         * are scoped to this database, so what they open lands on those two
+         * tabs. The badge counts what is still to set up for this database's
+         * engine (see RecommendationsSideMenuItem).
+         */}
+        <RecommendationsSideMenuItem
+          link={{
+            title: "Recommendations",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          resourceType={MonitorRecommendationResourceType.DatabaseServer}
+          resourceId={props.modelId}
+          icon={IconProp.Sparkles}
         />
       </SideMenuSection>
 

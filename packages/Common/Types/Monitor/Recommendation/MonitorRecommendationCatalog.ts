@@ -16,6 +16,11 @@ import {
   getAllCephAlertTemplates,
 } from "../CephAlertTemplates";
 import {
+  DatabaseAlertTemplate,
+  getAllDatabaseAlertTemplates,
+  getDatabaseAlertTemplates,
+} from "../DatabaseAlertTemplates";
+import {
   DockerAlertTemplate,
   getAllDockerAlertTemplates,
 } from "../DockerAlertTemplates";
@@ -82,15 +87,16 @@ export interface MonitorRecommendationResourceTypeDefinition {
     | "hostIdentifier"
     | "fleetIdentifier"
     | "rumApplicationId"
-    | "serviceId";
+    | "serviceId"
+    | "databaseServerId";
   icon: IconProp;
   /*
    * What to recommend for ONE resource of this type.
    *
-   * Nine of the ten resource types ignore the argument entirely — every
-   * Kubernetes cluster is offered the same eighteen recommendations, and a
-   * zero-argument function satisfies this type, so those nine are declared
-   * exactly as they were. Services are the exception: see
+   * Most resource types ignore the argument entirely — every Kubernetes
+   * cluster is offered the same eighteen recommendations, and a
+   * zero-argument function satisfies this type, so those are declared
+   * exactly as they were. Services and databases are the exceptions: see
    * `MonitorRecommendationContext`.
    *
    * Passing no context means "nothing is known about this resource", and the
@@ -419,6 +425,69 @@ function getAllServiceRecommendations(): Array<MonitorRecommendation> {
   });
 }
 
+/*
+ * The database adapter — two functions for the same reason as Service's.
+ *
+ * `getDatabaseRecommendations` answers "what should THIS database be
+ * offered", which depends on its engine and on whether its engine metrics
+ * have ever arrived; `getAllDatabaseRecommendations` answers "what can a
+ * database ever be offered".
+ */
+function normalizeDatabaseTemplate(
+  template: DatabaseAlertTemplate,
+): MonitorRecommendation {
+  return normalize({
+    resourceType: MonitorRecommendationResourceType.DatabaseServer,
+    monitorType: template.monitorType,
+    template: template,
+    getMonitorStep: (args: MonitorRecommendationArgs) => {
+      return template.getMonitorStep({
+        databaseServerId: args.resourceIdentifier,
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+        defaultAlertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+      });
+    },
+  });
+}
+
+/*
+ * No engine -> nothing, and engine metrics known NOT to have arrived ->
+ * nothing. Both are the honest answer rather than a gap: every database
+ * template reads one engine receiver's metrics, so without the engine there
+ * is no template that applies, and without the metrics every template would
+ * be a monitor over data nobody sends (and "Engine Metrics Stopped" would
+ * fire the moment it was created). The page explains both states — see
+ * RecommendationResourceRegistry's `describeContext` for databases.
+ */
+function getDatabaseRecommendations(
+  context?: MonitorRecommendationContext | undefined,
+): Array<MonitorRecommendation> {
+  if (!context?.databaseEngine) {
+    return [];
+  }
+
+  if (context.databaseEngineMetricsReported === false) {
+    return [];
+  }
+
+  return getDatabaseAlertTemplates(context.databaseEngine).map(
+    (template: DatabaseAlertTemplate) => {
+      return normalizeDatabaseTemplate(template);
+    },
+  );
+}
+
+function getAllDatabaseRecommendations(): Array<MonitorRecommendation> {
+  return getAllDatabaseAlertTemplates().map(
+    (template: DatabaseAlertTemplate) => {
+      return normalizeDatabaseTemplate(template);
+    },
+  );
+}
+
 const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefinition> =
   [
     {
@@ -518,6 +587,15 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       getRecommendations: getServiceRecommendations,
       getAllPossibleRecommendations: getAllServiceRecommendations,
     },
+    {
+      resourceType: MonitorRecommendationResourceType.DatabaseServer,
+      monitorTypes: [MonitorType.Metrics],
+      resourceLabel: "Database",
+      identifierFieldName: "databaseServerId",
+      icon: IconProp.Database,
+      getRecommendations: getDatabaseRecommendations,
+      getAllPossibleRecommendations: getAllDatabaseRecommendations,
+    },
   ];
 
 export default class MonitorRecommendationCatalog {
@@ -568,11 +646,34 @@ export default class MonitorRecommendationCatalog {
   public static getAllRecommendations(): Array<MonitorRecommendation> {
     return RESOURCE_TYPE_DEFINITIONS.flatMap(
       (definition: MonitorRecommendationResourceTypeDefinition) => {
-        return definition.getAllPossibleRecommendations
-          ? definition.getAllPossibleRecommendations()
-          : definition.getRecommendations();
+        return this.getAllPossibleRecommendations(definition.resourceType);
       },
     );
+  }
+
+  /*
+   * Every recommendation ONE resource type can ever produce, across every
+   * context — `getAllRecommendations` narrowed to a single type.
+   *
+   * This, not `getRecommendations(resourceType)`, is what a per-type
+   * invariant has to run over: with no context a database is offered nothing
+   * at all (there is no engine-agnostic database template) and a service only
+   * its language-agnostic subset, so a check written against the context-free
+   * set would silently skip every engine- and runtime-specific template.
+   */
+  public static getAllPossibleRecommendations(
+    resourceType: MonitorRecommendationResourceType,
+  ): Array<MonitorRecommendation> {
+    const definition: MonitorRecommendationResourceTypeDefinition | undefined =
+      this.getResourceTypeDefinition(resourceType);
+
+    if (!definition) {
+      return [];
+    }
+
+    return definition.getAllPossibleRecommendations
+      ? definition.getAllPossibleRecommendations()
+      : definition.getRecommendations();
   }
 
   public static getRecommendationById(

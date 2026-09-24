@@ -33,27 +33,37 @@ export enum MonitorRecommendationResourceType {
   RumApplication = "RumApplication",
   /*
    * An APM telemetry service — a backend process reporting OTel traces,
-   * metrics and exceptions under a `service.name`. The only resource type
-   * whose recommendation set is not a constant: see
-   * `MonitorRecommendationContext`.
+   * metrics and exceptions under a `service.name`. Its recommendation set is
+   * not a constant: see `MonitorRecommendationContext`.
    */
   Service = "Service",
+  /*
+   * A database server (the DatabaseServer model). Its recommendation set
+   * depends on its engine and on whether engine metrics have ever arrived —
+   * see `MonitorRecommendationContext`. Distinct from `MonitorType.Database`,
+   * the probe-based Database Health monitor: these recommendations create
+   * ordinary Metrics monitors over the engine's collector-receiver metrics.
+   */
+  DatabaseServer = "DatabaseServer",
 }
 
 /*
  * What is known about ONE resource, for resource types whose recommendation
  * set depends on it.
  *
- * Every other resource type answers "what should I monitor here?" from the
+ * Most resource types answer "what should I monitor here?" from the
  * resource type alone — every Kubernetes cluster gets the same eighteen
  * recommendations. Services do not: the runtime signals worth alerting on for
  * a Java service (heap pressure, GC pause time, thread exhaustion) do not
  * exist on a Go service, and recommending them there produces monitors that
- * silently never fire, which is worse than recommending nothing.
+ * silently never fire, which is worse than recommending nothing. Databases
+ * are the same by engine: PostgreSQL's receiver and Redis's share no metric
+ * name.
  *
  * Optional everywhere, and every field inside it is optional too, so a caller
- * that knows nothing still gets the language-agnostic recommendations rather
- * than an empty list or a guess.
+ * that knows nothing still gets the subset that is true of every resource of
+ * the type — the language-agnostic recommendations for a service, and none
+ * for a database — rather than a guess.
  */
 export interface MonitorRecommendationContext {
   /*
@@ -64,6 +74,24 @@ export interface MonitorRecommendationContext {
    * is how a `null` ends up narrowing to some default language by accident.
    */
   serviceLanguage?: ServiceLanguage | null | undefined;
+  /*
+   * A database's engine — its `dbSystem`, a semconv `db.system.name` value
+   * such as "postgresql" or "redis". It selects the templates of the
+   * collector receivers that monitor that engine (so MariaDB gets MySQL's,
+   * see `getDatabaseAlertTemplates`). Every database template reads one
+   * receiver's metric names, so without an engine nothing applies — unlike a
+   * service, a database has no engine-agnostic subset.
+   */
+  databaseEngine?: string | null | undefined;
+  /*
+   * Whether the database's engine metrics (a collector database receiver or
+   * the Database Agent) have ever arrived. `false` withholds every database
+   * recommendation: on a database seen only through its clients' spans or
+   * as a container, each would be a monitor over metrics nobody sends — and
+   * the "engine metrics stopped" one would fire the moment it was created.
+   * `null` / `undefined` mean "not known" and withhold nothing.
+   */
+  databaseEngineMetricsReported?: boolean | null | undefined;
 }
 
 /*
@@ -84,6 +112,7 @@ export type MonitorRecommendationSeverity = "Critical" | "Warning";
  *   fleetIdentifier   -> IoTDevice
  *   rumApplicationId  -> RUM application
  *   serviceId         -> APM service
+ *   databaseServerId  -> Database server
  *
  * The registry normalizes that single difference into `resourceIdentifier`
  * and each catalog adapter renames it back on the way into the module's own

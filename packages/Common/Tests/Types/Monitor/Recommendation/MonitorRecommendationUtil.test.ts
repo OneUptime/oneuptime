@@ -16,6 +16,7 @@ import MonitorSteps from "../../../../Types/Monitor/MonitorSteps";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import { CriteriaIncident } from "../../../../Types/Monitor/CriteriaIncident";
 import { CriteriaAlert } from "../../../../Types/Monitor/CriteriaAlert";
+import { getDatabaseEnginesWithAlertTemplates } from "../../../../Types/Monitor/DatabaseAlertTemplates";
 import ObjectID from "../../../../Types/ObjectID";
 
 /*
@@ -95,7 +96,9 @@ const ALL_RECOMMENDATIONS: Array<MonitorRecommendation> =
 const ONE_PER_RESOURCE_TYPE: Array<MonitorRecommendation> =
   MonitorRecommendationCatalog.getResourceTypeDefinitions().map(
     (definition: MonitorRecommendationResourceTypeDefinition) => {
-      return definition.getRecommendations()[0]!;
+      return MonitorRecommendationCatalog.getAllPossibleRecommendations(
+        definition.resourceType,
+      )[0]!;
     },
   );
 
@@ -151,6 +154,30 @@ describe("MonitorRecommendationUtil", () => {
             });
           });
 
+        expect(new Set(names).size).toBe(names.length);
+      }
+    });
+
+    it("produces distinct names within the set one database is offered, for every engine", () => {
+      /*
+       * A database's set is empty without context, so the loop above proves
+       * nothing for it. Per engine is the unit that matters: one database
+       * only ever renders one engine's recommendations ("Engine Metrics
+       * Stopped" repeats across engines on purpose).
+       */
+      for (const engine of getDatabaseEnginesWithAlertTemplates()) {
+        const names: Array<string> =
+          MonitorRecommendationCatalog.getRecommendations(
+            MonitorRecommendationResourceType.DatabaseServer,
+            { databaseEngine: engine, databaseEngineMetricsReported: true },
+          ).map((recommendation: MonitorRecommendation) => {
+            return MonitorRecommendationUtil.getMonitorName({
+              recommendation: recommendation,
+              resourceDisplayName: "PostgreSQL db.prod:5432",
+            });
+          });
+
+        expect(names.length).toBeGreaterThan(0);
         expect(new Set(names).size).toBe(names.length);
       }
     });
@@ -802,7 +829,9 @@ describe("MonitorRecommendationUtil", () => {
     it("works for every resource type, not just Kubernetes", () => {
       for (const definition of MonitorRecommendationCatalog.getResourceTypeDefinitions()) {
         const recommendations: Array<MonitorRecommendation> =
-          definition.getRecommendations();
+          MonitorRecommendationCatalog.getAllPossibleRecommendations(
+            definition.resourceType,
+          );
         const args: MonitorRecommendationArgs = buildArgs();
         const created: MonitorRecommendation = recommendations[0]!;
 
@@ -959,6 +988,86 @@ describe("MonitorRecommendationUtil", () => {
       );
 
       expect(lastCriticalIndex).toBeLessThan(firstWarningIndex);
+    });
+  });
+
+  /*
+   * A database's monitors are generic Metrics monitors whose only resource
+   * identity is the `oneuptime.database.server.id` filter on every query. The
+   * already-created diff has to read that as the resource, or every database
+   * in the project would share one set of "created" cards.
+   */
+  describe("database fingerprints", () => {
+    const DATABASE_A: string = "d0000000-0000-4000-8000-00000000000a";
+    const DATABASE_B: string = "d0000000-0000-4000-8000-00000000000b";
+
+    const postgresRecommendations: Array<MonitorRecommendation> =
+      MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.DatabaseServer,
+        { databaseEngine: "postgresql", databaseEngineMetricsReported: true },
+      );
+
+    it("reads the database id off the query filter as the resource identifier", () => {
+      expect(postgresRecommendations.length).toBeGreaterThan(0);
+
+      for (const recommendation of postgresRecommendations) {
+        const fingerprint: MonitorRecommendationFingerprint | undefined =
+          MonitorRecommendationUtil.getFingerprintFromMonitorStep(
+            recommendation.getMonitorStep(
+              buildArgs({ resourceIdentifier: DATABASE_A }),
+            ),
+          );
+
+        expect(fingerprint?.configKind).toBe("metricMonitor");
+        expect(fingerprint?.resourceIdentifier).toBe(DATABASE_A);
+      }
+    });
+
+    it("never lets one database's monitor cover another database's recommendation", () => {
+      const existing: Array<MonitorStep> = postgresRecommendations.map(
+        (recommendation: MonitorRecommendation) => {
+          return recommendation.getMonitorStep(
+            buildArgs({ resourceIdentifier: DATABASE_A }),
+          );
+        },
+      );
+
+      expect(
+        MonitorRecommendationUtil.getCoveredRecommendationIds({
+          recommendations: postgresRecommendations,
+          existingMonitorSteps: existing,
+          args: buildArgs({ resourceIdentifier: DATABASE_B }),
+        }).size,
+      ).toBe(0);
+
+      expect(
+        MonitorRecommendationUtil.getCoveredRecommendationIds({
+          recommendations: postgresRecommendations,
+          existingMonitorSteps: existing,
+          args: buildArgs({ resourceIdentifier: DATABASE_A }),
+        }).size,
+      ).toBe(postgresRecommendations.length);
+    });
+
+    it("leaves a project-wide metric monitor's identity empty", () => {
+      /*
+       * The fallback only reads the database scope attribute: a Metrics
+       * monitor with no such filter is not about any one resource, and must
+       * not suddenly start claiming one.
+       */
+      const step: MonitorStep = postgresRecommendations[0]!.getMonitorStep(
+        buildArgs({ resourceIdentifier: DATABASE_A }),
+      );
+
+      for (const queryConfig of step.data!.metricMonitor!.metricViewConfig
+        .queryConfigs) {
+        queryConfig.metricQueryData.filterData.attributes = {};
+      }
+
+      expect(
+        MonitorRecommendationUtil.getFingerprintFromMonitorStep(step)
+          ?.resourceIdentifier,
+      ).toBe("");
     });
   });
 });

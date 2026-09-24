@@ -371,6 +371,67 @@ describe("RecommendationCriteriaBuilder", () => {
       expect(
         firstFilter(buildHealthy()).metricMonitorOptions?.onNoDataPolicy,
       ).toBeUndefined();
+      expect(
+        firstFilter(buildUnhealthy()).metricMonitorOptions?.onNoDataPolicy,
+      ).toBeUndefined();
+    });
+
+    /*
+     * The heartbeat shape the database "Engine Metrics Stopped" templates
+     * use: silence IS the breach, so the firing side must say Trigger.
+     */
+    test("triggerOnNoData puts the Trigger policy on every breach filter", () => {
+      const instance: MonitorCriteriaInstance = buildUnhealthy({
+        triggerOnNoData: true,
+        additionalFilters: [
+          {
+            metricAlias: "second_heartbeat",
+            filterType: FilterType.LessThan,
+            value: 0,
+          },
+        ],
+      });
+
+      const filters: Array<CriteriaFilter> = instance.data
+        ?.filters as Array<CriteriaFilter>;
+
+      expect(filters.length).toBe(2);
+
+      for (const filter of filters) {
+        expect(filter.metricMonitorOptions?.onNoDataPolicy).toBe(
+          NoDataPolicy.Trigger,
+        );
+      }
+    });
+
+    test("triggerOnNoData wins over treatNoDataAsZero — one answer per criteria", () => {
+      expect(
+        firstFilter(
+          buildUnhealthy({ triggerOnNoData: true, treatNoDataAsZero: true }),
+        ).metricMonitorOptions?.onNoDataPolicy,
+      ).toBe(NoDataPolicy.Trigger);
+
+      // ...and treatNoDataAsZero alone still behaves exactly as before.
+      expect(
+        firstFilter(buildUnhealthy({ treatNoDataAsZero: true }))
+          .metricMonitorOptions?.onNoDataPolicy,
+      ).toBe(NoDataPolicy.TreatAsZero);
+    });
+
+    test("triggerOnNoData keeps the breach sustained and its threshold as given", () => {
+      const filter: CriteriaFilter = firstFilter(
+        buildUnhealthy({
+          triggerOnNoData: true,
+          filterType: FilterType.LessThan,
+          value: 0,
+        }),
+      );
+
+      expect(filter.metricMonitorOptions?.metricAggregationType).toBe(
+        SustainedEvaluation,
+      );
+      expect(filter.filterType).toBe(FilterType.LessThan);
+      expect(filter.value).toBe(0);
     });
 
     test("filterCondition is overridable so multi-alias recovery can require ALL", () => {
