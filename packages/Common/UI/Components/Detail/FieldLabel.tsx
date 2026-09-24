@@ -1,6 +1,7 @@
 import Link from "../Link/Link";
 import { DetailSideLink } from "./Field";
 import useTranslateValue from "../../Utils/Translation";
+import InfoTooltip from "../Tooltip/InfoTooltip";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export enum Size {
@@ -16,6 +17,8 @@ export interface ComponentProps {
   sideLink?: DetailSideLink | undefined;
   size?: Size | undefined;
   isCardStyle?: boolean | undefined;
+  // What the field means, shown in an (i) tooltip beside the title.
+  tooltip?: string | undefined;
 }
 
 const FieldLabelElement: FunctionComponent<ComponentProps> = (
@@ -40,6 +43,11 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
         >
           <span className={`${props.alignClassName} flex items-center gap-1.5`}>
             {translatedTitle}
+            <InfoTooltip
+              label={translatedTitle}
+              text={props.tooltip}
+              className="normal-case tracking-normal"
+            />
             <span className="w-1 h-1 rounded-full bg-gray-300"></span>
           </span>
           {props.sideLink && translatedSideLinkText && props.sideLink?.url && (

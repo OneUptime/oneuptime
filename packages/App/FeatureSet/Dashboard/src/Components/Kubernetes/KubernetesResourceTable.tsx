@@ -1,5 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
-import ResourceTable from "../Infrastructure/ResourceTable";
+import ResourceTable, {
+  BuiltInColumnDescriptions,
+} from "../Infrastructure/ResourceTable";
 import { KubernetesResource } from "../../Pages/Kubernetes/Utils/KubernetesResourceUtils";
 import Route from "Common/Types/API/Route";
 
@@ -18,6 +20,8 @@ export interface ResourceColumn {
   title: string;
   key: string;
   getValue?: (resource: KubernetesResource) => string;
+  // What the column's values mean, in an (i) beside the header.
+  description?: string | undefined;
 }
 
 export interface ComponentProps {
@@ -32,6 +36,7 @@ export interface ComponentProps {
   emptyMessage?: string;
   isLoading?: boolean;
   onRefreshClick?: (() => void) | undefined;
+  builtInColumnDescriptions?: BuiltInColumnDescriptions | undefined;
 }
 
 const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
@@ -56,6 +61,7 @@ const KubernetesResourceTable: FunctionComponent<ComponentProps> = (
       isLoading={props.isLoading}
       onRefreshClick={props.onRefreshClick}
       tableIdPrefix="kubernetes"
+      builtInColumnDescriptions={props.builtInColumnDescriptions}
     />
   );
 };

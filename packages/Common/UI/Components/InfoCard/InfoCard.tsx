@@ -20,6 +20,8 @@ export interface ComponentProps {
   isSelected?: boolean | undefined;
   // Announced in place of the title when the card is clickable.
   ariaLabel?: string | undefined;
+  // What the value means, shown in an (i) tooltip beside the title.
+  tooltip?: string | undefined;
 }
 
 const InfoCard: FunctionComponent<ComponentProps> = (
@@ -75,7 +77,7 @@ const InfoCard: FunctionComponent<ComponentProps> = (
       className={`rounded-xl bg-white border ${borderClassName} shadow-sm hover:shadow-md transition-shadow duration-200 p-5 ${isClickable ? "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2" : ""} ${props.className || ""}`}
     >
       <div className="mb-2">
-        <FieldLabelElement title={props.title} />
+        <FieldLabelElement title={props.title} tooltip={props.tooltip} />
       </div>
       <div className={props.textClassName || "text-gray-900"}>
         {props.value}

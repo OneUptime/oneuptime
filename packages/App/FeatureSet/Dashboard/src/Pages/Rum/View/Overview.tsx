@@ -40,14 +40,19 @@ import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefres
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
 import WebVitalsCard from "../../../Components/TelemetryResource/WebVitalsCard";
 import {
+  fetchLogAndExceptionSignals,
   fetchSpanMetrics,
+  fetchSpanNameStats,
   fetchWebVitals,
   formatCompact,
   formatDurationMs,
   formatPercent,
+  LogAndExceptionSignals,
   SpanMetrics,
+  SpanNameStats,
   WebVital,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
+import { RUM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/RumMetricDescriptions";
 import {
   fetchSessionReplayList,
   SessionReplayListResult,
@@ -58,8 +63,14 @@ import useSessionReplayHealth, {
 } from "../../../Components/SessionReplay/useSessionReplayHealth";
 import {
   buildRangedListRoute,
+  describeExceptionsTile,
+  describePageLoadsTile,
+  describePageLoadTimeTile,
   describeRecordingHealthRow,
   describeTimeRangeForTile,
+  PAGE_LOAD_SPAN_NAME,
+  sumTimeSeries,
+  TileText,
 } from "./OverviewHelpers";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
@@ -80,6 +91,9 @@ const SESSION_REPLAY_COUNT_PAGE_SIZE: number = 50;
  */
 export {
   buildRangedListRoute,
+  describeExceptionsTile,
+  describePageLoadsTile,
+  describePageLoadTimeTile,
   describeRecordingHealthRow,
   describeTimeRangeForTile,
 };
@@ -120,6 +134,22 @@ const RumApplicationOverview: FunctionComponent<
   const [sessionReplayCountFailed, setSessionReplayCountFailed] =
     useState<boolean>(false);
   const [metrics, setMetrics] = useState<SpanMetrics | null>(null);
+  /*
+   * Page loads are the documentLoad spans alone: per-interval series for
+   * the charts, and whole-range counts and percentiles for the tiles.
+   */
+  const [pageLoadMetrics, setPageLoadMetrics] = useState<SpanMetrics | null>(
+    null,
+  );
+  const [pageLoadStats, setPageLoadStats] = useState<SpanNameStats | null>(
+    null,
+  );
+  // Unknown, not zero - the tiles say "could not load".
+  const [pageLoadStatsFailed, setPageLoadStatsFailed] =
+    useState<boolean>(false);
+  const [pageLoadsLoading, setPageLoadsLoading] = useState<boolean>(true);
+  const [signals, setSignals] = useState<LogAndExceptionSignals | null>(null);
+  const [signalsLoading, setSignalsLoading] = useState<boolean>(true);
   const [webVitals, setWebVitals] = useState<Array<WebVital>>([]);
   const [webVitalsLoading, setWebVitalsLoading] = useState<boolean>(true);
   const [metricsLoading, setMetricsLoading] = useState<boolean>(true);
@@ -243,6 +273,8 @@ const RumApplicationOverview: FunctionComponent<
       if (showLoading) {
         setMetricsLoading(true);
         setWebVitalsLoading(true);
+        setPageLoadsLoading(true);
+        setSignalsLoading(true);
         setSessionReplayCount(null);
         setSessionReplayCountFailed(false);
       }
@@ -284,6 +316,65 @@ const RumApplicationOverview: FunctionComponent<
             return;
           }
           setWebVitalsLoading(false);
+        });
+
+      /*
+       * Page loads: the whole-range row for the tiles (true percentiles over
+       * every page load in the range) and the per-interval series for the
+       * charts. The tiles wait for both so they never show a count from one
+       * refresh beside a time from another.
+       */
+      Promise.all([
+        fetchSpanNameStats({
+          primaryEntityId,
+          spanName: PAGE_LOAD_SPAN_NAME,
+          start,
+          end,
+        })
+          .then((stats: SpanNameStats): SpanNameStats | null => {
+            return stats;
+          })
+          .catch((): null => {
+            return null;
+          }),
+        fetchSpanMetrics({
+          primaryEntityId,
+          spanName: PAGE_LOAD_SPAN_NAME,
+          start,
+          end,
+        }),
+      ])
+        .then(([stats, series]: [SpanNameStats | null, SpanMetrics]) => {
+          if (!isCurrent()) {
+            return;
+          }
+          setPageLoadStats(stats);
+          setPageLoadStatsFailed(stats === null);
+          setPageLoadMetrics(series);
+          setPageLoadsLoading(false);
+        })
+        .catch(() => {
+          if (!isCurrent()) {
+            return;
+          }
+          setPageLoadStatsFailed(true);
+          setPageLoadsLoading(false);
+        });
+
+      // Exceptions and logs, scoped by the same primaryEntityId.
+      fetchLogAndExceptionSignals({ primaryEntityId, start, end })
+        .then((result: LogAndExceptionSignals) => {
+          if (!isCurrent()) {
+            return;
+          }
+          setSignals(result);
+          setSignalsLoading(false);
+        })
+        .catch(() => {
+          if (!isCurrent()) {
+            return;
+          }
+          setSignalsLoading(false);
         });
 
       /*
@@ -391,14 +482,46 @@ const RumApplicationOverview: FunctionComponent<
     return RouteUtil.populateRouteParams(RouteMap[page] as Route, { modelId });
   };
 
+  const pageLoadsTile: TileText = describePageLoadsTile({
+    stats: pageLoadStats,
+    failed: pageLoadStatsFailed,
+    eventsTotal: m ? m.total : null,
+  });
+  const pageLoadTimeTile: TileText = describePageLoadTimeTile({
+    stats: pageLoadStats,
+    failed: pageLoadStatsFailed,
+  });
+  const exceptionsTile: TileText = describeExceptionsTile({
+    exceptions: signals ? signals.exceptions : null,
+  });
+
   const tiles: Array<ResourceOverviewTile> = [
     {
-      title: "Page views",
+      title: "Page loads",
+      value: pageLoadsTile.value,
+      icon: IconProp.Globe,
+      iconColor: "emerald",
+      loading: pageLoadsLoading,
+      sublabel: pageLoadsTile.sublabel,
+      description: RUM_METRIC_DESCRIPTIONS.pageLoads,
+    },
+    {
+      title: "Page load time (p95)",
+      value: pageLoadTimeTile.value,
+      icon: IconProp.Clock,
+      iconColor: "blue",
+      loading: pageLoadsLoading,
+      sublabel: pageLoadTimeTile.sublabel,
+      description: RUM_METRIC_DESCRIPTIONS.pageLoadTime,
+    },
+    {
+      title: "Events",
       value: m ? formatCompact(m.total) : "—",
       icon: IconProp.Activity,
-      iconColor: "blue",
+      iconColor: "sky",
       loading: metricsLoading,
-      sublabel: "events, selected range",
+      sublabel: "spans, selected range",
+      description: RUM_METRIC_DESCRIPTIONS.events,
     },
     {
       title: "Error rate",
@@ -409,14 +532,25 @@ const RumApplicationOverview: FunctionComponent<
       sublabel: m ? `${formatCompact(m.errors)} errored` : undefined,
       percent: m ? m.errorRatePercent : null,
       thresholds: { warn: 1, danger: 5 },
+      description: RUM_METRIC_DESCRIPTIONS.errorRate,
     },
     {
-      title: "p95 duration",
+      title: "Event duration (p95)",
       value: m ? formatDurationMs(m.p95DurationMs) : "—",
       icon: IconProp.Clock,
       iconColor: "violet",
       loading: metricsLoading,
-      sublabel: "page / interaction",
+      sublabel: "page loads, requests, clicks",
+      description: RUM_METRIC_DESCRIPTIONS.eventDuration,
+    },
+    {
+      title: "Exceptions",
+      value: exceptionsTile.value,
+      icon: IconProp.Bug,
+      iconColor: "rose",
+      loading: signalsLoading,
+      sublabel: exceptionsTile.sublabel,
+      description: RUM_METRIC_DESCRIPTIONS.exceptions,
     },
     {
       title: "Clients",
@@ -429,6 +563,7 @@ const RumApplicationOverview: FunctionComponent<
       loading: clientCount === null && !clientCountFailed,
       sublabel: clientCountFailed ? "could not load" : "platforms seen",
       to: populate(PageMap.RUM_APPLICATION_VIEW_CLIENTS),
+      description: RUM_METRIC_DESCRIPTIONS.clients,
     },
     {
       title: "Sessions recorded",
@@ -449,29 +584,73 @@ const RumApplicationOverview: FunctionComponent<
         populate(PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY),
         timeRange,
       ),
+      description: RUM_METRIC_DESCRIPTIONS.sessionsRecorded,
     },
   ];
+
+  const syncId: string = `rum-${modelId.toString()}`;
+  const durationFormatter: (n: number) => string = (n: number): string => {
+    return formatDurationMs(n);
+  };
 
   const charts: ReactElement = (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <ChartCard
-        title="Page views"
-        icon={IconProp.Activity}
+        title="Page loads"
+        icon={IconProp.Globe}
+        iconColor="emerald"
+        series={
+          [
+            {
+              seriesName: "Page loads",
+              data: pageLoadMetrics?.countSeries ?? [],
+            },
+            { seriesName: "Failed", data: pageLoadMetrics?.errorSeries ?? [] },
+          ] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={syncId}
+        showLegend={true}
+        loading={pageLoadsLoading && !pageLoadMetrics}
+        description={RUM_METRIC_DESCRIPTIONS.pageLoadsChart}
+      />
+      <ChartCard
+        title="Page load time (p95)"
+        icon={IconProp.Clock}
         iconColor="blue"
         series={
           [
-            { seriesName: "Page views", data: m?.countSeries ?? [] },
+            { seriesName: "p95", data: pageLoadMetrics?.p95Series ?? [] },
+          ] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={syncId}
+        yLegend="ms"
+        yFormatter={durationFormatter}
+        loading={pageLoadsLoading && !pageLoadMetrics}
+        description={RUM_METRIC_DESCRIPTIONS.pageLoadTimeChart}
+      />
+      <ChartCard
+        title="Events"
+        icon={IconProp.Activity}
+        iconColor="sky"
+        series={
+          [
+            { seriesName: "Events", data: m?.countSeries ?? [] },
             { seriesName: "Errors", data: m?.errorSeries ?? [] },
           ] as Array<SeriesPoint>
         }
         windowStart={chartWindow?.start ?? null}
         windowEnd={chartWindow?.end ?? null}
-        syncId={`rum-${modelId.toString()}`}
+        syncId={syncId}
         showLegend={true}
         loading={metricsLoading && !m}
+        description={RUM_METRIC_DESCRIPTIONS.eventsChart}
       />
       <ChartCard
-        title="p95 duration"
+        title="Event duration (p95)"
         icon={IconProp.Clock}
         iconColor="violet"
         series={
@@ -481,12 +660,49 @@ const RumApplicationOverview: FunctionComponent<
         }
         windowStart={chartWindow?.start ?? null}
         windowEnd={chartWindow?.end ?? null}
-        syncId={`rum-${modelId.toString()}`}
+        syncId={syncId}
         yLegend="ms"
-        yFormatter={(n: number): string => {
-          return formatDurationMs(n);
-        }}
+        yFormatter={durationFormatter}
         loading={metricsLoading && !m}
+        description={RUM_METRIC_DESCRIPTIONS.eventDurationChart}
+      />
+      <ChartCard
+        title="Exceptions"
+        icon={IconProp.Bug}
+        iconColor="rose"
+        series={
+          [
+            {
+              seriesName: "Exceptions",
+              data: sumTimeSeries(
+                signals?.exceptions.unhandledSeries ?? [],
+                signals?.exceptions.handledSeries ?? [],
+              ),
+            },
+          ] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={syncId}
+        loading={signalsLoading && !signals}
+        description={RUM_METRIC_DESCRIPTIONS.exceptionsChart}
+      />
+      <ChartCard
+        title="Logs"
+        icon={IconProp.Logs}
+        iconColor="amber"
+        series={
+          [
+            { seriesName: "Log lines", data: signals?.logs.countSeries ?? [] },
+            { seriesName: "Errors", data: signals?.logs.errorSeries ?? [] },
+          ] as Array<SeriesPoint>
+        }
+        windowStart={chartWindow?.start ?? null}
+        windowEnd={chartWindow?.end ?? null}
+        syncId={syncId}
+        showLegend={true}
+        loading={signalsLoading && !signals}
+        description={RUM_METRIC_DESCRIPTIONS.logsChart}
       />
     </div>
   );
@@ -548,11 +764,11 @@ const RumApplicationOverview: FunctionComponent<
           title={
             <span>
               Recordings are arriving for this application, so the replay
-              snippet and your ingestion key are working. Page views, error
-              rate, p95 duration and clients come from a different install — the
-              OpenTelemetry browser SDK — and nothing has reported through it
-              yet, which is why those tiles read zero. Add the SDK with{" "}
-              <code>service.name</code> set to{" "}
+              snippet and your ingestion key are working. Page loads, events,
+              error rate, durations, exceptions and clients come from a
+              different install — the OpenTelemetry browser SDK — and nothing
+              has reported through it yet, which is why those tiles read zero.
+              Add the SDK with <code>service.name</code> set to{" "}
               <code>{(a.appIdentifier as string) || ""}</code> to fill them in;
               the steps are on this application&apos;s Documentation tab.
               Session replay does not need it.
@@ -596,7 +812,11 @@ const RumApplicationOverview: FunctionComponent<
         labels={a.labels}
       />
 
-      <WebVitalsCard vitals={webVitals} loading={webVitalsLoading} />
+      <WebVitalsCard
+        vitals={webVitals}
+        loading={webVitalsLoading}
+        description={RUM_METRIC_DESCRIPTIONS.webVitals}
+      />
     </Fragment>
   );
 };

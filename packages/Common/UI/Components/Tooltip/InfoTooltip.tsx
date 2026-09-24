@@ -15,8 +15,9 @@ import Tooltip from "./Tooltip";
  * these, and none of them needs a Tippy instance until someone reaches for
  * it.
  *
- * A click is swallowed: the (i) can sit inside a card that is itself a
- * link, and asking what a number means should not navigate away from it.
+ * A click is swallowed, and so are Enter and Space: the (i) can sit inside a
+ * card that is itself a link or a button, and asking what a number means
+ * should not navigate away from it.
  */
 
 export interface ComponentProps {
@@ -53,6 +54,16 @@ const InfoTooltip: FunctionComponent<ComponentProps> = (
         onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
           event.preventDefault();
           event.stopPropagation();
+        }}
+        /*
+         * A clickable card that handles Enter / Space itself (InfoCard, a
+         * tile acting as a button) would otherwise hear these keys bubble up
+         * from the (i) and activate.
+         */
+        onKeyDown={(event: React.KeyboardEvent<HTMLButtonElement>): void => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.stopPropagation();
+          }
         }}
       >
         <Icon
