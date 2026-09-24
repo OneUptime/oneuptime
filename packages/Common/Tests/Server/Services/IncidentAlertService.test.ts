@@ -1,8 +1,13 @@
 import AlertFeedService from "../../../Server/Services/AlertFeedService";
+import AlertOwnerTeamService from "../../../Server/Services/AlertOwnerTeamService";
+import AlertOwnerUserService from "../../../Server/Services/AlertOwnerUserService";
 import AlertService from "../../../Server/Services/AlertService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import IncidentAlertService, {
+  INCIDENT_ALERT_DECLARED_WITH_INCIDENT_KEY,
   LinkAlertsToIncidentResult,
+  LinkedAlertMention,
+  getDeclaredFromAlertsMarkdown,
 } from "../../../Server/Services/IncidentAlertService";
 import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../Server/Services/IncidentService";
@@ -23,6 +28,8 @@ import ProjectScopedReferenceValidator from "../../../Server/Utils/Database/Proj
 import logger from "../../../Server/Utils/Logger";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
+import AlertOwnerTeam from "../../../Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "../../../Models/DatabaseModels/AlertOwnerUser";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentAlert from "../../../Models/DatabaseModels/IncidentAlert";
 import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
@@ -33,7 +40,11 @@ import { Gray500, Yellow500 } from "../../../Types/BrandColors";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
-import { MAX_ALERTS_PER_INCIDENT_LINK_ACTION } from "../../../Types/Incident/IncidentAlertLink";
+import {
+  INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
+  MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
+} from "../../../Types/Incident/IncidentAlertLink";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
   UserTenantAccessPermission,
@@ -832,6 +843,294 @@ describe("feed entries", () => {
       expect(incidentFeed).not.toHaveBeenCalled();
     });
   });
+
+  describe("a private end's title never reaches the other side's entry", () => {
+    const INCIDENT_TITLE: string = "Payroll export is failing";
+    const ALERT_TITLE: string = "Payroll DB credentials exposed";
+
+    let incidentRead: jest.SpyInstance;
+    let alertRead: jest.SpyInstance;
+
+    function stubEnds(ends: {
+      incidentIsPrivate: boolean;
+      alertIsPrivate: boolean;
+    }): void {
+      const incident: Incident = new Incident();
+      incident.incidentNumber = 7;
+      incident.incidentNumberWithPrefix = "INC-7";
+      incident.title = INCIDENT_TITLE;
+      incident.isPrivate = ends.incidentIsPrivate;
+
+      const alert: Alert = new Alert();
+      alert.alertNumber = 3;
+      alert.title = ALERT_TITLE;
+      alert.isPrivate = ends.alertIsPrivate;
+
+      incidentRead = jest
+        .spyOn(IncidentService, "findOneById")
+        .mockResolvedValue(incident as never);
+      alertRead = jest
+        .spyOn(AlertService, "findOneById")
+        .mockResolvedValue(alert as never);
+    }
+
+    async function link(): Promise<void> {
+      const row: IncidentAlert = created({ createdByUserId: USER_ID });
+
+      await IncidentAlertService.onCreateSuccess(
+        {
+          createBy: { data: row, props: { isRoot: true } },
+          carryForward: null,
+        },
+        row,
+      );
+    }
+
+    async function unlink(): Promise<void> {
+      const linkId: ObjectID = ObjectID.generate();
+
+      await IncidentAlertService.onDeleteSuccess(
+        {
+          deleteBy: {
+            query: {},
+            props: { userId: USER_ID },
+            limit: 1,
+            skip: 0,
+          } as DeleteBy<IncidentAlert>,
+          carryForward: [
+            {
+              id: linkId.toString(),
+              incidentId: INCIDENT_ID,
+              alertId: ALERT_ID,
+              projectId: PROJECT_ID,
+            },
+          ],
+        },
+        [linkId],
+      );
+    }
+
+    function incidentEntry(): Record<string, unknown> {
+      expect(incidentFeed).toHaveBeenCalledTimes(1);
+      return incidentFeed.mock.calls[0]![0];
+    }
+
+    function alertEntry(): Record<string, unknown> {
+      expect(alertFeed).toHaveBeenCalledTimes(1);
+      return alertFeed.mock.calls[0]![0];
+    }
+
+    test("both ends are read, as root, with their privacy", async () => {
+      stubEnds({ incidentIsPrivate: false, alertIsPrivate: false });
+
+      await link();
+
+      expect(incidentRead.mock.calls[0]![0].select).toEqual(
+        expect.objectContaining({ title: true, isPrivate: true }),
+      );
+      expect(alertRead.mock.calls[0]![0].select).toEqual(
+        expect.objectContaining({ title: true, isPrivate: true }),
+      );
+      expect(incidentRead.mock.calls[0]![0].props).toEqual({ isRoot: true });
+      expect(alertRead.mock.calls[0]![0].props).toEqual({ isRoot: true });
+    });
+
+    test.each([
+      ["link", link],
+      ["unlink", unlink],
+    ])(
+      "%s: a private alert is named by number and link only on the incident and its Slack / Teams post",
+      async (_label: string, act: () => Promise<void>) => {
+        stubEnds({ incidentIsPrivate: false, alertIsPrivate: true });
+
+        await act();
+
+        const entry: Record<string, unknown> = incidentEntry();
+        const markdown: string = entry["feedInfoInMarkdown"] as string;
+
+        expect(markdown).not.toContain(ALERT_TITLE);
+        expect(markdown).toContain(
+          `**[Alert #3](${ALERT_URL})** (private alert)`,
+        );
+        expect(markdown).toContain(`**[Incident INC-7](${INCIDENT_URL})**`);
+        // The post is this same markdown, so it is title-free too.
+        expect(entry["workspaceNotification"]).toEqual({
+          sendWorkspaceNotification: true,
+          notifyUserId: USER_ID,
+        });
+
+        // The incident is not private: the alert's entry may name it.
+        expect(alertEntry()["feedInfoInMarkdown"]).toContain(
+          `: ${INCIDENT_TITLE}`,
+        );
+      },
+    );
+
+    test("link: the incident-side wording for a private alert", async () => {
+      stubEnds({ incidentIsPrivate: false, alertIsPrivate: true });
+
+      await link();
+
+      expect(incidentEntry()["feedInfoInMarkdown"]).toBe(
+        `🔗 Linked **[Alert #3](${ALERT_URL})** (private alert) to **[Incident INC-7](${INCIDENT_URL})**`,
+      );
+    });
+
+    test("unlink: the incident-side wording for a private alert", async () => {
+      stubEnds({ incidentIsPrivate: false, alertIsPrivate: true });
+
+      await unlink();
+
+      expect(incidentEntry()["feedInfoInMarkdown"]).toBe(
+        `Unlinked **[Alert #3](${ALERT_URL})** (private alert) from **[Incident INC-7](${INCIDENT_URL})**`,
+      );
+    });
+
+    test.each([
+      [
+        "link",
+        link,
+        `🔗 Linked to **[Incident INC-7](${INCIDENT_URL})** (private incident)`,
+      ],
+      [
+        "unlink",
+        unlink,
+        `Unlinked from **[Incident INC-7](${INCIDENT_URL})** (private incident)`,
+      ],
+    ])(
+      "%s: a private incident is named by number and link only on the alert",
+      async (_label: string, act: () => Promise<void>, expected: string) => {
+        stubEnds({ incidentIsPrivate: true, alertIsPrivate: false });
+
+        await act();
+
+        const markdown: string = alertEntry()["feedInfoInMarkdown"] as string;
+
+        expect(markdown).toBe(expected);
+        expect(markdown).not.toContain(INCIDENT_TITLE);
+
+        // The alert is not private: the incident's entry may name it.
+        expect(incidentEntry()["feedInfoInMarkdown"]).toContain(
+          `: ${ALERT_TITLE}`,
+        );
+      },
+    );
+
+    test.each([
+      ["link", link],
+      ["unlink", unlink],
+    ])(
+      "%s: when both ends are private neither title crosses over (their owners can differ)",
+      async (_label: string, act: () => Promise<void>) => {
+        stubEnds({ incidentIsPrivate: true, alertIsPrivate: true });
+
+        await act();
+
+        const incidentMarkdown: string = incidentEntry()[
+          "feedInfoInMarkdown"
+        ] as string;
+        const alertMarkdown: string = alertEntry()[
+          "feedInfoInMarkdown"
+        ] as string;
+
+        expect(incidentMarkdown).not.toContain(ALERT_TITLE);
+        expect(incidentMarkdown).toContain("(private alert)");
+        expect(alertMarkdown).not.toContain(INCIDENT_TITLE);
+        expect(alertMarkdown).toContain("(private incident)");
+      },
+    );
+
+    test("public ends keep their titles on both sides", async () => {
+      stubEnds({ incidentIsPrivate: false, alertIsPrivate: false });
+
+      await link();
+
+      expect(incidentEntry()["feedInfoInMarkdown"]).toBe(
+        `🔗 Linked **[Alert #3](${ALERT_URL})** to **[Incident INC-7](${INCIDENT_URL})**: ${ALERT_TITLE}`,
+      );
+      expect(alertEntry()["feedInfoInMarkdown"]).toBe(
+        `🔗 Linked to **[Incident INC-7](${INCIDENT_URL})**: ${INCIDENT_TITLE}`,
+      );
+    });
+  });
+
+  describe("links written while an incident is declared from alerts", () => {
+    async function linkWith(
+      props: DatabaseCommonInteractionProps,
+      miscDataProps: JSONObject | undefined,
+    ): Promise<void> {
+      const row: IncidentAlert = created({ createdByUserId: USER_ID });
+
+      await IncidentAlertService.onCreateSuccess(
+        {
+          createBy: {
+            data: row,
+            props: props,
+            ...(miscDataProps ? { miscDataProps: miscDataProps } : {}),
+          },
+          carryForward: null,
+        },
+        row,
+      );
+    }
+
+    test("root with the flag: no incident-side entry or post, the alert still gets its entry", async () => {
+      await linkWith(
+        { isRoot: true },
+        { [INCIDENT_ALERT_DECLARED_WITH_INCIDENT_KEY]: true },
+      );
+
+      expect(incidentFeed).not.toHaveBeenCalled();
+      expect(alertFeed).toHaveBeenCalledTimes(1);
+      expect(alertFeed.mock.calls[0]![0]["alertFeedEventType"]).toBe(
+        AlertFeedEventType.LinkedToIncident,
+      );
+      expect(alertFeed.mock.calls[0]![0]["userId"]).toBe(USER_ID);
+      // The alert is still brought in line with the incident.
+      expect(sync).toHaveBeenCalledTimes(1);
+    });
+
+    test.each([
+      ["a user", userProps(Permission.ProjectMember)],
+      ["an API key", userProps(Permission.ProjectMember, null)],
+    ])(
+      "%s cannot suppress the incident's entry by sending the flag",
+      async (_label: string, props: DatabaseCommonInteractionProps) => {
+        await linkWith(props, {
+          [INCIDENT_ALERT_DECLARED_WITH_INCIDENT_KEY]: true,
+        });
+
+        expect(incidentFeed).toHaveBeenCalledTimes(1);
+
+        const entry: Record<string, unknown> = incidentFeed.mock.calls[0]![0];
+
+        expect(entry["incidentFeedEventType"]).toBe(
+          IncidentFeedEventType.AlertLinked,
+        );
+        expect(entry["workspaceNotification"]).toEqual(
+          expect.objectContaining({ sendWorkspaceNotification: true }),
+        );
+        expect(alertFeed).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    test.each([
+      ["no miscDataProps", undefined],
+      ["other miscDataProps", { somethingElse: true }],
+      [
+        "a flag that is not exactly true",
+        { [INCIDENT_ALERT_DECLARED_WITH_INCIDENT_KEY]: "true" },
+      ],
+    ])(
+      "root with %s writes both entries",
+      async (_label: string, miscDataProps: JSONObject | undefined) => {
+        await linkWith({ isRoot: true }, miscDataProps);
+
+        expect(incidentFeed).toHaveBeenCalledTimes(1);
+        expect(alertFeed).toHaveBeenCalledTimes(1);
+      },
+    );
+  });
 });
 
 describe("onBeforeDelete carries the rows it may delete", () => {
@@ -1228,7 +1527,7 @@ describe("linkAlertsToIncident", () => {
       }): Promise<IncidentAlert> => {
         if (args.data.alertId?.toString() === ALERT_ID_2.toString()) {
           throw PostgresErrorTranslator.createUniqueViolationException(
-            "This alert is already linked to this incident.",
+            INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
           );
         }
 
@@ -1314,5 +1613,613 @@ describe("linkAlertsToIncident", () => {
 
     expect(create.mock.calls[0]![0].data.createdByUserId).toBeUndefined();
     expect(create.mock.calls[0]![0].props).toBe(props);
+  });
+});
+
+describe("linkAlertsToIncident while an incident is declared", () => {
+  let create: jest.SpyInstance;
+
+  beforeEach(() => {
+    create = jest
+      .spyOn(IncidentAlertService, "create")
+      .mockImplementation((async (args: {
+        data: IncidentAlert;
+      }): Promise<IncidentAlert> => {
+        return args.data;
+      }) as never);
+  });
+
+  test("marks every link as declared with the incident", async () => {
+    await IncidentAlertService.linkAlertsToIncident({
+      projectId: PROJECT_ID,
+      incidentId: INCIDENT_ID,
+      alertIds: [ALERT_ID, ALERT_ID_2],
+      declaredWithIncident: true,
+      props: { isRoot: true },
+    });
+
+    expect(create).toHaveBeenCalledTimes(2);
+
+    for (const call of create.mock.calls) {
+      expect(call[0].miscDataProps).toEqual({
+        [INCIDENT_ALERT_DECLARED_WITH_INCIDENT_KEY]: true,
+      });
+    }
+  });
+
+  test.each([
+    ["left out", undefined],
+    ["false", false],
+  ])(
+    "sends no miscDataProps when declaredWithIncident is %s",
+    async (_label: string, declaredWithIncident: boolean | undefined) => {
+      await IncidentAlertService.linkAlertsToIncident({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        alertIds: [ALERT_ID],
+        declaredWithIncident: declaredWithIncident,
+        props: { isRoot: true },
+      });
+
+      expect(create.mock.calls[0]![0]).not.toHaveProperty("miscDataProps");
+    },
+  );
+});
+
+describe("the one incident entry for an incident declared from alerts", () => {
+  function mention(
+    number: number,
+    title: string | undefined,
+    isPrivate: boolean = false,
+  ): LinkedAlertMention {
+    return {
+      label: `Alert #${number}`,
+      link: `${ALERT_URL}/${number}`,
+      title: title,
+      isPrivate: isPrivate,
+    };
+  }
+
+  test("lists every alert with its number and link, and the title of each public one", () => {
+    expect(
+      getDeclaredFromAlertsMarkdown([
+        mention(3, "Checkout p95 latency is high"),
+        mention(7, "Payroll DB credentials exposed", true),
+        mention(9, undefined),
+      ]),
+    ).toBe(
+      [
+        "🔗 Declared from 3 alerts:",
+        "",
+        `- **[Alert #3](${ALERT_URL}/3)**: Checkout p95 latency is high`,
+        `- **[Alert #7](${ALERT_URL}/7)** (private alert)`,
+        `- **[Alert #9](${ALERT_URL}/9)**: No title`,
+      ].join("\n"),
+    );
+  });
+
+  test("one alert is 'alert', not 'alerts'", () => {
+    expect(
+      getDeclaredFromAlertsMarkdown([mention(3, "Checkout is slow")]),
+    ).toBe(
+      `🔗 Declared from 1 alert:\n\n- **[Alert #3](${ALERT_URL}/3)**: Checkout is slow`,
+    );
+  });
+
+  describe("reading the alerts and posting the entry", () => {
+    let alertFindBy: jest.SpyInstance;
+    let incidentFeed: jest.SpyInstance;
+
+    function alertWith(
+      id: ObjectID,
+      number: number,
+      title: string,
+      options: { isPrivate?: boolean; prefix?: string } = {},
+    ): Alert {
+      const alert: Alert = new Alert();
+      alert._id = id.toString();
+      alert.alertNumber = number;
+      alert.title = title;
+      alert.isPrivate = options.isPrivate === true;
+      if (options.prefix) {
+        alert.alertNumberWithPrefix = `${options.prefix}${number}`;
+      }
+      return alert;
+    }
+
+    beforeEach(() => {
+      // Returned out of order: the entry follows the order it was given.
+      alertFindBy = jest.spyOn(AlertService, "findBy").mockResolvedValue([
+        alertWith(ALERT_ID_3, 9, "Disk is full"),
+        alertWith(ALERT_ID, 3, "Checkout p95 latency is high", {
+          prefix: "ALT-",
+        }),
+        alertWith(ALERT_ID_2, 7, "Payroll DB credentials exposed", {
+          isPrivate: true,
+        }),
+      ] as never);
+
+      jest
+        .spyOn(AlertService, "getAlertLinkInDashboard")
+        .mockImplementation((async (
+          _projectId: ObjectID,
+          alertId: ObjectID,
+        ): Promise<URL> => {
+          return URL.fromString(`${ALERT_URL}/${alertId.toString()}`);
+        }) as never);
+
+      incidentFeed = jest
+        .spyOn(IncidentFeedService, "createIncidentFeedItem")
+        .mockResolvedValue(undefined as never);
+    });
+
+    test("reads the alerts as root, pinned to the project, with their privacy", async () => {
+      await IncidentAlertService.buildDeclaredFromAlertsMarkdown({
+        projectId: PROJECT_ID,
+        alertIds: [ALERT_ID, ALERT_ID_2],
+      });
+
+      const args: {
+        query: Query<Alert>;
+        select: Record<string, boolean>;
+        props: DatabaseCommonInteractionProps;
+      } = alertFindBy.mock.calls[0]![0];
+
+      expect(args.props).toEqual({ isRoot: true });
+      expect(args.query.projectId).toBe(PROJECT_ID);
+      expect(
+        Object.values(
+          (args.query._id as unknown as FindOperator<unknown>)
+            .objectLiteralParameters || {},
+        )[0],
+      ).toEqual([ALERT_ID.toString(), ALERT_ID_2.toString()]);
+      expect(args.select).toEqual(
+        expect.objectContaining({
+          alertNumber: true,
+          alertNumberWithPrefix: true,
+          title: true,
+          isPrivate: true,
+        }),
+      );
+    });
+
+    test("lists the alerts in the order given, once each, skipping ones that no longer exist", async () => {
+      const gone: ObjectID = ObjectID.generate();
+
+      const markdown: string | null =
+        await IncidentAlertService.buildDeclaredFromAlertsMarkdown({
+          projectId: PROJECT_ID,
+          alertIds: [ALERT_ID_2, gone, ALERT_ID, ALERT_ID_3, ALERT_ID],
+        });
+
+      expect(markdown).toBe(
+        [
+          "🔗 Declared from 3 alerts:",
+          "",
+          `- **[Alert #7](${ALERT_URL}/${ALERT_ID_2.toString()})** (private alert)`,
+          `- **[Alert ALT-3](${ALERT_URL}/${ALERT_ID.toString()})**: Checkout p95 latency is high`,
+          `- **[Alert #9](${ALERT_URL}/${ALERT_ID_3.toString()})**: Disk is full`,
+        ].join("\n"),
+      );
+      expect(markdown).not.toContain("Payroll DB credentials exposed");
+    });
+
+    test("no alerts to name: no markdown, and nothing is read", async () => {
+      await expect(
+        IncidentAlertService.buildDeclaredFromAlertsMarkdown({
+          projectId: PROJECT_ID,
+          alertIds: [],
+        }),
+      ).resolves.toBeNull();
+      expect(alertFindBy).not.toHaveBeenCalled();
+    });
+
+    test("posts exactly one Alert Linked entry to the incident and its channels", async () => {
+      await IncidentAlertService.createDeclaredFromAlertsFeedItem({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        alertIds: [ALERT_ID, ALERT_ID_2, ALERT_ID_3],
+        actorUserId: USER_ID,
+      });
+
+      expect(incidentFeed).toHaveBeenCalledTimes(1);
+
+      const entry: Record<string, unknown> = incidentFeed.mock.calls[0]![0];
+
+      expect(entry["incidentId"]).toBe(INCIDENT_ID);
+      expect(entry["projectId"]).toBe(PROJECT_ID);
+      expect(entry["incidentFeedEventType"]).toBe(
+        IncidentFeedEventType.AlertLinked,
+      );
+      expect(entry["displayColor"]).toBe(Yellow500);
+      expect(entry["userId"]).toBe(USER_ID);
+      expect(entry["workspaceNotification"]).toEqual({
+        sendWorkspaceNotification: true,
+        notifyUserId: USER_ID,
+      });
+      expect(entry["feedInfoInMarkdown"]).toContain(
+        "🔗 Declared from 3 alerts:",
+      );
+      expect(entry["feedInfoInMarkdown"]).not.toContain(
+        "Payroll DB credentials exposed",
+      );
+    });
+
+    test("an API key declares as nobody", async () => {
+      await IncidentAlertService.createDeclaredFromAlertsFeedItem({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        alertIds: [ALERT_ID],
+        actorUserId: undefined,
+      });
+
+      const entry: Record<string, unknown> = incidentFeed.mock.calls[0]![0];
+
+      expect(entry["userId"]).toBeUndefined();
+      expect(entry["workspaceNotification"]).toEqual({
+        sendWorkspaceNotification: true,
+        notifyUserId: undefined,
+      });
+    });
+
+    test("posts nothing when none of the alerts exists any more", async () => {
+      alertFindBy.mockResolvedValue([] as never);
+
+      await IncidentAlertService.createDeclaredFromAlertsFeedItem({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        alertIds: [ALERT_ID],
+        actorUserId: USER_ID,
+      });
+
+      expect(incidentFeed).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe("copyAlertOwnersToIncident", () => {
+  const TEAM_ID: ObjectID = new ObjectID(
+    "0194a1e7-0000-4000-8000-0000000000d1",
+  );
+  const OTHER_TEAM_ID: ObjectID = new ObjectID(
+    "0194a1e7-0000-4000-8000-0000000000d2",
+  );
+
+  let ownerUsers: jest.SpyInstance;
+  let ownerTeams: jest.SpyInstance;
+  let addOwners: jest.SpyInstance;
+
+  function ownerUser(userId: ObjectID | undefined): AlertOwnerUser {
+    const owner: AlertOwnerUser = new AlertOwnerUser();
+    if (userId) {
+      owner.userId = userId;
+    }
+    return owner;
+  }
+
+  function ownerTeam(teamId: ObjectID): AlertOwnerTeam {
+    const owner: AlertOwnerTeam = new AlertOwnerTeam();
+    owner.teamId = teamId;
+    return owner;
+  }
+
+  beforeEach(() => {
+    // Two alerts owned by overlapping users and teams.
+    ownerUsers = jest
+      .spyOn(AlertOwnerUserService, "findBy")
+      .mockResolvedValue([
+        ownerUser(USER_ID),
+        ownerUser(OTHER_USER_ID),
+        ownerUser(new ObjectID(USER_ID.toString().toUpperCase())),
+        ownerUser(undefined),
+      ] as never);
+    ownerTeams = jest
+      .spyOn(AlertOwnerTeamService, "findBy")
+      .mockResolvedValue([
+        ownerTeam(TEAM_ID),
+        ownerTeam(OTHER_TEAM_ID),
+        ownerTeam(TEAM_ID),
+      ] as never);
+    addOwners = jest
+      .spyOn(IncidentService, "addOwners")
+      .mockResolvedValue(undefined as never);
+  });
+
+  function copy(
+    alertIds: Array<ObjectID> = [ALERT_ID, ALERT_ID_2],
+  ): Promise<{ userIds: Array<ObjectID>; teamIds: Array<ObjectID> }> {
+    return IncidentAlertService.copyAlertOwnersToIncident({
+      projectId: PROJECT_ID,
+      incidentId: INCIDENT_ID,
+      alertIds: alertIds,
+    });
+  }
+
+  test("reads the alerts' owners as root, pinned to the project", async () => {
+    await copy();
+
+    for (const [spy, column] of [
+      [ownerUsers, "userId"],
+      [ownerTeams, "teamId"],
+    ] as Array<[jest.SpyInstance, string]>) {
+      const args: {
+        query: Record<string, unknown>;
+        select: Record<string, boolean>;
+        props: DatabaseCommonInteractionProps;
+      } = spy.mock.calls[0]![0];
+
+      expect(args.props).toEqual({ isRoot: true });
+      expect(args.query["projectId"]).toBe(PROJECT_ID);
+      expect(
+        Object.values(
+          (args.query["alertId"] as FindOperator<unknown>)
+            .objectLiteralParameters || {},
+        )[0],
+      ).toEqual([ALERT_ID.toString(), ALERT_ID_2.toString()]);
+      expect(args.select).toEqual({ [column]: true });
+    }
+  });
+
+  test("adds each owner once, as root, without notifying them", async () => {
+    const result: { userIds: Array<ObjectID>; teamIds: Array<ObjectID> } =
+      await copy();
+
+    expect(addOwners).toHaveBeenCalledTimes(1);
+
+    const [projectId, incidentId, userIds, teamIds, notifyOwners, props] =
+      addOwners.mock.calls[0]! as [
+        ObjectID,
+        ObjectID,
+        Array<ObjectID>,
+        Array<ObjectID>,
+        boolean,
+        DatabaseCommonInteractionProps,
+      ];
+
+    expect(projectId).toBe(PROJECT_ID);
+    expect(incidentId).toBe(INCIDENT_ID);
+    expect(userIds.map(String)).toEqual([
+      USER_ID.toString(),
+      OTHER_USER_ID.toString(),
+    ]);
+    expect(teamIds.map(String)).toEqual([
+      TEAM_ID.toString(),
+      OTHER_TEAM_ID.toString(),
+    ]);
+    expect(notifyOwners).toBe(false);
+    expect(props).toEqual({ isRoot: true });
+    expect(result.userIds.map(String)).toEqual(userIds.map(String));
+    expect(result.teamIds.map(String)).toEqual(teamIds.map(String));
+  });
+
+  test("alerts without owners add nobody", async () => {
+    ownerUsers.mockResolvedValue([] as never);
+    ownerTeams.mockResolvedValue([] as never);
+
+    await expect(copy()).resolves.toEqual({ userIds: [], teamIds: [] });
+    expect(addOwners).not.toHaveBeenCalled();
+  });
+
+  test("owner teams alone are still added", async () => {
+    ownerUsers.mockResolvedValue([] as never);
+
+    await copy();
+
+    expect(addOwners.mock.calls[0]![2]).toEqual([]);
+    expect(addOwners.mock.calls[0]![3].map(String)).toEqual([
+      TEAM_ID.toString(),
+      OTHER_TEAM_ID.toString(),
+    ]);
+  });
+
+  test("no alerts: nothing is read or added", async () => {
+    await expect(copy([])).resolves.toEqual({ userIds: [], teamIds: [] });
+    expect(ownerUsers).not.toHaveBeenCalled();
+    expect(ownerTeams).not.toHaveBeenCalled();
+    expect(addOwners).not.toHaveBeenCalled();
+  });
+});
+
+describe("a duplicate caught by the unique index answers like the unique-together check", () => {
+  type DriverError = Error & {
+    code?: string;
+    table?: string;
+    detail?: string;
+    driverError?: { code: string; table?: string; detail?: string };
+  };
+
+  const DUPLICATE_DETAIL: string = `Key ("incidentId", "alertId", "projectId")=(${INCIDENT_ID.toString()}, ${ALERT_ID.toString()}, ${PROJECT_ID.toString()}) already exists.`;
+
+  /*
+   * A QueryFailedError as TypeORM raises it for Postgres: the pg fields are
+   * hoisted onto the error and kept under driverError. `hoisted: false` keeps
+   * them under driverError only.
+   */
+  function driverError(
+    code: string,
+    table: string | undefined,
+    detail: string,
+    hoisted: boolean = true,
+  ): DriverError {
+    const error: DriverError = new Error(
+      "duplicate key value violates unique constraint",
+    );
+    error.driverError = { code: code, detail: detail };
+    if (table) {
+      error.driverError.table = table;
+    }
+    if (hoisted) {
+      error.code = code;
+      error.detail = detail;
+      if (table) {
+        error.table = table;
+      }
+    }
+    return error;
+  }
+
+  // What getException throws for `error` (it always throws).
+  function thrownFor(error: unknown): unknown {
+    const service: { getException: (error: unknown) => never } =
+      IncidentAlertService as unknown as {
+        getException: (error: unknown) => never;
+      };
+
+    try {
+      service.getException(error);
+    } catch (thrown) {
+      return thrown;
+    }
+
+    throw new Error("getException returned instead of throwing");
+  }
+
+  test("without the override a duplicate insert would read as a generic 'already exists'", () => {
+    const translated: unknown = PostgresErrorTranslator.translate(
+      driverError("23505", "IncidentAlert", DUPLICATE_DETAIL),
+    );
+
+    expect((translated as Error).message).toContain("already exists");
+    expect((translated as Error).message).not.toBe(
+      INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
+    );
+  });
+
+  test.each([
+    [
+      "names IncidentAlert",
+      driverError("23505", "IncidentAlert", DUPLICATE_DETAIL),
+    ],
+    [
+      "names IncidentAlert under driverError only",
+      driverError("23505", "IncidentAlert", DUPLICATE_DETAIL, false),
+    ],
+    ["names no table", driverError("23505", undefined, DUPLICATE_DETAIL)],
+    [
+      "was already translated",
+      PostgresErrorTranslator.createUniqueViolationException(
+        "A Incident Alert with the same Incident Id, Alert Id, Project Id already exists. Please use different values and try again.",
+      ),
+    ],
+  ])(
+    "a unique violation that %s answers 'already linked' and stays a unique violation",
+    (_label: string, error: unknown) => {
+      const thrown: unknown = thrownFor(error);
+
+      expect(thrown).toBeInstanceOf(BadDataException);
+      expect((thrown as Error).message).toBe(
+        INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
+      );
+      expect(PostgresErrorTranslator.isUniqueViolation(thrown)).toBe(true);
+    },
+  );
+
+  test("a unique violation on another table keeps the generic translation", () => {
+    const thrown: unknown = thrownFor(
+      driverError("23505", "AlertFeed", 'Key ("slug")=(x) already exists.'),
+    );
+
+    expect((thrown as Error).message).toBe(
+      "A Alert Feed with this Slug already exists. Please use a different value and try again.",
+    );
+    expect(PostgresErrorTranslator.isUniqueViolation(thrown)).toBe(true);
+  });
+
+  test("a foreign key violation keeps the generic translation", () => {
+    const error: DriverError = driverError(
+      "23503",
+      "IncidentAlert",
+      `Key ("alertId")=(${ALERT_ID.toString()}) is not present in table "Alert".`,
+    );
+
+    const thrown: unknown = thrownFor(error);
+
+    expect((thrown as Error).message).not.toBe(
+      INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
+    );
+    expect(PostgresErrorTranslator.isUniqueViolation(thrown)).toBe(false);
+  });
+
+  test("anything that is not a Postgres error is passed on as it is", () => {
+    const error: Error = new Error("connection reset");
+
+    expect(thrownFor(error)).toBe(error);
+  });
+
+  describe("through create", () => {
+    let save: jest.Mock;
+    let countBy: jest.SpyInstance;
+
+    beforeEach(() => {
+      save = jest.fn();
+      jest
+        .spyOn(IncidentAlertService, "getRepository")
+        .mockReturnValue({ save: save } as never);
+      countBy = jest
+        .spyOn(IncidentAlertService, "countBy")
+        .mockResolvedValue(new PositiveNumber(0) as never);
+    });
+
+    function createLink(): Promise<IncidentAlert> {
+      return IncidentAlertService.create({
+        data: buildLink(),
+        props: { isRoot: true },
+      });
+    }
+
+    async function failureOf(run: () => Promise<unknown>): Promise<unknown> {
+      try {
+        await run();
+      } catch (error) {
+        return error;
+      }
+      throw new Error("expected the create to fail");
+    }
+
+    test("two requests racing past the unique-together check: the index's refusal reads 'already linked'", async () => {
+      save.mockRejectedValue(
+        driverError("23505", "IncidentAlert", DUPLICATE_DETAIL) as never,
+      );
+
+      const failure: unknown = await failureOf(createLink);
+
+      // The unique-together check ran and found nothing, as in a race.
+      expect(countBy).toHaveBeenCalledTimes(1);
+      expect(save).toHaveBeenCalledTimes(1);
+      expect((failure as Error).message).toBe(
+        INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
+      );
+      expect(PostgresErrorTranslator.isUniqueViolation(failure)).toBe(true);
+    });
+
+    test("the unique-together check answers with the same message before any insert", async () => {
+      countBy.mockResolvedValue(new PositiveNumber(1) as never);
+
+      const failure: unknown = await failureOf(createLink);
+
+      expect(save).not.toHaveBeenCalled();
+      expect((failure as Error).message).toBe(
+        INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
+      );
+      expect(PostgresErrorTranslator.isUniqueViolation(failure)).toBe(true);
+    });
+
+    test("linkAlertsToIncident counts the index's refusal as already linked", async () => {
+      save.mockRejectedValue(
+        driverError("23505", "IncidentAlert", DUPLICATE_DETAIL) as never,
+      );
+
+      const result: LinkAlertsToIncidentResult =
+        await IncidentAlertService.linkAlertsToIncident({
+          projectId: PROJECT_ID,
+          incidentId: INCIDENT_ID,
+          alertIds: [ALERT_ID],
+          props: { isRoot: true },
+        });
+
+      expect(result.alreadyLinkedAlertIds).toEqual([ALERT_ID]);
+      expect(result.linkedAlertIds).toEqual([]);
+      expect(result.failed).toEqual([]);
+    });
   });
 });

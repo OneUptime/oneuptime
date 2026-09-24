@@ -9,6 +9,8 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import DatabaseService from "./DatabaseService";
 import AlertFeedService from "./AlertFeedService";
+import AlertOwnerTeamService from "./AlertOwnerTeamService";
+import AlertOwnerUserService from "./AlertOwnerUserService";
 import AlertService from "./AlertService";
 import AlertStateService from "./AlertStateService";
 import IncidentFeedService from "./IncidentFeedService";
@@ -26,6 +28,8 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Model from "../../Models/DatabaseModels/IncidentAlert";
 import Alert from "../../Models/DatabaseModels/Alert";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
+import AlertOwnerTeam from "../../Models/DatabaseModels/AlertOwnerTeam";
+import AlertOwnerUser from "../../Models/DatabaseModels/AlertOwnerUser";
 import AlertState from "../../Models/DatabaseModels/AlertState";
 import Incident from "../../Models/DatabaseModels/Incident";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
@@ -35,10 +39,12 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import { Gray500, Yellow500 } from "../../Types/BrandColors";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
+import Exception from "../../Types/Exception/Exception";
 import ForbiddenException from "../../Types/Exception/ForbiddenException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import {
+  INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
   MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
 } from "../../Types/Incident/IncidentAlertLink";
@@ -139,6 +145,81 @@ export interface LinkAlertsToIncidentResult {
   failed: Array<{ alertId: ObjectID; message: string }>;
 }
 
+/*
+ * miscDataProps key on an IncidentAlert create: the link is one of the links
+ * written while an incident is being declared from alerts. The incident then
+ * gets one "Declared from N alerts" entry (see
+ * createDeclaredFromAlertsFeedItem) instead of an "Alert Linked" entry - and
+ * a Slack / Microsoft Teams post - per alert. Honoured for root callers only:
+ * miscDataProps is part of the public create API, and an API client must not
+ * be able to link an alert without the incident's audit entry.
+ */
+export const INCIDENT_ALERT_DECLARED_WITH_INCIDENT_KEY: string =
+  "declaredWithIncident";
+
+// One alert, as the incident-side entries describe it.
+export interface LinkedAlertMention {
+  // "Alert ALT-3" / "Alert #3".
+  label: string;
+  // The alert's page in the dashboard.
+  link: string;
+  title: string | undefined;
+  isPrivate: boolean;
+}
+
+/*
+ * "**[Alert #3](link)**: <title>", or "**[Alert #3](link)** (private alert)"
+ * for a private alert: its number and link are kept so the entry still says
+ * what happened, but its title is never written where people who cannot see
+ * the alert read it (the incident's feed and Slack / Microsoft Teams posts).
+ */
+function describeLinkedRecord(data: {
+  label: string;
+  link: string;
+  title: string | undefined;
+  isPrivate: boolean;
+  privateNoun: string;
+}): { subject: string; titleSuffix: string } {
+  const subject: string = `**[${data.label}](${data.link})**`;
+
+  if (data.isPrivate) {
+    return {
+      subject: `${subject} (private ${data.privateNoun})`,
+      titleSuffix: "",
+    };
+  }
+
+  return { subject: subject, titleSuffix: `: ${data.title || "No title"}` };
+}
+
+/*
+ * The one incident feed entry for an incident declared from alerts, listing
+ * the alerts in the order given. Private alerts are listed without their
+ * titles.
+ */
+export function getDeclaredFromAlertsMarkdown(
+  alerts: Array<LinkedAlertMention>,
+): string {
+  const lines: Array<string> = alerts.map(
+    (alert: LinkedAlertMention): string => {
+      const described: { subject: string; titleSuffix: string } =
+        describeLinkedRecord({
+          label: alert.label,
+          link: alert.link,
+          title: alert.title,
+          isPrivate: alert.isPrivate,
+          privateNoun: "alert",
+        });
+
+      return `- ${described.subject}${described.titleSuffix}`;
+    },
+  );
+
+  const noun: string = alerts.length === 1 ? "alert" : "alerts";
+
+  return `🔗 Declared from ${alerts.length} ${noun}:\n\n${lines.join("\n")}`;
+}
+
 interface LinkedAlertSwitches {
   acknowledge: boolean;
   resolve: boolean;
@@ -167,6 +248,29 @@ interface CarriedLink {
 
 function normalizeId(id: ObjectID | string): string {
   return id.toString().trim().toLowerCase();
+}
+
+// Distinct ids, in order, with the missing ones left out.
+function uniqueIds(ids: Array<ObjectID | undefined | null>): Array<ObjectID> {
+  const seen: Set<string> = new Set();
+  const result: Array<ObjectID> = [];
+
+  for (const id of ids) {
+    if (!id) {
+      continue;
+    }
+
+    const key: string = normalizeId(id);
+
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    result.push(new ObjectID(key));
+  }
+
+  return result;
 }
 
 function formatNumber(
@@ -223,6 +327,54 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnFind<Model>> {
     findBy.query = this.applyPrivacyFilters(findBy.query, findBy.props);
     return { findBy, carryForward: null };
+  }
+
+  /*
+   * A pair that is already linked answers with the same message however the
+   * duplicate is caught. @UniqueColumnsTogether catches it before the insert
+   * with INCIDENT_ALERT_ALREADY_LINKED_MESSAGE; when two requests race past
+   * that check, the unique index rejects the second insert, and the generic
+   * translation ("A Incident Alert with the same Incident Id, Alert Id,
+   * Project Id already exists...") would reach the dashboard, which counts a
+   * link as done only by this message. The exception stays tagged as a unique
+   * violation, so linkAlertsToIncident still counts it as already linked.
+   *
+   * IncidentAlert has no other unique index. A unique violation reported
+   * against another table (nothing on the create path writes one today) keeps
+   * the generic translation. Synchronous and `never`-returning, like the
+   * method it overrides.
+   */
+  protected override getException(error: Exception): never {
+    if (
+      PostgresErrorTranslator.isUniqueViolation(error) &&
+      this.isOwnTableOrUnknown(error)
+    ) {
+      throw PostgresErrorTranslator.createUniqueViolationException(
+        INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
+      );
+    }
+
+    return super.getException(error);
+  }
+
+  /*
+   * True when a Postgres error names this table, or names none (an exception
+   * that was already translated carries no driver details).
+   */
+  private isOwnTableOrUnknown(error: unknown): boolean {
+    const direct: { table?: unknown } = error as { table?: unknown };
+    const driverError: { table?: unknown } | undefined = (
+      error as { driverError?: { table?: unknown } }
+    ).driverError;
+
+    const table: unknown =
+      typeof direct.table === "string" ? direct.table : driverError?.table;
+
+    if (typeof table !== "string" || table.length === 0) {
+      return true;
+    }
+
+    return table === this.getModel().tableName;
   }
 
   @CaptureSpan()
@@ -421,6 +573,17 @@ export class Service extends DatabaseService<Model> {
     const actorUserId: ObjectID | undefined =
       createdItem.createdByUserId || onCreate.createBy.props.userId;
 
+    /*
+     * A link written while its incident is being declared from alerts leaves
+     * the incident's side to that incident's single "Declared from N alerts"
+     * entry. Root only - see INCIDENT_ALERT_DECLARED_WITH_INCIDENT_KEY.
+     */
+    const isDeclaredWithIncident: boolean =
+      onCreate.createBy.props.isRoot === true &&
+      onCreate.createBy.miscDataProps?.[
+        INCIDENT_ALERT_DECLARED_WITH_INCIDENT_KEY
+      ] === true;
+
     try {
       await this.createLinkFeedItems({
         link: {
@@ -431,6 +594,7 @@ export class Service extends DatabaseService<Model> {
         },
         isLinked: true,
         actorUserId: actorUserId,
+        writeIncidentEntry: !isDeclaredWithIncident,
       });
     } catch (error) {
       logger.error(
@@ -546,6 +710,7 @@ export class Service extends DatabaseService<Model> {
           link: link,
           isLinked: false,
           actorUserId: actorUserId,
+          writeIncidentEntry: true,
         });
       } catch (error) {
         logger.error(
@@ -567,12 +732,22 @@ export class Service extends DatabaseService<Model> {
    * Microsoft Teams: the incident's channels are where responders follow the
    * incident, and posting the alert's entry as well would announce every link
    * twice.
+   *
+   * Each entry is read by its own side's audience: the incident's feed and
+   * channels by whoever can see the incident, the alert's feed by whoever
+   * can see the alert. So a private end's title never goes into the other
+   * side's entry - not even when both ends are private, because two private
+   * records can have different owners. Its number and link are kept (opening
+   * the link is subject to the record's own privacy), which is what
+   * applyPrivacyFilters promises for the link rows themselves.
    */
   @CaptureSpan()
   private async createLinkFeedItems(data: {
     link: CarriedLink;
     isLinked: boolean;
     actorUserId: ObjectID | undefined;
+    // False for a link written while its incident is declared from alerts.
+    writeIncidentEntry: boolean;
   }): Promise<void> {
     const { link, isLinked, actorUserId } = data;
 
@@ -582,6 +757,7 @@ export class Service extends DatabaseService<Model> {
         incidentNumber: true,
         incidentNumberWithPrefix: true,
         title: true,
+        isPrivate: true,
       },
       props: {
         isRoot: true,
@@ -594,6 +770,7 @@ export class Service extends DatabaseService<Model> {
         alertNumber: true,
         alertNumberWithPrefix: true,
         title: true,
+        isPrivate: true,
       },
       props: {
         isRoot: true,
@@ -622,25 +799,44 @@ export class Service extends DatabaseService<Model> {
       await AlertService.getAlertLinkInDashboard(link.projectId, link.alertId)
     ).toString();
 
-    const alertTitle: string = alert?.title || "No title";
-    const incidentTitle: string = incident?.title || "No title";
+    const alertMention: { subject: string; titleSuffix: string } =
+      describeLinkedRecord({
+        label: alertLabel,
+        link: alertLink,
+        title: alert?.title,
+        isPrivate: alert?.isPrivate === true,
+        privateNoun: "alert",
+      });
 
-    await IncidentFeedService.createIncidentFeedItem({
-      incidentId: link.incidentId,
-      projectId: link.projectId,
-      incidentFeedEventType: isLinked
-        ? IncidentFeedEventType.AlertLinked
-        : IncidentFeedEventType.AlertUnlinked,
-      displayColor: isLinked ? Yellow500 : Gray500,
-      feedInfoInMarkdown: isLinked
-        ? `🔗 Linked **[${alertLabel}](${alertLink})** to **[${incidentLabel}](${incidentLink})**: ${alertTitle}`
-        : `Unlinked **[${alertLabel}](${alertLink})** from **[${incidentLabel}](${incidentLink})**: ${alertTitle}`,
-      userId: actorUserId,
-      workspaceNotification: {
-        sendWorkspaceNotification: true,
-        notifyUserId: actorUserId,
-      },
-    });
+    const incidentMention: { subject: string; titleSuffix: string } =
+      describeLinkedRecord({
+        label: incidentLabel,
+        link: incidentLink,
+        title: incident?.title,
+        isPrivate: incident?.isPrivate === true,
+        privateNoun: "incident",
+      });
+
+    const incidentSubject: string = `**[${incidentLabel}](${incidentLink})**`;
+
+    if (data.writeIncidentEntry) {
+      await IncidentFeedService.createIncidentFeedItem({
+        incidentId: link.incidentId,
+        projectId: link.projectId,
+        incidentFeedEventType: isLinked
+          ? IncidentFeedEventType.AlertLinked
+          : IncidentFeedEventType.AlertUnlinked,
+        displayColor: isLinked ? Yellow500 : Gray500,
+        feedInfoInMarkdown: isLinked
+          ? `🔗 Linked ${alertMention.subject} to ${incidentSubject}${alertMention.titleSuffix}`
+          : `Unlinked ${alertMention.subject} from ${incidentSubject}${alertMention.titleSuffix}`,
+        userId: actorUserId,
+        workspaceNotification: {
+          sendWorkspaceNotification: true,
+          notifyUserId: actorUserId,
+        },
+      });
+    }
 
     await AlertFeedService.createAlertFeedItem({
       alertId: link.alertId,
@@ -650,10 +846,210 @@ export class Service extends DatabaseService<Model> {
         : AlertFeedEventType.UnlinkedFromIncident,
       displayColor: isLinked ? Yellow500 : Gray500,
       feedInfoInMarkdown: isLinked
-        ? `🔗 Linked to **[${incidentLabel}](${incidentLink})**: ${incidentTitle}`
-        : `Unlinked from **[${incidentLabel}](${incidentLink})**: ${incidentTitle}`,
+        ? `🔗 Linked to ${incidentMention.subject}${incidentMention.titleSuffix}`
+        : `Unlinked from ${incidentMention.subject}${incidentMention.titleSuffix}`,
       userId: actorUserId,
     });
+  }
+
+  /*
+   * The single incident feed entry for an incident declared from alerts,
+   * posted to its Slack / Microsoft Teams channels. The links themselves are
+   * written without incident-side entries (INCIDENT_ALERT_DECLARED_WITH_
+   * INCIDENT_KEY), so the incident's channels get one message instead of one
+   * per alert. IncidentService calls this from its create chain once the
+   * "Incident Created" entry is out, which is also when the incident's own
+   * channels exist. Nothing is written when none of the alerts can be found.
+   */
+  @CaptureSpan()
+  public async createDeclaredFromAlertsFeedItem(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    alertIds: Array<ObjectID>;
+    actorUserId: ObjectID | undefined;
+  }): Promise<void> {
+    const markdown: string | null = await this.buildDeclaredFromAlertsMarkdown({
+      projectId: data.projectId,
+      alertIds: data.alertIds,
+    });
+
+    if (!markdown) {
+      return;
+    }
+
+    await IncidentFeedService.createIncidentFeedItem({
+      incidentId: data.incidentId,
+      projectId: data.projectId,
+      incidentFeedEventType: IncidentFeedEventType.AlertLinked,
+      displayColor: Yellow500,
+      feedInfoInMarkdown: markdown,
+      userId: data.actorUserId,
+      workspaceNotification: {
+        sendWorkspaceNotification: true,
+        notifyUserId: data.actorUserId,
+      },
+    });
+  }
+
+  /*
+   * The markdown for createDeclaredFromAlertsFeedItem: the project's alerts
+   * among `alertIds`, in that order, each with its number and dashboard
+   * link, and its title unless it is private. Read as root; null when none of
+   * the alerts exists (any more).
+   */
+  @CaptureSpan()
+  public async buildDeclaredFromAlertsMarkdown(data: {
+    projectId: ObjectID;
+    alertIds: Array<ObjectID>;
+  }): Promise<string | null> {
+    if (data.alertIds.length === 0) {
+      return null;
+    }
+
+    const alerts: Array<Alert> = await AlertService.findBy({
+      query: {
+        _id: QueryHelper.any(data.alertIds),
+        projectId: data.projectId,
+      },
+      select: {
+        _id: true,
+        alertNumber: true,
+        alertNumberWithPrefix: true,
+        title: true,
+        isPrivate: true,
+      },
+      limit: LIMIT_PER_PROJECT,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    const alertById: Map<string, Alert> = new Map();
+
+    for (const alert of alerts) {
+      if (alert._id) {
+        alertById.set(normalizeId(alert._id), alert);
+      }
+    }
+
+    const mentions: Array<LinkedAlertMention> = [];
+    const seen: Set<string> = new Set();
+
+    for (const alertId of data.alertIds) {
+      const key: string = normalizeId(alertId);
+      const alert: Alert | undefined = alertById.get(key);
+
+      if (!alert || seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+
+      mentions.push({
+        label: withNumber(
+          "Alert",
+          formatNumber(alert.alertNumberWithPrefix, alert.alertNumber),
+        ),
+        link: (
+          await AlertService.getAlertLinkInDashboard(
+            data.projectId,
+            new ObjectID(key),
+          )
+        ).toString(),
+        title: alert.title,
+        isPrivate: alert.isPrivate === true,
+      });
+    }
+
+    if (mentions.length === 0) {
+      return null;
+    }
+
+    return getDeclaredFromAlertsMarkdown(mentions);
+  }
+
+  /*
+   * Declaring a PRIVATE incident from alerts: the people who work those
+   * alerts become its owners too. A private incident is visible only to its
+   * owners (and project admins), and a private alert only to its owners, so
+   * without this the owners of the private alert an incident was declared
+   * from - the only non-admins who could see that alert - could not see the
+   * incident. The declaring user is already made an owner by
+   * DatabaseService.autoOwnerOnCreate. Owners are added as root, without
+   * notifying them (they were notified about their alerts), and owners the
+   * incident already has are skipped.
+   */
+  @CaptureSpan()
+  public async copyAlertOwnersToIncident(data: {
+    projectId: ObjectID;
+    incidentId: ObjectID;
+    alertIds: Array<ObjectID>;
+  }): Promise<{ userIds: Array<ObjectID>; teamIds: Array<ObjectID> }> {
+    if (data.alertIds.length === 0) {
+      return { userIds: [], teamIds: [] };
+    }
+
+    const ownerUsers: Array<AlertOwnerUser> =
+      await AlertOwnerUserService.findBy({
+        query: {
+          alertId: QueryHelper.any(data.alertIds),
+          projectId: data.projectId,
+        },
+        select: {
+          userId: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const ownerTeams: Array<AlertOwnerTeam> =
+      await AlertOwnerTeamService.findBy({
+        query: {
+          alertId: QueryHelper.any(data.alertIds),
+          projectId: data.projectId,
+        },
+        select: {
+          teamId: true,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const userIds: Array<ObjectID> = uniqueIds(
+      ownerUsers.map((owner: AlertOwnerUser): ObjectID | undefined => {
+        return owner.userId;
+      }),
+    );
+
+    const teamIds: Array<ObjectID> = uniqueIds(
+      ownerTeams.map((owner: AlertOwnerTeam): ObjectID | undefined => {
+        return owner.teamId;
+      }),
+    );
+
+    if (userIds.length === 0 && teamIds.length === 0) {
+      return { userIds, teamIds };
+    }
+
+    await IncidentService.addOwners(
+      data.projectId,
+      data.incidentId,
+      userIds,
+      teamIds,
+      false,
+      {
+        isRoot: true,
+      },
+    );
+
+    return { userIds, teamIds };
   }
 
   /*
@@ -793,6 +1189,10 @@ export class Service extends DatabaseService<Model> {
    * Links each alert to the incident, one at a time. An alert that is already
    * linked counts as done, not as a failure; any other failure is reported per
    * alert and never stops the rest.
+   *
+   * `declaredWithIncident` marks links written while the incident is being
+   * declared from these alerts: they get no incident-side feed entry of their
+   * own (see INCIDENT_ALERT_DECLARED_WITH_INCIDENT_KEY, root callers only).
    */
   @CaptureSpan()
   public async linkAlertsToIncident(data: {
@@ -800,6 +1200,7 @@ export class Service extends DatabaseService<Model> {
     incidentId: ObjectID;
     alertIds: Array<ObjectID>;
     createdByUserId?: ObjectID | undefined;
+    declaredWithIncident?: boolean | undefined;
     props: DatabaseCommonInteractionProps;
   }): Promise<LinkAlertsToIncidentResult> {
     const result: LinkAlertsToIncidentResult = {
@@ -822,6 +1223,13 @@ export class Service extends DatabaseService<Model> {
         await this.create({
           data: link,
           props: data.props,
+          ...(data.declaredWithIncident
+            ? {
+                miscDataProps: {
+                  [INCIDENT_ALERT_DECLARED_WITH_INCIDENT_KEY]: true,
+                },
+              }
+            : {}),
         });
         result.linkedAlertIds.push(alertId);
       } catch (error) {

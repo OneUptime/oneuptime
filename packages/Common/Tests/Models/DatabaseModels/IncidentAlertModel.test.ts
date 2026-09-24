@@ -1,6 +1,7 @@
 import Models from "../../../Models/DatabaseModels/Index";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
+import AlertReminderRule from "../../../Models/DatabaseModels/AlertReminderRule";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentAlert from "../../../Models/DatabaseModels/IncidentAlert";
@@ -14,7 +15,9 @@ import { OwnedThroughMetadata } from "../../../Types/Database/AccessControl/Owne
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
 import TableColumnType from "../../../Types/Database/TableColumnType";
 import { UniqueColumnsTogetherMetadata } from "../../../Types/Database/UniqueColumnsTogether";
+import { INCIDENT_ALERT_ALREADY_LINKED_MESSAGE } from "../../../Types/Incident/IncidentAlertLink";
 import ObjectID from "../../../Types/ObjectID";
+import ReminderStopState from "../../../Types/Reminder/ReminderStopState";
 import Permission, {
   PermissionGroup,
   PermissionHelper,
@@ -453,6 +456,17 @@ describe("IncidentAlert uniqueness and scope", () => {
     ]);
   });
 
+  test("the unique-together check and the service's unique-index answer share one message", () => {
+    /*
+     * IncidentAlertService.getException answers a unique-index violation
+     * with INCIDENT_ALERT_ALREADY_LINKED_MESSAGE, and the dashboard counts a
+     * link as done by that message, so the pre-check must use it too.
+     */
+    expect(model().getUniqueColumnsTogether()[0]!.errorMessage).toBe(
+      INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
+    );
+  });
+
   test("reads follow the incident's labels", () => {
     expect(model().canAccessIfCanReadOn).toBe("incident");
   });
@@ -491,6 +505,29 @@ describe("the project switches for linked alerts", () => {
       expect(access!.read).toContain(Permission.ProjectMember);
     },
   );
+
+  /*
+   * Acknowledging an alert always stops its on-call escalation, but its
+   * reminders stop on Acknowledged only when its reminder rule says so - and
+   * a reminder rule stops on Resolved unless it is changed. The description
+   * is published in the API reference, so it must not promise more.
+   */
+  test("the acknowledge switch promises reminders stop only when the reminder rule stops on Acknowledged", () => {
+    const description: string =
+      new Project().getTableColumnMetadata(
+        "acknowledgeLinkedAlertsWhenIncidentAcknowledged",
+      ).description || "";
+
+    expect(description).toBe(
+      "When enabled, acknowledging an incident also acknowledges every alert linked to it. This stops those alerts' on-call escalations, and their reminders only when the alert reminder rule is set to stop on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
+    );
+    expect(description).not.toContain("escalations and reminders");
+
+    expect(
+      new AlertReminderRule().getTableColumnMetadata("stopRemindersOnState")
+        .defaultValue,
+    ).toBe(ReminderStopState.Resolved);
+  });
 });
 
 describe("the feed events a link writes", () => {

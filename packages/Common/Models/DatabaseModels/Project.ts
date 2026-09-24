@@ -1672,7 +1672,7 @@ export default class Project extends TenantModel {
     type: TableColumnType.Boolean,
     title: "Acknowledge Linked Alerts When Incident Is Acknowledged",
     description:
-      "When enabled, acknowledging an incident also acknowledges every alert linked to it, which stops those alerts' on-call escalations and reminders. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
+      "When enabled, acknowledging an incident also acknowledges every alert linked to it. This stops those alerts' on-call escalations, and their reminders only when the alert reminder rule is set to stop on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
     defaultValue: false,
     example: true,
   })

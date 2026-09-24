@@ -1,6 +1,7 @@
 import Semaphore, {
   SemaphoreMutex,
 } from "../../../Server/Infrastructure/Semaphore";
+import AlertFeedService from "../../../Server/Services/AlertFeedService";
 import AlertService from "../../../Server/Services/AlertService";
 import AutoRemediationRuleEngineService from "../../../Server/Services/AutoRemediationRuleEngineService";
 import CustomFieldMappingService from "../../../Server/Services/CustomFieldMappingService";
@@ -28,7 +29,10 @@ import logger from "../../../Server/Utils/Logger";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
 import SloRecordReferenceValidator from "../../../Server/Utils/Slo/SloRecordReferenceValidator";
 import Alert from "../../../Models/DatabaseModels/Alert";
+import { AlertFeedEventType } from "../../../Models/DatabaseModels/AlertFeed";
 import Incident from "../../../Models/DatabaseModels/Incident";
+import IncidentAlert from "../../../Models/DatabaseModels/IncidentAlert";
+import { IncidentFeedEventType } from "../../../Models/DatabaseModels/IncidentFeed";
 import IncidentState from "../../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../../Models/DatabaseModels/IncidentStateTimeline";
 import URL from "../../../Types/API/URL";
@@ -37,6 +41,7 @@ import OneUptimeDate from "../../../Types/Date";
 import { INCIDENT_ALERT_IDS_TO_LINK_KEY } from "../../../Types/Incident/IncidentAlertLink";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import PositiveNumber from "../../../Types/PositiveNumber";
 import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
@@ -115,6 +120,16 @@ function userProps(permission: Permission): DatabaseCommonInteractionProps {
       [PROJECT_ID.toString()]: tenantPermission,
     },
   };
+}
+
+// An API key: a project tenant and no user.
+function apiKeyProps(): DatabaseCommonInteractionProps {
+  const props: DatabaseCommonInteractionProps = userProps(
+    Permission.ProjectMember,
+  );
+  delete props.userId;
+  props.userType = UserType.API;
+  return props;
 }
 
 async function settle(): Promise<void> {
@@ -346,6 +361,9 @@ describe("IncidentService.onBeforeCreate with alerts to link", () => {
 
 describe("IncidentService.onCreateSuccess links the alerts it was declared with", () => {
   let link: jest.SpyInstance;
+  let summary: jest.SpyInstance;
+  let copyOwners: jest.SpyInstance;
+  const chain: Record<string, jest.SpyInstance> = {};
 
   beforeEach(() => {
     jest.spyOn(ProductAnalytics, "captureForUser").mockImplementation((() => {
@@ -369,7 +387,7 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
       "disableActiveMonitoringIfManualIncident",
       "refreshReminderSchedule",
     ]) {
-      jest
+      chain[method] = jest
         .spyOn(service as Record<string, () => Promise<void>>, method)
         .mockResolvedValue(undefined as never);
     }
@@ -409,14 +427,24 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
         alreadyLinkedAlertIds: [],
         failed: [],
       } as never);
+    summary = jest
+      .spyOn(IncidentAlertService, "createDeclaredFromAlertsFeedItem")
+      .mockResolvedValue(undefined as never);
+    copyOwners = jest
+      .spyOn(IncidentAlertService, "copyAlertOwnersToIncident")
+      .mockResolvedValue({ userIds: [], teamIds: [] } as never);
   });
 
-  function createdIncident(createdByUserId?: ObjectID): Incident {
+  function createdIncident(
+    createdByUserId?: ObjectID,
+    isPrivate: boolean = false,
+  ): Incident {
     const incident: Incident = new Incident();
     incident._id = INCIDENT_ID.toString();
     incident.projectId = PROJECT_ID;
     incident.title = "Checkout is failing";
     incident.declaredAt = OneUptimeDate.getCurrentDate();
+    incident.isPrivate = isPrivate;
     if (createdByUserId) {
       incident.createdByUserId = createdByUserId;
     }
@@ -456,11 +484,12 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
       incidentId: incident.id,
       alertIds: alertIds,
       createdByUserId: USER_ID,
+      declaredWithIncident: true,
       props: { isRoot: true },
     });
   });
 
-  test("the declaring user falls back to the request's user", async () => {
+  test("a user who declares the incident is recorded as the one who linked the alerts", async () => {
     await onCreateSuccess(
       { alertIdsToLink: [new ObjectID(ALERT_ID)] },
       createdIncident(),
@@ -468,6 +497,31 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
     );
 
     expect(link.mock.calls[0]![0].createdByUserId).toBe(OTHER_USER_ID);
+  });
+
+  test("a user caller is recorded as themselves, whatever the incident's createdByUserId says", async () => {
+    await onCreateSuccess(
+      { alertIdsToLink: [new ObjectID(ALERT_ID)] },
+      createdIncident(USER_ID),
+      { userId: OTHER_USER_ID, tenantId: PROJECT_ID },
+    );
+
+    expect(link.mock.calls[0]![0].createdByUserId).toBe(OTHER_USER_ID);
+  });
+
+  test("an API key cannot name somebody else as the one who linked the alerts", async () => {
+    // The key sent data.createdByUserId naming another user.
+    await onCreateSuccess(
+      { alertIdsToLink: [new ObjectID(ALERT_ID)] },
+      createdIncident(OTHER_USER_ID),
+      apiKeyProps(),
+    );
+
+    expect(link).toHaveBeenCalledTimes(1);
+    expect(link.mock.calls[0]![0].createdByUserId).toBeUndefined();
+    // The links are still written as root, and still declared.
+    expect(link.mock.calls[0]![0].props).toEqual({ isRoot: true });
+    expect(link.mock.calls[0]![0].declaredWithIncident).toBe(true);
   });
 
   test("the links exist by the time the incident is returned", async () => {
@@ -533,11 +587,442 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
   ])(
     "an incident declared with %s links nothing",
     async (_label: string, carryForward: unknown) => {
-      await onCreateSuccess(carryForward, createdIncident());
+      await onCreateSuccess(carryForward, createdIncident(USER_ID, true));
+      await settle();
 
       expect(link).not.toHaveBeenCalled();
+      expect(summary).not.toHaveBeenCalled();
+      expect(copyOwners).not.toHaveBeenCalled();
     },
   );
+
+  describe("one announcement instead of one per alert", () => {
+    const alertIds: Array<ObjectID> = [
+      new ObjectID(ALERT_ID),
+      new ObjectID(ALERT_ID_2),
+    ];
+
+    function order(name: string): number {
+      return chain[name]!.mock.invocationCallOrder[0]!;
+    }
+
+    test("the alerts are announced once, after Incident Created and the workspace channels", async () => {
+      await onCreateSuccess(
+        { alertIdsToLink: alertIds },
+        createdIncident(USER_ID),
+      );
+      await settle();
+
+      expect(summary).toHaveBeenCalledTimes(1);
+      expect(summary).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        alertIds: alertIds,
+        actorUserId: USER_ID,
+      });
+
+      const summaryOrder: number = summary.mock.invocationCallOrder[0]!;
+
+      expect(order("handleIncidentWorkspaceOperationsAsync")).toBeLessThan(
+        summaryOrder,
+      );
+      expect(order("createIncidentFeedAsync")).toBeLessThan(summaryOrder);
+      // ...and it is the very next step, ahead of the rest of the chain.
+      expect(summaryOrder).toBeLessThan(
+        order("handleIncidentStateChangeAsync"),
+      );
+    });
+
+    test("the links themselves are written without incident-side entries", async () => {
+      await onCreateSuccess(
+        { alertIdsToLink: alertIds },
+        createdIncident(USER_ID),
+      );
+
+      expect(link.mock.calls[0]![0].declaredWithIncident).toBe(true);
+    });
+
+    test("a user's announcement is theirs, an API key's names nobody", async () => {
+      await onCreateSuccess(
+        { alertIdsToLink: alertIds },
+        createdIncident(USER_ID),
+        { userId: OTHER_USER_ID, tenantId: PROJECT_ID },
+      );
+      await settle();
+
+      expect(summary.mock.calls[0]![0].actorUserId).toBe(OTHER_USER_ID);
+
+      summary.mockClear();
+
+      await onCreateSuccess(
+        { alertIdsToLink: alertIds },
+        createdIncident(OTHER_USER_ID),
+        apiKeyProps(),
+      );
+      await settle();
+
+      expect(summary).toHaveBeenCalledTimes(1);
+      expect(summary.mock.calls[0]![0].actorUserId).toBeUndefined();
+    });
+
+    test("it does not wait for the links", async () => {
+      let finishLinking: () => void = (): void => {
+        // replaced once linking starts
+      };
+
+      link.mockImplementation(
+        (async (): Promise<LinkAlertsToIncidentResult> => {
+          await new Promise<void>((resolve: () => void) => {
+            finishLinking = resolve;
+          });
+          return { linkedAlertIds: [], alreadyLinkedAlertIds: [], failed: [] };
+        }) as never,
+      );
+
+      const created: Promise<Incident> = onCreateSuccess(
+        { alertIdsToLink: alertIds },
+        createdIncident(USER_ID),
+      );
+      await settle();
+
+      // Still linking, already announced.
+      expect(summary).toHaveBeenCalledTimes(1);
+
+      finishLinking();
+      await created;
+    });
+
+    test("an announcement that fails is logged, and the rest of the chain carries on", async () => {
+      summary.mockRejectedValue(new Error("slack is down") as never);
+
+      const incident: Incident = createdIncident(USER_ID);
+
+      await expect(
+        onCreateSuccess({ alertIdsToLink: alertIds }, incident),
+      ).resolves.toBe(incident);
+      await settle();
+
+      expect(errorLog).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "Announcing the alerts an incident was declared from failed",
+        ),
+        expect.anything(),
+      );
+      expect(chain["handleIncidentStateChangeAsync"]).toHaveBeenCalledTimes(1);
+    });
+
+    test("a failed Incident Created entry does not stop the announcement", async () => {
+      chain["createIncidentFeedAsync"]!.mockRejectedValue(
+        new Error("feed failed") as never,
+      );
+
+      await onCreateSuccess(
+        { alertIdsToLink: alertIds },
+        createdIncident(USER_ID),
+      );
+      await settle();
+
+      expect(summary).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("a private incident takes on the alerts' owners", () => {
+    const alertIds: Array<ObjectID> = [
+      new ObjectID(ALERT_ID),
+      new ObjectID(ALERT_ID_2),
+    ];
+
+    test("the owners are added before the incident is returned", async () => {
+      let copied: boolean = false;
+
+      copyOwners.mockImplementation((async (): Promise<unknown> => {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 5);
+        });
+        copied = true;
+        return { userIds: [], teamIds: [] };
+      }) as never);
+
+      await onCreateSuccess(
+        { alertIdsToLink: alertIds },
+        createdIncident(USER_ID, true),
+        userProps(Permission.ProjectMember),
+      );
+
+      expect(copied).toBe(true);
+      expect(copyOwners).toHaveBeenCalledTimes(1);
+      expect(copyOwners).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        incidentId: INCIDENT_ID,
+        alertIds: alertIds,
+      });
+    });
+
+    test("a public incident keeps its owners as they are", async () => {
+      await onCreateSuccess(
+        { alertIdsToLink: alertIds },
+        createdIncident(USER_ID, false),
+      );
+
+      expect(copyOwners).not.toHaveBeenCalled();
+    });
+
+    test("the owners are added even when linking fails", async () => {
+      link.mockRejectedValue(new Error("database unavailable") as never);
+
+      await onCreateSuccess(
+        { alertIdsToLink: alertIds },
+        createdIncident(USER_ID, true),
+      );
+
+      expect(copyOwners).toHaveBeenCalledTimes(1);
+    });
+
+    test("a failure adding them is logged and never fails the incident", async () => {
+      copyOwners.mockRejectedValue(new Error("owners failed") as never);
+      const incident: Incident = createdIncident(USER_ID, true);
+
+      await expect(
+        onCreateSuccess({ alertIdsToLink: alertIds }, incident),
+      ).resolves.toBe(incident);
+
+      expect(errorLog).toHaveBeenCalledWith(
+        expect.stringContaining(
+          "Adding the owners of the alerts a private incident was declared from failed",
+        ),
+        expect.anything(),
+      );
+    });
+  });
+});
+
+describe("declaring an incident from alerts, through the real link service", () => {
+  let incidentFeed: jest.SpyInstance;
+  let alertFeed: jest.SpyInstance;
+  let save: jest.Mock;
+
+  const ALERT_TITLES: Record<string, string> = {
+    [ALERT_ID]: "Checkout p95 latency is high",
+    [ALERT_ID_2]: "Payroll DB credentials exposed",
+  };
+
+  function alertRow(id: string, number: number, isPrivate: boolean): Alert {
+    const alert: Alert = new Alert();
+    alert._id = id;
+    alert.alertNumber = number;
+    alert.title = ALERT_TITLES[id]!;
+    alert.isPrivate = isPrivate;
+    return alert;
+  }
+
+  beforeEach(() => {
+    jest.spyOn(ProductAnalytics, "captureForUser").mockImplementation((() => {
+      // no analytics in tests
+    }) as never);
+
+    const incident: Incident = new Incident();
+    incident._id = INCIDENT_ID.toString();
+    incident.projectId = PROJECT_ID;
+    incident.incidentNumber = 17;
+    incident.incidentNumberWithPrefix = "INC-17";
+    incident.title = "Checkout is failing";
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(incident as never);
+
+    const service: Record<string, unknown> =
+      IncidentService as unknown as Record<string, unknown>;
+    for (const method of [
+      "handleIncidentWorkspaceOperationsAsync",
+      "createIncidentFeedAsync",
+      "handleIncidentStateChangeAsync",
+      "disableActiveMonitoringIfManualIncident",
+      "refreshReminderSchedule",
+    ]) {
+      jest
+        .spyOn(service as Record<string, () => Promise<void>>, method)
+        .mockResolvedValue(undefined as never);
+    }
+
+    jest
+      .spyOn(IncidentPrivacyRuleEngineService, "applyRulesToIncident")
+      .mockResolvedValue(false as never);
+    jest
+      .spyOn(IncidentOwnerRuleEngineService, "applyRulesToIncident")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentLabelRuleEngineService, "applyRulesToIncident")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentOnCallRuleEngineService, "applyRulesToIncident")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(RunbookRuleEngineService, "applyRulesToIncident")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentGroupingEngineService, "processIncident")
+      .mockResolvedValue({} as never);
+    jest
+      .spyOn(IncidentSlaService, "createSlaForIncident")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(AIIncidentInvestigationRunner, "investigateNewIncident")
+      .mockResolvedValue(false as never);
+    jest
+      .spyOn(AutoRemediationRuleEngineService, "applyRulesToIncident")
+      .mockResolvedValue(undefined as never);
+
+    // The link table, without a database.
+    save = jest.fn(async (row: IncidentAlert): Promise<IncidentAlert> => {
+      row._id = ObjectID.generate().toString();
+      return row;
+    });
+    jest
+      .spyOn(IncidentAlertService, "getRepository")
+      .mockReturnValue({ save: save } as never);
+    jest
+      .spyOn(IncidentAlertService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0) as never);
+    jest
+      .spyOn(
+        ProjectScopedReferenceValidator,
+        "validateReferencesBelongToProject",
+      )
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentAlertService, "onTriggerWorkflow")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentAlertService, "onTriggerRealtime")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(IncidentAlertService, "syncAlertWithLinkedIncidentState")
+      .mockResolvedValue(undefined as never);
+
+    // The alerts: #3 is public, #4 is private.
+    jest.spyOn(AlertService, "findOneById").mockImplementation((async (args: {
+      id: ObjectID;
+    }): Promise<Alert> => {
+      return args.id.toString() === ALERT_ID
+        ? alertRow(ALERT_ID, 3, false)
+        : alertRow(ALERT_ID_2, 4, true);
+    }) as never);
+    jest
+      .spyOn(AlertService, "findBy")
+      .mockResolvedValue([
+        alertRow(ALERT_ID_2, 4, true),
+        alertRow(ALERT_ID, 3, false),
+      ] as never);
+    jest
+      .spyOn(AlertService, "getAlertLinkInDashboard")
+      .mockImplementation((async (
+        _projectId: ObjectID,
+        alertId: ObjectID,
+      ): Promise<URL> => {
+        return URL.fromString(
+          `https://oneuptime.example/alerts/${alertId.toString()}`,
+        );
+      }) as never);
+    jest
+      .spyOn(IncidentService, "getIncidentLinkInDashboard")
+      .mockResolvedValue(
+        URL.fromString("https://oneuptime.example/incident") as never,
+      );
+
+    incidentFeed = jest
+      .spyOn(IncidentFeedService, "createIncidentFeedItem")
+      .mockResolvedValue(undefined as never);
+    alertFeed = jest
+      .spyOn(AlertFeedService, "createAlertFeedItem")
+      .mockResolvedValue(undefined as never);
+  });
+
+  function declare(props: DatabaseCommonInteractionProps): Promise<Incident> {
+    const incident: Incident = new Incident();
+    incident._id = INCIDENT_ID.toString();
+    incident.projectId = PROJECT_ID;
+    incident.title = "Checkout is failing";
+    incident.createdByUserId = USER_ID;
+    incident.declaredAt = OneUptimeDate.getCurrentDate();
+
+    return callHook<Incident>(
+      IncidentService,
+      "onCreateSuccess",
+      {
+        createBy: { data: incident, props: props },
+        carryForward: {
+          alertIdsToLink: [new ObjectID(ALERT_ID), new ObjectID(ALERT_ID_2)],
+        },
+      },
+      incident,
+    );
+  }
+
+  test("every alert is linked, and the incident gets exactly one entry and one post", async () => {
+    await declare(userProps(Permission.ProjectMember));
+
+    // Both links were written before the incident was returned.
+    expect(save).toHaveBeenCalledTimes(2);
+    expect(
+      save.mock.calls.map((call: Array<IncidentAlert>) => {
+        return call[0]!.createdByUserId?.toString();
+      }),
+    ).toEqual([USER_ID.toString(), USER_ID.toString()]);
+
+    await settle();
+
+    // No per-link "Alert Linked" entry or post: just the one summary.
+    expect(incidentFeed).toHaveBeenCalledTimes(1);
+
+    const entry: Record<string, unknown> = incidentFeed.mock.calls[0]![0];
+
+    expect(entry["incidentFeedEventType"]).toBe(
+      IncidentFeedEventType.AlertLinked,
+    );
+    expect(entry["workspaceNotification"]).toEqual({
+      sendWorkspaceNotification: true,
+      notifyUserId: USER_ID,
+    });
+    expect(entry["feedInfoInMarkdown"]).toBe(
+      [
+        "🔗 Declared from 2 alerts:",
+        "",
+        `- **[Alert #3](https://oneuptime.example/alerts/${ALERT_ID})**: Checkout p95 latency is high`,
+        `- **[Alert #4](https://oneuptime.example/alerts/${ALERT_ID_2})** (private alert)`,
+      ].join("\n"),
+    );
+
+    // Each alert still records that it was linked, without a post.
+    expect(alertFeed).toHaveBeenCalledTimes(2);
+    for (const call of alertFeed.mock.calls) {
+      const alertEntry: Record<string, unknown> = call[0];
+      expect(alertEntry["alertFeedEventType"]).toBe(
+        AlertFeedEventType.LinkedToIncident,
+      );
+      expect(alertEntry["workspaceNotification"]).toBeUndefined();
+      expect(String(alertEntry["userId"])).toBe(USER_ID.toString());
+    }
+  });
+
+  test("links made one by one outside a declaration each get their own incident entry", async () => {
+    await IncidentAlertService.linkAlertsToIncident({
+      projectId: PROJECT_ID,
+      incidentId: INCIDENT_ID,
+      alertIds: [new ObjectID(ALERT_ID), new ObjectID(ALERT_ID_2)],
+      createdByUserId: USER_ID,
+      props: { isRoot: true },
+    });
+
+    expect(incidentFeed).toHaveBeenCalledTimes(2);
+    expect(alertFeed).toHaveBeenCalledTimes(2);
+    expect(
+      incidentFeed.mock.calls.map((call: Array<Record<string, unknown>>) => {
+        return (call[0]!["workspaceNotification"] as Record<string, unknown>)[
+          "sendWorkspaceNotification"
+        ];
+      }),
+    ).toEqual([true, true]);
+  });
 });
 
 describe("IncidentStateTimelineService.onCreateSuccess hands the new state to the cascade", () => {

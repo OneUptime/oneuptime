@@ -1362,6 +1362,36 @@ export class Service extends DatabaseService<Model> {
         }
       })
       .then(async () => {
+        /*
+         * Declared from alerts: announce the alerts once, here - after
+         * "Incident Created" and after the incident's Slack / Microsoft
+         * Teams channels exist - rather than once per alert as each link is
+         * written (see linkAlertsDeclaredWithIncident). Uses the validated
+         * ids, so it does not wait for the links.
+         */
+        try {
+          const alertIds: Array<ObjectID> =
+            this.getAlertIdsDeclaredWith(onCreate);
+
+          if (alertIds.length > 0) {
+            await IncidentAlertService.createDeclaredFromAlertsFeedItem({
+              projectId: createdItem.projectId!,
+              incidentId: createdItem.id!,
+              alertIds: alertIds,
+              actorUserId: this.getDeclaringUserId(onCreate, createdItem),
+            });
+          }
+        } catch (error) {
+          logger.error(
+            `Announcing the alerts an incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
         try {
           return await this.handleIncidentStateChangeAsync(createdItem);
         } catch (error) {
@@ -1665,23 +1695,55 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
+  // The validated alert ids an incident is being declared from, if any.
+  private getAlertIdsDeclaredWith(onCreate: OnCreate<Model>): Array<ObjectID> {
+    const carryForward: IncidentCreateCarryForward =
+      (onCreate.carryForward as IncidentCreateCarryForward) || null;
+
+    return carryForward?.alertIdsToLink || [];
+  }
+
+  /*
+   * Who declared the incident, as "Linked by" on the links and the actor of
+   * their feed entries. A user is recorded as themselves and an API key as
+   * nobody: Incident.createdByUserId is writable by the create payload, and
+   * an API key must not be able to name somebody else as the one who linked
+   * the alerts (IncidentAlertService.onBeforeCreate applies the same rule to
+   * a link created directly). Only an internal root caller is trusted to
+   * name the incident's creator.
+   */
+  private getDeclaringUserId(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): ObjectID | undefined {
+    if (onCreate.createBy.props.isRoot) {
+      return createdItem.createdByUserId || undefined;
+    }
+
+    return onCreate.createBy.props.userId || undefined;
+  }
+
   /*
    * The incident was declared from alerts (see onBeforeCreate): link them now
    * that it exists. Awaited, unlike the chain above, so the incident page the
    * user lands on already lists its alerts. Written as root because the
    * caller's right to link them was checked before the incident was created;
    * the user who declared the incident is recorded as the one who linked
-   * them. A link that fails is logged and never fails the incident.
+   * them. The links write no incident-side feed entries: the chain above
+   * posts one "Declared from N alerts" entry instead. A link that fails is
+   * logged and never fails the incident.
+   *
+   * A private incident also gets the linked alerts' owners as owners (see
+   * IncidentAlertService.copyAlertOwnersToIncident), awaited for the same
+   * reason: the alerts' owners must be able to open the incident as soon as
+   * it exists.
    */
   @CaptureSpan()
   private async linkAlertsDeclaredWithIncident(
     onCreate: OnCreate<Model>,
     createdItem: Model,
   ): Promise<void> {
-    const carryForward: IncidentCreateCarryForward =
-      (onCreate.carryForward as IncidentCreateCarryForward) || null;
-
-    const alertIds: Array<ObjectID> = carryForward?.alertIdsToLink || [];
+    const alertIds: Array<ObjectID> = this.getAlertIdsDeclaredWith(onCreate);
 
     if (alertIds.length === 0 || !createdItem.projectId || !createdItem.id) {
       return;
@@ -1693,8 +1755,8 @@ export class Service extends DatabaseService<Model> {
           projectId: createdItem.projectId,
           incidentId: createdItem.id,
           alertIds: alertIds,
-          createdByUserId:
-            createdItem.createdByUserId || onCreate.createBy.props.userId,
+          createdByUserId: this.getDeclaringUserId(onCreate, createdItem),
+          declaredWithIncident: true,
           props: {
             isRoot: true,
           },
@@ -1712,6 +1774,26 @@ export class Service extends DatabaseService<Model> {
     } catch (error) {
       logger.error(
         `Linking the alerts an incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
+        {
+          projectId: createdItem.projectId.toString(),
+          incidentId: createdItem.id.toString(),
+        } as LogAttributes,
+      );
+    }
+
+    if (createdItem.isPrivate !== true) {
+      return;
+    }
+
+    try {
+      await IncidentAlertService.copyAlertOwnersToIncident({
+        projectId: createdItem.projectId,
+        incidentId: createdItem.id,
+        alertIds: alertIds,
+      });
+    } catch (error) {
+      logger.error(
+        `Adding the owners of the alerts a private incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
         {
           projectId: createdItem.projectId.toString(),
           incidentId: createdItem.id.toString(),
