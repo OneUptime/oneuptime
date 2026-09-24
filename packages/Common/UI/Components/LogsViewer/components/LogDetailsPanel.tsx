@@ -13,6 +13,13 @@ import Dictionary from "../../../../Types/Dictionary";
 import Route from "../../../../Types/API/Route";
 import URL from "../../../../Types/API/URL";
 import CopyTextButton from "../../CopyTextButton/CopyTextButton";
+import AttributesJSONView from "../../AttributesJSON/AttributesJSONView";
+import AttributesViewToggle from "../../AttributesJSON/AttributesViewToggle";
+import CopyAttributesAsJSONButton from "../../AttributesJSON/CopyAttributesAsJSONButton";
+import {
+  AttributesView,
+  useAttributesView,
+} from "../../AttributesJSON/AttributesJSONPreferences";
 import Icon from "../../Icon/Icon";
 import IconProp from "../../../../Types/Icon/IconProp";
 import Link from "../../Link/Link";
@@ -298,17 +305,7 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
       });
   }, [props.log.attributes]);
 
-  const attributesAsJson: string | null = useMemo(() => {
-    if (attributeEntries.length === 0) {
-      return null;
-    }
-
-    const flat: Record<string, string> = {};
-    for (const entry of attributeEntries) {
-      flat[entry.key] = entry.value;
-    }
-    return JSON.stringify(flat, null, 2);
-  }, [attributeEntries]);
+  const [attributesView, setAttributesView] = useAttributesView();
 
   const traceId: string = props.log.traceId?.toString() || "";
   const spanId: string = props.log.spanId?.toString() || "";
@@ -877,74 +874,92 @@ const LogDetailsPanel: FunctionComponent<LogDetailsPanelProps> = (
 
           {attributeEntries.length > 0 && (
             <section className="space-y-3">
-              <header className="flex items-center justify-between text-[11px] uppercase tracking-wide text-gray-400">
-                <span>Attributes</span>
-                {attributesAsJson && (
-                  <CopyTextButton
-                    textToBeCopied={attributesAsJson}
-                    size="xs"
-                    variant="ghost"
-                    iconOnly={false}
-                    title="Copy attributes as JSON"
+              <header className="flex flex-wrap items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-gray-400">
+                  Attributes
+                  <span className="rounded-full bg-gray-100 px-1.5 py-px text-[10px] font-medium normal-case tracking-normal tabular-nums text-gray-500">
+                    {attributeEntries.length}
+                  </span>
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <AttributesViewToggle
+                    value={attributesView}
+                    onChange={(view: AttributesView) => {
+                      setAttributesView(view);
+                    }}
+                    dataTestId="log-attributes-view-toggle"
                   />
-                )}
+                  <CopyAttributesAsJSONButton
+                    attributes={props.log.attributes}
+                    dataTestId="log-attributes-copy-json"
+                  />
+                </div>
               </header>
-              <div
-                className={`max-h-80 overflow-auto rounded-lg border ${surfaceCardClass}`}
-              >
-                <ul className="divide-y divide-gray-200">
-                  {attributeEntries.map((entry: AttributeEntry) => {
-                    return (
-                      <li
-                        key={entry.key}
-                        className="group flex items-start gap-3 px-3 py-2 hover:bg-white"
-                      >
-                        <span
-                          className="w-56 flex-none truncate font-mono text-[12px] text-gray-500"
-                          title={entry.key}
+              {attributesView === "json" ? (
+                <AttributesJSONView
+                  attributes={props.log.attributes}
+                  dataTestId="log-attributes-json"
+                />
+              ) : (
+                <div
+                  className={`max-h-80 overflow-auto rounded-lg border ${surfaceCardClass}`}
+                >
+                  <ul className="divide-y divide-gray-200">
+                    {attributeEntries.map((entry: AttributeEntry) => {
+                      return (
+                        <li
+                          key={entry.key}
+                          className="group flex items-start gap-3 px-3 py-2 hover:bg-white"
                         >
-                          {entry.key}
-                        </span>
-                        <span
-                          className="min-w-0 flex-1 break-all font-mono text-[12px] text-gray-800"
-                          title={entry.value}
-                        >
-                          {entry.value || (
-                            <span className="italic text-gray-400">empty</span>
-                          )}
-                        </span>
-                        <div className="flex flex-none items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                          {props.onFilterByAttribute && entry.value && (
-                            <button
-                              type="button"
-                              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-indigo-600"
-                              title={`Filter by ${entry.key}: ${entry.value}`}
-                              onClick={() => {
-                                props.onFilterByAttribute!(
-                                  entry.key,
-                                  entry.value,
-                                );
-                              }}
-                            >
-                              <Icon
-                                icon={IconProp.Filter}
-                                className="h-3.5 w-3.5"
-                              />
-                            </button>
-                          )}
-                          <CopyTextButton
-                            textToBeCopied={entry.value}
-                            size="xs"
-                            variant="ghost"
-                            iconOnly={true}
-                            title={`Copy ${entry.key}`}
-                          />
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+                          <span
+                            className="w-56 flex-none truncate font-mono text-[12px] text-gray-500"
+                            title={entry.key}
+                          >
+                            {entry.key}
+                          </span>
+                          <span
+                            className="min-w-0 flex-1 break-all font-mono text-[12px] text-gray-800"
+                            title={entry.value}
+                          >
+                            {entry.value || (
+                              <span className="italic text-gray-400">
+                                empty
+                              </span>
+                            )}
+                          </span>
+                          <div className="flex flex-none items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                            {props.onFilterByAttribute && entry.value && (
+                              <button
+                                type="button"
+                                className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-indigo-600"
+                                title={`Filter by ${entry.key}: ${entry.value}`}
+                                onClick={() => {
+                                  props.onFilterByAttribute!(
+                                    entry.key,
+                                    entry.value,
+                                  );
+                                }}
+                              >
+                                <Icon
+                                  icon={IconProp.Filter}
+                                  className="h-3.5 w-3.5"
+                                />
+                              </button>
+                            )}
+                            <CopyTextButton
+                              textToBeCopied={entry.value}
+                              size="xs"
+                              variant="ghost"
+                              iconOnly={true}
+                              title={`Copy ${entry.key}`}
+                            />
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </section>
           )}
         </div>

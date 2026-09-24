@@ -15,6 +15,7 @@ const NOTHING_EXTRA: ExceptionDetailDataPlan = {
   loadLatestOccurrence: false,
   resolveStackFrames: false,
   loadTraceBreadcrumbs: false,
+  loadOccurrenceAttributes: false,
   loadAIAssistance: false,
   loadOccurrenceTrend: false,
   loadTriageHistory: false,
@@ -47,6 +48,7 @@ describe("exception detail data ownership", () => {
         ...NOTHING_EXTRA,
         loadLatestOccurrence: true,
         loadTraceBreadcrumbs: true,
+        loadOccurrenceAttributes: true,
       },
     ],
     [
@@ -117,6 +119,22 @@ describe("exception detail data ownership", () => {
       if (plan.resolveStackFrames || plan.loadTraceBreadcrumbs) {
         expect(plan.loadLatestOccurrence).toBe(true);
       }
+    }
+  });
+
+  test("occurrence attributes are read only by the Context page, from the occurrence it loads", () => {
+    const readers: Array<ExceptionDetailSection> = Object.values(
+      ExceptionDetailSection,
+    ).filter((section: ExceptionDetailSection) => {
+      return getExceptionDetailDataPlan(section).loadOccurrenceAttributes;
+    });
+
+    expect(readers).toEqual([ExceptionDetailSection.Context]);
+
+    for (const section of readers) {
+      expect(getExceptionDetailDataPlan(section).loadLatestOccurrence).toBe(
+        true,
+      );
     }
   });
 });

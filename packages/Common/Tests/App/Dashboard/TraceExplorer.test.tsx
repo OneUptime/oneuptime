@@ -32,6 +32,8 @@ import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Color from "../../../Types/Color";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import Clipboard from "../../../UI/Utils/Clipboard";
+import { resetPreferencesForTesting } from "../../../UI/Components/AttributesJSON/AttributesJSONPreferences";
 
 /*
  * The trace detail page end to end, against a mocked data boundary: what it
@@ -1323,6 +1325,264 @@ describe("the span panel", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Could not load this span.",
     );
+  });
+});
+
+/*
+ * The span panel's attributes, its events' and its links' as JSON: copied
+ * with their types intact (a status code stays a number), in the flat or
+ * nested shape, or read in place as JSON instead of the list.
+ */
+describe("copying span attributes as JSON", () => {
+  const copyMock: Mock<(text: string) => Promise<boolean>> =
+    jest.fn<(text: string) => Promise<boolean>>();
+
+  function copied(index: number): unknown {
+    return JSON.parse(copyMock.mock.calls[index]![0]);
+  }
+
+  async function openSpan(spanId: string): Promise<HTMLElement> {
+    fireEvent.click(row(spanId));
+    return await screen.findByTestId("trace-span-panel");
+  }
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    resetPreferencesForTesting();
+    copyMock.mockReset();
+    copyMock.mockResolvedValue(true);
+    jest
+      .spyOn(Clipboard, "copyToClipboard")
+      .mockImplementation(
+        copyMock as unknown as typeof Clipboard.copyToClipboard,
+      );
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    window.localStorage.clear();
+    resetPreferencesForTesting();
+  });
+
+  test("Copy JSON copies every attribute with its type, flat or nested", async () => {
+    backend.details = {
+      update: {
+        attributes: {
+          "db.system": "postgresql",
+          "db.statement.params": [42, "SKU-4821"],
+          "http.status_code": 409,
+          "retry.enabled": false,
+        },
+        events: [],
+        links: [],
+      },
+    };
+    await renderTrace();
+    await openSpan("update");
+    await screen.findByTestId("span-attributes");
+
+    const control: HTMLElement = screen.getByTestId(
+      "trace-span-attributes-copy-json",
+    );
+    await act(async () => {
+      fireEvent.click(
+        within(control).getByRole("button", { name: "Copy JSON" }),
+      );
+    });
+
+    expect(copied(0)).toEqual({
+      "db.statement.params": [42, "SKU-4821"],
+      "db.system": "postgresql",
+      "http.status_code": 409,
+      "retry.enabled": false,
+    });
+    expect(
+      within(control).getByRole("button", { name: "Copied" }),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(
+        within(control).getByRole("button", { name: "Choose JSON format" }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(
+        within(control).getByRole("menuitemradio", { name: /Nested/ }),
+      );
+    });
+
+    expect(copied(1)).toEqual({
+      db: { statement: { params: [42, "SKU-4821"] }, system: "postgresql" },
+      http: { status_code: 409 },
+      retry: { enabled: false },
+    });
+  });
+
+  test("the attributes tab switches to a JSON view and back, and the filter belongs to the list", async () => {
+    const attributes: JSONObject = { "http.status_code": 409 };
+    for (let index: number = 0; index < 9; index++) {
+      attributes[`custom.key${index}`] = `value ${index}`;
+    }
+    backend.details = { update: { attributes, events: [], links: [] } };
+    await renderTrace();
+    const panel: HTMLElement = await openSpan("update");
+    await within(panel).findByTestId("span-attributes");
+
+    expect(
+      within(panel).getByLabelText("Filter attributes"),
+    ).toBeInTheDocument();
+
+    const toggle: HTMLElement = within(panel).getByTestId(
+      "trace-span-attributes-view-toggle",
+    );
+    fireEvent.click(within(toggle).getByRole("button", { name: "JSON" }));
+
+    const json: HTMLElement = within(panel).getByTestId(
+      "trace-span-attributes-json",
+    );
+    expect(json).toHaveTextContent('"http.status_code": 409');
+    expect(json).toHaveTextContent('"custom.key8": "value 8"');
+    expect(
+      within(panel).queryByTestId("span-attributes"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(panel).queryByLabelText("Filter attributes"),
+    ).not.toBeInTheDocument();
+    expect(within(panel).getByText("10 attributes")).toBeInTheDocument();
+
+    fireEvent.click(within(toggle).getByRole("button", { name: "List" }));
+
+    expect(within(panel).getByTestId("span-attributes")).toBeInTheDocument();
+    expect(
+      within(panel).getByLabelText("Filter attributes"),
+    ).toBeInTheDocument();
+  });
+
+  test("the JSON view is remembered for the next span opened", async () => {
+    await renderTrace();
+    let panel: HTMLElement = await openSpan("update");
+    await within(panel).findByTestId("span-attributes");
+
+    fireEvent.click(
+      within(
+        within(panel).getByTestId("trace-span-attributes-view-toggle"),
+      ).getByRole("button", { name: "JSON" }),
+    );
+
+    panel = await openSpan("reserve");
+    expect(
+      await within(panel).findByTestId("trace-span-attributes-json"),
+    ).toHaveTextContent('"db.system": "postgresql"');
+  });
+
+  test("each event's attributes copy as JSON on their own", async () => {
+    const start: number = (EPOCH_MS + 150) * MS;
+    backend.details = {
+      update: {
+        attributes: {},
+        links: [],
+        events: [
+          {
+            name: "exception",
+            time: new Date(),
+            timeUnixNano: start + 180 * MS,
+            attributes: {
+              "exception.type": "SerializationError",
+              "exception.message": "could not serialize access",
+              "exception.escaped": true,
+            },
+          },
+          {
+            name: "lock.acquired",
+            time: new Date(),
+            timeUnixNano: start + 20 * MS,
+            attributes: { "lock.wait_ms": 18 },
+          },
+        ],
+      },
+    };
+    await renderTrace();
+    await openSpan("update");
+    await waitFor(() => {
+      expect(screen.getByTestId("span-panel-tab-events")).toHaveTextContent(
+        "2",
+      );
+    });
+    fireEvent.click(screen.getByTestId("span-panel-tab-events"));
+
+    const controls: Array<HTMLElement> = screen.getAllByTestId(
+      "span-event-attributes-copy-json",
+    );
+    expect(controls).toHaveLength(2);
+
+    // Events are listed in time order: the lock (+20 ms), then the exception.
+    await act(async () => {
+      fireEvent.click(
+        within(controls[1]!).getByRole("button", { name: "Copy JSON" }),
+      );
+    });
+    await act(async () => {
+      fireEvent.click(
+        within(controls[0]!).getByRole("button", { name: "Copy JSON" }),
+      );
+    });
+
+    expect(copied(0)).toEqual({
+      "exception.escaped": true,
+      "exception.message": "could not serialize access",
+      "exception.type": "SerializationError",
+    });
+    expect(copied(1)).toEqual({ "lock.wait_ms": 18 });
+  });
+
+  test("a link's attributes copy as JSON", async () => {
+    backend.details = {
+      update: {
+        attributes: {},
+        events: [],
+        links: [
+          { traceId: TRACE_ID, spanId: "auth" },
+          {
+            traceId: "0af7651916cd43dd8448eb211c80319c",
+            spanId: "b7ad6b7169203331",
+            attributes: { "link.reason": "retry", "link.attempt": 2 },
+          },
+        ],
+      },
+    };
+    await renderTrace();
+    await openSpan("update");
+    await waitFor(() => {
+      expect(screen.getByTestId("span-panel-tab-links")).toHaveTextContent("2");
+    });
+    fireEvent.click(screen.getByTestId("span-panel-tab-links"));
+
+    // Only the link that has attributes offers a copy.
+    const controls: Array<HTMLElement> = screen.getAllByTestId(
+      "span-link-attributes-copy-json",
+    );
+    expect(controls).toHaveLength(1);
+
+    await act(async () => {
+      fireEvent.click(
+        within(controls[0]!).getByRole("button", { name: "Copy JSON" }),
+      );
+    });
+
+    expect(copied(0)).toEqual({ "link.attempt": 2, "link.reason": "retry" });
+  });
+
+  test("a span without attributes offers nothing to copy", async () => {
+    backend.details = { update: { attributes: {}, events: [], links: [] } };
+    await renderTrace();
+    const panel: HTMLElement = await openSpan("update");
+
+    expect(
+      await within(panel).findByText("This span has no attributes."),
+    ).toBeInTheDocument();
+    expect(
+      within(panel).queryByTestId("trace-span-attributes-copy-json"),
+    ).not.toBeInTheDocument();
   });
 });
 
