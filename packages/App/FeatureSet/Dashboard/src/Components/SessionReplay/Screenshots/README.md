@@ -17,11 +17,16 @@ shipping components.
 | `session-replay-player-tab-picker-standard-ui.png` | The tab picker, grouped Open / Closed / No footage with a page filter.      |
 | `session-replay-list-mobile-standard-ui.png`       | Responsive recording cards and navigation.                                  |
 | `session-replay-player-mobile-standard-ui.png`     | Playback and events on a narrow screen.                                     |
+| `session-replay-screenshot-dock.png`               | The paused frame's Copy image / Download dock.                              |
+| `session-replay-screenshot-copied.png`             | The confirmation card with a thumbnail of the captured PNG.                 |
+| `session-replay-screenshot-error.png`              | A clipboard failure, offering to download the frame instead.                |
+| `session-replay-screenshot-phone-390-compact.png`  | The dock on a phone: icons only, with the confirmation as a compact pill.   |
 
 Regenerate them with `cd packages/E2E && npm run test-session-replay-ui`, then copy the
 selected PNGs from `output/playwright/session-replay-ui/` to this directory
 (`session-replay-player-tabs.png` and `session-replay-player-tab-picker.png`
-come from the `?tabs=many` fixture). The suite also asserts filter request
+come from the `?tabs=many` fixture; the `session-replay-screenshot-*.png`
+images keep their names). The suite also asserts filter request
 values, navigation, actual playback, how large the recording is drawn, stage
 fit, tab switching, control visibility, keyboard access and absence of
 horizontal overflow.

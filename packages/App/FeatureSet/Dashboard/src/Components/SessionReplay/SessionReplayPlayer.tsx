@@ -98,6 +98,10 @@ import {
 import { isSignalInTab } from "./Rail/ReplayRailFilters";
 import { fromTimelineEvents, mergeSignals } from "./Rail/ReplaySignals";
 import ReplayPinControl from "./ReplayPinControl";
+import {
+  ReplayScreenshot,
+  captureReplayerScreenshot,
+} from "./ReplayScreenshot";
 import ReplayCorrelationPanel, {
   ReplayRailCounts,
 } from "./ReplayCorrelationPanel";
@@ -2586,6 +2590,32 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
     );
   }, [sessionId, rumApplicationIdString]);
 
+  /*
+   * The paused frame as a PNG, for the stage's screenshot dock. Read
+   * through refs at click time: the Replayer is replaced on a seek across
+   * anchors or a tab switch, and the playhead the file is named after is
+   * the engine's live one, never a rendered snapshot's.
+   */
+  const captureFrame: () => Promise<ReplayScreenshot> =
+    useCallback((): Promise<ReplayScreenshot> => {
+      const currentManifest: SessionReplayManifest | null = manifestRef.current;
+      const tabs: Array<SessionReplayManifestTab> = currentManifest?.tabs ?? [];
+      const tabIndex: number = tabs.findIndex(
+        (tab: SessionReplayManifestTab): boolean => {
+          return tab.tabId === activeTabIdRef.current;
+        },
+      );
+
+      return captureReplayerScreenshot({
+        replayer: replayerRef.current,
+        sessionId: currentManifest?.sessionId || sessionId,
+        offsetMs: engineRef.current?.getSnapshot().currentTimeMs ?? 0,
+        /* "Tab N" is the header's own label for the same tab. */
+        tabLabel:
+          tabs.length > 1 && tabIndex >= 0 ? `Tab ${tabIndex + 1}` : null,
+      });
+    }, [sessionId]);
+
   const backHref: string = useMemo((): string => {
     const stored: string | null = readReplayListUrl();
 
@@ -3086,6 +3116,9 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
                   isLive: isLive,
                   nextUserSession: nextUserSession,
                   onOpenNextUserSession: openUserSession,
+                  onCaptureFrame: captureFrame,
+                  canCaptureFrame:
+                    isPlayable && engine !== null && isReplayDocumentReady,
                   children: (
                     <Fragment>
                       {isPlayable && engine && (
