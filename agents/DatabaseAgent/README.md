@@ -128,7 +128,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Da
 bash install.sh
 ```
 
-The script asks for your OneUptime URL and ingestion key, the engine, the endpoint to connect to and the monitoring credentials (the password is read without echo), installs to `/opt/oneuptime-database-agent`, writes a `0600` `.env` file, and starts the agent. When the endpoint is local to the machine (`localhost`, `host.docker.internal`), it also asks for the host name your applications use — that name is the database's identity in OneUptime. When that name is a private IP, a single-label or a cluster-local name, it asks for the database's id in OneUptime (`DATABASE_SERVER_ID`) as well, because such a name never creates a database on its own.
+The script asks for your OneUptime URL and ingestion key, the engine, the endpoint to connect to and the monitoring credentials (the password is read without echo), installs to `/opt/oneuptime-database-agent`, writes a `0600` `.env` file, and starts the agent. When the endpoint is local to the machine (`localhost`, `host.docker.internal`), it also asks for the host name your applications use — that name is the database's identity in OneUptime. When that name only resolves inside one network — a private or link-local IP, a single-label name, a cluster-local, `.internal` or `.local` name — it asks for the database's id in OneUptime (`DATABASE_SERVER_ID`) as well, because such a name never creates a database on its own.
 
 Every prompt can be answered up front with an exported variable of the same name, for example `INSTALL_DIR=/opt/oneuptime-database-agent-orders DATABASE_SYSTEM=postgresql bash install.sh`. Re-running the script reuses every value in your existing `.env` (nothing is prompted for again).
 
@@ -142,11 +142,11 @@ Download `docker-compose.yml` and the config for your engine from `configs/`, sa
 ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_TELEMETRY_INGESTION_KEY=your-telemetry-ingestion-key
 DATABASE_SYSTEM=postgresql
-DATABASE_ENDPOINT=db.internal:5432
-DATABASE_ENDPOINT_HOST=db.internal
+DATABASE_ENDPOINT=db.example.com:5432
+DATABASE_ENDPOINT_HOST=db.example.com
 DATABASE_ENDPOINT_PORT=5432
 DATABASE_ORACLE_SERVICE=
-DATABASE_SERVER_ADDRESS=db.internal
+DATABASE_SERVER_ADDRESS=db.example.com
 DATABASE_SERVER_PORT=5432
 DATABASE_USERNAME=oneuptime_monitor
 DATABASE_PASSWORD='a-strong-password'
@@ -163,7 +163,7 @@ Single-quote the password, and write every `$` in it as `$$` — the collector e
 docker compose up -d
 ```
 
-The database appears automatically under **Databases** in OneUptime after the first collection — or, if OneUptime already detected it from traces or containers at the same address, its **Engine metrics** status turns to Connected. For a private IP or a name that only resolves inside your network, create the database first (**Databases → Create Database**, same address and port) or set `DATABASE_SERVER_ID`.
+The database appears automatically under **Databases** in OneUptime after the first collection — or, if OneUptime already detected it from traces or containers at the same address, its **Engine metrics** status turns to Connected. For a private IP or a name that only resolves inside your network (`db.prod.internal`, a cluster-local name), create the database first (**Databases → Create Database**, same address and port) or set `DATABASE_SERVER_ID`.
 
 To run the agent inside Kubernetes (a Deployment next to the database, with `DATABASE_SERVER_ID` pointing at the database the Kubernetes agent detected), see [the Kubernetes section of the docs](https://oneuptime.com/docs/telemetry/databases#kubernetes).
 
@@ -178,7 +178,7 @@ To run the agent inside Kubernetes (a Deployment next to the database, with `DAT
 | `DATABASE_ENDPOINT_HOST` | SQL Server | `DATABASE_ENDPOINT`'s host on its own, for the SQL Server receiver (install.sh writes it) |
 | `DATABASE_ENDPOINT_PORT` | SQL Server | `DATABASE_ENDPOINT`'s port on its own (install.sh writes it) |
 | `DATABASE_ORACLE_SERVICE` | Oracle | The Oracle service to connect to, e.g. `FREEPDB1` or `ORCLPDB1` |
-| `DATABASE_SERVER_ADDRESS` | Yes | The database's identity: the host name your applications use to reach it. Never `localhost` — OneUptime ignores local-only addresses. A name that is not unique across networks (a private IP, a single-label name, a cluster-local Kubernetes name) only joins a database that already has it as an endpoint, or the one `DATABASE_SERVER_ID` names — create the database in OneUptime first |
+| `DATABASE_SERVER_ADDRESS` | Yes | The database's identity: the host name your applications use to reach it. Never `localhost` — OneUptime ignores local-only addresses. A name that is not unique across networks (a private IP, a single-label name, a cluster-local Kubernetes name, a `.internal` or `.local` name) only joins a database that already has it as an endpoint, or the one `DATABASE_SERVER_ID` names — create the database in OneUptime first |
 | `DATABASE_SERVER_PORT` | Yes | The port your applications use |
 | `DATABASE_USERNAME` | PostgreSQL, MySQL, SQL Server, Oracle | The monitoring user. Optional for Redis, MongoDB and Elasticsearch without authentication; unused for Memcached |
 | `DATABASE_PASSWORD` | PostgreSQL, SQL Server, Oracle | Its password. In `.env`, single-quote it and write every `$` as `$$` (`install.sh` does both for you) |
@@ -186,7 +186,7 @@ To run the agent inside Kubernetes (a Deployment next to the database, with `DAT
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | No | `true` accepts a certificate the collector image does not trust. Default `false` |
 | `DATABASE_COLLECTION_INTERVAL` | No | How often statistics are read. Default `30s` |
 | `DATABASE_QUERY_EVENTS` | No | `true` ships query samples and top queries as logs (PostgreSQL, MySQL, MongoDB, SQL Server, Oracle). They contain query text. Default `false` |
-| `DATABASE_SERVER_ID` | No | The id of a database OneUptime already shows (its Documentation tab has it). The data then joins that database directly, whatever the address, and shows on its pages — use it in Kubernetes and for private IPs |
+| `DATABASE_SERVER_ID` | No | The id of a database OneUptime already shows (its Documentation tab has it). The data then joins that database directly, whatever address it reports (or none), and shows on its pages — use it in Kubernetes and for private IPs |
 
 ## What the config does
 
@@ -197,7 +197,9 @@ To run the agent inside Kubernetes (a Deployment next to the database, with `DAT
 
 ## Alert on the database
 
-The agent's data carries `oneuptime.database.server.id`. A **Metrics** monitor over an engine metric that filters on that attribute (or groups by it) attaches its alerts and incidents to the database, and the database's scheduled maintenance applies to them.
+The database's **Recommendations** tab in OneUptime offers ready-made monitors for its engine once the agent's metrics arrive. To build your own: the agent's data carries `oneuptime.database.server.id`, and a **Metrics** monitor over an engine metric that filters on that attribute (or groups by it) attaches its alerts and incidents to the database, and the database's scheduled maintenance applies to them.
+
+Threshold gauges (connections, memory, replication lag) or a ratio of two gauges. A cumulative counter (deadlocks, slow queries, evictions) only ever grows and monitors have no rate, so add a `cumulativetodelta` processor for the counters you alert on — see [Alerts on a database](https://oneuptime.com/docs/telemetry/databases#alerts-on-a-database).
 
 ## Auto-tag with Project Labels
 

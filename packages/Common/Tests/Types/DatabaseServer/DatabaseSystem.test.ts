@@ -573,6 +573,73 @@ describe("DATABASE_SYSTEMS registry integrity", () => {
     expect(classifyImage(image)).toEqual({ kind: "database", system });
   });
 
+  /*
+   * Regression (Software Collections basenames): the classifier reduces a
+   * Red Hat / CentOS / sclorg image name to the engine's bare basename
+   * (`centos/mongodb-36-centos7` → `centos/mongodb`,
+   * `quay.io/sclorg/valkey-8-c10s` → `sclorg/valkey`), so an engine is only
+   * recognised there when its catalog entry lists that bare basename.
+   * MongoDB listed only `mongo` and namespaced repositories, so every
+   * CentOS / sclorg MongoDB container came out "unknown" and never became
+   * a database.
+   */
+  test.each([
+    ["centos/mongodb-36-centos7", "mongodb"],
+    ["docker.io/centos/mongodb-36-centos7:latest", "mongodb"],
+    ["registry.access.redhat.com/rhscl/mongodb-36-rhel7:1-60", "mongodb"],
+    ["quay.io/sclorg/mongodb-36-c8s", "mongodb"],
+    ["quay.io/sclorg/valkey-8-c10s", "valkey"],
+    ["registry.redhat.io/rhel10/valkey-8:10.0", "valkey"],
+    ["quay.io/fedora/valkey-8", "valkey"],
+    ["quay.io/sclorg/postgresql-16-c9s", "postgresql"],
+    ["quay.io/sclorg/mariadb-1011-c9s", "mariadb"],
+    ["quay.io/sclorg/redis-7-c9s", "redis"],
+    ["registry.redhat.io/rhel9/memcached:1-80", "memcached"],
+  ])(
+    "the Software Collections image %s is %s",
+    (image: string, system: string) => {
+      expect(classifyImage(image)).toEqual({ kind: "database", system });
+    },
+  );
+
+  test("each engine a Software Collections image is published for lists its bare basename", () => {
+    // The engines Red Hat, CentOS and sclorg publish as `<engine>-<version>`.
+    for (const system of [
+      "postgresql",
+      "mysql",
+      "mariadb",
+      "redis",
+      "valkey",
+      "mongodb",
+      "memcached",
+    ]) {
+      const descriptor: DatabaseSystemDescriptor | null =
+        getDatabaseSystemDescriptor(system);
+
+      expect({
+        system,
+        listsBasename: descriptor?.imageRepositories.includes(system),
+      }).toEqual({ system, listsBasename: true });
+    }
+  });
+
+  /*
+   * Not a basename that means MongoDB: the exporters, operators and admin
+   * UIs built around it keep their own names, so the bare entry does not
+   * pull them in.
+   */
+  test.each([
+    "percona/mongodb_exporter:0.40",
+    "bitnami/mongodb-exporter:0.40",
+    "mongodb/mongodb-kubernetes-operator:0.9.0",
+    "mongo-express:1.0",
+  ])("%s is not a MongoDB database", (image: string) => {
+    expect(classifyImage(image)).not.toEqual({
+      kind: "database",
+      system: "mongodb",
+    });
+  });
+
   test("the control plane's own etcd is not a database of the project", () => {
     // Only the etcd distributions people run as a database are listed.
     expect(classifyImage("registry.k8s.io/etcd:3.5.15-0")).not.toEqual({

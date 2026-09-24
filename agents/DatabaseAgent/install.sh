@@ -215,28 +215,39 @@ download_agent_file() {
     mv -f "$tmp" "$dest"
 }
 
-# A host that only means something relative to the machine it is used on.
+# A host that only means something relative to the machine it is used on:
+# loopback, and the names container and Kubernetes tools give the machine
+# they run on (every *.docker.internal name, host.containers.internal, and
+# host.<tool>.internal for minikube, k3d, Lima, OrbStack, Rancher Desktop).
 # OneUptime never registers a database under one of these, so it cannot be
 # the database's identity.
 is_local_only_host() {
     local host
     host="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+    # A trailing dot is the same name (SQL Server's "." is this machine).
+    if [ "$host" != "." ]; then
+        host="${host%.}"
+    fi
     case "$host" in
-        ""|localhost|*.localhost|127.*|::1|"[::1]"|0.0.0.0|::|"(local)"|.) return 0 ;;
-        host.docker.internal|host.containers.internal|gateway.docker.internal) return 0 ;;
-        docker.for.mac.localhost|kubernetes.docker.internal) return 0 ;;
-        *) return 1 ;;
+        ""|localhost|*.localhost|127.*|::1|"[::1]"|0.0.0.0|::|"(local)"|"(localdb)"|.) return 0 ;;
+        localhost.localdomain|localhost4|localhost4.localdomain4|localhost6|localhost6.localdomain6|ip6-localhost|ip6-loopback) return 0 ;;
+        host.containers.internal|docker.for.mac.localhost|*.docker.internal) return 0 ;;
     esac
+    [[ "$host" =~ ^host\.[a-z0-9]([-a-z0-9]*[a-z0-9])?\.internal$ ]] && return 0
+    return 1
 }
 
 # A name OneUptime cannot tell apart from the same name in another network:
-# a private or CGNAT IPv4 address, an IPv6 unique-local address, a
-# single-label name or a Kubernetes cluster-local name. Such an identity only
-# joins a database that already has it as an endpoint (or the one
-# DATABASE_SERVER_ID names); it never registers a database on its own.
+# a private, CGNAT or link-local IPv4 address, an IPv6 unique-local or
+# link-local address, a single-label name, a Kubernetes cluster-local name,
+# or a name in a private DNS zone (.local, .internal, .home.arpa,
+# .localdomain). Such an identity only joins a database that already has it
+# as an endpoint (or the one DATABASE_SERVER_ID names); it never registers a
+# database on its own.
 is_network_local_name() {
     local host octet1 octet2
     host="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+    host="${host%.}"
     if [[ "$host" =~ ^([0-9]+)\.([0-9]+)\.[0-9]+\.[0-9]+$ ]]; then
         octet1="${BASH_REMATCH[1]}"
         octet2="${BASH_REMATCH[2]}"
@@ -244,12 +255,13 @@ is_network_local_name() {
         [ "$octet1" -eq 172 ] && [ "$octet2" -ge 16 ] && [ "$octet2" -le 31 ] && return 0
         [ "$octet1" -eq 192 ] && [ "$octet2" -eq 168 ] && return 0
         [ "$octet1" -eq 100 ] && [ "$octet2" -ge 64 ] && [ "$octet2" -le 127 ] && return 0
+        [ "$octet1" -eq 169 ] && [ "$octet2" -eq 254 ] && return 0
         return 1
     fi
     case "$host" in
-        f[cd]*:*) return 0 ;;
+        f[cd]*:*|fe[89ab]?:*) return 0 ;;
         *:*) return 1 ;;
-        *.cluster.local|*.svc|*.svc.*) return 0 ;;
+        *.local|*.internal|*.home.arpa|*.localdomain|*.svc|*.svc.*) return 0 ;;
         *.*) return 1 ;;
         *) return 0 ;;
     esac
@@ -389,7 +401,7 @@ if [ -z "$DATABASE_SERVER_ADDRESS" ]; then
         echo ""
         echo "The endpoint '$DATABASE_ENDPOINT' only means something on this machine."
         echo "OneUptime identifies the database by the host name your APPLICATIONS use to reach it."
-        prompt_required DATABASE_SERVER_ADDRESS "Database host name as applications see it (e.g. db.internal): "
+        prompt_required DATABASE_SERVER_ADDRESS "Database host name as applications see it (e.g. db.example.com): "
     else
         DATABASE_SERVER_ADDRESS="$ENDPOINT_HOST"
     fi
@@ -411,7 +423,7 @@ DATABASE_SERVER_ADDRESS="${DATABASE_SERVER_ADDRESS%]}"
 DATABASE_SERVER_ADDRESS="$(printf '%s' "$DATABASE_SERVER_ADDRESS" | tr '[:upper:]' '[:lower:]')"
 if is_local_only_host "$DATABASE_SERVER_ADDRESS"; then
     echo "Error: DATABASE_SERVER_ADDRESS='$DATABASE_SERVER_ADDRESS' is local to one machine and cannot"
-    echo "identify a database. Use the host name your applications connect to (e.g. db.internal)."
+    echo "identify a database. Use the host name your applications connect to (e.g. db.example.com)."
     exit 1
 fi
 
@@ -541,15 +553,16 @@ if ! [[ "$DATABASE_COLLECTION_INTERVAL" =~ ^[0-9]+(ms|s|m|h)$ ]]; then
     echo "Error: DATABASE_COLLECTION_INTERVAL must be a duration such as 30s or 1m (got '$DATABASE_COLLECTION_INTERVAL')."
     exit 1
 fi
-# A private IP, a single-label name or a cluster-local name never registers
-# a database on its own (the same name means a different server in another
-# network), so without DATABASE_SERVER_ID the data only lands on a database
-# that already has this endpoint. Say so now rather than leave an empty
-# Databases list to explain it.
+# A private IP, a single-label name, a cluster-local name or a .internal /
+# .local name never registers a database on its own (the same name means a
+# different server in another network), so without DATABASE_SERVER_ID the
+# data only lands on a database that already has this endpoint. Say so now
+# rather than leave an empty Databases list to explain it.
 if [ -z "$DATABASE_SERVER_ID" ] && is_network_local_name "$DATABASE_SERVER_ADDRESS"; then
     echo ""
-    echo "'$DATABASE_SERVER_ADDRESS' is only unique inside one network (a private IP, a single-label"
-    echo "name or a Kubernetes cluster-local name), so OneUptime will not create a database from it."
+    echo "'$DATABASE_SERVER_ADDRESS' is only unique inside one network (a private or link-local IP, a"
+    echo "single-label name, a Kubernetes cluster-local name or a .internal / .local name), so OneUptime"
+    echo "will not create a database from it."
     echo "The data joins a database that already has $DATABASE_SERVER_ADDRESS:$DATABASE_SERVER_PORT as an"
     echo "endpoint (Databases -> Create Database), or the one whose id you give here (its"
     echo "Documentation tab shows it)."

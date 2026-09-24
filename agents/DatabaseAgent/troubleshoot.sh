@@ -180,20 +180,30 @@ config_for_engine() {
 
 # The same lists install.sh checks against (keep the two in step).
 is_local_only_host() {
-  case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
-    ""|localhost|*.localhost|127.*|::1|"[::1]"|0.0.0.0|::|"(local)"|.) return 0 ;;
-    host.docker.internal|host.containers.internal|gateway.docker.internal) return 0 ;;
-    docker.for.mac.localhost|kubernetes.docker.internal) return 0 ;;
-    *) return 1 ;;
+  local host
+  host="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+  # A trailing dot is the same name (SQL Server's "." is this machine).
+  if [ "$host" != "." ]; then
+    host="${host%.}"
+  fi
+  case "$host" in
+    ""|localhost|*.localhost|127.*|::1|"[::1]"|0.0.0.0|::|"(local)"|"(localdb)"|.) return 0 ;;
+    localhost.localdomain|localhost4|localhost4.localdomain4|localhost6|localhost6.localdomain6|ip6-localhost|ip6-loopback) return 0 ;;
+    host.containers.internal|docker.for.mac.localhost|*.docker.internal) return 0 ;;
   esac
+  [[ "$host" =~ ^host\.[a-z0-9]([-a-z0-9]*[a-z0-9])?\.internal$ ]] && return 0
+  return 1
 }
 
-# A private / CGNAT IPv4, an IPv6 unique-local address, a single-label name
-# or a Kubernetes cluster-local name: only unique inside one network, so
-# OneUptime never registers a database from it on its own.
+# A private / CGNAT / link-local IPv4, an IPv6 unique-local or link-local
+# address, a single-label name, a Kubernetes cluster-local name or a name in
+# a private DNS zone (.local, .internal, .home.arpa, .localdomain): only
+# unique inside one network, so OneUptime never registers a database from
+# it on its own.
 is_network_local_name() {
   local host octet1 octet2
   host="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+  host="${host%.}"
   if [[ "$host" =~ ^([0-9]+)\.([0-9]+)\.[0-9]+\.[0-9]+$ ]]; then
     octet1="${BASH_REMATCH[1]}"
     octet2="${BASH_REMATCH[2]}"
@@ -201,12 +211,13 @@ is_network_local_name() {
     [ "$octet1" -eq 172 ] && [ "$octet2" -ge 16 ] && [ "$octet2" -le 31 ] && return 0
     [ "$octet1" -eq 192 ] && [ "$octet2" -eq 168 ] && return 0
     [ "$octet1" -eq 100 ] && [ "$octet2" -ge 64 ] && [ "$octet2" -le 127 ] && return 0
+    [ "$octet1" -eq 169 ] && [ "$octet2" -eq 254 ] && return 0
     return 1
   fi
   case "$host" in
-    f[cd]*:*) return 0 ;;
+    f[cd]*:*|fe[89ab]?:*) return 0 ;;
     *:*) return 1 ;;
-    *.cluster.local|*.svc|*.svc.*) return 0 ;;
+    *.local|*.internal|*.home.arpa|*.localdomain|*.svc|*.svc.*) return 0 ;;
     *.*) return 1 ;;
     *) return 0 ;;
   esac
@@ -309,7 +320,7 @@ if [ -n "$DATABASE_SERVER_ID" ]; then
     add_finding "Copy the id from the database's Documentation tab in OneUptime into DATABASE_SERVER_ID, then: cd $DIR && docker compose up -d"
   fi
 elif [ -n "$DATABASE_SERVER_ADDRESS" ] && is_network_local_name "$DATABASE_SERVER_ADDRESS"; then
-  warn "'$DATABASE_SERVER_ADDRESS' is only unique inside one network (private IP, single-label or cluster-local name), so OneUptime will not create a database from it on its own."
+  warn "'$DATABASE_SERVER_ADDRESS' is only unique inside one network (private or link-local IP, single-label, cluster-local, .internal or .local name), so OneUptime will not create a database from it on its own."
   add_finding "The data only joins a database that already has $DATABASE_SERVER_ADDRESS:${DATABASE_SERVER_PORT:-?} as an endpoint. Create it under Databases → Create Database with that address and port, or set DATABASE_SERVER_ID to the id on its Documentation tab."
 fi
 

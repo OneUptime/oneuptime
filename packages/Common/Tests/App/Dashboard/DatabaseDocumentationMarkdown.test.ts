@@ -21,7 +21,9 @@ import {
   getDatabaseAgentKubernetesManifest,
   getDatabaseAgentSystem,
   getDatabaseAgentSystems,
+  getDatabaseHealthMonitorCreateUrl,
   getDatabaseOwnCollectorMarkdown,
+  getDatabaseProbeEndpoint,
   resolveDatabaseAgentIdentity,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
 import {
@@ -29,6 +31,17 @@ import {
   DatabaseSystemDescriptor,
   getCollectorReceiverComponentName,
 } from "../../../Types/DatabaseServer/DatabaseSystem";
+import {
+  canonicalizeDatabaseEndpoint,
+  DatabaseEndpoint,
+  getDatabaseEndpointScope,
+} from "../../../Types/DatabaseServer/DatabaseEndpoint";
+import {
+  DatabaseAlertTemplate,
+  getDatabaseAlertTemplates,
+} from "../../../Types/Monitor/DatabaseAlertTemplates";
+import MonitorType from "../../../Types/Monitor/MonitorType";
+import SeriesResourceLabels from "../../../Server/Utils/Monitor/SeriesResourceLabels";
 
 /*
  * The in-app Database Agent guide. The agent is config-only, so a guide that
@@ -299,9 +312,9 @@ describe("resolveDatabaseAgentIdentity", () => {
       resolveDatabaseAgentIdentity("mysql");
 
     expect(identity).toEqual({
-      serverAddress: "db.internal",
+      serverAddress: "db.example.com",
       serverPort: 3306,
-      endpoint: "db.internal:3306",
+      endpoint: "db.example.com:3306",
       databaseId: "",
       isPrefilled: false,
     });
@@ -442,7 +455,7 @@ describe("the .env file", () => {
       identity: resolveDatabaseAgentIdentity("oracle.db"),
     });
     expect(oracle).toContain("\nDATABASE_ORACLE_SERVICE=FREEPDB1\n");
-    expect(oracle).toContain("\nDATABASE_ENDPOINT=db.internal:1521\n");
+    expect(oracle).toContain("\nDATABASE_ENDPOINT=db.example.com:1521\n");
 
     const search: string = getDatabaseAgentEnvFile({
       oneuptimeUrl: URL,
@@ -450,8 +463,10 @@ describe("the .env file", () => {
       engine: "elasticsearch",
       identity: resolveDatabaseAgentIdentity("elasticsearch"),
     });
-    expect(search).toContain("\nDATABASE_ENDPOINT=http://db.internal:9200\n");
-    expect(search).toContain("\nDATABASE_ENDPOINT_HOST=db.internal\n");
+    expect(search).toContain(
+      "\nDATABASE_ENDPOINT=http://db.example.com:9200\n",
+    );
+    expect(search).toContain("\nDATABASE_ENDPOINT_HOST=db.example.com\n");
 
     const memcached: string = getDatabaseAgentEnvFile({
       oneuptimeUrl: URL,
@@ -665,14 +680,14 @@ describe("a database's own guide", () => {
     expect(markdown).toContain(
       `DATABASE_SYSTEM=postgresql DATABASE_SERVER_ADDRESS=db.prod.internal DATABASE_SERVER_PORT=5432 DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
     );
-    expect(markdown).not.toContain("replace `db.internal`");
+    expect(markdown).not.toContain("replace `db.example.com`");
   });
 
   /*
    * Regression: a row without an address (every Docker- or Podman-detected
-   * database) got `DATABASE_SERVER_ADDRESS=db.internal` on the install
+   * database) got the placeholder address on the install
    * command line; install.sh took the placeholder as given instead of
-   * asking for the real name, and the row claimed `db.internal:5432`.
+   * asking for the real name, and the row claimed it.
    */
   test("a row without an address gets no placeholder address on the install command line", () => {
     const markdown: string = getDatabaseAgentInstallationMarkdown({
@@ -691,8 +706,8 @@ describe("a database's own guide", () => {
       `DATABASE_SYSTEM=postgresql DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
     );
     // The samples keep the placeholder, and say to replace it.
-    expect(markdown).toContain("replace `db.internal`");
-    expect(markdown).toContain("DATABASE_SERVER_ADDRESS=db.internal");
+    expect(markdown).toContain("replace `db.example.com`");
+    expect(markdown).toContain("DATABASE_SERVER_ADDRESS=db.example.com");
     expect(markdown).toContain("the install script asks for the host name");
   });
 
@@ -722,6 +737,117 @@ describe("a database's own guide", () => {
     expect(markdown).toContain(
       `\`oneuptime.database.server.id\` = \`${DATABASE_ID}\``,
     );
+  });
+
+  test("points at the row's Recommendations tab for an engine with recommended monitors", () => {
+    const recommendationsUrl: string = `/dashboard/p1/databases/${DATABASE_ID}/recommendations`;
+    const linked: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "postgresql",
+      database: database,
+      recommendationsUrl: recommendationsUrl,
+    });
+
+    expect(linked).toContain(
+      `The [Recommendations](${recommendationsUrl}) tab offers ready-made PostgreSQL monitors`,
+    );
+    expect(linked).toContain("To build your own, create a **Metrics** monitor");
+
+    // Without a URL the tab is still named.
+    expect(
+      getDatabaseAgentInstallationMarkdown({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        engine: "postgresql",
+        database: database,
+      }),
+    ).toContain(
+      "The **Recommendations** tab offers ready-made PostgreSQL monitors",
+    );
+
+    // A fork gets its family receiver's set, under its own name.
+    expect(
+      guideFor({
+        id: DATABASE_ID,
+        dbSystem: "valkey",
+        serverAddress: "cache.example.com",
+      }),
+    ).toContain("tab offers ready-made Valkey monitors");
+  });
+
+  // The guide says every recommended set has a check for metrics stopping.
+  test("every engine with recommended monitors has an Engine Metrics Stopped check", () => {
+    const engines: Array<string> = DATABASE_SYSTEMS.filter(
+      (descriptor: DatabaseSystemDescriptor): boolean => {
+        return getDatabaseAlertTemplates(descriptor.system).length > 0;
+      },
+    ).map((descriptor: DatabaseSystemDescriptor): string => {
+      return descriptor.system;
+    });
+
+    expect(engines.length).toBeGreaterThan(0);
+
+    for (const system of engines) {
+      expect({
+        system,
+        hasStoppedCheck: getDatabaseAlertTemplates(system).some(
+          (template: DatabaseAlertTemplate): boolean => {
+            return template.name === "Engine Metrics Stopped";
+          },
+        ),
+      }).toEqual({ system, hasStoppedCheck: true });
+    }
+  });
+
+  test("never points at an empty Recommendations tab", () => {
+    for (const system of ["clickhouse", "cockroachdb", "ibm.db2", "AcmeDB"]) {
+      expect(getDatabaseAlertTemplates(system)).toEqual([]);
+
+      const markdown: string = guideFor({
+        id: DATABASE_ID,
+        dbSystem: system,
+        serverAddress: "db.example.com",
+      });
+
+      expect({
+        system,
+        recommends: markdown.includes("Recommendations"),
+      }).toEqual({
+        system,
+        recommends: false,
+      });
+      expect(markdown).toContain(
+        "Create a **Metrics** monitor over an engine metric and filter it on that attribute",
+      );
+    }
+
+    // An engine the agent has no config for, with recommended monitors.
+    expect(
+      guideFor({
+        id: DATABASE_ID,
+        dbSystem: "couchdb",
+        serverAddress: "couch.example.com",
+      }),
+    ).toContain("tab offers ready-made CouchDB monitors");
+  });
+
+  /*
+   * Regression: the guide said a counter "needs a rate before it can be
+   * alerted on", but monitors have no rate; the collector's
+   * cumulativetodelta processor is what makes a counter thresholdable.
+   */
+  test("sends counters through cumulativetodelta, not a rate monitors do not have", () => {
+    const markdown: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "postgresql",
+      database: database,
+    });
+
+    expect(markdown).toContain("`cumulativetodelta` processor");
+    expect(markdown).toContain("monitors have no rate");
+    expect(MARKDOWN_SOURCE).not.toContain("needs a rate");
   });
 
   test("a Kubernetes database gets the Deployment for its namespace", () => {
@@ -757,6 +883,195 @@ describe("a database's own guide", () => {
         database: database,
       }),
     ).not.toContain("kind: Deployment");
+  });
+});
+
+describe("the Database Health monitor on a database's guide", () => {
+  test("the create link opens the form with the Database Health type picked", () => {
+    const url: string = getDatabaseHealthMonitorCreateUrl(
+      "/dashboard/p1/monitors/create",
+    );
+
+    expect(url).toBe("/dashboard/p1/monitors/create?monitorType=Database");
+
+    // The value the monitor-create page reads back is a monitor type it knows.
+    const picked: string | null = new URLSearchParams(
+      url.substring(url.indexOf("?")),
+    ).get("monitorType");
+    expect(picked).toBe(MonitorType.Database);
+    expect(Object.values(MonitorType)).toContain(picked);
+
+    // A route that already carries a query keeps it.
+    expect(getDatabaseHealthMonitorCreateUrl("/create?a=1")).toBe(
+      "/create?a=1&monitorType=Database",
+    );
+  });
+
+  /*
+   * Regression: the Documentation card linked the bare monitor-create page,
+   * so "create a Database Health monitor" landed on the type picker.
+   */
+  test("the Documentation card prefills the type and links the row's Recommendations tab", () => {
+    const card: string = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "packages/App/FeatureSet/Dashboard/src/Components/DatabaseServer/DocumentationCard.tsx",
+      ),
+      "utf8",
+    );
+
+    expect(card).toMatch(
+      /getDatabaseHealthMonitorCreateUrl\(\s*RouteUtil\.populateRouteParams\(\s*RouteMap\[PageMap\.MONITOR_CREATE\]/,
+    );
+    expect(card).toContain(
+      "RouteMap[PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS]",
+    );
+    expect(card.match(/recommendationsUrl: recommendationsUrl,/g)?.length).toBe(
+      2,
+    );
+    expect(
+      card.match(/databaseHealthMonitorUrl: databaseHealthMonitorUrl,/g)
+        ?.length,
+    ).toBe(2);
+
+    expect(
+      getDatabaseAgentInstallationMarkdown({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        engine: "postgresql",
+        databaseHealthMonitorUrl: getDatabaseHealthMonitorCreateUrl(
+          "/dashboard/p1/monitors/create",
+        ),
+      }),
+    ).toContain(
+      "[create a Database Health monitor](/dashboard/p1/monitors/create?monitorType=Database)",
+    );
+  });
+
+  test("getDatabaseProbeEndpoint picks the first endpoint a probe can name exactly", () => {
+    expect(
+      getDatabaseProbeEndpoint({
+        id: DATABASE_ID,
+        dbSystem: "postgresql",
+        endpoints: [
+          "postgres.payments.svc.cluster.local:5432@prod",
+          "db.prod.internal:5432",
+          "db.example.com:5432",
+        ],
+      }),
+    ).toBe("db.prod.internal:5432");
+
+    // A named instance carries no port for the probe form to hold.
+    expect(
+      getDatabaseProbeEndpoint({
+        id: DATABASE_ID,
+        dbSystem: "microsoft.sql_server",
+        endpoints: ["sql1.corp\\inst01", "sql1.corp:14330"],
+      }),
+    ).toBe("sql1.corp:14330");
+
+    expect(
+      getDatabaseProbeEndpoint({
+        id: DATABASE_ID,
+        dbSystem: "postgresql",
+        endpoints: ["postgres.payments.svc.cluster.local:5432@prod"],
+      }),
+    ).toBeNull();
+    expect(
+      getDatabaseProbeEndpoint({ id: DATABASE_ID, dbSystem: "postgresql" }),
+    ).toBeNull();
+    expect(getDatabaseProbeEndpoint(null)).toBeNull();
+  });
+
+  /*
+   * The endpoint the guide tells the reader to point the probe at must be
+   * the one the monitor's alerts are resolved by: a probe step's host and
+   * port go through SeriesResourceLabels.buildDatabaseEndpointRef, and the
+   * result is looked up among the database's endpoints verbatim.
+   */
+  test.each([
+    ["postgresql", "db.prod.internal:5432"],
+    ["mysql", "orders.example.com:3307"],
+    ["microsoft.sql_server", "10.0.0.5:1433"],
+  ])(
+    "a %s probe at the endpoint the guide names resolves to that endpoint",
+    (system: string, endpoint: string) => {
+      const named: string | null = getDatabaseProbeEndpoint({
+        id: DATABASE_ID,
+        dbSystem: system,
+        endpoints: [endpoint],
+      });
+
+      expect(named).toBe(endpoint);
+
+      const separator: number = endpoint.lastIndexOf(":");
+      expect(
+        SeriesResourceLabels.buildDatabaseEndpointRef({
+          address: endpoint.substring(0, separator),
+          port: Number(endpoint.substring(separator + 1)),
+          system: system,
+        }),
+      ).toBe(named);
+    },
+  );
+
+  test("says which endpoint to connect to for the probe's alerts to land on the database", () => {
+    const withEndpoint: string = guideFor({
+      id: DATABASE_ID,
+      dbSystem: "postgresql",
+      serverAddress: "db.prod.internal",
+      serverPort: 5432,
+      endpoints: ["db.prod.internal:5432"],
+    });
+    expect(withEndpoint).toContain(
+      "Point it at `db.prod.internal:5432`, one of this database's endpoints, and its alerts and incidents appear on this database's Alerts and Incidents tabs.",
+    );
+
+    const onlyQualified: string = guideFor({
+      id: DATABASE_ID,
+      dbSystem: "mysql",
+      endpoints: ["mysql.shop.svc.cluster.local:3306@prod"],
+      kubernetesNamespace: "shop",
+      isKubernetes: true,
+    });
+    expect(onlyQualified).toContain(
+      "written without an `@cluster` suffix — a probe reports no cluster.",
+    );
+
+    const productPage: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "sqlserver",
+    });
+    expect(productPage).toContain(
+      "Its alerts and incidents also appear on the database whose endpoints include the host and port it connects to.",
+    );
+  });
+});
+
+/*
+ * Regression: the placeholder was `db.internal`, a `.internal` name — which
+ * only resolves inside one network and never creates a database on its own —
+ * so a sample copied as given never made the database it promised.
+ */
+describe("the placeholder identity", () => {
+  test("is a name that creates its database", () => {
+    const identity: DatabaseAgentIdentity =
+      resolveDatabaseAgentIdentity("postgresql");
+    const endpoint: DatabaseEndpoint | null = canonicalizeDatabaseEndpoint({
+      system: "postgresql",
+      address: identity.serverAddress,
+      port: identity.serverPort,
+      caller: { isEphemeral: true },
+      purpose: "collector",
+    });
+
+    expect(identity.isPrefilled).toBe(false);
+    expect(endpoint).not.toBeNull();
+    expect(getDatabaseEndpointScope(endpoint as DatabaseEndpoint)).toBe(
+      "global",
+    );
+    expect(MARKDOWN_SOURCE).not.toContain("db.internal");
   });
 });
 

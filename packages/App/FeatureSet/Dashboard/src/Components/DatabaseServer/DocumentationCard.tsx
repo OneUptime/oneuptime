@@ -34,6 +34,7 @@ import {
   getDatabaseAgentEngine,
   getDatabaseAgentInstallationMarkdown,
   getDatabaseAgentSystems,
+  getDatabaseHealthMonitorCreateUrl,
   getDatabaseOwnCollectorMarkdown,
 } from "../../Pages/Database/Utils/DocumentationMarkdown";
 import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
@@ -281,9 +282,20 @@ const DatabaseDocumentationCard: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const databaseHealthMonitorUrl: string = RouteUtil.populateRouteParams(
-    RouteMap[PageMap.MONITOR_CREATE] as Route,
-  ).toString();
+  // Opens the monitor form with the Database Health type already picked.
+  const databaseHealthMonitorUrl: string = getDatabaseHealthMonitorCreateUrl(
+    RouteUtil.populateRouteParams(
+      RouteMap[PageMap.MONITOR_CREATE] as Route,
+    ).toString(),
+  );
+
+  // The row's recommended monitors (a database's own tab only).
+  const recommendationsUrl: string | undefined = props.database
+    ? RouteUtil.populateRouteParams(
+        RouteMap[PageMap.DATABASE_SERVER_VIEW_RECOMMENDATIONS] as Route,
+        { modelId: props.database.id },
+      ).toString()
+    : undefined;
 
   /*
    * A database's own tab always uses the row's engine; the picker is only
@@ -296,6 +308,7 @@ const DatabaseDocumentationCard: FunctionComponent<ComponentProps> = (
           apiKey: apiKeyValue,
           database: props.database,
           databaseHealthMonitorUrl: databaseHealthMonitorUrl,
+          recommendationsUrl: recommendationsUrl,
         })
       : getDatabaseAgentInstallationMarkdown({
           oneuptimeUrl: oneuptimeUrl,
@@ -305,6 +318,7 @@ const DatabaseDocumentationCard: FunctionComponent<ComponentProps> = (
           system: props.database ? props.database.dbSystem : selectedSystem,
           database: props.database,
           databaseHealthMonitorUrl: databaseHealthMonitorUrl,
+          recommendationsUrl: recommendationsUrl,
         });
 
   return (

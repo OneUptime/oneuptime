@@ -7,6 +7,7 @@ import {
 } from "./DatabaseAgentConfigs";
 import {
   DatabaseEndpoint,
+  formatDatabaseEndpoint,
   parseDatabaseEndpointString,
 } from "Common/Types/DatabaseServer/DatabaseEndpoint";
 import {
@@ -19,6 +20,8 @@ import {
   getDefaultDatabasePort,
   normalizeDatabaseSystem,
 } from "Common/Types/DatabaseServer/DatabaseSystem";
+import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 
 /*
  * The in-app install guide for the OneUptime Database Agent — the product
@@ -54,6 +57,19 @@ export const DATABASE_HEALTH_MONITOR_SYSTEMS: ReadonlyArray<string> = [
 /* The resource attribute a monitor filters on to attach its alerts here. */
 export const DATABASE_SERVER_ID_ATTRIBUTE_NAME: string =
   "oneuptime.database.server.id";
+
+/**
+ * The monitor-create page with the Database Health monitor type preselected
+ * (Pages/Monitor/Create.tsx reads `monitorType`), from the page's route.
+ */
+export function getDatabaseHealthMonitorCreateUrl(
+  monitorCreateRoute: string,
+): string {
+  const separator: string = monitorCreateRoute.includes("?") ? "&" : "?";
+  return `${monitorCreateRoute}${separator}monitorType=${encodeURIComponent(
+    MonitorType.Database,
+  )}`;
+}
 
 const ENGINE_LABELS: Record<DatabaseAgentEngine, string> = {
   postgresql: "PostgreSQL",
@@ -172,7 +188,12 @@ export interface DatabaseAgentIdentity {
   isPrefilled: boolean;
 }
 
-const PLACEHOLDER_ADDRESS: string = "db.internal";
+/*
+ * A name that means one server project-wide, so an agent installed with it
+ * as given would create its database: `.internal` and `.local` names, like
+ * private IPs, never create one on their own.
+ */
+const PLACEHOLDER_ADDRESS: string = "db.example.com";
 
 function hostForUrl(host: string): string {
   return host.includes(":") ? `[${host}]` : host;
@@ -508,9 +529,43 @@ Set \`DATABASE_ENDPOINT\` and \`DATABASE_SERVER_ADDRESS\` to the database Servic
 `;
 }
 
+/**
+ * The endpoint a probe monitor (Database Health, SQL Query) can name to have
+ * its alerts land on this database: the first stored endpoint a probe can
+ * spell exactly — a host and a port, with no cluster qualifier (a probe
+ * carries no cluster) and no SQL Server instance name. Null when the row
+ * has none, or no endpoints were given.
+ */
+export function getDatabaseProbeEndpoint(
+  database: DatabaseDocumentationTarget | null | undefined,
+): string | null {
+  const system: string = normalizeDatabaseSystem(database?.dbSystem) || "";
+  for (const value of database?.endpoints || []) {
+    const parsed: DatabaseEndpoint | null = parseDatabaseEndpointString(value, {
+      system: system,
+    });
+    if (
+      parsed &&
+      parsed.port !== null &&
+      !parsed.kubernetesClusterName &&
+      !parsed.host.includes("\\")
+    ) {
+      return formatDatabaseEndpoint(parsed);
+    }
+  }
+  return null;
+}
+
+/*
+ * The probe-based alternative, for the engines the Database Health monitor
+ * checks. A probe's alerts land on the database whose endpoints include the
+ * host:port it connects to (MonitorStepResourceIdentity), so a row's guide
+ * names one of its own endpoints to connect to.
+ */
 function databaseHealthSection(data: {
   dbSystem: string;
   databaseHealthMonitorUrl?: string | null | undefined;
+  database?: DatabaseDocumentationTarget | null | undefined;
 }): string {
   if (!DATABASE_HEALTH_MONITOR_SYSTEMS.includes(data.dbSystem)) {
     return "";
@@ -518,24 +573,52 @@ function databaseHealthSection(data: {
   const link: string = data.databaseHealthMonitorUrl
     ? `[create a Database Health monitor](${data.databaseHealthMonitorUrl})`
     : "create a Database Health monitor";
+
+  let linking: string;
+  if (!data.database) {
+    linking =
+      "Its alerts and incidents also appear on the database whose endpoints include the host and port it connects to.";
+  } else {
+    const probeEndpoint: string | null = getDatabaseProbeEndpoint(
+      data.database,
+    );
+    linking = probeEndpoint
+      ? `Point it at \`${probeEndpoint}\`, one of this database's endpoints, and its alerts and incidents appear on this database's Alerts and Incidents tabs.`
+      : "Its alerts and incidents appear on this database when the host and port it connects to are one of the endpoints on this database's Endpoints tab, written without an `@cluster` suffix — a probe reports no cluster.";
+  }
+
   return `
 ## No agent? Use a Database Health monitor
 
-For a probe-based check that needs no agent at all — connections, locks, cache and replication health, with alerting — ${link} (PostgreSQL, MySQL and SQL Server). It uses the same monitoring user.
+For a probe-based check that needs no agent at all — connections, locks, cache and replication health, with alerting — ${link} (PostgreSQL, MySQL and SQL Server). It uses the same monitoring user. ${linking}
 `;
 }
 
 /*
  * How a monitor's alerts land on a database: its engine metrics carry the
  * database's id, and an alert whose monitor filters (or groups) on it is
- * attributed to the database.
+ * attributed to the database. The Recommendations tab offers ready-made
+ * monitors for the engines DatabaseAlertTemplates covers; it is only
+ * pointed at for those.
  */
-function alertingSection(databaseId: string): string {
-  const id: string = databaseId || "<database id>";
+function alertingSection(data: {
+  databaseId: string;
+  system: string;
+  recommendationsUrl?: string | null | undefined;
+}): string {
+  const id: string = data.databaseId || "<database id>";
+  const engineLabel: string = getDatabaseSystemDisplayName(data.system);
+  const recommendationsTab: string = data.recommendationsUrl
+    ? `[Recommendations](${data.recommendationsUrl})`
+    : "**Recommendations**";
+  const recommended: string =
+    getDatabaseAlertTemplates(data.system).length > 0
+      ? `The ${recommendationsTab} tab offers ready-made ${engineLabel} monitors, each scoped to this database, once its engine metrics have arrived — among them one that fires when they stop. To build your own, create`
+      : "Create";
   return `
 ## Alert on this database
 
-Engine metrics and query events carry \`${DATABASE_SERVER_ID_ATTRIBUTE_NAME}\` = \`${id}\`. Create a **Metrics** monitor over an engine metric and filter it on that attribute (or group it by the attribute, to cover several databases at once): its alerts and incidents then appear on this database's Alerts and Incidents tabs, and its scheduled maintenance applies to them. Threshold a gauge (connections, memory, replication lag) or a ratio of two gauges; a cumulative counter (queries, deadlocks, slow queries) only ever grows, so it needs a rate before it can be alerted on.
+Engine metrics and query events carry \`${DATABASE_SERVER_ID_ATTRIBUTE_NAME}\` = \`${id}\`. ${recommended} a **Metrics** monitor over an engine metric and filter it on that attribute (or group it by the attribute to cover several databases with one monitor — each series then lands on its own database): its alerts and incidents then appear on this database's Alerts and Incidents tabs, and its scheduled maintenance applies to them. Threshold a gauge (connections, memory, replication lag) or a ratio of two gauges. A cumulative counter (deadlocks, slow queries, evictions) only ever grows and monitors have no rate, so turn it into per-interval deltas with the collector's \`cumulativetodelta\` processor before alerting on it.
 `;
 }
 
@@ -545,6 +628,8 @@ Engine metrics and query events carry \`${DATABASE_SERVER_ID_ATTRIBUTE_NAME}\` =
  * Kubernetes section appears for a Kubernetes-detected row. `system` picks
  * the engine the agent reports (DATABASE_SYSTEM: "mariadb" with the mysql
  * config); it defaults to the row's engine, then to the config's.
+ * `recommendationsUrl` links the row's Recommendations tab from its
+ * alerting section.
  */
 export function getDatabaseAgentInstallationMarkdown(data: {
   oneuptimeUrl: string;
@@ -553,6 +638,7 @@ export function getDatabaseAgentInstallationMarkdown(data: {
   system?: string | null | undefined;
   database?: DatabaseDocumentationTarget | null | undefined;
   databaseHealthMonitorUrl?: string | null | undefined;
+  recommendationsUrl?: string | null | undefined;
 }): string {
   const database: DatabaseDocumentationTarget | null | undefined =
     data.database;
@@ -583,14 +669,14 @@ export function getDatabaseAgentInstallationMarkdown(data: {
 Every block below is prefilled with these values. \`DATABASE_SERVER_ID\` is stamped on the agent's data as \`${DATABASE_SERVER_ID_ATTRIBUTE_NAME}\` and links it to this database directly, whatever its address — its data then shows on this database's pages even when the address is a private IP or a name that only resolves inside your network.${
         identity.isPrefilled
           ? ""
-          : " This database has no address yet: the install script asks for the host name your applications use to reach it, and in the samples below replace `db.internal` with that name."
+          : ` This database has no address yet: the install script asks for the host name your applications use to reach it, and in the samples below replace \`${PLACEHOLDER_ADDRESS}\` with that name.`
       }
 `
     : "";
 
   /*
    * A row without an address gets no placeholder on the command line:
-   * install.sh would take `db.internal` as given and stamp it, while
+   * install.sh would take the placeholder as given and stamp it, while
    * without it the script asks for the real name. The id still links the
    * data to this row.
    */
@@ -706,9 +792,18 @@ After the first collection (about one \`DATABASE_COLLECTION_INTERVAL\`) the data
 curl -sSL ${DATABASE_AGENT_RAW_URL}/troubleshoot.sh -o troubleshoot.sh
 bash troubleshoot.sh
 \`\`\`
-${database ? alertingSection(identity.databaseId) : ""}${databaseHealthSection({
+${
+  database
+    ? alertingSection({
+        databaseId: identity.databaseId,
+        system: system,
+        recommendationsUrl: data.recommendationsUrl,
+      })
+    : ""
+}${databaseHealthSection({
     dbSystem: normalizeDatabaseSystem(database?.dbSystem || system) || "",
     databaseHealthMonitorUrl: data.databaseHealthMonitorUrl,
+    database: database,
   })}`;
 }
 
@@ -871,6 +966,7 @@ export function getDatabaseOwnCollectorMarkdown(data: {
   apiKey: string;
   database: DatabaseDocumentationTarget;
   databaseHealthMonitorUrl?: string | null | undefined;
+  recommendationsUrl?: string | null | undefined;
 }): string {
   const descriptor: DatabaseSystemDescriptor | null =
     getDatabaseSystemDescriptor(data.database.dbSystem);
@@ -889,6 +985,7 @@ export function getDatabaseOwnCollectorMarkdown(data: {
   const healthSection: string = databaseHealthSection({
     dbSystem: system,
     databaseHealthMonitorUrl: data.databaseHealthMonitorUrl,
+    database: data.database,
   });
   const agentIntro: string =
     "The OneUptime Database Agent ships configs for PostgreSQL, MySQL / MariaDB, Redis (and Valkey, KeyDB, Dragonfly), MongoDB, SQL Server, Oracle, Elasticsearch / OpenSearch and Memcached.";
@@ -961,9 +1058,13 @@ ${config}
 Keep one receiver instance per database server in this pipeline — every batch carries this database's identity — and no \`resourcedetection\` processor: its \`host.name\` would make the collector's machine look like the thing being monitored.${credentials}${
     identity.isPrefilled
       ? ""
-      : " This database has no address yet, so replace `db.internal` with the host name your applications use to reach it."
+      : ` This database has no address yet, so replace \`${PLACEHOLDER_ADDRESS}\` with the host name your applications use to reach it.`
   }
 
 ${alongside}
-${alertingSection(data.database.id)}${healthSection}`;
+${alertingSection({
+  databaseId: data.database.id,
+  system: system,
+  recommendationsUrl: data.recommendationsUrl,
+})}${healthSection}`;
 }

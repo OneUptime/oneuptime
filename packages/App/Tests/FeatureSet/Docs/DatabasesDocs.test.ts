@@ -13,8 +13,24 @@ import {
   DatabaseServerMetricDefinition,
   getDatabaseServerMetrics,
 } from "Common/Types/DatabaseServer/DatabaseServerMetricCatalog";
+import {
+  canonicalizeDatabaseEndpoint,
+  DatabaseEndpoint,
+  formatDatabaseEndpoint,
+  getDatabaseEndpointScope,
+  isHostRelativeDatabaseHost,
+  isLoopbackDatabaseHost,
+  NETWORK_SCOPED_NAME_SUFFIXES,
+} from "Common/Types/DatabaseServer/DatabaseEndpoint";
+import { classifyContainer } from "Common/Types/DatabaseServer/DatabaseContainerClassifier";
+import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
+import {
+  DatabaseEngineMetricsStatus,
+  getDatabaseEngineMetricsStatusLabel,
+} from "../../../FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerPresentation";
 import slugify from "Common/Server/Types/MarkdownSlugify";
 import { describe, expect, it } from "@jest/globals";
+import { spawnSync, SpawnSyncReturns } from "child_process";
 import fs from "fs";
 import path from "path";
 
@@ -893,6 +909,69 @@ describe("Databases docs", (): void => {
   });
 
   /*
+   * Rule 1 of the own-collector section lists, in order, the attributes a
+   * receiver batch can name its server by. The resolver's candidate list is
+   * the source of truth: a receiver whose attribute the page leaves out
+   * reads as "ignored until you stamp server.address" when it is not.
+   */
+  it("names every attribute the resolver reads a batch's server from, in the resolver's order", (): void => {
+    const resolver: string = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "packages/Common/Types/DatabaseServer/DatabaseTelemetryResolver.ts",
+      ),
+      "utf8",
+    );
+    const candidates: string | undefined = (
+      resolver.match(
+        /const candidates: Array<\{ address: string \| null; port: string \| null \}> = \[([\s\S]*?)\n {2}\];/,
+      ) as RegExpMatchArray | null
+    )?.[1];
+
+    expect(candidates).toBeDefined();
+
+    const addressAttributes: Array<string> = [
+      "server.address",
+      ...Array.from(
+        (candidates as string).matchAll(
+          /address: readAttribute\(attributes, "([a-z_.]+)"\)|readAttribute\(\s*attributes,\s*"(service\.instance\.id)",?\s*\)/g,
+        ),
+      ).map((match: RegExpMatchArray): string => {
+        return (match[1] || match[2]) as string;
+      }),
+    ];
+    const ruleOne: string = (
+      section(readPage(), "## Using your own OpenTelemetry Collector").split(
+        "\n",
+      ) as Array<string>
+    ).find((line: string): boolean => {
+      return line.startsWith("1. **Every batch must name the server.**");
+    }) as string;
+
+    expect(ruleOne).toBeDefined();
+    expect(addressAttributes.length).toBeGreaterThan(3);
+
+    const positions: Array<number> = addressAttributes.map(
+      (attribute: string): number => {
+        const position: number = ruleOne.indexOf(`\`${attribute}\``);
+
+        expect({ attribute, named: position >= 0 }).toEqual({
+          attribute,
+          named: true,
+        });
+
+        return position;
+      },
+    );
+
+    expect(positions).toEqual(
+      [...positions].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    );
+  });
+
+  /*
    * The engine table is the page's promise about every engine OneUptime
    * knows: what it normalises spans to, its default port, its family,
    * whether traces create it and where its engine metrics come from. The
@@ -1114,6 +1193,14 @@ describe("Databases docs", (): void => {
       expect(troubleshooting).not.toContain(
         "the batch belongs to the Host first",
       );
+      // What still makes a Host, and whose retention the re-homed data gets.
+      expect(troubleshooting).toContain(
+        "Only a single resource that itself also carries `system.*` or `process.*` metrics stays a Host",
+      );
+      expect(troubleshooting).toContain("the project's default");
+      expect(troubleshooting).toContain(
+        "neither registers an Inventory Host nor keeps one alive with a heartbeat",
+      );
     });
 
     it("tells a hand-written .env and a Kubernetes Secret to double every $ in the password", (): void => {
@@ -1144,5 +1231,685 @@ describe("Databases docs", (): void => {
         "`failed to explain` on PostgreSQL top queries is not a missing grant",
       );
     });
+  });
+
+  /*
+   * Alerting: which monitors land on a database, and what can be
+   * thresholded. The engine list and the pipeline snippet are read against
+   * the template library and the shipped configs, so neither can drift.
+   */
+  describe("alerts on a database", (): void => {
+    it("names exactly the engines the Recommendations tab has monitors for", (): void => {
+      const recommended: string = section(
+        readPage(),
+        "### Recommended monitors",
+      );
+      const match: RegExpMatchArray | null = recommended.match(
+        /for these engines: ([^.]+)\./,
+      );
+
+      expect(match).not.toBeNull();
+
+      const listed: Array<string> = (match as RegExpMatchArray)[1]!
+        .split(/, | and /)
+        .map((name: string): string => {
+          return name.trim();
+        })
+        .sort();
+      const withTemplates: Array<string> = DATABASE_SYSTEMS.filter(
+        (descriptor: DatabaseSystemDescriptor): boolean => {
+          return getDatabaseAlertTemplates(descriptor.system).length > 0;
+        },
+      )
+        .map((descriptor: DatabaseSystemDescriptor): string => {
+          return descriptor.displayName;
+        })
+        .sort();
+
+      expect(withTemplates.length).toBeGreaterThan(0);
+      expect(listed).toEqual(withTemplates);
+      expect(recommended).toContain("`oneuptime.database.server.id`");
+    });
+
+    it("explains every way a hand-built monitor attaches to a database", (): void => {
+      const built: string = section(readPage(), "### Monitors you build");
+
+      for (const phrase of [
+        "filters on `oneuptime.database.server.id`",
+        "group the query by `oneuptime.database.server.id`",
+        "silenced by that database's scheduled maintenance",
+        "**Database Health** and **SQL Query** monitors attach to the database whose endpoints include the host and port they connect to",
+        "Metrics and **Traces** monitors that filter `server.address`",
+        "Grouping by `server.address` attaches nothing",
+      ]) {
+        expect({ phrase, present: built.includes(phrase) }).toEqual({
+          phrase,
+          present: true,
+        });
+      }
+    });
+
+    /*
+     * Regression: the page said to "alert on its rate instead" — but the
+     * monitor path has no rate (no Rate aggregation, no delta evaluation),
+     * so there was nothing to follow the advice with.
+     */
+    it("sends a counter through cumulativetodelta rather than a rate monitors do not have", (): void => {
+      const markdown: string = readPage();
+      const whatToAlertOn: string = section(markdown, "### What to alert on");
+
+      expect(markdown).not.toContain("alert on its rate instead");
+      expect(whatToAlertOn).toContain("cumulative counter");
+      expect(whatToAlertOn).toContain("`cumulativetodelta`");
+      expect(whatToAlertOn).toContain("monitors have no rate function");
+    });
+
+    it("adds cumulativetodelta to the metrics pipeline every shipped config has, just before batch", (): void => {
+      const snippet: string | undefined = codeBlocks(
+        section(readPage(), "### What to alert on"),
+      ).find((block: string): boolean => {
+        return block.includes("cumulativetodelta/");
+      });
+
+      expect(snippet).toBeDefined();
+
+      const processorId: string = (
+        (snippet as string).match(
+          /^ {2}(cumulativetodelta\/[a-z]+):$/m,
+        ) as RegExpMatchArray | null
+      )?.[1] as string;
+
+      expect(processorId).toBeDefined();
+
+      // Only counters are listed, matched by exact name.
+      expect(snippet).toContain("match_type: strict");
+
+      const snippetPipeline: string = (
+        (snippet as string).match(
+          /^ {6}processors: \[([^\]]+)\]$/m,
+        ) as RegExpMatchArray | null
+      )?.[1] as string;
+
+      expect(snippetPipeline).toBeDefined();
+
+      for (const engine of AGENT_ENGINES) {
+        const shipped: string | undefined = (
+          readConfig(engine).match(
+            /^ {4}metrics:\n {6}receivers: \[[^\]]*\]\n {6}processors: \[([^\]]+)\]$/m,
+          ) as RegExpMatchArray | null
+        )?.[1];
+
+        expect({ engine, shipped: Boolean(shipped) }).toEqual({
+          engine,
+          shipped: true,
+        });
+
+        const expected: Array<string> = (shipped as string)
+          .split(",")
+          .map((id: string): string => {
+            return id.trim();
+          });
+        expected.splice(expected.indexOf("batch"), 0, processorId);
+
+        expect({ engine, pipeline: snippetPipeline }).toEqual({
+          engine,
+          pipeline: expected.join(", "),
+        });
+      }
+    });
+  });
+
+  /*
+   * The numbers and rules the page states about discovery, identity and a
+   * discovered database's lifecycle, read against the code that applies
+   * them.
+   */
+  describe("discovery, identity and lifecycle", (): void => {
+    function sourceNumber(relativeFile: string, name: string): number {
+      const source: string = fs.readFileSync(
+        path.join(REPO_ROOT, relativeFile),
+        "utf8",
+      );
+      const match: RegExpMatchArray | null = source.match(
+        new RegExp(`const ${name}: number =\\s*([\\d\\s*]+);`),
+      );
+
+      expect({ name, found: Boolean(match) }).toEqual({ name, found: true });
+
+      return (match as RegExpMatchArray)[1]!
+        .split("*")
+        .reduce((product: number, factor: string): number => {
+          return product * Number(factor.trim());
+        }, 1);
+    }
+
+    const SERVICE: string =
+      "packages/Common/Server/Services/DatabaseServerService.ts";
+    const DISCOVERY_JOB: string =
+      "packages/App/FeatureSet/Workers/Jobs/DatabaseServer/DiscoverContainerDatabases.ts";
+
+    /*
+     * Regression: collector-created databases were exempt from the budget
+     * ("do not count towards the auto-create budget"), so a collector keyed
+     * on pod IPs could mint databases without bound. They count now; only
+     * databases created by hand are exempt.
+     */
+    it("counts collector-created databases towards the auto-create budget, and says so everywhere", (): void => {
+      const markdown: string = readPage();
+      const budget: number = sourceNumber(
+        SERVICE,
+        "DEFAULT_AUTO_CREATE_BUDGET",
+      );
+      const warningMinutes: number =
+        sourceNumber(SERVICE, "AUTO_CREATE_BUDGET_WARNING_MS") / 60000;
+      const budgetSection: string = section(
+        markdown,
+        "### The auto-create budget",
+      );
+
+      expect(markdown).not.toContain("do not count towards the auto-create");
+      expect(budgetSection).toContain(
+        "Traces, Kubernetes, Docker, Podman and collectors",
+      );
+      expect(budgetSection).toContain(`fewer than ${budget} live`);
+      expect(budgetSection).toContain(
+        `at most once every ${warningMinutes} minutes per project`,
+      );
+      expect(
+        section(markdown, "### From the Database Agent or your own collector"),
+      ).toContain("count towards the [auto-create budget]");
+
+      const tuningRow: string | undefined = section(
+        markdown,
+        "## Self-hosted tuning",
+      )
+        .split("\n")
+        .find((line: string): boolean => {
+          return line.startsWith("| `DATABASE_SERVER_AUTO_CREATE_BUDGET` |");
+        });
+
+      expect(tuningRow).toContain(`| \`${budget}\` |`);
+      expect(tuningRow).toContain("collectors");
+      expect(tuningRow).not.toContain("non-agent");
+    });
+
+    /*
+     * Regression: the page said Engine metrics reads "Not connected" after
+     * 15 minutes without data; the product shows Disconnected for a
+     * collector that stopped, and Not connected only when none ever
+     * reported.
+     */
+    it("describes the three engine-metrics statuses by the labels the product shows", (): void => {
+      const markdown: string = readPage();
+      const lifecycle: string = section(
+        markdown,
+        "## Lifecycle, archiving and retention",
+      );
+      const staleMinutes: number = sourceNumber(
+        SERVICE,
+        "DEFAULT_COLLECTOR_STALE_MINUTES",
+      );
+      const minimum: number = sourceNumber(
+        SERVICE,
+        "MIN_COLLECTOR_STALE_MINUTES",
+      );
+
+      for (const status of Object.values(DatabaseEngineMetricsStatus)) {
+        const label: string = getDatabaseEngineMetricsStatusLabel(status);
+
+        expect({ label, described: lifecycle.includes(`_${label}_`) }).toEqual({
+          label,
+          described: true,
+        });
+      }
+
+      expect(lifecycle).toContain(
+        `_Disconnected_ once a collector that reported stops for ${staleMinutes} minutes`,
+      );
+      expect(lifecycle).toContain("_Not connected_ when no Database Agent");
+      expect(section(markdown, "## Self-hosted tuning")).toContain(
+        `before Engine metrics reads Disconnected (minimum ${minimum})`,
+      );
+      expect(markdown).not.toContain("_Not connected_ after");
+      expect(markdown).not.toContain("reads Not connected (minimum");
+    });
+
+    it("states the Kubernetes and container discovery rules the job applies", (): void => {
+      const markdown: string = readPage();
+      const kubernetes: string = section(markdown, "### From Kubernetes");
+      const containers: string = section(
+        markdown,
+        "### From Docker and Podman",
+      );
+      const lifetimeMinutes: number =
+        sourceNumber(DISCOVERY_JOB, "MIN_OBSERVED_LIFETIME_MS") / 60000;
+
+      expect(kubernetes).toContain(
+        `Running for about ${lifetimeMinutes} minutes`,
+      );
+      expect(containers).toContain(
+        `run for less than ${lifetimeMinutes} minutes never become databases`,
+      );
+      expect(kubernetes).toContain(
+        "**Instances** on its page counts the Running pods",
+      );
+      expect(kubernetes).toContain("a workload scaled to zero shows 0");
+      expect(kubernetes).toContain(
+        "one-off `kubectl run` pods that declare no port",
+      );
+      // What the scan reads, now that it reads the program a container starts.
+      expect(kubernetes).toContain(
+        "OneUptime reads pod metadata, labels, images, declared ports and the name of the program a container starts — never environment variables, other command arguments or secrets.",
+      );
+    });
+
+    /*
+     * Regression: "Compose replicas (`db-1`, `db-2`) are one database" — the
+     * classifier no longer strips a trailing number (it merged `redis-6379`
+     * and `redis-6380`, two servers); it groups by Compose / Swarm service.
+     */
+    it("groups containers the way the classifier does", (): void => {
+      const containers: string = section(
+        readPage(),
+        "### From Docker and Podman",
+      );
+
+      expect(containers).not.toContain("Compose replicas");
+      expect(containers).toContain("`redis-6379` and `redis-6380` stay two");
+
+      const workload: (
+        name: string,
+        labels?: Record<string, string>,
+      ) => string | undefined = (
+        name: string,
+        labels?: Record<string, string>,
+      ): string | undefined => {
+        return classifyContainer({
+          name: name,
+          imageName: "redis:7.2",
+          labels: labels || {},
+        })?.workloadName;
+      };
+
+      expect(workload("redis-6379")).not.toBe(workload("redis-6380"));
+
+      const compose: (replica: string) => Record<string, string> = (
+        replica: string,
+      ): Record<string, string> => {
+        return {
+          "com.docker.compose.project": "shop",
+          "com.docker.compose.service": "cache",
+          "com.docker.compose.container-number": replica,
+        };
+      };
+
+      expect(workload("shop-cache-1", compose("1"))).toBe(
+        workload("shop-cache-2", compose("2")),
+      );
+    });
+
+    /*
+     * Regression: "A two-part name such as `postgres.prod` is not expanded"
+     * — a pod's `<service>.<namespace>` is now read as the Service it is.
+     */
+    it("reads a pod's two-part name as the Service, as the page now says", (): void => {
+      const markdown: string = readPage();
+      const endpoint: DatabaseEndpoint | null = canonicalizeDatabaseEndpoint({
+        system: "postgresql",
+        address: "postgres.prod",
+        caller: {
+          kubernetesNamespace: "shop",
+          kubernetesClusterName: "my-cluster",
+          isEphemeral: true,
+        },
+        purpose: "client-call",
+      });
+
+      expect(endpoint ? formatDatabaseEndpoint(endpoint) : null).toBe(
+        "postgres.prod.svc.cluster.local:5432@my-cluster",
+      );
+      expect(markdown).not.toContain("is not expanded");
+      expect(section(markdown, "### From Kubernetes")).toContain(
+        "`postgres.prod` (the Service `postgres` in namespace `prod`)",
+      );
+    });
+
+    it("lists every network-scoped name suffix, and the SQL Server instance form, as the endpoint rules have them", (): void => {
+      const endpoints: string = section(
+        readPage(),
+        "## Endpoints and the one-owner rule",
+      );
+
+      for (const suffix of NETWORK_SCOPED_NAME_SUFFIXES) {
+        expect({ suffix, listed: endpoints.includes(`\`${suffix}\``) }).toEqual(
+          { suffix, listed: true },
+        );
+      }
+
+      const named: DatabaseEndpoint | null = canonicalizeDatabaseEndpoint({
+        system: "microsoft.sql_server",
+        address: "sql1.corp\\INST01",
+        caller: { isEphemeral: true },
+        purpose: "client-call",
+      });
+      const withPort: DatabaseEndpoint | null = canonicalizeDatabaseEndpoint({
+        system: "microsoft.sql_server",
+        address: "sql1.corp\\INST01,14330",
+        caller: { isEphemeral: true },
+        purpose: "client-call",
+      });
+
+      expect(named ? formatDatabaseEndpoint(named) : null).toBe(
+        "sql1.corp\\inst01",
+      );
+      expect(withPort ? formatDatabaseEndpoint(withPort) : null).toBe(
+        "sql1.corp:14330",
+      );
+      expect(endpoints).toContain("`sql1.corp\\inst01`, with no port");
+      expect(endpoints).toContain("`sql1.corp:14330` needs no instance name");
+    });
+
+    /*
+     * Regression: "archive one, remove its endpoint, add it to the other"
+     * cannot be followed — a database's primary endpoint cannot be removed,
+     * and an archived database keeps its endpoints.
+     */
+    it("merges two databases in a way the product allows", (): void => {
+      const markdown: string = readPage();
+      const endpoints: string = section(
+        markdown,
+        "## Endpoints and the one-owner rule",
+      );
+
+      expect(markdown).not.toContain("remove its endpoint");
+      expect(endpoints).toContain(
+        "Note the endpoints of the one you do not keep, delete it, and add those endpoints as aliases on the other straight away.",
+      );
+      expect(endpoints).toContain("which cannot be removed");
+    });
+
+    it("states the alias and archive timings the service applies", (): void => {
+      const markdown: string = readPage();
+      const releaseHours: number =
+        sourceNumber(SERVICE, "WORKLOAD_ALIAS_RELEASE_MINUTES") / 60;
+      const goneMinutes: number = sourceNumber(
+        SERVICE,
+        "WORKLOAD_GONE_MINUTES",
+      );
+      const restoreDays: number = sourceNumber(
+        SERVICE,
+        "MANUAL_RESTORE_GRACE_DAYS",
+      );
+      const archiveDays: number = sourceNumber(
+        SERVICE,
+        "DEFAULT_AUTO_ARCHIVE_DAYS",
+      );
+      const refreshSeconds: number = sourceNumber(
+        "packages/Common/Server/Services/DatabaseServerEndpointService.ts",
+        "ENDPOINT_MATCH_REFRESH_SECONDS",
+      );
+      const endpoints: string = section(
+        markdown,
+        "## Endpoints and the one-owner rule",
+      );
+      const lifecycle: string = section(
+        markdown,
+        "## Lifecycle, archiving and retention",
+      );
+
+      expect(goneMinutes).toBe(60);
+      expect(refreshSeconds).toBe(3600);
+      expect(endpoints).toContain(`released about ${releaseHours} hours after`);
+      expect(section(markdown, "### From Kubernetes")).toContain(
+        `released again about ${releaseHours} hours after a second cluster appears`,
+      );
+      expect(endpoints).toContain("has not been seen for an hour");
+      expect(endpoints).toContain("refreshed at most once an hour");
+      expect(endpoints).toContain(
+        "Endpoints a person added are never moved or released.",
+      );
+      expect(lifecycle).toContain(`has seen for ${archiveDays} days`);
+      expect(lifecycle).toContain(`stays restored for ${restoreDays} days`);
+      expect(lifecycle).toContain("attached on their own do not count");
+      expect(lifecycle).toContain("are not archived while it is dark");
+    });
+
+    /*
+     * Regression: the samples stamped `db.internal`, a `.internal` name —
+     * which never creates a database on its own — right before saying the
+     * database appears after the first collection.
+     */
+    it("uses an identity in the .env samples that creates its database", (): void => {
+      for (const [markdown, heading] of [
+        [readPage(), "### Alternative — Docker Compose"],
+        [readAgentFile("README.md"), "## Quick Start — Docker Compose"],
+      ] as Array<[string, string]>) {
+        const sample: string | undefined = codeBlocks(
+          section(markdown, heading),
+        ).find((text: string): boolean => {
+          return text.includes("DATABASE_SERVER_ADDRESS=");
+        });
+        const address: string = (
+          (sample as string).match(
+            /^DATABASE_SERVER_ADDRESS=(.*)$/m,
+          ) as RegExpMatchArray
+        )[1]!;
+        const endpoint: DatabaseEndpoint | null = canonicalizeDatabaseEndpoint({
+          system: "postgresql",
+          address: address,
+          caller: { isEphemeral: true },
+          purpose: "collector",
+        });
+
+        expect({
+          heading,
+          address,
+          scope: endpoint ? getDatabaseEndpointScope(endpoint) : null,
+        }).toEqual({
+          heading,
+          address,
+          scope: "global",
+        });
+      }
+    });
+
+    it("sends readers of the probe monitors' pages to the alerts section", (): void => {
+      const slugs: Set<string> = headingSlugs(readPage());
+
+      expect(slugs.has("alerts-on-a-database")).toBe(true);
+
+      for (const page of [
+        "monitor/database-health-monitor",
+        "monitor/sql-monitor",
+      ]) {
+        expect({
+          page,
+          linked: readPage(page).includes(
+            `](${PAGE_URL}#alerts-on-a-database)`,
+          ),
+        }).toEqual({ page, linked: true });
+      }
+    });
+  });
+
+  /*
+   * install.sh and troubleshoot.sh decide, in bash, whether the identity a
+   * user gives can ever create a database — install.sh then asks for
+   * DATABASE_SERVER_ID, troubleshoot.sh warns. The product decides the same
+   * in DatabaseEndpoint.ts. Each script's two classifiers are run for real
+   * over a table of names and held to the product's answer.
+   */
+  describe("the agent scripts classify an identity the way the product does", (): void => {
+    const HOSTS: ReadonlyArray<string> = [
+      // Local to one machine.
+      "localhost",
+      "LOCALHOST",
+      "localhost.",
+      "api.localhost",
+      "localhost.localdomain",
+      "localhost4",
+      "localhost6",
+      "ip6-localhost",
+      "ip6-loopback",
+      "127.0.0.1",
+      "127.1.2.3",
+      "::1",
+      "::",
+      "0.0.0.0",
+      "(local)",
+      ".",
+      "host.docker.internal",
+      "gateway.docker.internal",
+      "kubernetes.docker.internal",
+      "vm.docker.internal",
+      "host.containers.internal",
+      "docker.for.mac.localhost",
+      "host.minikube.internal",
+      "host.k3d.internal",
+      "host.lima.internal",
+      "host.orb.internal",
+      "host.rancher-desktop.internal",
+      // Unique inside one network only.
+      "db",
+      "postgres",
+      "10.0.0.5",
+      "172.16.0.1",
+      "172.31.255.255",
+      "192.168.1.10",
+      "100.64.0.1",
+      "100.127.255.255",
+      "169.254.169.254",
+      "fd00::1",
+      "fc00::5",
+      "fe80::1",
+      "febf::1",
+      "db.internal",
+      "db.internal.",
+      "db.prod.internal",
+      "host.internal",
+      "host.a.b.internal",
+      "pg.local",
+      "nas.home.arpa",
+      "db.localdomain",
+      "postgres.prod.svc.cluster.local",
+      "postgres.prod.svc",
+      "mongo-0.mongo.prod.svc.cluster.local",
+      // One server project-wide.
+      "db.example.com",
+      "DB.Example.COM",
+      "db.example.com.",
+      "postgres.prod",
+      "db.internal.example.com",
+      "pg.local.example.com",
+      "172.32.0.1",
+      "172.15.0.1",
+      "100.128.0.1",
+      "8.8.8.8",
+      "2001:db8::1",
+    ];
+
+    function shellFunction(file: string, name: string): string {
+      const match: RegExpMatchArray | null = readAgentFile(file).match(
+        new RegExp(`\\n(${name}\\(\\) \\{[\\s\\S]*?\\n\\})`),
+      );
+
+      expect({ file, name, found: Boolean(match) }).toEqual({
+        file,
+        name,
+        found: true,
+      });
+
+      return (match as RegExpMatchArray)[1]!;
+    }
+
+    function runClassifier(file: string, name: string): Map<string, boolean> {
+      const script: string = `${shellFunction(file, name)}
+for host in "$@"; do
+  if ${name} "$host"; then echo 1; else echo 0; fi
+done`;
+      const result: SpawnSyncReturns<string> = spawnSync(
+        "bash",
+        ["-c", script, "classify", ...HOSTS],
+        { encoding: "utf8" },
+      );
+
+      expect({
+        file,
+        name,
+        status: result.status,
+        stderr: result.stderr,
+      }).toEqual({ file, name, status: 0, stderr: "" });
+
+      const answers: Array<string> = result.stdout.trim().split("\n");
+
+      expect(answers.length).toBe(HOSTS.length);
+
+      return new Map<string, boolean>(
+        HOSTS.map((host: string, index: number): [string, boolean] => {
+          return [host, answers[index] === "1"];
+        }),
+      );
+    }
+
+    // What the product makes of the name as the agent's server.address.
+    function productIsLocalOnly(host: string): boolean {
+      return isLoopbackDatabaseHost(host) || isHostRelativeDatabaseHost(host);
+    }
+
+    function productNeverCreates(host: string): boolean {
+      const endpoint: DatabaseEndpoint | null = canonicalizeDatabaseEndpoint({
+        system: "postgresql",
+        address: host,
+        caller: { isEphemeral: true },
+        purpose: "collector",
+      });
+
+      return !endpoint || getDatabaseEndpointScope(endpoint) === "local";
+    }
+
+    it.each(["install.sh", "troubleshoot.sh"])(
+      "%s refuses exactly the names that only mean something on one machine",
+      (file: string): void => {
+        const answers: Map<string, boolean> = runClassifier(
+          file,
+          "is_local_only_host",
+        );
+
+        for (const host of HOSTS) {
+          expect({ host, localOnly: answers.get(host) }).toEqual({
+            host,
+            localOnly: productIsLocalOnly(host),
+          });
+        }
+      },
+    );
+
+    /*
+     * Regression: `.internal`, `.local`, `.home.arpa` and `.localdomain`
+     * names and link-local addresses never create a database, but the
+     * scripts read them as unique, so install.sh did not ask for
+     * DATABASE_SERVER_ID and no database ever appeared.
+     */
+    it.each(["install.sh", "troubleshoot.sh"])(
+      "%s asks for DATABASE_SERVER_ID for exactly the names that never create a database",
+      (file: string): void => {
+        const answers: Map<string, boolean> = runClassifier(
+          file,
+          "is_network_local_name",
+        );
+
+        for (const host of HOSTS) {
+          if (productIsLocalOnly(host)) {
+            // Refused before this question is asked.
+            continue;
+          }
+
+          expect({ host, networkLocal: answers.get(host) }).toEqual({
+            host,
+            networkLocal: productNeverCreates(host),
+          });
+        }
+      },
+    );
   });
 });

@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Databases** (_Resources → Databases_ in the dashboard) gives every database server your project runs or talks to its own page: what is calling it and how fast, where it runs, the engine's own health metrics, its logs and traces, and the incidents, alerts and scheduled maintenance attached to it. Databases have labels, owners, label and owner rules, per-database retention and archiving, like every other resource.
+**Databases** (_Resources → Databases_ in the dashboard) gives every database server your project runs or talks to its own page: what is calling it and how fast, where it runs, the engine's own health metrics, its logs and traces, the incidents, alerts and scheduled maintenance attached to it, and the alert monitors recommended for its engine. Databases have labels, owners, label and owner rules, per-database retention and archiving, like every other resource.
 
 Most databases appear on their own. OneUptime assembles each one from up to four sources, and each source contributes something different:
 
@@ -17,13 +17,13 @@ Engine metrics only ever come from a collector talking to the database itself (o
 
 You can also add a database by hand: **Databases → Create Database** with its engine, address and port.
 
-This page covers the [supported databases](#supported-databases), how databases are detected, the Database Agent, Kubernetes, how endpoints tie the sources together, alerting and troubleshooting. For a probe-based health check that needs no agent at all, see the [Database Health Monitor](/docs/monitor/database-health-monitor).
+This page covers the [supported databases](#supported-databases), [how databases are detected](#how-databases-are-detected), the Database Agent, Kubernetes, how [endpoints](#endpoints-and-the-one-owner-rule) tie the sources together, [alerting](#alerts-on-a-database), the [lifecycle](#lifecycle-archiving-and-retention) of a discovered database and troubleshooting. For a probe-based health check that needs no agent at all, see the [Database Health Monitor](/docs/monitor/database-health-monitor).
 
 ## Supported databases
 
 OneUptime knows the engines below by name: it normalises what instrumentations put in `db.system.name` (or the older `db.system`) to the value in the second column, shows the engine's name, applies its default port when a span or an address has none, recognises its container images and Helm charts, and knows where its engine metrics come from. An engine that is not listed still works everywhere a database is keyed by its address — it just shows under the raw name your spans report and is never created from traces on its own.
 
-A **family** is the engine a fork or wire-compatible engine is reached through: client libraries cannot tell MariaDB from MySQL or Valkey from Redis, so a span says `mysql` or `redis` while a container image, a Helm chart or the Database Agent names the fork. Both land on the same database, and the database shows the more specific engine once any source names it.
+A **family** is the engine a fork or wire-compatible engine is reached through: client libraries cannot tell MariaDB from MySQL or Valkey from Redis, so a span says `mysql` or `redis` while a container image, a Helm chart or the Database Agent names the fork. Both land on the same database, and the database shows the more specific engine once any source names it (see [Which engine a database shows](#which-engine-a-database-shows)).
 
 **Created from traces** says whether client spans alone create a database of that engine (see [From application traces](#from-application-traces)): a managed service reached through its provider's shared API host, and an engine that runs inside your application's process, never are. **Engine metrics** says where the engine's own health metrics come from: a Database Agent config, a collector-contrib receiver you add to your own collector, the engine's own Prometheus endpoint (`:port/path`, scraped with the collector's `prometheus` receiver), the cloud provider's monitoring API, or nothing built in. Each database's **Documentation** tab turns that into a ready-to-use collector config for that database.
 
@@ -123,7 +123,7 @@ The usual other spellings are accepted too: `postgres` and `pg`, `mssql` and `sq
 
 ## How databases are detected
 
-Each database remembers the source that created it (the **Discovery source** column); later sources add to the same database rather than creating another one, as long as they describe the same endpoint.
+Each database remembers the source that created it (the **Discovery source** column); later sources add to the same database rather than creating another one, as long as they describe the same endpoint (see [Endpoints](#endpoints-and-the-one-owner-rule)).
 
 ### From application traces
 
@@ -131,38 +131,56 @@ Every 10 minutes OneUptime summarises the CLIENT spans your applications sent in
 
 A database is **created** from traces only when all of these hold — anything else still counts towards a database that already exists, it just never creates one:
 
-- the address is a real, project-wide name: a DNS name, not an IP literal and not a name that only resolves locally (see [Endpoints](#endpoints-and-the-one-owner-rule));
+- the address names one server project-wide: a DNS name — not an IP literal, and not a name that only resolves on one machine or inside one network unless the caller's Kubernetes cluster qualifies it (see [Endpoints](#endpoints-and-the-one-owner-rule));
 - the engine is one OneUptime knows, with an address of its own — the **Created from traces** column of [Supported databases](#supported-databases). Cloud APIs whose host every customer shares (DynamoDB, BigQuery, Spanner, Firestore, Bigtable, Cosmos DB, Pinecone), engines that run inside your application (SQLite, DuckDB, H2, HyperSQL, Derby) and engines OneUptime does not know are never created from traces — add them by hand;
 - the endpoint received at least 10 calls in the 15-minute window a run looks at, so a one-off script does not create a database;
-- the project is under its auto-create budget (500 discovered databases by default).
+- the project is under its [auto-create budget](#the-auto-create-budget).
 
 Every database CLIENT span is also tagged with its endpoint when it is ingested, so once a database owns an endpoint, the **Queries from applications** section and the **Traces** tab show every call to it — including calls made before the database was created. `db.client.*` metrics (for example `db.client.operation.duration`) that carry a `server.address` are tagged the same way.
+
+**Clusters and host lists.** A connection string that lists several hosts (`m1:27017,m2:27017,m3:27017`) is one database, whatever order a client lists them in. MongoDB Atlas members (`cluster0-shard-00-01.ab1cd.mongodb.net`) become one database named after their cluster (`cluster0.ab1cd.mongodb.net`), and every member seen becomes one of its endpoints. Drivers that report each member of a Cassandra ring, a Redis Cluster, an Elasticsearch cluster or ElastiCache nodes on its own still produce one database per member: nothing in those host names says which cluster they belong to. Keep one and [merge](#endpoints-and-the-one-owner-rule) the others into it.
 
 ### From Kubernetes
 
 Every 5 minutes OneUptime looks at the pods of each connected Kubernetes cluster and recognises database workloads:
 
 1. **Operator and chart labels first**: CloudNativePG, Zalando (Spilo), Crunchy PGO, Bitnami charts, ECK, Altinity ClickHouse, cass-operator, Percona and the Oracle MySQL operator. One operator cluster becomes one database.
-2. **Container images otherwise**, by exact image name — the official, Bitnami (including the relocated `bitnamilegacy` and `bitnamisecure` repositories) and Red Hat / OpenShift images of every engine in [Supported databases](#supported-databases) that ships one (`postgres`, `bitnami/postgresql`, `rhel9/postgresql-16`, `mysql`, `mariadb`, `mssql/server`, `gvenzl/oracle-free`, `redis`, `valkey/valkey`, `mongo`, `cockroachdb/cockroach`, `pingcap/tidb`, `clickhouse/clickhouse-server`, `qdrant/qdrant`, …). A fork is recognised as itself: a `mariadb` image is MariaDB, a `valkey/valkey` image is Valkey. Exporters, operators, admin UIs, connection poolers (pgbouncer, pgpool, ProxySQL, HAProxy, Cloud SQL Proxy) and backup tools are not databases. A pod that also runs an application container is not treated as a database either — an app with a database sidecar is still the app.
+2. **Container images otherwise**, by exact image name — the official, Bitnami (including the relocated `bitnamilegacy` and `bitnamisecure` repositories) and Red Hat / OpenShift images of every engine in [Supported databases](#supported-databases) that ships one (`postgres`, `bitnami/postgresql`, `rhel9/postgresql-16`, `mysql`, `mariadb`, `mssql/server`, `gvenzl/oracle-free`, `redis`, `valkey/valkey`, `mongo`, `cockroachdb/cockroach`, `pingcap/tidb`, `clickhouse/clickhouse-server`, `qdrant/qdrant`, …). A fork is recognised as itself: a `mariadb` image is MariaDB, a `valkey/valkey` image is Valkey. Exporters, operators, admin UIs, connection poolers (pgbouncer, pgpool, ProxySQL, HAProxy, Cloud SQL Proxy) and backup tools are not databases. A pod that also runs an application container is not treated as a database either — an app with a database sidecar is still the app — though a StatefulSet whose database container declares the engine's default port may carry one extra container OneUptime does not recognise (a log shipper, say).
 
-Pods are grouped by their StatefulSet, Deployment or operator cluster, so a three-member StatefulSet is one database with three members. Each database gets endpoints for its Services, qualified by the cluster — `postgres.prod.svc.cluster.local:5432@my-cluster` — so the same name in two clusters stays two databases. (When the project has exactly one cluster, the unqualified `postgres.prod.svc.cluster.local:5432` is added too.) Applications whose telemetry goes through the Kubernetes agent carry their namespace and cluster, so their calls to `postgres` (from the same namespace), `postgres.prod.svc` or the full name are matched to it. A two-part name such as `postgres.prod` is not expanded — use the full name in connection strings you want matched, or add `postgres.prod:5432` as an endpoint on the detected database.
+A database image does not make a pod a database server. Client and debug runs — a container that starts `psql`, `redis-cli`, `mongosh`, `pg_dump`, `sleep` or an interactive shell, directly or through `sh -c` — are not databases, and neither are one-off `kubectl run` pods that declare no port, finished pods or batch jobs. A database appears once one of its pods has been Running for about 10 minutes, so a CI job or a pod that crashed after a minute never becomes one; after that it is refreshed on every run.
 
-OneUptime reads pod metadata, labels and images only — never environment variables or secrets.
+Pods are grouped by their StatefulSet, Deployment or operator cluster, so a three-member StatefulSet is one database with three members. **Instances** on its page counts the Running pods; a workload scaled to zero shows 0 and keeps its page until [automatic archiving](#lifecycle-archiving-and-retention) retires it.
+
+The Kubernetes agent does not report Service objects, so a database's Service names come from the conventions charts and operators follow: the owning StatefulSet or Deployment name, the StatefulSet's headless Service (and each member behind it, `<pod>.<headless-service>`), and the proxy and pooler Services of the operators — Percona XtraDB Cluster's HAProxy and ProxySQL, Percona Server for MySQL's router and HAProxy, Percona Server for MongoDB's mongos, Crunchy's pgBouncer, and the Zalando and CloudNativePG poolers. Each becomes an endpoint qualified by the cluster — `postgres.prod.svc.cluster.local:5432@my-cluster` — so the same name in two clusters stays two databases. While the project has exactly one cluster the unqualified `postgres.prod.svc.cluster.local:5432` is added too, and released again about 2 hours after a second cluster appears. Add a Service with any other name on the database's **Endpoints** tab.
+
+Applications whose telemetry goes through the Kubernetes agent carry their namespace and cluster, so their calls are read the way their pod's resolver reads them: `postgres` (from the same namespace), `postgres.prod` (the Service `postgres` in namespace `prod`), `postgres.prod.svc` and the full name are all matched to the database, and so is `mongo-0.mongo-headless`, a StatefulSet member in the caller's own namespace.
+
+OneUptime reads pod metadata, labels, images, declared ports and the name of the program a container starts — never environment variables, other command arguments or secrets.
 
 ### From Docker and Podman
 
-Every 5 minutes the containers of each connected Docker or Podman host are classified by image the same way. A container is one database, and Compose replicas (`db-1`, `db-2`) are one database with several members. Container names only resolve inside one Docker network, so these databases get **no** endpoints automatically; their page shows the container's own metrics and logs. To join the queries your applications send, add the address they use on the [Endpoints](#endpoints-and-the-one-owner-rule) tab.
+Every 5 minutes the containers of each connected Docker or Podman host are classified by image the same way. Containers of one Compose service (by the Compose project and service labels) or one Swarm service are one database with several members. Any other container is its own database under its exact name, so `redis-6379` and `redis-6380` stay two. Testcontainers, `docker compose run` one-offs and containers that run for less than 10 minutes never become databases. **Instances** counts the running containers.
+
+Container names only resolve inside one Docker network, so these databases get **no** endpoints automatically; their page shows the containers' own metrics and logs. To join the queries your applications send, add the address they use on the [Endpoints](#endpoints-and-the-one-owner-rule) tab.
 
 ### From the Database Agent or your own collector
 
-When engine metrics or logs arrive from a collector database receiver, OneUptime matches them to a database the moment they are ingested — by the endpoint the data names (`server.address` / `server.port`), or directly by id when the data carries `oneuptime.database.server.id` (the agent's `DATABASE_SERVER_ID`):
+When engine metrics or logs arrive from a collector database receiver, OneUptime matches them to a database the moment they are ingested — directly by id when the data carries `oneuptime.database.server.id` (the agent's `DATABASE_SERVER_ID`), otherwise by the endpoint the data names (`server.address` / `server.port`):
 
-- an endpoint a database already owns attaches the data to that database, whatever created it;
-- data linked by id attaches to that database and shows on its pages whatever its address — a private IP, a cluster-local name, or no address at all;
-- otherwise a database is **created**, but only from a name that means one server project-wide — a DNS name or a public IP. A private IP, a single-label name (`db`) or a cluster-local Kubernetes name (`postgres.prod.svc.cluster.local`) can mean a different server in every network, so data naming one only joins a database that already has it as an endpoint. Create that database by hand (**Databases → Create Database**, same address and port) or link the agent to it with `DATABASE_SERVER_ID`;
+- data linked by id attaches to that database and shows on its pages — and only there — whatever address it reports: a private IP, a cluster-local name, an address another database owns, or none at all. An address it reports that names one server project-wide and belongs to no database yet is added to the database as an endpoint, so application traces to that address land there too;
+- otherwise, an endpoint a database already owns attaches the data to that database, whatever created it;
+- otherwise a database is **created**, but only from a name that means one server project-wide — a DNS name, a public IP, or a cluster-local, `.internal` or `.local` name the data qualifies with its Kubernetes cluster (`k8s.cluster.name`, which the Database Agent never stamps) — and only for an engine that may be created on its own (the **Created from traces** column of [Supported databases](#supported-databases): never a shared cloud API, an in-process engine or an unknown one). Private and link-local IPs, single-label names (`db`) and unqualified cluster-local (`postgres.prod.svc.cluster.local`), `.internal` or `.local` names can mean a different server in every network; a pod IP changes with every restart; and a single-label name the collector's own namespace completed may be a Service or the collector's own pod. Data naming one of those only joins a database that already has it as an endpoint — the Kubernetes-detected workload, for its Service names. Create that database by hand (**Databases → Create Database**, same address and port) or link the agent to it with `DATABASE_SERVER_ID`;
 - a receiver batch that names no server at all is ignored (see [Using your own OpenTelemetry Collector](#using-your-own-opentelemetry-collector)).
 
-Databases created this way do not count towards the auto-create budget: an agent is an explicit request to monitor that server. See [The Database Agent](#the-database-agent).
+Databases a collector creates count towards the [auto-create budget](#the-auto-create-budget) like every other discovered database; a database you created by hand and linked with `DATABASE_SERVER_ID` never needs a create. See [The Database Agent](#the-database-agent).
+
+### Which engine a database shows
+
+When sources disagree about a database's engine, the stronger evidence wins: an engine a person set, then a collector or the Database Agent (the engine reporting on itself), then a container image or Helm chart, then client spans — a PostgreSQL driver reports `postgresql` even when it talks to CockroachDB. A source moves a database to another engine family only when its evidence is stronger than what named the current engine, and an engine a person set is never changed by discovery. Within a family, any source may refine the engine to a fork: a span says `redis`, the image says `valkey`, and the database shows Valkey. A fork is never downgraded back to its family, and a Kubernetes workload whose image moves to a fork of the same family (`redis` to `valkey`) stays the same database.
+
+### The auto-create budget
+
+Traces, Kubernetes, Docker, Podman and collectors create databases on their own only while the project holds fewer than 500 live, non-archived discovered databases (`DATABASE_SERVER_AUTO_CREATE_BUDGET`, see [Self-hosted tuning](#self-hosted-tuning)). Databases you create by hand never count and are never blocked; archived databases do not count, so [automatic archiving](#lifecycle-archiving-and-retention) frees budget; and databases that already exist keep being matched and updated. Once the budget is reached, collector data for a new endpoint creates nothing — it only joins databases that already exist — and OneUptime logs a warning at most once every 10 minutes per project.
 
 ## The Database Agent
 
@@ -275,7 +293,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Da
 bash install.sh
 ```
 
-The script asks for your OneUptime URL and ingestion key, the engine, the endpoint to connect to and the monitoring credentials (the password is read without echo). It downloads `docker-compose.yml` and the matching `configs/<receiver>.yaml` (saved as `otel-collector-config.yaml`) to `/opt/oneuptime-database-agent`, writes a `0600` `.env` file and starts the agent. When the endpoint only means something on this machine (`localhost`, `host.docker.internal`) it also asks for the host name your applications use, because that name is the database's identity; when that name is a private IP, a single-label or a cluster-local name, it asks for the id of the database in OneUptime (`DATABASE_SERVER_ID`), because such a name never creates one on its own.
+The script asks for your OneUptime URL and ingestion key, the engine, the endpoint to connect to and the monitoring credentials (the password is read without echo). It downloads `docker-compose.yml` and the matching `configs/<receiver>.yaml` (saved as `otel-collector-config.yaml`) to `/opt/oneuptime-database-agent`, writes a `0600` `.env` file and starts the agent. When the endpoint only means something on this machine (`localhost`, `host.docker.internal`) it also asks for the host name your applications use, because that name is the database's identity; when that name only resolves inside one network — a private or link-local IP, a single-label name, a cluster-local, `.internal` or `.local` name — it asks for the id of the database in OneUptime (`DATABASE_SERVER_ID`), because such a name never creates one on its own.
 
 Every prompt can be answered with an exported variable of the same name, and `INSTALL_DIR` picks the directory — for example `INSTALL_DIR=/opt/oneuptime-database-agent-orders bash install.sh` for a second database. Re-running the script reuses every value in your existing `.env` (see [Upgrading and uninstalling](#upgrading-and-uninstalling)).
 
@@ -296,11 +314,11 @@ Create a `.env` file next to them (`chmod 600 .env` — it holds a password):
 ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_KEY
 DATABASE_SYSTEM=postgresql
-DATABASE_ENDPOINT=db.internal:5432
-DATABASE_ENDPOINT_HOST=db.internal
+DATABASE_ENDPOINT=db.example.com:5432
+DATABASE_ENDPOINT_HOST=db.example.com
 DATABASE_ENDPOINT_PORT=5432
 DATABASE_ORACLE_SERVICE=
-DATABASE_SERVER_ADDRESS=db.internal
+DATABASE_SERVER_ADDRESS=db.example.com
 DATABASE_SERVER_PORT=5432
 DATABASE_USERNAME=oneuptime_monitor
 DATABASE_PASSWORD='a-strong-password'
@@ -317,7 +335,7 @@ Single-quote the password, and write every `$` in it as `$$`. Start it:
 docker compose up -d
 ```
 
-After the first collection the database appears under **Databases** — or, if OneUptime had already detected it from traces or containers at the same address, its **Engine metrics** status turns to Connected. For a private IP or a name that only resolves inside your network, create the database first or set `DATABASE_SERVER_ID` (see [From the Database Agent or your own collector](#from-the-database-agent-or-your-own-collector)).
+After the first collection the database appears under **Databases** — or, if OneUptime had already detected it from traces or containers at the same address, its **Engine metrics** status turns to Connected. For a private IP or a name that only resolves inside your network (`db.prod.internal`, a cluster-local name), create the database first or set `DATABASE_SERVER_ID` (see [From the Database Agent or your own collector](#from-the-database-agent-or-your-own-collector)).
 
 ### Environment Variables
 
@@ -330,7 +348,7 @@ After the first collection the database appears under **Databases** — or, if O
 | `DATABASE_ENDPOINT_HOST` | SQL Server | `DATABASE_ENDPOINT`'s host on its own — the SQL Server receiver takes host and port apart. `install.sh` writes it |
 | `DATABASE_ENDPOINT_PORT` | SQL Server | `DATABASE_ENDPOINT`'s port on its own. `install.sh` writes it |
 | `DATABASE_ORACLE_SERVICE` | Oracle | The Oracle service to connect to, for example `FREEPDB1` or `ORCLPDB1` |
-| `DATABASE_SERVER_ADDRESS` | Yes | The database's identity, stamped as `server.address`: the host name your **applications** use to reach it. Never `localhost` — OneUptime ignores addresses that only mean something on one machine. A private IP, single-label or cluster-local name only joins a database that already has it as an endpoint. Keep it stable; changing it registers a second database |
+| `DATABASE_SERVER_ADDRESS` | Yes | The database's identity, stamped as `server.address`: the host name your **applications** use to reach it. Never `localhost` — OneUptime ignores addresses that only mean something on one machine. A name that only resolves inside one network — a private IP, a single-label name, a cluster-local, `.internal` or `.local` name — only joins a database that already has it as an endpoint. Keep it stable; changing it registers a second database |
 | `DATABASE_SERVER_PORT` | Yes | The port your applications use, stamped as `server.port` |
 | `DATABASE_USERNAME` | PostgreSQL, MySQL, SQL Server, Oracle | The monitoring user. Optional for Redis, MongoDB and Elasticsearch servers without authentication; unused for Memcached |
 | `DATABASE_PASSWORD` | PostgreSQL, SQL Server, Oracle | Its password. In `.env`, single-quote it and write every `$` as `$$` (`install.sh` does both for you) |
@@ -338,7 +356,7 @@ After the first collection the database appears under **Databases** — or, if O
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | No | `true` accepts a certificate the collector image does not trust (self-signed, private CA). Defaults to `false` |
 | `DATABASE_COLLECTION_INTERVAL` | No | How often the engine's statistics are read. Defaults to `30s` |
 | `DATABASE_QUERY_EVENTS` | No | `true` ships query samples and top queries as logs (PostgreSQL, MySQL, MongoDB, SQL Server and Oracle). They contain query text. Defaults to `false` |
-| `DATABASE_SERVER_ID` | No | The id of a database OneUptime already shows (its **Documentation** tab has it, prefilled). The data then joins that database directly and shows on its pages, whatever its address — the way to go in Kubernetes and for private IPs. It must be a database in the project the ingestion key belongs to |
+| `DATABASE_SERVER_ID` | No | The id of a database OneUptime already shows (its **Documentation** tab has it, prefilled). The data then joins that database directly and shows on its pages, whatever address it reports (or none) — the way to go in Kubernetes and for private IPs. It must be a database in the project the ingestion key belongs to |
 
 ### What Gets Collected
 
@@ -478,41 +496,76 @@ The collector image mounts the ConfigMap at the path its default command already
 
 ## Using your own OpenTelemetry Collector
 
-If you already run collectors, add the receiver to one of them instead of running the agent. OneUptime recognises data from the collector-contrib `postgresql`, `mysql`, `sqlserver`, `oracledb`, `redis`, `mongodb`, `mongodbatlas`, `elasticsearch`, `memcached`, `couchdb`, `riak`, `saphana`, `snowflake`, `aerospike` and `googlecloudspanner` receivers (current collectors configure the Atlas and Spanner ones as `mongodb_atlas` and `google_cloud_spanner`), and from any resource that carries both `db.system.name` and `server.address` (for example a Prometheus scrape of the engine's own metrics endpoint that you stamp yourself). The **Documentation** tab of each database renders the complete collector config for its engine — receiver or Prometheus scrape, identity stamp, exporter and pipeline. Three rules:
+If you already run collectors, add the receiver to one of them instead of running the agent. OneUptime recognises data from the collector-contrib `postgresql`, `mysql`, `sqlserver`, `oracledb`, `redis`, `mongodb`, `mongodbatlas`, `elasticsearch`, `memcached`, `couchdb`, `riak`, `saphana`, `snowflake`, `aerospike` and `googlecloudspanner` receivers (current collectors configure the Atlas and Spanner ones as `mongodb_atlas` and `google_cloud_spanner`), and from any resource that carries both `db.system.name` (or the older `db.system`) and `server.address` (for example a Prometheus scrape of the engine's own metrics endpoint that you stamp yourself). The **Documentation** tab of each database renders the complete collector config for its engine — receiver or Prometheus scrape, identity stamp, exporter and pipeline. Three rules:
 
-1. **Every batch must name the server.** OneUptime reads `server.address` / `server.port`, then a `host:port` in `service.instance.id`, then `mysql.instance.endpoint`, then `mongodb_atlas.host.name` / `mongodb_atlas.process.port`; values that identify nothing (`unknown`, a container id, the pod's own name) count as missing. Receivers that report none of them — Redis unless `resource_attributes.server.address` and `server.port` are enabled, Memcached, Elasticsearch, CouchDB, SAP HANA, Snowflake, Riak, Aerospike and Cloud Spanner — are ignored until you stamp `server.address` and `server.port` with a `resource` processor, as the agent configs do (or stamp `oneuptime.database.server.id`). One receiver instance per pipeline, or the stamp merges them. A receiver pointed at a fork reports its family — the `mysql` receiver says `mysql` for MariaDB, the `redis` receiver `redis` for Valkey — so stamp `db.system.name` with the fork's name to see it as itself.
+1. **Every batch must name the server.** OneUptime reads `server.address` / `server.port`, then a `host:port` in `service.instance.id`, then `mysql.instance.endpoint`, then `mongodb_atlas.host.name` / `mongodb_atlas.process.port`, then `saphana.host` (with SAP HANA's default port); values that identify nothing (`unknown`, a container id, the pod's own name) count as missing. Receivers that report none of them — Redis unless `resource_attributes.server.address` and `server.port` are enabled, Memcached, Elasticsearch, CouchDB, Snowflake, Riak, Aerospike and Cloud Spanner — are ignored until you stamp `server.address` and `server.port` with a `resource` processor, as the agent configs do (or stamp `oneuptime.database.server.id`). One receiver instance per pipeline, or the stamp merges them. A receiver pointed at a fork reports its family — the `mysql` receiver says `mysql` for MariaDB, the `redis` receiver `redis` for Valkey — so stamp `db.system.name` with the fork's name to see it as itself.
 2. **Keep `service.name` off the resource.** Data with a `service.name` is routed to that Service first. The Prometheus receiver always sets it (to the job name), so delete it — and `service.instance.id`, the scrape target — in the `resource` processor.
-3. **Name the server your applications use.** A loopback endpoint (`localhost:5432`) names no server. OneUptime falls back to the collector machine's `host.name` only for a collector running directly on a VM or bare-metal host (the `resourcedetection` `system` detector reports `os.type`, and nothing marks it as a container, a pod or a serverless task); anywhere else the batch is ignored. Stamping `server.address` with the name applications use is more reliable either way, and it is what joins engine metrics to application traces. Give database receivers their own pipeline, as the agent configs do, rather than sharing one with host metrics.
+3. **Name the server your applications use.** A loopback endpoint (`localhost:5432`) names no server. OneUptime falls back to the collector machine's `host.name` only for a collector running directly on a VM or bare-metal host (the `resourcedetection` `system` detector reports `os.type`, and nothing marks it as a container, a pod or a serverless task); anywhere else the batch is ignored. Stamping `server.address` with the name applications use is more reliable either way, and it is what joins engine metrics to application traces. Give database receivers their own pipeline, as the agent configs do: the receiver's data belongs to its database either way (see [The metrics land on a Host](#the-metrics-land-on-a-host-or-a-new-service-appears)), but a `resource` processor that stamps a database's identity stamps every resource in its pipeline, host metrics included.
 
 To attach a receiver to a database OneUptime already shows, whatever its address, also stamp `oneuptime.database.server.id` with that database's id (its **Documentation** tab has it). Values the collector reads from the environment are expanded once more, so write every `$` in a password as `$$`.
 
 ## Endpoints and the one-owner rule
 
-An endpoint is a `host:port` a database answers on. A database's **Endpoints** tab lists them: the primary one (read-only) and any aliases. Everything that names an endpoint — a span, a `db.client.*` metric, a receiver batch — is attributed to the database that owns it, so endpoints are what tie traces, Kubernetes and engine metrics into one page.
+An endpoint is a `host:port` a database answers on. A database's **Endpoints** tab lists them: the primary one — the endpoint the database was created from, which cannot be removed — and any aliases. Everything that names an endpoint — a span, a `db.client.*` metric, a receiver batch, a Database Health or SQL Query monitor — is attributed to the database that owns it, so endpoints are what tie traces, Kubernetes, engine metrics and alerts into one page.
 
-- **One owner.** An endpoint belongs to at most one database in a project. Adding an alias another database already owns is refused with that database's name — remove it there first. This is also how you merge two databases that turned out to be one server: archive one, remove its endpoint, add it to the other.
-- **Canonical forms.** Endpoints are stored lowercase with a port (the engine's default when none is given), IPv6 in brackets. Kubernetes names are expanded to `<service>.<namespace>.svc.cluster.local` and cluster-local names or private IPs get the cluster as a suffix — `postgres.prod.svc.cluster.local:5432@my-cluster` — whenever the cluster is known.
-- **Local-only names never identify a database.** `localhost`, `127.0.0.1`, `::1`, `host.docker.internal` and friends point somewhere different for every caller — usually a sidecar proxy such as the Cloud SQL Auth Proxy or pgbouncer on localhost. Calls to them are not attributed to any database and they cannot be added as aliases.
-- **Names that are only unique somewhere** — a bare `postgres`, a cluster-local name without its cluster, a private IP without its cluster — are recorded on spans and receiver data but never create a database. They attach only to a database that already has exactly that endpoint: one you created with that address, or one you added it to as an alias because the name really is unique in your project.
-- **Calls from Kubernetes carry their cluster.** An application whose telemetry goes through the Kubernetes agent reports its cluster, so its calls to a cluster-local name or a private IP are recorded with the cluster attached. When you add such an endpoint by hand, add it in that form — `postgres.prod.svc.cluster.local:5432@my-cluster`, with the cluster name your Kubernetes agent was installed with — or those calls will not match it.
+- **One owner.** An endpoint belongs to at most one database in a project. Adding an alias another database already owns is refused, naming that database when you can see it.
+- **Merging two databases that are one server.** Note the endpoints of the one you do not keep, delete it, and add those endpoints as aliases on the other straight away. Deleting frees every endpoint of the deleted database, its primary one included; archiving does not — an archived database keeps its endpoints. Once the aliases are added, everything that names them lands on the database you kept, so the deleted one does not come back.
+- **Canonical forms.** Endpoints are stored lowercase with a port (the engine's default when none is given), IPv6 in brackets. Kubernetes names are expanded to `<service>.<namespace>.svc.cluster.local`, and names that only resolve inside one network get the cluster as a suffix — `postgres.prod.svc.cluster.local:5432@my-cluster` — whenever the cluster is known. A connection string that lists several hosts is one endpoint, whatever order it lists them in.
+- **SQL Server named instances.** Two named instances on one host are two databases. An address that names an instance and no port — `sql1.corp\INST01`, or a span's `db.mssql.instance_name` or the instance half of a `db.namespace` of the form `instance|database` — becomes the endpoint `sql1.corp\inst01`, with no port. A known port already identifies the instance, so `sql1.corp:14330` needs no instance name, and `MSSQLSERVER`, the default instance, is no instance at all. If some applications name an instance and others its port, merge the two databases as above.
+- **Local-only names never identify a database.** `localhost`, `127.0.0.1`, `::1`, `host.docker.internal`, `host.containers.internal`, every other `*.docker.internal` name and the `host.<tool>.internal` names of minikube, k3d, Lima, OrbStack and Rancher Desktop point somewhere different for every caller — usually a sidecar proxy such as the Cloud SQL Auth Proxy or pgbouncer on localhost. Calls to them are not attributed to any database and they cannot be added as aliases.
+- **Names that only resolve inside one network** — a single-label name (`postgres`), a cluster-local name, a `.internal`, `.local`, `.home.arpa` or `.localdomain` name, a private IP (`10/8`, `172.16/12`, `192.168/16`, `100.64/10`, `fc00::/7`) — are qualified with the caller's cluster when the caller runs in Kubernetes. Without a cluster — a call from a VM, a laptop, a serverless function or the Database Agent — they are recorded on spans and receiver data but never create a database: they attach only to a database that already has exactly that endpoint, one you created with that address or one you added it to as an alias because the name really is unique in your project. Link-local addresses (`169.254/16`, `fe80::/10`) never create a database, even from a pod: every network link has its own.
+- **Calls from Kubernetes carry their cluster.** An application whose telemetry goes through the Kubernetes agent reports its namespace and cluster, so its calls are read the way its pod's resolver reads them — `postgres` as the Service in its own namespace, `postgres.prod` as the Service `postgres` in namespace `prod` — and names that only resolve inside the cluster are recorded with the cluster attached. A two-part name called from a VM is an ordinary DNS name.
+- **Naming the cluster yourself.** When you type an endpoint — the address of a database you create, or an alias on its Endpoints tab — write the cluster after an `@` for a name that only resolves inside one cluster or network: `postgres.prod.svc.cluster.local:5432@my-cluster` or `postgres.prod:5432@my-cluster`, with the cluster name your Kubernetes agent was installed with; otherwise calls from that cluster will not match it. On a database detected in Kubernetes, a name typed without a cluster takes the database's own. The qualifier is refused on a name that resolves the same everywhere (`db.example.com@prod`), a single-label name needs its namespace first (`postgres.prod@prod`, not `postgres@prod`), and `user@host` (`admin@10.0.0.5:5432`) is refused: the database user does not belong in an endpoint.
 - **Engine-agnostic.** Endpoints carry no engine, so wire-compatible engines join: a CockroachDB or YugabyteDB cluster that applications reach with a PostgreSQL driver, a MariaDB server they reach with a MySQL driver, or an OpenSearch cluster that clients report as Elasticsearch, still lands on its database — which shows the specific engine once an image, a chart or the agent names it.
+- **Discovered endpoints move on.** The **Added by** column says whether a person added an endpoint or discovery did. Discovery maintains its own: a Kubernetes Service name is released about 2 hours after the workload stops producing it (a renamed Service, or the unqualified form once the project has a second cluster), and when a workload is replaced — a Deployment moved to a StatefulSet, an image recognised as another engine — the endpoints of the old database move to the new one once the old workload has not been seen for an hour. They also move away from an untouched duplicate that application traces created before the workload was detected. Endpoints a person added are never moved or released. **Last Matched** is refreshed at most once an hour; for a Kubernetes Service name it is when the workload last produced it.
 
-A database's name defaults to the engine and its endpoint — `PostgreSQL db.internal:5432` — and can be renamed freely; the name is not the identity. That default makes label and owner rules by name easy: a name pattern of `^PostgreSQL` matches every PostgreSQL database, and `^MariaDB` every MariaDB one.
+A database's name defaults to the engine and its endpoint — `PostgreSQL db.example.com:5432` — and can be renamed freely; the name is not the identity. That default makes label and owner rules by name easy: a name pattern of `^PostgreSQL` matches every PostgreSQL database, and `^MariaDB` every MariaDB one.
 
 ## Alerts on a database
 
-Engine metrics, query events and the engine's log file carry `oneuptime.database.server.id`, the database's id (its **Documentation** tab shows it). A **Metrics** monitor over an engine metric that filters on that attribute — or groups by it, to watch many databases with one monitor — attaches its alerts and incidents to the database: they appear on its **Alerts** and **Incidents** tabs, and its scheduled maintenance applies to them.
+A database's **Alerts** and **Incidents** tabs show what the monitors that name it opened, and its scheduled maintenance applies to them. Databases can also be attached to incidents, alerts and scheduled maintenance by hand, like any other resource.
 
-Threshold gauges — connections against their limit, memory, replication lag, cache hit ratio, blocked sessions — or a ratio of two gauges. A cumulative counter (queries, slow queries, deadlocks, connection errors) only ever grows, so a threshold on its raw value fires forever once crossed; alert on its rate instead. For a probe that checks a database without any agent, see the [Database Health Monitor](/docs/monitor/database-health-monitor).
+### Recommended monitors
+
+The database's **Recommendations** tab offers ready-made Metrics monitors for its engine — connections near their limit, replication lag, memory and cache pressure, cluster health, restarts, and an **Engine Metrics Stopped** check that fires when the engine's metrics stop arriving — for these engines: PostgreSQL, MySQL, MariaDB, SQL Server, Oracle, Redis, Valkey, KeyDB, Dragonfly, Memcached, MongoDB, CouchDB, Elasticsearch and OpenSearch. They read the metrics the engine's collector receiver reports, so they are offered once the database's engine metrics have arrived — until then the tab says why it is empty — and every one filters on the database's `oneuptime.database.server.id`. The badge next to the tab counts the ones not created yet.
+
+### Monitors you build
+
+A monitor you build attaches its alerts and incidents to a database when it names the database:
+
+- **By id.** A **Metrics** monitor over an engine metric, or a **Logs** monitor over its query events and log file, that filters on `oneuptime.database.server.id` — the id on the database's **Documentation** tab. To watch many databases with one monitor, group the query by `oneuptime.database.server.id` instead: each series then attaches to its own database and is silenced by that database's scheduled maintenance alone.
+- **By endpoint.** **Database Health** and **SQL Query** monitors attach to the database whose endpoints include the host and port they connect to, and so do Metrics and **Traces** monitors that filter `server.address` — with `server.port`, or else the default port of the engine a `db.system.name` filter or a receiver metric (`postgresql.backends`) names. A Traces monitor on the failed calls to `orders-db.example.com` is that database's. The address is read the way a span's is, so a `k8s.namespace.name` or `k8s.cluster.name` filter next to a cluster-local name completes and qualifies it; a probe carries no cluster, so it matches a name that only resolves inside one cluster only while the database also has it unqualified (a project with one Kubernetes cluster).
+
+Grouping by `server.address` attaches nothing: group by `oneuptime.database.server.id`. Charts overlay a database's incidents and alerts when they are filtered by `oneuptime.database.server.id`, never by `oneuptime.database.server.name`, which is a display name made from the data rather than the database's own name.
+
+### What to alert on
+
+Threshold gauges — connections against their limit, memory, replication lag, cache hit ratio, blocked sessions — or a ratio of two gauges from the same scrape. A cumulative counter (slow queries, deadlocks, rejected connections, evictions) only ever grows and monitors have no rate function, so a threshold on its raw value fires once and never clears; the **Metrics** tab still charts it as a rate. To alert on one, turn it into deltas in the collector with a `cumulativetodelta` processor — each point is then the increase since the previous one, and a Sum over the monitor's window thresholds it. In the agent's `otel-collector-config.yaml`, add the processor and put it in the `metrics` pipeline before `batch`:
+
+```yaml
+processors:
+  cumulativetodelta/alerting:
+    include:
+      metrics:
+        - postgresql.deadlocks
+        - postgresql.rollbacks
+      match_type: strict
+
+service:
+  pipelines:
+    metrics:
+      processors: [memory_limiter, resource, transform/optional_identity, cumulativetodelta/alerting, batch]
+```
+
+List only the counters you alert on: from then on the database's charts show those metrics per interval. An upgrade replaces the config and keeps your edited copy next to it (see [Upgrading and uninstalling](#upgrading-and-uninstalling)), so re-apply the edit afterwards. For a probe that checks a database without any agent, see the [Database Health Monitor](/docs/monitor/database-health-monitor).
 
 ## Lifecycle, archiving and retention
 
-- **Last seen** is updated by every source. **Engine metrics** reads _Connected_ while collector data keeps arriving and _Not connected_ after 15 minutes without it.
+- **Last seen** is updated by every source. **Engine metrics** reads _Connected_ while collector data keeps arriving, _Disconnected_ once a collector that reported stops for 15 minutes, and _Not connected_ when no Database Agent or collector has ever reported. The list's **Engine metrics** filter offers all three.
 - **Archive to dismiss.** Deleting a discovered database removes it only until a source sees it again — the next span or pod brings it back as a new database. To dismiss one for good, **archive** it: an archived database keeps its endpoints, so everything that matches them stays attached to the archived database instead of creating a new one.
-- **Automatic archiving.** A discovered database nobody has touched (no labels, owners, incidents, alerts, scheduled maintenance, user-added endpoints or retention setting) that no source has seen for 7 days is archived automatically, and restored automatically if it is seen again. Databases you archived yourself, and databases you created, are never touched.
-- **Retention.** The retention setting on a database's **Settings** tab applies to telemetry collected from the database itself by a collector or the agent — engine metrics, query events and its log file. Application traces follow the retention of the service that sent them, and container logs and metrics that of their cluster or host.
-
-Databases can be attached to incidents, alerts and scheduled maintenance like any other resource, and appear on the Incidents, Alerts and Scheduled Maintenance tabs of their page.
+- **Automatic archiving.** A discovered database that no source has seen for 7 days is archived automatically, unless somebody invested in it: labels or owners a person added, an incident, alert or scheduled maintenance, an endpoint a person added, or a retention setting. Labels and owners that label or owner rules, or `oneuptime.label.*` attributes, attached on their own do not count — a catch-all rule would otherwise keep every database forever — until a person saves them on the database. Databases of a Kubernetes cluster or a Docker or Podman host that has gone quiet itself are not archived while it is dark: a database only counts as unseen when it went unseen well before its cluster or host did.
+- **Restoring.** A database archived automatically is restored automatically as soon as a source sees it again — though not by a trace that still names the Service of a workload that is gone. Databases you created, and databases a person archived, are never archived or restored by discovery. A database a person restores stays restored for 30 days (or the archive window, if that is longer) even while nothing sees it; from its next sighting the 7-day rule applies again.
+- **Retention.** The retention setting on a database's **Settings** tab applies to telemetry collected from the database itself by a collector or the agent — engine metrics, query events and its log file, including a database receiver's data that shares a collector with host or Kubernetes metrics. Without a setting the project's default applies. Application traces follow the retention of the service that sent them, and container logs and metrics that of their cluster or host.
 
 ## Self-hosted tuning
 
@@ -521,9 +574,9 @@ Self-hosted installations can tune discovery with these environment variables on
 | Variable | Default | What it controls |
 | --- | --- | --- |
 | `DATABASE_SERVER_MIN_CALLS` | `10` | Calls an endpoint needs within the 15-minute window each 10-minute run looks at before traces create a database for it |
-| `DATABASE_SERVER_AUTO_CREATE_BUDGET` | `500` | Discovered (non-manual, non-agent) databases a project can have before traces, Kubernetes and Docker stop creating new ones |
-| `DATABASE_SERVER_AUTO_ARCHIVE_DAYS` | `7` | Days unseen before an untouched discovered database is archived |
-| `DATABASE_SERVER_COLLECTOR_STALE_MINUTES` | `15` | Minutes without collector data before Engine metrics reads Not connected (minimum 10) |
+| `DATABASE_SERVER_AUTO_CREATE_BUDGET` | `500` | Live, non-archived discovered databases a project can have before traces, Kubernetes, Docker, Podman and collectors stop creating new ones. Only databases created by hand are exempt; `0` turns automatic creation off |
+| `DATABASE_SERVER_AUTO_ARCHIVE_DAYS` | `7` | Days unseen before an untouched discovered database is archived (minimum 1) |
+| `DATABASE_SERVER_COLLECTOR_STALE_MINUTES` | `15` | Minutes without collector data before Engine metrics reads Disconnected (minimum 10) |
 
 ## Troubleshooting
 
@@ -542,7 +595,7 @@ It checks the container, the identity in `.env`, TCP reachability of the databas
 - It is a private IP, a single-label name or a cluster-local name (`*.svc.cluster.local`) — such names never create a database on their own. Create the database by hand with that address and port, or set `DATABASE_SERVER_ID`.
 - `DATABASE_SERVER_ID` is not the id of a database in the project the ingestion key belongs to.
 - The ingestion key is wrong — run the diagnostic script.
-- Your own collector sends receiver batches without `server.address` — **receiver batches that do not name their server are ignored**. Enable `resource_attributes.server.address` / `server.port` (Redis) or stamp both with a `resource` processor (Memcached, Elasticsearch, CouchDB, SAP HANA, Snowflake, Riak, Aerospike, Cloud Spanner).
+- Your own collector sends receiver batches without `server.address` — **receiver batches that do not name their server are ignored**. Enable `resource_attributes.server.address` / `server.port` (Redis) or stamp both with a `resource` processor (Memcached, Elasticsearch, CouchDB, Snowflake, Riak, Aerospike, Cloud Spanner).
 
 ### The collector cannot connect to the database
 
@@ -558,27 +611,39 @@ Inside the agent's container, `localhost` is the container itself. Use `host.doc
 
 ### The metrics land on a Host, or a new Service appears
 
-OneUptime attributes a batch to a database only when the batch names the database's server. A batch that does not is attributed by its other attributes — to the collector's Host when `resourcedetection` added `host.name`, or to a Service when it carries `service.name`. Stamp `server.address` / `server.port` (see [Using your own OpenTelemetry Collector](#using-your-own-opentelemetry-collector)), and delete `service.name` in the `resource` processor.
+OneUptime attributes a batch to a database only when the batch names the database's server, or carries its `oneuptime.database.server.id`. A batch that does not is attributed by its other attributes — to the collector's Host when `resourcedetection` added `host.name`, or to a Service when it carries `service.name`, which wins even over a database's identity. Stamp `server.address` / `server.port` (see [Using your own OpenTelemetry Collector](#using-your-own-opentelemetry-collector)), and delete `service.name` in the `resource` processor.
 
-A database receiver's data belongs to the database even when the receiver shares a collector — and a pipeline — with host or Kubernetes metrics: each receiver emits its own resource, so a PostgreSQL receiver added to a host-metrics or Kubernetes agent pipeline is attributed to its database, not to the Host or the cluster. The database's retention applies to it (set it on the database's **Settings** tab), and its rows carry `oneuptime.database.server.id` rather than `oneuptime.host.id`: a monitor that grouped such metrics by `oneuptime.host.id` should filter or group by `oneuptime.database.server.id` instead.
+A database receiver's data belongs to the database even when the receiver shares a collector — and a pipeline — with host or Kubernetes metrics: each receiver emits its own resource, so a PostgreSQL receiver added to a host-metrics or Kubernetes agent pipeline is attributed to its database, not to the Host or the cluster, and it neither registers an Inventory Host nor keeps one alive with a heartbeat. Only a single resource that itself also carries `system.*` or `process.*` metrics stays a Host. Collectors set up this way before the database existed now send that data to the database — created automatically when its address allows — so:
+
+- the database's retention applies to it (set it on the database's **Settings** tab), and until you set one, the project's default — not the Host's or the cluster's;
+- its rows carry `oneuptime.database.server.id` rather than `oneuptime.host.id`: a monitor or dashboard that grouped such metrics by `oneuptime.host.id` should filter or group by `oneuptime.database.server.id` instead.
 
 ### Two databases for one server
 
-The sources named it differently — an IP in one place and a DNS name in another, two DNS names, or a two-part Kubernetes name (`postgres.prod`) next to the detected `postgres.prod.svc.cluster.local`. Archive one, remove its endpoint, and add that endpoint as an alias on the other (see [Endpoints](#endpoints-and-the-one-owner-rule)). Pointing the agent at the database with `DATABASE_SERVER_ID` avoids the problem for engine metrics.
+The sources named it differently — an IP in one place and a DNS name in another, two DNS names, a SQL Server instance named by its instance in one place and by its port in another, or a cluster member a driver reported on its own (Cassandra, Redis Cluster, Elasticsearch, ElastiCache). Delete the one you do not keep and add its endpoints as aliases on the other (see [Endpoints](#endpoints-and-the-one-owner-rule)). Pointing the agent at the database with `DATABASE_SERVER_ID` avoids the problem for engine metrics.
 
 ### A database my applications use was not created
 
-It was probably outside the [create policy](#from-application-traces): an IP address, a local-only or single-label name, fewer than 10 calls in the last 15 minutes, an engine that is never created from traces (a shared cloud API, an in-process engine, or one OneUptime does not know), or the project's auto-create budget. Create it by hand with the address your applications use — its **Queries from applications** section fills in from the spans already stored.
+It was probably outside the [create policy](#from-application-traces): an IP address, a local-only or single-label name, a name that only resolves inside one network (a `.internal` or `.local` name, a cluster-local name) called from outside Kubernetes, fewer than 10 calls in the last 15 minutes, an engine that is never created from traces (a shared cloud API, an in-process engine, or one OneUptime does not know), or the project's [auto-create budget](#the-auto-create-budget). Create it by hand with the address your applications use — its **Queries from applications** section fills in from the spans already stored.
 
 ### A Kubernetes database was not detected
 
-The cluster must be connected (the Kubernetes agent running). A pod that also runs an application container, an image OneUptime does not recognise, or a connection pooler is not a database. Create it by hand and add its Service names as endpoints with the cluster attached (`postgres.prod.svc.cluster.local:5432@my-cluster`), so calls from applications in the cluster match.
+The cluster must be connected (the Kubernetes agent running), and one of the database's pods must have been Running for about 10 minutes. A pod that also runs an application container, a client or debug run of a database image, a `kubectl run` pod that declares no port, an image OneUptime does not recognise, or a connection pooler is not a database. Create it by hand and add its Service names as endpoints with the cluster attached (`postgres.prod.svc.cluster.local:5432@my-cluster`), so calls from applications in the cluster match.
 
 ### Queries from applications is empty
 
 The spans are missing `db.system.name` / `db.system` or `server.address`, or they use an address that is not one of the database's endpoints — compare the **Endpoints** tab with the `server.address` on a span in the **Traces** explorer, and add the missing alias.
 
+### Engine metrics reads Disconnected or Not connected
+
+_Not connected_: no Database Agent or collector has ever reported for this database — install the agent from its **Documentation** tab. _Disconnected_: one did and has sent nothing for 15 minutes — run the [diagnostic script](#run-the-diagnostic-script-first) where it runs. Recommended monitors appear on the **Recommendations** tab once engine metrics have arrived.
+
+### A monitor's alerts do not show on the database
+
+The monitor does not name the database. Filter or group a Metrics or Logs monitor by `oneuptime.database.server.id`, or check that the host and port a Database Health, SQL Query, Metrics or Traces monitor names is one of the database's endpoints, exactly as the **Endpoints** tab lists it (see [Monitors you build](#monitors-you-build)).
+
 ## Next steps
 
-- Alert on engine health with [Metrics monitors](/docs/monitor/metrics-monitor) over the engine metrics, filtered on `oneuptime.database.server.id` (see [Alerts on a database](#alerts-on-a-database)), or connect a probe with the [Database Health Monitor](/docs/monitor/database-health-monitor) (PostgreSQL, MySQL, SQL Server) — no agent required.
+- Open a database's **Recommendations** tab to create the monitors recommended for its engine, or build your own [Metrics monitor](/docs/monitor/metrics-monitor) over its engine metrics filtered on `oneuptime.database.server.id` (see [Alerts on a database](#alerts-on-a-database)).
+- Connect a probe with the [Database Health Monitor](/docs/monitor/database-health-monitor) (PostgreSQL, MySQL, SQL Server) — no agent required; its alerts land on the database whose endpoint it connects to.
 - Instrument your applications with [OpenTelemetry](/docs/telemetry/open-telemetry) so their database calls fill the **Queries from applications** section.

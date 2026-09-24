@@ -1218,6 +1218,8 @@ export const DATABASE_SYSTEMS: ReadonlyArray<DatabaseSystemDescriptor> = [
     receiverMetricPrefixes: ["mongodb.", "mongodbatlas."],
     imageRepositories: [
       "mongo",
+      // The bare basename covers Software Collections' centos/mongodb-36-centos7.
+      "mongodb",
       "mongodb/mongodb-community-server",
       "mongodb/mongodb-enterprise-server",
       "mongodb/mongodb-enterprise-database",
