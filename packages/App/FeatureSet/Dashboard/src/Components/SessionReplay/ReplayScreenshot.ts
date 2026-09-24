@@ -5,6 +5,8 @@ import {
   ReplayFrameRasterDeps,
   ReplayFrameViewport,
   captureReplayFrame,
+  resolveReplayFrameCanvasSize,
+  resolveReplayFramePixelRatio,
 } from "./ReplayFrameCapture";
 
 /*
@@ -25,6 +27,9 @@ export interface ReplayScreenshot {
   /* The recorded viewport, in CSS pixels; the PNG may be denser. */
   width: number;
   height: number;
+  /* The PNG's own size: the viewport times the density it was drawn at. */
+  pixelWidth?: number | undefined;
+  pixelHeight?: number | undefined;
 }
 
 export interface ReplayScreenshotRequest {
@@ -86,11 +91,13 @@ export function buildReplayScreenshotFileName(input: {
       .toLowerCase()
       .replace(SESSION_ID_UNSAFE_PATTERN, "")
       .slice(0, 8) || "session";
+  /* Cut first, then trim: a cut can land just after a separator. */
   const tabPart: string = (input.tabLabel || "")
     .toLowerCase()
     .replace(LABEL_UNSAFE_PATTERN, "-")
     .replace(EDGE_DASHES_PATTERN, "")
-    .slice(0, 24);
+    .slice(0, 24)
+    .replace(EDGE_DASHES_PATTERN, "");
 
   return [
     "session-replay",
@@ -142,8 +149,9 @@ export function readReplayViewport(
  * document (it is stage chrome), so a document capture would lose it. Its
  * left/top are recorded coordinates and the dot is drawn from that
  * corner, so the centre the viewer sees is half its box further in. A
- * hidden pointer (a touch recording, or one that has not moved yet) is
- * left out.
+ * touch recording keeps its dot too - the stage draws it at the last tap
+ * - and only a hidden pointer, or one that has not moved yet, is left
+ * out.
  */
 export function readReplayPointer(
   wrapper: HTMLElement,
@@ -160,12 +168,7 @@ export function readReplayPointer(
     ? view.getComputedStyle(pointer)
     : null;
 
-  if (
-    !style ||
-    style.display === "none" ||
-    style.visibility === "hidden" ||
-    pointer.classList.contains("touch-device")
-  ) {
+  if (!style || style.display === "none" || style.visibility === "hidden") {
     return null;
   }
 
@@ -238,11 +241,17 @@ export function captureReplayerScreenshot(
     tabLabel: request.tabLabel,
   });
 
+  const pixelRatio: number = request.pixelRatio ?? getDevicePixelRatio();
+  const pixelSize: ReplayFrameViewport = resolveReplayFrameCanvasSize(
+    viewport,
+    resolveReplayFramePixelRatio(pixelRatio, viewport),
+  );
+
   return captureReplayFrame({
     document: replayDocument,
     viewport: viewport,
     pointer: readReplayPointer(replayer.wrapper),
-    pixelRatio: request.pixelRatio ?? getDevicePixelRatio(),
+    pixelRatio: pixelRatio,
     deps: request.deps,
   }).then((blob: Blob): ReplayScreenshot => {
     return {
@@ -250,6 +259,8 @@ export function captureReplayerScreenshot(
       fileName: fileName,
       width: viewport.width,
       height: viewport.height,
+      pixelWidth: pixelSize.width,
+      pixelHeight: pixelSize.height,
     };
   });
 }

@@ -108,6 +108,10 @@ export const REPLAY_FRAME_TRANSPARENT_IMAGE: string =
 export const REPLAY_FRAME_FREEZE_CSS: string =
   "html, html *, html *::before, html *::after { animation: none !important; transition: none !important; caret-color: transparent !important; scroll-snap-type: none !important; scroll-snap-align: none !important; }";
 
+/* The quirks-mode behaviour a standards-mode image most visibly lacks. */
+export const REPLAY_FRAME_QUIRKS_CSS: string =
+  "html { height: 100%; } body { min-height: 100%; } table { font-size: medium; font-weight: normal; font-style: normal; line-height: normal; white-space: normal; }";
+
 /*
  * In the SVG image the document root is the <svg>, not the page's <html>:
  * every page rule written against :root would match the wrapper instead,
@@ -130,15 +134,73 @@ const REPLAY_FRAME_TOKEN_PREFIX: string = "oneuptime-frame-";
 
 const XML_NAME_PATTERN: RegExp = /^[A-Za-z_][A-Za-z0-9_.-]*$/;
 const EVENT_HANDLER_ATTRIBUTE_PATTERN: RegExp = /^on/i;
-const INVALID_XML_CHARACTERS: RegExp = /[^\t\n\r -퟿-�\u{10000}-\u{10FFFF}]/gu;
+const INVALID_XML_CHARACTERS: RegExp =
+  /[^\t\n\r\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]/gu;
+/*
+ * Any colour whose alpha is zero: "transparent", rgba(r, g, b, 0) of any
+ * hue, and the space-separated "... / 0" forms computed colours can take.
+ */
 const TRANSPARENT_COLOR_PATTERN: RegExp =
-  /^(?:transparent|rgba\(\s*0\s*,\s*0\s*,\s*0\s*,\s*0\s*\)|rgba\(0 0 0 \/ 0\))$/;
+  /^(?:transparent|[a-z-]+\(\s*[^,()]+,\s*[^,()]+,\s*[^,()]+,\s*0(?:\.0*)?%?\s*\)|[a-z-]+\([^()]*\/\s*0(?:\.0*)?%?\s*\))$/i;
 const UPPERCASE_PATTERN: RegExp = /[A-Z]/g;
 const WHITESPACE_PATTERN: RegExp = /\s+/;
 const PIXEL_LENGTH_PATTERN: RegExp = /^\d+(?:\.\d+)?px$/;
 const DATA_URL_PATTERN: RegExp = /^\s*data:/i;
 const URL_FUNCTION_PATTERN: RegExp = /^url\(/i;
 const ROOT_PSEUDO_CLASS_PATTERN: RegExp = /^:root(?![\w-])/i;
+const LINK_PSEUDO_CLASS_PATTERN: RegExp =
+  /^:(?:-webkit-any-link|-moz-any-link|any-link|link)(?![\w-])/i;
+const VISITED_PSEUDO_CLASS_PATTERN: RegExp = /^:visited(?![\w-])/i;
+const CLASS_SELECTOR_PATTERN: RegExp = /^\.[A-Za-z_][\w-]*/;
+const WIDTH_PROPERTY_PATTERN: RegExp = /-width$/;
+const AUTO_SIZE_PROPERTIES: Array<string> = [
+  "width",
+  "height",
+  "inline-size",
+  "block-size",
+];
+const REVERSE_FLEX_PATTERN: RegExp = /reverse/;
+const WHITESPACE_OUTSIDE_PARENTHESES_PATTERN: RegExp = /\s+(?![^(]*\))/;
+const NAMESPACE_AT_RULE_PATTERN: RegExp = /^@namespace\b/i;
+const MEDIA_AT_RULE_PATTERN: RegExp = /^@media\b/i;
+const GROUPING_AT_RULE_PATTERN: RegExp =
+  /^@(?:supports|layer|container|scope|document|-moz-document|starting-style)\b/i;
+const COLOR_SCHEME_WORD_PATTERN: RegExp = /[a-z-]+/gi;
+const RGB_CHANNELS_PATTERN: RegExp = /[\d.]+/g;
+
+/* The page background, when it moves from the root to the frame. */
+const PROPAGATED_BACKGROUND_PROPERTIES: Array<string> = [
+  "background-color",
+  "background-image",
+  "background-repeat",
+  "background-position",
+  "background-size",
+  "background-origin",
+  "background-clip",
+  "background-attachment",
+];
+
+/*
+ * Whether a computed colour is light: the stage's resolved text colour
+ * tells which scheme the engine really drew the page in.
+ */
+export function isLightColor(color: string): boolean {
+  const channels: Array<number> = (color.match(RGB_CHANNELS_PATTERN) ?? [])
+    .slice(0, 3)
+    .map((channel: string): number => {
+      return Number(channel);
+    });
+
+  if (channels.length < 3) {
+    return false;
+  }
+
+  const [red, green, blue]: Array<number> = channels;
+
+  return (
+    0.2126 * (red ?? 0) + 0.7152 * (green ?? 0) + 0.0722 * (blue ?? 0) > 128
+  );
+}
 const QUOTED_PATTERN: RegExp = /^(['"])([\s\S]*)\1$/;
 
 /*
@@ -154,18 +216,6 @@ export const REPLAY_FRAME_LINK_PROPERTIES: Array<string> = [
   "text-decoration-style",
   "text-decoration-thickness",
   "text-underline-offset",
-];
-
-/* The page background, when it moves from the root to the frame. */
-const PROPAGATED_BACKGROUND_PROPERTIES: Array<string> = [
-  "background-color",
-  "background-image",
-  "background-repeat",
-  "background-position",
-  "background-size",
-  "background-origin",
-  "background-clip",
-  "background-attachment",
 ];
 
 export type ReplayFrameCaptureFailure =
@@ -224,13 +274,34 @@ interface CloneContext {
   isInShadow: boolean;
   /* Text sitting directly in a scrolled box that could not be snapped. */
   textScroll: ReplayScrollOffset | null;
+  /* Every child of a reverse-origin scroller moves by its offset. */
+  childScroll: ReplayScrollOffset | null;
+  /* The live style of the element the clone's parent stands for. */
+  parentStyle: CSSStyleDeclaration | null;
 }
 
 interface ScrollPlan {
   offset: ReplayScrollOffset;
-  /* The child snapped into place; null when there is none to use. */
+  /*
+   * Scrolls from its end (right-to-left, or a reversed flex box), into
+   * negative offsets a snap cannot reach inside an image: its children
+   * are moved by the offset instead.
+   */
+  isReverse: boolean;
+  /* The box snapped into place; null when there is none to use. */
   anchor: Element | null;
   isPositioned: boolean;
+  /*
+   * No box to snap to, but nothing absolutely positioned inside either:
+   * the clone can be made a containing block for a marker without moving
+   * anything else.
+   */
+  canPosition: boolean;
+}
+
+interface SnapMargins {
+  top: number;
+  left: number;
 }
 
 /* ---- Pure helpers. ---- */
@@ -253,6 +324,11 @@ export function escapeXmlAttribute(value: string): string {
 
 /* "backgroundColor" -> "background-color", "cssFloat" -> "float". */
 export function toCssPropertyName(keyframeKey: string): string {
+  /* Custom properties come back exactly as they were declared. */
+  if (keyframeKey.startsWith("--")) {
+    return keyframeKey;
+  }
+
   if (keyframeKey === "cssFloat") {
     return "float";
   }
@@ -313,9 +389,20 @@ function findUrlEnd(css: string, start: number): number {
  * strings and comments so their contents are never touched:
  *  - every url() that is not a data: URL becomes url("data:,"): the image
  *    would not fetch it anyway, and the stage never loaded it,
- *  - :root becomes REPLAY_FRAME_ROOT_SELECTOR (see there).
+ *  - :root becomes REPLAY_FRAME_ROOT_SELECTOR (see there),
+ *  - :link and :any-link become [href]: nothing in an image document is
+ *    a link, so a:link rules would silently stop matching; :visited
+ *    becomes :not(*), as the computed styles read from the stage are the
+ *    unvisited ones (browsers never reveal visited styling),
+ *  - an @namespace rule is left exactly as it is - its url() is a name,
+ *    not a resource, and rewriting it would stop every type selector in
+ *    the sheet from matching.
  */
-export function rewriteReplayCss(css: string): string {
+export function rewriteReplayCss(
+  css: string,
+  options?: { isQuirksMode?: boolean | undefined } | undefined,
+): string {
+  const isQuirksMode: boolean = Boolean(options?.isQuirksMode);
   let output: string = "";
   let index: number = 0;
 
@@ -332,6 +419,23 @@ export function rewriteReplayCss(css: string): string {
     if (character === "/" && css.charAt(index + 1) === "*") {
       const close: number = css.indexOf("*/", index + 2);
       const end: number = close === -1 ? css.length : close + 2;
+      output += css.slice(index, end);
+      index = end;
+      continue;
+    }
+
+    if (
+      character === "@" &&
+      NAMESPACE_AT_RULE_PATTERN.test(css.slice(index, index + 11))
+    ) {
+      let end: number = index;
+
+      while (end < css.length && css.charAt(end) !== ";") {
+        const inner: string = css.charAt(end);
+        end =
+          inner === '"' || inner === "'" ? findQuotedEnd(css, end) : end + 1;
+      }
+
       output += css.slice(index, end);
       index = end;
       continue;
@@ -361,11 +465,72 @@ export function rewriteReplayCss(css: string): string {
       continue;
     }
 
+    if (isQuirksMode && character === ".") {
+      const className: RegExpExecArray | null = CLASS_SELECTOR_PATTERN.exec(
+        css.slice(index, index + 256),
+      );
+
+      if (className) {
+        output += className[0].toLowerCase();
+        index += className[0].length;
+        continue;
+      }
+    }
+
+    if (character === ":" && css.charAt(index + 1) !== ":") {
+      const link: RegExpExecArray | null = LINK_PSEUDO_CLASS_PATTERN.exec(
+        css.slice(index, index + 20),
+      );
+
+      if (link) {
+        output += "[href]";
+        index += link[0].length;
+        continue;
+      }
+
+      const visited: RegExpExecArray | null = VISITED_PSEUDO_CLASS_PATTERN.exec(
+        css.slice(index, index + 10),
+      );
+
+      if (visited) {
+        output += ":not(*)";
+        index += visited[0].length;
+        continue;
+      }
+    }
+
     output += character;
     index++;
   }
 
   return output;
+}
+
+/*
+ * A translate that moves a box by -offset on top of whatever translate it
+ * already declares. The individual `translate` property composes with
+ * `transform` rather than replacing it, which is why it is used here.
+ */
+export function composeTranslate(
+  existing: string,
+  offset: ReplayScrollOffset,
+): string {
+  const dx: string = `${-offset.x}px`;
+  const dy: string = `${-offset.y}px`;
+  const trimmed: string = existing.trim();
+
+  if (!trimmed || trimmed === "none") {
+    return `${dx} ${dy}`;
+  }
+
+  const parts: Array<string> = trimmed.split(
+    WHITESPACE_OUTSIDE_PARENTHESES_PATTERN,
+  );
+  const x: string = parts[0] ?? "0px";
+  const y: string = parts[1] ?? "0px";
+  const z: string = parts[2] ? ` ${parts[2]}` : "";
+
+  return `calc(${x} + ${dx}) calc(${y} + ${dy})${z}`;
 }
 
 /*
@@ -407,6 +572,21 @@ export function resolveReplayFramePixelRatio(
   }
 
   return ratio;
+}
+
+/*
+ * The canvas for a viewport at a ratio. Floored, not rounded: rounding
+ * both sides up can push a frame the ratio was chosen to fit back over
+ * REPLAY_FRAME_MAX_CANVAS_PIXELS.
+ */
+export function resolveReplayFrameCanvasSize(
+  viewport: ReplayFrameViewport,
+  pixelRatio: number,
+): ReplayFrameViewport {
+  return {
+    width: Math.max(1, Math.floor(viewport.width * pixelRatio)),
+    height: Math.max(1, Math.floor(viewport.height * pixelRatio)),
+  };
 }
 
 export interface ReplayFrameSvgInput {
@@ -459,7 +639,11 @@ export function buildReplayFrameSvg(input: ReplayFrameSvgInput): string {
     "scroll-behavior: auto !important",
     ...(input.frameDeclarations ?? ["overflow: hidden !important"]),
   ].join("; ");
-  const markerStyle: string = `display: block !important; position: absolute !important; left: ${input.scroll.x}px !important; top: ${input.scroll.y}px !important; width: 1px !important; height: 1px !important; margin: 0px !important; padding: 0px !important; border: 0px none !important; scroll-snap-align: start !important; scroll-margin: 0px !important; pointer-events: none !important;`;
+  /*
+   * A right-to-left root scrolls into negative offsets, which a snap
+   * cannot reach inside an image; it is drawn at its horizontal origin.
+   */
+  const markerStyle: string = `display: block !important; position: absolute !important; left: ${Math.max(0, input.scroll.x)}px !important; top: ${Math.max(0, input.scroll.y)}px !important; width: 1px !important; height: 1px !important; margin: 0px !important; padding: 0px !important; border: 0px none !important; scroll-snap-align: start !important; scroll-margin: 0px !important; pointer-events: none !important;`;
 
   return `<svg xmlns="${SVG_NAMESPACE}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" style="${escapeXmlAttribute(
     svgStyle,
@@ -502,9 +686,113 @@ function isHtmlElement(element: Element): boolean {
   );
 }
 
+/*
+ * Answers a media query the way the live replay document does. Inside the
+ * SVG image some features read differently - (hover), (pointer) and
+ * (color) are false there in Chromium and WebKit - so conditions are
+ * settled here, against the replay's own window, and the image is handed
+ * rules with no @media left to evaluate.
+ */
+export type ReplayMediaMatcher = (query: string) => boolean;
+
+function serializeRules(
+  rules: CSSRuleList,
+  matchMedia: ReplayMediaMatcher | null,
+): Array<string> {
+  const texts: Array<string> = [];
+
+  for (let index: number = 0; index < rules.length; index++) {
+    const rule: CSSRule | null = rules.item
+      ? rules.item(index)
+      : (rules as unknown as Array<CSSRule>)[index] ?? null;
+
+    if (!rule) {
+      continue;
+    }
+
+    const cssText: string = rule.cssText.trim();
+    const grouping: CSSRule & {
+      cssRules?: CSSRuleList;
+      media?: MediaList;
+      styleSheet?: CSSStyleSheet | null;
+    } = rule;
+
+    /*
+     * An @import is replaced by what it imported: the replay document has
+     * it parsed already, and the image would not fetch it.
+     */
+    if (cssText.startsWith("@import")) {
+      const media: string = grouping.media
+        ? grouping.media.mediaText.trim()
+        : "";
+
+      if (media && matchMedia && !matchMedia(media)) {
+        continue;
+      }
+
+      const importedText: string | null = readStyleSheetText(
+        grouping.styleSheet,
+        matchMedia,
+      );
+
+      if (importedText) {
+        texts.push(
+          media && !matchMedia
+            ? `@media ${media} {\n${importedText}\n}`
+            : importedText,
+        );
+      }
+
+      continue;
+    }
+
+    if (MEDIA_AT_RULE_PATTERN.test(cssText) && grouping.cssRules) {
+      if (!matchMedia) {
+        texts.push(rule.cssText);
+        continue;
+      }
+
+      const media: string = grouping.media
+        ? grouping.media.mediaText
+        : cssText.slice(6, cssText.indexOf("{")).trim();
+
+      if (matchMedia(media)) {
+        texts.push(...serializeRules(grouping.cssRules, matchMedia));
+      }
+
+      continue;
+    }
+
+    /*
+     * @supports, @layer and the like keep their wrapper (the image
+     * evaluates those the same way) but their contents go through here,
+     * for the @media nested inside them.
+     */
+    if (
+      GROUPING_AT_RULE_PATTERN.test(cssText) &&
+      grouping.cssRules &&
+      cssText.includes("{")
+    ) {
+      const prelude: string = cssText.slice(0, cssText.indexOf("{")).trim();
+
+      texts.push(
+        `${prelude} {\n${serializeRules(grouping.cssRules, matchMedia).join(
+          "\n",
+        )}\n}`,
+      );
+      continue;
+    }
+
+    texts.push(rule.cssText);
+  }
+
+  return texts;
+}
+
 /* Serialises a sheet from the CSSOM; null when the browser will not say. */
 export function readStyleSheetText(
   sheet: CSSStyleSheet | null | undefined,
+  matchMedia?: ReplayMediaMatcher | null | undefined,
 ): string | null {
   if (!sheet) {
     return null;
@@ -518,44 +806,85 @@ export function readStyleSheetText(
     return null;
   }
 
-  const texts: Array<string> = [];
-
-  for (let index: number = 0; index < rules.length; index++) {
-    const rule: CSSRule | null = rules.item(index);
-
-    if (!rule) {
-      continue;
-    }
-
-    /*
-     * An @import is replaced by what it imported: the replay document has
-     * it parsed already, and the image would not fetch it.
-     */
-    if (rule.cssText.trim().startsWith("@import")) {
-      const imported: CSSRule & {
-        styleSheet?: CSSStyleSheet | null;
-        media?: MediaList;
-      } = rule;
-      const importedText: string | null = readStyleSheetText(
-        imported.styleSheet,
-      );
-      const media: string = imported.media
-        ? imported.media.mediaText.trim()
-        : "";
-
-      if (importedText) {
-        texts.push(
-          media ? `@media ${media} {\n${importedText}\n}` : importedText,
-        );
-      }
-
-      continue;
-    }
-
-    texts.push(rule.cssText);
+  if (!rules) {
+    return null;
   }
 
-  return texts.join("\n");
+  return serializeRules(rules, matchMedia ?? null).join("\n");
+}
+
+/*
+ * The initial value of every property, read once from an `all: initial`
+ * probe in a blank reference document. Flattened shadow content has its
+ * style inlined behind `all: unset`: page rules must not reach into what
+ * was a shadow tree. Behind that reset a property the clone leaves out
+ * inherits from its parent if it is inherited and takes its initial value
+ * if not - so a property whose value is BOTH its initial value and the
+ * parent's can be left out whichever it is. That keeps an element to a
+ * few dozen declarations instead of several hundred: a web-component
+ * page of a few thousand elements would otherwise freeze the tab for
+ * seconds and build a SVG of tens of megabytes.
+ */
+class ReplayInitialStyles {
+  private frame: HTMLIFrameElement | null = null;
+  private values: Map<string, string> | null = null;
+  private isUnavailable: boolean = false;
+
+  public get(): Map<string, string> | null {
+    if (this.values || this.isUnavailable) {
+      return this.values;
+    }
+
+    try {
+      const frame: HTMLIFrameElement = document.createElement("iframe");
+
+      frame.setAttribute("aria-hidden", "true");
+      frame.setAttribute("tabindex", "-1");
+      frame.setAttribute(
+        "style",
+        "position: fixed; left: -10000px; top: -10000px; width: 0px; height: 0px; border: 0px; visibility: hidden; pointer-events: none;",
+      );
+      (document.body ?? document.documentElement).appendChild(frame);
+      this.frame = frame;
+
+      const reference: Document | null = frame.contentDocument;
+      const view: Window | null = reference?.defaultView ?? null;
+
+      if (!reference || !view || !reference.body) {
+        throw new Error("No reference document.");
+      }
+
+      const probe: HTMLElement = reference.createElement("span");
+
+      probe.setAttribute("style", "all: initial");
+      reference.body.appendChild(probe);
+
+      const style: CSSStyleDeclaration = view.getComputedStyle(probe);
+      const values: Map<string, string> = new Map<string, string>();
+
+      for (let index: number = 0; index < style.length; index++) {
+        const property: string = style.item(index);
+
+        values.set(property, style.getPropertyValue(property));
+      }
+
+      this.values = values;
+    } catch {
+      this.isUnavailable = true;
+    } finally {
+      this.dispose();
+    }
+
+    return this.values;
+  }
+
+  public dispose(): void {
+    if (this.frame) {
+      this.frame.remove();
+    }
+
+    this.frame = null;
+  }
 }
 
 /* ---- The serialiser. ---- */
@@ -574,9 +903,9 @@ class ReplayFrameSerializer {
     Element,
     ScrollPlan
   >();
-  private readonly snapAnchors: Map<Element, ReplayScrollOffset> = new Map<
+  private readonly snapAnchors: Map<Element, SnapMargins> = new Map<
     Element,
-    ReplayScrollOffset
+    SnapMargins
   >();
   private readonly gutterlessScrollers: Set<Element> = new Set<Element>();
   private readonly animatedProperties: Map<Element, Set<string>> = new Map<
@@ -590,6 +919,13 @@ class ReplayFrameSerializer {
   >();
   private readonly frames: Array<ReplayNestedFrame> = [];
   private readonly pseudoRules: Array<string> = [];
+  private readonly pseudoAnimations: Map<Element, Map<string, Set<string>>> =
+    new Map<Element, Map<string, Set<string>>>();
+  /* Modal dialogs and their backdrops, drawn last: the top layer. */
+  private readonly topLayer: Array<Node> = [];
+  private readonly isQuirksMode: boolean;
+  private readonly initialStyles: ReplayInitialStyles;
+  private readonly matchMedia: ReplayMediaMatcher | null;
   private rootScroll: ReplayScrollOffset = { x: 0, y: 0 };
   private rootScroller: Element;
 
@@ -597,6 +933,7 @@ class ReplayFrameSerializer {
     replayDocument: Document,
     viewport: ReplayFrameViewport,
     depth: number,
+    initialStyles: ReplayInitialStyles,
   ) {
     const view: Window | null = replayDocument.defaultView;
 
@@ -611,6 +948,18 @@ class ReplayFrameSerializer {
     this.window = view;
     this.viewport = viewport;
     this.depth = depth;
+    this.initialStyles = initialStyles;
+    this.isQuirksMode = replayDocument.compatMode === "BackCompat";
+    this.matchMedia =
+      typeof view.matchMedia === "function"
+        ? (query: string): boolean => {
+            try {
+              return view.matchMedia(query).matches;
+            } catch {
+              return true;
+            }
+          }
+        : null;
     this.rootScroller =
       replayDocument.scrollingElement ?? replayDocument.documentElement;
     /*
@@ -627,6 +976,8 @@ class ReplayFrameSerializer {
     const root: Node | null = this.cloneElement(liveRoot, {
       isInShadow: false,
       textScroll: null,
+      childScroll: null,
+      parentStyle: null,
     });
 
     if (!isElement(root)) {
@@ -638,6 +989,12 @@ class ReplayFrameSerializer {
 
     root.removeAttribute(REPLAY_TEXT_SELECTION_ATTRIBUTE);
 
+    const topLayerParent: Element = this.findChild(root, "body") ?? root;
+
+    for (const node of this.topLayer) {
+      topLayerParent.appendChild(node);
+    }
+
     const frameDeclarations: Array<string> = this.applyRootPropagation(root);
     const head: Element = this.ensureHead(root);
     const adoptedText: string = this.readAdoptedStyleSheets();
@@ -648,6 +1005,16 @@ class ReplayFrameSerializer {
 
     if (this.pseudoRules.length > 0) {
       head.appendChild(this.createStyle(this.pseudoRules.join("\n")));
+    }
+
+    /*
+     * A page without a doctype is replayed in quirks mode, and an image
+     * always lays out in standards mode. The quirks that change a page
+     * most are approximated; case-insensitive class matching and
+     * percentage heights through auto-height ancestors are not.
+     */
+    if (this.document.compatMode === "BackCompat") {
+      head.appendChild(this.createStyle(REPLAY_FRAME_QUIRKS_CSS));
     }
 
     head.appendChild(this.createStyle(REPLAY_FRAME_FREEZE_CSS));
@@ -823,10 +1190,12 @@ class ReplayFrameSerializer {
   }
 
   /*
-   * Picks the child a scrolled box snaps to: the first one laid out in
-   * flow, untransformed, whose position therefore moves with the scroll
-   * and nothing else. A sticky child is skipped - its box sits where the
-   * scroll pushed it, not where its layout put it.
+   * Picks the box a scrolled box snaps to: the first one laid out in flow,
+   * untransformed, whose position therefore moves with the scroll and
+   * nothing else. The search looks through what has no box of its own -
+   * display:contents wrappers, slots, plain inline elements - the way
+   * layout does; a sticky, fixed, absolute or transformed box is passed
+   * over, because where it is drawn is not where its layout put it.
    */
   private planScroll(
     scroller: Element,
@@ -834,48 +1203,155 @@ class ReplayFrameSerializer {
     offset: ReplayScrollOffset,
   ): void {
     const position: string = style.getPropertyValue("position").trim();
+    const isPositioned: boolean = position !== "" && position !== "static";
+    const isReverse: boolean =
+      style.getPropertyValue("direction").trim() === "rtl" ||
+      (style.getPropertyValue("display").includes("flex") &&
+        (REVERSE_FLEX_PATTERN.test(style.getPropertyValue("flex-direction")) ||
+          REVERSE_FLEX_PATTERN.test(style.getPropertyValue("flex-wrap"))));
+    const anchor: Element | null = isReverse
+      ? null
+      : this.findSnapAnchor(
+          Array.from((scroller.shadowRoot ?? scroller).children),
+          0,
+        );
     const plan: ScrollPlan = {
       offset: offset,
-      anchor: null,
-      isPositioned: position !== "" && position !== "static",
+      isReverse: isReverse,
+      anchor: anchor,
+      isPositioned: isPositioned,
+      canPosition:
+        !isReverse &&
+        !anchor &&
+        !isPositioned &&
+        !this.hasAbsoluteDescendant(scroller),
     };
-    const candidates: HTMLCollection = (scroller.shadowRoot ?? scroller)
-      .children;
-    const scrollerBox: DOMRect = scroller.getBoundingClientRect();
 
-    for (let index: number = 0; index < candidates.length; index++) {
-      const child: Element | null = candidates.item(index);
+    if (anchor) {
+      const scrollerBox: DOMRect = scroller.getBoundingClientRect();
+      const anchorBox: DOMRect = anchor.getBoundingClientRect();
+      /*
+       * Box deltas are in zoomed pixels; a scroll-margin is in the
+       * anchor's own CSS pixels, which its effective zoom scales again.
+       */
+      const anchorWidth: number = (anchor as HTMLElement).offsetWidth || 0;
+      const anchorHeight: number = (anchor as HTMLElement).offsetHeight || 0;
+      const zoom: number =
+        anchorHeight > 0 && anchorBox.height > 0
+          ? anchorBox.height / anchorHeight
+          : anchorWidth > 0 && anchorBox.width > 0
+            ? anchorBox.width / anchorWidth
+            : 1;
+      const scale: number = zoom > 0 && Number.isFinite(zoom) ? zoom : 1;
 
-      if (!child || !this.isSnapCandidate(child)) {
-        continue;
-      }
-
-      const childBox: DOMRect = child.getBoundingClientRect();
-
-      plan.anchor = child;
-      this.snapAnchors.set(child, {
-        x: computeScrollSnapMargin({
-          childStart: childBox.left,
-          containerStart: scrollerBox.left,
-          containerBorder: scroller.clientLeft || 0,
-        }),
-        y: computeScrollSnapMargin({
-          childStart: childBox.top,
-          containerStart: scrollerBox.top,
-          containerBorder: scroller.clientTop || 0,
-        }),
+      this.snapAnchors.set(anchor, {
+        top:
+          computeScrollSnapMargin({
+            childStart: anchorBox.top,
+            containerStart: scrollerBox.top,
+            containerBorder: (scroller.clientTop || 0) * scale,
+          }) / scale,
+        left:
+          computeScrollSnapMargin({
+            childStart: anchorBox.left,
+            containerStart: scrollerBox.left,
+            containerBorder: (scroller.clientLeft || 0) * scale,
+          }) / scale,
       });
-      break;
     }
 
     this.scrollPlans.set(scroller, plan);
   }
 
-  private isSnapCandidate(child: Element): boolean {
-    if (child.localName === "slot" || child.localName === "style") {
-      return false;
+  private findSnapAnchor(
+    candidates: Array<Element>,
+    depth: number,
+  ): Element | null {
+    for (const child of candidates) {
+      const name: string = child.localName;
+
+      if (
+        name === "style" ||
+        name === "script" ||
+        name === "template" ||
+        name === "br"
+      ) {
+        continue;
+      }
+
+      if (name === "slot") {
+        const assigned: Array<Element> =
+          typeof (child as HTMLSlotElement).assignedElements === "function"
+            ? (child as HTMLSlotElement).assignedElements({ flatten: true })
+            : [];
+        const found: Element | null =
+          depth < 8
+            ? this.findSnapAnchor(
+                assigned.length > 0 ? assigned : Array.from(child.children),
+                depth + 1,
+              )
+            : null;
+
+        if (found) {
+          return found;
+        }
+
+        continue;
+      }
+
+      const style: CSSStyleDeclaration = this.getStyle(child);
+      const display: string = style.getPropertyValue("display").trim();
+
+      if (display === "none") {
+        continue;
+      }
+
+      if (
+        display === "contents" ||
+        (display === "inline" && !this.isReplaced(child))
+      ) {
+        const found: Element | null =
+          depth < 8
+            ? this.findSnapAnchor(
+                Array.from((child.shadowRoot ?? child).children),
+                depth + 1,
+              )
+            : null;
+
+        if (found) {
+          return found;
+        }
+
+        continue;
+      }
+
+      if (this.isSnapCandidate(child, style)) {
+        return child;
+      }
     }
 
+    return null;
+  }
+
+  private isReplaced(element: Element): boolean {
+    const name: string = element.localName;
+
+    return (
+      name === "img" ||
+      name === "svg" ||
+      name === "video" ||
+      name === "canvas" ||
+      name === "iframe" ||
+      name === "embed" ||
+      name === "object" ||
+      name === "input" ||
+      name === "select" ||
+      name === "textarea" ||
+      name === "button"
+    );
+  }
+
+  private isSnapCandidate(child: Element, style: CSSStyleDeclaration): boolean {
     if (
       typeof child.getClientRects !== "function" ||
       child.getClientRects().length === 0
@@ -883,19 +1359,33 @@ class ReplayFrameSerializer {
       return false;
     }
 
-    const style: CSSStyleDeclaration = this.getStyle(child);
     const position: string = style.getPropertyValue("position").trim();
-    const display: string = style.getPropertyValue("display").trim();
     const transform: string = style.getPropertyValue("transform").trim();
     const translate: string = style.getPropertyValue("translate").trim();
 
     return (
       (position === "" || position === "static" || position === "relative") &&
-      display !== "contents" &&
-      display !== "none" &&
       (transform === "" || transform === "none") &&
       (translate === "" || translate === "none")
     );
+  }
+
+  private hasAbsoluteDescendant(scroller: Element): boolean {
+    const descendants: NodeListOf<Element> = scroller.querySelectorAll("*");
+
+    for (let index: number = 0; index < descendants.length; index++) {
+      const element: Element | undefined = descendants[index];
+
+      if (
+        element &&
+        this.getStyle(element).getPropertyValue("position").trim() ===
+          "absolute"
+      ) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private measureAnimations(): void {
@@ -922,19 +1412,41 @@ class ReplayFrameSerializer {
       if (
         !effect ||
         typeof effect.getKeyframes !== "function" ||
-        effect.pseudoElement ||
         !isElement(effect.target)
       ) {
         continue;
       }
 
       const target: Element = effect.target;
-      let properties: Set<string> | undefined =
-        this.animatedProperties.get(target);
+      const pseudo: string | null = effect.pseudoElement ?? null;
+      let properties: Set<string> | undefined;
 
-      if (!properties) {
-        properties = new Set<string>();
-        this.animatedProperties.set(target, properties);
+      if (pseudo) {
+        if (pseudo !== "::before" && pseudo !== "::after") {
+          continue;
+        }
+
+        let byPseudo: Map<string, Set<string>> | undefined =
+          this.pseudoAnimations.get(target);
+
+        if (!byPseudo) {
+          byPseudo = new Map<string, Set<string>>();
+          this.pseudoAnimations.set(target, byPseudo);
+        }
+
+        properties = byPseudo.get(pseudo);
+
+        if (!properties) {
+          properties = new Set<string>();
+          byPseudo.set(pseudo, properties);
+        }
+      } else {
+        properties = this.animatedProperties.get(target);
+
+        if (!properties) {
+          properties = new Set<string>();
+          this.animatedProperties.set(target, properties);
+        }
       }
 
       for (const keyframe of effect.getKeyframes()) {
@@ -957,13 +1469,21 @@ class ReplayFrameSerializer {
   /* ---- The root: what the real viewport did for the page. ---- */
 
   /*
-   * The real viewport takes two things from the root: its overflow (from
-   * <html>, or from <body> when <html> leaves it visible) and its
-   * background (from <html>, or from <body> when <html> has none). In the
-   * image the frame <div> is the viewport, so both move there, and the
-   * element they came from stops applying them itself - an <html> that
-   * clipped, or a <body> that painted its background over a z-index:-1
-   * backdrop, would be wrong.
+   * The real viewport takes three things from the root: its overflow
+   * (from <html>, or from <body> when <html> leaves it visible), its
+   * background colour (from <html>, or from <body> when <html> has none)
+   * and its colour scheme. In the image the frame <div> is the viewport,
+   * so they move there, and the element they came from stops applying
+   * them itself - an <html> that clipped, or a <body> that painted its
+   * colour over a z-index:-1 backdrop, would be wrong. Background IMAGES
+   * stay where they were declared, so a gradient or pattern still spans
+   * and scrolls with the page rather than being squeezed into the frame.
+   *
+   * The clone's <html> is no longer the document root either, so what it
+   * computes against the root is pinned from the live one: its font-size
+   * (a relative `html { font-size: 125% }` would otherwise be applied on
+   * top of the <svg>'s already-resolved size) and its colour (which would
+   * otherwise inherit the image's default black).
    */
   private applyRootPropagation(root: Element): Array<string> {
     const liveRoot: Element = this.document.documentElement;
@@ -981,6 +1501,19 @@ class ReplayFrameSerializer {
       this.appendDeclarations(root, ["overflow: visible !important"]);
     }
 
+    const rootDeclarations: Array<string> = [];
+    const fontSize: string = rootStyle.getPropertyValue("font-size").trim();
+    const color: string = rootStyle.getPropertyValue("color").trim();
+
+    if (fontSize) {
+      rootDeclarations.push(`font-size: ${fontSize} !important`);
+    }
+
+    if (color) {
+      rootDeclarations.push(`color: ${color} !important`);
+    }
+
+    const declarations: Array<string> = [];
     const hasBackground: (style: CSSStyleDeclaration) => boolean = (
       style: CSSStyleDeclaration,
     ): boolean => {
@@ -989,13 +1522,11 @@ class ReplayFrameSerializer {
         style.getPropertyValue("background-image").trim() !== "none"
       );
     };
-
-    const declarations: Array<string> = [];
     let backgroundSource: CSSStyleDeclaration | null = null;
 
     if (hasBackground(rootStyle)) {
       backgroundSource = rootStyle;
-      this.appendDeclarations(root, ["background: none !important"]);
+      rootDeclarations.push("background: none !important");
     } else if (liveBody && cloneBody) {
       const bodyStyle: CSSStyleDeclaration = this.getStyle(liveBody);
 
@@ -1007,15 +1538,52 @@ class ReplayFrameSerializer {
 
     if (backgroundSource) {
       for (const property of PROPAGATED_BACKGROUND_PROPERTIES) {
-        const value: string = backgroundSource.getPropertyValue(property);
+        let value: string = backgroundSource.getPropertyValue(property).trim();
 
-        if (value) {
-          declarations.push(
-            `${property}: ${rewriteReplayCss(value)} !important`,
-          );
+        if (!value) {
+          continue;
         }
+
+        /*
+         * The canvas background scrolls with the document; on the frame,
+         * which is the scroller, that is "local" - "scroll" would pin it
+         * to the frame's box and squeeze a page-long gradient into it.
+         */
+        if (property === "background-attachment") {
+          value = value
+            .split(",")
+            .map((part: string): string => {
+              return part.trim() === "scroll" ? "local" : part.trim();
+            })
+            .join(", ");
+        }
+
+        declarations.push(`${property}: ${rewriteReplayCss(value)} !important`);
       }
     }
+
+    const isDark: boolean = this.isDarkColorScheme(rootStyle);
+
+    if (isDark) {
+      rootDeclarations.push("color-scheme: dark !important");
+      declarations.push("color-scheme: dark !important");
+
+      /*
+       * What a dark page with no background colour of its own is painted
+       * with - where the engine paints one at all (see isSafariWebKit).
+       */
+      if (
+        !isSafariWebKitHere() &&
+        (!backgroundSource ||
+          isTransparentColor(
+            backgroundSource.getPropertyValue("background-color"),
+          ))
+      ) {
+        declarations.push("background-color: Canvas !important");
+      }
+    }
+
+    this.appendDeclarations(root, rootDeclarations);
 
     /*
      * A classic scrollbar takes width from the viewport; keep it (the snap
@@ -1037,6 +1605,47 @@ class ReplayFrameSerializer {
     }
 
     return declarations;
+  }
+
+  /*
+   * Whether the page is drawn in its dark scheme: the root's color-scheme
+   * (or the page's <meta name="color-scheme">, which the clone drops)
+   * offers dark, either offers nothing else or the viewer prefers it -
+   * and the engine really used it, which its resolved text colour shows
+   * (WebKit keeps a replay's canvas light whatever the page asks for).
+   */
+  private isDarkColorScheme(rootStyle: CSSStyleDeclaration): boolean {
+    if (!isLightColor(rootStyle.getPropertyValue("color"))) {
+      return false;
+    }
+
+    let scheme: string = rootStyle.getPropertyValue("color-scheme").trim();
+
+    if (!scheme || scheme === "normal") {
+      const meta: Element | null = this.document.querySelector(
+        'meta[name="color-scheme"]',
+      );
+
+      scheme = meta ? meta.getAttribute("content") ?? "" : "";
+    }
+
+    const words: Array<string> = (
+      scheme.match(COLOR_SCHEME_WORD_PATTERN) ?? []
+    ).map((word: string): string => {
+      return word.toLowerCase();
+    });
+
+    if (!words.includes("dark")) {
+      return false;
+    }
+
+    if (!words.includes("light")) {
+      return true;
+    }
+
+    return this.matchMedia
+      ? this.matchMedia("(prefers-color-scheme: dark)")
+      : false;
   }
 
   private findChild(parent: Element, name: string): Element | null {
@@ -1087,7 +1696,10 @@ class ReplayFrameSerializer {
 
     return sheets
       .map((sheet: CSSStyleSheet): string => {
-        return rewriteReplayCss(readStyleSheetText(sheet) ?? "");
+        return rewriteReplayCss(
+          readStyleSheetText(sheet, this.matchMedia) ?? "",
+          { isQuirksMode: this.isQuirksMode },
+        );
       })
       .filter((text: string): boolean => {
         return text.length > 0;
@@ -1192,13 +1804,23 @@ class ReplayFrameSerializer {
 
     const declarations: Array<string> = [];
 
-    if (context.isInShadow || this.modalDialogs.has(live)) {
-      /* Flattened shadow content keeps its look only through its style. */
-      clone.setAttribute("style", this.computedStyleText(live));
+    const isModal: boolean = this.modalDialogs.has(live);
 
-      if (context.isInShadow) {
-        this.flattenPseudoElements(live, clone);
-      }
+    if (isModal) {
+      /* Its UA :modal rules no longer apply once it is serialised. */
+      clone.setAttribute("style", this.computedStyleText(live));
+    } else if (context.isInShadow || live.shadowRoot) {
+      /*
+       * Flattened shadow content keeps its look only through its style -
+       * and so does the host, whose :host rules lived in the shadow tree.
+       */
+      clone.setAttribute(
+        "style",
+        this.computedStyleText(live, undefined, context.parentStyle),
+      );
+      this.flattenPseudoElements(live, clone);
+    } else {
+      this.freezePseudoAnimations(live, clone);
     }
 
     if (isHtml && name === "img") {
@@ -1217,36 +1839,49 @@ class ReplayFrameSerializer {
       }
     }
 
-    this.collectDeclarations(live, declarations);
-    this.appendDeclarations(clone, declarations);
+    this.collectDeclarations(live, declarations, context);
 
-    const backdrop: Element | null = this.modalDialogs.has(live)
-      ? this.createModalBackdrop(live)
-      : null;
-
-    if (isHtml && name === "textarea") {
-      clone.textContent = stripInvalidXmlCharacters(
-        (live as HTMLTextAreaElement).value,
-      );
-
-      return this.withBackdrop(clone, backdrop);
+    if (this.isQuirksMode && isHtml) {
+      this.applyQuirks(live, clone, declarations);
     }
 
-    this.cloneChildren(live, clone, context);
+    this.appendDeclarations(clone, declarations);
 
-    return this.withBackdrop(clone, backdrop);
-  }
+    if (isHtml && name === "textarea") {
+      const textarea: HTMLTextAreaElement = live as HTMLTextAreaElement;
 
-  private withBackdrop(clone: Element, backdrop: Element | null): Node {
-    if (!backdrop) {
+      if (textarea.scrollTop || textarea.scrollLeft) {
+        return this.cloneScrolledTextarea(textarea, context);
+      }
+
+      clone.textContent = stripInvalidXmlCharacters(textarea.value);
+    } else {
+      this.cloneChildren(
+        live,
+        clone,
+        isModal ? { ...context, isInShadow: true } : context,
+      );
+    }
+
+    if (!isModal) {
       return clone;
     }
 
-    const fragment: DocumentFragment = this.output.createDocumentFragment();
-    fragment.appendChild(backdrop);
-    fragment.appendChild(clone);
+    /*
+     * The top layer is above everything and positioned against the
+     * viewport whatever its ancestors do, so the dialog leaves its place
+     * in the tree - where a transformed or clipped ancestor would capture
+     * it - and is drawn last, over its backdrop.
+     */
+    const backdrop: Element | null = this.createModalBackdrop(live);
 
-    return fragment;
+    if (backdrop) {
+      this.topLayer.push(backdrop);
+    }
+
+    this.topLayer.push(clone);
+
+    return null;
   }
 
   private createClone(live: Element): Element {
@@ -1296,7 +1931,16 @@ class ReplayFrameSerializer {
         continue;
       }
 
-      if (attribute.namespaceURI !== null || !isXmlSafeName(attributeName)) {
+      /*
+       * Namespace declarations belong to the serialiser: an exported
+       * page's stray xmlns="http://www.w3.org/TR/REC-html40" would put
+       * the whole clone in a namespace nothing renders.
+       */
+      if (
+        attribute.namespaceURI !== null ||
+        !isXmlSafeName(attributeName) ||
+        attributeName === "xmlns"
+      ) {
         continue;
       }
 
@@ -1359,7 +2003,21 @@ class ReplayFrameSerializer {
   private collectDeclarations(
     live: Element,
     declarations: Array<string>,
+    context?: CloneContext | undefined,
   ): void {
+    if (context && context.childScroll) {
+      const style: CSSStyleDeclaration = this.getStyle(live);
+
+      if (style.getPropertyValue("position").trim() !== "fixed") {
+        declarations.push(
+          `translate: ${composeTranslate(
+            style.getPropertyValue("translate"),
+            context.childScroll,
+          )} !important`,
+        );
+      }
+    }
+
     if (this.isLink(live)) {
       const style: CSSStyleDeclaration = this.getStyle(live);
 
@@ -1393,28 +2051,37 @@ class ReplayFrameSerializer {
       declarations.push("scrollbar-width: none !important");
     }
 
-    if (this.scrollPlans.has(live)) {
+    const plan: ScrollPlan | undefined = this.scrollPlans.get(live);
+
+    if (plan) {
       declarations.push(
         "scroll-snap-type: both mandatory !important",
         "scroll-padding: 0px !important",
         "scroll-behavior: auto !important",
       );
+
+      if (plan.canPosition) {
+        declarations.push("position: relative !important");
+      }
     }
 
-    const anchor: ReplayScrollOffset | undefined = this.snapAnchors.get(live);
+    const anchor: SnapMargins | undefined = this.snapAnchors.get(live);
 
     if (anchor) {
       declarations.push(
         "scroll-snap-align: start !important",
-        `scroll-margin-top: ${anchor.y}px !important`,
-        `scroll-margin-left: ${anchor.x}px !important`,
+        `scroll-margin-top: ${anchor.top}px !important`,
+        `scroll-margin-left: ${anchor.left}px !important`,
         "scroll-margin-bottom: 0px !important",
         "scroll-margin-right: 0px !important",
       );
     }
 
     if (this.modalDialogs.has(live)) {
-      declarations.push("z-index: 2147483647 !important");
+      declarations.push(
+        "position: fixed !important",
+        "z-index: 2147483647 !important",
+      );
     }
   }
 
@@ -1424,10 +2091,17 @@ class ReplayFrameSerializer {
     context: CloneContext,
   ): void {
     const plan: ScrollPlan | undefined = this.scrollPlans.get(live);
+    const hasMarker: boolean = Boolean(
+      plan && !plan.anchor && (plan.isPositioned || plan.canPosition),
+    );
     const childContext: CloneContext = {
       isInShadow: context.isInShadow || Boolean(live.shadowRoot),
       textScroll:
-        plan && !plan.anchor && !plan.isPositioned ? plan.offset : null,
+        plan && (plan.isReverse || (!plan.anchor && !hasMarker))
+          ? plan.offset
+          : null,
+      childScroll: plan && plan.isReverse ? plan.offset : null,
+      parentStyle: this.getStyle(live),
     };
 
     if (live.shadowRoot) {
@@ -1448,11 +2122,12 @@ class ReplayFrameSerializer {
     }
 
     /*
-     * A positioned box with no child to snap to gets a marker of its own,
-     * the way the frame does; it is absolutely placed, so it moves
-     * nothing.
+     * A box with nothing to snap to gets a marker of its own, the way the
+     * frame does - it is absolutely placed, so it moves nothing. A static
+     * box is made its containing block for that when nothing else inside
+     * it is absolutely placed.
      */
-    if (plan && !plan.anchor && plan.isPositioned) {
+    if (plan && hasMarker) {
       const marker: Element = this.output.createElementNS(
         XHTML_NAMESPACE,
         "span",
@@ -1485,12 +2160,30 @@ class ReplayFrameSerializer {
     }
   }
 
-  private computedStyleText(live: Element, pseudo?: string): string {
+  /*
+   * An element's computed style as inline declarations. Given the parent's
+   * style it is written behind `all: unset`, leaving out what the reset
+   * already gets right (see ReplayInitialStyles).
+   */
+  private computedStyleText(
+    live: Element,
+    pseudo?: string,
+    parentStyle?: CSSStyleDeclaration | null,
+  ): string {
     const style: CSSStyleDeclaration = this.getStyle(live, pseudo);
-    const parts: Array<string> = [];
+    const initial: Map<string, string> | null =
+      !pseudo && parentStyle ? this.initialStyles.get() : null;
+    const parts: Array<string> = initial ? ["all: unset !important"] : [];
+    const autoSizes: Set<string> = pseudo
+      ? new Set<string>()
+      : this.readAutoSizes(live);
 
     for (let index: number = 0; index < style.length; index++) {
       const property: string = style.item(index);
+
+      if (autoSizes.has(property)) {
+        continue;
+      }
 
       if (
         !property ||
@@ -1506,12 +2199,113 @@ class ReplayFrameSerializer {
         continue;
       }
 
+      /*
+       * A border, outline or column-rule width computes to 0 while its
+       * style is none, so the probe's "initial" 0px is not what the reset
+       * gives it once a style is set: widths are always written out.
+       */
+      if (
+        initial &&
+        parentStyle &&
+        !WIDTH_PROPERTY_PATTERN.test(property) &&
+        initial.get(property) === value &&
+        parentStyle.getPropertyValue(property) === value
+      ) {
+        continue;
+      }
+
       parts.push(
         `${property}: ${rewriteReplayCss(stripInvalidXmlCharacters(value))} !important`,
       );
     }
 
     return parts.join("; ");
+  }
+
+  /*
+   * The sizes an element leaves to layout. getComputedStyle answers width
+   * and height with the USED size, and pinning that turns an auto height
+   * into a fixed one - which, among other things, stops a child's margin
+   * collapsing through it. The typed computed style still says "auto";
+   * an engine without it (Firefox) gets the used size, as before.
+   */
+  private readAutoSizes(live: Element): Set<string> {
+    const autoSizes: Set<string> = new Set<string>();
+    const readMap: (() => StylePropertyMapReadOnly) | undefined = (
+      live as Element & { computedStyleMap?: () => StylePropertyMapReadOnly }
+    ).computedStyleMap;
+
+    if (typeof readMap !== "function") {
+      return autoSizes;
+    }
+
+    try {
+      const map: StylePropertyMapReadOnly = readMap.call(live);
+
+      for (const property of AUTO_SIZE_PROPERTIES) {
+        const value: CSSStyleValue | undefined = map.get(property);
+
+        if (value && value.toString() === "auto") {
+          autoSizes.add(property);
+        }
+      }
+    } catch {
+      /* No typed values for this element; the used sizes will do. */
+    }
+
+    return autoSizes;
+  }
+
+  /*
+   * An animated ::before / ::after: the frozen clone would drop it back to
+   * its unanimated style (a badge that faded in would vanish), so its
+   * animated properties are pinned at their paused values in a rule.
+   */
+  private freezePseudoAnimations(live: Element, clone: Element): void {
+    const byPseudo: Map<string, Set<string>> | undefined =
+      this.pseudoAnimations.get(live);
+
+    if (!byPseudo) {
+      return;
+    }
+
+    for (const [pseudo, properties] of byPseudo) {
+      let style: CSSStyleDeclaration;
+
+      try {
+        style = this.getStyle(live, pseudo);
+      } catch {
+        continue;
+      }
+
+      const declarations: Array<string> = [];
+
+      for (const property of properties) {
+        const value: string = style.getPropertyValue(property);
+
+        if (value) {
+          declarations.push(
+            `${property}: ${rewriteReplayCss(stripInvalidXmlCharacters(value))} !important`,
+          );
+        }
+      }
+
+      if (declarations.length > 0) {
+        this.addPseudoRule(clone, pseudo, declarations.join("; "));
+      }
+    }
+  }
+
+  private addPseudoRule(
+    clone: Element,
+    pseudo: string,
+    declarations: string,
+  ): void {
+    const className: string = `${REPLAY_FRAME_PSEUDO_CLASS_PREFIX}${this.depth}-${this.pseudoRules.length}`;
+    const existing: string = clone.getAttribute("class") ?? "";
+
+    clone.setAttribute("class", `${existing} ${className}`.trim());
+    this.pseudoRules.push(`.${className}${pseudo} { ${declarations} }`);
   }
 
   /*
@@ -1533,13 +2327,7 @@ class ReplayFrameSerializer {
         continue;
       }
 
-      const className: string = `${REPLAY_FRAME_PSEUDO_CLASS_PREFIX}${this.depth}-${this.pseudoRules.length}`;
-      const existing: string = clone.getAttribute("class") ?? "";
-
-      clone.setAttribute("class", `${existing} ${className}`.trim());
-      this.pseudoRules.push(
-        `.${className}${pseudo} { ${this.computedStyleText(live, pseudo)} }`,
-      );
+      this.addPseudoRule(clone, pseudo, this.computedStyleText(live, pseudo));
     }
   }
 
@@ -1558,13 +2346,19 @@ class ReplayFrameSerializer {
       return null;
     }
 
-    const text: string = rewriteReplayCss(
-      readStyleSheetText(sheet) ?? live.textContent ?? "",
-    );
-    const style: Element = this.createStyle(text);
     const media: string | null = live.getAttribute("media");
 
-    if (media) {
+    if (media && this.matchMedia && !this.matchMedia(media)) {
+      return null;
+    }
+
+    const text: string = rewriteReplayCss(
+      readStyleSheetText(sheet, this.matchMedia) ?? live.textContent ?? "",
+      { isQuirksMode: this.isQuirksMode },
+    );
+    const style: Element = this.createStyle(text);
+
+    if (media && !this.matchMedia) {
       style.setAttribute("media", stripInvalidXmlCharacters(media));
     }
 
@@ -1587,16 +2381,23 @@ class ReplayFrameSerializer {
       return null;
     }
 
-    const text: string | null = readStyleSheetText(sheet);
+    const media: string | null = live.getAttribute("media");
+
+    if (media && this.matchMedia && !this.matchMedia(media)) {
+      return null;
+    }
+
+    const text: string | null = readStyleSheetText(sheet, this.matchMedia);
 
     if (!text) {
       return null;
     }
 
-    const style: Element = this.createStyle(rewriteReplayCss(text));
-    const media: string | null = live.getAttribute("media");
+    const style: Element = this.createStyle(
+      rewriteReplayCss(text, { isQuirksMode: this.isQuirksMode }),
+    );
 
-    if (media) {
+    if (media && !this.matchMedia) {
       style.setAttribute("media", stripInvalidXmlCharacters(media));
     }
 
@@ -1700,6 +2501,99 @@ class ReplayFrameSerializer {
     }
   }
 
+  /*
+   * Quirks mode, which an image cannot use. Its percentage-height quirk
+   * (a % height resolved against the viewport through auto-height
+   * ancestors) moves pages the most, so every box keeps the height it was
+   * laid out at; and class names match case-insensitively, so they are
+   * lowercased here and in the rules (rewriteReplayCss).
+   */
+  private applyQuirks(
+    live: Element,
+    clone: Element,
+    declarations: Array<string>,
+  ): void {
+    const className: string | null = clone.getAttribute("class");
+
+    if (className) {
+      clone.setAttribute("class", className.toLowerCase());
+    }
+
+    const style: CSSStyleDeclaration = this.getStyle(live);
+    const display: string = style.getPropertyValue("display").trim();
+    const height: string = style.getPropertyValue("height").trim();
+
+    if (
+      display !== "inline" &&
+      display !== "none" &&
+      display !== "contents" &&
+      PIXEL_LENGTH_PATTERN.test(height)
+    ) {
+      declarations.push(`height: ${height} !important`);
+    }
+
+    /*
+     * The quirky default margin: the UA's top margin on the first block in
+     * <body> (a <p>, a heading) is dropped altogether, where standards
+     * mode collapses it through the body. The live layout shows which:
+     * the block sits nearer the top of the page than its own margin.
+     */
+    const body: HTMLElement | null = this.document.body;
+
+    if (
+      body &&
+      live.parentElement === body &&
+      body.firstElementChild === live
+    ) {
+      const marginTop: number =
+        parseFloat(style.getPropertyValue("margin-top")) || 0;
+      const top: number =
+        live.getBoundingClientRect().top -
+        this.document.documentElement.getBoundingClientRect().top;
+
+      if (marginTop > 0 && top < marginTop) {
+        declarations.push("margin-top: 0px !important");
+      }
+    }
+  }
+
+  /*
+   * A textarea cannot be scrolled inside an image, so a scrolled one is
+   * drawn as a box with its computed style and its text moved by the
+   * offset - the lines the user was looking at, not the first ones.
+   */
+  private cloneScrolledTextarea(
+    live: HTMLTextAreaElement,
+    context: CloneContext,
+  ): Element {
+    const box: Element = this.output.createElementNS(XHTML_NAMESPACE, "div");
+    const text: Element = this.output.createElementNS(XHTML_NAMESPACE, "div");
+    const declarations: Array<string> = [
+      "overflow: hidden !important",
+      "white-space: pre-wrap !important",
+    ];
+
+    for (const attribute of ["id", "class"]) {
+      const value: string | null = live.getAttribute(attribute);
+
+      if (value) {
+        box.setAttribute(attribute, stripInvalidXmlCharacters(value));
+      }
+    }
+
+    box.setAttribute("style", this.computedStyleText(live));
+    this.collectDeclarations(live, declarations, context);
+    this.appendDeclarations(box, declarations);
+    text.setAttribute(
+      "style",
+      `position: relative; left: ${-(live.scrollLeft || 0)}px; top: ${-(live.scrollTop || 0)}px`,
+    );
+    text.textContent = stripInvalidXmlCharacters(live.value);
+    box.appendChild(text);
+
+    return box;
+  }
+
   private applyInputState(live: HTMLInputElement, clone: Element): void {
     const type: string = (live.type || "text").toLowerCase();
 
@@ -1714,6 +2608,17 @@ class ReplayFrameSerializer {
     }
 
     if (type === "file" || type === "image") {
+      return;
+    }
+
+    /*
+     * A submit, reset or button input with no value shows the browser's
+     * own label ("Submit"); writing value="" would blank it.
+     */
+    if (
+      (type === "submit" || type === "reset" || type === "button") &&
+      !live.hasAttribute("value")
+    ) {
       return;
     }
 
@@ -1791,8 +2696,13 @@ class ReplayFrameSerializer {
         childDocument,
         { width: width, height: height },
         this.depth + 1,
+        this.initialStyles,
       ).serialize();
-      const token: string = `${REPLAY_FRAME_TOKEN_PREFIX}${this.depth}-${this.frames.length}`;
+      /*
+       * Terminated, so no token is the start of another: "-0-1-src" is
+       * not a prefix of "-0-10-src", where "-0-1" was of "-0-10".
+       */
+      const token: string = `${REPLAY_FRAME_TOKEN_PREFIX}${this.depth}-${this.frames.length}-src`;
 
       this.frames.push({ token: token, serialization: serialization });
       this.frameTokens.set(live, token);
@@ -1853,7 +2763,18 @@ export function serializeReplayFrame(
     );
   }
 
-  return new ReplayFrameSerializer(replayDocument, viewport, 0).serialize();
+  const initialStyles: ReplayInitialStyles = new ReplayInitialStyles();
+
+  try {
+    return new ReplayFrameSerializer(
+      replayDocument,
+      viewport,
+      0,
+      initialStyles,
+    ).serialize();
+  } finally {
+    initialStyles.dispose();
+  }
 }
 
 /* ---- Rasterising. ---- */
@@ -1863,6 +2784,58 @@ export interface ReplayFrameRasterDeps {
   loadImage: (url: string) => Promise<CanvasImageSource>;
   /* Resolves after the next frame has been painted. */
   nextFrame: () => Promise<void>;
+  /* Milliseconds, for the settle loop below. */
+  now: () => number;
+  /*
+   * How long to keep repainting a frame that embeds nested frames, for an
+   * engine that decodes the pictures inside an SVG image late.
+   */
+  getSettleMs: (embeddedBytes: number) => number;
+}
+
+/*
+ * Safari's engine, told apart from the Blink browsers that also say
+ * AppleWebKit. It differs from them twice here: it decodes a data: <img>
+ * inside an SVG image asynchronously, and a large one (a nested frame's
+ * picture) can still be missing a few hundred milliseconds after the
+ * image itself loaded, so every repaint in that time is a chance to pick
+ * it up; and it never paints a replay iframe's canvas in the page's dark
+ * scheme.
+ */
+export function isSafariWebKit(userAgent: string): boolean {
+  return (
+    userAgent.includes("AppleWebKit") &&
+    !userAgent.includes("Chrome") &&
+    !userAgent.includes("Chromium") &&
+    !userAgent.includes("Edg")
+  );
+}
+
+function isSafariWebKitHere(): boolean {
+  return (
+    typeof navigator !== "undefined" && isSafariWebKit(navigator.userAgent)
+  );
+}
+
+export function resolveReplayFrameSettleMs(
+  embeddedBytes: number,
+  isLateDecoder: boolean,
+): number {
+  if (!isLateDecoder || embeddedBytes <= 0) {
+    return 0;
+  }
+
+  return Math.min(2000, 600 + Math.round(embeddedBytes / 2000));
+}
+
+function getSettleMsDefault(embeddedBytes: number): number {
+  return resolveReplayFrameSettleMs(embeddedBytes, isSafariWebKitHere());
+}
+
+function nowDefault(): number {
+  return typeof performance !== "undefined" && performance.now
+    ? performance.now()
+    : 0;
 }
 
 export interface ReplayFrameRasterizeOptions {
@@ -1958,14 +2931,19 @@ async function renderSerialization(
   deps: ReplayFrameRasterDeps,
 ): Promise<HTMLCanvasElement> {
   let svg: string = serialization.svg;
+  let embeddedBytes: number = 0;
 
   for (const frame of serialization.frames) {
     let url: string = REPLAY_FRAME_TRANSPARENT_IMAGE;
 
     try {
+      /*
+       * Each frame gets its own budget: a tall auto-height iframe at the
+       * page's ratio can be over the canvas limit on its own.
+       */
       const child: HTMLCanvasElement = await renderSerialization(
         frame.serialization,
-        pixelRatio,
+        resolveReplayFramePixelRatio(pixelRatio, frame.serialization.viewport),
         deps,
       );
       url = child.toDataURL("image/png");
@@ -1973,17 +2951,16 @@ async function renderSerialization(
       url = REPLAY_FRAME_TRANSPARENT_IMAGE;
     }
 
+    embeddedBytes += url.length;
     svg = svg.split(frame.token).join(url);
   }
 
-  const width: number = Math.max(
-    1,
-    Math.round(serialization.viewport.width * pixelRatio),
+  const size: ReplayFrameViewport = resolveReplayFrameCanvasSize(
+    serialization.viewport,
+    pixelRatio,
   );
-  const height: number = Math.max(
-    1,
-    Math.round(serialization.viewport.height * pixelRatio),
-  );
+  const width: number = size.width;
+  const height: number = size.height;
   const canvas: HTMLCanvasElement = deps.createCanvas(width, height);
   const context: CanvasRenderingContext2D | null = canvas.getContext("2d");
 
@@ -2015,6 +2992,17 @@ async function renderSerialization(
   await deps.nextFrame();
   paint();
 
+  const settleMs: number = deps.getSettleMs(embeddedBytes);
+
+  if (settleMs > 0) {
+    const start: number = deps.now();
+
+    while (deps.now() - start < settleMs) {
+      await deps.nextFrame();
+      paint();
+    }
+  }
+
   return canvas;
 }
 
@@ -2026,6 +3014,8 @@ export async function rasterizeReplayFrame(
     createCanvas: options?.deps?.createCanvas ?? createCanvasDefault,
     loadImage: options?.deps?.loadImage ?? loadImageDefault,
     nextFrame: options?.deps?.nextFrame ?? nextFrameDefault,
+    now: options?.deps?.now ?? nowDefault,
+    getSettleMs: options?.deps?.getSettleMs ?? getSettleMsDefault,
   };
   const pixelRatio: number = resolveReplayFramePixelRatio(
     options?.pixelRatio,

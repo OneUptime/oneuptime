@@ -1,12 +1,19 @@
 import "@testing-library/jest-dom";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 /*
  * The Dashboard has its own copy of react; Common's jest moduleNameMapper
  * pins react and react-dom to this project's single copy for every
  * importer (see the note at the top of ReplayStage.test.tsx).
  */
 import * as React from "react";
-import { afterEach, describe, expect, it, jest } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  jest,
+} from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import ReplayStageOverlays, {
   REPLAY_GAP_TOAST_MS,
@@ -27,6 +34,8 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Engine/ReplayEngineTypes";
 import { ReplaySignal } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignalTypes";
 import { SessionReplayManifestChunk } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayManifest";
+import { ReplayScreenshot } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayScreenshot";
+import { ReplayFrameCaptureError } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayFrameCapture";
 
 /*
  * Everything drawn over and around the picture. Pinned: the URL bar picks
@@ -1426,6 +1435,978 @@ describe("ReplayStageOverlays", () => {
       renderOverlays();
 
       expect(screen.queryByTestId("replay-phase")).not.toBeInTheDocument();
+    });
+  });
+});
+
+/*
+ * The paused frame's screenshot dock ("Copy image" / "Download"), as the
+ * overlays host it. Pinned: it is offered only while the phase is paused,
+ * the shell has handed over a capture callback and has not said the replay
+ * document is undrawn (canCaptureFrame false), and never in text selection
+ * or the no-footage mode; it sits in the stage box after the paused play
+ * button, so it paints above it, clear of the scrollbars each fit draws;
+ * a failure card belongs to one frame (generation + rounded playhead) and
+ * goes when a seek while paused changes the frame; and the overlays hand
+ * the dock no test seams, so its buttons reach the browser's clipboard
+ * and anchor download exactly as the product does.
+ *
+ * The capture itself is stubbed: onCaptureFrame resolves (or rejects) the
+ * way ReplayScreenshot's captureReplayerScreenshot does. jsdom has no
+ * object URLs, no image clipboard and no navigation, so those are stubbed
+ * per test and put back afterwards.
+ */
+
+const SCREENSHOT_FILE_NAME: string = "session-replay-3f9a2c1b-0m41.2s.png";
+
+interface FakeClipboardItem {
+  items: Record<string, Promise<Blob>>;
+}
+
+interface SavedDownload {
+  href: string;
+  fileName: string;
+}
+
+interface Deferred<T> {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (error: unknown) => void;
+}
+
+function makeScreenshot(): ReplayScreenshot {
+  return {
+    blob: new Blob(["png-bytes"], { type: "image/png" }),
+    fileName: SCREENSHOT_FILE_NAME,
+    width: 1440,
+    height: 900,
+  };
+}
+
+function makeDeferred<T>(): Deferred<T> {
+  const deferred: Partial<Deferred<T>> = {};
+
+  deferred.promise = new Promise<T>(
+    (resolve: (value: T) => void, reject: (error: unknown) => void): void => {
+      deferred.resolve = resolve;
+      deferred.reject = reject;
+    },
+  );
+
+  return deferred as Deferred<T>;
+}
+
+function makeCapture(
+  result?: ReplayScreenshot | Promise<ReplayScreenshot>,
+): MockFunction {
+  const capture: MockFunction = getJestMockFunction();
+
+  capture.mockImplementation((): Promise<ReplayScreenshot> => {
+    return Promise.resolve(result ?? makeScreenshot());
+  });
+
+  return capture;
+}
+
+function makeFailingCapture(error: unknown): MockFunction {
+  const capture: MockFunction = getJestMockFunction();
+
+  capture.mockImplementation((): Promise<ReplayScreenshot> => {
+    return Promise.reject(error);
+  });
+
+  return capture;
+}
+
+function rerenderOverlays(
+  rerender: ReturnType<typeof render>["rerender"],
+  overrides?: Partial<ReplayStageOverlaysProps>,
+): void {
+  rerender(
+    <ReplayStageOverlays {...makeProps(overrides)}>
+      <div data-testid="fake-stage">stage</div>
+    </ReplayStageOverlays>,
+  );
+}
+
+/* Lets the capture, the clipboard and the dock's handlers settle. */
+async function settle(): Promise<void> {
+  await act(async (): Promise<void> => {
+    for (let index: number = 0; index < 10; index++) {
+      await Promise.resolve();
+    }
+  });
+}
+
+function queryDock(): HTMLElement | null {
+  return screen.queryByTestId("replay-screenshot-actions");
+}
+
+describe("ReplayStageOverlays screenshot dock", () => {
+  let restorers: Array<() => void> = [];
+  let createdUrls: Array<string> = [];
+  let createdBlobs: Array<Blob> = [];
+  let revokedUrls: Array<string> = [];
+  let downloads: Array<SavedDownload> = [];
+
+  function stubProperty(
+    target: Window | Navigator | typeof URL,
+    key: string,
+    value: unknown,
+  ): void {
+    const original: PropertyDescriptor | undefined =
+      Object.getOwnPropertyDescriptor(target, key);
+
+    restorers.push((): void => {
+      if (original) {
+        Object.defineProperty(target, key, original);
+      } else {
+        Reflect.deleteProperty(target, key);
+      }
+    });
+
+    Object.defineProperty(target, key, {
+      value: value,
+      configurable: true,
+      writable: true,
+    });
+  }
+
+  /*
+   * The anchor download's click reaches the document; cancelling it there
+   * records the download and keeps jsdom from attempting a navigation.
+   */
+  const recordDownload: (event: Event) => void = (event: Event): void => {
+    const target: EventTarget | null = event.target;
+
+    if (
+      target instanceof HTMLAnchorElement &&
+      target.hasAttribute("download")
+    ) {
+      event.preventDefault();
+      downloads.push({
+        href: target.getAttribute("href") ?? "",
+        fileName: target.download,
+      });
+    }
+  };
+
+  /* An async Clipboard API with ClipboardItem, on a secure page. */
+  function stubImageClipboard(write: MockFunction): Array<FakeClipboardItem> {
+    const items: Array<FakeClipboardItem> = [];
+
+    class ClipboardItemStub implements FakeClipboardItem {
+      public readonly items: Record<string, Promise<Blob>>;
+
+      public constructor(itemData: Record<string, Promise<Blob>>) {
+        this.items = itemData;
+        items.push(this);
+      }
+    }
+
+    stubProperty(window, "isSecureContext", true);
+    stubProperty(window, "ClipboardItem", ClipboardItemStub);
+    stubProperty(navigator, "clipboard", { write: write });
+
+    return items;
+  }
+
+  beforeEach(() => {
+    restorers = [];
+    createdUrls = [];
+    createdBlobs = [];
+    revokedUrls = [];
+    downloads = [];
+
+    stubProperty(window.URL, "createObjectURL", (blob: Blob): string => {
+      const url: string = `blob:replay/${createdUrls.length + 1}`;
+
+      createdUrls.push(url);
+      createdBlobs.push(blob);
+
+      return url;
+    });
+    stubProperty(window.URL, "revokeObjectURL", (url: string): void => {
+      revokedUrls.push(url);
+    });
+
+    document.addEventListener("click", recordDownload);
+  });
+
+  afterEach(() => {
+    document.removeEventListener("click", recordDownload);
+
+    for (const restore of restorers.reverse()) {
+      restore();
+    }
+
+    restorers = [];
+  });
+
+  describe("when it is offered", () => {
+    const pausedStates: Array<{
+      label: string;
+      snapshot: Partial<ReplayEngineSnapshot>;
+    }> = [
+      { label: "with footage in hand", snapshot: { buffer: "ok" } },
+      { label: "at a stall", snapshot: { buffer: "stalled" } },
+      { label: "before a gap jump", snapshot: { buffer: "gap-pending" } },
+    ];
+
+    for (const state of pausedStates) {
+      it(`offers Copy image and Download while paused ${state.label}`, () => {
+        renderOverlays({
+          snapshot: makeSnapshot({ ...state.snapshot, intent: "paused" }),
+          onCaptureFrame: makeCapture(),
+        });
+
+        expect(screen.getByTestId("replay-overlay")).toHaveAttribute(
+          "data-replay-overlay",
+          "paused",
+        );
+        expect(queryDock()).toBeInTheDocument();
+        expect(screen.getByTestId("replay-screenshot-copy")).toBeEnabled();
+        expect(screen.getByTestId("replay-screenshot-download")).toBeEnabled();
+      });
+    }
+
+    it("treats an unset canCaptureFrame as capturable, and true as well", () => {
+      const { rerender } = renderOverlays({ onCaptureFrame: makeCapture() });
+
+      expect(queryDock()).toBeInTheDocument();
+
+      rerenderOverlays(rerender, {
+        onCaptureFrame: makeCapture(),
+        canCaptureFrame: true,
+      });
+
+      expect(queryDock()).toBeInTheDocument();
+    });
+
+    const hiddenStates: Array<{
+      phase: string;
+      label: string;
+      overrides: Partial<ReplayStageOverlaysProps>;
+    }> = [
+      {
+        phase: "playing",
+        label: "playing",
+        overrides: {
+          snapshot: makeSnapshot({ buffer: "ok", intent: "playing" }),
+        },
+      },
+      {
+        phase: "playing",
+        label: "playing up to a gap jump",
+        overrides: {
+          snapshot: makeSnapshot({ buffer: "gap-pending", intent: "playing" }),
+        },
+      },
+      {
+        phase: "buffering",
+        label: "buffering",
+        overrides: {
+          snapshot: makeSnapshot({ buffer: "building", intent: "playing" }),
+        },
+      },
+      {
+        phase: "buffering",
+        label: "stalled mid-playback",
+        overrides: {
+          snapshot: makeSnapshot({ buffer: "stalled", intent: "playing" }),
+        },
+      },
+      {
+        phase: "seeking",
+        label: "seeking",
+        overrides: {
+          snapshot: makeSnapshot({
+            buffer: "building",
+            intent: "paused",
+            pendingSeekMs: 72000,
+          }),
+        },
+      },
+      {
+        phase: "loading",
+        label: "loading",
+        overrides: { snapshot: makeSnapshot({ buffer: "empty" }) },
+      },
+      {
+        phase: "ended",
+        label: "ended",
+        overrides: {
+          snapshot: makeSnapshot({
+            buffer: "ended",
+            currentTimeMs: DURATION_MS,
+          }),
+        },
+      },
+      {
+        phase: "ended",
+        label: "caught up with a live recording",
+        overrides: {
+          snapshot: makeSnapshot({
+            buffer: "ended",
+            currentTimeMs: DURATION_MS,
+          }),
+          isLive: true,
+        },
+      },
+      {
+        phase: "error",
+        label: "stopped on an error",
+        overrides: {
+          snapshot: makeSnapshot({
+            buffer: "halted",
+            error: { message: "Footage did not arrive.", retryable: true },
+          }),
+        },
+      },
+    ];
+
+    for (const state of hiddenStates) {
+      it(`is not offered while ${state.label}`, () => {
+        const capture: MockFunction = makeCapture();
+
+        renderOverlays({ ...state.overrides, onCaptureFrame: capture });
+
+        expect(screen.getByTestId("replay-overlay")).toHaveAttribute(
+          "data-replay-overlay",
+          state.phase,
+        );
+        expect(queryDock()).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId("replay-screenshot"),
+        ).not.toBeInTheDocument();
+        expect(capture).not.toHaveBeenCalled();
+      });
+    }
+
+    it("is not offered while the shell says the replay document is not drawn", () => {
+      renderOverlays({
+        onCaptureFrame: makeCapture(),
+        canCaptureFrame: false,
+      });
+
+      expect(queryDock()).not.toBeInTheDocument();
+      /* Only the dock waits for the document; Play is still offered. */
+      expect(screen.getByTestId("replay-overlay-paused")).toBeInTheDocument();
+    });
+
+    it("is not offered without a capture callback", () => {
+      renderOverlays({ canCaptureFrame: true });
+
+      expect(screen.getByTestId("replay-overlay")).toHaveAttribute(
+        "data-replay-overlay",
+        "paused",
+      );
+      expect(queryDock()).not.toBeInTheDocument();
+    });
+
+    it("steps aside while text is being selected and comes back after", () => {
+      const capture: MockFunction = makeCapture();
+      const { rerender } = renderOverlays({
+        onCaptureFrame: capture,
+        isTextSelectionEnabled: true,
+      });
+
+      expect(screen.getByTestId("replay-select-text")).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      expect(queryDock()).not.toBeInTheDocument();
+
+      rerenderOverlays(rerender, {
+        onCaptureFrame: capture,
+        isTextSelectionEnabled: false,
+      });
+
+      expect(queryDock()).toBeInTheDocument();
+    });
+
+    it("stays when text selection is asked for but cannot take effect", () => {
+      renderOverlays({
+        onCaptureFrame: makeCapture(),
+        canSelectText: false,
+        isTextSelectionEnabled: true,
+      });
+
+      expect(screen.getByTestId("replay-select-text")).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+      expect(queryDock()).toBeInTheDocument();
+    });
+
+    it("is never offered in the no-footage mode, even paused with a capture callback", () => {
+      render(
+        <ReplayStageOverlays
+          {...makeProps({
+            absence: { kind: "none-stored" },
+            onCaptureFrame: makeCapture(),
+            canCaptureFrame: true,
+          })}
+        >
+          <div data-testid="fake-stage">stage</div>
+        </ReplayStageOverlays>,
+      );
+
+      expect(screen.getByTestId("replay-overlay")).toHaveAttribute(
+        "data-replay-overlay",
+        "absent",
+      );
+      expect(queryDock()).not.toBeInTheDocument();
+    });
+
+    it("names the group and both actions for assistive technology", () => {
+      renderOverlays({ onCaptureFrame: makeCapture() });
+
+      const group: HTMLElement = screen.getByRole("group", {
+        name: "Screenshot of this frame",
+      });
+
+      expect(group).toBe(queryDock());
+      expect(
+        within(group).getByRole("button", { name: "Copy image" }),
+      ).toBeInTheDocument();
+      expect(
+        within(group).getByRole("button", { name: "Download" }),
+      ).toBeInTheDocument();
+      expect(screen.getByTestId("replay-screenshot-status")).toHaveAttribute(
+        "aria-live",
+        "polite",
+      );
+    });
+  });
+
+  describe("where it is drawn", () => {
+    it("sits in the stage box, after the stage and the paused play button", () => {
+      renderOverlays({ onCaptureFrame: makeCapture() });
+
+      const container: HTMLElement = screen.getByTestId(
+        "replay-stage-container",
+      );
+      const dock: HTMLElement = screen.getByTestId("replay-screenshot");
+      const centre: HTMLElement = screen.getByTestId("replay-overlay-centre");
+      const stage: HTMLElement = screen.getByTestId("fake-stage");
+
+      /* Positioned against the stage box, not inside another overlay. */
+      expect(dock.parentElement).toBe(container);
+      expect(dock.className).toContain("absolute");
+      expect(container.className).toContain("relative");
+      expect(dock).toContainElement(queryDock());
+
+      expect(centre).toContainElement(
+        screen.getByTestId("replay-overlay-paused"),
+      );
+      expect(centre.contains(dock)).toBe(false);
+      expect(
+        centre.compareDocumentPosition(dock) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+      expect(
+        stage.compareDocumentPosition(dock) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    });
+
+    it("keeps the paused play button working beside it", () => {
+      const onPlayPause: MockFunction = getJestMockFunction();
+      const capture: MockFunction = makeCapture();
+
+      renderOverlays({ onCaptureFrame: capture, onPlayPause: onPlayPause });
+
+      fireEvent.click(screen.getByTestId("replay-overlay-paused"));
+
+      expect(onPlayPause).toHaveBeenCalledTimes(1);
+      expect(capture).not.toHaveBeenCalled();
+    });
+
+    it("lives in the stage box in theater sizing too", () => {
+      renderOverlays({ onCaptureFrame: makeCapture(), sizing: "fill" });
+
+      expect(screen.getByTestId("replay-screenshot").parentElement).toBe(
+        screen.getByTestId("replay-stage-container"),
+      );
+    });
+
+    it("clears the scrollbars each fit draws", () => {
+      const capture: MockFunction = makeCapture();
+      const { rerender } = renderOverlays({
+        onCaptureFrame: capture,
+        fit: "contain",
+      });
+
+      const positionOf: () => string = (): string => {
+        return screen.getByTestId("replay-screenshot").className;
+      };
+
+      expect(positionOf()).toContain("bottom-3");
+      expect(positionOf()).toContain("right-3");
+      expect(positionOf()).not.toContain("right-6");
+
+      /* Width scrolls vertically: clear the vertical scrollbar. */
+      rerenderOverlays(rerender, { onCaptureFrame: capture, fit: "width" });
+
+      expect(positionOf()).toContain("right-6");
+      expect(positionOf()).toContain("bottom-3");
+      expect(positionOf()).not.toContain("bottom-6");
+
+      /* 1:1 scrolls both ways: clear both scrollbars. */
+      rerenderOverlays(rerender, { onCaptureFrame: capture, fit: "actual" });
+
+      expect(positionOf()).toContain("right-6");
+      expect(positionOf()).toContain("bottom-6");
+    });
+  });
+
+  describe("capturing", () => {
+    it("captures on Download and saves the PNG under the screenshot's name", async () => {
+      const screenshot: ReplayScreenshot = makeScreenshot();
+      const capture: MockFunction = makeCapture(screenshot);
+
+      renderOverlays({ onCaptureFrame: capture });
+
+      fireEvent.click(screen.getByRole("button", { name: "Download" }));
+      await settle();
+
+      expect(capture).toHaveBeenCalledTimes(1);
+      expect(capture).toHaveBeenCalledWith();
+
+      /* The real anchor download, from an object URL of the PNG. */
+      expect(downloads).toEqual([
+        { href: "blob:replay/1", fileName: SCREENSHOT_FILE_NAME },
+      ]);
+      expect(createdBlobs[0]).toBe(screenshot.blob);
+      expect(document.querySelector("a[download]")).toBeNull();
+      /* Revoked later, never in the click's own task (Safari cancels it). */
+      expect(revokedUrls).not.toContain("blob:replay/1");
+
+      const preview: HTMLElement = screen.getByTestId(
+        "replay-screenshot-preview",
+      );
+
+      expect(preview).toHaveAttribute("data-action", "download");
+      expect(preview).toHaveTextContent("Screenshot downloaded");
+      expect(
+        screen.getByTestId("replay-screenshot-preview-detail"),
+      ).toHaveTextContent(SCREENSHOT_FILE_NAME);
+      expect(screen.getByTestId("replay-screenshot-thumbnail")).toHaveAttribute(
+        "src",
+        "blob:replay/2",
+      );
+      expect(createdBlobs[1]).toBe(screenshot.blob);
+      expect(screen.getByTestId("replay-screenshot-status")).toHaveTextContent(
+        `Screenshot downloaded as ${SCREENSHOT_FILE_NAME}.`,
+      );
+      expect(screen.getByTestId("replay-screenshot-download")).toHaveAttribute(
+        "data-state",
+        "done",
+      );
+    });
+
+    it("flashes the stage box, not the page, when the frame lands", async () => {
+      renderOverlays({ onCaptureFrame: makeCapture() });
+
+      expect(
+        screen.queryByTestId("replay-screenshot-flash"),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Download" }));
+      await settle();
+
+      const flash: HTMLElement = screen.getByTestId("replay-screenshot-flash");
+
+      expect(flash.parentElement).toBe(
+        screen.getByTestId("replay-stage-container"),
+      );
+      expect(flash).toHaveAttribute("aria-hidden", "true");
+      expect(flash.className).toContain("pointer-events-none");
+    });
+
+    it("captures once however often it is pressed while a capture is running", async () => {
+      const deferred: Deferred<ReplayScreenshot> = makeDeferred();
+      const capture: MockFunction = makeCapture(deferred.promise);
+
+      renderOverlays({ onCaptureFrame: capture });
+
+      const download: HTMLElement = screen.getByTestId(
+        "replay-screenshot-download",
+      );
+
+      fireEvent.click(download);
+      fireEvent.click(download);
+      fireEvent.click(screen.getByTestId("replay-screenshot-copy"));
+
+      expect(capture).toHaveBeenCalledTimes(1);
+      expect(download).toHaveAttribute("data-state", "busy");
+      expect(download).toHaveAttribute("aria-busy", "true");
+      expect(download).toHaveAttribute("aria-disabled", "true");
+      expect(screen.getByTestId("replay-screenshot-copy")).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+
+      await act(async (): Promise<void> => {
+        deferred.resolve(makeScreenshot());
+      });
+      await settle();
+
+      expect(downloads).toHaveLength(1);
+      expect(download).not.toHaveAttribute("aria-disabled");
+    });
+
+    it("says an image clipboard is missing and offers the download instead", async () => {
+      const capture: MockFunction = makeCapture();
+
+      renderOverlays({ onCaptureFrame: capture });
+
+      const copy: HTMLElement = screen.getByTestId("replay-screenshot-copy");
+
+      /* jsdom has no async Clipboard API: the title says so up front. */
+      expect(copy).toHaveAttribute(
+        "title",
+        "This browser can't copy images - use Download",
+      );
+
+      fireEvent.click(copy);
+
+      const error: HTMLElement = screen.getByTestId("replay-screenshot-error");
+
+      expect(error).toHaveAttribute("role", "alert");
+      expect(error).toHaveAttribute("data-recovery", "download");
+      expect(error).toHaveTextContent("This browser can't copy images");
+      /* Nothing was captured for a copy that could never happen. */
+      expect(capture).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByTestId("replay-screenshot-recover"));
+      await settle();
+
+      expect(capture).toHaveBeenCalledTimes(1);
+      expect(downloads).toEqual([
+        { href: "blob:replay/1", fileName: SCREENSHOT_FILE_NAME },
+      ]);
+      expect(
+        screen.queryByTestId("replay-screenshot-error"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("copies through the async clipboard, handing it the pending image inside the click", async () => {
+      const write: MockFunction = getJestMockFunction();
+
+      write.mockResolvedValue(undefined);
+
+      const clipboardItems: Array<FakeClipboardItem> =
+        stubImageClipboard(write);
+      const deferred: Deferred<ReplayScreenshot> = makeDeferred();
+      const capture: MockFunction = makeCapture(deferred.promise);
+      const screenshot: ReplayScreenshot = makeScreenshot();
+
+      renderOverlays({ onCaptureFrame: capture });
+
+      const copy: HTMLElement = screen.getByTestId("replay-screenshot-copy");
+
+      expect(copy).toHaveAttribute(
+        "title",
+        "Copy this frame to the clipboard as a PNG",
+      );
+
+      fireEvent.click(copy);
+
+      /* Before the capture has finished: Safari's user-activation rule. */
+      expect(capture).toHaveBeenCalledTimes(1);
+      expect(clipboardItems).toHaveLength(1);
+      expect(write).toHaveBeenCalledTimes(1);
+      expect(write).toHaveBeenCalledWith([clipboardItems[0]]);
+      expect(Object.keys(clipboardItems[0]?.items ?? {})).toEqual([
+        "image/png",
+      ]);
+      expect(copy).toHaveAttribute("data-state", "busy");
+
+      await act(async (): Promise<void> => {
+        deferred.resolve(screenshot);
+      });
+      await settle();
+
+      await expect(clipboardItems[0]?.items["image/png"]).resolves.toBe(
+        screenshot.blob,
+      );
+      expect(downloads).toEqual([]);
+      expect(screen.getByTestId("replay-screenshot-preview")).toHaveAttribute(
+        "data-action",
+        "copy",
+      );
+      expect(screen.getByTestId("replay-screenshot-preview")).toHaveTextContent(
+        "Copied to clipboard",
+      );
+      expect(
+        screen.getByTestId("replay-screenshot-preview-detail"),
+      ).toHaveTextContent("1440 × 900 PNG");
+      expect(screen.getByTestId("replay-screenshot-status")).toHaveTextContent(
+        "Screenshot copied to the clipboard.",
+      );
+    });
+
+    it("saves the PNG already drawn when the clipboard refuses it", async () => {
+      const write: MockFunction = getJestMockFunction();
+
+      write.mockImplementation((): Promise<void> => {
+        return Promise.reject(new DOMException("Denied", "NotAllowedError"));
+      });
+      stubImageClipboard(write);
+
+      const capture: MockFunction = makeCapture();
+      const { rerender } = renderOverlays({ onCaptureFrame: capture });
+
+      fireEvent.click(screen.getByTestId("replay-screenshot-copy"));
+      await settle();
+
+      expect(screen.getByTestId("replay-screenshot-error")).toHaveTextContent(
+        "Clipboard access was blocked",
+      );
+      expect(screen.getByTestId("replay-screenshot-error")).toHaveAttribute(
+        "data-recovery",
+        "download",
+      );
+
+      /* An unrelated re-render (the scale) is still the same frame. */
+      rerenderOverlays(rerender, { onCaptureFrame: capture, scale: 0.5 });
+
+      fireEvent.click(screen.getByTestId("replay-screenshot-recover"));
+      await settle();
+
+      expect(capture).toHaveBeenCalledTimes(1);
+      expect(downloads).toEqual([
+        { href: "blob:replay/1", fileName: SCREENSHOT_FILE_NAME },
+      ]);
+      expect(screen.getByTestId("replay-screenshot-preview")).toHaveAttribute(
+        "data-action",
+        "download",
+      );
+    });
+
+    it("explains a frame that could not be drawn and captures again on Try again", async () => {
+      const capture: MockFunction = makeFailingCapture(
+        new ReplayFrameCaptureError("render-failed", "No 2D canvas."),
+      );
+
+      renderOverlays({ onCaptureFrame: capture });
+
+      fireEvent.click(screen.getByTestId("replay-screenshot-download"));
+      await settle();
+
+      const error: HTMLElement = screen.getByTestId("replay-screenshot-error");
+
+      expect(error).toHaveAttribute("data-recovery", "retry");
+      expect(error).toHaveTextContent("Couldn't capture this frame");
+      expect(screen.getByTestId("replay-screenshot-recover")).toHaveTextContent(
+        "Try again",
+      );
+      expect(downloads).toEqual([]);
+      expect(
+        screen.queryByTestId("replay-screenshot-preview"),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId("replay-screenshot-recover"));
+      await settle();
+
+      expect(capture).toHaveBeenCalledTimes(2);
+    });
+
+    it("tells a frame that is not ready yet apart from one that failed", async () => {
+      renderOverlays({
+        onCaptureFrame: makeFailingCapture(
+          new ReplayFrameCaptureError("no-document", "Not drawn yet."),
+        ),
+      });
+
+      fireEvent.click(screen.getByTestId("replay-screenshot-download"));
+      await settle();
+
+      expect(screen.getByTestId("replay-screenshot-error")).toHaveTextContent(
+        "The frame isn't ready yet",
+      );
+    });
+
+    it("turns a capture callback that throws into the same failure card", async () => {
+      const capture: MockFunction = getJestMockFunction();
+
+      capture.mockImplementation((): never => {
+        throw new Error("Synchronous failure");
+      });
+
+      renderOverlays({ onCaptureFrame: capture });
+
+      fireEvent.click(screen.getByTestId("replay-screenshot-download"));
+      await settle();
+
+      expect(screen.getByTestId("replay-screenshot-error")).toHaveAttribute(
+        "data-recovery",
+        "retry",
+      );
+      expect(screen.getByTestId("replay-screenshot-download")).toBeEnabled();
+    });
+  });
+
+  describe("across frames", () => {
+    async function failOnce(): Promise<ReturnType<typeof render>> {
+      const result: ReturnType<typeof render> = renderOverlays({
+        onCaptureFrame: makeFailingCapture(
+          new ReplayFrameCaptureError("render-failed", "Boom"),
+        ),
+      });
+
+      fireEvent.click(screen.getByTestId("replay-screenshot-download"));
+      await settle();
+
+      expect(screen.getByTestId("replay-screenshot-error")).toBeInTheDocument();
+
+      return result;
+    }
+
+    it("clears a failure card when a seek while paused changes the frame", async () => {
+      const { rerender } = await failOnce();
+
+      rerenderOverlays(rerender, {
+        snapshot: makeSnapshot({ currentTimeMs: 52000 }),
+        onCaptureFrame: makeCapture(),
+      });
+
+      expect(
+        screen.queryByTestId("replay-screenshot-error"),
+      ).not.toBeInTheDocument();
+      expect(queryDock()).toBeInTheDocument();
+      expect(screen.getByTestId("replay-screenshot-download")).toHaveAttribute(
+        "data-state",
+        "idle",
+      );
+    });
+
+    it("keeps the card while the frame stays the same", async () => {
+      const { rerender } = await failOnce();
+
+      /* Same playhead, and one within the same rounded millisecond. */
+      rerenderOverlays(rerender, {
+        snapshot: makeSnapshot({ currentTimeMs: 41200 }),
+        onCaptureFrame: makeCapture(),
+      });
+
+      expect(screen.getByTestId("replay-screenshot-error")).toBeInTheDocument();
+
+      rerenderOverlays(rerender, {
+        snapshot: makeSnapshot({ currentTimeMs: 41200.3 }),
+        onCaptureFrame: makeCapture(),
+      });
+
+      expect(screen.getByTestId("replay-screenshot-error")).toBeInTheDocument();
+    });
+
+    it("clears the card when the replay is rebuilt at the same playhead", async () => {
+      const { rerender } = await failOnce();
+
+      rerenderOverlays(rerender, {
+        snapshot: makeSnapshot({ generation: 2 }),
+        onCaptureFrame: makeCapture(),
+      });
+
+      expect(
+        screen.queryByTestId("replay-screenshot-error"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("leaves the stage the moment playback resumes", async () => {
+      const { rerender } = await failOnce();
+
+      rerenderOverlays(rerender, {
+        snapshot: makeSnapshot({ buffer: "ok", intent: "playing" }),
+        onCaptureFrame: makeCapture(),
+      });
+
+      expect(screen.getByTestId("replay-overlay")).toHaveAttribute(
+        "data-replay-overlay",
+        "playing",
+      );
+      expect(queryDock()).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-screenshot-error"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("comes back fresh on the next pause, without the last frame's card", async () => {
+      const { rerender } = await failOnce();
+
+      rerenderOverlays(rerender, {
+        snapshot: makeSnapshot({ buffer: "ok", intent: "playing" }),
+        onCaptureFrame: makeCapture(),
+      });
+      rerenderOverlays(rerender, {
+        snapshot: makeSnapshot({ buffer: "ok", intent: "paused" }),
+        onCaptureFrame: makeCapture(),
+      });
+
+      expect(queryDock()).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-screenshot-error"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("drops a success card when text selection takes the stage", async () => {
+      const capture: MockFunction = makeCapture();
+      const { rerender } = renderOverlays({ onCaptureFrame: capture });
+
+      fireEvent.click(screen.getByTestId("replay-screenshot-download"));
+      await settle();
+
+      expect(
+        screen.getByTestId("replay-screenshot-preview"),
+      ).toBeInTheDocument();
+
+      rerenderOverlays(rerender, {
+        onCaptureFrame: capture,
+        isTextSelectionEnabled: true,
+      });
+
+      expect(
+        screen.queryByTestId("replay-screenshot-preview"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-screenshot-flash"),
+      ).not.toBeInTheDocument();
+      /* The thumbnail's object URL goes with it. */
+      expect(revokedUrls).toContain("blob:replay/2");
+    });
+
+    /*
+     * The frame is cloned when Download is pressed, so a PNG still being
+     * encoded when the viewer presses Play is the frame they asked for.
+     */
+    it("still saves a download asked for just before Play, without drawing a card", async () => {
+      const deferred: Deferred<ReplayScreenshot> = makeDeferred();
+      const capture: MockFunction = makeCapture(deferred.promise);
+      const { rerender } = renderOverlays({ onCaptureFrame: capture });
+
+      fireEvent.click(screen.getByTestId("replay-screenshot-download"));
+
+      rerenderOverlays(rerender, {
+        snapshot: makeSnapshot({ buffer: "ok", intent: "playing" }),
+        onCaptureFrame: capture,
+      });
+
+      await act(async (): Promise<void> => {
+        deferred.resolve(makeScreenshot());
+      });
+      await settle();
+
+      expect(downloads).toEqual([
+        { href: "blob:replay/1", fileName: SCREENSHOT_FILE_NAME },
+      ]);
+      expect(
+        screen.queryByTestId("replay-screenshot-preview"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-screenshot-flash"),
+      ).not.toBeInTheDocument();
+      /* No thumbnail URL was made for a card nobody will see. */
+      expect(createdUrls).toEqual(["blob:replay/1"]);
     });
   });
 });

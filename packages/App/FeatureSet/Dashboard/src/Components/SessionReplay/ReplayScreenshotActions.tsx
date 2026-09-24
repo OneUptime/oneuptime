@@ -175,13 +175,26 @@ export interface ReplayScreenshotActionsProps {
   download?: ((screenshot: ReplayScreenshot) => void) | undefined;
 }
 
+/*
+ * Below this much room between the top and the bottom of the stage (a
+ * phone, where a desktop recording's stage is about 224px tall) the
+ * thumbnail card would cover the paused Play button and reach up over the
+ * address bar. The confirmation becomes a pill beside the dock instead.
+ */
+export const REPLAY_SCREENSHOT_COMPACT_STAGE_PX: number = 320;
+
 interface ScreenshotPreview {
   action: ReplayScreenshotAction;
   fileName: string;
+  /* The PNG's own size, which is the recorded viewport times its density. */
+  pixelWidth: number;
+  pixelHeight: number;
+  /* The recorded viewport: the thumbnail's aspect ratio. */
   width: number;
   height: number;
   /* An object URL for the thumbnail; null where the browser has none. */
   url: string | null;
+  isCompact: boolean;
 }
 
 interface ScreenshotFailure extends ReplayScreenshotFailureCopy {
@@ -192,12 +205,19 @@ type FlashStage = "idle" | "on" | "fading";
 
 const DOCK_BUTTON_CLASS: string = [
   "relative inline-flex h-8 w-8 shrink-0 items-center justify-center gap-1.5 rounded-full",
-  "text-xs font-medium text-white/90 transition-colors duration-100",
-  "hover:bg-white/15 hover:text-white",
+  "text-xs font-medium transition-colors duration-100",
   "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
-  "disabled:cursor-not-allowed disabled:text-white/60 disabled:hover:bg-transparent",
   "sm:w-auto sm:px-3",
 ].join(" ");
+
+/*
+ * Busy is drawn and announced (aria-disabled, aria-busy) but the button
+ * is NOT disabled: a disabled button drops keyboard focus to <body>, and
+ * from there the next Space is the player's play/pause shortcut.
+ */
+const DOCK_BUTTON_IDLE_CLASS: string =
+  "text-white/90 hover:bg-white/15 hover:text-white";
+const DOCK_BUTTON_BUSY_CLASS: string = "cursor-progress text-white/60";
 
 const CARD_CLASS: string =
   "pointer-events-auto overflow-hidden rounded-xl bg-gray-900/85 text-white shadow-2xl shadow-black/30 ring-1 ring-white/15 backdrop-blur-md";
@@ -229,6 +249,16 @@ function revokePreviewUrl(url: string | null): void {
   }
 }
 
+function containsFocus(element: HTMLElement | null): boolean {
+  if (!element || typeof document === "undefined") {
+    return false;
+  }
+
+  const active: Element | null = document.activeElement;
+
+  return Boolean(active) && element.contains(active);
+}
+
 const ReplayScreenshotActions: FunctionComponent<
   ReplayScreenshotActionsProps
 > = (props: ReplayScreenshotActionsProps): ReactElement => {
@@ -254,9 +284,10 @@ const ReplayScreenshotActions: FunctionComponent<
 
   /*
    * Refs, because a capture outlives the render that started it: the
-   * busy guard must see a second click in the same frame, and a result
-   * that lands after the viewer pressed Play must not touch an unmounted
-   * component or leak its object URL.
+   * busy guard must see a second click in the same frame, a result that
+   * lands after the viewer pressed Play must not touch an unmounted
+   * component or leak its object URL, and a PNG of a frame the viewer
+   * has since seeked away from must not be kept for "Download instead".
    */
   const busyRef: React.MutableRefObject<ReplayScreenshotAction | null> =
     useRef<ReplayScreenshotAction | null>(null);
@@ -266,12 +297,24 @@ const ReplayScreenshotActions: FunctionComponent<
   >(null);
   const lastScreenshotRef: React.MutableRefObject<ReplayScreenshot | null> =
     useRef<ReplayScreenshot | null>(null);
+  const frameKeyRef: React.MutableRefObject<string | number | undefined> =
+    useRef<string | number | undefined>(props.frameKey);
   const doneTimerRef: React.MutableRefObject<ReturnType<
     typeof setTimeout
   > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previewTimerRef: React.MutableRefObject<ReturnType<
     typeof setTimeout
   > | null> = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const columnRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const copyButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const downloadButtonRef: React.RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const errorCardRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  const previewCardRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -297,6 +340,7 @@ const ReplayScreenshotActions: FunctionComponent<
   }, []);
 
   useEffect(() => {
+    frameKeyRef.current = props.frameKey;
     lastScreenshotRef.current = null;
     setFailure(null);
   }, [props.frameKey]);
@@ -334,33 +378,96 @@ const ReplayScreenshotActions: FunctionComponent<
     return undefined;
   }, [flash]);
 
-  const dismissPreview: () => void = useCallback((): void => {
+  /*
+   * A card that is about to go must not take the keyboard focus with it:
+   * focus dropped on <body> turns the next Space into the player's
+   * play/pause. It goes back to the dock button the card was about.
+   */
+  const keepFocusInDock: (action: ReplayScreenshotAction) => void = useCallback(
+    (action: ReplayScreenshotAction): void => {
+      if (
+        !containsFocus(errorCardRef.current) &&
+        !containsFocus(previewCardRef.current)
+      ) {
+        return;
+      }
+
+      const target: HTMLButtonElement | null =
+        action === "copy" ? copyButtonRef.current : downloadButtonRef.current;
+
+      target?.focus();
+    },
+    [],
+  );
+
+  const clearPreviewTimer: () => void = useCallback((): void => {
     if (previewTimerRef.current !== null) {
       clearTimeout(previewTimerRef.current);
       previewTimerRef.current = null;
     }
+  }, []);
 
+  const removePreview: () => void = useCallback((): void => {
+    clearPreviewTimer();
     revokePreviewUrl(previewUrlRef.current);
     previewUrlRef.current = null;
     setPreview(null);
-  }, []);
+  }, [clearPreviewTimer]);
+
+  const dismissPreview: () => void = useCallback((): void => {
+    if (preview) {
+      keepFocusInDock(preview.action);
+    }
+
+    removePreview();
+  }, [preview, keepFocusInDock, removePreview]);
+
+  /*
+   * The card leaves by itself - but not from under a pointer that is on
+   * it or a keyboard that is in it; it waits until they have left.
+   */
+  const schedulePreviewRemoval: () => void = useCallback((): void => {
+    clearPreviewTimer();
+    previewTimerRef.current = setTimeout((): void => {
+      previewTimerRef.current = null;
+
+      if (containsFocus(previewCardRef.current)) {
+        return;
+      }
+
+      removePreview();
+    }, REPLAY_SCREENSHOT_PREVIEW_MS);
+  }, [clearPreviewTimer, removePreview]);
 
   const dismissFailure: () => void = useCallback((): void => {
+    if (failure) {
+      keepFocusInDock(failure.action);
+    }
+
     setFailure(null);
-  }, []);
+  }, [failure, keepFocusInDock]);
 
   const succeed: (
     action: ReplayScreenshotAction,
     screenshot: ReplayScreenshot,
+    frameKey: string | number | undefined,
   ) => void = useCallback(
-    (action: ReplayScreenshotAction, screenshot: ReplayScreenshot): void => {
+    (
+      action: ReplayScreenshotAction,
+      screenshot: ReplayScreenshot,
+      frameKey: string | number | undefined,
+    ): void => {
       busyRef.current = null;
 
       if (!isMountedRef.current) {
         return;
       }
 
-      lastScreenshotRef.current = screenshot;
+      if (frameKey === frameKeyRef.current) {
+        lastScreenshotRef.current = screenshot;
+      }
+
+      keepFocusInDock(action);
       setBusyAction(null);
       setFailure(null);
       setDoneAction(action);
@@ -371,15 +478,22 @@ const ReplayScreenshotActions: FunctionComponent<
           : `Screenshot downloaded as ${screenshot.fileName}.`,
       );
 
+      const columnHeight: number = columnRef.current?.clientHeight ?? 0;
+
       revokePreviewUrl(previewUrlRef.current);
       const url: string | null = createPreviewUrl(screenshot.blob);
       previewUrlRef.current = url;
       setPreview({
         action: action,
         fileName: screenshot.fileName,
+        pixelWidth: screenshot.pixelWidth ?? screenshot.width,
+        pixelHeight: screenshot.pixelHeight ?? screenshot.height,
         width: screenshot.width,
         height: screenshot.height,
         url: url,
+        /* 0 is "not measured" (no layout): keep the full card. */
+        isCompact:
+          columnHeight > 0 && columnHeight < REPLAY_SCREENSHOT_COMPACT_STAGE_PX,
       });
 
       if (doneTimerRef.current !== null) {
@@ -391,18 +505,9 @@ const ReplayScreenshotActions: FunctionComponent<
         setDoneAction(null);
       }, REPLAY_SCREENSHOT_DONE_MS);
 
-      if (previewTimerRef.current !== null) {
-        clearTimeout(previewTimerRef.current);
-      }
-
-      previewTimerRef.current = setTimeout((): void => {
-        previewTimerRef.current = null;
-        revokePreviewUrl(previewUrlRef.current);
-        previewUrlRef.current = null;
-        setPreview(null);
-      }, REPLAY_SCREENSHOT_PREVIEW_MS);
+      schedulePreviewRemoval();
     },
-    [],
+    [keepFocusInDock, schedulePreviewRemoval],
   );
 
   const fail: (action: ReplayScreenshotAction, error: unknown) => void =
@@ -417,30 +522,37 @@ const ReplayScreenshotActions: FunctionComponent<
         const copy: ReplayScreenshotFailureCopy =
           describeReplayScreenshotFailure(error);
 
+        keepFocusInDock(action);
         setBusyAction(null);
         setDoneAction(null);
-        dismissPreview();
+        removePreview();
         setFailure({ ...copy, action: action });
         setAnnouncement("");
       },
-      [dismissPreview],
+      [keepFocusInDock, removePreview],
     );
 
-  const begin: (action: ReplayScreenshotAction) => boolean = useCallback(
-    (action: ReplayScreenshotAction): boolean => {
+  /* The frame the attempt is for, or null when one is already running. */
+  const begin: (
+    action: ReplayScreenshotAction,
+  ) => { frameKey: string | number | undefined } | null = useCallback(
+    (
+      action: ReplayScreenshotAction,
+    ): { frameKey: string | number | undefined } | null => {
       if (busyRef.current !== null) {
-        return false;
+        return null;
       }
 
+      keepFocusInDock(action);
       busyRef.current = action;
       lastScreenshotRef.current = null;
       setBusyAction(action);
       setFailure(null);
       setAnnouncement("");
 
-      return true;
+      return { frameKey: frameKeyRef.current };
     },
-    [],
+    [keepFocusInDock],
   );
 
   const startCapture: () => Promise<ReplayScreenshot> =
@@ -453,6 +565,10 @@ const ReplayScreenshotActions: FunctionComponent<
     }, [onCapture]);
 
   const copyImage: () => void = useCallback((): void => {
+    if (busyRef.current !== null) {
+      return;
+    }
+
     if (clipboardSupport !== "supported") {
       /*
        * Nothing to try: say why straight away and offer the download,
@@ -468,7 +584,10 @@ const ReplayScreenshotActions: FunctionComponent<
       return;
     }
 
-    if (!begin("copy")) {
+    const attempt: { frameKey: string | number | undefined } | null =
+      begin("copy");
+
+    if (!attempt) {
       return;
     }
 
@@ -476,7 +595,10 @@ const ReplayScreenshotActions: FunctionComponent<
 
     capture.then(
       (screenshot: ReplayScreenshot): void => {
-        lastScreenshotRef.current = screenshot;
+        /* Kept for "Download instead", if the clipboard refuses it. */
+        if (attempt.frameKey === frameKeyRef.current) {
+          lastScreenshotRef.current = screenshot;
+        }
       },
       (): void => {
         /* Reported through the clipboard promise below. */
@@ -495,7 +617,7 @@ const ReplayScreenshotActions: FunctionComponent<
       (): void => {
         capture.then(
           (screenshot: ReplayScreenshot): void => {
-            succeed("copy", screenshot);
+            succeed("copy", screenshot, attempt.frameKey);
           },
           (error: unknown): void => {
             fail("copy", error);
@@ -509,7 +631,10 @@ const ReplayScreenshotActions: FunctionComponent<
   }, [clipboardSupport, begin, startCapture, copyToClipboard, succeed, fail]);
 
   const downloadImage: () => void = useCallback((): void => {
-    if (!begin("download")) {
+    const attempt: { frameKey: string | number | undefined } | null =
+      begin("download");
+
+    if (!attempt) {
       return;
     }
 
@@ -522,7 +647,7 @@ const ReplayScreenshotActions: FunctionComponent<
           return;
         }
 
-        succeed("download", screenshot);
+        succeed("download", screenshot, attempt.frameKey);
       },
       (error: unknown): void => {
         fail("download", error);
@@ -533,10 +658,11 @@ const ReplayScreenshotActions: FunctionComponent<
   /*
    * "Download instead" after a clipboard failure saves the PNG that was
    * already drawn - the frame on the stage is the same one - rather than
-   * drawing it twice. With nothing drawn yet it captures afresh.
+   * drawing it twice. With nothing drawn for this frame it captures
+   * afresh.
    */
   const recover: () => void = useCallback((): void => {
-    if (!failure) {
+    if (!failure || busyRef.current !== null) {
       return;
     }
 
@@ -564,10 +690,9 @@ const ReplayScreenshotActions: FunctionComponent<
       return;
     }
 
-    succeed("download", screenshot);
+    succeed("download", screenshot, frameKeyRef.current);
   }, [failure, copyImage, downloadImage, download, succeed, fail]);
 
-  const isBusy: boolean = busyAction !== null;
   const copyTitle: string =
     clipboardSupport === "supported"
       ? "Copy this frame to the clipboard as a PNG"
@@ -603,9 +728,53 @@ const ReplayScreenshotActions: FunctionComponent<
     return <Icon icon={idleIcon} className="h-3.5 w-3.5 shrink-0" />;
   };
 
+  const getButtonState: (action: ReplayScreenshotAction) => string = (
+    action: ReplayScreenshotAction,
+  ): string => {
+    if (busyAction === action) {
+      return "busy";
+    }
+
+    return doneAction === action ? "done" : "idle";
+  };
+
+  const isBusy: boolean = busyAction !== null;
+  const buttonClass: string = `${DOCK_BUTTON_CLASS} ${
+    isBusy ? DOCK_BUTTON_BUSY_CLASS : DOCK_BUTTON_IDLE_CLASS
+  }`;
   const enterClass: string = isEntered
     ? "translate-y-0 opacity-100"
     : "translate-y-1 opacity-0";
+  const previewDetail: string = preview
+    ? preview.action === "copy"
+      ? `${formatReplayScreenshotSize(
+          preview.pixelWidth,
+          preview.pixelHeight,
+        )} PNG`
+      : preview.fileName
+    : "";
+  const previewTitle: string =
+    preview?.action === "copy"
+      ? "Copied to clipboard"
+      : "Screenshot downloaded";
+  const previewHoldHandlers: {
+    onMouseEnter: () => void;
+    onMouseLeave: () => void;
+    onFocus: () => void;
+    onBlur: (event: React.FocusEvent<HTMLDivElement>) => void;
+  } = {
+    onMouseEnter: clearPreviewTimer,
+    onMouseLeave: schedulePreviewRemoval,
+    onFocus: clearPreviewTimer,
+    onBlur: (event: React.FocusEvent<HTMLDivElement>): void => {
+      if (
+        !event.relatedTarget ||
+        !event.currentTarget.contains(event.relatedTarget as Node)
+      ) {
+        schedulePreviewRemoval();
+      }
+    },
+  };
 
   return (
     <>
@@ -621,18 +790,25 @@ const ReplayScreenshotActions: FunctionComponent<
         />
       )}
 
+      {/*
+       * The column spans the stage from top to bottom and stacks from the
+       * bottom, so a card can grow up to the stage's top edge and no
+       * further: the thumbnail and the error text give way first.
+       */}
       <div
+        ref={columnRef}
         data-testid="replay-screenshot"
-        className={`pointer-events-none absolute ${getReplayScreenshotDockPositionClassName(
+        className={`pointer-events-none absolute top-3 ${getReplayScreenshotDockPositionClassName(
           props.fit,
-        )} flex max-w-[calc(100%-1.5rem)] flex-col items-end gap-2`}
+        )} flex max-w-[calc(100%-1.5rem)] flex-col items-end justify-end gap-2`}
       >
         {failure && (
           <div
+            ref={errorCardRef}
             role="alert"
             data-testid="replay-screenshot-error"
             data-recovery={failure.recovery}
-            className={`${CARD_CLASS} flex w-64 max-w-full items-start gap-2.5 px-3 py-2.5 text-xs ring-rose-400/30`}
+            className={`${CARD_CLASS} flex min-h-0 w-64 max-w-full shrink items-start gap-2.5 overflow-y-auto px-3 py-2.5 text-xs ring-rose-400/30`}
           >
             <Icon
               icon={IconProp.ErrorSolid}
@@ -675,14 +851,16 @@ const ReplayScreenshotActions: FunctionComponent<
           </div>
         )}
 
-        {!failure && preview && (
+        {!failure && preview && !preview.isCompact && (
           <div
+            ref={previewCardRef}
             data-testid="replay-screenshot-preview"
             data-action={preview.action}
-            className={`${CARD_CLASS} w-56 max-w-full sm:w-60`}
+            className={`${CARD_CLASS} flex min-h-0 w-56 max-w-full shrink flex-col sm:w-60`}
+            {...previewHoldHandlers}
           >
             {preview.url && (
-              <div className="p-1.5 pb-0">
+              <div className="min-h-0 shrink overflow-hidden p-1.5 pb-0">
                 <img
                   src={preview.url}
                   alt="The captured frame"
@@ -694,27 +872,18 @@ const ReplayScreenshotActions: FunctionComponent<
                 />
               </div>
             )}
-            <div className="flex items-start gap-2 px-3 py-2">
+            <div className="flex shrink-0 items-start gap-2 px-3 py-2">
               <span className="mt-px inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-400/15 text-emerald-300">
                 <Icon icon={IconProp.Check} className="h-2.5 w-2.5" />
               </span>
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-semibold">
-                  {preview.action === "copy"
-                    ? "Copied to clipboard"
-                    : "Screenshot downloaded"}
-                </div>
+                <div className="text-xs font-semibold">{previewTitle}</div>
                 <div
                   className="mt-0.5 truncate text-[11px] text-white/60"
                   title={preview.fileName}
                   data-testid="replay-screenshot-preview-detail"
                 >
-                  {preview.action === "copy"
-                    ? `${formatReplayScreenshotSize(
-                        preview.width,
-                        preview.height,
-                      )} PNG`
-                    : preview.fileName}
+                  {previewDetail}
                 </div>
               </div>
               <button
@@ -731,53 +900,78 @@ const ReplayScreenshotActions: FunctionComponent<
           </div>
         )}
 
-        <div
-          role="group"
-          aria-label="Screenshot of this frame"
-          data-testid="replay-screenshot-actions"
-          className={`pointer-events-auto inline-flex items-center gap-0.5 rounded-full bg-gray-900/75 p-1 text-white shadow-lg shadow-black/20 ring-1 ring-white/15 backdrop-blur-md transition duration-200 ease-out motion-reduce:transition-none ${enterClass}`}
-        >
-          <button
-            type="button"
-            data-testid="replay-screenshot-copy"
-            data-state={
-              busyAction === "copy"
-                ? "busy"
-                : doneAction === "copy"
-                  ? "done"
-                  : "idle"
-            }
-            className={DOCK_BUTTON_CLASS}
-            title={copyTitle}
-            aria-label="Copy image"
-            aria-busy={busyAction === "copy" || undefined}
-            disabled={isBusy}
-            onClick={copyImage}
+        <div className="flex max-w-full shrink-0 items-center justify-end gap-2">
+          {!failure && preview && preview.isCompact && (
+            <div
+              ref={previewCardRef}
+              data-testid="replay-screenshot-preview"
+              data-action={preview.action}
+              data-compact="true"
+              title={`${previewTitle}: ${previewDetail}`}
+              className="pointer-events-auto inline-flex h-10 min-w-0 items-center gap-1.5 rounded-full bg-gray-900/85 pl-3 pr-1 text-xs font-semibold text-white shadow-lg shadow-black/20 ring-1 ring-white/15 backdrop-blur-md"
+              {...previewHoldHandlers}
+            >
+              <Icon
+                icon={IconProp.Check}
+                className="h-3.5 w-3.5 shrink-0 text-emerald-300"
+              />
+              <span className="truncate">
+                {preview.action === "copy" ? "Copied" : "Saved"}
+              </span>
+              <button
+                type="button"
+                data-testid="replay-screenshot-preview-dismiss"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/60 transition-colors hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                aria-label="Dismiss"
+                title="Dismiss"
+                onClick={dismissPreview}
+              >
+                <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
+
+          <div
+            role="group"
+            aria-label="Screenshot of this frame"
+            data-testid="replay-screenshot-actions"
+            className={`pointer-events-auto inline-flex shrink-0 items-center gap-0.5 rounded-full bg-gray-900/75 p-1 text-white shadow-lg shadow-black/20 ring-1 ring-white/15 backdrop-blur-md transition duration-200 ease-out motion-reduce:transition-none ${enterClass}`}
           >
-            {renderButtonIcon("copy", IconProp.Photo)}
-            <span className="sr-only sm:not-sr-only">Copy image</span>
-          </button>
-          <span aria-hidden="true" className="h-4 w-px shrink-0 bg-white/20" />
-          <button
-            type="button"
-            data-testid="replay-screenshot-download"
-            data-state={
-              busyAction === "download"
-                ? "busy"
-                : doneAction === "download"
-                  ? "done"
-                  : "idle"
-            }
-            className={DOCK_BUTTON_CLASS}
-            title="Download this frame as a PNG"
-            aria-label="Download"
-            aria-busy={busyAction === "download" || undefined}
-            disabled={isBusy}
-            onClick={downloadImage}
-          >
-            {renderButtonIcon("download", IconProp.Download)}
-            <span className="sr-only sm:not-sr-only">Download</span>
-          </button>
+            <button
+              ref={copyButtonRef}
+              type="button"
+              data-testid="replay-screenshot-copy"
+              data-state={getButtonState("copy")}
+              className={buttonClass}
+              title={copyTitle}
+              aria-label="Copy image"
+              aria-busy={busyAction === "copy" || undefined}
+              aria-disabled={isBusy || undefined}
+              onClick={copyImage}
+            >
+              {renderButtonIcon("copy", IconProp.Photo)}
+              <span className="sr-only sm:not-sr-only">Copy image</span>
+            </button>
+            <span
+              aria-hidden="true"
+              className="h-4 w-px shrink-0 bg-white/20"
+            />
+            <button
+              ref={downloadButtonRef}
+              type="button"
+              data-testid="replay-screenshot-download"
+              data-state={getButtonState("download")}
+              className={buttonClass}
+              title="Download this frame as a PNG"
+              aria-label="Download"
+              aria-busy={busyAction === "download" || undefined}
+              aria-disabled={isBusy || undefined}
+              onClick={downloadImage}
+            >
+              {renderButtonIcon("download", IconProp.Download)}
+              <span className="sr-only sm:not-sr-only">Download</span>
+            </button>
+          </div>
         </div>
 
         <span
