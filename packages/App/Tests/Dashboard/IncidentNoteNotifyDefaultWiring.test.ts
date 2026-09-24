@@ -2,6 +2,10 @@ import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/Pub
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  describePublicNotesTab,
+  describeSharedPublicNoteWiring,
+} from "./PublicNotesTabWiring";
 
 /*
  * An incident declared without notifying status page subscribers starts every
@@ -162,94 +166,19 @@ describe.each(MODAL_FORMS)("$name", (form: ModalFormCase) => {
   });
 });
 
-describe("incident Public Notes tab", () => {
-  const source: string = readSource(
-    "Pages",
-    "Incidents",
-    "View",
-    "PublicNote.tsx",
-  );
-  const checkbox: string = extract(
-    source,
-    /\{ field: \{ shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true, \},[\s\S]*?\}/,
-  );
-
-  test("loads only the incident's notify-on-declare setting", () => {
-    const getIncident: string = extract(
-      source,
-      /ModelAPI\.getItem<Incident>\(\{[\s\S]*?\}, \}\)/,
-    );
-
-    expect(getIncident).not.toBe("");
-    expect(getIncident).toContain("modelType: Incident,");
-    expect(getIncident).toContain("id: modelId,");
-    expect(getIncident).toContain(
-      "select: { shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true, },",
-    );
-  });
-
-  test("derives the default from the shared helper", () => {
-    expect(source).toContain(HELPER_IMPORT);
-    expect(source).toContain(
-      "setNotifySubscribersByDefault( PublicNoteSubscriberNotificationDefault.shouldNotifyForIncident( incident, ), );",
-    );
-  });
-
-  test("does not render the notes table until the default is known", () => {
-    expect(source).toMatch(/useState< ?boolean \| null ?>\(null\)/);
-    expect(source).toContain(
-      "if (notifySubscribersByDefault === null) { return <PageLoader isVisible={true} />; }",
-    );
-    expect(
-      source.indexOf("if (notifySubscribersByDefault === null)"),
-    ).toBeLessThan(source.indexOf("<ModelTable<IncidentPublicNote>"));
-  });
-
-  test("shows an error instead of the table when the incident cannot be loaded", () => {
-    expect(source).toContain(
-      "if (incidentError) { return <ErrorMessage message={incidentError} />; }",
-    );
-    expect(source).toContain("setIncidentError(API.getFriendlyMessage(err));");
-  });
-
-  test("seeds the create form with the flag as a value", () => {
-    const createInitialValues: string = extract(
-      source,
-      /createInitialValues=\{\{[\s\S]*?\}\}/,
-    );
-
-    expect(createInitialValues).toContain(
-      "shouldStatusPageSubscribersBeNotifiedOnNoteCreated: notifySubscribersByDefault,",
-    );
-    expect(createInitialValues).toContain("...initialValuesForIncident,");
-  });
-
-  test("still opens the create form only for a template or an AI draft", () => {
-    expect(source).toContain(
-      "showCreateForm={Object.keys(initialValuesForIncident).length > 0}",
-    );
-    expect(source).not.toMatch(
-      /showCreateForm=\{[^}]*notifySubscribersByDefault/,
-    );
-    expect(source).not.toMatch(
-      /setInitialValuesForIncident\(\{[^}]*shouldStatusPageSubscribersBeNotifiedOnNoteCreated/,
-    );
-  });
-
-  test("starts the checkbox from the incident's default instead of hard-coding true", () => {
-    expect(checkbox).not.toBe("");
-    expect(checkbox).toContain('title: "Notify Status Page Subscribers"');
-    expect(checkbox).toContain("fieldType: FormFieldSchemaType.Checkbox,");
-    expect(checkbox).toContain("defaultValue: notifySubscribersByDefault,");
-    expect(checkbox).not.toContain("defaultValue: true");
-  });
-
-  test("explains an unticked default with the shared description", () => {
-    expect(checkbox).toContain(
-      `description: notifySubscribersByDefault ? "Should status page subscribers be notified?" : ${QUIET_DESCRIPTION_REFERENCE},`,
-    );
-  });
+describePublicNotesTab({
+  eventName: "incident",
+  file: ["Pages", "Incidents", "View", "PublicNote.tsx"],
+  parentModel: "Incident",
+  noteModel: "IncidentPublicNote",
+  parentIdField: "incidentId",
+  parentFlag: "shouldStatusPageSubscribersBeNotifiedOnIncidentCreated",
+  resolveArgument: "incident",
+  helperCall: "shouldNotifyForIncident",
+  quietDescriptionReference: QUIET_DESCRIPTION_REFERENCE,
 });
+
+describeSharedPublicNoteWiring();
 
 /*
  * Dashboard strings are translated by looking the English text up in each

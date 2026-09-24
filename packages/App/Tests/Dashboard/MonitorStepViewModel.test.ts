@@ -17,6 +17,7 @@ import DnsRecordType from "Common/Types/Monitor/DnsMonitor/DnsRecordType";
 import DomainLookupMethod from "Common/Types/Monitor/DomainMonitor/DomainLookupMethod";
 import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
 import MonitorStep, { MonitorStepType } from "Common/Types/Monitor/MonitorStep";
+import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import { IoTResourceScope } from "Common/Types/Monitor/MonitorStepIoTMonitor";
 import { KubernetesResourceScope } from "Common/Types/Monitor/MonitorStepKubernetesMonitor";
 import { ProxmoxResourceScope } from "Common/Types/Monitor/MonitorStepProxmoxMonitor";
@@ -305,6 +306,7 @@ function buildStepForMonitorType(monitorType: MonitorType): MonitorStep {
             new ObjectID("33333333-3333-4333-8333-333333333333"),
           ],
           entityKeys: ["container:api"],
+          environments: ["production", "staging"],
           exceptionTypes: ["TypeError"],
           message: "undefined is not a function",
           includeResolved: true,
@@ -843,6 +845,33 @@ describe("MonitorStepViewModel.getRows — telemetry monitors", () => {
     expect(getRow(MonitorType.Exceptions, "includeArchived")?.value).toBe(
       false,
     );
+    expect(getRow(MonitorType.Exceptions, "exceptionEnvironments")).toEqual(
+      expect.objectContaining({
+        title: "Environments",
+        valueType: MonitorStepViewValueType.ArrayOfText,
+        value: ["production", "staging"],
+      }),
+    );
+  });
+
+  it("hides the environments row when the exception monitor watches every environment", () => {
+    for (const environments of [[], undefined]) {
+      const rows: Array<MonitorStepViewRow> = MonitorStepViewModel.getRows({
+        monitorStep: buildStep({
+          exceptionMonitor: {
+            ...MonitorStepExceptionMonitorUtil.getDefault(),
+            environments: environments,
+          },
+        }),
+        monitorType: MonitorType.Exceptions,
+      });
+
+      expect(
+        rows.find((row: MonitorStepViewRow) => {
+          return row.key === "exceptionEnvironments";
+        }),
+      ).toBeUndefined();
+    }
   });
 
   it("shows the network device the monitor alerts on, which used to render nothing", () => {

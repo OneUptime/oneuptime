@@ -343,6 +343,12 @@ describe("UserMiddleware - a user removed from a project is refused on their nex
       .mockResolvedValue(false);
     jest.spyOn(ProjectService, "updateLastActive").mockResolvedValue(undefined);
     jest.spyOn(UserService, "updateLastActive").mockResolvedValue(undefined);
+    /*
+     * getUserMiddleware refuses a user a master admin has blocked, and asks
+     * UserService - a Postgres read - on every request. Nobody here is
+     * blocked; a blocked user's token is BlockedUserMiddleware.test.ts.
+     */
+    jest.spyOn(UserService, "isUserBlocked").mockResolvedValue(false);
     jest
       .spyOn(GlobalConfigService, "getRequireSsoForLogin")
       .mockResolvedValue(false);

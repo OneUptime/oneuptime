@@ -8,6 +8,7 @@ Exceptions monitors specific criteria से match करने वाले exc
 
 - आपके applications में exception spikes पर alert करें
 - specific exception types monitor करें
+- alerts को `production` जैसे किसी deployment environment तक सीमित करें
 - error message से exceptions खोजें
 - resolved और active exceptions को अलग track करें
 - error patterns से application stability issues detect करें
@@ -31,10 +32,35 @@ exceptions monitor करने के लिए एक या अधिक serv
 | Filter           | विवरण                                                                          | आवश्यक |
 | ---------------- | ------------------------------------------------------------------------------ | ------ |
 | Exception Types  | exception type names से filter करें (जैसे `NullPointerException`, `TypeError`) | नहीं   |
+| Environments     | deployment environment से filter करें (जैसे `production`, `staging`)           | नहीं   |
 | Message          | exception messages में text search                                             | नहीं   |
 | Include Resolved | resolved marked exceptions शामिल करें (default: false)                         | नहीं   |
 | Include Archived | archived exceptions शामिल करें (default: false)                                | नहीं   |
 | Time Window      | exceptions के लिए कितना पीछे search करें (seconds में, default: 60)            | नहीं   |
+
+### Environments
+
+Environments हर exception पर मौजूद `deployment.environment` OpenTelemetry resource attribute से आते हैं, यह वही value है जिससे Exceptions explorer `env:production` के साथ filter करता है। एक environment दर्ज करें, या commas से अलग किए गए कई environments; कोई exception तब count होता है जब उसका environment इनमें से किसी से भी match करता है।
+
+Matching exact और case-sensitive है: `production`, `Production` या `prod` से match नहीं करता। जब यह filter set होता है, तो बिना environment वाले exceptions count नहीं होते। हर environment के exceptions count करने के लिए, जिनमें बिना environment वाले exceptions भी शामिल हैं, इसे खाली छोड़ दें।
+
+Environment filter बाकी सभी filters के साथ combine होता है, इसलिए एक telemetry service और `production` तक सीमित monitor केवल उस service के production exceptions count करता है।
+
+API के माध्यम से monitor बनाते समय, step के `exceptionMonitor` पर `environments` को environment names की list पर set करें:
+
+```json
+{
+  "exceptionMonitor": {
+    "telemetryServiceIds": [],
+    "environments": ["production"],
+    "exceptionTypes": [],
+    "message": "",
+    "includeResolved": false,
+    "includeArchived": false,
+    "lastXSecondsOfExceptions": 300
+  }
+}
+```
 
 ## Monitoring Criteria
 
@@ -69,6 +95,14 @@ exceptions monitor करने के लिए एक या अधिक serv
 - **Check On**: Exception Count
 - **फ़िल्टर प्रकार**: Greater Than
 - **मान**: 0
+
+#### केवल production exceptions पर Alert करें
+
+- **परिवेश**: `production`
+- **समय विंडो**: 300 seconds
+- **Check On**: Exception Count
+- **फ़िल्टर प्रकार**: Greater Than
+- **मान**: 5
 
 #### एक specific message वाले exceptions monitor करें
 

@@ -16,6 +16,13 @@ import { SpanSelfTime } from "Common/Utils/Traces/CriticalPath";
 import { APP_API_URL } from "Common/UI/Config";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
+import AttributesJSONView from "Common/UI/Components/AttributesJSON/AttributesJSONView";
+import AttributesViewToggle from "Common/UI/Components/AttributesJSON/AttributesViewToggle";
+import CopyAttributesAsJSONButton from "Common/UI/Components/AttributesJSON/CopyAttributesAsJSONButton";
+import {
+  AttributesView,
+  useAttributesView,
+} from "Common/UI/Components/AttributesJSON/AttributesJSONPreferences";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import API from "Common/UI/Utils/API/API";
@@ -128,6 +135,7 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
   const [detailError, setDetailError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<PanelTab>("attributes");
   const [attributeFilter, setAttributeFilter] = useState<string>("");
+  const [attributesView, setAttributesView] = useAttributesView();
 
   const [logs, setLogs] = useState<Array<Log>>([]);
   const [logsLoading, setLogsLoading] = useState<boolean>(false);
@@ -555,25 +563,51 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
         }
         return (
           <div className="space-y-2">
-            {attributes.length > ATTRIBUTE_FILTER_THRESHOLD && (
-              <div className="relative">
-                <Icon
-                  icon={IconProp.Search}
-                  className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  type="search"
-                  value={attributeFilter}
-                  placeholder={`Filter ${attributes.length} attributes`}
-                  aria-label="Filter attributes"
-                  className="w-full rounded-md border border-gray-200 py-1.5 pl-8 pr-2 text-xs placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-                    setAttributeFilter(event.target.value);
+            <div className="flex flex-wrap items-center gap-2">
+              {attributesView === "list" &&
+              attributes.length > ATTRIBUTE_FILTER_THRESHOLD ? (
+                <div className="relative min-w-[10rem] flex-1">
+                  <Icon
+                    icon={IconProp.Search}
+                    className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400"
+                  />
+                  <input
+                    type="search"
+                    value={attributeFilter}
+                    placeholder={`Filter ${attributes.length} attributes`}
+                    aria-label="Filter attributes"
+                    className="w-full rounded-md border border-gray-200 py-1.5 pl-8 pr-2 text-xs placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+                      setAttributeFilter(event.target.value);
+                    }}
+                  />
+                </div>
+              ) : (
+                <span className="flex-1 text-[11px] text-gray-500">
+                  {pluralize(attributes.length, "attribute")}
+                </span>
+              )}
+              <div className="ml-auto flex items-center gap-1.5">
+                <AttributesViewToggle
+                  value={attributesView}
+                  onChange={(view: AttributesView) => {
+                    setAttributesView(view);
                   }}
+                  dataTestId="trace-span-attributes-view-toggle"
+                />
+                <CopyAttributesAsJSONButton
+                  attributes={fullSpan?.attributes}
+                  dataTestId="trace-span-attributes-copy-json"
                 />
               </div>
-            )}
-            {filteredAttributes.length === 0 ? (
+            </div>
+            {attributesView === "json" ? (
+              <AttributesJSONView
+                attributes={fullSpan?.attributes}
+                maxHeightClassName="max-h-none"
+                dataTestId="trace-span-attributes-json"
+              />
+            ) : filteredAttributes.length === 0 ? (
               renderEmpty("No attributes match this filter.")
             ) : (
               <dl
@@ -657,25 +691,37 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                       </span>
                     </summary>
                     {event.attributes.length > 0 && (
-                      <dl className="mt-2 space-y-1 border-t border-gray-100 pt-2">
-                        {event.attributes.map(
-                          (entry: AttributeEntry): ReactElement => {
-                            return (
-                              <div
-                                key={entry.key}
-                                className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3 text-[11px]"
-                              >
-                                <dt className="break-words font-mono text-gray-500">
-                                  {entry.key}
-                                </dt>
-                                <dd className="break-words font-mono text-gray-900">
-                                  {entry.value}
-                                </dd>
-                              </div>
-                            );
-                          },
-                        )}
-                      </dl>
+                      <div className="mt-2 border-t border-gray-100 pt-2">
+                        <div className="mb-1.5 flex items-center justify-between gap-2">
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                            Event attributes
+                          </span>
+                          <CopyAttributesAsJSONButton
+                            attributes={event.rawAttributes}
+                            subject="event attributes"
+                            dataTestId="span-event-attributes-copy-json"
+                          />
+                        </div>
+                        <dl className="space-y-1">
+                          {event.attributes.map(
+                            (entry: AttributeEntry): ReactElement => {
+                              return (
+                                <div
+                                  key={entry.key}
+                                  className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3 text-[11px]"
+                                >
+                                  <dt className="break-words font-mono text-gray-500">
+                                    {entry.key}
+                                  </dt>
+                                  <dd className="break-words font-mono text-gray-900">
+                                    {entry.value}
+                                  </dd>
+                                </div>
+                              );
+                            },
+                          )}
+                        </dl>
+                      </div>
                     )}
                   </details>
                 </li>
@@ -842,25 +888,37 @@ const TraceSpanPanel: FunctionComponent<ComponentProps> = (
                     </Link>
                   </div>
                   {linkAttributes.length > 0 && (
-                    <dl className="mt-2 space-y-1 border-t border-gray-100 pt-2">
-                      {linkAttributes.map(
-                        (entry: AttributeEntry): ReactElement => {
-                          return (
-                            <div
-                              key={entry.key}
-                              className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3 text-[11px]"
-                            >
-                              <dt className="break-words font-mono text-gray-500">
-                                {entry.key}
-                              </dt>
-                              <dd className="break-words font-mono text-gray-900">
-                                {entry.value}
-                              </dd>
-                            </div>
-                          );
-                        },
-                      )}
-                    </dl>
+                    <div className="mt-2 border-t border-gray-100 pt-2">
+                      <div className="mb-1.5 flex items-center justify-between gap-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                          Link attributes
+                        </span>
+                        <CopyAttributesAsJSONButton
+                          attributes={link.attributes}
+                          subject="link attributes"
+                          dataTestId="span-link-attributes-copy-json"
+                        />
+                      </div>
+                      <dl className="space-y-1">
+                        {linkAttributes.map(
+                          (entry: AttributeEntry): ReactElement => {
+                            return (
+                              <div
+                                key={entry.key}
+                                className="grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3 text-[11px]"
+                              >
+                                <dt className="break-words font-mono text-gray-500">
+                                  {entry.key}
+                                </dt>
+                                <dd className="break-words font-mono text-gray-900">
+                                  {entry.value}
+                                </dd>
+                              </div>
+                            );
+                          },
+                        )}
+                      </dl>
+                    </div>
                   )}
                 </li>
               );

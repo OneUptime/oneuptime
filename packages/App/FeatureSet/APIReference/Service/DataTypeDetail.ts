@@ -514,7 +514,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         type: "MonitorStepExceptionMonitor",
         required: false,
         description:
-          "Configuration for exception-based monitoring. Required for Exceptions monitor type. Defines exception class, message filters, service IDs, and the time window to evaluate.",
+          "Configuration for exception-based monitoring. Required for Exceptions monitor type. Defines exception class, message filters, service IDs, deployment environments (environments: an array of exact environment names, empty for all), and the time window to evaluate.",
       },
       {
         name: "snmpMonitor",

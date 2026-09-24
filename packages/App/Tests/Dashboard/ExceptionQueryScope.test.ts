@@ -76,6 +76,7 @@ function exceptionMonitorQuery(
 const STORED: Query<ExceptionInstance> = exceptionMonitorQuery({
   telemetryServiceIds: [new ObjectID(SERVICE_ID_A), new ObjectID(SERVICE_ID_B)],
   entityKeys: ["service:checkout", "k8s.pod:checkout-abc"],
+  environments: ["production", "staging"],
   exceptionTypes: ["TimeoutError", "TypeError"],
   message: "connection reset",
   lastXSecondsOfExceptions: 300,
@@ -91,6 +92,7 @@ describe("a real exception monitor's stored query", () => {
   test("every key an exception monitor emits is accounted for", () => {
     expect(Object.keys(STORED).sort()).toEqual([
       "entityKeys",
+      "environment",
       "exceptionType",
       "message",
       "primaryEntityId",
@@ -115,7 +117,29 @@ describe("a real exception monitor's stored query", () => {
       expect(scope.instanceScope.columnPredicates["entityKeys"]).toHaveLength(
         1,
       );
+      expect(scope.instanceScope.columnPredicates["environment"]).toEqual([
+        new Includes(["production", "staging"]),
+      ]);
     }
+  });
+
+  test("a single environment is an exact match, like the Explorer's env: filter", () => {
+    const scope: ExceptionQueryScope = buildExceptionQueryScope(
+      roundTrip(exceptionMonitorQuery({ environments: ["production"] })),
+    );
+
+    expect(scope.hasScope).toBe(true);
+    expect(scope.instanceScope.columnPredicates["environment"]).toEqual([
+      "production",
+    ]);
+    expect(scope.chips).toEqual([
+      {
+        facetKey: "environment",
+        value: "production",
+        displayKey: "Environment",
+        displayValue: "production",
+      },
+    ]);
   });
 
   test("the message stays a substring match", () => {
@@ -212,6 +236,11 @@ describe("a real exception monitor's stored query", () => {
     expect(byKey("entityKeys")).toHaveLength(2);
     expect(byKey("message")[0]!.value).toBe("connection reset");
     expect(byKey("message")[0]!.displayKey).toBe("Message");
+    expect(
+      byKey("environment").map((c: ExceptionScopeChip) => {
+        return `${c.displayKey}: ${c.value}`;
+      }),
+    ).toEqual(["Environment: production", "Environment: staging"]);
   });
 
   test("attributes become attribute predicates, stringified for the map column", () => {
@@ -312,6 +341,11 @@ describe("the host scope reaches the ClickHouse resolution query", () => {
     expect(query["message"]).toBeInstanceOf(Search);
     expect(query["entityKeys"]).toBeInstanceOf(Includes);
     expect(query["primaryEntityId"]).toBeInstanceOf(Includes);
+    expect(query["environment"]).toBeInstanceOf(Includes);
+    expect((query["environment"] as Includes).values).toEqual([
+      "production",
+      "staging",
+    ]);
   });
 
   test("the raw fragment is applied, but never over the window or project", () => {

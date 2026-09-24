@@ -5,6 +5,9 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import Search from "Common/Types/BaseDatabase/Search";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import IncludesNone from "Common/Types/BaseDatabase/IncludesNone";
+import { JSONObject } from "Common/Types/JSON";
+import { MonitorStepExceptionMonitorUtil } from "Common/Types/Monitor/MonitorStepExceptionMonitor";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
 import TraceMonitorResponse from "Common/Types/Monitor/TraceMonitor/TraceMonitorResponse";
 import ExceptionMonitorResponse from "Common/Types/Monitor/ExceptionMonitor/ExceptionMonitorResponse";
@@ -195,6 +198,160 @@ describe("monitorException", () => {
 
     expect(response.exceptionCount).toBe(3);
     expect(exceptionCountBy).toHaveBeenCalledTimes(1);
+  });
+
+  test("counts only the selected environment and keeps it on the view-exceptions query", async () => {
+    exceptionCountBy.mockResolvedValue(new PositiveNumber(2));
+
+    const step: MonitorStep = new MonitorStep();
+    step.setExceptionMonitor({
+      ...MonitorStepExceptionMonitorUtil.getDefault(),
+      environments: ["production"],
+    });
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: step,
+      monitorId,
+      projectId,
+    });
+
+    expect(response.exceptionCount).toBe(2);
+
+    const countQuery: Record<string, unknown> = exceptionCountBy.mock
+      .calls[0]![0].query as Record<string, unknown>;
+    expect(countQuery["environment"]).toBeInstanceOf(Includes);
+    expect((countQuery["environment"] as Includes).values).toEqual([
+      "production",
+    ]);
+
+    // The query persisted for the incident / alert "view exceptions" link.
+    expect(
+      (response.exceptionQuery as unknown as JSONObject)["environment"],
+    ).toEqual({ _type: "Includes", value: ["production"] });
+  });
+
+  test("combines the environment with every other filter and the resolved/archived exclusion", async () => {
+    resolvedFingerprints.mockResolvedValue(["resolved-fingerprint"]);
+
+    const serviceId: ObjectID = ObjectID.generate();
+    const step: MonitorStep = new MonitorStep();
+    step.setExceptionMonitor({
+      ...MonitorStepExceptionMonitorUtil.getDefault(),
+      telemetryServiceIds: [serviceId],
+      entityKeys: ["host-1"],
+      environments: ["production", "staging"],
+      exceptionTypes: ["TypeError"],
+      message: "boom",
+      lastXSecondsOfExceptions: 300,
+    });
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: step,
+      monitorId,
+      projectId,
+    });
+
+    const countQuery: Record<string, unknown> = exceptionCountBy.mock
+      .calls[0]![0].query as Record<string, unknown>;
+
+    expect(countQuery["projectId"]).toBe(projectId);
+    expect(countQuery["primaryEntityId"]).toBeInstanceOf(Includes);
+    expect(countQuery["entityKeys"]).toBeInstanceOf(Includes);
+    expect((countQuery["environment"] as Includes).values).toEqual([
+      "production",
+      "staging",
+    ]);
+    expect((countQuery["exceptionType"] as Includes).values).toEqual([
+      "TypeError",
+    ]);
+    expect((countQuery["message"] as Search<string>).value).toBe("boom");
+    expect(countQuery["time"]).toBeInstanceOf(InBetween);
+    expect(countQuery["fingerprint"]).toBeInstanceOf(IncludesNone);
+
+    /*
+     * The resolved/archived lookup is per exception group, which spans
+     * environments, so it is not narrowed by environment.
+     */
+    expect(resolvedFingerprints).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: projectId,
+        telemetryServiceIds: [serviceId],
+      }),
+    );
+
+    const exceptionQuery: JSONObject =
+      response.exceptionQuery as unknown as JSONObject;
+    expect(exceptionQuery["environment"]).toEqual({
+      _type: "Includes",
+      value: ["production", "staging"],
+    });
+    expect(exceptionQuery["fingerprint"]).toBeUndefined();
+  });
+
+  test("leaves every environment in scope when none is selected", async () => {
+    const step: MonitorStep = new MonitorStep();
+    step.setExceptionMonitor({
+      ...MonitorStepExceptionMonitorUtil.getDefault(),
+      environments: [],
+    });
+
+    const response: ExceptionMonitorResponse = await monitorException({
+      monitorStep: step,
+      monitorId,
+      projectId,
+    });
+
+    const countQuery: Record<string, unknown> = exceptionCountBy.mock
+      .calls[0]![0].query as Record<string, unknown>;
+    expect(countQuery["environment"]).toBeUndefined();
+    expect(
+      (response.exceptionQuery as unknown as JSONObject)["environment"],
+    ).toBeUndefined();
+  });
+
+  test("applies environments on a step saved and reloaded as JSON", async () => {
+    const step: MonitorStep = new MonitorStep();
+    step.setExceptionMonitor({
+      ...MonitorStepExceptionMonitorUtil.getDefault(),
+      environments: ["staging"],
+    });
+
+    // What the monitor row stores and the worker reads back.
+    const reloaded: MonitorStep = MonitorStep.fromJSON(
+      JSON.parse(JSON.stringify(step.toJSON())) as JSONObject,
+    );
+
+    await monitorException({ monitorStep: reloaded, monitorId, projectId });
+
+    const countQuery: Record<string, unknown> = exceptionCountBy.mock
+      .calls[0]![0].query as Record<string, unknown>;
+    expect((countQuery["environment"] as Includes).values).toEqual(["staging"]);
+  });
+
+  test("applies an environment an API caller sent as a bare string", async () => {
+    const step: MonitorStep = new MonitorStep();
+    step.setExceptionMonitor(MonitorStepExceptionMonitorUtil.getDefault());
+
+    const json: JSONObject = JSON.parse(
+      JSON.stringify(step.toJSON()),
+    ) as JSONObject;
+    const exceptionMonitorJson: JSONObject = (json["value"] as JSONObject)[
+      "exceptionMonitor"
+    ] as JSONObject;
+    expect(exceptionMonitorJson).toBeDefined();
+    exceptionMonitorJson["environments"] = "production";
+
+    await monitorException({
+      monitorStep: MonitorStep.fromJSON(json),
+      monitorId,
+      projectId,
+    });
+
+    const countQuery: Record<string, unknown> = exceptionCountBy.mock
+      .calls[0]![0].query as Record<string, unknown>;
+    expect((countQuery["environment"] as Includes).values).toEqual([
+      "production",
+    ]);
   });
 });
 

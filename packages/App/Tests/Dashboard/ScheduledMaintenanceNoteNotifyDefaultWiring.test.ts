@@ -2,6 +2,10 @@ import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/Pub
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  describePublicNotesTab,
+  describeSharedPublicNoteWiring,
+} from "./PublicNotesTabWiring";
 
 /*
  * A scheduled maintenance event created without notifying status page
@@ -319,131 +323,19 @@ describe("scheduled maintenance change state public note", () => {
   });
 });
 
-describe("scheduled maintenance Public Notes tab", () => {
-  const source: string = readSource(
-    "Pages",
-    "ScheduledMaintenanceEvents",
-    "View",
-    "PublicNote.tsx",
-  );
-  const checkbox: string = extract(
-    source,
-    /\{ field: \{ shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true, \},[\s\S]*?\}/,
-  );
-
-  test("loads only the event's notify-on-create setting", () => {
-    const getScheduledMaintenance: string = extract(
-      source,
-      /ModelAPI\.getItem<ScheduledMaintenance>\(\{[\s\S]*?\}, \}\)/,
-    );
-
-    expect(getScheduledMaintenance).not.toBe("");
-    expect(getScheduledMaintenance).toContain(
-      "modelType: ScheduledMaintenance,",
-    );
-    expect(getScheduledMaintenance).toContain("id: modelId,");
-    expect(getScheduledMaintenance).toContain(
-      "select: { shouldStatusPageSubscribersBeNotifiedOnEventCreated: true, },",
-    );
-  });
-
-  test("reloads the setting per event and ignores a stale answer", () => {
-    const effect: string = extract(
-      source,
-      /useEffect\(\(\) => \{ let isStale: boolean = false;[\s\S]*?\}, \[modelId\.toString\(\)\]\);/,
-    );
-
-    expect(effect).not.toBe("");
-    expect(effect).toContain("setNotifySubscribersByDefault(null);");
-    expect(effect).toContain('setScheduledMaintenanceError("");');
-    expect(effect).toContain("return () => { isStale = true; };");
-    expect(effect.match(/if \(!isStale\) \{/g)?.length).toBe(2);
-  });
-
-  test("derives the default from the shared helper", () => {
-    expect(source).toContain(HELPER_IMPORT);
-    expect(source).toContain(
-      "setNotifySubscribersByDefault( PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenance( scheduledMaintenance, ), );",
-    );
-  });
-
-  test("does not render the notes table until the default is known", () => {
-    expect(source).toMatch(/useState< ?boolean \| null ?>\(null\)/);
-    expect(source).toContain(
-      "if (notifySubscribersByDefault === null) { return <PageLoader isVisible={true} />; }",
-    );
-    expect(
-      indexOfOrFail(source, "if (notifySubscribersByDefault === null)"),
-    ).toBeLessThan(
-      indexOfOrFail(source, "<ModelTable<ScheduledMaintenancePublicNote>"),
-    );
-  });
-
-  test("shows an error instead of the table when the event cannot be loaded", () => {
-    expect(source).toContain(
-      "if (scheduledMaintenanceError) { return <ErrorMessage message={scheduledMaintenanceError} />; }",
-    );
-    expect(source).toContain(
-      "setScheduledMaintenanceError(API.getFriendlyMessage(err));",
-    );
-    expect(
-      indexOfOrFail(source, "if (scheduledMaintenanceError)"),
-    ).toBeLessThan(
-      indexOfOrFail(source, "<ModelTable<ScheduledMaintenancePublicNote>"),
-    );
-  });
-
-  test("seeds the create form with the flag as a value, before the template or AI draft", () => {
-    const createInitialValues: string = extract(
-      source,
-      /createInitialValues=\{\{[\s\S]*?\}\}/,
-    );
-
-    expect(createInitialValues).toContain(
-      "shouldStatusPageSubscribersBeNotifiedOnNoteCreated: notifySubscribersByDefault,",
-    );
-    expect(createInitialValues).toContain(
-      "...initialValuesForScheduledMaintenance,",
-    );
-    expect(
-      indexOfOrFail(
-        createInitialValues,
-        "shouldStatusPageSubscribersBeNotifiedOnNoteCreated",
-      ),
-    ).toBeLessThan(
-      indexOfOrFail(
-        createInitialValues,
-        "...initialValuesForScheduledMaintenance",
-      ),
-    );
-  });
-
-  test("still opens the create form only for a template or an AI draft", () => {
-    expect(source).toMatch(
-      /showCreateForm=\{ ?Object\.keys\(initialValuesForScheduledMaintenance\)\.length > 0 ?\}/,
-    );
-    expect(source).not.toMatch(
-      /showCreateForm=\{[^}]*notifySubscribersByDefault/,
-    );
-    expect(source).not.toMatch(
-      /setInitialValuesForScheduledMaintenance\(\{[^}]*shouldStatusPageSubscribersBeNotifiedOnNoteCreated/,
-    );
-  });
-
-  test("starts the checkbox from the event's default instead of hard-coding true", () => {
-    expect(checkbox).not.toBe("");
-    expect(checkbox).toContain('title: "Notify Status Page Subscribers"');
-    expect(checkbox).toContain("fieldType: FormFieldSchemaType.Checkbox,");
-    expect(checkbox).toContain("defaultValue: notifySubscribersByDefault,");
-    expect(checkbox).not.toContain("defaultValue: true");
-  });
-
-  test("explains an unticked default with the shared description", () => {
-    expect(checkbox).toContain(
-      `description: notifySubscribersByDefault ? "Should status page subscribers be notified?" : ${QUIET_DESCRIPTION_REFERENCE},`,
-    );
-  });
+describePublicNotesTab({
+  eventName: "scheduled maintenance",
+  file: ["Pages", "ScheduledMaintenanceEvents", "View", "PublicNote.tsx"],
+  parentModel: "ScheduledMaintenance",
+  noteModel: "ScheduledMaintenancePublicNote",
+  parentIdField: "scheduledMaintenanceId",
+  parentFlag: "shouldStatusPageSubscribersBeNotifiedOnEventCreated",
+  resolveArgument: "scheduledMaintenance",
+  helperCall: "shouldNotifyForScheduledMaintenance",
+  quietDescriptionReference: QUIET_DESCRIPTION_REFERENCE,
 });
+
+describeSharedPublicNoteWiring();
 
 /*
  * The manual form on the State Timeline page records a state entry by hand,

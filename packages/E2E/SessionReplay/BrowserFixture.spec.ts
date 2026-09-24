@@ -17,6 +17,7 @@ const applicationRoute: string =
   "/dashboard/10000000-0000-4000-8000-000000000001/rum/20000000-0000-4000-8000-000000000001";
 const listRoute: string = `${applicationRoute}/session-replay`;
 const usersRoute: string = `${applicationRoute}/session-replay-users`;
+const userFlowsRoute: string = `${applicationRoute}/user-flows`;
 const healthRoute: string = `${applicationRoute}/session-replay-health`;
 const policyRoute: string = `${applicationRoute}/session-replay-settings`;
 const documentationRoute: string = `${applicationRoute}/session-replay-documentation`;
@@ -246,12 +247,16 @@ test("uses the shared table and groups replay navigation in its own category", a
     .locator("..");
   await expect(section.getByRole("link")).toHaveText([
     "Session Replay",
+    "User Flows",
     "Replay Users",
     "Health",
     "Replay Policy",
     "Replay Access Log",
     "Documentation",
   ]);
+  await expect(
+    section.getByRole("link", { name: "User Flows" }),
+  ).toHaveAttribute("href", userFlowsRoute);
   await expect(
     section.getByRole("link", { name: "Replay Users" }),
   ).toHaveAttribute("href", usersRoute);

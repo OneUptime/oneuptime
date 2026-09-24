@@ -52,10 +52,6 @@ const CHART_NOTES: string = path.join(CHART_DIR, "templates/NOTES.txt");
 const CHART_VALUES: string = path.join(CHART_DIR, "values.yaml");
 const CHART_SCHEMA: string = path.join(CHART_DIR, "values.schema.json");
 const CHART_TEMPLATE: string = path.join(CHART_DIR, "templates/ai-runner.yaml");
-const ROADMAP: string = path.join(
-  REPOSITORY_ROOT,
-  "Docs/Internal/Roadmap/AiClusterAccess.md",
-);
 const CANONICAL_MODES: string = path.join(
   PACKAGES_ROOT,
   "Common/Types/Kubernetes/KubernetesClusterAiAccess.ts",
@@ -208,7 +204,7 @@ describe("the Bypass approval mode copy", () => {
   }
 
   it("never promises that nobody is asked, or that the breaker is the only exception", () => {
-    for (const file of [...MODE_COPY, ...EVERY_MODE_COPY, ROADMAP]) {
+    for (const file of [...MODE_COPY, ...EVERY_MODE_COPY]) {
       const text: string = readFlat(file);
 
       expect({

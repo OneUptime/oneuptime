@@ -27,12 +27,14 @@ import KubernetesContainer from "../../../Models/DatabaseModels/KubernetesContai
 import KubernetesResource from "../../../Models/DatabaseModels/KubernetesResource";
 import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
+import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import PodmanResource from "../../../Models/DatabaseModels/PodmanResource";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "../../../Models/DatabaseModels/ScheduledMaintenanceState";
+import ScheduledMaintenanceTemplate from "../../../Models/DatabaseModels/ScheduledMaintenanceTemplate";
 import ServiceModel from "../../../Models/DatabaseModels/Service";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
@@ -56,6 +58,7 @@ import KubernetesContainerService from "../../../Server/Services/KubernetesConta
 import KubernetesResourceService from "../../../Server/Services/KubernetesResourceService";
 import LabelService from "../../../Server/Services/LabelService";
 import MonitorService from "../../../Server/Services/MonitorService";
+import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import PodmanResourceService from "../../../Server/Services/PodmanResourceService";
@@ -63,9 +66,14 @@ import ProjectService from "../../../Server/Services/ProjectService";
 import ProxmoxClusterService from "../../../Server/Services/ProxmoxClusterService";
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
 import ScheduledMaintenanceStateService from "../../../Server/Services/ScheduledMaintenanceStateService";
+import ScheduledMaintenanceTemplateService from "../../../Server/Services/ScheduledMaintenanceTemplateService";
 import ServiceService from "../../../Server/Services/ServiceService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import VMwareVCenterService from "../../../Server/Services/VMwareVCenterService";
+import DatabaseService from "../../../Server/Services/DatabaseService";
+import { ProjectScopedRelation } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
+import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
+import TableColumnType from "../../../Types/Database/TableColumnType";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 
@@ -85,6 +93,12 @@ import ObjectID from "../../../Types/ObjectID";
  * other project's resource Activity tab and badge counts, and put the other
  * project's resource names into this project's views, which read the
  * relation as root.
+ *
+ * Scheduled maintenance events carry most of those resource lists too (plus
+ * network sites), and incident and scheduled maintenance templates carry a
+ * handful. A template's lists are copied onto every incident or event made
+ * from it, where they are checked, so a foreign id saved on a template made
+ * every create from that template fail.
  *
  * These tests drive the real ProjectScopedReferenceValidator through the
  * service hooks and only stub the lookups it makes, so a foreign or unknown id
@@ -114,6 +128,7 @@ const UNKNOWN_ID: string = "9c0ba0b3-2f8e-4c02-a8d5-6a4d2f5b9c11";
 const STATE_ID: string = "2b0a94a4-2f8c-49f0-8a2e-0f1ff5df41c9";
 const SEVERITY_ID: string = "6a56b0f9-6c8f-4f76-9b53-0a1a5b0ec1a2";
 const TEMPLATE_ID: string = "1d2c3b4a-5968-4776-8a5b-4c3d2e1f0a9b";
+const SECOND_TEMPLATE_ID: string = "1d2c3b4a-5968-4776-8a5b-4c3d2e1f0a9c";
 const ALERT_SEVERITY_ID: string = "7b1c2d3e-4f5a-4b6c-8d7e-9f0a1b2c3d4e";
 const INCIDENT_ID: string = "a2eb67d4-bd2e-4186-9187-dad799c9316c";
 const SECOND_INCIDENT_ID: string = "a2eb67d4-bd2e-4186-9187-dad799c9316d";
@@ -235,6 +250,126 @@ const RESOURCE_LISTS: Array<ResourceList> = [
   ),
 ];
 
+// Only scheduled maintenance events carry this one.
+const NETWORK_SITE_LIST: ResourceList = resourceList(
+  15,
+  "networkSites",
+  "Network Site",
+  NetworkSite,
+  NetworkSiteService,
+);
+
+const ALL_RESOURCE_LISTS: Array<ResourceList> = [
+  ...RESOURCE_LISTS,
+  NETWORK_SITE_LIST,
+];
+
+function listsNamed(columns: Array<string>): Array<ResourceList> {
+  return columns.map((column: string) => {
+    return ALL_RESOURCE_LISTS.find((list: ResourceList) => {
+      return list.column === column;
+    })!;
+  });
+}
+
+// The affected-resource lists a scheduled maintenance event carries.
+const EVENT_RESOURCE_LISTS: Array<ResourceList> = listsNamed([
+  "hosts",
+  "kubernetesClusters",
+  "dockerHosts",
+  "podmanHosts",
+  "proxmoxClusters",
+  "vmwareVCenters",
+  "iotFleets",
+  "networkSites",
+  "dockerSwarmClusters",
+  "cephClusters",
+  "services",
+]);
+
+// The affected-resource lists incident and scheduled maintenance templates carry.
+const TEMPLATE_RESOURCE_LISTS: Array<ResourceList> = listsNamed([
+  "hosts",
+  "kubernetesClusters",
+  "dockerHosts",
+  "podmanHosts",
+  "services",
+]);
+
+/*
+ * The monitor, label, on-call policy and status page lists, in the same
+ * shape, for the templates' tables below.
+ */
+function relationList(
+  column: string,
+  modelName: string,
+  model: new () => DatabaseBaseModel,
+  service: { findBy: unknown },
+  ownId: string,
+  foreignId: string,
+): ResourceList {
+  return {
+    column: column,
+    modelName: modelName,
+    model: model,
+    service: service,
+    ownId: ownId,
+    foreignId: foreignId,
+  };
+}
+
+const MONITOR_LIST: ResourceList = relationList(
+  "monitors",
+  "Monitor",
+  Monitor,
+  MonitorService,
+  OWN_MONITOR_ID,
+  FOREIGN_MONITOR_ID,
+);
+
+const LABEL_LIST: ResourceList = relationList(
+  "labels",
+  "Label",
+  Label,
+  LabelService,
+  OWN_LABEL_ID,
+  FOREIGN_LABEL_ID,
+);
+
+const POLICY_LIST: ResourceList = relationList(
+  "onCallDutyPolicies",
+  "On-Call Policy",
+  OnCallDutyPolicy,
+  OnCallDutyPolicyService,
+  OWN_POLICY_ID,
+  FOREIGN_POLICY_ID,
+);
+
+const STATUS_PAGE_LIST: ResourceList = relationList(
+  "statusPages",
+  "Status Page",
+  StatusPage,
+  StatusPageService,
+  OWN_STATUS_PAGE_ID,
+  FOREIGN_STATUS_PAGE_ID,
+);
+
+// Every list an incident template carries.
+const INCIDENT_TEMPLATE_LISTS: Array<ResourceList> = [
+  MONITOR_LIST,
+  LABEL_LIST,
+  POLICY_LIST,
+  ...TEMPLATE_RESOURCE_LISTS,
+];
+
+// Every list a scheduled maintenance template carries.
+const EVENT_TEMPLATE_LISTS: Array<ResourceList> = [
+  MONITOR_LIST,
+  LABEL_LIST,
+  STATUS_PAGE_LIST,
+  ...TEMPLATE_RESOURCE_LISTS,
+];
+
 function hostList(): ResourceList {
   return RESOURCE_LISTS[0]!;
 }
@@ -245,10 +380,11 @@ function hostList(): ResourceList {
  */
 function resourcesOf(
   pick: (list: ResourceList) => string,
+  lists: Array<ResourceList> = RESOURCE_LISTS,
 ): Dictionary<Array<DatabaseBaseModel>> {
   const payload: Dictionary<Array<DatabaseBaseModel>> = {};
 
-  for (const list of RESOURCE_LISTS) {
+  for (const list of lists) {
     payload[list.column] = [stubOf(list.model, pick(list))];
   }
 
@@ -258,6 +394,7 @@ function resourcesOf(
 // Asserts one error names every foreign resource.
 async function expectEveryForeignResourceNamed(
   write: Promise<unknown>,
+  lists: Array<ResourceList> = RESOURCE_LISTS,
 ): Promise<void> {
   let message: string = "";
 
@@ -269,13 +406,13 @@ async function expectEveryForeignResourceNamed(
 
   expect(message).toContain("belong to a different project: ");
 
-  for (const list of RESOURCE_LISTS) {
+  for (const list of lists) {
     expect(message).toContain(`${list.modelName} "${nameOf(list.foreignId)}"`);
   }
 }
 
 function expectNoResourceLookedUp(): void {
-  for (const list of RESOURCE_LISTS) {
+  for (const list of ALL_RESOURCE_LISTS) {
     expect(list.service.findBy).not.toHaveBeenCalled();
   }
 }
@@ -354,7 +491,7 @@ function registerRecords(): void {
         withProject(new AlertSeverity(), ALERT_SEVERITY_ID, PROJECT_ID),
       ],
     },
-    ...RESOURCE_LISTS.map((list: ResourceList) => {
+    ...ALL_RESOURCE_LISTS.map((list: ResourceList) => {
       return {
         service: list.service,
         records: [
@@ -1612,6 +1749,95 @@ describe("cross-project relation guard on write", () => {
 
       expect(counter).toHaveBeenCalledTimes(1);
     });
+
+    /*
+     * The event suppresses monitoring for, and shows on the page of, every
+     * resource it lists — so another project's resource here would put this
+     * project's maintenance on that project's host, cluster or network site.
+     */
+    test.each(EVENT_RESOURCE_LISTS)(
+      "rejects another project's $modelName",
+      async (list: ResourceList) => {
+        await expect(
+          callHook(ScheduledMaintenanceService, "onBeforeCreate", {
+            data: eventWith({
+              [list.column]: [stubOf(list.model, list.foreignId)],
+            } as Partial<ScheduledMaintenance>),
+            props: { tenantId: PROJECT_ID },
+          }),
+        ).rejects.toThrow(foreignMessage(list.modelName, list.foreignId));
+
+        expect(counter).not.toHaveBeenCalled();
+      },
+    );
+
+    test("names every foreign affected resource in one error", async () => {
+      await expectEveryForeignResourceNamed(
+        callHook(ScheduledMaintenanceService, "onBeforeCreate", {
+          data: eventWith(
+            resourcesOf((list: ResourceList) => {
+              return list.foreignId;
+            }, EVENT_RESOURCE_LISTS) as Partial<ScheduledMaintenance>,
+          ),
+          props: { tenantId: PROJECT_ID },
+        }),
+        EVENT_RESOURCE_LISTS,
+      );
+
+      expect(counter).not.toHaveBeenCalled();
+    });
+
+    test("rejects an affected resource id that matches no record", async () => {
+      await expect(
+        callHook(ScheduledMaintenanceService, "onBeforeCreate", {
+          data: eventWith({
+            networkSites: [stubOf(NetworkSite, UNKNOWN_ID)],
+          }),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).rejects.toThrow(`do not exist: Network Site "${UNKNOWN_ID}"`);
+    });
+
+    test("root creates check resources against the project on the payload", async () => {
+      // The recurring-event worker creates as root with projectId on the data.
+      const event: ScheduledMaintenance = eventWith({
+        services: [stubOf(ServiceModel, RESOURCE_LISTS[13]!.foreignId)],
+      });
+      event.projectId = PROJECT_ID;
+
+      await expect(
+        callHook(ScheduledMaintenanceService, "onBeforeCreate", {
+          data: event,
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(
+        foreignMessage("Service", RESOURCE_LISTS[13]!.foreignId),
+      );
+    });
+
+    test("accepts this project's record on every affected-resource list", async () => {
+      await expect(
+        callHook(ScheduledMaintenanceService, "onBeforeCreate", {
+          data: eventWith(
+            resourcesOf((list: ResourceList) => {
+              return list.ownId;
+            }, EVENT_RESOURCE_LISTS) as Partial<ScheduledMaintenance>,
+          ),
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
+
+      expect(counter).toHaveBeenCalledTimes(1);
+    });
+
+    test("does not look resources up when none are sent", async () => {
+      await callHook(ScheduledMaintenanceService, "onBeforeCreate", {
+        data: eventWith({}),
+        props: { tenantId: PROJECT_ID },
+      });
+
+      expectNoResourceLookedUp();
+    });
   });
 
   describe("ScheduledMaintenanceService update", () => {
@@ -1630,6 +1856,7 @@ describe("cross-project relation guard on write", () => {
     function storedEvent(data: {
       projectId: ObjectID;
       statusPageIds?: Array<string>;
+      resourceIds?: Dictionary<Array<string>>;
     }): ScheduledMaintenance {
       const event: ScheduledMaintenance = new ScheduledMaintenance();
       event._id = EVENT_ID;
@@ -1639,6 +1866,15 @@ describe("cross-project relation guard on write", () => {
       event.statusPages = (data.statusPageIds || []).map((id: string) => {
         return stubOf(StatusPage, id);
       });
+      for (const list of EVENT_RESOURCE_LISTS) {
+        Object.assign(event, {
+          [list.column]: (data.resourceIds?.[list.column] || []).map(
+            (id: string) => {
+              return stubOf(list.model, id);
+            },
+          ),
+        });
+      }
       return event;
     }
 
@@ -1693,6 +1929,469 @@ describe("cross-project relation guard on write", () => {
           props: { isRoot: true },
         }),
       ).rejects.toThrow(foreignMessage("Status Page", FOREIGN_STATUS_PAGE_ID));
+    });
+
+    test.each(EVENT_RESOURCE_LISTS)(
+      "rejects adding another project's $modelName",
+      async (list: ResourceList) => {
+        matchedEvents = [
+          storedEvent({
+            projectId: PROJECT_ID,
+            resourceIds: { [list.column]: [list.ownId] },
+          }),
+        ];
+
+        await expect(
+          callHook(ScheduledMaintenanceService, "onBeforeUpdate", {
+            // Bare uuid strings, as the dashboard's resource picker saves them.
+            data: { [list.column]: [list.ownId, list.foreignId] },
+            query: { _id: EVENT_ID },
+            props: { tenantId: PROJECT_ID },
+          }),
+        ).rejects.toThrow(foreignMessage(list.modelName, list.foreignId));
+      },
+    );
+
+    test("names every foreign affected resource in one error", async () => {
+      matchedEvents = [storedEvent({ projectId: PROJECT_ID })];
+
+      await expectEveryForeignResourceNamed(
+        callHook(ScheduledMaintenanceService, "onBeforeUpdate", {
+          data: resourcesOf((list: ResourceList) => {
+            return list.foreignId;
+          }, EVENT_RESOURCE_LISTS),
+          query: { _id: EVENT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+        EVENT_RESOURCE_LISTS,
+      );
+    });
+
+    test("re-saving a resource list keeps a resource the event already holds", async () => {
+      matchedEvents = [
+        storedEvent({
+          projectId: PROJECT_ID,
+          resourceIds: { networkSites: [NETWORK_SITE_LIST.foreignId] },
+        }),
+      ];
+
+      await expect(
+        callHook(ScheduledMaintenanceService, "onBeforeUpdate", {
+          data: {
+            networkSites: [
+              NETWORK_SITE_LIST.foreignId.toUpperCase(),
+              NETWORK_SITE_LIST.ownId,
+            ],
+          },
+          query: { _id: EVENT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
+
+      // Only the added network site was looked up.
+      expect(NetworkSiteService.findBy).toHaveBeenCalledTimes(1);
+    });
+
+    test("updates without a tenant check resources against the matched event's project", async () => {
+      matchedEvents = [storedEvent({ projectId: PROJECT_ID })];
+
+      await expect(
+        callHook(ScheduledMaintenanceService, "onBeforeUpdate", {
+          data: { hosts: [{ _id: hostList().foreignId }] },
+          query: { _id: EVENT_ID },
+          props: { isRoot: true },
+        }),
+      ).rejects.toThrow(foreignMessage("Host", hostList().foreignId));
+    });
+
+    test("accepts this project's resources on every list and clearing one", async () => {
+      matchedEvents = [
+        storedEvent({
+          projectId: PROJECT_ID,
+          resourceIds: { hosts: [hostList().ownId] },
+        }),
+      ];
+
+      const data: Dictionary<Array<string>> = {};
+
+      for (const list of EVENT_RESOURCE_LISTS) {
+        data[list.column] = [list.ownId];
+      }
+
+      data["hosts"] = [];
+
+      await expect(
+        callHook(ScheduledMaintenanceService, "onBeforeUpdate", {
+          data: data,
+          query: { _id: EVENT_ID },
+          props: { tenantId: PROJECT_ID },
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    test("an update that writes no relation list reads nothing back", async () => {
+      await callHook(ScheduledMaintenanceService, "onBeforeUpdate", {
+        data: { title: "renamed" },
+        query: { _id: EVENT_ID },
+        props: { tenantId: PROJECT_ID },
+      });
+
+      expect(ScheduledMaintenanceService.findBy).not.toHaveBeenCalled();
+      expectNoResourceLookedUp();
+    });
+  });
+
+  /*
+   * A template's lists are copied onto every incident or event created from
+   * it, and checked there — so a foreign id on the template made every
+   * create from it fail. The template refuses it where it enters instead.
+   */
+  interface TemplateCase {
+    name: string;
+    subject: string;
+    service: DatabaseService<DatabaseBaseModel>;
+    model: new () => DatabaseBaseModel;
+    lists: Array<ResourceList>;
+  }
+
+  const TEMPLATE_CASES: Array<TemplateCase> = [
+    {
+      name: "IncidentTemplateService",
+      subject: "incident template",
+      service:
+        IncidentTemplateService as unknown as DatabaseService<DatabaseBaseModel>,
+      model: IncidentTemplate,
+      lists: INCIDENT_TEMPLATE_LISTS,
+    },
+    {
+      name: "ScheduledMaintenanceTemplateService",
+      subject: "scheduled maintenance template",
+      service:
+        ScheduledMaintenanceTemplateService as unknown as DatabaseService<DatabaseBaseModel>,
+      model: ScheduledMaintenanceTemplate,
+      lists: EVENT_TEMPLATE_LISTS,
+    },
+  ];
+
+  describe.each(TEMPLATE_CASES)("$name", (templateCase: TemplateCase) => {
+    function templateWith(lists: Dictionary<unknown>): DatabaseBaseModel {
+      const template: DatabaseBaseModel = new templateCase.model();
+      template.setValue("templateName", "test");
+      Object.assign(template, lists);
+      return template;
+    }
+
+    function everyList(
+      pick: (list: ResourceList) => string,
+    ): Dictionary<Array<DatabaseBaseModel>> {
+      return resourcesOf(pick, templateCase.lists);
+    }
+
+    describe("create", () => {
+      test.each(templateCase.lists)(
+        "rejects another project's $modelName",
+        async (list: ResourceList) => {
+          await expect(
+            callHook(templateCase.service, "onBeforeCreate", {
+              data: templateWith({
+                [list.column]: [stubOf(list.model, list.foreignId)],
+              }),
+              props: { tenantId: PROJECT_ID },
+            }),
+          ).rejects.toThrow(foreignMessage(list.modelName, list.foreignId));
+        },
+      );
+
+      test("names every foreign record in one error", async () => {
+        let message: string = "";
+
+        try {
+          await callHook(templateCase.service, "onBeforeCreate", {
+            data: templateWith(
+              everyList((list: ResourceList) => {
+                return list.foreignId;
+              }),
+            ),
+            props: { tenantId: PROJECT_ID },
+          });
+        } catch (err) {
+          message = (err as Error).message;
+        }
+
+        expect(message).toContain(
+          `This ${templateCase.subject} references records that belong to a different project: `,
+        );
+
+        for (const list of templateCase.lists) {
+          expect(message).toContain(
+            `${list.modelName} "${nameOf(list.foreignId)}"`,
+          );
+        }
+      });
+
+      test("rejects an id that matches no record", async () => {
+        await expect(
+          callHook(templateCase.service, "onBeforeCreate", {
+            data: templateWith({ hosts: [stubOf(Host, UNKNOWN_ID)] }),
+            props: { tenantId: PROJECT_ID },
+          }),
+        ).rejects.toThrow(`do not exist: Host "${UNKNOWN_ID}"`);
+      });
+
+      test("root creates are checked against the project on the payload", async () => {
+        const template: DatabaseBaseModel = templateWith({
+          monitors: [stubOf(Monitor, FOREIGN_MONITOR_ID)],
+        });
+        template.setValue("projectId", PROJECT_ID);
+
+        await expect(
+          callHook(templateCase.service, "onBeforeCreate", {
+            data: template,
+            props: { isRoot: true },
+          }),
+        ).rejects.toThrow(foreignMessage("Monitor", FOREIGN_MONITOR_ID));
+      });
+
+      test("accepts this project's record on every list", async () => {
+        await expect(
+          callHook(templateCase.service, "onBeforeCreate", {
+            data: templateWith(
+              everyList((list: ResourceList) => {
+                return list.ownId;
+              }),
+            ),
+            props: { tenantId: PROJECT_ID },
+          }),
+        ).resolves.toBeDefined();
+      });
+
+      test("does not look relations up when none are sent", async () => {
+        await callHook(templateCase.service, "onBeforeCreate", {
+          data: templateWith({}),
+          props: { tenantId: PROJECT_ID },
+        });
+
+        expect(MonitorService.findBy).not.toHaveBeenCalled();
+        expect(LabelService.findBy).not.toHaveBeenCalled();
+        expectNoResourceLookedUp();
+      });
+    });
+
+    describe("update", () => {
+      let matchedTemplates: Array<DatabaseBaseModel> = [];
+
+      beforeEach(() => {
+        matchedTemplates = [];
+
+        jest
+          .spyOn(templateCase.service, "findBy")
+          .mockImplementation((async () => {
+            return matchedTemplates;
+          }) as never);
+      });
+
+      function storedTemplate(data: {
+        id: string;
+        projectId: ObjectID;
+        ids?: Dictionary<Array<string>>;
+      }): DatabaseBaseModel {
+        const template: DatabaseBaseModel = new templateCase.model();
+        template._id = data.id;
+        template.setValue("projectId", data.projectId);
+
+        for (const list of templateCase.lists) {
+          Object.assign(template, {
+            [list.column]: (data.ids?.[list.column] || []).map((id: string) => {
+              return stubOf(list.model, id);
+            }),
+          });
+        }
+
+        return template;
+      }
+
+      test.each(templateCase.lists)(
+        "rejects adding another project's $modelName",
+        async (list: ResourceList) => {
+          matchedTemplates = [
+            storedTemplate({
+              id: TEMPLATE_ID,
+              projectId: PROJECT_ID,
+              ids: { [list.column]: [list.ownId] },
+            }),
+          ];
+
+          await expect(
+            callHook(templateCase.service, "onBeforeUpdate", {
+              data: { [list.column]: [list.ownId, list.foreignId] },
+              query: { _id: TEMPLATE_ID },
+              props: { tenantId: PROJECT_ID },
+            }),
+          ).rejects.toThrow(foreignMessage(list.modelName, list.foreignId));
+        },
+      );
+
+      test("re-saving a list keeps an id the template already holds", async () => {
+        /*
+         * Templates saved before their lists were checked can hold another
+         * project's record. Refusing to save back the list they already
+         * have would lock the user out of editing the template.
+         */
+        matchedTemplates = [
+          storedTemplate({
+            id: TEMPLATE_ID,
+            projectId: PROJECT_ID,
+            ids: { hosts: [hostList().foreignId] },
+          }),
+        ];
+
+        await expect(
+          callHook(templateCase.service, "onBeforeUpdate", {
+            data: {
+              hosts: [hostList().foreignId.toUpperCase(), hostList().ownId],
+            },
+            query: { _id: TEMPLATE_ID },
+            props: { tenantId: PROJECT_ID },
+          }),
+        ).resolves.toBeDefined();
+
+        // Only the added host was looked up.
+        expect(HostService.findBy).toHaveBeenCalledTimes(1);
+      });
+
+      test("an id held by one matched template is still checked for the others", async () => {
+        matchedTemplates = [
+          storedTemplate({
+            id: TEMPLATE_ID,
+            projectId: PROJECT_ID,
+            ids: { hosts: [hostList().foreignId] },
+          }),
+          storedTemplate({ id: SECOND_TEMPLATE_ID, projectId: PROJECT_ID }),
+        ];
+
+        await expect(
+          callHook(templateCase.service, "onBeforeUpdate", {
+            data: { hosts: [hostList().foreignId] },
+            query: { projectId: PROJECT_ID },
+            props: { tenantId: PROJECT_ID },
+          }),
+        ).rejects.toThrow(foreignMessage("Host", hostList().foreignId));
+      });
+
+      test("updates without a tenant are checked against the matched template's project", async () => {
+        matchedTemplates = [
+          storedTemplate({ id: TEMPLATE_ID, projectId: PROJECT_ID }),
+        ];
+
+        await expect(
+          callHook(templateCase.service, "onBeforeUpdate", {
+            data: { services: [{ _id: RESOURCE_LISTS[13]!.foreignId }] },
+            query: { _id: TEMPLATE_ID },
+            props: { isRoot: true },
+          }),
+        ).rejects.toThrow(
+          foreignMessage("Service", RESOURCE_LISTS[13]!.foreignId),
+        );
+      });
+
+      test("accepts this project's records on every list and clearing one", async () => {
+        matchedTemplates = [
+          storedTemplate({
+            id: TEMPLATE_ID,
+            projectId: PROJECT_ID,
+            ids: { hosts: [hostList().ownId] },
+          }),
+        ];
+
+        const data: Dictionary<Array<string>> = {};
+
+        for (const list of templateCase.lists) {
+          data[list.column] = [list.ownId];
+        }
+
+        data["hosts"] = [];
+
+        await expect(
+          callHook(templateCase.service, "onBeforeUpdate", {
+            data: data,
+            query: { _id: TEMPLATE_ID },
+            props: { tenantId: PROJECT_ID },
+          }),
+        ).resolves.toBeDefined();
+      });
+
+      test("an update that writes no relation list looks nothing up", async () => {
+        matchedTemplates = [
+          storedTemplate({ id: TEMPLATE_ID, projectId: PROJECT_ID }),
+        ];
+
+        await callHook(templateCase.service, "onBeforeUpdate", {
+          data: { templateName: "renamed" },
+          query: { _id: TEMPLATE_ID },
+          props: { tenantId: PROJECT_ID },
+        });
+
+        expect(MonitorService.findBy).not.toHaveBeenCalled();
+        expect(LabelService.findBy).not.toHaveBeenCalled();
+        expectNoResourceLookedUp();
+      });
+    });
+  });
+
+  /*
+   * The gap these tests close was a list added to a model without being
+   * added to its service's check. Every many-to-many list on these models
+   * that points at a project's records must be checked, against the table
+   * the list actually points at.
+   */
+  describe("every many-to-many list of project records is checked", () => {
+    test.each([
+      {
+        name: "ScheduledMaintenanceService",
+        service: ScheduledMaintenanceService,
+      },
+      { name: "IncidentTemplateService", service: IncidentTemplateService },
+      {
+        name: "ScheduledMaintenanceTemplateService",
+        service: ScheduledMaintenanceTemplateService,
+      },
+    ])("$name", ({ service }: { service: unknown }) => {
+      const model: DatabaseBaseModel = (
+        service as DatabaseService<DatabaseBaseModel>
+      ).getModel();
+
+      const projectScopedLists: Array<string> = model
+        .getTableColumns()
+        .columns.filter((column: string) => {
+          const metadata: TableColumnMetadata =
+            model.getTableColumnMetadata(column);
+
+          return (
+            metadata.type === TableColumnType.EntityArray &&
+            Boolean(metadata.modelType) &&
+            Boolean(new metadata.modelType!().getTenantColumn())
+          );
+        });
+
+      const relations: Array<ProjectScopedRelation> = (
+        service as {
+          getProjectScopedRelations: () => Array<ProjectScopedRelation>;
+        }
+      ).getProjectScopedRelations();
+
+      expect(
+        relations
+          .map((relation: ProjectScopedRelation) => {
+            return relation.column;
+          })
+          .sort(),
+      ).toEqual([...projectScopedLists].sort());
+
+      for (const relation of relations) {
+        expect(relation.service.getModel()).toBeInstanceOf(
+          model.getTableColumnMetadata(relation.column).modelType!,
+        );
+      }
     });
   });
 });

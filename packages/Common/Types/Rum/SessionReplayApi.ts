@@ -6,7 +6,7 @@ import {
 /*
  * Wire contract between the Dashboard and the session-replay read routes
  * in Common/Server/API/TelemetryAPI.ts (/list, /manifest, /chunks,
- * /heartbeat, /views, /for-exception, /ingest-status). Everything here is
+ * /heartbeat, /views, /for-exception, /resolve, /ingest-status). Everything here is
  * the JSON as it
  * crosses HTTP, which is why:
  *
@@ -621,6 +621,49 @@ export interface SessionReplayExceptionSessionDto {
 
 export interface SessionReplayForExceptionResponseDto {
   sessions: Array<SessionReplayExceptionSessionDto>;
+  /* The accessible-application scan has a ceiling; true when it was hit. */
+  isApplicationScopeTruncated: boolean;
+}
+
+/* ---- /summaries and /resolve: batches of session ids ---- */
+
+/*
+ * Caps on a batch of session ids. The server refuses a request over either
+ * one with a 400 for the whole batch, so the Dashboard splits and filters to
+ * the same figures rather than let one oversized page of occurrences fail
+ * every id on it. A session id is 32 hex characters minted in the browser;
+ * the length cap is generous because older recorders and hand-written API
+ * callers exist, and every replay read route applies it.
+ */
+export const SESSION_REPLAY_SESSION_ID_BATCH_MAX: number = 200;
+export const SESSION_REPLAY_SESSION_ID_MAX_LENGTH: number = 128;
+
+/* ---- /resolve ---- */
+
+/*
+ * Session id -> the application that recorded it, for the replay links on
+ * log, span and exception surfaces, none of which carry the application.
+ * Project-wide: the caller does not know the application, which is the
+ * question being asked.
+ */
+export interface SessionReplayResolveRequestDto {
+  sessionIds: Array<string>;
+}
+
+export interface SessionReplayResolvedSessionDto {
+  sessionId: string;
+  rumApplicationId: string;
+  startTime: string;
+  startTimeUnixMs: number;
+}
+
+export interface SessionReplayResolveResponseDto {
+  /*
+   * Only the sessions the caller may list, and only ids recorded under
+   * exactly one application. An id missing from the answer has no
+   * recording this caller can open.
+   */
+  sessions: Array<SessionReplayResolvedSessionDto>;
   /* The accessible-application scan has a ceiling; true when it was hit. */
   isApplicationScopeTruncated: boolean;
 }

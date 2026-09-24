@@ -17,6 +17,8 @@ export interface ExceptionDetailDataPlan {
   loadLatestOccurrence: boolean;
   resolveStackFrames: boolean;
   loadTraceBreadcrumbs: boolean;
+  // The latest occurrence's attributes, for the Context page's Attributes card.
+  loadOccurrenceAttributes: boolean;
   loadAIAssistance: boolean;
   loadOccurrenceTrend: boolean;
   // Who resolved / archived the group, for the Settings status history.
@@ -38,6 +40,7 @@ export function getExceptionDetailDataPlan(
       section === ExceptionDetailSection.Logs,
     resolveStackFrames: section === ExceptionDetailSection.StackTrace,
     loadTraceBreadcrumbs: section === ExceptionDetailSection.Context,
+    loadOccurrenceAttributes: section === ExceptionDetailSection.Context,
     loadAIAssistance: section === ExceptionDetailSection.AIAssistance,
     loadOccurrenceTrend: section === ExceptionDetailSection.Overview,
     loadTriageHistory: section === ExceptionDetailSection.Settings,

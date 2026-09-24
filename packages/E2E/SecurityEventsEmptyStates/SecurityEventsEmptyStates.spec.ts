@@ -424,6 +424,18 @@ async function open(
   await expect(page.getByTestId("synthetic-banner")).toBeVisible({
     timeout: 60000,
   });
+  /*
+   * The layout tests measure text, so they must measure it in Inter, the
+   * font production ships, rather than in whatever the machine falls back to
+   * while it loads (font-display: swap). Loading it by name also fails here,
+   * rather than as a wrapped name, if the fixture stops serving it.
+   */
+  const interFaces: number = await page.evaluate(async (): Promise<number> => {
+    const faces: Array<FontFace> = await document.fonts.load("600 14px Inter");
+    await document.fonts.ready;
+    return faces.length;
+  });
+  expect(interFaces, "Inter faces loaded").toBeGreaterThan(0);
 }
 
 async function openConnections(
@@ -1001,6 +1013,58 @@ async function tileLayouts(page: Page): Promise<Array<TileLayout>> {
       });
     },
   );
+}
+
+interface NameFit {
+  provider: string;
+  // The name's width on one line, in the tile's own font.
+  textWidth: number;
+  // The width the tile gives the name.
+  columnWidth: number;
+}
+
+/*
+ * Each tile's name measured on one line against the column it sits in, in
+ * this browser's own text metrics. Only the visible title is measured: the
+ * button also holds a screen-reader-only "Connect " that takes no space.
+ */
+async function nameFits(page: Page): Promise<Array<NameFit>> {
+  return tiles(page).evaluateAll((elements: Array<Element>): Array<NameFit> => {
+    return elements.map((element: Element): NameFit => {
+      const name: HTMLElement = (element.querySelector(
+        "[data-provider-tile]",
+      ) || element.querySelector("p")) as HTMLElement;
+      const title: string = Array.from(name.childNodes)
+        .filter((node: ChildNode): boolean => {
+          return node.nodeType === Node.TEXT_NODE;
+        })
+        .map((node: ChildNode): string => {
+          return node.textContent || "";
+        })
+        .join("")
+        .trim();
+      const style: CSSStyleDeclaration = getComputedStyle(name);
+      const probe: HTMLSpanElement = document.createElement("span");
+      probe.style.font = style.font;
+      probe.style.letterSpacing = style.letterSpacing;
+      probe.style.whiteSpace = "nowrap";
+      probe.style.position = "absolute";
+      probe.style.visibility = "hidden";
+      probe.textContent = title;
+      document.body.appendChild(probe);
+      const textWidth: number = probe.getBoundingClientRect().width;
+      probe.remove();
+      return {
+        provider: (element.getAttribute("data-testid") || "").replace(
+          /^.*-provider-/,
+          "",
+        ),
+        textWidth,
+        columnWidth: (name.parentElement as HTMLElement).getBoundingClientRect()
+          .width,
+      };
+    });
+  });
 }
 
 // Tiles grouped into rows by their top edge, top to bottom.
@@ -1988,24 +2052,55 @@ test.describe("connections empty state layout", () => {
 
   /*
    * At 1024 the four columns are 202px wide, narrower than "Splunk
-   * Enterprise Security" in the tile's semibold: it wraps. The grid keeps
-   * every tile in its row the same height regardless (checked above); this
-   * pins the one name that wraps, so a second one would show up here.
+   * Enterprise Security" in the tile's semibold: it wraps, onto two lines.
+   * The grid keeps every tile in its row the same height regardless (checked
+   * above).
+   *
+   * Which OTHER names wrap is a property of the platform's text rendering,
+   * not of the layout: "Microsoft Defender XDR" fits its 168px column with
+   * about 4px to spare in Chromium on macOS, and FreeType's metrics on Linux
+   * spend them, so it wraps there - for real users too. So this pins the
+   * layout instead: every name wraps exactly when it is wider than its column
+   * as measured in this browser, and never before. A layout change that
+   * narrowed the column, or made names wrap early, still fails here; a
+   * rendering difference of a few pixels does not.
    */
-  test("1024: only Splunk Enterprise Security wraps, onto two lines", async ({
+  test("1024: a name wraps only when it is wider than its column, and Splunk Enterprise Security does", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openConnections(page, { width: 1024, height: 900 });
-    const wrapped: Array<string> = (await tileLayouts(page))
-      .filter((layout: TileLayout): boolean => {
-        return layout.nameLines > 1;
-      })
-      .map((layout: TileLayout): string => {
-        return `${layout.provider}:${layout.nameLines}`;
+    const layouts: Array<TileLayout> = await tileLayouts(page);
+    const fits: Array<NameFit> = await nameFits(page);
+
+    expect(
+      layouts.find((layout: TileLayout): boolean => {
+        return layout.provider === SPLUNK.value;
+      })?.nameLines,
+    ).toBe(2);
+
+    for (const layout of layouts) {
+      const fit: NameFit | undefined = fits.find((item: NameFit): boolean => {
+        return item.provider === layout.provider;
       });
-    expect(wrapped).toEqual([`${SPLUNK.value}:2`]);
+      expect(fit, `${layout.provider} measured`).toBeDefined();
+      expect(layout.nameClipped, `${layout.provider} name clipped`).toBe(false);
+      expect(
+        layout.nameLines,
+        `${layout.provider} name lines`,
+      ).toBeLessThanOrEqual(2);
+
+      // Sub-pixel rounding makes a name within half a pixel of the edge a coin toss.
+      if (Math.abs(fit!.textWidth - fit!.columnWidth) < 0.5) {
+        continue;
+      }
+
+      expect(
+        layout.nameLines > 1,
+        `${layout.provider}: ${fit!.textWidth.toFixed(1)}px of text in a ${fit!.columnWidth.toFixed(1)}px column`,
+      ).toBe(fit!.textWidth > fit!.columnWidth);
+    }
   });
 });
 

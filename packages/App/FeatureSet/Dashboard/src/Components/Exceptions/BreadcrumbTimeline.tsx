@@ -8,6 +8,7 @@ import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
+import CopyAttributesAsJSONButton from "Common/UI/Components/AttributesJSON/CopyAttributesAsJSONButton";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
 import {
@@ -172,6 +173,12 @@ const CategoryFilter: FunctionComponent<CategoryFilterProps> = (
 
 interface AttributeListProps {
   attributes: Array<BreadcrumbAttribute>;
+  /*
+   * The event's attributes as recorded. The list leaves out the noisy ones
+   * (the stack trace, `exception.escaped`); a JSON copy is for pasting into a
+   * ticket or a fixture, so it carries all of them with their types intact.
+   */
+  rawAttributes: JSONObject;
 }
 
 const AttributeList: FunctionComponent<AttributeListProps> = (
@@ -186,39 +193,53 @@ const AttributeList: FunctionComponent<AttributeListProps> = (
   }
 
   return (
-    <dl
-      className="divide-y divide-gray-100 overflow-hidden rounded-lg bg-white ring-1 ring-inset ring-gray-200"
-      data-testid="breadcrumb-attributes"
-    >
-      {props.attributes.map((attribute: BreadcrumbAttribute): ReactElement => {
-        return (
-          <div
-            key={attribute.key}
-            className="group flex flex-col gap-0.5 px-3 py-2 sm:flex-row sm:gap-4"
-          >
-            <dt
-              className="truncate font-mono text-xs text-gray-500 sm:w-56 sm:flex-shrink-0"
-              title={attribute.key}
-            >
-              {attribute.key}
-            </dt>
-            <dd className="flex min-w-0 flex-1 items-start gap-2 font-mono text-xs text-gray-900">
-              <span className="min-w-0 flex-1 break-all">
-                {attribute.value}
-              </span>
-              <span className="flex-shrink-0 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-                <CopyTextButton
-                  textToBeCopied={attribute.value}
-                  iconOnly={true}
-                  size="xs"
-                  title={`Copy ${attribute.key}`}
-                />
-              </span>
-            </dd>
-          </div>
-        );
-      })}
-    </dl>
+    <div>
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+          Attributes
+        </span>
+        <CopyAttributesAsJSONButton
+          attributes={props.rawAttributes}
+          subject="event attributes"
+          dataTestId="breadcrumb-attributes-copy-json"
+        />
+      </div>
+      <dl
+        className="divide-y divide-gray-100 overflow-hidden rounded-lg bg-white ring-1 ring-inset ring-gray-200"
+        data-testid="breadcrumb-attributes"
+      >
+        {props.attributes.map(
+          (attribute: BreadcrumbAttribute): ReactElement => {
+            return (
+              <div
+                key={attribute.key}
+                className="group flex flex-col gap-0.5 px-3 py-2 sm:flex-row sm:gap-4"
+              >
+                <dt
+                  className="truncate font-mono text-xs text-gray-500 sm:w-56 sm:flex-shrink-0"
+                  title={attribute.key}
+                >
+                  {attribute.key}
+                </dt>
+                <dd className="flex min-w-0 flex-1 items-start gap-2 font-mono text-xs text-gray-900">
+                  <span className="min-w-0 flex-1 break-all">
+                    {attribute.value}
+                  </span>
+                  <span className="flex-shrink-0 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                    <CopyTextButton
+                      textToBeCopied={attribute.value}
+                      iconOnly={true}
+                      size="xs"
+                      title={`Copy ${attribute.key}`}
+                    />
+                  </span>
+                </dd>
+              </div>
+            );
+          },
+        )}
+      </dl>
+    </div>
   );
 };
 
@@ -393,7 +414,10 @@ const TimelineRow: FunctionComponent<TimelineRowProps> = (
               className="mt-3 space-y-3 pb-1"
               data-testid="breadcrumb-detail"
             >
-              <AttributeList attributes={attributes} />
+              <AttributeList
+                attributes={attributes}
+                rawAttributes={group.events[0]!.attributes || {}}
+              />
 
               {group.count > 1 && (
                 <div>

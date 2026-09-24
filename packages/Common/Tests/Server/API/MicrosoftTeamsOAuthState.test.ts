@@ -759,11 +759,26 @@ describe("Microsoft Teams OAuth state", () => {
         expect(written["workspaceType"]).toBe(WorkspaceType.MicrosoftTeams);
         expect(written["workspaceProjectId"]).toBe(TENANT_ID);
         expect(written["authToken"]).toBe("graph-app-token");
+        expect(written["authTokenExpiresAt"]).toBeInstanceOf(Date);
+        expect(
+          (written["authTokenExpiresAt"] as unknown as Date).getTime(),
+        ).toBeGreaterThan(Date.now());
         expect(written["miscData"]).toMatchObject({
           tenantId: TENANT_ID,
           adminConsentGranted: true,
           adminConsentGrantedBy: userId.toString(),
         });
+        /*
+         * miscData is readable by every project Viewer, so the Graph app
+         * token must only be in authToken.
+         */
+        expect(written["miscData"]).not.toHaveProperty("appAccessToken");
+        expect(written["miscData"]).not.toHaveProperty(
+          "appAccessTokenExpiresAt",
+        );
+        expect(JSON.stringify(written["miscData"])).not.toContain(
+          "graph-app-token",
+        );
       });
 
       test("refuses an ID token for a different tenant and binds nothing", async () => {

@@ -777,7 +777,7 @@ describe("MicrosoftTeamsUtil.saveTeamToProjectAuthTokens", () => {
     mockFindBy([
       buildProjectAuthRow({
         miscData: baseMiscData({
-          appAccessToken: "token-abc",
+          adminConsentGrantedBy: "user-abc",
           adminConsentGranted: true,
           availableChats: { [existingChat.id]: existingChat },
           installedTeams: { [existingTeam.id]: existingTeam },
@@ -799,7 +799,7 @@ describe("MicrosoftTeamsUtil.saveTeamToProjectAuthTokens", () => {
     expect(savedMiscData.teamId).toBe("team-1");
     expect(savedMiscData.teamName).toBe("Engineering");
     expect(savedMiscData.botId).toBe("bot-1");
-    expect(savedMiscData.appAccessToken).toBe("token-abc");
+    expect(savedMiscData.adminConsentGrantedBy).toBe("user-abc");
     expect(savedMiscData.adminConsentGranted).toBe(true);
     // The chat store must survive a team install untouched.
     expect(savedMiscData.availableChats).toEqual({
@@ -968,7 +968,7 @@ describe("MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens", () => {
     mockFindBy([
       buildProjectAuthRow({
         miscData: baseMiscData({
-          appAccessToken: "token-abc",
+          adminConsentGrantedBy: "user-abc",
           availableChats: { [chat.id]: chat },
           installedTeams: { [team.id]: team },
         }),
@@ -985,7 +985,7 @@ describe("MicrosoftTeamsUtil.removeTeamFromProjectAuthTokens", () => {
       .data.miscData;
     expect(savedMiscData.installedTeams).toEqual({});
     expect(savedMiscData.availableChats).toEqual({ [chat.id]: chat });
-    expect(savedMiscData.appAccessToken).toBe("token-abc");
+    expect(savedMiscData.adminConsentGrantedBy).toBe("user-abc");
     expect(savedMiscData.botId).toBe("bot-1");
   });
 

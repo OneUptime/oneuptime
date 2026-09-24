@@ -84,10 +84,6 @@ const CHART_VALUES: string = path.join(CHART_DIR, "values.yaml");
 const CHART_SCHEMA: string = path.join(CHART_DIR, "values.schema.json");
 const CHART_TEMPLATE: string = path.join(CHART_DIR, "templates/ai-runner.yaml");
 const RUNNER_README: string = path.join(PACKAGES_ROOT, "Runner/README.md");
-const ROADMAP: string = path.join(
-  REPOSITORY_ROOT,
-  "Docs/Internal/Roadmap/AiClusterAccess.md",
-);
 
 // How the cluster AI page is named in an expectation.
 const AI_PAGE: string = "Pages/Kubernetes/View/AI.tsx";
@@ -614,7 +610,6 @@ describe("what the bound Runner would refuse, in the docs and on the AI page", (
         CHART_NOTES,
         CHART_VALUES,
         RUNNER_README,
-        ROADMAP,
       ].map(fileSource),
       {
         label: `${AI_PAGE} (scoped command)`,
@@ -744,12 +739,7 @@ describe("what the policy refuses, added in round three", () => {
   }
 
   it("names parent-replacement patches wherever the policy's refusals are summed up", () => {
-    for (const file of [
-      KUBERNETES_AGENT_PAGE,
-      CHART_NOTES,
-      CHART_VALUES,
-      ROADMAP,
-    ]) {
+    for (const file of [KUBERNETES_AGENT_PAGE, CHART_NOTES, CHART_VALUES]) {
       const text: string = fileSource(file).text;
 
       expect({
@@ -788,7 +778,6 @@ describe("the agent's own Runner and auto-remediation rules", () => {
       KUBERNETES_AGENT_PAGE,
       CHART_README,
       RUNNER_README,
-      ROADMAP,
     ]) {
       const copy: CopySource = fileSource(file);
 

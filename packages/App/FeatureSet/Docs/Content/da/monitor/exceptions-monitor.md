@@ -8,6 +8,7 @@ Undtagelsesmonitoer tæller og filtrerer undtagelser, der matcher specifikke kri
 
 - Advare om undtagelsesspidser i dine applikationer
 - Overvåge specifikke undtagelsestyper
+- Afgrænse advarsler til et udrulningsmiljø som `production`
 - Søge efter undtagelser efter fejlmeddelelse
 - Spore løste og aktive undtagelser separat
 - Opdage applikationsstabilitetsproblemer ud fra fejlmønstre
@@ -31,10 +32,35 @@ Vælg én eller flere tjenester, der skal overvåges undtagelser fra. Tjenester 
 | Filter              | Beskrivelse                                                                     | Påkrævet |
 | ------------------- | ------------------------------------------------------------------------------- | -------- |
 | Undtagelsestyper    | Filtrer efter undtagelsestypenavne (f.eks. `NullPointerException`, `TypeError`) | Nej      |
+| Miljøer             | Filtrer efter udrulningsmiljø (f.eks. `production`, `staging`)                  | Nej      |
 | Meddelelse          | Tekstsøgning inden for undtagelsesmeddelelser                                   | Nej      |
 | Inkludér løste      | Inkludér undtagelser, der er markeret som løst (standard: falsk)                | Nej      |
 | Inkludér arkiverede | Inkludér undtagelser, der er arkiveret (standard: falsk)                        | Nej      |
 | Tidsvindue          | Hvor langt tilbage der søges efter undtagelser (i sekunder, standard: 60)       | Nej      |
+
+### Miljøer
+
+Miljøer kommer fra OpenTelemetry-ressourceattributten `deployment.environment` på hver undtagelse – den samme værdi, som undtagelsesoversigten filtrerer på med `env:production`. Angiv ét miljø eller flere adskilt med kommaer; en undtagelse tælles med, når dens miljø matcher et af dem.
+
+Matchningen er nøjagtig og skelner mellem store og små bogstaver: `production` matcher ikke `Production` eller `prod`. Undtagelser uden miljø tælles ikke med, når dette filter er angivet. Lad det være tomt for at tælle undtagelser fra alle miljøer, inklusive dem uden miljø.
+
+Miljøfilteret kombineres med alle andre filtre, så en monitor, der er afgrænset til én telemetritjeneste og `production`, kun tæller den tjenestes produktionsundtagelser.
+
+Når du opretter monitoren via API'et, skal du sætte `environments` på trinnets `exceptionMonitor` til en liste med miljønavne:
+
+```json
+{
+  "exceptionMonitor": {
+    "telemetryServiceIds": [],
+    "environments": ["production"],
+    "exceptionTypes": [],
+    "message": "",
+    "includeResolved": false,
+    "includeArchived": false,
+    "lastXSecondsOfExceptions": 300
+  }
+}
+```
 
 ## Overvågningskriterier
 
@@ -69,6 +95,14 @@ Vælg én eller flere tjenester, der skal overvåges undtagelser fra. Tjenester 
 - **Kontroller på**: Undtagelsesantal
 - **Filtertype**: Større end
 - **Værdi**: 0
+
+#### Advarsel kun ved produktionsundtagelser
+
+- **Miljøer**: `production`
+- **Tidsvindue**: 300 sekunder
+- **Kontroller på**: Undtagelsesantal
+- **Filtertype**: Større end
+- **Værdi**: 5
 
 #### Overvåg undtagelser, der indeholder en specifik meddelelse
 
