@@ -312,20 +312,27 @@ describe("LabelRuleImportExport", () => {
 });
 
 describe("AffectedResourceRelations", () => {
-  test("validates an incident / alert's databases against its own project", () => {
-    const relations: Array<ProjectScopedRelation> =
-      getAffectedResourceRelations().filter(
-        (relation: ProjectScopedRelation): boolean => {
-          return relation.column === "databaseServers";
-        },
-      );
+  test.each([
+    ["Incident", Incident],
+    ["Alert", Alert],
+    ["ScheduledMaintenance", ScheduledMaintenance],
+  ])(
+    "validates a %s's databases against its own project",
+    (_name: string, modelType: DatabaseBaseModelType) => {
+      const relations: Array<ProjectScopedRelation> =
+        getAffectedResourceRelations(new modelType()).filter(
+          (relation: ProjectScopedRelation): boolean => {
+            return relation.column === "databaseServers";
+          },
+        );
 
-    expect(relations).toHaveLength(1);
-    expect(relations[0]!.modelName).toBe("Database");
-    expect(relations[0]!.service as unknown as BaseService).toBe(
-      DatabaseServerService as unknown as BaseService,
-    );
-  });
+      expect(relations).toHaveLength(1);
+      expect(relations[0]!.modelName).toBe("Database");
+      expect(relations[0]!.service as unknown as BaseService).toBe(
+        DatabaseServerService as unknown as BaseService,
+      );
+    },
+  );
 
   test.each([
     ["Incident", Incident],
@@ -348,11 +355,11 @@ describe("AffectedResourceRelations", () => {
 
   test("keeps every pre-existing affected-resource list", () => {
     // Adding databases must not have displaced a neighbour.
-    const columns: Array<string> = getAffectedResourceRelations().map(
-      (relation: ProjectScopedRelation): string => {
-        return relation.column;
-      },
-    );
+    const columns: Array<string> = getAffectedResourceRelations(
+      new Incident(),
+    ).map((relation: ProjectScopedRelation): string => {
+      return relation.column;
+    });
 
     expect(columns).toEqual(
       expect.arrayContaining([
