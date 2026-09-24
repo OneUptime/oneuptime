@@ -2419,7 +2419,7 @@ describe("DatabaseServerService.attachLabels", () => {
   test("a label set applied within the minute costs no join-table read", async () => {
     const labelId: ObjectID = ObjectID.generate();
     getJestSpyOn(GlobalCache, "getString").mockResolvedValue(
-      crypto.createHash("sha1").update(labelId.toString()).digest("hex"),
+      crypto.createHash("sha256").update(labelId.toString()).digest("hex"),
     );
     const getRepository: jest.SpyInstance = getJestSpyOn(
       service,

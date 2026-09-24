@@ -338,7 +338,7 @@ export class Service extends DatabaseService<Model> {
 
   /**
    * Every endpoint of one database, primary first then alphabetical - the
-   * input getDatabaseServerTelemetryEntityKeys turns into the database's
+   * input getDatabaseServerSignalEntityKeys turns into the database's
    * telemetry key set.
    */
   @CaptureSpan()

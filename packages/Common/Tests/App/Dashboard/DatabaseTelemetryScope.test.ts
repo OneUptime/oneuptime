@@ -13,7 +13,7 @@ import {
 import { LockedEntityKeyDisplayMap } from "../../../../App/FeatureSet/Dashboard/src/Utils/LockedEntityKeyChips";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
-import { getDatabaseServerTelemetryEntityKeys } from "../../../Utils/Telemetry/DatabaseServerEntityKeys";
+import { getDatabaseServerSignalEntityKeys } from "../../../Utils/Telemetry/DatabaseServerEntityKeys";
 import {
   keyForContainer,
   keyForDatabaseEndpoint,
@@ -52,7 +52,7 @@ describe("getDatabaseServerScopeKeys", () => {
     expect(
       getDatabaseServerScopeKeys({ projectId: PROJECT_ID, ...input }),
     ).toEqual(
-      getDatabaseServerTelemetryEntityKeys({ projectId: PROJECT_ID, ...input }),
+      getDatabaseServerSignalEntityKeys({ projectId: PROJECT_ID, ...input }),
     );
   });
 

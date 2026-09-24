@@ -11,7 +11,7 @@ import {
 import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
 import ObjectID from "Common/Types/ObjectID";
 import { keyForDatabaseEndpoint } from "Common/Utils/Telemetry/EntityKey";
-import { getDatabaseServerTelemetryEntityKeys } from "Common/Utils/Telemetry/DatabaseServerEntityKeys";
+import { getDatabaseServerSignalEntityKeys } from "Common/Utils/Telemetry/DatabaseServerEntityKeys";
 
 /*
  * How a Database is scoped onto raw telemetry.
@@ -76,7 +76,7 @@ export function getDatabaseServerScopeKeys(
   if (!source) {
     return [];
   }
-  return getDatabaseServerTelemetryEntityKeys({
+  return getDatabaseServerSignalEntityKeys({
     projectId: projectIdText(source.projectId),
     endpoints: source.endpoints,
     dbSystem: source.dbSystem,
@@ -96,7 +96,7 @@ export function getDatabaseServerEndpointScopeKeys(
   if (!source) {
     return [];
   }
-  return getDatabaseServerTelemetryEntityKeys({
+  return getDatabaseServerSignalEntityKeys({
     projectId: projectIdText(source.projectId),
     endpoints: source.endpoints,
     dbSystem: source.dbSystem,
@@ -114,7 +114,7 @@ export function getDatabaseServerMemberScopeKeys(
   if (!source) {
     return [];
   }
-  return getDatabaseServerTelemetryEntityKeys({
+  return getDatabaseServerSignalEntityKeys({
     projectId: projectIdText(source.projectId),
     endpoints: [],
     dbSystem: source.dbSystem,

@@ -2,6 +2,7 @@ import {
   getDatabaseSystemDisplayName,
   getDefaultDatabasePort,
   normalizeDatabaseSystem,
+  trimTrailingCharacter,
 } from "./DatabaseSystem";
 
 /*
@@ -461,7 +462,7 @@ export function parseHostAndPort(raw: unknown): ParsedHostAndPort | null {
         }
       }
 
-      hostText = hostText.trim().toLowerCase().replace(/\.+$/, "");
+      hostText = trimTrailingCharacter(hostText.trim().toLowerCase(), ".");
       if (!hostText) {
         return null;
       }
@@ -522,7 +523,7 @@ export function isLoopbackDatabaseHost(host: string): boolean {
   if (value.includes(":")) {
     value = canonicalizeIpv6(value.replace(/^\[(.*)\]$/, "$1")) || value;
   }
-  value = value.replace(/\.+$/, "");
+  value = trimTrailingCharacter(value, ".");
   if (LOOPBACK_HOST_NAMES.has(value) || value.endsWith(".localhost")) {
     return true;
   }
@@ -538,7 +539,9 @@ export function isHostRelativeDatabaseHost(host: string): boolean {
   if (typeof host !== "string") {
     return false;
   }
-  return HOST_RELATIVE_NAMES.has(host.trim().toLowerCase().replace(/\.+$/, ""));
+  return HOST_RELATIVE_NAMES.has(
+    trimTrailingCharacter(host.trim().toLowerCase(), "."),
+  );
 }
 
 /**

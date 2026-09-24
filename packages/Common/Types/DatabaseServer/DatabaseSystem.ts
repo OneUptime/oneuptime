@@ -464,6 +464,22 @@ function canonicalRaw(raw: unknown): string {
 }
 
 /**
+ * `value` without any run of `character` at its end. A plain loop rather than
+ * `replace(/x+$/, "")`: that regex backtracks quadratically on telemetry-supplied
+ * strings holding long runs of `character` that do not end the string.
+ */
+export function trimTrailingCharacter(
+  value: string,
+  character: string,
+): string {
+  let end: number = value.length;
+  while (end > 0 && value.charAt(end - 1) === character) {
+    end--;
+  }
+  return end === value.length ? value : value.substring(0, end);
+}
+
+/**
  * Normalize a raw `db.system.name` / `db.system` value. A known alias maps to
  * its engine ("postgres" → "postgresql", "mssql" → "microsoft.sql_server");
  * an unknown non-empty value is returned canonicalized (trimmed, lowercased)
@@ -536,7 +552,7 @@ const RECEIVER_SUFFIX: string = "receiver";
 export function getDatabaseSystemFromReceiverScopeName(
   scopeName: unknown,
 ): string | null {
-  const canonical: string = canonicalRaw(scopeName).replace(/\/+$/, "");
+  const canonical: string = trimTrailingCharacter(canonicalRaw(scopeName), "/");
   if (!canonical) {
     return null;
   }

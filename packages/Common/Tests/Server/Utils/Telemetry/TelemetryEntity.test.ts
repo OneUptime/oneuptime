@@ -3,7 +3,7 @@ import InventoryItem, {
   EntityAttributes,
   EntityExtractionResult,
   ExtractedEntity,
-  keyForContainer as keyForContainerFromTelemetryEntity,
+  keyForContainer as keyForContainerReExported,
   MAX_DESCRIPTIVE_ATTRIBUTE_VALUE_LENGTH,
   ResourceEntityRef,
   RetiredEntityIdentity,
@@ -1285,8 +1285,8 @@ describe("read-side keyFor* helpers match ingest-side extraction", () => {
     );
   });
 
-  test("keyForContainer re-exported from TelemetryEntity is the EntityKey helper", () => {
-    expect(keyForContainerFromTelemetryEntity).toBe(keyForContainer);
+  test("keyForContainer re-exported from the entity util is the EntityKey helper", () => {
+    expect(keyForContainerReExported).toBe(keyForContainer);
   });
 });
 

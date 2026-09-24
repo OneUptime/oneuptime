@@ -507,7 +507,7 @@ export class Service extends DatabaseService<Model> {
     const dbVersion: string | null = cleanShortText(extra?.dbVersion);
 
     const extrasFingerprint: string = crypto
-      .createHash("sha1")
+      .createHash("sha256")
       .update(
         JSON.stringify({
           agentVersion: agentVersion,
@@ -2137,7 +2137,7 @@ function fingerprintLabelIds(labelIds: Array<ObjectID>): string {
       return id.toString();
     })
     .sort();
-  return crypto.createHash("sha1").update(sorted.join(",")).digest("hex");
+  return crypto.createHash("sha256").update(sorted.join(",")).digest("hex");
 }
 
 export default new Service();

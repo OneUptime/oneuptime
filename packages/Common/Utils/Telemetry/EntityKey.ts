@@ -300,8 +300,8 @@ export function keyForKubernetesDeployment(
  * — id-only). Pass the raw `container.id` attribute value (the full id, as
  * docker_stats / the container log path report it).
  *
- * Lives in this isomorphic module (it used to be server-only, in
- * TelemetryEntity.ts, which still re-exports it) because the Databases
+ * Lives in this isomorphic module (it used to be server-only, in the
+ * server's entity resolver, which still re-exports it) because the Databases
  * product computes a Docker/Podman database's member keys in the browser as
  * well as in the worker.
  */

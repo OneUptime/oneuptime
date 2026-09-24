@@ -22,7 +22,7 @@ import {
   keyForProxmoxCluster,
   keyForVMwareVCenter,
 } from "../../../Utils/Telemetry/EntityKey";
-import { getDatabaseServerTelemetryEntityKeys } from "../../../Utils/Telemetry/DatabaseServerEntityKeys";
+import { getDatabaseServerSignalEntityKeys } from "../../../Utils/Telemetry/DatabaseServerEntityKeys";
 import {
   ResourceEntityFacetSelections,
   isResourceEntityFacetKey,
@@ -140,7 +140,7 @@ function findIdentifierColumn(
  * `database.server` key of each endpoint it owns (DatabaseServerEndpoint
  * rows — stamped on application CLIENT spans, `db.client.*` datapoints and
  * receiver batches that name it) and its member keys (the pods / containers
- * it runs as). Computed by getDatabaseServerTelemetryEntityKeys — the same
+ * it runs as). Computed by getDatabaseServerSignalEntityKeys — the same
  * helper, over the same inputs, the Database page scopes its Logs / Traces
  * / Metrics tabs with — so the explorer facet and the page select the same
  * rows. Endpoints are read in the page's order (primary first, then oldest)
@@ -219,7 +219,7 @@ async function resolveDatabaseServerEntityKeys(data: {
     }
     const dbSystem: unknown = row["dbSystem"];
 
-    for (const key of getDatabaseServerTelemetryEntityKeys({
+    for (const key of getDatabaseServerSignalEntityKeys({
       projectId: projectIdString,
       endpoints: endpointsByRow.get(rowId) || [],
       dbSystem: typeof dbSystem === "string" ? dbSystem : undefined,

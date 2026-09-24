@@ -70,6 +70,7 @@ import CephClusterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/
 import VMwareVCenterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Feed";
 import HostFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Feed";
 import CloudResourceFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/View/Feed";
+import DatabaseServerFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Feed";
 import ServiceFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Service/View/Feed";
 import SloFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Slo/View/Feed";
 import SloFeed from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloFeed";
@@ -111,6 +112,9 @@ import HostFeed, {
 import CloudResourceFeed, {
   CloudResourceFeedEventType,
 } from "../../../Models/DatabaseModels/CloudResourceFeed";
+import DatabaseServerFeed, {
+  DatabaseServerFeedEventType,
+} from "../../../Models/DatabaseModels/DatabaseServerFeed";
 import ServiceFeed, {
   ServiceFeedEventType,
 } from "../../../Models/DatabaseModels/ServiceFeed";
@@ -296,6 +300,16 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     resourceIdColumn: "cloudResourceId",
     eventTypeColumn: "cloudResourceFeedEventType",
     enumObject: CloudResourceFeedEventType,
+  },
+  {
+    product: "Databases",
+    file: "Pages/Database/View/Feed.tsx",
+    Page: DatabaseServerFeedPage,
+    route: RouteMap[PageMap.DATABASE_SERVER_VIEW_FEED] as Route,
+    modelType: DatabaseServerFeed,
+    resourceIdColumn: "databaseServerId",
+    eventTypeColumn: "databaseServerFeedEventType",
+    enumObject: DatabaseServerFeedEventType,
   },
   {
     product: "Service Catalog",

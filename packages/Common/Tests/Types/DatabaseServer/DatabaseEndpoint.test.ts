@@ -1345,3 +1345,34 @@ describe("parse → canonicalize consistency", () => {
     }
   });
 });
+
+describe("hostile input stays linear", () => {
+  /*
+   * Hosts come straight from telemetry. Each of these inputs made the old
+   * trailing-dot regexes (/\.+$/) backtrack quadratically; the parsers must
+   * answer in well under a second.
+   */
+  test("long runs of dots that do not end the host", () => {
+    const dots: string = ".".repeat(200_000);
+    const started: number = performance.now();
+
+    expect(parseHostAndPort("a" + dots + "b")).toBeNull();
+    expect(isLoopbackDatabaseHost("a" + dots + "b")).toBe(false);
+    expect(isHostRelativeDatabaseHost("a" + dots + "b")).toBe(false);
+    expect(parseHostAndPort("db" + dots + ":5432")).toEqual({
+      host: "db",
+      port: 5432,
+    });
+
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
+  test("trailing dots are still dropped", () => {
+    expect(parseHostAndPort("db.prod.:5432")).toEqual({
+      host: "db.prod",
+      port: 5432,
+    });
+    expect(isLoopbackDatabaseHost("localhost.")).toBe(true);
+    expect(isHostRelativeDatabaseHost("host.docker.internal.")).toBe(true);
+  });
+});

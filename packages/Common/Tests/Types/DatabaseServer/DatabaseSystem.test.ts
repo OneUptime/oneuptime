@@ -9,6 +9,7 @@ import {
   isAutoCreatableDatabaseSystem,
   isKnownDatabaseSystem,
   normalizeDatabaseSystem,
+  trimTrailingCharacter,
 } from "../../../Types/DatabaseServer/DatabaseSystem";
 import { describe, expect, test } from "@jest/globals";
 
@@ -357,5 +358,28 @@ describe("getDatabaseReceiverSystemHint", () => {
         "otelcol/redisreceiver" as unknown as Array<string>,
       ),
     ).toBeNull();
+  });
+});
+
+describe("trimTrailingCharacter", () => {
+  test("drops every trailing copy of the character and nothing else", () => {
+    expect(trimTrailingCharacter("db.prod.", ".")).toBe("db.prod");
+    expect(trimTrailingCharacter("db.prod...", ".")).toBe("db.prod");
+    expect(trimTrailingCharacter("db.prod", ".")).toBe("db.prod");
+    expect(trimTrailingCharacter("...", ".")).toBe("");
+    expect(trimTrailingCharacter("", ".")).toBe("");
+    expect(trimTrailingCharacter("a/b//", "/")).toBe("a/b");
+    expect(trimTrailingCharacter(".a.", ".")).toBe(".a");
+  });
+
+  test("stays linear on long runs that do not end the string", () => {
+    // The regex it replaced (/\.+$/) backtracks quadratically on this input.
+    const hostile: string = "a" + ".".repeat(200_000) + "b";
+    const started: number = performance.now();
+    expect(trimTrailingCharacter(hostile, ".")).toBe(hostile);
+    expect(
+      getDatabaseSystemFromReceiverScopeName("x" + "/".repeat(200_000) + "y"),
+    ).toBeNull();
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 });

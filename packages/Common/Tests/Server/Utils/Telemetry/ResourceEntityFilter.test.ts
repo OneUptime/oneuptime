@@ -16,7 +16,7 @@ import {
   keyForProxmoxCluster,
   keyForVMwareVCenter,
 } from "../../../../Utils/Telemetry/EntityKey";
-import { getDatabaseServerTelemetryEntityKeys } from "../../../../Utils/Telemetry/DatabaseServerEntityKeys";
+import { getDatabaseServerSignalEntityKeys } from "../../../../Utils/Telemetry/DatabaseServerEntityKeys";
 import { getDatabaseServerScopeKeys } from "../../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseTelemetryScope";
 import { RESOURCE_FACET_CATALOG_KEYS } from "../../../../Types/Telemetry/ResourceFacetCatalog";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -676,7 +676,7 @@ describe("ResourceEntityFilter", () => {
 
     // What the Database page computes for one row (the shared helper).
     function pageKeysFor(row: Record<string, unknown>): Array<string> {
-      return getDatabaseServerTelemetryEntityKeys({
+      return getDatabaseServerSignalEntityKeys({
         projectId: PROJECT,
         endpoints: endpointsOf(row["_id"] as string),
         dbSystem: row["dbSystem"] as string,

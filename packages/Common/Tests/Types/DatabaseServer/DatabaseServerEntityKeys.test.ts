@@ -2,7 +2,7 @@ import {
   DatabaseServerMemberKeys,
   DEFAULT_MEMBER_KEY_MAX_AGE_DAYS,
   DEFAULT_MEMBER_KEY_MAX_COUNT,
-  getDatabaseServerTelemetryEntityKeys,
+  getDatabaseServerSignalEntityKeys,
   MAX_DATABASE_SERVER_ENTITY_KEYS,
   mergeDatabaseServerMemberKeys,
 } from "../../../Utils/Telemetry/DatabaseServerEntityKeys";
@@ -210,7 +210,7 @@ describe("keys are engine-agnostic", () => {
         caller: VM,
       });
     expect(
-      getDatabaseServerTelemetryEntityKeys({
+      getDatabaseServerSignalEntityKeys({
         projectId: PROJECT,
         endpoints: ["search.prod:9200"],
         dbSystem: "opensearch",
@@ -486,7 +486,7 @@ describe("mergeDatabaseServerMemberKeys", () => {
   });
 });
 
-describe("getDatabaseServerTelemetryEntityKeys", () => {
+describe("getDatabaseServerSignalEntityKeys", () => {
   const M1: string = hexKey(0x1);
   const M2: string = hexKey(0x2);
 
@@ -496,7 +496,7 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
 
   test("one key per stored endpoint (strings or { endpoint } rows), then members", () => {
     expect(
-      getDatabaseServerTelemetryEntityKeys({
+      getDatabaseServerSignalEntityKeys({
         projectId: PROJECT,
         endpoints: [
           "db.prod:5432",
@@ -521,7 +521,7 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
   });
 
   test("no twin derivation: a qualified alias yields ONLY the qualified key", () => {
-    const keys: Array<string> = getDatabaseServerTelemetryEntityKeys({
+    const keys: Array<string> = getDatabaseServerSignalEntityKeys({
       projectId: PROJECT,
       endpoints: ["pg.shop.svc.cluster.local:5432@prod"],
       dbSystem: "postgresql",
@@ -544,7 +544,7 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
 
   test("a port-less stored endpoint gets the engine default, like ingest", () => {
     expect(
-      getDatabaseServerTelemetryEntityKeys({
+      getDatabaseServerSignalEntityKeys({
         projectId: PROJECT,
         endpoints: ["db.prod"],
         dbSystem: "postgres",
@@ -554,7 +554,7 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
       keyForDatabaseEndpoint(PROJECT, { host: "db.prod", port: 5432 }),
     ]);
     expect(
-      getDatabaseServerTelemetryEntityKeys({
+      getDatabaseServerSignalEntityKeys({
         projectId: PROJECT,
         endpoints: ["db.prod"],
         memberEntityKeys: null,
@@ -566,7 +566,7 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
 
   test("unparseable endpoints are skipped; duplicates collapse", () => {
     expect(
-      getDatabaseServerTelemetryEntityKeys({
+      getDatabaseServerSignalEntityKeys({
         projectId: PROJECT,
         endpoints: [
           "[REDACTED]",
@@ -588,7 +588,7 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
 
   test("member keys: only 16-hex keys, any stored shape, most recent first", () => {
     expect(
-      getDatabaseServerTelemetryEntityKeys({
+      getDatabaseServerSignalEntityKeys({
         projectId: PROJECT,
         endpoints: [],
         memberEntityKeys: {
@@ -599,7 +599,7 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
       }),
     ).toEqual([M2, M1]);
     expect(
-      getDatabaseServerTelemetryEntityKeys({
+      getDatabaseServerSignalEntityKeys({
         projectId: PROJECT,
         endpoints: null,
         memberEntityKeys: [M1, "nope", { key: M2, lastSeenAt: isoDaysAgo(1) }],
@@ -616,7 +616,7 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
       host: "db.prod",
       port: 5432,
     });
-    const keys: Array<string> = getDatabaseServerTelemetryEntityKeys({
+    const keys: Array<string> = getDatabaseServerSignalEntityKeys({
       projectId: PROJECT,
       endpoints: ["db.prod:5432"],
       dbSystem: "postgresql",
@@ -629,21 +629,21 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
 
   test("nothing to scope by → [] (callers must then refuse to query)", () => {
     expect(
-      getDatabaseServerTelemetryEntityKeys({
+      getDatabaseServerSignalEntityKeys({
         projectId: PROJECT,
         endpoints: null,
         memberEntityKeys: null,
       }),
     ).toEqual([]);
     expect(
-      getDatabaseServerTelemetryEntityKeys({
+      getDatabaseServerSignalEntityKeys({
         projectId: PROJECT,
         endpoints: undefined,
         memberEntityKeys: "garbage",
       }),
     ).toEqual([]);
     expect(
-      getDatabaseServerTelemetryEntityKeys({
+      getDatabaseServerSignalEntityKeys({
         projectId: "  ",
         endpoints: ["db.prod:5432"],
         memberEntityKeys: { [M1]: isoDaysAgo(1) },
@@ -652,12 +652,12 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
   });
 
   test("keys are project-scoped", () => {
-    const a: Array<string> = getDatabaseServerTelemetryEntityKeys({
+    const a: Array<string> = getDatabaseServerSignalEntityKeys({
       projectId: PROJECT,
       endpoints: ["db.prod:5432"],
       memberEntityKeys: null,
     });
-    const b: Array<string> = getDatabaseServerTelemetryEntityKeys({
+    const b: Array<string> = getDatabaseServerSignalEntityKeys({
       projectId: "another-project",
       endpoints: ["db.prod:5432"],
       memberEntityKeys: null,
@@ -680,7 +680,7 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
       namespace: "shop",
       podName: "pg-main-1",
     });
-    const pageKeys: Array<string> = getDatabaseServerTelemetryEntityKeys({
+    const pageKeys: Array<string> = getDatabaseServerSignalEntityKeys({
       projectId: PROJECT,
       endpoints: aliases,
       dbSystem: "postgresql",
@@ -728,7 +728,7 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
   });
 
   test("end to end: another cluster's same-named Service does not land here", () => {
-    const pageKeys: Array<string> = getDatabaseServerTelemetryEntityKeys({
+    const pageKeys: Array<string> = getDatabaseServerSignalEntityKeys({
       projectId: PROJECT,
       endpoints: buildKubernetesDatabaseAliases({
         system: "postgresql",
@@ -763,18 +763,15 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
   });
 
   test("same input, same output", () => {
-    const input: Parameters<typeof getDatabaseServerTelemetryEntityKeys>[0] = {
+    const input: Parameters<typeof getDatabaseServerSignalEntityKeys>[0] = {
       projectId: PROJECT,
       endpoints: ["a.prod:5432", "b.prod:5432"],
       dbSystem: "postgresql",
       memberEntityKeys: { [M1]: isoDaysAgo(1), [M2]: isoDaysAgo(1) },
     };
-    expect(getDatabaseServerTelemetryEntityKeys(input)).toEqual(
-      getDatabaseServerTelemetryEntityKeys(input),
+    expect(getDatabaseServerSignalEntityKeys(input)).toEqual(
+      getDatabaseServerSignalEntityKeys(input),
     );
-    expect(getDatabaseServerTelemetryEntityKeys(input).slice(2)).toEqual([
-      M1,
-      M2,
-    ]);
+    expect(getDatabaseServerSignalEntityKeys(input).slice(2)).toEqual([M1, M2]);
   });
 });

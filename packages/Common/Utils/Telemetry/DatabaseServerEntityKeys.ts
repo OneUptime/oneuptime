@@ -193,7 +193,7 @@ export function mergeDatabaseServerMemberKeys(
  * an empty `Includes` (that drops the predicate and scopes to the whole
  * project).
  */
-export function getDatabaseServerTelemetryEntityKeys(input: {
+export function getDatabaseServerSignalEntityKeys(input: {
   projectId: string;
   endpoints:
     | Array<string | { endpoint?: string | null | undefined }>

@@ -77,7 +77,7 @@ describe("the telemetry scope helper", () => {
     expect(util).toContain(
       'from "Common/Utils/Telemetry/DatabaseServerEntityKeys"',
     );
-    expect(util).toContain("getDatabaseServerTelemetryEntityKeys({");
+    expect(util).toContain("getDatabaseServerSignalEntityKeys({");
     expect(util).toContain("export function getDatabaseServerScopeKeys(");
     expect(util).toContain("export function isDatabaseServerScoped(");
   });
