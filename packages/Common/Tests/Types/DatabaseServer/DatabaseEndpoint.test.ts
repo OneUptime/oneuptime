@@ -75,9 +75,9 @@ describe("parseHostAndPort — accepted shapes", () => {
   });
 
   test("URL forms: scheme, userinfo, path and query are stripped", () => {
-    expect(parseHostAndPort("postgres://app:secret@db.prod:5432/orders")).toEqual(
-      { host: "db.prod", port: 5432 },
-    );
+    expect(
+      parseHostAndPort("postgres://app:secret@db.prod:5432/orders"),
+    ).toEqual({ host: "db.prod", port: 5432 });
     expect(
       parseHostAndPort("postgresql://db.prod:5432/orders?sslmode=require"),
     ).toEqual({ host: "db.prod", port: 5432 });
@@ -109,6 +109,18 @@ describe("parseHostAndPort — accepted shapes", () => {
 
   test("userinfo is only recognised in URL forms", () => {
     expect(parseHostAndPort("admin@db:5432")).toBeNull();
+  });
+
+  test("JDBC ;key=value properties are not part of the address", () => {
+    expect(
+      parseHostAndPort(
+        "jdbc:sqlserver://sql.prod:1433;databaseName=orders;encrypt=true",
+      ),
+    ).toEqual({ host: "sql.prod", port: 1433 });
+    expect(parseHostAndPort("sql.prod:1433;encrypt=true")).toEqual({
+      host: "sql.prod",
+      port: 1433,
+    });
   });
 
   test("a host list keeps the first host", () => {
@@ -327,6 +339,15 @@ describe("host classification", () => {
       "0:0:0:0:0:0:0:1",
       "(local)",
       ".",
+      // The /etc/hosts aliases distributions give the loopback address.
+      "localhost.localdomain",
+      "LOCALHOST.LOCALDOMAIN.",
+      "localhost4",
+      "localhost6",
+      "localhost6.localdomain6",
+      "ip6-localhost",
+      "ip6-loopback",
+      "localhost.",
     ]) {
       expect(isLoopbackDatabaseHost(host)).toBe(true);
     }
@@ -416,9 +437,7 @@ describe("isEphemeralCaller / buildDatabaseCallerContext", () => {
     "azure_container_instances",
     "azure_functions",
   ])("cloud.platform %s marks the caller ephemeral", (platform: string) => {
-    expect(isEphemeralCaller({ ...VM, "cloud.platform": platform })).toBe(
-      true,
-    );
+    expect(isEphemeralCaller({ ...VM, "cloud.platform": platform })).toBe(true);
   });
 
   test("an EC2 / GCE VM stays stable", () => {
@@ -555,6 +574,8 @@ describe("canonicalizeDatabaseEndpoint — rule 2 (loopback + host-relative)", (
     "(local)",
     ".",
     "db.localhost",
+    "localhost.localdomain",
+    "ip6-localhost",
   ];
   const HOST_RELATIVE: Array<string> = [
     "host.docker.internal",
@@ -701,12 +722,13 @@ describe("canonicalizeDatabaseEndpoint — rule 4 (cluster qualifier)", () => {
       port: 5432,
       kubernetesClusterName: "prod-eu",
     });
-    expect(canonical("pg.other.svc.cluster.local", { caller: K8S_CALLER }))
-      .toEqual({
-        host: "pg.other.svc.cluster.local",
-        port: 5432,
-        kubernetesClusterName: "prod-eu",
-      });
+    expect(
+      canonical("pg.other.svc.cluster.local", { caller: K8S_CALLER }),
+    ).toEqual({
+      host: "pg.other.svc.cluster.local",
+      port: 5432,
+      kubernetesClusterName: "prod-eu",
+    });
   });
 
   test("private IPs are qualified (pod CIDRs overlap across clusters)", () => {
@@ -738,8 +760,7 @@ describe("canonicalizeDatabaseEndpoint — rule 4 (cluster qualifier)", () => {
   });
 
   test("the cluster is canonicalized but otherwise kept raw (ARNs)", () => {
-    const arn: string =
-      "arn:aws:eks:us-east-1:123456789012:cluster/Prod-EU";
+    const arn: string = "arn:aws:eks:us-east-1:123456789012:cluster/Prod-EU";
     expect(
       canonical("10.0.0.5", {
         caller: { kubernetesClusterName: `  ${arn} `, isEphemeral: true },
@@ -868,8 +889,9 @@ describe("parseDatabaseEndpointString", () => {
   });
 
   test("a qualifier on a non-cluster-scoped host is dropped", () => {
-    expect(parseDatabaseEndpointString("db.prod.example.com:5432@prod", PG))
-      .toEqual({ host: "db.prod.example.com", port: 5432 });
+    expect(
+      parseDatabaseEndpointString("db.prod.example.com:5432@prod", PG),
+    ).toEqual({ host: "db.prod.example.com", port: 5432 });
     expect(parseDatabaseEndpointString("8.8.8.8@prod", PG)).toEqual({
       host: "8.8.8.8",
       port: 5432,
@@ -952,6 +974,7 @@ describe("parseDatabaseEndpointString", () => {
   test("loopback, host-relative and garbage are null", () => {
     for (const value of [
       "localhost:5432",
+      "localhost.localdomain",
       "127.0.0.1",
       "[::1]:5432",
       "host.docker.internal",
@@ -1040,7 +1063,11 @@ describe("buildWorkloadDatabaseServerIdentifier", () => {
       system: string;
       parentName: string;
       workloadName: string;
-    } = { system: "mysql", parentName: "Build-Host-1", workloadName: "shop-db" };
+    } = {
+      system: "mysql",
+      parentName: "Build-Host-1",
+      workloadName: "shop-db",
+    };
 
     expect(
       buildWorkloadDatabaseServerIdentifier({ ...base, platform: "docker" }),

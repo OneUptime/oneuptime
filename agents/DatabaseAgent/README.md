@@ -83,7 +83,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Da
 bash install.sh
 ```
 
-The script asks for your OneUptime URL and ingestion key, the engine, the endpoint to connect to and the monitoring credentials (the password is read without echo), installs to `/opt/oneuptime-database-agent`, writes a `0600` `.env` file, and starts the agent. When the endpoint is local to the machine (`localhost`, `host.docker.internal`), it also asks for the host name your applications use — that name is the database's identity in OneUptime.
+The script asks for your OneUptime URL and ingestion key, the engine, the endpoint to connect to and the monitoring credentials (the password is read without echo), installs to `/opt/oneuptime-database-agent`, writes a `0600` `.env` file, and starts the agent. When the endpoint is local to the machine (`localhost`, `host.docker.internal`), it also asks for the host name your applications use — that name is the database's identity in OneUptime. When that name is a private IP, a single-label or a cluster-local name, it asks for the database's id in OneUptime (`DATABASE_SERVER_ID`) as well, because such a name never creates a database on its own.
 
 Every prompt can be answered up front with an exported variable of the same name, for example `INSTALL_DIR=/opt/oneuptime-database-agent-orders DATABASE_SYSTEM=postgresql bash install.sh`. Re-running the script reuses every value in your existing `.env` (nothing is prompted for again) and refreshes only the downloaded files.
 
@@ -105,7 +105,6 @@ DATABASE_TLS_INSECURE_SKIP_VERIFY=false
 DATABASE_COLLECTION_INTERVAL=30s
 DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
-KUBERNETES_CLUSTER_NAME=
 ```
 
 Then start the agent:
@@ -114,7 +113,9 @@ Then start the agent:
 docker compose up -d
 ```
 
-The database appears automatically under **Databases** in OneUptime after the first collection.
+The database appears automatically under **Databases** in OneUptime after the first collection — or, if OneUptime already detected it from traces or containers at the same address, its **Engine metrics** status turns to Connected. For a private IP or a name that only resolves inside your network, create the database first (**Databases → Create Database**, same address and port) or set `DATABASE_SERVER_ID`.
+
+To run the agent inside Kubernetes (a Deployment next to the database, with `DATABASE_SERVER_ID` pointing at the database the Kubernetes agent detected), see [the Kubernetes section of the docs](https://oneuptime.com/docs/telemetry/databases#kubernetes).
 
 ## Environment Variables
 
@@ -124,7 +125,7 @@ The database appears automatically under **Databases** in OneUptime after the fi
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Yes | Telemetry ingestion key (_Project Settings → Telemetry & APM → Ingestion Keys_) |
 | `DATABASE_SYSTEM` | Yes | `postgresql`, `mysql`, `redis` or `mongodb` — which `configs/<engine>.yaml` install.sh downloads |
 | `DATABASE_ENDPOINT` | Yes | `host:port` the agent connects to. May be `host.docker.internal:<port>` when the agent runs on the database machine |
-| `DATABASE_SERVER_ADDRESS` | Yes | The database's identity: the host name your applications use to reach it. Never `localhost` — OneUptime ignores local-only addresses |
+| `DATABASE_SERVER_ADDRESS` | Yes | The database's identity: the host name your applications use to reach it. Never `localhost` — OneUptime ignores local-only addresses. A name that is not unique across networks (a private IP, a single-label name, a cluster-local Kubernetes name) only joins a database that already has it as an endpoint, or the one `DATABASE_SERVER_ID` names — create the database in OneUptime first |
 | `DATABASE_SERVER_PORT` | Yes | The port your applications use |
 | `DATABASE_USERNAME` | PostgreSQL, MySQL | The monitoring user. Optional for Redis and MongoDB without authentication |
 | `DATABASE_PASSWORD` | PostgreSQL | Its password. Single-quote it in `.env` if it contains `$`, `#` or spaces (`install.sh` does this for you) |
@@ -132,13 +133,12 @@ The database appears automatically under **Databases** in OneUptime after the fi
 | `DATABASE_TLS_INSECURE_SKIP_VERIFY` | No | `true` accepts a certificate the collector image does not trust. Default `false` |
 | `DATABASE_COLLECTION_INTERVAL` | No | How often statistics are read. Default `30s` |
 | `DATABASE_QUERY_EVENTS` | No | `true` ships query samples and top queries as logs (PostgreSQL, MySQL, MongoDB). They contain query text. Default `false` |
-| `DATABASE_SERVER_ID` | No | The id of a database OneUptime already shows (its Documentation tab has it). The data then joins that database directly |
-| `KUBERNETES_CLUSTER_NAME` | No | Kubernetes only: the cluster name the OneUptime Kubernetes agent uses, so cluster-local addresses are qualified the same way |
+| `DATABASE_SERVER_ID` | No | The id of a database OneUptime already shows (its Documentation tab has it). The data then joins that database directly, whatever the address — use it in Kubernetes and for private IPs |
 
 ## What the config does
 
 - Runs the engine's receiver against `DATABASE_ENDPOINT` and enables the useful metrics that are off upstream (for example `postgresql.blks_hit` / `postgresql.blks_read` for the cache hit ratio, `mysql.query.count`, `redis.maxmemory`, `mongodb.health`). Each config lists further optional metrics in a comment.
-- Stamps `db.system.name`, `server.address`, `server.port`, `oneuptime.database.agent` and `oneuptime.agent.version`, plus `oneuptime.database.server.id` and `k8s.cluster.name` when set. `service.name` is deleted so the data can never register a phantom Service.
+- Stamps `db.system.name`, `server.address`, `server.port`, `oneuptime.database.agent` and `oneuptime.agent.version`, plus `oneuptime.database.server.id` when `DATABASE_SERVER_ID` is set. `service.name` is deleted so the data can never register a phantom Service, and `k8s.cluster.name` is never stamped — OneUptime would read it as the Kubernetes agent's heartbeat.
 - Has **no** `resourcedetection` processor on purpose: its `system` detector adds the agent machine's `host.name` / `os.type`, which would make that machine look like the thing being monitored instead of the database.
 - Ships query samples and top queries as logs when `DATABASE_QUERY_EVENTS=true`, and has a commented `filelog` receiver for the engine's own log file (mount its directory at `/var/log/database` in `docker-compose.yml`).
 

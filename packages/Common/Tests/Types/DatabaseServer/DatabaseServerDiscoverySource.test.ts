@@ -51,9 +51,7 @@ describe("getDatabaseServerDiscoverySourceLabel", () => {
     expect(getDatabaseServerDiscoverySourceLabel(null)).toBe("Unknown");
     expect(getDatabaseServerDiscoverySourceLabel(undefined)).toBe("Unknown");
     expect(getDatabaseServerDiscoverySourceLabel("")).toBe("Unknown");
-    expect(getDatabaseServerDiscoverySourceLabel("prometheus")).toBe(
-      "Unknown",
-    );
+    expect(getDatabaseServerDiscoverySourceLabel("prometheus")).toBe("Unknown");
   });
 
   test("Object.prototype members are not labels", () => {

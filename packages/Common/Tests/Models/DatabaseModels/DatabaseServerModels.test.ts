@@ -23,6 +23,7 @@ import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequ
 import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import ModelPermission from "../../../Server/Types/Database/Permissions/Index";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
+import { OwnedThroughMetadata } from "../../../Types/Database/AccessControl/OwnedThrough";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
@@ -150,7 +151,8 @@ const DATABASE_MODELS: Array<DatabaseModelSpec> = [
     crudApiPath: "/database-server-owner-rule",
     singularName: "Database Owner Rule",
     pluralName: "Database Owner Rules",
-    icon: IconProp.Tag,
+    // Every infrastructure owner rule (Ceph, VMware, Cloud) uses User.
+    icon: IconProp.User,
   },
 ];
 
@@ -546,6 +548,16 @@ function modelSource(modelName: string): string {
   );
 }
 
+/*
+ * The source with its comments removed. Comments may name the template a
+ * model was cloned from ("like CloudResourceInstance"); code may not. A line
+ * comment must start a line or follow whitespace, so the "//" of a URL inside
+ * a string is left alone.
+ */
+function codeOf(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|\s)\/\/.*$/gm, "");
+}
+
 function sorted(values: Array<Permission | string>): Array<string> {
   return values
     .map((value: Permission | string): string => {
@@ -674,9 +686,13 @@ describe("Databases (DatabaseServer) models", () => {
          * The feed / owner / rule models were cloned from the Ceph product
          * and the root from CloudResource. A leftover `/ceph-cluster` route
          * or `cephClusterId` column reads fine in review and silently binds
-         * the wrong table.
+         * the wrong table. Comments are exempt: pointing at the template a
+         * decision was copied from is documentation, not a binding.
          */
-        const source: string = modelSource(spec.name);
+        const source: string = codeOf(modelSource(spec.name));
+
+        // Guards the stripping itself: the class must still be in there.
+        expect(source).toContain(`export default class ${spec.name}`);
 
         for (const token of [
           "Ceph",
@@ -1353,16 +1369,12 @@ describe("Databases (DatabaseServer) models", () => {
     test("read access and Owned scope follow the parent database", () => {
       expect(model.canAccessIfCanReadOn).toBe("databaseServer");
 
-      const ownedThrough: {
-        fkColumn: string;
-        parentModels: Array<unknown>;
-        includeProjectScope: boolean;
-      } = (model as unknown as { ownedThrough: never }).ownedThrough;
+      const ownedThrough: OwnedThroughMetadata | null = model.ownedThrough;
 
       expect(ownedThrough).toBeTruthy();
-      expect(ownedThrough.fkColumn).toBe("databaseServerId");
-      expect(ownedThrough.parentModels).toEqual([DatabaseServer]);
-      expect(ownedThrough.includeProjectScope).toBe(false);
+      expect(ownedThrough?.fkColumn).toBe("databaseServerId");
+      expect(ownedThrough?.parentModels).toEqual([DatabaseServer]);
+      expect(ownedThrough?.includeProjectScope).toBe(false);
     });
 
     test("carries the SPEC columns with the SPEC types", () => {
@@ -1597,12 +1609,10 @@ describe("Databases (DatabaseServer) models", () => {
       ).toBeUndefined();
       expect(model.canAccessIfCanReadOn).toBe("databaseServer");
 
-      const ownedThrough: { fkColumn: string; parentModels: Array<unknown> } = (
-        model as unknown as { ownedThrough: never }
-      ).ownedThrough;
+      const ownedThrough: OwnedThroughMetadata | null = model.ownedThrough;
 
-      expect(ownedThrough.fkColumn).toBe("databaseServerId");
-      expect(ownedThrough.parentModels).toEqual([DatabaseServer]);
+      expect(ownedThrough?.fkColumn).toBe("databaseServerId");
+      expect(ownedThrough?.parentModels).toEqual([DatabaseServer]);
     });
 
     test("is append-only and gated on its own feed permissions", () => {
@@ -1690,7 +1700,8 @@ describe("Databases (DatabaseServer) models", () => {
       },
     );
 
-    test("owner rows carry the isOwnerNotified flag the notification worker scans", () => {
+    test("owner rows carry the isOwnerNotified flag, which only the server sets", () => {
+      // Owner rule assignment stamps it (OwnerRuleAssignment.createOwner).
       for (const modelType of [
         DatabaseServerOwnerTeam,
         DatabaseServerOwnerUser,

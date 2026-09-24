@@ -132,7 +132,7 @@ const CATALOG: Record<EntityType, CatalogEntry> = {
     category: InventoryCategory.Applications,
     icon: IconProp.Database,
     description:
-      "A database server address (host and port) that queries and database metrics are attributed to. It scopes telemetry for a database in the Databases product and is never listed as an inventory item of its own.",
+      "A database server address (host and port) the Databases product scopes queries and metrics by. Never an inventory item of its own.",
   },
   [EntityType.RemoteService]: {
     label: "Remote Service",

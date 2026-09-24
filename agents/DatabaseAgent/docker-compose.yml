@@ -67,10 +67,11 @@ services:
       - DATABASE_QUERY_EVENTS=${DATABASE_QUERY_EVENTS:-false}
       # Optional: the id of an existing database in OneUptime to attach
       # this data to directly (Databases → the database → Documentation).
+      # Needed when DATABASE_SERVER_ADDRESS is a private IP or a name that
+      # only resolves inside your network and the database is not in
+      # OneUptime yet under that address — such names never register a
+      # database on their own.
       - DATABASE_SERVER_ID=${DATABASE_SERVER_ID:-}
-      # Optional, Kubernetes only: the cluster name the OneUptime
-      # Kubernetes agent uses. Leave empty everywhere else.
-      - KUBERNETES_CLUSTER_NAME=${KUBERNETES_CLUSTER_NAME:-}
     restart: unless-stopped
     logging:
       driver: json-file

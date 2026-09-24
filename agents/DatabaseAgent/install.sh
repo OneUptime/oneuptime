@@ -151,6 +151,32 @@ is_local_only_host() {
     esac
 }
 
+# A name OneUptime cannot tell apart from the same name in another network:
+# a private or CGNAT IPv4 address, an IPv6 unique-local address, a
+# single-label name or a Kubernetes cluster-local name. Such an identity only
+# joins a database that already has it as an endpoint (or the one
+# DATABASE_SERVER_ID names); it never registers a database on its own.
+is_network_local_name() {
+    local host octet1 octet2
+    host="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+    if [[ "$host" =~ ^([0-9]+)\.([0-9]+)\.[0-9]+\.[0-9]+$ ]]; then
+        octet1="${BASH_REMATCH[1]}"
+        octet2="${BASH_REMATCH[2]}"
+        [ "$octet1" -eq 10 ] && return 0
+        [ "$octet1" -eq 172 ] && [ "$octet2" -ge 16 ] && [ "$octet2" -le 31 ] && return 0
+        [ "$octet1" -eq 192 ] && [ "$octet2" -eq 168 ] && return 0
+        [ "$octet1" -eq 100 ] && [ "$octet2" -ge 64 ] && [ "$octet2" -le 127 ] && return 0
+        return 1
+    fi
+    case "$host" in
+        f[cd]*:*) return 0 ;;
+        *:*) return 1 ;;
+        *.cluster.local|*.svc|*.svc.*) return 0 ;;
+        *.*) return 1 ;;
+        *) return 0 ;;
+    esac
+}
+
 is_valid_port() {
     case "$1" in
         ''|*[!0-9]*) return 1 ;;
@@ -168,7 +194,7 @@ ENV_NAMES="ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY DATABASE_SYSTEM \
 DATABASE_ENDPOINT DATABASE_SERVER_ADDRESS DATABASE_SERVER_PORT \
 DATABASE_USERNAME DATABASE_PASSWORD DATABASE_TLS_INSECURE \
 DATABASE_TLS_INSECURE_SKIP_VERIFY DATABASE_COLLECTION_INTERVAL \
-DATABASE_QUERY_EVENTS DATABASE_SERVER_ID KUBERNETES_CLUSTER_NAME"
+DATABASE_QUERY_EVENTS DATABASE_SERVER_ID"
 
 # Re-running the installer (e.g. to pick up a new collector pin) keeps the
 # existing configuration: every value already in .env is reused unless the
@@ -360,6 +386,23 @@ if ! [[ "$DATABASE_COLLECTION_INTERVAL" =~ ^[0-9]+(ms|s|m|h)$ ]]; then
     echo "Error: DATABASE_COLLECTION_INTERVAL must be a duration such as 30s or 1m (got '$DATABASE_COLLECTION_INTERVAL')."
     exit 1
 fi
+# A private IP, a single-label name or a cluster-local name never registers
+# a database on its own (the same name means a different server in another
+# network), so without DATABASE_SERVER_ID the data only lands on a database
+# that already has this endpoint. Say so now rather than leave an empty
+# Databases list to explain it.
+if [ -z "$DATABASE_SERVER_ID" ] && is_network_local_name "$DATABASE_SERVER_ADDRESS"; then
+    echo ""
+    echo "'$DATABASE_SERVER_ADDRESS' is only unique inside one network (a private IP, a single-label"
+    echo "name or a Kubernetes cluster-local name), so OneUptime will not create a database from it."
+    echo "The data joins a database that already has $DATABASE_SERVER_ADDRESS:$DATABASE_SERVER_PORT as an"
+    echo "endpoint (Databases -> Create Database), or the one whose id you give here (its"
+    echo "Documentation tab shows it)."
+    if [ -z "$REUSING_ENV_FILE" ]; then
+        read -rp "Database id from OneUptime (leave empty to create the database yourself): " DATABASE_SERVER_ID || true
+    fi
+fi
+
 # The id of an existing OneUptime database is a UUID; anything else would be
 # ignored by OneUptime, so catch the typo now.
 if [ -n "$DATABASE_SERVER_ID" ] && ! [[ "$DATABASE_SERVER_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
@@ -401,7 +444,6 @@ DATABASE_TLS_INSECURE_SKIP_VERIFY=$DATABASE_TLS_INSECURE_SKIP_VERIFY
 DATABASE_COLLECTION_INTERVAL=$DATABASE_COLLECTION_INTERVAL
 DATABASE_QUERY_EVENTS=$DATABASE_QUERY_EVENTS
 DATABASE_SERVER_ID=$(compose_env_quote "$DATABASE_SERVER_ID")
-KUBERNETES_CLUSTER_NAME=$(compose_env_quote "$KUBERNETES_CLUSTER_NAME")
 ENVEOF
 chmod 600 "$ENV_FILE"
 

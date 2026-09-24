@@ -145,7 +145,12 @@ export const DATABASE_SYSTEMS: ReadonlyArray<DatabaseSystemDescriptor> = [
       "eqalpha/keydb",
       "dragonflydb/dragonfly",
     ],
-    kubernetesChartNames: ["redis", "redis-cluster", "valkey", "valkey-cluster"],
+    kubernetesChartNames: [
+      "redis",
+      "redis-cluster",
+      "valkey",
+      "valkey-cluster",
+    ],
     hasCollectorReceiver: true,
   },
   {

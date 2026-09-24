@@ -305,7 +305,10 @@ export function keyForKubernetesDeployment(
  * product computes a Docker/Podman database's member keys in the browser as
  * well as in the worker.
  */
-export function keyForContainer(projectId: string, containerId: string): string {
+export function keyForContainer(
+  projectId: string,
+  containerId: string,
+): string {
   return computeEntityKey({
     projectId,
     entityType: EntityType.Container,

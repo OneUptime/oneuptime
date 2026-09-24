@@ -91,7 +91,9 @@ describe("keyForDatabaseEndpoint", () => {
   });
 
   test("a null port leaves server.port out (it is not hashed as '')", () => {
-    expect(keyForDatabaseEndpoint(PROJECT, { host: "db.prod", port: null })).toBe(
+    expect(
+      keyForDatabaseEndpoint(PROJECT, { host: "db.prod", port: null }),
+    ).toBe(
       expectedKey(PROJECT, EntityType.DatabaseServer, {
         "server.address": "db.prod",
       }),
@@ -141,7 +143,10 @@ describe("keyForDatabaseEndpoint", () => {
       keyForDatabaseEndpoint(PROJECT, { host: "db.prod", port: 5433 }),
     ).not.toBe(base);
     expect(
-      keyForDatabaseEndpoint("another-project", { host: "db.prod", port: 5432 }),
+      keyForDatabaseEndpoint("another-project", {
+        host: "db.prod",
+        port: 5432,
+      }),
     ).not.toBe(base);
   });
 
@@ -258,7 +263,9 @@ describe("member key helpers (shape)", () => {
         podName: "pg-0",
       }),
     ).toBe(
-      expectedKey(PROJECT, EntityType.KubernetesPod, { "k8s.pod.name": "pg-0" }),
+      expectedKey(PROJECT, EntityType.KubernetesPod, {
+        "k8s.pod.name": "pg-0",
+      }),
     );
     expect(
       keyForKubernetesDeployment(PROJECT, { deploymentName: "cache" }),
@@ -273,7 +280,10 @@ describe("member key helpers (shape)", () => {
     expect(
       keyForKubernetesPod(PROJECT, { namespace: "a", podName: "x" }),
     ).not.toBe(
-      keyForKubernetesDeployment(PROJECT, { namespace: "a", deploymentName: "x" }),
+      keyForKubernetesDeployment(PROJECT, {
+        namespace: "a",
+        deploymentName: "x",
+      }),
     );
   });
 });
@@ -297,11 +307,7 @@ describe("mergeDatabaseServerMemberKeys", () => {
 
   test("after a rollout both the old and the new pod key are in scope", () => {
     const beforeRollout: DatabaseServerMemberKeys =
-      mergeDatabaseServerMemberKeys(
-        {},
-        [A],
-        new Date(NOW.getTime() - 2 * DAY),
-      );
+      mergeDatabaseServerMemberKeys({}, [A], new Date(NOW.getTime() - 2 * DAY));
     const afterRollout: DatabaseServerMemberKeys =
       mergeDatabaseServerMemberKeys(beforeRollout, [B], NOW);
     expect(Object.keys(afterRollout).sort()).toEqual([A, B].sort());
@@ -446,12 +452,10 @@ describe("mergeDatabaseServerMemberKeys", () => {
 
   test("invalid options fall back to the defaults", () => {
     expect(
-      mergeDatabaseServerMemberKeys(
-        { [A]: isoDaysAgo(20) },
-        [],
-        NOW,
-        { maxAgeDays: 0, max: 0 },
-      ),
+      mergeDatabaseServerMemberKeys({ [A]: isoDaysAgo(20) }, [], NOW, {
+        maxAgeDays: 0,
+        max: 0,
+      }),
     ).toEqual({ [A]: isoDaysAgo(20) });
     expect(
       mergeDatabaseServerMemberKeys({ [A]: isoDaysAgo(20) }, [], NOW, {
@@ -546,14 +550,18 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
         dbSystem: "postgres",
         memberEntityKeys: null,
       }),
-    ).toEqual([keyForDatabaseEndpoint(PROJECT, { host: "db.prod", port: 5432 })]);
+    ).toEqual([
+      keyForDatabaseEndpoint(PROJECT, { host: "db.prod", port: 5432 }),
+    ]);
     expect(
       getDatabaseServerTelemetryEntityKeys({
         projectId: PROJECT,
         endpoints: ["db.prod"],
         memberEntityKeys: null,
       }),
-    ).toEqual([keyForDatabaseEndpoint(PROJECT, { host: "db.prod", port: null })]);
+    ).toEqual([
+      keyForDatabaseEndpoint(PROJECT, { host: "db.prod", port: null }),
+    ]);
   });
 
   test("unparseable endpoints are skipped; duplicates collapse", () => {
@@ -573,7 +581,9 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
         dbSystem: "postgresql",
         memberEntityKeys: null,
       }),
-    ).toEqual([keyForDatabaseEndpoint(PROJECT, { host: "db.prod", port: 5432 })]);
+    ).toEqual([
+      keyForDatabaseEndpoint(PROJECT, { host: "db.prod", port: 5432 }),
+    ]);
   });
 
   test("member keys: only 16-hex keys, any stored shape, most recent first", () => {
@@ -711,7 +721,9 @@ describe("getDatabaseServerTelemetryEntityKeys", () => {
     expect(pageKeys).toContain(
       keyForDatabaseEndpoint(PROJECT, inCluster!.endpoint),
     );
-    expect(pageKeys).toContain(keyForDatabaseEndpoint(PROJECT, direct!.endpoint));
+    expect(pageKeys).toContain(
+      keyForDatabaseEndpoint(PROJECT, direct!.endpoint),
+    );
     expect(pageKeys).toContain(podKey);
   });
 

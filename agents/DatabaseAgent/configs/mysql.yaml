@@ -38,11 +38,12 @@ receivers:
       db.system.version:
         enabled: true
     metrics:
-      # Off by default upstream; OneUptime's database overview uses them
-      # (queries per second, slow queries, connection attempts and errors,
-      # peak connections, per-command rates, replication lag, client
-      # traffic). All of them read SHOW GLOBAL STATUS / SHOW REPLICA
-      # STATUS, which the grants in README.md cover.
+      # Off by default upstream. Enabled because they answer the questions
+      # people ask first — queries per second, slow queries, connection
+      # attempts and errors, peak connections, per-command rates,
+      # replication lag, client traffic — on the database's Metrics tab.
+      # All of them read SHOW GLOBAL STATUS / SHOW REPLICA STATUS, which the
+      # grants in README.md cover.
       mysql.query.count:
         enabled: true
       mysql.query.slow.count:
@@ -95,8 +96,12 @@ processors:
   # it to the queries your applications send to the same host:port, so
   # DATABASE_SERVER_ADDRESS must be the name applications use to reach the
   # server — never localhost. Keep it stable: changing it later registers
-  # a second database. (MariaDB is registered as MySQL: the two share a
-  # wire protocol and applications report either name.)
+  # a second database. A name that is not unique across networks — a
+  # private IP, a single-label name, a cluster-local Kubernetes name — only
+  # joins a database that already owns it (create it in OneUptime first) or
+  # the one DATABASE_SERVER_ID names; it never registers one on its own.
+  # (MariaDB is registered as MySQL: the two share a wire protocol and
+  # applications report either name.)
   resource:
     attributes:
       - key: db.system.name
@@ -127,31 +132,28 @@ processors:
       # remove this delete.
       - key: service.name
         action: delete
-  # The two OPTIONAL identity attributes. They are set here rather than in
-  # the resource processor above because that processor refuses to start
-  # when a value is empty, and both variables are empty unless you need
-  # them. Each is set from its variable and removed again when the
-  # variable is empty, so an unset one never reaches OneUptime at all.
-  #   oneuptime.database.server.id (DATABASE_SERVER_ID): the id of an
-  #     existing database in OneUptime (Databases → the database →
-  #     Documentation shows it). When set, the data joins that database
-  #     directly instead of being matched by address.
-  #   k8s.cluster.name (KUBERNETES_CLUSTER_NAME), Kubernetes only: the
-  #     cluster name you gave the OneUptime Kubernetes agent. It qualifies
-  #     cluster-local addresses (<service>.<namespace>.svc.cluster.local),
-  #     which are only unique inside one cluster.
+  # The OPTIONAL link to a database OneUptime already shows:
+  # oneuptime.database.server.id, from DATABASE_SERVER_ID (Databases → the
+  # database → Documentation has it, prefilled). When it is set, the data
+  # joins that database directly instead of being matched by address — the
+  # reliable choice in Kubernetes and for private IPs, which on their own
+  # never register a database. It is set here rather than in the resource
+  # processor above because that processor refuses to start on an empty
+  # value, and the variable is empty unless you need it: the attribute is
+  # set, then removed again when it is empty, so an unset id never reaches
+  # OneUptime at all.
+  #
+  # Do not stamp k8s.cluster.name on this data: OneUptime reads that
+  # attribute as the Kubernetes agent's heartbeat, so this agent would keep
+  # the cluster looking connected (or register a new one on a typo).
   transform/optional_identity:
     error_mode: ignore
     metric_statements:
       - set(resource.attributes["oneuptime.database.server.id"], "${env:DATABASE_SERVER_ID}")
       - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
-      - set(resource.attributes["k8s.cluster.name"], "${env:KUBERNETES_CLUSTER_NAME}")
-      - delete_key(resource.attributes, "k8s.cluster.name") where resource.attributes["k8s.cluster.name"] == ""
     log_statements:
       - set(resource.attributes["oneuptime.database.server.id"], "${env:DATABASE_SERVER_ID}")
       - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
-      - set(resource.attributes["k8s.cluster.name"], "${env:KUBERNETES_CLUSTER_NAME}")
-      - delete_key(resource.attributes, "k8s.cluster.name") where resource.attributes["k8s.cluster.name"] == ""
   batch:
     timeout: 10s
     send_batch_size: 1024

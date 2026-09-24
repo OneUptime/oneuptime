@@ -291,9 +291,9 @@ describe("getDatabaseSystemFromReceiverScopeName", () => {
     expect(
       getDatabaseSystemFromReceiverScopeName("otelcol/postgresqlreceiver"),
     ).toBe("postgresql");
-    expect(getDatabaseSystemFromReceiverScopeName("otelcol/redisreceiver")).toBe(
-      "redis",
-    );
+    expect(
+      getDatabaseSystemFromReceiverScopeName("otelcol/redisreceiver"),
+    ).toBe("redis");
   });
 
   test("casing, padding and a trailing slash are tolerated", () => {

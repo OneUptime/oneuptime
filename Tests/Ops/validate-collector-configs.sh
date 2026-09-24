@@ -120,12 +120,11 @@ ENV_ARGS=(
   -e "DATABASE_TLS_INSECURE_SKIP_VERIFY=false"
   -e "DATABASE_COLLECTION_INTERVAL=30s"
   -e "DATABASE_QUERY_EVENTS=true"
-  # The two optional identity variables are EMPTY in a default install, and
-  # an empty value is exactly what the resource processor refuses to start
-  # with ("Either field value ... must be specified"). Validate that case:
-  # the configs set them from a transform processor instead.
+  # The optional link to an existing database is EMPTY in a default install,
+  # and an empty value is exactly what the resource processor refuses to
+  # start with ("Either field value ... must be specified"). Validate that
+  # case: the configs set it from a transform processor instead.
   -e "DATABASE_SERVER_ID="
-  -e "KUBERNETES_CLUSTER_NAME="
 )
 
 failures=0

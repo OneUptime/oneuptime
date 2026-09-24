@@ -148,10 +148,37 @@ agent_netns_curl() {
   fi
 }
 
+# The same lists install.sh checks against (keep the two in step).
 is_local_only_host() {
   case "$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')" in
-    ""|localhost|*.localhost|127.*|::1|0.0.0.0|::|host.docker.internal|host.containers.internal|gateway.docker.internal) return 0 ;;
+    ""|localhost|*.localhost|127.*|::1|"[::1]"|0.0.0.0|::|"(local)"|.) return 0 ;;
+    host.docker.internal|host.containers.internal|gateway.docker.internal) return 0 ;;
+    docker.for.mac.localhost|kubernetes.docker.internal) return 0 ;;
     *) return 1 ;;
+  esac
+}
+
+# A private / CGNAT IPv4, an IPv6 unique-local address, a single-label name
+# or a Kubernetes cluster-local name: only unique inside one network, so
+# OneUptime never registers a database from it on its own.
+is_network_local_name() {
+  local host octet1 octet2
+  host="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+  if [[ "$host" =~ ^([0-9]+)\.([0-9]+)\.[0-9]+\.[0-9]+$ ]]; then
+    octet1="${BASH_REMATCH[1]}"
+    octet2="${BASH_REMATCH[2]}"
+    [ "$octet1" -eq 10 ] && return 0
+    [ "$octet1" -eq 172 ] && [ "$octet2" -ge 16 ] && [ "$octet2" -le 31 ] && return 0
+    [ "$octet1" -eq 192 ] && [ "$octet2" -eq 168 ] && return 0
+    [ "$octet1" -eq 100 ] && [ "$octet2" -ge 64 ] && [ "$octet2" -le 127 ] && return 0
+    return 1
+  fi
+  case "$host" in
+    f[cd]*:*) return 0 ;;
+    *:*) return 1 ;;
+    *.cluster.local|*.svc|*.svc.*) return 0 ;;
+    *.*) return 1 ;;
+    *) return 0 ;;
   esac
 }
 
@@ -238,14 +265,18 @@ else
   pass "Identity: $DATABASE_SERVER_ADDRESS:${DATABASE_SERVER_PORT:-?} (server.address / server.port)"
 fi
 
-case "$DATABASE_SERVER_ADDRESS" in
-  *.svc.cluster.local|*.svc)
-    if [ -z "$(agent_env KUBERNETES_CLUSTER_NAME)" ]; then
-      warn "A cluster-local address without KUBERNETES_CLUSTER_NAME: it is only unique inside one cluster, so OneUptime will not create a database from it."
-      add_finding "Set KUBERNETES_CLUSTER_NAME to the cluster name the OneUptime Kubernetes agent uses, or set DATABASE_SERVER_ID to the database OneUptime already detected."
-    fi
-    ;;
-esac
+DATABASE_SERVER_ID=$(agent_env DATABASE_SERVER_ID)
+if [ -n "$DATABASE_SERVER_ID" ]; then
+  if [[ "$DATABASE_SERVER_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+    pass "Linked to database $DATABASE_SERVER_ID (oneuptime.database.server.id)"
+  else
+    fail "DATABASE_SERVER_ID='$DATABASE_SERVER_ID' is not a database id (a UUID) — OneUptime ignores it."
+    add_finding "Copy the id from the database's Documentation tab in OneUptime into DATABASE_SERVER_ID, then: cd $DIR && docker compose up -d"
+  fi
+elif [ -n "$DATABASE_SERVER_ADDRESS" ] && is_network_local_name "$DATABASE_SERVER_ADDRESS"; then
+  warn "'$DATABASE_SERVER_ADDRESS' is only unique inside one network (private IP, single-label or cluster-local name), so OneUptime will not create a database from it on its own."
+  add_finding "The data only joins a database that already has $DATABASE_SERVER_ADDRESS:${DATABASE_SERVER_PORT:-?} as an endpoint. Create it under Databases → Create Database with that address and port, or set DATABASE_SERVER_ID to the id on its Documentation tab."
+fi
 
 if [ "$DATABASE_SYSTEM" = "postgresql" ] || [ "$DATABASE_SYSTEM" = "mysql" ]; then
   if [ -z "$DATABASE_USERNAME" ]; then
@@ -278,7 +309,11 @@ else
 fi
 
 if [ -n "$AGENT_CONTAINER" ]; then
-  LOGS=$(docker logs --tail 300 "$AGENT_CONTAINER" 2>&1)
+  ALL_LOGS=$(docker logs --tail 300 "$AGENT_CONTAINER" 2>&1)
+  # The database checks read only the receiver's own lines: a TLS or auth
+  # error on the way to OneUptime is the exporter's, and must not read as a
+  # database problem (it gets its own check below).
+  LOGS=$(printf '%s\n' "$ALL_LOGS" | grep '"otelcol.component.kind": "receiver"')
   check_log() {
     local pattern="$1" message="$2" finding="$3"
     if printf '%s' "$LOGS" | grep -qiE "$pattern"; then
@@ -298,7 +333,11 @@ if [ -n "$AGENT_CONTAINER" ]; then
   check_log "pg_stat_statements" \
     "Top queries are on but pg_stat_statements is missing." \
     "Run CREATE EXTENSION pg_stat_statements; in each monitored database, or set DATABASE_QUERY_EVENTS=false."
-  if printf '%s' "$LOGS" | grep -q "Everything is ready"; then
+  if printf '%s' "$ALL_LOGS" | grep '"otelcol.component.kind": "exporter"' | grep -q "Exporting failed"; then
+    fail "The collector log shows exports to OneUptime failing."
+    add_finding "The collector cannot deliver to ONEUPTIME_URL ($(agent_env ONEUPTIME_URL)). Check the URL, outbound HTTPS from this machine and, for a self-hosted server, its certificate. The ingestion check below narrows it down."
+  fi
+  if printf '%s' "$ALL_LOGS" | grep -q "Everything is ready"; then
     pass "The collector started its pipelines"
   fi
 fi

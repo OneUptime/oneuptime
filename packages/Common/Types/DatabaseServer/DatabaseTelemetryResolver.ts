@@ -9,7 +9,10 @@ import {
   parseHostAndPort,
   ParsedHostAndPort,
 } from "./DatabaseEndpoint";
-import { isKnownDatabaseSystem, normalizeDatabaseSystem } from "./DatabaseSystem";
+import {
+  isKnownDatabaseSystem,
+  normalizeDatabaseSystem,
+} from "./DatabaseSystem";
 
 /*
  * Turning telemetry into a database endpoint — the two pure gates ingest and
@@ -238,7 +241,7 @@ function isNonIdentityHost(
  */
 export function resolveDatabaseFromResourceAttributes(input: {
   attributes: Record<string, unknown>;
-  receiverSystemHint?: string | null;
+  receiverSystemHint?: string | null | undefined;
 }): {
   system: string;
   endpoint: DatabaseEndpoint | null;

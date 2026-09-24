@@ -37,18 +37,28 @@ export type ImageClassification =
 export interface KubernetesPodLike {
   namespaceKey: string;
   name: string;
-  phase?: string | null;
-  labels?: Record<string, unknown> | null;
-  ownerReferences?: {
-    items?: Array<{ kind?: string; name?: string }>;
-  } | null;
-  spec?: {
-    containers?: Array<{
-      name?: string;
-      image?: string;
-      ports?: Array<{ containerPort?: number }>;
-    }>;
-  } | null;
+  phase?: string | null | undefined;
+  labels?: Record<string, unknown> | null | undefined;
+  ownerReferences?:
+    | {
+        items?:
+          | Array<{ kind?: string | undefined; name?: string | undefined }>
+          | undefined;
+      }
+    | null
+    | undefined;
+  spec?:
+    | {
+        containers?:
+          | Array<{
+              name?: string | undefined;
+              image?: string | undefined;
+              ports?: Array<{ containerPort?: number | undefined }> | undefined;
+            }>
+          | undefined;
+      }
+    | null
+    | undefined;
 }
 
 export interface KubernetesDatabaseCandidate {
@@ -90,9 +100,9 @@ export interface KubernetesDatabaseGroup {
 
 export interface ContainerLike {
   name: string;
-  imageName?: string | null;
-  containerId?: string | null;
-  labels?: Record<string, unknown> | null;
+  imageName?: string | null | undefined;
+  containerId?: string | null | undefined;
+  labels?: Record<string, unknown> | null | undefined;
 }
 
 export interface ContainerDatabaseClassification {
@@ -363,9 +373,8 @@ export function parseImageVersion(image: unknown): string | null {
     return null;
   }
 
-  const percona: RegExpExecArray | null = /(?:^|-)ppg(\d+(?:\.\d+)?)(?:-|$)/.exec(
-    split.tag,
-  );
+  const percona: RegExpExecArray | null =
+    /(?:^|-)ppg(\d+(?:\.\d+)?)(?:-|$)/.exec(split.tag);
   if (percona) {
     return percona[1]!;
   }
@@ -622,7 +631,10 @@ const OPERATOR_RULES: ReadonlyArray<OperatorRule> = [
     );
     if (
       (role && ["pgbouncer", "pgadmin"].includes(role.toLowerCase())) ||
-      hasLabel(labels, "postgres-operator.crunchydata.com/pgbackrest-dedicated") ||
+      hasLabel(
+        labels,
+        "postgres-operator.crunchydata.com/pgbackrest-dedicated",
+      ) ||
       hasLabel(labels, "postgres-operator.crunchydata.com/pgadmin")
     ) {
       return "skip";
@@ -689,7 +701,10 @@ const OPERATOR_RULES: ReadonlyArray<OperatorRule> = [
 
   // Oracle MySQL Operator (InnoDB Cluster).
   (labels: Record<string, unknown>): OperatorRuleResult => {
-    const cluster: string | null = labelValue(labels, "mysql.oracle.com/cluster");
+    const cluster: string | null = labelValue(
+      labels,
+      "mysql.oracle.com/cluster",
+    );
     if (!cluster) {
       return null;
     }
@@ -713,7 +728,10 @@ const OPERATOR_RULES: ReadonlyArray<OperatorRule> = [
 
   // Elastic Cloud on Kubernetes.
   (labels: Record<string, unknown>): OperatorRuleResult => {
-    const type: string | null = labelValue(labels, "common.k8s.elastic.co/type");
+    const type: string | null = labelValue(
+      labels,
+      "common.k8s.elastic.co/type",
+    );
     const cluster: string | null = labelValue(
       labels,
       "elasticsearch.k8s.elastic.co/cluster-name",
@@ -824,8 +842,7 @@ const OPERATOR_RULES: ReadonlyArray<OperatorRule> = [
     );
 
     return {
-      operator:
-        managedBy && managedBy.toLowerCase() === "helm" ? "helm" : null,
+      operator: managedBy && managedBy.toLowerCase() === "helm" ? "helm" : null,
       system,
       clusterName: fullName,
       role: roleFrom(component),
@@ -974,7 +991,10 @@ function uniqueNonEmpty(values: Array<string>): Array<string> {
  */
 export function classifyKubernetesPod(
   pod: KubernetesPodLike,
-  extra?: { statefulSetServiceNames?: Record<string, string> },
+  extra?: {
+    // StatefulSet name → its spec.serviceName (the headless Service).
+    statefulSetServiceNames?: Record<string, string> | null | undefined;
+  },
 ): KubernetesDatabaseCandidate | null {
   if (!pod || typeof pod !== "object") {
     return null;
@@ -1226,8 +1246,7 @@ export function groupKubernetesDatabaseCandidates(
       }),
     );
 
-    const podServiceNames: Array<{ podName: string; serviceName: string }> =
-      [];
+    const podServiceNames: Array<{ podName: string; serviceName: string }> = [];
     for (const member of sorted) {
       if (
         member.headlessServiceName &&

@@ -133,7 +133,7 @@ export function mergeDatabaseServerMemberKeys(
   existing: unknown,
   seenNow: Array<string>,
   now: Date,
-  opts?: { maxAgeDays?: number; max?: number },
+  opts?: { maxAgeDays?: number | undefined; max?: number | undefined },
 ): DatabaseServerMemberKeys {
   const nowTime: number =
     now instanceof Date && Number.isFinite(now.getTime())
@@ -195,8 +195,11 @@ export function mergeDatabaseServerMemberKeys(
  */
 export function getDatabaseServerTelemetryEntityKeys(input: {
   projectId: string;
-  endpoints: Array<string | { endpoint?: string }> | null | undefined;
-  dbSystem?: string | null;
+  endpoints:
+    | Array<string | { endpoint?: string | null | undefined }>
+    | null
+    | undefined;
+  dbSystem?: string | null | undefined;
   memberEntityKeys: unknown;
 }): Array<string> {
   const projectId: string =

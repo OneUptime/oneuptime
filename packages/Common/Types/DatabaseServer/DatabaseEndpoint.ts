@@ -47,9 +47,9 @@ export interface ParsedHostAndPort {
 }
 
 export interface DatabaseCallerContext {
-  kubernetesNamespace?: string | null;
-  kubernetesClusterName?: string | null;
-  hostName?: string | null;
+  kubernetesNamespace?: string | null | undefined;
+  kubernetesClusterName?: string | null | undefined;
+  hostName?: string | null | undefined;
   // See isEphemeralCaller.
   isEphemeral: boolean;
 }
@@ -62,6 +62,12 @@ export type DatabaseWorkloadPlatform = "kubernetes" | "docker" | "podman";
 
 // `scheme://`, including the JDBC `jdbc:postgresql://` spelling.
 const URL_SCHEME_REGEX: RegExp = /^(?:jdbc:)?[a-z][a-z0-9+.-]*:\/\//i;
+
+/*
+ * Where the address part of a value ends: a path, a query, a fragment, or
+ * the `;property=value` list of JDBC SQL Server URLs.
+ */
+const ADDRESS_END_REGEX: RegExp = /[/?#;]/;
 
 /*
  * ADO.NET / SQL Server `tcp:host,1433` protocol prefix. Not stripped when
@@ -79,6 +85,22 @@ const LOCAL_MACHINE_ALIASES: ReadonlySet<string> = new Set<string>([
   "(local)",
   ".",
   "(localdb)",
+]);
+
+/*
+ * "localhost" and the /etc/hosts names distributions give the loopback
+ * address. Not `*.localhost`, but they resolve to 127.0.0.1 / ::1 on the
+ * caller's own machine all the same.
+ */
+const LOOPBACK_HOST_NAMES: ReadonlySet<string> = new Set<string>([
+  "localhost",
+  "localhost.localdomain",
+  "localhost4",
+  "localhost4.localdomain4",
+  "localhost6",
+  "localhost6.localdomain6",
+  "ip6-localhost",
+  "ip6-loopback",
 ]);
 
 /*
@@ -331,12 +353,12 @@ function canonicalDnsLabel(value: unknown): string | null {
  * Parse a raw address attribute / connection string into a canonical host
  * and an optional port. Accepts `host`, `host:port`, `[v6]:port`, bare IPv6
  * (zone id stripped), URLs (`scheme://user:pw@host:port/db?x` — the userinfo
- * split on the LAST "@" before the first "/"), host lists (the first host
- * wins) and the SQL Server forms `tcp:host,1433`, `host\instance`,
- * `(local)` and `.`. The host must then be a valid IPv4, IPv6 or RFC 1123
- * hostname — anything else (scrubbed values, "*", whitespace, a unix socket
- * path) is null. A port outside 1..65535 is dropped (null); a non-numeric
- * port rejects the whole value.
+ * split on the LAST "@" before the first "/"; JDBC `;key=value` properties
+ * dropped), host lists (the first host wins) and the SQL Server forms
+ * `tcp:host,1433`, `host\instance`, `(local)` and `.`. The host must then be
+ * a valid IPv4, IPv6 or RFC 1123 hostname — anything else (scrubbed values,
+ * "*", whitespace, a unix socket path) is null. A port outside 1..65535 is
+ * dropped (null); a non-numeric port rejects the whole value.
  */
 export function parseHostAndPort(raw: unknown): ParsedHostAndPort | null {
   if (typeof raw !== "string") {
@@ -351,7 +373,7 @@ export function parseHostAndPort(raw: unknown): ParsedHostAndPort | null {
   const schemeMatch: RegExpExecArray | null = URL_SCHEME_REGEX.exec(value);
   if (schemeMatch) {
     const afterScheme: string = value.substring(schemeMatch[0].length);
-    const authorityEnd: number = afterScheme.search(/[/?#]/);
+    const authorityEnd: number = afterScheme.search(ADDRESS_END_REGEX);
     let authority: string =
       authorityEnd >= 0 ? afterScheme.substring(0, authorityEnd) : afterScheme;
     const userInfoEnd: number = authority.lastIndexOf("@");
@@ -361,7 +383,7 @@ export function parseHostAndPort(raw: unknown): ParsedHostAndPort | null {
     value = authority;
   } else {
     value = value.replace(SQL_SERVER_TCP_PREFIX_REGEX, "");
-    const pathStart: number = value.search(/[/?#]/);
+    const pathStart: number = value.search(ADDRESS_END_REGEX);
     if (pathStart >= 0) {
       value = value.substring(0, pathStart);
     }
@@ -478,8 +500,9 @@ export function isIpLiteralHost(host: string): boolean {
 }
 
 /**
- * localhost, *.localhost, 127/8, ::1, the unspecified addresses (:: and
- * 0.0.0.0) and their IPv4-mapped IPv6 spellings.
+ * localhost (and the distributions' /etc/hosts aliases such as
+ * localhost.localdomain), *.localhost, 127/8, ::1, the unspecified addresses
+ * (:: and 0.0.0.0) and their IPv4-mapped IPv6 spellings.
  */
 export function isLoopbackDatabaseHost(host: string): boolean {
   if (typeof host !== "string") {
@@ -495,7 +518,8 @@ export function isLoopbackDatabaseHost(host: string): boolean {
   if (value.includes(":")) {
     value = canonicalizeIpv6(value.replace(/^\[(.*)\]$/, "$1")) || value;
   }
-  if (value === "localhost" || value.endsWith(".localhost")) {
+  value = value.replace(/\.+$/, "");
+  if (LOOPBACK_HOST_NAMES.has(value) || value.endsWith(".localhost")) {
     return true;
   }
   if (value === "::1" || value === "::" || value === "0.0.0.0") {
@@ -830,8 +854,8 @@ export function parseDatabaseEndpointString(
   value: unknown,
   context: {
     system: string;
-    kubernetesClusterName?: string | null;
-    kubernetesNamespace?: string | null;
+    kubernetesClusterName?: string | null | undefined;
+    kubernetesNamespace?: string | null | undefined;
   },
 ): DatabaseEndpoint | null {
   if (typeof value !== "string") {
@@ -905,8 +929,8 @@ export function buildWorkloadDatabaseServerIdentifier(input: {
   system: string;
   platform: DatabaseWorkloadPlatform;
   parentName: string;
-  namespace?: string | null;
-  workloadKind?: string | null;
+  namespace?: string | null | undefined;
+  workloadKind?: string | null | undefined;
   workloadName: string;
 }): string {
   const segment: (value: unknown) => string = (value: unknown): string => {
@@ -934,9 +958,9 @@ export function buildWorkloadDatabaseServerIdentifier(input: {
  */
 export function buildDatabaseServerDisplayName(input: {
   system: string;
-  endpoint?: DatabaseEndpoint | null;
-  namespace?: string | null;
-  workloadName?: string | null;
+  endpoint?: DatabaseEndpoint | null | undefined;
+  namespace?: string | null | undefined;
+  workloadName?: string | null | undefined;
 }): string {
   const engine: string = getDatabaseSystemDisplayName(input?.system);
 
@@ -980,7 +1004,10 @@ export function buildKubernetesDatabaseAliases(input: {
   namespace: string;
   clusterName: string;
   serviceNames: Array<string>;
-  podServiceNames?: Array<{ podName: string; serviceName: string }>;
+  podServiceNames?:
+    | Array<{ podName: string; serviceName: string }>
+    | null
+    | undefined;
   ports: Array<number>;
   includeUnqualified: boolean;
 }): Array<string> {

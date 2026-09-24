@@ -204,8 +204,10 @@ RE2, where a pattern that is linear in RE2 can still be exponential.
 
 Not part of `npm test`, because it needs docker and helm. It runs
 `otelcol validate` from the pinned `otel/opentelemetry-collector-contrib:0.161.0`
-image over the four agent configs and over both collector ConfigMaps rendered
-out of the `kubernetes-agent` chart.
+image over the four agent configs, over the Database Agent's per-engine
+configs (as shipped, and again with every optional metric their comments list
+switched on), and over both collector ConfigMaps rendered out of the
+`kubernetes-agent` chart.
 
 That is not a YAML check. `validate` constructs every component and builds the
 stanza operator graph for real, which compiles the RE2 regexes and the expr-lang
@@ -217,6 +219,34 @@ or an expr string one backslash short. It runs on every PR from the
 ```sh
 cd Tests/Ops && npm run validate-collector-configs
 ```
+
+### `DatabaseAgentConfigs.test.js`
+
+The Database Agent (`agents/DatabaseAgent`) is config-only: a stock collector
+image plus one config per engine (`configs/{postgresql,mysql,redis,mongodb}.yaml`).
+OneUptime registers a database from what those configs stamp, so their shape is
+pinned, per engine:
+
+- the `resource` processor upserts `db.system.name`, `server.address`,
+  `server.port` (unquoted, so it stays an integer), `oneuptime.database.agent:
+  "true"` and `oneuptime.agent.version` (equal to the compose image pin), and
+  deletes `service.name`; it stamps no `k8s.*` / `host.*` / `os.*` /
+  `container.*` / `cloud.*` attribute — ingest reads `k8s.cluster.name` as the
+  Kubernetes agent's heartbeat;
+- `oneuptime.database.server.id` is set by a transform and deleted again when
+  `DATABASE_SERVER_ID` is blank, on metrics and logs, and never by the
+  resource processor (which refuses an empty value);
+- no `resourcedetection` processor, one receiver instance per pipeline, the
+  processor order `memory_limiter → resource → transform → batch`, and a
+  single `otlphttp` exporter to `${env:ONEUPTIME_URL}/otlp` with the
+  ingestion-key header;
+- TLS flags and event toggles stay unquoted (booleans), query events exist only
+  where the receiver has them, and Redis / MongoDB turn on the receiver's own
+  `server.address` / `server.port`;
+- every `${env:...}` is passed by `docker-compose.yml`, `install.sh` reuses and
+  writes exactly the compose variables, accepts only engines that have a
+  config, and shares its host classifiers with `troubleshoot.sh`; the systemd
+  unit runs the directory `install.sh` installs to.
 
 ### `ContainerAgentDockerApiVersion.test.js`
 

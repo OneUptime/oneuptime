@@ -93,7 +93,8 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
       system: "postgresql",
       metricName: "postgresql.replication.data_delay",
       title: "Replication lag",
-      description: "Bytes of WAL a replica is behind the primary (worst replica).",
+      description:
+        "Bytes of WAL a replica is behind the primary (worst replica).",
       unit: "bytes",
       aggregation: AggregationType.Max,
       kind: "gauge",
@@ -150,7 +151,8 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
       system: "mysql",
       metricName: "mysql.row_operations",
       title: "Row operations",
-      description: "InnoDB rows read, inserted, updated and deleted per second.",
+      description:
+        "InnoDB rows read, inserted, updated and deleted per second.",
       unit: "rows",
       aggregation: AggregationType.Max,
       kind: "counter",

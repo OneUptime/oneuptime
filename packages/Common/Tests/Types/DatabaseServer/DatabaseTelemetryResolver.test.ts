@@ -10,7 +10,7 @@ import {
   DatabaseEndpoint,
   DatabaseEndpointScope,
 } from "../../../Types/DatabaseServer/DatabaseEndpoint";
-import { describe, expect, jest, test } from "@jest/globals";
+import { describe, expect, test } from "@jest/globals";
 
 type CallTarget = {
   system: string;
@@ -113,19 +113,14 @@ describe("resolveDatabaseCallTarget", () => {
   });
 
   test("returns before reading anything else when no system is present", () => {
-    const getAttribute: jest.Mock<(key: string) => unknown> = jest.fn(
-      (key: string): unknown => {
-        return key === "server.address" ? "db.prod" : undefined;
-      },
-    );
+    const readKeys: Array<string> = [];
+    const getAttribute: (key: string) => unknown = (key: string): unknown => {
+      readKeys.push(key);
+      return key === "server.address" ? "db.prod" : undefined;
+    };
     expect(
       resolveDatabaseCallTarget({ getAttribute, caller: VM_CALLER }),
     ).toBeNull();
-    const readKeys: Array<unknown> = getAttribute.mock.calls.map(
-      (call: Array<unknown>) => {
-        return call[0];
-      },
-    );
     expect(readKeys).toEqual(DATABASE_SYSTEM_ATTRIBUTES);
   });
 
@@ -207,8 +202,10 @@ describe("resolveDatabaseCallTarget", () => {
       })?.endpoint.port,
     ).toBe(6432);
     expect(
-      callTarget({ "db.system.name": "postgresql", "server.address": "db.prod" })
-        ?.endpoint.port,
+      callTarget({
+        "db.system.name": "postgresql",
+        "server.address": "db.prod",
+      })?.endpoint.port,
     ).toBe(5432);
   });
 
@@ -402,15 +399,15 @@ describe("resolveDatabaseFromResourceAttributes — which batches are databases"
   });
 
   test("a linked row id makes the batch a database even without an endpoint", () => {
-    expect(
-      fromResource({ "oneuptime.database.server.id": LINKED_ID }),
-    ).toEqual({
-      system: "",
-      endpoint: null,
-      linkedDatabaseServerId: LINKED_ID,
-      displayName: null,
-      version: null,
-    });
+    expect(fromResource({ "oneuptime.database.server.id": LINKED_ID })).toEqual(
+      {
+        system: "",
+        endpoint: null,
+        linkedDatabaseServerId: LINKED_ID,
+        displayName: null,
+        version: null,
+      },
+    );
     expect(
       fromResource({
         "oneuptime.database.server.id": `  ${LINKED_ID.toUpperCase()} `,
@@ -523,11 +520,19 @@ describe("resolveDatabaseFromResourceAttributes — endpoint precedence", () => 
 
   test("NO host.name fallback: a collector scraping N Redis never merges them", () => {
     const redisA: ResourceResolution = fromResource(
-      { "host.name": "collector-1", "os.type": "linux", "redis.version": "7.2" },
+      {
+        "host.name": "collector-1",
+        "os.type": "linux",
+        "redis.version": "7.2",
+      },
       "redis",
     );
     const redisB: ResourceResolution = fromResource(
-      { "host.name": "collector-1", "os.type": "linux", "redis.version": "7.0" },
+      {
+        "host.name": "collector-1",
+        "os.type": "linux",
+        "redis.version": "7.0",
+      },
       "redis",
     );
     expect(redisA).toBeNull();
@@ -566,9 +571,7 @@ describe("resolveDatabaseFromResourceAttributes — non-identity hosts", () => {
   });
 
   test("CouchDB's default nonode@nohost does not become a host", () => {
-    expect(
-      fromResource({ "server.address": "nohost" }, "couchdb"),
-    ).toBeNull();
+    expect(fromResource({ "server.address": "nohost" }, "couchdb")).toBeNull();
   });
 
   test("the resource's own pod name is not a server (sidecar collector)", () => {

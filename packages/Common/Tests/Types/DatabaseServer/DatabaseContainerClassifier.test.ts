@@ -47,8 +47,14 @@ describe("normalizeImageRepository", () => {
     ["postgres:16", "postgres"],
     ["docker.io/library/postgres:16.2-alpine", "postgres"],
     ["library/postgres", "postgres"],
-    ["ghcr.io/cloudnative-pg/postgresql:16.2@sha256:0123abcd", "cloudnative-pg/postgresql"],
-    ["registry.example.com:5000/mirror/bitnami/postgresql:16", "mirror/bitnami/postgresql"],
+    [
+      "ghcr.io/cloudnative-pg/postgresql:16.2@sha256:0123abcd",
+      "cloudnative-pg/postgresql",
+    ],
+    [
+      "registry.example.com:5000/mirror/bitnami/postgresql:16",
+      "mirror/bitnami/postgresql",
+    ],
     ["registry:5000/postgres", "postgres"],
     ["localhost/redis:7", "redis"],
     ["localhost:5000/redis", "redis"],
@@ -112,7 +118,10 @@ describe("classifyImage — databases (exact repository or basename)", () => {
     ["bitnami/postgresql:16", "postgresql"],
     ["registry.example.com/mirror/bitnami/postgresql:16", "postgresql"],
     ["ghcr.io/cloudnative-pg/postgresql:16.2", "postgresql"],
-    ["registry.developers.crunchydata.com/crunchydata/crunchy-postgres:ubi8-16.2-0", "postgresql"],
+    [
+      "registry.developers.crunchydata.com/crunchydata/crunchy-postgres:ubi8-16.2-0",
+      "postgresql",
+    ],
     ["ghcr.io/zalando/spilo-16:3.2-p2", "postgresql"],
     ["registry.opensource.zalan.do/acid/spilo-15:3.0-p1", "postgresql"],
     ["mysql:8.0", "mysql"],
@@ -187,7 +196,10 @@ describe("classifyImage — exclusions", () => {
     ["acme/anything-exporter", "exporter"],
     ["ghcr.io/cloudnative-pg/cloudnative-pg:1.22", "operator"],
     ["registry.opensource.zalan.do/acid/postgres-operator:v1.10", "operator"],
-    ["registry.developers.crunchydata.com/crunchydata/postgres-operator:ubi8-5.5", "operator"],
+    [
+      "registry.developers.crunchydata.com/crunchydata/postgres-operator:ubi8-5.5",
+      "operator",
+    ],
     ["percona/percona-xtradb-cluster-operator:1.14.0", "operator"],
     ["percona/percona-server-mongodb-operator:1.16", "operator"],
     ["docker.elastic.co/eck/eck-operator:2.12", "operator"],
@@ -204,7 +216,10 @@ describe("classifyImage — exclusions", () => {
     ["bitnami/pgbouncer:1.22", "pooler"],
     ["edoburu/pgbouncer", "pooler"],
     ["ghcr.io/cloudnative-pg/pgbouncer:1.22", "pooler"],
-    ["registry.developers.crunchydata.com/crunchydata/crunchy-pgbouncer:ubi8-1.21", "pooler"],
+    [
+      "registry.developers.crunchydata.com/crunchydata/crunchy-pgbouncer:ubi8-1.21",
+      "pooler",
+    ],
     ["bitnami/pgpool:4", "pooler"],
     ["proxysql/proxysql:2.6", "pooler"],
     ["percona/haproxy:2.8", "pooler"],
@@ -213,7 +228,10 @@ describe("classifyImage — exclusions", () => {
     ["gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8", "pooler"],
     ["gcr.io/cloudsql-docker/gce-proxy:1.33", "pooler"],
     ["pgbackrest/pgbackrest", "backup"],
-    ["registry.developers.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-2.49", "backup"],
+    [
+      "registry.developers.crunchydata.com/crunchydata/crunchy-pgbackrest:ubi8-2.49",
+      "backup",
+    ],
     ["bitnami/kubectl:1.29", "backup"],
     ["wal-g/wal-g", "backup"],
     ["percona/percona-xtrabackup:8.0", "backup"],
@@ -317,7 +335,10 @@ describe("classifyKubernetesPod — operators and charts", () => {
             "cnpg.io/poolerName": "pg-main-pooler-rw",
           },
           containers: [
-            { name: "pgbouncer", image: "ghcr.io/cloudnative-pg/pgbouncer:1.22" },
+            {
+              name: "pgbouncer",
+              image: "ghcr.io/cloudnative-pg/pgbouncer:1.22",
+            },
           ],
         }),
       ),
@@ -328,7 +349,10 @@ describe("classifyKubernetesPod — operators and charts", () => {
           name: "pg-main-pooler-x",
           labels: { "cnpg.io/cluster": "pg-main", "cnpg.io/podRole": "pooler" },
           containers: [
-            { name: "pgbouncer", image: "ghcr.io/cloudnative-pg/pgbouncer:1.22" },
+            {
+              name: "pgbouncer",
+              image: "ghcr.io/cloudnative-pg/pgbouncer:1.22",
+            },
           ],
         }),
       ),
@@ -374,7 +398,9 @@ describe("classifyKubernetesPod — operators and charts", () => {
         name: "spilo-0",
         labels: { application: "spilo" },
         owner: { kind: "StatefulSet", name: "spilo" },
-        containers: [{ name: "postgres", image: "ghcr.io/zalando/spilo-16:3.2" }],
+        containers: [
+          { name: "postgres", image: "ghcr.io/zalando/spilo-16:3.2" },
+        ],
       }),
     );
     expect(candidate).toMatchObject({
@@ -615,7 +641,8 @@ describe("classifyKubernetesPod — operators and charts", () => {
           containers: [
             {
               name: "mysql",
-              image: "container-registry.oracle.com/mysql/community-server:8.3.0",
+              image:
+                "container-registry.oracle.com/mysql/community-server:8.3.0",
               ports: [port(3306), port(33060)],
             },
             {
@@ -1133,17 +1160,20 @@ describe("classifyKubernetesPod — images", () => {
     ["a backup tool", "pgbackrest/pgbackrest"],
     ["a mesh proxy", "istio/proxyv2:1.20"],
     ["an application", "acme/api:1"],
-  ])("a pod running only %s is not a database", (_label: string, image: string) => {
-    expect(
-      classifyKubernetesPod(
-        pod({
-          name: "x-0",
-          owner: { kind: "Deployment", name: "x" },
-          containers: [{ name: "c", image }],
-        }),
-      ),
-    ).toBeNull();
-  });
+  ])(
+    "a pod running only %s is not a database",
+    (_label: string, image: string) => {
+      expect(
+        classifyKubernetesPod(
+          pod({
+            name: "x-0",
+            owner: { kind: "Deployment", name: "x" },
+            containers: [{ name: "c", image }],
+          }),
+        ),
+      ).toBeNull();
+    },
+  );
 
   test("backup Jobs and CronJobs running a DB image are skipped", () => {
     for (const owner of [
@@ -1212,9 +1242,7 @@ describe("classifyKubernetesPod — images", () => {
     expect(
       classifyKubernetesPod(null as unknown as KubernetesPodLike),
     ).toBeNull();
-    expect(
-      classifyKubernetesPod({ namespaceKey: "x", name: "" }),
-    ).toBeNull();
+    expect(classifyKubernetesPod({ namespaceKey: "x", name: "" })).toBeNull();
     expect(
       classifyKubernetesPod({
         namespaceKey: "x",
@@ -1321,9 +1349,21 @@ describe("groupKubernetesDatabaseCandidates", () => {
   test("one group per operator cluster; image/version from the primary", () => {
     const groups: Array<KubernetesDatabaseGroup> =
       groupKubernetesDatabaseCandidates([
-        cnpgMember("pg-main-3", "replica", "ghcr.io/cloudnative-pg/postgresql:16.3"),
-        cnpgMember("pg-main-1", "replica", "ghcr.io/cloudnative-pg/postgresql:16.3"),
-        cnpgMember("pg-main-2", "primary", "ghcr.io/cloudnative-pg/postgresql:16.2"),
+        cnpgMember(
+          "pg-main-3",
+          "replica",
+          "ghcr.io/cloudnative-pg/postgresql:16.3",
+        ),
+        cnpgMember(
+          "pg-main-1",
+          "replica",
+          "ghcr.io/cloudnative-pg/postgresql:16.3",
+        ),
+        cnpgMember(
+          "pg-main-2",
+          "primary",
+          "ghcr.io/cloudnative-pg/postgresql:16.2",
+        ),
       ]);
     expect(groups).toEqual([
       {
@@ -1411,8 +1451,16 @@ describe("groupKubernetesDatabaseCandidates", () => {
 
   test("input order does not change the result", () => {
     const members: Array<KubernetesDatabaseCandidate> = [
-      cnpgMember("pg-main-1", "replica", "ghcr.io/cloudnative-pg/postgresql:16"),
-      cnpgMember("pg-main-2", "replica", "ghcr.io/cloudnative-pg/postgresql:16"),
+      cnpgMember(
+        "pg-main-1",
+        "replica",
+        "ghcr.io/cloudnative-pg/postgresql:16",
+      ),
+      cnpgMember(
+        "pg-main-2",
+        "replica",
+        "ghcr.io/cloudnative-pg/postgresql:16",
+      ),
     ];
     expect(groupKubernetesDatabaseCandidates(members)).toEqual(
       groupKubernetesDatabaseCandidates([...members].reverse()),
@@ -1422,8 +1470,16 @@ describe("groupKubernetesDatabaseCandidates", () => {
   test("without a primary, image/version come from the first pod by name", () => {
     const groups: Array<KubernetesDatabaseGroup> =
       groupKubernetesDatabaseCandidates([
-        cnpgMember("pg-main-2", "replica", "ghcr.io/cloudnative-pg/postgresql:16.3"),
-        cnpgMember("pg-main-1", "replica", "ghcr.io/cloudnative-pg/postgresql:16.2"),
+        cnpgMember(
+          "pg-main-2",
+          "replica",
+          "ghcr.io/cloudnative-pg/postgresql:16.3",
+        ),
+        cnpgMember(
+          "pg-main-1",
+          "replica",
+          "ghcr.io/cloudnative-pg/postgresql:16.2",
+        ),
       ]);
     expect(groups[0]!.version).toBe("16.2");
   });
@@ -1518,9 +1574,7 @@ describe("classifyContainer (Docker / Podman)", () => {
         containerId: null,
       })?.system,
     ).toBe("redis");
-    expect(
-      classifyContainer(null as unknown as { name: string }),
-    ).toBeNull();
+    expect(classifyContainer(null as unknown as { name: string })).toBeNull();
   });
 
   test("the classification is exact-match, like for pods", () => {

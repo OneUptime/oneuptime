@@ -94,14 +94,11 @@ function metricByName(name: string): DatabaseServerMetricDefinition {
 }
 
 describe("DATABASE_SERVER_METRICS", () => {
-  test.each(CURATED_SYSTEMS)(
-    "%s has 5-8 curated metrics",
-    (system: string) => {
-      const count: number = getDatabaseServerMetrics(system).length;
-      expect(count).toBeGreaterThanOrEqual(5);
-      expect(count).toBeLessThanOrEqual(8);
-    },
-  );
+  test.each(CURATED_SYSTEMS)("%s has 5-8 curated metrics", (system: string) => {
+    const count: number = getDatabaseServerMetrics(system).length;
+    expect(count).toBeGreaterThanOrEqual(5);
+    expect(count).toBeLessThanOrEqual(8);
+  });
 
   test("only the six curated engines have entries", () => {
     const systems: Set<string> = new Set<string>(

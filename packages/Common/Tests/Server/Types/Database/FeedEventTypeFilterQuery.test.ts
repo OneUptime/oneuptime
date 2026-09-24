@@ -13,6 +13,9 @@ import CephClusterFeed, {
 import CloudResourceFeed, {
   CloudResourceFeedEventType,
 } from "../../../../Models/DatabaseModels/CloudResourceFeed";
+import DatabaseServerFeed, {
+  DatabaseServerFeedEventType,
+} from "../../../../Models/DatabaseModels/DatabaseServerFeed";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -181,6 +184,14 @@ const FEED_MODELS: Array<FeedModelEntry> = [
     eventTypes: Object.values(CloudResourceFeedEventType),
     resourceIdColumn: "cloudResourceId",
     eventTypeColumn: "cloudResourceFeedEventType",
+  },
+  {
+    file: "DatabaseServerFeed",
+    enumName: "DatabaseServerFeedEventType",
+    modelType: DatabaseServerFeed,
+    eventTypes: Object.values(DatabaseServerFeedEventType),
+    resourceIdColumn: "databaseServerId",
+    eventTypeColumn: "databaseServerFeedEventType",
   },
   {
     file: "DockerHostFeed",
