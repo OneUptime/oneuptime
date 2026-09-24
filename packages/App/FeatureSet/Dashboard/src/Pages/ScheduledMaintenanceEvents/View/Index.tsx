@@ -18,6 +18,7 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
@@ -829,6 +830,9 @@ const ScheduledMaintenanceView: FunctionComponent<
                         values.dockerSwarmClusters as Array<DockerSwarmCluster>
                       }
                       iotFleets={values.iotFleets as Array<IoTFleet>}
+                      databaseServers={
+                        values.databaseServers as Array<DatabaseServer>
+                      }
                       networkSites={values.networkSites as Array<NetworkSite>}
                       services={values.services as Array<Service>}
                       resourceTypes={[
@@ -842,6 +846,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                         "CephCluster",
                         "DockerSwarmCluster",
                         "IoTFleet",
+                        "DatabaseServer",
                         "NetworkSite",
                         "Service",
                       ]}
@@ -873,6 +878,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                         cephClusters: payload.cephClusters,
                         dockerSwarmClusters: payload.dockerSwarmClusters,
                         iotFleets: payload.iotFleets,
+                        databaseServers: payload.databaseServers,
                         networkSites: payload.networkSites,
                         services: payload.services,
                       } as FormValues<ScheduledMaintenance>);
@@ -968,6 +974,15 @@ const ScheduledMaintenanceView: FunctionComponent<
                 },
               },
               {
+                field: { databaseServers: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
                 field: { networkSites: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
@@ -1033,6 +1048,10 @@ const ScheduledMaintenanceView: FunctionComponent<
                       name: true,
                       _id: true,
                     },
+                    databaseServers: {
+                      name: true,
+                      _id: true,
+                    },
                     networkSites: {
                       name: true,
                       _id: true,
@@ -1058,6 +1077,7 @@ const ScheduledMaintenanceView: FunctionComponent<
                         cephClusters={item.cephClusters || []}
                         dockerSwarmClusters={item.dockerSwarmClusters || []}
                         iotFleets={item.iotFleets || []}
+                        databaseServers={item.databaseServers || []}
                         networkSites={item.networkSites || []}
                         services={item.services || []}
                         columns={1}

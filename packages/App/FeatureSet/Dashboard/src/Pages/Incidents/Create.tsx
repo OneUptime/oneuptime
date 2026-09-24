@@ -19,6 +19,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Card from "Common/UI/Components/Card/Card";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -436,7 +437,7 @@ const IncidentCreate: FunctionComponent<
                   title: "Resources Affected",
                   stepId: "resources-affected",
                   description:
-                    "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, or services affected by this incident.",
+                    "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, databases, or services affected by this incident.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
                   getCustomElement: (
@@ -452,7 +453,19 @@ const IncidentCreate: FunctionComponent<
                         }
                         dockerHosts={values.dockerHosts as Array<DockerHost>}
                         podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                        databaseServers={
+                          values.databaseServers as Array<DatabaseServer>
+                        }
                         services={values.services as Array<Service>}
+                        resourceTypes={[
+                          "Monitor",
+                          "Host",
+                          "KubernetesCluster",
+                          "DockerHost",
+                          "PodmanHost",
+                          "DatabaseServer",
+                          "Service",
+                        ]}
                         onChange={(payload: unknown) => {
                           elementProps.onChange?.(payload);
                         }}
@@ -478,6 +491,7 @@ const IncidentCreate: FunctionComponent<
                           kubernetesClusters: payload.kubernetesClusters,
                           dockerHosts: payload.dockerHosts,
                           podmanHosts: payload.podmanHosts,
+                          databaseServers: payload.databaseServers,
                           services: payload.services,
                         } as FormValues<Incident>);
                       });
@@ -523,6 +537,11 @@ const IncidentCreate: FunctionComponent<
                     const podmanCount: number = Array.isArray(item.podmanHosts)
                       ? item.podmanHosts.length
                       : 0;
+                    const databasesCount: number = Array.isArray(
+                      item.databaseServers,
+                    )
+                      ? item.databaseServers.length
+                      : 0;
                     const servicesCount: number = Array.isArray(item.services)
                       ? item.services.length
                       : 0;
@@ -532,6 +551,7 @@ const IncidentCreate: FunctionComponent<
                       clustersCount +
                       dockerCount +
                       podmanCount +
+                      databasesCount +
                       servicesCount;
                     if (totalCount === 0) {
                       return <p>No resources affected by this incident.</p>;
@@ -555,6 +575,11 @@ const IncidentCreate: FunctionComponent<
                     if (podmanCount > 0) {
                       otherCounts.push(
                         `${podmanCount} Podman host${podmanCount === 1 ? "" : "s"}`,
+                      );
+                    }
+                    if (databasesCount > 0) {
+                      otherCounts.push(
+                        `${databasesCount} database${databasesCount === 1 ? "" : "s"}`,
                       );
                     }
                     if (servicesCount > 0) {
@@ -583,7 +608,8 @@ const IncidentCreate: FunctionComponent<
                 },
                 /*
                  * Hidden registrations so ModelForm.getSelectFields includes
-                 * hosts/kubernetesClusters/dockerHosts on load and submit.
+                 * hosts/kubernetesClusters/dockerHosts/podmanHosts/
+                 * databaseServers/services on load and submit.
                  */
                 {
                   field: { hosts: true },
@@ -617,6 +643,16 @@ const IncidentCreate: FunctionComponent<
                 },
                 {
                   field: { podmanHosts: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { databaseServers: true },
                   stepId: "resources-affected",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

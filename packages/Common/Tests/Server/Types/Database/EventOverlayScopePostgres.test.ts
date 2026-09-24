@@ -64,6 +64,7 @@ const RELATIONS: Array<ResourceRelationDefinition> = [
   { attribute: "iotFleetId", relation: "iotFleets" },
   { attribute: "dockerSwarmClusterId", relation: "dockerSwarmClusters" },
   { attribute: "cephClusterId", relation: "cephClusters" },
+  { attribute: "databaseServerId", relation: "databaseServers" },
   { attribute: "dockerResourceId", relation: "dockerResources" },
   { attribute: "podmanResourceId", relation: "podmanResources" },
   { attribute: "serviceId", relation: "services" },
@@ -95,6 +96,11 @@ const NATURAL_IDENTITIES: Array<NaturalIdentityDefinition> = [
   {
     attribute: "resource.iot.fleet.name",
     relation: "iotFleets",
+    column: "name",
+  },
+  {
+    attribute: "resource.oneuptime.database.server.name",
+    relation: "databaseServers",
     column: "name",
   },
   {

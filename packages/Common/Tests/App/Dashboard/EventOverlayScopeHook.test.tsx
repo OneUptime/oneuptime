@@ -331,6 +331,7 @@ describe("resource-scoped event overlay requests", (): void => {
     ["cephClusterId", "cephClusters"],
     ["dockerSwarmClusterId", "dockerSwarmClusters"],
     ["iotFleetId", "iotFleets"],
+    ["databaseServerId", "databaseServers"],
     ["serviceId", "services"],
   ])(
     "carries %s into every event source's request",

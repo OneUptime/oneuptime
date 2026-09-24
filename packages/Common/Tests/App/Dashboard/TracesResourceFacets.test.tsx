@@ -355,7 +355,7 @@ describe("TracesViewer — a facet for every resource type", () => {
       "resource.host.name",
     ]);
 
-    // The eight types that used to be missing are all asked for.
+    // The types beyond the original four (Databases included) are all asked for.
     for (const key of [
       "dockerSwarmClusterId",
       "proxmoxClusterId",
@@ -365,6 +365,7 @@ describe("TracesViewer — a facet for every resource type", () => {
       "cloudResourceId",
       "rumApplicationId",
       "iotFleetId",
+      "databaseServerId",
     ]) {
       expect(facetKeys).toContain(key);
     }

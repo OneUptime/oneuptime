@@ -1,5 +1,6 @@
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
@@ -32,7 +33,8 @@ import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
  * Builds a unified "Affected Resources" facet that lets the user search and
  * filter Incidents / Alerts / Scheduled Maintenance by *any* attached
  * resource type — Monitor, Service, Host, Kubernetes Cluster, Docker Host,
- * Podman Host, Proxmox / Ceph / Docker Swarm cluster, vCenter, IoT Fleet and — for
+ * Podman Host, Proxmox / Ceph / Docker Swarm cluster, vCenter, IoT Fleet,
+ * Database and — for
  * Scheduled Maintenance only — Network Site, and — for Incidents and Alerts
  * only — SLO.
  *
@@ -59,6 +61,7 @@ type AffectedResourceType =
   | "cephCluster"
   | "dockerSwarmCluster"
   | "iotFleet"
+  | "databaseServer"
   | "networkSite"
   | "serviceLevelObjective";
 
@@ -136,6 +139,12 @@ const RESOURCE_TYPES: Record<AffectedResourceType, ResourceTypeConfig> = {
     icon: IconProp.IoT,
     modelType: IoTFleet,
   },
+  databaseServer: {
+    label: "Database",
+    pluralLabel: "Databases",
+    icon: IconProp.Database,
+    modelType: DatabaseServer,
+  },
   networkSite: {
     label: "Network Site",
     pluralLabel: "Network Sites",
@@ -162,6 +171,7 @@ const RESOURCE_ORDER: Array<AffectedResourceType> = [
   "cephCluster",
   "dockerSwarmCluster",
   "iotFleet",
+  "databaseServer",
   /*
    * Only ScheduledMaintenance carries a networkSites relation, so this one
    * is opt-in per table (see includeNetworkSite). Filtering Incidents by it
@@ -197,6 +207,7 @@ const RESOURCE_QUERY_FIELD: Record<
   cephCluster: "cephClusters",
   dockerSwarmCluster: "dockerSwarmClusters",
   iotFleet: "iotFleets",
+  databaseServer: "databaseServers",
   networkSite: "networkSites",
   serviceLevelObjective: "serviceLevelObjectives",
 };

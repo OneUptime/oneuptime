@@ -107,6 +107,13 @@ const EXPECTED_CATALOG: Array<CatalogRow> = [
     "IoT Fleets",
     IconProp.IoT,
   ],
+  [
+    "databaseServerId",
+    ServiceType.DatabaseServer,
+    "Database",
+    "Databases",
+    IconProp.Database,
+  ],
 ];
 
 const EXPECTED_KEYS: Array<string> = EXPECTED_CATALOG.map(
@@ -117,8 +124,8 @@ const EXPECTED_KEYS: Array<string> = EXPECTED_CATALOG.map(
 
 describe("ResourceFacetCatalog", () => {
   describe("contents", () => {
-    test("lists exactly the twelve non-Service resource types, in sidebar order", () => {
-      expect(RESOURCE_FACET_CATALOG).toHaveLength(12);
+    test("lists exactly the thirteen non-Service resource types, in sidebar order", () => {
+      expect(RESOURCE_FACET_CATALOG).toHaveLength(13);
       expect([...RESOURCE_FACET_CATALOG_KEYS]).toEqual(EXPECTED_KEYS);
     });
 
@@ -202,6 +209,18 @@ describe("ResourceFacetCatalog", () => {
       );
     });
 
+    test("Databases count under DatabaseServer — the type a DB receiver batch without service.name is stamped with", () => {
+      expect(getResourceFacetDefinition("databaseServerId")?.serviceType).toBe(
+        ServiceType.DatabaseServer,
+      );
+    });
+
+    test("the Database facet is not the logical-database or monitor key", () => {
+      for (const reserved of ["databaseId", "dbId", "databaseMonitorId"]) {
+        expect(isCatalogResourceFacetKey(reserved)).toBe(false);
+      }
+    });
+
     test("RUM applications count under RealUserMonitor", () => {
       expect(getResourceFacetDefinition("rumApplicationId")?.serviceType).toBe(
         ServiceType.RealUserMonitor,
@@ -256,6 +275,9 @@ describe("ResourceFacetCatalog", () => {
       "toString",
       "__proto__",
       "iotDeviceId",
+      "databaseId",
+      "DatabaseServerId",
+      "databaseServerIdentifier",
     ])("%j is not a catalog key", (facetKey: string) => {
       expect(isCatalogResourceFacetKey(facetKey)).toBe(false);
       expect(getResourceFacetDefinition(facetKey)).toBeUndefined();

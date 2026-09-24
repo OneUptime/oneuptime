@@ -1,4 +1,5 @@
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
 import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
@@ -46,6 +47,7 @@ export type AffectedResourceType =
   | "CephCluster"
   | "DockerSwarmCluster"
   | "IoTFleet"
+  | "DatabaseServer"
   | "NetworkSite"
   | "Service";
 
@@ -82,6 +84,7 @@ export interface AffectedResourcesPayload {
   cephClusters: Array<string> | undefined;
   dockerSwarmClusters: Array<string> | undefined;
   iotFleets: Array<string> | undefined;
+  databaseServers: Array<string> | undefined;
   networkSites: Array<string> | undefined;
   services: Array<string> | undefined;
 }
@@ -102,6 +105,7 @@ export interface ComponentProps {
   cephClusters?: Array<CephCluster> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
   iotFleets?: Array<IoTFleet> | undefined;
+  databaseServers?: Array<DatabaseServer> | undefined;
   networkSites?: Array<NetworkSite> | undefined;
   services?: Array<Service> | undefined;
   resourceTypes?: Array<AffectedResourceType> | undefined;
@@ -203,6 +207,13 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
     key: "iotFleets",
     supportsLabels: true,
   },
+  DatabaseServer: {
+    label: "Database",
+    icon: IconProp.Database,
+    modelType: DatabaseServer,
+    key: "databaseServers",
+    supportsLabels: true,
+  },
   NetworkSite: {
     label: "Network Site",
     icon: IconProp.BuildingOffice,
@@ -224,8 +235,8 @@ const RESOURCE_CONFIG: Record<AffectedResourceType, ResourceConfig> = {
 };
 
 /*
- * The default set. Proxmox / VMware / Ceph / Docker Swarm / IoT are deliberately
- * NOT here: a page only gets them by naming them in `resourceTypes`,
+ * The default set. Proxmox / VMware / Ceph / Docker Swarm / IoT / Database are
+ * deliberately NOT here: a page only gets them by naming them in `resourceTypes`,
  * because offering a type the page's onChange handler does not write
  * back would silently drop the user's selection on save.
  */
@@ -576,6 +587,11 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     if (resourceTypes.includes("IoTFleet")) {
       items.push(...toItems(props.iotFleets, "IoTFleet", cache, failed));
     }
+    if (resourceTypes.includes("DatabaseServer")) {
+      items.push(
+        ...toItems(props.databaseServers, "DatabaseServer", cache, failed),
+      );
+    }
     if (resourceTypes.includes("NetworkSite")) {
       items.push(...toItems(props.networkSites, "NetworkSite", cache, failed));
     }
@@ -594,6 +610,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
     props.cephClusters,
     props.dockerSwarmClusters,
     props.iotFleets,
+    props.databaseServers,
     props.networkSites,
     props.services,
     resourceTypes,
@@ -991,6 +1008,7 @@ const AffectedResourcesPicker: FunctionComponent<ComponentProps> = (
       cephClusters: idsFor("CephCluster"),
       dockerSwarmClusters: idsFor("DockerSwarmCluster"),
       iotFleets: idsFor("IoTFleet"),
+      databaseServers: idsFor("DatabaseServer"),
       networkSites: idsFor("NetworkSite"),
       services: idsFor("Service"),
     });

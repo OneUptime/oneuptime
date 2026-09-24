@@ -17,6 +17,7 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Card from "Common/UI/Components/Card/Card";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
+import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -338,7 +339,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                   title: "Resources Affected",
                   stepId: "resources-affected",
                   description:
-                    "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
+                    "Search and attach monitors, hosts, Kubernetes clusters, Docker hosts, databases, network sites, or services affected by this scheduled maintenance. Attaching a network site covers every site beneath it.",
                   fieldType: FormFieldSchemaType.CustomComponent,
                   required: false,
                   getCustomElement: (
@@ -354,6 +355,9 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                         }
                         dockerHosts={values.dockerHosts as Array<DockerHost>}
                         podmanHosts={values.podmanHosts as Array<PodmanHost>}
+                        databaseServers={
+                          values.databaseServers as Array<DatabaseServer>
+                        }
                         networkSites={values.networkSites as Array<NetworkSite>}
                         services={values.services as Array<Service>}
                         resourceTypes={[
@@ -362,6 +366,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                           "KubernetesCluster",
                           "DockerHost",
                           "PodmanHost",
+                          "DatabaseServer",
                           "NetworkSite",
                           "Service",
                         ]}
@@ -400,6 +405,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                           kubernetesClusters: payload.kubernetesClusters,
                           dockerHosts: payload.dockerHosts,
                           podmanHosts: payload.podmanHosts,
+                          databaseServers: payload.databaseServers,
                           networkSites: payload.networkSites,
                           services: payload.services,
                         } as FormValues<ScheduledMaintenance>);
@@ -448,6 +454,11 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     const podmanCount: number = Array.isArray(item.podmanHosts)
                       ? item.podmanHosts.length
                       : 0;
+                    const databasesCount: number = Array.isArray(
+                      item.databaseServers,
+                    )
+                      ? item.databaseServers.length
+                      : 0;
                     const servicesCount: number = Array.isArray(item.services)
                       ? item.services.length
                       : 0;
@@ -462,6 +473,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                       clustersCount +
                       dockerCount +
                       podmanCount +
+                      databasesCount +
                       networkSitesCount +
                       servicesCount;
                     if (totalCount === 0) {
@@ -491,6 +503,11 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                     if (podmanCount > 0) {
                       otherCounts.push(
                         `${podmanCount} Podman host${podmanCount === 1 ? "" : "s"}`,
+                      );
+                    }
+                    if (databasesCount > 0) {
+                      otherCounts.push(
+                        `${databasesCount} database${databasesCount === 1 ? "" : "s"}`,
                       );
                     }
                     if (networkSitesCount > 0) {
@@ -525,7 +542,7 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                 /*
                  * Hidden registrations so ModelForm.getSelectFields includes
                  * hosts/kubernetesClusters/dockerHosts/podmanHosts/
-                 * networkSites/services on load and submit. The picker writes
+                 * databaseServers/networkSites/services on load and submit. The picker writes
                  * to every one of these relations, but only the anchor
                  * field's key (monitors) is otherwise captured.
                  */
@@ -561,6 +578,16 @@ const ScheduledMaintenanceCreate: FunctionComponent<
                 },
                 {
                   field: { podmanHosts: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { databaseServers: true },
                   stepId: "resources-affected",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

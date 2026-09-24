@@ -1096,6 +1096,7 @@ describe("scope picker", () => {
       "cloudResourceId",
       "rumApplicationId",
       "iotFleetId",
+      "databaseServerId",
     ]);
     expect(request["startTime"]).toBeTruthy();
     expect(request["endTime"]).toBeTruthy();
@@ -1269,6 +1270,7 @@ describe("scope picker covers every catalog resource type", () => {
       cloudResourceId: "Cloud resources",
       rumApplicationId: "RUM applications",
       iotFleetId: "IoT fleets",
+      databaseServerId: "Databases",
     });
   });
 
@@ -1420,6 +1422,7 @@ describe("toInsightsScopeGroupLabel", () => {
     ["RUM Applications", "RUM applications"],
     ["IoT Fleets", "IoT fleets"],
     ["Serverless Functions", "Serverless functions"],
+    ["Databases", "Databases"],
   ])("%p reads %p", (pluralLabel: string, expected: string) => {
     expect(Insights.toInsightsScopeGroupLabel(pluralLabel)).toBe(expected);
   });

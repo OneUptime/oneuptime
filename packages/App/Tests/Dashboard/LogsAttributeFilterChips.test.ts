@@ -164,6 +164,10 @@ describe("buildAttributeFilterChips", () => {
     ["resource.docker.swarm.cluster.name", "Cluster"],
     ["resource.vmware.vcenter.name", "vCenter"],
     ["resource.iot.fleet.name", "Fleet"],
+    ["resource.oneuptime.database.server.id", "Database"],
+    ["resource.oneuptime.database.server.name", "Database"],
+    ["resource.db.system.name", "Engine"],
+    ["resource.db.system", "Engine"],
     ["networkDevice.id", "Network Device"],
   ])("%p reads as %p", (attributeKey: string, label: string) => {
     expect(getAttributeDisplayName(attributeKey)).toBe(label);

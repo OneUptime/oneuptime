@@ -95,6 +95,7 @@ const MODEL_NAME_BY_FACET_KEY: Record<string, string> = {
   cloudResourceId: "CloudResource",
   rumApplicationId: "RumApplication",
   iotFleetId: "IoTFleet",
+  databaseServerId: "DatabaseServer",
 };
 
 const CASES: Array<CatalogCase> = RESOURCE_FACET_CATALOG.map(

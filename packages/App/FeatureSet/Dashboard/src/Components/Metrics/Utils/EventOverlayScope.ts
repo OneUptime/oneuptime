@@ -130,6 +130,21 @@ const RESOURCE_MAPPINGS: Array<ResourceMapping> = [
     names: attributeAliases("iot.fleet.name"),
     nameColumn: "name",
   },
+  /*
+   * Ingest stamps both attributes on DB receiver batches (the Database
+   * Agent / an OTel Collector DB receiver). The stamped name is the row's
+   * display name, e.g. "PostgreSQL db.prod:5432".
+   */
+  {
+    relation: "databaseServers",
+    ids: [
+      "databaseServerId",
+      "databaseServerIds",
+      ...attributeAliases("oneuptime.database.server.id"),
+    ],
+    names: attributeAliases("oneuptime.database.server.name"),
+    nameColumn: "name",
+  },
   {
     relation: "services",
     ids: [
@@ -156,6 +171,7 @@ const PRIMARY_TYPE_RELATIONS: Partial<Record<ServiceType, string>> = {
   [ServiceType.DockerSwarmCluster]: "dockerSwarmClusters",
   // The telemetry discriminator is historical: its id is the owning fleet.
   [ServiceType.IoTDevice]: "iotFleets",
+  [ServiceType.DatabaseServer]: "databaseServers",
   [ServiceType.OpenTelemetry]: "services",
 };
 

@@ -21,7 +21,10 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import buildAffectedResourcesFacet from "../../FeatureSet/Dashboard/src/Components/AffectedResources/buildAffectedResourcesFacet";
 import { ResourceFacet } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/ResourceFacet";
-import { FilterOperator } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";
+import {
+  FilterChipDropdownOption,
+  FilterOperator,
+} from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/FilterChipDropdownTypes";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import { JSONObject } from "Common/Types/JSON";
@@ -80,6 +83,7 @@ describe("buildAffectedResourcesFacet maps each resource type to its relation", 
     ["cephCluster", "cephClusters"],
     ["dockerSwarmCluster", "dockerSwarmClusters"],
     ["iotFleet", "iotFleets"],
+    ["databaseServer", "databaseServers"],
   ])(
     "a %s selection queries the %s relation",
     async (type: string, relation: string) => {
@@ -172,6 +176,77 @@ describe("buildAffectedResourcesFacet maps each resource type to its relation", 
      * One lookup per offered type. Monitors are excluded here because the
      * alerts table carries a dedicated Monitor chip.
      */
-    expect(getListMock.mock.calls).toHaveLength(10);
+    expect(getListMock.mock.calls).toHaveLength(11);
+  });
+
+  test("offers Databases in the dropdown, grouped under their own label", async () => {
+    getListMock.mockImplementation(
+      async (args: { modelType: { name: string } }) => {
+        if (args.modelType.name === "DatabaseServer") {
+          return {
+            data: [
+              {
+                id: new ObjectID(RESOURCE_ID),
+                name: "PostgreSQL db.prod:5432",
+              },
+            ],
+            count: 1,
+            skip: 0,
+            limit: 0,
+          };
+        }
+        return { data: [], count: 0, skip: 0, limit: 0 };
+      },
+    );
+
+    const options: Array<FilterChipDropdownOption> =
+      await alertFacet().loadOptions!(PROJECT_ID, "");
+
+    const database: FilterChipDropdownOption | undefined = options.find(
+      (option: FilterChipDropdownOption): boolean => {
+        return option.value === `databaseServer:${RESOURCE_ID}`;
+      },
+    );
+    expect(database).toBeDefined();
+    expect(database!.label).toBe("PostgreSQL db.prod:5432");
+    expect(database!.group).toBe("Databases");
+  });
+
+  test("a Database selection unions with a host selection", async () => {
+    getListMock.mockReset();
+    getListMock
+      .mockResolvedValueOnce({
+        data: [{ id: new ObjectID("alert-1") }],
+        count: 1,
+        skip: 0,
+        limit: 0,
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: new ObjectID("alert-3") }],
+        count: 1,
+        skip: 0,
+        limit: 0,
+      });
+
+    const matched: Array<string> = await alertFacet()
+      .computeMatchingResourceIds!(
+      PROJECT_ID,
+      [`host:${RESOURCE_ID}`, `databaseServer:${RESOURCE_ID}`],
+      IS_OPERATOR,
+    );
+
+    expect(matched.sort()).toEqual(["alert-1", "alert-3"]);
+    const relations: Array<string> = getListMock.mock.calls.map(
+      (call: Array<unknown>): string => {
+        return Object.keys(
+          (call[0] as { query: JSONObject }).query,
+        )
+          .filter((key: string): boolean => {
+            return key !== "projectId";
+          })
+          .join(",");
+      },
+    );
+    expect(relations.sort()).toEqual(["databaseServers", "hosts"]);
   });
 });

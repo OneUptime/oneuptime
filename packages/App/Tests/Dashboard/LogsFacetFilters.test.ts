@@ -130,6 +130,7 @@ describe("LOGS_EXPLORER_FACET_KEYS", () => {
       "cloudResourceId",
       "rumApplicationId",
       "iotFleetId",
+      "databaseServerId",
     ]);
   });
 
@@ -183,6 +184,7 @@ describe("chip key labels", () => {
       cloudResourceId: "Cloud Resource",
       rumApplicationId: "RUM Application",
       iotFleetId: "IoT Fleet",
+      databaseServerId: "Database",
     });
   });
 

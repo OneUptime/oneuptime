@@ -66,6 +66,8 @@ const ID_RELATIONS: Array<[string, string]> = [
   ["dockerSwarmClusterIds", "dockerSwarmClusters"],
   ["iotFleetId", "iotFleets"],
   ["iotFleetIds", "iotFleets"],
+  ["databaseServerId", "databaseServers"],
+  ["databaseServerIds", "databaseServers"],
   ["serviceId", "services"],
   ["serviceIds", "services"],
   ["services", "services"],
@@ -87,6 +89,7 @@ const NAME_RELATIONS: Array<[string, string, string]> = [
   ["ceph.cluster.name", "cephClusters", "name"],
   ["docker.swarm.cluster.name", "dockerSwarmClusters", "name"],
   ["iot.fleet.name", "iotFleets", "name"],
+  ["oneuptime.database.server.name", "databaseServers", "name"],
   ["service.name", "services", "name"],
   ["oneuptime.service.name", "services", "name"],
 ];
@@ -155,6 +158,7 @@ describe("event overlay resource scope", () => {
       ["oneuptime.docker.host.id", "dockerHosts"],
       ["oneuptime.podman.host.id", "podmanHosts"],
       ["oneuptime.kubernetes.cluster.id", "kubernetesClusters"],
+      ["oneuptime.database.server.id", "databaseServers"],
       ["oneuptime.service.id", "services"],
     ])(`uses stamped ${prefix}%s ids`, (key: string, relation: string) => {
       expect(
@@ -242,6 +246,7 @@ describe("event overlay resource scope", () => {
     [ServiceType.CephCluster, "cephClusters"],
     [ServiceType.DockerSwarmCluster, "dockerSwarmClusters"],
     [ServiceType.IoTDevice, "iotFleets"],
+    [ServiceType.DatabaseServer, "databaseServers"],
     [ServiceType.OpenTelemetry, "services"],
   ])(
     "scopes polymorphic primaryEntityId of type %s",
