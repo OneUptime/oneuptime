@@ -47,6 +47,8 @@ import TimeRange from "Common/Types/Time/TimeRange";
 import CephResourceUtils from "../Utils/CephResourceUtils";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 import React, {
   Fragment,
   FunctionComponent,
@@ -102,7 +104,7 @@ interface CapacityStats {
   daysToNearfull: number | null;
 }
 
-interface OsdMatrix {
+export interface OsdMatrix {
   upIn: number;
   upOut: number;
   downIn: number;
@@ -151,6 +153,88 @@ const healthStateFromStatus: (
     return "warning";
   }
   return "ok";
+};
+
+/*
+ * A card or chart title followed by the (i) that says what its numbers
+ * mean. Exported for the tooltip render tests.
+ */
+export interface CephMetricTitleProps {
+  title: string;
+  description: string;
+}
+
+export const CephMetricTitle: FunctionComponent<CephMetricTitleProps> = (
+  props: CephMetricTitleProps,
+): ReactElement => {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {props.title}
+      <InfoTooltip label={props.title} text={props.description} />
+    </span>
+  );
+};
+
+export interface OsdStateCell {
+  label: string;
+  sublabel: string;
+  count: number;
+  className: string;
+  description: string;
+}
+
+/*
+ * The four up/in quadrants of the OSD States card, each with the (i) text
+ * that explains it. Pure, so the render tests can build the cells.
+ */
+export function buildOsdStateCells(matrix: OsdMatrix): Array<OsdStateCell> {
+  return [
+    {
+      label: "Up + In",
+      sublabel: "healthy",
+      count: matrix.upIn,
+      className: "bg-emerald-50 text-emerald-800 ring-emerald-200",
+      description: CEPH_METRIC_DESCRIPTIONS.osdUpIn,
+    },
+    {
+      label: "Up + Out",
+      sublabel: "draining / rebalancing",
+      count: matrix.upOut,
+      className: "bg-sky-50 text-sky-800 ring-sky-200",
+      description: CEPH_METRIC_DESCRIPTIONS.osdUpOut,
+    },
+    {
+      label: "Down + In",
+      sublabel: "failed but still mapped",
+      count: matrix.downIn,
+      className: "bg-red-50 text-red-800 ring-red-200",
+      description: CEPH_METRIC_DESCRIPTIONS.osdDownIn,
+    },
+    {
+      label: "Down + Out",
+      sublabel: "removed from placement",
+      count: matrix.downOut,
+      className: "bg-gray-50 text-gray-700 ring-gray-200",
+      description: CEPH_METRIC_DESCRIPTIONS.osdDownOut,
+    },
+  ];
+}
+
+export const OsdStateCellView: FunctionComponent<{
+  cell: OsdStateCell;
+}> = (props: { cell: OsdStateCell }): ReactElement => {
+  return (
+    <div className={`rounded-lg p-4 ring-1 ring-inset ${props.cell.className}`}>
+      <div className="text-2xl font-semibold leading-none">
+        {props.cell.count}
+      </div>
+      <div className="mt-1 flex items-center gap-1 text-sm font-medium">
+        <span>{props.cell.label}</span>
+        <InfoTooltip label={props.cell.label} text={props.cell.description} />
+      </div>
+      <div className="text-xs opacity-75">{props.cell.sublabel}</div>
+    </div>
+  );
 };
 
 const CephClusterOverview: FunctionComponent<
@@ -813,7 +897,13 @@ const CephClusterOverview: FunctionComponent<
                     <h1 className="text-xl font-semibold text-gray-900 truncate">
                       {displayName}
                     </h1>
-                    {renderHealthPill(health)}
+                    <span className="inline-flex items-center gap-1">
+                      {renderHealthPill(health)}
+                      <InfoTooltip
+                        label="Cluster health"
+                        text={CEPH_METRIC_DESCRIPTIONS.health}
+                      />
+                    </span>
                     <span
                       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass}`}
                     >
@@ -891,7 +981,12 @@ const CephClusterOverview: FunctionComponent<
     return (
       <div className="mb-6">
         <Card
-          title="Active Health Checks"
+          title={
+            <CephMetricTitle
+              title="Active Health Checks"
+              description={CEPH_METRIC_DESCRIPTIONS.activeHealthChecks}
+            />
+          }
           description="Named checks currently raised by the cluster — the reason behind the health state."
         >
           {healthChecks.length > 0 ? (
@@ -981,6 +1076,7 @@ const CephClusterOverview: FunctionComponent<
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <GoldenMetricTile
           title="Capacity Used"
+          description={CEPH_METRIC_DESCRIPTIONS.capacityUsed}
           icon={IconProp.ChartBar}
           iconColor="blue"
           value={formatPercent(usedPercent)}
@@ -990,6 +1086,7 @@ const CephClusterOverview: FunctionComponent<
         />
         <GoldenMetricTile
           title="OSDs Up"
+          description={CEPH_METRIC_DESCRIPTIONS.osdsUp}
           icon={IconProp.Database}
           iconColor="emerald"
           value={osdTotal > 0 ? `${osdUp}/${osdTotal}` : "—"}
@@ -1000,6 +1097,7 @@ const CephClusterOverview: FunctionComponent<
         />
         <GoldenMetricTile
           title="Mons In Quorum"
+          description={CEPH_METRIC_DESCRIPTIONS.monsInQuorum}
           icon={IconProp.CheckCircle}
           iconColor="sky"
           value={
@@ -1013,6 +1111,7 @@ const CephClusterOverview: FunctionComponent<
         />
         <GoldenMetricTile
           title="Pools"
+          description={CEPH_METRIC_DESCRIPTIONS.pools}
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={cluster.poolCount ? String(cluster.poolCount) : "—"}
@@ -1020,6 +1119,7 @@ const CephClusterOverview: FunctionComponent<
         />
         <GoldenMetricTile
           title="Problem PGs"
+          description={CEPH_METRIC_DESCRIPTIONS.problemPgs}
           icon={IconProp.Alert}
           iconColor="amber"
           value={formatInt(pgProblemCount)}
@@ -1044,42 +1144,17 @@ const CephClusterOverview: FunctionComponent<
       return <Fragment />;
     }
 
-    const cells: Array<{
-      label: string;
-      sublabel: string;
-      count: number;
-      className: string;
-    }> = [
-      {
-        label: "Up + In",
-        sublabel: "healthy",
-        count: osdMatrix.upIn,
-        className: "bg-emerald-50 text-emerald-800 ring-emerald-200",
-      },
-      {
-        label: "Up + Out",
-        sublabel: "draining / rebalancing",
-        count: osdMatrix.upOut,
-        className: "bg-sky-50 text-sky-800 ring-sky-200",
-      },
-      {
-        label: "Down + In",
-        sublabel: "failed but still mapped",
-        count: osdMatrix.downIn,
-        className: "bg-red-50 text-red-800 ring-red-200",
-      },
-      {
-        label: "Down + Out",
-        sublabel: "removed from placement",
-        count: osdMatrix.downOut,
-        className: "bg-gray-50 text-gray-700 ring-gray-200",
-      },
-    ];
+    const cells: Array<OsdStateCell> = buildOsdStateCells(osdMatrix);
 
     return (
       <div className="mb-6">
         <Card
-          title="OSD States"
+          title={
+            <CephMetricTitle
+              title="OSD States"
+              description={CEPH_METRIC_DESCRIPTIONS.osdStates}
+            />
+          }
           description={`Up/in matrix across ${osdMatrix.total} OSD${osdMatrix.total === 1 ? "" : "s"}.`}
           rightElement={
             <Link
@@ -1091,27 +1166,9 @@ const CephClusterOverview: FunctionComponent<
           }
         >
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {cells.map(
-              (cell: {
-                label: string;
-                sublabel: string;
-                count: number;
-                className: string;
-              }): ReactElement => {
-                return (
-                  <div
-                    key={cell.label}
-                    className={`rounded-lg p-4 ring-1 ring-inset ${cell.className}`}
-                  >
-                    <div className="text-2xl font-semibold leading-none">
-                      {cell.count}
-                    </div>
-                    <div className="mt-1 text-sm font-medium">{cell.label}</div>
-                    <div className="text-xs opacity-75">{cell.sublabel}</div>
-                  </div>
-                );
-              },
-            )}
+            {cells.map((cell: OsdStateCell): ReactElement => {
+              return <OsdStateCellView key={cell.label} cell={cell} />;
+            })}
           </div>
         </Card>
       </div>
@@ -1155,7 +1212,12 @@ const CephClusterOverview: FunctionComponent<
     return (
       <div className="mb-6">
         <Card
-          title="Placement Group States"
+          title={
+            <CephMetricTitle
+              title="Placement Group States"
+              description={CEPH_METRIC_DESCRIPTIONS.pgStates}
+            />
+          }
           description={`${Math.round(total)} placement groups (${formatInt(pgStats.active)} active).`}
         >
           <StackedProgressBar segments={segments} totalValue={total} />
@@ -1243,8 +1305,12 @@ const CephClusterOverview: FunctionComponent<
         >
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <div>
-              <div className="mb-2 text-sm font-medium text-gray-700">
+              <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
                 Client IOPS
+                <InfoTooltip
+                  label="Client IOPS"
+                  text={CEPH_METRIC_DESCRIPTIONS.clientIops}
+                />
               </div>
               <CephRateChart
                 clusterName={clusterName}
@@ -1261,8 +1327,12 @@ const CephClusterOverview: FunctionComponent<
               />
             </div>
             <div>
-              <div className="mb-2 text-sm font-medium text-gray-700">
+              <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
                 Client Throughput
+                <InfoTooltip
+                  label="Client Throughput"
+                  text={CEPH_METRIC_DESCRIPTIONS.clientThroughput}
+                />
               </div>
               <CephRateChart
                 clusterName={clusterName}
@@ -1288,16 +1358,21 @@ const CephClusterOverview: FunctionComponent<
   const renderTopPoolList: (
     title: string,
     description: string,
+    tooltip: string,
     rows: Array<TopPoolRow>,
     renderValue: (row: TopPoolRow) => string,
   ) => ReactElement = (
     title: string,
     description: string,
+    tooltip: string,
     rows: Array<TopPoolRow>,
     renderValue: (row: TopPoolRow) => string,
   ): ReactElement => {
     return (
-      <Card title={title} description={description}>
+      <Card
+        title={<CephMetricTitle title={title} description={tooltip} />}
+        description={description}
+      >
         {rows.length === 0 ? (
           <div className="text-sm text-gray-500">
             No pools in the inventory yet.
@@ -1347,6 +1422,7 @@ const CephClusterOverview: FunctionComponent<
         {renderTopPoolList(
           "Largest Pools",
           "Top pools by stored bytes.",
+          CEPH_METRIC_DESCRIPTIONS.largestPools,
           topPoolsByStored,
           (row: TopPoolRow) => {
             return CephResourceUtils.formatBytes(row.storedBytes);
@@ -1355,6 +1431,7 @@ const CephClusterOverview: FunctionComponent<
         {renderTopPoolList(
           "Fullest Pools",
           "Top pools by used capacity (stored / (stored + max avail)).",
+          CEPH_METRIC_DESCRIPTIONS.fullestPools,
           topPoolsByUsed,
           (row: TopPoolRow) => {
             return formatPercent(row.usedPercent);

@@ -15,6 +15,7 @@ import StatusBadge, {
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { IOT_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/IoTMetricDescriptions";
 
 /*
  * Devices in a single fleet. Reads the IoTDevice Postgres inventory
@@ -109,6 +110,7 @@ const IoTFleetDevices: FunctionComponent<
               isUp: true,
             },
             title: "Status",
+            headerTooltip: IOT_METRIC_DESCRIPTIONS.statusColumn,
             type: FieldType.Element,
             getElement: (item: IoTDevice): ReactElement => {
               if (item.isUp === undefined || item.isUp === null) {
@@ -129,6 +131,7 @@ const IoTFleetDevices: FunctionComponent<
               latestBatteryPercent: true,
             },
             title: "Battery",
+            headerTooltip: IOT_METRIC_DESCRIPTIONS.batteryColumn,
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: IoTDevice): ReactElement => {
@@ -156,6 +159,7 @@ const IoTFleetDevices: FunctionComponent<
               latestSignalStrengthDbm: true,
             },
             title: "Signal",
+            headerTooltip: IOT_METRIC_DESCRIPTIONS.signalColumn,
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: IoTDevice): ReactElement => {
@@ -177,6 +181,7 @@ const IoTFleetDevices: FunctionComponent<
               latestTemperatureCelsius: true,
             },
             title: "Temperature",
+            headerTooltip: IOT_METRIC_DESCRIPTIONS.temperatureColumn,
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: IoTDevice): ReactElement => {
