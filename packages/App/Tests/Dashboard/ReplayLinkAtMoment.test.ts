@@ -323,9 +323,16 @@ describe("every inbound surface builds its player URL through the shared builder
    */
   test("RumSessionLookup reads through /resolve, never the generic analytics list", () => {
     const source: string = readSource("Utils/RumSessionLookup.ts");
+    /*
+     * The file's own doc comment explains why AnalyticsModelAPI cannot be
+     * used; what must not appear is an import of it or a call through it.
+     */
+    const code: string = source
+      .replace(/\/\*[\s\S]*?\*\//g, " ")
+      .replace(/\/\/.*$/gm, " ");
 
     expect(source).toContain('"/telemetry/rum/session-replay/resolve"');
-    expect(source).not.toContain("AnalyticsModelAPI");
+    expect(code).not.toContain("AnalyticsModelAPI");
     /* The premise: there is no generic read to go through. */
     expect(new RumSession().crudApiPath).toBeUndefined();
   });
