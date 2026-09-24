@@ -70,7 +70,7 @@ export const SESSION_REPLAY_DOCS_TOPICS: Array<SessionReplayDocsTopic> = [
   {
     title: "Correlating with your other telemetry",
     description:
-      "Put session.id on your resource and link browser requests to backend traces.",
+      "How your own origin's requests link backend traces and logs automatically, the step for APIs on another origin, sampling and the off switch.",
     icon: IconProp.Workflow,
     docsPath: SETUP_GUIDE_DOCS_PATH,
     anchor: "correlating-with-your-other-telemetry",

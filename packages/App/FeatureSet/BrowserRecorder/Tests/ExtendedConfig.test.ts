@@ -19,6 +19,7 @@ import {
 
 const DEFAULTS: ExtendedReplayConfig = {
   tracePropagationOrigins: [],
+  sameOriginTracePropagation: false,
   lcpBudgetMs: 0,
   longTaskBudgetMs: 0,
   slowRequestBudgetMs: 0,
@@ -36,6 +37,7 @@ describe("readExtendedConfig", (): void => {
       readExtendedConfig(
         configWithRaw({
           tracePropagationOrigins: ["https://api.example.com"],
+          sameOriginTracePropagation: true,
           lcpBudgetMs: 4000,
           longTaskBudgetMs: 200,
           slowRequestBudgetMs: 5000,
@@ -45,6 +47,7 @@ describe("readExtendedConfig", (): void => {
       ),
     ).toEqual({
       tracePropagationOrigins: ["https://api.example.com"],
+      sameOriginTracePropagation: true,
       lcpBudgetMs: 4000,
       longTaskBudgetMs: 200,
       slowRequestBudgetMs: 5000,
@@ -187,6 +190,53 @@ describe("readExtendedConfig", (): void => {
       expect(result.lcpBudgetMs).toBe(0);
       expect(result.longTaskBudgetMs).toBe(0);
       expect(result.slowRequestBudgetMs).toBe(0);
+    });
+  });
+
+  /*
+   * The server always sends an explicit boolean for the same-origin
+   * switch - the policy value, or false in the disabled response - so a
+   * missing or malformed value can only mean a server or stub too old to
+   * know it, and that must not start adding headers to the page's
+   * requests.
+   */
+  describe("sameOriginTracePropagation", (): void => {
+    it("is ON only for a literal true", (): void => {
+      expect(
+        readExtendedConfig(configWithRaw({ sameOriginTracePropagation: true }))
+          .sameOriginTracePropagation,
+      ).toBe(true);
+    });
+
+    it("is OFF when absent, false or any other shape (fails closed)", (): void => {
+      expect(
+        readExtendedConfig(configWithRaw({})).sameOriginTracePropagation,
+      ).toBe(false);
+
+      for (const hostile of [
+        false,
+        "true",
+        1,
+        {},
+        [],
+        null,
+        undefined,
+        "yes",
+      ]) {
+        expect(
+          readExtendedConfig(
+            configWithRaw({ sameOriginTracePropagation: hostile }),
+          ).sameOriginTracePropagation,
+        ).toBe(false);
+      }
+    });
+
+    it("is read from the config object itself when raw is absent", (): void => {
+      expect(
+        readExtendedConfig({
+          sameOriginTracePropagation: true,
+        } as unknown as LoaderConfig).sameOriginTracePropagation,
+      ).toBe(true);
     });
   });
 

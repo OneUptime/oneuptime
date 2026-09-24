@@ -89,6 +89,21 @@ export const REPLAY_CORRELATION_PANEL_TAB_IDS: ReadonlyArray<ReplayCorrelationPa
 export type { ReplaySessionDetails };
 
 /*
+ * How many correlated ids the session header keeps, as the copy under the
+ * lists quotes them. Server constants, so they are restated rather than
+ * imported (no replay Dashboard file may import server code); a test reads
+ * the server sources and fails when either side moves:
+ *  - live: PROVISIONAL_HEADER_MAX_TRACE_IDS in SessionReplayIngestService
+ *    (the provisional header carries no exception groups at all);
+ *  - finalized: MAX_TRACE_IDS_PER_SESSION and
+ *    MAX_EXCEPTION_FINGERPRINTS_PER_SESSION in the FinalizeSessions job.
+ * The copy used to quote a flat cap of 50, which neither number was.
+ */
+export const REPLAY_HEADER_LIVE_TRACE_ID_CAP: number = 100;
+export const REPLAY_HEADER_FINAL_TRACE_ID_CAP: number = 200;
+export const REPLAY_HEADER_EXCEPTION_GROUP_CAP: number = 100;
+
+/*
  * Counts the rail has already fetched, so the Session tab can say "37 logs"
  * without a second request. null (or absent) means "not fetched yet" and
  * renders as such - never as 0.
@@ -907,9 +922,9 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
       </DetailSection>
 
       {/*
-       * The coarse correlation lists from the header (capped at 50 by the
-       * finalizer) stay here for the viewer who wants the ids; the rail is
-       * where they live on the clock.
+       * The coarse correlation lists from the header stay here for the
+       * viewer who wants the ids; the rail is where they live on the clock.
+       * Their caps are the ingest's and the finalizer's, quoted below.
        */}
       <DetailSection
         title="Related telemetry"
@@ -946,14 +961,19 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
               instrumentation attaches this replay&apos;s{" "}
               <code>session.id</code>. Subscribe with{" "}
               <code>OneUptimeReplay.onSessionChange()</code> and update the
-              attribute whenever the session rotates.
+              attribute whenever the session rotates. The React Native SDK adds
+              nothing to your app&apos;s own requests, so nothing links on its
+              own.
             </p>
           ) : (
-            <p>
-              Signals are matched using <code>session.id</code>. Recorder
-              network spans are linked automatically; other SDK signals must add
-              the same attribute, for example through{" "}
-              <code>OneUptimeReplay.onSessionChange()</code>.
+            <p data-testid="details-correlation-web">
+              While a session uploads, requests the page makes to its own origin
+              carry the session&apos;s trace context, so backend spans are
+              stamped with its id at ingest and backend logs and exceptions join
+              it by trace id - no code needed. An API on another origin links by
+              trace id once it is listed in <em>Trace propagation origins</em>.{" "}
+              <code>OneUptimeReplay.onSessionChange()</code> is optional, for
+              stamping the page&apos;s own browser telemetry.
             </p>
           )}
         </div>
@@ -1034,9 +1054,15 @@ const ReplayCorrelationPanel: FunctionComponent<ReplayCorrelationPanelProps> = (
         )}
 
         {(d.traceIds.length > 0 || d.exceptionFingerprints.length > 0) && (
-          <p className="border-t border-gray-100 py-3 text-[11px] leading-4 text-gray-500">
-            Correlated IDs in the session header are capped at 50; the rail
-            fetches the full set.
+          <p
+            className="border-t border-gray-100 py-3 text-[11px] leading-4 text-gray-500"
+            data-testid="details-correlation-caps"
+          >
+            {`${
+              d.isFinalized === false
+                ? `While the session is live its header keeps at most ${REPLAY_HEADER_LIVE_TRACE_ID_CAP} trace IDs (${REPLAY_HEADER_FINAL_TRACE_ID_CAP} once it is finalized, with up to ${REPLAY_HEADER_EXCEPTION_GROUP_CAP} exception groups)`
+                : `The session header keeps at most ${REPLAY_HEADER_FINAL_TRACE_ID_CAP} trace IDs and ${REPLAY_HEADER_EXCEPTION_GROUP_CAP} exception groups`
+            }; the rail queries your telemetry directly, so it is not limited to these.`}
           </p>
         )}
       </DetailSection>

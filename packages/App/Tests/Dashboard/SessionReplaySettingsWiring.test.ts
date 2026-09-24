@@ -358,6 +358,143 @@ describe("Application replay settings page composition", () => {
   });
 });
 
+/*
+ * RumApplication.sessionReplaySameOriginTracePropagation. The recorder adds
+ * traceparent and a session tracestate to the page's own requests while a
+ * session uploads, on by default; this toggle is the way back without a
+ * customer redeploy, so it has to be on the policy form next to the
+ * cross-origin list it complements, say what it sends and where it goes,
+ * and reach the privacy summary.
+ */
+const SAME_ORIGIN_FORM_FIELD_PATTERN: RegExp = new RegExp(
+  '\\{\\s*field:\\s*\\{\\s*sessionReplaySameOriginTracePropagation:\\s*true\\s*\\},\\s*title:\\s*SAME_ORIGIN_TRACE_PROPAGATION_TITLE,\\s*stepId:\\s*"performance",\\s*fieldType:\\s*FormFieldSchemaType\\.Toggle,',
+);
+const ORIGINS_FORM_FIELD_PATTERN: RegExp = new RegExp(
+  '\\{\\s*field:\\s*\\{\\s*sessionReplayTracePropagationOrigins:\\s*true\\s*\\},\\s*title:\\s*"Trace propagation origins",\\s*stepId:\\s*"performance",',
+);
+const SAME_ORIGIN_READ_FIELD_PATTERN: RegExp = new RegExp(
+  "field:\\s*\\{\\s*sessionReplaySameOriginTracePropagation:\\s*true\\s*\\},\\s*title:\\s*SAME_ORIGIN_TRACE_PROPAGATION_TITLE,\\s*fieldType:\\s*FieldType\\.Element,[\\s\\S]{0,300}describeSameOriginTracePropagation\\(\\s*item\\.sessionReplaySameOriginTracePropagation",
+);
+const PRIVACY_POLICY_FEED_PATTERN: RegExp = new RegExp(
+  "sameOriginTracePropagation:\\s*application\\.sessionReplaySameOriginTracePropagation",
+);
+const DESCRIPTION_PATTERN: RegExp = new RegExp('description:\\s*"([^"]*)"');
+const SAME_ORIGIN_TITLE_PATTERN: RegExp = new RegExp(
+  'SAME_ORIGIN_TRACE_PROPAGATION_TITLE:\\s*string\\s*=\\s*"Same-origin trace propagation";',
+);
+
+/* The description string of the form field that starts at `start`. */
+function formFieldDescription(start: number): string {
+  const match: RegExpMatchArray | null =
+    APP_SETTINGS_PAGE.slice(start).match(DESCRIPTION_PATTERN);
+
+  expect(match).not.toBeNull();
+
+  return match?.[1] ?? "";
+}
+
+describe("Same-origin trace propagation setting", () => {
+  test("the toggle and its read-view row share one title constant, with the fixed name", () => {
+    expect(APP_SETTINGS_PAGE).toMatch(SAME_ORIGIN_TITLE_PATTERN);
+    expect(
+      APP_SETTINGS_PAGE.match(/title: SAME_ORIGIN_TRACE_PROPAGATION_TITLE,/g) ??
+        [],
+    ).toHaveLength(2);
+  });
+
+  test("the toggle sits in the Performance & Tracing step, immediately before the origins list", () => {
+    const toggle: RegExpMatchArray | null = APP_SETTINGS_PAGE.match(
+      SAME_ORIGIN_FORM_FIELD_PATTERN,
+    );
+    const origins: RegExpMatchArray | null = APP_SETTINGS_PAGE.match(
+      ORIGINS_FORM_FIELD_PATTERN,
+    );
+
+    expect(toggle).not.toBeNull();
+    expect(origins).not.toBeNull();
+
+    const toggleIndex: number = toggle?.index ?? -1;
+    const originsIndex: number = origins?.index ?? -1;
+
+    expect(toggleIndex).toBeLessThan(originsIndex);
+
+    /* No other form field between the two: they are one decision. */
+    const between: string = APP_SETTINGS_PAGE.slice(
+      toggleIndex + 1,
+      originsIndex,
+    );
+
+    expect(between.match(/\bfield:\s*\{/g) ?? []).toHaveLength(1);
+    expect(APP_SETTINGS_PAGE).toContain(
+      '{ title: "Performance & Tracing", id: "performance" }',
+    );
+  });
+
+  test("the toggle's description says what it sends, where it goes, what it costs, and the redirect caveat", () => {
+    const description: string = formFieldDescription(
+      APP_SETTINGS_PAGE.match(SAME_ORIGIN_FORM_FIELD_PATTERN)?.index ?? 0,
+    );
+
+    for (const phrase of [
+      "On by default.",
+      "traceparent and a tracestate carrying this session's id",
+      "requests your page makes to its own origin",
+      "no code in your frontend or backend",
+      "before consent",
+      "marked sampled",
+      "ParentBased samplers",
+      "remoteParentSampled",
+      "third parties included",
+      "the visitor id is never sent",
+      "redirects to another origin",
+      "Access-Control-Allow-Headers",
+      "retries a failed GET once",
+    ]) {
+      expect({ phrase, found: description.includes(phrase) }).toEqual({
+        phrase,
+        found: true,
+      });
+    }
+  });
+
+  test("the origins list is described as the cross-origin one, not as 'never inject'", () => {
+    const description: string = formFieldDescription(
+      APP_SETTINGS_PAGE.match(ORIGINS_FORM_FIELD_PATTERN)?.index ?? 0,
+    );
+
+    expect(description).toContain("For APIs on OTHER origins than your page");
+    expect(description).toContain(
+      "requests to your own origin are linked automatically",
+    );
+    expect(description).toContain("traceparent only, never the session id");
+    expect(description).toContain("Access-Control-Allow-Headers");
+    expect(description).not.toContain("Empty (default) never injects");
+    expect(APP_SETTINGS_PAGE).not.toContain(
+      "None: no traceparent header is injected",
+    );
+    expect(APP_SETTINGS_PAGE).toContain(
+      "None: no cross-origin request gets a traceparent",
+    );
+  });
+
+  test("the read view shows the switch through describeSameOriginTracePropagation", () => {
+    expect(APP_SETTINGS_PAGE).toMatch(SAME_ORIGIN_READ_FIELD_PATTERN);
+    expect(APP_SETTINGS_PAGE).toContain(
+      "export function describeSameOriginTracePropagation(",
+    );
+    /* Only an explicit false reads as off, like the gate. */
+    expect(APP_SETTINGS_PAGE).toContain("return value === false");
+  });
+
+  test("the privacy summary is fed the switch from the loaded row", () => {
+    expect(APP_SETTINGS_PAGE).toMatch(PRIVACY_POLICY_FEED_PATTERN);
+    expect(PRIVACY_SUMMARY).toContain('"backend-link"');
+    expect(PRIVACY_SUMMARY).toContain(
+      "sameOriginTracePropagation?: boolean | null | undefined;",
+    );
+  });
+});
+
 const PAGE_COMPONENT_OPENING: RegExp = new RegExp(
   "const RumApplicationSessionReplaySettings\\s*:\\s*FunctionComponent<",
 );

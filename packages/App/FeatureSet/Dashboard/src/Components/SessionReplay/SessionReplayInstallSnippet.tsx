@@ -162,17 +162,44 @@ window.OneUptimeReplay
 }
 
 /*
- * The join key between a recording and the customer's OpenTelemetry data
- * is session.id on their resource. onSessionChange fires immediately when
- * a session exists and again on rotation, so the attribute follows it.
+ * OPTIONAL, and only for telemetry the page produces itself. Backend
+ * telemetry needs no code: the recorder carries the session id on the
+ * page's same-origin requests (tracestate) and ingest stamps it. What that
+ * cannot reach is the page's own OpenTelemetry browser SDK - document
+ * loads, route changes, reported errors - so this stamps those spans.
+ *
+ * A span processor rather than a write to resource.attributes: the
+ * resource is serialised when a batch is exported, so a mutated resource
+ * re-labels spans that started before a rotation, and writing into it
+ * relies on the object OpenTelemetry JS 2.x happens to memoise behind its
+ * `attributes` getter. onStart stamps each span with the id current when
+ * it began. Queued, so it works whether or not the recorder has loaded
+ * yet (the queue stays live after the drain).
  */
 export function buildOnSessionChangeSnippet(): string {
-  return `// Put the replay session id on your OpenTelemetry resource so logs,
-// spans and exceptions from this browser line up with the recording.
-OneUptimeReplay.onSessionChange((sessionId, tabId) => {
-  resource.attributes["session.id"] = sessionId;
-  resource.attributes["session.tab.id"] = tabId;
-});`;
+  return `// Optional. Only if this page also runs the OpenTelemetry browser SDK:
+// stamps its own spans (page loads, route changes, errors) with the
+// replay session id. Requests to your own origin are linked without it.
+let replaySessionId = null;
+
+(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([
+  "onSessionChange",
+  (sessionId) => {
+    replaySessionId = sessionId;
+  },
+]);
+
+// Add to the spanProcessors of your WebTracerProvider.
+const replaySessionSpanProcessor = {
+  onStart: (span) => {
+    if (replaySessionId) {
+      span.setAttribute("session.id", replaySessionId);
+    }
+  },
+  onEnd: () => {},
+  forceFlush: () => Promise.resolve(),
+  shutdown: () => Promise.resolve(),
+};`;
 }
 
 /*
@@ -191,8 +218,6 @@ export interface ComponentProps {
   /* Defaults to this deployment's origin. */
   oneuptimeUrl?: string | undefined;
   showIdentify?: boolean | undefined;
-  /* The onSessionChange snippet, for the correlation step. */
-  showCorrelation?: boolean | undefined;
 }
 
 const SessionReplayInstallSnippet: FunctionComponent<ComponentProps> = (
@@ -255,15 +280,6 @@ const SessionReplayInstallSnippet: FunctionComponent<ComponentProps> = (
             traits to the session.
           </p>
           <CodeBlock code={buildIdentifySnippet()} language="javascript" />
-        </div>
-      )}
-
-      {props.showCorrelation === true && (
-        <div className="mt-4" data-testid="install-snippet-correlation">
-          <CodeBlock
-            code={buildOnSessionChangeSnippet()}
-            language="javascript"
-          />
         </div>
       )}
     </div>

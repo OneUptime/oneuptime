@@ -372,3 +372,106 @@ describe("SessionReplayGateCache.resolvePolicy names the refusal", (): void => {
     expect(resolution.refusal).toBeNull();
   });
 });
+
+/*
+ * RumApplication.sessionReplaySameOriginTracePropagation: the per-app switch
+ * for the recorder's automatic same-origin traceparent + tracestate. The
+ * column is NOT NULL DEFAULT true (on for existing applications too), so
+ * the gate reads anything but an explicit false as on - the model-default
+ * rule of the fallbacks above, not the feature-off rule of the origin list.
+ * Only an operator who switched it off gets it off.
+ */
+describe("SessionReplayGateCache same-origin trace propagation switch", (): void => {
+  beforeEach((): void => {
+    jest.clearAllMocks();
+    projectFindOneByMock.mockResolvedValue(projectRow());
+  });
+
+  async function resolveWith(
+    overrides?: Record<string, unknown>,
+  ): Promise<SessionReplayGatePolicy | null> {
+    appFindOneByMock.mockResolvedValue(appRow(overrides));
+
+    return await SessionReplayGateCache.getPolicy({
+      projectId: PROJECT_ID,
+      appIdentifier: "checkout-web",
+    });
+  }
+
+  it("selects the column from RumApplication", async (): Promise<void> => {
+    await resolveWith();
+
+    expect(appFindOneByMock).toHaveBeenCalled();
+
+    const select: Record<string, unknown> = (
+      appFindOneByMock.mock.calls[0]?.[0] as { select: Record<string, unknown> }
+    ).select;
+
+    expect(select["sessionReplaySameOriginTracePropagation"]).toBe(true);
+
+    /* Next to the cross-origin list it complements, which is still read. */
+    expect(select["sessionReplayTracePropagationOrigins"]).toBe(true);
+  });
+
+  it("an explicit false turns it off", async (): Promise<void> => {
+    const policy: SessionReplayGatePolicy | null = await resolveWith({
+      sessionReplaySameOriginTracePropagation: false,
+    });
+
+    expect(policy).not.toBeNull();
+    expect(policy?.sameOriginTracePropagation).toBe(false);
+  });
+
+  it("an explicit true keeps it on", async (): Promise<void> => {
+    const policy: SessionReplayGatePolicy | null = await resolveWith({
+      sessionReplaySameOriginTracePropagation: true,
+    });
+
+    expect(policy?.sameOriginTracePropagation).toBe(true);
+  });
+
+  it("an absent column reads as the DB default, on", async (): Promise<void> => {
+    const policy: SessionReplayGatePolicy | null = await resolveWith();
+
+    expect(policy).not.toBeNull();
+    expect(policy?.sameOriginTracePropagation).toBe(true);
+  });
+
+  it("a null column reads as the DB default, on", async (): Promise<void> => {
+    const policy: SessionReplayGatePolicy | null = await resolveWith({
+      sessionReplaySameOriginTracePropagation: null,
+    });
+
+    expect(policy?.sameOriginTracePropagation).toBe(true);
+  });
+
+  it("is independent of the cross-origin list: empty origins still propagate same-origin", async (): Promise<void> => {
+    const policy: SessionReplayGatePolicy | null = await resolveWith({
+      sessionReplayTracePropagationOrigins: [],
+    });
+
+    expect(policy?.tracePropagationOrigins).toEqual([]);
+    expect(policy?.sameOriginTracePropagation).toBe(true);
+  });
+
+  it("switching it off leaves the cross-origin list alone", async (): Promise<void> => {
+    const policy: SessionReplayGatePolicy | null = await resolveWith({
+      sessionReplaySameOriginTracePropagation: false,
+      sessionReplayTracePropagationOrigins: ["https://api.example.com"],
+    });
+
+    expect(policy?.sameOriginTracePropagation).toBe(false);
+    expect(policy?.tracePropagationOrigins).toEqual([
+      "https://api.example.com",
+    ]);
+  });
+
+  it("a refused application yields no policy at all, so nothing can propagate", async (): Promise<void> => {
+    const policy: SessionReplayGatePolicy | null = await resolveWith({
+      isSessionReplayEnabled: false,
+      sessionReplaySameOriginTracePropagation: true,
+    });
+
+    expect(policy).toBeNull();
+  });
+});

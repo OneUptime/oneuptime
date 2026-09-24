@@ -1119,7 +1119,11 @@ describe("ReplayRail telemetry tabs", () => {
       expect(screen.getByTestId("rail-tab-logs")).toHaveTextContent("Logs1");
     });
 
-    expect(calls).toEqual(["log"]);
+    /*
+     * The log read, then the grouped span read that supplies the
+     * session's trace ids; it found none, so no trace-id log read followed.
+     */
+    expect(calls).toEqual(["log", "span"]);
     expect(rows()).toHaveLength(1);
     expect(rows()[0]).toHaveTextContent("[ERROR] charge failed");
     /* Server-stamped rows carry the alignment note in the header. */
@@ -1129,7 +1133,7 @@ describe("ReplayRail telemetry tabs", () => {
 
     /* Switching back does not refetch a finalized session. */
     fireEvent.click(screen.getByTestId("rail-tab-all"));
-    expect(calls).toEqual(["log"]);
+    expect(calls).toEqual(["log", "span"]);
     expect(result.tabs).toEqual(["logs", "all"]);
   });
 
@@ -1163,8 +1167,9 @@ describe("ReplayRail telemetry tabs", () => {
 
     renderRail({ backendStore: store, isExpiredFootage: true, signals: [] });
 
+    /* Three row reads plus one grouped span read shared by logs and exceptions. */
     await waitFor((): void => {
-      expect(calls.length).toBe(3);
+      expect(calls.length).toBe(4);
     });
 
     expect(new Set(calls)).toEqual(new Set(["log", "span", "exception"]));
@@ -1189,8 +1194,9 @@ describe("ReplayRail telemetry tabs", () => {
 
     fireEvent.click(screen.getByText("Retry"));
 
+    /* The retry reuses the finalized session's grouped span read. */
     await waitFor((): void => {
-      expect(calls).toEqual(["log", "log"]);
+      expect(calls).toEqual(["log", "span", "log"]);
     });
   });
 });
@@ -1200,8 +1206,8 @@ describe("ReplayRail empty copy", () => {
     const cases: Array<[ReplayRailTabId, string]> = [
       ["console", "No console output was recorded in the loaded footage"],
       ["network", "No requests were recorded in the loaded footage"],
-      ["logs", "No backend logs carried this session's id"],
-      ["traces", "No backend spans carried this session's id"],
+      ["logs", "No backend logs matched this session"],
+      ["traces", "No backend traces matched this session"],
     ];
 
     for (const [tabId, expected] of cases) {
@@ -1232,15 +1238,135 @@ describe("ReplayRail empty copy", () => {
     }
   });
 
-  it("ships the session.id snippet with the Logs and Traces copy", () => {
-    renderRail({ signals: [], activeTab: "logs", backendStore: null });
+  /*
+   * Issue #3979: backend rows reach a recording with no customer code. The
+   * recorder carries the session id on same-origin requests (tracestate),
+   * ingest stamps it and the rail joins logs by trace id. The empty tabs
+   * used to prescribe an onSessionChange snippet plus server-side work;
+   * they now explain the automatic path and name the one step that is
+   * still the customer's: listing an API on another origin.
+   */
+  for (const tabId of ["logs", "traces"] as Array<ReplayRailTabId>) {
+    it(`explains the automatic link and the cross-origin step on ${tabId}, with no manual snippet`, () => {
+      renderRail({ signals: [], activeTab: tabId, backendStore: null });
 
-    expect(screen.getByTestId("rail-empty")).toHaveTextContent(
-      "OneUptimeReplay.onSessionChange",
-    );
+      const empty: HTMLElement = screen.getByTestId("rail-empty");
+
+      expect(empty).toHaveAttribute("data-tab", tabId);
+      expect(empty).toHaveTextContent("own origin");
+      expect(empty).toHaveTextContent("automatically");
+      expect(empty).toHaveTextContent("Trace propagation origins");
+      expect(empty).toHaveTextContent("Access-Control-Allow-Headers");
+      expect(empty).toHaveTextContent("by trace id");
+
+      /* Nothing to paste: no code block, no manual hook, no server step. */
+      expect(empty.querySelector("pre")).toBeNull();
+      expect(empty).not.toHaveTextContent("onSessionChange");
+      expect(empty).not.toHaveTextContent("resource.attributes");
+      expect(empty).not.toHaveTextContent("baggage");
+      expect(empty).not.toHaveTextContent(/server side/i);
+    });
+  }
+
+  it("says tracestate carries the session id on Traces, and a trace-id join on Logs", () => {
+    const readySlot: Parameters<typeof getRailEmptyCopy>[0]["slot"] = {
+      status: "ready",
+      rowCount: 0,
+      isTruncated: false,
+      fetchedAtUnixMs: START_UNIX_MS,
+    };
+
+    const traces: ReturnType<typeof getRailEmptyCopy> = getRailEmptyCopy({
+      tabId: "traces",
+      isFiltering: false,
+      hadRowsBeforeFilter: false,
+      slot: readySlot,
+      isExpiredFootage: false,
+      recorderCapabilities: null,
+      hasLoadedFootage: true,
+    });
+    const logs: ReturnType<typeof getRailEmptyCopy> = getRailEmptyCopy({
+      tabId: "logs",
+      isFiltering: false,
+      hadRowsBeforeFilter: false,
+      slot: readySlot,
+      isExpiredFootage: true,
+      recorderCapabilities: null,
+      hasLoadedFootage: false,
+    });
+
+    expect(traces.title).toBe("No backend traces matched this session");
+    expect(traces.detail).toContain("traceparent");
+    expect(traces.detail).toContain("tracestate");
+    expect(traces.detail).toContain("W3C trace context");
+    expect(traces.snippet).toBeUndefined();
+
+    /* Expired footage changes nothing: the telemetry is still there. */
+    expect(logs.title).toBe("No backend logs matched this session");
+    expect(logs.detail).toContain("by trace id");
+    expect(logs.snippet).toBeUndefined();
+  });
+
+  it("never prescribes the manual session.id wiring on any telemetry tab, in any state", () => {
+    const telemetryTabs: Array<ReplayRailTabId> = ["logs", "traces", "errors"];
+    const slots: Array<Parameters<typeof getRailEmptyCopy>[0]["slot"]> = [
+      {
+        status: "idle",
+        rowCount: null,
+        isTruncated: false,
+        fetchedAtUnixMs: null,
+      },
+      {
+        status: "loading",
+        rowCount: null,
+        isTruncated: false,
+        fetchedAtUnixMs: null,
+      },
+      {
+        status: "ready",
+        rowCount: 0,
+        isTruncated: false,
+        fetchedAtUnixMs: START_UNIX_MS,
+      },
+    ];
+    const manualStep: RegExp =
+      /onSessionChange|resource\.attributes|baggage|carried this session's id|carry this session's id/;
+    const seen: Array<string> = [];
+
+    for (const tabId of telemetryTabs) {
+      for (const slot of slots) {
+        for (const isExpiredFootage of [false, true]) {
+          const copy: ReturnType<typeof getRailEmptyCopy> = getRailEmptyCopy({
+            tabId: tabId,
+            isFiltering: false,
+            hadRowsBeforeFilter: false,
+            slot: slot,
+            isExpiredFootage: isExpiredFootage,
+            recorderCapabilities: null,
+            hasLoadedFootage: true,
+          });
+          const text: string = [copy.title, copy.detail, copy.snippet || ""]
+            .join(" ")
+            .trim();
+
+          seen.push(text);
+
+          if (manualStep.test(text)) {
+            throw new Error(
+              `${tabId} (${slot?.status}, expired=${isExpiredFootage}) still prescribes a manual step: ${text}`,
+            );
+          }
+        }
+      }
+    }
+
+    /* 3 tabs x 3 slot states x 2 footage states, none of them blank. */
+    expect(seen).toHaveLength(18);
     expect(
-      screen.getByTestId("rail-empty").querySelector("pre"),
-    ).not.toBeNull();
+      seen.every((text: string): boolean => {
+        return text.length > 20;
+      }),
+    ).toBe(true);
   });
 
   /*

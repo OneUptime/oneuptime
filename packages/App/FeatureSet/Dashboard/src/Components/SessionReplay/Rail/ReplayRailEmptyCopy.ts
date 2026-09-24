@@ -35,17 +35,16 @@ export interface ReplayRailEmptyCopyArgs {
 }
 
 /*
- * The resource-attribute snippet: the one change that makes backend rows
- * carry the session id. Six lines so it fits the rail without a scroll.
+ * How backend rows reach a recording, for the empty Logs and Traces tabs.
+ * There is no snippet any more, because there is no code to add: while a
+ * session uploads, the recorder puts traceparent and a tracestate member
+ * carrying the session id on the page's requests to its OWN origin, span
+ * ingest stamps the session id on every span that inherits it, and the
+ * rail joins logs and exceptions by trace id. The one step left to a
+ * customer is the cross-origin one, so that is the action the copy names.
  */
-export const REPLAY_RAIL_SESSION_ID_SNIPPET: string = [
-  "// Stamp every log and span with the replay session id",
-  "OneUptimeReplay.onSessionChange((sessionId) => {",
-  '  resource.attributes["session.id"] = sessionId;',
-  "});",
-  "// Server side: read the session.id baggage/header your",
-  "// frontend forwards and set it on the request span.",
-].join("\n");
+export const REPLAY_RAIL_CROSS_ORIGIN_STEP: string =
+  "For an API on another origin, add it to Trace propagation origins on the Replay Policy page; it must allow traceparent in Access-Control-Allow-Headers, and its requests then match by trace id.";
 
 const TAB_NOUNS: Record<ReplayRailTabId, string> = {
   all: "signals",
@@ -98,12 +97,12 @@ function slotCopy(
     case "idle":
       return {
         title: `Loading ${noun}`,
-        detail: "Fetching rows that carry this session's id.",
+        detail: "Fetching the rows linked to this session.",
       };
     case "loading":
       return {
         title: `Loading ${noun}`,
-        detail: "Fetching rows that carry this session's id.",
+        detail: "Fetching the rows linked to this session.",
       };
     case "locked":
       return {
@@ -134,7 +133,8 @@ function capitalise(text: string): string {
  * The copy for an empty tab. Precedence: a filter that removed rows that
  * exist > the telemetry slot's own state (loading / locked / error) >
  * "nothing was recorded" copy specific to the tab, which for telemetry
- * tabs explains the instrumentation change that would populate it.
+ * tabs explains how backend rows reach a recording and the one step that
+ * is still the customer's (an API on another origin).
  */
 export function getRailEmptyCopy(
   args: ReplayRailEmptyCopyArgs,
@@ -161,24 +161,20 @@ export function getRailEmptyCopy(
   switch (args.tabId) {
     case "logs":
       return {
-        title: "No backend logs carried this session's id",
-        detail:
-          "Add session.id to your OpenTelemetry resource via OneUptimeReplay.onSessionChange so every log this page causes lands here, on the session clock.",
-        snippet: REPLAY_RAIL_SESSION_ID_SNIPPET,
+        title: "No backend logs matched this session",
+        detail: `Requests this page makes to its own origin carry the session's trace context automatically, so backend logs written inside those requests' traces land here by trace id, on the session clock. ${REPLAY_RAIL_CROSS_ORIGIN_STEP}`,
       };
     case "traces":
       return {
-        title: "No backend spans carried this session's id",
-        detail:
-          "Add session.id to your OpenTelemetry resource via OneUptimeReplay.onSessionChange. Requests to an origin get a traceparent header only when that origin is listed in Trace propagation origins.",
-        snippet: REPLAY_RAIL_SESSION_ID_SNIPPET,
+        title: "No backend traces matched this session",
+        detail: `Requests this page makes to its own origin carry a traceparent and this session's id in tracestate automatically, so spans from every backend service that continues W3C trace context are linked at ingest. ${REPLAY_RAIL_CROSS_ORIGIN_STEP}`,
       };
     case "errors":
       if (args.isExpiredFootage) {
         return {
-          title: "No server exceptions carried this session's id",
+          title: "No server exceptions matched this session",
           detail:
-            "The recording's own errors expired with the footage; exceptions your backend reports with this session id would still show here.",
+            "The recording's own errors expired with the footage; exceptions your backend reported on this session's requests would still show here.",
         };
       }
 
@@ -187,7 +183,7 @@ export function getRailEmptyCopy(
           ? "No errors in the loaded footage"
           : "No errors yet",
         detail:
-          "Uncaught errors and rejections appear as their chunk loads; server exceptions carrying this session's id are merged in.",
+          "Uncaught errors and rejections appear as their chunk loads; server exceptions linked to this session are merged in.",
       };
     default:
       break;

@@ -185,9 +185,12 @@ export type ReplayBackendSignalsStatus =
 
 export interface ReplayBackendSignalsSlot {
   status: ReplayBackendSignalsStatus;
-  /* null until a fetch completes; never a claimed 0 before that. */
+  /*
+   * null until a fetch completes; never a claimed 0 before that. Counts
+   * the merged rows (session-id read plus trace-id read, deduplicated).
+   */
   rowCount: number | null;
-  /* The fetch hit its row cap; the scope toggle defaults to +-30s. */
+  /* A read or the merge hit the row cap; the scope toggle defaults to +-30s. */
   isTruncated: boolean;
   /* For "locked": the permission name to show. */
   lockedPermission?: string;
@@ -211,7 +214,10 @@ export function makeIdleBackendSignalsSlot(): ReplayBackendSignalsSlot {
   };
 }
 
-/* Row cap per backend fetch; over it the slot is flagged truncated. */
+/*
+ * Row cap per backend read, and per slot once the session-id and trace-id
+ * reads are merged; over it the slot is flagged truncated.
+ */
 export const REPLAY_BACKEND_SIGNALS_ROW_LIMIT: number = 500;
 
 /* ---- Signal id helpers. ---- */

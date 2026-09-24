@@ -87,7 +87,7 @@ Available on `window.OneUptimeReplay` once the artifact has loaded, and via
 | `track(name, properties?)`  | a business event ("checkout_failed") as an in-band marker the rail and timeline show        |
 | `setTags(tags)`             | replaces the session's tags, which are searchable from the session list as `tag:key=value`  |
 | `addTag(key, value)`        | adds or overwrites one tag, keeping the rest                                                |
-| `onSessionChange(cb)`       | called with `(sessionId, tabId)` immediately when a session exists and again on every rotation; returns an unsubscribe. This is what puts `session.id` on the page's own OpenTelemetry resource |
+| `onSessionChange(cb)`       | called with `(sessionId, tabId)` immediately when a session exists and again on every rotation; returns an unsubscribe. **Optional**: backend telemetry caused by the page's own-origin requests links to the recording without it (see "headers added to the page's own requests" under the privacy model). Use it to put `session.id` on the page's own browser OpenTelemetry resource |
 | `stop()`                    | stops recording                                                                            |
 | `getSessionId()`            | the current session id, or null                                                            |
 | `getVisitorId()`            | the anonymous visitor id every session from this browser profile carries (32 hex characters), or `""` before start, after `stop()` and while consent is withdrawn. See "Anonymous visitor id" under the privacy model |
@@ -238,7 +238,8 @@ attribute and the SRI pin is inert.
 | file inputs             | value always blanked; the DOM value is `C:\fakepath\<real filename>` and filenames are routinely personal                                                                                                                   |
 | input timing            | quantised to 250 ms buckets, because inter-keystroke timing is a published side channel even for a masked field                                                                                                             |
 | URLs                    | origin + path only; query and fragment dropped; uuid / object-id / email / long-digit / opaque-token path segments redacted. Applied to the chunk URL, the entry URL, rrweb `Meta` hrefs and every network event.           |
-| network                 | method, scrubbed URL, status, duration, size. **Never bodies. `Authorization` and `Cookie` are never even read.**                                                                                                           |
+| network                 | method, scrubbed URL, status, duration, size, and the request's trace id. **Never bodies. `Authorization` and `Cookie` are never even read**; of the request headers only `traceparent` is read, and `tracestate` is checked for presence only. |
+| headers added to the page's own requests | while the session is **uploading with consent**, `fetch` / `XMLHttpRequest` requests to the page's own origin get `traceparent` (unless they carry one, or a tracer inside ours will add one) and `tracestate: oneuptime=sid:<session id>` (unless they carry a tracestate). The session id is random and stays the same for the visit (up to 4 h); the page's backend OpenTelemetry forwards it, like any tracestate, to every service it calls, third parties included. **The visitor id is never sent.** Nothing is added before consent, after `revokeConsent()`, after `stop()`, before an `OnErrorOrFrustration` trigger or for an unsampled session. Cross-origin APIs get a `traceparent` only, and only when listed in Trace propagation origins. The application's **Same-origin trace propagation** switch turns the same-origin half off without a redeploy. |
 | console                 | `error` and `warn` only, capped at 100 entries per session with one in-band marker when the cap is hit. Arguments go through the text-node transform; objects are serialised **shallowly** (two levels, ten keys, 64-char strings, 512 chars total) with sensitive-looking keys (`password`, `token`, `card`...) redacted in every mode. |
 | DNT / GPC               | honoured before rrweb loads. One rule: an explicit `data-oneuptime-respect-do-not-track` on the script tag wins (`"true"` honours the signal whatever the dashboard says; `"false"` records regardless - the customer owns the lawful basis for their site); with no page value the server policy decides. |
 | consent                 | in `RequireExplicit` the recorder buffers but uploads nothing until `grantConsent()`; `revokeConsent()` drops everything held and a later grant starts a new session                                                       |
@@ -346,19 +347,81 @@ minted at all. `getVisitorId()` returns it.
     its frame does not fit it is dropped whole, and `final-chunk-too-large`
     reports `sealed: false`: the tab did not close, so the session stays
     open with a gap.
-- **`traceparent` injection is opt-in per origin, and skips `Request`
-  objects.** By default `NetworkRecorder` only READS a traceparent the host
-  page already set. When the application's **trace propagation origins**
-  allowlist names an origin, the recorder also GENERATES a W3C traceparent for
-  `fetch` and `XMLHttpRequest` requests to that origin, so `envelope.traceIds`
-  populates without any OpenTelemetry browser SDK on the page. The default is
-  still never-inject — adding a request header turns a simple cross-origin
-  request into a preflighted one, so each allowlisted origin is the customer's
-  explicit statement that its API allows `traceparent` in
-  `Access-Control-Allow-Headers`. Two deliberate gaps: a request whose `fetch`
-  input is a `Request` OBJECT is never injected (rebuilding one to merge a
-  header risks consuming its one-shot body), and a page-supplied traceparent
-  always wins.
+- **The page's own requests carry trace context; other origins only when
+  listed.** Installing the recorder is enough for the backend telemetry a
+  page's requests cause to link to its recording. While the session is
+  uploading with consent, `NetworkRecorder` adds to every `fetch` and
+  `XMLHttpRequest` to the page's **own origin** (resolved through
+  `<base href>`, as the browser resolves it):
+  - `traceparent`, minted, unless the request already carries one (the
+    page's value always wins, parseable or not) or a tracer inside our
+    wrapper will add its own - a `fetch` / `XMLHttpRequest.send` marked
+    `__wrapped` by shimmer (OpenTelemetry's instrumentations and the agents
+    built on them, found through Sentry's wrapper too), or a New Relic,
+    Elastic APM or Datadog RUM global. Two traceparent values on one XHR are
+    unparseable, and that tracer's browser span should stay the parent.
+  - `tracestate: oneuptime=sid:<session id>`, plus `;p:<parent id>` when the
+    traceparent is ours, unless the request already carries a tracestate. A
+    stock OpenTelemetry backend extracts it, every span it exports inherits
+    it, and span ingest stamps those spans with the session (the `p` lets it
+    turn the backend's entry span back into the root span it really is).
+    Backend logs and exceptions then join by trace id in the player.
+
+  A same-origin request is never CORS-preflighted, so this needs no
+  allowlist, and it is on by default; the application's **Same-origin trace
+  propagation** switch turns it off without a redeploy (the recorder reads
+  anything but a literal `true` from the server as off). A `Request` object
+  on this path is rebuilt as `new Request(request, { headers })` - which
+  proxies its body rather than reading it - and a used one is sent
+  untouched. Nothing is added to a `no-cors` request, to one whose headers
+  are a one-shot iterator (reading it would consume the page's headers), to
+  an `init` that is not a plain object (copying a `Request` or class instance
+  drops its method and body), to the recorder's own uploads, or from a
+  sandboxed / `about:blank` / `srcdoc` / `file:` document, whose requests the
+  browser does not treat as same-origin. Anything that throws while the
+  headers are merged sends the page's own arguments.
+
+  Cross-origin APIs get a minted `traceparent` **only**, and only when the
+  application's **trace propagation origins** list names them: adding any
+  header turns a simple cross-origin request into a preflighted one, so each
+  entry is the customer's statement that its API allows `traceparent` in
+  `Access-Control-Allow-Headers`. Those requests match the recording by trace
+  id; `Request` objects there are never annotated.
+
+  A trace id the recorder MINTED for a same-origin request stays on the
+  network event (clock alignment, "Backend for this request") but is kept out
+  of `envelope.traceIds`: an endpoint with no tracing behind it would
+  otherwise make every session advertise traces that open empty. Page-set
+  ids, ids read back from a tracer inside ours, and listed-origin ids go into
+  it as before.
+- **Sampling.** A minted `traceparent` carries the sampled flag (`-01`), so a
+  backend whose sampler is parent-based - the OpenTelemetry default - keeps
+  every trace that starts in a recorded page, which is what makes the
+  recording's backend side exist at all. It is minted only for sessions that
+  upload, never for one that will not have a recording. A backend that wants
+  ratio sampling for those traces too sets its remote-sampled-parent
+  delegate, e.g. in JavaScript
+  `new ParentBasedSampler({ root: new TraceIdRatioBasedSampler(0.1), remoteParentSampled: new TraceIdRatioBasedSampler(0.1) })`
+  - or the application switches same-origin propagation off.
+- **A same-origin request that redirects to another origin can fail.** The
+  browser keeps our headers across the redirect, so the target (a presigned
+  storage URL, a CDN, a short-link host) is asked to allow them in a
+  preflight, and one that does not fails the request. The recorder trips a
+  breaker on the first such network failure (not an abort, not a timeout,
+  not while offline): same-origin propagation is off for the rest of that
+  page load, a `fetch` GET or HEAD without a body is retried once with the
+  page's own arguments (the page sees only the retry's outcome, recorded as
+  one request), and `same-origin-propagation-tripped` is logged. An
+  `XMLHttpRequest` cannot be retried behind the page's back, so that one
+  request fails. The fix is to allow `traceparent, tracestate` on the
+  redirect target, or to switch the policy off.
+- **What carries no trace context:** navigations, form posts, the server
+  render, WebSocket, EventSource, `sendBeacon`, requests from workers,
+  requests made before the recorder started, and requests that already
+  carry a tracestate (their spans still match by trace id when the recorder
+  saw the traceparent). A backend links only if it continues W3C trace
+  context - a Go service needs `otel.SetTextMapPropagator`, and a proxy or
+  CDN in front of it must forward both headers.
 - A session that reaches `MAX_SESSION_REPLAY_CHUNKS_PER_SESSION` (480) sends
   one final, empty chunk carrying a `truncated` fidelity notice and then stops
   recording. The notice is not yet a member of Common's
@@ -542,7 +605,7 @@ defend in an incident review.
 | `src/Chunker.ts`             | chunk boundaries, snapshot splitting, per-chunk counters                  |
 | `src/Transport.ts`           | compression, the envelope, retries and the circuit breaker                |
 | `src/ErrorRecorder.ts`       | errors and rejections — also the primary trigger                          |
-| `src/NetworkRecorder.ts`     | fetch / XHR, the 5xx trigger, traceparent correlation                     |
+| `src/NetworkRecorder.ts`     | fetch / XHR, the 5xx trigger, trace context (same-origin traceparent + tracestate, listed-origin traceparent) |
 | `src/ConsoleRecorder.ts`     | `console.error` / `console.warn` only                                     |
 | `src/RouteRecorder.ts`       | SPA navigation and forced snapshots                                       |
 | `src/FrustrationDetector.ts` | rage / dead / error clicks                                                |

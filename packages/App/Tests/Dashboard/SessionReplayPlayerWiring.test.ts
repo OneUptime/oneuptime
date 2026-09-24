@@ -1087,6 +1087,66 @@ describe("the events rail", () => {
   });
 });
 
+/*
+ * github.com/OneUptime/oneuptime/issues/3979: backend rows reach the rail
+ * by trace id as well as by session id. The store reads the ids from the
+ * session header (at creation and on every live poll) and from the
+ * recording's own network rows as chunks decode; the player is the only
+ * place that holds both, so the plumbing is pinned here.
+ */
+describe("backend signals joined by trace id", () => {
+  test("the store is created with the session header's trace ids", () => {
+    const creation: string = slice(
+      SOURCE,
+      "const store: ReplayBackendSignalsStore = new ReplayBackendSignalsStore({",
+      "});",
+    );
+
+    expect(creation).toContain("sessionId: manifest.sessionId || sessionId");
+    expect(creation).toContain("traceIds: manifest.details.traceIds");
+  });
+
+  test("the live poll hands the refreshed header's trace ids to the store", () => {
+    const pollEffect: string = slice(
+      SOURCE,
+      "const poll: () => Promise<void>",
+      "}, [\n    isAwaitingFinalization,\n    viewId,",
+    );
+    const bounds: string = slice(
+      pollEffect,
+      "backendStore?.setSessionBounds({",
+      "});",
+    );
+
+    expect(bounds).toContain("endTimeUnixMs: refreshed.endTimeUnixMs");
+    expect(bounds).toContain("isFinalized: refreshed.isFinalized");
+    expect(bounds).toContain("traceIds: refreshed.details.traceIds");
+  });
+
+  test("the decoded recording's trace ids feed the store whenever the recording rows change", () => {
+    expect(SOURCE).toMatch(
+      /import \{[^}]*\brecordingTraceIdsFromSignals,?[^}]*\} from "\.\/Rail\/ReplayBackendSignals";/,
+    );
+    expect(SOURCE).toMatch(
+      /useEffect\(\(\) => \{\s*if \(!backendStore\) \{\s*return;\s*\}\s*backendStore\.setRecordingTraceIds\(\s*recordingTraceIdsFromSignals\(recordingSignals\),?\s*\);\s*\}, \[backendStore, recordingSignals\]\);/,
+    );
+    /* Hooks run in order: the effect reads the memo, so it comes after it. */
+    expect(
+      SOURCE.indexOf("backendStore.setRecordingTraceIds("),
+    ).toBeGreaterThan(
+      SOURCE.indexOf("const recordingSignals: Array<ReplaySignal> = useMemo("),
+    );
+  });
+
+  test("only the recording's rows feed it, never the merged list with telemetry in it", () => {
+    expect(SOURCE).not.toMatch(/recordingTraceIdsFromSignals\(\s*allSignals/);
+    expect(SOURCE).not.toMatch(
+      /recordingTraceIdsFromSignals\(\s*telemetrySignals/,
+    );
+    expect(SOURCE.match(/\.setRecordingTraceIds\(/g)).toHaveLength(1);
+  });
+});
+
 describe("the header", () => {
   test("receives the identity the manifest served (null when not permitted)", () => {
     const headerProps: string = slice(SOURCE, "<ReplayHeaderClocked\n", "/>");

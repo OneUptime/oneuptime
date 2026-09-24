@@ -88,6 +88,7 @@ import {
   ReplayBackendSignalsSnapshot,
   ReplayBackendSignalsStore,
   makeIdleBackendSignalsState,
+  recordingTraceIdsFromSignals,
 } from "./Rail/ReplayBackendSignals";
 import {
   REPLAY_RAIL_TAB_IDS,
@@ -1246,6 +1247,8 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
       startTimeUnixMs: manifest.startTimeUnixMs,
       endTimeUnixMs: manifest.endTimeUnixMs,
       isFinalized: manifest.isFinalized,
+      /* Header ids: backend rows of these traces join the rail by trace id. */
+      traceIds: manifest.details.traceIds,
     });
 
     setBackendStore(store);
@@ -1481,6 +1484,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
         backendStore?.setSessionBounds({
           endTimeUnixMs: refreshed.endTimeUnixMs,
           isFinalized: refreshed.isFinalized,
+          traceIds: refreshed.details.traceIds,
         });
       } catch {
         /* A missed poll is retried on the next tick; the footage is unchanged. */
@@ -1644,6 +1648,24 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
   const allSignals: Array<ReplaySignal> = useMemo(() => {
     return mergeSignals(recordingSignals, telemetrySignals);
   }, [recordingSignals, telemetrySignals]);
+
+  /*
+   * The trace ids of the requests decoded so far join the backend reads:
+   * the header only carries the ids of a few chunks, and a cross-origin
+   * API that receives a traceparent but no tracestate is matched by trace
+   * id alone. The store keeps every id it was ever given (a tab switch
+   * hands over another tab's rows), ignores ones it knows, and re-reads
+   * the loaded tabs once when the set grows.
+   */
+  useEffect(() => {
+    if (!backendStore) {
+      return;
+    }
+
+    backendStore.setRecordingTraceIds(
+      recordingTraceIdsFromSignals(recordingSignals),
+    );
+  }, [backendStore, recordingSignals]);
 
   const bands: Array<ReplayTrackBand> = useMemo(() => {
     return buildTrackBands({

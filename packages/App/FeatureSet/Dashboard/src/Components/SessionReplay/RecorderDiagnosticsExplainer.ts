@@ -16,7 +16,8 @@
  *
  * The code table below is the recorder's ACTUAL vocabulary, read from the
  * debugLog/debugWarn call sites across Index.ts, Loader.ts, Config.ts,
- * Recorder.ts and Transport.ts. Adding a code to the recorder without
+ * Recorder.ts, NetworkRecorder.ts and Transport.ts. Adding a code to the
+ * recorder without
  * adding it here makes it fall through to the unknown-code copy, which
  * App/Tests/Dashboard/RecorderDiagnosticsExplainer.test.ts pins.
  */
@@ -272,6 +273,20 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
       "One chunk's envelope was over the server's size limit, so optional fields were dropped to fit it - the record's detail lists which ones. The footage in that chunk was kept and uploaded.",
     action:
       "Nothing to do unless a field you rely on is listed: tags and identity traits are shed first, then fidelity notices.",
+  },
+
+  /* ---- NetworkRecorder.ts ---- */
+  "same-origin-propagation": {
+    explanation:
+      "Whether this page's requests to its own origin carry trace context (a traceparent and a tracestate naming this session) so backend telemetry links to the recording. The detail says enabled true or false, and why: on, policy-off (the application's Same-origin trace propagation switch is off), or opaque-origin (a sandboxed frame, about:blank, srcdoc or file: page, whose requests the browser does not treat as same-origin). Even when on, nothing is added until the session is uploading with consent.",
+    action:
+      "If backend logs and traces should link to recordings and the reason is policy-off, turn Same-origin trace propagation on in the application's Replay Policy.",
+  },
+  "same-origin-propagation-tripped": {
+    explanation:
+      "A same-origin request the recorder had added trace headers to failed at the network level - typically a redirect to another origin (a presigned download URL, a CDN) that does not allow those headers - so the recorder stopped adding them for the rest of this page load. With retried: true it was a GET or HEAD, sent again without the headers, and the page saw that result; an XMLHttpRequest cannot be retried.",
+    action:
+      "Allow traceparent and tracestate in Access-Control-Allow-Headers on the redirect target, or turn Same-origin trace propagation off for this application.",
   },
 
   /* ---- Transport.ts ---- */

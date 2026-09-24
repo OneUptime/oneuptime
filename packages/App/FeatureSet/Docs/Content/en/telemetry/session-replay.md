@@ -182,6 +182,7 @@ Be precise about what it is not:
 - **It is not an identity.** It is random, minted in the browser, and derived from nothing your page supplied and nothing about the device. Two browsers on one laptop, or the same person on a phone and a desktop, are two visitors; only `identify()` joins them. A private window gets a fresh id that goes when the window does, and where storage cannot be written at all (Safari private mode, blocked site data) the id lasts one page load.
 - **It is not governed by Capture user identity.** That switch decides whether the reference and traits leave the browser; the visitor id is sent either way, because it names nobody. If you want no id minted at all, the answer is no recorder: turn Session Replay off for the application, or leave [Do Not Track](#do-not-track) honoured.
 - **It follows the consent rules of the session id.** `revokeConsent()` removes it from storage along with the session, nothing is written while consent is withdrawn, and a later `grantConsent()` mints a new one — so a user who withdraws consent and comes back is not re-linked to the sessions they asked you to forget. Under Do Not Track or Global Privacy Control no recorder runs, so no id is minted.
+- **It never travels on your own requests.** The trace context the recorder adds to requests your page makes to its own origin names the session, never the visitor (see [What your own requests carry](#what-your-own-requests-carry)); the visitor id only goes to OneUptime, on the recording.
 - **It cannot be the target of an erasure request.** The request types are unchanged (see [Erasing sessions](#erasing-sessions)); a `visitor:` search narrows the list to one browser's sessions, from which you take the session ids to erase.
 
 `OneUptimeReplay.getVisitorId()` returns the current id, or an empty string before the recorder has started, after `stop()`, and between a `revokeConsent()` and the next `grantConsent()`. Recorders built before this existed sent none, so the sessions they recorded have an empty `visitorId`: the list shows them as _Anonymous_ and the Users page files them under **Unlinked sessions**. A recorder that mints one lists `visitor-id` among its `capabilities` in `getDiagnostics()` and on the **Health** page.
@@ -207,7 +208,7 @@ The recorder publishes `window.OneUptimeReplay`. Because it loads asynchronously
 | `track(name, properties?)` | Record a business event (`"checkout_failed"`) on the timeline. `name` ≤ 64 chars, ≤ 20 property keys with the same value caps as traits. Up to 50 per 15-second chunk; beyond that the chunk carries one "events dropped" marker with the count. |
 | `setTags(tags)` / `addTag(key, value)` | Per-session tags (`{ build: "1.4.2", experiment: "new-checkout" }`), ≤ 20 tags, key ≤ 32 chars, value ≤ 128. Searchable from the session list with `tag:key=value` and shown on the session's details. `setTags` **replaces** the whole map, so a second `setTags({ experiment })` drops a `build` tag set by the first one; `addTag` sets one key and keeps the rest. Build the map in one `setTags` call, or use `addTag` as you learn each value. |
 | `captureSession(reason?)` | Under _On error or frustration_, force this session to upload from its rolling buffer onwards; under _Always_ it is a no-op for uploading but the `reason` (≤ 80 chars) is still marked on the timeline. Use it from your own "report a problem" button. |
-| `onSessionChange(listener)` | `listener(sessionId, tabId)` is called immediately if a session exists and again whenever the id changes — after 30 minutes idle, at the 4-hour cap, or when another tab of the same visitor rotated first. Returns an unsubscribe function. This is what puts `session.id` on your OpenTelemetry resource; see [Correlating with your other telemetry](#correlating-with-your-other-telemetry). |
+| `onSessionChange(listener)` | `listener(sessionId, tabId)` is called immediately if a session exists and again whenever the id changes — after 30 minutes idle, at the 4-hour cap, or when another tab of the same visitor rotated first. Returns an unsubscribe function. **Optional**: requests to your own origin link your backend's spans, logs and exceptions to the recording without it (see [Correlating with your other telemetry](#correlating-with-your-other-telemetry)). Use it to put `session.id` on telemetry the page produces itself, such as spans from the OpenTelemetry browser SDK; see [Your page's own browser telemetry](#your-pages-own-browser-telemetry). |
 | `grantConsent()` | Under consent mode _Require explicit_, allow uploads. Nothing is uploaded before this. |
 | `revokeConsent()` | Drop everything buffered and stop uploading. The recorder keeps running into memory only, so a later `grantConsent()` continues on a fresh session id. |
 | `getSessionId()` | The current session id, or `null` when nothing is recording. Prefer `onSessionChange()`, which also follows rotations. |
@@ -247,6 +248,7 @@ copy(JSON.stringify(OneUptimeReplay.getDiagnostics(), null, 2));
 | Sample percentage | **100%** | Share of sessions eligible for recording. This is the dial for cost. Note that 0% together with *Always* records nothing at all; the policy page warns when you configure that. |
 | Allowed origins | **empty (any origin)** | List your domains to restrict who may send recordings. See the warning below. |
 | Capture user identity | **on** | The end-user reference and traits your page supplies are stored, so you can find a named customer's session. Turn it off to keep recordings pseudonymous — with it off nothing about the person is stored, including the key an erase-by-user request would have to match ([Identify your users](#identify-your-users)). It does not govern the [anonymous visitor id](#anonymous-visitors), which is random, names nobody and is sent either way. |
+| Same-origin trace propagation | **on** | While a session uploads, requests your page makes to its own origin carry a W3C `traceparent` and a `tracestate` naming the session, so your backend's telemetry links to the recording with no code. Your backend's OpenTelemetry forwards both to every service it calls. See [What your own requests carry](#what-your-own-requests-carry). |
 | Capture country | **on** | Country only, never an IP address. |
 | Record canvas | **off** | Canvas and WebGL are not recorded. |
 | Retention | **7 days** | Shorter than other telemetry, on purpose. 1, 14, 30 and 90 days are also available. |
@@ -296,7 +298,7 @@ Always masked regardless of mode, and not configurable:
 - **Query strings and fragments** are dropped from every recorded URL, and identifier-shaped path segments (UUIDs, emails, long digit runs, long opaque tokens) are replaced. This is the one channel text masking does not cover: a password-reset link would otherwise land in the session list.
 - **Clipboard events** are never recorded.
 - **Keystroke timing** is quantised, because inter-keystroke intervals leak typed content even when the value is masked.
-- **Request and response bodies and headers** are never recorded. A network row in the player carries the method, URL, status, timing, byte counts and the trace id — nothing else.
+- **Request and response bodies and headers** are never recorded. A network row in the player carries the method, URL, status, timing, byte counts and the trace id — nothing else. (The recorder does _add_ trace context to requests to your own origin; see [What your own requests carry](#what-your-own-requests-carry).)
 - **Click labels** come from an element's `aria-label` or visible text, never from a form control's value, and are dropped entirely inside masked regions.
 
 Masked values are **not length-preserving**. A masked field is a fixed-width placeholder, so it cannot be used to infer how long a password or card number was.
@@ -315,6 +317,23 @@ Masked values are **not length-preserving**. A masked field is a fixed-width pla
 ```
 
 You can also add **Additional mask selectors** and **Block selectors** under your application's _Replay Policy_ settings, without changing your markup. Under the default masking mode these are the main tool for protecting content your markup does not declare as sensitive.
+
+### What your own requests carry
+
+The recorder never records a request's headers or body, but it does **add** trace context to some of your page's own requests, and that goes to your backend rather than to OneUptime. This is what links backend telemetry to a recording (see [Correlating with your other telemetry](#correlating-with-your-other-telemetry)):
+
+```
+traceparent: 00-<32 hex trace id>-<16 hex parent id>-01
+tracestate:  oneuptime=sid:<32 hex session id>;p:<16 hex parent id>
+```
+
+- **Which requests.** `fetch` and `XMLHttpRequest` calls to the page's **own origin**, made while the session is **uploading**. Nothing is added before consent under _Require explicit_, after `revokeConsent()`, under _On error or frustration_ until a trigger fires, in a session that was not sampled, or after `stop()`. A `traceparent` or `tracestate` the request already carries is never replaced: it keeps its own, and the recorder adds only what is missing. `;p:` appears only when the recorder minted the `traceparent` itself. Requests to other origins get nothing unless you list the origin in **Trace propagation origins**, and then only a `traceparent`, which carries no session id.
+- **What the session id is.** The same random 32-hex id the recording is filed under. It says nothing about the person and stays the same for the whole visit, until 30 minutes idle or the 4-hour cap start a new session, or a `revokeConsent()` followed by `grantConsent()` mints a fresh one. The [anonymous visitor id](#anonymous-visitors), the user reference and the traits never travel this way.
+- **Where it goes.** Your backend's OpenTelemetry keeps `tracestate` with the trace and forwards it on every call it makes, to your other services and to any third-party API it calls with trace context, exactly as it does the trace id. OneUptime reads the member off each span at ingest, stores the session id in the span's session id column and removes the member from the trace state it stores.
+- **What it links.** A backend span, log or exception that names the user (an `enduser.id` attribute, an email in a log line) is now one click from the recording, even with **Capture user identity** off: that switch decides what the recording stores, not what your backend logs. If recordings must not be linkable to who the user was, turn **Same-origin trace propagation** off as well.
+- **Who can assert it.** Like any trace context, the member is written by the client. Someone who knew a session id could send it to your API and have their own requests' spans filed under that session. Session ids are random 128-bit values, so they would need the id first.
+
+Switch it off per application with **Same-origin trace propagation** on the _Replay Policy_ page; see [Turning automatic linking off](#turning-automatic-linking-off).
 
 ### Consent
 
@@ -340,6 +359,8 @@ Under _Require explicit_ the recorder records into memory from the first event a
 - The **session id**, so a user who withdraws consent and comes back is not re-linked to the same session.
 - The **[anonymous visitor id](#anonymous-visitors)**, removed from storage with the session. Nothing is written while consent is withdrawn, and `getVisitorId()` answers `""` until the next grant — so the sessions recorded after a re-grant are grouped with each other, never with the ones the user asked you to forget.
 
+The same gate governs the [trace context the recorder adds to your own requests](#what-your-own-requests-carry): no session id is sent before `grantConsent()` or after `revokeConsent()`, and after a new grant the requests carry the new session's id, never the withdrawn one.
+
 ### Do Not Track
 
 `navigator.doNotTrack` and `navigator.globalPrivacyControl` are honoured **before the config request is made**: a page that says nothing on its script tag stands down for a user who sends either signal, without a request being made about them just to find out whether they would have been recorded. The loader logs `privacy-signal` and nothing else happens.
@@ -363,22 +384,125 @@ Use the **Test your installation** panel on the application's _Replay Policy_ pa
 
 ## Correlating with your other telemetry
 
-Every recording carries a session id, and the join key between a recording and your OpenTelemetry data is the `session.id` attribute on your resource. Put it there with `onSessionChange`, which fires immediately when a session exists and again on every rotation, so the attribute follows the id:
+Installing the recorder is enough to link a recording to your backend's traces, logs and exceptions. There is no code to add to the page or to your services.
+
+While a session uploads, every `fetch` and `XMLHttpRequest` your page makes **to its own origin** carries the session's W3C trace context:
+
+- a **`traceparent`**, minted by the recorder, unless the request already has one or the page's own tracing instrumentation (the OpenTelemetry browser SDK, New Relic, Elastic APM, Datadog RUM) adds it, in which case the recorder leaves that to it;
+- a **`tracestate`** member, `oneuptime=sid:<session id>`, unless the request already carries a `tracestate`.
+
+Same-origin requests are not CORS-preflighted, so these headers do not trip your API's CORS rules; the one exception is a [redirect to another origin](#redirects-to-another-origin).
+
+Your backend's OpenTelemetry SDK extracts both headers, every span it records for the request inherits the trace state, and every call it makes to another service forwards it. So at ingest OneUptime stamps the session id on the spans of **every service that continues W3C trace context**, and on the exceptions recorded on those spans. OTLP log records carry no trace state, so backend logs, and exceptions reported through logs, are joined to the recording **by trace id** when you open it. When the recorder minted the `traceparent`, the member also carries its parent id (`;p:<parent id>`): that browser span is never exported, and ingest uses the id to keep your backend's entry span a root span instead of one whose parent is missing. A span that carries both the member and a `session.id` attribute is filed under the member's id, because `session.id` is also the conversation key of several LLM SDKs.
+
+The player's **Logs**, **Traces** and **Errors** tabs then list those rows on the recording's clock, and each request's row on the **Network** tab links to its backend trace. What these headers mean for privacy is under [What your own requests carry](#what-your-own-requests-carry).
+
+### APIs on another origin
+
+A request to another origin gets nothing by default: adding any header turns a simple cross-origin request into a preflighted one, and an API that does not allow the header would start failing because you installed a recorder. To link one, add its origin to **Trace propagation origins** on the _Replay Policy_ page (Performance & Tracing step). Only list an origin whose API allows `traceparent` in `Access-Control-Allow-Headers`; that is the whole reason it is an explicit allowlist.
+
+Requests to a listed origin get a `traceparent` only, with no `tracestate` and so no session id, and their backend telemetry is matched to the recording **by trace id**, through the trace ids the recording observed. Requests that already carry a `traceparent`, and `fetch` calls made with a `Request` object rather than a URL, are left untouched on this path.
+
+### Sampling of browser-started traces
+
+The recorder mints its `traceparent` with the sampled flag set (`-01`), because a backend that follows its parent's decision would otherwise drop every span of the request. The flip side is that the default `ParentBased` samplers keep **every** browser-started trace from a recorded session, even if your backend samples its own root traces at, say, 10%, so trace volume and ingest cost can rise once your pages run the recorder. `OTEL_TRACES_SAMPLER=parentbased_traceidratio` behaves the same way: its ratio applies to root spans only.
+
+To keep ratio sampling for browser-started traces, give the sampler the same ratio for sampled remote parents:
 
 ```js
-OneUptimeReplay.onSessionChange((sessionId, tabId) => {
-  resource.attributes["session.id"] = sessionId;
-  resource.attributes["session.tab.id"] = tabId;
+// Node.js
+import {
+  ParentBasedSampler,
+  TraceIdRatioBasedSampler,
+} from "@opentelemetry/sdk-trace-base";
+
+const sampler = new ParentBasedSampler({
+  root: new TraceIdRatioBasedSampler(0.1),
+  remoteParentSampled: new TraceIdRatioBasedSampler(0.1),
 });
 ```
 
-With that in place the player's **Logs** and **Traces** tabs list your backend logs and spans that carried the id, placed on the recording's clock, and every log line, span and exception in the dashboard links back to the exact moment in the replay. If you cannot change the resource, `getSessionId()` returns the current id for span attributes. [Browser Setup](/docs/rum/browser-setup#joining-traces-to-session-replay) shows where this goes in an OpenTelemetry browser SDK setup.
+```java
+// Java
+Sampler sampler = Sampler.parentBasedBuilder(Sampler.traceIdRatioBased(0.1))
+    .setRemoteParentSampled(Sampler.traceIdRatioBased(0.1))
+    .build();
+```
 
-**Linking browser requests to backend traces.** By default the recorder only *observes* a `traceparent` header your page's own instrumentation already set on `fetch` or `XMLHttpRequest` requests — read from `init.headers` or from a `Request` object — and it does **not** inject one, because adding a header turns a simple cross-origin request into a preflighted one, and an API that does not allow `traceparent` would start failing because you installed a recorder.
+```python
+# Python
+from opentelemetry.sdk.trace.sampling import ParentBased, TraceIdRatioBased
 
-If you want recordings linked to backend traces **without** a browser tracing SDK, add your API's origin to **Trace propagation origins** on the _Replay Policy_ page (Performance & Tracing step). The recorder then generates a W3C `traceparent` header for requests to exactly those origins, and the network row in the player links to the backend trace of the request. Only list an origin whose API allows `traceparent` in `Access-Control-Allow-Headers` — that is the whole reason it is an explicit allowlist. Requests that already carry a `traceparent`, and `fetch` calls made with a `Request` object rather than a URL, are left untouched (a `Request` carries its own header state, and rebuilding one to add a header risks dropping a one-shot body).
+sampler = ParentBased(
+    root=TraceIdRatioBased(0.1),
+    remote_parent_sampled=TraceIdRatioBased(0.1),
+)
+```
 
-**Where the links are.** An exception in the dashboard shows a **Watch what the user saw** card when a recording exists for a session that hit that error, and opens the player ten seconds before the exception with the Errors tab selected. A log row's details offer **View session replay** at the moment of the line; a span's details offer **Watch session at this span**. In the other direction, every network, log, trace and error row in the player links out to the trace view, the logs explorer scoped to the session at that moment, or the exception group.
+```go
+// Go
+sampler := sdktrace.ParentBased(
+    sdktrace.TraceIDRatioBased(0.1),
+    sdktrace.WithRemoteParentSampled(sdktrace.TraceIDRatioBased(0.1)),
+)
+```
+
+A trace your backend then drops never reaches OneUptime, so it is not linked either. Or turn [automatic linking off](#turning-automatic-linking-off). A `traceparent` set by the page's own instrumentation carries that instrumentation's decision, not the recorder's.
+
+### Turning automatic linking off
+
+**Same-origin trace propagation**, on the _Replay Policy_ page next to **Trace propagation origins**, is on by default for every application. Turned off, the recorder adds nothing to same-origin requests from the next page load on, and **Trace propagation origins** keeps working as before. With diagnostics on, the recorder says which applies when it starts: `same-origin-propagation`, with `enabled` and a `reason` (see [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting#codes)).
+
+### Redirects to another origin
+
+A same-origin request that your server redirects to another origin (a download redirected to a presigned S3, GCS or Azure Blob URL, an avatar served from a CDN) takes the added headers with it, and the browser then has to ask that origin's permission first with a CORS preflight. If that origin does not allow `traceparent` and `tracestate`, the request fails.
+
+The recorder notices. When a request it added headers to fails at the network level, it stops adding them for the rest of the page load and logs `same-origin-propagation-tripped`. A `GET` or `HEAD` `fetch` without a body is retried once, exactly as your page made it, and your page gets the retry's outcome. An `XMLHttpRequest` cannot be retried, so that one request fails. To fix it for good, allow `traceparent` and `tracestate` in the other origin's CORS configuration (the bucket's `AllowedHeaders` on S3), or turn **Same-origin trace propagation** off.
+
+### What is not linked automatically
+
+- **Requests the recorder does not see:** document navigations and form posts, the server-side render of a page, WebSocket and server-sent events, `navigator.sendBeacon`, and requests made from Web Workers or Service Workers.
+- **Requests made before the recorder starts** on each page load. The recorder loads asynchronously, often after the page's first requests have gone out.
+- **Requests made while the session is not uploading:** before consent under _Require explicit_, after `revokeConsent()`, before a trigger under _On error or frustration_ (the buffered seconds before the trigger link only through a `traceparent` your page set itself), and in a session that was not sampled.
+- **Requests that already carry a `tracestate`**, from Datadog RUM, Elastic RUM or your own instrumentation. The recorder does not write into another vendor's header. These requests still link by trace id when the recording observed their `traceparent`.
+- **Requests without a `traceparent`.** Trace state only travels with a trace, so a request your own instrumentation deliberately leaves untraced (a URL in its `ignoreUrls`) is not linked.
+- **Backends that do not continue W3C trace context:** a service whose propagators leave out W3C `tracecontext` (Go's OpenTelemetry SDK propagates nothing until you call `otel.SetTextMapPropagator(propagation.TraceContext{})`; B3-only or X-Ray-only setups), and proxies or CDNs that strip `traceparent` and `tracestate` before your backend sees them.
+- **APIs on another origin** that you have not listed in [Trace propagation origins](#apis-on-another-origin).
+- **Pages without a real origin of their own:** sandboxed iframes, `about:blank`, `srcdoc` and `file:` pages.
+- **React Native.** The SDK does not instrument networking, so link mobile telemetry yourself with `onSessionChange()` (see [React Native API](#react-native-api)).
+
+### Your page's own browser telemetry
+
+Backend telemetry needs none of this. If the page also runs the [OpenTelemetry browser SDK](/docs/rum/browser-setup), its own spans (document loads, route changes, the errors you report) are separate telemetry that the headers do not touch. To file them under the recording as well, stamp `session.id` on each span as it starts, using `onSessionChange`, which fires immediately when a session exists and again on every rotation:
+
+```js
+let replaySessionId = null;
+
+(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([
+  "onSessionChange",
+  (sessionId) => {
+    replaySessionId = sessionId;
+  },
+]);
+
+// Add to the spanProcessors of your WebTracerProvider.
+const replaySessionSpanProcessor = {
+  onStart: (span) => {
+    if (replaySessionId) {
+      span.setAttribute("session.id", replaySessionId);
+    }
+  },
+  onEnd: () => {},
+  forceFlush: () => Promise.resolve(),
+  shutdown: () => Promise.resolve(),
+};
+```
+
+A span processor stamps each span with the id that was current when the span started. Writing the id into `resource.attributes` instead would re-label spans still waiting in the export batch when the session rotated. Unlike the automatic headers, the listener is told the id as soon as the recorder starts, before consent or a trigger, so gate the stamping on your own consent state if that matters. [Browser Setup](/docs/rum/browser-setup#joining-traces-to-session-replay) shows where this goes in a full setup.
+
+### Where the links are
+
+An exception in the dashboard shows a **Watch what the user saw** card when a recording exists for a session that hit that error, and opens the player ten seconds before the exception with the Errors tab selected. A span's details offer **Watch session at this span**; a log row's details offer **View session replay** at the moment of the line when the log itself carries the session id, and a log linked by trace id reaches the recording through its trace. In the other direction, every network, log, trace and error row in the player links out to the trace view, the logs explorer scoped to the session at that moment, or the exception group.
 
 ## Watching a session
 
@@ -527,9 +651,9 @@ Beside the stage, the rail lists everything that happened, on the recording's cl
 | **Nav** | Route changes, full page loads and back/forward-cache restores, with the page's LCP when it was measured. |
 | **Interact** | Clicks with the element's selector and label, plus rage, dead and error clicks and refresh rage. Recordings made before click labels existed show coordinates only. |
 | **Perf** | Web vitals (LCP, CLS, INP, FCP, TTFB with their ratings) and the performance-budget events that fired. |
-| **Errors** | Client-side errors from the recording merged with server-side exceptions that carried the session id; a client error and a server exception with the same message within two seconds are cross-referenced, never collapsed. |
-| **Logs** | Your backend logs that carried this session's id, from the Logs explorer. |
-| **Traces** | Your backend traces that carried this session's id, one row per trace with a small waterfall in the detail. |
+| **Errors** | Client-side errors from the recording merged with server-side exceptions linked to the session, either stamped with its id or on one of its traces; a client error and a server exception with the same message within two seconds are cross-referenced, never collapsed. |
+| **Logs** | Your backend logs on this session's traces, joined by trace id, plus any log that carries the session id itself, from the Logs explorer. See [Correlating with your other telemetry](#correlating-with-your-other-telemetry). |
+| **Traces** | Your backend traces linked to this session: spans stamped with its id at ingest, and the traces its requests carried. One row per trace with a small waterfall in the detail. |
 
 Logs, Traces and the server half of Errors are read through the same permissions as the Logs, Traces and Exceptions pages; a role without them sees a locked tab that names the permission. Server-stamped rows are placed on the recording's clock by anchoring them to the traces the recording itself observed; the rail says whether that anchoring succeeded ("server times anchored via 6 traces") or the row's time is approximate.
 
@@ -646,7 +770,7 @@ These are surfaced on the player's **Fidelity** tab rather than silently blank, 
 
 Recordings are kept for **7 days** by default; 1, 14, 30 and 90 days are also available per application. The expiry is computed from the **session's start**, not from when each chunk arrived, so a session expires as a whole rather than losing its later minutes first. The session list shows the expiry on each row ("expires in 6d").
 
-Be aware that **the session row expires with its footage**: error counts, frustration signals, device facts and the rest of the metadata share the recording's retention and are gone when it is. The logs, spans and exceptions of that session follow the telemetry retention of the application instead and remain searchable by session id in their own explorers. Removal runs in the background, so for a short while after the expiry a session can still be listed while the player explains that its footage has expired; once the row is gone, a saved link answers "expired on ⟨date⟩ under the application's N-day retention".
+Be aware that **the session row expires with its footage**: error counts, frustration signals, device facts and the rest of the metadata share the recording's retention and are gone when it is. The spans and exceptions stamped with the session's id follow the telemetry retention of the application instead and remain searchable by session id in their own explorers; backend logs linked by trace id stay searchable by that trace id. Removal runs in the background, so for a short while after the expiry a session can still be listed while the player explains that its footage has expired; once the row is gone, a saved link answers "expired on ⟨date⟩ under the application's N-day retention".
 
 ### Erasing sessions
 
@@ -661,7 +785,12 @@ To satisfy a deletion request, file an erasure request through the OneUptime API
 
 Two honest limits on `ByIdentifiedUserKey`. The key is not shown anywhere in the dashboard: it comes back as `identifiedUserKey` on each row of the session list API (`POST /telemetry/rum/session-replay/list`), so today an erasure by user starts with a `user:` search there and a copy of that field. And a session recorded while **Capture user identity** was off has no key at all — nothing about the person was stored — so it can only be reached by session id, date range or application.
 
-Each request records its `status` (`Pending`, `InProgress`, `Completed`, `Failed`), the `sessionsDeleted` and `chunksDeleted` counts and any `failureReason`; `ReadRumSessionErasureRequest` lets someone review them. Erasure removes the recording **and** the correlated logs, spans and exceptions for those sessions, and any recording still in flight when the request completes is dropped rather than written. A link to an erased session answers "erased" rather than "not found".
+Each request records its `status` (`Pending`, `InProgress`, `Completed`, `Failed`), the `sessionsDeleted` and `chunksDeleted` counts and any `failureReason`; `ReadRumSessionErasureRequest` lets someone review them. Erasure removes the recording **and** the telemetry linked to those sessions, and any recording still in flight when the request completes is dropped rather than written. A link to an erased session answers "erased" rather than "not found". The linked telemetry is:
+
+- every span and exception stamped with the session's id, including the backend spans stamped [automatically](#correlating-with-your-other-telemetry) in every service that forwarded the trace context, and any log that carries the id itself;
+- the logs, exceptions and spans that share a trace id with those stamped spans, so the backend logs the player joined by trace id go too.
+
+Because stamping reaches every service a browser request passed through, an erasure by application or by date range also removes the backend spans, logs and exceptions of that browser traffic, which on a busy application is a lot of rows. Erasure by user key, date range or application finds its sessions through the session list, which expires with the footage (see above); once a recording has expired, erase its telemetry with `BySessionId`, since the id is on the stamped spans, or let telemetry retention remove it.
 
 ## Who can watch a recording
 

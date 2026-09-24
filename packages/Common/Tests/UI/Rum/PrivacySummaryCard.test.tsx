@@ -11,7 +11,8 @@ import PrivacySummaryCard, {
  * Five sentences that say what a recording contains for the person being
  * recorded, one per masking / identity / location / retention / consent
  * choice, each with a "Change" link; a field that was never set reads as
- * the default it actually is.
+ * the default it actually is. A sixth ("backend-link") joins them while
+ * same-origin trace propagation is on, which is the default.
  */
 
 function sentence(
@@ -29,21 +30,38 @@ function sentence(
   return found as PrivacySummarySentence;
 }
 
-describe("buildPrivacySummary", () => {
-  it("always produces exactly five sentences in the reviewer's order", () => {
-    const keys: Array<string> = buildPrivacySummary({}).map(
-      (entry: PrivacySummarySentence): string => {
-        return entry.key;
-      },
-    );
+function keysOf(sentences: Array<PrivacySummarySentence>): Array<string> {
+  return sentences.map((entry: PrivacySummarySentence): string => {
+    return entry.key;
+  });
+}
 
-    expect(keys).toEqual([
+describe("buildPrivacySummary", () => {
+  it("produces six sentences in the reviewer's order while same-origin trace propagation is on (the default)", () => {
+    expect(keysOf(buildPrivacySummary({}))).toEqual([
       "page-text",
       "identity",
+      "backend-link",
       "location",
       "retention",
       "consent",
     ]);
+    expect(
+      keysOf(buildPrivacySummary({ sameOriginTracePropagation: true })),
+    ).toEqual([
+      "page-text",
+      "identity",
+      "backend-link",
+      "location",
+      "retention",
+      "consent",
+    ]);
+  });
+
+  it("produces exactly the five sentences when same-origin trace propagation is off", () => {
+    expect(
+      keysOf(buildPrivacySummary({ sameOriginTracePropagation: false })),
+    ).toEqual(["page-text", "identity", "location", "retention", "consent"]);
   });
 
   it("an empty policy reads as the model defaults and marks every sentence default", () => {
@@ -103,6 +121,103 @@ describe("buildPrivacySummary", () => {
         "page-text",
       ).text,
     ).toContain("least private mode");
+  });
+
+  /*
+   * Same-origin trace propagation puts the session id on the page's own
+   * requests. The sentence says where it goes (the backend and every
+   * service it calls) and what that means (backend telemetry naming the
+   * user leads to the recording), and is flagged for a second look.
+   */
+  it("backend link on reads as the session id reaching the backend and beyond, and is flagged", () => {
+    const on: PrivacySummarySentence = sentence(
+      buildPrivacySummary({ sameOriginTracePropagation: true }),
+      "backend-link",
+    );
+
+    expect(on.text).toContain(
+      "Same-origin requests carry this session's id to your backend",
+    );
+    expect(on.text).toContain("forwards it to the services it calls");
+    expect(on.text).toContain("third parties included");
+    expect(on.text).toContain(
+      "Backend telemetry that names the user links to the recording",
+    );
+    expect(on.text).toContain("The visitor id is never sent");
+    expect(on.isSensitive).toBe(true);
+    expect(on.isDefault).toBe(false);
+    expect(on.changeLabel).toBe("Change trace propagation");
+  });
+
+  it("a never-set switch reads as the on default and says so", () => {
+    for (const value of [undefined, null]) {
+      const backendLink: PrivacySummarySentence = sentence(
+        buildPrivacySummary({ sameOriginTracePropagation: value }),
+        "backend-link",
+      );
+
+      expect(backendLink.isDefault).toBe(true);
+      expect(backendLink.isSensitive).toBe(true);
+    }
+  });
+
+  /*
+   * With identity capture off the recording stores no user reference, but
+   * a linked backend span or log that names the user still leads to it, so
+   * "cannot be found by who the person was" would overpromise.
+   */
+  it("identity off with the backend link on does not promise the session cannot be found by who the person was", () => {
+    const identity: PrivacySummarySentence = sentence(
+      buildPrivacySummary({
+        captureUserIdentity: false,
+        sameOriginTracePropagation: true,
+      }),
+      "identity",
+    );
+
+    expect(identity.text).toContain("pseudonymous");
+    expect(identity.text).toContain(
+      "Backend telemetry linked to it by same-origin trace propagation can still name the person",
+    );
+    expect(identity.text).not.toContain(
+      "cannot be found by who the person was",
+    );
+    expect(identity.isSensitive).toBe(false);
+
+    /* The never-set switch is the on default, so the caveat applies there too. */
+    expect(
+      sentence(buildPrivacySummary({ captureUserIdentity: false }), "identity")
+        .text,
+    ).toContain("can still name the person");
+  });
+
+  it("identity off with the backend link off keeps the full pseudonymity promise", () => {
+    const identity: PrivacySummarySentence = sentence(
+      buildPrivacySummary({
+        captureUserIdentity: false,
+        sameOriginTracePropagation: false,
+      }),
+      "identity",
+    );
+
+    expect(identity.text).toContain(
+      "so a session cannot be found by who the person was",
+    );
+    expect(identity.text).not.toContain("Backend telemetry");
+  });
+
+  it("identity on is unchanged by the backend link", () => {
+    for (const value of [true, false]) {
+      expect(
+        sentence(
+          buildPrivacySummary({
+            captureUserIdentity: true,
+            sameOriginTracePropagation: value,
+          }),
+          "identity",
+        ).text,
+      ).toContain("Recordings are identified");
+    }
   });
 
   it("identity off reads as pseudonymous and is not flagged", () => {
@@ -192,6 +307,48 @@ describe("buildPrivacySummary", () => {
 });
 
 describe("PrivacySummaryCard", () => {
+  it("renders the backend-link row with its Change link while same-origin trace propagation is on", () => {
+    render(
+      <PrivacySummaryCard
+        policy={{ sameOriginTracePropagation: true }}
+        changeHref="#replay-policy"
+      />,
+    );
+
+    expect(
+      screen.getByTestId("privacy-summary-backend-link"),
+    ).toHaveTextContent(
+      "Same-origin requests carry this session's id to your backend",
+    );
+    expect(screen.getByTestId("privacy-summary-backend-link")).toHaveAttribute(
+      "data-default",
+      "false",
+    );
+    expect(
+      screen.getByTestId("privacy-summary-change-backend-link"),
+    ).toHaveAttribute("href", "#replay-policy");
+    expect(
+      screen.getByTestId("privacy-summary-change-backend-link"),
+    ).toHaveTextContent("Change trace propagation");
+  });
+
+  it("renders no backend-link row when same-origin trace propagation is off", () => {
+    render(
+      <PrivacySummaryCard
+        policy={{
+          sameOriginTracePropagation: false,
+          captureUserIdentity: false,
+        }}
+        changeHref="#replay-policy"
+      />,
+    );
+
+    expect(screen.queryByTestId("privacy-summary-backend-link")).toBeNull();
+    expect(screen.getByTestId("privacy-summary-identity")).toHaveTextContent(
+      "cannot be found by who the person was",
+    );
+  });
+
   it("renders five rows, each with a Change link to the policy anchor, and marks defaults", () => {
     render(
       <PrivacySummaryCard

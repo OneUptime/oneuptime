@@ -165,6 +165,21 @@ function describeBudgetMs(value: number | undefined): string {
   return value && value > 0 ? `${value} ms` : "Off";
 }
 
+export const SAME_ORIGIN_TRACE_PROPAGATION_TITLE: string =
+  "Same-origin trace propagation";
+
+/*
+ * The column is NOT NULL DEFAULT true, and the gate reads anything but an
+ * explicit false as on, so an unset value is described as the "on" it is.
+ */
+export function describeSameOriginTracePropagation(
+  value: boolean | null | undefined,
+): string {
+  return value === false
+    ? "Off: nothing is added to requests to your own origin"
+    : "On: requests to your own origin carry a traceparent and this session's id";
+}
+
 const RumApplicationSessionReplaySettings: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -431,6 +446,15 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               validation: { minValue: 0 },
             },
             {
+              field: { sessionReplaySameOriginTracePropagation: true },
+              title: SAME_ORIGIN_TRACE_PROPAGATION_TITLE,
+              stepId: "performance",
+              fieldType: FormFieldSchemaType.Toggle,
+              required: false,
+              description:
+                "On by default. While a session is uploading, the recorder adds a W3C traceparent and a tracestate carrying this session's id to the fetch and XHR requests your page makes to its own origin, so the backend spans, logs and exceptions those requests cause show up in the player's rail with no code in your frontend or backend. Nothing is added before consent, after it is revoked, or before an on-error trigger fires, and a request that already carries a traceparent or tracestate keeps its own. A generated traceparent is marked sampled, so ParentBased samplers in your backend keep every browser-originated trace; set a remoteParentSampled delegate to keep ratio sampling. Your backend's OpenTelemetry forwards the session id to every service it calls, third parties included; the visitor id is never sent. CAUTION: a same-origin request that redirects to another origin (a download handed off to cloud storage, an API moved to a subdomain) takes the headers with it, and that origin must allow them in Access-Control-Allow-Headers. The recorder stops adding them for the rest of the page load when that fails and retries a failed GET once; turn this off if downloads or redirects break after installing Session Replay.",
+            },
+            {
               field: { sessionReplayTracePropagationOrigins: true },
               title: "Trace propagation origins",
               stepId: "performance",
@@ -438,7 +462,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
               required: false,
               placeholder: '["https://api.example.com"]',
               description:
-                "JSON array of origins whose fetch/XHR requests get a generated W3C traceparent header, linking recordings to backend traces without any browser tracing SDK - the player's rail then shows the backend spans behind each request. CAUTION: adding a header makes cross-origin requests preflighted - list an origin only if its API allows traceparent in Access-Control-Allow-Headers. Empty (default) never injects. Requests that already carry a traceparent are left untouched.",
+                "For APIs on OTHER origins than your page; requests to your own origin are linked automatically (see Same-origin trace propagation). JSON array of origins whose fetch/XHR requests get a generated W3C traceparent header, linking recordings to their backend traces by trace id without any browser tracing SDK - the player's rail then shows the backend spans behind each request. Listed origins get traceparent only, never the session id. CAUTION: adding a header makes cross-origin requests preflighted - list an origin only if its API allows traceparent in Access-Control-Allow-Headers. Empty (default) injects nothing cross-origin. Requests that already carry a traceparent are left untouched.",
             },
 
             {
@@ -699,6 +723,20 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                 },
               },
               {
+                field: { sessionReplaySameOriginTracePropagation: true },
+                title: SAME_ORIGIN_TRACE_PROPAGATION_TITLE,
+                fieldType: FieldType.Element,
+                getElement: (item: RumApplication): ReactElement => {
+                  return (
+                    <span className="text-sm text-gray-900">
+                      {describeSameOriginTracePropagation(
+                        item.sessionReplaySameOriginTracePropagation,
+                      )}
+                    </span>
+                  );
+                },
+              },
+              {
                 field: { sessionReplayTracePropagationOrigins: true },
                 title: "Trace propagation origins",
                 fieldType: FieldType.Element,
@@ -706,7 +744,7 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                   return (
                     <Chips
                       values={item.sessionReplayTracePropagationOrigins}
-                      emptyCopy="None: no traceparent header is injected"
+                      emptyCopy="None: no cross-origin request gets a traceparent"
                     />
                   );
                 },
@@ -760,6 +798,8 @@ const RumApplicationSessionReplaySettings: FunctionComponent<
                 maskSelectors: application.sessionReplayMaskSelectors,
                 blockSelectors: application.sessionReplayBlockSelectors,
                 recordCanvas: application.sessionReplayRecordCanvas,
+                sameOriginTracePropagation:
+                  application.sessionReplaySameOriginTracePropagation,
               }
             : null
         }

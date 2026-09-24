@@ -56,6 +56,17 @@ import { EVERY_FIFTEEN_MINUTE } from "Common/Utils/CronTime";
  *    instances carrying the same session id is not erasure, it is a
  *    partial delete that still identifies the subject.
  *
+ *    That includes the rows joined to a session by TRACE id rather than
+ *    by session id. The browser recorder puts the session id in the
+ *    tracestate of the page's own requests, so span ingest stamps the
+ *    backend spans of those traces; but backend log lines (OTLP logs
+ *    carry no trace state), the exceptions derived from them, and spans
+ *    of the same traces that were never stamped carry no session id, and
+ *    the Dashboard's replay rail still shows them as part of the
+ *    recording by joining on trace id. So each batch also erases every
+ *    Log, ExceptionInstance and Span row whose trace id appears on a span
+ *    stamped with one of the batch's session ids.
+ *
  *  - A tombstone is written BEFORE anything is deleted. Chunks live in
  *    Redis staging for hours and the queue retries, so without a
  *    tombstone an in-flight chunk that lands after the mutation would
@@ -138,6 +149,27 @@ export const ERASURE_JOB_SCHEDULE: string = EVERY_FIFTEEN_MINUTE;
  * compile-time constant, so there is nothing to inject.
  */
 const PER_RUN_LIMIT_CLAUSE: string = ` LIMIT ${MAX_SESSION_IDS_PER_REQUEST_PER_RUN}`;
+
+/*
+ * Trace ids per ALTER ... DELETE when erasing the telemetry joined to a
+ * batch of sessions by trace id. The same ceiling as the session-id
+ * mutations, for the same reason: an IN list this size plans cheaply.
+ */
+export const MAX_TRACE_IDS_PER_MUTATION: number = 1000;
+
+/*
+ * Distinct trace ids materialised per batch of erased sessions. Every
+ * thousand of them costs one mutation on each of Log, ExceptionInstance
+ * and Span, so this bounds a batch to thirty trace-id mutations on top of
+ * its five session-id ones. A batch that reaches the cap is logged: the
+ * rows joined by the trace ids past it carry no session id, so nothing
+ * links them to the erased recording once it is gone, and they expire
+ * with telemetry retention.
+ */
+export const MAX_TRACE_IDS_PER_SESSION_BATCH: number = 10000;
+
+/* Raw SQL for the same reason as PER_RUN_LIMIT_CLAUSE. */
+const TRACE_ID_LOOKUP_LIMIT_CLAUSE: string = ` LIMIT ${MAX_TRACE_IDS_PER_SESSION_BATCH}`;
 
 /* Requests processed per run, to bound the job's wall clock. */
 const MAX_REQUESTS_PER_RUN: number = 200;
@@ -545,6 +577,36 @@ export function buildSessionDeleteStatement(data: {
 }
 
 /*
+ * The trace-id counterpart of buildSessionDeleteStatement: the same
+ * mutation on the LOCAL storage table, constrained by project and by a
+ * materialised list of trace ids. The ids are bound as an Array(String)
+ * parameter like the session ids are, never a subquery - see
+ * readErasedSessionTraceIds for why a subquery would erase nothing.
+ */
+export function buildTraceDeleteStatement(data: {
+  databaseName: string;
+  tableName: string;
+  projectId: ObjectID;
+  traceIds: Array<string>;
+}): Statement {
+  const localTableName: string = getStorageTableName(data.tableName);
+
+  return SQL`
+      ALTER TABLE ${data.databaseName}.${localTableName}`
+    .append(onClusterClause())
+    .append(
+      SQL`
+      DELETE WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: data.projectId,
+      }} AND traceId IN ${{
+        type: TableColumnType.Text,
+        value: new Includes(data.traceIds),
+      }}`,
+    );
+}
+
+/*
  * Erase a batch from one table. Returns false when the table does not
  * carry a sessionId column yet.
  *
@@ -588,6 +650,46 @@ async function eraseSessionRowsFromTable(data: {
   return true;
 }
 
+/*
+ * The services whose rows are erased by trace id, in submission order.
+ * Span is last: its rows are where readErasedSessionTraceIds finds the
+ * ids, so a run that dies after deleting a chunk's logs and exceptions
+ * but before its spans still finds those ids again on the retry.
+ */
+const TRACE_JOINED_TELEMETRY_SERVICES: Array<
+  AnalyticsDatabaseService<AnalyticsBaseModel>
+> = [LogService, ExceptionInstanceService, SpanService];
+
+/*
+ * Erase every Log, ExceptionInstance and Span row carrying one of these
+ * trace ids, MAX_TRACE_IDS_PER_MUTATION ids per mutation. Chunks run one
+ * after another for the same reason session batches do: parallel
+ * mutations on one table multiply merge pressure without finishing
+ * sooner.
+ */
+async function eraseTraceRows(data: {
+  databaseName: string;
+  projectId: ObjectID;
+  traceIds: Array<string>;
+}): Promise<void> {
+  for (const traceIds of chunkSessionIds(
+    data.traceIds,
+    MAX_TRACE_IDS_PER_MUTATION,
+  )) {
+    for (const service of TRACE_JOINED_TELEMETRY_SERVICES) {
+      await service.execute(
+        buildTraceDeleteStatement({
+          databaseName: data.databaseName,
+          tableName: service.model.tableName,
+          projectId: data.projectId,
+          traceIds: traceIds,
+        }),
+        MigrationExecuteOptions,
+      );
+    }
+  }
+}
+
 async function countChunksForSessions(data: {
   databaseName: string;
   projectId: ObjectID;
@@ -613,6 +715,96 @@ async function countChunksForSessions(data: {
   const row: JSONObject | undefined = (parsed.data || [])[0];
 
   return row ? Number(row["chunkCount"]) || 0 : 0;
+}
+
+/*
+ * The trace ids of the spans stamped with these sessions' ids.
+ *
+ * Only span-derived ids, never RumSession.traceIds: the header also holds
+ * trace ids the PAGE set on its requests, and a page-set id can be shared
+ * well beyond one visit (a hard-coded or server-rendered traceparent), so
+ * erasing by it could take unrelated users' telemetry with it. A span that
+ * ingest stamped with the session's id is what ties a trace to the
+ * session.
+ *
+ * No time bound, because none of this job's deletes have one either.
+ */
+export function buildErasedSessionTraceIdStatement(data: {
+  databaseName: string;
+  projectId: ObjectID;
+  sessionIds: Array<string>;
+}): Statement {
+  return SQL`
+    SELECT DISTINCT traceId AS traceId
+    FROM ${data.databaseName}.${AnalyticsTableName.Span}
+    WHERE projectId = ${{
+      type: TableColumnType.ObjectID,
+      value: data.projectId,
+    }} AND sessionId IN ${{
+      type: TableColumnType.Text,
+      value: new Includes(data.sessionIds),
+    }} AND traceId != ''`.append(TRACE_ID_LOOKUP_LIMIT_CLAUSE);
+}
+
+/*
+ * An id of nothing but zeros is W3C's "invalid" trace id, and a log line
+ * with no trace context can carry it. A stamped span carrying it (a
+ * broken SDK) must not turn one erasure into a delete of every
+ * uncorrelated log line in the project.
+ */
+const ALL_ZEROS_TRACE_ID: RegExp = /^0+$/;
+
+function isErasableTraceId(traceId: unknown): traceId is string {
+  return (
+    typeof traceId === "string" &&
+    traceId.length > 0 &&
+    !ALL_ZEROS_TRACE_ID.test(traceId)
+  );
+}
+
+/*
+ * Materialise the batch's trace ids BEFORE any delete is submitted, as a
+ * literal list. ALTER ... DELETE is asynchronous, so a mutation carrying
+ * `traceId IN (SELECT traceId FROM Span WHERE sessionId IN ...)` could be
+ * evaluated after the session-id delete on Span had already rewritten
+ * the parts it reads, match nothing, and leave the joined rows behind.
+ *
+ * Through the migration pool, with its progress headers: with no time
+ * bound this reads the project's whole span history through the sessionId
+ * bloom filter, which on a large project can outlast the App pool's 58
+ * second socket-idle timer before the first result byte, and a read
+ * killed there would fail the batch.
+ */
+async function readErasedSessionTraceIds(data: {
+  databaseName: string;
+  projectId: ObjectID;
+  sessionIds: Array<string>;
+}): Promise<Array<string>> {
+  const resultSet: ClickhouseJsonResultSet = (await SpanService.executeQuery(
+    buildErasedSessionTraceIdStatement(data),
+    MigrationExecuteOptions,
+  )) as unknown as ClickhouseJsonResultSet;
+
+  const parsed: { data: Array<JSONObject> } = await resultSet.json();
+  const rows: Array<JSONObject> = parsed.data || [];
+
+  if (rows.length >= MAX_TRACE_IDS_PER_SESSION_BATCH) {
+    logger.warn(
+      `${JOB_NAME}: the ${data.sessionIds.length} erased session(s) in this batch for project ${data.projectId.toString()} reach at least ${MAX_TRACE_IDS_PER_SESSION_BATCH} distinct traces; logs, exceptions and spans joined by trace ids past that cap were NOT removed.`,
+    );
+  }
+
+  const traceIds: Set<string> = new Set<string>();
+
+  for (const row of rows) {
+    const traceId: unknown = row["traceId"];
+
+    if (isErasableTraceId(traceId)) {
+      traceIds.add(traceId);
+    }
+  }
+
+  return Array.from(traceIds);
 }
 
 /*
@@ -765,11 +957,23 @@ export async function eraseSessionBatch(data: {
   });
 
   /*
-   * Chunks first, header second. If the run dies between the two the
-   * session is left listed but unplayable, which is a recoverable state
-   * the next run finishes; the reverse order would leave orphaned payload
-   * rows with no header pointing at them, which nothing would ever find
-   * again.
+   * Read before ANY delete of this batch is submitted: the deletes on Span
+   * below remove the very rows this list comes from.
+   */
+  const traceIds: Array<string> = await readErasedSessionTraceIds({
+    databaseName: data.databaseName,
+    projectId: data.projectId,
+    sessionIds: data.sessionIds,
+  });
+
+  /*
+   * Chunks first, header LAST. The header is how three of the four request
+   * types find a session at all, so every row that is only reachable
+   * through it has to be queued for deletion before it goes: a run that
+   * dies in between leaves the session listed but unplayable, which is a
+   * recoverable state the retry finds and finishes. Deleting the header
+   * earlier would leave orphaned payload rows (or correlated telemetry)
+   * that nothing would ever find again.
    */
   await eraseSessionRowsFromTable({
     service: RumSessionChunkService,
@@ -778,12 +982,24 @@ export async function eraseSessionBatch(data: {
     sessionIds: data.sessionIds,
   });
 
-  await eraseSessionRowsFromTable({
-    service: RumSessionService,
-    databaseName: data.databaseName,
-    projectId: data.projectId,
-    sessionIds: data.sessionIds,
-  });
+  /*
+   * The telemetry joined to the sessions by trace id. Before the
+   * session-id delete on Span, so that a run which dies part-way through
+   * leaves the stamped spans that name the remaining trace ids in place,
+   * and the retry materialises the same list again rather than an empty
+   * one.
+   */
+  if (traceIds.length > 0) {
+    logger.info(
+      `${JOB_NAME}: erasing the logs, exceptions and spans of ${traceIds.length} trace(s) stamped with erased sessions in project ${data.projectId.toString()}`,
+    );
+
+    await eraseTraceRows({
+      databaseName: data.databaseName,
+      projectId: data.projectId,
+      traceIds: traceIds,
+    });
+  }
 
   /* The correlated telemetry. Erasure that stops at the video is not erasure. */
   const correlatedTelemetryServices: Array<
@@ -798,6 +1014,14 @@ export async function eraseSessionBatch(data: {
       sessionIds: data.sessionIds,
     });
   }
+
+  /* The header, last of the ClickHouse deletes (see "Chunks first" above). */
+  await eraseSessionRowsFromTable({
+    service: RumSessionService,
+    databaseName: data.databaseName,
+    projectId: data.projectId,
+    sessionIds: data.sessionIds,
+  });
 
   /*
    * Last, once every mutation is queued: the pin row is the Dashboard's

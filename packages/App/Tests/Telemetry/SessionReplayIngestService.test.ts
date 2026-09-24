@@ -385,6 +385,7 @@ function buildPolicy(
     monthlyBudgetInGB: null,
     ignoreErrorPatterns: [],
     tracePropagationOrigins: [],
+    sameOriginTracePropagation: true,
     lcpBudgetMs: 0,
     longTaskBudgetMs: 0,
     slowRequestBudgetMs: 0,

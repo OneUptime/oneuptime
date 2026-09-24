@@ -173,44 +173,81 @@ new FetchInstrumentation({
 });
 ```
 
-Same-origin requests are propagated without any configuration.
+Same-origin requests are propagated without any configuration. With [Session Replay](/docs/telemetry/session-replay) installed they also carry the replay's session id, which links your backend telemetry to the recording; see [Joining traces to session replay](#joining-traces-to-session-replay).
 
 ## Joining traces to session replay
 
-If you also run [Session Replay](/docs/telemetry/session-replay), the recording and your browser telemetry are joined by one attribute: `session.id` on the resource. The recorder tells you the id through `onSessionChange`, which fires immediately if a session already exists and again whenever the id rotates (after 30 minutes idle, at the 4-hour cap, or when another tab of the same visitor rotated first), so the attribute follows it:
+If you also run [Session Replay](/docs/telemetry/session-replay), your **backend** telemetry joins the recording with no code here. While a session uploads, the recorder adds a `tracestate` member carrying the session id to the requests your page makes to its own origin, and leaves the `traceparent` to your `FetchInstrumentation` / `XMLHttpRequestInstrumentation`. Your backend's spans are stamped with the session id at ingest, in every service that continues W3C trace context, and its logs and exceptions join the recording by trace id. See [Correlating with your other telemetry](/docs/telemetry/session-replay#correlating-with-your-other-telemetry) for how it works, what it does not cover, and the switch that turns it off.
+
+The recorder also reads the `traceparent` your instrumentations set, including on a `Request` object, so each request row in the replay links to its backend trace. For an API on another origin, list it in `propagateTraceHeaderCorsUrls` above; its requests carry no session id and join the recording by trace id. **Trace propagation origins** in the application's replay policy does the same for pages *without* this SDK.
+
+What the headers do not reach is this SDK's own browser spans: document loads, route changes and the errors you report. To file those under the recording as well, stamp `session.id` on each span as it starts. The recorder tells you the id through `onSessionChange`, which fires immediately if a session already exists and again whenever the id rotates (after 30 minutes idle, at the 4-hour cap, or when another tab of the same visitor rotated first):
 
 ```ts
+// src/replaySession.ts
+import type { Context } from "@opentelemetry/api";
+import type {
+  ReadableSpan,
+  Span,
+  SpanProcessor,
+} from "@opentelemetry/sdk-trace-web";
+
 declare global {
   interface Window {
-    OneUptimeReplay?: {
-      onSessionChange: (
-        listener: (sessionId: string, tabId: string) => void,
-      ) => () => void;
-    };
     OneUptimeReplayQueue?: Array<Array<unknown>>;
   }
 }
 
-const onSessionChange = (sessionId: string, tabId: string): void => {
-  resource.attributes["session.id"] = sessionId;
-  resource.attributes["session.tab.id"] = tabId;
-};
+let replaySessionId: string | null = null;
 
-// The recorder script loads asynchronously; queue the listener if it is
-// not there yet and it is applied the moment the recorder starts.
-if (window.OneUptimeReplay) {
-  window.OneUptimeReplay.onSessionChange(onSessionChange);
-} else {
-  (window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([
-    "onSessionChange",
-    onSessionChange,
-  ]);
+// The recorder script loads asynchronously. The queue is applied the
+// moment it starts and stays live afterwards, so this works either way.
+(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([
+  "onSessionChange",
+  (sessionId: string): void => {
+    replaySessionId = sessionId;
+  },
+]);
+
+export class ReplaySessionSpanProcessor implements SpanProcessor {
+  public onStart(span: Span, _parentContext: Context): void {
+    if (replaySessionId) {
+      span.setAttribute("session.id", replaySessionId);
+    }
+  }
+
+  public onEnd(_span: ReadableSpan): void {}
+
+  public forceFlush(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  public shutdown(): Promise<void> {
+    return Promise.resolve();
+  }
 }
 ```
 
-Spans and logs exported after that carry the id, the replay player's **Logs** and **Traces** tabs list them on the recording's clock, and every log line and span in the dashboard links back to the moment in the replay. Forward the id to your backend (as baggage or a header your API reads onto its request span) and the backend side of each request joins up too.
+Then put it first in the provider's span processors in `src/telemetry.ts`:
 
-The recorder reads the `traceparent` header your `FetchInstrumentation` / `XMLHttpRequestInstrumentation` set — including on a `Request` object — so a request row in the replay links to the backend trace without any further configuration. **Trace propagation origins** in the application's replay policy is only for pages *without* this SDK.
+```ts
+import { ReplaySessionSpanProcessor } from "./replaySession";
+
+const provider = new WebTracerProvider({
+  resource: resource,
+  spanProcessors: [
+    new ReplaySessionSpanProcessor(),
+    new BatchSpanProcessor(
+      new OTLPTraceExporter({
+        url: `${ONEUPTIME_URL}/otlp/v1/traces`,
+        headers: { "x-oneuptime-token": ONEUPTIME_TOKEN },
+      }),
+    ),
+  ],
+});
+```
+
+Spans started after that carry the id, the replay player's **Traces** tab lists them on the recording's clock, and each of them in the dashboard links back to the moment in the replay. A span processor stamps each span with the id that was current when it started; writing the id into `resource.attributes` instead would re-label spans still waiting in the export batch when the session rotated. The listener is told the id as soon as the recorder starts, before consent or a capture trigger, so if that matters, stamp only once your page has consent.
 
 ## Content Security Policy
 

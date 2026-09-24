@@ -173,44 +173,81 @@ new FetchInstrumentation({
 });
 ```
 
-درخواست‌های هم‌مبدأ بدون هیچ پیکربندی‌ای انتشار می‌یابند.
+درخواست‌های هم‌مبدأ بدون هیچ پیکربندی‌ای انتشار می‌یابند. با نصب [بازپخش نشست](/docs/telemetry/session-replay)، همین درخواست‌ها شناسه نشست بازپخش را هم حمل می‌کنند، که تله‌متری بک‌اندتان را به ضبط پیوند می‌دهد؛ [پیوستن ردیابی‌ها به بازپخش نشست](#پیوستن-ردیابیها-به-بازپخش-نشست) را ببینید.
 
 ## پیوستن ردیابی‌ها به بازپخش نشست
 
-اگر [بازپخش نشست](/docs/telemetry/session-replay) را هم اجرا می‌کنید، ضبط و تله‌متری مرورگری شما با یک ویژگی می‌پیوندند: `session.id` روی منبع. ضبط‌کننده شناسه را از راه `onSessionChange` به شما می‌گوید، که اگر نشستی از پیش وجود داشته باشد بی‌درنگ شلیک می‌کند و هر بار که شناسه بچرخد دوباره (پس از ۳۰ دقیقه بیکاری، در سقف ۴ ساعت، یا وقتی زبانه دیگری از همان بازدیدکننده زودتر چرخانده باشد)، پس ویژگی دنبالش می‌آید:
+اگر [بازپخش نشست](/docs/telemetry/session-replay) را هم اجرا می‌کنید، تله‌متری **بک‌اند** شما بی‌هیچ کدی در این‌جا به ضبط می‌پیوندد. تا وقتی نشستی فرستاده می‌شود، ضبط‌کننده به درخواست‌هایی که صفحه شما به مبدأ خودش می‌زند عضوی از `tracestate` می‌افزاید که شناسه نشست را حمل می‌کند، و `traceparent` را به `FetchInstrumentation` / `XMLHttpRequestInstrumentation` شما می‌سپارد. اسپن‌های بک‌اند شما هنگام دریافت، در هر سرویسی که زمینه ردیابی W3C را ادامه دهد، با شناسه نشست مهر می‌خورند، و گزارش‌ها و استثناهایش بر پایه شناسه ردیابی به ضبط می‌پیوندند. برای اینکه چطور کار می‌کند، چه چیزی را پوشش نمی‌دهد و کلیدی که خاموشش می‌کند، [همبسته کردن با دیگر تله‌متری شما](/docs/telemetry/session-replay#correlating-with-your-other-telemetry) را ببینید.
+
+ضبط‌کننده هدر `traceparent`ای را هم که ابزارگذاری‌های شما می‌گذارند می‌خواند — از جمله روی شیئی از نوع `Request` — پس سطر هر درخواست در بازپخش به ردیابی بک‌اندش پیوند می‌خورد. برای APIای روی مبدأی دیگر، آن را در `propagateTraceHeaderCorsUrls` بالا فهرست کنید؛ درخواست‌هایش هیچ شناسه نشستی حمل نمی‌کنند و بر پایه شناسه ردیابی به ضبط می‌پیوندند. گزینه **Trace propagation origins** در سیاست بازپخش برنامه همین کار را برای صفحه‌هایی می‌کند که این SDK را *ندارند*.
+
+آنچه هدرها به آن نمی‌رسند اسپن‌های مرورگری خود این SDK است: بارگذاری سند، تغییر مسیرها و خطاهایی که گزارش می‌کنید. برای اینکه آن‌ها هم زیر ضبط بایگانی شوند، `session.id` را هنگام آغاز هر اسپن رویش مهر بزنید. ضبط‌کننده شناسه را از راه `onSessionChange` به شما می‌گوید، که اگر نشستی از پیش وجود داشته باشد بی‌درنگ شلیک می‌کند و هر بار که شناسه بچرخد دوباره (پس از ۳۰ دقیقه بیکاری، در سقف ۴ ساعت، یا وقتی زبانه دیگری از همان بازدیدکننده زودتر چرخانده باشد):
 
 ```ts
+// src/replaySession.ts
+import type { Context } from "@opentelemetry/api";
+import type {
+  ReadableSpan,
+  Span,
+  SpanProcessor,
+} from "@opentelemetry/sdk-trace-web";
+
 declare global {
   interface Window {
-    OneUptimeReplay?: {
-      onSessionChange: (
-        listener: (sessionId: string, tabId: string) => void,
-      ) => () => void;
-    };
     OneUptimeReplayQueue?: Array<Array<unknown>>;
   }
 }
 
-const onSessionChange = (sessionId: string, tabId: string): void => {
-  resource.attributes["session.id"] = sessionId;
-  resource.attributes["session.tab.id"] = tabId;
-};
+let replaySessionId: string | null = null;
 
-// The recorder script loads asynchronously; queue the listener if it is
-// not there yet and it is applied the moment the recorder starts.
-if (window.OneUptimeReplay) {
-  window.OneUptimeReplay.onSessionChange(onSessionChange);
-} else {
-  (window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([
-    "onSessionChange",
-    onSessionChange,
-  ]);
+// The recorder script loads asynchronously. The queue is applied the
+// moment it starts and stays live afterwards, so this works either way.
+(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([
+  "onSessionChange",
+  (sessionId: string): void => {
+    replaySessionId = sessionId;
+  },
+]);
+
+export class ReplaySessionSpanProcessor implements SpanProcessor {
+  public onStart(span: Span, _parentContext: Context): void {
+    if (replaySessionId) {
+      span.setAttribute("session.id", replaySessionId);
+    }
+  }
+
+  public onEnd(_span: ReadableSpan): void {}
+
+  public forceFlush(): Promise<void> {
+    return Promise.resolve();
+  }
+
+  public shutdown(): Promise<void> {
+    return Promise.resolve();
+  }
 }
 ```
 
-اسپن‌ها و گزارش‌هایی که پس از آن صادر می‌شوند شناسه را حمل می‌کنند، زبانه‌های **Logs** و **Traces** پخش‌کننده بازپخش آن‌ها را روی ساعت ضبط فهرست می‌کنند، و هر خط گزارش و اسپنی در داشبورد به همان لحظه در بازپخش پیوند می‌خورد. شناسه را به بک‌اندتان فوروارد کنید (به‌عنوان baggage یا هدری که API شما روی اسپن درخواستش می‌خواند) و سمت بک‌اند هر درخواستی هم می‌پیوندد.
+سپس آن را نخستین پردازشگر اسپن ارائه‌دهنده در `src/telemetry.ts` بگذارید:
 
-ضبط‌کننده هدر `traceparent` را که `FetchInstrumentation` / `XMLHttpRequestInstrumentation` شما می‌گذارند می‌خواند — از جمله روی شیئی از نوع `Request` — پس سطر درخواست در بازپخش بدون هیچ پیکربندی بیشتری به ردیابی بک‌اند پیوند می‌خورد. گزینه **Trace propagation origins** در سیاست بازپخش برنامه فقط برای صفحه‌هایی است که این SDK را *ندارند*.
+```ts
+import { ReplaySessionSpanProcessor } from "./replaySession";
+
+const provider = new WebTracerProvider({
+  resource: resource,
+  spanProcessors: [
+    new ReplaySessionSpanProcessor(),
+    new BatchSpanProcessor(
+      new OTLPTraceExporter({
+        url: `${ONEUPTIME_URL}/otlp/v1/traces`,
+        headers: { "x-oneuptime-token": ONEUPTIME_TOKEN },
+      }),
+    ),
+  ],
+});
+```
+
+اسپن‌هایی که پس از آن آغاز می‌شوند شناسه را حمل می‌کنند، زبانه **Traces** پخش‌کننده بازپخش آن‌ها را روی ساعت ضبط فهرست می‌کند، و هر یک از آن‌ها در داشبورد به همان لحظه در بازپخش پیوند می‌خورد. پردازشگر اسپن هر اسپن را با شناسه‌ای مهر می‌زند که هنگام آغازش جاری بوده؛ نوشتن شناسه در `resource.attributes` به‌جایش، اسپن‌هایی را که هنگام چرخش نشست هنوز در دسته صدور منتظر بوده‌اند دوباره برچسب می‌زند. شناسه به‌محض آغاز ضبط‌کننده، پیش از رضایت یا تریگر ثبت، به شنونده گفته می‌شود، پس اگر اهمیت دارد، فقط وقتی صفحه‌تان رضایت دارد مهر بزنید.
 
 ## سیاست امنیت محتوا
 

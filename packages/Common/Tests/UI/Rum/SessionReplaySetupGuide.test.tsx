@@ -17,9 +17,10 @@ import { RecordingHealthStatus } from "../../../Types/Rum/SessionReplayHealth";
  * The three live checks flip as the health status changes; "Watch it"
  * appears only with a playable session and opens the newest one through
  * the LIST endpoint (never the manifest, which writes an audit row); the
- * not-sampled cause quotes the current sample percentage; the
- * onSessionChange snippet is present; the install snippet uses the safe
- * identifier or the placeholder; the CSP block keeps 'self'
+ * not-sampled cause quotes the current sample percentage; step 4 says
+ * backend linking is automatic, names the cross-origin step and offers
+ * the onSessionChange snippet as optional (issue #3979); the install
+ * snippet uses the safe identifier or the placeholder; the CSP block keeps 'self'
  * (session-list-15); "Run the installation test" lands on THIS
  * application's settings (settings-setup-17).
  */
@@ -61,6 +62,7 @@ import SessionReplaySetupGuide, {
 import { clearSessionReplayHealthStore } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/useSessionReplayHealth";
 import {
   buildCspSnippet,
+  buildOnSessionChangeSnippet,
   buildScriptTagSnippet,
   getSafeAppIdentifier,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/SessionReplayInstallSnippet";
@@ -378,6 +380,45 @@ describe("Install snippet builders", () => {
     expect(csp).toContain("script-src  'self' https://one.example.com;");
     expect(csp).toContain("connect-src 'self' https://one.example.com;");
   });
+
+  /*
+   * Issue #3979: the session hook is no longer the join key for backend
+   * telemetry - the recorder's same-origin tracestate is - so the snippet
+   * is labelled optional and only stamps the page's own browser spans.
+   * It stamps each span at start through a span processor instead of
+   * mutating resource.attributes, which the exporter reads at export time
+   * and so re-labels spans batched before a rotation.
+   */
+  it("the correlation snippet is optional and stamps the page's own spans at start", () => {
+    const snippet: string = buildOnSessionChangeSnippet();
+
+    expect(snippet).toMatch(/^\/\/ Optional\./);
+    expect(snippet).toContain(
+      "Requests to your own origin are linked without it",
+    );
+    expect(snippet).toContain('"onSessionChange"');
+    expect(snippet).toContain("onStart: (span) => {");
+    expect(snippet).toContain(
+      'span.setAttribute("session.id", replaySessionId)',
+    );
+    expect(snippet).toContain("forceFlush: () => Promise.resolve()");
+    expect(snippet).toContain("shutdown: () => Promise.resolve()");
+
+    /* The old manual path: a mutated resource and a server-side header. */
+    expect(snippet).not.toContain("resource.attributes");
+    expect(snippet).not.toContain("baggage");
+    expect(snippet).not.toContain("session.tab.id");
+  });
+
+  it("the correlation snippet queues the listener, so it works before the recorder loads", () => {
+    const snippet: string = buildOnSessionChangeSnippet();
+
+    expect(snippet).toContain(
+      "(window.OneUptimeReplayQueue = window.OneUptimeReplayQueue || []).push([",
+    );
+    /* No direct call on a global that may not exist yet. */
+    expect(snippet).not.toContain("OneUptimeReplay.onSessionChange(");
+  });
 });
 
 describe("SessionReplaySetupGuide (rendered)", () => {
@@ -406,13 +447,44 @@ describe("SessionReplaySetupGuide (rendered)", () => {
     expect(screen.getByTestId("setup-step-2")).toHaveTextContent(
       'data-oneuptime-app-identifier="acme-web"',
     );
-    /* Step 4 carries the correlation hook. */
+    /*
+     * Step 4: backend linking is automatic (issue #3979), the one manual
+     * step left is for an API on another origin, and the session hook is
+     * an optional extra for the page's own browser spans.
+     */
+    expect(screen.getByTestId("setup-correlation-automatic")).toHaveTextContent(
+      "Nothing to install",
+    );
+    expect(screen.getByTestId("setup-correlation-automatic")).toHaveTextContent(
+      "own origin",
+    );
+    expect(screen.getByTestId("setup-correlation-automatic")).toHaveTextContent(
+      "tracestate",
+    );
+    expect(
+      screen.getByTestId("setup-correlation-cross-origin"),
+    ).toHaveTextContent("Trace propagation origins");
+    expect(
+      screen.getByTestId("setup-correlation-cross-origin"),
+    ).toHaveTextContent("Access-Control-Allow-Headers");
+    expect(
+      screen.getByTestId("setup-correlation-cross-origin"),
+    ).toHaveTextContent("Same-origin trace propagation");
     expect(screen.getByTestId("setup-correlation-snippet")).toHaveTextContent(
-      "OneUptimeReplay.onSessionChange",
+      "onSessionChange",
     );
     expect(screen.getByTestId("setup-correlation-snippet")).toHaveTextContent(
-      'resource.attributes["session.id"]',
+      'span.setAttribute("session.id"',
     );
+    expect(
+      screen.getByTestId("setup-correlation-snippet"),
+    ).not.toHaveTextContent("resource.attributes");
+    /* Step 4 shows the optional snippet only, not the script tag again. */
+    expect(
+      screen.getByTestId("setup-correlation-snippet"),
+    ).not.toHaveTextContent("data-oneuptime-token");
+    expect(screen.getAllByTestId("install-snippet")).toHaveLength(1);
+    expect(screen.getByTestId("setup-step-4")).not.toHaveTextContent("baggage");
     /* Step 3 keeps 'self'. */
     expect(screen.getByTestId("setup-csp-snippet")).toHaveTextContent(
       "script-src 'self'",

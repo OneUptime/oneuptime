@@ -353,6 +353,7 @@ function buildPolicy(overrides?: Record<string, unknown>): unknown {
     monthlyBudgetInGB: null,
     ignoreErrorPatterns: [],
     tracePropagationOrigins: ["https://api.example.com"],
+    sameOriginTracePropagation: true,
     lcpBudgetMs: 4000,
     longTaskBudgetMs: 200,
     slowRequestBudgetMs: 5000,
@@ -500,6 +501,7 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
     expect(body["tracePropagationOrigins"]).toEqual([
       "https://api.example.com",
     ]);
+    expect(body["sameOriginTracePropagation"]).toBe(true);
     expect(body["lcpBudgetMs"]).toBe(4000);
     expect(body["longTaskBudgetMs"]).toBe(200);
     expect(body["slowRequestBudgetMs"]).toBe(5000);
@@ -535,6 +537,7 @@ describe("GET /session-replay/v1/config (wave 4 fields)", () => {
 
     expect(body["enabled"]).toBe(false);
     expect(body["tracePropagationOrigins"]).toEqual([]);
+    expect(body["sameOriginTracePropagation"]).toBe(false);
     expect(body["lcpBudgetMs"]).toBe(0);
     expect(body["longTaskBudgetMs"]).toBe(0);
     expect(body["slowRequestBudgetMs"]).toBe(0);
@@ -1007,5 +1010,192 @@ describe("GET /session-replay/v1/config pauses on an exhausted budget", () => {
     await callConfigRoute(buildRequest(), buildResponse());
 
     expect(updateLastSeenMock).toHaveBeenCalledWith(RUM_APPLICATION_ID);
+  });
+});
+
+/*
+ * RumApplication.sessionReplaySameOriginTracePropagation on the wire. The
+ * recorder reads `sameOriginTracePropagation === true` and anything else as
+ * off (fail closed), so every response this endpoint can produce must carry
+ * an explicit boolean: the policy value while live, false whenever the
+ * config says "disabled" - a disabled recorder must not be told to stamp
+ * requests, whatever the application's switch says.
+ */
+describe("GET /session-replay/v1/config sameOriginTracePropagation", () => {
+  function resetLiveMocks(): void {
+    getRecorderVersionMock.mockImplementation((): string => {
+      return LATEST_RECORDER_VERSION;
+    });
+    getRecorderIntegrityMock.mockImplementation((): null => {
+      return null;
+    });
+    consumeTargetMock.mockResolvedValue(false as never);
+    updateLastSeenMock.mockResolvedValue(undefined as never);
+    bytesUsedTodayMock.mockResolvedValue(0 as never);
+    bytesUsedThisMonthMock.mockResolvedValue(0 as never);
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetLiveMocks();
+  });
+
+  test("a live config carries the switch when it is on", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ sameOriginTracePropagation: true }) as never,
+    );
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(true);
+    expect(body["sameOriginTracePropagation"]).toBe(true);
+  });
+
+  test("a live config carries the switch when it is off", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ sameOriginTracePropagation: false }) as never,
+    );
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(true);
+    expect(body["sameOriginTracePropagation"]).toBe(false);
+  });
+
+  /*
+   * The two switches are separate fields: turning same-origin off must not
+   * empty the cross-origin list, and an empty list must not turn
+   * same-origin off.
+   */
+  test("the switch and the cross-origin list travel independently", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({
+        sameOriginTracePropagation: false,
+        tracePropagationOrigins: ["https://api.example.com"],
+      }) as never,
+    );
+
+    const off: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(off["sameOriginTracePropagation"]).toBe(false);
+    expect(off["tracePropagationOrigins"]).toEqual(["https://api.example.com"]);
+
+    jest.clearAllMocks();
+    resetLiveMocks();
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({
+        sameOriginTracePropagation: true,
+        tracePropagationOrigins: [],
+      }) as never,
+    );
+
+    const on: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(on["sameOriginTracePropagation"]).toBe(true);
+    expect(on["tracePropagationOrigins"]).toEqual([]);
+  });
+
+  test("a switched-off application answers false", async () => {
+    getPolicyMock.mockResolvedValue(null as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["enabled"]).toBe(false);
+    expect(body["sameOriginTracePropagation"]).toBe(false);
+  });
+
+  test("a switched-off project answers false", async () => {
+    resolvePolicyMock.mockResolvedValueOnce({
+      policy: null,
+      refusal: "project-not-allowed",
+    } as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["disabledDetail"]).toBe("project-not-allowed");
+    expect(body["sameOriginTracePropagation"]).toBe(false);
+  });
+
+  test("a policy lookup that throws answers false", async () => {
+    getPolicyMock.mockRejectedValue(new Error("postgres down") as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["disabledReason"]).toBe("policy-unavailable");
+    expect(body["sameOriginTracePropagation"]).toBe(false);
+  });
+
+  test("an unbuilt recorder answers false", async () => {
+    getRecorderVersionMock.mockReturnValueOnce(null as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["disabledReason"]).toBe("recorder-not-built");
+    expect(body["sameOriginTracePropagation"]).toBe(false);
+  });
+
+  /*
+   * The application's switch is on, but a budget pause is a disabled
+   * config: the recorder stops, so it must not be told to stamp requests.
+   */
+  test("a budget pause answers false even while the application's switch is on", async () => {
+    getPolicyMock.mockResolvedValue(
+      buildPolicy({ sameOriginTracePropagation: true }) as never,
+    );
+    bytesUsedTodayMock.mockResolvedValue((1024 * 1024 * 1024) as never);
+
+    const body: JSONObject = await callConfigRoute(
+      buildRequest(),
+      buildResponse(),
+    );
+
+    expect(body["disabledReason"]).toBe("budget-exhausted");
+    expect(body["sameOriginTracePropagation"]).toBe(false);
+  });
+
+  test("every live and disabled answer carries an explicit boolean, never an absent field", async () => {
+    const outcomes: Array<JSONObject> = [];
+
+    for (const policy of [
+      buildPolicy({ sameOriginTracePropagation: true }),
+      buildPolicy({ sameOriginTracePropagation: false }),
+      null,
+    ]) {
+      jest.clearAllMocks();
+      resetLiveMocks();
+      getPolicyMock.mockResolvedValue(policy as never);
+
+      outcomes.push(await callConfigRoute(buildRequest(), buildResponse()));
+    }
+
+    expect(
+      outcomes.map((body: JSONObject): unknown => {
+        return body["sameOriginTracePropagation"];
+      }),
+    ).toEqual([true, false, false]);
   });
 });
