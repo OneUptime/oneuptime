@@ -679,7 +679,7 @@ const ReplayScreenshotActions: FunctionComponent<
           <div
             data-testid="replay-screenshot-preview"
             data-action={preview.action}
-            className={`${CARD_CLASS} w-52 max-w-full sm:w-60`}
+            className={`${CARD_CLASS} w-56 max-w-full sm:w-60`}
           >
             {preview.url && (
               <div className="p-1.5 pb-0">
@@ -713,7 +713,7 @@ const ReplayScreenshotActions: FunctionComponent<
                     ? `${formatReplayScreenshotSize(
                         preview.width,
                         preview.height,
-                      )} PNG · paste it anywhere`
+                      )} PNG`
                     : preview.fileName}
                 </div>
               </div>

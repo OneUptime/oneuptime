@@ -141,6 +141,21 @@ const URL_FUNCTION_PATTERN: RegExp = /^url\(/i;
 const ROOT_PSEUDO_CLASS_PATTERN: RegExp = /^:root(?![\w-])/i;
 const QUOTED_PATTERN: RegExp = /^(['"])([\s\S]*)\1$/;
 
+/*
+ * What makes a link look like one. An SVG image has no browsing context,
+ * so nothing in it is a :link - the UA's blue underline, and every page
+ * rule written for a:link, would silently stop applying. A link carries
+ * these computed values across instead.
+ */
+export const REPLAY_FRAME_LINK_PROPERTIES: Array<string> = [
+  "color",
+  "text-decoration-line",
+  "text-decoration-color",
+  "text-decoration-style",
+  "text-decoration-thickness",
+  "text-underline-offset",
+];
+
 /* The page background, when it moves from the root to the frame. */
 const PROPAGATED_BACKGROUND_PROPERTIES: Array<string> = [
   "background-color",
@@ -1329,10 +1344,34 @@ class ReplayFrameSerializer {
     return trimmed.startsWith("#") || DATA_URL_PATTERN.test(trimmed);
   }
 
+  private isLink(live: Element): boolean {
+    for (const selector of [":any-link", ":link"]) {
+      try {
+        return live.matches(selector);
+      } catch {
+        /* An engine without this pseudo-class; try the next. */
+      }
+    }
+
+    return false;
+  }
+
   private collectDeclarations(
     live: Element,
     declarations: Array<string>,
   ): void {
+    if (this.isLink(live)) {
+      const style: CSSStyleDeclaration = this.getStyle(live);
+
+      for (const property of REPLAY_FRAME_LINK_PROPERTIES) {
+        const value: string = style.getPropertyValue(property);
+
+        if (value) {
+          declarations.push(`${property}: ${value}`);
+        }
+      }
+    }
+
     const properties: Set<string> | undefined =
       this.animatedProperties.get(live);
 

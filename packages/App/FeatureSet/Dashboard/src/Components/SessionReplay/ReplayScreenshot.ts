@@ -2,6 +2,7 @@ import { ReplayerLike } from "./Engine/ReplayEngineTypes";
 import {
   ReplayFrameCaptureError,
   ReplayFramePointer,
+  ReplayFrameRasterDeps,
   ReplayFrameViewport,
   captureReplayFrame,
 } from "./ReplayFrameCapture";
@@ -34,6 +35,8 @@ export interface ReplayScreenshotRequest {
   /* "Tab 2" when the session has several tabs, so the file says which. */
   tabLabel?: string | null | undefined;
   pixelRatio?: number | undefined;
+  /* The canvas and image loading, for tests that have neither. */
+  deps?: Partial<ReplayFrameRasterDeps> | undefined;
 }
 
 /* ---- File name. ---- */
@@ -240,6 +243,7 @@ export function captureReplayerScreenshot(
     viewport: viewport,
     pointer: readReplayPointer(replayer.wrapper),
     pixelRatio: request.pixelRatio ?? getDevicePixelRatio(),
+    deps: request.deps,
   }).then((blob: Blob): ReplayScreenshot => {
     return {
       blob: blob,
