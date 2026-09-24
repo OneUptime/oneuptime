@@ -39,6 +39,8 @@ import {
   getAutoRefreshIntervalInMs,
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import { HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/HostMetricDescriptions";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -123,6 +125,8 @@ interface StatTileProps {
   sublabel?: string | undefined;
   percent?: number | null | undefined;
   barClassName?: string | undefined;
+  // What the tile shows, in an (i) tooltip beside the title.
+  description?: string | undefined;
 }
 
 const StatTile: FunctionComponent<StatTileProps> = (
@@ -139,9 +143,12 @@ const StatTile: FunctionComponent<StatTileProps> = (
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-          {props.title}
-        </span>
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {props.title}
+          </span>
+          <InfoTooltip label={props.title} text={props.description} />
+        </div>
         <div
           className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
         >
@@ -644,6 +651,7 @@ const HostServiceView: FunctionComponent<
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile
           title="Current Status"
+          description={HOST_METRIC_DESCRIPTIONS.serviceCurrentStatus}
           icon={IconProp.Bolt}
           iconColor={identity.currentCode === 4 ? "emerald" : "slate"}
           value={statusMeta(identity.currentCode).label}
@@ -655,6 +663,7 @@ const HostServiceView: FunctionComponent<
         />
         <StatTile
           title="Availability"
+          description={HOST_METRIC_DESCRIPTIONS.serviceAvailability}
           icon={IconProp.ChartBar}
           iconColor="blue"
           value={availability === null ? "—" : `${availability.toFixed(1)}%`}
@@ -668,6 +677,7 @@ const HostServiceView: FunctionComponent<
         />
         <StatTile
           title="Startup Mode"
+          description={HOST_METRIC_DESCRIPTIONS.serviceStartupMode}
           icon={IconProp.Cog}
           iconColor="violet"
           value={startupModeLabel(identity.startupMode)}
@@ -675,6 +685,7 @@ const HostServiceView: FunctionComponent<
         />
         <StatTile
           title="State Changes"
+          description={HOST_METRIC_DESCRIPTIONS.serviceStateChanges}
           icon={IconProp.ArrowPath}
           iconColor="amber"
           value={transitions.length.toString()}
@@ -750,9 +761,15 @@ const HostServiceView: FunctionComponent<
     return (
       <div className="mb-6">
         <div className="mb-3">
-          <h2 className="text-sm font-semibold text-gray-900">
-            Status timeline
-          </h2>
+          <div className="flex items-center gap-1">
+            <h2 className="text-sm font-semibold text-gray-900">
+              Status timeline
+            </h2>
+            <InfoTooltip
+              label="Status timeline"
+              text={HOST_METRIC_DESCRIPTIONS.serviceStatusTimeline}
+            />
+          </div>
           <p className="text-xs text-gray-500">
             {`Worst observed state per interval${
               truncatedFrom

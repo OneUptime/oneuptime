@@ -37,6 +37,7 @@ import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import { HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/HostMetricDescriptions";
 
 interface ProcessRow {
   key: string;
@@ -375,6 +376,7 @@ const HostProcesses: FunctionComponent<
         title: "CPU",
         type: FieldType.Element,
         key: "cpuPercent",
+        headerTooltip: HOST_METRIC_DESCRIPTIONS.processListCpu,
         disableSort: true,
         getElement: (row: ProcessRow): ReactElement => {
           const pct: number = Math.min(100, Math.max(0, row.cpuPercent ?? 0));
@@ -397,6 +399,7 @@ const HostProcesses: FunctionComponent<
         title: "Memory",
         type: FieldType.Element,
         key: "memoryBytes",
+        headerTooltip: HOST_METRIC_DESCRIPTIONS.processListMemory,
         disableSort: true,
         getElement: (row: ProcessRow): ReactElement => {
           const pct: number = Math.min(

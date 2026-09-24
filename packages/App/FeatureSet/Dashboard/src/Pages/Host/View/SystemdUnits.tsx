@@ -39,6 +39,7 @@ import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import { HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/HostMetricDescriptions";
 import FilterChipDropdown, {
   FilterChipDropdownOption,
 } from "../../../Components/ResourceOwners/FilterChipDropdown";
@@ -366,6 +367,7 @@ const HostSystemdUnits: FunctionComponent<
         title: "Type",
         type: FieldType.Element,
         key: "unitType",
+        headerTooltip: HOST_METRIC_DESCRIPTIONS.unitListType,
         hideOnMobile: true,
         getElement: (row: SystemdUnitRow): ReactElement => {
           return (
@@ -377,6 +379,7 @@ const HostSystemdUnits: FunctionComponent<
         title: "State",
         type: FieldType.Element,
         key: "activeState",
+        headerTooltip: HOST_METRIC_DESCRIPTIONS.unitListState,
         getElement: (row: SystemdUnitRow): ReactElement => {
           const meta: SystemdStateMeta = activeStateMeta(row.activeState);
           return (
