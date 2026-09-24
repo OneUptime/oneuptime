@@ -146,7 +146,7 @@ Feed items are written by the incident service itself, by both note services, by
 
 Each type gets its own icon, so you can scan a long feed and pick out the state changes from the chatter. AI-generated root cause analysis is marked distinctly and rendered in a restricted Markdown mode.
 
-Linking an alert is recorded on the alert too. Alerts keep a feed of their own, where the same change appears as **Linked to Incident** (`LinkedToIncident`) or **Unlinked from Incident** (`UnlinkedFromIncident`), naming the incident. Only the incident's **Alert Linked** and **Alert Unlinked** entries are posted to Slack and Microsoft Teams, so each link is announced once. See [Linked Alerts](/docs/incidents/linked-alerts).
+Linking an alert is recorded on the alert too. Alerts keep a feed of their own, where the same change appears as **Linked to Incident** (`LinkedToIncident`) or **Unlinked from Incident** (`UnlinkedFromIncident`), naming the incident. Only the incident's **Alert Linked** and **Alert Unlinked** entries are posted to Slack and Microsoft Teams, so each link is announced once. An incident declared from alerts gets a single **Alert Linked** entry listing all of them instead of one per alert, and a private alert's or incident's title is left out of the other side's entry. See [Linked Alerts](/docs/incidents/linked-alerts).
 
 Feeds respect incident privacy: for private incidents, feed reads are filtered the same way the incident is.
 

@@ -17,6 +17,8 @@ This page walks through all four, field by field, and then covers what the serve
 
 All four write the same model, so an incident opened by a probe looks exactly like one a responder opened by hand — apart from a few bookkeeping columns the server sets on automatic ones.
 
+You can also declare an incident from a selection of alerts: **Declare Incident** on an alerts list opens the same wizard, prefilled from the alerts, and links them to the new incident. See [Linked Alerts](/docs/incidents/linked-alerts).
+
 ## Declaring one by hand
 
 Open **Incidents → All Incidents** and click **Declare Incident** at the top right of the **Incidents** list. That takes you to a card titled **Declare New Incident**, which spreads the form over five steps: **Incident Details**, **Resources Affected**, **Incident Roles**, **On-Call** and **More**. The submit button at the end also reads **Declare Incident**.
