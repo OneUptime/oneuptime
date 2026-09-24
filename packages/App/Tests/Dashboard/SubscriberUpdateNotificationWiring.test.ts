@@ -44,31 +44,39 @@ const PAGES: Array<PageCase> = [
     messageColumn: "subscriberNotificationStatusMessageOnAnnouncementUpdated",
     originalStatusColumn: "subscriberNotificationStatus",
   },
+];
+
+/*
+ * The public note pages of incidents, scheduled maintenance events and
+ * incident episodes are thin wrappers around the shared notes feed
+ * (Components/EventNotes), which owns the edit form, the notification badges
+ * and their retries for all of them.
+ */
+interface NotePageCase {
+  name: string;
+  file: Array<string>;
+  modelType: string;
+}
+
+const NOTE_PAGES: Array<NotePageCase> = [
   {
     name: "Incident public notes",
     file: ["Pages", "Incidents", "View", "PublicNote.tsx"],
     modelType: "IncidentPublicNote",
-    statusColumn: "subscriberNotificationStatusOnNoteUpdated",
-    messageColumn: "subscriberNotificationStatusMessageOnNoteUpdated",
-    originalStatusColumn: "subscriberNotificationStatusOnNoteCreated",
   },
   {
     name: "Scheduled maintenance public notes",
     file: ["Pages", "ScheduledMaintenanceEvents", "View", "PublicNote.tsx"],
     modelType: "ScheduledMaintenancePublicNote",
-    statusColumn: "subscriberNotificationStatusOnNoteUpdated",
-    messageColumn: "subscriberNotificationStatusMessageOnNoteUpdated",
-    originalStatusColumn: "subscriberNotificationStatusOnNoteCreated",
   },
   {
     name: "Incident episode public notes",
     file: ["Pages", "Incidents", "EpisodeView", "PublicNote.tsx"],
     modelType: "IncidentEpisodePublicNote",
-    statusColumn: "subscriberNotificationStatusOnNoteUpdated",
-    messageColumn: "subscriberNotificationStatusMessageOnNoteUpdated",
-    originalStatusColumn: "subscriberNotificationStatusOnNoteCreated",
   },
 ];
+
+const EVENT_NOTES_DIR: Array<string> = ["Components", "EventNotes"];
 
 describe.each(PAGES)("$name", (page: PageCase) => {
   const source: string = readSource(...page.file);
@@ -139,16 +147,104 @@ describe.each(PAGES)("$name", (page: PageCase) => {
   });
 });
 
-describe("the note tables only offer the update checkbox when editing", () => {
-  test.each(PAGES.slice(1))(
-    "$name renders its form through ModelTable, which honours doNotShowWhenCreating",
-    (page: PageCase) => {
-      expect(readSource(...page.file)).toContain(
-        `<ModelTable<${page.modelType}>`,
-      );
-    },
-  );
+describe.each(NOTE_PAGES)("$name", (page: NotePageCase) => {
+  const source: string = readSource(...page.file);
 
+  test("renders the shared public notes feed, which owns the edit form", () => {
+    expect(source).toMatch(
+      new RegExp(
+        `<EventNotes<${page.modelType}> [^>]*modelType=\\{${page.modelType}\\} visibility="public"`,
+      ),
+    );
+  });
+});
+
+describe("the shared notes feed", () => {
+  const feed: string = readSource(...EVENT_NOTES_DIR, "EventNotes.tsx");
+  const card: string = readSource(...EVENT_NOTES_DIR, "NoteCard.tsx");
+  const util: string = readSource(...EVENT_NOTES_DIR, "EventNotesUtil.ts");
+
+  test("offers the notify-about-this-update checkbox on the edit form of a public note only", () => {
+    expect(feed).toContain(
+      "const updateNotifyOption: NotifyOption | undefined = isPublic ? { title: SubscriberUpdateNotification.formFieldTitle,",
+    );
+    expect(feed).toContain("updateNotifyOption={updateNotifyOption}");
+    expect(card).toContain("notifyOption={props.updateNotifyOption}");
+  });
+
+  test("starts every edit unticked, so a typo fix never pages subscribers", () => {
+    const startEdit: string =
+      card.match(
+        /const startEdit: \(\) => void = \(\): void => \{[\s\S]*?\}\);/,
+      )?.[0] || "";
+
+    expect(startEdit).not.toBe("");
+    expect(startEdit).toContain("shouldNotify: false,");
+  });
+
+  test("asks for an update notification as a misc data prop, only when ticked on a public note", () => {
+    expect(feed).toContain(
+      "miscDataProps: isPublic && values.shouldNotify ? SubscriberUpdateNotification.getMiscDataProps() : {},",
+    );
+  });
+
+  test("selects the update notification status and message so its details can be shown", () => {
+    expect(util).toContain(
+      'candidates["subscriberNotificationStatusOnNoteUpdated"] = true;',
+    );
+    expect(util).toContain(
+      'candidates["subscriberNotificationStatusMessageOnNoteUpdated"] = true;',
+    );
+  });
+
+  test("shows the update notification status on public notes", () => {
+    expect(card).toContain(
+      'props.visibility === "public" ? getUpdateNotificationSummary( props.note.subscriberNotificationStatusOnNoteUpdated, props.note.subscriberNotificationStatusMessageOnNoteUpdated, ) : null;',
+    );
+  });
+
+  test("hides the update status until an update notification was requested", () => {
+    const summary: string =
+      util.match(
+        /export function getUpdateNotificationSummary\([\s\S]*?\n?default: return null; \} \}/,
+      )?.[0] || "";
+
+    expect(summary).not.toBe("");
+    expect(summary).toContain("default: return null;");
+  });
+
+  test("retries the update notification, not the original one", () => {
+    const retry: string =
+      feed.match(
+        /: \{ subscriberNotificationStatusOnNoteUpdated:[\s\S]*?\},/,
+      )?.[0] || "";
+
+    expect(retry).not.toBe("");
+    expect(retry).toContain(
+      "subscriberNotificationStatusOnNoteUpdated: StatusPageSubscriberNotificationStatus.Pending,",
+    );
+    expect(retry).toContain(
+      "subscriberNotificationStatusMessageOnNoteUpdated: SubscriberUpdateNotification.resendQueuedMessage,",
+    );
+    expect(retry).not.toContain("subscriberNotificationStatusOnNoteCreated");
+    expect(feed).toContain('return resendNotification(note, "update");');
+  });
+
+  test("keeps the original notification's retry as it was", () => {
+    const retry: string =
+      feed.match(
+        /kind === "posted" \? \{ subscriberNotificationStatusOnNoteCreated:[\s\S]*?\}/,
+      )?.[0] || "";
+
+    expect(retry).toContain(
+      "subscriberNotificationStatusOnNoteCreated: StatusPageSubscriberNotificationStatus.Pending,",
+    );
+    expect(retry).not.toContain("subscriberNotificationStatusOnNoteUpdated");
+    expect(feed).toContain('return resendNotification(note, "posted");');
+  });
+});
+
+describe("the announcement only offers the update checkbox when editing", () => {
   test("the announcement checkbox lives on the edit-only details card, not the create page", () => {
     expect(
       readSource("Pages", "StatusPages", "AnnouncementCreate.tsx"),
@@ -180,11 +276,30 @@ describe("the note tables only offer the update checkbox when editing", () => {
 describe("the update notification strings are translated", () => {
   const LOCALES_DIR: string = path.join(DASHBOARD_SRC, "Locales");
 
+  const ANNOUNCEMENT_STRINGS: Array<string> = [
+    "Send subscribers the edited announcement, marked as an update. Leave this unticked for small fixes such as typos.",
+    "Update Notification Status",
+  ];
+
+  const NOTE_FEED_STRINGS: Array<string> = [
+    "Subscribers will receive the edited note, marked as an update.",
+    "Leave this unticked for small fixes such as typos.",
+  ];
+
+  // What the badge on a public note says about its update notification.
+  const UPDATE_BADGE_LABELS: Array<string> = [
+    "Update sent",
+    "Update queued",
+    "Sending update",
+    "Update failed",
+    "Update not sent",
+  ];
+
   const STRINGS: Array<string> = [
     "Notify subscribers about this update",
-    "Send subscribers the edited announcement, marked as an update. Leave this unticked for small fixes such as typos.",
-    "Send subscribers the edited note, marked as an update. Leave this unticked for small fixes such as typos.",
-    "Update Notification Status",
+    ...ANNOUNCEMENT_STRINGS,
+    ...NOTE_FEED_STRINGS,
+    ...UPDATE_BADGE_LABELS,
   ];
 
   const localeFiles: Array<string> = fs
@@ -193,16 +308,33 @@ describe("the update notification strings are translated", () => {
       return name.endsWith(".json");
     });
 
-  test("the pages use exactly these strings", () => {
-    const pages: string = PAGES.map((page: PageCase): string => {
-      return fs.readFileSync(path.join(DASHBOARD_SRC, ...page.file), "utf8");
-    })
-      .join(" ")
+  function readRaw(...relativePath: Array<string>): string {
+    return fs
+      .readFileSync(path.join(DASHBOARD_SRC, ...relativePath), "utf8")
       .replace(/\s+/g, " ");
+  }
 
-    expect(pages).toContain(STRINGS[1]);
-    expect(pages).toContain(STRINGS[2]);
-    expect(pages).toContain(STRINGS[3]);
+  test("the pages and the feed use exactly these strings", () => {
+    const announcement: string = readRaw(
+      "Pages",
+      "StatusPages",
+      "AnnouncementView.tsx",
+    );
+    const feed: string = readRaw(...EVENT_NOTES_DIR, "EventNotes.tsx");
+    const util: string = readRaw(...EVENT_NOTES_DIR, "EventNotesUtil.ts");
+
+    for (const text of ANNOUNCEMENT_STRINGS) {
+      expect(announcement).toContain(`"${text}"`);
+    }
+
+    for (const text of NOTE_FEED_STRINGS) {
+      expect(feed).toContain(`"${text}"`);
+    }
+
+    for (const label of UPDATE_BADGE_LABELS) {
+      expect(util).toContain(`label: "${label}",`);
+    }
+
     expect(
       fs.readFileSync(
         path.join(

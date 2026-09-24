@@ -2,6 +2,10 @@ import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/Pub
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import {
+  describePublicNotesTab,
+  describeSharedPublicNoteWiring,
+} from "./PublicNotesTabWiring";
 
 /*
  * An incident episode created without notifying status page subscribers
@@ -233,104 +237,23 @@ describe("incident episode feed public note", () => {
   });
 });
 
-describe("incident episode Public Notes tab", () => {
-  const source: string = readSource(...PUBLIC_NOTES_TAB_FILE);
-  const checkbox: string = extract(
-    source,
-    /\{ field: \{ shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true, \},[\s\S]*?\}/,
-  );
-
-  test("loads only the episode's notify-on-create setting", () => {
-    const getEpisode: string = extract(
-      source,
-      /ModelAPI\.getItem<IncidentEpisode>\(\{[\s\S]*?\}, \}\)/,
-    );
-
-    expect(getEpisode).not.toBe("");
-    expect(getEpisode).toContain("modelType: IncidentEpisode,");
-    expect(getEpisode).toContain("id: modelId,");
-    expect(getEpisode).toContain(
-      "select: { shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated: true, },",
-    );
-  });
-
-  test("derives the default from the shared helper", () => {
-    expect(source).toContain(HELPER_IMPORT);
-    expect(source).toContain(
-      "setNotifySubscribersByDefault( PublicNoteSubscriberNotificationDefault.shouldNotifyForIncidentEpisode( episode, ), );",
-    );
-    expect(source).not.toContain(INCIDENT_HELPER_CALL);
-  });
-
-  test("reloads the setting for each episode and drops a stale answer", () => {
-    expect(source).toContain(
-      'useEffect(() => { let isStale: boolean = false; setNotifySubscribersByDefault(null); setEpisodeError("");',
-    );
-    expect(source).toContain("if (!isStale) { setNotifySubscribersByDefault(");
-    expect(source).toContain(
-      "if (!isStale) { setEpisodeError(API.getFriendlyMessage(err)); }",
-    );
-    expect(source).toContain(
-      "return () => { isStale = true; }; }, [modelId.toString()]);",
-    );
-  });
-
-  test("does not render the notes table until the default is known", () => {
-    expect(source).toMatch(/useState< ?boolean \| null ?>\(null\)/);
-    expect(source).toContain(
-      "if (notifySubscribersByDefault === null) { return <PageLoader isVisible={true} />; }",
-    );
-    expect(
-      indexOfOrFail(source, "if (notifySubscribersByDefault === null)"),
-    ).toBeLessThan(
-      indexOfOrFail(source, "<ModelTable<IncidentEpisodePublicNote>"),
-    );
-  });
-
-  test("shows an error instead of the table when the episode cannot be loaded", () => {
-    expect(source).toContain(
-      "if (episodeError) { return <ErrorMessage message={episodeError} />; }",
-    );
-    expect(indexOfOrFail(source, "if (episodeError)")).toBeLessThan(
-      indexOfOrFail(source, "<ModelTable<IncidentEpisodePublicNote>"),
-    );
-  });
-
-  test("keeps a failed resend below the table instead of replacing it", () => {
-    expect(source).toContain("setError(API.getFriendlyMessage(err));");
-    expect(source).not.toMatch(/if \(error\) \{ return/);
-  });
-
-  test("seeds the create form with the flag as a value", () => {
-    const createInitialValues: string = extract(
-      source,
-      /createInitialValues=\{\{[\s\S]*?\}\}/,
-    );
-
-    expect(createInitialValues).toBe(
-      "createInitialValues={{ shouldStatusPageSubscribersBeNotifiedOnNoteCreated: notifySubscribersByDefault, }}",
-    );
-  });
-
-  test("never opens the create form on its own", () => {
-    expect(source).not.toContain("showCreateForm");
-  });
-
-  test("starts the checkbox from the episode's default instead of hard-coding true", () => {
-    expect(checkbox).not.toBe("");
-    expect(checkbox).toContain('title: "Notify Status Page Subscribers"');
-    expect(checkbox).toContain("fieldType: FormFieldSchemaType.Checkbox,");
-    expect(checkbox).toContain("defaultValue: notifySubscribersByDefault,");
-    expect(checkbox).not.toContain("defaultValue: true");
-  });
-
-  test("explains an unticked default with the shared episode description", () => {
-    expect(checkbox).toContain(
-      `description: notifySubscribersByDefault ? "Should status page subscribers be notified?" : ${QUIET_DESCRIPTION_REFERENCE},`,
-    );
-    expect(source).not.toContain(INCIDENT_QUIET_DESCRIPTION_REFERENCE);
-  });
+describePublicNotesTab({
+  eventName: "incident episode",
+  file: PUBLIC_NOTES_TAB_FILE,
+  parentModel: "IncidentEpisode",
+  noteModel: "IncidentEpisodePublicNote",
+  parentIdField: "incidentEpisodeId",
+  parentFlag: "shouldStatusPageSubscribersBeNotifiedOnEpisodeCreated",
+  resolveArgument: "episode",
+  helperCall: "shouldNotifyForIncidentEpisode",
+  quietDescriptionReference: QUIET_DESCRIPTION_REFERENCE,
+  foreignReferences: [
+    INCIDENT_HELPER_CALL,
+    INCIDENT_QUIET_DESCRIPTION_REFERENCE,
+  ],
 });
+
+describeSharedPublicNoteWiring();
 
 /*
  * The episode state change only records a private note. If it ever gains a
