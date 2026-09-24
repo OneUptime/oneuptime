@@ -47,13 +47,13 @@ cluster-backed suites that install the chart on a throwaway KinD cluster. That i
 `helm-test` job in the "Common Jobs" workflow. Suites live in `HelmChart/Tests/suites`;
 see `HelmChart/README.md` for how to add one.
 
-### Project docs
-
-Internal roadmaps live in `Docs/Internal/Roadmap/` (see its README for the index).
-
 ### Mobile app releases
 
 Before building or publishing the Android or iOS app, read
 [packages/MobileApp/RELEASING.md](packages/MobileApp/RELEASING.md). It contains the existing store and
 Expo identifiers, the verified release procedure, privacy checks, and the steps
 needed after uploading a binary to actually submit and publish the update.
+
+### Commit frequently
+
+Committing frequently helps keep your changes small and manageable. It also makes it easier to identify which changes introduced a bug if something goes wrong. Aim to commit logically related changes together and write clear commit messages that describe the purpose of the change. It also costs less when the work session is interrupted and resumed later.
