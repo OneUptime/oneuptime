@@ -50,6 +50,7 @@ import {
   SessionUserDescription,
 } from "./SessionReplayUserIdentity";
 import SessionReplayUserAvatar from "./SessionReplayUserAvatar";
+import { RUM_REPLAY_USERS_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 
 /*
  * The Users page's table: the same window of sessions the flat list shows, rolled
@@ -381,19 +382,29 @@ const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-xs",
   },
-  { title: "Sessions", key: "sessionCount" },
+  {
+    title: "Sessions",
+    key: "sessionCount",
+    headerTooltip: RUM_REPLAY_USERS_METRIC_DESCRIPTIONS.sessions,
+  },
   {
     title: "Last seen",
     key: "lastSeenUnixMs",
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-48",
+    headerTooltip: RUM_REPLAY_USERS_METRIC_DESCRIPTIONS.lastSeen,
   },
-  { title: "Time", key: "totalDurationMs" },
+  {
+    title: "Time",
+    key: "totalDurationMs",
+    headerTooltip: RUM_REPLAY_USERS_METRIC_DESCRIPTIONS.time,
+  },
   {
     title: "Signals",
     key: "errorCount",
     wrapContent: true,
     wrapMaxWidthClassName: "max-w-56",
+    headerTooltip: RUM_REPLAY_USERS_METRIC_DESCRIPTIONS.signals,
   },
   { title: "Actions", key: "lastSessionId", type: FieldType.Actions },
 ].map(
@@ -404,6 +415,8 @@ const SESSION_REPLAY_USER_COLUMNS: Columns<SessionReplayUsersTableRow> = [
       type?: FieldType;
       wrapContent?: boolean;
       wrapMaxWidthClassName?: string;
+      /* What the column's numbers mean, in an (i) beside the header. */
+      headerTooltip?: string;
     },
     index: number,
   ) => {

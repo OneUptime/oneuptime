@@ -12,6 +12,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { RecordingHealthStatus } from "Common/Types/Rum/SessionReplayHealth";
 import {
   formatCountForCopy,
@@ -39,12 +40,14 @@ import {
   HealthCounterRow,
   HealthTone,
   RecordingPipelineStage,
+  RecordingPipelineStageKey,
   UsageMeter,
   buildCounterBreakdown,
   buildRecordingPipeline,
   buildUsageMeter,
   describePollInterval,
 } from "./RecordingHealthModel";
+import { RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 
 /*
  * RecordingHealthDashboard: the Replay Health page.
@@ -339,6 +342,21 @@ function HealthHero(props: {
 
 /* ------------------------------------------------------------ Pipeline */
 
+/*
+ * What each stage's big value is read from, in the (i) beside its label.
+ * The stage captions say what the value means for this status; these say
+ * where it comes from and how often it moves.
+ */
+export const PIPELINE_STAGE_TOOLTIPS: Record<
+  RecordingPipelineStageKey,
+  string
+> = {
+  recorder: RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS.recorderLoaded,
+  policy: RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS.recordingAllowed,
+  uploads: RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS.chunksReceived,
+  sessions: RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS.sessionsLast24h,
+};
+
 function RecordingPipeline(props: {
   stages: Array<RecordingPipelineStage>;
 }): ReactElement {
@@ -378,8 +396,15 @@ function RecordingPipeline(props: {
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-100 text-[11px] font-semibold text-gray-600">
                     {index + 1}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-xs font-medium uppercase tracking-wide text-gray-500">
-                    {stage.label}
+                  <span className="flex min-w-0 flex-1 items-center gap-1">
+                    <span className="min-w-0 truncate text-xs font-medium uppercase tracking-wide text-gray-500">
+                      {stage.label}
+                    </span>
+                    <InfoTooltip
+                      label={stage.label}
+                      text={PIPELINE_STAGE_TOOLTIPS[stage.key]}
+                      dataTestId={`health-stage-${stage.key}-info`}
+                    />
                   </span>
                   <Icon
                     icon={tone.icon}
@@ -418,6 +443,8 @@ function RecordingPipeline(props: {
 function CounterList(props: {
   title: string;
   hint: string;
+  /* What is counted and over which window, in an (i) beside the title. */
+  tooltip: string;
   noneCopy: string;
   breakdown: HealthCounterBreakdown;
   dataTestId: string;
@@ -428,7 +455,14 @@ function CounterList(props: {
   return (
     <div data-testid={props.dataTestId} data-kind={breakdown.kind}>
       <div className="flex items-baseline justify-between gap-3">
-        <h4 className="text-sm font-medium text-gray-900">{props.title}</h4>
+        <h4 className="inline-flex items-center gap-1 text-sm font-medium text-gray-900">
+          {props.title}
+          <InfoTooltip
+            label={props.title}
+            text={props.tooltip}
+            dataTestId={`${props.dataTestId}-info`}
+          />
+        </h4>
         {breakdown.kind === "list" && (
           <span
             className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-700"
@@ -497,6 +531,8 @@ function CounterList(props: {
 
 function UsageMeterRow(props: {
   label: string;
+  /* Which bytes, which window and which ceiling, in an (i) beside the label. */
+  tooltip: string;
   meter: UsageMeter;
   noLimitCopy: string;
   dataTestId: string;
@@ -510,7 +546,14 @@ function UsageMeterRow(props: {
       data-tone={meter.kind === "limited" ? meter.tone : undefined}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-sm font-medium text-gray-900">{props.label}</span>
+        <span className="inline-flex items-center gap-1 text-sm font-medium text-gray-900">
+          {props.label}
+          <InfoTooltip
+            label={props.label}
+            text={props.tooltip}
+            dataTestId={`${props.dataTestId}-info`}
+          />
+        </span>
         {meter.kind === "limited" && (
           <span
             className={`text-sm font-semibold tabular-nums ${TONE_STYLES[meter.tone].valueClassName}`}
@@ -868,6 +911,9 @@ export const RecordingHealthDashboardView: FunctionComponent<
                 <CounterList
                   title="Refused at the gate"
                   hint="Answered to the recorder with the same reason words its diagnostics quote."
+                  tooltip={
+                    RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS.refusedAtGate
+                  }
                   noneCopy="No upload was refused in the last 24 hours."
                   breakdown={buildCounterBreakdown(status.refusalsLast24h)}
                   dataTestId="health-refusals"
@@ -876,6 +922,9 @@ export const RecordingHealthDashboardView: FunctionComponent<
                 <CounterList
                   title="Dropped after acceptance"
                   hint="Accepted with a 202, then not stored by the worker: a different fact from a refusal, and the recorder was never told."
+                  tooltip={
+                    RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS.droppedAfterAcceptance
+                  }
                   noneCopy="No accepted chunk was dropped in the last 24 hours."
                   breakdown={buildCounterBreakdown(health.extras.dropsLast24h)}
                   dataTestId="health-drops"
@@ -900,6 +949,9 @@ export const RecordingHealthDashboardView: FunctionComponent<
               <div className="space-y-6">
                 <UsageMeterRow
                   label="Project bytes today"
+                  tooltip={
+                    RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS.projectBytesToday
+                  }
                   meter={buildUsageMeter(
                     status.projectBytesUsedToday,
                     status.dailyByteLimit,
@@ -909,6 +961,9 @@ export const RecordingHealthDashboardView: FunctionComponent<
                 />
                 <UsageMeterRow
                   label="This application this month"
+                  tooltip={
+                    RUM_RECORDING_HEALTH_METRIC_DESCRIPTIONS.applicationBytesThisMonth
+                  }
                   meter={buildUsageMeter(
                     status.applicationBytesUsedThisMonth,
                     status.monthlyBudgetInGB === null
