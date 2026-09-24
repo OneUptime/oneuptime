@@ -39,6 +39,7 @@ import {
 } from "../Utils/VMwareResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 
 const MIB: number = 1024 * 1024;
 const KIB: number = 1024;
@@ -377,6 +378,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     if (powerState) {
       summaryFields.push({
         title: isTemplate ? "Type" : "Power State",
+        description: VMWARE_METRIC_DESCRIPTIONS.vmPowerState,
         value: (
           <StatusBadge
             text={powerState}
@@ -427,11 +429,13 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
         summaryFields.push({
           title: "CPU",
           value: `${formatPercent(Number(row.latestCpuPercent))}${usage}`,
+          description: VMWARE_METRIC_DESCRIPTIONS.vmCpu,
         });
       } else if (row.isPoweredOn === false) {
         summaryFields.push({
           title: "CPU",
           value: "N/A — CPU metrics are only reported while powered on",
+          description: VMWARE_METRIC_DESCRIPTIONS.vmCpu,
         });
       }
 
@@ -442,6 +446,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
         const readiness: number = Number(row.cpuReadinessPercent);
         summaryFields.push({
           title: "CPU Ready",
+          description: VMWARE_METRIC_DESCRIPTIONS.vmCpuReady,
           value:
             readiness > 10 ? (
               <StatusBadge
@@ -468,6 +473,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
             ? Number(row.maxMemoryBytes)
             : null,
         )}${pct}`,
+        description: VMWARE_METRIC_DESCRIPTIONS.vmMemory,
       });
     }
 
@@ -479,6 +485,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     if (ballooned > 0) {
       summaryFields.push({
         title: "Memory Ballooned",
+        description: VMWARE_METRIC_DESCRIPTIONS.vmMemoryBallooned,
         value: (
           <StatusBadge
             text={formatBytes(ballooned)}
@@ -494,6 +501,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
     if (swapped > 0) {
       summaryFields.push({
         title: "Memory Swapped",
+        description: VMWARE_METRIC_DESCRIPTIONS.vmMemorySwapped,
         value: (
           <StatusBadge
             text={formatBytes(swapped)}
@@ -515,6 +523,7 @@ const VMwareVCenterVirtualMachineDetail: FunctionComponent<
             ? Number(row.maxDiskBytes)
             : null,
         )}${pct}`,
+        description: VMWARE_METRIC_DESCRIPTIONS.vmDisk,
       });
     }
 
