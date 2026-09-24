@@ -7,9 +7,14 @@ import ServiceService from "Common/Server/Services/ServiceService";
 import InventoryItemService from "Common/Server/Services/InventoryItemService";
 import InventoryItemRelationshipService from "Common/Server/Services/InventoryItemRelationshipService";
 import DatabaseServerService from "Common/Server/Services/DatabaseServerService";
+import DatabaseServerEndpointService, {
+  DatabaseServerEndpointClaimResult,
+} from "Common/Server/Services/DatabaseServerEndpointService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import Service from "Common/Models/DatabaseModels/Service";
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
+import DatabaseServerEndpoint from "Common/Models/DatabaseModels/DatabaseServerEndpoint";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import LIMIT_MAX from "Common/Types/Database/LimitMax";
 import OneUptimeDate from "Common/Types/Date";
@@ -18,6 +23,7 @@ import DatabaseServerDiscoverySource from "Common/Types/DatabaseServer/DatabaseS
 import {
   DatabaseEndpoint,
   formatDatabaseEndpoint,
+  getDatabaseEndpointScope,
 } from "Common/Types/DatabaseServer/DatabaseEndpoint";
 import EntityType from "Common/Types/Telemetry/EntityType";
 import { EntityRelationshipEdge } from "Common/Utils/Telemetry/EntityRelationship";
@@ -49,6 +55,7 @@ import {
   DiscoveredDatabaseEndpoint,
   buildDatabaseEndpointSql,
   getDatabaseServerMinCalls,
+  getDiscoveredDatabaseEndpoints,
   isDatabaseEndpointAutoCreateCandidate,
   resolveDatabaseEndpointRows,
 } from "Common/Server/Utils/Telemetry/DatabaseEndpointDiscovery";
@@ -80,7 +87,9 @@ import {
  * conservatively, when new) and sighted — see
  * discoverDatabaseServersForProject. That step is isolated from the edges:
  * it neither changes the dependency queries nor the Database registry
- * identity above, and neither side's failure costs the other its run.
+ * identity above, and neither side's failure costs the other its run. It
+ * runs after the dependency queries rather than beside them, so a project
+ * never has its two attribute-map scans of the window in flight at once.
  */
 
 // CronTime.ts has no ten-minute constant; this job is its only user.
@@ -190,45 +199,174 @@ async function loadServiceEntityKeys(
 }
 
 interface DatabaseEndpointMatch {
-  row: DatabaseServer | null;
+  // The rows the database's endpoints belong to: usually one, else none.
+  rows: Array<DatabaseServer>;
   created: boolean;
   // A create the policy allowed but the project's auto-create budget refused.
   overBudget: boolean;
 }
 
 /*
- * One discovered endpoint → its DatabaseServer row, or null. Looked up
- * first WITHOUT permission to create, so an endpoint that already has a row
- * (the steady state) costs no budget query; only a miss that passes the
- * conservative create policy asks the project's auto-create budget and tries
- * again with creation allowed (see AutoCreateBudget).
+ * endpoint → owning databaseServerId for every endpoint of the window that
+ * already belongs to a database: ONE indexed query per project and run
+ * instead of a lookup per endpoint. The endpoints nothing owns and nothing
+ * may create (IP literals, local names, quiet or unknown engines — most of
+ * a busy window) then cost no Postgres round trip at all.
  */
-async function findOrCreateDatabaseServerForEndpoint(data: {
+async function findDatabaseEndpointOwners(
+  projectId: ObjectID,
+  endpoints: Array<string>,
+): Promise<Map<string, string>> {
+  const owners: Map<string, string> = new Map<string, string>();
+
+  if (endpoints.length === 0) {
+    return owners;
+  }
+
+  const rows: Array<DatabaseServerEndpoint> =
+    await DatabaseServerEndpointService.findBy({
+      query: {
+        projectId: projectId,
+        endpoint: QueryHelper.any(endpoints),
+      },
+      select: {
+        endpoint: true,
+        databaseServerId: true,
+      },
+      skip: 0,
+      limit: LIMIT_MAX,
+      props: { isRoot: true },
+    });
+
+  for (const row of rows) {
+    if (row.endpoint && row.databaseServerId) {
+      owners.set(row.endpoint, row.databaseServerId.toString());
+    }
+  }
+
+  return owners;
+}
+
+/*
+ * The other endpoints of one logical database (the members of a managed
+ * cluster) become aliases of its row — "auto", only the global-scope ones
+ * (a local endpoint never auto-matches anything) and only while nobody owns
+ * them: an endpoint another row claimed first stays with it.
+ */
+async function claimSiblingEndpoints(data: {
+  projectId: ObjectID;
+  databaseServerId: ObjectID;
+  endpoints: Array<DatabaseEndpoint>;
+  owners: Map<string, string>;
+}): Promise<void> {
+  for (const endpoint of data.endpoints) {
+    const formatted: string = formatDatabaseEndpoint(endpoint);
+
+    if (
+      data.owners.has(formatted) ||
+      getDatabaseEndpointScope(endpoint) !== "global"
+    ) {
+      continue;
+    }
+
+    try {
+      const result: DatabaseServerEndpointClaimResult =
+        await DatabaseServerEndpointService.claimEndpoint({
+          projectId: data.projectId,
+          databaseServerId: data.databaseServerId,
+          endpoint: formatted,
+          isPrimary: false,
+          source: "auto",
+        });
+
+      if (result !== "owned-by-other") {
+        data.owners.set(formatted, data.databaseServerId.toString());
+      }
+    } catch (err) {
+      logger.error(
+        `ComputeServiceDependencies: claiming endpoint ${formatted} for database ${data.databaseServerId.toString()} failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+}
+
+/*
+ * One discovered database → its DatabaseServer row(s). `owners` (one query
+ * for the whole run) says which of its endpoints already belong to a row:
+ *
+ *   - owned: each owned endpoint is looked up WITHOUT permission to create
+ *     (the steady state, which also restores a row auto-archived while it
+ *     was quiet), and when they all belong to one row its still-unowned
+ *     siblings are claimed for it;
+ *   - unowned: only an endpoint that passes the conservative create policy
+ *     asks the project's auto-create budget (see AutoCreateBudget) and is
+ *     created — named after the cluster for a managed cluster, whose other
+ *     members it then claims. Anything else is not looked up at all.
+ */
+async function matchDatabaseServerForEndpoint(data: {
   projectId: ObjectID;
   discovered: DiscoveredDatabaseEndpoint;
+  owners: Map<string, string>;
   minCalls: number;
   budget: AutoCreateBudget;
 }): Promise<DatabaseEndpointMatch> {
-  const lookup: {
-    projectId: ObjectID;
-    dbSystem: string;
-    endpoint: DatabaseEndpoint;
-    discoverySource: DatabaseServerDiscoverySource;
-  } = {
-    projectId: data.projectId,
-    dbSystem: data.discovered.system,
-    endpoint: data.discovered.endpoint,
-    discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+  const endpoints: Array<DatabaseEndpoint> = getDiscoveredDatabaseEndpoints(
+    data.discovered,
+  );
+
+  const lookup: (
+    endpoint: DatabaseEndpoint,
+    allowCreate: boolean,
+  ) => Promise<DatabaseServer | null> = (
+    endpoint: DatabaseEndpoint,
+    allowCreate: boolean,
+  ): Promise<DatabaseServer | null> => {
+    return DatabaseServerService.findOrCreateByEndpoint({
+      projectId: data.projectId,
+      dbSystem: data.discovered.system,
+      endpoint: endpoint,
+      discoverySource: DatabaseServerDiscoverySource.ClientSpans,
+      displayName: allowCreate ? data.discovered.displayName : undefined,
+      allowCreate: allowCreate,
+    });
   };
 
-  const existing: DatabaseServer | null =
-    await DatabaseServerService.findOrCreateByEndpoint({
-      ...lookup,
-      allowCreate: false,
-    });
+  const ownerIds: Set<string> = new Set<string>();
+  const owned: Array<DatabaseEndpoint> = [];
+  for (const endpoint of endpoints) {
+    const ownerId: string | undefined = data.owners.get(
+      formatDatabaseEndpoint(endpoint),
+    );
+    if (ownerId) {
+      ownerIds.add(ownerId);
+      owned.push(endpoint);
+    }
+  }
 
-  if (existing) {
-    return { row: existing, created: false, overBudget: false };
+  if (owned.length > 0) {
+    const rows: Array<DatabaseServer> = [];
+    const rowIds: Set<string> = new Set<string>();
+
+    for (const endpoint of owned) {
+      const row: DatabaseServer | null = await lookup(endpoint, false);
+      const rowId: string | undefined = row?.id?.toString();
+      if (row && rowId && !rowIds.has(rowId)) {
+        rowIds.add(rowId);
+        rows.push(row);
+      }
+    }
+
+    // Every owned member belongs to one database: the rest join it.
+    if (ownerIds.size === 1 && rows.length === 1 && rows[0]!.id) {
+      await claimSiblingEndpoints({
+        projectId: data.projectId,
+        databaseServerId: rows[0]!.id,
+        endpoints: endpoints,
+        owners: data.owners,
+      });
+    }
+
+    return { rows: rows, created: false, overBudget: false };
   }
 
   if (
@@ -237,34 +375,49 @@ async function findOrCreateDatabaseServerForEndpoint(data: {
       minCalls: data.minCalls,
     })
   ) {
-    return { row: null, created: false, overBudget: false };
+    return { rows: [], created: false, overBudget: false };
   }
 
   if (!(await data.budget.allowsCreate(data.projectId))) {
-    return { row: null, created: false, overBudget: true };
+    return { rows: [], created: false, overBudget: true };
   }
 
-  const created: DatabaseServer | null =
-    await DatabaseServerService.findOrCreateByEndpoint({
-      ...lookup,
-      allowCreate: true,
+  const created: DatabaseServer | null = await lookup(
+    data.discovered.endpoint,
+    true,
+  );
+
+  if (!created) {
+    return { rows: [], created: false, overBudget: false };
+  }
+
+  data.budget.recordCreate(data.projectId);
+
+  if (created.id) {
+    data.owners.set(
+      formatDatabaseEndpoint(data.discovered.endpoint),
+      created.id.toString(),
+    );
+    await claimSiblingEndpoints({
+      projectId: data.projectId,
+      databaseServerId: created.id,
+      endpoints: endpoints,
+      owners: data.owners,
     });
-
-  if (created) {
-    data.budget.recordCreate(data.projectId);
   }
 
-  return { row: created, created: Boolean(created), overBudget: false };
+  return { rows: [created], created: true, overBudget: false };
 }
 
 /**
- * Databases from client spans: every database endpoint the project's DB
- * CLIENT spans called in the window is matched to its DatabaseServer row —
+ * Databases from client spans: every database the project's DB CLIENT
+ * spans called in the window is matched to its DatabaseServer row —
  * created when new, busy enough, global-scope, named by host and of an
  * auto-creatable engine, within budget — and that row is sighted
- * (lastSeenAt). Each endpoint is isolated from the next, and the whole step
- * from the dependency sources: it never throws. Returns how many rows were
- * sighted.
+ * (lastSeenAt) once. The members of one managed cluster are one database.
+ * Which endpoints already have a row is read in one query up front. Each
+ * database is isolated from the next, and the whole step from the
+ * dependency sources: it never throws. Returns how many rows were sighted.
  */
 export async function discoverDatabaseServersForProject(args: {
   projectId: string;
@@ -286,7 +439,7 @@ export async function discoverDatabaseServersForProject(args: {
 
     if (rows.length >= MAX_DATABASE_ENDPOINT_ROWS) {
       logger.warn(
-        `ComputeServiceDependencies: project ${args.projectId} called at least ${MAX_DATABASE_ENDPOINT_ROWS} database endpoint groups in the window; only the busiest ${MAX_DATABASE_ENDPOINT_ROWS} were matched to databases this run`,
+        `ComputeServiceDependencies: project ${args.projectId} called at least ${MAX_DATABASE_ENDPOINT_ROWS} database endpoint groups in the window; only the first ${MAX_DATABASE_ENDPOINT_ROWS} (host names before IP addresses, then the busiest) were matched to databases this run`,
       );
     }
 
@@ -301,16 +454,30 @@ export async function discoverDatabaseServersForProject(args: {
     const minCalls: number = getDatabaseServerMinCalls();
     const budget: AutoCreateBudget = new AutoCreateBudget();
 
-    let sighted: number = 0;
+    const owners: Map<string, string> = await findDatabaseEndpointOwners(
+      projectId,
+      Array.from(
+        new Set<string>(
+          endpoints
+            .flatMap(getDiscoveredDatabaseEndpoints)
+            .map((endpoint: DatabaseEndpoint): string => {
+              return formatDatabaseEndpoint(endpoint);
+            }),
+        ),
+      ),
+    );
+
+    const sightedIds: Set<string> = new Set<string>();
     let created: number = 0;
     let overBudget: number = 0;
 
     for (const discovered of endpoints) {
       try {
         const result: DatabaseEndpointMatch =
-          await findOrCreateDatabaseServerForEndpoint({
+          await matchDatabaseServerForEndpoint({
             projectId: projectId,
             discovered: discovered,
+            owners: owners,
             minCalls: minCalls,
             budget: budget,
           });
@@ -319,16 +486,19 @@ export async function discoverDatabaseServersForProject(args: {
           overBudget++;
         }
 
-        if (!result.row || !result.row.id) {
-          continue;
-        }
-
         if (result.created) {
           created++;
         }
 
-        await DatabaseServerService.recordSighting(result.row.id);
-        sighted++;
+        // A row several endpoints belong to is sighted once.
+        for (const row of result.rows) {
+          const rowId: string | undefined = row.id?.toString();
+          if (!row.id || !rowId || sightedIds.has(rowId)) {
+            continue;
+          }
+          await DatabaseServerService.recordSighting(row.id);
+          sightedIds.add(rowId);
+        }
       } catch (err) {
         logger.error(
           `ComputeServiceDependencies: database endpoint ${formatDatabaseEndpoint(discovered.endpoint)} failed for project ${args.projectId}: ${err instanceof Error ? err.message : String(err)}`,
@@ -342,13 +512,13 @@ export async function discoverDatabaseServersForProject(args: {
       );
     }
 
-    if (sighted > 0) {
+    if (sightedIds.size > 0) {
       logger.debug(
-        `ComputeServiceDependencies: sighted ${sighted} database(s) (${created} new) from client spans for project ${args.projectId}.`,
+        `ComputeServiceDependencies: sighted ${sightedIds.size} database(s) (${created} new) from client spans for project ${args.projectId}.`,
       );
     }
 
-    return sighted;
+    return sightedIds.size;
   } catch (err) {
     logger.error(
       `ComputeServiceDependencies: database endpoint discovery failed for project ${args.projectId}: ${err instanceof Error ? err.message : String(err)}`,
@@ -362,17 +532,6 @@ export async function computeDependenciesForProject(args: {
   startSql: string;
   endSql: string;
 }): Promise<number> {
-  /*
-   * Databases from the same window. Started next to the dependency sources
-   * and awaited before anything below can return early, so it runs whether
-   * or not the window produced a single edge. It never rejects.
-   */
-  const databaseDiscovery: Promise<number> = discoverDatabaseServersForProject({
-    projectId: args.projectId,
-    startSql: args.startSql,
-    endSql: args.endSql,
-  });
-
   const window: DependencyQueryWindow = {
     projectId: args.projectId,
     startSql: args.startSql,
@@ -428,7 +587,17 @@ export async function computeDependenciesForProject(args: {
     }),
   ]);
 
-  await databaseDiscovery;
+  /*
+   * Databases from the same window: after the dependency scans rather than
+   * beside them (both read the window's attribute maps), and before anything
+   * below can return early, so it runs whether or not the window produced a
+   * single edge. It never rejects.
+   */
+  await discoverDatabaseServersForProject({
+    projectId: args.projectId,
+    startSql: args.startSql,
+    endSql: args.endSql,
+  });
 
   if (
     traceRows.length === 0 &&

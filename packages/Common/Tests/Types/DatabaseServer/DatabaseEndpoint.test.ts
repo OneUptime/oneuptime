@@ -5,20 +5,32 @@ import {
   buildKubernetesDatabaseAliases,
   buildWorkloadDatabaseServerIdentifier,
   canonicalizeDatabaseEndpoint,
+  DATABASE_INSTANCE_ATTRIBUTES,
   DatabaseCallerContext,
   DatabaseEndpoint,
   DatabaseEndpointPurpose,
   formatDatabaseEndpoint,
+  getDatabaseClusterHost,
   getDatabaseEndpointScope,
+  isClusterScopedDatabaseHost,
   isEphemeralCaller,
   isHostRelativeDatabaseHost,
   isIpLiteralHost,
+  isKubernetesDatabaseCaller,
+  isLinkLocalIpHost,
   isLoopbackDatabaseHost,
   isPrivateIpHost,
+  ManualDatabaseEndpoint,
+  NETWORK_SCOPED_NAME_SUFFIXES,
   parseDatabaseEndpointString,
   parseHostAndPort,
+  parseHostAndPortList,
   ParsedHostAndPort,
+  parseManualDatabaseEndpoint,
+  readDatabaseInstanceName,
+  splitDatabaseHostInstance,
 } from "../../../Types/DatabaseServer/DatabaseEndpoint";
+import { keyForDatabaseEndpoint } from "../../../Utils/Telemetry/EntityKey";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -123,7 +135,7 @@ describe("parseHostAndPort — accepted shapes", () => {
     });
   });
 
-  test("a host list keeps the first host", () => {
+  test("a host list keeps its first host in canonical order", () => {
     expect(
       parseHostAndPort("mongodb://m1.prod:27017,m2.prod:27017/app"),
     ).toEqual({ host: "m1.prod", port: 27017 });
@@ -158,13 +170,47 @@ describe("parseHostAndPort — accepted shapes", () => {
       host: "sql.prod",
       port: 14330,
     });
+    // The named instance is returned beside the host, lowercased.
     expect(parseHostAndPort("sql.prod\\SQLEXPRESS")).toEqual({
       host: "sql.prod",
       port: null,
+      instance: "sqlexpress",
     });
     expect(parseHostAndPort("sql.prod\\SQLEXPRESS,1434")).toEqual({
       host: "sql.prod",
       port: 1434,
+      instance: "sqlexpress",
+    });
+    expect(parseHostAndPort("sql.prod\\SQLEXPRESS:1435")).toEqual({
+      host: "sql.prod",
+      port: 1435,
+      instance: "sqlexpress",
+    });
+    // MSSQLSERVER is the default instance: no instance at all.
+    expect(parseHostAndPort("sql.prod\\MSSQLSERVER")).toEqual({
+      host: "sql.prod",
+      port: null,
+    });
+    expect(parseHostAndPort("sql.prod\\")).toEqual({
+      host: "sql.prod",
+      port: null,
+    });
+  });
+
+  test("a SQL Server instance that is not a valid instance name rejects the value", () => {
+    for (const raw of [
+      "sql.prod\\[REDACTED]",
+      "sql.prod\\SQL EXPRESS",
+      "sql.prod\\averyveryverylonginstance",
+      "sql.prod\\inst:abc",
+    ]) {
+      expect(parseHostAndPort(raw)).toBeNull();
+    }
+    // "#" ends an address (a URL fragment), so it never reaches an instance.
+    expect(parseHostAndPort("sql.prod\\inst#1")).toEqual({
+      host: "sql.prod",
+      port: null,
+      instance: "inst",
     });
   });
 
@@ -180,15 +226,18 @@ describe("parseHostAndPort — accepted shapes", () => {
     expect(parseHostAndPort("(LOCAL)\\SQLEXPRESS")).toEqual({
       host: "localhost",
       port: null,
+      instance: "sqlexpress",
     });
     expect(parseHostAndPort(".")).toEqual({ host: "localhost", port: null });
     expect(parseHostAndPort(".\\SQLEXPRESS,1433")).toEqual({
       host: "localhost",
       port: 1433,
+      instance: "sqlexpress",
     });
     expect(parseHostAndPort("(localdb)\\MSSQLLocalDB")).toEqual({
       host: "localhost",
       port: null,
+      instance: "mssqllocaldb",
     });
   });
 
@@ -543,7 +592,7 @@ describe("canonicalizeDatabaseEndpoint — rule 1 (parse + port)", () => {
   });
 
   test("an unknown engine without a port keeps port null", () => {
-    expect(canonical("db.prod", { system: "tidb" })).toEqual({
+    expect(canonical("db.prod", { system: "acmedb" })).toEqual({
       host: "db.prod",
       port: null,
     });
@@ -695,8 +744,21 @@ describe("canonicalizeDatabaseEndpoint — rule 3 (Kubernetes DNS)", () => {
     ).toBe("pg");
   });
 
-  test("two-label names are never rewritten (indistinguishable from a domain)", () => {
+  test("a two-label name from a Kubernetes caller is <service>.<namespace>", () => {
+    // A pod's resolver search path turns `pg.shop` into the Service FQDN.
     expect(canonical("pg.shop", { caller: K8S_CALLER })).toEqual({
+      host: "pg.shop.svc.cluster.local",
+      port: 5432,
+      kubernetesClusterName: "prod-eu",
+    });
+  });
+
+  test("a two-label name from anything else is a domain and left alone", () => {
+    expect(canonical("pg.shop", { caller: VM_CALLER })).toEqual({
+      host: "pg.shop",
+      port: 5432,
+    });
+    expect(canonical("pg.shop", { caller: NO_CONTEXT })).toEqual({
       host: "pg.shop",
       port: 5432,
     });
@@ -751,12 +813,17 @@ describe("canonicalizeDatabaseEndpoint — rule 4 (cluster qualifier)", () => {
       "mydb.abc123.us-east-1.rds.amazonaws.com",
       "8.8.8.8",
       "2001:db8::1",
-      "pg.shop",
     ]) {
       expect(
         canonical(address, { caller: K8S_CALLER })?.kubernetesClusterName,
       ).toBeUndefined();
     }
+    // A two-label name is only public when the caller is not in Kubernetes.
+    expect(
+      canonical("pg.shop", {
+        caller: { ...VM_CALLER, kubernetesClusterName: null },
+      })?.kubernetesClusterName,
+    ).toBeUndefined();
   });
 
   test("the cluster is canonicalized but otherwise kept raw (ARNs)", () => {
@@ -851,14 +918,14 @@ describe("parseDatabaseEndpointString", () => {
       canonical("10.244.3.17", { caller: K8S_CALLER }),
       canonical("fd00::5", { caller: K8S_CALLER }),
       canonical("2001:db8::1:0:0:1"),
-      canonical("db.prod", { system: "tidb" }),
+      canonical("db.prod", { system: "acmedb" }),
       canonical("pg.shop.svc.cluster.local"),
     ];
     for (const endpoint of endpoints) {
       expect(endpoint).not.toBeNull();
       expect(
         parseDatabaseEndpointString(formatDatabaseEndpoint(endpoint!), {
-          system: endpoint!.port === null ? "tidb" : "postgresql",
+          system: endpoint!.port === null ? "acmedb" : "postgresql",
         }),
       ).toEqual(endpoint);
     }
@@ -888,14 +955,12 @@ describe("parseDatabaseEndpointString", () => {
     ).toBe("prod");
   });
 
-  test("a qualifier on a non-cluster-scoped host is dropped", () => {
+  test("a qualifier on a host that resolves the same everywhere is refused, not dropped", () => {
     expect(
       parseDatabaseEndpointString("db.prod.example.com:5432@prod", PG),
-    ).toEqual({ host: "db.prod.example.com", port: 5432 });
-    expect(parseDatabaseEndpointString("8.8.8.8@prod", PG)).toEqual({
-      host: "8.8.8.8",
-      port: 5432,
-    });
+    ).toBeNull();
+    expect(parseDatabaseEndpointString("8.8.8.8@prod", PG)).toBeNull();
+    expect(parseDatabaseEndpointString("2001:db8::1@prod", PG)).toBeNull();
   });
 
   test("an empty qualifier is no qualifier", () => {
@@ -991,12 +1056,56 @@ describe("parseDatabaseEndpointString", () => {
     expect(parseDatabaseEndpointString(42, PG)).toBeNull();
   });
 
-  test("a non-URL user@host is read as host@qualifier (documented limit)", () => {
-    // Only URL forms carry userinfo; "admin" is taken as the host.
-    expect(parseDatabaseEndpointString("admin@db:5432", PG)).toEqual({
-      host: "admin",
-      port: 5432,
-    });
+  test("a non-URL user@host is refused — never read as host@qualifier", () => {
+    // The finding's probes: these used to become hosts "user" and "admin".
+    expect(parseDatabaseEndpointString("user@db.example.com", PG)).toBeNull();
+    expect(parseDatabaseEndpointString("admin@10.0.0.5:5432", PG)).toBeNull();
+    expect(parseDatabaseEndpointString("admin@db:5432", PG)).toBeNull();
+    // Even on a Kubernetes row, whose namespace would expand "admin".
+    expect(
+      parseDatabaseEndpointString("admin@10.0.0.5:5432", {
+        system: "postgresql",
+        kubernetesNamespace: "shop",
+        kubernetesClusterName: "prod",
+      }),
+    ).toBeNull();
+    expect(
+      parseDatabaseEndpointString("admin@db.example.com", {
+        system: "postgresql",
+        kubernetesNamespace: "shop",
+      }),
+    ).toBeNull();
+    // A dotted user name is not read as a <service>.<namespace> either.
+    expect(
+      parseDatabaseEndpointString("john.doe@db.example.com", PG),
+    ).toBeNull();
+    expect(
+      parseDatabaseEndpointString("postgres.data@db.example.com", PG),
+    ).toBeNull();
+  });
+
+  test("an address that takes a qualifier keeps it, whatever the cluster name looks like", () => {
+    for (const [value, host] of [
+      ["10.0.0.5@prod.eu-west-1", "10.0.0.5"],
+      ["pg.shop.svc.cluster.local@prod.eu-west-1", "pg.shop.svc.cluster.local"],
+      ["pg.shop.svc@prod.eu-west-1", "pg.shop.svc.cluster.local"],
+      ["db.internal@prod.eu-west-1", "db.internal"],
+      ["postgres.data:5432@prod.eu-west-1", "postgres.data.svc.cluster.local"],
+    ] as Array<[string, string]>) {
+      const endpoint: DatabaseEndpoint | null = parseDatabaseEndpointString(
+        value,
+        PG,
+      );
+      expect(endpoint?.host).toBe(host);
+      expect(endpoint?.kubernetesClusterName).toBe("prod.eu-west-1");
+    }
+    // An EKS ARN never reads as a server.
+    expect(
+      parseDatabaseEndpointString(
+        "postgres.data@arn:aws:eks:us-east-1:1:cluster/prod",
+        PG,
+      )?.kubernetesClusterName,
+    ).toBe("arn:aws:eks:us-east-1:1:cluster/prod");
   });
 });
 
@@ -1139,10 +1248,10 @@ describe("buildDatabaseServerDisplayName", () => {
     expect(buildDatabaseServerDisplayName({ system: "" })).toBe("Database");
     expect(
       buildDatabaseServerDisplayName({
-        system: "tidb",
-        endpoint: { host: "tidb.prod", port: 4000 },
+        system: "acmedb",
+        endpoint: { host: "acme.prod", port: 4000 },
       }),
-    ).toBe("tidb tidb.prod:4000");
+    ).toBe("acmedb acme.prod:4000");
   });
 
   test("is capped at 100 characters, keeping the engine", () => {
@@ -1283,14 +1392,14 @@ describe("buildKubernetesDatabaseAliases", () => {
   test("an engine without a default port and no declared port → port-less", () => {
     expect(
       buildKubernetesDatabaseAliases({
-        system: "tidb",
+        system: "acmedb",
         namespace: "shop",
         clusterName: "prod",
-        serviceNames: ["tidb"],
+        serviceNames: ["acme"],
         ports: [],
         includeUnqualified: false,
       }),
-    ).toEqual(["tidb.shop.svc.cluster.local@prod"]);
+    ).toEqual(["acme.shop.svc.cluster.local@prod"]);
   });
 
   test("every alias parses back to itself", () => {
@@ -1374,5 +1483,984 @@ describe("hostile input stays linear", () => {
     });
     expect(isLoopbackDatabaseHost("localhost.")).toBe(true);
     expect(isHostRelativeDatabaseHost("host.docker.internal.")).toBe(true);
+  });
+});
+
+/*
+ * ---- Audit regressions (lane B1: endpoint identity) -------------------------
+ *
+ * Each block below first reproduces a failure the audit found, then pins the
+ * rule that fixes it.
+ */
+
+const PG_SYSTEM: string = "postgresql";
+const MSSQL: string = "microsoft.sql_server";
+const PROJECT: string = "8a4c5b1e-2b3f-4c1d-9e8f-1a2b3c4d5e6f";
+
+function key(endpoint: DatabaseEndpoint | null): string | null {
+  return endpoint ? keyForDatabaseEndpoint(PROJECT, endpoint) : null;
+}
+
+function pod(
+  namespace: string | null,
+  cluster: string | null,
+): DatabaseCallerContext {
+  return {
+    kubernetesNamespace: namespace,
+    kubernetesClusterName: cluster,
+    hostName: "api-7d9f-abcde",
+    isEphemeral: true,
+  };
+}
+
+describe("two-label <service>.<namespace> names from Kubernetes callers", () => {
+  test("the finding's probe: staging and production pods calling postgres.data no longer share one global key", () => {
+    const staging: DatabaseEndpoint | null = canonical("postgres.data", {
+      caller: pod("shop", "staging"),
+    });
+    const production: DatabaseEndpoint | null = canonical("postgres.data", {
+      caller: pod("shop", "production"),
+    });
+
+    expect(staging).toEqual({
+      host: "postgres.data.svc.cluster.local",
+      port: 5432,
+      kubernetesClusterName: "staging",
+    });
+    expect(production).toEqual({
+      host: "postgres.data.svc.cluster.local",
+      port: 5432,
+      kubernetesClusterName: "production",
+    });
+    expect(key(staging)).not.toBe(key(production));
+  });
+
+  test("the span key is exactly the Kubernetes workload's Service alias, so the rows merge", () => {
+    const aliases: Array<string> = buildKubernetesDatabaseAliases({
+      system: PG_SYSTEM,
+      namespace: "data",
+      clusterName: "prod",
+      serviceNames: ["postgres"],
+      ports: [],
+      includeUnqualified: true,
+    });
+
+    // A pod that reports its cluster: the qualified alias.
+    expect(aliases).toContain(
+      formatDatabaseEndpoint(
+        canonical("postgres.data", { caller: pod("shop", "prod") })!,
+      ),
+    );
+    // A pod that reports no cluster (single-cluster project): the twin.
+    expect(aliases).toContain(
+      formatDatabaseEndpoint(
+        canonical("postgres.data", { caller: pod("shop", null) })!,
+      ),
+    );
+    // And the alias parses back to the very key the span was stamped with.
+    const alias: DatabaseEndpoint | null = parseDatabaseEndpointString(
+      "postgres.data.svc.cluster.local:5432@prod",
+      { system: PG_SYSTEM },
+    );
+    expect(key(alias)).toBe(
+      key(canonical("postgres.data", { caller: pod("billing", "prod") })),
+    );
+  });
+
+  test("without a cluster the name is cluster-local and LOCAL scope (never auto-created, never global)", () => {
+    const endpoint: DatabaseEndpoint | null = canonical("postgres.data", {
+      caller: pod("shop", null),
+    });
+    expect(endpoint).toEqual({
+      host: "postgres.data.svc.cluster.local",
+      port: 5432,
+    });
+    expect(getDatabaseEndpointScope(endpoint!)).toBe("local");
+  });
+
+  test("a caller with only a cluster (no namespace) is in Kubernetes too", () => {
+    expect(canonical("postgres.data", { caller: pod(null, "prod") })).toEqual({
+      host: "postgres.data.svc.cluster.local",
+      port: 5432,
+      kubernetesClusterName: "prod",
+    });
+  });
+
+  test("the discovery query's flag alone is enough (reduced cron context)", () => {
+    expect(
+      canonical("postgres.data", {
+        caller: { isEphemeral: true, runsInKubernetes: true },
+      }),
+    ).toEqual({ host: "postgres.data.svc.cluster.local", port: 5432 });
+    expect(
+      canonical("postgres.data", {
+        caller: { isEphemeral: true, runsInKubernetes: false },
+      }),
+    ).toEqual({ host: "postgres.data", port: 5432 });
+  });
+
+  test("blank namespace / cluster values do not make a caller Kubernetes", () => {
+    for (const caller of [
+      pod("   ", "  "),
+      pod("", ""),
+      { isEphemeral: false, hostName: "vm-1" },
+    ]) {
+      expect(isKubernetesDatabaseCaller(caller)).toBe(false);
+      expect(canonical("postgres.data", { caller })).toEqual({
+        host: "postgres.data",
+        port: 5432,
+      });
+    }
+    expect(isKubernetesDatabaseCaller(null)).toBe(false);
+    expect(isKubernetesDatabaseCaller(pod("shop", null))).toBe(true);
+    expect(isKubernetesDatabaseCaller(pod(null, "prod"))).toBe(true);
+  });
+
+  test("case, trailing dots and ports are canonicalized first", () => {
+    expect(
+      canonical("Postgres.Data.:6543", { caller: pod("shop", "Prod") }),
+    ).toEqual({
+      host: "postgres.data.svc.cluster.local",
+      port: 6543,
+      kubernetesClusterName: "prod",
+    });
+  });
+
+  test("the collector purpose reads the name the same way (a receiver in a pod)", () => {
+    expect(
+      canonical("postgres.data:5432", {
+        caller: pod("monitoring", "prod"),
+        purpose: "collector",
+      }),
+    ).toEqual({
+      host: "postgres.data.svc.cluster.local",
+      port: 5432,
+      kubernetesClusterName: "prod",
+    });
+  });
+
+  test("a StatefulSet member of the caller's own namespace keeps its namespace", () => {
+    // `mongo-0.mongo-headless` from namespace data is that pod, not a Service.
+    const member: DatabaseEndpoint | null = canonical(
+      "mongo-0.mongo-headless:27017",
+      { system: "mongodb", caller: pod("data", "prod") },
+    );
+    expect(member).toEqual({
+      host: "mongo-0.mongo-headless.data.svc.cluster.local",
+      port: 27017,
+      kubernetesClusterName: "prod",
+    });
+    // …which is the member alias the Kubernetes worker claims.
+    expect(
+      buildKubernetesDatabaseAliases({
+        system: "mongodb",
+        namespace: "data",
+        clusterName: "prod",
+        serviceNames: ["mongo"],
+        podServiceNames: [
+          { podName: "mongo-0", serviceName: "mongo-headless" },
+        ],
+        ports: [27017],
+        includeUnqualified: false,
+      }),
+    ).toContain(formatDatabaseEndpoint(member!));
+
+    // Bitnami-style names share only the release word.
+    expect(
+      canonical("redis-node-2.redis-headless", {
+        system: "redis",
+        caller: pod("cache", "prod"),
+      })?.host,
+    ).toBe("redis-node-2.redis-headless.cache.svc.cluster.local");
+  });
+
+  test("a StatefulSet-looking name with no namespace known falls back to the Service reading", () => {
+    expect(
+      canonical("mongo-0.mongo-headless", {
+        system: "mongodb",
+        caller: pod(null, "prod"),
+      })?.host,
+    ).toBe("mongo-0.mongo-headless.svc.cluster.local");
+  });
+
+  test("a Service whose name ends in a number is still a Service in another namespace", () => {
+    expect(
+      canonical("postgres-2.data", { caller: pod("shop", "prod") })?.host,
+    ).toBe("postgres-2.data.svc.cluster.local");
+  });
+
+  test("private-zone second labels are not namespaces, but stay network-scoped", () => {
+    for (const address of ["db.internal", "db.local", "db.localdomain"]) {
+      const endpoint: DatabaseEndpoint | null = canonical(address, {
+        caller: pod("shop", "prod"),
+      });
+      expect(endpoint?.host).toBe(address);
+    }
+    expect(
+      canonical("db.internal", { caller: pod("shop", "prod") })
+        ?.kubernetesClusterName,
+    ).toBe("prod");
+  });
+
+  test("labels Kubernetes would reject are never expanded", () => {
+    expect(canonical("my_db.corp", { caller: pod("shop", "prod") })).toEqual({
+      host: "my_db.corp",
+      port: 5432,
+    });
+  });
+
+  test("three-label public names from pods are never touched", () => {
+    expect(
+      canonical("db.example.com", { caller: pod("shop", "prod") }),
+    ).toEqual({ host: "db.example.com", port: 5432 });
+  });
+
+  test("an alias typed as svc.ns on a Kubernetes row reads like its pods' spans", () => {
+    expect(
+      parseDatabaseEndpointString("postgres.data:5432", {
+        system: PG_SYSTEM,
+        kubernetesNamespace: "data",
+        kubernetesClusterName: "Prod",
+      }),
+    ).toEqual({
+      host: "postgres.data.svc.cluster.local",
+      port: 5432,
+      kubernetesClusterName: "prod",
+    });
+    // …but a stored / VM-seen two-label endpoint parses back to itself.
+    expect(
+      parseDatabaseEndpointString("postgres.data:5432", { system: PG_SYSTEM }),
+    ).toEqual({ host: "postgres.data", port: 5432 });
+  });
+});
+
+describe("SQL Server named instances", () => {
+  test("the finding's probe: INST01 and INST02 on one host are two endpoints with two keys", () => {
+    const first: DatabaseEndpoint | null = canonical(
+      "sql1.corp.example.com\\INST01",
+      { system: MSSQL, caller: VM_CALLER },
+    );
+    const second: DatabaseEndpoint | null = canonical(
+      "sql1.corp.example.com\\INST02",
+      { system: MSSQL, caller: VM_CALLER },
+    );
+    expect(first).toEqual({
+      host: "sql1.corp.example.com\\inst01",
+      port: null,
+    });
+    expect(second).toEqual({
+      host: "sql1.corp.example.com\\inst02",
+      port: null,
+    });
+    expect(key(first)).not.toBe(key(second));
+    // Neither takes the default instance's 1433.
+    expect(key(first)).not.toBe(
+      key(canonical("sql1.corp.example.com", { system: MSSQL })),
+    );
+  });
+
+  test("an instance reported beside the address (db.namespace / db.mssql.instance_name) splits the same way", () => {
+    const first: DatabaseEndpoint | null = canonicalizeDatabaseEndpoint({
+      system: MSSQL,
+      address: "sql1.corp.example.com",
+      instance: "INST01",
+      caller: VM_CALLER,
+      purpose: "client-call",
+    });
+    const second: DatabaseEndpoint | null = canonicalizeDatabaseEndpoint({
+      system: MSSQL,
+      address: "sql1.corp.example.com",
+      instance: "INST02",
+      caller: VM_CALLER,
+      purpose: "client-call",
+    });
+    expect(formatDatabaseEndpoint(first!)).toBe(
+      "sql1.corp.example.com\\inst01",
+    );
+    expect(key(first)).not.toBe(key(second));
+    // Written in the address or beside it, it is one endpoint.
+    expect(first).toEqual(
+      canonical("sql1.corp.example.com\\inst01", { system: MSSQL }),
+    );
+  });
+
+  test("the default instance is the plain host on 1433", () => {
+    for (const instance of ["MSSQLSERVER", "mssqlserver", "", "  ", null]) {
+      expect(
+        canonicalizeDatabaseEndpoint({
+          system: MSSQL,
+          address: "sql1.corp.example.com",
+          instance: instance,
+          caller: VM_CALLER,
+          purpose: "client-call",
+        }),
+      ).toEqual({ host: "sql1.corp.example.com", port: 1433 });
+    }
+    expect(
+      canonical("sql1.corp.example.com\\MSSQLSERVER", { system: MSSQL }),
+    ).toEqual({ host: "sql1.corp.example.com", port: 1433 });
+  });
+
+  test("a known port already names the instance, so the instance is dropped", () => {
+    const expected: DatabaseEndpoint = {
+      host: "sql1.corp.example.com",
+      port: 1434,
+    };
+    expect(
+      canonical("sql1.corp.example.com\\INST01,1434", { system: MSSQL }),
+    ).toEqual(expected);
+    expect(
+      canonical("sql1.corp.example.com\\INST01:1434", { system: MSSQL }),
+    ).toEqual(expected);
+    expect(
+      canonical("sql1.corp.example.com\\INST01", {
+        system: MSSQL,
+        port: 1434,
+      }),
+    ).toEqual(expected);
+    expect(
+      canonicalizeDatabaseEndpoint({
+        system: MSSQL,
+        address: "sql1.corp.example.com",
+        port: "1434",
+        instance: "INST01",
+        caller: VM_CALLER,
+        purpose: "client-call",
+      }),
+    ).toEqual(expected);
+    // host,port forms on one host stay apart by port.
+    expect(
+      key(canonical("sql1.corp.example.com,1434", { system: MSSQL })),
+    ).not.toBe(key(canonical("sql1.corp.example.com,1435", { system: MSSQL })));
+  });
+
+  test("the address's instance wins over a reported one; an invalid reported one is ignored", () => {
+    expect(
+      canonicalizeDatabaseEndpoint({
+        system: MSSQL,
+        address: "sql1.corp\\INST01",
+        instance: "INST02",
+        caller: VM_CALLER,
+        purpose: "client-call",
+      })?.host,
+    ).toBe("sql1.corp\\inst01");
+    expect(
+      canonicalizeDatabaseEndpoint({
+        system: MSSQL,
+        address: "sql1.corp",
+        instance: "not an instance!",
+        caller: VM_CALLER,
+        purpose: "client-call",
+      }),
+    ).toEqual({ host: "sql1.corp", port: 1433 });
+  });
+
+  test("an instance on a private IP from a pod is qualified, and stays an IP", () => {
+    const endpoint: DatabaseEndpoint | null = canonical("10.0.0.5\\INST01", {
+      system: MSSQL,
+      caller: K8S_CALLER,
+    });
+    expect(endpoint).toEqual({
+      host: "10.0.0.5\\inst01",
+      port: null,
+      kubernetesClusterName: "prod-eu",
+    });
+    expect(isIpLiteralHost(endpoint!.host)).toBe(true);
+    expect(isPrivateIpHost(endpoint!.host)).toBe(true);
+    expect(getDatabaseEndpointScope(endpoint!)).toBe("global");
+    expect(
+      getDatabaseEndpointScope({ host: "10.0.0.5\\inst01", port: null }),
+    ).toBe("local");
+  });
+
+  test("scope ignores the instance: a single-label host is still local", () => {
+    expect(getDatabaseEndpointScope({ host: "sql1\\inst01", port: null })).toBe(
+      "local",
+    );
+    expect(
+      getDatabaseEndpointScope({
+        host: "sql1.corp.example.com\\inst01",
+        port: null,
+      }),
+    ).toBe("global");
+    expect(
+      getDatabaseEndpointScope({ host: "localhost\\sqlexpress", port: null }),
+    ).toBe("local");
+  });
+
+  test("format → parse round-trips, whatever system the reader assumes", () => {
+    const endpoints: Array<DatabaseEndpoint> = [
+      { host: "sql1.corp.example.com\\inst01", port: null },
+      { host: "fd00::5\\inst01", port: null, kubernetesClusterName: "prod" },
+      { host: "10.0.0.5\\inst$1", port: null, kubernetesClusterName: "prod" },
+    ];
+    expect(formatDatabaseEndpoint(endpoints[1]!)).toBe(
+      "[fd00::5]\\inst01@prod",
+    );
+    for (const endpoint of endpoints) {
+      for (const system of [MSSQL, "", PG_SYSTEM]) {
+        expect(
+          parseDatabaseEndpointString(formatDatabaseEndpoint(endpoint), {
+            system,
+          }),
+        ).toEqual(endpoint);
+      }
+    }
+  });
+
+  test("identifiers and display names carry the instance", () => {
+    const endpoint: DatabaseEndpoint = {
+      host: "sql1.corp.example.com\\inst01",
+      port: null,
+    };
+    expect(buildDatabaseServerIdentifier(MSSQL, endpoint)).toBe(
+      "microsoft.sql_server|sql1.corp.example.com\\inst01",
+    );
+    expect(buildDatabaseServerDisplayName({ system: MSSQL, endpoint })).toBe(
+      "SQL Server sql1.corp.example.com\\inst01",
+    );
+    expect(splitDatabaseHostInstance(endpoint.host)).toEqual({
+      host: "sql1.corp.example.com",
+      instance: "inst01",
+    });
+    expect(splitDatabaseHostInstance("db.prod")).toEqual({
+      host: "db.prod",
+      instance: "",
+    });
+  });
+
+  test("loopback with an instance is still loopback", () => {
+    expect(
+      canonical("localhost\\SQLEXPRESS", { system: MSSQL, caller: VM_CALLER }),
+    ).toBeNull();
+    expect(
+      canonical(".\\SQLEXPRESS", {
+        system: MSSQL,
+        caller: VM_CALLER,
+        purpose: "collector",
+      }),
+    ).toEqual({ host: "app-7.corp.example\\sqlexpress", port: null });
+  });
+});
+
+describe("readDatabaseInstanceName", () => {
+  function read(
+    system: unknown,
+    attributes: Record<string, unknown>,
+  ): string | null {
+    return readDatabaseInstanceName({
+      system,
+      getAttribute: (name: string): unknown => {
+        return attributes[name];
+      },
+    });
+  }
+
+  test("reads the legacy attribute first, then the instance half of db.namespace", () => {
+    expect(DATABASE_INSTANCE_ATTRIBUTES).toEqual([
+      "db.mssql.instance_name",
+      "db.namespace",
+    ]);
+    expect(
+      read("mssql", {
+        "db.mssql.instance_name": "INST01",
+        "db.namespace": "INST02|orders",
+      }),
+    ).toBe("INST01");
+    expect(read(MSSQL, { "db.namespace": "INST02|orders" })).toBe("INST02");
+    expect(read(MSSQL, { "db.namespace": "a|b|c" })).toBe("a");
+    expect(read(MSSQL, { "db.mssql.instance_name": 7 })).toBe("7");
+  });
+
+  test("an empty legacy attribute falls through; a plain database name is no instance", () => {
+    expect(
+      read(MSSQL, {
+        "db.mssql.instance_name": "",
+        "db.namespace": "INST02|orders",
+      }),
+    ).toBe("INST02");
+    expect(read(MSSQL, { "db.namespace": "orders" })).toBeNull();
+    expect(read(MSSQL, {})).toBeNull();
+  });
+
+  test("only SQL Server reads an instance (other engines' db.namespace means something else)", () => {
+    for (const system of ["postgresql", "redis", "", null]) {
+      expect(
+        read(system, {
+          "db.mssql.instance_name": "INST01",
+          "db.namespace": "a|b",
+        }),
+      ).toBeNull();
+    }
+  });
+
+  test("tolerates junk", () => {
+    expect(
+      readDatabaseInstanceName(
+        null as unknown as {
+          system: unknown;
+          getAttribute: (key: string) => unknown;
+        },
+      ),
+    ).toBeNull();
+    expect(read(MSSQL, { "db.mssql.instance_name": { x: 1 } })).toBeNull();
+  });
+});
+
+describe("per-network names are never global identities", () => {
+  test("the finding's probes: dev-tool gateway names are host-relative", () => {
+    for (const host of [
+      "host.minikube.internal",
+      "host.k3d.internal",
+      "host.lima.internal",
+      "host.orb.internal",
+      "host.rancher-desktop.internal",
+      "HOST.MINIKUBE.INTERNAL.",
+      "vm.docker.internal",
+      "host.docker.internal",
+    ]) {
+      expect(isHostRelativeDatabaseHost(host)).toBe(true);
+      expect(canonical(host, { caller: VM_CALLER })).toBeNull();
+      expect(canonical(host, { caller: K8S_CALLER })).toBeNull();
+      // A collector on a stable machine: that machine.
+      expect(
+        canonical(host, { caller: VM_CALLER, purpose: "collector" })?.host,
+      ).toBe("app-7.corp.example");
+    }
+    for (const host of [
+      "db.internal",
+      "host.internal",
+      "a.host.minikube.internal",
+      "host.bad_label.internal",
+      "db.docker.internals",
+    ]) {
+      expect(isHostRelativeDatabaseHost(host)).toBe(false);
+    }
+  });
+
+  test("isLinkLocalIpHost: 169.254/16 and fe80::/10 only", () => {
+    for (const host of [
+      "169.254.1.10",
+      "169.254.0.1",
+      "fe80::1",
+      "fe80::1%eth0",
+      "[fe80::1]",
+      "febf::1",
+      "::ffff:169.254.1.1",
+    ]) {
+      expect(isLinkLocalIpHost(host)).toBe(true);
+    }
+    for (const host of [
+      "169.253.1.1",
+      "170.254.1.1",
+      "fec0::1",
+      "fe7f::1",
+      "10.0.0.1",
+      "db.prod",
+      "",
+    ]) {
+      expect(isLinkLocalIpHost(host)).toBe(false);
+    }
+  });
+
+  test("the finding's probes: link-local addresses are LOCAL, qualified or not", () => {
+    const fromPod: DatabaseEndpoint | null = canonical("169.254.1.10", {
+      caller: K8S_CALLER,
+    });
+    expect(fromPod).toEqual({
+      host: "169.254.1.10",
+      port: 5432,
+      kubernetesClusterName: "prod-eu",
+    });
+    expect(getDatabaseEndpointScope(fromPod!)).toBe("local");
+
+    const zoned: DatabaseEndpoint | null = canonical("fe80::1%eth0", {
+      caller: VM_CALLER,
+    });
+    expect(zoned).toEqual({ host: "fe80::1", port: 5432 });
+    expect(getDatabaseEndpointScope(zoned!)).toBe("local");
+  });
+
+  test("private DNS zones (.internal, .local, .home.arpa) are network-scoped", () => {
+    expect(NETWORK_SCOPED_NAME_SUFFIXES).toEqual([
+      ".local",
+      ".internal",
+      ".home.arpa",
+      ".localdomain",
+    ]);
+    for (const host of [
+      "ip-10-0-0-5.ec2.internal",
+      "db-1.c.my-project.internal",
+      "db.corp.local",
+      "nas.home.arpa",
+      "build-7.localdomain",
+      "pg.shop.svc.cluster.local",
+    ]) {
+      expect(isClusterScopedDatabaseHost(host)).toBe(true);
+
+      // From a machine outside any cluster: kept, but LOCAL.
+      const fromVm: DatabaseEndpoint | null = canonical(host, {
+        caller: VM_CALLER,
+      });
+      expect(fromVm?.kubernetesClusterName).toBeUndefined();
+      expect(getDatabaseEndpointScope(fromVm!)).toBe("local");
+
+      // From a pod: qualified with its cluster, which makes it global.
+      const fromPod: DatabaseEndpoint | null = canonical(host, {
+        caller: K8S_CALLER,
+      });
+      expect(fromPod?.kubernetesClusterName).toBe("prod-eu");
+      expect(getDatabaseEndpointScope(fromPod!)).toBe("global");
+    }
+    for (const host of [
+      "db.example.com",
+      "orders.cjd8.eu-west-1.rds.amazonaws.com",
+      "api.localhost",
+      "db.internalapi.com",
+      "8.8.8.8",
+      "",
+    ]) {
+      expect(isClusterScopedDatabaseHost(host)).toBe(false);
+    }
+  });
+
+  test("two clusters' copies of one EC2 private name are two endpoints", () => {
+    expect(
+      key(canonical("ip-10-0-0-5.ec2.internal", { caller: pod("a", "east") })),
+    ).not.toBe(
+      key(canonical("ip-10-0-0-5.ec2.internal", { caller: pod("a", "west") })),
+    );
+  });
+
+  test("isPrivateIpHost is unchanged: link-local is its own class", () => {
+    expect(isPrivateIpHost("169.254.1.1")).toBe(false);
+    expect(isPrivateIpHost("fe80::1")).toBe(false);
+  });
+});
+
+describe("the @cluster qualifier on typed endpoints", () => {
+  const PG: { system: string } = { system: PG_SYSTEM };
+
+  test("names the cluster of every cluster-scoped kind of address", () => {
+    expect(
+      parseDatabaseEndpointString("pg.shop.svc.cluster.local:5432@Prod-EU", PG),
+    ).toEqual({
+      host: "pg.shop.svc.cluster.local",
+      port: 5432,
+      kubernetesClusterName: "prod-eu",
+    });
+    // A <service>.<namespace> short name is read as the pod would read it.
+    expect(parseDatabaseEndpointString("postgres.data@staging", PG)).toEqual({
+      host: "postgres.data.svc.cluster.local",
+      port: 5432,
+      kubernetesClusterName: "staging",
+    });
+    expect(parseDatabaseEndpointString("db.internal:5432@prod", PG)).toEqual({
+      host: "db.internal",
+      port: 5432,
+      kubernetesClusterName: "prod",
+    });
+    expect(
+      parseDatabaseEndpointString("169.254.1.1@prod", PG)
+        ?.kubernetesClusterName,
+    ).toBe("prod");
+  });
+
+  test("a single-label name takes a qualifier only with a namespace to expand it", () => {
+    expect(parseDatabaseEndpointString("pg@prod", PG)).toBeNull();
+    expect(
+      parseDatabaseEndpointString("pg@prod", {
+        ...PG,
+        kubernetesNamespace: "shop",
+      }),
+    ).toEqual({
+      host: "pg.shop.svc.cluster.local",
+      port: 5432,
+      kubernetesClusterName: "prod",
+    });
+  });
+
+  test("stored values stay readable: everything canonicalize can produce round-trips", () => {
+    const produced: Array<DatabaseEndpoint | null> = [
+      canonical("postgres.data", { caller: pod("shop", "staging") }),
+      canonical("postgres.data", { caller: pod("shop", null) }),
+      canonical("mongo-0.mongo-hl", {
+        system: "mongodb",
+        caller: pod("data", "prod"),
+      }),
+      canonical("169.254.1.10", { caller: K8S_CALLER }),
+      canonical("db.internal", { caller: K8S_CALLER }),
+      canonical("db.internal", { caller: VM_CALLER }),
+      canonical("10.0.0.5\\INST01", { system: MSSQL, caller: K8S_CALLER }),
+      canonical("pg.shop", { caller: VM_CALLER }),
+    ];
+    for (const endpoint of produced) {
+      expect(endpoint).not.toBeNull();
+      const system: string = endpoint!.host.includes("\\")
+        ? MSSQL
+        : endpoint!.port === 27017
+          ? "mongodb"
+          : PG_SYSTEM;
+      expect(
+        parseDatabaseEndpointString(formatDatabaseEndpoint(endpoint!), {
+          system,
+        }),
+      ).toEqual(endpoint);
+    }
+  });
+});
+
+describe("parseManualDatabaseEndpoint", () => {
+  function manual(
+    value: unknown,
+    context: Partial<{
+      system: string;
+      port: unknown;
+      kubernetesClusterName: string | null;
+      kubernetesNamespace: string | null;
+      knownClusterNames: Array<string> | null;
+    }> = {},
+  ): ManualDatabaseEndpoint {
+    return parseManualDatabaseEndpoint(value, {
+      system: PG_SYSTEM,
+      ...context,
+    });
+  }
+
+  test("accepts what parseDatabaseEndpointString accepts, canonicalized the same way", () => {
+    for (const value of [
+      "Orders-DB.example.com",
+      "orders-db.example.com:6543",
+      "10.0.0.5@prod",
+      "postgres.data@staging",
+      "pg.shop.svc.cluster.local:5432@prod",
+      "[fd00::5]:5432",
+      "postgres://app@db.example.com:5432/orders",
+    ]) {
+      const result: ManualDatabaseEndpoint = manual(value);
+      expect(result.error).toBeNull();
+      expect(result.endpoint).toEqual(
+        parseDatabaseEndpointString(value, { system: PG_SYSTEM }),
+      );
+    }
+  });
+
+  test("user@host is refused with a message that says to drop the user", () => {
+    const result: ManualDatabaseEndpoint = manual("admin@10.0.0.5:5432");
+    expect(result.endpoint).toBeNull();
+    expect(result.error).toContain("looks like user@host");
+    expect(result.error).toContain('Remove "admin@"');
+    expect(manual("user@db.example.com").error).toContain(
+      "looks like user@host",
+    );
+    expect(manual("john.doe@db.example.com").error).toContain(
+      'Remove "john.doe@"',
+    );
+    // "@" with nothing before it is simply not an endpoint.
+    expect(manual("@db.example.com").error).toContain(
+      "is not a valid host[:port] endpoint",
+    );
+  });
+
+  test("a qualifier on a public name is refused, naming the qualifier to remove", () => {
+    const result: ManualDatabaseEndpoint = manual("db.example.com:5432@prod");
+    expect(result.endpoint).toBeNull();
+    expect(result.error).toContain('Remove "@prod"');
+    expect(result.error).toContain("db.example.com");
+  });
+
+  test("a qualifier on a bare single-label name asks for the namespace", () => {
+    const result: ManualDatabaseEndpoint = manual("pg@prod");
+    expect(result.endpoint).toBeNull();
+    expect(result.error).toContain("pg.<namespace>@prod");
+  });
+
+  test("loopback, garbage and empty values are refused with their own messages", () => {
+    expect(manual("localhost:5432").error).toContain("loopback");
+    expect(manual("host.minikube.internal").error).toContain("loopback");
+    expect(manual("[REDACTED]").error).toContain(
+      "is not a valid host[:port] endpoint",
+    );
+    expect(manual("   ").error).toContain("Server address is required");
+    expect(manual(null).error).toContain("Server address is required");
+  });
+
+  test("an out-of-range port in the address is an error, not silently the default", () => {
+    // parseDatabaseEndpointString would quietly fill in 5432.
+    expect(
+      parseDatabaseEndpointString("db.example.com:70000", {
+        system: PG_SYSTEM,
+      }),
+    ).toEqual({ host: "db.example.com", port: 5432 });
+    const result: ManualDatabaseEndpoint = manual("db.example.com:70000");
+    expect(result.endpoint).toBeNull();
+    expect(result.error).toContain("outside 1-65535");
+  });
+
+  test("the port field replaces the address's port, and must be valid", () => {
+    expect(manual("db.example.com:70000", { port: 6543 }).endpoint).toEqual({
+      host: "db.example.com",
+      port: 6543,
+    });
+    expect(manual("db.example.com:5432", { port: "6543" }).endpoint).toEqual({
+      host: "db.example.com",
+      port: 6543,
+    });
+    expect(manual("db.example.com", { port: "" }).endpoint).toEqual({
+      host: "db.example.com",
+      port: 5432,
+    });
+    for (const port of [0, 70000, "abc", 5432.5]) {
+      expect(manual("db.example.com", { port }).error).toBe(
+        "Server port must be a whole number between 1 and 65535.",
+      );
+    }
+    // A port names a SQL Server instance: the instance is dropped.
+    expect(
+      manual("sql1.corp\\INST01", { system: MSSQL, port: 1434 }).endpoint,
+    ).toEqual({ host: "sql1.corp", port: 1434 });
+    expect(manual("sql1.corp\\INST01", { system: MSSQL }).endpoint).toEqual({
+      host: "sql1.corp\\inst01",
+      port: null,
+    });
+  });
+
+  test("an unqualified cluster-scoped endpoint is accepted with a hint naming the qualified form", () => {
+    const result: ManualDatabaseEndpoint = manual(
+      "postgres.data.svc.cluster.local",
+      { knownClusterNames: ["Staging", "prod", "", "staging"] },
+    );
+    expect(result.endpoint).toEqual({
+      host: "postgres.data.svc.cluster.local",
+      port: 5432,
+    });
+    expect(result.error).toBeNull();
+    expect(result.clusterQualifierHint).toContain(
+      "postgres.data.svc.cluster.local:5432@staging",
+    );
+    expect(result.clusterQualifierHint).toContain(
+      "this project's clusters: staging, prod",
+    );
+    expect(manual("10.0.0.5").clusterQualifierHint).toContain(
+      "10.0.0.5:5432@<cluster name>",
+    );
+  });
+
+  test("no hint for a global or already-qualified endpoint", () => {
+    expect(manual("db.example.com").clusterQualifierHint).toBeNull();
+    expect(manual("10.0.0.5@prod").clusterQualifierHint).toBeNull();
+    // The row's own cluster qualifies it, too.
+    expect(
+      manual("10.0.0.5", { kubernetesClusterName: "prod" }).endpoint,
+    ).toEqual({ host: "10.0.0.5", port: 5432, kubernetesClusterName: "prod" });
+  });
+
+  test("echoes at most 100 characters of a rejected value", () => {
+    const long: string = `${"a".repeat(300)}!`;
+    const error: string = manual(long).error || "";
+    expect(error).toContain(`${"a".repeat(100)}…`);
+    expect(error).not.toContain("a".repeat(101));
+  });
+});
+
+describe("host lists name one logical server", () => {
+  test("the member chosen does not depend on the order a client lists them", () => {
+    const orders: Array<string> = [
+      "m1.prod:27017,m2.prod:27017,m3.prod:27017",
+      "m3.prod:27017,m1.prod:27017,m2.prod:27017",
+      "m2.prod:27017,m3.prod:27017,m1.prod:27017",
+      "mongodb://app:pw@m3.prod:27017,m2.prod:27017,m1.prod:27017/orders?replicaSet=rs0",
+    ];
+    for (const raw of orders) {
+      expect(parseHostAndPort(raw)).toEqual({ host: "m1.prod", port: 27017 });
+      expect(
+        key(canonical(raw, { system: "mongodb", caller: VM_CALLER })),
+      ).toBe(key(canonical("m1.prod:27017", { system: "mongodb" })));
+    }
+  });
+
+  test("parseHostAndPortList returns every member once, in canonical order", () => {
+    expect(
+      parseHostAndPortList("M2.prod:27017, m1.prod ,m2.prod:27017,"),
+    ).toEqual([
+      { host: "m1.prod", port: null },
+      { host: "m2.prod", port: 27017 },
+    ]);
+    expect(parseHostAndPortList("db.prod:5432")).toEqual([
+      { host: "db.prod", port: 5432 },
+    ]);
+    expect(parseHostAndPortList("sql.prod,1433")).toEqual([
+      { host: "sql.prod", port: 1433 },
+    ]);
+  });
+
+  test("a list is only read when every member is readable", () => {
+    expect(parseHostAndPort("m1.prod:27017,[REDACTED]")).toBeNull();
+    expect(parseHostAndPortList("m1.prod,***.***.***.***")).toBeNull();
+    expect(parseHostAndPortList(",,,")).toBeNull();
+    expect(parseHostAndPortList(null)).toBeNull();
+  });
+});
+
+describe("getDatabaseClusterHost (managed cluster members)", () => {
+  test("MongoDB Atlas members map to their cluster's name", () => {
+    expect(getDatabaseClusterHost("c0-shard-00-00.abcd.mongodb.net")).toBe(
+      "c0.abcd.mongodb.net",
+    );
+    expect(getDatabaseClusterHost("C0-Shard-00-02.ABCD.mongodb.net")).toBe(
+      "c0.abcd.mongodb.net",
+    );
+    expect(
+      getDatabaseClusterHost("ac-x1y2z3-shard-01-02.ab1cd.mongodb.net"),
+    ).toBe("ac-x1y2z3.ab1cd.mongodb.net");
+    expect(
+      getDatabaseClusterHost("my-shard-cluster-shard-00-01.q.mongodb.net"),
+    ).toBe("my-shard-cluster.q.mongodb.net");
+  });
+
+  test("anything else is not a member", () => {
+    for (const host of [
+      "c0.abcd.mongodb.net",
+      "c0-shard-0-1.abcd.mongodb.net",
+      "c0-shard-00-00.abcd.mongodb.com",
+      "a.c0-shard-00-00.abcd.mongodb.net",
+      "-shard-00-00.abcd.mongodb.net",
+      "c0-shard-00-00-pl-0.abcd.mongodb.net",
+      "c0-shard-00-00.ab_cd.mongodb.net",
+      "db.example.com",
+      "",
+    ]) {
+      expect(getDatabaseClusterHost(host)).toBeNull();
+    }
+    expect(getDatabaseClusterHost(null as unknown as string)).toBeNull();
+  });
+});
+
+describe("the new parsing paths stay linear on hostile input", () => {
+  test("huge host lists, long labels and repeated markers answer quickly", () => {
+    const started: number = performance.now();
+
+    expect(parseHostAndPort(`${"a,".repeat(100_000)}b`)?.host).toBe("a");
+    expect(
+      getDatabaseClusterHost(
+        `${"x-shard-".repeat(20_000)}00-00.abcd.mongodb.net`,
+      ),
+    ).toBeNull();
+    expect(
+      isHostRelativeDatabaseHost(`host.${"a".repeat(200_000)}.internal`),
+    ).toBe(false);
+    expect(
+      parseDatabaseEndpointString(
+        `${"a".repeat(100_000)}@${"b.".repeat(50_000)}c`,
+        {
+          system: PG_SYSTEM,
+        },
+      ),
+    ).toBeNull();
+    expect(
+      canonical(`${"a-".repeat(50_000)}1.b`, { caller: pod("shop", "prod") }),
+    ).toBeNull();
+
+    expect(performance.now() - started).toBeLessThan(2000);
   });
 });
