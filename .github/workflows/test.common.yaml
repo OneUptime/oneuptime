@@ -40,14 +40,16 @@ jobs:
   # ceiling at 8 GB with room to spare for the postgres and valkey containers
   # test-setup.sh starts alongside.
   #
-  # Type checking is deliberately left on. App's suite could go transpile-only
-  # (App/jest.config.json, isolatedModules) because the compile-app job takes
-  # every App test file as a tsc program root, so nothing went unchecked.
-  # Common has no such job -- Common/tsconfig.json excludes Tests from the
-  # build -- so ts-jest is the only thing type-checking these 1645 files, and
-  # turning it off here would silently drop that. Doing it properly means
-  # giving Common's tests their own tsc project first, which is a change worth
-  # making on its own rather than smuggling into a CI-timing commit.
+  # The suite runs transpile-only (packages/Common/jest.config.json,
+  # isolatedModules), as App's does. Type checking used to be left on here
+  # because nothing else checked Common's tests, and it had become most of the
+  # job: ts-jest type-checks each worker's import graph on its own, so a suite
+  # whose tests took 0.2s spent six minutes loading, and a file that imports
+  # the services index could take anywhere from two minutes to past a shard's
+  # whole budget depending on what its worker had already compiled. Common's
+  # tests now have their own tsc project (packages/Common/Tests/tsconfig.json),
+  # checked once per commit by the compile-common job in the Compile workflow,
+  # so nothing goes unchecked.
   test:
     name: test (${{ matrix.shard }}/${{ strategy.job-total }})
     runs-on: ubuntu-latest

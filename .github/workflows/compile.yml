@@ -63,6 +63,16 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3
           command: cd packages/Common && npm install && npm run compile && npm run dep-check
+      # The Common Test workflow runs its suite transpile-only
+      # (packages/Common/jest.config.json, isolatedModules), so this is the one
+      # place every Common test file is type-checked - as a single program, the
+      # way compile-app checks App's tests. Only Common is installed here, as
+      # in Common Test, so an import that only resolves on a full local
+      # install fails here too.
+      - name: Type-check Common tests
+        env:
+          NODE_OPTIONS: --max-old-space-size=8192
+        run: cd packages/Common && npm run compile-tests
 
   compile-app:
     runs-on: ubuntu-latest

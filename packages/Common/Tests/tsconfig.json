@@ -1,0 +1,22 @@
+{
+  /*
+   * Type-checks every Common test file as one program: `npm run
+   * compile-tests`, run by the compile-common job in the Compile workflow.
+   *
+   * Common's jest config transpiles only (ts-jest isolatedModules), the way
+   * App's does, so the Common Test workflow does not type-check anything.
+   * This is where that happens instead: once per commit, rather than once per
+   * jest worker per import graph, which is what used to dominate every Common
+   * Test shard.
+   *
+   * The build config (../tsconfig.json) excludes Tests so `npm run compile`
+   * stays self-contained; everything else - paths, strictness, types - is
+   * inherited, so a test is held to the same rules as the code it tests.
+   */
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["./**/*.ts", "./**/*.tsx"],
+  "exclude": ["../node_modules", "../build"]
+}
