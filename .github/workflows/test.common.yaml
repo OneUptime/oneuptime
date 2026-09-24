@@ -55,8 +55,17 @@ jobs:
     strategy:
       # One slow or broken shard should not hide the results of the others.
       fail-fast: false
+      # Sixteen shards, up from eight. With eight, the suite had grown until
+      # every shard spent 25-29 minutes in the test step alone, against the
+      # 30-minute cap above: the slowest one crossed it and was cancelled with
+      # no result. Nothing was hanging - the time is ts-jest type-checking each
+      # worker's import graph and the tests themselves - so the fix is capacity,
+      # not a longer cap. Splitting the same files 16 ways puts a shard back
+      # around half the cap, which leaves the tripwire meaningful and room for
+      # the suite to keep growing. Each extra shard costs about a minute of
+      # setup (checkout, test services, npm install from cache).
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
     env:
       CI_PIPELINE_ID: ${{ github.run_number }}
       BILLING_PRIVATE_KEY: ${{ secrets.TEST_BILLING_PRIVATE_KEY }}
