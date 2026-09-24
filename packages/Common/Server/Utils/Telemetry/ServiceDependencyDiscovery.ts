@@ -22,6 +22,7 @@ import {
   DatabaseCallerContext,
   DatabaseEndpoint,
   DatabaseEndpointScope,
+  NETWORK_SCOPED_NAME_SUFFIXES,
   formatDatabaseEndpoint,
   parseHostAndPort,
   ParsedHostAndPort,
@@ -138,6 +139,142 @@ export function databaseInstanceSql(): string {
   return `multiIf(${instanceName} != '', ${instanceName}, position(${namespace}, '|') > 0, splitByChar('|', ${namespace})[1], '')`;
 }
 
+/*
+ * Private IPv4 ranges (RFC 1918 and CGNAT 100.64/10, leading zeros
+ * tolerated), IPv4 link-local 169.254/16, IPv6 unique-local (fc00::/7) and
+ * link-local (fe80::/10) addresses and IPv4-mapped IPv6, at the start of the
+ * address or after a URL / userinfo / SQL Server `tcp:` / IPv6 bracket
+ * boundary. Matched against the LOWERCASED address. Written in the regex
+ * subset RE2 (ClickHouse `match`) and JavaScript agree on, so the tests can
+ * run the exact pattern the query runs.
+ *
+ * A superset on purpose: over-matching (a public IPv6 address with an
+ * `fc..:` group, say) only keeps the caller's cluster in the grouping,
+ * which the canonicalization then ignores.
+ */
+export const PRIVATE_IP_ADDRESS_PATTERN: string = [
+  "(?:^|[/@:]|\\[)",
+  "(?:",
+  "0*10[.]",
+  "|0*192[.]0*168[.]",
+  "|0*172[.]0*(?:1[6-9]|2[0-9]|3[01])[.]",
+  "|0*100[.]0*(?:6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])[.]",
+  "|0*169[.]0*254[.]",
+  "|f[cd][0-9a-f]{0,2}:",
+  "|fe[89ab][0-9a-f]:",
+  "|[0:]*:ffff:",
+  ")",
+].join("");
+
+/*
+ * A plain `host[:port]`: hostname labels and an optional numeric port,
+ * nothing else. Only such an address is classified precisely; anything else
+ * keeps the whole caller context. RE2 and JavaScript agree on it.
+ */
+export const PLAIN_HOST_ADDRESS_PATTERN: string =
+  "^[a-z0-9_-]+(?:[.][a-z0-9_-]+)*(?::[0-9]*)?$";
+
+// A label ending in `-<digits>`: a StatefulSet pod such as `mongo-0`.
+export const ORDINAL_SUFFIX_PATTERN: string = "-[0-9]+$";
+
+/*
+ * "Not blank" exactly as JavaScript's String.prototype.trim sees it: any
+ * character outside its whitespace set (ASCII whitespace, NBSP, the
+ * Unicode space separators, the line / paragraph separators and the BOM).
+ * RE2 syntax; the TypeScript side simply trims.
+ */
+export const NON_BLANK_TEXT_PATTERN: string =
+  "[^\\t\\n\\v\\f\\r \\x{A0}\\x{1680}\\x{2000}-\\x{200A}\\x{2028}\\x{2029}\\x{202F}\\x{205F}\\x{3000}\\x{FEFF}]";
+
+// The caller-context columns of a database call, as SQL expressions.
+export interface DatabaseCallerContextSql {
+  // The caller's Kubernetes namespace, or ''.
+  callerNamespace: string;
+  // 1 when the caller had a namespace, for the addresses that keep only that.
+  callerInKubernetes: string;
+  // The caller's Kubernetes cluster, or ''.
+  callerCluster: string;
+}
+
+/**
+ * The caller's Kubernetes context a database call keeps, over `addressSql`
+ * — the raw address the call named, decided on lowercased — shared by both
+ * span-table discovery queries. The context only changes the canonical
+ * endpoint of some addresses, so each column keeps it ONLY for those and is
+ * '' (or 0) otherwise — a thousand pods, namespaces or clusters calling one
+ * `orders.cjd8.eu-west-1.rds.amazonaws.com` all keep the same nothing:
+ *
+ *   - anything that is not a plain `host[:port]` (a URL, a host list, JDBC
+ *     properties, userinfo, a trailing dot, IPv6, `host\instance`, …) keeps
+ *     the namespace AND the cluster: the host inside it could be anything;
+ *   - a plain single-label host keeps both (it expands to
+ *     `<name>.<namespace>.svc.cluster.local`);
+ *   - a plain two-label host keeps the cluster and one flag, "the caller has
+ *     a namespace", because from a pod `<service>.<namespace>` resolves
+ *     through the cluster's DNS whichever namespace the pod is in — plus the
+ *     namespace itself when the first label is a StatefulSet pod
+ *     (`mongo-0.mongo-headless`, a member of the caller's own namespace);
+ *   - Kubernetes Service DNS (a `svc` label), the private DNS zones
+ *     (NETWORK_SCOPED_NAME_SUFFIXES) and private / link-local IPv4 keep the
+ *     cluster — the hosts every cluster or network has its own copy of.
+ *
+ * The predicates are deliberately a superset of the canonicalization rules
+ * (keeping context canonicalization ignores costs a group, dropping context
+ * it needs would change the endpoint);
+ * DatabaseEndpointDiscovery.getDatabaseEndpointCallerContextNeeds is their
+ * TypeScript twin — keep them in step.
+ */
+export function databaseCallerContextSql(
+  addressSql: string,
+): DatabaseCallerContextSql {
+  const address: string = `lower(${addressSql})`;
+  const hostPart: string = `splitByChar(':', ${address})[1]`;
+  const labels: string = `splitByChar('.', ${hostPart})`;
+  const labelCount: string = `length(${labels})`;
+  const plainAddress: string = `match(${address}, '${escapeSql(
+    PLAIN_HOST_ADDRESS_PATTERN,
+  )}')`;
+
+  const namespaceAttribute: string = `attributes['${escapeSql(
+    CALLER_NAMESPACE_ATTRIBUTE,
+  )}']`;
+  const clusterAttribute: string = `attributes['${escapeSql(
+    CALLER_CLUSTER_ATTRIBUTE,
+  )}']`;
+
+  const networkScopedName: string = NETWORK_SCOPED_NAME_SUFFIXES.map(
+    (suffix: string): string => {
+      return `endsWith(${hostPart}, '${escapeSql(suffix)}')`;
+    },
+  ).join(" OR ");
+
+  return {
+    callerNamespace: `if(
+        NOT ${plainAddress}
+          OR ${labelCount} = 1
+          OR (${labelCount} = 2 AND match(${labels}[1], '${escapeSql(
+            ORDINAL_SUFFIX_PATTERN,
+          )}')),
+        ${namespaceAttribute},
+        ''
+      )`,
+    callerInKubernetes: `if(
+        ${plainAddress} AND ${labelCount} = 2,
+        match(${namespaceAttribute}, '${escapeSql(NON_BLANK_TEXT_PATTERN)}'),
+        0
+      )`,
+    callerCluster: `if(
+        NOT ${plainAddress}
+          OR ${labelCount} <= 2
+          OR has(${labels}, 'svc')
+          OR ${networkScopedName}
+          OR match(${address}, '${escapeSql(PRIVATE_IP_ADDRESS_PATTERN)}'),
+        ${clusterAttribute},
+        ''
+      )`,
+  };
+}
+
 export interface DependencyQueryWindow {
   projectId: string;
   /** ClickHouse DateTime64 expressions, e.g. toDateTime64('...', 9). */
@@ -214,6 +351,13 @@ export function buildTraceLinkedDependencySql(
   `;
 }
 
+/*
+ * Cap on the distinct database servers (dbTargets) one client-span
+ * dependency row keeps. A row whose list is full may have been cut short,
+ * so it never names one server (see describeDependencyDatabaseServer).
+ */
+export const MAX_DATABASE_TARGETS_PER_ROW: number = 16;
+
 /**
  * Source 2: CLIENT / PRODUCER spans with no client/server child — calls into
  * something that did not report a span of its own. Requiring the span to be
@@ -224,68 +368,94 @@ export function buildTraceLinkedDependencySql(
  * The target is summarized in SQL to a handful of low-cardinality semconv
  * attributes (old and new names both) so the grouping stays bounded: the
  * address of an HTTP call falls back from `server.address` to the host of
- * the URL, never to the URL itself.
+ * the URL, never to the URL itself. Rows are grouped on exactly the columns
+ * a node is keyed by, so there is ONE row per (caller, node), and the row
+ * cap is shared fairly between databases, HTTP APIs, brokers and RPC peers.
  *
  * A database call also keeps what the ingest resolver
  * (resolveDatabaseCallTarget) reads to find the database SERVER it called —
  * the address, port and SQL Server instance with the resolver's precedence,
- * and the caller's Kubernetes namespace and cluster — so its node can say
- * which server that is (see resolveDependencyDatabaseEndpoint). They are ''
- * for every other span, and none of them is part of a node's identity.
- * They split a database's rows only by what tells servers apart: its
- * address spellings, ports and instances, and the placements (namespace,
- * cluster) of the service calling it — never its pods.
+ * and the caller's Kubernetes context where it can change the endpoint
+ * (databaseCallerContextSql) — so its node can say which server that is
+ * (see describeDependencyDatabaseServer). None of them is part of a node's
+ * identity, so they are AGGREGATED, never grouped on: `dbTargets` lists the
+ * distinct servers the row's calls named (at most
+ * MAX_DATABASE_TARGETS_PER_ROW). A database reached from a hundred
+ * namespaces, pods, IPs or ports is still one row.
  */
 export function buildClientSpanDependencySql(
   window: DependencyQueryWindow,
 ): string {
-  const databaseOnly: (sql: string) => string = (sql: string): string => {
-    return `if(dbSystem != '', ${sql}, '')`;
+  const databaseOnly: (sql: string, otherwise?: string) => string = (
+    sql: string,
+    otherwise: string = "''",
+  ): string => {
+    return `if(dbSystem != '', ${sql}, ${otherwise})`;
   };
+
+  const callerContext: DatabaseCallerContextSql =
+    databaseCallerContextSql("dbServerAddress");
 
   return `
     SELECT
-      primaryEntityId AS callerServiceId,
-      multiIf(attributes['db.system.name'] != '', attributes['db.system.name'], attributes['db.system']) AS dbSystem,
-      multiIf(attributes['db.namespace'] != '', attributes['db.namespace'], attributes['db.name']) AS dbNamespace,
-      attributes['messaging.system'] AS messagingSystem,
-      attributes['peer.service'] AS peerService,
-      attributes['rpc.system'] AS rpcSystem,
-      attributes['rpc.service'] AS rpcService,
-      multiIf(
-        attributes['server.address'] != '', attributes['server.address'],
-        attributes['net.peer.name'] != '', attributes['net.peer.name'],
-        attributes['http.host'] != '', attributes['http.host'],
-        attributes['url.full'] != '', domain(attributes['url.full']),
-        attributes['http.url'] != '', domain(attributes['http.url']),
-        ''
-      ) AS serverAddress,
-      if(attributes['http.request.method'] != '' OR attributes['http.method'] != '', 1, 0) AS isHttp,
-      ${databaseOnly(firstNonEmptyAttributeSql(DATABASE_ADDRESS_ATTRIBUTES))} AS dbServerAddress,
-      ${databaseOnly(firstNonEmptyAttributeSql(DATABASE_PORT_ATTRIBUTES))} AS serverPort,
-      ${databaseOnly(databaseInstanceSql())} AS dbInstance,
-      ${databaseOnly(`attributes['${escapeSql(CALLER_NAMESPACE_ATTRIBUTE)}']`)} AS callerNamespace,
-      ${databaseOnly(`attributes['${escapeSql(CALLER_CLUSTER_ATTRIBUTE)}']`)} AS callerCluster,
+      callerServiceId,
+      dbSystem,
+      dbNamespace,
+      messagingSystem,
+      peerService,
+      rpcSystem,
+      rpcService,
+      serverAddress,
+      isHttp,
+      groupUniqArrayIf(${MAX_DATABASE_TARGETS_PER_ROW})([dbServerAddress, serverPort, dbInstance, callerNamespace, toString(callerInKubernetes), callerCluster], dbSystem != '') AS dbTargets,
       count() AS callCount,
       countIf(statusCode = 2) AS errorCount,
       avg(durationUnixNano) AS avgDurationNano
-    FROM ${SPAN_TABLE}
-    WHERE ${projectAndServiceFilter(window)}
-      AND startTime >= ${window.startSql}
-      AND startTime < ${window.endSql}
-      AND kind IN ${OUTBOUND_KINDS_SQL}
-      AND (traceId, spanId) NOT IN (
-        SELECT traceId, parentSpanId
-        FROM ${SPAN_TABLE}
-        WHERE projectId = '${escapeSql(window.projectId)}'
-          AND startTime >= ${window.startSql}
-          AND startTime < ${window.endSql} + INTERVAL ${PARENT_LOOKBACK_MINUTES} MINUTE
-          AND kind IN ${CALL_KINDS_SQL}
-          AND parentSpanId IS NOT NULL
-          AND parentSpanId != ''
-        LIMIT ${window.maxEntrySpans}
-      )
-    GROUP BY callerServiceId, dbSystem, dbNamespace, messagingSystem, peerService, rpcSystem, rpcService, serverAddress, isHttp, dbServerAddress, serverPort, dbInstance, callerNamespace, callerCluster
+    FROM
+    (
+      SELECT
+        primaryEntityId AS callerServiceId,
+        multiIf(attributes['db.system.name'] != '', attributes['db.system.name'], attributes['db.system']) AS dbSystem,
+        multiIf(attributes['db.namespace'] != '', attributes['db.namespace'], attributes['db.name']) AS dbNamespace,
+        attributes['messaging.system'] AS messagingSystem,
+        attributes['peer.service'] AS peerService,
+        attributes['rpc.system'] AS rpcSystem,
+        attributes['rpc.service'] AS rpcService,
+        multiIf(
+          attributes['server.address'] != '', attributes['server.address'],
+          attributes['net.peer.name'] != '', attributes['net.peer.name'],
+          attributes['http.host'] != '', attributes['http.host'],
+          attributes['url.full'] != '', domain(attributes['url.full']),
+          attributes['http.url'] != '', domain(attributes['http.url']),
+          ''
+        ) AS serverAddress,
+        if(attributes['http.request.method'] != '' OR attributes['http.method'] != '', 1, 0) AS isHttp,
+        ${databaseOnly(firstNonEmptyAttributeSql(DATABASE_ADDRESS_ATTRIBUTES))} AS dbServerAddress,
+        ${databaseOnly(firstNonEmptyAttributeSql(DATABASE_PORT_ATTRIBUTES))} AS serverPort,
+        ${databaseOnly(databaseInstanceSql())} AS dbInstance,
+        ${databaseOnly(callerContext.callerNamespace)} AS callerNamespace,
+        ${databaseOnly(callerContext.callerInKubernetes, "0")} AS callerInKubernetes,
+        ${databaseOnly(callerContext.callerCluster)} AS callerCluster,
+        statusCode,
+        durationUnixNano
+      FROM ${SPAN_TABLE}
+      WHERE ${projectAndServiceFilter(window)}
+        AND startTime >= ${window.startSql}
+        AND startTime < ${window.endSql}
+        AND kind IN ${OUTBOUND_KINDS_SQL}
+        AND (traceId, spanId) NOT IN (
+          SELECT traceId, parentSpanId
+          FROM ${SPAN_TABLE}
+          WHERE projectId = '${escapeSql(window.projectId)}'
+            AND startTime >= ${window.startSql}
+            AND startTime < ${window.endSql} + INTERVAL ${PARENT_LOOKBACK_MINUTES} MINUTE
+            AND kind IN ${CALL_KINDS_SQL}
+            AND parentSpanId IS NOT NULL
+            AND parentSpanId != ''
+          LIMIT ${window.maxEntrySpans}
+        )
+    )
+    GROUP BY callerServiceId, dbSystem, dbNamespace, messagingSystem, peerService, rpcSystem, rpcService, serverAddress, isHttp
     ORDER BY callCount DESC
     LIMIT ${window.maxRows}
     ${QUERY_SETTINGS}
@@ -354,6 +524,14 @@ export interface TraceLinkedDependencyRow {
   avgDurationNano: string | number;
 }
 
+/*
+ * One database server a row's calls named, positionally as the query
+ * returns it: [address, port, SQL Server instance, caller namespace,
+ * caller-in-Kubernetes flag ("1" / "0"), caller cluster] — see
+ * readDependencyDatabaseTargets.
+ */
+export type DependencyDatabaseTargetColumns = Array<string>;
+
 export interface ClientSpanDependencyRow {
   callerServiceId: string;
   dbSystem?: string | undefined;
@@ -365,15 +543,11 @@ export interface ClientSpanDependencyRow {
   serverAddress?: string | undefined;
   isHttp?: string | number | boolean | undefined;
   /*
-   * Database calls only ('' otherwise): what resolveDatabaseCallTarget
-   * reads — the address and port with its precedence, the SQL Server
-   * instance and the caller's Kubernetes namespace and cluster.
+   * Database calls only (empty otherwise): the distinct servers the row's
+   * calls named — what resolveDatabaseCallTarget reads, at most
+   * MAX_DATABASE_TARGETS_PER_ROW of them.
    */
-  dbServerAddress?: string | undefined;
-  serverPort?: string | number | undefined;
-  dbInstance?: string | undefined;
-  callerNamespace?: string | undefined;
-  callerCluster?: string | undefined;
+  dbTargets?: Array<DependencyDatabaseTargetColumns> | undefined;
   callCount: string | number;
   errorCount: string | number;
   avgDurationNano: string | number;
@@ -466,7 +640,8 @@ function nonEmpty(value: string | undefined | null): string | null {
  * (formatDatabaseEndpoint, `@cluster` included) and the port the calls
  * named. DESCRIPTIVE only — a node stays keyed by what its spans said
  * (engine, host, logical database), so these never change its identity.
- * '' means the node's calls reached more than one server (see
+ * '' means the node's calls reached more than one server, or more than
+ * could be told apart (see describeDependencyDatabaseServer and
  * mergeDependencyEntityDescriptions).
  */
 export const DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE: string =
@@ -480,6 +655,34 @@ export interface DependencyDatabaseEndpoint {
   endpoint: string;
   // The port the calls named (the port attribute, else the address's); null for none.
   port: number | null;
+}
+
+/*
+ * One database server a dependency row's calls named — an entry of its
+ * `dbTargets`, read (readDependencyDatabaseTargets): exactly what
+ * resolveDatabaseCallTarget reads beside the engine.
+ */
+export interface DependencyDatabaseTarget {
+  // The address, with the resolver's precedence.
+  address: string;
+  // The port attribute, with the resolver's precedence; '' for none.
+  port: string;
+  // The SQL Server instance named beside the address; '' for none.
+  instance: string;
+  // The caller's placement, kept only where it can change the server.
+  callerNamespace: string;
+  callerInKubernetes: boolean;
+  callerCluster: string;
+}
+
+/*
+ * What a node (or one row of it) says about the server its calls reached:
+ * the formatted endpoint and the port the calls named, as the descriptive
+ * attributes carry them — null for no port, '' for "not one".
+ */
+export interface DependencyDatabaseServer {
+  endpoint: string;
+  port: string | null;
 }
 
 function readPort(value: unknown): number | null {
@@ -496,37 +699,86 @@ function readPort(value: unknown): number | null {
   return port >= 1 && port <= 65535 ? port : null;
 }
 
+function readColumn(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return "";
+}
+
+function isFlagSet(value: unknown): boolean {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
 /**
- * The database server a client-span dependency row called — exactly the
- * endpoint ingest keyed its spans with: the row's database columns go
- * through resolveDatabaseCallTarget, the ingest resolver itself, with the
- * caller's namespace and cluster the row kept, as DatabaseEndpointDiscovery
- * does. Null when the row names none: not a database call, or a loopback,
+ * A row's `dbTargets`, read: every entry that is a list of columns, in the
+ * query's column order, a missing or malformed column read as none. Empty
+ * for a row that is not a database call, or that has no such column.
+ */
+export function readDependencyDatabaseTargets(
+  row: ClientSpanDependencyRow,
+): Array<DependencyDatabaseTarget> {
+  const entries: unknown = row && typeof row === "object" ? row.dbTargets : [];
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+
+  const targets: Array<DependencyDatabaseTarget> = [];
+  for (const entry of entries) {
+    if (!Array.isArray(entry)) {
+      continue;
+    }
+    const columns: Array<unknown> = entry as Array<unknown>;
+    targets.push({
+      address: readColumn(columns[0]),
+      port: readColumn(columns[1]),
+      instance: readColumn(columns[2]),
+      callerNamespace: readColumn(columns[3]),
+      callerInKubernetes: isFlagSet(columns[4]),
+      callerCluster: readColumn(columns[5]),
+    });
+  }
+  return targets;
+}
+
+/**
+ * The database server one target of a client-span dependency row named —
+ * exactly the endpoint ingest keyed its spans with: the target goes through
+ * resolveDatabaseCallTarget, the ingest resolver itself, with the caller
+ * context the query kept (the flag included), as DatabaseEndpointDiscovery
+ * does. Null when it names none: not a database call, or a loopback,
  * host-relative or unreadable address.
  */
-export function resolveDependencyDatabaseEndpoint(
-  row: ClientSpanDependencyRow,
-): DependencyDatabaseEndpoint | null {
-  if (!row || typeof row !== "object") {
+export function resolveDependencyDatabaseEndpoint(data: {
+  dbSystem: string | undefined;
+  target: DependencyDatabaseTarget;
+}): DependencyDatabaseEndpoint | null {
+  if (!data || !data.target || typeof data.target !== "object") {
     return null;
   }
 
+  const target: DependencyDatabaseTarget = data.target;
+
   const attributes: Record<string, unknown> = {
-    [DATABASE_SYSTEM_ATTRIBUTES[0]!]: row.dbSystem,
-    [DATABASE_ADDRESS_ATTRIBUTES[0]!]: row.dbServerAddress,
-    [DATABASE_PORT_ATTRIBUTES[0]!]: row.serverPort,
-    [DATABASE_INSTANCE_NAME_ATTRIBUTE]: row.dbInstance,
+    [DATABASE_SYSTEM_ATTRIBUTES[0]!]: data.dbSystem,
+    [DATABASE_ADDRESS_ATTRIBUTES[0]!]: target.address,
+    [DATABASE_PORT_ATTRIBUTES[0]!]: target.port,
+    [DATABASE_INSTANCE_NAME_ATTRIBUTE]: target.instance,
   };
 
   const caller: DatabaseCallerContext = {
-    kubernetesNamespace: nonEmpty(row.callerNamespace),
-    kubernetesClusterName: nonEmpty(row.callerCluster),
+    kubernetesNamespace: nonEmpty(target.callerNamespace),
+    kubernetesClusterName: nonEmpty(target.callerCluster),
     hostName: null,
     // Only the collector purpose reads it; a client call never does.
     isEphemeral: true,
+    runsInKubernetes: target.callerInKubernetes === true,
   };
 
-  const target: {
+  const resolved: {
     system: string;
     endpoint: DatabaseEndpoint;
     scope: DatabaseEndpointScope;
@@ -537,29 +789,87 @@ export function resolveDependencyDatabaseEndpoint(
     caller: caller,
   });
 
-  if (!target) {
+  if (!resolved) {
     return null;
   }
 
   // Named exactly as the resolver reads it: the port attribute, else the address's.
-  const address: ParsedHostAndPort | null = parseHostAndPort(
-    row.dbServerAddress,
-  );
+  const address: ParsedHostAndPort | null = parseHostAndPort(target.address);
 
   return {
-    endpoint: formatDatabaseEndpoint(target.endpoint),
-    port: readPort(row.serverPort) ?? address?.port ?? null,
+    endpoint: formatDatabaseEndpoint(resolved.endpoint),
+    port: readPort(target.port) ?? address?.port ?? null,
   };
 }
 
-interface DatabaseServerDescription {
-  endpoint: string;
-  port: string | null;
+/*
+ * Two descriptions of one node → one: the server is kept only while both
+ * name the same endpoint (and the same port, "none" included); any
+ * disagreement is '' — ambiguous — and stays so.
+ */
+function combineDatabaseServers(
+  first: DependencyDatabaseServer | null,
+  second: DependencyDatabaseServer | null,
+): DependencyDatabaseServer | null {
+  if (!first || !second) {
+    return first || second;
+  }
+  return {
+    endpoint: first.endpoint === second.endpoint ? first.endpoint : "",
+    port: first.port === second.port ? first.port : "",
+  };
+}
+
+/**
+ * The database server a client-span dependency row's calls reached: each
+ * of its targets resolved (resolveDependencyDatabaseEndpoint) and combined
+ * like the sightings of a node (mergeDependencyEntityDescriptions) — a
+ * target that names no server contradicts nothing, targets that disagree
+ * leave '' (ambiguous). A row whose target list is full
+ * (MAX_DATABASE_TARGETS_PER_ROW) may have been cut short, so it is
+ * ambiguous whatever the targets it kept say. Null when the row names no
+ * server at all.
+ */
+export function describeDependencyDatabaseServer(
+  row: ClientSpanDependencyRow,
+): DependencyDatabaseServer | null {
+  if (!row || typeof row !== "object" || !nonEmpty(row.dbSystem)) {
+    return null;
+  }
+
+  const targets: Array<DependencyDatabaseTarget> =
+    readDependencyDatabaseTargets(row);
+  if (targets.length === 0) {
+    return null;
+  }
+
+  if (
+    Array.isArray(row.dbTargets) &&
+    row.dbTargets.length >= MAX_DATABASE_TARGETS_PER_ROW
+  ) {
+    return { endpoint: "", port: "" };
+  }
+
+  let server: DependencyDatabaseServer | null = null;
+  for (const target of targets) {
+    const resolved: DependencyDatabaseEndpoint | null =
+      resolveDependencyDatabaseEndpoint({
+        dbSystem: row.dbSystem,
+        target: target,
+      });
+    if (resolved) {
+      server = combineDatabaseServers(server, {
+        endpoint: resolved.endpoint,
+        port: resolved.port === null ? null : String(resolved.port),
+      });
+    }
+  }
+  return server;
 }
 
 function readDatabaseServerDescription(
   attributes: Record<string, string>,
-): DatabaseServerDescription | null {
+): DependencyDatabaseServer | null {
   const endpoint: string | undefined =
     attributes[DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE];
   if (typeof endpoint !== "string") {
@@ -601,18 +911,10 @@ export function mergeDependencyEntityDescriptions(
     }
   }
 
-  const first: DatabaseServerDescription | null =
-    readDatabaseServerDescription(before);
-  const second: DatabaseServerDescription | null =
-    readDatabaseServerDescription(after);
-
-  let server: DatabaseServerDescription | null = first || second;
-  if (first && second) {
-    server = {
-      endpoint: first.endpoint === second.endpoint ? first.endpoint : "",
-      port: first.port === second.port ? first.port : "",
-    };
-  }
+  const server: DependencyDatabaseServer | null = combineDatabaseServers(
+    readDatabaseServerDescription(before),
+    readDatabaseServerDescription(after),
+  );
 
   if (server) {
     merged[DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE] = server.endpoint;
@@ -677,15 +979,14 @@ export function resolveClientSpanTarget(
       "db.system.name": canonicalizeEntityValue(dbSystem),
     };
     // Which server the calls reached: descriptive, never identifying.
-    const server: DependencyDatabaseEndpoint | null =
-      resolveDependencyDatabaseEndpoint(row);
+    const server: DependencyDatabaseServer | null =
+      describeDependencyDatabaseServer(row);
     if (server) {
       descriptiveAttributes[DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE] =
         server.endpoint;
       if (server.port !== null) {
-        descriptiveAttributes[DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE] = String(
-          server.port,
-        );
+        descriptiveAttributes[DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE] =
+          server.port;
       }
     }
     return {

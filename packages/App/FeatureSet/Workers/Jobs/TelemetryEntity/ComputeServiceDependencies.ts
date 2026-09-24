@@ -105,7 +105,8 @@ const EVERY_TEN_MINUTES: string = "*/10 * * * *";
 export const WINDOW_MINUTES: number = 15;
 
 const MAX_ENTRY_SPANS: number = 500000;
-const MAX_ROWS_PER_SOURCE: number = 1000;
+// Grouped rows read per dependency source per project per run.
+export const MAX_ROWS_PER_SOURCE: number = 1000;
 const MAX_PROJECTS_PER_RUN: number = 1000;
 // Grouped database endpoint rows read per project per run, busiest first.
 export const MAX_DATABASE_ENDPOINT_ROWS: number = 500;
@@ -554,7 +555,17 @@ export async function computeDependenciesForProject(args: {
     run: () => Promise<Array<T>>,
   ): Promise<Array<T>> => {
     try {
-      return await run();
+      const rows: Array<T> = await run();
+      /*
+       * A source at its cap was cut short: the edges past it are not
+       * refreshed, and the TTL prune removes them if that persists.
+       */
+      if (rows.length >= MAX_ROWS_PER_SOURCE) {
+        logger.warn(
+          `ComputeServiceDependencies: ${name} for project ${args.projectId} reached the ${MAX_ROWS_PER_SOURCE}-row cap in the window; rows past it were not read this run, so their edges were not refreshed`,
+        );
+      }
+      return rows;
     } catch (err) {
       // One failing source must not cost the project the other two.
       logger.error(
@@ -683,9 +694,9 @@ export async function computeDependenciesForProject(args: {
       entity: target.entity,
     });
     /*
-     * One node, many rows (callers, ports, placements): its description is
-     * merged, so a node whose calls reached more than one database server
-     * says so instead of naming whichever row came last.
+     * One node, many rows (one per caller, each aggregating its servers):
+     * its description is merged, so a node whose calls reached more than
+     * one database server says so instead of naming whichever row came last.
      */
     const earlier: ExtractedEntity | undefined = dependencyEntities.get(
       entity.entityKey,

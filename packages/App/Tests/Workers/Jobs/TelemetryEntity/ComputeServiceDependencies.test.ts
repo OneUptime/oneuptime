@@ -12,6 +12,7 @@ import {
   DATABASE_SERVER_MIN_CALLS_ENV,
   DatabaseEndpointRow,
   DiscoveredDatabaseEndpoint,
+  getDatabaseEndpointCallerContextNeeds,
   resolveDatabaseEndpointRows,
 } from "Common/Server/Utils/Telemetry/DatabaseEndpointDiscovery";
 
@@ -112,14 +113,23 @@ import {
   buildDatabaseCallerContext,
   formatDatabaseEndpoint,
 } from "Common/Types/DatabaseServer/DatabaseEndpoint";
-import { resolveDatabaseCallTarget } from "Common/Types/DatabaseServer/DatabaseTelemetryResolver";
+import {
+  DATABASE_ADDRESS_ATTRIBUTES,
+  DATABASE_PORT_ATTRIBUTES,
+  resolveDatabaseCallTarget,
+} from "Common/Types/DatabaseServer/DatabaseTelemetryResolver";
 import {
   ClientSpanDependencyRow,
   DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE,
   DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE,
+  DatabaseCallerContextSql,
+  DependencyDatabaseTarget,
   DependencyTarget,
+  MAX_DATABASE_TARGETS_PER_ROW,
   buildClientSpanDependencySql,
+  databaseCallerContextSql,
   mergeDependencyEntityDescriptions,
+  readDependencyDatabaseTargets,
   resolveClientSpanTarget,
   toExtractedDependencyEntity,
 } from "Common/Server/Utils/Telemetry/ServiceDependencyDiscovery";
@@ -136,6 +146,7 @@ import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementG
 import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import {
   MAX_DATABASE_ENDPOINT_ROWS,
+  MAX_ROWS_PER_SOURCE,
   computeDependenciesForProject,
   discoverDatabaseServersForProject,
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryEntity/ComputeServiceDependencies";
@@ -474,6 +485,63 @@ describe("computeDependenciesForProject", () => {
     expect((logger.error as jest.Mock).mock.calls.length).toBe(2);
   });
 
+  test("a dependency source at its row cap is logged as truncated", async () => {
+    const httpCall: (index: number) => Record<string, unknown> = (
+      index: number,
+    ): Record<string, unknown> => {
+      return {
+        callerServiceId: IDS["api"],
+        serverAddress: `api-${index}.example.com`,
+        isHttp: 1,
+        callCount: "1",
+        errorCount: "0",
+        avgDurationNano: "1000000",
+      };
+    };
+    const atCap: Array<unknown> = [];
+    for (let index: number = 0; index < MAX_ROWS_PER_SOURCE; index++) {
+      atCap.push(httpCall(index));
+    }
+    arrange({ clients: atCap });
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(logger.warn as jest.Mock).toHaveBeenCalledTimes(1);
+    expect(logger.warn as jest.Mock).toHaveBeenCalledWith(
+      `ComputeServiceDependencies: client span dependencies for project ${PROJECT_ID} reached the ${MAX_ROWS_PER_SOURCE}-row cap in the window; rows past it were not read this run, so their edges were not refreshed`,
+    );
+    // Every row it did return still became an edge.
+    expect(reconciledEdges()).toHaveLength(MAX_ROWS_PER_SOURCE);
+  });
+
+  test("dependency sources below their row cap log no warning", async () => {
+    arrange({
+      traced: [
+        {
+          callerServiceId: IDS["probe"],
+          calleeServiceId: IDS["api"],
+          callCount: "900",
+          errorCount: "9",
+          avgDurationNano: "20000000",
+        },
+      ],
+      clients: [
+        {
+          callerServiceId: IDS["api"],
+          serverAddress: "api.stripe.com",
+          isHttp: 1,
+          callCount: "5",
+          errorCount: "0",
+          avgDurationNano: "1000000",
+        },
+      ],
+    });
+
+    await computeDependenciesForProject(WINDOW);
+
+    expect(logger.warn as jest.Mock).not.toHaveBeenCalled();
+  });
+
   test("nothing observed writes nothing", async () => {
     arrange({});
     expect(await computeDependenciesForProject(WINDOW)).toBe(0);
@@ -785,15 +853,23 @@ describe("database servers from client spans", () => {
     // The trace-linked query never reads a caller's placement.
     expect(tracedSql[0]).not.toContain("resource.k8s.cluster.name");
     expect(tracedSql[0]).not.toContain("resource.k8s.namespace.name");
-    // The client-span query reads it for database calls only.
+    /*
+     * The client-span query reads it for database calls only, where it can
+     * change the server, and aggregates it instead of grouping on it.
+     */
     const collapsed: string = clientSql[0]!.replace(/\s+/g, " ");
+    const context: DatabaseCallerContextSql =
+      databaseCallerContextSql("dbServerAddress");
     expect(collapsed).toContain(
-      "if(dbSystem != '', attributes['resource.k8s.cluster.name'], '') AS callerCluster",
+      `if(dbSystem != '', ${context.callerCluster.replace(/\s+/g, " ")}, '') AS callerCluster`,
     );
     expect(collapsed).toContain(
-      "if(dbSystem != '', attributes['resource.k8s.namespace.name'], '') AS callerNamespace",
+      `if(dbSystem != '', ${context.callerNamespace.replace(/\s+/g, " ")}, '') AS callerNamespace`,
     );
     expect(collapsed.split("resource.k8s.cluster.name").length - 1).toBe(1);
+    expect(collapsed).toContain(
+      "GROUP BY callerServiceId, dbSystem, dbNamespace, messagingSystem, peerService, rpcSystem, rpcService, serverAddress, isHttp ORDER BY",
+    );
     expect(metricMock.executeQuery).toHaveBeenCalledTimes(1);
   });
 
@@ -893,20 +969,51 @@ describe("database servers from client spans", () => {
     const ENDPOINT: string = DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE;
     const PORT: string = DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE;
 
-    // A client-span dependency row of a database call, with its server columns.
+    interface ServerColumns {
+      address: string;
+      port: string;
+      instance: string;
+      namespace: string;
+      inKubernetes: string;
+      cluster: string;
+    }
+
+    /*
+     * One entry of a row's dbTargets, as the query returns it — by default
+     * `postgres.data` called from a pod of cluster prod-eu, which keeps only
+     * the cluster and the "runs in Kubernetes" flag.
+     */
+    function server(overrides: Partial<ServerColumns>): Array<string> {
+      const columns: ServerColumns = {
+        address: "postgres.data",
+        port: "",
+        instance: "",
+        namespace: "",
+        inKubernetes: "1",
+        cluster: "prod-eu",
+        ...overrides,
+      };
+      return [
+        columns.address,
+        columns.port,
+        columns.instance,
+        columns.namespace,
+        columns.inKubernetes,
+        columns.cluster,
+      ];
+    }
+
+    // A client-span dependency row of a database call, with its servers.
     function databaseCall(
       overrides: Record<string, unknown>,
+      servers: Array<Partial<ServerColumns>> = [{}],
     ): Record<string, unknown> {
       return {
         callerServiceId: IDS["api"],
         dbSystem: "postgresql",
         dbNamespace: "oneuptime",
         serverAddress: "postgres.data",
-        dbServerAddress: "postgres.data",
-        serverPort: "",
-        dbInstance: "",
-        callerNamespace: "shop",
-        callerCluster: "prod-eu",
+        dbTargets: servers.map(server),
         callCount: "100",
         errorCount: "0",
         avgDurationNano: "4000000",
@@ -950,7 +1057,7 @@ describe("database servers from client spans", () => {
 
     test("the node names the very endpoint the Databases product keys the server by", async () => {
       arrange({
-        clients: [databaseCall({ serverPort: "5432" })],
+        clients: [databaseCall({}, [{ port: "5432" }])],
         databases: [
           databaseRow({
             serverAddress: "postgres.data",
@@ -1014,11 +1121,10 @@ describe("database servers from client spans", () => {
       // `postgres.data` from two clusters: two databases behind one node.
       arrange({
         clients: [
-          databaseCall({ callerCluster: "prod-eu" }),
-          databaseCall({
-            callerServiceId: IDS["dashboard"],
-            callerCluster: "prod-us",
-          }),
+          databaseCall({}, [{ cluster: "prod-eu" }]),
+          databaseCall({ callerServiceId: IDS["dashboard"] }, [
+            { cluster: "prod-us" },
+          ]),
         ],
       });
       arrangeDatabaseRows([]);
@@ -1037,27 +1143,32 @@ describe("database servers from client spans", () => {
     test("two ports on one host: one server per logical database, ambiguous within one", async () => {
       const call: (
         overrides: Record<string, unknown>,
+        port: string,
       ) => Record<string, unknown> = (
         overrides: Record<string, unknown>,
+        port: string,
       ): Record<string, unknown> => {
-        return databaseCall({
-          serverAddress: "db.example.com",
-          dbServerAddress: "db.example.com",
-          callerNamespace: "",
-          callerCluster: "",
-          ...overrides,
-        });
+        return databaseCall({ serverAddress: "db.example.com", ...overrides }, [
+          {
+            address: "db.example.com",
+            port: port,
+            inKubernetes: "0",
+            cluster: "",
+          },
+        ]);
       };
       arrange({
         clients: [
-          call({ dbNamespace: "orders", serverPort: "5432" }),
-          call({ dbNamespace: "users", serverPort: "5433" }),
-          call({ dbNamespace: "audit", serverPort: "5432" }),
-          call({
-            callerServiceId: IDS["dashboard"],
-            dbNamespace: "audit",
-            serverPort: "5433",
-          }),
+          call({ dbNamespace: "orders" }, "5432"),
+          call({ dbNamespace: "users" }, "5433"),
+          call({ dbNamespace: "audit" }, "5432"),
+          call(
+            {
+              callerServiceId: IDS["dashboard"],
+              dbNamespace: "audit",
+            },
+            "5433",
+          ),
         ],
       });
       arrangeDatabaseRows([]);
@@ -1132,6 +1243,45 @@ describe("database servers from client spans", () => {
           descriptiveAttributes: { "db.system.name": "postgresql" },
         }),
       ]);
+    });
+
+    test("one row from many placements of one server keeps it; one row reaching several says so", async () => {
+      const rds: string = "orders.cluster-x.rds.amazonaws.com";
+      arrange({
+        clients: [
+          // A global name keeps no placement: three clusters, one server.
+          databaseCall(
+            { serverAddress: rds, dbNamespace: "orders", callCount: "900" },
+            [{ address: rds, port: "5432", inKubernetes: "0", cluster: "" }],
+          ),
+          // `postgres.data` from two clusters in ONE row: two servers.
+          databaseCall({ callerServiceId: IDS["dashboard"] }, [
+            { cluster: "prod-eu" },
+            { cluster: "prod-us" },
+          ]),
+        ],
+      });
+      arrangeDatabaseRows([]);
+
+      expect(await computeDependenciesForProject(WINDOW)).toBe(2);
+
+      const byHost: Map<string, Record<string, string> | undefined> = new Map(
+        registered().map((entity: ReturnType<typeof registered>[number]) => {
+          return [
+            entity.identifyingAttributes["server.address"]!,
+            entity.descriptiveAttributes,
+          ];
+        }),
+      );
+      expect(byHost.get(rds)).toEqual({
+        "db.system.name": "postgresql",
+        [ENDPOINT]: `${rds}:5432`,
+        [PORT]: "5432",
+      });
+      expect(byHost.get("postgres.data")).toEqual({
+        "db.system.name": "postgresql",
+        [ENDPOINT]: "",
+      });
     });
   });
 
@@ -1861,11 +2011,14 @@ describe("database servers from client spans", () => {
  *
  * The tests above feed the job hand-made rows. What they cannot show is
  * that ClickHouse runs buildClientSpanDependencySql: that the `dbSystem`
- * alias resolves inside the database-only columns, that those columns come
- * back exactly as its TypeScript twin predicts ('' for every other span),
- * that a node's identity columns group as before, and that the server a
- * Database node describes is the endpoint ingest stamps on its spans — or
- * '' when its spans reached several. Opt in with a disposable server, as
+ * alias resolves inside the database-only columns, that the servers a row
+ * aggregates come back exactly as the TypeScript twin predicts (none for
+ * every other span, a caller's placement only where it can change the
+ * server), that there is ONE row per (caller, node) however many
+ * placements called it — so the row cap never lets a database's calls
+ * crowd out the calls to everything else — and that the server a Database
+ * node describes is the endpoint ingest stamps on its spans, or '' when its
+ * spans reached several. Opt in with a disposable server, as
  * DatabaseEndpointDiscoveryClickhouse.test.ts documents:
  *
  *   TEST_CLICKHOUSE_URL=http://default:test@localhost:18124 \
@@ -1883,6 +2036,7 @@ interface DependencySpanFixture {
   service: string;
   attributes: Record<string, string>;
   count?: number;
+  projectId?: string;
 }
 
 function callerPod(namespace: string, cluster: string): Record<string, string> {
@@ -1892,6 +2046,8 @@ function callerPod(namespace: string, cluster: string): Record<string, string> {
     "resource.k8s.cluster.name": cluster,
   };
 }
+
+const RDS_HOST: string = "orders.cluster-x.rds.amazonaws.com";
 
 const DEPENDENCY_SPANS: Array<DependencySpanFixture> = [
   // One server from two pods of one placement: one row, described.
@@ -1929,6 +2085,21 @@ const DEPENDENCY_SPANS: Array<DependencySpanFixture> = [
       ...callerPod("shop", "prod-us"),
     },
   },
+  // One managed server called from three clusters: one row, one server.
+  ...["prod-eu", "prod-us", "prod-ap"].map(
+    (cluster: string): DependencySpanFixture => {
+      return {
+        service: IDS["api"]!,
+        attributes: {
+          "db.system.name": "postgresql",
+          "db.namespace": "billing",
+          "server.address": RDS_HOST,
+          "server.port": "5432",
+          ...callerPod(`tenant-${cluster}`, cluster),
+        },
+      };
+    },
+  ),
   // Legacy names, a SQL Server named instance, a network.peer fallback.
   {
     service: IDS["api"]!,
@@ -1954,7 +2125,7 @@ const DEPENDENCY_SPANS: Array<DependencySpanFixture> = [
     service: IDS["api"]!,
     attributes: { "db.system.name": "redis", "server.address": "localhost" },
   },
-  // Not database calls: their server columns stay '', whatever the caller.
+  // Not database calls: no servers, whatever the caller.
   {
     service: IDS["api"]!,
     attributes: {
@@ -1975,6 +2146,128 @@ const DEPENDENCY_SPANS: Array<DependencySpanFixture> = [
   },
 ];
 
+/*
+ * Namespace-per-tenant, in another project: one service calls its own
+ * namespace's `redis` from 30 namespaces and a managed Postgres from three
+ * clusters — busy database calls — and, now and then, Stripe and a gRPC
+ * ledger. Grouped by placement the database calls alone would be 33 rows,
+ * each busier than either peer.
+ */
+const TENANT_NAMESPACES: number = 30;
+
+const ESTATE_SPANS: Array<DependencySpanFixture> = [
+  ...Array.from(
+    { length: TENANT_NAMESPACES },
+    (_value: unknown, index: number): DependencySpanFixture => {
+      return {
+        projectId: OTHER_PROJECT_ID,
+        service: IDS["api"]!,
+        attributes: {
+          "db.system.name": "redis",
+          "server.address": "redis",
+          ...callerPod(`tenant-${index}`, `prod-${index % 3}`),
+        },
+        count: 5,
+      };
+    },
+  ),
+  ...["prod-0", "prod-1", "prod-2"].map(
+    (cluster: string): DependencySpanFixture => {
+      return {
+        projectId: OTHER_PROJECT_ID,
+        service: IDS["api"]!,
+        attributes: {
+          "db.system.name": "postgresql",
+          "server.address": RDS_HOST,
+          ...callerPod(`tenant-${cluster}`, cluster),
+        },
+        count: 10,
+      };
+    },
+  ),
+  {
+    projectId: OTHER_PROJECT_ID,
+    service: IDS["api"]!,
+    attributes: {
+      "server.address": "api.stripe.com",
+      "http.request.method": "POST",
+      ...callerPod("tenant-0", "prod-0"),
+    },
+    count: 3,
+  },
+  {
+    projectId: OTHER_PROJECT_ID,
+    service: IDS["api"]!,
+    attributes: {
+      "rpc.system": "grpc",
+      "rpc.service": "acme.ledger.v1.Ledger",
+      ...callerPod("tenant-1", "prod-1"),
+    },
+    count: 2,
+  },
+];
+
+// A span's entry of its row's dbTargets, as the TypeScript twin predicts it.
+function predictedTarget(attributes: Record<string, string>): string | null {
+  const first: (keys: ReadonlyArray<string>) => string = (
+    keys: ReadonlyArray<string>,
+  ): string => {
+    for (const key of keys) {
+      if (attributes[key]) {
+        return attributes[key]!;
+      }
+    }
+    return "";
+  };
+  if (!first(["db.system.name", "db.system"])) {
+    return null;
+  }
+  const address: string = first(DATABASE_ADDRESS_ATTRIBUTES);
+  const needs: { namespace: boolean; kubernetes: boolean; cluster: boolean } =
+    getDatabaseEndpointCallerContextNeeds(address);
+  const namespace: string = attributes["resource.k8s.namespace.name"] || "";
+  const dbNamespace: string = attributes["db.namespace"] || "";
+  return JSON.stringify([
+    address,
+    first(DATABASE_PORT_ATTRIBUTES),
+    attributes["db.mssql.instance_name"] ||
+      (dbNamespace.includes("|") ? dbNamespace.split("|")[0]! : ""),
+    needs.namespace ? namespace : "",
+    needs.kubernetes && namespace.trim() ? "1" : "0",
+    needs.cluster ? attributes["resource.k8s.cluster.name"] || "" : "",
+  ]);
+}
+
+// The node columns of a span (enough of them for these fixtures).
+function nodeOf(fixture: DependencySpanFixture): string {
+  const attributes: Record<string, string> = fixture.attributes;
+  return JSON.stringify([
+    fixture.service,
+    attributes["db.system.name"] || attributes["db.system"] || "",
+    attributes["db.namespace"] || attributes["db.name"] || "",
+    attributes["server.address"] || attributes["net.peer.name"] || "",
+    attributes["rpc.service"] || "",
+  ]);
+}
+
+function nodeOfRow(row: ClientSpanDependencyRow): string {
+  return JSON.stringify([
+    row.callerServiceId,
+    row.dbSystem || "",
+    row.dbNamespace || "",
+    row.serverAddress || "",
+    row.rpcService || "",
+  ]);
+}
+
+function targetsOf(row: ClientSpanDependencyRow): Array<string> {
+  return (row.dbTargets || [])
+    .map((entry: Array<string>): string => {
+      return JSON.stringify(entry);
+    })
+    .sort();
+}
+
 clickhouseIntegration(
   "The client-span dependency query against ClickHouse",
   () => {
@@ -1986,6 +2279,30 @@ clickhouseIntegration(
     let clickhouse: ClickhouseDatabase;
     let client: ClickhouseClient;
     let result: Array<ClientSpanDependencyRow> = [];
+    const now: number = Date.now();
+    const model: AnalyticsBaseModel = new Span();
+
+    async function runQuery(
+      projectId: string,
+      maxRows: number,
+    ): Promise<Array<ClientSpanDependencyRow>> {
+      const sql: string = buildClientSpanDependencySql({
+        projectId: projectId,
+        startSql: `toDateTime64('${OneUptimeDate.toClickhouseDateTime64(new Date(now - 15 * 60 * 1000))}', 9)`,
+        endSql: `toDateTime64('${OneUptimeDate.toClickhouseDateTime64(new Date(now + 60 * 1000))}', 9)`,
+        maxEntrySpans: 1000,
+        maxRows: maxRows,
+      });
+      const response: { json: () => Promise<unknown> } = await client.query({
+        query: sql
+          .split(`oneuptime.${model.tableName}`)
+          .join(`${database}.${model.tableName}`),
+        format: "JSON",
+      });
+      return (
+        (await response.json()) as { data: Array<ClientSpanDependencyRow> }
+      ).data;
+    }
 
     beforeAll(async (): Promise<void> => {
       const url: URL = new URL(CLICKHOUSE_URL!);
@@ -2005,7 +2322,6 @@ clickhouseIntegration(
       clickhouse = new ClickhouseDatabase(options);
       client = await clickhouse.connect(options);
 
-      const model: AnalyticsBaseModel = new Span();
       const generator: StatementGenerator<AnalyticsBaseModel> =
         new StatementGenerator<AnalyticsBaseModel>({
           modelType: Span as unknown as { new (): AnalyticsBaseModel },
@@ -2019,18 +2335,17 @@ clickhouseIntegration(
         query_params: columns.query_params,
       });
 
-      const now: number = Date.now();
       const retentionDate: string = OneUptimeDate.toClickhouseDateTime(
         OneUptimeDate.addRemoveDays(new Date(), 30),
       ).substring(0, 10);
       const values: Array<JSONObject> = [];
       let index: number = 0;
-      for (const fixture of DEPENDENCY_SPANS) {
+      for (const fixture of [...DEPENDENCY_SPANS, ...ESTATE_SPANS]) {
         for (let copy: number = 0; copy < (fixture.count || 1); copy++) {
           index++;
           const start: Date = new Date(now - 60 * 1000 - index * 10);
           values.push({
-            projectId: PROJECT_ID,
+            projectId: fixture.projectId || PROJECT_ID,
             primaryEntityId: fixture.service,
             primaryEntityType: "OpenTelemetry",
             startTime: OneUptimeDate.toClickhouseDateTime64(start),
@@ -2057,22 +2372,7 @@ clickhouseIntegration(
         format: "JSONEachRow",
       });
 
-      const sql: string = buildClientSpanDependencySql({
-        projectId: PROJECT_ID,
-        startSql: `toDateTime64('${OneUptimeDate.toClickhouseDateTime64(new Date(now - 15 * 60 * 1000))}', 9)`,
-        endSql: `toDateTime64('${OneUptimeDate.toClickhouseDateTime64(new Date(now + 60 * 1000))}', 9)`,
-        maxEntrySpans: 1000,
-        maxRows: 1000,
-      });
-      const response: { json: () => Promise<unknown> } = await client.query({
-        query: sql
-          .split(`oneuptime.${model.tableName}`)
-          .join(`${database}.${model.tableName}`),
-        format: "JSON",
-      });
-      result = (
-        (await response.json()) as { data: Array<ClientSpanDependencyRow> }
-      ).data;
+      result = await runQuery(PROJECT_ID, 1000);
     }, 120000);
 
     afterAll(async (): Promise<void> => {
@@ -2095,41 +2395,77 @@ clickhouseIntegration(
       expect(mssql).toHaveLength(1);
       expect(mssql[0]).toMatchObject({
         serverAddress: "SQL1.corp.example.com",
-        dbServerAddress: "SQL1.corp.example.com",
-        serverPort: "",
-        dbInstance: "INST01",
         dbNamespace: "billing",
-        callerNamespace: "",
-        callerCluster: "",
       });
+      // A global name: no caller context kept.
+      expect(mssql[0]!.dbTargets).toEqual([
+        ["SQL1.corp.example.com", "", "INST01", "", "0", ""],
+      ]);
       expect(Number(mssql[0]!.callCount)).toBe(2);
 
       const redisByPeer: ClientSpanDependencyRow | undefined = rowsOf(
         "redis",
       ).find((row: ClientSpanDependencyRow): boolean => {
-        return row.dbServerAddress === "10.0.0.9";
+        return targetsOf(row).some((entry: string): boolean => {
+          return entry.includes("10.0.0.9");
+        });
       });
       // The node's own address has no network.peer fallback; the server's does.
-      expect(redisByPeer).toMatchObject({
-        serverAddress: "",
-        serverPort: "6380",
-        callerNamespace: "cache",
-        callerCluster: "prod-eu",
-      });
+      expect(redisByPeer?.serverAddress).toBe("");
+      // A private IP keeps the caller's cluster, never its namespace.
+      expect(redisByPeer?.dbTargets).toEqual([
+        ["10.0.0.9", "6380", "", "", "0", "prod-eu"],
+      ]);
     });
 
-    test("one placement is one row however many pods called; placements split", () => {
+    test("every row's servers are exactly the ones the TypeScript twin predicts", () => {
+      const predicted: Map<string, Set<string>> = new Map<
+        string,
+        Set<string>
+      >();
+      for (const fixture of DEPENDENCY_SPANS) {
+        const entry: string | null = predictedTarget(fixture.attributes);
+        const node: string = nodeOf(fixture);
+        const entries: Set<string> = predicted.get(node) || new Set<string>();
+        if (entry) {
+          entries.add(entry);
+        }
+        predicted.set(node, entries);
+      }
+
+      expect(result).toHaveLength(predicted.size);
+      for (const row of result) {
+        const expected: Set<string> | undefined = predicted.get(nodeOfRow(row));
+        expect(expected).toBeDefined();
+        expect(targetsOf(row)).toEqual(Array.from(expected!).sort());
+      }
+    });
+
+    test("one row per (caller, node) however many pods or placements called it", () => {
       const postgres: Array<ClientSpanDependencyRow> = rowsOf("postgresql");
       expect(
         postgres
           .map((row: ClientSpanDependencyRow): string => {
-            return `${row.callerCluster}:${Number(row.callCount)}`;
+            return `${row.callerServiceId} ${row.serverAddress} ${Number(row.callCount)}`;
           })
           .sort(),
-      ).toEqual(["prod-eu:4", "prod-us:1"]);
+      ).toEqual(
+        [
+          `${IDS["api"]} postgres.data 4`,
+          `${IDS["dashboard"]} postgres.data 1`,
+          // Three clusters, one managed server: one row, one server.
+          `${IDS["api"]} ${RDS_HOST} 3`,
+        ].sort(),
+      );
+      const rds: ClientSpanDependencyRow | undefined = postgres.find(
+        (row: ClientSpanDependencyRow): boolean => {
+          return row.serverAddress === RDS_HOST;
+        },
+      );
+      expect(rds?.dbTargets).toEqual([[RDS_HOST, "5432", "", "", "0", ""]]);
     });
 
-    test("every other call keeps no server columns, and groups exactly as before", () => {
+    test("every other call keeps no servers, and groups exactly as before", () => {
       const http: Array<ClientSpanDependencyRow> = result.filter(
         (row: ClientSpanDependencyRow): boolean => {
           return !row.dbSystem;
@@ -2138,11 +2474,7 @@ clickhouseIntegration(
       expect(http).toHaveLength(1);
       expect(http[0]).toMatchObject({
         serverAddress: "hooks.slack.com",
-        dbServerAddress: "",
-        serverPort: "",
-        dbInstance: "",
-        callerNamespace: "",
-        callerCluster: "",
+        dbTargets: [],
       });
       expect(Number(http[0]!.callCount)).toBe(2);
     });
@@ -2222,7 +2554,7 @@ clickhouseIntegration(
         );
       }
 
-      expect(ingestByNode.size).toBe(3);
+      expect(ingestByNode.size).toBe(4);
       for (const [key, endpoints] of ingestByNode) {
         const endpoint: string | undefined =
           described.get(key)?.descriptiveAttributes?.[
@@ -2246,6 +2578,7 @@ clickhouseIntegration(
         [
           // postgres.data from prod-eu AND prod-us: two servers, one node.
           "",
+          `${RDS_HOST}:5432`,
           /*
            * The hostless redis node: its localhost calls name no server,
            * so they do not contradict the one its other calls reached.
@@ -2254,6 +2587,67 @@ clickhouseIntegration(
           "sql1.corp.example.com\\inst01",
         ].sort(),
       );
+    });
+
+    test("under a tight row cap, HTTP and RPC peers survive a database called from every placement", async () => {
+      const rows: Array<ClientSpanDependencyRow> = await runQuery(
+        OTHER_PROJECT_ID,
+        4,
+      );
+
+      expect(
+        rows
+          .map((row: ClientSpanDependencyRow): string => {
+            return `${row.dbSystem || row.rpcSystem || "http"} ${row.serverAddress || row.rpcService} ${Number(row.callCount)}`;
+          })
+          .sort(),
+      ).toEqual(
+        [
+          "redis redis 150",
+          `postgresql ${RDS_HOST} 30`,
+          "http api.stripe.com 3",
+          "grpc acme.ledger.v1.Ledger 2",
+        ].sort(),
+      );
+
+      const byHost: Map<string, ClientSpanDependencyRow> = new Map(
+        rows.map(
+          (row: ClientSpanDependencyRow): [string, ClientSpanDependencyRow] => {
+            return [row.serverAddress || row.rpcService || "", row];
+          },
+        ),
+      );
+      // Thirty namespaces' own `redis`: the servers are capped, never the rows.
+      expect(byHost.get("redis")?.dbTargets).toHaveLength(
+        MAX_DATABASE_TARGETS_PER_ROW,
+      );
+      expect(
+        readDependencyDatabaseTargets(byHost.get("redis")!).every(
+          (entry: DependencyDatabaseTarget): boolean => {
+            return entry.address === "redis" && entry.callerNamespace !== "";
+          },
+        ),
+      ).toBe(true);
+      expect(byHost.get(RDS_HOST)?.dbTargets).toEqual([
+        [RDS_HOST, "", "", "", "0", ""],
+      ]);
+
+      // …and the nodes describe what they can: one server, or not one.
+      const describedEndpoint: (host: string) => string | undefined = (
+        host: string,
+      ): string | undefined => {
+        const node: DependencyTarget | null = resolveClientSpanTarget(
+          byHost.get(host)!,
+          new Set<string>(),
+        );
+        return node?.kind === "dependency"
+          ? node.entity.descriptiveAttributes[
+              DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE
+            ]
+          : undefined;
+      };
+      expect(describedEndpoint(RDS_HOST)).toBe(`${RDS_HOST}:5432`);
+      expect(describedEndpoint("redis")).toBe("");
     });
   },
 );

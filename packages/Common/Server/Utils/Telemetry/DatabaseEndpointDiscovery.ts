@@ -25,7 +25,13 @@ import {
 import {
   CALLER_CLUSTER_ATTRIBUTE,
   CALLER_NAMESPACE_ATTRIBUTE,
+  DatabaseCallerContextSql,
+  NON_BLANK_TEXT_PATTERN,
+  ORDINAL_SUFFIX_PATTERN,
+  PLAIN_HOST_ADDRESS_PATTERN,
+  PRIVATE_IP_ADDRESS_PATTERN,
   QUERY_SETTINGS,
+  databaseCallerContextSql,
   databaseInstanceSql,
   escapeSql,
   firstNonEmptyAttributeSql,
@@ -35,6 +41,11 @@ import {
 export {
   CALLER_CLUSTER_ATTRIBUTE,
   CALLER_NAMESPACE_ATTRIBUTE,
+  NON_BLANK_TEXT_PATTERN,
+  ORDINAL_SUFFIX_PATTERN,
+  PLAIN_HOST_ADDRESS_PATTERN,
+  PRIVATE_IP_ADDRESS_PATTERN,
+  databaseCallerContextSql,
   databaseInstanceSql,
   firstNonEmptyAttributeSql,
 };
@@ -54,31 +65,16 @@ export {
  * the precedence the ingest resolver uses (first attribute that is present
  * and not '', stable semconv names first). The caller's Kubernetes context
  * only changes the canonical endpoint of some addresses, so the query keeps
- * it ONLY for those and groups on '' otherwise. It decides on the raw
- * address, lowercased:
- *
- *   - anything that is not a plain `host[:port]` (a URL, a host list, JDBC
- *     properties, userinfo, a trailing dot, IPv6, `host\instance`, …) keeps
- *     the namespace AND the cluster: the host inside it could be anything;
- *   - a plain single-label host keeps both (it expands to
- *     `<name>.<namespace>.svc.cluster.local`);
- *   - a plain two-label host keeps the cluster and one flag, "the caller has
- *     a namespace", because from a pod `<service>.<namespace>` resolves
- *     through the cluster's DNS whichever namespace the pod is in — plus the
- *     namespace itself when the first label is a StatefulSet pod
- *     (`mongo-0.mongo-headless`, a member of the caller's own namespace);
- *   - Kubernetes Service DNS (a `svc` label), the private DNS zones
- *     (NETWORK_SCOPED_NAME_SUFFIXES) and private / link-local IPv4 keep the
- *     cluster — the hosts every cluster or network has its own copy of.
+ * it ONLY for those and groups on '' otherwise — decided on the raw address,
+ * lowercased, by databaseCallerContextSql, which the client-span dependency
+ * query shares (see it for the rules).
  *
  * That is what keeps the grouping bounded: a thousand pods calling
  * `orders.cjd8.eu-west-1.rds.amazonaws.com` are ONE group, not one per pod,
- * namespace or cluster. The predicates are deliberately a superset of the
- * canonicalization rules (keeping context canonicalization ignores costs a
- * group, dropping context it needs would change the endpoint);
- * getDatabaseEndpointCallerContextNeeds is their TypeScript twin, and the
- * test suite proves the reduced context canonicalizes identically — and,
- * against a real ClickHouse, that the SQL and the twin agree.
+ * namespace or cluster. getDatabaseEndpointCallerContextNeeds is the
+ * predicates' TypeScript twin, and the test suite proves the reduced
+ * context canonicalizes identically — and, against a real ClickHouse, that
+ * the SQL and the twin agree.
  *
  * Everything here is synchronous and side-effect free apart from reading one
  * environment variable, so it can be tested without ClickHouse or Postgres.
@@ -92,67 +88,15 @@ export const DATABASE_SERVER_MIN_CALLS_ENV: string =
   "DATABASE_SERVER_MIN_CALLS";
 export const DEFAULT_DATABASE_SERVER_MIN_CALLS: number = 10;
 
-/*
- * Private IPv4 ranges (RFC 1918 and CGNAT 100.64/10, leading zeros
- * tolerated), IPv4 link-local 169.254/16, IPv6 unique-local (fc00::/7) and
- * link-local (fe80::/10) addresses and IPv4-mapped IPv6, at the start of the
- * address or after a URL / userinfo / SQL Server `tcp:` / IPv6 bracket
- * boundary. Matched against the LOWERCASED address. Written in the regex
- * subset RE2 (ClickHouse `match`) and JavaScript agree on, so the tests can
- * run the exact pattern the query runs.
- *
- * A superset on purpose: over-matching (a public IPv6 address with an
- * `fc..:` group, say) only keeps the caller's cluster in the grouping,
- * which the canonicalization then ignores.
- */
-export const PRIVATE_IP_ADDRESS_PATTERN: string = [
-  "(?:^|[/@:]|\\[)",
-  "(?:",
-  "0*10[.]",
-  "|0*192[.]0*168[.]",
-  "|0*172[.]0*(?:1[6-9]|2[0-9]|3[01])[.]",
-  "|0*100[.]0*(?:6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])[.]",
-  "|0*169[.]0*254[.]",
-  "|f[cd][0-9a-f]{0,2}:",
-  "|fe[89ab][0-9a-f]:",
-  "|[0:]*:ffff:",
-  ")",
-].join("");
-
-/*
- * A plain `host[:port]`: hostname labels and an optional numeric port,
- * nothing else. Only such an address is classified precisely; anything else
- * keeps the whole caller context. RE2 and JavaScript agree on it.
- */
-export const PLAIN_HOST_ADDRESS_PATTERN: string =
-  "^[a-z0-9_-]+(?:[.][a-z0-9_-]+)*(?::[0-9]*)?$";
-
-// A label ending in `-<digits>`: a StatefulSet pod such as `mongo-0`.
-export const ORDINAL_SUFFIX_PATTERN: string = "-[0-9]+$";
-
-/*
- * "Not blank" exactly as JavaScript's String.prototype.trim sees it: any
- * character outside its whitespace set (ASCII whitespace, NBSP, the
- * Unicode space separators, the line / paragraph separators and the BOM).
- * RE2 syntax; the TypeScript side simply trims.
- */
-export const NON_BLANK_TEXT_PATTERN: string =
-  "[^\\t\\n\\v\\f\\r \\x{A0}\\x{1680}\\x{2000}-\\x{200A}\\x{2028}\\x{2029}\\x{202F}\\x{205F}\\x{3000}\\x{FEFF}]";
-
 const PLAIN_HOST_ADDRESS_REGEX: RegExp = new RegExp(PLAIN_HOST_ADDRESS_PATTERN);
 const PRIVATE_IP_ADDRESS_REGEX: RegExp = new RegExp(PRIVATE_IP_ADDRESS_PATTERN);
 const UPPERCASE_ASCII_REGEX: RegExp = /[A-Z]+/g;
 
 const SPAN_TABLE: string = `oneuptime.${AnalyticsTableName.Span}`;
 
-// SQL over the lowercased raw address, shared by the grouping predicates.
+// SQL over the lowercased raw address, for the row order.
 const ADDRESS_SQL: string = "lower(serverAddress)";
 const HOST_PART_SQL: string = `splitByChar(':', ${ADDRESS_SQL})[1]`;
-const LABELS_SQL: string = `splitByChar('.', ${HOST_PART_SQL})`;
-const LABEL_COUNT_SQL: string = `length(${LABELS_SQL})`;
-const PLAIN_ADDRESS_SQL: string = `match(${ADDRESS_SQL}, '${escapeSql(
-  PLAIN_HOST_ADDRESS_PATTERN,
-)}')`;
 
 /*
  * An IP-literal address (IPv4 host[:port], bare or bracketed IPv6). Only
@@ -232,7 +176,8 @@ function hasOrdinalSuffix(label: string): boolean {
  * this raw address: its namespace, whether it runs in Kubernetes (the
  * `callerInKubernetes` flag — only for plain two-label hosts, where nothing
  * else of the namespace matters) and its cluster. The TypeScript twin of the
- * three caller columns of buildDatabaseEndpointSql — keep them in step.
+ * three caller columns of buildDatabaseEndpointSql (databaseCallerContextSql)
+ * — keep them in step.
  */
 export function getDatabaseEndpointCallerContextNeeds(address: string): {
   namespace: boolean;
@@ -295,18 +240,8 @@ export function buildDatabaseEndpointSql(
       .join(", ")}]`;
   };
 
-  const namespaceAttribute: string = `attributes['${escapeSql(
-    CALLER_NAMESPACE_ATTRIBUTE,
-  )}']`;
-  const clusterAttribute: string = `attributes['${escapeSql(
-    CALLER_CLUSTER_ATTRIBUTE,
-  )}']`;
-
-  const networkScopedName: string = NETWORK_SCOPED_NAME_SUFFIXES.map(
-    (suffix: string): string => {
-      return `endsWith(${HOST_PART_SQL}, '${escapeSql(suffix)}')`;
-    },
-  ).join(" OR ");
+  const callerContext: DatabaseCallerContextSql =
+    databaseCallerContextSql("serverAddress");
 
   return `
     /* ${DATABASE_ENDPOINT_SQL_MARKER} */
@@ -315,29 +250,9 @@ export function buildDatabaseEndpointSql(
       ${firstNonEmptyAttributeSql(DATABASE_ADDRESS_ATTRIBUTES)} AS serverAddress,
       ${firstNonEmptyAttributeSql(DATABASE_PORT_ATTRIBUTES)} AS serverPort,
       ${databaseInstanceSql()} AS dbInstance,
-      if(
-        NOT ${PLAIN_ADDRESS_SQL}
-          OR ${LABEL_COUNT_SQL} = 1
-          OR (${LABEL_COUNT_SQL} = 2 AND match(${LABELS_SQL}[1], '${escapeSql(
-            ORDINAL_SUFFIX_PATTERN,
-          )}')),
-        ${namespaceAttribute},
-        ''
-      ) AS callerNamespace,
-      if(
-        ${PLAIN_ADDRESS_SQL} AND ${LABEL_COUNT_SQL} = 2,
-        match(${namespaceAttribute}, '${escapeSql(NON_BLANK_TEXT_PATTERN)}'),
-        0
-      ) AS callerInKubernetes,
-      if(
-        NOT ${PLAIN_ADDRESS_SQL}
-          OR ${LABEL_COUNT_SQL} <= 2
-          OR has(${LABELS_SQL}, 'svc')
-          OR ${networkScopedName}
-          OR match(${ADDRESS_SQL}, '${escapeSql(PRIVATE_IP_ADDRESS_PATTERN)}'),
-        ${clusterAttribute},
-        ''
-      ) AS callerCluster,
+      ${callerContext.callerNamespace} AS callerNamespace,
+      ${callerContext.callerInKubernetes} AS callerInKubernetes,
+      ${callerContext.callerCluster} AS callerCluster,
       count() AS callCount
     FROM ${SPAN_TABLE}
     WHERE projectId = '${escapeSql(window.projectId)}'

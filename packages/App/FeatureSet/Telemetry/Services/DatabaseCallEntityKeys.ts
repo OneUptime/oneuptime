@@ -1,9 +1,9 @@
 import {
-  DATABASE_INSTANCE_ATTRIBUTES,
   DatabaseCallerContext,
   DatabaseEndpoint,
   DatabaseEndpointScope,
   buildDatabaseCallerContext,
+  readDatabaseInstanceName,
 } from "Common/Types/DatabaseServer/DatabaseEndpoint";
 import {
   DATABASE_ADDRESS_ATTRIBUTES,
@@ -56,15 +56,18 @@ const MAX_MEMO_ENTRIES: number = 10_000;
 export const DATABASE_CLIENT_METRIC_PREFIX: string = "db.client.";
 
 /*
- * Every attribute resolveDatabaseCallTarget can read, in one list, so the
- * memo key covers exactly the inputs that decide the answer — including the
- * SQL Server named instance (two instances on one host are two servers).
+ * The attributes resolveDatabaseCallTarget reads verbatim, in one list, so
+ * the memo key covers the inputs that decide the answer. The SQL Server
+ * named instance (two instances on one host are two servers) is the one
+ * input it DERIVES — from `db.mssql.instance_name` / `db.namespace`, and
+ * only for SQL Server — so the memo keys on that derived instance instead
+ * (see readMemoInstanceName): every other engine's `db.namespace` (a
+ * database per tenant, a Redis index) can never split the memo.
  */
 const DATABASE_CALL_ATTRIBUTES: ReadonlyArray<string> = [
   ...DATABASE_SYSTEM_ATTRIBUTES,
   ...DATABASE_ADDRESS_ATTRIBUTES,
   ...DATABASE_PORT_ATTRIBUTES,
-  ...DATABASE_INSTANCE_ATTRIBUTES,
 ];
 
 /*
@@ -264,8 +267,34 @@ export default class DatabaseCallEntityKeyResolver {
     for (const key of DATABASE_CALL_ATTRIBUTES) {
       parts.push(memoToken(attributes[key]));
     }
+    parts.push(memoToken(readMemoInstanceName(attributes)));
     return JSON.stringify(parts);
   }
+}
+
+/*
+ * The SQL Server instance a call names, as the resolver reads it
+ * (readDatabaseInstanceName), for the memo key. The resolver reads it for
+ * the FIRST system attribute present; any system attribute naming SQL
+ * Server is enough here — for a call whose first system is another engine
+ * the instance never reaches the answer, so keying on it only costs a memo
+ * slot, never merges two answers. Null for every other call: two calls to
+ * one PostgreSQL server that differ only in `db.namespace` share one slot.
+ */
+function readMemoInstanceName(attributes: RowAttributes): string | null {
+  const getAttribute: (key: string) => unknown = (key: string): unknown => {
+    return attributes[key];
+  };
+  for (const key of DATABASE_SYSTEM_ATTRIBUTES) {
+    const instance: string | null = readDatabaseInstanceName({
+      system: attributes[key],
+      getAttribute: getAttribute,
+    });
+    if (instance !== null) {
+      return instance;
+    }
+  }
+  return null;
 }
 
 /*

@@ -410,6 +410,133 @@ describe("DatabaseCallEntityKeyResolver", () => {
     expect(resolveSpy).toHaveBeenCalledTimes(2);
   });
 
+  test("db.namespace never splits the memo for an engine that is not SQL Server", () => {
+    const keySpy: jest.SpyInstance = jest.spyOn(
+      EntityKeyModule,
+      "keyForDatabaseEndpoint",
+    );
+    const resolveSpy: jest.SpyInstance = jest.spyOn(
+      DatabaseTelemetryResolverModule,
+      "resolveDatabaseCallTarget",
+    );
+    const resolver: DatabaseCallEntityKeyResolver =
+      new DatabaseCallEntityKeyResolver(PROJECT_ID);
+
+    // A database per tenant on one server: one server, one resolution.
+    for (let tenant: number = 0; tenant < 50; tenant++) {
+      expect(
+        resolver.getEntityKey(
+          {
+            "db.system.name": "postgresql",
+            "server.address": DB_HOST,
+            "server.port": 5432,
+            "db.namespace": `tenant_${tenant}`,
+          },
+          CALLER,
+        ),
+      ).toBe(EXPECTED_KEY);
+    }
+    // A stray instance attribute on another engine names no instance either.
+    expect(
+      resolver.getEntityKey(
+        {
+          "db.system": "postgres",
+          "server.address": DB_HOST,
+          "server.port": 5432,
+          "db.mssql.instance_name": "INST01",
+          "db.namespace": "INST02|orders",
+        },
+        CALLER,
+      ),
+    ).toBe(EXPECTED_KEY);
+    expect(resolveSpy).toHaveBeenCalledTimes(2);
+    expect(keySpy).toHaveBeenCalledTimes(2);
+
+    const legacyResolver: DatabaseCallEntityKeyResolver =
+      new DatabaseCallEntityKeyResolver(PROJECT_ID);
+    for (let tenant: number = 0; tenant < 20; tenant++) {
+      legacyResolver.getEntityKey(
+        {
+          "db.system": "redis",
+          "server.address": "cache.example.com",
+          "db.namespace": String(tenant),
+        },
+        CALLER,
+      );
+    }
+    expect(resolveSpy).toHaveBeenCalledTimes(3);
+  });
+
+  test("SQL Server: the memo is keyed by the instance a call names, not by its database", () => {
+    const resolveSpy: jest.SpyInstance = jest.spyOn(
+      DatabaseTelemetryResolverModule,
+      "resolveDatabaseCallTarget",
+    );
+    const resolver: DatabaseCallEntityKeyResolver =
+      new DatabaseCallEntityKeyResolver(PROJECT_ID);
+    const call: Record<string, unknown> = {
+      "db.system": "mssql",
+      "server.address": "sql1.corp.example.com",
+    };
+
+    const orders: string | null = resolver.getEntityKey(
+      { ...call, "db.namespace": "INST01|orders" },
+      CALLER,
+    );
+    const billing: string | null = resolver.getEntityKey(
+      { ...call, "db.namespace": "INST01|billing" },
+      CALLER,
+    );
+    const named: string | null = resolver.getEntityKey(
+      { ...call, "db.mssql.instance_name": "INST01", "db.namespace": "audit" },
+      CALLER,
+    );
+    const other: string | null = resolver.getEntityKey(
+      { ...call, "db.namespace": "INST02|orders" },
+      CALLER,
+    );
+    // The default instance: a db.namespace without "|" names no instance.
+    const defaultOrders: string | null = resolver.getEntityKey(
+      { ...call, "db.namespace": "orders" },
+      CALLER,
+    );
+    const defaultBilling: string | null = resolver.getEntityKey(
+      { ...call, "db.namespace": "billing" },
+      CALLER,
+    );
+
+    expect(orders).not.toBeNull();
+    expect(billing).toBe(orders);
+    expect(named).toBe(orders);
+    expect(other).not.toBeNull();
+    expect(other).not.toBe(orders);
+    expect(defaultOrders).not.toBeNull();
+    expect(defaultOrders).not.toBe(orders);
+    expect(defaultBilling).toBe(defaultOrders);
+    // INST01, INST02 and the default instance: three resolutions.
+    expect(resolveSpy).toHaveBeenCalledTimes(3);
+  });
+
+  test("an instance only a later system attribute would read never changes the key", () => {
+    const resolver: DatabaseCallEntityKeyResolver =
+      new DatabaseCallEntityKeyResolver(PROJECT_ID);
+    // The resolver reads db.system.name first: this is a PostgreSQL call.
+    for (const namespace of ["INST01|orders", "INST02|orders", "orders"]) {
+      expect(
+        resolver.getEntityKey(
+          {
+            "db.system.name": "postgresql",
+            "db.system": "mssql",
+            "server.address": DB_HOST,
+            "server.port": 5432,
+            "db.namespace": namespace,
+          },
+          CALLER,
+        ),
+      ).toBe(EXPECTED_KEY);
+    }
+  });
+
   test("a string port and a number port land on the same key", () => {
     const resolver: DatabaseCallEntityKeyResolver =
       new DatabaseCallEntityKeyResolver(PROJECT_ID);
