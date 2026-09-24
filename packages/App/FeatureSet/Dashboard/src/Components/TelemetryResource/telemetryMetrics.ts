@@ -54,6 +54,12 @@ export interface SpanMetrics {
   countSeries: Array<TimePoint>;
   errorSeries: Array<TimePoint>;
   p95Series: Array<TimePoint>;
+  /*
+   * The aggregate queries failed (e.g. a 403 without trace read access).
+   * The numbers are then zero, which is unknown rather than none - a tile
+   * should say "could not load" instead of showing 0.
+   */
+  failed?: boolean | undefined;
 }
 
 export interface SpanScope {
@@ -224,7 +230,7 @@ export const fetchSpanMetrics: (
       p95Series: p95Series,
     };
   } catch {
-    return empty;
+    return { ...empty, failed: true };
   }
 };
 

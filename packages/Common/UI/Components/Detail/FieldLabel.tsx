@@ -46,7 +46,7 @@ const FieldLabelElement: FunctionComponent<ComponentProps> = (
             <InfoTooltip
               label={translatedTitle}
               text={props.tooltip}
-              className="normal-case tracking-normal"
+              className="relative z-10 normal-case tracking-normal"
             />
             <span className="w-1 h-1 rounded-full bg-gray-300"></span>
           </span>

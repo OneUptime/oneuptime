@@ -468,7 +468,12 @@ const RumApplicationOverview: FunctionComponent<
   }
 
   const a: RumApplication = rumApplication;
-  const m: SpanMetrics | null = metrics;
+  /*
+   * A failed span lookup is unknown, not zero (correlation-14): the span
+   * tiles read "could not load" rather than a confident 0.
+   */
+  const m: SpanMetrics | null = metrics && !metrics.failed ? metrics : null;
+  const spanLookupFailed: boolean = Boolean(metrics?.failed);
 
   const chips: Array<ResourceOverviewChip> = [];
   if (a.clientType) {
@@ -520,7 +525,7 @@ const RumApplicationOverview: FunctionComponent<
       icon: IconProp.Activity,
       iconColor: "sky",
       loading: metricsLoading,
-      sublabel: "spans, selected range",
+      sublabel: spanLookupFailed ? "could not load" : "spans, selected range",
       description: RUM_METRIC_DESCRIPTIONS.events,
     },
     {
@@ -529,7 +534,11 @@ const RumApplicationOverview: FunctionComponent<
       icon: IconProp.Alert,
       iconColor: "rose",
       loading: metricsLoading,
-      sublabel: m ? `${formatCompact(m.errors)} errored` : undefined,
+      sublabel: spanLookupFailed
+        ? "could not load"
+        : m
+          ? `${formatCompact(m.errors)} errored`
+          : undefined,
       percent: m ? m.errorRatePercent : null,
       thresholds: { warn: 1, danger: 5 },
       description: RUM_METRIC_DESCRIPTIONS.errorRate,
@@ -540,7 +549,9 @@ const RumApplicationOverview: FunctionComponent<
       icon: IconProp.Clock,
       iconColor: "violet",
       loading: metricsLoading,
-      sublabel: "page loads, requests, clicks",
+      sublabel: spanLookupFailed
+        ? "could not load"
+        : "page loads, requests, clicks",
       description: RUM_METRIC_DESCRIPTIONS.eventDuration,
     },
     {

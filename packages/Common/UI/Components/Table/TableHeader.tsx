@@ -178,7 +178,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                  * sit inside the sort button - so for those columns the sort
                  * button shrinks to its content and the (i) follows it.
                  */}
-                {canSort && column.headerTooltip ? (
+                {canSort && column.headerTooltip?.trim() ? (
                   <div className="flex w-full items-center">
                     <button
                       type="button"
@@ -204,7 +204,7 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                 ) : (
                   <div
                     className={
-                      column.headerTooltip
+                      column.headerTooltip?.trim()
                         ? `${contentClassName} items-center`
                         : contentClassName
                     }

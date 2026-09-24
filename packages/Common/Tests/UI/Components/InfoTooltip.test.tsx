@@ -16,6 +16,7 @@ import {
   test,
 } from "@jest/globals";
 import InfoTooltip from "../../../UI/Components/Tooltip/InfoTooltip";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * The (i) that sits beside a metric's title and says what the metric means.
@@ -150,8 +151,7 @@ describe("InfoTooltip", () => {
   });
 
   test("a click does not bubble, so an (i) inside a link does not navigate", () => {
-    const onParentClick: jest.Mock<(event: React.MouseEvent) => void> =
-      jest.fn<(event: React.MouseEvent) => void>();
+    const onParentClick: MockFunction = getJestMockFunction();
 
     render(
       <div onClick={onParentClick}>

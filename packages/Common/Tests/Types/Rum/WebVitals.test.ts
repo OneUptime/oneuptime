@@ -37,9 +37,11 @@ describe("WebVitalDefinitions descriptions", () => {
   });
 
   test.each(
-    WebVitalDefinitions.map((d: WebVitalDefinition) => {
-      return [d.key, d];
-    }),
+    WebVitalDefinitions.map(
+      (d: WebVitalDefinition): [string, WebVitalDefinition] => {
+        return [d.key, d];
+      },
+    ),
   )(
     "%s: the description is one or two short sentences a tooltip can hold",
     (_: string, d: WebVitalDefinition) => {
@@ -51,9 +53,11 @@ describe("WebVitalDefinitions descriptions", () => {
   );
 
   test.each(
-    WebVitalDefinitions.map((d: WebVitalDefinition) => {
-      return [d.key, d];
-    }),
+    WebVitalDefinitions.map(
+      (d: WebVitalDefinition): [string, WebVitalDefinition] => {
+        return [d.key, d];
+      },
+    ),
   )(
     "%s: the description does not quote a threshold (those are derived)",
     (_: string, d: WebVitalDefinition) => {
