@@ -25,8 +25,20 @@ import { LoaderConfig } from "./Config";
  */
 
 export interface ExtendedReplayConfig {
-  /* Origins that may receive an injected traceparent. Empty = never. */
+  /*
+   * Cross-origin APIs that may receive an injected traceparent. Empty =
+   * none; the page's own origin is governed by the switch below.
+   */
   tracePropagationOrigins: Array<string>;
+
+  /*
+   * Requests to the page's own origin carry traceparent + tracestate with
+   * the session id while the session uploads. The server sends an
+   * explicit boolean (true by default, false in the disabled response);
+   * anything but a literal true - an older server, a cached stub with no
+   * passthrough - is OFF, like every other field here.
+   */
+  sameOriginTracePropagation: boolean;
 
   /* Performance budgets in milliseconds; 0 disables each trigger. */
   lcpBudgetMs: number;
@@ -57,6 +69,7 @@ export function readExtendedConfig(
 
   return {
     tracePropagationOrigins: readStringArray(source["tracePropagationOrigins"]),
+    sameOriginTracePropagation: source["sameOriginTracePropagation"] === true,
     lcpBudgetMs: readBudgetMs(source["lcpBudgetMs"]),
     longTaskBudgetMs: readBudgetMs(source["longTaskBudgetMs"]),
     slowRequestBudgetMs: readBudgetMs(source["slowRequestBudgetMs"]),

@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddDatabaseServerTables1794800000000
+export class AddDatabaseServerTables1795000000000
   implements MigrationInterface
 {
-  public name: string = "AddDatabaseServerTables1794800000000";
+  public name: string = "AddDatabaseServerTables1795000000000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

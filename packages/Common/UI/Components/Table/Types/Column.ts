@@ -8,6 +8,13 @@ export default interface Column<T extends GenericObject> {
   // Stable identity carried over from the ModelTable column, if it had one.
   id?: string | undefined;
   description?: string | undefined;
+  /*
+   * What the column's values mean, in an (i) tooltip beside the header - for
+   * a metric column whose title is jargon ("p95", "Restarts"). Separate from
+   * `description`, which ModelTable fills from the database column for other
+   * purposes and which is never shown in the header.
+   */
+  headerTooltip?: string | undefined;
   disableSort?: boolean | undefined;
   tooltipText?: ((item: T) => string) | undefined;
   type: FieldType;

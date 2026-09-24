@@ -21,6 +21,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 
 const ProxmoxClusterNodes: FunctionComponent<
   PageComponentProps
@@ -75,6 +76,12 @@ const ProxmoxClusterNodes: FunctionComponent<
       description="All nodes in this Proxmox cluster with their current resource usage."
       resources={resources}
       showGroupColumn={false}
+      builtInColumnDescriptions={{
+        status: PROXMOX_METRIC_DESCRIPTIONS.nodesTableStatus,
+        cpu: PROXMOX_METRIC_DESCRIPTIONS.nodesTableCpu,
+        memory: PROXMOX_METRIC_DESCRIPTIONS.nodesTableMemory,
+        age: PROXMOX_METRIC_DESCRIPTIONS.nodesTableUptime,
+      }}
       tableIdPrefix="proxmox"
       emptyMessage="No nodes reported yet. Make sure the Proxmox agent is sending metrics."
       getViewRoute={(resource: InfrastructureResource) => {

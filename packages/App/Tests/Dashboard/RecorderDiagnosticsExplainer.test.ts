@@ -141,6 +141,121 @@ describe("RecorderDiagnosticsExplainer code table", () => {
   });
 });
 
+/*
+ * same-origin-propagation is one code with several reasons, and a customer
+ * reading "reason: agent-stand-down" needs to know which agent took the
+ * traceparent over and what to change. Every reason literal the recorder
+ * emits under that code must be explained - read from the source, so a new
+ * reason without a sentence fails here.
+ */
+describe("RecorderDiagnosticsExplainer same-origin-propagation reasons", () => {
+  const networkRecorder: string = fs.readFileSync(
+    nodePath.join(RECORDER_SRC_DIR, "NetworkRecorder.ts"),
+    "utf8",
+  );
+
+  const emittedReasons: Array<string> = Array.from(
+    new Set(
+      networkRecorder
+        .split('"same-origin-propagation",')
+        .slice(1)
+        .flatMap((emission: string): Array<string> => {
+          const call: string = emission.split(");")[0] || "";
+
+          return Array.from(call.matchAll(/"(on|[a-z]+(?:-[a-z]+)+)"/g)).map(
+            (match: RegExpMatchArray): string => {
+              return match[1] as string;
+            },
+          );
+        }),
+    ),
+  ).sort();
+
+  test("the recorder reports the start-up reasons and the vendor stand-down", () => {
+    expect(emittedReasons).toEqual([
+      "agent-stand-down",
+      "on",
+      "opaque-origin",
+      "policy-off",
+    ]);
+  });
+
+  test("every emitted reason is explained, and the stand-down names its agents", () => {
+    const copy: { explanation: string; action: string | null } =
+      explainRecorderDebugCode("same-origin-propagation");
+
+    for (const reason of emittedReasons) {
+      expect([reason, copy.explanation.includes(reason)]).toEqual([
+        reason,
+        true,
+      ]);
+    }
+
+    for (const agent of ["DD_RUM", "NREUM", "elasticApm"]) {
+      expect(copy.explanation).toContain(agent);
+    }
+
+    expect(copy.action).toContain("agent-stand-down");
+    expect(copy.action).toContain("allowedTracingUrls");
+  });
+
+  /*
+   * One "configure the agent to propagate" line was wrong for two of the
+   * three agents: New Relic with distributed tracing on already sends a
+   * traceparent (with its own tracestate in place of the session's), and a
+   * Datadog session that links nothing is usually one Datadog does not
+   * trace-sample, which no propagation setting changes.
+   */
+  test("gives each stand-down agent its own advice, and never tells New Relic to propagate", () => {
+    const action: string =
+      explainRecorderDebugCode("same-origin-propagation").action || "";
+
+    const advice: (agent: string) => string = (agent: string): string => {
+      const start: number = action.indexOf(`${agent}:`);
+
+      expect([agent, start >= 0]).toEqual([agent, true]);
+
+      const rest: string = action.slice(start + agent.length + 1);
+      const next: number = rest.search(/\b(DD_RUM|NREUM|elasticApm):/);
+
+      return next >= 0 ? rest.slice(0, next) : rest;
+    };
+
+    expect(action).not.toContain("configure the named agent");
+
+    expect(advice("DD_RUM")).toContain("trace-sample");
+    /*
+     * traceSampleRate: 100 is the fix. traceContextInjection: "all" only
+     * sends a not-sampled traceparent in the other sessions, which a
+     * default ParentBased backend drops, so it must never read as the fix.
+     */
+    expect(advice("DD_RUM")).toContain("traceSampleRate: 100");
+    expect(advice("DD_RUM")).toMatch(
+      /traceContextInjection: "all" also sends a traceparent there, but flagged not sampled/,
+    );
+    expect(advice("DD_RUM")).toContain("allowedTracingUrls");
+
+    expect(advice("elasticApm")).toContain("disableInstrumentations");
+
+    const newRelic: string = advice("NREUM");
+
+    expect(newRelic).toContain("own tracestate");
+    expect(newRelic).toContain("nothing to change");
+    expect(newRelic).not.toMatch(/propagat/i);
+    expect(newRelic).not.toMatch(/\bconfigure\b/i);
+  });
+
+  test("says which Datadog, New Relic and Elastic set-ups make the recorder stand down", () => {
+    const explanation: string = explainRecorderDebugCode(
+      "same-origin-propagation",
+    ).explanation;
+
+    expect(explanation).toContain("tracked session");
+    expect(explanation).toContain("distributed tracing on");
+    expect(explanation).toContain("traceparent header name");
+  });
+});
+
 describe("explainRecorderDiagnostics input handling", () => {
   test("empty and non-JSON pastes are reported, not thrown", () => {
     const empty: RecorderDiagnosticsResult = explainRecorderDiagnostics("   ");

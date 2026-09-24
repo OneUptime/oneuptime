@@ -44,6 +44,7 @@ import {
   identityAttributesForResource,
 } from "../Utils/VMwareResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
+import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 
 /*
  * Window for the client-side linear growth fit — same 24 h window as
@@ -346,20 +347,30 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
           : null;
 
     if (used !== null) {
-      summaryFields.push({ title: "Used", value: formatBytes(used) });
+      summaryFields.push({
+        title: "Used",
+        value: formatBytes(used),
+        description: VMWARE_METRIC_DESCRIPTIONS.datastoreUsed,
+      });
     }
     if (total !== null) {
-      summaryFields.push({ title: "Capacity", value: formatBytes(total) });
+      summaryFields.push({
+        title: "Capacity",
+        value: formatBytes(total),
+        description: VMWARE_METRIC_DESCRIPTIONS.datastoreCapacity,
+      });
       if (used !== null) {
         summaryFields.push({
           title: "Free",
           value: formatBytes(Math.max(total - used, 0)),
+          description: VMWARE_METRIC_DESCRIPTIONS.datastoreFree,
         });
       }
     }
     if (usedPercent !== null) {
       summaryFields.push({
         title: "Used %",
+        description: VMWARE_METRIC_DESCRIPTIONS.datastoreUsedPercent,
         value:
           usedPercent >= DATASTORE_WARN_PERCENT ? (
             <StatusBadge
@@ -390,6 +401,7 @@ const VMwareVCenterDatastoreDetail: FunctionComponent<
         usedPercent !== null ? formatPercent(usedPercent) : "—";
       summaryFields.push({
         title: "Growth Forecast",
+        description: VMWARE_METRIC_DESCRIPTIONS.datastoreGrowthForecast,
         value:
           daysToFull === 0
             ? "Full now"

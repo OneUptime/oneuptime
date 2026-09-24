@@ -20,6 +20,7 @@ import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 
 /*
  * Resource pools are list-only (no detail page): the receiver reports a
@@ -110,6 +111,7 @@ const VMwareVCenterResourcePools: FunctionComponent<
         {
           title: "CPU Usage",
           key: "cpuMhz",
+          description: VMWARE_METRIC_DESCRIPTIONS.resourcePoolListCpu,
           getValue: (resource: InfrastructureResource): string => {
             const n: number | null = readNumber(resource, "cpuMhz");
             return n === null ? "N/A" : formatMhz(n);
@@ -118,6 +120,7 @@ const VMwareVCenterResourcePools: FunctionComponent<
         {
           title: "Memory Usage",
           key: "memoryUsageBytes",
+          description: VMWARE_METRIC_DESCRIPTIONS.resourcePoolListMemory,
           getValue: (resource: InfrastructureResource): string => {
             return resource.memoryUsageBytes === null
               ? "N/A"
@@ -131,6 +134,8 @@ const VMwareVCenterResourcePools: FunctionComponent<
            */
           title: "Ballooned / Swapped",
           key: "memoryBalloonedBytes",
+          description:
+            VMWARE_METRIC_DESCRIPTIONS.resourcePoolListBalloonedSwapped,
           getValue: (resource: InfrastructureResource): string => {
             const ballooned: number | null = readNumber(
               resource,

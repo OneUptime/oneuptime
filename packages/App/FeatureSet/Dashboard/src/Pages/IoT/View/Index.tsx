@@ -44,6 +44,8 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { IOT_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/IoTMetricDescriptions";
 import {
   fetchIoTInventoryRows,
   routeParamFromExternalId,
@@ -98,6 +100,8 @@ const DEFAULT_TIME_RANGE: RangeStartAndEndDateTime = {
 };
 
 const REFRESH_STORAGE_KEY: string = "iot-overview-auto-refresh-interval";
+
+const ATTENTION_TITLE: string = "Devices needing attention";
 
 const IoTFleetOverview: FunctionComponent<
   PageComponentProps
@@ -564,6 +568,8 @@ const IoTFleetOverview: FunctionComponent<
         } online`,
       });
     }
+    // The devices chip is a count; the agent version below is metadata.
+    const hasCountChips: boolean = specChips.length > 0;
     if (fleet.agentVersion) {
       specChips.push({
         icon: IconProp.Terminal,
@@ -616,7 +622,7 @@ const IoTFleetOverview: FunctionComponent<
             </div>
 
             {specChips.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-1.5">
+              <div className="mt-4 flex flex-wrap items-center gap-1.5">
                 {specChips.map(
                   (
                     chip: { icon: IconProp; label: string },
@@ -635,6 +641,16 @@ const IoTFleetOverview: FunctionComponent<
                       </span>
                     );
                   },
+                )}
+                {/*
+                 * One (i) for the devices-online chip; a row holding only
+                 * the agent version chip is metadata and gets none.
+                 */}
+                {hasCountChips && (
+                  <InfoTooltip
+                    label="Devices online"
+                    text={IOT_METRIC_DESCRIPTIONS.heroDevicesOnline}
+                  />
                 )}
               </div>
             )}
@@ -695,6 +711,7 @@ const IoTFleetOverview: FunctionComponent<
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <GoldenMetricTile
           title="Online Devices"
+          description={IOT_METRIC_DESCRIPTIONS.onlineDevices}
           icon={IconProp.Heartbeat}
           iconColor="emerald"
           value={onlinePct === null ? "—" : `${onlineDevices}/${totalDevices}`}
@@ -705,6 +722,7 @@ const IoTFleetOverview: FunctionComponent<
         />
         <GoldenMetricTile
           title="Total Devices"
+          description={IOT_METRIC_DESCRIPTIONS.totalDevices}
           icon={IconProp.Cube}
           iconColor="sky"
           value={totalDevices > 0 ? `${totalDevices}` : "—"}
@@ -712,6 +730,7 @@ const IoTFleetOverview: FunctionComponent<
         />
         <GoldenMetricTile
           title="Avg Battery"
+          description={IOT_METRIC_DESCRIPTIONS.avgBattery}
           icon={IconProp.Bolt}
           iconColor="amber"
           value={formatPercent(batteryPct)}
@@ -722,6 +741,7 @@ const IoTFleetOverview: FunctionComponent<
         />
         <GoldenMetricTile
           title="Avg Signal"
+          description={IOT_METRIC_DESCRIPTIONS.avgSignal}
           icon={IconProp.Wifi}
           iconColor="violet"
           value={formatDbm(s.avgSignalDbm)}
@@ -741,7 +761,15 @@ const IoTFleetOverview: FunctionComponent<
 
     return (
       <Card
-        title="Devices needing attention"
+        title={
+          <span className="inline-flex items-center gap-1.5">
+            {ATTENTION_TITLE}
+            <InfoTooltip
+              label={ATTENTION_TITLE}
+              text={IOT_METRIC_DESCRIPTIONS.devicesNeedingAttention}
+            />
+          </span>
+        }
         description="Devices that are offline, low on battery, or have a weak signal. Click through to investigate."
       >
         <div className="divide-y divide-gray-100">

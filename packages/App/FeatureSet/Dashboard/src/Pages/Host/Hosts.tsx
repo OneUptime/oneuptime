@@ -37,6 +37,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import { HOST_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/HostMetricDescriptions";
 
 interface ResourceSummary {
   cores: number | undefined;
@@ -506,6 +507,7 @@ const Hosts: FunctionComponent<PageComponentProps> = (): ReactElement => {
             title: "Resources",
             type: FieldType.Element,
             hideOnMobile: true,
+            headerTooltip: HOST_METRIC_DESCRIPTIONS.hostListResources,
             getElement: (item: Host): ReactElement => {
               const summary: ResourceSummary = {
                 cores: item.cpuCores ?? undefined,

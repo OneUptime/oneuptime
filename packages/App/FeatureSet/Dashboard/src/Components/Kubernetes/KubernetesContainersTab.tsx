@@ -13,6 +13,8 @@ import LocalTable from "Common/UI/Components/Table/LocalTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import type Columns from "Common/UI/Components/Table/Types/Columns";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/KubernetesResourceMetricDescriptions";
 
 function formatK8sResourceValue(key: string, value: string): string {
   if (!value) {
@@ -165,6 +167,7 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <InfoCard
               title="State"
+              tooltip={KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.containerState}
               value={
                 <StatusBadge
                   text={props.status.state}
@@ -180,6 +183,7 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
             />
             <InfoCard
               title="Ready"
+              tooltip={KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.containerReady}
               value={
                 <StatusBadge
                   text={props.status.ready ? "Yes" : "No"}
@@ -193,6 +197,9 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
             />
             <InfoCard
               title="Restarts"
+              tooltip={
+                KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.containerRestarts
+              }
               value={
                 <StatusBadge
                   text={String(props.status.restartCount)}
@@ -256,8 +263,15 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {Object.keys(props.container.resources.requests).length > 0 && (
               <div>
-                <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Requests
+                <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <span>Requests</span>
+                  <InfoTooltip
+                    label="Requests"
+                    text={
+                      KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.containerRequests
+                    }
+                    className="normal-case tracking-normal"
+                  />
                 </div>
                 <DictionaryOfStringsViewer
                   value={annotateResourceValues(
@@ -268,8 +282,15 @@ const ContainerCard: FunctionComponent<ContainerCardProps> = (
             )}
             {Object.keys(props.container.resources.limits).length > 0 && (
               <div>
-                <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Limits
+                <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <span>Limits</span>
+                  <InfoTooltip
+                    label="Limits"
+                    text={
+                      KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.containerLimits
+                    }
+                    className="normal-case tracking-normal"
+                  />
                 </div>
                 <DictionaryOfStringsViewer
                   value={annotateResourceValues(

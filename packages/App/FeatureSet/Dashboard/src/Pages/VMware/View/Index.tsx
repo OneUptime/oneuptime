@@ -70,6 +70,8 @@ import ValueFormatter from "Common/Utils/ValueFormatter";
 import GoldenMetricTile, {
   tileColorClasses,
 } from "../../../Components/Infrastructure/GoldenMetricTile";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 import {
   VMwareResourceKind,
   fetchVMwareInventoryRows,
@@ -1352,6 +1354,8 @@ const VMwareVCenterOverview: FunctionComponent<
         label: `${datastoreCount} datastore${datastoreCount === 1 ? "" : "s"}`,
       });
     }
+    // Every chip so far is a count; the agent version below is metadata.
+    const hasCountChips: boolean = specChips.length > 0;
     if (vcenter.agentVersion) {
       specChips.push({
         icon: IconProp.Terminal,
@@ -1423,7 +1427,7 @@ const VMwareVCenterOverview: FunctionComponent<
             </div>
 
             {specChips.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-1.5">
+              <div className="mt-4 flex flex-wrap items-center gap-1.5">
                 {specChips.map(
                   (
                     chip: { icon: IconProp; label: string },
@@ -1442,6 +1446,16 @@ const VMwareVCenterOverview: FunctionComponent<
                       </span>
                     );
                   },
+                )}
+                {/*
+                 * One (i) for the count chips; a row holding only the
+                 * agent version chip is metadata and gets none.
+                 */}
+                {hasCountChips && (
+                  <InfoTooltip
+                    label="vCenter inventory counts"
+                    text={VMWARE_METRIC_DESCRIPTIONS.overviewInventoryCounts}
+                  />
                 )}
               </div>
             )}
@@ -1517,6 +1531,7 @@ const VMwareVCenterOverview: FunctionComponent<
           percent={hostEffectivenessPct}
           thresholds={{ warn: 99, danger: 51 }}
           higherIsBetter={true}
+          description={VMWARE_METRIC_DESCRIPTIONS.overviewHostEffectiveness}
         />
         <GoldenMetricTile
           title="Host CPU"
@@ -1525,6 +1540,7 @@ const VMwareVCenterOverview: FunctionComponent<
           value={formatPercent(s.hostCpuPercent)}
           sublabel="capacity-weighted across ESXi hosts"
           percent={s.hostCpuPercent}
+          description={VMWARE_METRIC_DESCRIPTIONS.overviewHostCpu}
         />
         <GoldenMetricTile
           title="Host Memory"
@@ -1538,6 +1554,7 @@ const VMwareVCenterOverview: FunctionComponent<
           }
           percent={s.hostMemoryPercent}
           thresholds={{ warn: 80, danger: 95 }}
+          description={VMWARE_METRIC_DESCRIPTIONS.overviewHostMemory}
         />
         <GoldenMetricTile
           title="Datastores"
@@ -1554,6 +1571,7 @@ const VMwareVCenterOverview: FunctionComponent<
             warn: DATASTORE_WARN_PERCENT,
             danger: DATASTORE_CRITICAL_PERCENT,
           }}
+          description={VMWARE_METRIC_DESCRIPTIONS.overviewDatastores}
         />
         <GoldenMetricTile
           title="VM CPU Ready"
@@ -1571,6 +1589,7 @@ const VMwareVCenterOverview: FunctionComponent<
            * alert template fires past 10%, so amber at 5 and red at 10.
            */
           thresholds={{ warn: 5, danger: VM_CPU_READY_WARN_PERCENT }}
+          description={VMWARE_METRIC_DESCRIPTIONS.overviewVmCpuReady}
         />
         <GoldenMetricTile
           title="Virtual Machines"
@@ -1599,6 +1618,7 @@ const VMwareVCenterOverview: FunctionComponent<
            */
           thresholds={{ warn: 0, danger: 0 }}
           higherIsBetter={true}
+          description={VMWARE_METRIC_DESCRIPTIONS.overviewVirtualMachines}
         />
       </div>
     );
@@ -1611,6 +1631,8 @@ const VMwareVCenterOverview: FunctionComponent<
     data: Array<SeriesPoint>;
     yAxis?: YAxis;
     showLegend?: boolean;
+    // What the chart plots, in an (i) beside the title.
+    description?: string | undefined;
   }) => ReactElement = (params: {
     title: string;
     icon: IconProp;
@@ -1618,26 +1640,35 @@ const VMwareVCenterOverview: FunctionComponent<
     data: Array<SeriesPoint>;
     yAxis?: YAxis;
     showLegend?: boolean;
+    description?: string | undefined;
   }): ReactElement => {
     const colors: { bg: string; ring: string; text: string } =
       tileColorClasses[params.iconColor];
 
+    /*
+     * One header for the skeleton and the loaded card, so the (i) is there
+     * from the first paint rather than appearing once the data lands.
+     */
+    const header: ReactElement = (
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {params.title}
+          </span>
+          <InfoTooltip label={params.title} text={params.description} />
+        </div>
+        <div
+          className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+        >
+          <Icon icon={params.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
+        </div>
+      </div>
+    );
+
     if (!chartWindow) {
       return (
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {params.title}
-            </span>
-            <div
-              className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
-            >
-              <Icon
-                icon={params.icon}
-                className={`h-3.5 w-3.5 ${colors.text}`}
-              />
-            </div>
-          </div>
+          {header}
           <div className="h-48 animate-pulse rounded-md bg-gray-50" />
         </div>
       );
@@ -1667,16 +1698,7 @@ const VMwareVCenterOverview: FunctionComponent<
 
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {params.title}
-          </span>
-          <div
-            className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
-          >
-            <Icon icon={params.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
-          </div>
-        </div>
+        {header}
         <LineChartElement
           data={params.data}
           xAxis={xAxis}
@@ -1741,12 +1763,14 @@ const VMwareVCenterOverview: FunctionComponent<
             icon: IconProp.ChartBar,
             iconColor: "blue",
             data: cpuSeries,
+            description: VMWARE_METRIC_DESCRIPTIONS.overviewHostCpuChart,
           })}
           {renderChartCard({
             title: "Host Memory",
             icon: IconProp.SquareStack,
             iconColor: "violet",
             data: memorySeries,
+            description: VMWARE_METRIC_DESCRIPTIONS.overviewHostMemoryChart,
           })}
           {renderChartCard({
             title: "Datastore Used",
@@ -1754,6 +1778,7 @@ const VMwareVCenterOverview: FunctionComponent<
             iconColor: "amber",
             data: datastoreSeries,
             yAxis: bytesYAxis,
+            description: VMWARE_METRIC_DESCRIPTIONS.overviewDatastoreUsedChart,
           })}
           {renderChartCard({
             title: "VM CPU Ready",
@@ -1762,6 +1787,7 @@ const VMwareVCenterOverview: FunctionComponent<
             data: cpuReadySeries,
             yAxis: cpuReadyYAxis,
             showLegend: cpuReadySeries.length > 1,
+            description: VMWARE_METRIC_DESCRIPTIONS.overviewVmCpuReadyChart,
           })}
         </div>
       </div>
@@ -1945,6 +1971,8 @@ const VMwareVCenterOverview: FunctionComponent<
     iconTextClass: string;
     children: ReactElement;
     className?: string;
+    // What the ranked value means, in an (i) beside the title.
+    description?: string | undefined;
   }) => ReactElement = (params: {
     title: string;
     subtitle: string;
@@ -1953,6 +1981,7 @@ const VMwareVCenterOverview: FunctionComponent<
     iconTextClass: string;
     children: ReactElement;
     className?: string;
+    description?: string | undefined;
   }): ReactElement => {
     return (
       <div className={`p-5 ${params.className || ""}`}>
@@ -1966,9 +1995,12 @@ const VMwareVCenterOverview: FunctionComponent<
             />
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-gray-900">
-              {params.title}
-            </h4>
+            <div className="flex items-center gap-1">
+              <h4 className="text-sm font-semibold text-gray-900">
+                {params.title}
+              </h4>
+              <InfoTooltip label={params.title} text={params.description} />
+            </div>
             <p className="text-xs text-gray-500">{params.subtitle}</p>
           </div>
         </div>
@@ -1993,6 +2025,7 @@ const VMwareVCenterOverview: FunctionComponent<
               icon: IconProp.CPUChip,
               iconBgClass: "bg-blue-50",
               iconTextClass: "text-blue-600",
+              description: VMWARE_METRIC_DESCRIPTIONS.topHostsByCpu,
               children: renderTopList({
                 rows: inventory?.topHostsByCpu || [],
                 kind: "Host",
@@ -2010,6 +2043,7 @@ const VMwareVCenterOverview: FunctionComponent<
               iconBgClass: "bg-purple-50",
               iconTextClass: "text-purple-600",
               className: "border-t lg:border-t-0 border-gray-100",
+              description: VMWARE_METRIC_DESCRIPTIONS.topHostsByMemory,
               children: renderTopList({
                 rows: inventory?.topHostsByMemory || [],
                 kind: "Host",
@@ -2027,6 +2061,8 @@ const VMwareVCenterOverview: FunctionComponent<
               iconBgClass: "bg-amber-50",
               iconTextClass: "text-amber-600",
               className: "border-t border-gray-100",
+              description:
+                VMWARE_METRIC_DESCRIPTIONS.topDatastoresByUtilization,
               children: renderTopList({
                 rows: inventory?.topDatastoresByUtilization || [],
                 kind: "Datastore",
@@ -2044,6 +2080,7 @@ const VMwareVCenterOverview: FunctionComponent<
               iconBgClass: "bg-sky-50",
               iconTextClass: "text-sky-600",
               className: "border-t border-gray-100",
+              description: VMWARE_METRIC_DESCRIPTIONS.topVmsByCpuReady,
               children: renderTopList({
                 rows: inventory?.topVmsByCpuReady || [],
                 kind: "VirtualMachine",
@@ -2250,6 +2287,7 @@ const VMwareVCenterOverview: FunctionComponent<
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
         <InfoCard
           title="vCenter Health"
+          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewVCenterHealth}
           value={renderSummaryValue(
             <span
               className={`text-2xl font-semibold ${
@@ -2268,6 +2306,7 @@ const VMwareVCenterOverview: FunctionComponent<
         />
         <InfoCard
           title="Datacenters"
+          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewDatacenterCount}
           value={renderSummaryValue(
             <span className="text-2xl font-semibold">
               {datacenterCount.toString()}
@@ -2276,6 +2315,7 @@ const VMwareVCenterOverview: FunctionComponent<
         />
         <InfoCard
           title="Clusters"
+          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewClusterCount}
           onClick={() => {
             Navigation.navigate(clustersRoute);
           }}
@@ -2297,6 +2337,7 @@ const VMwareVCenterOverview: FunctionComponent<
         />
         <InfoCard
           title="Hosts"
+          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewHostCount}
           onClick={() => {
             Navigation.navigate(hostsRoute);
           }}
@@ -2308,6 +2349,7 @@ const VMwareVCenterOverview: FunctionComponent<
         />
         <InfoCard
           title="Virtual Machines"
+          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewVirtualMachineCount}
           onClick={() => {
             Navigation.navigate(virtualMachinesRoute);
           }}
@@ -2322,6 +2364,7 @@ const VMwareVCenterOverview: FunctionComponent<
         />
         <InfoCard
           title="Datastores"
+          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewDatastoreCount}
           onClick={() => {
             Navigation.navigate(datastoresRoute);
           }}
@@ -2329,6 +2372,7 @@ const VMwareVCenterOverview: FunctionComponent<
         />
         <InfoCard
           title="Resource Pools"
+          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewResourcePoolCount}
           onClick={() => {
             Navigation.navigate(resourcePoolsRoute);
           }}
@@ -2340,6 +2384,7 @@ const VMwareVCenterOverview: FunctionComponent<
         />
         <InfoCard
           title="Agent Status"
+          tooltip={VMWARE_METRIC_DESCRIPTIONS.overviewAgentStatus}
           value={
             <StatusBadge
               text={

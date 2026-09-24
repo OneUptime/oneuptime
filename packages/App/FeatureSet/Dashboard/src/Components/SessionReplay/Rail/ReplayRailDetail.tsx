@@ -312,6 +312,22 @@ const BackendForRequest: FunctionComponent<{
         {props.spanSlot?.errorMessage || "Backend traces did not load."}
       </Note>
     );
+  } else if (props.spanSlot?.isTruncated) {
+    /*
+     * The fetch left rows out (the row cap, or more traces than one read
+     * names), so the likeliest reason is that this trace was never asked
+     * for - say that before pointing at propagation or export.
+     */
+    body = (
+      <Note>
+        No span in the loaded traces carries trace {shortId(props.traceId)}.{" "}
+        {props.spanSlot.isTraceIdSetCapped
+          ? "This session has more traces than one fetch names, so this may be one of the traces whose rows were not fetched"
+          : `Only the first ${props.spanSlot.rowCount ?? 0} spans were fetched, so this trace's spans may be among the rows left out`}
+        . If it is not, the backend either did not receive the traceparent or
+        has not exported the span yet.
+      </Note>
+    );
   } else {
     body = (
       <Note>

@@ -8,6 +8,8 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 import { ExceptionGroupSummary } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionCorrelation";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import SessionReplayMaskingMode from "../../../Types/Rum/SessionReplayMaskingMode";
@@ -17,6 +19,9 @@ import {
 } from "../../../Types/Rum/SessionReplay";
 import ReplayCorrelationPanel, {
   getReplayDetailsExternalUrl,
+  REPLAY_HEADER_EXCEPTION_GROUP_CAP,
+  REPLAY_HEADER_FINAL_TRACE_ID_CAP,
+  REPLAY_HEADER_LIVE_TRACE_ID_CAP,
   ReplayCorrelationPanelProps,
   ReplaySessionDetails,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayCorrelationPanel";
@@ -207,9 +212,79 @@ describe("ReplayCorrelationPanel Session tab", () => {
     expect(
       screen.getByText(/Mobile traces and logs reach this rail/),
     ).toHaveTextContent("OneUptimeReplay.onSessionChange()");
+    /*
+     * Issue #3979 made web linking automatic; React Native did not change.
+     * Its SDK instruments no networking, so the manual hook stays, and the
+     * copy says why rather than borrowing the web's "automatic" claim.
+     */
+    expect(
+      screen.getByText(/Mobile traces and logs reach this rail/),
+    ).toHaveTextContent("adds nothing to your app's own requests");
+    expect(
+      screen.queryByTestId("details-correlation-web"),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByText(/recorder stamps session.id on its own network/),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * Issue #3979: a web recording links backend telemetry with no code -
+   * same-origin requests carry the session's trace context, ingest stamps
+   * spans, the rail joins logs and exceptions by trace id. The copy used
+   * to say every other signal "must add the same attribute" through
+   * onSessionChange; the hook is optional now.
+   */
+  it("tells a web recording that backend linking is automatic and the session hook optional", () => {
+    renderPanel();
+
+    const copy: HTMLElement = screen.getByTestId("details-correlation-web");
+
+    expect(copy).toHaveTextContent("own origin");
+    expect(copy).toHaveTextContent("stamped with its id at ingest");
+    expect(copy).toHaveTextContent("by trace id");
+    expect(copy).toHaveTextContent("no code needed");
+    expect(copy).toHaveTextContent("Trace propagation origins");
+    expect(copy).toHaveTextContent(
+      "OneUptimeReplay.onSessionChange() is optional",
+    );
+    expect(copy).not.toHaveTextContent("must add");
+    expect(copy).not.toHaveTextContent("Signals are matched using session.id");
+    expect(copy).not.toHaveTextContent(
+      /recorder stamps session.id on its own network/,
+    );
+    expect(
+      screen.queryByText(/Mobile traces and logs reach this rail/),
+    ).not.toBeInTheDocument();
+  });
+
+  /*
+   * Same-origin propagation is a per-application switch, off for anyone
+   * who followed the redirect/download fix. The copy used to state the
+   * automatic link unconditionally, so an operator with the switch off
+   * (or a session recorded with it off) was told something false and
+   * given no reason for an empty rail.
+   */
+  it("qualifies the automatic link on a web recording with the Same-origin trace propagation switch", () => {
+    renderPanel();
+
+    const copy: HTMLElement = screen.getByTestId("details-correlation-web");
+
+    expect(copy).toHaveTextContent(
+      "carry the session's trace context automatically, unless Same-origin trace propagation is turned off in the Replay Policy, so backend spans are stamped",
+    );
+    /* The switch is named the way the Replay Policy page titles it. */
+    expect(
+      within(copy).getByText("Same-origin trace propagation").tagName,
+    ).toBe("EM");
+  });
+
+  it("does not mention the web-only switch on a mobile recording", () => {
+    renderPanel({ details: makeDetails({ recorderKind: "rn-view-tree" }) });
+
+    expect(
+      screen.getByText(/Mobile traces and logs reach this rail/),
+    ).not.toHaveTextContent("Same-origin trace propagation");
   });
 
   it("organizes metadata into named, semantic sections", () => {
@@ -699,6 +774,95 @@ describe("ReplayCorrelationPanel Session tab", () => {
     expect(
       within(fingerprints).getByRole("link", { name: "Error fp-1" }),
     ).toBeInTheDocument();
+  });
+
+  /*
+   * The copy under the lists said "capped at 50" long after the header
+   * kept 100 trace ids while live and 200 once finalized. The numbers are
+   * now named constants, pinned below against the server sources.
+   */
+  it("quotes the header caps that apply to a finalized session", () => {
+    renderPanel({
+      details: makeDetails({
+        isFinalized: true,
+        traceIds: ["4bf92f3577b34da6a3ce929d0e0e4736"],
+        exceptionFingerprints: ["fp-1"],
+      }),
+    });
+
+    const caps: HTMLElement = screen.getByTestId("details-correlation-caps");
+
+    expect(caps).toHaveTextContent(
+      "The session header keeps at most 200 trace IDs and 100 exception groups; the rail queries your telemetry directly, so it is not limited to these.",
+    );
+    expect(caps).not.toHaveTextContent("50");
+  });
+
+  it("quotes the live cap, and the final one, while the session is not finalized", () => {
+    renderPanel({
+      details: makeDetails({
+        isFinalized: false,
+        traceIds: ["4bf92f3577b34da6a3ce929d0e0e4736"],
+      }),
+    });
+
+    const caps: HTMLElement = screen.getByTestId("details-correlation-caps");
+
+    expect(caps).toHaveTextContent(
+      "While the session is live its header keeps at most 100 trace IDs (200 once it is finalized, with up to 100 exception groups)",
+    );
+    expect(caps).not.toHaveTextContent("capped at 50");
+  });
+
+  it("says nothing about caps when the header carries no ids", () => {
+    renderPanel({
+      details: makeDetails({ traceIds: [], exceptionFingerprints: [] }),
+    });
+
+    expect(
+      screen.queryByTestId("details-correlation-caps"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("restates the caps the ingest and the finalizer actually enforce", () => {
+    const appRoot: string = path.resolve(__dirname, "../../../../App");
+    const ingest: string = fs.readFileSync(
+      path.join(
+        appRoot,
+        "FeatureSet/Telemetry/Services/SessionReplayIngestService.ts",
+      ),
+      "utf8",
+    );
+    const finalizer: string = fs.readFileSync(
+      path.join(appRoot, "FeatureSet/Workers/Jobs/Rum/FinalizeSessions.ts"),
+      "utf8",
+    );
+
+    const readConstant: (source: string, name: string) => number = (
+      source: string,
+      name: string,
+    ): number => {
+      const match: RegExpMatchArray | null = source.match(
+        new RegExp(`${name}: number = (\\d+);`),
+      );
+
+      expect([name, match !== null]).toEqual([name, true]);
+
+      return Number((match as RegExpMatchArray)[1]);
+    };
+
+    expect(readConstant(ingest, "PROVISIONAL_HEADER_MAX_TRACE_IDS")).toBe(
+      REPLAY_HEADER_LIVE_TRACE_ID_CAP,
+    );
+    expect(readConstant(finalizer, "MAX_TRACE_IDS_PER_SESSION")).toBe(
+      REPLAY_HEADER_FINAL_TRACE_ID_CAP,
+    );
+    expect(
+      readConstant(finalizer, "MAX_EXCEPTION_FINGERPRINTS_PER_SESSION"),
+    ).toBe(REPLAY_HEADER_EXCEPTION_GROUP_CAP);
+
+    /* The provisional header never carries exception groups at all. */
+    expect(ingest).toContain("exceptionFingerprints: [],");
   });
 
   /*

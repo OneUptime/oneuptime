@@ -851,18 +851,37 @@ export interface SessionReplayConfigResponse {
    */
 
   /*
-   * Origins the recorder may inject a W3C traceparent header into, so a
-   * recording links to the backend trace of the request that failed —
-   * with NO OTel browser instrumentation on the customer's page.
+   * CROSS-origin APIs the recorder may inject a W3C traceparent header
+   * into, so a recording links to the backend trace of the request that
+   * failed — with NO OTel browser instrumentation on the customer's page.
+   * Listed origins get traceparent only, never the session id. The page's
+   * own origin needs no entry: see sameOriginTracePropagation.
    *
-   * Empty means never inject, and that default is the safety mechanism:
-   * adding a request header turns a simple cross-origin request into a
-   * preflighted one, and an API that does not allow traceparent in
+   * Empty means no cross-origin injection, and that default is the safety
+   * mechanism: adding a request header turns a simple cross-origin request
+   * into a preflighted one, and an API that does not allow traceparent in
    * Access-Control-Allow-Headers would start failing because a RUM
    * script was installed. Each listed origin is an explicit statement
    * that its API accepts the header.
    */
   tracePropagationOrigins?: Array<string>;
+
+  /*
+   * RumApplication.sessionReplaySameOriginTracePropagation. When true, the
+   * recorder adds a traceparent (unless the request or an inner tracing
+   * instrumentation already sets one) and a tracestate member carrying the
+   * replay session id (`oneuptime=sid:<id>`, see Utils/Rum/SessionTraceState)
+   * to fetch/XHR requests to the page's OWN origin, and only while the
+   * session is uploading with consent. Span ingest reads the member back,
+   * so backend spans link to the recording with no customer code.
+   *
+   * A same-origin request is never preflighted, so this needs no origin
+   * list and defaults on; the switch turns it off per application without
+   * a customer redeploy. The server always sends an explicit boolean (false
+   * on every disabled response) and the recorder reads anything but `true`
+   * as off, so an older server or a cached stub never turns it on.
+   */
+  sameOriginTracePropagation?: boolean;
 
   /*
    * Performance capture budgets, milliseconds; 0 disables that trigger.

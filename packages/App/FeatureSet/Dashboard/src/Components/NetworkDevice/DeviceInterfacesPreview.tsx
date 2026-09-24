@@ -5,6 +5,7 @@ import {
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 import Route from "Common/Types/API/Route";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -14,6 +15,7 @@ import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, {
@@ -28,6 +30,8 @@ export interface ComponentProps {
 }
 
 const PREVIEW_ROW_COUNT: number = 6;
+
+const PREVIEW_TITLE: string = "Interfaces";
 
 /*
  * Compact interface digest for the device Overview: the few ports most
@@ -219,8 +223,20 @@ const DeviceInterfacesPreview: FunctionComponent<ComponentProps> = (
 
   return (
     <Card
-      title="Interfaces"
-      description="Ports that need attention first — down ports, then the busiest."
+      /*
+       * The rows carry bare numbers — "12 / 3 Mbps", "84%" — with no column
+       * headers, so the (i) is where they are named and their window given.
+       */
+      title={
+        <span className="inline-flex items-center gap-1.5">
+          {PREVIEW_TITLE}
+          <InfoTooltip
+            label={PREVIEW_TITLE}
+            text={NETWORK_DEVICE_METRIC_DESCRIPTIONS.interfacesPreview}
+          />
+        </span>
+      }
+      description="Ports that need attention first — down ports, then ports with errors, then the busiest."
     >
       {getContent()}
     </Card>

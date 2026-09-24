@@ -1,9 +1,11 @@
 import AggregatedFlamegraph from "../../../Components/Profiles/AggregatedFlamegraph";
 import ProfileTable from "../../../Components/Profiles/ProfileTable";
 import ProfileTypeSelector from "../../../Components/Profiles/ProfileTypeSelector";
+import { SERVICE_PROFILE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ServiceMetricDescriptions";
 import PageComponentProps from "../../PageComponentProps";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, {
   Fragment,
@@ -34,6 +36,9 @@ const TIME_RANGES: Array<TimeRange> = [
 
 const DEFAULT_RANGE_MINUTES: number = 60;
 const DEFAULT_PROFILE_TYPE: string = "cpu";
+
+// The flame graph has no title of its own; this heading names it.
+const FLAMEGRAPH_TITLE: string = "Where the time is going";
 
 const ServiceProfiles: FunctionComponent<
   PageComponentProps
@@ -76,9 +81,15 @@ const ServiceProfiles: FunctionComponent<
       <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4">
         <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">
-              Where the time is going
-            </h3>
+            <div className="flex items-center gap-1">
+              <h3 className="text-sm font-semibold text-gray-900">
+                {FLAMEGRAPH_TITLE}
+              </h3>
+              <InfoTooltip
+                label={FLAMEGRAPH_TITLE}
+                text={SERVICE_PROFILE_METRIC_DESCRIPTIONS.flamegraph}
+              />
+            </div>
             <p className="text-xs text-gray-500 mt-0.5">
               Every profile captured for this service in the window, merged into
               one view. Click a frame to zoom in.

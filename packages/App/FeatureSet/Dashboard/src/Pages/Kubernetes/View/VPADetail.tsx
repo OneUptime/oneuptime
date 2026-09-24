@@ -16,7 +16,10 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesOverviewTab, {
+  SummaryField,
+} from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import { KubernetesVPAObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
@@ -102,11 +105,10 @@ const KubernetesClusterVPADetail: FunctionComponent<
 
   const clusterIdentifier: string = cluster.clusterIdentifier || "";
 
-  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
-    [
-      { title: "Name", value: vpaName },
-      { title: "Cluster", value: clusterIdentifier },
-    ];
+  const summaryFields: Array<SummaryField> = [
+    { title: "Name", value: vpaName },
+    { title: "Cluster", value: clusterIdentifier },
+  ];
 
   if (objectData) {
     const hasRecommendations: boolean =
@@ -168,6 +170,8 @@ const KubernetesClusterVPADetail: FunctionComponent<
         const targetMemory: string = rec.target["memory"] || "N/A";
         summaryFields.push({
           title: `Recommendation (${rec.containerName})`,
+          description:
+            KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.vpaRecommendation,
           value: `CPU: ${targetCpu}, Memory: ${targetMemory}`,
         });
       }

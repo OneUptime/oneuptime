@@ -704,6 +704,24 @@ export default class Recorder {
         }
       },
       tracePropagationOrigins: this.extendedConfig.tracePropagationOrigins,
+      sameOriginTracePropagation:
+        this.extendedConfig.sameOriginTracePropagation,
+
+      /*
+       * Read at request time. Only a session that is UPLOADING puts its id
+       * on the page's requests: nothing before consent (RequireExplicit),
+       * after revokeConsent() (identity still holds the withdrawn id then,
+       * so consent is checked here rather than trusted), after stop(),
+       * before an OnErrorOrFrustration trigger, or for a session rotated
+       * onto an unsampled id - an id with no recording behind it would be
+       * an orphan on every backend span and a stable identifier sent for
+       * nothing. The visitor id is never propagated.
+       */
+      getSessionIdForPropagation: (): string | null => {
+        return !this.stopped && this.uploading && this.consent.isUploadAllowed()
+          ? this.identity.sessionId
+          : null;
+      },
     });
 
     this.performanceRecorder = new PerformanceRecorder({
@@ -3061,6 +3079,20 @@ export default class Recorder {
         SessionId.resolveSession(Date.now(), this.identity.tabId),
         SessionRotationReason.New,
       );
+    } else if (wasRevoked && !this.started && !this.stopped) {
+      /*
+       * The same banner, both answers queued before start(): there is no
+       * session to seal and nothing recorded yet, but the constructor's id
+       * is the WITHDRAWN one - the revoke removed it from storage, and
+       * start() never resolves identity again. Left alone, chunk 0 would
+       * upload under it and the page's requests would carry it until the
+       * first flush tick noticed the empty store. So a fresh identity
+       * here, and a chunker bound to its start time, as switchSession
+       * would build.
+       */
+      this.identity = SessionId.resolveSession(Date.now(), this.identity.tabId);
+      this.chunker = this.createChunker();
+      this.detectFidelityNotices();
     }
 
     this.startUploadingIfAllowed();

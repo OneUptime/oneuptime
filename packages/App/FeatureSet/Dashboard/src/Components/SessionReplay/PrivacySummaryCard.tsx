@@ -8,7 +8,8 @@ import { DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS } from "Common/Types/Rum/Sessi
 
 /*
  * PrivacySummaryCard: what this application's replay policy means for a
- * real person whose screen it records, in five sentences.
+ * real person whose screen it records, in five sentences - six while
+ * same-origin trace propagation is on.
  *
  * The policy card lists fields; a data-protection reviewer does not read
  * fields, they ask "what page text ends up in a recording, is the person
@@ -16,6 +17,11 @@ import { DEFAULT_SESSION_REPLAY_RETENTION_IN_DAYS } from "Common/Types/Rum/Sessi
  * answers one of those from the stored policy, names the default when the
  * field was never set (the default IS the policy then), and links to the
  * place that changes it.
+ *
+ * The sixth sentence ("backend-link") exists only while the recorder puts
+ * the session id on the page's own requests. That is what lets backend
+ * telemetry naming the user lead to a recording, and what carries the id
+ * past the customer's backend; with the switch off there is nothing to say.
  *
  * The sentence builder is pure and exported so every combination can be
  * pinned in a test without rendering.
@@ -30,11 +36,13 @@ export interface PrivacySummaryInput {
   maskSelectors?: Array<string> | null | undefined;
   blockSelectors?: Array<string> | null | undefined;
   recordCanvas?: boolean | null | undefined;
+  sameOriginTracePropagation?: boolean | null | undefined;
 }
 
 export type PrivacySummaryKey =
   | "page-text"
   | "identity"
+  | "backend-link"
   | "location"
   | "retention"
   | "consent";
@@ -57,6 +65,7 @@ const DEFAULT_CONSENT_MODE: SessionReplayConsentMode =
   SessionReplayConsentMode.NotRequired;
 const DEFAULT_CAPTURE_IDENTITY: boolean = true;
 const DEFAULT_CAPTURE_GEO: boolean = true;
+const DEFAULT_SAME_ORIGIN_TRACE_PROPAGATION: boolean = true;
 
 function countSelectors(value: Array<string> | null | undefined): number {
   return Array.isArray(value)
@@ -132,15 +141,49 @@ export function buildPrivacySummary(
     ? DEFAULT_CAPTURE_IDENTITY
     : (input.captureUserIdentity as boolean);
 
+  const backendLinkIsDefault: boolean =
+    input.sameOriginTracePropagation === null ||
+    input.sameOriginTracePropagation === undefined;
+  const backendLink: boolean = backendLinkIsDefault
+    ? DEFAULT_SAME_ORIGIN_TRACE_PROPAGATION
+    : (input.sameOriginTracePropagation as boolean);
+
+  /*
+   * "Cannot be found by who the person was" stops being true once backend
+   * telemetry is linked: a span or log naming the user leads to the
+   * recording. The pseudonymous sentence says so rather than overpromise.
+   */
+  let identityText: string;
+
+  if (captureIdentity) {
+    identityText =
+      "Recordings are identified: the user reference and traits your page supplies through identify() are stored with the session and searchable by user:. Erasure requests match on the reference.";
+  } else if (backendLink) {
+    identityText =
+      "Recordings are pseudonymous: no user reference or traits are stored with the session. Backend telemetry linked to it by same-origin trace propagation can still name the person, if your backend records who made each request.";
+  } else {
+    identityText =
+      "Recordings are pseudonymous: no user reference or traits are stored, so a session cannot be found by who the person was.";
+  }
+
   sentences.push({
     key: "identity",
-    text: captureIdentity
-      ? "Recordings are identified: the user reference and traits your page supplies through identify() are stored with the session and searchable by user:. Erasure requests match on the reference."
-      : "Recordings are pseudonymous: no user reference or traits are stored, so a session cannot be found by who the person was.",
+    text: identityText,
     isDefault: identityIsDefault,
     isSensitive: captureIdentity,
     changeLabel: "Change identity capture",
   });
+
+  /* ---- 2b. Backend link (only while it is on) ---- */
+  if (backendLink) {
+    sentences.push({
+      key: "backend-link",
+      text: "Same-origin requests carry this session's id to your backend while the session uploads, and your backend's OpenTelemetry forwards it to the services it calls, third parties included. Backend telemetry that names the user links to the recording. The visitor id is never sent.",
+      isDefault: backendLinkIsDefault,
+      isSensitive: true,
+      changeLabel: "Change trace propagation",
+    });
+  }
 
   /* ---- 3. Location ---- */
   const geoIsDefault: boolean =

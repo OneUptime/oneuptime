@@ -28,7 +28,7 @@ const RULE_MODELS_INTRODUCED_AFTER_MIGRATION: ReadonlyArray<string> = [
   // 1794100000000-AddSloLabelAndOwnerRules
   "ServiceLevelObjectiveLabelRule",
   "ServiceLevelObjectiveOwnerRule",
-  // 1794800000000-AddDatabaseServerTables
+  // 1795000000000-AddDatabaseServerTables
   "DatabaseServerLabelRule",
   "DatabaseServerOwnerRule",
 ];

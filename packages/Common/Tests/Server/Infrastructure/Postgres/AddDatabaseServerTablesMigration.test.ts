@@ -1,4 +1,4 @@
-import { AddDatabaseServerTables1794800000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1794800000000-AddDatabaseServerTables";
+import { AddDatabaseServerTables1795000000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1795000000000-AddDatabaseServerTables";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import DatabaseServer from "../../../../Models/DatabaseModels/DatabaseServer";
 import DatabaseServerEndpoint from "../../../../Models/DatabaseModels/DatabaseServerEndpoint";
@@ -48,7 +48,7 @@ const recordQueries: RecordQueriesFunction = async (
     },
   } as unknown as QueryRunner;
 
-  await new AddDatabaseServerTables1794800000000()[direction](queryRunner);
+  await new AddDatabaseServerTables1795000000000()[direction](queryRunner);
 
   return statements;
 };
@@ -213,13 +213,13 @@ const CHILD_TABLES: Array<string> = [
   "DatabaseServerOwnerUser",
 ];
 
-describe("AddDatabaseServerTables1794800000000", () => {
+describe("AddDatabaseServerTables1795000000000", () => {
   test("is registered under the name its class carries", () => {
-    const migration: AddDatabaseServerTables1794800000000 =
-      new AddDatabaseServerTables1794800000000();
+    const migration: AddDatabaseServerTables1795000000000 =
+      new AddDatabaseServerTables1795000000000();
 
-    expect(migration.name).toBe("AddDatabaseServerTables1794800000000");
-    expect(SchemaMigrations).toContain(AddDatabaseServerTables1794800000000);
+    expect(migration.name).toBe("AddDatabaseServerTables1795000000000");
+    expect(SchemaMigrations).toContain(AddDatabaseServerTables1795000000000);
   });
 
   /*
@@ -243,7 +243,7 @@ describe("AddDatabaseServerTables1794800000000", () => {
     });
 
     const ownIndex: number = names.indexOf(
-      "AddDatabaseServerTables1794800000000",
+      "AddDatabaseServerTables1795000000000",
     );
 
     // indexOf -1 would make the slice below empty and this test vacuous.
@@ -253,7 +253,7 @@ describe("AddDatabaseServerTables1794800000000", () => {
       .slice(0, ownIndex)
       .filter((className: string): boolean => {
         const timestamp: number | null = timestampOf(className);
-        return timestamp !== null && timestamp >= 1794800000000;
+        return timestamp !== null && timestamp >= 1795000000000;
       });
 
     expect(notBehind).toEqual([]);

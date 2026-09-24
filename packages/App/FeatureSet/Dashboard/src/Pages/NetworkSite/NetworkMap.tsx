@@ -3,6 +3,8 @@ import SiteBreadcrumbs from "../../Components/NetworkSite/SiteBreadcrumbs";
 import SiteCard from "../../Components/NetworkSite/SiteCard";
 import SiteContainerGraph from "../../Components/NetworkSite/SiteContainerGraph";
 import SiteGeoMap from "../../Components/NetworkSite/SiteGeoMap";
+import MapSection from "../../Components/NetworkSite/NetworkMapSection";
+import { NETWORK_SITE_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/NetworkSiteMetricDescriptions";
 import {
   LEGACY_NETWORK_MAP_REGION_PARAM,
   NETWORK_MAP_SEARCH_PARAM,
@@ -116,38 +118,6 @@ const QUERY_STRING_DEBOUNCE_MS: number = 200;
 const PAGE_TITLE: string = "Network Map";
 const PAGE_DESCRIPTION: string =
   "Your whole network on one map, framed to wherever your sites are. Marker color shows the worst status at that location — click a marker to drill into a site, or use the cards below.";
-
-/*
- * A labeled band inside the map card. Sections are separated by a rule
- * rather than by margin alone, so the page reads as one designed surface
- * with named parts instead of a stack of loose blocks.
- */
-const MapSection: FunctionComponent<{
-  title: string;
-  hint: string;
-  count: number;
-  children: ReactElement;
-}> = (props: {
-  title: string;
-  hint: string;
-  count: number;
-  children: ReactElement;
-}): ReactElement => {
-  return (
-    <div className="mt-6 border-t border-gray-200 pt-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h3 className="text-sm font-semibold text-gray-900">
-          {props.title}
-          <span className="ml-2 text-xs font-normal tabular-nums text-gray-400">
-            {props.count}
-          </span>
-        </h3>
-        <p className="text-xs text-gray-500">{props.hint}</p>
-      </div>
-      <div className="mt-3">{props.children}</div>
-    </div>
-  );
-};
 
 const NetworkSiteMap: FunctionComponent<
   PageComponentProps
@@ -792,6 +762,16 @@ const NetworkSiteMap: FunctionComponent<
                 ? "Matching sites at this level. Click one to drill in."
                 : "Click a site to drill in; a unit opens its device topology."
             }
+            /*
+             * The graph's nodes are the same card body as the root grid's.
+             * No cards (an empty level, or a search or health filter that
+             * hid them all) means no numbers to explain.
+             */
+            description={
+              levelSites.length > 0
+                ? NETWORK_SITE_METRIC_DESCRIPTIONS.siteCards
+                : undefined
+            }
           >
             <SiteContainerGraph
               sites={levelSites}
@@ -902,6 +882,7 @@ const NetworkSiteMap: FunctionComponent<
               ? "Matching top-level sites. Click one to drill in."
               : "Click a site to drill into its markets and units."
           }
+          description={NETWORK_SITE_METRIC_DESCRIPTIONS.siteCards}
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {rootSites.map((site: SiteChildView): ReactElement => {

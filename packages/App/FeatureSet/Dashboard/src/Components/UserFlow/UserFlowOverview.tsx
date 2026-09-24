@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import {
   UserFlowDirection,
   UserFlowInsight,
@@ -11,6 +12,7 @@ import {
   formatUserFlowShare,
   truncateUserFlowLabel,
 } from "./UserFlowFormat";
+import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 
 /*
  * Findings shown at once. The engine orders them by how much they should
@@ -40,6 +42,8 @@ function Tile(props: {
   hint: string;
   icon: IconProp;
   testId: string;
+  /* What the number means, in an (i) beside the label. */
+  tooltip: string;
   /* A page path: monospace, and cut from the front so the name survives. */
   isPage?: boolean | undefined;
 }): ReactElement {
@@ -49,8 +53,13 @@ function Tile(props: {
       data-testid={props.testId}
     >
       <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
-        <Icon icon={props.icon} className="h-4 w-4 text-gray-400" />
-        {props.label}
+        <Icon icon={props.icon} className="h-4 w-4 shrink-0 text-gray-400" />
+        <span className="min-w-0 truncate">{props.label}</span>
+        <InfoTooltip
+          label={props.label}
+          text={props.tooltip}
+          dataTestId={`${props.testId}-info`}
+        />
       </div>
       <p
         className={
@@ -111,6 +120,7 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
           }
           icon={IconProp.Film}
           testId="user-flow-tile-sessions"
+          tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.sessionsAnalysed}
         />
         <Tile
           label="Pages per session"
@@ -118,6 +128,7 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
           hint={`median ${summary.medianPagesPerSession}`}
           icon={IconProp.Layers}
           testId="user-flow-tile-pages"
+          tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.pagesPerSession}
         />
         <Tile
           label="Single-page sessions"
@@ -127,6 +138,7 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
           )} never navigated`}
           icon={IconProp.ArrowUturnLeft}
           testId="user-flow-tile-bounce"
+          tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.singlePageSessions}
         />
         <Tile
           label="Top landing page"
@@ -142,6 +154,7 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
           }
           icon={IconProp.Home}
           testId="user-flow-tile-entry"
+          tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.topLandingPage}
           isPage={Boolean(summary.topEntryPage)}
         />
         <Tile
@@ -158,6 +171,7 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
           }
           icon={IconProp.Logout}
           testId="user-flow-tile-exit"
+          tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.topExitPage}
           isPage={Boolean(summary.topExitPage)}
         />
       </div>

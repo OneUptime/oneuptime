@@ -1,6 +1,7 @@
 import { SITE_STATUS_FACET_KEY } from "./SiteFacets";
 import { UNASSIGNED_DEVICES_FACET_SELECTION } from "../NetworkDevice/DeviceFacets";
 import { FacetTileSelection } from "../ResourceOwners/FacetTileSelection";
+import { NETWORK_SITE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkSiteMetricDescriptions";
 
 /*
  * The Sites-page counterpart of DeviceSummaryTiles: which facet each tile in the
@@ -47,6 +48,11 @@ export interface SiteSummaryTile {
     | "devicesWithoutSite";
   attentionClassName: string;
   caption: string;
+  /*
+   * What the count means, in the (i) beside the label: what "unhealthy" and
+   * "no data" are measured from, and what activating the tile does.
+   */
+  description: string;
   action: SiteSummaryTileAction;
   // Set only when the action is FilterSites.
   statusFilter?: SiteSummaryStatusFilter | undefined;
@@ -59,6 +65,7 @@ export const SITE_SUMMARY_TILES: Array<SiteSummaryTile> = [
     countField: "totalSites",
     attentionClassName: "text-gray-900",
     caption: "Across the whole hierarchy.",
+    description: NETWORK_SITE_METRIC_DESCRIPTIONS.totalSites,
     action: SiteSummaryTileAction.ClearFilters,
   },
   {
@@ -67,6 +74,7 @@ export const SITE_SUMMARY_TILES: Array<SiteSummaryTile> = [
     countField: "unhealthySites",
     attentionClassName: "text-red-600",
     caption: "Rolling up a non-operational status.",
+    description: NETWORK_SITE_METRIC_DESCRIPTIONS.unhealthySites,
     action: SiteSummaryTileAction.FilterSites,
     statusFilter: SiteSummaryStatusFilter.Unhealthy,
   },
@@ -76,6 +84,7 @@ export const SITE_SUMMARY_TILES: Array<SiteSummaryTile> = [
     countField: "sitesWithNoData",
     attentionClassName: "text-gray-500",
     caption: "No health rollup yet — no monitored devices below.",
+    description: NETWORK_SITE_METRIC_DESCRIPTIONS.sitesWithoutData,
     action: SiteSummaryTileAction.FilterSites,
     statusFilter: SiteSummaryStatusFilter.NoData,
   },
@@ -85,6 +94,7 @@ export const SITE_SUMMARY_TILES: Array<SiteSummaryTile> = [
     countField: "devicesWithoutSite",
     attentionClassName: "text-amber-600",
     caption: "Devices not assigned to any site.",
+    description: NETWORK_SITE_METRIC_DESCRIPTIONS.unassignedDevices,
     action: SiteSummaryTileAction.ShowUnassignedDevices,
   },
 ];

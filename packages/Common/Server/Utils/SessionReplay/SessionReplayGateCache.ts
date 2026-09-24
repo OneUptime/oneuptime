@@ -90,6 +90,7 @@ const RUM_APPLICATION_POLICY_COLUMNS: ReadonlyArray<string> = [
   "sessionReplayMonthlyBudgetInGB",
   "sessionReplayIgnoreErrorPatterns",
   "sessionReplayTracePropagationOrigins",
+  "sessionReplaySameOriginTracePropagation",
   "sessionReplayLcpBudgetMs",
   "sessionReplayLongTaskBudgetMs",
   "sessionReplaySlowRequestBudgetMs",
@@ -159,10 +160,23 @@ export interface SessionReplayGatePolicy {
   ignoreErrorPatterns: Array<string>;
 
   /*
-   * Origins the recorder may inject a W3C traceparent header into.
-   * Empty = never inject; the empty default is the CORS safety mechanism.
+   * CROSS-origin APIs the recorder may inject a W3C traceparent header
+   * into (traceparent only, never the session id). Empty = no cross-origin
+   * injection; the empty default is the CORS safety mechanism. The page's
+   * own origin is governed by sameOriginTracePropagation, not by this list.
    */
   tracePropagationOrigins: Array<string>;
+
+  /*
+   * Whether the recorder adds traceparent plus a tracestate member carrying
+   * the replay session id to requests to the page's OWN origin while a
+   * session uploads, so the backend telemetry they cause links to the
+   * recording with no customer code. A same-origin request is never
+   * preflighted, so this defaults ON; the switch exists to turn it off
+   * without a customer redeploy (a same-origin request that redirects to
+   * another origin does need that origin to allow the headers).
+   */
+  sameOriginTracePropagation: boolean;
 
   /* Performance capture budgets in milliseconds; 0 disables each. */
   lcpBudgetMs: number;
@@ -514,6 +528,14 @@ export default class SessionReplayGateCache {
         tracePropagationOrigins: this.readStringArray(
           appView["sessionReplayTracePropagationOrigins"],
         ),
+        /*
+         * Anything but an explicit false reads as on: the column defaults
+         * to true, so an absent or null value is the model default, like
+         * the consent / trigger / sample fallbacks above. Only an operator
+         * who switched it off gets it off.
+         */
+        sameOriginTracePropagation:
+          appView["sessionReplaySameOriginTracePropagation"] !== false,
         lcpBudgetMs: this.readNumber(appView["sessionReplayLcpBudgetMs"], 0),
         longTaskBudgetMs: this.readNumber(
           appView["sessionReplayLongTaskBudgetMs"],

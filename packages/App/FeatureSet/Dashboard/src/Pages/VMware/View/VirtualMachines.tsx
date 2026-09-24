@@ -23,6 +23,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 
 const VMwareVCenterVirtualMachines: FunctionComponent<
   PageComponentProps
@@ -81,6 +82,12 @@ const VMwareVCenterVirtualMachines: FunctionComponent<
       groupColumnTitle="Host"
       tableIdPrefix="vmware"
       emptyMessage="No virtual machines reported yet. Make sure the VMware agent is sending metrics and that its read-only role is propagated to child objects."
+      builtInColumnDescriptions={{
+        status: VMWARE_METRIC_DESCRIPTIONS.vmListStatus,
+        cpu: VMWARE_METRIC_DESCRIPTIONS.vmListCpu,
+        memory: VMWARE_METRIC_DESCRIPTIONS.vmListMemory,
+        age: VMWARE_METRIC_DESCRIPTIONS.vmListAge,
+      }}
       columns={[
         {
           /*
@@ -90,6 +97,7 @@ const VMwareVCenterVirtualMachines: FunctionComponent<
            */
           title: "Power State",
           key: "powerState",
+          description: VMWARE_METRIC_DESCRIPTIONS.vmListPowerState,
           getValue: (resource: InfrastructureResource): string => {
             return resource.additionalAttributes["powerState"] || "-";
           },
@@ -120,6 +128,7 @@ const VMwareVCenterVirtualMachines: FunctionComponent<
            */
           title: "CPU Ready",
           key: "cpuReadinessPercent",
+          description: VMWARE_METRIC_DESCRIPTIONS.vmListCpuReady,
           getValue: (resource: InfrastructureResource): string => {
             const raw: string =
               resource.additionalAttributes["cpuReadinessPercent"] || "";

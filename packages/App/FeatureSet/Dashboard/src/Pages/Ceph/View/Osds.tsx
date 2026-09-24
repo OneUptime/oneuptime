@@ -19,6 +19,7 @@ import ResourceTable, {
 } from "../../../Components/Infrastructure/ResourceTable";
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
 import CephResourceUtils from "../Utils/CephResourceUtils";
+import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 
 /*
  * OSD list page reading the CephResource Postgres inventory (kind=Osd)
@@ -129,12 +130,32 @@ const CephClusterOsds: FunctionComponent<
       tableIdPrefix="ceph"
       groupColumnTitle="Host"
       showResourceMetrics={false}
+      builtInColumnDescriptions={{
+        status: CEPH_METRIC_DESCRIPTIONS.osdStatusColumn,
+        age: CEPH_METRIC_DESCRIPTIONS.osdAgeColumn,
+      }}
       columns={[
-        { title: "In / Out", key: "in" },
+        {
+          title: "In / Out",
+          key: "in",
+          description: CEPH_METRIC_DESCRIPTIONS.osdInOutColumn,
+        },
         { title: "Class", key: "deviceClass" },
-        { title: "Used / Total", key: "used" },
-        { title: "PGs", key: "pgs" },
-        { title: "Apply / Commit Latency", key: "latency" },
+        {
+          title: "Used / Total",
+          key: "used",
+          description: CEPH_METRIC_DESCRIPTIONS.osdUsedColumn,
+        },
+        {
+          title: "PGs",
+          key: "pgs",
+          description: CEPH_METRIC_DESCRIPTIONS.osdPgsColumn,
+        },
+        {
+          title: "Apply / Commit Latency",
+          key: "latency",
+          description: CEPH_METRIC_DESCRIPTIONS.osdLatencyColumn,
+        },
       ]}
       emptyMessage="No OSDs found in the inventory yet. OSDs appear here a few minutes after the Ceph agent starts sending metrics."
       getViewRoute={(resource: InfrastructureResource) => {

@@ -22,7 +22,10 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesOverviewTab, {
+  SummaryField,
+} from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesDaemonSetObject } from "../Utils/KubernetesObjectParser";
@@ -183,11 +186,10 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
   };
 
   // Build overview summary fields from daemonset object
-  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
-    [
-      { title: "Name", value: daemonSetName },
-      { title: "Cluster", value: clusterIdentifier },
-    ];
+  const summaryFields: Array<SummaryField> = [
+    { title: "Name", value: daemonSetName },
+    { title: "Cluster", value: clusterIdentifier },
+  ];
 
   if (objectData) {
     summaryFields.push(
@@ -205,14 +207,20 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
       },
       {
         title: "Desired Scheduled",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.daemonSetDesiredScheduled,
         value: String(objectData.status.desiredNumberScheduled ?? "N/A"),
       },
       {
         title: "Current Scheduled",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.daemonSetCurrentScheduled,
         value: String(objectData.status.currentNumberScheduled ?? "N/A"),
       },
       {
         title: "Number Ready",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.daemonSetNumberReady,
         value: (
           <StatusBadge
             text={`${objectData.status.numberReady ?? 0}/${objectData.status.desiredNumberScheduled ?? 0}`}
@@ -229,6 +237,8 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
       },
       {
         title: "Number Available",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.daemonSetNumberAvailable,
         value: (
           <StatusBadge
             text={`${objectData.status.numberAvailable ?? 0}/${objectData.status.desiredNumberScheduled ?? 0}`}
@@ -287,7 +297,7 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
       children: (
         <Card
           title={`DaemonSet Metrics: ${daemonSetName}`}
-          description="CPU and memory usage for pods in this daemonset over the last 6 hours."
+          description="CPU and memory usage for pods in this daemonset over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>

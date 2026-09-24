@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 
 /*
  * Product-neutral golden-metric hero tile (extracted from the
@@ -35,6 +36,8 @@ export interface GoldenMetricTileProps {
    * behavior.
    */
   higherIsBetter?: boolean | undefined;
+  // What the number means, shown in an (i) tooltip beside the title.
+  description?: string | undefined;
 }
 
 /*
@@ -101,9 +104,12 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-          {props.title}
-        </span>
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {props.title}
+          </span>
+          <InfoTooltip label={props.title} text={props.description} />
+        </div>
         <div
           className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
         >

@@ -21,7 +21,10 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesOverviewTab, {
+  SummaryField,
+} from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesContainersTab from "../../../Components/Kubernetes/KubernetesContainersTab";
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import KubernetesLogsTab from "../../../Components/Kubernetes/KubernetesLogsTab";
@@ -244,11 +247,10 @@ const KubernetesClusterPodDetail: FunctionComponent<
   };
 
   // Build overview summary fields from pod object
-  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
-    [
-      { title: "Pod Name", value: podName },
-      { title: "Cluster", value: clusterIdentifier },
-    ];
+  const summaryFields: Array<SummaryField> = [
+    { title: "Pod Name", value: podName },
+    { title: "Cluster", value: clusterIdentifier },
+  ];
 
   if (podObject) {
     // Compute restart count
@@ -302,6 +304,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
       },
       {
         title: "Restarts",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.podRestarts,
         value: (
           <StatusBadge
             text={restartCount.toString()}
@@ -453,7 +456,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
       children: (
         <Card
           title={`Pod Metrics: ${podName}`}
-          description="CPU, memory, and container-level resource usage for this pod over the last 6 hours."
+          description="CPU, memory, and container-level resource usage for this pod over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab
             queryConfigs={[podCpuQuery, podMemoryQuery, cpuQuery, memoryQuery]}

@@ -35,6 +35,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IoTDocumentationCard from "../../Components/IoT/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import { IOT_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/IoTMetricDescriptions";
 
 /*
  * WI-18: while the project has no fleets yet, re-count on this cadence
@@ -293,6 +294,7 @@ const IoTFleets: FunctionComponent<PageComponentProps> = (): ReactElement => {
               onlineDeviceCount: true,
             },
             title: "Devices",
+            headerTooltip: IOT_METRIC_DESCRIPTIONS.fleetDevices,
             type: FieldType.Element,
             getElement: (item: IoTFleet): ReactElement => {
               /*

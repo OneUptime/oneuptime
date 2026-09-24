@@ -87,7 +87,7 @@ Available on `window.OneUptimeReplay` once the artifact has loaded, and via
 | `track(name, properties?)`  | a business event ("checkout_failed") as an in-band marker the rail and timeline show        |
 | `setTags(tags)`             | replaces the session's tags, which are searchable from the session list as `tag:key=value`  |
 | `addTag(key, value)`        | adds or overwrites one tag, keeping the rest                                                |
-| `onSessionChange(cb)`       | called with `(sessionId, tabId)` immediately when a session exists and again on every rotation; returns an unsubscribe. This is what puts `session.id` on the page's own OpenTelemetry resource |
+| `onSessionChange(cb)`       | called with `(sessionId, tabId)` immediately when a session exists and again on every rotation; returns an unsubscribe. **Optional**: backend telemetry caused by the page's own-origin requests links to the recording without it (see "headers added to the page's own requests" under the privacy model). Use it to stamp `session.id` on the page's own browser OpenTelemetry spans with a span processor whose `onStart` sets the attribute (the docs' Browser Setup page has one), not on the resource: `resource.attributes` would re-label spans still waiting in the export batch when the session rotates. It fires as soon as the recorder starts, before consent or a capture trigger, so gate on your own consent state if that matters |
 | `stop()`                    | stops recording                                                                            |
 | `getSessionId()`            | the current session id, or null                                                            |
 | `getVisitorId()`            | the anonymous visitor id every session from this browser profile carries (32 hex characters), or `""` before start, after `stop()` and while consent is withdrawn. See "Anonymous visitor id" under the privacy model |
@@ -238,7 +238,8 @@ attribute and the SRI pin is inert.
 | file inputs             | value always blanked; the DOM value is `C:\fakepath\<real filename>` and filenames are routinely personal                                                                                                                   |
 | input timing            | quantised to 250 ms buckets, because inter-keystroke timing is a published side channel even for a masked field                                                                                                             |
 | URLs                    | origin + path only; query and fragment dropped; uuid / object-id / email / long-digit / opaque-token path segments redacted. Applied to the chunk URL, the entry URL, rrweb `Meta` hrefs and every network event.           |
-| network                 | method, scrubbed URL, status, duration, size. **Never bodies. `Authorization` and `Cookie` are never even read.**                                                                                                           |
+| network                 | method, scrubbed URL, status, duration, size, and the request's trace id. **Never bodies. `Authorization` and `Cookie` are never recorded or inspected**; a request's headers are copied only to re-send it with `traceparent` / `tracestate` added. Of the request headers only `traceparent` is read, and `tracestate` is checked for presence only. |
+| headers added to the page's own requests | while the session is **uploading with consent**, `fetch` / `XMLHttpRequest` requests to the page's own origin get `traceparent` (unless they carry one, or a tracer inside ours or a vendor agent configured to trace them will add one) and `tracestate: oneuptime=sid:<session id>` (unless they carry a tracestate). The session id is random and stays the same for the visit (up to 4 h); the page's backend OpenTelemetry forwards it, like any tracestate, to every service it calls, third parties included. **The visitor id is never sent.** Nothing is added to same-origin requests before consent, after `revokeConsent()`, after `stop()`, before an `OnErrorOrFrustration` trigger, for an unsampled session, or to a `POST` to an OpenTelemetry export path (`/v1/traces`, `/v1/logs`, `/v1/metrics`). Cross-origin APIs get a `traceparent` only, and only when listed in Trace propagation origins - and a listed origin gets it for **every** session, uploading or not, exactly as before the same-origin half existed. The application's **Same-origin trace propagation** switch turns the same-origin half off without a redeploy; an own origin that is also listed keeps getting the listed `traceparent`. |
 | console                 | `error` and `warn` only, capped at 100 entries per session with one in-band marker when the cap is hit. Arguments go through the text-node transform; objects are serialised **shallowly** (two levels, ten keys, 64-char strings, 512 chars total) with sensitive-looking keys (`password`, `token`, `card`...) redacted in every mode. |
 | DNT / GPC               | honoured before rrweb loads. One rule: an explicit `data-oneuptime-respect-do-not-track` on the script tag wins (`"true"` honours the signal whatever the dashboard says; `"false"` records regardless - the customer owns the lawful basis for their site); with no page value the server policy decides. |
 | consent                 | in `RequireExplicit` the recorder buffers but uploads nothing until `grantConsent()`; `revokeConsent()` drops everything held and a later grant starts a new session                                                       |
@@ -346,19 +347,184 @@ minted at all. `getVisitorId()` returns it.
     its frame does not fit it is dropped whole, and `final-chunk-too-large`
     reports `sealed: false`: the tab did not close, so the session stays
     open with a gap.
-- **`traceparent` injection is opt-in per origin, and skips `Request`
-  objects.** By default `NetworkRecorder` only READS a traceparent the host
-  page already set. When the application's **trace propagation origins**
-  allowlist names an origin, the recorder also GENERATES a W3C traceparent for
-  `fetch` and `XMLHttpRequest` requests to that origin, so `envelope.traceIds`
-  populates without any OpenTelemetry browser SDK on the page. The default is
-  still never-inject — adding a request header turns a simple cross-origin
-  request into a preflighted one, so each allowlisted origin is the customer's
-  explicit statement that its API allows `traceparent` in
-  `Access-Control-Allow-Headers`. Two deliberate gaps: a request whose `fetch`
-  input is a `Request` OBJECT is never injected (rebuilding one to merge a
-  header risks consuming its one-shot body), and a page-supplied traceparent
-  always wins.
+- **The page's own requests carry trace context; other origins only when
+  listed.** Installing the recorder is enough for the backend telemetry a
+  page's requests cause to link to its recording. While the session is
+  uploading with consent, `NetworkRecorder` adds to every `fetch` and
+  `XMLHttpRequest` to the page's **own origin** (resolved through
+  `<base href>`, as the browser resolves it):
+  - `traceparent`, minted, unless the request already carries one (the
+    page's value always wins, parseable or not) or a tracer inside our
+    wrapper will add its own - a `fetch` / `XMLHttpRequest.send` marked
+    `__wrapped` by shimmer (OpenTelemetry's instrumentations and the agents
+    built on them, found through Sentry's wrapper too), or a vendor agent
+    that is configured to trace this request. Two traceparent values on one
+    XHR are unparseable, and that tracer's browser span should stay the
+    parent. The vendor agents define their globals whether or not they
+    trace, so each is asked at request time, and every read is in a
+    try/catch that counts as "not tracing":
+    - **Datadog RUM** (`DD_RUM`): only with a tracked Datadog session -
+      `getInternalContext()` returns a context, which it does not before
+      Datadog starts, before consent (`trackingConsent: "not-granted"`),
+      after a failed init, or for a session `sessionSampleRate` left
+      untracked, and in all of those Datadog's tracer adds nothing - and
+      when `getInitConfiguration()` returns a config whose
+      `allowedTracingUrls` has an entry matching the request's absolute URL
+      by Datadog's own rules (a string by prefix, a RegExp by `test`, a
+      function by calling it, `{ match, propagatorTypes }` by its `match`),
+      and the first matching entry's `propagatorTypes` is absent or includes
+      `tracecontext`. The async stub and an SDK that has not been
+      initialised have neither, and have patched nothing. Datadog also
+      injects only into a **trace-sampled** session: with `traceSampleRate`
+      below 100 under the default `traceContextInjection: "sampled"`, it
+      decides per session from a hash of the session id. The recorder does
+      not replicate that hash and stands down for every tracked session, so
+      the requests of a session Datadog does not trace-sample carry only our
+      tracestate and do not link. `traceSampleRate: 100` links every
+      session Datadog tracks; `traceContextInjection: "all"` makes Datadog
+      send a traceparent in the other sessions too, but flagged not
+      sampled, so a backend on the default `ParentBased` sampler drops
+      those traces anyway.
+    - **New Relic** (`NREUM`): only when distributed tracing is enabled -
+      `NREUM.init.distributed_tracing.enabled` (the copy-paste snippet), or
+      `init.distributed_tracing.enabled` of any agent the npm
+      `@newrelic/browser-agent` registered in `NREUM.initializedAgents`
+      (it leaves `NREUM.init` empty; the first four are read). The bare
+      `newrelic` API global is not a reason. With distributed tracing on,
+      New Relic also sends its **own** `tracestate`: on a `fetch` it
+      replaces ours, and on an XHR it sets one before `send`, so the
+      recorder adds none. Those requests are not stamped with the session;
+      they link only by trace id, when the recording saw the traceparent
+      (XHR and `Request` inputs yes; a `fetch` of a URL string or `URL`
+      no, because New Relic sends a private copy of the init).
+    - **Elastic APM** (`elasticApm`): only when `elasticApm.isActive()` is
+      true, its configuration
+      (`elasticApm.serviceFactory.getService("ConfigService")`) does not say
+      `distributedTracing: false`, and its `distributedTracingHeaderName` is
+      unset or `traceparent` (any case) - the legacy
+      `elastic-apm-traceparent` is not a W3C header, so the recorder mints
+      its own beside it. Elastic has no `getConfig()`; a configuration that
+      cannot be read counts as Elastic's defaults, which trace.
+
+    The tracestate is still added on a stand-down (the agent that adds the
+    traceparent runs after us), so the request links only if that agent
+    really adds a W3C traceparent. The first vendor stand-down of a page
+    load is logged as `same-origin-propagation` with reason
+    `agent-stand-down` and the agent's name: a request showing
+    `tracestate: oneuptime=…` but no `traceparent` is that agent not
+    propagating to the page's own origin - for Datadog, most often a session
+    it does not trace-sample.
+  - `tracestate: oneuptime=sid:<session id>`, plus `;p:<parent id>` when the
+    traceparent is ours, unless the request already carries a tracestate. A
+    stock OpenTelemetry backend extracts it, every span it exports inherits
+    it, and span ingest stamps those spans with the session (the `p` lets it
+    turn the backend's entry span back into the root span it really is).
+    Backend logs and exceptions then join by trace id in the player.
+
+  A same-origin request is never CORS-preflighted, so this needs no
+  allowlist, and it is on by default; the application's **Same-origin trace
+  propagation** switch turns it off without a redeploy (the recorder reads
+  anything but a literal `true` from the server as off). A `Request` object
+  on this path is rebuilt as
+  `new Request(request, { headers, referrer: request.referrer, referrerPolicy: request.referrerPolicy })` -
+  which proxies its body rather than reading it; the referrer fields are
+  carried because any non-empty init resets them to the document default,
+  which would turn a page's `no-referrer` into the full page URL as
+  `Referer` - and a used one is sent untouched. Nothing is added to a
+  `no-cors` request, to one whose headers are a one-shot iterator (reading
+  it would consume the page's headers), to an `init` that is not a plain
+  object (copying a `Request` or class instance, or an object that
+  inherits its fields from a prototype, drops its method and body; plain
+  means a null prototype or an `Object.prototype`, this realm's or
+  another's), to the recorder's own uploads, to a `POST` to an
+  OpenTelemetry export path - a URL whose path ends in `/v1/traces`,
+  `/v1/logs` or `/v1/metrics`, a page proxying its browser exporter through
+  its own origin, whose every export would otherwise become a
+  forced-sampled trace stamped with the session - or from a sandboxed /
+  `about:blank` / `srcdoc` / `file:` document, whose requests the browser
+  does not treat as same-origin. Anything that throws while the headers are
+  merged sends the page's own arguments. OTLP/HTTP exports are always
+  `POST`, so any other method on those paths (an audit-log page's
+  `GET /api/v1/logs`) is the app's own endpoint and is annotated as usual;
+  and if the page's own origin is also in Trace propagation origins, its
+  exports still get that list's `traceparent` - remove it from the list.
+
+  Cross-origin APIs get a minted `traceparent` **only**, and only when the
+  application's **trace propagation origins** list names them: adding any
+  header turns a simple cross-origin request into a preflighted one, so each
+  entry is the customer's statement that its API allows `traceparent` in
+  `Access-Control-Allow-Headers`. Those requests match the recording by trace
+  id; `Request` objects there are never annotated.
+
+  A trace id the recorder MINTED for a same-origin request stays on the
+  network event (clock alignment, "Backend for this request") but is kept out
+  of `envelope.traceIds`: an endpoint with no tracing behind it would
+  otherwise make every session advertise traces that open empty. Page-set
+  ids, ids read back from a tracer inside ours, and listed-origin ids go into
+  it as before.
+
+  The read-back: a tracer inside our wrapper (OpenTelemetry's fetch
+  instrumentation, loaded before the async recorder) sets its traceparent
+  on the arguments we hand it, so the recorder reads the header back after
+  the synchronous call and records the id really on the wire - on every
+  request but the recorder's own uploads, including ones it adds nothing
+  to, and again on a breaker retry, which that tracer gives a new id. For
+  `fetch(url)` with no init such a tracer would build a private options
+  object, so a string or URL call is handed an empty init the recorder
+  keeps (`fetch(url, {})` is the same request); a `Request` is never given
+  one, because the tracer sets the header on it in place.
+- **Sampling.** A minted same-origin `traceparent` carries the sampled flag
+  (`-01`), so a backend whose sampler is parent-based - the OpenTelemetry
+  default - keeps every trace that starts in a recorded page, which is what
+  makes the recording's backend side exist at all. On the same-origin path
+  it is minted only for sessions that upload, never for one that will not
+  have a recording. Origins listed in Trace propagation origins are
+  different, exactly as before: their `-01` traceparent is minted for every
+  session, recorded or not. A backend that wants ratio sampling for
+  browser-started traces sets a remote-sampled-parent delegate **only on the
+  service(s) the page calls directly**, e.g. in JavaScript
+  `new ParentBasedSampler({ root: new TraceIdRatioBasedSampler(0.1), remoteParentSampled: new TraceIdRatioBasedSampler(0.1) })`,
+  and keeps the default `ParentBased` sampler on every service downstream,
+  so they follow the first hop's decision. Never downstream:
+  `TraceIdRatioBased` hashes the trace id differently in each language SDK
+  (JavaScript XORs its 32-bit words, Go and Python use the low 64 bits,
+  Java the absolute value of the signed low 64 bits), so a downstream
+  service in another language drops spans of traces the first hop kept and
+  re-samples traces that start in the backend; the OpenTelemetry spec
+  recommends it for root spans only. For one consistent rate across
+  services, use tail sampling in an OpenTelemetry Collector - or the
+  application switches same-origin propagation off.
+- **A same-origin request that redirects to another origin can fail.** The
+  browser keeps our headers across the redirect, so the target (a presigned
+  storage URL, a CDN, a short-link host) is asked to allow them in a
+  preflight, and one that does not fails the request. The recorder trips a
+  breaker on the first such network failure - not the page's own abort
+  (an `AbortError`, or any rejection while the request's own signal is
+  aborted: `controller.abort(reason)` rejects with the reason itself), not
+  a timeout, not while offline: same-origin propagation is off for the rest
+  of that page load, a `fetch` GET or HEAD without a body is retried once
+  with the page's own arguments (the page sees only the retry's outcome,
+  recorded as one request, with the trace id read back from the retry), and
+  `same-origin-propagation-tripped` is logged. Anything else - any
+  `XMLHttpRequest`, any other method, a fetch with a body - cannot be
+  retried behind the page's back, so that one request fails. A synchronous
+  `XMLHttpRequest` (`open(method, url, false)`) reports a network error by
+  throwing from `send()` with no `loadend`; the recorder catches it only to
+  trip the breaker and record the request (status 0), and rethrows the
+  page's exception unchanged. The fix is to allow `traceparent, tracestate`
+  on the redirect target, or to switch the policy off (and, if the page's
+  own origin is in Trace propagation origins, remove it there too).
+- **What carries no trace context:** navigations, form posts, the server
+  render, WebSocket, EventSource, `sendBeacon`, requests from workers,
+  requests made before the recorder started, same-origin `POST`s to an
+  OpenTelemetry export path (`…/v1/traces`, `/v1/logs`, `/v1/metrics`), and
+  requests that already carry a tracestate (their spans still match by
+  trace id when the recorder saw the traceparent). A same-origin request a
+  vendor agent is configured to trace carries only our tracestate until
+  that agent adds its traceparent (and New Relic, with distributed tracing
+  on, sends its own tracestate instead). A backend links only if it continues W3C trace
+  context - a Go service needs `otel.SetTextMapPropagator`, and a proxy or
+  CDN in front of it must forward both headers.
 - A session that reaches `MAX_SESSION_REPLAY_CHUNKS_PER_SESSION` (480) sends
   one final, empty chunk carrying a `truncated` fidelity notice and then stops
   recording. The notice is not yet a member of Common's
@@ -542,7 +708,7 @@ defend in an incident review.
 | `src/Chunker.ts`             | chunk boundaries, snapshot splitting, per-chunk counters                  |
 | `src/Transport.ts`           | compression, the envelope, retries and the circuit breaker                |
 | `src/ErrorRecorder.ts`       | errors and rejections — also the primary trigger                          |
-| `src/NetworkRecorder.ts`     | fetch / XHR, the 5xx trigger, traceparent correlation                     |
+| `src/NetworkRecorder.ts`     | fetch / XHR, the 5xx trigger, trace context (same-origin traceparent + tracestate, listed-origin traceparent) |
 | `src/ConsoleRecorder.ts`     | `console.error` / `console.warn` only                                     |
 | `src/RouteRecorder.ts`       | SPA navigation and forced snapshots                                       |
 | `src/FrustrationDetector.ts` | rage / dead / error clicks                                                |
@@ -564,10 +730,13 @@ npm run analyze     # bundle composition
 
 ## Bundle weight
 
-Measured: **recorder.js 294.2 KB raw / 88.9 KB gzip**, **loader.js 13.2 KB raw /
-4.9 KB gzip**. Both raw AND gzip budgets are enforced by the build (90 KB gzip
+Measured: **recorder.js 311.4 KB raw / 94.2 KB gzip**, **loader.js 13.3 KB raw /
+4.9 KB gzip**. Both raw AND gzip budgets are enforced by the build (93 KB gzip
 for the recorder, 5 KB for the stub), which fails rather than shipping a
-regression — gzip being the number a customer's browser actually pays.
+regression — gzip being the number a customer's browser actually pays. The
+recorder budget went from 90 KB to 92 KB for offline mode, and to 93 KB on
+2026-09-24 for automatic same-origin trace propagation (issue #3979: 92376 →
+94178 bytes gzip); `esbuild.config.js` carries each measurement and reason.
 
 It was 245 KB / 75.7 KB before the session-replay overhaul. The ~13 KB gzip
 that arrived with it is web vitals, the retry/backoff transport, cross-tab

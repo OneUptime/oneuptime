@@ -1,6 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
@@ -55,6 +56,8 @@ export interface ChartCardProps {
   yFormatter?: ((value: number) => string) | undefined;
   showLegend?: boolean | undefined;
   loading?: boolean | undefined;
+  // What the chart plots, shown in an (i) tooltip beside the title.
+  description?: string | undefined;
 }
 
 const ChartCard: FunctionComponent<ChartCardProps> = (
@@ -65,9 +68,12 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
 
   const header: ReactElement = (
     <div className="flex items-center justify-between mb-3">
-      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-        {props.title}
-      </span>
+      <div className="flex min-w-0 items-center gap-1">
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+          {props.title}
+        </span>
+        <InfoTooltip label={props.title} text={props.description} />
+      </div>
       <div
         className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
       >

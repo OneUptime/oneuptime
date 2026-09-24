@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import { KubernetesResource } from "../Utils/KubernetesResourceUtils";
 import KubernetesContainerModel from "Common/Models/DatabaseModels/KubernetesContainer";
 import React, {
@@ -155,6 +156,10 @@ const KubernetesClusterContainers: FunctionComponent<
       title="Containers"
       description="All containers running in this cluster."
       resources={resources}
+      builtInColumnDescriptions={{
+        cpu: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.containerCpu,
+        memory: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.containerMemory,
+      }}
       columns={[
         {
           title: "Pod",
@@ -163,6 +168,8 @@ const KubernetesClusterContainers: FunctionComponent<
         {
           title: "Restarts",
           key: "restarts",
+          description:
+            KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.containerRestarts,
         },
       ]}
       getViewRoute={(resource: KubernetesResource) => {

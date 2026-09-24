@@ -22,7 +22,10 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesOverviewTab, {
+  SummaryField,
+} from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesJobObject } from "../Utils/KubernetesObjectParser";
@@ -182,11 +185,10 @@ const KubernetesClusterJobDetail: FunctionComponent<
   };
 
   // Build overview summary fields from job object
-  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
-    [
-      { title: "Job Name", value: jobName },
-      { title: "Cluster", value: clusterIdentifier },
-    ];
+  const summaryFields: Array<SummaryField> = [
+    { title: "Job Name", value: jobName },
+    { title: "Cluster", value: clusterIdentifier },
+  ];
 
   if (jobObject) {
     summaryFields.push(
@@ -204,18 +206,22 @@ const KubernetesClusterJobDetail: FunctionComponent<
       },
       {
         title: "Completions",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.jobCompletions,
         value: String(jobObject.spec.completions ?? "N/A"),
       },
       {
         title: "Parallelism",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.jobParallelism,
         value: String(jobObject.spec.parallelism ?? "N/A"),
       },
       {
         title: "Backoff Limit",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.jobBackoffLimit,
         value: String(jobObject.spec.backoffLimit ?? "N/A"),
       },
       {
         title: "Active",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.jobActive,
         value: (
           <StatusBadge
             text={String(jobObject.status.active ?? 0)}
@@ -229,6 +235,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
       },
       {
         title: "Succeeded",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.jobSucceeded,
         value: (
           <StatusBadge
             text={String(jobObject.status.succeeded ?? 0)}
@@ -242,6 +249,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
       },
       {
         title: "Failed",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.jobFailed,
         value: (
           <StatusBadge
             text={String(jobObject.status.failed ?? 0)}
@@ -302,7 +310,7 @@ const KubernetesClusterJobDetail: FunctionComponent<
       children: (
         <Card
           title={`Job Metrics: ${jobName}`}
-          description="CPU and memory usage for pods in this job over the last 6 hours."
+          description="CPU and memory usage for pods in this job over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>

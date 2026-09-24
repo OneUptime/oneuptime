@@ -31,6 +31,7 @@ import Button, {
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Link from "Common/UI/Components/Link/Link";
 import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import useTranslateValue from "Common/UI/Utils/Translation";
@@ -421,11 +422,21 @@ const DeviceDiagnostics: FunctionComponent<ComponentProps> = (
         <dl className="mt-2 space-y-1 text-sm text-gray-600">
           {summary.rows.map(
             (diagnosticRow: DiagnosticRow, index: number): ReactElement => {
+              const label: string =
+                translateString(diagnosticRow.label) || diagnosticRow.label;
+
               return (
                 <div key={index} className="flex justify-between gap-4">
-                  <dt>
-                    {translateString(diagnosticRow.label) ||
-                      diagnosticRow.label}
+                  {/*
+                   * The statistic rows carry a description; Host and Reason
+                   * do not, and InfoTooltip draws nothing for them.
+                   */}
+                  <dt className="flex items-center gap-1">
+                    <span>{label}</span>
+                    <InfoTooltip
+                      label={label}
+                      text={diagnosticRow.description}
+                    />
                   </dt>
                   <dd className="font-medium text-right break-all">
                     {diagnosticRow.value}

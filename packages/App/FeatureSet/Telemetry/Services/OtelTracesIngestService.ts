@@ -47,6 +47,11 @@ import LlmSpanUtil, {
 import ExceptionInstanceService from "Common/Server/Services/ExceptionInstanceService";
 import CaptureSpan from "Common/Server/Utils/Telemetry/CaptureSpan";
 import Text from "Common/Types/Text";
+import {
+  ParsedSessionTraceState,
+  SessionTraceState,
+  parseSessionTraceState,
+} from "Common/Utils/Rum/SessionTraceState";
 import TracesQueueService from "./Queue/TracesQueueService";
 import OtelIngestBaseService from "./OtelIngestBaseService";
 import DatabaseCallEntityKeyResolver, {
@@ -635,9 +640,46 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   const traceId: string = this.convertBase64ToHexSafe(
                     span["traceId"] as string | undefined,
                   );
-                  const parentSpanId: string = this.convertBase64ToHexSafe(
+
+                  /*
+                   * The browser recorder's member of the W3C trace state
+                   * (see Common/Utils/Rum/SessionTraceState): the replay
+                   * session id, which every service continuing a page's
+                   * request inherits, plus - when the recorder minted the
+                   * traceparent - the id of a browser parent span that is
+                   * never exported. It decides three row fields
+                   * (sessionId, parentSpanId, isRootSpan), so it is read
+                   * before any of them. The stored traceState is what is
+                   * left once the member is removed: the session id then
+                   * lives only in the sessionId column, the one session
+                   * erasure deletes by.
+                   */
+                  const parsedTraceState: ParsedSessionTraceState =
+                    parseSessionTraceState(span["traceState"]);
+                  const sessionTraceState: SessionTraceState | null =
+                    parsedTraceState.sessionTraceState;
+                  const traceState: string =
+                    parsedTraceState.remainingTraceState;
+
+                  /*
+                   * A span whose parent is the recorder's minted parent is
+                   * the entry span of a trace the browser started. That
+                   * parent never arrives, so without this the span would
+                   * never count as a root and would carry a missing-parent
+                   * flag. Blanked here, before the evaluation row exists,
+                   * so drop filters, scrub rules and pipelines all see the
+                   * repaired span. Every other span of the trace has a
+                   * real parent and never matches.
+                   */
+                  const wireParentSpanId: string = this.convertBase64ToHexSafe(
                     span["parentSpanId"] as string | undefined,
                   );
+                  const parentSpanId: string =
+                    sessionTraceState !== null &&
+                    sessionTraceState.syntheticParentSpanId !== null &&
+                    wireParentSpanId === sessionTraceState.syntheticParentSpanId
+                      ? ""
+                      : wireParentSpanId;
 
                   const startTime: ParsedUnixNano = this.safeParseUnixNano(
                     (span as JSONObject)["startTimeUnixNano"] as
@@ -677,8 +719,6 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                   const spanName: string = (span["name"] as string) || "";
                   const spanKind: SpanKind =
                     OtelTracesIngestService.mapSpanKind(span["kind"]);
-                  const traceState: string =
-                    (span["traceState"] as string) || "";
 
                   let spanEvents: Array<JSONObject> = [];
                   let hasException: boolean = false;
@@ -728,6 +768,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
                       attributeKeys: attributeKeys,
                       traceId: traceId,
                       spanId: spanId,
+                      sessionTraceState: sessionTraceState,
                       parentSpanId: parentSpanId,
                       traceState: traceState,
                       statusCode: statusCode,
@@ -1270,6 +1311,13 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       for (const link of links) {
         try {
           const linkObject: JSONObject = link as JSONObject;
+          /*
+           * A link's `traceState` is deliberately not stored. A linked
+           * trace a browser started carries the recorder's session member
+           * there, and a replay session id must live only in the sessionId
+           * column, which erasure deletes by. Storing it would first need
+           * parseSessionTraceState's remainingTraceState.
+           */
           spanLinks.push({
             traceId: this.convertBase64ToHexSafe(
               linkObject["traceId"] as string | undefined,
@@ -1294,8 +1342,11 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
   }
 
   /*
-   * Session replay correlation. `session.id` reaches us in one of two
-   * shapes and we must accept both:
+   * Session replay correlation from attributes: the FALLBACK for a span
+   * whose trace state carries no recorder session member (see
+   * buildSpanEvaluationRow), such as a span from the page's own browser
+   * OpenTelemetry, or from a backend that sets the id itself.
+   * `session.id` reaches us in one of two shapes and we must accept both:
    *
    *   - as a span attribute, under the bare key "session.id";
    *   - as a RESOURCE attribute, which TelemetryUtil.getAttributes
@@ -1308,7 +1359,8 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
    *
    * Duplicated verbatim in OtelLogsIngestService: the two ingest services
    * share no base for row building, and a Common helper would put an
-   * ingest-only concern in the shared telemetry utils.
+   * ingest-only concern in the shared telemetry utils. Logs have no
+   * trace-state path, because an OTLP log record carries no trace state.
    */
   private static readonly sessionIdAttributeKeys: ReadonlyArray<string> = [
     "session.id",
@@ -1357,6 +1409,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
     attributeKeys: Array<string>;
     traceId: string;
     spanId: string;
+    sessionTraceState: SessionTraceState | null;
     parentSpanId: string;
     traceState: string;
     statusCode: SpanStatus;
@@ -1386,8 +1439,25 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
       durationUnixNano: data.durationUnixNano,
       traceId: data.traceId,
       spanId: data.spanId,
-      // '' when this span carries no browser session; never null.
-      sessionId: this.getSessionIdFromAttributes(data.attributes),
+      /*
+       * '' when this span carries no browser session; never null.
+       *
+       * The recorder's trace-state member outranks any `session.id`
+       * attribute. The member is namespaced to OneUptime, and the parser
+       * accepts only the 32-hex shape the recorder mints. A bare
+       * `session.id` is also the conversation key of LLM instrumentations
+       * (see LlmConventions), so on a span that carries both, the
+       * attribute is the one less likely to name the replay session.
+       *
+       * There is no erasure-tombstone check here. An erased session's tab
+       * can keep stamping backend spans until its session ends, but the
+       * tombstone lookup needs Redis and throws when Redis is down, and a
+       * span batch must not fail for that.
+       */
+      sessionId:
+        data.sessionTraceState !== null
+          ? data.sessionTraceState.sessionId
+          : this.getSessionIdFromAttributes(data.attributes),
       parentSpanId: data.parentSpanId,
       traceState: data.traceState || "",
       attributes: data.attributes,

@@ -37,6 +37,8 @@ import CephResourceUtils, {
   GrowthFitSample,
   GrowthProjection,
 } from "../Utils/CephResourceUtils";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 
 /*
  * Pool detail page. The route param (subModelId) is the CephResource
@@ -291,7 +293,11 @@ const CephClusterPoolDetail: FunctionComponent<
     buildPoolQuery({
       variable: "pool_stored",
       title: "Stored Bytes",
-      description: `Bytes stored in ${poolDisplayName} (after replication).`,
+      /*
+       * ceph_pool_stored is Ceph's STORED figure: what clients wrote, before
+       * replication copies (the replicated size is ceph_pool_stored_raw).
+       */
+      description: `Bytes clients stored in ${poolDisplayName}, before replication copies.`,
       legend: "Stored",
       legendUnit: "bytes",
       metricName: "ceph_pool_stored",
@@ -365,25 +371,30 @@ const CephClusterPoolDetail: FunctionComponent<
       {
         title: "Stored",
         value: CephResourceUtils.formatBytes(storedBytes),
+        description: CEPH_METRIC_DESCRIPTIONS.poolStored,
       },
       {
         title: "Max Available",
         value: CephResourceUtils.formatBytes(maxAvailBytes),
+        description: CEPH_METRIC_DESCRIPTIONS.poolMaxAvail,
       },
       {
         title: "Used",
         value: CephResourceUtils.formatPercent(usedPercent),
+        description: CEPH_METRIC_DESCRIPTIONS.poolUsed,
       },
     );
     if (growthValue) {
       summaryFields.push({
         title: "Growth",
         value: growthValue,
+        description: CEPH_METRIC_DESCRIPTIONS.poolGrowth,
       });
     }
     summaryFields.push(
       {
         title: "Objects",
+        description: CEPH_METRIC_DESCRIPTIONS.poolObjects,
         value: CephResourceUtils.formatCount(
           resource
             ? CephResourceUtils.freshMetricValue(resource, resource.objects)
@@ -423,8 +434,12 @@ const CephClusterPoolDetail: FunctionComponent<
               return (
                 <div className="mt-4 space-y-6">
                   <div>
-                    <div className="mb-2 text-sm font-medium text-gray-700">
+                    <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
                       Client IOPS
+                      <InfoTooltip
+                        label="Client IOPS"
+                        text={CEPH_METRIC_DESCRIPTIONS.poolClientIops}
+                      />
                     </div>
                     <CephRateChart
                       clusterName={clusterName}
@@ -441,8 +456,12 @@ const CephClusterPoolDetail: FunctionComponent<
                     />
                   </div>
                   <div>
-                    <div className="mb-2 text-sm font-medium text-gray-700">
+                    <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
                       Client Throughput
+                      <InfoTooltip
+                        label="Client Throughput"
+                        text={CEPH_METRIC_DESCRIPTIONS.poolClientThroughput}
+                      />
                     </div>
                     <CephRateChart
                       clusterName={clusterName}

@@ -1,14 +1,59 @@
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
   modelId: ObjectID;
 }
+
+const UPTIME_TITLE: string = "Uptime";
+
+export interface InventoryUptimeValueProps {
+  lastRebootedAt: Date;
+}
+
+/*
+ * The Uptime field's value: how long since the device last restarted, with
+ * the boot time on hover and an (i) that says where the number comes from.
+ *
+ * The (i) sits beside the value rather than the label because a model
+ * detail field's title is a plain string with no tooltip slot. It is the
+ * hero's Hardware Uptime text on purpose: both read lastRebootedAt against
+ * the clock, so they are the same number and must be explained the same
+ * way - including that an SNMP agent restart or a counter wrap makes it
+ * read short.
+ */
+export const InventoryUptimeValue: FunctionComponent<
+  InventoryUptimeValueProps
+> = (props: InventoryUptimeValueProps): ReactElement => {
+  const humanizedUptime: string =
+    OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
+      props.lastRebootedAt,
+      OneUptimeDate.getCurrentDate(),
+    );
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      <Tooltip
+        text={`Booted at ${OneUptimeDate.getDateAsFormattedString(
+          props.lastRebootedAt,
+        )}`}
+      >
+        <span className="text-sm text-gray-900">{humanizedUptime}</span>
+      </Tooltip>
+      <InfoTooltip
+        label={UPTIME_TITLE}
+        text={NETWORK_DEVICE_METRIC_DESCRIPTIONS.hardwareUptime}
+      />
+    </span>
+  );
+};
 
 /*
  * Read-only inventory card for the device Overview: vendor, model, serial,
@@ -28,22 +73,10 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
       return <span>-</span>;
     }
 
-    const lastRebootedAt: Date = OneUptimeDate.fromString(item.lastRebootedAt);
-
-    const humanizedUptime: string =
-      OneUptimeDate.differenceBetweenTwoDatesAsFromattedString(
-        lastRebootedAt,
-        OneUptimeDate.getCurrentDate(),
-      );
-
     return (
-      <Tooltip
-        text={`Booted at ${OneUptimeDate.getDateAsFormattedString(
-          lastRebootedAt,
-        )}`}
-      >
-        <span className="text-sm text-gray-900">{humanizedUptime}</span>
-      </Tooltip>
+      <InventoryUptimeValue
+        lastRebootedAt={OneUptimeDate.fromString(item.lastRebootedAt)}
+      />
     );
   };
 
@@ -145,7 +178,7 @@ const DeviceInventoryCard: FunctionComponent<ComponentProps> = (
             field: {
               lastRebootedAt: true,
             },
-            title: "Uptime",
+            title: UPTIME_TITLE,
             fieldType: FieldType.Element,
             getElement: getUptimeElement,
             showIf: (item: NetworkDevice): boolean => {

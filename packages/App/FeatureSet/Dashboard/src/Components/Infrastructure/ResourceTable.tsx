@@ -58,6 +58,20 @@ export interface ResourceColumn {
   title: string;
   key: string;
   getValue?: (resource: InfrastructureResource) => string;
+  // What the column's values mean, in an (i) beside the header.
+  description?: string | undefined;
+}
+
+/*
+ * Header tooltips for the built-in columns. They are per page rather than
+ * fixed, because the same title means different things: "CPU" on the Nodes
+ * list is one node's own usage, on a Deployment list it is a sum over pods.
+ */
+export interface BuiltInColumnDescriptions {
+  status?: string | undefined;
+  cpu?: string | undefined;
+  memory?: string | undefined;
+  age?: string | undefined;
 }
 
 export interface ComponentProps {
@@ -79,6 +93,7 @@ export interface ComponentProps {
   onRefreshClick?: (() => void) | undefined;
   /* Prefix for the DOM table id. Defaults to "infrastructure". */
   tableIdPrefix?: string | undefined;
+  builtInColumnDescriptions?: BuiltInColumnDescriptions | undefined;
 }
 
 const PAGE_SIZE: number = 25;
@@ -362,6 +377,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
       title: "Status",
       type: FieldType.Element,
       key: "status",
+      headerTooltip: props.builtInColumnDescriptions?.status,
       getElement: (resource: InfrastructureResource): ReactElement => {
         if (!resource.status) {
           return <span className="text-gray-400">-</span>;
@@ -384,6 +400,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         type: FieldType.Element,
         key: col.key as keyof InfrastructureResource,
         disableSort: true,
+        headerTooltip: col.description,
         getElement: (resource: InfrastructureResource): ReactElement => {
           const value: string = col.getValue
             ? col.getValue(resource)
@@ -400,6 +417,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         title: "CPU",
         type: FieldType.Element,
         key: "cpuUtilization",
+        headerTooltip: props.builtInColumnDescriptions?.cpu,
         getElement: (resource: InfrastructureResource): ReactElement => {
           if (
             resource.cpuUtilization === null ||
@@ -427,6 +445,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
         title: "Memory",
         type: FieldType.Element,
         key: "memoryUsageBytes",
+        headerTooltip: props.builtInColumnDescriptions?.memory,
         getElement: (resource: InfrastructureResource): ReactElement => {
           if (
             resource.memoryUsageBytes === null ||
@@ -512,6 +531,7 @@ const ResourceTable: FunctionComponent<ComponentProps> = (
       title: "Age",
       type: FieldType.Element,
       key: "age",
+      headerTooltip: props.builtInColumnDescriptions?.age,
       getElement: (resource: InfrastructureResource): ReactElement => {
         if (!resource.age) {
           return <span className="text-gray-400">-</span>;

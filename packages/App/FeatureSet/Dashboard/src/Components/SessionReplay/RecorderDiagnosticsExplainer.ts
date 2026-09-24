@@ -16,7 +16,8 @@
  *
  * The code table below is the recorder's ACTUAL vocabulary, read from the
  * debugLog/debugWarn call sites across Index.ts, Loader.ts, Config.ts,
- * Recorder.ts and Transport.ts. Adding a code to the recorder without
+ * Recorder.ts, NetworkRecorder.ts and Transport.ts. Adding a code to the
+ * recorder without
  * adding it here makes it fall through to the unknown-code copy, which
  * App/Tests/Dashboard/RecorderDiagnosticsExplainer.test.ts pins.
  */
@@ -272,6 +273,20 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
       "One chunk's envelope was over the server's size limit, so optional fields were dropped to fit it - the record's detail lists which ones. The footage in that chunk was kept and uploaded.",
     action:
       "Nothing to do unless a field you rely on is listed: tags and identity traits are shed first, then fidelity notices.",
+  },
+
+  /* ---- NetworkRecorder.ts ---- */
+  "same-origin-propagation": {
+    explanation:
+      "Whether this page's requests to its own origin carry trace context (a traceparent and a tracestate naming this session) so backend telemetry links to the recording. The detail says enabled true or false, and why: on, policy-off (the application's Same-origin trace propagation switch is off), or opaque-origin (a sandboxed frame, about:blank, srcdoc or file: page, whose requests the browser does not treat as same-origin). Even when on, nothing is added until the session is uploading with consent. A second record with reason agent-stand-down, logged once per page load, names the agent (DD_RUM, NREUM or elasticApm) that is set up to put its own traceparent on this page's own requests: Datadog RUM with a tracked session and the request's URL in allowedTracingUrls, New Relic with distributed tracing on, or an active Elastic APM agent with distributed tracing on under the traceparent header name. The recorder then leaves the traceparent to that agent and adds only its tracestate, so a request links only if that agent really adds a W3C traceparent.",
+    action:
+      "If backend logs and traces should link to recordings and the reason is policy-off, turn Same-origin trace propagation on in the application's Replay Policy. With agent-stand-down, what to change depends on the named agent. DD_RUM: a request with a tracestate naming the session but no traceparent is usually a session Datadog does not trace-sample (traceSampleRate below 100); set traceSampleRate: 100 in its init (traceContextInjection: \"all\" also sends a traceparent there, but flagged not sampled, so a default ParentBased backend drops those traces anyway), and make sure the allowedTracingUrls entry for your own origin keeps the tracecontext propagator. elasticApm: make sure its fetch and xmlhttprequest instrumentations are not listed in disableInstrumentations. NREUM: nothing to change on New Relic - it already sends a traceparent, but with its own tracestate in place of the session's, so those requests are not stamped with the session and link only by trace id, when the recording saw the traceparent (XHR and Request inputs).",
+  },
+  "same-origin-propagation-tripped": {
+    explanation:
+      "A same-origin request the recorder had added trace headers to failed at the network level - typically a redirect to another origin (a presigned download URL, a CDN) that does not allow those headers - so the recorder stopped adding them for the rest of this page load. With retried: true it was a GET or HEAD, sent again without the headers, and the page saw that result; an XMLHttpRequest cannot be retried.",
+    action:
+      "Allow traceparent and tracestate in Access-Control-Allow-Headers on the redirect target, or turn Same-origin trace propagation off for this application.",
   },
 
   /* ---- Transport.ts ---- */

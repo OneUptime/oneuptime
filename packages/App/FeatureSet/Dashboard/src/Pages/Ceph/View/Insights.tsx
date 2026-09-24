@@ -26,6 +26,8 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 
 /*
  * Curated MetricView presets sharing one time-range state — the Ceph
@@ -103,7 +105,8 @@ function getCapacityQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "pool_stored",
         title: "Stored Bytes per Pool",
-        description: "Bytes stored per pool (after replication).",
+        description:
+          "Bytes clients stored in each pool, before replication copies (Ceph's STORED figure).",
         legend: "Stored",
         legendUnit: "bytes",
         metricName: "ceph_pool_stored",
@@ -287,8 +290,12 @@ const CephClusterInsights: FunctionComponent<
       >
         <div className="space-y-6">
           <div>
-            <div className="mb-2 text-sm font-medium text-gray-700">
+            <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
               Client IOPS
+              <InfoTooltip
+                label="Client IOPS"
+                text={CEPH_METRIC_DESCRIPTIONS.clientIops}
+              />
             </div>
             <CephRateChart
               clusterName={clusterName}
@@ -304,8 +311,12 @@ const CephClusterInsights: FunctionComponent<
             />
           </div>
           <div>
-            <div className="mb-2 text-sm font-medium text-gray-700">
+            <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
               Client Throughput
+              <InfoTooltip
+                label="Client Throughput"
+                text={CEPH_METRIC_DESCRIPTIONS.clientThroughput}
+              />
             </div>
             <CephRateChart
               clusterName={clusterName}

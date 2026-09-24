@@ -19,7 +19,9 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesOverviewTab, {
+  SummaryField,
+} from "../../../Components/Kubernetes/KubernetesOverviewTab";
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import KubernetesNetworkThroughputChart from "./KubernetesNetworkThroughputChart";
@@ -35,6 +37,8 @@ import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab"
 import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 
 const KubernetesClusterNodeDetail: FunctionComponent<
   PageComponentProps
@@ -216,11 +220,10 @@ const KubernetesClusterNodeDetail: FunctionComponent<
   };
 
   // Build overview summary fields from node object
-  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
-    [
-      { title: "Node Name", value: nodeName },
-      { title: "Cluster", value: clusterIdentifier },
-    ];
+  const summaryFields: Array<SummaryField> = [
+    { title: "Node Name", value: nodeName },
+    { title: "Cluster", value: clusterIdentifier },
+  ];
 
   if (nodeObject) {
     const nodeStatus: { label: string; isReady: boolean } = getNodeStatus();
@@ -309,14 +312,17 @@ const KubernetesClusterNodeDetail: FunctionComponent<
     summaryFields.push(
       {
         title: "CPU (Capacity / Allocatable)",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeCpuCapacity,
         value: `${nodeObject.status.capacity["cpu"] || "N/A"} / ${nodeObject.status.allocatable["cpu"] || "N/A"}`,
       },
       {
         title: "Memory (Capacity / Allocatable)",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeMemoryCapacity,
         value: `${nodeObject.status.capacity["memory"] || "N/A"} / ${nodeObject.status.allocatable["memory"] || "N/A"}`,
       },
       {
         title: "Pods (Capacity)",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodePodCapacity,
         value: nodeObject.status.capacity["pods"] || "N/A",
       },
       {
@@ -383,15 +389,21 @@ const KubernetesClusterNodeDetail: FunctionComponent<
       children: (
         <Card
           title={`Node Metrics: ${nodeName}`}
-          description="CPU, memory, filesystem, and network usage for this node over the last 6 hours."
+          description="CPU, memory, filesystem, and network usage for this node over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab
             queryConfigs={[cpuQuery, memoryQuery, filesystemQuery]}
             renderExtraCharts={(dateRange: InBetween<Date>): ReactElement => {
               return (
                 <div className="mt-4">
-                  <div className="mb-2 text-sm font-medium text-gray-700">
-                    Network Throughput
+                  <div className="mb-2 flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                    <span>Network Throughput</span>
+                    <InfoTooltip
+                      label="Network Throughput"
+                      text={
+                        KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.nodeNetworkThroughput
+                      }
+                    />
                   </div>
                   <KubernetesNetworkThroughputChart
                     clusterIdentifier={clusterIdentifier}

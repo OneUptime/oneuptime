@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesResourceUtils, {
   KubernetesResource,
   PodMetricAggregate,
@@ -98,10 +99,15 @@ const KubernetesClusterStatefulSets: FunctionComponent<
       title="StatefulSets"
       description="All statefulsets running in this cluster."
       resources={resources}
+      builtInColumnDescriptions={{
+        cpu: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.statefulSetCpu,
+        memory: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.statefulSetMemory,
+      }}
       columns={[
         {
           title: "Ready",
           key: "ready",
+          description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.statefulSetReady,
         },
       ]}
       getViewRoute={(resource: KubernetesResource) => {

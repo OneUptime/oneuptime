@@ -35,6 +35,7 @@ import {
 } from "../Utils/VMwareResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
 import ValueFormatter from "Common/Utils/ValueFormatter";
+import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 
 const MIB: number = 1024 * 1024;
 const KIB: number = 1024;
@@ -321,6 +322,7 @@ const VMwareVCenterHostDetail: FunctionComponent<
       summaryFields.push({
         title: "CPU",
         value: `${formatPercent(Number(row.latestCpuPercent))}${usage}`,
+        description: VMWARE_METRIC_DESCRIPTIONS.hostCpu,
       });
     } else if (
       row.cpuCapacityMhz !== null &&
@@ -329,6 +331,7 @@ const VMwareVCenterHostDetail: FunctionComponent<
       summaryFields.push({
         title: "CPU Capacity",
         value: formatMhz(Number(row.cpuCapacityMhz)),
+        description: VMWARE_METRIC_DESCRIPTIONS.hostCpuCapacity,
       });
     }
 
@@ -345,6 +348,7 @@ const VMwareVCenterHostDetail: FunctionComponent<
             ? Number(row.maxMemoryBytes)
             : null,
         )}${pct}`,
+        description: VMWARE_METRIC_DESCRIPTIONS.hostMemory,
       });
     }
 

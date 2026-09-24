@@ -548,6 +548,23 @@ describe("Session Replay docs page", (): void => {
     expect(player).toContain("_Mask all text_");
   });
 
+  /*
+   * The paused-frame screenshot is redrawn from the replay document, so
+   * the page must promise what that actually guarantees: nothing fetched,
+   * masking kept, and the https requirement for copying stated rather
+   * than discovered.
+   */
+  it("documents the paused-frame screenshot without weakening the masking promise", (): void => {
+    const player: string = section(readPage(), "### The player");
+
+    expect(player).toContain("**Copy image**");
+    expect(player).toContain("**Download**");
+    expect(player).toContain("nothing is fetched");
+    expect(player).toContain("masked or blocked at capture time stays masked");
+    expect(player).toContain("secure (`https`) page");
+    expect(player).toContain("session-replay-<session>-<offset>.png");
+  });
+
   it("lists every keyboard shortcut the player binds, by the same key labels", (): void => {
     const shortcuts: string = section(readPage(), "### Keyboard shortcuts");
     let checked: number = 0;

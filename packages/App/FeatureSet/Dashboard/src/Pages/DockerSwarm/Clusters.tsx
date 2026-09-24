@@ -35,6 +35,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import DockerSwarmDocumentationCard from "../../Components/DockerSwarm/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 
 /*
  * WI-18: while the project has no clusters yet, re-count on this
@@ -298,6 +299,7 @@ const DockerSwarmClusters: FunctionComponent<
             },
             title: "Nodes",
             type: FieldType.Element,
+            headerTooltip: DOCKER_SWARM_METRIC_DESCRIPTIONS.clusterListNodes,
             getElement: (item: DockerSwarmCluster): ReactElement => {
               /*
                * Snapshot columns written by the ingest path from the
@@ -328,6 +330,7 @@ const DockerSwarmClusters: FunctionComponent<
             title: "Services",
             type: FieldType.Element,
             hideOnMobile: true,
+            headerTooltip: DOCKER_SWARM_METRIC_DESCRIPTIONS.clusterListServices,
             getElement: (item: DockerSwarmCluster): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
@@ -344,6 +347,7 @@ const DockerSwarmClusters: FunctionComponent<
             title: "Tasks",
             type: FieldType.Element,
             hideOnMobile: true,
+            headerTooltip: DOCKER_SWARM_METRIC_DESCRIPTIONS.clusterListTasks,
             getElement: (item: DockerSwarmCluster): ReactElement => {
               const total: number = item.taskCount || 0;
               if (total <= 0) {

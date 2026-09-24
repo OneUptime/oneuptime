@@ -23,6 +23,7 @@ import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
 import CephResourceUtils, {
   CephResourceKind,
 } from "../Utils/CephResourceUtils";
+import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 
 /*
  * Mon / Mgr / Mds / Rgw status table — the honest ControlPlane analog
@@ -163,6 +164,7 @@ const CephClusterDaemons: FunctionComponent<
         title: "Status",
         type: FieldType.Element,
         key: "status",
+        headerTooltip: CEPH_METRIC_DESCRIPTIONS.daemonStatus,
         getElement: (row: CephDaemonRow): ReactElement => {
           const badgeClass: string = row.isHealthy
             ? "bg-green-50 text-green-700"
