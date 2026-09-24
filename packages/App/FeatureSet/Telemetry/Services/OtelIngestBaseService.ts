@@ -48,6 +48,7 @@ import {
 } from "Common/Types/DatabaseServer/DatabaseSystem";
 import {
   DATABASE_SERVER_ID_ATTRIBUTE,
+  DATABASE_SYSTEM_ATTRIBUTES,
   resolveDatabaseFromResourceAttributes,
 } from "Common/Types/DatabaseServer/DatabaseTelemetryResolver";
 import LabelService from "Common/Server/Services/LabelService";
@@ -2529,9 +2530,10 @@ export default abstract class OtelIngestBaseService {
    * database's own telemetry, and which server? Delegates to the shared
    * resolveDatabaseFromResourceAttributes after a cheap pre-check — a batch
    * with no known receiver hint, no `oneuptime.database.server.id` and no
-   * `db.system.name` resource attribute can never pass that resolver, so
-   * application batches are refused without flattening their attributes.
-   * Never touches a cache or a table.
+   * engine resource attribute (`db.system.name`, or the legacy `db.system`
+   * a receiver such as saphana stamps; the resolver reads the same list)
+   * can never pass that resolver, so application batches are refused
+   * without flattening their attributes. Never touches a cache or a table.
    */
   protected static resolveDatabaseServerResource(data: {
     attributes: JSONArray;
@@ -2544,7 +2546,9 @@ export default abstract class OtelIngestBaseService {
     if (
       !isKnownDatabaseSystem(data.receiverSystemHint) &&
       !this.hasAttributeKey(data.attributes, DATABASE_SERVER_ID_ATTRIBUTE) &&
-      !this.hasAttributeKey(data.attributes, "db.system.name")
+      !DATABASE_SYSTEM_ATTRIBUTES.some((key: string): boolean => {
+        return this.hasAttributeKey(data.attributes, key);
+      })
     ) {
       return null;
     }
@@ -2776,7 +2780,8 @@ export default abstract class OtelIngestBaseService {
    *      auto-create budget); the batch then simply resolves to no row.
    *
    * Then, behind the "database-server" maintenance fence, the collector
-   * heartbeat (agent + engine version) and oneuptime.label.* promotion.
+   * heartbeat (agent and engine versions, and the engine the batch reports)
+   * and oneuptime.label.* promotion.
    * Never throws: null (no row) is always a valid answer, and the caller
    * then routes the batch as it would any other.
    */
@@ -2842,9 +2847,16 @@ export default abstract class OtelIngestBaseService {
           data.attributes,
           "oneuptime.agent.version",
         );
+        /*
+         * The engine rides along as collector evidence: the endpoint path
+         * weighs it in findOrCreateByEndpoint, but a batch linked by id
+         * never goes there, so this is the only place its engine can
+         * correct (or refine to a fork) one an image or spans guessed.
+         */
         await DatabaseServerService.recordCollectorHeartbeat(databaseServerId, {
           agentVersion: agentVersion || undefined,
           dbVersion: resolved.version || undefined,
+          dbSystem: resolved.system || undefined,
         });
         await this.promoteOneuptimeLabelsToDatabaseServer({
           projectId: data.projectId,

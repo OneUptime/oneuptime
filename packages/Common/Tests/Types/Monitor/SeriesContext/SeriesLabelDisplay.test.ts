@@ -72,6 +72,13 @@ describe("SeriesLabelDisplay", () => {
       ["resource.vmware.vcenter.name", "vCenter"],
       ["power_state", "Power State"],
       ["effective", "Effective"],
+      ["oneuptime.database.server.name", "Database"],
+      ["resource.oneuptime.database.server.name", "Database"],
+      ["oneuptime.database.server.id", "Database ID"],
+      ["resource.oneuptime.database.server.id", "Database ID"],
+      ["resource.elasticsearch.node.name", "Elasticsearch Node"],
+      ["tablespace_name", "Tablespace"],
+      ["replication_client", "Replica"],
     ])("%s renders as %s", (key: string, expected: string) => {
       expect(SeriesLabelDisplay.getFriendlyLabelName(key)).toBe(expected);
     });
@@ -466,6 +473,113 @@ describe("SeriesLabelDisplay", () => {
     test("is empty with no identity", () => {
       expect(SeriesLabelDisplay.buildMarkdownBlock({})).toBe("");
       expect(SeriesLabelDisplay.buildMarkdownBlock(undefined)).toBe("");
+    });
+  });
+
+  describe("database series", () => {
+    /*
+     * Ingest stamps a database's telemetry with the DatabaseServer it
+     * resolved to, so `oneuptime.database.server.id` is what a user's own
+     * database monitor groups by to alert once per database. Unregistered,
+     * those alerts read "Oneuptime Database Server Id: 5f2b…".
+     */
+    const DATABASE_ID: string = "5f2b7c1e-8d3a-4b6f-9c0d-1e2f3a4b5c6d";
+    const DATABASE_NAME: string = "Oracle Database ora.prod.example.com:1521";
+
+    test.each([
+      ["oneuptime.database.server.id"],
+      ["resource.oneuptime.database.server.id"],
+      ["oneuptime.database.server.name"],
+      ["elasticsearch.node.name"],
+      ["resource.elasticsearch.node.name"],
+      ["tablespace_name"],
+      ["replication_client"],
+    ])("%s is a registered group-by key", (key: string) => {
+      expect(SeriesLabelDisplay.isKnownLabelKey(key)).toBe(true);
+    });
+
+    test("a monitor grouped by the database id alone names the database it fired for", () => {
+      expect(
+        SeriesLabelDisplay.buildTitleSuffix({
+          "oneuptime.database.server.id": DATABASE_ID,
+        }),
+      ).toBe(` - Database ID: ${DATABASE_ID}`);
+    });
+
+    test("the part that breached comes first, then the database, and its UUID last", () => {
+      const tablespace: number =
+        SeriesLabelDisplay.getLabelPriority("tablespace_name");
+      const replica: number =
+        SeriesLabelDisplay.getLabelPriority("replication_client");
+      const node: number = SeriesLabelDisplay.getLabelPriority(
+        "resource.elasticsearch.node.name",
+      );
+      const name: number = SeriesLabelDisplay.getLabelPriority(
+        "resource.oneuptime.database.server.name",
+      );
+      const id: number = SeriesLabelDisplay.getLabelPriority(
+        "oneuptime.database.server.id",
+      );
+
+      expect(tablespace).toBeLessThan(name);
+      expect(replica).toBeLessThan(name);
+      expect(node).toBeLessThan(name);
+      expect(name).toBeLessThan(id);
+      // An id is correct but not what a reader scans for: after any label.
+      expect(id).toBeGreaterThan(
+        SeriesLabelDisplay.getLabelPriority("tenant_id"),
+      );
+
+      expect(
+        SeriesLabelDisplay.buildInlineSummary({
+          "oneuptime.database.server.id": DATABASE_ID,
+          "resource.oneuptime.database.server.name": DATABASE_NAME,
+          tablespace_name: "USERS",
+        }),
+      ).toBe(
+        `Tablespace: USERS | Database: ${DATABASE_NAME} | Database ID: ${DATABASE_ID}`,
+      );
+    });
+
+    test("the id and the name are two facts, never collapsed into one", () => {
+      const labels: Array<DisplaySeriesLabel> =
+        SeriesLabelDisplay.getDisplayLabels({
+          "oneuptime.database.server.id": DATABASE_ID,
+          "resource.oneuptime.database.server.id": DATABASE_ID,
+          "oneuptime.database.server.name": DATABASE_NAME,
+        });
+
+      expect(
+        labels.map((label: DisplaySeriesLabel) => {
+          return `${label.name}=${label.value}`;
+        }),
+      ).toEqual([`Database=${DATABASE_NAME}`, `Database ID=${DATABASE_ID}`]);
+    });
+
+    test("the description block carries the full identity of a replica-level series", () => {
+      const block: string = SeriesLabelDisplay.buildMarkdownBlock({
+        replication_client: "10.0.4.17",
+        "resource.oneuptime.database.server.name": "PostgreSQL db.prod:5432",
+        "resource.oneuptime.database.server.id": DATABASE_ID,
+      });
+
+      expect(block).toBe(
+        [
+          "**Affected resource**",
+          "- **Replica:** `10.0.4.17`",
+          "- **Database:** `PostgreSQL db.prod:5432`",
+          `- **Database ID:** \`${DATABASE_ID}\``,
+        ].join("\n"),
+      );
+    });
+
+    test("findLabelValue finds the database id under either spelling", () => {
+      expect(
+        SeriesLabelDisplay.findLabelValue(
+          { "resource.oneuptime.database.server.id": DATABASE_ID },
+          ["oneuptime.database.server.id"],
+        ),
+      ).toBe(DATABASE_ID);
     });
   });
 

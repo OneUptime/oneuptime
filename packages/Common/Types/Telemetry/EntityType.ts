@@ -87,17 +87,26 @@ enum EntityType {
   Database = "database",
   RemoteService = "remote.service",
   /*
-   * A database SERVER endpoint (host[:port][@cluster]) — the identity the
-   * Databases product (the DatabaseServer table) scopes telemetry by.
-   * OneUptime-defined and MEMBERSHIP-ONLY: ingest appends its key to the
-   * `entityKeys` of every DB CLIENT span, `db.client.*` datapoint and DB
-   * receiver batch that names the endpoint (see
-   * `EntityKey.keyForDatabaseEndpoint`), but no resolver ever emits it and it
-   * is never promoted to an InventoryItem row, so it has no prune TTL. The
-   * key is deliberately engine-agnostic (no `db.system.name`), so a
-   * CockroachDB that clients reach over the PostgreSQL wire protocol still
-   * joins. Distinct from `Database` above, which is a logical database
-   * inferred by the dependency cron and keyed by engine + namespace.
+   * A database SERVER — the identity the Databases product (the
+   * DatabaseServer table) scopes telemetry by. OneUptime-defined and
+   * MEMBERSHIP-ONLY, with two kinds of key:
+   *
+   *   - the ENDPOINT key (host[:port][@cluster],
+   *     `EntityKey.keyForDatabaseEndpoint`), which ingest appends to the
+   *     `entityKeys` of every DB CLIENT span, `db.client.*` datapoint and DB
+   *     receiver batch that names the endpoint;
+   *   - the ROW key (identity `oneuptime.database.server.id`,
+   *     `EntityKey.keyForDatabaseServerRow`), which ingest appends to every
+   *     row of a batch that resolved to a DatabaseServer row — as the
+   *     primary entity or only through the id stamp — so a linked batch
+   *     reaches its database whatever address it reports, or none.
+   *
+   * No resolver ever emits either, and neither is promoted to an
+   * InventoryItem row, so neither has a prune TTL. Both are deliberately
+   * engine-agnostic (no `db.system.name`), so a CockroachDB that clients
+   * reach over the PostgreSQL wire protocol still joins. Distinct from
+   * `Database` above, which is a logical database inferred by the
+   * dependency cron and keyed by engine + namespace.
    */
   DatabaseServer = "database.server",
   /*

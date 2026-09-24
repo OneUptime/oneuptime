@@ -13,7 +13,10 @@ import {
   DatabaseEndpoint,
   DatabaseEndpointScope,
 } from "../../../Types/DatabaseServer/DatabaseEndpoint";
-import { normalizeDatabaseSystem } from "../../../Types/DatabaseServer/DatabaseSystem";
+import {
+  getDatabaseReceiverSystemHint,
+  normalizeDatabaseSystem,
+} from "../../../Types/DatabaseServer/DatabaseSystem";
 import { describe, expect, test } from "@jest/globals";
 
 type CallTarget = {
@@ -479,6 +482,76 @@ describe("resolveDatabaseFromResourceAttributes — which batches are databases"
     });
   });
 
+  test("the legacy db.system stamp counts like db.system.name (receivers that predate the rename)", () => {
+    expect(
+      fromResource({
+        "db.system": "redis",
+        "server.address": "cache.prod",
+        "oneuptime.database.agent": "true",
+      }),
+    ).toMatchObject({
+      system: "redis",
+      endpoint: { host: "cache.prod", port: 6379 },
+      displayName: "Redis cache.prod:6379",
+    });
+    // …with a linked id and no address, too.
+    expect(
+      fromResource({
+        "oneuptime.database.server.id": LINKED_ID,
+        "db.system": "postgres",
+      }),
+    ).toMatchObject({
+      system: "postgresql",
+      linkedDatabaseServerId: LINKED_ID,
+    });
+    // …and it refines a receiver hint exactly as db.system.name does.
+    expect(
+      fromResource(
+        { "db.system": "mariadb", "server.address": "db.prod" },
+        "mysql",
+      )?.system,
+    ).toBe("mariadb");
+  });
+
+  test("db.system.name wins over db.system; an empty or blank one falls back to it", () => {
+    expect(
+      fromResource({
+        "db.system.name": "mariadb",
+        "db.system": "mysql",
+        "server.address": "db.prod",
+      })?.system,
+    ).toBe("mariadb");
+    for (const blank of ["", "   "]) {
+      expect(
+        fromResource({
+          "db.system.name": blank,
+          "db.system": "postgresql",
+          "server.address": "db.prod",
+        })?.system,
+      ).toBe("postgresql");
+    }
+    // The stored resource.-prefixed spelling of the legacy key is read too.
+    expect(
+      fromResource({
+        "resource.db.system": "redis",
+        "resource.server.address": "cache.prod",
+      })?.system,
+    ).toBe("redis");
+  });
+
+  test("a db.system stamp alone (no address, no link) is still not a database", () => {
+    expect(
+      fromResource({ "service.name": "checkout", "db.system": "redis" }),
+    ).toBeNull();
+    // A non-string, object-valued stamp is no engine at all.
+    expect(
+      fromResource({
+        "db.system": { name: "redis" },
+        "server.address": "cache.prod",
+      }),
+    ).toBeNull();
+  });
+
   test("a non-UUID linked id is ignored", () => {
     expect(
       fromResource({ "oneuptime.database.server.id": "not-a-uuid" }),
@@ -571,6 +644,94 @@ describe("resolveDatabaseFromResourceAttributes — endpoint precedence", () => 
     ).toEqual({
       host: "atlas-abc-shard-00-00.xyz.mongodb.net",
       port: 27017,
+    });
+  });
+
+  describe("SAP HANA (the saphana receiver: db.system + saphana.host)", () => {
+    // What the receiver stamps: the legacy engine key and the host alone.
+    const SAPHANA: Record<string, unknown> = {
+      "db.system": "saphana",
+      "saphana.host": "hana.prod.example.com",
+    };
+    const SAPHANA_HINT: string | null = getDatabaseReceiverSystemHint([
+      `${CONTRIB}saphanareceiver`,
+    ]);
+
+    test("the receiver's scope is the hint", () => {
+      expect(SAPHANA_HINT).toBe("sap.hana");
+    });
+
+    test("saphana.host is the endpoint, on the engine's default port", () => {
+      expect(fromResource(SAPHANA, SAPHANA_HINT)).toEqual({
+        system: "sap.hana",
+        endpoint: { host: "hana.prod.example.com", port: 30015 },
+        linkedDatabaseServerId: null,
+        displayName: "SAP HANA hana.prod.example.com:30015",
+        version: null,
+        endpointIsStable: true,
+        allowCreate: true,
+      });
+    });
+
+    test("a port inside saphana.host is honoured", () => {
+      expect(
+        fromResource(
+          { ...SAPHANA, "saphana.host": "hana.prod.example.com:39017" },
+          SAPHANA_HINT,
+        )?.endpoint,
+      ).toEqual({ host: "hana.prod.example.com", port: 39017 });
+    });
+
+    test("the legacy engine stamp alone names the engine (no scope hint)", () => {
+      // Linked: the id identifies the row, the host keys the rows.
+      expect(
+        fromResource({
+          ...SAPHANA,
+          "oneuptime.database.server.id": LINKED_ID,
+        }),
+      ).toMatchObject({
+        system: "sap.hana",
+        linkedDatabaseServerId: LINKED_ID,
+        endpoint: { host: "hana.prod.example.com", port: 30015 },
+      });
+      /*
+       * Unlinked, with no server.address and no hint, it is not an explicit
+       * stamp: nothing says this resource is the database itself.
+       */
+      expect(fromResource(SAPHANA)).toBeNull();
+    });
+
+    test("saphana.host is the last resort: server.address wins", () => {
+      expect(
+        fromResource(
+          {
+            ...SAPHANA,
+            "server.address": "hana-vip.prod.example.com",
+            "server.port": 30041,
+          },
+          SAPHANA_HINT,
+        )?.endpoint,
+      ).toEqual({ host: "hana-vip.prod.example.com", port: 30041 });
+    });
+
+    test("a HANA-internal single-label host keys the rows but never creates one", () => {
+      // HANA reports its own hostname ("hxehost"), not the address dialled.
+      expect(
+        fromResource(
+          { ...SAPHANA, "saphana.host": "hxehost", "os.type": "linux" },
+          SAPHANA_HINT,
+        ),
+      ).toMatchObject({
+        endpoint: { host: "hxehost", port: 30015 },
+        endpointIsStable: false,
+        allowCreate: false,
+      });
+    });
+
+    test("a placeholder saphana.host is no endpoint", () => {
+      expect(
+        fromResource({ ...SAPHANA, "saphana.host": "unknown" }, SAPHANA_HINT),
+      ).toBeNull();
     });
   });
 
@@ -798,6 +959,92 @@ describe("resolveDatabaseFromResourceAttributes — descriptive fields", () => {
         "redis",
       )?.version,
     ).toBe("7.2");
+  });
+
+  describe("the server's own version string refines a family engine", () => {
+    const MARIADB_VERSION: string = "10.11.7-MariaDB-1:10.11.7+maria~ubu2204";
+    const TIDB_VERSION: string = "8.0.11-TiDB-v7.5.1";
+
+    test("the mysql receiver's hint + a MariaDB version is MariaDB", () => {
+      expect(
+        fromResource(
+          { "server.address": "db.prod", "db.system.version": MARIADB_VERSION },
+          "mysql",
+        ),
+      ).toMatchObject({
+        system: "mariadb",
+        displayName: "MariaDB db.prod:3306",
+        version: MARIADB_VERSION,
+        allowCreate: true,
+      });
+    });
+
+    test("an explicit mysql stamp + a TiDB version is TiDB", () => {
+      expect(
+        fromResource({
+          "db.system.name": "mysql",
+          "server.address": "db.prod",
+          "server.port": 4000,
+          "db.system.version": TIDB_VERSION,
+        })?.system,
+      ).toBe("tidb");
+    });
+
+    test("the linked-id path is refined too", () => {
+      expect(
+        fromResource({
+          "oneuptime.database.server.id": LINKED_ID,
+          "db.system.name": "mysql",
+          "db.system.version": MARIADB_VERSION,
+        })?.system,
+      ).toBe("mariadb");
+    });
+
+    test("the endpoint does not move with the version: identity is the engine as reported", () => {
+      const withVersion: ResourceResolution = fromResource(
+        { "server.address": "db.prod", "db.system.version": TIDB_VERSION },
+        "mysql",
+      );
+      const withoutVersion: ResourceResolution = fromResource(
+        { "server.address": "db.prod" },
+        "mysql",
+      );
+      expect(withVersion?.system).toBe("tidb");
+      expect(withoutVersion?.system).toBe("mysql");
+      /*
+       * MySQL's default port, not TiDB's: the same server keys the same way
+       * whether or not its receiver managed to read the version.
+       */
+      expect(withVersion?.endpoint).toEqual({ host: "db.prod", port: 3306 });
+      expect(withVersion?.endpoint).toEqual(withoutVersion?.endpoint);
+    });
+
+    test.each<[string, string, string]>([
+      ["a bare version", "mysql", "8.0.36"],
+      ["a fork already named (never re-forked)", "mariadb", TIDB_VERSION],
+      ["a fork's version under another family", "postgresql", MARIADB_VERSION],
+      ["an unknown engine", "acme-db", MARIADB_VERSION],
+    ])(
+      "%s keeps the engine",
+      (_label: string, system: string, version: string) => {
+        expect(
+          fromResource({
+            "db.system.name": system,
+            "server.address": "db.prod",
+            "db.system.version": version,
+          })?.system,
+        ).toBe(system);
+      },
+    );
+
+    test("a batch that names no engine is not given one by its version", () => {
+      expect(
+        fromResource({
+          "oneuptime.database.server.id": LINKED_ID,
+          "db.system.version": MARIADB_VERSION,
+        })?.system,
+      ).toBe("");
+    });
   });
 
   test("the display name uses the endpoint, without the cluster qualifier", () => {
@@ -1169,6 +1416,14 @@ describe("isStableCollectorEndpoint", () => {
         attributes: { "k8s.pod.name": "mssql-0" },
       }),
     ).toBe(false);
+    // The raw host is compared case- and whitespace-insensitively, instance dropped.
+    expect(
+      isStableCollectorEndpoint({
+        rawHost: "  SQL.Prod.Example.COM\\Reporting ",
+        endpoint: { host: "sql.prod.example.com\\reporting", port: null },
+        attributes: {},
+      }),
+    ).toBe(true);
   });
 
   test("garbage input is not stable and never throws", () => {

@@ -12,11 +12,14 @@ import {
   parseHostAndPort,
   ParsedHostAndPort,
   readDatabaseInstanceName,
+  splitDatabaseHostInstance,
 } from "./DatabaseEndpoint";
 import {
+  getMoreSpecificDatabaseSystem,
   isAutoCreatableDatabaseSystem,
   isKnownDatabaseSystem,
   normalizeDatabaseSystem,
+  refineDatabaseSystemFromVersion,
 } from "./DatabaseSystem";
 
 /*
@@ -137,6 +140,20 @@ function readAttribute(
   return toText(attributes[`resource.${key}`]);
 }
 
+// The first of `keys` readAttribute finds, in list order.
+function readFirstAttribute(
+  attributes: Record<string, unknown>,
+  keys: ReadonlyArray<string>,
+): string | null {
+  for (const key of keys) {
+    const value: string | null = readAttribute(attributes, key);
+    if (value !== null) {
+      return value;
+    }
+  }
+  return null;
+}
+
 /**
  * The database server a CLIENT span (or a `db.client.*` datapoint) calls, or
  * null. Returns immediately — without allocating — when the span has no
@@ -255,9 +272,7 @@ function isSingleLabelHost(host: string): boolean {
  * about the address it is reached at.
  */
 function networkHostOf(host: string): string {
-  const value: string = host.trim().toLowerCase();
-  const instanceStart: number = value.indexOf("\\");
-  return instanceStart >= 0 ? value.substring(0, instanceStart) : value;
+  return splitDatabaseHostInstance(host.trim().toLowerCase()).host;
 }
 
 /**
@@ -333,16 +348,24 @@ export function isStableCollectorEndpoint(input: {
  * - `linkedDatabaseServerId`: `oneuptime.database.server.id` when it is a
  *   UUID (the agent config from the in-app docs stamps it; ingest joins that
  *   row deterministically).
- * - `system`: the receiver hint (from the batch's scope names), refined by a
- *   `db.system.name` resource attribute; else an explicit stamp
- *   (`db.system.name` plus `server.address` or the linked id); else nothing
- *   — an application resource is never a database.
+ * - `system`: the receiver hint (from the batch's scope names), refined by
+ *   the engine the resource stamps (`db.system.name`, else the legacy
+ *   `db.system` older receivers such as saphana still write); else an
+ *   explicit stamp (that engine plus `server.address` or the linked id);
+ *   else nothing — an application resource is never a database. Finally a
+ *   version string the server reports about itself refines a family engine
+ *   to the fork it names ("mysql" + "10.11.7-MariaDB" → "mariadb"); it never
+ *   changes one fork into another or moves an engine to another family.
  * - `endpoint` (purpose "collector"): the first of `server.address`
  *   (+ `server.port`), `service.instance.id` (UUID-shaped values ignored;
  *   `host:port/service` read as host:port), `mysql.instance.endpoint`,
- *   `mongodb_atlas.host.name` (+ `mongodb_atlas.process.port`) that
- *   canonicalizes to a real host. There is deliberately NO `host.name`
- *   fallback: a central collector scraping N servers would merge them all.
+ *   `mongodb_atlas.host.name` (+ `mongodb_atlas.process.port`),
+ *   `saphana.host` (the engine's default port) that canonicalizes to a real
+ *   host. It is canonicalized with the engine as reported, before the
+ *   version refinement: a receiver that could not read the version (it
+ *   reads it once, at start) must key its batches exactly as one that could.
+ *   There is deliberately NO `host.name` fallback: a central collector
+ *   scraping N servers would merge them all.
  * - `endpointIsStable`: see isStableCollectorEndpoint — whether the endpoint
  *   may become a server's identity (created, or claimed as an alias).
  * - `allowCreate`: whether the batch may create a DatabaseServer row for its
@@ -379,7 +402,7 @@ export function resolveDatabaseFromResourceAttributes(input: {
       : null;
 
   const stampedSystem: string | null = normalizeDatabaseSystem(
-    readAttribute(attributes, "db.system.name"),
+    readFirstAttribute(attributes, DATABASE_SYSTEM_ATTRIBUTES),
   );
   // Only a known engine is a hint (callers pass getDatabaseReceiverSystemHint).
   const hintSystem: string | null = isKnownDatabaseSystem(
@@ -428,6 +451,11 @@ export function resolveDatabaseFromResourceAttributes(input: {
       address: readAttribute(attributes, "mongodb_atlas.host.name"),
       port: readAttribute(attributes, "mongodb_atlas.process.port"),
     },
+    // The saphana receiver names the host alone; the default port applies.
+    {
+      address: readAttribute(attributes, "saphana.host"),
+      port: null,
+    },
   ];
 
   let endpoint: DatabaseEndpoint | null = null;
@@ -462,12 +490,22 @@ export function resolveDatabaseFromResourceAttributes(input: {
     return null;
   }
 
-  let version: string | null = null;
-  for (const key of DATABASE_VERSION_ATTRIBUTES) {
-    version = readAttribute(attributes, key);
-    if (version) {
-      break;
-    }
+  const version: string | null = readFirstAttribute(
+    attributes,
+    DATABASE_VERSION_ATTRIBUTES,
+  );
+
+  /*
+   * The server's own version string can name the fork a family receiver
+   * cannot tell apart (the mysql receiver reports "mysql" for MariaDB and
+   * TiDB alike). Only ever more specific: a fork already named is kept.
+   */
+  if (system && version) {
+    system =
+      getMoreSpecificDatabaseSystem(
+        system,
+        refineDatabaseSystemFromVersion(system, version),
+      ) || system;
   }
 
   const endpointIsStable: boolean = endpoint

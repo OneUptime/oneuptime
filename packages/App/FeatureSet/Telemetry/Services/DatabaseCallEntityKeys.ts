@@ -96,6 +96,13 @@ export class DatabaseCallerSource {
     return this.context;
   }
 
+  /*
+   * Every field of the context canonicalization reads, so two callers that
+   * could canonicalize one address differently never share a memo slot.
+   * `runsInKubernetes` is unset by buildDatabaseCallerContext today (ingest
+   * derives it from namespace / cluster), but it changes how a two-label
+   * name expands, so it is part of the fingerprint all the same.
+   */
   public getFingerprint(): string {
     if (this.fingerprint === null) {
       const context: DatabaseCallerContext = this.getContext();
@@ -104,6 +111,7 @@ export class DatabaseCallerSource {
         context.kubernetesClusterName || "",
         context.hostName || "",
         context.isEphemeral,
+        context.runsInKubernetes === true,
       ]);
     }
     return this.fingerprint;

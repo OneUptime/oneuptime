@@ -473,6 +473,52 @@ describe("DatabaseCallEntityKeyResolver", () => {
     expect(shop).not.toBe(billing);
   });
 
+  test("callers that differ only in runsInKubernetes never share a memo slot", () => {
+    /*
+     * buildDatabaseCallerContext leaves runsInKubernetes unset today, but
+     * the canonicalizer reads it: from a caller known to run in Kubernetes,
+     * a two-label name is `<service>.<namespace>`; from anything else it is
+     * a domain. The fingerprint must tell the two callers apart.
+     */
+    const inKubernetes: DatabaseCallerSource = new DatabaseCallerSource({});
+    const elsewhere: DatabaseCallerSource = new DatabaseCallerSource({});
+    jest.spyOn(inKubernetes, "getContext").mockReturnValue({
+      isEphemeral: true,
+      runsInKubernetes: true,
+    });
+    jest.spyOn(elsewhere, "getContext").mockReturnValue({
+      isEphemeral: true,
+    });
+
+    expect(inKubernetes.getFingerprint()).not.toBe(elsewhere.getFingerprint());
+
+    const resolver: DatabaseCallEntityKeyResolver =
+      new DatabaseCallEntityKeyResolver(PROJECT_ID);
+    const call: Record<string, unknown> = {
+      "db.system.name": "postgresql",
+      "server.address": "orders.billing",
+    };
+
+    const fromKubernetes: string | null = resolver.getEntityKey(
+      call,
+      inKubernetes,
+    );
+    const fromElsewhere: string | null = resolver.getEntityKey(call, elsewhere);
+
+    expect(fromKubernetes).toBe(
+      keyForDatabaseEndpoint(PROJECT_ID.toString(), {
+        host: "orders.billing.svc.cluster.local",
+        port: 5432,
+      }),
+    );
+    expect(fromElsewhere).toBe(
+      keyForDatabaseEndpoint(PROJECT_ID.toString(), {
+        host: "orders.billing",
+        port: 5432,
+      }),
+    );
+  });
+
   test("the caller context is built once per resource, and only when needed", () => {
     const contextSpy: jest.SpyInstance = jest.spyOn(
       DatabaseEndpointModule,

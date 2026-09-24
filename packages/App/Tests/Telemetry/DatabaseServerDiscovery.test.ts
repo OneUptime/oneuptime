@@ -483,7 +483,11 @@ describe("autoDiscoverDatabaseServer receiver hint and explicit stamp", () => {
     const [id, extra]: [ObjectID, unknown] = recordCollectorHeartbeat.mock
       .calls[0]! as [ObjectID, unknown];
     expect(id.toString()).toBe(DATABASE_ID);
-    expect(extra).toEqual({ agentVersion: "0.161.0", dbVersion: "16.2" });
+    expect(extra).toEqual({
+      agentVersion: "0.161.0",
+      dbVersion: "16.2",
+      dbSystem: "postgresql",
+    });
   });
 
   test("absent versions are passed as undefined, never as empty strings", async () => {
@@ -491,9 +495,125 @@ describe("autoDiscoverDatabaseServer receiver hint and explicit stamp", () => {
 
     expect(recordCollectorHeartbeat).toHaveBeenCalledWith(
       expect.any(ObjectID),
-      { agentVersion: undefined, dbVersion: undefined },
+      { agentVersion: undefined, dbVersion: undefined, dbSystem: "postgresql" },
     );
   });
+
+  test("a legacy db.system + server.address stamp needs no hint either", async () => {
+    await discover({
+      "db.system": "mysql",
+      "server.address": "billing-db.example.com",
+    });
+
+    expect(findOrCreateByEndpoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dbSystem: "mysql",
+        endpoint: { host: "billing-db.example.com", port: 3306 },
+        displayName: "MySQL billing-db.example.com:3306",
+      }),
+    );
+  });
+
+  test("a SAP HANA receiver batch (db.system + saphana.host) registers on the engine's default port", async () => {
+    const result: ObjectID | null = await discover(
+      {
+        "db.system": "saphana",
+        "saphana.host": "hana.example.com",
+      },
+      "sap.hana",
+    );
+
+    expect(result?.toString()).toBe(DATABASE_ID);
+    expect(findOrCreateByEndpoint).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      dbSystem: "sap.hana",
+      endpoint: { host: "hana.example.com", port: 30015 },
+      discoverySource: DatabaseServerDiscoverySource.Collector,
+      displayName: "SAP HANA hana.example.com:30015",
+      allowCreate: true,
+    });
+    expect(recordCollectorHeartbeat).toHaveBeenCalledWith(
+      expect.any(ObjectID),
+      expect.objectContaining({ dbSystem: "sap.hana" }),
+    );
+  });
+
+  test("a MariaDB version string refines the mysql receiver's engine everywhere it is used", async () => {
+    await discover(
+      {
+        "mysql.instance.endpoint": "billing-db.example.com:3306",
+        "db.system.version": "10.11.7-MariaDB-1:10.11.7+maria~ubu2204",
+      },
+      "mysql",
+    );
+
+    expect(findOrCreateByEndpoint).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dbSystem: "mariadb",
+        endpoint: { host: "billing-db.example.com", port: 3306 },
+        displayName: "MariaDB billing-db.example.com:3306",
+      }),
+    );
+    expect(recordCollectorHeartbeat).toHaveBeenCalledWith(
+      expect.any(ObjectID),
+      expect.objectContaining({ dbSystem: "mariadb" }),
+    );
+  });
+});
+
+describe("autoDiscoverDatabaseServer resolveDatabaseServerResource pre-check", () => {
+  function resolve(
+    values: Record<string, string>,
+    receiverSystemHint?: string | null,
+  ): unknown {
+    return baseService["resolveDatabaseServerResource"]({
+      attributes: attributes(values),
+      receiverSystemHint: receiverSystemHint,
+    });
+  }
+
+  test("an application batch is refused without flattening its attributes", () => {
+    const flatten: jest.SpiedFunction<typeof TelemetryUtil.getAttributes> =
+      jest.spyOn(TelemetryUtil, "getAttributes");
+
+    expect(
+      resolve({
+        "service.name": "checkout",
+        "server.address": ENDPOINT_HOST,
+        "host.name": "app-vm-1",
+      }),
+    ).toBeNull();
+    expect(flatten).not.toHaveBeenCalled();
+  });
+
+  test.each<[string, Record<string, string>]>([
+    [
+      "db.system.name",
+      { "db.system.name": "mysql", "server.address": "billing-db.example.com" },
+    ],
+    [
+      "the legacy db.system",
+      { "db.system": "mysql", "server.address": "billing-db.example.com" },
+    ],
+    [
+      "oneuptime.database.server.id",
+      {
+        "oneuptime.database.server.id": LINKED_ID,
+        "server.address": "billing-db.example.com",
+      },
+    ],
+  ])(
+    "an engine or link stamp (%s) passes the pre-check with no receiver hint",
+    (_label: string, values: Record<string, string>) => {
+      const flatten: jest.SpiedFunction<typeof TelemetryUtil.getAttributes> =
+        jest.spyOn(TelemetryUtil, "getAttributes");
+
+      expect(resolve(values)).toMatchObject({
+        endpoint: { host: "billing-db.example.com" },
+      });
+      expect(flatten).toHaveBeenCalledTimes(1);
+    },
+  );
 });
 
 describe("autoDiscoverDatabaseServer linked id (oneuptime.database.server.id)", () => {
@@ -545,6 +665,39 @@ describe("autoDiscoverDatabaseServer linked id (oneuptime.database.server.id)", 
       ENTITY_ID_NAMESPACE,
       linkedCacheKey(),
     );
+  });
+
+  test("the linked batch's engine rides the heartbeat as collector evidence for THAT row", async () => {
+    await discover({
+      ...AGENT_ATTRIBUTES,
+      "db.system.name": "mariadb",
+      "oneuptime.database.server.id": LINKED_ID,
+    });
+
+    // The endpoint path (which weighs the engine itself) is never taken…
+    expect(findOrCreateByEndpoint).not.toHaveBeenCalled();
+    // …so the heartbeat is where the linked row learns the engine.
+    expect(recordCollectorHeartbeat).toHaveBeenCalledTimes(1);
+    const [id, extra]: [ObjectID, unknown] = recordCollectorHeartbeat.mock
+      .calls[0]! as [ObjectID, unknown];
+    expect(id.toString()).toBe(LINKED_ID);
+    expect(extra).toEqual({
+      agentVersion: "0.161.0",
+      dbVersion: undefined,
+      dbSystem: "mariadb",
+    });
+  });
+
+  test("a linked batch that names no engine reports none — never an empty string", async () => {
+    await discover({ "oneuptime.database.server.id": LINKED_ID });
+
+    expect(recordCollectorHeartbeat).toHaveBeenCalledTimes(1);
+    const [, extra]: [ObjectID, { dbSystem?: string | undefined }] =
+      recordCollectorHeartbeat.mock.calls[0]! as [
+        ObjectID,
+        { dbSystem?: string | undefined },
+      ];
+    expect(extra.dbSystem).toBeUndefined();
   });
 
   test("a linked id alone (no address) joins the row and claims nothing", async () => {
@@ -1611,6 +1764,38 @@ describe("metrics pillar wiring", () => {
         databaseServerId: new ObjectID(DATABASE_ID),
         databaseServerName: DISPLAY_NAME,
         databaseServerEndpoint: { host: ENDPOINT_HOST, port: 5432 },
+      }),
+    );
+  });
+
+  test("a SAP HANA receiver block (db.system + saphana.host only) reaches its database", async () => {
+    const spies: PillarSpies = setup(new ObjectID(DATABASE_ID));
+
+    await OtelMetricsIngestService.processMetricsFromQueue(
+      request({
+        resourceAttributes: {
+          "db.system": "saphana",
+          "saphana.host": "hana.example.com",
+        },
+        scopes: [
+          {
+            name: "github.com/open-telemetry/opentelemetry-collector-contrib/receiver/saphanareceiver",
+            metrics: ["saphana.connection.count"],
+          },
+        ],
+      }),
+    );
+
+    expect(spies.discoverDatabase).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      attributes: expect.any(Array),
+      receiverSystemHint: "sap.hana",
+    });
+    expect(spies.resolveResource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        databaseServerId: new ObjectID(DATABASE_ID),
+        databaseServerName: "SAP HANA hana.example.com:30015",
+        databaseServerEndpoint: { host: "hana.example.com", port: 30015 },
       }),
     );
   });
