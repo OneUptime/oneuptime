@@ -920,9 +920,17 @@ describe("BaseModelTable bulk Delete", () => {
 
       fireEvent.mouseEnter(unlinkItem!.parentElement as HTMLElement);
 
-      expect(screen.getByRole("tooltip")).toHaveTextContent(
-        "You do not have permission to delete this Network Device.",
+      /*
+       * The reason follows the verb, but the permission it names is still the
+       * delete one the action is gated on.
+       */
+      const tooltip: HTMLElement = screen.getByRole("tooltip");
+
+      expect(tooltip).toHaveTextContent(
+        "You do not have permission to unlink this Network Device.",
       );
+      expect(tooltip).toHaveTextContent("Delete Network Device");
+      expect(tooltip).not.toHaveTextContent("delete this Network Device");
     });
 
     test("a blank verb keeps the default wording", async () => {

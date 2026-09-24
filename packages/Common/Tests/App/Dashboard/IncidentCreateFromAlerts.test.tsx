@@ -495,9 +495,11 @@ describe("declaring an incident from alerts", () => {
     /*
      * Alert two is private, so the incident is prefilled private - visible
      * only to its owners and admins. The banner says so, and that the alerts'
-     * owners become the incident's owners, before the user declares it.
+     * owners become the incident's owners, before the user declares it. The
+     * user can still switch Private Incident off, so it says both only hold
+     * while the switch stays on.
      */
-    test("says the incident will be private, and who will own it, when an alert is private", async () => {
+    test("says the incident starts private, and who will own it, when an alert is private", async () => {
       await openPage();
 
       const banner: HTMLElement = screen.getByTestId(
@@ -509,7 +511,7 @@ describe("declaring an incident from alerts", () => {
 
       expect(banner).toContainElement(note);
       expect(note).toHaveTextContent(
-        "At least one of these alerts is private, so this incident will be private too: only its owners, project owners and project admins can see it. The owners of these alerts are added as the incident's owners when you declare it.",
+        "At least one of these alerts is private, so Private Incident starts switched on. While it stays on, only the incident's owners, project owners and project admins can see it, and the owners of these alerts are added as its owners once it is declared.",
       );
     });
 

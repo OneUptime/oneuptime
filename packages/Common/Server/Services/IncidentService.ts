@@ -1304,14 +1304,16 @@ export class Service extends DatabaseService<Model> {
      */
     let aiInvestigationEnqueued: boolean = false;
 
-    // Execute operations sequentially with error handling
-    Promise.resolve()
-      .then(async () => {
-        /*
-         * Apply privacy rules BEFORE workspace operations so the workspace
-         * channel is created with the correct privacy setting. This may set
-         * createdItem.isPrivate=true in memory.
-         */
+    /*
+     * Apply privacy rules BEFORE workspace operations so the workspace
+     * channel is created with the correct privacy setting. This may set
+     * createdItem.isPrivate=true in memory. Kept as its own promise (it never
+     * rejects) so declaring from alerts can wait for it before linking: the
+     * links' feed entries leave out a private incident's title, so they must
+     * see the privacy the rules settle on.
+     */
+    const privacyRulesApplied: Promise<void> = Promise.resolve().then(
+      async () => {
         try {
           await IncidentPrivacyRuleEngineService.applyRulesToIncident(
             createdItem,
@@ -1325,7 +1327,11 @@ export class Service extends DatabaseService<Model> {
             } as LogAttributes,
           );
         }
-      })
+      },
+    );
+
+    // Execute operations sequentially with error handling
+    privacyRulesApplied
       .then(async () => {
         try {
           if (createdItem.projectId && createdItem.id) {
@@ -1384,6 +1390,37 @@ export class Service extends DatabaseService<Model> {
         } catch (error) {
           logger.error(
             `Announcing the alerts an incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * A private incident declared from alerts - private from the form or
+         * made private by a privacy rule above - gets the alerts' owners as
+         * its owners, so the people who could see the alerts can see the
+         * incident. Here rather than before the request returns: the owners'
+         * own hooks invite them to the incident's Slack / Microsoft Teams
+         * channels, which exist only from the workspace step above, and their
+         * "owner added" entries belong after "Incident Created".
+         */
+        try {
+          const alertIds: Array<ObjectID> =
+            this.getAlertIdsDeclaredWith(onCreate);
+
+          if (alertIds.length > 0 && createdItem.isPrivate === true) {
+            await IncidentAlertService.copyAlertOwnersToIncident({
+              projectId: createdItem.projectId!,
+              incidentId: createdItem.id!,
+              alertIds: alertIds,
+            });
+          }
+        } catch (error) {
+          logger.error(
+            `Adding the owners of the alerts a private incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
             {
               projectId: createdItem.projectId?.toString(),
               incidentId: createdItem.id?.toString(),
@@ -1690,7 +1727,11 @@ export class Service extends DatabaseService<Model> {
         );
       });
 
-    await this.linkAlertsDeclaredWithIncident(onCreate, createdItem);
+    await this.linkAlertsDeclaredWithIncident(
+      onCreate,
+      createdItem,
+      privacyRulesApplied,
+    );
 
     return createdItem;
   }
@@ -1733,21 +1774,24 @@ export class Service extends DatabaseService<Model> {
    * posts one "Declared from N alerts" entry instead. A link that fails is
    * logged and never fails the incident.
    *
-   * A private incident also gets the linked alerts' owners as owners (see
-   * IncidentAlertService.copyAlertOwnersToIncident), awaited for the same
-   * reason: the alerts' owners must be able to open the incident as soon as
-   * it exists.
+   * The privacy rules run first: each link's entry on its alert leaves out
+   * the incident's title when the incident is private, and a rule can make
+   * it private after it was saved. (The alerts' owners are added to a private
+   * incident later in the chain, once its workspace channels exist.)
    */
   @CaptureSpan()
   private async linkAlertsDeclaredWithIncident(
     onCreate: OnCreate<Model>,
     createdItem: Model,
+    privacyRulesApplied: Promise<void>,
   ): Promise<void> {
     const alertIds: Array<ObjectID> = this.getAlertIdsDeclaredWith(onCreate);
 
     if (alertIds.length === 0 || !createdItem.projectId || !createdItem.id) {
       return;
     }
+
+    await privacyRulesApplied;
 
     try {
       const result: LinkAlertsToIncidentResult =
@@ -1774,26 +1818,6 @@ export class Service extends DatabaseService<Model> {
     } catch (error) {
       logger.error(
         `Linking the alerts an incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
-        {
-          projectId: createdItem.projectId.toString(),
-          incidentId: createdItem.id.toString(),
-        } as LogAttributes,
-      );
-    }
-
-    if (createdItem.isPrivate !== true) {
-      return;
-    }
-
-    try {
-      await IncidentAlertService.copyAlertOwnersToIncident({
-        projectId: createdItem.projectId,
-        incidentId: createdItem.id,
-        alertIds: alertIds,
-      });
-    } catch (error) {
-      logger.error(
-        `Adding the owners of the alerts a private incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
         {
           projectId: createdItem.projectId.toString(),
           incidentId: createdItem.id.toString(),

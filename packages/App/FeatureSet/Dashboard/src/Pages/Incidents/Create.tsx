@@ -597,10 +597,11 @@ const IncidentCreate: FunctionComponent<
                       className="mt-2"
                       data-testid="incident-create-private-from-alerts"
                     >
-                      At least one of these alerts is private, so this incident
-                      will be private too: only its owners, project owners and
-                      project admins can see it. The owners of these alerts are
-                      added as the incident&apos;s owners when you declare it.
+                      At least one of these alerts is private, so Private
+                      Incident starts switched on. While it stays on, only the
+                      incident&apos;s owners, project owners and project admins
+                      can see it, and the owners of these alerts are added as
+                      its owners once it is declared.
                     </p>
                   )}
                   {wereAlertIdsTruncated && (

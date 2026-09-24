@@ -622,8 +622,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const getActionGate: GetActionGateFunction = (
     action: ModelAction,
   ): ActionGate => {
+    /*
+     * A table that calls its delete "Unlink" must not say the locked button
+     * would delete the row's noun ("permission to delete this Alert"). Keyed
+     * on deleteVerb alone: deleteButtonText is also set by tables such as
+     * "Remove from Project", which keep the default "delete" sentence.
+     */
     const result: PermissionGateResult = PermissionGate.check(model, action, {
       singularName: props.singularName || model.singularName || undefined,
+      verb:
+        action === ModelAction.Delete
+          ? props.bulkActions?.deleteVerb?.trim() || undefined
+          : undefined,
     });
 
     if (result.isAllowed) {
@@ -2942,10 +2952,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
       const deleteGate: ActionGate = getActionGate(ModelAction.Delete);
 
+      /* The row action wears the same icon as the bulk one it stands for. */
+      const rowDeleteIcon: IconProp =
+        (props.bulkActions?.deleteVerb?.trim() &&
+          props.bulkActions?.deleteIcon) ||
+        IconProp.Trash;
+
       if (props.isDeleteable && deleteGate.show) {
         actionsSchema.push({
           title: tx(props.deleteButtonText || "Delete"),
-          icon: IconProp.Trash,
+          icon: rowDeleteIcon,
           buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
           disabled: deleteGate.disabled,
           tooltip: deleteGate.tooltip,

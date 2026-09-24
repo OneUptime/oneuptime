@@ -732,30 +732,54 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
       new ObjectID(ALERT_ID_2),
     ];
 
-    test("the owners are added before the incident is returned", async () => {
-      let copied: boolean = false;
+    function order(name: string): number {
+      return chain[name]!.mock.invocationCallOrder[0]!;
+    }
 
-      copyOwners.mockImplementation((async (): Promise<unknown> => {
-        await new Promise<void>((resolve: () => void) => {
-          setTimeout(resolve, 5);
-        });
-        copied = true;
-        return { userIds: [], teamIds: [] };
-      }) as never);
-
+    test("the owners are added once the incident's channels exist, after Incident Created and the announcement", async () => {
       await onCreateSuccess(
         { alertIdsToLink: alertIds },
         createdIncident(USER_ID, true),
         userProps(Permission.ProjectMember),
       );
+      await settle();
 
-      expect(copied).toBe(true);
       expect(copyOwners).toHaveBeenCalledTimes(1);
       expect(copyOwners).toHaveBeenCalledWith({
         projectId: PROJECT_ID,
         incidentId: INCIDENT_ID,
         alertIds: alertIds,
       });
+
+      /*
+       * The owners' own hooks invite them to the incident's Slack / Teams
+       * channels, so the copy must come after the step that records them.
+       */
+      const copyOrder: number = copyOwners.mock.invocationCallOrder[0]!;
+
+      expect(order("handleIncidentWorkspaceOperationsAsync")).toBeLessThan(
+        copyOrder,
+      );
+      expect(order("createIncidentFeedAsync")).toBeLessThan(copyOrder);
+      expect(summary.mock.invocationCallOrder[0]!).toBeLessThan(copyOrder);
+      expect(copyOrder).toBeLessThan(order("handleIncidentStateChangeAsync"));
+    });
+
+    test("an incident a privacy rule makes private takes on the owners too", async () => {
+      jest
+        .spyOn(IncidentPrivacyRuleEngineService, "applyRulesToIncident")
+        .mockImplementation((async (incident: Incident): Promise<boolean> => {
+          incident.isPrivate = true;
+          return true;
+        }) as never);
+
+      await onCreateSuccess(
+        { alertIdsToLink: alertIds },
+        createdIncident(USER_ID, false),
+      );
+      await settle();
+
+      expect(copyOwners).toHaveBeenCalledTimes(1);
     });
 
     test("a public incident keeps its owners as they are", async () => {
@@ -763,6 +787,14 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
         { alertIdsToLink: alertIds },
         createdIncident(USER_ID, false),
       );
+      await settle();
+
+      expect(copyOwners).not.toHaveBeenCalled();
+    });
+
+    test("an incident declared without alerts never copies owners", async () => {
+      await onCreateSuccess(null, createdIncident(USER_ID, true));
+      await settle();
 
       expect(copyOwners).not.toHaveBeenCalled();
     });
@@ -774,17 +806,19 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
         { alertIdsToLink: alertIds },
         createdIncident(USER_ID, true),
       );
+      await settle();
 
       expect(copyOwners).toHaveBeenCalledTimes(1);
     });
 
-    test("a failure adding them is logged and never fails the incident", async () => {
+    test("a failure adding them is logged, and the rest of the chain carries on", async () => {
       copyOwners.mockRejectedValue(new Error("owners failed") as never);
       const incident: Incident = createdIncident(USER_ID, true);
 
       await expect(
         onCreateSuccess({ alertIdsToLink: alertIds }, incident),
       ).resolves.toBe(incident);
+      await settle();
 
       expect(errorLog).toHaveBeenCalledWith(
         expect.stringContaining(
@@ -792,6 +826,62 @@ describe("IncidentService.onCreateSuccess links the alerts it was declared with"
         ),
         expect.anything(),
       );
+      expect(chain["handleIncidentStateChangeAsync"]).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("linking waits for the privacy rules", () => {
+    test("the links are written only once the privacy rules have run", async () => {
+      let rulesApplied: boolean = false;
+      let rulesAppliedWhenLinking: boolean | null = null;
+
+      jest
+        .spyOn(IncidentPrivacyRuleEngineService, "applyRulesToIncident")
+        .mockImplementation((async (incident: Incident): Promise<boolean> => {
+          await new Promise<void>((resolve: () => void) => {
+            setTimeout(resolve, 5);
+          });
+          incident.isPrivate = true;
+          rulesApplied = true;
+          return true;
+        }) as never);
+
+      link.mockImplementation(
+        (async (): Promise<LinkAlertsToIncidentResult> => {
+          rulesAppliedWhenLinking = rulesApplied;
+          return { linkedAlertIds: [], alreadyLinkedAlertIds: [], failed: [] };
+        }) as never,
+      );
+
+      await onCreateSuccess(
+        { alertIdsToLink: [new ObjectID(ALERT_ID)] },
+        createdIncident(USER_ID),
+      );
+
+      expect(link).toHaveBeenCalledTimes(1);
+      expect(rulesAppliedWhenLinking).toBe(true);
+    });
+
+    test("an incident declared without alerts does not wait for the privacy rules", async () => {
+      let finishRules: () => void = (): void => {
+        // replaced once the rules start
+      };
+
+      jest
+        .spyOn(IncidentPrivacyRuleEngineService, "applyRulesToIncident")
+        .mockImplementation((async (): Promise<boolean> => {
+          await new Promise<void>((resolve: () => void) => {
+            finishRules = resolve;
+          });
+          return false;
+        }) as never);
+
+      const incident: Incident = createdIncident(USER_ID);
+
+      // Resolves while the rules are still running.
+      await expect(onCreateSuccess(null, incident)).resolves.toBe(incident);
+
+      finishRules();
     });
   });
 });

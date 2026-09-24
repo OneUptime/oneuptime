@@ -16,14 +16,18 @@ import {
  * dialog, deleting) is covered end to end in BaseModelTableBulkDelete.test;
  * this pins the parts that are not visible as text - the icon and the style -
  * and the exact sentences for both shapes, by capturing what Table receives.
+ * The per-row delete action is captured too, for its icon and for the tooltip
+ * a viewer who cannot delete sees on both.
  */
+
+let permissionsForTest: Array<unknown> = ["ProjectAdmin"];
 
 jest.mock("../../../../UI/Utils/Permission", () => {
   return {
     __esModule: true,
     default: {
       getAllPermissions: (): Array<unknown> => {
-        return ["ProjectAdmin"];
+        return permissionsForTest;
       },
       getProjectPermissions: (): null => {
         return null;
@@ -70,15 +74,20 @@ type CapturedBulkActions = {
 };
 
 let capturedBulkActions: Array<CapturedBulkActions> = [];
+let capturedRowActions: Array<Array<Record<string, any>>> = [];
 
 jest.mock("../../../../UI/Components/Table/Table", () => {
   return {
     __esModule: true,
     default: (props: {
       bulkActions?: CapturedBulkActions | undefined;
+      actionButtons?: Array<Record<string, any>> | undefined;
     }): React.ReactElement => {
       if (props.bulkActions) {
         capturedBulkActions.push(props.bulkActions);
+      }
+      if (props.actionButtons) {
+        capturedRowActions.push(props.actionButtons);
       }
       return <div data-testid="table" />;
     },
@@ -98,6 +107,7 @@ import IncidentAlert from "../../../../Models/DatabaseModels/IncidentAlert";
 import IconProp from "../../../../Types/Icon/IconProp";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
+import Permission from "../../../../Types/Permission";
 
 const WARNING: string = "Only the links are removed.";
 
@@ -105,6 +115,7 @@ type TableOptions = {
   deleteVerb?: string | undefined;
   deleteIcon?: IconProp | undefined;
   deleteConfirmationWarning?: string | undefined;
+  deleteButtonText?: string | undefined;
 };
 
 type MakePropsFunction = (
@@ -161,10 +172,13 @@ const makeProps: MakePropsFunction = (
     isEditable: false,
     isDeleteable: true,
     isViewable: false,
+    deleteButtonText: options.deleteButtonText,
     callbacks: callbacks,
     bulkActions: {
       buttons: [ModalTableBulkDefaultActions.Delete],
-      ...options,
+      deleteVerb: options.deleteVerb,
+      deleteIcon: options.deleteIcon,
+      deleteConfirmationWarning: options.deleteConfirmationWarning,
     },
   } as unknown as BaseModelTableProps<IncidentAlert>;
 };
@@ -191,12 +205,39 @@ const deleteAction: DeleteActionFunction = async (
   return buttons[0]!;
 };
 
+type RowDeleteActionFunction = (title: string) => Promise<Record<string, any>>;
+
+/*
+ * The per-row delete action from the table rendered last. Its title is
+ * deleteButtonText, or "Delete".
+ */
+const rowDeleteAction: RowDeleteActionFunction = async (
+  title: string,
+): Promise<Record<string, any>> => {
+  let action: Record<string, any> | undefined = undefined;
+
+  await waitFor(() => {
+    const rowActions: Array<Record<string, any>> =
+      capturedRowActions[capturedRowActions.length - 1] || [];
+
+    action = rowActions.find((rowAction: Record<string, any>): boolean => {
+      return rowAction["title"] === title;
+    });
+
+    expect(action).toBeDefined();
+  });
+
+  return action!;
+};
+
 const TWO: Array<IncidentAlert> = [new IncidentAlert(), new IncidentAlert()];
 const ONE: Array<IncidentAlert> = [new IncidentAlert()];
 
 describe("BaseModelTable bulk delete verb", () => {
   beforeEach(() => {
     capturedBulkActions = [];
+    capturedRowActions = [];
+    permissionsForTest = ["ProjectAdmin"];
     PermissionGate.clearPermissionPropsCache();
     window.history.replaceState(window.history.state, "", "/dashboard/links");
     TableFilterUrlState.resetClaimedKeys();
@@ -261,5 +302,66 @@ describe("BaseModelTable bulk delete verb", () => {
     expect(action["confirmMessage"](TWO)).toBe(
       "Are you sure you want to remove 2 alerts?",
     );
+  });
+
+  test("with a verb and an icon, the row action wears the same icon", async () => {
+    await deleteAction({
+      deleteVerb: "Unlink",
+      deleteIcon: IconProp.LinkSlash,
+      deleteButtonText: "Unlink",
+    });
+
+    const row: Record<string, any> = await rowDeleteAction("Unlink");
+
+    expect(row["icon"]).toBe(IconProp.LinkSlash);
+  });
+
+  test("without a verb the row action keeps the trash can", async () => {
+    await deleteAction({ deleteIcon: IconProp.LinkSlash });
+
+    const row: Record<string, any> = await rowDeleteAction("Delete");
+
+    expect(row["icon"]).toBe(IconProp.Trash);
+  });
+
+  /*
+   * A viewer who can read the links but not remove them sees both Unlinks
+   * locked. The tooltip must not say the locked button deletes the Alert -
+   * that is the confusion the verb exists to remove.
+   */
+  test("a viewer's locked Unlink says unlink, not delete this Alert", async () => {
+    permissionsForTest = [Permission.Viewer];
+
+    const bulk: Record<string, any> = await deleteAction({
+      deleteVerb: "Unlink",
+      deleteIcon: IconProp.LinkSlash,
+      deleteButtonText: "Unlink",
+    });
+    const row: Record<string, any> = await rowDeleteAction("Unlink");
+
+    for (const action of [bulk, row]) {
+      expect(action["disabled"]).toBe(true);
+      expect(action["tooltip"]).toContain(
+        "You do not have permission to unlink this Alert.",
+      );
+      expect(action["tooltip"]).toContain("Delete Incident Alert");
+      expect(action["tooltip"]).not.toContain("delete this Alert");
+    }
+  });
+
+  test("a viewer's locked Delete without a verb still says delete", async () => {
+    permissionsForTest = [Permission.Viewer];
+
+    const bulk: Record<string, any> = await deleteAction({
+      deleteButtonText: "Remove",
+    });
+    const row: Record<string, any> = await rowDeleteAction("Remove");
+
+    for (const action of [bulk, row]) {
+      expect(action["disabled"]).toBe(true);
+      expect(action["tooltip"]).toContain(
+        "You do not have permission to delete this Alert.",
+      );
+    }
   });
 });
