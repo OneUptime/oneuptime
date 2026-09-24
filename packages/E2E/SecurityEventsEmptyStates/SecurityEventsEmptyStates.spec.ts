@@ -424,6 +424,18 @@ async function open(
   await expect(page.getByTestId("synthetic-banner")).toBeVisible({
     timeout: 60000,
   });
+  /*
+   * The layout tests measure text, so they must measure it in Inter, the
+   * font production ships, rather than in whatever the machine falls back to
+   * while it loads (font-display: swap). Loading it by name also fails here,
+   * rather than as a wrapped name, if the fixture stops serving it.
+   */
+  const interFaces: number = await page.evaluate(async (): Promise<number> => {
+    const faces: Array<FontFace> = await document.fonts.load("600 14px Inter");
+    await document.fonts.ready;
+    return faces.length;
+  });
+  expect(interFaces, "Inter faces loaded").toBeGreaterThan(0);
 }
 
 async function openConnections(
