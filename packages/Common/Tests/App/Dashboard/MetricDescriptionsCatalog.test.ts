@@ -34,6 +34,34 @@ const MODULE_FILES: Array<string> = fs
   })
   .sort();
 
+const DASHBOARD_SRC: string = path.join(DESCRIPTIONS_DIR, "..", "..");
+const SOURCE_FILE_PATTERN: RegExp = /\.(ts|tsx)$/;
+
+function listSources(directory: string): Array<string> {
+  const files: Array<string> = [];
+
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const full: string = path.join(directory, entry.name);
+
+    if (entry.isDirectory()) {
+      files.push(...listSources(full));
+    } else if (SOURCE_FILE_PATTERN.test(entry.name)) {
+      files.push(full);
+    }
+  }
+
+  return files;
+}
+
+// Every dashboard source except the description modules themselves.
+const DASHBOARD_SOURCES: Array<string> = listSources(DASHBOARD_SRC)
+  .filter((file: string): boolean => {
+    return path.dirname(file) !== DESCRIPTIONS_DIR;
+  })
+  .map((file: string): string => {
+    return fs.readFileSync(file, "utf8");
+  });
+
 type DescriptionModule = Record<string, unknown>;
 
 function loadModule(file: string): DescriptionModule {
@@ -99,6 +127,36 @@ describe("metric description modules", () => {
       for (const [exportName, record] of descriptionRecords(loadModule(file))) {
         expectReadableDescriptionRecord(record, `${file}:${exportName}`);
       }
+    },
+  );
+
+  /*
+   * A description nobody reads is either a tile that lost its tooltip or
+   * text for a metric that no longer exists. Every key has to be referenced
+   * from a page or component as RECORD.key.
+   */
+  test.each(MODULE_FILES)(
+    "%s: every description is shown somewhere in the dashboard",
+    (file: string) => {
+      const unused: Array<string> = [];
+
+      for (const [exportName, record] of descriptionRecords(loadModule(file))) {
+        for (const key of Object.keys(record)) {
+          const reference: RegExp = new RegExp(
+            `\\b${exportName}\\s*(\\.\\s*${key}\\b|\\[\\s*["']${key}["']\\s*\\])`,
+          );
+
+          if (
+            !DASHBOARD_SOURCES.some((source: string): boolean => {
+              return reference.test(source);
+            })
+          ) {
+            unused.push(`${exportName}.${key}`);
+          }
+        }
+      }
+
+      expect(unused).toEqual([]);
     },
   );
 });
