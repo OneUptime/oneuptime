@@ -27,3 +27,12 @@ export const INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM: string = "alertIds";
  * can carry.
  */
 export const MAX_ALERTS_PER_INCIDENT_LINK_ACTION: number = 50;
+
+/*
+ * What linking a pair that is already linked answers with - whether the
+ * duplicate is caught by the model's unique-together check or, when two
+ * requests race past it, by the unique index itself. The dashboard counts a
+ * link that fails with this message as done.
+ */
+export const INCIDENT_ALERT_ALREADY_LINKED_MESSAGE: string =
+  "This alert is already linked to this incident.";

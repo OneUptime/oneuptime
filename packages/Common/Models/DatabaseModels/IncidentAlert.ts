@@ -19,6 +19,7 @@ import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import UniqueColumnsTogether from "../../Types/Database/UniqueColumnsTogether";
 import IconProp from "../../Types/Icon/IconProp";
+import { INCIDENT_ALERT_ALREADY_LINKED_MESSAGE } from "../../Types/Incident/IncidentAlertLink";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -32,9 +33,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
  *
  * The link belongs to the incident: its read scope follows the incident's
  * labels (CanAccessIfCanReadOn) and owners (OwnedThrough). Alert roles are
- * listed next to incident roles so a responder who works alerts can see and
- * manage the incidents their alerts were linked to; the service still checks
- * that the caller can read both the alert and the incident before linking.
+ * listed next to incident roles so a responder who works alerts can see which
+ * incidents their alerts are linked to, and link them too when they can also
+ * read incidents: the service only creates a link when the caller can read
+ * both the alert and the incident.
  *
  * Rows are immutable - a link is created or removed, never edited - so every
  * column has an empty update list. The table keeps its update permissions
@@ -112,7 +114,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Index(["incidentId", "alertId", "projectId"], { unique: true })
 @UniqueColumnsTogether(
   ["incidentId", "alertId", "projectId"],
-  "This alert is already linked to this incident.",
+  INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
 )
 export default class IncidentAlert extends BaseModel {
   @ColumnAccessControl({
