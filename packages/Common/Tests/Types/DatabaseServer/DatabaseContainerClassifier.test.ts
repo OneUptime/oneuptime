@@ -1,13 +1,21 @@
 import {
+  attachPoolerServices,
   classifyContainer,
   classifyImage,
   classifyKubernetesPod,
+  classifyKubernetesPoolerPod,
   ContainerDatabaseClassification,
+  DATABASE_OPERATOR_LABEL_KEYS,
+  DATABASE_WORKLOAD_NAME_LABEL_VALUES,
+  effectiveExecutable,
   groupKubernetesDatabaseCandidates,
+  hasDatabaseWorkloadLabels,
   ImageClassification,
+  isNonServerCommand,
   KubernetesDatabaseCandidate,
   KubernetesDatabaseGroup,
   KubernetesPodLike,
+  KubernetesPoolerService,
   normalizeImageRepository,
   parseImageVersion,
 } from "../../../Types/DatabaseServer/DatabaseContainerClassifier";
@@ -17,6 +25,8 @@ type ContainerFixture = {
   name: string;
   image: string;
   ports?: Array<{ containerPort?: number }>;
+  command?: Array<string>;
+  args?: Array<string>;
 };
 
 function pod(data: {
@@ -126,14 +136,14 @@ describe("classifyImage — databases (exact repository or basename)", () => {
     ["registry.opensource.zalan.do/acid/spilo-15:3.0-p1", "postgresql"],
     ["mysql:8.0", "mysql"],
     ["mysql/mysql-server:8.0", "mysql"],
-    ["mariadb:11", "mysql"],
-    ["bitnami/mariadb-galera:11", "mysql"],
+    ["mariadb:11", "mariadb"],
+    ["bitnami/mariadb-galera:11", "mariadb"],
     ["percona/percona-xtradb-cluster:8.0", "mysql"],
     ["redis:7", "redis"],
     ["redis/redis-stack-server:7.2.0-v10", "redis"],
-    ["valkey/valkey:8", "redis"],
-    ["docker.dragonflydb.io/dragonflydb/dragonfly:v1.16", "redis"],
-    ["eqalpha/keydb", "redis"],
+    ["valkey/valkey:8", "valkey"],
+    ["docker.dragonflydb.io/dragonflydb/dragonfly:v1.16", "dragonfly"],
+    ["eqalpha/keydb", "keydb"],
     ["mongo:7", "mongodb"],
     ["mongodb/mongodb-community-server:7.0-ubi8", "mongodb"],
     ["percona/percona-server-mongodb:7.0", "mongodb"],
@@ -147,7 +157,7 @@ describe("classifyImage — databases (exact repository or basename)", () => {
     ["memcached:1.6", "memcached"],
     ["couchdb:3", "couchdb"],
     ["cassandra:5", "cassandra"],
-    ["scylladb/scylla:5.4", "cassandra"],
+    ["scylladb/scylla:5.4", "scylladb"],
     ["k8ssandra/cass-management-api:4.1", "cassandra"],
     ["clickhouse/clickhouse-server:24.3", "clickhouse"],
     ["altinity/clickhouse-server:23.8", "clickhouse"],
@@ -295,6 +305,8 @@ describe("classifyKubernetesPod — operators and charts", () => {
       namespace: "data",
       workloadKind: "Cluster",
       workloadName: "pg-main",
+      ownerKind: "Cluster",
+      ownerName: "pg-main",
       podName: "pg-main-1",
       containerName: "postgres",
       image: "ghcr.io/cloudnative-pg/postgresql:16.2",
@@ -387,7 +399,14 @@ describe("classifyKubernetesPod — operators and charts", () => {
       operator: "zalando",
       role: "primary",
       version: "16",
-      serviceNames: ["acid-main", "acid-main-repl"],
+      // The poolers clients connect through, the StatefulSet and its headless Service.
+      serviceNames: [
+        "acid-main",
+        "acid-main-repl",
+        "acid-main-pooler",
+        "acid-main-pooler-repl",
+        "acid-main-config",
+      ],
       headlessServiceName: "acid-main-config",
     });
   });
@@ -452,7 +471,15 @@ describe("classifyKubernetesPod — operators and charts", () => {
       role: "primary",
       containerName: "database",
       ports: [5432],
-      serviceNames: ["hippo", "hippo-primary", "hippo-replicas"],
+      serviceNames: [
+        "hippo",
+        "hippo-primary",
+        "hippo-replicas",
+        "hippo-ha",
+        "hippo-pgbouncer",
+        "hippo-instance1-abcd",
+        "hippo-pods",
+      ],
       headlessServiceName: "hippo-pods",
     });
   });
@@ -551,7 +578,14 @@ describe("classifyKubernetesPod — operators and charts", () => {
       workloadKind: "Cluster",
       workloadName: "cluster1",
       operator: "percona",
-      serviceNames: ["cluster1", "cluster1-pxc"],
+      // HAProxy / ProxySQL are where applications connect.
+      serviceNames: [
+        "cluster1",
+        "cluster1-pxc",
+        "cluster1-haproxy",
+        "cluster1-haproxy-replicas",
+        "cluster1-proxysql",
+      ],
       version: "8.0.35",
     });
 
@@ -594,7 +628,11 @@ describe("classifyKubernetesPod — operators and charts", () => {
     ).toMatchObject({
       system: "mongodb",
       workloadName: "my-cluster-name",
-      serviceNames: ["my-cluster-name", "my-cluster-name-rs0"],
+      serviceNames: [
+        "my-cluster-name",
+        "my-cluster-name-rs0",
+        "my-cluster-name-mongos",
+      ],
     });
     expect(
       classifyKubernetesPod(
@@ -722,7 +760,11 @@ describe("classifyKubernetesPod — operators and charts", () => {
       system: "elasticsearch",
       workloadName: "quickstart",
       operator: "eck",
-      serviceNames: ["quickstart", "quickstart-es-http"],
+      serviceNames: [
+        "quickstart",
+        "quickstart-es-http",
+        "quickstart-es-default",
+      ],
       headlessServiceName: "quickstart-es-default",
       version: "8.13.0",
     });
@@ -767,7 +809,8 @@ describe("classifyKubernetesPod — operators and charts", () => {
       system: "clickhouse",
       workloadName: "demo",
       operator: "altinity",
-      serviceNames: ["demo", "clickhouse-demo"],
+      // Altinity names each replica's Service after its StatefulSet.
+      serviceNames: ["demo", "clickhouse-demo", "chi-demo-cluster-0-0"],
     });
   });
 
@@ -798,7 +841,12 @@ describe("classifyKubernetesPod — operators and charts", () => {
       system: "cassandra",
       workloadName: "demo",
       operator: "cass-operator",
-      serviceNames: ["demo", "demo-dc1-service"],
+      serviceNames: [
+        "demo",
+        "demo-dc1-service",
+        "demo-dc1-all-pods-service",
+        "demo-dc1-default-sts",
+      ],
     });
   });
 
@@ -838,6 +886,8 @@ describe("classifyKubernetesPod — operators and charts", () => {
       namespace: "data",
       workloadKind: "Cluster",
       workloadName: "my-pg-postgresql",
+      ownerKind: "StatefulSet",
+      ownerName: "my-pg-postgresql-primary",
       podName: "my-pg-postgresql-primary-0",
       containerName: "postgresql",
       image: "docker.io/bitnami/postgresql:16.2.0-debian-12-r5",
@@ -850,6 +900,7 @@ describe("classifyKubernetesPod — operators and charts", () => {
         "my-pg-postgresql-headless",
         "my-pg-postgresql-hl",
         "my-pg-postgresql-primary",
+        "my-pg-postgresql-primary-hl",
       ],
       headlessServiceName: "my-pg-postgresql-primary-hl",
       evidence: [
@@ -984,6 +1035,8 @@ describe("classifyKubernetesPod — images", () => {
       namespace: "shop",
       workloadKind: "StatefulSet",
       workloadName: "pg",
+      ownerKind: "StatefulSet",
+      ownerName: "pg",
       podName: "pg-0",
       containerName: "postgres",
       image: "postgres:16.2-alpine",
@@ -991,7 +1044,8 @@ describe("classifyKubernetesPod — images", () => {
       ports: [5432],
       operator: null,
       role: null,
-      serviceNames: ["pg"],
+      // The headless Service is a name clients reach the database by too.
+      serviceNames: ["pg", "pg-hl"],
       headlessServiceName: "pg-hl",
       evidence: ["image:postgres:16.2-alpine"],
     });
@@ -1045,16 +1099,21 @@ describe("classifyKubernetesPod — images", () => {
         }),
       ),
     ).toMatchObject({ workloadKind: "DaemonSet", workloadName: "memcached" });
+    // An owner-less pod counts once it declares a port (a server run).
     expect(
       classifyKubernetesPod(
         pod({
           name: "scratch-db",
-          containers: [{ name: "mysql", image: "mysql:8" }],
+          containers: [
+            { name: "mysql", image: "mysql:8", ports: [port(3306)] },
+          ],
         }),
       ),
     ).toMatchObject({
       workloadKind: "Pod",
       workloadName: "scratch-db",
+      ownerKind: null,
+      ownerName: null,
       serviceNames: ["scratch-db"],
     });
     expect(
@@ -1231,6 +1290,7 @@ describe("classifyKubernetesPod — images", () => {
           pod({
             name: "pg-0",
             phase,
+            owner: { kind: "StatefulSet", name: "pg" },
             containers: [{ name: "postgres", image: "postgres:16" }],
           }),
         )?.system,
@@ -1258,10 +1318,17 @@ describe("classifyKubernetesPod — images", () => {
       classifyKubernetesPod({
         namespaceKey: "x",
         name: "p",
+        ownerReferences: { items: [{ kind: "StatefulSet", name: "p" }] },
         spec: {
           containers: [
             null,
-            { name: 5, image: "postgres:16", ports: "5432" },
+            {
+              name: 5,
+              image: "postgres:16",
+              ports: "5432",
+              command: "not-a-list",
+              args: [7, "x"],
+            },
           ] as unknown as Array<{ name?: string; image?: string }>,
         },
       }),
@@ -1379,6 +1446,7 @@ describe("groupKubernetesDatabaseCandidates", () => {
         serviceNames: ["pg-main", "pg-main-rw", "pg-main-ro", "pg-main-r"],
         headlessServiceName: null,
         podServiceNames: [],
+        ownerWorkloads: [{ kind: "Cluster", name: "pg-main" }],
       },
     ]);
   });
@@ -1500,23 +1568,85 @@ describe("groupKubernetesDatabaseCandidates", () => {
 });
 
 describe("classifyContainer (Docker / Podman)", () => {
-  test("a compose replica suffix is stripped from the workload name", () => {
+  test("Compose replicas are grouped by the Compose project + service labels", () => {
     expect(
-      classifyContainer({ name: "/shop-postgres-1", imageName: "postgres:16" }),
+      classifyContainer({
+        name: "/shop-postgres-1",
+        imageName: "postgres:16",
+        labels: {
+          "com.docker.compose.project": "shop",
+          "com.docker.compose.service": "postgres",
+          "com.docker.compose.container-number": "1",
+        },
+      }),
     ).toEqual({
       system: "postgresql",
       workloadName: "shop-postgres",
       containerName: "shop-postgres-1",
       version: "16",
     });
+    // Compose v1 naming groups the same way.
     expect(
-      classifyContainer({ name: "shop_redis_2", imageName: "redis:7.2.4" }),
+      classifyContainer({
+        name: "shop_redis_2",
+        imageName: "redis:7.2.4",
+        labels: {
+          "com.docker.compose.project": "shop",
+          "com.docker.compose.service": "redis",
+        },
+      }),
     ).toEqual({
       system: "redis",
-      workloadName: "shop_redis",
+      workloadName: "shop-redis",
       containerName: "shop_redis_2",
       version: "7.2.4",
     });
+  });
+
+  test("a custom container_name in a Compose file still groups by the service", () => {
+    expect(
+      classifyContainer({
+        name: "legacy-db",
+        imageName: "mysql:8",
+        labels: {
+          "com.docker.compose.project": "shop",
+          "com.docker.compose.service": "database",
+        },
+      })?.workloadName,
+    ).toBe("shop-database");
+  });
+
+  test("podman-compose labels group replicas too", () => {
+    expect(
+      classifyContainer({
+        name: "shop_db_1",
+        imageName: "docker.io/library/postgres:16",
+        labels: {
+          "io.podman.compose.project": "shop",
+          "io.podman.compose.service": "db",
+        },
+      })?.workloadName,
+    ).toBe("shop-db");
+    expect(
+      classifyContainer({
+        name: "shop_db_2",
+        imageName: "postgres:16",
+        labels: {
+          "io.podman.compose.project": "shop",
+          "com.docker.compose.service": "db",
+        },
+      })?.workloadName,
+    ).toBe("shop-db");
+  });
+
+  test("half a Compose label pair is not an identity: the container name is", () => {
+    expect(
+      classifyContainer({
+        name: "shop-db-1",
+        imageName: "mysql:8",
+        labels: { "com.docker.compose.project": "shop" },
+      })?.workloadName,
+    ).toBe("shop-db-1");
   });
 
   test("a plain name is its own workload", () => {
@@ -1526,20 +1656,110 @@ describe("classifyContainer (Docker / Podman)", () => {
     ).toBe("postgres");
   });
 
-  test("compose labels never change the identity", () => {
-    const withoutLabels: ContainerDatabaseClassification | null =
-      classifyContainer({ name: "shop-db-1", imageName: "mysql:8" });
-    const withLabels: ContainerDatabaseClassification | null =
+  test.each([
+    ["redis-6379", "redis-6380", "redis:7"],
+    ["pg-14", "pg-16", "postgres:16"],
+    ["orders-db-2024", "orders-db-2025", "postgres:16"],
+    ["mysql_1", "mysql_2", "mysql:8"],
+    ["shop-postgres-1", "shop-postgres-2", "postgres:16"],
+  ])(
+    "without Compose labels %s and %s stay two servers (no suffix is guessed away)",
+    (first: string, second: string, imageName: string) => {
+      const a: ContainerDatabaseClassification | null = classifyContainer({
+        name: first,
+        imageName,
+      });
+      const b: ContainerDatabaseClassification | null = classifyContainer({
+        name: second,
+        imageName,
+      });
+      expect(a?.workloadName).toBe(first);
+      expect(b?.workloadName).toBe(second);
+      expect(a?.workloadName).not.toBe(b?.workloadName);
+    },
+  );
+
+  test("a Swarm task is grouped by its service label, whatever its task name", () => {
+    expect(
+      classifyContainer({
+        name: "mystack_db.1.x7y8z9abcdefghijklmnopqrs",
+        imageName: "postgres:16",
+        labels: {
+          "com.docker.swarm.service.name": "mystack_db",
+          "com.docker.swarm.task.id": "x7y8z9abcdefghijklmnopqrs",
+        },
+      })?.workloadName,
+    ).toBe("mystack_db");
+  });
+
+  test("a Swarm task name without labels still names its service, never the task", () => {
+    expect(
+      classifyContainer({
+        name: "mystack_db.1.x7y8z9abcdefghijklmnopqrs",
+        imageName: "postgres:16",
+      })?.workloadName,
+    ).toBe("mystack_db");
+    // A global service's task: <service>.<node id>.<task id>.
+    expect(
+      classifyContainer({
+        name: "mon_redis.abcdefghijklmnopqrstuvwxy.x7y8z9abcdefghijklmnopqrs",
+        imageName: "redis:7",
+      })?.workloadName,
+    ).toBe("mon_redis");
+    // Dots alone are not a task name.
+    expect(
+      classifyContainer({ name: "db.internal.local", imageName: "redis:7" })
+        ?.workloadName,
+    ).toBe("db.internal.local");
+    expect(
+      classifyContainer({ name: "db.1.shortid", imageName: "redis:7" })
+        ?.workloadName,
+    ).toBe("db.1.shortid");
+  });
+
+  test.each([
+    [{ "org.testcontainers": "true" }],
+    [{ "org.testcontainers.sessionId": "0f1e2d3c" }],
+    [{ "com.docker.compose.oneoff": "True" }],
+    [{ "io.kubernetes.pod.name": "orders-db-0" }],
+    [{ "io.kubernetes.container.name": "postgres" }],
+  ])(
+    "an ephemeral or kubelet-managed container (%j) is not a database",
+    (labels: Record<string, string>) => {
+      expect(
+        classifyContainer({
+          name: "eager_turing",
+          imageName: "postgres:16",
+          labels,
+        }),
+      ).toBeNull();
+    },
+  );
+
+  test("a Compose service that is not a one-off is a database", () => {
+    expect(
       classifyContainer({
         name: "shop-db-1",
-        imageName: "mysql:8",
+        imageName: "postgres:16",
         labels: {
           "com.docker.compose.project": "shop",
-          "com.docker.compose.service": "database",
+          "com.docker.compose.service": "db",
+          "com.docker.compose.oneoff": "False",
         },
-      });
-    expect(withLabels).toEqual(withoutLabels);
-    expect(withLabels?.workloadName).toBe("shop-db");
+      })?.workloadName,
+    ).toBe("shop-db");
+  });
+
+  test("labels that are not an object are ignored", () => {
+    for (const labels of [null, undefined, ["a"], "x"]) {
+      expect(
+        classifyContainer({
+          name: "shop-db-1",
+          imageName: "postgres:16",
+          labels: labels as unknown as Record<string, unknown>,
+        })?.workloadName,
+      ).toBe("shop-db-1");
+    }
   });
 
   test("Docker's comma-joined Names keep the first", () => {
@@ -1588,5 +1808,786 @@ describe("classifyContainer (Docker / Podman)", () => {
         imageName: "acme/redis-cache-warmer",
       }),
     ).toBeNull();
+  });
+});
+
+describe("normalizeImageRepository — republished and Red Hat images", () => {
+  test.each([
+    ["bitnamilegacy/postgresql:16.4.0", "bitnami/postgresql"],
+    ["docker.io/bitnamilegacy/redis-cluster:7.2", "bitnami/redis-cluster"],
+    ["bitnamisecure/mongodb:7.0", "bitnami/mongodb"],
+    ["public.ecr.aws/bitnami/mysql:8.4", "bitnami/mysql"],
+    ["docker.io/bitnami/postgresql:16", "bitnami/postgresql"],
+    [
+      "harbor.corp/dockerhub-proxy/bitnamilegacy/mongodb-sharded:7",
+      "dockerhub-proxy/bitnami/mongodb-sharded",
+    ],
+    ["registry.redhat.io/rhel9/postgresql-16:1-54", "rhel9/postgresql"],
+    ["registry.redhat.io/rhel8/mysql-80", "rhel8/mysql"],
+    ["registry.redhat.io/rhel9/mariadb-1011", "rhel9/mariadb"],
+    ["registry.redhat.io/rhel9/redis-7:latest", "rhel9/redis"],
+    ["quay.io/sclorg/postgresql-15-c9s", "sclorg/postgresql"],
+    ["quay.io/sclorg/mysql-80-c9s:c9s", "sclorg/mysql"],
+    ["centos/postgresql-96-centos7", "centos/postgresql"],
+    [
+      "registry.access.redhat.com/rhscl/postgresql-10-rhel7",
+      "rhscl/postgresql",
+    ],
+    ["quay.io/fedora/postgresql-15", "fedora/postgresql"],
+    [
+      "quay.io/mongodb/mongodb-enterprise-database-ubi:2.0.2",
+      "mongodb/mongodb-enterprise-database",
+    ],
+    ["quay.io/mongodb/mongodb-agent-ubi:107.0", "mongodb/mongodb-agent"],
+  ])("%s → %s", (image: string, repository: string) => {
+    expect(normalizeImageRepository(image)).toBe(repository);
+  });
+
+  test("a versioned basename outside the Software Collections namespaces keeps its name", () => {
+    expect(normalizeImageRepository("bitnami/postgresql-repmgr:16")).toBe(
+      "bitnami/postgresql-repmgr",
+    );
+    expect(normalizeImageRepository("acme/api-2:1")).toBe("acme/api-2");
+    expect(normalizeImageRepository("postgresql-16")).toBe("postgresql-16");
+    expect(normalizeImageRepository("rhel9/nodejs-20-minimal")).toBe(
+      "rhel9/nodejs-20-minimal",
+    );
+    // An organisation alias never renames the image itself.
+    expect(normalizeImageRepository("acme/bitnamilegacy")).toBe(
+      "acme/bitnamilegacy",
+    );
+  });
+});
+
+describe("parseImageVersion — Red Hat Software Collections", () => {
+  test.each([
+    ["registry.redhat.io/rhel9/postgresql-16:1-54", "16"],
+    ["centos/postgresql-96-centos7", "9.6"],
+    ["registry.access.redhat.com/rhscl/postgresql-10-rhel7", "10"],
+    ["registry.redhat.io/rhel8/mysql-80:1", "8.0"],
+    ["quay.io/sclorg/mysql-84-c10s", "8.4"],
+    ["registry.redhat.io/rhel9/mariadb-1011", "10.11"],
+    ["registry.redhat.io/rhel8/mariadb-105", "10.5"],
+    ["registry.redhat.io/rhel9/redis-7:1-12", "7"],
+    ["centos/mongodb-36-centos7", "3.6"],
+  ])(
+    "%s → %s (the name, never the image build in the tag)",
+    (image: string, version: string) => {
+      expect(parseImageVersion(image)).toBe(version);
+    },
+  );
+
+  test("republished images keep their tag version", () => {
+    expect(parseImageVersion("bitnamilegacy/postgresql:16.4.0-debian-12")).toBe(
+      "16.4.0",
+    );
+  });
+});
+
+describe("classifyImage — registries, republishers and sidecars", () => {
+  test.each([
+    ["bitnamilegacy/postgresql:16", "postgresql"],
+    ["bitnamilegacy/mongodb:7.0", "mongodb"],
+    ["bitnamilegacy/redis-cluster:7.2", "redis"],
+    ["bitnamilegacy/postgresql-repmgr:16", "postgresql"],
+    ["bitnamisecure/postgresql:17", "postgresql"],
+    ["public.ecr.aws/bitnami/mongodb-sharded:7", "mongodb"],
+    ["registry.redhat.io/rhel9/postgresql-16", "postgresql"],
+    ["quay.io/sclorg/postgresql-15-c9s", "postgresql"],
+    ["registry.redhat.io/rhel8/mysql-80", "mysql"],
+    ["registry.redhat.io/rhel9/redis-7", "redis"],
+    ["quay.io/mongodb/mongodb-enterprise-database-ubi:2.0", "mongodb"],
+  ])("%s is %s", (image: string, system: string) => {
+    expect(classifyImage(image)).toEqual({ kind: "database", system });
+  });
+
+  test.each([
+    ["timberio/vector:0.34.0-debian"],
+    ["docker.io/vectordotdev/vector:0.39.0-distroless-libc"],
+    ["public.ecr.aws/appmesh/aws-appmesh-envoy:v1.29.5.0-prod"],
+    ["tailscale/tailscale:v1.70"],
+    ["cloudflare/cloudflared:2024.6.1"],
+    ["percona/pmm-client:2.41.0"],
+    ["gcr.io/datadoghq/agent:7"],
+    ["jaegertracing/jaeger-agent:1.57"],
+    ["docker.io/bitnamilegacy/os-shell:12"],
+    ["quay.io/signalfx/splunk-otel-collector:0.100.0"],
+  ])("%s is an infrastructure sidecar", (image: string) => {
+    expect(classifyImage(image)).toEqual({ kind: "infrastructure-sidecar" });
+  });
+
+  test.each([
+    ["prodrigestivill/postgres-backup-local:16"],
+    ["schickling/postgres-backup-s3"],
+    ["databack/mysql-backup:1.0"],
+    ["tiredofit/db-backup:4"],
+  ])("%s is a backup tool", (image: string) => {
+    expect(classifyImage(image)).toEqual({
+      kind: "excluded",
+      reason: "backup",
+    });
+  });
+});
+
+describe("effectiveExecutable / isNonServerCommand", () => {
+  test.each([
+    [{}, null],
+    [{ command: [], args: [] }, null],
+    [{ args: ["postgres", "-c", "max_connections=200"] }, "postgres"],
+    [{ args: ["-c", "config_file=/etc/pg.conf"] }, "-c"],
+    [
+      { command: ["docker-entrypoint.sh"], args: ["postgres"] },
+      "docker-entrypoint.sh",
+    ],
+    [{ command: ["/usr/bin/psql", "-h", "db"] }, "psql"],
+    [{ args: ["psql", "-h", "prod-db"] }, "psql"],
+    [{ command: ["redis-cli"], args: ["-h", "cache"] }, "redis-cli"],
+    [{ command: ["sh", "-c", "psql -h db -f /x.sql"] }, "psql"],
+    [
+      { command: ["/bin/bash"], args: ["-ec", "exec redis-server /conf"] },
+      "redis-server",
+    ],
+    [
+      { command: ["/bin/bash", "-c"], args: ["/opt/bitnami/scripts/start.sh"] },
+      "start.sh",
+    ],
+    [{ command: ["bash"] }, "bash"],
+    [{ command: ["sh", "-x"] }, "sh"],
+    [{ args: ["sleep", "infinity"] }, "sleep"],
+    [{ command: ["SH", "-C", "  SLEEP  3600"] }, "sleep"],
+    [{ command: ["sh", "-c", "exec"] }, "sh"],
+    [{ command: ["tini", "--", "psql"] }, "tini"],
+    [{ command: [null, "x"] }, null],
+  ])(
+    "%j → %s",
+    (
+      container: {
+        command?: Array<string | null> | undefined;
+        args?: Array<string | null> | undefined;
+      },
+      program: string | null,
+    ) => {
+      expect(effectiveExecutable(container)).toBe(program);
+    },
+  );
+
+  test("clients, dump tools and keep-alives are not servers; the default entrypoint is", () => {
+    for (const container of [
+      { args: ["psql", "-h", "db"] },
+      { command: ["pg_dump", "-Fc"] },
+      { command: ["mongosh"] },
+      { command: ["mysql"], args: ["-h", "db"] },
+      { command: ["redis-cli", "monitor"] },
+      { command: ["sleep", "infinity"] },
+      { command: ["tail", "-f", "/dev/null"] },
+      { command: ["bash"] },
+      { command: ["sh", "-c", "exec valkey-cli -h cache"] },
+    ]) {
+      expect(isNonServerCommand(container)).toBe(true);
+    }
+    for (const container of [
+      {},
+      { args: ["postgres"] },
+      { args: ["--requirepass", "x"] },
+      { command: ["docker-entrypoint.sh", "mysqld"] },
+      { command: ["/bin/bash"], args: ["-ec", "/opt/bitnami/scripts/run.sh"] },
+      { command: ["mongod", "--replSet", "rs0"] },
+    ]) {
+      expect(isNonServerCommand(container)).toBe(false);
+    }
+  });
+});
+
+describe("classifyKubernetesPod — client runs and one-off pods are not databases", () => {
+  test("`kubectl run --rm -it psql --image=postgres -- psql -h prod-db` (no owner, no port)", () => {
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "psql",
+          containers: [
+            {
+              name: "psql",
+              image: "postgres:16",
+              args: ["psql", "-h", "prod-db"],
+            },
+          ],
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("init containers are never read: a migration step in a database image is not a database", () => {
+    const withInit: KubernetesPodLike = {
+      ...pod({
+        name: "api-5f6d7-x",
+        labels: { "pod-template-hash": "5f6d7" },
+        owner: { kind: "ReplicaSet", name: "api-5f6d7" },
+        containers: [{ name: "api", image: "acme/api:1" }],
+      }),
+    };
+    (withInit.spec as Record<string, unknown>)["initContainers"] = [
+      {
+        name: "wait-for-db",
+        image: "postgres:16",
+        command: ["sh", "-c", "until pg_isready -h db; do sleep 1; done"],
+      },
+    ];
+    expect(classifyKubernetesPod(withInit)).toBeNull();
+  });
+
+  test("an owner-less pod running the server but declaring no port is still a one-off", () => {
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "tmp-db",
+          containers: [{ name: "postgres", image: "postgres:16" }],
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("a client run is rejected even when it declares a port or has an owner", () => {
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "psql",
+          containers: [
+            {
+              name: "psql",
+              image: "postgres:16",
+              ports: [port(5432)],
+              command: ["psql"],
+            },
+          ],
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "redis-monitor-6d9f-x",
+          labels: { "pod-template-hash": "6d9f" },
+          owner: { kind: "ReplicaSet", name: "redis-monitor-6d9f" },
+          containers: [
+            {
+              name: "cli",
+              image: "redis:7",
+              command: ["redis-cli", "-h", "cache", "monitor"],
+            },
+          ],
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test.each([
+    [["sleep", "infinity"]],
+    [["tail", "-f", "/dev/null"]],
+    [["bash"]],
+    [["sh", "-c", "sleep 3600"]],
+  ])(
+    "a debug pod in a database image (%j) is not a database",
+    (command: Array<string>) => {
+      expect(
+        classifyKubernetesPod(
+          pod({
+            name: "debug-0",
+            owner: { kind: "StatefulSet", name: "debug" },
+            containers: [
+              {
+                name: "pg",
+                image: "postgres:16",
+                ports: [port(5432)],
+                command,
+              },
+            ],
+          }),
+        ),
+      ).toBeNull();
+    },
+  );
+
+  test("a server started through a shell script is still a server", () => {
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "cache-0",
+          owner: { kind: "StatefulSet", name: "cache" },
+          containers: [
+            {
+              name: "redis",
+              image: "bitnami/redis:7.2",
+              command: ["/bin/bash"],
+              args: [
+                "-ec",
+                "exec /opt/bitnami/scripts/start-scripts/start-master.sh",
+              ],
+            },
+          ],
+        }),
+      )?.system,
+    ).toBe("redis");
+  });
+
+  test("the server container is picked over a client sidecar in the same image", () => {
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "pg-0",
+          owner: { kind: "StatefulSet", name: "pg" },
+          containers: [
+            {
+              name: "wait-and-migrate",
+              image: "postgres:15",
+              command: ["sh", "-c", "psql -f /migrations.sql"],
+            },
+            { name: "postgres", image: "postgres:16.3", ports: [port(5432)] },
+          ],
+        }),
+      ),
+    ).toMatchObject({ containerName: "postgres", version: "16.3" });
+  });
+
+  test("a chart's test hook pod (chart labels, a client command) is not a member", () => {
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "cache-redis-test-connection",
+          labels: {
+            "app.kubernetes.io/name": "redis",
+            "app.kubernetes.io/instance": "cache",
+          },
+          containers: [
+            {
+              name: "test",
+              image: "bitnami/redis:7.2",
+              command: ["redis-cli", "-h", "cache-redis-master", "ping"],
+            },
+          ],
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("a labelled member with a client sidecar keeps the server container", () => {
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "pg-main-1",
+          labels: { "cnpg.io/cluster": "pg-main" },
+          owner: { kind: "Cluster", name: "pg-main" },
+          containers: [
+            { name: "probe", image: "postgres:16", command: ["pg_isready"] },
+            {
+              name: "postgres",
+              image: "ghcr.io/cloudnative-pg/postgresql:16.3",
+            },
+          ],
+        }),
+      ),
+    ).toMatchObject({ containerName: "postgres", version: "16.3" });
+  });
+});
+
+describe("classifyKubernetesPod — an uncatalogued neighbour of a database StatefulSet", () => {
+  function statefulSetPod(data: {
+    owner?: { kind: string; name: string } | null;
+    databasePorts?: Array<number>;
+    neighbours: Array<ContainerFixture>;
+  }): KubernetesPodLike {
+    return pod({
+      name: "pg-0",
+      owner:
+        data.owner === undefined
+          ? { kind: "StatefulSet", name: "pg" }
+          : data.owner,
+      containers: [
+        {
+          name: "postgres",
+          image: "postgres:16",
+          ports: (data.databasePorts ?? [5432]).map(port),
+        },
+        ...data.neighbours,
+      ],
+    });
+  }
+
+  test("one unknown sidecar is tolerated when the database declares its default port", () => {
+    expect(
+      classifyKubernetesPod(
+        statefulSetPod({
+          neighbours: [{ name: "shipper", image: "acme/log-shipper:3" }],
+        }),
+      ),
+    ).toMatchObject({ system: "postgresql", workloadName: "pg" });
+  });
+
+  test("…but not without the default port, in a Deployment, or with two unknown containers", () => {
+    expect(
+      classifyKubernetesPod(
+        statefulSetPod({
+          databasePorts: [15432],
+          neighbours: [{ name: "shipper", image: "acme/log-shipper:3" }],
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      classifyKubernetesPod(
+        statefulSetPod({
+          owner: { kind: "Deployment", name: "pg" },
+          neighbours: [{ name: "api", image: "acme/api:1" }],
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      classifyKubernetesPod(
+        statefulSetPod({
+          neighbours: [
+            { name: "api", image: "acme/api:1" },
+            { name: "worker", image: "acme/worker:1" },
+          ],
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  test("catalogued sidecars need no exception at all", () => {
+    expect(
+      classifyKubernetesPod(
+        statefulSetPod({
+          databasePorts: [],
+          neighbours: [
+            { name: "vector", image: "vectordotdev/vector:0.39" },
+            { name: "backup", image: "prodrigestivill/postgres-backup-local" },
+            {
+              name: "mesh",
+              image: "public.ecr.aws/appmesh/aws-appmesh-envoy:v1",
+            },
+            { name: "tailscale", image: "tailscale/tailscale:v1.70" },
+          ],
+        }),
+      )?.system,
+    ).toBe("postgresql");
+  });
+});
+
+describe("classifyKubernetesPod — the Service names clients use", () => {
+  test("a chart with fullnameOverride: the owner StatefulSet and its headless Service are aliases", () => {
+    const candidate: KubernetesDatabaseCandidate | null = classifyKubernetesPod(
+      pod({
+        name: "postgres-0",
+        labels: {
+          "app.kubernetes.io/name": "postgresql",
+          "app.kubernetes.io/instance": "rel",
+          "app.kubernetes.io/component": "primary",
+        },
+        owner: { kind: "StatefulSet", name: "postgres" },
+        containers: [
+          {
+            name: "postgresql",
+            image: "bitnami/postgresql:16",
+            ports: [port(5432)],
+          },
+        ],
+      }),
+      { statefulSetServiceNames: { postgres: "postgres-hl" } },
+    );
+    expect(candidate?.workloadName).toBe("rel-postgresql");
+    expect(candidate?.serviceNames).toEqual(
+      expect.arrayContaining(["postgres", "postgres-hl"]),
+    );
+  });
+
+  test("a chart-labelled Deployment keeps its Deployment as the owner workload", () => {
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "cache-memcached-7d9f8-x2x4z",
+          labels: {
+            "app.kubernetes.io/name": "memcached",
+            "app.kubernetes.io/instance": "cache",
+            "pod-template-hash": "7d9f8",
+          },
+          owner: { kind: "ReplicaSet", name: "cache-memcached-7d9f8" },
+          containers: [{ name: "memcached", image: "bitnami/memcached:1.6" }],
+        }),
+      ),
+    ).toMatchObject({
+      workloadKind: "Cluster",
+      workloadName: "cache-memcached",
+      ownerKind: "Deployment",
+      ownerName: "cache-memcached",
+    });
+  });
+
+  test("a ReplicaSet without its hash is not a Service name", () => {
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "x-abc-1",
+          labels: {
+            "app.kubernetes.io/name": "redis",
+            "app.kubernetes.io/instance": "x",
+          },
+          owner: { kind: "ReplicaSet", name: "x-abc" },
+          containers: [{ name: "redis", image: "redis:7" }],
+        }),
+      )?.serviceNames,
+    ).not.toContain("x-abc");
+  });
+
+  test("Percona Server for MySQL: the primary, router and HAProxy Services", () => {
+    expect(
+      classifyKubernetesPod(
+        pod({
+          name: "ps1-mysql-0",
+          labels: {
+            "app.kubernetes.io/managed-by": "percona-server-mysql-operator",
+            "app.kubernetes.io/name": "percona-server",
+            "app.kubernetes.io/instance": "ps1",
+            "app.kubernetes.io/component": "mysql",
+          },
+          owner: { kind: "StatefulSet", name: "ps1-mysql" },
+          containers: [{ name: "mysql", image: "percona/percona-server:8.0" }],
+        }),
+      )?.serviceNames,
+    ).toEqual([
+      "ps1",
+      "ps1-mysql",
+      "ps1-mysql-primary",
+      "ps1-haproxy",
+      "ps1-router",
+    ]);
+  });
+});
+
+describe("CloudNativePG poolers", () => {
+  const poolerPod: KubernetesPodLike = pod({
+    name: "pg-main-pooler-rw-6d9f-x",
+    namespace: "db",
+    labels: {
+      "cnpg.io/cluster": "pg-main",
+      "cnpg.io/poolerName": "pg-main-pooler-rw",
+    },
+    owner: { kind: "ReplicaSet", name: "pg-main-pooler-rw-6d9f" },
+    containers: [
+      { name: "pgbouncer", image: "ghcr.io/cloudnative-pg/pgbouncer:1.22" },
+    ],
+  });
+
+  test("a pooler pod is not a member but names the Service it backs", () => {
+    expect(classifyKubernetesPod(poolerPod)).toBeNull();
+    expect(classifyKubernetesPoolerPod(poolerPod)).toEqual({
+      system: "postgresql",
+      namespace: "db",
+      clusterName: "pg-main",
+      serviceName: "pg-main-pooler-rw",
+    });
+  });
+
+  test("only CloudNativePG pooler pods, and never finished ones, name a pooler", () => {
+    expect(
+      classifyKubernetesPoolerPod({ ...poolerPod, phase: "Succeeded" }),
+    ).toBeNull();
+    expect(
+      classifyKubernetesPoolerPod(
+        pod({
+          name: "pg-main-1",
+          labels: { "cnpg.io/cluster": "pg-main" },
+          containers: [{ name: "postgres", image: "postgres:16" }],
+        }),
+      ),
+    ).toBeNull();
+    expect(
+      classifyKubernetesPoolerPod(null as unknown as KubernetesPodLike),
+    ).toBeNull();
+  });
+
+  test("attachPoolerServices adds the pooler Service to its cluster only", () => {
+    const member: KubernetesDatabaseCandidate = classifyKubernetesPod(
+      pod({
+        name: "pg-main-1",
+        namespace: "db",
+        labels: { "cnpg.io/cluster": "pg-main" },
+        owner: { kind: "Cluster", name: "pg-main" },
+        containers: [
+          { name: "postgres", image: "ghcr.io/cloudnative-pg/postgresql:16" },
+        ],
+      }),
+    )!;
+    const other: KubernetesDatabaseCandidate = {
+      ...member,
+      namespace: "elsewhere",
+    };
+    const pooler: KubernetesPoolerService =
+      classifyKubernetesPoolerPod(poolerPod)!;
+
+    const groups: Array<KubernetesDatabaseGroup> = attachPoolerServices(
+      groupKubernetesDatabaseCandidates([member, other]),
+      [pooler, { ...pooler, clusterName: "another" }],
+    );
+
+    expect(
+      groups.find((group: KubernetesDatabaseGroup): boolean => {
+        return group.namespace === "db";
+      })?.serviceNames,
+    ).toEqual([
+      "pg-main",
+      "pg-main-rw",
+      "pg-main-ro",
+      "pg-main-r",
+      "pg-main-pooler-rw",
+    ]);
+    expect(
+      groups.find((group: KubernetesDatabaseGroup): boolean => {
+        return group.namespace === "elsewhere";
+      })?.serviceNames,
+    ).not.toContain("pg-main-pooler-rw");
+    expect(attachPoolerServices(groups, [])).toEqual(groups);
+    expect(
+      attachPoolerServices(
+        undefined as unknown as Array<KubernetesDatabaseGroup>,
+        [],
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("groupKubernetesDatabaseCandidates — owner workloads", () => {
+  test("the Deployments / StatefulSets behind a cluster's members are unioned and sorted", () => {
+    const labels: Record<string, string> = {
+      "app.kubernetes.io/name": "redis",
+      "app.kubernetes.io/instance": "cache",
+    };
+    const members: Array<KubernetesDatabaseCandidate> = [
+      classifyKubernetesPod(
+        pod({
+          name: "cache-redis-replicas-0",
+          labels,
+          owner: { kind: "StatefulSet", name: "cache-redis-replicas" },
+          containers: [{ name: "redis", image: "redis:7" }],
+        }),
+      )!,
+      classifyKubernetesPod(
+        pod({
+          name: "cache-redis-master-0",
+          labels,
+          owner: { kind: "StatefulSet", name: "cache-redis-master" },
+          containers: [{ name: "redis", image: "redis:7" }],
+        }),
+      )!,
+      classifyKubernetesPod(
+        pod({
+          name: "cache-redis-master-1",
+          labels,
+          owner: { kind: "StatefulSet", name: "cache-redis-master" },
+          containers: [{ name: "redis", image: "redis:7" }],
+        }),
+      )!,
+    ];
+    expect(
+      groupKubernetesDatabaseCandidates(members)[0]!.ownerWorkloads,
+    ).toEqual([
+      { kind: "StatefulSet", name: "cache-redis-master" },
+      { kind: "StatefulSet", name: "cache-redis-replicas" },
+    ]);
+  });
+
+  test("owner-less members add no owner workload", () => {
+    const member: KubernetesDatabaseCandidate = classifyKubernetesPod(
+      pod({
+        name: "scratch",
+        containers: [{ name: "redis", image: "redis:7", ports: [port(6379)] }],
+      }),
+    )!;
+    expect(
+      groupKubernetesDatabaseCandidates([member])[0]!.ownerWorkloads,
+    ).toEqual([]);
+  });
+});
+
+describe("hasDatabaseWorkloadLabels — the store-side pre-filter's twin", () => {
+  /*
+   * Every label set an operator / chart rule matches (or skips) must pass
+   * the pre-filter, or the job's SQL would never hand that pod to the
+   * classifier.
+   */
+  const RULE_TRIGGERS: Array<Record<string, string>> = [
+    { "cnpg.io/cluster": "pg-main" },
+    { "cnpg.io/cluster": "pg-main", "cnpg.io/poolerName": "rw" },
+    { application: "spilo", "cluster-name": "acid-main" },
+    { "postgres-operator.crunchydata.com/cluster": "hippo" },
+    {
+      "app.kubernetes.io/managed-by": "percona-xtradb-cluster-operator",
+      "app.kubernetes.io/name": "percona-xtradb-cluster",
+      "app.kubernetes.io/instance": "cluster1",
+    },
+    {
+      "app.kubernetes.io/managed-by": "percona-server-mongodb-operator",
+      "app.kubernetes.io/name": "percona-server-mongodb",
+      "app.kubernetes.io/instance": "x",
+    },
+    {
+      "app.kubernetes.io/managed-by": "percona-server-mysql-operator",
+      "app.kubernetes.io/name": "percona-server",
+      "app.kubernetes.io/instance": "x",
+    },
+    { "mysql.oracle.com/cluster": "mycluster" },
+    {
+      "common.k8s.elastic.co/type": "elasticsearch",
+      "elasticsearch.k8s.elastic.co/cluster-name": "quickstart",
+    },
+    { "clickhouse.altinity.com/chi": "demo" },
+    { "cassandra.datastax.com/cluster": "demo" },
+    { "app.kubernetes.io/name": "postgresql" },
+    { "app.kubernetes.io/name": " Redis " },
+    { "app.kubernetes.io/name": "mongodb-sharded" },
+  ];
+
+  test.each(RULE_TRIGGERS)("%j passes", (labels: Record<string, string>) => {
+    expect(hasDatabaseWorkloadLabels(labels)).toBe(true);
+  });
+
+  test("every chart name any catalog engine declares passes", () => {
+    for (const name of DATABASE_WORKLOAD_NAME_LABEL_VALUES) {
+      expect(name).toBe(name.toLowerCase());
+      expect(
+        hasDatabaseWorkloadLabels({ "app.kubernetes.io/name": name }),
+      ).toBe(true);
+    }
+    for (const key of DATABASE_OPERATOR_LABEL_KEYS) {
+      expect(hasDatabaseWorkloadLabels({ [key]: "" })).toBe(true);
+    }
+  });
+
+  test("anything a rule would not look at is filtered out", () => {
+    for (const labels of [
+      {},
+      { app: "postgres" },
+      { "app.kubernetes.io/name": "api" },
+      { "app.kubernetes.io/instance": "postgresql" },
+      null,
+      ["cnpg.io/cluster"],
+      "cnpg.io/cluster",
+    ]) {
+      expect(hasDatabaseWorkloadLabels(labels)).toBe(false);
+    }
+  });
+
+  test("a pod the rules classify by labels alone always passes the pre-filter", () => {
+    for (const labels of RULE_TRIGGERS) {
+      const candidate: KubernetesDatabaseCandidate | null =
+        classifyKubernetesPod(
+          pod({
+            name: "x-0",
+            labels,
+            owner: { kind: "StatefulSet", name: "x" },
+            containers: [{ name: "db", image: "registry.corp/custom:1" }],
+          }),
+        );
+      if (candidate && candidate.evidence[0]!.startsWith("label:")) {
+        expect(hasDatabaseWorkloadLabels(labels)).toBe(true);
+      }
+    }
   });
 });

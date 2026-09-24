@@ -2,6 +2,7 @@ import {
   DATABASE_SYSTEMS,
   DatabaseSystemDescriptor,
   getDatabaseSystemDescriptor,
+  getDefaultDatabasePort,
 } from "./DatabaseSystem";
 
 /*
@@ -15,17 +16,24 @@ import {
  *      name the logical cluster, its role and its Services;
  *   2. the container IMAGE, matched on the normalized repository or its
  *      basename EXACTLY (never a substring: `acme/redis-cache-warmer` is not
- *      Redis).
+ *      Redis). Normalization drops the registry, `library/`, the tag and the
+ *      digest, folds republishing organisations into the original
+ *      (`bitnamilegacy/`, `bitnamisecure/` → `bitnami/`) and reads Red Hat
+ *      Software Collections names (`rhel9/postgresql-16` → `postgresql`, 16).
  *
  * What it refuses, on purpose: exporters, operators, admin UIs, poolers and
  * proxies, backup tools (they run DB images or talk to one but are not one);
  * batch pods (Job / CronJob owners — `pg_dump` runs the postgres image);
- * finished pods; and an application pod that merely has a database SIDECAR
+ * finished pods; client and debug runs of a database image (`psql`,
+ * `redis-cli`, `sleep infinity`, an interactive shell); an owner-less pod
+ * that declares no port (`kubectl run --rm -it psql --image=postgres`);
+ * Docker containers started by Testcontainers, `docker compose run` or the
+ * kubelet; and an application pod that merely has a database SIDECAR
  * (pod-level telemetry would show the whole app on the database's page).
  *
  * It NEVER reads environment variables: pod specs in the inventory keep
  * direct env values verbatim, passwords included. Only container name,
- * image and declared ports are read.
+ * image, declared ports and the program a container starts are read.
  */
 
 export type ImageClassification =
@@ -33,6 +41,19 @@ export type ImageClassification =
   | { kind: "excluded"; reason: string }
   | { kind: "infrastructure-sidecar" }
   | { kind: "unknown" };
+
+export interface KubernetesContainerLike {
+  name?: string | undefined;
+  image?: string | undefined;
+  ports?: Array<{ containerPort?: number | undefined }> | undefined;
+  /*
+   * The container's command and args as Kubernetes has them (the program
+   * started is `command` followed by `args`). Only the leading program name
+   * is ever looked at — see effectiveExecutable.
+   */
+  command?: Array<string | null> | undefined;
+  args?: Array<string | null> | undefined;
+}
 
 export interface KubernetesPodLike {
   namespaceKey: string;
@@ -49,13 +70,7 @@ export interface KubernetesPodLike {
     | undefined;
   spec?:
     | {
-        containers?:
-          | Array<{
-              name?: string | undefined;
-              image?: string | undefined;
-              ports?: Array<{ containerPort?: number | undefined }> | undefined;
-            }>
-          | undefined;
+        containers?: Array<KubernetesContainerLike> | undefined;
       }
     | null
     | undefined;
@@ -66,6 +81,14 @@ export interface KubernetesDatabaseCandidate {
   namespace: string;
   workloadKind: string;
   workloadName: string;
+  /*
+   * The workload that owns the pod (a Deployment after its ReplicaSet's
+   * pod-template-hash is stripped), whatever identity the database got —
+   * a chart-labelled Deployment is a "Cluster" database whose Deployment
+   * still scopes telemetry. Null for an owner-less pod.
+   */
+  ownerKind: string | null;
+  ownerName: string | null;
   podName: string;
   containerName: string;
   image: string | null;
@@ -96,6 +119,19 @@ export interface KubernetesDatabaseGroup {
    * operator cluster can sit behind different StatefulSets.
    */
   podServiceNames: Array<{ podName: string; serviceName: string }>;
+  // The workloads owning the member pods (kind + name), deduped and sorted.
+  ownerWorkloads: Array<{ kind: string; name: string }>;
+}
+
+/*
+ * A connection-pooler pod of an operator cluster: not a member, but the
+ * Service it backs is one more name clients reach the cluster by.
+ */
+export interface KubernetesPoolerService {
+  system: string;
+  namespace: string;
+  clusterName: string;
+  serviceName: string;
 }
 
 export interface ContainerLike {
@@ -193,6 +229,10 @@ const EXCLUDED_IMAGE_GROUPS: ReadonlyArray<ExcludedImageGroup> = [
       "percona-xtrabackup",
       "percona-backup-mongodb",
       "mydumper",
+      "postgres-backup-local",
+      "postgres-backup-s3",
+      "mysql-backup",
+      "db-backup",
     ],
   },
   {
@@ -217,13 +257,14 @@ const EXCLUDED_BASENAME_SUFFIXES: ReadonlyArray<{
   { reason: "operator", suffix: "-operator" },
 ];
 
-// Mesh proxies, log shippers and agents that sit next to anything.
+// Mesh proxies, log shippers, VPN / tunnel and monitoring agents that sit next to anything.
 const INFRASTRUCTURE_SIDECAR_REPOSITORIES: ReadonlyArray<string> = [
   "proxyv2",
   "linkerd/proxy",
   "linkerd2-proxy",
   "envoy",
   "envoyproxy/envoy",
+  "aws-appmesh-envoy",
   "hashicorp/vault",
   "hashicorp/consul-dataplane",
   "fluent-bit",
@@ -233,15 +274,23 @@ const INFRASTRUCTURE_SIDECAR_REPOSITORIES: ReadonlyArray<string> = [
   "opentelemetry-collector",
   "opentelemetry-collector-contrib",
   "opentelemetry-collector-k8s",
+  "splunk-otel-collector",
   "busybox",
   "cadvisor",
   "datadog/agent",
+  "datadoghq/agent",
   "grafana/agent",
   "grafana/alloy",
   "timberio/vector",
+  "vectordotdev/vector",
+  "jaeger-agent",
+  "pmm-client",
   "aws-xray-daemon",
   "daprd",
   "kuma-dp",
+  "tailscale/tailscale",
+  "cloudflare/cloudflared",
+  "bitnami/os-shell",
   "pause",
 ];
 
@@ -261,6 +310,37 @@ const IMAGE_REPOSITORY_REGEX: RegExp = /^[a-z0-9._/-]+$/;
 const BARE_IMAGE_ID_REGEX: RegExp = /^(?:sha256:)?[0-9a-f]{12,64}$/;
 
 /*
+ * Organisations that republish another organisation's images unchanged:
+ * Bitnami's catalogue moved to `bitnamilegacy/` (frozen tags) and
+ * `bitnamisecure/` (hardened builds), under every registry that mirrors it
+ * (`docker.io/`, `public.ecr.aws/`, a Harbor proxy …).
+ */
+const IMAGE_ORGANIZATION_ALIASES: ReadonlyMap<string, string> = new Map<
+  string,
+  string
+>([
+  ["bitnamilegacy", "bitnami"],
+  ["bitnamisecure", "bitnami"],
+]);
+
+/*
+ * Red Hat Software Collections put the engine AND its version in the image
+ * name and the image build in the tag: `registry.redhat.io/rhel9/postgresql-16:1-54`,
+ * `quay.io/sclorg/mysql-80-c9s`, `centos/postgresql-96-centos7`. Recognised
+ * only under these namespaces, so `bitnami/postgresql-repmgr` or an
+ * application called `api-2` keeps its name.
+ */
+const SOFTWARE_COLLECTION_NAMESPACE_REGEX: RegExp =
+  /^(?:rhel\d*|rhscl|sclorg|centos\d*|fedora)$/;
+const SOFTWARE_COLLECTION_PLATFORM_REGEX: RegExp =
+  /^(?:rhel\d+|el\d+|centos\d+|c\d+s|ubi\d+|fedora)$/;
+const SOFTWARE_COLLECTION_VERSION_REGEX: RegExp = /^\d{1,4}$/;
+const SOFTWARE_COLLECTION_ENGINE_REGEX: RegExp = /^[a-z][a-z0-9]*$/;
+
+// Red Hat UBI rebuilds carry a `-ubi` / `-ubi8` basename suffix.
+const UBI_BASENAME_SUFFIX_REGEX: RegExp = /-ubi\d*$/;
+
+/*
  * Version sources in an image reference: a Spilo image name carries the
  * PostgreSQL major, a Percona tag carries "ppg<version>", any other tag
  * starts with it.
@@ -272,6 +352,62 @@ const IMAGE_TAG_VERSION_REGEX: RegExp = /^v?(\d+(?:\.\d+){0,2})/;
 interface SplitImageReference {
   repository: string;
   tag: string | null;
+  // Engine version carried by a Software Collections image NAME.
+  nameVersion: string | null;
+}
+
+/*
+ * `rhel9/postgresql-16` → { engine "postgresql", digits "16" }; null for any
+ * basename that is not `<engine>-<1-4 digits>[-<platform>]`.
+ */
+function parseSoftwareCollectionBasename(
+  basename: string,
+): { engine: string; digits: string } | null {
+  const parts: Array<string> = basename.split("-");
+  if (
+    parts.length > 2 &&
+    SOFTWARE_COLLECTION_PLATFORM_REGEX.test(parts[parts.length - 1]!)
+  ) {
+    parts.pop();
+  }
+  if (parts.length !== 2) {
+    return null;
+  }
+  const engine: string = parts[0]!;
+  const digits: string = parts[1]!;
+  if (
+    !SOFTWARE_COLLECTION_ENGINE_REGEX.test(engine) ||
+    !SOFTWARE_COLLECTION_VERSION_REGEX.test(digits)
+  ) {
+    return null;
+  }
+  return { engine, digits };
+}
+
+/*
+ * Software Collections spell versions without the dot: `postgresql-96` is
+ * 9.6 but `postgresql-16` is 16, `mysql-80` is 8.0, `mariadb-105` 10.5 and
+ * `mariadb-1011` 10.11.
+ */
+function formatSoftwareCollectionVersion(
+  engine: string,
+  digits: string,
+): string {
+  if (engine === "postgresql") {
+    return digits.length === 2 && digits.startsWith("9")
+      ? `9.${digits.substring(1)}`
+      : digits;
+  }
+  if (digits.length === 2) {
+    return `${digits.substring(0, 1)}.${digits.substring(1)}`;
+  }
+  if (digits.length === 3) {
+    return `${digits.substring(0, 2)}.${digits.substring(2)}`;
+  }
+  if (digits.length === 4) {
+    return `${digits.substring(0, 2)}.${digits.substring(2)}`;
+  }
+  return digits;
 }
 
 function splitImageReference(image: unknown): SplitImageReference | null {
@@ -315,12 +451,51 @@ function splitImageReference(image: unknown): SplitImageReference | null {
     segments.shift();
   }
 
+  // Republishing organisations → the original (never the basename itself).
+  for (let index: number = 0; index < segments.length - 1; index++) {
+    const alias: string | undefined = IMAGE_ORGANIZATION_ALIASES.get(
+      segments[index]!,
+    );
+    if (alias) {
+      segments[index] = alias;
+    }
+  }
+
+  let nameVersion: string | null = null;
+  const lastIndex: number = segments.length - 1;
+
+  if (lastIndex >= 0) {
+    let basename: string = segments[lastIndex]!;
+
+    const withoutUbi: string = basename.replace(UBI_BASENAME_SUFFIX_REGEX, "");
+    if (withoutUbi && withoutUbi !== basename) {
+      basename = withoutUbi;
+    }
+
+    if (
+      lastIndex >= 1 &&
+      SOFTWARE_COLLECTION_NAMESPACE_REGEX.test(segments[lastIndex - 1]!)
+    ) {
+      const collection: { engine: string; digits: string } | null =
+        parseSoftwareCollectionBasename(basename);
+      if (collection) {
+        basename = collection.engine;
+        nameVersion = formatSoftwareCollectionVersion(
+          collection.engine,
+          collection.digits,
+        );
+      }
+    }
+
+    segments[lastIndex] = basename;
+  }
+
   const repository: string = segments.join("/");
   if (!repository || !IMAGE_REPOSITORY_REGEX.test(repository)) {
     return null;
   }
 
-  return { repository, tag };
+  return { repository, tag, nameVersion };
 }
 
 function basenameOf(repository: string): string {
@@ -350,7 +525,11 @@ function matchesAny(
  * The image's repository path without registry host, `library/`, tag or
  * digest, lowercased: `docker.io/library/postgres:16` → `postgres`,
  * `ghcr.io/cloudnative-pg/postgresql:16.2@sha256:…` →
- * `cloudnative-pg/postgresql`. Null for an empty value or a bare image id.
+ * `cloudnative-pg/postgresql`. Republished images read as the original
+ * (`bitnamilegacy/redis-cluster` → `bitnami/redis-cluster`), a Red Hat
+ * Software Collections name loses its version and platform
+ * (`registry.redhat.io/rhel9/postgresql-16` → `rhel9/postgresql`) and a UBI
+ * rebuild its `-ubi` suffix. Null for an empty value or a bare image id.
  */
 export function normalizeImageRepository(image: unknown): string | null {
   const split: SplitImageReference | null = splitImageReference(image);
@@ -361,14 +540,19 @@ export function normalizeImageRepository(image: unknown): string | null {
  * Best-effort engine version from the image: the leading
  * `major[.minor[.patch]]` of the tag (`16.2-alpine` → `16.2`,
  * `16.2.0-debian-12-r5` → `16.2.0`), the Postgres major of a Spilo image
- * (`spilo-16` → `16`) or of a Percona `…-ppg16-postgres` tag. Null for
- * `latest`, a digest-only reference or a tag that does not start with a
- * number.
+ * (`spilo-16` → `16`) or of a Percona `…-ppg16-postgres` tag, and the
+ * version in a Software Collections name (`rhel9/mysql-80` → `8.0`; its tag
+ * is the image build, never read). Null for `latest`, a digest-only
+ * reference or a tag that does not start with a number.
  */
 export function parseImageVersion(image: unknown): string | null {
   const split: SplitImageReference | null = splitImageReference(image);
   if (!split) {
     return null;
+  }
+
+  if (split.nameVersion) {
+    return split.nameVersion;
   }
 
   const spilo: RegExpExecArray | null = SPILO_IMAGE_REGEX.exec(
@@ -437,12 +621,152 @@ export function classifyImage(image: unknown): ImageClassification {
   return { kind: "unknown" };
 }
 
+// ---- what a container runs ---------------------------------------------------
+
+/*
+ * Programs that are never a database server even in a database image: the
+ * engines' own clients and dump tools, and keep-alive / debug commands
+ * (`kubectl run -it --image=postgres -- bash`, `sleep infinity`).
+ */
+const NON_SERVER_EXECUTABLES: ReadonlySet<string> = new Set<string>([
+  "psql",
+  "pg_dump",
+  "pg_dumpall",
+  "pg_restore",
+  "pg_basebackup",
+  "pg_isready",
+  "pgbench",
+  "mysql",
+  "mysqldump",
+  "mysqladmin",
+  "mysqlsh",
+  "mysqlpump",
+  "mariadb",
+  "mariadb-dump",
+  "mariadb-admin",
+  "mongo",
+  "mongosh",
+  "mongodump",
+  "mongorestore",
+  "mongoexport",
+  "mongoimport",
+  "redis-cli",
+  "redis-benchmark",
+  "valkey-cli",
+  "valkey-benchmark",
+  "keydb-cli",
+  "cqlsh",
+  "clickhouse-client",
+  "sqlcmd",
+  "sqlplus",
+  "cypher-shell",
+  "influx",
+  "cbq",
+  "sleep",
+  "tail",
+  "cat",
+  "true",
+  "sh",
+  "bash",
+  "ash",
+  "dash",
+  "zsh",
+]);
+
+const SHELL_EXECUTABLES: ReadonlySet<string> = new Set<string>([
+  "sh",
+  "bash",
+  "ash",
+  "dash",
+  "zsh",
+]);
+
+// `-c`, `-ec`, `-lc`, `-euc`: the shell runs the next argument as a script.
+const SHELL_SCRIPT_FLAG_REGEX: RegExp = /^-[a-z]*c$/;
+
+function programName(value: string): string {
+  const trimmed: string = value.trim().toLowerCase();
+  return trimmed.substring(trimmed.lastIndexOf("/") + 1);
+}
+
+function stringList(value: unknown): Array<string> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const result: Array<string> = [];
+  for (const entry of value) {
+    if (typeof entry !== "string") {
+      // A gap (null) ends what we can trust about the command line.
+      break;
+    }
+    result.push(entry);
+  }
+  return result;
+}
+
+/**
+ * The program a Kubernetes container starts, lowercased without its path:
+ * the first word of `command` + `args`, looking through `sh -c` (and
+ * `exec`) at the script's first word. Null when neither is set — the image's
+ * own entrypoint runs, which for a database image is the server.
+ */
+export function effectiveExecutable(container: {
+  command?: Array<string | null> | undefined;
+  args?: Array<string | null> | undefined;
+}): string | null {
+  const command: Array<string> = stringList(container?.command);
+  const argv: Array<string> =
+    command.length > 0
+      ? [...command, ...stringList(container?.args)]
+      : stringList(container?.args);
+
+  const first: string | undefined = argv[0];
+  if (first === undefined || !first.trim()) {
+    return null;
+  }
+
+  const program: string = programName(first);
+  if (!SHELL_EXECUTABLES.has(program)) {
+    return program;
+  }
+
+  const flag: string | undefined = argv[1];
+  const script: string | undefined = argv[2];
+  if (
+    flag === undefined ||
+    script === undefined ||
+    !SHELL_SCRIPT_FLAG_REGEX.test(flag.trim().toLowerCase())
+  ) {
+    // An interactive shell.
+    return program;
+  }
+
+  const words: Array<string> = script
+    .trim()
+    .split(/\s+/)
+    .filter((word: string): boolean => {
+      return word.length > 0;
+    });
+  const word: string | undefined = words[0] === "exec" ? words[1] : words[0];
+  return word ? programName(word) : program;
+}
+
+// True when the container runs a client, a dump tool or a keep-alive, not a server.
+export function isNonServerCommand(container: {
+  command?: Array<string | null> | undefined;
+  args?: Array<string | null> | undefined;
+}): boolean {
+  const program: string | null = effectiveExecutable(container);
+  return program !== null && NON_SERVER_EXECUTABLES.has(program);
+}
+
 // ---- Kubernetes pods -----------------------------------------------------
 
 interface ContainerView {
   name: string;
   image: string | null;
   ports: Array<number>;
+  nonServer: boolean;
   classification: ImageClassification;
 }
 
@@ -468,6 +792,13 @@ const SKIPPED_POD_PHASES: ReadonlySet<string> = new Set<string>([
 const BATCH_OWNER_KINDS: ReadonlySet<string> = new Set<string>([
   "job",
   "cronjob",
+]);
+
+// Owner kinds whose name conventionally is also a Service's name.
+const SERVICE_NAMED_OWNER_KINDS: ReadonlySet<string> = new Set<string>([
+  "StatefulSet",
+  "Deployment",
+  "DaemonSet",
 ]);
 
 /*
@@ -561,7 +892,8 @@ const CHART_SYSTEM_BY_NAME: ReadonlyMap<string, string> = ((): Map<
   const map: Map<string, string> = new Map<string, string>();
   for (const descriptor of DATABASE_SYSTEMS) {
     for (const chartName of descriptor.kubernetesChartNames) {
-      map.set(chartName, descriptor.system);
+      // Labels are compared lowercased.
+      map.set(chartName.toLowerCase(), descriptor.system);
     }
   }
   return map;
@@ -576,11 +908,60 @@ const PERCONA_SYSTEM_BY_NAME: ReadonlyMap<string, string> = new Map<
   ["percona-server-mongodb", "mongodb"],
 ]);
 
+/**
+ * Label keys whose presence makes an operator rule look at a pod. With
+ * DATABASE_WORKLOAD_NAME_LABEL_VALUES this is the whole trigger surface of
+ * the label rules, so a store can pre-select the pods worth classifying
+ * (`labels ?| keys OR lower(labels->>'app.kubernetes.io/name') = ANY(values)`)
+ * — see hasDatabaseWorkloadLabels, which is the same test in TypeScript.
+ */
+export const DATABASE_OPERATOR_LABEL_KEYS: ReadonlyArray<string> = [
+  "cnpg.io/cluster",
+  "cluster-name",
+  "postgres-operator.crunchydata.com/cluster",
+  "mysql.oracle.com/cluster",
+  "elasticsearch.k8s.elastic.co/cluster-name",
+  "clickhouse.altinity.com/chi",
+  "cassandra.datastax.com/cluster",
+];
+
+// Lowercase `app.kubernetes.io/name` values a chart / Percona rule matches.
+export const DATABASE_WORKLOAD_NAME_LABEL_VALUES: ReadonlyArray<string> =
+  Array.from(
+    new Set<string>([
+      ...Array.from(CHART_SYSTEM_BY_NAME.keys()),
+      ...Array.from(PERCONA_SYSTEM_BY_NAME.keys()),
+    ]),
+  ).sort();
+
+/**
+ * True when a pod's labels could make an operator / chart rule match — the
+ * TypeScript twin of the store-side pre-filter over
+ * DATABASE_OPERATOR_LABEL_KEYS and DATABASE_WORKLOAD_NAME_LABEL_VALUES.
+ */
+export function hasDatabaseWorkloadLabels(labels: unknown): boolean {
+  if (!labels || typeof labels !== "object" || Array.isArray(labels)) {
+    return false;
+  }
+  const record: Record<string, unknown> = labels as Record<string, unknown>;
+  for (const key of DATABASE_OPERATOR_LABEL_KEYS) {
+    if (hasLabel(record, key)) {
+      return true;
+    }
+  }
+  const name: string | null = labelValue(record, "app.kubernetes.io/name");
+  return (
+    name !== null &&
+    DATABASE_WORKLOAD_NAME_LABEL_VALUES.includes(name.toLowerCase())
+  );
+}
+
 /*
  * Operator / chart label rules, most specific first. Each returns a match,
  * "skip" (the pod belongs to a database cluster but is not a member — a
  * pooler, a backup repo host), or null (not this operator). Label keys and
- * Service naming follow each operator's documented conventions.
+ * Service naming follow each operator's documented conventions, including
+ * the proxy / pooler Services clients usually connect through.
  */
 const OPERATOR_RULES: ReadonlyArray<OperatorRule> = [
   // CloudNativePG.
@@ -621,7 +1002,12 @@ const OPERATOR_RULES: ReadonlyArray<OperatorRule> = [
       system: "postgresql",
       clusterName: cluster,
       role: roleFrom(labelValue(labels, "spilo-role")),
-      serviceNames: [cluster, `${cluster}-repl`],
+      serviceNames: [
+        cluster,
+        `${cluster}-repl`,
+        `${cluster}-pooler`,
+        `${cluster}-pooler-repl`,
+      ],
       evidence: `label:cluster-name=${cluster}`,
     };
   },
@@ -654,7 +1040,12 @@ const OPERATOR_RULES: ReadonlyArray<OperatorRule> = [
       system: "postgresql",
       clusterName: cluster,
       role: roleFrom(role),
-      serviceNames: [`${cluster}-primary`, `${cluster}-replicas`],
+      serviceNames: [
+        `${cluster}-primary`,
+        `${cluster}-replicas`,
+        `${cluster}-ha`,
+        `${cluster}-pgbouncer`,
+      ],
       evidence: `label:postgres-operator.crunchydata.com/cluster=${cluster}`,
     };
   },
@@ -687,9 +1078,19 @@ const OPERATOR_RULES: ReadonlyArray<OperatorRule> = [
     const serviceNames: Array<string> = [];
     const normalizedName: string = name.toLowerCase();
     if (normalizedName === "percona-xtradb-cluster") {
-      serviceNames.push(`${instance}-pxc`);
+      serviceNames.push(
+        `${instance}-pxc`,
+        `${instance}-haproxy`,
+        `${instance}-haproxy-replicas`,
+        `${instance}-proxysql`,
+      );
     } else if (normalizedName === "percona-server") {
-      serviceNames.push(`${instance}-mysql`);
+      serviceNames.push(
+        `${instance}-mysql`,
+        `${instance}-mysql-primary`,
+        `${instance}-haproxy`,
+        `${instance}-router`,
+      );
     } else {
       const replicaSet: string | null = labelValue(
         labels,
@@ -698,6 +1099,7 @@ const OPERATOR_RULES: ReadonlyArray<OperatorRule> = [
       if (replicaSet) {
         serviceNames.push(`${instance}-${replicaSet}`);
       }
+      serviceNames.push(`${instance}-mongos`);
     }
     return {
       operator: "percona",
@@ -796,7 +1198,12 @@ const OPERATOR_RULES: ReadonlyArray<OperatorRule> = [
       system: "cassandra",
       clusterName: cluster,
       role: null,
-      serviceNames: datacenter ? [`${cluster}-${datacenter}-service`] : [],
+      serviceNames: datacenter
+        ? [
+            `${cluster}-${datacenter}-service`,
+            `${cluster}-${datacenter}-all-pods-service`,
+          ]
+        : [],
       evidence: `label:cassandra.datastax.com/cluster=${cluster}`,
     };
   },
@@ -827,7 +1234,9 @@ const OPERATOR_RULES: ReadonlyArray<OperatorRule> = [
 
     /*
      * Helm's conventional fullname: the release name when it already
-     * contains the chart name, else `${release}-${chart}`.
+     * contains the chart name, else `${release}-${chart}`. A
+     * `fullnameOverride` breaks the guess; the owner StatefulSet's name and
+     * its headless Service (added for every pod) still name the real ones.
      */
     const fullName: string | null = instance
       ? instance.toLowerCase().includes(chart)
@@ -862,9 +1271,33 @@ const OPERATOR_RULES: ReadonlyArray<OperatorRule> = [
   },
 ];
 
+function readPorts(declaredPorts: unknown): Array<number> {
+  const ports: Array<number> = [];
+  if (!Array.isArray(declaredPorts)) {
+    return ports;
+  }
+  for (const declared of declaredPorts) {
+    const port: unknown =
+      declared && typeof declared === "object"
+        ? (declared as { containerPort?: unknown }).containerPort
+        : undefined;
+    if (
+      typeof port === "number" &&
+      Number.isInteger(port) &&
+      port >= 1 &&
+      port <= 65535 &&
+      !ports.includes(port)
+    ) {
+      ports.push(port);
+    }
+  }
+  return ports;
+}
+
 /*
- * Reads ONLY name, image and declared ports — never `env` (see the file
- * header), never by spreading the container object.
+ * Reads ONLY name, image, declared ports and the leading program of
+ * command/args — never `env` (see the file header), never by spreading the
+ * container object.
  */
 function readContainers(pod: KubernetesPodLike): Array<ContainerView> {
   const containers: unknown = pod.spec?.containers;
@@ -879,26 +1312,6 @@ function readContainers(pod: KubernetesPodLike): Array<ContainerView> {
     }
     const name: unknown = (container as { name?: unknown }).name;
     const image: unknown = (container as { image?: unknown }).image;
-    const declaredPorts: unknown = (container as { ports?: unknown }).ports;
-
-    const ports: Array<number> = [];
-    if (Array.isArray(declaredPorts)) {
-      for (const declared of declaredPorts) {
-        const port: unknown =
-          declared && typeof declared === "object"
-            ? (declared as { containerPort?: unknown }).containerPort
-            : undefined;
-        if (
-          typeof port === "number" &&
-          Number.isInteger(port) &&
-          port >= 1 &&
-          port <= 65535 &&
-          !ports.includes(port)
-        ) {
-          ports.push(port);
-        }
-      }
-    }
 
     const imageText: string | null =
       typeof image === "string" && image.trim() ? image.trim() : null;
@@ -906,7 +1319,11 @@ function readContainers(pod: KubernetesPodLike): Array<ContainerView> {
     views.push({
       name: typeof name === "string" ? name.trim() : "",
       image: imageText,
-      ports,
+      ports: readPorts((container as { ports?: unknown }).ports),
+      nonServer: isNonServerCommand({
+        command: (container as { command?: Array<string | null> }).command,
+        args: (container as { args?: Array<string | null> }).args,
+      }),
       classification: classifyImage(imageText),
     });
   }
@@ -991,13 +1408,38 @@ function uniqueNonEmpty(values: Array<string>): Array<string> {
   return result;
 }
 
+/*
+ * A database container with one unrecognised neighbour is still a database
+ * pod when the evidence says so on its own: a StatefulSet (the shape
+ * databases are deployed in, not apps with a cache sidecar) whose database
+ * container declares its engine's default port. A log shipper or backup
+ * agent nobody has catalogued yet must not hide a Postgres StatefulSet.
+ */
+function toleratesUnknownNeighbour(data: {
+  ownerKind: string | null;
+  databaseContainer: ContainerView;
+  system: string;
+  unknownNeighbours: number;
+}): boolean {
+  if (data.unknownNeighbours !== 1 || data.ownerKind !== "StatefulSet") {
+    return false;
+  }
+  const defaultPort: number | null = getDefaultDatabasePort(data.system);
+  return (
+    defaultPort !== null && data.databaseContainer.ports.includes(defaultPort)
+  );
+}
+
 /**
  * The database a Kubernetes pod runs, or null. Operator / chart labels are
  * consulted first (they name the cluster: workloadKind "Cluster"); otherwise
  * the first container whose image is a database, provided no other
  * container is an unrecognised application (a DB sidecar in an app pod is
- * not a database). Batch pods, finished pods and non-member pods of a
- * database cluster (poolers, routers, exporters, backup repos) are null.
+ * not a database — one unknown neighbour is tolerated in a StatefulSet whose
+ * database container declares the engine's default port). Batch pods,
+ * finished pods, client / debug runs, owner-less pods declaring no port and
+ * non-member pods of a database cluster (poolers, routers, exporters,
+ * backup repos) are null.
  */
 export function classifyKubernetesPod(
   pod: KubernetesPodLike,
@@ -1053,6 +1495,8 @@ export function classifyKubernetesPod(
 
   const ownerWorkload: { workloadKind: string; workloadName: string } =
     resolveOwnerWorkload(podName, owner, labels);
+  const ownerKind: string | null = owner ? ownerWorkload.workloadKind : null;
+  const ownerName: string | null = owner ? ownerWorkload.workloadName : null;
 
   // 1. Operator / chart labels.
   for (const rule of OPERATOR_RULES) {
@@ -1089,20 +1533,34 @@ export function classifyKubernetesPod(
       return null;
     }
 
+    /*
+     * A chart's test hook or a debug pod is labelled like the cluster but
+     * only runs a client: with no container left that could be the server,
+     * it is not a member.
+     */
+    const serverContainers: Array<ContainerView> = containers.filter(
+      (container: ContainerView): boolean => {
+        return !container.nonServer;
+      },
+    );
+    if (containers.length > 0 && serverContainers.length === 0) {
+      return null;
+    }
+
     const databaseContainer: ContainerView | null =
-      containers.find((container: ContainerView): boolean => {
+      serverContainers.find((container: ContainerView): boolean => {
         return (
           container.classification.kind === "database" &&
           container.classification.system === match.system
         );
       }) ||
-      containers.find((container: ContainerView): boolean => {
+      serverContainers.find((container: ContainerView): boolean => {
         return container.classification.kind === "database";
       }) ||
-      containers.find((container: ContainerView): boolean => {
+      serverContainers.find((container: ContainerView): boolean => {
         return container.classification.kind === "unknown";
       }) ||
-      containers[0] ||
+      serverContainers[0] ||
       null;
 
     const workloadKind: string = match.clusterName
@@ -1121,6 +1579,8 @@ export function classifyKubernetesPod(
       namespace,
       workloadKind,
       workloadName,
+      ownerKind,
+      ownerName,
       podName,
       containerName: databaseContainer?.name || "",
       image: databaseContainer?.image || null,
@@ -1128,16 +1588,25 @@ export function classifyKubernetesPod(
       ports: databaseContainer ? [...databaseContainer.ports] : [],
       operator: match.operator,
       role: match.role,
-      serviceNames: uniqueNonEmpty([workloadName, ...match.serviceNames]),
+      serviceNames: uniqueNonEmpty([
+        workloadName,
+        ...match.serviceNames,
+        ownerKind && SERVICE_NAMED_OWNER_KINDS.has(ownerKind) && ownerName
+          ? ownerName
+          : "",
+        headlessServiceName || "",
+      ]),
       headlessServiceName,
       evidence,
     };
   }
 
-  // 2. Container images.
+  // 2. Container images: the first database container that runs a server.
   const databaseContainer: ContainerView | undefined = containers.find(
     (container: ContainerView): boolean => {
-      return container.classification.kind === "database";
+      return (
+        container.classification.kind === "database" && !container.nonServer
+      );
     },
   );
   if (
@@ -1146,24 +1615,43 @@ export function classifyKubernetesPod(
   ) {
     return null;
   }
+  const system: string = databaseContainer.classification.system;
 
-  const hasApplicationContainer: boolean = containers.some(
+  const unknownNeighbours: number = containers.filter(
     (container: ContainerView): boolean => {
       return (
         container !== databaseContainer &&
         container.classification.kind === "unknown"
       );
     },
-  );
-  if (hasApplicationContainer) {
+  ).length;
+  if (
+    unknownNeighbours > 0 &&
+    !toleratesUnknownNeighbour({
+      ownerKind,
+      databaseContainer,
+      system,
+      unknownNeighbours,
+    })
+  ) {
+    return null;
+  }
+
+  /*
+   * An owner-less pod is what `kubectl run` makes — usually a one-off client
+   * session in a database image. A server run that way declares its port.
+   */
+  if (!owner && databaseContainer.ports.length === 0) {
     return null;
   }
 
   return {
-    system: databaseContainer.classification.system,
+    system,
     namespace,
     workloadKind: ownerWorkload.workloadKind,
     workloadName: ownerWorkload.workloadName,
+    ownerKind,
+    ownerName,
     podName,
     containerName: databaseContainer.name,
     image: databaseContainer.image,
@@ -1171,9 +1659,46 @@ export function classifyKubernetesPod(
     ports: [...databaseContainer.ports],
     operator: null,
     role: null,
-    serviceNames: uniqueNonEmpty([ownerWorkload.workloadName]),
+    serviceNames: uniqueNonEmpty([
+      ownerWorkload.workloadName,
+      headlessServiceName || "",
+    ]),
     headlessServiceName,
     evidence: [`image:${databaseContainer.image}`],
+  };
+}
+
+/**
+ * The Service a CloudNativePG pooler pod backs (the Pooler's name), for
+ * attachPoolerServices; null for any other pod. Pooler pods are never
+ * members (classifyKubernetesPod is null for them), but applications
+ * connect through their Service.
+ */
+export function classifyKubernetesPoolerPod(
+  pod: KubernetesPodLike,
+): KubernetesPoolerService | null {
+  if (!pod || typeof pod !== "object") {
+    return null;
+  }
+  if (
+    typeof pod.phase === "string" &&
+    SKIPPED_POD_PHASES.has(pod.phase.trim().toLowerCase())
+  ) {
+    return null;
+  }
+  const labels: Record<string, unknown> =
+    pod.labels && typeof pod.labels === "object" ? pod.labels : {};
+  const cluster: string | null = labelValue(labels, "cnpg.io/cluster");
+  const pooler: string | null = labelValue(labels, "cnpg.io/poolerName");
+  if (!cluster || !pooler) {
+    return null;
+  }
+  return {
+    system: "postgresql",
+    namespace:
+      typeof pod.namespaceKey === "string" ? pod.namespaceKey.trim() : "",
+    clusterName: cluster,
+    serviceName: pooler,
   };
 }
 
@@ -1186,10 +1711,10 @@ function compareStrings(a: string, b: string): number {
 
 /**
  * Fold per-pod candidates into one entry per database workload
- * (system + namespace + workloadKind + workloadName). Member pods, ports and
- * Service names are unioned; image and version come from the primary member
- * when one is known, else from the first pod by name. Deterministic: groups
- * and pod names are sorted.
+ * (system + namespace + workloadKind + workloadName). Member pods, ports,
+ * Service names and owner workloads are unioned; image and version come
+ * from the primary member when one is known, else from the first pod by
+ * name. Deterministic: groups and pod names are sorted.
  */
 export function groupKubernetesDatabaseCandidates(
   candidates: Array<KubernetesDatabaseCandidate>,
@@ -1273,6 +1798,31 @@ export function groupKubernetesDatabaseCandidates(
       }
     }
 
+    const ownerWorkloads: Array<{ kind: string; name: string }> = [];
+    for (const member of sorted) {
+      if (
+        member.ownerKind &&
+        member.ownerName &&
+        !ownerWorkloads.some(
+          (entry: { kind: string; name: string }): boolean => {
+            return (
+              entry.kind === member.ownerKind && entry.name === member.ownerName
+            );
+          },
+        )
+      ) {
+        ownerWorkloads.push({ kind: member.ownerKind, name: member.ownerName });
+      }
+    }
+    ownerWorkloads.sort(
+      (
+        a: { kind: string; name: string },
+        b: { kind: string; name: string },
+      ): number => {
+        return compareStrings(a.kind, b.kind) || compareStrings(a.name, b.name);
+      },
+    );
+
     groups.push({
       system: first.system,
       namespace: first.namespace,
@@ -1292,6 +1842,7 @@ export function groupKubernetesDatabaseCandidates(
           return Boolean(member.headlessServiceName);
         })?.headlessServiceName || null,
       podServiceNames,
+      ownerWorkloads,
     });
   }
 
@@ -1307,13 +1858,138 @@ export function groupKubernetesDatabaseCandidates(
   );
 }
 
+/**
+ * Add each pooler's Service to the operator cluster it pools (same engine,
+ * namespace and cluster name). Returns new group objects; a pooler whose
+ * cluster has no group this run is dropped.
+ */
+export function attachPoolerServices(
+  groups: Array<KubernetesDatabaseGroup>,
+  poolers: Array<KubernetesPoolerService>,
+): Array<KubernetesDatabaseGroup> {
+  if (!Array.isArray(groups)) {
+    return [];
+  }
+  const list: Array<KubernetesPoolerService> = Array.isArray(poolers)
+    ? poolers
+    : [];
+
+  return groups.map(
+    (group: KubernetesDatabaseGroup): KubernetesDatabaseGroup => {
+      if (group.workloadKind !== "Cluster") {
+        return group;
+      }
+      const extra: Array<string> = list
+        .filter((pooler: KubernetesPoolerService): boolean => {
+          return (
+            Boolean(pooler) &&
+            pooler.system === group.system &&
+            pooler.namespace === group.namespace &&
+            pooler.clusterName === group.workloadName
+          );
+        })
+        .map((pooler: KubernetesPoolerService): string => {
+          return pooler.serviceName;
+        })
+        .sort(compareStrings);
+      if (extra.length === 0) {
+        return group;
+      }
+      return {
+        ...group,
+        serviceNames: uniqueNonEmpty([...group.serviceNames, ...extra]),
+      };
+    },
+  );
+}
+
 // ---- Docker / Podman containers -------------------------------------------
 
+// A Swarm task id: 25 lowercase alphanumerics (`stack_db.1.<task id>`).
+const SWARM_TASK_ID_REGEX: RegExp = /^[a-z0-9]{25}$/;
+const SWARM_SLOT_REGEX: RegExp = /^(?:\d+|[a-z0-9]{25})$/;
+
+/*
+ * Containers that are never a long-lived database server of their own:
+ * Testcontainers runs (CI), `docker compose run` one-offs, and containers
+ * the kubelet manages on a Docker node (the Kubernetes path discovers those
+ * as pods).
+ */
+function isEphemeralOrManagedContainer(
+  labels: Record<string, unknown>,
+): boolean {
+  for (const key of Object.keys(labels)) {
+    if (key === "org.testcontainers" || key.startsWith("org.testcontainers.")) {
+      return true;
+    }
+  }
+  const oneOff: string | null = labelValue(labels, "com.docker.compose.oneoff");
+  if (oneOff && oneOff.toLowerCase() === "true") {
+    return true;
+  }
+  return (
+    hasLabel(labels, "io.kubernetes.pod.name") ||
+    hasLabel(labels, "io.kubernetes.container.name")
+  );
+}
+
+/*
+ * The Swarm service a task container belongs to, from its name alone
+ * (`stack_db.1.<25-char task id>`, `stack_db.<node id>.<task id>`) — for
+ * rows whose labels have not been inventoried.
+ */
+function swarmServiceFromTaskName(containerName: string): string | null {
+  const parts: Array<string> = containerName.split(".");
+  if (parts.length < 3) {
+    return null;
+  }
+  const taskId: string = parts[parts.length - 1]!;
+  const slot: string = parts[parts.length - 2]!;
+  if (!SWARM_TASK_ID_REGEX.test(taskId) || !SWARM_SLOT_REGEX.test(slot)) {
+    return null;
+  }
+  const service: string = parts.slice(0, -2).join(".");
+  return service || null;
+}
+
+/*
+ * What groups a container's replicas: its Swarm service, its Compose
+ * project + service (Docker Compose and podman-compose both stamp
+ * `com.docker.compose.*`; podman-compose also `io.podman.compose.*`), else
+ * the container name exactly as it is — never a guessed-away suffix, since
+ * `redis-6379` and `redis-6380` or `pg-14` and `pg-16` are different
+ * servers.
+ */
+function containerWorkloadName(
+  containerName: string,
+  labels: Record<string, unknown>,
+): string {
+  const swarmService: string | null =
+    labelValue(labels, "com.docker.swarm.service.name") ||
+    swarmServiceFromTaskName(containerName);
+  if (swarmService) {
+    return swarmService;
+  }
+
+  const project: string | null =
+    labelValue(labels, "com.docker.compose.project") ||
+    labelValue(labels, "io.podman.compose.project");
+  const service: string | null =
+    labelValue(labels, "com.docker.compose.service") ||
+    labelValue(labels, "io.podman.compose.service");
+  if (project && service) {
+    return `${project}-${service}`;
+  }
+
+  return containerName;
+}
+
 /**
- * The database a Docker / Podman container runs, or null. The workload name
- * is the container name minus a trailing compose replica suffix
- * (`shop-postgres-1` → `shop-postgres`), so replicas of one compose service
- * group together and compose labels appearing later never change identity.
+ * The database a Docker / Podman container runs, or null. The workload is
+ * the Swarm service or Compose service the container belongs to (so its
+ * replicas group together), else the container's own name. Testcontainers
+ * runs, `docker compose run` one-offs and kubelet-managed containers are
+ * null.
  */
 export function classifyContainer(
   container: ContainerLike,
@@ -1330,6 +2006,17 @@ export function classifyContainer(
     return null;
   }
 
+  const labels: Record<string, unknown> =
+    container.labels &&
+    typeof container.labels === "object" &&
+    !Array.isArray(container.labels)
+      ? container.labels
+      : {};
+
+  if (isEphemeralOrManagedContainer(labels)) {
+    return null;
+  }
+
   const classification: ImageClassification = classifyImage(
     container.imageName,
   );
@@ -1342,7 +2029,7 @@ export function classifyContainer(
 
   return {
     system: descriptor ? descriptor.system : classification.system,
-    workloadName: containerName.replace(/[-_]\d+$/, "") || containerName,
+    workloadName: containerWorkloadName(containerName, labels),
     containerName,
     version: parseImageVersion(container.imageName),
   };
