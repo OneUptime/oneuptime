@@ -7,6 +7,7 @@ import {
   DatabaseWorkloadTarget,
   buildDatabaseWorkloadQuery,
   getDatabaseWorkloadTargetKey,
+  isDatabaseWorkloadClusterMatch,
 } from "./DatabaseWorkloadLookup";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import Route from "Common/Types/API/Route";
@@ -27,11 +28,16 @@ import React, {
  * "Open database" on a Kubernetes StatefulSet / Deployment / pod page and a
  * Docker / Podman container page: the Database discovered on it, found with
  * ONE query on the row's workload columns (DatabaseWorkloadLookup) that
- * reads only id, name and engine. Renders nothing while that runs, when
- * nothing matches, and when the lookup fails (no read permission on
- * Databases, say) — a missing link must never be an error on a page about
+ * reads only id, name, engine and workload name. Renders nothing while that
+ * runs, when nothing matches, and when the lookup fails (no read permission
+ * on Databases, say) — a missing link must never be an error on a page about
  * something else. `target` is null until the page knows enough to ask (a
- * StatefulSet's namespace comes with its object).
+ * StatefulSet's namespace comes with its object, a container's labels with
+ * its inventory row).
+ *
+ * The sentence says what the object is to the database: it "runs" it, or —
+ * matched only through the cluster its operator labels it part of (a
+ * pooler, a backup repo host) — it "is part of" the database's cluster.
  */
 
 export interface ComponentProps {
@@ -67,7 +73,12 @@ const DatabaseServerWorkloadBadge: FunctionComponent<ComponentProps> = (
           await ModelAPI.getList<DatabaseServer>({
             modelType: DatabaseServer,
             query: query,
-            select: { _id: true, name: true, dbSystem: true },
+            select: {
+              _id: true,
+              name: true,
+              dbSystem: true,
+              workloadName: true,
+            },
             sort: { name: SortOrder.Ascending },
             skip: 0,
             limit: DATABASE_WORKLOAD_LOOKUP_LIMIT,
@@ -108,6 +119,10 @@ const DatabaseServerWorkloadBadge: FunctionComponent<ComponentProps> = (
           { modelId: new ObjectID(database._id as string) },
         );
         const engine: string = getDatabaseEngineLabel(database.dbSystem);
+        const isClusterMatch: boolean = isDatabaseWorkloadClusterMatch(
+          props.target,
+          database.workloadName,
+        );
         return (
           <div
             key={database._id as string}
@@ -119,7 +134,10 @@ const DatabaseServerWorkloadBadge: FunctionComponent<ComponentProps> = (
               className="h-4 w-4 flex-shrink-0 text-indigo-600"
             />
             <span className="text-gray-700">
-              This {props.resourceLabel} runs the {engine} database{" "}
+              This {props.resourceLabel}{" "}
+              {isClusterMatch
+                ? `is part of the ${engine} database cluster`
+                : `runs the ${engine} database`}{" "}
               <span className="font-medium text-gray-900">
                 {(database.name as string) || engine}
               </span>

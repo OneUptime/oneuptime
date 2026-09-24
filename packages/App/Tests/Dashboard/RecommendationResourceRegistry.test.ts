@@ -1,3 +1,21 @@
+/*
+ * The database definition's loadContext asks the analytics API (see
+ * DatabaseEngineMetricsProbe), whose real module needs a browser `window`.
+ * Nothing here calls it — its behaviour is pinned in Common/Tests/App/
+ * Dashboard/DatabaseRecommendationsEngineMetrics.test.ts — so a stand-in
+ * lets this node-environment suite import the registry.
+ */
+jest.mock("Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
+  return {
+    __esModule: true,
+    default: {
+      getList: (): Promise<never> => {
+        return Promise.reject(new Error("not available in this suite"));
+      },
+    },
+  };
+});
+
 import RecommendationResourceRegistry, {
   RecommendationResourceDefinition,
 } from "../../FeatureSet/Dashboard/src/Components/Recommendations/RecommendationResourceRegistry";
@@ -801,6 +819,11 @@ describe("RecommendationResourceRegistry", () => {
         expect(Boolean(definition.describeContext)).toBe(
           Boolean(definition.readContext),
         );
+
+        // Telemetry only ever completes a context the row started.
+        if (definition.loadContext) {
+          expect(definition.readContext).toBeDefined();
+        }
       }
     });
   });
@@ -839,7 +862,7 @@ describe("RecommendationResourceRegistry", () => {
       });
     }
 
-    test("selects the engine and the collector heartbeat along with the id and name", () => {
+    test("selects the engine, the collector heartbeat and the project along with the id and name", () => {
       expect(
         RecommendationResourceRegistry.getSelect(
           MonitorRecommendationResourceType.DatabaseServer,
@@ -849,7 +872,24 @@ describe("RecommendationResourceRegistry", () => {
         name: true,
         dbSystem: true,
         collectorLastSeenAt: true,
+        // The engine-metrics probe (loadContext) is scoped by it.
+        projectId: true,
       });
+    });
+
+    /*
+     * The heartbeat is stamped by ANY batch attributed to the database, so
+     * the row alone cannot say whether the monitors' own metrics arrived:
+     * the database is the one resource type whose context is completed from
+     * telemetry. (Behaviour: Common/Tests/App/Dashboard/
+     * DatabaseRecommendationsEngineMetrics.test.ts.)
+     */
+    test("completes its context from telemetry, on top of what the row says", () => {
+      const definition: RecommendationResourceDefinition = getDefinitionOrFail(
+        MonitorRecommendationResourceType.DatabaseServer,
+      );
+      expect(definition.loadContext).toBeDefined();
+      expect(definition.readContext).toBeDefined();
     });
 
     test("reads the engine and whether engine metrics were ever seen", () => {

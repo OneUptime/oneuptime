@@ -548,7 +548,12 @@ describe("the Databases list", () => {
     );
   });
 
-  test("the summary strip refreshes with every table fetch, not only after a create", () => {
+  /*
+   * The strip's counts are project-wide: a table fetch (a page, a sort, a
+   * search) re-counts only once they are old, while a create or an archive
+   * re-counts at once. Behaviour: Common/Tests/.../DatabaseFleetSummaryRefresh.
+   */
+  test("the summary strip re-counts after a create or an archive, and on a table fetch only once stale", () => {
     expect(code).toContain(
       "<DatabaseServerSummaryStrip refreshToken={summaryRefreshToken} />",
     );
@@ -558,7 +563,12 @@ describe("the Databases list", () => {
       "onBeforeCreate={",
     );
     expect(onFetch).toContain("onResourcesFetched(data);");
-    expect(onFetch).toContain("setSummaryRefreshToken(");
+    expect(onFetch).toContain("isDatabaseFleetSummaryStale({");
+    expect(onFetch).toContain("refreshSummary();");
+    expect(between(code, "onCreateSuccess={", "isDeleteable=")).toContain(
+      "refreshSummary();",
+    );
+    expect(code).toContain("...archiveBulkActionsWithSummary");
     expect(code).not.toContain("refreshToken={count}");
   });
 
@@ -575,7 +585,7 @@ describe("the Databases list", () => {
     const bulk: string = between(code, "bulkActions={{", "}}");
     expect(bulk).toContain("...labelBulkActions");
     expect(bulk).toContain("...ownerBulkActions");
-    expect(bulk).toContain("...archiveBulkActions");
+    expect(bulk).toContain("...archiveBulkActionsWithSummary");
     expect(code).toContain('resourceIdField: "databaseServerId"');
   });
 
@@ -808,7 +818,10 @@ describe("'Open database' on the workload and container pages", () => {
       expect(badge).toContain('platform: "kubernetes"');
       expect(badge).toContain("parentId: modelId,");
       expect(badge).toContain("namespace: ");
+      // The names discovery could give it, split by what the object is to them.
+      expect(badge).toContain("...getKubernetesDatabaseWorkloadCandidates({");
       expect(badge).toContain(`kind: "${kind}"`);
+      expect(badge).toContain("labels: ");
     },
   );
 
@@ -827,25 +840,47 @@ describe("'Open database' on the workload and container pages", () => {
   test.each([
     ["Pages/Docker/View/ContainerDetail.tsx", "docker"],
     ["Pages/Podman/View/ContainerDetail.tsx", "podman"],
-  ])("%s asks by its host and container", (file: string, platform: string) => {
-    const badge: string = between(
-      readCode(file),
-      "<DatabaseServerWorkloadBadge",
-      "<Tabs tabs={tabs}",
-    );
-    expect(badge).toContain(`platform: "${platform}"`);
-    expect(badge).toContain("parentId: modelId,");
-    expect(badge).toContain("getContainerDatabaseWorkloadNames({");
-    expect(badge).toContain("containerName: containerName,");
-    expect(badge).toContain("imageName: containerImage,");
-  });
+  ])(
+    "%s asks by its host and container, with the container's inventory labels",
+    (file: string, platform: string) => {
+      const code: string = readCode(file);
+      /*
+       * The target comes from the hook that reads the container's
+       * DockerResource / PodmanResource row: Compose names a database
+       * `${project}-${service}` from those labels, which the page alone
+       * does not have.
+       */
+      const hook: string = between(
+        code,
+        "useContainerDatabaseWorkloadTarget({",
+        "});",
+      );
+      expect(hook).toContain(`platform: "${platform}"`);
+      expect(hook).toContain("hostId: modelId,");
+      expect(hook).toContain("containerName: containerName,");
+      expect(hook).toContain("imageName: containerImage,");
+      // Called with the other hooks, before the page's early returns.
+      expect(code.indexOf("useContainerDatabaseWorkloadTarget({")).toBeLessThan(
+        code.indexOf("if (isLoading) {"),
+      );
+
+      const badge: string = between(
+        code,
+        "<DatabaseServerWorkloadBadge",
+        "<Tabs tabs={tabs}",
+      );
+      expect(badge).toContain("target={databaseTarget}");
+    },
+  );
 
   test("the component asks one lean query and links the database page", () => {
     const code: string = readCode(
       "Components/DatabaseServer/DatabaseServerWorkloadBadge.tsx",
     );
     expect(code.match(/ModelAPI\.getList</g)).toHaveLength(1);
-    expect(code).toContain("select: { _id: true, name: true, dbSystem: true }");
+    expect(code).toContain(
+      "select: { _id: true, name: true, dbSystem: true, workloadName: true, }",
+    );
     expect(code).toContain("RouteMap[PageMap.DATABASE_SERVER_VIEW] as Route");
     expect(code).toContain("if (rows.length === 0) { return <></>; }");
   });

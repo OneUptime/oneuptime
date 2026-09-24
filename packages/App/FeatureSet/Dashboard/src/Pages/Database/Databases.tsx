@@ -17,12 +17,17 @@ import React, {
   FunctionComponent,
   ReactElement,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
+import {
+  BulkActionButtonSchema,
+  BulkActionOnClickProps,
+} from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Label from "Common/Models/DatabaseModels/Label";
@@ -42,6 +47,7 @@ import DatabaseDocumentationCard from "../../Components/DatabaseServer/Documenta
 import DatabaseServerSummaryStrip from "../../Components/DatabaseServer/DatabaseServerSummaryStrip";
 import DatabaseRunsOnLink from "../../Components/DatabaseServer/DatabaseRunsOnLink";
 import { computeDatabaseServerIdsForEngineMetricsStatuses } from "./Utils/DatabaseEngineMetricsFilter";
+import { isDatabaseFleetSummaryStale } from "./Utils/DatabaseServerSummary";
 import {
   DATABASE_SERVER_ADDRESS_DESCRIPTION,
   getDatabaseServerAddressHint,
@@ -77,11 +83,25 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
   /*
-   * Bumped on every table fetch — its refresh button, a bulk archive / label
-   * / owner action, a create — so the summary strip above it never shows
-   * counts the table has moved past.
+   * Bumped whenever the summary strip above the table must re-count: at
+   * once after what changes its project-wide counts (a create, an
+   * archive), and on a table fetch only once the counts are old enough to
+   * have drifted — a page, a sort, a search or a facet cannot change them,
+   * and the table's first fetch would only repeat the strip's own
+   * (isDatabaseFleetSummaryStale).
    */
   const [summaryRefreshToken, setSummaryRefreshToken] = useState<number>(0);
+  // When the strip last counted; it counts when it mounts with the page.
+  const summaryRefreshedAtRef: React.MutableRefObject<number> = useRef<number>(
+    Date.now(),
+  );
+
+  const refreshSummary: () => void = (): void => {
+    summaryRefreshedAtRef.current = Date.now();
+    setSummaryRefreshToken((token: number): number => {
+      return token + 1;
+    });
+  };
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<DatabaseServer>({ modelType: DatabaseServer });
@@ -96,6 +116,30 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const { archiveBulkActions } = useBulkArchiveActions<DatabaseServer>({
     modelType: DatabaseServer,
   });
+
+  // Archiving takes databases out of every count: re-count once it is done.
+  const archiveBulkActionsWithSummary: Array<
+    BulkActionButtonSchema<DatabaseServer>
+  > = archiveBulkActions.map(
+    (
+      action: BulkActionButtonSchema<DatabaseServer>,
+    ): BulkActionButtonSchema<DatabaseServer> => {
+      return {
+        ...action,
+        onClick: (
+          props: BulkActionOnClickProps<DatabaseServer>,
+        ): Promise<void> => {
+          return action.onClick({
+            ...props,
+            onBulkActionEnd: (): void => {
+              props.onBulkActionEnd();
+              refreshSummary();
+            },
+          });
+        },
+      };
+    },
+  );
 
   const databaseExtraFacets: Array<ResourceFacet> = [
     {
@@ -204,9 +248,14 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
         query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<DatabaseServer>) => {
           onResourcesFetched(data);
-          setSummaryRefreshToken((token: number): number => {
-            return token + 1;
-          });
+          if (
+            isDatabaseFleetSummaryStale({
+              lastRefreshedAt: summaryRefreshedAtRef.current,
+              now: Date.now(),
+            })
+          ) {
+            refreshSummary();
+          }
         }}
         onBeforeCreate={(
           item: DatabaseServer,
@@ -232,6 +281,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
           setCount((currentCount: number | null): number => {
             return (currentCount || 0) + 1;
           });
+          refreshSummary();
           return Promise.resolve(item);
         }}
         isDeleteable={false}
@@ -243,7 +293,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
           buttons: [
             ...labelBulkActions,
             ...ownerBulkActions,
-            ...archiveBulkActions,
+            ...archiveBulkActionsWithSummary,
           ],
         }}
         name="Databases"

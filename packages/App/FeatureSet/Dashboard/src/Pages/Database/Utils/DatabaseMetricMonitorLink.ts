@@ -9,6 +9,10 @@ import Metric from "Common/Models/AnalyticsModels/Metric";
 import Route from "Common/Types/API/Route";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import {
+  DatabaseServerMetricDefinition,
+  getDatabaseServerMetricGroupKeys,
+} from "Common/Types/DatabaseServer/DatabaseServerMetricCatalog";
 import Dictionary from "Common/Types/Dictionary";
 import MetricViewData from "Common/Types/Metrics/MetricViewData";
 import { DATABASE_SERVER_ID_SCOPE_ATTRIBUTE } from "Common/Types/Monitor/DatabaseAlertTemplates";
@@ -44,6 +48,19 @@ import MetricExplorerUrl from "Common/Utils/Metrics/MetricExplorerUrl";
  *     an id-scoped monitor would never see a point of them. Whether the
  *     metric carries the id is read from ONE point in the chart's window
  *     (fetchDatabaseMetricCarriesServerId).
+ *
+ * The monitor must evaluate the number the chart shows. A catalog gauge is
+ * charted series by series — each series folded with the picked
+ * aggregation, the series then combined as the catalog says — while an
+ * ungrouped monitor query folds every series and every sample into ONE
+ * number. That fold is the chart's number only when it IS the combine: the
+ * worst series ("max") is the Max of everything, the lowest ("min") the Min
+ * of everything, an average of ratios ("avg") the Average of everything. A
+ * total across series ("sum": backends per database, members of a replica
+ * set) cannot be folded at all — an Average divides it by the series, a Sum
+ * multiplies it by the samples per bucket — so such a monitor is grouped
+ * exactly like the chart and alerts on each series, and the modal says so
+ * (getDatabaseMetricMonitorSeed).
  */
 
 export const DATABASE_METRIC_MONITOR_RATE_BLOCKER: string =
@@ -78,11 +95,86 @@ function databaseServerIdText(
   return id ? id.toString().trim() : "";
 }
 
+/*
+ * How the monitor reads the metric: the query's aggregation, the attribute
+ * keys it alerts per (empty: one series, "this database"), and — when that
+ * is not exactly what the chart shows — one sentence saying what the
+ * monitor measures instead.
+ */
+export interface DatabaseMetricMonitorSeed {
+  aggregationType: AggregationType;
+  groupByAttributeKeys: Array<string>;
+  note: string | null;
+}
+
+function aggregationLabel(aggregationType: AggregationType): string {
+  return aggregationType === AggregationType.Avg
+    ? "Average"
+    : String(aggregationType);
+}
+
+/**
+ * The monitor query that evaluates what the chart shows for this metric
+ * with this aggregation picked (see the header). Anything outside the
+ * catalog is charted as one pooled series, so the monitor keeps the picked
+ * aggregation, ungrouped.
+ */
+export function getDatabaseMetricMonitorSeed(data: {
+  spec: Pick<DatabaseMetricChartSpec, "definition">;
+  aggregationType: AggregationType;
+}): DatabaseMetricMonitorSeed {
+  const definition: DatabaseServerMetricDefinition | null =
+    data.spec.definition;
+  const picked: AggregationType = data.aggregationType;
+
+  if (!definition || definition.kind !== "gauge") {
+    return { aggregationType: picked, groupByAttributeKeys: [], note: null };
+  }
+
+  switch (definition.seriesCombine) {
+    case "max":
+    case "min": {
+      const fold: AggregationType =
+        definition.seriesCombine === "max"
+          ? AggregationType.Max
+          : AggregationType.Min;
+      return {
+        aggregationType: fold,
+        groupByAttributeKeys: [],
+        note:
+          fold === picked
+            ? null
+            : `The chart shows the ${
+                definition.seriesCombine === "max" ? "highest" : "lowest"
+              } of this metric's series. A monitor folds every series and sample into one number, so this one takes their ${fold} instead of each series' ${aggregationLabel(
+                picked,
+              )}.`,
+      };
+    }
+    case "avg":
+      return { aggregationType: picked, groupByAttributeKeys: [], note: null };
+    default: {
+      const seriesKeys: ReadonlyArray<string> = definition.seriesKeys || [];
+      return {
+        aggregationType: picked,
+        groupByAttributeKeys: getDatabaseServerMetricGroupKeys(definition),
+        note:
+          seriesKeys.length > 0
+            ? `The chart adds its series up (one per ${seriesKeys.join(
+                " / ",
+              )} and reporting instance). A monitor cannot add series together, so this one alerts on each series separately: set a threshold for one series, not for the total.`
+            : "The chart adds its series up (one per reporting instance). A monitor cannot add series together, so this one alerts on each instance separately — the chart's own number when one agent reports this database.",
+      };
+    }
+  }
+}
+
 /**
  * The metric-explorer view a database metric monitor starts from: one query
  * ("a") on the metric, filtered by the database's id plus the catalog
  * entry's own pins (so a pinned tile, `mysql.threads{kind=running}`, gets a
- * monitor on what it charts), with the chart's aggregation and window.
+ * monitor on what it charts), read as getDatabaseMetricMonitorSeed says for
+ * the chart's aggregation, over the chart's window.
  */
 export function buildDatabaseMetricMonitorViewData(data: {
   spec: Pick<DatabaseMetricChartSpec, "metricName" | "title" | "definition">;
@@ -92,6 +184,10 @@ export function buildDatabaseMetricMonitorViewData(data: {
   rangeToken?: string | undefined;
 }): MetricViewData {
   const title: string = data.spec.title || data.spec.metricName;
+  const seed: DatabaseMetricMonitorSeed = getDatabaseMetricMonitorSeed({
+    spec: data.spec,
+    aggregationType: data.aggregationType,
+  });
   return {
     queryConfigs: [
       {
@@ -111,9 +207,12 @@ export function buildDatabaseMetricMonitorViewData(data: {
                 data.databaseServerId,
               ),
             },
-            aggegationType: data.aggregationType,
+            aggegationType: seed.aggregationType,
             aggregateBy: {},
           },
+          ...(seed.groupByAttributeKeys.length > 0
+            ? { groupByAttributeKeys: seed.groupByAttributeKeys }
+            : {}),
         },
       },
     ],

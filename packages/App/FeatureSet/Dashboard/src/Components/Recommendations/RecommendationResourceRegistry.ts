@@ -13,6 +13,11 @@ import Service from "Common/Models/DatabaseModels/Service";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import { getDatabaseAlertTemplates } from "Common/Types/Monitor/DatabaseAlertTemplates";
 import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
+import {
+  DATABASE_ENGINE_METRICS_LOOKBACK_DAYS,
+  fetchDatabaseEngineMetricsArrived,
+  getDatabaseRecommendationReceivers,
+} from "../../Pages/Database/Utils/DatabaseEngineMetricsProbe";
 import TechStack from "Common/Types/Service/TechStack";
 import {
   SERVICE_LANGUAGE_DISPLAY_NAMES,
@@ -72,6 +77,17 @@ export interface RecommendationResourceDefinition {
    */
   readContext?:
     | ((model: BaseModel) => MonitorRecommendationContext)
+    | undefined;
+  /*
+   * What the fetched row cannot answer on its own: an async refinement of
+   * `readContext`'s answer from telemetry, run by the static `loadContext`.
+   * Absent for the resource types whose row says everything.
+   */
+  loadContext?:
+    | ((data: {
+        model: BaseModel;
+        context: MonitorRecommendationContext;
+      }) => Promise<MonitorRecommendationContext>)
     | undefined;
   /*
    * One sentence explaining what the context did to the list, for the page to
@@ -240,21 +256,28 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
   },
   /*
    * A database's recommendations depend on its engine (`dbSystem`, a required
-   * column) and on whether its engine metrics have ever arrived
-   * (`collectorLastSeenAt`, stamped by ingest on every collector / Database
-   * Agent batch). The second is what stops the page from offering a
-   * span-discovered database a set of monitors over metrics nobody sends.
+   * column) and on whether the metrics its engine's monitors read have
+   * arrived. That second question is what stops the page from offering a
+   * database a set of monitors over metrics nobody sends — where "Engine
+   * Metrics Stopped" fires ten minutes after it is created and never clears.
    *
-   * `collectorLastSeenAt` rather than `otelCollectorStatus`: the status flips
-   * to "disconnected" the moment the collector stops, which is exactly when
-   * the "Engine Metrics Stopped" recommendation matters most.
+   * The row answers only half of it. `collectorLastSeenAt` (rather than
+   * `otelCollectorStatus`, which flips to "disconnected" the moment the
+   * collector stops — exactly when "Engine Metrics Stopped" matters most)
+   * says whether ANY batch was attributed to the database: never means
+   * nothing arrived. But ingest stamps it for every batch — the database's
+   * logs, an exporter, a MongoDB Atlas database's `mongodbatlas` receiver,
+   * whose metrics are not the `mongodb.*` the MongoDB monitors read — so
+   * `loadContext` then asks the telemetry whether any metric those monitors
+   * read has arrived stamped with the database's id
+   * (DatabaseEngineMetricsProbe). `projectId` is read for that question.
    */
   {
     resourceType: MonitorRecommendationResourceType.DatabaseServer,
     modelType: DatabaseServer,
     identifierFieldName: "_id",
     displayNameFieldName: "name",
-    contextFieldNames: ["dbSystem", "collectorLastSeenAt"],
+    contextFieldNames: ["dbSystem", "collectorLastSeenAt", "projectId"],
     readContext: (model: BaseModel): MonitorRecommendationContext => {
       const record: Record<string, unknown> = model as unknown as Record<
         string,
@@ -280,6 +303,37 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
             collectorLastSeenAt.trim().length > 0),
       };
     },
+    loadContext: async (data: {
+      model: BaseModel;
+      context: MonitorRecommendationContext;
+    }): Promise<MonitorRecommendationContext> => {
+      /*
+       * Only a heartbeat can be contradicted: a database that never sent a
+       * batch, or whose engine has no library, has nothing to ask.
+       */
+      if (
+        !data.context.databaseEngine ||
+        data.context.databaseEngineMetricsReported !== true
+      ) {
+        return data.context;
+      }
+
+      const record: Record<string, unknown> = data.model as unknown as Record<
+        string,
+        unknown
+      >;
+
+      const arrived: boolean | null = await fetchDatabaseEngineMetricsArrived({
+        projectId: record["projectId"],
+        databaseServerId: record["_id"],
+        engine: data.context.databaseEngine,
+      });
+
+      // Unknown (the read failed) is never held against the database.
+      return arrived === false
+        ? { ...data.context, databaseEngineMetricsReported: false }
+        : data.context;
+    },
     describeContext: (
       context: MonitorRecommendationContext,
     ): string | undefined => {
@@ -300,7 +354,10 @@ const RESOURCE_DEFINITIONS: Array<RecommendationResourceDefinition> = [
       }
 
       if (context.databaseEngineMetricsReported === false) {
-        return `No engine metrics have arrived from this database yet, and every recommended monitor for ${engineName} reads them. Connect the Database Agent or a collector database receiver (see the Documentation tab), and the ${templateCount} ${engineName} recommendations appear here.`;
+        const receivers: string = getDatabaseRecommendationReceivers(
+          context.databaseEngine,
+        ).join(" / ");
+        return `None of the metrics the ${templateCount} recommended ${engineName} monitors read has arrived from this database in the last ${DATABASE_ENGINE_METRICS_LOOKBACK_DAYS} days. They come from the collector's ${receivers} receiver, which the Database Agent runs; other telemetry linked to this database (its logs, another receiver, an exporter) does not count. Connect the Database Agent or that receiver (see the Documentation tab), and the ${engineName} recommendations appear here.`;
       }
 
       return `Recommended for ${engineName}, from the metrics its collector receiver reports. Each monitor is scoped to this database by oneuptime.database.server.id, so its alerts and incidents appear on this database's tabs.`;
@@ -374,6 +431,36 @@ export default class RecommendationResourceRegistry {
     }
 
     return definition.readContext(data.model);
+  }
+
+  /*
+   * `readContext`, then whatever the definition must ask telemetry to
+   * complete it (a database: have the metrics its monitors read arrived?).
+   * What the page and the side-menu badge should both render from, so the
+   * two never disagree. A failed question leaves `readContext`'s answer
+   * standing — never an error on the page.
+   */
+  public static async loadContext(data: {
+    resourceType: MonitorRecommendationResourceType;
+    model: BaseModel | null;
+  }): Promise<MonitorRecommendationContext> {
+    const context: MonitorRecommendationContext = this.readContext(data);
+
+    const definition: RecommendationResourceDefinition | undefined =
+      this.getDefinition(data.resourceType);
+
+    if (!definition || !definition.loadContext || !data.model) {
+      return context;
+    }
+
+    try {
+      return await definition.loadContext({
+        model: data.model,
+        context: context,
+      });
+    } catch {
+      return context;
+    }
   }
 
   /*

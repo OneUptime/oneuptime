@@ -16,7 +16,7 @@ import React, {
   useState,
 } from "react";
 import DatabaseServerWorkloadBadge from "../../../Components/DatabaseServer/DatabaseServerWorkloadBadge";
-import { getKubernetesDatabaseWorkloadNames } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
+import { getKubernetesDatabaseWorkloadCandidates } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -350,8 +350,10 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
   return (
     <Fragment>
       {/*
-       * The Database discovered on this Deployment, if any. Asked once the
-       * object (and so its namespace) has loaded.
+       * The Database discovered on this Deployment, if any — by its name, or
+       * the cluster its labels place it in (a pooler an operator labels as
+       * part of a cluster links to that cluster's database). Asked once the
+       * object (and so its namespace and labels) has loaded.
        */}
       <DatabaseServerWorkloadBadge
         resourceLabel="Deployment"
@@ -362,9 +364,10 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
                 platform: "kubernetes",
                 parentId: modelId,
                 namespace: objectData?.metadata.namespace,
-                workloadNames: getKubernetesDatabaseWorkloadNames({
+                ...getKubernetesDatabaseWorkloadCandidates({
                   kind: "Deployment",
                   name: deploymentName,
+                  namespace: objectData?.metadata.namespace,
                   labels: objectData?.metadata.labels,
                 }),
               }

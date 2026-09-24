@@ -29,6 +29,28 @@ export interface DatabaseFleetSummaryTile {
 }
 
 /*
+ * The strip's counts are project-wide — nothing the table below shows (a
+ * page, a sort, a search, a facet) changes them — so a table fetch
+ * refreshes them only once they are this old: a refresh click a while
+ * later, or the live window having moved on. What does change them (a
+ * create, an archive) refreshes them at once.
+ */
+export const DATABASE_FLEET_SUMMARY_MIN_REFRESH_MS: number = 15 * 1000;
+
+/** Whether counts fetched at `lastRefreshedAt` are due a refresh at `now`. */
+export function isDatabaseFleetSummaryStale(data: {
+  lastRefreshedAt: number | null;
+  now: number;
+}): boolean {
+  if (data.lastRefreshedAt === null) {
+    return true;
+  }
+  return (
+    data.now - data.lastRefreshedAt >= DATABASE_FLEET_SUMMARY_MIN_REFRESH_MS
+  );
+}
+
+/*
  * Short, lowercase source names for the breakdown line — "4 from traces ·
  * 2 Kubernetes · 1 manual" reads better in a tile than the filter labels.
  */

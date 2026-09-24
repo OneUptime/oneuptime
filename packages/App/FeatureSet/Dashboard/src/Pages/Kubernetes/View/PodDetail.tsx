@@ -15,7 +15,7 @@ import React, {
   useState,
 } from "react";
 import DatabaseServerWorkloadBadge from "../../../Components/DatabaseServer/DatabaseServerWorkloadBadge";
-import { getKubernetesDatabaseWorkloadNames } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
+import { getKubernetesDatabaseWorkloadCandidates } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -484,7 +484,8 @@ const KubernetesClusterPodDetail: FunctionComponent<
     <Fragment>
       {/*
        * The Database this pod is a member of, if any — by the workloads
-       * that own it and by how discovery classifies it. Asked once the pod
+       * that own it and by how discovery classifies it — or the one whose
+       * cluster it is only labelled part of (a pooler). Asked once the pod
        * object (its namespace, owners and containers) has loaded.
        */}
       <DatabaseServerWorkloadBadge
@@ -496,7 +497,7 @@ const KubernetesClusterPodDetail: FunctionComponent<
                 platform: "kubernetes",
                 parentId: modelId,
                 namespace: podObject?.metadata.namespace,
-                workloadNames: getKubernetesDatabaseWorkloadNames({
+                ...getKubernetesDatabaseWorkloadCandidates({
                   kind: "Pod",
                   name: podName,
                   namespace: podObject?.metadata.namespace,

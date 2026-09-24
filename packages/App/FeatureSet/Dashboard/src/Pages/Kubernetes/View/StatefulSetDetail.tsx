@@ -16,7 +16,7 @@ import React, {
   useState,
 } from "react";
 import DatabaseServerWorkloadBadge from "../../../Components/DatabaseServer/DatabaseServerWorkloadBadge";
-import { getKubernetesDatabaseWorkloadNames } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
+import { getKubernetesDatabaseWorkloadCandidates } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -306,8 +306,10 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
   return (
     <Fragment>
       {/*
-       * The Database discovered on this StatefulSet, if any. Asked once the
-       * object (and so its namespace) has loaded.
+       * The Database discovered on this StatefulSet, if any — by its name,
+       * or the cluster its labels place it in (an operator's, a Helm
+       * chart's, a Percona cluster's). Asked once the object (and so its
+       * namespace and labels) has loaded.
        */}
       <DatabaseServerWorkloadBadge
         resourceLabel="StatefulSet"
@@ -318,9 +320,10 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
                 platform: "kubernetes",
                 parentId: modelId,
                 namespace: objectData?.metadata.namespace,
-                workloadNames: getKubernetesDatabaseWorkloadNames({
+                ...getKubernetesDatabaseWorkloadCandidates({
                   kind: "StatefulSet",
                   name: statefulSetName,
+                  namespace: objectData?.metadata.namespace,
                   labels: objectData?.metadata.labels,
                 }),
               }

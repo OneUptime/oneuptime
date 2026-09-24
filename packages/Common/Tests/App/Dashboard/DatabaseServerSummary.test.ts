@@ -1,10 +1,56 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  DATABASE_FLEET_SUMMARY_MIN_REFRESH_MS,
   DatabaseFleetSummaryTile,
   describeDatabaseSourceBreakdown,
+  isDatabaseFleetSummaryStale,
   summarizeDatabaseFleet,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerSummary";
 import { DATABASE_SERVER_LIVE_WINDOW_MINUTES } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerPresentation";
+
+/*
+ * The strip's counts are project-wide: a page, a sort, a search or a facet
+ * of the table below cannot change them, so a table fetch only refreshes
+ * them once they are old enough to have drifted (a refresh click a while
+ * later, the live window moving on).
+ */
+describe("isDatabaseFleetSummaryStale", () => {
+  const now: number = Date.parse("2026-09-24T10:00:00.000Z");
+
+  test("fresh counts are kept, however many table fetches come", () => {
+    expect(isDatabaseFleetSummaryStale({ lastRefreshedAt: now, now })).toBe(
+      false,
+    );
+    expect(
+      isDatabaseFleetSummaryStale({
+        lastRefreshedAt: now - DATABASE_FLEET_SUMMARY_MIN_REFRESH_MS + 1,
+        now,
+      }),
+    ).toBe(false);
+  });
+
+  test("counts older than the refresh interval are refreshed", () => {
+    expect(
+      isDatabaseFleetSummaryStale({
+        lastRefreshedAt: now - DATABASE_FLEET_SUMMARY_MIN_REFRESH_MS,
+        now,
+      }),
+    ).toBe(true);
+  });
+
+  test("counts never fetched are stale", () => {
+    expect(isDatabaseFleetSummaryStale({ lastRefreshedAt: null, now })).toBe(
+      true,
+    );
+  });
+
+  test("the interval is short enough for a refresh click to be felt", () => {
+    expect(DATABASE_FLEET_SUMMARY_MIN_REFRESH_MS).toBeGreaterThan(0);
+    expect(DATABASE_FLEET_SUMMARY_MIN_REFRESH_MS).toBeLessThanOrEqual(
+      60 * 1000,
+    );
+  });
+});
 
 describe("describeDatabaseSourceBreakdown", () => {
   test("busiest source first, zero counts left out", () => {

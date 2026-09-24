@@ -101,10 +101,12 @@ import DatabaseMetricChartModal from "../../../../App/FeatureSet/Dashboard/src/C
 import {
   DATABASE_METRIC_MONITOR_NOT_LINKED_BLOCKER,
   DATABASE_METRIC_MONITOR_RATE_BLOCKER,
+  DatabaseMetricMonitorSeed,
   buildDatabaseMetricMonitorRoute,
   buildDatabaseMetricMonitorViewData,
   fetchDatabaseMetricCarriesServerId,
   getDatabaseMetricMonitorBlocker,
+  getDatabaseMetricMonitorSeed,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseMetricMonitorLink";
 import {
   DatabaseMetricChartSpec,
@@ -112,6 +114,13 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DatabaseServerTelemetryQueries";
 import { buildQueryConfigsFromSerializedQueries } from "../../../../App/FeatureSet/Dashboard/src/Components/Metrics/Utils/MetricConfigReconstruct";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
+import { MetricPointType } from "../../../Models/AnalyticsModels/Metric";
+import {
+  DATABASE_SERVER_METRICS,
+  DatabaseServerMetricDefinition,
+  getDatabaseServerMetricGroupKeys,
+  getDatabaseServerMetricId,
+} from "../../../Types/DatabaseServer/DatabaseServerMetricCatalog";
 import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import Includes from "../../../Types/BaseDatabase/Includes";
@@ -239,12 +248,23 @@ describe("Create monitor on the database metric chart", () => {
       true,
     );
 
+    /*
+     * The chart adds the per-database series up; a monitor cannot, so it
+     * alerts per series — grouped exactly as the chart groups them, each
+     * series read with the chart's per-series Average.
+     */
     expect(seededQueries(href)).toEqual([
       expect.objectContaining({
         metricName: "postgresql.backends",
         variable: "a",
         attributes: { [ID_ATTRIBUTE]: DATABASE_ID },
         aggregationType: AggregationType.Avg,
+        groupByAttributeKeys: [
+          "db.namespace",
+          "resource.postgresql.database.name",
+          "resource.server.address",
+          "resource.server.port",
+        ],
       }),
     ]);
     const search: URLSearchParams = new URLSearchParams(href.split("?")[1]);
@@ -275,6 +295,71 @@ describe("Create monitor on the database metric chart", () => {
       kind: "connected",
       [ID_ATTRIBUTE]: DATABASE_ID,
     });
+  });
+
+  test.each([
+    ["a catalog gauge", "postgresql.backends"],
+    ["a catalog counter", "postgresql.commits"],
+  ])(
+    "opening %s fetches its series once, not once per re-render",
+    async (_label: string, metricName: string) => {
+      useMetricTable({ carriesId: true });
+
+      renderChart({ metricName });
+
+      await waitFor(() => {
+        expect(aggregateMock).toHaveBeenCalled();
+      });
+      // Let every effect and state update the open caused settle.
+      await waitFor(() => {
+        expect(chartCardMock).toHaveBeenLastCalledWith(
+          expect.objectContaining({ loading: false }),
+        );
+      });
+      expect(aggregateMock).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("a gauge added up across series says the monitor alerts per series", async () => {
+    useMetricTable({ carriesId: true });
+
+    renderChart({ metricName: "postgresql.backends" });
+
+    await monitorLink();
+    const note: HTMLElement = screen.getByTestId(
+      "database-metric-monitor-note",
+    );
+    expect(note).toHaveTextContent("adds its series up");
+    expect(note).toHaveTextContent("alerts on each series separately");
+  });
+
+  test("the lowest of the members is watched with Min, whatever the picker says", async () => {
+    useMetricTable({ carriesId: true });
+
+    // mysql.uptime: restart detection — the member that restarted last.
+    renderChart({ metricName: "mysql.uptime", dbSystem: "mysql" });
+
+    const href: string = (await monitorLink()).getAttribute("href") || "";
+    const query: SerializedMetricQuery = seededQueries(href)[0]!;
+    expect(query.aggregationType).toBe(AggregationType.Min);
+    expect(query.groupByAttributeKeys).toBeUndefined();
+    expect(
+      screen.getByTestId("database-metric-monitor-note"),
+    ).toHaveTextContent("Min");
+  });
+
+  test("a gauge whose worst series is charted keeps one ungrouped Max query and no note", async () => {
+    useMetricTable({ carriesId: true });
+
+    renderChart({ metricName: "postgresql.replication.data_delay" });
+
+    const href: string = (await monitorLink()).getAttribute("href") || "";
+    const query: SerializedMetricQuery = seededQueries(href)[0]!;
+    expect(query.aggregationType).toBe(AggregationType.Max);
+    expect(query.groupByAttributeKeys).toBeUndefined();
+    expect(
+      screen.queryByTestId("database-metric-monitor-note"),
+    ).not.toBeInTheDocument();
   });
 
   test("the picked aggregation is the monitor's", async () => {
@@ -453,7 +538,7 @@ describe("DatabaseMetricMonitorLink helpers", () => {
 
   test("the view: one query 'a', the id filter, the aggregation and the window", () => {
     const view: MetricViewData = buildDatabaseMetricMonitorViewData({
-      spec: gauge,
+      spec: getDatabaseMetricChartSpec("postgresql.db_size", "postgresql"),
       databaseServerId: new ObjectID(DATABASE_ID),
       aggregationType: AggregationType.Max,
       startAndEndDate: new InBetween<Date>(START, END),
@@ -463,16 +548,39 @@ describe("DatabaseMetricMonitorLink helpers", () => {
     expect(view.formulaConfigs).toEqual([]);
     expect(view.queryConfigs).toHaveLength(1);
     expect(view.queryConfigs[0]!.metricAliasData?.metricVariable).toBe("a");
-    expect(view.queryConfigs[0]!.metricAliasData?.title).toBe("Connections");
+    expect(view.queryConfigs[0]!.metricAliasData?.title).toBe("Database size");
     expect(view.queryConfigs[0]!.metricQueryData.filterData).toEqual({
-      metricName: "postgresql.backends",
+      metricName: "postgresql.db_size",
       attributes: { [ID_ATTRIBUTE]: DATABASE_ID },
       aggegationType: AggregationType.Max,
       aggregateBy: {},
     });
     // Ungrouped: every alert reads as "this database".
     expect(view.queryConfigs[0]!.metricQueryData.groupBy).toBeUndefined();
+    expect(
+      view.queryConfigs[0]!.metricQueryData.groupByAttributeKeys,
+    ).toBeUndefined();
     expect(view.startAndEndDate?.startValue).toEqual(START);
+  });
+
+  test("a gauge added up across series is grouped the way the chart groups it", () => {
+    const view: MetricViewData = buildDatabaseMetricMonitorViewData({
+      spec: gauge,
+      databaseServerId: DATABASE_ID,
+      aggregationType: AggregationType.Max,
+    });
+
+    // The picked per-series aggregation, applied per series.
+    expect(
+      (
+        view.queryConfigs[0]!.metricQueryData.filterData as {
+          aggegationType: AggregationType;
+        }
+      ).aggegationType,
+    ).toBe(AggregationType.Max);
+    expect(view.queryConfigs[0]!.metricQueryData.groupByAttributeKeys).toEqual(
+      getDatabaseServerMetricGroupKeys(gauge.definition!),
+    );
   });
 
   test("a catalog pin never replaces the id filter", () => {
@@ -549,6 +657,116 @@ describe("DatabaseMetricMonitorLink helpers", () => {
         aggegationType: AggregationType.Min,
       }),
     );
+    // The per-series grouping survives the trip: the monitor alerts per series.
+    expect(rebuilt[0]!.metricQueryData.groupByAttributeKeys).toEqual(
+      getDatabaseServerMetricGroupKeys(gauge.definition!),
+    );
+  });
+
+  /*
+   * The monitor must evaluate the number the chart shows. An ungrouped
+   * monitor query folds every series and every sample into one number, so it
+   * is the chart's number only when that fold IS the chart's combine: a Max
+   * of everything is the worst series' Max, a Min of everything the lowest
+   * series' Min, an Average of everything the average of the series'
+   * averages. A total across series cannot be folded at all (a Sum also
+   * multiplies by the samples in a bucket), so those are grouped like the
+   * chart and alert per series.
+   */
+  test.each(
+    DATABASE_SERVER_METRICS.filter(
+      (definition: DatabaseServerMetricDefinition): boolean => {
+        return definition.kind === "gauge";
+      },
+    ).map((definition: DatabaseServerMetricDefinition): [string, string] => {
+      return [definition.system, getDatabaseServerMetricId(definition)];
+    }),
+  )(
+    "%s %s: the seeded monitor agrees with how the catalog combines its series",
+    (system: string, id: string) => {
+      const definition: DatabaseServerMetricDefinition =
+        DATABASE_SERVER_METRICS.find(
+          (candidate: DatabaseServerMetricDefinition): boolean => {
+            return (
+              candidate.system === system &&
+              getDatabaseServerMetricId(candidate) === id
+            );
+          },
+        )!;
+      const spec: DatabaseMetricChartSpec = {
+        ...getDatabaseMetricChartSpec(definition.metricName, system),
+        definition: definition,
+      };
+      expect(spec.aggregations.length).toBeGreaterThan(0);
+
+      for (const picked of spec.aggregations) {
+        const seed: DatabaseMetricMonitorSeed = getDatabaseMetricMonitorSeed({
+          spec,
+          aggregationType: picked,
+        });
+        const view: MetricViewData = buildDatabaseMetricMonitorViewData({
+          spec,
+          databaseServerId: DATABASE_ID,
+          aggregationType: picked,
+        });
+        expect(
+          (
+            view.queryConfigs[0]!.metricQueryData.filterData as {
+              aggegationType: AggregationType;
+            }
+          ).aggegationType,
+        ).toBe(seed.aggregationType);
+
+        switch (definition.seriesCombine) {
+          case "max":
+            expect(seed.aggregationType).toBe(AggregationType.Max);
+            expect(seed.groupByAttributeKeys).toEqual([]);
+            break;
+          case "min":
+            expect(seed.aggregationType).toBe(AggregationType.Min);
+            expect(seed.groupByAttributeKeys).toEqual([]);
+            break;
+          case "avg":
+            expect(seed.aggregationType).toBe(picked);
+            expect(seed.groupByAttributeKeys).toEqual([]);
+            break;
+          default:
+            expect(seed.aggregationType).toBe(picked);
+            expect(seed.groupByAttributeKeys).toEqual(
+              getDatabaseServerMetricGroupKeys(definition),
+            );
+            expect(
+              view.queryConfigs[0]!.metricQueryData.groupByAttributeKeys,
+            ).toEqual(getDatabaseServerMetricGroupKeys(definition));
+            // A total is never passed off as what the monitor watches.
+            expect(seed.note).toContain("alerts on each");
+        }
+
+        // The note is there exactly when the monitor reads something else.
+        expect(Boolean(seed.note)).toBe(
+          seed.aggregationType !== picked ||
+            seed.groupByAttributeKeys.length > 0,
+        );
+      }
+    },
+  );
+
+  test("a metric outside the catalog keeps the picked aggregation, ungrouped", () => {
+    const spec: DatabaseMetricChartSpec = getDatabaseMetricChartSpec(
+      "postgresql.temp_files",
+      "postgresql",
+      { pointType: MetricPointType.Gauge, isMonotonic: false },
+    );
+    expect(
+      getDatabaseMetricMonitorSeed({
+        spec,
+        aggregationType: AggregationType.Sum,
+      }),
+    ).toEqual({
+      aggregationType: AggregationType.Sum,
+      groupByAttributeKeys: [],
+      note: null,
+    });
   });
 
   test("the id lookup sends nothing it cannot scope", async () => {

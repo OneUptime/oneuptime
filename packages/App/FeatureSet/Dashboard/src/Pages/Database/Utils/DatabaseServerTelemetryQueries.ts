@@ -345,13 +345,52 @@ function combineValues(
   }
 }
 
+/*
+ * How many buckets a series' last value stands in for it when it has no row
+ * (see combineGaugeSeries). Two: a member scraping every 30 s is in every
+ * one-minute bucket once complete, so it is only ever missing from the one
+ * still filling; one that has been silent for longer is gone.
+ */
+export const DATABASE_GAUGE_CARRY_FORWARD_BUCKETS: number = 2;
+
+/*
+ * The bucket width of a result, read off its bucket times (the interval
+ * the server picked is not in the result): the median gap between
+ * consecutive buckets, so a stretch with no data at all does not widen it.
+ * Null with fewer than two buckets.
+ */
+function bucketWidthOf(times: ReadonlyArray<number>): number | null {
+  const gaps: Array<number> = [];
+  for (let index: number = 1; index < times.length; index++) {
+    const gap: number = times[index]! - times[index - 1]!;
+    if (gap > 0) {
+      gaps.push(gap);
+    }
+  }
+  if (gaps.length === 0) {
+    return null;
+  }
+  gaps.sort((a: number, b: number): number => {
+    return a - b;
+  });
+  return gaps[Math.floor((gaps.length - 1) / 2)]!;
+}
+
 /**
  * A grouped gauge result (one row per series per bucket) → one point per
  * bucket: the series of each bucket combined with `combine` — "sum" when
  * they are parts of one total (backends per database), "max" / "min" for
  * the worst one, "avg" for ratios. Rows without a bucket or a finite value
- * are skipped; a series that has no row in a bucket simply does not
- * contribute to it.
+ * are skipped.
+ *
+ * A series with no row in a bucket keeps its last value there for up to
+ * DATABASE_GAUGE_CARRY_FORWARD_BUCKETS buckets. Agents of one database (a
+ * replica set's members) scrape at their own moments, and the newest bucket
+ * — the window ends now — is still filling: counting only the members that
+ * already reported would show a third of a three-member total, or miss the
+ * member a "min" is about. A series silent for longer is gone and stops
+ * counting; nothing is carried backwards or across a gap in the whole
+ * metric.
  */
 export function combineGaugeSeries(
   result: AggregatedResult | null | undefined,
@@ -375,14 +414,34 @@ export function combineGaugeSeries(
     series.set(getAttributeSeriesKey(row["attributes"]), y);
   }
 
+  const times: Array<number> = Array.from(buckets.keys()).sort(
+    (a: number, b: number): number => {
+      return a - b;
+    },
+  );
+  const width: number | null = bucketWidthOf(times);
+  const carryFor: number =
+    width === null ? 0 : width * DATABASE_GAUGE_CARRY_FORWARD_BUCKETS;
+
+  // series key → its newest value so far, and the bucket it came from.
+  const lastSeen: Map<string, { value: number; time: number }> = new Map();
+
   const points: Array<DatabaseTimePoint> = [];
-  for (const [time, series] of buckets) {
-    points.push({
-      x: new Date(time),
-      y: combineValues(Array.from(series.values()), combine),
-    });
+  for (const time of times) {
+    for (const [key, value] of buckets.get(time)!) {
+      lastSeen.set(key, { value: value, time: time });
+    }
+    const values: Array<number> = [];
+    for (const [key, seen] of lastSeen) {
+      if (time - seen.time <= carryFor) {
+        values.push(seen.value);
+      } else {
+        lastSeen.delete(key);
+      }
+    }
+    points.push({ x: new Date(time), y: combineValues(values, combine) });
   }
-  return sortByTime(points);
+  return points;
 }
 
 /**

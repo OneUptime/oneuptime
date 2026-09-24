@@ -47,10 +47,19 @@ import { getDatabaseSystemMetricsEngine } from "./DatabaseSystem";
  *     closest to trouble (uptime, page life expectancy), "avg" for ratios.
  *
  * Gauges are grouped by `seriesKeys` plus the reporting instance
- * (DATABASE_SERVER_INSTANCE_ATTRIBUTE_KEYS). Counters are grouped by their
- * WHOLE attribute set — every distinct series — and turned into a rate per
- * series before the rates are summed; a cumulative value is never compared
- * across series. See DatabaseServerTelemetryQueries in the dashboard.
+ * (DATABASE_SERVER_INSTANCE_ATTRIBUTE_KEYS); a series missing from a bucket
+ * (a member that has not scraped yet in the one still filling) keeps its
+ * last value there for a couple of buckets rather than dropping out of the
+ * total. Counters are grouped by their WHOLE attribute set — every distinct
+ * series — and turned into a rate per series before the rates are summed; a
+ * cumulative value is never compared across series. See
+ * DatabaseServerTelemetryQueries in the dashboard.
+ *
+ * `seriesCombine` also decides the monitor "Create monitor" seeds from a
+ * gauge's chart (DatabaseMetricMonitorLink): an ungrouped monitor query
+ * folds every series into one number, which is the chart's only for "max"
+ * (its Max), "min" (its Min) and "avg"; a "sum" is grouped like the chart
+ * and alerts per series.
  */
 
 export type DatabaseServerMetricKind = "gauge" | "counter";

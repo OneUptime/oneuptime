@@ -17,6 +17,7 @@ import {
   buildDatabaseMetricMonitorViewData,
   fetchDatabaseMetricCarriesServerId,
   getDatabaseMetricMonitorBlocker,
+  getDatabaseMetricMonitorSeed,
 } from "../../Pages/Database/Utils/DatabaseMetricMonitorLink";
 import AppLink from "../AppLink/AppLink";
 import Route from "Common/Types/API/Route";
@@ -59,7 +60,9 @@ import React, {
  * "Create monitor" opens Monitor Create pre-seeded with this metric, scoped
  * by the database's id (DatabaseMetricMonitorLink) — or, for a metric that
  * cannot become such a monitor (a cumulative counter, a metric that does
- * not carry the id), stays disabled and says why.
+ * not carry the id), stays disabled and says why. When the monitor cannot
+ * measure exactly what is charted (a total across series, a worst series
+ * read with another aggregation), a line under it says what it measures.
  */
 
 export interface ComponentProps {
@@ -126,7 +129,20 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
 
   useEffect(() => {
     if (isCurated) {
-      setShape({ ...UNKNOWN_DATABASE_METRIC_SHAPE, unit });
+      /*
+       * On open this is already the state, and a new object with the same
+       * content would change `spec` and fetch the series a second time; it
+       * only changes when the modal switches to a curated metric.
+       */
+      setShape((previous: DatabaseMetricShape | null): DatabaseMetricShape => {
+        return previous &&
+          previous.unit === unit &&
+          previous.pointType === null &&
+          previous.isMonotonic === null &&
+          previous.aggregationTemporality === null
+          ? previous
+          : { ...UNKNOWN_DATABASE_METRIC_SHAPE, unit };
+      });
       return;
     }
 
@@ -229,6 +245,12 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
     spec,
     carriesServerId: carriesServerId === undefined ? null : carriesServerId,
   });
+
+  // What the monitor measures when it is not exactly what is charted.
+  const monitorNote: string | null = getDatabaseMetricMonitorSeed({
+    spec,
+    aggregationType: aggregation,
+  }).note;
 
   // Null while the id check runs, and whenever the metric is refused.
   const monitorRoute: Route | null = useMemo(() => {
@@ -417,6 +439,16 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
             data-testid="database-metric-monitor-blocker"
           >
             {monitorBlocker}
+          </p>
+        ) : (
+          <></>
+        )}
+        {monitorScopeId && !monitorBlocker && monitorNote ? (
+          <p
+            className="mb-3 text-xs text-gray-600"
+            data-testid="database-metric-monitor-note"
+          >
+            {monitorNote}
           </p>
         ) : (
           <></>

@@ -399,6 +399,105 @@ describe("combineGaugeSeries", () => {
     ]);
   });
 
+  /*
+   * One agent per replica-set member, each scraping at its own offset: the
+   * newest bucket (the window ends now) is still filling, and often holds
+   * only some members. Their last values stand in until they report, so the
+   * tile and the chart's last point do not read a fraction of the total.
+   */
+  describe("members that report at different moments", () => {
+    const member: (name: string) => Record<string, string> = (
+      name: string,
+    ): Record<string, string> => {
+      return {
+        "resource.server.address": name,
+        "resource.server.port": "27017",
+      };
+    };
+
+    test("a sum carries a member that has not scraped yet into the newest bucket", () => {
+      const rows: Array<Record<string, unknown>> = [
+        { timestamp: at(0), value: 100, attributes: member("m1") },
+        { timestamp: at(0), value: 100, attributes: member("m2") },
+        { timestamp: at(0), value: 100, attributes: member("m3") },
+        { timestamp: at(1), value: 100, attributes: member("m1") },
+        { timestamp: at(1), value: 100, attributes: member("m2") },
+        { timestamp: at(1), value: 100, attributes: member("m3") },
+        // Only m1 has scraped in the bucket that is still filling.
+        { timestamp: at(2), value: 110, attributes: member("m1") },
+      ];
+
+      const series: Array<{ x: Date; y: number }> = combineGaugeSeries(
+        result(rows),
+        "sum",
+      );
+      expect(series).toEqual([
+        { x: at(0), y: 300 },
+        { x: at(1), y: 300 },
+        { x: at(2), y: 310 },
+      ]);
+
+      const connections: DatabaseServerMetricDefinition = entry(
+        "mongodb.connection.count",
+        { type: "current" },
+      );
+      expect(toEngineMetricResult(connections, series).value).toBe(310);
+    });
+
+    test("a min still sees the member that restarted, until another value replaces it", () => {
+      const rows: Array<Record<string, unknown>> = [
+        { timestamp: at(0), value: 5000, attributes: member("m1") },
+        { timestamp: at(0), value: 40, attributes: member("m2") },
+        { timestamp: at(1), value: 5060, attributes: member("m1") },
+      ];
+
+      expect(combineGaugeSeries(result(rows), "min")).toEqual([
+        { x: at(0), y: 40 },
+        { x: at(1), y: 40 },
+      ]);
+    });
+
+    test("a member that is really gone stops counting after two buckets", () => {
+      const rows: Array<Record<string, unknown>> = [];
+      for (let minute: number = 0; minute <= 5; minute++) {
+        rows.push({
+          timestamp: at(minute),
+          value: 10,
+          attributes: member("m1"),
+        });
+      }
+      rows.push({ timestamp: at(0), value: 7, attributes: member("m2") });
+      rows.push({ timestamp: at(1), value: 7, attributes: member("m2") });
+
+      expect(
+        combineGaugeSeries(result(rows), "sum").map(
+          (point: { x: Date; y: number }): number => {
+            return point.y;
+          },
+        ),
+      ).toEqual([17, 17, 17, 17, 10, 10]);
+    });
+
+    test("nothing is carried across a gap in the whole metric", () => {
+      const rows: Array<Record<string, unknown>> = [
+        { timestamp: at(0), value: 10, attributes: member("m1") },
+        { timestamp: at(0), value: 7, attributes: member("m2") },
+        { timestamp: at(1), value: 10, attributes: member("m1") },
+        { timestamp: at(1), value: 7, attributes: member("m2") },
+        // Both agents were down for ten minutes; only m1 is back so far.
+        { timestamp: at(12), value: 12, attributes: member("m1") },
+        { timestamp: at(13), value: 12, attributes: member("m1") },
+      ];
+
+      expect(combineGaugeSeries(result(rows), "sum")).toEqual([
+        { x: at(0), y: 17 },
+        { x: at(1), y: 17 },
+        { x: at(12), y: 12 },
+        { x: at(13), y: 12 },
+      ]);
+    });
+  });
+
   test("an ungrouped result (no attributes) is one series", () => {
     expect(
       combineGaugeSeries(

@@ -13,7 +13,8 @@ import React, {
   useState,
 } from "react";
 import DatabaseServerWorkloadBadge from "../../../Components/DatabaseServer/DatabaseServerWorkloadBadge";
-import { getContainerDatabaseWorkloadNames } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
+import { DatabaseWorkloadTarget } from "../../../Components/DatabaseServer/DatabaseWorkloadLookup";
+import useContainerDatabaseWorkloadTarget from "../../../Components/DatabaseServer/useContainerDatabaseWorkloadTarget";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
@@ -231,6 +232,20 @@ const DockerHostContainerDetail: FunctionComponent<
     return [cpuQuery, memPctQuery];
   }, [host?.hostIdentifier, containerName]);
 
+  /*
+   * The Database discovered in this container, if any: by its name, or the
+   * Swarm / Compose service discovery groups a database image under — read
+   * from the container's inventory row (its labels, and its image when no
+   * recent metric carried one).
+   */
+  const databaseTarget: DatabaseWorkloadTarget | null =
+    useContainerDatabaseWorkloadTarget({
+      platform: "docker",
+      hostId: modelId,
+      containerName: containerName,
+      imageName: containerImage,
+    });
+
   if (isLoading) {
     return <PageLoader isVisible={true} />;
   }
@@ -300,20 +315,9 @@ const DockerHostContainerDetail: FunctionComponent<
 
   return (
     <Fragment>
-      {/*
-       * The Database discovered in this container, if any: by its name, or
-       * the Swarm / Compose service discovery groups a database image under.
-       */}
       <DatabaseServerWorkloadBadge
         resourceLabel="container"
-        target={{
-          platform: "docker",
-          parentId: modelId,
-          workloadNames: getContainerDatabaseWorkloadNames({
-            containerName: containerName,
-            imageName: containerImage,
-          }),
-        }}
+        target={databaseTarget}
       />
       <Tabs tabs={tabs} onTabChange={() => {}} />
     </Fragment>
