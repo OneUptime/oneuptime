@@ -12,11 +12,19 @@
    * The build config (../tsconfig.json) excludes Tests so `npm run compile`
    * stays self-contained; everything else - paths, strictness, types - is
    * inherited, so a test is held to the same rules as the code it tests.
+   * Common's global declaration files are listed as well: the build picks
+   * them up through its default include, and this project would otherwise
+   * only see what the tests import.
    */
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["./**/*.ts", "./**/*.tsx"],
+  "include": [
+    "./**/*.ts",
+    "./**/*.tsx",
+    "../Typings/**/*.d.ts",
+    "../UI/index.d.ts"
+  ],
   "exclude": ["../node_modules", "../build"]
 }

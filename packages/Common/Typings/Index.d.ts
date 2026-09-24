@@ -126,3 +126,16 @@ declare module "@stripe/react-stripe-js" {
 declare module "@stripe/stripe-js/pure" {
   export { loadStripe } from "@stripe/stripe-js";
 }
+
+/*
+ * jspdf and jspdf-autotable are Dashboard-only dependencies (the AI chat PDF
+ * export). Common tests reach Components/AIChat/Export through imported
+ * Dashboard sources, which name the packages in `import type` only - nothing
+ * loads them at runtime - but the type checker still has to resolve them when
+ * it compiles those files from within Common, where they are not installed.
+ * Shorthand declarations, because the export code uses much of jsPDF's API
+ * and a narrow copy of it would only drift: Dashboard's own compile checks
+ * those files against the packages' real declarations.
+ */
+declare module "jspdf";
+declare module "jspdf-autotable";
