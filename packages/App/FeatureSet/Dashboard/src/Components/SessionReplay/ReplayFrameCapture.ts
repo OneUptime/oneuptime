@@ -165,13 +165,22 @@ const LINK_PSEUDO_CLASS_PATTERN: RegExp =
 const VISITED_PSEUDO_CLASS_PATTERN: RegExp = /^:visited(?![\w-])/i;
 const CLASS_SELECTOR_PATTERN: RegExp = /^\.[A-Za-z_][\w-]*/;
 const WIDTH_PROPERTY_PATTERN: RegExp = /-width$/;
+/*
+ * Properties whose initial value is currentcolor: behind all: unset they
+ * take the element's OWN colour, so matching the probe's (black) colour
+ * says nothing about them.
+ */
+const CURRENT_COLOR_INITIAL_PATTERN: RegExp =
+  /^(?:border(?:-(?:top|right|bottom|left|block-start|block-end|inline-start|inline-end))?-color|outline-color|column-rule-color|text-decoration-color|text-emphasis-color|-webkit-text-fill-color|-webkit-text-stroke-color|caret-color)$/;
 const AUTO_SIZE_PROPERTIES: Array<string> = [
   "width",
   "height",
   "inline-size",
   "block-size",
 ];
-const REVERSE_FLEX_PATTERN: RegExp = /reverse/;
+const FLEX_OR_GRID_PATTERN: RegExp = /flex|grid/;
+/* The element a flow marker is made of: nothing in a page styles it. */
+const REPLAY_FRAME_SCROLL_MARKER_NAME: string = "oneuptime-scroll-marker";
 const WHITESPACE_CHARACTER_PATTERN: RegExp = /\s/;
 const NAMESPACE_AT_RULE_PATTERN: RegExp = /^@namespace\b/i;
 const MEDIA_AT_RULE_PATTERN: RegExp = /^@media\b/i;
@@ -192,12 +201,49 @@ const PROPAGATED_BACKGROUND_PROPERTIES: Array<string> = [
   "background-attachment",
 ];
 
+const RGB_FUNCTION_PATTERN: RegExp = /^rgba?\(/i;
+
+/*
+ * Computed colours stay in their own space - oklch(), lab(), color() - in
+ * Chromium and Firefox; a canvas paints any of them and reads back sRGB.
+ */
+function normaliseColor(color: string): string {
+  const trimmed: string = color.trim();
+
+  if (!trimmed || RGB_FUNCTION_PATTERN.test(trimmed)) {
+    return trimmed;
+  }
+
+  try {
+    const canvas: HTMLCanvasElement = document.createElement("canvas");
+    canvas.width = 1;
+    canvas.height = 1;
+
+    const context: CanvasRenderingContext2D | null = canvas.getContext("2d");
+
+    if (!context) {
+      return trimmed;
+    }
+
+    context.fillStyle = "#000000";
+    context.fillStyle = trimmed;
+    context.fillRect(0, 0, 1, 1);
+
+    const pixel: Uint8ClampedArray = context.getImageData(0, 0, 1, 1).data;
+
+    return `rgb(${pixel[0] ?? 0}, ${pixel[1] ?? 0}, ${pixel[2] ?? 0})`;
+  } catch {
+    return trimmed;
+  }
+}
+
 /*
  * Whether a computed colour is light: the stage's resolved text colour
  * tells which scheme the engine really drew the page in.
  */
 export function isLightColor(color: string): boolean {
-  const channels: Array<number> = (color.match(RGB_CHANNELS_PATTERN) ?? [])
+  const normalised: string = normaliseColor(color);
+  const channels: Array<number> = (normalised.match(RGB_CHANNELS_PATTERN) ?? [])
     .slice(0, 3)
     .map((channel: string): number => {
       return Number(channel);
@@ -304,11 +350,15 @@ interface ScrollPlan {
   anchor: Element | null;
   isPositioned: boolean;
   /*
-   * No box to snap to, but nothing absolutely positioned inside either:
-   * the clone can be made a containing block for a marker without moving
-   * anything else.
+   * No box to snap to in a block container: a zero-height marker goes in
+   * front of its content (see cloneChildren). A flex or grid container
+   * would lay a marker out as an item - one more gap - so there the
+   * children are moved by the offset instead.
    */
-  canPosition: boolean;
+  canTakeFlowMarker: boolean;
+  /* The content edge a flow marker sits at, inside the padding box. */
+  paddingTop: number;
+  paddingLeft: number;
 }
 
 interface SnapMargins {
@@ -828,6 +878,31 @@ function serializeRules(
       continue;
     }
 
+    /*
+     * A style rule with rules nested in it (CSS nesting) may hold @media
+     * of its own; it is rebuilt around its settled contents.
+     */
+    const styleRule: CSSRule & {
+      selectorText?: string;
+      style?: CSSStyleDeclaration;
+    } = rule;
+
+    if (
+      matchMedia &&
+      typeof styleRule.selectorText === "string" &&
+      styleRule.style &&
+      grouping.cssRules &&
+      grouping.cssRules.length > 0
+    ) {
+      texts.push(
+        `${styleRule.selectorText} { ${styleRule.style.cssText}\n${serializeRules(
+          grouping.cssRules,
+          matchMedia,
+        ).join("\n")}\n}`,
+      );
+      continue;
+    }
+
     texts.push(rule.cssText);
   }
 
@@ -1249,11 +1324,13 @@ class ReplayFrameSerializer {
   ): void {
     const position: string = style.getPropertyValue("position").trim();
     const isPositioned: boolean = position !== "" && position !== "static";
-    const isReverse: boolean =
-      style.getPropertyValue("direction").trim() === "rtl" ||
-      (style.getPropertyValue("display").includes("flex") &&
-        (REVERSE_FLEX_PATTERN.test(style.getPropertyValue("flex-direction")) ||
-          REVERSE_FLEX_PATTERN.test(style.getPropertyValue("flex-wrap"))));
+    /*
+     * Only an axis that scrolls from its end (right-to-left, a reversed
+     * flex box) has negative offsets, and only those are out of a snap's
+     * reach; a right-to-left list scrolled down still snaps.
+     */
+    const isReverse: boolean = offset.x < 0 || offset.y < 0;
+    const display: string = style.getPropertyValue("display").trim();
     const anchor: Element | null = isReverse
       ? null
       : this.findSnapAnchor(
@@ -1265,11 +1342,9 @@ class ReplayFrameSerializer {
       isReverse: isReverse,
       anchor: anchor,
       isPositioned: isPositioned,
-      canPosition:
-        !isReverse &&
-        !anchor &&
-        !isPositioned &&
-        !this.hasAbsoluteDescendant(scroller),
+      canTakeFlowMarker: !FLEX_OR_GRID_PATTERN.test(display),
+      paddingTop: parseFloat(style.getPropertyValue("padding-top")) || 0,
+      paddingLeft: parseFloat(style.getPropertyValue("padding-left")) || 0,
     };
 
     if (anchor) {
@@ -1279,15 +1354,7 @@ class ReplayFrameSerializer {
        * Box deltas are in zoomed pixels; a scroll-margin is in the
        * anchor's own CSS pixels, which its effective zoom scales again.
        */
-      const anchorWidth: number = (anchor as HTMLElement).offsetWidth || 0;
-      const anchorHeight: number = (anchor as HTMLElement).offsetHeight || 0;
-      const zoom: number =
-        anchorHeight > 0 && anchorBox.height > 0
-          ? anchorBox.height / anchorHeight
-          : anchorWidth > 0 && anchorBox.width > 0
-            ? anchorBox.width / anchorWidth
-            : 1;
-      const scale: number = zoom > 0 && Number.isFinite(zoom) ? zoom : 1;
+      const scale: number = this.readZoom(anchor, anchorBox);
 
       this.snapAnchors.set(anchor, {
         top:
@@ -1415,22 +1482,36 @@ class ReplayFrameSerializer {
     );
   }
 
-  private hasAbsoluteDescendant(scroller: Element): boolean {
-    const descendants: NodeListOf<Element> = scroller.querySelectorAll("*");
+  /*
+   * The anchor's effective zoom. currentCSSZoom says it outright where it
+   * exists; otherwise the drawn box against the layout box tells, but only
+   * a difference of a pixel or more - offsetHeight is rounded, and a 22.5px
+   * row is not zoomed.
+   */
+  private readZoom(anchor: Element, box: DOMRect): number {
+    const cssZoom: number | undefined = (
+      anchor as Element & { currentCSSZoom?: number }
+    ).currentCSSZoom;
 
-    for (let index: number = 0; index < descendants.length; index++) {
-      const element: Element | undefined = descendants[index];
-
-      if (
-        element &&
-        this.getStyle(element).getPropertyValue("position").trim() ===
-          "absolute"
-      ) {
-        return true;
-      }
+    if (
+      typeof cssZoom === "number" &&
+      cssZoom > 0 &&
+      Number.isFinite(cssZoom)
+    ) {
+      return cssZoom;
     }
 
-    return false;
+    const width: number = (anchor as HTMLElement).offsetWidth || 0;
+    const height: number = (anchor as HTMLElement).offsetHeight || 0;
+    let zoom: number = 1;
+
+    if (height > 0 && Math.abs(box.height - height) >= 1) {
+      zoom = box.height / height;
+    } else if (width > 0 && Math.abs(box.width - width) >= 1) {
+      zoom = box.width / width;
+    }
+
+    return zoom > 0 && Number.isFinite(zoom) ? zoom : 1;
   }
 
   private measureAnimations(): void {
@@ -1892,6 +1973,24 @@ class ReplayFrameSerializer {
 
     this.appendDeclarations(clone, declarations);
 
+    /*
+     * The top layer is above everything and positioned against the
+     * viewport whatever its ancestors do, so a modal dialog leaves its
+     * place in the tree - where a transformed or clipped ancestor would
+     * capture it - and is drawn last, over its backdrop. Its place in that
+     * layer is taken before its children are cloned, so a modal opened
+     * from inside it comes after it, on top, as it was opened.
+     */
+    if (isModal) {
+      const backdrop: Element | null = this.createModalBackdrop(live);
+
+      if (backdrop) {
+        this.topLayer.push(backdrop);
+      }
+
+      this.topLayer.push(clone);
+    }
+
     if (isHtml && name === "textarea") {
       const textarea: HTMLTextAreaElement = live as HTMLTextAreaElement;
 
@@ -1908,25 +2007,7 @@ class ReplayFrameSerializer {
       );
     }
 
-    if (!isModal) {
-      return clone;
-    }
-
-    /*
-     * The top layer is above everything and positioned against the
-     * viewport whatever its ancestors do, so the dialog leaves its place
-     * in the tree - where a transformed or clipped ancestor would capture
-     * it - and is drawn last, over its backdrop.
-     */
-    const backdrop: Element | null = this.createModalBackdrop(live);
-
-    if (backdrop) {
-      this.topLayer.push(backdrop);
-    }
-
-    this.topLayer.push(clone);
-
-    return null;
+    return isModal ? null : clone;
   }
 
   private createClone(live: Element): Element {
@@ -2052,8 +2133,33 @@ class ReplayFrameSerializer {
   ): void {
     if (context && context.childScroll) {
       const style: CSSStyleDeclaration = this.getStyle(live);
+      const position: string = style.getPropertyValue("position").trim();
+      const display: string = style.getPropertyValue("display").trim();
 
-      if (style.getPropertyValue("position").trim() !== "fixed") {
+      if (
+        display === "inline" &&
+        (position === "static" || position === "relative")
+      ) {
+        /*
+         * A translate does nothing to an inline box; relative offsets do,
+         * on top of any it already has.
+         */
+        const readOffset: (property: string) => string = (
+          property: string,
+        ): string => {
+          const value: string = style.getPropertyValue(property).trim();
+
+          return position === "relative" && value && value !== "auto"
+            ? value
+            : "0px";
+        };
+
+        declarations.push(
+          "position: relative !important",
+          `left: calc(${readOffset("left")} + ${-context.childScroll.x}px) !important`,
+          `top: calc(${readOffset("top")} + ${-context.childScroll.y}px) !important`,
+        );
+      } else if (position !== "fixed") {
         declarations.push(
           `translate: ${composeTranslate(
             style.getPropertyValue("translate"),
@@ -2104,10 +2210,6 @@ class ReplayFrameSerializer {
         "scroll-padding: 0px !important",
         "scroll-behavior: auto !important",
       );
-
-      if (plan.canPosition) {
-        declarations.push("position: relative !important");
-      }
     }
 
     const anchor: SnapMargins | undefined = this.snapAnchors.get(live);
@@ -2136,18 +2238,62 @@ class ReplayFrameSerializer {
     context: CloneContext,
   ): void {
     const plan: ScrollPlan | undefined = this.scrollPlans.get(live);
-    const hasMarker: boolean = Boolean(
-      plan && !plan.anchor && (plan.isPositioned || plan.canPosition),
+    const needsMarker: boolean = Boolean(
+      plan && !plan.anchor && !plan.isReverse,
     );
+    const hasAbsoluteMarker: boolean = Boolean(
+      needsMarker && plan && plan.isPositioned,
+    );
+    const hasFlowMarker: boolean = Boolean(
+      needsMarker && plan && !plan.isPositioned && plan.canTakeFlowMarker,
+    );
+    /* Neither marker fits: the children are moved instead. */
+    const movesChildren: boolean = Boolean(
+      plan &&
+        (plan.isReverse ||
+          (needsMarker && !hasAbsoluteMarker && !hasFlowMarker)),
+    );
+    /*
+     * A display:contents box (a slot among them) has no box to move, so
+     * an offset handed to it passes on to its children.
+     */
+    const isContents: boolean =
+      this.getStyle(live).getPropertyValue("display").trim() === "contents";
     const childContext: CloneContext = {
       isInShadow: context.isInShadow || Boolean(live.shadowRoot),
       textScroll:
-        plan && (plan.isReverse || (!plan.anchor && !hasMarker))
+        plan && movesChildren
           ? plan.offset
-          : null,
-      childScroll: plan && plan.isReverse ? plan.offset : null,
+          : isContents
+            ? context.textScroll
+            : null,
+      childScroll:
+        plan && movesChildren
+          ? plan.offset
+          : isContents
+            ? context.childScroll
+            : null,
       parentStyle: this.getStyle(live),
     };
+
+    /*
+     * A block box with nothing to snap to gets a zero-height marker in
+     * front of its content, snapped the way an anchor is: it sits at the
+     * content edge, so its margin is that edge's distance from the
+     * scrolled-to position. In flow it changes no containing block and no
+     * stacking; its own element name keeps type selectors off it.
+     */
+    if (plan && hasFlowMarker) {
+      const marker: Element = this.output.createElementNS(
+        XHTML_NAMESPACE,
+        REPLAY_FRAME_SCROLL_MARKER_NAME,
+      );
+      marker.setAttribute(
+        "style",
+        `display: block !important; width: 0px !important; height: 0px !important; margin: 0px !important; padding: 0px !important; border: 0px none !important; float: none !important; scroll-snap-align: start !important; scroll-margin-top: ${plan.paddingTop - plan.offset.y}px !important; scroll-margin-left: ${plan.paddingLeft - plan.offset.x}px !important; scroll-margin-bottom: 0px !important; scroll-margin-right: 0px !important; pointer-events: none !important`,
+      );
+      clone.appendChild(marker);
+    }
 
     if (live.shadowRoot) {
       this.appendClones(live.shadowRoot.childNodes, clone, childContext);
@@ -2167,12 +2313,10 @@ class ReplayFrameSerializer {
     }
 
     /*
-     * A box with nothing to snap to gets a marker of its own, the way the
-     * frame does - it is absolutely placed, so it moves nothing. A static
-     * box is made its containing block for that when nothing else inside
-     * it is absolutely placed.
+     * A positioned box with nothing to snap to gets an absolutely placed
+     * marker of its own, the way the frame does: it moves nothing.
      */
-    if (plan && hasMarker) {
+    if (plan && hasAbsoluteMarker) {
       const marker: Element = this.output.createElementNS(
         XHTML_NAMESPACE,
         "span",
@@ -2214,14 +2358,19 @@ class ReplayFrameSerializer {
     live: Element,
     pseudo?: string,
     parentStyle?: CSSStyleDeclaration | null,
+    keepUsedSizes?: boolean,
   ): string {
     const style: CSSStyleDeclaration = this.getStyle(live, pseudo);
     const initial: Map<string, string> | null =
       !pseudo && parentStyle ? this.initialStyles.get() : null;
     const parts: Array<string> = initial ? ["all: unset !important"] : [];
-    const autoSizes: Set<string> = pseudo
-      ? new Set<string>()
-      : this.readAutoSizes(live);
+    /*
+     * A stand-in of another kind (a frame drawn as an <img>, a textarea as
+     * a <div>) cannot rebuild the live element's intrinsic size, so it
+     * keeps the used one.
+     */
+    const autoSizes: Set<string> =
+      pseudo || keepUsedSizes ? new Set<string>() : this.readAutoSizes(live);
 
     for (let index: number = 0; index < style.length; index++) {
       const property: string = style.item(index);
@@ -2253,6 +2402,8 @@ class ReplayFrameSerializer {
         initial &&
         parentStyle &&
         !WIDTH_PROPERTY_PATTERN.test(property) &&
+        (!CURRENT_COLOR_INITIAL_PATTERN.test(property) ||
+          value === style.getPropertyValue("color")) &&
         initial.get(property) === value &&
         parentStyle.getPropertyValue(property) === value
       ) {
@@ -2558,10 +2709,29 @@ class ReplayFrameSerializer {
     clone: Element,
     declarations: Array<string>,
   ): void {
+    /*
+     * Lowercase copies are added, not swapped in: [class*="Btn"] is still
+     * case-sensitive in quirks mode and must keep matching the original.
+     */
     const className: string | null = clone.getAttribute("class");
 
     if (className) {
-      clone.setAttribute("class", className.toLowerCase());
+      const tokens: Array<string> = className
+        .split(WHITESPACE_PATTERN)
+        .filter((token: string): boolean => {
+          return token.length > 0;
+        });
+      const lowered: Array<string> = tokens
+        .map((token: string): string => {
+          return token.toLowerCase();
+        })
+        .filter((token: string): boolean => {
+          return !tokens.includes(token);
+        });
+
+      if (lowered.length > 0) {
+        clone.setAttribute("class", [...tokens, ...lowered].join(" "));
+      }
     }
 
     const style: CSSStyleDeclaration = this.getStyle(live);
@@ -2626,7 +2796,10 @@ class ReplayFrameSerializer {
       }
     }
 
-    box.setAttribute("style", this.computedStyleText(live));
+    box.setAttribute(
+      "style",
+      this.computedStyleText(live, undefined, undefined, true),
+    );
     this.collectDeclarations(live, declarations, context);
     this.appendDeclarations(box, declarations);
     text.setAttribute(
@@ -2690,7 +2863,10 @@ class ReplayFrameSerializer {
     }
 
     image.setAttribute("alt", "");
-    image.setAttribute("style", this.computedStyleText(live));
+    image.setAttribute(
+      "style",
+      this.computedStyleText(live, undefined, undefined, true),
+    );
     image.setAttribute("src", this.resolveFrameSource(live));
 
     const declarations: Array<string> = [];
@@ -2785,7 +2961,11 @@ class ReplayFrameSerializer {
     );
     backdrop.setAttribute(
       "style",
-      `position: fixed !important; inset: 0px !important; z-index: 2147483646 !important; background-color: ${color} !important`,
+      /*
+       * The same z-index as every other top-layer box: they stack in the
+       * order they were opened, each backdrop over the dialogs before it.
+       */
+      `position: fixed !important; inset: 0px !important; z-index: 2147483647 !important; background-color: ${color} !important`,
     );
 
     return backdrop;

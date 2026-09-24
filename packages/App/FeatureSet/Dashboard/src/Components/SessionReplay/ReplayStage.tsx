@@ -1851,16 +1851,17 @@ const ReplayStage: FunctionComponent<ReplayStageProps> = (
         data-testid="replay-stage-frame"
         className={
           isMobile
-            ? "overflow-hidden rounded-xl ring-8 ring-gray-800 bg-black"
-            : "bg-white shadow-sm ring-1 ring-gray-200"
+            ? "isolate overflow-hidden rounded-xl ring-8 ring-gray-800 bg-black"
+            : "isolate bg-white shadow-sm ring-1 ring-gray-200"
         }
         style={frameStyle}
       >
         {/*
-         * isolate: the Replayer's pointer and touch rings carry the largest
-         * z-index there is, and at 1:1 (no transform on the host) nothing
-         * else contained it - it painted over the overlays drawn above the
-         * stage, the paused Play button and the screenshot dock among them.
+         * isolate (here and on the frame): the Replayer's pointer and the
+         * touch rings carry the largest z-index there is, and at 1:1 (no
+         * transform on the host) nothing else contained them - they
+         * painted over the overlays drawn above the stage, the paused Play
+         * button and the screenshot dock among them.
          */}
         <div ref={mountRef} className="absolute inset-0 isolate" />
         {touchRings.map((ring: TouchRing): ReactElement => {

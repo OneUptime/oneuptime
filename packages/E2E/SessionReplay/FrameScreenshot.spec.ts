@@ -3159,23 +3159,37 @@ test("at 1:1 the dock and the paused Play button stay above the replay pointer",
 
     /*
      * The isolation is what does it: with the class taken off the Replayer's
-     * mount, the pointer paints over the target. Put back straight after.
+     * mount and the frame around it (which also holds the touch rings), the
+     * pointer paints over the target. Put back straight after.
      */
     const uncontained: string = await page.evaluate(
       (point: PixelPoint): string => {
-        const mount: Element | null | undefined = document
-          .querySelector(".replayer-wrapper")
-          ?.closest(".isolate");
+        const wrapper: Element | null =
+          document.querySelector(".replayer-wrapper");
+        const isolated: Array<Element> = [];
+        let ancestor: Element | null = wrapper?.parentElement ?? null;
 
-        if (!mount) {
+        while (ancestor) {
+          if (ancestor.classList.contains("isolate")) {
+            isolated.push(ancestor);
+          }
+
+          ancestor = ancestor.parentElement;
+        }
+
+        if (isolated.length === 0) {
           return "(no isolated mount)";
         }
 
-        mount.classList.remove("isolate");
+        for (const element of isolated) {
+          element.classList.remove("isolate");
+        }
 
         const hit: Element | null = document.elementFromPoint(point.x, point.y);
 
-        mount.classList.add("isolate");
+        for (const element of isolated) {
+          element.classList.add("isolate");
+        }
 
         return hit && hit.closest(".replayer-mouse")
           ? "replayer-mouse"

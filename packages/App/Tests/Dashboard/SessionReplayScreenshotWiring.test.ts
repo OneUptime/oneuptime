@@ -562,7 +562,11 @@ describe("measuring the live replay document", () => {
     expect(CAPTURE_SOURCE).not.toContain("measureSticky");
     expect(CAPTURE_SOURCE).not.toContain("style.setProperty(");
     expect(CAPTURE_SOURCE).not.toContain("style.removeProperty(");
-    expect(CAPTURE_SOURCE).not.toContain(".style.cssText");
+    /*
+     * Reading a nested style rule's declarations (CSS nesting) is fine;
+     * writing an element's inline style is not.
+     */
+    expect(CAPTURE_SOURCE).not.toMatch(/\.style\.cssText\s*=[^=]/);
   });
 
   test("only reads the elements it measures", () => {

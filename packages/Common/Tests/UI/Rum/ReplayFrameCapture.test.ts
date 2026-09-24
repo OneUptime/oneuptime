@@ -3636,6 +3636,43 @@ describe("serializeReplayFrame", () => {
       }
     });
 
+    /*
+     * Behind all: unset a currentcolor-initial property takes the
+     * element's OWN colour, so matching the probe's black and the parent's
+     * black proves nothing: a black border on red text must be written.
+     */
+    it("writes a currentcolor-initial colour unless it is the element's own colour", () => {
+      const replayDocument: Document = makeShadowPage();
+      const inner: Element = innerOf(replayDocument);
+
+      overrideComputedStyle(liveById(replayDocument, "card"), {
+        color: "rgb(0, 0, 0)",
+        "border-top-color": "rgb(0, 0, 0)",
+        "outline-color": "rgb(0, 0, 0)",
+      });
+      overrideComputedStyle(inner, {
+        color: "rgb(220, 38, 38)",
+        "border-top-color": "rgb(0, 0, 0)",
+        "outline-color": "rgb(220, 38, 38)",
+      });
+      spyOnReferenceFrames({
+        ...INITIAL,
+        "border-top-color": "rgb(0, 0, 0)",
+        "outline-color": "rgb(0, 0, 0)",
+      });
+
+      const declarations: Array<string> = declarationsOf(
+        byId(capture(replayDocument).svg, "inner"),
+      );
+
+      expect(declarations).toContain(
+        "border-top-color: rgb(0, 0, 0) !important",
+      );
+      expect(declarations).toContain(
+        "outline-color: rgb(220, 38, 38) !important",
+      );
+    });
+
     it("writes every property, without the reset, when no reference frame can be made", () => {
       const replayDocument: Document = makeShadowPage();
       const values: Record<string, string> = {
@@ -3796,14 +3833,14 @@ describe("serializeReplayFrame", () => {
     });
 
     /*
-     * Nothing in it is laid out as a box (the <b> is plain inline), so it
-     * gets a marker - and to hold the marker it becomes a containing
-     * block, which moves nothing because nothing in it is absolutely
-     * placed.
+     * Nothing in it is laid out as a box (the <b> is plain inline), so a
+     * zero-height marker goes in front of its content and is snapped like
+     * an anchor. In flow, it changes no containing block and no stacking:
+     * the box is not made positioned.
      */
-    it("gives an unpositioned box with no child to snap to a marker, positioning it", () => {
+    it("puts a zero-height marker in front of a block box with no child to snap to", () => {
       const replayDocument: Document = makeReplayDocument(
-        `<pre id="log" style="overflow: auto">line one<b id="bold">bold</b>line two</pre>`,
+        `<pre id="log" style="overflow: auto; padding: 6px 3px">line one<b id="bold">bold</b>line two</pre>`,
       );
 
       stubBox(liveById(replayDocument, "log"), {
@@ -3812,60 +3849,73 @@ describe("serializeReplayFrame", () => {
       });
 
       const log: Element = byId(capture(replayDocument).svg, "log");
-      const marker: Element | undefined = Array.from(log.children).find(
-        (child: Element): boolean => {
-          return (child.getAttribute("style") ?? "").includes(
-            "scroll-snap-align: start",
-          );
-        },
-      );
+      const marker: Element | undefined = log.children[0];
 
-      expect(styleOf(log)).toContain("position: relative !important");
+      expect(styleOf(log)).not.toContain("position: relative");
       expect(styleOf(log)).toContain("scroll-snap-type: both mandatory");
-      expect(marker).toBeDefined();
-      expect(styleOf(marker as Element)).toContain("left: 5px !important");
-      expect(styleOf(marker as Element)).toContain("top: 40px !important");
+      expect(marker?.localName).toBe("oneuptime-scroll-marker");
+      expect(styleOf(marker as Element)).toContain("height: 0px !important");
+      expect(styleOf(marker as Element)).toContain(
+        "scroll-snap-align: start !important",
+      );
+      /* The content edge (padding 6px/3px) less the recorded offset. */
+      expect(styleOf(marker as Element)).toContain(
+        "scroll-margin-top: -34px !important",
+      );
+      expect(styleOf(marker as Element)).toContain(
+        "scroll-margin-left: -2px !important",
+      );
       expect(log.textContent).toBe("line oneboldline two");
     });
 
     /*
-     * Positioning it would re-anchor an absolutely placed descendant, so
-     * its text is moved by the offset instead.
+     * An absolutely placed descendant is no obstacle any more: the marker
+     * is in flow, so it re-anchors nothing.
      */
-    it("moves the text of an unpositioned box with absolute contents and no child to snap to", () => {
+    it("keeps absolutely placed contents where they were when it adds a marker", () => {
       const replayDocument: Document = makeReplayDocument(
-        `<pre id="log" style="overflow: auto">line one<b id="bold">bold</b>line two<i id="tip" style="position: absolute"></i></pre>`,
+        `<pre id="log" style="overflow: auto">line one<i id="tip" style="position: absolute"></i></pre>`,
       );
 
-      stubBox(liveById(replayDocument, "log"), {
+      stubBox(liveById(replayDocument, "log"), { scrollTop: 40 });
+
+      const captured: CapturedFrame = capture(replayDocument);
+      const log: Element = byId(captured.svg, "log");
+
+      expect(log.children[0]?.localName).toBe("oneuptime-scroll-marker");
+      expect(styleOf(log)).not.toContain("position: relative");
+      expect(styleOf(byId(captured.svg, "tip"))).not.toContain("translate");
+    });
+
+    /*
+     * A flex or grid box would lay a marker out as an item (one more gap),
+     * so there the children are moved by the offset instead.
+     */
+    it("moves the children of a flex box with no child to snap to", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<div id="row" style="display: flex; overflow: auto">text<div id="moved" style="transform: translateX(1px)">A</div></div>`,
+      );
+
+      stubBox(liveById(replayDocument, "row"), {
         scrollTop: 40,
         scrollLeft: 5,
       });
 
       const captured: CapturedFrame = capture(replayDocument);
-      const log: Element = byId(captured.svg, "log");
-      const spans: Array<Element> = Array.from(log.children).filter(
+      const row: Element = byId(captured.svg, "row");
+      const span: Element | undefined = Array.from(row.children).find(
         (child: Element): boolean => {
           return child.localName === "span";
         },
       );
 
-      expect(
-        spans.map((span: Element): string | null => {
-          return span.textContent;
-        }),
-      ).toEqual(["line one", "line two"]);
-
-      for (const span of spans) {
-        expect(span.getAttribute("style")).toBe(
-          "position: relative; left: -5px; top: -40px",
-        );
-      }
-
-      expect(byId(captured.svg, "bold").children).toHaveLength(0);
-      expect(byId(captured.svg, "bold").textContent).toBe("bold");
-      expect(log.querySelectorAll("span")).toHaveLength(2);
-      expect(styleOf(log)).not.toContain("position: relative");
+      expect(row.querySelector("oneuptime-scroll-marker")).toBeNull();
+      expect(styleOf(byId(captured.svg, "moved"))).toContain(
+        "translate: -5px -40px !important",
+      );
+      expect(span?.getAttribute("style")).toBe(
+        "position: relative; left: -5px; top: -40px",
+      );
     });
 
     it("gives a positioned box with no child to snap to a marker of its own", () => {
@@ -4802,7 +4852,7 @@ describe("serializeReplayFrame", () => {
       expect(styleOf(clone)).toContain("z-index: 2147483647 !important");
       expect(backdrop.localName).toBe("div");
       expect(styleOf(backdrop)).toBe(
-        "position: fixed !important; inset: 0px !important; z-index: 2147483646 !important; background-color: rgba(0, 0, 0, 0.5) !important",
+        "position: fixed !important; inset: 0px !important; z-index: 2147483647 !important; background-color: rgba(0, 0, 0, 0.5) !important",
       );
       expect(byId(captured.svg, "question").textContent).toBe("Delete?");
     });
@@ -4886,7 +4936,11 @@ describe("serializeReplayFrame", () => {
 
       expect(captured.body.lastElementChild).toBe(dialog);
       expect(dialog.parentElement).toBe(captured.body);
-      expect(styleOf(backdrop)).toContain("z-index: 2147483646 !important");
+      /*
+       * Every top-layer box shares the top z-index and stacks in the order
+       * it was opened, each backdrop over the dialogs before it.
+       */
+      expect(styleOf(backdrop)).toContain("z-index: 2147483647 !important");
       expect(backdrop.previousElementSibling?.id).toBe("footer");
       expect(byId(captured.svg, "shell").contains(dialog)).toBe(false);
       expect(captured.svg.querySelectorAll(`[id="confirm"]`)).toHaveLength(1);
@@ -5393,15 +5447,22 @@ describe("serializeReplayFrame", () => {
       expect(styles[styles.length - 2]).toBe(REPLAY_FRAME_QUIRKS_CSS);
     });
 
-    it("lowercases class names in the markup and in the rules alike", () => {
+    /*
+     * Lowercase copies are added beside the originals: class selectors
+     * match case-insensitively in quirks mode, but [class*=...] does not,
+     * and must keep matching the original names.
+     */
+    it("adds lowercase copies of class names and lowercases the rules", () => {
       const captured: CapturedFrame = capture(makeQuirksPage());
       const css: string = headStyleTexts(captured).join("\n");
 
       expect(byId(captured.svg, "first").getAttribute("class")).toBe(
-        "lead text",
+        "Lead Text lead text",
       );
-      expect(byId(captured.svg, "box").getAttribute("class")).toBe("box");
-      expect(byId(captured.svg, "inline").getAttribute("class")).toBe("tag");
+      expect(byId(captured.svg, "box").getAttribute("class")).toBe("Box box");
+      expect(byId(captured.svg, "inline").getAttribute("class")).toBe(
+        "Tag tag",
+      );
       expect(css).toContain(".box {");
       expect(css).toContain(".lead {");
       expect(css).toContain(".tag::after");
@@ -6464,5 +6525,226 @@ describe("captureReplayFrame", () => {
     expect(byId(parentSvg, "child").getAttribute("src")).toBe(
       harness.canvases[0]!.dataUrl,
     );
+  });
+});
+
+/*
+ * Regressions a second review found in the fixes above, each pinned so it
+ * cannot come back.
+ */
+describe("ReplayFrameCapture review regressions", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+    document.body.innerHTML = "";
+  });
+
+  it("does not read a fractional row height's rounding as zoom", () => {
+    const replayDocument: Document = makeReplayDocument(
+      `<div id="scroller" style="overflow: auto"><section id="anchor">Row</section></div>`,
+    );
+
+    stubBox(liveById(replayDocument, "scroller"), {
+      scrollTop: 1500,
+      rect: { top: 0, left: 0 },
+    });
+    stubBox(liveById(replayDocument, "anchor"), {
+      clientRectCount: 1,
+      offsetWidth: 300,
+      offsetHeight: 23,
+      rect: { top: -1500, left: 0, width: 300, height: 22.5 },
+    });
+
+    const anchor: string = styleOf(byId(capture(replayDocument).svg, "anchor"));
+
+    expect(anchor).toContain("scroll-margin-top: -1500px !important");
+  });
+
+  it("takes the zoom from currentCSSZoom where the browser reports it", () => {
+    const replayDocument: Document = makeReplayDocument(
+      `<div id="scroller" style="overflow: auto"><section id="anchor">Row</section></div>`,
+    );
+    const live: HTMLElement = liveById(replayDocument, "anchor");
+
+    stubBox(liveById(replayDocument, "scroller"), {
+      scrollTop: 300,
+      rect: { top: 0, left: 0 },
+    });
+    stubBox(live, {
+      clientRectCount: 1,
+      offsetWidth: 100,
+      offsetHeight: 40,
+      rect: { top: -300, left: 0, width: 100, height: 40 },
+    });
+    Object.defineProperty(live, "currentCSSZoom", {
+      configurable: true,
+      get: (): number => {
+        return 2;
+      },
+    });
+
+    const anchor: string = styleOf(byId(capture(replayDocument).svg, "anchor"));
+
+    expect(anchor).toContain("scroll-margin-top: -150px !important");
+  });
+
+  /*
+   * A stand-in of another kind cannot rebuild the live element's intrinsic
+   * size - an iframe's default 300x150, a textarea's rows and cols - so it
+   * keeps the used size even where the typed style says auto.
+   */
+  it("keeps the used size on a frame's stand-in image and a scrolled textarea's box", () => {
+    const replayDocument: Document = makeReplayDocument(
+      `<iframe id="frame"></iframe><textarea id="notes" rows="4">a</textarea>`,
+    );
+    const frame: HTMLElement = liveById(replayDocument, "frame");
+    const notes: HTMLTextAreaElement = liveById(
+      replayDocument,
+      "notes",
+    ) as HTMLTextAreaElement;
+
+    notes.value = "a\nb\nc\nd\ne\nf";
+    overrideComputedStyle(frame, { width: "300px", height: "150px" });
+    overrideComputedStyle(notes, { width: "180px", height: "72px" });
+    stubComputedStyleMap(frame, { width: "auto", height: "auto" });
+    stubComputedStyleMap(notes, { width: "auto", height: "auto" });
+    stubBox(notes, { scrollTop: 30 });
+
+    const svg: Document = capture(replayDocument).svg;
+
+    expect(styleOf(byId(svg, "frame"))).toContain("width: 300px !important");
+    expect(styleOf(byId(svg, "frame"))).toContain("height: 150px !important");
+    expect(styleOf(byId(svg, "notes"))).toContain("width: 180px !important");
+    expect(styleOf(byId(svg, "notes"))).toContain("height: 72px !important");
+  });
+
+  /*
+   * On a right-to-left page every box is rtl, and a list scrolled only
+   * down has no negative offset: it snaps like any other, keeping its
+   * sticky header, rather than having its children moved.
+   */
+  it("still snaps a right-to-left box that is scrolled only vertically", () => {
+    const replayDocument: Document = makeReplayDocument(
+      `<div id="list" dir="rtl" style="overflow: auto"><section id="first">Row</section></div>`,
+    );
+
+    stubBox(liveById(replayDocument, "list"), {
+      scrollTop: 400,
+      rect: { top: 0, left: 0 },
+    });
+    stubBox(liveById(replayDocument, "first"), {
+      clientRectCount: 1,
+      offsetWidth: 200,
+      offsetHeight: 40,
+      rect: { top: -400, left: 0, width: 200, height: 40 },
+    });
+
+    const svg: Document = capture(replayDocument).svg;
+
+    expect(styleOf(byId(svg, "first"))).toContain(
+      "scroll-snap-align: start !important",
+    );
+    expect(styleOf(byId(svg, "first"))).not.toContain("translate");
+  });
+
+  it("moves the children of a right-to-left box scrolled into negative offsets", () => {
+    const replayDocument: Document = makeReplayDocument(
+      `<div id="tabs" dir="rtl" style="overflow: auto"><section id="first">Tab</section></div>`,
+    );
+
+    stubBox(liveById(replayDocument, "tabs"), { scrollLeft: -120 });
+
+    expect(styleOf(byId(capture(replayDocument).svg, "first"))).toContain(
+      "translate: 120px 0px !important",
+    );
+  });
+
+  /*
+   * A modal opened from inside another is on top of it in the top layer;
+   * its place is taken before its ancestor's children are cloned.
+   */
+  it("draws a modal opened from inside another modal above it", () => {
+    const replayDocument: Document = makeReplayDocument(
+      `<dialog id="outer" open>Editor<dialog id="inner" open>Confirm</dialog></dialog>`,
+    );
+
+    makeModal(liveById(replayDocument, "outer"));
+    makeModal(liveById(replayDocument, "inner"));
+
+    const body: Element = childNamed(
+      childNamed(capture(replayDocument).svg.documentElement, "foreignObject"),
+      "div",
+    );
+    const order: Array<string> = Array.from(
+      body.querySelectorAll("dialog"),
+    ).map((dialog: Element): string => {
+      return dialog.getAttribute("id") ?? "";
+    });
+
+    expect(order).toEqual(["outer", "inner"]);
+    expect(
+      byId(capture(replayDocument).svg, "outer").contains(
+        byId(capture(replayDocument).svg, "inner"),
+      ),
+    ).toBe(false);
+  });
+
+  /*
+   * Chromium and Firefox keep oklch() and friends in computed colours;
+   * a canvas paints any of them and reads back sRGB for the luminance.
+   */
+  it("reads a non-rgb colour through a canvas", () => {
+    const fillRect: ReturnType<typeof jest.fn> = jest.fn();
+
+    jest
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockImplementation((): RenderingContext => {
+        return {
+          fillStyle: "",
+          fillRect: fillRect,
+          getImageData: (): ImageData => {
+            return {
+              data: new Uint8ClampedArray([247, 247, 247, 255]),
+            } as unknown as ImageData;
+          },
+        } as unknown as RenderingContext;
+      });
+
+    expect(isLightColor("oklch(0.97 0 0)")).toBe(true);
+    expect(fillRect).toHaveBeenCalled();
+  });
+
+  it("settles @media nested inside a style rule", () => {
+    const nested: Array<unknown> = [
+      {
+        cssText: "@media (hover: hover) { .a:hover { color: blue; } }",
+        media: { mediaText: "(hover: hover)" },
+        cssRules: [{ cssText: ".a:hover { color: blue; }" }],
+      },
+      {
+        cssText: "@media print { .a { color: gray; } }",
+        media: { mediaText: "print" },
+        cssRules: [{ cssText: ".a { color: gray; }" }],
+      },
+    ];
+    const sheet: unknown = {
+      cssRules: [
+        {
+          cssText: ".a { color: red; @media (hover: hover) { ... } }",
+          selectorText: ".a",
+          style: { cssText: "color: red;" },
+          cssRules: nested,
+        },
+      ],
+    };
+
+    const text: string =
+      readStyleSheetText(sheet as CSSStyleSheet, (query: string): boolean => {
+        return query !== "print";
+      }) ?? "";
+
+    expect(text).toContain(".a { color: red;");
+    expect(text).toContain(".a:hover { color: blue; }");
+    expect(text).not.toContain("@media");
+    expect(text).not.toContain("gray");
   });
 });

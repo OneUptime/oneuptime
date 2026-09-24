@@ -342,6 +342,24 @@ describe("ReplayStage mounting", () => {
     expect(engine.attachedTo).toBe(mount);
     expect(engine.attachedTo).toHaveClass("isolate");
   });
+
+  /*
+   * The touch rings are the mount's siblings, not its children: the frame
+   * that holds them both is isolated too, on a desktop and a phone frame.
+   */
+  it("isolates the frame, so the touch rings stay inside it as well", () => {
+    const engine: FakeEngine = new FakeEngine({
+      recordedSize: { width: 1200, height: 900 },
+    });
+    const { rerender } = render(<ReplayStage engine={engine} />);
+
+    expect(frameElement()).toHaveClass("isolate");
+
+    rerender(<ReplayStage engine={engine} isMobile={true} />);
+
+    expect(stageElement()).toHaveAttribute("data-replay-frame", "phone");
+    expect(frameElement()).toHaveClass("isolate");
+  });
 });
 
 /* A ResizeObserver whose callbacks this test fires by hand. */
