@@ -32,6 +32,7 @@ import {
   displayStatusForResource,
 } from "../Utils/DockerSwarmResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
+import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 
 const DockerSwarmClusterServiceDetail: FunctionComponent<
   PageComponentProps
@@ -125,6 +126,7 @@ const DockerSwarmClusterServiceDetail: FunctionComponent<
             }
           />
         ),
+        description: DOCKER_SWARM_METRIC_DESCRIPTIONS.serviceStatus,
       });
     }
 
@@ -132,7 +134,11 @@ const DockerSwarmClusterServiceDetail: FunctionComponent<
       summaryFields.push({ title: "Mode", value: row.serviceMode });
     }
 
-    summaryFields.push({ title: "Replicas", value: formatReplicas(row) });
+    summaryFields.push({
+      title: "Replicas",
+      value: formatReplicas(row),
+      description: DOCKER_SWARM_METRIC_DESCRIPTIONS.replicas,
+    });
 
     if (row.image) {
       summaryFields.push({ title: "Image", value: row.image });
