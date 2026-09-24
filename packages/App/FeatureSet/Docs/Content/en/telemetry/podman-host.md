@@ -195,5 +195,6 @@ Set the `PODMAN_HOST_NAME` environment variable to a friendly name and recreate 
 ## Next steps
 
 - Configure **Podman Monitors** to alert on container CPU / memory / restart conditions — see [Podman Monitor](/docs/monitor/podman-monitor).
+- Database containers on the host (PostgreSQL, MySQL, Redis, MongoDB and many more engines, recognised by image) are detected automatically and get their own pages — see [Databases](/docs/telemetry/databases).
 - For Kubernetes clusters instead of standalone Podman hosts, use the [OneUptime Kubernetes Agent](/docs/telemetry/kubernetes-agent).
 - For non-containerized hosts (Linux / macOS / Windows VMs and bare metal), use the [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector).

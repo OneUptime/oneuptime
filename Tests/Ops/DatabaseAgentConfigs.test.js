@@ -31,11 +31,30 @@ const yaml = require("js-yaml");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const AGENT_DIR = "agents/DatabaseAgent";
-const ENGINES = ["postgresql", "mysql", "redis", "mongodb"];
+const ENGINES = [
+  "postgresql",
+  "mysql",
+  "redis",
+  "mongodb",
+  "sqlserver",
+  "oracledb",
+  "elasticsearch",
+  "memcached",
+];
 /* Engines whose receiver emits query samples and top queries as logs. */
-const ENGINES_WITH_QUERY_EVENTS = ["postgresql", "mysql", "mongodb"];
+const ENGINES_WITH_QUERY_EVENTS = [
+  "postgresql",
+  "mysql",
+  "mongodb",
+  "sqlserver",
+  "oracledb",
+];
 /* Receivers whose server.address / server.port are off by default upstream. */
 const ENGINES_NEEDING_ADDRESS_ATTRIBUTES = ["redis", "mongodb"];
+/* Receivers with a TLS `insecure` switch (the others choose TLS elsewhere). */
+const ENGINES_WITH_TLS_SWITCH = ["postgresql", "mysql", "redis", "mongodb"];
+/* Receivers whose default resource attributes include the database host's name. */
+const ENGINES_REPORTING_HOST_NAME = ["sqlserver", "oracledb"];
 const COLLECTOR = /otel\/opentelemetry-collector-contrib:(\d+\.\d+\.\d+)/g;
 const OPTIONAL_ID_STATEMENTS = [
   'set(resource.attributes["oneuptime.database.server.id"], "${env:DATABASE_SERVER_ID}")',
@@ -69,6 +88,33 @@ function composeEnvironment() {
   );
 }
 
+/* The body of a shell function `name() { ... }` in a script. */
+function shellFunction(script, name) {
+  const match = script.match(
+    new RegExp(`\\n${name}\\(\\) \\{([\\s\\S]*?)\\n\\}`),
+  );
+  expect({ name, found: Boolean(match) }).toEqual({ name, found: true });
+  return match[1];
+}
+
+/* A case table's `pattern|pattern) printf 'value' ;;` rows: input → value. */
+function caseTable(script, name) {
+  const table = new Map();
+  for (const row of shellFunction(script, name).matchAll(
+    /^\s+([a-z0-9._|]+)\) printf '([a-z0-9._]+)' ;;$/gm,
+  )) {
+    for (const input of row[1].split("|")) {
+      table.set(input, row[2]);
+    }
+  }
+  return table;
+}
+
+/* The distinct values a case table prints. */
+function caseOutputs(script, name) {
+  return [...new Set(caseTable(script, name).values())].sort();
+}
+
 function resourceAttribute(engine, key) {
   return config(engine).processors.resource.attributes.find((attribute) => {
     return attribute.key === key;
@@ -90,9 +136,14 @@ describe.each(ENGINES)("the %s config", (engine) => {
   });
 
   test("upserts the database's identity and the agent's marker", () => {
+    /*
+     * The engine comes from DATABASE_SYSTEM, not from the file: one config
+     * monitors a family (mysql.yaml runs MySQL and MariaDB), and the
+     * database must show the engine the user named.
+     */
     expect(resourceAttribute(engine, "db.system.name")).toEqual({
       key: "db.system.name",
-      value: engine,
+      value: "${env:DATABASE_SYSTEM}",
       action: "upsert",
     });
     expect(resourceAttribute(engine, "server.address")).toEqual({
@@ -209,12 +260,52 @@ describe.each(ENGINES)("the %s config", (engine) => {
   test("leaves the TLS flags and the event toggles unquoted, so they resolve to booleans", () => {
     const text = configText(engine);
 
-    expect(text).toMatch(/^\s+insecure: \$\{env:DATABASE_TLS_INSECURE\}$/m);
-    expect(text).toMatch(
-      /^\s+insecure_skip_verify: \$\{env:DATABASE_TLS_INSECURE_SKIP_VERIFY\}$/m,
-    );
+    if (ENGINES_WITH_TLS_SWITCH.includes(engine)) {
+      expect(text).toMatch(/^\s+insecure: \$\{env:DATABASE_TLS_INSECURE\}$/m);
+    } else {
+      // TLS is chosen elsewhere (the URL's scheme, the driver) or absent.
+      expect(text).not.toMatch(/\$\{env:DATABASE_TLS_INSECURE\}/);
+    }
+    if (
+      engine === "sqlserver" ||
+      engine === "oracledb" ||
+      engine === "memcached"
+    ) {
+      expect(text).not.toMatch(/DATABASE_TLS_INSECURE_SKIP_VERIFY/);
+    } else {
+      expect(text).toMatch(
+        /^\s+insecure_skip_verify: \$\{env:DATABASE_TLS_INSECURE_SKIP_VERIFY\}$/m,
+      );
+    }
     expect(text).not.toMatch(/"\$\{env:DATABASE_TLS_INSECURE/);
     expect(text).not.toMatch(/"\$\{env:DATABASE_QUERY_EVENTS\}"/);
+    // A port field is an integer: unquoted, like server.port.
+    expect(text).not.toMatch(/"\$\{env:DATABASE_ENDPOINT_PORT\}"/);
+  });
+
+  test("switches off a receiver-reported host.name, which would name the database machine as a Host", () => {
+    const attributes =
+      config(engine).receivers[engine].resource_attributes || {};
+
+    if (ENGINES_REPORTING_HOST_NAME.includes(engine)) {
+      expect(attributes["host.name"]).toEqual({ enabled: false });
+    } else {
+      expect(attributes["host.name"]).toBeUndefined();
+    }
+  });
+
+  test("needs no login it cannot use, and never logs one in over an unexpanded placeholder", () => {
+    const receiver = config(engine).receivers[engine];
+
+    if (engine === "memcached") {
+      // The receiver has no credentials; it must run over TCP.
+      expect(receiver.username).toBeUndefined();
+      expect(receiver.password).toBeUndefined();
+      expect(receiver.transport).toBe("tcp");
+    } else {
+      expect(receiver.username).toBe("${env:DATABASE_USERNAME}");
+      expect(receiver.password).toBe("${env:DATABASE_PASSWORD}");
+    }
   });
 
   test("ships query events only where the receiver has them, behind DATABASE_QUERY_EVENTS", () => {
@@ -310,28 +401,54 @@ describe("the Database Agent install", () => {
     const script = read(`${AGENT_DIR}/install.sh`);
 
     expect(script).toContain(
-      'curl -fsSL "$REPO_BASE/configs/$DATABASE_SYSTEM.yaml" -o "$INSTALL_DIR/otel-collector-config.yaml"',
+      'download_agent_file "$REPO_BASE/configs/$AGENT_CONFIG.yaml" "$INSTALL_DIR/otel-collector-config.yaml"',
+    );
+    expect(script).toContain(
+      'AGENT_CONFIG="$(config_for_engine "$DATABASE_SYSTEM")"',
     );
 
-    const normalize = script.match(/normalize_engine\(\) \{([\s\S]*?)\n\}/);
+    const engines = caseOutputs(script, "normalize_engine");
+    const configsByEngine = caseTable(script, "config_for_engine");
 
-    expect(normalize).not.toBeNull();
-
-    const accepted = [...normalize[1].matchAll(/printf '([a-z]+)'/g)]
-      .map((match) => {
-        return match[1];
-      })
-      .sort();
-
-    expect(accepted).toEqual([...ENGINES].sort());
-
-    for (const engine of accepted) {
+    // Every engine normalize_engine writes has a config, and every config
+    // ships.
+    for (const engine of engines) {
+      expect({ engine, config: configsByEngine.get(engine) || null }).toEqual({
+        engine,
+        config: expect.any(String),
+      });
+    }
+    const configs = [...new Set(configsByEngine.values())].sort();
+    expect(configs).toEqual([...ENGINES].sort());
+    for (const config of configs) {
       expect(
         fs.existsSync(
-          path.join(REPO_ROOT, AGENT_DIR, "configs", `${engine}.yaml`),
+          path.join(REPO_ROOT, AGENT_DIR, "configs", `${config}.yaml`),
         ),
       ).toBe(true);
     }
+    // And every engine a config serves is one normalize_engine can write.
+    expect([...configsByEngine.keys()].sort()).toEqual([...engines].sort());
+  });
+
+  /*
+   * troubleshoot.sh checks the installed config against DATABASE_SYSTEM
+   * with its own copy of the engine → config table.
+   */
+  test("install.sh and troubleshoot.sh map every engine to the same config", () => {
+    const installed = caseTable(
+      read(`${AGENT_DIR}/install.sh`),
+      "config_for_engine",
+    );
+    const troubleshoot = caseTable(
+      read(`${AGENT_DIR}/troubleshoot.sh`),
+      "config_for_engine",
+    );
+
+    expect(installed.size).toBeGreaterThan(8);
+    expect([...troubleshoot.entries()].sort()).toEqual(
+      [...installed.entries()].sort(),
+    );
   });
 
   /*

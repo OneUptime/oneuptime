@@ -15,14 +15,29 @@
  * until the embedded copies byte-match the files on disk again.
  */
 
-/** The engines the Database Agent ships a collector config for. */
-export type DatabaseAgentEngine = "postgresql" | "mysql" | "redis" | "mongodb";
+/**
+ * The configs the Database Agent ships, by file name — which is the
+ * collector receiver each one runs.
+ */
+export type DatabaseAgentEngine =
+  | "postgresql"
+  | "mysql"
+  | "redis"
+  | "mongodb"
+  | "sqlserver"
+  | "oracledb"
+  | "elasticsearch"
+  | "memcached";
 
 export const DATABASE_AGENT_ENGINES: ReadonlyArray<DatabaseAgentEngine> = [
   "postgresql",
   "mysql",
   "redis",
   "mongodb",
+  "sqlserver",
+  "oracledb",
+  "elasticsearch",
+  "memcached",
 ];
 
 export const DATABASE_AGENT_COLLECTOR_IMAGE: string =
@@ -32,9 +47,10 @@ export const DATABASE_AGENT_DOCKER_COMPOSE: string = `services:
   oneuptime-database-agent:
     # Upstream collector, pinned. There is no oneuptime/database-agent image —
     # the agent is entirely defined by otel-collector-config.yaml, which
-    # install.sh downloads next to this file from configs/<engine>.yaml. The
-    # native postgresql / mysql / redis / mongodb receivers talk to the
-    # database directly, so no exporter sidecar is needed. This is the
+    # install.sh downloads next to this file from configs/<receiver>.yaml.
+    # The native postgresql / mysql / redis / mongodb / sqlserver / oracledb
+    # / elasticsearch / memcached receivers talk to the database directly,
+    # so no exporter sidecar is needed. This is the
     # version Tests/Ops/validate-collector-configs.sh validates the configs
     # against; bump the two together (and oneuptime.agent.version in every
     # configs/*.yaml).
@@ -64,15 +80,24 @@ export const DATABASE_AGENT_DOCKER_COMPOSE: string = `services:
     environment:
       - ONEUPTIME_URL=\${ONEUPTIME_URL}
       - ONEUPTIME_TELEMETRY_INGESTION_KEY=\${ONEUPTIME_TELEMETRY_INGESTION_KEY}
-      # Which engine this agent monitors: postgresql, mysql, redis or
-      # mongodb. install.sh downloads configs/<this>.yaml as
-      # otel-collector-config.yaml and reads it back on a re-run; the
-      # engine the collector reports is set in that config.
+      # Which engine this agent monitors, stamped on every batch as
+      # db.system.name: postgresql, mysql, mariadb, redis, valkey, keydb,
+      # dragonfly, mongodb, microsoft.sql_server, oracle.db, elasticsearch,
+      # opensearch or memcached. install.sh picks the matching
+      # configs/<receiver>.yaml (mariadb → mysql.yaml, valkey → redis.yaml,
+      # …) and reads this back on a re-run.
       - DATABASE_SYSTEM=\${DATABASE_SYSTEM}
       # host:port the agent connects to, e.g. db.internal:5432 — or
       # host.docker.internal:5432 / localhost:5432 when the agent runs next
-      # to the database.
+      # to the database. A URL for Elasticsearch / OpenSearch
+      # (http://search.internal:9200, or https:// for TLS).
       - DATABASE_ENDPOINT=\${DATABASE_ENDPOINT}
+      # DATABASE_ENDPOINT's host and port apart, for the SQL Server
+      # receiver, which takes them separately. install.sh writes both.
+      - DATABASE_ENDPOINT_HOST=\${DATABASE_ENDPOINT_HOST:-}
+      - DATABASE_ENDPOINT_PORT=\${DATABASE_ENDPOINT_PORT:-}
+      # Oracle only: the service to connect to (FREEPDB1, ORCLPDB1, …).
+      - DATABASE_ORACLE_SERVICE=\${DATABASE_ORACLE_SERVICE:-}
       # The database's identity in OneUptime, stamped on every metric as
       # server.address / server.port: the host name and port your
       # APPLICATIONS use to reach this database (what their traces report),
@@ -81,8 +106,10 @@ export const DATABASE_AGENT_DOCKER_COMPOSE: string = `services:
       - DATABASE_SERVER_ADDRESS=\${DATABASE_SERVER_ADDRESS}
       - DATABASE_SERVER_PORT=\${DATABASE_SERVER_PORT}
       # A dedicated read-only monitoring login (see README.md for the
-      # least-privilege grants per engine). Optional for Redis and MongoDB
-      # servers without authentication.
+      # least-privilege grants per engine). Optional for Redis, MongoDB and
+      # Elasticsearch servers without authentication; Memcached has none.
+      # The collector expands $ inside these values once more, so a literal
+      # $ is written as $$ (install.sh does this for you).
       - DATABASE_USERNAME=\${DATABASE_USERNAME:-}
       - DATABASE_PASSWORD=\${DATABASE_PASSWORD:-}
       # true connects without TLS; false turns TLS on. Set
@@ -92,8 +119,9 @@ export const DATABASE_AGENT_DOCKER_COMPOSE: string = `services:
       - DATABASE_TLS_INSECURE_SKIP_VERIFY=\${DATABASE_TLS_INSECURE_SKIP_VERIFY:-false}
       # How often the database is queried for its statistics.
       - DATABASE_COLLECTION_INTERVAL=\${DATABASE_COLLECTION_INTERVAL:-30s}
-      # true ships query samples and top queries (PostgreSQL, MySQL and
-      # MongoDB) as logs. They contain query text; off by default.
+      # true ships query samples and top queries (PostgreSQL, MySQL,
+      # MongoDB, SQL Server and Oracle) as logs. They contain query text;
+      # off by default.
       - DATABASE_QUERY_EVENTS=\${DATABASE_QUERY_EVENTS:-false}
       # Optional: the id of an existing database in OneUptime to attach
       # this data to directly (Databases → the database → Documentation).
@@ -191,8 +219,11 @@ receivers:
     # arrive as logs on the database's Logs tab. Both are off unless
     # DATABASE_QUERY_EVENTS=true. Top queries also need the
     # pg_stat_statements extension in every monitored database (see
-    # README.md). They carry query text, so review what your queries
-    # contain before turning them on.
+    # README.md), and their explain plans need SELECT on the tables the
+    # queries touch — pg_monitor grants none, so without it top queries
+    # still arrive but with empty plans, and the collector logs "failed to
+    # explain" for each one. They carry query text, so review what your
+    # queries contain before turning them on.
     events:
       db.server.query_sample:
         enabled: \${env:DATABASE_QUERY_EVENTS}
@@ -222,8 +253,9 @@ processors:
   # the one DATABASE_SERVER_ID names; it never registers one on its own.
   resource:
     attributes:
+      # The engine, from DATABASE_SYSTEM (postgresql).
       - key: db.system.name
-        value: postgresql
+        value: "\${env:DATABASE_SYSTEM}"
         action: upsert
       - key: server.address
         value: "\${env:DATABASE_SERVER_ADDRESS}"
@@ -339,8 +371,9 @@ receivers:
       insecure: \${env:DATABASE_TLS_INSECURE}
       insecure_skip_verify: \${env:DATABASE_TLS_INSECURE_SKIP_VERIFY}
     resource_attributes:
-      # The server version (e.g. 8.0.36 or 10.11.7-MariaDB), shown on the
-      # database's page.
+      # The server version (e.g. 8.0.36 or 11.4.2), shown on the database's
+      # page. The receiver reads it once, when it starts: an agent started
+      # while the database was unreachable reports none until it restarts.
       db.system.version:
         enabled: true
     metrics:
@@ -406,12 +439,12 @@ processors:
   # private IP, a single-label name, a cluster-local Kubernetes name — only
   # joins a database that already owns it (create it in OneUptime first) or
   # the one DATABASE_SERVER_ID names; it never registers one on its own.
-  # (MariaDB is registered as MySQL: the two share a wire protocol and
-  # applications report either name.)
   resource:
     attributes:
+      # The engine, from DATABASE_SYSTEM: mysql, or mariadb for a MariaDB
+      # server (the same config monitors both).
       - key: db.system.name
-        value: mysql
+        value: "\${env:DATABASE_SYSTEM}"
         action: upsert
       - key: server.address
         value: "\${env:DATABASE_SERVER_ADDRESS}"
@@ -492,8 +525,8 @@ service:
       processors: [memory_limiter, resource, transform/optional_identity, batch]
       exporters: [otlphttp]
 `,
-  redis: `# OneUptime Database Agent — Redis (and Valkey, which speaks the same
-# protocol and INFO format).
+  redis: `# OneUptime Database Agent — Redis (and Valkey, KeyDB and Dragonfly, which
+# speak the same protocol and INFO format).
 #
 # ONE agent monitors ONE Redis server. The resource processor below stamps
 # every batch with that server's identity (server.address / server.port),
@@ -584,8 +617,10 @@ processors:
   # the one DATABASE_SERVER_ID names; it never registers one on its own.
   resource:
     attributes:
+      # The engine, from DATABASE_SYSTEM: redis, or valkey, keydb or
+      # dragonfly for those servers (the same config monitors all four).
       - key: db.system.name
-        value: redis
+        value: "\${env:DATABASE_SYSTEM}"
         action: upsert
       - key: server.address
         value: "\${env:DATABASE_SERVER_ADDRESS}"
@@ -779,8 +814,9 @@ processors:
   # the one DATABASE_SERVER_ID names; it never registers one on its own.
   resource:
     attributes:
+      # The engine, from DATABASE_SYSTEM (mongodb).
       - key: db.system.name
-        value: mongodb
+        value: "\${env:DATABASE_SYSTEM}"
         action: upsert
       - key: server.address
         value: "\${env:DATABASE_SERVER_ADDRESS}"
@@ -858,6 +894,609 @@ service:
     # filelog to the receivers when you enable it above.
     logs:
       receivers: [mongodb]
+      processors: [memory_limiter, resource, transform/optional_identity, batch]
+      exporters: [otlphttp]
+`,
+  sqlserver: `# OneUptime Database Agent — Microsoft SQL Server (and Azure SQL Managed
+# Instance, Amazon RDS for SQL Server).
+#
+# ONE agent monitors ONE SQL Server instance. The resource processor below
+# stamps every batch with that server's identity (server.address /
+# server.port), so a second instance added to this pipeline would be merged
+# into the first one in OneUptime. Run a second agent (a second install
+# directory) for a second instance.
+#
+# install.sh downloads this file as otel-collector-config.yaml next to
+# docker-compose.yml. Every \${env:...} below comes from the .env file that
+# docker-compose.yml passes through; see README.md for what each one means.
+
+receivers:
+  sqlserver:
+    # The host and port the agent CONNECTS to — DATABASE_ENDPOINT split in
+    # two, because this receiver takes them separately (install.sh writes
+    # both). This may be localhost when the agent runs next to the
+    # database — the identity OneUptime shows comes from
+    # DATABASE_SERVER_ADDRESS / DATABASE_SERVER_PORT below, never from this
+    # value.
+    server: "\${env:DATABASE_ENDPOINT_HOST}"
+    # Unquoted on purpose: port is an integer field.
+    port: \${env:DATABASE_ENDPOINT_PORT}
+    # A dedicated SQL login holding VIEW SERVER STATE (VIEW SERVER
+    # PERFORMANCE STATE on SQL Server 2022 and later) and VIEW ANY
+    # DEFINITION (see README.md). The receiver refuses to start without a
+    # username and password. The driver negotiates TLS with the server
+    # (encrypting at least the login); a server that forces encryption is
+    # fine. The password must not contain a semicolon: the receiver builds
+    # an ADO connection string from it.
+    username: "\${env:DATABASE_USERNAME}"
+    password: "\${env:DATABASE_PASSWORD}"
+    collection_interval: "\${env:DATABASE_COLLECTION_INTERVAL}"
+    initial_delay: 1s
+    resource_attributes:
+      # On by default upstream, and the SQL Server machine's name: it would
+      # make that machine look like a Host in OneUptime. This database's
+      # identity is the stamp below.
+      host.name:
+        enabled: false
+      # Off by default upstream. Named instances (SERVER\\INSTANCE) share a
+      # host, so the instance name tells their series apart.
+      sqlserver.instance.name:
+        enabled: true
+    metrics:
+      # Off by default upstream. Enabled because they answer the questions
+      # people ask first — deadlocks, blocked sessions, memory grants
+      # waiting, CPU, file I/O and its latency, availability group lag — on
+      # the database's Metrics tab. All of them read DMVs that VIEW SERVER
+      # STATE covers.
+      sqlserver.deadlock.rate:
+        enabled: true
+      sqlserver.processes.blocked:
+        enabled: true
+      sqlserver.memory.grants.pending.count:
+        enabled: true
+      sqlserver.cpu.utilization:
+        enabled: true
+      sqlserver.database.io:
+        enabled: true
+      sqlserver.database.latency:
+        enabled: true
+      sqlserver.availability_group.database_replica.secondary_lag:
+        enabled: true
+      # Other optional metrics the receiver can emit, all off by default.
+      # Enable any of them the same way if you want them in OneUptime:
+      #   sqlserver.lock.timeout.rate           (lock requests that timed out)
+      #   sqlserver.os.wait.duration            (wait time per wait type; one series per wait type)
+      #   sqlserver.database.count              (databases by state)
+      #   sqlserver.memory.usage                (memory in use by SQL Server)
+      #   sqlserver.database.tempdb.space       (free space in tempdb)
+    # Query samples and top queries (sys.dm_exec_requests /
+    # sys.dm_exec_query_stats) arrive as logs on the database's Logs tab.
+    # Both are off unless DATABASE_QUERY_EVENTS=true. They carry query
+    # text, so review what your queries contain before turning them on.
+    events:
+      db.server.query_sample:
+        enabled: \${env:DATABASE_QUERY_EVENTS}
+      db.server.top_query:
+        enabled: \${env:DATABASE_QUERY_EVENTS}
+
+processors:
+  # The identity of this database in OneUptime. OneUptime registers the
+  # database from server.address + server.port (engine-agnostic) and joins
+  # it to the queries your applications send to the same host:port, so
+  # DATABASE_SERVER_ADDRESS must be the name applications use to reach the
+  # server — never localhost. Keep it stable: changing it later registers
+  # a second database. A name that is not unique across networks — a
+  # private IP, a single-label name, a cluster-local Kubernetes name — only
+  # joins a database that already owns it (create it in OneUptime first) or
+  # the one DATABASE_SERVER_ID names; it never registers one on its own.
+  resource:
+    attributes:
+      # The engine, from DATABASE_SYSTEM (microsoft.sql_server).
+      - key: db.system.name
+        value: "\${env:DATABASE_SYSTEM}"
+        action: upsert
+      - key: server.address
+        value: "\${env:DATABASE_SERVER_ADDRESS}"
+        action: upsert
+      # Unquoted on purpose: server.port is an integer attribute.
+      - key: server.port
+        value: \${env:DATABASE_SERVER_PORT}
+        action: upsert
+      # Tells OneUptime this batch was stamped by the Database Agent on
+      # purpose, so server.address is trusted as the identity even when
+      # it looks like a container id.
+      - key: oneuptime.database.agent
+        value: "true"
+        action: upsert
+      # Shown as the agent version on the database's page. Keep it in step
+      # with the image pin in docker-compose.yml.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
+      # Defensive: the receiver does not set service.name, but
+      # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
+      # routes a batch by service.name first, so one that slipped through
+      # would register a phantom Service instead of this database. Do not
+      # remove this delete.
+      - key: service.name
+        action: delete
+  # The OPTIONAL link to a database OneUptime already shows:
+  # oneuptime.database.server.id, from DATABASE_SERVER_ID (Databases → the
+  # database → Documentation has it, prefilled). When it is set, the data
+  # joins that database directly instead of being matched by address — the
+  # reliable choice in Kubernetes and for private IPs, which on their own
+  # never register a database. It is set here rather than in the resource
+  # processor above because that processor refuses to start on an empty
+  # value, and the variable is empty unless you need it: the attribute is
+  # set, then removed again when it is empty, so an unset id never reaches
+  # OneUptime at all.
+  #
+  # Do not stamp k8s.cluster.name on this data: OneUptime reads that
+  # attribute as the Kubernetes agent's heartbeat, so this agent would keep
+  # the cluster looking connected (or register a new one on a typo).
+  transform/optional_identity:
+    error_mode: ignore
+    metric_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "\${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+    log_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "\${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+# Deliberately NO resourcedetection processor: its \`system\` detector adds
+# the host.name / os.type of the machine this agent runs on, which would
+# make that machine look like the thing being monitored (a Host in
+# OneUptime) instead of the database named above.
+
+exporters:
+  otlphttp:
+    endpoint: "\${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "\${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [sqlserver]
+      processors: [memory_limiter, resource, transform/optional_identity, batch]
+      exporters: [otlphttp]
+    # Query samples and top queries (DATABASE_QUERY_EVENTS=true).
+    logs:
+      receivers: [sqlserver]
+      processors: [memory_limiter, resource, transform/optional_identity, batch]
+      exporters: [otlphttp]
+`,
+  oracledb: `# OneUptime Database Agent — Oracle Database (and Amazon RDS for Oracle,
+# Oracle Autonomous Database over a plain TCP listener).
+#
+# ONE agent monitors ONE Oracle database (one service). The resource
+# processor below stamps every batch with that database's identity
+# (server.address / server.port), so a second database added to this
+# pipeline would be merged into the first one in OneUptime. Run a second
+# agent (a second install directory) for a second database.
+#
+# install.sh downloads this file as otel-collector-config.yaml next to
+# docker-compose.yml. Every \${env:...} below comes from the .env file that
+# docker-compose.yml passes through; see README.md for what each one means.
+
+receivers:
+  oracledb:
+    # host:port of the listener the agent CONNECTS to. This may be
+    # localhost:1521 when the agent runs next to the database — the
+    # identity OneUptime shows comes from DATABASE_SERVER_ADDRESS /
+    # DATABASE_SERVER_PORT below, never from this value.
+    endpoint: "\${env:DATABASE_ENDPOINT}"
+    # The service name to connect to: a pluggable database such as
+    # FREEPDB1, ORCLPDB1 or XEPDB1, or the service of a non-CDB database.
+    service: "\${env:DATABASE_ORACLE_SERVICE}"
+    # A dedicated monitoring user holding CREATE SESSION and
+    # SELECT_CATALOG_ROLE (see README.md). Any character is allowed in the
+    # password; the connection is not encrypted (Oracle Native Network
+    # Encryption, if the server requires it, is negotiated by the driver).
+    username: "\${env:DATABASE_USERNAME}"
+    password: "\${env:DATABASE_PASSWORD}"
+    collection_interval: "\${env:DATABASE_COLLECTION_INTERVAL}"
+    initial_delay: 1s
+    resource_attributes:
+      # On by default upstream, and the database machine's name: it would
+      # make that machine look like a Host in OneUptime. This database's
+      # identity is the stamp below.
+      host.name:
+        enabled: false
+    metrics:
+      # Off by default upstream. Enabled because they answer the questions
+      # people ask first — DB time, how full each tablespace is, SGA sizing
+      # — on the database's Metrics tab, connected to a pluggable database
+      # or not. SELECT_CATALOG_ROLE covers all of them.
+      oracledb.db.time:
+        enabled: true
+      oracledb.tablespace.utilization:
+        enabled: true
+      oracledb.sga.usage:
+        enabled: true
+      oracledb.sga.limit:
+        enabled: true
+      # Other optional metrics the receiver can emit, all off by default.
+      # Enable any of them the same way if you want them in OneUptime. The
+      # three *.utilization / *.rate ones come from V$SYSMETRIC, which a
+      # connection to a pluggable database does not report — enable them
+      # when DATABASE_ORACLE_SERVICE names a non-CDB database or the CDB root:
+      #   oracledb.logons                      (logon operations)
+      #   oracledb.transaction.rollbacks       (transactions rolled back)
+      #   oracledb.storage.utilization         (share of allocated storage in use)
+      #   oracledb.buffer_cache.utilization    (logical reads served from the buffer cache)
+      #   oracledb.database.cpu.utilization    (share of DB time spent on CPU)
+      #   oracledb.enqueue.deadlocks.rate      (enqueue deadlocks per second)
+    # Query samples and top queries (V$SESSION / V$SQL) arrive as logs on
+    # the database's Logs tab. Both are off unless DATABASE_QUERY_EVENTS=
+    # true, and both need SELECT on V_$SQL (SELECT_CATALOG_ROLE has it).
+    # They carry query text, so review what your queries contain before
+    # turning them on.
+    events:
+      db.server.query_sample:
+        enabled: \${env:DATABASE_QUERY_EVENTS}
+      db.server.top_query:
+        enabled: \${env:DATABASE_QUERY_EVENTS}
+
+processors:
+  # The identity of this database in OneUptime. OneUptime registers the
+  # database from server.address + server.port (engine-agnostic) and joins
+  # it to the queries your applications send to the same host:port, so
+  # DATABASE_SERVER_ADDRESS must be the name applications use to reach the
+  # server — never localhost. Keep it stable: changing it later registers
+  # a second database. A name that is not unique across networks — a
+  # private IP, a single-label name, a cluster-local Kubernetes name — only
+  # joins a database that already owns it (create it in OneUptime first) or
+  # the one DATABASE_SERVER_ID names; it never registers one on its own.
+  resource:
+    attributes:
+      # The engine, from DATABASE_SYSTEM (oracle.db).
+      - key: db.system.name
+        value: "\${env:DATABASE_SYSTEM}"
+        action: upsert
+      - key: server.address
+        value: "\${env:DATABASE_SERVER_ADDRESS}"
+        action: upsert
+      # Unquoted on purpose: server.port is an integer attribute.
+      - key: server.port
+        value: \${env:DATABASE_SERVER_PORT}
+        action: upsert
+      # Tells OneUptime this batch was stamped by the Database Agent on
+      # purpose, so server.address is trusted as the identity even when
+      # it looks like a container id.
+      - key: oneuptime.database.agent
+        value: "true"
+        action: upsert
+      # Shown as the agent version on the database's page. Keep it in step
+      # with the image pin in docker-compose.yml.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
+      # Defensive: the receiver does not set service.name, but
+      # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
+      # routes a batch by service.name first, so one that slipped through
+      # would register a phantom Service instead of this database. Do not
+      # remove this delete.
+      - key: service.name
+        action: delete
+  # The OPTIONAL link to a database OneUptime already shows:
+  # oneuptime.database.server.id, from DATABASE_SERVER_ID (Databases → the
+  # database → Documentation has it, prefilled). When it is set, the data
+  # joins that database directly instead of being matched by address — the
+  # reliable choice in Kubernetes and for private IPs, which on their own
+  # never register a database. It is set here rather than in the resource
+  # processor above because that processor refuses to start on an empty
+  # value, and the variable is empty unless you need it: the attribute is
+  # set, then removed again when it is empty, so an unset id never reaches
+  # OneUptime at all.
+  #
+  # Do not stamp k8s.cluster.name on this data: OneUptime reads that
+  # attribute as the Kubernetes agent's heartbeat, so this agent would keep
+  # the cluster looking connected (or register a new one on a typo).
+  transform/optional_identity:
+    error_mode: ignore
+    metric_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "\${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+    log_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "\${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+# Deliberately NO resourcedetection processor: its \`system\` detector adds
+# the host.name / os.type of the machine this agent runs on, which would
+# make that machine look like the thing being monitored (a Host in
+# OneUptime) instead of the database named above.
+
+exporters:
+  otlphttp:
+    endpoint: "\${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "\${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [oracledb]
+      processors: [memory_limiter, resource, transform/optional_identity, batch]
+      exporters: [otlphttp]
+    # Query samples and top queries (DATABASE_QUERY_EVENTS=true).
+    logs:
+      receivers: [oracledb]
+      processors: [memory_limiter, resource, transform/optional_identity, batch]
+      exporters: [otlphttp]
+`,
+  elasticsearch: `# OneUptime Database Agent — Elasticsearch (and OpenSearch, whose node,
+# cluster and index statistics APIs this receiver reads the same way).
+#
+# ONE agent monitors ONE cluster: it reads the statistics of every node
+# and index through the endpoint below, and the resource processor stamps
+# every batch with the cluster's identity (server.address / server.port) —
+# each node's series stay apart by elasticsearch.node.name. A second
+# cluster added to this pipeline would be merged into the first one in
+# OneUptime. Run a second agent (a second install directory) for a second
+# cluster.
+#
+# install.sh downloads this file as otel-collector-config.yaml next to
+# docker-compose.yml. Every \${env:...} below comes from the .env file that
+# docker-compose.yml passes through; see README.md for what each one means.
+
+receivers:
+  elasticsearch:
+    # The URL the agent CONNECTS to — http:// or https://, which is how TLS
+    # is chosen for this engine (install.sh builds it from
+    # DATABASE_TLS_INSECURE). It may be http://localhost:9200 when the
+    # agent runs next to the cluster — the identity OneUptime shows comes
+    # from DATABASE_SERVER_ADDRESS / DATABASE_SERVER_PORT below, never from
+    # this value.
+    endpoint: "\${env:DATABASE_ENDPOINT}"
+    # Optional: a user holding the \`monitor\` cluster privilege and
+    # \`monitor\` on the indices (see README.md). Leave both empty for a
+    # cluster without security.
+    username: "\${env:DATABASE_USERNAME}"
+    password: "\${env:DATABASE_PASSWORD}"
+    collection_interval: "\${env:DATABASE_COLLECTION_INTERVAL}"
+    initial_delay: 1s
+    tls:
+      # Used with an https:// endpoint: true accepts a certificate the
+      # collector image does not trust (self-signed, private CA). Unquoted
+      # on purpose: a quoted "\${env:...}" is a string and fails this
+      # boolean field at startup.
+      insecure_skip_verify: \${env:DATABASE_TLS_INSECURE_SKIP_VERIFY}
+    metrics:
+      # Off by default upstream. Enabled because they answer the questions
+      # people ask first — heap pressure, CPU, searches in flight — on the
+      # database's Metrics tab. The \`monitor\` privilege covers all of them.
+      jvm.memory.heap.utilization:
+        enabled: true
+      elasticsearch.process.cpu.usage:
+        enabled: true
+      elasticsearch.node.operations.current:
+        enabled: true
+      # Other optional metrics the receiver can emit, all off by default.
+      # Enable any of them the same way if you want them in OneUptime:
+      #   elasticsearch.node.cache.size                  (query cache memory per node)
+      #   elasticsearch.index.segments.size              (segment size per index)
+      #   elasticsearch.cluster.indices.cache.evictions  (cache evictions across the cluster)
+      #   elasticsearch.index.cache.evictions            (cache evictions per index)
+
+processors:
+  # The identity of this database in OneUptime. OneUptime registers the
+  # database from server.address + server.port (engine-agnostic) and joins
+  # it to the requests your applications send to the same host:port, so
+  # DATABASE_SERVER_ADDRESS must be the name applications use to reach the
+  # cluster — never localhost. Keep it stable: changing it later registers
+  # a second database. A name that is not unique across networks — a
+  # private IP, a single-label name, a cluster-local Kubernetes name — only
+  # joins a database that already owns it (create it in OneUptime first) or
+  # the one DATABASE_SERVER_ID names; it never registers one on its own.
+  resource:
+    attributes:
+      # The engine, from DATABASE_SYSTEM: elasticsearch, or opensearch for
+      # an OpenSearch cluster (the same config monitors both).
+      - key: db.system.name
+        value: "\${env:DATABASE_SYSTEM}"
+        action: upsert
+      - key: server.address
+        value: "\${env:DATABASE_SERVER_ADDRESS}"
+        action: upsert
+      # Unquoted on purpose: server.port is an integer attribute.
+      - key: server.port
+        value: \${env:DATABASE_SERVER_PORT}
+        action: upsert
+      # Tells OneUptime this batch was stamped by the Database Agent on
+      # purpose, so server.address is trusted as the identity even when
+      # it looks like a container id.
+      - key: oneuptime.database.agent
+        value: "true"
+        action: upsert
+      # Shown as the agent version on the database's page. Keep it in step
+      # with the image pin in docker-compose.yml.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
+      # Defensive: the receiver does not set service.name, but
+      # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
+      # routes a batch by service.name first, so one that slipped through
+      # would register a phantom Service instead of this database. Do not
+      # remove this delete.
+      - key: service.name
+        action: delete
+  # The OPTIONAL link to a database OneUptime already shows:
+  # oneuptime.database.server.id, from DATABASE_SERVER_ID (Databases → the
+  # database → Documentation has it, prefilled). When it is set, the data
+  # joins that database directly instead of being matched by address — the
+  # reliable choice in Kubernetes and for private IPs, which on their own
+  # never register a database. It is set here rather than in the resource
+  # processor above because that processor refuses to start on an empty
+  # value, and the variable is empty unless you need it: the attribute is
+  # set, then removed again when it is empty, so an unset id never reaches
+  # OneUptime at all.
+  #
+  # Do not stamp k8s.cluster.name on this data: OneUptime reads that
+  # attribute as the Kubernetes agent's heartbeat, so this agent would keep
+  # the cluster looking connected (or register a new one on a typo).
+  transform/optional_identity:
+    error_mode: ignore
+    metric_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "\${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+    log_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "\${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+# Deliberately NO resourcedetection processor: its \`system\` detector adds
+# the host.name / os.type of the machine this agent runs on, which would
+# make that machine look like the thing being monitored (a Host in
+# OneUptime) instead of the database named above.
+
+exporters:
+  otlphttp:
+    endpoint: "\${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "\${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [elasticsearch]
+      processors: [memory_limiter, resource, transform/optional_identity, batch]
+      exporters: [otlphttp]
+`,
+  memcached: `# OneUptime Database Agent — Memcached.
+#
+# ONE agent monitors ONE memcached server. The resource processor below
+# stamps every batch with that server's identity (server.address /
+# server.port), so a second server added to this pipeline would be merged
+# into the first one in OneUptime. Run a second agent (a second install
+# directory) for a second server.
+#
+# install.sh downloads this file as otel-collector-config.yaml next to
+# docker-compose.yml. Every \${env:...} below comes from the .env file that
+# docker-compose.yml passes through; see README.md for what each one means.
+
+receivers:
+  memcached:
+    # host:port the agent CONNECTS to. This may be localhost:11211 when the
+    # agent runs next to the server — the identity OneUptime shows comes
+    # from DATABASE_SERVER_ADDRESS / DATABASE_SERVER_PORT below, never
+    # from this value.
+    endpoint: "\${env:DATABASE_ENDPOINT}"
+    # Required: the receiver refuses to start without a transport.
+    transport: tcp
+    # The receiver runs \`stats\` over the plain text protocol, so it needs
+    # no login (and cannot use SASL or TLS).
+    collection_interval: "\${env:DATABASE_COLLECTION_INTERVAL}"
+    initial_delay: 1s
+    # Every metric the receiver emits — connections, commands, hits and
+    # misses, evictions, memory, threads, CPU — is on by default.
+
+processors:
+  # The identity of this database in OneUptime. OneUptime registers the
+  # database from server.address + server.port (engine-agnostic) and joins
+  # it to the commands your applications send to the same host:port, so
+  # DATABASE_SERVER_ADDRESS must be the name applications use to reach the
+  # server — never localhost. Keep it stable: changing it later registers
+  # a second database. A name that is not unique across networks — a
+  # private IP, a single-label name, a cluster-local Kubernetes name — only
+  # joins a database that already owns it (create it in OneUptime first) or
+  # the one DATABASE_SERVER_ID names; it never registers one on its own.
+  resource:
+    attributes:
+      # The engine, from DATABASE_SYSTEM (memcached).
+      - key: db.system.name
+        value: "\${env:DATABASE_SYSTEM}"
+        action: upsert
+      - key: server.address
+        value: "\${env:DATABASE_SERVER_ADDRESS}"
+        action: upsert
+      # Unquoted on purpose: server.port is an integer attribute.
+      - key: server.port
+        value: \${env:DATABASE_SERVER_PORT}
+        action: upsert
+      # Tells OneUptime this batch was stamped by the Database Agent on
+      # purpose, so server.address is trusted as the identity even when
+      # it looks like a container id.
+      - key: oneuptime.database.agent
+        value: "true"
+        action: upsert
+      # Shown as the agent version on the database's page. Keep it in step
+      # with the image pin in docker-compose.yml.
+      - key: oneuptime.agent.version
+        value: "0.161.0"
+        action: upsert
+      # Defensive: the receiver does not set service.name, but
+      # OTEL_RESOURCE_ATTRIBUTES or a customised pipeline could. OneUptime
+      # routes a batch by service.name first, so one that slipped through
+      # would register a phantom Service instead of this database. Do not
+      # remove this delete.
+      - key: service.name
+        action: delete
+  # The OPTIONAL link to a database OneUptime already shows:
+  # oneuptime.database.server.id, from DATABASE_SERVER_ID (Databases → the
+  # database → Documentation has it, prefilled). When it is set, the data
+  # joins that database directly instead of being matched by address — the
+  # reliable choice in Kubernetes and for private IPs, which on their own
+  # never register a database. It is set here rather than in the resource
+  # processor above because that processor refuses to start on an empty
+  # value, and the variable is empty unless you need it: the attribute is
+  # set, then removed again when it is empty, so an unset id never reaches
+  # OneUptime at all.
+  #
+  # Do not stamp k8s.cluster.name on this data: OneUptime reads that
+  # attribute as the Kubernetes agent's heartbeat, so this agent would keep
+  # the cluster looking connected (or register a new one on a typo).
+  transform/optional_identity:
+    error_mode: ignore
+    metric_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "\${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+    log_statements:
+      - set(resource.attributes["oneuptime.database.server.id"], "\${env:DATABASE_SERVER_ID}")
+      - delete_key(resource.attributes, "oneuptime.database.server.id") where resource.attributes["oneuptime.database.server.id"] == ""
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 256
+    spike_limit_mib: 64
+
+# Deliberately NO resourcedetection processor: its \`system\` detector adds
+# the host.name / os.type of the machine this agent runs on, which would
+# make that machine look like the thing being monitored (a Host in
+# OneUptime) instead of the database named above.
+
+exporters:
+  otlphttp:
+    endpoint: "\${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "\${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [memcached]
       processors: [memory_limiter, resource, transform/optional_identity, batch]
       exporters: [otlphttp]
 `,

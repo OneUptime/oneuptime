@@ -1,5 +1,5 @@
-# OneUptime Database Agent — Redis (and Valkey, which speaks the same
-# protocol and INFO format).
+# OneUptime Database Agent — Redis (and Valkey, KeyDB and Dragonfly, which
+# speak the same protocol and INFO format).
 #
 # ONE agent monitors ONE Redis server. The resource processor below stamps
 # every batch with that server's identity (server.address / server.port),
@@ -90,8 +90,10 @@ processors:
   # the one DATABASE_SERVER_ID names; it never registers one on its own.
   resource:
     attributes:
+      # The engine, from DATABASE_SYSTEM: redis, or valkey, keydb or
+      # dragonfly for those servers (the same config monitors all four).
       - key: db.system.name
-        value: redis
+        value: "${env:DATABASE_SYSTEM}"
         action: upsert
       - key: server.address
         value: "${env:DATABASE_SERVER_ADDRESS}"

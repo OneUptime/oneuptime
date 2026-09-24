@@ -28,29 +28,28 @@ import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import {
-  DATABASE_AGENT_ENGINES,
-  DatabaseAgentEngine,
-} from "../../Pages/Database/Utils/DatabaseAgentConfigs";
+import { DatabaseAgentEngine } from "../../Pages/Database/Utils/DatabaseAgentConfigs";
 import {
   DatabaseDocumentationTarget,
   getDatabaseAgentEngine,
-  getDatabaseAgentEngineLabel,
   getDatabaseAgentInstallationMarkdown,
+  getDatabaseAgentSystems,
   getDatabaseOwnCollectorMarkdown,
 } from "../../Pages/Database/Utils/DocumentationMarkdown";
+import { getDatabaseSystemDisplayName } from "Common/Types/DatabaseServer/DatabaseSystem";
 
 /*
  * The Database Agent install guide with the viewer's ingestion key filled
  * in. Two uses:
  *
  *   - the product Documentation page and the empty list: no `database`, an
- *     engine picker over the four engines the agent ships a config for;
+ *     engine picker over every engine the agent monitors (MariaDB, Valkey
+ *     and OpenSearch included — they run their family's config);
  *   - a database's Documentation tab: `database` prefills the guide for that
  *     row — its identity and its oneuptime.database.server.id — for the
  *     row's own engine. An engine the agent has no config for gets the
- *     "use your own collector" guide instead (or, without any collector
- *     receiver, an explanation of what the page shows without one).
+ *     "use your own collector" guide instead: its receiver, its Prometheus
+ *     endpoint or its cloud monitoring API, from the engine catalog.
  */
 
 export interface ComponentProps {
@@ -73,9 +72,10 @@ const DatabaseDocumentationCard: FunctionComponent<ComponentProps> = (
   const rowEngine: DatabaseAgentEngine | null = props.database
     ? getDatabaseAgentEngine(props.database.dbSystem)
     : null;
-  const [selectedEngine, setSelectedEngine] = useState<DatabaseAgentEngine>(
-    rowEngine || "postgresql",
-  );
+  // The product page's pick: an engine (db.system.name) the agent monitors.
+  const [selectedSystem, setSelectedSystem] = useState<string>("postgresql");
+  const selectedEngine: DatabaseAgentEngine =
+    getDatabaseAgentEngine(selectedSystem) || "postgresql";
 
   const httpProtocol: string =
     HTTP_PROTOCOL === Protocol.HTTPS ? "https" : "http";
@@ -251,9 +251,9 @@ const DatabaseDocumentationCard: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const engineOptions: Array<DropdownOption> = DATABASE_AGENT_ENGINES.map(
-    (engine: DatabaseAgentEngine): DropdownOption => {
-      return { value: engine, label: getDatabaseAgentEngineLabel(engine) };
+  const engineOptions: Array<DropdownOption> = getDatabaseAgentSystems().map(
+    (system: string): DropdownOption => {
+      return { value: system, label: getDatabaseSystemDisplayName(system) };
     },
   );
 
@@ -266,14 +266,12 @@ const DatabaseDocumentationCard: FunctionComponent<ComponentProps> = (
         <Dropdown
           options={engineOptions}
           value={engineOptions.find((option: DropdownOption): boolean => {
-            return option.value === selectedEngine;
+            return option.value === selectedSystem;
           })}
           onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-            const engine: DatabaseAgentEngine | null = getDatabaseAgentEngine(
-              value ? value.toString() : "",
-            );
-            if (engine) {
-              setSelectedEngine(engine);
+            const system: string = value ? value.toString() : "";
+            if (getDatabaseAgentEngine(system)) {
+              setSelectedSystem(system);
             }
           }}
           placeholder="Select a database engine"
@@ -303,6 +301,8 @@ const DatabaseDocumentationCard: FunctionComponent<ComponentProps> = (
           oneuptimeUrl: oneuptimeUrl,
           apiKey: apiKeyValue,
           engine: rowEngine || selectedEngine,
+          // A row reports its own engine; the product page, the pick.
+          system: props.database ? props.database.dbSystem : selectedSystem,
           database: props.database,
           databaseHealthMonitorUrl: databaseHealthMonitorUrl,
         });

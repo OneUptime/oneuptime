@@ -30,7 +30,11 @@
 #
 # Requires: docker. The collector image is distroless (no shell, no curl),
 # so the network probes run a small curl image as a sibling container that
-# shares the agent's network namespace.
+# shares the agent's network namespace. That image is pinned by digest: it
+# joins the agent's network and is handed the ingestion key, so it must be
+# the image this script was written against, not whatever a tag points to
+# today. The key reaches curl on stdin (`curl --config -`), never on a
+# command line, where any local user could read it with `ps`.
 
 set -uo pipefail
 
@@ -38,7 +42,7 @@ set -uo pipefail
 # Config / args
 # ----------------------------------------------------------------------------
 DIR="/opt/oneuptime-database-agent"
-CURL_IMAGE="curlimages/curl:latest"
+CURL_IMAGE="curlimages/curl:8.22.0@sha256:58adaa4e8dca9c988bae2aba4ab3434a0bb2da16bbe3f92dec39ec7785166777"
 USE_COLOR=1
 
 while [ $# -gt 0 ]; do
@@ -47,7 +51,7 @@ while [ $# -gt 0 ]; do
     --curl-image)  CURL_IMAGE="${2:-}"; shift 2 ;;
     --no-color)    USE_COLOR=0; shift ;;
     -h|--help)
-      grep '^#' "$0" | sed 's/^# \{0,1\}//' | sed -n '2,33p'
+      grep '^#' "$0" | sed 's/^# \{0,1\}//' | sed -n '2,37p'
       exit 0 ;;
     *) echo "Unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -139,13 +143,39 @@ agent_env() {
 }
 
 # Run curl from INSIDE the agent container's network namespace, so probes
-# follow the collector's real path (compose network, DNS, firewall).
+# follow the collector's real path (compose network, DNS, firewall). Curl
+# also reads a config from stdin (`--config -`): what is piped in never
+# appears on a command line. Callers with nothing to pipe close stdin.
 agent_netns_curl() {
   if [ "$AGENT_RUNNING" = 1 ]; then
-    docker run --rm --network "container:$AGENT_CONTAINER" "$CURL_IMAGE" "$@" 2>&1
+    docker run -i --rm --network "container:$AGENT_CONTAINER" "$CURL_IMAGE" "$@" 2>&1
   else
-    docker run --rm "$CURL_IMAGE" "$@" 2>&1
+    docker run -i --rm "$CURL_IMAGE" "$@" 2>&1
   fi
+}
+
+# The ingestion-key header as a curl config line, for `--config -` on
+# stdin. Curl config strings are double-quoted with \ escapes.
+token_header_config() {
+  local token="$1"
+  token="${token//\\/\\\\}"
+  token="${token//\"/\\\"}"
+  printf 'header = "x-oneuptime-token: %s"\n' "$token"
+}
+
+# The config every engine uses (configs/<name>.yaml, named after its
+# receiver) — the same mapping as install.sh's config_for_engine.
+config_for_engine() {
+  case "$1" in
+    postgresql) printf 'postgresql' ;;
+    mysql|mariadb) printf 'mysql' ;;
+    redis|valkey|keydb|dragonfly) printf 'redis' ;;
+    mongodb) printf 'mongodb' ;;
+    microsoft.sql_server) printf 'sqlserver' ;;
+    oracle.db) printf 'oracledb' ;;
+    elasticsearch|opensearch) printf 'elasticsearch' ;;
+    memcached) printf 'memcached' ;;
+  esac
 }
 
 # The same lists install.sh checks against (keep the two in step).
@@ -235,20 +265,25 @@ DATABASE_USERNAME=$(agent_env DATABASE_USERNAME)
 ONEUPTIME_URL=$(agent_env ONEUPTIME_URL)
 TOKEN=$(agent_env ONEUPTIME_TELEMETRY_INGESTION_KEY)
 
-case "$DATABASE_SYSTEM" in
-  postgresql|mysql|redis|mongodb) pass "Engine: $DATABASE_SYSTEM" ;;
-  *)
-    fail "DATABASE_SYSTEM='$DATABASE_SYSTEM' is not one of postgresql, mysql, redis, mongodb."
-    add_finding "Set DATABASE_SYSTEM in $ENV_FILE and re-run install.sh so the matching config is downloaded."
-    ;;
-esac
+AGENT_CONFIG="$(config_for_engine "$DATABASE_SYSTEM")"
+if [ -n "$AGENT_CONFIG" ]; then
+  pass "Engine: $DATABASE_SYSTEM (configs/$AGENT_CONFIG.yaml)"
+else
+  fail "DATABASE_SYSTEM='$DATABASE_SYSTEM' is not an engine the agent ships a config for."
+  add_finding "Set DATABASE_SYSTEM in $ENV_FILE to postgresql, mysql, mariadb, redis, valkey, keydb, dragonfly, mongodb, microsoft.sql_server, oracle.db, elasticsearch, opensearch or memcached, and re-run install.sh so the matching config is downloaded."
+fi
 
-if [ -f "$CONFIG_FILE" ] && [ -n "$DATABASE_SYSTEM" ]; then
-  if grep -q "value: $DATABASE_SYSTEM\$" "$CONFIG_FILE"; then
-    pass "otel-collector-config.yaml is the $DATABASE_SYSTEM config"
+if [ -f "$CONFIG_FILE" ] && [ -n "$AGENT_CONFIG" ]; then
+  # The config's one receiver sits at two spaces under `receivers:`.
+  if grep -q "^  $AGENT_CONFIG:\$" "$CONFIG_FILE"; then
+    pass "otel-collector-config.yaml is the $AGENT_CONFIG config"
   else
-    fail "otel-collector-config.yaml is not the $DATABASE_SYSTEM config (DATABASE_SYSTEM changed after install?)."
-    add_finding "The collector config does not match DATABASE_SYSTEM. Re-run install.sh to download configs/$DATABASE_SYSTEM.yaml."
+    fail "otel-collector-config.yaml is not the $AGENT_CONFIG config (DATABASE_SYSTEM changed after install?)."
+    add_finding "The collector config does not match DATABASE_SYSTEM ($DATABASE_SYSTEM). Re-run install.sh to download configs/$AGENT_CONFIG.yaml."
+  fi
+  # Older configs stamped a fixed engine instead of DATABASE_SYSTEM.
+  if ! grep -q 'value: "${env:DATABASE_SYSTEM}"' "$CONFIG_FILE"; then
+    warn "The config stamps a fixed db.system.name rather than DATABASE_SYSTEM ($DATABASE_SYSTEM), so the database shows the config's engine. Re-run install.sh for the current config."
   fi
   if grep -q "^[[:space:]]*resourcedetection" "$CONFIG_FILE"; then
     warn "The config has a resourcedetection processor: it adds this machine's host.name / os.type, which makes the machine look like the monitored resource. The shipped configs leave it out."
@@ -278,18 +313,39 @@ elif [ -n "$DATABASE_SERVER_ADDRESS" ] && is_network_local_name "$DATABASE_SERVE
   add_finding "The data only joins a database that already has $DATABASE_SERVER_ADDRESS:${DATABASE_SERVER_PORT:-?} as an endpoint. Create it under Databases → Create Database with that address and port, or set DATABASE_SERVER_ID to the id on its Documentation tab."
 fi
 
-if [ "$DATABASE_SYSTEM" = "postgresql" ] || [ "$DATABASE_SYSTEM" = "mysql" ]; then
-  if [ -z "$DATABASE_USERNAME" ]; then
-    fail "DATABASE_USERNAME is empty — the $DATABASE_SYSTEM receiver refuses to start without one."
-  fi
+case "$AGENT_CONFIG" in
+  postgresql|mysql|sqlserver|oracledb)
+    if [ -z "$DATABASE_USERNAME" ]; then
+      fail "DATABASE_USERNAME is empty — the $DATABASE_SYSTEM receiver refuses to start without one."
+    fi
+    ;;
+esac
+if [ "$AGENT_CONFIG" = "oracledb" ] && [ -z "$(agent_env DATABASE_ORACLE_SERVICE)" ]; then
+  fail "DATABASE_ORACLE_SERVICE is empty — the Oracle receiver needs the service to connect to."
+  add_finding "Set DATABASE_ORACLE_SERVICE in $ENV_FILE to the service name (e.g. FREEPDB1, ORCLPDB1), then: cd $DIR && docker compose up -d"
 fi
+
+# The collector expands $ inside the password once more ($$ → $, ${NAME} →
+# another variable), so install.sh writes every $ doubled and marks the file.
+# A password with a $ in an .env without that mark reaches the database
+# altered. The password itself is never printed.
+DATABASE_PASSWORD_VALUE=$(agent_env DATABASE_PASSWORD)
+if [[ "$DATABASE_PASSWORD_VALUE" == *'$'* ]] && [ -f "$ENV_FILE" ] \
+  && ! grep -q "escaped for the collector" "$ENV_FILE"; then
+  warn "DATABASE_PASSWORD contains \$, which the collector expands (\$\$ becomes \$, \${NAME} becomes a variable) — and this .env was not written with every \$ doubled."
+  add_finding "Write every \$ in DATABASE_PASSWORD (and DATABASE_USERNAME) as \$\$ in $ENV_FILE, or re-run install.sh, which does it for you. Then: cd $DIR && docker compose up -d"
+fi
+unset DATABASE_PASSWORD_VALUE
 
 # ----------------------------------------------------------------------------
 section "3. Database reachability & receiver errors"
 # ----------------------------------------------------------------------------
 if [ -n "$DATABASE_ENDPOINT" ]; then
-  EP_HOST="${DATABASE_ENDPOINT%:*}"
-  EP_PORT="${DATABASE_ENDPOINT##*:}"
+  # Elasticsearch / OpenSearch endpoints are URLs.
+  EP_HOSTPORT="${DATABASE_ENDPOINT#*://}"
+  EP_HOSTPORT="${EP_HOSTPORT%%/*}"
+  EP_HOST="${EP_HOSTPORT%:*}"
+  EP_PORT="${EP_HOSTPORT##*:}"
   # curl's telnet:// scheme is a plain TCP connect: -v prints the connection
   # line as soon as the handshake completes, then -m ends the idle session.
   PROBE=$(agent_netns_curl -v --connect-timeout 5 -m 3 "telnet://$EP_HOST:$EP_PORT" </dev/null)
@@ -313,26 +369,39 @@ if [ -n "$AGENT_CONTAINER" ]; then
   # The database checks read only the receiver's own lines: a TLS or auth
   # error on the way to OneUptime is the exporter's, and must not read as a
   # database problem (it gets its own check below).
-  LOGS=$(printf '%s\n' "$ALL_LOGS" | grep '"otelcol.component.kind": "receiver"')
+  RECEIVER_LOGS=$(printf '%s\n' "$ALL_LOGS" | grep '"otelcol.component.kind": "receiver"')
+  # A failed EXPLAIN of a top query is not a missing grant: pg_monitor
+  # deliberately gives no access to tables, and the plan just stays empty.
+  # It gets its own check below and is kept out of the others.
+  EXPLAIN_FAILURES=$(printf '%s\n' "$RECEIVER_LOGS" | grep -c 'failed to explain')
+  # Match only the "error" field of each line: the receivers log the
+  # (obfuscated) query text beside it, and a table named `certificates` or a
+  # query mentioning `permission` must not read as a TLS or grant problem.
+  ERRORS=$(printf '%s\n' "$RECEIVER_LOGS" | grep -v 'failed to explain' \
+    | sed -nE 's/.*"error": "(([^"\\]|\\.)*)".*/\1/p')
   check_log() {
     local pattern="$1" message="$2" finding="$3"
-    if printf '%s' "$LOGS" | grep -qiE "$pattern"; then
+    if printf '%s' "$ERRORS" | grep -qiE "$pattern"; then
       fail "$message"
       add_finding "$finding"
     fi
   }
-  check_log "password authentication failed|Access denied for user|WRONGPASS|NOAUTH|Authentication failed|auth error" \
+  check_log "password authentication failed|Access denied for user|WRONGPASS|NOAUTH|Authentication failed|auth error|Login failed for user|ORA-01017|security_exception|status code 401|unable to authenticate" \
     "The collector log shows the database REJECTING the login." \
-    "Check DATABASE_USERNAME / DATABASE_PASSWORD. A password containing \$, # or spaces must be single-quoted in .env (install.sh does this)."
-  check_log "permission denied|must be superuser|pg_monitor|command denied|NOPERM|not authorized on admin" \
+    "Check DATABASE_USERNAME / DATABASE_PASSWORD. The collector expands \$ inside them, so every \$ must be written as \$\$ in .env (install.sh does this); a password containing #, spaces or quotes must be quoted in .env (install.sh does this too)."
+  check_log "permission denied|must be superuser|pg_monitor|command denied|NOPERM|not authorized on admin|VIEW SERVER STATE|VIEW SERVER PERFORMANCE STATE|ORA-00942|ORA-01031|status code 403" \
     "The collector log shows missing privileges for the monitoring user." \
-    "Grant the least-privilege role for $DATABASE_SYSTEM from the README (pg_monitor; PROCESS, REPLICATION CLIENT + performance_schema; the INFO/PING ACL; clusterMonitor)."
-  check_log "SSL is not enabled on the server|x509:|tls: |certificate" \
+    "Grant the least-privilege role for $DATABASE_SYSTEM from the README (pg_monitor; PROCESS, REPLICATION CLIENT + performance_schema; the INFO/PING ACL; clusterMonitor; VIEW SERVER STATE; SELECT_CATALOG_ROLE; the monitor privilege)."
+  check_log "SSL is not enabled on the server|x509:|tls: |certificate verify|certificate signed by unknown|server gave HTTP response to HTTPS client|malformed HTTP response" \
     "The collector log shows a TLS problem." \
-    "Match DATABASE_TLS_INSECURE to the server: true when it does not speak TLS, false when it requires it (plus DATABASE_TLS_INSECURE_SKIP_VERIFY=true for a certificate the image does not trust)."
+    "Match DATABASE_TLS_INSECURE to the server: true when it does not speak TLS, false when it requires it (plus DATABASE_TLS_INSECURE_SKIP_VERIFY=true for a certificate the image does not trust). For Elasticsearch / OpenSearch, DATABASE_ENDPOINT's http:// or https:// decides it — re-run install.sh after changing DATABASE_TLS_INSECURE."
   check_log "pg_stat_statements" \
     "Top queries are on but pg_stat_statements is missing." \
     "Run CREATE EXTENSION pg_stat_statements; in each monitored database, or set DATABASE_QUERY_EVENTS=false."
+  if [ "$EXPLAIN_FAILURES" -gt 0 ]; then
+    warn "$EXPLAIN_FAILURES top quer(y/ies) could not be EXPLAINed: explain plans need SELECT on the tables the queries touch, which pg_monitor does not grant. Metrics and top queries are unaffected; only the plans stay empty."
+    add_finding "For explain plans on top queries, GRANT SELECT on the application's tables to the monitoring user (for example GRANT SELECT ON ALL TABLES IN SCHEMA app TO oneuptime_monitor), or accept empty plans."
+  fi
   if printf '%s' "$ALL_LOGS" | grep '"otelcol.component.kind": "exporter"' | grep -q "Exporting failed"; then
     fail "The collector log shows exports to OneUptime failing."
     add_finding "The collector cannot deliver to ONEUPTIME_URL ($(agent_env ONEUPTIME_URL)). Check the URL, outbound HTTPS from this machine and, for a self-hosted server, its certificate. The ingestion check below narrows it down."
@@ -350,7 +419,7 @@ if [ -z "$BASE_URL" ] || [ -z "$TOKEN" ]; then
   fail "ONEUPTIME_URL or ONEUPTIME_TELEMETRY_INGESTION_KEY is empty."
   add_finding "Set both in $ENV_FILE (Project Settings → Telemetry & APM → Ingestion Keys)."
 else
-  OUT=$(agent_netns_curl -sS -m 15 -o /dev/null -w '%{http_code}' -H "x-oneuptime-token: $TOKEN" "$BASE_URL/otlp/v1/validate")
+  OUT=$(token_header_config "$TOKEN" | agent_netns_curl --config - -sS -m 15 -o /dev/null -w '%{http_code}' "$BASE_URL/otlp/v1/validate")
   CODE=$(printf '%s' "$OUT" | tail -c 3)
   case "$CODE" in
     200) pass "Reached OneUptime and the ingestion key is VALID (/otlp/v1/validate → 200)." ;;
@@ -359,7 +428,7 @@ else
       add_finding "The ingestion key is wrong or revoked. OneUptime answers OTLP with a silent 200 on a bad key, so the collector log looks clean. Create a key under Project Settings → Telemetry & APM → Ingestion Keys."
       ;;
     404)
-      OUT=$(agent_netns_curl -sS -m 15 -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" --data '{}' -H "x-oneuptime-token: $TOKEN" "$BASE_URL/fluentd/v1/logs")
+      OUT=$(token_header_config "$TOKEN" | agent_netns_curl --config - -sS -m 15 -o /dev/null -w '%{http_code}' -X POST -H "Content-Type: application/json" --data '{}' "$BASE_URL/fluentd/v1/logs")
       CODE=$(printf '%s' "$OUT" | tail -c 3)
       if [ "$CODE" = "400" ] || [ "$CODE" = "401" ]; then
         fail "OneUptime rejected the ingestion key (/fluentd/v1/logs → $CODE)."

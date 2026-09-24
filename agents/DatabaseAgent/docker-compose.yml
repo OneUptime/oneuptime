@@ -2,9 +2,10 @@ services:
   oneuptime-database-agent:
     # Upstream collector, pinned. There is no oneuptime/database-agent image —
     # the agent is entirely defined by otel-collector-config.yaml, which
-    # install.sh downloads next to this file from configs/<engine>.yaml. The
-    # native postgresql / mysql / redis / mongodb receivers talk to the
-    # database directly, so no exporter sidecar is needed. This is the
+    # install.sh downloads next to this file from configs/<receiver>.yaml.
+    # The native postgresql / mysql / redis / mongodb / sqlserver / oracledb
+    # / elasticsearch / memcached receivers talk to the database directly,
+    # so no exporter sidecar is needed. This is the
     # version Tests/Ops/validate-collector-configs.sh validates the configs
     # against; bump the two together (and oneuptime.agent.version in every
     # configs/*.yaml).
@@ -34,15 +35,24 @@ services:
     environment:
       - ONEUPTIME_URL=${ONEUPTIME_URL}
       - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
-      # Which engine this agent monitors: postgresql, mysql, redis or
-      # mongodb. install.sh downloads configs/<this>.yaml as
-      # otel-collector-config.yaml and reads it back on a re-run; the
-      # engine the collector reports is set in that config.
+      # Which engine this agent monitors, stamped on every batch as
+      # db.system.name: postgresql, mysql, mariadb, redis, valkey, keydb,
+      # dragonfly, mongodb, microsoft.sql_server, oracle.db, elasticsearch,
+      # opensearch or memcached. install.sh picks the matching
+      # configs/<receiver>.yaml (mariadb → mysql.yaml, valkey → redis.yaml,
+      # …) and reads this back on a re-run.
       - DATABASE_SYSTEM=${DATABASE_SYSTEM}
       # host:port the agent connects to, e.g. db.internal:5432 — or
       # host.docker.internal:5432 / localhost:5432 when the agent runs next
-      # to the database.
+      # to the database. A URL for Elasticsearch / OpenSearch
+      # (http://search.internal:9200, or https:// for TLS).
       - DATABASE_ENDPOINT=${DATABASE_ENDPOINT}
+      # DATABASE_ENDPOINT's host and port apart, for the SQL Server
+      # receiver, which takes them separately. install.sh writes both.
+      - DATABASE_ENDPOINT_HOST=${DATABASE_ENDPOINT_HOST:-}
+      - DATABASE_ENDPOINT_PORT=${DATABASE_ENDPOINT_PORT:-}
+      # Oracle only: the service to connect to (FREEPDB1, ORCLPDB1, …).
+      - DATABASE_ORACLE_SERVICE=${DATABASE_ORACLE_SERVICE:-}
       # The database's identity in OneUptime, stamped on every metric as
       # server.address / server.port: the host name and port your
       # APPLICATIONS use to reach this database (what their traces report),
@@ -51,8 +61,10 @@ services:
       - DATABASE_SERVER_ADDRESS=${DATABASE_SERVER_ADDRESS}
       - DATABASE_SERVER_PORT=${DATABASE_SERVER_PORT}
       # A dedicated read-only monitoring login (see README.md for the
-      # least-privilege grants per engine). Optional for Redis and MongoDB
-      # servers without authentication.
+      # least-privilege grants per engine). Optional for Redis, MongoDB and
+      # Elasticsearch servers without authentication; Memcached has none.
+      # The collector expands $ inside these values once more, so a literal
+      # $ is written as $$ (install.sh does this for you).
       - DATABASE_USERNAME=${DATABASE_USERNAME:-}
       - DATABASE_PASSWORD=${DATABASE_PASSWORD:-}
       # true connects without TLS; false turns TLS on. Set
@@ -62,8 +74,9 @@ services:
       - DATABASE_TLS_INSECURE_SKIP_VERIFY=${DATABASE_TLS_INSECURE_SKIP_VERIFY:-false}
       # How often the database is queried for its statistics.
       - DATABASE_COLLECTION_INTERVAL=${DATABASE_COLLECTION_INTERVAL:-30s}
-      # true ships query samples and top queries (PostgreSQL, MySQL and
-      # MongoDB) as logs. They contain query text; off by default.
+      # true ships query samples and top queries (PostgreSQL, MySQL,
+      # MongoDB, SQL Server and Oracle) as logs. They contain query text;
+      # off by default.
       - DATABASE_QUERY_EVENTS=${DATABASE_QUERY_EVENTS:-false}
       # Optional: the id of an existing database in OneUptime to attach
       # this data to directly (Databases → the database → Documentation).

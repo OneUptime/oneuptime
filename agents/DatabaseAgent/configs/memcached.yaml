@@ -1,6 +1,6 @@
-# OneUptime Database Agent — PostgreSQL.
+# OneUptime Database Agent — Memcached.
 #
-# ONE agent monitors ONE PostgreSQL server. The resource processor below
+# ONE agent monitors ONE memcached server. The resource processor below
 # stamps every batch with that server's identity (server.address /
 # server.port), so a second server added to this pipeline would be merged
 # into the first one in OneUptime. Run a second agent (a second install
@@ -11,99 +11,25 @@
 # docker-compose.yml passes through; see README.md for what each one means.
 
 receivers:
-  postgresql:
-    # host:port the agent CONNECTS to. This may be localhost:5432 when the
-    # agent runs next to the database — the identity OneUptime shows comes
+  memcached:
+    # host:port the agent CONNECTS to. This may be localhost:11211 when the
+    # agent runs next to the server — the identity OneUptime shows comes
     # from DATABASE_SERVER_ADDRESS / DATABASE_SERVER_PORT below, never
     # from this value.
     endpoint: "${env:DATABASE_ENDPOINT}"
+    # Required: the receiver refuses to start without a transport.
     transport: tcp
-    # A dedicated monitoring login holding the built-in pg_monitor role
-    # (see README.md). The receiver refuses to start without a password.
-    username: "${env:DATABASE_USERNAME}"
-    password: "${env:DATABASE_PASSWORD}"
+    # The receiver runs `stats` over the plain text protocol, so it needs
+    # no login (and cannot use SASL or TLS).
     collection_interval: "${env:DATABASE_COLLECTION_INTERVAL}"
     initial_delay: 1s
-    # Internal databases of managed services that no customer login can
-    # connect to. Excluding a database that does not exist is harmless, so
-    # the list is safe on a self-hosted server too.
-    exclude_databases:
-      - rdsadmin
-      - azure_maintenance
-      - cloudsqladmin
-      - alloydbadmin
-      - alloydbmetadata
-    tls:
-      # true (the default in docker-compose.yml) connects WITHOUT TLS
-      # (sslmode=disable). false turns TLS on; with insecure_skip_verify
-      # true that is sslmode=require, with false it is verify-full.
-      # The placeholders are deliberately UNQUOTED: a quoted "${env:...}"
-      # is a string and fails these boolean fields at startup.
-      insecure: ${env:DATABASE_TLS_INSECURE}
-      insecure_skip_verify: ${env:DATABASE_TLS_INSECURE_SKIP_VERIFY}
-    metrics:
-      # Off by default upstream. Enabled because they answer the questions
-      # people ask first — buffer cache hit ratio, deadlocks, temp files,
-      # row throughput, lock counts — on the database's Metrics tab. All of
-      # them read pg_stat_database / pg_locks, which pg_monitor already
-      # covers.
-      postgresql.blks_hit:
-        enabled: true
-      postgresql.blks_read:
-        enabled: true
-      postgresql.deadlocks:
-        enabled: true
-      postgresql.temp_files:
-        enabled: true
-      postgresql.tup_fetched:
-        enabled: true
-      postgresql.tup_returned:
-        enabled: true
-      postgresql.tup_inserted:
-        enabled: true
-      postgresql.tup_updated:
-        enabled: true
-      postgresql.tup_deleted:
-        enabled: true
-      postgresql.database.locks:
-        enabled: true
-      # Other optional metrics the receiver can emit, all off by default.
-      # Enable any of them the same way if you want them in OneUptime:
-      #   postgresql.sequential_scans      (sequential scans per table; one series per table)
-      #   postgresql.query.conflicts       (queries cancelled by recovery conflicts on a replica)
-      #   postgresql.function.calls        (calls per user function; needs track_functions)
-      #   postgresql.temp.io               (bytes written to temporary files)
-      #   postgresql.wal.delay             (replication delay, the planned replacement for wal.lag)
-    # Query samples (pg_stat_activity) and top queries (pg_stat_statements)
-    # arrive as logs on the database's Logs tab. Both are off unless
-    # DATABASE_QUERY_EVENTS=true. Top queries also need the
-    # pg_stat_statements extension in every monitored database (see
-    # README.md), and their explain plans need SELECT on the tables the
-    # queries touch — pg_monitor grants none, so without it top queries
-    # still arrive but with empty plans, and the collector logs "failed to
-    # explain" for each one. They carry query text, so review what your
-    # queries contain before turning them on.
-    events:
-      db.server.query_sample:
-        enabled: ${env:DATABASE_QUERY_EVENTS}
-      db.server.top_query:
-        enabled: ${env:DATABASE_QUERY_EVENTS}
-
-  # Optional: ship PostgreSQL's own log file. Uncomment this receiver, add
-  # it to the logs pipeline at the bottom, and mount the server's log
-  # directory at /var/log/database in docker-compose.yml, e.g.
-  #   - /var/log/postgresql:/var/log/database:ro
-  # The collector runs as a non-root user, so the files must be readable
-  # by "other" (or run the container as a user in the postgres group).
-  # filelog:
-  #   include:
-  #     - /var/log/database/*.log
-  #   start_at: end
+    # Every metric the receiver emits — connections, commands, hits and
+    # misses, evictions, memory, threads, CPU — is on by default.
 
 processors:
   # The identity of this database in OneUptime. OneUptime registers the
   # database from server.address + server.port (engine-agnostic) and joins
-  # it to the queries your applications send to the same host:port, so
+  # it to the commands your applications send to the same host:port, so
   # DATABASE_SERVER_ADDRESS must be the name applications use to reach the
   # server — never localhost. Keep it stable: changing it later registers
   # a second database. A name that is not unique across networks — a
@@ -112,7 +38,7 @@ processors:
   # the one DATABASE_SERVER_ID names; it never registers one on its own.
   resource:
     attributes:
-      # The engine, from DATABASE_SYSTEM (postgresql).
+      # The engine, from DATABASE_SYSTEM (memcached).
       - key: db.system.name
         value: "${env:DATABASE_SYSTEM}"
         action: upsert
@@ -185,12 +111,6 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [postgresql]
-      processors: [memory_limiter, resource, transform/optional_identity, batch]
-      exporters: [otlphttp]
-    # Query samples and top queries (DATABASE_QUERY_EVENTS=true). Add
-    # filelog to the receivers when you enable it above.
-    logs:
-      receivers: [postgresql]
+      receivers: [memcached]
       processors: [memory_limiter, resource, transform/optional_identity, batch]
       exporters: [otlphttp]

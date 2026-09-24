@@ -810,5 +810,6 @@ Common causes:
 ## Next steps
 
 - Configure **Kubernetes Monitors** on top of the metrics this agent collects — see [Kubernetes Agent (monitors)](/docs/monitor/kubernetes-agent).
+- Database workloads in the cluster (PostgreSQL, MySQL, Redis, MongoDB and many more engines, recognised by operator label, Helm chart or image) are detected automatically and get their own pages — see [Databases](/docs/telemetry/databases).
 - Add **Logs Monitors** to alert on specific log patterns (e.g. error counts above a threshold per pod or per namespace).
 - For non-Kubernetes hosts (Linux / macOS / Windows VMs and bare metal), use the [Host OpenTelemetry Collector](/docs/telemetry/host-otel-collector) page.

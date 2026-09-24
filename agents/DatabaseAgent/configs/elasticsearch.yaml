@@ -1,117 +1,71 @@
-# OneUptime Database Agent — MongoDB.
+# OneUptime Database Agent — Elasticsearch (and OpenSearch, whose node,
+# cluster and index statistics APIs this receiver reads the same way).
 #
-# ONE agent monitors ONE mongod (or mongos) process. The resource processor
-# below stamps every batch with that server's identity (server.address /
-# server.port), so a second server added to this pipeline would be merged
-# into the first one in OneUptime. Run a second agent (a second install
-# directory) for each replica-set member you want to see on its own.
+# ONE agent monitors ONE cluster: it reads the statistics of every node
+# and index through the endpoint below, and the resource processor stamps
+# every batch with the cluster's identity (server.address / server.port) —
+# each node's series stay apart by elasticsearch.node.name. A second
+# cluster added to this pipeline would be merged into the first one in
+# OneUptime. Run a second agent (a second install directory) for a second
+# cluster.
 #
 # install.sh downloads this file as otel-collector-config.yaml next to
 # docker-compose.yml. Every ${env:...} below comes from the .env file that
 # docker-compose.yml passes through; see README.md for what each one means.
 
 receivers:
-  mongodb:
-    hosts:
-      # host:port the agent CONNECTS to. This may be localhost:27017 when
-      # the agent runs next to the database — the identity OneUptime shows
-      # comes from DATABASE_SERVER_ADDRESS / DATABASE_SERVER_PORT below,
-      # never from this value.
-      - endpoint: "${env:DATABASE_ENDPOINT}"
-    # One agent, one member: never follow the replica set to the other
-    # members, whose metrics would be stamped with this member's identity.
-    direct_connection: true
-    # A dedicated monitoring user holding the built-in clusterMonitor role
-    # (see README.md). Leave both empty for a server without
-    # authentication; the receiver refuses one without the other.
+  elasticsearch:
+    # The URL the agent CONNECTS to — http:// or https://, which is how TLS
+    # is chosen for this engine (install.sh builds it from
+    # DATABASE_TLS_INSECURE). It may be http://localhost:9200 when the
+    # agent runs next to the cluster — the identity OneUptime shows comes
+    # from DATABASE_SERVER_ADDRESS / DATABASE_SERVER_PORT below, never from
+    # this value.
+    endpoint: "${env:DATABASE_ENDPOINT}"
+    # Optional: a user holding the `monitor` cluster privilege and
+    # `monitor` on the indices (see README.md). Leave both empty for a
+    # cluster without security.
     username: "${env:DATABASE_USERNAME}"
     password: "${env:DATABASE_PASSWORD}"
     collection_interval: "${env:DATABASE_COLLECTION_INTERVAL}"
     initial_delay: 1s
     tls:
-      # true (the default in docker-compose.yml) connects WITHOUT TLS.
-      # false turns TLS on; insecure_skip_verify true then accepts a
-      # certificate the image does not trust.
-      # The placeholders are deliberately UNQUOTED: a quoted "${env:...}"
-      # is a string and fails these boolean fields at startup.
-      insecure: ${env:DATABASE_TLS_INSECURE}
+      # Used with an https:// endpoint: true accepts a certificate the
+      # collector image does not trust (self-signed, private CA). Unquoted
+      # on purpose: a quoted "${env:...}" is a string and fails this
+      # boolean field at startup.
       insecure_skip_verify: ${env:DATABASE_TLS_INSECURE_SKIP_VERIFY}
-    resource_attributes:
-      # server.address is on by default upstream; the port is not. The
-      # resource processor below overwrites both with the identity you
-      # configured; they are enabled so the receiver's own view is there if
-      # you remove that stamp.
-      server.address:
-        enabled: true
-      server.port:
-        enabled: true
-      # The server version, shown on the database's page.
-      db.system.version:
-        enabled: true
     metrics:
       # Off by default upstream. Enabled because they answer the questions
-      # people ask first — member health, uptime for restart detection,
-      # operation latency, page faults, deadlocks, active readers and
-      # writers — on the database's Metrics tab. clusterMonitor covers all
-      # of them.
-      mongodb.health:
+      # people ask first — heap pressure, CPU, searches in flight — on the
+      # database's Metrics tab. The `monitor` privilege covers all of them.
+      jvm.memory.heap.utilization:
         enabled: true
-      mongodb.uptime:
+      elasticsearch.process.cpu.usage:
         enabled: true
-      mongodb.operation.latency.time:
-        enabled: true
-      mongodb.page_faults:
-        enabled: true
-      mongodb.lock.deadlock.count:
-        enabled: true
-      mongodb.active.reads:
-        enabled: true
-      mongodb.active.writes:
+      elasticsearch.node.operations.current:
         enabled: true
       # Other optional metrics the receiver can emit, all off by default.
       # Enable any of them the same way if you want them in OneUptime:
-      #   mongodb.operation.repl.count          (replicated operations applied on a secondary)
-      #   mongodb.lock.acquire.count            (lock acquisitions by lock type and mode)
-      #   mongodb.lock.acquire.wait_count       (lock acquisitions that had to wait)
-      #   mongodb.wtcache.bytes.read            (bytes read into the WiredTiger cache)
-      #   mongodb.wt.concurrent_transaction.ticket.in_use   (WiredTiger read/write tickets in use)
-    # Query samples ($currentOp) and top queries (system.profile or getLog)
-    # arrive as logs on the database's Logs tab. Both are off unless
-    # DATABASE_QUERY_EVENTS=true. Explain plans on top queries additionally
-    # need `read` on each monitored database (see README.md). They carry
-    # query shapes, so review what your queries contain before turning them
-    # on.
-    events:
-      db.server.query_sample:
-        enabled: ${env:DATABASE_QUERY_EVENTS}
-      db.server.top_query:
-        enabled: ${env:DATABASE_QUERY_EVENTS}
-
-  # Optional: ship mongod's own log (JSON lines since MongoDB 4.4).
-  # Uncomment this receiver, add it to the logs pipeline at the bottom, and
-  # mount the server's log directory at /var/log/database in
-  # docker-compose.yml, e.g.
-  #   - /var/log/mongodb:/var/log/database:ro
-  # The collector runs as a non-root user, so the files must be readable
-  # by "other" (or run the container as a user in the mongodb group).
-  # filelog:
-  #   include:
-  #     - /var/log/database/*.log
-  #   start_at: end
+      #   elasticsearch.node.cache.size                  (query cache memory per node)
+      #   elasticsearch.index.segments.size              (segment size per index)
+      #   elasticsearch.cluster.indices.cache.evictions  (cache evictions across the cluster)
+      #   elasticsearch.index.cache.evictions            (cache evictions per index)
 
 processors:
   # The identity of this database in OneUptime. OneUptime registers the
   # database from server.address + server.port (engine-agnostic) and joins
-  # it to the queries your applications send to the same host:port, so
+  # it to the requests your applications send to the same host:port, so
   # DATABASE_SERVER_ADDRESS must be the name applications use to reach the
-  # server — never localhost. Keep it stable: changing it later registers
+  # cluster — never localhost. Keep it stable: changing it later registers
   # a second database. A name that is not unique across networks — a
   # private IP, a single-label name, a cluster-local Kubernetes name — only
   # joins a database that already owns it (create it in OneUptime first) or
   # the one DATABASE_SERVER_ID names; it never registers one on its own.
   resource:
     attributes:
-      # The engine, from DATABASE_SYSTEM (mongodb).
+      # The engine, from DATABASE_SYSTEM: elasticsearch, or opensearch for
+      # an OpenSearch cluster (the same config monitors both).
       - key: db.system.name
         value: "${env:DATABASE_SYSTEM}"
         action: upsert
@@ -184,12 +138,6 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [mongodb]
-      processors: [memory_limiter, resource, transform/optional_identity, batch]
-      exporters: [otlphttp]
-    # Query samples and top queries (DATABASE_QUERY_EVENTS=true). Add
-    # filelog to the receivers when you enable it above.
-    logs:
-      receivers: [mongodb]
+      receivers: [elasticsearch]
       processors: [memory_limiter, resource, transform/optional_identity, batch]
       exporters: [otlphttp]

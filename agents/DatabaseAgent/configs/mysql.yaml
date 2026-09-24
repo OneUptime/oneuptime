@@ -33,8 +33,9 @@ receivers:
       insecure: ${env:DATABASE_TLS_INSECURE}
       insecure_skip_verify: ${env:DATABASE_TLS_INSECURE_SKIP_VERIFY}
     resource_attributes:
-      # The server version (e.g. 8.0.36 or 10.11.7-MariaDB), shown on the
-      # database's page.
+      # The server version (e.g. 8.0.36 or 11.4.2), shown on the database's
+      # page. The receiver reads it once, when it starts: an agent started
+      # while the database was unreachable reports none until it restarts.
       db.system.version:
         enabled: true
     metrics:
@@ -100,12 +101,12 @@ processors:
   # private IP, a single-label name, a cluster-local Kubernetes name — only
   # joins a database that already owns it (create it in OneUptime first) or
   # the one DATABASE_SERVER_ID names; it never registers one on its own.
-  # (MariaDB is registered as MySQL: the two share a wire protocol and
-  # applications report either name.)
   resource:
     attributes:
+      # The engine, from DATABASE_SYSTEM: mysql, or mariadb for a MariaDB
+      # server (the same config monitors both).
       - key: db.system.name
-        value: mysql
+        value: "${env:DATABASE_SYSTEM}"
         action: upsert
       - key: server.address
         value: "${env:DATABASE_SERVER_ADDRESS}"

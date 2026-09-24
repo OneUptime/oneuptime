@@ -2,7 +2,11 @@ import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import {
   DATABASE_SYSTEMS,
   DatabaseSystemDescriptor,
+  getCollectorReceiverComponentName,
   getDatabaseSystemDescriptor,
+  getDatabaseSystemDisplayName,
+  getDatabaseSystemMetricsEngine,
+  isAutoCreatableDatabaseSystem,
   normalizeDatabaseSystem,
 } from "Common/Types/DatabaseServer/DatabaseSystem";
 import {
@@ -51,17 +55,45 @@ const AGENT_ENGINES: ReadonlyArray<string> = [
   "mysql",
   "redis",
   "mongodb",
+  "sqlserver",
+  "oracledb",
+  "elasticsearch",
+  "memcached",
 ];
 
 /* The engine row labels of the "What Gets Collected" table. */
 const COLLECTED_ROW_LABELS: Readonly<Record<string, string>> = {
   postgresql: "PostgreSQL",
   mysql: "MySQL / MariaDB",
-  redis: "Redis / Valkey",
+  redis: "Redis / Valkey / KeyDB / Dragonfly",
   mongodb: "MongoDB",
+  sqlserver: "SQL Server",
+  oracledb: "Oracle",
+  elasticsearch: "Elasticsearch / OpenSearch",
+  memcached: "Memcached",
+};
+
+/* Configs whose receiver has no optional metric worth switching on. */
+const ENGINES_WITHOUT_EXTRA_METRICS: ReadonlyArray<string> = ["memcached"];
+
+/*
+ * The canonical engine each config is named after (what install.sh writes
+ * as DATABASE_SYSTEM when the user picks that engine by its own name).
+ */
+const CONFIG_SYSTEM: Readonly<Record<string, string>> = {
+  postgresql: "postgresql",
+  mysql: "mysql",
+  redis: "redis",
+  mongodb: "mongodb",
+  sqlserver: "microsoft.sql_server",
+  oracledb: "oracle.db",
+  elasticsearch: "elasticsearch",
+  memcached: "memcached",
 };
 
 const FENCE_LINE: RegExp = /^\s*```/;
+/* A key (or comment) at the receiver's own level or above: a block ends. */
+const RECEIVER_LEVEL_LINE: RegExp = /^ {0,4}[a-z#]/;
 /* Bare environment variable names in the compose file's environment block. */
 const COMPOSE_ENV_LINE: RegExp = /^\s*-\s*([A-Z][A-Z0-9_]+)=/;
 /* A backticked token shaped like an environment variable. */
@@ -229,20 +261,45 @@ function configEnvironmentVariables(engine: string): Array<string> {
 }
 
 /*
+ * The receiver's `metrics:` block of a config: from `    metrics:` (four
+ * spaces, under receivers.<engine>) to the next key at four spaces or less.
+ */
+function receiverMetricsBlock(engine: string): string {
+  const lines: Array<string> = readConfig(engine).split("\n");
+  const start: number = lines.findIndex((line: string): boolean => {
+    return line === "    metrics:";
+  });
+
+  if (start < 0) {
+    return "";
+  }
+
+  const body: Array<string> = [];
+
+  for (const line of lines.slice(start + 1)) {
+    if (RECEIVER_LEVEL_LINE.test(line)) {
+      break;
+    }
+    body.push(line);
+  }
+
+  return body.join("\n");
+}
+
+/*
  * Metrics a config switches on: the `<name>:` / `enabled: true` pairs of
  * the receiver's metrics block (the metrics sit at six spaces under
- * receivers.<engine>.metrics in every config).
+ * receivers.<engine>.metrics in every config). Not only `<engine>.*`: the
+ * elasticsearch receiver also emits `jvm.*`.
  */
 function enabledMetrics(engine: string): Array<string> {
   return Array.from(
-    readConfig(engine).matchAll(/^ {6}([a-z0-9_.]+):\n {8}enabled: true$/gm),
-  )
-    .map((match: RegExpMatchArray): string => {
-      return match[1] as string;
-    })
-    .filter((name: string): boolean => {
-      return name.startsWith(`${engine}.`);
-    });
+    receiverMetricsBlock(engine).matchAll(
+      /^ {6}([a-z0-9_.]+):\n {8}enabled: true$/gm,
+    ),
+  ).map((match: RegExpMatchArray): string => {
+    return match[1] as string;
+  });
 }
 
 /* The "other optional metrics, all off by default" a config lists in a comment. */
@@ -256,18 +313,34 @@ function commentedOptionalMetrics(engine: string): Array<string> {
   });
 }
 
-/* The literal db.system.name the config's resource processor stamps. */
-function stampedSystem(engine: string): string {
-  const match: RegExpMatchArray | null = readConfig(engine).match(
-    /- key: db\.system\.name\n\s+value: ([a-z0-9_.]+)\n\s+action: upsert/,
+/*
+ * install.sh's case tables, as { input pattern → output } pairs: which
+ * spellings normalize_engine accepts and the engine it writes, and which
+ * config config_for_engine picks for each engine.
+ */
+function installCaseTable(functionName: string): Array<{
+  inputs: Array<string>;
+  output: string;
+}> {
+  const match: RegExpMatchArray | null = readAgentFile("install.sh").match(
+    new RegExp(`\\n${functionName}\\(\\) \\{([\\s\\S]*?)\\n\\}`),
   );
 
-  expect({ engine, stamped: Boolean(match) }).toEqual({
-    engine,
-    stamped: true,
+  expect({ functionName, found: Boolean(match) }).toEqual({
+    functionName,
+    found: true,
   });
 
-  return (match as RegExpMatchArray)[1] as string;
+  return Array.from(
+    (match as RegExpMatchArray)[1]!.matchAll(
+      /^\s+([a-z0-9._|]+)\) printf '([a-z0-9._]+)' ;;$/gm,
+    ),
+  ).map((row: RegExpMatchArray): { inputs: Array<string>; output: string } => {
+    return {
+      inputs: (row[1] as string).split("|"),
+      output: row[2] as string,
+    };
+  });
 }
 
 function pinsIn(text: string): Array<string> {
@@ -524,6 +597,8 @@ describe("Databases docs", (): void => {
         ...firstColumnTokens(section(markdown, "## Self-hosted tuning")),
         // install.sh's install directory, which is not passed to the collector.
         "INSTALL_DIR",
+        // Oracle's built-in role, which only looks like a variable.
+        "SELECT_CATALOG_ROLE",
       ]);
 
       for (const token of backtickedTokens(markdown)) {
@@ -612,37 +687,103 @@ describe("Databases docs", (): void => {
   });
 
   describe("the configs against the product's registries", (): void => {
-    it("stamps each engine's canonical db.system.name, from a receiver the engine registry knows", (): void => {
+    it("stamps db.system.name from DATABASE_SYSTEM, so a fork run by its family's config reports itself", (): void => {
       for (const engine of AGENT_ENGINES) {
-        const system: string = stampedSystem(engine);
+        expect({
+          engine,
+          stamp: readConfig(engine).includes(
+            '- key: db.system.name\n        value: "${env:DATABASE_SYSTEM}"\n        action: upsert',
+          ),
+        }).toEqual({ engine, stamp: true });
+      }
+    });
+
+    it("install.sh writes only canonical engines, each run by a config whose receiver the engine registry lists for it", (): void => {
+      const configs: Map<string, string> = new Map<string, string>();
+
+      for (const row of installCaseTable("config_for_engine")) {
+        for (const input of row.inputs) {
+          configs.set(input, row.output);
+        }
+      }
+
+      const written: Set<string> = new Set<string>();
+
+      for (const row of installCaseTable("normalize_engine")) {
+        const system: string = row.output;
         const descriptor: DatabaseSystemDescriptor | null =
           getDatabaseSystemDescriptor(system);
+        const config: string | undefined = configs.get(system);
+
+        written.add(system);
+
+        // The value stamped as db.system.name is the engine's own.
+        expect({ system, normalized: normalizeDatabaseSystem(system) }).toEqual(
+          { system, normalized: system },
+        );
+        expect({ system, config: config ?? null }).toEqual({
+          system,
+          config: expect.any(String),
+        });
+        expect({
+          system,
+          config,
+          monitors: descriptor?.receiverTypes.includes(config as string),
+        }).toEqual({ system, config, monitors: true });
+        expect(fs.existsSync(path.join(CONFIG_DIR, `${config}.yaml`))).toBe(
+          true,
+        );
+
+        // Every spelling install.sh accepts means that engine to OneUptime.
+        for (const input of row.inputs) {
+          expect({ input, system: normalizeDatabaseSystem(input) }).toEqual({
+            input,
+            system,
+          });
+        }
+      }
+
+      // Every engine a shipped config monitors can be installed by name.
+      for (const descriptor of DATABASE_SYSTEMS) {
+        const runnable: boolean = AGENT_ENGINES.some(
+          (engine: string): boolean => {
+            return descriptor.receiverTypes.includes(engine);
+          },
+        );
 
         expect({
-          engine,
-          system,
-          normalized: normalizeDatabaseSystem(system),
-        }).toEqual({ engine, system, normalized: system });
-        expect({
-          engine,
-          receiver: descriptor?.receiverTypes.includes(engine) ?? false,
-        }).toEqual({ engine, receiver: true });
+          system: descriptor.system,
+          installable: written.has(descriptor.system),
+        }).toEqual({ system: descriptor.system, installable: runnable });
+      }
+
+      // And every shipped config is reachable.
+      expect([...new Set(configs.values())].sort()).toEqual(
+        [...AGENT_ENGINES].sort(),
+      );
+    });
+
+    it("gives every accepted engine the default port the engine registry has", (): void => {
+      for (const row of installCaseTable("default_port_for")) {
+        for (const system of row.inputs) {
+          expect({ system, port: Number(row.output) }).toEqual({
+            system,
+            port: getDatabaseSystemDescriptor(system)?.defaultPort,
+          });
+        }
       }
     });
 
     it("never switches off, and never leaves off, a metric the Overview charts", (): void => {
       for (const engine of AGENT_ENGINES) {
         const catalog: Array<DatabaseServerMetricDefinition> =
-          getDatabaseServerMetrics(stampedSystem(engine));
+          getDatabaseServerMetrics(
+            getDatabaseSystemMetricsEngine(CONFIG_SYSTEM[engine]),
+          );
         const config: string = readConfig(engine);
         const offByDefault: Set<string> = new Set<string>(
           commentedOptionalMetrics(engine),
         );
-
-        expect({ engine, curated: catalog.length > 0 }).toEqual({
-          engine,
-          curated: true,
-        });
 
         for (const metric of catalog) {
           expect({
@@ -684,7 +825,10 @@ describe("Databases docs", (): void => {
         });
         const enabled: Array<string> = enabledMetrics(engine);
 
-        expect(enabled.length).toBeGreaterThan(0);
+        expect({ engine, enablesSome: enabled.length > 0 }).toEqual({
+          engine,
+          enablesSome: !ENGINES_WITHOUT_EXTRA_METRICS.includes(engine),
+        });
 
         const covers: (token: string, metric: string) => boolean = (
           token: string,
@@ -745,6 +889,260 @@ describe("Databases docs", (): void => {
       ).sort();
 
       expect(receivers).toEqual(registry);
+    });
+  });
+
+  /*
+   * The engine table is the page's promise about every engine OneUptime
+   * knows: what it normalises spans to, its default port, its family,
+   * whether traces create it and where its engine metrics come from. The
+   * in-app Documentation tab builds its per-engine guide from the same
+   * catalog, so a row that drifts from the catalog contradicts the product.
+   */
+  describe("the supported databases table", (): void => {
+    const AGENT_CONFIG_FOR: (descriptor: DatabaseSystemDescriptor) => string = (
+      descriptor: DatabaseSystemDescriptor,
+    ): string => {
+      return (
+        AGENT_ENGINES.find((engine: string): boolean => {
+          return descriptor.receiverTypes.includes(engine);
+        }) || ""
+      );
+    };
+
+    function expectedMetricsCell(descriptor: DatabaseSystemDescriptor): string {
+      const source: DatabaseSystemDescriptor["engineMetrics"] =
+        descriptor.engineMetrics;
+      switch (source.kind) {
+        case "receiver": {
+          const agent: string = AGENT_CONFIG_FOR(descriptor);
+          return agent
+            ? `Database Agent (\`${agent}\` receiver)`
+            : `\`${getCollectorReceiverComponentName(
+                descriptor.receiverTypes[0] as string,
+              )}\` receiver`;
+        }
+        case "prometheus":
+          return `Prometheus, \`:${source.port}${source.path}\``;
+        case "cloud-monitoring":
+          return `\`${source.receiver}\` receiver (cloud monitoring)`;
+        case "embedded":
+          return "None (in-process)";
+        default:
+          return "None built in";
+      }
+    }
+
+    function tableRows(): Map<string, Array<string>> {
+      const rows: Map<string, Array<string>> = new Map<string, Array<string>>();
+
+      for (const line of section(readPage(), "## Supported databases").split(
+        "\n",
+      )) {
+        const cells: Array<string> = line
+          .split("|")
+          .slice(1, -1)
+          .map((cell: string): string => {
+            return cell.trim();
+          });
+        const system: RegExpMatchArray | null = (cells[1] || "").match(
+          /^`([^`]+)`$/,
+        );
+
+        // Six cells and a backticked engine: a data row, not the header.
+        if (cells.length === 6 && system && cells[0] !== "Engine") {
+          expect({
+            system: system[1],
+            duplicate: rows.has(system[1] as string),
+          }).toEqual({ system: system[1], duplicate: false });
+          rows.set(system[1] as string, cells);
+        }
+      }
+
+      return rows;
+    }
+
+    it("has one row per catalog engine and nothing else", (): void => {
+      expect([...tableRows().keys()].sort()).toEqual(
+        DATABASE_SYSTEMS.map((descriptor: DatabaseSystemDescriptor): string => {
+          return descriptor.system;
+        }).sort(),
+      );
+    });
+
+    it("states each engine's name, default port, family, create policy and metrics source as the catalog has them", (): void => {
+      const rows: Map<string, Array<string>> = tableRows();
+
+      for (const descriptor of DATABASE_SYSTEMS) {
+        const cells: Array<string> = rows.get(descriptor.system) || [];
+
+        expect({ system: descriptor.system, cells }).toEqual({
+          system: descriptor.system,
+          cells: [
+            descriptor.displayName,
+            `\`${descriptor.system}\``,
+            descriptor.defaultPort === null
+              ? "—"
+              : String(descriptor.defaultPort),
+            descriptor.family
+              ? getDatabaseSystemDisplayName(descriptor.family)
+              : "—",
+            isAutoCreatableDatabaseSystem(descriptor.system)
+              ? "Yes"
+              : descriptor.deployment === "embedded"
+                ? "No (in-process)"
+                : "No (cloud API)",
+            expectedMetricsCell(descriptor),
+          ],
+        });
+      }
+    });
+
+    it("is sorted by engine name, so a reader can find a row", (): void => {
+      const names: Array<string> = [...tableRows().values()].map(
+        (cells: Array<string>): string => {
+          return cells[0] as string;
+        },
+      );
+
+      expect(names).toEqual(
+        [...names].sort((a: string, b: string): number => {
+          return a.localeCompare(b);
+        }),
+      );
+    });
+
+    it("says the create policy follows the table, not a hand-kept list", (): void => {
+      const policy: string = section(readPage(), "### From application traces");
+
+      expect(policy).toContain(
+        "the **Created from traces** column of [Supported databases](#supported-databases)",
+      );
+    });
+  });
+
+  describe("the discovery window", (): void => {
+    const JOB: string = fs.readFileSync(
+      path.join(
+        REPO_ROOT,
+        "packages/App/FeatureSet/Workers/Jobs/TelemetryEntity/ComputeServiceDependencies.ts",
+      ),
+      "utf8",
+    );
+
+    /*
+     * Regression: the page said "one 10-minute window" and "10 calls in ten
+     * minutes" while the job counts calls over a 15-minute window, so an
+     * operator tuning DATABASE_SERVER_MIN_CALLS got two thirds of the rate
+     * they meant.
+     */
+    it("names the window the job really counts over, and how often it runs", (): void => {
+      const windowMinutes: string = (
+        JOB.match(
+          /export const WINDOW_MINUTES: number = (\d+);/,
+        ) as RegExpMatchArray | null
+      )?.[1] as string;
+      const schedule: string = (
+        JOB.match(
+          /const EVERY_TEN_MINUTES: string = "\*\/(\d+) \* \* \* \*";/,
+        ) as RegExpMatchArray | null
+      )?.[1] as string;
+
+      expect(windowMinutes).toBeDefined();
+      expect(schedule).toBeDefined();
+
+      const markdown: string = readPage();
+      const tuning: string = section(markdown, "## Self-hosted tuning");
+
+      expect(tuning).toContain(
+        `within the ${windowMinutes}-minute window each ${schedule}-minute run looks at`,
+      );
+      expect(section(markdown, "### From application traces")).toContain(
+        `Every ${schedule} minutes OneUptime summarises the CLIENT spans your applications sent in the last ${windowMinutes} minutes`,
+      );
+      expect(markdown).toContain(
+        `fewer than 10 calls in the last ${windowMinutes} minutes`,
+      );
+      expect(markdown).not.toMatch(/10-minute window|in ten minutes/);
+    });
+  });
+
+  describe("the rest of the docs point here", (): void => {
+    it.each([
+      "monitor/database-health-monitor",
+      "telemetry/kubernetes-agent",
+      "telemetry/docker-host",
+      "telemetry/podman-host",
+      "inventory/overview",
+    ])("%s links to the Databases page", (page: string): void => {
+      expect(readPage(page)).toContain(`](${PAGE_URL})`);
+    });
+
+    it("the inventory's manual database type sends database servers to Databases", (): void => {
+      const line: string | undefined = readPage("inventory/overview")
+        .split("\n")
+        .find((text: string): boolean => {
+          return text.startsWith("- `external.database`");
+        });
+
+      expect(line).toBeDefined();
+      expect(line).toContain("**Databases → Create Database**");
+      expect(line).toContain(`](${PAGE_URL})`);
+    });
+  });
+
+  describe("what the page promises beyond the agent", (): void => {
+    it("explains how a monitor's alerts attach to a database", (): void => {
+      const alerts: string = section(readPage(), "## Alerts on a database");
+
+      expect(alerts).toContain("`oneuptime.database.server.id`");
+      expect(alerts).toContain("**Alerts** and **Incidents** tabs");
+      expect(alerts).toContain("cumulative counter");
+    });
+
+    it("says a database receiver's data stays the database's in a shared host or Kubernetes pipeline", (): void => {
+      const troubleshooting: string = section(
+        readPage(),
+        "### The metrics land on a Host, or a new Service appears",
+      );
+
+      expect(troubleshooting).toContain(
+        "A database receiver's data belongs to the database even when the receiver shares a collector",
+      );
+      expect(troubleshooting).toContain("`oneuptime.host.id`");
+      // The old promise was the opposite.
+      expect(troubleshooting).not.toContain(
+        "the batch belongs to the Host first",
+      );
+    });
+
+    it("tells a hand-written .env and a Kubernetes Secret to double every $ in the password", (): void => {
+      const markdown: string = readPage();
+
+      expect(section(markdown, "### Alternative — Docker Compose")).toContain(
+        "write every `$` in it as `$$`",
+      );
+      expect(section(markdown, "## Kubernetes")).toContain(
+        "write every `$` in the password as `$$`",
+      );
+      // The old advice (single quotes fix `$`) is gone.
+      expect(markdown).not.toContain("single-quote a password containing `$`");
+    });
+
+    it("explains that PostgreSQL explain plans need table access, and that it is not a missing grant", (): void => {
+      const markdown: string = readPage();
+
+      expect(section(markdown, "#### PostgreSQL")).toContain(
+        "`failed to explain`",
+      );
+      expect(
+        section(
+          markdown,
+          "### Login, permission or TLS errors in the collector log",
+        ),
+      ).toContain(
+        "`failed to explain` on PostgreSQL top queries is not a missing grant",
+      );
     });
   });
 });

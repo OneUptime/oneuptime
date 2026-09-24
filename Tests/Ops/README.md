@@ -204,7 +204,7 @@ RE2, where a pattern that is linear in RE2 can still be exponential.
 
 Not part of `npm test`, because it needs docker and helm. It runs
 `otelcol validate` from the pinned `otel/opentelemetry-collector-contrib:0.161.0`
-image over the four agent configs, over the Database Agent's per-engine
+image over the four agent configs, over the Database Agent's per-receiver
 configs (as shipped, and again with every optional metric their comments list
 switched on), and over both collector ConfigMaps rendered out of the
 `kubernetes-agent` chart.
@@ -223,16 +223,20 @@ cd Tests/Ops && npm run validate-collector-configs
 ### `DatabaseAgentConfigs.test.js`
 
 The Database Agent (`agents/DatabaseAgent`) is config-only: a stock collector
-image plus one config per engine (`configs/{postgresql,mysql,redis,mongodb}.yaml`).
-OneUptime registers a database from what those configs stamp, so their shape is
-pinned, per engine:
+image plus one config per receiver
+(`configs/{postgresql,mysql,redis,mongodb,sqlserver,oracledb,elasticsearch,memcached}.yaml`;
+a fork such as MariaDB or Valkey runs its family's config). OneUptime registers
+a database from what those configs stamp, so their shape is pinned, per
+config:
 
-- the `resource` processor upserts `db.system.name`, `server.address`,
+- the `resource` processor upserts `db.system.name` (from `DATABASE_SYSTEM`,
+  so a fork reports itself), `server.address`,
   `server.port` (unquoted, so it stays an integer), `oneuptime.database.agent:
   "true"` and `oneuptime.agent.version` (equal to the compose image pin), and
   deletes `service.name`; it stamps no `k8s.*` / `host.*` / `os.*` /
   `container.*` / `cloud.*` attribute — ingest reads `k8s.cluster.name` as the
-  Kubernetes agent's heartbeat;
+  Kubernetes agent's heartbeat — and the SQL Server and Oracle receivers' own
+  `host.name` is switched off;
 - `oneuptime.database.server.id` is set by a transform and deleted again when
   `DATABASE_SERVER_ID` is blank, on metrics and logs, and never by the
   resource processor (which refuses an empty value);
@@ -245,8 +249,24 @@ pinned, per engine:
   `server.address` / `server.port`;
 - every `${env:...}` is passed by `docker-compose.yml`, `install.sh` reuses and
   writes exactly the compose variables, accepts only engines that have a
-  config, and shares its host classifiers with `troubleshoot.sh`; the systemd
-  unit runs the directory `install.sh` installs to.
+  config, and shares its host classifiers and its engine → config table with
+  `troubleshoot.sh`; the systemd unit runs the directory `install.sh` installs
+  to.
+
+### `DatabaseAgentScripts.test.js`
+
+Runs the Database Agent's `install.sh` and `troubleshoot.sh` for real in a
+scratch directory, with `docker` and `curl` replaced by recording stubs (no
+daemon or network needed). It pins what they do with a user's values: the
+login reaches the container with every `$` doubled (the collector expands
+`$$` and `${...}` once more — measured against 0.161.0 and a live database),
+a re-run neither re-escapes nor loses it, an `.env` from an older script is read
+as typed, the first `docker compose up` runs from `.env` alone, an edited
+compose file or config is kept as `<file>.bak.<timestamp>` on a re-run, forks
+run their family's config under their own name; and that the diagnostic reads
+only a log line's `error` field, reports a failed EXPLAIN as a warning rather
+than a missing grant, and hands the ingestion key to a digest-pinned curl image
+on stdin, never on a command line.
 
 ### `ContainerAgentDockerApiVersion.test.js`
 

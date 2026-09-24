@@ -1,103 +1,84 @@
-# OneUptime Database Agent — MongoDB.
+# OneUptime Database Agent — Microsoft SQL Server (and Azure SQL Managed
+# Instance, Amazon RDS for SQL Server).
 #
-# ONE agent monitors ONE mongod (or mongos) process. The resource processor
-# below stamps every batch with that server's identity (server.address /
-# server.port), so a second server added to this pipeline would be merged
+# ONE agent monitors ONE SQL Server instance. The resource processor below
+# stamps every batch with that server's identity (server.address /
+# server.port), so a second instance added to this pipeline would be merged
 # into the first one in OneUptime. Run a second agent (a second install
-# directory) for each replica-set member you want to see on its own.
+# directory) for a second instance.
 #
 # install.sh downloads this file as otel-collector-config.yaml next to
 # docker-compose.yml. Every ${env:...} below comes from the .env file that
 # docker-compose.yml passes through; see README.md for what each one means.
 
 receivers:
-  mongodb:
-    hosts:
-      # host:port the agent CONNECTS to. This may be localhost:27017 when
-      # the agent runs next to the database — the identity OneUptime shows
-      # comes from DATABASE_SERVER_ADDRESS / DATABASE_SERVER_PORT below,
-      # never from this value.
-      - endpoint: "${env:DATABASE_ENDPOINT}"
-    # One agent, one member: never follow the replica set to the other
-    # members, whose metrics would be stamped with this member's identity.
-    direct_connection: true
-    # A dedicated monitoring user holding the built-in clusterMonitor role
-    # (see README.md). Leave both empty for a server without
-    # authentication; the receiver refuses one without the other.
+  sqlserver:
+    # The host and port the agent CONNECTS to — DATABASE_ENDPOINT split in
+    # two, because this receiver takes them separately (install.sh writes
+    # both). This may be localhost when the agent runs next to the
+    # database — the identity OneUptime shows comes from
+    # DATABASE_SERVER_ADDRESS / DATABASE_SERVER_PORT below, never from this
+    # value.
+    server: "${env:DATABASE_ENDPOINT_HOST}"
+    # Unquoted on purpose: port is an integer field.
+    port: ${env:DATABASE_ENDPOINT_PORT}
+    # A dedicated SQL login holding VIEW SERVER STATE (VIEW SERVER
+    # PERFORMANCE STATE on SQL Server 2022 and later) and VIEW ANY
+    # DEFINITION (see README.md). The receiver refuses to start without a
+    # username and password. The driver negotiates TLS with the server
+    # (encrypting at least the login); a server that forces encryption is
+    # fine. The password must not contain a semicolon: the receiver builds
+    # an ADO connection string from it.
     username: "${env:DATABASE_USERNAME}"
     password: "${env:DATABASE_PASSWORD}"
     collection_interval: "${env:DATABASE_COLLECTION_INTERVAL}"
     initial_delay: 1s
-    tls:
-      # true (the default in docker-compose.yml) connects WITHOUT TLS.
-      # false turns TLS on; insecure_skip_verify true then accepts a
-      # certificate the image does not trust.
-      # The placeholders are deliberately UNQUOTED: a quoted "${env:...}"
-      # is a string and fails these boolean fields at startup.
-      insecure: ${env:DATABASE_TLS_INSECURE}
-      insecure_skip_verify: ${env:DATABASE_TLS_INSECURE_SKIP_VERIFY}
     resource_attributes:
-      # server.address is on by default upstream; the port is not. The
-      # resource processor below overwrites both with the identity you
-      # configured; they are enabled so the receiver's own view is there if
-      # you remove that stamp.
-      server.address:
-        enabled: true
-      server.port:
-        enabled: true
-      # The server version, shown on the database's page.
-      db.system.version:
+      # On by default upstream, and the SQL Server machine's name: it would
+      # make that machine look like a Host in OneUptime. This database's
+      # identity is the stamp below.
+      host.name:
+        enabled: false
+      # Off by default upstream. Named instances (SERVER\INSTANCE) share a
+      # host, so the instance name tells their series apart.
+      sqlserver.instance.name:
         enabled: true
     metrics:
       # Off by default upstream. Enabled because they answer the questions
-      # people ask first — member health, uptime for restart detection,
-      # operation latency, page faults, deadlocks, active readers and
-      # writers — on the database's Metrics tab. clusterMonitor covers all
-      # of them.
-      mongodb.health:
+      # people ask first — deadlocks, blocked sessions, memory grants
+      # waiting, CPU, file I/O and its latency, availability group lag — on
+      # the database's Metrics tab. All of them read DMVs that VIEW SERVER
+      # STATE covers.
+      sqlserver.deadlock.rate:
         enabled: true
-      mongodb.uptime:
+      sqlserver.processes.blocked:
         enabled: true
-      mongodb.operation.latency.time:
+      sqlserver.memory.grants.pending.count:
         enabled: true
-      mongodb.page_faults:
+      sqlserver.cpu.utilization:
         enabled: true
-      mongodb.lock.deadlock.count:
+      sqlserver.database.io:
         enabled: true
-      mongodb.active.reads:
+      sqlserver.database.latency:
         enabled: true
-      mongodb.active.writes:
+      sqlserver.availability_group.database_replica.secondary_lag:
         enabled: true
       # Other optional metrics the receiver can emit, all off by default.
       # Enable any of them the same way if you want them in OneUptime:
-      #   mongodb.operation.repl.count          (replicated operations applied on a secondary)
-      #   mongodb.lock.acquire.count            (lock acquisitions by lock type and mode)
-      #   mongodb.lock.acquire.wait_count       (lock acquisitions that had to wait)
-      #   mongodb.wtcache.bytes.read            (bytes read into the WiredTiger cache)
-      #   mongodb.wt.concurrent_transaction.ticket.in_use   (WiredTiger read/write tickets in use)
-    # Query samples ($currentOp) and top queries (system.profile or getLog)
-    # arrive as logs on the database's Logs tab. Both are off unless
-    # DATABASE_QUERY_EVENTS=true. Explain plans on top queries additionally
-    # need `read` on each monitored database (see README.md). They carry
-    # query shapes, so review what your queries contain before turning them
-    # on.
+      #   sqlserver.lock.timeout.rate           (lock requests that timed out)
+      #   sqlserver.os.wait.duration            (wait time per wait type; one series per wait type)
+      #   sqlserver.database.count              (databases by state)
+      #   sqlserver.memory.usage                (memory in use by SQL Server)
+      #   sqlserver.database.tempdb.space       (free space in tempdb)
+    # Query samples and top queries (sys.dm_exec_requests /
+    # sys.dm_exec_query_stats) arrive as logs on the database's Logs tab.
+    # Both are off unless DATABASE_QUERY_EVENTS=true. They carry query
+    # text, so review what your queries contain before turning them on.
     events:
       db.server.query_sample:
         enabled: ${env:DATABASE_QUERY_EVENTS}
       db.server.top_query:
         enabled: ${env:DATABASE_QUERY_EVENTS}
-
-  # Optional: ship mongod's own log (JSON lines since MongoDB 4.4).
-  # Uncomment this receiver, add it to the logs pipeline at the bottom, and
-  # mount the server's log directory at /var/log/database in
-  # docker-compose.yml, e.g.
-  #   - /var/log/mongodb:/var/log/database:ro
-  # The collector runs as a non-root user, so the files must be readable
-  # by "other" (or run the container as a user in the mongodb group).
-  # filelog:
-  #   include:
-  #     - /var/log/database/*.log
-  #   start_at: end
 
 processors:
   # The identity of this database in OneUptime. OneUptime registers the
@@ -111,7 +92,7 @@ processors:
   # the one DATABASE_SERVER_ID names; it never registers one on its own.
   resource:
     attributes:
-      # The engine, from DATABASE_SYSTEM (mongodb).
+      # The engine, from DATABASE_SYSTEM (microsoft.sql_server).
       - key: db.system.name
         value: "${env:DATABASE_SYSTEM}"
         action: upsert
@@ -184,12 +165,11 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [mongodb]
+      receivers: [sqlserver]
       processors: [memory_limiter, resource, transform/optional_identity, batch]
       exporters: [otlphttp]
-    # Query samples and top queries (DATABASE_QUERY_EVENTS=true). Add
-    # filelog to the receivers when you enable it above.
+    # Query samples and top queries (DATABASE_QUERY_EVENTS=true).
     logs:
-      receivers: [mongodb]
+      receivers: [sqlserver]
       processors: [memory_limiter, resource, transform/optional_identity, batch]
       exporters: [otlphttp]

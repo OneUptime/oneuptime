@@ -114,27 +114,105 @@ prompt_required() {
     printf -v "$name" '%s' "$answer"
 }
 
-# Map what people type (and what applications report) to the four engines
-# this agent ships a config for. Prints nothing for anything else.
+# Map what people type (and what applications report) to the engine this
+# agent stamps as db.system.name — OneUptime's name for it, so a MariaDB
+# server shows as MariaDB, not MySQL. Prints nothing for an engine the agent
+# ships no config for.
 normalize_engine() {
     local raw
     raw="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')"
     case "$raw" in
         postgresql|postgres|pg|pgsql) printf 'postgresql' ;;
-        mysql|mariadb|percona) printf 'mysql' ;;
-        redis|valkey) printf 'redis' ;;
+        mysql|percona) printf 'mysql' ;;
+        mariadb) printf 'mariadb' ;;
+        redis) printf 'redis' ;;
+        valkey) printf 'valkey' ;;
+        keydb) printf 'keydb' ;;
+        dragonfly|dragonflydb) printf 'dragonfly' ;;
         mongodb|mongo) printf 'mongodb' ;;
+        microsoft.sql_server|sqlserver|sql_server|mssql) printf 'microsoft.sql_server' ;;
+        oracle.db|oracle|oracledb) printf 'oracle.db' ;;
+        elasticsearch|elastic) printf 'elasticsearch' ;;
+        opensearch) printf 'opensearch' ;;
+        memcached) printf 'memcached' ;;
         *) ;;
+    esac
+}
+
+# The config (configs/<name>.yaml, named after the collector receiver it
+# runs) that monitors an engine from normalize_engine: forks and drop-ins
+# share their family's receiver.
+config_for_engine() {
+    case "$1" in
+        postgresql) printf 'postgresql' ;;
+        mysql|mariadb) printf 'mysql' ;;
+        redis|valkey|keydb|dragonfly) printf 'redis' ;;
+        mongodb) printf 'mongodb' ;;
+        microsoft.sql_server) printf 'sqlserver' ;;
+        oracle.db) printf 'oracledb' ;;
+        elasticsearch|opensearch) printf 'elasticsearch' ;;
+        memcached) printf 'memcached' ;;
     esac
 }
 
 default_port_for() {
     case "$1" in
         postgresql) printf '5432' ;;
-        mysql) printf '3306' ;;
-        redis) printf '6379' ;;
+        mysql|mariadb) printf '3306' ;;
+        redis|valkey|keydb|dragonfly) printf '6379' ;;
         mongodb) printf '27017' ;;
+        microsoft.sql_server) printf '1433' ;;
+        oracle.db) printf '1521' ;;
+        elasticsearch|opensearch) printf '9200' ;;
+        memcached) printf '11211' ;;
     esac
+}
+
+# ----------------------------------------------------------------------------
+# $ in the values the collector reads — a second layer of escaping
+# ----------------------------------------------------------------------------
+# The collector resolves "${env:DATABASE_PASSWORD}" and then expands the
+# RESULT once more: $$ becomes $, and ${NAME} / ${env:NAME} are replaced by
+# another variable. So the container has to hold the password with every $
+# doubled for the receiver to get it verbatim — `Xk9$$pQ` must reach the
+# container as `Xk9$$$$pQ`. That is on top of the Compose quoting above.
+# The .env carries a marker line saying its values are escaped, so a re-run
+# undoes exactly the escaping it added (an .env from an older install.sh,
+# without the marker, holds the values as typed).
+COLLECTOR_ESCAPED_NAMES="DATABASE_USERNAME DATABASE_PASSWORD"
+COLLECTOR_ESCAPE_MARKER="# DATABASE_USERNAME and DATABASE_PASSWORD are escaped for the collector: every \$ is written as \$\$."
+
+collector_env_escape() {
+    printf '%s' "${1//\$/\$\$}"
+}
+
+collector_env_unescape() {
+    printf '%s' "${1//\$\$/\$}"
+}
+
+# Download an agent file, keeping a changed copy of the installed one. The
+# docs ask for edits to these files (network_mode: host in
+# docker-compose.yml, the filelog receiver and its mount, extra metrics), so
+# a re-run — the upgrade path — must not discard them silently: a copy that
+# differs from the new download is kept as <file>.bak.<timestamp> and named
+# at the end. The new file lands with the permissions curl -o would give it
+# (the collector reads its config as a non-root user).
+BACKED_UP_FILES=()
+download_agent_file() {
+    local url="$1" dest="$2" tmp backup
+    tmp="$(mktemp "$dest.download.XXXXXX")"
+    if ! curl -fsSL "$url" -o "$tmp"; then
+        rm -f "$tmp"
+        echo "Error: could not download $url"
+        exit 1
+    fi
+    chmod 0644 "$tmp"
+    if [ -f "$dest" ] && ! cmp -s "$tmp" "$dest"; then
+        backup="$dest.bak.$(date +%Y%m%d%H%M%S)"
+        cp -p "$dest" "$backup"
+        BACKED_UP_FILES+=("$backup")
+    fi
+    mv -f "$tmp" "$dest"
 }
 
 # A host that only means something relative to the machine it is used on.
@@ -191,7 +269,8 @@ INSTALL_DIR="${INSTALL_DIR:-/opt/oneuptime-database-agent}"
 ENV_FILE="$INSTALL_DIR/.env"
 
 ENV_NAMES="ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY DATABASE_SYSTEM \
-DATABASE_ENDPOINT DATABASE_SERVER_ADDRESS DATABASE_SERVER_PORT \
+DATABASE_ENDPOINT DATABASE_ENDPOINT_HOST DATABASE_ENDPOINT_PORT \
+DATABASE_ORACLE_SERVICE DATABASE_SERVER_ADDRESS DATABASE_SERVER_PORT \
 DATABASE_USERNAME DATABASE_PASSWORD DATABASE_TLS_INSECURE \
 DATABASE_TLS_INSECURE_SKIP_VERIFY DATABASE_COLLECTION_INTERVAL \
 DATABASE_QUERY_EVENTS DATABASE_SERVER_ID"
@@ -203,9 +282,22 @@ DATABASE_QUERY_EVENTS DATABASE_SERVER_ID"
 if [ -f "$ENV_FILE" ]; then
     echo "Found an existing configuration in $ENV_FILE — reusing it."
     echo "(Exported variables override it; edit or delete the file to change a value.)"
+    ENV_FILE_IS_ESCAPED=""
+    if grep -qxF "$COLLECTOR_ESCAPE_MARKER" "$ENV_FILE" 2>/dev/null; then
+        ENV_FILE_IS_ESCAPED="true"
+    fi
     for name in $ENV_NAMES; do
         if [ -z "${!name}" ]; then
             printf -v "$name" '%s' "$(dotenv_get "$name" "$ENV_FILE")"
+            # Undo the collector escaping this script added when it wrote
+            # the file (an exported value is always the value as typed).
+            case " $COLLECTOR_ESCAPED_NAMES " in
+                *" $name "*)
+                    if [ -n "$ENV_FILE_IS_ESCAPED" ]; then
+                        printf -v "$name" '%s' "$(collector_env_unescape "${!name}")"
+                    fi
+                    ;;
+            esac
         fi
     done
     # An optional value that was deliberately left empty stays empty on a
@@ -224,19 +316,39 @@ if [ -z "$ONEUPTIME_TELEMETRY_INGESTION_KEY" ]; then
     prompt_required ONEUPTIME_TELEMETRY_INGESTION_KEY "OneUptime Telemetry Ingestion Key: "
 fi
 
+SUPPORTED_ENGINES="postgresql, mysql, mariadb, redis, valkey, keydb, dragonfly, mongodb, sqlserver, oracle, elasticsearch, opensearch, memcached"
 if [ -z "$DATABASE_SYSTEM" ]; then
-    prompt_required DATABASE_SYSTEM "Database engine (postgresql, mysql, redis, mongodb): "
+    prompt_required DATABASE_SYSTEM "Database engine ($SUPPORTED_ENGINES): "
 fi
 ENGINE="$(normalize_engine "$DATABASE_SYSTEM")"
 if [ -z "$ENGINE" ]; then
     echo "Error: '$DATABASE_SYSTEM' is not an engine this agent ships a config for."
-    echo "Supported: postgresql (postgres), mysql (mariadb), redis (valkey), mongodb (mongo)."
+    echo "Supported: $SUPPORTED_ENGINES."
     echo "Other engines still appear in OneUptime from your applications' traces and from"
-    echo "Kubernetes / Docker auto-detection — see https://oneuptime.com/docs/telemetry/databases"
+    echo "Kubernetes / Docker auto-detection, and many can send engine metrics from your own"
+    echo "collector — see https://oneuptime.com/docs/telemetry/databases"
     exit 1
 fi
 DATABASE_SYSTEM="$ENGINE"
+AGENT_CONFIG="$(config_for_engine "$DATABASE_SYSTEM")"
 DEFAULT_PORT="$(default_port_for "$DATABASE_SYSTEM")"
+
+# What each receiver can do, so nothing is asked that the config ignores.
+case "$AGENT_CONFIG" in
+    postgresql|mysql|sqlserver|oracledb) LOGIN="required" ;;
+    memcached) LOGIN="none" ;;
+    *) LOGIN="optional" ;;
+esac
+case "$AGENT_CONFIG" in
+    postgresql|mysql|mongodb|sqlserver|oracledb) HAS_QUERY_EVENTS="true" ;;
+    *) HAS_QUERY_EVENTS="" ;;
+esac
+case "$AGENT_CONFIG" in
+    # The SQL Server and Oracle drivers negotiate encryption themselves and
+    # memcached has none, so the TLS switches do not apply.
+    sqlserver|oracledb|memcached) HAS_TLS="" ;;
+    *) HAS_TLS="true" ;;
+esac
 
 if [ -z "$DATABASE_ENDPOINT" ]; then
     echo ""
@@ -245,7 +357,12 @@ if [ -z "$DATABASE_ENDPOINT" ]; then
     prompt_required DATABASE_ENDPOINT "Database endpoint to connect to (host:port, e.g. db.internal:$DEFAULT_PORT): "
 fi
 # Be forgiving: strip a scheme and a trailing slash, and add the engine's
-# default port when only a host was given.
+# default port when only a host was given. The scheme is remembered: for
+# Elasticsearch / OpenSearch an https:// endpoint means TLS.
+ENDPOINT_SCHEME=""
+case "$DATABASE_ENDPOINT" in
+    *://*) ENDPOINT_SCHEME="$(printf '%s' "${DATABASE_ENDPOINT%%://*}" | tr '[:upper:]' '[:lower:]')" ;;
+esac
 DATABASE_ENDPOINT="${DATABASE_ENDPOINT#*://}"
 DATABASE_ENDPOINT="${DATABASE_ENDPOINT%/}"
 case "$DATABASE_ENDPOINT" in
@@ -306,14 +423,26 @@ if ! is_valid_port "$DATABASE_SERVER_PORT"; then
     exit 1
 fi
 
+if [ "$AGENT_CONFIG" = "oracledb" ] && [ -z "$DATABASE_ORACLE_SERVICE" ]; then
+    # The receiver connects to one service; a CDB's pluggable database is
+    # the usual choice (FREEPDB1 on Oracle Database Free).
+    prompt_required DATABASE_ORACLE_SERVICE "Oracle service name to connect to (e.g. FREEPDB1, ORCLPDB1): "
+fi
+
+if [ "$LOGIN" = "none" ]; then
+    # The memcached receiver runs `stats` without logging in.
+    DATABASE_USERNAME=""
+    DATABASE_PASSWORD=""
+fi
+
 if [ -z "$DATABASE_USERNAME" ]; then
-    case "$DATABASE_SYSTEM" in
-        postgresql|mysql)
-            # Both receivers refuse to start without a login, so this is
+    case "$LOGIN" in
+        required)
+            # These receivers refuse to start without a login, so this is
             # asked for even on a re-run that found it empty.
             prompt_required DATABASE_USERNAME "Monitoring user (see the README for the grants it needs): "
             ;;
-        *)
+        optional)
             if [ -z "$REUSING_ENV_FILE" ]; then
                 read -rp "Monitoring user (leave empty if the server has no users/ACLs): " DATABASE_USERNAME || true
             fi
@@ -321,21 +450,47 @@ if [ -z "$DATABASE_USERNAME" ]; then
     esac
 fi
 
-if [ -z "$DATABASE_PASSWORD" ] && [ -z "$REUSING_ENV_FILE" ]; then
+if [ "$LOGIN" != "none" ] && [ -z "$DATABASE_PASSWORD" ] && [ -z "$REUSING_ENV_FILE" ]; then
     # -s: never echo the password to the terminal (or into shell history
-    # of a pasted session transcript). Any character is fine — the value is
-    # quoted for Docker Compose when .env is written below.
+    # of a pasted session transcript). Any character is fine: the value is
+    # escaped for the collector (every $ doubled) and quoted for Docker
+    # Compose when .env is written below.
     read -rsp "Password for the monitoring user (leave empty for none): " DATABASE_PASSWORD || true
     echo ""
 fi
-if [ "$DATABASE_SYSTEM" = "postgresql" ] && [ -z "$DATABASE_PASSWORD" ]; then
-    echo "Error: the PostgreSQL receiver refuses to start without a password (DATABASE_PASSWORD)."
-    echo "Give the monitoring user a password (see the README)."
+case "$AGENT_CONFIG" in
+    postgresql|sqlserver|oracledb)
+        if [ -z "$DATABASE_PASSWORD" ]; then
+            echo "Error: the $DATABASE_SYSTEM receiver refuses to start without a password (DATABASE_PASSWORD)."
+            echo "Give the monitoring user a password (see the README)."
+            exit 1
+        fi
+        ;;
+    mongodb|elasticsearch)
+        if [ -n "$DATABASE_USERNAME" ] && [ -z "$DATABASE_PASSWORD" ]; then
+            echo "Error: $DATABASE_SYSTEM needs DATABASE_PASSWORD when DATABASE_USERNAME is set."
+            exit 1
+        fi
+        ;;
+esac
+if [ "$AGENT_CONFIG" = "sqlserver" ] && [[ "$DATABASE_PASSWORD" == *";"* ]]; then
+    echo "Error: the SQL Server receiver builds a connection string from the password, so it"
+    echo "cannot contain a semicolon (;). Give the monitoring login a password without one."
     exit 1
 fi
-if [ "$DATABASE_SYSTEM" = "mongodb" ] && [ -n "$DATABASE_USERNAME" ] && [ -z "$DATABASE_PASSWORD" ]; then
-    echo "Error: MongoDB needs DATABASE_PASSWORD when DATABASE_USERNAME is set."
-    exit 1
+
+if [ -z "$HAS_TLS" ]; then
+    DATABASE_TLS_INSECURE="${DATABASE_TLS_INSECURE:-true}"
+    DATABASE_TLS_INSECURE_SKIP_VERIFY="${DATABASE_TLS_INSECURE_SKIP_VERIFY:-false}"
+fi
+
+if [ -z "$DATABASE_TLS_INSECURE" ] && [ "$AGENT_CONFIG" = "elasticsearch" ] && [ -n "$ENDPOINT_SCHEME" ]; then
+    # An https:// endpoint already says it.
+    if [ "$ENDPOINT_SCHEME" = "https" ]; then
+        DATABASE_TLS_INSECURE="false"
+    else
+        DATABASE_TLS_INSECURE="true"
+    fi
 fi
 
 if [ -z "$DATABASE_TLS_INSECURE" ]; then
@@ -363,7 +518,7 @@ fi
 
 if [ -z "$DATABASE_QUERY_EVENTS" ]; then
     DATABASE_QUERY_EVENTS="false"
-    if [ "$DATABASE_SYSTEM" != "redis" ] && [ -z "$REUSING_ENV_FILE" ]; then
+    if [ -n "$HAS_QUERY_EVENTS" ] && [ -z "$REUSING_ENV_FILE" ]; then
         read -rp "Also ship query samples and top queries (they contain query text)? [y/N]: " QUERY_EVENTS || true
         if [[ "$QUERY_EVENTS" =~ ^[Yy] ]]; then
             DATABASE_QUERY_EVENTS="true"
@@ -419,26 +574,44 @@ mkdir -p "$INSTALL_DIR/systemd"
 # chosen engine, saved under the name docker-compose.yml mounts.
 REPO_BASE="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent"
 
-echo "Downloading configuration files ($DATABASE_SYSTEM)..."
-curl -fsSL "$REPO_BASE/docker-compose.yml" -o "$INSTALL_DIR/docker-compose.yml"
-curl -fsSL "$REPO_BASE/configs/$DATABASE_SYSTEM.yaml" -o "$INSTALL_DIR/otel-collector-config.yaml"
-curl -fsSL "$REPO_BASE/systemd/oneuptime-database-agent.service" -o "$INSTALL_DIR/systemd/oneuptime-database-agent.service"
+echo "Downloading configuration files ($DATABASE_SYSTEM: configs/$AGENT_CONFIG.yaml)..."
+download_agent_file "$REPO_BASE/docker-compose.yml" "$INSTALL_DIR/docker-compose.yml"
+download_agent_file "$REPO_BASE/configs/$AGENT_CONFIG.yaml" "$INSTALL_DIR/otel-collector-config.yaml"
+download_agent_file "$REPO_BASE/systemd/oneuptime-database-agent.service" "$INSTALL_DIR/systemd/oneuptime-database-agent.service"
+
+# The Elasticsearch receiver takes a URL, and its scheme is what turns TLS
+# on; every other receiver takes host:port. The SQL Server receiver takes
+# the host and the port apart.
+if [ "$AGENT_CONFIG" = "elasticsearch" ]; then
+    if [ "$DATABASE_TLS_INSECURE" = "false" ]; then
+        DATABASE_ENDPOINT="https://$DATABASE_ENDPOINT"
+    else
+        DATABASE_ENDPOINT="http://$DATABASE_ENDPOINT"
+    fi
+fi
+DATABASE_ENDPOINT_HOST="$ENDPOINT_HOST"
+DATABASE_ENDPOINT_PORT="$ENDPOINT_PORT"
 
 # Create .env file. It holds the database password, so it is created
 # owner-read-only before anything is written to it. Every user-supplied
-# value is quoted for Compose (see compose_env_quote); the booleans, the
-# port and the duration are validated shapes and stay bare.
+# value is quoted for Compose (see compose_env_quote), and the login is
+# escaped for the collector first (see collector_env_escape); the booleans,
+# the ports and the duration are validated shapes and stay bare.
 touch "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 cat > "$ENV_FILE" <<ENVEOF
+$COLLECTOR_ESCAPE_MARKER
 ONEUPTIME_URL=$(compose_env_quote "$ONEUPTIME_URL")
 ONEUPTIME_TELEMETRY_INGESTION_KEY=$(compose_env_quote "$ONEUPTIME_TELEMETRY_INGESTION_KEY")
 DATABASE_SYSTEM=$DATABASE_SYSTEM
 DATABASE_ENDPOINT=$(compose_env_quote "$DATABASE_ENDPOINT")
+DATABASE_ENDPOINT_HOST=$(compose_env_quote "$DATABASE_ENDPOINT_HOST")
+DATABASE_ENDPOINT_PORT=$DATABASE_ENDPOINT_PORT
+DATABASE_ORACLE_SERVICE=$(compose_env_quote "$DATABASE_ORACLE_SERVICE")
 DATABASE_SERVER_ADDRESS=$(compose_env_quote "$DATABASE_SERVER_ADDRESS")
 DATABASE_SERVER_PORT=$DATABASE_SERVER_PORT
-DATABASE_USERNAME=$(compose_env_quote "$DATABASE_USERNAME")
-DATABASE_PASSWORD=$(compose_env_quote "$DATABASE_PASSWORD")
+DATABASE_USERNAME=$(compose_env_quote "$(collector_env_escape "$DATABASE_USERNAME")")
+DATABASE_PASSWORD=$(compose_env_quote "$(collector_env_escape "$DATABASE_PASSWORD")")
 DATABASE_TLS_INSECURE=$DATABASE_TLS_INSECURE
 DATABASE_TLS_INSECURE_SKIP_VERIFY=$DATABASE_TLS_INSECURE_SKIP_VERIFY
 DATABASE_COLLECTION_INTERVAL=$DATABASE_COLLECTION_INTERVAL
@@ -451,7 +624,17 @@ chmod 600 "$ENV_FILE"
 echo ""
 echo "Starting OneUptime Database Agent..."
 cd "$INSTALL_DIR"
-docker compose up -d
+# Compose gives variables in its environment precedence over .env, and this
+# script's variables are exported whenever the user exported them to answer
+# a prompt — unescaped, un-normalized. Start from .env alone, so this first
+# start runs exactly what every later `docker compose up` (and the systemd
+# unit) will.
+(
+    for name in $ENV_NAMES; do
+        unset "$name"
+    done
+    docker compose up -d
+)
 
 echo ""
 echo "=========================================="
@@ -466,3 +649,14 @@ echo "To view logs:     cd $INSTALL_DIR && docker compose logs -f"
 echo "To stop:          cd $INSTALL_DIR && docker compose down"
 echo "To restart:       cd $INSTALL_DIR && docker compose restart"
 echo "If nothing shows up: curl -fsSL $REPO_BASE/troubleshoot.sh | bash -s -- -d $INSTALL_DIR"
+
+if [ "${#BACKED_UP_FILES[@]}" -gt 0 ]; then
+    echo ""
+    echo "NOTE: these files had changed since they were installed and were replaced by the"
+    echo "current versions. Your copies are kept next to them:"
+    for backup in "${BACKED_UP_FILES[@]}"; do
+        echo "  $backup"
+    done
+    echo "Re-apply your edits (network_mode: host, a filelog receiver and its log mount, extra"
+    echo "metrics) to the new files, then: cd $INSTALL_DIR && docker compose up -d"
+fi
