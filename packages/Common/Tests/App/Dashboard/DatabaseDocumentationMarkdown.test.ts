@@ -74,6 +74,20 @@ const MARKDOWN_SOURCE: string = fs.readFileSync(
   "utf8",
 );
 
+/*
+ * The line install.sh writes at the top of every .env (its
+ * COLLECTOR_ESCAPE_MARKER, `\$` unescaped): the rule a hand-written file
+ * follows too, stated where the password is.
+ */
+const ENV_MARKER: string = (
+  fs
+    .readFileSync(
+      path.join(REPO_ROOT, "agents", "DatabaseAgent", "install.sh"),
+      "utf8",
+    )
+    .match(/^COLLECTOR_ESCAPE_MARKER="(.*)"$/m) as RegExpMatchArray
+)[1]!.replace(/\\\$/g, "$");
+
 const URL: string = "https://oneuptime.example.com";
 const KEY: string = "ingest-key-123";
 const DATABASE_ID: string = "3c1e9a52-1f2b-4c3d-9e8f-0a1b2c3d4e5f";
@@ -317,6 +331,7 @@ describe("resolveDatabaseAgentIdentity", () => {
       endpoint: "db.example.com:3306",
       databaseId: "",
       isPrefilled: false,
+      instanceName: "",
     });
   });
 
@@ -333,6 +348,7 @@ describe("resolveDatabaseAgentIdentity", () => {
       endpoint: "db.prod.internal:6432",
       databaseId: DATABASE_ID,
       isPrefilled: true,
+      instanceName: "",
     });
   });
 
@@ -403,6 +419,7 @@ describe("the .env file", () => {
     });
 
     expect(env.split("\n")).toEqual([
+      ENV_MARKER,
       `ONEUPTIME_URL=${URL}`,
       `ONEUPTIME_TELEMETRY_INGESTION_KEY=${KEY}`,
       "DATABASE_SYSTEM=postgresql",
@@ -420,6 +437,32 @@ describe("the .env file", () => {
       "DATABASE_QUERY_EVENTS=false",
       `DATABASE_SERVER_ID=${DATABASE_ID}`,
     ]);
+  });
+
+  /*
+   * Regression: the hand-written .env the guide shows had every `$` doubled
+   * but not install.sh's line saying so, and install.sh read such a file as
+   * holding the password as typed — re-running it (the upgrade) doubled
+   * every `$` again. The sample now carries install.sh's own first line.
+   */
+  test("starts with install.sh's own line saying every $ of the login is doubled", () => {
+    expect(ENV_MARKER).toBe(
+      "# DATABASE_USERNAME and DATABASE_PASSWORD are escaped for the collector: every $ is written as $$.",
+    );
+
+    for (const engine of DATABASE_AGENT_ENGINES) {
+      const env: string = getDatabaseAgentEnvFile({
+        oneuptimeUrl: URL,
+        apiKey: KEY,
+        engine: engine,
+        identity: resolveDatabaseAgentIdentity(getDatabaseAgentSystem(engine)),
+      });
+
+      expect({ engine, first: env.split("\n")[0] }).toEqual({
+        engine,
+        first: ENV_MARKER,
+      });
+    }
   });
 
   test("a fork reports itself: a MariaDB row's .env says mariadb and runs the mysql config", () => {
@@ -503,6 +546,9 @@ describe("the .env file", () => {
 
       const named: Array<string> = env
         .split("\n")
+        .filter((line: string): boolean => {
+          return !line.startsWith("#");
+        })
         .map((line: string): string => {
           return line.split("=")[0]!;
         });
@@ -643,6 +689,25 @@ describe("the monitoring-user grants match the agent's README", () => {
    * Regression: with pg_monitor and query events on, every EXPLAIN of a top
    * query failed with "permission denied", and nothing said why.
    */
+  /*
+   * Regression: the guide named only the semicolon, but the receiver's
+   * unquoted connection string also breaks on a double quote and trims the
+   * spaces around the login — such a password failed every login.
+   */
+  test("the SQL Server guide names everything its connection string cannot carry", () => {
+    const markdown: string = getDatabaseAgentInstallationMarkdown({
+      oneuptimeUrl: URL,
+      apiKey: KEY,
+      engine: "sqlserver",
+    });
+
+    expect(markdown).toContain(
+      'must not contain a semicolon (`;`) or a double quote (`"`), nor start or end with a space',
+    );
+    expect(markdown).toContain("For a named instance");
+    expect(markdown).toContain("local_tcp_port");
+  });
+
   test("the PostgreSQL guide explains that plans need table access", () => {
     const markdown: string = getDatabaseAgentInstallationMarkdown({
       oneuptimeUrl: URL,
@@ -1095,6 +1160,223 @@ describe("the Database Health monitor on a database's guide", () => {
     });
     expect(productPage).toContain(
       "Its alerts and incidents also appear on the database whose endpoints include the host and port it connects to.",
+    );
+  });
+});
+
+/* The `.env` block of a guide: the fenced block that sets ONEUPTIME_URL. */
+function envBlockOf(markdown: string): Map<string, string> {
+  const block: { language: string; body: string } | undefined = codeBlocks(
+    markdown,
+  ).find((candidate: { language: string; body: string }): boolean => {
+    return candidate.body.includes("\nONEUPTIME_URL=");
+  });
+  expect(block).toBeDefined();
+  const values: Map<string, string> = new Map<string, string>();
+  for (const line of block!.body.split("\n")) {
+    const match: RegExpMatchArray | null = line.match(/^([A-Z_]+)=(.*)$/);
+    if (match) {
+      values.set(match[1]!, match[2]!);
+    }
+  }
+  return values;
+}
+
+function installCommandOf(markdown: string): string {
+  const command: string | undefined = markdown
+    .split("\n")
+    .find((line: string): boolean => {
+      return line.endsWith(" bash install.sh");
+    });
+  expect(command).toBeDefined();
+  return command!;
+}
+
+/*
+ * Regression: a row for a SQL Server named instance (`host\instance`, no
+ * port) got the default instance's port 1433 everywhere — the agent then
+ * monitored the default instance, charted it on the named instance's page
+ * and claimed its endpoint — and the install command line carried the
+ * backslash unquoted, so the shell dropped it and the identity became
+ * `sql1.corp.example.cominst01`.
+ */
+describe("a SQL Server named instance the row knows no port for", () => {
+  const INSTANCE_PORT: string = "<instance-tcp-port>";
+  const row: DatabaseDocumentationTarget = {
+    id: DATABASE_ID,
+    dbSystem: "microsoft.sql_server",
+    serverAddress: "sql1.corp.example.com\\inst01",
+    endpoints: ["sql1.corp.example.com\\inst01"],
+  };
+
+  test("its identity is the bare host with no port, and names the instance", () => {
+    const expected: DatabaseAgentIdentity = {
+      serverAddress: "sql1.corp.example.com",
+      serverPort: null,
+      endpoint: `sql1.corp.example.com:${INSTANCE_PORT}`,
+      databaseId: DATABASE_ID,
+      isPrefilled: true,
+      instanceName: "inst01",
+    };
+
+    expect(resolveDatabaseAgentIdentity("microsoft.sql_server", row)).toEqual(
+      expected,
+    );
+    // A row known only by its endpoint (detected from traces) the same.
+    expect(
+      resolveDatabaseAgentIdentity("microsoft.sql_server", {
+        id: DATABASE_ID,
+        endpoints: ["SQL1.corp.example.com\\INST01"],
+      }),
+    ).toEqual(expected);
+  });
+
+  test("the guide asks for the instance's port instead of defaulting to 1433", () => {
+    const markdown: string = guideFor(row);
+    const env: Map<string, string> = envBlockOf(markdown);
+
+    /*
+     * The command line leaves the port to install.sh, which asks for the
+     * endpoint and takes the identity's port from it.
+     */
+    expect(installCommandOf(markdown)).toBe(
+      `DATABASE_SYSTEM=microsoft.sql_server DATABASE_SERVER_ADDRESS=sql1.corp.example.com DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
+    );
+    expect(env.get("DATABASE_ENDPOINT")).toBe(
+      `sql1.corp.example.com:${INSTANCE_PORT}`,
+    );
+    expect(env.get("DATABASE_ENDPOINT_HOST")).toBe("sql1.corp.example.com");
+    expect(env.get("DATABASE_ENDPOINT_PORT")).toBe(INSTANCE_PORT);
+    expect(env.get("DATABASE_SERVER_ADDRESS")).toBe("sql1.corp.example.com");
+    expect(env.get("DATABASE_SERVER_PORT")).toBe(INSTANCE_PORT);
+    expect(markdown).toContain(
+      `| \`DATABASE_SERVER_PORT\` | \`${INSTANCE_PORT}\` |`,
+    );
+    for (const value of env.values()) {
+      expect(value).not.toContain("\\");
+      expect(value).not.toContain("1433");
+    }
+    // How to find the port, said where the reader needs it.
+    expect(markdown).toContain("named instance `inst01`");
+    expect(markdown).toContain(
+      "SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID;",
+    );
+    expect(markdown).not.toContain("replace `db.example.com`");
+  });
+
+  test("the Kubernetes manifest leaves the port to fill in too", () => {
+    const manifest: string = getDatabaseAgentKubernetesManifest({
+      oneuptimeUrl: URL,
+      engine: "sqlserver",
+      identity: resolveDatabaseAgentIdentity("microsoft.sql_server", row),
+      namespace: "sql",
+    });
+
+    expect(manifest).toContain(
+      `- name: DATABASE_ENDPOINT_PORT\n              value: "${INSTANCE_PORT}"`,
+    );
+    expect(manifest).toContain(
+      `- name: DATABASE_SERVER_PORT\n              value: "${INSTANCE_PORT}"`,
+    );
+    expect(manifest).toContain(
+      '- name: DATABASE_ENDPOINT_HOST\n              value: "sql1.corp.example.com"',
+    );
+    expect(manifest).not.toContain("1433");
+    expect(manifest).not.toContain("\\");
+  });
+
+  test("an instance whose port the row knows gets that port, and no instance note", () => {
+    for (const target of [
+      {
+        id: DATABASE_ID,
+        dbSystem: "microsoft.sql_server",
+        endpoints: ["sql1.corp.example.com\\inst01,14330"],
+      },
+      {
+        id: DATABASE_ID,
+        dbSystem: "microsoft.sql_server",
+        serverAddress: "sql1.corp.example.com\\inst01",
+        serverPort: 14330,
+      },
+    ] as Array<DatabaseDocumentationTarget>) {
+      const markdown: string = guideFor(target);
+      const env: Map<string, string> = envBlockOf(markdown);
+
+      expect(installCommandOf(markdown)).toBe(
+        `DATABASE_SYSTEM=microsoft.sql_server DATABASE_SERVER_ADDRESS=sql1.corp.example.com DATABASE_SERVER_PORT=14330 DATABASE_SERVER_ID=${DATABASE_ID} bash install.sh`,
+      );
+      expect(env.get("DATABASE_ENDPOINT_PORT")).toBe("14330");
+      expect(env.get("DATABASE_SERVER_PORT")).toBe("14330");
+      expect(markdown).not.toContain("named instance `inst01`");
+      expect(markdown).not.toContain(INSTANCE_PORT);
+    }
+  });
+});
+
+describe("the install command line", () => {
+  /*
+   * Every NAME=value on it is one shell word whose value reaches install.sh
+   * unchanged: bare only when made of characters the shell leaves alone,
+   * otherwise single-quoted.
+   */
+  test.each([
+    [
+      {
+        id: DATABASE_ID,
+        dbSystem: "postgresql",
+        serverAddress: "db.prod.internal",
+        serverPort: 5432,
+      },
+    ],
+    [
+      {
+        id: DATABASE_ID,
+        dbSystem: "postgresql",
+        serverAddress: "2001:db8::10",
+        serverPort: 5432,
+      },
+    ],
+    [
+      {
+        id: DATABASE_ID,
+        dbSystem: "microsoft.sql_server",
+        endpoints: ["sql1.corp\\inst01"],
+      },
+    ],
+    [
+      {
+        id: "not a uuid; echo hi",
+        dbSystem: "mysql",
+        serverAddress: "db.example.com",
+      },
+    ],
+  ] as Array<[DatabaseDocumentationTarget]>)(
+    "carries every value through the shell unchanged (%j)",
+    (target: DatabaseDocumentationTarget) => {
+      const words: Array<string> = installCommandOf(guideFor(target))
+        .replace(/ bash install\.sh$/, "")
+        .match(/[A-Z_]+=(?:'[^']*'|\S*)/g)!;
+
+      for (const word of words) {
+        expect(word).toMatch(/^[A-Z_]+=(?:[A-Za-z0-9._:@%+,/=-]+|'[^']*')$/);
+      }
+      expect(words.join(" ")).toBe(
+        installCommandOf(guideFor(target)).replace(/ bash install\.sh$/, ""),
+      );
+    },
+  );
+
+  test("a value with a shell character is single-quoted", () => {
+    expect(
+      installCommandOf(
+        guideFor({
+          id: "it's; odd",
+          dbSystem: "mysql",
+          serverAddress: "db.example.com",
+        }),
+      ),
+    ).toBe(
+      `DATABASE_SYSTEM=mysql DATABASE_SERVER_ADDRESS=db.example.com DATABASE_SERVER_PORT=3306 DATABASE_SERVER_ID='it'\\''s; odd' bash install.sh`,
     );
   });
 });

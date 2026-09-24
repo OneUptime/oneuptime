@@ -72,7 +72,9 @@ GRANT VIEW SERVER STATE TO oneuptime_monitor;
 GRANT VIEW ANY DEFINITION TO oneuptime_monitor;
 ```
 
-`VIEW SERVER STATE` (on SQL Server 2022 and later `VIEW SERVER PERFORMANCE STATE` is enough) reads the dynamic management views every metric comes from, and grants no access to your data. The receiver builds a connection string from the password, so it must not contain a semicolon. The driver negotiates encryption with the server itself.
+`VIEW SERVER STATE` (on SQL Server 2022 and later `VIEW SERVER PERFORMANCE STATE` is enough) reads the dynamic management views every metric comes from, and grants no access to your data. The receiver puts the login into a connection string without quoting it, so the user name and password must not contain a semicolon (`;`) or a double quote (`"`), nor start or end with a space — `install.sh` refuses them. The driver negotiates encryption with the server itself.
+
+For a named instance (`sql1.corp\INST01`), point `DATABASE_ENDPOINT` at the instance's own TCP port — never the default instance's 1433, which reaches the default instance instead. SQL Server Configuration Manager shows it (the instance's TCP/IP protocol, IPAll), or run `SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID;` on the instance. `install.sh` refuses `host\instance` and asks for `host:port`.
 
 ### Oracle
 
@@ -132,13 +134,14 @@ The script asks for your OneUptime URL and ingestion key, the engine, the endpoi
 
 Every prompt can be answered up front with an exported variable of the same name, for example `INSTALL_DIR=/opt/oneuptime-database-agent-orders DATABASE_SYSTEM=postgresql bash install.sh`. Re-running the script reuses every value in your existing `.env` (nothing is prompted for again).
 
-Any character is fine in the password. The collector expands `$` inside the values it reads once more (`$$` becomes `$`, `${NAME}` becomes another variable), so the script writes every `$` in `DATABASE_USERNAME` and `DATABASE_PASSWORD` doubled, and quotes the values for Docker Compose.
+Any character is fine in the password, apart from the few SQL Server's connection string cannot carry (see [SQL Server](#sql-server)). The collector expands `$` inside the values it reads once more (`$$` becomes `$`, `${NAME}` becomes another variable), so the script writes every `$` in `DATABASE_USERNAME` and `DATABASE_PASSWORD` doubled, and quotes the values for Docker Compose.
 
 ## Quick Start — Docker Compose
 
 Download `docker-compose.yml` and the config for your engine from `configs/`, saved as `otel-collector-config.yaml`, into one folder. Create a `.env` file next to them (`chmod 600 .env` — it holds a password):
 
 ```bash
+# DATABASE_USERNAME and DATABASE_PASSWORD are escaped for the collector: every $ is written as $$.
 ONEUPTIME_URL=https://oneuptime.com
 ONEUPTIME_TELEMETRY_INGESTION_KEY=your-telemetry-ingestion-key
 DATABASE_SYSTEM=postgresql
@@ -157,7 +160,7 @@ DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
 ```
 
-Single-quote the password, and write every `$` in it as `$$` — the collector expands `$$` and `${...}` inside it once more. Then start the agent:
+Single-quote the password, and write every `$` in it as `$$` — the collector expands `$$` and `${...}` inside it once more. The first line says so, in the words of the `.env` `install.sh` writes — and `install.sh`, re-run on this folder (`INSTALL_DIR`), reads the file the same way. Then start the agent:
 
 ```bash
 docker compose up -d
@@ -227,7 +230,7 @@ The unit assumes `/opt/oneuptime-database-agent`. For a second database, copy it
 
 ## Upgrading, Uninstalling
 
-Re-run `install.sh` to pick up a new collector pin and config: your `.env` is reused, and `docker-compose.yml`, `otel-collector-config.yaml` and the systemd unit are replaced by the current versions. A file you had edited (`network_mode: host`, a `filelog` receiver and its mount, extra metrics) is kept next to the new one as `<file>.bak.<timestamp>`, and the script lists it at the end so you can re-apply the edit. To remove the agent: `cd /opt/oneuptime-database-agent && docker compose down`, then drop the monitoring user.
+Re-run `install.sh` to pick up a new collector pin and config: your `.env` is reused, and `docker-compose.yml`, `otel-collector-config.yaml` and the systemd unit are replaced by the current versions. A file you had edited (`network_mode: host`, a `filelog` receiver and its mount, extra metrics) is kept next to the new one as `<file>.bak.<timestamp>`, and the script lists it at the end so you can re-apply the edit. The script records what it installed in `.agent-files.sha256`, so a file nobody edited is replaced without a copy, however much the new version changed; in a directory without that record (one you set up by hand) every file that differs from the new version is kept, since it may hold edits. To remove the agent: `cd /opt/oneuptime-database-agent && docker compose down`, then drop the monitoring user.
 
 ## Troubleshooting
 
@@ -236,4 +239,4 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Da
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-database-agent
 ```
 
-It checks the container, the identity in `.env`, TCP reachability of the database from the agent's network, login / permission / TLS errors in the collector log, and the ingestion key (OneUptime answers a bad key with a silent `200`, so only this check proves it). The key is handed to a pinned curl image on stdin, never on a command line. See the [docs](https://oneuptime.com/docs/telemetry/databases#troubleshooting) for the rest.
+It checks the container, the identity in `.env`, TCP reachability of the database from the agent's network, login / permission / TLS errors in the collector log (and any other receiver error, the most frequent first), and the ingestion key (OneUptime answers a bad key with a silent `200`, so only this check proves it). The key is handed to a pinned curl image on stdin, never on a command line. See the [docs](https://oneuptime.com/docs/telemetry/databases#troubleshooting) for the rest.

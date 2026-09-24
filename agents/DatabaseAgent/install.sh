@@ -176,9 +176,11 @@ default_port_for() {
 # another variable. So the container has to hold the password with every $
 # doubled for the receiver to get it verbatim — `Xk9$$pQ` must reach the
 # container as `Xk9$$$$pQ`. That is on top of the Compose quoting above.
-# The .env carries a marker line saying its values are escaped, so a re-run
-# undoes exactly the escaping it added (an .env from an older install.sh,
-# without the marker, holds the values as typed).
+# Every .env holds the login that way — the ones this script writes, which
+# say so on their first line, and the ones written by hand, which the docs
+# tell to double every $ (their samples carry the same line) — so a re-run
+# undoes exactly one level of escaping, marker line or not. A lone $ that a
+# hand-written file forgot to double survives that as the $ it stands for.
 COLLECTOR_ESCAPED_NAMES="DATABASE_USERNAME DATABASE_PASSWORD"
 COLLECTOR_ESCAPE_MARKER="# DATABASE_USERNAME and DATABASE_PASSWORD are escaped for the collector: every \$ is written as \$\$."
 
@@ -190,16 +192,33 @@ collector_env_unescape() {
     printf '%s' "${1//\$\$/\$}"
 }
 
-# Download an agent file, keeping a changed copy of the installed one. The
-# docs ask for edits to these files (network_mode: host in
+# Download an agent file, keeping a copy of the installed one when it holds
+# edits. The docs ask for edits to these files (network_mode: host in
 # docker-compose.yml, the filelog receiver and its mount, extra metrics), so
-# a re-run — the upgrade path — must not discard them silently: a copy that
-# differs from the new download is kept as <file>.bak.<timestamp> and named
-# at the end. The new file lands with the permissions curl -o would give it
-# (the collector reads its config as a non-root user).
-BACKED_UP_FILES=()
+# a re-run — the upgrade path — must not discard them silently. What was
+# installed is recorded (a sha256 per file in .agent-files.sha256), so a
+# file that no longer matches its record was edited: it is kept as
+# <file>.bak.<timestamp> and named at the end. A file that still matches is
+# simply replaced, however much the new version changed (a collector pin
+# bump changes every file). Without a record — an install directory set up
+# before it was kept, or no sha256 tool — any file that differs from the
+# new download is kept, and said to differ rather than to be edited. The
+# new file lands with the permissions curl -o would give it (the collector
+# reads its config as a non-root user).
+EDITED_FILES=()
+DIFFERING_FILES=()
+
+file_sha256() {
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$1" | cut -d ' ' -f 1
+    elif command -v shasum >/dev/null 2>&1; then
+        shasum -a 256 "$1" | cut -d ' ' -f 1
+    fi
+}
+
 download_agent_file() {
-    local url="$1" dest="$2" tmp backup
+    local url="$1" dest="$2" tmp backup recorded current name
+    name="${dest#"$INSTALL_DIR"/}"
     tmp="$(mktemp "$dest.download.XXXXXX")"
     if ! curl -fsSL "$url" -o "$tmp"; then
         rm -f "$tmp"
@@ -208,11 +227,26 @@ download_agent_file() {
     fi
     chmod 0644 "$tmp"
     if [ -f "$dest" ] && ! cmp -s "$tmp" "$dest"; then
-        backup="$dest.bak.$(date +%Y%m%d%H%M%S)"
-        cp -p "$dest" "$backup"
-        BACKED_UP_FILES+=("$backup")
+        recorded=""
+        if [ -f "$AGENT_FILES_RECORD" ]; then
+            recorded="$(awk -v name="$name" '$2 == name { sha = $1 } END { print sha }' "$AGENT_FILES_RECORD")"
+        fi
+        current="$(file_sha256 "$dest")"
+        if [ -z "$recorded" ] || [ -z "$current" ]; then
+            backup="$dest.bak.$(date +%Y%m%d%H%M%S)"
+            cp -p "$dest" "$backup"
+            DIFFERING_FILES+=("$backup")
+        elif [ "$current" != "$recorded" ]; then
+            backup="$dest.bak.$(date +%Y%m%d%H%M%S)"
+            cp -p "$dest" "$backup"
+            EDITED_FILES+=("$backup")
+        fi
     fi
     mv -f "$tmp" "$dest"
+    current="$(file_sha256 "$dest")"
+    if [ -n "$current" ]; then
+        printf '%s  %s\n' "$current" "$name" >> "$AGENT_FILES_RECORD.new"
+    fi
 }
 
 # A host that only means something relative to the machine it is used on:
@@ -279,6 +313,8 @@ is_valid_port() {
 # INSTALL_DIR for a second database.
 INSTALL_DIR="${INSTALL_DIR:-/opt/oneuptime-database-agent}"
 ENV_FILE="$INSTALL_DIR/.env"
+# What this script installed (see download_agent_file).
+AGENT_FILES_RECORD="$INSTALL_DIR/.agent-files.sha256"
 
 ENV_NAMES="ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY DATABASE_SYSTEM \
 DATABASE_ENDPOINT DATABASE_ENDPOINT_HOST DATABASE_ENDPOINT_PORT \
@@ -294,20 +330,14 @@ DATABASE_QUERY_EVENTS DATABASE_SERVER_ID"
 if [ -f "$ENV_FILE" ]; then
     echo "Found an existing configuration in $ENV_FILE — reusing it."
     echo "(Exported variables override it; edit or delete the file to change a value.)"
-    ENV_FILE_IS_ESCAPED=""
-    if grep -qxF "$COLLECTOR_ESCAPE_MARKER" "$ENV_FILE" 2>/dev/null; then
-        ENV_FILE_IS_ESCAPED="true"
-    fi
     for name in $ENV_NAMES; do
         if [ -z "${!name}" ]; then
             printf -v "$name" '%s' "$(dotenv_get "$name" "$ENV_FILE")"
-            # Undo the collector escaping this script added when it wrote
-            # the file (an exported value is always the value as typed).
+            # Undo the collector escaping the file holds (an exported value
+            # is always the value as typed).
             case " $COLLECTOR_ESCAPED_NAMES " in
                 *" $name "*)
-                    if [ -n "$ENV_FILE_IS_ESCAPED" ]; then
-                        printf -v "$name" '%s' "$(collector_env_unescape "${!name}")"
-                    fi
+                    printf -v "$name" '%s' "$(collector_env_unescape "${!name}")"
                     ;;
             esac
         fi
@@ -375,6 +405,21 @@ ENDPOINT_SCHEME=""
 case "$DATABASE_ENDPOINT" in
     *://*) ENDPOINT_SCHEME="$(printf '%s' "${DATABASE_ENDPOINT%%://*}" | tr '[:upper:]' '[:lower:]')" ;;
 esac
+# A SQL Server named instance (host\instance) listens on a TCP port of its
+# own, never the default instance's 1433. The receiver takes a host and a
+# port, so the default port added below would reach the default instance
+# instead: ask for the instance's port rather than guess it.
+refuse_named_instance() {
+    echo "Error: $1='$2' names a SQL Server named instance (host\\instance)."
+    echo "The agent connects to the instance's own TCP port, so give host:port instead. The"
+    echo "port is in SQL Server Configuration Manager (the instance's TCP/IP protocol, IPAll),"
+    echo "or run this on the instance:"
+    echo "  SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID;"
+    exit 1
+}
+case "$DATABASE_ENDPOINT" in
+    *\\*) refuse_named_instance DATABASE_ENDPOINT "$DATABASE_ENDPOINT" ;;
+esac
 DATABASE_ENDPOINT="${DATABASE_ENDPOINT#*://}"
 DATABASE_ENDPOINT="${DATABASE_ENDPOINT%/}"
 case "$DATABASE_ENDPOINT" in
@@ -406,6 +451,9 @@ if [ -z "$DATABASE_SERVER_ADDRESS" ]; then
         DATABASE_SERVER_ADDRESS="$ENDPOINT_HOST"
     fi
 fi
+case "$DATABASE_SERVER_ADDRESS" in
+    *\\*) refuse_named_instance DATABASE_SERVER_ADDRESS "$DATABASE_SERVER_ADDRESS" ;;
+esac
 # Accept host:port here too, and split it.
 case "$DATABASE_SERVER_ADDRESS" in
     \[*\]:*)
@@ -464,9 +512,10 @@ fi
 
 if [ "$LOGIN" != "none" ] && [ -z "$DATABASE_PASSWORD" ] && [ -z "$REUSING_ENV_FILE" ]; then
     # -s: never echo the password to the terminal (or into shell history
-    # of a pasted session transcript). Any character is fine: the value is
-    # escaped for the collector (every $ doubled) and quoted for Docker
-    # Compose when .env is written below.
+    # of a pasted session transcript). Any character is fine — except, for
+    # SQL Server, what its connection string cannot carry (checked below):
+    # the value is escaped for the collector (every $ doubled) and quoted
+    # for Docker Compose when .env is written below.
     read -rsp "Password for the monitoring user (leave empty for none): " DATABASE_PASSWORD || true
     echo ""
 fi
@@ -485,10 +534,29 @@ case "$AGENT_CONFIG" in
         fi
         ;;
 esac
-if [ "$AGENT_CONFIG" = "sqlserver" ] && [[ "$DATABASE_PASSWORD" == *";"* ]]; then
-    echo "Error: the SQL Server receiver builds a connection string from the password, so it"
-    echo "cannot contain a semicolon (;). Give the monitoring login a password without one."
-    exit 1
+# The SQL Server receiver puts the login into an ADO connection string
+# (server=…;user id=…;password=…;port=…) without quoting it, and its driver
+# ends a value at ;, starts or ends a quoted value at every ", and trims
+# the spaces around each value — so the database would get a different
+# login and answer only "Login failed". Refuse what it cannot carry; the
+# value itself is never printed.
+sqlserver_login_problem() {
+    case "$1" in
+        *";"*) printf 'a semicolon (;)' ;;
+        *'"'*) printf 'a double quote (")' ;;
+        [[:space:]]*|*[[:space:]]) printf 'a leading or trailing space' ;;
+    esac
+}
+if [ "$AGENT_CONFIG" = "sqlserver" ]; then
+    for name in DATABASE_USERNAME DATABASE_PASSWORD; do
+        problem="$(sqlserver_login_problem "${!name}")"
+        if [ -n "$problem" ]; then
+            echo "Error: $name cannot contain $problem for SQL Server: the receiver builds an"
+            echo "unquoted connection string from the login, and the database would receive a"
+            echo "different one. Give the monitoring login a user name and password without it."
+            exit 1
+        fi
+    done
 fi
 
 if [ -z "$HAS_TLS" ]; then
@@ -588,9 +656,17 @@ mkdir -p "$INSTALL_DIR/systemd"
 REPO_BASE="https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent"
 
 echo "Downloading configuration files ($DATABASE_SYSTEM: configs/$AGENT_CONFIG.yaml)..."
+rm -f "$AGENT_FILES_RECORD.new"
 download_agent_file "$REPO_BASE/docker-compose.yml" "$INSTALL_DIR/docker-compose.yml"
 download_agent_file "$REPO_BASE/configs/$AGENT_CONFIG.yaml" "$INSTALL_DIR/otel-collector-config.yaml"
 download_agent_file "$REPO_BASE/systemd/oneuptime-database-agent.service" "$INSTALL_DIR/systemd/oneuptime-database-agent.service"
+# The record now describes the files just installed (none without a sha256
+# tool: a stale one would read the new files as edited next time).
+if [ -f "$AGENT_FILES_RECORD.new" ]; then
+    mv -f "$AGENT_FILES_RECORD.new" "$AGENT_FILES_RECORD"
+else
+    rm -f "$AGENT_FILES_RECORD"
+fi
 
 # The Elasticsearch receiver takes a URL, and its scheme is what turns TLS
 # on; every other receiver takes host:port. The SQL Server receiver takes
@@ -663,13 +739,24 @@ echo "To stop:          cd $INSTALL_DIR && docker compose down"
 echo "To restart:       cd $INSTALL_DIR && docker compose restart"
 echo "If nothing shows up: curl -fsSL $REPO_BASE/troubleshoot.sh | bash -s -- -d $INSTALL_DIR"
 
-if [ "${#BACKED_UP_FILES[@]}" -gt 0 ]; then
+if [ "${#EDITED_FILES[@]}" -gt 0 ]; then
     echo ""
-    echo "NOTE: these files had changed since they were installed and were replaced by the"
-    echo "current versions. Your copies are kept next to them:"
-    for backup in "${BACKED_UP_FILES[@]}"; do
+    echo "NOTE: you had edited these files since install.sh installed them. They were replaced"
+    echo "by the current versions; your copies are kept next to them:"
+    for backup in "${EDITED_FILES[@]}"; do
         echo "  $backup"
     done
     echo "Re-apply your edits (network_mode: host, a filelog receiver and its log mount, extra"
     echo "metrics) to the new files, then: cd $INSTALL_DIR && docker compose up -d"
+fi
+if [ "${#DIFFERING_FILES[@]}" -gt 0 ]; then
+    echo ""
+    echo "NOTE: these files differ from the new versions and were replaced. There was no record"
+    echo "of what install.sh had installed, so they may hold edits of yours; the old copies are"
+    echo "kept next to them:"
+    for backup in "${DIFFERING_FILES[@]}"; do
+        echo "  $backup"
+    done
+    echo "If they do (network_mode: host, a filelog receiver and its log mount, extra metrics),"
+    echo "apply the same edits to the new files, then: cd $INSTALL_DIR && docker compose up -d"
 fi

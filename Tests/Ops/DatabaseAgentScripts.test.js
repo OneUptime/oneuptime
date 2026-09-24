@@ -11,16 +11,21 @@
  *  - the collector expands `$` inside the values it reads once more (`$$`
  *    becomes `$`, `${NAME}` another variable), so the login must reach the
  *    container with every `$` doubled — and a re-run must not double it
- *    again, while an .env from an older install.sh (values as typed) must be
- *    read as typed;
+ *    again, whether install.sh or a person following the docs wrote the
+ *    .env;
  *  - Compose gives exported variables precedence over .env, so the first
  *    start must run from .env alone, exactly like every later restart;
  *  - a re-run (the upgrade path) replaces the compose file and config, so a
- *    copy the user edited must be kept and named, not silently discarded;
+ *    copy the user edited must be kept and named, not silently discarded —
+ *    and a file nobody edited is replaced without a word, however much the
+ *    new version changed;
+ *  - the SQL Server receiver builds an unquoted connection string from the
+ *    login, so what that string cannot carry is refused up front;
  *  - a fork runs its family's config and still reports its own engine;
  *  - the diagnostic must not read a failed EXPLAIN (or a table called
- *    `certificates` in the query text) as a grant or TLS problem, and must
- *    never put the ingestion key on a command line.
+ *    `certificates` in the query text) as a grant or TLS problem, must not
+ *    answer "No problems found" over a receiver error it does not
+ *    recognise, and must never put the ingestion key on a command line.
  */
 
 const fs = require("fs");
@@ -55,9 +60,10 @@ function writeExecutable(file, text) {
 }
 
 /*
- * `curl` serves the agent's files from this checkout (and records each
- * URL); `docker` succeeds and records its arguments and — for
- * `compose up` — whether the login reached it through the environment.
+ * `curl` serves the agent's files from this checkout — or from SERVE_DIR,
+ * a copy standing in for a newer upstream — and records each URL; `docker`
+ * succeeds and records its arguments and — for `compose up` — whether the
+ * login reached it through the environment.
  */
 function installStubs(dir) {
   const bin = path.join(dir, "bin");
@@ -75,8 +81,9 @@ while [ $# -gt 0 ]; do
 done
 printf '%s\\n' "$url" >> "$STUB_DIR/curl.log"
 rel="\${url#https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/DatabaseAgent/}"
-[ -f "${AGENT_DIR}/$rel" ] || exit 22
-cp "${AGENT_DIR}/$rel" "$out"
+served="\${SERVE_DIR:-${AGENT_DIR}}"
+[ -f "$served/$rel" ] || exit 22
+cp "$served/$rel" "$out"
 `,
   );
   writeExecutable(
@@ -203,7 +210,54 @@ describe("install.sh", () => {
     expect(again.envLine("DATABASE_PASSWORD")).toBe("'a$$$$b$${c}'");
   });
 
-  test("an .env from an older install.sh holds the login as typed, and is escaped on the re-run", () => {
+  /*
+   * Regression: install.sh only trusted an .env carrying its marker line,
+   * and read any other as holding the login as typed. The .env the docs
+   * and the README tell people to write — every `$` already doubled — had
+   * no marker, so re-running install.sh (the documented upgrade) doubled
+   * every `$` a second time and the database rejected the password.
+   */
+  test("the README's hand-written .env (every $ doubled) is not escaped a second time on a re-run", () => {
+    const dir = scratch();
+    const installDir = path.join(dir, "agent");
+    const readme = fs.readFileSync(path.join(AGENT_DIR, "README.md"), "utf8");
+    const section = readme.substring(
+      readme.indexOf("## Quick Start — Docker Compose"),
+    );
+    const sample = section.match(/```bash\n([\s\S]*?)\n```/)[1];
+
+    // The sample says what it holds, in install.sh's own words.
+    expect(sample.split("\n")[0]).toBe(MARKER);
+
+    // pa$word and mon$tor, written by the docs' rule.
+    const handWritten = sample
+      .replace(/^DATABASE_PASSWORD=.*$/m, "DATABASE_PASSWORD='pa$$word'")
+      .replace(/^DATABASE_USERNAME=.*$/m, "DATABASE_USERNAME=mon$$tor");
+    fs.mkdirSync(installDir);
+    fs.writeFileSync(path.join(installDir, ".env"), `${handWritten}\n`);
+
+    const run = runInstall(dir, {});
+
+    expect(run.status).toBe(0);
+    expect(run.envLine("DATABASE_PASSWORD")).toBe("'pa$$word'");
+    expect(run.envLine("DATABASE_USERNAME")).toBe("'mon$$tor'");
+    expect(run.envFile().split("\n")[0]).toBe(MARKER);
+
+    // Without the marker line it is the same file, read the same way.
+    const unmarked = scratch();
+    fs.mkdirSync(path.join(unmarked, "agent"));
+    fs.writeFileSync(
+      path.join(unmarked, "agent", ".env"),
+      `${handWritten.split("\n").slice(1).join("\n")}\n`,
+    );
+    const again = runInstall(unmarked, {});
+
+    expect(again.status).toBe(0);
+    expect(again.envLine("DATABASE_PASSWORD")).toBe("'pa$$word'");
+    expect(again.envLine("DATABASE_USERNAME")).toBe("'mon$$tor'");
+  });
+
+  test("a lone $ a hand-written .env forgot to double stands for itself, and is escaped on the re-run", () => {
     const dir = scratch();
     const installDir = path.join(dir, "agent");
     fs.mkdirSync(installDir);
@@ -232,7 +286,7 @@ describe("install.sh", () => {
     expect(run.status).toBe(0);
     expect(run.envLine("DATABASE_PASSWORD")).toBe("'pa$$word'");
     expect(run.envFile().split("\n")[0]).toBe(MARKER);
-    // The variables that did not exist then are written now.
+    // The variables the file did not have are written now.
     expect(run.envLine("DATABASE_ENDPOINT_HOST")).toBe("'db.example.com'");
     expect(run.envLine("DATABASE_ENDPOINT_PORT")).toBe("5432");
   });
@@ -267,6 +321,7 @@ describe("install.sh", () => {
       fs.readFileSync(path.join(first.installDir, backups[0]), "utf8"),
     ).toBe(edited);
     expect(again.output).toContain(backups[0]);
+    expect(again.output).toContain("you had edited");
     expect(again.output).toContain("Re-apply your edits");
     // The new file is the shipped one, readable by the collector's user.
     expect(fs.readFileSync(compose, "utf8")).toBe(
@@ -280,6 +335,83 @@ describe("install.sh", () => {
     // A third run with nothing edited keeps nothing.
     const third = runInstall(dir, env);
     expect(third.output).not.toContain("Re-apply your edits");
+  });
+
+  /*
+   * Regression: a re-run compared the new download with the installed
+   * file, not with what install.sh had installed, so every upgrade that
+   * changed a file upstream — a collector pin bump changes the compose
+   * file and every config — backed up files nobody had touched and told
+   * the user to re-apply edits they never made.
+   */
+  test("a re-run replaces a file nobody edited without a backup, however much the new version changed", () => {
+    const dir = scratch();
+    const env = {
+      ...BASE,
+      DATABASE_SYSTEM: "redis",
+      DATABASE_ENDPOINT: "cache.example.com",
+      DATABASE_USERNAME: "",
+      DATABASE_PASSWORD: "secret",
+    };
+    const first = runInstall(dir, env);
+    expect(first.status).toBe(0);
+
+    // A newer upstream: the pin bump touches the compose file and the config.
+    const upstream = path.join(scratch(), "upstream");
+    fs.cpSync(AGENT_DIR, upstream, { recursive: true });
+    const bump = (relative) => {
+      const file = path.join(upstream, relative);
+      fs.writeFileSync(
+        file,
+        fs.readFileSync(file, "utf8").split("0.161.0").join("0.999.0"),
+      );
+    };
+    bump("docker-compose.yml");
+    bump(path.join("configs", "redis.yaml"));
+
+    const upgraded = runInstall(dir, { ...env, SERVE_DIR: upstream });
+    const backups = () => {
+      return fs.readdirSync(first.installDir).filter((file) => {
+        return file.includes(".bak.");
+      });
+    };
+
+    expect(upgraded.status).toBe(0);
+    expect(backups()).toEqual([]);
+    expect(upgraded.output).not.toContain("NOTE:");
+    expect(
+      fs.readFileSync(
+        path.join(first.installDir, "docker-compose.yml"),
+        "utf8",
+      ),
+    ).toContain("opentelemetry-collector-contrib:0.999.0");
+    expect(
+      fs.readFileSync(
+        path.join(first.installDir, "otel-collector-config.yaml"),
+        "utf8",
+      ),
+    ).toBe(
+      fs.readFileSync(path.join(upstream, "configs", "redis.yaml"), "utf8"),
+    );
+
+    /*
+     * An install directory without the record (one an install.sh from
+     * before it was kept set up) cannot tell an edit from an upstream
+     * change: it keeps both copies and says only that they differed.
+     */
+    fs.rmSync(path.join(first.installDir, ".agent-files.sha256"));
+    const unknown = runInstall(dir, env);
+
+    expect(unknown.status).toBe(0);
+    expect(backups().sort()).toEqual([
+      expect.stringMatching(/^docker-compose\.yml\.bak\.\d{14}$/),
+      expect.stringMatching(/^otel-collector-config\.yaml\.bak\.\d{14}$/),
+    ]);
+    expect(unknown.output).toContain("differ from the new versions");
+    expect(unknown.output).not.toContain("you had edited");
+    expect(
+      fs.existsSync(path.join(first.installDir, ".agent-files.sha256")),
+    ).toBe(true);
   });
 
   test.each([
@@ -345,6 +477,76 @@ describe("install.sh", () => {
     expect(refused.status).not.toBe(0);
     expect(refused.output).toContain("cannot contain a semicolon");
   });
+
+  /*
+   * Regression: the receiver builds `server=…;user id=…;password=…;port=…`
+   * without quoting, and its driver treats every `"` as the start or end of
+   * a quoted value and trims the spaces around each value. A password with
+   * a `"` (or a leading or trailing space) was accepted here, written
+   * correctly, and then failed every login with 18456 — for a reason
+   * nothing named.
+   */
+  test.each([
+    ["DATABASE_PASSWORD", 'Qu0te"Pass!9', "a double quote"],
+    ["DATABASE_PASSWORD", "Trail_Pass!9 ", "a leading or trailing space"],
+    ["DATABASE_PASSWORD", " Lead_Pass!9", "a leading or trailing space"],
+    ["DATABASE_USERNAME", "mon;itor", "a semicolon"],
+    ["DATABASE_USERNAME", 'mon"itor', "a double quote"],
+  ])(
+    "SQL Server: %s with %j is refused, naming what the connection string cannot carry",
+    (name, value, what) => {
+      const run = runInstall(scratch(), {
+        ...BASE,
+        DATABASE_SYSTEM: "sqlserver",
+        DATABASE_ENDPOINT: "sql.example.com",
+        DATABASE_USERNAME: "oneuptime_monitor",
+        DATABASE_PASSWORD: "S3cret!",
+        [name]: value,
+      });
+
+      expect(run.status).not.toBe(0);
+      expect(run.output).toContain(`${name} cannot contain ${what}`);
+      expect(run.output).not.toContain(value.trim());
+      expect(fs.existsSync(path.join(run.installDir, ".env"))).toBe(false);
+    },
+  );
+
+  test("SQL Server: $, ' and spaces inside the password are fine", () => {
+    const run = runInstall(scratch(), {
+      ...BASE,
+      DATABASE_SYSTEM: "sqlserver",
+      DATABASE_ENDPOINT: "sql.example.com",
+      DATABASE_USERNAME: "oneuptime_monitor",
+      DATABASE_PASSWORD: "it's a $ecret",
+    });
+
+    expect(run.status).toBe(0);
+    expect(run.envLine("DATABASE_PASSWORD")).toBe('"it\'s a $$$$ecret"');
+  });
+
+  /*
+   * Regression: the in-app guide put a SQL Server named instance
+   * (`host\instance`) on the install command line unquoted — the shell ate
+   * the backslash — and a backslash typed at the endpoint prompt reached
+   * the receiver with the default instance's port 1433 appended.
+   */
+  test.each([["DATABASE_ENDPOINT"], ["DATABASE_SERVER_ADDRESS"]])(
+    "a named instance (host\\instance) in %s is refused, asking for its TCP port",
+    (name) => {
+      const run = runInstall(scratch(), {
+        ...BASE,
+        DATABASE_SYSTEM: "sqlserver",
+        DATABASE_ENDPOINT: "sql1.example.com:14330",
+        DATABASE_USERNAME: "oneuptime_monitor",
+        DATABASE_PASSWORD: "S3cret!",
+        [name]: "sql1.example.com\\INST01",
+      });
+
+      expect(run.status).not.toBe(0);
+      expect(run.output).toContain("named instance");
+      expect(run.output).toContain("local_tcp_port");
+    },
+  );
 
   test("Oracle needs the service to connect to", () => {
     const missing = runInstall(scratch(), {
@@ -662,24 +864,185 @@ describe("troubleshoot.sh", () => {
     expect(mismatched.status).toBe(1);
   });
 
-  test("warns when a $ in the password was written before install.sh escaped it", () => {
+  /*
+   * Regression: the warning fired for every `$` in an .env without
+   * install.sh's marker line — including the hand-written .env the docs
+   * describe, whose `$` were correctly doubled — and advised doubling them
+   * again or re-running install.sh, which (then) did.
+   */
+  test("warns about a $ in the login only when it is not doubled, marker line or not", () => {
+    const withPassword = (password) => {
+      return POSTGRES_ENV.map((line) => {
+        return line.startsWith("DATABASE_PASSWORD=")
+          ? `DATABASE_PASSWORD=${password}`
+          : line;
+      });
+    };
+    const unmarked = "DATABASE_SYSTEM=postgresql\n";
+
+    // The container holds what the collector reads: pa$word, escaped.
+    for (const envFile of [unmarked, undefined]) {
+      const doubled = runTroubleshoot({
+        config: "postgresql",
+        env: withPassword("pa$$word$${x}"),
+        logs: [],
+        envFile,
+      });
+      expect(doubled.output).not.toContain("contains a $");
+      expect(doubled.status).toBe(0);
+    }
+
+    // A lone $ is expanded by the collector: the password reaching the
+    // database is not the one written.
+    for (const password of ["pa$word", "pa$$$word", "${HOME}x"]) {
+      const lone = runTroubleshoot({
+        config: "postgresql",
+        env: withPassword(password),
+        logs: [],
+        envFile: unmarked,
+      });
+      expect(lone.output).toContain(
+        "DATABASE_PASSWORD contains a $ that is not doubled",
+      );
+      expect(lone.output).not.toContain(password);
+      expect(lone.output).not.toContain("re-run install.sh");
+    }
+  });
+
+  /*
+   * Regression: receiver errors that matched none of the fixed patterns —
+   * MySQL / MariaDB's 1227 for a missing PROCESS or SLAVE MONITOR grant,
+   * Oracle's ORA-12514 for a service the listener does not know — were
+   * dropped, and the verdict said "No problems found".
+   */
+  test.each([
+    [
+      "Error 1227 (42000): Access denied; you need (at least one of) the SLAVE MONITOR privilege(s) for this operation",
+      "missing privileges",
+    ],
+    [
+      "Error 1227 (42000): Access denied; you need (at least one of) the PROCESS privilege(s) for this operation",
+      "missing privileges",
+    ],
+    [
+      "ORA-12514: TNS:listener does not currently know of service requested in connect descriptor",
+      "DATABASE_ORACLE_SERVICE",
+    ],
+    ["ORA-28000: The account is locked.", "locked or its password expired"],
+  ])("%s is diagnosed as %s", (error, diagnosis) => {
+    const run = runTroubleshoot({
+      config: "postgresql",
+      env: POSTGRES_ENV,
+      logs: [receiverLine("Failed to fetch InnoDB stats", { error })],
+    });
+
+    expect(run.output).toContain(diagnosis);
+    expect(run.output).not.toContain("REJECTING the login");
+    expect(run.output).not.toContain("No problems found");
+    expect(run.status).toBe(1);
+  });
+
+  test("a receiver error no check recognises is still reported, with the password redacted", () => {
     const env = POSTGRES_ENV.map((line) => {
       return line.startsWith("DATABASE_PASSWORD=")
-        ? "DATABASE_PASSWORD=pa$$word"
+        ? "DATABASE_PASSWORD=Sup3r$$ecret"
         : line;
     });
-
-    const old = runTroubleshoot({
+    const odd = receiverLine("Error scraping metrics", {
+      error: "driver: bad connection to Sup3r$ecret@db.example.com",
+    });
+    const run = runTroubleshoot({
       config: "postgresql",
       env,
-      logs: [],
-      envFile: "DATABASE_SYSTEM=postgresql\n",
+      logs: [
+        odd,
+        receiverLine("Error scraping metrics", {
+          error: "context deadline exceeded",
+        }),
+        odd,
+      ],
     });
-    expect(old.output).toContain("DATABASE_PASSWORD contains $");
-    expect(old.output).not.toContain("pa$$word");
 
-    const escaped = runTroubleshoot({ config: "postgresql", env, logs: [] });
-    expect(escaped.output).not.toContain("DATABASE_PASSWORD contains $");
+    expect(run.output).toContain("an error no check above recognises");
+    // The most frequent one, and how many distinct errors there were.
+    expect(run.output).toContain(
+      "driver: bad connection to <DATABASE_PASSWORD>@db.example.com",
+    );
+    expect(run.output).toContain("2 distinct");
+    expect(run.output).not.toContain("Sup3r");
+    expect(run.output).not.toContain("No problems found");
+    expect(run.status).toBe(1);
+  });
+
+  test("the other EXPLAIN failures of a top query are plans, not errors", () => {
+    const run = runTroubleshoot({
+      config: "postgresql",
+      env: POSTGRES_ENV,
+      logs: [
+        receiverLine("failed to prepare statement for EXPLAIN", {
+          error:
+            "pq: function generate_series(unknown, unknown) is not unique at column 164 (42725)",
+        }),
+        receiverLine("failed to explain query", {
+          query: "INSERT INTO orders(email,total) SELECT $1",
+          error:
+            "pq: function generate_series(unknown, unknown) is not unique at column 164 (42725)",
+        }),
+        receiverLine("failed to look up prepared statement parameter count", {
+          error: "pq: canceling statement due to statement timeout",
+        }),
+        receiverLine("failed to obfuscate explain plan", {
+          error: "unexpected token",
+        }),
+      ],
+    });
+
+    expect(run.output).not.toContain("no check above recognises");
+    expect(run.status).toBe(0);
+  });
+
+  /*
+   * The SQL Server receiver cannot carry a `;` or `"` in the login, nor
+   * spaces around it; a login that does fails with a plain "Login failed",
+   * so the diagnostic names the cause instead of the $$ advice.
+   */
+  test('SQL Server: a " in the password is named as the cause, not the $ advice', () => {
+    const env = [
+      "DATABASE_SYSTEM=microsoft.sql_server",
+      "DATABASE_ENDPOINT=sql.example.com:1433",
+      "DATABASE_SERVER_ADDRESS=sql.example.com",
+      "DATABASE_SERVER_PORT=1433",
+      "DATABASE_USERNAME=oneuptime_monitor",
+      'DATABASE_PASSWORD=Qu0te"Pass!9',
+      "ONEUPTIME_URL=https://oneuptime.example.com",
+      `ONEUPTIME_TELEMETRY_INGESTION_KEY=${TOKEN}`,
+    ];
+    const run = runTroubleshoot({
+      config: "sqlserver",
+      env,
+      logs: [
+        receiverLine("Error scraping metrics", {
+          error:
+            "sqlServerScraperHelper: mssql: Login failed for user 'oneuptime_monitor'. (18456)",
+        }),
+      ],
+    });
+
+    expect(run.output).toContain("DATABASE_PASSWORD contains a double quote");
+    expect(run.output).not.toContain("Qu0te");
+    expect(run.status).toBe(1);
+
+    const plain = runTroubleshoot({
+      config: "sqlserver",
+      env: env.map((line) => {
+        return line.startsWith("DATABASE_PASSWORD=")
+          ? "DATABASE_PASSWORD=Plain_Pass!9"
+          : line;
+      }),
+      logs: [],
+    });
+    expect(plain.output).not.toContain("connection string");
+    expect(plain.status).toBe(0);
   });
 
   test("probes an Elasticsearch URL endpoint by its host and port", () => {

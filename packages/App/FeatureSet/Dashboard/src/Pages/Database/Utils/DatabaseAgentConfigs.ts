@@ -917,7 +917,9 @@ receivers:
     # both). This may be localhost when the agent runs next to the
     # database — the identity OneUptime shows comes from
     # DATABASE_SERVER_ADDRESS / DATABASE_SERVER_PORT below, never from this
-    # value.
+    # value. A named instance (SERVER\\INSTANCE) is reached on its own TCP
+    # port: give that port, never the instance name — with the default
+    # port the driver reaches the default instance instead.
     server: "\${env:DATABASE_ENDPOINT_HOST}"
     # Unquoted on purpose: port is an integer field.
     port: \${env:DATABASE_ENDPOINT_PORT}
@@ -926,8 +928,10 @@ receivers:
     # DEFINITION (see README.md). The receiver refuses to start without a
     # username and password. The driver negotiates TLS with the server
     # (encrypting at least the login); a server that forces encryption is
-    # fine. The password must not contain a semicolon: the receiver builds
-    # an ADO connection string from it.
+    # fine. The receiver builds an ADO connection string from the login
+    # without quoting it, so the username and password must not contain a
+    # semicolon or a double quote, nor start or end with a space
+    # (install.sh refuses them).
     username: "\${env:DATABASE_USERNAME}"
     password: "\${env:DATABASE_PASSWORD}"
     collection_interval: "\${env:DATABASE_COLLECTION_INTERVAL}"

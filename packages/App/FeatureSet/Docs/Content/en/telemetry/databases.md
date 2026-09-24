@@ -176,7 +176,7 @@ Databases a collector creates count towards the [auto-create budget](#the-auto-c
 
 ### Which engine a database shows
 
-When sources disagree about a database's engine, the stronger evidence wins: an engine a person set, then a collector or the Database Agent (the engine reporting on itself), then a container image or Helm chart, then client spans — a PostgreSQL driver reports `postgresql` even when it talks to CockroachDB. A source moves a database to another engine family only when its evidence is stronger than what named the current engine, and an engine a person set is never changed by discovery. Within a family, any source may refine the engine to a fork: a span says `redis`, the image says `valkey`, and the database shows Valkey. A collector names the fork when it stamps it, or when the version string the server reports names it (`10.11.7-MariaDB` from the `mysql` receiver). A fork is never downgraded back to its family, and a Kubernetes workload whose image moves to a fork of the same family (`redis` to `valkey`) stays the same database.
+When sources disagree about a database's engine, the stronger evidence wins: an engine a person set, then a collector or the Database Agent (the engine reporting on itself), then a container image or Helm chart, then client spans — a PostgreSQL driver reports `postgresql` even when it talks to CockroachDB. A source moves a database to another engine family only when its evidence is stronger than what named the current engine, and an engine a person set is never changed by discovery. Within a family, any source may refine the engine to a fork: a span says `redis`, the image says `valkey`, and the database shows Valkey. A collector names the fork when it stamps it in `db.system.name` (the Database Agent does, from `DATABASE_SYSTEM`), or when the batch's `db.system.version` holds the server's own version string and that names it (`8.0.11-TiDB-v7.5.1`) — not what the `mysql` receiver reports there (see [Using your own OpenTelemetry Collector](#using-your-own-opentelemetry-collector)). A fork is never downgraded back to its family, and a Kubernetes workload whose image moves to a fork of the same family (`redis` to `valkey`) stays the same database.
 
 ### The auto-create budget
 
@@ -237,7 +237,9 @@ GRANT VIEW SERVER STATE TO oneuptime_monitor;
 GRANT VIEW ANY DEFINITION TO oneuptime_monitor;
 ```
 
-`VIEW SERVER STATE` (on SQL Server 2022 and later `VIEW SERVER PERFORMANCE STATE` is enough) reads the dynamic management views every metric comes from, and grants no access to your data. The receiver builds a connection string from the password, so it must not contain a semicolon. The driver negotiates encryption with the server itself, so the TLS variables do not apply.
+`VIEW SERVER STATE` (on SQL Server 2022 and later `VIEW SERVER PERFORMANCE STATE` is enough) reads the dynamic management views every metric comes from, and grants no access to your data. The receiver puts the login into a connection string without quoting it, so the user name and password must not contain a semicolon (`;`) or a double quote (`"`), nor start or end with a space — `install.sh` refuses them. The driver negotiates encryption with the server itself, so the TLS variables do not apply.
+
+For a named instance (`sql1.corp\INST01`), point `DATABASE_ENDPOINT` at the instance's own TCP port — never the default instance's 1433, which reaches the default instance instead. SQL Server Configuration Manager shows it (the instance's TCP/IP protocol, IPAll), or run `SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID;` on the instance. `install.sh` refuses `host\instance` and asks for `host:port`.
 
 #### Oracle
 
@@ -297,7 +299,7 @@ The script asks for your OneUptime URL and ingestion key, the engine, the endpoi
 
 Every prompt can be answered with an exported variable of the same name, and `INSTALL_DIR` picks the directory — for example `INSTALL_DIR=/opt/oneuptime-database-agent-orders bash install.sh` for a second database. Re-running the script reuses every value in your existing `.env` (see [Upgrading and uninstalling](#upgrading-and-uninstalling)).
 
-Any character is fine in the password. The collector expands `$` inside the values it reads once more — `$$` becomes `$` and `${NAME}` becomes another variable — so the script writes every `$` in `DATABASE_USERNAME` and `DATABASE_PASSWORD` doubled, on top of quoting the values for Docker Compose.
+Any character is fine in the password, apart from the few SQL Server's connection string cannot carry (see [SQL Server](#sql-server)). The collector expands `$` inside the values it reads once more — `$$` becomes `$` and `${NAME}` becomes another variable — so the script writes every `$` in `DATABASE_USERNAME` and `DATABASE_PASSWORD` doubled, on top of quoting the values for Docker Compose.
 
 ### Alternative — Docker Compose
 
@@ -311,6 +313,7 @@ curl -fsSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/D
 Create a `.env` file next to them (`chmod 600 .env` — it holds a password):
 
 ```bash
+# DATABASE_USERNAME and DATABASE_PASSWORD are escaped for the collector: every $ is written as $$.
 ONEUPTIME_URL=YOUR_ONEUPTIME_URL
 ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_KEY
 DATABASE_SYSTEM=postgresql
@@ -329,7 +332,7 @@ DATABASE_QUERY_EVENTS=false
 DATABASE_SERVER_ID=
 ```
 
-Single-quote the password, and write every `$` in it as `$$`. Start it:
+Single-quote the password, and write every `$` in it as `$$`. The first line says so, in the words of the `.env` `install.sh` writes — and `install.sh`, re-run on this folder (`INSTALL_DIR`), reads the file the same way. Start it:
 
 ```bash
 docker compose up -d
@@ -391,7 +394,7 @@ The unit assumes `/opt/oneuptime-database-agent` (the install script default). F
 
 ### Upgrading and uninstalling
 
-Re-run `install.sh`: it reuses every value in your existing `.env` and replaces `docker-compose.yml`, `otel-collector-config.yaml` and the systemd unit with the current versions. A file you had edited — `network_mode: host`, a `filelog` receiver and its mount, extra metrics — is kept next to the new one as `<file>.bak.<timestamp>`, and the script lists it at the end so you can re-apply the edit. To remove the agent, `cd /opt/oneuptime-database-agent && docker compose down`, then drop the monitoring user.
+Re-run `install.sh`: it reuses every value in your existing `.env` and replaces `docker-compose.yml`, `otel-collector-config.yaml` and the systemd unit with the current versions. A file you had edited — `network_mode: host`, a `filelog` receiver and its mount, extra metrics — is kept next to the new one as `<file>.bak.<timestamp>`, and the script lists it at the end so you can re-apply the edit. The script records what it installed in `.agent-files.sha256`, so a file nobody edited is replaced without a copy, however much the new version changed; in a directory without that record (one you set up by hand) every file that differs from the new version is kept, since it may hold edits. To remove the agent, `cd /opt/oneuptime-database-agent && docker compose down`, then drop the monitoring user.
 
 ## Kubernetes
 
@@ -498,7 +501,7 @@ The collector image mounts the ConfigMap at the path its default command already
 
 If you already run collectors, add the receiver to one of them instead of running the agent. OneUptime recognises data from the collector-contrib `postgresql`, `mysql`, `sqlserver`, `oracledb`, `redis`, `mongodb`, `mongodbatlas`, `elasticsearch`, `memcached`, `couchdb`, `riak`, `saphana`, `snowflake`, `aerospike` and `googlecloudspanner` receivers (current collectors configure the Atlas and Spanner ones as `mongodb_atlas` and `google_cloud_spanner`), and from any resource that carries both `db.system.name` (or the older `db.system`) and `server.address` (for example a Prometheus scrape of the engine's own metrics endpoint that you stamp yourself). The **Documentation** tab of each database renders the complete collector config for its engine — receiver or Prometheus scrape, identity stamp, exporter and pipeline. Three rules:
 
-1. **Every batch must name the server.** OneUptime reads `server.address` / `server.port`, then a `host:port` in `service.instance.id`, then `mysql.instance.endpoint`, then `mongodb_atlas.host.name` / `mongodb_atlas.process.port`, then `saphana.host` (with SAP HANA's default port, 30015); values that identify nothing (`unknown`, a container id, the pod's own name) count as missing. Receivers that report none of them — Redis unless `resource_attributes.server.address` and `server.port` are enabled, Memcached, Elasticsearch, CouchDB, Snowflake, Riak, Aerospike and Cloud Spanner — are ignored until you stamp `server.address` and `server.port` with a `resource` processor, as the agent configs do (or stamp `oneuptime.database.server.id`). The `saphana` receiver's batches attach by HANA's own hostname; stamp `server.address` and `server.port` (or the id) anyway when that hostname is a single-label name — which only joins a database that already has it and never creates one — or is not the address your applications use. One receiver instance per pipeline, or the stamp merges them. A receiver pointed at a fork reports its family — the `mysql` receiver says `mysql` for MariaDB, the `redis` receiver `redis` for Valkey. A version string the server reports that names the fork refines the engine on its own — the `mysql` receiver's `db.system.version` (switched on in the agent's config) reads `10.11.7-MariaDB…` on MariaDB, and TiDB, Vitess and OceanBase name themselves the same way — but stamping `db.system.name` with the fork's name is the reliable way to see it as itself.
+1. **Every batch must name the server.** OneUptime reads `server.address` / `server.port`, then a `host:port` in `service.instance.id`, then `mysql.instance.endpoint`, then `mongodb_atlas.host.name` / `mongodb_atlas.process.port`, then `saphana.host` (with SAP HANA's default port, 30015); values that identify nothing (`unknown`, a container id, the pod's own name) count as missing. Receivers that report none of them — Redis unless `resource_attributes.server.address` and `server.port` are enabled, Memcached, Elasticsearch, CouchDB, Snowflake, Riak, Aerospike and Cloud Spanner — are ignored until you stamp `server.address` and `server.port` with a `resource` processor, as the agent configs do (or stamp `oneuptime.database.server.id`). The `saphana` receiver's batches attach by HANA's own hostname; stamp `server.address` and `server.port` (or the id) anyway when that hostname is a single-label name — which only joins a database that already has it and never creates one — or is not the address your applications use. One receiver instance per pipeline, or the stamp merges them. A receiver pointed at a fork reports its family — with its default settings the `mysql` receiver says `mysql` for MariaDB and TiDB, the `redis` receiver `redis` for Valkey. The `mysql` receiver names MariaDB itself once its `resource_attributes.db.system.name` is switched on (it is off by default): it then reports `mariadb`. A `db.system.version` holding the server's own version string refines the engine too when it names MariaDB, TiDB, Vitess or OceanBase (`8.0.11-TiDB-v7.5.1` is TiDB), but the `mysql` receiver reports only the leading number there (`11.4.2`), so it never names a fork that way. Stamping `db.system.name` with the fork's name is the reliable way to see it as itself — the Database Agent does, from `DATABASE_SYSTEM`.
 2. **Keep `service.name` off the resource.** Data with a `service.name` is routed to that Service first. The Prometheus receiver always sets it (to the job name), so delete it — and `service.instance.id`, the scrape target — in the `resource` processor.
 3. **Name the server your applications use.** A loopback endpoint (`localhost:5432`) names no server. OneUptime falls back to the collector machine's `host.name` only for a collector running directly on a VM or bare-metal host (the `resourcedetection` `system` detector reports `os.type`, and nothing marks it as a container, a pod or a serverless task); anywhere else the batch is ignored. Stamping `server.address` with the name applications use is more reliable either way, and it is what joins engine metrics to application traces. Give database receivers their own pipeline, as the agent configs do: the receiver's data belongs to its database either way (see [The metrics land on a Host](#the-metrics-land-on-a-host-or-a-new-service-appears)), but a `resource` processor that stamps a database's identity stamps every resource in its pipeline, host metrics included.
 
@@ -595,7 +598,7 @@ curl -sSL https://raw.githubusercontent.com/OneUptime/oneuptime/master/agents/Da
 bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-database-agent
 ```
 
-It checks the container, the identity in `.env`, TCP reachability of the database from the agent's own network, login, permission and TLS errors in the collector log, and the ingestion key. The key check matters: OneUptime's OTLP endpoints answer a bad key with a silent `200` (so a misconfigured collector cannot retry-flood the server), so the collector log looks clean while everything is dropped. The script calls `GET <url>/otlp/v1/validate`, which answers `200` or `401` for real. It runs its probes from a pinned curl image and hands it the key on stdin, never on a command line.
+It checks the container, the identity in `.env`, TCP reachability of the database from the agent's own network, login, permission and TLS errors in the collector log (and names any other receiver error it finds there), and the ingestion key. The key check matters: OneUptime's OTLP endpoints answer a bad key with a silent `200` (so a misconfigured collector cannot retry-flood the server), so the collector log looks clean while everything is dropped. The script calls `GET <url>/otlp/v1/validate`, which answers `200` or `401` for real. It runs its probes from a pinned curl image and hands it the key on stdin, never on a command line.
 
 ### The agent runs but no database appears
 
@@ -612,11 +615,14 @@ Inside the agent's container, `localhost` is the container itself. Use `host.doc
 
 ### Login, permission or TLS errors in the collector log
 
-- `password authentication failed`, `Access denied`, `Login failed for user`, `ORA-01017`, `WRONGPASS`, `Authentication failed`: check the credentials. The collector expands `$` inside them once more, so every `$` must be written as `$$` in `.env` or a Kubernetes Secret (`install.sh` does this; a `.env` written by an older `install.sh` did not — re-run it). Quote a password containing `#`, spaces or quotes in `.env`.
-- Connections always `1`, `permission denied`, `NOPERM`, `not authorized`, `VIEW SERVER STATE`, `ORA-00942`: the monitoring user is missing its grant — see [Create a monitoring user](#create-a-monitoring-user).
+- `password authentication failed`, `Access denied for user`, `Login failed for user`, `ORA-01017`, `WRONGPASS`, `Authentication failed`: check the credentials. The collector expands `$` inside them once more, so every `$` must be written as `$$` in `.env` or a Kubernetes Secret (`install.sh` does this). Quote a password containing `#`, spaces or quotes in `.env`. On SQL Server a login containing `;` or `"`, or with spaces around it, always fails: its connection string cannot carry them (see [SQL Server](#sql-server)).
+- Connections always `1`, `permission denied`, `Access denied; you need … privilege(s)` (MySQL / MariaDB error 1227: `PROCESS`, or `SLAVE MONITOR` on MariaDB 10.5.9 and later), `NOPERM`, `not authorized`, `VIEW SERVER STATE`, `ORA-00942`: the monitoring user is missing its grant — see [Create a monitoring user](#create-a-monitoring-user).
+- `ORA-12514` or `ORA-12505`: the Oracle listener answers — so the connection check passes — but does not know the service `DATABASE_ORACLE_SERVICE` names; `lsnrctl services` on the database host lists the ones it does.
+- `ORA-28000` or `ORA-28001`: the Oracle monitoring user is locked or its password expired.
 - `failed to explain` on PostgreSQL top queries is not a missing grant: explain plans need `SELECT` on your tables, which `pg_monitor` deliberately does not give. Metrics and top queries are unaffected; only the plans stay empty.
 - `SSL is not enabled on the server`: set `DATABASE_TLS_INSECURE=true`. A server that requires TLS: `DATABASE_TLS_INSECURE=false`, plus `DATABASE_TLS_INSECURE_SKIP_VERIFY=true` for a certificate the image does not trust. For Elasticsearch / OpenSearch the `http://` or `https://` of `DATABASE_ENDPOINT` decides it.
 - `pg_stat_statements` errors: create the extension, or set `DATABASE_QUERY_EVENTS=false`.
+- For any other receiver error the diagnostic script prints the most frequent one, as the database driver worded it (with the password redacted).
 
 ### The metrics land on a Host, or a new Service appears
 

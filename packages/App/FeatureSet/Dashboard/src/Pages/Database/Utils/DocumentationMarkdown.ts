@@ -9,6 +9,7 @@ import {
   DatabaseEndpoint,
   formatDatabaseEndpoint,
   parseDatabaseEndpointString,
+  splitDatabaseHostInstance,
 } from "Common/Types/DatabaseServer/DatabaseEndpoint";
 import {
   DATABASE_SYSTEMS,
@@ -176,16 +177,30 @@ export interface DatabaseDocumentationTarget {
 }
 
 export interface DatabaseAgentIdentity {
-  // DATABASE_SERVER_ADDRESS — the name applications use.
+  // DATABASE_SERVER_ADDRESS — the name applications use (never host\instance).
   serverAddress: string;
-  // DATABASE_SERVER_PORT; null only for an engine without a default port.
+  /*
+   * DATABASE_SERVER_PORT; null for an engine without a default port, and
+   * for a SQL Server named instance the row knows no port for.
+   */
   serverPort: number | null;
-  // host:port the agent connects to (see getDatabaseAgentEndpoint).
+  /*
+   * host:port the agent connects to (see getDatabaseAgentEndpoint); for a
+   * named instance without a known port, the port is
+   * INSTANCE_PORT_PLACEHOLDER.
+   */
   endpoint: string;
   // DATABASE_SERVER_ID, "" on the product page.
   databaseId: string;
   // False when the values are placeholders, not the row's own.
   isPrefilled: boolean;
+  /*
+   * The SQL Server named instance (`host\instance`) the row names without a
+   * port, lowercased; "" otherwise. It listens on a TCP port of its own —
+   * never the default instance's 1433 — so the guide asks for that port
+   * instead of defaulting it.
+   */
+  instanceName: string;
 }
 
 /*
@@ -195,8 +210,29 @@ export interface DatabaseAgentIdentity {
  */
 const PLACEHOLDER_ADDRESS: string = "db.example.com";
 
+/*
+ * The port of a named instance the row does not know. Not a number, so an
+ * agent started with it unreplaced fails at once (the SQL Server receiver's
+ * port is an integer) instead of monitoring the default instance.
+ */
+const INSTANCE_PORT_PLACEHOLDER: string = "<instance-tcp-port>";
+
 function hostForUrl(host: string): string {
   return host.includes(":") ? `[${host}]` : host;
+}
+
+/* Characters the shell leaves alone in an unquoted word. */
+const SHELL_SAFE_WORD: RegExp = /^[A-Za-z0-9._:@%+,/=-]+$/;
+
+/*
+ * One word of a shell command line whose value reaches the command as
+ * written: bare when made only of characters the shell leaves alone,
+ * otherwise single-quoted (a `'` inside closes, escapes and reopens).
+ */
+function shellWord(value: string): string {
+  return SHELL_SAFE_WORD.test(value)
+    ? value
+    : `'${value.split("'").join("'\\''")}'`;
 }
 
 /**
@@ -204,7 +240,8 @@ function hostForUrl(host: string): string {
  * when set, otherwise its first parseable endpoint (cluster qualifier
  * dropped — the agent stamps server.address and server.port only, and the
  * row id carries the rest). For the product page: placeholders with the
- * engine's default port.
+ * engine's default port. A SQL Server named instance without a port keeps
+ * its bare host and no port (see DatabaseAgentIdentity.instanceName).
  */
 export function resolveDatabaseAgentIdentity(
   system: string,
@@ -247,6 +284,23 @@ export function resolveDatabaseAgentIdentity(
     }
   }
 
+  /*
+   * The parser keeps `host\instance` only when no port names the instance
+   * (a known port already identifies it, and the instance is dropped).
+   */
+  const split: { host: string; instance: string } =
+    port === null ? splitDatabaseHostInstance(host) : { host, instance: "" };
+  if (split.instance) {
+    return {
+      serverAddress: split.host,
+      serverPort: null,
+      endpoint: `${hostForUrl(split.host)}:${INSTANCE_PORT_PLACEHOLDER}`,
+      databaseId,
+      isPrefilled: true,
+      instanceName: split.instance,
+    };
+  }
+
   const isPrefilled: boolean = Boolean(host);
   const serverAddress: string = host || PLACEHOLDER_ADDRESS;
   const serverPort: number | null = port || defaultPort || null;
@@ -260,7 +314,39 @@ export function resolveDatabaseAgentIdentity(
         : hostForUrl(serverAddress),
     databaseId,
     isPrefilled,
+    instanceName: "",
   };
+}
+
+/*
+ * DATABASE_ENDPOINT_HOST / DATABASE_ENDPOINT_PORT: the endpoint the agent
+ * connects to, split for the SQL Server receiver (which takes them apart).
+ */
+function agentEndpointParts(
+  identity: DatabaseAgentIdentity,
+  system: string,
+): { host: string; port: string } {
+  if (identity.instanceName) {
+    return { host: identity.serverAddress, port: INSTANCE_PORT_PLACEHOLDER };
+  }
+  const endpoint: DatabaseEndpoint | null = parseDatabaseEndpointString(
+    identity.endpoint,
+    { system: system },
+  );
+  const port: number | null =
+    endpoint && endpoint.port !== null ? endpoint.port : identity.serverPort;
+  return {
+    host: endpoint ? endpoint.host : identity.serverAddress,
+    port: port !== null ? String(port) : "",
+  };
+}
+
+/* DATABASE_SERVER_PORT as the samples write it. */
+function serverPortValue(identity: DatabaseAgentIdentity): string {
+  if (identity.serverPort !== null) {
+    return String(identity.serverPort);
+  }
+  return identity.instanceName ? INSTANCE_PORT_PLACEHOLDER : "";
 }
 
 /**
@@ -328,7 +414,7 @@ GRANT VIEW SERVER STATE TO oneuptime_monitor;
 GRANT VIEW ANY DEFINITION TO oneuptime_monitor;
 \`\`\`
 
-\`VIEW SERVER STATE\` (on SQL Server 2022 and later \`VIEW SERVER PERFORMANCE STATE\` is enough) reads the dynamic management views every metric comes from, and grants no access to your data. The receiver builds a connection string from the password, so it must not contain a semicolon.
+\`VIEW SERVER STATE\` (on SQL Server 2022 and later \`VIEW SERVER PERFORMANCE STATE\` is enough) reads the dynamic management views every metric comes from, and grants no access to your data. The receiver puts the login into a connection string without quoting it, so the user name and password must not contain a semicolon (\`;\`) or a double quote (\`"\`), nor start or end with a space — the install script refuses them. For a named instance (\`host\\instance\`), connect to the instance's own TCP port (\`host:port\`), never the default instance's 1433: SQL Server Configuration Manager shows it, or run \`SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID;\` on the instance.
 `,
   oracledb: `
 \`\`\`sql
@@ -366,6 +452,14 @@ function passwordLineFor(engine: DatabaseAgentEngine): string {
   return engine === "memcached" ? "" : "'a-strong-password'";
 }
 
+/*
+ * install.sh's first line of every .env (its COLLECTOR_ESCAPE_MARKER): the
+ * login below holds every `$` doubled for the collector. A hand-written
+ * file follows the same rule, so it says so the same way.
+ */
+const ENV_FILE_ESCAPE_LINE: string =
+  "# DATABASE_USERNAME and DATABASE_PASSWORD are escaped for the collector: every $ is written as $$.";
+
 /** The `.env` file, with the viewer's URL and key and the row's identity. */
 export function getDatabaseAgentEnvFile(data: {
   oneuptimeUrl: string;
@@ -375,19 +469,20 @@ export function getDatabaseAgentEnvFile(data: {
   system?: string | null | undefined;
 }): string {
   const system: string = getDatabaseAgentSystem(data.engine, data.system);
-  const endpoint: DatabaseEndpoint | null = parseDatabaseEndpointString(
-    data.identity.endpoint,
-    { system: system },
+  const endpoint: { host: string; port: string } = agentEndpointParts(
+    data.identity,
+    system,
   );
-  return `ONEUPTIME_URL=${data.oneuptimeUrl}
+  return `${ENV_FILE_ESCAPE_LINE}
+ONEUPTIME_URL=${data.oneuptimeUrl}
 ONEUPTIME_TELEMETRY_INGESTION_KEY=${data.apiKey}
 DATABASE_SYSTEM=${system}
 DATABASE_ENDPOINT=${getDatabaseAgentEndpoint(data.engine, data.identity)}
-DATABASE_ENDPOINT_HOST=${endpoint ? endpoint.host : data.identity.serverAddress}
-DATABASE_ENDPOINT_PORT=${endpoint && endpoint.port !== null ? endpoint.port : data.identity.serverPort ?? ""}
+DATABASE_ENDPOINT_HOST=${endpoint.host}
+DATABASE_ENDPOINT_PORT=${endpoint.port}
 DATABASE_ORACLE_SERVICE=${data.engine === "oracledb" ? "FREEPDB1" : ""}
 DATABASE_SERVER_ADDRESS=${data.identity.serverAddress}
-DATABASE_SERVER_PORT=${data.identity.serverPort ?? ""}
+DATABASE_SERVER_PORT=${serverPortValue(data.identity)}
 DATABASE_USERNAME=${usernameFor(data.engine)}
 DATABASE_PASSWORD=${passwordLineFor(data.engine)}
 DATABASE_TLS_INSECURE=true
@@ -412,9 +507,9 @@ export function getDatabaseAgentKubernetesManifest(data: {
 }): string {
   const namespace: string = data.namespace.trim() || "default";
   const system: string = getDatabaseAgentSystem(data.engine, data.system);
-  const endpoint: DatabaseEndpoint | null = parseDatabaseEndpointString(
-    data.identity.endpoint,
-    { system: system },
+  const endpoint: { host: string; port: string } = agentEndpointParts(
+    data.identity,
+    system,
   );
   return `apiVersion: apps/v1
 kind: Deployment
@@ -447,15 +542,15 @@ spec:
             - name: DATABASE_ENDPOINT
               value: "${getDatabaseAgentEndpoint(data.engine, data.identity)}"
             - name: DATABASE_ENDPOINT_HOST
-              value: "${endpoint ? endpoint.host : data.identity.serverAddress}"
+              value: "${endpoint.host}"
             - name: DATABASE_ENDPOINT_PORT
-              value: "${endpoint && endpoint.port !== null ? endpoint.port : data.identity.serverPort ?? ""}"
+              value: "${endpoint.port}"
             - name: DATABASE_ORACLE_SERVICE
               value: "${data.engine === "oracledb" ? "FREEPDB1" : ""}"
             - name: DATABASE_SERVER_ADDRESS
               value: "${data.identity.serverAddress}"
             - name: DATABASE_SERVER_PORT
-              value: "${data.identity.serverPort ?? ""}"
+              value: "${serverPortValue(data.identity)}"
             - name: DATABASE_USERNAME
               value: "${usernameFor(data.engine)}"
             - name: DATABASE_PASSWORD
@@ -661,10 +756,17 @@ export function getDatabaseAgentInstallationMarkdown(data: {
     system,
     database,
   );
-  const serverPortText: string =
-    identity.serverPort !== null ? String(identity.serverPort) : "";
+  const serverPortText: string = serverPortValue(identity);
   const engineLabel: string = getDatabaseSystemDisplayName(system);
   const receiverName: string = getCollectorReceiverComponentName(data.engine);
+
+  /*
+   * A named instance the row knows no port for: the samples carry a
+   * placeholder port, and the reader is told where to find the real one.
+   */
+  const instanceNote: string = identity.instanceName
+    ? ` This database is the SQL Server named instance \`${identity.instanceName}\` on \`${identity.serverAddress}\`, and OneUptime does not know its TCP port — a named instance listens on its own, never on the default instance's 1433, and the agent connects to that port. Find it in SQL Server Configuration Manager (the instance's TCP/IP protocol, IPAll) or by running \`SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID;\` on the instance. The install script asks for the endpoint to connect to: give it as \`${identity.serverAddress}:<port>\`. In the samples below, replace \`${INSTANCE_PORT_PLACEHOLDER}\` with it.`
+    : "";
 
   const thisDatabase: string = database
     ? `
@@ -681,25 +783,27 @@ Every block below is prefilled with these values. \`DATABASE_SERVER_ID\` is stam
         identity.isPrefilled
           ? ""
           : ` This database has no address yet: the install script asks for the host name your applications use to reach it, and in the samples below replace \`${PLACEHOLDER_ADDRESS}\` with that name.`
-      }
+      }${instanceNote}
 `
     : "";
 
   /*
    * A row without an address gets no placeholder on the command line:
    * install.sh would take the placeholder as given and stamp it, while
-   * without it the script asks for the real name. The id still links the
-   * data to this row.
+   * without it the script asks for the real name. Likewise a port the row
+   * does not know is left for install.sh, which takes it from the endpoint
+   * it asks for. The id still links the data to this row. Every value is
+   * one shell word, so the shell hands install.sh exactly this text.
    */
   const installEnv: string = [
-    `DATABASE_SYSTEM=${system}`,
+    `DATABASE_SYSTEM=${shellWord(system)}`,
     database && identity.isPrefilled
-      ? `DATABASE_SERVER_ADDRESS=${identity.serverAddress}`
+      ? `DATABASE_SERVER_ADDRESS=${shellWord(identity.serverAddress)}`
       : "",
-    database && identity.isPrefilled
-      ? `DATABASE_SERVER_PORT=${serverPortText}`
+    database && identity.isPrefilled && identity.serverPort !== null
+      ? `DATABASE_SERVER_PORT=${identity.serverPort}`
       : "",
-    database ? `DATABASE_SERVER_ID=${identity.databaseId}` : "",
+    database ? `DATABASE_SERVER_ID=${shellWord(identity.databaseId)}` : "",
   ]
     .filter((part: string): boolean => {
       return part.length > 0;
@@ -760,7 +864,7 @@ Then start the agent:
 docker compose up -d
 \`\`\`
 
-\`DATABASE_ENDPOINT\` is where the agent connects (\`host.docker.internal:<port>\` when it runs on the database machine). \`DATABASE_SERVER_ADDRESS\` is the database's identity: the host name your **applications** use to reach it, never \`localhost\`. Keep it stable — changing it registers a second database. In a hand-written \`.env\`, single-quote the password and write every \`$\` in it as \`$$\`: the collector expands \`$$\` and \`\${...}\` inside it once more.
+\`DATABASE_ENDPOINT\` is where the agent connects (\`host.docker.internal:<port>\` when it runs on the database machine). \`DATABASE_SERVER_ADDRESS\` is the database's identity: the host name your **applications** use to reach it, never \`localhost\`. Keep it stable — changing it registers a second database. In a hand-written \`.env\`, single-quote the password and write every \`$\` in it as \`$$\`: the collector expands \`$$\` and \`\${...}\` inside it once more. The first line says so, in the words of the \`.env\` the install script writes — and the script, re-run on this folder, reads the file the same way.
 
 ### docker-compose.yml
 

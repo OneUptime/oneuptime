@@ -1043,13 +1043,28 @@ describe("Databases docs", (): void => {
     expect(ignored).not.toContain("HANA");
   });
 
+  /*
+   * The example is a raw server version string, as a batch may carry it —
+   * not the `mysql` receiver's, which reports only the leading number (the
+   * page once claimed it read `10.11.7-MariaDB…`), and that number names
+   * no fork.
+   */
   it("names the forks a server's version string refines, with an example the code refines", (): void => {
     const ruleOne: string = ownCollectorRuleOne();
     const example: RegExpMatchArray | null = ruleOne.match(
-      /`db\.system\.version`[^`]*reads `([^`…]+)…` on (\w+)/,
+      /`db\.system\.version` holding [^(]*\(`([^`]+)` is (\w+)\)/,
     );
 
     expect(example).not.toBeNull();
+
+    const receiverVersion: RegExpMatchArray | null = ruleOne.match(
+      /the `mysql` receiver reports only the leading number there \(`([^`]+)`\)/,
+    );
+
+    expect(receiverVersion).not.toBeNull();
+    expect(
+      refineDatabaseSystemFromVersion("mysql", receiverVersion![1] as string),
+    ).toBe("mysql");
 
     const [, version, forkName] = example as RegExpMatchArray;
 
@@ -1082,7 +1097,7 @@ describe("Databases docs", (): void => {
       /\n\s+db\.system\.version:\s*\n\s+enabled:\s*true/,
     );
     expect(ruleOne).toContain(
-      "stamping `db.system.name` with the fork's name is the reliable way",
+      "Stamping `db.system.name` with the fork's name is the reliable way",
     );
   });
 
@@ -1329,6 +1344,159 @@ describe("Databases docs", (): void => {
       );
       // The old advice (single quotes fix `$`) is gone.
       expect(markdown).not.toContain("single-quote a password containing `$`");
+    });
+
+    /*
+     * Regression: the hand-written .env samples doubled every `$` but did
+     * not say so the way install.sh's own .env does, and install.sh read
+     * such a file as holding the password as typed — the documented
+     * upgrade (re-running it) doubled every `$` again. The samples now
+     * open with install.sh's line, and nothing tells a reader that an .env
+     * install.sh wrote needs its `$` doubled by a re-run.
+     */
+    it("opens the .env samples with install.sh's own line saying every $ is doubled", (): void => {
+      const marker: string = (
+        readAgentFile("install.sh").match(
+          /^COLLECTOR_ESCAPE_MARKER="(.*)"$/m,
+        ) as RegExpMatchArray
+      )[1]!.replace(/\\\$/g, "$");
+
+      expect(marker).toBe(
+        "# DATABASE_USERNAME and DATABASE_PASSWORD are escaped for the collector: every $ is written as $$.",
+      );
+      for (const [markdown, heading] of [
+        [readPage(), "### Alternative — Docker Compose"],
+        [readAgentFile("README.md"), "## Quick Start — Docker Compose"],
+      ] as Array<[string, string]>) {
+        const sample: string | undefined = codeBlocks(
+          section(markdown, heading),
+        ).find((text: string): boolean => {
+          return text.includes("\nONEUPTIME_URL=");
+        });
+
+        expect({ heading, first: (sample || "").split("\n")[0] }).toEqual({
+          heading,
+          first: marker,
+        });
+      }
+      expect(readPage()).not.toContain("older `install.sh`");
+    });
+
+    /*
+     * Regression: the pages said any character is fine in the password and
+     * named only the semicolon for SQL Server, whose receiver builds an
+     * unquoted connection string: a `"` or a surrounding space failed
+     * every login with a plain "Login failed".
+     */
+    it("names every character the SQL Server connection string cannot carry, and how to reach a named instance", (): void => {
+      for (const [markdown, heading] of [
+        [readPage(), "#### SQL Server"],
+        [readAgentFile("README.md"), "### SQL Server"],
+      ] as Array<[string, string]>) {
+        const text: string = section(markdown, heading);
+
+        expect({ heading, text }).toEqual({
+          heading,
+          text: expect.stringContaining(
+            'must not contain a semicolon (`;`) or a double quote (`"`), nor start or end with a space',
+          ),
+        });
+        expect({ heading, text }).toEqual({
+          heading,
+          text: expect.stringContaining(
+            "SELECT local_tcp_port FROM sys.dm_exec_connections WHERE session_id = @@SPID;",
+          ),
+        });
+      }
+      for (const markdown of [readPage(), readAgentFile("README.md")]) {
+        for (const line of markdown.split("\n")) {
+          if (line.includes("Any character is fine in the password")) {
+            expect(line).toContain("SQL Server");
+          }
+        }
+      }
+    });
+
+    /*
+     * Regression: the diagnostic said "No problems found" over a receiver
+     * error none of its patterns knew, and the docs sent MySQL's 1227
+     * ("Access denied; you need … privilege(s)", a missing grant) to the
+     * credentials bullet.
+     */
+    it("sends each collector-log error to the fix it needs", (): void => {
+      const errors: string = section(
+        readPage(),
+        "### Login, permission or TLS errors in the collector log",
+      );
+      const bullet: (needle: string) => string = (needle: string): string => {
+        return (
+          errors.split("\n").find((line: string): boolean => {
+            return line.startsWith("- ") && line.includes(needle);
+          }) || ""
+        );
+      };
+
+      expect(bullet("`password authentication failed`")).toContain(
+        "`Access denied for user`",
+      );
+      expect(bullet("`password authentication failed`")).not.toContain(
+        "`Access denied`,",
+      );
+      expect(bullet("`permission denied`")).toContain(
+        "`Access denied; you need … privilege(s)`",
+      );
+      expect(bullet("`ORA-12514`")).toContain("`DATABASE_ORACLE_SERVICE`");
+      expect(bullet("`ORA-28000`")).toContain("locked");
+      expect(errors).toContain("any other receiver error");
+    });
+
+    /*
+     * Regression: an upgrade backed up every file whose upstream version
+     * changed — a collector pin bump changes them all — and told the user
+     * to re-apply edits they never made.
+     */
+    /*
+     * Regression: the page said the `mysql` receiver's db.system.version
+     * reads `10.11.7-MariaDB…` and so names the fork. The pinned receiver
+     * reports only the leading version number (`11.4.2`), which
+     * refineDatabaseSystemFromVersion can never read as MariaDB; the fork
+     * is named by the receiver's own db.system.name resource attribute.
+     */
+    it("names MariaDB the way the pinned mysql receiver actually can", (): void => {
+      const markdown: string = readPage();
+      const ownCollector: string = section(
+        markdown,
+        "## Using your own OpenTelemetry Collector",
+      );
+
+      expect(markdown).not.toContain("10.11.7-MariaDB");
+      expect(ownCollector).toContain("`resource_attributes.db.system.name`");
+      // What the receiver reports as the version names no fork …
+      expect(refineDatabaseSystemFromVersion("mysql", "11.4.2")).toBe("mysql");
+      // … while a raw VERSION() string, as a span may carry it, does.
+      expect(
+        refineDatabaseSystemFromVersion("mysql", "10.11.7-MariaDB-1:10.11.7"),
+      ).toBe("mariadb");
+      // The receiver's db.system.name value is an engine OneUptime knows.
+      expect(normalizeDatabaseSystem("mariadb")).toBe("mariadb");
+    });
+
+    it("promises a backup only for a file the user edited, and says how install.sh knows", (): void => {
+      for (const [markdown, heading] of [
+        [readPage(), "### Upgrading and uninstalling"],
+        [readAgentFile("README.md"), "## Upgrading, Uninstalling"],
+      ] as Array<[string, string]>) {
+        const text: string = section(markdown, heading);
+
+        expect({ heading, text }).toEqual({
+          heading,
+          text: expect.stringContaining("`.agent-files.sha256`"),
+        });
+        expect({ heading, text }).toEqual({
+          heading,
+          text: expect.stringContaining("a file nobody edited is replaced"),
+        });
+      }
     });
 
     it("explains that PostgreSQL explain plans need table access, and that it is not a missing grant", (): void => {

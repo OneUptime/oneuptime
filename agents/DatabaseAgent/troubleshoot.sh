@@ -331,22 +331,55 @@ case "$AGENT_CONFIG" in
     fi
     ;;
 esac
-if [ "$AGENT_CONFIG" = "oracledb" ] && [ -z "$(agent_env DATABASE_ORACLE_SERVICE)" ]; then
+DATABASE_ORACLE_SERVICE=$(agent_env DATABASE_ORACLE_SERVICE)
+if [ "$AGENT_CONFIG" = "oracledb" ] && [ -z "$DATABASE_ORACLE_SERVICE" ]; then
   fail "DATABASE_ORACLE_SERVICE is empty — the Oracle receiver needs the service to connect to."
   add_finding "Set DATABASE_ORACLE_SERVICE in $ENV_FILE to the service name (e.g. FREEPDB1, ORCLPDB1), then: cd $DIR && docker compose up -d"
 fi
 
-# The collector expands $ inside the password once more ($$ → $, ${NAME} →
-# another variable), so install.sh writes every $ doubled and marks the file.
-# A password with a $ in an .env without that mark reaches the database
-# altered. The password itself is never printed.
-DATABASE_PASSWORD_VALUE=$(agent_env DATABASE_PASSWORD)
-if [[ "$DATABASE_PASSWORD_VALUE" == *'$'* ]] && [ -f "$ENV_FILE" ] \
-  && ! grep -q "escaped for the collector" "$ENV_FILE"; then
-  warn "DATABASE_PASSWORD contains \$, which the collector expands (\$\$ becomes \$, \${NAME} becomes a variable) — and this .env was not written with every \$ doubled."
-  add_finding "Write every \$ in DATABASE_PASSWORD (and DATABASE_USERNAME) as \$\$ in $ENV_FILE, or re-run install.sh, which does it for you. Then: cd $DIR && docker compose up -d"
+# The collector expands $ inside the login once more ($$ → $, ${NAME} →
+# another variable), so the container must hold it with every $ doubled —
+# install.sh writes it that way, and the docs tell a hand-written .env to.
+# What the container holds is the collector's input, so a $ left over once
+# every $$ is taken out was not doubled, and the database gets something
+# else. The values themselves are never printed.
+LOGIN_ESCAPE_PROBLEM=""
+for name in DATABASE_USERNAME DATABASE_PASSWORD; do
+  value=$(agent_env "$name")
+  if [[ "${value//\$\$/}" == *'$'* ]]; then
+    warn "$name contains a \$ that is not doubled: the collector expands it (\${NAME} becomes another variable), so the database receives a different value."
+    LOGIN_ESCAPE_PROBLEM=1
+  fi
+done
+unset value
+if [ -n "$LOGIN_ESCAPE_PROBLEM" ]; then
+  add_finding "Write every \$ in DATABASE_USERNAME and DATABASE_PASSWORD as \$\$ in $ENV_FILE (single-quoted), then: cd $DIR && docker compose up -d"
 fi
-unset DATABASE_PASSWORD_VALUE
+
+# The SQL Server receiver puts the login into an ADO connection string
+# without quoting it: a ; ends the value, every " starts or ends a quoted
+# one, and the spaces around it are trimmed. Such a login always fails as
+# plain "Login failed", so say why. (install.sh refuses these.)
+SQLSERVER_LOGIN_PROBLEM=""
+if [ "$AGENT_CONFIG" = "sqlserver" ]; then
+  for name in DATABASE_USERNAME DATABASE_PASSWORD; do
+    value=$(agent_env "$name")
+    problem=""
+    case "$value" in
+      *";"*) problem='a semicolon (;)' ;;
+      *'"'*) problem='a double quote (")' ;;
+      [[:space:]]*|*[[:space:]]) problem='a leading or trailing space' ;;
+    esac
+    if [ -n "$problem" ]; then
+      fail "$name contains $problem, which the SQL Server receiver's connection string cannot carry: the database receives a different login."
+      SQLSERVER_LOGIN_PROBLEM=1
+    fi
+  done
+  unset value problem
+  if [ -n "$SQLSERVER_LOGIN_PROBLEM" ]; then
+    add_finding "Give the monitoring login a user name and password without ;, \" or surrounding spaces (ALTER LOGIN oneuptime_monitor WITH PASSWORD = '…'), set it in $ENV_FILE, then: cd $DIR && docker compose up -d"
+  fi
+fi
 
 # ----------------------------------------------------------------------------
 section "3. Database reachability & receiver errors"
@@ -388,27 +421,68 @@ if [ -n "$AGENT_CONTAINER" ]; then
   # Match only the "error" field of each line: the receivers log the
   # (obfuscated) query text beside it, and a table named `certificates` or a
   # query mentioning `permission` must not read as a TLS or grant problem.
-  ERRORS=$(printf '%s\n' "$RECEIVER_LOGS" | grep -v 'failed to explain' \
+  # The EXPLAIN of a top query can fail at any of its steps (a connection,
+  # preparing the statement, its parameters, running it, obfuscating the
+  # plan); every one only leaves that plan empty.
+  ERRORS=$(printf '%s\n' "$RECEIVER_LOGS" \
+    | grep -v -e 'failed to explain' -e 'for EXPLAIN' -e 'prepared statement parameter count' -e 'explain plan' \
     | sed -nE 's/.*"error": "(([^"\\]|\\.)*)".*/\1/p')
+  LOG_CHECK_FIRED=""
   check_log() {
     local pattern="$1" message="$2" finding="$3"
     if printf '%s' "$ERRORS" | grep -qiE "$pattern"; then
       fail "$message"
       add_finding "$finding"
+      LOG_CHECK_FIRED=1
     fi
   }
+  if [ -n "$SQLSERVER_LOGIN_PROBLEM" ]; then
+    AUTH_FINDING="The login contains what the SQL Server receiver's connection string cannot carry (see above) — change it, not its quoting."
+  else
+    AUTH_FINDING="Check DATABASE_USERNAME / DATABASE_PASSWORD. The collector expands \$ inside them, so every \$ must be written as \$\$ in .env (install.sh does this); a password containing #, spaces or quotes must be quoted in .env (install.sh does this too)."
+  fi
   check_log "password authentication failed|Access denied for user|WRONGPASS|NOAUTH|Authentication failed|auth error|Login failed for user|ORA-01017|security_exception|status code 401|unable to authenticate" \
     "The collector log shows the database REJECTING the login." \
-    "Check DATABASE_USERNAME / DATABASE_PASSWORD. The collector expands \$ inside them, so every \$ must be written as \$\$ in .env (install.sh does this); a password containing #, spaces or quotes must be quoted in .env (install.sh does this too)."
-  check_log "permission denied|must be superuser|pg_monitor|command denied|NOPERM|not authorized on admin|VIEW SERVER STATE|VIEW SERVER PERFORMANCE STATE|ORA-00942|ORA-01031|status code 403" \
+    "$AUTH_FINDING"
+  # MySQL / MariaDB's 1227 ("Access denied; you need … privilege(s)") is a
+  # missing grant — PROCESS, or MariaDB's SLAVE MONITOR — not a bad login.
+  check_log "permission denied|must be superuser|pg_monitor|command denied|Access denied; you need|privilege\(s\) for this operation|NOPERM|not authorized on admin|VIEW SERVER STATE|VIEW SERVER PERFORMANCE STATE|ORA-00942|ORA-01031|status code 403" \
     "The collector log shows missing privileges for the monitoring user." \
-    "Grant the least-privilege role for $DATABASE_SYSTEM from the README (pg_monitor; PROCESS, REPLICATION CLIENT + performance_schema; the INFO/PING ACL; clusterMonitor; VIEW SERVER STATE; SELECT_CATALOG_ROLE; the monitor privilege)."
+    "Grant the least-privilege role for $DATABASE_SYSTEM from the README (pg_monitor; PROCESS, REPLICATION CLIENT + performance_schema, and SLAVE MONITOR on MariaDB 10.5.9+; the INFO/PING ACL; clusterMonitor; VIEW SERVER STATE; SELECT_CATALOG_ROLE; the monitor privilege)."
+  # The listener answers (so the TCP check above passes) but has no such
+  # service: DATABASE_ORACLE_SERVICE names the wrong one.
+  check_log "ORA-12514|ORA-12505" \
+    "The Oracle listener does not know the service DATABASE_ORACLE_SERVICE names ('$DATABASE_ORACLE_SERVICE')." \
+    "Set DATABASE_ORACLE_SERVICE in $ENV_FILE to a service the listener serves — lsnrctl services on the database host lists them (a pluggable database's is usually its name, e.g. FREEPDB1 or ORCLPDB1) — then: cd $DIR && docker compose up -d"
+  check_log "ORA-28000|ORA-28001" \
+    "The Oracle monitoring user is locked or its password expired." \
+    "Unlock it or give it a new password (ALTER USER oneuptime_monitor ACCOUNT UNLOCK; ALTER USER oneuptime_monitor IDENTIFIED BY \"…\";), update $ENV_FILE if the password changed, then: cd $DIR && docker compose up -d"
   check_log "SSL is not enabled on the server|x509:|tls: |certificate verify|certificate signed by unknown|server gave HTTP response to HTTPS client|malformed HTTP response" \
     "The collector log shows a TLS problem." \
     "Match DATABASE_TLS_INSECURE to the server: true when it does not speak TLS, false when it requires it (plus DATABASE_TLS_INSECURE_SKIP_VERIFY=true for a certificate the image does not trust). For Elasticsearch / OpenSearch, DATABASE_ENDPOINT's http:// or https:// decides it — re-run install.sh after changing DATABASE_TLS_INSECURE."
   check_log "pg_stat_statements" \
     "Top queries are on but pg_stat_statements is missing." \
     "Run CREATE EXTENSION pg_stat_statements; in each monitored database, or set DATABASE_QUERY_EVENTS=false."
+  # Anything else the receiver reported is still a problem worth naming:
+  # the most frequent error, as the driver worded it. It is the database's
+  # or the driver's message, not the config — but the password is redacted
+  # in case a driver echoed it.
+  if [ -z "$LOG_CHECK_FIRED" ] && [ -n "$ERRORS" ]; then
+    DISTINCT=$(printf '%s\n' "$ERRORS" | sort -u | grep -c .)
+    TOP_ERROR=$(printf '%s\n' "$ERRORS" | sort | uniq -c | sort -rn | head -1 | sed -E 's/^ *[0-9]+ //')
+    value=$(agent_env DATABASE_PASSWORD)
+    for secret in "$value" "${value//\$\$/\$}"; do
+      if [ "${#secret}" -ge 4 ]; then
+        TOP_ERROR="${TOP_ERROR//"$secret"/<DATABASE_PASSWORD>}"
+      fi
+    done
+    unset value secret
+    if [ "${#TOP_ERROR}" -gt 200 ]; then
+      TOP_ERROR="${TOP_ERROR:0:200}…"
+    fi
+    fail "The receiver logged an error no check above recognises ($DISTINCT distinct); the most frequent: $TOP_ERROR"
+    add_finding "Fix what the receiver's error names, then: cd $DIR && docker compose up -d. Every receiver error: cd $DIR && docker compose logs --tail 100 | grep '\"otelcol.component.kind\": \"receiver\"'"
+  fi
   if [ "$EXPLAIN_FAILURES" -gt 0 ]; then
     warn "$EXPLAIN_FAILURES top quer(y/ies) could not be EXPLAINed: explain plans need SELECT on the tables the queries touch, which pg_monitor does not grant. Metrics and top queries are unaffected; only the plans stay empty."
     add_finding "For explain plans on top queries, GRANT SELECT on the application's tables to the monitoring user (for example GRANT SELECT ON ALL TABLES IN SCHEMA app TO oneuptime_monitor), or accept empty plans."
