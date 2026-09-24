@@ -70,8 +70,6 @@ jobs:
       # in Common Test, so an import that only resolves on a full local
       # install fails here too.
       - name: Type-check Common tests
-        env:
-          NODE_OPTIONS: --max-old-space-size=8192
         run: cd packages/Common && npm run compile-tests
 
   compile-app:

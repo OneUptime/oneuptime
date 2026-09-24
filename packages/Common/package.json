@@ -12,7 +12,7 @@
     "test-file": "cd ../.. && export $(grep -v '^#' config.env | xargs) && cd packages/Common && node node_modules/.bin/jest --runInBand $1 --detectOpenHandles",
     "coverage": "jest --detectOpenHandles --coverage",
     "compile": "tsc",
-    "compile-tests": "tsc -p tsconfig.tests.json",
+    "compile-tests": "node --max-old-space-size=8192 node_modules/typescript/bin/tsc -p tsconfig.tests.json",
     "clear-modules": "rm -rf node_modules && rm package-lock.json && npm install",
     "dep-check": "npm install -g depcheck && depcheck ./ --skip-missing=true",
     "debug:test": "cd ../.. && export $(grep -v '^#' config.env | xargs) && cd packages/Common && node --inspect node_modules/.bin/jest --runInBand ./Tests --detectOpenHandles",
