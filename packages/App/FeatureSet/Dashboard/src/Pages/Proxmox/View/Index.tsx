@@ -10,6 +10,8 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import Label from "Common/Models/DatabaseModels/Label";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import Link from "Common/UI/Components/Link/Link";
 import Card from "Common/UI/Components/Card/Card";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -83,6 +85,7 @@ import {
   displayNameForResource,
   METRIC_STALE_MS,
 } from "../Utils/ProxmoxResourceUtils";
+import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 
 type ClusterHealth = "Healthy" | "Degraded" | "Unhealthy";
 
@@ -1400,6 +1403,7 @@ const ProxmoxClusterOverview: FunctionComponent<
         label: `${storageCount} storage volume${storageCount === 1 ? "" : "s"}`,
       });
     }
+    const hasCountChips: boolean = specChips.length > 0;
     if (cluster.pveVersion) {
       specChips.push({
         icon: IconProp.Info,
@@ -1503,7 +1507,7 @@ const ProxmoxClusterOverview: FunctionComponent<
             </div>
 
             {specChips.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-1.5">
+              <div className="mt-4 flex flex-wrap items-center gap-1.5">
                 {specChips.map(
                   (
                     chip: { icon: IconProp; label: string },
@@ -1523,11 +1527,21 @@ const ProxmoxClusterOverview: FunctionComponent<
                     );
                   },
                 )}
+                {/*
+                 * Only the count chips need explaining; the version chips
+                 * are metadata, so a row of versions alone gets no (i).
+                 */}
+                {hasCountChips && (
+                  <InfoTooltip
+                    label="Cluster inventory counts"
+                    text={PROXMOX_METRIC_DESCRIPTIONS.clusterInventoryCounts}
+                  />
+                )}
               </div>
             )}
 
             {haChips.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1.5">
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 {haChips.map(
                   (
                     chip: {
@@ -1548,6 +1562,10 @@ const ProxmoxClusterOverview: FunctionComponent<
                     );
                   },
                 )}
+                <InfoTooltip
+                  label="High-availability states"
+                  text={PROXMOX_METRIC_DESCRIPTIONS.haStates}
+                />
               </div>
             )}
           </div>
@@ -1635,6 +1653,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           percent={nodeAvailabilityPct}
           thresholds={{ warn: 99, danger: 51 }}
           higherIsBetter={true}
+          description={PROXMOX_METRIC_DESCRIPTIONS.nodeAvailability}
         />
         <GoldenMetricTile
           title="CPU"
@@ -1643,6 +1662,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           value={formatPercent(s.cpuPercent)}
           sublabel="capacity-weighted across nodes"
           percent={s.cpuPercent}
+          description={PROXMOX_METRIC_DESCRIPTIONS.clusterCpu}
         />
         <GoldenMetricTile
           title="Memory"
@@ -1656,6 +1676,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           }
           percent={s.memoryPercent}
           thresholds={{ warn: 80, danger: 95 }}
+          description={PROXMOX_METRIC_DESCRIPTIONS.clusterMemory}
         />
         <GoldenMetricTile
           title="Storage"
@@ -1669,6 +1690,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           }
           percent={inventory?.worstStoragePercent ?? null}
           thresholds={{ warn: 75, danger: STORAGE_NEAR_FULL_PERCENT }}
+          description={PROXMOX_METRIC_DESCRIPTIONS.fullestStorage}
         />
         <GoldenMetricTile
           title="Guests"
@@ -1683,6 +1705,7 @@ const ProxmoxClusterOverview: FunctionComponent<
           percent={guestsRunningPct}
           thresholds={{ warn: 99, danger: 50 }}
           higherIsBetter={true}
+          description={PROXMOX_METRIC_DESCRIPTIONS.guestsRunning}
         />
         <GoldenMetricTile
           title="Backup Coverage"
@@ -1707,6 +1730,7 @@ const ProxmoxClusterOverview: FunctionComponent<
            */
           thresholds={{ warn: 100, danger: 100 }}
           higherIsBetter={true}
+          description={PROXMOX_METRIC_DESCRIPTIONS.backupCoverage}
         />
       </div>
     );
@@ -1719,6 +1743,8 @@ const ProxmoxClusterOverview: FunctionComponent<
     data: Array<SeriesPoint>;
     yAxis?: YAxis;
     showLegend?: boolean;
+    // What the chart plots, shown in an (i) tooltip beside the title.
+    description?: string | undefined;
   }) => ReactElement = (params: {
     title: string;
     icon: IconProp;
@@ -1726,26 +1752,35 @@ const ProxmoxClusterOverview: FunctionComponent<
     data: Array<SeriesPoint>;
     yAxis?: YAxis;
     showLegend?: boolean;
+    description?: string | undefined;
   }): ReactElement => {
     const colors: { bg: string; ring: string; text: string } =
       tileColorClasses[params.iconColor];
 
+    /*
+     * One header for the skeleton and the loaded card, so the (i) is there
+     * from the first paint rather than appearing once the data lands.
+     */
+    const header: ReactElement = (
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {params.title}
+          </span>
+          <InfoTooltip label={params.title} text={params.description} />
+        </div>
+        <div
+          className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+        >
+          <Icon icon={params.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
+        </div>
+      </div>
+    );
+
     if (!chartWindow) {
       return (
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {params.title}
-            </span>
-            <div
-              className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
-            >
-              <Icon
-                icon={params.icon}
-                className={`h-3.5 w-3.5 ${colors.text}`}
-              />
-            </div>
-          </div>
+          {header}
           <div className="h-48 animate-pulse rounded-md bg-gray-50" />
         </div>
       );
@@ -1775,16 +1810,7 @@ const ProxmoxClusterOverview: FunctionComponent<
 
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {params.title}
-          </span>
-          <div
-            className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
-          >
-            <Icon icon={params.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
-          </div>
-        </div>
+        {header}
         <LineChartElement
           data={params.data}
           xAxis={xAxis}
@@ -1849,6 +1875,7 @@ const ProxmoxClusterOverview: FunctionComponent<
             icon: IconProp.ChartBar,
             iconColor: "blue",
             data: cpuSeries,
+            description: PROXMOX_METRIC_DESCRIPTIONS.cpuChart,
           })}
           {renderChartCard({
             title: "Memory",
@@ -1856,6 +1883,7 @@ const ProxmoxClusterOverview: FunctionComponent<
             iconColor: "violet",
             data: memorySeries,
             yAxis: bytesYAxis,
+            description: PROXMOX_METRIC_DESCRIPTIONS.memoryChart,
           })}
           {renderChartCard({
             title: "Storage",
@@ -1863,6 +1891,7 @@ const ProxmoxClusterOverview: FunctionComponent<
             iconColor: "amber",
             data: storageSeries,
             yAxis: bytesYAxis,
+            description: PROXMOX_METRIC_DESCRIPTIONS.storageChart,
           })}
           {renderChartCard({
             title: "Network",
@@ -1871,6 +1900,7 @@ const ProxmoxClusterOverview: FunctionComponent<
             data: networkSeries,
             yAxis: networkYAxis,
             showLegend: networkSeries.length > 1,
+            description: PROXMOX_METRIC_DESCRIPTIONS.networkChart,
           })}
         </div>
       </div>
@@ -2008,22 +2038,46 @@ const ProxmoxClusterOverview: FunctionComponent<
             <thead>
               <tr>
                 {[
-                  "Job",
-                  "Guest",
-                  "Source → Target",
-                  "Last Sync",
-                  "Duration",
-                  "Failed Syncs",
-                ].map((heading: string): ReactElement => {
-                  return (
-                    <th
-                      key={heading}
-                      className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                    >
-                      {heading}
-                    </th>
-                  );
-                })}
+                  { heading: "Job" },
+                  { heading: "Guest" },
+                  { heading: "Source → Target" },
+                  {
+                    heading: "Last Sync",
+                    description:
+                      PROXMOX_METRIC_DESCRIPTIONS.replicationLastSync,
+                  },
+                  {
+                    heading: "Duration",
+                    description:
+                      PROXMOX_METRIC_DESCRIPTIONS.replicationDuration,
+                  },
+                  {
+                    heading: "Failed Syncs",
+                    description:
+                      PROXMOX_METRIC_DESCRIPTIONS.replicationFailedSyncs,
+                  },
+                ].map(
+                  (column: {
+                    heading: string;
+                    description?: string;
+                  }): ReactElement => {
+                    return (
+                      <th
+                        key={column.heading}
+                        className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          {column.heading}
+                          <InfoTooltip
+                            label={column.heading}
+                            text={column.description}
+                            className="normal-case tracking-normal"
+                          />
+                        </span>
+                      </th>
+                    );
+                  },
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -2201,7 +2255,13 @@ const ProxmoxClusterOverview: FunctionComponent<
           </div>
           <div className="flex-1">
             <div className="mb-1 flex items-center justify-between text-xs text-gray-500">
-              <span>Capacity used</span>
+              <span className="inline-flex items-center gap-1">
+                Capacity used
+                <InfoTooltip
+                  label="Capacity used"
+                  text={PROXMOX_METRIC_DESCRIPTIONS.cephCapacityUsed}
+                />
+              </span>
               <span className="font-medium text-gray-700">
                 {capacityPercent === null
                   ? "—"
@@ -2308,9 +2368,15 @@ const ProxmoxClusterOverview: FunctionComponent<
                   />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900">
-                    CPU Usage
-                  </h4>
+                  <div className="flex items-center gap-1">
+                    <h4 className="text-sm font-semibold text-gray-900">
+                      CPU Usage
+                    </h4>
+                    <InfoTooltip
+                      label="CPU Usage"
+                      text={PROXMOX_METRIC_DESCRIPTIONS.topGuestsByCpu}
+                    />
+                  </div>
                   <p className="text-xs text-gray-500">Top 5 guests by CPU</p>
                 </div>
               </div>
@@ -2335,9 +2401,15 @@ const ProxmoxClusterOverview: FunctionComponent<
                   />
                 </div>
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900">
-                    Memory Usage
-                  </h4>
+                  <div className="flex items-center gap-1">
+                    <h4 className="text-sm font-semibold text-gray-900">
+                      Memory Usage
+                    </h4>
+                    <InfoTooltip
+                      label="Memory Usage"
+                      text={PROXMOX_METRIC_DESCRIPTIONS.topGuestsByMemory}
+                    />
+                  </div>
                   <p className="text-xs text-gray-500">
                     Top 5 guests by memory
                   </p>
@@ -2479,6 +2551,44 @@ const ProxmoxClusterOverview: FunctionComponent<
     return value;
   };
 
+  /*
+   * The Nodes / Guests / Storage summary cards open their list. They are
+   * navigation, so a real link (with an href, which also allows "open in a
+   * new tab") is laid over a plain card rather than using InfoCard's
+   * onClick, and the card's (i) is lifted above the link so it stays a
+   * sibling of the link, never nested inside it.
+   */
+  const renderLinkedSummaryCard: (params: {
+    title: string;
+    description: string;
+    route: Route;
+    linkLabel: string;
+    value: ReactElement;
+  }) => ReactElement = (params: {
+    title: string;
+    description: string;
+    route: Route;
+    linkLabel: string;
+    value: ReactElement;
+  }): ReactElement => {
+    return (
+      <div className="group relative">
+        <Link
+          to={params.route}
+          className="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+        >
+          <span className="sr-only">{params.linkLabel}</span>
+        </Link>
+        <InfoCard
+          title={params.title}
+          tooltip={params.description}
+          value={params.value}
+          className="h-full group-hover:shadow-md [&_button]:relative [&_button]:z-10"
+        />
+      </div>
+    );
+  };
+
   return (
     <Fragment>
       {renderHero()}
@@ -2507,6 +2617,7 @@ const ProxmoxClusterOverview: FunctionComponent<
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-5">
         <InfoCard
           title="Cluster Health"
+          tooltip={PROXMOX_METRIC_DESCRIPTIONS.clusterHealth}
           value={renderSummaryValue(
             <span
               className={`text-2xl font-semibold ${
@@ -2525,23 +2636,28 @@ const ProxmoxClusterOverview: FunctionComponent<
         />
         <InfoCard
           title="Quorum"
+          /*
+           * The (i) says this is derived from node visibility - pve-exporter
+           * exposes no corosync metric - so the value carries no native
+           * title tooltip of its own on top of it.
+           */
+          tooltip={PROXMOX_METRIC_DESCRIPTIONS.quorum}
           value={renderSummaryValue(
             <span
               className={`text-2xl font-semibold ${
                 quorumAtRisk ? "text-red-600" : "text-gray-900"
               }`}
-              title="Derived from node visibility (online nodes ÷ total). pve-exporter exposes no corosync metric."
             >
               {nodesTotal > 0 ? `${nodesOnline}/${nodesTotal}` : "—"}
             </span>,
           )}
         />
-        <InfoCard
-          title="Nodes"
-          onClick={() => {
-            Navigation.navigate(nodesRoute);
-          }}
-          value={renderSummaryValue(
+        {renderLinkedSummaryCard({
+          title: "Nodes",
+          description: PROXMOX_METRIC_DESCRIPTIONS.nodeCount,
+          route: nodesRoute,
+          linkLabel: "Open the node list",
+          value: renderSummaryValue(
             <span className="text-2xl font-semibold">
               {nodesTotal.toString()}
               {nodesTotal > 0 && nodesOnline < nodesTotal && (
@@ -2550,32 +2666,33 @@ const ProxmoxClusterOverview: FunctionComponent<
                 </span>
               )}
             </span>,
-          )}
-        />
-        <InfoCard
-          title="Guests"
-          onClick={() => {
-            Navigation.navigate(guestsRoute);
-          }}
-          value={renderSummaryValue(
+          ),
+        })}
+        {renderLinkedSummaryCard({
+          title: "Guests",
+          description: PROXMOX_METRIC_DESCRIPTIONS.guestCount,
+          route: guestsRoute,
+          linkLabel: "Open the guest list",
+          value: renderSummaryValue(
             <span className="text-2xl font-semibold">
               {guestsTotal.toString()}
             </span>,
-          )}
-        />
-        <InfoCard
-          title="Storage"
-          onClick={() => {
-            Navigation.navigate(storageRoute);
-          }}
-          value={renderSummaryValue(
+          ),
+        })}
+        {renderLinkedSummaryCard({
+          title: "Storage",
+          description: PROXMOX_METRIC_DESCRIPTIONS.storageCount,
+          route: storageRoute,
+          linkLabel: "Open the storage list",
+          value: renderSummaryValue(
             <span className="text-2xl font-semibold">
               {storageCount.toString()}
             </span>,
-          )}
-        />
+          ),
+        })}
         <InfoCard
           title="Agent Status"
+          tooltip={PROXMOX_METRIC_DESCRIPTIONS.agentStatus}
           value={
             <StatusBadge
               text={
