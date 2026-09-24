@@ -11,10 +11,12 @@ import path from "path";
  *     reachable: PageMap keys, relative and absolute routes, mounted inside
  *     the right view layout, breadcrumbs, and side-menu items in existing
  *     sections (the incident view's sections are pinned elsewhere);
- *   - both pages list IncidentAlert rows scoped to the record being viewed and
- *     say "Link" / "Unlink" rather than create / delete;
+ *   - both pages list IncidentAlert rows scoped to the record being viewed,
+ *     link from a card button gated on the link AND on reading the other
+ *     side, through the shared numbered link dialog, and say "Link" /
+ *     "Unlink" rather than create / delete (the bulk action too);
  *   - the alerts table offers the two bulk actions and renders their dialog,
- *     gated on the link model and capped;
+ *     gated on the link model (and incident read) and capped;
  *   - the create-incident page reads `?alertIds=` and hands the ids to the
  *     server through miscDataProps;
  *   - the lifecycle switches sit in a card of their own, because a
@@ -30,6 +32,9 @@ const DASHBOARD_SRC: string = path.join(APP_ROOT, "FeatureSet/Dashboard/src");
 const INCIDENT_PAGE: string = "Pages/Incidents/View/Alerts.tsx";
 const ALERT_PAGE: string = "Pages/Alerts/View/Incidents.tsx";
 const BULK_HOOK: string = "Components/Alert/BulkIncidentLinkActions.tsx";
+const LINK_HELPERS: string = "Components/IncidentAlert/IncidentAlertLink.ts";
+const LINK_DIALOG: string =
+  "Components/IncidentAlert/LinkIncidentAlertModal.tsx";
 const ALERTS_TABLE: string = "Components/Alert/AlertsTable.tsx";
 const CREATE_PAGE: string = "Pages/Incidents/Create.tsx";
 const SETTINGS_PAGE: string =
@@ -129,6 +134,8 @@ interface LinkPageCase {
   singularName: string;
   columns: Array<string>;
   viewAction: string;
+  linkButton: string;
+  optionsLoader: string;
 }
 
 const LINK_PAGES: Array<LinkPageCase> = [
@@ -156,6 +163,8 @@ const LINK_PAGES: Array<LinkPageCase> = [
     singularName: "Alert",
     columns: ["Alert #", "Title", "Current State", "Linked At", "Linked By"],
     viewAction: "View Alert",
+    linkButton: "Link Alert",
+    optionsLoader: "fetchAlertLinkOptions",
   },
   {
     name: "alert Linked Incidents",
@@ -182,6 +191,8 @@ const LINK_PAGES: Array<LinkPageCase> = [
     singularName: "Incident",
     columns: ["Incident #", "Title", "Current State", "Linked At", "Linked By"],
     viewAction: "View Incident",
+    linkButton: "Link Incident",
+    optionsLoader: "fetchIncidentLinkOptions",
   },
 ];
 
@@ -277,24 +288,55 @@ describe.each(LINK_PAGES)("the $name page", (c: LinkPageCase) => {
     );
   });
 
-  test("links through the built-in create form, stamping the record and project", () => {
+  /*
+   * The table's own create form listed the other side by bare title. Linking
+   * is a card button that opens the shared dialog instead, which lists
+   * recent records by number - so the table must not offer a create form of
+   * its own next to it.
+   */
+  test("links from its own card button, not the table's create form", () => {
     const code: string = dense(c.page);
 
-    expect(code).toContain("isCreateable={true}");
+    expect(code).toContain("isCreateable={false}");
     expect(code).toContain("isEditable={false}");
-    expect(code).toContain('createVerb="Link"');
+    expect(code).not.toContain("createVerb=");
+    expect(code).not.toContain("formFields=");
+    expect(code).not.toContain("onBeforeCreate=");
     expect(code).toContain(`singularName="${c.singularName}"`);
+  });
+
+  test("gates the link button on the link and on reading the other side", () => {
+    const code: string = dense(c.page);
+
+    expect(code).toMatch(
+      new RegExp(
+        `=lockUnlessAllowed\\(PermissionGate\\.gateCardButton\\(\\{title:"${withoutSpaces(c.linkButton)}",[\\s\\S]{0,200}\\},newIncidentAlert\\(\\),ModelAction\\.Create,\\),PermissionGate\\.check\\(new${c.linkedModel}\\(\\),ModelAction\\.Read\\),\\);`,
+      ),
+    );
+    expect(code).toContain("onClick:()=>{setShowLinkModal(true);},");
+  });
+
+  test("links through the shared dialog, stamping the record, and refreshes", () => {
+    const code: string = dense(c.page);
+
     expect(code).toContain(
-      `onBeforeCreate={(item:IncidentAlert):Promise<IncidentAlert>=>{item.${c.scopeField}=modelId;item.projectId=ProjectUtil.getCurrentProjectId()!;returnPromise.resolve(item);}}`,
+      'importLinkIncidentAlertModalfrom"../../../Components/IncidentAlert/LinkIncidentAlertModal";',
     );
 
-    const formFields: string = sectionBetween(code, "formFields={[", "]}");
-
-    expect(fieldNames(formFields)).toEqual([c.linkedField]);
-    expect(formFields).toContain("fieldType:FormFieldSchemaType.Dropdown");
-    expect(formFields).toContain(
-      `dropdownModal:{type:${c.linkedModel},labelField:"title",valueField:"_id",}`,
+    const dialog: string = sectionBetween(
+      code,
+      "{showLinkModal&&(<LinkIncidentAlertModal",
+      "/>)}",
     );
+
+    expect(dialog).toContain(`title="${withoutSpaces(c.linkButton)}"`);
+    expect(dialog).toContain(`modelType={${c.linkedModel}}`);
+    expect(dialog).toContain(`loadOptions={${c.optionsLoader}}`);
+    expect(dialog).toContain("awaitcreateIncidentAlertLink({");
+    expect(dialog).toContain(`${c.scopeField}:modelId,`);
+    expect(dialog).toContain(`${c.linkedField}:newObjectID(`);
+    expect(dialog).toContain("setShowLinkModal(false);setRefreshToggle(");
+    expect(code).toContain("refreshToggle={refreshToggle.toString()}");
   });
 
   test("says Unlink, not Delete, for a row", () => {
@@ -313,7 +355,7 @@ describe.each(LINK_PAGES)("the $name page", (c: LinkPageCase) => {
     const bulkActions: string = sectionBetween(code, "bulkActions={{", "}}");
 
     expect(bulkActions).toContain(
-      "buttons:[ModalTableBulkDefaultActions.Delete]",
+      'buttons:[ModalTableBulkDefaultActions.Delete],deleteVerb:"Unlink",deleteIcon:IconProp.LinkSlash,',
     );
     expect(bulkActions).toMatch(
       /deleteConfirmationWarning:"Onlythelinksareremoved[^"]*notdeleted[^"]*"/,
@@ -329,6 +371,18 @@ describe.each(LINK_PAGES)("the $name page", (c: LinkPageCase) => {
     expect(code).toContain(
       "createdByUser:{name:true,email:true,profilePictureId:true,}",
     );
+  });
+
+  /*
+   * Every column but Linked At is keyed by the same relation, so without an
+   * export value of its own each one exported the related record's title.
+   */
+  test("gives each relation column its own CSV export value", () => {
+    const columns: string = dense(c.page).slice(
+      dense(c.page).indexOf("columns={["),
+    );
+
+    expect(columns.split("getExportValue:").length - 1).toBe(4);
   });
 });
 
@@ -372,8 +426,9 @@ describe("declaring an incident from the alert page", () => {
       "declareIncidentButton=PermissionGate.gateCardButton(declareIncidentButton,newIncidentAlert(),ModelAction.Create,);",
     );
     expect(code).toContain(
-      "buttons:declareIncidentButton?[declareIncidentButton]:[],",
+      "if(linkIncidentButton){cardButtons.push(linkIncidentButton);}if(declareIncidentButton){cardButtons.push(declareIncidentButton);}",
     );
+    expect(code).toContain("buttons:cardButtons,");
   });
 
   test("navigates to the create page with this alert's id", () => {
@@ -401,17 +456,20 @@ describe("the alerts table bulk actions", () => {
     );
   });
 
-  test("gates linking on the link model and declaring on the incident too", () => {
+  test("gates linking on the link model and incident read, declaring on the incident too", () => {
     const code: string = dense(BULK_HOOK);
 
     expect(code).toContain(
       "constlinkGate:PermissionGateResult=PermissionGate.check(newIncidentAlert(),ModelAction.Create,);",
     );
     expect(code).toContain(
+      "constincidentReadGate:PermissionGateResult=PermissionGate.check(newIncident(),ModelAction.Read,);",
+    );
+    expect(code).toContain(
       "constdeclareGate:PermissionGateResult=PermissionGate.check(newIncident(),ModelAction.Create,);",
     );
     expect(code).toContain(
-      "...capAction(gateAction(linkToIncidentAction,[linkGate]),LINK_CAP_TOOLTIP,),",
+      "...capAction(gateAction(linkToIncidentAction,[linkGate,incidentReadGate]),LINK_CAP_TOOLTIP,),",
     );
     expect(code).toContain(
       "...capAction(gateAction(declareIncidentAction,[declareGate,linkGate]),DECLARE_CAP_TOOLTIP,),",
@@ -436,18 +494,54 @@ describe("the alerts table bulk actions", () => {
     const code: string = dense(BULK_HOOK);
 
     expect(code).toContain(
-      "awaitModelAPI.create<IncidentAlert>({model:link,modelType:IncidentAlert,});",
+      "awaitcreateIncidentAlertLink({incidentId:newObjectID(incidentId),alertId:newObjectID(alertId),});",
     );
     expect(code).toContain(
       "if(isAlreadyLinkedError(message)){successItems.push(alert);}",
     );
   });
 
-  test("picks the incident from an Incident dropdown", () => {
+  test("picks the incident in the shared numbered dialog", () => {
     const code: string = dense(BULK_HOOK);
 
+    expect(code).toContain('<LinkIncidentAlertModaltitle="LinktoIncident"');
     expect(code).toContain(
-      'dropdownModal:{type:Incident,labelField:"title",valueField:"_id",},dropdownOptions:incidentOptions,',
+      "modelType={Incident}loadOptions={fetchIncidentLinkOptions}",
+    );
+    expect(code).toContain("onSubmit={linkAlertsToIncident}");
+  });
+});
+
+describe("the shared link helpers and dialog", () => {
+  test("create the link through the model API", () => {
+    expect(dense(LINK_HELPERS)).toContain(
+      "awaitModelAPI.create<IncidentAlert>({model:link,modelType:IncidentAlert,});",
+    );
+  });
+
+  test("recognise a duplicate by the shared message, not by English words", () => {
+    const code: string = dense(LINK_HELPERS);
+
+    expect(code).toContain(
+      'import{INCIDENT_ALERT_ALREADY_LINKED_MESSAGE}from"Common/Types/Incident/IncidentAlertLink";',
+    );
+    expect(code).toContain(
+      "normalized.includes(INCIDENT_ALERT_ALREADY_LINKED_MESSAGE.toLowerCase())",
+    );
+    expect(code).not.toContain('"alreadylinked"');
+  });
+
+  test("list recent records newest first", () => {
+    const code: string = dense(LINK_HELPERS);
+
+    expect(
+      code.split("sort:{createdAt:SortOrder.Descending,}").length - 1,
+    ).toBe(2);
+  });
+
+  test("search every record by title on the server as the user types", () => {
+    expect(dense(LINK_DIALOG)).toContain(
+      'dropdownModal:{type:props.modelType,labelField:"title",valueField:"_id",},dropdownOptions:options,',
     );
   });
 });

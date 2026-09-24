@@ -98,7 +98,7 @@ const IncidentMoreSettings: FunctionComponent<ComponentProps> = (
             },
             title: "Acknowledge Linked Alerts When Incident Is Acknowledged",
             description:
-              "When the incident is acknowledged, acknowledge every alert linked to it. This stops those alerts' on-call escalations and reminders. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
+              "When the incident is acknowledged, acknowledge every alert linked to it. This stops those alerts' on-call escalations. It stops their reminders only when the alert reminder rule is set to stop reminders on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
             required: false,
             fieldType: FormFieldSchemaType.Toggle,
           },

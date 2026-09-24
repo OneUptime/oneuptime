@@ -492,6 +492,40 @@ describe("declaring an incident from alerts", () => {
       ).not.toBeInTheDocument();
     });
 
+    /*
+     * Alert two is private, so the incident is prefilled private - visible
+     * only to its owners and admins. The banner says so, and that the alerts'
+     * owners become the incident's owners, before the user declares it.
+     */
+    test("says the incident will be private, and who will own it, when an alert is private", async () => {
+      await openPage();
+
+      const banner: HTMLElement = screen.getByTestId(
+        "incident-create-alerts-to-link",
+      );
+      const note: HTMLElement = screen.getByTestId(
+        "incident-create-private-from-alerts",
+      );
+
+      expect(banner).toContainElement(note);
+      expect(note).toHaveTextContent(
+        "At least one of these alerts is private, so this incident will be private too: only its owners, project owners and project admins can see it. The owners of these alerts are added as the incident's owners when you declare it.",
+      );
+    });
+
+    test("says nothing about privacy when no alert is private", async () => {
+      queryParams = { [INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM]: ALERT_ONE_ID };
+
+      await openPage();
+
+      expect(
+        screen.getByTestId("incident-create-alerts-to-link"),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("incident-create-private-from-alerts"),
+      ).not.toBeInTheDocument();
+    });
+
     test("sends the alert ids to the server as miscDataProps", async () => {
       const form: CapturedFormProps = await openPage();
 

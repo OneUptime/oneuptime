@@ -18,15 +18,17 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * so what is pinned here is what a user would notice going wrong:
  *
  *   - gating: a viewer sees both actions locked with the missing permission,
- *     a member can use them, and declaring also needs incident create;
+ *     a member can use them, declaring also needs incident create, and
+ *     linking to an existing incident also needs to read incidents;
  *   - the cap: above MAX_ALERTS_PER_INCIDENT_LINK_ACTION selected alerts
  *     both actions stay on the menu, locked, with a reason;
  *   - linking: one IncidentAlert per alert, progress after each, an alert
  *     that is already linked counts as done, other failures are isolated;
  *   - declaring: navigates to the create page with the selected ids.
  *
- * The dialog itself is BasicFormModal, stubbed here to capture its props -
- * the hook's contract with it is the field it declares and onSubmit.
+ * The dialog is the shared LinkIncidentAlertModal, whose BasicFormModal is
+ * stubbed here to capture its props - the contract is the field it declares,
+ * the numbered options it is handed, and onSubmit.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
@@ -74,13 +76,11 @@ import useBulkIncidentLinkActions, {
   BulkIncidentLinkActionsResult,
   DECLARE_CAP_TOOLTIP,
   DECLARE_INCIDENT_ACTION_TITLE,
-  INCIDENT_LINK_OPTIONS_LIMIT,
   LINK_CAP_TOOLTIP,
   LINK_TO_INCIDENT_ACTION_TITLE,
   getDeclareIncidentFromAlertsRoute,
-  getIncidentOptionLabel,
-  isAlreadyLinkedError,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Alert/BulkIncidentLinkActions";
+import { LINK_OPTIONS_LIMIT } from "../../../../App/FeatureSet/Dashboard/src/Components/IncidentAlert/IncidentAlertLink";
 import {
   BulkActionButtonSchema,
   BulkActionFailed,
@@ -92,7 +92,10 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import IncidentAlert from "../../../Models/DatabaseModels/IncidentAlert";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import Route from "../../../Types/API/Route";
-import { MAX_ALERTS_PER_INCIDENT_LINK_ACTION } from "../../../Types/Incident/IncidentAlertLink";
+import {
+  INCIDENT_ALERT_ALREADY_LINKED_MESSAGE,
+  MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
+} from "../../../Types/Incident/IncidentAlertLink";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -313,7 +316,7 @@ const submitLink: SubmitLinkFunction = async (
   const onSubmit: CapturedModalProps["onSubmit"] = capturedModal.onSubmit;
 
   await actAsync(async () => {
-    await onSubmit({ incidentId: incidentId });
+    await onSubmit({ linkedRecordId: incidentId });
   });
 };
 
@@ -411,8 +414,37 @@ describe("useBulkIncidentLinkActions", () => {
       ]);
     });
 
-    test("lets an alert member link but not declare, since declaring creates an incident", () => {
+    /*
+     * An alert role alone may create the link row, but the server only links
+     * an incident the caller can read - and the incident picker could not
+     * list any - so the action is locked with the read permission it needs.
+     */
+    test("locks linking for an alert member who cannot read incidents", () => {
       permissionsForTest = [Permission.AlertMember];
+      renderHarness();
+
+      const items: Array<Alert> = makeAlerts(1);
+      const link: BulkActionButtonSchema<Alert> = visibleAction(
+        LINK_TO_INCIDENT_ACTION_TITLE,
+        items,
+      );
+      const declare: BulkActionButtonSchema<Alert> = visibleAction(
+        DECLARE_INCIDENT_ACTION_TITLE,
+        items,
+      );
+
+      expect(link.disabled).toBe(true);
+      expect(link.tooltip).toContain(
+        "You do not have permission to read this Incident.",
+      );
+      expect(declare.disabled).toBe(true);
+      expect(declare.tooltip).toContain(
+        "You do not have permission to create this Incident.",
+      );
+    });
+
+    test("lets an alert member who can also read incidents link, but not declare", () => {
+      permissionsForTest = [Permission.AlertMember, Permission.IncidentViewer];
       renderHarness();
 
       const items: Array<Alert> = makeAlerts(1);
@@ -427,6 +459,21 @@ describe("useBulkIncidentLinkActions", () => {
       expect(declare.disabled).toBe(true);
       expect(declare.tooltip).toContain(
         "You do not have permission to create this Incident.",
+      );
+    });
+
+    test("names the link permission first when both are missing", () => {
+      permissionsForTest = [Permission.AlertViewer];
+      renderHarness();
+
+      const link: BulkActionButtonSchema<Alert> = visibleAction(
+        LINK_TO_INCIDENT_ACTION_TITLE,
+        makeAlerts(1),
+      );
+
+      expect(link.disabled).toBe(true);
+      expect(link.tooltip).toContain(
+        "You do not have permission to create this Incident Alert.",
       );
     });
 
@@ -581,12 +628,13 @@ describe("useBulkIncidentLinkActions", () => {
       });
 
       expect(capturedModal?.title).toBe("Link to Incident");
+      expect(capturedModal?.submitButtonText).toBe("Link Alerts");
       expect(getListMock).toHaveBeenCalledTimes(1);
 
       const request: any = getListMock.mock.calls[0]![0];
 
       expect(request.modelType).toBe(Incident);
-      expect(request.limit).toBe(INCIDENT_LINK_OPTIONS_LIMIT);
+      expect(request.limit).toBe(LINK_OPTIONS_LIMIT);
       expect(request.sort).toEqual({ createdAt: SortOrder.Descending });
       expect(request.select).toEqual({
         _id: true,
@@ -598,7 +646,9 @@ describe("useBulkIncidentLinkActions", () => {
       const field: Record<string, any> = capturedModal!.formProps.fields[0]!;
 
       expect(capturedModal!.formProps.fields).toHaveLength(1);
-      expect(field["field"]).toEqual({ incidentId: true });
+      expect(field["field"]).toEqual({ linkedRecordId: true });
+      expect(field["title"]).toBe("Incident");
+      expect(field["placeholder"]).toBe("Select an incident");
       expect(field["required"]).toBe(true);
       expect(field["dropdownModal"]).toEqual({
         type: Incident,
@@ -686,11 +736,16 @@ describe("useBulkIncidentLinkActions", () => {
       ).toBeNull();
     });
 
+    test("does not read incidents until the dialog opens", () => {
+      renderHarness();
+
+      expect(getListMock).not.toHaveBeenCalled();
+      expect(capturedModal).toBeNull();
+    });
+
     test("counts an alert that is already linked as done and isolates other failures", async () => {
       createMock
-        .mockImplementationOnce(
-          failWith("This alert is already linked to this incident."),
-        )
+        .mockImplementationOnce(failWith(INCIDENT_ALERT_ALREADY_LINKED_MESSAGE))
         .mockImplementationOnce(failWith("You cannot read this alert."))
         .mockResolvedValueOnce({});
       renderHarness();
@@ -707,6 +762,33 @@ describe("useBulkIncidentLinkActions", () => {
         total: 3,
       });
       expect(callOrder[callOrder.length - 1]).toBe("end");
+    });
+
+    /*
+     * Two links for the same pair that race past the model's check are
+     * refused by the unique index instead, in its own words. The alert is
+     * linked either way, so it still counts as done.
+     */
+    test("counts a duplicate caught by the unique index as done too", async () => {
+      createMock
+        .mockImplementationOnce(
+          failWith(
+            "A Incident Alert with the same Incident Id, Alert Id, Project Id already exists. Please use different values and try again.",
+          ),
+        )
+        .mockResolvedValueOnce({});
+      renderHarness();
+
+      await click(LINK_TO_INCIDENT_ACTION_TITLE, makeAlerts(2));
+      await submitLink(INCIDENT_ID);
+
+      expect(progressSnapshots[progressSnapshots.length - 1]).toEqual({
+        inProgress: 0,
+        success: ["Alert 1", "Alert 2"],
+        failed: [],
+        failedMessages: [],
+        total: 2,
+      });
     });
 
     test("accepts the selected incident as a dropdown option object", async () => {
@@ -783,40 +865,5 @@ describe("the bulk incident link helpers", () => {
     expect(route.toString()).toBe(
       `/dashboard/${PROJECT_ID}/incidents/create?alertIds=a,b,c`,
     );
-  });
-
-  test("recognises the already-linked refusal in any case", () => {
-    expect(
-      isAlreadyLinkedError("This alert is already linked to this incident."),
-    ).toBe(true);
-    expect(isAlreadyLinkedError("Alert Already Linked")).toBe(true);
-    expect(isAlreadyLinkedError("Incident not found")).toBe(false);
-    expect(isAlreadyLinkedError("")).toBe(false);
-  });
-
-  test("labels an incident with its number when it has one", () => {
-    expect(
-      getIncidentOptionLabel(
-        makeIncident({
-          id: INCIDENT_ID,
-          title: "Down",
-          incidentNumber: 3,
-          incidentNumberWithPrefix: "INC-3",
-        }),
-      ),
-    ).toBe("INC-3: Down");
-    expect(
-      getIncidentOptionLabel(
-        makeIncident({ id: INCIDENT_ID, title: "Down", incidentNumber: 3 }),
-      ),
-    ).toBe("#3: Down");
-    expect(
-      getIncidentOptionLabel(makeIncident({ id: INCIDENT_ID, title: "Down" })),
-    ).toBe("Down");
-    expect(
-      getIncidentOptionLabel(
-        makeIncident({ id: INCIDENT_ID, incidentNumber: 3 }),
-      ),
-    ).toBe("#3");
   });
 });

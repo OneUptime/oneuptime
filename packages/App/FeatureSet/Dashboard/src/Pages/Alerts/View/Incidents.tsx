@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import React, {
+  Fragment,
   FunctionComponent,
   ReactElement,
   useEffect,
@@ -20,9 +21,14 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import IncidentElement from "../../../Components/Incident/Incident";
 import UserElement from "../../../Components/User/User";
 import { getDeclareIncidentFromAlertsRoute } from "../../../Components/Alert/BulkIncidentLinkActions";
+import {
+  createIncidentAlertLink,
+  fetchIncidentLinkOptions,
+  lockUnlessAllowed,
+} from "../../../Components/IncidentAlert/IncidentAlertLink";
+import LinkIncidentAlertModal from "../../../Components/IncidentAlert/LinkIncidentAlertModal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Black } from "Common/Types/BrandColors";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
@@ -42,6 +48,9 @@ const AlertViewIncidents: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  const [showLinkModal, setShowLinkModal] = useState<boolean>(false);
+  const [refreshToggle, setRefreshToggle] = useState<boolean>(false);
 
   /*
    * Relations are only joined one level deep, so an incident's current state
@@ -90,6 +99,42 @@ const AlertViewIncidents: FunctionComponent<
     });
   };
 
+  const getIncidentNumber: (item: IncidentAlert) => string = (
+    item: IncidentAlert,
+  ): string => {
+    if (!item.incident?.incidentNumber) {
+      return "";
+    }
+
+    return (
+      item.incident.incidentNumberWithPrefix ||
+      `#${item.incident.incidentNumber}`
+    );
+  };
+
+  /*
+   * Linking opens a dialog of its own rather than the table's create form:
+   * it lists recent incidents by number, since incidents from the same
+   * template share titles. Being a card button, it is gated here - on
+   * creating the link, and on reading incidents, since only an incident the
+   * user can see can be linked (and the dialog could not list any).
+   */
+  const linkIncidentButton: CardButtonSchema | null = lockUnlessAllowed(
+    PermissionGate.gateCardButton(
+      {
+        title: "Link Incident",
+        buttonStyle: ButtonStyleType.NORMAL,
+        icon: IconProp.Link,
+        onClick: () => {
+          setShowLinkModal(true);
+        },
+      },
+      new IncidentAlert(),
+      ModelAction.Create,
+    ),
+    PermissionGate.check(new Incident(), ModelAction.Read),
+  );
+
   /*
    * Routes to the create-incident page rather than the table's own create
    * modal, so ModelTable's permission gate never sees it: declaring creates
@@ -119,174 +164,203 @@ const AlertViewIncidents: FunctionComponent<
     );
   }
 
+  const cardButtons: Array<CardButtonSchema> = [];
+
+  if (linkIncidentButton) {
+    cardButtons.push(linkIncidentButton);
+  }
+
+  if (declareIncidentButton) {
+    cardButtons.push(declareIncidentButton);
+  }
+
   return (
-    <ModelTable<IncidentAlert>
-      modelType={IncidentAlert}
-      name="Alert Linked Incidents"
-      id="alert-linked-incidents-table"
-      userPreferencesKey="alert-linked-incidents-table"
-      isDeleteable={true}
-      isEditable={false}
-      isCreateable={true}
-      isViewable={false}
-      createVerb="Link"
-      singularName="Incident"
-      pluralName="Incidents"
-      deleteButtonText="Unlink"
-      getDeleteConfirmation={async (): Promise<DeleteConfirmation> => {
-        return {
-          title: "Unlink Incident",
+    <Fragment>
+      <ModelTable<IncidentAlert>
+        modelType={IncidentAlert}
+        name="Alert Linked Incidents"
+        id="alert-linked-incidents-table"
+        userPreferencesKey="alert-linked-incidents-table"
+        isDeleteable={true}
+        isEditable={false}
+        isCreateable={false}
+        isViewable={false}
+        singularName="Incident"
+        pluralName="Incidents"
+        deleteButtonText="Unlink"
+        refreshToggle={refreshToggle.toString()}
+        getDeleteConfirmation={async (): Promise<DeleteConfirmation> => {
+          return {
+            title: "Unlink Incident",
+            description:
+              "Unlink this alert from the incident? The incident itself is not deleted, and the alert stays linked to any other incidents.",
+            submitButtonText: "Unlink",
+          };
+        }}
+        query={{
+          alertId: modelId,
+          projectId: ProjectUtil.getCurrentProjectId()!,
+        }}
+        bulkActions={{
+          buttons: [ModalTableBulkDefaultActions.Delete],
+          deleteVerb: "Unlink",
+          deleteIcon: IconProp.LinkSlash,
+          deleteConfirmationWarning:
+            "Only the links are removed: the incidents themselves are not deleted.",
+        }}
+        filters={[]}
+        cardProps={{
+          title: "Linked Incidents",
           description:
-            "Unlink this alert from the incident? The incident itself is not deleted, and the alert stays linked to any other incidents.",
-          submitButtonText: "Unlink",
-        };
-      }}
-      query={{
-        alertId: modelId,
-        projectId: ProjectUtil.getCurrentProjectId()!,
-      }}
-      bulkActions={{
-        buttons: [ModalTableBulkDefaultActions.Delete],
-        deleteConfirmationWarning:
-          "Only the links are removed: the incidents themselves are not deleted.",
-      }}
-      onBeforeCreate={(item: IncidentAlert): Promise<IncidentAlert> => {
-        item.alertId = modelId;
-        item.projectId = ProjectUtil.getCurrentProjectId()!;
-        return Promise.resolve(item);
-      }}
-      filters={[]}
-      cardProps={{
-        title: "Linked Incidents",
-        description:
-          "Incidents this alert is linked to. Link the alert to an incident that is already open, or declare a new incident from it.",
-        buttons: declareIncidentButton ? [declareIncidentButton] : [],
-      }}
-      noItemsMessage="This alert is not linked to any incidents."
-      showRefreshButton={true}
-      actionButtons={[
-        {
-          title: "View Incident",
-          buttonStyleType: ButtonStyleType.OUTLINE,
-          onClick: (item: IncidentAlert, onCompleteAction: () => void) => {
-            if (item.incident?._id) {
-              Navigation.navigate(
-                RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.INCIDENT_VIEW] as Route,
-                  { modelId: new ObjectID(item.incident._id.toString()) },
-                ),
+            "Incidents this alert is linked to. Link the alert to an incident that is already open, or declare a new incident from it.",
+          buttons: cardButtons,
+        }}
+        noItemsMessage="This alert is not linked to any incidents."
+        showRefreshButton={true}
+        actionButtons={[
+          {
+            title: "View Incident",
+            buttonStyleType: ButtonStyleType.OUTLINE,
+            onClick: (item: IncidentAlert, onCompleteAction: () => void) => {
+              if (item.incident?._id) {
+                Navigation.navigate(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.INCIDENT_VIEW] as Route,
+                    { modelId: new ObjectID(item.incident._id.toString()) },
+                  ),
+                );
+              }
+              onCompleteAction();
+            },
+          } as ActionButtonSchema<IncidentAlert>,
+        ]}
+        columns={[
+          {
+            field: {
+              incident: {
+                incidentNumber: true,
+                incidentNumberWithPrefix: true,
+              },
+            },
+            title: "Incident #",
+            type: FieldType.Text,
+            getElement: (item: IncidentAlert): ReactElement => {
+              return <>{getIncidentNumber(item) || "-"}</>;
+            },
+            getExportValue: (item: IncidentAlert): string => {
+              return getIncidentNumber(item);
+            },
+          },
+          {
+            field: {
+              incident: {
+                title: true,
+                _id: true,
+                currentIncidentStateId: true,
+              },
+            },
+            title: "Title",
+            type: FieldType.Element,
+            getElement: (item: IncidentAlert): ReactElement => {
+              if (!item.incident) {
+                return <>-</>;
+              }
+              return <IncidentElement incident={item.incident} />;
+            },
+            getExportValue: (item: IncidentAlert): string => {
+              return item.incident?.title || "";
+            },
+          },
+          {
+            field: {
+              incident: {
+                currentIncidentStateId: true,
+              },
+            },
+            title: "Current State",
+            type: FieldType.Element,
+            getElement: (item: IncidentAlert): ReactElement => {
+              const state: IncidentState | undefined = getStateById(
+                item.incident?.currentIncidentStateId,
               );
-            }
-            onCompleteAction();
-          },
-        } as ActionButtonSchema<IncidentAlert>,
-      ]}
-      formFields={[
-        {
-          field: {
-            incidentId: true,
-          },
-          title: "Incident",
-          description: "Select an incident to link this alert to.",
-          fieldType: FormFieldSchemaType.Dropdown,
-          required: true,
-          placeholder: "Select an incident",
-          dropdownModal: {
-            type: Incident,
-            labelField: "title",
-            valueField: "_id",
-          },
-        },
-      ]}
-      columns={[
-        {
-          field: {
-            incident: {
-              incidentNumber: true,
-              incidentNumberWithPrefix: true,
+              if (!state) {
+                return <>-</>;
+              }
+              return (
+                <Pill
+                  isMinimal={true}
+                  color={state.color || Black}
+                  text={state.name || "Unknown"}
+                />
+              );
+            },
+            getExportValue: (item: IncidentAlert): string => {
+              return (
+                getStateById(item.incident?.currentIncidentStateId)?.name || ""
+              );
             },
           },
-          title: "Incident #",
-          type: FieldType.Text,
-          getElement: (item: IncidentAlert): ReactElement => {
-            if (!item.incident?.incidentNumber) {
-              return <>-</>;
-            }
-            return (
-              <>
-                {item.incident.incidentNumberWithPrefix ||
-                  `#${item.incident.incidentNumber}`}
-              </>
-            );
+          {
+            field: {
+              createdAt: true,
+            },
+            title: "Linked At",
+            type: FieldType.DateTime,
           },
-        },
-        {
-          field: {
-            incident: {
-              title: true,
-              _id: true,
-              currentIncidentStateId: true,
+          {
+            field: {
+              createdByUser: {
+                name: true,
+                email: true,
+                profilePictureId: true,
+              },
+            },
+            title: "Linked By",
+            type: FieldType.Element,
+            getElement: (item: IncidentAlert): ReactElement => {
+              if (!item.createdByUser) {
+                return <>-</>;
+              }
+              return <UserElement user={item.createdByUser} />;
+            },
+            getExportValue: (item: IncidentAlert): string => {
+              return (
+                item.createdByUser?.name?.toString() ||
+                item.createdByUser?.email?.toString() ||
+                ""
+              );
             },
           },
-          title: "Title",
-          type: FieldType.Element,
-          getElement: (item: IncidentAlert): ReactElement => {
-            if (!item.incident) {
-              return <>-</>;
-            }
-            return <IncidentElement incident={item.incident} />;
-          },
-        },
-        {
-          field: {
-            incident: {
-              currentIncidentStateId: true,
-            },
-          },
-          title: "Current State",
-          type: FieldType.Element,
-          getElement: (item: IncidentAlert): ReactElement => {
-            const state: IncidentState | undefined = getStateById(
-              item.incident?.currentIncidentStateId,
-            );
-            if (!state) {
-              return <>-</>;
-            }
-            return (
-              <Pill
-                isMinimal={true}
-                color={state.color || Black}
-                text={state.name || "Unknown"}
-              />
-            );
-          },
-        },
-        {
-          field: {
-            createdAt: true,
-          },
-          title: "Linked At",
-          type: FieldType.DateTime,
-        },
-        {
-          field: {
-            createdByUser: {
-              name: true,
-              email: true,
-              profilePictureId: true,
-            },
-          },
-          title: "Linked By",
-          type: FieldType.Element,
-          getElement: (item: IncidentAlert): ReactElement => {
-            if (!item.createdByUser) {
-              return <>-</>;
-            }
-            return <UserElement user={item.createdByUser} />;
-          },
-        },
-      ]}
-    />
+        ]}
+      />
+
+      {showLinkModal && (
+        <LinkIncidentAlertModal
+          title="Link Incident"
+          description="Select an incident to link this alert to."
+          submitButtonText="Link Incident"
+          fieldTitle="Incident"
+          fieldDescription="Recent incidents are listed with their number. Type to search every incident by title."
+          placeholder="Select an incident"
+          modelType={Incident}
+          loadOptions={fetchIncidentLinkOptions}
+          onClose={() => {
+            setShowLinkModal(false);
+          }}
+          onSubmit={async (incidentId: string): Promise<void> => {
+            await createIncidentAlertLink({
+              incidentId: new ObjectID(incidentId),
+              alertId: modelId,
+            });
+
+            setShowLinkModal(false);
+            setRefreshToggle((previous: boolean): boolean => {
+              return !previous;
+            });
+          }}
+        />
+      )}
+    </Fragment>
   );
 };
 

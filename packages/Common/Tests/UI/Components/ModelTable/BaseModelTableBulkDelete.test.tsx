@@ -101,6 +101,7 @@ jest.mock("../../../../UI/Utils/Translation", () => {
 import BaseModelTable, {
   BaseTableCallbacks,
   ComponentProps as BaseModelTableProps,
+  ModalTableBulkDefaultActions,
 } from "../../../../UI/Components/ModelTable/BaseModelTable";
 import TableFilterUrlState from "../../../../UI/Utils/TableFilterUrlState";
 import PermissionGate from "../../../../UI/Utils/PermissionGate";
@@ -108,6 +109,7 @@ import FieldType from "../../../../UI/Components/Types/FieldType";
 import { ButtonStyleType } from "../../../../UI/Components/Button/Button";
 import NetworkDevice from "../../../../Models/DatabaseModels/NetworkDevice";
 import Permission from "../../../../Types/Permission";
+import IconProp from "../../../../Types/Icon/IconProp";
 import ListResult from "../../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../../Types/JSON";
 
@@ -136,6 +138,8 @@ const DEVICE_DELETE_WARNING: string =
 type TableOptions = {
   bulkActionButtons?: Array<unknown> | undefined;
   deleteConfirmationWarning?: string | undefined;
+  deleteVerb?: string | undefined;
+  deleteIcon?: IconProp | undefined;
   deleteItem?: ((item: NetworkDevice) => Promise<void>) | undefined;
 };
 
@@ -218,6 +222,8 @@ describe("BaseModelTable bulk Delete", () => {
         ...(options.deleteConfirmationWarning
           ? { deleteConfirmationWarning: options.deleteConfirmationWarning }
           : {}),
+        ...(options.deleteVerb ? { deleteVerb: options.deleteVerb } : {}),
+        ...(options.deleteIcon ? { deleteIcon: options.deleteIcon } : {}),
       },
     } as unknown as BaseModelTableProps<NetworkDevice>;
   };
@@ -307,10 +313,12 @@ describe("BaseModelTable bulk Delete", () => {
     });
   };
 
-  type ConfirmFunction = () => Promise<void>;
+  type ConfirmFunction = (buttonText?: string | undefined) => Promise<void>;
 
   /* Presses the danger button in the confirmation dialog's footer. */
-  const confirmDelete: ConfirmFunction = async (): Promise<void> => {
+  const confirmDelete: ConfirmFunction = async (
+    buttonText?: string | undefined,
+  ): Promise<void> => {
     await waitFor(() => {
       expect(
         document.querySelector('[data-testid="modal-footer"]'),
@@ -324,7 +332,7 @@ describe("BaseModelTable bulk Delete", () => {
     const submitButton: HTMLButtonElement | undefined = Array.from(
       footer.querySelectorAll<HTMLButtonElement>("button"),
     ).find((button: HTMLButtonElement) => {
-      return (button.textContent || "").trim() === "Delete";
+      return (button.textContent || "").trim() === (buttonText || "Delete");
     });
 
     expect(submitButton).toBeDefined();
@@ -746,6 +754,194 @@ describe("BaseModelTable bulk Delete", () => {
         document.querySelector('[data-testid="confirm-modal-description"]'),
       ).toBeNull();
       expect(deletedIds).toEqual([]);
+    });
+  });
+
+  /*
+   * A table of links (an incident's linked alerts, say) deletes rows that are
+   * relationships, not things. "Delete 3 Alerts ... This action cannot be
+   * undone" read as if the alerts themselves were going, and contradicted the
+   * warning appended after it. Such a table names its own verb; every other
+   * table keeps the default wording (pinned above).
+   */
+  describe("a table that names its own verb", () => {
+    const LINK_WARNING: string =
+      "Only the links are removed: the devices themselves are not deleted.";
+
+    test("offers the verb in place of Delete, once", async () => {
+      const { container } = renderTable({
+        bulkActionButtons: [
+          ARCHIVE_ACTION,
+          ModalTableBulkDefaultActions.Delete,
+        ],
+        deleteVerb: "Unlink",
+        deleteIcon: IconProp.LinkSlash,
+      });
+
+      await selectRows(container, 1);
+      await openBulkMenu();
+
+      expect(menuItemLabels()).toEqual(
+        expect.arrayContaining(["Archive", "Export CSV", "Unlink"]),
+      );
+      expect(menuItemLabels()).not.toContain("Delete");
+      expect(
+        menuItemLabels().filter((label: string) => {
+          return label === "Unlink";
+        }).length,
+      ).toBe(1);
+      expect(findMenuItem("Unlink")).not.toBeDisabled();
+    });
+
+    /*
+     * The verb must still be recognised as the table's delete action when it
+     * is added automatically, or a second, default Delete would sit next to
+     * it.
+     */
+    test("uses the verb for the automatically added action too", async () => {
+      const { container } = renderTable({
+        deleteVerb: "Unlink",
+      });
+
+      await selectRows(container, 1);
+      await openBulkMenu();
+
+      expect(findMenuItem("Unlink")).toBeDefined();
+      expect(findMenuItem("Delete")).toBeUndefined();
+    });
+
+    test("does not add the default action beside a page's own button with that verb", async () => {
+      const { container } = renderTable({
+        bulkActionButtons: [
+          ARCHIVE_ACTION,
+          {
+            title: "Unlink",
+            buttonStyleType: ButtonStyleType.DANGER,
+            onClick: async (): Promise<void> => {
+              return Promise.resolve();
+            },
+          },
+        ],
+        deleteVerb: "Unlink",
+      });
+
+      await selectRows(container, 1);
+      await openBulkMenu();
+
+      expect(
+        menuItemLabels().filter((label: string) => {
+          return label === "Unlink" || label === "Delete";
+        }),
+      ).toEqual(["Unlink"]);
+    });
+
+    test("asks with the verb, and does not claim it cannot be undone", async () => {
+      const { container } = renderTable({
+        bulkActionButtons: [
+          ARCHIVE_ACTION,
+          ModalTableBulkDefaultActions.Delete,
+        ],
+        deleteVerb: "Unlink",
+        deleteConfirmationWarning: LINK_WARNING,
+      });
+
+      await selectRows(container, 2);
+      await openBulkMenu();
+
+      fireEvent.click(findMenuItem("Unlink")!);
+
+      await waitFor(() => {
+        expect(confirmationText()).not.toBe("");
+      });
+
+      expect(confirmationText().trim()).toBe(
+        `Are you sure you want to unlink 2 network devices? ${LINK_WARNING}`,
+      );
+      expect(confirmationText()).not.toContain("cannot be undone");
+      expect(screen.getByText("Unlink 2 Network Devices")).toBeInTheDocument();
+      expect(screen.queryByText("Delete 2 Network Devices")).toBeNull();
+    });
+
+    test("uses the singular for one row", async () => {
+      const { container } = renderTable({
+        deleteVerb: "Unlink",
+      });
+
+      await selectRows(container, 1);
+      await openBulkMenu();
+
+      fireEvent.click(findMenuItem("Unlink")!);
+
+      await waitFor(() => {
+        expect(confirmationText()).not.toBe("");
+      });
+
+      expect(confirmationText().trim()).toBe(
+        "Are you sure you want to unlink 1 network device?",
+      );
+      expect(screen.getByText("Unlink 1 Network Device")).toBeInTheDocument();
+    });
+
+    test("still deletes exactly the selected rows once confirmed", async () => {
+      const { container } = renderTable({
+        deleteVerb: "Unlink",
+      });
+
+      await selectRows(container, 2);
+      await openBulkMenu();
+
+      fireEvent.click(findMenuItem("Unlink")!);
+
+      expect(deletedIds).toEqual([]);
+
+      await confirmDelete("Unlink");
+
+      await waitFor(() => {
+        expect(deletedIds.length).toBe(2);
+      });
+
+      expect(deletedIds.sort()).toEqual(["device-1", "device-2"]);
+    });
+
+    test("is still gated on the model's delete permission", async () => {
+      permissionsForTest = [Permission.Viewer];
+
+      const { container } = renderTable({
+        deleteVerb: "Unlink",
+      });
+
+      await selectRows(container, 1);
+      await openBulkMenu();
+
+      const unlinkItem: HTMLElement | undefined = findMenuItem("Unlink");
+
+      expect(unlinkItem).toBeDefined();
+      expect(unlinkItem).toBeDisabled();
+
+      fireEvent.mouseEnter(unlinkItem!.parentElement as HTMLElement);
+
+      expect(screen.getByRole("tooltip")).toHaveTextContent(
+        "You do not have permission to delete this Network Device.",
+      );
+    });
+
+    test("a blank verb keeps the default wording", async () => {
+      const { container } = renderTable({
+        deleteVerb: "   ",
+      });
+
+      await selectRows(container, 2);
+      await openBulkMenu();
+
+      fireEvent.click(findMenuItem("Delete")!);
+
+      await waitFor(() => {
+        expect(confirmationText()).not.toBe("");
+      });
+
+      expect(confirmationText().trim()).toBe(
+        "Are you sure you want to delete 2 Network Devices? This action cannot be undone.",
+      );
     });
   });
 });

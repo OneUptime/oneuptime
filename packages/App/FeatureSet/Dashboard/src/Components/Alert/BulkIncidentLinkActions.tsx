@@ -1,17 +1,21 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import {
+  createIncidentAlertLink,
+  fetchIncidentLinkOptions,
+  isAlreadyLinkedError,
+} from "../IncidentAlert/IncidentAlertLink";
+import LinkIncidentAlertModal from "../IncidentAlert/LinkIncidentAlertModal";
 import Alert from "Common/Models/DatabaseModels/Alert";
 import Incident from "Common/Models/DatabaseModels/Incident";
 import IncidentAlert from "Common/Models/DatabaseModels/IncidentAlert";
 import Route from "Common/Types/API/Route";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import IconProp from "Common/Types/Icon/IconProp";
 import {
   INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM,
   MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
 } from "Common/Types/Incident/IncidentAlertLink";
-import { JSONValue } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import {
   BulkActionButtonSchema,
@@ -19,23 +23,21 @@ import {
   BulkActionOnClickProps,
 } from "Common/UI/Components/BulkUpdate/BulkUpdateForm";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
-import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
-import ProjectUtil from "Common/UI/Utils/Project";
-import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
+import React, { ReactElement, useState } from "react";
 
 /*
  * "Link to Incident" and "Declare Incident" for a selection of alerts. Both
  * write one IncidentAlert link per alert, which is a create on that model, so
- * both are gated on it; declaring also creates the incident.
+ * both are gated on it; declaring also creates the incident, and linking to
+ * an existing incident needs to be able to read incidents (the server refuses
+ * a link to an incident the caller cannot see, and the picker could not list
+ * any).
  *
  * Both are capped at MAX_ALERTS_PER_INCIDENT_LINK_ACTION: every link posts a
  * feed entry to the incident (and its Slack / Microsoft Teams channels), and
@@ -47,13 +49,6 @@ import React, { MutableRefObject, ReactElement, useRef, useState } from "react";
 export const LINK_TO_INCIDENT_ACTION_TITLE: string = "Link to Incident";
 export const DECLARE_INCIDENT_ACTION_TITLE: string = "Declare Incident";
 
-/*
- * How many incidents the link dialog lists up front, newest first, labelled
- * with their number so they can be found by it. Typing searches every
- * incident by title on the server.
- */
-export const INCIDENT_LINK_OPTIONS_LIMIT: number = 500;
-
 export const LINK_CAP_TOOLTIP: string = `Select ${MAX_ALERTS_PER_INCIDENT_LINK_ACTION} alerts or fewer to link them to an incident.`;
 
 export const DECLARE_CAP_TOOLTIP: string = `Select ${MAX_ALERTS_PER_INCIDENT_LINK_ACTION} alerts or fewer to declare an incident from them.`;
@@ -61,10 +56,6 @@ export const DECLARE_CAP_TOOLTIP: string = `Select ${MAX_ALERTS_PER_INCIDENT_LIN
 export interface BulkIncidentLinkActionsResult {
   bulkActions: Array<BulkActionButtonSchema<Alert>>;
   modals: ReactElement;
-}
-
-interface LinkToIncidentFormData {
-  incidentId?: JSONValue | undefined;
 }
 
 type GetDeclareIncidentFromAlertsRouteFunction = (
@@ -86,37 +77,6 @@ export const getDeclareIncidentFromAlertsRoute: GetDeclareIncidentFromAlertsRout
     );
   };
 
-type IsAlreadyLinkedErrorFunction = (message: string) => boolean;
-
-/*
- * Linking an alert that is already linked to the incident leaves it exactly
- * where the user wanted it, so it counts as done rather than as a failure.
- */
-export const isAlreadyLinkedError: IsAlreadyLinkedErrorFunction = (
-  message: string,
-): boolean => {
-  return (message || "").toLowerCase().includes("already linked");
-};
-
-type GetIncidentOptionLabelFunction = (incident: Incident) => string;
-
-export const getIncidentOptionLabel: GetIncidentOptionLabelFunction = (
-  incident: Incident,
-): string => {
-  const title: string = incident.title || "";
-  const incidentNumber: string =
-    incident.incidentNumberWithPrefix ||
-    (typeof incident.incidentNumber === "number"
-      ? `#${incident.incidentNumber}`
-      : "");
-
-  if (!incidentNumber) {
-    return title;
-  }
-
-  return title ? `${incidentNumber}: ${title}` : incidentNumber;
-};
-
 type GetAlertIdsFunction = (alerts: Array<Alert>) => Array<string>;
 
 const getAlertIds: GetAlertIdsFunction = (
@@ -129,28 +89,6 @@ const getAlertIds: GetAlertIdsFunction = (
     .filter((alertId: string): boolean => {
       return Boolean(alertId);
     });
-};
-
-type ToIdStringFunction = (value: JSONValue | undefined) => string;
-
-const toIdString: ToIdStringFunction = (
-  value: JSONValue | undefined,
-): string => {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  if (typeof value === "object" && !Array.isArray(value)) {
-    const optionValue: JSONValue | undefined = (
-      value as { value?: JSONValue | undefined }
-    ).value;
-
-    if (optionValue !== undefined && optionValue !== null) {
-      return optionValue.toString();
-    }
-  }
-
-  return value.toString();
 };
 
 type GateActionFunction = (
@@ -222,66 +160,6 @@ function useBulkIncidentLinkActions(): BulkIncidentLinkActionsResult {
   const [showLinkModal, setShowLinkModal] = useState<boolean>(false);
   const [bulkActionProps, setBulkActionProps] =
     useState<BulkActionOnClickProps<Alert> | null>(null);
-  const [incidentOptions, setIncidentOptions] = useState<Array<DropdownOption>>(
-    [],
-  );
-  const [isLoadingIncidents, setIsLoadingIncidents] = useState<boolean>(false);
-  const incidentOptionsRequestRef: MutableRefObject<number> = useRef<number>(0);
-
-  /*
-   * Fetched when the dialog opens rather than on mount: the alerts table is
-   * on many pages, and most visits never link anything.
-   */
-  const loadIncidentOptions: () => Promise<void> = async (): Promise<void> => {
-    const requestId: number = ++incidentOptionsRequestRef.current;
-
-    setIsLoadingIncidents(true);
-
-    try {
-      const result: ListResult<Incident> = await ModelAPI.getList<Incident>({
-        modelType: Incident,
-        query: {},
-        limit: INCIDENT_LINK_OPTIONS_LIMIT,
-        skip: 0,
-        select: {
-          _id: true,
-          title: true,
-          incidentNumber: true,
-          incidentNumberWithPrefix: true,
-        },
-        sort: {
-          createdAt: SortOrder.Descending,
-        },
-      });
-
-      if (requestId === incidentOptionsRequestRef.current) {
-        setIncidentOptions(
-          result.data
-            .filter((incident: Incident): boolean => {
-              return Boolean(incident._id);
-            })
-            .map((incident: Incident): DropdownOption => {
-              return {
-                label: getIncidentOptionLabel(incident),
-                value: incident._id!.toString(),
-              };
-            }),
-        );
-      }
-    } catch {
-      /*
-       * The dropdown still searches incidents by title on the server, so a
-       * failed prefetch only loses the numbered shortlist.
-       */
-      if (requestId === incidentOptionsRequestRef.current) {
-        setIncidentOptions([]);
-      }
-    } finally {
-      if (requestId === incidentOptionsRequestRef.current) {
-        setIsLoadingIncidents(false);
-      }
-    }
-  };
 
   const closeLinkModal: () => void = (): void => {
     setShowLinkModal(false);
@@ -308,7 +186,6 @@ function useBulkIncidentLinkActions(): BulkIncidentLinkActionsResult {
 
     onBulkActionStart();
 
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
     const totalItems: Array<Alert> = [...items];
     const inProgressItems: Array<Alert> = [...items];
     const successItems: Array<Alert> = [];
@@ -324,17 +201,9 @@ function useBulkIncidentLinkActions(): BulkIncidentLinkActionsResult {
           throw new BadDataException("Alert ID not found");
         }
 
-        const link: IncidentAlert = new IncidentAlert();
-        link.incidentId = new ObjectID(incidentId);
-        link.alertId = new ObjectID(alertId);
-
-        if (projectId) {
-          link.projectId = projectId;
-        }
-
-        await ModelAPI.create<IncidentAlert>({
-          model: link,
-          modelType: IncidentAlert,
+        await createIncidentAlertLink({
+          incidentId: new ObjectID(incidentId),
+          alertId: new ObjectID(alertId),
         });
 
         successItems.push(alert);
@@ -368,6 +237,11 @@ function useBulkIncidentLinkActions(): BulkIncidentLinkActionsResult {
     ModelAction.Create,
   );
 
+  const incidentReadGate: PermissionGateResult = PermissionGate.check(
+    new Incident(),
+    ModelAction.Read,
+  );
+
   const declareGate: PermissionGateResult = PermissionGate.check(
     new Incident(),
     ModelAction.Create,
@@ -386,7 +260,6 @@ function useBulkIncidentLinkActions(): BulkIncidentLinkActionsResult {
 
       setBulkActionProps(actionProps);
       setShowLinkModal(true);
-      await loadIncidentOptions();
     },
   };
 
@@ -413,36 +286,17 @@ function useBulkIncidentLinkActions(): BulkIncidentLinkActionsResult {
   const modals: ReactElement = (
     <>
       {showLinkModal && (
-        <BasicFormModal<LinkToIncidentFormData>
+        <LinkIncidentAlertModal
           title="Link to Incident"
           description="Link the selected alerts to an incident that is already open. Alerts that are already linked to it are left as they are."
-          isLoading={isLoadingIncidents}
-          onClose={closeLinkModal}
           submitButtonText="Link Alerts"
-          onSubmit={async (formData: LinkToIncidentFormData) => {
-            await linkAlertsToIncident(toIdString(formData.incidentId));
-          }}
-          formProps={{
-            fields: [
-              {
-                field: {
-                  incidentId: true,
-                },
-                title: "Incident",
-                description:
-                  "Recent incidents are listed with their number. Type to search every incident by title.",
-                fieldType: FormFieldSchemaType.Dropdown,
-                required: true,
-                placeholder: "Select an incident",
-                dropdownModal: {
-                  type: Incident,
-                  labelField: "title",
-                  valueField: "_id",
-                },
-                dropdownOptions: incidentOptions,
-              },
-            ],
-          }}
+          fieldTitle="Incident"
+          fieldDescription="Recent incidents are listed with their number. Type to search every incident by title."
+          placeholder="Select an incident"
+          modelType={Incident}
+          loadOptions={fetchIncidentLinkOptions}
+          onClose={closeLinkModal}
+          onSubmit={linkAlertsToIncident}
         />
       )}
     </>
@@ -451,7 +305,7 @@ function useBulkIncidentLinkActions(): BulkIncidentLinkActionsResult {
   return {
     bulkActions: [
       ...capAction(
-        gateAction(linkToIncidentAction, [linkGate]),
+        gateAction(linkToIncidentAction, [linkGate, incidentReadGate]),
         LINK_CAP_TOOLTIP,
       ),
       ...capAction(

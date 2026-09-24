@@ -161,6 +161,14 @@ const IncidentCreate: FunctionComponent<
   const [missingAlertCount, setMissingAlertCount] = useState<number>(0);
   const [wereAlertIdsTruncated, setWereAlertIdsTruncated] =
     useState<boolean>(false);
+  /*
+   * A private alert makes the declared incident private, and a private
+   * incident is visible only to its owners (and project admins). The server
+   * makes the alerts' owners the incident's owners, so the people who could
+   * see the alert can see the incident; the banner says so up front.
+   */
+  const [isPrivateFromAlerts, setIsPrivateFromAlerts] =
+    useState<boolean>(false);
 
   useEffect(() => {
     const incidentTemplateId: string | null =
@@ -300,6 +308,7 @@ const IncidentCreate: FunctionComponent<
       setAlertsToLink(alerts);
       setMissingAlertCount(parsedAlertIds.alertIds.length - alerts.length);
       setWereAlertIdsTruncated(parsedAlertIds.wasTruncated);
+      setIsPrivateFromAlerts(prefill.isPrivate);
       setInitialValuesForIncident(
         IncidentFromAlerts.applyPrefillToInitialValues(initialValues, prefill),
       );
@@ -583,6 +592,17 @@ const IncidentCreate: FunctionComponent<
                       );
                     })}
                   </ul>
+                  {isPrivateFromAlerts && (
+                    <p
+                      className="mt-2"
+                      data-testid="incident-create-private-from-alerts"
+                    >
+                      At least one of these alerts is private, so this incident
+                      will be private too: only its owners, project owners and
+                      project admins can see it. The owners of these alerts are
+                      added as the incident&apos;s owners when you declare it.
+                    </p>
+                  )}
                   {wereAlertIdsTruncated && (
                     <p className="mt-2">
                       Only the first {MAX_ALERTS_PER_INCIDENT_LINK_ACTION}{" "}

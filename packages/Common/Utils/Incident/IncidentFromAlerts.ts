@@ -54,6 +54,12 @@ export interface IncidentPrefillFromAlerts {
   podmanHosts: Array<NamedResource>;
   services: Array<NamedResource>;
   labelIds: Array<string>;
+  /*
+   * True when any of the alerts is private. A private incident is visible
+   * only to its owners (and project admins), so when it is declared the
+   * server adds the alerts' owners as its owners, and the create page says
+   * so before the user declares it.
+   */
   isPrivate: boolean;
 }
 
