@@ -31,6 +31,8 @@ import { formatReplayDuration, formatReplayOffset } from "./ReplayTimeFormat";
 import { IDLE_SKIP_MIN_REMAINING_MS } from "./ReplayPlaybackIntent";
 import { SealedReasonCopy } from "./FidelityNoticeCopy";
 import { ReplayButtonGroup, ReplayToolButton } from "./ReplayUi";
+import { ReplayScreenshot } from "./ReplayScreenshot";
+import ReplayScreenshotActions from "./ReplayScreenshotActions";
 
 /*
  * Everything drawn OVER or AROUND the picture that is not the picture:
@@ -38,7 +40,8 @@ import { ReplayButtonGroup, ReplayToolButton } from "./ReplayUi";
  * / 1:1,
  * the idle chip, and the phase overlays - loading, seeking, buffering,
  * the gap interstitial, the idle-skip toast, the seek-clamped notice,
- * the ended card, the error card, and the "no footage" empty state.
+ * the ended card, the error card, the paused frame's screenshot dock,
+ * and the "no footage" empty state.
  *
  * Every one of these used to be a block inserted ABOVE the stage, which
  * pushed the picture down mid-playback and could not be seen in theater
@@ -244,6 +247,16 @@ export interface ReplayStageOverlaysProps {
    * the end of the replay, not a wait for a chunk that will never come.
    */
   isLive?: boolean | undefined;
+
+  /*
+   * Captures the frame on the stage as a PNG. The screenshot dock is
+   * offered only while paused - the one phase whose picture holds still
+   * because the viewer chose it - outside text selection, and not while
+   * canCaptureFrame is false (the shell's "the replay document has been
+   * drawn" gate, the same one Select text waits for).
+   */
+  onCaptureFrame?: (() => Promise<ReplayScreenshot>) | undefined;
+  canCaptureFrame?: boolean | undefined;
 }
 
 type BufferingStage = "hidden" | "pill" | "retry";
@@ -498,6 +511,10 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
     (phase === "playing" || phase === "paused");
   const isTextSelectionActive: boolean =
     props.isTextSelectionEnabled && props.canSelectText !== false;
+  const isScreenshotAvailable: boolean =
+    phase === "paused" &&
+    !isTextSelectionActive &&
+    props.canCaptureFrame !== false;
 
   /* ---- No-footage mode. ---- */
 
@@ -1021,6 +1038,19 @@ const ReplayStageOverlays: FunctionComponent<ReplayStageOverlaysProps> = (
           >
             {centreOverlay}
           </div>
+        )}
+
+        {/*
+         * After the centre overlay so it paints above it. Remounted from
+         * scratch on every pause, so a card from an earlier frame never
+         * greets the next one.
+         */}
+        {isScreenshotAvailable && props.onCaptureFrame && (
+          <ReplayScreenshotActions
+            onCapture={props.onCaptureFrame}
+            fit={props.fit}
+            frameKey={`${snapshot.generation}:${Math.round(currentTimeMs)}`}
+          />
         )}
       </div>
     </div>

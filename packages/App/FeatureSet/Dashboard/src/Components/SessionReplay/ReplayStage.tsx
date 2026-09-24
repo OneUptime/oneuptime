@@ -253,11 +253,16 @@ const REPLAY_SHADOW_TEXT_SELECTION_CSS: string = `
 }
 `;
 
-const REPLAY_TEXT_SELECTION_ATTRIBUTE: string =
+/*
+ * Exported so the frame capture (ReplayFrameCapture) can leave the
+ * selection affordances out of a screenshot: they are viewer chrome, not
+ * something the recorded page drew.
+ */
+export const REPLAY_TEXT_SELECTION_ATTRIBUTE: string =
   "data-oneuptime-replay-text-selection";
-const REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE: string =
+export const REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE: string =
   "data-oneuptime-replay-text-selection-style";
-const REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE: string =
+export const REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE: string =
   "data-oneuptime-replay-shadow-text-selection-style";
 
 const enabledReplayDocuments: WeakSet<Document> = new WeakSet<Document>();
