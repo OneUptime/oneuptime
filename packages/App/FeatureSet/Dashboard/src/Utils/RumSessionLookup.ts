@@ -1,11 +1,18 @@
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Route from "Common/Types/API/Route";
-import Includes from "Common/Types/BaseDatabase/Includes";
-import Query from "Common/Types/BaseDatabase/Query";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import RumSession from "Common/Models/AnalyticsModels/RumSession";
-import AnalyticsModelAPI, {
-  ListResult,
-} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import URL from "Common/Types/API/URL";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
+import {
+  SESSION_REPLAY_SESSION_ID_BATCH_MAX,
+  SESSION_REPLAY_SESSION_ID_MAX_LENGTH,
+  SessionReplayResolveRequestDto,
+  readDtoOptionalNumber,
+  readDtoString,
+} from "Common/Types/Rum/SessionReplayApi";
+import API from "Common/UI/Utils/API/API";
+import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { APP_API_URL } from "Common/UI/Config";
 import { ReplayRailTabId } from "../Components/SessionReplay/Rail/ReplaySignalTypes";
 import { buildReplayMomentRoute } from "../Components/SessionReplay/ReplayPlayerUrlState";
 
@@ -26,7 +33,17 @@ import { buildReplayMomentRoute } from "../Components/SessionReplay/ReplayPlayer
  * never recorded (sampled out, consent withheld). That answer does not
  * change by asking again. Failures are NOT cached, so a transient 5xx can
  * retry on the next expand.
+ *
+ * The read is the bespoke /resolve route, not the generic analytics list:
+ * RumSession deliberately has no crudApiPath, so AnalyticsModelAPI refuses
+ * it before a request is even made. The route answers only for the
+ * applications the caller may list replays of, and leaves out an id
+ * recorded under more than one application - both read here as "no
+ * recording", which is also what they mean to a link.
  */
+
+export const RUM_SESSION_RESOLVE_ROUTE: string =
+  "/telemetry/rum/session-replay/resolve";
 
 export interface RumSessionLookupResult {
   sessionId: string;
@@ -61,56 +78,108 @@ function toDate(value: unknown): Date | null {
   return null;
 }
 
-function toLookupResult(
-  session: RumSession | null | undefined,
-): RumSessionLookupResult | undefined {
-  const sessionId: string = normalizeSessionId(session?.sessionId?.toString());
-  const rumApplicationId: string = (
-    session?.rumApplicationId?.toString() || ""
+function toLookupResult(row: JSONObject): RumSessionLookupResult | undefined {
+  const record: Record<string, unknown> = row as Record<string, unknown>;
+  const sessionId: string = normalizeSessionId(
+    readDtoString(record, "sessionId"),
+  );
+  const rumApplicationId: string = readDtoString(
+    record,
+    "rumApplicationId",
   ).trim();
 
   if (sessionId.length === 0 || rumApplicationId.length === 0) {
     return undefined;
   }
 
+  /* The unix-ms sibling first: it needs no parse. */
+  const startTimeUnixMs: number | undefined = readDtoOptionalNumber(
+    record,
+    "startTimeUnixMs",
+  );
+
   return {
     sessionId: sessionId,
     rumApplicationId: rumApplicationId,
-    startTime: toDate(session?.startTime),
+    startTime: toDate(startTimeUnixMs ?? record["startTime"]),
   };
 }
 
-async function fetchSessions(
+async function fetchBatch(
   sessionIds: Array<string>,
 ): Promise<Array<RumSessionLookupResult>> {
-  const result: ListResult<RumSession> =
-    await AnalyticsModelAPI.getList<RumSession>({
-      modelType: RumSession,
-      query: {
-        sessionId:
-          sessionIds.length === 1 ? sessionIds[0] : new Includes(sessionIds),
-      } as Query<RumSession>,
-      select: {
-        sessionId: true,
-        rumApplicationId: true,
-        startTime: true,
+  const request: SessionReplayResolveRequestDto = { sessionIds: sessionIds };
+
+  const response: HTTPResponse<JSONObject> | HTTPErrorResponse = await API.post(
+    {
+      url: URL.fromString(APP_API_URL.toString()).addRoute(
+        RUM_SESSION_RESOLVE_ROUTE,
+      ),
+      data: request as unknown as JSONObject,
+      headers: {
+        ...ModelAPI.getCommonHeaders(),
       },
-      sort: {},
-      skip: 0,
-      limit: Math.min(Math.max(sessionIds.length, 1), LIMIT_PER_PROJECT),
-    });
+    },
+  );
 
-  const rows: Array<RumSessionLookupResult> = [];
+  if (!response.isSuccess()) {
+    throw response;
+  }
 
-  for (const session of result.data) {
-    const row: RumSessionLookupResult | undefined = toLookupResult(session);
+  const rows: JSONArray = Array.isArray(response.data["sessions"])
+    ? (response.data["sessions"] as JSONArray)
+    : [];
+  const requested: Set<string> = new Set<string>(sessionIds);
+  const results: Array<RumSessionLookupResult> = [];
 
-    if (row) {
-      rows.push(row);
+  for (const row of rows) {
+    const result: RumSessionLookupResult | undefined = toLookupResult(row);
+
+    /* An unsolicited row must never anchor some other id's link. */
+    if (result && requested.has(result.sessionId)) {
+      results.push(result);
     }
   }
 
-  return rows;
+  return results;
+}
+
+/*
+ * The server refuses a whole batch over its caps with a 400, so ids are
+ * sent in batches it accepts. An id longer than any replay route will read
+ * cannot name a playable recording; it is answered "no recording" without
+ * asking, rather than failing every other id in its batch.
+ */
+async function fetchSessions(
+  sessionIds: Array<string>,
+): Promise<Array<RumSessionLookupResult>> {
+  const readable: Array<string> = sessionIds.filter(
+    (sessionId: string): boolean => {
+      return sessionId.length <= SESSION_REPLAY_SESSION_ID_MAX_LENGTH;
+    },
+  );
+
+  const batches: Array<Array<string>> = [];
+
+  for (
+    let index: number = 0;
+    index < readable.length;
+    index += SESSION_REPLAY_SESSION_ID_BATCH_MAX
+  ) {
+    batches.push(
+      readable.slice(index, index + SESSION_REPLAY_SESSION_ID_BATCH_MAX),
+    );
+  }
+
+  const answers: Array<Array<RumSessionLookupResult>> = await Promise.all(
+    batches.map(
+      (batch: Array<string>): Promise<Array<RumSessionLookupResult>> => {
+        return fetchBatch(batch);
+      },
+    ),
+  );
+
+  return answers.flat();
 }
 
 /*
@@ -152,9 +221,10 @@ export function lookupRumSessionBySessionId(
 /*
  * Many sessions in one read - a table page of occurrence rows. Ids already
  * cached (settled or in flight) are not re-fetched; the rest go out as one
- * Includes query and each answer is stored under its own id so later
- * single lookups from another surface hit the cache. Returns only the
- * sessions that exist; a rejection leaves nothing cached.
+ * /resolve request (split only past the server's batch cap) and each answer
+ * is stored under its own id so later single lookups from another surface
+ * hit the cache. Returns only the sessions that exist; a rejection leaves
+ * nothing cached.
  */
 export async function lookupRumSessionsBySessionIds(
   sessionIds: Array<string> | null | undefined,

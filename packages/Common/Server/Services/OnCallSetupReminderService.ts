@@ -474,6 +474,7 @@ export class OnCallSetupReminderService extends BaseService {
             templateType: EmailTemplateType.SimpleMessage,
             vars: this.buildTemplateVars(context, readiness),
             subject: this.buildSubject(context, readiness),
+            isSubjectLiteral: true,
           },
           {
             projectId: context.projectId,

@@ -122,7 +122,7 @@ RunCron(
         continue;
       }
 
-      const users: Array<User> = probeOwnersMap[probeId] as Array<User>;
+      const ownerUsers: Array<User> = probeOwnersMap[probeId] as Array<User>;
 
       // get all scheduled events of all the projects.
       const probe: Probe | null = await ProbeService.findOneById({
@@ -146,6 +146,22 @@ RunCron(
         continue;
       }
 
+      /*
+       * A team row expands to every member row, pending invitations included,
+       * and a pending invitee has no notification settings yet (the defaults
+       * are added on accept). Tell only the accepted members of the project -
+       * the same people findOwners reports as owners.
+       */
+      const users: Array<User> =
+        await TeamMemberService.filterUsersToProjectMembers({
+          projectId: probe.projectId!,
+          users: ownerUsers,
+        });
+
+      if (users.length === 0) {
+        continue;
+      }
+
       const vars: Dictionary<string> = {
         probeName: probe.name!,
         probeDescription: probe.description || "No description provided",
@@ -160,6 +176,7 @@ RunCron(
           templateType: EmailTemplateType.ProbeOwnerAdded,
           vars: vars,
           subject: "[Probe] Owner of " + probe.name,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

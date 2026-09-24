@@ -459,3 +459,67 @@ describe("TraceAggregationService", () => {
     });
   });
 });
+
+/*
+ * The traces volume chart zooms the same way the log one does (issue
+ * #3914): a click on one bar asks for a window like 10:15 - 10:16, which
+ * must draw one bar, not the 10:16 bar as well over a list that holds none
+ * of its spans. The edges stay on the projection's toStartOfMinute key.
+ */
+describe("TraceAggregationService histogram window edges", () => {
+  const buildHistogramStatement: (
+    overrides?: Partial<HistogramRequest>,
+  ) => Statement = (overrides: Partial<HistogramRequest> = {}): Statement => {
+    return (TraceAggregationService as any).buildHistogramStatement({
+      projectId: ObjectID.generate(),
+      startTime: new Date("2026-09-17T10:15:00.000Z"),
+      endTime: new Date("2026-09-17T10:16:00.000Z"),
+      bucketSizeInMinutes: 1,
+      ...overrides,
+    });
+  };
+
+  const normalizedQuery: (statement: Statement) => string = (
+    statement: Statement,
+  ): string => {
+    return statement.query.replace(/\s+/g, " ");
+  };
+
+  const END_PREDICATE: RegExp =
+    /toStartOfMinute\(startTime\) < \{(p\d+):DateTime64\(9\)\}/;
+
+  test("keeps only the minutes that start before the window ends", () => {
+    const query: string = normalizedQuery(buildHistogramStatement());
+
+    expect(query).toMatch(END_PREDICATE);
+    expect(query).not.toMatch(
+      /toStartOfMinute\(startTime\) <= toStartOfMinute\(/,
+    );
+  });
+
+  test("binds the end with sub-second precision", () => {
+    const statement: Statement = buildHistogramStatement({
+      endTime: new Date("2026-09-17T10:16:00.500Z"),
+    });
+    const match: RegExpMatchArray | null =
+      normalizedQuery(statement).match(END_PREDICATE);
+
+    expect(match).not.toBeNull();
+    expect(
+      (statement.query_params as Record<string, unknown>)[match![1]!],
+    ).toBe("2026-09-17 10:16:00.500000000");
+  });
+
+  test("still counts the whole minute the window starts in", () => {
+    expect(normalizedQuery(buildHistogramStatement())).toMatch(
+      /toStartOfMinute\(startTime\) >= toStartOfMinute\(\{p\d+:DateTime\}\)/,
+    );
+  });
+
+  test("never filters the window on the raw startTime column", () => {
+    const query: string = normalizedQuery(buildHistogramStatement());
+
+    expect(query).not.toMatch(/[^(]\bstartTime\s*(<|>|<=|>=)\s/);
+    expect(query).toContain("optimize_use_projections = 1");
+  });
+});

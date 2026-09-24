@@ -24,92 +24,15 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import ProbeUtil from "../../Utils/Probe";
 import Probe from "Common/Models/DatabaseModels/Probe";
-import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
-import { JSONObject } from "Common/Types/JSON";
-import JSONFunctions from "Common/Types/JSONFunctions";
-import MetricQueryConfigData, {
-  ChartSeries,
-} from "Common/Types/Metrics/MetricQueryConfigData";
+import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import SqlDatabaseType from "Common/Types/Monitor/SqlDatabaseType";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import TimeRange from "Common/Types/Time/TimeRange";
+import { buildMonitorMetricQueryConfig } from "./MonitorMetricQueryConfig";
 
 export interface ComponentProps {
   monitorId: ObjectID;
-}
-
-type GetSeriesResolverArgs = {
-  data: AggregateModel;
-  monitorType: MonitorType;
-  monitorMetricType: MonitorMetricType;
-  probes: Array<Probe>;
-};
-
-/*
- * Shared title resolver for a chart series. Extracted so each category's
- * MetricView can reuse the same logic for probe name / disk path / interface
- * grouping without duplicating the closure.
- */
-function resolveSeriesTitle(args: GetSeriesResolverArgs): ChartSeries {
-  const { data, monitorType, monitorMetricType, probes } = args;
-
-  const fallback: ChartSeries = {
-    title: MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-      monitorMetricType,
-      monitorType,
-    ),
-  };
-
-  if (!data) {
-    return fallback;
-  }
-
-  let attributes: JSONObject = data["attributes"] as JSONObject;
-  if (!attributes) {
-    return fallback;
-  }
-  if (typeof attributes === "string") {
-    try {
-      attributes = JSONFunctions.parseJSONObject(attributes);
-    } catch {
-      return fallback;
-    }
-  }
-
-  /*
-   * Probe-pull monitors group by probe, because the probe is the only thing
-   * that varies between two rows of the same series. Database Health relies
-   * on that: every one of its series is single-valued per monitor, so it
-   * writes no dimension beyond probeId. A future change that fans a database
-   * series out per database or per table has to extend this function first,
-   * or every one of those series shares the probe's legend.
-   */
-  if (MonitorTypeHelper.isProbableMonitor(monitorType)) {
-    const probeIdString: string | undefined = (attributes as JSONObject)[
-      "probeId"
-    ] as string | undefined;
-    if (!probeIdString) {
-      return fallback;
-    }
-    const probe: Probe | undefined = probes.find((p: Probe) => {
-      return p.id?.toString() === new ObjectID(probeIdString).toString();
-    });
-    return {
-      title: probe?.name?.toString() || fallback.title,
-    };
-  }
-
-  if (monitorType === MonitorType.Server) {
-    if (attributes["diskPath"]) {
-      return { title: attributes["diskPath"].toString() };
-    }
-    if (attributes["interfaceName"]) {
-      return { title: attributes["interfaceName"].toString() };
-    }
-  }
-
-  return fallback;
 }
 
 const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
@@ -197,53 +120,13 @@ const MonitorMetricsElement: FunctionComponent<ComponentProps> = (
     (metrics: Array<MonitorMetricType>): Array<MetricQueryConfigData> => {
       return metrics.map(
         (monitorMetricType: MonitorMetricType): MetricQueryConfigData => {
-          return {
-            metricAliasData: {
-              metricVariable: monitorMetricType,
-              title: MonitorMetricTypeUtil.getTitleByMonitorMetricType(
-                monitorMetricType,
-                monitorType,
-              ),
-              description:
-                MonitorMetricTypeUtil.getDescriptionByMonitorMetricType(
-                  monitorMetricType,
-                  monitorType,
-                ),
-              legend: MonitorMetricTypeUtil.getLegendByMonitorMetricType(
-                monitorMetricType,
-                monitorType,
-              ),
-              legendUnit:
-                MonitorMetricTypeUtil.getLegendUnitByMonitorMetricType(
-                  monitorMetricType,
-                ),
-            },
-            metricQueryData: {
-              filterData: {
-                metricName: monitorMetricType,
-                attributes: {
-                  monitorId: props.monitorId.toString(),
-                  projectId:
-                    ProjectUtil.getCurrentProjectId()?.toString() || "",
-                },
-                aggegationType:
-                  MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
-                    monitorMetricType,
-                  ),
-              },
-              groupBy: {
-                attributes: true,
-              },
-            },
-            getSeries: (data: AggregateModel): ChartSeries => {
-              return resolveSeriesTitle({
-                data,
-                monitorType,
-                monitorMetricType,
-                probes,
-              });
-            },
-          };
+          return buildMonitorMetricQueryConfig({
+            monitorId: props.monitorId,
+            projectId: ProjectUtil.getCurrentProjectId(),
+            monitorType: monitorType,
+            metric: monitorMetricType,
+            probes: probes,
+          });
         },
       );
     },

@@ -19,6 +19,7 @@ import { APP_API_URL } from "Common/UI/Config";
 import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
+import SendTestNotificationButton from "../Workspace/SendTestNotificationButton";
 
 interface ChannelItem {
   id: string;
@@ -29,6 +30,7 @@ const SlackChannelsCard: FunctionComponent = (): ReactElement => {
   const [channels, setChannels] = useState<Array<ChannelItem>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [sendingTestCount, setSendingTestCount] = useState<number>(0);
 
   const loadChannels: PromiseVoidFunction = async (): Promise<void> => {
     try {
@@ -73,16 +75,38 @@ const SlackChannelsCard: FunctionComponent = (): ReactElement => {
     });
   }, []);
 
+  type SendingTestChangeFunction = (isSending: boolean) => void;
+
+  /*
+   * Refreshing swaps the list for a loader, which unmounts every row - and a
+   * row whose test is still in flight would then have nowhere to show its
+   * result, so the user would never learn whether it arrived. Refresh stays
+   * disabled until every test in flight has settled. Clamped at zero so a
+   * stray extra "false" can never leave the button locked.
+   */
+  const onSendingTestChange: SendingTestChangeFunction = (
+    isSending: boolean,
+  ): void => {
+    setSendingTestCount((count: number): number => {
+      return Math.max(0, count + (isSending ? 1 : -1));
+    });
+  };
+
   return (
     <Card
       title="Slack Channels"
-      description="Channels OneUptime can see in your Slack workspace. Use these names when a notification rule posts to an existing channel."
+      description="Channels OneUptime can see in your Slack workspace. Use these names when a notification rule posts to an existing channel. Use Send Test to confirm OneUptime can post to a channel."
       buttons={[
         {
           title: "Refresh Channels",
           buttonStyle: ButtonStyleType.NORMAL,
           icon: IconProp.Refresh,
           isLoading: isLoading,
+          disabled: sendingTestCount > 0,
+          tooltip:
+            sendingTestCount > 0
+              ? "Wait for the test notification to finish sending."
+              : undefined,
           onClick: () => {
             loadChannels().catch((err: Exception) => {
               setError(API.getFriendlyErrorMessage(err));
@@ -127,7 +151,7 @@ const SlackChannelsCard: FunctionComponent = (): ReactElement => {
                   return (
                     <li
                       key={channel.id}
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+                      className="flex flex-wrap items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
                     >
                       <div className="h-9 w-9 flex flex-none items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
                         <Icon
@@ -137,11 +161,24 @@ const SlackChannelsCard: FunctionComponent = (): ReactElement => {
                           className="h-5 w-5"
                         />
                       </div>
-                      <div className="min-w-0 flex-1">
+                      {/*
+                       * A floor rather than min-w-0: on a phone a name
+                       * allowed to shrink to nothing gives the whole row to
+                       * the Send Test control. With a floor the control
+                       * wraps onto its own line instead.
+                       */}
+                      <div className="min-w-[8rem] flex-1">
                         <div className="font-medium text-gray-900 truncate">
                           {channel.name}
                         </div>
                       </div>
+                      <SendTestNotificationButton
+                        route="/slack/channels/test"
+                        requestBody={{ channelId: channel.id }}
+                        destinationName={`#${channel.name}`}
+                        workspaceName="Slack"
+                        onSendingChange={onSendingTestChange}
+                      />
                     </li>
                   );
                 })}

@@ -39,6 +39,7 @@ import KubernetesClusterViewVPAs from "../Pages/Kubernetes/View/VPAs";
 import KubernetesClusterViewVPADetail from "../Pages/Kubernetes/View/VPADetail";
 import KubernetesClusterViewEvents from "../Pages/Kubernetes/View/Events";
 import KubernetesClusterViewInsights from "../Pages/Kubernetes/View/Insights";
+import KubernetesClusterViewAI from "../Pages/Kubernetes/View/AI";
 import KubernetesClusterViewRecommendations from "../Pages/Kubernetes/View/Recommendations";
 import KubernetesClusterViewCosts from "../Pages/Kubernetes/View/Costs";
 import KubernetesClusterViewControlPlane from "../Pages/Kubernetes/View/ControlPlane";
@@ -603,6 +604,17 @@ const KubernetesRoutes: FunctionComponent<ComponentProps> = (
               pageRoute={
                 RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS] as Route
               }
+            />
+          }
+        />
+
+        {/* AI access */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(PageMap.KUBERNETES_CLUSTER_VIEW_AI)}
+          element={
+            <KubernetesClusterViewAI
+              {...props}
+              pageRoute={RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI] as Route}
             />
           }
         />

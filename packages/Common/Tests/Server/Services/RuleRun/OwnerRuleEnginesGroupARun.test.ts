@@ -66,6 +66,7 @@ import OnCallDutyPolicyScheduleService from "../../../../Server/Services/OnCallD
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import logger from "../../../../Server/Utils/Logger";
+import TeamMemberService from "../../../../Server/Services/TeamMemberService";
 import PostgresErrorTranslator from "../../../../Server/Utils/Database/PostgresErrorTranslator";
 import {
   RuleApplicationResult,
@@ -481,6 +482,7 @@ interface EngineMocks {
   createOwnerUser: jest.SpyInstance;
   createOwnerTeam: jest.SpyInstance;
   createFeedItem: jest.SpyInstance | null;
+  memberCheck: jest.SpyInstance;
 }
 
 function mockEngine(
@@ -491,6 +493,8 @@ function mockEngine(
     assignedUserIds?: Array<ObjectID> | undefined;
     assignedTeamIds?: Array<ObjectID> | undefined;
     ownerWriteError?: Error | undefined;
+    // Whether the rule's owner user is still a member of the project.
+    userIsProjectMember?: boolean | undefined;
   } = {},
 ): EngineMocks {
   const ruleRead: jest.SpyInstance = jest
@@ -539,6 +543,10 @@ function mockEngine(
       .mockResolvedValue(undefined);
   }
 
+  const memberCheck: jest.SpyInstance = jest
+    .spyOn(TeamMemberService, "isUserMemberOfProject")
+    .mockResolvedValue(data.userIsProjectMember !== false);
+
   return {
     ruleRead: ruleRead,
     resourceRead: resourceRead,
@@ -547,6 +555,7 @@ function mockEngine(
     createOwnerUser: createOwnerUser,
     createOwnerTeam: createOwnerTeam,
     createFeedItem: createFeedItem,
+    memberCheck: memberCheck,
   };
 }
 
@@ -734,6 +743,25 @@ describe.each(
       expect(result).toEqual(RuleApplicationResultUtil.updated(1));
       expect(mocks.createOwnerUser).not.toHaveBeenCalled();
       expect(mocks.createOwnerTeam).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not make a rule's owner user who has left the project an owner", async () => {
+      const mocks: EngineMocks = mockEngine(c, { userIsProjectMember: false });
+
+      const result: RuleApplicationResult = await runRules(
+        c,
+        [fakeRule(c)],
+        true,
+      );
+
+      // The rule's team is still added; the departed user is not.
+      expect(result).toEqual(RuleApplicationResultUtil.updated(1));
+      expect(mocks.createOwnerUser).not.toHaveBeenCalled();
+      expect(mocks.createOwnerTeam).toHaveBeenCalledTimes(1);
+
+      const asked: any = mocks.memberCheck.mock.calls[0]![0];
+      expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
+      expect(asked.userId.toString()).toBe(USER_ID.toString());
     });
 
     it("reports already applied, and writes nothing, when every owner is assigned", async () => {

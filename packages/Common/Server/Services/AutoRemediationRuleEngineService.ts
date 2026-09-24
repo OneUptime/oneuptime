@@ -7,6 +7,7 @@ import Monitor from "../../Models/DatabaseModels/Monitor";
 import Project from "../../Models/DatabaseModels/Project";
 import Runbook from "../../Models/DatabaseModels/Runbook";
 import RunbookExecution from "../../Models/DatabaseModels/RunbookExecution";
+import RunnerJob from "../../Models/DatabaseModels/RunnerJob";
 import { AlertFeedEventType } from "../../Models/DatabaseModels/AlertFeed";
 import { IncidentFeedEventType } from "../../Models/DatabaseModels/IncidentFeed";
 import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
@@ -17,6 +18,17 @@ import AutoRemediationSuggestionStatus from "../../Types/AutoRemediation/AutoRem
 import AutoRemediationSuggestionType from "../../Types/AutoRemediation/AutoRemediationSuggestionType";
 import AutoRemediationVerificationStatus from "../../Types/AutoRemediation/AutoRemediationVerificationStatus";
 import AutoRemediationTriggerEntity from "../../Types/AutoRemediation/AutoRemediationTriggerEntity";
+import {
+  APPROVED_COMMAND_STEP_ID_PREFIX,
+  INLINE_COMMAND_STEP_ID_PREFIX,
+  KUBECTL_ALWAYS_ASKS_SUMMARY,
+  KUBECTL_SAFE_CHANGES_SUMMARY,
+} from "../../Types/AutoRemediation/AiRemediationCommandPlan";
+import {
+  KubernetesAiRemediationMode,
+  KubernetesClusterAiAccessStatus,
+} from "../../Types/Kubernetes/KubernetesClusterAiAccess";
+import RunnerJobOrigin from "../../Types/Runbook/RunnerJobOrigin";
 import { Indigo500 } from "../../Types/BrandColors";
 import OneUptimeDate from "../../Types/Date";
 import ObjectID from "../../Types/ObjectID";
@@ -27,9 +39,11 @@ import AlertFeedService from "./AlertFeedService";
 import AutoRemediationRuleService from "./AutoRemediationRuleService";
 import AutoRemediationSuggestionService from "./AutoRemediationSuggestionService";
 import IncidentFeedService from "./IncidentFeedService";
+import KubernetesClusterAiAccessService from "./KubernetesClusterAiAccessService";
 import LlmProviderService from "./LlmProviderService";
 import ProjectService from "./ProjectService";
 import RunbookRuleEngineService from "./RunbookRuleEngineService";
+import RunnerJobService from "./RunnerJobService";
 import AIInvestigationQueue from "../Utils/AI/SRE/InvestigationQueue";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -62,12 +76,563 @@ export const MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR: number = 3;
  */
 export const DEFAULT_VERIFICATION_WINDOW_MINUTES: number = 15;
 
+/*
+ * - Cluster-level remediation (a cluster's AI page, no rule) may try at most
+ *   this many rounds per subject per cluster: the first plan, then one
+ *   follow-up when verification fails ("ask again for a new set of
+ *   commands"). Beyond that a human takes over.
+ */
+export const MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT: number = 2;
+
+/*
+ * Upper bound on the rows the per-cluster circuit breaker and the in-flight
+ * round check read for one cluster. The project-wide hourly AI-command cap
+ * keeps the real numbers far below this; the bound only stops a runaway
+ * read.
+ */
+const MAX_CLUSTER_ROUND_ROWS: number = 100;
+
+/*
+ * How long a Planning unattended round is taken to still be running. A run
+ * lasts at most ten minutes; the rest is queue slack. A round stuck in
+ * Planning longer than this is the stranded-suggestion sweeper's business,
+ * not a reason to keep every other round on the cluster asking.
+ */
+const IN_FLIGHT_ROUND_WINDOW_HOURS: number = 1;
+
+/*
+ * A fix whose verification is still Pending holds its cluster until the
+ * verifier settles it. The verifier sweeps every minute, so a deadline this
+ * far in the past means the verifier is not running — stop holding.
+ */
+const PENDING_VERIFICATION_HOLD_GRACE_MINUTES: number = 10;
+
+/*
+ * Approved plans can be verified long after their round was created (a
+ * human approves hours later), so the in-flight round read looks back this
+ * far and lets the verification deadline decide.
+ */
+const HELD_ROUND_LOOKBACK_HOURS: number = 24;
+
+/*
+ * The canonical every-mode clause (UNATTENDED_ROUND_BECOMES_PROPOSAL_SUMMARY)
+ * in the feed's words: what "holds the cluster" means to the human reading
+ * the announcement of an unattended round.
+ */
+const UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE: string =
+  "If the hourly circuit breaker for this cluster trips, or another unattended OneUptime AI round already holds the cluster (it is still changing it, or its fix is still being verified), this round becomes a proposal for your approval instead.";
+
+// "a write ..." -> "A write ..." for copy that starts a sentence.
+function capitalizeFirst(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 type SubjectLinkage = {
   incidentId?: ObjectID | undefined;
   alertId?: ObjectID | undefined;
 };
 
+export interface ClusterBreakerState {
+  autoExecutedInWindow: number;
+  hasHeadroom: boolean;
+}
+
+/*
+ * The round (or rule-driven run) a breaker or in-flight check is made for.
+ * Its own row never counts against it, and among unattended rounds still
+ * running only the ones created BEFORE it do: when several rounds are
+ * announced at once, the earliest ones keep their unattended slot and the
+ * later ones ask — instead of every round counting every other one and all
+ * of them asking.
+ */
+export interface ClusterRoundReference {
+  suggestionId: ObjectID;
+  createdAt?: Date | undefined;
+}
+
+/*
+ * Another cluster-level round that currently holds a cluster: it is still
+ * running unattended, or its fix is still inside its verification window.
+ * Two unattended agents changing one cluster at once — each with its own
+ * verification and rollback — undo each other's fixes, so a second
+ * unattended round on a held cluster asks instead.
+ */
+export interface ClusterRoundHold {
+  suggestionId: string;
+  ruleNameSnapshot?: string | undefined;
+  // Completes "another OneUptime AI round on this cluster ...".
+  description: string;
+  isSameSubject: boolean;
+}
+
+const CLUSTER_ROUND_NAME_PREFIX: string = "AI remediation for cluster";
+
+/*
+ * The name a cluster-level round carries. Server-written, and parsed back
+ * by parseClusterRoundNameSnapshot: a cluster delete nulls the round's
+ * kubernetesClusterId (ON DELETE SET NULL), and this name is then the only
+ * thing left that says the round belonged to a cluster rather than a rule.
+ */
+export function getClusterRoundNameSnapshot(
+  clusterName: string,
+  round: number,
+): string {
+  return `${CLUSTER_ROUND_NAME_PREFIX} "${clusterName}"${
+    round > 1 ? ` (round ${round})` : ""
+  }`;
+}
+
+/*
+ * The cluster name inside a cluster round's name snapshot, or null when the
+ * snapshot is not one. A rule can in principle be NAMED like a cluster
+ * round, so callers only trust this on a row that has neither a rule nor a
+ * cluster link left, where it is the best evidence there is.
+ */
+export function parseClusterRoundNameSnapshot(
+  name: unknown,
+): { clusterName: string } | null {
+  if (typeof name !== "string") {
+    return null;
+  }
+
+  const match: RegExpMatchArray | null = name.match(
+    /^AI remediation for cluster "(.*)"(?: \(round \d+\))?$/,
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  return { clusterName: match[1] || "" };
+}
+
+// Is `row` ordered before the reference (createdAt, then id as tie-break)?
+function isRoundOrderedBefore(
+  row: AutoRemediationSuggestion,
+  reference: ClusterRoundReference | undefined,
+): boolean {
+  if (!reference?.createdAt || !row.createdAt) {
+    // Order unknown: count it — the breaker's fail direction.
+    return true;
+  }
+
+  const rowTime: number = new Date(row.createdAt).getTime();
+  const referenceTime: number = new Date(reference.createdAt).getTime();
+
+  if (rowTime !== referenceTime) {
+    return rowTime < referenceTime;
+  }
+
+  return (row.id?.toString() || "") < (reference.suggestionId.toString() || "");
+}
+
+function isSameSubject(
+  row: AutoRemediationSuggestion,
+  subject: SubjectLinkage,
+): boolean {
+  if (subject.incidentId && row.incidentId) {
+    return row.incidentId.toString() === subject.incidentId.toString();
+  }
+  if (subject.alertId && row.alertId) {
+    return row.alertId.toString() === subject.alertId.toString();
+  }
+  return false;
+}
+
 class AutoRemediationRuleEngineServiceClass {
+  /*
+   * The per-cluster hourly circuit breaker. It counts distinct unattended
+   * AI fixes on the cluster in the last hour, three ways, the larger total
+   * winning:
+   *   - cluster-level rounds already settled AutoExecuted (their suggestion
+   *     carries the cluster id);
+   *   - distinct AI runs — cluster-level OR rule-driven — that executed at
+   *     least one inline `ai-command-*` kubectl job on the cluster (a
+   *     rule-driven run's suggestion carries no cluster id; its jobs do);
+   *   - unattended cluster rounds still IN FLIGHT: Planning with a FullAuto
+   *     snapshot, created before the asking round. A round that is still
+   *     diagnosing has written nothing yet, so without this term every
+   *     round announced in the same storm would read the same stale count
+   *     and all of them would run unattended.
+   * The in-flight rounds and the runs with inline jobs are unioned by
+   * suggestion id (a running round that already executed shows up in both).
+   *
+   * The in-flight rows are read FIRST: a round that settles between the
+   * reads moves from Planning to AutoExecuted and is caught by the settled
+   * read that follows, never missed by both.
+   *
+   * Throws on a failed read: every caller fails safe to "no headroom".
+   */
+  @CaptureSpan()
+  public async getClusterBreakerState(data: {
+    clusterId: string;
+    projectId?: ObjectID | undefined;
+    forRound?: ClusterRoundReference | undefined;
+  }): Promise<ClusterBreakerState> {
+    const since: Date = OneUptimeDate.getSomeHoursAgo(1);
+    const clusterId: ObjectID = new ObjectID(data.clusterId);
+    const selfId: string | undefined = data.forRound?.suggestionId.toString();
+
+    const inFlightRounds: Array<AutoRemediationSuggestion> =
+      await AutoRemediationSuggestionService.findBy({
+        query: {
+          ...(data.projectId ? { projectId: data.projectId } : {}),
+          kubernetesClusterId: clusterId,
+          suggestionType: AutoRemediationSuggestionType.CommandPlan,
+          status: AutoRemediationSuggestionStatus.Planning,
+          executionMode: AutoRemediationExecutionMode.FullAuto,
+          createdAt: QueryHelper.greaterThan(since),
+        },
+        select: {
+          _id: true,
+          createdAt: true,
+        },
+        limit: MAX_CLUSTER_ROUND_ROWS,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const settledClusterRounds: number = (
+      await AutoRemediationSuggestionService.countBy({
+        query: {
+          kubernetesClusterId: clusterId,
+          suggestionType: AutoRemediationSuggestionType.CommandPlan,
+          status: AutoRemediationSuggestionStatus.AutoExecuted,
+          createdAt: QueryHelper.greaterThan(since),
+        },
+        props: { isRoot: true },
+      })
+    ).toNumber();
+
+    const inlineKubectlJobs: Array<RunnerJob> = await RunnerJobService.findBy({
+      query: {
+        ...(data.projectId ? { projectId: data.projectId } : {}),
+        kubernetesClusterId: clusterId,
+        origin: RunnerJobOrigin.AiRemediation,
+        stepId: QueryHelper.startsWith(INLINE_COMMAND_STEP_ID_PREFIX),
+        createdAt: QueryHelper.greaterThan(since),
+      },
+      select: {
+        _id: true,
+        autoRemediationSuggestionId: true,
+      },
+      limit: MAX_CLUSTER_ROUND_ROWS,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const unattendedRuns: Set<string> = new Set<string>();
+
+    for (const job of inlineKubectlJobs) {
+      unattendedRuns.add(
+        job.autoRemediationSuggestionId?.toString() || job.id?.toString() || "",
+      );
+    }
+
+    for (const round of inFlightRounds) {
+      if (isRoundOrderedBefore(round, data.forRound)) {
+        unattendedRuns.add(round.id?.toString() || "");
+      }
+    }
+
+    // The asking round never counts against itself.
+    if (selfId) {
+      unattendedRuns.delete(selfId);
+    }
+
+    const autoExecutedInWindow: number = Math.max(
+      settledClusterRounds,
+      unattendedRuns.size,
+    );
+
+    return {
+      autoExecutedInWindow,
+      hasHeadroom: autoExecutedInWindow < MAX_AUTO_EXECUTIONS_PER_RULE_PER_HOUR,
+    };
+  }
+
+  /*
+   * Another AI run that holds this cluster right now, or null.
+   *
+   * A cluster-level round holds its cluster while it is still running
+   * unattended (Planning with a FullAuto snapshot — only rounds created
+   * before the asking one, unless `anyOrder`) and while its executed fix is
+   * still being verified (AutoExecuted or Approved, verification Pending) —
+   * whatever subject it is for: an alert and an incident of one monitor
+   * each get their own round on the same cluster. With `subject`, any
+   * round of that same signal still composing (Planning, asking or not)
+   * holds it too: a rule-driven run must not change a cluster whose own
+   * round is working on the very same signal.
+   *
+   * A rule-driven run carries no cluster id — its kubectl JOBS do. One that
+   * already changed the cluster (an inline or approved kubectl job there)
+   * holds it the same way: while it is still running (whatever the order:
+   * it has already written), and while its fix is still being verified. So
+   * "one unattended round per cluster at a time" holds in both directions,
+   * not only for a rule run yielding to a cluster round.
+   *
+   * Throws on a failed read: callers fail safe to "held".
+   */
+  @CaptureSpan()
+  public async findRoundHoldingCluster(data: {
+    projectId: ObjectID;
+    clusterId: string;
+    forRound?: ClusterRoundReference | undefined;
+    anyOrder?: boolean | undefined;
+    subject?: SubjectLinkage | undefined;
+  }): Promise<ClusterRoundHold | null> {
+    const rows: Array<AutoRemediationSuggestion> =
+      await AutoRemediationSuggestionService.findBy({
+        query: {
+          projectId: data.projectId,
+          kubernetesClusterId: new ObjectID(data.clusterId),
+          suggestionType: AutoRemediationSuggestionType.CommandPlan,
+          status: QueryHelper.any([
+            AutoRemediationSuggestionStatus.Planning,
+            AutoRemediationSuggestionStatus.AutoExecuted,
+            AutoRemediationSuggestionStatus.Approved,
+          ]),
+          createdAt: QueryHelper.greaterThan(
+            OneUptimeDate.getSomeHoursAgo(HELD_ROUND_LOOKBACK_HOURS),
+          ),
+        },
+        select: {
+          _id: true,
+          status: true,
+          executionMode: true,
+          verificationStatus: true,
+          verificationDeadlineAt: true,
+          incidentId: true,
+          alertId: true,
+          ruleNameSnapshot: true,
+          createdAt: true,
+        },
+        limit: MAX_CLUSTER_ROUND_ROWS,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    const selfId: string | undefined = data.forRound?.suggestionId.toString();
+
+    for (const row of rows) {
+      const rowId: string = row.id?.toString() || "";
+
+      if (!rowId || rowId === selfId) {
+        continue;
+      }
+
+      const hold: ClusterRoundHold | null = this.getHold({
+        row,
+        rowId,
+        hasChangedCluster: false,
+        anyOrder: data.anyOrder === true,
+        forRound: data.forRound,
+        subject: data.subject,
+      });
+
+      if (hold) {
+        return hold;
+      }
+    }
+
+    /*
+     * Rule-driven runs that changed this cluster: found through their
+     * kubectl jobs on it (inline while the run planned, or an approved
+     * plan's), never through a cluster id they do not carry.
+     */
+    const seen: Set<string> = new Set<string>(
+      rows.map((row: AutoRemediationSuggestion) => {
+        return row.id?.toString() || "";
+      }),
+    );
+
+    if (selfId) {
+      seen.add(selfId);
+    }
+
+    const kubectlJobs: Array<RunnerJob> = await RunnerJobService.findBy({
+      query: {
+        projectId: data.projectId,
+        kubernetesClusterId: new ObjectID(data.clusterId),
+        origin: RunnerJobOrigin.AiRemediation,
+        createdAt: QueryHelper.greaterThan(
+          OneUptimeDate.getSomeHoursAgo(HELD_ROUND_LOOKBACK_HOURS),
+        ),
+      },
+      select: {
+        _id: true,
+        autoRemediationSuggestionId: true,
+        stepId: true,
+      },
+      limit: MAX_CLUSTER_ROUND_ROWS,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const changedBy: Set<string> = new Set<string>();
+
+    for (const job of kubectlJobs) {
+      const suggestionId: string =
+        job.autoRemediationSuggestionId?.toString() || "";
+      const stepId: string = job.stepId || "";
+
+      // A rollback job belongs to a fix whose verification already failed.
+      const isForwardChange: boolean =
+        stepId.startsWith(INLINE_COMMAND_STEP_ID_PREFIX) ||
+        stepId.startsWith(APPROVED_COMMAND_STEP_ID_PREFIX);
+
+      if (suggestionId && isForwardChange && !seen.has(suggestionId)) {
+        changedBy.add(suggestionId);
+      }
+    }
+
+    if (changedBy.size === 0) {
+      return null;
+    }
+
+    const runs: Array<AutoRemediationSuggestion> =
+      await AutoRemediationSuggestionService.findBy({
+        query: {
+          projectId: data.projectId,
+          _id: QueryHelper.any(Array.from(changedBy)),
+          suggestionType: AutoRemediationSuggestionType.CommandPlan,
+          status: QueryHelper.any([
+            AutoRemediationSuggestionStatus.Planning,
+            AutoRemediationSuggestionStatus.AutoExecuted,
+            AutoRemediationSuggestionStatus.Approved,
+          ]),
+        },
+        select: {
+          _id: true,
+          status: true,
+          executionMode: true,
+          verificationStatus: true,
+          verificationDeadlineAt: true,
+          incidentId: true,
+          alertId: true,
+          ruleNameSnapshot: true,
+          createdAt: true,
+        },
+        limit: MAX_CLUSTER_ROUND_ROWS,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    for (const run of runs) {
+      const runId: string = run.id?.toString() || "";
+
+      if (!changedBy.has(runId)) {
+        continue;
+      }
+
+      const hold: ClusterRoundHold | null = this.getHold({
+        row: run,
+        rowId: runId,
+        hasChangedCluster: true,
+        anyOrder: data.anyOrder === true,
+        forRound: data.forRound,
+        subject: data.subject,
+      });
+
+      if (hold) {
+        return hold;
+      }
+    }
+
+    return null;
+  }
+
+  /*
+   * Whether one other run holds the cluster — see findRoundHoldingCluster.
+   * `hasChangedCluster`: the run already has a kubectl job on the cluster,
+   * so while it is still running it holds whatever its order or mode.
+   */
+  private getHold(data: {
+    row: AutoRemediationSuggestion;
+    rowId: string;
+    hasChangedCluster: boolean;
+    anyOrder: boolean;
+    forRound?: ClusterRoundReference | undefined;
+    subject?: SubjectLinkage | undefined;
+  }): ClusterRoundHold | null {
+    const { row, rowId } = data;
+    const now: number = OneUptimeDate.getCurrentDate().getTime();
+    const inFlightSince: number = OneUptimeDate.getSomeHoursAgo(
+      IN_FLIGHT_ROUND_WINDOW_HOURS,
+    ).getTime();
+
+    const sameSubject: boolean = data.subject
+      ? isSameSubject(row, data.subject)
+      : false;
+
+    if (
+      (row.status === AutoRemediationSuggestionStatus.AutoExecuted ||
+        row.status === AutoRemediationSuggestionStatus.Approved) &&
+      row.verificationStatus === AutoRemediationVerificationStatus.Pending
+    ) {
+      const deadline: number | null = row.verificationDeadlineAt
+        ? new Date(row.verificationDeadlineAt).getTime()
+        : null;
+
+      if (
+        deadline === null ||
+        deadline > now - PENDING_VERIFICATION_HOLD_GRACE_MINUTES * 60 * 1000
+      ) {
+        return {
+          suggestionId: rowId,
+          ruleNameSnapshot: row.ruleNameSnapshot,
+          description: "applied a fix that is still being verified",
+          isSameSubject: sameSubject,
+        };
+      }
+      return null;
+    }
+
+    if (row.status !== AutoRemediationSuggestionStatus.Planning) {
+      return null;
+    }
+
+    const isRecent: boolean = row.createdAt
+      ? new Date(row.createdAt).getTime() > inFlightSince
+      : true;
+
+    if (!isRecent) {
+      return null;
+    }
+
+    if (data.hasChangedCluster) {
+      return {
+        suggestionId: rowId,
+        ruleNameSnapshot: row.ruleNameSnapshot,
+        description: "is still changing it",
+        isSameSubject: sameSubject,
+      };
+    }
+
+    if (
+      row.executionMode === AutoRemediationExecutionMode.FullAuto &&
+      (data.anyOrder || isRoundOrderedBefore(row, data.forRound))
+    ) {
+      return {
+        suggestionId: rowId,
+        ruleNameSnapshot: row.ruleNameSnapshot,
+        description: "is still running unattended",
+        isSameSubject: sameSubject,
+      };
+    }
+
+    if (sameSubject) {
+      return {
+        suggestionId: rowId,
+        ruleNameSnapshot: row.ruleNameSnapshot,
+        description: "is still working on this same signal",
+        isSameSubject: true,
+      };
+    }
+
+    return null;
+  }
+
   /*
    * Reload an incident and run the rules against it. Used by the
    * post-investigation remediation hand-off (RemediationHandoff), which
@@ -194,6 +759,62 @@ class AutoRemediationRuleEngineServiceClass {
       return;
     }
 
+    const linkage: SubjectLinkage = {
+      incidentId: data.incident?.id || undefined,
+      alertId: data.alert?.id || undefined,
+    };
+
+    /*
+     * Per-subject cap + per-rule dedupe. A rule that already produced a
+     * suggestion on this subject never produces another (a dismissal is a
+     * human "no" — do not re-ask).
+     */
+    const existingSuggestions: Array<AutoRemediationSuggestion> =
+      await AutoRemediationSuggestionService.findBy({
+        query: linkage.incidentId
+          ? { incidentId: linkage.incidentId }
+          : { alertId: linkage.alertId! },
+        props: { isRoot: true },
+        select: {
+          _id: true,
+          autoRemediationRuleId: true,
+          kubernetesClusterId: true,
+        },
+        limit: MAX_SUGGESTIONS_PER_SUBJECT * 10,
+        skip: 0,
+      });
+
+    let remainingBudget: number =
+      MAX_SUGGESTIONS_PER_SUBJECT - existingSuggestions.length;
+
+    if (remainingBudget <= 0) {
+      logger.debug(
+        `AutoRemediationRuleEngine: suggestion cap reached for subject; skipping.`,
+        {
+          projectId: data.projectId.toString(),
+          incidentId: linkage.incidentId?.toString(),
+          alertId: linkage.alertId?.toString(),
+        } as LogAttributes,
+      );
+      return;
+    }
+
+    /*
+     * Cluster-level remediation first: an operator who set a mode on the
+     * cluster's AI page expressed a more specific intent than any project
+     * rule, and it needs no rule to fire.
+     */
+    remainingBudget -= await this.applyClusterLevelRemediation({
+      projectId: data.projectId,
+      linkage,
+      existingSuggestions,
+      budget: remainingBudget,
+    });
+
+    if (remainingBudget <= 0) {
+      return;
+    }
+
     const rules: Array<AutoRemediationRule> =
       await AutoRemediationRuleService.findBy({
         query: {
@@ -249,45 +870,6 @@ class AutoRemediationRuleEngineServiceClass {
     }
 
     if (matchedRules.length === 0) {
-      return;
-    }
-
-    const linkage: SubjectLinkage = {
-      incidentId: data.incident?.id || undefined,
-      alertId: data.alert?.id || undefined,
-    };
-
-    /*
-     * Per-subject cap + per-rule dedupe. A rule that already produced a
-     * suggestion on this subject never produces another (a dismissal is a
-     * human "no" — do not re-ask).
-     */
-    const existingSuggestions: Array<AutoRemediationSuggestion> =
-      await AutoRemediationSuggestionService.findBy({
-        query: linkage.incidentId
-          ? { incidentId: linkage.incidentId }
-          : { alertId: linkage.alertId! },
-        props: { isRoot: true },
-        select: {
-          _id: true,
-          autoRemediationRuleId: true,
-        },
-        limit: MAX_SUGGESTIONS_PER_SUBJECT * 10,
-        skip: 0,
-      });
-
-    let remainingBudget: number =
-      MAX_SUGGESTIONS_PER_SUBJECT - existingSuggestions.length;
-
-    if (remainingBudget <= 0) {
-      logger.debug(
-        `AutoRemediationRuleEngine: suggestion cap reached for subject; skipping ${matchedRules.length} matched rule(s).`,
-        {
-          projectId: data.projectId.toString(),
-          incidentId: linkage.incidentId?.toString(),
-          alertId: linkage.alertId?.toString(),
-        } as LogAttributes,
-      );
       return;
     }
 
@@ -530,6 +1112,353 @@ class AutoRemediationRuleEngineServiceClass {
     }
 
     return consumed;
+  }
+
+  /*
+   * Cluster-level remediation: for every cluster this signal is about whose
+   * AI page enables remediation (and whose access is ready), start one AI
+   * command run with the cluster as its only target. Automatic clusters run
+   * FullAuto (safe kubectl without a human; a riskier change never runs on
+   * its own — a round that could only find riskier fixes ends by proposing
+   * exactly those for one-click approval, and after safe fixes a riskier
+   * one is proposed only if verification shows they did not recover the
+   * signal, by the follow-up round, which asks);
+   * BypassApproval clusters run FullAuto for every change the policy
+   * allows (a protected-namespace write, a node drain, a node taint or a
+   * patch of a Node still asks); clusters on "ask for approval" run
+   * Suggest. One
+   * suggestion per cluster per subject from this hook; and at most one
+   * UNATTENDED AI run per cluster at a time, whatever the subject — a round
+   * that finds another round, or a rule-driven run, still changing the
+   * cluster or being verified on it asks instead (see
+   * startClusterCommandRun and findRoundHoldingCluster). Returns how much
+   * of the per-subject budget it used.
+   */
+  private async applyClusterLevelRemediation(data: {
+    projectId: ObjectID;
+    linkage: SubjectLinkage;
+    existingSuggestions: Array<AutoRemediationSuggestion>;
+    budget: number;
+  }): Promise<number> {
+    let consumed: number = 0;
+
+    let statuses: Array<KubernetesClusterAiAccessStatus> = [];
+
+    try {
+      statuses = await KubernetesClusterAiAccessService.getStatusesForSubject({
+        projectId: data.projectId,
+        incidentId: data.linkage.incidentId,
+        alertId: data.linkage.alertId,
+      });
+    } catch (error) {
+      logger.error(
+        `AutoRemediationRuleEngine: could not resolve cluster access for the subject; skipping cluster-level remediation: ${error}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      return 0;
+    }
+
+    for (const status of statuses) {
+      if (consumed >= data.budget) {
+        break;
+      }
+
+      if (!status.isRemediationReady) {
+        continue;
+      }
+
+      // One round per cluster per subject from the create hook.
+      const alreadyHasRound: boolean = data.existingSuggestions.some(
+        (suggestion: AutoRemediationSuggestion) => {
+          return (
+            suggestion.kubernetesClusterId?.toString() === status.clusterId
+          );
+        },
+      );
+
+      if (alreadyHasRound) {
+        continue;
+      }
+
+      const started: boolean = await this.startClusterCommandRun({
+        projectId: data.projectId,
+        cluster: status,
+        linkage: data.linkage,
+        round: 1,
+      });
+
+      if (started) {
+        consumed += 1;
+      }
+    }
+
+    return consumed;
+  }
+
+  /*
+   * A follow-up round after a cluster plan ran and verification failed: the
+   * operator asked to be asked again for a NEW set of commands. Suggest for
+   * RequireApproval and Automatic clusters (a human approves the second
+   * attempt), unattended again for BypassApproval clusters, and capped by
+   * MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT. `forceSuggest` makes even a
+   * BypassApproval follow-up ask first — the verifier sets it when the
+   * failed round's rollback did not complete, so round 1's change may still
+   * be applied and a human was just told to undo it by hand; an unattended
+   * round on top of that state is exactly what must not happen. Called by
+   * the verifier; never throws.
+   */
+  @CaptureSpan()
+  public async startFollowUpClusterRemediation(data: {
+    projectId: ObjectID;
+    kubernetesClusterId: ObjectID;
+    incidentId?: ObjectID | undefined;
+    alertId?: ObjectID | undefined;
+    forceSuggest?: boolean | undefined;
+    // Completes "this round asks first because ..." on the feed.
+    forceSuggestReason?: string | undefined;
+  }): Promise<boolean> {
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: data.projectId,
+        select: { enableAutoRemediation: true },
+        props: { isRoot: true },
+      });
+
+      if (!project || project.enableAutoRemediation === false) {
+        return false;
+      }
+
+      const linkage: SubjectLinkage = {
+        incidentId: data.incidentId,
+        alertId: data.alertId,
+      };
+
+      if (!linkage.incidentId && !linkage.alertId) {
+        return false;
+      }
+
+      const priorRounds: number = (
+        await AutoRemediationSuggestionService.countBy({
+          query: {
+            ...(linkage.incidentId
+              ? { incidentId: linkage.incidentId }
+              : { alertId: linkage.alertId! }),
+            kubernetesClusterId: data.kubernetesClusterId,
+          },
+          props: { isRoot: true },
+        })
+      ).toNumber();
+
+      if (priorRounds >= MAX_CLUSTER_REMEDIATION_ROUNDS_PER_SUBJECT) {
+        logger.debug(
+          `AutoRemediationRuleEngine: cluster ${data.kubernetesClusterId.toString()} already used ${priorRounds} remediation round(s) on this subject; not asking again.`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        return false;
+      }
+
+      const status: KubernetesClusterAiAccessStatus | null =
+        await KubernetesClusterAiAccessService.getStatusForCluster({
+          clusterId: data.kubernetesClusterId,
+          projectId: data.projectId,
+        });
+
+      if (!status || !status.isRemediationReady) {
+        return false;
+      }
+
+      return await this.startClusterCommandRun({
+        projectId: data.projectId,
+        cluster: status,
+        linkage,
+        round: priorRounds + 1,
+        askFirstReason:
+          data.forceSuggest === true
+            ? data.forceSuggestReason ||
+              "the previous fix's rollback did not complete, so its change may still be applied"
+            : undefined,
+      });
+    } catch (error) {
+      logger.error(
+        `AutoRemediationRuleEngine: follow-up cluster remediation failed: ${error}`,
+        { projectId: data.projectId.toString() } as LogAttributes,
+      );
+      return false;
+    }
+  }
+
+  private async startClusterCommandRun(data: {
+    projectId: ObjectID;
+    cluster: KubernetesClusterAiAccessStatus;
+    linkage: SubjectLinkage;
+    round: number;
+    /*
+     * Set when a round that would run unattended must ask first anyway;
+     * completes "this round asks first because ...".
+     */
+    askFirstReason?: string | undefined;
+  }): Promise<boolean> {
+    const { cluster } = data;
+
+    /*
+     * Automatic clusters run their first round unattended and ask a human
+     * for the follow-up; a BypassApproval cluster runs every round
+     * unattended, follow-ups included — that is what its operator chose.
+     * (What needs a human in every mode — a protected-namespace write, a
+     * node drain, a node taint, a patch of a Node — is still proposed,
+     * never run, inside the round.)
+     */
+    const isBypass: boolean =
+      cluster.remediationMode === KubernetesAiRemediationMode.BypassApproval;
+    const wantsUnattended: boolean =
+      isBypass ||
+      (data.round === 1 &&
+        cluster.remediationMode === KubernetesAiRemediationMode.Automatic);
+
+    let askFirstReason: string | null = data.askFirstReason || null;
+
+    /*
+     * One unattended round per cluster at a time. An alert and an incident
+     * of the same monitor each reach this point with their own subject, so
+     * the per-subject dedupe above never sees the other one; two unattended
+     * agents on one cluster would each verify and roll back on top of the
+     * other's change. The execution runner re-checks this when the round
+     * starts (rounds announced at the same moment cannot see each other
+     * here); this check only keeps the announcement honest.
+     */
+    if (wantsUnattended && !askFirstReason) {
+      try {
+        const hold: ClusterRoundHold | null =
+          await this.findRoundHoldingCluster({
+            projectId: data.projectId,
+            clusterId: cluster.clusterId,
+            anyOrder: true,
+          });
+
+        if (hold) {
+          askFirstReason = `another OneUptime AI round on this cluster ${hold.description}`;
+        }
+      } catch (error) {
+        logger.error(
+          `AutoRemediationRuleEngine: could not check cluster ${cluster.clusterId} for another AI round in flight; this round asks first: ${error}`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+        askFirstReason =
+          "OneUptime AI could not confirm that no other AI round is changing this cluster";
+      }
+    }
+
+    const isAutomatic: boolean = wantsUnattended && !askFirstReason;
+
+    const suggestion: AutoRemediationSuggestion =
+      new AutoRemediationSuggestion();
+    suggestion.projectId = data.projectId;
+    suggestion.kubernetesClusterId = new ObjectID(cluster.clusterId);
+    suggestion.ruleNameSnapshot = getClusterRoundNameSnapshot(
+      cluster.clusterName,
+      data.round,
+    );
+    suggestion.status = AutoRemediationSuggestionStatus.Planning;
+    suggestion.suggestionType = AutoRemediationSuggestionType.CommandPlan;
+    suggestion.executionMode = isAutomatic
+      ? AutoRemediationExecutionMode.FullAuto
+      : AutoRemediationExecutionMode.Suggest;
+    suggestion.verificationWindowMinutes = DEFAULT_VERIFICATION_WINDOW_MINUTES;
+    /*
+     * An Automatic cluster's operator asked for the loop to be closed:
+     * once the monitors recover the signal resolves itself. With a human
+     * approving, the human resolves.
+     */
+    suggestion.autoResolveOnRecovery = isAutomatic;
+    if (data.linkage.incidentId) {
+      suggestion.incidentId = data.linkage.incidentId;
+    }
+    if (data.linkage.alertId) {
+      suggestion.alertId = data.linkage.alertId;
+    }
+
+    const created: AutoRemediationSuggestion =
+      await AutoRemediationSuggestionService.create({
+        data: suggestion,
+        props: { isRoot: true },
+      });
+
+    const aiRunId: ObjectID | null = await AIInvestigationQueue.enqueue({
+      projectId: data.projectId,
+      subjectIncidentId: data.linkage.incidentId,
+      subjectAlertId: data.linkage.alertId,
+      subjectAutoRemediationSuggestionId: created.id!,
+      remediationRunType: AIRunType.RemediationExecution,
+    });
+
+    if (!aiRunId) {
+      await AutoRemediationSuggestionService.updateOneById({
+        id: created.id!,
+        data: {
+          status: AutoRemediationSuggestionStatus.NoneApplicable,
+          rationaleMarkdown:
+            "The AI remediation run could not be started — the daily autonomous AI budget is exhausted or no run could be queued. Re-enable by raising the budget or waiting for the daily reset.",
+        },
+        props: { isRoot: true },
+      });
+      return false;
+    }
+
+    await AutoRemediationSuggestionService.updateOneById({
+      id: created.id!,
+      data: { aiRunId },
+      props: { isRoot: true },
+    });
+
+    /*
+     * The feed states exactly what this round does, in the terms of the
+     * canonical KubernetesAiRemediationMode comment. An Automatic round
+     * runs safe (and allowlisted) changes on its own; a riskier change
+     * never runs without a human — when the round finds only riskier
+     * fixes it ends by proposing exactly those as a one-click approval
+     * card, and when it also ran safe fixes a riskier one is proposed only
+     * if verification shows they did not recover the service (the
+     * follow-up round, which asks). A Bypass-approval round asks for
+     * nothing but what always needs a human. In both, a protected-
+     * namespace write, a node drain and a node taint always need a human,
+     * and the round becomes a proposal if the hourly circuit breaker trips
+     * or another unattended round holds the cluster — said here up front;
+     * the execution runner posts its own explanation when that happens.
+     */
+    let markdown: string;
+
+    if (wantsUnattended && askFirstReason) {
+      markdown = `⚡ **OneUptime AI is composing ${
+        data.round > 1 ? "another" : "a"
+      } kubectl fix for cluster "${cluster.clusterName}"**${
+        data.round > 1
+          ? ` (round ${data.round}) — the previous fix did not recover the service`
+          : ""
+      }. This round asks first because ${askFirstReason}: nothing runs until you approve the plan, which will appear here shortly.`;
+    } else if (isBypass) {
+      markdown =
+        data.round > 1
+          ? `⚡ **OneUptime AI is applying another kubectl fix on cluster "${cluster.clusterName}"** (round ${data.round}) — the previous fix did not recover the service. Approvals are bypassed for this cluster, so the new fix runs on its own: every kubectl change the policy allows, safe or riskier — except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`
+          : `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Approvals are bypassed for this cluster: AI is diagnosing with kubectl and will apply whatever fix the policy allows — safe or riskier — on its own, without asking, except that ${KUBECTL_ALWAYS_ASKS_SUMMARY}, so AI proposes such a change for your approval; destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`;
+    } else if (isAutomatic) {
+      markdown = `⚡ **OneUptime AI is fixing cluster "${cluster.clusterName}".** Automatic remediation is on for this cluster: AI is diagnosing with kubectl and will apply safe changes (${KUBECTL_SAFE_CHANGES_SUMMARY}), plus riskier changes whose shape the cluster's kubectl allowlist names, on its own. A riskier change never runs on its own otherwise: if the round finds only riskier fixes, AI proposes exactly those for your one-click approval; if it also applied safe changes, a riskier fix is proposed only if verification shows the service did not recover. ${capitalizeFirst(
+        KUBECTL_ALWAYS_ASKS_SUMMARY,
+      )}, and destructive commands never run. ${UNATTENDED_ROUND_PROPOSAL_FEED_SENTENCE} Progress appears here.`;
+    } else {
+      markdown =
+        data.round > 1
+          ? `⚡ **OneUptime AI is composing another kubectl fix for cluster "${cluster.clusterName}"** (round ${data.round}) — the previous fix did not recover the service. This round asks first: nothing runs until you approve the new plan, which will appear here shortly.`
+          : `⚡ **OneUptime AI is composing a kubectl fix for cluster "${cluster.clusterName}".** Nothing runs until you approve the plan — it will appear here shortly.`;
+    }
+
+    await this.postFeedItem({
+      projectId: data.projectId,
+      linkage: data.linkage,
+      markdown,
+      pingWorkspace: false,
+    });
+
+    return true;
   }
 
   /*

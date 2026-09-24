@@ -6,6 +6,9 @@ import { PlanType } from "../../Types/Billing/SubscriptionPlan";
 import UserType from "../../Types/UserType";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import SpanUtil from "../Utils/Telemetry/SpanUtil";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
+import TablePermission from "../Types/Database/Permissions/TablePermission";
+import { DatabaseBaseModelType } from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ObjectID from "../../Types/ObjectID";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -281,6 +284,73 @@ export default class CommonAPI {
       throw new NotAuthorizedException(
         data.errorMessage ||
           "You do not have permission to access this project's data.",
+      );
+    }
+  }
+
+  /*
+   * Throws unless the caller could read `modelType` through its CRUD
+   * endpoint. That read has two halves and both are applied here: an Allow
+   * grant from the model's read list (assertPermittedInProject), and no
+   * unlabelled team BLOCK row on any permission in that list
+   * (checkTableLevelBlockPermissions) - a block overrides every Allow the
+   * team holds. Master admins bypass both, as they do in ReadPermission.
+   *
+   * This is the table half only. Label and owned-scope rules are row rules,
+   * so a route that must honour them still has to read the rows with the
+   * caller's props. Like assertPermittedInProject, it must be called after
+   * assertAuthenticatedProjectMember has confirmed the tenant.
+   */
+  public static assertCanReadTable(data: {
+    modelType: DatabaseBaseModelType;
+    props: DatabaseCommonInteractionProps;
+    errorMessage?: string | undefined;
+  }): void {
+    CommonAPI.assertPermittedInProject({
+      databaseProps: data.props,
+      allowedPermissions: new data.modelType().getReadPermissions(),
+      errorMessage: data.errorMessage,
+    });
+
+    if (!data.props.isMasterAdmin) {
+      TablePermission.checkTableLevelBlockPermissions(
+        data.modelType,
+        data.props,
+        DatabaseRequestType.Read,
+      );
+    }
+  }
+
+  /*
+   * Throws unless the caller could create `modelType` through its CRUD
+   * endpoint. That create has two halves and both are applied here: an Allow
+   * grant from the model's create list (assertPermittedInProject), and no
+   * unlabelled team BLOCK row on any permission in that list
+   * (checkTableLevelBlockPermissions) - a block overrides every Allow the
+   * team holds. Master admins bypass both, as they do in CreatePermission.
+   *
+   * Use it for a custom route whose side effect is only acceptable from
+   * someone who could create that model anyway, so the route cannot be used
+   * to get around a team block the CRUD endpoint honours. Like
+   * assertPermittedInProject, it must be called after
+   * assertAuthenticatedProjectMember has confirmed the tenant.
+   */
+  public static assertCanCreateTable(data: {
+    modelType: DatabaseBaseModelType;
+    props: DatabaseCommonInteractionProps;
+    errorMessage?: string | undefined;
+  }): void {
+    CommonAPI.assertPermittedInProject({
+      databaseProps: data.props,
+      allowedPermissions: new data.modelType().getCreatePermissions(),
+      errorMessage: data.errorMessage,
+    });
+
+    if (!data.props.isMasterAdmin) {
+      TablePermission.checkTableLevelBlockPermissions(
+        data.modelType,
+        data.props,
+        DatabaseRequestType.Create,
       );
     }
   }

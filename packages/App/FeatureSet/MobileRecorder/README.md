@@ -232,6 +232,57 @@ The SDK never sets a browser `Origin` header. It sends
 `x-oneuptime-replay-recorder-kind: rn-view-tree` and the mobile app identifier;
 the server validates the identifier and synthesizes its exact `app://` origin.
 
+## Offline mode
+
+Recording never depends on the network. An app that loses its connection
+keeps recording into the outbox and uploads the whole backlog, in order, when
+the connection returns; an app killed while offline uploads it on its next
+launch.
+
+- **An outage costs a chunk nothing.** A request that never reaches the
+  server (no connection, or a 10 s timeout) keeps the chunk without spending
+  one of its three attempts, and is retried after 5 s, 15 s, 30 s and then
+  every minute for as long as the outage lasts. A throttle (`429`, or any
+  answer carrying `Retry-After`) is waited out the same way. Only a server
+  that answers with an error spends attempts. New chunks are stored, not
+  posted, while a retry is pending.
+- **The outbox survives long outages.** Each chunk is stored gzip-compressed
+  under its own AsyncStorage key (Android cannot read back a value larger
+  than 2 MB, so the earlier single-key outbox lost everything once a backlog
+  outgrew that). It holds up to 240 chunks and 3 MB of compressed data - an
+  hour or more of recording - and evicts the oldest past either bound. A
+  queue written by an earlier SDK version is migrated on first use.
+- **An app launched offline still records.** The last policy the server gave
+  is remembered (per host, application and ingestion key) and used when the
+  config request gets no answer - never when the server answers that replay
+  is off, which deletes it. It is never older than three days, never a
+  "targeted" capture, never written before a required consent, and is
+  forgotten when consent is withdrawn. The policy is fetched fresh as soon as
+  the connection is back.
+- **Uploads resume by themselves.** Returning to the foreground retries the
+  backlog at once. Pass a connectivity source to stop every attempt while the
+  device reports it is offline and to upload the instant it reports it is
+  back - with `@react-native-community/netinfo`:
+
+  ```tsx
+  import NetInfo from "@react-native-community/netinfo";
+
+  OneUptimeReplay.start({
+    // host, token, appIdentifier, mobileAppIdentifier...
+    connectivity: {
+      subscribe: (listener) =>
+        NetInfo.addEventListener((state) => listener(state.isConnected)),
+    },
+  });
+  ```
+
+- **The timeline stays true.** Each chunk's `clientSendUnixMs` is stamped when
+  it is actually sent, so the server knows how long it waited (up to the
+  three-day offline delay) and places the recording where it happened.
+- Diagnostics report `chunk-network-failure`, `back-online`,
+  `network-offline` / `network-online`, `config-from-cache` and
+  `outbox-overflow`.
+
 ## Fidelity limitations
 
 - Reanimated/UI-thread animations are sampled, not frame-accurate.

@@ -8,6 +8,7 @@ Ausnahmen-Monitore zählen und filtern Ausnahmen, die bestimmten Kriterien entsp
 
 - Benachrichtigungen bei Ausnahmespitzen in Ihren Anwendungen
 - Bestimmte Ausnahmetypen überwachen
+- Benachrichtigungen auf eine Deployment-Umgebung wie `production` beschränken
 - Ausnahmen nach Fehlermeldung suchen
 - Gelöste und aktive Ausnahmen separat verfolgen
 - Anwendungsstabilitätsprobleme aus Fehlermustern erkennen
@@ -31,10 +32,35 @@ Wählen Sie einen oder mehrere Dienste aus, von denen Ausnahmen überwacht werde
 | Filter                   | Beschreibung                                                              | Erforderlich |
 | ------------------------ | ------------------------------------------------------------------------- | ------------ |
 | Ausnahmetypen            | Nach Ausnahmetypnamen filtern (z. B. `NullPointerException`, `TypeError`) | Nein         |
+| Umgebungen               | Nach Deployment-Umgebung filtern (z. B. `production`, `staging`)          | Nein         |
 | Nachricht                | Textsuche in Ausnahmemeldungen                                            | Nein         |
 | Gelöste einschließen     | Gelöste Ausnahmen einschließen (Standard: false)                          | Nein         |
 | Archivierte einschließen | Archivierte Ausnahmen einschließen (Standard: false)                      | Nein         |
 | Zeitfenster              | Wie weit zurück nach Ausnahmen gesucht wird (in Sekunden, Standard: 60)   | Nein         |
+
+### Umgebungen
+
+Umgebungen stammen aus dem OpenTelemetry-Ressourcenattribut `deployment.environment` jeder Ausnahme – demselben Wert, nach dem der Ausnahmen-Explorer mit `env:production` filtert. Geben Sie eine Umgebung oder mehrere durch Kommas getrennte Umgebungen ein; eine Ausnahme wird gezählt, wenn ihre Umgebung mit einer davon übereinstimmt.
+
+Der Abgleich ist exakt und berücksichtigt Groß- und Kleinschreibung: `production` stimmt nicht mit `Production` oder `prod` überein. Ausnahmen ohne Umgebung werden nicht gezählt, wenn dieser Filter gesetzt ist. Lassen Sie ihn leer, um Ausnahmen aus allen Umgebungen zu zählen, einschließlich solcher ohne Umgebung.
+
+Der Umgebungsfilter wird mit allen anderen Filtern kombiniert, sodass ein Monitor, der auf einen Telemetrie-Dienst und `production` beschränkt ist, nur die Produktionsausnahmen dieses Dienstes zählt.
+
+Wenn Sie den Monitor über die API erstellen, setzen Sie `environments` im `exceptionMonitor` des Schritts auf eine Liste von Umgebungsnamen:
+
+```json
+{
+  "exceptionMonitor": {
+    "telemetryServiceIds": [],
+    "environments": ["production"],
+    "exceptionTypes": [],
+    "message": "",
+    "includeResolved": false,
+    "includeArchived": false,
+    "lastXSecondsOfExceptions": 300
+  }
+}
+```
 
 ## Überwachungskriterien
 
@@ -69,6 +95,14 @@ Wählen Sie einen oder mehrere Dienste aus, von denen Ausnahmen überwacht werde
 - **Prüfen auf**: Ausnahmezahl
 - **Filtertyp**: Größer als
 - **Wert**: 0
+
+#### Benachrichtigung nur bei Produktionsausnahmen
+
+- **Umgebungen**: `production`
+- **Zeitfenster**: 300 Sekunden
+- **Prüfen auf**: Ausnahmezahl
+- **Filtertyp**: Größer als
+- **Wert**: 5
 
 #### Ausnahmen mit bestimmter Nachricht überwachen
 

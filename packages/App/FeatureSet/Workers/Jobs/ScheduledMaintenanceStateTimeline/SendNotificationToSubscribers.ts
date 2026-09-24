@@ -583,6 +583,7 @@ RunCron(
                       body: compiledBody,
                     },
                     subject: compiledSubject,
+                    isSubjectLiteral: true,
                   },
                   {
                     mailServer: ProjectSmtpConfigService.toEmailServer(
@@ -632,6 +633,7 @@ RunCron(
                       scheduledEventStateTimeline.scheduledMaintenanceState
                         ?.name,
                     )} Scheduled Maintenance] ${event.title || ""}`,
+                    isSubjectLiteral: true,
                   },
                   {
                     mailServer: ProjectSmtpConfigService.toEmailServer(

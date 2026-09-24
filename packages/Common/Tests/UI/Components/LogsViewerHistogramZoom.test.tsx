@@ -154,7 +154,9 @@ interface RenderedViewer {
   onTimeRangeChange: MockFunction;
 }
 
-async function renderViewer(): Promise<RenderedViewer> {
+async function renderViewer(
+  options: { histogramBucketIntervalMs?: number | undefined } = {},
+): Promise<RenderedViewer> {
   const onHistogramTimeRangeSelect: MockFunction = getJestMockFunction();
   const onTimeRangeChange: MockFunction = getJestMockFunction();
 
@@ -166,6 +168,7 @@ async function renderViewer(): Promise<RenderedViewer> {
       onFilterChanged={getJestMockFunction()}
       histogramBuckets={BUCKETS}
       histogramLoading={false}
+      histogramBucketIntervalMs={options.histogramBucketIntervalMs}
       onHistogramTimeRangeSelect={onHistogramTimeRangeSelect}
       timeRange={PAST_DAY}
       onTimeRangeChange={onTimeRangeChange}
@@ -205,6 +208,49 @@ describe("LogsViewer wires the histogram's zoom to the window it came from", () 
     ];
     expect(start.toISOString()).toBe(new Date(FIRST_BUCKET).toISOString());
     expect(end.toISOString()).toBe(new Date(LAST_BUCKET).toISOString());
+  });
+
+  /*
+   * Issue #3914: the viewer is what hands the chart the width of its bars.
+   * Without it a click on one bar selected a window zero seconds wide, and
+   * the list under the chart showed no logs.
+   */
+  test("a click on one bar reaches the host as that bar's whole bucket", async () => {
+    const { onHistogramTimeRangeSelect } = await renderViewer({
+      histogramBucketIntervalMs: 60 * 1000,
+    });
+
+    fireEvent.mouseDown(screen.getByTestId(`bucket-${FIRST_BUCKET}`));
+    fireEvent.mouseUp(screen.getByTestId(`bucket-${FIRST_BUCKET}`));
+
+    expect(onHistogramTimeRangeSelect).toHaveBeenCalledTimes(1);
+    const [start, end] = onHistogramTimeRangeSelect.mock.calls[0] as [
+      Date,
+      Date,
+    ];
+    expect(start.toISOString()).toBe("2026-08-05T11:58:00.000Z");
+    expect(end.toISOString()).toBe("2026-08-05T11:59:00.000Z");
+  });
+
+  test("a drag reaches the host through the end of the last bar", async () => {
+    const { onHistogramTimeRangeSelect } = await renderViewer({
+      histogramBucketIntervalMs: 60 * 1000,
+    });
+
+    dragAcrossHistogram();
+
+    const [start, end] = onHistogramTimeRangeSelect.mock.calls[0] as [
+      Date,
+      Date,
+    ];
+    expect(start.toISOString()).toBe("2026-08-05T11:58:00.000Z");
+    expect(end.toISOString()).toBe("2026-08-05T12:01:00.000Z");
+  });
+
+  test("the chart says a click works once it knows the bucket width", async () => {
+    await renderViewer({ histogramBucketIntervalMs: 60 * 1000 });
+
+    expect(screen.queryByText("Click or drag to zoom")).not.toBeNull();
   });
 
   test("the way back out only appears once a drag has zoomed in", async () => {

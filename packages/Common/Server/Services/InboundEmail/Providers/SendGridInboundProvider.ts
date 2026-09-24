@@ -3,6 +3,10 @@ import InboundEmailProvider, {
   ParsedInboundEmail,
 } from "../InboundEmailProvider";
 import { JSONObject } from "../../../../Types/JSON";
+import IncomingEmailMonitorAddress, {
+  IncomingEmailRecipient,
+  IncomingEmailRecipientKind,
+} from "../../../../Utils/Monitor/IncomingEmailMonitorAddress";
 
 // SendGrid uses the base config - add SendGrid-specific options here if needed in the future
 export type SendGridInboundConfig = InboundEmailProviderConfig;
@@ -86,25 +90,22 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
   public extractSecretKeyFromEmail(email: string): string | null {
     /*
      * Extract from: monitor-{secretKey}@inbound.domain.com
-     * Handle email formats like "name@domain" or "Name <name@domain>"
+     * Handle email formats like "name@domain" or "Name <name@domain>".
+     * A custom monitor address carries no secret key, so it yields null.
      */
-    const emailAddress: string = this.extractEmailAddress(email);
+    const recipient: IncomingEmailRecipient | null =
+      IncomingEmailMonitorAddress.parseRecipient({
+        emailAddress: this.extractEmailAddress(email),
+        inboundDomain: this.config.inboundDomain,
+      });
 
-    /*
-     * Create regex pattern that matches the email prefix format
-     * The secret key is a UUID-like string
-     */
-    const pattern: RegExp = new RegExp(
-      `^monitor-([a-zA-Z0-9-]+)@${this.escapeRegex(this.config.inboundDomain)}$`,
-      "i",
-    );
-    const match: RegExpMatchArray | null = emailAddress.match(pattern);
-
-    return match ? match[1]! : null;
+    return recipient?.kind === IncomingEmailRecipientKind.Generated
+      ? recipient.secretKey
+      : null;
   }
 
   public generateMonitorEmailAddress(secretKey: string): string {
-    return `monitor-${secretKey}@${this.config.inboundDomain}`;
+    return `${IncomingEmailMonitorAddress.getGeneratedLocalPart(secretKey)}@${this.config.inboundDomain}`;
   }
 
   /**
@@ -199,12 +200,5 @@ export default class SendGridInboundProvider extends InboundEmailProvider {
     } catch {
       return undefined;
     }
-  }
-
-  /**
-   * Escape special regex characters in a string
-   */
-  private escapeRegex(str: string): string {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 }

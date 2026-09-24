@@ -29,6 +29,7 @@ import EventStatusPanel, {
   EventStatusFact,
 } from "../EventView/EventStatusPanel";
 import IncidentNoteTemplate from "Common/Models/DatabaseModels/IncidentNoteTemplate";
+import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import AIRunHumanVerdict from "Common/Types/AI/AIRunHumanVerdict";
 import AIRunStatus from "Common/Types/AI/AIRunStatus";
@@ -48,6 +49,12 @@ export interface ComponentProps {
   eventStartsAt?: Date | undefined;
   severity?: { name: string; color: Color } | undefined;
   isPrivate?: boolean | undefined;
+  /*
+   * Where "Notify Status Page Subscribers" starts in the state change form,
+   * which also decides whether its public note notifies. False when the
+   * incident was declared without notifying subscribers.
+   */
+  notifyStatusPageSubscribersByDefault?: boolean | undefined;
   aiInvestigationStatus?: AIRunStatus | null | undefined;
   /*
    * The completed investigation's TL;DR (or summary) as plain text. With a
@@ -107,6 +114,9 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [showModal, setShowModal] = useState<boolean>(false);
+
+  const notifySubscribersByDefault: boolean =
+    props.notifyStatusPageSubscribersByDefault ?? true;
 
   const [error, setError] = useState<string | undefined>(undefined);
   /*
@@ -468,6 +478,14 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
             setShowModal(false);
           }}
           submitButtonText={modalSubmitButtonText}
+          /*
+           * Seeded as a value, not only as the field's default: the form
+           * drops a false default, and an unsent flag would fall back to
+           * notifying.
+           */
+          initialValues={{
+            shouldStatusPageSubscribersBeNotified: notifySubscribersByDefault,
+          }}
           onBeforeCreate={async (model: IncidentStateTimeline) => {
             const projectId: ObjectID | undefined | null =
               ProjectUtil.getCurrentProject()?.id;
@@ -563,10 +581,12 @@ const ChangeIncidentState: FunctionComponent<ComponentProps> = (
                   shouldStatusPageSubscribersBeNotified: true,
                 },
                 fieldType: FormFieldSchemaType.Checkbox,
-                description: "Notify subscribers of this state change.",
+                description: notifySubscribersByDefault
+                  ? "Notify subscribers of this state change."
+                  : PublicNoteSubscriberNotificationDefault.quietIncidentDescription,
                 title: "Notify Status Page Subscribers",
                 required: false,
-                defaultValue: true,
+                defaultValue: notifySubscribersByDefault,
               },
             ],
             formType: FormType.Create,

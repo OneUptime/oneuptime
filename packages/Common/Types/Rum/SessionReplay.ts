@@ -187,8 +187,61 @@ export const SESSION_REPLAY_KEEPALIVE_MAX_BYTES: number = 56 * 1024;
  */
 export const SESSION_REPLAY_MAX_FLUSH_FAILURES: number = 3;
 
-/* Content type carried on every chunk POST. */
-export const SESSION_REPLAY_CONTENT_TYPE: string =
+/*
+ * Offline mode: how long a recorder may hold a chunk it could not upload.
+ *
+ * A device that loses its connection keeps recording, queues what it
+ * records (in memory, and in IndexedDB or AsyncStorage so a closed tab or a
+ * killed app does not lose it) and uploads the backlog when the network
+ * returns. Past this age a queued chunk is discarded on the device instead.
+ *
+ * The server uses the same bound from the other side: a chunk's
+ * clientSendUnixMs minus its end is how long it sat in that queue, measured
+ * on the device's own clock, and ingest allows exactly that much extra
+ * lateness before it stops trusting the recording's start time (see
+ * SessionIdentity.getClientQueueDelayMs). Without it every chunk that
+ * arrived more than four hours after it was recorded was pinned to "four
+ * hours before it arrived".
+ *
+ * Three days: long enough for a flight, a weekend without signal or a
+ * device left in a drawer, and deliberately well inside the seven days an
+ * erasure tombstone lives, so a chunk of a session somebody asked to erase
+ * can never outlive the tombstone that refuses it.
+ */
+export const SESSION_REPLAY_MAX_OFFLINE_DELAY_MS: number =
+  3 * 24 * 60 * 60 * 1000;
+
+/*
+ * Content type carried on every chunk POST.
+ *
+ * application/octet-stream because customers put a web application
+ * firewall in front of OneUptime, and the OWASP Core Rule Set - and the
+ * managed rulesets built on it, Azure's DRS 2.x among them - blocks any
+ * Content-Type outside a fixed allowlist (rule 920420). Of the types on
+ * CRS 3.3's list, octet-stream is the one that honestly describes a body
+ * that is not JSON, XML, a form or text; text/plain would claim text, and
+ * Azure's older DRS 1.x inspects text/plain bodies as if they were forms.
+ * No firewall parses an octet-stream body, so the envelope's URLs and trait
+ * values are never handed to the injection rules as ARGS. See
+ * Common/Utils/Rum/SessionReplayWireEncoding for the rest of what makes a
+ * chunk pass.
+ *
+ * The body really is opaque bytes to anything in between: an envelope line
+ * and a gzip or JSON payload that only the ingest parser splits apart.
+ *
+ * The server never branches on this header - the body reader is chosen by
+ * route - so it accepts the vendor type below from every recorder that
+ * predates this change: pinned browser artifacts and shipped mobile builds.
+ */
+export const SESSION_REPLAY_CONTENT_TYPE: string = "application/octet-stream";
+
+/*
+ * What chunk POSTs carried before they switched to octet-stream. A WAF on
+ * the OWASP Core Rule Set refuses it outright (920420: "Request content
+ * type is not allowed by policy"). Kept so tests can prove the server still
+ * takes chunks from recorders that send it.
+ */
+export const SESSION_REPLAY_LEGACY_CONTENT_TYPE: string =
   "application/vnd.oneuptime.session-replay.v1";
 
 /* Header carrying the RUM application identifier, needed pre-decode. */

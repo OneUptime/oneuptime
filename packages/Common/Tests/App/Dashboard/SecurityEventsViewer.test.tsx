@@ -135,8 +135,14 @@ import SecurityEventsViewer, {
   SECURITY_EVENTS_VOLUME_TOTAL_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsViewer";
 import SecurityEventAttributeUtil from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventAttributeUtil";
-import { SECURITY_EVENT_ROW_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventListRow";
+import {
+  SECURITY_EVENT_ROW_ATTRIBUTE_CHIP_TEST_ID,
+  SECURITY_EVENT_ROW_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventListRow";
 import { SECURITY_EVENT_DETAIL_PANEL_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventDetailPanel";
+import { SECURITY_EVENT_ATTRIBUTE_COLUMN_PICKER_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventAttributeColumnPicker";
+import { getSecurityEventAttributeColumnsStorageKey } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventAttributeColumns";
+import { SECURITY_EVENTS_TABLE_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsTimeRange";
 import { SECURITY_EVENTS_EMPTY_STATE_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsEmptyState";
 import { SECURITY_EVENTS_NO_RESULTS_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventsNoResults";
 import {
@@ -432,6 +438,7 @@ beforeEach(() => {
   pickerProps = null;
   now = NOW;
   window.history.replaceState(null, "", "/dashboard/project/security-events");
+  window.localStorage.clear();
 
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
   jest.spyOn(OneUptimeDate, "getCurrentDate").mockImplementation(() => {
@@ -906,6 +913,37 @@ describe("the window", () => {
     });
 
     expect(urlParams().get("start")).toBe("2026-09-18T10:00:00.000Z");
+    // Through the END of the last 15-minute bucket dragged over - once.
+    expect(urlParams().get("end")).toBe("2026-09-18T10:30:00.000Z");
+  });
+
+  /*
+   * Issue #3914: a click on one bar has to open that bar's events, not a
+   * window zero seconds wide (or, widened twice, two buckets).
+   */
+  test("clicking one bar zooms into exactly that bar's bucket", async () => {
+    renderViewer();
+    await waitForLoad();
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId("bucket-2026-09-18T10:15:00.000Z"),
+      ).toBeInTheDocument();
+    });
+
+    const bar: HTMLElement = screen.getByTestId(
+      "bucket-2026-09-18T10:15:00.000Z",
+    );
+
+    fireEvent.mouseDown(bar);
+    fireEvent.mouseUp(bar);
+
+    await waitFor(() => {
+      expect(urlParams().get("range")).toBe(TimeRange.CUSTOM);
+    });
+
+    expect(urlParams().get("start")).toBe("2026-09-18T10:15:00.000Z");
+    expect(urlParams().get("end")).toBe("2026-09-18T10:30:00.000Z");
   });
 
   test("Refresh re-reads a relative window from now", async () => {
@@ -1199,5 +1237,240 @@ describe("live updates", () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+});
+
+/*
+ * The model table this explorer replaced let a viewer add any source
+ * attribute as a column; the chip rows lost that. A Google SecOps customer
+ * asked for it back: their detections carry hundreds of flattened attributes
+ * and the ones their analysts key off — the target's first name, the office
+ * it sits in — were only visible by opening each event.
+ */
+describe("attribute columns", () => {
+  const FIRST_NAME_KEY: string =
+    "collectionElements.0.references.0.event.target.user.firstName";
+  const CITY_KEY: string =
+    "collectionElements.0.references.0.event.target.user.personalAddress.city";
+
+  const DETECTIONS: Array<SecurityEvent> = [
+    event({
+      eventUid: "det-1",
+      className: "Detection Finding",
+      message: "Mass_Password_Reset_Modification",
+      attributes: {
+        [FIRST_NAME_KEY]: "jdoe",
+        [CITY_KEY]: "Springfield",
+      },
+    }),
+    event({
+      eventUid: "det-2",
+      className: "Detection Finding",
+      message: "Allowed_Phishing_Email",
+      attributes: {
+        [CITY_KEY]: "Austin",
+      },
+    }),
+  ];
+
+  function picker(): HTMLElement {
+    return screen.getByTestId(SECURITY_EVENT_ATTRIBUTE_COLUMN_PICKER_TEST_ID);
+  }
+
+  function openPicker(): void {
+    fireEvent.click(within(picker()).getByRole("button", { name: /Columns/ }));
+  }
+
+  function chipsOn(row: HTMLElement): Array<string> {
+    return within(row)
+      .queryAllByTestId(SECURITY_EVENT_ROW_ATTRIBUTE_CHIP_TEST_ID)
+      .map((chip: HTMLElement): string => {
+        return chip.textContent || "";
+      });
+  }
+
+  function storedKeys(): unknown {
+    const raw: string | null = window.localStorage.getItem(
+      getSecurityEventAttributeColumnsStorageKey(PROJECT_ID.toString()),
+    );
+
+    return raw === null ? null : JSON.parse(raw);
+  }
+
+  test("the toolbar offers Columns, and an added attribute shows on every row that carries it", async () => {
+    stubList(DETECTIONS);
+    attributeKeysMock.mockResolvedValue([FIRST_NAME_KEY, CITY_KEY] as never);
+
+    renderViewer();
+    await waitForLoad();
+
+    expect(chipsOn(rows()[0]!)).toEqual([]);
+
+    openPicker();
+    fireEvent.click(screen.getByRole("button", { name: `Add ${CITY_KEY}` }));
+    fireEvent.click(
+      screen.getByRole("button", { name: `Add ${FIRST_NAME_KEY}` }),
+    );
+
+    expect(chipsOn(rows()[0]!)).toEqual([
+      "personalAddress.citySpringfield",
+      "user.firstNamejdoe",
+    ]);
+    // The second detection has no first name, so it gets only the city.
+    expect(chipsOn(rows()[1]!)).toEqual(["personalAddress.cityAustin"]);
+  });
+
+  test("choosing columns re-renders the rows without asking the server again", async () => {
+    stubList(DETECTIONS);
+    attributeKeysMock.mockResolvedValue([CITY_KEY] as never);
+
+    renderViewer();
+    await waitForLoad();
+
+    const before: number = listCalls().length;
+
+    openPicker();
+    fireEvent.click(screen.getByRole("button", { name: `Add ${CITY_KEY}` }));
+
+    expect(chipsOn(rows()[0]!)).toEqual(["personalAddress.citySpringfield"]);
+    expect(listCalls().length).toBe(before);
+    // The list already carries every attribute, so the select is unchanged.
+    expect(lastListCall()["select"]).toEqual(
+      expect.objectContaining({ attributes: true }),
+    );
+  });
+
+  test("the choice is remembered for this project, and is back on the next visit", async () => {
+    stubList(DETECTIONS);
+    attributeKeysMock.mockResolvedValue([CITY_KEY] as never);
+
+    renderViewer();
+    await waitForLoad();
+
+    openPicker();
+    fireEvent.click(screen.getByRole("button", { name: `Add ${CITY_KEY}` }));
+
+    expect(storedKeys()).toEqual([CITY_KEY]);
+
+    cleanup();
+    // A fresh visit: only what this mount asks for counts towards "loaded".
+    aggregateMock.mockClear();
+    getListMock.mockClear();
+    renderViewer();
+    await waitForLoad();
+
+    expect(chipsOn(rows()[0]!)).toEqual(["personalAddress.citySpringfield"]);
+  });
+
+  test("a stored choice is on the rows from the first render", async () => {
+    window.localStorage.setItem(
+      getSecurityEventAttributeColumnsStorageKey(PROJECT_ID.toString()),
+      JSON.stringify([FIRST_NAME_KEY]),
+    );
+    stubList(DETECTIONS);
+
+    renderViewer();
+    await waitForLoad();
+
+    expect(chipsOn(rows()[0]!)).toEqual(["user.firstNamejdoe"]);
+    expect(chipsOn(rows()[1]!)).toEqual([]);
+  });
+
+  test("removing every attribute is remembered too, rather than falling back", async () => {
+    window.localStorage.setItem(
+      getSecurityEventAttributeColumnsStorageKey(PROJECT_ID.toString()),
+      JSON.stringify([CITY_KEY]),
+    );
+    stubList(DETECTIONS);
+
+    renderViewer();
+    await waitForLoad();
+
+    openPicker();
+    fireEvent.click(screen.getByRole("button", { name: `Remove ${CITY_KEY}` }));
+
+    expect(chipsOn(rows()[0]!)).toEqual([]);
+    expect(storedKeys()).toEqual([]);
+  });
+
+  test("an attribute can be put on the rows from the drawer's Attributes tab, and taken off again", async () => {
+    stubList(DETECTIONS);
+
+    renderViewer();
+    await waitForLoad();
+
+    fireEvent.click(rows()[0]!);
+    fireEvent.click(screen.getByRole("tab", { name: /^Attributes/ }));
+
+    const show: HTMLElement = screen.getByRole("button", {
+      name: `Show ${FIRST_NAME_KEY} on event rows`,
+    });
+    fireEvent.click(show);
+
+    expect(chipsOn(rows()[0]!)).toEqual(["user.firstNamejdoe"]);
+    expect(storedKeys()).toEqual([FIRST_NAME_KEY]);
+
+    const stop: HTMLElement = screen.getByRole("button", {
+      name: `Stop showing ${FIRST_NAME_KEY} on event rows`,
+    });
+    expect(stop).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(stop);
+
+    expect(chipsOn(rows()[0]!)).toEqual([]);
+    expect(storedKeys()).toEqual([]);
+  });
+
+  /*
+   * The server's key list is sampled from recent events and capped; an
+   * attribute the reader can see on a listed event must still be offered.
+   */
+  test("the picker offers the listed events' attributes even when the server's list lacks them", async () => {
+    stubList(DETECTIONS);
+    attributeKeysMock.mockResolvedValue(["device.hostname"] as never);
+
+    renderViewer();
+    await waitForLoad();
+
+    openPicker();
+
+    expect(
+      screen.getByRole("button", { name: `Add ${FIRST_NAME_KEY}` }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Add device.hostname" }),
+    ).toBeInTheDocument();
+  });
+
+  test("the attribute columns the retired table was showing carry over", async () => {
+    window.localStorage.setItem(
+      `BaseModelTableColumns.${SECURITY_EVENTS_TABLE_ID}`,
+      JSON.stringify({
+        order: ["time", `attributes.${CITY_KEY}`, "severityName"],
+        hidden: [],
+      }),
+    );
+    stubList(DETECTIONS);
+
+    renderViewer();
+    await waitForLoad();
+
+    expect(chipsOn(rows()[0]!)).toEqual(["personalAddress.citySpringfield"]);
+    expect(chipsOn(rows()[1]!)).toEqual(["personalAddress.cityAustin"]);
+  });
+
+  test("another project's choice does not leak in", async () => {
+    window.localStorage.setItem(
+      getSecurityEventAttributeColumnsStorageKey(
+        "33333333-3333-4333-8333-333333333333",
+      ),
+      JSON.stringify([CITY_KEY]),
+    );
+    stubList(DETECTIONS);
+
+    renderViewer();
+    await waitForLoad();
+
+    expect(chipsOn(rows()[0]!)).toEqual([]);
   });
 });

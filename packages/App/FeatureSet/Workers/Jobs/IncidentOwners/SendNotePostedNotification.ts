@@ -201,6 +201,7 @@ RunCron(
           templateType: EmailTemplateType.IncidentOwnerNotePosted,
           vars: vars,
           subject: `[Update Incident ${incidentNumberStr}] - ${incident.title}`,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

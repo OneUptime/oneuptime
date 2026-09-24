@@ -6,6 +6,13 @@ import PageMap from "../../Utils/PageMap";
 import ProjectUser from "../../Utils/ProjectUser";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
+import {
+  NO_RUNNER_FORM_RESTRICTIONS,
+  RunnerFormRestrictions,
+  getKubernetesAgentRunnerFormNote,
+  getRunnerFormFields,
+  getRunnerFormRestrictions,
+} from "./RunnerFormFields";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -25,7 +32,6 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue, {
   UseTranslateValueResult,
 } from "Common/UI/Utils/Translation";
-import Label from "Common/Models/DatabaseModels/Label";
 import Runner from "Common/Models/DatabaseModels/Runner";
 import RunnerOwnerTeam from "Common/Models/DatabaseModels/RunnerOwnerTeam";
 import RunnerOwnerUser from "Common/Models/DatabaseModels/RunnerOwnerUser";
@@ -44,6 +50,15 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
   const [modelId] = useState<ObjectID>(Navigation.getLastParamAsObjectID());
   const [agentKey, setAgentKey] = useState<string | null>(null);
   const [isRunnerLoaded, setIsRunnerLoaded] = useState<boolean>(false);
+  /*
+   * What the edit form leaves out: on a Runner the Kubernetes agent chart
+   * installed, the name and the runbook / code-fix switches, which the
+   * server refuses (RunnerFormFields). Read from the loaded row.
+   */
+  const [formRestrictions, setFormRestrictions] =
+    useState<RunnerFormRestrictions>(NO_RUNNER_FORM_RESTRICTIONS);
+  const kubernetesAgentRunnerNote: string | null =
+    getKubernetesAgentRunnerFormNote(formRestrictions);
 
   const { translateString }: UseTranslateValueResult = useTranslateValue();
 
@@ -71,77 +86,42 @@ const RunnerView: FunctionComponent<PageComponentProps> = (
         name="Runner Details"
         cardProps={{
           title: "Runner Details",
-          description: "Here are more details for this Runner.",
+          description: kubernetesAgentRunnerNote ? (
+            <span>
+              {translateString("Here are more details for this Runner.") ||
+                "Here are more details for this Runner."}{" "}
+              <span data-testid="kubernetes-agent-runner-note">
+                {kubernetesAgentRunnerNote}
+              </span>
+            </span>
+          ) : (
+            "Here are more details for this Runner."
+          ),
         }}
         isEditable={true}
-        formFields={[
-          {
-            field: { name: true },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "prod-eu-runner",
-            validation: { minLength: 2 },
-          },
-          {
-            field: { description: true },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder:
-              "Runs inside the production EU cluster. Can reach internal services.",
-          },
-          {
-            field: { canRunRunbooks: true },
-            title: "Runs Runbooks",
-            description:
-              "Let this Runner execute runbook Bash and JavaScript steps on the host it runs on. On by default — this is why most Runners are installed.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            defaultValue: true,
-          },
-          {
-            field: { canRunCodeFixTasks: true },
-            title: "Runs AI Code Fixes",
-            description:
-              "Let this Runner work in the code repositories connected to this project and open pull requests for review. Off by default; it needs a connected repository. The Runner picks this up on its next heartbeat — no restart needed.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            defaultValue: false,
-          },
-          {
-            field: { canRunAiCommands: true },
-            title: "Runs AI Remediation Commands",
-            description:
-              "Let AI auto-remediation execute policy-checked commands on this Runner. Off by default — commands either match the rule's allowlist or wait for one-click human approval, and destructive commands are always refused. Takes effect on the Runner's next heartbeat, no restart needed.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            defaultValue: false,
-          },
-          {
-            field: { labels: true },
-            title: "Labels",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
+        /*
+         * The form is built from the loaded row, so editing waits for it:
+         * before the load the page cannot tell an agent row from any other.
+         */
+        onBeforeEdit={(): boolean => {
+          return isRunnerLoaded;
+        }}
+        formFields={getRunnerFormFields({
+          withSteps: false,
+          restrictions: formRestrictions,
+        })}
         modelDetailProps={{
           onItemLoaded: (item: Runner) => {
             if (item.key) {
               setAgentKey(item.key as string);
             }
+            setFormRestrictions(getRunnerFormRestrictions(item));
             setIsRunnerLoaded(true);
           },
           modelType: Runner,
           id: "model-detail-runbook-agent",
+          // The posture: whether this is a Runner the Kubernetes agent chart installed.
+          selectMoreFields: { hostInfo: true },
           fields: [
             {
               field: { _id: true },

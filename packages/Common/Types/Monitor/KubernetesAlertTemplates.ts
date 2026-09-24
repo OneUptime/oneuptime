@@ -401,11 +401,12 @@ const crashLoopBackOffTemplate: KubernetesAlertTemplate = {
          * cumulative, and the alert therefore clears on pod replacement
          * rather than when the crashing stops.
          *
-         * No angle-bracket placeholders in here. Incident.description is a
-         * Markdown column, and the subscriber path runs it through
-         * Markdown.convertToPlainText, which strips /<[^>]*>/g BEFORE it
-         * strips code-span backticks — so `<pod>` would silently vanish from
-         * every SMS.
+         * No bare angle-bracket placeholders in here. Incident.description
+         * is a Markdown column, and the subscriber path runs it through
+         * Markdown.convertToPlainText, which strips a tag-shaped <pod> as
+         * HTML — so outside backticks it would silently vanish from every
+         * SMS. Inside a code span it is safe: `<pod>` is held back before
+         * tags are stripped and reaches the SMS intact.
          *
          * This template is GROUPED (namespace + pod + container), so it does
          * NOT send the reader to the root cause for identity: a grouped

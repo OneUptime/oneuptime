@@ -17,11 +17,69 @@ describe("MonitorStepExceptionMonitorUtil", () => {
 
       expect(def.telemetryServiceIds).toEqual([]);
       expect(def.entityKeys).toEqual([]);
+      expect(def.environments).toEqual([]);
       expect(def.exceptionTypes).toEqual([]);
       expect(def.message).toBe("");
       expect(def.includeResolved).toBe(false);
       expect(def.includeArchived).toBe(false);
       expect(def.lastXSecondsOfExceptions).toBe(60);
+    });
+  });
+
+  describe("normalizeEnvironments", () => {
+    test("keeps a list of environments in order", () => {
+      expect(
+        MonitorStepExceptionMonitorUtil.normalizeEnvironments([
+          "production",
+          "staging",
+        ]),
+      ).toEqual(["production", "staging"]);
+    });
+
+    test("trims values and drops blanks and duplicates", () => {
+      expect(
+        MonitorStepExceptionMonitorUtil.normalizeEnvironments([
+          " production ",
+          "",
+          "   ",
+          "production",
+          "staging",
+        ]),
+      ).toEqual(["production", "staging"]);
+    });
+
+    test("keeps case, because matching is exact like the Explorer", () => {
+      expect(
+        MonitorStepExceptionMonitorUtil.normalizeEnvironments([
+          "production",
+          "Production",
+        ]),
+      ).toEqual(["production", "Production"]);
+    });
+
+    test("wraps a single environment sent as a bare string", () => {
+      expect(
+        MonitorStepExceptionMonitorUtil.normalizeEnvironments("production"),
+      ).toEqual(["production"]);
+    });
+
+    test("returns an empty list for missing or malformed values", () => {
+      for (const value of [undefined, null, "", 42, true, {}, [1, null, {}]]) {
+        expect(
+          MonitorStepExceptionMonitorUtil.normalizeEnvironments(value),
+        ).toEqual([]);
+      }
+    });
+
+    test("drops non-string entries but keeps the strings around them", () => {
+      expect(
+        MonitorStepExceptionMonitorUtil.normalizeEnvironments([
+          "production",
+          7,
+          null,
+          "staging",
+        ]),
+      ).toEqual(["production", "staging"]);
     });
   });
 
@@ -82,6 +140,60 @@ describe("MonitorStepExceptionMonitorUtil", () => {
           lastXSecondsOfExceptions: 0,
         }).entityKeys,
       ).toBeUndefined();
+    });
+
+    test("filters by a single environment", () => {
+      const query: Query<ExceptionInstance> =
+        MonitorStepExceptionMonitorUtil.toAnalyticsQuery({
+          ...MonitorStepExceptionMonitorUtil.getDefault(),
+          environments: ["production"],
+          lastXSecondsOfExceptions: 0,
+        });
+
+      expect(query.environment).toBeInstanceOf(Includes);
+      expect((query.environment as Includes).values).toEqual(["production"]);
+    });
+
+    test("filters by any of several environments", () => {
+      const query: Query<ExceptionInstance> =
+        MonitorStepExceptionMonitorUtil.toAnalyticsQuery({
+          ...MonitorStepExceptionMonitorUtil.getDefault(),
+          environments: ["production", "staging"],
+          lastXSecondsOfExceptions: 0,
+        });
+
+      expect(query.environment).toBeInstanceOf(Includes);
+      expect((query.environment as Includes).values).toEqual([
+        "production",
+        "staging",
+      ]);
+    });
+
+    test("omits the environment filter when none is selected", () => {
+      for (const environments of [[], undefined, ["", "  "]]) {
+        expect(
+          MonitorStepExceptionMonitorUtil.toAnalyticsQuery({
+            ...MonitorStepExceptionMonitorUtil.getDefault(),
+            environments: environments,
+            lastXSecondsOfExceptions: 0,
+          }),
+        ).toEqual({});
+      }
+    });
+
+    test("normalizes environments on a step stored without fromJSON", () => {
+      /*
+       * MonitorStep.fromJSON keeps exceptionMonitor as raw JSON, so an API
+       * caller's shape reaches this function unchanged.
+       */
+      const query: Query<ExceptionInstance> =
+        MonitorStepExceptionMonitorUtil.toAnalyticsQuery({
+          ...MonitorStepExceptionMonitorUtil.getDefault(),
+          environments: "production" as unknown as Array<string>,
+          lastXSecondsOfExceptions: 0,
+        });
+
+      expect((query.environment as Includes).values).toEqual(["production"]);
     });
 
     test("filters by exception type when provided", () => {
@@ -179,6 +291,7 @@ describe("MonitorStepExceptionMonitorUtil", () => {
         MonitorStepExceptionMonitorUtil.toAnalyticsQuery({
           telemetryServiceIds: [ObjectID.generate()],
           entityKeys: ["host-1"],
+          environments: ["production"],
           exceptionTypes: ["TypeError"],
           message: "boom",
           includeResolved: false,
@@ -188,6 +301,7 @@ describe("MonitorStepExceptionMonitorUtil", () => {
 
       expect(query.primaryEntityId).toBeDefined();
       expect(query.entityKeys).toBeDefined();
+      expect(query.environment).toBeDefined();
       expect(query.exceptionType).toBeDefined();
       expect(query.message).toBeDefined();
       expect(query.time).toBeDefined();
@@ -201,11 +315,26 @@ describe("MonitorStepExceptionMonitorUtil", () => {
 
       expect(monitor.telemetryServiceIds).toEqual([]);
       expect(monitor.entityKeys).toEqual([]);
+      expect(monitor.environments).toEqual([]);
       expect(monitor.exceptionTypes).toEqual([]);
       expect(monitor.message).toBe("");
       expect(monitor.includeResolved).toBe(false);
       expect(monitor.includeArchived).toBe(false);
       expect(monitor.lastXSecondsOfExceptions).toBe(60);
+    });
+
+    test("reads environments supplied through the API", () => {
+      expect(
+        MonitorStepExceptionMonitorUtil.fromJSON({
+          environments: ["production", " staging ", ""],
+        }).environments,
+      ).toEqual(["production", "staging"]);
+
+      expect(
+        MonitorStepExceptionMonitorUtil.fromJSON({
+          environments: "production",
+        }).environments,
+      ).toEqual(["production"]);
     });
 
     test("coerces the include flags to booleans", () => {
@@ -245,10 +374,40 @@ describe("MonitorStepExceptionMonitorUtil", () => {
       expect(json["entityKeys"]).toEqual([]);
     });
 
+    test("normalizes an undefined environments to an empty array", () => {
+      const json: JSONObject = MonitorStepExceptionMonitorUtil.toJSON({
+        ...MonitorStepExceptionMonitorUtil.getDefault(),
+        environments: undefined,
+      });
+
+      expect(json["environments"]).toEqual([]);
+    });
+
+    test("a monitor saved before environments existed stays unfiltered", () => {
+      const legacy: JSONObject = {
+        telemetryServiceIds: [],
+        entityKeys: [],
+        exceptionTypes: ["TypeError"],
+        message: "",
+        includeResolved: false,
+        includeArchived: false,
+        lastXSecondsOfExceptions: 60,
+      };
+
+      const monitor: MonitorStepExceptionMonitor =
+        MonitorStepExceptionMonitorUtil.fromJSON(legacy);
+
+      expect(monitor.environments).toEqual([]);
+      expect(
+        MonitorStepExceptionMonitorUtil.toAnalyticsQuery(monitor).environment,
+      ).toBeUndefined();
+    });
+
     test("round-trips a fully populated monitor", () => {
       const original: MonitorStepExceptionMonitor = {
         telemetryServiceIds: [ObjectID.generate()],
         entityKeys: ["host-1"],
+        environments: ["production", "staging"],
         exceptionTypes: ["TypeError"],
         message: "boom",
         includeResolved: true,
@@ -262,6 +421,7 @@ describe("MonitorStepExceptionMonitorUtil", () => {
         );
 
       expect(roundTripped.entityKeys).toEqual(original.entityKeys);
+      expect(roundTripped.environments).toEqual(original.environments);
       expect(roundTripped.exceptionTypes).toEqual(original.exceptionTypes);
       expect(roundTripped.message).toBe(original.message);
       expect(roundTripped.includeResolved).toBe(original.includeResolved);

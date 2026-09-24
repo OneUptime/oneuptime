@@ -84,6 +84,7 @@ import {
   ResourceResponse,
 } from "botbuilder";
 import { ExpressRequest, ExpressResponse } from "../../Express";
+import MicrosoftTeamsServiceUrl from "./MicrosoftTeamsServiceUrl";
 // Teams action handlers and types
 import MicrosoftTeamsAuthAction, {
   MicrosoftTeamsRequest,
@@ -107,11 +108,11 @@ import MicrosoftTeamsOnCallDutyActions from "./Actions/OnCallDutyPolicy";
  * their logs, traces, metrics, incidents and monitors.
  */
 import type { ObservabilityAssistantResult } from "../../AI/Chat/ObservabilityAssistant";
-import AccessTokenService from "../../../Services/AccessTokenService";
+import WorkspaceActionAuthorization from "../WorkspaceActionAuthorization";
+import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import AIService, { AI_DISABLED_MESSAGE } from "../../../Services/AIService";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { AIChatCitation } from "../../../../Types/AI/AIChatTypes";
-import TeamMemberService from "../../../Services/TeamMemberService";
 
 // Microsoft Teams apps should always be single-tenant
 const MICROSOFT_TEAMS_APP_TYPE: string = "SingleTenant";
@@ -279,8 +280,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       );
     }
 
-    const miscData: MicrosoftTeamsMiscData =
-      projectAuth.miscData as MicrosoftTeamsMiscData;
     const tenantId: string | undefined = projectAuth.workspaceProjectId;
 
     logger.debug(`Resolved tenant ID: ${tenantId}`);
@@ -297,70 +296,77 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       );
     }
 
-    logger.debug(
-      `MiscData appAccessToken exists: ${Boolean(miscData.appAccessToken)}`,
-    );
-    logger.debug(
-      `MiscData appAccessTokenExpiresAt: ${miscData.appAccessTokenExpiresAt}`,
+    /*
+     * The Graph app token is the row's authToken and its expiry is
+     * authTokenExpiresAt, both server-only columns. It used to be cached in
+     * miscData as well, which every project Viewer can read.
+     */
+    const cachedToken: string | undefined = projectAuth.authToken;
+    const cachedTokenExpiresAt: Date | undefined =
+      projectAuth.authTokenExpiresAt || undefined;
+    const hasCachedToken: boolean = Boolean(
+      cachedToken && cachedToken.includes("."),
     );
 
-    // Check if token exists and is valid
-    if (miscData.appAccessToken && miscData.appAccessToken.includes(".")) {
-      logger.debug("Found app access token in miscData");
-      // Check if token is expired
-      if (miscData.appAccessTokenExpiresAt) {
-        const expiryDate: Date = OneUptimeDate.fromString(
-          miscData.appAccessTokenExpiresAt,
-        );
-        const now: Date = OneUptimeDate.getCurrentDate();
-        const isExpired: boolean = OneUptimeDate.isAfter(now, expiryDate);
-        const secondsToExpiry: number = OneUptimeDate.getSecondsTo(expiryDate);
-        logger.debug(`Token expires in ${secondsToExpiry} seconds`);
-        logger.debug(`Token is expired: ${isExpired}`);
+    logger.debug(`Cached app access token exists: ${hasCachedToken}`);
+    logger.debug(
+      `Cached app access token expires at: ${
+        cachedTokenExpiresAt
+          ? OneUptimeDate.toString(cachedTokenExpiresAt)
+          : "unknown"
+      }`,
+    );
 
-        // If token is already expired or expires within the next 5 minutes, refresh it
-        if (isExpired || secondsToExpiry <= 300) {
-          logger.debug(
-            "Access token is expired or expiring soon, attempting to refresh",
-          );
-          const newToken: string | null = await this.refreshAccessToken({
-            projectId: data.projectId,
-            miscData,
-            tenantId,
-          });
-          if (newToken) {
-            logger.debug("Successfully refreshed token");
-            return newToken;
-          }
-          logger.warn("Failed to refresh token, falling back to cached token");
-        } else {
-          logger.debug(
-            "Using cached appAccessToken from miscData for Microsoft Graph API call",
-          );
-          return miscData.appAccessToken;
-        }
-      } else {
-        // No expiry information, use the token but it might be expired
+    let isCachedTokenExpired: boolean = false;
+
+    if (hasCachedToken && cachedTokenExpiresAt) {
+      const now: Date = OneUptimeDate.getCurrentDate();
+      isCachedTokenExpired = OneUptimeDate.isAfter(now, cachedTokenExpiresAt);
+      const secondsToExpiry: number =
+        OneUptimeDate.getSecondsTo(cachedTokenExpiresAt);
+      logger.debug(`Token expires in ${secondsToExpiry} seconds`);
+      logger.debug(`Token is expired: ${isCachedTokenExpired}`);
+
+      // Refresh when already expired or expiring within the next 5 minutes.
+      if (!isCachedTokenExpired && secondsToExpiry > 300) {
         logger.debug(
-          "Using appAccessToken from miscData (no expiry info available)",
+          "Using cached app access token for Microsoft Graph API call",
         );
-        return miscData.appAccessToken;
+        return cachedToken!;
       }
+
+      logger.debug(
+        "Access token is expired or expiring soon, attempting to refresh",
+      );
+    } else if (hasCachedToken) {
+      /*
+       * No recorded expiry: the connection predates authTokenExpiresAt. The
+       * token may be long dead, so mint a fresh one (which records its
+       * expiry) instead of handing it out unchecked.
+       */
+      logger.debug(
+        "App access token has no recorded expiry, attempting to refresh",
+      );
+    } else {
+      logger.debug("No valid app access token found, attempting to refresh");
     }
 
-    // If we couldn't find a valid token, try to refresh
-    logger.debug("No valid app access token found, attempting to refresh");
     const newToken: string | null = await this.refreshAccessToken({
       projectId: data.projectId,
-      miscData,
       tenantId,
     });
+
     if (newToken) {
       logger.debug("Successfully refreshed token");
       return newToken;
     }
 
-    // If refresh failed, throw error
+    // A token we know has expired is useless; one that may still work is not.
+    if (hasCachedToken && !isCachedTokenExpired) {
+      logger.warn("Failed to refresh token, falling back to cached token");
+      return cachedToken!;
+    }
+
     logger.error("Could not obtain valid access token for Microsoft Teams", {
       projectId: data.projectId.toString(),
     });
@@ -372,7 +378,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
   // Method to refresh the Microsoft Teams access token
   private static async refreshAccessToken(data: {
     projectId: ObjectID;
-    miscData: MicrosoftTeamsMiscData;
     tenantId: string;
   }): Promise<string | null> {
     logger.debug("=== refreshAccessToken called ===", {
@@ -382,12 +387,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     if (!data.projectId) {
       throw new BadDataException(
         "projectId is required to refresh Microsoft Teams access token",
-      );
-    }
-
-    if (!data.miscData) {
-      throw new BadDataException(
-        "miscData is required to refresh Microsoft Teams access token",
       );
     }
 
@@ -471,48 +470,23 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       );
 
       /*
-       * Merge the token fields into a FRESH read of miscData instead of the
-       * snapshot taken before the OAuth round-trip. The snapshot can be
-       * seconds old, and writing it back verbatim would erase concurrent
-       * miscData updates — in particular chats captured into availableChats
-       * by bot install events, which cannot be re-derived from Graph.
+       * Only the token columns are written. miscData is readable by every
+       * project Viewer, so the token must never go there, and rewriting
+       * miscData from a copy taken before the OAuth round-trip would erase
+       * chats captured into availableChats by bot install events meanwhile.
        */
-      let latestMiscData: MicrosoftTeamsMiscData = data.miscData;
-      try {
-        const latestProjectAuth: WorkspaceProjectAuthToken | null =
-          await WorkspaceProjectAuthTokenService.getProjectAuth({
-            projectId: data.projectId,
-            workspaceType: WorkspaceType.MicrosoftTeams,
-          });
-        if (latestProjectAuth?.miscData) {
-          latestMiscData = latestProjectAuth.miscData as MicrosoftTeamsMiscData;
-        }
-      } catch (err) {
-        logger.debug("Could not re-read miscData before token refresh write");
-        logger.debug(err);
-      }
-
-      const updatedMiscData: MicrosoftTeamsMiscData = {
-        ...latestMiscData,
-        appAccessToken: newAccessToken,
-        appAccessTokenExpiresAt: OneUptimeDate.toString(expiryDate),
-        lastAppTokenIssuedAt: OneUptimeDate.toString(now),
-        tenantId: data.tenantId,
-      };
-
       logger.debug("Saving updated token to database");
-      // Save the updated token to the database
-      await WorkspaceProjectAuthTokenService.refreshAuthToken({
+      await WorkspaceProjectAuthTokenService.saveRefreshedAuthToken({
         projectId: data.projectId,
         workspaceType: WorkspaceType.MicrosoftTeams,
-        authToken: newAccessToken,
         workspaceProjectId: data.tenantId,
-        miscData: updatedMiscData as any,
+        authToken: newAccessToken,
+        authTokenExpiresAt: expiryDate,
       });
 
       logger.debug("Microsoft Teams access token refreshed successfully");
       logger.debug(
-        `New token expires at: ${updatedMiscData.appAccessTokenExpiresAt}`,
+        `New token expires at: ${OneUptimeDate.toString(expiryDate)}`,
       );
 
       return newAccessToken;
@@ -1003,20 +977,21 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     /*
      * No captured personal chat - create (or resolve) the 1:1 conversation
      * proactively. A regional serviceUrl captured from any prior activity is
-     * preferred; the commercial-cloud global endpoint is the fallback.
+     * preferred; the commercial-cloud global endpoint is the fallback. Only
+     * Microsoft hosts are considered (see MicrosoftTeamsServiceUrl).
      */
-    const serviceUrl: string =
-      Object.values(miscData.availableChats || {}).find(
+    const serviceUrl: string = MicrosoftTeamsServiceUrl.firstTrustedOrDefault([
+      ...Object.values(miscData.availableChats || {}).map(
         (chat: MicrosoftTeamsChat) => {
-          return Boolean(chat.serviceUrl);
+          return chat.serviceUrl;
         },
-      )?.serviceUrl ||
-      Object.values(miscData.installedTeams || {}).find(
+      ),
+      ...Object.values(miscData.installedTeams || {}).map(
         (team: MicrosoftTeamsInstalledTeam) => {
-          return Boolean(team.serviceUrl);
+          return team.serviceUrl;
         },
-      )?.serviceUrl ||
-      "https://smba.trafficmanager.net/teams/";
+      ),
+    ]);
 
     const adapter: CloudAdapter = this.getBotAdapter();
 
@@ -1477,7 +1452,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             workspaceType: WorkspaceType.MicrosoftTeams,
             teamId: data.workspaceMessagePayload.teamId,
           },
-          error: err instanceof Error ? err.message : String(err),
+          error: WorkspaceBase.getSendErrorMessage(err),
         });
       }
     }
@@ -1526,7 +1501,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         logger.error(e);
         workspaceMessageResponse.errors!.push({
           channel: channel,
-          error: e instanceof Error ? e.message : String(e),
+          error: WorkspaceBase.getSendErrorMessage(e),
         });
       }
     }
@@ -1574,7 +1549,7 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
           logger.error(e);
           workspaceMessageResponse.errors!.push({
             channel: chatAsChannel,
-            error: e instanceof Error ? e.message : String(e),
+            error: WorkspaceBase.getSendErrorMessage(e),
           });
         }
       }
@@ -1754,10 +1729,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         /*
          * Fallback is the commercial-cloud global endpoint; the serviceUrl
          * captured from the install event is preferred (required for GCC/DoD),
-         * matching what sendAdaptiveCardToChat already does.
+         * matching what sendAdaptiveCardToChat already does. A stored URL
+         * that is not a Microsoft host is refused.
          */
-        serviceUrl:
-          installedTeam?.serviceUrl || "https://smba.trafficmanager.net/teams/",
+        serviceUrl: MicrosoftTeamsServiceUrl.resolve(installedTeam?.serviceUrl),
       };
 
       logger.debug(
@@ -1854,6 +1829,144 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
 
       throw error;
     }
+  }
+
+  /*
+   * The most recently active threads of a channel, raw Graph chatMessage
+   * objects with their replies expanded, reactions included. Graph orders
+   * threads by the last change anywhere in them — and adding a reaction is a
+   * change — so the first page holds every thread that was just reacted to.
+   *
+   * Reads with the app token, which the ChannelMessage.Read.Group
+   * resource-specific permission in the OneUptime Teams app lets into the
+   * channels of teams the app is installed in. Throws on a Graph error.
+   */
+  @CaptureSpan()
+  public static async getRecentChannelMessagesWithReplies(data: {
+    authToken: string;
+    projectId: ObjectID;
+    teamId: string;
+    channelId: string;
+    top?: number | undefined;
+  }): Promise<Array<JSONObject>> {
+    if (!data.teamId || !data.channelId) {
+      throw new BadDataException(
+        "teamId and channelId are required to read Microsoft Teams channel messages",
+      );
+    }
+
+    const accessToken: string = await this.getValidAccessToken({
+      authToken: data.authToken,
+      projectId: data.projectId,
+    });
+
+    const top: number = Math.min(Math.max(data.top || 50, 1), 50);
+
+    const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
+      await API.get<JSONObject>({
+        url: URL.fromString(
+          `https://graph.microsoft.com/v1.0/teams/${encodeURIComponent(
+            data.teamId,
+          )}/channels/${encodeURIComponent(data.channelId)}/messages?$top=${top}&$expand=replies`,
+        ),
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+    if (response instanceof HTTPErrorResponse) {
+      logger.error("Error reading Microsoft Teams channel messages:", {
+        projectId: data.projectId.toString(),
+        channelId: data.channelId,
+        teamId: data.teamId,
+      });
+      logger.error(response);
+      throw response;
+    }
+
+    return (
+      ((response.jsonData as JSONObject)?.["value"] as
+        | Array<JSONObject>
+        | undefined) || []
+    );
+  }
+
+  /*
+   * Posts a plain (markdown) message as a reply in a channel thread, as the
+   * bot. `parentMessageId` is the id of the thread's first message.
+   */
+  @CaptureSpan()
+  public static async sendTextReplyToChannelThread(data: {
+    projectId: ObjectID;
+    teamId: string;
+    channelId: string;
+    parentMessageId: string;
+    text: string;
+  }): Promise<void> {
+    if (!MicrosoftTeamsAppClientId) {
+      throw new BadDataException(
+        "Microsoft Teams App Client ID not configured",
+      );
+    }
+
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    if (!projectAuth || !projectAuth.miscData) {
+      throw new BadDataException(
+        "Microsoft Teams integration not found for this project",
+      );
+    }
+
+    const tenantId: string | undefined = projectAuth.workspaceProjectId;
+
+    if (!tenantId) {
+      throw new BadDataException(
+        "Tenant ID not found in Microsoft Teams integration",
+      );
+    }
+
+    const miscData: MicrosoftTeamsMiscData =
+      projectAuth.miscData as MicrosoftTeamsMiscData;
+
+    const installedTeam: MicrosoftTeamsInstalledTeam | undefined =
+      this.indexInstalledTeamsByGraphTeamId(miscData.installedTeams)[
+        data.teamId
+      ];
+
+    const conversationReference: ConversationReference = {
+      bot: {
+        id: MicrosoftTeamsAppClientId,
+        name: "OneUptime Bot",
+      },
+      conversation: {
+        // A channel conversation id with ;messageid= addresses that thread.
+        id: `${data.channelId};messageid=${data.parentMessageId}`,
+        isGroup: true,
+        conversationType: "channel",
+        tenantId: tenantId,
+      } as ConversationReference["conversation"],
+      channelId: "msteams",
+      serviceUrl: MicrosoftTeamsServiceUrl.resolve(installedTeam?.serviceUrl),
+    };
+
+    const adapter: CloudAdapter = this.getBotAdapter();
+
+    await adapter.continueConversationAsync(
+      MicrosoftTeamsAppClientId,
+      conversationReference,
+      async (context: TurnContext) => {
+        await context.sendActivity({
+          type: "message",
+          text: data.text,
+          textFormat: "markdown",
+        });
+      },
+    );
   }
 
   /*
@@ -1984,8 +2097,8 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
    *
    * 403 only, deliberately. Graph answers a missing application permission with
    * 403 and reserves 401 for a token it would not accept — an expired secret, a
-   * cached app token we did not re-check (see getValidAccessToken, which returns
-   * a stored token unvalidated when miscData carries no expiry). Treating 401 as
+   * cached app token that went stale early (see getValidAccessToken, which
+   * falls back to the stored token when a refresh fails). Treating 401 as
    * a permission problem would send an admin off to grant a Graph permission
    * when their credential had simply gone stale, which is the same species of
    * wrong-but-confident answer this whole diagnostic exists to stop producing.
@@ -2194,8 +2307,9 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
         /*
          * Fallback is the commercial-cloud global endpoint; the serviceUrl
          * captured from bot activities is preferred (required for GCC/DoD).
+         * A stored URL that is not a Microsoft host is refused.
          */
-        serviceUrl: chat.serviceUrl || "https://smba.trafficmanager.net/teams/",
+        serviceUrl: MicrosoftTeamsServiceUrl.resolve(chat.serviceUrl),
       };
 
       logger.debug(
@@ -3348,6 +3462,23 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
       return;
     }
 
+    // The user's real permission props - the assistant's tools run under these.
+    let props: DatabaseCommonInteractionProps;
+    try {
+      props = await WorkspaceActionAuthorization.getProjectMemberProps({
+        userId: oneUptimeUserId,
+        projectId: projectId,
+      });
+    } catch (error) {
+      // A linked Teams account whose user has since left the project.
+      if (error instanceof NotAuthorizedException) {
+        await turnContext.sendActivity(error.message);
+        return;
+      }
+
+      throw error;
+    }
+
     /*
      * The project's AI kill switch, read before we acknowledge. The catch
      * around the assistant below answers every failure with the same generic
@@ -3403,15 +3534,6 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
     }
 
     try {
-      // Build the user's real permission props - the assistant's tools run under these.
-      const props: DatabaseCommonInteractionProps =
-        await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
-          {
-            userId: oneUptimeUserId,
-            projectId: projectId,
-          },
-        );
-
       /*
        * Loaded on demand via require(): importing the AI toolbox at module top
        * pulls the entire observability tool graph — and its database
@@ -4000,41 +4122,34 @@ All monitoring checks are passing normally.`;
           userLookupParamsRes,
         );
 
-      const isIncidentAction: boolean =
-        MicrosoftTeamsIncidentActions.isIncidentAction({ actionType });
-      const isAlertAction: boolean = MicrosoftTeamsAlertActions.isAlertAction({
-        actionType,
-      });
+      /*
+       * Every action runs as a current member of the project, with that
+       * member's own permissions. A linked Teams account outlives the
+       * membership it was linked under, so the link alone proves nothing.
+       * Throws NotAuthorizedException, answered in the catch below.
+       */
+      const databaseProps: DatabaseCommonInteractionProps =
+        await WorkspaceActionAuthorization.getProjectMemberProps({
+          userId: oneUptimeUserId,
+          projectId: projectId,
+        });
 
-      if (isIncidentAction || isAlertAction) {
-        const databaseProps: DatabaseCommonInteractionProps =
-          await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
-            {
-              userId: oneUptimeUserId,
-              projectId: projectId,
-            },
-          );
-
-        databaseProps.userTeamIds = await TeamMemberService.getTeamIdsForUser(
-          oneUptimeUserId,
+      // Handle incident actions
+      if (MicrosoftTeamsIncidentActions.isIncidentAction({ actionType })) {
+        await MicrosoftTeamsIncidentActions.handleBotIncidentAction({
+          actionType,
+          actionValue,
+          value,
           projectId,
-        );
+          oneUptimeUserId,
+          databaseProps,
+          turnContext: data.turnContext,
+        });
+        return;
+      }
 
-        // Handle incident actions
-        if (isIncidentAction) {
-          await MicrosoftTeamsIncidentActions.handleBotIncidentAction({
-            actionType,
-            actionValue,
-            value,
-            projectId,
-            oneUptimeUserId,
-            databaseProps,
-            turnContext: data.turnContext,
-          });
-          return;
-        }
-
-        // Handle alert actions
+      // Handle alert actions
+      if (MicrosoftTeamsAlertActions.isAlertAction({ actionType })) {
         await MicrosoftTeamsAlertActions.handleBotAlertAction({
           actionType,
           actionValue,
@@ -4057,6 +4172,7 @@ All monitoring checks are passing normally.`;
           value,
           projectId,
           oneUptimeUserId,
+          databaseProps,
           turnContext: data.turnContext,
         });
         return;
@@ -4075,6 +4191,7 @@ All monitoring checks are passing normally.`;
             value,
             projectId,
             oneUptimeUserId,
+            databaseProps,
             turnContext: data.turnContext,
           },
         );
@@ -4089,6 +4206,7 @@ All monitoring checks are passing normally.`;
           value,
           projectId,
           oneUptimeUserId,
+          databaseProps,
           turnContext: data.turnContext,
         });
         return;
@@ -4111,6 +4229,7 @@ All monitoring checks are passing normally.`;
             authToken: "",
             payloadType: "invoke",
           } as MicrosoftTeamsRequest,
+          databaseProps,
         );
         return;
       }
@@ -4125,6 +4244,15 @@ All monitoring checks are passing normally.`;
         return;
       }
     } catch (error) {
+      // Tell the user why they were refused; the message is written for them.
+      if (error instanceof NotAuthorizedException) {
+        logger.debug("Bot invoke activity refused: " + error.message, {
+          actionType: actionType,
+        });
+        await data.turnContext.sendActivity(error.message);
+        return;
+      }
+
       logger.error("Error handling bot invoke activity:", {
         actionType: actionType,
       });
@@ -5590,7 +5718,6 @@ All monitoring checks are passing normally.`;
         // Get a valid app access token
         const accessToken: string | null = await this.refreshAccessToken({
           projectId: data.projectId,
-          miscData: projectAuth.miscData as MicrosoftTeamsMiscData,
           tenantId,
         });
 
@@ -5836,23 +5963,10 @@ All monitoring checks are passing normally.`;
         return messages;
       }
 
-      const miscData: JSONObject = projectAuth.miscData as JSONObject;
-      const accessToken: string = miscData["appAccessToken"] as string;
-      const tokenExpiresAt: string = miscData[
-        "appAccessTokenExpiresAt"
-      ] as string;
-
-      // Check if token is expired
-      if (
-        !accessToken ||
-        (tokenExpiresAt &&
-          OneUptimeDate.isInThePast(OneUptimeDate.fromString(tokenExpiresAt)))
-      ) {
-        logger.debug(
-          "Microsoft Teams access token expired or missing, skipping message fetch",
-        );
-        return messages;
-      }
+      const accessToken: string = await this.getValidAccessToken({
+        authToken: projectAuth.authToken || "",
+        projectId: params.projectId,
+      });
 
       // Fetch messages from Microsoft Teams channel
       let nextLink: string | undefined = undefined;

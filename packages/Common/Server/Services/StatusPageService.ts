@@ -65,8 +65,16 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import OneUptimeDate from "../../Types/Date";
 import IncidentService from "./IncidentService";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
-import MonitorStatusTimelineService from "./MonitorStatusTimelineService";
-import { UptimeDailyAggregate } from "../../Types/StatusPage/UptimeDailyAggregate";
+import MonitorStatusTimelineService, {
+  MergedDowntimeTotals,
+} from "./MonitorStatusTimelineService";
+import {
+  UptimeDailyAggregate,
+  UptimeDayBucket,
+} from "../../Types/StatusPage/UptimeDailyAggregate";
+import UptimeDailyAggregateUtil, {
+  DEFAULT_UPTIME_AGGREGATE_TIMEZONE,
+} from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import UptimeUtil, { UptimeWindow } from "../../Utils/Uptime/UptimeUtil";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
@@ -482,6 +490,7 @@ export class Service extends DatabaseService<StatusPage> {
         },
         select: {
           _id: true,
+          projectId: true,
           user: {
             _id: true,
             email: true,
@@ -502,6 +511,7 @@ export class Service extends DatabaseService<StatusPage> {
         },
         select: {
           _id: true,
+          projectId: true,
           teamId: true,
         },
         skip: 0,
@@ -539,7 +549,18 @@ export class Service extends DatabaseService<StatusPage> {
       }
     }
 
-    return users;
+    const projectId: ObjectID | undefined =
+      ownerUsers[0]?.projectId || ownerTeams[0]?.projectId;
+
+    if (!projectId) {
+      return [];
+    }
+
+    // Owners who left the project are not notified, nor listed as notified.
+    return await TeamMemberService.filterUsersToProjectMembers({
+      projectId: projectId,
+      users: users,
+    });
   }
 
   @CaptureSpan()
@@ -827,6 +848,46 @@ export class Service extends DatabaseService<StatusPage> {
       endDate: data.endDate,
       timezone: data.timezone,
     });
+  }
+
+  /**
+   * Downtime merged over a SET of monitors - a monitor group, a status page
+   * group, the whole page: the time at least one of them was in a downtime
+   * status, and the time at least one was recorded, both uncapped. What the
+   * per-monitor aggregate above cannot say, and what the capped row fetch
+   * below said only for the newest few days. See
+   * MonitorStatusTimelineService.getMergedDowntimeSeconds.
+   */
+  @CaptureSpan()
+  public async getMergedDowntimeForStatusPage(data: {
+    monitorIds: Array<ObjectID>;
+    downtimeMonitorStatusIds: Array<ObjectID | string>;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<MergedDowntimeTotals> {
+    return await MonitorStatusTimelineService.getMergedDowntimeSeconds({
+      monitorIds: data.monitorIds,
+      downtimeMonitorStatusIds: data.downtimeMonitorStatusIds,
+      startDate: data.startDate,
+      endDate: data.endDate,
+    });
+  }
+
+  /*
+   * One key per distinct set of monitors, whatever order they come in and
+   * however often one repeats, for caching a figure that depends only on
+   * the set.
+   */
+  public static getMonitorSetKey(monitorIds: Array<ObjectID>): string {
+    return Array.from(
+      new Set<string>(
+        monitorIds.map((monitorId: ObjectID): string => {
+          return monitorId.toString();
+        }),
+      ),
+    )
+      .sort()
+      .join(",");
   }
 
   @CaptureSpan()
@@ -1274,15 +1335,18 @@ export class Service extends DatabaseService<StatusPage> {
               // templateType omitted => body is compiled as a Handlebars string.
               body: customReportEmailTemplate!.templateBody!,
               vars: vars,
+              // A custom subject is a Handlebars template, like the body.
               subject: customReportEmailTemplate!.emailSubject
                 ? customReportEmailTemplate!.emailSubject
                 : "[Report] " + statusPageName,
+              isSubjectLiteral: !customReportEmailTemplate!.emailSubject,
             }
           : {
               toEmail: email,
               templateType: EmailTemplateType.StatusPageSubscriberReport,
               vars: vars,
               subject: "[Report] " + statusPageName,
+              isSubjectLiteral: true,
             },
         {
           mailServer: ProjectSMTPConfigService.toEmailServer(
@@ -1447,12 +1511,66 @@ export class Service extends DatabaseService<StatusPage> {
       statusPageId: data.statusPageId,
     });
 
-    const timeline: Array<MonitorStatusTimeline> =
-      await this.getMonitorStatusTimelineForStatusPage({
-        monitorIds: monitors.monitorsOnStatusPage,
+    /*
+     * What a single-monitor resource's uptime and downtime are read from.
+     *
+     * Every figure in the report used to come from
+     * getMonitorStatusTimelineForStatusPage, whose rows arrive under one
+     * LIMIT_MAX (10,000) across every monitor on the page, newest first. On a
+     * page with a flapping monitor that is the last few days of the window -
+     * status.chainflip.io matched 255,733 rows in 60 days - so a figure
+     * computed from it covers only those days and overstates uptime:
+     * lp.chainflip.io read 99.876% against a true 99.667%. The per-day
+     * aggregate has no cap.
+     *
+     * Asked for single-monitor resources only. A monitor-group resource is
+     * down whenever one of its monitors is, and per-monitor sums cannot say
+     * when that was - nor can they for the page and group downtime totals -
+     * so those are merged by getMergedDowntimeForStatusPage, which has no cap
+     * either. Nothing in the report reads the capped rows any more.
+     *
+     * Days are cut in UTC, never in the report's timezone. The report reads
+     * only whole-window totals, and those do not depend on where the cut
+     * falls, because every bucket is clipped to the window. The report
+     * timezone must not reach `AT TIME ZONE` either. Postgres reads the OS
+     * tzdata, and the images OneUptime ships (Debian trixie, no
+     * tzdata-legacy) reject legacy link names that moment still knows, such
+     * as US/Eastern, Asia/Calcutta and GB. The settings no longer offer them
+     * (Types/TimezoneAlias.ts), but rows saved before that and API callers
+     * still hold them. One of those would fail the query, and with it the
+     * whole report.
+     */
+    const singleMonitorIds: Dictionary<ObjectID> = {};
+
+    for (const resource of statusPageResources) {
+      if (resource.monitorId && !resource.monitorGroupId) {
+        singleMonitorIds[resource.monitorId.toString()] = resource.monitorId;
+      }
+    }
+
+    const uptimeDailyAggregate: UptimeDailyAggregate =
+      await this.getUptimeDailyAggregateForStatusPage({
+        monitorIds: Object.values(singleMonitorIds),
         startDate: startDate,
         endDate: endDate,
+        timezone: DEFAULT_UPTIME_AGGREGATE_TIMEZONE,
       });
+
+    const downtimeMonitorStatusIds: Array<string> = (
+      statusPage.downtimeMonitorStatuses || []
+    )
+      .map((status: MonitorStatus) => {
+        return status.id?.toString() || "";
+      })
+      .filter(Boolean);
+
+    /*
+     * Merged downtime by monitor set, shared by the monitor-group resources,
+     * the page total and every group below. A monitor group often holds
+     * exactly the monitors of the status page group it sits in, so the same
+     * set is asked about more than once.
+     */
+    const mergedDowntimeByMonitorSet: Dictionary<MergedDowntimeTotals> = {};
 
     const entries: Array<StatusPageReportResourceEntry> = [];
 
@@ -1461,6 +1579,9 @@ export class Service extends DatabaseService<StatusPage> {
      * resource beneath it without expanding monitor groups a second time.
      */
     const monitorIdsByResourceIndex: Array<Array<ObjectID>> = [];
+
+    // each entry's downtime in seconds, which the rollups below are floored at.
+    const downtimeInSecondsByResourceIndex: Array<number> = [];
 
     for (const resource of statusPageResources) {
       // for each of these resource, calculate uptime percent.
@@ -1478,27 +1599,62 @@ export class Service extends DatabaseService<StatusPage> {
         );
       }
 
-      const timelineForThisResource: Array<MonitorStatusTimeline> =
-        timeline.filter((item: MonitorStatusTimeline) => {
-          return monitorIdsForThisResource.find((id: ObjectID) => {
-            return id.toString() === item.monitorId?.toString();
-          });
+      const precision: UptimePrecision =
+        resource.uptimePercentPrecision || UptimePrecision.TWO_DECIMAL;
+
+      let uptimePercent: number | null = null;
+      let downtimeInSeconds: number = 0;
+
+      if (resource.monitorId && !resource.monitorGroupId) {
+        const buckets: Array<UptimeDayBucket> =
+          UptimeDailyAggregateUtil.getBucketsForMonitor(
+            uptimeDailyAggregate,
+            resource.monitorId,
+          );
+
+        // the percentage and the downtime beside it, from the same seconds.
+        uptimePercent = UptimeDailyAggregateUtil.getUptimePercent({
+          buckets: buckets,
+          downtimeMonitorStatusIds: downtimeMonitorStatusIds,
+          precision: precision,
         });
 
-      const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
-        timelineForThisResource,
-        resource.uptimePercentPrecision || UptimePrecision.TWO_DECIMAL,
-        statusPage.downtimeMonitorStatuses!,
-        reportWindow,
-      );
-      const downtime: {
-        totalDowntimeInSeconds: number;
-        totalSecondsInTimePeriod: number;
-      } = UptimeUtil.getTotalDowntimeInSeconds(
-        timelineForThisResource,
-        statusPage.downtimeMonitorStatuses!,
-        reportWindow,
-      );
+        downtimeInSeconds = UptimeDailyAggregateUtil.getTotals({
+          buckets: buckets,
+          downtimeMonitorStatusIds: downtimeMonitorStatusIds,
+        }).downtimeSeconds;
+      } else {
+        /*
+         * A monitor group: down whenever at least one of its monitors is,
+         * over the time any of them was recorded.
+         */
+        const merged: MergedDowntimeTotals =
+          await this.getMergedDowntimeForMonitorSet({
+            monitorIds: monitorIdsForThisResource,
+            downtimeMonitorStatusIds: downtimeMonitorStatusIds,
+            reportWindow: reportWindow,
+            mergedDowntimeByMonitorSet: mergedDowntimeByMonitorSet,
+          });
+
+        uptimePercent = UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+          coveredSeconds: merged.coveredSeconds,
+          downtimeSeconds: merged.downtimeSeconds,
+          precision: precision,
+        });
+
+        downtimeInSeconds = merged.downtimeSeconds;
+      }
+
+      /*
+       * Nothing recorded in the window. This used to fall back to the capped
+       * rows, which hold nothing the uncapped queries do not, so it always
+       * came out as 100% and no downtime - which is still what is printed,
+       * now without fetching them.
+       */
+      if (uptimePercent === null) {
+        uptimePercent = 100;
+        downtimeInSeconds = 0;
+      }
 
       entries.push({
         statusPageResource: resource,
@@ -1512,13 +1668,12 @@ export class Service extends DatabaseService<StatusPage> {
           uptimePercent: uptimePercent,
           uptimePercentAsString: `${uptimePercent}%`,
           downtimeInHoursAndMinutes:
-            OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-              Math.ceil(downtime.totalDowntimeInSeconds / 60),
-            ),
+            this.getDowntimeInHoursAndMinutes(downtimeInSeconds),
         },
       });
 
       monitorIdsByResourceIndex.push(monitorIdsForThisResource);
+      downtimeInSecondsByResourceIndex.push(downtimeInSeconds);
     }
 
     const avgUptimePercent: number =
@@ -1528,14 +1683,19 @@ export class Service extends DatabaseService<StatusPage> {
 
     const avgUptimePercentString: string = avgUptimePercent.toFixed(2) + "%";
 
-    const totalDowntimeInSeconds: {
-      totalDowntimeInSeconds: number;
-      totalSecondsInTimePeriod: number;
-    } = UptimeUtil.getTotalDowntimeInSeconds(
-      timeline,
-      statusPage.downtimeMonitorStatuses!,
-      reportWindow,
-    );
+    // the time at least one monitor on the page was down.
+    const pageDowntime: MergedDowntimeTotals =
+      await this.getMergedDowntimeForMonitorSet({
+        monitorIds: monitors.monitorsOnStatusPage,
+        downtimeMonitorStatusIds: downtimeMonitorStatusIds,
+        reportWindow: reportWindow,
+        mergedDowntimeByMonitorSet: mergedDowntimeByMonitorSet,
+      });
+
+    const pageDowntimeInSeconds: number = this.getRolledUpDowntimeInSeconds({
+      mergedDowntimeInSeconds: pageDowntime.downtimeSeconds,
+      resourceDowntimesInSeconds: downtimeInSecondsByResourceIndex,
+    });
 
     /*
      * The status page arranges its resources into a tree of groups and shows a
@@ -1553,9 +1713,10 @@ export class Service extends DatabaseService<StatusPage> {
         statusPageGroups: statusPageGroups,
         entries: entries,
         monitorIdsByResourceIndex: monitorIdsByResourceIndex,
-        timeline: timeline,
-        downtimeMonitorStatuses: statusPage.downtimeMonitorStatuses || [],
+        downtimeInSecondsByResourceIndex: downtimeInSecondsByResourceIndex,
+        downtimeMonitorStatusIds: downtimeMonitorStatusIds,
         reportWindow: reportWindow,
+        mergedDowntimeByMonitorSet: mergedDowntimeByMonitorSet,
       });
 
     const structure: StatusPageReportStructure = StatusPageReportTreeUtil.build(
@@ -1576,11 +1737,77 @@ export class Service extends DatabaseService<StatusPage> {
       ungroupedResources: structure.resourcesWithoutGroup,
       rows: structure.rows,
       hasGroups: structure.groups.length > 0,
-      totalDowntimeInHoursAndMinutes:
-        OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-          Math.ceil(totalDowntimeInSeconds.totalDowntimeInSeconds / 60),
-        ),
+      totalDowntimeInHoursAndMinutes: this.getDowntimeInHoursAndMinutes(
+        pageDowntimeInSeconds,
+      ),
     };
+  }
+
+  /*
+   * A set of monitors' merged downtime over the report window, asked of the
+   * database once per distinct set however many rollups share it.
+   */
+  private async getMergedDowntimeForMonitorSet(data: {
+    monitorIds: Array<ObjectID>;
+    downtimeMonitorStatusIds: Array<string>;
+    reportWindow: UptimeWindow;
+    mergedDowntimeByMonitorSet: Dictionary<MergedDowntimeTotals>;
+  }): Promise<MergedDowntimeTotals> {
+    const monitorSetKey: string = Service.getMonitorSetKey(data.monitorIds);
+
+    let merged: MergedDowntimeTotals | undefined =
+      data.mergedDowntimeByMonitorSet[monitorSetKey];
+
+    if (!merged) {
+      merged = await this.getMergedDowntimeForStatusPage({
+        monitorIds: data.monitorIds,
+        downtimeMonitorStatusIds: data.downtimeMonitorStatusIds,
+        startDate: data.reportWindow.startDate,
+        endDate: data.reportWindow.endDate,
+      });
+
+      data.mergedDowntimeByMonitorSet[monitorSetKey] = merged;
+    }
+
+    return merged;
+  }
+
+  /*
+   * Downtime merged across several monitors, floored at the largest downtime
+   * of any one resource beneath it.
+   *
+   * Both figures are uncapped now, and a union over several monitors covers
+   * each of them, so the merge is at least any resource's own - except where
+   * two rows of one monitor overlap each other (a row deleted from the middle
+   * of a timeline leaves that, see getRollingUptimeTotals). A single
+   * monitor's downtime comes from the day aggregate, which counts such an
+   * overlap twice, and the union once. The floor keeps the report from
+   * printing a group below one of its own resources when that happens.
+   */
+  private getRolledUpDowntimeInSeconds(data: {
+    mergedDowntimeInSeconds: number;
+    resourceDowntimesInSeconds: Array<number>;
+  }): number {
+    return data.resourceDowntimesInSeconds.reduce(
+      (largest: number, downtimeInSeconds: number) => {
+        return Math.max(largest, downtimeInSeconds);
+      },
+      data.mergedDowntimeInSeconds,
+    );
+  }
+
+  /*
+   * Downtime as the report prints it, rounded UP to the minute so any
+   * downtime at all shows. Rounded to the millisecond first: the aggregate's
+   * seconds are sums of doubles, and 7200.000000001 must still read as two
+   * hours rather than two hours and a minute.
+   */
+  private getDowntimeInHoursAndMinutes(downtimeInSeconds: number): string {
+    const downtimeInMilliseconds: number = Math.round(downtimeInSeconds * 1000);
+
+    return OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
+      Math.ceil(downtimeInMilliseconds / 60000),
+    );
   }
 
   /*
@@ -1593,12 +1820,17 @@ export class Service extends DatabaseService<StatusPage> {
     statusPageGroups: Array<StatusPageGroup>;
     entries: Array<StatusPageReportResourceEntry>;
     monitorIdsByResourceIndex: Array<Array<ObjectID>>;
-    timeline: Array<MonitorStatusTimeline>;
-    downtimeMonitorStatuses: Array<MonitorStatus>;
+    // each entry's own downtime; the group's is floored at the largest.
+    downtimeInSecondsByResourceIndex?: Array<number> | undefined;
+    downtimeMonitorStatusIds: Array<string>;
     reportWindow: UptimeWindow;
+    // the report's merged downtime by monitor set, when it has one to share.
+    mergedDowntimeByMonitorSet?: Dictionary<MergedDowntimeTotals> | undefined;
   }): Promise<Dictionary<StatusPageReportGroupMetrics>> {
     const groupMetricsByGroupId: Dictionary<StatusPageReportGroupMetrics> = {};
     const incidentCountByMonitorSet: Dictionary<number> = {};
+    const mergedDowntimeByMonitorSet: Dictionary<MergedDowntimeTotals> =
+      data.mergedDowntimeByMonitorSet || {};
 
     for (const group of data.statusPageGroups) {
       const groupId: string | undefined = group._id?.toString();
@@ -1617,6 +1849,7 @@ export class Service extends DatabaseService<StatusPage> {
       );
 
       const uptimePercentsInSubtree: Array<number> = [];
+      const downtimesInSecondsInSubtree: Array<number> = [];
       const monitorIdsInSubtree: Dictionary<ObjectID> = {};
 
       data.entries.forEach(
@@ -1629,6 +1862,9 @@ export class Service extends DatabaseService<StatusPage> {
           }
 
           uptimePercentsInSubtree.push(entry.reportItem.uptimePercent);
+          downtimesInSecondsInSubtree.push(
+            data.downtimeInSecondsByResourceIndex?.[index] || 0,
+          );
 
           for (const monitorId of data.monitorIdsByResourceIndex[index] || []) {
             // de-duplicated: the same monitor can back more than one resource.
@@ -1639,25 +1875,26 @@ export class Service extends DatabaseService<StatusPage> {
 
       const monitorIds: Array<ObjectID> = Object.values(monitorIdsInSubtree);
 
-      const timelineForThisGroup: Array<MonitorStatusTimeline> =
-        data.timeline.filter((item: MonitorStatusTimeline) => {
-          return Boolean(
-            item.monitorId && monitorIdsInSubtree[item.monitorId.toString()],
-          );
-        });
+      /*
+       * A chain like Corporate -> Region -> Market -> Unit rolls up the exact
+       * same monitors at every level, so the merged downtime and the incident
+       * count are cached by the monitor set rather than issuing one identical
+       * query per level.
+       */
+      const monitorSetKey: string = Service.getMonitorSetKey(monitorIds);
 
-      const downtime: {
-        totalDowntimeInSeconds: number;
-        totalSecondsInTimePeriod: number;
-      } = UptimeUtil.getTotalDowntimeInSeconds(
-        timelineForThisGroup,
-        data.downtimeMonitorStatuses,
-        data.reportWindow,
-      );
+      // the time at least one monitor in the subtree was down.
+      const downtime: MergedDowntimeTotals =
+        await this.getMergedDowntimeForMonitorSet({
+          monitorIds: monitorIds,
+          downtimeMonitorStatusIds: data.downtimeMonitorStatusIds,
+          reportWindow: data.reportWindow,
+          mergedDowntimeByMonitorSet: mergedDowntimeByMonitorSet,
+        });
 
       /*
        * Averaging the resources' percentages (rather than recomputing from the
-       * merged timeline) is what the live page does, so a group in the email
+       * merged downtime) is what the live page does, so a group in the email
        * shows the number a reader can compare against the page.
        */
       const uptimePercent: number =
@@ -1668,18 +1905,6 @@ export class Service extends DatabaseService<StatusPage> {
                 group.uptimePercentPrecision || UptimePrecision.TWO_DECIMAL,
             })
           : 0;
-
-      /*
-       * A chain like Corporate -> Region -> Market -> Unit rolls up the exact
-       * same monitors at every level, so the incident count is cached by the
-       * monitor set rather than issuing one identical query per level.
-       */
-      const monitorSetKey: string = monitorIds
-        .map((monitorId: ObjectID) => {
-          return monitorId.toString();
-        })
-        .sort()
-        .join(",");
 
       let totalIncidentCount: number | undefined =
         incidentCountByMonitorSet[monitorSetKey];
@@ -1700,10 +1925,12 @@ export class Service extends DatabaseService<StatusPage> {
       groupMetricsByGroupId[groupId] = {
         uptimePercent: uptimePercent,
         uptimePercentAsString: `${uptimePercent}%`,
-        downtimeInHoursAndMinutes:
-          OneUptimeDate.convertMinutesToDaysHoursAndMinutes(
-            Math.ceil(downtime.totalDowntimeInSeconds / 60),
-          ),
+        downtimeInHoursAndMinutes: this.getDowntimeInHoursAndMinutes(
+          this.getRolledUpDowntimeInSeconds({
+            mergedDowntimeInSeconds: downtime.downtimeSeconds,
+            resourceDowntimesInSeconds: downtimesInSecondsInSubtree,
+          }),
+        ),
         totalIncidentCount: totalIncidentCount,
       };
     }

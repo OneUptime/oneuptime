@@ -43,6 +43,14 @@ import MarkdownEditor from "../../Markdown.tsx/MarkdownEditor";
 import YamlEditor from "../../CodeEditor/YamlEditor";
 import useTranslateValue from "../../../Utils/Translation";
 
+/*
+ * Shown under every DateTime and Time field. It is one sentence with
+ * placeholders, so a translator can put the zone wherever their language
+ * needs it, and the key is the same whichever zone the user is in.
+ */
+export const TIMEZONE_DESCRIPTION_TEMPLATE: string =
+  "This is in your timezone - {{abbreviation}} ({{timezone}}).";
+
 export interface ComponentProps<T extends GenericObject> {
   field: Field<T>;
   fieldName: string;
@@ -63,7 +71,7 @@ const FormField: <T extends GenericObject>(
 ) => ReactElement = <T extends GenericObject>(
   props: ComponentProps<T>,
 ): ReactElement => {
-  const { translateString } = useTranslateValue();
+  const { translateString, translateValue } = useTranslateValue();
   const translatedPlaceholder: string | undefined = translateString(
     props.field.placeholder,
   );
@@ -288,23 +296,48 @@ const FormField: <T extends GenericObject>(
       props.field.fieldType === FormFieldSchemaType.DateTime ||
       props.field.fieldType === FormFieldSchemaType.Time
     ) {
-      if (!fieldDescription) {
-        fieldDescription = "";
-      }
-
       /*
        * Name the zone in full. The abbreviation on its own ("EDT") is not
        * enough to tell whether the field is following the timezone picked in
        * User Settings or the one the browser reports.
        */
+      const timezoneValues: Dictionary<string> = {
+        abbreviation: OneUptimeDate.getCurrentTimezoneString(),
+        timezone: OneUptimeDate.getCurrentTimezone().toString(),
+      };
+
+      /*
+       * The description and the timezone sentence are looked up on their own.
+       * Joined first, the zone in the text kept the whole string from ever
+       * matching a locale entry, so both stayed in English. The sentence is
+       * looked up with its placeholders still in it and filled in here, which
+       * also works where no i18next instance is ready to interpolate.
+       */
+      const translatedDescription: string | ReactElement | undefined =
+        translateValue(props.field.description);
+
+      const timezoneSentence: string = (
+        translateString(TIMEZONE_DESCRIPTION_TEMPLATE) ||
+        TIMEZONE_DESCRIPTION_TEMPLATE
+      ).replace(
+        /\{\{(\w+)\}\}/g,
+        (placeholder: string, name: string): string => {
+          return timezoneValues[name] ?? placeholder;
+        },
+      );
+
+      /*
+       * Already translated, so it reaches FieldLabel as an element: FieldLabel
+       * looks string descriptions up again, and a translated sentence is not a
+       * key.
+       */
       fieldDescription = (
-        fieldDescription +
-        " This is in your timezone - " +
-        OneUptimeDate.getCurrentTimezoneString() +
-        " (" +
-        OneUptimeDate.getCurrentTimezone().toString() +
-        ")."
-      ).trim();
+        <>
+          {translatedDescription}
+          {translatedDescription ? " " : null}
+          {timezoneSentence}
+        </>
+      );
     }
 
     type GetFieldDescriptionFunction = () => ReactElement | string;
@@ -875,8 +908,10 @@ const FormField: <T extends GenericObject>(
           {props.field.fieldType === FormFieldSchemaType.Checkbox && (
             <CheckboxElement
               error={props.touched && props.error ? props.error : undefined}
-              title={props.field.title || ""}
-              description={props.field.description || ""}
+              title={
+                translateString(props.field.title) ?? props.field.title ?? ""
+              }
+              description={translateValue(props.field.description) || ""}
               onChange={async (value: boolean) => {
                 onChange(value);
                 props.setFieldValue(props.fieldName, value);

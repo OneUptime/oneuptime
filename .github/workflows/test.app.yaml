@@ -107,6 +107,11 @@ jobs:
       - name: Run Session Replay UI regressions
         working-directory: packages/E2E
         run: npm run test-session-replay-ui
+      # Runs even if the replay suite failed, so one run reports both.
+      - name: Run User Flows UI regressions
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        run: npm run test-user-flows-ui
       - name: Upload browser screenshots and failure traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -115,6 +120,8 @@ jobs:
           path: |
             output/playwright/session-replay-ui/*.png
             output/playwright/session-replay-ui/test-results
+            output/playwright/user-flows-ui/*.png
+            output/playwright/user-flows-ui/test-results
           retention-days: 7
 
   dashboard-offline-ui:
@@ -174,6 +181,18 @@ jobs:
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
         run: npm run test-event-overview-ui
+      - name: Run Event Notes UI regressions
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        run: npm run test-event-notes-ui
+      - name: Run Monitor Overview UI regressions
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        run: npm run test-monitor-overview-ui
+      - name: Run Security Events Empty States UI regressions
+        if: ${{ !cancelled() }}
+        working-directory: packages/E2E
+        run: npm run test-security-events-empty-states-ui
       - name: Run Status Page Search UI regressions
         if: ${{ !cancelled() }}
         working-directory: packages/E2E
@@ -214,6 +233,12 @@ jobs:
             output/playwright/trace-detail-ui/test-results
             output/playwright/event-overview-ui/*.png
             output/playwright/event-overview-ui/test-results
+            output/playwright/event-notes-ui/*.png
+            output/playwright/event-notes-ui/test-results
+            output/playwright/monitor-overview-ui/*.png
+            output/playwright/monitor-overview-ui/test-results
+            output/playwright/security-events-empty-states-ui/*.png
+            output/playwright/security-events-empty-states-ui/test-results
             output/playwright/status-page-search/test-results
             output/playwright/pencil-button/test-results
             output/playwright/alerts/*.png

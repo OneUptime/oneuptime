@@ -153,6 +153,66 @@ const GOOGLE_ID: string = "33333333-3333-4333-8333-333333333333";
 const NOW: number = new Date("2026-09-10T12:00:00Z").getTime();
 const RESELLER_MESSAGE: string =
   "Looks like you have bought this plan from a reseller. It did not include telemetry features in your plan. Telemetry features are disabled for this project.";
+const EMPTY_STATE_ID: string = "security-event-connections-empty-state";
+const NO_CREATE_REASON: string =
+  "You do not have permission to create connections.";
+
+/*
+ * The empty state's provider tiles in catalog order, written out so a
+ * reordered or renamed catalog entry is a visible change here too.
+ */
+interface ExpectedTile {
+  provider: SecurityEventConnectorProvider;
+  title: string;
+  docsSlug: string;
+}
+
+const EXPECTED_TILES: Array<ExpectedTile> = [
+  {
+    provider: SecurityEventConnectorProvider.MicrosoftSentinel,
+    title: "Microsoft Sentinel",
+    docsSlug: "microsoft-sentinel",
+  },
+  {
+    provider: SecurityEventConnectorProvider.MicrosoftDefenderXdr,
+    title: "Microsoft Defender XDR",
+    docsSlug: "microsoft-defender-xdr",
+  },
+  {
+    provider: SecurityEventConnectorProvider.CrowdStrikeFalcon,
+    title: "CrowdStrike Falcon",
+    docsSlug: "crowdstrike-falcon",
+  },
+  {
+    provider: SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+    title: "Splunk Enterprise Security",
+    docsSlug: "splunk",
+  },
+  {
+    provider: SecurityEventConnectorProvider.ElasticSecurity,
+    title: "Elastic Security",
+    docsSlug: "elastic-security",
+  },
+  {
+    provider: SecurityEventConnectorProvider.AwsSecurityHub,
+    title: "AWS Security Hub",
+    docsSlug: "aws-security-hub",
+  },
+  {
+    provider: SecurityEventConnectorProvider.OktaSystemLog,
+    title: "Okta System Log",
+    docsSlug: "okta",
+  },
+  {
+    provider: SecurityEventConnectorProvider.GoogleSecOps,
+    title: "Google SecOps",
+    docsSlug: "google-secops",
+  },
+];
+
+function expectedTileProvider(tile: ExpectedTile): string {
+  return tile.provider;
+}
 
 function pollResult(
   overrides: Partial<SecurityEventConnectionRunResult> = {},
@@ -254,6 +314,31 @@ function report(provider: string): SecurityConnectorTestReport {
       },
     ],
   };
+}
+
+function renderEmptyState(): RenderResult {
+  return render(
+    <MemoryRouter>{tableProps().noItemsMessage as ReactElement}</MemoryRouter>,
+  );
+}
+
+function checkedProviders(dialog: HTMLElement): Array<HTMLElement> {
+  return within(dialog)
+    .getAllByRole("radio")
+    .filter((radio: HTMLElement): boolean => {
+      return radio.getAttribute("aria-checked") === "true";
+    });
+}
+
+async function closeDialog(dialog: HTMLElement): Promise<void> {
+  await act(async (): Promise<void> => {
+    fireEvent.click(
+      within(dialog).getAllByRole("button", { name: "Close" })[0]!,
+    );
+  });
+  await waitFor((): void => {
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
 }
 
 function tableElement(): ReactElement {
@@ -370,7 +455,14 @@ describe("SecurityEventConnectionsTable", () => {
     );
   });
 
-  test("the empty state explains prerequisites and links every provider's setup guide", (): void => {
+  /*
+   * The table's own empty state is the provider gallery: every product in
+   * the catalog is a tile that starts a connection and links its setup
+   * guide, and what a connection needs follows the tiles. It replaced a
+   * grey requirements box above a separate "Setup guides" list of docs
+   * cards.
+   */
+  test("the empty state lists every provider as a tile with its setup guide, then what a connection needs", (): void => {
     renderTable([]);
 
     render(
@@ -379,50 +471,152 @@ describe("SecurityEventConnectionsTable", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText(/read-only credential/)).toBeVisible();
-    expect(screen.getByText(/running OneUptime worker/)).toBeVisible();
-    const links: Array<HTMLElement> = within(
-      screen.getByRole("list", { name: "Setup guides" }),
-    ).getAllByRole("link");
-    expect(screen.getAllByRole("link")).toEqual(links);
+    const tiles: HTMLElement = screen.getByRole("list", {
+      name: "Pick a product to connect",
+    });
     expect(
-      links.map((link: HTMLElement): string => {
-        return link.id.replace(
-          "security-event-connections-empty-state-guides-",
-          "",
-        );
-      }),
-    ).toEqual([
-      SecurityEventConnectorProvider.MicrosoftSentinel,
-      SecurityEventConnectorProvider.MicrosoftDefenderXdr,
-      SecurityEventConnectorProvider.CrowdStrikeFalcon,
-      SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
-      SecurityEventConnectorProvider.ElasticSecurity,
-      SecurityEventConnectorProvider.AwsSecurityHub,
-      SecurityEventConnectorProvider.OktaSystemLog,
-      SecurityEventConnectorProvider.GoogleSecOps,
-    ]);
-    for (const [index, title] of [
-      "Microsoft Sentinel",
-      "Microsoft Defender XDR",
-      "CrowdStrike Falcon",
-      "Splunk Enterprise Security",
-      "Elastic Security",
-      "AWS Security Hub",
-      "Okta System Log",
-      "Google SecOps",
-    ].entries()) {
-      expect(within(links[index]!).getByText(title)).toBeVisible();
-    }
-    for (const link of links) {
-      expect(link).toHaveAttribute("target", "_blank");
-      expect(link.getAttribute("href")).toMatch(
-        /\/docs\/integrations\/[a-z-]+$/,
+      within(tiles)
+        .getAllByRole("listitem")
+        .map((tile: HTMLElement): string => {
+          return (tile.getAttribute("data-testid") || "").replace(
+            `${EMPTY_STATE_ID}-provider-`,
+            "",
+          );
+        }),
+    ).toEqual(EXPECTED_TILES.map(expectedTileProvider));
+
+    for (const tile of EXPECTED_TILES) {
+      const item: HTMLElement = screen.getByTestId(
+        `${EMPTY_STATE_ID}-provider-${tile.provider}`,
       );
+      expect(
+        within(item).getByRole("button", { name: `Connect ${tile.title}` }),
+      ).toBeEnabled();
+      const guide: HTMLElement = within(item).getByRole("link", {
+        name: `${tile.title} Setup guide (opens in a new tab)`,
+      });
+      expect(guide).toHaveAttribute("target", "_blank");
+      expect(guide.getAttribute("href")).toMatch(
+        new RegExp(`/docs/integrations/${tile.docsSlug}$`),
+      );
+      // A sibling of the tile's button, never a control inside it.
+      expect(guide.closest("button")).toBeNull();
     }
-    expect(links[links.length - 1]?.getAttribute("href")).toMatch(
-      /\/docs\/integrations\/google-secops$/,
-    );
+
+    // The guides are the only links, one per tile.
+    expect(screen.getAllByRole("link")).toHaveLength(EXPECTED_TILES.length);
+    expect(
+      within(tiles).getAllByRole("button", { name: /^Connect / }),
+    ).toHaveLength(EXPECTED_TILES.length);
+
+    const requirements: HTMLElement = screen.getByRole("list", {
+      name: "What you'll need",
+    });
+    expect(within(requirements).getAllByRole("listitem")).toHaveLength(2);
+    expect(
+      within(requirements).getByText("A read-only credential"),
+    ).toBeVisible();
+    expect(
+      within(requirements).getByText("A running OneUptime worker"),
+    ).toBeVisible();
+
+    // The products come first; the requirements no longer sit above them.
+    expect(
+      tiles.compareDocumentPosition(requirements) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("list", { name: "Setup guides" }),
+    ).not.toBeInTheDocument();
+    expect(
+      document.querySelectorAll(`[id^="${EMPTY_STATE_ID}-guides-"]`),
+    ).toHaveLength(0);
+  });
+
+  /*
+   * The old empty state opened with a grey box of requirements, then a
+   * second grid of docs cards. The requirements are now a plain section
+   * under the tiles, and nothing grey is boxed in above them.
+   */
+  test("the empty state's requirements are a plain section after the tiles, not a grey box before them", (): void => {
+    renderTable([]);
+    renderEmptyState();
+
+    const root: HTMLElement = document.getElementById(
+      EMPTY_STATE_ID,
+    ) as HTMLElement;
+    const providers: HTMLElement = document.getElementById(
+      `${EMPTY_STATE_ID}-providers`,
+    ) as HTMLElement;
+    const requirements: HTMLElement = document.getElementById(
+      `${EMPTY_STATE_ID}-requirements`,
+    ) as HTMLElement;
+
+    expect(providers.tagName).toBe("SECTION");
+    expect(requirements.tagName).toBe("SECTION");
+    expect(providers.nextElementSibling).toBe(requirements);
+    expect(requirements).toBe(root.lastElementChild);
+    expect(requirements).not.toHaveClass("bg-gray-50");
+    expect(requirements).not.toHaveClass("rounded-lg");
+    expect(
+      screen.getByRole("list", { name: "What you'll need" }),
+    ).not.toHaveClass("bg-gray-50");
+
+    // Nothing before the tiles is a grey panel.
+    const beforeTiles: Array<Element> = Array.from(
+      root.querySelectorAll("*"),
+    ).filter((element: Element): boolean => {
+      return (
+        (providers.compareDocumentPosition(element) &
+          Node.DOCUMENT_POSITION_PRECEDING) !==
+          0 && !element.contains(providers)
+      );
+    });
+    expect(
+      beforeTiles.filter((element: Element): boolean => {
+        return element.classList.contains("bg-gray-50");
+      }),
+    ).toEqual([]);
+    expect(
+      beforeTiles.some((element: Element): boolean => {
+        return (element.textContent || "").includes("read-only credential");
+      }),
+    ).toBe(false);
+  });
+
+  /*
+   * A tile's setup guide is a sibling of its Connect button, raised above
+   * the tile's overlay. Following it reads the docs; it must not also open
+   * the Add connection form behind the reader's back.
+   */
+  test("following a tile's setup guide does not open Add connection", async (): Promise<void> => {
+    renderTable([]);
+    renderEmptyState();
+
+    const guide: HTMLElement = within(
+      screen.getByTestId(
+        `${EMPTY_STATE_ID}-provider-${SecurityEventConnectorProvider.CrowdStrikeFalcon}`,
+      ),
+    ).getByRole("link", {
+      name: "CrowdStrike Falcon Setup guide (opens in a new tab)",
+    });
+    expect(guide).toHaveClass("relative", "z-10");
+
+    // jsdom cannot open a new tab; stop the default and watch the bubble.
+    const preventNavigation: (event: Event) => void = (event: Event): void => {
+      event.preventDefault();
+    };
+    document.addEventListener("click", preventNavigation);
+    try {
+      await act(async (): Promise<void> => {
+        fireEvent.click(guide);
+      });
+    } finally {
+      document.removeEventListener("click", preventNavigation);
+    }
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(API.post).not.toHaveBeenCalled();
   });
 
   test("the empty state's Add connection opens the same create form as the card button", async (): Promise<void> => {
@@ -442,9 +636,104 @@ describe("SecurityEventConnectionsTable", () => {
 
     fireEvent.click(button);
 
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add connection",
+    });
+    expect(dialog).toBeInTheDocument();
+    // The header button picks no product; that is the Provider step's job.
+    expect(checkedProviders(dialog)).toEqual([]);
+  });
+
+  /*
+   * End to end, through the real tile and the real form: clicking a
+   * product's tile opens Add connection on the Provider step with that
+   * product already chosen, so the customer does not pick it twice.
+   */
+  test("clicking the CrowdStrike Falcon tile opens Add connection with CrowdStrike chosen", async (): Promise<void> => {
+    renderTable([]);
+    renderEmptyState();
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Connect CrowdStrike Falcon" }),
+      );
+    });
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add connection",
+    });
+    const crowdStrike: HTMLElement = within(dialog).getByRole("radio", {
+      name: /CrowdStrike Falcon/,
+    });
+    expect(crowdStrike).toHaveAttribute("aria-checked", "true");
+    expect(checkedProviders(dialog)).toEqual([crowdStrike]);
+    expect(within(dialog).getAllByRole("radio").length).toBeGreaterThanOrEqual(
+      EXPECTED_TILES.length,
+    );
+    // Opening the form is not creating a connection.
+    expect(API.post).not.toHaveBeenCalled();
+  });
+
+  test.each(EXPECTED_TILES)(
+    "the $title tile opens Add connection with only $title chosen",
+    async (tile: ExpectedTile): Promise<void> => {
+      renderTable([]);
+      renderEmptyState();
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          screen.getByRole("button", { name: `Connect ${tile.title}` }),
+        );
+      });
+
+      const dialog: HTMLElement = await screen.findByRole("dialog", {
+        name: "Add connection",
+      });
+      expect(
+        checkedProviders(dialog).map((radio: HTMLElement): string => {
+          return radio.textContent || "";
+        }),
+      ).toEqual([expect.stringContaining(tile.title)]);
+    },
+  );
+
+  /*
+   * The form is keyed by the provider it was opened with, so a second tile
+   * after closing the first starts from its own product, not the last one.
+   */
+  test("a second tile after closing the first opens with the second product chosen", async (): Promise<void> => {
+    renderTable([]);
+    renderEmptyState();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Connect CrowdStrike Falcon" }),
+      );
+    });
+    const first: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add connection",
+    });
     expect(
-      await screen.findByRole("dialog", { name: "Add connection" }),
-    ).toBeInTheDocument();
+      within(first).getByRole("radio", { name: /CrowdStrike Falcon/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    await closeDialog(first);
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Connect Okta System Log" }),
+      );
+    });
+    const second: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add connection",
+    });
+    expect(checkedProviders(second)).toEqual([
+      within(second).getByRole("radio", { name: /Okta System Log/ }),
+    ]);
+    expect(
+      within(second).getByRole("radio", { name: /CrowdStrike Falcon/ }),
+    ).toHaveAttribute("aria-checked", "false");
   });
 
   test("the card button and the empty state's button share one create handler", (): void => {
@@ -459,10 +748,91 @@ describe("SecurityEventConnectionsTable", () => {
     expect(emptyState.props.onAddConnection).toBe(cardButton.onClick);
   });
 
+  /*
+   * A provider tile in the empty state passes its provider through the same
+   * handler; the form then opens on the Provider step with that card chosen.
+   */
+  test("the empty state can open the create form with a provider already selected", async (): Promise<void> => {
+    renderTable([]);
+
+    const emptyState: ReactElement<{
+      onAddConnection: (provider?: SecurityEventConnectorProvider) => void;
+    }> = tableProps().noItemsMessage as ReactElement<{
+      onAddConnection: (provider?: SecurityEventConnectorProvider) => void;
+    }>;
+
+    await act(async (): Promise<void> => {
+      emptyState.props.onAddConnection(
+        SecurityEventConnectorProvider.CrowdStrikeFalcon,
+      );
+    });
+
+    const dialog: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add connection",
+    });
+    expect(
+      within(dialog).getByRole("radio", { name: /CrowdStrike Falcon/ }),
+    ).toHaveAttribute("aria-checked", "true");
+    expect(
+      within(dialog)
+        .getAllByRole("radio")
+        .filter((radio: HTMLElement): boolean => {
+          return radio.getAttribute("aria-checked") === "true";
+        }),
+    ).toHaveLength(1);
+  });
+
+  test("after a provider tile's form is closed, the card button opens a form with nothing chosen", async (): Promise<void> => {
+    renderTable([]);
+
+    await act(async (): Promise<void> => {
+      (
+        tableProps().noItemsMessage as ReactElement<{
+          onAddConnection: (provider?: SecurityEventConnectorProvider) => void;
+        }>
+      ).props.onAddConnection(SecurityEventConnectorProvider.OktaSystemLog);
+    });
+    const first: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add connection",
+    });
+    expect(
+      within(first).getByRole("radio", { name: /Okta System Log/ }),
+    ).toHaveAttribute("aria-checked", "true");
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(first).getAllByRole("button", { name: "Close" })[0]!,
+      );
+    });
+    await waitFor((): void => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+
+    await act(async (): Promise<void> => {
+      (tableProps().cardProps?.buttons?.[0] as CardButtonSchema).onClick();
+    });
+    const second: HTMLElement = await screen.findByRole("dialog", {
+      name: "Add connection",
+    });
+    expect(
+      within(second)
+        .getAllByRole("radio")
+        .filter((radio: HTMLElement): boolean => {
+          return radio.getAttribute("aria-checked") === "true";
+        }),
+    ).toEqual([]);
+  });
+
+  /*
+   * A member who cannot create connections sees why, written out (a
+   * tooltip never shows on a touch screen), and a static gallery: the
+   * tiles name the products without offering to connect them, and every
+   * setup guide is still one click away.
+   */
   test("members who cannot create connections get a disabled empty-state button with the reason", (): void => {
     jest.spyOn(PermissionGate, "check").mockReturnValue({
       isAllowed: false,
-      disabledReason: "You do not have permission to create connections.",
+      disabledReason: NO_CREATE_REASON,
     });
     renderTable([]);
 
@@ -474,24 +844,93 @@ describe("SecurityEventConnectionsTable", () => {
       createDisabledReason?: string;
     }>;
     expect(emptyState.props.canCreate).toBe(false);
-    expect(emptyState.props.createDisabledReason).toBe(
-      "You do not have permission to create connections.",
-    );
+    expect(emptyState.props.createDisabledReason).toBe(NO_CREATE_REASON);
 
     render(<MemoryRouter>{emptyState}</MemoryRouter>);
 
     const button: HTMLElement = screen.getByTestId(
-      "security-event-connections-empty-state-add-connection",
+      `${EMPTY_STATE_ID}-add-connection`,
     );
     expect(button).toBeDisabled();
     fireEvent.click(button);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    // The guides stay useful to someone who cannot add a connection.
+
+    const reason: HTMLElement = screen.getByTestId(
+      `${EMPTY_STATE_ID}-disabled-reason`,
+    );
+    expect(reason).toBeVisible();
+    expect(reason).toHaveTextContent(NO_CREATE_REASON);
+
+    // Nothing to pick, so the heading no longer asks for a pick.
     expect(
-      within(screen.getByRole("list", { name: "Setup guides" })).getAllByRole(
-        "link",
-      ),
-    ).toHaveLength(8);
+      screen.queryByRole("list", { name: "Pick a product to connect" }),
+    ).not.toBeInTheDocument();
+    const tiles: HTMLElement = screen.getByRole("list", {
+      name: "Supported products",
+    });
+    expect(within(tiles).getAllByRole("listitem")).toHaveLength(
+      EXPECTED_TILES.length,
+    );
+    expect(within(tiles).queryAllByRole("button")).toEqual([]);
+    expect(
+      screen.queryByRole("button", { name: /^Connect / }),
+    ).not.toBeInTheDocument();
+    expect(document.querySelectorAll("[data-provider-tile]")).toHaveLength(0);
+    /*
+     * The name is plain text now; the guide link's screen-reader prefix
+     * repeats it, so the visible name is looked up as the paragraph.
+     */
+    for (const tile of EXPECTED_TILES) {
+      expect(
+        within(
+          screen.getByTestId(`${EMPTY_STATE_ID}-provider-${tile.provider}`),
+        ).getByText(tile.title, { selector: "p" }),
+      ).toBeVisible();
+    }
+
+    // The guides stay useful to someone who cannot add a connection.
+    const guides: Array<HTMLElement> = within(tiles).getAllByRole("link");
+    expect(guides).toHaveLength(EXPECTED_TILES.length);
+    for (const [index, tile] of EXPECTED_TILES.entries()) {
+      expect(guides[index]).toHaveAccessibleName(
+        `${tile.title} Setup guide (opens in a new tab)`,
+      );
+      expect(guides[index]?.getAttribute("href")).toMatch(
+        new RegExp(`/docs/integrations/${tile.docsSlug}$`),
+      );
+    }
+
+    // The only button left in the empty state is the disabled one.
+    expect(screen.getAllByRole("button")).toEqual([button]);
+    expect(API.post).not.toHaveBeenCalled();
+  });
+
+  test("members who cannot create connections see no reason line when the gate gives none", (): void => {
+    jest.spyOn(PermissionGate, "check").mockReturnValue({ isAllowed: false });
+    renderTable([]);
+    renderEmptyState();
+
+    expect(
+      screen.getByTestId(`${EMPTY_STATE_ID}-add-connection`),
+    ).toBeDisabled();
+    expect(
+      screen.queryByTestId(`${EMPTY_STATE_ID}-disabled-reason`),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("list", { name: "Supported products" }),
+    ).toBeInTheDocument();
+  });
+
+  test("members who can create connections see no disabled reason", (): void => {
+    renderTable([]);
+    renderEmptyState();
+
+    expect(
+      screen.getByTestId(`${EMPTY_STATE_ID}-add-connection`),
+    ).toBeEnabled();
+    expect(
+      screen.queryByTestId(`${EMPTY_STATE_ID}-disabled-reason`),
+    ).not.toBeInTheDocument();
   });
 
   /*

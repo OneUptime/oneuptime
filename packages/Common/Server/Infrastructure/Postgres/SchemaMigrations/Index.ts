@@ -3,6 +3,11 @@ import { RemoveMonitorDescriptionLengthLimit1793800000000 } from "./179380000000
 import { AddEnterpriseEditionFirstSeenAt1793900000000 } from "./1793900000000-AddEnterpriseEditionFirstSeenAt";
 import { AddSloLabelAndOwnerRules1794100000000 } from "./1794100000000-AddSloLabelAndOwnerRules";
 import { AddSloMonitorRuleMonitorType1794200000000 } from "./1794200000000-AddSloMonitorRuleMonitorType";
+import { AddOAuth2WorkflowVariables1794300000000 } from "./1794300000000-AddOAuth2WorkflowVariables";
+import { AddKubernetesClusterAiAccess1794400000000 } from "./1794400000000-AddKubernetesClusterAiAccess";
+import { AddIncomingEmailCustomAddressToMonitor1794500000000 } from "./1794500000000-AddIncomingEmailCustomAddressToMonitor";
+import { AddAuthTokenExpiresAtToWorkspaceProjectAuthToken1794600000000 } from "./1794600000000-AddAuthTokenExpiresAtToWorkspaceProjectAuthToken";
+import { RemoveAppAccessTokenFromWorkspaceProjectAuthTokenMiscData1794700000000 } from "./1794700000000-RemoveAppAccessTokenFromWorkspaceProjectAuthTokenMiscData";
 import { AddConfigurableRuleCriteria1792500000000 } from "./1792500000000-AddConfigurableRuleCriteria";
 import { AddGoogleSecOpsDiagnostics1792300000000 } from "./1792300000000-AddGoogleSecOpsDiagnostics";
 import { AddIncomingCallPolicyPhoneNumbers1792600000000 } from "./1792600000000-AddIncomingCallPolicyPhoneNumbers";
@@ -1206,4 +1211,9 @@ export default [
   AddEnterpriseEditionFirstSeenAt1793900000000,
   AddSloLabelAndOwnerRules1794100000000,
   AddSloMonitorRuleMonitorType1794200000000,
+  AddOAuth2WorkflowVariables1794300000000,
+  AddKubernetesClusterAiAccess1794400000000,
+  AddIncomingEmailCustomAddressToMonitor1794500000000,
+  AddAuthTokenExpiresAtToWorkspaceProjectAuthToken1794600000000,
+  RemoveAppAccessTokenFromWorkspaceProjectAuthTokenMiscData1794700000000,
 ];

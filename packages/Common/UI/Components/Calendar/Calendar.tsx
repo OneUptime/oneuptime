@@ -3,19 +3,102 @@ import CalendarEvent from "../../../Types/Calendar/CalendarEvent";
 import Color from "../../../Types/Color";
 import OneUptimeDate from "../../../Types/Date";
 import StartAndEndTime from "../../../Types/Time/StartAndEndTime";
+import { StyledDayEvent, layoutDayEvents } from "./CalendarDayLayout";
 import moment from "moment-timezone";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
   Calendar,
+  Culture,
   DateLocalizer,
+  DateRange,
+  DayLayoutFunction,
   EventPropGetter,
+  Formats,
   momentLocalizer,
   View,
 } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "./Calendar.css";
 
-const localizer: DateLocalizer = momentLocalizer(moment);
+// Exported so tests lay days out with exactly the localizer the calendar uses.
+export const calendarLocalizer: DateLocalizer = momentLocalizer(moment);
+
+/*
+ * react-big-calendar treats any block whose start and end are both exactly
+ * midnight as an all-day event and moves it out of the grid into the strip
+ * above it. A rotation that hands off at midnight produces exactly that
+ * shape, so every shift of a daily midnight rotation left the grid and became
+ * a bar in the header. Only CalendarEvent.allDay decides what is all-day.
+ */
+calendarLocalizer.startAndEndAreDateOnly = (): boolean => {
+  return false;
+};
+
+/*
+ * How long a day column is, in minutes. The moment localizer counts real
+ * minutes, so a daylight-saving day gets 23 or 25 hour rows, but it places
+ * blocks by wall-clock minute and draws the time gutter from a 24-hour day.
+ * Counting wall-clock minutes (the base localizer's own formula) gives every
+ * column 24 rows. The change day then lines up with the gutter and the other
+ * days, and its last hour exists: on the spring-forward day, a hand-off after
+ * 11 PM used to fall off the end of a 23-row column.
+ */
+calendarLocalizer.getTotalMin = (start: Date, end: Date): number => {
+  return (
+    calendarLocalizer.diff(start, end, "minutes") +
+    calendarLocalizer.getDstOffset(start, end)
+  );
+};
+
+/*
+ * The label for a block that starts in this column and runs past it.
+ * react-big-calendar writes "7:26 PM –", implying it continues into the next
+ * day. A block that ends at the midnight closing this column does not: the
+ * next day has nothing of it to show (see CalendarDayLayout), so it gets its
+ * end time here instead, "7:26 PM – 12:00 AM".
+ */
+export const formatEventTimeRangeStart: (
+  range: DateRange,
+  culture?: Culture,
+  local?: DateLocalizer,
+) => string = (
+  range: DateRange,
+  culture?: Culture,
+  local?: DateLocalizer,
+): string => {
+  const formatTime: (date: Date) => string = (date: Date): string => {
+    return local
+      ? local.format(date, "LT", culture)
+      : moment(date).format("LT");
+  };
+
+  const followingMidnight: moment.Moment = moment(range.start)
+    .startOf("day")
+    .add(1, "day");
+
+  // Whole minutes, as on the grid: a hand-off a few seconds after midnight is still one at midnight.
+  if (moment(range.end).isSame(followingMidnight, "minute")) {
+    return `${formatTime(range.start)} – ${formatTime(range.end)}`;
+  }
+
+  return `${formatTime(range.start)} – `;
+};
+
+const CALENDAR_FORMATS: Formats = {
+  eventTimeRangeStartFormat: formatEventTimeRangeStart,
+};
+
+const dayLayoutAlgorithm: DayLayoutFunction<CalendarEvent> = (
+  args: Parameters<DayLayoutFunction<CalendarEvent>>[0],
+): Array<{ event: CalendarEvent; style: React.CSSProperties }> => {
+  return layoutDayEvents<CalendarEvent>({
+    events: args.events,
+    slotMetrics: args.slotMetrics,
+    accessors: args.accessors,
+  }).map((styled: StyledDayEvent<CalendarEvent>) => {
+    return { event: styled.event, style: styled.style };
+  });
+};
 
 export interface ComponentProps {
   id?: string | undefined;
@@ -34,6 +117,15 @@ export interface ComponentProps {
    * the grid opens on that zone's current day rather than the browser's.
    */
   defaultDate?: Date | undefined;
+  /*
+   * "Now" as the grid should see it: it places the current-time line and picks
+   * the highlighted day. Defaults to the browser clock. Callers that shift
+   * events into a display timezone must shift this the same way, or the line
+   * is drawn at the browser's time on a grid showing another zone. It is called
+   * again each time the line moves, so it must read the clock, not return a
+   * fixed date.
+   */
+  getNow?: (() => Date) | undefined;
   onRangeChange: (startAndEndTime: StartAndEndTime) => void;
 }
 
@@ -55,9 +147,45 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
     };
   }, [props.defaultDate]);
 
+  /*
+   * The strip above the week/day grid only ever holds all-day events. With
+   * none, it is an empty band that pushes part of the day out of view. Only
+   * `allDay` counts, because startAndEndAreDateOnly is disabled above.
+   */
+  const hasAllDayEvents: boolean = useMemo(() => {
+    return props.events.some((event: CalendarEvent) => {
+      return Boolean(event.allDay);
+    });
+  }, [props.events]);
+
+  const backgroundEventSet: Set<CalendarEvent> = useMemo(() => {
+    return new Set<CalendarEvent>(props.backgroundEvents || []);
+  }, [props.backgroundEvents]);
+
   const eventStyleGetter: EventPropGetter<any> = (
     event: CalendarEvent,
   ): { className?: string | undefined; style?: React.CSSProperties } => {
+    const className: string | undefined = event.className
+      ? event.className.toString()
+      : undefined;
+
+    /*
+     * react-big-calendar runs background events through this getter too. The
+     * block styling below used to paint every uncovered band as a solid
+     * Blue500 block, which looks exactly like a shift and is one of the user
+     * colours. Background events are drawn by the stylesheet (the hatched
+     * .rbc-background-event), taking only a colour the caller asked for.
+     */
+    if (backgroundEventSet.has(event)) {
+      const backgroundStyle: React.CSSProperties = event.color
+        ? { backgroundColor: event.color.toString() }
+        : {};
+
+      return className
+        ? { style: backgroundStyle, className }
+        : { style: backgroundStyle };
+    }
+
     const backgroundColor: string =
       event.color?.toString() || Blue500.toString();
 
@@ -85,10 +213,6 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
         event.accentColor.toString();
     }
 
-    const className: string | undefined = event.className
-      ? event.className.toString()
-      : undefined;
-
     return className ? { style, className } : { style };
   };
 
@@ -107,13 +231,18 @@ const CalendarElement: FunctionComponent<ComponentProps> = (
   return (
     <div
       id={props.id}
-      className="oneuptime-calendar mt-5 h-[42rem] rounded-xl bg-white"
+      className={`oneuptime-calendar mt-5 h-[46rem] rounded-xl bg-white${
+        hasAllDayEvents ? "" : " oneuptime-calendar--no-all-day"
+      }`}
     >
       <Calendar
         defaultDate={defaultDate}
         events={props.events}
         backgroundEvents={props.backgroundEvents || []}
-        localizer={localizer}
+        localizer={calendarLocalizer}
+        formats={CALENDAR_FORMATS}
+        dayLayoutAlgorithm={dayLayoutAlgorithm}
+        {...(props.getNow ? { getNow: props.getNow } : {})}
         showMultiDayTimes
         views={CALENDAR_VIEWS}
         defaultView={props.defaultCalendarView || "week"}

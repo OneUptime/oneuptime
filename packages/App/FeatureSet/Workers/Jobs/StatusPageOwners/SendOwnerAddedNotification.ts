@@ -127,7 +127,7 @@ RunCron(
         continue;
       }
 
-      const users: Array<User> = statusPageOwnersMap[
+      const ownerUsers: Array<User> = statusPageOwnersMap[
         statusPageId
       ] as Array<User>;
 
@@ -155,6 +155,22 @@ RunCron(
         continue;
       }
 
+      /*
+       * A team row expands to every member row, pending invitations included,
+       * and a pending invitee has no notification settings yet (the defaults
+       * are added on accept). Tell only the accepted members of the project -
+       * the same people findOwners reports as owners.
+       */
+      const users: Array<User> =
+        await TeamMemberService.filterUsersToProjectMembers({
+          projectId: statusPage.projectId!,
+          users: ownerUsers,
+        });
+
+      if (users.length === 0) {
+        continue;
+      }
+
       const vars: Dictionary<string> = {
         statusPageName: statusPage.name!,
         projectName: statusPage.project!.name!,
@@ -175,6 +191,7 @@ RunCron(
           templateType: EmailTemplateType.StatusPageOwnerAdded,
           vars: vars,
           subject: "You have been added as the owner of the status page.",
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

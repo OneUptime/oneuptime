@@ -1,0 +1,17 @@
+# A release from a chart without aiAccess, upgraded with
+#   --reuse-values --set aiAccess.enabled=true --set aiAccess.resources.requests.cpu=100m
+# .Values.aiAccess.resources is then exactly {requests: {cpu: 100m}}. That is
+# what --reuse-values means (the previous release's values plus the flags,
+# never a newer chart's defaults), and the template honours an explicit
+# resources map as given rather than merging this chart's defaults back in.
+# See legacy-pre-aiaccess-ai-enabled.yaml for why the other keys are null.
+aiAccess:
+  enabled: true
+  remediation: null
+  image: null
+  resources:
+    requests:
+      cpu: 100m
+      memory: null
+    limits: null
+  extraEnv: null

@@ -17,9 +17,14 @@ import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import { DisableAutomaticIncidentCreation } from "../../EnvironmentConfig";
 import IncidentService from "../../Services/IncidentService";
 import IncidentSeverityService from "../../Services/IncidentSeverityService";
+import LabelService from "../../Services/LabelService";
+import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
+import DatabaseService from "../../Services/DatabaseService";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 import IncidentStateTimelineService from "../../Services/IncidentStateTimelineService";
 import IncidentMemberService from "../../Services/IncidentMemberService";
+import TeamMemberService from "../../Services/TeamMemberService";
 import NetworkDeviceOwnerUserService, {
   NetworkDeviceOwners,
 } from "../../Services/NetworkDeviceOwnerUserService";
@@ -770,20 +775,45 @@ export default class MonitorIncident {
             resolved: resourceContext,
           });
 
-          incident.onCallDutyPolicies =
-            criteriaIncident.onCallPolicyIds?.map((id: ObjectID) => {
+          /*
+           * On-call policies and labels from the criteria. IncidentService
+           * rejects any that belong to another project or no longer exist,
+           * and monitorSteps can still hold such ids (see the severity above).
+           * Drop those here rather than fail the whole ingest job; a
+           * criteria with a stale policy still pages its remaining ones.
+           */
+          const onCallPolicyIds: Array<ObjectID | string> =
+            await this.getCriteriaIdsUsableInProject({
+              monitor: input.monitor,
+              criteriaName: input.criteriaInstance.data?.name,
+              modelName: "on-call policy",
+              ids: criteriaIncident.onCallPolicyIds,
+              service: OnCallDutyPolicyService,
+            });
+
+          incident.onCallDutyPolicies = onCallPolicyIds.map(
+            (id: ObjectID | string) => {
               const onCallPolicy: OnCallDutyPolicy = new OnCallDutyPolicy();
               onCallPolicy._id = id.toString();
               return onCallPolicy;
-            }) || [];
+            },
+          );
 
           // Set labels from criteria
-          incident.labels =
-            criteriaIncident.labelIds?.map((id: ObjectID) => {
-              const label: Label = new Label();
-              label._id = id.toString();
-              return label;
-            }) || [];
+          const labelIds: Array<ObjectID | string> =
+            await this.getCriteriaIdsUsableInProject({
+              monitor: input.monitor,
+              criteriaName: input.criteriaInstance.data?.name,
+              modelName: "label",
+              ids: criteriaIncident.labelIds,
+              service: LabelService,
+            });
+
+          incident.labels = labelIds.map((id: ObjectID | string) => {
+            const label: Label = new Label();
+            label._id = id.toString();
+            return label;
+          });
 
           incident.isCreatedAutomatically = true;
 
@@ -874,6 +904,26 @@ export default class MonitorIncident {
                 const assignment: IncidentMemberRoleAssignment =
                   roleAssignment as IncidentMemberRoleAssignment;
 
+                /*
+                 * The criteria is saved configuration and can name a user
+                 * who has since left the project; they get no role on new
+                 * incidents.
+                 */
+                if (
+                  assignment.roleId &&
+                  assignment.userId &&
+                  !(await TeamMemberService.isUserMemberOfProject({
+                    projectId: input.monitor.projectId!,
+                    userId: new ObjectID(assignment.userId.toString()),
+                  }))
+                ) {
+                  logger.debug(
+                    `${input.monitor.id?.toString()} - Skipped incident member role ${assignment.roleId.toString()} for user ${assignment.userId.toString()}: not a member of the project`,
+                    incidentLogAttributes,
+                  );
+                  continue;
+                }
+
                 if (assignment.roleId && assignment.userId) {
                   const incidentMember: IncidentMember = new IncidentMember();
                   incidentMember.incidentId = createdIncident.id!;
@@ -951,6 +1001,51 @@ export default class MonitorIncident {
         }
       }
     }
+  }
+
+  /*
+   * The ids in a criteria list that this monitor's project can use, logging
+   * the ones it drops. See ProjectScopedReferenceValidator.filterUsableInProject.
+   */
+  private static async getCriteriaIdsUsableInProject(input: {
+    monitor: Monitor;
+    criteriaName: string | undefined;
+    modelName: string;
+    ids: Array<ObjectID> | undefined;
+    service: DatabaseService<DatabaseBaseModel>;
+  }): Promise<Array<ObjectID | string>> {
+    if (!input.ids || input.ids.length === 0) {
+      return [];
+    }
+
+    const result: {
+      usableIds: Array<ObjectID | string>;
+      droppedIds: Array<ObjectID | string>;
+    } = await ProjectScopedReferenceValidator.filterUsableInProject({
+      projectId: input.monitor.projectId,
+      ids: input.ids,
+      service: input.service,
+    });
+
+    if (result.droppedIds.length > 0) {
+      logger.error(
+        `${input.monitor.id?.toString()} - Criteria "${
+          input.criteriaName
+        }" references ${input.modelName} ${result.droppedIds
+          .map((id: ObjectID | string) => {
+            return id.toString();
+          })
+          .join(
+            ", ",
+          )}, which does not exist in project ${input.monitor.projectId?.toString()}. Creating the incident without it.`,
+        {
+          projectId: input.monitor.projectId?.toString(),
+          monitorId: input.monitor.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+
+    return result.usableIds;
   }
 
   /*

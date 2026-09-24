@@ -10,6 +10,8 @@ import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import { GetReactElementFunction } from "Common/UI/Types/FunctionTypes";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import { UptimeDayBucket } from "Common/Types/StatusPage/UptimeDailyAggregate";
+import { MergedDowntimeTotals } from "Common/Types/StatusPage/MergedDowntimeTotals";
+import UptimeDailyAggregateUtil from "Common/Utils/StatusPage/UptimeDailyAggregateUtil";
 import MonitorStatusTimelne from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
@@ -43,6 +45,19 @@ export interface ComponentProps {
    * cap dropped, and paint both with defaultBarColor.
    */
   uptimeBuckets?: Array<UptimeDayBucket> | undefined;
+  /*
+   * A monitor group's merged downtime from the server: the time at least one
+   * of its monitors was down, over the time any of them was recorded, from
+   * every row. What the uptime percentage of a monitor-group resource is
+   * read from - a group has no buckets of its own. It does not paint the
+   * bars.
+   */
+  mergedDowntime?: MergedDowntimeTotals | undefined;
+  /*
+   * The zone uptimeBuckets were cut in (UptimeDailyAggregate.timezone). The
+   * bars are drawn on that zone's days so each bar is exactly one bucket.
+   */
+  uptimeTimezone?: string | undefined;
   monitorStatuses?: Array<MonitorStatus> | undefined;
   defaultBarColor: Color;
   uptimeHistoryDays?: number | undefined;
@@ -117,19 +132,58 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
       props.showUptimePercent
     ) {
       /*
-       * measure uptime over the same window the history chart is drawn for. Without this an
-       * open (endsAt = null) row that started before the window contributes its whole
-       * duration, and the denominator becomes "first event -> now" rather than the window.
+       * From the same buckets the bars are painted from, when there are any.
+       *
+       * monitorStatusTimeline arrives under a 10,000 row cap across every
+       * monitor on the page, so on a page with a flapping monitor it holds a
+       * few days of the window and a percentage computed from it only sees
+       * those days - it read 99.876% for a monitor that was up 99.667% of
+       * its sixty days. The buckets are measured from every row.
        */
-      const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
-        props.monitorStatusTimeline,
-        precision,
-        props.downtimeMonitorStatuses,
-        {
-          startDate: props.startDate,
-          endDate: props.endDate,
-        },
-      );
+      let uptimePercent: number | null = props.uptimeBuckets
+        ? UptimeDailyAggregateUtil.getUptimePercent({
+            buckets: props.uptimeBuckets,
+            downtimeMonitorStatusIds: props.downtimeMonitorStatuses
+              .map((status: MonitorStatus) => {
+                return status.id?.toString() || "";
+              })
+              .filter(Boolean),
+            precision: precision,
+          })
+        : null;
+
+      /*
+       * A monitor group, from the server's merged figure, for the same
+       * reason: it too is measured from every row. A group's rows here are
+       * also merged by priority, which lets a later-starting, longer-running
+       * row of one monitor cut another monitor's outage short.
+       */
+      if (uptimePercent === null && props.mergedDowntime) {
+        uptimePercent = UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+          coveredSeconds: props.mergedDowntime.coveredSeconds,
+          downtimeSeconds: props.mergedDowntime.downtimeSeconds,
+          precision: precision,
+        });
+      }
+
+      /*
+       * Otherwise (no reading, or one that covers nothing) measure uptime
+       * over the same window the history chart is drawn for. Without this
+       * an open (endsAt = null) row that started before the window
+       * contributes its whole duration, and the denominator becomes "first
+       * event -> now" rather than the window.
+       */
+      if (uptimePercent === null) {
+        uptimePercent = UptimeUtil.calculateUptimePercentage(
+          props.monitorStatusTimeline,
+          precision,
+          props.downtimeMonitorStatuses,
+          {
+            startDate: props.startDate,
+            endDate: props.endDate,
+          },
+        );
+      }
 
       return (
         <div
@@ -218,6 +272,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
             defaultBarColor={props.defaultBarColor}
             downtimeMonitorStatuses={props.downtimeMonitorStatuses}
             uptimeBuckets={props.uptimeBuckets}
+            uptimeTimezone={props.uptimeTimezone}
             monitorStatuses={props.monitorStatuses}
             items={props.monitorStatusTimeline || []}
             startDate={props.startDate}
@@ -261,6 +316,7 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
           hasEvents={selectedDaySummary?.hasEvents}
           statusDurations={selectedDaySummary?.statusDurations}
           labels={uptimeHistoryLabels}
+          timezone={props.uptimeTimezone}
           onIncidentClick={props.onIncidentClick}
           onClose={() => {
             setSelectedDay(null);

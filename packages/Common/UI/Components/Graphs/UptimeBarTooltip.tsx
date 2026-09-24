@@ -1,4 +1,5 @@
 import OneUptimeDate from "../../../Types/Date";
+import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import UptimeDaySummary, { StatusDuration } from "./UptimeDaySummary";
 import UptimeHistoryLabels, {
@@ -22,13 +23,20 @@ export interface ComponentProps {
   onIncidentClick?: ((incidentId: string) => void) | undefined;
   /* Defaults to English. The status page passes translated strings. */
   labels?: UptimeHistoryLabels | undefined;
+  /*
+   * The zone the bar's day was drawn in, so the date reads as that day. The
+   * browser's own zone when absent. See DayUptimeGraphUtil.formatDayLabel.
+   */
+  timezone?: string | undefined;
 }
 
 const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const dateStr: string =
-    OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(props.date, true);
+  const dateStr: string = DayUptimeGraphUtil.formatDayLabel({
+    date: props.date,
+    timezone: props.timezone,
+  });
 
   const hasIncidents: boolean = props.incidents.length > 0;
   const labels: UptimeHistoryLabels =

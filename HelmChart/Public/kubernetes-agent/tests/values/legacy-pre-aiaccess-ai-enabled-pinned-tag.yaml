@@ -1,0 +1,14 @@
+# A release from a chart without aiAccess, upgraded with
+#   --reuse-values --set aiAccess.enabled=true --set aiAccess.image.tag=9.1.0
+# .Values.aiAccess.image is then exactly {tag: "9.1.0"}: no repository, no
+# pullPolicy. The template must fall back for those and not render ":9.1.0".
+# See legacy-pre-aiaccess-ai-enabled.yaml for why the other keys are null.
+aiAccess:
+  enabled: true
+  remediation: null
+  image:
+    repository: null
+    tag: 9.1.0
+    pullPolicy: null
+  resources: null
+  extraEnv: null

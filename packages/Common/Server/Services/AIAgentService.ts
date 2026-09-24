@@ -454,6 +454,7 @@ export class Service extends DatabaseService<Model> {
           templateType: EmailTemplateType.AIAgentConnectionStatusChange,
           vars: vars,
           subject: `[AI Agent ${connectionStatus}] ${aiAgent.name}`,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

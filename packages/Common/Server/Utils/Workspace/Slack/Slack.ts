@@ -1362,7 +1362,7 @@ export default class SlackUtil extends WorkspaceBase {
         logger.error(e, sendMsgLogAttributes);
         workspaspaceMessageResponse.errors!.push({
           channel: channel,
-          error: e instanceof Error ? e.message : String(e),
+          error: WorkspaceBase.getSendErrorMessage(e),
         });
       }
     }
@@ -1505,24 +1505,86 @@ export default class SlackUtil extends WorkspaceBase {
     channelId: string;
     messageTs: string;
   }): Promise<string | null> {
+    const message: { text: string; threadTs: string | null } | null =
+      await this.getMessageDetailsByTimestamp(data);
+
+    return message ? message.text : null;
+  }
+
+  /*
+   * The text of a message, and the ts of the thread it belongs to (null for a
+   * message that is not in a thread).
+   *
+   * conversations.history only returns top-level messages, so a reply in a
+   * thread — where most of an incident's discussion happens — is not in it.
+   * Those are read with conversations.replies, which accepts the ts of any
+   * message in a thread.
+   */
+  @CaptureSpan()
+  public static async getMessageDetailsByTimestamp(data: {
+    authToken: string;
+    channelId: string;
+    messageTs: string;
+  }): Promise<{ text: string; threadTs: string | null } | null> {
+    const fromHistory: JSONObject | null = await this.findMessageByTimestamp({
+      ...data,
+      apiMethod: "conversations.history",
+    });
+
+    const message: JSONObject | null =
+      fromHistory ||
+      (await this.findMessageByTimestamp({
+        ...data,
+        apiMethod: "conversations.replies",
+      }));
+
+    const text: string | undefined = message?.["text"] as string | undefined;
+
+    if (!message || !text) {
+      return null;
+    }
+
+    return {
+      text: text,
+      threadTs: (message["thread_ts"] as string | undefined) || null,
+    };
+  }
+
+  private static async findMessageByTimestamp(data: {
+    authToken: string;
+    channelId: string;
+    messageTs: string;
+    apiMethod: "conversations.history" | "conversations.replies";
+  }): Promise<JSONObject | null> {
     const getMsgLogAttributes: LogAttributes = { channelId: data.channelId };
 
     logger.debug(
-      "Getting message by timestamp with data:",
+      `Getting message by timestamp from ${data.apiMethod} with data:`,
       getMsgLogAttributes,
     );
     logger.debug(data, getMsgLogAttributes);
 
+    const requestData: JSONObject = {
+      channel: data.channelId,
+      latest: data.messageTs,
+      oldest: data.messageTs,
+      inclusive: true,
+      limit: 1,
+    };
+
+    if (data.apiMethod === "conversations.replies") {
+      /*
+       * Slack puts the thread's parent first whatever the bounds, so leave
+       * room for it next to the reply we are after.
+       */
+      requestData["ts"] = data.messageTs;
+      requestData["limit"] = 10;
+    }
+
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
-        url: URL.fromString("https://slack.com/api/conversations.history"),
-        data: {
-          channel: data.channelId,
-          latest: data.messageTs,
-          oldest: data.messageTs,
-          inclusive: true,
-          limit: 1,
-        },
+        url: URL.fromString(`https://slack.com/api/${data.apiMethod}`),
+        data: requestData,
         headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
@@ -1558,17 +1620,24 @@ export default class SlackUtil extends WorkspaceBase {
       "messages"
     ] as Array<JSONObject>;
 
-    if (!messages || messages.length === 0) {
-      logger.debug("No messages found for timestamp.", getMsgLogAttributes);
+    const message: JSONObject | undefined = (messages || []).find(
+      (candidate: JSONObject) => {
+        return !candidate["ts"] || candidate["ts"] === data.messageTs;
+      },
+    );
+
+    if (!message) {
+      logger.debug(
+        `No message found for timestamp in ${data.apiMethod}.`,
+        getMsgLogAttributes,
+      );
       return null;
     }
 
-    const messageText: string | undefined = messages[0]?.["text"] as string;
+    logger.debug("Message retrieved:", getMsgLogAttributes);
+    logger.debug(message["text"], getMsgLogAttributes);
 
-    logger.debug("Message text retrieved:", getMsgLogAttributes);
-    logger.debug(messageText, getMsgLogAttributes);
-
-    return messageText || null;
+    return message;
   }
 
   /*

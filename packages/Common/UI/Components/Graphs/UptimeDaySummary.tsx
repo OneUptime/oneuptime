@@ -10,6 +10,14 @@ export interface StatusDuration {
   seconds: number;
   color: Color;
   isDowntime: boolean;
+  /*
+   * The monitor status's priority; a higher number wins the bar's colour, as
+   * it does for events (the default statuses run Operational 1, Degraded 2,
+   * Offline 3). Only a server reading carries it: a day painted from that
+   * reading takes the colour of its highest-priority status, as a day painted
+   * from events does. Optional because event-derived durations never need it.
+   */
+  priority?: number | undefined;
 }
 
 export interface ComponentProps {

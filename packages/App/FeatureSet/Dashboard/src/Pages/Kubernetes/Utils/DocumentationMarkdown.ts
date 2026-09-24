@@ -1,3 +1,14 @@
+/*
+ * The helm release and namespace every Kubernetes agent command the
+ * Dashboard shows uses: the install instructions below, and the cluster AI
+ * page's one-command upgrades (Pages/Kubernetes/View/AI.tsx), which import
+ * these. `helm upgrade` of a release that does not exist fails with "has no
+ * deployed releases", so the two must never drift - hence one definition.
+ * The chart itself is `oneuptime/kubernetes-agent`, which is not the release.
+ */
+export const KUBERNETES_AGENT_HELM_RELEASE: string = "kubernetes-agent";
+export const KUBERNETES_AGENT_HELM_NAMESPACE: string = "oneuptime-agent";
+
 export interface KubernetesInstallationMarkdownOptions {
   clusterName: string;
   oneuptimeUrl: string;
@@ -40,8 +51,8 @@ If you're not sure, start with \`standard\`. If the install fails with a Pod Sec
 ### Standard clusters (self-managed, EKS on EC2, GKE Standard, AKS)
 
 \`\`\`bash
-helm install kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent \\
+helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
+  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
   --create-namespace \\
   --set oneuptime.url="${oneuptimeUrl}" \\
   --set oneuptime.apiKey="${apiKey}" \\
@@ -51,8 +62,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \\
 ### GKE Autopilot
 
 \`\`\`bash
-helm install kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent \\
+helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
+  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
   --create-namespace \\
   --set oneuptime.url="${oneuptimeUrl}" \\
   --set oneuptime.apiKey="${apiKey}" \\
@@ -63,8 +74,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \\
 ### EKS Fargate
 
 \`\`\`bash
-helm install kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent \\
+helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
+  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
   --create-namespace \\
   --set oneuptime.url="${oneuptimeUrl}" \\
   --set oneuptime.apiKey="${apiKey}" \\
@@ -77,24 +88,24 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \\
 Check that the agent pods are running:
 
 \`\`\`bash
-kubectl get pods -n oneuptime-agent
+kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE}
 \`\`\`
 
 On a **standard** cluster you'll see a metrics-collector Deployment plus one log-collector DaemonSet pod per node:
 
 \`\`\`
 NAME                                          READY   STATUS    RESTARTS   AGE
-kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
-kubernetes-agent-logs-xxxxx                   1/1     Running   0          1m
-kubernetes-agent-logs-yyyyy                   1/1     Running   0          1m
+${KUBERNETES_AGENT_HELM_RELEASE}-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+${KUBERNETES_AGENT_HELM_RELEASE}-logs-xxxxx                   1/1     Running   0          1m
+${KUBERNETES_AGENT_HELM_RELEASE}-logs-yyyyy                   1/1     Running   0          1m
 \`\`\`
 
 On **GKE Autopilot** or **EKS Fargate** you'll see two Deployments instead (no DaemonSet):
 
 \`\`\`
 NAME                                          READY   STATUS    RESTARTS   AGE
-kubernetes-agent-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
-kubernetes-agent-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
+${KUBERNETES_AGENT_HELM_RELEASE}-xxxxxxxxxx-xxxxx             1/1     Running   0          1m
+${KUBERNETES_AGENT_HELM_RELEASE}-logs-yyyyyyyyyy-yyyyy        1/1     Running   0          1m
 \`\`\`
 
 Once the agent connects, your cluster will appear automatically in the Kubernetes section.
@@ -106,8 +117,8 @@ Once the agent connects, your cluster will appear automatically in the Kubernete
 By default, \`kube-system\` is excluded. To monitor only specific namespaces:
 
 \`\`\`bash
-helm install kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent \\
+helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
+  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
   --create-namespace \\
   --set oneuptime.url="${oneuptimeUrl}" \\
   --set oneuptime.apiKey="${apiKey}" \\
@@ -120,8 +131,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \\
 If you only need metrics and events (no pod logs):
 
 \`\`\`bash
-helm install kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent \\
+helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
+  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
   --create-namespace \\
   --set oneuptime.url="${oneuptimeUrl}" \\
   --set oneuptime.apiKey="${apiKey}" \\
@@ -144,8 +155,8 @@ The explicit \`logs.mode\` always wins over the preset default. Use this if you 
 For self-managed clusters (not EKS/GKE/AKS), you can enable control plane metrics:
 
 \`\`\`bash
-helm install kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent \\
+helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
+  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
   --create-namespace \\
   --set oneuptime.url="${oneuptimeUrl}" \\
   --set oneuptime.apiKey="${apiKey}" \\
@@ -160,8 +171,8 @@ helm install kubernetes-agent oneuptime/kubernetes-agent \\
 See what every namespace, workload, and pod actually costs — including idle capacity and request-vs-usage efficiency — on this cluster's **Costs** page:
 
 \`\`\`bash
-helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent \\
+helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
+  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
   --reuse-values \\
   --set cost.enabled=true
 \`\`\`
@@ -177,8 +188,8 @@ Full guide: [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost).
 
 \`\`\`bash
 helm repo update
-helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent \\
+helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
+  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
   --reuse-values
 \`\`\`
 
@@ -187,8 +198,8 @@ helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
 ## Uninstalling the Agent
 
 \`\`\`bash
-helm uninstall kubernetes-agent --namespace oneuptime-agent
-kubectl delete namespace oneuptime-agent
+helm uninstall ${KUBERNETES_AGENT_HELM_RELEASE} --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}
+kubectl delete namespace ${KUBERNETES_AGENT_HELM_NAMESPACE}
 \`\`\`
 
 ## What Gets Collected
@@ -225,8 +236,8 @@ You should disable it when:
 - You already ship traces via OpenTelemetry SDKs from your apps and don't want duplicates.
 
 \`\`\`bash
-helm install kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent \\
+helm install ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
+  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
   --create-namespace \\
   --set oneuptime.url="${oneuptimeUrl}" \\
   --set oneuptime.apiKey="${apiKey}" \\
@@ -259,36 +270,36 @@ It is off because injecting the header means rewriting traffic that is already i
 Your cluster blocks \`hostPath\` — common on **GKE Autopilot** and **EKS Fargate**. Switch to the API-mode preset:
 
 \`\`\`bash
-helm upgrade kubernetes-agent oneuptime/kubernetes-agent \\
-  --namespace oneuptime-agent \\
+helm upgrade ${KUBERNETES_AGENT_HELM_RELEASE} oneuptime/kubernetes-agent \\
+  --namespace ${KUBERNETES_AGENT_HELM_NAMESPACE} \\
   --reuse-values \\
   --set preset=gke-autopilot   # or eks-fargate
 \`\`\`
 
 ### Agent shows "Disconnected"
 
-1. Check that the agent pods are running: \`kubectl get pods -n oneuptime-agent\`
-2. Check the agent logs: \`kubectl logs -n oneuptime-agent deployment/kubernetes-agent\`
+1. Check that the agent pods are running: \`kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE}\`
+2. Check the agent logs: \`kubectl logs -n ${KUBERNETES_AGENT_HELM_NAMESPACE} deployment/${KUBERNETES_AGENT_HELM_RELEASE}\`
 3. Verify your OneUptime URL and API key are correct
 4. Ensure your cluster can reach the OneUptime instance over the network
 
 ### No logs appearing (API mode only)
 
-1. Confirm the log tailer pod is Ready: \`kubectl get pods -n oneuptime-agent -l component=log-collector\`
+1. Confirm the log tailer pod is Ready: \`kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE} -l component=log-collector\`
 2. Check its \`/healthz\` — it reports active stream count and the last export error
-3. Check logs: \`kubectl logs -n oneuptime-agent deployment/kubernetes-agent-logs\`
+3. Check logs: \`kubectl logs -n ${KUBERNETES_AGENT_HELM_NAMESPACE} deployment/${KUBERNETES_AGENT_HELM_RELEASE}-logs\`
 4. For very large clusters, a single replica may be a bottleneck — shard by namespace using \`namespaceFilters.include\` on separate releases
 
 ### No metrics appearing
 
 1. Check that the cluster identifier matches: this cluster uses **\`${clusterName}\`**
-2. Verify the RBAC permissions: \`kubectl get clusterrolebinding | grep kubernetes-agent\`
+2. Verify the RBAC permissions: \`kubectl get clusterrolebinding | grep ${KUBERNETES_AGENT_HELM_RELEASE}\`
 3. Check the OTel collector logs for export errors
 
 ### eBPF pods are CrashLoopBackOff or fail to start
 
 \`\`\`bash
-kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200
+kubectl logs -n ${KUBERNETES_AGENT_HELM_NAMESPACE} -l component=ebpf-instrument --tail=200
 \`\`\`
 
 Common causes:
@@ -299,8 +310,8 @@ Common causes:
 
 ### No application traces showing up
 
-1. Confirm the eBPF DaemonSet is healthy: \`kubectl get pods -n oneuptime-agent -l component=ebpf-instrument\`
-2. Turn on the debug trace printer to confirm OBI is capturing traffic: \`--set ebpf.printTraces=true --set ebpf.logLevel=debug\`, then check \`kubectl logs -n oneuptime-agent -l component=ebpf-instrument --tail=200\`
+1. Confirm the eBPF DaemonSet is healthy: \`kubectl get pods -n ${KUBERNETES_AGENT_HELM_NAMESPACE} -l component=ebpf-instrument\`
+2. Turn on the debug trace printer to confirm OBI is capturing traffic: \`--set ebpf.printTraces=true --set ebpf.logLevel=debug\`, then check \`kubectl logs -n ${KUBERNETES_AGENT_HELM_NAMESPACE} -l component=ebpf-instrument --tail=200\`
 3. If you see spans in OBI's stdout but not in the dashboard, the issue is the collector → OneUptime export — check the metrics-collector pod's logs.
 `;
 }

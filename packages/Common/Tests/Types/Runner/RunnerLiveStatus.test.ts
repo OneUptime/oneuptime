@@ -304,8 +304,15 @@ describe("the alive window is shared with the server", () => {
    * Guards the reason the UI stopped trusting the column at all: if someone
    * later adds a job that ages connectionStatus out, this test failing is the
    * prompt to revisit the derived status.
+   *
+   * Two writers are legitimate and neither is an ageing-out job: the
+   * onBeforeCreate default, and markDisconnected — the Runner's own explicit
+   * sign-off on a clean shutdown, which a kubernetes-agent registration reads
+   * to admit a replacement pod at once instead of waiting for the alive window
+   * to lapse. The dashboard keeps deriving liveness from lastAlive; a sign-off
+   * never ages anything out on its own.
    */
-  test("nothing in RunnerService writes connectionStatus back to Disconnected", () => {
+  test("only the create default and the Runner's own sign-off write connectionStatus to Disconnected", () => {
     const source: string = fs.readFileSync(RUNNER_SERVICE, "utf8");
 
     const disconnectedWrites: number = (
@@ -314,7 +321,11 @@ describe("the alive window is shared with the server", () => {
       ) || []
     ).length;
 
-    // Exactly one: the onBeforeCreate default. No ageing-out writer exists.
-    expect(disconnectedWrites).toBe(1);
+    // Exactly two: the onBeforeCreate default and markDisconnected.
+    expect(disconnectedWrites).toBe(2);
+    expect(source).toMatch(/public async markDisconnected\(/);
+
+    // Still no timer, cron or ageing-out job touches the column.
+    expect(source).not.toMatch(/setInterval|cron|ageOut|markStale/i);
   });
 });

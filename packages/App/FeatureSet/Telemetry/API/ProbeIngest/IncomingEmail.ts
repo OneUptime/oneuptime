@@ -15,6 +15,10 @@ import InboundEmailProvider, {
 import { JSONObject } from "Common/Types/JSON";
 import TelemetryQueueService from "../../Services/Queue/TelemetryQueueService";
 import MultipartFormDataMiddleware from "Common/Server/Middleware/MultipartFormData";
+import IncomingEmailMonitorAddress, {
+  IncomingEmailRecipient,
+  IncomingEmailRecipientKind,
+} from "Common/Utils/Monitor/IncomingEmailMonitorAddress";
 
 const router: ExpressRouter = Express.getRouter();
 
@@ -89,29 +93,42 @@ router.post(
         getLogAttributesFromRequest(req as any),
       );
 
-      // Extract secret key from the "to" address
-      const secretKey: string | null = provider.extractSecretKeyFromEmail(
-        parsedEmail.to,
-      );
+      /*
+       * Work out which monitor address the mail was sent to: a generated
+       * monitor-{secretKey}@ address, or a custom name. Which monitor (if
+       * any) owns it is decided by the queue worker.
+       */
+      const recipient: IncomingEmailRecipient | null =
+        IncomingEmailMonitorAddress.parseRecipient({
+          emailAddress: parsedEmail.to,
+          inboundDomain: provider.getInboundDomain(),
+        });
 
-      if (!secretKey) {
+      if (!recipient) {
         logger.error(
-          `Could not extract secret key from email: ${parsedEmail.to}`,
+          `Email is not addressed to a monitor address: ${parsedEmail.to}`,
           getLogAttributesFromRequest(req as any),
         );
         throw new BadDataException(
-          "Invalid monitor email address. Could not extract secret key.",
+          "Invalid monitor email address. The email was not sent to a monitor's address on the inbound email domain.",
         );
       }
 
       logger.debug(
-        `Extracted secret key: ${secretKey}`,
+        `Email is addressed to a ${recipient.kind.toLowerCase()} monitor address`,
         getLogAttributesFromRequest(req as any),
       );
 
       // Queue the email for async processing using the unified Telemetry queue
       await TelemetryQueueService.addIncomingEmailJob({
-        secretKey: secretKey,
+        secretKey:
+          recipient.kind === IncomingEmailRecipientKind.Generated
+            ? recipient.secretKey
+            : undefined,
+        customLocalPart:
+          recipient.kind === IncomingEmailRecipientKind.Custom
+            ? recipient.localPart
+            : undefined,
         emailFrom: parsedEmail.from,
         emailTo: parsedEmail.to,
         emailSubject: parsedEmail.subject,

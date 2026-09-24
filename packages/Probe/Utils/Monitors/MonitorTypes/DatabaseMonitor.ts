@@ -16,6 +16,7 @@ import {
   getDatabaseHealthQueries,
   getProbeQuery,
 } from "./DatabaseMonitor/DatabaseHealthQueries";
+import SqlServerPlatformUtil from "Common/Types/Monitor/DatabaseMonitor/SqlServerPlatform";
 import { DatabaseMetricGroup } from "Common/Types/Monitor/DatabaseMetricCatalog";
 import MonitorMetricType from "Common/Types/Monitor/MonitorMetricType";
 import MonitorStepDatabaseMonitor from "Common/Types/Monitor/MonitorStepDatabaseMonitor";
@@ -52,6 +53,103 @@ export interface DatabaseMonitorExecuteOptions {
  * retries were counted after the first attempt.
  */
 const DEFAULT_RETRIES_WHEN_UNSET: number = 2;
+
+/*
+ * The fields the three drivers put on a failed query that say WHY it
+ * failed. mssql: `number` (the SQL Server error number) plus
+ * `precedingErrors`, and `code` 'ETIMEOUT' for a request timeout. mysql2:
+ * `code` ('ER_TABLEACCESS_DENIED_ERROR'). node-postgres: `code`, the
+ * five-character SQLSTATE ('42501').
+ */
+interface DriverErrorShape {
+  code?: unknown;
+  number?: unknown;
+  precedingErrors?: Array<DriverErrorShape | null | undefined> | undefined;
+}
+
+/*
+ * SQL Server error numbers that mean "the login lacks a grant":
+ *   229 - The %ls permission was denied on the object '%.*ls' ...
+ *   230 - The %ls permission was denied on the column '%.*ls' ...
+ *   262 - %ls permission denied in database '%.*ls'.
+ *   297 - The user does not have permission to perform this action.
+ *   300 - %ls permission was denied on object '%.*ls', database '%.*ls'.
+ *   916 - The server principal "%.*ls" is not able to access the database
+ *         "%.*ls" under the current security context.
+ * A DMV read without VIEW SERVER STATE raises 300 then 297 (2017, 2019,
+ * 2022 - 2022 names VIEW SERVER PERFORMANCE STATE); a database-scoped one
+ * raises 262 then 297.
+ */
+const SQL_SERVER_PERMISSION_ERROR_NUMBERS: Array<number> = [
+  229, 230, 262, 297, 300, 916,
+];
+
+/*
+ * SQL Server error numbers that mean "this engine does not have that":
+ *   195   - '%.*ls' is not a recognized %ls.
+ *   207   - Invalid column name '%.*ls'.
+ *   208   - Invalid object name '%.*ls'.
+ *   40515 - Reference to database and/or server name in '%.*ls' is not
+ *           supported in this version of SQL Server. (Azure SQL Database)
+ * Msg 102 (Incorrect syntax) is deliberately absent: every statement here
+ * parses on every supported version, so a syntax error is a bug in this
+ * file, and filing it under "not available on this engine" would hide it.
+ */
+const SQL_SERVER_NOT_SUPPORTED_ERROR_NUMBERS: Array<number> = [
+  195, 207, 208, 40515,
+];
+
+const MYSQL_PERMISSION_ERROR_CODES: Array<string> = [
+  // 1044: Access denied for user '%s'@'%s' to database '%s'.
+  "ER_DBACCESS_DENIED_ERROR",
+  // 1142: SELECT command denied to user '%s'@'%s' for table '%s'.
+  "ER_TABLEACCESS_DENIED_ERROR",
+  // 1143: SELECT command denied to user '%s'@'%s' for column '%s' ...
+  "ER_COLUMNACCESS_DENIED_ERROR",
+  // 1227: Access denied; you need (at least one of) the %s privilege(s).
+  "ER_SPECIFIC_ACCESS_DENIED_ERROR",
+  // 1370: execute command denied to user '%s'@'%s' for routine '%s'.
+  "ER_PROCACCESS_DENIED_ERROR",
+];
+
+const MYSQL_NOT_SUPPORTED_ERROR_CODES: Array<string> = [
+  // 1146: Table '%s.%s' doesn't exist.
+  "ER_NO_SUCH_TABLE",
+  // 1054: Unknown column '%s' in '%s'.
+  "ER_BAD_FIELD_ERROR",
+  // 1109: Unknown table '%s' in %s.
+  "ER_UNKNOWN_TABLE",
+  /*
+   * 1064: You have an error in your SQL syntax ... Unlike SQL Server's Msg
+   * 102, expected here: MySQL before 8.0.22 (and MariaDB before 10.5.1)
+   * spell SHOW REPLICA STATUS as SHOW SLAVE STATUS, and the query table
+   * documents that as NotSupportedByEngine. The old text rule looked for
+   * "syntax error", which MySQL never says, so it fell through to Error.
+   */
+  "ER_PARSE_ERROR",
+];
+
+const MYSQL_TIMEOUT_ERROR_CODES: Array<string> = [
+  // 3024: Query execution was interrupted, maximum statement execution time exceeded.
+  "ER_QUERY_TIMEOUT",
+];
+
+// PostgreSQL SQLSTATEs (Appendix A of the PostgreSQL manual).
+const POSTGRES_INSUFFICIENT_PRIVILEGE_SQLSTATE: string = "42501";
+// statement_timeout cancels with query_canceled.
+const POSTGRES_QUERY_CANCELED_SQLSTATE: string = "57014";
+const POSTGRES_NOT_SUPPORTED_SQLSTATES: Array<string> = [
+  // undefined_table: relation "pg_stat_checkpointer" does not exist.
+  "42P01",
+  // undefined_column.
+  "42703",
+  // undefined_function.
+  "42883",
+  // undefined_object.
+  "42704",
+  // syntax_error.
+  "42601",
+];
 
 /*
  * One connection, opened for the whole check, that can run a statement and
@@ -140,10 +238,27 @@ export default class DatabaseMonitor {
       const responseReceivedAt: Date = new Date();
 
       const probeRow: Record<string, unknown> = probeRows[0] || {};
+
+      /*
+       * SQL Server only: SERVERPROPERTY('EngineEdition'), which is how an
+       * Azure SQL Database tells itself apart from the SQL Server it shares
+       * a protocol with. It reports ProductVersion 12.0.2000.8 whatever it
+       * actually runs, which reads as SQL Server 2014, and it takes
+       * different grants - VIEW SERVER STATE does not exist there.
+       */
+      const sqlServerEngineEdition: number | null =
+        config.databaseType === SqlDatabaseType.MicrosoftSqlServer
+          ? this.readNumber(probeRow, "engine_edition")
+          : null;
+
       const engineVersion: string | undefined = this.readString(
         probeRow,
         "engine_version",
       );
+      const enginePlatform: string | undefined = this.describeEnginePlatform({
+        databaseType: config.databaseType,
+        sqlServerEngineEdition,
+      });
       const serverVersionNum: number | null = this.readNumber(
         probeRow,
         "server_version_num",
@@ -189,12 +304,19 @@ export default class DatabaseMonitor {
             message:
               "The monitoring role cannot read other sessions' statistics. PostgreSQL does not report this as an error - it silently returns only this connection's own rows - so these metrics are skipped rather than recorded as wrong values.",
             remediation: query.remediation,
-            forceReason: DatabaseMetricGroupUnavailableReason.MissingPermission,
+            reason: DatabaseMetricGroupUnavailableReason.MissingPermission,
           });
           continue;
         }
 
-        if (!this.shouldRunQuery({ query, serverVersionNum, isInRecovery })) {
+        if (
+          !this.shouldRunQuery({
+            query,
+            serverVersionNum,
+            isInRecovery,
+            sqlServerEngineEdition,
+          })
+        ) {
           continue;
         }
 
@@ -222,8 +344,14 @@ export default class DatabaseMonitor {
             collectedGroups.push(query.group);
           }
         } catch (err: unknown) {
+          /*
+           * The whole message chain, not err.message alone - on SQL Server
+           * the permission that is missing is only ever named by a
+           * preceding error. Sanitized AFTER joining, so a secret in any
+           * link of the chain is redacted.
+           */
           const sanitized: string = SqlMonitor.sanitizeError(
-            err,
+            new Error(this.describeQueryError(err)),
             config.password,
             [config.host, config.username, config.databaseName],
           );
@@ -236,7 +364,15 @@ export default class DatabaseMonitor {
             unavailableGroups,
             group: query.group,
             message: sanitized,
-            remediation: query.remediation,
+            remediation: this.resolveRemediation({
+              query,
+              sqlServerEngineEdition,
+            }),
+            reason: this.classifyQueryError({
+              databaseType: config.databaseType,
+              error: err,
+              message: sanitized,
+            }),
           });
         }
       }
@@ -277,6 +413,7 @@ export default class DatabaseMonitor {
         collectedGroups,
         unavailableGroups,
         engineVersion,
+        enginePlatform,
         connectionError: null,
         probeAttempts: options.attempts,
         totalAttempts: options.attempts.length,
@@ -378,6 +515,189 @@ export default class DatabaseMonitor {
   }
 
   /**
+   * The text of a failed catalog query, INCLUDING the messages the driver
+   * moved aside.
+   *
+   * SQL Server answers a DMV read without the grant with two messages, and
+   * the mssql driver (tedious and msnodesqlv8 alike) keeps only the LAST one
+   * as err.message, parking the rest on err.precedingErrors. The last one is
+   * always Msg 297, "The user does not have permission to perform this
+   * action." - which names no permission at all. The message that does,
+   * Msg 300 "VIEW SERVER STATE permission was denied on object 'server'"
+   * (or Msg 262 "VIEW DATABASE STATE permission denied in database"), only
+   * ever arrives as a preceding error. Verified against SQL Server 2017,
+   * 2019 and 2022 with a login holding nothing but db_datareader - issue
+   * #3913, where every group read "The user does not have permission to
+   * perform this action." and nothing else.
+   *
+   * So the preceding messages come first (they are the specific cause) and
+   * the final one after, each once.
+   */
+  public static describeQueryError(error: unknown): string {
+    const messages: Array<string> = [];
+
+    const addMessage: (candidate: unknown) => void = (
+      candidate: unknown,
+    ): void => {
+      if (typeof candidate !== "string") {
+        return;
+      }
+
+      const trimmed: string = candidate.trim();
+
+      if (trimmed && !messages.includes(trimmed)) {
+        messages.push(trimmed);
+      }
+    };
+
+    const precedingErrors: unknown = (
+      error as { precedingErrors?: unknown } | null | undefined
+    )?.precedingErrors;
+
+    if (Array.isArray(precedingErrors)) {
+      for (const precedingError of precedingErrors) {
+        addMessage((precedingError as Error | null | undefined)?.message);
+      }
+    }
+
+    addMessage((error as Error | null | undefined)?.message);
+
+    if (messages.length === 0) {
+      if (typeof error === "string" && error.trim()) {
+        return error.trim();
+      }
+
+      return "SQL error";
+    }
+
+    return messages.join(" ");
+  }
+
+  /**
+   * Classify a failed catalog query from the driver's error CODES first and
+   * its text second.
+   *
+   * Codes are what the engines promise; message text is what they happen to
+   * say today, in English, in one driver. The text rules below were written
+   * against a message SQL Server never returns as err.message (see
+   * describeQueryError), so every SQL Server permission failure fell through
+   * to Error - and Error is the one reason that never shows the GRANT.
+   */
+  public static classifyQueryError(input: {
+    databaseType: SqlDatabaseType;
+    error: unknown;
+    message: string;
+  }): DatabaseMetricGroupUnavailableReason {
+    // Same order as the text rules: a timeout is never a missing grant.
+    if (this.isTimeoutMessage(input.message)) {
+      return DatabaseMetricGroupUnavailableReason.Timeout;
+    }
+
+    const fromCode: DatabaseMetricGroupUnavailableReason | null =
+      this.classifyByErrorCode({
+        databaseType: input.databaseType,
+        error: input.error,
+      });
+
+    if (fromCode) {
+      return fromCode;
+    }
+
+    return this.classifyQueryFailure(input.message);
+  }
+
+  private static classifyByErrorCode(input: {
+    databaseType: SqlDatabaseType;
+    error: unknown;
+  }): DatabaseMetricGroupUnavailableReason | null {
+    const error: DriverErrorShape | null =
+      input.error && typeof input.error === "object"
+        ? (input.error as DriverErrorShape)
+        : null;
+
+    if (!error) {
+      return null;
+    }
+
+    if (input.databaseType === SqlDatabaseType.MicrosoftSqlServer) {
+      if (error.code === "ETIMEOUT") {
+        return DatabaseMetricGroupUnavailableReason.Timeout;
+      }
+
+      /*
+       * Every error number in the chain counts, not just the last: the
+       * number that says "permission" may be a preceding error (it always
+       * is for a DMV read - 300 or 262, then 297). Guarded with isArray
+       * because this runs inside the per-query catch: anything thrown here
+       * would escape to the outer catch and report a database that
+       * answered as offline.
+       */
+      const precedingErrors: Array<DriverErrorShape | null | undefined> =
+        Array.isArray(error.precedingErrors) ? error.precedingErrors : [];
+
+      const numbers: Array<number> = [error, ...precedingErrors]
+        .map((entry: DriverErrorShape | null | undefined) => {
+          return Number(entry?.number);
+        })
+        .filter((value: number) => {
+          return Number.isFinite(value);
+        });
+
+      if (
+        numbers.some((value: number) => {
+          return SQL_SERVER_PERMISSION_ERROR_NUMBERS.includes(value);
+        })
+      ) {
+        return DatabaseMetricGroupUnavailableReason.MissingPermission;
+      }
+
+      if (
+        numbers.some((value: number) => {
+          return SQL_SERVER_NOT_SUPPORTED_ERROR_NUMBERS.includes(value);
+        })
+      ) {
+        return DatabaseMetricGroupUnavailableReason.NotSupportedByEngine;
+      }
+
+      return null;
+    }
+
+    const code: string = typeof error.code === "string" ? error.code : "";
+
+    if (input.databaseType === SqlDatabaseType.MySQL) {
+      if (MYSQL_TIMEOUT_ERROR_CODES.includes(code)) {
+        return DatabaseMetricGroupUnavailableReason.Timeout;
+      }
+
+      if (MYSQL_PERMISSION_ERROR_CODES.includes(code)) {
+        return DatabaseMetricGroupUnavailableReason.MissingPermission;
+      }
+
+      if (MYSQL_NOT_SUPPORTED_ERROR_CODES.includes(code)) {
+        return DatabaseMetricGroupUnavailableReason.NotSupportedByEngine;
+      }
+
+      return null;
+    }
+
+    if (input.databaseType === SqlDatabaseType.PostgreSQL) {
+      if (code === POSTGRES_QUERY_CANCELED_SQLSTATE) {
+        return DatabaseMetricGroupUnavailableReason.Timeout;
+      }
+
+      if (code === POSTGRES_INSUFFICIENT_PRIVILEGE_SQLSTATE) {
+        return DatabaseMetricGroupUnavailableReason.MissingPermission;
+      }
+
+      if (POSTGRES_NOT_SUPPORTED_SQLSTATES.includes(code)) {
+        return DatabaseMetricGroupUnavailableReason.NotSupportedByEngine;
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Turn a failed catalog query into an operator-actionable reason.
    *
    * The distinction that matters is permission versus capability: "you are
@@ -385,6 +705,10 @@ export default class DatabaseMonitor {
    * report this, nothing to do" call for completely different reactions, and
    * both are common enough that collapsing them into "error" would make the
    * summary view useless.
+   *
+   * This is the TEXT fallback, for an error that carries no code the
+   * collector recognises (a driver wrapping, or msnodesqlv8's ODBC-prefixed
+   * messages). classifyQueryError tries the codes first.
    */
   public static classifyQueryFailure(
     message: string,
@@ -400,8 +724,15 @@ export default class DatabaseMonitor {
       lowerCased.includes("access denied") ||
       lowerCased.includes("must be superuser") ||
       lowerCased.includes("insufficient privilege") ||
-      // SQL Server: "VIEW SERVER STATE permission was denied".
+      // SQL Server Msg 300: "VIEW SERVER STATE permission was denied".
       lowerCased.includes("permission was denied") ||
+      /*
+       * SQL Server Msg 297, the message the mssql driver actually surfaces
+       * as err.message for a DMV read without the grant.
+       */
+      lowerCased.includes("does not have permission") ||
+      // MySQL 1142: "SELECT command denied to user 'x'@'y' for table 'z'".
+      lowerCased.includes("command denied") ||
       lowerCased.includes("is not allowed to")
     ) {
       return DatabaseMetricGroupUnavailableReason.MissingPermission;
@@ -433,14 +764,15 @@ export default class DatabaseMonitor {
     /*
      * Set when the caller already knows the reason and must not have it
      * inferred from the message text - the privilege preflight, whose
-     * message is ours rather than a driver's.
+     * message is ours rather than a driver's, or a failure classified from
+     * the driver's error codes.
      */
-    forceReason?: DatabaseMetricGroupUnavailableReason | undefined;
+    reason?: DatabaseMetricGroupUnavailableReason | undefined;
   }): void {
     const { unavailableGroups, group, message } = input;
 
     const reason: DatabaseMetricGroupUnavailableReason =
-      input.forceReason || this.classifyQueryFailure(message);
+      input.reason || this.classifyQueryFailure(message);
 
     const existing: DatabaseMetricGroupStatus | undefined =
       unavailableGroups.find((status: DatabaseMetricGroupStatus) => {
@@ -473,16 +805,82 @@ export default class DatabaseMonitor {
     unavailableGroups.push(status);
   }
 
+  /**
+   * The grant to show for a failed query, for the platform actually
+   * connected. On Azure SQL Database the SQL Server grant is not just
+   * unhelpful but impossible - VIEW SERVER STATE does not exist there - so
+   * showing it would send the operator to run a statement that errors.
+   */
+  public static resolveRemediation(input: {
+    query: DatabaseHealthQuery;
+    sqlServerEngineEdition: number | null;
+  }): string | undefined {
+    const { query, sqlServerEngineEdition } = input;
+
+    if (
+      query.remediationOnAzureSqlDatabase &&
+      SqlServerPlatformUtil.isAzureSqlDatabase(sqlServerEngineEdition)
+    ) {
+      return query.remediationOnAzureSqlDatabase;
+    }
+
+    return query.remediation;
+  }
+
+  /**
+   * The platform named next to the version on the summary. PostgreSQL's
+   * version() already names the product; SQL Server's ProductVersion is a
+   * bare number, and on Azure SQL Database it is always 12.0.2000.8 - which
+   * anyone would read as SQL Server 2014. Naming the platform is what makes
+   * the grant shown next to it make sense.
+   *
+   * A separate field rather than a prefix on engineVersion: criteria
+   * expressions and alert templates already read engineVersion, and an
+   * expression like engineVersion.startsWith('16.') must keep working.
+   */
+  public static describeEnginePlatform(input: {
+    databaseType: SqlDatabaseType;
+    sqlServerEngineEdition: number | null;
+  }): string | undefined {
+    if (input.databaseType !== SqlDatabaseType.MicrosoftSqlServer) {
+      return undefined;
+    }
+
+    return SqlServerPlatformUtil.getPlatformName(input.sqlServerEngineEdition);
+  }
+
   public static shouldRunQuery(input: {
     query: DatabaseHealthQuery;
     serverVersionNum: number | null;
     isInRecovery: boolean;
+    /*
+     * SQL Server only; null for other engines and when the probe row did
+     * not carry it, in which case no edition gate applies.
+     */
+    sqlServerEngineEdition?: number | null | undefined;
   }): boolean {
     const { query, serverVersionNum, isInRecovery } = input;
 
     if (
       query.runOnlyWhenInRecovery !== undefined &&
       query.runOnlyWhenInRecovery !== isInRecovery
+    ) {
+      return false;
+    }
+
+    /*
+     * A platform that does not have the view at all. Skipped silently, like
+     * a version gate, rather than run and recorded as a collection issue:
+     * no grant fixes it, so the issue would be raised on every check
+     * forever and keep a Database Collection Error criterion firing on a
+     * monitor that is collecting everything it can.
+     */
+    if (
+      input.sqlServerEngineEdition !== undefined &&
+      input.sqlServerEngineEdition !== null &&
+      query.skipOnSqlServerEngineEditions?.includes(
+        input.sqlServerEngineEdition,
+      )
     ) {
       return false;
     }

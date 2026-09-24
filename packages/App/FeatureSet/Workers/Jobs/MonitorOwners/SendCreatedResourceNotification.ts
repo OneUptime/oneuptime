@@ -107,6 +107,7 @@ RunCron(
           templateType: EmailTemplateType.MonitorOwnerResourceCreated,
           vars: vars,
           subject: "[Created Monitor] " + monitor.name!,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

@@ -1563,6 +1563,54 @@ export default class Monitor extends BaseModel {
   public incomingEmailSecretKey?: ObjectID = undefined;
 
   @ColumnAccessControl({
+    /*
+     * Not settable on create: the column is unique across every project, so
+     * letting an import or a duplicated monitor carry it over would fail the
+     * copy. Set it on the monitor once it exists.
+     */
+    create: [],
+    /*
+     * Same lists as incomingEmailSecretKey, for the same reason: while this is
+     * set it IS the monitor's inbound address (it replaces the generated
+     * monitor-{secretKey} one), so a holder can send mail the monitor counts
+     * as a heartbeat. https://github.com/OneUptime/oneuptime/issues/3360
+     */
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.EditProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    required: false,
+    unique: true,
+    isDefaultValueColumn: false,
+    title: "Incoming Email Custom Address",
+    description:
+      "This field is for Incoming Email Monitor only. A custom name for this monitor's inbound email address: the part before the @, on the server's inbound email domain. While set, it replaces the generated monitor-{secret key} address. Must be unique across all monitors. Set to null to go back to the generated address.",
+    example: "nightly-backups",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+    unique: true,
+  })
+  public incomingEmailCustomLocalPart?: string = undefined;
+
+  @ColumnAccessControl({
     create: [],
     read: [
       Permission.ProjectOwner,

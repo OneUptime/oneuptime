@@ -46,6 +46,7 @@ import AIAgentGitHubAPI from "Common/Server/API/AIAgentGitHubAPI";
 import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import DataSourceAPI from "Common/Server/API/DataSourceAPI";
+import WorkflowVariableAPI from "Common/Server/API/WorkflowVariableAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
 import ProjectOidcAPI from "Common/Server/API/ProjectOIDC";
@@ -157,6 +158,7 @@ import AlertCustomFieldService, {
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
+import KubernetesClusterAiAccessAPI from "Common/Server/API/KubernetesClusterAiAccessAPI";
 import ProxmoxResourceAPI from "Common/Server/API/ProxmoxResourceAPI";
 import VMwareResourceAPI from "Common/Server/API/VMwareResourceAPI";
 import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
@@ -1052,9 +1054,6 @@ import WorkflowLogService, {
 import WorkflowService, {
   Service as WorkflowServiceType,
 } from "Common/Server/Services/WorkflowService";
-import WorkflowVariableService, {
-  Service as WorkflowVariableServiceType,
-} from "Common/Server/Services/WorkflowVariableService";
 import RunbookService, {
   Service as RunbookServiceType,
 } from "Common/Server/Services/RunbookService";
@@ -1400,7 +1399,6 @@ import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationR
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
-import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
@@ -3728,10 +3726,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<WorkflowVariable, WorkflowVariableServiceType>(
-        WorkflowVariable,
-        WorkflowVariableService,
-      ).getRouter(),
+      new WorkflowVariableAPI().getRouter(),
     );
 
     app.use(
@@ -3772,6 +3767,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * win the match.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AutoRemediationAPI);
+
+    /*
+     * Cluster AI access — readiness checklist + "test access" for a
+     * Kubernetes cluster's AI page. Mounted before the KubernetesCluster
+     * CRUD router so these action routes win the match.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, KubernetesClusterAiAccessAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,

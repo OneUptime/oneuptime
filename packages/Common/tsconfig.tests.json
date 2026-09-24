@@ -1,0 +1,36 @@
+{
+  /*
+   * Type-checks every Common test file as one program: `npm run
+   * compile-tests`, run by the compile-common job in the Compile workflow.
+   *
+   * Common's jest config transpiles only (ts-jest isolatedModules), the way
+   * App's does, so the Common Test workflow does not type-check anything.
+   * This is where that happens instead: once per commit, rather than once per
+   * jest worker per import graph, which is what used to dominate every Common
+   * Test shard.
+   *
+   * The build config (./tsconfig.json) excludes Tests so `npm run compile`
+   * stays self-contained; everything else - paths, strictness, types - is
+   * inherited, so a test is held to the same rules as the code it tests.
+   * Common's global declaration files are listed as well: the build picks
+   * them up through its default include, and this project would otherwise
+   * only see what the tests import.
+   *
+   * Deliberately NOT named Tests/tsconfig.json. ESLint's typed linting
+   * (projectService in eslint.config.js) gives each file the nearest
+   * tsconfig.json; under that name every Common test would be linted inside
+   * this one program - every test plus the Common and App sources they
+   * import - and the lint job ran out of memory and was killed.
+   */
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "Tests/**/*.ts",
+    "Tests/**/*.tsx",
+    "Typings/**/*.d.ts",
+    "UI/index.d.ts"
+  ],
+  "exclude": ["node_modules", "build"]
+}

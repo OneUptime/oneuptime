@@ -14,6 +14,8 @@ import ScheduledMaintenance from "../../Models/DatabaseModels/ScheduledMaintenan
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import StatusPageSubscriberNotificationStatus from "../../Types/StatusPage/StatusPageSubscriberNotificationStatus";
 import SubscriberUpdateNotification from "../../Types/StatusPage/SubscriberUpdateNotification";
+import PublicNoteSubscriberNotificationDefault from "../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
+import Query from "../Types/Database/Query";
 import File from "../../Models/DatabaseModels/File";
 import FileAttachmentMarkdownUtil from "../Utils/FileAttachmentMarkdownUtil";
 import { syncIsPublicForMarkdownImages } from "../Utils/InlineImageAccessTokenSync";
@@ -29,6 +31,26 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnCreate<Model>> {
     if (!createBy.data.postedAt) {
       createBy.data.postedAt = OneUptimeDate.getCurrentDate();
+    }
+
+    /*
+     * A note that does not say whether to notify subscribers (Slack and
+     * Teams notes, workflows, API calls that leave the field out) follows
+     * its scheduled maintenance event, so one created without telling
+     * subscribers stays quiet. An explicit true or false is kept as sent.
+     */
+    if (
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated ===
+        undefined ||
+      createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated === null
+    ) {
+      const notifyByDefault: boolean | null =
+        await this.getScheduledMaintenanceNotifyDefault(createBy.data);
+
+      if (notifyByDefault !== null) {
+        createBy.data.shouldStatusPageSubscribersBeNotifiedOnNoteCreated =
+          notifyByDefault;
+      }
     }
 
     // Set notification status based on shouldStatusPageSubscribersBeNotifiedOnNoteCreated
@@ -50,6 +72,50 @@ export class Service extends DatabaseService<Model> {
       createBy: createBy,
       carryForward: null,
     };
+  }
+
+  /*
+   * Whether a note on this scheduled maintenance event notifies subscribers
+   * when nobody said, or null when the event cannot be found (the column
+   * default applies). Read as root: posting a note does not require
+   * permission to read the event, and the answer is only this one flag.
+   */
+  private async getScheduledMaintenanceNotifyDefault(
+    note: Model,
+  ): Promise<boolean | null> {
+    const scheduledMaintenanceId: ObjectID | null | undefined =
+      note.scheduledMaintenanceId || note.scheduledMaintenance?.id;
+
+    if (!scheduledMaintenanceId) {
+      return null;
+    }
+
+    const query: Query<ScheduledMaintenance> = {
+      _id: scheduledMaintenanceId.toString(),
+    };
+
+    if (note.projectId) {
+      query.projectId = note.projectId;
+    }
+
+    const scheduledMaintenance: ScheduledMaintenance | null =
+      await ScheduledMaintenanceService.findOneBy({
+        query: query,
+        select: {
+          shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (!scheduledMaintenance) {
+      return null;
+    }
+
+    return PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenance(
+      scheduledMaintenance,
+    );
   }
 
   /*

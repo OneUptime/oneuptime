@@ -59,6 +59,8 @@ interface EpisodePage {
   countField: string;
   cardTitle: string;
   feedElement: string;
+  // What follows refreshToken on the feed element, up to its closing "/>".
+  feedElementRest: string;
   viewAllPage: string;
   memberViewPage: string;
   memberSelect: string;
@@ -79,6 +81,9 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     countField: "incidentCount",
     cardTitle: "Incidents in this episode",
     feedElement: "<IncidentEpisodeFeedElement",
+    // The incident episode feed also takes the public note notify default.
+    feedElementRest:
+      "notifyStatusPageSubscribersByDefault={ notifyStatusPageSubscribersByDefault } />",
     viewAllPage: "PageMap.INCIDENT_EPISODE_VIEW_INCIDENTS",
     memberViewPage: "PageMap.INCIDENT_VIEW",
     memberSelect: "INCIDENT_EPISODE_MEMBER_SELECT",
@@ -98,6 +103,7 @@ const EPISODE_PAGES: Array<EpisodePage> = [
     countField: "alertCount",
     cardTitle: "Alerts in this episode",
     feedElement: "<AlertEpisodeFeedElement",
+    feedElementRest: "/>",
     viewAllPage: "PageMap.ALERT_EPISODE_VIEW_ALERTS",
     memberViewPage: "PageMap.ALERT_VIEW",
     memberSelect: "ALERT_EPISODE_MEMBER_SELECT",
@@ -267,7 +273,7 @@ describe("episode overview layout", () => {
       expect(source).toContain("refreshToken={headerRefreshToken}");
       expect(source).toContain("refresher={detailsRefresher}");
       expect(source).toContain(
-        `${page.feedElement} ${page.episodeIdField}={modelId} refreshToken={contentRefreshToken} />`,
+        `${page.feedElement} ${page.episodeIdField}={modelId} refreshToken={contentRefreshToken} ${page.feedElementRest}`,
       );
       expect(source).toContain("onSaveSuccess={() => {");
       expect(source).toContain("onActionComplete={async () => {");
@@ -437,9 +443,31 @@ describe("episode feeds", () => {
     expect(source).toContain(
       "model.incidentEpisodeId = props.incidentEpisodeId!;",
     );
-    expect(source).toContain(
-      "shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true",
+
+    /*
+     * "Notify Status Page Subscribers" starts from the episode's own setting
+     * instead of always ticked, and is seeded as a form value because the
+     * form drops a false default. IncidentEpisodeNoteNotifyDefaultWiring
+     * covers the rest.
+     */
+    const publicNoteModal: string = source.slice(
+      indexOfOrFail(source, "{showPublicNoteModal && ("),
     );
+    const publicNoteForm: string = publicNoteModal.slice(
+      0,
+      indexOfOrFail(publicNoteModal, "formType: FormType.Create,"),
+    );
+
+    expect(publicNoteForm).toContain(
+      "{ field: { shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true, }, fieldType: FormFieldSchemaType.Checkbox,",
+    );
+    expect(publicNoteForm).toContain(
+      "initialValues={{ shouldStatusPageSubscribersBeNotifiedOnNoteCreated: notifySubscribersByDefault, }}",
+    );
+    expect(publicNoteForm).toContain(
+      "defaultValue: notifySubscribersByDefault,",
+    );
+    expect(publicNoteForm).not.toContain("defaultValue: true");
   });
 
   test("alert episodes have no public notes, so their feed offers none", () => {

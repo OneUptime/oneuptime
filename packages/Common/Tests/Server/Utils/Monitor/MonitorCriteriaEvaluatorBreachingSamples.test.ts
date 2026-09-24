@@ -1098,4 +1098,59 @@ describe("Breaching Samples - as plain text", () => {
     expect(lines).toContain(`${iso(19)} — 20`);
     expect(lines).toContain("host.name: host-20");
   });
+
+  /*
+   * OpenTelemetry keys and values are snake_case, and the cap note is
+   * _italic_. convertToPlainText used to strip emphasis before code, with a
+   * regex that crossed newlines, so the "_" in `http.status_code` paired
+   * with the next underscore anywhere below it and both were deleted: the
+   * SMS read "http.statuscode: 503" and "... breaching samples._".
+   */
+  test("snake_case keys, values and metric names survive, and the cap note closes cleanly", () => {
+    const samples: Array<MetricBreachingSample> = [];
+
+    for (let i: number = 1; i <= 25; i++) {
+      samples.push({
+        value: 4 + i,
+        timestamp: at(i - 1),
+        attributes: {
+          "http.status_code": 503,
+          "k8s.pod.name": `checkout_api-${i}`,
+        },
+      });
+    }
+
+    const ctx: MetricCriteriaContext = makeContext({
+      metricName: "http_server_request_errors",
+      unit: null,
+      groupBy: ["http.status_code", "k8s.pod.name"],
+      totalSamplesInWindow: 100,
+      breachingSamples: samples,
+    });
+
+    const lines: Array<string> = Markdown.convertToPlainText(
+      section(ctx),
+    ).split("\n");
+
+    expect(lines.slice(0, 8)).toEqual([
+      "Breaching Samples",
+      "25 of 100 samples breached the threshold.",
+      `${iso(0)} — 5`,
+      "http.status_code: 503",
+      "k8s.pod.name: checkout_api-1",
+      `${iso(1)} — 6`,
+      "http.status_code: 503",
+      "k8s.pod.name: checkout_api-2",
+    ]);
+    expect(lines).toContain("k8s.pod.name: checkout_api-20");
+    expect(lines[lines.length - 1]).toBe(
+      "Showing the first 20 of 25 breaching samples.",
+    );
+
+    const wholeRootCause: string = Markdown.convertToPlainText(rootCause(ctx));
+
+    expect(wholeRootCause).toContain("http_server_request_errors");
+    expect(wholeRootCause).not.toContain("statuscode");
+    expect(wholeRootCause).not.toContain("samples._");
+  });
 });

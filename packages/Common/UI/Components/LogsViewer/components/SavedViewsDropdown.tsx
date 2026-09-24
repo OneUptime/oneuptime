@@ -146,7 +146,13 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
   };
 
   return (
-    <div className="relative" ref={ref}>
+    /*
+     * Positioned from md up only. Below md the toolbar wraps, so the trigger
+     * can sit anywhere in its row, and an 18rem panel hung off it could run
+     * off the side of a phone. There the panel instead spans the nearest
+     * positioned ancestor, the toolbar row, and drops below the trigger.
+     */
+    <div className="md:relative" ref={ref}>
       <button
         ref={triggerRef}
         type="button"
@@ -175,7 +181,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
         <div
           role="dialog"
           aria-label="Saved views"
-          className="absolute left-0 z-20 mt-2 w-72 rounded-lg border border-gray-200 bg-white shadow-xl"
+          className="absolute left-0 right-0 z-20 mt-2 rounded-lg border border-gray-200 bg-white shadow-xl md:right-auto md:w-72"
         >
           {/*
            * Explicit way back to the unfiltered explorer. Clicking the

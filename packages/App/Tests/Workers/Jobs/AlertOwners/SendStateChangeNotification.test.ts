@@ -334,6 +334,7 @@ interface SendNotificationArgs {
     templateType: EmailTemplateType;
     vars: Dictionary<string>;
     subject: string;
+    isSubjectLiteral?: boolean | undefined;
   };
   smsMessage: { message: string };
   callRequestMessage: { data: Array<{ sayMessage: string }> };
@@ -754,5 +755,33 @@ describe("AlertOwner:SendStateChangeEmail worker", () => {
     expect(calls[0]!.emailEnvelope.vars["isOwner"]).toBeUndefined();
     expect(calls[0]!.emailEnvelope.vars["alertSeverity"]).toBe("Low");
     expect(markdownMock.convertToHTML).toHaveBeenCalledTimes(1);
+  });
+
+  /*
+   * The title is user text. Compiled again by the mailer, "{{ ... }}" in it
+   * rendered as nothing and a lone "{{" stopped the email being sent.
+   */
+  test("a title quoting template syntax reaches the subject as written, marked literal", async () => {
+    timelineService.findAllBy.mockResolvedValue([
+      makeTimeline({ id: TIMELINE_1_ID, alertId: ALERT_1_ID }),
+    ]);
+    const alert: Alert = makeAlert({
+      id: ALERT_1_ID,
+      description: "",
+      severityName: "High",
+    });
+    alert.title = "Rollout of {{ .Values.image.tag }} stalled";
+    stubAlerts([alert]);
+    alertService.findOwners.mockResolvedValue([makeUser(USER_1_ID)]);
+
+    await runWorkerTick();
+
+    const calls: Array<SendNotificationArgs> = sendCalls();
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.emailEnvelope.isSubjectLiteral).toBe(true);
+    expect(calls[0]!.emailEnvelope.subject).toBe(
+      "[Acknowledged Alert AL-42] - Rollout of {{ .Values.image.tag }} stalled",
+    );
   });
 });

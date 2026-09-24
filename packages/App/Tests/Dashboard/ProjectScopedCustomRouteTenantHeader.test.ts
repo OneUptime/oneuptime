@@ -33,6 +33,37 @@ const MONITOR_VIEW_PAGE: string = path.join(
   "Index.tsx",
 );
 
+/*
+ * The monitor overview no longer calls these routes itself: its data hook
+ * fires refresh-status, and the uptime hook reads the uptime summary. The
+ * page is kept below only to prove it makes no raw call of its own.
+ */
+const MONITOR_OVERVIEW_DATA_HOOK: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "FeatureSet",
+  "Dashboard",
+  "src",
+  "Components",
+  "Monitor",
+  "Overview",
+  "useMonitorOverviewData.ts",
+);
+
+const MONITOR_UPTIME_SUMMARY_HOOK: string = path.join(
+  __dirname,
+  "..",
+  "..",
+  "FeatureSet",
+  "Dashboard",
+  "src",
+  "Components",
+  "Monitor",
+  "Overview",
+  "useMonitorUptimeSummary.ts",
+);
+
 const NOTIFICATION_RULES_TABLE: string = path.join(
   __dirname,
   "..",
@@ -111,9 +142,14 @@ function getCallsForRoute(data: {
 describe("Project-scoped custom GET routes send the tenant header", () => {
   const cases: Array<{ name: string; filePath: string; route: string }> = [
     {
-      name: "the monitor view page refreshing monitor status",
-      filePath: MONITOR_VIEW_PAGE,
+      name: "the monitor overview refreshing monitor status",
+      filePath: MONITOR_OVERVIEW_DATA_HOOK,
       route: "/monitor/refresh-status/",
+    },
+    {
+      name: "the monitor overview loading uptime history",
+      filePath: MONITOR_UPTIME_SUMMARY_HOOK,
+      route: "/monitor/uptime-summary/",
     },
     {
       name: "the workspace notification rules table testing a rule",
@@ -151,4 +187,13 @@ describe("Project-scoped custom GET routes send the tenant header", () => {
       expect(missing).toEqual([]);
     });
   }
+
+  test("the monitor view page makes no raw API.get of its own", () => {
+    /*
+     * The page used to await refresh-status itself. If a raw call comes back
+     * here it bypasses the hook's once-per-monitor guard, and the cases above
+     * would not notice, because they read the hooks.
+     */
+    expect(getApiGetArguments(readCode(MONITOR_VIEW_PAGE)).length).toBe(0);
+  });
 });

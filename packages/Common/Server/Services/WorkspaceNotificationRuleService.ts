@@ -1,6 +1,8 @@
 import ObjectID from "../../Types/ObjectID";
 import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
-import WorkspaceType from "../../Types/Workspace/WorkspaceType";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "../../Types/Workspace/WorkspaceType";
 import DatabaseService from "./DatabaseService";
 import IncidentNotificationRule from "../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -19,11 +21,14 @@ import TeamMemberService from "./TeamMemberService";
 import User from "../../Models/DatabaseModels/User";
 import BaseNotificationRule from "../../Types/Workspace/NotificationRules/BaseNotificationRule";
 import CreateChannelNotificationRule from "../../Types/Workspace/NotificationRules/CreateChannelNotificationRule";
-import {
+import WorkspaceBase, {
   WorkspaceChannel,
   WorkspaceSendMessageResponse,
+  WorkspaceThread,
 } from "../Utils/Workspace/WorkspaceBase";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
+import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import Dictionary from "../../Types/Dictionary";
 import WorkspaceUserAuthToken from "../../Models/DatabaseModels/WorkspaceUserAuthToken";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import WorkspaceMessagePayload, {
@@ -55,6 +60,8 @@ import ExceptionMessages from "../../Types/Exception/ExceptionMessages";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
 import IncidentEpisodeService from "./IncidentEpisodeService";
 import AlertEpisodeService from "./AlertEpisodeService";
+import ProjectService from "./ProjectService";
+import Project from "../../Models/DatabaseModels/Project";
 
 export interface MessageBlocksByWorkspaceType {
   workspaceType: WorkspaceType;
@@ -70,6 +77,33 @@ export interface NotificationFor {
   monitorId?: ObjectID | undefined;
   onCallDutyPolicyId?: ObjectID | undefined;
 }
+
+// Slack conversation ids are short upper-case alphanumerics (C0123ABCD, G..., D...).
+const SLACK_CHANNEL_ID_REGEX: RegExp = /^[A-Za-z0-9]{1,64}$/;
+
+/*
+ * Upper bounds for Microsoft Teams ids accepted by the destination test.
+ * Generous next to real ids (a GUID, "19:...@thread.tacv2"), small enough
+ * that an oversized value is rejected before it reaches Microsoft Graph.
+ */
+const TEST_NOTIFICATION_MAX_GRAPH_ID_LENGTH: number = 512;
+const TEST_NOTIFICATION_MAX_CHAT_ID_LENGTH: number = 1024;
+
+/*
+ * Characters that would change the meaning of a Microsoft Graph URL path when
+ * interpolated unencoded into it: separators, query / fragment starters,
+ * percent-escapes and whitespace.
+ */
+const GRAPH_PATH_SEGMENT_FORBIDDEN_CHARS_REGEX: RegExp = /[\s/\\?#%]/;
+
+/*
+ * A path segment made only of dots. URL normalisation treats "." and ".." as
+ * relative-path segments, so /teams/T/channels/.. would resolve to /teams/T/.
+ */
+const GRAPH_PATH_DOT_SEGMENT_REGEX: RegExp = /^\.+$/;
+
+const TEST_NOTIFICATION_SEND_FAILED_PREFIX: string =
+  "Could not send the test notification.";
 
 export class Service extends DatabaseService<WorkspaceNotificationRule> {
   public constructor() {
@@ -385,6 +419,511 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   }
 
   /*
+   * Send one test notification to one destination - a Slack channel, a
+   * Microsoft Teams channel or a Microsoft Teams chat - for the "Send Test"
+   * button beside each destination in Project Settings > Workspace.
+   *
+   * testRule proves a rule; this proves a destination. An admin who has just
+   * connected a workspace, or just added the bot to a channel, wants to know
+   * the bot can actually post there before building rules on top of it. The
+   * send deliberately goes through postMessageToAllWorkspaceChannelsAsBot,
+   * the same bot delivery path real notifications take, so a success here
+   * means a real notification to this destination would land too, and a
+   * failure carries exactly what Slack or Microsoft said.
+   *
+   * The result of the send - success, a failure Slack or Microsoft reported,
+   * or a send that silently went nowhere - is recorded in Notification Logs,
+   * as testRule does, so support can see what happened.
+   */
+  @CaptureSpan()
+  public async sendTestNotificationToDestination(data: {
+    projectId: ObjectID;
+    workspaceType: WorkspaceType;
+    testByUserId: ObjectID;
+    channelId?: string | undefined; // Slack channel id, or Microsoft Teams channel id
+    teamId?: string | undefined; // Microsoft Teams channels only: the team the channel is in
+    chatId?: string | undefined; // Microsoft Teams chats only
+  }): Promise<WorkspaceThread> {
+    const channelId: string = this.normalizeTestDestinationId(data.channelId);
+    const teamId: string = this.normalizeTestDestinationId(data.teamId);
+    const chatId: string = this.normalizeTestDestinationId(data.chatId);
+
+    /*
+     * Validate before touching anything: a rejected request must not load
+     * credentials, send, or write a Notification Log entry.
+     */
+    this.validateTestNotificationDestination({
+      workspaceType: data.workspaceType,
+      channelId: channelId,
+      teamId: teamId,
+      chatId: chatId,
+    });
+
+    const displayName: string = getWorkspaceTypeDisplayName(data.workspaceType);
+    const isChat: boolean = Boolean(chatId);
+    const destinationId: string = isChat ? chatId : channelId;
+
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+      });
+
+    if (!projectAuth || !projectAuth.authToken) {
+      throw new BadDataException(
+        `This project is not connected to ${displayName}. Please go to Project Settings and connect ${displayName} first.`,
+      );
+    }
+
+    /*
+     * The destination's display name when we know it before sending: a chat's
+     * comes from the chats captured when the bot was added, a Microsoft Teams
+     * channel's from the team's channel listing checked below. Only a Slack
+     * channel's name is left to come back from the send itself.
+     */
+    let destinationName: string = "";
+
+    if (isChat) {
+      /*
+       * The SaaS bot is shared across tenants, so a project may only post to
+       * the chats it captured itself. sendAdaptiveCardToChat enforces this
+       * too; checking here gives a friendly error and avoids a pointless
+       * send. hasOwnProperty rather than a plain index so an id such as
+       * "__proto__" cannot resolve to something that is not a captured chat.
+       */
+      const connectedChats: Record<string, MicrosoftTeamsChat> =
+        await this.getConnectedMicrosoftTeamsChats({
+          projectId: data.projectId,
+        });
+
+      const chat: MicrosoftTeamsChat | undefined =
+        Object.prototype.hasOwnProperty.call(connectedChats, chatId)
+          ? connectedChats[chatId]
+          : undefined;
+
+      if (!chat) {
+        throw new BadDataException(
+          "This chat is no longer connected to OneUptime. Add the OneUptime app to the chat in Microsoft Teams, click Refresh Chats, and try again.",
+        );
+      }
+
+      destinationName = chat.name || "";
+    } else if (data.workspaceType === WorkspaceType.MicrosoftTeams) {
+      /*
+       * Tenant boundary for a Microsoft Teams channel. The SaaS bot identity is
+       * shared across every customer tenant, so the caller's teamId and
+       * channelId must be proven to belong to THIS project's tenant before
+       * anything is posted. Neither the id format checks above nor the send
+       * path prove that: getWorkspaceChannelFromChannelId falls back to
+       * { id, name: id } whenever Graph refuses the lookup, and
+       * sendAdaptiveCardToChannel only refuses a verified "not installed" -
+       * this project's own installed teamId paired with a channelId pasted
+       * from another tenant's Teams link skips Graph entirely. Without this
+       * check a member of one project could have OneUptime post a card,
+       * carrying their project name, into another customer's channel.
+       *
+       * So list the team's channels with this project's own app token - the
+       * same Graph listing the Channels card shows - and require the channelId
+       * to be an exact key of it. Graph refuses to list a team outside the
+       * token's tenant, and the listing already skips shared channels, which
+       * bots cannot post in. hasOwnProperty rather than a plain index so an id
+       * such as "__proto__" cannot resolve to something that is not a listed
+       * channel.
+       */
+      let teamChannels: Dictionary<WorkspaceChannel>;
+
+      try {
+        teamChannels = await MicrosoftTeamsUtil.getAllWorkspaceChannels({
+          authToken: projectAuth.authToken,
+          projectId: data.projectId,
+          teamId: teamId,
+        });
+      } catch (err) {
+        throw new BadDataException(
+          `Could not load the channels of the selected team from Microsoft Teams. ${WorkspaceBase.getSendErrorMessage(err)}`.trim(),
+        );
+      }
+
+      const teamChannel: WorkspaceChannel | undefined =
+        Object.prototype.hasOwnProperty.call(teamChannels, channelId)
+          ? teamChannels[channelId]
+          : undefined;
+
+      if (!teamChannel) {
+        throw new BadDataException(
+          "This channel was not found in the selected team. It may have been renamed or deleted, or it may be a shared channel, which Microsoft Teams does not let bots post in. Click Refresh Channels and try again.",
+        );
+      }
+
+      destinationName = teamChannel.name || "";
+    }
+
+    const messageText: string = await this.getTestNotificationMarkdown({
+      projectId: data.projectId,
+      testByUserId: data.testByUserId,
+      destinationKind: isChat ? "chat" : "channel",
+    });
+
+    const payload: WorkspaceMessagePayload = {
+      _type: "WorkspaceMessagePayload",
+      workspaceType: data.workspaceType,
+      messageBlocks: [
+        {
+          _type: "WorkspacePayloadMarkdown",
+          text: messageText,
+        } as WorkspacePayloadMarkdown,
+      ],
+      channelNames: [],
+      channelIds: isChat ? [] : [channelId],
+    };
+
+    if (isChat) {
+      payload.chatIds = [chatId];
+    } else if (data.workspaceType === WorkspaceType.MicrosoftTeams) {
+      // teamId is a Microsoft Teams channel concept; Slack and chats have none.
+      payload.teamId = teamId;
+    }
+
+    let responses: Array<WorkspaceSendMessageResponse> = [];
+
+    try {
+      responses = await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
+        projectId: data.projectId,
+        messagePayloadsByWorkspace: [payload],
+      });
+    } catch (err) {
+      const reason: string = WorkspaceBase.getSendErrorMessage(err);
+
+      /*
+       * Downstream BadDataExceptions (for example "Team ID is required ...")
+       * are already written for the user, so they are kept - but prefixed
+       * once, so the admin knows it was the send that failed. A message that
+       * already carries the prefix is passed through untouched.
+       */
+      if (reason.startsWith(TEST_NOTIFICATION_SEND_FAILED_PREFIX)) {
+        throw err instanceof BadDataException
+          ? err
+          : new BadDataException(reason);
+      }
+
+      throw new BadDataException(
+        `${TEST_NOTIFICATION_SEND_FAILED_PREFIX} ${reason}`.trim(),
+      );
+    }
+
+    const response: WorkspaceSendMessageResponse | undefined = responses.find(
+      (res: WorkspaceSendMessageResponse) => {
+        return res.workspaceType === data.workspaceType;
+      },
+    );
+
+    const errors: Array<{ channel: WorkspaceChannel; error: string }> =
+      response?.errors || [];
+    const threads: Array<WorkspaceThread> = response?.threads || [];
+
+    if (errors.length > 0) {
+      await this.logTestSendFailures({
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+        errors: errors,
+        message: messageText,
+        userId: data.testByUserId,
+      });
+
+      const destinationLabel: string = this.getTestDestinationLabel({
+        workspaceType: data.workspaceType,
+        isChat: isChat,
+        name: destinationName || errors[0]?.channel?.name || "",
+        id: destinationId,
+      });
+
+      const reasons: string = errors
+        .map((error: { channel: WorkspaceChannel; error: string }) => {
+          return error.error;
+        })
+        .join("; ");
+
+      throw new BadDataException(
+        `Could not send the test notification to ${destinationLabel}. ${reasons}`.trim(),
+      );
+    }
+
+    const thread: WorkspaceThread | undefined = threads[0];
+
+    if (!thread) {
+      /*
+       * Nothing sent and nothing reported. postMessageToAllWorkspaceChannelsAsBot
+       * silently skips a workspace it cannot send as (a Slack connection with
+       * no botUserId, for one). Reporting that as success is exactly the
+       * failure mode testRule's comments warn about: a green result that
+       * proves nothing. Treat it as a failure and record it.
+       */
+      const destinationLabel: string = this.getTestDestinationLabel({
+        workspaceType: data.workspaceType,
+        isChat: isChat,
+        name: destinationName,
+        id: destinationId,
+      });
+
+      const reason: string = `OneUptime could not send the test notification to ${destinationLabel}. Please reconnect ${displayName} from Project Settings and try again.`;
+
+      const destination: WorkspaceChannel = {
+        id: destinationId,
+        name: destinationName || destinationId,
+        workspaceType: data.workspaceType,
+      };
+
+      if (!isChat && data.workspaceType === WorkspaceType.MicrosoftTeams) {
+        destination.teamId = teamId;
+      }
+
+      await this.logTestSendFailures({
+        projectId: data.projectId,
+        workspaceType: data.workspaceType,
+        errors: [{ channel: destination, error: reason }],
+        message: messageText,
+        userId: data.testByUserId,
+      });
+
+      throw new BadDataException(reason);
+    }
+
+    /*
+     * The notification has been delivered; failing to record that must not
+     * turn a successful send into an error the admin would then chase.
+     */
+    try {
+      const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
+      log.projectId = data.projectId;
+      log.workspaceType = data.workspaceType;
+      // Column limits, as on the real-send path: an over-long value fails the whole insert.
+      log.channelId = (thread.channel.id || "").substring(0, 100);
+      log.channelName = (thread.channel.name || "").substring(0, 100);
+      log.threadId = thread.threadId;
+      log.message = messageText;
+      log.status = WorkspaceNotificationStatus.Success;
+      log.statusMessage = "Test notification sent from Project Settings";
+      log.userId = data.testByUserId;
+      log.actionType = WorkspaceNotificationActionType.SendMessage;
+
+      await WorkspaceNotificationLogService.create({
+        data: log,
+        props: { isRoot: true },
+      });
+    } catch (err) {
+      logger.error(
+        "Could not write test notification success to notification log:",
+      );
+      logger.error(err);
+    }
+
+    return thread;
+  }
+
+  // Trimmed id, or "" when missing or not a string.
+  private normalizeTestDestinationId(value: unknown): string {
+    if (typeof value !== "string") {
+      return "";
+    }
+
+    return value.trim();
+  }
+
+  /*
+   * Reject a test-notification request that could never be delivered, or that
+   * would put an unsafe id into a downstream URL. Throws BadDataException with
+   * a message meant for the user.
+   */
+  private validateTestNotificationDestination(data: {
+    workspaceType: WorkspaceType;
+    channelId: string;
+    teamId: string;
+    chatId: string;
+  }): void {
+    if (
+      data.workspaceType !== WorkspaceType.Slack &&
+      data.workspaceType !== WorkspaceType.MicrosoftTeams
+    ) {
+      throw new BadDataException(
+        "Test notifications can only be sent to Slack or Microsoft Teams.",
+      );
+    }
+
+    if (!data.channelId && !data.chatId) {
+      throw new BadDataException(
+        "Please choose a channel or a chat to send the test notification to.",
+      );
+    }
+
+    if (data.channelId && data.chatId) {
+      throw new BadDataException(
+        "Please choose either a channel or a chat, not both.",
+      );
+    }
+
+    if (data.chatId) {
+      if (data.workspaceType === WorkspaceType.Slack) {
+        throw new BadDataException(
+          "Chats are only supported for Microsoft Teams. Please choose a Slack channel.",
+        );
+      }
+
+      if (data.chatId.length > TEST_NOTIFICATION_MAX_CHAT_ID_LENGTH) {
+        throw new BadDataException("The Microsoft Teams chat id is not valid.");
+      }
+
+      return;
+    }
+
+    if (data.workspaceType === WorkspaceType.Slack) {
+      if (!SLACK_CHANNEL_ID_REGEX.test(data.channelId)) {
+        throw new BadDataException("The Slack channel id is not valid.");
+      }
+
+      return;
+    }
+
+    if (!data.teamId) {
+      throw new BadDataException(
+        "Please select the team this channel belongs to.",
+      );
+    }
+
+    /*
+     * Both ids are interpolated unencoded into Microsoft Graph URL paths:
+     * the teamId into the channel listing (/teams/{teamId}/channels) that
+     * proves the channel is in this project's tenant, and both into
+     * MicrosoftTeams.getWorkspaceChannelFromChannelId
+     * (/teams/{teamId}/channels/{channelId}). A "/", "?", "#", "%" or "\" -
+     * or whitespace / control characters, or a value made only of dots,
+     * which URL normalisation resolves as "." / ".." path traversal
+     * (/teams/T/channels/.. becomes /teams/T/) - would let the caller steer
+     * that request at a different Graph resource using the project's app
+     * token. Real Teams ids (GUIDs, "19:...@thread.tacv2") never look like
+     * that.
+     */
+    if (!this.isSafeMicrosoftGraphPathSegment(data.teamId)) {
+      throw new BadDataException("The Microsoft Teams team id is not valid.");
+    }
+
+    if (!this.isSafeMicrosoftGraphPathSegment(data.channelId)) {
+      throw new BadDataException(
+        "The Microsoft Teams channel id is not valid.",
+      );
+    }
+  }
+
+  private isSafeMicrosoftGraphPathSegment(value: string): boolean {
+    if (value.length > TEST_NOTIFICATION_MAX_GRAPH_ID_LENGTH) {
+      return false;
+    }
+
+    if (GRAPH_PATH_SEGMENT_FORBIDDEN_CHARS_REGEX.test(value)) {
+      return false;
+    }
+
+    // "." and ".." (or any run of dots) are dot segments, not ids.
+    if (GRAPH_PATH_DOT_SEGMENT_REGEX.test(value)) {
+      return false;
+    }
+
+    /*
+     * \s does not cover every control character, and a regex literal with raw
+     * control-character escapes trips no-control-regex, so check char codes:
+     * C0 controls, DEL and C1 controls.
+     */
+    for (let i: number = 0; i < value.length; i++) {
+      const charCode: number = value.charCodeAt(i);
+
+      if (charCode < 0x20 || (charCode >= 0x7f && charCode <= 0x9f)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /*
+   * The markdown body of a destination test notification. Naming the project
+   * and the person who pressed the button tells whoever sees it in a shared
+   * channel where it came from. Both lookups are best-effort: a lookup
+   * failure only drops that fragment, it never blocks the send.
+   */
+  @CaptureSpan()
+  private async getTestNotificationMarkdown(data: {
+    projectId: ObjectID;
+    testByUserId: ObjectID;
+    destinationKind: "channel" | "chat";
+  }): Promise<string> {
+    let projectName: string = "";
+
+    try {
+      const project: Project | null = await ProjectService.findOneById({
+        id: data.projectId,
+        select: {
+          name: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      projectName = project?.name?.trim() || "";
+    } catch (err) {
+      logger.error("Could not load project name for test notification:");
+      logger.error(err);
+    }
+
+    let userMarkdown: string = "";
+
+    try {
+      userMarkdown = (
+        (await UserService.getUserMarkdownString({
+          userId: data.testByUserId,
+          projectId: data.projectId,
+        })) || ""
+      ).trim();
+    } catch (err) {
+      logger.error("Could not load user for test notification:");
+      logger.error(err);
+    }
+
+    let sentence: string = "This is a test notification sent";
+
+    if (projectName) {
+      sentence += ` from the OneUptime project **${projectName}**`;
+    }
+
+    if (userMarkdown) {
+      sentence += ` by ${userMarkdown}`;
+    }
+
+    sentence += `. If you can see this message, OneUptime can post notifications to this ${data.destinationKind}. No action is needed.`;
+
+    return `**Test notification from OneUptime**\n\n${sentence}`;
+  }
+
+  /*
+   * How a destination is named in a user-facing error: #name for a Slack
+   * channel, the name in double quotes for a Microsoft Teams channel or chat.
+   * Falls back to the id when no name is known.
+   */
+  private getTestDestinationLabel(data: {
+    workspaceType: WorkspaceType;
+    isChat: boolean;
+    name: string;
+    id: string;
+  }): string {
+    const label: string = data.name.trim() || data.id;
+
+    if (data.workspaceType === WorkspaceType.Slack && !data.isChat) {
+      return `#${label}`;
+    }
+
+    return `"${label}"`;
+  }
+
+  /*
    * The markdown of a test message, for the Notification Log entry.
    */
   private getTestMessageSummary(data: {
@@ -542,11 +1081,21 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         const log: WorkspaceNotificationLog = new WorkspaceNotificationLog();
         log.projectId = data.projectId;
         log.workspaceType = data.workspaceType;
-        log.channelId = error.channel.id;
-        log.channelName = error.channel.name;
+        /*
+         * Truncated to the column limits, as the real-send path does. The
+         * insert rejects any over-long field, and the catch below would then
+         * drop the row silently - Microsoft's "app is not installed in this
+         * team" explanation alone runs past the 500-character statusMessage.
+         * The user-facing error keeps the full text.
+         */
+        log.channelId = (error.channel.id || "").substring(0, 100);
+        log.channelName = (error.channel.name || "").substring(0, 100);
         log.message = data.message;
         log.status = WorkspaceNotificationStatus.Error;
-        log.statusMessage = error.error;
+        log.statusMessage = (error.error || "Failed to send message").substring(
+          0,
+          500,
+        );
         log.userId = data.userId;
         log.actionType = WorkspaceNotificationActionType.SendMessage;
 
@@ -810,6 +1359,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           log.scheduledMaintenanceId =
             data.notificationFor.scheduledMaintenanceId;
         }
+        if (data.notificationFor.incidentEpisodeId) {
+          log.incidentEpisodeId = data.notificationFor.incidentEpisodeId;
+        }
+        if (data.notificationFor.alertEpisodeId) {
+          log.alertEpisodeId = data.notificationFor.alertEpisodeId;
+        }
 
         if (data.workspaceNotification.notifyUserId) {
           log.userId = data.workspaceNotification.notifyUserId;
@@ -848,6 +1403,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         if (data.notificationFor.scheduledMaintenanceId) {
           log.scheduledMaintenanceId =
             data.notificationFor.scheduledMaintenanceId;
+        }
+        if (data.notificationFor.incidentEpisodeId) {
+          log.incidentEpisodeId = data.notificationFor.incidentEpisodeId;
+        }
+        if (data.notificationFor.alertEpisodeId) {
+          log.alertEpisodeId = data.notificationFor.alertEpisodeId;
         }
 
         if (data.workspaceNotification.notifyUserId) {
@@ -1126,8 +1687,14 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
             projectId: data.projectId?.toString(),
           } as LogAttributes);
 
+          /*
+           * No rule for this workspace says nothing about the next one. This
+           * used to `return null`, so a project connected to both Slack and
+           * Microsoft Teams never got its Teams incident / alert channel when
+           * the workspace that happened to come first had no matching rule.
+           */
           if (!notificationRules || notificationRules.length === 0) {
-            return null;
+            continue;
           }
 
           logger.debug("Creating channels based on rules", {
@@ -1332,6 +1899,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       notificationRuleId: string;
       userIds: Array<ObjectID>;
     }> = await this.getUsersIdsToInviteToChannel({
+      projectId: data.projectId,
       notificationRules: data.notificationRules,
     });
 
@@ -1979,6 +2547,7 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
   @CaptureSpan()
   public async getUsersIdsToInviteToChannel(data: {
+    projectId: ObjectID;
     notificationRules: Array<WorkspaceNotificationRule>;
   }): Promise<
     Array<{
@@ -2056,10 +2625,21 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         }
       }
 
-      if (inviteUserIds.length > 0) {
+      /*
+       * The rule is saved configuration and can name a user who has since
+       * left the project (and a team can hold pending invitees): only
+       * members are invited.
+       */
+      const memberUserIds: Array<ObjectID> =
+        await TeamMemberService.getProjectMemberUserIds({
+          projectId: data.projectId,
+          userIds: inviteUserIds,
+        });
+
+      if (memberUserIds.length > 0) {
         result.push({
           notificationRuleId: workspaceNotificationRule.id!.toString(),
-          userIds: inviteUserIds,
+          userIds: memberUserIds,
         });
       }
     }

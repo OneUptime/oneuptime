@@ -184,11 +184,17 @@ describe("CustomTimeRangeModal", () => {
     test("names the timezone the times are shown in", () => {
       renderModal();
 
+      /*
+       * No i18next instance here, so this is the English template with the
+       * zone filled in. CustomTimeRangeModalTimezoneTranslation covers the
+       * translated note.
+       */
       expect(
         screen.getByText(
           `Times are shown in ${OneUptimeDate.getCurrentTimezoneString()}.`,
         ),
       ).toBeInTheDocument();
+      expect(screen.queryByText(/\{\{/)).toBeNull();
     });
   });
 

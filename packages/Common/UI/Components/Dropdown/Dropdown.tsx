@@ -15,6 +15,7 @@ import Label from "../../../Models/DatabaseModels/Label";
 import Select, {
   components as ReactSelectComponents,
   ControlProps,
+  createFilter,
   CSSObjectWithLabel,
   FormatOptionLabelMeta,
   GroupBase,
@@ -38,6 +39,14 @@ export interface DropdownOption {
   description?: string;
   labels?: Array<DropdownOptionLabel>;
   color?: Color;
+  /*
+   * Other values that mean this option — the retired spellings of a
+   * timezone, say ("Singapore" for Asia/Singapore). A value that is no
+   * option's own is matched against these, so a record saved before a
+   * spelling was retired still shows its option instead of the placeholder.
+   * Choosing the option emits `value`, never an alias.
+   */
+  aliases?: Array<DropdownValue>;
 }
 
 export interface DropdownOptionGroup {
@@ -46,6 +55,28 @@ export interface DropdownOptionGroup {
 }
 
 export { DROPDOWN_MENU_Z_INDEX };
+
+// What react-select hands a filter for each option it considers.
+interface SearchableOption {
+  readonly label: string;
+  readonly value: string;
+  readonly data: DropdownOption;
+}
+
+/*
+ * react-select's own filter — case- and accent-insensitive, trimmed — over
+ * the label and value as before, and over an option's aliases too, so typing
+ * a retired spelling ("Calcutta", "US/Eastern") still finds the option it
+ * now lives under. An option without aliases is searched exactly as it was.
+ */
+const filterOption: (option: SearchableOption, rawInput: string) => boolean =
+  createFilter<DropdownOption>({
+    stringify: (option: SearchableOption): string => {
+      return [option.label, option.value, ...(option.data.aliases || [])].join(
+        " ",
+      );
+    },
+  });
 
 export interface ComponentProps {
   options: Array<DropdownOption | DropdownOptionGroup>;
@@ -105,6 +136,25 @@ const Dropdown: FunctionComponent<ComponentProps> = (
     },
   );
 
+  /*
+   * An option's own value wins over another option's alias, so adding an
+   * alias can never change what an existing value selects.
+   */
+  const findOptionByValue: (
+    value: DropdownValue,
+  ) => DropdownOption | undefined = (
+    value: DropdownValue,
+  ): DropdownOption | undefined => {
+    return (
+      flatOptions.find((option: DropdownOption) => {
+        return option.value === value;
+      }) ||
+      flatOptions.find((option: DropdownOption) => {
+        return Boolean(option.aliases?.includes(value));
+      })
+    );
+  };
+
   type GetDropdownOptionFromValueFunctionProps =
     | undefined
     | DropdownValue
@@ -147,13 +197,13 @@ const Dropdown: FunctionComponent<ComponentProps> = (
           !Array.isArray(item) &&
           (typeof item === "string" || typeof item === "number")
         ) {
-          const option: DropdownOption | undefined = flatOptions.find(
-            (option: DropdownOption) => {
-              return option.value === item;
-            },
-          );
+          const option: DropdownOption | undefined = findOptionByValue(item);
 
-          if (option) {
+          /*
+           * Once aliases resolve, two stored values can be the same option
+           * ("Singapore" and "Asia/Singapore"): show it once.
+           */
+          if (option && !options.includes(option)) {
             options.push(option);
           }
         }
@@ -166,9 +216,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
       !Array.isArray(value) &&
       (typeof value === "string" || typeof value === "number")
     ) {
-      return flatOptions.find((option: DropdownOption) => {
-        return option.value === value;
-      });
+      return findOptionByValue(value);
     }
 
     return value as DropdownOption | Array<DropdownOption>;
@@ -799,6 +847,7 @@ const Dropdown: FunctionComponent<ComponentProps> = (
         menuPosition="fixed"
         isClearable={props.isClearable ?? true}
         isSearchable={true}
+        filterOption={filterOption}
         placeholder={tx(props.placeholder) ?? props.placeholder}
         options={props.options as any}
         onChange={(option: any | null) => {

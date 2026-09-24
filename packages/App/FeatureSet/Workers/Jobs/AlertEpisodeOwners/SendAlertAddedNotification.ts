@@ -321,6 +321,7 @@ RunCron(
             templateType: EmailTemplateType.AlertEpisodeOwnerAlertAdded,
             vars: vars,
             subject: `[Episode ${episodeNumberStr}] ${subjectAlertLabel} added - ${episode.title!}`,
+            isSubjectLiteral: true,
           };
 
           const summaryLine: string =

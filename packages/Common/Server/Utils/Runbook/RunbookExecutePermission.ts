@@ -36,12 +36,21 @@ export const RUNBOOK_ADVANCE_PERMISSIONS: Array<Permission> = [
   Permission.EditRunbookExecution,
 ];
 
-function assertHoldsAny(data: {
+/*
+ * Does the caller hold a GRANT of any of `allowed` in this project? The
+ * primitive behind every check in this file, exported for other server-side
+ * guards that must decide "may this caller do X here" from the same props
+ * and read block rows the same way (e.g. who may loosen a Kubernetes
+ * cluster's AI access).
+ *
+ * Root and master-admin callers are the caller's business: this only reads
+ * the tenant permission rows, so a guard that exempts them must do so itself.
+ */
+export function holdsAnyPermission(data: {
   props: DatabaseCommonInteractionProps;
   projectId: ObjectID;
-  allowed: Array<Permission>;
-  deniedMessage: string;
-}): void {
+  allowed: ReadonlyArray<Permission>;
+}): boolean {
   const tenantPermission: UserTenantAccessPermission | undefined =
     data.props.userTenantAccessPermission?.[data.projectId.toString()];
 
@@ -49,13 +58,52 @@ function assertHoldsAny(data: {
    * A permission row can be a BLOCK rather than a grant, so matching on the
    * permission name alone would read a denial as an authorization.
    */
-  const hasPermission: boolean = Boolean(
+  return Boolean(
     tenantPermission?.permissions?.some((p: UserPermission): boolean => {
       return !p.isBlockPermission && data.allowed.includes(p.permission);
     }),
   );
+}
 
-  if (!hasPermission) {
+/*
+ * Like holdsAnyPermission, but for deciding what a caller may SEE: a block
+ * row for any of `allowed` is a denial even when a grant is also present —
+ * a block row may be limited to some labels, and the caller of this cannot
+ * tell which object it would cover. Root and master admins see everything.
+ */
+export function holdsAnyUnblockedPermission(data: {
+  props: DatabaseCommonInteractionProps;
+  projectId: ObjectID;
+  allowed: ReadonlyArray<Permission>;
+}): boolean {
+  if (data.props.isRoot || data.props.isMasterAdmin) {
+    return true;
+  }
+
+  const permissions: Array<UserPermission> =
+    data.props.userTenantAccessPermission?.[data.projectId.toString()]
+      ?.permissions || [];
+
+  const isBlocked: boolean = permissions.some((p: UserPermission): boolean => {
+    return p.isBlockPermission === true && data.allowed.includes(p.permission);
+  });
+
+  return !isBlocked && holdsAnyPermission(data);
+}
+
+function assertHoldsAny(data: {
+  props: DatabaseCommonInteractionProps;
+  projectId: ObjectID;
+  allowed: Array<Permission>;
+  deniedMessage: string;
+}): void {
+  if (
+    !holdsAnyPermission({
+      props: data.props,
+      projectId: data.projectId,
+      allowed: data.allowed,
+    })
+  ) {
     throw new NotAuthorizedException(data.deniedMessage);
   }
 }
@@ -89,6 +137,8 @@ export function assertCanAdvanceRunbookExecutions(
 export default {
   RUNBOOK_EXECUTE_PERMISSIONS,
   RUNBOOK_ADVANCE_PERMISSIONS,
+  holdsAnyPermission,
+  holdsAnyUnblockedPermission,
   assertCanExecuteRunbooks,
   assertCanAdvanceRunbookExecutions,
 };

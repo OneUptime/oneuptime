@@ -273,6 +273,19 @@ jest.mock("Common/Server/Services/ScheduledMaintenanceService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
 });
 
+/*
+ * The tables a burn rate incident's on-call policies and labels are checked
+ * against. Only their identity matters here: the check itself
+ * (ProjectScopedReferenceValidator.filterUsableInProject) is stubbed per test.
+ */
+jest.mock("Common/Server/Services/OnCallDutyPolicyService", () => {
+  return { __esModule: true, default: { name: "OnCallDutyPolicyService" } };
+});
+
+jest.mock("Common/Server/Services/LabelService", () => {
+  return { __esModule: true, default: { name: "LabelService" } };
+});
+
 jest.mock("Common/Server/Services/UserNotificationSettingService", () => {
   return {
     __esModule: true,
@@ -342,6 +355,9 @@ import SloMetricType from "Common/Types/ServiceLevelObjective/SloMetricType";
 import ServiceLevelObjectiveFeedService from "Common/Server/Services/ServiceLevelObjectiveFeedService";
 import { ServiceLevelObjectiveFeedEventType } from "Common/Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import Color from "Common/Types/Color";
+import LabelService from "Common/Server/Services/LabelService";
+import OnCallDutyPolicyService from "Common/Server/Services/OnCallDutyPolicyService";
+import ProjectScopedReferenceValidator from "Common/Server/Utils/Database/ProjectScopedReferenceValidator";
 
 // Imported for its side effect: RunCron (mocked above) records the handler.
 import "../../../../FeatureSet/Workers/Jobs/Slo/EvaluateSlos";
@@ -965,6 +981,15 @@ describe("Slo:EvaluateSlos worker", () => {
     maintenanceService.findBy.mockResolvedValue([]);
     notificationService.ensureSettingExistsForUser.mockResolvedValue(undefined);
     notificationService.sendUserNotification.mockResolvedValue(undefined);
+    /*
+     * Every on-call policy and label a rule names belongs to its project
+     * unless a test says not. The filter itself is tested in Common.
+     */
+    jest
+      .spyOn(ProjectScopedReferenceValidator, "filterUsableInProject")
+      .mockImplementation(async (data: { ids: Array<ObjectID | string> }) => {
+        return { usableIds: data.ids, droppedIds: [] };
+      });
   });
 
   describe("cadence stamping", () => {
@@ -3374,6 +3399,8 @@ describe("Slo:EvaluateSlos worker", () => {
 
   const LABEL_A_ID: ObjectID = new ObjectID("label-a");
   const LABEL_B_ID: ObjectID = new ObjectID("label-b");
+  const STALE_LABEL_ID: ObjectID = new ObjectID("label-stale");
+  const STALE_POLICY_ID: ObjectID = new ObjectID("policy-stale");
   const TEAM_A_ID: ObjectID = new ObjectID("team-a");
   const TEAM_B_ID: ObjectID = new ObjectID("team-b");
   const CREATED_ALERT_ID: ObjectID = new ObjectID("alert-9");
@@ -3616,6 +3643,179 @@ describe("Slo:EvaluateSlos worker", () => {
       expect(alert.isPrivate).toBe(true);
       // `=== true` only: false leaves the model default alone.
       expect(incident.isPrivate).toBeUndefined();
+    });
+
+    test("the incident drops an on-call policy or label its project cannot use", async () => {
+      /*
+       * IncidentService refuses another project's policy or label, and the
+       * rule only checks ids an edit adds, so an older rule can still hold
+       * one. Refusing the create would stop this rule declaring incidents at
+       * all; the stale ids are dropped and logged instead.
+       */
+      const rule: ServiceLevelObjectiveBurnRateRule = makeRule({
+        shouldCreateIncident: true,
+        incidentOnCallDutyPolicies: [
+          new OnCallDutyPolicy(INCIDENT_POLICY_ID),
+          new OnCallDutyPolicy(STALE_POLICY_ID),
+        ],
+      });
+      rule.incidentLabels = [new Label(STALE_LABEL_ID), new Label(LABEL_A_ID)];
+
+      const filter: jest.SpyInstance = jest
+        .spyOn(ProjectScopedReferenceValidator, "filterUsableInProject")
+        .mockImplementation(async (data: { ids: Array<ObjectID | string> }) => {
+          const isStale: (id: ObjectID | string) => boolean = (
+            id: ObjectID | string,
+          ): boolean => {
+            return [
+              STALE_POLICY_ID.toString(),
+              STALE_LABEL_ID.toString(),
+            ].includes(id.toString());
+          };
+
+          return {
+            usableIds: data.ids.filter((id: ObjectID | string) => {
+              return !isStale(id);
+            }),
+            droppedIds: data.ids.filter(isStale),
+          };
+        });
+
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      burnRuleService.findBy.mockResolvedValue([rule]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      const incident: Incident = createdIncident();
+
+      expect(
+        (incident.onCallDutyPolicies || []).map((policy: OnCallDutyPolicy) => {
+          return policy._id;
+        }),
+      ).toEqual([INCIDENT_POLICY_ID.toString()]);
+      expect(
+        (incident.labels || []).map((label: Label) => {
+          return label._id;
+        }),
+      ).toEqual([LABEL_A_ID.toString()]);
+
+      // Each list is checked against its own table, in the rule's project.
+      const calls: Array<{
+        projectId: ObjectID;
+        service: unknown;
+      }> = filter.mock.calls.map((call: Array<unknown>) => {
+        return call[0] as { projectId: ObjectID; service: unknown };
+      });
+
+      expect(
+        calls.map((call: { service: unknown }) => {
+          return call.service;
+        }),
+      ).toEqual([OnCallDutyPolicyService, LabelService]);
+
+      for (const call of calls) {
+        expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
+      }
+
+      const logged: string = JSON.stringify(mockedLogger.error.mock.calls);
+      expect(logged).toContain(`on-call policy ${STALE_POLICY_ID.toString()}`);
+      expect(logged).toContain(`label ${STALE_LABEL_ID.toString()}`);
+    });
+
+    test("the alert drops an on-call policy or label its project cannot use", async () => {
+      /*
+       * AlertService refuses another project's policy or label just the same,
+       * and an alert is what every burn rate rule raises, so a stale id there
+       * would stop the rule paging anyone at all.
+       */
+      const rule: ServiceLevelObjectiveBurnRateRule = makeRule({
+        onCallDutyPolicies: [
+          new OnCallDutyPolicy(STALE_POLICY_ID),
+          new OnCallDutyPolicy(POLICY_ID),
+        ],
+      });
+      rule.alertLabels = [new Label(LABEL_A_ID), new Label(STALE_LABEL_ID)];
+
+      const filter: jest.SpyInstance = jest
+        .spyOn(ProjectScopedReferenceValidator, "filterUsableInProject")
+        .mockImplementation(async (data: { ids: Array<ObjectID | string> }) => {
+          const isStale: (id: ObjectID | string) => boolean = (
+            id: ObjectID | string,
+          ): boolean => {
+            return [
+              STALE_POLICY_ID.toString(),
+              STALE_LABEL_ID.toString(),
+            ].includes(id.toString());
+          };
+
+          return {
+            usableIds: data.ids.filter((id: ObjectID | string) => {
+              return !isStale(id);
+            }),
+            droppedIds: data.ids.filter(isStale),
+          };
+        });
+
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      burnRuleService.findBy.mockResolvedValue([rule]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      // The alert is still raised, with what the project can use.
+      const alert: Alert = createdAlert();
+
+      expect(
+        (alert.onCallDutyPolicies || []).map((policy: OnCallDutyPolicy) => {
+          return policy._id;
+        }),
+      ).toEqual([POLICY_ID.toString()]);
+      expect(
+        (alert.labels || []).map((label: Label) => {
+          return label._id;
+        }),
+      ).toEqual([LABEL_A_ID.toString()]);
+
+      const calls: Array<{
+        projectId: ObjectID;
+        service: unknown;
+      }> = filter.mock.calls.map((call: Array<unknown>) => {
+        return call[0] as { projectId: ObjectID; service: unknown };
+      });
+
+      expect(
+        calls.map((call: { service: unknown }) => {
+          return call.service;
+        }),
+      ).toEqual([OnCallDutyPolicyService, LabelService]);
+
+      for (const call of calls) {
+        expect(call.projectId.toString()).toBe(PROJECT_ID.toString());
+      }
+
+      const logged: string = JSON.stringify(mockedLogger.error.mock.calls);
+      expect(logged).toContain(`on-call policy ${STALE_POLICY_ID.toString()}`);
+      expect(logged).toContain(`label ${STALE_LABEL_ID.toString()}`);
+      expect(logged).toContain("Creating the alert without it.");
+    });
+
+    test("an alert whose rule names no policy or label looks nothing up", async () => {
+      const filter: jest.SpyInstance = jest.spyOn(
+        ProjectScopedReferenceValidator,
+        "filterUsableInProject",
+      );
+
+      sloService.getDueSlos.mockResolvedValue([exhaustedSlo()]);
+      burnRuleService.findBy.mockResolvedValue([makeRule()]);
+      stubFiringBurn();
+
+      await runWorkerTick();
+
+      expect(createdAlert().onCallDutyPolicies).toEqual([]);
+      // No labels: the create path gets exactly what it always did.
+      expect(createdAlert().labels).toBeUndefined();
+      expect(filter).not.toHaveBeenCalled();
     });
 
     test("both records name the SLO as their affected resource, and still touch no monitor", async () => {

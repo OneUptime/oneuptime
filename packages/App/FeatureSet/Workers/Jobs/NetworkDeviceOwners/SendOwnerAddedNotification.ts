@@ -124,7 +124,7 @@ RunCron(
         continue;
       }
 
-      const users: Array<User> = deviceOwnersMap[
+      const ownerUsers: Array<User> = deviceOwnersMap[
         networkDeviceId
       ] as Array<User>;
 
@@ -149,6 +149,22 @@ RunCron(
         continue;
       }
 
+      /*
+       * A team row expands to every member row, pending invitations included,
+       * and a pending invitee has no notification settings yet (the defaults
+       * are added on accept). Tell only the accepted members of the project -
+       * the same people findOwners reports as owners.
+       */
+      const users: Array<User> =
+        await TeamMemberService.filterUsersToProjectMembers({
+          projectId: networkDevice.projectId!,
+          users: ownerUsers,
+        });
+
+      if (users.length === 0) {
+        continue;
+      }
+
       const dashboardUrl: URL = await DatabaseConfig.getDashboardUrl();
       const deviceViewLink: string = URL.fromString(dashboardUrl.toString())
         .addRoute(
@@ -169,6 +185,7 @@ RunCron(
           templateType: EmailTemplateType.SimpleMessage,
           vars: vars,
           subject: emailSubject,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

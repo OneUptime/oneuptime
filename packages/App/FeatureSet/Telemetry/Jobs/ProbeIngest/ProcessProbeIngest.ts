@@ -30,7 +30,12 @@ import ProbeService from "Common/Server/Services/ProbeService";
 import SnmpTrapLogWriter from "../../Services/SnmpTrapLogWriter";
 import { JSONObject } from "Common/Types/JSON";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
-import { redactMonitorSecret } from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
+import {
+  redactMonitorEmailAddress,
+  redactMonitorSecret,
+} from "Common/Server/Utils/Monitor/MonitorPayloadRedaction";
+import InboundEmailProviderFactory from "Common/Server/Services/InboundEmail/InboundEmailProviderFactory";
+import Select from "Common/Server/Types/Database/Select";
 
 export async function processProbeFromQueue(
   jobData: ProbeIngestJobData,
@@ -364,6 +369,68 @@ export async function processNetworkDeviceWalkFromQueue(
   });
 }
 
+const INCOMING_EMAIL_MONITOR_SELECT: Select<Monitor> = {
+  _id: true,
+  projectId: true,
+  incomingEmailSecretKey: true,
+  incomingEmailCustomLocalPart: true,
+  disableActiveMonitoring: true,
+  disableActiveMonitoringBecauseOfManualIncident: true,
+  disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+};
+
+/*
+ * The monitor an inbound email is for, or null when its address belongs to
+ * no monitor. A monitor has exactly one live address (see
+ * IncomingEmailMonitorAddress): its custom one while that is set, otherwise
+ * the generated monitor-{secretKey} one.
+ */
+async function findIncomingEmailMonitor(
+  emailData: IncomingEmailJobData,
+): Promise<Monitor | null> {
+  if (emailData.customLocalPart) {
+    return await MonitorService.findOneBy({
+      query: {
+        incomingEmailCustomLocalPart: emailData.customLocalPart.toLowerCase(),
+        monitorType: MonitorType.IncomingEmail,
+      },
+      select: INCOMING_EMAIL_MONITOR_SELECT,
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  if (!emailData.secretKey || !ObjectID.isValidUUID(emailData.secretKey)) {
+    throw new BadDataException("Invalid Secret Key");
+  }
+
+  const monitor: Monitor | null = await MonitorService.findOneBy({
+    query: {
+      incomingEmailSecretKey: new ObjectID(emailData.secretKey),
+      monitorType: MonitorType.IncomingEmail,
+    },
+    select: INCOMING_EMAIL_MONITOR_SELECT,
+    props: {
+      isRoot: true,
+    },
+  });
+
+  /*
+   * Giving a monitor a custom address retires its generated one. Without this,
+   * the old address -- possibly the very one the user meant to get rid of by
+   * choosing a new name -- would keep counting as a heartbeat.
+   */
+  if (monitor?.incomingEmailCustomLocalPart) {
+    logger.debug(
+      `Incoming email sent to the generated address of monitor ${monitor._id?.toString()}, which now uses a custom address. Ignoring.`,
+    );
+    return null;
+  }
+
+  return monitor;
+}
+
 export async function processIncomingEmailFromQueue(
   jobData: ProbeIngestJobData,
 ): Promise<void> {
@@ -373,28 +440,7 @@ export async function processIncomingEmailFromQueue(
     throw new BadDataException("Incoming email data not found");
   }
 
-  const monitorSecretKeyAsString: string = emailData.secretKey;
-
-  if (!monitorSecretKeyAsString) {
-    throw new BadDataException("Invalid Secret Key");
-  }
-
-  const monitor: Monitor | null = await MonitorService.findOneBy({
-    query: {
-      incomingEmailSecretKey: new ObjectID(monitorSecretKeyAsString),
-      monitorType: MonitorType.IncomingEmail,
-    },
-    select: {
-      _id: true,
-      projectId: true,
-      disableActiveMonitoring: true,
-      disableActiveMonitoringBecauseOfManualIncident: true,
-      disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
-    },
-    props: {
-      isRoot: true,
-    },
-  });
+  const monitor: Monitor | null = await findIncomingEmailMonitor(emailData);
 
   if (!monitor || !monitor._id) {
     throw new BadDataException(ExceptionMessages.MonitorNotFound);
@@ -405,12 +451,13 @@ export async function processIncomingEmailFromQueue(
   }
 
   /*
-   * Ingest boundary. This monitor's `incomingEmailSecretKey` IS its inbound
-   * address -- `generateMonitorEmailAddress` builds
-   * `monitor-{secretKey}@{inboundDomain}` and `extractSecretKeyFromEmail` reads
-   * the key straight back out -- so every copy of the recipient in this payload
-   * is a copy of a live bearer credential: `emailTo`, the `To:` header, and the
-   * `Received:` / `Delivered-To:` headers the relay stamped on the way in.
+   * Ingest boundary. This monitor's inbound address IS a bearer credential:
+   * its `incomingEmailSecretKey` -- `generateMonitorEmailAddress` builds
+   * `monitor-{secretKey}@{inboundDomain}` and `parseRecipient` reads the key
+   * straight back out -- or, when set, its custom address. So every copy of
+   * the recipient in this payload is a copy of a live credential: `emailTo`,
+   * the `To:` header, and the `Received:` / `Delivered-To:` headers the relay
+   * stamped on the way in.
    *
    * Mask it here, before the payload becomes evidence, rather than at each
    * sink. Everything downstream of this point is fed from `dataToProcess`, and
@@ -423,9 +470,15 @@ export async function processIncomingEmailFromQueue(
    *
    * https://github.com/OneUptime/oneuptime/issues/3360
    */
-  const redactedEmailData: IncomingEmailJobData = redactMonitorSecret(
-    emailData,
-    monitorSecretKeyAsString,
+  const redactedEmailData: IncomingEmailJobData = redactMonitorEmailAddress(
+    redactMonitorSecret(
+      emailData,
+      monitor.incomingEmailSecretKey?.toString() || emailData.secretKey,
+    ),
+    {
+      localPart: monitor.incomingEmailCustomLocalPart,
+      domain: InboundEmailProviderFactory.getInboundDomain(),
+    },
   );
 
   const now: Date = OneUptimeDate.getCurrentDate();

@@ -97,7 +97,10 @@ const MonitorDocumentation: FunctionComponent<
       {/* Incoming Email Address */}
       {monitorType === MonitorType.IncomingEmail &&
       monitor?.incomingEmailSecretKey ? (
-        <IncomingEmailMonitorLink secretKey={monitor?.incomingEmailSecretKey} />
+        <IncomingEmailMonitorLink
+          secretKey={monitor?.incomingEmailSecretKey}
+          customLocalPart={monitor?.incomingEmailCustomLocalPart}
+        />
       ) : (
         <></>
       )}

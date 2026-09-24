@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/probe",
-  "version": "14.0.1",
+  "version": "14.0.2",
   "description": "",
   "repository": {
     "type": "git",
@@ -33,7 +33,7 @@
     "net-snmp": "^3.26.1",
     "pg": "^8.22.0",
     "ping": "^0.4.4",
-    "playwright": "^1.60.0",
+    "playwright": "^1.63.0",
     "ts-node": "^10.9.1",
     "whois-json": "^2.0.4"
   },

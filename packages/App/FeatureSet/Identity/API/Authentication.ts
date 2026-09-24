@@ -13,6 +13,7 @@ import Email from "Common/Types/Email";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import BadRequestException from "Common/Types/Exception/BadRequestException";
+import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject, ObjectType } from "Common/Types/JSON";
 import HashedString from "Common/Types/HashedString";
 import Name from "Common/Types/Name";
@@ -577,6 +578,7 @@ router.post(
           _id: true,
           password: true,
           timezone: true,
+          isBlocked: true,
         },
         props: {
           isRoot: true,
@@ -662,6 +664,20 @@ router.post(
           });
         }
 
+        /*
+         * An invited account can be blocked before anybody claims it, and a
+         * claim ends in a session like any other sign-in. Refused only after
+         * the token has proved the mailbox, so the block is not disclosed to
+         * whoever typed the address.
+         */
+        if (alreadySavedUser.isBlocked) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException(ExceptionMessages.UserBlocked),
+          );
+        }
+
         didClaimInvitedAccount = true;
 
         savedUser = await UserService.updateOneByIdAndFetch({
@@ -729,6 +745,7 @@ router.post(
         MailService.sendMail({
           toEmail: partialUser.email as Email,
           subject: "Welcome to OneUptime. Please verify your email.",
+          isSubjectLiteral: true,
           templateType: EmailTemplateType.SignupWelcomeEmail,
           vars: {
             name: (partialUser.name! as Name).toString(),
@@ -874,6 +891,7 @@ router.post(
         MailService.sendMail({
           toEmail: user.email!,
           subject: "Password Reset Request for OneUptime",
+          isSubjectLiteral: true,
           templateType: EmailTemplateType.ForgotPassword,
           vars: {
             homeURL: new URL(httpProtocol, host).toString(),
@@ -996,6 +1014,7 @@ router.post(
       MailService.sendMail({
         toEmail: user.email!,
         subject: "Email Verified.",
+        isSubjectLiteral: true,
         templateType: EmailTemplateType.EmailVerified,
         vars: {
           homeURL: new URL(httpProtocol, host).toString(),
@@ -1111,6 +1130,7 @@ router.post(
       MailService.sendMail({
         toEmail: alreadySavedUser.email!,
         subject: "Password Changed.",
+        isSubjectLiteral: true,
         templateType: EmailTemplateType.PasswordChanged,
         vars: {
           homeURL: new URL(httpProtocol, host).toString(),
@@ -1207,6 +1227,7 @@ router.post(
           profilePictureId: true,
           timezone: true,
           enableTwoFactorAuth: true,
+          isBlocked: true,
         },
       });
 
@@ -1219,6 +1240,24 @@ router.post(
           req,
           res,
           new NotAuthenticatedException("Account no longer exists."),
+        );
+      }
+
+      /*
+       * Blocking revokes every session (UserService.onUpdateSuccess), so this
+       * is normally reached only by a session that escaped that -- a block
+       * written with ignoreHooks, or a race with the revocation. Read from
+       * the row, not the per-node cache, so it applies at once.
+       */
+      if (user.isBlocked) {
+        await UserSessionService.revokeSessionById(session.id, {
+          reason: "User blocked",
+        });
+        CookieUtil.removeAllCookies(req, res);
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new NotAuthenticatedException(ExceptionMessages.UserBlocked),
         );
       }
 
@@ -1705,6 +1744,7 @@ const login: LoginFunction = async (options: {
         email: true,
         isMasterAdmin: true,
         isEmailVerified: true,
+        isBlocked: true,
         profilePictureId: true,
         timezone: true,
         enableTwoFactorAuth: true,
@@ -1756,6 +1796,24 @@ const login: LoginFunction = async (options: {
           new BadDataException(
             "Invalid login: Email or password does not match.",
           ),
+        );
+      }
+
+      /*
+       * Blocked by a master admin. Checked on every stage -- password, TOTP,
+       * WebAuthn, backup code, forced enrolment -- because each one of them
+       * ends in finalizeUserLogin, and checked ahead of the second factor so
+       * that a blocked account neither spends a backup code nor has an
+       * enrolment created for it.
+       *
+       * After the password, not before it: the reason for the refusal is only
+       * told to somebody who has already proved they own the account.
+       */
+      if (alreadySavedUser.isBlocked) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException(ExceptionMessages.UserBlocked),
         );
       }
 

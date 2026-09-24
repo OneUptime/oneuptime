@@ -455,6 +455,92 @@ describe("GlobalCache.deleteKeyIfValue", () => {
   });
 });
 
+describe("GlobalCache.getAndDeleteString", () => {
+  let client: MockClient;
+
+  beforeEach(() => {
+    client = {
+      set: jest.fn().mockResolvedValue("OK"),
+      expire: jest.fn().mockResolvedValue(1),
+      get: jest.fn(),
+      del: jest.fn().mockResolvedValue(1),
+      eval: jest.fn().mockResolvedValue("value"),
+    };
+    (Redis.getClient as jest.Mock).mockReturnValue(client);
+    (Redis.isConnected as jest.Mock).mockReturnValue(true);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  /*
+   * Single-use tokens (OAuth state nonces) depend on this: a GET followed by
+   * a DEL lets two concurrent replays of the same token both read it before
+   * either deletes it.
+   */
+  test("reads and deletes in ONE eval — never GET then DEL", async () => {
+    await GlobalCache.getAndDeleteString("ns", "key");
+
+    expect(client.eval).toHaveBeenCalledTimes(1);
+    expect(client.get).not.toHaveBeenCalled();
+    expect(client.del).not.toHaveBeenCalled();
+  });
+
+  test("passes the key as KEYS[1] so it stays correct on Redis Cluster", async () => {
+    await GlobalCache.getAndDeleteString("ns", "key");
+
+    const call: Array<unknown> = client.eval.mock.calls[0] as Array<unknown>;
+
+    expect(call[1]).toBe(1);
+    expect(call[2]).toBe("ns-key");
+
+    const script: string = call[0] as string;
+    expect(script).toContain("GET");
+    expect(script).toContain("DEL");
+    expect(script).toContain("KEYS[1]");
+    expect(script).not.toContain("ns-key");
+  });
+
+  test("returns the value that was stored", async () => {
+    client.eval.mockResolvedValue("stored-value");
+
+    await expect(GlobalCache.getAndDeleteString("ns", "key")).resolves.toBe(
+      "stored-value",
+    );
+  });
+
+  test("returns null when the key does not exist", async () => {
+    // A nil Lua return arrives from ioredis as null.
+    client.eval.mockResolvedValue(null);
+
+    await expect(
+      GlobalCache.getAndDeleteString("ns", "key"),
+    ).resolves.toBeNull();
+  });
+
+  test("returns null for an empty or non-string reply", async () => {
+    client.eval.mockResolvedValue("");
+    await expect(
+      GlobalCache.getAndDeleteString("ns", "key"),
+    ).resolves.toBeNull();
+
+    client.eval.mockResolvedValue(0);
+    await expect(
+      GlobalCache.getAndDeleteString("ns", "key"),
+    ).resolves.toBeNull();
+  });
+
+  test("throws when the cache is not connected", async () => {
+    (Redis.isConnected as jest.Mock).mockReturnValue(false);
+
+    await expect(GlobalCache.getAndDeleteString("ns", "key")).rejects.toThrow(
+      DatabaseNotConnectedException,
+    );
+    expect(client.eval).not.toHaveBeenCalled();
+  });
+});
+
 describe("GlobalCache.withJitter", () => {
   test("never returns less than the requested TTL", () => {
     for (let i: number = 0; i < 500; i++) {

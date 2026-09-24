@@ -227,8 +227,28 @@ const STEP_TYPE_META: Record<RunbookStepType, StepTypeMeta> = {
     numberBg: "bg-violet-600",
     borderL: "border-l-violet-500",
   },
+  /*
+   * Only OneUptime AI composes kubectl steps (investigations and
+   * remediations on a cluster's AI page); they are not authored in runbooks,
+   * so this entry renders one that already exists and is never offered by
+   * the step picker (see ALL_STEP_TYPES).
+   */
+  [RunbookStepType.Kubectl]: {
+    type: RunbookStepType.Kubectl,
+    label: "kubectl command",
+    shortLabel: "kubectl",
+    description:
+      "A single kubectl command OneUptime AI composed for a cluster. Not authored in runbooks.",
+    icon: IconProp.Cube,
+    bg: "bg-cyan-50",
+    ring: "ring-cyan-100",
+    iconColor: "text-cyan-600",
+    numberBg: "bg-cyan-600",
+    borderL: "border-l-cyan-500",
+  },
 };
 
+// The step types a runbook author may add. Kubectl is deliberately absent.
 const ALL_STEP_TYPES: RunbookStepType[] = [
   RunbookStepType.Manual,
   RunbookStepType.JavaScript,

@@ -16,6 +16,10 @@ import { TelemetryQuery } from "../../../Types/Telemetry/TelemetryQuery";
 import { DisableAutomaticAlertCreation } from "../../EnvironmentConfig";
 import AlertService from "../../Services/AlertService";
 import AlertSeverityService from "../../Services/AlertSeverityService";
+import LabelService from "../../Services/LabelService";
+import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
+import DatabaseService from "../../Services/DatabaseService";
+import DatabaseBaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
 import AlertStateTimelineService from "../../Services/AlertStateTimelineService";
 import NetworkDeviceOwnerUserService, {
@@ -701,20 +705,45 @@ export default class MonitorAlert {
             resolved: resourceContext,
           });
 
-          alert.onCallDutyPolicies =
-            criteriaAlert.onCallPolicyIds?.map((id: ObjectID) => {
+          /*
+           * On-call policies and labels from the criteria. AlertService
+           * rejects any that belong to another project or no longer exist,
+           * and monitorSteps can still hold such ids (see the severity above).
+           * Drop those here rather than fail the alert for this series; a
+           * criteria with a stale policy still pages its remaining ones.
+           */
+          const onCallPolicyIds: Array<ObjectID | string> =
+            await this.getCriteriaIdsUsableInProject({
+              monitor: input.monitor,
+              criteriaName: input.criteriaInstance.data?.name,
+              modelName: "on-call policy",
+              ids: criteriaAlert.onCallPolicyIds,
+              service: OnCallDutyPolicyService,
+            });
+
+          alert.onCallDutyPolicies = onCallPolicyIds.map(
+            (id: ObjectID | string) => {
               const onCallPolicy: OnCallDutyPolicy = new OnCallDutyPolicy();
               onCallPolicy._id = id.toString();
               return onCallPolicy;
-            }) || [];
+            },
+          );
 
           // Set labels from criteria
-          alert.labels =
-            criteriaAlert.labelIds?.map((id: ObjectID) => {
-              const label: Label = new Label();
-              label._id = id.toString();
-              return label;
-            }) || [];
+          const labelIds: Array<ObjectID | string> =
+            await this.getCriteriaIdsUsableInProject({
+              monitor: input.monitor,
+              criteriaName: input.criteriaInstance.data?.name,
+              modelName: "label",
+              ids: criteriaAlert.labelIds,
+              service: LabelService,
+            });
+
+          alert.labels = labelIds.map((id: ObjectID | string) => {
+            const label: Label = new Label();
+            label._id = id.toString();
+            return label;
+          });
 
           alert.isCreatedAutomatically = true;
 
@@ -832,6 +861,51 @@ export default class MonitorAlert {
         }
       }
     }
+  }
+
+  /*
+   * The ids in a criteria list that this monitor's project can use, logging
+   * the ones it drops. See ProjectScopedReferenceValidator.filterUsableInProject.
+   */
+  private static async getCriteriaIdsUsableInProject(input: {
+    monitor: Monitor;
+    criteriaName: string | undefined;
+    modelName: string;
+    ids: Array<ObjectID> | undefined;
+    service: DatabaseService<DatabaseBaseModel>;
+  }): Promise<Array<ObjectID | string>> {
+    if (!input.ids || input.ids.length === 0) {
+      return [];
+    }
+
+    const result: {
+      usableIds: Array<ObjectID | string>;
+      droppedIds: Array<ObjectID | string>;
+    } = await ProjectScopedReferenceValidator.filterUsableInProject({
+      projectId: input.monitor.projectId,
+      ids: input.ids,
+      service: input.service,
+    });
+
+    if (result.droppedIds.length > 0) {
+      logger.error(
+        `${input.monitor.id?.toString()} - Criteria "${
+          input.criteriaName
+        }" references ${input.modelName} ${result.droppedIds
+          .map((id: ObjectID | string) => {
+            return id.toString();
+          })
+          .join(
+            ", ",
+          )}, which does not exist in project ${input.monitor.projectId?.toString()}. Creating the alert without it.`,
+        {
+          projectId: input.monitor.projectId?.toString(),
+          monitorId: input.monitor.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+
+    return result.usableIds;
   }
 
   /*

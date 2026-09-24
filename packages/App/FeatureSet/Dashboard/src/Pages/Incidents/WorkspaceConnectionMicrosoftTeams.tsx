@@ -1,5 +1,6 @@
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import WorkspaceNotificationRuleTable from "../../Components/Workspace/WorkspaceNotificationRulesTable";
+import MicrosoftTeamsReactionNotesTips from "../../Components/MicrosoftTeams/MicrosoftTeamsReactionNotesTips";
 import WorkspaceSummaryTable from "../../Components/Workspace/WorkspaceSummaryTable";
 import WorkspaceNotificationSummaryType from "Common/Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import PageComponentProps from "../PageComponentProps";
@@ -57,19 +58,31 @@ const IncidentsTeamsPage: FunctionComponent<
     {
       name: "Incidents",
       children: (
-        <WorkspaceNotificationRuleTable
-          workspaceType={WorkspaceType.MicrosoftTeams}
-          eventType={NotificationRuleEventType.Incident}
-        />
+        <>
+          <WorkspaceNotificationRuleTable
+            workspaceType={WorkspaceType.MicrosoftTeams}
+            eventType={NotificationRuleEventType.Incident}
+          />
+          <MicrosoftTeamsReactionNotesTips
+            resourceName="incident"
+            supportsPublicNotes={true}
+          />
+        </>
       ),
     },
     {
       name: "Incident Episodes",
       children: (
-        <WorkspaceNotificationRuleTable
-          workspaceType={WorkspaceType.MicrosoftTeams}
-          eventType={NotificationRuleEventType.IncidentEpisode}
-        />
+        <>
+          <WorkspaceNotificationRuleTable
+            workspaceType={WorkspaceType.MicrosoftTeams}
+            eventType={NotificationRuleEventType.IncidentEpisode}
+          />
+          <MicrosoftTeamsReactionNotesTips
+            resourceName="incident episode"
+            supportsPublicNotes={false}
+          />
+        </>
       ),
     },
     {

@@ -374,7 +374,7 @@ describe("what the search bar typed reaches every panel", () => {
 
     const histogramCallback: string = blockAfter(
       LOGS_VIEWER,
-      "const fetchHistogramBuckets: () => Promise<Array<HistogramBucket>> = useCallback(",
+      "const fetchHistogramBuckets: () => Promise<LogsHistogramData> = useCallback(",
       "(",
       ")",
     );
@@ -621,7 +621,7 @@ describe("an entity-key scope has a locked chip", () => {
       ),
       blockAfter(
         LOGS_VIEWER,
-        "const fetchHistogramBuckets: () => Promise<Array<HistogramBucket>> = useCallback(",
+        "const fetchHistogramBuckets: () => Promise<LogsHistogramData> = useCallback(",
         "(",
         ")",
       ),

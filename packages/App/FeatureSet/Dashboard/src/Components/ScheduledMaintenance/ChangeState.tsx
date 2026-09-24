@@ -23,6 +23,9 @@ import Exception from "Common/Types/Exception/Exception";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { Black } from "Common/Types/BrandColors";
 import ScheduledMaintenanceNoteTemplate from "Common/Models/DatabaseModels/ScheduledMaintenanceNoteTemplate";
+import PublicNoteSubscriberNotificationDefault, {
+  ScheduledMaintenanceStateChangeSubscriberNotificationSetting,
+} from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -56,6 +59,18 @@ export interface ComponentProps {
   title?: string | undefined;
   eventStartsAt?: Date | undefined;
   eventEndsAt?: Date | undefined;
+  /*
+   * The event's subscriber notification settings. They decide where "Notify
+   * Status Page Subscribers" starts in the state change form, which also
+   * decides whether its public note notifies: on for an event created with
+   * subscribers notified; for one created quietly, on only when moving it to
+   * ongoing or ended while its "Event Ongoing" / "Event Ended" setting would
+   * have announced that change. When left out, the form starts with
+   * notifying on.
+   */
+  subscriberNotificationSettings?:
+    | ScheduledMaintenanceStateChangeSubscriberNotificationSetting
+    | undefined;
   /*
    * Context shown under the header pills ("Status pages", "Created by").
    * Facts with an empty value are skipped by EventStatusPanel.
@@ -183,6 +198,17 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
     selectedScheduledMaintenanceState,
     setSelectedScheduledMaintenanceState,
   ] = useState<ScheduledMaintenanceState | undefined>(undefined);
+
+  /*
+   * Worked out for the state the form moves the event to. openModalForState
+   * sets that state and opens the form in the same handler, so the form's
+   * first render already sees it.
+   */
+  const notifySubscribersByDefault: boolean =
+    PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenanceStateChange(
+      props.subscriberNotificationSettings,
+      selectedScheduledMaintenanceState,
+    );
 
   const [
     scheduledMaintenanceStateTimelines,
@@ -603,6 +629,17 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
           submitButtonText={
             "Mark as " + (selectedScheduledMaintenanceState?.name || "")
           }
+          /*
+           * Starts from the target state: on for an event created with
+           * subscribers notified; for a quiet one, on only when it moves to
+           * ongoing or ended and the event is set to announce that change.
+           * Seeded as a value, not only as the field's default: the form
+           * drops a false default, and an unsent flag would leave the state
+           * change to its column default of notifying.
+           */
+          initialValues={{
+            shouldStatusPageSubscribersBeNotified: notifySubscribersByDefault,
+          }}
           onBeforeCreate={async (model: ScheduledMaintenanceStateTimeline) => {
             const projectId: ObjectID | undefined | null =
               ProjectUtil.getCurrentProject()?.id;
@@ -735,10 +772,12 @@ const ChangeScheduledMaintenanceState: FunctionComponent<ComponentProps> = (
                   shouldStatusPageSubscribersBeNotified: true,
                 },
                 fieldType: FormFieldSchemaType.Checkbox,
-                description: "Notify subscribers of this state change.",
+                description: notifySubscribersByDefault
+                  ? "Notify subscribers of this state change."
+                  : PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
                 title: "Notify Status Page Subscribers",
                 required: false,
-                defaultValue: true,
+                defaultValue: notifySubscribersByDefault,
               },
             ],
             formType: FormType.Create,

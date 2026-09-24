@@ -1,22 +1,19 @@
 /*
- * The variables table, shared by Workflow > Variables (global, workflowId is
- * null) and Workflow > View > Variables (local to one workflow). The two pages
- * were byte-for-byte identical apart from the query and the wording, and the
- * editing support below is the kind of thing that only ever gets added to one
- * copy — so they share this component instead.
+ * The variables list, shared by Workflow > Global Variables (workflowId is
+ * null) and Workflow > View > Workflow Variables (local to one workflow). The
+ * two pages differ only in their query and their wording, so they share this
+ * component rather than two copies that drift apart.
  *
- * Editing a variable used to be impossible: both tables passed
- * isEditable={false} and the only way to change a variable was to delete it and
- * create it again. Turning the flag on by itself does not work, because
- * `content` is a write-only column (ColumnAccessControl.read is []) while its
- * update list is not empty — and ModelForm builds the edit modal's prefetch
- * `select` from each field's UPDATE permissions (ModelForm.getFieldPermissions).
- * The GET would therefore ask for `content`, and SelectPermission would reject
- * the whole request. So the content field is marked doNotShowWhenEditing, which
- * drops it from the edit form's fields, its select and its payload alike, and
- * it gets its own door: the "Update Content" row action below, which writes
- * that one column through ModelAPI. That is the same shape Runbook Secrets and
- * the Security Events connectors use for their own write-only columns.
+ * The list lists and creates; nothing else. Each row has one action, View,
+ * which opens the variable's own page (WorkflowVariableView) - that is where a
+ * variable is edited, its content or credentials replaced, its OAuth token
+ * refreshed and the variable deleted. Five row actions and a Token column with
+ * a button of its own made the table hard to read and pushed the actions off
+ * screen on an ordinary laptop.
+ *
+ * Create makes a static variable - the kind almost everybody wants - and its
+ * form never asks which kind. An OAuth 2.0 variable is created from the More
+ * menu beside it, with a form of its own (CreateOAuthWorkflowVariableModal).
  */
 
 import React, {
@@ -25,24 +22,37 @@ import React, {
   ReactElement,
   useState,
 } from "react";
+import Route from "Common/Types/API/Route";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
-import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
+import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import {
+  WorkflowVariableType,
+  isOAuth2WorkflowVariable,
+} from "Common/Types/Workflow/WorkflowVariableOAuth";
+import {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
 } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
+import CreateOAuthWorkflowVariableModal from "./CreateOAuthWorkflowVariableModal";
+import WorkflowVariableTokenRefreshModal from "./WorkflowVariableTokenRefreshModal";
+import {
+  TokenRefreshOutcome,
+  fetchTokenRefreshOutcome,
+  getStaticVariableCreateFormFields,
+  getVariableTypeLabel,
+  getWorkflowVariableViewRoute,
+} from "../../Utils/Workflow/WorkflowVariableUtil";
 
 export interface ComponentProps {
   /*
@@ -52,50 +62,133 @@ export interface ComponentProps {
   workflowId?: ObjectID | undefined;
 }
 
+interface TokenRefreshState {
+  variableName: string;
+  // Null while OneUptime is still waiting for the identity provider.
+  outcome: TokenRefreshOutcome | null;
+}
+
 const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const [currentlyEditingItem, setCurrentlyEditingItem] =
-    useState<WorkflowVariable | null>(null);
+  const isGlobal: boolean = !props.workflowId;
 
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [showCreateOAuthModal, setShowCreateOAuthModal] =
+    useState<boolean>(false);
 
-  const [contentUpdateError, setContentUpdateError] = useState<string>("");
+  // The first token fetch of a newly created OAuth 2.0 variable.
+  const [tokenRefresh, setTokenRefresh] = useState<TokenRefreshState | null>(
+    null,
+  );
 
   /*
-   * What the user typed on a submit that failed. BasicFormModal unmounts its
-   * form while isLoading is true, so the form that comes back after an error is
-   * a fresh one - without this it would come back empty, and somebody who just
-   * pasted a long token would have to go and find it again. Empty until a
-   * submit fails, so the first render of the modal still prefills nothing.
+   * Bumped to make the table fetch again after something outside it - the
+   * OAuth create form - added a row.
    */
-  const [contentDraft, setContentDraft] = useState<string>("");
+  const [refreshToggle, setRefreshToggle] = useState<string>(
+    OneUptimeDate.getCurrentDate().toISOString(),
+  );
 
   /*
    * Bumped once, after the table's first successful fetch. The permission
    * snapshot rides in on an API response header, so on the first paint after a
    * fresh sign-in or a project switch it is still empty - and the gate below
-   * would then resolve to "not allowed, no reason" and hide the action for the
-   * life of the page. BaseModelTable's own Edit and Delete gates recover on
-   * their own because it re-derives them whenever its data changes; this one is
+   * would then resolve to "not allowed, no reason" and hide the OAuth create
+   * option for the life of the page. BaseModelTable's own Create gate recovers
+   * on its own because it re-derives it whenever its data changes; this one is
    * computed here, so this component has to re-render for the same thing to
-   * happen. One bump is enough: by the time a list request has come back, the
-   * header it came with has been read.
+   * happen.
    */
   const [hasFetchedOnce, setHasFetchedOnce] = useState<boolean>(false);
 
-  const isGlobal: boolean = !props.workflowId;
+  /*
+   * The OAuth create form writes through a modal ModelTable's own create
+   * gating never sees, so it is gated here the same way: locked with the
+   * reason for somebody who may not create variables, rather than a form that
+   * 403s after they have pasted a client secret into it.
+   */
+  const createGate: PermissionGateResult = PermissionGate.check(
+    new WorkflowVariable(),
+    ModelAction.Create,
+  );
 
   /*
-   * "Update Content" writes through ModelAPI directly, which ModelTable's own
-   * edit gating never sees. Gate it here as well, so a member who cannot update
-   * variables gets a disabled button that says why rather than a modal that
-   * 403s after they have pasted a token into it.
+   * isAllowed false with no reason is PermissionGate's "do not accuse the
+   * user" case - the permission snapshot has not arrived yet, or the model
+   * declares no create permissions at all. Its contract asks callers to hide
+   * the affordance there rather than show a disabled one that blames somebody
+   * who may well hold the permission.
    */
-  const updateGate: PermissionGateResult = PermissionGate.check(
-    new WorkflowVariable(),
-    ModelAction.Update,
-  );
+  const isCreateOAuthVisible: boolean =
+    createGate.isAllowed || Boolean(createGate.disabledReason);
+
+  /*
+   * An outline button, never NORMAL or PRIMARY: the table puts its main
+   * button beside the search and everything else in the More (⋯) menu, and it
+   * picks the main button by style. Outline keeps this one in the menu even
+   * when the Create button is not there to be picked first.
+   */
+  const moreMenuButtons: Array<CardButtonSchema> = isCreateOAuthVisible
+    ? [
+        {
+          title: "Create OAuth 2.0 Variable",
+          icon: IconProp.Key,
+          buttonStyle: ButtonStyleType.OUTLINE,
+          buttonSize: ButtonSize.Small,
+          disabled: !createGate.isAllowed,
+          tooltip: createGate.isAllowed
+            ? "A variable whose value is an access token OneUptime fetches from your identity provider and keeps fresh."
+            : createGate.disabledReason,
+          onClick: () => {
+            if (!createGate.isAllowed) {
+              return;
+            }
+
+            setShowCreateOAuthModal(true);
+          },
+        },
+      ]
+    : [];
+
+  const onOAuthVariableCreated: (
+    variable: WorkflowVariable,
+  ) => Promise<void> = async (variable: WorkflowVariable): Promise<void> => {
+    setShowCreateOAuthModal(false);
+    setRefreshToggle(OneUptimeDate.getCurrentDate().toISOString());
+
+    /*
+     * Creating a variable and refreshing its token are different permissions:
+     * the refresh route writes the token to the variable, so it checks for
+     * update, and a member may create variables without being allowed to edit
+     * them. Asking anyway would only bring back OneUptime's refusal. Such a
+     * variable gets its first token the first time a workflow uses it.
+     */
+    const updateGate: PermissionGateResult = PermissionGate.check(
+      new WorkflowVariable(),
+      ModelAction.Update,
+    );
+
+    if (!updateGate.isAllowed) {
+      return;
+    }
+
+    /*
+     * Fetch the first token straight away. A mistyped secret or token URL then
+     * shows up while the person who typed it is still looking, rather than as
+     * a failed workflow run hours later.
+     */
+    const variableName: string = variable.name || "this variable";
+    setTokenRefresh({ variableName, outcome: null });
+
+    const outcome: TokenRefreshOutcome = await fetchTokenRefreshOutcome({
+      variable,
+    });
+
+    setTokenRefresh({ variableName, outcome });
+
+    // The refresh wrote the expiry, or the failure, to the row.
+    setRefreshToggle(OneUptimeDate.getCurrentDate().toISOString());
+  };
 
   return (
     <Fragment>
@@ -111,34 +204,60 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
             ? "workflow-variables-table"
             : "workflow-view-variables-table",
         }}
-        isDeleteable={true}
-        isEditable={true}
         /*
-         * Named for what it actually edits. Plain "Edit" is the verb a user
-         * reaches for when they want to change a variable's value, and the one
-         * button that cannot do it - content is not on that form and the modal
-         * has no room to say so. Sitting next to "Update Content", this splits
-         * the two without either needing an explanation.
+         * Edit and Delete live on the variable's page, where there is room to
+         * say what each one does. The row keeps a single way in.
          */
-        editButtonText="Edit Details"
+        isDeleteable={false}
+        isEditable={false}
         isCreateable={true}
+        isViewable={true}
+        viewButtonText="View"
+        onViewPage={(item: WorkflowVariable): Promise<Route> => {
+          if (!item.id) {
+            return Promise.reject(
+              new Error(
+                "This variable has no id. Refresh the page and try again.",
+              ),
+            );
+          }
+
+          return Promise.resolve(
+            getWorkflowVariableViewRoute({
+              variableId: item.id,
+              workflowId: props.workflowId,
+            }),
+          );
+        }}
         name="Workflows"
-        isViewable={false}
+        refreshToggle={refreshToggle}
         cardProps={{
           title: isGlobal ? "Global Variables" : "Workflow Variables",
           description: isGlobal
-            ? "Here is a list of global secrets and variables for this project."
-            : "Here is a list of workflow secrets and variables for this specific workflow.",
+            ? "Values every workflow in this project can use, such as API keys and URLs. Open a variable to edit it, replace its value or delete it. Use the More menu to create an OAuth 2.0 variable, which keeps an access token from your identity provider fresh."
+            : "Values only this workflow can use, such as API keys and URLs. Open a variable to edit it, replace its value or delete it. Use the More menu to create an OAuth 2.0 variable, which keeps an access token from your identity provider fresh.",
+          buttons: moreMenuButtons,
         }}
         userPreferencesKey="workflow-variable-table"
         query={{
           workflowId: props.workflowId ? props.workflowId : new IsNull(),
           projectId: ProjectUtil.getCurrentProjectId()!,
         }}
+        selectMoreFields={{
+          variableType: true,
+          oauthGrantType: true,
+        }}
         onBeforeCreate={(item: WorkflowVariable): Promise<WorkflowVariable> => {
           /*
+           * The Create button's form makes static variables only. Stamped here
+           * rather than left to the column default, so the form cannot make
+           * anything else whatever the default becomes.
+           */
+          item.variableType = WorkflowVariableType.Static;
+
+          /*
            * A global variable is one whose workflowId stays unset, so there is
-           * nothing to stamp on this path.
+           * nothing to stamp on that path.
            */
           if (props.workflowId) {
             item.workflowId = props.workflowId;
@@ -151,115 +270,12 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
             ? "No global variables found."
             : "No workflow variables found."
         }
-        showViewIdButton={true}
         onFetchSuccess={() => {
           if (!hasFetchedOnce) {
             setHasFetchedOnce(true);
           }
         }}
-        actionButtons={[
-          {
-            title: "Update Content",
-            buttonStyleType: ButtonStyleType.OUTLINE,
-            icon: IconProp.Variable,
-            /*
-             * isAllowed false with no reason is PermissionGate's "do not accuse
-             * the user" case - the permission snapshot has not arrived yet, or
-             * the model declares no update permissions at all. Its contract asks
-             * callers to hide the affordance there rather than show a disabled
-             * button that blames somebody who may well hold the permission.
-             */
-            isVisible: (): boolean => {
-              return updateGate.isAllowed || Boolean(updateGate.disabledReason);
-            },
-            disabled: !updateGate.isAllowed,
-            tooltip: updateGate.isAllowed
-              ? "Replace this variable's content. Once saved, a variable's content cannot be retrieved, so it is replaced here rather than edited."
-              : updateGate.disabledReason,
-            onClick: (
-              item: WorkflowVariable,
-              onCompleteAction: VoidFunction,
-              onError: ErrorFunction,
-            ) => {
-              try {
-                setContentUpdateError("");
-                setCurrentlyEditingItem(item);
-                onCompleteAction();
-              } catch (err) {
-                onCompleteAction();
-                onError(err as Error);
-              }
-            },
-          },
-        ]}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Workflow Name",
-            /*
-             * The rename warning is not decoration. Nothing links a workflow's
-             * graph to the variable row it names: the builder's linter checks
-             * that a reference is well formed but leaves its existence to the
-             * API, and at run time VMAPI skips a reference it cannot resolve -
-             * so a workflow left pointing at the old name posts the literal
-             * braces and still reports Success.
-             */
-            description: isGlobal
-              ? "Workflows refer to this variable by name, as {{global.variables.THIS_NAME}}. Renaming it does not update workflows that already refer to the old name."
-              : "Workflows refer to this variable by name, as {{local.variables.THIS_NAME}}. Renaming it does not update workflows that already refer to the old name.",
-            validation: {
-              minLength: 2,
-              noSpaces: true,
-              noSpecialCharacters: true,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-          {
-            field: {
-              isSecret: true,
-            },
-            title: "Secret",
-            /*
-             * The copy this replaces asked "Should this be encrypted in the
-             * Database?", which was not true of this column - content carries
-             * no `encrypted: true` and the DDL is a plain text column. Somebody
-             * reading it while turning the toggle on would come away believing
-             * a database dump was no longer a credential exposure.
-             */
-            description:
-              "Keep this variable's content out of workflow run logs - every run replaces it with [REDACTED] before the log is saved. It applies to future runs only, and it cannot be turned off again once saved.",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-          },
-          {
-            field: {
-              content: true,
-            },
-            title: "Content",
-            description: "Enter the content of the variable",
-            fieldType: FormFieldSchemaType.LongText,
-            required: true,
-            /*
-             * The content is never readable back, so it cannot be prefilled and
-             * must not join the edit modal's select. Use "Update Content" to
-             * change it.
-             */
-            doNotShowWhenEditing: true,
-          },
-        ]}
+        formFields={getStaticVariableCreateFormFields({ isGlobal })}
         showRefreshButton={true}
         searchableFields={["name", "description"]}
         filters={[
@@ -277,20 +293,6 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
             title: "Description",
             type: FieldType.LongText,
           },
-          {
-            field: {
-              isSecret: true,
-            },
-            title: "Secret",
-            type: FieldType.Boolean,
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Created At",
-            type: FieldType.Date,
-          },
         ]}
         columns={[
           {
@@ -302,6 +304,31 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
           },
           {
             field: {
+              variableType: true,
+            },
+            title: "Type",
+            type: FieldType.Element,
+            getElement: (item: WorkflowVariable): ReactElement => {
+              if (!isOAuth2WorkflowVariable(item.variableType)) {
+                return <span>{getVariableTypeLabel(item)}</span>;
+              }
+
+              return (
+                <div className="flex flex-col">
+                  <span>{getVariableTypeLabel(item)}</span>
+                  {item.oauthGrantType ? (
+                    <span className="text-xs text-gray-500">
+                      {item.oauthGrantType}
+                    </span>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+              );
+            },
+          },
+          {
+            field: {
               description: true,
             },
             noValueMessage: "-",
@@ -309,93 +336,33 @@ const WorkflowVariablesTable: FunctionComponent<ComponentProps> = (
             type: FieldType.LongText,
             hideOnMobile: true,
           },
-          {
-            field: {
-              isSecret: true,
-            },
-            title: "Secret",
-            type: FieldType.Boolean,
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Created At",
-            type: FieldType.DateTime,
-            hideOnMobile: true,
-          },
         ]}
       />
 
-      {currentlyEditingItem && (
-        <BasicFormModal
-          title={"Update Content"}
-          name="Workflow > Update Variable Content"
-          isLoading={isLoading}
-          error={contentUpdateError || undefined}
-          description={`Replace the content of "${
-            currentlyEditingItem.name || "this variable"
-          }". Every workflow that refers to this variable uses the new content from its next run.`}
+      {showCreateOAuthModal ? (
+        <CreateOAuthWorkflowVariableModal
+          workflowId={props.workflowId}
           onClose={() => {
-            setIsLoading(false);
-            setContentUpdateError("");
-            setContentDraft("");
-            return setCurrentlyEditingItem(null);
+            setShowCreateOAuthModal(false);
           }}
-          onSubmit={async (data: JSONObject) => {
-            const variableId: ObjectID | null = currentlyEditingItem.id;
-
-            if (!variableId) {
-              setContentUpdateError(
-                "This variable cannot be updated because it has no id. Refresh the page and try again.",
-              );
-              return;
-            }
-
-            try {
-              setIsLoading(true);
-              setContentUpdateError("");
-
-              await ModelAPI.updateById<WorkflowVariable>({
-                modelType: WorkflowVariable,
-                id: variableId,
-                data: {
-                  content: data["content"],
-                },
-              });
-
-              setContentDraft("");
-              setCurrentlyEditingItem(null);
-            } catch (err) {
-              /*
-               * Kept on screen, with the reason and with what the user typed.
-               * The neighbouring secret-rotation modals swallow this entirely,
-               * which on a credential is the difference between a rotation and
-               * a silent non-rotation.
-               */
-              setContentDraft((data["content"] as string) || "");
-              setContentUpdateError(API.getFriendlyMessage(err));
-            }
-
-            setIsLoading(false);
-          }}
-          formProps={{
-            initialValues: contentDraft ? { content: contentDraft } : {},
-            fields: [
-              {
-                field: {
-                  content: true,
-                },
-                title: "Content",
-                description:
-                  "The new content of this variable. The stored content cannot be retrieved, so it is not shown here — what you type replaces it outright.",
-                fieldType: FormFieldSchemaType.LongText,
-                required: true,
-                placeholder: "Content of the variable",
-              },
-            ],
+          onSuccess={(variable: WorkflowVariable) => {
+            void onOAuthVariableCreated(variable);
           }}
         />
+      ) : (
+        <></>
+      )}
+
+      {tokenRefresh ? (
+        <WorkflowVariableTokenRefreshModal
+          variableName={tokenRefresh.variableName}
+          outcome={tokenRefresh.outcome}
+          onClose={() => {
+            setTokenRefresh(null);
+          }}
+        />
+      ) : (
+        <></>
       )}
     </Fragment>
   );

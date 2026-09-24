@@ -2,7 +2,7 @@ import DatabaseService from "../../Services/DatabaseService";
 import Query from "../../Types/Database/Query";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
-import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
+import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ServerException from "../../../Types/Exception/ServerException";
@@ -55,6 +55,26 @@ export interface ProjectScopedReference {
    */
   mustExist?: boolean | undefined;
 }
+
+/*
+ * A many-to-many list on the record being written (an incident's `monitors`,
+ * say) and the model its ids point at. Nothing in DatabaseService or the
+ * permission layer checks relation ids against the tenant, so each service
+ * that accepts such a list names it here and runs it through the same check
+ * as its scalar references.
+ */
+export interface ProjectScopedRelation {
+  // Property on the record being written, e.g. "monitors".
+  column: string;
+  modelName: string;
+  service: DatabaseService<DatabaseBaseModel>;
+}
+
+/*
+ * Per project the update touches (normalized id), per relation column, the
+ * normalized ids that every matched record in that project already holds.
+ */
+export type HeldRelationIds = Map<string, Dictionary<Set<string>>>;
 
 interface ForeignReference {
   modelName: string;
@@ -115,6 +135,31 @@ export function resolveReferenceId(
     value as { _id?: string | undefined; id?: ObjectID | undefined };
 
   return relation._id || relation.id || undefined;
+}
+
+/*
+ * The list form of resolveReferenceId, for many-to-many payloads. The list
+ * reaches a hook as model instances (API create, workers), `{ _id }` objects,
+ * ObjectIDs or bare uuid strings (API update), and an entry with no id cannot
+ * link anything, so it is skipped.
+ */
+export function resolveReferenceIds(value: unknown): Array<ObjectID | string> {
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  const entries: Array<unknown> = Array.isArray(value) ? value : [value];
+  const ids: Array<ObjectID | string> = [];
+
+  for (const entry of entries) {
+    const id: ObjectID | string | undefined = resolveReferenceId(entry);
+
+    if (id && id.toString().trim()) {
+      ids.push(id);
+    }
+  }
+
+  return ids;
 }
 
 export default class ProjectScopedReferenceValidator {
@@ -315,6 +360,147 @@ export default class ProjectScopedReferenceValidator {
   }
 
   /*
+   * One reference per id in the write's many-to-many lists, to pass to
+   * validateReferencesBelongToProject alongside the scalar ones so a payload
+   * with several bad ids gets one answer.
+   *
+   * On an update, `heldIds` (from getHeldRelationIds) exempts the ids the
+   * matched records already hold in `projectId`. Records written before these
+   * lists were checked — or by a monitor whose criteria still carried a stale
+   * id — can hold another project's record, and refusing to save back the
+   * list they already have would lock the user out of editing it. Only ids
+   * the update adds are checked.
+   */
+  public static getRelationReferences(data: {
+    payload: unknown;
+    relations: Array<ProjectScopedRelation>;
+    projectId?: ObjectID | undefined;
+    heldIds?: HeldRelationIds | undefined;
+  }): Array<ProjectScopedReference> {
+    const payload: Dictionary<unknown> =
+      (data.payload as Dictionary<unknown>) || {};
+
+    const heldInProject: Dictionary<Set<string>> | undefined =
+      data.projectId && data.heldIds
+        ? data.heldIds.get(normalizeId(data.projectId.toString()))
+        : undefined;
+
+    const references: Array<ProjectScopedReference> = [];
+
+    for (const relation of data.relations) {
+      const held: Set<string> | undefined = heldInProject?.[relation.column];
+
+      for (const id of resolveReferenceIds(payload[relation.column])) {
+        if (held?.has(normalizeId(id.toString()))) {
+          continue;
+        }
+
+        references.push({
+          modelName: relation.modelName,
+          id: id,
+          service: relation.service,
+        });
+      }
+    }
+
+    return references;
+  }
+
+  /*
+   * What the records an update matches already hold in each of `columns`,
+   * grouped by project. Within a project an id counts as held only when
+   * EVERY matched record holds it: a bulk update writes the same list onto
+   * all of them, and a foreign id one record picked up long ago must not
+   * become a way to attach it to the rest.
+   *
+   * Read as root, like the services' own project fallback for updates, so the
+   * result is keyed by each record's project and a caller only ever gets the
+   * exemption for the project being checked.
+   *
+   * One read per column. A find that selects several many-to-many relations
+   * joins them all and returns a row for every combination of their ids, and
+   * an alert or incident can save sixteen lists in one update (the dashboard
+   * sends every affected-resource list back on each edit).
+   */
+  public static async getHeldRelationIds(data: {
+    service: DatabaseService<DatabaseBaseModel>;
+    query: Query<DatabaseBaseModel>;
+    columns: Array<string>;
+  }): Promise<HeldRelationIds> {
+    const heldIds: HeldRelationIds = new Map();
+
+    const tenantColumnName: string | null = data.service
+      .getModel()
+      .getTenantColumn();
+
+    if (!tenantColumnName || data.columns.length === 0) {
+      return heldIds;
+    }
+
+    for (const column of data.columns) {
+      const records: Array<DatabaseBaseModel> = await data.service.findBy({
+        query: data.query,
+        select: {
+          _id: true,
+          [tenantColumnName]: true,
+          [column]: {
+            _id: true,
+          },
+        } as Select<DatabaseBaseModel>,
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      // Per project, the ids every record read so far holds in this column.
+      const heldInColumn: Map<string, Set<string>> = new Map();
+
+      for (const record of records) {
+        const projectId: string = normalizeId(
+          record.getValue<ObjectID>(tenantColumnName)?.toString() || "",
+        );
+
+        if (!projectId) {
+          continue;
+        }
+
+        const heldByRecord: Set<string> = new Set(
+          resolveReferenceIds(record.getValue(column)).map(
+            (id: ObjectID | string) => {
+              return normalizeId(id.toString());
+            },
+          ),
+        );
+
+        const heldSoFar: Set<string> | undefined = heldInColumn.get(projectId);
+
+        heldInColumn.set(
+          projectId,
+          heldSoFar
+            ? new Set(
+                Array.from(heldSoFar).filter((id: string) => {
+                  return heldByRecord.has(id);
+                }),
+              )
+            : heldByRecord,
+        );
+      }
+
+      for (const [projectId, held] of heldInColumn) {
+        if (!heldIds.has(projectId)) {
+          heldIds.set(projectId, {});
+        }
+
+        heldIds.get(projectId)![column] = held;
+      }
+    }
+
+    return heldIds;
+  }
+
+  /*
    * "Can this project actually use this record?" — for callers that must not
    * throw. The probe and telemetry ingest workers build incidents and alerts
    * from monitor criteria, whose stored ids may still point at another
@@ -355,5 +541,58 @@ export default class ProjectScopedReferenceValidator {
     });
 
     return Boolean(record);
+  }
+
+  /*
+   * isUsableInProject over a list, for workers that copy stored id lists
+   * (monitor criteria, templates, rules) onto a new record. The service hooks
+   * refuse a record from another project — or one that no longer exists — in
+   * those lists, and a worker has nobody to show that error to: it would fail
+   * the whole job, every time it ran. So the worker keeps the usable ids and
+   * drops the rest, and says which it dropped so the log can name them.
+   *
+   * A value that is not a uuid is dropped without a lookup: Postgres would
+   * reject the cast and fail the job just the same.
+   */
+  public static async filterUsableInProject(data: {
+    projectId: ObjectID | undefined;
+    ids: Array<ObjectID | string>;
+    service: DatabaseService<DatabaseBaseModel>;
+  }): Promise<{
+    usableIds: Array<ObjectID | string>;
+    droppedIds: Array<ObjectID | string>;
+  }> {
+    const usableIds: Array<ObjectID | string> = [];
+    const droppedIds: Array<ObjectID | string> = [];
+    const seen: Set<string> = new Set();
+
+    for (const id of data.ids) {
+      const key: string = normalizeId(id?.toString() || "");
+
+      if (!key || seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+
+      const isUsable: boolean =
+        ObjectID.isValidUUID(key) &&
+        (await ProjectScopedReferenceValidator.isUsableInProject({
+          projectId: data.projectId,
+          id: id,
+          service: data.service,
+        }));
+
+      if (isUsable) {
+        usableIds.push(id);
+      } else {
+        droppedIds.push(id);
+      }
+    }
+
+    return {
+      usableIds: usableIds,
+      droppedIds: droppedIds,
+    };
   }
 }

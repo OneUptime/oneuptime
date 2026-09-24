@@ -1647,6 +1647,7 @@ export class UserNotificationMethodAdminService extends BaseService {
         templateType: EmailTemplateType.SimpleMessage,
         vars: vars,
         subject: subject,
+        isSubjectLiteral: true,
       },
       {
         projectId: data.projectId,

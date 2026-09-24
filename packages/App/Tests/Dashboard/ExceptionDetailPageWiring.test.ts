@@ -191,7 +191,12 @@ describe("exception detail page wiring", () => {
       ["Occurrences", ["<ExceptionOccurrences"]],
       [
         "Context",
-        ["<ExceptionLatestOccurrence", "<ReplayCard", "<BreadcrumbTimeline"],
+        [
+          "<ExceptionLatestOccurrence",
+          "<ExceptionOccurrenceAttributes",
+          "<ReplayCard",
+          "<BreadcrumbTimeline",
+        ],
       ],
       ["Logs", ["<ExceptionLogs"]],
       ["AIAssistance", ["<ExceptionAIAssistance"]],
@@ -257,6 +262,21 @@ describe("exception detail page wiring", () => {
 
     expect(exceptionExplorer).toContain(
       "<ReplayCardfingerprint={telemetryException.fingerprint}primaryEntityId={telemetryException.primaryEntityId}primaryEntityType={telemetryException.primaryEntityType}",
+    );
+  });
+
+  test("reads the occurrence's attributes only when the page's data plan asks, and hands them to the card", () => {
+    const exceptionExplorer: string = dense(
+      readSource("Components", "Exceptions", "ExceptionExplorer.tsx"),
+    );
+
+    expect(exceptionExplorer).toContain(
+      "...(dataPlan.loadOccurrenceAttributes?{attributes:true}:{}),",
+    );
+    // The heavy attributes map is never selected unconditionally.
+    expect(exceptionExplorer).not.toMatch(/[{,]attributes:true,release:true/);
+    expect(exceptionExplorer).toContain(
+      "<ExceptionOccurrenceAttributesinstance={latestInstance}isLoading={isOccurrenceLoading}/>",
     );
   });
 

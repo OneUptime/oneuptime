@@ -6,7 +6,10 @@ import IncidentMemberService from "./IncidentMemberService";
 import IncidentEpisodeMember from "../../Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentEpisodeMemberService from "./IncidentEpisodeMemberService";
 import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
+import BadDataException from "../../Types/Exception/BadDataException";
+import TeamMemberService from "./TeamMemberService";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
@@ -14,6 +17,30 @@ import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  @CaptureSpan()
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    const projectId: ObjectID | undefined =
+      createBy.data.projectId || createBy.props.tenantId;
+
+    // Only a member of the project can hold a role on its episodes.
+    if (
+      projectId &&
+      createBy.data.userId &&
+      !(await TeamMemberService.isUserMemberOfProject({
+        projectId: projectId,
+        userId: createBy.data.userId,
+      }))
+    ) {
+      throw new BadDataException(
+        "This user is not a member of this project and cannot be assigned a role on this episode.",
+      );
+    }
+
+    return { createBy, carryForward: null };
   }
 
   @CaptureSpan()

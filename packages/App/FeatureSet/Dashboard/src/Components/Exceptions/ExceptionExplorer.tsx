@@ -52,6 +52,7 @@ import ExceptionTriageActions, {
 } from "./ExceptionTriageActions";
 import ExceptionOccurrenceTrend from "./ExceptionOccurrenceTrend";
 import ExceptionLatestOccurrence from "./ExceptionLatestOccurrence";
+import ExceptionOccurrenceAttributes from "./ExceptionOccurrenceAttributes";
 import ExceptionLogs from "./ExceptionLogs";
 import ExceptionAIAssistance from "./ExceptionAIAssistance";
 import ExceptionSettings from "./ExceptionSettings";
@@ -280,6 +281,9 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
               /* The occurrence id becomes the replay link's ?signal=exc:<id>. */
               _id: true,
               ...(dataPlan.resolveStackFrames ? { parsedFrames: true } : {}),
+              ...(dataPlan.loadOccurrenceAttributes
+                ? { attributes: true }
+                : {}),
               release: true,
               environment: true,
               traceId: true,
@@ -604,6 +608,13 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
                   icon: IconProp.Code,
                 },
               ]}
+            />
+          )}
+
+          {(latestInstance || isOccurrenceLoading) && (
+            <ExceptionOccurrenceAttributes
+              instance={latestInstance}
+              isLoading={isOccurrenceLoading}
             />
           )}
 

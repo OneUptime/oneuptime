@@ -5,18 +5,13 @@ import Dictionary from "Common/UI/Components/Dictionary/Dictionary";
 import API from "Common/UI/Utils/API/API";
 import URL from "Common/Types/API/URL";
 import { HOME_URL } from "Common/UI/Config";
-import WorkspaceProjectAuthToken, {
-  SlackMiscData,
-} from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ObjectID from "Common/Types/ObjectID";
 import { JSONObject } from "Common/Types/JSON";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import Exception from "Common/Types/Exception/Exception";
 
 export interface ComponentProps {
-  projectAuthTokenId: ObjectID;
   onClose: VoidFunction;
 }
 
@@ -78,38 +73,21 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
       setIsSaving(true);
       setError(undefined);
 
-      // Build channelCache shape compatible with SlackMiscData
-      const channelCacheObj: SlackMiscData["channelCache"] = {} as any;
-      Object.keys(channelCache).forEach((channelName: string) => {
-        const channelId: string = channelCache[channelName] || "";
-        if (channelName.trim() && channelId.trim()) {
-          (channelCacheObj as any)[channelName.trim().toLowerCase()] = {
-            id: channelId.trim(),
-            name: channelName.trim(),
-            lastUpdated: new Date().toISOString(),
-          };
-        }
-      });
+      /*
+       * The server builds the stored cache from this name -> id map and
+       * writes only the channel cache (miscData is not editable through
+       * the CRUD API).
+       */
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.put({
+          url: URL.fromString(`${HOME_URL.toString()}/api/slack/channel-cache`),
+          data: { channels: channelCache },
+          headers: ModelAPI.getCommonHeaders(),
+        });
 
-      // Merge into miscData (preserve existing fields)
-      const existing: WorkspaceProjectAuthToken | null = await ModelAPI.getItem(
-        {
-          modelType: WorkspaceProjectAuthToken,
-          id: props.projectAuthTokenId,
-          select: { miscData: true },
-        },
-      );
-
-      const newMisc: SlackMiscData = {
-        ...(existing?.miscData as SlackMiscData),
-        channelCache: channelCacheObj,
-      } as SlackMiscData;
-
-      await ModelAPI.updateById<WorkspaceProjectAuthToken>({
-        modelType: WorkspaceProjectAuthToken,
-        id: props.projectAuthTokenId,
-        data: { miscData: newMisc as unknown as JSONObject },
-      });
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
 
       props.onClose();
     } catch (err) {

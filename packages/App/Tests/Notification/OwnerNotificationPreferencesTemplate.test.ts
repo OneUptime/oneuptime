@@ -62,6 +62,7 @@ const ownerTemplates: Array<EmailTemplateType> = [
   EmailTemplateType.MonitorOwnerResourceCreated,
   EmailTemplateType.MonitorOwnerStatusChanged,
   EmailTemplateType.MonitorProbesStatus,
+  EmailTemplateType.MonitorsAffectedByProbeStatus,
   EmailTemplateType.ProbeConnectionStatusChange,
   EmailTemplateType.ScheduledMaintenanceOwnerNotePosted,
   EmailTemplateType.ScheduledMaintenanceOwnerResourceCreated,

@@ -1,0 +1,1790 @@
+# OneUptime AI access: the in-cluster Runner that lets OneUptime AI run
+# kubectl on this cluster. Off by default, so an install that never heard of
+# it renders exactly what it rendered before. On, it must:
+#
+#   * register with the SAME ingestion key the collector ships telemetry with
+#     and the SAME cluster name — that pairing is what binds the Runner to the
+#     cluster in OneUptime with no dashboard steps;
+#   * hold READ-ONLY RBAC, bound cluster-wide, unless
+#     aiAccess.remediation.enabled — and even then never secrets, exec,
+#     attach, port-forward, CRDs or RBAC writes, and never delete anything but
+#     pods and jobs;
+#   * put every WRITE rule in roles of their own: the namespaced writes in
+#     <fullname>-ai-runner-remediation, bound by one RoleBinding per
+#     aiAccess.remediation.namespaces entry (and never by a
+#     ClusterRoleBinding then), or cluster-wide when the list is empty; node
+#     operations in <fullname>-ai-runner-node-operations, only with
+#     aiAccess.remediation.nodeOperations. Patch on workloads and pods in a
+#     namespace is as good as running any image as any ServiceAccount there,
+#     so WHERE those rules are bound is the part of the boundary RBAC holds;
+#   * tell the Runner what RBAC it got (ONEUPTIME_KUBECTL_ALLOW_WRITES, the
+#     namespaces in ONEUPTIME_KUBECTL_WRITE_NAMESPACES, and
+#     ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS, "true" only when the node role
+#     is rendered) and where it runs (ONEUPTIME_RUNNER_POD_NAMESPACE), and
+#     never let aiAccess.extraEnv replace any of that;
+#   * keep a stored aiAccess.remediation.namespaces list when an upgrade
+#     leaves the flag out, and go back to cluster-wide on an empty list —
+#     the reset the docs name, `--set-json
+#     'aiAccess.remediation.namespaces=[]'`, which works under
+#     `--reuse-values` too. A null does it only WITHOUT --reuse-values:
+#     under it Helm drops a null override whose key the stored values hold
+#     (the stored list survives), and on a release from a chart that
+#     predates aiAccess the null reaches the schema and fails the upgrade.
+#     helm-unittest renders from values files, which is the no-reuse path,
+#     so it cannot show either; the real helm binary against a stored
+#     release does. To check by hand: write the stored release (chart
+#     metadata and values, config) as a YAML list into a file named by
+#     HELM_MEMORY_DRIVER_DATA, set HELM_DRIVER=memory, point KUBECONFIG at a
+#     stub API server that answers /version, /api and /apis, and run the
+#     page's flags as `helm upgrade <release> <chart> --dry-run
+#     --post-renderer <tee>`. On a release from a chart without aiAccess the
+#     empty list renders the remediation ClusterRoleBinding and `=null`
+#     fails with "aiAccess.remediation.namespaces: Invalid type. Expected:
+#     array, given: null"; on a release storing [web, api] the empty list
+#     renders the ClusterRoleBinding and `=null` keeps both RoleBindings;
+#   * render on a release whose stored values predate the block: `helm
+#     upgrade --reuse-values` feeds the templates the previous release's
+#     values, so on an install from a chart without aiAccess
+#     `.Values.aiAccess` is nil or holds only what --set passed. The
+#     documented one-flag upgrade must not abort with "nil pointer evaluating
+#     interface {}".
+#
+# RBAC is asserted by rendering, not by reading the template: a verb that
+# creeps into the read-only role is exactly the kind of mistake that surfaces
+# as an AI change nobody approved, never as a failed deploy. Each role pins
+# its WHOLE `rules` array with `equal`: a create moved into the wrong role, a
+# delete gaining nodes, a wildcard, or secrets appearing anywhere changes the
+# array and fails. The arrays are anchored (&remediationRules, &nodeRules and
+# the read-only anchors) and reused, so every mode is checked against the
+# same list; packages/Common/Tests/Utils/AiRemediation/
+# KubectlPolicyChartRbacParity.test.ts reads these pinned arrays to check
+# that every command the policy runs unattended is one this RBAC allows.
+# (Raw regex asserts are not used on the manifests: helm-unittest hands them
+# nil for a multi-document template, so a `notMatchRegexRaw` there passes
+# whatever the role says. They are only used on NOTES.txt, where they do see
+# the rendered text. Wildcard-path regex asserts such as `notMatchRegex` on
+# `rules[*].verbs[*]` are not used either: helm-unittest tests only the FIRST
+# value the path matches, so a forbidden verb in the last rule passes.)
+#
+# Document order follows the template: ServiceAccount, read-only ClusterRole,
+# its ClusterRoleBinding, then (with remediation) the remediation ClusterRole
+# and its bindings, the node-operations ClusterRole and its binding, and the
+# Deployment last. Each documentIndex below is paired with an isKind and a
+# name so a reordering fails loudly instead of asserting the wrong document.
+suite: ai access runner
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/ai-runner.yaml
+tests:
+  - it: renders nothing by default
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: deploys the Runner with its own ServiceAccount, read-only ClusterRole and binding when enabled
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    asserts:
+      # No write role and no write binding of any kind in read-only mode.
+      - hasDocuments:
+          count: 4
+      - documentIndex: 0
+        isKind:
+          of: ServiceAccount
+      - documentIndex: 0
+        equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner
+      - documentIndex: 1
+        isKind:
+          of: ClusterRole
+      - documentIndex: 1
+        equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner
+      - documentIndex: 2
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 2
+        equal:
+          path: subjects[0].name
+          value: oneuptime-agent-kubernetes-agent-ai-runner
+      - documentIndex: 2
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner
+      - documentIndex: 3
+        isKind:
+          of: Deployment
+      - documentIndex: 3
+        equal:
+          path: spec.template.spec.serviceAccountName
+          value: oneuptime-agent-kubernetes-agent-ai-runner
+      - documentIndex: 3
+        equal:
+          path: spec.replicas
+          value: 1
+
+  - it: binds the Runner's ServiceAccount in the namespace the chart is installed in
+    release:
+      namespace: custom-ns
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    asserts:
+      - documentIndex: 0
+        equal:
+          path: metadata.namespace
+          value: custom-ns
+      - documentIndex: 2
+        equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: oneuptime-agent-kubernetes-agent-ai-runner
+              namespace: custom-ns
+      - documentIndex: 3
+        equal:
+          path: metadata.namespace
+          value: custom-ns
+
+  - it: registers with the collector's ingestion key and the cluster name
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_URL
+            value: https://oneuptime.example.com
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_INGESTION_KEY
+            valueFrom:
+              secretKeyRef:
+                name: oneuptime-agent-kubernetes-agent
+                key: api-key
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBERNETES_CLUSTER_NAME
+            value: prod-us
+      # Never a dashboard-issued identity: that is the whole point.
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_ID
+          any: true
+      # This Runner runs kubectl for OneUptime AI and nothing else.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_ENABLE_RUNBOOKS
+            value: "false"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_ENABLE_CODE_FIXES
+            value: "false"
+
+  - it: tells the Runner which namespace it runs in, from the downward API, in every mode
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      # The Runner never writes its own namespace, so it must know it even on
+      # a read-only install (a later remediation.enabled only changes RBAC).
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+
+  - it: reports the chart version it was installed from
+    chart:
+      version: 14.0.3
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION
+            value: "14.0.3"
+
+  # The read-only role, rule by rule. The anchors are reused below so every
+  # mode is asserted to keep exactly these rules in the read-only role, and
+  # the legacy-values renders to be exactly these again.
+  - it: is read-only by default and tells the Runner so
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    asserts:
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "false"
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: ""
+      # No node role on a read-only install, so node operations are off too.
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "false"
+      # Every rule is get/list/watch, except the create-only access reviews
+      # `kubectl auth can-i` needs. No other create, and no patch, update,
+      # delete or deletecollection anywhere: the array is exact.
+      - documentIndex: 1
+        equal:
+          path: rules
+          value:
+            - &readCore
+              apiGroups: [""]
+              resources:
+                - pods
+                - pods/log
+                - pods/status
+                - nodes
+                - nodes/status
+                - services
+                - endpoints
+                - namespaces
+                - events
+                - replicationcontrollers
+                - resourcequotas
+                - limitranges
+                - configmaps
+                - persistentvolumeclaims
+                - persistentvolumes
+                - serviceaccounts
+              verbs: ["get", "list", "watch"]
+            - &readApps
+              apiGroups: ["apps"]
+              resources:
+                - deployments
+                - deployments/status
+                - replicasets
+                - replicasets/status
+                - statefulsets
+                - statefulsets/status
+                - daemonsets
+                - daemonsets/status
+                # rollout history / undo on a DaemonSet or StatefulSet list
+                # its ControllerRevisions; without this they fail Forbidden.
+                - controllerrevisions
+              verbs: ["get", "list", "watch"]
+            - &readBatch
+              apiGroups: ["batch"]
+              resources:
+                - jobs
+                - jobs/status
+                - cronjobs
+              verbs: ["get", "list", "watch"]
+            - &readAutoscaling
+              apiGroups: ["autoscaling"]
+              resources:
+                - horizontalpodautoscalers
+              verbs: ["get", "list", "watch"]
+            - &readNetworking
+              apiGroups: ["networking.k8s.io"]
+              resources:
+                - ingresses
+                - networkpolicies
+              verbs: ["get", "list", "watch"]
+            - &readPolicy
+              apiGroups: ["policy"]
+              resources:
+                - poddisruptionbudgets
+              verbs: ["get", "list", "watch"]
+            - &readStorage
+              apiGroups: ["storage.k8s.io"]
+              resources:
+                - storageclasses
+              verbs: ["get", "list", "watch"]
+            - &readEvents
+              apiGroups: ["events.k8s.io"]
+              resources:
+                - events
+              verbs: ["get", "list", "watch"]
+            - &readMetrics
+              apiGroups: ["metrics.k8s.io"]
+              resources:
+                - pods
+                - nodes
+              verbs: ["get", "list"]
+            - &accessReviews
+              apiGroups: ["authorization.k8s.io"]
+              resources:
+                - selfsubjectaccessreviews
+                - selfsubjectrulesreviews
+              verbs: ["create"]
+
+  # ---- Remediation: the write roles and where they are bound --------------
+
+  - it: puts the fix verbs in a remediation role and node operations in a role of their own, bound cluster-wide when no namespaces are listed
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 8
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "true"
+      # Empty = cluster-wide, the same thing the ClusterRoleBinding below says.
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: ""
+      # The node-operations role below is rendered, so the Runner is told node
+      # operations are on — exactly once.
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "true"
+          count: 1
+      # The read-only role is unchanged by remediation: no write verb leaks
+      # into the role every investigation holds cluster-wide.
+      - documentIndex: 1
+        equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner
+      - documentIndex: 1
+        equal:
+          path: rules
+          value:
+            - *readCore
+            - *readApps
+            - *readBatch
+            - *readAutoscaling
+            - *readNetworking
+            - *readPolicy
+            - *readStorage
+            - *readEvents
+            - *readMetrics
+            - *accessReviews
+      - documentIndex: 2
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner
+      # The namespaced writes, exactly. Whatever the policy says, this role
+      # can never: exec, attach or port-forward into a pod; read or write
+      # secrets; mint a ServiceAccount token; impersonate, escalate or bind;
+      # write RBAC; touch CRDs or nodes; use a wildcard; deletecollection
+      # anything; or delete anything but a pod or a job. It grants no write on
+      # Services, ConfigMaps, Ingresses, Namespaces or PVCs either, so a
+      # label/annotate/patch there fails Forbidden even when a human
+      # approved it: the policy tiers those as riskier, never as safe.
+      - documentIndex: 3
+        isKind:
+          of: ClusterRole
+      - documentIndex: 3
+        equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      - documentIndex: 3
+        equal:
+          path: rules
+          value: &remediationRules
+            # rollout restart/undo/pause/resume, set image/env/resources,
+            # label/annotate and patch: PATCH (UPDATE as kubectl's fallback)
+            # on the workload. No deployments/rollback: the subresource does
+            # not exist in apps/v1 and kubectl never calls it.
+            - apiGroups: ["apps"]
+              resources:
+                - deployments
+                - statefulsets
+                - daemonsets
+                - replicasets
+              verbs: ["patch", "update"]
+            # kubectl scale --current-replicas GETs the scale subresource
+            # before it UPDATEs it; `get` on the workload does not cover it.
+            - apiGroups: ["apps"]
+              resources:
+                - deployments/scale
+                - statefulsets/scale
+                - replicasets/scale
+              verbs: ["get", "patch", "update"]
+            - apiGroups: ["batch"]
+              resources:
+                - jobs
+                - cronjobs
+              verbs: ["patch", "update"]
+            # kubectl create job --from=cronjob/...
+            - apiGroups: ["batch"]
+              resources:
+                - jobs
+              verbs: ["create"]
+            # delete a NAMED pod (a safe change) or job (a riskier one).
+            - apiGroups: [""]
+              resources:
+                - pods
+              verbs: ["delete"]
+            - apiGroups: ["batch"]
+              resources:
+                - jobs
+              verbs: ["delete"]
+            # label/annotate/patch a pod.
+            - apiGroups: [""]
+              resources:
+                - pods
+              verbs: ["patch", "update"]
+            # kubectl autoscale, and patching an HPA's bounds.
+            - apiGroups: ["autoscaling"]
+              resources:
+                - horizontalpodautoscalers
+              verbs: ["patch", "update", "create"]
+      # No namespaces listed: bound cluster-wide. RBAC cannot leave
+      # kube-system or this release's namespace out of it; the policy and the
+      # Runner hold that line, and the values/README/docs say so.
+      - documentIndex: 4
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 4
+        equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      - documentIndex: 4
+        equal:
+          path: roleRef
+          value:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      - documentIndex: 4
+        equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: oneuptime-agent-kubernetes-agent-ai-runner
+              namespace: oneuptime
+      # Node operations: cordon/uncordon/taint (patch on nodes) and drain
+      # (create on pods/eviction), nothing else. No nodes/proxy.
+      - documentIndex: 5
+        isKind:
+          of: ClusterRole
+      - documentIndex: 5
+        equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-node-operations
+      - documentIndex: 5
+        equal:
+          path: rules
+          value: &nodeRules
+            - apiGroups: [""]
+              resources:
+                - nodes
+              verbs: ["patch", "update"]
+            - apiGroups: [""]
+              resources:
+                - pods/eviction
+              verbs: ["create"]
+      - documentIndex: 6
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 6
+        equal:
+          path: roleRef
+          value:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: oneuptime-agent-kubernetes-agent-ai-runner-node-operations
+      - documentIndex: 6
+        equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: oneuptime-agent-kubernetes-agent-ai-runner
+              namespace: oneuptime
+      - documentIndex: 7
+        isKind:
+          of: Deployment
+
+  - it: binds the remediation role only in the listed namespaces, never cluster-wide, and tells the Runner the list
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+      aiAccess.remediation.namespaces:
+        - prod
+        - web
+    asserts:
+      # SA, read role + binding, remediation role, TWO RoleBindings, node
+      # role + binding, Deployment. Exactly two RoleBindings: none in
+      # kube-system or in this release's namespace.
+      - hasDocuments:
+          count: 9
+      - documentIndex: 3
+        equal:
+          path: rules
+          value: *remediationRules
+      - documentIndex: 4
+        isKind:
+          of: RoleBinding
+      - documentIndex: 4
+        equal:
+          path: metadata
+          value:
+            name: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+            namespace: prod
+            labels:
+              helm.sh/chart: kubernetes-agent-0.7.0
+              app.kubernetes.io/name: kubernetes-agent
+              app.kubernetes.io/instance: oneuptime-agent
+              app.kubernetes.io/version: "1.0.0"
+              app.kubernetes.io/managed-by: Helm
+              app.kubernetes.io/part-of: oneuptime
+              component: ai-runner
+      - documentIndex: 4
+        equal:
+          path: roleRef
+          value:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      - documentIndex: 4
+        equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: oneuptime-agent-kubernetes-agent-ai-runner
+              namespace: oneuptime
+      - documentIndex: 5
+        isKind:
+          of: RoleBinding
+      - documentIndex: 5
+        equal:
+          path: metadata.namespace
+          value: web
+      - documentIndex: 5
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      # No ClusterRoleBinding may point at the remediation role now. With the
+      # document count pinned above and every index's kind pinned here, the
+      # only two ClusterRoleBindings are the read-only one (index 2) and the
+      # node-operations one (index 7). (Per-index, because helm-unittest
+      # v0.5.1, which CI pins, has no documentSelector.matchMany.)
+      - documentIndex: 0
+        isKind:
+          of: ServiceAccount
+      - documentIndex: 1
+        isKind:
+          of: ClusterRole
+      - documentIndex: 2
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 3
+        isKind:
+          of: ClusterRole
+      - documentIndex: 6
+        isKind:
+          of: ClusterRole
+      - documentIndex: 7
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 8
+        isKind:
+          of: Deployment
+      - documentIndex: 2
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner
+      - documentIndex: 7
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-node-operations
+      # And the RoleBindings are exactly where the list says, nowhere else:
+      # the kinds above leave indexes 4 and 5 as the only RoleBindings, in
+      # prod and web — none in kube-system or in the release's namespace.
+      - documentIndex: 4
+        notEqual:
+          path: metadata.namespace
+          value: kube-system
+      - documentIndex: 5
+        notEqual:
+          path: metadata.namespace
+          value: kube-system
+      - documentIndex: 4
+        notEqual:
+          path: metadata.namespace
+          value: oneuptime
+      - documentIndex: 5
+        notEqual:
+          path: metadata.namespace
+          value: oneuptime
+      - documentIndex: 8
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: prod,web
+      - documentIndex: 8
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "true"
+      # Node operations are cluster-wide whatever the namespace list says.
+      - documentIndex: 8
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "true"
+
+  # `helm upgrade --reuse-values` keeps a stored namespace list, so the docs
+  # tell operators to reset it with
+  # `--set-json 'aiAccess.remediation.namespaces=[]'`, never `={}`. These
+  # render each against values that list [web]. A values file is not
+  # --reuse-values: the null case below is the no-reuse path (a values file
+  # plus `--set ...=null`, or --reset-then-reuse-values), which is the only
+  # place a null resets the list.
+  - it: keeps a stored namespace list when an upgrade leaves the namespaces flag out
+    values:
+      - values/ai-remediation-stored-namespaces.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      # The negative control for the two resets below: without one, the
+      # stored list still binds the role in web only.
+      - hasDocuments:
+          count: 8
+      - documentIndex: 4
+        isKind:
+          of: RoleBinding
+      - documentIndex: 4
+        equal:
+          path: metadata.namespace
+          value: web
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: web
+
+  - it: goes back to the cluster-wide binding when a namespace list is reset to null without --reuse-values
+    values:
+      - values/ai-remediation-stored-namespaces.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.remediation.namespaces: null
+    asserts:
+      - hasDocuments:
+          count: 8
+      - documentIndex: 4
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 4
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: ""
+
+  # The reset every doc and the cluster AI page name.
+  - it: goes back to the cluster-wide binding when a stored namespace list is reset to an empty list, as --set-json 'aiAccess.remediation.namespaces=[]' does
+    values:
+      - values/ai-remediation-stored-namespaces.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.remediation.namespaces: []
+    asserts:
+      - hasDocuments:
+          count: 8
+      - documentIndex: 4
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 4
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: ""
+
+  - it: refuses the empty namespace name `--set "aiAccess.remediation.namespaces={}"` produces
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+      # Helm's --set reads `{}` as a list holding one empty string, not as an
+      # empty list, which is why the docs name
+      # `--set-json 'aiAccess.remediation.namespaces=[]'` as the reset instead.
+      aiAccess.remediation.namespaces:
+        - ""
+    asserts:
+      - failedTemplate:
+          errorPattern: "aiAccess.remediation.namespaces.0: String length must be greater than or equal to 1"
+
+  - it: renders one RoleBinding per namespace even when the list repeats one
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+      aiAccess.remediation.namespaces:
+        - prod
+        - prod
+    asserts:
+      # Two RoleBindings with one name in one namespace would fail the apply.
+      - hasDocuments:
+          count: 8
+      - documentIndex: 4
+        equal:
+          path: metadata.namespace
+          value: prod
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: prod
+
+  - it: binds the remediation role in a protected namespace only when the operator lists it
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+      aiAccess.remediation.namespaces:
+        - kube-system
+    asserts:
+      # An explicit choice. The policy still never runs a write in
+      # kube-system without a human; RBAC only allows it to land there.
+      - documentIndex: 4
+        isKind:
+          of: RoleBinding
+      - documentIndex: 4
+        equal:
+          path: metadata.namespace
+          value: kube-system
+
+  - it: refuses to bind write access in the release's own namespace
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+      aiAccess.remediation.namespaces:
+        - web
+        - oneuptime
+    asserts:
+      # The Runner never writes its own namespace, so a RoleBinding there
+      # could only let a compromised Runner patch the agent or itself.
+      - failedTemplate:
+          errorPattern: "aiAccess.remediation.namespaces lists oneuptime, the namespace this chart is installed in"
+
+  - it: ignores remediation.namespaces while remediation is off
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.namespaces:
+        - web
+        - oneuptime
+    asserts:
+      # No write role, so nothing to bind and nothing to refuse; the Runner
+      # is told writes are off and the list is empty.
+      - hasDocuments:
+          count: 4
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: ""
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "false"
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "false"
+
+  - it: rejects a namespace name Kubernetes would not accept
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+      aiAccess.remediation.namespaces:
+        - "*"
+    asserts:
+      - failedTemplate:
+          errorPattern: "aiAccess.remediation.namespaces.0"
+
+  - it: leaves node operations out entirely with nodeOperations=false
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+      aiAccess.remediation.nodeOperations: false
+    asserts:
+      # SA, read role + binding, remediation role + binding, Deployment: no
+      # node-operations role or binding, and the remediation role itself
+      # never names nodes or pods/eviction (the exact array).
+      - hasDocuments:
+          count: 6
+      - documentIndex: 3
+        equal:
+          path: rules
+          value: *remediationRules
+      - documentIndex: 4
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      - documentIndex: 5
+        isKind:
+          of: Deployment
+      # Neither role is the node-operations one (per index: helm-unittest
+      # v0.5.1, which CI pins, has no documentSelector.matchMany).
+      - documentIndex: 1
+        equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner
+      - documentIndex: 3
+        equal:
+          path: metadata.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      - documentIndex: 0
+        isKind:
+          of: ServiceAccount
+      - documentIndex: 2
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 4
+        isKind:
+          of: ClusterRoleBinding
+      # The Runner is told, not only RBAC: it refuses cordon, uncordon, drain,
+      # taint and node label/annotate/patch before spawning kubectl, instead
+      # of an unattended cordon failing Forbidden at the API server. Writes
+      # themselves stay on.
+      - documentIndex: 5
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "false"
+          count: 1
+      - documentIndex: 5
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "true"
+
+  - it: grants node operations only together with remediation
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.nodeOperations: true
+    asserts:
+      - hasDocuments:
+          count: 4
+      # nodeOperations=true alone grants nothing, and the Runner is told so:
+      # the switch follows the rendered node role, not the value.
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "false"
+      - documentIndex: 1
+        equal:
+          path: rules
+          value:
+            - *readCore
+            - *readApps
+            - *readBatch
+            - *readAutoscaling
+            - *readNetworking
+            - *readPolicy
+            - *readStorage
+            - *readEvents
+            - *readMetrics
+            - *accessReviews
+
+  - it: never grants a delete verb to namespaces, nodes or volumes, in either write role
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+    asserts:
+      # The exact arrays above are the real guard. These spell the claim out
+      # for the reader in the shape a careless edit would take: the only
+      # delete rules are the pods-only and the jobs-only ones, and none
+      # exists with namespaces, nodes or volumes in it.
+      - documentIndex: 3
+        contains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - pods
+            verbs: ["delete"]
+          count: 1
+      - documentIndex: 3
+        notContains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - nodes
+            verbs: ["delete"]
+      - documentIndex: 3
+        notContains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - namespaces
+            verbs: ["delete"]
+      - documentIndex: 3
+        notContains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - persistentvolumes
+            verbs: ["delete"]
+      - documentIndex: 3
+        notContains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - persistentvolumeclaims
+            verbs: ["delete"]
+      - documentIndex: 5
+        notContains:
+          path: rules
+          content:
+            apiGroups: [""]
+            resources:
+              - nodes
+            verbs: ["delete"]
+
+  # kubectl rollout history / undo on a DaemonSet or StatefulSet list the
+  # workload's ControllerRevisions before doing anything. The policy tiers
+  # history as Read and undo as SafeWrite, so both must work in read-only
+  # mode (history) and unattended in automatic mode (undo).
+  - it: lets rollout history and undo read DaemonSet and StatefulSet history without write RBAC
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    asserts:
+      - documentIndex: 1
+        contains:
+          path: rules
+          content: *readApps
+
+  - it: lets kubectl scale read the scale subresource it updates
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+    asserts:
+      # `kubectl scale --current-replicas=N` (the guard the model is
+      # encouraged to use) is a GET then an UPDATE on the subresource.
+      - documentIndex: 3
+        contains:
+          path: rules
+          content:
+            apiGroups: ["apps"]
+            resources:
+              - deployments/scale
+              - statefulsets/scale
+              - replicasets/scale
+            verbs: ["get", "patch", "update"]
+          count: 1
+
+  # ---- Upgrading a release installed before aiAccess existed --------------
+
+  - it: renders the documented one-flag upgrade on a release from a chart without aiAccess (--reuse-values keeps no aiAccess defaults)
+    values:
+      - values/legacy-pre-aiaccess-ai-enabled.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - hasDocuments:
+          count: 4
+      # The same pod a fresh install gets: the template's fallbacks must
+      # match values.yaml — including Always for the moving `release` tag,
+      # which is what keeps a node's cached Runner from outliving the upgrade.
+      - documentIndex: 3
+        equal:
+          path: spec.template.spec.containers[0].image
+          value: oneuptime/runner:release
+      - documentIndex: 3
+        equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+      - documentIndex: 3
+        equal:
+          path: spec.template.spec.containers[0].resources
+          value:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "false"
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: ""
+      - documentIndex: 3
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "false"
+      # And the same read-only role.
+      - documentIndex: 1
+        equal:
+          path: rules
+          value:
+            - *readCore
+            - *readApps
+            - *readBatch
+            - *readAutoscaling
+            - *readNetworking
+            - *readPolicy
+            - *readStorage
+            - *readEvents
+            - *readMetrics
+            - *accessReviews
+
+  - it: renders the two-flag upgrade on a release from a chart without aiAccess, with cluster-wide write RBAC and node operations on
+    values:
+      - values/legacy-pre-aiaccess-ai-remediation.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      # No namespaces and no nodeOperations key: the same eight documents a
+      # fresh `--set aiAccess.remediation.enabled=true` renders.
+      - hasDocuments:
+          count: 8
+      - documentIndex: 3
+        equal:
+          path: rules
+          value: *remediationRules
+      - documentIndex: 4
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 4
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      - documentIndex: 5
+        equal:
+          path: rules
+          value: *nodeRules
+      - documentIndex: 7
+        equal:
+          path: spec.template.spec.containers[0].image
+          value: oneuptime/runner:release
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "true"
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: ""
+      # No nodeOperations key: the same fallback (on) the node role uses.
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+            value: "true"
+
+  # The page's cluster-wide command on a release from a chart without
+  # aiAccess: `.Values.aiAccess.remediation` is {enabled: true} plus the
+  # empty list --set-json adds, which the schema accepts (a null here is
+  # what fails it under --reuse-values, where no stored value swallows it).
+  - it: renders the empty-list reset on a release from a chart without aiAccess, with the cluster-wide binding
+    values:
+      - values/legacy-pre-aiaccess-ai-remediation.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.remediation.namespaces: []
+    asserts:
+      - hasDocuments:
+          count: 8
+      - documentIndex: 4
+        isKind:
+          of: ClusterRoleBinding
+      - documentIndex: 4
+        equal:
+          path: roleRef.name
+          value: oneuptime-agent-kubernetes-agent-ai-runner-remediation
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+            value: ""
+
+  - it: falls back to the default repository and an IfNotPresent pull when a release from a chart without aiAccess pins only the image tag
+    values:
+      - values/legacy-pre-aiaccess-ai-enabled-pinned-tag.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - hasDocuments:
+          count: 4
+      # `.Values.aiAccess.image` is {tag: 9.1.0} and nothing else. A pinned
+      # tag never moves, so IfNotPresent is right for it.
+      - documentIndex: 3
+        equal:
+          path: spec.template.spec.containers[0].image
+          value: oneuptime/runner:9.1.0
+      - documentIndex: 3
+        equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+
+  - it: honours a partial aiAccess.resources on a release from a chart without aiAccess as given (--reuse-values never fills in defaults)
+    values:
+      - values/legacy-pre-aiaccess-ai-enabled-partial-resources.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - hasDocuments:
+          count: 4
+      # An explicit resources map is the operator's, whole: no limits and no
+      # memory request appear from the chart's defaults. That is what
+      # --reuse-values means, and why the docs point at
+      # --reset-then-reuse-values for anyone who wants the defaults too.
+      - documentIndex: 3
+        equal:
+          path: spec.template.spec.containers[0].resources
+          value:
+            requests:
+              cpu: 100m
+
+  - it: renders nothing, and does not abort, on a release from a chart without aiAccess upgraded with plain --reuse-values
+    values:
+      - values/legacy-pre-aiaccess-no-ai.yaml
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # ---- The Runner pod ------------------------------------------------------
+
+  - it: runs as a pod Pod Security Admission "restricted" admits, with a writable scratch volume for kubectl
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      # restricted: non-root (pod and container), no privilege escalation,
+      # every capability dropped, RuntimeDefault seccomp, and only emptyDir
+      # volumes (no hostPath, no host namespaces, no privileged container).
+      - equal:
+          path: spec.template.spec.securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.securityContext.runAsUser
+          value: 1000
+      - equal:
+          path: spec.template.spec.securityContext.seccompProfile.type
+          value: RuntimeDefault
+      - equal:
+          path: spec.template.spec.containers[0].securityContext
+          value:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+      - notExists:
+          path: spec.template.spec.hostNetwork
+      - notExists:
+          path: spec.template.spec.hostPID
+      - notExists:
+          path: spec.template.spec.hostIPC
+      - equal:
+          path: spec.template.spec.volumes
+          value:
+            - name: scratch
+              emptyDir: {}
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: scratch
+            mountPath: /tmp
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: KUBECACHEDIR
+            value: /tmp/kube-cache
+
+  - it: never runs two Runners at once and stays on Linux nodes
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      # Two Runners would rotate each other's registration key.
+      - equal:
+          path: spec.strategy.type
+          value: Recreate
+      - equal:
+          path: spec.template.spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+
+  - it: names every object after fullnameOverride, including the ingestion-key Secret it reads
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      fullnameOverride: agent-x
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+      aiAccess.remediation.namespaces:
+        - web
+    asserts:
+      - hasDocuments:
+          count: 8
+      - documentIndex: 0
+        equal:
+          path: metadata.name
+          value: agent-x-ai-runner
+      - documentIndex: 1
+        equal:
+          path: metadata.name
+          value: agent-x-ai-runner
+      - documentIndex: 2
+        equal:
+          path: roleRef.name
+          value: agent-x-ai-runner
+      - documentIndex: 2
+        equal:
+          path: subjects[0].name
+          value: agent-x-ai-runner
+      - documentIndex: 3
+        equal:
+          path: metadata.name
+          value: agent-x-ai-runner-remediation
+      - documentIndex: 4
+        equal:
+          path: roleRef.name
+          value: agent-x-ai-runner-remediation
+      - documentIndex: 4
+        equal:
+          path: subjects[0].name
+          value: agent-x-ai-runner
+      - documentIndex: 5
+        equal:
+          path: metadata.name
+          value: agent-x-ai-runner-node-operations
+      - documentIndex: 6
+        equal:
+          path: roleRef.name
+          value: agent-x-ai-runner-node-operations
+      - documentIndex: 7
+        equal:
+          path: metadata.name
+          value: agent-x-ai-runner
+      - documentIndex: 7
+        equal:
+          path: spec.template.spec.serviceAccountName
+          value: agent-x-ai-runner
+      # templates/secret.yaml names the Secret after the fullname.
+      - documentIndex: 7
+        contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_INGESTION_KEY
+            valueFrom:
+              secretKeyRef:
+                name: agent-x
+                key: api-key
+
+  # ---- The image -----------------------------------------------------------
+
+  - it: tracks the moving release tag by default and always pulls it
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      # IfNotPresent would keep a node's cached `release` — and the Runner's
+      # policy re-check inside it — across every later upgrade.
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: oneuptime/runner:release
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+
+  - it: does not use the chart's appVersion as the Runner tag
+    chart:
+      appVersion: 14.0.3
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      # The chart is published before that version's images are, and a
+      # source render carries appVersion 1.0.0; like the chart's other
+      # OneUptime images, the Runner tracks `release` unless pinned.
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: oneuptime/runner:release
+
+  - it: always pulls the enterprise moving tag too
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.image.tag: enterprise-release
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+
+  - it: pins the image tag when one is given, and pulls it only if absent
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.image.tag: 9.1.0
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: oneuptime/runner:9.1.0
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+
+  - it: honours an explicit aiAccess.image.pullPolicy on a pinned tag
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.image.tag: 9.1.0
+      aiAccess.image.pullPolicy: Always
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: Always
+
+  - it: honours an explicit aiAccess.image.pullPolicy on the moving tag
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.image.pullPolicy: IfNotPresent
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      # An air-gapped cluster that mirrors `release` itself may want this.
+      - equal:
+          path: spec.template.spec.containers[0].imagePullPolicy
+          value: IfNotPresent
+
+  # ---- aiAccess.extraEnv ---------------------------------------------------
+
+  - it: passes aiAccess.extraEnv into the Runner container after its own environment
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.extraEnv:
+        - name: HTTPS_PROXY
+          value: http://egress.internal:3128
+        - name: NO_PROXY
+          value: kubernetes.default.svc,10.0.0.0/8
+        # A Runner tuning knob the chart does not set: allowed.
+        - name: ONEUPTIME_RUNNER_CONCURRENCY
+          value: "2"
+        # Contains a reserved name but is not one: allowed.
+        - name: MY_ONEUPTIME_KUBECTL_ALLOW_WRITES
+          value: "true"
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: HTTPS_PROXY
+            value: http://egress.internal:3128
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: NO_PROXY
+            value: kubernetes.default.svc,10.0.0.0/8
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_RUNNER_CONCURRENCY
+            value: "2"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MY_ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "true"
+      # The chart's own write switch is still there, once, and still false.
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+            value: "false"
+          count: 1
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ONEUPTIME_KUBERNETES_CLUSTER_NAME
+            value: prod-us
+
+  # The kubelet keeps the LAST definition of a duplicate env name, and
+  # extraEnv renders after the chart's own entries, so each of these would
+  # silently replace the chart's value. The render must fail instead, and say
+  # which value to change.
+  - it: refuses an extraEnv that would override the Runner's write switch
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.extraEnv:
+        - name: ONEUPTIME_KUBECTL_ALLOW_WRITES
+          value: "true"
+    asserts:
+      - failedTemplate:
+          errorPattern: "aiAccess.extraEnv must not set ONEUPTIME_KUBECTL_ALLOW_WRITES: the chart sets it from aiAccess.remediation.enabled"
+
+  - it: refuses an extraEnv that would override the Runner's write namespaces
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+      aiAccess.remediation.namespaces:
+        - web
+      aiAccess.extraEnv:
+        - name: ONEUPTIME_KUBECTL_WRITE_NAMESPACES
+          value: ""
+    asserts:
+      - failedTemplate:
+          errorPattern: "aiAccess.extraEnv must not set ONEUPTIME_KUBECTL_WRITE_NAMESPACES: the chart sets it from aiAccess.remediation.namespaces"
+
+  - it: refuses an extraEnv that would turn the Runner's node operations back on
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: true
+      aiAccess.remediation.nodeOperations: false
+      aiAccess.extraEnv:
+        - name: ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS
+          value: "true"
+    asserts:
+      # With no node role rendered, "true" would have the Runner run node
+      # operations that can only fail Forbidden.
+      - failedTemplate:
+          errorPattern: "aiAccess.extraEnv must not set ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS: the chart sets it from aiAccess.remediation.nodeOperations"
+
+  - it: refuses an extraEnv that would override the Runner's own namespace
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.extraEnv:
+        - name: ONEUPTIME_RUNNER_POD_NAMESPACE
+          value: somewhere-else
+    asserts:
+      - failedTemplate:
+          errorPattern: "aiAccess.extraEnv must not set ONEUPTIME_RUNNER_POD_NAMESPACE: the chart sets it to the Runner pod's own namespace"
+
+  - it: refuses an extraEnv that would override the cluster name
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.extraEnv:
+        - name: ONEUPTIME_KUBERNETES_CLUSTER_NAME
+          value: other-cluster
+    asserts:
+      - failedTemplate:
+          errorPattern: "aiAccess.extraEnv must not set ONEUPTIME_KUBERNETES_CLUSTER_NAME: the chart sets it from clusterName"
+
+  - it: refuses an extraEnv that would override the ingestion key
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.extraEnv:
+        - name: ONEUPTIME_INGESTION_KEY
+          value: another-key
+    asserts:
+      - failedTemplate:
+          errorPattern: "aiAccess.extraEnv must not set ONEUPTIME_INGESTION_KEY: the chart sets it from oneuptime.apiKey"
+
+  - it: refuses an extraEnv that would override the OneUptime URL
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.extraEnv:
+        - name: ONEUPTIME_URL
+          value: https://elsewhere.example.com
+    asserts:
+      - failedTemplate:
+          errorPattern: "aiAccess.extraEnv must not set ONEUPTIME_URL: the chart sets it from oneuptime.url"
+
+  - it: refuses an extraEnv that would give the Runner a dashboard-issued identity
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.extraEnv:
+        - name: ONEUPTIME_RUNNER_ID
+          value: 5f1c0000-0000-0000-0000-000000000000
+    asserts:
+      - failedTemplate:
+          errorPattern: "aiAccess.extraEnv must not set ONEUPTIME_RUNNER_ID: this Runner registers itself with oneuptime.apiKey"
+
+  - it: refuses an extraEnv that would move kubectl's writable HOME or the health port
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.extraEnv:
+        - name: PORT
+          value: "8080"
+    asserts:
+      - failedTemplate:
+          errorPattern: "aiAccess.extraEnv must not set PORT: the chart sets it to the port the health probes use"
+
+  - it: refuses an extraEnv entry with no name
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.extraEnv:
+        - nme: HTTPS_PROXY
+          value: http://egress.internal:3128
+    asserts:
+      - failedTemplate: {}
+
+  - it: refuses a non-string extraEnv value instead of rendering one the API server rejects
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.extraEnv:
+        - name: FEATURE_FLAG
+          value: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "aiAccess.extraEnv.0.value"
+
+  # ---- values.schema.json --------------------------------------------------
+
+  - it: refuses a string where the remediation switch expects a boolean
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.remediation.enabled: "true"
+    asserts:
+      # Rendered as-is, "true" and "false" would both be truthy strings.
+      - failedTemplate:
+          errorPattern: "aiAccess.remediation.enabled"
+
+  - it: refuses aiAccess values the chart does not support
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      aiAccess.nodeSelector:
+        a: b
+    asserts:
+      - failedTemplate:
+          errorPattern: "nodeSelector"
+
+  - it: honours an operator who removes the resource requests and limits
+    set:
+      clusterName: prod-us
+      oneuptime.url: https://oneuptime.example.com
+      oneuptime.apiKey: key-123
+      aiAccess.enabled: true
+      # Helm coalesces tables key by key, so the way to clear a default map
+      # is to null its keys; that must reach the pod as "no resources", not
+      # be replaced by the chart's defaults again.
+      aiAccess.resources.requests: null
+      aiAccess.resources.limits: null
+    documentSelector:
+      path: kind
+      value: Deployment
+    asserts:
+      - isNullOrEmpty:
+          path: spec.template.spec.containers[0].resources

@@ -594,6 +594,7 @@ RunCron(
                     body: compiledBody,
                   },
                   subject: compiledSubject,
+                  isSubjectLiteral: true,
                 },
                 {
                   mailServer: ProjectSMTPConfigService.toEmailServer(
@@ -646,6 +647,7 @@ RunCron(
                   subject: `[${Text.uppercaseFirstLetter(
                     incidentStateTimeline.incidentState.name,
                   )} Incident] ${incident.title}`,
+                  isSubjectLiteral: true,
                 },
                 {
                   mailServer: ProjectSMTPConfigService.toEmailServer(

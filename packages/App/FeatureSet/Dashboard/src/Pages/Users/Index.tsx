@@ -4,7 +4,10 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import UserElement from "../../Components/User/User";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
+import {
+  DeleteConfirmation,
+  ModalTableBulkDefaultActions,
+} from "Common/UI/Components/ModelTable/BaseModelTable";
 import Team from "Common/Models/DatabaseModels/Team";
 import TeamsElement from "../../Components/Team/TeamsElement";
 import Route from "Common/Types/API/Route";
@@ -25,6 +28,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUsersModelAPI from "Common/UI/Utils/ModelAPI/ProjectUsersModelAPI";
 import { ProjectUserRow } from "Common/UI/Utils/TeamMembersByUser";
+import TeamMembershipRemoval from "../../Utils/TeamMembershipRemoval";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import Banner from "Common/UI/Components/Banner/Banner";
@@ -241,6 +245,8 @@ const Users: FunctionComponent<PageComponentProps> = (
           !isPushGroupsManaged
             ? {
                 buttons: [ModalTableBulkDefaultActions.Delete],
+                deleteConfirmationWarning:
+                  "Each selected user will be removed from every team in this project and lose access to it immediately.",
               }
             : undefined
         }
@@ -257,6 +263,23 @@ const Users: FunctionComponent<PageComponentProps> = (
             );
           }
           return item;
+        }}
+        /*
+         * The row already carries every team the person is on (see
+         * ProjectUsersModelAPI), so the dialog can name them without a fetch.
+         */
+        getDeleteConfirmation={async (
+          item: TeamMember,
+        ): Promise<DeleteConfirmation> => {
+          const row: ProjectUserRow = item as ProjectUserRow;
+
+          return TeamMembershipRemoval.buildProjectRemovalConfirmation({
+            user: row.user,
+            teamNames: (row.teamsForUser || []).map((team: Team) => {
+              return team.name?.toString() || "";
+            }),
+            hasJoined: Boolean(row.hasAcceptedInvitation),
+          });
         }}
         cardProps={{
           title: "Users",
