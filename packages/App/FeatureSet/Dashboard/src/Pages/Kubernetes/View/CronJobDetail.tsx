@@ -22,7 +22,10 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesOverviewTab, {
+  SummaryField,
+} from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesCronJobObject } from "../Utils/KubernetesObjectParser";
@@ -183,11 +186,10 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
   };
 
   // Build overview summary fields from cronjob object
-  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
-    [
-      { title: "CronJob Name", value: cronJobName },
-      { title: "Cluster", value: clusterIdentifier },
-    ];
+  const summaryFields: Array<SummaryField> = [
+    { title: "CronJob Name", value: cronJobName },
+    { title: "Cluster", value: clusterIdentifier },
+  ];
 
   if (cronJobObject) {
     summaryFields.push(
@@ -226,10 +228,14 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
       },
       {
         title: "Successful Jobs History Limit",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.cronJobSuccessfulJobsHistoryLimit,
         value: String(cronJobObject.spec.successfulJobsHistoryLimit ?? "N/A"),
       },
       {
         title: "Failed Jobs History Limit",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.cronJobFailedJobsHistoryLimit,
         value: String(cronJobObject.spec.failedJobsHistoryLimit ?? "N/A"),
       },
       {
@@ -238,6 +244,7 @@ const KubernetesClusterCronJobDetail: FunctionComponent<
       },
       {
         title: "Active Jobs",
+        description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.cronJobActiveJobs,
         value: String(cronJobObject.status.activeCount ?? 0),
       },
       {

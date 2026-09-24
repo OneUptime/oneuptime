@@ -95,6 +95,8 @@ import { computeNetworkRate } from "../Utils/KubernetesNetworkUtils";
 import GoldenMetricTile, {
   tileColorClasses,
 } from "../../../Components/Infrastructure/GoldenMetricTile";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 
 interface ResourceLink {
   title: string;
@@ -155,6 +157,123 @@ const DEFAULT_TIME_RANGE: RangeStartAndEndDateTime = {
 };
 
 const REFRESH_STORAGE_KEY: string = "kubernetes-overview-auto-refresh-interval";
+
+export type ClusterChartCardColor =
+  | "blue"
+  | "violet"
+  | "amber"
+  | "emerald"
+  | "sky";
+
+export interface ClusterChartCardProps {
+  title: string;
+  // What the chart plots, shown in an (i) tooltip beside the title.
+  description?: string | undefined;
+  icon: IconProp;
+  iconColor: ClusterChartCardColor;
+  data: Array<SeriesPoint>;
+  // Null until the first golden-metrics load resolves the window.
+  chartWindow: { start: Date; end: Date } | null;
+  syncId: string;
+  yAxis?: YAxis | undefined;
+  showLegend?: boolean | undefined;
+  curve?: ChartCurve | undefined;
+  headerExtra?: ReactElement | undefined;
+}
+
+/*
+ * One golden chart on the cluster overview. The header - title, (i) and
+ * icon - is built once and shared by the loading and loaded branches, so
+ * the explanation is there before the chart is.
+ */
+export const ClusterChartCard: FunctionComponent<ClusterChartCardProps> = (
+  props: ClusterChartCardProps,
+): ReactElement => {
+  const colors: { bg: string; ring: string; text: string } =
+    tileColorClasses[props.iconColor];
+
+  const header: ReactElement = (
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {props.title}
+          </span>
+          <InfoTooltip label={props.title} text={props.description} />
+        </div>
+        {props.headerExtra ?? null}
+      </div>
+      <div
+        className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
+      >
+        <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
+      </div>
+    </div>
+  );
+
+  if (!props.chartWindow) {
+    return (
+      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        {header}
+        <div className="h-48 animate-pulse rounded-md bg-gray-50" />
+      </div>
+    );
+  }
+
+  const xAxis: ChartXAxis = {
+    legend: "Time",
+    options: {
+      type: XAxisType.Time,
+      min: props.chartWindow.start,
+      max: props.chartWindow.end,
+      aggregateType: XAxisAggregateType.Average,
+    },
+  };
+  const yAxis: YAxis = props.yAxis ?? {
+    legend: "%",
+    options: {
+      type: YAxisType.Number,
+      min: 0,
+      max: 100,
+      formatter: (value: number): string => {
+        return `${Math.round(value)}%`;
+      },
+      precision: YAxisPrecision.NoDecimals,
+    },
+  };
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+      {header}
+      <LineChartElement
+        data={props.data}
+        xAxis={xAxis}
+        yAxis={yAxis}
+        curve={props.curve ?? ChartCurve.MONOTONE}
+        sync={true}
+        syncid={props.syncId}
+        heightInPx={180}
+        showLegend={props.showLegend ?? false}
+      />
+    </div>
+  );
+};
+
+/*
+ * A card heading with an (i) beside it - for cards whose title names a
+ * metric ("Pod Health") or a section of one ("CPU Usage").
+ */
+export function titleWithTooltip(
+  title: string,
+  description: string,
+): ReactElement {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span>{title}</span>
+      <InfoTooltip label={title} text={description} />
+    </span>
+  );
+}
 
 function formatRelativeTime(timestamp: string): string {
   try {
@@ -1236,23 +1355,30 @@ const KubernetesClusterOverview: FunctionComponent<
   ];
 
   // Build pressure badges
-  const pressureBadges: Array<{ count: number; label: string }> = [];
+  const pressureBadges: Array<{
+    count: number;
+    label: string;
+    description: string;
+  }> = [];
   if (nodePressure.memoryPressure > 0) {
     pressureBadges.push({
       count: nodePressure.memoryPressure,
       label: "Memory Pressure",
+      description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.memoryPressure,
     });
   }
   if (nodePressure.diskPressure > 0) {
     pressureBadges.push({
       count: nodePressure.diskPressure,
       label: "Disk Pressure",
+      description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.diskPressure,
     });
   }
   if (nodePressure.pidPressure > 0) {
     pressureBadges.push({
       count: nodePressure.pidPressure,
       label: "PID Pressure",
+      description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.pidPressure,
     });
   }
 
@@ -1339,6 +1465,7 @@ const KubernetesClusterOverview: FunctionComponent<
           percent={availabilityPct}
           thresholds={{ warn: 99, danger: 95 }}
           higherIsBetter={true}
+          description={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.availability}
         />
         <GoldenMetricTile
           title="CPU"
@@ -1351,6 +1478,7 @@ const KubernetesClusterOverview: FunctionComponent<
               : "across nodes"
           }
           percent={s.cpuPercent}
+          description={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.cpu}
         />
         <GoldenMetricTile
           title="Memory"
@@ -1358,6 +1486,7 @@ const KubernetesClusterOverview: FunctionComponent<
           iconColor="violet"
           value={formatMemoryBytes(s.memoryBytes)}
           sublabel="total across nodes"
+          description={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.memory}
         />
         <GoldenMetricTile
           title="Filesystem"
@@ -1367,6 +1496,7 @@ const KubernetesClusterOverview: FunctionComponent<
           sublabel="avg across mounts"
           percent={s.filesystemPercent}
           thresholds={{ warn: 75, danger: 90 }}
+          description={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.filesystem}
         />
         <GoldenMetricTile
           title="Network"
@@ -1378,15 +1508,21 @@ const KubernetesClusterOverview: FunctionComponent<
               : ValueFormatter.formatValue(netTotal, "By/s")
           }
           sublabel={netSublabel}
+          description={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.network}
         />
       </div>
     );
   };
 
+  /*
+   * Every golden chart names what it plots: `description` is required here
+   * so a new chart cannot be added without its (i).
+   */
   const renderChartCard: (params: {
     title: string;
+    description: string;
     icon: IconProp;
-    iconColor: "blue" | "violet" | "amber" | "emerald" | "sky";
+    iconColor: ClusterChartCardColor;
     data: Array<SeriesPoint>;
     yAxis?: YAxis;
     showLegend?: boolean;
@@ -1394,86 +1530,29 @@ const KubernetesClusterOverview: FunctionComponent<
     headerExtra?: ReactElement;
   }) => ReactElement = (params: {
     title: string;
+    description: string;
     icon: IconProp;
-    iconColor: "blue" | "violet" | "amber" | "emerald" | "sky";
+    iconColor: ClusterChartCardColor;
     data: Array<SeriesPoint>;
     yAxis?: YAxis;
     showLegend?: boolean;
     curve?: ChartCurve;
     headerExtra?: ReactElement;
   }): ReactElement => {
-    const colors: { bg: string; ring: string; text: string } =
-      tileColorClasses[params.iconColor];
-
-    if (!chartWindow) {
-      return (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {params.title}
-            </span>
-            <div
-              className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
-            >
-              <Icon
-                icon={params.icon}
-                className={`h-3.5 w-3.5 ${colors.text}`}
-              />
-            </div>
-          </div>
-          <div className="h-48 animate-pulse rounded-md bg-gray-50" />
-        </div>
-      );
-    }
-
-    const xAxis: ChartXAxis = {
-      legend: "Time",
-      options: {
-        type: XAxisType.Time,
-        min: chartWindow.start,
-        max: chartWindow.end,
-        aggregateType: XAxisAggregateType.Average,
-      },
-    };
-    const yAxis: YAxis = params.yAxis ?? {
-      legend: "%",
-      options: {
-        type: YAxisType.Number,
-        min: 0,
-        max: 100,
-        formatter: (value: number): string => {
-          return `${Math.round(value)}%`;
-        },
-        precision: YAxisPrecision.NoDecimals,
-      },
-    };
-
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {params.title}
-            </span>
-            {params.headerExtra ?? null}
-          </div>
-          <div
-            className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
-          >
-            <Icon icon={params.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
-          </div>
-        </div>
-        <LineChartElement
-          data={params.data}
-          xAxis={xAxis}
-          yAxis={yAxis}
-          curve={params.curve ?? ChartCurve.MONOTONE}
-          sync={true}
-          syncid={`kubernetes-overview-${modelId.toString()}`}
-          heightInPx={180}
-          showLegend={params.showLegend ?? false}
-        />
-      </div>
+      <ClusterChartCard
+        title={params.title}
+        description={params.description}
+        icon={params.icon}
+        iconColor={params.iconColor}
+        data={params.data}
+        chartWindow={chartWindow}
+        syncId={`kubernetes-overview-${modelId.toString()}`}
+        yAxis={params.yAxis}
+        showLegend={params.showLegend}
+        curve={params.curve}
+        headerExtra={params.headerExtra}
+      />
     );
   };
 
@@ -1560,6 +1639,8 @@ const KubernetesClusterOverview: FunctionComponent<
           </div>
           {renderChartCard({
             title: "Availability",
+            description:
+              KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.availabilityChart,
             icon: IconProp.Heartbeat,
             iconColor: "emerald",
             data: availabilitySeries,
@@ -1582,12 +1663,14 @@ const KubernetesClusterOverview: FunctionComponent<
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {renderChartCard({
               title: "CPU",
+              description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.cpuChart,
               icon: IconProp.ChartBar,
               iconColor: "blue",
               data: cpuSeries,
             })}
             {renderChartCard({
               title: "Memory",
+              description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.memoryChart,
               icon: IconProp.SquareStack,
               iconColor: "violet",
               data: memorySeries,
@@ -1595,12 +1678,15 @@ const KubernetesClusterOverview: FunctionComponent<
             })}
             {renderChartCard({
               title: "Filesystem",
+              description:
+                KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.filesystemChart,
               icon: IconProp.Cube,
               iconColor: "amber",
               data: filesystemSeries,
             })}
             {renderChartCard({
               title: "Network",
+              description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.networkChart,
               icon: IconProp.Wifi,
               iconColor: "sky",
               data: networkSeries,
@@ -1756,12 +1842,14 @@ const KubernetesClusterOverview: FunctionComponent<
       label: string;
       value: number;
       colorClass: string;
+      description: string;
     }> = [];
     if (podHealthSummary.running > 0) {
       podStatusChips.push({
         label: "Running",
         value: podHealthSummary.running,
         colorClass: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+        description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsRunning,
       });
     }
     if (podHealthSummary.pending > 0) {
@@ -1769,6 +1857,7 @@ const KubernetesClusterOverview: FunctionComponent<
         label: "Pending",
         value: podHealthSummary.pending,
         colorClass: "bg-amber-50 text-amber-700 ring-amber-200",
+        description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsPending,
       });
     }
     if (podHealthSummary.failed > 0) {
@@ -1776,6 +1865,7 @@ const KubernetesClusterOverview: FunctionComponent<
         label: "Failed",
         value: podHealthSummary.failed,
         colorClass: "bg-red-50 text-red-700 ring-red-200",
+        description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podsFailed,
       });
     }
     if (nodeHealthSummary.notReady > 0) {
@@ -1783,6 +1873,7 @@ const KubernetesClusterOverview: FunctionComponent<
         label: "Nodes Not Ready",
         value: nodeHealthSummary.notReady,
         colorClass: "bg-red-50 text-red-700 ring-red-200",
+        description: KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.nodesNotReady,
       });
     }
 
@@ -1870,6 +1961,14 @@ const KubernetesClusterOverview: FunctionComponent<
                     );
                   },
                 )}
+                <span className="inline-flex items-center px-0.5">
+                  <InfoTooltip
+                    label="Cluster inventory counts"
+                    text={
+                      KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.inventoryCounts
+                    }
+                  />
+                </span>
               </div>
             )}
 
@@ -1881,6 +1980,7 @@ const KubernetesClusterOverview: FunctionComponent<
                       label: string;
                       value: number;
                       colorClass: string;
+                      description: string;
                     },
                     idx: number,
                   ): ReactElement => {
@@ -1891,6 +1991,11 @@ const KubernetesClusterOverview: FunctionComponent<
                       >
                         <span className="font-semibold">{chip.value}</span>
                         {chip.label}
+                        <InfoTooltip
+                          label={chip.label}
+                          text={chip.description}
+                          iconClassName="h-3 w-3"
+                        />
                       </span>
                     );
                   },
@@ -2116,6 +2221,7 @@ const KubernetesClusterOverview: FunctionComponent<
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
         <InfoCard
           title="Cluster Health"
+          tooltip={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.clusterHealth}
           value={
             isSummaryLoading ? (
               <span className="text-2xl font-semibold text-gray-300">…</span>
@@ -2138,6 +2244,7 @@ const KubernetesClusterOverview: FunctionComponent<
         />
         <InfoCard
           title="Nodes"
+          tooltip={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.nodes}
           onClick={() => {
             Navigation.navigate(
               RouteUtil.populateRouteParams(
@@ -2165,6 +2272,7 @@ const KubernetesClusterOverview: FunctionComponent<
         />
         <InfoCard
           title="Pods"
+          tooltip={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.pods}
           onClick={() => {
             Navigation.navigate(
               RouteUtil.populateRouteParams(
@@ -2187,6 +2295,7 @@ const KubernetesClusterOverview: FunctionComponent<
         />
         <InfoCard
           title="Namespaces"
+          tooltip={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.namespaces}
           onClick={() => {
             Navigation.navigate(
               RouteUtil.populateRouteParams(
@@ -2209,6 +2318,7 @@ const KubernetesClusterOverview: FunctionComponent<
         />
         <InfoCard
           title="Agent Status"
+          tooltip={KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.agentStatus}
           value={
             <StatusBadge
               text={
@@ -2278,15 +2388,26 @@ const KubernetesClusterOverview: FunctionComponent<
           className="mb-5"
         >
           <div className="flex flex-wrap gap-2 pt-1">
-            {pressureBadges.map((badge: { count: number; label: string }) => {
-              return (
-                <StatusBadge
-                  key={badge.label}
-                  text={`${badge.count} node${badge.count > 1 ? "s" : ""}: ${badge.label}`}
-                  type={StatusBadgeType.Danger}
-                />
-              );
-            })}
+            {pressureBadges.map(
+              (badge: {
+                count: number;
+                label: string;
+                description: string;
+              }) => {
+                return (
+                  <span
+                    key={badge.label}
+                    className="inline-flex items-center gap-1"
+                  >
+                    <StatusBadge
+                      text={`${badge.count} node${badge.count > 1 ? "s" : ""}: ${badge.label}`}
+                      type={StatusBadgeType.Danger}
+                    />
+                    <InfoTooltip label={badge.label} text={badge.description} />
+                  </span>
+                );
+              },
+            )}
           </div>
         </AlertBanner>
       )}
@@ -2294,7 +2415,10 @@ const KubernetesClusterOverview: FunctionComponent<
       {/* Pod Health Visual Breakdown */}
       {podCount > 0 && (
         <Card
-          title="Pod Health"
+          title={titleWithTooltip(
+            "Pod Health",
+            KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.podHealth,
+          )}
           description="Distribution of pod statuses across the cluster."
         >
           <div className="p-4">
@@ -2326,7 +2450,10 @@ const KubernetesClusterOverview: FunctionComponent<
                 </div>
                 <div>
                   <h4 className="text-sm font-semibold text-gray-900">
-                    CPU Usage
+                    {titleWithTooltip(
+                      "CPU Usage",
+                      KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.topCpuPods,
+                    )}
                   </h4>
                   <p className="text-xs text-gray-500">Top 5 pods by CPU</p>
                 </div>
@@ -2411,7 +2538,10 @@ const KubernetesClusterOverview: FunctionComponent<
                 </div>
                 <div>
                   <h4 className="text-sm font-semibold text-gray-900">
-                    Memory Usage
+                    {titleWithTooltip(
+                      "Memory Usage",
+                      KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.topMemoryPods,
+                    )}
                   </h4>
                   <p className="text-xs text-gray-500">Top 5 pods by memory</p>
                 </div>

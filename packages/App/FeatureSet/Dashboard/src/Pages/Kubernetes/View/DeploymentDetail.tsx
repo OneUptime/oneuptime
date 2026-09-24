@@ -22,7 +22,10 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import AggregateModel from "Common/Types/BaseDatabase/AggregatedModel";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
-import KubernetesOverviewTab from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import KubernetesOverviewTab, {
+  SummaryField,
+} from "../../../Components/Kubernetes/KubernetesOverviewTab";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesEventsTab from "../../../Components/Kubernetes/KubernetesEventsTab";
 import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetricsTab";
 import { KubernetesDeploymentObject } from "../Utils/KubernetesObjectParser";
@@ -183,11 +186,10 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
   };
 
   // Build overview summary fields from deployment object
-  const summaryFields: Array<{ title: string; value: string | ReactElement }> =
-    [
-      { title: "Name", value: deploymentName },
-      { title: "Cluster", value: clusterIdentifier },
-    ];
+  const summaryFields: Array<SummaryField> = [
+    { title: "Name", value: deploymentName },
+    { title: "Cluster", value: clusterIdentifier },
+  ];
 
   if (objectData) {
     const desired: number = objectData.spec.replicas;
@@ -211,6 +213,8 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
       },
       {
         title: "Rollout Status",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentRolloutStatus,
         value: (
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -239,14 +243,20 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
       },
       {
         title: "Desired Replicas",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentDesiredReplicas,
         value: String(desired),
       },
       {
         title: "Ready Replicas",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentReadyReplicas,
         value: String(ready),
       },
       {
         title: "Available",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentAvailableReplicas,
         value: String(available),
       },
     );
@@ -254,6 +264,8 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
     if (unavailable > 0) {
       summaryFields.push({
         title: "Unavailable",
+        description:
+          KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentUnavailableReplicas,
         value: (
           <StatusBadge
             text={String(unavailable)}

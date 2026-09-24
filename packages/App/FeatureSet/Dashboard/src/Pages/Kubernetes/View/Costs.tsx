@@ -63,12 +63,23 @@ import {
   noCostDataMessage,
 } from "../Utils/KubernetesCostTableCells";
 import KubernetesRightSizingCard from "./KubernetesRightSizingCard";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { KUBERNETES_COST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 
-function getSectionTitle(icon: IconProp, title: string): ReactElement {
+/*
+ * `description` explains a section whose chart has no title of its own -
+ * the spend trend under the tiles - in an (i) beside the section title.
+ */
+function getSectionTitle(
+  icon: IconProp,
+  title: string,
+  description?: string | undefined,
+): ReactElement {
   return (
     <div className="flex items-center gap-2">
       <Icon icon={icon} className="h-5 w-5 text-gray-500" />
       <span>{title}</span>
+      <InfoTooltip label={title} text={description} />
     </div>
   );
 }
@@ -265,6 +276,7 @@ const KubernetesClusterCosts: FunctionComponent<
       },
       {
         title: "CPU",
+        headerTooltip: KUBERNETES_COST_METRIC_DESCRIPTIONS.namespaceCpuCost,
         type: FieldType.Element,
         key: "cpuCost",
         getElement: (row: NamespaceCostRow): ReactElement => {
@@ -273,6 +285,7 @@ const KubernetesClusterCosts: FunctionComponent<
       },
       {
         title: "Memory",
+        headerTooltip: KUBERNETES_COST_METRIC_DESCRIPTIONS.namespaceMemoryCost,
         type: FieldType.Element,
         key: "ramCost",
         getElement: (row: NamespaceCostRow): ReactElement => {
@@ -281,6 +294,7 @@ const KubernetesClusterCosts: FunctionComponent<
       },
       {
         title: "Storage",
+        headerTooltip: KUBERNETES_COST_METRIC_DESCRIPTIONS.namespaceStorageCost,
         type: FieldType.Element,
         key: "pvCost",
         getElement: (row: NamespaceCostRow): ReactElement => {
@@ -289,6 +303,7 @@ const KubernetesClusterCosts: FunctionComponent<
       },
       {
         title: "Other",
+        headerTooltip: KUBERNETES_COST_METRIC_DESCRIPTIONS.namespaceOtherCost,
         type: FieldType.Element,
         key: "otherCost",
         hideOnMobile: true,
@@ -298,6 +313,7 @@ const KubernetesClusterCosts: FunctionComponent<
       },
       {
         title: "Total",
+        headerTooltip: KUBERNETES_COST_METRIC_DESCRIPTIONS.namespaceTotalCost,
         type: FieldType.Element,
         key: "totalCost",
         getElement: (row: NamespaceCostRow): ReactElement => {
@@ -306,6 +322,7 @@ const KubernetesClusterCosts: FunctionComponent<
       },
       {
         title: "Efficiency",
+        headerTooltip: KUBERNETES_COST_METRIC_DESCRIPTIONS.efficiency,
         type: FieldType.Element,
         key: "efficiency",
         getElement: (row: NamespaceCostRow): ReactElement => {
@@ -354,6 +371,7 @@ const KubernetesClusterCosts: FunctionComponent<
       },
       {
         title: "Total",
+        headerTooltip: KUBERNETES_COST_METRIC_DESCRIPTIONS.workloadTotalCost,
         type: FieldType.Element,
         key: "totalCost",
         getElement: (row: WorkloadCostRow): ReactElement => {
@@ -362,6 +380,7 @@ const KubernetesClusterCosts: FunctionComponent<
       },
       {
         title: "Efficiency",
+        headerTooltip: KUBERNETES_COST_METRIC_DESCRIPTIONS.efficiency,
         type: FieldType.Element,
         key: "efficiency",
         getElement: (row: WorkloadCostRow): ReactElement => {
@@ -420,7 +439,11 @@ const KubernetesClusterCosts: FunctionComponent<
   return (
     <Fragment>
       <EmbeddedMetricCard
-        title={getSectionTitle(IconProp.Billing, "Spend")}
+        title={getSectionTitle(
+          IconProp.Billing,
+          "Spend",
+          KUBERNETES_COST_METRIC_DESCRIPTIONS.spendTrend,
+        )}
         description="Total cost allocated to this cluster over time, including idle capacity."
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
@@ -434,6 +457,7 @@ const KubernetesClusterCosts: FunctionComponent<
               iconColor="emerald"
               value={isLoading ? "—" : formatCost(totalSpend)}
               sublabel="allocated in this window"
+              description={KUBERNETES_COST_METRIC_DESCRIPTIONS.totalSpend}
             />
             <GoldenMetricTile
               title="Workload Spend"
@@ -441,6 +465,7 @@ const KubernetesClusterCosts: FunctionComponent<
               iconColor="blue"
               value={isLoading ? "—" : formatCost(workloadSpend)}
               sublabel="namespaces and workloads"
+              description={KUBERNETES_COST_METRIC_DESCRIPTIONS.workloadSpend}
             />
             <GoldenMetricTile
               title="Idle Spend"
@@ -448,6 +473,7 @@ const KubernetesClusterCosts: FunctionComponent<
               iconColor="amber"
               value={isLoading ? "—" : formatCost(idleSpend)}
               sublabel="provisioned but unused"
+              description={KUBERNETES_COST_METRIC_DESCRIPTIONS.idleSpend}
             />
             <GoldenMetricTile
               title="Idle %"
@@ -461,6 +487,7 @@ const KubernetesClusterCosts: FunctionComponent<
               sublabel="share of total spend"
               percent={isLoading ? null : idlePercent}
               thresholds={{ warn: 25, danger: 40 }}
+              description={KUBERNETES_COST_METRIC_DESCRIPTIONS.idlePercent}
             />
           </div>
           {isLoading ? (

@@ -61,12 +61,23 @@ import {
   getTotalCostElement,
   noCostDataMessage,
 } from "./Utils/KubernetesCostTableCells";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { KUBERNETES_COST_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 
-function getSectionTitle(icon: IconProp, title: string): ReactElement {
+/*
+ * `description` explains a section whose chart has no title of its own -
+ * the spend trend under the tiles - in an (i) beside the section title.
+ */
+function getSectionTitle(
+  icon: IconProp,
+  title: string,
+  description?: string | undefined,
+): ReactElement {
   return (
     <div className="flex items-center gap-2">
       <Icon icon={icon} className="h-5 w-5 text-gray-500" />
       <span>{title}</span>
+      <InfoTooltip label={title} text={description} />
     </div>
   );
 }
@@ -240,6 +251,7 @@ const KubernetesCosts: FunctionComponent<
       },
       {
         title: "Workload",
+        headerTooltip: KUBERNETES_COST_METRIC_DESCRIPTIONS.clusterWorkloadCost,
         type: FieldType.Element,
         key: "workloadCost",
         getElement: (row: ClusterCostRow): ReactElement => {
@@ -248,6 +260,7 @@ const KubernetesCosts: FunctionComponent<
       },
       {
         title: "Idle",
+        headerTooltip: KUBERNETES_COST_METRIC_DESCRIPTIONS.clusterIdleCost,
         type: FieldType.Element,
         key: "idleCost",
         getElement: (row: ClusterCostRow): ReactElement => {
@@ -256,6 +269,7 @@ const KubernetesCosts: FunctionComponent<
       },
       {
         title: "Total",
+        headerTooltip: KUBERNETES_COST_METRIC_DESCRIPTIONS.clusterTotalCost,
         type: FieldType.Element,
         key: "totalCost",
         getElement: (row: ClusterCostRow): ReactElement => {
@@ -264,6 +278,7 @@ const KubernetesCosts: FunctionComponent<
       },
       {
         title: "Efficiency",
+        headerTooltip: KUBERNETES_COST_METRIC_DESCRIPTIONS.clusterEfficiency,
         type: FieldType.Element,
         key: "efficiency",
         getElement: (row: ClusterCostRow): ReactElement => {
@@ -328,7 +343,11 @@ const KubernetesCosts: FunctionComponent<
   return (
     <Fragment>
       <EmbeddedMetricCard
-        title={getSectionTitle(IconProp.Billing, "Kubernetes Spend")}
+        title={getSectionTitle(
+          IconProp.Billing,
+          "Kubernetes Spend",
+          KUBERNETES_COST_METRIC_DESCRIPTIONS.fleetSpendTrend,
+        )}
         description="Total cost allocated across every Kubernetes cluster in this project."
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}
@@ -342,6 +361,7 @@ const KubernetesCosts: FunctionComponent<
               iconColor="emerald"
               value={isLoading ? "—" : formatCost(totalSpend)}
               sublabel={isLoading ? "loading" : `across ${clusterCountLabel}`}
+              description={KUBERNETES_COST_METRIC_DESCRIPTIONS.fleetTotalSpend}
             />
             <GoldenMetricTile
               title="Workload Spend"
@@ -349,6 +369,9 @@ const KubernetesCosts: FunctionComponent<
               iconColor="blue"
               value={isLoading ? "—" : formatCost(totalSpend - idleSpend)}
               sublabel="attributed to workloads"
+              description={
+                KUBERNETES_COST_METRIC_DESCRIPTIONS.fleetWorkloadSpend
+              }
             />
             <GoldenMetricTile
               title="Idle Spend"
@@ -356,6 +379,7 @@ const KubernetesCosts: FunctionComponent<
               iconColor="amber"
               value={isLoading ? "—" : formatCost(idleSpend)}
               sublabel="provisioned but unused"
+              description={KUBERNETES_COST_METRIC_DESCRIPTIONS.fleetIdleSpend}
             />
             <GoldenMetricTile
               title="Idle %"
@@ -369,6 +393,7 @@ const KubernetesCosts: FunctionComponent<
               sublabel="share of total spend"
               percent={isLoading ? null : idlePercent}
               thresholds={{ warn: 25, danger: 40 }}
+              description={KUBERNETES_COST_METRIC_DESCRIPTIONS.fleetIdlePercent}
             />
           </div>
           {isLoading ? (

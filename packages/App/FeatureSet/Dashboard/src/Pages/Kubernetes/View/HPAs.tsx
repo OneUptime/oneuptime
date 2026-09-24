@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
@@ -135,18 +136,24 @@ const KubernetesClusterHPAs: FunctionComponent<
         {
           title: "Min Replicas",
           key: "minReplicas",
+          description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaMinReplicas,
         },
         {
           title: "Max Replicas",
           key: "maxReplicas",
+          description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaMaxReplicas,
         },
         {
           title: "Current",
           key: "currentReplicas",
+          description:
+            KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaCurrentReplicas,
         },
         {
           title: "Desired",
           key: "desiredReplicas",
+          description:
+            KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.hpaDesiredReplicas,
         },
       ]}
       getViewRoute={(resource: KubernetesResource) => {
