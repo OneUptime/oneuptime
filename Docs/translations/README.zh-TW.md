@@ -196,6 +196,7 @@ helm install oneuptime oneuptime/oneuptime
 - **Proxmox** — 節點、VM、容器、儲存、HA 狀態、備份覆蓋率與複寫健康狀態。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter、ESXi 主機、虛擬機器、資料存放區、叢集、資源集區與 vSAN。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — 叢集健康狀態、容量預測，以及 OSD／pool／PG／monitor 的可視性。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **資料庫** — PostgreSQL、MySQL、Redis、MongoDB 等，可從應用程式追蹤、Kubernetes 與 Docker 自動偵測，並透過僅需設定的 Collector 代理取得引擎指標、查詢樣本與日誌。[文件 →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
 

@@ -196,6 +196,7 @@ Lägg in kopiera-och-klistra-agenter **baserade på OpenTelemetry** för att bev
 - **Proxmox** — noder, VM:er, containrar, lagring, HA-status, backuptäckning och replikeringshälsa. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/proxmox.md)
 - **VMware** — vCenter, ESXi-värdar, virtuella maskiner, datastores, kluster, resurspooler och vSAN. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/vmware.md)
 - **Ceph** — klusterhälsa, kapacitetsprognoser och insyn i OSD/pool/PG/monitor. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/ceph.md)
+- **Databaser** — PostgreSQL, MySQL, Redis, MongoDB med flera, upptäckta automatiskt från applikationsspår, Kubernetes och Docker, med motormått, frågeexempel och loggar från en collector-agent som bara består av konfiguration. [Dokumentation →](/packages/App/FeatureSet/Docs/Content/en/telemetry/databases.md)
 
 ---
 
