@@ -13,8 +13,10 @@ import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import RangeStartAndEndDateView from "Common/UI/Components/Date/RangeStartAndEndDateView";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import fillFlowSeriesGaps from "./FlowSeriesUtil";
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { APP_API_URL } from "Common/UI/Config";
@@ -215,20 +217,72 @@ const parseResponse: (data: JSONObject | undefined) => TopTalkersData = (
   };
 };
 
+export interface FlowSectionTitleProps {
+  title: string;
+  // What the section's numbers mean, in the (i) beside the title.
+  description: string;
+}
+
+/*
+ * The heading over one block of the card — the bandwidth chart or one of the
+ * top-N tables — with the (i) that says what its numbers are: which window,
+ * how many rows at most, and that Bytes / Packets are totals per row.
+ */
+export const FlowSectionTitle: FunctionComponent<FlowSectionTitleProps> = (
+  props: FlowSectionTitleProps,
+): ReactElement => {
+  return (
+    <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-900">
+      <span>{props.title}</span>
+      <InfoTooltip label={props.title} text={props.description} />
+    </div>
+  );
+};
+
+export interface FlowStatTileProps {
+  title: string;
+  value: string;
+  // What the value means, in the (i) beside the title.
+  description: string;
+}
+
+/*
+ * One of the three window totals above the chart. The card only renders
+ * these once the data is in (the loading state is the card's own loader),
+ * so there is no skeleton branch to carry the (i).
+ */
+export const FlowStatTile: FunctionComponent<FlowStatTileProps> = (
+  props: FlowStatTileProps,
+): ReactElement => {
+  return (
+    <div className="rounded-md border border-gray-200 p-4">
+      <div className="flex items-center gap-1">
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+          {props.title}
+        </span>
+        <InfoTooltip label={props.title} text={props.description} />
+      </div>
+      <div className="mt-1 text-2xl font-semibold text-gray-900">
+        {props.value}
+      </div>
+    </div>
+  );
+};
+
 const TopEntryTable: FunctionComponent<{
   title: string;
+  description: string;
   keyHeader: string;
   entries: Array<TopEntry>;
 }> = (props: {
   title: string;
+  description: string;
   keyHeader: string;
   entries: Array<TopEntry>;
 }): ReactElement => {
   return (
     <div>
-      <div className="text-sm font-medium text-gray-900 mb-2">
-        {props.title}
-      </div>
+      <FlowSectionTitle title={props.title} description={props.description} />
       <table className="min-w-full">
         <thead>
           <tr>
@@ -493,37 +547,29 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
       {!isLoading && !error && data && data.totalFlows > 0 ? (
         <div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <div className="rounded-md border border-gray-200 p-4">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Total Traffic
-              </div>
-              <div className="mt-1 text-2xl font-semibold text-gray-900">
-                {formatBytes(data.totalOctets)}
-              </div>
-            </div>
-            <div className="rounded-md border border-gray-200 p-4">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Packets
-              </div>
-              <div className="mt-1 text-2xl font-semibold text-gray-900">
-                {formatCount(data.totalPackets)}
-              </div>
-            </div>
-            <div className="rounded-md border border-gray-200 p-4">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Flows
-              </div>
-              <div className="mt-1 text-2xl font-semibold text-gray-900">
-                {formatCount(data.totalFlows)}
-              </div>
-            </div>
+            <FlowStatTile
+              title="Total Traffic"
+              value={formatBytes(data.totalOctets)}
+              description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTotalTraffic}
+            />
+            <FlowStatTile
+              title="Packets"
+              value={formatCount(data.totalPackets)}
+              description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowPackets}
+            />
+            <FlowStatTile
+              title="Flows"
+              value={formatCount(data.totalFlows)}
+              description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowCount}
+            />
           </div>
 
           {data.series.length > 0 ? (
             <div className="mb-6">
-              <div className="text-sm font-medium text-gray-900 mb-2">
-                Bandwidth Over Time
-              </div>
+              <FlowSectionTitle
+                title="Bandwidth Over Time"
+                description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowBandwidth}
+              />
               <BandwidthOverTimeChart
                 series={fillFlowSeriesGaps(
                   data.series,
@@ -541,11 +587,15 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <TopEntryTable
               title="Top Sources"
+              description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTopSources}
               keyHeader="Source IP"
               entries={data.topSources}
             />
             <TopEntryTable
               title="Top Destinations"
+              description={
+                NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTopDestinations
+              }
               keyHeader="Destination IP"
               entries={data.topDestinations}
             />
@@ -553,9 +603,12 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
 
           {data.topConversations.length > 0 ? (
             <div className="mt-6">
-              <div className="text-sm font-medium text-gray-900 mb-2">
-                Top Conversations
-              </div>
+              <FlowSectionTitle
+                title="Top Conversations"
+                description={
+                  NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTopConversations
+                }
+              />
               <table className="min-w-full">
                 <thead>
                   <tr>
@@ -598,9 +651,12 @@ const FlowTopTalkers: FunctionComponent<ComponentProps> = (
           )}
 
           <div className="mt-6">
-            <div className="text-sm font-medium text-gray-900 mb-2">
-              Top Protocols &amp; Ports
-            </div>
+            <FlowSectionTitle
+              title="Top Protocols & Ports"
+              description={
+                NETWORK_DEVICE_METRIC_DESCRIPTIONS.flowTopProtocolsPorts
+              }
+            />
             <table className="min-w-full">
               <thead>
                 <tr>

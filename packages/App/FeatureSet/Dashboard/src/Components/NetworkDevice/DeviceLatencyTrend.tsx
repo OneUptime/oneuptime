@@ -1,5 +1,6 @@
 import MetricSparkline from "../Metrics/MetricSparkline";
 import MetricUtil from "../Metrics/Utils/Metrics";
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
@@ -21,6 +22,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import Link from "Common/UI/Components/Link/Link";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import ProjectUtil from "Common/UI/Utils/Project";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import React, {
@@ -176,12 +178,27 @@ const DeviceLatencyTrend: FunctionComponent<ComponentProps> = (
     { modelId: props.networkDeviceId },
   );
 
+  const trendTitle: string =
+    translateString("Round-trip time, past hour") ||
+    "Round-trip time, past hour";
+  const lossTitle: string =
+    translateString("Packet loss (1h max)") || "Packet loss (1h max)";
+
   return (
     <div data-testid="network-device-latency-trend">
       <div className="flex items-center justify-between gap-4">
-        <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          {translateString("Round-trip time, past hour") ||
-            "Round-trip time, past hour"}
+        {/*
+         * The (i) says what now / avg / max are: per-minute averages, so
+         * "max" is the slowest minute and not the slowest single ping.
+         */}
+        <span className="flex items-center gap-1">
+          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            {trendTitle}
+          </span>
+          <InfoTooltip
+            label={trendTitle}
+            text={NETWORK_DEVICE_METRIC_DESCRIPTIONS.latencyTrend}
+          />
         </span>
         <Link
           to={metricsRoute}
@@ -220,10 +237,19 @@ const DeviceLatencyTrend: FunctionComponent<ComponentProps> = (
               summary.max,
             )}`}
           </p>
-          <p data-testid="network-device-loss-summary">
-            {`${
-              translateString("Packet loss (1h max)") || "Packet loss (1h max)"
-            }: ${lossSummary ? formatPercent(lossSummary.max) : "—"}`}
+          <p
+            data-testid="network-device-loss-summary"
+            className="flex items-center gap-1"
+          >
+            <span>
+              {`${lossTitle}: ${
+                lossSummary ? formatPercent(lossSummary.max) : "—"
+              }`}
+            </span>
+            <InfoTooltip
+              label={lossTitle}
+              text={NETWORK_DEVICE_METRIC_DESCRIPTIONS.packetLossPeak}
+            />
           </p>
         </div>
       ) : (

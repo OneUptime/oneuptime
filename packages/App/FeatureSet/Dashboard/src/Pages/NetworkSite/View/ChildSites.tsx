@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import AppLink from "../../../Components/AppLink/AppLink";
 import MonitorStatusElement from "../../../Components/MonitorStatus/MonitorStatusElement";
+import { NETWORK_SITE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/NetworkSiteMetricDescriptions";
 import { fetchChildNetworkSiteTypeOptions } from "../../../Components/NetworkSite/NetworkSiteFormDropdownOptions";
 import Route from "Common/Types/API/Route";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
@@ -184,6 +185,7 @@ const NetworkSiteChildSites: FunctionComponent<
               },
             },
             title: "Status",
+            headerTooltip: NETWORK_SITE_METRIC_DESCRIPTIONS.childSiteStatus,
             type: FieldType.Entity,
             getElement: (item: NetworkSite): ReactElement => {
               if (!item.currentMonitorStatus) {

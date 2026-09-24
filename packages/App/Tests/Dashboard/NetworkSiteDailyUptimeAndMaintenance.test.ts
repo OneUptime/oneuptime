@@ -160,11 +160,11 @@ describe("SiteStatusHero shows a daily figure beside the 30-day one", () => {
   test("the grid has a column for every tile it renders", () => {
     /*
      * Seven tiles in a six-column grid wraps one of them onto its own row
-     * on wide screens, which reads as a rendering bug.
+     * on wide screens, which reads as a rendering bug. Every tile opens with
+     * the shared title (which carries its (i)), so the titles count them.
      */
-    const tileCount: number = (
-      source.match(/className="text-sm font-medium text-gray-500"/g) || []
-    ).length;
+    const tileCount: number = (source.match(/<SiteHeroTileTitle\b/g) || [])
+      .length;
     expect(tileCount).toBe(7);
     expect(source).toContain("xl:grid-cols-7");
     expect(source).toContain(squash("{[0, 1, 2, 3, 4, 5, 6].map("));

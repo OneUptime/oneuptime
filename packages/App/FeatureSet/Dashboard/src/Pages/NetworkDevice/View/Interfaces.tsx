@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/NetworkDeviceMetricDescriptions";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -192,6 +193,7 @@ const NetworkDeviceInterfaces: FunctionComponent<
         <div className="mb-5 grid grid-cols-2 gap-4 xl:grid-cols-4">
           <InfoCard
             title="Total Interfaces"
+            tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.totalInterfaces}
             value={
               <div className="mt-1 text-3xl font-semibold text-gray-900">
                 {counts.total}
@@ -200,6 +202,7 @@ const NetworkDeviceInterfaces: FunctionComponent<
           />
           <InfoCard
             title="Up"
+            tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.interfacesUp}
             value={
               <div className="mt-1 text-3xl font-semibold text-emerald-600">
                 {counts.up}
@@ -208,6 +211,7 @@ const NetworkDeviceInterfaces: FunctionComponent<
           />
           <InfoCard
             title="Down"
+            tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.interfacesDown}
             value={
               <div
                 className={`mt-1 text-3xl font-semibold ${
@@ -220,6 +224,7 @@ const NetworkDeviceInterfaces: FunctionComponent<
           />
           <InfoCard
             title="Monitored"
+            tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.interfacesMonitored}
             value={
               <div className="mt-1 text-3xl font-semibold text-gray-900">
                 {counts.monitored}
@@ -347,6 +352,7 @@ const NetworkDeviceInterfaces: FunctionComponent<
               isOperationallyUp: true,
             },
             title: "Status",
+            headerTooltip: NETWORK_DEVICE_METRIC_DESCRIPTIONS.interfaceStatus,
             type: FieldType.Element,
             getElement: (item: NetworkInterface): ReactElement => {
               return getInterfaceStatusElement(item);
@@ -365,6 +371,7 @@ const NetworkDeviceInterfaces: FunctionComponent<
               speedInMbps: true,
             },
             title: "Speed (Mbps)",
+            headerTooltip: NETWORK_DEVICE_METRIC_DESCRIPTIONS.interfaceSpeed,
             type: FieldType.Number,
             hideOnMobile: true,
           },
@@ -373,6 +380,8 @@ const NetworkDeviceInterfaces: FunctionComponent<
               inRateMbps: true,
             },
             title: "In / Out (Mbps)",
+            headerTooltip:
+              NETWORK_DEVICE_METRIC_DESCRIPTIONS.interfaceInOutRate,
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: NetworkInterface): ReactElement => {
@@ -394,6 +403,8 @@ const NetworkDeviceInterfaces: FunctionComponent<
               utilizationPercent: true,
             },
             title: "Utilization",
+            headerTooltip:
+              NETWORK_DEVICE_METRIC_DESCRIPTIONS.interfaceUtilization,
             type: FieldType.Percent,
             hideOnMobile: true,
           },
@@ -402,6 +413,8 @@ const NetworkDeviceInterfaces: FunctionComponent<
               errorsPerSecond: true,
             },
             title: "Errors / sec",
+            headerTooltip:
+              NETWORK_DEVICE_METRIC_DESCRIPTIONS.interfaceErrorsPerSecond,
             type: FieldType.Number,
             hideOnMobile: true,
           },

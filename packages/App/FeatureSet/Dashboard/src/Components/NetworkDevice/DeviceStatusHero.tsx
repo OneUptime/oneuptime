@@ -20,6 +20,7 @@ import DeviceStatusUtil, {
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 import Route from "Common/Types/API/Route";
 import { Gray500, Green, Red500, Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
@@ -27,6 +28,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import React, {
@@ -39,6 +41,31 @@ import React, {
 export interface ComponentProps {
   modelId: ObjectID;
 }
+
+export interface DeviceHeroTileTitleProps {
+  title: string;
+  // What the tile's value means, in the (i) beside the title.
+  description?: string | undefined;
+}
+
+/*
+ * A hero tile's title, with the (i) that says what the value under it means
+ * — "Reachability" and "Monitor Status" in particular read like the same
+ * thing until someone explains that one is the last poll and the other is
+ * the monitor that raises incidents. Tiles that only name something (Site,
+ * Polled By) pass no description and get no (i). The loading skeleton draws
+ * no titles at all, so this is the only branch that needs one.
+ */
+export const DeviceHeroTileTitle: FunctionComponent<
+  DeviceHeroTileTitleProps
+> = (props: DeviceHeroTileTitleProps): ReactElement => {
+  return (
+    <div className="flex items-center gap-1 text-sm font-medium text-gray-500">
+      <span>{props.title}</span>
+      <InfoTooltip label={props.title} text={props.description} />
+    </div>
+  );
+};
 
 /*
  * Status hero for the device Overview: answers "is this device OK right
@@ -321,7 +348,10 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
     >
       <div className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 xl:grid-cols-6">
         <div>
-          <div className="text-sm font-medium text-gray-500">Reachability</div>
+          <DeviceHeroTileTitle
+            title="Reachability"
+            description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.reachability}
+          />
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             {getReachabilityPill()}
             {isUnbound && (
@@ -387,9 +417,10 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
         </div>
 
         <div>
-          <div className="text-sm font-medium text-gray-500">
-            Monitor Status
-          </div>
+          <DeviceHeroTileTitle
+            title="Monitor Status"
+            description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.monitorStatus}
+          />
           <div className="mt-1.5">
             {device.currentMonitorStatus?.name ? (
               <Pill
@@ -422,7 +453,10 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
         </div>
 
         <div>
-          <div className="text-sm font-medium text-gray-500">Interfaces</div>
+          <DeviceHeroTileTitle
+            title="Interfaces"
+            description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.heroInterfaces}
+          />
           {/*
            * Interface counts come from a successful SNMP walk and nothing
            * else. A device that is pinged and never walked has none — "0 up
@@ -486,16 +520,17 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
         </div>
 
         <div>
-          <div className="text-sm font-medium text-gray-500">
-            Hardware Uptime
-          </div>
+          <DeviceHeroTileTitle
+            title="Hardware Uptime"
+            description={NETWORK_DEVICE_METRIC_DESCRIPTIONS.hardwareUptime}
+          />
           <div className="mt-1.5 text-sm text-gray-900">
             {uptimeText || <span className="text-gray-400">Unknown</span>}
           </div>
         </div>
 
         <div>
-          <div className="text-sm font-medium text-gray-500">Site</div>
+          <DeviceHeroTileTitle title="Site" />
           <div className="mt-1.5 text-sm">
             {siteRoute && device.site?.name ? (
               <AppLink
@@ -511,7 +546,7 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
         </div>
 
         <div>
-          <div className="text-sm font-medium text-gray-500">Polled By</div>
+          <DeviceHeroTileTitle title="Polled By" />
           <div className="mt-1.5 text-sm text-gray-900">
             {isMonitorBacked ? (
               /*
