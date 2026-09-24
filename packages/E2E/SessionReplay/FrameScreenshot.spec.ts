@@ -52,6 +52,13 @@ const mobileRecordedWidth: number = 390;
 const mobileRecordedHeight: number = 844;
 /* ReplayFrameCapture's REPLAY_FRAME_MAX_PIXEL_RATIO. */
 const maxPixelRatio: number = 2;
+/* ReplayScreenshotActions' REPLAY_SCREENSHOT_PREVIEW_MS: the card's time. */
+const previewMs: number = 5000;
+/*
+ * ReplayScreenshotActions' REPLAY_SCREENSHOT_COMPACT_STAGE_PX: a shorter
+ * dock column (a phone's stage) gets the pill instead of the card.
+ */
+const compactStagePx: number = 320;
 /* The first eight characters of the fixture's session id, then the playhead. */
 const FILE_NAME_PATTERN: RegExp =
   /^session-replay-aaaaaaaa-\d+m\d{2}\.\ds\.png$/;
@@ -59,7 +66,14 @@ const FILE_OFFSET_PATTERN: RegExp = /-(?:(\d+)h)?(\d+)m(\d{2})\.(\d)s\.png$/;
 const CLOCK_PATTERN: RegExp = /(\d+):(\d+(?:\.\d+)?)\s*\//;
 const CSS_RGB_PATTERN: RegExp = /rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/;
 const PNG_SIGNATURE_HEX: string = "89504e470d0a1a0a";
-const SIZE_DETAIL: string = `${recordedWidth} × ${recordedHeight} PNG`;
+
+/*
+ * What the copy card says: the PNG's own pixel size, which is the
+ * recorded viewport at the density it was drawn at.
+ */
+const sizeDetail: (ratio: number) => string = (ratio: number): string => {
+  return `${recordedWidth * ratio} × ${recordedHeight * ratio} PNG`;
+};
 
 type Rgb = [number, number, number];
 
@@ -273,11 +287,162 @@ const isTopmostAtCentre: (locator: Locator) => Promise<boolean> = async (
   });
 };
 
+/*
+ * What a pointer at the page point would hit: the replay pointer, or the
+ * nearest testid around the element there, or its tag.
+ */
+const hitAt: (page: Page, point: PixelPoint) => Promise<string> = async (
+  page: Page,
+  point: PixelPoint,
+): Promise<string> => {
+  return page.evaluate((at: PixelPoint): string => {
+    const hit: Element | null = document.elementFromPoint(at.x, at.y);
+
+    if (!hit) {
+      return "(nothing)";
+    }
+
+    if (hit.closest(".replayer-mouse")) {
+      return "replayer-mouse";
+    }
+
+    const owner: Element | null = hit.closest("[data-testid]");
+
+    return owner
+      ? owner.getAttribute("data-testid") ?? ""
+      : `<${hit.tagName.toLowerCase()}>`;
+  }, point);
+};
+
+/*
+ * Parks the Replayer's pointer (stage chrome, in the Dashboard document) at
+ * a spot in its wrapper's coordinates, as a square of the given size. It is
+ * pointer-events: none on the stage, which would hide it from
+ * elementFromPoint whatever it painted over; here it is hit-testable, so a
+ * hit test says which of it and an overlay is on top.
+ */
+const parkReplayPointer: (
+  page: Page,
+  spot: { left: number; top: number; size: number },
+) => Promise<void> = async (
+  page: Page,
+  spot: { left: number; top: number; size: number },
+): Promise<void> => {
+  await page.evaluate(
+    (at: { left: number; top: number; size: number }): void => {
+      let style: HTMLElement | null = document.getElementById(
+        "e2e-parked-replay-pointer",
+      );
+
+      if (!style) {
+        style = document.createElement("style");
+        style.id = "e2e-parked-replay-pointer";
+        document.head.appendChild(style);
+      }
+
+      style.textContent = `.replayer-mouse { display: block !important; visibility: visible !important; left: ${at.left}px !important; top: ${at.top}px !important; width: ${at.size}px !important; height: ${at.size}px !important; margin: 0px !important; transition: none !important; pointer-events: auto !important; }`;
+    },
+    spot,
+  );
+};
+
 const devicePixelRatio: (page: Page) => Promise<number> = async (
   page: Page,
 ): Promise<number> => {
   return page.evaluate((): number => {
     return window.devicePixelRatio;
+  });
+};
+
+/* Every edge of `inner` within `outer`, give or take a sub-pixel. */
+const expectWithin: (
+  inner: ElementBox,
+  outer: ElementBox,
+  label: string,
+) => void = (inner: ElementBox, outer: ElementBox, label: string): void => {
+  expect(inner.x, `${label}: left edge`).toBeGreaterThanOrEqual(outer.x - 1);
+  expect(inner.y, `${label}: top edge`).toBeGreaterThanOrEqual(outer.y - 1);
+  expect(inner.x + inner.width, `${label}: right edge`).toBeLessThanOrEqual(
+    outer.x + outer.width + 1,
+  );
+  expect(inner.y + inner.height, `${label}: bottom edge`).toBeLessThanOrEqual(
+    outer.y + outer.height + 1,
+  );
+};
+
+const overlaps: (first: ElementBox, second: ElementBox) => boolean = (
+  first: ElementBox,
+  second: ElementBox,
+): boolean => {
+  return (
+    first.x < second.x + second.width &&
+    second.x < first.x + first.width &&
+    first.y < second.y + second.height &&
+    second.y < first.y + first.height
+  );
+};
+
+/* What has the keyboard focus: its testid, or its tag when it has none. */
+const focusedControl: (page: Page) => Promise<string> = async (
+  page: Page,
+): Promise<string> => {
+  return page.evaluate((): string => {
+    const active: Element | null = document.activeElement;
+
+    if (!active) {
+      return "(nothing)";
+    }
+
+    return (
+      active.getAttribute("data-testid") ?? `<${active.tagName.toLowerCase()}>`
+    );
+  });
+};
+
+/*
+ * Records every phase word the player shows from now on, so a test can
+ * say playback never resumed - not just that it is paused when checked.
+ */
+const watchPhase: (page: Page) => Promise<void> = async (
+  page: Page,
+): Promise<void> => {
+  await page.evaluate((): void => {
+    const element: Element | null = document.querySelector(
+      '[data-testid="replay-phase"]',
+    );
+
+    if (!element) {
+      throw new Error("No replay phase to watch.");
+    }
+
+    const seen: Array<string> = [element.textContent ?? ""];
+
+    Object.defineProperty(window, "__replayPhases", {
+      value: seen,
+      configurable: true,
+    });
+
+    new MutationObserver((): void => {
+      const text: string = element.textContent ?? "";
+
+      if (seen[seen.length - 1] !== text) {
+        seen.push(text);
+      }
+    }).observe(element, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    });
+  });
+};
+
+const phaseHistory: (page: Page) => Promise<Array<string>> = async (
+  page: Page,
+): Promise<Array<string>> => {
+  return page.evaluate((): Array<string> => {
+    return (
+      window as unknown as { __replayPhases: Array<string> }
+    ).__replayPhases.slice();
   });
 };
 
@@ -643,6 +808,37 @@ const liveBackgroundAt: (
     }, point);
 
   return parseCssColour(css);
+};
+
+/*
+ * The stage's pointer (the Replayer's .replayer-mouse, stage chrome outside
+ * the replay document) on the page, once its CSS move to the last recorded
+ * position has settled.
+ */
+const settledPointerBox: (page: Page) => Promise<ElementBox> = async (
+  page: Page,
+): Promise<ElementBox> => {
+  const pointer: Locator = page.locator(".replayer-mouse").first();
+  const settled: { box: ElementBox | null } = { box: null };
+
+  await expect
+    .poll(
+      async (): Promise<boolean> => {
+        const current: ElementBox = await boxOf(pointer);
+        const isSettled: boolean =
+          settled.box !== null &&
+          Math.abs(settled.box.x - current.x) < 0.5 &&
+          Math.abs(settled.box.y - current.y) < 0.5;
+
+        settled.box = current;
+
+        return isSettled;
+      },
+      { intervals: [250] },
+    )
+    .toBe(true);
+
+  return settled.box!;
 };
 
 /* ---- Instrumentation installed before the page loads. ---- */
@@ -1022,6 +1218,12 @@ test("the confirmation card can be dismissed by hand", async ({
   /* The dock stays: the frame can be taken again. */
   await expect(dock(page)).toBeVisible();
   await expect(downloadButton(page)).toBeEnabled();
+  /*
+   * The click focused the dismiss button; the card hands that focus back
+   * to the button it was about rather than dropping it on <body>, where
+   * the next Space would be the player's play/pause.
+   */
+  expect(await focusedControl(page)).toBe("replay-screenshot-download");
   /* Dismissing released the thumbnail's object URL straight away. */
   expect(
     await page.evaluate(async (url: string): Promise<string> => {
@@ -1033,6 +1235,60 @@ test("the confirmation card can be dismissed by hand", async ({
       }
     }, thumbnailUrl),
   ).toBe("revoked");
+});
+
+test("the confirmation card stays while the pointer is on it and leaves once the pointer has gone", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPlayer(page);
+  await pausePlayer(page);
+  await downloadFrame(page);
+
+  const card: Locator = preview(page);
+
+  await expect(card).toBeVisible();
+  await expect(card).not.toHaveAttribute("data-compact", "true");
+
+  /*
+   * Onto the card before its time is up. It was shown before heldAt, so
+   * outliving heldAt + previewMs is outliving its own timer.
+   */
+  await card.hover();
+
+  const heldAt: number = Date.now();
+
+  await expect
+    .poll(
+      async (): Promise<string> => {
+        if ((await card.count()) === 0) {
+          return `gone ${Date.now() - heldAt}ms into the hover`;
+        }
+
+        return Date.now() - heldAt > previewMs + 1000 ? "held" : "holding";
+      },
+      { timeout: previewMs + 10000, intervals: [250] },
+    )
+    .toBe("held");
+  await expect(page.getByTestId("replay-screenshot-thumbnail")).toBeVisible();
+
+  /* Off the card, onto the stage: its time starts again... */
+  const stage: ElementBox = await boxOf(
+    page.getByTestId("replay-stage-container"),
+  );
+
+  await page.mouse.move(stage.x + 24, stage.y + stage.height / 2);
+
+  const leftAt: number = Date.now();
+
+  await expect(card).toBeVisible();
+
+  /* ...and it leaves by itself, a full preview time after the pointer did. */
+  await expect(card).toHaveCount(0, { timeout: previewMs + 5000 });
+  expect(Date.now() - leftAt).toBeGreaterThanOrEqual(previewMs - 500);
+  await expect(dock(page)).toBeVisible();
+  await expect(phase(page)).toHaveText("paused");
 });
 
 test("the downloaded picture is the paused page, pixel for pixel on flat colour", async ({
@@ -1386,8 +1642,9 @@ test("copy image puts the paused frame on the clipboard as a png", async ({
   await expect(card).toBeVisible();
   await expect(card).toHaveAttribute("data-action", "copy");
   await expect(card).toContainText("Copied to clipboard");
+  await expect(preview(page)).not.toHaveAttribute("data-compact", "true");
   await expect(page.getByTestId("replay-screenshot-preview-detail")).toHaveText(
-    SIZE_DETAIL,
+    sizeDetail(ratio),
   );
   await expect(page.getByTestId("replay-screenshot-thumbnail")).toBeVisible();
   await expect(page.getByTestId("replay-screenshot-status")).toHaveText(
@@ -1781,11 +2038,28 @@ test("the dock is busy while a frame is drawn and a second press starts nothing"
 
   await expect(downloadButton(page)).toHaveAttribute("data-state", "busy");
   await expect(downloadButton(page)).toHaveAttribute("aria-busy", "true");
+  /*
+   * Busy is announced, not enforced: aria-disabled, so assistive tech (and
+   * Playwright) reads the button as disabled, while the native disabled
+   * property stays off - a disabled button would drop keyboard focus.
+   */
   await expect(downloadButton(page)).toBeDisabled();
+  await expect(downloadButton(page)).toHaveAttribute("aria-disabled", "true");
+  await expect(downloadButton(page)).toHaveJSProperty("disabled", false);
   /* The other action waits too: one capture at a time. */
   await expect(copyButton(page)).toBeDisabled();
+  await expect(copyButton(page)).toHaveAttribute("aria-disabled", "true");
+  await expect(copyButton(page)).toHaveJSProperty("disabled", false);
   await expect(copyButton(page)).toHaveAttribute("data-state", "idle");
   await expect(copyButton(page)).not.toHaveAttribute("aria-busy", "true");
+
+  /* A press on the other button, which still takes clicks, starts nothing. */
+  await copyButton(page).evaluate((button: HTMLButtonElement): void => {
+    button.click();
+  });
+  await expect(copyButton(page)).toHaveAttribute("data-state", "idle");
+  await expect(failureCard(page)).toHaveCount(0);
+  expect((await pngEncoder(page)).calls).toBe(1);
 
   await releasePngEncoder(page);
 
@@ -1795,6 +2069,8 @@ test("the dock is busy while a frame is drawn and a second press starts nothing"
   await expect(downloadButton(page)).toHaveAttribute("data-state", "done");
   await expect(downloadButton(page)).toBeEnabled();
   await expect(copyButton(page)).toBeEnabled();
+  await expect(downloadButton(page)).not.toHaveAttribute("aria-disabled");
+  await expect(copyButton(page)).not.toHaveAttribute("aria-disabled");
   await expect(downloadButton(page)).not.toHaveAttribute("aria-busy", "true");
   await expect(downloadButton(page)).toHaveAttribute("data-state", "idle", {
     timeout: 5000,
@@ -1892,29 +2168,10 @@ test("a seek while paused names the next screenshot after the new playhead and d
    * moved onto the page, and the stage's pointer is drawn into the PNG
    * where the stage shows it. Located on the stage, once its move settles.
    */
-  const pointer: Locator = page.locator(".replayer-mouse").first();
-  const settled: { box: ElementBox | null } = { box: null };
-
-  await expect
-    .poll(
-      async (): Promise<boolean> => {
-        const current: ElementBox = await boxOf(pointer);
-        const isSettled: boolean =
-          settled.box !== null &&
-          Math.abs(settled.box.x - current.x) < 0.5 &&
-          Math.abs(settled.box.y - current.y) < 0.5;
-
-        settled.box = current;
-
-        return isSettled;
-      },
-      { intervals: [250] },
-    )
-    .toBe(true);
-
+  const pointerBox: ElementBox = await settledPointerBox(page);
   const projection: StageProjection = await stageProjection(page);
   const pointerCentre: PixelPoint = centreOf(
-    toRecordedBox(projection, settled.box!),
+    toRecordedBox(projection, pointerBox),
   );
   const pointerRegion: PixelRegion = {
     x: (pointerCentre.x - 2) * ratio,
@@ -2289,6 +2546,149 @@ test("the dock works from the keyboard without reaching the player's shortcuts",
   await expect(dock(page)).toBeVisible();
 });
 
+test("copy from the keyboard keeps the focus on its button through the capture, so a following Space never resumes playback", async ({
+  page,
+  context,
+}: {
+  page: Page;
+  context: BrowserContext;
+}) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+    origin: fixtureOrigin,
+  });
+  await instrumentPngEncoder(page);
+  await openPlayer(page);
+  await pausePlayer(page);
+  await watchPhase(page);
+
+  /* The dock is the next stop after the stage's own Play button. */
+  await page.getByTestId("replay-overlay-paused").focus();
+  await page.keyboard.press("Tab");
+  await expect(copyButton(page)).toBeFocused();
+
+  /* Held mid-capture, to look at the busy button while it has the focus. */
+  await setPngEncoder(page, { hold: true });
+  await page.keyboard.press("Enter");
+  await expect
+    .poll(async (): Promise<number> => {
+      return (await pngEncoder(page)).calls;
+    })
+    .toBe(1);
+  await expect(copyButton(page)).toHaveAttribute("data-state", "busy");
+  await expect(copyButton(page)).toHaveAttribute("aria-disabled", "true");
+  expect(await focusedControl(page)).toBe("replay-screenshot-copy");
+
+  /*
+   * Space while it is busy belongs to the button, which starts nothing
+   * (one capture at a time) - not to the player's play/pause.
+   */
+  await page.keyboard.press("Space");
+  expect(await focusedControl(page)).toBe("replay-screenshot-copy");
+  await expect(failureCard(page)).toHaveCount(0);
+
+  await releasePngEncoder(page);
+  await expect(preview(page)).toHaveAttribute("data-action", "copy");
+  await expect(copyButton(page)).toHaveAttribute("data-state", "done");
+  await expect(copyButton(page)).not.toHaveAttribute("aria-disabled");
+  expect((await pngEncoder(page)).calls).toBe(1);
+
+  /* Still on the button after the capture, with the card showing. */
+  expect(await focusedControl(page)).toBe("replay-screenshot-copy");
+  await expect(phase(page)).toHaveText("paused");
+
+  /* So the next Space copies the frame again rather than playing. */
+  await setPngEncoder(page, { hold: true });
+  await page.keyboard.press("Space");
+  await expect
+    .poll(async (): Promise<number> => {
+      return (await pngEncoder(page)).calls;
+    })
+    .toBe(2);
+  await expect(copyButton(page)).toHaveAttribute("data-state", "busy");
+  expect(await focusedControl(page)).toBe("replay-screenshot-copy");
+  await releasePngEncoder(page);
+  await expect(copyButton(page)).toHaveAttribute("data-state", "done");
+  await expect(page.getByTestId("replay-screenshot-status")).toHaveText(
+    "Screenshot copied to the clipboard.",
+  );
+  expect(await focusedControl(page)).toBe("replay-screenshot-copy");
+
+  /* Not once, at any point, did playback resume. */
+  await expect(phase(page)).toHaveText("paused");
+  await expect(dock(page)).toBeVisible();
+  expect(await phaseHistory(page)).toEqual(["paused"]);
+});
+
+test("a card closed from the keyboard hands the focus back to its dock button", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await instrumentPngEncoder(page);
+  await openPlayer(page);
+  await pausePlayer(page);
+  await watchPhase(page);
+
+  await downloadButton(page).focus();
+  await saveDownload(page, async (): Promise<void> => {
+    await page.keyboard.press("Enter");
+  });
+  await expect(preview(page)).toHaveAttribute("data-action", "download");
+  expect(await focusedControl(page)).toBe("replay-screenshot-download");
+
+  /* The card comes before the dock in tab order: back past Copy to Dismiss. */
+  await page.keyboard.press("Shift+Tab");
+  await expect(copyButton(page)).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(
+    page.getByTestId("replay-screenshot-preview-dismiss"),
+  ).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(preview(page)).toHaveCount(0);
+  /* The card was about the download, so its button has the focus. */
+  expect(await focusedControl(page)).toBe("replay-screenshot-download");
+
+  /* The error card's Dismiss does the same. */
+  await setPngEncoder(page, { fail: true });
+  await page.keyboard.press("Enter");
+  await expect(failureCard(page)).toHaveAttribute("data-recovery", "retry");
+  expect(await focusedControl(page)).toBe("replay-screenshot-download");
+  await page.keyboard.press("Shift+Tab");
+  await expect(copyButton(page)).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(
+    page.getByTestId("replay-screenshot-error-dismiss"),
+  ).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(failureCard(page)).toHaveCount(0);
+  expect(await focusedControl(page)).toBe("replay-screenshot-download");
+
+  /* So does its Try again, which closes the card by succeeding. */
+  await page.keyboard.press("Enter");
+  await expect(failureCard(page)).toBeVisible();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Shift+Tab");
+  await expect(page.getByTestId("replay-screenshot-recover")).toBeFocused();
+  await setPngEncoder(page, {});
+
+  const saved: SavedScreenshot = await saveDownload(
+    page,
+    async (): Promise<void> => {
+      await page.keyboard.press("Enter");
+    },
+  );
+
+  expect(saved.fileName).toMatch(FILE_NAME_PATTERN);
+  await expect(failureCard(page)).toHaveCount(0);
+  await expect(preview(page)).toHaveAttribute("data-action", "download");
+  expect(await focusedControl(page)).toBe("replay-screenshot-download");
+
+  /* No card ever left the focus on <body> for a Space to play from. */
+  await expect(phase(page)).toHaveText("paused");
+  expect(await phaseHistory(page)).toEqual(["paused"]);
+});
+
 /* ---- Layouts. ---- */
 
 [390, 320].forEach((width: number) => {
@@ -2359,7 +2759,7 @@ test("the dock works from the keyboard without reaching the player's shortcuts",
     expect(await isTopmostAtCentre(copy)).toBe(true);
     expect(await isTopmostAtCentre(save)).toBe(true);
 
-    /* The card fits the phone too, and the file is still the full frame. */
+    /* The confirmation fits the phone too, and the file is still the full frame. */
     const saved: SavedScreenshot = await downloadFrame(page);
 
     expect(readPngSize(saved.bytes)).toEqual({
@@ -2367,6 +2767,8 @@ test("the dock works from the keyboard without reaching the player's shortcuts",
       height: recordedHeight * (await devicePixelRatio(page)),
     });
     await expect(preview(page)).toBeVisible();
+    /* A phone's stage is too short for the thumbnail card: it is the pill. */
+    await expect(preview(page)).toHaveAttribute("data-compact", "true");
 
     const cardBox: ElementBox = await boxOf(preview(page));
 
@@ -2378,41 +2780,105 @@ test("the dock works from the keyboard without reaching the player's shortcuts",
     await screenshot(page, `session-replay-screenshot-phone-${width}`);
   });
 
-  test(`on a ${width}px phone the confirmation card stays on the stage and off its controls`, async ({
+  test(`on a ${width}px phone the confirmation is a pill beside the dock, on the stage and off its controls`, async ({
     page,
+    context,
   }: {
     page: Page;
+    context: BrowserContext;
   }) => {
     await page.setViewportSize({ width: width, height: 844 });
     await openPlayer(page);
     await pausePlayer(page);
-    await downloadFrame(page);
-    await expect(preview(page)).toBeVisible();
-    await expect(page.getByTestId("replay-screenshot-thumbnail")).toBeVisible();
 
     /*
-     * A phone's stage is a short strip. The card is drawn over the picture,
-     * so it has to fit inside the stage rather than climb out over the
+     * A phone's stage is a short strip. The thumbnail card, drawn over the
+     * picture, would cover the paused Play button and climb out over the
      * address bar above it, where the Fit / Width / 1:1 segments and Select
-     * text live - for the five seconds it shows, those would be covered and
-     * could not be pressed.
+     * text live - for the five seconds it shows, those could not be
+     * pressed. Below compactStagePx of dock column the confirmation is a
+     * pill beside the dock instead.
      */
+    const columnHeight: number = await page
+      .getByTestId("replay-screenshot")
+      .evaluate((element: HTMLElement): number => {
+        return element.clientHeight;
+      });
+
+    expect(columnHeight).toBeGreaterThan(0);
+    expect(columnHeight).toBeLessThan(compactStagePx);
+
+    const saved: SavedScreenshot = await downloadFrame(page);
+    const pill: Locator = preview(page);
+
+    await expect(pill).toBeVisible();
+    await expect(pill).toHaveAttribute("data-compact", "true");
+    await expect(pill).toHaveAttribute("data-action", "download");
+    await expect(pill).toHaveText("Saved");
+    /* The file name the card would show is in the pill's title. */
+    await expect(pill).toHaveAttribute(
+      "title",
+      `Screenshot downloaded: ${saved.fileName}`,
+    );
+    await expect(page.getByTestId("replay-screenshot-thumbnail")).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByTestId("replay-screenshot-preview-detail"),
+    ).toHaveCount(0);
+    await expect(
+      page.getByTestId("replay-screenshot-preview-dismiss"),
+    ).toHaveAttribute("aria-label", "Dismiss");
+    await expect(page.getByTestId("replay-screenshot-status")).toHaveText(
+      `Screenshot downloaded as ${saved.fileName}.`,
+    );
+
+    /* The player's top in view, so every box below is measured at once. */
+    await page
+      .getByTestId("replay-url-bar")
+      .evaluate((element: HTMLElement): void => {
+        element.scrollIntoView({ block: "start" });
+      });
+
     const stage: ElementBox = await boxOf(
       page.getByTestId("replay-stage-container"),
     );
-    const cardBox: ElementBox = await boxOf(preview(page));
+    const urlBar: ElementBox = await boxOf(page.getByTestId("replay-url-bar"));
+    const play: Locator = page.getByTestId("replay-overlay-paused");
+    const playBox: ElementBox = await boxOf(play);
+    const dockBox: ElementBox = await boxOf(dock(page));
+    const pillBox: ElementBox = await boxOf(pill);
 
-    expect
-      .soft(cardBox.y, "the card's top edge is above the stage")
-      .toBeGreaterThanOrEqual(stage.y - 1);
-    expect
-      .soft(
-        cardBox.y + cardBox.height,
-        "the card's bottom edge is below the stage",
-      )
-      .toBeLessThanOrEqual(stage.y + stage.height + 1);
+    /* On the stage, on every side, with the dock. */
+    expectWithin(pillBox, stage, "the pill on the stage");
+    expectWithin(dockBox, stage, "the dock on the stage");
+    expect(pillBox.y + pillBox.height).toBeLessThanOrEqual(844);
+
+    /* Beside the dock, on its row, and not over it. */
+    expect(overlaps(pillBox, dockBox), "the pill covers the dock").toBe(false);
+    expect(pillBox.x + pillBox.width).toBeLessThanOrEqual(dockBox.x + 1);
+    expect(
+      Math.abs(centreOf(pillBox).y - centreOf(dockBox).y),
+    ).toBeLessThanOrEqual(1);
+    expect(await isTopmostAtCentre(copyButton(page))).toBe(true);
+    expect(await isTopmostAtCentre(downloadButton(page))).toBe(true);
+
+    /* Clear of the paused Play button, which a tap there still reaches. */
+    expect(
+      overlaps(pillBox, playBox),
+      "the pill covers the paused Play button",
+    ).toBe(false);
+    expect(await isTopmostAtCentre(play)).toBe(true);
+
+    /* Below the address bar, and off every control on it. */
+    expect(overlaps(pillBox, urlBar), "the pill covers the address bar").toBe(
+      false,
+    );
+    expect(pillBox.y).toBeGreaterThanOrEqual(urlBar.y + urlBar.height);
 
     const controls: Array<Locator> = [
+      page.getByTestId("replay-url-copy"),
+      page.getByTestId("replay-url-open"),
       page.getByTestId("replay-select-text"),
       ...(await page
         .getByTestId("replay-fit-toggle")
@@ -2420,17 +2886,54 @@ test("the dock works from the keyboard without reaching the player's shortcuts",
         .all()),
     ];
 
-    expect(controls.length).toBe(4);
+    expect(controls.length).toBe(6);
 
     for (const control of controls) {
-      await control.scrollIntoViewIfNeeded();
-      expect
-        .soft(
-          await isTopmostAtCentre(control),
-          `"${await control.innerText()}" is covered by the confirmation card`,
-        )
-        .toBe(true);
+      const label: string =
+        (await control.getAttribute("aria-label")) ??
+        (await control.innerText());
+
+      expect(
+        overlaps(pillBox, await boxOf(control)),
+        `the pill overlaps "${label}"`,
+      ).toBe(false);
+      expect(
+        await isTopmostAtCentre(control),
+        `"${label}" is covered while the pill shows`,
+      ).toBe(true);
     }
+
+    /* All of that was measured with the pill still up. */
+    await expect(pill).toBeVisible();
+    await noHorizontalOverflow(page);
+    await settleDock(page);
+    await screenshot(page, `session-replay-screenshot-phone-${width}-compact`);
+
+    /* A copy says so in the pill, with the PNG's pixel size in its title. */
+    await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+      origin: fixtureOrigin,
+    });
+    await copyButton(page).click();
+    await expect(pill).toHaveAttribute("data-action", "copy");
+    await expect(pill).toHaveAttribute("data-compact", "true");
+    await expect(pill).toHaveText("Copied");
+    await expect(pill).toHaveAttribute(
+      "title",
+      `Copied to clipboard: ${sizeDetail(await devicePixelRatio(page))}`,
+    );
+
+    const copyPillBox: ElementBox = await boxOf(pill);
+
+    expectWithin(copyPillBox, stage, "the copy pill on the stage");
+    expect(overlaps(copyPillBox, playBox)).toBe(false);
+    expect(overlaps(copyPillBox, await boxOf(dock(page)))).toBe(false);
+
+    /* Its Dismiss closes it and hands the focus back to Copy. */
+    await page.getByTestId("replay-screenshot-preview-dismiss").click();
+    await expect(pill).toHaveCount(0);
+    await expect(dock(page)).toBeVisible();
+    expect(await focusedControl(page)).toBe("replay-screenshot-copy");
+    await expect(phase(page)).toHaveText("paused");
   });
 });
 
@@ -2563,6 +3066,130 @@ test("the picture does not depend on how the stage is fitted or scrolled", async
   expect(actual.bytes.equals(contained.bytes)).toBe(true);
 });
 
+test("at 1:1 the dock and the paused Play button stay above the replay pointer", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openPlayer(page);
+  await pausePlayer(page);
+
+  const stage: Locator = page.getByTestId("replay-stage");
+
+  await page
+    .getByTestId("replay-fit-toggle")
+    .getByRole("button", { name: "1:1", exact: true })
+    .click();
+  await expect(stage).toHaveAttribute("data-replay-fit", "actual");
+  await expect(dock(page)).toBeVisible();
+  await settleDock(page);
+
+  /*
+   * The Replayer's pointer carries the largest z-index there is, and at 1:1
+   * the host has no transform to contain it: only the stage's isolation
+   * keeps it under the overlays drawn above the picture.
+   */
+  const wrapper: ElementBox = await boxOf(
+    page.locator(".replayer-wrapper").first(),
+  );
+  const pointer: Locator = page.locator(".replayer-mouse").first();
+  const targets: Array<{
+    label: string;
+    locator: Locator;
+    hits: Array<{ locator: Locator; testId: string }>;
+  }> = [
+    {
+      label: "the screenshot dock",
+      locator: dock(page),
+      hits: [
+        { locator: copyButton(page), testId: "replay-screenshot-copy" },
+        { locator: downloadButton(page), testId: "replay-screenshot-download" },
+      ],
+    },
+    {
+      label: "the paused Play button",
+      locator: page.getByTestId("replay-overlay-paused"),
+      hits: [
+        {
+          locator: page.getByTestId("replay-overlay-paused"),
+          testId: "replay-overlay-paused",
+        },
+      ],
+    },
+  ];
+
+  for (const target of targets) {
+    const box: ElementBox = await boxOf(target.locator);
+    const centre: PixelPoint = centreOf(box);
+    const size: number = Math.ceil(Math.max(box.width, box.height)) + 48;
+
+    await parkReplayPointer(page, {
+      left: centre.x - wrapper.x - size / 2,
+      top: centre.y - wrapper.y - size / 2,
+      size: size,
+    });
+
+    /* The pointer is right over the target, and larger than it... */
+    const pointerBox: ElementBox = await boxOf(pointer);
+
+    expectWithin(box, pointerBox, `the pointer over ${target.label}`);
+
+    /* ...and on top of the page beside it, where it is all there is. */
+    const beside: PixelPoint = {
+      x: pointerBox.x + 6,
+      y: centre.y,
+    };
+
+    expect(beside.x).toBeLessThan(box.x);
+    expect(await hitAt(page, beside)).toBe("replayer-mouse");
+
+    /* Yet over the target, the target is what a pointer there finds. */
+    expect(
+      await isTopmostAtCentre(target.locator),
+      `${target.label} is under the replay pointer`,
+    ).toBe(true);
+
+    for (const hit of target.hits) {
+      expect(
+        await hitAt(page, centreOf(await boxOf(hit.locator))),
+        `${target.label} is under the replay pointer`,
+      ).toBe(hit.testId);
+    }
+
+    /*
+     * The isolation is what does it: with the class taken off the Replayer's
+     * mount, the pointer paints over the target. Put back straight after.
+     */
+    const uncontained: string = await page.evaluate(
+      (point: PixelPoint): string => {
+        const mount: Element | null | undefined = document
+          .querySelector(".replayer-wrapper")
+          ?.closest(".isolate");
+
+        if (!mount) {
+          return "(no isolated mount)";
+        }
+
+        mount.classList.remove("isolate");
+
+        const hit: Element | null = document.elementFromPoint(point.x, point.y);
+
+        mount.classList.add("isolate");
+
+        return hit && hit.closest(".replayer-mouse")
+          ? "replayer-mouse"
+          : hit?.closest("[data-testid]")?.getAttribute("data-testid") ?? "";
+      },
+      centre,
+    );
+
+    expect(uncontained).toBe("replayer-mouse");
+  }
+
+  await expect(phase(page)).toHaveText("paused");
+});
+
 /* ---- Other displays and recordings. ---- */
 
 [2, 3].forEach((deviceScaleFactor: number) => {
@@ -2614,14 +3241,22 @@ test("the picture does not depend on how the stage is fitted or scrolled", async
         "the Place order button",
       );
 
-      /* The copy card speaks in CSS pixels whatever the density. */
+      /*
+       * The copy card gives the PNG's own pixel size - what a paste will
+       * be - not the recorded viewport in CSS pixels.
+       */
       await context.grantPermissions(["clipboard-read", "clipboard-write"], {
         origin: fixtureOrigin,
       });
       await copyButton(page).click();
+      await expect(preview(page)).toHaveAttribute("data-action", "copy");
       await expect(
         page.getByTestId("replay-screenshot-preview-detail"),
-      ).toHaveText(SIZE_DETAIL);
+      ).toHaveText(sizeDetail(ratio));
+      /* Both densities cap at 2x: the 1200 x 760 viewport is 2400 x 1520. */
+      await expect(
+        page.getByTestId("replay-screenshot-preview-detail"),
+      ).toHaveText("2400 × 1520 PNG");
     } finally {
       await context.close();
     }
@@ -2684,4 +3319,54 @@ test("a react native recording is captured at its own size without the phone fra
 
   expect(luminance(inspection.pixels[0]!)).toBeGreaterThan(200);
   expect(luminance(inspection.pixels[1]!)).toBeLessThan(80);
+
+  /*
+   * A touch recording's dot is in the picture too, where the stage draws
+   * it at the last touch: by 0:05 the fixture has moved onto the action bar
+   * (0:01) and tapped it (0:03). The frame above, before any touch, has none.
+   */
+  expect(offsetSecondsOf(saved.fileName)).toBeLessThan(1);
+  await blurFocus(page);
+  await page.keyboard.press("ArrowRight");
+  await expect
+    .poll(async (): Promise<number> => {
+      return clockSeconds(page);
+    })
+    .toBeGreaterThanOrEqual(5);
+  await expect(phase(page)).toHaveText("paused");
+  await expect(dock(page)).toBeVisible();
+  await expect(page.locator(".replayer-mouse.touch-device")).toHaveCount(1);
+
+  const touchBox: ElementBox = await settledPointerBox(page);
+  const projection: StageProjection = await stageProjection(page);
+  const touchCentre: PixelPoint = centreOf(toRecordedBox(projection, touchBox));
+
+  /* On the action bar (left 18, top 724, 354 x 52 in Fixture.js). */
+  expect(touchCentre.x).toBeGreaterThan(18);
+  expect(touchCentre.x).toBeLessThan(18 + 354);
+  expect(touchCentre.y).toBeGreaterThan(724);
+  expect(touchCentre.y).toBeLessThan(724 + 52);
+
+  const touched: SavedScreenshot = await downloadFrame(page);
+
+  expect(offsetSecondsOf(touched.fileName)).toBeGreaterThanOrEqual(5);
+
+  const touchRegion: PixelRegion = {
+    x: (touchCentre.x - 2) * ratio,
+    y: (touchCentre.y - 2) * ratio,
+    width: 5 * ratio,
+    height: 5 * ratio,
+  };
+  const withDot: RegionSummary = (
+    await inspectPng(page, touched.bytes, { regions: [touchRegion] })
+  ).regions[0]!;
+  const withoutDot: RegionSummary = (
+    await inspectPng(page, saved.bytes, { regions: [touchRegion] })
+  ).regions[0]!;
+
+  /* The stage's indigo dot over the dark bar... */
+  expect(withDot.dominant[2] - withDot.dominant[0]).toBeGreaterThan(40);
+  /* ...where the untouched frame shows the bar alone. */
+  expect(withoutDot.dominant[2] - withoutDot.dominant[0]).toBeLessThan(20);
+  expect(luminance(withoutDot.dominant)).toBeLessThan(80);
 });

@@ -23,6 +23,7 @@ import {
 } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import ReplayScreenshotActions, {
+  REPLAY_SCREENSHOT_COMPACT_STAGE_PX,
   REPLAY_SCREENSHOT_DONE_MS,
   REPLAY_SCREENSHOT_FLASH_MS,
   REPLAY_SCREENSHOT_PREVIEW_MS,
@@ -57,6 +58,12 @@ import {
  * again" re-runs a capture that could not be drawn; a new frame
  * (frameKey) forgets both the card and the PNG; and a capture that lands
  * after the dock unmounted (the viewer pressed Play) touches nothing.
+ *
+ * And the keyboard never loses its place: a busy button is marked
+ * aria-disabled but stays focusable, a card that goes hands focus back to
+ * the dock button it was about, and the confirmation does not leave from
+ * under a pointer or a keyboard that is on it. On a short stage (a phone)
+ * the confirmation is a pill beside the dock instead of a thumbnail card.
  *
  * The component's seams stand in for the capture, the clipboard and the
  * download; the "default wiring" block drives the real ReplayScreenshot
@@ -247,6 +254,67 @@ async function settle(run?: () => void): Promise<void> {
 async function clickAndSettle(button: HTMLElement): Promise<void> {
   fireEvent.click(button);
   await settle();
+}
+
+const DOCK_ACTIONS: Array<"copy" | "download"> = ["copy", "download"];
+
+function dockButton(action: "copy" | "download"): HTMLElement {
+  return action === "copy" ? copyButton() : downloadButton();
+}
+
+/* Moves the keyboard focus the way Tab would (focus, blur and their bubbling twins). */
+function focusElement(element: HTMLElement): void {
+  act((): void => {
+    element.focus();
+  });
+}
+
+/*
+ * jsdom does no layout: give the dock's column - which spans the stage
+ * from top to bottom - the height of the stage it sits in.
+ */
+function setStageHeight(height: number): void {
+  Object.defineProperty(
+    screen.getByTestId("replay-screenshot"),
+    "clientHeight",
+    {
+      configurable: true,
+      get: (): number => {
+        return height;
+      },
+    },
+  );
+}
+
+/* A capture that stays pending until the test settles it. */
+function holdCapture(mocks: ActionMocks): Deferred<ReplayScreenshot> {
+  const capture: Deferred<ReplayScreenshot> = makeDeferred<ReplayScreenshot>();
+
+  mocks.onCapture.mockImplementation((): Promise<ReplayScreenshot> => {
+    return capture.promise;
+  });
+
+  return capture;
+}
+
+/* The next capture fails to draw; the ones after it work. */
+function failNextCapture(mocks: ActionMocks): void {
+  mocks.onCapture.mockImplementationOnce((): Promise<ReplayScreenshot> => {
+    return Promise.reject(
+      new ReplayFrameCaptureError("render-failed", "capture"),
+    );
+  });
+}
+
+/* A clipboard that takes the drawn image and then refuses it. */
+function refuseClipboard(mocks: ActionMocks): void {
+  mocks.copyToClipboard.mockImplementation(
+    async (image: Promise<Blob>): Promise<void> => {
+      await image;
+
+      throw new ReplayScreenshotClipboardError("denied", "refused");
+    },
+  );
 }
 
 interface ConsoleSpy {
@@ -2238,6 +2306,983 @@ describe("ReplayScreenshotActions", () => {
 
       advance(1);
       expect(revokeObjectURL).toHaveBeenCalledWith("blob:replay/1");
+    });
+  });
+
+  describe("keyboard focus on the dock", () => {
+    it("never disables a button natively, only marks it busy", async () => {
+      const mocks: ActionMocks = makeMocks();
+      const capture: Deferred<ReplayScreenshot> = holdCapture(mocks);
+
+      renderActions(mocks);
+
+      const buttons: Array<HTMLElement> = [copyButton(), downloadButton()];
+
+      buttons.forEach((button: HTMLElement): void => {
+        expect(button).not.toHaveAttribute("disabled");
+        expect(button).not.toHaveAttribute("aria-disabled");
+        expect(button).not.toHaveClass("cursor-progress");
+      });
+
+      fireEvent.click(downloadButton());
+
+      /*
+       * A disabled button would drop the focus to <body>, where the next
+       * Space is the player's play/pause.
+       */
+      buttons.forEach((button: HTMLElement): void => {
+        expect(button).not.toHaveAttribute("disabled");
+        expect(button).toBeEnabled();
+        expect(button).toHaveAttribute("aria-disabled", "true");
+        expect(button).toHaveClass("cursor-progress");
+        expect(button.tabIndex).toBe(0);
+      });
+
+      /* Both stay reachable from the keyboard while the frame is drawn. */
+      focusElement(copyButton());
+      expect(copyButton()).toHaveFocus();
+      focusElement(downloadButton());
+      expect(downloadButton()).toHaveFocus();
+
+      await settle((): void => {
+        capture.resolve(makeScreenshot());
+      });
+
+      buttons.forEach((button: HTMLElement): void => {
+        expect(button).not.toHaveAttribute("disabled");
+        expect(button).not.toHaveAttribute("aria-disabled");
+        expect(button).not.toHaveClass("cursor-progress");
+      });
+      expect(downloadButton()).toHaveFocus();
+    });
+
+    it("keeps focus on a pressed Download while it is busy, when it lands and after its card goes", async () => {
+      const mocks: ActionMocks = makeMocks();
+      const capture: Deferred<ReplayScreenshot> = holdCapture(mocks);
+
+      renderActions(mocks);
+      focusElement(downloadButton());
+      fireEvent.click(downloadButton());
+
+      expect(downloadButton()).toHaveAttribute("aria-disabled", "true");
+      expect(downloadButton()).toHaveAttribute("data-state", "busy");
+      expect(downloadButton()).toHaveFocus();
+
+      await settle((): void => {
+        capture.resolve(makeScreenshot());
+      });
+
+      expect(mocks.download).toHaveBeenCalledTimes(1);
+      expect(downloadButton()).toHaveAttribute("data-state", "done");
+      expect(downloadButton()).toHaveFocus();
+
+      advance(REPLAY_SCREENSHOT_DONE_MS);
+      expect(downloadButton()).toHaveAttribute("data-state", "idle");
+      expect(downloadButton()).toHaveFocus();
+
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS);
+      expect(queryPreviewCard()).not.toBeInTheDocument();
+      expect(downloadButton()).toHaveFocus();
+    });
+
+    it("does nothing when a busy button is pressed, and leaves focus where it is", async () => {
+      const mocks: ActionMocks = makeMocks();
+      const capture: Deferred<ReplayScreenshot> = holdCapture(mocks);
+
+      renderActions(mocks);
+      focusElement(copyButton());
+      fireEvent.click(copyButton());
+
+      /* Tabbed on to Download, which is marked busy, and pressed it. */
+      focusElement(downloadButton());
+      fireEvent.click(downloadButton());
+
+      expect(mocks.onCapture).toHaveBeenCalledTimes(1);
+      expect(mocks.copyToClipboard).toHaveBeenCalledTimes(1);
+      expect(mocks.download).not.toHaveBeenCalled();
+      expect(downloadButton()).toHaveAttribute("data-state", "idle");
+      expect(downloadButton()).not.toHaveAttribute("aria-busy");
+      expect(downloadButton()).toHaveFocus();
+
+      /* Nor does pressing the busy button itself again. */
+      fireEvent.click(copyButton());
+
+      expect(mocks.onCapture).toHaveBeenCalledTimes(1);
+      expect(mocks.copyToClipboard).toHaveBeenCalledTimes(1);
+      expect(copyButton()).toHaveAttribute("data-state", "busy");
+      expect(downloadButton()).toHaveFocus();
+
+      await settle((): void => {
+        capture.resolve(makeScreenshot());
+      });
+
+      expect(mocks.download).not.toHaveBeenCalled();
+      expect(previewCard()).toHaveAttribute("data-action", "copy");
+      /* The copy's success does not pull focus back to Copy image. */
+      expect(downloadButton()).toHaveFocus();
+    });
+
+    DOCK_ACTIONS.forEach((action: "copy" | "download"): void => {
+      it(`keeps focus on the pressed ${action} button when its capture fails`, async () => {
+        const mocks: ActionMocks = makeMocks();
+
+        failNextCapture(mocks);
+        renderActions(mocks);
+        focusElement(dockButton(action));
+
+        await clickAndSettle(dockButton(action));
+
+        expect(errorCard()).toHaveAttribute("data-recovery", "retry");
+        expect(dockButton(action)).toHaveFocus();
+        expect(dockButton(action)).not.toHaveAttribute("aria-disabled");
+        expect(dockButton(action)).toHaveAttribute("data-state", "idle");
+      });
+    });
+
+    it("keeps focus on Copy image when the clipboard refuses the image", async () => {
+      const mocks: ActionMocks = makeMocks();
+
+      refuseClipboard(mocks);
+      renderActions(mocks);
+      focusElement(copyButton());
+
+      await clickAndSettle(copyButton());
+
+      expect(errorCard()).toHaveAttribute("data-recovery", "download");
+      expect(copyButton()).toHaveFocus();
+    });
+
+    it("keeps focus on Copy image when the browser has no image clipboard", () => {
+      renderActions(makeMocks(), { clipboardSupport: "unsupported" });
+      focusElement(copyButton());
+
+      fireEvent.click(copyButton());
+
+      expect(errorCard()).toHaveAttribute("data-recovery", "download");
+      expect(copyButton()).toHaveFocus();
+    });
+  });
+
+  describe("handing focus back to the dock", () => {
+    function errorDismissButton(): HTMLElement {
+      return screen.getByTestId("replay-screenshot-error-dismiss");
+    }
+
+    function previewDismissButton(): HTMLElement {
+      return screen.getByTestId("replay-screenshot-preview-dismiss");
+    }
+
+    DOCK_ACTIONS.forEach((action: "copy" | "download"): void => {
+      it(`gives focus to ${action} when its error card is dismissed`, async () => {
+        const mocks: ActionMocks = makeMocks();
+
+        failNextCapture(mocks);
+        renderActions(mocks);
+
+        await clickAndSettle(dockButton(action));
+
+        focusElement(errorDismissButton());
+        expect(errorDismissButton()).toHaveFocus();
+
+        fireEvent.click(errorDismissButton());
+
+        expect(queryErrorCard()).not.toBeInTheDocument();
+        expect(dockButton(action)).toHaveFocus();
+        expect(document.body).not.toHaveFocus();
+      });
+
+      it(`gives focus to ${action} when Try again runs its capture again`, async () => {
+        const mocks: ActionMocks = makeMocks();
+        const retry: Deferred<ReplayScreenshot> =
+          makeDeferred<ReplayScreenshot>();
+
+        failNextCapture(mocks);
+        mocks.onCapture.mockImplementationOnce(
+          (): Promise<ReplayScreenshot> => {
+            return retry.promise;
+          },
+        );
+        renderActions(mocks);
+
+        await clickAndSettle(dockButton(action));
+
+        expect(recoverButton()).toHaveTextContent("Try again");
+        focusElement(recoverButton());
+        fireEvent.click(recoverButton());
+
+        expect(queryErrorCard()).not.toBeInTheDocument();
+        expect(dockButton(action)).toHaveAttribute("data-state", "busy");
+        expect(dockButton(action)).toHaveFocus();
+
+        await settle((): void => {
+          retry.resolve(makeScreenshot());
+        });
+
+        expect(previewCard()).toHaveAttribute("data-action", action);
+        expect(dockButton(action)).toHaveFocus();
+      });
+
+      it(`gives focus to ${action} when its confirmation is dismissed`, async () => {
+        renderActions(makeMocks());
+
+        await clickAndSettle(dockButton(action));
+
+        focusElement(previewDismissButton());
+        expect(previewDismissButton()).toHaveFocus();
+
+        fireEvent.click(previewDismissButton());
+
+        expect(queryPreviewCard()).not.toBeInTheDocument();
+        expect(dockButton(action)).toHaveFocus();
+        expect(document.body).not.toHaveFocus();
+      });
+    });
+
+    it("gives focus to Download when Download instead saves the PNG that was drawn", async () => {
+      const shot: ReplayScreenshot = makeScreenshot();
+      const mocks: ActionMocks = makeMocks(shot);
+
+      refuseClipboard(mocks);
+      renderActions(mocks);
+
+      await clickAndSettle(copyButton());
+
+      expect(recoverButton()).toHaveTextContent("Download instead");
+      focusElement(recoverButton());
+      fireEvent.click(recoverButton());
+
+      expect(mocks.onCapture).toHaveBeenCalledTimes(1);
+      expect(mocks.download).toHaveBeenCalledTimes(1);
+      expect(mocks.download.mock.calls[0]?.[0]).toBe(shot);
+      expect(queryErrorCard()).not.toBeInTheDocument();
+      expect(downloadButton()).toHaveFocus();
+      expect(copyButton()).not.toHaveFocus();
+    });
+
+    it("gives focus to Download when Download instead has to draw the frame", async () => {
+      const mocks: ActionMocks = makeMocks();
+      const capture: Deferred<ReplayScreenshot> = holdCapture(mocks);
+
+      renderActions(mocks, { clipboardSupport: "unsupported" });
+
+      fireEvent.click(copyButton());
+      focusElement(recoverButton());
+      fireEvent.click(recoverButton());
+
+      expect(queryErrorCard()).not.toBeInTheDocument();
+      expect(downloadButton()).toHaveAttribute("data-state", "busy");
+      expect(downloadButton()).toHaveFocus();
+
+      await settle((): void => {
+        capture.resolve(makeScreenshot());
+      });
+
+      expect(mocks.download).toHaveBeenCalledTimes(1);
+      expect(downloadButton()).toHaveFocus();
+    });
+
+    it("gives focus to Download when saving from Download instead fails", async () => {
+      const mocks: ActionMocks = makeMocks();
+
+      refuseClipboard(mocks);
+      mocks.download.mockImplementationOnce((): void => {
+        throw new Error("Downloads are blocked");
+      });
+      renderActions(mocks);
+
+      await clickAndSettle(copyButton());
+
+      focusElement(recoverButton());
+      fireEvent.click(recoverButton());
+
+      /* A new card, the download's own, and focus on its button. */
+      expect(errorCard()).toHaveAttribute("data-recovery", "retry");
+      expect(downloadButton()).toHaveFocus();
+    });
+
+    it("gives focus to the pressed button when a new capture takes the error card away", async () => {
+      const mocks: ActionMocks = makeMocks();
+      const capture: Deferred<ReplayScreenshot> = holdCapture(mocks);
+
+      renderActions(mocks, { clipboardSupport: "unsupported" });
+
+      fireEvent.click(copyButton());
+      focusElement(errorDismissButton());
+
+      /* A pointer press does not move the focus by itself. */
+      fireEvent.click(downloadButton());
+
+      expect(queryErrorCard()).not.toBeInTheDocument();
+      expect(downloadButton()).toHaveFocus();
+
+      await settle((): void => {
+        capture.resolve(makeScreenshot());
+      });
+
+      expect(previewCard()).toHaveAttribute("data-action", "download");
+      expect(downloadButton()).toHaveFocus();
+    });
+
+    it("gives focus to the pressed button when a new capture replaces the confirmation", async () => {
+      const mocks: ActionMocks = makeMocks();
+
+      renderActions(mocks);
+
+      await clickAndSettle(copyButton());
+
+      const next: Deferred<ReplayScreenshot> = holdCapture(mocks);
+
+      focusElement(previewDismissButton());
+      fireEvent.click(downloadButton());
+
+      expect(downloadButton()).toHaveFocus();
+
+      await settle((): void => {
+        next.resolve(makeScreenshot());
+      });
+
+      expect(previewCard()).toHaveAttribute("data-action", "download");
+      expect(downloadButton()).toHaveFocus();
+    });
+
+    it("gives focus to Copy image when a copy the browser cannot make replaces the confirmation", async () => {
+      const mocks: ActionMocks = makeMocks();
+      const view: ReturnType<typeof render> = renderActions(mocks);
+
+      await clickAndSettle(downloadButton());
+      rerenderActions(view, mocks, { clipboardSupport: "unsupported" });
+
+      focusElement(previewDismissButton());
+      fireEvent.click(copyButton());
+
+      expect(queryPreviewCard()).not.toBeInTheDocument();
+      expect(errorCard()).toHaveAttribute("data-recovery", "download");
+      expect(copyButton()).toHaveFocus();
+    });
+
+    /*
+     * A seek while paused (ArrowLeft/ArrowRight still seek with a button
+     * focused) changes the frame, and the failure's card goes with it.
+     */
+    it("gives focus to the failed button when a new frame takes the error card away", async () => {
+      const mocks: ActionMocks = makeMocks();
+
+      refuseClipboard(mocks);
+
+      const view: ReturnType<typeof render> = renderActions(mocks, {
+        frameKey: "1:41200",
+      });
+
+      await clickAndSettle(copyButton());
+
+      focusElement(recoverButton());
+      expect(recoverButton()).toHaveFocus();
+
+      rerenderActions(view, mocks, { frameKey: "1:42200" });
+
+      expect(queryErrorCard()).not.toBeInTheDocument();
+      expect(copyButton()).toHaveFocus();
+      expect(document.body).not.toHaveFocus();
+    });
+
+    it("never pulls focus into the dock from elsewhere on the page", async () => {
+      const outside: HTMLButtonElement = document.createElement("button");
+
+      outside.textContent = "Play";
+      document.body.appendChild(outside);
+
+      try {
+        const mocks: ActionMocks = makeMocks();
+
+        renderActions(mocks);
+        focusElement(outside);
+
+        await clickAndSettle(copyButton());
+        expect(outside).toHaveFocus();
+
+        fireEvent.click(previewDismissButton());
+        expect(outside).toHaveFocus();
+
+        failNextCapture(mocks);
+        await clickAndSettle(downloadButton());
+        expect(outside).toHaveFocus();
+
+        fireEvent.click(errorDismissButton());
+        expect(outside).toHaveFocus();
+
+        await clickAndSettle(copyButton());
+        advance(REPLAY_SCREENSHOT_PREVIEW_MS);
+        expect(queryPreviewCard()).not.toBeInTheDocument();
+        expect(outside).toHaveFocus();
+      } finally {
+        outside.remove();
+      }
+    });
+  });
+
+  describe("the confirmation's own timer", () => {
+    function previewDismissButton(): HTMLElement {
+      return screen.getByTestId("replay-screenshot-preview-dismiss");
+    }
+
+    it("waits while the pointer is on it, then gives it the full interval once it leaves", async () => {
+      renderActions(makeMocks());
+
+      await clickAndSettle(copyButton());
+
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS - 1000);
+      fireEvent.mouseEnter(previewCard());
+
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS * 3);
+      expect(previewCard()).toBeInTheDocument();
+      expect(revokeObjectURL).not.toHaveBeenCalled();
+
+      fireEvent.mouseLeave(previewCard());
+
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS - 1);
+      expect(previewCard()).toBeInTheDocument();
+
+      advance(1);
+      expect(queryPreviewCard()).not.toBeInTheDocument();
+      expect(revokeObjectURL).toHaveBeenCalledTimes(1);
+      expect(revokeObjectURL).toHaveBeenCalledWith("blob:replay/1");
+    });
+
+    it("waits while the keyboard is in it, then gives it the full interval once focus has left", async () => {
+      renderActions(makeMocks());
+
+      await clickAndSettle(copyButton());
+
+      advance(1000);
+      focusElement(previewDismissButton());
+
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS * 3);
+      expect(previewCard()).toBeInTheDocument();
+      expect(previewDismissButton()).toHaveFocus();
+
+      /* Shift+Tab back to the dock. */
+      focusElement(copyButton());
+
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS - 1);
+      expect(previewCard()).toBeInTheDocument();
+
+      advance(1);
+      expect(queryPreviewCard()).not.toBeInTheDocument();
+      expect(copyButton()).toHaveFocus();
+      expect(revokeObjectURL).toHaveBeenCalledTimes(1);
+    });
+
+    it("stays when its interval runs out with the keyboard still in it", async () => {
+      renderActions(makeMocks());
+
+      await clickAndSettle(downloadButton());
+
+      /* The pointer passes over it while the keyboard is in it. */
+      fireEvent.mouseEnter(previewCard());
+      focusElement(previewDismissButton());
+      fireEvent.mouseLeave(previewCard());
+
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS * 2);
+      expect(previewCard()).toBeInTheDocument();
+      expect(previewDismissButton()).toHaveFocus();
+
+      focusElement(downloadButton());
+
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS);
+      expect(queryPreviewCard()).not.toBeInTheDocument();
+      expect(downloadButton()).toHaveFocus();
+    });
+
+    it("does not count focus moving within it as leaving", async () => {
+      renderActions(makeMocks());
+
+      await clickAndSettle(copyButton());
+
+      focusElement(previewDismissButton());
+      fireEvent.blur(previewDismissButton(), { relatedTarget: previewCard() });
+
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS * 2);
+      expect(previewCard()).toBeInTheDocument();
+    });
+
+    it("waits for a focus that leaves to nowhere, then goes", async () => {
+      renderActions(makeMocks());
+
+      await clickAndSettle(copyButton());
+
+      focusElement(previewDismissButton());
+      act((): void => {
+        previewDismissButton().blur();
+      });
+
+      expect(document.body).toHaveFocus();
+
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS - 1);
+      expect(previewCard()).toBeInTheDocument();
+
+      advance(1);
+      expect(queryPreviewCard()).not.toBeInTheDocument();
+    });
+
+    it("stays while the pointer rests on it after the keyboard has left it", async () => {
+      renderActions(makeMocks());
+
+      await clickAndSettle(copyButton());
+
+      fireEvent.mouseEnter(previewCard());
+      focusElement(previewDismissButton());
+      focusElement(copyButton());
+
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS * 2);
+      expect(previewCard()).toBeInTheDocument();
+
+      fireEvent.mouseLeave(previewCard());
+
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS);
+      expect(queryPreviewCard()).not.toBeInTheDocument();
+    });
+  });
+
+  describe("on a short stage", () => {
+    it("confirms a copy with a pill beside the dock instead of the thumbnail card", async () => {
+      renderActions(makeMocks());
+      setStageHeight(224);
+
+      await clickAndSettle(copyButton());
+
+      const pill: HTMLElement = previewCard();
+
+      expect(screen.getAllByTestId("replay-screenshot-preview")).toHaveLength(
+        1,
+      );
+      expect(pill).toHaveAttribute("data-compact", "true");
+      expect(pill).toHaveAttribute("data-action", "copy");
+      expect(pill).toHaveTextContent("Copied");
+      expect(pill).not.toHaveTextContent("Copied to clipboard");
+      expect(pill).toHaveAttribute(
+        "title",
+        "Copied to clipboard: 1440 × 900 PNG",
+      );
+      expect(
+        screen.queryByTestId("replay-screenshot-thumbnail"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("replay-screenshot-preview-detail"),
+      ).not.toBeInTheDocument();
+
+      /* In the dock's own row, just before the buttons - not above them. */
+      const group: HTMLElement = screen.getByTestId(
+        "replay-screenshot-actions",
+      );
+
+      expect(pill.parentElement).toBe(group.parentElement);
+      expect(pill.nextElementSibling).toBe(group);
+      expect(pill.parentElement).not.toBe(
+        screen.getByTestId("replay-screenshot"),
+      );
+      expect(within(pill).getByRole("button", { name: "Dismiss" })).toBe(
+        screen.getByTestId("replay-screenshot-preview-dismiss"),
+      );
+
+      /* Everything else about a confirmation is unchanged. */
+      expect(copyButton()).toHaveAttribute("data-state", "done");
+      expect(statusText()).toBe("Screenshot copied to the clipboard.");
+      expect(screen.getByTestId("replay-screenshot-flash")).toBeInTheDocument();
+    });
+
+    it("says Saved for a download, with the file name in its title", async () => {
+      renderActions(makeMocks());
+      setStageHeight(224);
+
+      await clickAndSettle(downloadButton());
+
+      const pill: HTMLElement = previewCard();
+
+      expect(pill).toHaveAttribute("data-compact", "true");
+      expect(pill).toHaveAttribute("data-action", "download");
+      expect(pill).toHaveTextContent("Saved");
+      expect(pill).not.toHaveTextContent(FILE_NAME);
+      expect(pill).toHaveAttribute(
+        "title",
+        `Screenshot downloaded: ${FILE_NAME}`,
+      );
+      expect(statusText()).toBe(`Screenshot downloaded as ${FILE_NAME}.`);
+    });
+
+    it("leaves by itself after the preview interval and never leaks an object URL", async () => {
+      renderActions(makeMocks());
+      setStageHeight(224);
+
+      await clickAndSettle(copyButton());
+
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS - 1);
+      expect(previewCard()).toHaveAttribute("data-compact", "true");
+
+      advance(1);
+      expect(queryPreviewCard()).not.toBeInTheDocument();
+      expect(revokeObjectURL.mock.calls.length).toBe(
+        createObjectURL.mock.calls.length,
+      );
+    });
+
+    it("holds the pill under the pointer the way it holds the card", async () => {
+      renderActions(makeMocks());
+      setStageHeight(224);
+
+      await clickAndSettle(copyButton());
+
+      fireEvent.mouseEnter(previewCard());
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS * 2);
+      expect(previewCard()).toHaveAttribute("data-compact", "true");
+
+      fireEvent.mouseLeave(previewCard());
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS);
+      expect(queryPreviewCard()).not.toBeInTheDocument();
+    });
+
+    it("hands focus back to the dock from the pill's Dismiss", async () => {
+      renderActions(makeMocks());
+      setStageHeight(224);
+
+      await clickAndSettle(downloadButton());
+
+      const dismiss: HTMLElement = screen.getByTestId(
+        "replay-screenshot-preview-dismiss",
+      );
+
+      focusElement(dismiss);
+      advance(REPLAY_SCREENSHOT_PREVIEW_MS * 2);
+      expect(previewCard()).toHaveAttribute("data-compact", "true");
+
+      fireEvent.click(dismiss);
+
+      expect(queryPreviewCard()).not.toBeInTheDocument();
+      expect(downloadButton()).toHaveFocus();
+    });
+
+    const stages: Array<{ height: number; isCompact: boolean; label: string }> =
+      [
+        { height: 1, isCompact: true, label: "a 1px" },
+        {
+          height: REPLAY_SCREENSHOT_COMPACT_STAGE_PX - 1,
+          isCompact: true,
+          label: "a just-too-short",
+        },
+        {
+          height: REPLAY_SCREENSHOT_COMPACT_STAGE_PX,
+          isCompact: false,
+          label: "a threshold-high",
+        },
+        { height: 720, isCompact: false, label: "a desktop" },
+        /* 0 is "not measured" (no layout yet), not "no room". */
+        { height: 0, isCompact: false, label: "an unmeasured" },
+      ];
+
+    stages.forEach(
+      (stage: { height: number; isCompact: boolean; label: string }): void => {
+        it(`draws the ${stage.isCompact ? "pill" : "thumbnail card"} on ${stage.label} stage (${stage.height}px)`, async () => {
+          renderActions(makeMocks());
+          setStageHeight(stage.height);
+
+          await clickAndSettle(copyButton());
+
+          const preview: HTMLElement = previewCard();
+
+          if (stage.isCompact) {
+            expect(preview).toHaveAttribute("data-compact", "true");
+            expect(
+              screen.queryByTestId("replay-screenshot-thumbnail"),
+            ).not.toBeInTheDocument();
+            expect(preview.nextElementSibling).toBe(
+              screen.getByTestId("replay-screenshot-actions"),
+            );
+          } else {
+            expect(preview).not.toHaveAttribute("data-compact");
+            expect(preview).toHaveTextContent("Copied to clipboard");
+            expect(
+              screen.getByTestId("replay-screenshot-thumbnail"),
+            ).toHaveAttribute("src", "blob:replay/1");
+            expect(
+              screen.getByTestId("replay-screenshot-preview-detail"),
+            ).toHaveTextContent("1440 × 900 PNG");
+            /* Stacked above the dock, in the column. */
+            expect(preview.parentElement).toBe(
+              screen.getByTestId("replay-screenshot"),
+            );
+          }
+        });
+      },
+    );
+
+    it("measures the stage again for every capture", async () => {
+      renderActions(makeMocks());
+      setStageHeight(224);
+
+      await clickAndSettle(copyButton());
+      expect(previewCard()).toHaveAttribute("data-compact", "true");
+
+      /* The phone turned to landscape, or the window grew. */
+      setStageHeight(640);
+
+      await clickAndSettle(downloadButton());
+      expect(previewCard()).not.toHaveAttribute("data-compact");
+      expect(
+        screen.getByTestId("replay-screenshot-thumbnail"),
+      ).toBeInTheDocument();
+
+      setStageHeight(200);
+
+      await clickAndSettle(copyButton());
+      expect(previewCard()).toHaveAttribute("data-compact", "true");
+      expect(screen.getAllByTestId("replay-screenshot-preview")).toHaveLength(
+        1,
+      );
+    });
+
+    it("shows a failure as the full error card, even on a short stage", async () => {
+      const mocks: ActionMocks = makeMocks();
+
+      renderActions(mocks, { clipboardSupport: "unsupported" });
+      setStageHeight(224);
+
+      fireEvent.click(copyButton());
+
+      expect(errorCard()).toHaveAttribute("data-recovery", "download");
+      expect(recoverButton()).toHaveTextContent("Download instead");
+      expect(queryPreviewCard()).not.toBeInTheDocument();
+    });
+  });
+
+  describe("the PNG's size on the card", () => {
+    it("names the PNG's own pixel size, not the recorded viewport", async () => {
+      renderActions(
+        makeMocks(
+          makeScreenshot({
+            width: 1200,
+            height: 760,
+            pixelWidth: 2400,
+            pixelHeight: 1520,
+          }),
+        ),
+      );
+
+      await clickAndSettle(copyButton());
+
+      const detail: HTMLElement = screen.getByTestId(
+        "replay-screenshot-preview-detail",
+      );
+
+      expect(detail).toHaveTextContent("2400 × 1520 PNG");
+      expect(detail).not.toHaveTextContent("1200 × 760");
+      /* The thumbnail keeps the recorded viewport's shape. */
+      expect(
+        (screen.getByTestId("replay-screenshot-thumbnail") as HTMLImageElement)
+          .style.aspectRatio,
+      ).toBe("1200 / 760");
+    });
+
+    it("falls back to the recorded viewport when the screenshot has no pixel size", async () => {
+      renderActions(makeMocks(makeScreenshot({ width: 1200, height: 760 })));
+
+      await clickAndSettle(copyButton());
+
+      expect(
+        screen.getByTestId("replay-screenshot-preview-detail"),
+      ).toHaveTextContent("1200 × 760 PNG");
+    });
+
+    it("puts the pixel size in the pill's title on a short stage", async () => {
+      renderActions(
+        makeMocks(
+          makeScreenshot({
+            width: 1200,
+            height: 760,
+            pixelWidth: 2400,
+            pixelHeight: 1520,
+          }),
+        ),
+      );
+      setStageHeight(224);
+
+      await clickAndSettle(copyButton());
+
+      expect(previewCard()).toHaveAttribute(
+        "title",
+        "Copied to clipboard: 2400 × 1520 PNG",
+      );
+    });
+
+    it("still names the file, not the size, for a download", async () => {
+      renderActions(
+        makeMocks(
+          makeScreenshot({
+            width: 1200,
+            height: 760,
+            pixelWidth: 2400,
+            pixelHeight: 1520,
+          }),
+        ),
+      );
+
+      await clickAndSettle(downloadButton());
+
+      const detail: HTMLElement = screen.getByTestId(
+        "replay-screenshot-preview-detail",
+      );
+
+      expect(detail).toHaveTextContent(FILE_NAME);
+      expect(detail).not.toHaveTextContent("2400");
+    });
+  });
+
+  describe("attempts that outlive their frame", () => {
+    const FRAME_ONE: string = "1:41200";
+    const FRAME_TWO: string = "1:52000";
+
+    function frameShots(): {
+      stale: ReplayScreenshot;
+      fresh: ReplayScreenshot;
+    } {
+      return {
+        stale: makeScreenshot({
+          fileName: "session-replay-3f9a2c1b-0m41.2s.png",
+        }),
+        fresh: makeScreenshot({
+          fileName: "session-replay-3f9a2c1b-0m52.0s.png",
+        }),
+      };
+    }
+
+    it("does not keep a download that lands after a seek for a later Download instead", async () => {
+      const shots: { stale: ReplayScreenshot; fresh: ReplayScreenshot } =
+        frameShots();
+      const mocks: ActionMocks = makeMocks(shots.fresh);
+      const first: Deferred<ReplayScreenshot> =
+        makeDeferred<ReplayScreenshot>();
+
+      mocks.onCapture.mockImplementationOnce((): Promise<ReplayScreenshot> => {
+        return first.promise;
+      });
+
+      const view: ReturnType<typeof render> = renderActions(mocks, {
+        frameKey: FRAME_ONE,
+      });
+
+      fireEvent.click(downloadButton());
+      rerenderActions(view, mocks, { frameKey: FRAME_TWO });
+
+      await settle((): void => {
+        first.resolve(shots.stale);
+      });
+
+      /* The download itself still saves what was asked for. */
+      expect(mocks.download).toHaveBeenCalledTimes(1);
+      expect(mocks.download.mock.calls[0]?.[0]).toBe(shots.stale);
+
+      rerenderActions(view, mocks, {
+        frameKey: FRAME_TWO,
+        clipboardSupport: "unsupported",
+      });
+      fireEvent.click(copyButton());
+
+      expect(errorCard()).toHaveAttribute("data-recovery", "download");
+
+      await clickAndSettle(recoverButton());
+
+      /* Drawn afresh: the stale PNG is not what the stage shows now. */
+      expect(mocks.onCapture).toHaveBeenCalledTimes(2);
+      expect(mocks.download).toHaveBeenCalledTimes(2);
+      expect(mocks.download.mock.calls[1]?.[0]).toBe(shots.fresh);
+      expect(previewCard()).toHaveTextContent(
+        "session-replay-3f9a2c1b-0m52.0s.png",
+      );
+    });
+
+    it("keeps a download that lands on the same frame for a later Download instead", async () => {
+      const shots: { stale: ReplayScreenshot; fresh: ReplayScreenshot } =
+        frameShots();
+      const mocks: ActionMocks = makeMocks(shots.stale);
+      const view: ReturnType<typeof render> = renderActions(mocks, {
+        frameKey: FRAME_ONE,
+      });
+
+      await clickAndSettle(downloadButton());
+
+      rerenderActions(view, mocks, {
+        frameKey: FRAME_ONE,
+        clipboardSupport: "unsupported",
+      });
+      fireEvent.click(copyButton());
+      fireEvent.click(recoverButton());
+
+      /* Saved again inside the click - nothing to draw. */
+      expect(mocks.onCapture).toHaveBeenCalledTimes(1);
+      expect(mocks.download).toHaveBeenCalledTimes(2);
+      expect(mocks.download.mock.calls[1]?.[0]).toBe(shots.stale);
+    });
+
+    it("does not keep a copy's PNG that lands after a seek, when the clipboard then refuses it", async () => {
+      const shots: { stale: ReplayScreenshot; fresh: ReplayScreenshot } =
+        frameShots();
+      const mocks: ActionMocks = makeMocks(shots.fresh);
+      const first: Deferred<ReplayScreenshot> =
+        makeDeferred<ReplayScreenshot>();
+
+      mocks.onCapture.mockImplementationOnce((): Promise<ReplayScreenshot> => {
+        return first.promise;
+      });
+      refuseClipboard(mocks);
+
+      const view: ReturnType<typeof render> = renderActions(mocks, {
+        frameKey: FRAME_ONE,
+      });
+
+      fireEvent.click(copyButton());
+      rerenderActions(view, mocks, { frameKey: FRAME_TWO });
+
+      await settle((): void => {
+        first.resolve(shots.stale);
+      });
+
+      expect(errorCard()).toHaveTextContent("Clipboard access was blocked");
+      expect(errorCard()).toHaveAttribute("data-recovery", "download");
+
+      await clickAndSettle(recoverButton());
+
+      expect(mocks.onCapture).toHaveBeenCalledTimes(2);
+      expect(mocks.download).toHaveBeenCalledTimes(1);
+      expect(mocks.download).not.toHaveBeenCalledWith(shots.stale);
+      expect(mocks.download.mock.calls[0]?.[0]).toBe(shots.fresh);
+    });
+
+    it("does nothing when a copy the browser cannot make is pressed while a capture is running", async () => {
+      const mocks: ActionMocks = makeMocks();
+      const capture: Deferred<ReplayScreenshot> = holdCapture(mocks);
+
+      renderActions(mocks, { clipboardSupport: "unsupported" });
+
+      fireEvent.click(downloadButton());
+      focusElement(copyButton());
+      fireEvent.click(copyButton());
+
+      /* No card over a capture that is still running, and no second one. */
+      expect(queryErrorCard()).not.toBeInTheDocument();
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      expect(mocks.onCapture).toHaveBeenCalledTimes(1);
+      expect(mocks.copyToClipboard).not.toHaveBeenCalled();
+      expect(downloadButton()).toHaveAttribute("data-state", "busy");
+      expect(copyButton()).toHaveAttribute("data-state", "idle");
+      expect(copyButton()).toHaveFocus();
+      expect(statusText()).toBe("");
+
+      await settle((): void => {
+        capture.resolve(makeScreenshot());
+      });
+
+      expect(queryErrorCard()).not.toBeInTheDocument();
+      expect(previewCard()).toHaveAttribute("data-action", "download");
+      expect(mocks.download).toHaveBeenCalledTimes(1);
+      expect(copyButton()).toHaveFocus();
     });
   });
 });

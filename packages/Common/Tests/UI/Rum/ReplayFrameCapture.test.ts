@@ -8,6 +8,7 @@ import {
   REPLAY_FRAME_MAX_CANVAS_PIXELS,
   REPLAY_FRAME_MAX_FRAME_DEPTH,
   REPLAY_FRAME_MAX_PIXEL_RATIO,
+  REPLAY_FRAME_QUIRKS_CSS,
   REPLAY_FRAME_ROOT_SELECTOR,
   REPLAY_FRAME_TRANSPARENT_IMAGE,
   ReplayFrameCaptureError,
@@ -16,17 +17,23 @@ import {
   ReplayFrameRasterDeps,
   ReplayFrameSerialization,
   ReplayFrameViewport,
+  ReplayMediaMatcher,
   buildReplayFrameSvg,
   captureReplayFrame,
+  composeTranslate,
   computeScrollSnapMargin,
   drawReplayFramePointer,
   encodeReplayFrameCanvas,
   escapeXmlAttribute,
+  isLightColor,
+  isSafariWebKit,
   isTransparentColor,
   isXmlSafeName,
   rasterizeReplayFrame,
   readStyleSheetText,
+  resolveReplayFrameCanvasSize,
   resolveReplayFramePixelRatio,
+  resolveReplayFrameSettleMs,
   rewriteReplayCss,
   serializeReplayFrame,
   stripInvalidXmlCharacters,
@@ -495,6 +502,169 @@ function defineAnimations(
   });
 }
 
+/*
+ * jsdom has no matchMedia. The replay window gets one answering as the
+ * stage would; every query it is asked is recorded. It goes away with the
+ * replay iframe after each test.
+ */
+function defineMatchMedia(
+  replayDocument: Document,
+  matches: ReplayMediaMatcher,
+): Array<string> {
+  const queries: Array<string> = [];
+
+  Object.defineProperty(replayDocument.defaultView as Window, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: (query: string): MediaQueryList => {
+      queries.push(query);
+
+      return {
+        matches: matches(query),
+        media: query,
+      } as unknown as MediaQueryList;
+    },
+  });
+
+  return queries;
+}
+
+const CHROME_USER_AGENT: string =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+const SAFARI_USER_AGENT: string =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15";
+
+/*
+ * The Dashboard's own navigator. jsdom's default user agent says
+ * AppleWebKit without Chrome, which reads as Safari; restored after each
+ * test by jest.restoreAllMocks.
+ */
+function useUserAgent(userAgent: string): void {
+  jest.spyOn(window.navigator, "userAgent", "get").mockReturnValue(userAgent);
+}
+
+interface ReferenceFrameSpy {
+  /* Every iframe the capture created in the Dashboard document. */
+  frames: Array<HTMLIFrameElement>;
+}
+
+/*
+ * The capture reads initial values from an `all: initial` probe in a
+ * hidden iframe it adds to the Dashboard document. This watches that
+ * iframe being made and, given values, makes the probe compute exactly
+ * those (jsdom computes almost nothing for it). An Error makes creating
+ * the iframe throw. Call it after the replay documents are mounted: they
+ * are iframes too.
+ */
+function spyOnReferenceFrames(
+  initial?: Record<string, string> | Error,
+): ReferenceFrameSpy {
+  const frames: Array<HTMLIFrameElement> = [];
+  const createElement: (
+    tagName: string,
+    options?: ElementCreationOptions,
+  ) => HTMLElement = document.createElement.bind(document);
+  const contentDocument: PropertyDescriptor | undefined =
+    Object.getOwnPropertyDescriptor(
+      HTMLIFrameElement.prototype,
+      "contentDocument",
+    );
+
+  jest.spyOn(document, "createElement").mockImplementation(((
+    tagName: string,
+    options?: ElementCreationOptions,
+  ): HTMLElement => {
+    if (tagName.toLowerCase() !== "iframe") {
+      return createElement(tagName, options);
+    }
+
+    if (initial instanceof Error) {
+      throw initial;
+    }
+
+    const frame: HTMLIFrameElement = createElement(
+      tagName,
+      options,
+    ) as HTMLIFrameElement;
+
+    frames.push(frame);
+
+    if (initial) {
+      Object.defineProperty(frame, "contentDocument", {
+        configurable: true,
+        get: (): Document | null => {
+          const reference: Document | null =
+            (contentDocument?.get?.call(frame) as Document | null) ?? null;
+          const view: Window | null = reference?.defaultView ?? null;
+
+          if (view) {
+            Object.defineProperty(view, "getComputedStyle", {
+              configurable: true,
+              writable: true,
+              value: (): CSSStyleDeclaration => {
+                return makeStyle(initial);
+              },
+            });
+          }
+
+          return reference;
+        },
+      });
+    }
+
+    return frame;
+  }) as typeof document.createElement);
+
+  return { frames: frames };
+}
+
+/*
+ * The typed computed style (Chromium and WebKit; not jsdom, not Firefox):
+ * each property answers with the given text, and an Error makes
+ * computedStyleMap() itself throw.
+ */
+function stubComputedStyleMap(
+  element: Element,
+  typed: Record<string, string> | Error,
+): void {
+  Object.defineProperty(element, "computedStyleMap", {
+    configurable: true,
+    value: (): StylePropertyMapReadOnly => {
+      if (typed instanceof Error) {
+        throw typed;
+      }
+
+      return {
+        get: (property: string): CSSStyleValue | undefined => {
+          const value: string | undefined = typed[property];
+
+          if (value === undefined) {
+            return undefined;
+          }
+
+          return {
+            toString: (): string => {
+              return value;
+            },
+          } as unknown as CSSStyleValue;
+        },
+      } as unknown as StylePropertyMapReadOnly;
+    },
+  });
+}
+
+/* Every flattened declaration, in order, as "property: value". */
+function declarationsOf(element: Element): Array<string> {
+  return styleOf(element)
+    .split(";")
+    .map((declaration: string): string => {
+      return declaration.trim();
+    })
+    .filter((declaration: string): boolean => {
+      return declaration.length > 0;
+    });
+}
+
 /* ---- Reading the output. ---- */
 
 function serialize(
@@ -777,6 +947,10 @@ interface RasterHarnessOptions {
   failingLoads?: Array<number>;
   blobBehaviour?: FakeBlobBehaviour;
   nextFrame?: () => Promise<void>;
+  /* What getSettleMs answers: 0, no settling, unless given. */
+  settleMs?: number;
+  /* How far the fake clock moves on every nextFrame (16ms). */
+  frameMs?: number;
 }
 
 interface RasterHarness {
@@ -784,17 +958,27 @@ interface RasterHarness {
   canvases: Array<FakeCanvas>;
   urls: Array<string>;
   timeline: Array<string>;
+  /* Every embeddedBytes getSettleMs was asked about, in call order. */
+  settleRequests: Array<number>;
 }
 
+/*
+ * The clock is fake as well: now() reads a counter that only nextFrame
+ * moves, so the settle loop runs a known number of frames and never
+ * waits on real time.
+ */
 function makeRasterHarness(options?: RasterHarnessOptions): RasterHarness {
   const canvases: Array<FakeCanvas> = [];
   const urls: Array<string> = [];
   const timeline: Array<string> = [];
+  const settleRequests: Array<number> = [];
+  let clock: number = 0;
 
   return {
     canvases: canvases,
     urls: urls,
     timeline: timeline,
+    settleRequests: settleRequests,
     deps: {
       createCanvas: (width: number, height: number): HTMLCanvasElement => {
         const index: number = canvases.length;
@@ -827,8 +1011,17 @@ function makeRasterHarness(options?: RasterHarnessOptions): RasterHarness {
       },
       nextFrame: (): Promise<void> => {
         timeline.push("nextFrame");
+        clock += options?.frameMs ?? 16;
 
         return options?.nextFrame ? options.nextFrame() : Promise.resolve();
+      },
+      now: (): number => {
+        return clock;
+      },
+      getSettleMs: (embeddedBytes: number): number => {
+        settleRequests.push(embeddedBytes);
+
+        return options?.settleMs ?? 0;
       },
     },
   };
@@ -1029,6 +1222,60 @@ describe("isTransparentColor", () => {
   });
 });
 
+/*
+ * The stage's resolved root text colour tells which scheme the engine
+ * really drew the page in: light text is a dark page.
+ */
+describe("isLightColor", () => {
+  it("is true for light computed colours, comma- or space-separated", () => {
+    for (const color of [
+      "rgb(255, 255, 255)",
+      "rgb(232, 234, 237)",
+      "rgba(240, 240, 240, 0.5)",
+      "rgb(200 200 200)",
+      "rgb(250 250 250 / 0.8)",
+    ]) {
+      expect(isLightColor(color)).toBe(true);
+    }
+  });
+
+  it("is false for dark computed colours", () => {
+    for (const color of [
+      "rgb(0, 0, 0)",
+      "rgb(17, 24, 39)",
+      "rgba(0, 0, 0, 0.87)",
+      "rgb(60 60 60)",
+    ]) {
+      expect(isLightColor(color)).toBe(false);
+    }
+  });
+
+  it("weighs the channels by luminance, green most and blue least", () => {
+    /* 0.7152 * 200 = 143 */
+    expect(isLightColor("rgb(0, 200, 0)")).toBe(true);
+    /* 0.2126 * 200 + 0.0722 * 200 = 57 */
+    expect(isLightColor("rgb(200, 0, 200)")).toBe(false);
+    /* 0.0722 * 255 = 18 */
+    expect(isLightColor("rgb(0, 0, 255)")).toBe(false);
+  });
+
+  it("needs to be above the midpoint, not on it", () => {
+    expect(isLightColor("rgb(128, 128, 128)")).toBe(false);
+    expect(isLightColor("rgb(129, 129, 129)")).toBe(true);
+  });
+
+  it("reads only the first three channels, never the alpha", () => {
+    expect(isLightColor("rgba(0, 0, 0, 255)")).toBe(false);
+    expect(isLightColor("rgba(255, 255, 255, 0)")).toBe(true);
+  });
+
+  it("is false for anything without three channels", () => {
+    for (const color of ["", "white", "canvastext", "rgb(255, 255)"]) {
+      expect(isLightColor(color)).toBe(false);
+    }
+  });
+});
+
 describe("rewriteReplayCss", () => {
   describe("url()", () => {
     it("empties an unquoted remote url and keeps what follows", () => {
@@ -1172,6 +1419,142 @@ describe("rewriteReplayCss", () => {
     });
   });
 
+  /*
+   * Nothing in an SVG image is a link, so a:link rules would silently
+   * stop matching; the computed styles the capture reads are the
+   * unvisited ones, so :visited rules must not match either.
+   */
+  describe(":link and :visited", () => {
+    it("rewrites every spelling of the link pseudo-classes to [href]", () => {
+      expect(
+        rewriteReplayCss(
+          "a:link { a: b; } a:any-link { a: b; } a:-webkit-any-link { a: b; } a:-moz-any-link { a: b; }",
+        ),
+      ).toBe(
+        "a[href] { a: b; } a[href] { a: b; } a[href] { a: b; } a[href] { a: b; }",
+      );
+    });
+
+    it("keeps the rest of the selector attached", () => {
+      expect(rewriteReplayCss("a:link:hover, .nav :any-link.active {}")).toBe(
+        "a[href]:hover, .nav [href].active {}",
+      );
+      expect(rewriteReplayCss(":not(:link) {}")).toBe(":not([href]) {}");
+    });
+
+    it("matches case-insensitively and at the very end of the text", () => {
+      expect(rewriteReplayCss("a:LINK, a:Any-Link")).toBe("a[href], a[href]");
+      expect(rewriteReplayCss("a:link")).toBe("a[href]");
+    });
+
+    it("rewrites :visited to a selector that matches nothing", () => {
+      expect(rewriteReplayCss("a:visited { color: purple; }")).toBe(
+        "a:not(*) { color: purple; }",
+      );
+      expect(rewriteReplayCss("a:link, a:VISITED {}")).toBe(
+        "a[href], a:not(*) {}",
+      );
+    });
+
+    it("leaves names that only start with link or visited alone", () => {
+      const css: string =
+        "a:linked {} a:link-x {} a:visited2 {} a:visited_x {} .link {} a:local-link {}";
+
+      expect(rewriteReplayCss(css)).toBe(css);
+    });
+
+    it("leaves pseudo-elements alone, after a link pseudo-class too", () => {
+      const css: string =
+        "a::before {} a::after {} li::marker {} input::placeholder {} ::selection {} p::first-line {} ::-webkit-scrollbar {}";
+
+      expect(rewriteReplayCss(css)).toBe(css);
+      expect(rewriteReplayCss("a:link::after, a:visited::before {}")).toBe(
+        "a[href]::after, a:not(*)::before {}",
+      );
+    });
+
+    it("never touches strings and comments", () => {
+      const css: string = `a::after { content: ":link :visited"; } /* a:link a:visited */`;
+
+      expect(rewriteReplayCss(css)).toBe(css);
+    });
+  });
+
+  /*
+   * An @namespace url() is a name, not a resource: emptying it would put
+   * every type selector in the sheet in the data:, namespace.
+   */
+  describe("@namespace", () => {
+    it("copies an @namespace rule verbatim and still rewrites the urls after it", () => {
+      expect(
+        rewriteReplayCss(
+          `@namespace url(http://www.w3.org/1999/xhtml); @namespace svg url("http://www.w3.org/2000/svg"); .a { background: url(https://cdn.example/a.png); }`,
+        ),
+      ).toBe(
+        `@namespace url(http://www.w3.org/1999/xhtml); @namespace svg url("http://www.w3.org/2000/svg"); .a { background: ${EMPTY_URL}; }`,
+      );
+    });
+
+    it("matches the at-rule case-insensitively and reads past a quoted semicolon", () => {
+      expect(
+        rewriteReplayCss(
+          `@NAMESPACE x "urn:a;b"; .b { background: url(/b.png); }`,
+        ),
+      ).toBe(`@NAMESPACE x "urn:a;b"; .b { background: ${EMPTY_URL}; }`);
+    });
+
+    it("copies an unterminated @namespace to the end", () => {
+      const css: string = "@namespace url(http://www.w3.org/1999/xhtml)";
+
+      expect(rewriteReplayCss(css)).toBe(css);
+    });
+
+    it("leaves an at-rule that only starts with namespace to the other rules", () => {
+      expect(rewriteReplayCss("@namespaced url(https://x/a.png);")).toBe(
+        `@namespaced ${EMPTY_URL};`,
+      );
+    });
+  });
+
+  /*
+   * A quirks-mode page matches class names case-insensitively and an
+   * image never does: the classes are lowercased on both sides.
+   */
+  describe("quirks mode", () => {
+    it("lowercases class selectors", () => {
+      expect(
+        rewriteReplayCss(".Box .CardTitle, div.Nav_Item:not(.Is-Active) {}", {
+          isQuirksMode: true,
+        }),
+      ).toBe(".box .cardtitle, div.nav_item:not(.is-active) {}");
+    });
+
+    it("leaves numbers, strings and urls alone", () => {
+      const css: string = `.a { margin: .5em 1.25EM; content: ".Keep"; background: url(data:image/png;base64,AB.CD); }`;
+
+      expect(rewriteReplayCss(css, { isQuirksMode: true })).toBe(css);
+    });
+
+    it("still rewrites urls, :root and links", () => {
+      expect(
+        rewriteReplayCss(
+          ":root .Big a:link { background: url(https://x/A.PNG); }",
+          { isQuirksMode: true },
+        ),
+      ).toBe(
+        `${REPLAY_FRAME_ROOT_SELECTOR} .big a[href] { background: ${EMPTY_URL}; }`,
+      );
+    });
+
+    it("leaves class selectors as they are in standards mode", () => {
+      const css: string = ".Box .CardTitle {}";
+
+      expect(rewriteReplayCss(css)).toBe(css);
+      expect(rewriteReplayCss(css, { isQuirksMode: false })).toBe(css);
+      expect(rewriteReplayCss(css, undefined)).toBe(css);
+    });
+  });
+
   it("is idempotent", () => {
     const css: string = `:root.dark { --x: url(https://x/a.png); } /* url(y) */ a { content: ":root"; }`;
     const once: string = rewriteReplayCss(css);
@@ -1213,6 +1596,63 @@ describe("computeScrollSnapMargin", () => {
         containerBorder: 3,
       }),
     ).toBe(0);
+  });
+});
+
+/*
+ * A child of a reverse-origin scroller moves by -offset, on top of the
+ * translate it already had (the individual property composes with
+ * `transform`, so that one is left alone).
+ */
+describe("composeTranslate", () => {
+  const OFFSET: { x: number; y: number } = { x: 10, y: 20 };
+
+  it("is the bare offset when there is no translate yet", () => {
+    for (const existing of ["", "   ", "none", " none "]) {
+      expect(composeTranslate(existing, OFFSET)).toBe("-10px -20px");
+    }
+  });
+
+  it("moves forwards for the negative offsets a reverse scroller has", () => {
+    expect(composeTranslate("none", { x: -120, y: 0 })).toBe("120px 0px");
+    expect(composeTranslate("none", { x: 0, y: -200 })).toBe("0px 200px");
+  });
+
+  it("adds the offset to a one-value translate, whose y is 0", () => {
+    expect(composeTranslate("5px", OFFSET)).toBe(
+      "calc(5px + -10px) calc(0px + -20px)",
+    );
+  });
+
+  it("adds the offset to both values of a two-value translate", () => {
+    expect(composeTranslate(" 5px  6px ", OFFSET)).toBe(
+      "calc(5px + -10px) calc(6px + -20px)",
+    );
+  });
+
+  it("keeps the z of a three-value translate as it is", () => {
+    expect(composeTranslate("5px 6px 7px", OFFSET)).toBe(
+      "calc(5px + -10px) calc(6px + -20px) 7px",
+    );
+  });
+
+  it("keeps a calc() in one piece", () => {
+    expect(composeTranslate("calc(50% + 4px) 10%", OFFSET)).toBe(
+      "calc(calc(50% + 4px) + -10px) calc(10% + -20px)",
+    );
+    expect(composeTranslate("-3px calc(100% - 1em) 2px", OFFSET)).toBe(
+      "calc(-3px + -10px) calc(calc(100% - 1em) + -20px) 2px",
+    );
+  });
+
+  /*
+   * A percentage cannot be resolved at computed-value time, so a nested
+   * math function survives into the computed translate as written.
+   */
+  it("keeps a calc() with a math function nested inside it in one piece", () => {
+    expect(composeTranslate("calc(10% + min(10%, 5px)) 4px", OFFSET)).toBe(
+      "calc(calc(10% + min(10%, 5px)) + -10px) calc(4px + -20px)",
+    );
   });
 });
 
@@ -1274,6 +1714,149 @@ describe("resolveReplayFramePixelRatio", () => {
 
   it("ignores the budget for a viewport with no area", () => {
     expect(resolveReplayFramePixelRatio(2, { width: 0, height: 0 })).toBe(2);
+  });
+});
+
+/*
+ * Floored, not rounded: rounding both sides up can push a frame the ratio
+ * was chosen to fit back over REPLAY_FRAME_MAX_CANVAS_PIXELS.
+ */
+describe("resolveReplayFrameCanvasSize", () => {
+  it("is the viewport times the ratio", () => {
+    expect(resolveReplayFrameCanvasSize(VIEWPORT, 2)).toEqual({
+      width: 1600,
+      height: 1200,
+    });
+  });
+
+  it("floors each side", () => {
+    expect(
+      resolveReplayFrameCanvasSize({ width: 333, height: 201 }, 1.5),
+    ).toEqual({ width: 499, height: 301 });
+    expect(
+      resolveReplayFrameCanvasSize({ width: 100.9, height: 50.99 }, 1),
+    ).toEqual({ width: 100, height: 50 });
+  });
+
+  it("is never smaller than one pixel a side", () => {
+    expect(resolveReplayFrameCanvasSize({ width: 0.4, height: 3 }, 1)).toEqual({
+      width: 1,
+      height: 3,
+    });
+    expect(resolveReplayFrameCanvasSize({ width: 3, height: 0 }, 2)).toEqual({
+      width: 6,
+      height: 1,
+    });
+  });
+
+  it("stays inside the pixel budget where rounding up would not", () => {
+    for (const viewport of [
+      { width: 3024, height: 1964 },
+      { width: 2561, height: 1441 },
+      { width: 10001, height: 9999 },
+      { width: 1000, height: 20000 },
+    ]) {
+      const ratio: number = resolveReplayFramePixelRatio(2, viewport);
+      const size: ReplayFrameViewport = resolveReplayFrameCanvasSize(
+        viewport,
+        ratio,
+      );
+
+      expect(size.width * size.height).toBeLessThanOrEqual(
+        REPLAY_FRAME_MAX_CANVAS_PIXELS,
+      );
+    }
+
+    const rounded: number =
+      Math.round(
+        3024 * resolveReplayFramePixelRatio(2, { width: 3024, height: 1964 }),
+      ) *
+      Math.round(
+        1964 * resolveReplayFramePixelRatio(2, { width: 3024, height: 1964 }),
+      );
+
+    expect(rounded).toBeGreaterThan(REPLAY_FRAME_MAX_CANVAS_PIXELS);
+  });
+});
+
+/*
+ * Safari decodes the pictures inside an SVG image late, so a frame that
+ * embeds nested frames is repainted for a while - longer the more there
+ * is to decode, and never for more than two seconds.
+ */
+describe("resolveReplayFrameSettleMs", () => {
+  it("is 0 in an engine that decodes in time", () => {
+    for (const bytes of [0, 1, 1000, 10000000]) {
+      expect(resolveReplayFrameSettleMs(bytes, false)).toBe(0);
+    }
+  });
+
+  it("is 0 when nothing is embedded", () => {
+    expect(resolveReplayFrameSettleMs(0, true)).toBe(0);
+    expect(resolveReplayFrameSettleMs(-5, true)).toBe(0);
+  });
+
+  it("is 600ms plus a millisecond per 2000 embedded bytes, rounded", () => {
+    expect(resolveReplayFrameSettleMs(1, true)).toBe(600);
+    expect(resolveReplayFrameSettleMs(999, true)).toBe(600);
+    expect(resolveReplayFrameSettleMs(1000, true)).toBe(601);
+    expect(resolveReplayFrameSettleMs(200000, true)).toBe(700);
+  });
+
+  it("is capped at two seconds", () => {
+    expect(resolveReplayFrameSettleMs(2800000, true)).toBe(2000);
+    expect(resolveReplayFrameSettleMs(2802000, true)).toBe(2000);
+    expect(resolveReplayFrameSettleMs(50000000, true)).toBe(2000);
+  });
+});
+
+describe("isSafariWebKit", () => {
+  const SAFARI_IOS: string =
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1";
+  const EDGE: string =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.2478.51";
+  const FIREFOX: string =
+    "Mozilla/5.0 (X11; Linux x86_64; rv:125.0) Gecko/20100101 Firefox/125.0";
+  const CHROMIUM: string =
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chromium/124.0.0.0 Safari/537.36";
+
+  it("is true for Safari on macOS and iOS", () => {
+    expect(isSafariWebKit(SAFARI_USER_AGENT)).toBe(true);
+    expect(isSafariWebKit(SAFARI_IOS)).toBe(true);
+  });
+
+  it("is false for the Blink browsers that also say AppleWebKit", () => {
+    expect(isSafariWebKit(CHROME_USER_AGENT)).toBe(false);
+    expect(isSafariWebKit(EDGE)).toBe(false);
+    expect(isSafariWebKit(CHROMIUM)).toBe(false);
+  });
+
+  it("is false for Firefox and for no user agent at all", () => {
+    expect(isSafariWebKit(FIREFOX)).toBe(false);
+    expect(isSafariWebKit("")).toBe(false);
+  });
+
+  /*
+   * Every browser on iOS is WebKit underneath, whatever it calls itself,
+   * so it decodes late and keeps the replay canvas light the way Safari
+   * does.
+   */
+  it("is true for Chrome and Firefox on iOS, which run on WebKit", () => {
+    for (const userAgent of [
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/124.0.6367.88 Mobile/15E148 Safari/604.1",
+      "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/125.0 Mobile/15E148 Safari/605.1.15",
+    ]) {
+      expect(isSafariWebKit(userAgent)).toBe(true);
+    }
+  });
+
+  /* "EdgiOS" contains "Edg", which is how desktop Edge is told apart. */
+  it("is true for Edge on iOS, which runs on WebKit too", () => {
+    expect(
+      isSafariWebKit(
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 EdgiOS/124.0.2478.50 Mobile/15E148 Safari/605.1.15",
+      ),
+    ).toBe(true);
   });
 });
 
@@ -1587,6 +2170,200 @@ describe("readStyleSheetText", () => {
         ]),
       ),
     ).toBe(".own {}");
+  });
+
+  /*
+   * Inside the SVG image (hover), (pointer) and (color) read differently
+   * from the stage, so each condition is settled against the replay
+   * window and the image is handed rules with no @media left in them.
+   */
+  describe("with a media matcher", () => {
+    interface Matcher {
+      matcher: ReplayMediaMatcher;
+      asked: Array<string>;
+    }
+
+    /* Matches everything but print, and records what it was asked. */
+    function makeMatcher(): Matcher {
+      const asked: Array<string> = [];
+
+      return {
+        asked: asked,
+        matcher: (query: string): boolean => {
+          asked.push(query);
+
+          return query !== "print";
+        },
+      };
+    }
+
+    function mediaRule(
+      query: string,
+      rules: Array<Record<string, unknown>>,
+      options?: { hasMediaList?: boolean },
+    ): Record<string, unknown> {
+      return {
+        cssText: `@media ${query} {${rules
+          .map((rule: Record<string, unknown>): string => {
+            return String(rule["cssText"]);
+          })
+          .join("")}}`,
+        media:
+          options?.hasMediaList === false ? undefined : { mediaText: query },
+        cssRules: makeSheet(rules).cssRules,
+      };
+    }
+
+    function groupingRule(
+      prelude: string,
+      rules: Array<Record<string, unknown>>,
+    ): Record<string, unknown> {
+      return {
+        cssText: `${prelude} {${rules
+          .map((rule: Record<string, unknown>): string => {
+            return String(rule["cssText"]);
+          })
+          .join("")}}`,
+        cssRules: makeSheet(rules).cssRules,
+      };
+    }
+
+    it("unwraps an @media rule the window matches and drops one it does not", () => {
+      const matcher: Matcher = makeMatcher();
+
+      expect(
+        readStyleSheetText(
+          makeSheet([
+            mediaRule("(hover: hover)", [{ cssText: ".hover {color: red;}" }]),
+            mediaRule("print", [{ cssText: ".printed {color: black;}" }]),
+            { cssText: ".own {}" },
+          ]),
+          matcher.matcher,
+        ),
+      ).toBe(".hover {color: red;}\n.own {}");
+      expect(matcher.asked).toEqual(["(hover: hover)", "print"]);
+    });
+
+    it("reads the condition from the rule text when the rule has no media list", () => {
+      const matcher: Matcher = makeMatcher();
+
+      expect(
+        readStyleSheetText(
+          makeSheet([
+            mediaRule(
+              "screen and (min-width: 600px)",
+              [{ cssText: ".wide {}" }],
+              { hasMediaList: false },
+            ),
+          ]),
+          matcher.matcher,
+        ),
+      ).toBe(".wide {}");
+      expect(matcher.asked).toEqual(["screen and (min-width: 600px)"]);
+    });
+
+    it("settles an @media inside another one", () => {
+      expect(
+        readStyleSheetText(
+          makeSheet([
+            mediaRule("screen", [
+              mediaRule("print", [{ cssText: ".never {}" }]),
+              { cssText: ".screen {}" },
+            ]),
+          ]),
+          makeMatcher().matcher,
+        ),
+      ).toBe(".screen {}");
+    });
+
+    it("keeps an @supports, @layer or @container wrapper and settles the @media inside it", () => {
+      const matcher: Matcher = makeMatcher();
+
+      expect(
+        readStyleSheetText(
+          makeSheet([
+            groupingRule("@supports (display: grid)", [
+              mediaRule("print", [{ cssText: ".grid-print {}" }]),
+              { cssText: ".grid {}" },
+            ]),
+            groupingRule("@layer base", [
+              mediaRule("(hover: hover)", [{ cssText: ".layer-hover {}" }]),
+            ]),
+            groupingRule("@container card (min-width: 400px)", [
+              groupingRule("@supports (gap: 1px)", [
+                mediaRule("print", [{ cssText: ".deep-print {}" }]),
+                { cssText: ".deep {}" },
+              ]),
+            ]),
+          ]),
+          matcher.matcher,
+        ),
+      ).toBe(
+        [
+          "@supports (display: grid) {\n.grid {}\n}",
+          "@layer base {\n.layer-hover {}\n}",
+          "@container card (min-width: 400px) {\n@supports (gap: 1px) {\n.deep {}\n}\n}",
+        ].join("\n"),
+      );
+      expect(matcher.asked).toEqual(["print", "(hover: hover)", "print"]);
+    });
+
+    it("keeps an @layer statement, which has no rules of its own, verbatim", () => {
+      expect(
+        readStyleSheetText(
+          makeSheet([{ cssText: "@layer reset, base;" }, { cssText: ".a {}" }]),
+          makeMatcher().matcher,
+        ),
+      ).toBe("@layer reset, base;\n.a {}");
+    });
+
+    it("drops an @import whose media does not match and inlines, unwrapped, one whose media does", () => {
+      const matcher: Matcher = makeMatcher();
+
+      expect(
+        readStyleSheetText(
+          makeSheet([
+            {
+              cssText: '@import url("print.css") print;',
+              media: { mediaText: " print " },
+              styleSheet: makeSheet([{ cssText: ".printed {}" }]),
+            },
+            {
+              cssText: '@import url("screen.css") screen;',
+              media: { mediaText: "screen" },
+              styleSheet: makeSheet([
+                mediaRule("print", [{ cssText: ".imported-print {}" }]),
+                { cssText: ".screened {}" },
+              ]),
+            },
+            {
+              cssText: '@import url("all.css");',
+              media: { mediaText: "" },
+              styleSheet: makeSheet([{ cssText: ".everywhere {}" }]),
+            },
+          ]),
+          matcher.matcher,
+        ),
+      ).toBe(".screened {}\n.everywhere {}");
+      /* The imported sheet's own @media is settled as well. */
+      expect(matcher.asked).toEqual(["print", "screen", "print"]);
+    });
+
+    it("keeps @media rules verbatim without a matcher", () => {
+      const sheet: CSSStyleSheet = makeSheet([
+        mediaRule("print", [{ cssText: ".printed {}" }]),
+        groupingRule("@supports (display: grid)", [
+          mediaRule("(hover: hover)", [{ cssText: ".grid-hover {}" }]),
+        ]),
+      ]);
+      const expected: string = [
+        "@media print {.printed {}}",
+        "@supports (display: grid) {\n@media (hover: hover) {.grid-hover {}}\n}",
+      ].join("\n");
+
+      expect(readStyleSheetText(sheet)).toBe(expected);
+      expect(readStyleSheetText(sheet, null)).toBe(expected);
+    });
   });
 });
 
@@ -1908,6 +2685,158 @@ describe("serializeReplayFrame", () => {
 
       expect(captured.html.firstElementChild?.localName).toBe("head");
       expect(headStyleTexts(captured)).toEqual([REPLAY_FRAME_FREEZE_CSS]);
+    });
+  });
+
+  /*
+   * The image answers some media features differently from the stage
+   * ((hover) and (pointer) are false inside it in Chromium and WebKit),
+   * so where the replay window can answer, every condition is settled
+   * there and the image gets no @media to evaluate at all.
+   */
+  describe("media queries", () => {
+    /* A stage viewed with a mouse, on a screen: everything but print. */
+    function matchesScreen(query: string): boolean {
+      return !query.includes("print");
+    }
+
+    function makeLinkedSheet(css: string): CSSStyleSheet {
+      const source: Document = makeReplayDocument("", {
+        head: `<style id="source">${css}</style>`,
+      });
+      const sheet: CSSStyleSheet = (
+        liveById(source, "source") as HTMLStyleElement
+      ).sheet as CSSStyleSheet;
+
+      giveRuleListItem(sheet);
+
+      return sheet;
+    }
+
+    function linkSheet(link: Element, sheet: CSSStyleSheet): void {
+      Object.defineProperty(link, "sheet", {
+        configurable: true,
+        get: (): CSSStyleSheet => {
+          return sheet;
+        },
+      });
+    }
+
+    it("unwraps the @media rules the replay window matches and drops the rest", () => {
+      const replayDocument: Document = makeReplayDocument("", {
+        head:
+          `<style>@media (hover: hover) { .hover-rule { color: red; } } ` +
+          `@media print { .print-rule { color: black; } } ` +
+          `@supports (display: grid) { @media print { .grid-print { color: black; } } @media (pointer: fine) { .grid-pointer { color: red; } } } ` +
+          `.plain { color: blue; }</style>`,
+      });
+      const queries: Array<string> = defineMatchMedia(
+        replayDocument,
+        matchesScreen,
+      );
+      const css: string = headStyleTexts(capture(replayDocument)).join("\n");
+
+      expect(css).toContain(".hover-rule");
+      expect(css).toContain(".plain");
+      expect(css).not.toContain(".print-rule");
+      expect(css).not.toContain("@media");
+      /* @supports means the same inside the image, so it stays. */
+      expect(css).toContain("@supports (display: grid)");
+      expect(css).toContain(".grid-pointer");
+      expect(css).not.toContain(".grid-print");
+      expect(queries).toEqual(
+        expect.arrayContaining(["(hover: hover)", "print", "(pointer: fine)"]),
+      );
+    });
+
+    it("settles the adopted stylesheets' @media rules as well", () => {
+      const adopted: CSSStyleSheet = makeLinkedSheet(
+        "@media (hover: hover) { .adopted-hover { color: red; } } @media print { .adopted-print { color: black; } }",
+      );
+      const replayDocument: Document = makeReplayDocument("");
+
+      Object.defineProperty(replayDocument, "adoptedStyleSheets", {
+        configurable: true,
+        get: (): Array<CSSStyleSheet> => {
+          return [adopted];
+        },
+      });
+      defineMatchMedia(replayDocument, matchesScreen);
+
+      const css: string = headStyleTexts(capture(replayDocument)).join("\n");
+
+      expect(css).toContain(".adopted-hover");
+      expect(css).not.toContain(".adopted-print");
+      expect(css).not.toContain("@media");
+    });
+
+    it("drops a <style> or <link> whose media does not match, and keeps the rest without their media", () => {
+      const wide: CSSStyleSheet = makeLinkedSheet(
+        ".wide-rule { color: green; }",
+      );
+      const printed: CSSStyleSheet = makeLinkedSheet(
+        ".printed-rule { color: black; }",
+      );
+      const replayDocument: Document = makeReplayDocument("", {
+        head:
+          `<style media="print">.print-sheet { color: black; }</style>` +
+          `<style media="screen">.screen-sheet { color: green; }</style>` +
+          `<link id="wide" rel="stylesheet" href="/wide.css" media="screen and (min-width: 600px)">` +
+          `<link id="printed" rel="stylesheet" href="/print.css" media="print">`,
+      });
+
+      linkSheet(liveById(replayDocument, "wide"), wide);
+      linkSheet(liveById(replayDocument, "printed"), printed);
+
+      const queries: Array<string> = defineMatchMedia(
+        replayDocument,
+        matchesScreen,
+      );
+      const captured: CapturedFrame = capture(replayDocument);
+      const styles: Array<Element> = Array.from(captured.head.children);
+      const css: string = headStyleTexts(captured).join("\n");
+
+      expect(css).not.toContain(".print-sheet");
+      expect(css).not.toContain(".printed-rule");
+      expect(css).toContain(".screen-sheet");
+      expect(css).toContain(".wide-rule");
+
+      for (const style of styles) {
+        expect(style.hasAttribute("media")).toBe(false);
+      }
+
+      expect(queries).toEqual(
+        expect.arrayContaining([
+          "print",
+          "screen",
+          "screen and (min-width: 600px)",
+        ]),
+      );
+    });
+
+    it("keeps a rule whose query the replay window cannot answer", () => {
+      const replayDocument: Document = makeReplayDocument("", {
+        head: `<style>@media (hover: hover) { .unanswered { color: red; } }</style>`,
+      });
+
+      defineMatchMedia(replayDocument, (): boolean => {
+        throw new SyntaxError("Not a media query.");
+      });
+
+      const css: string = headStyleTexts(capture(replayDocument)).join("\n");
+
+      expect(css).toContain(".unanswered");
+      expect(css).not.toContain("@media");
+    });
+
+    it("leaves the conditions to the image where the replay window has no matchMedia", () => {
+      const replayDocument: Document = makeReplayDocument("", {
+        head: `<style>@media print { .print-rule { color: black; } }</style>`,
+      });
+      const css: string = headStyleTexts(capture(replayDocument)).join("\n");
+
+      expect(css).toContain("@media print");
+      expect(css).toContain(".print-rule");
     });
   });
 
@@ -2512,6 +3441,222 @@ describe("serializeReplayFrame", () => {
     });
   });
 
+  /*
+   * Flattened content is written behind `all: unset`, which leaves every
+   * property out of the page's reach. Behind that reset a property the
+   * clone leaves out inherits if it is inherited and is initial if not -
+   * so one whose value is BOTH the initial value and the parent's can be
+   * left out whichever it is. The initial values come from an
+   * `all: initial` probe in a hidden reference frame the capture adds to
+   * the Dashboard document and removes again.
+   */
+  describe("computed styles behind the reset", () => {
+    const INITIAL: Record<string, string> = {
+      visibility: "visible",
+      "font-style": "normal",
+      color: "rgb(0, 0, 0)",
+      "letter-spacing": "normal",
+      "border-top-width": "0px",
+      "outline-width": "0px",
+      width: "auto",
+      height: "auto",
+    };
+
+    function makeShadowPage(): Document {
+      const replayDocument: Document = makeReplayDocument(
+        `<fancy-card id="card"></fancy-card>`,
+      );
+      const card: HTMLElement = liveById(replayDocument, "card");
+
+      attachShadow(card, `<p id="inner">Text</p>`);
+
+      return replayDocument;
+    }
+
+    function innerOf(replayDocument: Document): Element {
+      return (
+        liveById(replayDocument, "card").shadowRoot as ShadowRoot
+      ).getElementById("inner") as Element;
+    }
+
+    function propertiesOf(element: Element): Array<string> {
+      return declarationsOf(element).map((declaration: string): string => {
+        return declaration.split(":")[0] ?? "";
+      });
+    }
+
+    it("makes a hidden reference frame in the Dashboard document and leaves none behind", () => {
+      const replayDocument: Document = makeShadowPage();
+      const iframesBefore: number =
+        document.body.querySelectorAll("iframe").length;
+      const reference: ReferenceFrameSpy = spyOnReferenceFrames();
+
+      serialize(replayDocument);
+
+      expect(reference.frames).toHaveLength(1);
+      expect(reference.frames[0]!.getAttribute("aria-hidden")).toBe("true");
+      expect(reference.frames[0]!.getAttribute("tabindex")).toBe("-1");
+      expect(reference.frames[0]!.isConnected).toBe(false);
+      expect(document.body.querySelectorAll("iframe")).toHaveLength(
+        iframesBefore,
+      );
+    });
+
+    it("reads the initial values once for the whole capture", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<fancy-card id="one"></fancy-card><fancy-card id="two"></fancy-card>`,
+      );
+
+      attachShadow(liveById(replayDocument, "one"), `<p>One</p><p>Two</p>`);
+      attachShadow(liveById(replayDocument, "two"), `<p>Three</p>`);
+
+      const reference: ReferenceFrameSpy = spyOnReferenceFrames();
+
+      serialize(replayDocument);
+
+      expect(reference.frames).toHaveLength(1);
+    });
+
+    it("makes no reference frame for a page with nothing to flatten", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<main><p>Plain page</p></main>`,
+      );
+      const reference: ReferenceFrameSpy = spyOnReferenceFrames();
+
+      serialize(replayDocument);
+
+      expect(reference.frames).toHaveLength(0);
+    });
+
+    it("writes a flattened element as the reset followed by what differs from it", () => {
+      const replayDocument: Document = makeShadowPage();
+
+      overrideComputedStyle(liveById(replayDocument, "card"), {
+        visibility: "visible",
+        "font-style": "normal",
+        color: "rgb(9, 9, 9)",
+        "letter-spacing": "normal",
+        "border-top-width": "0px",
+      });
+      overrideComputedStyle(innerOf(replayDocument), {
+        visibility: "visible",
+        "font-style": "normal",
+        color: "rgb(0, 0, 0)",
+        "letter-spacing": "2px",
+        "border-top-width": "0px",
+        "outline-width": "0px",
+      });
+      spyOnReferenceFrames(INITIAL);
+
+      const inner: Element = byId(capture(replayDocument).svg, "inner");
+      const declarations: Array<string> = declarationsOf(inner);
+
+      expect(declarations[0]).toBe("all: unset !important");
+      /* Initial and inherited alike: the reset gets it right either way. */
+      expect(propertiesOf(inner)).not.toContain("visibility");
+      expect(propertiesOf(inner)).not.toContain("font-style");
+      /* Initial, but the parent's differs and it would inherit that. */
+      expect(declarations).toContain("color: rgb(0, 0, 0) !important");
+      /* The parent's, but not initial: a non-inherited property would lose it. */
+      expect(declarations).toContain("letter-spacing: 2px !important");
+    });
+
+    /*
+     * A border, outline or column-rule width computes to 0 while its
+     * style is none, so the probe's 0px is not what the reset gives it
+     * once a style is set.
+     */
+    it("always writes the *-width properties", () => {
+      const replayDocument: Document = makeShadowPage();
+      const same: Record<string, string> = {
+        "border-top-width": "0px",
+        "outline-width": "0px",
+      };
+
+      overrideComputedStyle(liveById(replayDocument, "card"), same);
+      overrideComputedStyle(innerOf(replayDocument), same);
+      spyOnReferenceFrames(INITIAL);
+
+      const declarations: Array<string> = declarationsOf(
+        byId(capture(replayDocument).svg, "inner"),
+      );
+
+      expect(declarations).toContain("border-top-width: 0px !important");
+      expect(declarations).toContain("outline-width: 0px !important");
+    });
+
+    /*
+     * getComputedStyle answers width and height with the used size, and
+     * pinning that turns an auto height into a fixed one. The typed
+     * computed style still says "auto".
+     */
+    it("leaves out the sizes the typed computed style reports as auto", () => {
+      const replayDocument: Document = makeShadowPage();
+      const inner: Element = innerOf(replayDocument);
+
+      overrideComputedStyle(inner, {
+        width: "120px",
+        height: "40px",
+        "inline-size": "120px",
+        "block-size": "40px",
+      });
+      stubComputedStyleMap(inner, {
+        width: "auto",
+        height: "auto",
+        "inline-size": "120px",
+      });
+
+      const properties: Array<string> = propertiesOf(
+        byId(capture(replayDocument).svg, "inner"),
+      );
+
+      expect(properties).not.toContain("width");
+      expect(properties).not.toContain("height");
+      expect(properties).toContain("inline-size");
+      expect(properties).toContain("block-size");
+    });
+
+    it("keeps the used sizes where there is no typed computed style, or it fails", () => {
+      for (const typed of [null, new Error("No typed OM here.")]) {
+        const replayDocument: Document = makeShadowPage();
+        const inner: Element = innerOf(replayDocument);
+
+        overrideComputedStyle(inner, { width: "120px", height: "40px" });
+
+        if (typed) {
+          stubComputedStyleMap(inner, typed);
+        }
+
+        const declarations: Array<string> = declarationsOf(
+          byId(capture(replayDocument).svg, "inner"),
+        );
+
+        expect(declarations).toContain("width: 120px !important");
+        expect(declarations).toContain("height: 40px !important");
+      }
+    });
+
+    it("writes every property, without the reset, when no reference frame can be made", () => {
+      const replayDocument: Document = makeShadowPage();
+      const values: Record<string, string> = {
+        visibility: "visible",
+        "font-style": "normal",
+      };
+
+      overrideComputedStyle(liveById(replayDocument, "card"), values);
+      overrideComputedStyle(innerOf(replayDocument), values);
+      spyOnReferenceFrames(new Error("No frames here."));
+
+      const declarations: Array<string> = declarationsOf(
+        byId(capture(replayDocument).svg, "inner"),
+      );
+
+      expect(declarations).not.toContain("all: unset !important");
+      expect(declarations).toContain("visibility: visible !important");
+      expect(declarations).toContain("font-style: normal !important");
+    });
+  });
+
   describe("scroll", () => {
     it("puts the marker at the root scroll offset", () => {
       const replayDocument: Document = makeReplayDocument(`<main>Page</main>`);
@@ -2869,6 +4014,380 @@ describe("serializeReplayFrame", () => {
     });
   });
 
+  /*
+   * A box that scrolls from its end - right-to-left, or a reversed flex
+   * box - scrolls into negative offsets, which a snap cannot reach inside
+   * an image. Its children are moved by the offset instead: the
+   * individual translate property, composed with whatever translate they
+   * had, which moves them without changing anything's layout.
+   */
+  describe("reverse-origin scrollers", () => {
+    function translateOf(element: Element): string | null {
+      const declaration: string | undefined = declarationsOf(element).find(
+        (entry: string): boolean => {
+          return entry.startsWith("translate:");
+        },
+      );
+
+      return declaration ?? null;
+    }
+
+    function hasSnapTarget(element: Element): boolean {
+      return element.querySelector(`[style*="scroll-snap-align"]`) !== null;
+    }
+
+    it("moves every child of a right-to-left scroller by its offset instead of snapping", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<div id="rtl" style="overflow: auto">lead text<p id="para">Para</p><div id="moved">Moved</div><div id="pinned">Pinned</div></div>`,
+      );
+      const scroller: HTMLElement = liveById(replayDocument, "rtl");
+
+      overrideComputedStyle(scroller, { direction: "rtl" });
+      overrideComputedStyle(liveById(replayDocument, "moved"), {
+        translate: "5px 6px",
+      });
+      overrideComputedStyle(liveById(replayDocument, "pinned"), {
+        position: "fixed",
+      });
+      stubBox(scroller, { scrollLeft: -120, scrollTop: 30 });
+
+      for (const id of ["para", "moved", "pinned"]) {
+        stubBox(liveById(replayDocument, id), {
+          clientRectCount: 1,
+          rect: { top: 0, left: 0, width: 10, height: 10 },
+        });
+      }
+
+      const captured: CapturedFrame = capture(replayDocument);
+      const clone: Element = byId(captured.svg, "rtl");
+      const lead: Element = clone.firstElementChild as Element;
+
+      expect(translateOf(byId(captured.svg, "para"))).toBe(
+        "translate: 120px -30px !important",
+      );
+      expect(translateOf(byId(captured.svg, "moved"))).toBe(
+        "translate: calc(5px + 120px) calc(6px + -30px) !important",
+      );
+      /* A fixed box is placed against the viewport; the scroll never moved it. */
+      expect(translateOf(byId(captured.svg, "pinned"))).toBeNull();
+      /* Text has no box to translate, so it is wrapped in one. */
+      expect(lead.localName).toBe("span");
+      expect(lead.textContent).toBe("lead text");
+      expect(lead.getAttribute("style")).toBe(
+        "position: relative; left: 120px; top: -30px",
+      );
+      expect(hasSnapTarget(clone)).toBe(false);
+      expect(clone.children).toHaveLength(4);
+      expect(styleOf(clone)).not.toContain("position: relative");
+    });
+
+    it("moves the children of reversed flex boxes", () => {
+      for (const flex of [
+        { display: "flex", "flex-direction": "column-reverse" },
+        { display: "inline-flex", "flex-direction": "row-reverse" },
+        {
+          display: "flex",
+          "flex-direction": "row",
+          "flex-wrap": "wrap-reverse",
+        },
+      ]) {
+        const replayDocument: Document = makeReplayDocument(
+          `<div id="chat" style="overflow: auto"><p id="message">Message</p></div>`,
+        );
+        const scroller: HTMLElement = liveById(replayDocument, "chat");
+
+        overrideComputedStyle(scroller, flex);
+        stubBox(scroller, { scrollTop: -200 });
+        stubBox(liveById(replayDocument, "message"), {
+          clientRectCount: 1,
+          rect: { top: 0, left: 0, width: 10, height: 10 },
+        });
+
+        const captured: CapturedFrame = capture(replayDocument);
+
+        expect(translateOf(byId(captured.svg, "message"))).toBe(
+          "translate: 0px 200px !important",
+        );
+        expect(hasSnapTarget(byId(captured.svg, "chat"))).toBe(false);
+      }
+    });
+
+    it("moves only the scroller's own children, not what is inside them", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<div id="rtl" style="overflow: auto"><section id="child"><p id="grandchild">Deep</p>deep text</section></div>`,
+      );
+      const scroller: HTMLElement = liveById(replayDocument, "rtl");
+
+      overrideComputedStyle(scroller, { direction: "rtl" });
+      stubBox(scroller, { scrollLeft: -40 });
+
+      const captured: CapturedFrame = capture(replayDocument);
+
+      expect(translateOf(byId(captured.svg, "child"))).toBe(
+        "translate: 40px 0px !important",
+      );
+      expect(translateOf(byId(captured.svg, "grandchild"))).toBeNull();
+      expect(byId(captured.svg, "child").querySelector("span")).toBeNull();
+    });
+
+    it("snaps a reversed flex direction on a box that is not a flex box", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<div id="block" style="overflow: auto"><p id="first">First</p></div>`,
+      );
+      const scroller: HTMLElement = liveById(replayDocument, "block");
+
+      overrideComputedStyle(scroller, {
+        display: "block",
+        "flex-direction": "column-reverse",
+      });
+      stubBox(scroller, { scrollTop: 80, rect: { top: 0, left: 0 } });
+      stubBox(liveById(replayDocument, "first"), {
+        clientRectCount: 1,
+        rect: { top: -80, left: 0 },
+      });
+
+      const first: Element = byId(capture(replayDocument).svg, "first");
+
+      expect(styleOf(first)).toContain("scroll-snap-align: start !important");
+      expect(styleOf(first)).toContain("scroll-margin-top: -80px !important");
+      expect(translateOf(first)).toBeNull();
+    });
+  });
+
+  /*
+   * getBoundingClientRect answers in zoomed pixels, and a scroll-margin is
+   * in the anchor's own CSS pixels, which its effective zoom scales again:
+   * the margin is the box delta divided by the zoom.
+   */
+  describe("zoom", () => {
+    it("divides the snap margins by the zoom its box height shows", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<div id="scroller" style="overflow: auto; zoom: 1.5"><section id="anchor">Zoomed</section></div>`,
+      );
+
+      stubBox(liveById(replayDocument, "scroller"), {
+        scrollTop: 300,
+        clientTop: 2,
+        clientLeft: 2,
+        rect: { top: 100, left: 50 },
+      });
+      stubBox(liveById(replayDocument, "anchor"), {
+        clientRectCount: 1,
+        offsetWidth: 100,
+        offsetHeight: 200,
+        rect: { top: -140, left: 44, width: 150, height: 300 },
+      });
+
+      const anchor: string = styleOf(
+        byId(capture(replayDocument).svg, "anchor"),
+      );
+
+      /* (-140 - 100 - 2 * 1.5) / 1.5 and (44 - 50 - 2 * 1.5) / 1.5. */
+      expect(anchor).toContain("scroll-margin-top: -162px !important");
+      expect(anchor).toContain("scroll-margin-left: -6px !important");
+    });
+
+    it("reads the zoom from the width when the box has no height", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<div id="scroller" style="overflow: auto"><section id="anchor">Zoomed</section></div>`,
+      );
+
+      stubBox(liveById(replayDocument, "scroller"), {
+        scrollLeft: 30,
+        clientTop: 2,
+        clientLeft: 2,
+        rect: { top: 100, left: 50 },
+      });
+      stubBox(liveById(replayDocument, "anchor"), {
+        clientRectCount: 1,
+        offsetWidth: 100,
+        offsetHeight: 0,
+        rect: { top: -140, left: 44, width: 200, height: 0 },
+      });
+
+      const anchor: string = styleOf(
+        byId(capture(replayDocument).svg, "anchor"),
+      );
+
+      /* (-140 - 100 - 2 * 2) / 2 and (44 - 50 - 2 * 2) / 2. */
+      expect(anchor).toContain("scroll-margin-top: -122px !important");
+      expect(anchor).toContain("scroll-margin-left: -5px !important");
+    });
+
+    it("leaves the margins as they are at zoom 1", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<div id="scroller" style="overflow: auto"><section id="anchor">Plain</section></div>`,
+      );
+
+      stubBox(liveById(replayDocument, "scroller"), {
+        scrollTop: 300,
+        clientTop: 2,
+        clientLeft: 2,
+        rect: { top: 100, left: 50 },
+      });
+      stubBox(liveById(replayDocument, "anchor"), {
+        clientRectCount: 1,
+        offsetWidth: 100,
+        offsetHeight: 200,
+        rect: { top: -140, left: 44, width: 100, height: 200 },
+      });
+
+      const anchor: string = styleOf(
+        byId(capture(replayDocument).svg, "anchor"),
+      );
+
+      expect(anchor).toContain("scroll-margin-top: -242px !important");
+      expect(anchor).toContain("scroll-margin-left: -8px !important");
+    });
+  });
+
+  /*
+   * The snap anchor is the first box laid out in flow. The search looks
+   * through what has no box of its own, the way layout does, and passes
+   * over what is drawn somewhere other than where its layout put it.
+   */
+  describe("the snap anchor", () => {
+    const SCROLLER_BOX: BoxStub = {
+      scrollTop: 300,
+      rect: { top: 100, left: 0 },
+    };
+    const LAID_OUT: BoxStub = {
+      clientRectCount: 1,
+      rect: { top: -200, left: 0, width: 10, height: 10 },
+    };
+
+    function anchorsIn(captured: CapturedFrame): Array<string> {
+      return Array.from(
+        captured.svg.querySelectorAll(`[style*="scroll-snap-align: start"]`),
+      )
+        .filter((element: Element): boolean => {
+          return element.id !== "";
+        })
+        .map((element: Element): string => {
+          return element.id;
+        });
+    }
+
+    function scrollPage(
+      body: string,
+      laidOut: Array<string>,
+      overrides?: Record<string, Record<string, string>>,
+    ): Document {
+      const replayDocument: Document = makeReplayDocument(
+        `<div id="scroller" style="overflow: auto">${body}</div>`,
+      );
+
+      stubBox(liveById(replayDocument, "scroller"), SCROLLER_BOX);
+
+      for (const id of laidOut) {
+        stubBox(liveById(replayDocument, id), LAID_OUT);
+      }
+
+      for (const [id, declarations] of Object.entries(overrides ?? {})) {
+        overrideComputedStyle(liveById(replayDocument, id), declarations);
+      }
+
+      return replayDocument;
+    }
+
+    it("looks through a display:contents wrapper to the box inside it", () => {
+      const captured: CapturedFrame = capture(
+        scrollPage(
+          `<div id="wrapper"><section id="inner">Inner</section></div><section id="after">After</section>`,
+          ["wrapper", "inner", "after"],
+          { wrapper: { display: "contents" } },
+        ),
+      );
+
+      expect(anchorsIn(captured)).toEqual(["inner"]);
+      expect(styleOf(byId(captured.svg, "inner"))).toContain(
+        "scroll-margin-top: -300px !important",
+      );
+    });
+
+    it("looks through plain inline wrappers, but not an inline replaced element", () => {
+      const withText: CapturedFrame = capture(
+        scrollPage(
+          `<span id="label"><b id="bold">Bold</b><div id="block">Block</div></span><p id="after">After</p>`,
+          ["label", "bold", "block", "after"],
+          { label: { display: "inline" }, bold: { display: "inline" } },
+        ),
+      );
+      const withImage: CapturedFrame = capture(
+        scrollPage(
+          `<img id="picture" alt="" src="data:,"><p id="after">After</p>`,
+          ["picture", "after"],
+          { picture: { display: "inline" } },
+        ),
+      );
+
+      expect(anchorsIn(withText)).toEqual(["block"]);
+      expect(anchorsIn(withImage)).toEqual(["picture"]);
+    });
+
+    it("skips <br>, <script> and <template>, which have no box to snap", () => {
+      const captured: CapturedFrame = capture(
+        scrollPage(
+          `<br id="break"><script id="code">1</script><template id="stamp"><p>T</p></template><p id="first">First</p>`,
+          ["break", "code", "stamp", "first"],
+        ),
+      );
+
+      expect(anchorsIn(captured)).toEqual(["first"]);
+      expect(styleOf(byId(captured.svg, "break"))).not.toContain(
+        "scroll-snap-align",
+      );
+    });
+
+    it("passes over translated, absolute and sticky boxes, inside a wrapper too, for a later sibling", () => {
+      const captured: CapturedFrame = capture(
+        scrollPage(
+          `<div id="wrapper"><div id="absolute">A</div><div id="shifted">S</div></div><header id="sticky">Sticky</header><article id="later">Later</article>`,
+          ["wrapper", "absolute", "shifted", "sticky", "later"],
+          {
+            wrapper: { display: "contents" },
+            absolute: { position: "absolute" },
+            shifted: { translate: "0px 10px" },
+            sticky: { position: "sticky" },
+          },
+        ),
+      );
+
+      expect(anchorsIn(captured)).toEqual(["later"]);
+    });
+
+    it("uses the elements assigned to a slot, or the slot's fallback", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<list-view id="assigned" style="overflow: auto"><section id="slotted">Slotted</section></list-view>` +
+          `<list-view id="unassigned" style="overflow: auto"></list-view>`,
+      );
+      const assigned: HTMLElement = liveById(replayDocument, "assigned");
+      const unassigned: HTMLElement = liveById(replayDocument, "unassigned");
+      const fallbackRoot: ShadowRoot = attachShadow(
+        unassigned,
+        `<slot><div id="fallback">Fallback</div></slot>`,
+      );
+
+      attachShadow(assigned, `<slot></slot>`);
+      overrideComputedStyle(assigned, { "overflow-y": "auto" });
+      overrideComputedStyle(unassigned, { "overflow-y": "auto" });
+      stubBox(assigned, SCROLLER_BOX);
+      stubBox(unassigned, SCROLLER_BOX);
+      stubBox(liveById(replayDocument, "slotted"), LAID_OUT);
+      stubBox(fallbackRoot.getElementById("fallback") as Element, LAID_OUT);
+
+      const captured: CapturedFrame = capture(replayDocument);
+
+      expect(anchorsIn(captured).sort()).toEqual(["fallback", "slotted"]);
+      expect(
+        byId(captured.svg, "assigned").contains(byId(captured.svg, "slotted")),
+      ).toBe(true);
+      expect(styleOf(byId(captured.svg, "slotted"))).toContain(
+        "scroll-margin-top: -300px !important",
+      );
+    });
+  });
+
   describe("what the viewport took from the root", () => {
     it("moves the body's overflow to the frame when <html> leaves it visible", () => {
       const replayDocument: Document = makeReplayDocument(`<p>Page</p>`, {
@@ -2959,6 +4478,310 @@ describe("serializeReplayFrame", () => {
     });
   });
 
+  /*
+   * The clone's <html> is not the document root inside the image: a
+   * relative `html { font-size: 125% }` would be applied again on top of
+   * the <svg>'s resolved size, and its colour would inherit the image's
+   * black. Both are pinned from the live root.
+   */
+  describe("what the root resolved against itself", () => {
+    it("pins the live root's computed font-size and colour on the clone's <html>", () => {
+      const replayDocument: Document = makeReplayDocument(`<p>Page</p>`, {
+        head: `<style>html { font-size: 125%; }</style>`,
+      });
+
+      overrideComputedStyle(replayDocument.documentElement, {
+        "font-size": "20px",
+        color: "rgb(17, 24, 39)",
+      });
+
+      const captured: CapturedFrame = capture(replayDocument);
+
+      expect(styleOf(captured.html)).toContain("font-size: 20px !important");
+      expect(styleOf(captured.html)).toContain(
+        "color: rgb(17, 24, 39) !important",
+      );
+      expect(styleOf(captured.svg.documentElement)).toContain(
+        "font-size: 20px !important",
+      );
+    });
+
+    it("pins nothing the live root does not compute", () => {
+      const replayDocument: Document = makeReplayDocument(`<p>Page</p>`, {
+        htmlAttributes: `style="background-color: transparent; background-image: none"`,
+      });
+      const properties: Array<string> = declarationsOf(
+        capture(replayDocument).html,
+      ).map((declaration: string): string => {
+        return declaration.split(":")[0] ?? "";
+      });
+
+      expect(properties).not.toContain("font-size");
+      expect(properties).not.toContain("color");
+    });
+  });
+
+  /*
+   * The canvas background is the page's, scrolling with the document. On
+   * the frame, which is the scroller, that is background-attachment:
+   * local - "scroll" would pin it to the frame's box and squeeze a
+   * page-long gradient into one viewport.
+   */
+  describe("the propagated background", () => {
+    it("moves every background longhand of <html> to the frame, scrolling locally", () => {
+      const replayDocument: Document = makeReplayDocument(`<p>Page</p>`);
+
+      overrideComputedStyle(replayDocument.documentElement, {
+        "background-color": "rgb(1, 2, 3)",
+        "background-image":
+          "linear-gradient(rgb(255, 0, 0), rgb(0, 0, 255)), url(https://cdn.example/pattern.png)",
+        "background-repeat": "no-repeat, repeat",
+        "background-position": "0% 0%, 50% 50%",
+        "background-size": "auto, cover",
+        "background-origin": "padding-box, content-box",
+        "background-clip": "border-box, padding-box",
+        "background-attachment": "scroll, fixed",
+      });
+
+      const captured: CapturedFrame = capture(replayDocument);
+      const frame: string = styleOf(captured.frame);
+
+      for (const declaration of [
+        "background-color: rgb(1, 2, 3) !important",
+        `background-image: linear-gradient(rgb(255, 0, 0), rgb(0, 0, 255)), ${EMPTY_URL} !important`,
+        "background-repeat: no-repeat, repeat !important",
+        "background-position: 0% 0%, 50% 50% !important",
+        "background-size: auto, cover !important",
+        "background-origin: padding-box, content-box !important",
+        "background-clip: border-box, padding-box !important",
+        "background-attachment: local, fixed !important",
+      ]) {
+        expect(frame).toContain(declaration);
+      }
+
+      expect(styleOf(captured.html)).toContain("background: none !important");
+      expect(styleOf(captured.body)).not.toContain("background: none");
+      expect(captured.serialization.svg).not.toContain("cdn.example");
+    });
+
+    it("keeps a fixed background fixed", () => {
+      const replayDocument: Document = makeReplayDocument(`<p>Page</p>`);
+
+      overrideComputedStyle(replayDocument.documentElement, {
+        "background-color": "rgb(1, 2, 3)",
+        "background-attachment": "fixed",
+      });
+
+      expect(styleOf(capture(replayDocument).frame)).toContain(
+        "background-attachment: fixed !important",
+      );
+    });
+
+    it("moves the body's background the same way when <html> has none", () => {
+      const replayDocument: Document = makeReplayDocument(`<p>Page</p>`, {
+        htmlAttributes: `style="background-color: transparent; background-image: none"`,
+      });
+
+      overrideComputedStyle(replayDocument.body, {
+        "background-color": "rgb(9, 9, 9)",
+        "background-image": "none",
+        "background-attachment": "scroll",
+        "background-size": "auto",
+      });
+
+      const captured: CapturedFrame = capture(replayDocument);
+      const frame: string = styleOf(captured.frame);
+
+      expect(frame).toContain("background-color: rgb(9, 9, 9) !important");
+      expect(frame).toContain("background-attachment: local !important");
+      expect(frame).toContain("background-size: auto !important");
+      expect(styleOf(captured.body)).toContain("background: none !important");
+      expect(styleOf(captured.html)).not.toContain("background: none");
+    });
+  });
+
+  /*
+   * The viewport takes the root's colour scheme; in the image the frame
+   * is the viewport. A dark page with no background colour of its own is
+   * painted with the dark Canvas colour - except in Safari, which never
+   * paints a replay iframe's canvas dark.
+   */
+  describe("the colour scheme", () => {
+    const LIGHT_TEXT: string = "rgb(232, 234, 237)";
+    const DARK_TEXT: string = "rgb(17, 24, 39)";
+    const NO_BACKGROUND: Record<string, string> = {
+      "background-color": "rgba(0, 0, 0, 0)",
+      "background-image": "none",
+    };
+
+    function makeSchemePage(
+      root: Record<string, string>,
+      options?: ReplayDocumentOptions,
+    ): Document {
+      const replayDocument: Document = makeReplayDocument(
+        `<p>Page</p>`,
+        options,
+      );
+
+      overrideComputedStyle(replayDocument.documentElement, {
+        ...NO_BACKGROUND,
+        ...root,
+      });
+      overrideComputedStyle(replayDocument.body, NO_BACKGROUND);
+
+      return replayDocument;
+    }
+
+    it("draws a dark root dark, on a Canvas background, outside Safari", () => {
+      useUserAgent(CHROME_USER_AGENT);
+
+      const captured: CapturedFrame = capture(
+        makeSchemePage({ "color-scheme": "dark", color: LIGHT_TEXT }),
+      );
+      const frame: string = styleOf(captured.frame);
+
+      expect(styleOf(captured.html)).toContain("color-scheme: dark !important");
+      expect(frame).toContain("color-scheme: dark !important");
+      expect(frame).toContain("background-color: Canvas !important");
+      expect(styleOf(captured.html)).not.toContain("Canvas");
+    });
+
+    it("takes the scheme from <meta name=color-scheme> when the root has none", () => {
+      useUserAgent(CHROME_USER_AGENT);
+
+      for (const scheme of ["", "normal"]) {
+        const captured: CapturedFrame = capture(
+          makeSchemePage(
+            { "color-scheme": scheme, color: LIGHT_TEXT },
+            { head: `<meta name="color-scheme" content="dark">` },
+          ),
+        );
+
+        expect(styleOf(captured.frame)).toContain(
+          "color-scheme: dark !important",
+        );
+        expect(captured.svg.getElementsByTagName("meta")).toHaveLength(0);
+      }
+    });
+
+    it("follows the viewer's preference when the page offers both schemes", () => {
+      useUserAgent(CHROME_USER_AGENT);
+
+      for (const prefersDark of [true, false]) {
+        const replayDocument: Document = makeSchemePage(
+          { "color-scheme": "normal", color: LIGHT_TEXT },
+          { head: `<meta name="color-scheme" content="light dark">` },
+        );
+        const queries: Array<string> = defineMatchMedia(
+          replayDocument,
+          (query: string): boolean => {
+            return query === "(prefers-color-scheme: dark)" && prefersDark;
+          },
+        );
+        const frame: string = styleOf(capture(replayDocument).frame);
+
+        expect(queries).toContain("(prefers-color-scheme: dark)");
+        expect(frame.includes("color-scheme: dark !important")).toBe(
+          prefersDark,
+        );
+        expect(frame.includes("Canvas")).toBe(prefersDark);
+      }
+    });
+
+    it("does not guess a preference the replay window cannot report", () => {
+      useUserAgent(CHROME_USER_AGENT);
+
+      const frame: string = styleOf(
+        capture(
+          makeSchemePage({ "color-scheme": "light dark", color: LIGHT_TEXT }),
+        ).frame,
+      );
+
+      expect(frame).not.toContain("color-scheme");
+      expect(frame).not.toContain("Canvas");
+    });
+
+    it("draws the scheme but paints no Canvas colour in Safari", () => {
+      useUserAgent(SAFARI_USER_AGENT);
+
+      const captured: CapturedFrame = capture(
+        makeSchemePage({ "color-scheme": "dark", color: LIGHT_TEXT }),
+      );
+
+      expect(styleOf(captured.frame)).toContain(
+        "color-scheme: dark !important",
+      );
+      expect(styleOf(captured.html)).toContain("color-scheme: dark !important");
+      expect(styleOf(captured.frame)).not.toContain("Canvas");
+    });
+
+    it("paints the page's own background colour instead of Canvas", () => {
+      useUserAgent(CHROME_USER_AGENT);
+
+      const frame: string = styleOf(
+        capture(
+          makeSchemePage({
+            "color-scheme": "dark",
+            color: LIGHT_TEXT,
+            "background-color": "rgb(18, 18, 18)",
+          }),
+        ).frame,
+      );
+
+      expect(frame).toContain("background-color: rgb(18, 18, 18) !important");
+      expect(frame).not.toContain("Canvas");
+    });
+
+    it("paints Canvas under a background image that has no colour", () => {
+      useUserAgent(CHROME_USER_AGENT);
+
+      const frame: string = styleOf(
+        capture(
+          makeSchemePage({
+            "color-scheme": "dark",
+            color: LIGHT_TEXT,
+            "background-image": "linear-gradient(rgb(0, 0, 0), rgb(9, 9, 9))",
+          }),
+        ).frame,
+      );
+
+      expect(frame).toContain(
+        "background-image: linear-gradient(rgb(0, 0, 0), rgb(9, 9, 9)) !important",
+      );
+      expect(frame).toContain("background-color: Canvas !important");
+    });
+
+    /*
+     * The resolved text colour shows which scheme the engine really drew:
+     * dark text means it kept the canvas light (as WebKit does for a
+     * replay), whatever the page asked for.
+     */
+    it("does not treat a dark scheme whose root text is dark as dark", () => {
+      useUserAgent(CHROME_USER_AGENT);
+
+      const captured: CapturedFrame = capture(
+        makeSchemePage({ "color-scheme": "dark", color: DARK_TEXT }),
+      );
+
+      expect(styleOf(captured.html)).not.toContain("color-scheme");
+      expect(styleOf(captured.frame)).not.toContain("color-scheme");
+      expect(styleOf(captured.frame)).not.toContain("Canvas");
+    });
+
+    it("leaves a light-only page light", () => {
+      useUserAgent(CHROME_USER_AGENT);
+
+      for (const scheme of ["light", "only light", "normal"]) {
+        const frame: string = styleOf(
+          capture(makeSchemePage({ "color-scheme": scheme, color: LIGHT_TEXT }))
+            .frame,
+        );
+
+        expect(frame).not.toContain("color-scheme");
+      }
+    });
+  });
+
   describe("modal dialogs", () => {
     it("draws a modal dialog on top, over a box painted like its backdrop", () => {
       const replayDocument: Document = makeReplayDocument(
@@ -3023,6 +4846,100 @@ describe("serializeReplayFrame", () => {
 
       expect(clone.getAttribute("style")).toBe("padding: 12px");
       expect(clone.previousElementSibling?.id).toBe("page");
+    });
+  });
+
+  /*
+   * The top layer sits above everything and is positioned against the
+   * viewport whatever the dialog's ancestors do, so the clone takes the
+   * dialog out of its place in the tree - where a transformed or clipped
+   * ancestor would capture it - and draws it last. Out of its place, the
+   * page's descendant rules no longer reach inside it, so everything in
+   * it carries its computed style instead.
+   */
+  describe("the top layer", () => {
+    function makeModalPage(): Document {
+      const replayDocument: Document = makeReplayDocument(
+        `<div id="shell" class="shell" style="transform: translateX(10px); overflow: hidden">` +
+          `<main id="page">Page</main>` +
+          `<dialog id="confirm" open><p id="question" class="question">Delete?</p><button id="yes">Yes</button></dialog>` +
+          `</div>` +
+          `<footer id="footer">Footer</footer>`,
+        {
+          head: `<style>.shell .question { color: rgb(200, 0, 0); } dialog { padding: 24px; }</style>`,
+        },
+      );
+      const dialog: HTMLElement = liveById(replayDocument, "confirm");
+
+      makeModal(dialog);
+      setPseudoStyle(dialog, "::backdrop", {
+        "background-color": "rgba(0, 0, 0, 0.5)",
+      });
+
+      return replayDocument;
+    }
+
+    it("moves a modal dialog to the end of the body, after its backdrop", () => {
+      const captured: CapturedFrame = capture(makeModalPage());
+      const dialog: Element = byId(captured.svg, "confirm");
+      const backdrop: Element = dialog.previousElementSibling as Element;
+
+      expect(captured.body.lastElementChild).toBe(dialog);
+      expect(dialog.parentElement).toBe(captured.body);
+      expect(styleOf(backdrop)).toContain("z-index: 2147483646 !important");
+      expect(backdrop.previousElementSibling?.id).toBe("footer");
+      expect(byId(captured.svg, "shell").contains(dialog)).toBe(false);
+      expect(captured.svg.querySelectorAll(`[id="confirm"]`)).toHaveLength(1);
+      expect(byId(captured.svg, "shell").textContent).toBe("Page");
+    });
+
+    it("keeps it fixed at the top of the stack, with its computed style", () => {
+      const dialog: Element = byId(capture(makeModalPage()).svg, "confirm");
+      const style: string = styleOf(dialog);
+
+      expect(style).toContain("padding: 24px !important");
+      expect(style).toContain("position: fixed !important");
+      expect(style).toContain("z-index: 2147483647 !important");
+      expect(style.lastIndexOf("position: fixed !important")).toBeGreaterThan(
+        style.lastIndexOf("padding: 24px !important"),
+      );
+    });
+
+    it("inlines its descendants' computed styles behind a reset, so ancestor rules are not needed", () => {
+      const captured: CapturedFrame = capture(makeModalPage());
+      const question: Element = byId(captured.svg, "question");
+
+      expect(styleOf(question).startsWith("all: unset !important;")).toBe(true);
+      expect(styleOf(question)).toContain("color: rgb(200, 0, 0) !important");
+      expect(styleOf(byId(captured.svg, "yes"))).toContain(
+        "all: unset !important",
+      );
+      expect(question.getAttribute("class")).toBe("question");
+      expect(question.textContent).toBe("Delete?");
+    });
+
+    it("stacks two modal dialogs in document order, each over its own backdrop", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<dialog id="first" open>First</dialog><main id="page">Page</main><dialog id="second" open>Second</dialog>`,
+      );
+
+      for (const id of ["first", "second"]) {
+        const dialog: HTMLElement = liveById(replayDocument, id);
+
+        makeModal(dialog);
+        setPseudoStyle(dialog, "::backdrop", {
+          "background-color": "rgba(0, 0, 0, 0.25)",
+        });
+      }
+
+      const body: Element = capture(replayDocument).body;
+      const children: Array<string> = Array.from(body.children).map(
+        (child: Element): string => {
+          return child.id || child.localName;
+        },
+      );
+
+      expect(children).toEqual(["page", "div", "first", "div", "second"]);
     });
   });
 
@@ -3093,7 +5010,7 @@ describe("serializeReplayFrame", () => {
       expect(captured.serialization.svg).not.toContain("cdn.example");
     });
 
-    it("ignores pseudo-element animations", () => {
+    it("does not pin a pseudo-element's animated properties on the element itself", () => {
       const replayDocument: Document = makeReplayDocument(
         `<span id="badge" style="opacity: 0.5">New</span>`,
       );
@@ -3148,6 +5065,168 @@ describe("serializeReplayFrame", () => {
 
       expect(byId(capture(replayDocument).svg, "badge").textContent).toBe(
         "New",
+      );
+    });
+  });
+
+  /*
+   * The freeze rules stop every animation, which drops an animated
+   * ::before / ::after back to its unanimated style (a badge that faded in
+   * would vanish). Its animated properties are pinned at their paused
+   * values instead, in a class rule of their own.
+   */
+  describe("pseudo-element animations", () => {
+    it("pins an animated ::after at its paused values in a class rule", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<span id="badge" class="badge" style="opacity: 0.5">New</span>`,
+      );
+      const badge: HTMLElement = liveById(replayDocument, "badge");
+
+      setPseudoStyle(badge, "::after", {
+        content: '"!"',
+        color: "rgb(255, 0, 0)",
+        opacity: "0.25",
+        transform: "matrix(0.75, 0, 0, 0.75, 0, 0)",
+        "background-image": 'url("https://cdn.example/spark.png")',
+      });
+      defineAnimations(replayDocument, (): Array<unknown> => {
+        return [
+          fakeAnimation({
+            target: badge,
+            pseudoElement: "::after",
+            keyframes: [
+              { offset: 0, easing: "ease", opacity: "0", transform: "none" },
+              { offset: 1, opacity: "1", backgroundImage: "none" },
+            ],
+          }),
+        ];
+      });
+
+      const captured: CapturedFrame = capture(replayDocument);
+      const clone: Element = byId(captured.svg, "badge");
+      const classes: Array<string> = (clone.getAttribute("class") ?? "").split(
+        " ",
+      );
+      const pseudoClass: string = classes[1] ?? "";
+      const styles: Array<string> = headStyleTexts(captured);
+
+      expect(classes).toEqual(["badge", "oneuptime-frame-pseudo-0-0"]);
+      expect(styles).toContain(
+        `.${pseudoClass}::after { opacity: 0.25 !important; transform: matrix(0.75, 0, 0, 0.75, 0, 0) !important; background-image: ${EMPTY_URL} !important }`,
+      );
+      /* The rule comes after the page's sheets and before the freeze rules. */
+      expect(styles[styles.length - 1]).toBe(REPLAY_FRAME_FREEZE_CSS);
+      expect(styles[styles.length - 2]).toContain(`.${pseudoClass}::after`);
+      /* Only the animated properties: the page's own rule still applies. */
+      expect(captured.serialization.svg).not.toContain("rgb(255, 0, 0)");
+      expect(styleOf(clone)).toBe("opacity: 0.5");
+      expect(captured.serialization.svg).not.toContain("cdn.example");
+    });
+
+    it("gives ::before and ::after a rule each, and ignores other pseudo-elements", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<li id="item">Item</li>`,
+      );
+      const item: HTMLElement = liveById(replayDocument, "item");
+
+      setPseudoStyle(item, "::before", { opacity: "0.1" });
+      setPseudoStyle(item, "::after", { opacity: "0.9" });
+      setPseudoStyle(item, "::marker", { opacity: "0.3" });
+      defineAnimations(replayDocument, (): Array<unknown> => {
+        return [
+          fakeAnimation({
+            target: item,
+            pseudoElement: "::before",
+            keyframes: [{ opacity: "0" }],
+          }),
+          fakeAnimation({
+            target: item,
+            pseudoElement: "::after",
+            keyframes: [{ opacity: "1" }],
+          }),
+          fakeAnimation({
+            target: item,
+            pseudoElement: "::marker",
+            keyframes: [{ opacity: "0" }],
+          }),
+        ];
+      });
+
+      const captured: CapturedFrame = capture(replayDocument);
+      const css: string = headStyleTexts(captured).join("\n");
+
+      expect(byId(captured.svg, "item").getAttribute("class")).toBe(
+        "oneuptime-frame-pseudo-0-0 oneuptime-frame-pseudo-0-1",
+      );
+      expect(css).toContain(
+        ".oneuptime-frame-pseudo-0-0::before { opacity: 0.1 !important }",
+      );
+      expect(css).toContain(
+        ".oneuptime-frame-pseudo-0-1::after { opacity: 0.9 !important }",
+      );
+      expect(css).not.toContain("::marker");
+      expect(css).not.toContain("0.3");
+    });
+
+    it("collects the properties of several animations on one pseudo-element into one rule", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<span id="badge">New</span>`,
+      );
+      const badge: HTMLElement = liveById(replayDocument, "badge");
+
+      setPseudoStyle(badge, "::before", {
+        opacity: "0.5",
+        "background-color": "rgb(0, 128, 0)",
+      });
+      defineAnimations(replayDocument, (): Array<unknown> => {
+        return [
+          fakeAnimation({
+            target: badge,
+            pseudoElement: "::before",
+            keyframes: [{ opacity: "0" }],
+          }),
+          fakeAnimation({
+            target: badge,
+            pseudoElement: "::before",
+            keyframes: [{ backgroundColor: "red", opacity: "1" }],
+          }),
+        ];
+      });
+
+      const captured: CapturedFrame = capture(replayDocument);
+
+      expect(byId(captured.svg, "badge").getAttribute("class")).toBe(
+        "oneuptime-frame-pseudo-0-0",
+      );
+      expect(headStyleTexts(captured)).toContain(
+        ".oneuptime-frame-pseudo-0-0::before { opacity: 0.5 !important; background-color: rgb(0, 128, 0) !important }",
+      );
+    });
+
+    it("adds no rule when the pseudo-element's style cannot be read or has no value", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<span id="broken" class="a">A</span><span id="empty" class="b">B</span>`,
+      );
+      const broken: HTMLElement = liveById(replayDocument, "broken");
+      const empty: HTMLElement = liveById(replayDocument, "empty");
+
+      setPseudoStyle(broken, "::after", new Error("No pseudo styles."));
+      defineAnimations(replayDocument, (): Array<unknown> => {
+        return [broken, empty].map((target: HTMLElement): unknown => {
+          return fakeAnimation({
+            target: target,
+            pseudoElement: "::after",
+            keyframes: [{ opacity: "0" }],
+          });
+        });
+      });
+
+      const captured: CapturedFrame = capture(replayDocument);
+
+      expect(byId(captured.svg, "broken").getAttribute("class")).toBe("a");
+      expect(byId(captured.svg, "empty").getAttribute("class")).toBe("b");
+      expect(captured.serialization.svg).not.toContain(
+        "oneuptime-frame-pseudo",
       );
     });
   });
@@ -3231,6 +5310,165 @@ describe("serializeReplayFrame", () => {
         'content: "<&>]]>"',
       );
       expect(captured.serialization.svg).not.toContain("comment");
+    });
+  });
+
+  /*
+   * Namespace declarations belong to the serialiser. An HTML page may
+   * carry a stray xmlns attribute - pages exported from old editors say
+   * xmlns="http://www.w3.org/TR/REC-html40" - which the HTML parser
+   * ignores; copied into XHTML it would put the clone in a namespace
+   * nothing renders.
+   */
+  describe("namespace declarations", () => {
+    it("never copies an xmlns attribute from an HTML element", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<div id="box" xmlns="urn:stray" class="box"><p id="text">Text</p></div>`,
+        {
+          htmlAttributes: `xmlns="http://www.w3.org/TR/REC-html40" lang="en"`,
+        },
+      );
+
+      expect(replayDocument.documentElement.getAttribute("xmlns")).toBe(
+        "http://www.w3.org/TR/REC-html40",
+      );
+
+      /* capture() parses the SVG and fails on any parsererror. */
+      const captured: CapturedFrame = capture(replayDocument);
+
+      expect(captured.serialization.svg).not.toContain("REC-html40");
+      expect(captured.serialization.svg).not.toContain("urn:stray");
+      expect(captured.html.namespaceURI).toBe(XHTML_NAMESPACE);
+      expect(captured.html.getAttribute("lang")).toBe("en");
+      expect(byId(captured.svg, "box").namespaceURI).toBe(XHTML_NAMESPACE);
+      expect(byId(captured.svg, "box").getAttribute("class")).toBe("box");
+      expect(byId(captured.svg, "text").namespaceURI).toBe(XHTML_NAMESPACE);
+      expect(captured.body.namespaceURI).toBe(XHTML_NAMESPACE);
+      expect(byId(captured.svg, "text").textContent).toBe("Text");
+    });
+  });
+
+  /*
+   * A page without a doctype is replayed in quirks mode, and an image
+   * always lays out in standards mode. The quirks that move a page most
+   * are approximated.
+   */
+  describe("quirks mode", () => {
+    function makeQuirksPage(): Document {
+      const replayDocument: Document = makeReplayDocument(
+        `<p id="first" class="Lead Text">First</p><div id="box" class="Box">Box</div><span id="inline" class="Tag">Inline</span>`,
+        {
+          quirks: true,
+          head: `<style>.Box { color: red; } .Lead { margin: .5em; } .Tag::after { content: ".Keep"; }</style>`,
+        },
+      );
+
+      overrideComputedStyle(liveById(replayDocument, "first"), {
+        display: "block",
+        height: "18px",
+        "margin-top": "16px",
+      });
+      overrideComputedStyle(liveById(replayDocument, "box"), {
+        display: "block",
+        height: "120px",
+        "margin-top": "16px",
+      });
+      overrideComputedStyle(liveById(replayDocument, "inline"), {
+        display: "inline",
+        height: "20px",
+      });
+
+      return replayDocument;
+    }
+
+    it("is what a page without a doctype is replayed in", () => {
+      expect(makeQuirksPage().compatMode).toBe("BackCompat");
+      expect(makeReplayDocument("").compatMode).toBe("CSS1Compat");
+    });
+
+    it("adds the quirks rules just before the freeze rules", () => {
+      const styles: Array<string> = headStyleTexts(capture(makeQuirksPage()));
+
+      expect(styles[styles.length - 1]).toBe(REPLAY_FRAME_FREEZE_CSS);
+      expect(styles[styles.length - 2]).toBe(REPLAY_FRAME_QUIRKS_CSS);
+    });
+
+    it("lowercases class names in the markup and in the rules alike", () => {
+      const captured: CapturedFrame = capture(makeQuirksPage());
+      const css: string = headStyleTexts(captured).join("\n");
+
+      expect(byId(captured.svg, "first").getAttribute("class")).toBe(
+        "lead text",
+      );
+      expect(byId(captured.svg, "box").getAttribute("class")).toBe("box");
+      expect(byId(captured.svg, "inline").getAttribute("class")).toBe("tag");
+      expect(css).toContain(".box {");
+      expect(css).toContain(".lead {");
+      expect(css).toContain(".tag::after");
+      expect(css).not.toContain(".Box");
+      /* Numbers and strings are not class selectors. */
+      expect(css).toContain(".5em");
+      expect(css).toContain('".Keep"');
+    });
+
+    it("pins every block box at the height it was laid out at", () => {
+      const captured: CapturedFrame = capture(makeQuirksPage());
+
+      expect(styleOf(byId(captured.svg, "box"))).toContain(
+        "height: 120px !important",
+      );
+      expect(styleOf(byId(captured.svg, "first"))).toContain(
+        "height: 18px !important",
+      );
+      expect(styleOf(byId(captured.svg, "inline"))).not.toContain("height");
+    });
+
+    /*
+     * Quirks mode drops the UA's top margin on the first block in <body>
+     * altogether, where standards mode collapses it through the body. The
+     * live layout shows which: the block sits nearer the top than its
+     * own margin.
+     */
+    it("drops the top margin of the first block in the body when it sits above that margin", () => {
+      const captured: CapturedFrame = capture(makeQuirksPage());
+
+      expect(styleOf(byId(captured.svg, "first"))).toContain(
+        "margin-top: 0px !important",
+      );
+      expect(styleOf(byId(captured.svg, "box"))).not.toContain("margin-top");
+    });
+
+    it("keeps the top margin of a first block that sits below it", () => {
+      const replayDocument: Document = makeQuirksPage();
+
+      stubBox(liveById(replayDocument, "first"), {
+        rect: { top: 16, left: 0 },
+      });
+
+      expect(styleOf(byId(capture(replayDocument).svg, "first"))).not.toContain(
+        "margin-top",
+      );
+    });
+
+    it("leaves a standards-mode page as it is", () => {
+      const replayDocument: Document = makeReplayDocument(
+        `<p id="first" class="Lead">First</p>`,
+        { head: `<style>.Lead { color: red; }</style>` },
+      );
+
+      overrideComputedStyle(liveById(replayDocument, "first"), {
+        display: "block",
+        height: "18px",
+        "margin-top": "16px",
+      });
+
+      const captured: CapturedFrame = capture(replayDocument);
+      const styles: Array<string> = headStyleTexts(captured);
+
+      expect(styles).not.toContain(REPLAY_FRAME_QUIRKS_CSS);
+      expect(styles.join("\n")).toContain(".Lead");
+      expect(byId(captured.svg, "first").getAttribute("class")).toBe("Lead");
+      expect(byId(captured.svg, "first").getAttribute("style")).toBeNull();
     });
   });
 
@@ -3668,6 +5906,231 @@ describe("rasterizeReplayFrame", () => {
           harness.canvases[index]!.dataUrl,
         );
       }
+    });
+  });
+
+  /*
+   * Each nested frame gets its own pixel budget: a tall auto-height iframe
+   * at the page's ratio can be over the canvas limit on its own.
+   */
+  describe("nested frame pixel ratios", () => {
+    it("resolves each nested frame's ratio against its own viewport", async () => {
+      const tall: ReplayFrameViewport = { width: 1000, height: 20000 };
+      const harness: RasterHarness = makeRasterHarness();
+
+      await rasterizeReplayFrame(
+        makeSerialization({
+          svg: `<svg xmlns="${SVG_NAMESPACE}"><image href="oneuptime-frame-0-0-src"/><image href="oneuptime-frame-0-1-src"/></svg>`,
+          frames: [
+            {
+              token: "oneuptime-frame-0-0-src",
+              serialization: makeSerialization({
+                viewport: tall,
+                backgroundColor: null,
+              }),
+            },
+            {
+              token: "oneuptime-frame-0-1-src",
+              serialization: makeSerialization({
+                viewport: { width: 200, height: 100 },
+                backgroundColor: null,
+              }),
+            },
+          ],
+        }),
+        { pixelRatio: 2, deps: harness.deps },
+      );
+
+      const [tallCanvas, smallCanvas, pageCanvas] = harness.canvases as [
+        FakeCanvas,
+        FakeCanvas,
+        FakeCanvas,
+      ];
+      const expected: ReplayFrameViewport = resolveReplayFrameCanvasSize(
+        tall,
+        resolveReplayFramePixelRatio(2, tall),
+      );
+
+      expect([tallCanvas.width, tallCanvas.height]).toEqual([
+        expected.width,
+        expected.height,
+      ]);
+      /* Lower than the page's 2x, and inside the budget. */
+      expect(tallCanvas.width).toBeLessThan(tall.width * 2);
+      expect(tallCanvas.width).toBeGreaterThan(tall.width * 0.9);
+      expect(tallCanvas.width * tallCanvas.height).toBeLessThanOrEqual(
+        REPLAY_FRAME_MAX_CANVAS_PIXELS,
+      );
+      /* A frame that fits keeps the page's ratio. */
+      expect([smallCanvas.width, smallCanvas.height]).toEqual([400, 200]);
+      expect([pageCanvas.width, pageCanvas.height]).toEqual([1600, 1200]);
+    });
+  });
+
+  /*
+   * Safari can still be decoding the pictures inside an SVG image a few
+   * hundred milliseconds after it loaded, so a frame that embeds nested
+   * frames is repainted on every frame until the settle time is over.
+   */
+  describe("settling", () => {
+    const PASS: Array<string> = [
+      "canvas-0 clearRect 0 0 800 600",
+      `canvas-0 fillRect ${REPLAY_FRAME_DEFAULT_BACKGROUND} 0 0 800 600`,
+      "canvas-0 drawImage image-0 0 0 800 600",
+    ];
+
+    function makeParentOf(count: number): ReplayFrameSerialization {
+      const frames: Array<{
+        token: string;
+        serialization: ReplayFrameSerialization;
+      }> = Array.from(
+        { length: count },
+        (
+          _: unknown,
+          index: number,
+        ): { token: string; serialization: ReplayFrameSerialization } => {
+          return {
+            token: `oneuptime-frame-0-${index}-src`,
+            serialization: makeSerialization({
+              viewport: { width: 200, height: 100 },
+              backgroundColor: null,
+            }),
+          };
+        },
+      );
+
+      return makeSerialization({
+        svg: `<svg xmlns="${SVG_NAMESPACE}">${frames
+          .map((frame: { token: string }): string => {
+            return `<image href="${frame.token}"/><image href="${frame.token}"/>`;
+          })
+          .join("")}</svg>`,
+        frames: frames,
+      });
+    }
+
+    function countOf(timeline: Array<string>, entry: string): number {
+      return timeline.filter((item: string): boolean => {
+        return item === entry;
+      }).length;
+    }
+
+    /* The harness's fakes, but the engine's own getSettleMs. */
+    function withDefaultSettle(
+      deps: ReplayFrameRasterDeps,
+    ): Partial<ReplayFrameRasterDeps> {
+      return {
+        createCanvas: deps.createCanvas,
+        loadImage: deps.loadImage,
+        nextFrame: deps.nextFrame,
+        now: deps.now,
+      };
+    }
+
+    it("repaints on every frame until the settle time has passed", async () => {
+      const harness: RasterHarness = makeRasterHarness({
+        settleMs: 250,
+        frameMs: 100,
+      });
+
+      await rasterizeReplayFrame(makeSerialization(), { deps: harness.deps });
+
+      /*
+       * The second pass ends at 100ms; the loop then paints at 200, 300
+       * and 400, and stops once 250ms have gone by since it started.
+       */
+      expect(harness.timeline).toEqual([
+        "createCanvas canvas-0 800x600",
+        "loadImage image-0",
+        ...PASS,
+        "nextFrame",
+        ...PASS,
+        "nextFrame",
+        ...PASS,
+        "nextFrame",
+        ...PASS,
+        "nextFrame",
+        ...PASS,
+      ]);
+    });
+
+    it("paints nothing extra when there is nothing to settle, and never reads the clock", async () => {
+      const harness: RasterHarness = makeRasterHarness();
+      let clockReads: number = 0;
+
+      await rasterizeReplayFrame(makeSerialization(), {
+        deps: {
+          ...harness.deps,
+          now: (): number => {
+            clockReads++;
+
+            return 0;
+          },
+        },
+      });
+
+      expect(harness.settleRequests).toEqual([0]);
+      expect(countOf(harness.timeline, "nextFrame")).toBe(1);
+      expect(countOf(harness.timeline, PASS[2]!)).toBe(2);
+      expect(clockReads).toBe(0);
+    });
+
+    it("asks how long to settle with the total length of the embedded frame pictures", async () => {
+      const harness: RasterHarness = makeRasterHarness();
+
+      await rasterizeReplayFrame(makeParentOf(2), { deps: harness.deps });
+
+      const [first, second] = harness.canvases as [FakeCanvas, FakeCanvas];
+
+      /* Each child, which embeds nothing, and then the page. */
+      expect(harness.settleRequests).toEqual([
+        0,
+        0,
+        first.dataUrl.length + second.dataUrl.length,
+      ]);
+    });
+
+    it("counts a nested frame that failed as its transparent stand-in", async () => {
+      const harness: RasterHarness = makeRasterHarness({ failingLoads: [0] });
+
+      await rasterizeReplayFrame(makeParentOf(1), { deps: harness.deps });
+
+      expect(harness.settleRequests).toEqual([
+        REPLAY_FRAME_TRANSPARENT_IMAGE.length,
+      ]);
+    });
+
+    it("settles a frame with nested frames in Safari by default", async () => {
+      useUserAgent(SAFARI_USER_AGENT);
+
+      const harness: RasterHarness = makeRasterHarness({ frameMs: 100 });
+
+      await rasterizeReplayFrame(makeParentOf(1), {
+        deps: withDefaultSettle(harness.deps),
+      });
+
+      const settleMs: number = resolveReplayFrameSettleMs(
+        harness.canvases[0]!.dataUrl.length,
+        true,
+      );
+
+      expect(settleMs).toBe(600);
+      /* One between the child's passes, one between the page's, then the loop. */
+      expect(countOf(harness.timeline, "nextFrame")).toBe(
+        2 + Math.ceil(settleMs / 100),
+      );
+    });
+
+    it("does not settle by default outside Safari", async () => {
+      useUserAgent(CHROME_USER_AGENT);
+
+      const harness: RasterHarness = makeRasterHarness({ frameMs: 100 });
+
+      await rasterizeReplayFrame(makeParentOf(1), {
+        deps: withDefaultSettle(harness.deps),
+      });
+
+      expect(countOf(harness.timeline, "nextFrame")).toBe(2);
     });
   });
 

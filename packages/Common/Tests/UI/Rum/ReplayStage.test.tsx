@@ -298,6 +298,50 @@ describe("ReplayStage mounting", () => {
     expect(stageElement()).toHaveAttribute("aria-busy", "false");
     expect(phase).toHaveTextContent("playing");
   });
+
+  /*
+   * The Replayer's pointer and touch rings carry the largest z-index there
+   * is. At 1:1 the host has no transform, so nothing else would contain
+   * it, and it painted over the overlays drawn above the stage - the
+   * paused Play button and the screenshot dock among them.
+   */
+  it("attaches the engine's host into an isolated mount, so its z-index stays inside", () => {
+    const engine: FakeEngine = new FakeEngine({
+      recordedSize: { width: 1200, height: 900 },
+    });
+
+    render(<ReplayStage engine={engine} />);
+
+    const mount: HTMLElement | null = engine.attachedTo;
+
+    expect(mount).not.toBeNull();
+    expect(mount).toHaveClass("isolate", "absolute", "inset-0");
+    expect(mount?.parentElement).toBe(frameElement());
+    expect(engine.host.parentElement).toBe(mount);
+  });
+
+  it("keeps the mount isolated at every fit, 1:1 included, and for a phone frame", () => {
+    const engine: FakeEngine = new FakeEngine({
+      recordedSize: { width: 1200, height: 900 },
+    });
+    const { rerender } = render(<ReplayStage engine={engine} fit="contain" />);
+    const mount: HTMLElement | null = engine.attachedTo;
+    const fits: Array<ReplayStageFit> = ["width", "actual", "contain"];
+
+    for (const fit of fits) {
+      rerender(<ReplayStage engine={engine} fit={fit} />);
+
+      expect(stageElement()).toHaveAttribute("data-replay-fit", fit);
+      expect(engine.attachedTo).toBe(mount);
+      expect(engine.attachedTo).toHaveClass("isolate");
+    }
+
+    rerender(<ReplayStage engine={engine} fit="actual" isMobile={true} />);
+
+    expect(stageElement()).toHaveAttribute("data-replay-frame", "phone");
+    expect(engine.attachedTo).toBe(mount);
+    expect(engine.attachedTo).toHaveClass("isolate");
+  });
 });
 
 /* A ResizeObserver whose callbacks this test fires by hand. */

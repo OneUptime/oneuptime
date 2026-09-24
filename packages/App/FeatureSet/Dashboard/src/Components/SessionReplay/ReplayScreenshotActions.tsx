@@ -41,6 +41,13 @@ import { ReplayStageFit } from "./ReplayStage";
  *    "Download instead" when only the clipboard failed, "Try again" when
  *    the frame could not be drawn.
  * Every outcome is also announced to screen readers.
+ *
+ * On a phone the stage is too short for the thumbnail card - it would sit
+ * on the paused Play button and reach up over the address bar - so the
+ * confirmation shrinks to a pill beside the dock. And the keyboard never
+ * loses its place: a busy button stays focusable, and a card that goes
+ * away hands focus back to the dock, because focus dropped on <body>
+ * turns the next Space into the player's play/pause.
  */
 
 export type ReplayScreenshotAction = "copy" | "download";
@@ -315,6 +322,13 @@ const ReplayScreenshotActions: FunctionComponent<
     useRef<HTMLDivElement>(null);
   const previewCardRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
+  const failureRef: React.MutableRefObject<ScreenshotFailure | null> =
+    useRef<ScreenshotFailure | null>(null);
+  /* The card waits for the pointer and the keyboard both to have left. */
+  const isPointerOnPreviewRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
+
+  failureRef.current = failure;
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -339,9 +353,24 @@ const ReplayScreenshotActions: FunctionComponent<
     };
   }, []);
 
+  /*
+   * A new frame (a seek while paused) takes the error card with it. The
+   * player's arrow keys seek even with focus on a card button, so the
+   * focus goes back to the dock first rather than down to <body>.
+   */
   useEffect(() => {
     frameKeyRef.current = props.frameKey;
     lastScreenshotRef.current = null;
+
+    const failed: ScreenshotFailure | null = failureRef.current;
+
+    if (failed && containsFocus(errorCardRef.current)) {
+      (failed.action === "copy"
+        ? copyButtonRef.current
+        : downloadButtonRef.current
+      )?.focus();
+    }
+
     setFailure(null);
   }, [props.frameKey]);
 
@@ -408,6 +437,7 @@ const ReplayScreenshotActions: FunctionComponent<
   }, []);
 
   const removePreview: () => void = useCallback((): void => {
+    isPointerOnPreviewRef.current = false;
     clearPreviewTimer();
     revokePreviewUrl(previewUrlRef.current);
     previewUrlRef.current = null;
@@ -431,7 +461,10 @@ const ReplayScreenshotActions: FunctionComponent<
     previewTimerRef.current = setTimeout((): void => {
       previewTimerRef.current = null;
 
-      if (containsFocus(previewCardRef.current)) {
+      if (
+        isPointerOnPreviewRef.current ||
+        containsFocus(previewCardRef.current)
+      ) {
         return;
       }
 
@@ -763,13 +796,20 @@ const ReplayScreenshotActions: FunctionComponent<
     onFocus: () => void;
     onBlur: (event: React.FocusEvent<HTMLDivElement>) => void;
   } = {
-    onMouseEnter: clearPreviewTimer,
-    onMouseLeave: schedulePreviewRemoval,
+    onMouseEnter: (): void => {
+      isPointerOnPreviewRef.current = true;
+      clearPreviewTimer();
+    },
+    onMouseLeave: (): void => {
+      isPointerOnPreviewRef.current = false;
+      schedulePreviewRemoval();
+    },
     onFocus: clearPreviewTimer,
     onBlur: (event: React.FocusEvent<HTMLDivElement>): void => {
       if (
-        !event.relatedTarget ||
-        !event.currentTarget.contains(event.relatedTarget as Node)
+        !isPointerOnPreviewRef.current &&
+        (!event.relatedTarget ||
+          !event.currentTarget.contains(event.relatedTarget as Node))
       ) {
         schedulePreviewRemoval();
       }

@@ -23,9 +23,13 @@ import {
   readReplayViewport,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayScreenshot";
 import {
+  REPLAY_FRAME_MAX_CANVAS_PIXELS,
   ReplayFrameCaptureError,
   ReplayFramePointer,
   ReplayFrameRasterDeps,
+  ReplayFrameViewport,
+  resolveReplayFrameCanvasSize,
+  resolveReplayFramePixelRatio,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayFrameCapture";
 import { ReplayerLike } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Engine/ReplayEngineTypes";
 
@@ -46,7 +50,9 @@ import { ReplayerLike } from "../../../../App/FeatureSet/Dashboard/src/Component
  *    left out whenever the stage is not showing it;
  *  - captureReplayerScreenshot rejects with a ReplayFrameCaptureError
  *    (never throws) and hands its raster deps, pixel ratio and pointer
- *    through, without writing to the live replay document;
+ *    through, without writing to the live replay document, and reports
+ *    the PNG's own pixel size - the canvas it was drawn on, capped at 2x
+ *    and kept within the canvas budget;
  *  - the clipboard write starts SYNCHRONOUSLY with the still-pending
  *    image promise - Safari only honours a write that begins inside the
  *    click, and the capture outlasts that window - and a capture failure
@@ -330,7 +336,8 @@ function addPointer(
 /* ---- The canvas and image loading jsdom does not have. ---- */
 
 interface FakeRaster {
-  deps: ReplayFrameRasterDeps;
+  /* The clock and the Safari settle delay keep their defaults. */
+  deps: Pick<ReplayFrameRasterDeps, "createCanvas" | "loadImage" | "nextFrame">;
   createCanvas: MockFunction;
   loadImage: MockFunction;
   nextFrame: MockFunction;
@@ -1290,6 +1297,116 @@ describe("captureReplayerScreenshot", () => {
 
       expect(raster.createCanvas).toHaveBeenCalledWith(1600, 1200);
       expect(screenshot.width).toBe(800);
+    });
+  });
+
+  describe("the PNG's own size", () => {
+    async function shoot(input: {
+      width: string;
+      height: string;
+      pixelRatio?: number;
+    }): Promise<{ screenshot: ReplayScreenshot; raster: FakeRaster }> {
+      const raster: FakeRaster = makeRaster();
+      const screenshot: ReplayScreenshot = await captureReplayerScreenshot({
+        replayer: makeReplayer({ width: input.width, height: input.height })
+          .replayer,
+        sessionId: SESSION_ID,
+        offsetMs: OFFSET_MS,
+        pixelRatio: input.pixelRatio,
+        deps: raster.deps,
+      });
+
+      return { screenshot: screenshot, raster: raster };
+    }
+
+    it("is the recorded viewport times the ratio it was drawn at", async () => {
+      const shot: { screenshot: ReplayScreenshot; raster: FakeRaster } =
+        await shoot({ width: "1200", height: "760", pixelRatio: 2 });
+
+      expect(shot.screenshot.pixelWidth).toBe(2400);
+      expect(shot.screenshot.pixelHeight).toBe(1520);
+      /* The viewport itself stays in CSS pixels. */
+      expect(shot.screenshot.width).toBe(1200);
+      expect(shot.screenshot.height).toBe(760);
+      expect(shot.raster.createCanvas).toHaveBeenCalledTimes(1);
+      expect(shot.raster.createCanvas).toHaveBeenCalledWith(2400, 1520);
+    });
+
+    it("is the viewport itself at 1x", async () => {
+      const shot: { screenshot: ReplayScreenshot; raster: FakeRaster } =
+        await shoot({ width: "1200", height: "760", pixelRatio: 1 });
+
+      expect(shot.screenshot.pixelWidth).toBe(1200);
+      expect(shot.screenshot.pixelHeight).toBe(760);
+    });
+
+    it("caps a 3x display at 2x, as the canvas does", async () => {
+      overrideProperty(window, "devicePixelRatio", 3);
+
+      const shot: { screenshot: ReplayScreenshot; raster: FakeRaster } =
+        await shoot({ width: "1200", height: "760" });
+
+      expect(shot.screenshot.pixelWidth).toBe(2400);
+      expect(shot.screenshot.pixelHeight).toBe(1520);
+      expect(shot.raster.createCanvas).toHaveBeenCalledWith(2400, 1520);
+    });
+
+    it("reads the display's ratio when none is given", async () => {
+      overrideProperty(window, "devicePixelRatio", 1.5);
+
+      const shot: { screenshot: ReplayScreenshot; raster: FakeRaster } =
+        await shoot({ width: "1200", height: "760" });
+
+      expect(shot.screenshot.pixelWidth).toBe(1800);
+      expect(shot.screenshot.pixelHeight).toBe(1140);
+    });
+
+    it("floors a fractional product rather than rounding it up", async () => {
+      const shot: { screenshot: ReplayScreenshot; raster: FakeRaster } =
+        await shoot({ width: "390.5", height: "844.5", pixelRatio: 1.5 });
+
+      /* 585.75 x 1266.75 */
+      expect(shot.screenshot.pixelWidth).toBe(585);
+      expect(shot.screenshot.pixelHeight).toBe(1266);
+      expect(shot.screenshot.width).toBe(390.5);
+      expect(shot.raster.createCanvas).toHaveBeenCalledWith(585, 1266);
+    });
+
+    it("scales a huge viewport down under the canvas budget and reports what it drew", async () => {
+      const viewport: ReplayFrameViewport = { width: 5000, height: 4000 };
+      const shot: { screenshot: ReplayScreenshot; raster: FakeRaster } =
+        await shoot({ width: "5000", height: "4000", pixelRatio: 2 });
+      const expected: ReplayFrameViewport = resolveReplayFrameCanvasSize(
+        viewport,
+        resolveReplayFramePixelRatio(2, viewport),
+      );
+
+      /* sqrt(16777216 / 20000000) = 0.9159: below even 1x. */
+      expect(expected).toEqual({ width: 4579, height: 3663 });
+      expect(shot.screenshot.pixelWidth).toBe(4579);
+      expect(shot.screenshot.pixelHeight).toBe(3663);
+      expect(
+        (shot.screenshot.pixelWidth as number) *
+          (shot.screenshot.pixelHeight as number),
+      ).toBeLessThanOrEqual(REPLAY_FRAME_MAX_CANVAS_PIXELS);
+      expect(shot.raster.createCanvas).toHaveBeenCalledWith(4579, 3663);
+      expect(shot.screenshot.width).toBe(5000);
+      expect(shot.screenshot.height).toBe(4000);
+    });
+
+    it("always matches the canvas the PNG was encoded from", async () => {
+      const ratios: Array<number> = [0.5, 1, 1.25, 1.5, 2, 2.5, 3];
+
+      for (const pixelRatio of ratios) {
+        const shot: { screenshot: ReplayScreenshot; raster: FakeRaster } =
+          await shoot({ width: "1366", height: "683", pixelRatio: pixelRatio });
+
+        expect(shot.raster.createCanvas).toHaveBeenCalledTimes(1);
+        expect(shot.raster.createCanvas).toHaveBeenCalledWith(
+          shot.screenshot.pixelWidth,
+          shot.screenshot.pixelHeight,
+        );
+      }
     });
   });
 

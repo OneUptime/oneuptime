@@ -37,7 +37,13 @@ import {
  *     WebKit, and toBlob then throws);
  *   - the ClipboardItem is built with the PENDING image before anything is
  *     awaited, because Safari drops a clipboard write that does not start
- *     inside the click.
+ *     inside the click;
+ *   - a busy dock button is aria-disabled, never disabled (a disabled
+ *     button drops the focus to <body>, where Space is play/pause), and
+ *     the stage isolates the engine's mount so the Replayer's pointer
+ *     z-index cannot paint over the dock;
+ *   - measuring the live replay document only reads it, and the PNG size
+ *     the dock shows comes from the same ratio the capture draws at.
  *
  * The file name and the CSS rewrite are pure, and are checked by value at
  * the end, in this same node environment.
@@ -62,6 +68,7 @@ const ACTIONS_PATH: string = path.join(
   "ReplayScreenshotActions.tsx",
 );
 const TABS_PATH: string = path.join(REPLAY_DIR, "ReplayTabs.ts");
+const STAGE_PATH: string = path.join(REPLAY_DIR, "ReplayStage.tsx");
 
 /*
  * Comments are stripped before searching: these files explain in prose
@@ -84,6 +91,7 @@ const CAPTURE_SOURCE: string = readSource(CAPTURE_PATH);
 const SCREENSHOT_SOURCE: string = readSource(SCREENSHOT_PATH);
 const ACTIONS_SOURCE: string = readSource(ACTIONS_PATH);
 const TABS_SOURCE: string = readSource(TABS_PATH);
+const STAGE_SOURCE: string = readSource(STAGE_PATH);
 
 /* The text between two markers, so an assertion can be scoped to one region. */
 function slice(source: string, fromMarker: string, toMarker: string): string {
@@ -483,6 +491,137 @@ describe("the overlays", () => {
     expect(dock).not.toContain("copyToClipboard=");
     expect(dock).not.toContain("download=");
     expect(dock).not.toContain("clipboardSupport=");
+  });
+});
+
+describe("the dock's buttons", () => {
+  function dockButtonSource(ref: string): string {
+    return slice(ACTIONS_SOURCE, `ref={${ref}}`, "</button>");
+  }
+
+  test("are marked busy with aria-disabled and never disabled natively", () => {
+    const nativeDisabledProp: RegExp = /(^|[^-\w])disabled\s*=/;
+    const disabledPropertyWrite: RegExp = /\.disabled\s*=[^=]/;
+
+    expect(nativeDisabledProp.test(ACTIONS_SOURCE)).toBe(false);
+    expect(disabledPropertyWrite.test(ACTIONS_SOURCE)).toBe(false);
+    expect(ACTIONS_SOURCE).not.toContain('setAttribute("disabled"');
+    expect(
+      countOccurrences(ACTIONS_SOURCE, "aria-disabled={isBusy || undefined}"),
+    ).toBe(2);
+
+    for (const ref of ["copyButtonRef", "downloadButtonRef"]) {
+      const button: string = dockButtonSource(ref);
+
+      expect(button).toContain("aria-disabled={isBusy || undefined}");
+      expect(button).toMatch(
+        /aria-busy=\{busyAction === "(copy|download)" \|\| undefined\}/,
+      );
+    }
+  });
+
+  test("leave the one-capture-at-a-time guard to their handlers", () => {
+    expect(dockButtonSource("copyButtonRef")).toContain("onClick={copyImage}");
+    expect(dockButtonSource("downloadButtonRef")).toContain(
+      "onClick={downloadImage}",
+    );
+    /* Checked before anything else, the clipboard path included. */
+    expect(
+      slice(ACTIONS_SOURCE, "const copyImage:", "clipboardSupport !=="),
+    ).toContain("if (busyRef.current !== null) {");
+    expect(slice(ACTIONS_SOURCE, "const begin:", "keepFocusInDock(")).toContain(
+      "if (busyRef.current !== null) {",
+    );
+    expect(
+      slice(ACTIONS_SOURCE, "const recover:", "failure.recovery"),
+    ).toContain("busyRef.current !== null");
+  });
+});
+
+describe("the stage", () => {
+  test("isolates the engine's mount, so the Replayer's pointer z-index stays under the overlays", () => {
+    const isolatedMount: RegExp =
+      /<div ref=\{mountRef\} className="[^"]*\bisolate\b[^"]*"/;
+
+    expect(countOccurrences(STAGE_SOURCE, "ref={mountRef}")).toBe(1);
+    expect(isolatedMount.test(STAGE_SOURCE)).toBe(true);
+    expect(STAGE_SOURCE).toContain("engine.attach(mount);");
+  });
+});
+
+describe("measuring the live replay document", () => {
+  function measureSource(): string {
+    return slice(
+      CAPTURE_SOURCE,
+      "private measure(): void {",
+      "private applyRootPropagation(",
+    );
+  }
+
+  test("has no sticky-measuring pass and sets no style property anywhere", () => {
+    expect(CAPTURE_SOURCE).not.toContain("measureSticky");
+    expect(CAPTURE_SOURCE).not.toContain("style.setProperty(");
+    expect(CAPTURE_SOURCE).not.toContain("style.removeProperty(");
+    expect(CAPTURE_SOURCE).not.toContain(".style.cssText");
+  });
+
+  test("only reads the elements it measures", () => {
+    const measure: string = measureSource();
+    const writes: Array<RegExp> = [
+      /\.setAttribute(NS)?\(/,
+      /\.removeAttribute(NS)?\(/,
+      /\.toggleAttribute\(/,
+      /\.setProperty\(/,
+      /\.removeProperty\(/,
+      /\.classList\./,
+      /\.style\.[\w-]+\s*=[^=]/,
+      /\.(appendChild|insertBefore|replaceChild|removeChild|replaceWith|remove)\(/,
+      /\.(innerHTML|outerHTML|textContent)\s*=[^=]/,
+      /\.scroll(Top|Left)\s*=[^=]/,
+    ];
+
+    expect(measure).toContain("this.measureAnimations();");
+
+    for (const pattern of writes) {
+      expect({
+        pattern: String(pattern),
+        found: pattern.test(measure),
+      }).toEqual({ pattern: String(pattern), found: false });
+    }
+  });
+});
+
+describe("the PNG size the dock shows", () => {
+  test("comes from the ratio and the canvas size the capture itself uses", () => {
+    const capture: string = slice(
+      SCREENSHOT_SOURCE,
+      "export function captureReplayerScreenshot(",
+      "export type ReplayImageClipboardSupport",
+    );
+
+    expect(capture).toContain(
+      "const pixelRatio: number = request.pixelRatio ?? getDevicePixelRatio();",
+    );
+    expect(capture).toMatch(
+      /resolveReplayFrameCanvasSize\(\s*viewport,\s*resolveReplayFramePixelRatio\(pixelRatio, viewport\),?\s*\)/,
+    );
+    /* The capture is handed the same ratio, not a second reading of it. */
+    expect(capture).toContain("pixelRatio: pixelRatio,");
+    expect(countOccurrences(capture, "getDevicePixelRatio()")).toBe(1);
+    expect(capture).toContain("pixelWidth: pixelSize.width,");
+    expect(capture).toContain("pixelHeight: pixelSize.height,");
+    expect(CAPTURE_SOURCE).toContain(
+      "const size: ReplayFrameViewport = resolveReplayFrameCanvasSize(",
+    );
+  });
+
+  test("falls back to the recorded viewport in the dock", () => {
+    expect(ACTIONS_SOURCE).toContain(
+      "pixelWidth: screenshot.pixelWidth ?? screenshot.width,",
+    );
+    expect(ACTIONS_SOURCE).toContain(
+      "pixelHeight: screenshot.pixelHeight ?? screenshot.height,",
+    );
   });
 });
 

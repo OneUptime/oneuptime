@@ -23,27 +23,39 @@ import {
  *  - STYLES live in the CSSOM. The replay adds rules with insertRule and
  *    adoptedStyleSheets (CSS-in-JS, and the player's own pause rule),
  *    which a <style> element's text never shows, so every sheet is
- *    re-serialised from cssRules.
+ *    re-serialised from cssRules - with its @media conditions settled
+ *    against the replay's own window, because an image answers (hover)
+ *    and (pointer) differently from the page the stage shows.
  *  - FORM STATE lives in properties. Replayed input sets .value and
  *    .checked, not the attributes a serialiser writes out.
  *  - SCROLL lives in the layout, and a clone has none. It is put back with
  *    scroll snapping, which an SVG image does honour: the frame is a
  *    snap container whose only snap target is a marker at the recorded
- *    scroll offset, and a scrolled box snaps to its first child at the
- *    offset that child was drawn at. The picture then really is scrolled,
- *    so sticky headers stick, fixed boxes stay put, a z-index:-1 backdrop
- *    stays behind the page, and scrollbar thumbs sit where they sat.
+ *    scroll offset, and a scrolled box snaps to the first box laid out in
+ *    it, at the offset that box was drawn at. The picture then really is
+ *    scrolled, so sticky headers stick, fixed boxes stay put, a
+ *    z-index:-1 backdrop stays behind the page, and scrollbar thumbs sit
+ *    where they sat. A box that scrolls from its end (right-to-left, a
+ *    reversed flex box) goes into negative offsets a snap cannot reach
+ *    inside an image, so its children are moved by the offset instead.
+ *  - THE ROOT is not the root inside an image. What the viewport took
+ *    from it - the overflow, the background, the colour scheme - moves to
+ *    the frame, and what the root resolved against itself (the rem base,
+ *    :root rules) is pinned or rewritten.
  *  - SHADOW DOM cannot be serialised, so a shadow tree is flattened into
- *    its host with every element's computed style inlined (its scoped
- *    rules would otherwise leak or stop matching), pseudo-elements
- *    included.
+ *    its host with every element's computed style inlined behind
+ *    `all: unset` (its scoped rules would otherwise leak or stop
+ *    matching), the host's :host rules and pseudo-elements included.
  *  - ANIMATIONS are frozen: the clone would restart them at their first
  *    keyframe, so every animated property is pinned to its paused value.
  *  - THE TOP LAYER cannot be serialised either, so a modal dialog is drawn
- *    fixed over everything, with its ::backdrop painted behind it.
+ *    last and fixed over everything, with its ::backdrop behind it.
  *
- * The live replay document is only read, never written to, and nothing
- * here makes a network request. An SVG image loads no subresources, and
+ * The live replay document is only read, never written to - the one
+ * thing the capture adds to a document is a blank, hidden reference frame
+ * in the Dashboard's own, for the initial style values, removed before
+ * it returns - and nothing here makes a network request. An SVG image
+ * loads no subresources, and
  * every url() the page's CSS mentions is rewritten to an empty data: URL
  * besides. What the stage shows agrees with that: the replay document's
  * own CSP (REPLAY_DOCUMENT_CSP) keeps it from loading anything that is not
@@ -160,7 +172,7 @@ const AUTO_SIZE_PROPERTIES: Array<string> = [
   "block-size",
 ];
 const REVERSE_FLEX_PATTERN: RegExp = /reverse/;
-const WHITESPACE_OUTSIDE_PARENTHESES_PATTERN: RegExp = /\s+(?![^(]*\))/;
+const WHITESPACE_CHARACTER_PATTERN: RegExp = /\s/;
 const NAMESPACE_AT_RULE_PATTERN: RegExp = /^@namespace\b/i;
 const MEDIA_AT_RULE_PATTERN: RegExp = /^@media\b/i;
 const GROUPING_AT_RULE_PATTERN: RegExp =
@@ -507,6 +519,41 @@ export function rewriteReplayCss(
 }
 
 /*
+ * Splits a value on the whitespace that is not inside any parentheses,
+ * however deeply nested: "calc(10% + min(1px, 2px)) 4px" is two parts.
+ */
+export function splitTopLevelWhitespace(value: string): Array<string> {
+  const parts: Array<string> = [];
+  let depth: number = 0;
+  let current: string = "";
+
+  for (const character of value) {
+    if (character === "(") {
+      depth++;
+    } else if (character === ")") {
+      depth = Math.max(0, depth - 1);
+    }
+
+    if (depth === 0 && WHITESPACE_CHARACTER_PATTERN.test(character)) {
+      if (current) {
+        parts.push(current);
+        current = "";
+      }
+
+      continue;
+    }
+
+    current += character;
+  }
+
+  if (current) {
+    parts.push(current);
+  }
+
+  return parts;
+}
+
+/*
  * A translate that moves a box by -offset on top of whatever translate it
  * already declares. The individual `translate` property composes with
  * `transform` rather than replacing it, which is why it is used here.
@@ -523,9 +570,7 @@ export function composeTranslate(
     return `${dx} ${dy}`;
   }
 
-  const parts: Array<string> = trimmed.split(
-    WHITESPACE_OUTSIDE_PARENTHESES_PATTERN,
-  );
+  const parts: Array<string> = splitTopLevelWhitespace(trimmed);
   const x: string = parts[0] ?? "0px";
   const y: string = parts[1] ?? "0px";
   const z: string = parts[2] ? ` ${parts[2]}` : "";
@@ -2807,7 +2852,8 @@ export function isSafariWebKit(userAgent: string): boolean {
     userAgent.includes("AppleWebKit") &&
     !userAgent.includes("Chrome") &&
     !userAgent.includes("Chromium") &&
-    !userAgent.includes("Edg")
+    /* "Edg/" is Chromium Edge; Edge on iOS (EdgiOS) is WebKit. */
+    !userAgent.includes("Edg/")
   );
 }
 
