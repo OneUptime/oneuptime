@@ -1,18 +1,20 @@
 import { AlertFeedEventType } from "Common/Models/DatabaseModels/AlertFeed";
 import { IncidentFeedEventType } from "Common/Models/DatabaseModels/IncidentFeed";
+import { INCIDENT_ALERT_ALREADY_LINKED_MESSAGE } from "Common/Types/Incident/IncidentAlertLink";
 import { getFeedEventTypeLabel } from "Common/UI/Components/Feed/FeedOptions";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 
 /*
- * Linking alerts to incidents added pages, a bulk dialog, create-page banners,
+ * Linking alerts to incidents added pages, a link dialog, create-page banners,
  * a settings card and four feed event labels to the dashboard. Every one of
  * those strings reaches the screen through a component that looks it up in
  * the Dashboard locale files by its English text (SideMenuItem, Breadcrumbs,
- * Card, Modal, ConfirmModal, ErrorMessage, FormField, Dropdown, TableHeader,
- * Detail, the Alert banner, the feed's event-type checklist). A string with
- * no entry silently stays English, so this pins both halves:
+ * Card and its buttons, Modal, ConfirmModal, ErrorMessage, FormField,
+ * Dropdown, TableHeader, Detail, the Alert banner and form error, the feed's
+ * event-type checklist). A string with no entry silently stays English, so
+ * this pins both halves:
  *
  *   - the source still renders exactly these strings (a reworded string
  *     would leave its translations orphaned and the new wording untranslated);
@@ -20,9 +22,11 @@ import path from "path";
  *     non-empty translation in the same place in the file.
  *
  * Strings built at runtime from variables (the 50-alert cap tooltips, the
- * bulk delete confirmation that appends a warning, "Alert #42" references,
- * permission messages) cannot be looked up by their English text and are
- * deliberately not listed here.
+ * "Unlink 2 Alerts" bulk confirmation and its sentence, "Alert #42"
+ * references, permission tooltips) cannot be looked up by their English text
+ * and are deliberately not listed here. Neither are the create page's banner
+ * paragraphs (including the private-alert note): they are JSX text inside a
+ * ReactElement title, which the Alert banner passes through untranslated.
  */
 
 const DASHBOARD_SRC: string = path.join(
@@ -45,6 +49,8 @@ const ALERT_BREADCRUMBS: string = "Utils/Breadcrumbs/AlertBreadcrumbs.ts";
 const INCIDENT_PAGE: string = "Pages/Incidents/View/Alerts.tsx";
 const ALERT_PAGE: string = "Pages/Alerts/View/Incidents.tsx";
 const BULK_HOOK: string = "Components/Alert/BulkIncidentLinkActions.tsx";
+const LINK_DIALOG: string =
+  "Components/IncidentAlert/LinkIncidentAlertModal.tsx";
 const CREATE_PAGE: string = "Pages/Incidents/Create.tsx";
 const SETTINGS_PAGE: string =
   "Pages/Incidents/Settings/IncidentMoreSettings.tsx";
@@ -58,7 +64,8 @@ interface SourceString {
 /*
  * Every new string the feature hands to a translating component, with the
  * files that render it. In UI order: menus and breadcrumbs, the two linked
- * pages, the alerts-table dialog, the create page, the settings card.
+ * pages (each with its card button and link dialog), the alerts-table dialog,
+ * the create page, the settings card.
  */
 const SOURCE_STRINGS: Array<SourceString> = [
   {
@@ -82,8 +89,14 @@ const SOURCE_STRINGS: Array<SourceString> = [
     sources: [INCIDENT_PAGE],
   },
   { text: "No alerts are linked to this incident.", sources: [INCIDENT_PAGE] },
+  // The card button, the link dialog's title and its submit button.
+  { text: "Link Alert", sources: [INCIDENT_PAGE] },
   {
     text: "Select an alert to link to this incident.",
+    sources: [INCIDENT_PAGE],
+  },
+  {
+    text: "Recent alerts are listed with their number. Type to search every alert by title.",
     sources: [INCIDENT_PAGE],
   },
   { text: "Select an alert", sources: [INCIDENT_PAGE] },
@@ -102,6 +115,8 @@ const SOURCE_STRINGS: Array<SourceString> = [
     text: "This alert is not linked to any incidents.",
     sources: [ALERT_PAGE],
   },
+  // The card button, the link dialog's title and its submit button.
+  { text: "Link Incident", sources: [ALERT_PAGE] },
   {
     text: "Select an incident to link this alert to.",
     sources: [ALERT_PAGE],
@@ -120,9 +135,10 @@ const SOURCE_STRINGS: Array<SourceString> = [
     sources: [BULK_HOOK],
   },
   { text: "Link Alerts", sources: [BULK_HOOK] },
+  // Also the field description of the alert page's link dialog.
   {
     text: "Recent incidents are listed with their number. Type to search every incident by title.",
-    sources: [BULK_HOOK],
+    sources: [BULK_HOOK, ALERT_PAGE],
   },
 
   // Incidents > Create, declared from alerts
@@ -143,7 +159,7 @@ const SOURCE_STRINGS: Array<SourceString> = [
     sources: [SETTINGS_PAGE],
   },
   {
-    text: "When the incident is acknowledged, acknowledge every alert linked to it. This stops those alerts' on-call escalations and reminders. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
+    text: "When the incident is acknowledged, acknowledge every alert linked to it. This stops those alerts' on-call escalations. It stops their reminders only when the alert reminder rule is set to stop reminders on Acknowledged. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
     sources: [SETTINGS_PAGE],
   },
   {
@@ -156,43 +172,25 @@ const SOURCE_STRINGS: Array<SourceString> = [
   },
 ];
 
-interface ComposedString {
-  text: string;
-  page: string;
-  singularName: string;
-  form: "modalTitle" | "submitButton";
-}
+/*
+ * The link dialog shows this as its error when the pair is already linked -
+ * whatever the server's wording, it swaps in the shared constant - and the
+ * form shows its error through the Alert banner, which translates it.
+ */
+const ALREADY_LINKED_MESSAGE: string =
+  "This alert is already linked to this incident.";
 
 /*
- * ModelTable builds its create modal's title and submit button from the
- * page's createVerb and singularName, and Modal looks the whole result up.
- * Both pages pass createVerb "Link", so these four are fixed per page.
+ * Keys the feature once added and no longer renders: the table's built-in
+ * create form ("Link New Alert" / "Link New Incident" as its title) gave way
+ * to the link dialog, and the acknowledge switch's description was reworded
+ * because alert reminders stop on acknowledge only when the reminder rule
+ * says so. Left behind, they would be orphans no page looks up.
  */
-const COMPOSED_STRINGS: Array<ComposedString> = [
-  {
-    text: "Link New Alert",
-    page: INCIDENT_PAGE,
-    singularName: "Alert",
-    form: "modalTitle",
-  },
-  {
-    text: "Link Alert",
-    page: INCIDENT_PAGE,
-    singularName: "Alert",
-    form: "submitButton",
-  },
-  {
-    text: "Link New Incident",
-    page: ALERT_PAGE,
-    singularName: "Incident",
-    form: "modalTitle",
-  },
-  {
-    text: "Link Incident",
-    page: ALERT_PAGE,
-    singularName: "Incident",
-    form: "submitButton",
-  },
+const RETIRED_KEYS: Array<string> = [
+  "Link New Alert",
+  "Link New Incident",
+  "When the incident is acknowledged, acknowledge every alert linked to it. This stops those alerts' on-call escalations and reminders. Alerts linked to an incident that is already acknowledged are acknowledged as they are linked.",
 ];
 
 interface FeedLabel {
@@ -218,9 +216,7 @@ const NEW_KEYS: Array<string> = [
   ...SOURCE_STRINGS.map((entry: SourceString): string => {
     return entry.text;
   }),
-  ...COMPOSED_STRINGS.map((entry: ComposedString): string => {
-    return entry.text;
-  }),
+  ALREADY_LINKED_MESSAGE,
   ...FEED_LABELS.map((entry: FeedLabel): string => {
     return entry.text;
   }),
@@ -231,7 +227,6 @@ const NEW_KEYS: Array<string> = [
  * a cleanup of "unused" keys cannot take one of them away from these pages.
  */
 const REUSED_KEYS: Array<string> = [
-  "Link",
   "Unlink",
   "Alert",
   "Alerts",
@@ -303,13 +298,15 @@ function sectionFrom(source: string, start: string, end?: string): string {
 /*
  * Literal values of the props the translating components look up: card,
  * modal, confirmation, form-field and column titles, descriptions,
- * placeholders, banner titles, empty-table messages and button texts, in
- * both the `prop: "…"` and the JSX `prop="…"` spelling.
+ * placeholders, banner titles, empty-table messages and button texts, plus
+ * the link dialog's fieldTitle / fieldDescription (it hands them to its
+ * form field's title and description), in both the `prop: "…"` and the JSX
+ * `prop="…"` spelling.
  */
 function translatedPropLiterals(code: string): Array<string> {
   const literals: Array<string> = [];
   const pattern: RegExp =
-    /\b(?:title|description|placeholder|noItemsMessage|strongTitle|submitButtonText|deleteButtonText|editButtonText|createVerb|singularName|pluralName)\s*[:=]\s*"((?:[^"\\]|\\.)*)"/g;
+    /\b(?:title|description|placeholder|noItemsMessage|strongTitle|submitButtonText|deleteButtonText|editButtonText|createVerb|singularName|pluralName|fieldTitle|fieldDescription)\s*[:=]\s*"((?:[^"\\]|\\.)*)"/g;
   let match: RegExpExecArray | null = pattern.exec(code);
 
   while (match !== null) {
@@ -322,6 +319,28 @@ function translatedPropLiterals(code: string): Array<string> {
 
 function unique(values: Array<string>): Array<string> {
   return Array.from(new Set<string>(values)).sort();
+}
+
+// Every .ts / .tsx file under `root`, locale files and dependencies aside.
+function sourceFilesUnder(root: string): Array<string> {
+  const files: Array<string> = [];
+
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    const entryPath: string = path.join(root, entry.name);
+
+    if (entry.isDirectory()) {
+      if (entry.name !== "node_modules" && entry.name !== "Locales") {
+        files.push(...sourceFilesUnder(entryPath));
+      }
+      continue;
+    }
+
+    if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
+      files.push(entryPath);
+    }
+  }
+
+  return files;
 }
 
 const localeFiles: Array<string> = fs
@@ -358,12 +377,57 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
     expect(new Set<string>(NEW_KEYS).size).toBe(NEW_KEYS.length);
     expect(NEW_KEYS.length).toBe(35);
 
-    for (const key of REUSED_KEYS) {
+    for (const key of [...REUSED_KEYS, ...RETIRED_KEYS]) {
       expect(NEW_KEYS).not.toContain(key);
     }
 
     // Exactly 17 Dashboard locales: English and the sixteen translations.
     expect(localeFiles.length).toBe(17);
+  });
+
+  test("no locale keeps a key the feature no longer renders", () => {
+    const leftovers: Array<string> = [];
+
+    for (const file of localeFiles) {
+      const locale: Record<string, unknown> = readLocale(file);
+
+      for (const key of RETIRED_KEYS) {
+        if (key in locale) {
+          leftovers.push(`${file}: ${key}`);
+        }
+      }
+    }
+
+    expect(leftovers).toEqual([]);
+  });
+
+  test("no dashboard or shared UI source still renders a retired key", () => {
+    const files: Array<string> = [
+      ...sourceFilesUnder(DASHBOARD_SRC),
+      ...sourceFilesUnder(path.join(COMMON_ROOT, "UI")),
+    ];
+
+    // Sanity: the walk really reached both trees.
+    expect(files).toEqual(
+      expect.arrayContaining([
+        path.join(DASHBOARD_SRC, INCIDENT_PAGE),
+        path.join(COMMON_ROOT, "UI", "Components", "Modal", "Modal.tsx"),
+      ]),
+    );
+
+    const stillRendered: Array<string> = [];
+
+    for (const file of files) {
+      const source: string = fs.readFileSync(file, "utf8");
+
+      for (const key of RETIRED_KEYS) {
+        if (source.includes(`"${key}"`)) {
+          stillRendered.push(`${path.relative(DASHBOARD_SRC, file)}: ${key}`);
+        }
+      }
+    }
+
+    expect(stillRendered).toEqual([]);
   });
 
   test("every listed string is still rendered by the file that shows it", () => {
@@ -380,35 +444,55 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
     expect(missing).toEqual([]);
   });
 
-  test("the create modal's title and button are built from the page's createVerb and singularName", () => {
-    const modelTable: string = readCommon(
-      "UI",
-      "Components",
-      "ModelTable",
-      "ModelTable.tsx",
-    );
+  /*
+   * The pages link through their own dialog, not the table's create form, so
+   * ModelTable composes no "Link New Alert" / "Link Alert" title from a
+   * createVerb: every string the dialog shows is a literal on the page.
+   */
+  test("both linked pages open the link dialog instead of the table's create form", () => {
+    for (const page of [INCIDENT_PAGE, ALERT_PAGE]) {
+      const code: string = readCode(page);
 
-    // The two templates ModelTable renders, whose result Modal translates.
-    expect(modelTable).toContain(
-      '`${props.createVerb || "Create"} New ${ props.singularName || model.singularName }`',
-    );
-    expect(modelTable).toContain(
-      '`${props.createVerb || "Create"} ${ props.singularName || model.singularName }`',
-    );
-
-    for (const entry of COMPOSED_STRINGS) {
-      const page: string = readCode(entry.page);
-
-      expect(page).toContain('createVerb="Link"');
-      expect(page).toContain(`singularName="${entry.singularName}"`);
-
-      const rendered: string =
-        entry.form === "modalTitle"
-          ? `Link New ${entry.singularName}`
-          : `Link ${entry.singularName}`;
-
-      expect(rendered).toBe(entry.text);
+      expect(code).toContain("isCreateable={false}");
+      expect(code).not.toContain("createVerb");
+      expect(code).toContain("<LinkIncidentAlertModal");
     }
+
+    expect(readCode(BULK_HOOK)).toContain("<LinkIncidentAlertModal");
+  });
+
+  test("the link dialog hands every text it is given to a translating prop", () => {
+    const dialog: string = readCode(LINK_DIALOG);
+
+    // Modal translates its title, description and submit button text.
+    expect(dialog).toContain("<BasicFormModal<LinkIncidentAlertFormData>");
+    expect(dialog).toContain("title={props.title}");
+    expect(dialog).toContain("description={props.description}");
+    expect(dialog).toContain("submitButtonText={props.submitButtonText}");
+    expect(
+      readCommon("UI", "Components", "FormModal", "BasicFormModal.tsx"),
+    ).toContain("<Modal {...props}");
+
+    // FormField translates the field's title, description and placeholder.
+    expect(dialog).toContain("title: props.fieldTitle");
+    expect(dialog).toContain("description: props.fieldDescription");
+    expect(dialog).toContain("placeholder: props.placeholder");
+  });
+
+  test("the link dialog's already-linked error is the shared message, shown through a translating Alert", () => {
+    expect(INCIDENT_ALERT_ALREADY_LINKED_MESSAGE).toBe(ALREADY_LINKED_MESSAGE);
+
+    const dialog: string = readCode(LINK_DIALOG);
+
+    expect(dialog).toContain(
+      "isAlreadyLinkedError(message) ? INCIDENT_ALERT_ALREADY_LINKED_MESSAGE : message",
+    );
+    expect(dialog).toContain("error: error || undefined");
+
+    // BasicForm shows its error in the Alert banner, which translates it.
+    expect(readCommon("UI", "Components", "Forms", "BasicForm.tsx")).toContain(
+      "<Alert title={props.error} type={AlertType.DANGER} />",
+    );
   });
 
   test("the four feed event labels are exactly what the feed checklist shows", () => {
@@ -419,10 +503,10 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
 
   /*
    * The guard against a new string skipping translation: every literal these
-   * files hand to a translating prop - in the two new pages and the bulk
-   * hook, the create page's two banners and the settings card - must be a
-   * key in en.json. Only fully new code is walked; the rest of the create
-   * and settings pages predates the feature.
+   * files hand to a translating prop - in the two new pages, the bulk hook
+   * and the link dialog they share, the create page's two banners and the
+   * settings card - must be a key in en.json. Only fully new code is walked;
+   * the rest of the create and settings pages predates the feature.
    */
   test("every literal the feature hands to a translating prop is in en.json", () => {
     const createPage: string = readCode(CREATE_PAGE);
@@ -432,6 +516,7 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
       ...translatedPropLiterals(readCode(INCIDENT_PAGE)),
       ...translatedPropLiterals(readCode(ALERT_PAGE)),
       ...translatedPropLiterals(readCode(BULK_HOOK)),
+      ...translatedPropLiterals(readCode(LINK_DIALOG)),
       ...translatedPropLiterals(
         sectionFrom(
           createPage,
@@ -448,6 +533,10 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
     expect(walked).toEqual(
       expect.arrayContaining([
         "Unlink Alert",
+        "Link Alert",
+        "Link Incident",
+        "Alert",
+        "Recent alerts are listed with their number. Type to search every alert by title.",
         "Declare Incident",
         "Link to Incident",
         "The alerts could not be found",
@@ -612,6 +701,12 @@ describe("Linking alerts to incidents: Dashboard translations", () => {
         ["UI", "Components", "Card", "Card.tsx"],
         "translateValue(props.description)",
       ],
+      // Card buttons ("Link Alert", "Declare Incident") render as Buttons.
+      [
+        ["UI", "Components", "Card", "Card.tsx"],
+        "<Button key={i} title={(button as CardButtonSchema).title}",
+      ],
+      [["UI", "Components", "Button", "Button.tsx"], "translateString(title)"],
       [
         ["UI", "Components", "Modal", "Modal.tsx"],
         "translateString(props.title)",
