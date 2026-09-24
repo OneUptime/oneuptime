@@ -37,6 +37,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import WorkspaceNotificationRuleService from "./WorkspaceNotificationRuleService";
 import Semaphore, { SemaphoreMutex } from "../Infrastructure/Semaphore";
+import IncidentAlertService from "./IncidentAlertService";
 
 export class Service extends DatabaseService<IncidentStateTimeline> {
   public constructor() {
@@ -483,6 +484,29 @@ export class Service extends DatabaseService<IncidentStateTimeline> {
           incidentId: createdItem.incidentId?.toString(),
         } as LogAttributes);
       }
+    }
+
+    /*
+     * Carry the incident's new state over to its linked alerts, when the
+     * project has opted in (acknowledge and/or resolve them with the
+     * incident). Only for the incident's current state - a back-dated row has
+     * an endsAt - and after the mutex is released, since it writes alert
+     * timelines. Fire-and-forget: it never fails or delays the state change.
+     */
+    if (!createdItem.endsAt && createdItem.projectId) {
+      IncidentAlertService.cascadeIncidentStateToLinkedAlerts({
+        projectId: createdItem.projectId,
+        incidentId: createdItem.incidentId,
+        incidentStateId: createdItem.incidentStateId,
+      }).catch((error: Error) => {
+        logger.error(
+          `Error while carrying the incident state over to linked alerts: ${error}`,
+          {
+            projectId: createdItem.projectId?.toString(),
+            incidentId: createdItem.incidentId?.toString(),
+          } as LogAttributes,
+        );
+      });
     }
 
     const stateName: string = incidentState?.name || "";

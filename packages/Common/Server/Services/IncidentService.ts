@@ -111,6 +111,10 @@ import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
 } from "../Utils/AI/IncidentAIContextBuilder";
+import IncidentAlertService, {
+  LinkAlertsToIncidentResult,
+} from "./IncidentAlertService";
+import { INCIDENT_ALERT_IDS_TO_LINK_KEY } from "../../Types/Incident/IncidentAlertLink";
 
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{
@@ -119,6 +123,15 @@ type UpdateCarryForward = Dictionary<{
   oldChangeMonitorStatusIdTo: ObjectID | undefined;
   newMonitorChangeStatusIdTo: ObjectID | undefined;
 }>;
+
+/*
+ * What onBeforeCreate hands to onCreateSuccess. Null unless the incident is
+ * being declared from alerts.
+ */
+type IncidentCreateCarryForward = {
+  // Validated, deduplicated alert ids to link once the incident exists.
+  alertIdsToLink: Array<ObjectID>;
+} | null;
 
 type IncidentUpdatePayload = {
   postmortemNote?: string | null;
@@ -783,6 +796,30 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
+    /*
+     * Declaring the incident from alerts. The alert ids are checked here,
+     * before the incident number is taken and before anything is written, so
+     * a bad id (a typo, another project's alert, an alert the caller cannot
+     * see, too many alerts) rejects the whole request instead of leaving an
+     * incident behind that is missing some of its alerts. The alerts are
+     * linked in onCreateSuccess, once the incident exists.
+     */
+    let carryForward: IncidentCreateCarryForward = null;
+
+    const alertIdsToLink: unknown =
+      createBy.miscDataProps?.[INCIDENT_ALERT_IDS_TO_LINK_KEY];
+
+    if (alertIdsToLink !== undefined && alertIdsToLink !== null) {
+      carryForward = {
+        alertIdsToLink:
+          await IncidentAlertService.validateAlertIdsForNewIncident({
+            projectId: projectId,
+            alertIds: alertIdsToLink,
+            props: createBy.props,
+          }),
+      };
+    }
+
     if (!createBy.data.declaredAt) {
       createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
     } else {
@@ -1179,7 +1216,7 @@ export class Service extends DatabaseService<Model> {
 
     return {
       createBy,
-      carryForward: null,
+      carryForward: carryForward,
     };
   }
 
@@ -1623,7 +1660,64 @@ export class Service extends DatabaseService<Model> {
         );
       });
 
+    await this.linkAlertsDeclaredWithIncident(onCreate, createdItem);
+
     return createdItem;
+  }
+
+  /*
+   * The incident was declared from alerts (see onBeforeCreate): link them now
+   * that it exists. Awaited, unlike the chain above, so the incident page the
+   * user lands on already lists its alerts. Written as root because the
+   * caller's right to link them was checked before the incident was created;
+   * the user who declared the incident is recorded as the one who linked
+   * them. A link that fails is logged and never fails the incident.
+   */
+  @CaptureSpan()
+  private async linkAlertsDeclaredWithIncident(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): Promise<void> {
+    const carryForward: IncidentCreateCarryForward =
+      (onCreate.carryForward as IncidentCreateCarryForward) || null;
+
+    const alertIds: Array<ObjectID> = carryForward?.alertIdsToLink || [];
+
+    if (alertIds.length === 0 || !createdItem.projectId || !createdItem.id) {
+      return;
+    }
+
+    try {
+      const result: LinkAlertsToIncidentResult =
+        await IncidentAlertService.linkAlertsToIncident({
+          projectId: createdItem.projectId,
+          incidentId: createdItem.id,
+          alertIds: alertIds,
+          createdByUserId:
+            createdItem.createdByUserId || onCreate.createBy.props.userId,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (result.failed.length > 0) {
+        logger.error(
+          `${result.failed.length} of ${alertIds.length} alerts could not be linked to the incident they were declared with.`,
+          {
+            projectId: createdItem.projectId.toString(),
+            incidentId: createdItem.id.toString(),
+          } as LogAttributes,
+        );
+      }
+    } catch (error) {
+      logger.error(
+        `Linking the alerts an incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
+        {
+          projectId: createdItem.projectId.toString(),
+          incidentId: createdItem.id.toString(),
+        } as LogAttributes,
+      );
+    }
   }
 
   @CaptureSpan()
