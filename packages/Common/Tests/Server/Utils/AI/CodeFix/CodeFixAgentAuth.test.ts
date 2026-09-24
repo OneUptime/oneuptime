@@ -41,7 +41,11 @@ function fakeAIAgent(): AIAgent {
 }
 
 function fakeRunner(
-  overrides: { canRunCodeFixTasks?: boolean | undefined } = {},
+  overrides: {
+    canRunCodeFixTasks?: boolean | undefined;
+    name?: string | undefined;
+    hostInfo?: unknown;
+  } = {},
 ): Runner {
   return {
     id: agentId,
@@ -179,6 +183,160 @@ describe("CodeFixAgentAuth.resolveAgentIdentity", () => {
       });
 
     expect(identity).toBeNull();
+  });
+
+  /*
+   * A kubernetes-agent Runner row is minted and re-keyed with the project's
+   * telemetry ingestion key. RunnerService refuses to turn "Runs AI Code
+   * Fixes" on for one, but a row whose flag was set before that guard keeps
+   * it, so the protocol must refuse the identity itself: otherwise anyone
+   * holding the ingestion key could claim code-fix work and mint repository
+   * tokens. "Agent row" is RunnerService's one rule (name marker OR agent
+   * posture).
+   */
+  describe("a kubernetes-agent Runner row never authenticates", () => {
+    const agentRows: Array<{
+      label: string;
+      name?: string | undefined;
+      hostInfo?: unknown;
+    }> = [
+      { label: "by the name marker", name: "kubernetes-agent/prod" },
+      {
+        label: "by the name marker in another case, padded",
+        name: "  Kubernetes-Agent/prod ",
+      },
+      {
+        label: "by a shortened agent name",
+        name: "kubernetes-agent/a-very-long-cluster-name-1a2b3c4d",
+      },
+      {
+        label: "by an agent posture alone (renamed before the guard)",
+        name: "build-runner",
+        hostInfo: {
+          kubernetes: { inCluster: true, clusterIdentifier: "prod" },
+        },
+      },
+      {
+        label: "by the name marker with a posture that dropped out",
+        name: "kubernetes-agent/prod",
+        hostInfo: { os: "linux" },
+      },
+    ];
+
+    test.each(agentRows)(
+      "refuses an agent row $label even with canRunCodeFixTasks true and a matching key",
+      async (row: {
+        label: string;
+        name?: string | undefined;
+        hostInfo?: unknown;
+      }) => {
+        mockAIAgentLookup(null);
+        mockRunnerLookup(
+          fakeRunner({
+            canRunCodeFixTasks: true,
+            name: row.name,
+            hostInfo: row.hostInfo,
+          }),
+        );
+
+        const identity: CodeFixAgentIdentity | null =
+          await CodeFixAgentAuth.resolveAgentIdentity({
+            aiAgentId: agentId.toString(),
+            aiAgentKey: agentKey,
+          });
+
+        expect(identity).toBeNull();
+      },
+    );
+
+    const ordinaryRows: Array<{
+      label: string;
+      name?: string | undefined;
+      hostInfo?: unknown;
+    }> = [
+      { label: "with an ordinary name", name: "build-runner" },
+      {
+        label: "whose name only mentions the prefix mid-string",
+        name: "my-kubernetes-agent/prod",
+      },
+      {
+        label: "living in a pod without a cluster identity",
+        name: "pod-runner",
+        hostInfo: { kubernetes: { inCluster: true } },
+      },
+      {
+        label: "that names a cluster but is not in-cluster",
+        name: "laptop-runner",
+        hostInfo: {
+          kubernetes: { inCluster: false, clusterIdentifier: "prod" },
+        },
+      },
+      { label: "with no name or host info selected" },
+    ];
+
+    test.each(ordinaryRows)(
+      "negative control: an ordinary Runner $label still resolves",
+      async (row: {
+        label: string;
+        name?: string | undefined;
+        hostInfo?: unknown;
+      }) => {
+        mockAIAgentLookup(null);
+        mockRunnerLookup(
+          fakeRunner({
+            canRunCodeFixTasks: true,
+            name: row.name,
+            hostInfo: row.hostInfo,
+          }),
+        );
+
+        const identity: CodeFixAgentIdentity | null =
+          await CodeFixAgentAuth.resolveAgentIdentity({
+            aiAgentId: agentId.toString(),
+            aiAgentKey: agentKey,
+          });
+
+        expect(identity).not.toBeNull();
+        expect(identity!.source).toBe(CodeFixAgentSource.Runner);
+        expect(identity!.id.toString()).toBe(agentId.toString());
+      },
+    );
+
+    test("selects the columns the agent-row rule reads", async () => {
+      mockAIAgentLookup(null);
+      const runnerSpy: RunnerFindSpy = mockRunnerLookup(fakeRunner());
+
+      await CodeFixAgentAuth.resolveAgentIdentity({
+        aiAgentId: agentId.toString(),
+        aiAgentKey: agentKey,
+      });
+
+      expect(runnerSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            canRunCodeFixTasks: true,
+            name: true,
+            hostInfo: true,
+          }),
+        }),
+      );
+    });
+
+    test("an AIAgent-registry match is unaffected by the Runner rule", async () => {
+      mockAIAgentLookup(fakeAIAgent());
+      const runnerSpy: RunnerFindSpy = mockRunnerLookup(
+        fakeRunner({ name: "kubernetes-agent/prod" }),
+      );
+
+      const identity: CodeFixAgentIdentity | null =
+        await CodeFixAgentAuth.resolveAgentIdentity({
+          aiAgentId: agentId.toString(),
+          aiAgentKey: agentKey,
+        });
+
+      expect(identity?.source).toBe(CodeFixAgentSource.AIAgent);
+      expect(runnerSpy).not.toHaveBeenCalled();
+    });
   });
 
   test("returns null when neither registry matches", async () => {

@@ -237,6 +237,7 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
       templateType: EmailTemplateType.AlertOwnerUnresolvedReminder,
       vars: vars,
       subject: `[Reminder] Alert ${alertNumberStr} is still ${currentStateName} - ${alert.title!}`,
+      isSubjectLiteral: true,
     };
 
     const sms: SMSMessage = {

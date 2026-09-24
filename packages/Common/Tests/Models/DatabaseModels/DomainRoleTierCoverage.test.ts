@@ -155,8 +155,13 @@ const NOT_READABLE_BY_THEIR_DOMAIN_ROLES: Array<string> = [
  * Viewer used to be on these lists, which made "read-only" mean "can read a
  * live credential for every agent in the project" -- the same reasoning that
  * keeps MonitorSecret out of the table list above.
+ *
+ * incomingEmailCustomLocalPart is not a key, but while it is set it IS the
+ * monitor's inbound email address (it replaces the key-derived one), so it is
+ * gated exactly like incomingEmailSecretKey.
  */
 const COLUMNS_NOT_READABLE_BY_THEIR_DOMAIN_ROLES: Array<string> = [
+  "Monitor.incomingEmailCustomLocalPart is missing MonitorViewer",
   "Monitor.incomingEmailSecretKey is missing MonitorViewer",
   "Monitor.incomingRequestSecretKey is missing MonitorViewer",
   "Monitor.serverMonitorSecretKey is missing MonitorViewer",

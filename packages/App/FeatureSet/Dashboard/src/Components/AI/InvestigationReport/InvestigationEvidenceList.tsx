@@ -4,6 +4,13 @@ import {
 } from "../../AIChat/CitationTargetNav";
 import WidgetRenderer from "../../AIChat/Widgets/WidgetRenderer";
 import {
+  ClusterToolOutcome,
+  describeClusterEvidenceTool,
+  describeClusterToolOutcome,
+  getClusterEvidenceNote,
+  isClusterToolName,
+} from "../ClusterToolFormat";
+import {
   EvidenceToolDescription,
   FormattedEvidenceArgument,
   describeCitationTargetPage,
@@ -81,16 +88,69 @@ function getRowsKey(runId: string | null, citationId: string): string {
   return `${runId || ""}:${citationId}`;
 }
 
-function getCitationBadgeClassName(rowCount: number): string {
+/*
+ * A kubectl command where kubectl returned an error is an error, not an
+ * empty result: it reads amber rather than as "nothing found".
+ */
+function getCitationBadgeClassName(
+  rowCount: number,
+  isError: boolean = false,
+): string {
   return `${CITATION_BADGE_CLASS_NAME} ${
-    rowCount > 0 ? "bg-gray-900 text-white" : "bg-gray-200 text-gray-600"
+    isError
+      ? "bg-amber-100 text-amber-800"
+      : rowCount > 0
+        ? "bg-gray-900 text-white"
+        : "bg-gray-200 text-gray-600"
   }`;
 }
 
-function getRowCountPillClassName(rowCount: number): string {
+function getRowCountPillClassName(
+  rowCount: number,
+  isError: boolean = false,
+): string {
   return `inline-flex flex-shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-    rowCount > 0 ? "bg-gray-100 text-gray-600" : "bg-gray-50 text-gray-400"
+    isError
+      ? "bg-amber-50 text-amber-700"
+      : rowCount > 0
+        ? "bg-gray-100 text-gray-600"
+        : "bg-gray-50 text-gray-400"
   }`;
+}
+
+// A legacy kubectl line whose command returned an error.
+const LEGACY_KUBECTL_ERROR_OUTCOME_REGEX: RegExp =
+  /^kubectl\s+returned\s+an\s+error$/i;
+
+interface LegacyEntryOutcome {
+  label: string;
+  isError: boolean;
+}
+
+/*
+ * A legacy "Evidence checked" line's pill. A cluster tool's line says what
+ * the call did instead of counting rows ("succeeded", "kubectl returned an
+ * error", "2 cluster(s)"), and its rowCount is only the engine's tally of
+ * that (1 for a kubectl command that succeeded) — so it shows the outcome
+ * as written, sentence-cased like the structured items' pills ("kubectl"
+ * stays lowercase), never "1 row". A telemetry query's line has no outcome
+ * and keeps its row count.
+ */
+function describeLegacyEntryOutcome(
+  entry: InvestigationEvidenceCheckedEntry,
+): LegacyEntryOutcome {
+  const outcome: string = (entry.outcome || "").trim();
+
+  if (!outcome) {
+    return { label: formatRowCount(entry.rowCount), isError: false };
+  }
+
+  return {
+    label: outcome.startsWith("kubectl")
+      ? outcome
+      : `${outcome.charAt(0).toUpperCase()}${outcome.slice(1)}`,
+    isError: LEGACY_KUBECTL_ERROR_OUTCOME_REGEX.test(outcome),
+  };
 }
 
 function prefersReducedMotion(): boolean {
@@ -462,9 +522,16 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
               item.citationId,
             );
             const detailsId: string = `${idPrefix}-evidence-${item.citationId}`;
-            const tool: EvidenceToolDescription = describeEvidenceTool(
-              item.toolName,
-            );
+            const tool: EvidenceToolDescription =
+              describeClusterEvidenceTool(item.toolName) ??
+              describeEvidenceTool(item.toolName);
+            /*
+             * A cluster tool's rowCount is not rows: kubectl succeeded (1)
+             * or returned an error (0); a cluster listing counts clusters.
+             */
+            const clusterOutcome: ClusterToolOutcome | null =
+              describeClusterToolOutcome(item.toolName, item.rowCount);
+            const isOutcomeError: boolean = clusterOutcome?.isError === true;
             const icon: IconProp = item.target
               ? targetTypeToIcon[item.target.type] || tool.icon
               : tool.icon;
@@ -506,7 +573,12 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                     }
                   }}
                 >
-                  <span className={getCitationBadgeClassName(item.rowCount)}>
+                  <span
+                    className={getCitationBadgeClassName(
+                      item.rowCount,
+                      isOutcomeError,
+                    )}
+                  >
                     {item.citationId}
                   </span>
                   <span className="hidden h-5 w-5 flex-shrink-0 items-center justify-center text-gray-400 sm:flex">
@@ -524,8 +596,15 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                       {executedAt ? ` · ${executedAt}` : ""}
                     </span>
                   </span>
-                  <span className={getRowCountPillClassName(item.rowCount)}>
-                    {formatRowCount(item.rowCount)}
+                  <span
+                    className={getRowCountPillClassName(
+                      item.rowCount,
+                      isOutcomeError,
+                    )}
+                  >
+                    {clusterOutcome
+                      ? clusterOutcome.label
+                      : formatRowCount(item.rowCount)}
                   </span>
                   <Icon
                     icon={IconProp.ChevronDown}
@@ -562,6 +641,9 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
           })
         : props.legacyEntries.map(
             (entry: InvestigationEvidenceCheckedEntry): ReactElement => {
+              const legacyOutcome: LegacyEntryOutcome =
+                describeLegacyEntryOutcome(entry);
+
               return (
                 <li
                   key={entry.citationId}
@@ -577,7 +659,12 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                   tabIndex={-1}
                   className={`flex items-center gap-3 px-4 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 sm:px-5 ${getRowClassName(entry.citationId)}`}
                 >
-                  <span className={getCitationBadgeClassName(entry.rowCount)}>
+                  <span
+                    className={getCitationBadgeClassName(
+                      entry.rowCount,
+                      legacyOutcome.isError,
+                    )}
+                  >
                     {entry.citationId}
                   </span>
                   <span
@@ -586,8 +673,13 @@ const InvestigationEvidenceList: FunctionComponent<ComponentProps> = (
                   >
                     {formatEvidenceLabel(entry.label)}
                   </span>
-                  <span className={getRowCountPillClassName(entry.rowCount)}>
-                    {formatRowCount(entry.rowCount)}
+                  <span
+                    className={getRowCountPillClassName(
+                      entry.rowCount,
+                      legacyOutcome.isError,
+                    )}
+                  >
+                    {legacyOutcome.label}
                   </span>
                 </li>
               );
@@ -613,6 +705,9 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
   const took: string | undefined = formatEvidenceDuration(item.durationInMs);
   const targetRoute: Route | undefined = getRouteForCitationTarget(item.target);
   const detailRows: Array<FormattedEvidenceArgument> = [...argumentsRows];
+  // A kubectl command is run, not queried, and has no rows to load.
+  const isClusterTool: boolean = isClusterToolName(item.toolName);
+  const clusterNote: string | null = getClusterEvidenceNote(item.toolName);
 
   if (ranAt) {
     detailRows.push({ key: "ranAt", label: "Ran at", value: ranAt });
@@ -626,7 +721,7 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
     <div className="space-y-4">
       <div>
         <h4 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-          What was queried
+          {isClusterTool ? "What was run" : "What was queried"}
         </h4>
         {argumentsRows.length === 0 ? (
           <p className="mt-1 text-xs text-gray-500">
@@ -680,6 +775,8 @@ const EvidenceDetails: FunctionComponent<EvidenceDetailsProps> = (
           rowsState={props.rowsState}
           onRetry={props.onRetry}
         />
+      ) : clusterNote ? (
+        <p className="text-xs leading-5 text-gray-500">{clusterNote}</p>
       ) : (
         <p className="text-xs leading-5 text-gray-500">
           This query can&apos;t be re-run from the dashboard, so its rows

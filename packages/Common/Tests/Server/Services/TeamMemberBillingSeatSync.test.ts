@@ -634,6 +634,9 @@ describe("completed membership writes during a billing outage", () => {
       .spyOn(TeamMemberService, "cleanupOnCallAssignmentsIfUserLeftProject")
       .mockResolvedValue(null);
     jest
+      .spyOn(TeamMemberService, "cleanupResourceAssignmentsIfUserLeftProject")
+      .mockResolvedValue(null);
+    jest
       .spyOn(
         UserNotificationSettingService,
         "removeDefaultNotificationSettingsForUser",
@@ -657,6 +660,12 @@ describe("completed membership writes during a billing outage", () => {
       projectId: PROJECT_ID,
       userId: USER_ID,
       hadAcceptedMembership: false,
+    });
+    expect(
+      TeamMemberService.cleanupResourceAssignmentsIfUserLeftProject,
+    ).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      userId: USER_ID,
     });
     expect(
       UserNotificationSettingService.removeDefaultNotificationSettingsForUser,

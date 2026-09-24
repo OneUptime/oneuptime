@@ -11,6 +11,7 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "../../../../Types/Date";
 import UserNotificationEventType from "../../../../Types/UserNotification/UserNotificationEventType";
+import PublicNoteSubscriberNotificationDefault from "../../../../Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import IncidentService from "../../../Services/IncidentService";
 import IncidentSeverityService from "../../../Services/IncidentSeverityService";
@@ -337,7 +338,7 @@ export const RunRunbookTool: ObservabilityTool = {
 export const PostIncidentStatusUpdateTool: ObservabilityTool = {
   name: "post_incident_status_update",
   description:
-    "Post a customer-facing status update (public note) on an incident. It appears on the status page and, by default, notifies subscribers. Provide the incident id and the update text.",
+    "Post a customer-facing status update (public note) on an incident. It appears on the status page and, by default, notifies subscribers - unless subscribers were not notified when the incident was declared, in which case it stays quiet by default. Provide the incident id and the update text.",
   inputSchema: {
     type: "object",
     properties: {
@@ -352,7 +353,7 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
       notifySubscribers: {
         type: "boolean",
         description:
-          "Whether to notify status page subscribers. Defaults to true.",
+          "Whether to notify status page subscribers. Defaults to true, or to false when subscribers were not notified when the incident was declared.",
       },
     },
     required: ["incidentId", "note"],
@@ -390,12 +391,14 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
       );
     }
 
-    const notifySubscribers: boolean =
-      ToolArgs.getBoolean(args, "notifySubscribers") ?? true;
-
     const incident: Incident | null = await IncidentService.findOneById({
       id: incidentId,
-      select: { _id: true, incidentNumber: true, title: true },
+      select: {
+        _id: true,
+        incidentNumber: true,
+        title: true,
+        shouldStatusPageSubscribersBeNotifiedOnIncidentCreated: true,
+      },
       props: ctx.props,
     });
     if (!incident) {
@@ -403,6 +406,11 @@ export const PostIncidentStatusUpdateTool: ObservabilityTool = {
         "Incident not found (or you do not have access to it).",
       );
     }
+
+    // An incident declared quietly stays quiet unless the caller asks.
+    const notifySubscribers: boolean =
+      ToolArgs.getBoolean(args, "notifySubscribers") ??
+      PublicNoteSubscriberNotificationDefault.shouldNotifyForIncident(incident);
 
     const publicNote: IncidentPublicNote = new IncidentPublicNote();
     publicNote.incidentId = incidentId;

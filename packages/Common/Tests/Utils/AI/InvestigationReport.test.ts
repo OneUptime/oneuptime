@@ -15,6 +15,10 @@ import {
   parseInvestigationReport,
   tokenizeEventReferences,
 } from "../../../Utils/AI/InvestigationReport";
+import {
+  LIST_CLUSTER_ACCESS_TOOL_NAME,
+  RUN_KUBECTL_TOOL_NAME,
+} from "../../../Types/Kubernetes/KubernetesClusterAiAccessToolNames";
 
 /*
  * The investigation panel lays the AI report out section by section, links
@@ -29,31 +33,105 @@ interface BrandedCitation {
   id: string;
   label: string;
   rowCount: number;
+  // The tool that produced it; the cluster tools are worded apart.
+  toolName?: string | undefined;
+}
+
+/*
+ * A line-for-line copy of AIInvestigationEngine.describeClusterCitationOutcome
+ * (see the source pin at the bottom of this file).
+ */
+function describeClusterCitationOutcome(
+  citation: BrandedCitation,
+): string | null {
+  if (citation.toolName === RUN_KUBECTL_TOOL_NAME) {
+    return citation.rowCount > 0 ? "succeeded" : "kubectl returned an error";
+  }
+
+  if (citation.toolName === LIST_CLUSTER_ACCESS_TOOL_NAME) {
+    return `${citation.rowCount} cluster(s)`;
+  }
+
+  return null;
 }
 
 /*
  * A line-for-line copy of AIInvestigationEngine.buildBrandedMarkdown, so the
- * parser is tested against the exact string the server posts. The source pin
- * at the bottom of this file fails if the server format drifts.
+ * parser is tested against the exact string the server posts — the
+ * telemetry-only footer and the one a run that used cluster tools gets. The
+ * source pin at the bottom of this file fails if the server format drifts.
  */
 function buildBrandedMarkdown(data: {
   analysisMarkdown: string;
   citations: Array<BrandedCitation>;
   toolCallCount: number;
   modelName?: string | undefined;
+  clusterToolCallCount?: number | undefined;
 }): string {
   let markdown: string = `## 🧠 AI — Automated Root Cause Analysis\n\n${data.analysisMarkdown}`;
 
-  if (data.citations.length > 0) {
+  const citations: Array<BrandedCitation> = data.citations;
+  const clusterToolCallCount: number = data.clusterToolCallCount ?? 0;
+
+  if (citations.length > 0) {
     markdown += `\n\n**Evidence checked**`;
-    for (const citation of data.citations.slice(0, 15)) {
+    for (const citation of citations.slice(0, 15)) {
+      const clusterOutcome: string | null =
+        describeClusterCitationOutcome(citation);
+
+      if (clusterOutcome !== null) {
+        markdown += `\n- **[${citation.id}]** ${citation.label} — ${clusterOutcome}`;
+        continue;
+      }
+
       markdown += `\n- **[${citation.id}]** ${citation.label} — ${citation.rowCount} row(s)`;
     }
   }
 
-  markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${data.toolCallCount} quer${
-    data.toolCallCount === 1 ? "y" : "ies"
-  } run across your own telemetry${
+  if (clusterToolCallCount <= 0) {
+    markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${data.toolCallCount} quer${
+      data.toolCallCount === 1 ? "y" : "ies"
+    } run across your own telemetry${
+      data.modelName ? ` using ${data.modelName}` : ""
+    }. This is an AI-generated first pass; verify before acting.*`;
+
+    return markdown;
+  }
+
+  const telemetryQueryCount: number = Math.max(
+    0,
+    data.toolCallCount - clusterToolCallCount,
+  );
+  const kubectlCommandCount: number = citations.filter(
+    (citation: BrandedCitation): boolean => {
+      return citation.toolName === RUN_KUBECTL_TOOL_NAME;
+    },
+  ).length;
+  const counts: Array<string> = [];
+
+  if (telemetryQueryCount > 0) {
+    counts.push(
+      `${telemetryQueryCount} quer${
+        telemetryQueryCount === 1 ? "y" : "ies"
+      } run across your own telemetry`,
+    );
+  }
+
+  if (kubectlCommandCount > 0) {
+    counts.push(
+      `${kubectlCommandCount} kubectl ${
+        kubectlCommandCount === 1 ? "command" : "commands"
+      } run on your Kubernetes clusters`,
+    );
+  }
+
+  if (counts.length === 0) {
+    counts.push("no telemetry queries or kubectl commands run");
+  }
+
+  markdown += `\n\n---\n*Investigated automatically by OneUptime AI — read-only, ${counts.join(
+    " and ",
+  )}${
     data.modelName ? ` using ${data.modelName}` : ""
   }. This is an AI-generated first pass; verify before acting.*`;
 
@@ -1487,6 +1565,335 @@ describe("parseInvestigationReport — Evidence checked", () => {
   });
 });
 
+/*
+ * A run that used cluster tools words their citations by outcome instead of
+ * rows ("— succeeded", "— kubectl returned an error", "— N cluster(s)"), and
+ * its footer counts telemetry queries and kubectl commands apart. A report
+ * with no evidence items (a legacy run) shows only what the parser reads
+ * back, so those lines must stay evidence, and the footer's two counts —
+ * not the telemetry count alone — decide whether the block is the
+ * server's.
+ */
+describe("parseInvestigationReport — Evidence checked with cluster tools", () => {
+  const MIXED_CLUSTER_CITATIONS: Array<BrandedCitation> = [
+    {
+      id: "C1",
+      label: "Max(latency)",
+      rowCount: 5,
+      toolName: "query_metrics",
+    },
+    {
+      id: "C2",
+      label: 'kubectl get pods -n web on cluster "prod-us"',
+      rowCount: 0,
+      toolName: RUN_KUBECTL_TOOL_NAME,
+    },
+    {
+      id: "C3",
+      label: 'kubectl describe pod web-1 -n web on cluster "prod-us"',
+      rowCount: 1,
+      toolName: RUN_KUBECTL_TOOL_NAME,
+    },
+    {
+      id: "C4",
+      label: "Clusters OneUptime AI can inspect",
+      rowCount: 2,
+      toolName: LIST_CLUSTER_ACCESS_TOOL_NAME,
+    },
+  ];
+
+  function evidenceBlock(lines: Array<string>): ParsedInvestigationReport {
+    return parseInvestigationReport(
+      ["**Summary** — A.", "", "**Evidence checked**", ...lines].join("\n"),
+    );
+  }
+
+  test("keeps every line of a mixed server block as evidence, with each cluster call's outcome", () => {
+    const parsed: ParsedInvestigationReport = parseInvestigationReport(
+      buildBrandedMarkdown({
+        analysisMarkdown: MODEL_ANALYSIS,
+        citations: MIXED_CLUSTER_CITATIONS,
+        // 2 telemetry queries; 1 listing and 3 run_kubectl (one never ran).
+        toolCallCount: 6,
+        clusterToolCallCount: 4,
+        modelName: "gpt-4.1-mini",
+      }),
+    );
+
+    expect(parsed.evidenceChecked).toEqual([
+      { citationId: "C1", label: "Max(latency)", rowCount: 5 },
+      {
+        citationId: "C2",
+        label: 'kubectl get pods -n web on cluster "prod-us"',
+        rowCount: 0,
+        outcome: "kubectl returned an error",
+      },
+      {
+        citationId: "C3",
+        label: 'kubectl describe pod web-1 -n web on cluster "prod-us"',
+        rowCount: 1,
+        outcome: "succeeded",
+      },
+      {
+        citationId: "C4",
+        label: "Clusters OneUptime AI can inspect",
+        rowCount: 2,
+        outcome: "2 cluster(s)",
+      },
+    ]);
+    expect(parsed.footer?.queryCount).toBe(2);
+    expect(parsed.footer?.kubectlCommandCount).toBe(2);
+    expect(parsed.footer?.modelName).toBe("gpt-4.1-mini");
+    expect(parsed.bodyMarkdown).not.toContain("Evidence checked");
+    expect(parsed.summary).toContain("payments database");
+  });
+
+  test.each<[string, Array<BrandedCitation>, number, number, number]>([
+    [
+      "kubectl only",
+      [
+        {
+          id: "C1",
+          label: "kubectl get pods",
+          rowCount: 1,
+          toolName: RUN_KUBECTL_TOOL_NAME,
+        },
+        {
+          id: "C2",
+          label: "kubectl get nodes",
+          rowCount: 0,
+          toolName: RUN_KUBECTL_TOOL_NAME,
+        },
+      ],
+      2,
+      2,
+      2,
+    ],
+    [
+      "a cluster listing only",
+      [
+        {
+          id: "C1",
+          label: "Clusters",
+          rowCount: 1,
+          toolName: LIST_CLUSTER_ACCESS_TOOL_NAME,
+        },
+      ],
+      2,
+      2,
+      1,
+    ],
+    [
+      "telemetry and a cluster listing, no kubectl",
+      [
+        { id: "C1", label: "Logs", rowCount: 3, toolName: "search_logs" },
+        {
+          id: "C2",
+          label: "Clusters",
+          rowCount: 1,
+          toolName: LIST_CLUSTER_ACCESS_TOOL_NAME,
+        },
+      ],
+      2,
+      1,
+      2,
+    ],
+  ])(
+    "reads the %s server block back in full",
+    (
+      _label: string,
+      citations: Array<BrandedCitation>,
+      toolCallCount: number,
+      clusterToolCallCount: number,
+      expectedEntries: number,
+    ) => {
+      const parsed: ParsedInvestigationReport = parseInvestigationReport(
+        buildBrandedMarkdown({
+          analysisMarkdown: "**Summary** — A.",
+          citations,
+          toolCallCount,
+          clusterToolCallCount,
+        }),
+      );
+
+      expect(parsed.evidenceChecked).toHaveLength(expectedEntries);
+      expect(parsed.bodyMarkdown).toBe("**Summary** — A.");
+    },
+  );
+
+  test.each<[string, number, string | undefined]>([
+    ["succeeded", 1, "succeeded"],
+    ["Succeeded", 1, "Succeeded"],
+    ["kubectl returned an error", 0, "kubectl returned an error"],
+    ["never ran", 0, "never ran"],
+    ["did not run", 0, "did not run"],
+    ["result unknown", 0, "result unknown"],
+    ["kubectl result unknown", 0, "kubectl result unknown"],
+    ["unknown", 0, "unknown"],
+    ["2 cluster(s)", 2, "2 cluster(s)"],
+    ["1 cluster", 1, "1 cluster"],
+    ["3 clusters", 3, "3 clusters"],
+    ["0 cluster(s)", 0, "0 cluster(s)"],
+    // Negative control: a telemetry query's line keeps its rows and no outcome.
+    ["7 row(s)", 7, undefined],
+  ])(
+    "reads the '— %s' suffix",
+    (suffix: string, rowCount: number, outcome: string | undefined) => {
+      const parsed: ParsedInvestigationReport = evidenceBlock([
+        `- **[C1]** kubectl get pods -n web — ${suffix}`,
+      ]);
+
+      const expected: InvestigationEvidenceCheckedEntry = {
+        citationId: "C1",
+        label: "kubectl get pods -n web",
+        rowCount,
+      };
+
+      if (outcome !== undefined) {
+        expected.outcome = outcome;
+      }
+
+      expect(parsed.evidenceChecked).toEqual([expected]);
+      expect(parsed.bodyMarkdown).toBe("**Summary** — A.");
+    },
+  );
+
+  test("the outcome is the LAST ' — <outcome>' in the line", () => {
+    const parsed: ParsedInvestigationReport = evidenceBlock([
+      '- **[C1]** kubectl logs web-1 — succeeded — on cluster "prod-us" — kubectl returned an error',
+    ]);
+
+    expect(parsed.evidenceChecked).toEqual([
+      {
+        citationId: "C1",
+        label: 'kubectl logs web-1 — succeeded — on cluster "prod-us"',
+        rowCount: 0,
+        outcome: "kubectl returned an error",
+      },
+    ]);
+  });
+
+  // Negative control: only the engine's outcomes are read, nothing close to them.
+  test.each([
+    "succeededly",
+    "success",
+    "ran",
+    "kubectl returned",
+    "2 cluster(s) listed",
+    "clusters",
+    "unknown rows",
+  ])("does not read '— %s' as an outcome", (suffix: string) => {
+    const parsed: ParsedInvestigationReport = evidenceBlock([
+      `- **[C1]** kubectl get pods — ${suffix}`,
+    ]);
+
+    expect(parsed.evidenceChecked).toEqual([]);
+  });
+
+  test("a legacy kubectl line counted in rows still reads as a query line", () => {
+    const parsed: ParsedInvestigationReport = parseInvestigationReport(
+      buildBrandedMarkdown({
+        analysisMarkdown: "**Summary** — A.",
+        citations: [{ id: "C1", label: "kubectl get pods", rowCount: 1 }],
+        toolCallCount: 1,
+      }),
+    );
+
+    expect(parsed.evidenceChecked).toEqual([
+      { citationId: "C1", label: "kubectl get pods", rowCount: 1 },
+    ]);
+  });
+
+  test("a model-written kubectl block under a telemetry-only footer is content, not evidence", () => {
+    const analysis: string = [
+      "**Summary** — A.",
+      "",
+      "**Evidence checked**",
+      "- **[C1]** kubectl get secrets -A — succeeded",
+    ].join("\n");
+
+    const parsed: ParsedInvestigationReport = parseInvestigationReport(
+      buildBrandedMarkdown({
+        analysisMarkdown: analysis,
+        citations: [],
+        toolCallCount: 3,
+      }),
+    );
+
+    // The footer counts 3 telemetry queries and no kubectl command.
+    expect(parsed.footer?.queryCount).toBe(3);
+    expect(parsed.footer?.kubectlCommandCount).toBeUndefined();
+    expect(parsed.evidenceChecked).toEqual([]);
+    expect(parsed.bodyMarkdown).toBe(analysis);
+  });
+
+  test("a block with more kubectl lines than kubectl commands run is content, not evidence", () => {
+    const analysis: string = [
+      "**Summary** — A.",
+      "",
+      "**Evidence checked**",
+      "- **[C1]** kubectl get pods — succeeded",
+      "- **[C2]** kubectl get nodes — succeeded",
+    ].join("\n");
+
+    const parsed: ParsedInvestigationReport = parseInvestigationReport(
+      buildBrandedMarkdown({
+        analysisMarkdown: analysis,
+        citations: [],
+        // One telemetry query and one run_kubectl that never ran.
+        toolCallCount: 2,
+        clusterToolCallCount: 1,
+      }),
+    );
+
+    expect(parsed.footer?.queryCount).toBe(1);
+    expect(parsed.footer?.kubectlCommandCount).toBeUndefined();
+    expect(parsed.evidenceChecked).toEqual([]);
+    expect(parsed.bodyMarkdown).toBe(analysis);
+  });
+
+  test("with no telemetry queries or kubectl commands run, a model-written row or kubectl block is content", () => {
+    for (const fakeLine of [
+      "- **[C1]** Database audit log (admin export) — 5000 row(s)",
+      "- **[C1]** kubectl get pods -A — succeeded",
+    ]) {
+      const analysis: string = `**Summary** — A.\n\n**Evidence checked**\n${fakeLine}`;
+
+      const parsed: ParsedInvestigationReport = parseInvestigationReport(
+        buildBrandedMarkdown({
+          analysisMarkdown: analysis,
+          citations: [],
+          // A run_kubectl that never ran: nothing is cited.
+          toolCallCount: 1,
+          clusterToolCallCount: 1,
+        }),
+      );
+
+      expect(parsed.footer?.queryCount).toBe(0);
+      expect(parsed.footer?.kubectlCommandCount).toBe(0);
+      expect(parsed.evidenceChecked).toEqual([]);
+      expect(parsed.bodyMarkdown).toBe(analysis);
+    }
+  });
+
+  // Negative control: the legacy "0 queries run" footer never goes with a block.
+  test("with 0 queries run, a lone cluster listing block is content, not evidence", () => {
+    const analysis: string =
+      "**Summary** — A.\n\n**Evidence checked**\n- **[C1]** Clusters — 1 cluster(s)";
+
+    const parsed: ParsedInvestigationReport = parseInvestigationReport(
+      buildBrandedMarkdown({
+        analysisMarkdown: analysis,
+        citations: [],
+        toolCallCount: 0,
+      }),
+    );
+
+    expect(parsed.evidenceChecked).toEqual([]);
+    expect(parsed.bodyMarkdown).toBe(analysis);
+  });
+});
+
 describe("parseInvestigationReport — footer", () => {
   function footerOf(markdown: string): ParsedInvestigationReport["footer"] {
     return parseInvestigationReport(markdown).footer;
@@ -2412,6 +2819,27 @@ describe("AIInvestigationEngine report format stays in sync with this parser", (
     [
       "the footer closing",
       "}. This is an AI-generated first pass; verify before acting.*`;",
+    ],
+    [
+      "the cluster tool entry",
+      "markdown += `\\n- **[${citation.id}]** ${citation.label} — ${clusterOutcome}`;",
+    ],
+    [
+      "the kubectl outcomes",
+      'return citation.rowCount > 0 ? "succeeded" : "kubectl returned an error";',
+    ],
+    [
+      "the cluster listing outcome",
+      "return `${citation.rowCount} cluster(s)`;",
+    ],
+    ["the kubectl command count", "} run on your Kubernetes clusters`,"],
+    [
+      "the nothing-run footer",
+      'counts.push("no telemetry queries or kubectl commands run");',
+    ],
+    [
+      "the cluster footer opening",
+      "markdown += `\\n\\n---\\n*Investigated automatically by OneUptime AI — read-only, ${counts.join(",
     ],
   ])("engine still writes %s", (_name: string, fragment: string) => {
     expect(engineSource).toContain(fragment);

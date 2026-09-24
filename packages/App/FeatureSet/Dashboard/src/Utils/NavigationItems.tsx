@@ -1,5 +1,6 @@
 import PageMap from "./PageMap";
 import RouteMap, { RouteUtil } from "./RouteMap";
+import RouteParams from "./RouteParams";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { NavItem, MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
@@ -26,6 +27,10 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
   const observabilityCategory: string = t("navbar.categories.observability");
   const aiCategory: string = t("navbar.categories.ai", "AI");
   const resourcesCategory: string = t("navbar.categories.resources");
+  const infrastructureCategory: string = t(
+    "navbar.categories.infrastructure",
+    "Infrastructure",
+  );
   const analyticsAutomationCategory: string = t(
     "navbar.categories.analyticsAutomation",
   );
@@ -44,7 +49,12 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
 
   // Build the products menu items - all products organized by category
   const moreMenuItems: MoreMenuItem[] = [
-    // Essentials
+    /*
+     * Essentials — in the order a problem flows through them: a monitor
+     * notices it, it becomes an incident or alert, on-call is paged and the
+     * status page tells customers. Home's "How OneUptime works" strip tells
+     * the same story, so keep the two in step.
+     */
     {
       title: t("navbar.items.monitorsTitle"),
       keywords: [
@@ -62,43 +72,6 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       activeRoute: RouteMap[PageMap.MONITORS],
       icon: IconProp.AltGlobe,
       iconColor: "blue",
-      category: essentialsCategory,
-    },
-    {
-      title: t("navbar.items.slosTitle", "SLOs"),
-      keywords: [
-        "service level objectives",
-        "service level indicators",
-        "sli",
-        "error budgets",
-        "burn rate",
-        "reliability",
-      ],
-      description: t(
-        "navbar.items.slosDescription",
-        "Service level objectives and error budgets.",
-      ),
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.SLOS] as Route),
-      activeRoute: RouteMap[PageMap.SLOS],
-      icon: IconProp.Gauge,
-      iconColor: "violet",
-      category: essentialsCategory,
-    },
-    {
-      title: t("navbar.items.statusPagesTitle"),
-      keywords: [
-        "statuspage",
-        "service status",
-        "public status",
-        "uptime page",
-      ],
-      description: t("navbar.items.statusPagesDescription"),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.STATUS_PAGES] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.STATUS_PAGES],
-      icon: IconProp.CheckCircle,
-      iconColor: "emerald",
       category: essentialsCategory,
     },
     {
@@ -138,9 +111,29 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       route: RouteUtil.populateRouteParams(
         RouteMap[PageMap.ON_CALL_DUTY] as Route,
       ),
-      activeRoute: RouteMap[PageMap.ON_CALL_DUTY],
+      // The product includes schedules and other siblings of the policies page.
+      activeRoute: new Route(
+        `/dashboard/${RouteParams.ProjectID}/on-call-duty`,
+      ),
       icon: IconProp.Call,
       iconColor: "stone",
+      category: essentialsCategory,
+    },
+    {
+      title: t("navbar.items.statusPagesTitle"),
+      keywords: [
+        "statuspage",
+        "service status",
+        "public status",
+        "uptime page",
+      ],
+      description: t("navbar.items.statusPagesDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.STATUS_PAGES] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.STATUS_PAGES],
+      icon: IconProp.CheckCircle,
+      iconColor: "emerald",
       category: essentialsCategory,
     },
     {
@@ -157,6 +150,26 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       activeRoute: RouteMap[PageMap.SCHEDULED_MAINTENANCE_EVENTS],
       icon: IconProp.Clock,
       iconColor: "cyan",
+      category: essentialsCategory,
+    },
+    {
+      title: t("navbar.items.slosTitle", "SLOs"),
+      keywords: [
+        "service level objectives",
+        "service level indicators",
+        "sli",
+        "error budgets",
+        "burn rate",
+        "reliability",
+      ],
+      description: t(
+        "navbar.items.slosDescription",
+        "Service level objectives and error budgets.",
+      ),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.SLOS] as Route),
+      activeRoute: RouteMap[PageMap.SLOS],
+      icon: IconProp.Gauge,
+      iconColor: "violet",
       category: essentialsCategory,
     },
     // Observability
@@ -275,6 +288,21 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       iconColor: "rose",
       category: observabilityCategory,
     },
+    {
+      title: t("navbar.items.topologyTitle"),
+      keywords: [
+        "service map",
+        "dependency map",
+        "dependencies",
+        "architecture",
+      ],
+      description: t("navbar.items.topologyDescription"),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.TOPOLOGY] as Route),
+      activeRoute: RouteMap[PageMap.TOPOLOGY],
+      icon: IconProp.FlowDiagram,
+      iconColor: "indigo",
+      category: observabilityCategory,
+    },
     // AI
     {
       title: t("navbar.items.aiChatTitle", "Chat"),
@@ -347,21 +375,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       iconColor: "violet",
       category: aiCategory,
     },
-    {
-      title: t("navbar.items.topologyTitle"),
-      keywords: [
-        "service map",
-        "dependency map",
-        "dependencies",
-        "architecture",
-      ],
-      description: t("navbar.items.topologyDescription"),
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.TOPOLOGY] as Route),
-      activeRoute: RouteMap[PageMap.TOPOLOGY],
-      icon: IconProp.FlowDiagram,
-      iconColor: "indigo",
-      category: observabilityCategory,
-    },
+    // Resources — the catalogs that span every kind of infrastructure
     {
       title: t("navbar.items.inventoryTitle", "Inventory"),
       keywords: ["assets", "entities", "resource catalog", "cmdb"],
@@ -400,6 +414,37 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: resourcesCategory,
     },
     {
+      title: t("navbar.items.rumTitle"),
+      keywords: [
+        "rum",
+        "browser",
+        "frontend",
+        "front end",
+        "web vitals",
+        "session replay",
+        "user experience",
+      ],
+      description: t("navbar.items.rumDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.RUM_APPLICATIONS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.RUM_APPLICATIONS],
+      icon: IconProp.Globe,
+      iconColor: "blue",
+      category: resourcesCategory,
+    },
+    // Infrastructure — one product per platform, most common first
+    {
+      title: t("navbar.items.hostsTitle"),
+      keywords: ["servers", "machines", "infrastructure", "linux", "windows"],
+      description: t("navbar.items.hostsDescription"),
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.HOSTS] as Route),
+      activeRoute: RouteMap[PageMap.HOSTS],
+      icon: IconProp.Server,
+      iconColor: "slate",
+      category: infrastructureCategory,
+    },
+    {
       title: t("navbar.items.kubernetesTitle"),
       keywords: ["k8s", "kube", "kubectl", "pods", "containers", "clusters"],
       description: t("navbar.items.kubernetesDescription"),
@@ -409,7 +454,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       activeRoute: RouteMap[PageMap.KUBERNETES_CLUSTERS],
       icon: IconProp.Kubernetes,
       iconColor: "blue",
-      category: resourcesCategory,
+      category: infrastructureCategory,
     },
     {
       title: t("navbar.items.dockerTitle"),
@@ -421,7 +466,129 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       activeRoute: RouteMap[PageMap.DOCKER_HOSTS],
       icon: IconProp.Docker,
       iconColor: "blue",
-      category: resourcesCategory,
+      category: infrastructureCategory,
+    },
+    {
+      title: t("navbar.items.dockerSwarmTitle", "Docker Swarm"),
+      keywords: ["swarm", "container orchestration", "swarm clusters"],
+      description: t(
+        "navbar.items.dockerSwarmDescription",
+        "Monitor Docker Swarm clusters, nodes, services and tasks.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.DOCKER_SWARM_CLUSTERS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.DOCKER_SWARM_CLUSTERS],
+      icon: IconProp.DockerSwarm,
+      iconColor: "blue",
+      category: infrastructureCategory,
+    },
+    {
+      title: t("navbar.items.podmanTitle"),
+      keywords: ["containers", "container monitoring", "rootless containers"],
+      description: t("navbar.items.podmanDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.PODMAN_HOSTS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.PODMAN_HOSTS],
+      icon: IconProp.Podman,
+      iconColor: "blue",
+      category: infrastructureCategory,
+    },
+    {
+      title: t("navbar.items.serverlessTitle"),
+      keywords: [
+        "lambda",
+        "aws lambda",
+        "cloud functions",
+        "azure functions",
+        "faas",
+      ],
+      description: t("navbar.items.serverlessDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.SERVERLESS_FUNCTIONS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.SERVERLESS_FUNCTIONS],
+      icon: IconProp.Bolt,
+      iconColor: "blue",
+      category: infrastructureCategory,
+    },
+    {
+      title: t("navbar.items.cloudTitle"),
+      keywords: [
+        "aws",
+        "amazon web services",
+        "azure",
+        "gcp",
+        "google cloud",
+        "cloud resources",
+      ],
+      description: t("navbar.items.cloudDescription"),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.CLOUD_RESOURCES] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.CLOUD_RESOURCES],
+      icon: IconProp.Cloud,
+      iconColor: "blue",
+      category: infrastructureCategory,
+    },
+    {
+      title: t("navbar.items.proxmoxTitle", "Proxmox"),
+      keywords: [
+        "pve",
+        "virtualization",
+        "virtual machines",
+        "lxc",
+        "hypervisor",
+      ],
+      description: t(
+        "navbar.items.proxmoxDescription",
+        "Monitor Proxmox clusters, nodes and guests.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.PROXMOX_CLUSTERS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.PROXMOX_CLUSTERS],
+      icon: IconProp.Proxmox,
+      iconColor: "blue",
+      category: infrastructureCategory,
+    },
+    {
+      title: t("navbar.items.vmwareTitle", "VMware"),
+      keywords: [
+        "vcenter",
+        "esxi",
+        "vsphere",
+        "virtual machines",
+        "hypervisor",
+        "datastores",
+      ],
+      description: t(
+        "navbar.items.vmwareDescription",
+        "Monitor vCenter, ESXi hosts, virtual machines and datastores.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.VMWARE_VCENTERS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.VMWARE_VCENTERS],
+      icon: IconProp.VMware,
+      iconColor: "blue",
+      category: infrastructureCategory,
+    },
+    {
+      title: t("navbar.items.cephTitle", "Ceph"),
+      keywords: ["storage", "osd", "rados", "storage pools"],
+      description: t(
+        "navbar.items.cephDescription",
+        "Monitor Ceph clusters, OSDs and pools.",
+      ),
+      route: RouteUtil.populateRouteParams(
+        RouteMap[PageMap.CEPH_CLUSTERS] as Route,
+      ),
+      activeRoute: RouteMap[PageMap.CEPH_CLUSTERS],
+      icon: IconProp.Ceph,
+      iconColor: "blue",
+      category: infrastructureCategory,
     },
     {
       title: t("navbar.items.networkTitle", "Network"),
@@ -445,62 +612,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       additionalActiveRoutes: [RouteMap[PageMap.NETWORK_SITES] as Route],
       icon: IconProp.Signal,
       iconColor: "indigo",
-      category: resourcesCategory,
-    },
-    {
-      title: t("navbar.items.podmanTitle"),
-      keywords: ["containers", "container monitoring", "rootless containers"],
-      description: t("navbar.items.podmanDescription"),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.PODMAN_HOSTS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.PODMAN_HOSTS],
-      icon: IconProp.Podman,
-      iconColor: "blue",
-      category: resourcesCategory,
-    },
-    {
-      title: t("navbar.items.proxmoxTitle", "Proxmox"),
-      keywords: [
-        "pve",
-        "virtualization",
-        "virtual machines",
-        "lxc",
-        "hypervisor",
-      ],
-      description: t(
-        "navbar.items.proxmoxDescription",
-        "Monitor Proxmox clusters, nodes and guests.",
-      ),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.PROXMOX_CLUSTERS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.PROXMOX_CLUSTERS],
-      icon: IconProp.Proxmox,
-      iconColor: "blue",
-      category: resourcesCategory,
-    },
-    {
-      title: t("navbar.items.vmwareTitle", "VMware"),
-      keywords: [
-        "vcenter",
-        "esxi",
-        "vsphere",
-        "virtual machines",
-        "hypervisor",
-        "datastores",
-      ],
-      description: t(
-        "navbar.items.vmwareDescription",
-        "Monitor vCenter, ESXi hosts, virtual machines and datastores.",
-      ),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.VMWARE_VCENTERS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.VMWARE_VCENTERS],
-      icon: IconProp.VMware,
-      iconColor: "blue",
-      category: resourcesCategory,
+      category: infrastructureCategory,
     },
     {
       title: t("navbar.items.iotTitle", "IoT"),
@@ -515,106 +627,9 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       activeRoute: RouteMap[PageMap.IOT_FLEETS],
       icon: IconProp.IoT,
       iconColor: "blue",
-      category: resourcesCategory,
+      category: infrastructureCategory,
     },
-    {
-      title: t("navbar.items.cephTitle", "Ceph"),
-      keywords: ["storage", "osd", "rados", "storage pools"],
-      description: t(
-        "navbar.items.cephDescription",
-        "Monitor Ceph clusters, OSDs and pools.",
-      ),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.CEPH_CLUSTERS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.CEPH_CLUSTERS],
-      icon: IconProp.Ceph,
-      iconColor: "blue",
-      category: resourcesCategory,
-    },
-    {
-      title: t("navbar.items.dockerSwarmTitle", "Docker Swarm"),
-      keywords: ["swarm", "container orchestration", "swarm clusters"],
-      description: t(
-        "navbar.items.dockerSwarmDescription",
-        "Monitor Docker Swarm clusters, nodes, services and tasks.",
-      ),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.DOCKER_SWARM_CLUSTERS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.DOCKER_SWARM_CLUSTERS],
-      icon: IconProp.DockerSwarm,
-      iconColor: "blue",
-      category: resourcesCategory,
-    },
-    {
-      title: t("navbar.items.hostsTitle"),
-      keywords: ["servers", "machines", "infrastructure", "linux", "windows"],
-      description: t("navbar.items.hostsDescription"),
-      route: RouteUtil.populateRouteParams(RouteMap[PageMap.HOSTS] as Route),
-      activeRoute: RouteMap[PageMap.HOSTS],
-      icon: IconProp.Server,
-      iconColor: "slate",
-      category: resourcesCategory,
-    },
-    {
-      title: t("navbar.items.serverlessTitle"),
-      keywords: [
-        "lambda",
-        "aws lambda",
-        "cloud functions",
-        "azure functions",
-        "faas",
-      ],
-      description: t("navbar.items.serverlessDescription"),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.SERVERLESS_FUNCTIONS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.SERVERLESS_FUNCTIONS],
-      icon: IconProp.Bolt,
-      iconColor: "blue",
-      category: resourcesCategory,
-    },
-    {
-      title: t("navbar.items.cloudTitle"),
-      keywords: [
-        "aws",
-        "amazon web services",
-        "azure",
-        "gcp",
-        "google cloud",
-        "cloud resources",
-      ],
-      description: t("navbar.items.cloudDescription"),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.CLOUD_RESOURCES] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.CLOUD_RESOURCES],
-      icon: IconProp.Cloud,
-      iconColor: "blue",
-      category: resourcesCategory,
-    },
-    {
-      title: t("navbar.items.rumTitle"),
-      keywords: [
-        "rum",
-        "browser",
-        "frontend",
-        "front end",
-        "web vitals",
-        "session replay",
-        "user experience",
-      ],
-      description: t("navbar.items.rumDescription"),
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.RUM_APPLICATIONS] as Route,
-      ),
-      activeRoute: RouteMap[PageMap.RUM_APPLICATIONS],
-      icon: IconProp.Globe,
-      iconColor: "blue",
-      category: resourcesCategory,
-    },
-    // Automation & Analytics
+    // Dashboards & Automation
     {
       title: t("navbar.items.dashboardsTitle"),
       keywords: ["charts", "graphs", "widgets", "visualizations"],

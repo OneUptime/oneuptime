@@ -3,6 +3,9 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import ProjectUser from "../../../Utils/ProjectUser";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import TeamMembershipRemoval, {
+  TeamRemovalPlan,
+} from "../../../Utils/TeamMembershipRemoval";
 import PageComponentProps from "../../PageComponentProps";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -21,7 +24,10 @@ import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchem
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { useUserEmailRegistrationStatus } from "Common/UI/Utils/UserEmailRegistrationStatus";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
-import { ModalTableBulkDefaultActions } from "Common/UI/Components/ModelTable/BaseModelTable";
+import {
+  DeleteConfirmation,
+  ModalTableBulkDefaultActions,
+} from "Common/UI/Components/ModelTable/BaseModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -94,6 +100,13 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
           !isPushGroupsManaged
             ? {
                 buttons: [ModalTableBulkDefaultActions.Delete],
+                /*
+                 * A user is in the project only through their teams, so for
+                 * anyone this is the last team of, removing them from it
+                 * removes them from the project.
+                 */
+                deleteConfirmationWarning:
+                  "Anyone for whom this is their only team will also be removed from the project and lose access to it immediately.",
               }
             : undefined
         }
@@ -125,6 +138,17 @@ const TeamViewMembers: FunctionComponent<PageComponentProps> = (
             );
           }
           return item;
+        }}
+        getDeleteConfirmation={async (
+          item: TeamMember,
+        ): Promise<DeleteConfirmation> => {
+          const plan: TeamRemovalPlan =
+            await TeamMembershipRemoval.getTeamRemovalPlan({
+              membership: item,
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            });
+
+          return plan.confirmation;
         }}
         cardProps={{
           title: "Team Members",

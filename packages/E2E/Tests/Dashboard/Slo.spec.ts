@@ -427,11 +427,20 @@ test.describe("SLOs", () => {
       timeout: 60000,
     });
     await expect(page.getByTestId("slo-kpi-strip")).toHaveCount(0);
+    /*
+     * The Configuration and Monitors cards are gone from the overview. Card
+     * titles are <h2>; the side menu's own "Configuration" section is an <h6>
+     * and must not count.
+     */
     await expect(
-      page.getByRole("heading", { name: "Configuration", exact: true }),
+      page.getByRole("heading", {
+        name: "Configuration",
+        exact: true,
+        level: 2,
+      }),
     ).toHaveCount(0);
     await expect(
-      page.getByRole("heading", { name: "Monitors", exact: true }),
+      page.getByRole("heading", { name: "Monitors", exact: true, level: 2 }),
     ).toHaveCount(0);
   });
 
@@ -618,11 +627,16 @@ test.describe("SLOs", () => {
     await expect(page.getByTestId("slo-overview-getting-started")).toHaveCount(
       0,
     );
+    // Card titles only (<h2>); the side menu's section headings are <h6>.
     await expect(
-      page.getByRole("heading", { name: "Configuration", exact: true }),
+      page.getByRole("heading", {
+        name: "Configuration",
+        exact: true,
+        level: 2,
+      }),
     ).toHaveCount(0);
     await expect(
-      page.getByRole("heading", { name: "Monitors", exact: true }),
+      page.getByRole("heading", { name: "Monitors", exact: true, level: 2 }),
     ).toHaveCount(0);
     await expect(page.getByTestId("slo-configuration-summary")).toHaveCount(0);
     await expect(
@@ -999,10 +1013,14 @@ test.describe("SLOs", () => {
     });
     await criteriaDropdown.click();
     await page
-      .getByRole("option", { name: "Monitor Name Pattern", exact: true })
+      .getByRole("option", { name: "Monitor Name", exact: true })
       .click({ timeout: 30000 });
 
-    // A pattern field defaults to "Matches pattern" (regex or * wildcard).
+    /*
+     * The option is labelled "Monitor Name", but it still stores into the
+     * monitorNamePattern column, so it defaults to "Matches pattern" (regex
+     * or * wildcard).
+     */
     const conditionRow: Locator = form.getByTestId("rule-criteria-row-0");
     await expect(conditionRow).toContainText("Matches pattern", {
       timeout: 30000,

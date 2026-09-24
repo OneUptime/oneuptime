@@ -37,6 +37,7 @@ enum EmailTemplateType {
   MonitorOwnerAdded = "MonitorOwnerAdded.hbs",
   MonitorOwnerResourceCreated = "MonitorOwnerResourceCreated.hbs",
   MonitorProbesStatus = "MonitorProbesStatus.hbs",
+  MonitorsAffectedByProbeStatus = "MonitorsAffectedByProbeStatus.hbs",
   MonitorOwnerStatusChanged = "MonitorOwnerStatusChanged.hbs",
 
   SloOwnerStatusChanged = "SloOwnerStatusChanged.hbs",

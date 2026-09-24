@@ -212,6 +212,7 @@ Notification sent to owners because [Incident ${incidentNumberDisplay}](${(await
             templateType: EmailTemplateType.IncidentOwnerResourceCreated,
             vars: vars,
             subject: `[New Incident ${incidentNumberStr}] - ${incident.title!}`,
+            isSubjectLiteral: true,
           };
 
           const sms: SMSMessage = {

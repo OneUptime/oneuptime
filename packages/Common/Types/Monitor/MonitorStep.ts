@@ -497,8 +497,13 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  /*
+   * `undefined` clears it. The form needs that: a destination that no longer
+   * parses must not leave the previously parsed one sitting in the step,
+   * where it would be saved as if the operator had meant it.
+   */
   public setMonitorDestination(
-    monitorDestination: URL | IP | Hostname,
+    monitorDestination: URL | IP | Hostname | undefined,
   ): MonitorStep {
     this.data!.monitorDestination = monitorDestination;
     return this;

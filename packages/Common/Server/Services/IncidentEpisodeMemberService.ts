@@ -40,6 +40,15 @@ export class Service extends DatabaseService<Model> {
       throw new BadDataException("incidentId is required");
     }
 
+    if (
+      !createBy.props.isRoot &&
+      createBy.data.isOwnerNotifiedOfIncidentAdded !== undefined
+    ) {
+      throw new BadDataException(
+        "isOwnerNotifiedOfIncidentAdded cannot be set directly",
+      );
+    }
+
     // Check if this incident is already in the episode
     const existingMember: Model | null = await this.findOneBy({
       query: {

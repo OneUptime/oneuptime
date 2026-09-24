@@ -20,7 +20,7 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import logger, { LogAttributes } from "Common/Server/Utils/Logger";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
-import CronTab from "Common/Server/Utils/CronTab";
+import { Service as MonitorProbeService } from "Common/Server/Services/MonitorProbeService";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
 import SecurityEventsMonitorResponse from "Common/Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
@@ -206,17 +206,25 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: () => Promise<void> =
         1,
       );
 
+      /*
+       * Same reading of the column as the probe scheduler uses, so a
+       * telemetry monitor storing a human cadence ("5m") is not quietly
+       * pinned to a 1-minute poll the way probe monitors were.
+       */
       if (telemetryMonitor.monitoringInterval) {
-        try {
-          nextPing = CronTab.getNextExecutionTime(
-            telemetryMonitor.monitoringInterval as string,
-          );
-        } catch (err) {
-          logger.error(err, {
-            service: "workers",
-            projectId: telemetryMonitor.projectId?.toString(),
-          });
-        }
+        nextPing = MonitorProbeService.resolveNextPingAt({
+          monitoringInterval: telemetryMonitor.monitoringInterval as string,
+          fallback: nextPing,
+          onUnreadable: () => {
+            logger.error(
+              `MonitorTelemetryMonitor: monitoringInterval "${telemetryMonitor.monitoringInterval}" cannot be read as a schedule; falling back to a 1-minute cadence.`,
+              {
+                service: "workers",
+                projectId: telemetryMonitor.projectId?.toString(),
+              },
+            );
+          },
+        });
       }
 
       /*
@@ -1724,10 +1732,17 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
               ? metric.value
               : Number(metric.value) || 0;
 
-          // Keep the highest value per resource
+          /*
+           * Keep both the highest and the lowest value per resource. The
+           * evaluator reads whichever one the matched criteria breached
+           * on: the highest for "> N" criteria, the lowest for criteria
+           * that fire when the metric falls. Keeping only the highest hid
+           * a node that was NotReady (0) at any sample behind its Ready
+           * (1) samples.
+           */
           const existing: KubernetesAffectedResource | undefined =
             affectedResourcesMap.get(resourceKey);
-          if (!existing || metricValue > existing.metricValue) {
+          if (!existing) {
             affectedResourcesMap.set(resourceKey, {
               podName: podName || undefined,
               namespace: namespace || undefined,
@@ -1736,7 +1751,14 @@ const monitorKubernetes: MonitorKubernetesFunction = async (data: {
               workloadType: workloadType || undefined,
               workloadName: workloadName || undefined,
               metricValue: metricValue,
+              lowestMetricValue: metricValue,
             });
+          } else {
+            existing.lowestMetricValue = Math.min(
+              existing.lowestMetricValue ?? existing.metricValue,
+              metricValue,
+            );
+            existing.metricValue = Math.max(existing.metricValue, metricValue);
           }
         }
 
@@ -2858,7 +2880,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
     /*
      * Fetch raw metrics to extract per-object vSphere context. Best
      * effort: a failure here is logged and the evaluation carries on
-     * without the breakdown table — it must never fail the monitor.
+     * without the Affected Resources list — it must never fail the monitor.
      */
     try {
       const rawMetrics: Array<Metric> = await MetricService.findBy({
@@ -3450,7 +3472,7 @@ const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
            * bare key returned undefined for every row, which collapsed the
            * whole "Affected Tasks" breakdown into one anonymous entry
            * keyed "|||" and made MonitorCriteriaEvaluator suppress the
-           * table entirely (hasIdentity was false).
+           * Affected Tasks list entirely (hasIdentity was false).
            */
           const containerName: string | undefined = metricAttrs[
             "resource.container.name"

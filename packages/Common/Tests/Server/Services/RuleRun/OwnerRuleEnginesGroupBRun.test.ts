@@ -43,6 +43,12 @@ import ServiceOwnerRuleService from "../../../../Server/Services/ServiceOwnerRul
 import ServiceOwnerTeamService from "../../../../Server/Services/ServiceOwnerTeamService";
 import ServiceOwnerUserService from "../../../../Server/Services/ServiceOwnerUserService";
 import ServiceService from "../../../../Server/Services/ServiceService";
+import ServiceLevelObjectiveFeedService from "../../../../Server/Services/ServiceLevelObjectiveFeedService";
+import ServiceLevelObjectiveOwnerRuleEngineService from "../../../../Server/Services/ServiceLevelObjectiveOwnerRuleEngineService";
+import ServiceLevelObjectiveOwnerRuleService from "../../../../Server/Services/ServiceLevelObjectiveOwnerRuleService";
+import ServiceLevelObjectiveOwnerTeamService from "../../../../Server/Services/ServiceLevelObjectiveOwnerTeamService";
+import ServiceLevelObjectiveOwnerUserService from "../../../../Server/Services/ServiceLevelObjectiveOwnerUserService";
+import ServiceLevelObjectiveService from "../../../../Server/Services/ServiceLevelObjectiveService";
 import StatusPageOwnerRuleEngineService from "../../../../Server/Services/StatusPageOwnerRuleEngineService";
 import StatusPageOwnerRuleService from "../../../../Server/Services/StatusPageOwnerRuleService";
 import StatusPageOwnerTeamService from "../../../../Server/Services/StatusPageOwnerTeamService";
@@ -78,6 +84,8 @@ import ServerlessFunctionOwnerTeam from "../../../../Models/DatabaseModels/Serve
 import ServerlessFunctionOwnerUser from "../../../../Models/DatabaseModels/ServerlessFunctionOwnerUser";
 import ServiceOwnerTeam from "../../../../Models/DatabaseModels/ServiceOwnerTeam";
 import ServiceOwnerUser from "../../../../Models/DatabaseModels/ServiceOwnerUser";
+import ServiceLevelObjectiveOwnerTeam from "../../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
+import ServiceLevelObjectiveOwnerUser from "../../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
 import StatusPageOwnerTeam from "../../../../Models/DatabaseModels/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "../../../../Models/DatabaseModels/StatusPageOwnerUser";
 import VMwareVCenterOwnerTeam from "../../../../Models/DatabaseModels/VMwareVCenterOwnerTeam";
@@ -91,7 +99,8 @@ import {
 } from "../../../../Server/Utils/Rules/RuleRun/RuleApplication";
 import ObjectID from "../../../../Types/ObjectID";
 import { MAX_RULES_EVALUATED_PER_PROJECT } from "../../../../Utils/Rules/RuleEngineLimits";
-import { afterEach, describe, expect, it } from "@jest/globals";
+import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
  * Contract under test - "Run now" for the owner rule engines of the Podman,
@@ -333,6 +342,28 @@ const ENGINE_CASES: Array<EngineCase> = [
       linkMethod: "getServiceMarkdownLink",
       feedService: ServiceFeedService,
       feedMethod: "createServiceFeedItem",
+    }),
+    prepare: noop,
+  },
+  {
+    name: "SLO",
+    engine: ServiceLevelObjectiveOwnerRuleEngineService,
+    createHook: "applyRulesToServiceLevelObjective",
+    ruleService: ServiceLevelObjectiveOwnerRuleService,
+    rereadService: ServiceLevelObjectiveService,
+    ownerUserService: ServiceLevelObjectiveOwnerUserService,
+    ownerTeamService: ServiceLevelObjectiveOwnerTeamService,
+    ownerUserModel: ServiceLevelObjectiveOwnerUser,
+    ownerTeamModel: ServiceLevelObjectiveOwnerTeam,
+    resourceIdColumn: "serviceLevelObjectiveId",
+    namePatternField: "serviceLevelObjectiveNamePattern",
+    hasNotificationFlag: true,
+    addOwnersService: null,
+    mockFeed: feedMock({
+      linkService: ServiceLevelObjectiveService,
+      linkMethod: "getSloMarkdownLink",
+      feedService: ServiceLevelObjectiveFeedService,
+      feedMethod: "createServiceLevelObjectiveFeedItem",
     }),
     prepare: noop,
   },
@@ -697,6 +728,13 @@ function expectNotifying(testCase: EngineCase, write: OwnerWrite): void {
     expect(write.isOwnerNotified).toBeUndefined();
   }
 }
+
+beforeEach(() => {
+  // Owner users here are project members; OwnerRuleAssignment.test.ts covers ones who left.
+  jest
+    .spyOn(TeamMemberService, "isUserMemberOfProject")
+    .mockResolvedValue(true);
+});
 
 afterEach(() => {
   jest.restoreAllMocks();

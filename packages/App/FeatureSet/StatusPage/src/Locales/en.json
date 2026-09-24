@@ -235,7 +235,9 @@
     "sso": {
       "title": "Log in with SSO",
       "loginPrompt": "Please login to view {{statusPageName}}",
-      "noProviders": "No SSO Providers Configured or Enabled"
+      "noProviders": "No SSO Providers Configured or Enabled",
+      "notAvailable": "Single sign-on is not available for this status page. Sign in with your email and password instead.",
+      "backToLogin": "Back to sign in"
     },
     "forgotPassword": {
       "title": "Forgot Password",

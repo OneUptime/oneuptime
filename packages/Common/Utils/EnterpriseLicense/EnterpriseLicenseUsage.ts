@@ -1,3 +1,4 @@
+import { ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS } from "../../Types/EnterpriseLicense/EnterpriseLicensePeriods";
 import EnterpriseLicenseUserCountSource from "../../Types/EnterpriseLicense/EnterpriseLicenseUserCountSource";
 
 /*
@@ -49,9 +50,13 @@ export default class EnterpriseLicenseUsageUtil {
   /*
    * Expired licenses keep getting a daily "expired" email for this many
    * days after expiry, then go quiet — an abandoned license should not be
-   * emailed forever.
+   * emailed forever. It has to outlast the grace period by a clear margin:
+   * the email that says single sign-on, SCIM provisioning and audit logging
+   * have now stopped is only worth sending after they have, which is when
+   * the grace period ends.
    */
-  public static readonly expiredNotificationCutoffDays: number = 30;
+  public static readonly expiredNotificationCutoffDays: number =
+    ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS + 14;
 
   /*
    * License keys are shown/emailed masked — enough to identify the key

@@ -1,1124 +1,594 @@
-import { AuditLogService } from "../../../Server/Services/AuditLogService";
-import DatabaseService from "../../../Server/Services/DatabaseService";
-import FindBy from "../../../Server/Types/Database/FindBy";
-import AuditLog from "../../../Models/AnalyticsModels/AuditLog";
-import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
-import Label from "../../../Models/DatabaseModels/Label";
-import Monitor from "../../../Models/DatabaseModels/Monitor";
-import Project from "../../../Models/DatabaseModels/Project";
-import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
-import ServiceLevelObjectiveBurnRateRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveBurnRateRule";
-import ServiceLevelObjectiveMonitorRule from "../../../Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
-import ServiceLevelObjectiveOwnerTeam from "../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
-import ServiceLevelObjectiveOwnerUser from "../../../Models/DatabaseModels/ServiceLevelObjectiveOwnerUser";
-import Team from "../../../Models/DatabaseModels/Team";
-import User from "../../../Models/DatabaseModels/User";
-import AuditLogAction from "../../../Types/AuditLog/AuditLogAction";
-import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
-import Email from "../../../Types/Email";
-import { JSONObject } from "../../../Types/JSON";
-import Name from "../../../Types/Name";
-import ObjectID from "../../../Types/ObjectID";
-import UserType from "../../../Types/UserType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import AuditLogServiceInstance, {
+  AUDIT_LOG_CREATE_REFUSED_MESSAGE,
+  AuditLogService,
+} from "../../../Server/Services/AuditLogService";
+import AnalyticsDatabaseService from "../../../Server/Services/AnalyticsDatabaseService";
+import ModelPermission from "../../../Server/Types/AnalyticsDatabase/ModelPermission";
+import EnterpriseEdition from "../../../Server/Enterprise/EnterpriseEdition";
+import logger from "../../../Server/Utils/Logger";
+import AuditLog from "../../../Models/AnalyticsModels/AuditLog";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import AnalyticsTableColumn from "../../../Types/AnalyticsDatabase/TableColumn";
+import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import ObjectID from "../../../Types/ObjectID";
+import Permission, {
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
+import UserType from "../../../Types/UserType";
+import FakeEnterpriseModule, {
+  createAuditLogRecorderSpy,
+  installFakeEnterpriseModule,
+  MockedAuditLogRecorder,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
+import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 
 /*
- * AuditLogService decides whether a change is recorded, and what the entry
- * says. Every failure mode here is silent - record* swallows its errors and
- * an empty audit page looks exactly like "nobody changed anything" - so each
- * rule is pinned against the entry that actually reaches the insert:
+ * Core's AuditLogService after the Community / Enterprise split.
  *
- *   - eligibility: Enterprise gate, the project's switch, system events;
- *   - identity: resourceType is the model's singularName, and every entry
- *     carries the root resource it rolls up to (an SLO's burn-rate rules,
- *     monitor rules and owners roll up to the SLO);
- *   - noise: the evaluation worker's columns never produce an entry;
- *   - readability: relations are recorded as { _id, name }, nameless owner
- *     rows are named after their user or team, and names are only ever read
- *     from inside the audited project.
+ * Audit-log RECORDING is an Enterprise Edition feature: which changes are
+ * recorded, the diff, redaction, names and the settings cache live in ee/
+ * (ee/Server/AuditLog/AuditLogRecorder.ts, pinned by
+ * ee/Tests/Server/AuditLog/AuditLogRecorder.test.ts). What stays here, and is
+ * pinned here, is the seam every audited write goes through:
  *
- * No ClickHouse or Postgres: the insert, the project and user reads and the
- * related-row lookups are all stubbed. ProjectService and UserService are
- * module stubs rather than spies: the real modules pull in most of the service
- * graph, none of which a settings or user read here needs.
+ *   - Community Edition: no recorder, every call is a no-op and nothing is
+ *     written - there is no recording code left in core to write it;
+ *   - Enterprise Edition: each call reaches the recorder with exactly the
+ *     arguments DatabaseService passed, looked up on every call (the module
+ *     registers after core loaded);
+ *   - never a failed write because of its audit entry, whatever the recorder
+ *     does.
+ *
+ * Billing and the edition are pinned in every test (CI's config.env sets
+ * BILLING_ENABLED=true). This suite must pass with ee/ deleted: it uses only
+ * the fake enterprise module.
  */
-
-const findProjectMock: jest.Mock = jest.fn();
-const findUserMock: jest.Mock = jest.fn();
-
-jest.mock("../../../Server/Services/ProjectService", () => {
-  return {
-    __esModule: true,
-    default: {
-      findOneById: (...args: Array<unknown>): unknown => {
-        return findProjectMock(...args);
-      },
-    },
-  };
-});
-
-jest.mock("../../../Server/Services/UserService", () => {
-  return {
-    __esModule: true,
-    default: {
-      findOneById: (...args: Array<unknown>): unknown => {
-        return findUserMock(...args);
-      },
-    },
-  };
-});
-
 jest.mock("../../../Server/EnvironmentConfig", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "../../../Server/EnvironmentConfig",
-  ) as Record<string, unknown>;
+  const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "../Enterprise/TestBillingFlag",
+    ) as typeof import("../Enterprise/TestBillingFlag");
 
-  // A writable copy: each test sets the build flags it needs.
-  return { ...actual, IsEnterpriseEdition: true, IsBillingEnabled: false };
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
 });
-
-type EnvironmentFlags = {
-  IsEnterpriseEdition: boolean;
-  IsBillingEnabled: boolean;
-};
-
-const environment: EnvironmentFlags = jest.requireMock(
-  "../../../Server/EnvironmentConfig",
-) as EnvironmentFlags;
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "11111111-1111-4111-8111-111111111111",
 );
-const USER_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
-const SLO_ID: ObjectID = new ObjectID("33333333-3333-4333-8333-333333333333");
-const RULE_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
-const OWNER_ROW_ID: ObjectID = new ObjectID(
-  "55555555-5555-4555-8555-555555555555",
-);
-const OWNER_USER_ID: ObjectID = new ObjectID(
-  "66666666-6666-4666-8666-666666666666",
-);
-const TEAM_ID: ObjectID = new ObjectID("77777777-7777-4777-8777-777777777777");
 const MONITOR_ID: ObjectID = new ObjectID(
   "88888888-8888-4888-8888-888888888888",
 );
 
-const LABEL_A: string = "aaaaaaaa-0000-4000-8000-00000000000a";
-const LABEL_B: string = "aaaaaaaa-0000-4000-8000-00000000000b";
-const LABEL_C: string = "aaaaaaaa-0000-4000-8000-00000000000c";
-
-const SEVERITY_1: string = "bbbbbbbb-0000-4000-8000-000000000001";
-const SEVERITY_2: string = "bbbbbbbb-0000-4000-8000-000000000002";
-
-const SLO_RESOURCE_TYPE: string = "Service Level Objective";
-
-const USER_PROPS: DatabaseCommonInteractionProps = {
-  userId: USER_ID,
+const PROPS: DatabaseCommonInteractionProps = {
+  userId: new ObjectID("22222222-2222-4222-8222-222222222222"),
   userType: UserType.User,
   tenantId: PROJECT_ID,
 };
 
-// How the evaluation worker and the monitor-rule engine write.
-const SYSTEM_PROPS: DatabaseCommonInteractionProps = { isRoot: true };
+type CreateData = {
+  model: Monitor;
+  createdItem: Monitor;
+  props: DatabaseCommonInteractionProps;
+};
 
-interface RelatedLookup {
-  tableName: string;
-  query: JSONObject;
-  select: JSONObject;
-  props: JSONObject;
-}
+type UpdateData = {
+  model: Monitor;
+  before: Monitor;
+  updatedFields: { name: string };
+  itemId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+};
 
-interface Harness {
-  service: AuditLogService;
-  inserted: Array<AuditLog>;
-  findProject: jest.Mock;
-  findUser: jest.Mock;
-  insert: jest.SpyInstance;
-  relatedLookups: Array<RelatedLookup>;
-}
+type DeleteData = {
+  model: Monitor;
+  deletedItem: Monitor;
+  itemId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+};
 
-let project: Project;
-let usersById: Map<string, User>;
-let relatedRows: Map<string, Array<BaseModel>>;
-let failRelatedLookups: boolean;
-let harness: Harness;
+const makeMonitor: () => Monitor = (): Monitor => {
+  const monitor: Monitor = new Monitor();
+  monitor._id = MONITOR_ID.toString();
+  monitor.projectId = PROJECT_ID;
+  monitor.name = "Checkout API";
+  return monitor;
+};
 
-function makeProject(settings: {
-  enableAuditLogs?: boolean;
-  storeSystemEventsInAuditLogs?: boolean;
-  planName?: PlanType;
-}): Project {
-  const item: Project = new Project();
-  item._id = PROJECT_ID.toString();
-  if (settings.enableAuditLogs !== undefined) {
-    item.enableAuditLogs = settings.enableAuditLogs;
-  }
-  if (settings.storeSystemEventsInAuditLogs !== undefined) {
-    item.storeSystemEventsInAuditLogs = settings.storeSystemEventsInAuditLogs;
-  }
-  item.auditLogsRetentionInDays = 30;
-  if (settings.planName) {
-    item.planName = settings.planName;
-  }
-  return item;
-}
+const createData: () => CreateData = (): CreateData => {
+  return { model: new Monitor(), createdItem: makeMonitor(), props: PROPS };
+};
 
-function makeUser(id: ObjectID, name: string | null, email: string): User {
-  const user: User = new User();
-  user._id = id.toString();
-  if (name) {
-    user.name = new Name(name);
-  }
-  user.email = new Email(email);
-  return user;
-}
+const updateData: () => UpdateData = (): UpdateData => {
+  return {
+    model: new Monitor(),
+    before: makeMonitor(),
+    updatedFields: { name: "Checkout API (primary)" },
+    itemId: MONITOR_ID,
+    props: PROPS,
+  };
+};
 
-function createHarness(): Harness {
-  const service: AuditLogService = new AuditLogService();
-  const inserted: Array<AuditLog> = [];
+const deleteData: () => DeleteData = (): DeleteData => {
+  return {
+    model: new Monitor(),
+    deletedItem: makeMonitor(),
+    itemId: MONITOR_ID,
+    props: PROPS,
+  };
+};
 
-  const insert: jest.SpyInstance = jest
-    .spyOn(service, "create")
+// The four entry points, each driven the way its caller drives it.
+type EntryPoint = {
+  name: "recordCreate" | "recordUpdate" | "recordDelete";
+  call: (service: AuditLogService) => Promise<void>;
+};
+
+const RECORD_ENTRY_POINTS: Array<EntryPoint> = [
+  {
+    name: "recordCreate",
+    call: (service: AuditLogService): Promise<void> => {
+      return service.recordCreate(createData());
+    },
+  },
+  {
+    name: "recordUpdate",
+    call: (service: AuditLogService): Promise<void> => {
+      return service.recordUpdate(updateData());
+    },
+  },
+  {
+    name: "recordDelete",
+    call: (service: AuditLogService): Promise<void> => {
+      return service.recordDelete(deleteData());
+    },
+  },
+];
+
+let insertSpy: jest.SpyInstance;
+let warnSpy: jest.SpyInstance;
+
+beforeEach(() => {
+  setTestBillingEnabled(false);
+  uninstallEnterpriseModule();
+
+  // Nothing here may ever reach ClickHouse: a write would be a bug.
+  insertSpy = jest
+    .spyOn(AuditLogServiceInstance, "create")
     .mockImplementation(((createBy: { data: AuditLog }) => {
-      inserted.push(createBy.data);
       return Promise.resolve(createBy.data);
     }) as never);
 
-  const findProject: jest.Mock = findProjectMock;
-  findProject.mockReset();
-  findProject.mockImplementation(() => {
-    return Promise.resolve(project);
+  warnSpy = jest.spyOn(logger, "warn").mockImplementation((): void => {
+    return undefined;
   });
-
-  const findUser: jest.Mock = findUserMock;
-  findUser.mockReset();
-  findUser.mockImplementation(((findOneById: { id: ObjectID }) => {
-    return Promise.resolve(usersById.get(findOneById.id.toString()) || null);
-  }) as never);
-
-  const relatedLookups: Array<RelatedLookup> = [];
-
-  jest.spyOn(DatabaseService.prototype, "findBy").mockImplementation(function (
-    this: DatabaseService<BaseModel>,
-    findBy: FindBy<BaseModel>,
-  ): Promise<Array<BaseModel>> {
-    const tableName: string = this.getModel().tableName!;
-
-    relatedLookups.push({
-      tableName,
-      query: findBy.query as unknown as JSONObject,
-      select: findBy.select as unknown as JSONObject,
-      props: findBy.props as unknown as JSONObject,
-    });
-
-    if (failRelatedLookups) {
-      return Promise.reject(new Error("database unavailable"));
-    }
-
-    return Promise.resolve(relatedRows.get(tableName) || []);
-  } as never);
-
-  return { service, inserted, findProject, findUser, insert, relatedLookups };
-}
-
-// The ids a tenant-scoped lookup asked for, read back out of QueryHelper.any.
-function idsInLookup(lookup: RelatedLookup): Array<string> {
-  const operator: { objectLiteralParameters?: Record<string, unknown> } = lookup
-    .query["_id"] as unknown as {
-    objectLiteralParameters?: Record<string, unknown>;
-  };
-
-  return Object.values(operator.objectLiteralParameters || {})
-    .flat()
-    .map((id: unknown) => {
-      return String(id);
-    })
-    .sort();
-}
-
-function label(id: string, name?: string): Label {
-  const item: Label = new Label();
-  item._id = id;
-  if (name) {
-    item.name = name;
-  }
-  return item;
-}
-
-function makeSlo(): ServiceLevelObjective {
-  const slo: ServiceLevelObjective = new ServiceLevelObjective();
-  slo._id = SLO_ID.toString();
-  slo.projectId = PROJECT_ID;
-  slo.name = "Checkout availability";
-  slo.targetPercentage = 99.9;
-  return slo;
-}
-
-function makeBurnRateRule(): ServiceLevelObjectiveBurnRateRule {
-  const rule: ServiceLevelObjectiveBurnRateRule =
-    new ServiceLevelObjectiveBurnRateRule();
-  rule._id = RULE_ID.toString();
-  rule.projectId = PROJECT_ID;
-  rule.serviceLevelObjectiveId = SLO_ID;
-  rule.name = "Fast burn";
-  rule.burnRateThreshold = 14.4;
-  return rule;
-}
-
-function makeMonitorRule(): ServiceLevelObjectiveMonitorRule {
-  const rule: ServiceLevelObjectiveMonitorRule =
-    new ServiceLevelObjectiveMonitorRule();
-  rule._id = RULE_ID.toString();
-  rule.projectId = PROJECT_ID;
-  rule.serviceLevelObjectiveId = SLO_ID;
-  rule.name = "Production APIs";
-  return rule;
-}
-
-function makeOwnerUser(): ServiceLevelObjectiveOwnerUser {
-  const owner: ServiceLevelObjectiveOwnerUser =
-    new ServiceLevelObjectiveOwnerUser();
-  owner._id = OWNER_ROW_ID.toString();
-  owner.projectId = PROJECT_ID;
-  owner.serviceLevelObjectiveId = SLO_ID;
-  owner.userId = OWNER_USER_ID;
-  owner.isOwnerNotified = false;
-  return owner;
-}
-
-function makeOwnerTeam(): ServiceLevelObjectiveOwnerTeam {
-  const owner: ServiceLevelObjectiveOwnerTeam =
-    new ServiceLevelObjectiveOwnerTeam();
-  owner._id = OWNER_ROW_ID.toString();
-  owner.projectId = PROJECT_ID;
-  owner.serviceLevelObjectiveId = SLO_ID;
-  owner.teamId = TEAM_ID;
-  owner.isOwnerNotified = false;
-  return owner;
-}
-
-function onlyEntry(): AuditLog {
-  expect(harness.inserted).toHaveLength(1);
-  return harness.inserted[0]!;
-}
-
-function changesOf(entry: AuditLog): Array<JSONObject> {
-  return (entry.changes || []) as Array<JSONObject>;
-}
-
-function fieldsOf(entry: AuditLog): Array<string> {
-  return changesOf(entry).map((change: JSONObject) => {
-    return String(change["field"]);
-  });
-}
-
-function changeFor(entry: AuditLog, field: string): JSONObject | undefined {
-  return changesOf(entry).find((change: JSONObject) => {
-    return change["field"] === field;
-  });
-}
-
-beforeEach(() => {
-  environment.IsEnterpriseEdition = true;
-  environment.IsBillingEnabled = false;
-  project = makeProject({ enableAuditLogs: true });
-  usersById = new Map<string, User>([
-    [USER_ID.toString(), makeUser(USER_ID, "Ada Lovelace", "ada@example.com")],
-  ]);
-  relatedRows = new Map<string, Array<BaseModel>>();
-  failRelatedLookups = false;
-  harness = createHarness();
 });
 
 afterEach(() => {
+  uninstallEnterpriseModule();
+  setTestBillingEnabled(false);
   jest.restoreAllMocks();
 });
 
-describe("which changes are recorded", () => {
-  test("a person's change on an eligible project is recorded with its actor and retention", async () => {
-    await harness.service.recordCreate({
-      model: new ServiceLevelObjective(),
-      createdItem: makeSlo(),
-      props: USER_PROPS,
-    });
+describe("on the Community Edition (no enterprise module)", () => {
+  test.each([false, true])(
+    "with billing=%s every record call resolves and writes nothing",
+    async (billing: boolean) => {
+      setTestBillingEnabled(billing);
 
-    const entry: AuditLog = onlyEntry();
+      expect(EnterpriseEdition.isLoaded()).toBe(false);
 
-    expect(entry.projectId?.toString()).toBe(PROJECT_ID.toString());
-    expect(entry.action).toBe(AuditLogAction.Create);
-    expect(entry.resourceType).toBe(SLO_RESOURCE_TYPE);
-    expect(entry.resourceId?.toString()).toBe(SLO_ID.toString());
-    expect(entry.resourceName).toBe("Checkout availability");
-    expect(entry.userId?.toString()).toBe(USER_ID.toString());
-    expect(entry.userName).toBe("Ada Lovelace");
-    expect(entry.userEmail).toBe("ada@example.com");
-    expect(entry.userType).toBe(UserType.User);
-    expect(entry.retentionDate).toBeInstanceOf(Date);
-    expect(changeFor(entry, "targetPercentage")).toEqual({
-      field: "targetPercentage",
-      newValue: 99.9,
-    });
-  });
+      for (const entryPoint of RECORD_ENTRY_POINTS) {
+        await expect(
+          entryPoint.call(AuditLogServiceInstance),
+        ).resolves.toBeUndefined();
+      }
 
-  test("nothing is recorded while the project has audit logging off", async () => {
-    project = makeProject({ enableAuditLogs: false });
-
-    await harness.service.recordCreate({
-      model: new ServiceLevelObjective(),
-      createdItem: makeSlo(),
-      props: USER_PROPS,
-    });
-
-    expect(harness.inserted).toHaveLength(0);
-  });
-
-  test("nothing is recorded for a project that no longer exists", async () => {
-    harness.findProject.mockImplementation(() => {
-      return Promise.resolve(null);
-    });
-
-    await harness.service.recordCreate({
-      model: new ServiceLevelObjective(),
-      createdItem: makeSlo(),
-      props: USER_PROPS,
-    });
-
-    expect(harness.inserted).toHaveLength(0);
-  });
-
-  test("system events are dropped unless the project stores them", async () => {
-    await harness.service.recordCreate({
-      model: new ServiceLevelObjective(),
-      createdItem: makeSlo(),
-      props: SYSTEM_PROPS,
-    });
-
-    expect(harness.inserted).toHaveLength(0);
-
-    project = makeProject({
-      enableAuditLogs: true,
-      storeSystemEventsInAuditLogs: true,
-    });
-    harness.service.invalidateProjectSettings(PROJECT_ID);
-
-    await harness.service.recordCreate({
-      model: new ServiceLevelObjective(),
-      createdItem: makeSlo(),
-      props: SYSTEM_PROPS,
-    });
-
-    const entry: AuditLog = onlyEntry();
-    expect(entry.userType).toBe("System");
-    expect(entry.userId).toBeUndefined();
-  });
-
-  test.each([
-    {
-      build: "the Enterprise Edition",
-      isEnterpriseEdition: true,
-      isBillingEnabled: false,
-      planName: undefined,
-      recorded: true,
-    },
-    {
-      build: "cloud on the Enterprise plan",
-      isEnterpriseEdition: false,
-      isBillingEnabled: true,
-      planName: PlanType.Enterprise,
-      recorded: true,
-    },
-    {
-      build: "cloud on the Growth plan",
-      isEnterpriseEdition: false,
-      isBillingEnabled: true,
-      planName: PlanType.Growth,
-      recorded: false,
-    },
-    {
-      build: "the free self-hosted build",
-      isEnterpriseEdition: false,
-      isBillingEnabled: false,
-      planName: PlanType.Enterprise,
-      recorded: false,
-    },
-  ])(
-    "on $build an entry is recorded: $recorded",
-    async (data: {
-      isEnterpriseEdition: boolean;
-      isBillingEnabled: boolean;
-      planName: PlanType | undefined;
-      recorded: boolean;
-    }) => {
-      environment.IsEnterpriseEdition = data.isEnterpriseEdition;
-      environment.IsBillingEnabled = data.isBillingEnabled;
-      project = makeProject({
-        enableAuditLogs: true,
-        ...(data.planName ? { planName: data.planName } : {}),
-      });
-
-      await harness.service.recordCreate({
-        model: new ServiceLevelObjective(),
-        createdItem: makeSlo(),
-        props: USER_PROPS,
-      });
-
-      expect(harness.inserted).toHaveLength(data.recorded ? 1 : 0);
+      expect(insertSpy).not.toHaveBeenCalled();
+      expect(warnSpy).not.toHaveBeenCalled();
     },
   );
 
-  test("a change with no project to file it under records nothing and reads nothing", async () => {
-    const slo: ServiceLevelObjective = makeSlo();
-    (slo as unknown as Record<string, unknown>)["projectId"] = undefined;
-
-    await harness.service.recordCreate({
-      model: new ServiceLevelObjective(),
-      createdItem: slo,
-      props: { userId: USER_ID, userType: UserType.User },
-    });
-
-    expect(harness.inserted).toHaveLength(0);
-    expect(harness.findProject).not.toHaveBeenCalled();
+  test("invalidating a project's settings is a harmless no-op", () => {
+    expect(() => {
+      AuditLogServiceInstance.invalidateProjectSettings(PROJECT_ID);
+    }).not.toThrow();
   });
 
-  test("the project's settings are read once per cache period, and again after invalidation", async () => {
-    for (let i: number = 0; i < 3; i++) {
-      await harness.service.recordCreate({
-        model: new ServiceLevelObjective(),
-        createdItem: makeSlo(),
-        props: USER_PROPS,
-      });
+  test("a fresh instance behaves the same as the shared one", async () => {
+    const service: AuditLogService = new AuditLogService();
+    const freshInsert: jest.SpyInstance = jest
+      .spyOn(service, "create")
+      .mockImplementation(((createBy: { data: AuditLog }) => {
+        return Promise.resolve(createBy.data);
+      }) as never);
+
+    for (const entryPoint of RECORD_ENTRY_POINTS) {
+      await entryPoint.call(service);
     }
 
-    expect(harness.findProject).toHaveBeenCalledTimes(1);
-
-    harness.service.invalidateProjectSettings(PROJECT_ID);
-
-    await harness.service.recordCreate({
-      model: new ServiceLevelObjective(),
-      createdItem: makeSlo(),
-      props: USER_PROPS,
-    });
-
-    expect(harness.findProject).toHaveBeenCalledTimes(2);
-  });
-
-  test("a failed insert never fails the write that triggered it", async () => {
-    harness.insert.mockImplementation((() => {
-      return Promise.reject(new Error("clickhouse unavailable"));
-    }) as never);
-
-    await expect(
-      harness.service.recordCreate({
-        model: new ServiceLevelObjective(),
-        createdItem: makeSlo(),
-        props: USER_PROPS,
-      }),
-    ).resolves.toBeUndefined();
+    expect(freshInsert).not.toHaveBeenCalled();
   });
 });
 
-describe("resource identity", () => {
-  test("an SLO's entries carry its singularName, the value its children's root pointer names", () => {
-    expect(new ServiceLevelObjective().singularName).toBe(SLO_RESOURCE_TYPE);
-    expect(
-      new ServiceLevelObjectiveBurnRateRule().enableAuditLogOn?.rootResource
-        ?.resourceType,
-    ).toBe(SLO_RESOURCE_TYPE);
-  });
-});
+describe("with the Enterprise Edition loaded", () => {
+  let recorder: MockedAuditLogRecorder;
 
-describe("update diffs", () => {
-  test("an update that changed nothing records nothing and costs no settings read", async () => {
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjective(),
-      before: makeSlo(),
-      updatedFields: { targetPercentage: 99.9 },
-      itemId: SLO_ID,
-      props: USER_PROPS,
-    });
-
-    expect(harness.inserted).toHaveLength(0);
-    expect(harness.findProject).not.toHaveBeenCalled();
+  beforeEach(() => {
+    recorder = createAuditLogRecorderSpy();
+    installFakeEnterpriseModule({ auditLogRecorder: recorder });
   });
 
-  test("an evaluation tick that rewrites only worker-owned columns records nothing, even with system events stored", async () => {
-    project = makeProject({
-      enableAuditLogs: true,
-      storeSystemEventsInAuditLogs: true,
-    });
+  test.each([false, true])(
+    "with billing=%s recordCreate hands the recorder the very arguments it was given",
+    async (billing: boolean) => {
+      setTestBillingEnabled(billing);
+      const data: CreateData = createData();
 
-    const before: ServiceLevelObjective = makeSlo();
-    before.currentSliPercentage = 99.95;
-    before.errorBudgetRemainingPercentage = 60;
-    before.currentBurnRate = 0.4;
-    before.lastEvaluatedAt = new Date("2026-09-15T10:00:00.000Z");
+      await AuditLogServiceInstance.recordCreate(data);
 
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjective(),
-      before,
-      updatedFields: {
-        currentSliPercentage: 99.91,
-        errorBudgetRemainingPercentage: 55,
-        errorBudgetRemainingSeconds: 1200,
-        errorBudgetTotalSeconds: 2592,
-        currentBurnRate: 1.3,
-        sloStatus: "AtRisk",
-        statusChangeNotificationSentAt: new Date("2026-09-15T10:05:00.000Z"),
-        lastEvaluatedAt: new Date("2026-09-15T10:05:00.000Z"),
-        nextEvaluationAt: new Date("2026-09-15T10:10:00.000Z"),
-        lastAccumulatedBucketEndAt: new Date("2026-09-15T10:05:00.000Z"),
-        autoAddedMonitors: [{ _id: MONITOR_ID.toString() }],
-      },
-      itemId: SLO_ID,
-      props: SYSTEM_PROPS,
-    });
-
-    expect(harness.inserted).toHaveLength(0);
-    expect(harness.findProject).not.toHaveBeenCalled();
-  });
-
-  test("a person's edit that lands with worker columns records the edit alone", async () => {
-    const before: ServiceLevelObjective = makeSlo();
-    before.currentSliPercentage = 99.95;
-
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjective(),
-      before,
-      updatedFields: {
-        targetPercentage: 99.5,
-        currentSliPercentage: 99.1,
-        lastEvaluatedAt: new Date("2026-09-15T10:05:00.000Z"),
-      },
-      itemId: SLO_ID,
-      props: USER_PROPS,
-    });
-
-    expect(changesOf(onlyEntry())).toEqual([
-      { field: "targetPercentage", oldValue: 99.9, newValue: 99.5 },
-    ]);
-  });
-
-  test("a burn-rate rule's refire bookkeeping records nothing; a threshold edit does", async () => {
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjectiveBurnRateRule(),
-      before: makeBurnRateRule(),
-      updatedFields: {
-        lastAlertCreatedAt: new Date("2026-09-15T10:05:00.000Z"),
-        lastAlertResolvedAt: new Date("2026-09-15T10:06:00.000Z"),
-        lastIncidentCreatedAt: new Date("2026-09-15T10:07:00.000Z"),
-        lastIncidentResolvedAt: new Date("2026-09-15T10:08:00.000Z"),
-      },
-      itemId: RULE_ID,
-      props: USER_PROPS,
-    });
-
-    expect(harness.inserted).toHaveLength(0);
-
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjectiveBurnRateRule(),
-      before: makeBurnRateRule(),
-      updatedFields: { burnRateThreshold: 6 },
-      itemId: RULE_ID,
-      props: USER_PROPS,
-    });
-
-    expect(fieldsOf(onlyEntry())).toEqual(["burnRateThreshold"]);
-  });
-
-  test("the owner notification job marking an owner notified records nothing", async () => {
-    project = makeProject({
-      enableAuditLogs: true,
-      storeSystemEventsInAuditLogs: true,
-    });
-
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjectiveOwnerUser(),
-      before: makeOwnerUser(),
-      updatedFields: { isOwnerNotified: true },
-      itemId: OWNER_ROW_ID,
-      props: SYSTEM_PROPS,
-    });
-
-    expect(harness.inserted).toHaveLength(0);
-  });
-
-  test("create and delete snapshots leave ignored and bookkeeping columns out", async () => {
-    const slo: ServiceLevelObjective = makeSlo();
-    slo.slug = "checkout-availability";
-    slo.currentSliPercentage = 99.2;
-    slo.nextEvaluationAt = new Date("2026-09-15T10:10:00.000Z");
-
-    await harness.service.recordDelete({
-      model: new ServiceLevelObjective(),
-      deletedItem: slo,
-      itemId: SLO_ID,
-      props: USER_PROPS,
-    });
-
-    const entry: AuditLog = onlyEntry();
-
-    expect(entry.action).toBe(AuditLogAction.Delete);
-    expect(fieldsOf(entry)).toEqual(
-      expect.arrayContaining(["name", "targetPercentage", "projectId"]),
-    );
-    expect(fieldsOf(entry)).not.toContain("currentSliPercentage");
-    expect(fieldsOf(entry)).not.toContain("nextEvaluationAt");
-    expect(fieldsOf(entry)).not.toContain("_id");
-    expect(fieldsOf(entry)).not.toContain("slug");
-    expect(changeFor(entry, "name")).toEqual({
-      field: "name",
-      oldValue: "Checkout availability",
-    });
-  });
-});
-
-describe("every entry points at the resource it rolls up to", () => {
-  test("an SLO's own entries point at the SLO", async () => {
-    await harness.service.recordCreate({
-      model: new ServiceLevelObjective(),
-      createdItem: makeSlo(),
-      props: USER_PROPS,
-    });
-
-    const entry: AuditLog = onlyEntry();
-    expect(entry.rootResourceType).toBe(SLO_RESOURCE_TYPE);
-    expect(entry.rootResourceId?.toString()).toBe(SLO_ID.toString());
-  });
-
-  test("a top-level resource with no configuration points at itself", async () => {
-    const before: Monitor = new Monitor();
-    before._id = MONITOR_ID.toString();
-    before.projectId = PROJECT_ID;
-    before.name = "Checkout API";
-
-    await harness.service.recordUpdate({
-      model: new Monitor(),
-      before,
-      updatedFields: { name: "Checkout API (primary)" },
-      itemId: MONITOR_ID,
-      props: USER_PROPS,
-    });
-
-    const entry: AuditLog = onlyEntry();
-    expect(entry.rootResourceType).toBe("Monitor");
-    expect(entry.rootResourceId?.toString()).toBe(MONITOR_ID.toString());
-  });
-
-  test.each([
-    {
-      name: "burn-rate rule",
-      model: (): BaseModel => {
-        return new ServiceLevelObjectiveBurnRateRule();
-      },
-      item: (): BaseModel => {
-        return makeBurnRateRule();
-      },
-      resourceType: "SLO Burn Rate Rule",
-      resourceId: RULE_ID,
-    },
-    {
-      name: "monitor rule",
-      model: (): BaseModel => {
-        return new ServiceLevelObjectiveMonitorRule();
-      },
-      item: (): BaseModel => {
-        return makeMonitorRule();
-      },
-      resourceType: "SLO Monitor Rule",
-      resourceId: RULE_ID,
-    },
-    {
-      name: "owner user",
-      model: (): BaseModel => {
-        return new ServiceLevelObjectiveOwnerUser();
-      },
-      item: (): BaseModel => {
-        return makeOwnerUser();
-      },
-      resourceType: "Service Level Objective User Owner",
-      resourceId: OWNER_ROW_ID,
-    },
-    {
-      name: "owner team",
-      model: (): BaseModel => {
-        return new ServiceLevelObjectiveOwnerTeam();
-      },
-      item: (): BaseModel => {
-        return makeOwnerTeam();
-      },
-      resourceType: "Service Level Objective Team Owner",
-      resourceId: OWNER_ROW_ID,
-    },
-  ])(
-    "an SLO $name keeps its own identity and rolls up to its SLO, on create and delete",
-    async (data: {
-      model: () => BaseModel;
-      item: () => BaseModel;
-      resourceType: string;
-      resourceId: ObjectID;
-    }) => {
-      await harness.service.recordCreate({
-        model: data.model(),
-        createdItem: data.item(),
-        props: USER_PROPS,
-      });
-
-      await harness.service.recordDelete({
-        model: data.model(),
-        deletedItem: data.item(),
-        itemId: data.resourceId,
-        props: USER_PROPS,
-      });
-
-      expect(harness.inserted).toHaveLength(2);
-
-      for (const entry of harness.inserted) {
-        expect(entry.resourceType).toBe(data.resourceType);
-        expect(entry.resourceId?.toString()).toBe(data.resourceId.toString());
-        expect(entry.rootResourceType).toBe(SLO_RESOURCE_TYPE);
-        expect(entry.rootResourceId?.toString()).toBe(SLO_ID.toString());
-      }
+      expect(recorder.recordCreate).toHaveBeenCalledTimes(1);
+      expect(recorder.recordCreate.mock.calls[0]![0]).toBe(data);
+      expect(recorder.recordUpdate).not.toHaveBeenCalled();
+      expect(recorder.recordDelete).not.toHaveBeenCalled();
     },
   );
 
-  test("a child's update rolls up through the parent id on its before-row", async () => {
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjectiveBurnRateRule(),
-      before: makeBurnRateRule(),
-      updatedFields: { name: "Fast burn (1h)" },
-      itemId: RULE_ID,
-      props: USER_PROPS,
-    });
+  test("recordUpdate hands the recorder the very arguments it was given", async () => {
+    const data: UpdateData = updateData();
 
-    const entry: AuditLog = onlyEntry();
-    expect(entry.resourceName).toBe("Fast burn");
-    expect(entry.rootResourceType).toBe(SLO_RESOURCE_TYPE);
-    expect(entry.rootResourceId?.toString()).toBe(SLO_ID.toString());
+    await AuditLogServiceInstance.recordUpdate(data);
+
+    expect(recorder.recordUpdate).toHaveBeenCalledTimes(1);
+    expect(recorder.recordUpdate.mock.calls[0]![0]).toBe(data);
+    expect(recorder.recordCreate).not.toHaveBeenCalled();
   });
 
-  test("a child that cannot name its parent is still recorded, with no pointer", async () => {
-    const rule: ServiceLevelObjectiveBurnRateRule = makeBurnRateRule();
-    (rule as unknown as Record<string, unknown>)["serviceLevelObjectiveId"] =
-      undefined;
+  test("recordDelete hands the recorder the very arguments it was given", async () => {
+    const data: DeleteData = deleteData();
 
-    await harness.service.recordCreate({
-      model: new ServiceLevelObjectiveBurnRateRule(),
-      createdItem: rule,
-      props: USER_PROPS,
-    });
+    await AuditLogServiceInstance.recordDelete(data);
 
-    const entry: AuditLog = onlyEntry();
-    expect(entry.resourceType).toBe("SLO Burn Rate Rule");
-    expect(entry.rootResourceType).toBeUndefined();
-    expect(entry.rootResourceId).toBeUndefined();
-  });
-});
-
-describe("relation values are recorded as named references", () => {
-  test("a label swap records old names from the before-row and new ones borrowed or looked up in the project", async () => {
-    relatedRows.set("Label", [label(LABEL_C, "Staging")]);
-
-    const before: ServiceLevelObjective = makeSlo();
-    before.labels = [label(LABEL_A, "Production"), label(LABEL_B, "Payments")];
-
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjective(),
-      before,
-      updatedFields: {
-        labels: [label(LABEL_C), label(LABEL_A)],
-      } as unknown as JSONObject,
-      itemId: SLO_ID,
-      props: USER_PROPS,
-    });
-
-    expect(changeFor(onlyEntry(), "labels")).toEqual({
-      field: "labels",
-      oldValue: [
-        { _id: LABEL_A, name: "Production" },
-        { _id: LABEL_B, name: "Payments" },
-      ],
-      newValue: [
-        { _id: LABEL_C, name: "Staging" },
-        { _id: LABEL_A, name: "Production" },
-      ],
-    });
-
-    // One lookup, for the only id nothing else could name - inside the project.
-    expect(harness.relatedLookups).toHaveLength(1);
-    const lookup: RelatedLookup = harness.relatedLookups[0]!;
-    expect(lookup.tableName).toBe("Label");
-    expect(idsInLookup(lookup)).toEqual([LABEL_C]);
-    expect(lookup.query["projectId"]).toEqual(PROJECT_ID);
-    expect(lookup.select).toEqual({ _id: true, name: true });
-    expect(lookup.props).toEqual({ isRoot: true, ignoreHooks: true });
+    expect(recorder.recordDelete).toHaveBeenCalledTimes(1);
+    expect(recorder.recordDelete.mock.calls[0]![0]).toBe(data);
+    expect(recorder.recordCreate).not.toHaveBeenCalled();
   });
 
-  test("a label the project does not own is recorded by id only", async () => {
-    // The tenant-scoped lookup finds nothing for another project's label.
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjective(),
-      before: Object.assign(makeSlo(), { labels: [] }),
-      updatedFields: { labels: [LABEL_C] } as unknown as JSONObject,
-      itemId: SLO_ID,
-      props: USER_PROPS,
-    });
+  test("invalidateProjectSettings reaches the recorder's cache", () => {
+    AuditLogServiceInstance.invalidateProjectSettings(PROJECT_ID);
 
-    expect(changeFor(onlyEntry(), "labels")).toEqual({
-      field: "labels",
-      oldValue: [],
-      newValue: [{ _id: LABEL_C }],
-    });
+    expect(recorder.invalidateProjectSettings).toHaveBeenCalledTimes(1);
+    expect(recorder.invalidateProjectSettings).toHaveBeenCalledWith(PROJECT_ID);
   });
 
-  test("the same labels in another order and shape are not a change", async () => {
-    const before: ServiceLevelObjective = makeSlo();
-    before.labels = [label(LABEL_A, "Production"), label(LABEL_B, "Payments")];
+  test("core itself never writes: an entry is the recorder's to write", async () => {
+    for (const entryPoint of RECORD_ENTRY_POINTS) {
+      await entryPoint.call(AuditLogServiceInstance);
+    }
 
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjective(),
-      before,
-      updatedFields: {
-        labels: [{ _id: LABEL_B }, LABEL_A],
-      } as unknown as JSONObject,
-      itemId: SLO_ID,
-      props: USER_PROPS,
-    });
-
-    expect(harness.inserted).toHaveLength(0);
+    expect(insertSpy).not.toHaveBeenCalled();
   });
 
-  test("a failed name lookup still records the entry, with ids", async () => {
-    failRelatedLookups = true;
+  test("the call waits for the recorder, so the entry is written before the write returns", async () => {
+    let finished: boolean = false;
 
-    const before: ServiceLevelObjective = makeSlo();
-    before.labels = [label(LABEL_A, "Production")];
-
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjective(),
-      before,
-      updatedFields: {
-        labels: [label(LABEL_C), label(LABEL_A)],
-      } as unknown as JSONObject,
-      itemId: SLO_ID,
-      props: USER_PROPS,
+    recorder.recordCreate.mockImplementation(async (): Promise<void> => {
+      await Promise.resolve();
+      finished = true;
     });
 
-    expect(changeFor(onlyEntry(), "labels")?.["newValue"]).toEqual([
-      { _id: LABEL_C },
-      { _id: LABEL_A, name: "Production" },
-    ]);
+    await AuditLogServiceInstance.recordCreate(createData());
+
+    expect(finished).toBe(true);
   });
 
-  test("users are named by their name, else their email, without a generic lookup", async () => {
-    usersById.set(
-      OWNER_USER_ID.toString(),
-      makeUser(OWNER_USER_ID, null, "grace@example.com"),
-    );
+  test.each(RECORD_ENTRY_POINTS)(
+    "$name never fails the audited write when the recorder rejects",
+    async (entryPoint: EntryPoint) => {
+      recorder[entryPoint.name].mockImplementation(async (): Promise<void> => {
+        throw new Error("clickhouse unavailable");
+      });
 
-    const before: ServiceLevelObjectiveBurnRateRule = makeBurnRateRule();
-    before.alertOwnerUsers = [];
+      await expect(
+        entryPoint.call(AuditLogServiceInstance),
+      ).resolves.toBeUndefined();
+      expect(warnSpy).toHaveBeenCalled();
+    },
+  );
 
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjectiveBurnRateRule(),
-      before,
-      updatedFields: {
-        alertOwnerUsers: [
-          OWNER_USER_ID.toString(),
-          { _id: USER_ID.toString() },
-        ],
-      } as unknown as JSONObject,
-      itemId: RULE_ID,
-      props: USER_PROPS,
+  test("invalidateProjectSettings never throws when the recorder does", () => {
+    recorder.invalidateProjectSettings.mockImplementation((): void => {
+      throw new Error("cache unavailable");
     });
 
-    expect(changeFor(onlyEntry(), "alertOwnerUsers")?.["newValue"]).toEqual([
-      { _id: OWNER_USER_ID.toString(), name: "grace@example.com" },
-      { _id: USER_ID.toString(), name: "Ada Lovelace" },
-    ]);
-    expect(harness.relatedLookups).toHaveLength(0);
-  });
-
-  test("a many-to-one relation is recorded as a single named reference", async () => {
-    const minor: AlertSeverity = new AlertSeverity();
-    minor._id = SEVERITY_2;
-    minor.name = "Minor";
-    relatedRows.set("AlertSeverity", [minor]);
-
-    const critical: AlertSeverity = new AlertSeverity();
-    critical._id = SEVERITY_1;
-    critical.name = "Critical";
-
-    const before: ServiceLevelObjectiveBurnRateRule = makeBurnRateRule();
-    before.alertSeverity = critical;
-
-    const next: AlertSeverity = new AlertSeverity();
-    next._id = SEVERITY_2;
-
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjectiveBurnRateRule(),
-      before,
-      updatedFields: { alertSeverity: next } as unknown as JSONObject,
-      itemId: RULE_ID,
-      props: USER_PROPS,
-    });
-
-    expect(changeFor(onlyEntry(), "alertSeverity")).toEqual({
-      field: "alertSeverity",
-      oldValue: { _id: SEVERITY_1, name: "Critical" },
-      newValue: { _id: SEVERITY_2, name: "Minor" },
-    });
-  });
-
-  test("a create snapshot names its relations", async () => {
-    relatedRows.set("Label", [label(LABEL_A, "Production")]);
-
-    const slo: ServiceLevelObjective = makeSlo();
-    slo.labels = [label(LABEL_A)];
-
-    await harness.service.recordCreate({
-      model: new ServiceLevelObjective(),
-      createdItem: slo,
-      props: USER_PROPS,
-    });
-
-    expect(changeFor(onlyEntry(), "labels")).toEqual({
-      field: "labels",
-      newValue: [{ _id: LABEL_A, name: "Production" }],
-    });
-  });
-
-  test("name lookups are bounded, and the entry still records every reference", async () => {
-    const manyIds: Array<string> = Array.from(
-      { length: 150 },
-      (_value: unknown, index: number) => {
-        return `cccccccc-0000-4000-8000-${index.toString().padStart(12, "0")}`;
-      },
-    );
-
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjective(),
-      before: Object.assign(makeSlo(), { labels: [] }),
-      updatedFields: { labels: manyIds } as unknown as JSONObject,
-      itemId: SLO_ID,
-      props: USER_PROPS,
-    });
-
-    const lookedUp: number = harness.relatedLookups.reduce(
-      (total: number, lookup: RelatedLookup) => {
-        return total + idsInLookup(lookup).length;
-      },
-      0,
-    );
-
-    expect(lookedUp).toBe(100);
-    expect(
-      (changeFor(onlyEntry(), "labels")?.["newValue"] as Array<JSONObject>)
-        .length,
-    ).toBe(150);
-  });
-
-  test("a JSON column holding an _id is recorded as plain JSON, not as a reference", async () => {
-    const before: ServiceLevelObjective = makeSlo();
-    before.metricQueryConfig = { _id: "query-1", query: "a" };
-
-    await harness.service.recordUpdate({
-      model: new ServiceLevelObjective(),
-      before,
-      updatedFields: {
-        metricQueryConfig: { _id: "query-1", query: "b", name: "Errors" },
-      },
-      itemId: SLO_ID,
-      props: USER_PROPS,
-    });
-
-    expect(changeFor(onlyEntry(), "metricQueryConfig")).toEqual({
-      field: "metricQueryConfig",
-      oldValue: { _id: "query-1", query: "a" },
-      newValue: { _id: "query-1", query: "b", name: "Errors" },
-    });
-    expect(harness.relatedLookups).toHaveLength(0);
+    expect(() => {
+      AuditLogServiceInstance.invalidateProjectSettings(PROJECT_ID);
+    }).not.toThrow();
+    expect(warnSpy).toHaveBeenCalled();
   });
 });
 
-describe("rows with no name of their own are named after what they point at", () => {
-  test("an owner user row is named after the user", async () => {
-    usersById.set(
-      OWNER_USER_ID.toString(),
-      makeUser(OWNER_USER_ID, "Grace Hopper", "grace@example.com"),
+describe("the recorder is looked up on every call", () => {
+  test("installing, then removing, the enterprise module takes effect at once", async () => {
+    await AuditLogServiceInstance.recordCreate(createData());
+
+    const recorder: MockedAuditLogRecorder = createAuditLogRecorderSpy();
+    installFakeEnterpriseModule({ auditLogRecorder: recorder });
+
+    await AuditLogServiceInstance.recordCreate(createData());
+    expect(recorder.recordCreate).toHaveBeenCalledTimes(1);
+
+    uninstallEnterpriseModule();
+
+    await AuditLogServiceInstance.recordCreate(createData());
+    expect(recorder.recordCreate).toHaveBeenCalledTimes(1);
+    expect(insertSpy).not.toHaveBeenCalled();
+  });
+
+  test("an enterprise module that has no recorder records nothing", async () => {
+    installFakeEnterpriseModule({ auditLogRecorder: null });
+
+    for (const entryPoint of RECORD_ENTRY_POINTS) {
+      await expect(
+        entryPoint.call(AuditLogServiceInstance),
+      ).resolves.toBeUndefined();
+    }
+
+    expect(() => {
+      AuditLogServiceInstance.invalidateProjectSettings(PROJECT_ID);
+    }).not.toThrow();
+    expect(insertSpy).not.toHaveBeenCalled();
+  });
+
+  test("an enterprise module that fails to hand over its recorder records nothing, and the write still succeeds", async () => {
+    const fake: FakeEnterpriseModule = installFakeEnterpriseModule();
+
+    jest.spyOn(fake, "getAuditLogRecorder").mockImplementation(() => {
+      throw new Error("recorder unavailable");
+    });
+    jest.spyOn(logger, "error").mockImplementation((): void => {
+      return undefined;
+    });
+
+    for (const entryPoint of RECORD_ENTRY_POINTS) {
+      await expect(
+        entryPoint.call(AuditLogServiceInstance),
+      ).resolves.toBeUndefined();
+    }
+
+    expect(insertSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("what core's AuditLogService still is", () => {
+  test("the audit log's analytics service, so reads, retention and migrations stay core", () => {
+    expect(AuditLogServiceInstance).toBeInstanceOf(AuditLogService);
+    expect(typeof AuditLogServiceInstance.create).toBe("function");
+    expect(typeof AuditLogServiceInstance.findBy).toBe("function");
+  });
+
+  test("it carries none of the recording logic, which is Enterprise code", () => {
+    const methods: Array<string> = Object.getOwnPropertyNames(
+      AuditLogService.prototype,
     );
 
-    await harness.service.recordCreate({
-      model: new ServiceLevelObjectiveOwnerUser(),
-      createdItem: makeOwnerUser(),
-      props: USER_PROPS,
-    });
+    for (const recordingHelper of [
+      "insert",
+      "isEligible",
+      "getProjectSettings",
+      "buildSnapshotChanges",
+      "buildUpdateDiff",
+      "getRedactedFields",
+      "addRelationNames",
+      "resolveActor",
+    ]) {
+      expect(methods).not.toContain(recordingHelper);
+    }
 
-    expect(onlyEntry().resourceName).toBe("Grace Hopper");
+    for (const entryPoint of [
+      "recordCreate",
+      "recordUpdate",
+      "recordDelete",
+      "invalidateProjectSettings",
+    ]) {
+      expect(methods).toContain(entryPoint);
+    }
+  });
+});
+
+/*
+ * The audit trail cannot be forged. Entries are written only by the
+ * Enterprise recorder, as root. The model grants create to nobody (a project
+ * owner or admin used to be able to POST /audit-log), and AuditLogService
+ * refuses every create that is not root, master admins' included.
+ */
+const auditEntry: () => AuditLog = (): AuditLog => {
+  const entry: AuditLog = new AuditLog();
+  entry.projectId = PROJECT_ID;
+  entry.resourceType = "Monitor";
+  entry.resourceId = MONITOR_ID;
+  entry.action = "Delete";
+  entry.changes = [];
+  return entry;
+};
+
+const projectMemberProps: (
+  permissions: Array<Permission>,
+) => DatabaseCommonInteractionProps = (
+  permissions: Array<Permission>,
+): DatabaseCommonInteractionProps => {
+  return {
+    userId: PROPS.userId,
+    userType: UserType.User,
+    tenantId: PROJECT_ID,
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        projectId: PROJECT_ID,
+        _type: "UserTenantAccessPermission",
+        permissions: permissions.map((permission: Permission) => {
+          return {
+            _type: "UserPermission",
+            permission: permission,
+            labelIds: [],
+            isBlockPermission: false,
+          };
+        }),
+      } as UserTenantAccessPermission,
+    },
+  };
+};
+
+const NON_ROOT_CALLERS: Array<[string, DatabaseCommonInteractionProps]> = [
+  ["a project owner", projectMemberProps([Permission.ProjectOwner])],
+  ["a project admin", projectMemberProps([Permission.ProjectAdmin])],
+  [
+    "a master admin",
+    {
+      userId: PROPS.userId,
+      userType: UserType.MasterAdmin,
+      isMasterAdmin: true,
+    },
+  ],
+  [
+    "an API key",
+    {
+      userType: UserType.API,
+      tenantId: PROJECT_ID,
+      userTenantAccessPermission: projectMemberProps([Permission.ProjectOwner])
+        .userTenantAccessPermission!,
+    },
+  ],
+  ["a caller with no identity", {}],
+  [
+    "a project admin skipping hooks",
+    {
+      ...projectMemberProps([Permission.ProjectAdmin]),
+      ignoreHooks: true,
+    },
+  ],
+];
+
+describe("nobody but root creates audit log entries", () => {
+  let analyticsCreateMany: jest.SpyInstance;
+
+  beforeEach(() => {
+    // The real create path here; the ClickHouse insert underneath is stubbed.
+    insertSpy.mockRestore();
+    analyticsCreateMany = jest
+      .spyOn(AnalyticsDatabaseService.prototype, "createMany")
+      .mockImplementation((async (createBy: { items: Array<AuditLog> }) => {
+        return createBy.items;
+      }) as never);
   });
 
-  test("a user with no name is named by email", async () => {
-    usersById.set(
-      OWNER_USER_ID.toString(),
-      makeUser(OWNER_USER_ID, null, "grace@example.com"),
-    );
+  test.each(NON_ROOT_CALLERS)(
+    "%s cannot create one",
+    async (_caller: string, props: DatabaseCommonInteractionProps) => {
+      await expect(
+        AuditLogServiceInstance.create({ data: auditEntry(), props }),
+      ).rejects.toThrow(
+        new NotAuthorizedException(AUDIT_LOG_CREATE_REFUSED_MESSAGE),
+      );
+      await expect(
+        AuditLogServiceInstance.createMany({ items: [auditEntry()], props }),
+      ).rejects.toThrow(NotAuthorizedException);
 
-    await harness.service.recordDelete({
-      model: new ServiceLevelObjectiveOwnerUser(),
-      deletedItem: makeOwnerUser(),
-      itemId: OWNER_ROW_ID,
-      props: USER_PROPS,
+      expect(analyticsCreateMany).not.toHaveBeenCalled();
+    },
+  );
+
+  test("a root create - the recorder's - goes through", async () => {
+    const entry: AuditLog = auditEntry();
+
+    await expect(
+      AuditLogServiceInstance.create({ data: entry, props: { isRoot: true } }),
+    ).resolves.toBe(entry);
+
+    expect(analyticsCreateMany).toHaveBeenCalledTimes(1);
+    expect(analyticsCreateMany.mock.calls[0]![0]).toEqual({
+      items: [entry],
+      props: { isRoot: true },
     });
-
-    expect(onlyEntry().resourceName).toBe("grace@example.com");
   });
 
-  test("an owner team row is named after the team, read inside the project", async () => {
-    const team: Team = new Team();
-    team._id = TEAM_ID.toString();
-    team.projectId = PROJECT_ID;
-    team.name = "Site Reliability";
-    relatedRows.set("Team", [team]);
-
-    await harness.service.recordCreate({
-      model: new ServiceLevelObjectiveOwnerTeam(),
-      createdItem: makeOwnerTeam(),
-      props: USER_PROPS,
-    });
-
-    expect(onlyEntry().resourceName).toBe("Site Reliability");
-
-    const lookup: RelatedLookup = harness.relatedLookups[0]!;
-    expect(lookup.tableName).toBe("Team");
-    expect(idsInLookup(lookup)).toEqual([TEAM_ID.toString()]);
-    expect(lookup.query["projectId"]).toEqual(PROJECT_ID);
+  test("a root create that skips hooks goes through too", async () => {
+    await expect(
+      AuditLogServiceInstance.createMany({
+        items: [auditEntry(), auditEntry()],
+        props: { isRoot: true, ignoreHooks: true },
+      }),
+    ).resolves.toHaveLength(2);
   });
 
-  test("a failed team lookup still records the entry, unnamed", async () => {
-    failRelatedLookups = true;
+  test("a fresh instance refuses the same way", async () => {
+    await expect(
+      new AuditLogService().create({
+        data: auditEntry(),
+        props: projectMemberProps([Permission.ProjectAdmin]),
+      }),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
+});
 
-    await harness.service.recordCreate({
-      model: new ServiceLevelObjectiveOwnerTeam(),
-      createdItem: makeOwnerTeam(),
-      props: USER_PROPS,
-    });
+describe("the AuditLog model grants create to nobody", () => {
+  test("no create permission at table level", () => {
+    const model: AuditLog = new AuditLog();
 
-    const entry: AuditLog = onlyEntry();
-    expect(entry.resourceName).toBeUndefined();
-    expect(entry.rootResourceId?.toString()).toBe(SLO_ID.toString());
+    expect(model.getCreatePermissions()).toEqual([]);
+    expect(model.getUpdatePermissions()).toEqual([]);
+    expect(model.getDeletePermissions()).toEqual([]);
   });
 
-  test("a row with its own name never looks anywhere else", async () => {
-    await harness.service.recordCreate({
-      model: new ServiceLevelObjectiveBurnRateRule(),
-      createdItem: makeBurnRateRule(),
-      props: USER_PROPS,
-    });
+  test("no create permission on any column", () => {
+    const columns: Array<AnalyticsTableColumn> = new AuditLog().tableColumns;
 
-    expect(onlyEntry().resourceName).toBe("Fast burn");
-    expect(harness.relatedLookups).toHaveLength(0);
-    // Only the actor was looked up.
-    expect(harness.findUser).toHaveBeenCalledTimes(1);
+    expect(columns.length).toBeGreaterThan(10);
+
+    const creatable: Array<string> = columns
+      .filter((column: AnalyticsTableColumn): boolean => {
+        return (column.accessControl?.create || []).length > 0;
+      })
+      .map((column: AnalyticsTableColumn): string => {
+        return column.key;
+      });
+
+    expect(creatable).toEqual([]);
   });
+
+  // Reading the trail is unchanged.
+  test("owners, admins, settings admins and audit readers can still read it", () => {
+    expect(new AuditLog().getReadPermissions()).toEqual([
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SettingsAdmin,
+      Permission.ReadAuditLog,
+    ]);
+  });
+
+  /*
+   * The permission layer on its own turns a project owner or admin away,
+   * before AuditLogService is even reached.
+   */
+  test.each([
+    ["a project owner", Permission.ProjectOwner],
+    ["a project admin", Permission.ProjectAdmin],
+  ])(
+    "the analytics create check refuses %s",
+    (_caller: string, permission: Permission) => {
+      expect(() => {
+        ModelPermission.checkCreatePermissions(
+          AuditLog,
+          auditEntry(),
+          projectMemberProps([permission]),
+        );
+      }).toThrow(NotAuthorizedException);
+    },
+  );
 });

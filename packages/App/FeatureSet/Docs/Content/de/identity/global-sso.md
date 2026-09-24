@@ -2,7 +2,7 @@
 
 Global SSO ermöglicht es einem OneUptime-**Instanzadministrator** (Master-Admin), einen einzigen SAML 2.0- oder OpenID Connect (OIDC)-Identity Provider **einmal auf Instanzebene** zu konfigurieren und ihn mit jedem Projekt auf dem Server zu verbinden. Es ist das instanzweite Gegenstück zum projektbezogenen SSO: Anstatt dass jeder Projektinhaber seinen eigenen Identity Provider konfiguriert, richtet ein Master-Admin einen ein, der die gesamte Instanz bedienen kann.
 
-Global SSO ist eine Funktion der **OneUptime Enterprise Edition** und ist nur auf Instanzen verfügbar, die mit dem Enterprise-Edition-Build betrieben werden.
+Global SSO ist eine Funktion der **OneUptime Enterprise Edition** und ist nur auf Instanzen verfügbar, die mit dem Enterprise-Edition-Build betrieben werden. Unter [Enterprise Edition](/docs/self-hosted/enterprise) erfahren Sie, wie Sie sie betreiben, wie die Lizenzierung funktioniert und was in der Community Edition mit SSO-Vorgaben geschieht. Ohne gültige Lizenz (nach der 14-tägigen Testphase oder 30 Tage nach Ablauf einer Lizenz) funktioniert die globale SSO-Anmeldung nicht mehr und das instanzweite „Require SSO“ wird nicht durchgesetzt, bis eine Lizenz aktiviert wird.
 
 ## Global SSO vs. Projekt-SSO
 

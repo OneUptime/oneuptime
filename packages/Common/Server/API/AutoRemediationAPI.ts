@@ -20,6 +20,14 @@ import {
   AiRemediationCommandPlanUtil,
 } from "../../Types/AutoRemediation/AiRemediationCommandPlan";
 import { DEFAULT_VERIFICATION_WINDOW_MINUTES } from "../Services/AutoRemediationRuleEngineService";
+import RunbookStepType from "../../Types/Runbook/RunbookStepType";
+import {
+  KubernetesAiAccessGap,
+  KubernetesClusterAiAccessStatus,
+  isKubernetesAgentRunnerName,
+  isKubernetesAgentRunnerPosture,
+  parseKubernetesRunnerPosture,
+} from "../../Types/Kubernetes/KubernetesClusterAiAccess";
 /*
  * Approving starts a runbook execution, so reading the suggestion is not
  * authority enough — the caller must hold a permission from
@@ -42,7 +50,9 @@ import AutoRemediationSuggestionService from "../Services/AutoRemediationSuggest
 import IncidentFeedService from "../Services/IncidentFeedService";
 import RunbookRuleEngineService from "../Services/RunbookRuleEngineService";
 import RunnerService from "../Services/RunnerService";
+import KubernetesClusterAiAccessService from "../Services/KubernetesClusterAiAccessService";
 import CommandPlanExecutor from "../Utils/AutoRemediation/CommandPlanExecutor";
+import RemediationCommandToolkit from "../Utils/AI/Remediation/RemediationCommandTools";
 import logger from "../Utils/Logger";
 
 const router: ExpressRouter = Express.getRouter();
@@ -100,6 +110,160 @@ async function findAccessibleSuggestion(
   }
 
   return suggestion.id;
+}
+
+/*
+ * Approval-time re-check of a Kubectl command's cluster. The plan named the
+ * cluster, the Runner and the credential it was composed for; any of them
+ * can have changed since (the operator turned remediation off on the
+ * cluster's AI page, re-pointed it at another Runner, swapped or removed
+ * the credential, the agent went offline). CommandPlanExecutor hard-stops
+ * on the same conditions right before each command runs — this makes the
+ * Approve click fail up front, with the first blocking gap named, instead
+ * of claiming the plan and having it stop one command in. Each cluster is
+ * checked once however many commands target it.
+ */
+async function assertKubectlCommandsStillRunnable(data: {
+  plan: AiRemediationCommandPlan;
+  projectId: ObjectID;
+}): Promise<void> {
+  const statusByClusterId: Map<string, KubernetesClusterAiAccessStatus | null> =
+    new Map<string, KubernetesClusterAiAccessStatus | null>();
+
+  for (const command of data.plan.commands) {
+    if (command.stepType !== RunbookStepType.Kubectl) {
+      continue;
+    }
+
+    const clusterLabel: string =
+      command.kubernetesClusterNameSnapshot ||
+      command.kubernetesClusterId ||
+      "cluster";
+
+    if (!command.kubernetesClusterId) {
+      throw new BadDataException(
+        `Command ${command.sequence} is a kubectl command with no cluster, so this plan cannot be run. Dismiss it and let a new suggestion be composed.`,
+      );
+    }
+
+    let status: KubernetesClusterAiAccessStatus | null | undefined =
+      statusByClusterId.get(command.kubernetesClusterId);
+
+    if (status === undefined) {
+      status = await KubernetesClusterAiAccessService.getStatusForCluster({
+        clusterId: new ObjectID(command.kubernetesClusterId),
+        projectId: data.projectId,
+      });
+      statusByClusterId.set(command.kubernetesClusterId, status);
+    }
+
+    if (!status) {
+      throw new BadDataException(
+        `Cluster "${clusterLabel}" (command ${command.sequence}) no longer exists in this project, so this plan cannot be run. Dismiss it and let a new suggestion be composed.`,
+      );
+    }
+
+    if (!status.isRemediationReady) {
+      const gap: KubernetesAiAccessGap | undefined = status.gaps.find(
+        (candidate: KubernetesAiAccessGap) => {
+          return candidate.blocks !== "investigation";
+        },
+      );
+
+      throw new BadDataException(
+        `Cluster "${status.clusterName}" (command ${command.sequence}) no longer allows AI remediation${
+          gap ? `: ${gap.title} — ${gap.nextStep}` : ""
+        }. Fix that on the cluster's AI page and approve again, or dismiss the suggestion.`,
+      );
+    }
+
+    if (!status.runner || status.runner.id !== command.runnerId) {
+      throw new BadDataException(
+        `Cluster "${status.clusterName}" (command ${command.sequence}) is no longer reached through Runner "${command.runnerNameSnapshot}", which this plan was composed for${
+          status.runner ? ` — it now uses "${status.runner.name}"` : ""
+        }. Dismiss the suggestion and let a new plan be composed for the current Runner.`,
+      );
+    }
+
+    if (
+      (status.credentialId || undefined) !== (command.credentialId || undefined)
+    ) {
+      throw new BadDataException(
+        `Cluster "${status.clusterName}" (command ${command.sequence}) is no longer reached with the credential this plan was composed for. Dismiss the suggestion and let a new plan be composed with the current credential.`,
+      );
+    }
+
+    /*
+     * The Runner's write scope as it reports it now (its chart's write
+     * namespaces, its own namespace, node operations): a command or rollback
+     * it would refuse fails the click with the reason, instead of claiming
+     * the plan and being refused one command in — or, for a rollback, only
+     * when verification fails and the change has to be undone.
+     */
+    const parts: Array<{ label: string; text: string | undefined }> = [
+      { label: "", text: command.command },
+      { label: "'s rollback", text: command.rollbackCommand },
+    ];
+
+    for (const part of parts) {
+      if (!part.text) {
+        continue;
+      }
+
+      const scopeRefusal: string | null =
+        RemediationCommandToolkit.getRunnerScopeRefusal({
+          cluster: status,
+          command: part.text,
+        });
+
+      if (scopeRefusal) {
+        throw new BadDataException(
+          `Command ${command.sequence}${part.label} cannot run on cluster "${status.clusterName}": ${scopeRefusal} Nothing ran. Dismiss the suggestion and let a new plan be composed, or change the Runner's scope on the Kubernetes agent chart and approve again.`,
+        );
+      }
+    }
+  }
+}
+
+/*
+ * A cluster's in-cluster kubectl agent (the Runner a kubernetes-agent chart
+ * registers) claims Kubectl jobs only. A Bash or SSH step aimed at it would
+ * sit unclaimed until its claim timeout, fail, and skip the rest of the
+ * plan AFTER the approver clicked — so it fails the click instead. A
+ * Kubectl step legitimately names that same Runner (it is how the cluster
+ * is reached), so the check is per step type, not per Runner.
+ */
+function assertNotHostStepOnKubernetesAgent(data: {
+  plan: AiRemediationCommandPlan;
+  runnerId: string;
+  runner: Runner;
+}): void {
+  const isAgent: boolean =
+    isKubernetesAgentRunnerName(data.runner.name) ||
+    isKubernetesAgentRunnerPosture(
+      parseKubernetesRunnerPosture(data.runner.hostInfo),
+    );
+
+  if (!isAgent) {
+    return;
+  }
+
+  const hostStep: AiRemediationCommand | undefined = data.plan.commands.find(
+    (command: AiRemediationCommand) => {
+      return (
+        command.runnerId === data.runnerId &&
+        command.stepType !== RunbookStepType.Kubectl
+      );
+    },
+  );
+
+  if (hostStep) {
+    throw new BadDataException(
+      `Command ${hostStep.sequence} is a ${hostStep.stepType} step on Runner "${
+        data.runner.name || hostStep.runnerNameSnapshot
+      }", a Kubernetes cluster's in-cluster kubectl agent, which runs only Kubectl steps. The plan cannot be run — dismiss it and let a new suggestion be composed.`,
+    );
+  }
 }
 
 async function loadSuggestionAsRoot(
@@ -246,7 +410,8 @@ router.post(
         /*
          * Fail fast if a target Runner lost its AI-commands consent (or was
          * deleted) since the plan was composed — better a clear error now
-         * than a plan that half-runs into claim timeouts.
+         * than a plan that half-runs into claim timeouts. Each Runner is
+         * read once, however many commands target it.
          */
         const runnerIds: Array<string> = Array.from(
           new Set(
@@ -263,7 +428,7 @@ router.post(
               projectId: suggestion.projectId,
               canRunAiCommands: true,
             },
-            select: { _id: true },
+            select: { _id: true, name: true, hostInfo: true },
             props: { isRoot: true },
           });
 
@@ -272,7 +437,24 @@ router.post(
               "A Runner this plan targets no longer accepts AI commands (or was deleted). The plan cannot be run — dismiss it and let a new suggestion be composed.",
             );
           }
+
+          assertNotHostStepOnKubernetesAgent({
+            plan,
+            runnerId,
+            runner,
+          });
         }
+
+        /*
+         * Same idea for kubectl: the cluster's AI access is re-read at
+         * approval time, so a cluster whose remediation was switched off,
+         * re-bound to another Runner or re-credentialed since the plan was
+         * composed fails the click rather than the first command.
+         */
+        await assertKubectlCommandsStillRunnable({
+          plan,
+          projectId: suggestion.projectId,
+        });
 
         const claimedPlan: number =
           await AutoRemediationSuggestionService.attemptStatusTransition({

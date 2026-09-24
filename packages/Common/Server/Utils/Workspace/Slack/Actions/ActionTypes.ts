@@ -1,3 +1,8 @@
+import {
+  PrivateNoteReactionNames,
+  PublicNoteReactionNames,
+} from "../../../../../Types/Workspace/WorkspaceNoteReaction";
+
 enum SlackActionType {
   // Incident actions
   AcknowledgeIncident = "AcknowledgeIncident",
@@ -67,16 +72,9 @@ enum SlackActionType {
 }
 
 // Emoji names that trigger saving a message as a Private Note (Internal Note)
-export const PrivateNoteEmojis: string[] = ["pushpin", "round_pushpin", "pin"];
+export const PrivateNoteEmojis: string[] = PrivateNoteReactionNames;
 
 // Emoji names that trigger saving a message as a Public Note
-export const PublicNoteEmojis: string[] = [
-  "mega",
-  "loudspeaker",
-  "megaphone",
-  "announcement",
-  "speaking_head_in_silhouette",
-  "speaking_head",
-];
+export const PublicNoteEmojis: string[] = PublicNoteReactionNames;
 
 export default SlackActionType;

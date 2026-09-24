@@ -8,7 +8,7 @@ import InBetween from "../../../Types/BaseDatabase/InBetween";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
 import { act, cleanup, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 const PAST_HOUR: RangeStartAndEndDateTime = { range: TimeRange.PAST_ONE_HOUR };
@@ -207,6 +207,94 @@ describe("useHistogramZoom", () => {
       harness.zoomOut();
 
       expect(harness.onTimeRangeChange).toHaveBeenLastCalledWith(PAST_HOUR);
+    });
+  });
+
+  /*
+   * The newest bar is usually still filling up, and the last bar of a fixed
+   * window can reach past its end. Zooming into either whole would open a
+   * window ending in the future, or one holding rows the bar never counted.
+   */
+  describe("keeping a zoom inside the window it zooms out of", () => {
+    const FIXED_WINDOW: RangeStartAndEndDateTime = customRange(
+      "2026-08-05T10:07:23Z",
+      "2026-08-05T12:52:10Z",
+    );
+
+    function selectOn(
+      timeRange: RangeStartAndEndDateTime,
+      start: string,
+      end: string,
+    ): Array<string> {
+      const harness: ZoomHarness = renderZoom(timeRange);
+
+      act(() => {
+        harness.result.current.onTimeRangeSelect?.(
+          new Date(start),
+          new Date(end),
+        );
+      });
+
+      const [selectedStart, selectedEnd] = harness.onTimeRangeSelect.mock
+        .calls[0] as [Date, Date];
+
+      return [selectedStart.toISOString(), selectedEnd.toISOString()];
+    }
+
+    test("stops a bar that runs past the window's end at that end", () => {
+      expect(
+        selectOn(FIXED_WINDOW, "2026-08-05T12:45:00Z", "2026-08-05T13:00:00Z"),
+      ).toEqual(["2026-08-05T12:45:00.000Z", "2026-08-05T12:52:10.000Z"]);
+    });
+
+    test("leaves a selection that ends inside the window as it is", () => {
+      expect(
+        selectOn(FIXED_WINDOW, "2026-08-05T11:00:00Z", "2026-08-05T11:15:00Z"),
+      ).toEqual(["2026-08-05T11:00:00.000Z", "2026-08-05T11:15:00.000Z"]);
+    });
+
+    /*
+     * A relative window's start slides forward with the clock while the
+     * chart drawn a few minutes earlier stays put; cutting the first bar to
+     * the current start would take rows away from a bar still on screen.
+     */
+    test("leaves the start of the first bar alone", () => {
+      expect(
+        selectOn(FIXED_WINDOW, "2026-08-05T10:00:00Z", "2026-08-05T10:15:00Z"),
+      ).toEqual(["2026-08-05T10:00:00.000Z", "2026-08-05T10:15:00.000Z"]);
+    });
+
+    test("does not empty a selection the window has already moved past", () => {
+      expect(
+        selectOn(FIXED_WINDOW, "2026-08-05T13:00:00Z", "2026-08-05T13:15:00Z"),
+      ).toEqual(["2026-08-05T13:00:00.000Z", "2026-08-05T13:15:00.000Z"]);
+    });
+
+    test("stops the newest bar of a relative window at now", () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date("2026-08-05T12:52:10Z"));
+
+      try {
+        expect(
+          selectOn(PAST_HOUR, "2026-08-05T12:45:00Z", "2026-08-05T13:00:00Z"),
+        ).toEqual(["2026-08-05T12:45:00.000Z", "2026-08-05T12:52:10.000Z"]);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    test("still remembers the window to zoom back out to", () => {
+      const harness: ZoomHarness = renderZoom(FIXED_WINDOW);
+
+      act(() => {
+        harness.result.current.onTimeRangeSelect?.(
+          new Date("2026-08-05T12:45:00Z"),
+          new Date("2026-08-05T13:00:00Z"),
+        );
+      });
+      harness.zoomOut();
+
+      expect(harness.onTimeRangeChange).toHaveBeenCalledWith(FIXED_WINDOW);
     });
   });
 

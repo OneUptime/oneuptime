@@ -25,6 +25,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   modelId: ObjectID;
   modelNameField: string;
   modelAPI?: typeof ModelAPI | undefined;
+  /*
+   * Bump to read the header again for the same model, after an edit to its
+   * name or labels, say. The page below stays mounted while it reloads, and a
+   * refresh that fails keeps the header already on screen rather than
+   * replacing the whole page with an error.
+   */
+  refreshToken?: number | undefined;
 }
 
 /*
@@ -53,6 +60,42 @@ const ModelPage: <TBaseModel extends BaseModel>(
   const [loadedHeader, setLoadedHeader] = useState<LoadedModelHeader | null>(
     null,
   );
+
+  /*
+   * Mirrors loadedHeader, so a read that finishes can see what is on screen
+   * now rather than what was on screen when the read started.
+   */
+  const loadedHeaderRef: MutableRefObject<LoadedModelHeader | null> =
+    useRef<LoadedModelHeader | null>(null);
+
+  type ShowHeaderFunction = (header: LoadedModelHeader) => void;
+
+  const showHeader: ShowHeaderFunction = (header: LoadedModelHeader): void => {
+    loadedHeaderRef.current = header;
+    setLoadedHeader(header);
+  };
+
+  type IsShowingHeaderForFunction = (modelId: string) => boolean;
+
+  /*
+   * Whether a failed read of this model is a refresh of a header already on
+   * screen, which it must then leave alone. A refresh that fails - a network
+   * blip, a timeout - would otherwise replace the title, the labels and the
+   * whole page below them with an error, for a model the reader could see a
+   * moment ago. Only a header that loaded without an error counts, so a page
+   * showing an error still recovers on the next refresh.
+   */
+  const isShowingHeaderFor: IsShowingHeaderForFunction = (
+    modelId: string,
+  ): boolean => {
+    const headerOnScreen: LoadedModelHeader | null = loadedHeaderRef.current;
+
+    return (
+      headerOnScreen !== null &&
+      headerOnScreen.modelId === modelId &&
+      !headerOnScreen.error
+    );
+  };
 
   /*
    * Bumped by every fetch, when the model changes and on unmount. A response
@@ -146,12 +189,25 @@ const ModelPage: <TBaseModel extends BaseModel>(
       return;
     }
 
-    setLoadedHeader(header);
+    if (header.error && isShowingHeaderFor(requestedModelId)) {
+      return;
+    }
+
+    showHeader(header);
   };
 
+  /*
+   * A refreshToken bump reads the same model again. The header keeps its id
+   * stamp while it does, so the page below is never unmounted by a refresh;
+   * only a different id takes the page back to the loader.
+   */
   useEffect(() => {
     fetchItem(props.modelId).catch((err: Error) => {
-      setLoadedHeader({
+      if (isShowingHeaderFor(modelIdString)) {
+        return;
+      }
+
+      showHeader({
         modelId: modelIdString,
         title: props.title,
         labels: [],
@@ -162,7 +218,7 @@ const ModelPage: <TBaseModel extends BaseModel>(
     return () => {
       latestRequestRef.current++;
     };
-  }, [modelIdString]);
+  }, [modelIdString, props.refreshToken]);
 
   /*
    * Decided at render time, not in an effect: the very first render for a

@@ -34,7 +34,7 @@ A user account is global to the OneUptime instance — the same login works acro
 A user is "in" a project when they are a member of **at least one team** in it. There is no separate "add user to project" step: inviting somebody to a project invites them to a team.
 
 - Invitations create a pending team member. The user only counts as a project member — and only gains any permission — **after they accept the invitation.**
-- Removing a user from every team in a project removes their access to it.
+- Removing a user from every team in a project removes their access to it, from their next request on — including while they are signed in. Their account and their other projects are not affected. Things assigned to them by name, such as incident roles and resource ownership, stay assigned until you reassign them.
 - If your project enforces SSO and a user has not authenticated through the identity provider yet, they are treated as an unauthorised SSO user and see nothing until they do. See [SSO](/docs/identity/sso).
 - With SCIM configured, your identity provider can create, update and remove users and their team memberships automatically. See [SCIM](/docs/identity/scim).
 

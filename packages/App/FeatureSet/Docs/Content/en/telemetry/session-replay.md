@@ -46,6 +46,7 @@ The script at `/v1/recorder.js` is a small loader. It fetches your application's
 | `data-oneuptime-user-ref` | no | The end-user reference known at page load (a user id, never an email you would not want stored). The same thing `identify()` sets later; it is the only form that works for [Record a specific user's next session](#recording-a-specific-users-next-session). |
 | `data-oneuptime-respect-do-not-track` | no | Defaults to honouring Do Not Track and Global Privacy Control. Set it to `"false"` to record regardless of the signal; see [Do Not Track](#do-not-track). |
 | `data-oneuptime-debug` | no | `"true"` prints the recorder's decisions to the console. See [Session Replay Troubleshooting](/docs/rum/session-replay-troubleshooting). |
+| `data-oneuptime-offline-storage` | no | Set it to `"false"` to keep chunks recorded while the visitor is offline in memory only, instead of also in the browser's IndexedDB. See [Offline mode](#offline-mode). |
 
 The same options can be supplied on a global instead of the tag, which is what tag managers and bundled installs use:
 
@@ -57,6 +58,7 @@ window.__ONEUPTIME_SESSION_REPLAY__ = {
   userRef: "user-123", // optional
   respectDoNotTrack: true, // optional
   debug: false, // optional
+  offlineStorage: true, // optional; false keeps offline chunks in memory only
 };
 ```
 
@@ -118,7 +120,7 @@ Import `OneUptimeReplay` directly, or call `useOneUptimeReplay()` below the prov
 
 | Method | What it does |
 | --- | --- |
-| `start(options)` | Fetch policy and start capture. Required options are `host`, `token`, `appIdentifier` and `mobileAppIdentifier`; `appName` and `appVersion` are optional display metadata. |
+| `start(options)` | Fetch policy and start capture. Required options are `host`, `token`, `appIdentifier` and `mobileAppIdentifier`; `appName` and `appVersion` are optional display metadata, and `connectivity` is an optional network-state source for [offline mode](#offline-mode). |
 | `stop()` | Flush what can be sent, stop capture and detach lifecycle handlers. |
 | `identify(userRef, traits?)` | Attach the signed-in user and optional traits, subject to **Capture user identity**. |
 | `setTags(tags)` / `addTag(key, value)` | Replace all searchable session tags, or add one tag without replacing the others. |
@@ -452,6 +454,31 @@ Identified users are grouped by the pseudonymous key the server stores the refer
 
 The rollup is computed on the server (`POST /telemetry/rum/session-replay/users`, under the same permissions as the list) rather than by grouping the session list in the browser, because the list is paginated by keyset: a page of 20 sessions would say "3 sessions" for a person who had 30, with the other 27 on pages you had not fetched. The server rolls up the whole range and pages the people instead.
 
+### User flows
+
+**User Flows** is in the side menu under **Real User Monitoring → your application → User Flows**, at `.../user-flows`. It draws how people move through your application page to page, from the recordings in the selected range (a week by default): where they land, which page they go to next, where they leave, and where they go in circles.
+
+The flow map has one column per step. A page is a box whose height is the number of sessions at that step, and a band between two boxes is as thick as the number of sessions that made that move. A red stub off a box is the sessions that left the application there; a grey fade means the journey continues past the last column. A band drawn in amber is one where most sessions were going **back** to a page they had already seen. A red dot on a box means sessions hit an error on that page. Hover a box or a band to follow its traffic through the map; click it for the detail panel.
+
+| Control | What it does |
+| --- | --- |
+| **From session start** | Step 1 is each session's landing page. |
+| **After a page** | Anchors the map on one page and follows sessions from the first time they reached it — "where do people go after `/pricing`?" |
+| **Before a page** | Follows sessions backward from the first time they reached a page — "how do people get to `/checkout`?" The anchor is drawn on the right. |
+| **Steps** / **Pages per step** | How many columns to draw and how many pages a column names before the rest are folded into **Other pages** (click it to see what it holds). |
+| **Sessions** | All sessions, only sessions with errors, or only sessions with frustration signals (rage clicks, dead clicks, error clicks, refresh rage). |
+| **Device** | Only desktop, mobile or tablet sessions. |
+| **Group IDs in URLs** | On by default: `/orders/1042` and `/orders/1043` are one page, `/orders/:id`. Numbers, hex ids and long letter-and-digit tokens are grouped, as is every segment the recorder already replaced with `[redacted]`. |
+| **Hide this page** | In a page's detail panel. Removes the page from every journey, so a login or consent interstitial stops splitting paths in two; hidden pages are listed above the map and can be shown again. |
+
+The detail panel for a page shows how many sessions reached it at that step, how many left there, how many hit an error there, where visitors came from and went next across the whole range, up to five sessions to watch, and a link to the session list filtered to every session that visited the page. For a band it shows the share of each side and the sessions that made exactly that move.
+
+Above the map, a few findings name the pages worth a look first: the page where the largest share of visitors hit an error, the page where the most journeys that were going somewhere end (pages almost nobody continues from, such as an order confirmation, are treated as natural ends and never named), the page with the most frustration, and the pair of pages people bounce between (A → B → A). Each finding needs at least three sessions. Click one to point the map at that page. Below the map, **Top paths** lists whole journeys by how many sessions took them, **Pages** has entries, exits, exit rate, errors and frustration for every page, and **Back and forth** lists the loops.
+
+Every control is kept in the URL, so a map is a link you can share.
+
+What the map is built from: each recording chunk carries the pages visited while it was open, in order, and chunks are ordered by time across tabs (the recorder starts a new tab on every full page load). A page repeated back to back — a reload, or two chunks on one page — counts once, and two visits to the same page inside a single chunk also count once, so the map shows journeys rather than exact page-view counts. Errors and frustration are attributed to the page a chunk was flushed from. The page reads the newest 5,000 recorded sessions in the range, and says so when the range held more; only recorded sessions appear, so sampling and capture triggers shape it the same way they shape the session list. The page is served by `POST /telemetry/rum/session-replay/user-flow` under the same permissions and plan as the session list.
+
 ### The player
 
 The player opens wide by default — the RUM side menu steps aside so the stage and the events rail get the width; press `W` or use **Wide** in the header to bring it back. The header is one compact bar rather than a summary card, because every row it does not take is a row the recording gets. Its first line carries **All recordings** (back to the list with your filters intact), the user (or _Visitor a1b2c3_ for an anonymous session that carries a [visitor id](#anonymous-visitors), _Anonymous_ when it does not, _Identity hidden_ when your role cannot read identity), this person's other sessions, and the **Copy link**, **Session details**, **Wide** and **Theater** buttons. Its second line carries browser, OS, viewport and country, when the session was recorded, the short session id and the playhead as both an offset and a wall-clock time so you can cross-reference dashboards by eye.
@@ -581,6 +608,18 @@ Honest limits, so "armed" is not misread as "guaranteed":
 - Your page must supply the reference **at load time** — the `data-oneuptime-user-ref` attribute or `userRef` on the init global — because the target is matched when the policy is fetched, before the recorder artifact exists. A reference set later via `identify()` is too late for that page load, though it still makes the session searchable by `user:`.
 - Consent still applies. A targeted session in _Require explicit_ mode uploads nothing until your page grants consent.
 - The target expires after 24 hours, is consumed by the first matching page load, and only a keyed hash of the reference is stored server-side.
+
+## Offline mode
+
+Both recorders keep recording when the device loses its connection, and upload everything they recorded, in order and under the same session, when it comes back. Nothing needs configuring.
+
+- **An outage is not a failure.** A request that never reaches OneUptime does not count against the recorder's circuit breaker or against the chunk, however long the outage lasts. Throttles from the server are waited out the same way. (The browser recorder still counts a failure before its very first successful upload, because that is also what an ad blocker refusing the upload URL looks like.)
+- **It uploads as soon as it can.** The browser recorder sends nothing while the browser reports itself offline and drains the backlog on the browser's `online` event; the React Native SDK retries with a gentle backoff, again when the app returns to the foreground, and immediately if you pass a `connectivity` source such as NetInfo: `connectivity: { subscribe: (listener) => NetInfo.addEventListener((state) => listener(state.isConnected)) }`.
+- **A closed tab or a killed app loses nothing.** The browser recorder also writes what it has queued to the browser's IndexedDB (database `oneuptime-session-replay`), including the last seconds of a tab closed while offline, and the next page of your application that loads with a connection uploads it. The React Native SDK keeps its queue in AsyncStorage, compressed, and uploads it on the next launch. An app launched with no connection records under the last policy it was given (at most three days old) and fetches a fresh one when it can.
+- **Recordings keep their real time.** A session recorded on a flight and uploaded on landing appears in the session list at the time it happened, not the time it arrived.
+- **Bounded and private.** The browser queue holds up to 240 chunks or 4 MB, the mobile outbox 240 chunks or 3 MB compressed; past that the oldest chunks are dropped and the player shows the gap. What is stored is the same masked content that would have been uploaded, is deleted after three days if it was never sent, and is deleted at once by `revokeConsent()`. A page that has not been given consent uploads nothing an earlier page stored. Set `data-oneuptime-offline-storage="false"` to keep queued chunks in memory only.
+
+A web page that is _loaded_ while offline does not record: the recorder has to fetch your application's policy from OneUptime before it starts.
 
 ## What is not recorded
 

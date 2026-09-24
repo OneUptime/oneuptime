@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import DatabaseConfig from "../../../Server/DatabaseConfig";
 import { EncryptionSecret } from "../../../Server/EnvironmentConfig";
 import MailService from "../../../Server/Services/MailService";
@@ -926,6 +927,40 @@ describe("UserService -- master-admin authentication management", () => {
         .resetPasswordToken as string;
 
       expect(first).not.toBe(second);
+    });
+
+    test("mints the token from the CSPRNG, never ObjectID's non-crypto fallback", async () => {
+      /*
+       * The token is a bearer secret: whoever holds it can set the password.
+       * ObjectID.generate() falls back to Math.random() when no Web Crypto
+       * API is present, so the token comes from node:crypto directly.
+       */
+      const randomUUIDSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        crypto,
+        "randomUUID",
+      );
+      const objectIdSpy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        ObjectID,
+        "generate",
+      );
+
+      resolveUser(buildUser({ id: userId, email: "user@example.com" }));
+
+      try {
+        await UserService.sendPasswordResetLink({ userId: userId });
+
+        const tokenInEmail: string = sentLink().split("/reset-password/")[1]!;
+
+        expect(randomUUIDSpy).toHaveBeenCalledTimes(1);
+        expect(tokenInEmail).toBe(randomUUIDSpy.mock.results[0]!.value);
+        expect(tokenInEmail).toMatch(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+        );
+        expect(objectIdSpy).not.toHaveBeenCalled();
+      } finally {
+        randomUUIDSpy.mockRestore();
+        objectIdSpy.mockRestore();
+      }
     });
 
     test("the link points at the ordinary /accounts/reset-password page", async () => {

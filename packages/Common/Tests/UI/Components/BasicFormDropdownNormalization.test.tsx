@@ -5,7 +5,7 @@ import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import { FormStep } from "../../../UI/Components/Forms/Types/FormStep";
 import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import ObjectID from "../../../Types/ObjectID";
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as React from "react";
 import { describe, expect, test } from "@jest/globals";
@@ -277,6 +277,281 @@ describe("BasicForm dropdown initial-value normalization", () => {
     expect(onSubmit.mock.calls[0]?.[0]).toEqual({
       title: "Existing rule",
       owners: [ownerId],
+    });
+  });
+});
+
+/*
+ * Option aliases (DropdownOption.aliases) let a stored value that is no
+ * option's own — a retired timezone spelling such as "Singapore" — display the
+ * option it means, "GMT+8 Asia/Singapore". Stored values are deliberately never
+ * rewritten: API and Terraform clients must read back exactly what they wrote.
+ * So opening and saving a form must submit the legacy value unchanged, while
+ * the Dropdown shows its current option; only an actual edit writes the
+ * current name.
+ */
+describe("BasicForm dropdown with option aliases", () => {
+  const TIMEZONE_OPTIONS: Array<DropdownOption> = [
+    {
+      label: "GMT+8 Asia/Singapore",
+      value: "Asia/Singapore",
+      aliases: ["Singapore"],
+    },
+    { label: "GMT+9 Asia/Tokyo", value: "Asia/Tokyo", aliases: ["Japan"] },
+    {
+      label: "GMT+5:30 Asia/Kolkata",
+      value: "Asia/Kolkata",
+      aliases: ["Asia/Calcutta"],
+    },
+  ];
+
+  const SINGLE_FIELDS: Fields<FormValues<any>> = [
+    {
+      field: { timezone: true },
+      title: "Timezone",
+      fieldType: FormFieldSchemaType.Dropdown,
+      dropdownOptions: TIMEZONE_OPTIONS,
+      required: false,
+    },
+  ];
+
+  const MULTI_FIELDS: Fields<FormValues<any>> = [
+    {
+      field: { subscriberTimezones: true },
+      title: "Subscriber Timezones",
+      fieldType: FormFieldSchemaType.MultiSelectDropdown,
+      dropdownOptions: TIMEZONE_OPTIONS,
+      required: false,
+    },
+  ];
+
+  interface RenderedForm {
+    onSubmit: MockFunction;
+    user: ReturnType<typeof userEvent.setup>;
+  }
+
+  type RenderFormFunction = (
+    initialValues: FormValues<any>,
+    fields: Fields<FormValues<any>>,
+  ) => RenderedForm;
+
+  const renderForm: RenderFormFunction = (
+    initialValues: FormValues<any>,
+    fields: Fields<FormValues<any>>,
+  ): RenderedForm => {
+    const onSubmit: MockFunction = getJestMockFunction();
+
+    render(
+      <BasicForm
+        fields={fields}
+        id="dropdown-aliases"
+        initialValues={initialValues}
+        onSubmit={onSubmit}
+        submitButtonText="Save"
+        disableAutofocus={true}
+      />,
+    );
+
+    return { onSubmit, user: userEvent.setup({ delay: null }) };
+  };
+
+  // Clicks Save and hands back what BasicForm submitted.
+  type SaveFunction = (form: RenderedForm) => Promise<FormValues<any>>;
+
+  const save: SaveFunction = async (
+    form: RenderedForm,
+  ): Promise<FormValues<any>> => {
+    await form.user.click(screen.getByTestId("Save"));
+
+    expect(form.onSubmit).toHaveBeenCalledTimes(1);
+
+    return form.onSubmit.mock.calls[0]?.[0] as FormValues<any>;
+  };
+
+  const getSelectedLabel: () => string | null = (): string | null => {
+    const singleValue: HTMLElement | null = document.querySelector<HTMLElement>(
+      ".ou-select__single-value",
+    );
+
+    return singleValue ? singleValue.textContent : null;
+  };
+
+  const getChipLabels: () => Array<string> = (): Array<string> => {
+    return Array.from(
+      document.querySelectorAll<HTMLElement>(".ou-select__multi-value__label"),
+    ).map((chip: HTMLElement): string => {
+      return chip.textContent || "";
+    });
+  };
+
+  /*
+   * Opens the menu and clicks the entry with this label. With the menu open a
+   * selected option's label is also in the control, so match menu entries
+   * only.
+   */
+  const chooseMenuOption: (label: string) => void = (label: string): void => {
+    fireEvent.keyDown(screen.getByRole("combobox"), {
+      key: "ArrowDown",
+      code: "ArrowDown",
+    });
+
+    const option: HTMLElement | undefined = Array.from(
+      document.querySelectorAll<HTMLElement>(".ou-select__option"),
+    ).find((element: HTMLElement): boolean => {
+      return element.textContent === label;
+    });
+
+    expect(option).toBeDefined();
+    fireEvent.click(option as HTMLElement);
+  };
+
+  describe("single select", () => {
+    test("an initial legacy value renders its current option's label", async () => {
+      renderForm({ timezone: "Singapore" } as FormValues<any>, SINGLE_FIELDS);
+
+      await screen.findByText("GMT+8 Asia/Singapore");
+
+      expect(getSelectedLabel()).toBe("GMT+8 Asia/Singapore");
+    });
+
+    test("saving without touching the field submits the stored legacy value unchanged", async () => {
+      const form: RenderedForm = renderForm(
+        { timezone: "Singapore" } as FormValues<any>,
+        SINGLE_FIELDS,
+      );
+
+      await screen.findByText("GMT+8 Asia/Singapore");
+
+      expect(await save(form)).toEqual({ timezone: "Singapore" });
+    });
+
+    test("changing the field submits the chosen option's current name", async () => {
+      const form: RenderedForm = renderForm(
+        { timezone: "Singapore" } as FormValues<any>,
+        SINGLE_FIELDS,
+      );
+
+      await screen.findByText("GMT+8 Asia/Singapore");
+      chooseMenuOption("GMT+9 Asia/Tokyo");
+
+      expect(getSelectedLabel()).toBe("GMT+9 Asia/Tokyo");
+      expect(await save(form)).toEqual({ timezone: "Asia/Tokyo" });
+    });
+
+    test("re-choosing the displayed option submits its current name, not the alias", async () => {
+      const form: RenderedForm = renderForm(
+        { timezone: "Asia/Calcutta" } as FormValues<any>,
+        SINGLE_FIELDS,
+      );
+
+      await screen.findByText("GMT+5:30 Asia/Kolkata");
+      chooseMenuOption("GMT+5:30 Asia/Kolkata");
+
+      expect(await save(form)).toEqual({ timezone: "Asia/Kolkata" });
+    });
+
+    test("a current value is still submitted as it was", async () => {
+      const form: RenderedForm = renderForm(
+        { timezone: "Asia/Tokyo" } as FormValues<any>,
+        SINGLE_FIELDS,
+      );
+
+      await screen.findByText("GMT+9 Asia/Tokyo");
+
+      expect(await save(form)).toEqual({ timezone: "Asia/Tokyo" });
+    });
+  });
+
+  describe("multi select", () => {
+    test("initial legacy values render as chips with current labels", async () => {
+      renderForm(
+        { subscriberTimezones: ["Singapore", "Asia/Tokyo"] } as FormValues<any>,
+        MULTI_FIELDS,
+      );
+
+      await screen.findByText("GMT+8 Asia/Singapore");
+
+      expect(getChipLabels()).toEqual([
+        "GMT+8 Asia/Singapore",
+        "GMT+9 Asia/Tokyo",
+      ]);
+    });
+
+    test("saving without touching the field submits the stored values unchanged", async () => {
+      const form: RenderedForm = renderForm(
+        {
+          subscriberTimezones: ["Singapore", "Asia/Tokyo"],
+        } as FormValues<any>,
+        MULTI_FIELDS,
+      );
+
+      await screen.findByText("GMT+8 Asia/Singapore");
+
+      expect(await save(form)).toEqual({
+        subscriberTimezones: ["Singapore", "Asia/Tokyo"],
+      });
+    });
+
+    test("an alias stored beside its own value shows one chip and is still submitted as stored", async () => {
+      /*
+       * The display merges the pair, but an untouched field is not an edit:
+       * what was stored goes back exactly as it was.
+       */
+      const form: RenderedForm = renderForm(
+        {
+          subscriberTimezones: ["Singapore", "Asia/Singapore"],
+        } as FormValues<any>,
+        MULTI_FIELDS,
+      );
+
+      await screen.findByText("GMT+8 Asia/Singapore");
+
+      expect(getChipLabels()).toEqual(["GMT+8 Asia/Singapore"]);
+      expect(await save(form)).toEqual({
+        subscriberTimezones: ["Singapore", "Asia/Singapore"],
+      });
+    });
+
+    test("removing another chip keeps the alias-matched timezone, in its current name", async () => {
+      /*
+       * The subscriber-timezones data loss: "Singapore" matched no option, so
+       * it had no chip, and removing Tokyo submitted [] — dropping Singapore
+       * from the status page without anyone having touched it.
+       */
+      const form: RenderedForm = renderForm(
+        {
+          subscriberTimezones: ["Singapore", "Asia/Tokyo"],
+        } as FormValues<any>,
+        MULTI_FIELDS,
+      );
+
+      await screen.findByText("GMT+9 Asia/Tokyo");
+      await form.user.click(
+        screen.getByRole("button", { name: "Remove GMT+9 Asia/Tokyo" }),
+      );
+
+      expect(getChipLabels()).toEqual(["GMT+8 Asia/Singapore"]);
+      expect(await save(form)).toEqual({
+        subscriberTimezones: ["Asia/Singapore"],
+      });
+    });
+
+    test("adding a chip keeps the alias-matched timezone, in its current name", async () => {
+      const form: RenderedForm = renderForm(
+        { subscriberTimezones: ["Singapore"] } as FormValues<any>,
+        MULTI_FIELDS,
+      );
+
+      await screen.findByText("GMT+8 Asia/Singapore");
+      chooseMenuOption("GMT+5:30 Asia/Kolkata");
+
+      expect(getChipLabels()).toEqual([
+        "GMT+8 Asia/Singapore",
+        "GMT+5:30 Asia/Kolkata",
+      ]);
+      expect(await save(form)).toEqual({
+        subscriberTimezones: ["Asia/Singapore", "Asia/Kolkata"],
+      });
     });
   });
 });

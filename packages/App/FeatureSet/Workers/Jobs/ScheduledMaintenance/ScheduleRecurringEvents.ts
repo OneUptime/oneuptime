@@ -16,6 +16,77 @@ import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/Schedule
 import logger from "Common/Server/Utils/Logger";
 import OwnerRuleAssignment from "Common/Server/Utils/Rules/OwnerRuleAssignment";
 import Recurring from "Common/Types/Events/Recurring";
+import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import DatabaseService from "Common/Server/Services/DatabaseService";
+import DockerHostService from "Common/Server/Services/DockerHostService";
+import HostService from "Common/Server/Services/HostService";
+import KubernetesClusterService from "Common/Server/Services/KubernetesClusterService";
+import LabelService from "Common/Server/Services/LabelService";
+import MonitorService from "Common/Server/Services/MonitorService";
+import PodmanHostService from "Common/Server/Services/PodmanHostService";
+import ServiceService from "Common/Server/Services/ServiceService";
+import StatusPageService from "Common/Server/Services/StatusPageService";
+import ProjectScopedReferenceValidator from "Common/Server/Utils/Database/ProjectScopedReferenceValidator";
+import ObjectID from "Common/Types/ObjectID";
+
+/*
+ * ScheduledMaintenanceService refuses a monitor, label, status page or
+ * affected resource (host, cluster, service...) that belongs to another
+ * project or no longer exists. Templates did not always have those lists
+ * checked, so an older one can still hold such an id, and this job creates
+ * every recurrence from them. Refusing here would skip the event on every run
+ * (scheduleNextEventAt has already moved on by then), so keep what the
+ * template's project can use and log the rest.
+ */
+async function getRecordsUsableInProject<
+  TModel extends DatabaseBaseModel,
+>(data: {
+  template: ScheduledMaintenanceTemplate;
+  records: Array<TModel> | undefined;
+  modelName: string;
+  service: DatabaseService<DatabaseBaseModel>;
+}): Promise<Array<TModel> | undefined> {
+  if (!data.records || data.records.length === 0) {
+    return data.records;
+  }
+
+  const result: {
+    usableIds: Array<ObjectID | string>;
+    droppedIds: Array<ObjectID | string>;
+  } = await ProjectScopedReferenceValidator.filterUsableInProject({
+    projectId: data.template.projectId,
+    ids: data.records
+      .map((record: TModel) => {
+        return record._id || "";
+      })
+      .filter((id: string) => {
+        return Boolean(id);
+      }),
+    service: data.service,
+  });
+
+  if (result.droppedIds.length > 0) {
+    logger.error(
+      `ScheduledMaintenance:ScheduleRecurringEvents: Template ${data.template.id?.toString()} references ${data.modelName} ${result.droppedIds
+        .map((id: ObjectID | string) => {
+          return id.toString();
+        })
+        .join(
+          ", ",
+        )}, which does not exist in project ${data.template.projectId?.toString()}. Creating the event without it.`,
+    );
+  }
+
+  const usableIds: Set<string> = new Set(
+    result.usableIds.map((id: ObjectID | string) => {
+      return id.toString().toLowerCase();
+    }),
+  );
+
+  return data.records.filter((record: TModel) => {
+    return usableIds.has((record._id || "").toLowerCase());
+  });
+}
 
 RunCron(
   "ScheduledMaintenance:ScheduleRecurringEvents",
@@ -139,17 +210,60 @@ RunCron(
           recurringTemplate.shouldStatusPageSubscribersBeNotifiedOnEventCreated!;
         scheduledMaintenanceEvent.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing =
           recurringTemplate.shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing!;
-        scheduledMaintenanceEvent.monitors = recurringTemplate.monitors!;
-        scheduledMaintenanceEvent.hosts = recurringTemplate.hosts!;
+        scheduledMaintenanceEvent.monitors = (await getRecordsUsableInProject({
+          template: recurringTemplate,
+          records: recurringTemplate.monitors,
+          modelName: "monitor",
+          service: MonitorService,
+        }))!;
+        scheduledMaintenanceEvent.hosts = (await getRecordsUsableInProject({
+          template: recurringTemplate,
+          records: recurringTemplate.hosts,
+          modelName: "host",
+          service: HostService,
+        }))!;
         scheduledMaintenanceEvent.kubernetesClusters =
-          recurringTemplate.kubernetesClusters!;
-        scheduledMaintenanceEvent.dockerHosts = recurringTemplate.dockerHosts!;
-        scheduledMaintenanceEvent.podmanHosts = recurringTemplate.podmanHosts!;
-        scheduledMaintenanceEvent.services = recurringTemplate.services!;
-        scheduledMaintenanceEvent.statusPages = recurringTemplate.statusPages!;
+          (await getRecordsUsableInProject({
+            template: recurringTemplate,
+            records: recurringTemplate.kubernetesClusters,
+            modelName: "Kubernetes cluster",
+            service: KubernetesClusterService,
+          }))!;
+        scheduledMaintenanceEvent.dockerHosts =
+          (await getRecordsUsableInProject({
+            template: recurringTemplate,
+            records: recurringTemplate.dockerHosts,
+            modelName: "Docker host",
+            service: DockerHostService,
+          }))!;
+        scheduledMaintenanceEvent.podmanHosts =
+          (await getRecordsUsableInProject({
+            template: recurringTemplate,
+            records: recurringTemplate.podmanHosts,
+            modelName: "Podman host",
+            service: PodmanHostService,
+          }))!;
+        scheduledMaintenanceEvent.services = (await getRecordsUsableInProject({
+          template: recurringTemplate,
+          records: recurringTemplate.services,
+          modelName: "service",
+          service: ServiceService,
+        }))!;
+        scheduledMaintenanceEvent.statusPages =
+          (await getRecordsUsableInProject({
+            template: recurringTemplate,
+            records: recurringTemplate.statusPages,
+            modelName: "status page",
+            service: StatusPageService,
+          }))!;
         scheduledMaintenanceEvent.title = recurringTemplate.title!;
         scheduledMaintenanceEvent.description = recurringTemplate.description!;
-        scheduledMaintenanceEvent.labels = recurringTemplate.labels!;
+        scheduledMaintenanceEvent.labels = (await getRecordsUsableInProject({
+          template: recurringTemplate,
+          records: recurringTemplate.labels,
+          modelName: "label",
+          service: LabelService,
+        }))!;
         scheduledMaintenanceEvent.sendSubscriberNotificationsOnBeforeTheEvent =
           recurringTemplate.sendSubscriberNotificationsOnBeforeTheEvent!;
 

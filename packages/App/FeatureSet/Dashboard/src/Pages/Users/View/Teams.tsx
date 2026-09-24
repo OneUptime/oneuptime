@@ -1,10 +1,16 @@
 import ProjectUtil from "Common/UI/Utils/Project";
 import ProjectUser from "../../../Utils/ProjectUser";
-import { RouteUtil } from "../../../Utils/RouteMap";
+import PageMap from "../../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import TeamMembershipRemoval, {
+  TeamRemovalPlan,
+} from "../../../Utils/TeamMembershipRemoval";
 import PageComponentProps from "../../PageComponentProps";
 import { Green, Yellow } from "Common/Types/BrandColors";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
+import Route from "Common/Types/API/Route";
+import { DeleteConfirmation } from "Common/UI/Components/ModelTable/BaseModelTable";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
@@ -19,6 +25,27 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const userId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  /*
+   * A user is in the project only through their teams, so removing their last
+   * membership here removed them from the project as well - and then left the
+   * admin on this page, with a still-live "Remove from Project" in the menu,
+   * unsure whether the user was gone. The confirmation now says so up front;
+   * once it has happened, go where the result can be seen.
+   */
+  const onMembershipRemoved: () => Promise<void> = async (): Promise<void> => {
+    const isStillInProject: boolean =
+      await TeamMembershipRemoval.isUserStillInProject({
+        userId: userId,
+        projectId: ProjectUtil.getCurrentProjectId()!,
+      });
+
+    if (!isStillInProject) {
+      Navigation.navigate(
+        RouteUtil.populateRouteParams(RouteMap[PageMap.USERS] as Route),
+      );
+    }
+  };
 
   return (
     <Fragment>
@@ -72,6 +99,23 @@ const UserViewTeams: FunctionComponent<PageComponentProps> = (
         ]}
         showRefreshButton={true}
         deleteButtonText="Remove"
+        getDeleteConfirmation={async (
+          item: TeamMember,
+        ): Promise<DeleteConfirmation> => {
+          const plan: TeamRemovalPlan =
+            await TeamMembershipRemoval.getTeamRemovalPlan({
+              membership: item,
+              userId: userId,
+              projectId: ProjectUtil.getCurrentProjectId()!,
+            });
+
+          return plan.confirmation;
+        }}
+        onItemDeleted={() => {
+          onMembershipRemoved().catch(() => {
+            // The table has already refreshed; staying put is a safe fallback.
+          });
+        }}
         viewPageRoute={RouteUtil.populateRouteParams(props.pageRoute)}
         filters={[
           {

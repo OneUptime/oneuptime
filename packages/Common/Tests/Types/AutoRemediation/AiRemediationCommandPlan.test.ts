@@ -7,13 +7,20 @@ import {
   AiRemediationCommandPolicyVerdict,
   AiRemediationPlanExecutionStatus,
   AiRemediationRollbackStatus,
+  APPROVED_COMMAND_STEP_ID_PREFIX,
   DEFAULT_COMMAND_TIMEOUT_MS,
+  INLINE_COMMAND_STEP_ID_PREFIX,
   MAX_COMMAND_LENGTH_CHARS,
   MAX_COMMAND_TIMEOUT_MS,
   MAX_PLAN_COMMANDS,
   MIN_COMMAND_TIMEOUT_MS,
+  ROLLBACK_COMMAND_STEP_ID_PREFIX,
+  getForwardCommandStepId,
+  getRollbackCommandStepId,
+  isSettledCommandExecutionStatus,
 } from "../../../Types/AutoRemediation/AiRemediationCommandPlan";
 import RunbookStepType from "../../../Types/Runbook/RunbookStepType";
+import { KubectlCommandTier } from "../../../Types/Kubernetes/KubernetesClusterAiAccess";
 import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
 
@@ -29,15 +36,17 @@ import { describe, expect, test } from "@jest/globals";
  *
  * The invariant is fail-closed: ANY structural problem in ANY command rejects
  * the WHOLE plan with null — never a partially-valid plan. A Denied verdict,
- * a step type outside Bash/SSH, an SSH command without a credential, an
- * over-long or empty command, or more than MAX_PLAN_COMMANDS entries must all
- * return null. Cosmetic fields (snapshots, rationale, timeouts, execution
- * bookkeeping) instead degrade to safe defaults, because a stale display
- * string must not brick an otherwise executable plan.
+ * a step type outside Bash/SSH/Kubectl, an SSH command without a credential,
+ * a Kubectl command without a cluster, an over-long or empty command, or
+ * more than MAX_PLAN_COMMANDS entries must all return null. Cosmetic fields
+ * (snapshots, rationale, timeouts, the kubectl tier, execution bookkeeping)
+ * instead degrade to safe defaults, because a stale display string must not
+ * brick an otherwise executable plan.
  */
 
 const RUNNER_ID: string = "22222222-2222-4222-8222-222222222222";
 const CREDENTIAL_ID: string = "33333333-3333-4333-8333-333333333333";
+const CLUSTER_ID: string = "44444444-4444-4444-8444-444444444444";
 
 function makeCommand(overrides: JSONObject = {}): JSONObject {
   return {
@@ -81,17 +90,104 @@ function onlyCommand(json: JSONObject): AiRemediationCommand {
   return plan.commands[0] as AiRemediationCommand;
 }
 
+/*
+ * The RunnerJob.stepId prefixes are wire-level: the per-cluster circuit
+ * breaker counts inline kubectl jobs by the first, and the rollback arm
+ * resolves an interrupted command by the one its lane used. A drift between
+ * the lanes would silently exempt a real change from rollback or from the
+ * breaker, so the three values and the helpers that build ids are pinned.
+ */
+describe("AI command step id prefixes", () => {
+  test("are pinned literals that end in a dash", () => {
+    expect(INLINE_COMMAND_STEP_ID_PREFIX).toBe("ai-command-");
+    expect(APPROVED_COMMAND_STEP_ID_PREFIX).toBe("ai-approved-");
+    expect(ROLLBACK_COMMAND_STEP_ID_PREFIX).toBe("ai-rollback-");
+  });
+
+  test("none is a prefix of another — a startsWith count on one never sees the others", () => {
+    const prefixes: Array<string> = [
+      INLINE_COMMAND_STEP_ID_PREFIX,
+      APPROVED_COMMAND_STEP_ID_PREFIX,
+      ROLLBACK_COMMAND_STEP_ID_PREFIX,
+    ];
+    expect(new Set(prefixes).size).toBe(3);
+    for (const a of prefixes) {
+      for (const b of prefixes) {
+        if (a !== b) {
+          expect(a.startsWith(b)).toBe(false);
+        }
+      }
+    }
+  });
+
+  test("getForwardCommandStepId uses the inline prefix only for a command a FullAuto run executed inline", () => {
+    expect(
+      getForwardCommandStepId({ sequence: 1, wasAutoExecuted: true }),
+    ).toBe("ai-command-1");
+    expect(
+      getForwardCommandStepId({ sequence: 3, wasAutoExecuted: false }),
+    ).toBe("ai-approved-3");
+    expect(
+      getForwardCommandStepId({ sequence: 5, wasAutoExecuted: undefined }),
+    ).toBe("ai-approved-5");
+  });
+
+  test("getRollbackCommandStepId appends the sequence to the rollback prefix, whichever lane ran the command", () => {
+    expect(getRollbackCommandStepId({ sequence: 2 })).toBe("ai-rollback-2");
+
+    // An inline-executed command's undo is a rollback job like any other.
+    const inlineCommand: Pick<
+      AiRemediationCommand,
+      "sequence" | "wasAutoExecuted"
+    > = { sequence: 4, wasAutoExecuted: true };
+    expect(getRollbackCommandStepId(inlineCommand)).toBe("ai-rollback-4");
+  });
+
+  test("forward and rollback ids of the same command never collide", () => {
+    for (const wasAutoExecuted of [true, false]) {
+      expect(
+        getForwardCommandStepId({ sequence: 1, wasAutoExecuted }),
+      ).not.toBe(getRollbackCommandStepId({ sequence: 1 }));
+    }
+  });
+});
+
 describe("AI_COMMAND_STEP_TYPES", () => {
-  test("permits exactly Bash and SSH, in that order", () => {
+  test("permits exactly Bash, SSH and Kubectl, in that order", () => {
     /*
      * This array IS the whitelist parse checks against. Widening it (to
      * Kubernetes, JavaScript, ...) would let the AI compose step types the
-     * command lane was never reviewed for.
+     * command lane was never reviewed for. Kubectl is the one cluster lane
+     * that was: a single kubectl argv, tiered by KubectlPolicy, on a Runner
+     * the cluster's AI page bound.
      */
     expect(AI_COMMAND_STEP_TYPES).toEqual([
       RunbookStepType.Bash,
       RunbookStepType.SSH,
+      RunbookStepType.Kubectl,
     ]);
+  });
+
+  test("places Kubectl last, after the two host lanes, with no duplicates", () => {
+    expect(AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.Kubectl)).toBe(
+      AI_COMMAND_STEP_TYPES.length - 1,
+    );
+    expect(AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.SSH)).toBeLessThan(
+      AI_COMMAND_STEP_TYPES.indexOf(RunbookStepType.Kubectl),
+    );
+    expect(new Set(AI_COMMAND_STEP_TYPES).size).toBe(
+      AI_COMMAND_STEP_TYPES.length,
+    );
+  });
+
+  test("admits Kubectl but never the structured Kubernetes runbook step", () => {
+    /*
+     * The structured Kubernetes step (restart/scale with a credential) is
+     * runbook-only. AI reaches a cluster through Kubectl, whose every argv
+     * passes the tier policy — the structured step has no such policy.
+     */
+    expect(AI_COMMAND_STEP_TYPES).toContain(RunbookStepType.Kubectl);
+    expect(AI_COMMAND_STEP_TYPES).not.toContain(RunbookStepType.Kubernetes);
   });
 
   test("excludes every other runbook step type", () => {
@@ -287,6 +383,99 @@ describe("AiRemediationCommandPlanUtil.parse — stepType", () => {
     expect(command.credentialNameSnapshot).toBe("web-01 root key");
   });
 
+  test("Kubectl parses with its cluster, and carries the cluster snapshot and tier through", () => {
+    const command: AiRemediationCommand = onlyCommand(
+      makePlan([
+        makeCommand({
+          stepType: RunbookStepType.Kubectl,
+          command: "kubectl rollout restart deployment/web -n web",
+          kubernetesClusterId: CLUSTER_ID,
+          kubernetesClusterNameSnapshot: "prod-us",
+          kubectlTier: KubectlCommandTier.SafeWrite,
+          policyVerdict: AiRemediationCommandPolicyVerdict.RequiresApproval,
+        }),
+      ]),
+    );
+
+    expect(command.stepType).toBe(RunbookStepType.Kubectl);
+    expect(command.kubernetesClusterId).toBe(CLUSTER_ID);
+    expect(command.kubernetesClusterNameSnapshot).toBe("prod-us");
+    expect(command.kubectlTier).toBe(KubectlCommandTier.SafeWrite);
+    // The cluster's bound Runner still travels on the command.
+    expect(command.runnerId).toBe(RUNNER_ID);
+    expect(command.credentialId).toBeUndefined();
+  });
+
+  test("Kubectl without a kubernetesClusterId returns null", () => {
+    /*
+     * The executor enqueues a kubectl job against the cluster the command
+     * names; a command with no cluster has nowhere safe to run.
+     */
+    for (const clusterId of [undefined, "", "   ", 42, null]) {
+      expect(
+        AiRemediationCommandPlanUtil.parse(
+          makePlan([
+            makeCommand({
+              stepType: RunbookStepType.Kubectl,
+              command: "kubectl rollout restart deployment/web -n web",
+              kubernetesClusterId: clusterId,
+            } as JSONObject),
+          ]),
+        ),
+      ).toBeNull();
+    }
+  });
+
+  test("a Kubectl command without a runnerId still returns null", () => {
+    expect(
+      AiRemediationCommandPlanUtil.parse(
+        makePlan([
+          makeCommand({
+            stepType: RunbookStepType.Kubectl,
+            command: "kubectl rollout restart deployment/web -n web",
+            kubernetesClusterId: CLUSTER_ID,
+            runnerId: "",
+          }),
+        ]),
+      ),
+    ).toBeNull();
+  });
+
+  test("an unknown kubectlTier degrades to undefined rather than rejecting the plan", () => {
+    /*
+     * The tier is informational on the card; execution re-evaluates the
+     * command. A junk tier must not brick an otherwise executable plan.
+     */
+    const command: AiRemediationCommand = onlyCommand(
+      makePlan([
+        makeCommand({
+          stepType: RunbookStepType.Kubectl,
+          command: "kubectl rollout restart deployment/web -n web",
+          kubernetesClusterId: CLUSTER_ID,
+          kubectlTier: "Harmless",
+        }),
+      ]),
+    );
+
+    expect(command.kubectlTier).toBeUndefined();
+  });
+
+  test("Bash and SSH commands ignore cluster fields", () => {
+    const command: AiRemediationCommand = onlyCommand(
+      makePlan([
+        makeCommand({
+          kubernetesClusterId: CLUSTER_ID,
+          kubectlTier: KubectlCommandTier.Read,
+        }),
+      ]),
+    );
+
+    // Parsed verbatim (the fields are optional), but the lane is still Bash.
+    expect(command.stepType).toBe(RunbookStepType.Bash);
+    expect(command.kubernetesClusterId).toBe(CLUSTER_ID);
+    expect(command.kubectlTier).toBe(KubectlCommandTier.Read);
+  });
+
   test.each([
     RunbookStepType.Kubernetes,
     RunbookStepType.JavaScript,
@@ -299,7 +488,7 @@ describe("AiRemediationCommandPlanUtil.parse — stepType", () => {
       /*
        * Kubernetes and JavaScript are legitimate Runner step types, which is
        * exactly why they must be refused here — the AI command lane was only
-       * reviewed for Bash and SSH.
+       * reviewed for Bash, SSH and the policy-tiered Kubectl lane.
        */
       expect(
         AiRemediationCommandPlanUtil.parse(
@@ -310,7 +499,17 @@ describe("AiRemediationCommandPlanUtil.parse — stepType", () => {
   );
 
   test("junk step type strings return null", () => {
-    const junk: Array<unknown> = ["bash", "Shell", "", " SSH", "SSH ", 42];
+    const junk: Array<unknown> = [
+      "bash",
+      "Shell",
+      "",
+      " SSH",
+      "SSH ",
+      "kubectl",
+      "KUBECTL",
+      "Kubectl ",
+      42,
+    ];
 
     for (const stepType of junk) {
       expect(
@@ -1059,5 +1258,80 @@ describe("AiRemediationCommandPlanUtil.toJSON", () => {
     expect(keys).not.toContain("rollbackCommand");
     expect(keys).not.toContain("execution");
     expect(Object.keys(json)).not.toContain("executionStatus");
+  });
+});
+
+/*
+ * The rollback heartbeat: the rollback arm stamps it while it works, and the
+ * verifier's recovery sweep tells a live rollback from one a Worker restart
+ * cut short by it. It must survive a parse/toJSON round trip, and junk must
+ * never reject the plan.
+ */
+describe("AiRemediationCommandPlanUtil.parse — rollbackHeartbeatAt", () => {
+  test("round-trips an ISO heartbeat", () => {
+    const heartbeat: string = "2026-09-22T10:00:00.000Z";
+    const plan: AiRemediationCommandPlan = parseOk(
+      makePlan([makeCommand()], { rollbackHeartbeatAt: heartbeat }),
+    );
+
+    expect(plan.rollbackHeartbeatAt).toBe(heartbeat);
+    expect(
+      AiRemediationCommandPlanUtil.toJSON(plan)["rollbackHeartbeatAt"],
+    ).toBe(heartbeat);
+  });
+
+  test("a non-string heartbeat is dropped, not the plan", () => {
+    const plan: AiRemediationCommandPlan = parseOk(
+      makePlan([makeCommand()], { rollbackHeartbeatAt: 12345 }),
+    );
+
+    expect(plan.rollbackHeartbeatAt).toBeUndefined();
+  });
+
+  test("a plan without one parses as before", () => {
+    const plan: AiRemediationCommandPlan = parseOk(makePlan([makeCommand()]));
+
+    expect(plan.rollbackHeartbeatAt).toBeUndefined();
+    expect(
+      Object.keys(AiRemediationCommandPlanUtil.toJSON(plan)),
+    ).not.toContain("rollbackHeartbeatAt");
+  });
+});
+
+describe("isSettledCommandExecutionStatus", () => {
+  test("an outcome is settled; a record still waiting on its job is not", () => {
+    expect(
+      isSettledCommandExecutionStatus(
+        AiRemediationCommandExecutionStatus.Succeeded,
+      ),
+    ).toBe(true);
+    expect(
+      isSettledCommandExecutionStatus(
+        AiRemediationCommandExecutionStatus.Failed,
+      ),
+    ).toBe(true);
+    expect(
+      isSettledCommandExecutionStatus(
+        AiRemediationCommandExecutionStatus.Skipped,
+      ),
+    ).toBe(true);
+    expect(
+      isSettledCommandExecutionStatus(
+        AiRemediationCommandExecutionStatus.Pending,
+      ),
+    ).toBe(false);
+    expect(
+      isSettledCommandExecutionStatus(
+        AiRemediationCommandExecutionStatus.Running,
+      ),
+    ).toBe(false);
+    expect(isSettledCommandExecutionStatus(undefined)).toBe(false);
+  });
+
+  test("covers every execution status", () => {
+    // A new status must decide which side it is on.
+    expect(Object.values(AiRemediationCommandExecutionStatus).sort()).toEqual(
+      ["Failed", "Pending", "Running", "Skipped", "Succeeded"].sort(),
+    );
   });
 });

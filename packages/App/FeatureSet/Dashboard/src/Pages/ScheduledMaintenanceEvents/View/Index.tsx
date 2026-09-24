@@ -51,6 +51,7 @@ import RecurringArrayFieldElement from "Common/UI/Components/Events/RecurringArr
 import Recurring from "Common/Types/Events/Recurring";
 import RecurringArrayViewElement from "Common/UI/Components/Events/RecurringArrayViewElement";
 import ScheduledMaintenanceFeedElement from "../../../Components/ScheduledMaintenance/ScheduledMaintenanceFeed";
+import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import EntityRunbooks from "../../../Components/Runbook/EntityRunbooks";
 import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
 import EventStatBar from "../../../Components/EventView/EventStatBar";
@@ -62,6 +63,8 @@ import {
   formatScheduledMaintenanceRelativeTime,
 } from "../../../Utils/ScheduledMaintenanceTiming";
 import OneUptimeDate from "Common/Types/Date";
+import Dictionary from "Common/Types/Dictionary";
+import useTranslateValue from "Common/UI/Utils/Translation";
 
 // How many status page names the header lists before summarising the rest.
 const MAX_STATUS_PAGE_NAMES_IN_HEADER: number = 2;
@@ -97,6 +100,14 @@ const getStatusPagesFact: GetStatusPagesFactFunction = (
   );
 };
 
+/*
+ * The Duration cell's description. It is one locale key with the zone as a
+ * placeholder: glued onto the English text, the zone made every rendered
+ * string unique, so it never matched a translation.
+ */
+export const PLANNED_WINDOW_DESCRIPTION_TEMPLATE: string =
+  "Planned window · times in {{abbreviation}}";
+
 interface WindowStatsProps {
   eventStartsAt: Date;
   eventEndsAt: Date;
@@ -107,9 +118,10 @@ interface WindowStatsProps {
  * "in 2 hours" / "2 hours ago" descriptions stay current without
  * re-rendering the rest of the page every tick.
  */
-const ScheduledMaintenanceWindowStats: FunctionComponent<WindowStatsProps> = (
-  props: WindowStatsProps,
-): ReactElement => {
+export const ScheduledMaintenanceWindowStats: FunctionComponent<
+  WindowStatsProps
+> = (props: WindowStatsProps): ReactElement => {
+  const { translateString } = useTranslateValue();
   const eventStartsAt: Date = props.eventStartsAt;
   const eventEndsAt: Date = props.eventEndsAt;
   const [now, setNow] = useState<Date>(OneUptimeDate.getCurrentDate());
@@ -123,6 +135,22 @@ const ScheduledMaintenanceWindowStats: FunctionComponent<WindowStatsProps> = (
       clearTimeout(timeout);
     };
   }, [now]);
+
+  /*
+   * Looked up with its placeholder still in it and filled in here, which also
+   * works where no i18next instance is ready to interpolate. EventStatTile
+   * shows its description as is, so it is not looked up a second time.
+   */
+  const timezoneValues: Dictionary<string> = {
+    abbreviation: OneUptimeDate.getCurrentTimezoneString(),
+  };
+
+  const plannedWindowDescription: string = (
+    translateString(PLANNED_WINDOW_DESCRIPTION_TEMPLATE) ||
+    PLANNED_WINDOW_DESCRIPTION_TEMPLATE
+  ).replace(/\{\{(\w+)\}\}/g, (placeholder: string, name: string): string => {
+    return timezoneValues[name] ?? placeholder;
+  });
 
   return (
     <div className="mb-5">
@@ -154,10 +182,7 @@ const ScheduledMaintenanceWindowStats: FunctionComponent<WindowStatsProps> = (
           value={
             <LiveDuration startDate={eventStartsAt} endDate={eventEndsAt} />
           }
-          description={
-            "Planned window · times in " +
-            OneUptimeDate.getCurrentTimezoneString()
-          }
+          description={plannedWindowDescription}
           icon={IconProp.Clock}
         />
       </EventStatBar>
@@ -221,6 +246,11 @@ const ScheduledMaintenanceView: FunctionComponent<
               title: true,
               scheduledMaintenanceNumber: true,
               scheduledMaintenanceNumberWithPrefix: true,
+              shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+              shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing:
+                true,
+              shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded:
+                true,
               statusPages: {
                 _id: true,
                 name: true,
@@ -338,6 +368,17 @@ const ScheduledMaintenanceView: FunctionComponent<
     (scheduledMaintenance?.scheduledMaintenanceNumber
       ? "#" + scheduledMaintenance.scheduledMaintenanceNumber
       : undefined);
+  /*
+   * Off when the event was created without notifying status page
+   * subscribers; the feed's public note form then starts with "Notify Status
+   * Page Subscribers" unticked. The state change header gets the event's
+   * settings instead, because moving the event to ongoing or ended also
+   * follows its "Event Ongoing" / "Event Ended" settings.
+   */
+  const notifyStatusPageSubscribersByDefault: boolean =
+    PublicNoteSubscriberNotificationDefault.shouldNotifyForScheduledMaintenance(
+      scheduledMaintenance,
+    );
 
   const heroFacts: Array<EventStatusFact> = [
     {
@@ -363,6 +404,7 @@ const ScheduledMaintenanceView: FunctionComponent<
         title={eventTitle}
         eventStartsAt={eventStartsAt}
         eventEndsAt={eventEndsAt}
+        subscriberNotificationSettings={scheduledMaintenance}
         facts={heroFacts}
         onActionComplete={() => {
           // The state change adds a feed item and can change the details.
@@ -387,6 +429,9 @@ const ScheduledMaintenanceView: FunctionComponent<
           <ScheduledMaintenanceFeedElement
             scheduledMaintenanceId={modelId}
             refreshToken={feedRefreshToken}
+            notifyStatusPageSubscribersByDefault={
+              notifyStatusPageSubscribersByDefault
+            }
           />
         </div>
 

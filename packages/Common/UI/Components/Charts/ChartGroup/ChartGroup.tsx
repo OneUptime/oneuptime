@@ -64,6 +64,16 @@ export interface ComponentProps {
    * Absent → this group syncs only within itself.
    */
   syncId?: string | undefined;
+  /*
+   * Without its card, a chart's plot takes whatever height the panel has
+   * left after the title and the series controls. In a panel that can grow
+   * (a monitor overview column), that squeezed the plot to a sliver, so
+   * those hosts set this to keep a minimum plot height and let the panel
+   * grow instead. A panel with a fixed height (a dashboard widget) must
+   * leave it off: it cannot grow, so a floor pushes the series controls and
+   * the x-axis out of view. Only read when hideCard is set.
+   */
+  minPlotHeight?: boolean | undefined;
 }
 
 const ChartGroup: FunctionComponent<ComponentProps> = (
@@ -346,7 +356,19 @@ const ChartGroup: FunctionComponent<ComponentProps> = (
                       </p>
                     )}
                   </div>
-                  {getChartContent(chart, index)}
+                  {/*
+                   * The plot takes whatever height the panel has left. With
+                   * minPlotHeight the panel grows around a floor instead;
+                   * without it the plot shrinks to fit (see minPlotHeight).
+                   */}
+                  <div
+                    data-testid="chart-group-plot"
+                    className={`flex flex-1 flex-col ${
+                      props.minPlotHeight ? "min-h-48" : "min-h-0"
+                    }`}
+                  >
+                    {getChartContent(chart, index)}
+                  </div>
                   {chart.seriesControls ? (
                     <div className="mt-3">{chart.seriesControls}</div>
                   ) : null}

@@ -78,6 +78,7 @@
         "mpim:read",
         "mpim:write",
         "mpim:history",
+        "pins:read",
         "reactions:read"
       ]
     }
@@ -95,6 +96,7 @@
       "request_url": "{{SERVER_URL}}/api/slack/events",
       "bot_events": [
         "reaction_added",
+        "pin_added",
         "app_mention",
         "message.im",
         "message.channels",

@@ -1,3 +1,4 @@
+import KubernetesCluster from "./KubernetesCluster";
 import Project from "./Project";
 import Runner from "./Runner";
 import RunbookExecution from "./RunbookExecution";
@@ -274,6 +275,71 @@ export default class RunnerJob extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public autoRemediationSuggestionId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "kubernetesClusterId",
+    type: TableColumnType.Entity,
+    modelType: KubernetesCluster,
+    title: "Kubernetes Cluster",
+    description:
+      "The cluster a Kubectl job ran against. Set on Kubectl jobs only, so a cluster's AI page can list every command OneUptime AI ran on it.",
+  })
+  @ManyToOne(
+    () => {
+      return KubernetesCluster;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "kubernetesClusterId" })
+  public kubernetesCluster?: KubernetesCluster = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.RunbookAdmin,
+      Permission.RunbookMember,
+      Permission.RunbookViewer,
+      Permission.ReadRunbookExecution,
+    ],
+    update: [],
+  })
+  @Index()
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Kubernetes Cluster ID",
+    description: "ID of the cluster a Kubectl job ran against.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public kubernetesClusterId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

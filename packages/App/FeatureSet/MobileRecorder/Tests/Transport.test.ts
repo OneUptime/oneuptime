@@ -1,6 +1,7 @@
 import { gunzipSync, strFromU8 } from "fflate";
 import {
   SESSION_REPLAY_CONTENT_TYPE,
+  SESSION_REPLAY_LEGACY_CONTENT_TYPE,
   SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
   SESSION_REPLAY_RECORDER_KIND_HEADER,
   SessionReplayChunkEnvelope,
@@ -47,11 +48,61 @@ async function seed(outbox: ReplayOutbox, index: number): Promise<void> {
     envelope: frameEnvelope,
     payload: JSON.stringify([{ index }]),
     attempts: 0,
-    createdAtUnixMs: index,
+    createdAtUnixMs: Date.now() + index,
   });
 }
 
 describe("mobile replay transport", () => {
+  /*
+   * A customer who routes the SDK through their own edge puts a web
+   * application firewall in front of OneUptime. Rule 920420 of the OWASP
+   * Core Rule Set refuses the vendor content type, and 921110 reads the
+   * envelope line raw; see Common/Utils/Rum/SessionReplayWireEncoding.
+   */
+  test("frames the envelope line so a CRS firewall's smuggling rule has nothing to match", () => {
+    const hostile: SessionReplayChunkEnvelope = envelope({
+      url: "app://com.example.checkout/search/gadget+case%20x%0Ay",
+      meta: {
+        entryUrl: "app://com.example.checkout/?a=REDACTED&b=REDACTED",
+        browserName: "React Native",
+        browserVersion: "0.73",
+        osName: "Android",
+        deviceType: "mobile",
+        viewportWidth: 390,
+        viewportHeight: 844,
+        identifiedUserTraits: {
+          name: "Bridget Jones",
+          note: "GET /v1 HTTP/1.1 & 50%",
+        },
+      },
+    });
+
+    const encoded: EncodedReplayFrame = encodeReplayFrame(
+      hostile,
+      JSON.stringify([{ ok: true }]),
+    );
+
+    const newline: number = encoded.body.indexOf(10);
+    const line: string = strFromU8(encoded.body.slice(0, newline + 1));
+
+    expect(line.endsWith(" \n")).toBe(true);
+    expect(line).not.toMatch(/[%&]|http\//i);
+
+    const frame: SplitWireResult = splitWire(encoded.body);
+
+    expect(frame.envelope["url"]).toBe(hostile.url);
+    expect(frame.envelope["meta"]).toEqual(hostile.meta);
+    expect(frame.payload).toEqual([{ ok: true }]);
+    expect(frame.envelope["payloadBytes"]).toBe(frame.compressed.byteLength);
+  });
+
+  test("posts as application/octet-stream, not the vendor type", () => {
+    expect(SESSION_REPLAY_CONTENT_TYPE).toBe("application/octet-stream");
+    expect(SESSION_REPLAY_CONTENT_TYPE).not.toBe(
+      SESSION_REPLAY_LEGACY_CONTENT_TYPE,
+    );
+  });
+
   test("builds the newline-framed contract with real gzip, never raw deflate", () => {
     const encoded: EncodedReplayFrame = encodeReplayFrame(
       envelope(),
@@ -71,7 +122,7 @@ describe("mobile replay transport", () => {
       async (_url: string, init?: NonNullable<Parameters<ReplayFetch>[1]>) => {
         expect(
           Array.from(storage.values.keys()).some((key: string) => {
-            return key.endsWith("/outbox");
+            return key.endsWith("/outbox-v2");
           }),
         ).toBe(true);
         expect(init?.headers?.["Content-Type"]).toBe(
@@ -122,7 +173,12 @@ describe("mobile replay transport", () => {
       onDiagnostic: jest.fn(),
     });
     await first.enqueue(envelope(), "[]");
-    expect((await outbox.list())[0]?.attempts).toBe(1);
+    /*
+     * Offline mode: a request that never reached the server keeps the
+     * frame without spending one of its attempts.
+     */
+    expect(await outbox.list()).toHaveLength(1);
+    expect((await outbox.list())[0]?.attempts).toBe(0);
     first.destroy();
 
     const acceptedFetch: jest.MockedFunction<ReplayFetch> = jest.fn(
@@ -172,7 +228,7 @@ describe("mobile replay transport", () => {
     const uploading: Promise<void> = transport.enqueue(envelope(), "[]");
     for (
       let step: number = 0;
-      step < 20 && fetch.mock.calls.length === 0;
+      step < 200 && fetch.mock.calls.length === 0;
       step += 1
     ) {
       await Promise.resolve();
@@ -185,7 +241,9 @@ describe("mobile replay transport", () => {
     expect(onDiagnostic).toHaveBeenCalledWith("chunk-post-timeout", {
       chunkIndex: 0,
     });
-    expect((await outbox.list())[0]?.attempts).toBe(1);
+    /* A request that never got an answer is the network: no attempt spent. */
+    expect(await outbox.list()).toHaveLength(1);
+    expect((await outbox.list())[0]?.attempts).toBe(0);
     transport.destroy();
     jest.useRealTimers();
   });
@@ -216,7 +274,7 @@ describe("mobile replay transport", () => {
     const uploading: Promise<void> = transport.enqueue(envelope(), "[]");
     for (
       let step: number = 0;
-      step < 20 && fetch.mock.calls.length === 0;
+      step < 200 && fetch.mock.calls.length === 0;
       step += 1
     ) {
       await Promise.resolve();

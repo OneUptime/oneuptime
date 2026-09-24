@@ -1,4 +1,4 @@
-import React, { ReactElement, ReactNode } from "react";
+import React, { ReactElement, ReactNode, useId, useState } from "react";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import {
   FacetData,
@@ -33,6 +33,18 @@ export interface TelemetryViewerProps<T> {
   error?: string | undefined;
   onRefresh?: (() => void) | undefined;
   emptyMessage?: string | undefined;
+  /*
+   * Replaces the default "No results / try adjusting filters" block when the
+   * list comes back empty.
+   *
+   * For most signals the default is right: an empty list means the filters
+   * are too narrow. For a signal that a project may not be SENDING at all,
+   * it is usually wrong — the reader needs the setup guide, not an
+   * invitation to widen a time range over data that does not exist. Takes
+   * precedence over `emptyMessage`; nothing is rendered around it, so the
+   * caller owns the whole empty area.
+   */
+  emptyContent?: ReactNode;
 
   // -- Layout --
   /** Render one item row in the main list. */
@@ -103,6 +115,11 @@ export interface TelemetryViewerProps<T> {
   histogramSeries?: Array<HistogramSeriesOption> | undefined;
   histogramTitle?: string | undefined;
   histogramLoading?: boolean;
+  /*
+   * How much time one histogram bar covers, as the query that drew the bars
+   * bucketed them. It is what lets a click on a bar open that bar's rows.
+   */
+  histogramBucketIntervalMs?: number | undefined;
   onHistogramTimeRangeSelect?:
     | ((startTime: Date, endTime: Date) => void)
     | undefined;
@@ -133,6 +150,14 @@ export interface TelemetryViewerProps<T> {
 
 const DEFAULT_PAGE_SIZE_OPTIONS: Array<number> = [25, 50, 100, 200];
 
+export const TELEMETRY_VIEWER_SEARCH_TEST_ID: string =
+  "telemetry-viewer-search";
+export const TELEMETRY_VIEWER_FILTERS_TOGGLE_TEST_ID: string =
+  "telemetry-viewer-filters-toggle";
+export const TELEMETRY_VIEWER_MAIN_AREA_TEST_ID: string =
+  "telemetry-viewer-main-area";
+export const TELEMETRY_VIEWER_LIST_TEST_ID: string = "telemetry-viewer-list";
+
 function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
   const showFacets: boolean =
     (props.showFacetSidebar ?? true) &&
@@ -153,11 +178,32 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
     onTimeRangeChange: props.onTimeRangeChange,
   });
 
+  /*
+   * Below md there is no room for the facet sidebar beside the list: at phone
+   * width it squeezed the list card to ~110px. There the sidebar stacks above
+   * the list instead, folded behind a "Filters" toggle so the list stays the
+   * first thing on screen. From md up the sidebar always shows and the toggle
+   * is hidden, so this state only matters on small screens.
+   */
+  const [isFacetPanelOpen, setIsFacetPanelOpen] = useState<boolean>(false);
+  const facetPanelId: string = useId();
+
+  const showFacetToggle: boolean = showFacets && !props.mainContentOverride;
+
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col gap-3">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="min-w-0 flex-1">
+        {/*
+         * Below md the search holds a 12rem basis, so the wrapping toolbar
+         * gives it its own row (shared with the Filters toggle at most) and
+         * does not squeeze it between the buttons. From md up it is flex-1
+         * again and takes whatever the buttons leave.
+         */}
+        <div
+          className="min-w-0 flex-[1_1_12rem] md:flex-1"
+          data-testid={TELEMETRY_VIEWER_SEARCH_TEST_ID}
+        >
           <TelemetrySearchBar
             ref={props.searchBarRef}
             value={props.searchValue}
@@ -176,6 +222,26 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             isLoading={props.isLoading}
           />
         </div>
+
+        {showFacetToggle && (
+          <button
+            type="button"
+            className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium shadow-sm transition-colors md:hidden ${
+              isFacetPanelOpen
+                ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+                : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+            aria-expanded={isFacetPanelOpen}
+            aria-controls={facetPanelId}
+            data-testid={TELEMETRY_VIEWER_FILTERS_TOGGLE_TEST_ID}
+            onClick={() => {
+              setIsFacetPanelOpen(!isFacetPanelOpen);
+            }}
+          >
+            <Icon icon={IconProp.Filter} className="h-3.5 w-3.5" />
+            <span>Filters</span>
+          </button>
+        )}
 
         {props.toolbarLeadingActions}
 
@@ -253,6 +319,7 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
             isLoading={props.histogramLoading || false}
             series={props.histogramSeries}
             title={props.histogramTitle}
+            bucketIntervalMs={props.histogramBucketIntervalMs}
             onTimeRangeSelect={histogramZoom.onTimeRangeSelect}
             onZoomOut={histogramZoom.onZoomOut}
             headerActions={props.histogramHeaderActions}
@@ -260,14 +327,20 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
           />
         )}
 
-      {/* Main area: facets + list */}
+      {/*
+       * Main area: facets + list. A column below md (the sidebar, when
+       * opened, stacks above the list); side by side from md up.
+       */}
       <div
-        className={`flex min-h-0 flex-1 gap-3 ${
+        className={`flex min-h-0 flex-1 flex-col gap-3 md:flex-row ${
           props.mainContentOverride ? "hidden" : ""
         }`}
+        data-testid={TELEMETRY_VIEWER_MAIN_AREA_TEST_ID}
       >
         {showFacets && (
           <TelemetryFacetSidebar
+            id={facetPanelId}
+            isCollapsedOnSmallScreens={!isFacetPanelOpen}
             facetData={props.facetData || {}}
             isLoading={props.facetLoading || false}
             facetConfigs={props.facetConfigs || []}
@@ -282,7 +355,10 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
           />
         )}
 
-        <div className="flex min-w-0 flex-1 flex-col rounded-lg border border-gray-200 bg-white">
+        <div
+          className="flex min-w-0 flex-1 flex-col rounded-lg border border-gray-200 bg-white"
+          data-testid={TELEMETRY_VIEWER_LIST_TEST_ID}
+        >
           {props.error && (
             <div className="p-4">
               <ErrorMessage message={props.error} />
@@ -296,18 +372,22 @@ function TelemetryViewerInner<T>(props: TelemetryViewerProps<T>): ReactElement {
                   <ComponentLoader />
                 </div>
               ) : props.items.length === 0 ? (
-                <div className="flex h-48 flex-col items-center justify-center gap-2 px-6 text-center">
-                  <Icon
-                    icon={IconProp.Search}
-                    className="h-8 w-8 text-gray-300"
-                  />
-                  <p className="text-sm font-medium text-gray-500">
-                    {props.emptyMessage || "No results"}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Try adjusting filters or time range.
-                  </p>
-                </div>
+                props.emptyContent !== undefined ? (
+                  <>{props.emptyContent}</>
+                ) : (
+                  <div className="flex h-48 flex-col items-center justify-center gap-2 px-6 text-center">
+                    <Icon
+                      icon={IconProp.Search}
+                      className="h-8 w-8 text-gray-300"
+                    />
+                    <p className="text-sm font-medium text-gray-500">
+                      {props.emptyMessage || "No results"}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Try adjusting filters or time range.
+                    </p>
+                  </div>
+                )
               ) : (
                 <ul className="divide-y divide-gray-100">
                   {props.items.map((item: T, index: number) => {

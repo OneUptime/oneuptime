@@ -646,6 +646,7 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                   body: compiledBody,
                 },
                 subject: compiledSubject,
+                isSubjectLiteral: true,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(
@@ -693,6 +694,7 @@ const notifySubscribersOfEpisodePublicNote: (data: {
                     ),
                 },
                 subject: copy.emailSubjectPrefix + episode.title,
+                isSubjectLiteral: true,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(

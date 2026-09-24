@@ -45,3 +45,19 @@ for (const name of NODE_GLOBALS_TO_BORROW) {
     globalThis[name] = global[name];
   }
 }
+
+/*
+ * structuredClone, which jsdom does not provide either, and which IndexedDB
+ * needs: every value put into an object store is structured-cloned. The
+ * offline-mode tests run the recorder's OfflineStore against fake-indexeddb,
+ * and this is Node's own structured serializer - the same algorithm a browser
+ * applies, rejecting what it cannot clone - rather than a JSON round trip
+ * that would silently accept a function.
+ */
+if (typeof globalThis.structuredClone !== "function") {
+  const v8 = require("v8");
+
+  globalThis.structuredClone = (value) => {
+    return v8.deserialize(v8.serialize(value));
+  };
+}

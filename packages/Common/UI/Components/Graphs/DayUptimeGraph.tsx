@@ -6,7 +6,9 @@ import OneUptimeDate from "../../../Types/Date";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
-import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
+import DayUptimeGraphUtil, {
+  UptimeGraphDay,
+} from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import UptimeHistoryLabels from "../../../Types/Monitor/UptimeHistoryLabels";
 import React, {
   FunctionComponent,
@@ -39,10 +41,59 @@ export interface UptimeBarDaySummary {
   incidents: Array<UptimeBarTooltipIncident>;
 }
 
+/*
+ * One day's reading, measured server-side.
+ *
+ * The bars used to be derived purely from the timeline rows the browser
+ * happened to receive, and those rows arrive under a cap that silently drops
+ * history (see MonitorStatusTimelineService.getDailyUptimeAggregate). A day
+ * whose rows were dropped is indistinguishable, client-side, from a day that
+ * was genuinely quiet - so the graph painted both as the status page's
+ * `defaultBarColor`, which is GREEN on the overwhelming majority of pages.
+ * The page then asserted uptime for periods it had no data for.
+ *
+ * A reading carries how much of the day was actually COVERED by data, which
+ * is the thing the browser cannot infer for itself.
+ */
+export interface DayReading {
+  dayStart: Date;
+  daySeconds: number;
+  /* Zero means nothing was ever recorded for this day. */
+  coveredSeconds: number;
+  statusDurations: Array<StatusDuration>;
+}
+
+/*
+ * A day nobody measured is not a colour the operator gets to choose.
+ *
+ * `defaultBarColor` is branding for an ordinary good day; letting it also
+ * stand for "we have no idea" is exactly the conflation that made a page with
+ * a green default claim uptime it never recorded, and a page with a grey
+ * default look unmonitored while it was passing every check. This is a fixed
+ * neutral, drawn with a hatch so it is still distinguishable in greyscale and
+ * to a colour-blind reader.
+ */
+export const NO_DATA_BAR_COLOR: Color = new Color("#9CA3AF");
+
 export interface ComponentProps {
   startDate: Date;
   endDate: Date;
   events: Array<Event>;
+  /*
+   * Server-measured coverage per day. When a day has a reading with coverage,
+   * it is the account of that day: whether the day has data, its percentage,
+   * its colour and its durations (see getUptimeBar). The events are not
+   * consulted for such a day. When absent, the old event-derived behaviour
+   * applies unchanged.
+   */
+  dayReadings?: Array<DayReading> | undefined;
+  /*
+   * The zone whose calendar days the bars stand for. Defaults to the
+   * browser's own. A caller passing dayReadings must pass the zone the
+   * readings were bucketed in - see DayUptimeGraphUtil.getDays - or each bar
+   * is paired with a reading for a different span of time.
+   */
+  timezone?: string | undefined;
   height?: number | undefined;
   barColorRules?: Array<BarChartRule> | undefined;
   downtimeEventStatusIds?: Array<ObjectID> | undefined;
@@ -63,15 +114,74 @@ export interface ComponentProps {
   labels?: UptimeHistoryLabels | undefined;
 }
 
+type GetReadingBarColorFunction = (
+  statusDurations: Array<StatusDuration>,
+  defaultBarColor: Color,
+) => Color;
+
+/*
+ * The colour of a day painted from the server's reading alone.
+ *
+ * The events path paints a day in the colour of its highest-priority status,
+ * so this does the same with the reading's durations. A status the day spent
+ * no time in cannot win, and two statuses at the same priority go to the one
+ * the day spent longer in. A caller that did not say what its statuses'
+ * priorities are still gets its worst time shown: the downtime status the
+ * day spent longest in, and only a day with no downtime at all gets the
+ * operator's colour.
+ */
+const getReadingBarColor: GetReadingBarColorFunction = (
+  statusDurations: Array<StatusDuration>,
+  defaultBarColor: Color,
+): Color => {
+  let highestPriority: StatusDuration | null = null;
+
+  for (const duration of statusDurations) {
+    if (duration.seconds <= 0 || typeof duration.priority !== "number") {
+      continue;
+    }
+
+    if (
+      !highestPriority ||
+      duration.priority > (highestPriority.priority as number) ||
+      (duration.priority === highestPriority.priority &&
+        duration.seconds > highestPriority.seconds)
+    ) {
+      highestPriority = duration;
+    }
+  }
+
+  if (highestPriority) {
+    return highestPriority.color;
+  }
+
+  let longestDowntime: StatusDuration | null = null;
+
+  for (const duration of statusDurations) {
+    if (!duration.isDowntime || duration.seconds <= 0) {
+      continue;
+    }
+
+    if (!longestDowntime || duration.seconds > longestDowntime.seconds) {
+      longestDowntime = duration;
+    }
+  }
+
+  return longestDowntime ? longestDowntime.color : defaultBarColor;
+};
+
 const DayUptimeGraph: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const days: number = useMemo(() => {
-    return OneUptimeDate.getNumberOfDaysBetweenDatesInclusive(
-      props.startDate,
-      props.endDate,
-    );
-  }, [props.startDate, props.endDate]);
+  const graphDays: Array<UptimeGraphDay> = useMemo(() => {
+    return DayUptimeGraphUtil.getDays({
+      startDate: props.startDate,
+      endDate: props.endDate,
+      timezone: props.timezone,
+    });
+  }, [props.startDate, props.endDate, props.timezone]);
+
+  const days: number = graphDays.length;
 
   /*
    * The strip is one tab stop with a roving tabindex inside it - see
@@ -165,13 +275,25 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
   ): ReactElement => {
     let color: Color = props.defaultBarColor || Green;
 
-    const todaysDay: Date = OneUptimeDate.getSomeDaysAfterDate(
-      props.startDate,
-      dayNumber,
-    );
+    const graphDay: UptimeGraphDay = graphDays[dayNumber]!;
 
-    const startOfTheDay: Date = OneUptimeDate.getStartOfDay(todaysDay);
-    const endOfTheDay: Date = OneUptimeDate.getEndOfDay(todaysDay);
+    const todaysDay: Date = graphDay.date;
+    const startOfTheDay: Date = graphDay.startOfDay;
+    const endOfTheDay: Date = graphDay.endOfDay;
+
+    /*
+     * The server's reading for this day, when the caller supplied one. It is
+     * matched by instant rather than by index: the window's first bucket is
+     * clipped to the window start, so bucket i is not necessarily day i.
+     */
+    const todaysReading: DayReading | undefined = (
+      props.dayReadings || []
+    ).find((reading: DayReading) => {
+      return (
+        reading.dayStart.getTime() >= startOfTheDay.getTime() &&
+        reading.dayStart.getTime() <= endOfTheDay.getTime()
+      );
+    });
 
     const todaysEvents: Array<Event> = props.events.filter((event: Event) => {
       let doesEventBelongsToToday: boolean = false;
@@ -274,32 +396,149 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       }
     }
 
+    /*
+     * Whether the server's reading, rather than the events, decides this
+     * day's percentage and colour.
+     *
+     * Whenever it has one to give. The events the browser holds arrive under
+     * a fetch cap that silently drops history, and "the day still has some
+     * events" does not mean it has all of them:
+     *
+     *   - A day whose rows were ALL dropped has no events, and was painted
+     *     the operator's default colour at 100% - a day spent offline read as
+     *     a perfect one. On a page whose default colour is grey, every such
+     *     day was a grey bar next to a monitor that was up.
+     *
+     *   - The day the cap cuts through keeps only its newest rows, so its
+     *     percentage was taken over the few hours that survived.
+     *
+     *   - Today's rows were the newest of all, but the open row that carries
+     *     the current status still went missing: rows that started within
+     *     the same second were left in the server's newest-first order, so it
+     *     ended before it began (see UptimeUtil.compareTimelinesChronologically).
+     *     Today then had no events and was painted grey as well.
+     *
+     * The reading is measured server-side from every row, so for any day it
+     * covers it is the better account. It used to decide only days with no
+     * events at all; that left the two partial cases above wrong. A reading
+     * with no durations says nothing about how the day was spent, so it keeps
+     * the old treatment below.
+     */
+    const readingDecidesTheDay: boolean = Boolean(
+      todaysReading &&
+        todaysReading.coveredSeconds > 0 &&
+        todaysReading.statusDurations.length > 0,
+    );
+
+    if (readingDecidesTheDay && todaysReading) {
+      /*
+       * Downtime is the time spent in a status the caller counts as down, over
+       * the seconds the server actually covered. A duration carries no status
+       * id, so its isDowntime flag is the caller's answer, set from the same
+       * downtime statuses it passes as downtimeEventStatusIds. Clamped, so a
+       * reading whose durations overrun its coverage reads as a fully down
+       * day rather than as a negative uptime.
+       */
+      const downtimeInReading: number = todaysReading.statusDurations.reduce(
+        (sum: number, duration: StatusDuration) => {
+          return duration.isDowntime
+            ? sum + Math.max(duration.seconds, 0)
+            : sum;
+        },
+        0,
+      );
+
+      totalDowntimeInSeconds = Math.min(
+        downtimeInReading,
+        todaysReading.coveredSeconds,
+      );
+      totalUptimeInSeconds =
+        todaysReading.coveredSeconds - totalDowntimeInSeconds;
+
+      /*
+       * With bar rules, the rules below choose the colour from the reading's
+       * percentage, and a day no rule matches keeps the default colour, as
+       * it does on the events path.
+       */
+      if (!props.barColorRules || props.barColorRules.length === 0) {
+        color = getReadingBarColor(
+          todaysReading.statusDurations,
+          props.defaultBarColor || Green,
+        );
+      }
+    }
+
+    /*
+     * Does this day have data at all?
+     *
+     * With a server reading, coverage is the answer and it is authoritative -
+     * the browser cannot tell a quiet day from a day whose rows were dropped
+     * by the fetch cap. Without one, fall back to the old test.
+     */
+    const hasDataForTheDay: boolean = todaysReading
+      ? todaysReading.coveredSeconds > 0
+      : todaysEvents.length > 0;
+
     // now check bar rules and finalize the color of the bar
 
-    const uptimePercentForTheDay: number =
-      totalUptimeInSeconds + totalDowntimeInSeconds > 0
+    /*
+     * The denominator is what was MEASURED, not the length of the day. A day
+     * only half covered - the day a monitor was created - reports the
+     * percentage of the half we watched rather than being marked down for the
+     * hours nobody was looking.
+     *
+     * The old expression ended in `: 100`, which said "no readings at all
+     * means a perfect day". That is the single line that let a status page
+     * assert uptime for a period it had no data for, so it is gone rather
+     * than adjusted: with no data there is no percentage.
+     */
+    const uptimePercentForTheDay: number = !hasDataForTheDay
+      ? 0
+      : totalUptimeInSeconds + totalDowntimeInSeconds > 0
         ? (totalUptimeInSeconds /
             (totalDowntimeInSeconds + totalUptimeInSeconds)) *
           100
         : 100;
 
-    for (const rules of props.barColorRules || []) {
-      if (uptimePercentForTheDay >= rules.uptimePercentGreaterThanOrEqualTo) {
-        color = rules.barColor;
-        break;
+    /*
+     * Rules are skipped entirely on a day with no data. Otherwise a page
+     * configuring ">= 99% is green" would have that rule matched by a day
+     * nobody measured, which is the very claim this change removes. No-data
+     * outranks operator rules on purpose.
+     */
+    if (hasDataForTheDay) {
+      for (const rules of props.barColorRules || []) {
+        if (uptimePercentForTheDay >= rules.uptimePercentGreaterThanOrEqualTo) {
+          color = rules.barColor;
+          break;
+        }
       }
     }
 
-    if (todaysEvents.length === 1 && !hasEvents) {
+    if (todaysEvents.length >= 1) {
       hasEvents = true;
     }
 
-    if (todaysEvents.length === 1) {
-      hasEvents = true;
-    }
+    /*
+     * THE FIX.
+     *
+     * This used to read: no events today, so paint `defaultBarColor`. That
+     * single line is how a status page claimed uptime for days it had no data
+     * for - `defaultBarColor` is green on the overwhelming majority of pages,
+     * and "no events" was true both for a quiet day and for a day whose rows
+     * the fetch cap had thrown away.
+     *
+     * Now the two are separated. A day with data but no events of its own is
+     * an ordinary good day and still gets the operator's colour, unless the
+     * server's reading says how the day was spent, in which case the colour
+     * chosen from that reading above stands. A day with no data gets the
+     * fixed no-data treatment and says so.
+     */
+    hasEvents = hasDataForTheDay;
 
-    if (todaysEvents.length === 0) {
-      hasEvents = false;
+    if (!hasDataForTheDay) {
+      color = NO_DATA_BAR_COLOR;
+    } else if (todaysEvents.length === 0 && !readingDecidesTheDay) {
       color = props.defaultBarColor || Green;
     }
 
@@ -315,9 +554,18 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
       className = "w-20 h-" + props.height;
     }
 
-    // Build status durations for tooltip
-    const statusDurations: Array<StatusDuration> = [];
-    for (const key in secondsOfEvent) {
+    /*
+     * Build status durations for the tooltip and the day dialog.
+     *
+     * A server reading wins: its durations are measured over the whole day
+     * server-side, while `secondsOfEvent` can only describe the rows this
+     * browser happened to receive.
+     */
+    const statusDurations: Array<StatusDuration> = todaysReading
+      ? todaysReading.statusDurations
+      : [];
+
+    for (const key in todaysReading ? {} : secondsOfEvent) {
       statusDurations.push({
         label: eventLabels[key] || "Unknown",
         seconds: secondsOfEvent[key] || 0,
@@ -344,10 +592,10 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
     };
 
     const ariaLabel: string = DayUptimeGraphUtil.getDayAriaLabel({
-      dateLabel: OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-        todaysDay,
-        true,
-      ),
+      dateLabel: DayUptimeGraphUtil.formatDayLabel({
+        date: todaysDay,
+        timezone: props.timezone,
+      }),
       hasEvents: hasEvents,
       uptimePercent: uptimePercentForTheDay,
       incidentCount: dayIncidents.length,
@@ -361,6 +609,7 @@ const DayUptimeGraph: FunctionComponent<ComponentProps> = (
         richContent={
           <UptimeBarTooltip
             date={todaysDay}
+            timezone={props.timezone}
             uptimePercent={uptimePercentForTheDay}
             hasEvents={hasEvents}
             statusDurations={statusDurations}

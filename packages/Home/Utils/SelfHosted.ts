@@ -453,7 +453,7 @@ export const AirGapSteps: Array<AirGapStep> = [
   {
     title: "Turn off the update check",
     description:
-      "The platform's outbound version check is a single switch. Disabled, the install makes no calls to oneuptime.com.",
+      "The platform's outbound version check is a single switch. Disabled, a Community Edition install makes no calls to oneuptime.com. An Enterprise Edition install also checks its license online unless it is activated with an offline license token.",
     setting: "updateCheck.disabled",
   },
   {
@@ -482,8 +482,24 @@ export const AirGapSteps: Array<AirGapStep> = [
   },
 ];
 
-export const HardenedImageFeatures: Array<string> = [
-  "Enterprise Edition container images built with additional security controls, selected with `image.type: enterprise-edition`",
+/*
+ * What the Enterprise Edition image adds to the Community Edition. The image is
+ * the Community Edition image plus the enterprise modules in the repository's
+ * ee/ directory, not a separately hardened base, so nothing here may call it
+ * "hardened". Hardening comes from the chart (SecurityHardeningFeatures) and
+ * applies to both editions.
+ */
+export const EnterpriseEditionFeatures: Array<string> = [
+  "Selected with `image.type: enterprise-edition` in the Helm chart, or `APP_TAG=enterprise-release` with Docker Compose",
+  "SAML and OpenID Connect single sign-on for projects, private status pages, and the whole instance",
+  "SCIM provisioning and deprovisioning for projects and status pages",
+  "Audit logs and team compliance settings",
+  "Instance health dashboards, PostgreSQL and Valkey health alerts, and a query console for administrators",
+  "Licensed under the OneUptime Enterprise License: production use requires a license for the number of users you run",
+];
+
+// Security controls from the Helm chart and the build pipeline, in both editions.
+export const SecurityHardeningFeatures: Array<string> = [
   "Non-root pod and container security contexts, with a RuntimeDefault seccomp profile applied across the chart",
   "Service-account token mounting disabled by default on probe pods, which need no Kubernetes API credentials",
   "Optional Chromium OS sandbox for synthetic monitors, with per-execution UID, memory, and disk ceilings",
@@ -559,7 +575,8 @@ export const SharedResponsibilities: Array<ResponsibilityRow> = [
   },
   {
     area: "Access control",
-    oneuptime: "We ship SSO/SAML, SCIM, RBAC, API-key scoping, and audit logs.",
+    oneuptime:
+      "We ship RBAC and API-key scoping in both editions, and SSO/SAML, SCIM, and audit logs in the Enterprise Edition.",
     customer: "You configure your identity provider and review access.",
   },
   {
@@ -576,27 +593,27 @@ export const SupportBoundaries: Array<SupportTierRow> = [
     key: "community",
     name: "Community Edition",
     description:
-      "The full platform, Apache-2.0 licensed, supported by the community and the maintainers on GitHub.",
+      "The core platform, Apache-2.0 licensed, supported by the community and the maintainers on GitHub.",
     included: [
       "GitHub issues and discussions",
       "Public documentation, Helm chart docs, and upgrade notes",
-      "Every product feature — the community edition is not feature-limited",
+      "Monitoring, incidents, on-call, status pages, logs, metrics, traces, dashboards, and workflows — the whole core product",
       "Security fixes shipped in public releases",
     ],
     excluded: [
       "No response-time commitment",
       "No private support channel or named contact",
       "No architecture review or migration assistance",
-      "No hardened Enterprise Edition images",
+      "No SSO, SCIM, audit logs, team compliance, or instance health dashboards — those are Enterprise Edition features",
     ],
   },
   {
     key: "enterprise",
     name: "Enterprise Edition",
     description:
-      "A commercial agreement on top of the same platform, for teams that need accountability alongside the source code.",
+      "The Community Edition plus the enterprise modules, under a commercial agreement, for teams that need accountability alongside the source code.",
     included: [
-      "Hardened Enterprise Edition container images",
+      "The Enterprise Edition image: SSO (SAML and OIDC), SCIM, audit logs, team compliance, and instance health dashboards",
       "A private support channel with agreed severity levels and response targets",
       "A named engineering contact and architecture reviews",
       "Migration and upgrade assistance, plus custom data residency and retention",
@@ -615,12 +632,12 @@ export const SelfHostedFaqs: Array<SelfHostedFaq> = [
   {
     question: "Is the self-hosted edition feature-limited?",
     answer:
-      "No. The Community Edition is the full platform under Apache 2.0 — monitoring, incidents, on-call, status pages, logs, metrics, traces, dashboards, and workflows. The Enterprise Edition adds hardened images and a commercial support agreement, not product features you would otherwise be missing.",
+      "The Community Edition is the full monitoring, incident, and observability platform under Apache 2.0 — monitoring, incidents, on-call, status pages, logs, metrics, traces, dashboards, and workflows. The Enterprise Edition adds identity and governance features — SAML and OIDC single sign-on, SCIM provisioning, audit logs, team compliance, and instance health dashboards — under the OneUptime Enterprise License, together with a commercial support agreement.",
   },
   {
     question: "Does a self-hosted install phone home?",
     answer:
-      "The only outbound call the platform makes on its own is a version check, and it is a single switch to disable. With it off and images mirrored into your registry, an install runs with no connectivity to us at all.",
+      "The Community Edition makes one outbound call on its own: a version check, and it is a single switch to disable. With it off and images mirrored into your registry, a Community Edition install runs with no connectivity to us at all. An Enterprise Edition install activated with a license key also checks its license with oneuptime.com once a day, sending seat counts, hashed user emails, and master-admin contact emails — never monitoring data.",
   },
   {
     question: "Who is responsible for uptime when we self-host?",
@@ -648,7 +665,8 @@ export interface SelfHostedContent {
   availabilityControls: Array<ResilienceControl>;
   disasterRecoveryPractices: Array<string>;
   airGapSteps: Array<AirGapStep>;
-  hardenedImageFeatures: Array<string>;
+  enterpriseEditionFeatures: Array<string>;
+  securityHardeningFeatures: Array<string>;
   upgradeResponsibilities: Array<ResponsibilityRow>;
   sharedResponsibilities: Array<ResponsibilityRow>;
   supportBoundaries: Array<SupportTierRow>;
@@ -665,7 +683,8 @@ export function getSelfHostedContent(): SelfHostedContent {
     availabilityControls: AvailabilityControls,
     disasterRecoveryPractices: DisasterRecoveryPractices,
     airGapSteps: AirGapSteps,
-    hardenedImageFeatures: HardenedImageFeatures,
+    enterpriseEditionFeatures: EnterpriseEditionFeatures,
+    securityHardeningFeatures: SecurityHardeningFeatures,
     upgradeResponsibilities: UpgradeResponsibilities,
     sharedResponsibilities: SharedResponsibilities,
     supportBoundaries: SupportBoundaries,

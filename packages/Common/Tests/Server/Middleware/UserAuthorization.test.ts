@@ -38,6 +38,11 @@ import {
 import { getJestSpyOn } from "../../../Tests/Spy";
 import getJestMockFunction from "../../../Tests/MockType";
 import UserPermissionUtil from "../../../Server/Utils/UserPermission/UserPermission";
+import {
+  installFakeEnterpriseModule,
+  uninstallEnterpriseModule,
+} from "../Enterprise/FakeEnterpriseModule";
+import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
 
 jest.mock("../../../Server/Utils/Logger");
 jest.mock("../../../Server/Middleware/ProjectAuthorization");
@@ -50,6 +55,28 @@ jest.mock("../../../Server/Services/ProjectService");
 jest.mock("../../../Server/Services/TeamMemberService");
 jest.mock("../../../Types/HashedString");
 jest.mock("../../../Types/JSONFunctions");
+/*
+ * SSO enforcement is an Enterprise Edition control (on while SSO is active:
+ * ee loaded and, with billing off, a license that covers SSO; relaxed on the
+ * Community Edition and while the license is lapsed). The enforcement tests
+ * below install a fake enterprise module with a valid license and pin billing
+ * so they test the same thing locally and in CI, whose config.env sets
+ * BILLING_ENABLED=true. The Community Edition and lapsed-license cases live in
+ * UserAuthorizationEditionEnforcement.test.ts.
+ */
+jest.mock("../../../Server/EnvironmentConfig", () => {
+  const billingFlag: typeof import("../Enterprise/TestBillingFlag") =
+    jest.requireActual(
+      "../Enterprise/TestBillingFlag",
+    ) as typeof import("../Enterprise/TestBillingFlag");
+
+  return billingFlag.withLiveBillingFlag(
+    jest.requireActual("../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >,
+  );
+});
 /*
  * PasswordHash carries a pre-existing TS5.9 diagnostic that fails any suite
  * whose runtime require graph reaches it (DatabaseService, the base class of
@@ -626,6 +653,7 @@ describe("UserMiddleware", () => {
         mockedRequest,
         userId,
         mockedGlobalAccessPermission.projectIds,
+        mockedGlobalAccessPermission,
       );
     });
 
@@ -664,6 +692,40 @@ describe("UserMiddleware", () => {
         },
       );
     });
+    /*
+     * AccessTokenService only serves a cached project permission while the
+     * user's global permission still lists the project. The middleware is
+     * already reading that global permission, so it hands the same pending
+     * read to the tenant lookup instead of letting it read the key again.
+     */
+    test("should hand the global permission it is resolving to the tenant permission lookup", async () => {
+      const spyGetUserGlobalAccessPermission: jest.SpyInstance = getJestSpyOn(
+        AccessTokenService,
+        "getUserGlobalAccessPermission",
+      ).mockResolvedValueOnce(mockedGlobalAccessPermission);
+      const spyGetUserTenantAccessPermissionWithTenantId: jest.SpyInstance =
+        getJestSpyOn(
+          UserMiddleware,
+          "getUserTenantAccessPermissionWithTenantId",
+        ).mockResolvedValueOnce(mockedTenantAccessPermission);
+
+      await UserMiddleware.getUserMiddleware(req, res, next);
+
+      expect(spyGetUserGlobalAccessPermission).toHaveBeenCalledTimes(1);
+      expect(
+        spyGetUserTenantAccessPermissionWithTenantId,
+      ).toHaveBeenCalledTimes(1);
+
+      const handedOver: unknown = (
+        spyGetUserTenantAccessPermissionWithTenantId.mock.calls[0]![0] as {
+          userGlobalAccessPermission?: unknown;
+        }
+      ).userGlobalAccessPermission;
+
+      expect(handedOver).toBeInstanceOf(Promise);
+      await expect(handedOver).resolves.toBe(mockedGlobalAccessPermission);
+      expect(next).toHaveBeenCalled();
+    });
   });
 
   describe("getUserTenantAccessPermissionWithTenantId", () => {
@@ -695,13 +757,17 @@ describe("UserMiddleware", () => {
 
     afterEach(() => {
       jest.clearAllMocks();
+      uninstallEnterpriseModule();
     });
 
     /*
      * By default no project requires a specific SSO provider (discriminator),
-     * and the instance-wide "Require SSO for Login" flag is off.
+     * and the instance-wide "Require SSO for Login" flag is off. The
+     * Enterprise Edition is loaded, so a configured requirement is enforced.
      */
     beforeEach(() => {
+      setTestBillingEnabled(false);
+      installFakeEnterpriseModule();
       spyGetRequireSsoWithSsoProviderId.mockResolvedValue(null);
       spyGetGlobalRequireSsoForLogin.mockResolvedValue(false);
     });
@@ -760,6 +826,7 @@ describe("UserMiddleware", () => {
       expect(spyGetUserTenantAccessPermission).toHaveBeenLastCalledWith(
         userId,
         projectId,
+        { userGlobalAccessPermission: undefined },
       );
     });
 
@@ -786,6 +853,33 @@ describe("UserMiddleware", () => {
       expect(spyGetUserTenantAccessPermission).toHaveBeenLastCalledWith(
         userId,
         projectId,
+        { userGlobalAccessPermission: undefined },
+      );
+    });
+    test("should forward the caller's global permission to AccessTokenService", async () => {
+      spyGetRequireSsoForLogin.mockResolvedValueOnce(false);
+
+      const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
+        AccessTokenService,
+        "getUserTenantAccessPermission",
+      ).mockResolvedValueOnce(null);
+
+      const userGlobalAccessPermission: Promise<UserGlobalAccessPermission | null> =
+        Promise.resolve({
+          projectIds: [projectId],
+        } as UserGlobalAccessPermission);
+
+      await UserMiddleware.getUserTenantAccessPermissionWithTenantId({
+        req,
+        tenantId: projectId,
+        userId,
+        userGlobalAccessPermission,
+      });
+
+      expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
+        userId,
+        projectId,
+        { userGlobalAccessPermission },
       );
     });
   });
@@ -822,13 +916,17 @@ describe("UserMiddleware", () => {
 
     afterEach(() => {
       jest.clearAllMocks();
+      uninstallEnterpriseModule();
     });
 
     /*
      * By default neither a project's own nor the instance-wide "Require SSO for
-     * Login" flag is on, and no project requires a specific SSO provider.
+     * Login" flag is on, and no project requires a specific SSO provider. The
+     * Enterprise Edition is loaded, so a configured requirement is enforced.
      */
     beforeEach(() => {
+      setTestBillingEnabled(false);
+      installFakeEnterpriseModule();
       spyGetProjectRequireSsoForLogin.mockResolvedValue(false);
       spyGetRequireSsoWithSsoProviderId.mockResolvedValue(null);
       spyGetGlobalRequireSsoForLogin.mockResolvedValue(false);
@@ -897,6 +995,7 @@ describe("UserMiddleware", () => {
       expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
         userId,
         projectId,
+        { userGlobalAccessPermission: undefined },
       );
     });
 
@@ -917,6 +1016,7 @@ describe("UserMiddleware", () => {
       expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
         userId,
         projectId,
+        { userGlobalAccessPermission: undefined },
       );
     });
 
@@ -963,6 +1063,38 @@ describe("UserMiddleware", () => {
       expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
         userId,
         projectId,
+        { userGlobalAccessPermission: undefined },
+      );
+    });
+
+    test("should hand every project's lookup the global permission the project list came from", async () => {
+      const otherProjectId: ObjectID = ObjectID.generate();
+      const userGlobalAccessPermission: UserGlobalAccessPermission = {
+        projectIds: [projectId, otherProjectId],
+      } as UserGlobalAccessPermission;
+
+      const spyGetUserTenantAccessPermission: jest.SpyInstance = getJestSpyOn(
+        AccessTokenService,
+        "getUserTenantAccessPermission",
+      ).mockResolvedValue(mockedUserTenantAccessPermission);
+
+      await UserMiddleware.getUserTenantAccessPermissionForMultiTenant(
+        req,
+        userId,
+        userGlobalAccessPermission.projectIds,
+        userGlobalAccessPermission,
+      );
+
+      expect(spyGetUserTenantAccessPermission).toHaveBeenCalledTimes(2);
+      expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
+        userId,
+        projectId,
+        { userGlobalAccessPermission },
+      );
+      expect(spyGetUserTenantAccessPermission).toHaveBeenCalledWith(
+        userId,
+        otherProjectId,
+        { userGlobalAccessPermission },
       );
     });
   });

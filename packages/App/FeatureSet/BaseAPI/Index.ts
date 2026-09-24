@@ -46,6 +46,7 @@ import AIAgentGitHubAPI from "Common/Server/API/AIAgentGitHubAPI";
 import CodeFixRunAPI from "Common/Server/API/CodeFixRunAPI";
 import LlmProviderAPI from "Common/Server/API/LlmProviderAPI";
 import DataSourceAPI from "Common/Server/API/DataSourceAPI";
+import WorkflowVariableAPI from "Common/Server/API/WorkflowVariableAPI";
 import ProjectAPI from "Common/Server/API/ProjectAPI";
 import ProjectSsoAPI from "Common/Server/API/ProjectSSO";
 import ProjectOidcAPI from "Common/Server/API/ProjectOIDC";
@@ -70,11 +71,7 @@ import TelegramLogAPI from "./TelegramLogAPI";
 
 // Import API
 import ResellerPlanAPI from "Common/Server/API/ResellerPlanAPI";
-import EnterpriseLicenseAPI from "Common/Server/API/EnterpriseLicenseAPI";
-import EnterpriseLicenseInstance from "Common/Models/DatabaseModels/EnterpriseLicenseInstance";
-import EnterpriseLicenseInstanceService, {
-  Service as EnterpriseLicenseInstanceServiceType,
-} from "Common/Server/Services/EnterpriseLicenseInstanceService";
+import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import OpenSourceDeploymentAPI from "Common/Server/API/OpenSourceDeploymentAPI";
 import MonitorAPI from "Common/Server/API/MonitorAPI";
 import MonitorTemplateAPI from "Common/Server/API/MonitorTemplateAPI";
@@ -161,6 +158,7 @@ import AlertCustomFieldService, {
 import AlertInternalNoteAPI from "Common/Server/API/AlertInternalNoteAPI";
 import TelemetryExceptionAPI from "Common/Server/API/TelemetryExceptionAPI";
 import KubernetesResourceAPI from "Common/Server/API/KubernetesResourceAPI";
+import KubernetesClusterAiAccessAPI from "Common/Server/API/KubernetesClusterAiAccessAPI";
 import ProxmoxResourceAPI from "Common/Server/API/ProxmoxResourceAPI";
 import VMwareResourceAPI from "Common/Server/API/VMwareResourceAPI";
 import IoTDeviceAPI from "Common/Server/API/IoTDeviceAPI";
@@ -502,6 +500,12 @@ import ServiceLevelObjectiveMonitorRuleService, {
 import ServiceLevelObjectiveFeedService, {
   Service as ServiceLevelObjectiveFeedServiceType,
 } from "Common/Server/Services/ServiceLevelObjectiveFeedService";
+import ServiceLevelObjectiveOwnerRuleService, {
+  Service as ServiceLevelObjectiveOwnerRuleServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveOwnerRuleService";
+import ServiceLevelObjectiveLabelRuleService, {
+  Service as ServiceLevelObjectiveLabelRuleServiceType,
+} from "Common/Server/Services/ServiceLevelObjectiveLabelRuleService";
 import SloHistoryService, {
   SloHistoryService as SloHistoryServiceType,
 } from "Common/Server/Services/SloHistoryService";
@@ -1050,9 +1054,6 @@ import WorkflowLogService, {
 import WorkflowService, {
   Service as WorkflowServiceType,
 } from "Common/Server/Services/WorkflowService";
-import WorkflowVariableService, {
-  Service as WorkflowVariableServiceType,
-} from "Common/Server/Services/WorkflowVariableService";
 import RunbookService, {
   Service as RunbookServiceType,
 } from "Common/Server/Services/RunbookService";
@@ -1126,6 +1127,7 @@ import Express, {
   ExpressApplication,
   ExpressRequest,
   ExpressResponse,
+  ExpressRouter,
   NextFunction,
 } from "Common/Server/Utils/Express";
 import AuditLog from "Common/Models/AnalyticsModels/AuditLog";
@@ -1234,6 +1236,8 @@ import ServiceLevelObjectiveOwnerUser from "Common/Models/DatabaseModels/Service
 import ServiceLevelObjectiveOwnerTeam from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerTeam";
 import ServiceLevelObjectiveMonitorRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveMonitorRule";
 import ServiceLevelObjectiveFeed from "Common/Models/DatabaseModels/ServiceLevelObjectiveFeed";
+import ServiceLevelObjectiveOwnerRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveOwnerRule";
+import ServiceLevelObjectiveLabelRule from "Common/Models/DatabaseModels/ServiceLevelObjectiveLabelRule";
 import SloHistory from "Common/Models/AnalyticsModels/SloHistory";
 import IncidentReminderRule from "Common/Models/DatabaseModels/IncidentReminderRule";
 import AlertReminderRule from "Common/Models/DatabaseModels/AlertReminderRule";
@@ -1395,7 +1399,6 @@ import UserNotificationRule from "Common/Models/DatabaseModels/UserNotificationR
 import UserOnCallLog from "Common/Models/DatabaseModels/UserOnCallLog";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import WorkflowLog from "Common/Models/DatabaseModels/WorkflowLog";
-import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
 import RunbookOwnerTeam from "Common/Models/DatabaseModels/RunbookOwnerTeam";
@@ -1544,7 +1547,6 @@ import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import OnCallCalendarAPI from "Common/Server/API/OnCallCalendarAPI";
 import OnCallScheduleTimelineAPI from "Common/Server/API/OnCallScheduleTimelineAPI";
 import UserNotificationMethodAdminAPI from "Common/Server/API/UserNotificationMethodAdminAPI";
-import TeamComplianceAPI from "Common/Server/API/TeamComplianceAPI";
 
 import OnCallDutyPolicyFeed from "Common/Models/DatabaseModels/OnCallDutyPolicyFeed";
 import OnCallDutyPolicyFeedService, {
@@ -3074,6 +3076,30 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // ServiceLevelObjectiveOwnerRule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceLevelObjectiveOwnerRule,
+        ServiceLevelObjectiveOwnerRuleServiceType
+      >(
+        ServiceLevelObjectiveOwnerRule,
+        ServiceLevelObjectiveOwnerRuleService,
+      ).getRouter(),
+    );
+
+    // ServiceLevelObjectiveLabelRule
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ServiceLevelObjectiveLabelRule,
+        ServiceLevelObjectiveLabelRuleServiceType
+      >(
+        ServiceLevelObjectiveLabelRule,
+        ServiceLevelObjectiveLabelRuleService,
+      ).getRouter(),
+    );
+
     // SloHistory (ClickHouse — SLO evaluation history for charts)
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -3700,10 +3726,7 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<WorkflowVariable, WorkflowVariableServiceType>(
-        WorkflowVariable,
-        WorkflowVariableService,
-      ).getRouter(),
+      new WorkflowVariableAPI().getRouter(),
     );
 
     app.use(
@@ -3744,6 +3767,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * win the match.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, AutoRemediationAPI);
+
+    /*
+     * Cluster AI access — readiness checklist + "test access" for a
+     * Kubernetes cluster's AI page. Mounted before the KubernetesCluster
+     * CRUD router so these action routes win the match.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, KubernetesClusterAiAccessAPI);
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
@@ -4751,12 +4781,6 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // TeamComplianceAPI
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new TeamComplianceAPI().getRouter(),
-    );
-
     /*
      * On-call responder readiness — "can this person actually be paged?" for a
      * policy, the whole project, or one user. A bare router, not a
@@ -4959,24 +4983,19 @@ const BaseAPIFeatureSet: FeatureSet = {
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ResellerPlanAPI().getRouter(),
     );
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new EnterpriseLicenseAPI().getRouter(),
-    );
     /*
-     * Read/list for the admin dashboard Enterprise Licenses page
-     * (empty table ACLs — master admin only).
+     * Enterprise API routers from the Enterprise Edition module (ee/): the
+     * license client (activate / refresh), team compliance status, and - only
+     * on the hosted oneuptime.com (billing enabled) - the license server with
+     * its instance usage. The Community Edition mounts none of them.
      */
-    app.use(
-      `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<
-        EnterpriseLicenseInstance,
-        EnterpriseLicenseInstanceServiceType
-      >(
-        EnterpriseLicenseInstance,
-        EnterpriseLicenseInstanceService,
-      ).getRouter(),
-    );
+    const enterpriseApiRouters: Array<ExpressRouter> =
+      EnterpriseEdition.getModule()?.getApiRouters() || [];
+
+    for (const enterpriseApiRouter of enterpriseApiRouters) {
+      app.use(`/${APP_NAME.toLocaleLowerCase()}`, enterpriseApiRouter);
+    }
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new OpenSourceDeploymentAPI().getRouter(),

@@ -19,6 +19,7 @@ import RumApplicationSessionReplay from "../Pages/Rum/View/SessionReplay";
 import RumApplicationSessionReplayView from "../Pages/Rum/View/SessionReplayView";
 import RumApplicationSessionReplayAudit from "../Pages/Rum/View/SessionReplayAudit";
 import RumApplicationSessionReplayUsers from "../Pages/Rum/View/SessionReplayUsers";
+import RumApplicationUserFlows from "../Pages/Rum/View/UserFlows";
 import RumApplicationSessionReplaySettings from "../Pages/Rum/View/SessionReplaySettings";
 import RumApplicationSessionReplayHealth from "../Pages/Rum/View/SessionReplayHealth";
 import RumApplicationSessionReplayDocumentation from "../Pages/Rum/View/SessionReplayDocumentation";
@@ -233,6 +234,20 @@ const RumApplicationRoutes: FunctionComponent<ComponentProps> = (
                 RouteMap[
                   PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_VIEW
                 ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.RUM_APPLICATION_VIEW_USER_FLOWS,
+          )}
+          element={
+            <RumApplicationUserFlows
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.RUM_APPLICATION_VIEW_USER_FLOWS] as Route
               }
             />
           }

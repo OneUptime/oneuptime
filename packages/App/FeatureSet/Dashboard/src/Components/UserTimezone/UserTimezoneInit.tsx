@@ -1,5 +1,6 @@
 import OneUptimeDate from "Common/Types/Date";
 import Timezone from "Common/Types/Timezone";
+import TimezoneAlias from "Common/Types/TimezoneAlias";
 import User from "Common/UI/Utils/User";
 import React, { FunctionComponent, ReactElement } from "react";
 import API from "Common/UI/Utils/API/API";
@@ -49,14 +50,25 @@ const UseTimezoneInitElement: FunctionComponent = (): ReactElement => {
     if (User.isLoggedIn()) {
       // check user timezone
 
+      // Already in its current name — see OneUptimeDate.getCurrentTimezone.
       const guessTimezone: Timezone = OneUptimeDate.getCurrentTimezone();
-      const userTimezone: Timezone | null = User.getSavedUserTimezone();
+      const savedTimezone: Timezone | null = User.getSavedUserTimezone();
 
-      if (userTimezone === null) {
+      if (savedTimezone === null) {
         // first time — silently save the browser timezone
         await updateUserTimezone(guessTimezone);
         return;
       }
+
+      /*
+       * Compare in current names on both sides. The saved value can be a
+       * legacy name — this component used to save the browser's guess
+       * untranslated, and Chromium reports "Asia/Calcutta" for India — while
+       * the guess is now "Asia/Kolkata". Compared as they are, every such
+       * user would be asked to "change" to the zone they already have.
+       */
+      const userTimezone: Timezone =
+        TimezoneAlias.getCanonicalTimezone(savedTimezone);
 
       if (userTimezone === guessTimezone) {
         return;
@@ -65,11 +77,15 @@ const UseTimezoneInitElement: FunctionComponent = (): ReactElement => {
       /*
        * Suppress the prompt if the user has already dismissed it for this
        * exact browser timezone. We will re-prompt only if the browser
-       * timezone changes again.
+       * timezone changes again. A dismissal saved by an older build can be
+       * a legacy name too.
        */
       const dismissedTimezone: Timezone | null =
         User.getDismissedTimezonePrompt();
-      if (dismissedTimezone === guessTimezone) {
+      if (
+        dismissedTimezone !== null &&
+        TimezoneAlias.getCanonicalTimezone(dismissedTimezone) === guessTimezone
+      ) {
         return;
       }
 

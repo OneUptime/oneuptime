@@ -461,12 +461,23 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
       }
 
       /*
-       * Send 200 first, then enqueue the raw bytes. Protobuf decode
-       * now happens in the worker — see TelemetryQueueService.
+       * Acknowledge only after queue admission. Raw bytes still pass through
+       * unchanged; protobuf decode and normalization remain in the worker.
        */
-      Response.sendEmptySuccessResponse(req, res);
+      try {
+        await MetricsQueueService.addMetricIngestJob(req as TelemetryRequest);
+      } catch {
+        // Do not expose backend errors or payloads to the exporter.
+        return Response.sendCustomResponse(
+          req,
+          res,
+          503,
+          { message: "Telemetry queue unavailable. Please retry." },
+          {},
+        );
+      }
 
-      await MetricsQueueService.addMetricIngestJob(req as TelemetryRequest);
+      Response.sendEmptySuccessResponse(req, res);
 
       return;
     } catch (err) {

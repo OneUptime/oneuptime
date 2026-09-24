@@ -372,6 +372,61 @@ describe("MicrosoftTeamsUtil.sendDirectMessageToUserAsBot", () => {
 
       expect(adapter.capturedServiceUrls[0]).toBe(REGIONAL_SERVICE_URL);
     });
+
+    /*
+     * botbuilder attaches the bot's Bot Framework token to the request
+     * whatever host the serviceUrl names, so a stored URL that is not
+     * Microsoft's is never picked (see MicrosoftTeamsServiceUrl).
+     */
+    test("skips a captured serviceUrl that is not a Microsoft host", async () => {
+      mockProjectAuth({
+        availableChats: {
+          "a:tampered": personalChat({
+            id: "a:tampered",
+            memberAadObjectIds: ["some-other-user"],
+            serviceUrl: "https://attacker.example.com/",
+          }),
+        },
+        installedTeams: {
+          "team-1": {
+            id: "team-1",
+            serviceUrl: "https://smba.infra.dod.teams.microsoft.us/dod",
+          },
+        },
+      });
+      const adapter: FakeCreateAdapter = installFakeCreateAdapter();
+
+      await MicrosoftTeamsUtil.sendDirectMessageToUserAsBot({
+        projectId: PROJECT_ID,
+        workspaceUserId: ENTRA_OBJECT_ID,
+        messageBlocks: markdownBlocks(),
+      });
+
+      expect(adapter.capturedServiceUrls).toEqual([
+        "https://smba.infra.dod.teams.microsoft.us/dod",
+      ]);
+    });
+
+    test("falls back to the commercial endpoint when every captured serviceUrl is untrusted", async () => {
+      mockProjectAuth({
+        availableChats: {
+          "a:tampered": personalChat({
+            id: "a:tampered",
+            memberAadObjectIds: ["some-other-user"],
+            serviceUrl: "https://attacker.trafficmanager.net/teams/",
+          }),
+        },
+      });
+      const adapter: FakeCreateAdapter = installFakeCreateAdapter();
+
+      await MicrosoftTeamsUtil.sendDirectMessageToUserAsBot({
+        projectId: PROJECT_ID,
+        workspaceUserId: ENTRA_OBJECT_ID,
+        messageBlocks: markdownBlocks(),
+      });
+
+      expect(adapter.capturedServiceUrls).toEqual([DEFAULT_SERVICE_URL]);
+    });
   });
 
   /*

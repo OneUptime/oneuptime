@@ -37,6 +37,13 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   fetchRequestOptions?: RequestOptions | undefined;
   customElement?: ((item: TBaseModel) => ReactElement) | undefined;
   noItemsMessage: string;
+  /*
+   * Render nothing, rather than noItemsMessage (or its "No items found."
+   * fallback), when the list loads empty. For a caller that explains an empty
+   * list itself, e.g. from onListLoaded. A search that matches nothing still
+   * says so.
+   */
+  hideEmptyState?: boolean | undefined;
   headerField?: string | ((item: TBaseModel) => ReactElement) | undefined;
   onSelectChange?: ((list: Array<TBaseModel>) => void) | undefined;
   refreshToggle?: string | undefined;
@@ -260,7 +267,10 @@ const ModelList: <TBaseModel extends BaseModel>(
         {error ? <ErrorMessage message={error} /> : <></>}
         {isLoading ? <ComponentLoader /> : <></>}
 
-        {!isLoading && !error && searchedList.length === 0 ? (
+        {!isLoading &&
+        !error &&
+        searchedList.length === 0 &&
+        (Boolean(searchText) || !props.hideEmptyState) ? (
           <ErrorMessage
             message={
               searchText

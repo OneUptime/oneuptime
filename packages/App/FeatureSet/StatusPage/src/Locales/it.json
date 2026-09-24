@@ -235,7 +235,9 @@
     "sso": {
       "title": "Accedi con SSO",
       "loginPrompt": "Effettua l'accesso per visualizzare {{statusPageName}}",
-      "noProviders": "Nessun provider SSO configurato o abilitato"
+      "noProviders": "Nessun provider SSO configurato o abilitato",
+      "notAvailable": "Il Single Sign-On (SSO) non è disponibile per questa pagina di stato. Accedi invece con la tua e-mail e la tua password.",
+      "backToLogin": "Torna all'accesso"
     },
     "forgotPassword": {
       "title": "Password dimenticata",

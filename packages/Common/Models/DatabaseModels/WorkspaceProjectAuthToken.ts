@@ -79,44 +79,70 @@ export interface MicrosoftTeamsInstalledTeam {
   addedAt?: string | undefined;
 }
 
+export interface SlackChannelCacheEntry {
+  id: string;
+  name: string;
+  lastUpdated: string;
+}
+
+// Keyed by the lower-cased channel name.
+export interface SlackChannelCache {
+  [channelName: string]: SlackChannelCacheEntry;
+}
+
 export interface SlackMiscData extends MiscData {
   teamId: string;
   teamName: string;
   botUserId: string;
-  channelCache?: {
-    [channelName: string]: {
-      id: string;
-      name: string;
-      lastUpdated: string;
-    };
-  };
+  channelCache?: SlackChannelCache;
 }
 
+/*
+ * The Microsoft Graph app token is NOT part of this. It is the row's
+ * `authToken`, with its expiry in `authTokenExpiresAt` — both server-only
+ * columns. miscData is readable by every project Viewer, so it must never
+ * hold a credential.
+ */
 export interface MicrosoftTeamsMiscData extends MiscData {
   tenantId: string;
   teamId: string;
   teamName: string;
   botId: string;
-  appAccessToken?: string;
   adminConsentGranted?: boolean;
-  lastAppTokenIssuedAt?: string;
   adminConsentGrantedAt?: string;
   adminConsentGrantedBy?: string;
   availableTeams?: Record<string, MicrosoftTeamsTeam>; // keyed by team id. Every team Graph can see in the tenant.
-  appAccessTokenExpiresAt?: string;
   availableChats?: Record<string, MicrosoftTeamsChat>; // keyed by chat id. Chats the OneUptime app has been added to.
   installedTeams?: Record<string, MicrosoftTeamsInstalledTeam>; // keyed by MicrosoftTeamsInstalledTeam.id — see that type, the key is not always a Graph team id.
 }
 
 export type WorkspaceMiscData = SlackMiscData | MicrosoftTeamsMiscData;
 
+/*
+ * Keys that older releases wrote into miscData and that must never be served
+ * from it again. They held the tenant's live Microsoft Graph app token, and
+ * miscData is readable by every project Viewer. The token now lives only in
+ * the server-only `authToken` / `authTokenExpiresAt` columns; the service
+ * strips these on every read in case a row still carries them.
+ */
+export const LegacyServerOnlyMiscDataKeys: ReadonlyArray<string> = [
+  "appAccessToken",
+  "appAccessTokenExpiresAt",
+  "lastAppTokenIssuedAt",
+];
+
+/*
+ * This row is the binding everything downstream trusts: which Slack workspace
+ * or Microsoft 365 tenant a project's bot token belongs to. For Teams the
+ * server even mints a fresh Graph app token for whatever tenant
+ * `workspaceProjectId` names. So it is created only by the Slack / Microsoft
+ * Teams connect flows, which prove the workspace or tenant before writing it
+ * (see WorkspaceOAuthState), and never through the CRUD API — where it could
+ * name any tenant at all.
+ */
 @TenantColumn("projectId")
 @TableAccessControl({
-  create: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-  ],
+  create: [],
   read: [
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
@@ -229,6 +255,30 @@ class WorkspaceProjectAuthToken extends BaseModel {
   })
   public authToken?: string = undefined;
 
+  /*
+   * When `authToken` stops working, for workspaces whose token expires. For
+   * Microsoft Teams `authToken` is the tenant's Graph app token and this is
+   * when the server has to mint a new one. Null when the expiry is unknown,
+   * which the Teams path treats as "refresh now".
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    title: "Auth Token Expires At",
+    description: "When the auth token expires, if it expires.",
+    required: false,
+    type: TableColumnType.Date,
+  })
+  @Column({
+    type: ColumnType.Date,
+    nullable: true,
+    unique: false,
+  })
+  public authTokenExpiresAt?: Date = undefined;
+
   @ColumnAccessControl({
     create: [
       Permission.ProjectOwner,
@@ -271,11 +321,8 @@ class WorkspaceProjectAuthToken extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-    ],
+    // Repointing a connection to another workspace or tenant is server-only; see the table comment.
+    update: [],
   })
   @TableColumn({
     title: "Project ID in Workspace",
@@ -304,12 +351,19 @@ class WorkspaceProjectAuthToken extends BaseModel {
       Permission.ProjectMember,
       Permission.Viewer,
     ],
-    update: [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-    ],
+    /*
+     * Server-only. For Microsoft Teams this holds values the server trusts:
+     * the Bot Framework service URLs proactive sends go to (with the bot's
+     * token attached), the tenant and its consent state.
+     * The Slack channel cache, the only part the dashboard edits, is saved
+     * through PUT /slack/channel-cache, which writes nothing else.
+     */
+    update: [],
   })
+  /*
+   * Readable by every project Viewer, so it must never hold a credential.
+   * Tokens go in `authToken` / `authTokenExpiresAt`, which are server-only.
+   */
   @TableColumn({
     title: "Misc Data",
     required: true,

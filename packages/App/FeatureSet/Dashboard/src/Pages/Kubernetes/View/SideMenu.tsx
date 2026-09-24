@@ -142,6 +142,16 @@ const KubernetesClusterSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.LightBulb}
         />
+        <SideMenuItem
+          link={{
+            title: "AI",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_AI] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Sparkles}
+        />
         <RecommendationsSideMenuItem
           link={{
             title: "Recommendations",

@@ -15,7 +15,9 @@ const WebsiteMonitorSummaryView: FunctionComponent<ComponentProps> = (
       <div className="flex space-x-3">
         <InfoCard
           className="w-1/2 shadow-none border-2 border-gray-100 "
-          title="Monitored At"
+          title={
+            props.telemetryMonitorSummary?.lastCheckedLabel || "Monitored At"
+          }
           value={
             props.telemetryMonitorSummary?.lastCheckedAt
               ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(

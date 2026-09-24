@@ -1,5 +1,7 @@
 import AIAgentService from "../../../Services/AIAgentService";
-import RunnerService from "../../../Services/RunnerService";
+import RunnerService, {
+  Service as RunnerServiceClass,
+} from "../../../Services/RunnerService";
 import ObjectID from "../../../../Types/ObjectID";
 import { JSONObject } from "../../../../Types/JSON";
 import AIAgent from "../../../../Models/DatabaseModels/AIAgent";
@@ -37,6 +39,16 @@ export interface CodeFixAgentIdentity {
  * authenticates like any other invalid credential — it cannot claim work,
  * fetch task data, or mint repository tokens, no matter what its container
  * env vars say.
+ *
+ * A kubernetes-agent Runner never authenticates here, whatever its flag
+ * says. Its row is minted and re-keyed with the project's telemetry
+ * ingestion key, a credential every collector and CI job holds, so a
+ * code-fix identity on it would let anyone with that key claim code-fix
+ * work and mint repository tokens. RunnerService refuses to turn the flag
+ * on for such a row, but a row whose flag was set before that guard (or
+ * before the row became an agent row) keeps it; the one agent-row rule
+ * (RunnerService's isKubernetesAgentRunnerRow: the server-owned name
+ * marker, or an agent posture) is applied here too.
  */
 export default class CodeFixAgentAuth {
   public static async resolveAgentIdentity(
@@ -87,13 +99,21 @@ export default class CodeFixAgentAuth {
         _id: true,
         projectId: true,
         canRunCodeFixTasks: true,
+        // What the agent-row rule reads.
+        name: true,
+        hostInfo: true,
       },
       props: {
         isRoot: true,
       },
     });
 
-    if (runner && runner.id && runner.canRunCodeFixTasks === true) {
+    if (
+      runner &&
+      runner.id &&
+      runner.canRunCodeFixTasks === true &&
+      !RunnerServiceClass.isKubernetesAgentRunnerRow(runner)
+    ) {
       return {
         id: runner.id,
         projectId: runner.projectId,

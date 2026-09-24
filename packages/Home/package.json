@@ -1,6 +1,6 @@
 {
   "name": "@oneuptime/home",
-  "version": "13.0.7",
+  "version": "14.0.1",
   "description": "",
   "repository": {
     "type": "git",
@@ -28,8 +28,10 @@
   "devDependencies": {
     "@types/ejs": "^3.1.1",
     "@types/jest": "^29.5.11",
+    "@types/jsdom": "^21.1.7",
     "@types/node": "^26.1.1",
     "jest": "^28.1.0",
+    "jsdom": "^26.1.0",
     "nodemon": "^3.1.14",
     "ts-jest": "^28.0.8",
     "typescript": "^5.9.3"

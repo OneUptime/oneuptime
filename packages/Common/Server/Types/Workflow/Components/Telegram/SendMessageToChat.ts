@@ -13,7 +13,17 @@ import TelegramComponents from "../../../../../Types/Workflow/Components/Telegra
 import API from "../../../../../Utils/API";
 import CaptureSpan from "../../../../Utils/Telemetry/CaptureSpan";
 
+/*
+ * https://core.telegram.org/bots/api#authorizing-your-bot — a numeric bot id,
+ * a ":", then the secret, e.g. "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11".
+ */
+const TELEGRAM_BOT_TOKEN_REGEX: RegExp = /^\d+:[A-Za-z0-9_-]+$/;
+
 export default class SendMessageToChat extends ComponentCode {
+  public static isValidBotToken(botToken: string): boolean {
+    return TELEGRAM_BOT_TOKEN_REGEX.test(botToken);
+  }
+
   public constructor() {
     super();
 
@@ -69,9 +79,25 @@ export default class SendMessageToChat extends ComponentCode {
       throw options.onError(new BadDataException("Telegram message not found"));
     }
 
-    const botToken: string = args["bot-token"]?.toString() as string;
+    // A token pasted or stored with a trailing newline is still the token.
+    const botToken: string = (args["bot-token"]?.toString() || "").trim();
     const chatId: string = args["chat-id"]?.toString() as string;
     const text: string = args["text"]?.toString() as string;
+
+    /*
+     * The token becomes a path segment of the request URL, so anything other
+     * than Telegram's "<bot id>:<secret>" shape is refused before it gets
+     * there. The message deliberately does not quote the value: the step's
+     * error is written to the run log, and the token is a credential. Before
+     * this check, a URL parse failure put the whole token into the log.
+     */
+    if (!SendMessageToChat.isValidBotToken(botToken)) {
+      throw options.onError(
+        new BadDataException(
+          "Telegram Bot Token is not in a valid format. It should look like 123456789:ABCdefGhIJKlmnoPQRstuVWxyz, exactly as BotFather issued it.",
+        ),
+      );
+    }
 
     const telegramApiUrl: URL = URL.fromString(
       `https://api.telegram.org/bot${botToken}/sendMessage`,

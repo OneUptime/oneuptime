@@ -147,6 +147,7 @@ import Permission, {
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
 import PositiveNumber from "../../../Types/PositiveNumber";
+import UserType from "../../../Types/UserType";
 import {
   at,
   shift,
@@ -830,10 +831,30 @@ describe("GET /on-call-schedule-timeline: who may call it", () => {
     expect(loadSegments).not.toHaveBeenCalled();
   });
 
-  test("a caller without a user (e.g. only a header) is refused", async () => {
+  /*
+   * No user and no API key is an expired dashboard session: it must be the
+   * 401 the browser client refreshes and replays on, never a 422.
+   */
+  test("an anonymous caller (only a tenant header) is asked to authenticate", async () => {
     propsSpy.mockResolvedValue(
       buildMemberProps({ projectId, userId: undefined }),
     );
+
+    const result: HttpResult = await request(timelinePath());
+
+    expect(result.status).toBe(ExceptionCode.NotAuthenticatedException);
+    expect(result.status).toBe(401);
+    expect(
+      (JSON.parse(result.body) as Record<string, unknown>)["message"],
+    ).toBe(CommonAPI.AUTHENTICATION_REQUIRED_MESSAGE);
+    expect(scheduleFindBy).not.toHaveBeenCalled();
+  });
+
+  test("a project API key (credentials but no user) is refused, not treated as a member", async () => {
+    propsSpy.mockResolvedValue({
+      ...buildMemberProps({ projectId, userId: undefined }),
+      userType: UserType.API,
+    });
 
     const result: HttpResult = await request(timelinePath());
 

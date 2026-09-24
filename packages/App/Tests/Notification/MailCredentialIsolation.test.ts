@@ -205,8 +205,14 @@ function testMail(): EmailMessage {
   };
 }
 
+/*
+ * The pool key for a caller that asks for no particular connection timeout,
+ * which is every real send. The timeout is the other half of the key (see
+ * MailTransporterPoolTimeout.test.ts); holding it constant here is what keeps
+ * these tests about credentials, which is what they are for.
+ */
 function poolKey(emailServer: EmailServer): string {
-  return TransporterPool["getPoolKey"](emailServer);
+  return TransporterPool["getPoolKey"](emailServer, {});
 }
 
 function tokenCacheKey(config: SMTPOAuthConfig): string {

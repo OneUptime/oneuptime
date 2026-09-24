@@ -168,7 +168,14 @@
       "usageCardDescription": "Unique users across all of the customer's self-hosted instances, as reported daily by their installations.",
       "instancesCardTitle": "Instances",
       "instancesCardDescription": "Self-hosted instances (staging, production, etc.) reporting against this license, and the master admins we can contact on each.",
-      "noInstances": "No instances have reported against this license yet."
+      "noInstances": "No instances have reported against this license yet.",
+      "offlineTokenCardTitle": "Offline License Token",
+      "offlineTokenCardDescription": "For an installation that cannot reach oneuptime.com: download a signed license token bound to that installation's instance ID. The customer pastes it into their Admin Dashboard.",
+      "offlineTokenButton": "Download Offline Token",
+      "offlineTokenIssued": "An offline license token was downloaded for instance {{instanceId}}.",
+      "offlineTokenModalTitle": "Download Offline License Token",
+      "offlineTokenModalDescription": "Enter the instance ID of the customer's installation. The token works only on that installation.",
+      "offlineTokenSubmitButton": "Download Token"
     },
     "userView": {
       "title": "User",
@@ -827,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "Projects, users, monitors and incidents across the instance.",
   "Valkey memory": "Valkey memory",
   "Spot job backlogs and failures before they cause incidents.": "Spot job backlogs and failures before they cause incidents.",
-  "Track database disk and memory utilization before you run out.": "Track database disk and memory utilization before you run out."
+  "Track database disk and memory utilization before you run out.": "Track database disk and memory utilization before you run out.",
+  "You can still disable a provider.": "You can still disable a provider.",
+  "Without a valid Enterprise license this configuration is read-only and sign-in through these providers is off, but disabling a provider is always allowed, because it can only tighten security. Sign-in resumes through every enabled provider as soon as a license is activated, so if an identity provider is compromised, use Disable now to keep it off. Turning a provider back on needs a valid license.": "Without a valid Enterprise license this configuration is read-only and sign-in through these providers is off, but disabling a provider is always allowed, because it can only tighten security. Sign-in resumes through every enabled provider as soon as a license is activated, so if an identity provider is compromised, use Disable now to keep it off. Turning a provider back on needs a valid license.",
+  "Disable Provider": "Disable Provider",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.",
+  "Disable": "Disable",
+  "Disable Project Attachment": "Disable Project Attachment",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.",
+  "Disable this provider": "Disable this provider",
+  "Sign-in through this provider is off while the Enterprise license is missing or expired, and resumes as soon as a license is activated. Disable the provider to keep it off. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "Sign-in through this provider is off while the Enterprise license is missing or expired, and resumes as soon as a license is activated. Disable the provider to keep it off. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again."
 }

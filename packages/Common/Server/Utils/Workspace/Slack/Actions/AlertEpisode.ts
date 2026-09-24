@@ -1,9 +1,11 @@
+import SlackReactionNoteActions, { SlackReactionData } from "./ReactionNote";
+import { WorkspaceNoteResourceType } from "../../WorkspaceReactionNote";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../../Types/ObjectID";
 import AlertEpisodeService from "../../../../Services/AlertEpisodeService";
 import { ExpressRequest, ExpressResponse } from "../../../Express";
 import SlackUtil from "../Slack";
-import SlackActionType, { PrivateNoteEmojis } from "./ActionTypes";
+import SlackActionType from "./ActionTypes";
 import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
@@ -24,12 +26,11 @@ import logger from "../../../Logger";
 
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
-import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAuthTokenService";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
-import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
-import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
-import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
-import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import AlertEpisodeStateTimeline from "../../../../../Models/DatabaseModels/AlertEpisodeStateTimeline";
+import AlertEpisodeInternalNote from "../../../../../Models/DatabaseModels/AlertEpisodeInternalNote";
+import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import SlackActionAuthorization from "./Authorization";
 
 export default class SlackAlertEpisodeActions {
   @CaptureSpan()
@@ -105,6 +106,17 @@ export default class SlackAlertEpisodeActions {
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: AlertEpisodeStateTimeline,
+          action: "acknowledge this alert episode",
+          resources: [{ service: AlertEpisodeService, id: episodeId }],
+        }))
+      ) {
+        return;
+      }
 
       const isAlreadyAcknowledged: boolean =
         await AlertEpisodeService.isEpisodeAcknowledged({
@@ -225,6 +237,17 @@ export default class SlackAlertEpisodeActions {
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: AlertEpisodeStateTimeline,
+          action: "resolve this alert episode",
+          resources: [{ service: AlertEpisodeService, id: episodeId }],
+        }))
+      ) {
+        return;
+      }
 
       const isAlreadyResolved: boolean =
         await AlertEpisodeService.isEpisodeResolved(episodeId);
@@ -457,6 +480,17 @@ export default class SlackAlertEpisodeActions {
 
     const stateId: ObjectID = new ObjectID(stateString);
 
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: AlertEpisodeStateTimeline,
+        action: "change the state of this alert episode",
+        resources: [{ service: AlertEpisodeService, id: episodeId }],
+      }))
+    ) {
+      return;
+    }
+
     await AlertEpisodeService.changeEpisodeState({
       projectId: data.slackRequest.projectId!,
       episodeId: episodeId,
@@ -560,6 +594,37 @@ export default class SlackAlertEpisodeActions {
         response_action: "clear",
       });
 
+      if (
+        !data.slackRequest.viewValues ||
+        !data.slackRequest.viewValues["onCallPolicy"]
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid View Values"),
+        );
+      }
+
+      const onCallPolicyString: string =
+        data.slackRequest.viewValues["onCallPolicy"].toString();
+
+      // get the on-call policy id.
+      const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: OnCallDutyPolicyExecutionLog,
+          action: "execute an on-call policy for this alert episode",
+          resources: [
+            { service: AlertEpisodeService, id: episodeId },
+            { service: OnCallDutyPolicyService, id: onCallPolicyId },
+          ],
+        }))
+      ) {
+        return;
+      }
+
       const isAlreadyResolved: boolean =
         await AlertEpisodeService.isEpisodeResolved(episodeId);
 
@@ -578,23 +643,6 @@ export default class SlackAlertEpisodeActions {
 
         return;
       }
-
-      if (
-        !data.slackRequest.viewValues ||
-        !data.slackRequest.viewValues["onCallPolicy"]
-      ) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException("Invalid View Values"),
-        );
-      }
-
-      const onCallPolicyString: string =
-        data.slackRequest.viewValues["onCallPolicy"].toString();
-
-      // get the on-call policy id.
-      const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
 
       await OnCallDutyPolicyService.executePolicy(onCallPolicyId, {
         triggeredByAlertEpisodeId: episodeId,
@@ -644,6 +692,17 @@ export default class SlackAlertEpisodeActions {
     Response.sendJsonObjectResponse(req, res, {
       response_action: "clear",
     });
+
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: AlertEpisodeInternalNote,
+        action: "add a private note to this alert episode",
+        resources: [{ service: AlertEpisodeService, id: episodeId }],
+      }))
+    ) {
+      return;
+    }
 
     await AlertEpisodeInternalNoteService.addNote({
       alertEpisodeId: episodeId!,
@@ -757,198 +816,18 @@ export default class SlackAlertEpisodeActions {
     );
   }
 
+  /*
+   * A note emoji on a message, looked up among alert episode channels only.
+   * Slack events go to SlackReactionNoteActions directly, which works out
+   * what the channel belongs to first.
+   */
   @CaptureSpan()
-  public static async handleEmojiReaction(data: {
-    teamId: string;
-    reaction: string;
-    userId: string;
-    channelId: string;
-    messageTs: string;
-  }): Promise<void> {
-    logger.debug("Handling emoji reaction for Alert Episode with data:", {
-      channelId: data.channelId,
+  public static async handleEmojiReaction(
+    data: SlackReactionData,
+  ): Promise<void> {
+    await SlackReactionNoteActions.handleEmojiReaction({
+      ...data,
+      resourceTypes: [WorkspaceNoteResourceType.AlertEpisode],
     });
-    logger.debug(data);
-
-    const { teamId, reaction, userId, channelId, messageTs } = data;
-
-    // Alert Episodes only support private notes
-    const isPrivateNoteEmoji: boolean = PrivateNoteEmojis.includes(reaction);
-
-    if (!isPrivateNoteEmoji) {
-      logger.debug(
-        `Emoji "${reaction}" is not a supported private note emoji for alert episodes. Ignoring.`,
-      );
-      return;
-    }
-
-    // Get the project auth token using the team ID
-    const projectAuth: WorkspaceProjectAuthToken | null =
-      await WorkspaceProjectAuthTokenService.findOneBy({
-        query: {
-          workspaceProjectId: teamId,
-        },
-        select: {
-          projectId: true,
-          authToken: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!projectAuth || !projectAuth.projectId || !projectAuth.authToken) {
-      logger.debug(
-        "No project auth found for team ID. Ignoring emoji reaction.",
-      );
-      return;
-    }
-
-    const projectId: ObjectID = projectAuth.projectId;
-    const authToken: string = projectAuth.authToken;
-
-    // Find the alert episode linked to this channel
-    const workspaceLog: WorkspaceNotificationLog | null =
-      await WorkspaceNotificationLogService.findOneBy({
-        query: {
-          channelId: channelId,
-          workspaceType: WorkspaceType.Slack,
-          projectId: projectId,
-        },
-        select: {
-          alertEpisodeId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!workspaceLog || !workspaceLog.alertEpisodeId) {
-      logger.debug(
-        "No alert episode found linked to this channel. Ignoring emoji reaction.",
-      );
-      return;
-    }
-
-    const episodeId: ObjectID = workspaceLog.alertEpisodeId;
-
-    // Get the user ID in OneUptime based on Slack user ID
-    const userAuth: WorkspaceUserAuthToken | null =
-      await WorkspaceUserAuthTokenService.findOneBy({
-        query: {
-          workspaceUserId: userId,
-          workspaceType: WorkspaceType.Slack,
-          projectId: projectId,
-        },
-        select: {
-          userId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!userAuth || !userAuth.userId) {
-      logger.debug(
-        "No OneUptime user found for Slack user. Ignoring emoji reaction.",
-      );
-      return;
-    }
-
-    const oneUptimeUserId: ObjectID = userAuth.userId;
-
-    // Fetch the message text using the timestamp
-    let messageText: string | null = null;
-    try {
-      messageText = await SlackUtil.getMessageByTimestamp({
-        authToken: authToken,
-        channelId: channelId,
-        messageTs: messageTs,
-      });
-    } catch (err) {
-      logger.error("Error fetching message text:", {
-        projectId: projectId.toString(),
-        alertEpisodeId: episodeId.toString(),
-        channelId: channelId,
-      });
-      logger.error(err);
-      return;
-    }
-
-    if (!messageText) {
-      logger.debug("No message text found. Ignoring emoji reaction.", {
-        projectId: projectId.toString(),
-        alertEpisodeId: episodeId.toString(),
-        channelId: channelId,
-      });
-      return;
-    }
-
-    // Create a unique identifier for this Slack message to prevent duplicate notes
-    const postedFromSlackMessageId: string = `${channelId}:${messageTs}`;
-
-    // Check if a note from this Slack message already exists
-    const hasExistingNote: boolean =
-      await AlertEpisodeInternalNoteService.hasNoteFromSlackMessage({
-        alertEpisodeId: episodeId,
-        postedFromSlackMessageId: postedFromSlackMessageId,
-      });
-
-    if (hasExistingNote) {
-      logger.debug(
-        "Private note from this Slack message already exists. Skipping duplicate.",
-      );
-      return;
-    }
-
-    // Save as private note
-    try {
-      await AlertEpisodeInternalNoteService.addNote({
-        alertEpisodeId: episodeId,
-        note: messageText,
-        projectId: projectId,
-        userId: oneUptimeUserId,
-        postedFromSlackMessageId: postedFromSlackMessageId,
-      });
-      logger.debug("Private note added to alert episode successfully.", {
-        projectId: projectId.toString(),
-        alertEpisodeId: episodeId.toString(),
-      });
-    } catch (err) {
-      logger.error("Error saving note:", {
-        projectId: projectId.toString(),
-        alertEpisodeId: episodeId.toString(),
-      });
-      logger.error(err);
-      return;
-    }
-
-    // Send confirmation message as a reply to the original message thread
-    try {
-      const episodeLink: string = (
-        await AlertEpisodeService.getEpisodeLinkInDashboard(
-          projectId,
-          episodeId,
-        )
-      ).toString();
-
-      const confirmationMessage: string = `✅ Message saved as *private note* to <${episodeLink}|Alert Episode>.`;
-
-      await SlackUtil.sendMessageToThread({
-        authToken: authToken,
-        channelId: channelId,
-        threadTs: messageTs,
-        text: confirmationMessage,
-      });
-
-      logger.debug("Confirmation message sent successfully.");
-    } catch (err) {
-      logger.error("Error sending confirmation message:", {
-        projectId: projectId.toString(),
-        alertEpisodeId: episodeId.toString(),
-      });
-      logger.error(err);
-      // Don't throw - note was saved successfully, confirmation is best effort
-    }
   }
 }

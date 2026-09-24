@@ -130,15 +130,17 @@ const SUB_MODEL_ID: ObjectID = new ObjectID(
 );
 
 /*
- * Charts left the menu when its history moved into Metrics. A monitor rule's
- * view page is reached from its row's View button, not the menu - it has a
- * rule id no menu could know.
+ * Charts left the menu when its history moved into Metrics. A rule's view
+ * page (monitor, label or owner rule) is reached from its row's View button,
+ * not the menu - it has a rule id no menu could know.
  */
 const SLO_MENU_KEYS: Array<string> = SLO_PAGE_KEYS.filter(
   (key: string): boolean => {
     return (
       key !== PageMap.SLO_VIEW_CHARTS &&
-      key !== PageMap.SLO_VIEW_MONITOR_RULE_VIEW
+      key !== PageMap.SLO_VIEW_MONITOR_RULE_VIEW &&
+      key !== PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW &&
+      key !== PageMap.SLOS_SETTINGS_OWNER_RULE_VIEW
     );
   },
 );

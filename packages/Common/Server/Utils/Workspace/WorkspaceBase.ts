@@ -52,6 +52,45 @@ export interface WorkspaceChannel {
 }
 
 export default class WorkspaceBase {
+  /*
+   * A readable, non-empty message for whatever a send path threw. The
+   * providers do not only throw Errors: Slack's sendPayloadBlocksToChannel,
+   * joinChannel and isUserInChannel `throw response`, an HTTPErrorResponse,
+   * which is not an Error but exposes a `message` getter. Stringifying that
+   * gave "[object Object]" in user-facing test errors and in Notification
+   * Logs, so each shape is unwrapped here, and a response with no message
+   * still reports its HTTP status rather than nothing.
+   */
+  public static getSendErrorMessage(err: unknown): string {
+    const unknownErrorMessage: string = "Unknown error";
+
+    if (err === null || err === undefined) {
+      return unknownErrorMessage;
+    }
+
+    if (err instanceof Error) {
+      return err.message || unknownErrorMessage;
+    }
+
+    if (err instanceof HTTPErrorResponse) {
+      return err.message || `Request failed with HTTP status ${err.statusCode}`;
+    }
+
+    if (typeof err === "string") {
+      return err || unknownErrorMessage;
+    }
+
+    if (typeof err === "object") {
+      const message: unknown = (err as { message?: unknown }).message;
+
+      if (typeof message === "string" && message) {
+        return message;
+      }
+    }
+
+    return String(err);
+  }
+
   @CaptureSpan()
   public static async isUserInDirectMessageChannel(_data: {
     authToken: string;

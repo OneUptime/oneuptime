@@ -17,6 +17,8 @@ import {
   collectResourceEntityFacetSelections,
   collectServiceFacetSelections,
 } from "Common/Types/Telemetry/ResourceEntityFacet";
+import { HistogramBucket } from "Common/UI/Components/LogsViewer/types";
+import { LogsHistogramData } from "Common/UI/Components/LogsViewer/useLogsHistogram";
 
 /*
  * Every facet whose values name a resource, in sidebar order. Re-exported
@@ -205,6 +207,34 @@ export function buildLogsHistogramRequest(
   applyTypedLogFilterToRequest(requestData, params.typedFilter);
 
   return requestData;
+}
+
+const MINUTE_MS: number = 60 * 1000;
+
+/**
+ * Reads the answer to `/telemetry/logs/histogram`: the buckets, and how wide
+ * the server made each one.
+ *
+ * A bucket is labelled with its start only, so the width is what lets a
+ * click on a bar zoom into that bar's logs. Without it the chart can only
+ * zoom from one bar's start to another's - on a single bar, a window zero
+ * seconds wide that holds no logs at all.
+ */
+export function parseLogsHistogramResponse(
+  data: JSONObject | null | undefined,
+): LogsHistogramData {
+  const rawBuckets: unknown = data?.["buckets"];
+  const bucketSizeInMinutes: number = Number(data?.["bucketSizeInMinutes"]);
+
+  return {
+    buckets: Array.isArray(rawBuckets)
+      ? (rawBuckets as unknown as Array<HistogramBucket>)
+      : [],
+    bucketIntervalMs:
+      Number.isFinite(bucketSizeInMinutes) && bucketSizeInMinutes > 0
+        ? bucketSizeInMinutes * MINUTE_MS
+        : undefined,
+  };
 }
 
 type ListQueryValuesFunction = (value: unknown) => Array<string>;

@@ -18,6 +18,7 @@ import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import IncidentRole from "../../Models/DatabaseModels/IncidentRole";
 import IncidentRoleService from "./IncidentRoleService";
 import BadDataException from "../../Types/Exception/BadDataException";
+import TeamMemberService from "./TeamMemberService";
 
 export class Service extends DatabaseService<Model> {
   public constructor() {
@@ -38,6 +39,26 @@ export class Service extends DatabaseService<Model> {
 
     if (!createBy.data.incidentRoleId) {
       throw new BadDataException("incidentRoleId is required");
+    }
+
+    /*
+     * Only a member of the project can hold a role on its incidents. The
+     * automatic paths (commander auto-assignment, monitor criteria, episode
+     * roles) skip a user who left before getting here; this is the backstop.
+     */
+    const projectId: ObjectID | undefined =
+      createBy.data.projectId || createBy.props.tenantId;
+
+    if (
+      projectId &&
+      !(await TeamMemberService.isUserMemberOfProject({
+        projectId: projectId,
+        userId: createBy.data.userId,
+      }))
+    ) {
+      throw new BadDataException(
+        "This user is not a member of this project and cannot be assigned a role on this incident.",
+      );
     }
 
     // Check if this user is already assigned to this role for this incident

@@ -6,7 +6,7 @@ services:
     # image — the agent is entirely defined by the config below, which
     # install.sh downloads next to this file, so nothing needs baking into a
     # custom image. Bump this pin and otel-collector-config.yaml together.
-    image: otel/opentelemetry-collector-contrib:0.154.0
+    image: otel/opentelemetry-collector-contrib:0.161.0
     container_name: oneuptime-docker-swarm-agent
     user: "0:0"
     volumes:
@@ -38,7 +38,7 @@ services:
       # image that was never actually built or published; now that the agent
       # is the upstream collector plus this config, the image pin is the
       # version that means something. Keep it in step with `image:` above.
-      - APP_VERSION=${APP_VERSION:-0.154.0}
+      - APP_VERSION=${APP_VERSION:-0.161.0}
     restart: unless-stopped
     logging:
       driver: json-file

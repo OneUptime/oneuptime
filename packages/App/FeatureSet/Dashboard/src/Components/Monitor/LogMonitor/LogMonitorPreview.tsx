@@ -1,4 +1,4 @@
-import React, { FunctionComponent, ReactElement, useEffect } from "react";
+import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import MonitorStepLogMonitor, {
   MonitorStepLogMonitorUtil,
 } from "Common/Types/Monitor/MonitorStepLogMonitor";
@@ -13,9 +13,21 @@ export interface ComponentProps {
 const LogMonitorPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  type RefreshQueryFunction = () => Query<Log>;
+  const logMonitorKey: string = props.monitorStepLogMonitor
+    ? JSON.stringify(
+        MonitorStepLogMonitorUtil.toJSON(props.monitorStepLogMonitor),
+      )
+    : "";
 
-  const refreshQuery: RefreshQueryFunction = (): Query<Log> => {
+  /*
+   * The logs viewer resets its filters and page and refetches whenever it
+   * is handed a new query object. The monitor overview polls every minute
+   * and hands down a freshly read monitor each time, so the query is
+   * rebuilt only when the filter itself changes: an identity-keyed rebuild
+   * re-ran the log query every minute and threw anyone paging through the
+   * preview back to page 1.
+   */
+  const logQuery: Query<Log> = useMemo(() => {
     if (!props.monitorStepLogMonitor) {
       return {};
     }
@@ -38,13 +50,7 @@ const LogMonitorPreview: FunctionComponent<ComponentProps> = (
     delete (query as Record<string, unknown>)["time"];
 
     return query;
-  };
-
-  const [logQuery, setLogQuery] = React.useState<Query<Log>>(refreshQuery());
-
-  useEffect(() => {
-    setLogQuery(refreshQuery());
-  }, [props.monitorStepLogMonitor]);
+  }, [logMonitorKey]);
 
   return (
     <DashboardLogsViewer

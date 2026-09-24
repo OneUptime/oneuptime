@@ -210,6 +210,18 @@ export interface BulkActionProps<T extends BaseModel | AnalyticsBaseModel> {
   deleteConfirmationWarning?: string | undefined;
 }
 
+/**
+ * What the per-row Delete confirmation says, when the table's own sentence
+ * ("Are you sure you want to delete ...?") is not the whole story - removing a
+ * team membership, say, where the row being deleted is not a thing but a
+ * relationship, and deleting the last one takes the user out of the project.
+ */
+export interface DeleteConfirmation {
+  title?: string | undefined;
+  description: string | ReactElement;
+  submitButtonText?: string | undefined;
+}
+
 export interface BaseTableProps<
   TBaseModel extends BaseModel | AnalyticsBaseModel,
 > {
@@ -280,6 +292,14 @@ export interface BaseTableProps<
   onItemDeleted?: ((item: TBaseModel) => void) | undefined;
   onBeforeEdit?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
   onBeforeDelete?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
+  /*
+   * Supplies the per-row Delete confirmation's wording for the row that was
+   * clicked. Runs after onBeforeDelete and before the dialog opens, so it may
+   * fetch; if it throws, the dialog does not open and the row shows the error.
+   */
+  getDeleteConfirmation?:
+    | ((item: TBaseModel) => Promise<DeleteConfirmation>)
+    | undefined;
   onBeforeView?: ((item: TBaseModel) => Promise<TBaseModel>) | undefined;
   sortBy?: keyof TBaseModel | undefined;
   sortOrder?: SortOrder | undefined;
@@ -505,6 +525,25 @@ const getItemLabel: GetItemLabelFunction = (item: unknown): string => {
   }
 
   return "";
+};
+
+type GetDeleteLabelFunction = (
+  singularName: string | undefined,
+  modelSingularName: string | null | undefined,
+) => string;
+
+/*
+ * What the Delete dialog calls a row when it cannot name it. A table may pass a
+ * blank singularName to keep its create button down to a bare verb - the
+ * user's Teams tab passes " " so its button reads "Invite" - and read verbatim
+ * that turned the dialog into "Are you sure you want to delete this  ?". A
+ * blank name is no name, so it falls through to the model's own.
+ */
+const getDeleteLabel: GetDeleteLabelFunction = (
+  singularName: string | undefined,
+  modelSingularName: string | null | undefined,
+): string => {
+  return singularName?.trim() || modelSingularName?.trim() || "Item";
 };
 
 const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
@@ -1221,6 +1260,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
     useState<TBaseModel | null>(null);
   const [currentDeleteableItem, setCurrentDeleteableItem] =
     useState<TBaseModel | null>(null);
+  // The caller's wording for the open Delete dialog; null means the default.
+  const [deleteConfirmation, setDeleteConfirmation] =
+    useState<DeleteConfirmation | null>(null);
 
   /*
    * A page size that came in on the URL wins over the viewer's own stored
@@ -2883,6 +2925,11 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 item = await props.onBeforeDelete(item);
               }
 
+              setDeleteConfirmation(
+                props.getDeleteConfirmation
+                  ? await props.getDeleteConfirmation(item)
+                  : null,
+              );
               setShowDeleteConfirmModal(true);
               setCurrentDeleteableItem(item);
               onCompleteAction();
@@ -4691,23 +4738,28 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
       {showDeleteConfirmModal && (
         <ConfirmModal
-          title={`Delete ${props.singularName || model.singularName}`}
-          description={((): string => {
-            const label: string = (
-              props.singularName ||
-              model.singularName ||
-              "item"
-            ).toLowerCase();
-            const name: string = getItemLabel(currentDeleteableItem);
+          title={
+            deleteConfirmation?.title ||
+            `Delete ${getDeleteLabel(props.singularName, model.singularName)}`
+          }
+          description={
+            deleteConfirmation?.description ||
+            ((): string => {
+              const label: string = getDeleteLabel(
+                props.singularName,
+                model.singularName,
+              ).toLowerCase();
+              const name: string = getItemLabel(currentDeleteableItem);
 
-            return `Are you sure you want to delete ${
-              name ? `"${name}"` : `this ${label}`
-            }? This action cannot be undone.`;
-          })()}
+              return `Are you sure you want to delete ${
+                name ? `"${name}"` : `this ${label}`
+              }? This action cannot be undone.`;
+            })()
+          }
           onClose={() => {
             setShowDeleteConfirmModal(false);
           }}
-          submitButtonText={"Delete"}
+          submitButtonText={deleteConfirmation?.submitButtonText || "Delete"}
           onSubmit={async () => {
             if (currentDeleteableItem && currentDeleteableItem["_id"]) {
               await deleteItem(currentDeleteableItem);

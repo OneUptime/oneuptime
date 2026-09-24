@@ -9,6 +9,8 @@ import {
   MAX_SESSION_REPLAY_CHUNK_BYTES,
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_CONTENT_TYPE,
+  SESSION_REPLAY_LEGACY_CONTENT_TYPE,
   SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
   SESSION_REPLAY_MOBILE_RECORDER_CAPABILITIES,
   SESSION_REPLAY_RECORDER_KIND_HEADER,
@@ -23,6 +25,7 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import zlib from "zlib";
+import SessionReplayWireEncoding from "Common/Utils/Rum/SessionReplayWireEncoding";
 import * as BrowserRecorderManifest from "../../FeatureSet/BrowserRecorder/Manifest";
 
 /*
@@ -1147,6 +1150,179 @@ describe("POST /session-replay/v1/chunk", () => {
     const args: JSONObject = addJobMock.mock.calls[0]![0] as JSONObject;
 
     expect(args["countryCode"]).toBe("");
+  });
+});
+
+/*
+ * A customer's web application firewall refused every chunk: the OWASP
+ * Core Rule Set allows only a few request content types (920420), and the
+ * vendor type chunks used to carry is not one of them. Recorders now send
+ * application/octet-stream and write each envelope line with its `%`, `&`
+ * and `http/` escaped and a space before the newline. The route never
+ * branched on Content-Type - the body reader is chosen by path - and these
+ * tests keep it that way, for the new recorders and for every pinned
+ * browser artifact and shipped mobile build that still sends the old type.
+ */
+describe("POST /session-replay/v1/chunk from behind a web application firewall", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    addJobMock.mockResolvedValue(undefined as never);
+    markChunkReceivedMock.mockResolvedValue(undefined as never);
+    markBudgetExceededMock.mockResolvedValue(undefined as never);
+    updateLastSeenMock.mockResolvedValue(undefined as never);
+    gateMock.mockResolvedValue({
+      outcome: SessionReplayGateOutcome.Accepted,
+      directive: "continue",
+      configEpoch: 99,
+      reason: "accepted",
+      policy: { samplePercentage: 100, rumApplicationId: RUM_APPLICATION_ID },
+    } as never);
+  });
+
+  /* A body exactly as a current recorder writes it. */
+  function buildEncodedBody(
+    overrides?: Partial<SessionReplayChunkEnvelope>,
+  ): Buffer {
+    const payload: Buffer = zlib.gzipSync(
+      new Uint8Array(
+        Buffer.from(
+          SessionReplayWireEncoding.escapeJson(
+            JSON.stringify([{ type: 2, data: { text: "50% & HTTP/1.1" } }]),
+          ),
+        ),
+      ),
+    );
+
+    const envelope: SessionReplayChunkEnvelope = buildEnvelope({
+      url: "https://shop.example.com/search/gadget+case%20x",
+      ...overrides,
+      payloadBytes: payload.length,
+    });
+
+    return Buffer.concat([
+      new Uint8Array(
+        Buffer.from(SessionReplayWireEncoding.encodeEnvelopeLine(envelope)),
+      ),
+      new Uint8Array(payload),
+    ]);
+  }
+
+  /* Run the real body reader, then the route, as Express would. */
+  async function postThroughBodyReader(
+    body: Buffer,
+    contentType: string | undefined,
+  ): Promise<FakeResponse> {
+    const headers: Record<string, string> = {
+      [SESSION_REPLAY_APP_IDENTIFIER_HEADER]: APP_IDENTIFIER,
+      origin: "https://shop.example.com",
+      "content-length": String(body.length),
+    };
+
+    if (contentType !== undefined) {
+      headers["content-type"] = contentType;
+    }
+
+    const stream: EventEmitter & Record<string, unknown> =
+      new EventEmitter() as EventEmitter & Record<string, unknown>;
+
+    stream["headers"] = headers;
+    stream["resume"] = (): void => {
+      // Nothing to drain in a test.
+    };
+
+    let continued: boolean = false;
+
+    const reading: Promise<void> = SessionReplayRequestMiddleware.parseBody(
+      stream as unknown as ExpressRequest,
+      buildResponse() as unknown as ExpressResponse,
+      ((): void => {
+        continued = true;
+      }) as NextFunction,
+    );
+
+    /* In two pieces, the way a socket delivers it. */
+    stream.emit("data", body.subarray(0, 7));
+    stream.emit("data", body.subarray(7));
+    stream.emit("end");
+
+    await reading;
+
+    expect(continued).toBe(true);
+    expect(Buffer.isBuffer(stream["body"])).toBe(true);
+
+    const { res } = await invokeChunkRoute({
+      body: stream["body"],
+      headers: headers,
+    });
+
+    return res;
+  }
+
+  const contentTypes: Array<{ name: string; value: string | undefined }> = [
+    {
+      name: "application/octet-stream (current recorders)",
+      value: SESSION_REPLAY_CONTENT_TYPE,
+    },
+    {
+      name: "the legacy vendor type (pinned and shipped recorders)",
+      value: SESSION_REPLAY_LEGACY_CONTENT_TYPE,
+    },
+    {
+      name: "a Content-Type with parameters",
+      value: "application/octet-stream; charset=binary",
+    },
+    { name: "no Content-Type at all", value: undefined },
+  ];
+
+  for (const contentType of contentTypes) {
+    test(`accepts and stages an escaped chunk sent as ${contentType.name}`, async () => {
+      const body: Buffer = buildEncodedBody();
+
+      const res: FakeResponse = await postThroughBodyReader(
+        body,
+        contentType.value,
+      );
+
+      expect(getStatus(res)).toBe(202);
+      expect(addJobMock).toHaveBeenCalledTimes(1);
+
+      const args: JSONObject = addJobMock.mock.calls[0]![0] as JSONObject;
+
+      expect((args["body"] as Buffer).toString("base64")).toBe(
+        body.toString("base64"),
+      );
+    });
+  }
+
+  test("the current recorders' content type is octet-stream, and the old one still differs", () => {
+    expect(SESSION_REPLAY_CONTENT_TYPE).toBe("application/octet-stream");
+    expect(SESSION_REPLAY_LEGACY_CONTENT_TYPE).toBe(
+      "application/vnd.oneuptime.session-replay.v1",
+    );
+  });
+
+  test("an old recorder's plain frame is still accepted next to the new format", async () => {
+    const res: FakeResponse = await postThroughBodyReader(
+      buildBody(),
+      SESSION_REPLAY_LEGACY_CONTENT_TYPE,
+    );
+
+    expect(getStatus(res)).toBe(202);
+  });
+
+  test("a parsed envelope keeps its url, not the escaped text", () => {
+    const parsed: SessionReplayParseResult = SessionReplayEnvelopeParser.parse(
+      buildEncodedBody(),
+      APP_IDENTIFIER,
+    );
+
+    expect(parsed.isValid).toBe(true);
+
+    if (parsed.isValid) {
+      expect(parsed.frames[0]!.envelope.url).toBe(
+        "https://shop.example.com/search/gadget+case%20x",
+      );
+    }
   });
 });
 

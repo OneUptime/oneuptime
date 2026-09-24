@@ -108,6 +108,7 @@ export const KubernetesRoutePath: Dictionary<string> = {
   [PageMap.KUBERNETES_CLUSTER_VIEW_VPA_DETAIL]: `${RouteParams.ModelID}/vpas/${RouteParams.SubModelID}`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_EVENTS]: `${RouteParams.ModelID}/events`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI]: `${RouteParams.ModelID}/ai`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_COSTS]: `${RouteParams.ModelID}/costs`,
   [PageMap.KUBERNETES_CLUSTER_VIEW_CONTROL_PLANE]: `${RouteParams.ModelID}/control-plane`,
@@ -170,6 +171,11 @@ export const SloRoutePath: Dictionary<string> = {
    * SLO id.
    */
   [PageMap.SLOS_ARCHIVED]: `archived`,
+  // Also list-layout pages; the `settings` segment is never an SLO id either.
+  [PageMap.SLOS_SETTINGS_OWNER_RULES]: "settings/owner-rules",
+  [PageMap.SLOS_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
+  [PageMap.SLOS_SETTINGS_LABEL_RULES]: "settings/label-rules",
+  [PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.SLO_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.SLO_VIEW_MONITORS]: `${RouteParams.ModelID}/monitors`,
   [PageMap.SLO_VIEW_MONITOR_RULES]: `${RouteParams.ModelID}/monitor-rules`,
@@ -489,6 +495,11 @@ export const RumRoutePath: Dictionary<string> = {
    */
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_USERS]: `${RouteParams.ModelID}/session-replay-users`,
   /*
+   * Page-to-page journeys drawn from the recordings. Its own top-level
+   * segment, so it can never be read as a session id by the player route.
+   */
+  [PageMap.RUM_APPLICATION_VIEW_USER_FLOWS]: `${RouteParams.ModelID}/user-flows`,
+  /*
    * A sibling of /session-replay rather than a child, for the same reason
    * as the audit page: a child segment would be shadowed by a session
    * whose id happened to be "settings".
@@ -525,7 +536,9 @@ export const RumRoutePath: Dictionary<string> = {
 export const WorkflowRoutePath: Dictionary<string> = {
   [PageMap.WORKFLOWS_LOGS]: "logs",
   [PageMap.WORKFLOWS_VARIABLES]: "variables",
+  [PageMap.WORKFLOWS_VARIABLE_VIEW]: `variables/${RouteParams.ModelID}`,
   [PageMap.WORKFLOW_VARIABLES]: `${RouteParams.ModelID}/variables`,
+  [PageMap.WORKFLOW_VARIABLE_VIEW]: `${RouteParams.ModelID}/variables/${RouteParams.SubModelID}`,
   [PageMap.WORKFLOW_BUILDER]: `${RouteParams.ModelID}/builder`,
   [PageMap.WORKFLOW_VIEW]: `${RouteParams.ModelID}`,
   [PageMap.WORKFLOW_LOGS]: `${RouteParams.ModelID}/logs`,
@@ -2761,6 +2774,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.KUBERNETES_CLUSTER_VIEW_AI]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/kubernetes/${
+      KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_AI]
+    }`,
+  ),
+
   [PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/kubernetes/${
       KubernetesRoutePath[PageMap.KUBERNETES_CLUSTER_VIEW_RECOMMENDATIONS]
@@ -3157,6 +3176,30 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.SLOS_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/slos/${
       SloRoutePath[PageMap.SLOS_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.SLOS_SETTINGS_OWNER_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.SLOS_SETTINGS_OWNER_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_SETTINGS_OWNER_RULE_VIEW]
+    }`,
+  ),
+
+  [PageMap.SLOS_SETTINGS_LABEL_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_SETTINGS_LABEL_RULES]
+    }`,
+  ),
+
+  [PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/slos/${
+      SloRoutePath[PageMap.SLOS_SETTINGS_LABEL_RULE_VIEW]
     }`,
   ),
 
@@ -4796,6 +4839,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.RUM_APPLICATION_VIEW_USER_FLOWS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/rum/${
+      RumRoutePath[PageMap.RUM_APPLICATION_VIEW_USER_FLOWS]
+    }`,
+  ),
+
   [PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/rum/${
       RumRoutePath[PageMap.RUM_APPLICATION_VIEW_SESSION_REPLAY_SETTINGS]
@@ -6272,9 +6321,21 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.WORKFLOWS_VARIABLE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/workflows/${
+      WorkflowRoutePath[PageMap.WORKFLOWS_VARIABLE_VIEW]
+    }`,
+  ),
+
   [PageMap.WORKFLOW_VARIABLES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/workflows/${
       WorkflowRoutePath[PageMap.WORKFLOW_VARIABLES]
+    }`,
+  ),
+
+  [PageMap.WORKFLOW_VARIABLE_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/workflows/${
+      WorkflowRoutePath[PageMap.WORKFLOW_VARIABLE_VIEW]
     }`,
   ),
 

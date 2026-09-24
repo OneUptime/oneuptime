@@ -559,12 +559,33 @@ export default class BaseAPI<
      * id as an update of the existing row rather than an insert, so a stray
      * `_id` (or the `id` spelling, which BaseModel.fromJSON has already folded
      * into `_id`) would make a "create" modify an existing record instead.
-     * updateItem strips `_id` for a related reason; do it here too. Only the
-     * top-level primary key is removed - nested `_id`s inside relation
-     * objects/arrays reference existing related rows and are left untouched.
+     *
+     * CLEARED, NOT DELETED, and that distinction is load-bearing: `item` is a
+     * live model instance that the service then asks for its own column list
+     * (DatabaseService.generateDefaultValues -> data.getTableColumns()), and
+     * that lookup used to enumerate this very instance's own keys and cache
+     * the result for the whole CLASS. Deleting `_id` here therefore taught the
+     * process that this model has no `_id` column, and every later response
+     * for it - to any caller, including reads - was serialized without one.
+     * TableColumn.ts no longer reads the caller's instance, so this is now
+     * defence in depth rather than the fix; the trap is removed all the same.
+     * DatabaseService.sanitizeUpdateData skips these keys the same way instead
+     * of deleting them off a model.
+     *
+     * `undefined` is what an unset column holds anyway, so nothing downstream
+     * can tell it from an absent key: TypeORM reads primary keys through
+     * ColumnMetadata.getEntityValue and treats undefined as "no id"
+     * (EntityMetadata.getValueMap skips it, so the Subject gets no identifier
+     * and must be INSERTed), the create path's own "an id cannot be supplied"
+     * guard tests `data._id` for truthiness, ColumnPermissions skips data keys
+     * whose value is undefined, and toJSONObject omits them from responses.
+     *
+     * Only the top-level primary key is cleared - nested `_id`s inside
+     * relation objects/arrays reference existing related rows and are left
+     * untouched. `id` needs no handling: it is a prototype accessor derived
+     * from `_id` (never an own property), and its setter ignores falsy values.
      */
-    delete (item as any)["_id"];
-    delete (item as any)["id"];
+    (item as any)["_id"] = undefined;
 
     const miscDataProps: JSONObject = JSONFunctions.deserialize(
       body["miscDataProps"] as JSONObject,

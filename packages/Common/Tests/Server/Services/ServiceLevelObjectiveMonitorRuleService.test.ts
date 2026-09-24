@@ -21,6 +21,7 @@ import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import RuleCriteria, {
   RULE_CRITERIA_SCHEMA_VERSION,
   RuleCriteriaOperator,
@@ -101,6 +102,7 @@ function makeRule(fields: {
   description?: string | undefined;
   isEnabled?: boolean | undefined;
   labelIds?: Array<ObjectID> | undefined;
+  monitorType?: MonitorType | undefined;
   monitorNamePattern?: string | undefined;
   monitorDescriptionPattern?: string | undefined;
   criteria?: RuleCriteria | null | undefined;
@@ -119,6 +121,7 @@ function makeRule(fields: {
     monitorLabels: (fields.labelIds || []).map((labelId: ObjectID) => {
       return { id: labelId, _id: labelId.toString() } as unknown as Label;
     }),
+    monitorType: fields.monitorType,
     monitorNamePattern: fields.monitorNamePattern,
     monitorDescriptionPattern: fields.monitorDescriptionPattern,
     criteria: fields.criteria,
@@ -246,6 +249,72 @@ describe("ServiceLevelObjectiveMonitorRuleService.onBeforeCreate", () => {
   afterEach(() => {
     jest.restoreAllMocks();
   });
+
+  it.each([true, false])(
+    "accepts a monitor-type-only rule with configured criteria=%p",
+    async (configured: boolean) => {
+      await expect(
+        callHook(
+          "onBeforeCreate",
+          makeCreateBy({
+            projectId: PROJECT_ID,
+            serviceLevelObjectiveId: SLO_ID,
+            ...(configured
+              ? {
+                  criteria: criteria(FilterCondition.All, [
+                    {
+                      field: "monitorType",
+                      operator: RuleCriteriaOperator.Equals,
+                      value: MonitorType.API,
+                    },
+                  ]),
+                }
+              : { monitorType: MonitorType.API }),
+          }),
+        ),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  it.each([
+    { monitorType: "Unknown" },
+    {
+      criteria: criteria(FilterCondition.All, [
+        {
+          field: "monitorType",
+          operator: RuleCriteriaOperator.NotEquals,
+          value: "Unknown",
+        },
+      ]),
+    },
+    {
+      criteria: criteria(FilterCondition.All, [
+        {
+          field: "monitorType",
+          operator: RuleCriteriaOperator.Contains,
+          value: MonitorType.API,
+        },
+      ]),
+    },
+  ])(
+    "rejects invalid monitor type conditions before checking or adopting an SLO: %p",
+    async (fields: Record<string, unknown>) => {
+      await expect(
+        callHook(
+          "onBeforeCreate",
+          makeCreateBy({
+            projectId: PROJECT_ID,
+            serviceLevelObjectiveId: SLO_ID,
+            ...fields,
+          }),
+        ),
+      ).rejects.toThrow("Monitor type criteria");
+      expect(spies.referenceValidator).not.toHaveBeenCalled();
+      expect(
+        SloLegacyMonitorLabelAdoption.adoptLegacyMonitorLabels,
+      ).not.toHaveBeenCalled();
+    },
+  );
 
   it("refuses a rule that names no SLO", async () => {
     const promise: Promise<unknown> = callHook(
@@ -625,6 +694,52 @@ describe("ServiceLevelObjectiveMonitorRuleService.onBeforeUpdate", () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("keeps a legacy type condition when clearing a different condition", async () => {
+    spies.ruleFindBy.mockResolvedValue([
+      makeRule({ monitorType: MonitorType.API, monitorNamePattern: "api-*" }),
+    ]);
+    await expect(
+      callHook("onBeforeUpdate", makeUpdateBy({ monitorNamePattern: null })),
+    ).resolves.toBeDefined();
+    expect(spies.ruleFindBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ monitorType: true }),
+      }),
+    );
+  });
+
+  it("rejects removing the only legacy type condition", async () => {
+    spies.ruleFindBy.mockResolvedValue([
+      makeRule({ monitorType: MonitorType.API }),
+    ]);
+    await expect(
+      callHook("onBeforeUpdate", makeUpdateBy({ monitorType: null })),
+    ).rejects.toThrow("at least one match criterion");
+  });
+
+  it("validates a changed legacy monitor type and configured monitor type", async () => {
+    spies.ruleFindBy.mockResolvedValue([
+      makeRule({ monitorType: MonitorType.API }),
+    ]);
+    await expect(
+      callHook("onBeforeUpdate", makeUpdateBy({ monitorType: "Unknown" })),
+    ).rejects.toThrow("valid monitor type");
+    await expect(
+      callHook(
+        "onBeforeUpdate",
+        makeUpdateBy({
+          criteria: criteria(FilterCondition.All, [
+            {
+              field: "monitorType",
+              operator: RuleCriteriaOperator.DoesNotMatchPattern,
+              value: MonitorType.API,
+            },
+          ]),
+        }),
+      ),
+    ).rejects.toThrow("only support Equals");
   });
 
   it("refuses a pattern the engine could never match, before reading anything", async () => {

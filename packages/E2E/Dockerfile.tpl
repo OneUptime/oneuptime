@@ -9,10 +9,15 @@
 # Note: Alpine Images don't work with Playwright.
 # Floating on the 26 major so each rebuild picks up the latest Node security
 # patches without manual bumps. Lockfiles still keep JS deps reproducible.
-# The Debian release is pinned (bookworm) because the apt package list below
-# is release-specific (e.g. libgdk-pixbuf2.0-0 has no install candidate on
-# trixie, the default for node:26).
-FROM public.ecr.aws/docker/library/node:26-bookworm
+# The Debian release is pinned (bookworm), as it is for the Probe, so the two
+# Playwright images install their browsers on the same distribution.
+#
+# bookworm-slim, not the full node:26-bookworm: the full image is
+# buildpack-deps, which preinstalls compilers, kernel headers and ~70 -dev
+# libraries this image never uses. They were most of the ~4,000 OS-package
+# CVEs scanners reported for it, and the toolchain purge at the end could not
+# remove them because the base image owns them.
+FROM public.ecr.aws/docker/library/node:26-bookworm-slim
 RUN mkdir /tmp/npm &&  chmod 2777 /tmp/npm && chown 1000:1000 /tmp/npm && npm config set cache /tmp/npm --global
 
 RUN npm config set fetch-retries 5
@@ -23,10 +28,13 @@ RUN npm config set fetch-retry-maxtimeout 60000
 # /Common/node_modules/esbuild/bin/esbuild). See esbuild#1711, #2785.
 RUN npm config set foreground-scripts true
 
-# Upgrade the bundled npm CLI so its vendored deps (tar, glob, minimatch,
-# brace-expansion, diff, ip-address, picomatch, ...) pick up security fixes
-# that the base image's npm still carries.
-RUN npm install -g npm@latest
+# Update npm to npm@latest with every dependency it bundles (tar, undici,
+# brace-expansion, ip-address, ...) reinstalled at the newest version npm's own
+# ranges accept. `npm install -g npm@latest` alone ships the dependencies npm
+# was packed with, and scanners flagged them in every image. See
+# Scripts/Docker/UpdateNpmCli.js.
+COPY ./Scripts/Docker/UpdateNpmCli.js /tmp/UpdateNpmCli.js
+RUN node /tmp/UpdateNpmCli.js && rm /tmp/UpdateNpmCli.js
 
 
 # Per-build args (GIT_SHA / APP_VERSION / IS_ENTERPRISE_EDITION) are declared at
@@ -44,22 +52,22 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 # Upgrade OS packages (Debian security fixes published since the base image
 # was built) and install OS packages in a single layer:
-#   - Runtime tools: bash, curl
+#   - Runtime tools: bash, curl (the failure webhook in `npm test`) and
+#     ca-certificates, which the slim base image does not have
 #   - Build toolchain: python3, make, g++ (removed later, after npm install)
-#   - Playwright/Chromium system libs
+# The browsers' own system libraries are installed with the browsers below
+# (`playwright install --with-deps`), so the list always matches the
+# Playwright version in the lockfile.
 # `--no-install-recommends` keeps the surface small. apt cache is cleaned in
 # the same RUN so package metadata doesn't persist in the layer.
 RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         bash \
+        ca-certificates \
         curl \
         python3 \
         make \
         g++ \
-        libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
-        libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
-        libgbm1 libgtk-3-0 libpango-1.0-0 libcairo2 libgdk-pixbuf2.0-0 \
-        libasound2 libatspi2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 #Use bash shell by default
@@ -77,22 +85,29 @@ ENV PW_TEST_HTML_REPORT_OPEN='never'
 
 WORKDIR /usr/src/app
 
-# Install app dependencies
+# Install app dependencies.
+# --ignore-scripts skips the package's `preinstall` hook
+# (`npx playwright install-deps && npx playwright install`), which is there
+# for local checkouts. Run before the dependencies exist, its `npx
+# playwright` is whatever release is newest on the registry, not the locked
+# one, so in the image it installed a second set of browsers, WebKit, and
+# WebKit's system libraries (GStreamer, FFmpeg, libsoup, ...): none of them
+# used by the suite, all of them in the scan. No dependency of this package
+# has an install script of its own.
 COPY ./packages/E2E/package*.json /usr/src/app/
-RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline
+RUN --mount=type=cache,target=/tmp/npm npm ci --prefer-offline --ignore-scripts
 
-# Install the Playwright browser binaries for the LOCKED playwright version
-# (node_modules/.bin/playwright installed by the npm ci above). The package's
-# `preinstall` hook runs `playwright install-deps && playwright install`, but in
-# this image the apt package lists were removed in the earlier layer, so
-# `install-deps` can abort the `&&` chain before the browser download runs —
-# leaving the runtime with no browser executable
-# ("browserType.launch: Executable doesn't exist ... chrome-headless-shell").
-# The required system libraries are already installed by the apt layer above, so
-# only the browser binaries are needed here; installing them explicitly with the
-# pinned playwright guarantees the correct-version chromium + firefox exist at
-# runtime.
-RUN npx playwright install chromium firefox
+# Install the Playwright browsers the suite runs (chromium and firefox) for
+# the LOCKED playwright version (node_modules/.bin/playwright from the npm ci
+# above), with their system libraries. `--with-deps` apt-installs those, so
+# refresh the apt lists first and drop them again in the same layer.
+# libavcodec59 (the FFmpeg stack Playwright lists for Firefox) is removed again,
+# as in the Probe image: Firefox only uses it to decode MP4/H.264, which no
+# test plays (see packages/Probe/Dockerfile.tpl).
+RUN apt-get update \
+    && npx playwright install --with-deps chromium firefox \
+    && apt-get purge -y --auto-remove libavcodec59 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy app source
 COPY ./packages/E2E /usr/src/app

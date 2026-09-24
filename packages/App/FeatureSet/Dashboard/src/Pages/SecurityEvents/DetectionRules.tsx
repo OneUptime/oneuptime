@@ -31,7 +31,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import SecurityEventsHowItWorksCard from "../../Components/SecurityEvents/HowItWorks/SecurityEventsHowItWorksCard";
 import DetectionRulesGuide from "../../Components/SecurityEvents/HowItWorks/DetectionRulesGuide";
 import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
-import React, { Fragment, FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement } from "react";
 
 const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
@@ -63,7 +63,13 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
   );
 
   return (
-    <Fragment>
+    /*
+     * The page's own vertical rhythm. `Page` only wraps its children in
+     * `space-y-6` on the side-menu branch, and this product moved its
+     * destinations into header tabs — so without this the How-it-works card
+     * and the table under it sit flush against each other.
+     */
+    <div className="space-y-6">
       <SecurityEventsHowItWorksCard guide={DetectionRulesGuide} />
 
       <ModelTable<DetectionRule>
@@ -397,7 +403,7 @@ const DetectionRulesPage: FunctionComponent<PageComponentProps> = (
           },
         ]}
       />
-    </Fragment>
+    </div>
   );
 };
 

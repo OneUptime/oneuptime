@@ -32,6 +32,8 @@ import {
   SessionReplaySealedReason,
 } from "../../../Types/Rum/SessionReplay";
 import {
+  SESSION_REPLAY_SESSION_ID_BATCH_MAX,
+  SESSION_REPLAY_SESSION_ID_MAX_LENGTH,
   SESSION_REPLAY_SORT_BY_VALUES,
   SessionReplaySortBy,
   SessionReplaySortedListCursorDto,
@@ -102,13 +104,16 @@ export const DEFAULT_SESSION_REPLAY_LIST_LIMIT: number = 50;
 export const MAX_SESSION_REPLAY_LIST_LIMIT: number = 200;
 
 /*
- * Audit tables resolve the opaque session ids on one page in a single
- * ClickHouse read. Keep both the number of bound IN values and each value's
- * size bounded; session ids are browser-minted 32-character hex strings, but
- * older recorders and hand-written API callers may have stored another shape.
+ * Audit tables and replay links resolve the opaque session ids on one page
+ * in a single ClickHouse read. Keep both the number of bound IN values and
+ * each value's size bounded; session ids are browser-minted 32-character hex
+ * strings, but older recorders and hand-written API callers may have stored
+ * another shape. Shared with the Dashboard, which splits its batches to fit.
  */
-export const MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE: number = 200;
-export const MAX_SESSION_REPLAY_SESSION_ID_LENGTH: number = 128;
+export const MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE: number =
+  SESSION_REPLAY_SESSION_ID_BATCH_MAX;
+export const MAX_SESSION_REPLAY_SESSION_ID_LENGTH: number =
+  SESSION_REPLAY_SESSION_ID_MAX_LENGTH;
 
 /*
  * Page sizes for the per-user rollup (listUsers). Same figures as the
@@ -342,6 +347,30 @@ export interface SessionReplaySummary {
   browserVersion: string;
   osName: string;
   deviceType: string;
+}
+
+export interface SessionReplayResolveRequest {
+  projectId: ObjectID;
+  sessionIds: Array<string>;
+  /*
+   * null means "no label restriction". An EMPTY array means the caller can
+   * reach no application at all and must get no rows - the two are not the
+   * same, and collapsing them would resolve every session in the project.
+   */
+  accessibleRumApplicationIds: Array<ObjectID> | null;
+}
+
+/*
+ * Where a session id was recorded: the one fact a telemetry row lacks to
+ * build a player link. Deliberately nothing more - no identity, no URL, no
+ * device: a link needs none of it, and this read answers project-wide for
+ * callers who arrive from a log line rather than from the session list.
+ */
+export interface SessionReplayResolvedSession {
+  sessionId: string;
+  rumApplicationId: string;
+  startTime: Date;
+  startTimeUnixMs: number;
 }
 
 /* Routes projected onto a list row; the table shows three and says "(N pages)". */
@@ -1311,6 +1340,37 @@ type PublishedRecorderVersionProvider = () => string | null;
 let publishedRecorderVersionProvider: PublishedRecorderVersionProvider | null =
   null;
 
+/*
+ * The batch reads bind caller-supplied ids into one IN list. Validate the
+ * raw array (so repeats cannot slip past the size ceiling), then bind each
+ * id once, in first-occurrence order.
+ */
+function validateSessionIdBatch(sessionIds: Array<string>): Array<string> {
+  if (sessionIds.length === 0) {
+    throw new BadDataException("sessionIds must contain at least one id");
+  }
+
+  if (sessionIds.length > MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE) {
+    throw new BadDataException(
+      `sessionIds must contain at most ${MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE} ids`,
+    );
+  }
+
+  for (const sessionId of sessionIds) {
+    if (typeof sessionId !== "string" || sessionId.length === 0) {
+      throw new BadDataException("Every sessionId must be a non-empty string");
+    }
+
+    if (sessionId.length > MAX_SESSION_REPLAY_SESSION_ID_LENGTH) {
+      throw new BadDataException(
+        `Every sessionId must be at most ${MAX_SESSION_REPLAY_SESSION_ID_LENGTH} characters.`,
+      );
+    }
+  }
+
+  return Array.from(new Set<string>(sessionIds));
+}
+
 export default class SessionReplayReadService {
   public static setPublishedRecorderVersionProvider(
     provider: PublishedRecorderVersionProvider | null,
@@ -1348,33 +1408,8 @@ export default class SessionReplayReadService {
   public static async getSessionSummaries(
     request: SessionReplaySummariesRequest,
   ): Promise<Array<SessionReplaySummary>> {
-    if (request.sessionIds.length === 0) {
-      throw new BadDataException("sessionIds must contain at least one id");
-    }
-
-    if (request.sessionIds.length > MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE) {
-      throw new BadDataException(
-        `sessionIds must contain at most ${MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE} ids`,
-      );
-    }
-
-    for (const sessionId of request.sessionIds) {
-      if (typeof sessionId !== "string" || sessionId.length === 0) {
-        throw new BadDataException(
-          "Every sessionId must be a non-empty string",
-        );
-      }
-
-      if (sessionId.length > MAX_SESSION_REPLAY_SESSION_ID_LENGTH) {
-        throw new BadDataException(
-          `Every sessionId must be at most ${MAX_SESSION_REPLAY_SESSION_ID_LENGTH} characters.`,
-        );
-      }
-    }
-
-    /* Preserve first occurrence order while binding every id only once. */
-    const sessionIds: Array<string> = Array.from(
-      new Set<string>(request.sessionIds),
+    const sessionIds: Array<string> = validateSessionIdBatch(
+      request.sessionIds,
     );
 
     const statement: Statement = SQL`
@@ -1447,6 +1482,161 @@ export default class SessionReplayReadService {
           summariesById.get(sessionId);
 
         return summary ? [summary] : [];
+      },
+    );
+  }
+
+  /*
+   * Session id -> the application that recorded it, project-wide, for the
+   * replay links on log, span and exception surfaces (none of which carry
+   * the application). One argMax read for a whole page of ids, never one
+   * getSessionHeader per row.
+   *
+   * An id recorded under more than one application is OMITTED, not
+   * guessed. sessionId is minted by the browser, so anyone holding one
+   * application's ingest key can record under an id another application
+   * already uses; answering with either group would point a log line at a
+   * recording it may not belong to. getSessionHeader refuses the same id
+   * unless the caller names the application, and a telemetry row has none
+   * to name.
+   *
+   * Which is why the label restriction is applied in QUALIFY, AFTER the
+   * window has counted every application in the project, and not in the
+   * WHERE: filtering first would make an id shared with an application the
+   * caller cannot see look unique, and resolve it. The WHERE stays
+   * (projectId, sessionId), which the idx_session_id bloom filter prunes.
+   */
+  @CaptureSpan()
+  public static async resolveSessions(
+    request: SessionReplayResolveRequest,
+  ): Promise<Array<SessionReplayResolvedSession>> {
+    const sessionIds: Array<string> = validateSessionIdBatch(
+      request.sessionIds,
+    );
+
+    if (
+      request.accessibleRumApplicationIds &&
+      request.accessibleRumApplicationIds.length === 0
+    ) {
+      return [];
+    }
+
+    const statement: Statement = SQL`
+      SELECT
+        sessionId,
+        toString(rumApplicationId) AS applicationId,
+    `;
+
+    statement.append(
+      `    ${toSelectList([
+        { alias: "aggStartTime", expression: argMaxDateTime("startTime") },
+      ])}`,
+    );
+
+    /* One grouped row per application, so this counts applications per id. */
+    statement.append(
+      ", count() OVER (PARTITION BY sessionId) AS matchedApplicationCount",
+    );
+
+    statement.append(SQL`
+      FROM ${AnalyticsTableName.RumSession}
+      WHERE projectId = ${{
+        type: TableColumnType.ObjectID,
+        value: request.projectId,
+      }}
+        AND sessionId IN (${{
+          type: TableColumnType.Text,
+          value: new Includes(sessionIds),
+        }})
+    `);
+
+    statement.append(RETENTION_FILTER);
+    statement.append(" GROUP BY projectId, rumApplicationId, sessionId");
+    statement.append(" QUALIFY matchedApplicationCount = 1");
+
+    if (request.accessibleRumApplicationIds) {
+      statement.append(
+        SQL` AND rumApplicationId IN (${{
+          type: TableColumnType.ObjectID,
+          value: new Includes(request.accessibleRumApplicationIds),
+        }})`,
+      );
+    }
+
+    /* At most one row per requested id survives QUALIFY. */
+    statement.append(
+      SQL` LIMIT ${{
+        type: TableColumnType.Number,
+        value: sessionIds.length,
+      }}`,
+    );
+
+    statement.append(READ_QUERY_SETTINGS);
+
+    const dbResult: Results = await RumSessionService.executeQuery(statement);
+    const response: DbJSONResponse = await dbResult.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    const requestedIds: Set<string> = new Set<string>(sessionIds);
+    const accessibleIds: Set<string> | null =
+      request.accessibleRumApplicationIds
+        ? new Set<string>(
+            request.accessibleRumApplicationIds.map(
+              (applicationId: ObjectID): string => {
+                return applicationId.toString().toLowerCase();
+              },
+            ),
+          )
+        : null;
+
+    /*
+     * QUALIFY is authoritative; this repeats it so a driver row that should
+     * not have survived can never widen the answer. A second row for an id
+     * is the ambiguity QUALIFY exists to refuse, so it refuses the id.
+     */
+    const resolvedById: Map<string, SessionReplayResolvedSession> = new Map<
+      string,
+      SessionReplayResolvedSession
+    >();
+    const refusedIds: Set<string> = new Set<string>();
+
+    for (const row of response.data || []) {
+      const sessionId: string = readString(row, "sessionId");
+      const applicationId: string = readString(row, "applicationId");
+
+      if (!requestedIds.has(sessionId)) {
+        continue;
+      }
+
+      if (
+        resolvedById.has(sessionId) ||
+        readNumber(row, "matchedApplicationCount") !== 1 ||
+        !ObjectID.isValidUUID(applicationId) ||
+        (accessibleIds !== null &&
+          !accessibleIds.has(applicationId.toLowerCase()))
+      ) {
+        refusedIds.add(sessionId);
+        continue;
+      }
+
+      const startTime: Date = readDate(row, "aggStartTime");
+
+      resolvedById.set(sessionId, {
+        sessionId: sessionId,
+        rumApplicationId: applicationId,
+        startTime: startTime,
+        startTimeUnixMs: startTime.getTime(),
+      });
+    }
+
+    /* Stable request order; missing and refused ids are simply absent. */
+    return sessionIds.flatMap(
+      (sessionId: string): Array<SessionReplayResolvedSession> => {
+        const resolved: SessionReplayResolvedSession | undefined =
+          resolvedById.get(sessionId);
+
+        return resolved && !refusedIds.has(sessionId) ? [resolved] : [];
       },
     );
   }

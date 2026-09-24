@@ -124,7 +124,9 @@ RunCron(
         continue;
       }
 
-      const users: Array<User> = episodeOwnersMap[episodeId] as Array<User>;
+      const ownerUsers: Array<User> = episodeOwnersMap[
+        episodeId
+      ] as Array<User>;
 
       // Get the alert episode
       const episode: AlertEpisode | null =
@@ -153,6 +155,22 @@ RunCron(
         });
 
       if (!episode) {
+        continue;
+      }
+
+      /*
+       * A team row expands to every member row, pending invitations included,
+       * and a pending invitee has no notification settings yet (the defaults
+       * are added on accept). Tell only the accepted members of the project -
+       * the same people findOwners reports as owners.
+       */
+      const users: Array<User> =
+        await TeamMemberService.filterUsersToProjectMembers({
+          projectId: episode.projectId!,
+          users: ownerUsers,
+        });
+
+      if (users.length === 0) {
         continue;
       }
 
@@ -188,6 +206,7 @@ RunCron(
           templateType: EmailTemplateType.AlertEpisodeOwnerAdded,
           vars: vars,
           subject: `You have been added as the owner of Alert Episode ${episodeNumber} - ${episode.title}`,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

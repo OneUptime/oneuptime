@@ -100,6 +100,76 @@ const persistedColumns: PersistedColumnsFunction = (
   return names;
 };
 
+const MIGRATION_TIMESTAMP: number = 1793100000000;
+
+const MIGRATIONS_DIRECTORY: string = path.dirname(MIGRATION_PATH);
+
+/*
+ * Columns that a migration registered AFTER this one adds to `tableName`.
+ *
+ * This migration has shipped, so a column its models gain later arrives in a
+ * later migration, never in an edit to the CREATE TABLE here: editing it would
+ * do nothing for the databases that already ran it while putting them out of
+ * step with fresh ones. So the invariant the column checks below pin is "every
+ * column the model persists is created here or added by a later registered
+ * migration", which still fails a column that no migration creates at all. The
+ * later migration's own test pins that column's definition, and the Schema
+ * Drift job owns the end-state schema.
+ *
+ * "Later" is by the timestamp in the class name, which is what TypeORM sorts
+ * by, and only registered migrations count - a file nobody registered never
+ * runs. Their source is read rather than run against the fake QueryRunner, so
+ * a later data migration that reads rows back cannot break this suite.
+ */
+type ColumnsAddedLaterFunction = (tableName: string) => Set<string>;
+
+const columnsAddedByLaterMigrations: ColumnsAddedLaterFunction = (
+  tableName: string,
+): Set<string> => {
+  const laterTimestamps: Set<string> = new Set<string>();
+
+  for (const migration of SchemaMigrations as unknown as Array<{
+    name: string;
+  }>) {
+    const timestamp: string | undefined =
+      migration.name.match(/(\d{13})$/)?.[1];
+
+    if (timestamp && Number(timestamp) > MIGRATION_TIMESTAMP) {
+      laterTimestamps.add(timestamp);
+    }
+  }
+
+  const addColumn: RegExp = new RegExp(
+    `ALTER TABLE "${tableName}" ADD (?:COLUMN )?"([^"]+)"`,
+    "g",
+  );
+
+  const added: Set<string> = new Set<string>();
+
+  for (const fileName of fs.readdirSync(MIGRATIONS_DIRECTORY)) {
+    if (
+      !fileName.endsWith(".ts") ||
+      !laterTimestamps.has(fileName.split("-")[0]!)
+    ) {
+      continue;
+    }
+
+    const source: string = fs.readFileSync(
+      path.join(MIGRATIONS_DIRECTORY, fileName),
+      "utf8",
+    );
+
+    let match: RegExpExecArray | null = addColumn.exec(source);
+
+    while (match) {
+      added.add(match[1]!);
+      match = addColumn.exec(source);
+    }
+  }
+
+  return added;
+};
+
 type CreateTableStatementFunction = (
   statements: Array<string>,
   tableName: string,
@@ -391,7 +461,7 @@ describe("SloProductOverhaul migration - scope", () => {
 });
 
 describe("SloProductOverhaul migration - ServiceLevelObjectiveMonitorRule", () => {
-  test("creates every column the model persists, criteria included", async () => {
+  test("creates every column the model persists, criteria included, bar those a later migration adds", async () => {
     const statement: string = createTableStatement(
       await recordQueries("up"),
       "ServiceLevelObjectiveMonitorRule",
@@ -404,8 +474,15 @@ describe("SloProductOverhaul migration - ServiceLevelObjectiveMonitorRule", () =
     expect(columns).toContain("criteria");
     expect(columns).toContain("monitorNamePattern");
 
+    const addedLater: Set<string> = columnsAddedByLaterMigrations(
+      "ServiceLevelObjectiveMonitorRule",
+    );
+
     for (const column of columns) {
-      expect({ column, created: statement.includes(`"${column}"`) }).toEqual({
+      expect({
+        column,
+        created: statement.includes(`"${column}"`) || addedLater.has(column),
+      }).toEqual({
         column,
         created: true,
       });
@@ -460,14 +537,21 @@ describe("SloProductOverhaul migration - ServiceLevelObjectiveMonitorRule", () =
 });
 
 describe("SloProductOverhaul migration - ServiceLevelObjectiveFeed", () => {
-  test("creates every column the model persists", async () => {
+  test("creates every column the model persists, bar those a later migration adds", async () => {
     const statement: string = createTableStatement(
       await recordQueries("up"),
       "ServiceLevelObjectiveFeed",
     );
 
+    const addedLater: Set<string> = columnsAddedByLaterMigrations(
+      "ServiceLevelObjectiveFeed",
+    );
+
     for (const column of persistedColumns(ServiceLevelObjectiveFeed)) {
-      expect({ column, created: statement.includes(`"${column}"`) }).toEqual({
+      expect({
+        column,
+        created: statement.includes(`"${column}"`) || addedLater.has(column),
+      }).toEqual({
         column,
         created: true,
       });

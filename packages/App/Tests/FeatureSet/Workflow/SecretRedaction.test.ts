@@ -6,6 +6,7 @@
  */
 
 import WorkflowVariable from "Common/Models/DatabaseModels/WorkflowVariable";
+import { WorkflowVariableType } from "Common/Types/Workflow/WorkflowVariableOAuth";
 import {
   WORKFLOW_LOG_REDACTED_VALUE,
   getSecretValuesForRedaction,
@@ -134,5 +135,103 @@ describe("redactSecretsFromString", () => {
 
   test("handles an empty value", () => {
     expect(redactSecretsFromString("", ["secret"])).toBe("");
+  });
+});
+
+/*
+ * An OAuth 2.0 variable's value is a bearer token, and it is the access token
+ * - not `content`, which it leaves empty - that a component receives. It is
+ * redacted whatever its secret flag says: a flag that somehow reached false
+ * must not turn a live credential into log text.
+ */
+describe("getSecretWorkflowVariableValues and OAuth 2.0 variables", () => {
+  type OAuthVariableFunction = (values: {
+    accessToken?: string | undefined;
+    clientSecret?: string | undefined;
+    refreshToken?: string | undefined;
+    isSecret?: boolean | undefined;
+    content?: string | undefined;
+  }) => WorkflowVariable;
+
+  const oauthVariable: OAuthVariableFunction = (values: {
+    accessToken?: string | undefined;
+    clientSecret?: string | undefined;
+    refreshToken?: string | undefined;
+    isSecret?: boolean | undefined;
+    content?: string | undefined;
+  }): WorkflowVariable => {
+    const workflowVariable: WorkflowVariable = new WorkflowVariable();
+    workflowVariable.name = "API_TOKEN";
+    workflowVariable.variableType = WorkflowVariableType.OAuth2;
+    workflowVariable.content = values.content ?? "";
+    workflowVariable.isSecret = values.isSecret as unknown as string;
+    workflowVariable.oauthAccessToken = values.accessToken as string;
+    workflowVariable.oauthClientSecret = values.clientSecret as string;
+    workflowVariable.oauthRefreshToken = values.refreshToken as string;
+
+    return workflowVariable;
+  };
+
+  test("redacts the access token", () => {
+    expect(
+      getSecretWorkflowVariableValues([
+        oauthVariable({ accessToken: "eyJ.access.token", isSecret: true }),
+      ]),
+    ).toEqual(["eyJ.access.token"]);
+  });
+
+  test("redacts the access token even when the secret flag is off", () => {
+    expect(
+      getSecretWorkflowVariableValues([
+        oauthVariable({ accessToken: "eyJ.access.token", isSecret: false }),
+      ]),
+    ).toEqual(["eyJ.access.token"]);
+  });
+
+  test("redacts the credentials too if a caller selected them", () => {
+    expect(
+      getSecretWorkflowVariableValues([
+        oauthVariable({
+          accessToken: "access-token-value",
+          clientSecret: "client-secret-value",
+          refreshToken: "refresh-token-value",
+        }),
+      ]).sort(),
+    ).toEqual(
+      [
+        "access-token-value",
+        "client-secret-value",
+        "refresh-token-value",
+      ].sort(),
+    );
+  });
+
+  test("an OAuth variable with no token yet contributes nothing", () => {
+    expect(getSecretWorkflowVariableValues([oauthVariable({})])).toEqual([]);
+  });
+
+  test("does not treat an OAuth variable's content as its value", () => {
+    expect(
+      getSecretWorkflowVariableValues([
+        oauthVariable({ content: "leftover", accessToken: "real-token" }),
+      ]),
+    ).toEqual(["real-token"]);
+  });
+
+  test("redacts the token from a log line alongside Static secrets", () => {
+    const secrets: Array<string> = getSecretWorkflowVariableValues([
+      oauthVariable({ accessToken: "live-bearer-token" }),
+      variable("static-secret", true),
+      variable("not-a-secret", false),
+    ]);
+
+    expect(
+      redactSecretsFromString(
+        'Component Args: {"Authorization":"Bearer live-bearer-token","X-Key":"static-secret","X-Plain":"not-a-secret"}',
+        secrets,
+      ),
+    ).toBe(
+      `Component Args: {"Authorization":"Bearer ${WORKFLOW_LOG_REDACTED_VALUE}","X-Key":"${WORKFLOW_LOG_REDACTED_VALUE}","X-Plain":"not-a-secret"}`,
+    );
   });
 });

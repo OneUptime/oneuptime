@@ -856,13 +856,15 @@ export const QueryResourceTelemetryTool: ObservabilityTool = {
     if (signal === "logs") {
       /*
        * The dashboard histogram includes whole boundary minutes so it can
-       * use minute projections. Describe that effective interval exactly.
+       * use minute projections: every minute that starts at or after the
+       * start's minute and before the end. Describe that effective interval
+       * exactly - a minute-aligned end is itself the exclusive edge.
        */
       const effectiveStart: Date = new Date(
         Math.floor(startTime.getTime() / 60000) * 60000,
       );
       const effectiveEndExclusive: Date = new Date(
-        (Math.floor(endTime.getTime() / 60000) + 1) * 60000,
+        Math.ceil(endTime.getTime() / 60000) * 60000,
       );
       const severity: string | undefined = ToolArgs.getString(
         args,

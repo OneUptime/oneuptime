@@ -15,6 +15,7 @@ import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode"
 import SessionReplayTriggerReason from "Common/Types/Rum/SessionReplayTriggerReason";
 import {
   MAX_SESSION_REPLAY_CHUNKS_PER_SESSION,
+  SESSION_REPLAY_MAX_OFFLINE_DELAY_MS,
   SESSION_REPLAY_MAX_USER_REF_LENGTH,
   SESSION_REPLAY_SCHEMA_VERSION,
   SESSION_REPLAY_WIRE_VERSION,
@@ -22,6 +23,7 @@ import {
   SessionReplayChunkMeta,
 } from "Common/Types/Rum/SessionReplay";
 import SessionReplayIdentity from "Common/Server/Utils/SessionReplay/SessionReplayIdentity";
+import SessionReplayWireEncoding from "Common/Utils/Rum/SessionReplayWireEncoding";
 import zlib from "zlib";
 
 jest.mock("Common/Server/Utils/Logger", () => {
@@ -1490,16 +1492,24 @@ describe("SessionReplayIngestService.processFromQueue", () => {
      * row that is deleted on arrival. Two days back is well outside the
      * 4-hour backward window, so the start - and therefore the retention
      * date - lands on the boundary rather than on the client's claim.
+     *
+     * The clock is wrong for BOTH stamps, the way a wrong device clock is:
+     * the chunk says it was sent the moment it closed. A send stamp two days
+     * after the start would instead be a chunk that sat in an offline queue
+     * for two days, which is a different case (see "a chunk uploaded late
+     * from an offline queue").
      */
     const serverReceiveUnixMs: number = 1_800_000_020_000;
     const fourHoursMs: number = 4 * 3600 * 1000;
+    const clientStart: number = serverReceiveUnixMs - 2 * 24 * 3600 * 1000;
 
     await SessionReplayIngestService.processFromQueue(
       buildJobData(
         buildBody([
           {
             chunkIndex: 0,
-            sessionStartUnixMs: serverReceiveUnixMs - 2 * 24 * 3600 * 1000,
+            sessionStartUnixMs: clientStart,
+            clientSendUnixMs: clientStart + 15_000,
           },
         ]),
         { serverReceiveUnixMs },
@@ -3079,6 +3089,179 @@ describe("SessionReplayIngestService.processFromQueue - engagement, tags, traits
         OneUptimeDate.toClickhouseDateTime64(new Date(CLIENT_START)),
       );
     });
+
+    /*
+     * Offline mode. A device that lost its connection kept recording and
+     * uploaded the backlog when it came back; the recorder stamps
+     * clientSendUnixMs as it actually sends, so "send minus the chunk's end"
+     * is how long the chunk sat in the queue, on the device's own clock.
+     */
+    describe("a chunk uploaded late from an offline queue", () => {
+      const HOUR_MS: number = 60 * 60 * 1000;
+      const DAY_MS: number = 24 * HOUR_MS;
+
+      beforeEach(() => {
+        /* The fallback clamp is what decides a session's first chunk. */
+        redisConnected = false;
+      });
+
+      const processLateChunk: (data: {
+        sessionStartUnixMs: number;
+        clientSendUnixMs: number;
+        serverReceiveUnixMs: number;
+        chunkStartOffsetMs?: number;
+      }) => Promise<JSONObject> = async (data: {
+        sessionStartUnixMs: number;
+        clientSendUnixMs: number;
+        serverReceiveUnixMs: number;
+        chunkStartOffsetMs?: number;
+      }): Promise<JSONObject> => {
+        const chunkStartOffsetMs: number = data.chunkStartOffsetMs ?? 60_000;
+
+        await SessionReplayIngestService.processFromQueue(
+          buildJobData(
+            buildBody([
+              {
+                chunkIndex: 4,
+                sessionStartUnixMs: data.sessionStartUnixMs,
+                clientSendUnixMs: data.clientSendUnixMs,
+                chunkStartOffsetMs: chunkStartOffsetMs,
+                chunkEndOffsetMs: chunkStartOffsetMs + 15_000,
+              },
+            ]),
+            { serverReceiveUnixMs: data.serverReceiveUnixMs },
+          ),
+        );
+
+        return getSubmittedRows("RumSessionChunkV1")[0]!;
+      };
+
+      test("keeps its real start when it arrives a day after it was recorded", async () => {
+        const arrivedAt: number = CLIENT_START + DAY_MS;
+
+        const row: JSONObject = await processLateChunk({
+          sessionStartUnixMs: CLIENT_START,
+          clientSendUnixMs: arrivedAt,
+          serverReceiveUnixMs: arrivedAt + 300,
+        });
+
+        /* Before offline mode this was pinned to arrival minus four hours. */
+        expect(row["sessionStartTime"]).toBe(
+          OneUptimeDate.toClickhouseDateTime64(new Date(CLIENT_START)),
+        );
+        expect(row["chunkStartTime"]).toBe(
+          OneUptimeDate.toClickhouseDateTime64(new Date(CLIENT_START + 60_000)),
+        );
+      });
+
+      test("retention runs from when it was recorded, not when it arrived", async () => {
+        const arrivedAt: number = CLIENT_START + 2 * DAY_MS;
+
+        const row: JSONObject = await processLateChunk({
+          sessionStartUnixMs: CLIENT_START,
+          clientSendUnixMs: arrivedAt,
+          serverReceiveUnixMs: arrivedAt,
+        });
+
+        expect(row["retentionDate"]).toBe(
+          OneUptimeDate.toClickhouseDateTime(
+            OneUptimeDate.addRemoveDays(new Date(CLIENT_START), 7),
+          ),
+        );
+      });
+
+      test("measures the wait on the device clock, so a wrong clock still lands in the window", async () => {
+        /*
+         * The device clock runs two hours slow. The session start it reports
+         * and its send stamp are both two hours early, so the wait between
+         * them is still exactly the day it spent offline.
+         */
+        const clockErrorMs: number = -2 * HOUR_MS;
+        const arrivedAt: number = CLIENT_START + DAY_MS;
+
+        const row: JSONObject = await processLateChunk({
+          sessionStartUnixMs: CLIENT_START + clockErrorMs,
+          clientSendUnixMs: arrivedAt + clockErrorMs,
+          serverReceiveUnixMs: arrivedAt,
+        });
+
+        /*
+         * Inside the ordinary clamp window, so the device's own start is
+         * kept exactly as it would be for a chunk sent straight away - and
+         * not dragged a day forward to "arrival minus four hours".
+         */
+        expect(row["sessionStartTime"]).toBe(
+          OneUptimeDate.toClickhouseDateTime64(
+            new Date(CLIENT_START + clockErrorMs),
+          ),
+        );
+      });
+
+      test("never believes a wait longer than a recorder may hold a chunk", async () => {
+        const arrivedAt: number = CLIENT_START + 30 * DAY_MS;
+
+        const row: JSONObject = await processLateChunk({
+          sessionStartUnixMs: CLIENT_START,
+          clientSendUnixMs: arrivedAt,
+          serverReceiveUnixMs: arrivedAt,
+        });
+
+        /*
+         * Thirty days claimed, three believed: the reference instant moves
+         * back by SESSION_REPLAY_MAX_OFFLINE_DELAY_MS only, and the ordinary
+         * four-hour clamp applies below that.
+         */
+        const expectedStart: number =
+          arrivedAt -
+          60_000 -
+          SESSION_REPLAY_MAX_OFFLINE_DELAY_MS -
+          4 * HOUR_MS;
+
+        expect(row["sessionStartTime"]).toBe(
+          OneUptimeDate.toClickhouseDateTime64(new Date(expectedStart)),
+        );
+      });
+
+      test("an older recorder that stamped the send time at close gains nothing", async () => {
+        const arrivedAt: number = CLIENT_START + DAY_MS;
+
+        const row: JSONObject = await processLateChunk({
+          sessionStartUnixMs: CLIENT_START,
+          /* Stamped when the chunk closed, as recorders before offline mode did. */
+          clientSendUnixMs: CLIENT_START + 75_000,
+          serverReceiveUnixMs: arrivedAt,
+        });
+
+        expect(row["sessionStartTime"]).toBe(
+          OneUptimeDate.toClickhouseDateTime64(
+            new Date(arrivedAt - 60_000 - 4 * HOUR_MS),
+          ),
+        );
+      });
+
+      test("a device clock in the future still cannot start a session after it arrived", async () => {
+        const arrivedAt: number = CLIENT_START + DAY_MS;
+        const yearAheadMs: number = 365 * DAY_MS;
+
+        const row: JSONObject = await processLateChunk({
+          /* A device clock a year ahead, and a chunk that waited two hours. */
+          sessionStartUnixMs: CLIENT_START + yearAheadMs,
+          clientSendUnixMs: CLIENT_START + yearAheadMs + 75_000 + 2 * HOUR_MS,
+          serverReceiveUnixMs: arrivedAt,
+        });
+
+        /*
+         * The wait is believed, the start is not: it cannot land after the
+         * reference instant - arrival, less the chunk's offset, less the two
+         * hours it waited - so it lands ON it.
+         */
+        expect(row["sessionStartTime"]).toBe(
+          OneUptimeDate.toClickhouseDateTime64(
+            new Date(arrivedAt - 60_000 - 2 * HOUR_MS),
+          ),
+        );
+      });
+    });
   });
 });
 
@@ -4054,5 +4237,124 @@ describe("SessionReplayIngestService.processFromQueue - ended tabs for early fin
         }),
       ).toBe(true);
     });
+  });
+});
+
+/*
+ * Recorders escape `%`, `&` and `http/` in every envelope and event, and put
+ * a space before each frame's newline, so a customer's web application
+ * firewall does not take a chunk for a smuggled HTTP request (CRS 921110).
+ * None of that may survive into what is stored: the worker JSON.parses the
+ * payload and re-serialises it, and the envelope is parsed the same way.
+ */
+describe("SessionReplayIngestService.processFromQueue - frames written for a web application firewall", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    redisStrings.clear();
+    redisConnected = true;
+    recordRefusalMock.mockResolvedValue(undefined as never);
+    recordDropMock.mockResolvedValue(undefined as never);
+    markChunkReceivedMock.mockResolvedValue(undefined as never);
+    getPolicyMock.mockResolvedValue(buildPolicy() as never);
+    loadRulesMock.mockResolvedValue([] as never);
+    scrubEventsMock.mockResolvedValue({
+      isComplete: true,
+      nodesVisited: 3,
+      stringsScrubbed: 0,
+      skippedOversizedStrings: 0,
+      skippedStructuralStrings: 0,
+      truncatedAtDepth: false,
+    } as never);
+    submitMock.mockResolvedValue({ flushed: Promise.resolve() } as never);
+    (isSessionErased as jest.Mock).mockResolvedValue(false as never);
+  });
+
+  const EVENTS: Array<unknown> = [
+    { type: 2, timestamp: 1, data: { text: "50% off & more" } },
+    {
+      type: 3,
+      timestamp: 2,
+      data: {
+        href: "https://docs.example.com/a%20b?c=1&d=2",
+        text: "GET / HTTP/1.1",
+      },
+    },
+  ];
+
+  function encodedFrame(
+    overrides: Partial<SessionReplayChunkEnvelope>,
+    encoding: "gzip" | "identity",
+  ): Buffer {
+    const text: string = `[${EVENTS.map((event: unknown): string => {
+      return SessionReplayWireEncoding.escapeJson(JSON.stringify(event));
+    }).join(",")}]`;
+
+    expect(text).not.toMatch(/[%&]|http\//i);
+
+    const payload: Buffer =
+      encoding === "gzip"
+        ? zlib.gzipSync(new Uint8Array(Buffer.from(text)))
+        : Buffer.from(text);
+
+    const envelope: SessionReplayChunkEnvelope = buildEnvelope({
+      ...overrides,
+      payloadEncoding: encoding,
+      payloadBytes: payload.length,
+    });
+
+    return Buffer.concat([
+      new Uint8Array(
+        Buffer.from(SessionReplayWireEncoding.encodeEnvelopeLine(envelope)),
+      ),
+      new Uint8Array(payload),
+    ]);
+  }
+
+  test("a gzip chunk is stored as the page's own text, with no escapes left", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        encodedFrame(
+          {
+            chunkIndex: 0,
+            url: "https://shop.example.com/widget%20list",
+            meta: {
+              ...buildEnvelope().meta!,
+              tags: { plan: "Budget & Co" },
+            },
+          },
+          "gzip",
+        ),
+      ),
+    );
+
+    const chunk: JSONObject = getSubmittedRows("RumSessionChunkV1")[0]!;
+
+    expect(chunk["payload"]).toBe(JSON.stringify(EVENTS));
+    expect(chunk["url"]).toBe("https://shop.example.com/widget%20list");
+    expect(getSubmittedRows("RumSessionV1")[0]!["tags"]).toEqual({
+      plan: "Budget & Co",
+    });
+  });
+
+  test("a terminal flush of several identity frames stores every one decoded", async () => {
+    await SessionReplayIngestService.processFromQueue(
+      buildJobData(
+        Buffer.concat([
+          new Uint8Array(encodedFrame({ chunkIndex: 0 }, "identity")),
+          new Uint8Array(encodedFrame({ chunkIndex: 1 }, "identity")),
+          new Uint8Array(
+            encodedFrame({ chunkIndex: 2, isFinal: true }, "identity"),
+          ),
+        ]),
+      ),
+    );
+
+    const chunks: Array<JSONObject> = getSubmittedRows("RumSessionChunkV1");
+
+    expect(chunks).toHaveLength(3);
+
+    for (const chunk of chunks) {
+      expect(chunk["payload"]).toBe(JSON.stringify(EVENTS));
+    }
   });
 });

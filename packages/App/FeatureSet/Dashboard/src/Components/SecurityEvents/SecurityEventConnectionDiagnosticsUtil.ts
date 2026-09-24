@@ -22,13 +22,13 @@ import {
   getSecurityEventConnectorTitle,
 } from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import { DOCS_URL } from "Common/UI/Config";
-import TableFilterUrlState from "Common/UI/Utils/TableFilterUrlState";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import {
-  SECURITY_EVENTS_TABLE_ID,
-  getSecurityEventsTimeRangeLinkParams,
-} from "./SecurityEventsTimeRange";
+  SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX,
+  buildSecurityEventFacetLinkParams,
+} from "./SecurityEventsFacets";
+import { getSecurityEventsTimeRangeLinkParams } from "./SecurityEventsTimeRange";
 
 /*
  * Shared by every provider on the Security Event Connections page. The
@@ -483,13 +483,14 @@ export function connectionEventsRoute(
       new Date(end.getTime() + 1000),
     ),
     ...(connectionId && result.ingestedCount > 0
-      ? TableFilterUrlState.getLinkQueryParams(SECURITY_EVENTS_TABLE_ID, {
-          filter: {
-            attributes: {
-              [connectionEventAttributeKey(result)]: connectionId,
-            },
-          },
-        })
+      ? buildSecurityEventFacetLinkParams([
+          [
+            `${SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX}${connectionEventAttributeKey(
+              result,
+            )}`,
+            connectionId,
+          ],
+        ])
       : {}),
   });
 }

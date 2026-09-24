@@ -984,7 +984,7 @@ export default class CompareCriteria {
        * reads naturally ("is 42, 55, 60"). For larger arrays, summarize
        * — dumping 30+ numbers on one line makes the root cause unreadable
        * and the detailed breakdown is shown in the Breaching Samples
-       * table below.
+       * list below.
        */
       const MAX_INLINE: number = 5;
 

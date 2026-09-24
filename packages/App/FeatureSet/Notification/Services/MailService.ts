@@ -47,6 +47,13 @@ import * as tls from "tls";
 interface PooledTransporter {
   transporter: Transporter<SMTPSentMessageInfo>;
   lastUsedAt: number; // Unix timestamp in milliseconds
+
+  /*
+   * The pool is keyed more finely than the semaphore (see getPoolKey), so an
+   * entry has to remember which remote server it belongs to. Eviction and the
+   * idle clock are per-server questions and ask through this.
+   */
+  connectionKey: string;
 }
 
 /*
@@ -111,6 +118,10 @@ export class TransporterPool {
   }
 
   /*
+   * WHICH REMOTE SERVER, as which principal - the identity two requests must
+   * share before they may share anything at all. getPoolKey builds on this,
+   * and the concurrency semaphore uses it directly.
+   *
    * A pooled transporter holds an SMTP session that is already
    * authenticated, and a key hit hands it out without authenticating again.
    * So the key has to cover the credentials themselves, not only the account
@@ -129,7 +140,7 @@ export class TransporterPool {
    * cannot make two different tuples encode the same. It is then hashed, so
    * the key holds no plaintext password.
    */
-  private static getPoolKey(emailServer: EmailServer): string {
+  private static getConnectionKey(emailServer: EmailServer): string {
     const { portNumber, wantsSecureConnection, mode } =
       this.resolveConnectionSettings(emailServer);
 
@@ -156,6 +167,45 @@ export class TransporterPool {
   }
 
   /*
+   * Which CACHED TRANSPORTER a request may be handed, as opposed to which
+   * remote server it is talking to.
+   *
+   * These are not the same question, because createTransporter bakes
+   * `connectionTimeout` into the nodemailer transport it builds and
+   * getTransporter hands a key hit straight back, unchanged - a later
+   * caller's timeout is simply ignored. Two callers ask for different
+   * timeouts: "Send Test Email" wants to fail fast (SMTPConfig.ts passes
+   * 4000) and every real send wants the 60s default. Keyed together, whichever
+   * ran first decided for both.
+   *
+   * Both directions were wrong, and the second one badly. A test that ran
+   * after a real send silently got the 60s transporter and never failed fast.
+   * A test that ran FIRST left that project's config pinned to
+   * connectionTimeout=4000 for every subsequent alert email - and because
+   * getTransporter restamps lastUsedAt on each hit, an actively-used config
+   * never idles out of the pool, so one click on a test button could drop
+   * real mail to a healthy-but-slow SMTP server indefinitely.
+   *
+   * The timeout therefore belongs in the pool key. It deliberately does NOT
+   * belong in the connection key: the semaphore below caps how many sockets
+   * we open to one server at once, which is a property of that server and not
+   * of who asked.
+   */
+  private static getPoolKey(
+    emailServer: EmailServer,
+    options: { timeout?: number | undefined },
+  ): string {
+    return createHash("sha256")
+      .update(
+        JSON.stringify([
+          this.getConnectionKey(emailServer),
+          options.timeout || null,
+        ]),
+      )
+      .digest("hex");
+  }
+
+  /*
    * Close and drop pooled transporters that nothing has used for
    * IDLE_TTL_MS. A transporter with a send in flight (a held semaphore slot)
    * is never evicted. getTransporter stamps lastUsedAt before it returns, so
@@ -165,7 +215,7 @@ export class TransporterPool {
     const now: number = Date.now();
 
     for (const [key, pooled] of this.pools) {
-      if ((this.semaphore.get(key) || 0) > 0) {
+      if ((this.semaphore.get(pooled.connectionKey) || 0) > 0) {
         continue;
       }
 
@@ -231,7 +281,7 @@ export class TransporterPool {
       return await this.createOAuthTransporter(emailServer, options);
     }
 
-    const key: string = this.getPoolKey(emailServer);
+    const key: string = this.getPoolKey(emailServer, options);
 
     let pooled: PooledTransporter | undefined = this.pools.get(key);
 
@@ -239,6 +289,7 @@ export class TransporterPool {
       pooled = {
         transporter: this.createTransporter(emailServer, options),
         lastUsedAt: Date.now(),
+        connectionKey: this.getConnectionKey(emailServer),
       };
       this.pools.set(key, pooled);
     }
@@ -364,7 +415,7 @@ export class TransporterPool {
   public static async acquireConnection(
     emailServer: EmailServer,
   ): Promise<void> {
-    const key: string = this.getPoolKey(emailServer);
+    const key: string = this.getConnectionKey(emailServer);
 
     while ((this.semaphore.get(key) || 0) >= this.MAX_CONCURRENT_CONNECTIONS) {
       await new Promise<void>((resolve: () => void) => {
@@ -376,7 +427,7 @@ export class TransporterPool {
   }
 
   public static releaseConnection(emailServer: EmailServer): void {
-    const key: string = this.getPoolKey(emailServer);
+    const key: string = this.getConnectionKey(emailServer);
     const next: number = Math.max(0, (this.semaphore.get(key) || 0) - 1);
 
     /*
@@ -389,11 +440,16 @@ export class TransporterPool {
       this.semaphore.set(key, next);
     }
 
-    // The idle clock starts when the last send finishes, not when it began.
-    const pooled: PooledTransporter | undefined = this.pools.get(key);
-
-    if (pooled) {
-      pooled.lastUsedAt = Date.now();
+    /*
+     * The idle clock starts when the last send finishes, not when it began.
+     * One server can hold more than one pooled transporter (one per requested
+     * timeout), and releaseConnection is only told which SERVER finished, so
+     * stamp every entry that belongs to it.
+     */
+    for (const pooled of this.pools.values()) {
+      if (pooled.connectionKey === key) {
+        pooled.lastUsedAt = Date.now();
+      }
     }
   }
 
@@ -923,7 +979,15 @@ export default class MailService {
       mail.body = mail.templateType
         ? await this.compileEmailBody(mail.templateType, mail.vars)
         : this.compileText(mail.body || "", mail.vars);
-      mail.subject = this.compileText(mail.subject, mail.vars);
+
+      /*
+       * A literal subject was rendered by the sender, often from user-authored
+       * text; compiling it again would read any "{{" in that text as template
+       * syntax.
+       */
+      if (!mail.isSubjectLiteral) {
+        mail.subject = this.compileText(mail.subject, mail.vars);
+      }
 
       if (
         (!options || !options.emailServer) &&

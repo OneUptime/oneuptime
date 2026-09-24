@@ -24,6 +24,8 @@ If you want to alert on a business condition, use the SQL Query Monitor. If you 
 - **MySQL** (default port `3306`)
 - **Microsoft SQL Server** (default port `1433`)
 
+Azure SQL Database and Azure SQL Managed Instance connect as **Microsoft SQL Server**. They take different grants — see [Create a monitoring user](#create-a-monitoring-user).
+
 PostgreSQL- and MySQL-compatible engines that speak the same wire protocol usually work, but they may expose fewer statistics views, in which case the affected metrics are reported as unavailable rather than collected. Only the three engines above are officially tested.
 
 ## How it works
@@ -73,20 +75,55 @@ FLUSH PRIVILEGES;
 
 MySQL's `performance_schema` must be enabled (`performance_schema = ON`, the default since 5.6). When it is off, the Connections, Throughput and Locks groups report as unavailable and the fix is a server restart, not a grant.
 
-### Microsoft SQL Server
+### Microsoft SQL Server and Azure SQL Managed Instance
 
 ```sql
+-- A server-level grant only runs while the current database is master.
+USE master;
 CREATE LOGIN oneuptime_health WITH PASSWORD = 'a-strong-password';
--- Every server-scoped DMV the monitor reads.
+-- Every DMV the monitor reads. On SQL Server 2022 and later,
+-- VIEW SERVER PERFORMANCE STATE alone is also enough.
 GRANT VIEW SERVER STATE TO oneuptime_health;
 
 USE mydb;
 CREATE USER oneuptime_health FOR LOGIN oneuptime_health;
--- Database size and transaction log space.
+```
+
+Run from any other database, `GRANT VIEW SERVER STATE` fails with Msg 4621, "Permissions at the server scope can only be granted when the current database is master".
+
+> **Read access to your tables is not enough.** A login that can only read data — `db_datareader`, or any other "read access" role — can connect and gets database size, and nothing else. SQL Server refuses the views the monitor reads with `The user does not have permission to perform this action.` (Msg 297). The message before it names what was refused: Msg 300 `VIEW SERVER STATE` (`VIEW SERVER PERFORMANCE STATE` on 2022) for the server views, including transaction log space and tempdb free space, or Msg 262 `VIEW DATABASE STATE` (`VIEW DATABASE PERFORMANCE STATE` on 2022) for the replication view. The monitor stays online, reports the Connections, Activity, Throughput, Locks, Storage and Replication groups as missing a grant, and shows the `GRANT` above next to them. `VIEW SERVER STATE` covers all of them.
+>
+> Two views do not refuse: without the grant, `sys.dm_exec_sessions` and `sys.dm_exec_requests` quietly show only the monitor's own session. The monitor never reads them on their own — always alongside a view that does refuse — so a missing grant can never be recorded as "1 connection".
+
+### Azure SQL Database
+
+Azure SQL Database has no server-level permissions — `GRANT VIEW SERVER STATE` fails there — so the same views are opened by a database-level grant instead. Create a login in `master`, give it a user in the database you are monitoring, and grant the permission there, not in `master`:
+
+```sql
+-- Connected to master, as the server admin:
+CREATE LOGIN oneuptime_health WITH PASSWORD = 'a-strong-password';
+
+-- Connected to the monitored database:
+CREATE USER oneuptime_health FOR LOGIN oneuptime_health;
 GRANT VIEW DATABASE STATE TO oneuptime_health;
 ```
 
-On Azure SQL Database, `VIEW SERVER STATE` does not exist; use `GRANT VIEW DATABASE STATE TO oneuptime_health;` alone. The server-scoped groups then report as unavailable, and the database-scoped Storage group still collects.
+That is enough on vCore databases and on DTU databases at S2 and above. On **Basic, S0 and S1**, and for any database in an **elastic pool**, Azure lets only the server admin, the Microsoft Entra admin, or members of the `##MS_ServerStateReader##` server role read these views, whatever the database grants say. There, the server admin also adds the login to that role:
+
+```sql
+-- Connected to master, as the server admin:
+ALTER SERVER ROLE ##MS_ServerStateReader## ADD MEMBER oneuptime_health;
+```
+
+`##MS_ServerStateReader##` works on every tier, so it is also the fallback if `VIEW DATABASE STATE` turns out not to be enough. A new role membership can take a few minutes to apply, and only reaches new connections; the probe opens a new connection on every check.
+
+A contained database user (`CREATE USER oneuptime_health WITH PASSWORD = '...'` in the monitored database, with no login) works with `VIEW DATABASE STATE` on S2 and above, but cannot join `##MS_ServerStateReader##`: server roles take logins only. To move a contained user to the role, drop it (`DROP USER oneuptime_health;`) and follow the statements above.
+
+The probe recognises Azure SQL Database by `SERVERPROPERTY('EngineEdition')` rather than by its version — Azure SQL Database reports `12.0.2000.8` whatever it actually runs, which reads as SQL Server 2014. So the monitor's **Engine** reads `Azure SQL Database 12.0.2000.8`, and a missing grant is shown as the Azure statement above, never as `VIEW SERVER STATE`.
+
+- **Replication is not collected on Azure SQL Database.** Azure SQL Database has no `sys.dm_hadr_database_replica_states`, so the Replication group is skipped there rather than reported as failing on every check. Azure's own replica views (`sys.dm_database_replica_states`, `sys.dm_geo_replication_link_status`) are not read yet.
+- **Connections are per database.** With `VIEW DATABASE STATE`, Azure SQL Database shows only the monitored database's sessions, so Connections counts that database rather than the logical server. Monitor each database you care about.
+- **TempDB Free Space in an elastic pool is the pool's.** The databases in a pool share one tempdb.
 
 ## Prerequisites
 
@@ -100,7 +137,7 @@ Create a monitor and choose **Database Health** as the monitor type, then fill i
 - **Database Type** — PostgreSQL, MySQL, or Microsoft SQL Server. Choosing a type sets the default port and decides which queries run.
 - **Host** — the database host reachable from the probe (for example `db.internal`).
 - **Port** — the database port.
-- **Database Name** — the database to connect to. Database-scoped metrics (size, cache hit ratio, temp spill) are reported for this database; server-scoped metrics (connections, uptime, replication) are reported for the whole server.
+- **Database Name** — the database to connect to. Database-scoped metrics (size, cache hit ratio, temp spill) are reported for this database; server-scoped metrics (connections, uptime, replication) are reported for the whole server — except on Azure SQL Database, where connections are counted for the monitored database only.
 - **Use Windows Integrated Authentication** — Microsoft SQL Server only. Authenticate with the identity of the probe process instead of a username and password. See [Windows Integrated Authentication](/docs/monitor/sql-monitor#windows-integrated-authentication) on the SQL Query Monitor page — the setup is identical.
 - **Username** — the monitoring user.
 - **Password** — the password. Reference a [Monitor Secret](/docs/monitor/monitor-secrets) with `{{monitorSecrets.name}}` rather than typing it in plain text (see [Using a Monitor Secret](#using-a-monitor-secret-for-the-password)).
@@ -126,7 +163,7 @@ The secret is resolved server-side before the configuration is handed to a probe
 
 ## Metric groups
 
-A group is one collection unit: the queries in it run together, succeed together, and fail together. Groups exist so that one missing grant costs you one group rather than the whole monitor.
+A group is one unit you switch on or off, and the unit a missing grant is reported against. Groups exist so that one missing grant costs you one group rather than the whole monitor. A group's statements run one at a time, so a group can be partly collected: it then appears in both `collectedGroups` and `unavailableGroups`. SQL Server's Storage group for a login without `VIEW SERVER STATE` is the common case — database size is collected, log space and tempdb free space are not.
 
 | Group | What it collects | Needs |
 |---|---|---|
@@ -134,9 +171,11 @@ A group is one collection unit: the queries in it run together, succeed together
 | Activity | Longest running query, longest open transaction, open transactions | PostgreSQL: `pg_monitor`. MySQL: `PROCESS`. SQL Server: `VIEW SERVER STATE` |
 | Throughput | Transactions, queries, cache hit ratio, disk reads and writes, I/O time | PostgreSQL: none beyond `CONNECT`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
 | Locks | Blocked sessions, lock waits, deadlocks, table lock waits | PostgreSQL: `pg_monitor`. MySQL: `performance_schema`. SQL Server: `VIEW SERVER STATE` |
-| Storage | Database size, temp spill, log space, tempdb free space | PostgreSQL: none beyond `CONNECT`. MySQL: `SELECT` on the database. SQL Server: `VIEW DATABASE STATE` |
-| Replication | Connected replicas, replication lag in seconds and bytes, inactive slots, recovery state | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE` |
+| Storage | Database size, temp spill, log space, tempdb free space | PostgreSQL: none beyond `CONNECT`. MySQL: `SELECT` on the database. SQL Server: none for database size; `VIEW SERVER STATE` for log space and tempdb free space |
+| Replication | Connected replicas, replication lag in seconds and bytes, inactive slots, recovery state | PostgreSQL: `pg_monitor`. MySQL: `REPLICATION CLIENT`. SQL Server: `VIEW SERVER STATE`; not collected on Azure SQL Database |
 | Maintenance | Transaction ID wraparound headroom, dead tuples, tables never autovacuumed, checkpoints | PostgreSQL: `pg_monitor` |
+
+On Azure SQL Database, read `VIEW DATABASE STATE` wherever this table says `VIEW SERVER STATE` — or `##MS_ServerStateReader##` on Basic, S0, S1 and elastic pools. See [Azure SQL Database](#azure-sql-database).
 
 Turning a group off is silent: no metrics, no collection issue, no alert. It is the right move in two cases.
 
@@ -150,12 +189,21 @@ Clearing every group is not a way to collect nothing — an empty list is normal
 **A missing grant never takes the monitor offline.** This is the single most important behaviour of this monitor type, and it is worth stating precisely.
 
 - **The connection fails**, or the probe query fails — bad credentials, refused connection, TLS failure, connect timeout. The monitor goes **offline**. `Database Is Online` is false, and whatever incident and on-call policy you attached to it fires.
-- **A group cannot run** — a missing grant, a disabled `performance_schema`, a statement timeout. The monitor **stays online**. That group's metrics are **absent**, not zero. No chart line is drawn, no threshold on those series can match, and no incident can be raised from them. The check records one collection issue naming the group, the reason, and — where there is one — the exact `GRANT` to run, which is shown on the monitor's summary and counted in **Metric Groups Failed**.
+- **A group cannot run** — a missing grant, a disabled `performance_schema`, a statement timeout. The monitor **stays online**. The metrics that group could not read are **absent**, not zero. No chart line is drawn, no threshold on those series can match, and no incident can be raised from them. The check records one collection issue naming the group, the reason, and — where there is one — the exact `GRANT` to run, which is shown on the monitor's summary and counted in **Metric Groups Failed**.
 - **The engine cannot produce a metric at all** — stock MySQL has no deadlock counter; SQL Server leaves its connection ceiling unlimited by default so a "used percent" would be meaningless; PostgreSQL only populates I/O timing when `track_io_timing` is on. The metric is simply absent. This is **not** a collection issue, does not count toward Metric Groups Failed, and is not something to fix. See the Engines column in [Metrics collected](#metrics-collected).
 
 Absent always means absent. A value that was not measured is never reported as `0`, because a chart of fabricated zeroes is worse than a gap — you can see a gap.
 
 To alert on lost visibility, use `Database Collection Error`, or a threshold on **Metric Groups Failed**. Make both of them alerts rather than incidents: a revoked grant is a ticket, not a page.
+
+### "The user does not have permission to perform this action"
+
+This is SQL Server's message (Msg 297) for a login that can connect but cannot read the server's state views. It always means a missing grant, never a fault in the database. SQL Server sends it second, after a message that names the permission it refused, and the monitor shows both: for example `VIEW SERVER STATE permission was denied on object 'server', database 'master'. The user does not have permission to perform this action.` Next to it is the statement that fixes it for the platform the probe connected to:
+
+- **SQL Server or Azure SQL Managed Instance** — `GRANT VIEW SERVER STATE TO oneuptime_health;`, run in `master` (the monitor shows it as `GRANT VIEW SERVER STATE TO [<monitoring_login>]; -- run in master`).
+- **Azure SQL Database** — `GRANT VIEW DATABASE STATE TO oneuptime_health;`, run in the monitored database; on Basic, S0, S1 and elastic pools, `##MS_ServerStateReader##` membership instead. See [Azure SQL Database](#azure-sql-database).
+
+Database size keeps being collected in the meantime, because it is the one Storage metric any login can read.
 
 ## Metrics collected
 
@@ -257,7 +305,7 @@ Counters ending in `total` are cumulative since the server started. Compare two 
 ## Setting up criteria
 
 - **Database Is Online** — whether the database was reachable and the probe query succeeded. This is the offline criterion the monitor is created with, and it is the only check that reflects reachability.
-- **Database Metric** — pick a metric, then compare it. The metric picker offers only the metrics your selected engine can produce, so you cannot build a criterion that would sit permanently unmet. If the metric was not collected on a check — the group failed, or the engine does not report it — the filter does not match, and does not match "false" either: it is skipped. A permissions problem cannot page anyone.
+- **Database Metric** — pick a metric, then compare it. The metric picker offers only the metrics your selected engine can produce, so you cannot build a criterion that would sit permanently unmet (one exception: the Replication metrics are offered for Microsoft SQL Server, but are never collected on Azure SQL Database). If the metric was not collected on a check — the group failed, or the engine does not report it — the filter does not match, and does not match "false" either: it is skipped. A permissions problem cannot page anyone.
 - **Database Collection Error** — the collection issue summary for the check. Alert when it is not empty to catch lost visibility, or use Contains to watch for one specific group or one named grant.
 - **JavaScript Expression** — full control. See [JavaScript Expressions](/docs/monitor/javascript-expression).
 
@@ -270,10 +318,10 @@ For a Database Health monitor the expression has access to:
 | Variable | Type | |
 |---|---|---|
 | `isOnline` | boolean | Whether the connection and the probe query both succeeded |
-| `engineVersion` | string | The version string the server reported |
+| `engineVersion` | string | The version string the server reported (on SQL Server, the bare `ProductVersion`; the monitor summary names the platform beside it) |
 | `connectionError` | string | Sanitized connection error, empty when there was none |
 | `collectedGroups` | array | The groups that produced values on this check |
-| `unavailableGroups` | array | The groups that did not, each with a reason and a remediation |
+| `unavailableGroups` | array | The groups with a statement that could not be collected, each with a reason and a remediation. A partly collected group is in both lists |
 | `metrics` | object | Collected values keyed by series name; a series that was not collected is absent |
 
 ```javascript
@@ -298,7 +346,7 @@ Attach an on-call policy to the offline criterion, and leave anything derived fr
 
 - **The queries run on every check.** They are cheap by design, but "cheap" is relative to the interval. A one-minute interval against a server with thousands of sessions is more `pg_stat_activity` scanning than you may want; five minutes is plenty for capacity metrics.
 - **Point the monitor at the database you care about.** Size, cache hit ratio, and temp spill are per-database. Connections, uptime, and replication are per-server and will read the same from any database on that instance.
-- **One monitor per instance, not per database**, unless you specifically want per-database size and cache metrics — otherwise you multiply the server-scoped queries for no new information.
+- **One monitor per instance, not per database**, unless you specifically want per-database size and cache metrics — otherwise you multiply the server-scoped queries for no new information. Azure SQL Database is the exception: it reports connections per database, so monitor each database there.
 - **Alert on rates, not on counters.** Anything ending in `total` only climbs, so a "greater than" threshold on it fires once and never recovers. Chart it, or compare it across a window.
 - **Prefer a Monitor Secret over a plain-text password.** The credential then stays encrypted at rest and never appears on the monitor.
 - The monitor never writes. Every query is a read against a statistics view, in a read-only transaction where the engine supports one. Anything it cannot read is reported as a missing metric, never as an outage.

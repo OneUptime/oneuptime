@@ -1,0 +1,285 @@
+# Enterprise Edition
+
+OneUptime is built from one repository and ships in two editions:
+
+- **Community Edition**: the whole monitoring, incident and observability
+  platform, open source under the Apache License 2.0 and free to self-host at
+  any scale.
+- **Enterprise Edition**: the Community Edition plus the enterprise modules in
+  the repository's [`ee/`](https://github.com/OneUptime/oneuptime/tree/master/ee)
+  directory. Those modules add identity, governance and instance-administration
+  features. They are licensed under the
+  [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE),
+  and production use needs an Enterprise license for your number of users.
+
+The two editions are separate container images. The Community image contains
+no code from `ee/`. OneUptime Cloud runs the Enterprise Edition, and on the
+cloud your plan decides which of these features you get.
+
+This page covers what each edition includes, how to run the Enterprise
+Edition, how licensing works, and what happens when you switch editions.
+
+## What each edition includes
+
+| Feature | Community | Enterprise | OneUptime Cloud |
+| --- | --- | --- | --- |
+| Monitoring, alerts, incidents, on-call, status pages, logs, metrics, traces, exceptions, dashboards, workflows, AI features, API and Terraform | Yes | Yes | Every plan |
+| Password sign-in, two-factor authentication, teams, roles and API keys | Yes | Yes | Every plan |
+| [SAML SSO and OpenID Connect](/docs/identity/sso) for project sign-in | No | Yes | Scale plan and above |
+| SAML SSO and OpenID Connect for private status page sign-in | No | Yes | Scale plan and above |
+| [Global (instance-wide) SSO and OIDC](/docs/identity/global-sso) | No | Yes | Not applicable |
+| [SCIM provisioning](/docs/identity/scim) for projects and status pages | No | Yes | Scale plan and above |
+| Team compliance settings | No | Yes | Scale plan and above |
+| Audit logs | No | Yes | Enterprise plan |
+| Admin **Health** dashboards: instance overview, background queues, instance logs, PostgreSQL, Valkey, ClickHouse cluster, diagnostic logs and telemetry ingestion | No | Yes | Not applicable |
+| Admin **Query Console** | No | Yes | Not available |
+| PostgreSQL and Valkey (Redis) health alerts | No | Yes | Not applicable |
+| ClickHouse capacity view, capacity alerts and automatic disk pruning | Yes | Yes | Not applicable |
+| Migration status, support bundle and global probes in the Admin Dashboard | Yes | Yes | Not applicable |
+| Enterprise license, seat and instance management | No | Yes | Not applicable |
+
+"Not applicable" rows are instance-administration features. On OneUptime
+Cloud, OneUptime operates the instance for you.
+
+## Running the Enterprise Edition
+
+Both editions use the same configuration, databases and data. Switching
+editions changes the image you run and nothing else. No migration is needed
+in either direction.
+
+### Kubernetes with Helm
+
+Set the image type in your `values.yaml`:
+
+```yaml
+image:
+  type: enterprise-edition
+```
+
+Then upgrade as usual:
+
+```
+helm upgrade my-oneuptime oneuptime/oneuptime -f values.yaml
+```
+
+The chart then pulls the `enterprise-` variant of every image tag, for example
+`oneuptime/app:enterprise-release`, or `enterprise-<version>` when you pin
+`image.tag`. Set `image.type: community-edition` (the default) to run the
+Community Edition.
+
+### Docker Compose
+
+Set `APP_TAG` in your `config.env`:
+
+```
+APP_TAG=enterprise-release
+```
+
+Use `enterprise-<version>` to pin a release. Then pull the images and restart:
+
+```
+npm run update
+```
+
+To go back to the Community Edition, set `APP_TAG=release` **and**
+`IS_ENTERPRISE_EDITION=false`. While `IS_ENTERPRISE_EDITION=true`,
+`npm run update` moves `APP_TAG` back to `enterprise-release`, and the
+Community image refuses to start.
+
+### `IS_ENTERPRISE_EDITION` is deprecated
+
+The image you run decides the edition. `IS_ENTERPRISE_EDITION` no longer turns
+enterprise features on, and it will be removed in a future release. You can
+leave it unset.
+
+Setting `IS_ENTERPRISE_EDITION=true` on the Community image does **not** enable
+enterprise features. The App **refuses to start** instead, so an upgrade that
+lands on the Community image can never silently stop enforcing "Require SSO",
+SSO, SCIM and audit logging. The error tells you what to set:
+`APP_TAG=enterprise-<version>` to keep the Enterprise Edition, or
+`IS_ENTERPRISE_EDITION=false` to run the Community Edition. With Helm this
+cannot happen: the chart derives the variable from `image.type`.
+
+`ONEUPTIME_EDITION=community` makes the Enterprise image run as the Community
+Edition. This is useful for trying a downgrade before you make it. The
+Enterprise image sets `ONEUPTIME_EDITION=enterprise` itself; do not override it
+with anything other than `community`.
+
+## Licensing
+
+The repository's root
+[`LICENSE`](https://github.com/OneUptime/oneuptime/blob/master/LICENSE) file
+sets out which license covers what: everything in the `ee/` directory is under
+the [OneUptime Enterprise License](https://github.com/OneUptime/oneuptime/blob/master/ee/LICENSE),
+third-party components keep the licenses their owners provide them under, and
+everything else is under the Apache License 2.0.
+
+A new Enterprise Edition install runs as a **14-day trial**, counted from the
+first time the install starts the Enterprise Edition. The trial is for
+evaluation: production use of the Enterprise Edition needs a subscription under
+the OneUptime Enterprise License. Activate a license before the trial ends:
+after it, SSO, OIDC, SCIM and audit logging stop and enterprise configuration
+becomes read-only (see
+[When a license expires or is missing](#when-a-license-expires-or-is-missing)).
+To get a license, contact [sales@oneuptime.com](mailto:sales@oneuptime.com).
+
+The license is managed from the **edition label**, which master admins see in
+the Admin Dashboard header and in the footer of the Dashboard. It shows the
+license status, the seat usage and, for master admins, the instance ID.
+
+### Online activation (license key)
+
+1. Sign in as a master admin and open the edition label.
+2. Enter your license key and validate it.
+
+The install checks the key with OneUptime and stores the license it receives.
+From then on it keeps the license current with a daily sync. Use **Refresh
+license** on the edition label to fetch changes, such as extra seats or a
+renewal, straight away.
+
+Online activation needs outbound HTTPS from the OneUptime server to
+`https://oneuptime.com`. If the server reaches the internet only through a
+relay, set `ENTERPRISE_LICENSE_SERVER_URL` to the relay's `https://` address.
+The relay must forward `/api/enterprise-license/` to oneuptime.com.
+
+### Offline activation (air-gapped installs)
+
+An install with no route to the internet can use a **signed license token**
+instead of a key:
+
+1. Sign in as a master admin, open the edition label and note the
+   **instance ID**.
+2. Ask OneUptime ([sales@oneuptime.com](mailto:sales@oneuptime.com)) for an
+   offline license token for that instance ID.
+3. Paste the token into the edition label's token field and activate it.
+
+The install verifies the token itself, against the OneUptime signing keys
+built into your release. It never contacts OneUptime. A token issued for one
+instance ID is refused by every other install, and a token issued for no
+instance ID (such as the token an install activated online receives) is
+refused too. To renew or add seats, activate a new token before the current
+one expires.
+
+> **Offline activation needs a release that trusts OneUptime's license signing
+> key.** If your release does not include that key yet, activation fails with
+> "this build does not trust the key that signed this token". In that case,
+> activate online, or upgrade to a release that includes the key.
+
+### What the daily license sync sends
+
+An install that was activated online sends one report to OneUptime a day. It
+contains:
+
+- the license key;
+- the instance ID (a random identifier generated by the install) and the host
+  name the install is configured with (`HOST`);
+- the OneUptime version the install runs;
+- the number of users on the install;
+- a **SHA-256 hash** of each user's email address, lower-cased. OneUptime uses
+  the hashes to count a person who has accounts on several of your installs as
+  one seat. Raw email addresses of ordinary users are never sent;
+- the email addresses of the install's **master admins**, so OneUptime can
+  contact you about renewals and seat limits.
+
+The response carries the license as OneUptime knows it that day: company name,
+expiry, seat limit, the combined user count across your installs, and the
+installs registered to the license. Other replicas of the install pick up a
+change within about a minute.
+
+When you activate or refresh the license, the install sends only the license
+key, the instance ID, the host name and the version.
+
+Nothing else is sent. No monitoring data, telemetry, logs or configuration
+leave the install. The Community Edition sends none of this, and neither does
+an install activated offline.
+
+### When a license expires or is missing
+
+Every enterprise feature keeps working during the 14-day trial, and for 30
+days after a license expires (the grace period). The edition label warns
+before either one ends. After that, **SSO, OIDC, SCIM and audit logging stop**
+until a license is activated, the same as on the Community Edition. Losing a
+license never locks anyone out: "Require SSO for login" stops being enforced
+at the same moment SSO sign-in stops, so users sign in with a password.
+
+| State | What happens |
+| --- | --- |
+| **Valid license** | Every enterprise feature works. New users cannot be added beyond the licensed number of seats. Existing users are never removed. |
+| **Trial or grace period** (the first 14 days of an unlicensed install, or 30 days after a license expires), or an install that holds a license whose expiry was never recorded | Every enterprise feature works, and the edition label shows a warning. During the grace period after an expiry, the seat limit still applies. An install holding a license with no recorded expiry runs the same 14-day trial as an unlicensed install, and the seat limit is not enforced, because the license record it holds is already incomplete. |
+| **After the trial or grace period** (expired, missing or invalid license, or a license that does not include the feature) | SSO and OIDC sign-in, SCIM provisioning and audit logging **stop** (see below). Enterprise configuration becomes **read-only**: you can view and delete it, but not create or change it. Two changes always work, so you can respond to an incident: disabling an SSO or OIDC provider (or a global provider's attachment to a project), and replacing a SCIM bearer token. The Enterprise settings pages offer them while everything else is read-only: **Disable** on an enabled provider, and **Reset Bearer Token** on a SCIM configuration, which shows the new token once. Through the API, send `isEnabled: false` on its own, or `bearerToken` on its own (at least 32 characters). Audit logging cannot be turned on or widened. The enterprise Health dashboards and the Query Console are locked. The seat limit is no longer enforced. |
+
+What stops when a license lapses:
+
+- **SSO and OIDC sign-in stop**, for projects, private status pages, the whole
+  instance (global SSO) and the mobile apps. SSO sign-in requests are refused,
+  and the sign-in pages offer no SSO providers.
+- **"Require SSO for login" is not enforced**, for projects, private status
+  pages and the whole instance, so nobody is locked out. Users sign in with
+  their password instead. Users who only ever signed in with SSO can set one
+  with "Forgot password".
+- **SCIM provisioning stops.** Your identity provider's SCIM requests are
+  refused, including deprovisioning, and SCIM team locks are lifted, so teams
+  managed by SCIM push groups can be edited by hand.
+- **Audit logging stops recording.** Audit logs recorded so far are kept.
+
+What does **not** stop:
+
+- **Core monitoring is never affected**: monitors, alerts, incidents, on-call,
+  status pages and telemetry all keep working.
+- **Master admins can always sign in with their password.**
+- **Nothing is deleted.** SSO, OIDC and SCIM configuration, "Require SSO"
+  settings and audit logs stay as they are.
+
+**Everything resumes as soon as a license is activated**, without a restart:
+SSO sign-in, "Require SSO for login" enforcement, SCIM provisioning and audit
+logging come back with the configuration you have. OneUptime only switches
+them off when it knows the license has lapsed. While it cannot read the
+license state, for example for a moment while the server starts, SSO
+enforcement, SCIM and audit logging stay on.
+
+> **On an install that enforces SSO, activate a license before the trial or
+> grace period ends.** Once SSO enforcement stops, anyone who still has a
+> OneUptime account and can reach its email inbox can set a password and sign
+> in, even if they were removed at your identity provider, and SCIM no longer
+> deprovisions the people you remove there. If you let the license lapse,
+> remove those users first.
+
+## Switching from Enterprise to Community
+
+Your configuration stays in the database. Switching back to the Enterprise
+image restores everything as it was, including SSO enforcement, as long as the
+install has a valid license or is still in its trial or grace period. On the
+Community image:
+
+- **SSO, OIDC and SCIM stop.** Their sign-in and provisioning endpoints no
+  longer exist, so "Sign in with SSO" and IdP-driven SCIM calls fail. That
+  includes SCIM deprovisioning.
+- **"Require SSO for login" is not enforced**, for projects, private status
+  pages and the whole instance, because SSO sign-in is no longer available.
+  Users sign in with a password instead. Users who only ever signed in with SSO
+  can set one with "Forgot password". At startup the server logs which projects
+  and status pages had SSO enforcement relaxed.
+- **SCIM team locks are lifted**, so teams that were managed by SCIM push groups
+  can be edited by hand.
+- **Audit logging stops.** Audit logs recorded so far are kept, but the audit
+  log pages show an upgrade prompt.
+- **Enterprise settings pages show an upgrade prompt.** Through the API you can
+  still read and delete enterprise configuration, disable an SSO or OIDC
+  provider and reset a SCIM bearer token, but not create or change anything
+  else. Audit logging cannot be turned on.
+- **The enterprise Health dashboards, the Query Console, and the PostgreSQL and
+  Valkey health alerts stop.** ClickHouse capacity monitoring and pruning,
+  migration status and the support bundle keep working.
+
+> **Before you switch an install that enforces SSO to the Community image,
+> review who has access.** Without SSO enforcement, anyone who still has a
+> OneUptime account and can reach its email inbox can set a password and sign
+> in, even if they were removed at your identity provider. Remove those users
+> first.
+
+## Related
+
+- [Upgrading](/docs/installation/upgrading)
+- [SSO](/docs/identity/sso)
+- [Global SSO](/docs/identity/global-sso)
+- [SCIM](/docs/identity/scim)

@@ -11,6 +11,12 @@ export interface ReplayStorage {
   getItem(key: string): Promise<string | null>;
   setItem(key: string, value: string): Promise<void>;
   removeItem(key: string): Promise<void>;
+
+  /*
+   * Optional. When present, clearing the offline outbox also removes any
+   * frame a crash left untracked by its index. AsyncStorage has it.
+   */
+  getAllKeys?(): Promise<ReadonlyArray<string>>;
 }
 
 export const defaultReplayStorage: ReplayStorage = AsyncStorage;

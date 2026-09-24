@@ -168,9 +168,72 @@
   border-left: 1px solid #f3f4f6;
 }
 
+/* ---------- Whole day in view ----------
+   react-big-calendar gives every hour at least 40px, so the week view showed
+   about thirteen hours and hid the rest behind a scrollbar. The hours now
+   share the grid's height, so a full day fits without scrolling. The floor
+   applies only when the calendar is too short to fit every hour, where
+   scrolling is better than hours too thin to read. */
+.oneuptime-calendar .rbc-time-view .rbc-timeslot-group {
+  min-height: 1.25rem;
+}
+
+/* Anything that hangs below midnight would bring the scrollbar back: a short
+   block drawn at react-big-calendar's 20px minimum height, or the current-time
+   dot in the last minutes of the day. So the day column clips vertically.
+   - It must be `overflow`: a clip-path hides the overhang but it still scrolls.
+   - It must be `clip`, not `hidden`: `hidden` makes the column a scroll
+     container, so tabbing onto a late block would scroll every block in that
+     column off the hour lines. `clip` also leaves the other axis visible, so
+     the dot can still sit across the column's left edge.
+   The focus ring below is drawn inside the block so the clip cannot cut it
+   off. */
+.oneuptime-calendar .rbc-time-view .rbc-day-slot {
+  overflow-y: clip;
+}
+
+.oneuptime-calendar .rbc-day-slot .rbc-event:focus,
+.oneuptime-calendar .rbc-day-slot .rbc-event.rbc-selected {
+  outline-offset: -2px;
+}
+
+/* The strip above the grid only ever holds all-day events. Calendar.tsx adds
+   this class when there are none, so the empty band does not take height
+   from the day. */
+.oneuptime-calendar.oneuptime-calendar--no-all-day
+  .rbc-time-header-content
+  > .rbc-allday-cell {
+  display: none;
+}
+
+/* ---------- Current time ----------
+   On-call blocks can be any colour in the user palette, red included, and a
+   plain red line vanished into a red shift. The white halo keeps the line
+   visible on red and dark blocks, the red core keeps it visible on light
+   ones and the white grid, and the thin dark outer ring separates the two.
+   The dot at the left edge marks the line even where a narrow column hides
+   most of it. */
 .oneuptime-calendar .rbc-current-time-indicator {
   background-color: #ef4444; /* red-500 */
   height: 2px;
+  box-shadow:
+    0 0 0 1px #ffffff,
+    0 0 0 2px rgb(17 24 39 / 0.35);
+}
+
+.oneuptime-calendar .rbc-current-time-indicator::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -0.3125rem;
+  width: 0.625rem;
+  height: 0.625rem;
+  margin-top: -0.3125rem;
+  border-radius: 9999px;
+  background-color: #ef4444; /* red-500 */
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 0 0 3px rgb(17 24 39 / 0.35);
 }
 
 .oneuptime-calendar .rbc-time-slot {
@@ -289,6 +352,14 @@
   box-shadow: none;
 }
 
+/* react-big-calendar writes a time label into background events too. On a band
+   that stands for "nobody", a time range reads like a shift, so the band stays
+   textless and the legend names it. */
+.oneuptime-calendar .rbc-background-event .rbc-event-label,
+.oneuptime-calendar .rbc-background-event .rbc-event-content {
+  display: none;
+}
+
 /* Legend swatch that names the hatched bands. Kept in this file so the swatch
    and the band it describes can never drift apart. */
 .oneuptime-calendar-gap-swatch {
@@ -323,6 +394,18 @@
   position: relative;
   padding-left: 0.75rem;
   overflow: hidden;
+}
+
+/* In the week and day grid, react-big-calendar positions every block
+   absolutely, which already anchors the stripe. The `relative` above is for
+   blocks outside the grid (month rows, the all-day strip, the "+N more"
+   popup), which sit in normal flow. Applied in the grid, it put each override
+   block below the override blocks before it in the column, so a hand-off at
+   5:02 PM was drawn well after 5:02, leaving a false gap. */
+.oneuptime-calendar
+  .rbc-day-slot
+  .rbc-event.oneuptime-calendar-event--override {
+  position: absolute;
 }
 
 .oneuptime-calendar .rbc-event.oneuptime-calendar-event--override::before {

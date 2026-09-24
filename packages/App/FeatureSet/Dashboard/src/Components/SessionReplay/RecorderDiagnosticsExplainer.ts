@@ -340,6 +340,44 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
     action:
       "Expected when a tab closes with a backlog (an offline spell, or a very busy page). Worth looking at only if it repeats on ordinary sessions.",
   },
+  "chunk-held-offline": {
+    explanation:
+      "The device has no connection, so this chunk is waiting instead of uploading. Recording continues, the retry costs no strike and nothing is lost; the detail says how many chunks are waiting and when the next attempt is.",
+  },
+  "back-online": {
+    explanation:
+      "The first upload after an outage reached the server. The chunks kept while offline are being uploaded, oldest first.",
+  },
+  "browser-offline": {
+    explanation:
+      "The browser reported that it went offline. Recording continues, and the recorder opens its offline store so the chunks of a tab closed now are kept.",
+  },
+  "browser-online": {
+    explanation:
+      "The browser reported that it is back online, so the queued chunks are being uploaded now instead of waiting for the retry timer.",
+  },
+  "offline-queue-full": {
+    explanation:
+      "The outage lasted longer than the upload queue can hold, so the oldest chunks were dropped to keep the newest. The recording has a gap where they were.",
+    action:
+      "Expected only after a long time offline. If it happens on short outages, check whether uploads were already failing before the connection dropped.",
+  },
+  "offline-flush-stored": {
+    explanation:
+      "The page was hidden or closed while offline, so its last chunks were saved in the browser (IndexedDB) instead of being uploaded. The next page of the application uploads them. With storeOpen: false the store had not finished opening, and a closing tab may still have lost them.",
+  },
+  "final-flush-deferred": {
+    explanation:
+      "The request sent as the page went away could not carry every chunk, so the rest were saved in the browser for the next page to upload instead of being dropped.",
+  },
+  "offline-chunks-restored": {
+    explanation:
+      "This page found chunks that an earlier page recorded while offline and could not send, and is uploading them ahead of its own.",
+  },
+  "offline-chunk-claimed-elsewhere": {
+    explanation:
+      "Another tab of the same application already uploaded a chunk this tab had saved, so this tab skipped it. Nothing is missing.",
+  },
   "server-directive": {
     explanation:
       "The server changed what this recorder should do (stop, throttle or continue). The directive and its reason are in the record's detail.",

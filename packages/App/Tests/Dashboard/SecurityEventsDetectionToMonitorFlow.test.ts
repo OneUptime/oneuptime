@@ -82,10 +82,10 @@ const routesSource: string = readDashboardSource(
   "Routes",
   "SecurityEventsRoutes.tsx",
 );
-const sideMenuSource: string = readDashboardSource(
-  "Pages",
+const navTabsSource: string = readDashboardSource(
+  "Components",
   "SecurityEvents",
-  "SideMenu.tsx",
+  "SecurityEventsNavTabs.tsx",
 );
 const layoutSource: string = readDashboardSource(
   "Pages",
@@ -189,17 +189,21 @@ describe("Security Events monitors page wiring", () => {
     expect(routesSource).toContain("<SecurityEventsMonitorsPage");
   });
 
-  test("the monitor link is in the Detection & Alerting side-menu section", () => {
-    expect(sideMenuSource).toContain('title: "Detection & Alerting"');
-    expect(sideMenuSource).toContain('title: "Monitors"');
-    expect(sideMenuSource).toContain(
+  test("the monitor link is one of the Security Events header tabs", () => {
+    expect(navTabsSource).toContain('label: "Monitors"');
+    expect(navTabsSource).toContain(
       "RouteMap[PageMap.SECURITY_EVENTS_MONITORS] as Route",
     );
   });
 
-  test("the layout renders the Security Events side menu", () => {
-    expect(layoutSource).toContain('import SideMenu from "./SideMenu"');
-    expect(layoutSource).toContain("sideMenu={<SideMenu />}");
+  test("the layout renders the Security Events tabs in the page header", () => {
+    expect(layoutSource).toContain(
+      'import SecurityEventsNavTabs from "../../Components/SecurityEvents/SecurityEventsNavTabs"',
+    );
+    expect(layoutSource).toContain(
+      "<SecurityEventsNavTabs active={getActiveSecurityEventsTab(path)} />",
+    );
+    expect(layoutSource).not.toContain("sideMenu=");
   });
 
   test("the monitors page has a breadcrumb trail", () => {

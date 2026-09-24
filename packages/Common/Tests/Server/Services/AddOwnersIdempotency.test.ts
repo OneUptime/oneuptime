@@ -31,6 +31,7 @@ import IncidentOwnerTeam from "../../../Models/DatabaseModels/IncidentOwnerTeam"
 import IncidentOwnerUser from "../../../Models/DatabaseModels/IncidentOwnerUser";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../Types/ObjectID";
+import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -176,6 +177,10 @@ beforeEach(() => {
   delegate = jest
     .spyOn(OwnerRuleAssignment, "addOwners")
     .mockResolvedValue({ userIds: [], teamIds: [] });
+  // Owner users here are project members; OwnerRuleAssignment.test.ts covers ones who left.
+  jest
+    .spyOn(TeamMemberService, "isUserMemberOfProject")
+    .mockResolvedValue(true);
 });
 
 afterEach(() => {

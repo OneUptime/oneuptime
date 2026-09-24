@@ -1840,3 +1840,89 @@ describe("IncidentEpisodePublicNote default email, with grouped resources", () =
     },
   );
 });
+
+interface TemplateSyntaxDescription {
+  name: string;
+  markdown: string;
+  // The plain text the Markdown helper turns it into.
+  text: string;
+}
+
+/*
+ * Notes quoting template syntax. The subject is finished text when the job
+ * sends it, so the mail is marked literal: compiling it again read the braces
+ * as Handlebars, and the email either failed to render and was never sent or
+ * lost the quoted words. Tests/Notification/
+ * SubscriberEmailSubjectLiteral.test.ts follows such a subject to SMTP.
+ */
+const TEMPLATE_SYNTAX_DESCRIPTIONS: Array<TemplateSyntaxDescription> = [
+  {
+    name: "a bare expression",
+    markdown: "Deploy blocked on {{ x }}",
+    text: "Deploy blocked on {{ x }}",
+  },
+  {
+    name: "a quoted Helm value",
+    markdown: "Helm upgrade failed: `{{ .Values.image.tag }}` was empty",
+    text: "Helm upgrade failed: {{ .Values.image.tag }} was empty",
+  },
+  {
+    name: "a lone opening pair of braces",
+    markdown: "Config parser stopped at {{ on line 3",
+    text: "Config parser stopped at {{ on line 3",
+  },
+];
+
+describe("IncidentEpisodePublicNote email subjects are sent as written", () => {
+  describe.each(TRIGGERS)("$name", (trigger: TriggerCase) => {
+    test.each(TEMPLATE_SYNTAX_DESCRIPTIONS)(
+      "a note with $name reaches the custom subject as written",
+      async ({ markdown, text }: TemplateSyntaxDescription) => {
+        queueNote(trigger.job, { note: markdown });
+        mock(Markdown.convertToPlainText).mockImplementation(
+          (value: unknown): string => {
+            return value === markdown ? text : "";
+          },
+        );
+        useCustomTemplatesOnEveryChannel(
+          trigger.eventType,
+          [statusPage({ withCustomSmtpAndSms: true })],
+          FORMAT_EMAIL_SUBJECT_TEMPLATE,
+        );
+
+        await runJob(trigger.job);
+
+        expect(sentMail()).toHaveLength(1);
+        expect(sentMail()[0]!["subject"]).toBe(
+          `${EPISODE_TITLE}: ${text} (Edge network)`,
+        );
+        expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+      },
+    );
+  });
+
+  test.each([
+    { name: "created job", job: CREATED_JOB, prefix: "[Update Incident] " },
+    {
+      name: "updated job",
+      job: UPDATED_JOB,
+      prefix: "[Incident Note Updated] ",
+    },
+  ])(
+    "$name: a title with template syntax reaches the default subject as written",
+    async (row: { name: string; job: string; prefix: string }) => {
+      queueNote(row.job);
+      const titled: IncidentEpisode = episode();
+      titled.title = "Rollout of {{ .Values.image.tag }} stalled";
+      storedEpisode = titled;
+
+      await runJob(row.job);
+
+      expect(sentMail()).toHaveLength(1);
+      expect(sentMail()[0]!["subject"]).toBe(
+        `${row.prefix}Rollout of {{ .Values.image.tag }} stalled`,
+      );
+      expect(sentMail()[0]!["isSubjectLiteral"]).toBe(true);
+    },
+  );
+});

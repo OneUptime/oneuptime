@@ -1,6 +1,7 @@
 {
   "name": "@oneuptime/status-page",
-  "version": "13.0.7",
+  "version": "14.0.1",
+  "license": "Apache-2.0",
   "private": false,
   "repository": {
     "type": "git",

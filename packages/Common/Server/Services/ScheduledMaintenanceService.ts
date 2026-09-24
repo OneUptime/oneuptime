@@ -31,8 +31,15 @@ import ScheduledMaintenanceOwnerUser from "../../Models/DatabaseModels/Scheduled
 import ScheduledMaintenanceState from "../../Models/DatabaseModels/ScheduledMaintenanceState";
 import MonitorStatusService from "./MonitorStatusService";
 import ProjectScopedReferenceValidator, {
+  HeldRelationIds,
+  ProjectScopedReference,
+  ProjectScopedRelation,
   resolveReferenceId,
+  resolveReferenceIds,
 } from "../Utils/Database/ProjectScopedReferenceValidator";
+import { getAffectedResourceRelations } from "../Utils/Database/AffectedResourceRelations";
+import Query from "../Types/Database/Query";
+import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/ScheduledMaintenanceStateTimeline";
 import User from "../../Models/DatabaseModels/User";
 import Recurring from "../../Types/Events/Recurring";
@@ -474,6 +481,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                     body: customEmailBody,
                   },
                   subject: customEmailSubject,
+                  isSubjectLiteral: true,
                 },
                 {
                   mailServer: ProjectSmtpConfigService.toEmailServer(
@@ -499,6 +507,7 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
                   subject:
                     "[Scheduled Maintenance] " +
                     (event.title || statusPageName),
+                  isSubjectLiteral: true,
                 },
                 {
                   mailServer: ProjectSmtpConfigService.toEmailServer(
@@ -660,9 +669,11 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
   /*
    * An update can repoint a scheduled maintenance event at another project's
    * state or monitor status just as easily as a create can, and the result is
-   * the same: the referenced project can no longer be deleted. Only the
-   * columns actually being written are checked, so ordinary updates cost no
-   * extra queries.
+   * the same: the referenced project can no longer be deleted. The same goes
+   * for the monitors, labels, status pages and affected-resource lists, which
+   * put the event on another project's monitors, status pages, hosts and so
+   * on. Only the columns actually being written are checked, so ordinary
+   * updates cost no extra queries.
    */
   private async validateProjectScopedReferences(
     updateBy: UpdateBy<Model>,
@@ -675,7 +686,19 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       resolveReferenceId(updateBy.data.changeMonitorStatusToId) ||
       resolveReferenceId(updateBy.data.changeMonitorStatusTo);
 
-    if (!stateId && !monitorStatusId) {
+    // An empty list only removes rows and needs no check.
+    const relations: Array<ProjectScopedRelation> =
+      this.getProjectScopedRelations().filter(
+        (relation: ProjectScopedRelation) => {
+          return (
+            resolveReferenceIds(
+              (updateBy.data as Dictionary<unknown>)[relation.column],
+            ).length > 0
+          );
+        },
+      );
+
+    if (!stateId && !monitorStatusId && relations.length === 0) {
       return;
     }
 
@@ -687,24 +710,79 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
       ? [updateBy.props.tenantId]
       : await this.getProjectIdsForUpdateQuery(updateBy);
 
+    // See ProjectScopedReferenceValidator.getRelationReferences.
+    const heldIds: HeldRelationIds | undefined =
+      relations.length > 0
+        ? await ProjectScopedReferenceValidator.getHeldRelationIds({
+            service: this as unknown as DatabaseService<DatabaseBaseModel>,
+            query: updateBy.query as Query<DatabaseBaseModel>,
+            columns: relations.map((relation: ProjectScopedRelation) => {
+              return relation.column;
+            }),
+          })
+        : undefined;
+
     for (const projectId of projectIds) {
+      const references: Array<ProjectScopedReference> = [
+        {
+          modelName: "Scheduled Maintenance State",
+          id: stateId,
+          service: ScheduledMaintenanceStateService,
+        },
+        {
+          modelName: "Monitor Status",
+          id: monitorStatusId,
+          service: MonitorStatusService,
+        },
+        ...ProjectScopedReferenceValidator.getRelationReferences({
+          payload: updateBy.data,
+          relations: relations,
+          projectId: projectId,
+          heldIds: heldIds,
+        }),
+      ];
+
+      if (
+        references.every((reference: ProjectScopedReference) => {
+          return !reference.id;
+        })
+      ) {
+        continue;
+      }
+
       await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
         projectId: projectId,
         subject: "scheduled maintenance event",
-        references: [
-          {
-            modelName: "Scheduled Maintenance State",
-            id: stateId,
-            service: ScheduledMaintenanceStateService,
-          },
-          {
-            modelName: "Monitor Status",
-            id: monitorStatusId,
-            service: MonitorStatusService,
-          },
-        ],
+        references: references,
       });
     }
+  }
+
+  /*
+   * The many-to-many lists whose ids must belong to the event's project.
+   * Built per call rather than at module load: these services sit in an
+   * import graph that loops back to this one, and a module-level table would
+   * capture whichever of them had not finished loading yet as undefined.
+   */
+  private getProjectScopedRelations(): Array<ProjectScopedRelation> {
+    return [
+      {
+        column: "monitors",
+        modelName: "Monitor",
+        service: MonitorService,
+      },
+      {
+        column: "labels",
+        modelName: "Label",
+        service: LabelService,
+      },
+      {
+        column: "statusPages",
+        modelName: "Status Page",
+        service: StatusPageService,
+      },
+      ...getAffectedResourceRelations(this.getModel()),
+    ];
   }
 
   private async getProjectIdsForUpdateQuery(
@@ -912,8 +990,18 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
     /*
      * changeMonitorStatusToId comes straight from the API caller or a
      * template, and nothing checked it belongs to this project. Persisting
-     * another project's id leaves that project undeletable. Runs before the
-     * counter increment so a rejected create does not burn an event number.
+     * another project's id leaves that project undeletable.
+     *
+     * The monitors, labels and status pages lists are checked too: the event
+     * changes the status of every listed monitor and notifies the subscribers
+     * of every listed status page, so another project's ids here would act on
+     * that project's monitors and message its subscribers. So are the
+     * affected-resource lists (see getAffectedResourceRelations): a listed
+     * network site's uptime excludes the window, and every listed resource
+     * shows the event on its Activity tab.
+     *
+     * Runs before the counter increment so a rejected create does not burn an
+     * event number.
      */
     await ProjectScopedReferenceValidator.validateReferencesBelongToProject({
       projectId: projectId,
@@ -926,6 +1014,10 @@ ${resourcesAffected ? `**Resources Affected:** ${resourcesAffected}` : ""}
             resolveReferenceId(createBy.data.changeMonitorStatusTo),
           service: MonitorStatusService,
         },
+        ...ProjectScopedReferenceValidator.getRelationReferences({
+          payload: createBy.data,
+          relations: this.getProjectScopedRelations(),
+        }),
       ],
     });
 
@@ -1500,6 +1592,7 @@ ${scheduledMaintenance.description || "No description provided."}
         },
         select: {
           _id: true,
+          projectId: true,
           user: {
             _id: true,
             email: true,
@@ -1522,6 +1615,7 @@ ${scheduledMaintenance.description || "No description provided."}
         },
         select: {
           _id: true,
+          projectId: true,
           teamId: true,
         },
         skip: 0,
@@ -1559,7 +1653,18 @@ ${scheduledMaintenance.description || "No description provided."}
       }
     }
 
-    return users;
+    const projectId: ObjectID | undefined =
+      ownerUsers[0]?.projectId || ownerTeams[0]?.projectId;
+
+    if (!projectId) {
+      return [];
+    }
+
+    // Owners who left the project are not notified, nor listed as notified.
+    return await TeamMemberService.filterUsersToProjectMembers({
+      projectId: projectId,
+      users: users,
+    });
   }
 
   @CaptureSpan()

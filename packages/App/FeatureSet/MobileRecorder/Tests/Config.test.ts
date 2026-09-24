@@ -4,23 +4,33 @@ import {
   ResolvedReplayConfig,
   ValidatedStartOptions,
   fetchReplayConfig,
+  forgetReplayConfig,
+  loadCachedReplayConfig,
   mobileRequestHeaders,
   normalizeIngestHost,
   normalizeMobileAppIdentifier,
   normalizeRumAppIdentifier,
   normalizeReplayConfig,
+  replayConfigCacheKey,
+  saveReplayConfig,
   validateStartOptions,
 } from "../src/Config";
 import {
   MOBILE_RECORDER_KIND,
   SESSION_REPLAY_APP_IDENTIFIER_HEADER,
+  SESSION_REPLAY_MAX_OFFLINE_DELAY_MS,
   SESSION_REPLAY_MOBILE_APP_IDENTIFIER_HEADER,
   SESSION_REPLAY_RECORDER_KIND_HEADER,
   SESSION_REPLAY_USER_REF_HEADER,
   SessionReplayConsentMode,
   SessionReplayMaskingMode,
 } from "../src/Contract";
-import { enabledConfig, response, startOptions } from "./TestUtils";
+import {
+  enabledConfig,
+  MemoryStorage,
+  response,
+  startOptions,
+} from "./TestUtils";
 import { sanitizeRoute } from "../src/Sanitize";
 
 describe("mobile recorder configuration", () => {
@@ -266,5 +276,143 @@ describe("mobile recorder configuration", () => {
     expect(sanitizeRoute("/reset/550e8400-e29b-41d4-a716-446655440000")).toBe(
       "/reset/[redacted]",
     );
+  });
+});
+
+/*
+ * Offline mode's remembered policy: what an app launched without a
+ * connection records under. Storage is not trusted, and the policy is only
+ * ever as old as the offline delay.
+ */
+describe("remembered policy for offline launches", () => {
+  const NAMESPACE: string = "v1-test";
+  const NOW: number = 1_750_000_000_000;
+
+  const enabled: () => ResolvedReplayConfig = (): ResolvedReplayConfig => {
+    return normalizeReplayConfig(enabledConfig({ samplePercentage: 25 }));
+  };
+
+  test("round-trips an enabled policy", async () => {
+    const storage: MemoryStorage = new MemoryStorage();
+
+    await saveReplayConfig(storage, NAMESPACE, enabled(), NOW);
+
+    expect(await loadCachedReplayConfig(storage, NAMESPACE, NOW + 1)).toEqual(
+      enabled(),
+    );
+  });
+
+  test("is never remembered as targeted", async () => {
+    const storage: MemoryStorage = new MemoryStorage();
+
+    await saveReplayConfig(
+      storage,
+      NAMESPACE,
+      { ...enabled(), isTargeted: true },
+      NOW,
+    );
+
+    expect(
+      (await loadCachedReplayConfig(storage, NAMESPACE, NOW))?.isTargeted,
+    ).toBe(false);
+  });
+
+  test("a disabled policy deletes the remembered one", async () => {
+    const storage: MemoryStorage = new MemoryStorage();
+
+    await saveReplayConfig(storage, NAMESPACE, enabled(), NOW);
+    await saveReplayConfig(
+      storage,
+      NAMESPACE,
+      normalizeReplayConfig(
+        enabledConfig({ enabled: false, directive: "stop" }),
+      ),
+      NOW,
+    );
+
+    expect(storage.values.has(replayConfigCacheKey(NAMESPACE))).toBe(false);
+    expect(await loadCachedReplayConfig(storage, NAMESPACE, NOW)).toBeNull();
+  });
+
+  test("expires after the offline delay, and never comes from the future", async () => {
+    const storage: MemoryStorage = new MemoryStorage();
+
+    await saveReplayConfig(storage, NAMESPACE, enabled(), NOW);
+
+    expect(
+      await loadCachedReplayConfig(
+        storage,
+        NAMESPACE,
+        NOW + SESSION_REPLAY_MAX_OFFLINE_DELAY_MS,
+      ),
+    ).not.toBeNull();
+    expect(
+      await loadCachedReplayConfig(
+        storage,
+        NAMESPACE,
+        NOW + SESSION_REPLAY_MAX_OFFLINE_DELAY_MS + 1,
+      ),
+    ).toBeNull();
+    expect(
+      await loadCachedReplayConfig(storage, NAMESPACE, NOW - 1),
+    ).toBeNull();
+  });
+
+  test("re-validates what it reads, and fails closed on anything tampered", async () => {
+    const storage: MemoryStorage = new MemoryStorage();
+    const key: string = replayConfigCacheKey(NAMESPACE);
+
+    for (const raw of [
+      "not json",
+      "{}",
+      JSON.stringify({ savedAtUnixMs: NOW, config: null }),
+      JSON.stringify({ savedAtUnixMs: "yesterday", config: enabled() }),
+      JSON.stringify({
+        savedAtUnixMs: NOW,
+        config: { ...enabled(), enabled: false },
+      }),
+    ]) {
+      storage.values.set(key, raw);
+      expect(await loadCachedReplayConfig(storage, NAMESPACE, NOW)).toBeNull();
+    }
+
+    /* A tampered masking mode is collapsed back to strict wireframes. */
+    storage.values.set(
+      key,
+      JSON.stringify({
+        savedAtUnixMs: NOW,
+        config: { ...enabled(), maskingMode: "MaskSensitiveInputsOnly" },
+      }),
+    );
+    expect(
+      (await loadCachedReplayConfig(storage, NAMESPACE, NOW))?.maskingMode,
+    ).toBe(SessionReplayMaskingMode.MaskAllText);
+  });
+
+  test("forgets on request, and never throws when storage does", async () => {
+    const storage: MemoryStorage = new MemoryStorage();
+
+    await saveReplayConfig(storage, NAMESPACE, enabled(), NOW);
+    await forgetReplayConfig(storage, NAMESPACE);
+    expect(storage.values.size).toBe(0);
+
+    const broken: MemoryStorage = new MemoryStorage();
+    broken.getItem = async (): Promise<string | null> => {
+      throw new Error("storage unavailable");
+    };
+    broken.setItem = async (): Promise<void> => {
+      throw new Error("storage unavailable");
+    };
+    broken.removeItem = async (): Promise<void> => {
+      throw new Error("storage unavailable");
+    };
+
+    await expect(
+      saveReplayConfig(broken, NAMESPACE, enabled(), NOW),
+    ).resolves.toBeUndefined();
+    await expect(
+      forgetReplayConfig(broken, NAMESPACE),
+    ).resolves.toBeUndefined();
+    expect(await loadCachedReplayConfig(broken, NAMESPACE, NOW)).toBeNull();
   });
 });

@@ -28,6 +28,10 @@ import StatusPageResourceService from "../Services/StatusPageResourceService";
 import StatusPageService, {
   Service as StatusPageServiceType,
 } from "../Services/StatusPageService";
+import { MergedDowntimeTotals } from "../Services/MonitorStatusTimelineService";
+import { UptimeDailyAggregate } from "../../Types/StatusPage/UptimeDailyAggregate";
+import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
+import MonitorGroupMergedDowntimeUtil from "../../Utils/StatusPage/MonitorGroupMergedDowntimeUtil";
 import StatusPageSsoService from "../Services/StatusPageSsoService";
 import StatusPageOidcService from "../Services/StatusPageOidcService";
 import StatusPageSubscriberService from "../Services/StatusPageSubscriberService";
@@ -40,6 +44,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "../Utils/Express";
+import EditionEnforcement from "../Utils/EditionEnforcement";
 import logger, { getLogAttributesFromRequest } from "../Utils/Logger";
 import {
   SEARCH_ENGINE_INDEXING_FLAG_NAME,
@@ -1044,16 +1049,24 @@ export default class StatusPageAPI extends BaseAPI<
             select.footerHTML = true;
           }
 
+          /*
+           * The status page app offers SSO sign-in when this is non-zero.
+           * While SSO is not active - the Community Edition serves no status
+           * page SSO routes, and on a lapsed Enterprise license they refuse -
+           * it reports none rather than send visitors into a dead end.
+           */
           const hasEnabledSSO: PositiveNumber =
-            await StatusPageSsoService.countBy({
-              query: {
-                isEnabled: true,
-                statusPageId: objectId,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
+            EditionEnforcement.areSsoRoutesServed()
+              ? await StatusPageSsoService.countBy({
+                  query: {
+                    isEnabled: true,
+                    statusPageId: objectId,
+                  },
+                  props: {
+                    isRoot: true,
+                  },
+                })
+              : new PositiveNumber(0);
 
           const item: StatusPage | null = await this.service.findOneById({
             id: objectId,
@@ -1079,6 +1092,19 @@ export default class StatusPageAPI extends BaseAPI<
             delete item.customJavaScript;
             delete item.headerHTML;
             delete item.footerHTML;
+          }
+
+          /*
+           * The status page app forces SSO sign-in from this flag. Report
+           * the EFFECTIVE requirement: while SSO is not active (the
+           * Community Edition, or a lapsed Enterprise license) it is not
+           * enforced and password sign-in works, so the page must not send
+           * visitors into an SSO flow that does not exist or refuses. The
+           * stored value is untouched and applies again as soon as SSO is
+           * active.
+           */
+          if (!EditionEnforcement.isSsoEnforced()) {
+            item.requireSsoForLogin = false;
           }
 
           const footerLinks: Array<StatusPageFooterLink> =
@@ -1239,23 +1265,30 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageId"] as string,
           );
 
-          const sso: Array<StatusPageSSO> = await StatusPageSsoService.findBy({
-            query: {
-              statusPageId: objectId,
-              isEnabled: true,
-            },
-            select: {
-              signOnURL: true,
-              name: true,
-              description: true,
-              _id: true,
-            },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            props: {
-              isRoot: true,
-            },
-          });
+          /*
+           * Only list providers a visitor can actually sign in with: the
+           * Community Edition serves no status page SSO login routes.
+           */
+          const sso: Array<StatusPageSSO> =
+            EditionEnforcement.areSsoRoutesServed()
+              ? await StatusPageSsoService.findBy({
+                  query: {
+                    statusPageId: objectId,
+                    isEnabled: true,
+                  },
+                  select: {
+                    signOnURL: true,
+                    name: true,
+                    description: true,
+                    _id: true,
+                  },
+                  limit: LIMIT_PER_PROJECT,
+                  skip: 0,
+                  props: {
+                    isRoot: true,
+                  },
+                })
+              : [];
 
           return Response.sendEntityArrayResponse(
             req,
@@ -1279,23 +1312,29 @@ export default class StatusPageAPI extends BaseAPI<
             req.params["statusPageId"] as string,
           );
 
+          /*
+           * Only list providers a visitor can actually sign in with: the
+           * Community Edition serves no status page OIDC login routes.
+           */
           const oidc: Array<StatusPageOIDC> =
-            await StatusPageOidcService.findBy({
-              query: {
-                statusPageId: objectId,
-                isEnabled: true,
-              },
-              select: {
-                name: true,
-                description: true,
-                _id: true,
-              },
-              limit: LIMIT_PER_PROJECT,
-              skip: 0,
-              props: {
-                isRoot: true,
-              },
-            });
+            EditionEnforcement.areSsoRoutesServed()
+              ? await StatusPageOidcService.findBy({
+                  query: {
+                    statusPageId: objectId,
+                    isEnabled: true,
+                  },
+                  select: {
+                    name: true,
+                    description: true,
+                    _id: true,
+                  },
+                  limit: LIMIT_PER_PROJECT,
+                  skip: 0,
+                  props: {
+                    isRoot: true,
+                  },
+                })
+              : [];
 
           return Response.sendEntityArrayResponse(
             req,
@@ -1425,6 +1464,7 @@ export default class StatusPageAPI extends BaseAPI<
             statusPageResources,
             statusPage,
             monitorStatusTimelines,
+            uptimeDailyAggregate,
             statusPageGroups,
             monitorsInGroup,
           } = await this.getStatusPageResourcesAndTimelines({
@@ -1446,6 +1486,23 @@ export default class StatusPageAPI extends BaseAPI<
             startDate: startDate,
             endDate: endDate,
           };
+
+          /*
+           * A monitor group is down whenever at least one of its monitors
+           * is, which the per-monitor aggregate cannot say, so its uptime is
+           * merged over its monitors by the database - not from
+           * monitorStatusTimelines, which arrive under one 10,000 row cap
+           * across every monitor on the page, newest first. Asked here,
+           * because the walk below is synchronous.
+           */
+          const mergedDowntimeByMonitorGroupId: Dictionary<MergedDowntimeTotals> =
+            await this.getMergedDowntimeByMonitorGroupId({
+              statusPageResources: statusPageResources,
+              monitorsInGroup: monitorsInGroup,
+              downtimeMonitorStatuses: downtimeMonitorStatuses,
+              startDate: startDate,
+              endDate: endDate,
+            });
 
           type ResourceUptime = {
             statusPageResourceId: ObjectID;
@@ -1539,31 +1596,31 @@ export default class StatusPageAPI extends BaseAPI<
                       resourceUptime.currentStatus = null;
                     }
 
-                    const resourceStatusTimelines: Array<MonitorStatusTimeline> =
-                      StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
+                    /*
+                     * From the per-day aggregate, not monitorStatusTimelines:
+                     * those rows come back under one 10,000 row cap across
+                     * every monitor on the page, newest first, and on a page
+                     * with a flapping monitor that is the last few days of the
+                     * range - so the percentage would cover only those days.
+                     * Null when the resource does not show its uptime.
+                     */
+                    resourceUptime.uptimePercent =
+                      StatusPageResourceUptimeUtil.calculateUptimePercentOfResource(
                         {
                           statusPageResource: resource,
                           monitorStatusTimelines: monitorStatusTimelines,
+                          precision: precision,
+                          downtimeMonitorStatuses: downtimeMonitorStatuses,
                           monitorsInGroup: monitorsInGroup,
+                          uptimeWindow: uptimeWindow,
+                          uptimeDailyAggregate: uptimeDailyAggregate,
                         },
                       );
-
-                    if (resource.showUptimePercent) {
-                      const uptimePercent: number =
-                        UptimeUtil.calculateUptimePercentage(
-                          resourceStatusTimelines,
-                          precision,
-                          downtimeMonitorStatuses,
-                          uptimeWindow,
-                        );
-
-                      resourceUptime.uptimePercent = uptimePercent;
-                    }
 
                     groupUptime.statusPageResourceUptimes.push(resourceUptime);
                   }
 
-                  // if its a monitor group, then...
+                  // if its a monitor group, then its uptime is merged over its monitors.
 
                   if (resource.monitorGroupId) {
                     let currentStatus: MonitorStatus | undefined =
@@ -1591,22 +1648,37 @@ export default class StatusPageAPI extends BaseAPI<
                     }
 
                     if (resource.showUptimePercent) {
-                      const resourceStatusTimelines: Array<MonitorStatusTimeline> =
-                        StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
-                          {
-                            statusPageResource: resource,
-                            monitorStatusTimelines: monitorStatusTimelines,
-                            monitorsInGroup: monitorsInGroup,
-                          },
-                        );
+                      const merged: MergedDowntimeTotals | undefined =
+                        mergedDowntimeByMonitorGroupId[
+                          resource.monitorGroupId.toString()
+                        ];
 
-                      const uptimePercent: number =
-                        UptimeUtil.calculateUptimePercentage(
+                      let uptimePercent: number | null = merged
+                        ? UptimeUtil.calculateUptimePercentOfCoveredSeconds({
+                            coveredSeconds: merged.coveredSeconds,
+                            downtimeSeconds: merged.downtimeSeconds,
+                            precision: precision,
+                          })
+                        : null;
+
+                      // nothing recorded: fall back to the rows, as a monitor does.
+                      if (uptimePercent === null) {
+                        const resourceStatusTimelines: Array<MonitorStatusTimeline> =
+                          StatusPageResourceUptimeUtil.getMonitorStatusTimelineForResource(
+                            {
+                              statusPageResource: resource,
+                              monitorStatusTimelines: monitorStatusTimelines,
+                              monitorsInGroup: monitorsInGroup,
+                            },
+                          );
+
+                        uptimePercent = UptimeUtil.calculateUptimePercentage(
                           resourceStatusTimelines,
                           precision,
                           downtimeMonitorStatuses,
                           uptimeWindow,
                         );
+                      }
 
                       resourceUptime.uptimePercent = uptimePercent;
                     }
@@ -3034,6 +3106,7 @@ export default class StatusPageAPI extends BaseAPI<
                   body: compiledBody,
                 },
                 subject: compiledSubject,
+                isSubjectLiteral: true,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(
@@ -3070,6 +3143,7 @@ export default class StatusPageAPI extends BaseAPI<
                   manageSubscriptionUrl: manageUrlink,
                 },
                 subject: "Manage your Subscription for " + statusPageNameStr,
+                isSubjectLiteral: true,
               },
               {
                 mailServer: ProjectSmtpConfigService.toEmailServer(
@@ -4399,6 +4473,7 @@ export default class StatusPageAPI extends BaseAPI<
     statusPageResources: StatusPageResource[];
     monitorStatuses: MonitorStatus[];
     monitorStatusTimelines: MonitorStatusTimeline[];
+    uptimeDailyAggregate: UptimeDailyAggregate;
     monitorGroupCurrentStatuses: Dictionary<ObjectID>;
     statusPageGroups: StatusPageGroup[];
     statusPage: StatusPage;
@@ -4678,6 +4753,22 @@ export default class StatusPageAPI extends BaseAPI<
         endDate: endDateForMonitorTimeline,
       });
 
+    /*
+     * What the uptime bars are actually painted from.
+     *
+     * `monitorStatusTimelines` above stays in the response - it is documented
+     * public API and the E2E helpers read it for current status - but it must
+     * NOT drive the bars. It is capped at LIMIT_MAX across every monitor on
+     * the page and sorted newest-first, so on a page with churny monitors it
+     * returns a few recent days and silently drops the rest.
+     */
+    const uptimeDailyAggregate: UptimeDailyAggregate =
+      await StatusPageService.getUptimeDailyAggregateForStatusPage({
+        monitorIds: monitorsOnStatusPageForTimeline,
+        startDate: startDateForMonitorTimeline,
+        endDate: endDateForMonitorTimeline,
+      });
+
     // return everything.
 
     return {
@@ -4686,12 +4777,79 @@ export default class StatusPageAPI extends BaseAPI<
       monitorGroupCurrentStatuses,
       statusPageGroups: groups,
       monitorStatusTimelines,
+      uptimeDailyAggregate,
       statusPage,
       monitorsOnStatusPage,
       monitorsInGroup,
       startDateForMonitorTimeline,
       endDateForMonitorTimeline,
     };
+  }
+
+  /*
+   * Merged downtime for every monitor group on the page whose resource shows
+   * its uptime, keyed by monitor group id: the time at least one of the
+   * group's monitors was in one of the page's downtime statuses, and the time
+   * at least one of them was recorded, over [startDate, endDate].
+   *
+   * A monitor group is down whenever one of its monitors is. The per-monitor
+   * day aggregate cannot say when that was, and monitorStatusTimelines arrive
+   * under one 10,000 row cap across every monitor on the page, newest first -
+   * on a page with a flapping monitor, the last few days of the window. So the
+   * database merges each group's monitors over every row, once per distinct
+   * set of monitors however many groups or resources share it.
+   *
+   * The overview ships the result and the uptime endpoint reads it, so both
+   * measure a monitor group the same way.
+   */
+  @CaptureSpan()
+  public async getMergedDowntimeByMonitorGroupId(data: {
+    statusPageResources: Array<StatusPageResource>;
+    monitorsInGroup: Dictionary<Array<ObjectID>>;
+    downtimeMonitorStatuses: Array<MonitorStatus>;
+    startDate: Date;
+    endDate: Date;
+  }): Promise<Dictionary<MergedDowntimeTotals>> {
+    const mergedDowntimeByMonitorGroupId: Dictionary<MergedDowntimeTotals> = {};
+    const mergedDowntimeByMonitorSet: Dictionary<MergedDowntimeTotals> = {};
+
+    const downtimeMonitorStatusIds: Array<string> = data.downtimeMonitorStatuses
+      .map((status: MonitorStatus): string => {
+        return status.id?.toString() || "";
+      })
+      .filter(Boolean);
+
+    for (const resource of data.statusPageResources) {
+      if (!resource.monitorGroupId || !resource.showUptimePercent) {
+        continue;
+      }
+
+      const monitorGroupId: string = resource.monitorGroupId.toString();
+
+      if (mergedDowntimeByMonitorGroupId[monitorGroupId]) {
+        continue;
+      }
+
+      const monitorIds: Array<ObjectID> =
+        data.monitorsInGroup[monitorGroupId] || [];
+      const monitorSetKey: string =
+        StatusPageServiceType.getMonitorSetKey(monitorIds);
+
+      if (!mergedDowntimeByMonitorSet[monitorSetKey]) {
+        mergedDowntimeByMonitorSet[monitorSetKey] =
+          await StatusPageService.getMergedDowntimeForStatusPage({
+            monitorIds: monitorIds,
+            downtimeMonitorStatusIds: downtimeMonitorStatusIds,
+            startDate: data.startDate,
+            endDate: data.endDate,
+          });
+      }
+
+      mergedDowntimeByMonitorGroupId[monitorGroupId] =
+        mergedDowntimeByMonitorSet[monitorSetKey]!;
+    }
+
+    return mergedDowntimeByMonitorGroupId;
   }
 
   /*
@@ -4719,6 +4877,7 @@ export default class StatusPageAPI extends BaseAPI<
       statusPage,
       monitorsOnStatusPage,
       monitorStatusTimelines,
+      uptimeDailyAggregate,
       statusPageGroups,
       monitorsInGroup,
       startDateForMonitorTimeline: startDate,
@@ -4726,6 +4885,20 @@ export default class StatusPageAPI extends BaseAPI<
     } = await this.getStatusPageResourcesAndTimelines({
       statusPageId: statusPageId,
     });
+
+    /*
+     * What a monitor group's uptime percentage is read from in the browser,
+     * over the same window as the day aggregate. See
+     * getMergedDowntimeByMonitorGroupId.
+     */
+    const mergedDowntimeByMonitorGroupId: Dictionary<MergedDowntimeTotals> =
+      await this.getMergedDowntimeByMonitorGroupId({
+        statusPageResources: statusPageResources,
+        monitorsInGroup: monitorsInGroup,
+        downtimeMonitorStatuses: statusPage.downtimeMonitorStatuses || [],
+        startDate: startDate,
+        endDate: endDate,
+      });
 
     // check if status page has active incident.
     let activeIncidents: Array<Incident> = [];
@@ -5518,6 +5691,11 @@ export default class StatusPageAPI extends BaseAPI<
       monitorStatusTimelines: BaseModel.toJSONArray(
         monitorStatusTimelines,
         MonitorStatusTimeline,
+      ),
+      uptimeDailyAggregate:
+        UptimeDailyAggregateUtil.toJSON(uptimeDailyAggregate),
+      monitorGroupMergedDowntime: MonitorGroupMergedDowntimeUtil.toJSON(
+        mergedDowntimeByMonitorGroupId,
       ),
       resourceGroups: BaseModel.toJSONArray(statusPageGroups, StatusPageGroup),
       monitorStatuses: BaseModel.toJSONArray(monitorStatuses, MonitorStatus),

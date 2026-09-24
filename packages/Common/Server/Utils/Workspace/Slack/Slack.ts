@@ -36,6 +36,35 @@ import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProject
 import SSRFProtection from "../../SSRFProtection";
 
 export default class SlackUtil extends WorkspaceBase {
+  /*
+   * Block Kit limits. A section's text may be at most 3000 characters, a
+   * message may carry at most 50 blocks and a modal view at most 100. Going
+   * over any of them makes Slack reject the whole message (invalid_blocks),
+   * not just the offending block.
+   */
+  public static readonly SECTION_TEXT_MAX_LENGTH: number = 3000;
+  public static readonly MAX_BLOCKS_PER_MESSAGE: number = 50;
+  public static readonly MAX_BLOCKS_PER_MODAL: number = 100;
+
+  /*
+   * How many sections one markdown payload may expand into — about 30,000
+   * characters, several times the longest incident or alert body we send.
+   * The 50-block ceiling alone would allow 150,000, but Slack also rejects a
+   * message whose blocks are too long overall (msg_blocks_too_long) without
+   * documenting where that starts, and text that long is better read in
+   * OneUptime anyway.
+   */
+  public static readonly MAX_SECTIONS_PER_MARKDOWN_BLOCK: number = 10;
+
+  // Ends the last section of a markdown payload that did not fit.
+  public static readonly TRUNCATED_SECTION_NOTE: string =
+    "\n\n_… (truncated — see OneUptime for the full text)_";
+
+  // Closes and reopens a ``` code block that a section boundary cuts through.
+  private static readonly CODE_FENCE: string = "```";
+  private static readonly CODE_FENCE_CLOSE: string = "\n```";
+  private static readonly CODE_FENCE_REOPEN: string = "```\n";
+
   public static isValidSlackIncomingWebhookUrl(
     incomingWebhookUrl: URL | string,
   ): boolean {
@@ -1294,7 +1323,7 @@ export default class SlackUtil extends WorkspaceBase {
         }
 
         // Slack has a limit of 50 blocks per message. Split into batches if needed.
-        const maxBlocksPerMessage: number = 50;
+        const maxBlocksPerMessage: number = SlackUtil.MAX_BLOCKS_PER_MESSAGE;
         let lastThread: WorkspaceThread | undefined;
 
         if (blocks.length <= maxBlocksPerMessage) {
@@ -1333,7 +1362,7 @@ export default class SlackUtil extends WorkspaceBase {
         logger.error(e, sendMsgLogAttributes);
         workspaspaceMessageResponse.errors!.push({
           channel: channel,
-          error: e instanceof Error ? e.message : String(e),
+          error: WorkspaceBase.getSendErrorMessage(e),
         });
       }
     }
@@ -1476,24 +1505,86 @@ export default class SlackUtil extends WorkspaceBase {
     channelId: string;
     messageTs: string;
   }): Promise<string | null> {
+    const message: { text: string; threadTs: string | null } | null =
+      await this.getMessageDetailsByTimestamp(data);
+
+    return message ? message.text : null;
+  }
+
+  /*
+   * The text of a message, and the ts of the thread it belongs to (null for a
+   * message that is not in a thread).
+   *
+   * conversations.history only returns top-level messages, so a reply in a
+   * thread — where most of an incident's discussion happens — is not in it.
+   * Those are read with conversations.replies, which accepts the ts of any
+   * message in a thread.
+   */
+  @CaptureSpan()
+  public static async getMessageDetailsByTimestamp(data: {
+    authToken: string;
+    channelId: string;
+    messageTs: string;
+  }): Promise<{ text: string; threadTs: string | null } | null> {
+    const fromHistory: JSONObject | null = await this.findMessageByTimestamp({
+      ...data,
+      apiMethod: "conversations.history",
+    });
+
+    const message: JSONObject | null =
+      fromHistory ||
+      (await this.findMessageByTimestamp({
+        ...data,
+        apiMethod: "conversations.replies",
+      }));
+
+    const text: string | undefined = message?.["text"] as string | undefined;
+
+    if (!message || !text) {
+      return null;
+    }
+
+    return {
+      text: text,
+      threadTs: (message["thread_ts"] as string | undefined) || null,
+    };
+  }
+
+  private static async findMessageByTimestamp(data: {
+    authToken: string;
+    channelId: string;
+    messageTs: string;
+    apiMethod: "conversations.history" | "conversations.replies";
+  }): Promise<JSONObject | null> {
     const getMsgLogAttributes: LogAttributes = { channelId: data.channelId };
 
     logger.debug(
-      "Getting message by timestamp with data:",
+      `Getting message by timestamp from ${data.apiMethod} with data:`,
       getMsgLogAttributes,
     );
     logger.debug(data, getMsgLogAttributes);
 
+    const requestData: JSONObject = {
+      channel: data.channelId,
+      latest: data.messageTs,
+      oldest: data.messageTs,
+      inclusive: true,
+      limit: 1,
+    };
+
+    if (data.apiMethod === "conversations.replies") {
+      /*
+       * Slack puts the thread's parent first whatever the bounds, so leave
+       * room for it next to the reply we are after.
+       */
+      requestData["ts"] = data.messageTs;
+      requestData["limit"] = 10;
+    }
+
     const response: HTTPErrorResponse | HTTPResponse<JSONObject> =
       await API.post({
-        url: URL.fromString("https://slack.com/api/conversations.history"),
-        data: {
-          channel: data.channelId,
-          latest: data.messageTs,
-          oldest: data.messageTs,
-          inclusive: true,
-          limit: 1,
-        },
+        url: URL.fromString(`https://slack.com/api/${data.apiMethod}`),
+        data: requestData,
         headers: {
           Authorization: `Bearer ${data.authToken}`,
           ["Content-Type"]: "application/x-www-form-urlencoded",
@@ -1529,17 +1620,24 @@ export default class SlackUtil extends WorkspaceBase {
       "messages"
     ] as Array<JSONObject>;
 
-    if (!messages || messages.length === 0) {
-      logger.debug("No messages found for timestamp.", getMsgLogAttributes);
+    const message: JSONObject | undefined = (messages || []).find(
+      (candidate: JSONObject) => {
+        return !candidate["ts"] || candidate["ts"] === data.messageTs;
+      },
+    );
+
+    if (!message) {
+      logger.debug(
+        `No message found for timestamp in ${data.apiMethod}.`,
+        getMsgLogAttributes,
+      );
       return null;
     }
 
-    const messageText: string | undefined = messages[0]?.["text"] as string;
+    logger.debug("Message retrieved:", getMsgLogAttributes);
+    logger.debug(message["text"], getMsgLogAttributes);
 
-    logger.debug("Message text retrieved:", getMsgLogAttributes);
-    logger.debug(messageText, getMsgLogAttributes);
-
-    return messageText || null;
+    return message;
   }
 
   /*
@@ -2056,6 +2154,8 @@ export default class SlackUtil extends WorkspaceBase {
       },
       blocks: this.getBlocksFromWorkspaceMessagePayload({
         messageBlocks: data.payloadModalBlock.blocks,
+        // A view takes twice as many blocks as a message.
+        maxBlocks: SlackUtil.MAX_BLOCKS_PER_MODAL,
       }),
     };
 
@@ -2065,25 +2165,407 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   @CaptureSpan()
+  public static override getBlocksFromWorkspaceMessagePayload(data: {
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    /*
+     * The most blocks the result may hold. Defaults to a message's limit;
+     * a modal view passes its own.
+     */
+    maxBlocks?: number | undefined;
+  }): Array<JSONObject> {
+    const maxBlocks: number =
+      data.maxBlocks ?? SlackUtil.MAX_BLOCKS_PER_MESSAGE;
+
+    /*
+     * A markdown payload is the one block whose size we do not control: it
+     * carries whatever the incident or alert says, root cause included, and
+     * a section holds at most 3000 characters. So here it may expand into
+     * several consecutive sections (see getMarkdownBlocks). Every other
+     * block type still goes through the base class one block at a time, so
+     * it renders exactly as before — one block, or none for an unknown type.
+     *
+     * The extra sections must not take the message past maxBlocks, or Slack
+     * rejects all of it. So the other blocks are rendered first, every
+     * markdown payload is counted for the one section it always had, and
+     * only what is left of the budget is handed out as extra sections, in
+     * message order, so the body a caller puts first is the last thing to
+     * be cut short. A message that is already at the limit keeps one
+     * section per markdown payload, exactly as many blocks as before.
+     */
+    const renderedBlocks: Array<Array<JSONObject> | null> = [];
+    let blockCountBeforeSplitting: number = 0;
+
+    for (const messageBlock of data.messageBlocks) {
+      if (messageBlock._type === "WorkspacePayloadMarkdown") {
+        // Rendered in the second pass, once the budget is known.
+        renderedBlocks.push(null);
+        blockCountBeforeSplitting += 1;
+        continue;
+      }
+
+      const otherBlocks: Array<JSONObject> =
+        super.getBlocksFromWorkspaceMessagePayload({
+          messageBlocks: [messageBlock],
+        });
+
+      renderedBlocks.push(otherBlocks);
+      blockCountBeforeSplitting += otherBlocks.length;
+    }
+
+    let spareBlocks: number = Math.max(
+      0,
+      maxBlocks - blockCountBeforeSplitting,
+    );
+
+    const blocks: Array<JSONObject> = [];
+
+    for (let index: number = 0; index < data.messageBlocks.length; index++) {
+      // Empty, not null, for a block of an unknown type — it stays dropped.
+      const rendered: Array<JSONObject> | null = renderedBlocks[index] ?? null;
+
+      if (rendered !== null) {
+        blocks.push(...rendered);
+        continue;
+      }
+
+      const sections: Array<JSONObject> = this.getMarkdownBlocks({
+        payloadMarkdownBlock: data.messageBlocks[
+          index
+        ] as WorkspacePayloadMarkdown,
+        maxSections:
+          1 +
+          Math.min(spareBlocks, SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK - 1),
+      });
+
+      spareBlocks -= sections.length - 1;
+      blocks.push(...sections);
+    }
+
+    return blocks;
+  }
+
+  /*
+   * One section block. Text over Slack's limit cannot be split here, so it
+   * is cut short with a note instead of being sent as a block Slack would
+   * reject; messages go through getBlocksFromWorkspaceMessagePayload, which
+   * splits it across sections. Text within the limit renders as it always
+   * has.
+   */
+  @CaptureSpan()
   public static override getMarkdownBlock(data: {
     payloadMarkdownBlock: WorkspacePayloadMarkdown;
   }): JSONObject {
     logger.debug("Getting markdown block with data:", {} as LogAttributes);
     logger.debug(data, {} as LogAttributes);
 
-    const markdownBlock: JSONObject = {
-      type: "section",
-      text: {
-        type: "mrkdwn",
-        text: data.payloadMarkdownBlock.text
-          ? SlackifyMarkdown(data.payloadMarkdownBlock.text)
-          : "",
-      },
-    };
+    const markdownBlock: JSONObject = this.getMarkdownBlocks({
+      payloadMarkdownBlock: data.payloadMarkdownBlock,
+      maxSections: 1,
+    })[0]!;
 
     logger.debug("Markdown block generated:", {} as LogAttributes);
     logger.debug(markdownBlock, {} as LogAttributes);
     return markdownBlock;
+  }
+
+  /*
+   * A markdown payload as consecutive section blocks, each within Slack's
+   * 3000-character limit. Text that fits is one section, byte for byte what
+   * a markdown payload has always rendered to (empty text included).
+   */
+  @CaptureSpan()
+  public static getMarkdownBlocks(data: {
+    payloadMarkdownBlock: WorkspacePayloadMarkdown;
+    // Defaults to MAX_SECTIONS_PER_MARKDOWN_BLOCK.
+    maxSections?: number | undefined;
+  }): Array<JSONObject> {
+    const text: string = data.payloadMarkdownBlock.text
+      ? SlackifyMarkdown(data.payloadMarkdownBlock.text)
+      : "";
+
+    const sectionTexts: Array<string> = this.splitSectionText({
+      text: text,
+      maxSections: data.maxSections,
+    });
+
+    if (sectionTexts.length > 1) {
+      logger.debug(
+        `Markdown block of ${text.length} characters split into ${sectionTexts.length} sections.`,
+        {} as LogAttributes,
+      );
+    }
+
+    return sectionTexts.map((sectionText: string): JSONObject => {
+      return {
+        type: "section",
+        text: {
+          type: "mrkdwn",
+          text: sectionText,
+        },
+      };
+    });
+  }
+
+  /*
+   * Splits slackified text into section texts of at most
+   * SECTION_TEXT_MAX_LENGTH characters, at the least disruptive places
+   * available:
+   *
+   *   1. between paragraphs (a blank line),
+   *   2. between list items, keeping an item together with the indented
+   *      bullets under it,
+   *   3. between lines,
+   *   4. and only inside a line that is on its own longer than the limit,
+   *      preferring a space there.
+   *
+   * The text between two sections is the newlines they were split at and
+   * nothing else, so the sections read back in order give every line of the
+   * original. A section that ends inside a ``` code block closes it and the
+   * next one reopens it.
+   *
+   * Beyond maxSections the rest is dropped and the last section ends with
+   * TRUNCATED_SECTION_NOTE. Text that fits is returned as it is.
+   */
+  public static splitSectionText(data: {
+    text: string;
+    // Defaults to MAX_SECTIONS_PER_MARKDOWN_BLOCK; never less than one.
+    maxSections?: number | undefined;
+  }): Array<string> {
+    const maxLength: number = SlackUtil.SECTION_TEXT_MAX_LENGTH;
+
+    if (data.text.length <= maxLength) {
+      return [data.text];
+    }
+
+    const maxSections: number = Math.max(
+      1,
+      data.maxSections ?? SlackUtil.MAX_SECTIONS_PER_MARKDOWN_BLOCK,
+    );
+
+    /*
+     * Any piece may need to reopen a code block at its start and close one
+     * at its end, so when the text has code blocks every piece leaves room
+     * for both.
+     */
+    const pieceMaxLength: number = data.text.includes(SlackUtil.CODE_FENCE)
+      ? maxLength -
+        SlackUtil.CODE_FENCE_REOPEN.length -
+        SlackUtil.CODE_FENCE_CLOSE.length
+      : maxLength;
+
+    let pieces: Array<string> = this.splitTextAtBoundaries(
+      data.text,
+      pieceMaxLength,
+    );
+
+    if (pieces.length === 0) {
+      // Nothing but whitespace — there is nothing to show.
+      return [""];
+    }
+
+    const isTruncated: boolean = pieces.length > maxSections;
+
+    if (isTruncated) {
+      pieces = pieces.slice(0, maxSections);
+
+      /*
+       * Shorten the last piece until the note fits after it, with the same
+       * boundary preferences — whole paragraphs, items or lines where it
+       * can.
+       */
+      const lastPiece: string = pieces[pieces.length - 1] || "";
+
+      pieces[pieces.length - 1] =
+        this.splitTextAtBoundaries(
+          lastPiece,
+          pieceMaxLength - SlackUtil.TRUNCATED_SECTION_NOTE.length,
+        )[0] || "";
+    }
+
+    const sections: Array<string> = [];
+    let isInsideCodeBlock: boolean = false;
+
+    for (let index: number = 0; index < pieces.length; index++) {
+      const piece: string = pieces[index] || "";
+      const isLastPiece: boolean = index === pieces.length - 1;
+
+      let section: string = isInsideCodeBlock
+        ? SlackUtil.CODE_FENCE_REOPEN + piece
+        : piece;
+
+      // An odd number of fences opens or closes a code block.
+      const fenceCount: number = piece.split(SlackUtil.CODE_FENCE).length - 1;
+
+      if (fenceCount % 2 === 1) {
+        isInsideCodeBlock = !isInsideCodeBlock;
+      }
+
+      /*
+       * The last piece of text that was not truncated ends where the
+       * original ends, so a code block still open there was never closed
+       * and is left alone.
+       */
+      if (isInsideCodeBlock && (!isLastPiece || isTruncated)) {
+        section += SlackUtil.CODE_FENCE_CLOSE;
+      }
+
+      if (isLastPiece && isTruncated) {
+        section += SlackUtil.TRUNCATED_SECTION_NOTE;
+      }
+
+      sections.push(section);
+    }
+
+    return sections;
+  }
+
+  /*
+   * Pieces of at most maxLength characters, split at the boundaries listed
+   * on splitSectionText. Each piece is trimmed of the newlines it was split
+   * at; a piece with nothing but whitespace is dropped.
+   */
+  private static splitTextAtBoundaries(
+    text: string,
+    maxLength: number,
+  ): Array<string> {
+    const pieces: Array<string> = this.packSectionPieces({
+      units: text.split("\n\n"),
+      separator: "\n\n",
+      maxLength: maxLength,
+      splitOversizedUnit: (paragraph: string): Array<string> => {
+        return this.packSectionPieces({
+          units: this.groupIndentedLines(paragraph),
+          separator: "\n",
+          maxLength: maxLength,
+          splitOversizedUnit: (lineGroup: string): Array<string> => {
+            return this.packSectionPieces({
+              units: lineGroup.split("\n"),
+              separator: "\n",
+              maxLength: maxLength,
+              splitOversizedUnit: (line: string): Array<string> => {
+                return this.hardCutLine(line, maxLength);
+              },
+            });
+          },
+        });
+      },
+    });
+
+    return pieces
+      .map((piece: string): string => {
+        return piece.replace(/^[\r\n]+|[\r\n]+$/g, "");
+      })
+      .filter((piece: string): boolean => {
+        return piece.trim().length > 0;
+      });
+  }
+
+  /*
+   * Greedily joins units with the separator into pieces of at most
+   * maxLength. A unit that does not fit next to the piece being built
+   * starts a new piece rather than being broken up; only a unit longer than
+   * maxLength on its own is broken, by splitOversizedUnit. The last of its
+   * parts stays open, so the unit after it can still join it.
+   */
+  private static packSectionPieces(data: {
+    units: Array<string>;
+    separator: string;
+    maxLength: number;
+    splitOversizedUnit: (unit: string) => Array<string>;
+  }): Array<string> {
+    const pieces: Array<string> = [];
+
+    // null until the first unit, so an empty unit still keeps its separator.
+    let currentPiece: string | null = null;
+
+    for (const unit of data.units) {
+      if (currentPiece !== null) {
+        const joined: string = currentPiece + data.separator + unit;
+
+        if (joined.length <= data.maxLength) {
+          currentPiece = joined;
+          continue;
+        }
+
+        pieces.push(currentPiece);
+        currentPiece = null;
+      }
+
+      if (unit.length <= data.maxLength) {
+        currentPiece = unit;
+        continue;
+      }
+
+      const parts: Array<string> = data.splitOversizedUnit(unit);
+
+      pieces.push(...parts.slice(0, -1));
+      currentPiece = parts[parts.length - 1] ?? null;
+    }
+
+    if (currentPiece !== null) {
+      pieces.push(currentPiece);
+    }
+
+    return pieces;
+  }
+
+  /*
+   * The lines of a paragraph, with every indented line attached to the line
+   * above it. slackify-markdown indents a nested bullet under its list item
+   * — the Affected Resources list puts a resource's namespace, workload and
+   * node there — so a split between groups never strands those bullets at
+   * the top of the next section, away from the item they describe.
+   */
+  private static groupIndentedLines(paragraph: string): Array<string> {
+    const groups: Array<string> = [];
+
+    for (const line of paragraph.split("\n")) {
+      const isIndented: boolean = line.startsWith(" ") || line.startsWith("\t");
+      const lastGroupIndex: number = groups.length - 1;
+
+      if (isIndented && lastGroupIndex >= 0) {
+        groups[lastGroupIndex] = (groups[lastGroupIndex] || "") + "\n" + line;
+        continue;
+      }
+
+      groups.push(line);
+    }
+
+    return groups;
+  }
+
+  /*
+   * Cuts a single line longer than maxLength. Each cut is made after the
+   * last space that still leaves the piece at least half full, so words stay
+   * whole where the line has spaces, and never between the two halves of a
+   * surrogate pair (an emoji), which would leave both pieces invalid.
+   */
+  private static hardCutLine(line: string, maxLength: number): Array<string> {
+    const pieces: Array<string> = [];
+    let rest: string = line;
+
+    while (rest.length > maxLength) {
+      let cutAt: number = maxLength;
+
+      const lastSpaceIndex: number = rest.lastIndexOf(" ", maxLength - 1);
+
+      if (lastSpaceIndex + 1 >= Math.ceil(maxLength / 2)) {
+        cutAt = lastSpaceIndex + 1;
+      } else {
+        const charCodeBeforeCut: number = rest.charCodeAt(cutAt - 1);
+
+        if (charCodeBeforeCut >= 0xd800 && charCodeBeforeCut <= 0xdbff) {
+          cutAt -= 1;
+        }
+      }
+
+      pieces.push(rest.slice(0, cutAt));
+      rest = rest.slice(cutAt);
+    }
+
+    pieces.push(rest);
+
+    return pieces;
   }
 
   @CaptureSpan()

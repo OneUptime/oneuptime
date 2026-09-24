@@ -202,7 +202,46 @@ export async function handleExport(
       productType,
     );
 
-    await queueFn(req);
+    /*
+     * Acknowledge only after queue admission. A success returned for a batch
+     * the queue never accepted is silent data loss: the exporter releases its
+     * buffer on success and the payload cannot be re-derived. Same ordering
+     * as SecurityEventsIngestService and the session replay ingest path - see
+     * TelemetryQueueService.addSessionReplayIngestJob.
+     *
+     * Scoped to the enqueue ALONE, deliberately. The terminal catch below
+     * also covers authenticateRequest, and mapping a Postgres or billing
+     * outage onto a retryable UNAVAILABLE would have every exporter retry an
+     * already-degraded auth backend - uncached, because
+     * getPolicyFromSecretKey caches the not-found and success paths but never
+     * a throw - on a port that carries no per-key rate limit
+     * (TelemetryIngestionKeyGuard: the limiter "means nothing off HTTP").
+     */
+    try {
+      await queueFn(req);
+    } catch (queueErr) {
+      /*
+       * Logged in full here because the exporter is told nothing: the
+       * ServiceError below carries a fixed string and empty metadata, so the
+       * backend error, the request payload and the ingestion token never
+       * leave the process. The server log is not part of that exposure
+       * surface, and it is the only diagnostic an operator has.
+       */
+      logger.error(`gRPC ${productType} queue admission failed:`, {
+        service: "telemetry",
+      });
+      logger.error(queueErr, { service: "telemetry" });
+
+      // UNAVAILABLE is the retryable status in the OTLP gRPC status mapping.
+      const message: string = "Telemetry queue unavailable. Please retry.";
+      const error: grpc.ServiceError = Object.assign(new Error(message), {
+        code: grpc.status.UNAVAILABLE,
+        details: message,
+        metadata: new grpc.Metadata(),
+      });
+      callback(error);
+      return;
+    }
 
     callback(null, {});
   } catch (err) {

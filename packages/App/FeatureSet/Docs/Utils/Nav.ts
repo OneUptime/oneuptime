@@ -417,6 +417,10 @@ const DocsNav: NavGroup[] = [
         title: "SLO Feed and Audit Logs",
         url: "/docs/slo/feed-and-audit-logs",
       },
+      {
+        title: "Label and Owner Rules",
+        url: "/docs/slo/label-and-owner-rules",
+      },
     ],
   },
   {
@@ -922,6 +926,10 @@ DocsNav.push({
     {
       title: "Architecture",
       url: "/docs/self-hosted/architecture",
+    },
+    {
+      title: "Enterprise Edition",
+      url: "/docs/self-hosted/enterprise",
     },
   ],
 });

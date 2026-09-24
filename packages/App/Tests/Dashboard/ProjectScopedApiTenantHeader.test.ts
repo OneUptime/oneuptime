@@ -45,9 +45,6 @@ const PROJECT_SCOPED_ROUTES: Array<string> = [
   "/sync-to-monitor/",
   "/link-monitor/",
   "/unlink-monitor/",
-  "/alert/generate-note-from-ai/",
-  "/incident/generate-note-from-ai/",
-  "/scheduled-maintenance/generate-note-from-ai/",
   "/incident/generate-postmortem-from-ai/",
   "/incident-episode/generate-postmortem-from-ai/",
 ];
@@ -80,18 +77,6 @@ const GUARDED_PAGES: Array<GuardedPage> = [
     routePrefix: "/monitor-template/",
   },
   {
-    page: ["Pages", "Alerts", "View", "InternalNote.tsx"],
-    routePrefix: "/alert/generate-note-from-ai/",
-  },
-  {
-    page: ["Pages", "Incidents", "View", "InternalNote.tsx"],
-    routePrefix: "/incident/generate-note-from-ai/",
-  },
-  {
-    page: ["Pages", "Incidents", "View", "PublicNote.tsx"],
-    routePrefix: "/incident/generate-note-from-ai/",
-  },
-  {
     page: ["Pages", "Incidents", "View", "Postmortem.tsx"],
     routePrefix: "/incident/generate-postmortem-from-ai/",
   },
@@ -99,14 +84,35 @@ const GUARDED_PAGES: Array<GuardedPage> = [
     page: ["Pages", "Incidents", "EpisodeView", "Postmortem.tsx"],
     routePrefix: "/incident-episode/generate-postmortem-from-ai/",
   },
-  {
-    page: ["Pages", "ScheduledMaintenanceEvents", "View", "InternalNote.tsx"],
-    routePrefix: "/scheduled-maintenance/generate-note-from-ai/",
-  },
-  {
-    page: ["Pages", "ScheduledMaintenanceEvents", "View", "PublicNote.tsx"],
-    routePrefix: "/scheduled-maintenance/generate-note-from-ai/",
-  },
+];
+
+/*
+ * "Draft with AI" on the note pages of alerts, incidents and scheduled
+ * maintenance events reaches its route through one shared helper,
+ * Components/EventNotes/GenerateNoteWithAI.ts: each page hands getNoteGenerator
+ * its route as `apiPath`, and the helper makes the one raw call, to
+ * `<apiPath>/<eventId>`. The routes are written without the trailing slash the
+ * helper adds, so the raw-call sweep above never sees them in a page; they are
+ * checked through the helper instead, in the describe after it.
+ */
+const NOTE_GENERATOR_FILE: Array<string> = [
+  "Components",
+  "EventNotes",
+  "GenerateNoteWithAI.ts",
+];
+
+const NOTE_GENERATION_ROUTES: Array<string> = [
+  "/alert/generate-note-from-ai",
+  "/incident/generate-note-from-ai",
+  "/scheduled-maintenance/generate-note-from-ai",
+];
+
+const NOTE_GENERATOR_PAGES: Array<Array<string>> = [
+  ["Pages", "Alerts", "View", "InternalNote.tsx"],
+  ["Pages", "Incidents", "View", "InternalNote.tsx"],
+  ["Pages", "Incidents", "View", "PublicNote.tsx"],
+  ["Pages", "ScheduledMaintenanceEvents", "View", "InternalNote.tsx"],
+  ["Pages", "ScheduledMaintenanceEvents", "View", "PublicNote.tsx"],
 ];
 
 interface RawApiCall {
@@ -446,6 +452,90 @@ describe("every raw API call to a project-scoped route sends the tenant header",
           TENANT_HEADER,
         );
       }
+    },
+  );
+});
+
+describe("project-scoped routes reached through the shared note generator", () => {
+  const generatorFile: string = path.join(
+    DASHBOARD_SRC,
+    ...NOTE_GENERATOR_FILE,
+  );
+  const generatorText: string = fs.readFileSync(generatorFile, "utf8");
+
+  test("the generator sends the tenant header on its only raw call", () => {
+    const calls: Array<RawApiCall> = readRawApiCalls(generatorFile);
+
+    expect(countRawApiCallSites(generatorText)).toBe(1);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.balanced).toBe(true);
+    expect(calls[0]!.body).toContain(TENANT_HEADER);
+  });
+
+  test("the generator builds its URL from the route it is handed, so the header covers every route", () => {
+    const calls: Array<RawApiCall> = readRawApiCalls(generatorFile);
+
+    expect(calls[0]!.body).toContain(
+      "addRoute( `${data.apiPath}/${data.eventId.toString()}`, )",
+    );
+  });
+
+  test("only the note pages name a note generation route, and only as the generator's apiPath", () => {
+    const pagesNamingRoutes: Array<string> = [];
+
+    for (const file of listSourceFiles(DASHBOARD_SRC)) {
+      const fileText: string = squash(fs.readFileSync(file, "utf8"));
+
+      for (const route of NOTE_GENERATION_ROUTES) {
+        const mentions: number = fileText.split(route).length - 1;
+
+        if (mentions === 0) {
+          continue;
+        }
+
+        const name: string = path.relative(DASHBOARD_SRC, file);
+
+        if (!pagesNamingRoutes.includes(name)) {
+          pagesNamingRoutes.push(name);
+        }
+
+        const throughGenerator: number =
+          fileText.split(`getNoteGenerator({ apiPath: "${route}",`).length - 1;
+
+        expect(`${name}: ${throughGenerator} of ${mentions}`).toBe(
+          `${name}: ${mentions} of ${mentions}`,
+        );
+      }
+    }
+
+    expect(pagesNamingRoutes.sort()).toEqual(
+      NOTE_GENERATOR_PAGES.map((page: Array<string>) => {
+        return path.join(...page);
+      }).sort(),
+    );
+  });
+
+  test("every note generation route still has a page drafting through it", () => {
+    const pageText: string = NOTE_GENERATOR_PAGES.map(
+      (page: Array<string>): string => {
+        return squash(
+          fs.readFileSync(path.join(DASHBOARD_SRC, ...page), "utf8"),
+        );
+      },
+    ).join(" ");
+
+    for (const route of NOTE_GENERATION_ROUTES) {
+      expect(pageText).toContain(`getNoteGenerator({ apiPath: "${route}",`);
+    }
+  });
+
+  test.each(NOTE_GENERATOR_PAGES)(
+    "%s makes no raw API call of its own that could skip the header",
+    (...page: Array<string>) => {
+      const file: string = path.join(DASHBOARD_SRC, ...page);
+
+      expect(countRawApiCallSites(fs.readFileSync(file, "utf8"))).toBe(0);
+      expect(readRawApiCalls(file)).toEqual([]);
     },
   );
 });

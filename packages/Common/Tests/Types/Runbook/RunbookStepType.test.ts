@@ -10,10 +10,10 @@ import { describe, expect, test } from "@jest/globals";
  * Contract under test — the one list that decides where a runbook step runs.
  *
  * Every step type is in exactly one of two lanes: it executes on a Runner
- * inside the customer's network (JavaScript, Bash, SSH, Kubernetes), or it
- * executes on the OneUptime Worker (Manual, HttpRequest, AI). The lane is not
- * a preference — a Runner has no implementation for an AI step, and the
- * Worker has no route to a customer's SSH host.
+ * inside the customer's network (JavaScript, Bash, SSH, Kubernetes, Kubectl),
+ * or it executes on the OneUptime Worker (Manual, HttpRequest, AI). The lane
+ * is not a preference — a Runner has no implementation for an AI step, and
+ * the Worker has no route to a customer's SSH host or cluster.
  *
  * Getting the lane wrong is not a graceful failure. Classifying a Worker type
  * as Runner work enqueues a RunnerJob a Runner will claim and cannot
@@ -42,7 +42,16 @@ describe("RunbookStepType enum", () => {
      * partition tests below exist to prevent.
      */
     expect(Object.values(RunbookStepType).sort()).toEqual(
-      ["AI", "Bash", "HttpRequest", "JavaScript", "Kubernetes", "Manual", "SSH"]
+      [
+        "AI",
+        "Bash",
+        "HttpRequest",
+        "JavaScript",
+        "Kubernetes",
+        "Kubectl",
+        "Manual",
+        "SSH",
+      ]
         .slice()
         .sort(),
     );
@@ -61,11 +70,22 @@ describe("RunbookStepType enum", () => {
     expect(RunbookStepType.AI).toBe("AI");
     expect(RunbookStepType.SSH).toBe("SSH");
     expect(RunbookStepType.Kubernetes).toBe("Kubernetes");
+    expect(RunbookStepType.Kubectl).toBe("Kubectl");
+  });
+
+  test("Kubectl and Kubernetes are distinct members — one is not an alias of the other", () => {
+    /*
+     * Kubernetes is the structured runbook step (restart/scale + credential);
+     * Kubectl is the AI-only single-argv step tiered by KubectlPolicy. The
+     * Runner routes them to different executors, so they must never collapse
+     * into one value.
+     */
+    expect(RunbookStepType.Kubectl).not.toBe(RunbookStepType.Kubernetes);
   });
 });
 
 describe("RUNNER_EXECUTED_STEP_TYPES", () => {
-  test("contains exactly JavaScript, Bash, SSH and Kubernetes", () => {
+  test("contains exactly JavaScript, Bash, SSH, Kubernetes and Kubectl", () => {
     /*
      * Pinned as an exact list, order included. This array is the whole
      * definition of "work a Runner may be handed" — a silent addition would
@@ -76,13 +96,28 @@ describe("RUNNER_EXECUTED_STEP_TYPES", () => {
       RunbookStepType.Bash,
       RunbookStepType.SSH,
       RunbookStepType.Kubernetes,
+      RunbookStepType.Kubectl,
     ]);
   });
 
-  test("has exactly four entries and no duplicates", () => {
-    expect(RUNNER_EXECUTED_STEP_TYPES).toHaveLength(4);
+  test("has exactly five entries and no duplicates", () => {
+    expect(RUNNER_EXECUTED_STEP_TYPES).toHaveLength(5);
     expect(new Set(RUNNER_EXECUTED_STEP_TYPES).size).toBe(
       RUNNER_EXECUTED_STEP_TYPES.length,
+    );
+  });
+
+  test("places Kubectl last, right after the structured Kubernetes step", () => {
+    /*
+     * Kubectl was appended, not inserted: the order is part of the pinned
+     * contract above, and a Runner built before the lane existed must never
+     * find it ahead of the types it does implement.
+     */
+    expect(RUNNER_EXECUTED_STEP_TYPES.indexOf(RunbookStepType.Kubectl)).toBe(
+      RUNNER_EXECUTED_STEP_TYPES.length - 1,
+    );
+    expect(RUNNER_EXECUTED_STEP_TYPES.indexOf(RunbookStepType.Kubernetes)).toBe(
+      RUNNER_EXECUTED_STEP_TYPES.indexOf(RunbookStepType.Kubectl) - 1,
     );
   });
 
@@ -110,6 +145,16 @@ describe("RUNNER_EXECUTED_STEP_TYPES", () => {
     expect(RUNNER_EXECUTED_STEP_TYPES).toContain(RunbookStepType.SSH);
     expect(RUNNER_EXECUTED_STEP_TYPES).toContain(RunbookStepType.Kubernetes);
   });
+
+  test("holds Kubectl — the only way an AI kubectl command reaches a cluster", () => {
+    /*
+     * The Worker never runs kubectl itself: every AI kubectl command, read
+     * or write, is a RunnerJob a cluster-bound Runner claims. Dropping
+     * Kubectl from this lane would make RunnerJobService refuse to enqueue
+     * it, and the cluster lane would silently do nothing.
+     */
+    expect(RUNNER_EXECUTED_STEP_TYPES).toContain(RunbookStepType.Kubectl);
+  });
 });
 
 describe("isRunnerExecutedStepType", () => {
@@ -118,6 +163,7 @@ describe("isRunnerExecutedStepType", () => {
     RunbookStepType.Bash,
     RunbookStepType.SSH,
     RunbookStepType.Kubernetes,
+    RunbookStepType.Kubectl,
   ])("%s runs on a Runner", (type: RunbookStepType) => {
     expect(isRunnerExecutedStepType(type)).toBe(true);
   });
@@ -223,6 +269,9 @@ describe("isRunnerExecutedStepType", () => {
       " SSH",
       "kubernetes",
       "KUBERNETES",
+      "kubectl",
+      "KUBECTL",
+      "Kubectl ",
       "bash",
       "JAVASCRIPT",
     ];
@@ -254,17 +303,39 @@ describe("isRunnerExecutedStepType", () => {
  * column: an empty string is falsy, so the required-column check rejected
  * every SSH and Kubernetes job at create() with "script is required". The rule
  * is per-type and cannot be written as column metadata, so it lives in
- * RunnerJobService.enqueue and reads this list.
+ * RunnerJobService.enqueue and reads this list. A Kubectl job is the same
+ * shape: an argv (never a shell line) plus the cluster and an optional
+ * credential, so it carries a payload too.
  */
 describe("PAYLOAD_CARRYING_STEP_TYPES", () => {
-  test("contains exactly SSH and Kubernetes", () => {
+  test("contains exactly SSH, Kubernetes and Kubectl", () => {
     expect(PAYLOAD_CARRYING_STEP_TYPES).toEqual([
       RunbookStepType.SSH,
       RunbookStepType.Kubernetes,
+      RunbookStepType.Kubectl,
     ]);
     expect(new Set(PAYLOAD_CARRYING_STEP_TYPES).size).toBe(
       PAYLOAD_CARRYING_STEP_TYPES.length,
     );
+  });
+
+  test("places Kubectl last, after Kubernetes", () => {
+    expect(PAYLOAD_CARRYING_STEP_TYPES.indexOf(RunbookStepType.Kubectl)).toBe(
+      PAYLOAD_CARRYING_STEP_TYPES.length - 1,
+    );
+    expect(
+      PAYLOAD_CARRYING_STEP_TYPES.indexOf(RunbookStepType.Kubernetes),
+    ).toBe(PAYLOAD_CARRYING_STEP_TYPES.indexOf(RunbookStepType.Kubectl) - 1);
+  });
+
+  test("Kubectl never carries a script — an argv payload is the whole point", () => {
+    /*
+     * A kubectl command handed to a Runner as a shell line would reopen every
+     * shell-injection door the argv payload closes. Being payload-carrying
+     * is what makes RunnerJobService.enqueue accept an empty script for it.
+     */
+    expect(PAYLOAD_CARRYING_STEP_TYPES).toContain(RunbookStepType.Kubectl);
+    expect(isPayloadCarryingStepType(RunbookStepType.Kubectl)).toBe(true);
   });
 
   test("every entry is also a Runner-executed type", () => {
@@ -279,12 +350,13 @@ describe("PAYLOAD_CARRYING_STEP_TYPES", () => {
 });
 
 describe("isPayloadCarryingStepType", () => {
-  test.each([RunbookStepType.SSH, RunbookStepType.Kubernetes])(
-    "%s carries a payload rather than a script",
-    (type: RunbookStepType) => {
-      expect(isPayloadCarryingStepType(type)).toBe(true);
-    },
-  );
+  test.each([
+    RunbookStepType.SSH,
+    RunbookStepType.Kubernetes,
+    RunbookStepType.Kubectl,
+  ])("%s carries a payload rather than a script", (type: RunbookStepType) => {
+    expect(isPayloadCarryingStepType(type)).toBe(true);
+  });
 
   test.each([RunbookStepType.Bash, RunbookStepType.JavaScript])(
     "%s carries a script rather than a payload",
@@ -354,6 +426,9 @@ describe("isPayloadCarryingStepType", () => {
       "ssh",
       "SSH ",
       "kubernetes",
+      "kubectl",
+      "KUBECTL",
+      " Kubectl",
       "Docker",
       null,
       undefined,

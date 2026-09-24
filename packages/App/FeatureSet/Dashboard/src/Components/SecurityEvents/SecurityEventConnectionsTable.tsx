@@ -41,10 +41,13 @@ import {
 } from "./SecurityEventConnectionDiagnosticsUtil";
 import SecurityEventConnectionFormModal from "./SecurityEventConnectionFormModal";
 import SecurityEventConnectionsEmptyState from "./SecurityEventConnectionsEmptyState";
+import SecurityEventConnectorProvider from "Common/Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 
 interface FormModalState {
   connection: SecurityEventConnection | null;
   credentialsOnly: boolean;
+  // Create only: the provider picked from the empty state's provider tiles.
+  initialProvider?: SecurityEventConnectorProvider | undefined;
 }
 
 const documentationMarkdown: string = `
@@ -120,9 +123,21 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
     ModelAction.Update,
   );
 
-  // The card's Add connection button and the empty state's open the same form.
-  const openCreateForm: VoidFunction = (): void => {
-    setFormModal({ connection: null, credentialsOnly: false });
+  /*
+   * The card's Add connection button and the empty state's open the same
+   * form. A provider tile in the empty state passes its provider, which
+   * starts the form with that provider selected.
+   */
+  const openCreateForm: (
+    initialProvider?: SecurityEventConnectorProvider | undefined,
+  ) => void = (
+    initialProvider?: SecurityEventConnectorProvider | undefined,
+  ): void => {
+    setFormModal({
+      connection: null,
+      credentialsOnly: false,
+      initialProvider: initialProvider,
+    });
   };
 
   return (
@@ -407,9 +422,10 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
 
       {formModal && (
         <SecurityEventConnectionFormModal
-          key={`${formModal.connection?.id?.toString() || "new"}-${formModal.credentialsOnly ? "credentials" : "settings"}`}
+          key={`${formModal.connection?.id?.toString() || "new"}-${formModal.credentialsOnly ? "credentials" : "settings"}-${formModal.initialProvider || "any"}`}
           connection={formModal.connection || undefined}
           credentialsOnly={formModal.credentialsOnly}
+          initialProvider={formModal.initialProvider}
           onClose={(): void => {
             setFormModal(null);
           }}

@@ -235,7 +235,9 @@
     "sso": {
       "title": "Se connecter avec SSO",
       "loginPrompt": "Veuillez vous connecter pour voir {{statusPageName}}",
-      "noProviders": "Aucun fournisseur SSO configuré ou activé"
+      "noProviders": "Aucun fournisseur SSO configuré ou activé",
+      "notAvailable": "L'authentification unique (SSO) n'est pas disponible pour cette page de statut. Connectez-vous plutôt avec votre adresse e-mail et votre mot de passe.",
+      "backToLogin": "Retour à la connexion"
     },
     "forgotPassword": {
       "title": "Mot de passe oublié",

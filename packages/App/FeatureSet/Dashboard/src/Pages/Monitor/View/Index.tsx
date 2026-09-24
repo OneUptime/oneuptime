@@ -1,920 +1,469 @@
-import LabelsElement from "Common/UI/Components/Label/Labels";
+import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
+import EventOverviewSkeleton from "../../../Components/EventView/EventOverviewSkeleton";
 import DependencySuppressionWarning from "../../../Components/Monitor/DependencySuppressionWarning";
-import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
-import IncomingMonitorLink from "../../../Components/Monitor/IncomingRequestMonitor/IncomingMonitorLink";
-import IncomingEmailMonitorLink from "../../../Components/Monitor/IncomingEmailMonitor/IncomingEmailMonitorLink";
-import ServerMonitorDocumentation from "../../../Components/Monitor/ServerMonitor/Documentation";
+import MonitorActivityCard from "../../../Components/Monitor/Overview/MonitorActivityCard";
+import MonitorConnectionCard from "../../../Components/Monitor/Overview/MonitorConnectionCard";
+import MonitorManualGuideCard from "../../../Components/Monitor/Overview/MonitorManualGuideCard";
+import MonitorOpenWorkCard from "../../../Components/Monitor/Overview/MonitorOpenWorkCard";
+import MonitorOverviewDetailsCard from "../../../Components/Monitor/Overview/MonitorOverviewDetailsCard";
+import MonitorOverviewHero from "../../../Components/Monitor/Overview/MonitorOverviewHero";
+import {
+  getTelemetryLastCheckedAt,
+  getTelemetryLastCheckedLabel,
+  toPresentationInput,
+} from "../../../Components/Monitor/Overview/MonitorOverviewInput";
+import MonitorOverviewStatBar from "../../../Components/Monitor/Overview/MonitorOverviewStatBar";
+import {
+  MonitorOpenWork,
+  MonitorOverviewProbeData,
+} from "../../../Components/Monitor/Overview/MonitorOverviewTypes";
+import MonitorProbesCard from "../../../Components/Monitor/Overview/MonitorProbesCard";
+import MonitorResponseTimeCard from "../../../Components/Monitor/Overview/MonitorResponseTimeCard";
+import MonitorSetupCard from "../../../Components/Monitor/Overview/MonitorSetupCard";
+import MonitorStatusChangesCard from "../../../Components/Monitor/Overview/MonitorStatusChangesCard";
+import MonitorTelemetryPreview from "../../../Components/Monitor/Overview/MonitorTelemetryPreview";
+import MonitorUptimeHistoryCard from "../../../Components/Monitor/Overview/MonitorUptimeHistoryCard";
+import useMonitorOpenWork from "../../../Components/Monitor/Overview/useMonitorOpenWork";
+import useMonitorOverviewData, {
+  MONITOR_OVERVIEW_NOT_FOUND_MESSAGE,
+  MONITOR_OVERVIEW_UPTIME_POLLS_PER_RELOAD,
+  UseMonitorOverviewDataResult,
+} from "../../../Components/Monitor/Overview/useMonitorOverviewData";
+import useMonitorOwners, {
+  UseMonitorOwnersResult,
+} from "../../../Components/Monitor/Overview/useMonitorOwners";
+import useMonitorUptimeSummary, {
+  UseMonitorUptimeSummaryResult,
+} from "../../../Components/Monitor/Overview/useMonitorUptimeSummary";
 import Summary from "../../../Components/Monitor/SummaryView/Summary";
 import PageComponentProps from "../../PageComponentProps";
-import GreaterThanOrNull from "Common/Types/BaseDatabase/GreaterThanOrNull";
-import InBetween from "Common/Types/BaseDatabase/InBetween";
-import LessThanOrEqual from "Common/Types/BaseDatabase/LessThanOrEqual";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { Black, Gray500, Green, Red500 } from "Common/Types/BrandColors";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import OneUptimeDate from "Common/Types/Date";
-import BadDataException from "Common/Types/Exception/BadDataException";
-import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
-import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
-import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
-import MonitorType, {
-  MonitorTypeHelper,
-} from "Common/Types/Monitor/MonitorType";
-import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
-import ObjectID from "Common/Types/ObjectID";
-import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import Card from "Common/UI/Components/Card/Card";
-import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import PageLoader from "Common/UI/Components/Loader/PageLoader";
-import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
-import MonitorUptimeGraph from "Common/UI/Components/MonitorGraphs/Uptime";
-import UptimeUtil from "Common/UI/Components/MonitorGraphs/UptimeUtil";
-import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
-import FieldType from "Common/UI/Components/Types/FieldType";
-import API from "Common/UI/Utils/API/API";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
-import AnalyticsModelAPI, {
-  ListResult as AnalyticsListResult,
-} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
-import Navigation from "Common/UI/Utils/Navigation";
-import ProjectUtil from "Common/UI/Utils/Project";
-import OverviewCustomFields from "../../../Components/CustomFields/OverviewCustomFields";
-import Label from "Common/Models/DatabaseModels/Label";
+import MonitorViewOutletContext from "./MonitorViewOutletContext";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorCustomField from "Common/Models/DatabaseModels/MonitorCustomField";
-import MonitorProbe, {
-  MonitorStepProbeResponse,
-} from "Common/Models/DatabaseModels/MonitorProbe";
-import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
-import MonitorStatusTimeline from "Common/Models/DatabaseModels/MonitorStatusTimeline";
 import Probe from "Common/Models/DatabaseModels/Probe";
-import MonitorLog from "Common/Models/AnalyticsModels/MonitorLog";
-import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
+import OneUptimeDate from "Common/Types/Date";
+import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
+import MonitorType from "Common/Types/Monitor/MonitorType";
+import ObjectID from "Common/Types/ObjectID";
+import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
+import Navigation from "Common/UI/Utils/Navigation";
+import MonitorOverviewPresentationUtil, {
+  MonitorOverviewPresentation,
+  MonitorOverviewPresentationInput,
+  MonitorOverviewSections,
+} from "Common/Utils/Monitor/MonitorOverviewPresentationUtil";
+import { MonitorEvaluationByProbe } from "Common/Utils/Monitor/MonitorOverviewProbeUtil";
+import { MonitorUptimeCaveat } from "Common/Utils/Monitor/MonitorUptimeSummaryUtil";
 import React, {
   Fragment,
   FunctionComponent,
+  MutableRefObject,
   ReactElement,
+  useEffect,
+  useRef,
   useState,
 } from "react";
-import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
-import useAsyncEffect from "use-async-effect";
-import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import PageMap from "../../../Utils/PageMap";
-import LogMonitorPreview from "../../../Components/Monitor/LogMonitor/LogMonitorPreview";
-import SecurityEventsMonitorPreview from "../../../Components/Monitor/SecurityEventsMonitor/SecurityEventsMonitorPreview";
-import TraceTable from "../../../Components/Traces/TraceTable";
-import { MonitorStepTraceMonitorUtil } from "Common/Types/Monitor/MonitorStepTraceMonitor";
-import MetricMonitorPreview from "../../../Components/Monitor/MetricMonitor/MetricMonitorPreview";
-import MonitorFeedElement from "../../../Components/Monitor/MonitorFeed";
-import URL from "Common/Types/API/URL";
-import { APP_API_URL } from "Common/UI/Config";
-import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
-import Incident from "Common/Models/DatabaseModels/Incident";
-import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
-import UptimeBarDayModal from "Common/UI/Components/MonitorGraphs/UptimeBarDayModal";
-import { UptimeBarDaySummary } from "Common/UI/Components/Graphs/DayUptimeGraph";
-import Color from "Common/Types/Color";
-import { getReadableMonitorSecretKeySelect } from "../../../Utils/MonitorSecretKeySelect";
+import { useOutletContext } from "react-router-dom";
 
+/*
+ * Monitor Overview: "is this monitor healthy, and is it actually checking?"
+ *
+ * Top to bottom: the dependency notice; the hero, which owns the state (run
+ * state, status, what is checked and when, owners); the uptime and open-work
+ * stat bar; then the house two-thirds / one-third grid. The main column
+ * holds what the monitor measured (setup while it waits for data, 90 days of
+ * uptime, response time, the latest summary, a telemetry preview, activity);
+ * the side column holds what is open, recent status changes, the family's
+ * own card (probes, connection or the manual guide), the editable details
+ * and custom fields.
+ *
+ * Which sections a monitor gets is decided by the pure presentation model in
+ * Common (MonitorOverviewPresentationUtil), per monitor family, so nothing
+ * type-specific is decided here.
+ *
+ * Data comes from ONE poll (useMonitorOverviewData). The uptime, open-work
+ * and owner hooks have no timers of their own; they reload on tokens derived
+ * from that poll below. Everything but the Monitor row is a section that can
+ * be forbidden or fail on its own, so Viewer, MonitorViewer and
+ * ReadProjectMonitor can all open the page.
+ */
 const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID();
+  const modelIdString: string = modelId.toString();
 
-  const [statusTimelines, setStatusTimelines] = useState<
-    Array<MonitorStatusTimeline>
-  >([]);
-  const [error, setError] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const startDate: Date = OneUptimeDate.getSomeDaysAgo(90);
-  const endDate: Date = OneUptimeDate.getCurrentDate();
-  const [downTimeMonitorStatues, setDowntimeMonitorStatues] = useState<
-    Array<MonitorStatus>
-  >([]);
-  const [currentMonitorStatus, setCurrentMonitorStatus] = useState<
-    MonitorStatus | undefined
-  >(undefined);
+  const outlet: MonitorViewOutletContext | undefined = useOutletContext<
+    MonitorViewOutletContext | undefined
+  >();
 
-  const [monitorType, setMonitorType] = useState<MonitorType | undefined>(
-    undefined,
+  const data: UseMonitorOverviewDataResult = useMonitorOverviewData({
+    monitorId: modelId,
+  });
+
+  const monitor: Monitor | null = data.monitor;
+
+  /*
+   * The moment the page is judged at: when the data on screen was
+   * committed, on the server's clock.
+   * - The commit, not the render: a render between polls (a refresh
+   *   starting, the tab coming back after an hour) must not age results
+   *   the page has not re-read yet, or the hero would flash "overdue" until
+   *   the new data lands. Every poll's commit moves it on, so a real
+   *   "overdue" still shows within a poll.
+   * - The server's clock: every time the monitor carries was stamped by the
+   *   server, so a browser clock minutes fast would read every check as late.
+   * Probe results held after a failed read are judged as of that read
+   * instead (getJudgedAt). Every health judgement on the page, the Probes
+   * card's included, comes from presentationInput, so no card can disagree
+   * with the hero; only "is the next check still ahead" is asked of the
+   * commit. The ticking relative times ("2 minutes ago") keep the reader's
+   * clock, like the rest of the dashboard.
+   */
+  const now: Date = new Date(
+    (data.lastLoadedAt || OneUptimeDate.getCurrentDate()).getTime() +
+      data.serverClockOffsetMs,
   );
 
-  const [monitor, setMonitor] = useState<Monitor | null>(null);
+  const presentationInput: MonitorOverviewPresentationInput | null = monitor
+    ? toPresentationInput({
+        monitor: monitor,
+        probes: data.probes,
+        statusRows: data.statusRows,
+        evaluation: data.evaluation,
+        now: now,
+        serverClockOffsetMs: data.serverClockOffsetMs,
+      })
+    : null;
 
-  const [probes, setProbes] = useState<Array<Probe>>([]);
+  let presentation: MonitorOverviewPresentation | null = null;
+  let presentationError: string = "";
 
-  // Probes attached to this monitor but switched off, so the picker can say so.
-  const [disabledProbeIds, setDisabledProbeIds] = useState<Array<string>>([]);
-
-  const [probeResponses, setProbeResponses] = useState<
-    Array<MonitorStepProbeResponse> | undefined
-  >(undefined);
-
-  const [incomingMonitorRequest, setIncomingMonitorRequest] = useState<
-    IncomingMonitorRequest | undefined
-  >(undefined);
-
-  const [incomingEmailMonitorRequest, setIncomingEmailMonitorRequest] =
-    useState<IncomingEmailMonitorRequest | undefined>(undefined);
-
-  const [serverMonitorResponse, setServerMonitorResponse] = useState<
-    ServerMonitorResponse | undefined
-  >(undefined);
-
-  const [latestEvaluationSummary, setLatestEvaluationSummary] = useState<
-    MonitorEvaluationSummary | undefined
-  >(undefined);
-
-  const [timelineIncidents, setTimelineIncidents] = useState<
-    Array<UptimeBarTooltipIncident>
-  >([]);
-
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-  const [selectedDayIncidents, setSelectedDayIncidents] = useState<
-    Array<UptimeBarTooltipIncident>
-  >([]);
-  const [selectedDaySummary, setSelectedDaySummary] =
-    useState<UptimeBarDaySummary | null>(null);
-
-  const getUptimePercent: () => ReactElement = (): ReactElement => {
-    if (isLoading) {
-      return <></>;
-    }
-
-    /*
-     * this page reports the last 90 days, so measure over that window. Otherwise an open
-     * (endsAt = null) row that started before the window contributes its whole duration and
-     * the denominator becomes "first event -> now" instead of the 90 days shown.
-     */
-    const uptimePercent: number = UptimeUtil.calculateUptimePercentage(
-      statusTimelines,
-      UptimePrecision.THREE_DECIMAL,
-      downTimeMonitorStatues,
-      {
-        startDate: startDate,
-        endDate: endDate,
-      },
-    );
-
-    return (
-      <div
-        className="font-medium mt-5"
-        style={{
-          color: currentMonitorStatus?.color?.toString() || Green.toString(),
-        }}
-      >
-        {uptimePercent}% uptime
-      </div>
-    );
-  };
-
-  useAsyncEffect(async () => {
-    await fetchItem();
-  }, []);
-
-  const fetchItem: PromiseVoidFunction = async (): Promise<void> => {
-    setIsLoading(true);
-    setError("");
-
+  if (presentationInput) {
     try {
-      await API.get({
-        url: URL.fromString(APP_API_URL.toString()).addRoute(
-          "/monitor/refresh-status/" + modelId.toString(),
-        ),
-        /*
-         * refresh-status is a custom route, so BaseAPI.getHeaders() adds no
-         * `tenantid` — ModelAPI.getCommonHeaders() is the only thing that
-         * does. The route requires an authenticated member of the monitor's
-         * project, and without the header there is no project to check.
-         */
-        headers: ModelAPI.getCommonHeaders(),
-      });
-
-      const monitorStatus: ListResult<MonitorStatusTimeline> =
-        await ModelAPI.getList({
-          modelType: MonitorStatusTimeline,
-          query: {
-            /*
-             * Select every row that OVERLAPS the 90 day window, not just rows created inside
-             * it: a row that started before the window and is still open (or closed inside it)
-             * carries downtime this page must count. Without this, a monitor that has been
-             * Offline since before the window renders as 100% uptime.
-             */
-            startsAt: new LessThanOrEqual(endDate),
-            endsAt: new GreaterThanOrNull(startDate),
-            monitorId: modelId,
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            createdAt: true,
-            monitorId: true,
-            startsAt: true,
-            endsAt: true,
-            monitorStatus: {
-              name: true,
-              color: true,
-              isOperationalState: true,
-              priority: true,
-            },
-          },
-          sort: {
-            /*
-             * startsAt, not createdAt: they are different clocks (DB now() vs worker moment())
-             * with real skew, and startsAt is the one the timeline math orders by.
-             */
-            startsAt: SortOrder.Ascending,
-          },
-        });
-
-      const item: Monitor | null = await ModelAPI.getItem({
-        modelType: Monitor,
-        id: modelId,
-        select: {
-          monitorType: true,
-          currentMonitorStatus: {
-            name: true,
-            color: true,
-          },
-          ...getReadableMonitorSecretKeySelect(),
-          incomingRequestMonitorHeartbeatCheckedAt: true,
-          serverMonitorRequestReceivedAt: true,
-          incomingMonitorRequest: true,
-          serverMonitorResponse: true,
-          isNoProbeEnabledOnThisMonitor: true,
-          isAllProbesDisconnectedFromThisMonitor: true,
-          telemetryMonitorLastMonitorAt: true,
-          telemetryMonitorNextMonitorAt: true,
-          monitorSteps: true,
-          // Incoming Email Monitor fields
-          incomingEmailMonitorRequest: true,
-          incomingEmailMonitorHeartbeatCheckedAt: true,
-          incomingEmailMonitorLastEmailReceivedAt: true,
-        },
-      });
-
-      setMonitor(item);
-
-      if (item?._id && ProjectUtil.getCurrentProjectId()) {
-        try {
-          const monitorLogResult: AnalyticsListResult<MonitorLog> =
-            await AnalyticsModelAPI.getList({
-              modelType: MonitorLog,
-              query: {
-                projectId: ProjectUtil.getCurrentProjectId()!.toString(),
-                monitorId: item._id.toString(),
-              },
-              limit: 1,
-              skip: 0,
-              select: {
-                logBody: true,
-              },
-              sort: {
-                time: SortOrder.Descending,
-              },
-            });
-
-          if (monitorLogResult.data.length > 0) {
-            const latestLog: MonitorLog | undefined = monitorLogResult.data[0];
-
-            if (latestLog?.logBody) {
-              const evaluationSummary: MonitorEvaluationSummary | undefined = (
-                latestLog.logBody as unknown as {
-                  evaluationSummary?: MonitorEvaluationSummary | undefined;
-                }
-              )?.evaluationSummary;
-
-              setLatestEvaluationSummary(evaluationSummary);
-            } else {
-              setLatestEvaluationSummary(undefined);
-            }
-          } else {
-            setLatestEvaluationSummary(undefined);
-          }
-        } catch {
-          setLatestEvaluationSummary(undefined);
-        }
-      } else {
-        setLatestEvaluationSummary(undefined);
-      }
-
-      if (item?.incomingMonitorRequest) {
-        setIncomingMonitorRequest(item.incomingMonitorRequest);
-      }
-
-      if (item?.incomingEmailMonitorRequest) {
-        setIncomingEmailMonitorRequest(
-          item.incomingEmailMonitorRequest as IncomingEmailMonitorRequest,
-        );
-      }
-
-      if (item?.serverMonitorResponse) {
-        setServerMonitorResponse(item.serverMonitorResponse);
-      }
-
-      const monitorStatuses: ListResult<MonitorStatus> = await ModelAPI.getList(
-        {
-          modelType: MonitorStatus,
-          query: {
-            projectId: ProjectUtil.getCurrentProjectId()!,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            priority: true,
-            isOperationalState: true,
-            name: true,
-            color: true,
-          },
-          sort: {
-            priority: SortOrder.Ascending,
-          },
-        },
-      );
-
-      if (!item) {
-        setError(ExceptionMessages.MonitorNotFound);
-        return;
-      }
-
-      setMonitorType(item.monitorType);
-      setCurrentMonitorStatus(item.currentMonitorStatus);
-      setDowntimeMonitorStatues(
-        monitorStatuses.data.filter((status: MonitorStatus) => {
-          return !status.isOperationalState;
-        }),
-      );
-      setStatusTimelines(monitorStatus.data);
-
-      // Fetch incidents for this monitor in the timeline date range
-      const incidentResult: ListResult<Incident> = await ModelAPI.getList({
-        modelType: Incident,
-        query: {
-          monitors: [modelId] as any,
-          declaredAt: new InBetween(startDate, endDate),
-          projectId: ProjectUtil.getCurrentProjectId()!,
-        },
-        limit: LIMIT_PER_PROJECT,
-        skip: 0,
-        select: {
-          _id: true,
-          title: true,
-          declaredAt: true,
-          incidentSeverity: {
-            name: true,
-            color: true,
-          },
-          currentIncidentState: {
-            _id: true,
-            name: true,
-            color: true,
-          },
-          monitors: {
-            _id: true,
-          },
-        },
-        sort: {
-          declaredAt: SortOrder.Descending,
-        },
-      });
-
-      const parsedIncidents: Array<UptimeBarTooltipIncident> =
-        incidentResult.data.map((incident: Incident) => {
-          return {
-            id: incident._id || "",
-            title: incident.title || "",
-            declaredAt: incident.declaredAt || new Date(),
-            incidentSeverity: incident.incidentSeverity
-              ? {
-                  name: incident.incidentSeverity.name || "",
-                  color:
-                    incident.incidentSeverity.color || new Color("#000000"),
-                }
-              : undefined,
-            currentIncidentState: incident.currentIncidentState
-              ? {
-                  name: incident.currentIncidentState.name || "",
-                  color:
-                    incident.currentIncidentState.color || new Color("#000000"),
-                }
-              : undefined,
-            monitorIds: (incident.monitors || []).map((m: Monitor) => {
-              return new ObjectID(m._id?.toString() || "");
-            }),
-          };
-        });
-
-      setTimelineIncidents(parsedIncidents);
-
-      const isMonitoredByProbe: boolean = item.monitorType
-        ? MonitorTypeHelper.isProbableMonitor(item.monitorType)
-        : false;
-
-      if (isMonitoredByProbe) {
-        /*
-         * The probes this monitor is actually watched by - which is the set the
-         * summary picker offers. It used to be fed the project's whole probe
-         * list plus every global probe, so the card offered probes that had
-         * never touched this resource. Picking one of them answered "no summary
-         * available ... should be a few minutes" for data that was never going
-         * to arrive, and because that list is project-probes-first the picker
-         * frequently *defaulted* to one. That is what reads as "I changed the
-         * probe and it did not apply".
-         */
-        const monitorProbes: ListResult<MonitorProbe> = await ModelAPI.getList({
-          modelType: MonitorProbe,
-          query: {
-            monitorId: modelId,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          sort: {
-            createdAt: SortOrder.Descending,
-          },
-          select: {
-            /*
-             * The sort column has to be selected. Because this query also pulls
-             * the probe relation, the join sends it down TypeORM's paginated
-             * path, which orders the outer query by a column the inner query
-             * only emits if it was selected - so leaving createdAt out here
-             * makes the whole request fail, which blanks the monitor page.
-             * DatabaseService only fills createdAt in for callers that pass no
-             * sort at all.
-             */
-            createdAt: true,
-            probeId: true,
-            isEnabled: true,
-            lastMonitoringLog: true,
-            probe: {
-              name: true,
-              iconFileId: true,
-            },
-          },
-        });
-
-        const probeMonitorResponses: Array<MonitorStepProbeResponse> = [];
-        const attachedProbes: Array<Probe> = [];
-        const disabledProbeIds: Array<string> = [];
-
-        for (let i: number = 0; i < monitorProbes.data.length; i++) {
-          const monitorProbe: MonitorProbe | undefined = monitorProbes.data[i];
-
-          if (!monitorProbe) {
-            continue;
-          }
-
-          if (!monitorProbe.probeId) {
-            continue;
-          }
-
-          if (monitorProbe.probe) {
-            const probe: Probe = monitorProbe.probe;
-
-            /*
-             * The relation select carries _id back on its own, but the join row
-             * is the authority on which probe this is - and the picker keys its
-             * options on that id.
-             */
-            probe._id = monitorProbe.probeId.toString();
-            attachedProbes.push(probe);
-
-            if (monitorProbe.isEnabled === false) {
-              disabledProbeIds.push(monitorProbe.probeId.toString());
-            }
-          }
-
-          if (!monitorProbe.lastMonitoringLog) {
-            continue;
-          }
-
-          probeMonitorResponses.push(monitorProbe?.lastMonitoringLog);
-        }
-
-        setProbes(attachedProbes);
-        setDisabledProbeIds(disabledProbeIds);
-        setProbeResponses(probeMonitorResponses);
-      }
+      presentation = MonitorOverviewPresentationUtil.build(presentationInput);
     } catch (err) {
-      setError(API.getFriendlyMessage(err));
+      /*
+       * A monitor type this build of the dashboard does not know has no
+       * overview family. The page says so below instead of going down.
+       */
+      presentationError = err instanceof Error ? err.message : "";
+    }
+  }
+
+  /*
+   * The uptime aggregate reloads every fifth poll, when the status changes
+   * and on the Refresh button. It follows the status change COUNT rather
+   * than the fingerprint: the fingerprint goes from "" to its first value
+   * when the page loads, which would read the aggregate a second time on
+   * every visit. While the page hides the uptime sections (a monitor still
+   * waiting for its first data) it is read once and not reloaded. Its
+   * server time is the page's measure of the server's clock.
+   */
+  const uptime: UseMonitorUptimeSummaryResult = useMonitorUptimeSummary({
+    monitorId: modelId,
+    refreshKey: [
+      data.statusChangeCount,
+      Math.floor(data.pollCount / MONITOR_OVERVIEW_UPTIME_POLLS_PER_RELOAD),
+      data.manualRefreshCount,
+    ].join("|"),
+    isShown: presentation ? presentation.sections.showUptime : true,
+    onServerClockOffset: data.setServerClockOffset,
+  });
+
+  /*
+   * What is open changes with every check, so it reloads on every poll, on
+   * a status change and on Refresh. Not on the data hook's refreshCount:
+   * that moves when the first load lands, which would read both lists twice
+   * on every visit.
+   */
+  const openWork: MonitorOpenWork = useMonitorOpenWork({
+    monitorId: modelId,
+    refreshToken:
+      data.pollCount + data.statusChangeCount + data.manualRefreshCount,
+  });
+
+  // Owners change rarely: once per monitor, and again on Refresh.
+  const ownersResult: UseMonitorOwnersResult = useMonitorOwners({
+    monitorId: modelId,
+    refreshToken: data.manualRefreshCount,
+  });
+
+  // Bumped when the details card saves, so the feed shows the edit.
+  const [detailsSaveCount, setDetailsSaveCount] = useState<number>(0);
+
+  /*
+   * The monitor the page is on now. A save from the details card of the
+   * monitor the reader just left can land after the switch; its refresh
+   * would cancel this monitor's first load, so it is ignored.
+   */
+  const currentModelIdRef: MutableRefObject<string> =
+    useRef<string>(modelIdString);
+
+  useEffect(() => {
+    currentModelIdRef.current = modelIdString;
+  }, [modelIdString]);
+
+  if (!data.hasLoaded) {
+    return (
+      <EventOverviewSkeleton statCount={4} loadingText="Loading monitor" />
+    );
+  }
+
+  if (data.error || !monitor) {
+    return (
+      <ErrorMessage
+        message={data.error || MONITOR_OVERVIEW_NOT_FOUND_MESSAGE}
+        onRefreshClick={data.retryFirstLoad}
+      />
+    );
+  }
+
+  if (!presentationInput || !presentation) {
+    return (
+      <ErrorMessage
+        message={`This monitor's overview cannot be shown. ${presentationError}`.trim()}
+      />
+    );
+  }
+
+  const monitorType: MonitorType = presentationInput.monitorType;
+  const sections: MonitorOverviewSections = presentation.sections;
+
+  const probeData: MonitorOverviewProbeData | null = data.probes.value;
+  const evaluation: MonitorEvaluationByProbe | null = data.evaluation.value;
+  const probes: Array<Probe> = probeData?.attached.probes || [];
+  const disabledProbeIds: Array<string> =
+    probeData?.attached.disabledProbeIds || [];
+
+  /*
+   * Probe rows that could not be read (forbidden, or failed with nothing
+   * kept) are not "no probes attached", which is what the Summary card
+   * would otherwise say.
+   */
+  const probeLoadError: string | undefined =
+    !probeData &&
+    (data.probes.status === "error" || data.probes.status === "forbidden")
+      ? data.probes.error
+      : undefined;
+
+  /*
+   * What every uptime window must add about time it counts but nothing
+   * measured: paused, nothing checking, or no check completed yet. It
+   * follows the run state, so a Manual monitor, which has no checks to
+   * pause, never gets one.
+   */
+  const uptimeCaveat: MonitorUptimeCaveat | null =
+    MonitorOverviewPresentationUtil.getUptimeCaveat(presentation);
+
+  const feedRefreshToken: number =
+    data.manualRefreshCount + data.statusChangeCount + detailsSaveCount;
+
+  const onDetailsSaved: () => void = (): void => {
+    if (currentModelIdRef.current !== modelIdString) {
+      return;
     }
 
-    setIsLoading(false);
+    // The hero, the page header and the feed all show what was just edited.
+    data.refresh({ reason: "details-saved" });
+    outlet?.refreshHeader();
+    setDetailsSaveCount((count: number) => {
+      return count + 1;
+    });
   };
-
-  if (isLoading) {
-    return <PageLoader isVisible={true} />;
-  }
-
-  if (error) {
-    return <ErrorMessage message={error} />;
-  }
 
   return (
     <Fragment>
-      {monitor && monitor.isAllProbesDisconnectedFromThisMonitor && (
-        <Alert
-          type={AlertType.DANGER}
-          className="cursor-pointer"
-          onClick={() => {
-            Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITOR_VIEW_PROBES]!,
-                {
-                  modelId: modelId,
-                },
-              ),
-            );
-          }}
-          strongTitle="Probes Disconnected"
-          title={
-            "This monitor is not being monitored because all probes are disconnected. Please click here to check probes for this monitor."
-          }
-        />
-      )}
-
-      {monitor && monitor.isNoProbeEnabledOnThisMonitor && (
-        <Alert
-          type={AlertType.DANGER}
-          className="cursor-pointer"
-          onClick={() => {
-            Navigation.navigate(
-              RouteUtil.populateRouteParams(
-                RouteMap[PageMap.MONITOR_VIEW_PROBES]!,
-                {
-                  modelId: modelId,
-                },
-              ),
-            );
-          }}
-          strongTitle="Probes Not Enabled"
-          title={
-            "This monitor is not being monitored because all probes are disabled for this monitor. Please click here to check probes for this monitor."
-          }
-        />
-      )}
-
-      <DisabledWarning monitorId={modelId} />
-
-      <DependencySuppressionWarning monitorId={modelId} />
-
-      {/* Monitor View  */}
-      <CardModelDetail<Monitor>
-        name="Monitor Details"
-        formSteps={[
-          {
-            title: "Monitor Info",
-            id: "monitor-info",
-          },
-          {
-            title: "Labels",
-            id: "labels",
-          },
-        ]}
-        cardProps={{
-          title: "Monitor Details",
-          description: "Here are more details for this monitor.",
-        }}
-        isEditable={true}
-        formFields={[
-          {
-            field: {
-              name: true,
-            },
-            stepId: "monitor-info",
-            title: "Name",
-            fieldType: FormFieldSchemaType.Text,
-            required: true,
-            placeholder: "Monitor Name",
-            validation: {
-              minLength: 2,
-            },
-          },
-          {
-            field: {
-              description: true,
-            },
-            stepId: "monitor-info",
-            title: "Description",
-            fieldType: FormFieldSchemaType.LongText,
-            required: false,
-            placeholder: "Description",
-          },
-          {
-            field: {
-              labels: true,
-            },
-            stepId: "labels",
-            title: "Labels ",
-            description:
-              "Team members with access to these labels will only be able to access this resource. This is optional and an advanced feature.",
-            fieldType: FormFieldSchemaType.MultiSelectDropdown,
-            dropdownModal: {
-              type: Label,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Labels",
-          },
-        ]}
-        modelDetailProps={{
-          selectMoreFields: {
-            disableActiveMonitoring: true,
-            isNoProbeEnabledOnThisMonitor: true,
-            isAllProbesDisconnectedFromThisMonitor: true,
-          },
-          showDetailsInNumberOfColumns: 2,
-          modelType: Monitor,
-          id: "model-detail-monitors",
-          fields: [
-            {
-              field: {
-                _id: true,
-              },
-              title: "Monitor ID",
-              fieldType: FieldType.ObjectID,
-            },
-            {
-              field: {
-                name: true,
-              },
-              title: "Monitor Name",
-            },
-            {
-              field: {
-                currentMonitorStatus: {
-                  color: true,
-                  name: true,
-                },
-              },
-              title: "Current Status",
-              fieldType: FieldType.Element,
-              getElement: (item: Monitor): ReactElement => {
-                if (!item["currentMonitorStatus"]) {
-                  throw new BadDataException("Monitor Status not found");
-                }
-
-                if (item && item["disableActiveMonitoring"]) {
-                  return (
-                    <Statusbubble
-                      color={Gray500}
-                      text={"Disabled"}
-                      shouldAnimate={false}
-                    />
-                  );
-                }
-
-                if (item && item.isNoProbeEnabledOnThisMonitor) {
-                  return (
-                    <Statusbubble
-                      shouldAnimate={false}
-                      color={Red500}
-                      text={"Probes Not Enabled"}
-                    />
-                  );
-                }
-
-                if (item && item.isAllProbesDisconnectedFromThisMonitor) {
-                  return (
-                    <Statusbubble
-                      shouldAnimate={false}
-                      color={Red500}
-                      text={"Probes Disconnected"}
-                    />
-                  );
-                }
-
-                return (
-                  <Statusbubble
-                    color={item.currentMonitorStatus.color || Black}
-                    shouldAnimate={true}
-                    text={item.currentMonitorStatus.name || "Unknown"}
-                  />
-                );
-              },
-            },
-
-            {
-              field: {
-                monitorType: true,
-              },
-              title: "Monitor Type",
-            },
-            {
-              field: {
-                labels: {
-                  name: true,
-                  color: true,
-                },
-              },
-              title: "Labels",
-              fieldType: FieldType.Element,
-              getElement: (item: Monitor): ReactElement => {
-                return <LabelsElement labels={item["labels"] || []} />;
-              },
-            },
-            {
-              field: {
-                description: true,
-              },
-              title: "Description",
-            },
-          ],
-          modelId: modelId,
-        }}
-      />
-
-      <OverviewCustomFields
-        modelId={modelId}
-        modelType={Monitor}
-        customFieldType={MonitorCustomField}
-        resourceName="Monitor"
-      />
-
-      {/* Heartbeat URL */}
-      {monitorType === MonitorType.IncomingRequest &&
-      monitor?.incomingRequestSecretKey &&
-      !incomingMonitorRequest ? (
-        <IncomingMonitorLink secretKey={monitor?.incomingRequestSecretKey} />
-      ) : (
-        <></>
-      )}
-
-      {/* Incoming Email Monitor Link */}
-      {monitorType === MonitorType.IncomingEmail &&
-      monitor?.incomingEmailSecretKey ? (
-        <IncomingEmailMonitorLink secretKey={monitor?.incomingEmailSecretKey} />
-      ) : (
-        <></>
-      )}
-
-      {monitorType === MonitorType.Server &&
-      monitor?.serverMonitorSecretKey &&
-      !monitor.serverMonitorRequestReceivedAt ? (
-        <ServerMonitorDocumentation
-          secretKey={monitor?.serverMonitorSecretKey}
-        />
-      ) : (
-        <></>
-      )}
-
-      <Card
-        title="Uptime Graph"
-        description="Here the 90 day uptime history of this monitor."
-        rightElement={getUptimePercent()}
-      >
-        <MonitorUptimeGraph
-          error={error}
-          items={statusTimelines}
-          startDate={OneUptimeDate.getSomeDaysAgo(90)}
-          endDate={OneUptimeDate.getCurrentDate()}
-          isLoading={isLoading}
-          defaultBarColor={Green}
-          downtimeMonitorStatuses={downTimeMonitorStatues}
-          incidents={timelineIncidents}
-          onIncidentClick={(incidentId: string) => {
-            Navigation.navigate(
-              RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENT_VIEW]!, {
-                modelId: new ObjectID(incidentId),
-              }),
-            );
-          }}
-          onBarClick={(
-            date: Date,
-            incidents: Array<UptimeBarTooltipIncident>,
-            summary: UptimeBarDaySummary,
-          ) => {
-            setSelectedDay(date);
-            setSelectedDayIncidents(incidents);
-            setSelectedDaySummary(summary);
-          }}
-        />
-      </Card>
-
-      {selectedDay && (
-        <UptimeBarDayModal
-          date={selectedDay}
-          incidents={selectedDayIncidents}
-          uptimePercent={selectedDaySummary?.uptimePercent}
-          hasEvents={selectedDaySummary?.hasEvents}
-          statusDurations={selectedDaySummary?.statusDurations}
-          onIncidentClick={(incidentId: string) => {
-            Navigation.navigate(
-              RouteUtil.populateRouteParams(RouteMap[PageMap.INCIDENT_VIEW]!, {
-                modelId: new ObjectID(incidentId),
-              }),
-            );
-          }}
-          onClose={() => {
-            setSelectedDay(null);
-            setSelectedDayIncidents([]);
-            setSelectedDaySummary(null);
-          }}
-        />
-      )}
-
-      <Summary
-        monitorType={monitorType!}
-        probes={probes}
-        disabledProbeIds={disabledProbeIds}
-        monitorSteps={monitor?.monitorSteps}
-        /*
-         * Lets the card offer "Test Monitor" from here (issue #3867). The id is
-         * what the server needs to resolve this monitor's secrets for the test
-         * run, so the test exercises the same request the monitor really makes.
-         */
+      <DependencySuppressionWarning
         monitorId={modelId}
-        incomingMonitorRequest={incomingMonitorRequest}
-        incomingRequestMonitorHeartbeatCheckedAt={
-          monitor?.incomingRequestMonitorHeartbeatCheckedAt
-        }
-        incomingEmailMonitorRequest={incomingEmailMonitorRequest}
-        incomingEmailMonitorHeartbeatCheckedAt={
-          monitor?.incomingEmailMonitorHeartbeatCheckedAt
-        }
-        probeMonitorResponses={probeResponses}
-        serverMonitorResponse={serverMonitorResponse}
-        telemetryMonitorSummary={{
-          lastCheckedAt: monitor?.telemetryMonitorLastMonitorAt,
-          nextCheckAt: monitor?.telemetryMonitorNextMonitorAt,
-        }}
-        evaluationSummary={latestEvaluationSummary}
+        refreshToggle={`${data.statusChangeCount}|${data.manualRefreshCount}`}
       />
 
-      {monitor?.monitorType === MonitorType.Logs &&
-        monitor.monitorSteps &&
-        monitor.monitorSteps.data?.monitorStepsInstanceArray &&
-        monitor.monitorSteps.data?.monitorStepsInstanceArray.length > 0 && (
-          <div>
-            <Card
-              title={"Logs Preview"}
-              description={
-                "Preview of the logs that match the filter of this monitor."
-              }
-            >
-              <LogMonitorPreview
-                monitorStepLogMonitor={
-                  monitor.monitorSteps.data?.monitorStepsInstanceArray[0]?.data
-                    ?.logMonitor
-                }
-              />
-            </Card>
-          </div>
-        )}
+      <div className="mb-5">
+        <MonitorOverviewHero
+          monitorId={modelId}
+          monitorType={monitorType}
+          presentation={presentation}
+          owners={ownersResult.owners}
+          isRefreshing={data.isRefreshing}
+          refreshError={data.refreshError}
+          lastLoadedAt={data.lastLoadedAt}
+          onRefresh={() => {
+            data.refresh();
+          }}
+        />
+      </div>
 
-      {monitor?.monitorType === MonitorType.SecurityEvents &&
-        monitor.monitorSteps &&
-        monitor.monitorSteps.data?.monitorStepsInstanceArray &&
-        monitor.monitorSteps.data?.monitorStepsInstanceArray.length > 0 && (
-          <div>
-            <Card
-              title={"Security Events Preview"}
-              description={
-                "Preview of the security events that match the filter of this monitor."
-              }
-            >
-              <SecurityEventsMonitorPreview
-                monitorStepSecurityEventsMonitor={
-                  monitor.monitorSteps.data?.monitorStepsInstanceArray[0]?.data
-                    ?.securityEventsMonitor
-                }
-              />
-            </Card>
-          </div>
-        )}
+      {sections.showUptime ? (
+        <MonitorOverviewStatBar
+          className="mb-5"
+          monitorId={modelId}
+          summary={uptime.summary}
+          caveat={uptimeCaveat}
+          openWork={openWork}
+        />
+      ) : (
+        <></>
+      )}
 
-      {monitor?.monitorType === MonitorType.Metrics &&
-        monitor.monitorSteps &&
-        monitor.monitorSteps.data?.monitorStepsInstanceArray &&
-        monitor.monitorSteps.data?.monitorStepsInstanceArray.length > 0 && (
-          <div>
-            <MetricMonitorPreview
-              monitorStepMetricMonitor={
-                monitor.monitorSteps.data?.monitorStepsInstanceArray[0]?.data
-                  ?.metricMonitor
-              }
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
+        <div className="min-w-0 xl:col-span-2">
+          {sections.setup !== null ? (
+            <MonitorSetupCard
+              monitorId={modelId}
+              kind={sections.setup}
+              monitor={monitor}
             />
-          </div>
-        )}
+          ) : (
+            <></>
+          )}
 
-      {monitor?.monitorType === MonitorType.Traces &&
-        monitor.monitorSteps &&
-        monitor.monitorSteps.data?.monitorStepsInstanceArray &&
-        monitor.monitorSteps.data?.monitorStepsInstanceArray.length > 0 &&
-        monitor.monitorSteps.data?.monitorStepsInstanceArray[0] &&
-        monitor.monitorSteps.data?.monitorStepsInstanceArray[0]!.data &&
-        monitor.monitorSteps.data?.monitorStepsInstanceArray[0]!.data!
-          .traceMonitor && (
-          <TraceTable
-            spanQuery={MonitorStepTraceMonitorUtil.toQuery(
-              monitor.monitorSteps.data!.monitorStepsInstanceArray[0]!.data!
-                .traceMonitor!,
-            )}
+          {sections.showUptime ? (
+            <MonitorUptimeHistoryCard
+              summary={uptime.summary}
+              incidents={uptime.incidents}
+              monitorCreatedAt={monitor.createdAt}
+              onRetry={uptime.retry}
+            />
+          ) : (
+            <></>
+          )}
+
+          {sections.responseTimeMetric !== null ? (
+            <MonitorResponseTimeCard
+              monitorId={modelId}
+              monitorType={monitorType}
+              metric={sections.responseTimeMetric}
+              probes={probes}
+              responseTime={presentationInput.probes?.responseTime ?? null}
+            />
+          ) : (
+            <></>
+          )}
+
+          {sections.summary.isShown ? (
+            <Summary
+              monitorType={monitorType}
+              probes={probes}
+              disabledProbeIds={disabledProbeIds}
+              monitorSteps={monitor.monitorSteps}
+              /*
+               * Lets the card offer "Test Monitor" from here (issue #3867).
+               * The id is what the server needs to resolve this monitor's
+               * secrets for the test run, so the test exercises the same
+               * request the monitor really makes.
+               */
+              monitorId={modelId}
+              description={sections.summary.description}
+              probeLoadError={probeLoadError}
+              probeMonitorResponses={probeData?.attached.probeResponses}
+              evaluationSummariesByProbeId={evaluation?.byProbeId}
+              evaluationSummary={evaluation?.latest?.summary}
+              incomingMonitorRequest={monitor.incomingMonitorRequest}
+              incomingRequestMonitorHeartbeatCheckedAt={
+                monitor.incomingRequestMonitorHeartbeatCheckedAt
+              }
+              incomingEmailMonitorRequest={
+                monitor.incomingEmailMonitorRequest as
+                  | IncomingEmailMonitorRequest
+                  | undefined
+              }
+              incomingEmailMonitorHeartbeatCheckedAt={
+                monitor.incomingEmailMonitorHeartbeatCheckedAt
+              }
+              serverMonitorResponse={monitor.serverMonitorResponse}
+              /*
+               * The last check is the newest evaluation in the log when
+               * there is one, as in the hero: the scheduler's stamp moves
+               * even when no evaluation lands.
+               */
+              telemetryMonitorSummary={{
+                lastCheckedAt: getTelemetryLastCheckedAt({
+                  monitor: monitor,
+                  evaluation: data.evaluation,
+                }),
+                lastCheckedLabel: getTelemetryLastCheckedLabel({
+                  evaluation: data.evaluation,
+                }),
+                nextCheckAt: monitor.telemetryMonitorNextMonitorAt,
+              }}
+            />
+          ) : (
+            <></>
+          )}
+
+          {sections.telemetryPreview !== null ? (
+            <MonitorTelemetryPreview
+              monitorType={monitorType}
+              monitorSteps={monitor.monitorSteps}
+            />
+          ) : (
+            <></>
+          )}
+
+          <MonitorActivityCard
+            monitorId={modelId}
+            refreshToken={feedRefreshToken}
           />
-        )}
+        </div>
 
-      <MonitorFeedElement monitorId={modelId} />
+        <div className="min-w-0">
+          <MonitorOpenWorkCard monitorId={modelId} openWork={openWork} />
+
+          <MonitorStatusChangesCard
+            monitorId={modelId}
+            statusRows={data.statusRows}
+          />
+
+          {/* The family's own card: at most one of these three. */}
+          {sections.sideCard === "probes" ? (
+            <MonitorProbesCard
+              monitorId={modelId}
+              probes={data.probes}
+              summary={presentationInput.probes}
+              /*
+               * Row health comes from the summary. The card only asks
+               * whether a row's next check is still ahead, which is a
+               * question about the commit, not about when held results
+               * were read.
+               */
+              now={now}
+              minimumProbeAgreement={presentationInput.minimumProbeAgreement}
+            />
+          ) : (
+            <></>
+          )}
+
+          {sections.sideCard === "connection" &&
+          sections.connection !== null ? (
+            <MonitorConnectionCard
+              monitorId={modelId}
+              kind={sections.connection}
+              monitor={monitor}
+            />
+          ) : (
+            <></>
+          )}
+
+          {sections.sideCard === "manual" ? (
+            <MonitorManualGuideCard monitorId={modelId} />
+          ) : (
+            <></>
+          )}
+
+          <MonitorOverviewDetailsCard
+            monitorId={modelId}
+            refresher={data.manualRefreshCount % 2 === 1}
+            onSaveSuccess={onDetailsSaved}
+          />
+
+          <OverviewCustomFields
+            modelId={modelId}
+            modelType={Monitor}
+            customFieldType={MonitorCustomField}
+            resourceName="Monitor"
+            headerLayout="stacked"
+          />
+        </div>
+      </div>
     </Fragment>
   );
 };

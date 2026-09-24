@@ -482,6 +482,14 @@ describe("Scheduled maintenance overview page", () => {
         title: true,
         scheduledMaintenanceNumber: true,
         scheduledMaintenanceNumberWithPrefix: true,
+        /*
+         * Where the notify checkboxes start: the feed's public note follows
+         * Event Created; the header's state change also follows Event
+         * Ongoing / Event Ended for those moves.
+         */
+        shouldStatusPageSubscribersBeNotifiedOnEventCreated: true,
+        shouldStatusPageSubscribersBeNotifiedWhenEventChangedToOngoing: true,
+        shouldStatusPageSubscribersBeNotifiedWhenEventChangedToEnded: true,
         statusPages: { _id: true, name: true },
         createdByUser: { name: true, email: true },
       });
@@ -840,9 +848,15 @@ describe("Scheduled maintenance overview page", () => {
       expect(cells[2]).toHaveTextContent("Duration");
       expect(cells[2]).toHaveTextContent("2 hours");
       expect(cells[2]).not.toHaveTextContent("0 minutes");
+      /*
+       * The t() mocked above returns the template untouched, like
+       * react-i18next's not-ready t(), so the page fills the zone in itself.
+       * ScheduledMaintenanceWindowStatsTranslation covers a real translation.
+       */
       expect(cells[2]).toHaveTextContent(
         "Planned window · times in " + OneUptimeDate.getCurrentTimezoneString(),
       );
+      expect(cells[2]).not.toHaveTextContent("{{");
 
       // Segment cells: no card chrome of their own, values wrap.
       for (const cell of cells) {

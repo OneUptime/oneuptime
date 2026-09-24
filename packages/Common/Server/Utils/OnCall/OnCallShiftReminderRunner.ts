@@ -2049,6 +2049,7 @@ export default class OnCallShiftReminderRunner {
         templateType: message.templateType,
         vars: message.vars,
         subject: message.subject,
+        isSubjectLiteral: true,
       };
 
       const smsMessage: SMSMessage = {

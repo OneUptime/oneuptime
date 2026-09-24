@@ -332,6 +332,7 @@ RunCron(
             templateType: EmailTemplateType.IncidentEpisodeOwnerIncidentAdded,
             vars: vars,
             subject: `[Episode ${episodeNumberStr}] ${subjectIncidentLabel} added - ${episode.title!}`,
+            isSubjectLiteral: true,
           };
 
           const summaryLine: string =

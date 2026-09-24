@@ -1,0 +1,15 @@
+# A release whose stored values already list write namespaces, the way
+#   --set aiAccess.enabled=true --set aiAccess.remediation.enabled=true \
+#   --set "aiAccess.remediation.namespaces={web}"
+# leaves them. `helm upgrade --reuse-values` feeds these back on every later
+# upgrade, so leaving the namespaces flag out keeps [web]; only an explicit
+# empty list (`--set-json 'aiAccess.remediation.namespaces=[]'`) goes back to
+# the cluster-wide binding under --reuse-values. A null does it only without
+# --reuse-values (as over this file), because under it Helm drops a null
+# whose key the stored values hold. tests/ai-runner_test.yaml renders both.
+aiAccess:
+  enabled: true
+  remediation:
+    enabled: true
+    namespaces:
+      - web

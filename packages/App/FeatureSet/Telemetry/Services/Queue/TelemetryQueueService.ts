@@ -40,7 +40,15 @@ export type ProbeIngestJobType =
   | "network-device-walk";
 
 export interface IncomingEmailJobData {
-  secretKey: string;
+  /*
+   * Which monitor the mail is for, read from the recipient address. Exactly
+   * one of the two is set: `secretKey` for a generated
+   * `monitor-{secretKey}@` address, `customLocalPart` for a custom one (see
+   * IncomingEmailMonitorAddress). Jobs queued before custom addresses existed
+   * carry `secretKey` only.
+   */
+  secretKey?: string | undefined;
+  customLocalPart?: string | undefined;
   emailFrom: string;
   emailTo: string;
   emailSubject: string;
@@ -719,7 +727,8 @@ export default class TelemetryQueueService {
   }
 
   public static async addIncomingEmailJob(data: {
-    secretKey: string;
+    secretKey?: string | undefined;
+    customLocalPart?: string | undefined;
     emailFrom: string;
     emailTo: string;
     emailSubject: string;
@@ -740,6 +749,7 @@ export default class TelemetryQueueService {
         ingestionTimestamp: OneUptimeDate.getCurrentDate(),
         incomingEmail: {
           secretKey: data.secretKey,
+          customLocalPart: data.customLocalPart,
           emailFrom: data.emailFrom,
           emailTo: data.emailTo,
           emailSubject: data.emailSubject,
@@ -756,7 +766,11 @@ export default class TelemetryQueueService {
         probeIngest: probeData,
       };
 
-      const jobId: string = `incoming-email-${data.secretKey}-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
+      /*
+       * The recipient is deliberately not part of the id: it is the monitor's
+       * credential, and job ids end up in queue dashboards and logs.
+       */
+      const jobId: string = `incoming-email-${OneUptimeDate.getCurrentDateAsUnixNano()}-${ObjectID.generate().toString()}`;
 
       await Queue.addJob(
         QueueName.Telemetry,

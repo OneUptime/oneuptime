@@ -168,7 +168,14 @@
       "usageCardDescription": "该客户所有自托管实例中的去重用户数，由其安装环境每天上报。",
       "instancesCardTitle": "实例",
       "instancesCardDescription": "针对此许可证上报数据的自托管实例（预发布、生产等），以及我们可以在每个实例上联系的主管理员。",
-      "noInstances": "尚无实例针对此许可证上报数据。"
+      "noInstances": "尚无实例针对此许可证上报数据。",
+      "offlineTokenCardTitle": "离线许可证令牌",
+      "offlineTokenCardDescription": "适用于无法访问 oneuptime.com 的安装：下载与该安装的实例 ID 绑定的已签名许可证令牌。客户将其粘贴到自己的管理仪表板中。",
+      "offlineTokenButton": "下载离线令牌",
+      "offlineTokenIssued": "已为实例 {{instanceId}} 下载离线许可证令牌。",
+      "offlineTokenModalTitle": "下载离线许可证令牌",
+      "offlineTokenModalDescription": "输入客户安装的实例 ID。该令牌仅在该安装上有效。",
+      "offlineTokenSubmitButton": "下载令牌"
     },
     "userView": {
       "title": "用户",
@@ -827,5 +834,14 @@
   "Projects, users, monitors and incidents across the instance.": "整个实例中的项目、用户、监视器和事件。",
   "Valkey memory": "Valkey 内存",
   "Spot job backlogs and failures before they cause incidents.": "在作业积压和失败引发事件之前发现它们。",
-  "Track database disk and memory utilization before you run out.": "在耗尽之前跟踪数据库磁盘和内存使用率。"
+  "Track database disk and memory utilization before you run out.": "在耗尽之前跟踪数据库磁盘和内存使用率。",
+  "You can still disable a provider.": "您仍然可以禁用提供商。",
+  "Without a valid Enterprise license this configuration is read-only and sign-in through these providers is off, but disabling a provider is always allowed, because it can only tighten security. Sign-in resumes through every enabled provider as soon as a license is activated, so if an identity provider is compromised, use Disable now to keep it off. Turning a provider back on needs a valid license.": "没有有效的 Enterprise 许可证时，此配置为只读，通过这些提供商的登录也已关闭，但始终可以禁用提供商，因为这只会加强安全性。许可证一旦激活，通过所有已启用提供商的登录会立即恢复，因此如果身份提供商遭到入侵，请现在就使用“禁用”，使其保持关闭。重新启用提供商需要有效的许可证。",
+  "Disable Provider": "禁用提供商",
+  "Nobody will be able to sign in with this provider until it is turned back on, and turning it back on needs a valid Enterprise license.": "在重新启用之前，任何人都无法通过此提供商登录，而重新启用需要有效的 Enterprise 许可证。",
+  "Disable": "禁用",
+  "Disable Project Attachment": "禁用项目关联",
+  "This provider will no longer provision users into this project, or give access to it when the provider is restricted to attached projects. Turning the attachment back on needs a valid Enterprise license.": "此提供商将不再向该项目预配用户；如果提供商仅限于关联的项目，也将不再授予对该项目的访问权限。重新启用关联需要有效的 Enterprise 许可证。",
+  "Disable this provider": "禁用此提供商",
+  "Sign-in through this provider is off while the Enterprise license is missing or expired, and resumes as soon as a license is activated. Disable the provider to keep it off. Its configuration stays as it is, and it can be turned back on once the Enterprise license is valid again.": "在 Enterprise 许可证缺失或过期期间，通过此提供商的登录处于关闭状态，许可证一旦激活即会恢复。禁用此提供商可使其保持关闭。其配置保持不变，待 Enterprise 许可证重新生效后即可重新启用。"
 }

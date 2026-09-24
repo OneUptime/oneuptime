@@ -235,7 +235,9 @@
     "sso": {
       "title": "透過 SSO 登入",
       "loginPrompt": "請登入以檢視 {{statusPageName}}",
-      "noProviders": "未設定或啟用 SSO 提供者"
+      "noProviders": "未設定或啟用 SSO 提供者",
+      "notAvailable": "此狀態頁不支援單一登入（SSO）。請改用您的電子郵件與密碼登入。",
+      "backToLogin": "返回登入"
     },
     "forgotPassword": {
       "title": "忘記密碼",

@@ -17,6 +17,8 @@ import SessionReplayReadService, {
   SessionReplayListRequest,
   SessionReplayListResult,
   SessionReplayManifest,
+  SessionReplayResolveRequest,
+  SessionReplayResolvedSession,
   SessionReplaySessionHeader,
   SessionReplaySessionIdentity,
   SessionReplaySummariesRequest,
@@ -307,6 +309,292 @@ describe("SessionReplayReadService statements", () => {
         await expect(
           SessionReplayReadService.getSessionSummaries(
             summariesRequest({ sessionIds: sessionIds }),
+          ),
+        ).rejects.toBeInstanceOf(BadDataException);
+
+        expect(headerQuerySpy).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  describe("resolveSessions", () => {
+    const otherApplicationId: ObjectID = ObjectID.generate();
+
+    function resolveRequest(
+      overrides: Partial<SessionReplayResolveRequest> = {},
+    ): SessionReplayResolveRequest {
+      return {
+        projectId: projectId,
+        sessionIds: ["session-a", "session-b"],
+        accessibleRumApplicationIds: null,
+        ...overrides,
+      };
+    }
+
+    function resolvedRow(data: {
+      sessionId: string;
+      applicationId: string;
+      aggStartTime?: number;
+      matchedApplicationCount?: number | string;
+    }): JSONObject {
+      return {
+        sessionId: data.sessionId,
+        applicationId: data.applicationId,
+        aggStartTime: data.aggStartTime ?? 1700000000000,
+        matchedApplicationCount: data.matchedApplicationCount ?? "1",
+      };
+    }
+
+    function qualifySection(query: string): string {
+      const index: number = query.indexOf("QUALIFY");
+
+      if (index < 0) {
+        throw new Error("Statement has no QUALIFY section");
+      }
+
+      return query.substring(index);
+    }
+
+    test("collapses ReplacingMergeTree rows with argMax, grouped per (application, session)", async () => {
+      await SessionReplayReadService.resolveSessions(resolveRequest());
+
+      expect(headerQuerySpy).toHaveBeenCalledTimes(1);
+      expect(chunkQuerySpy).not.toHaveBeenCalled();
+
+      const statement: Statement = statementOf(headerQuerySpy);
+      const query: string = statement.query;
+
+      expect(query).toMatch(/FROM \{p\d+:Identifier\}/);
+      /* The start time is the newest version's, never a raw row's. */
+      expect(query).toContain(
+        "toFloat64(toUnixTimestamp64Milli(argMax(startTime, version))) AS aggStartTime",
+      );
+      expect(query).toContain("toString(rumApplicationId) AS applicationId");
+      expect(query).toContain(
+        "GROUP BY projectId, rumApplicationId, sessionId",
+      );
+      expect(query).toContain(
+        "count() OVER (PARTITION BY sessionId) AS matchedApplicationCount",
+      );
+      expect(query).toContain("QUALIFY matchedApplicationCount = 1");
+      expect(query).toContain("retentionDate >= now()");
+      expect(query).toContain("timeout_overflow_mode = 'throw'");
+      expect(query).not.toContain(" FINAL");
+
+      /* The WHERE is (projectId, sessionId): the bloom-filtered lookup. */
+      const where: string = whereSection(query);
+
+      expect(where).toContain("projectId = ");
+      expect(where).toContain("sessionId IN (");
+      expect(where).not.toContain("rumApplicationId");
+
+      for (const forbiddenColumn of [
+        "identifiedUserKey",
+        "identifiedUserLabel",
+        "identifiedUserTraits",
+        "visitorId",
+        "payload",
+        "entryUrl",
+        "exitUrl",
+        "routes",
+      ]) {
+        expect(query).not.toContain(forbiddenColumn);
+      }
+
+      const values: Array<unknown> = boundValues(statement);
+
+      expect(values).toContain(AnalyticsTableName.RumSession);
+      expect(values).toContain(projectId.toString());
+      expect(values).toContainEqual(["session-a", "session-b"]);
+    });
+
+    test("an unrestricted caller adds no application predicate at all", async () => {
+      await SessionReplayReadService.resolveSessions(resolveRequest());
+
+      expect(statementOf(headerQuerySpy).query).not.toContain(
+        "rumApplicationId IN (",
+      );
+    });
+
+    test("a label restriction is applied after the per-id application count, never in WHERE", async () => {
+      await SessionReplayReadService.resolveSessions(
+        resolveRequest({
+          accessibleRumApplicationIds: [rumApplicationId, otherApplicationId],
+        }),
+      );
+
+      const statement: Statement = statementOf(headerQuerySpy);
+
+      expect(qualifySection(statement.query)).toContain(
+        "AND rumApplicationId IN (",
+      );
+      expect(whereSection(statement.query)).not.toContain("rumApplicationId");
+      expect(boundValues(statement)).toContainEqual([
+        rumApplicationId.toString(),
+        otherApplicationId.toString(),
+      ]);
+    });
+
+    test("a caller who reaches no application gets nothing and issues no query", async () => {
+      expect(
+        await SessionReplayReadService.resolveSessions(
+          resolveRequest({ accessibleRumApplicationIds: [] }),
+        ),
+      ).toEqual([]);
+      expect(headerQuerySpy).not.toHaveBeenCalled();
+    });
+
+    test("binds each id once and caps the rows at the number of distinct ids", async () => {
+      await SessionReplayReadService.resolveSessions(
+        resolveRequest({
+          sessionIds: ["session-a", "session-b", "session-a", "session-c"],
+        }),
+      );
+
+      const statement: Statement = statementOf(headerQuerySpy);
+
+      expect(boundValues(statement)).toContainEqual([
+        "session-a",
+        "session-b",
+        "session-c",
+      ]);
+      expect(statement.query).toMatch(/LIMIT \{p\d+:Int32\}/);
+      expect(boundValues(statement)).toContain(3);
+    });
+
+    test("answers in request order, omitting missing, unsolicited and malformed rows", async () => {
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          resolvedRow({
+            sessionId: "session-b",
+            applicationId: rumApplicationId.toString(),
+            aggStartTime: 1700000200000,
+          }),
+          resolvedRow({
+            sessionId: "not-requested",
+            applicationId: rumApplicationId.toString(),
+          }),
+          resolvedRow({
+            sessionId: "session-a",
+            applicationId: otherApplicationId.toString(),
+            aggStartTime: 1700000100000,
+          }),
+          /* An application id that is not one can never anchor a link. */
+          resolvedRow({ sessionId: "session-c", applicationId: "" }),
+        ]) as never,
+      );
+
+      const resolved: Array<SessionReplayResolvedSession> =
+        await SessionReplayReadService.resolveSessions(
+          resolveRequest({
+            sessionIds: ["session-a", "session-b", "session-c", "missing"],
+          }),
+        );
+
+      expect(resolved).toEqual([
+        {
+          sessionId: "session-a",
+          rumApplicationId: otherApplicationId.toString(),
+          startTime: new Date(1700000100000),
+          startTimeUnixMs: 1700000100000,
+        },
+        {
+          sessionId: "session-b",
+          rumApplicationId: rumApplicationId.toString(),
+          startTime: new Date(1700000200000),
+          startTimeUnixMs: 1700000200000,
+        },
+      ]);
+    });
+
+    test("an id that more than one application recorded is refused, however it arrives", async () => {
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          resolvedRow({
+            sessionId: "session-a",
+            applicationId: rumApplicationId.toString(),
+          }),
+          /* The window said two applications: QUALIFY should have dropped it. */
+          resolvedRow({
+            sessionId: "session-b",
+            applicationId: rumApplicationId.toString(),
+            matchedApplicationCount: "2",
+          }),
+          /* Two grouped rows for one id is the same ambiguity. */
+          resolvedRow({
+            sessionId: "session-c",
+            applicationId: rumApplicationId.toString(),
+          }),
+          resolvedRow({
+            sessionId: "session-c",
+            applicationId: otherApplicationId.toString(),
+          }),
+        ]) as never,
+      );
+
+      const resolved: Array<SessionReplayResolvedSession> =
+        await SessionReplayReadService.resolveSessions(
+          resolveRequest({
+            sessionIds: ["session-a", "session-b", "session-c"],
+          }),
+        );
+
+      expect(
+        resolved.map((row: SessionReplayResolvedSession): string => {
+          return row.sessionId;
+        }),
+      ).toEqual(["session-a"]);
+    });
+
+    test("a row for an application outside the restriction never reaches the answer", async () => {
+      headerQuerySpy.mockResolvedValue(
+        fakeResultSet([
+          resolvedRow({
+            sessionId: "session-a",
+            /* ClickHouse's own casing must not defeat the membership test. */
+            applicationId: rumApplicationId.toString().toUpperCase(),
+          }),
+          resolvedRow({
+            sessionId: "session-b",
+            applicationId: otherApplicationId.toString(),
+          }),
+        ]) as never,
+      );
+
+      const resolved: Array<SessionReplayResolvedSession> =
+        await SessionReplayReadService.resolveSessions(
+          resolveRequest({ accessibleRumApplicationIds: [rumApplicationId] }),
+        );
+
+      expect(
+        resolved.map((row: SessionReplayResolvedSession): string => {
+          return row.sessionId;
+        }),
+      ).toEqual(["session-a"]);
+    });
+
+    test.each([
+      { name: "an empty batch", sessionIds: [] },
+      { name: "an empty id", sessionIds: [""] },
+      {
+        name: "an overlong id",
+        sessionIds: ["x".repeat(MAX_SESSION_REPLAY_SESSION_ID_LENGTH + 1)],
+      },
+      {
+        name: "an oversized batch",
+        sessionIds: Array.from(
+          { length: MAX_SESSION_REPLAY_SUMMARIES_BATCH_SIZE + 1 },
+          (_value: unknown, index: number): string => {
+            return `session-${index}`;
+          },
+        ),
+      },
+    ])(
+      "rejects $name before querying",
+      async ({ sessionIds }: { sessionIds: Array<string> }) => {
+        await expect(
+          SessionReplayReadService.resolveSessions(
+            resolveRequest({ sessionIds: sessionIds }),
           ),
         ).rejects.toBeInstanceOf(BadDataException);
 

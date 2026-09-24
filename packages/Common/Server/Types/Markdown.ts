@@ -12,36 +12,242 @@ export enum MarkdownContentType {
   BlogValidation,
 }
 
+/*
+ * Private Use Area sentinels used by convertToPlainText. Any already in the
+ * input are held back first, so every sentinel in the working text is one
+ * the function put there. Always write them as \u escapes, never as raw
+ * characters.
+ *   PLACEHOLDER_OPEN + index + PLACEHOLDER_CLOSE  held-back literal text
+ *   PARAGRAPH_BREAK     marks a blank line while emphasis is removed
+ *   LITERAL_UNDERSCORE  an intraword "_" (snake_case), restored as "_"
+ *   WORD_EDGE           sits between a letter/digit and an underscore run
+ */
+const PLACEHOLDER_OPEN: string = "\uE000";
+const PLACEHOLDER_CLOSE: string = "\uE001";
+const PLACEHOLDER_PATTERN: RegExp = /\uE000(\d+)\uE001/g;
+const PARAGRAPH_BREAK: string = "\uE002";
+const LITERAL_UNDERSCORE: string = "\uE003";
+const WORD_EDGE: string = "\uE004";
+const INPUT_SENTINELS: RegExp = /[\uE000-\uE004]+/g;
+
+const FENCE_OPEN: RegExp =
+  /^(?:[ \t>]|(?:[-*+]|\d{1,9}[.)])[ \t])*(?:(`{3,})[^`]*|(~{3,}).*)$/;
+const FENCE_CLOSE: RegExp = /^[ \t>]*(`{3,}|~{3,})[ \t]*$/;
+
+const ESCAPE_OR_BACKTICK_RUN: RegExp = /\\([!-/:-@[-`{-~])|`+/g;
+const BACKTICK_RUN: RegExp = /`+/g;
+const NOT_ONLY_SPACES: RegExp = /[^ ]/;
+
+// GFM autolink literals leave these trailing characters outside the URL.
+const BARE_URL_TRAILING_PUNCTUATION: string = "?!.,:*_~'\"";
+
+const HTML_ENTITIES: Record<string, string> = {
+  lt: "<",
+  gt: ">",
+  amp: "&",
+  quot: '"',
+  "#39": "'",
+  nbsp: " ",
+};
+
+type HoldFunction = (value: string) => string;
+
+interface BacktickRuns {
+  starts: Array<number>;
+  next: number;
+}
+
 export default class Markdown {
+  /*
+   * Markdown to plain text, for SMS, calls, push notifications, email
+   * subjects and preheaders.
+   *
+   * THE ORDER OF THE STEPS IS THE POINT. Fenced code is dropped and code
+   * spans, backslash-escaped characters and any sentinel character already
+   * in the input are swapped for placeholders BEFORE any markup step runs,
+   * and swapped back AFTER the last one, so no markup step can see inside
+   * code or pair a marker inside it with a marker outside it: the "_" in
+   * `http.status_code` must never pair with the "_" of a later _italic_
+   * note, and `<pod>` inside a code span must never be stripped as a tag.
+   * Autolink addresses are held back the same way before tags are stripped,
+   * and bare URLs after tags, images and links are converted (so a URL in a
+   * link target goes with the link) but before emphasis.
+   *
+   * Every regex is linear in the input. The emphasis regexes run WITHOUT the
+   * u flag: a u-flag regex whose loop crosses a multi-MB two-byte string
+   * overflows V8's backtrack stack (RangeError). The two Unicode-aware steps
+   * (which underscores touch a letter or digit) loop over "_" alone and
+   * leave marks that the emphasis steps read.
+   */
   @CaptureSpan()
   public static convertToPlainText(markdown: string): string {
     if (!markdown) {
       return "";
     }
 
-    let text: string = markdown;
+    // A caller typed `string` can still hand over a number at runtime.
+    let text: string =
+      typeof markdown === "string" ? markdown : String(markdown);
 
-    // Remove HTML tags
-    text = text.replace(/<[^>]*>/g, "");
+    /*
+     * Literal text held back from the markup steps, by placeholder index. A
+     * value is resolved before it is stored, so it never contains a
+     * placeholder and one restore pass at the end is enough.
+     */
+    const held: Array<string> = [];
 
-    // Convert markdown links [text](url) to just text
-    text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+    const restore: (value: string) => string = (value: string): string => {
+      return value.replace(
+        PLACEHOLDER_PATTERN,
+        (_match: string, index: string): string => {
+          return held[Number(index)] ?? "";
+        },
+      );
+    };
 
-    // Convert markdown images ![alt](url) to just alt text
-    text = text.replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1");
+    const hold: HoldFunction = (value: string): string => {
+      held.push(restore(value));
+      return `${PLACEHOLDER_OPEN}${held.length - 1}${PLACEHOLDER_CLOSE}`;
+    };
 
-    // Remove markdown bold/italic markers
-    text = text.replace(/\*\*([^*]+)\*\*/g, "$1"); // **bold**
-    text = text.replace(/\*([^*]+)\*/g, "$1"); // *italic*
-    text = text.replace(/__([^_]+)__/g, "$1"); // __bold__
-    text = text.replace(/_([^_]+)_/g, "$1"); // _italic_
+    // Normalize line endings, so "\n" is the only line break the steps see.
+    text = text.replace(/\r\n?/g, "\n");
+
+    // Hold back sentinel characters already in the input, verbatim.
+    text = text.replace(INPUT_SENTINELS, hold);
+
+    /*
+     * CODE FIRST. Drop fenced code blocks, then hold back code spans and
+     * escaped characters. Everything after this point sees code only as an
+     * opaque placeholder.
+     */
+    text = Markdown.removeFencedCodeBlocks(text);
+    text = Markdown.holdInlineCodeAndEscapes(text, hold);
+
+    /*
+     * Mark blank lines, so bold, strikethrough and HTML tags (which may wrap
+     * onto the next line) cannot reach across a paragraph break.
+     */
+    text = text.replace(/\n(?=[^\S\n]*\n)/g, `\n${PARAGRAPH_BREAK}`);
+
+    /*
+     * Autolinks <https://...> and <someone@example.com> read as the address.
+     * Entities are decoded now, as they are in a bare URL, because the entity
+     * step below never sees held-back text ("?a=1&amp;b=2" reads "?a=1&b=2").
+     */
+    text = text.replace(
+      /<([A-Za-z][A-Za-z0-9+.-]{1,31}:[^\s<>]*)>/g,
+      (_match: string, uri: string): string => {
+        return hold(Markdown.decodeHtmlEntities(uri));
+      },
+    );
+    text = text.replace(
+      /<([A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9.-]+)>/g,
+      (_match: string, email: string): string => {
+        return hold(Markdown.decodeHtmlEntities(email));
+      },
+    );
+
+    /*
+     * Underscores next to letters or digits (the only Unicode-aware steps;
+     * their loops are over "_" alone). A run with a letter, mark or digit on
+     * both sides is intraword (snake_case, http.status_code, k8s.pod_name)
+     * and is never emphasis, as in CommonMark: it becomes LITERAL_UNDERSCORE.
+     * Any other run touching a letter or digit gets a WORD_EDGE on that side,
+     * which tells the underscore steps below that it cannot open (letter
+     * before it) or cannot close (letter after it) emphasis, so they need no
+     * u flag. This runs BEFORE tags, links and emphasis are removed, so
+     * flanking is judged on the source text: in "**b**_x_", "[l](u)_x_" and
+     * "_x_[l](u)" the "_" touches punctuation, not the letters that end up
+     * next to it.
+     */
+    text = text.replace(
+      /(?<=[\p{L}\p{M}\p{N}])_+(?=[\p{L}\p{M}\p{N}])/gu,
+      (run: string): string => {
+        return LITERAL_UNDERSCORE.repeat(run.length);
+      },
+    );
+    text = text.replace(
+      /(?<=[\p{L}\p{M}\p{N}])(_+)|(?<!_)(_+)(?=[\p{L}\p{M}\p{N}])/gu,
+      (
+        _match: string,
+        afterLetter: string | undefined,
+        beforeLetter: string | undefined,
+      ): string => {
+        return afterLetter !== undefined
+          ? WORD_EDGE + afterLetter
+          : (beforeLetter ?? "") + WORD_EDGE;
+      },
+    );
+
+    /*
+     * Remove HTML tags: <tag ...>, </tag>, <!-- ... -->, <!DOCTYPE ...>,
+     * <?...?>. Only a "<" that starts a tag counts, so "a < b and c > d"
+     * survives. A tag never spans a placeholder or a blank line, so held-back
+     * code ("Map<String, `k8s.pod_name`>") is never removed as part of a tag.
+     * A backslash-escaped character is held back too, so it also keeps the
+     * text around it from being read as a tag ("List<Foo\_Bar>" stays).
+     * A comment may span both: it is hidden when rendered, code and all.
+     */
+    text = text.replace(/<(?:\/?[A-Za-z][^<>\uE000-\uE002]*|[!?][^<>]*)>/g, "");
+
+    /*
+     * Convert markdown images ![alt](url) to just alt text. Before links, or
+     * the link step would leave the "!" behind.
+     */
+    text = text.replace(
+      /!\[([^[\]]*)\]\((?!\))[^()]*(?:\([^()]*\)[^()]*)?\)/g,
+      "$1",
+    );
+
+    /*
+     * Convert markdown links [text](url) to just text. The URL may contain
+     * one pair of parentheses, e.g. https://en.wikipedia.org/wiki/Foo_(bar).
+     */
+    text = text.replace(
+      /\[([^[\]]+)\]\((?!\))[^()]*(?:\([^()]*\)[^()]*)?\)/g,
+      "$1",
+    );
+
+    /*
+     * Bare http(s) URLs are held back (GFM autolink literals), so emphasis
+     * cannot eat a "_" or "*" inside one ("/d/_abc_/cpu_usage"). After tags
+     * and links, so a URL in a tag attribute or a link target goes with it.
+     */
+    text = text.replace(/\bhttps?:\/\/[^\s<>]+/g, (url: string): string => {
+      return Markdown.holdBareUrl(url, hold);
+    });
+
+    /*
+     * Remove markdown bold/italic markers. An opening marker must be
+     * followed by a non-space and a closing marker preceded by one, so
+     * "5 * 3 * 2" and "* bullet" are not emphasis. Single markers (* and _)
+     * never pair across a line break; double markers may wrap onto the next
+     * line but never cross a blank line. An underscore run with a letter or
+     * digit on its outer side (a WORD_EDGE there) cannot open or close. Bold
+     * runs again after italic to unwrap "**a *b* c**"; italic runs after
+     * bold to unwrap "***a***".
+     */
+    const boldStars: RegExp = /\*\*(?![\s*])([^*\uE002]*[^\s*\uE002])\*\*/g;
+    const italicStar: RegExp = /\*(?![\s*])([^*\n]*[^\s*])\*/g;
+    const boldUnderscores: RegExp =
+      /(?<!\uE004)__(?![\s_])([^_\uE002]*[^\s_\uE002])__(?!\uE004)/g;
+    const italicUnderscore: RegExp =
+      /(?<![_\uE004])_(?![\s_])([^_\n]*[^\s_])_(?![_\uE004])/g;
+
+    text = text.replace(boldStars, "$1"); // **bold**
+    text = text.replace(italicStar, "$1"); // *italic*
+    text = text.replace(boldStars, "$1"); // **bold *italic* bold**
+    text = text.replace(boldUnderscores, "$1"); // __bold__
+    text = text.replace(italicUnderscore, "$1"); // _italic_
+    text = text.replace(boldUnderscores, "$1"); // __bold _italic_ bold__
 
     // Remove markdown strikethrough
-    text = text.replace(/~~([^~]+)~~/g, "$1");
+    text = text.replace(/~~(?![\s~])([^~\uE002]*[^\s~\uE002])~~/g, "$1");
 
-    // Remove markdown code blocks
-    text = text.replace(/```[\s\S]*?```/g, "");
-    text = text.replace(/`([^`]+)`/g, "$1");
+    // Drop the blank-line and word-edge marks again.
+    text = text.split(PARAGRAPH_BREAK).join("");
+    text = text.split(WORD_EDGE).join("");
 
     // Remove markdown headers
     text = text.replace(/^#{1,6}\s+/gm, "");
@@ -49,20 +255,31 @@ export default class Markdown {
     // Remove markdown blockquotes
     text = text.replace(/^>\s+/gm, "");
 
-    // Remove markdown horizontal rules
-    text = text.replace(/^[-*_]{3,}$/gm, "");
+    // Remove markdown horizontal rules: "---", "***", "___", "* * *", "- - -"
+    text = text.replace(
+      /^(?=[ \t]*[-*_][ \t]*[-*_][ \t]*[-*_])[-*_ \t]*$/gm,
+      "",
+    );
 
     // Remove markdown list markers
-    text = text.replace(/^[\s]*[-*+]\s+/gm, "");
-    text = text.replace(/^[\s]*\d+\.\s+/gm, "");
+    text = text.replace(/^[^\S\n]*[-*+]\s+/gm, "");
+    text = text.replace(/^[^\S\n]*\d+\.\s+/gm, "");
 
-    // Decode HTML entities
-    text = text.replace(/&lt;/g, "<");
-    text = text.replace(/&gt;/g, ">");
-    text = text.replace(/&amp;/g, "&");
-    text = text.replace(/&quot;/g, '"');
-    text = text.replace(/&#39;/g, "'");
-    text = text.replace(/&nbsp;/g, " ");
+    /*
+     * Decode HTML entities. Code is still a placeholder here, so entities
+     * inside code stay literal ("`a &amp;&amp; b`" shows as written).
+     */
+    text = Markdown.decodeHtmlEntities(text);
+
+    /*
+     * Put the held-back text back. This must run after every markup step and
+     * the entity step (so code stays literal) and before the whitespace
+     * steps (so whitespace inside code collapses like the rest of the text).
+     * Intraword underscores first: a held-back input sentinel may itself be
+     * a U+E003 and must come back as one.
+     */
+    text = text.split(LITERAL_UNDERSCORE).join("_");
+    text = restore(text);
 
     // Normalize whitespace - collapse multiple spaces/newlines
     text = text.replace(/\n\s*\n/g, "\n");
@@ -73,6 +290,264 @@ export default class Markdown {
 
     return text;
   }
+
+  /*
+   * Fenced code blocks are dropped, but only real ones: a line that opens
+   * with three or more backticks or tildes (after optional indentation, ">"
+   * quote markers and list markers such as "- " or "1. "; a backtick fence's
+   * info string holds no backtick), through the next line holding only a
+   * fence of the same character at least as long. A fence that is never
+   * closed stays as ordinary text instead of swallowing the rest of the
+   * message, and "Run ```npm install``` first" is a code span, not a fence.
+   * The list markers matter: without them the indented closer of
+   * "1. ```bash" would open a block of its own and swallow the list items
+   * up to the next fence.
+   *
+   * The block becomes one empty line, so the text on either side stays two
+   * paragraphs and no emphasis pairs across it.
+   *
+   * Linear: the longest closing fence at or after each line is computed
+   * once, from the end, so an unclosed opener is recognised without
+   * rescanning.
+   */
+  private static removeFencedCodeBlocks(text: string): string {
+    if (text.indexOf("```") === -1 && text.indexOf("~~~") === -1) {
+      return text;
+    }
+
+    const lines: Array<string> = text.split("\n");
+
+    // The fence (e.g. "```") a line closes with, or "" when it is no closer.
+    const closingFences: Array<string> = lines.map((line: string): string => {
+      return FENCE_CLOSE.exec(line)?.[1] ?? "";
+    });
+
+    const longestBacktickCloseFrom: Array<number> = new Array<number>(
+      lines.length + 1,
+    ).fill(0);
+    const longestTildeCloseFrom: Array<number> = new Array<number>(
+      lines.length + 1,
+    ).fill(0);
+
+    for (let i: number = lines.length - 1; i >= 0; i--) {
+      const fence: string = closingFences[i] ?? "";
+      const backtickAfter: number = longestBacktickCloseFrom[i + 1] ?? 0;
+      const tildeAfter: number = longestTildeCloseFrom[i + 1] ?? 0;
+
+      longestBacktickCloseFrom[i] = fence.startsWith("`")
+        ? Math.max(backtickAfter, fence.length)
+        : backtickAfter;
+      longestTildeCloseFrom[i] = fence.startsWith("~")
+        ? Math.max(tildeAfter, fence.length)
+        : tildeAfter;
+    }
+
+    const kept: Array<string> = [];
+    let i: number = 0;
+
+    while (i < lines.length) {
+      const line: string = lines[i] ?? "";
+      const open: RegExpExecArray | null = FENCE_OPEN.exec(line);
+      const fence: string = open ? open[1] ?? open[2] ?? "" : "";
+      const longestCloseAfter: number = fence.startsWith("`")
+        ? longestBacktickCloseFrom[i + 1] ?? 0
+        : longestTildeCloseFrom[i + 1] ?? 0;
+
+      if (fence && longestCloseAfter >= fence.length) {
+        let end: number = i + 1;
+
+        while (
+          !(
+            (closingFences[end] ?? "").startsWith(fence[0] ?? "") &&
+            (closingFences[end] ?? "").length >= fence.length
+          )
+        ) {
+          end++;
+        }
+
+        kept.push("");
+        i = end + 1;
+        continue;
+      }
+
+      kept.push(line);
+      i++;
+    }
+
+    return kept.join("\n");
+  }
+
+  /*
+   * Inline code spans and backslash escapes, in one left-to-right pass
+   * because each decides what the other means: "\`" is a literal backtick,
+   * not the start of a span, while a backslash inside a span is literal.
+   *
+   * A span opens with a run of N backticks and closes at the next run of
+   * exactly N backticks ON THE SAME LINE, so ``a`b`` is "a`b" and a stray
+   * backtick in one table row or list item can never pair with a code span
+   * on the next. A run with no closer on its line stays as literal backticks.
+   *
+   * When N >= 2, one leading and one trailing space are stripped when both
+   * are present (CommonMark), which is how AffectedResourceList.code() pads
+   * a name that contains a backtick ("`` web`01 ``"). A single-backtick
+   * span keeps its content unchanged, so two stray backticks that happen to
+   * pair ("Don't paste ` here. It's `broken") never glue words together.
+   *
+   * A backslash before ASCII punctuation is dropped and the character is
+   * held back, so "\*" is a literal "*".
+   *
+   * Linear: every backtick run is indexed by length up front and each
+   * length's cursor only moves forward, so a run that never closes is not
+   * rescanned.
+   */
+  private static holdInlineCodeAndEscapes(
+    text: string,
+    hold: HoldFunction,
+  ): string {
+    if (text.indexOf("`") === -1 && text.indexOf("\\") === -1) {
+      return text;
+    }
+
+    const runsByLength: Map<number, BacktickRuns> = new Map();
+    const runPattern: RegExp = new RegExp(BACKTICK_RUN.source, "g");
+    let run: RegExpExecArray | null = runPattern.exec(text);
+
+    while (run !== null) {
+      let runs: BacktickRuns | undefined = runsByLength.get(run[0].length);
+
+      if (!runs) {
+        runs = { starts: [], next: 0 };
+        runsByLength.set(run[0].length, runs);
+      }
+
+      runs.starts.push(run.index);
+      run = runPattern.exec(text);
+    }
+
+    const tokenPattern: RegExp = new RegExp(ESCAPE_OR_BACKTICK_RUN.source, "g");
+    let result: string = "";
+    let copiedUpTo: number = 0;
+    let lineEnd: number = -1;
+    let token: RegExpExecArray | null = tokenPattern.exec(text);
+
+    for (; token !== null; token = tokenPattern.exec(text)) {
+      const escaped: string | undefined = token[1];
+
+      if (escaped !== undefined) {
+        result += text.slice(copiedUpTo, token.index) + hold(escaped);
+        copiedUpTo = tokenPattern.lastIndex;
+        continue;
+      }
+
+      const fenceLength: number = token[0].length;
+      const openEnd: number = tokenPattern.lastIndex;
+
+      if (lineEnd < token.index) {
+        lineEnd = text.indexOf("\n", token.index);
+
+        if (lineEnd === -1) {
+          lineEnd = text.length;
+        }
+      }
+
+      /*
+       * After an escaped backtick the opener is the rest of a longer run,
+       * and may have no same-length run anywhere.
+       */
+      const runs: BacktickRuns | undefined = runsByLength.get(fenceLength);
+
+      if (!runs) {
+        continue;
+      }
+
+      while ((runs.starts[runs.next] ?? Infinity) < openEnd) {
+        runs.next++;
+      }
+
+      const closeStart: number | undefined = runs.starts[runs.next];
+
+      if (closeStart === undefined || closeStart > lineEnd) {
+        continue;
+      }
+
+      let code: string = text.slice(openEnd, closeStart);
+
+      if (
+        fenceLength >= 2 &&
+        code.startsWith(" ") &&
+        code.endsWith(" ") &&
+        NOT_ONLY_SPACES.test(code)
+      ) {
+        code = code.slice(1, -1);
+      }
+
+      result += text.slice(copiedUpTo, token.index) + hold(code);
+      copiedUpTo = closeStart + fenceLength;
+      tokenPattern.lastIndex = copiedUpTo;
+    }
+
+    return result + text.slice(copiedUpTo);
+  }
+
+  /*
+   * Hold back a bare URL found by /\bhttps?:\/\/[^\s<>]+/. As in GFM,
+   * trailing punctuation (".", ",", "*", "_", ...) and an unbalanced ")"
+   * stay outside the URL, so "_see https://x.example/a_" still loses its
+   * emphasis markers. Entities in the URL are decoded now, as they would
+   * have been in the text ("?a=1&amp;b=2" reads "?a=1&b=2").
+   *
+   * Linear: parentheses are counted once and the trim only moves backwards.
+   */
+  private static holdBareUrl(url: string, hold: HoldFunction): string {
+    const opens: number = url.split("(").length - 1;
+    let closes: number = url.split(")").length - 1;
+    let end: number = url.length;
+
+    while (end > 0) {
+      const last: string = url[end - 1] ?? "";
+
+      /*
+       * A WORD_EDGE only ends up last once the "_" after it was trimmed; it
+       * leaves with that "_", so the "_" keeps its flanking.
+       */
+      if (BARE_URL_TRAILING_PUNCTUATION.includes(last) || last === WORD_EDGE) {
+        end--;
+        continue;
+      }
+
+      if (last === ")" && closes > opens) {
+        closes--;
+        end--;
+        continue;
+      }
+
+      break;
+    }
+
+    // The URL's underscores were marked like any other text: unmark them.
+    const address: string = url
+      .slice(0, end)
+      .split(WORD_EDGE)
+      .join("")
+      .split(LITERAL_UNDERSCORE)
+      .join("_");
+
+    return hold(Markdown.decodeHtmlEntities(address)) + url.slice(end);
+  }
+
+  /*
+   * Decode &lt; &gt; &amp; &quot; &#39; and &nbsp;, in one pass, so
+   * "&amp;quot;" becomes "&quot;" instead of being decoded twice.
+   */
+  private static decodeHtmlEntities(text: string): string {
+    return text.replace(
+      /&(lt|gt|amp|quot|#39|nbsp);/g,
+      (match: string, name: string): string => {
+        return HTML_ENTITIES[name] ?? match;
+      },
+    );
+  }
+
   private static blogRenderer: Renderer | null = null;
   private static docsRenderer: Renderer | null = null;
   private static emailRenderer: Renderer | null = null;
@@ -205,6 +680,47 @@ export default class Markdown {
         `word-break:break-word;${align || "text-align:left;"}">` +
         `${content}</${tag}>`
       );
+    };
+
+    /*
+     * Lists. A platform monitor's root cause lists its affected resources
+     * as a numbered list with a bullet list of details nested under each
+     * item, and the cluster and metric details above it are bullets too.
+     *
+     * Left to the client, Gmail and Apple Mail indent every list level by
+     * 40px — close to a tenth of the card, twice over for a nested list —
+     * and Outlook's Word engine ignores padding on <ul>/<ol> and picks its
+     * own margins. So the indent is a margin-left, which Outlook honours,
+     * with padding zeroed: 24px holds a bullet, and 32px holds a numbered
+     * marker up to three digits ("100."). The vertical margins give each
+     * item's nested details a little air above and a gap below that
+     * separates it from the next item.
+     *
+     * margin-left is a physical side, so it is followed by the logical
+     * margin-inline-start / -end: a client that understands them moves
+     * the indent to the marker side in right-to-left text, and one that
+     * does not keeps the margin-left.
+     */
+    renderer.list = function (
+      body: string,
+      ordered: boolean,
+      start: number | "",
+    ): string {
+      const tag: string = ordered ? "ol" : "ul";
+      const startAttribute: string =
+        ordered && start !== "" && start !== 1 ? ` start="${start}"` : "";
+      const indent: string = ordered ? "32px" : "24px";
+
+      return (
+        `<${tag}${startAttribute} style="margin:6px 0 12px 0;` +
+        `margin-left:${indent};margin-inline-start:${indent};` +
+        `margin-inline-end:0;padding:0;">` +
+        `${body}</${tag}>`
+      );
+    };
+
+    renderer.listitem = function (text: string): string {
+      return `<li style="margin:0 0 4px;padding:0;">${text}</li>`;
     };
 
     /*

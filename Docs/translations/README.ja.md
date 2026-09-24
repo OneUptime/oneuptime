@@ -31,7 +31,7 @@
   <p>OneUptime は、無料でセルフホストできるひとつのプラットフォームで、棚いっぱいの SaaS ツールを置き換えます。障害を検知し、適切な担当者を呼び出し、ステータスページを更新し、根本原因を突き止め、さらには修正用の PR まで作成します。</p>
 
   <p>
-    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/github/license/OneUptime/oneuptime?color=1a73e8" alt="License"></a>
+    <a href="https://github.com/OneUptime/oneuptime/blob/master/LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0%20%2B%20Enterprise%20%28ee%2F%29-1a73e8" alt="License"></a>
     <a href="https://github.com/OneUptime/oneuptime/releases"><img src="https://img.shields.io/github/v/release/OneUptime/oneuptime" alt="Release"></a>
     <a href="https://github.com/OneUptime/oneuptime/stargazers"><img src="https://img.shields.io/github/stars/OneUptime/oneuptime?style=flat" alt="Stars"></a>
     <a href="https://artifacthub.io/packages/helm/oneuptime/oneuptime"><img src="https://img.shields.io/badge/Helm-Chart-0f1689" alt="Helm Chart"></a>
@@ -71,7 +71,7 @@ OneUptime は、監視、アラート、インシデント対応、オブザー�
 | Loggly | **ログ管理** — ログの収集、検索、アラート |
 | Sentry | **エラートラッキング** — 完全なスタックトレースとコンテキストを備えた例外 |
 
-これらすべてが **100% オープンソース（Apache 2.0）** で、無料でセルフホストできます。
+これらすべてが **オープンソース（Apache 2.0）** で、Community Edition なら無料でセルフホストできます。
 
 ---
 
@@ -205,13 +205,16 @@ helm install oneuptime oneuptime/oneuptime
 |---|---|---|
 | **こんな方に** | セルフホスターと小規模チーム | プレミアムサポートを必要とする規制対象チーム |
 | **費用** | 無料＆オープンソース | [営業に問い合わせ](mailto:sales@oneuptime.com) |
-| **機能** | フル機能セット | フル機能セット + 堅牢化イメージ、優先サポート、カスタム機能、データレジデンシー |
+| **ライセンス** | Apache 2.0 | Apache 2.0、ただし `ee/` ディレクトリは [OneUptime Enterprise License](/ee/LICENSE) |
+| **機能** | 上記「すべてが揃っている」の全機能 — 監視、ステータスページ、インシデント、オンコール、ログ、トレース、メトリクス、エラートラッキング、ワークフロー、AI | Community の全機能 + SAML・OIDC シングルサインオン、SCIM プロビジョニング、監査ログ、チームコンプライアンス、インスタンスヘルスダッシュボード、さらに優先サポート、カスタム機能、データレジデンシー |
+
+Enterprise の機能は [`ee/`](/ee) ディレクトリにあり、Enterprise イメージにのみ含まれます。詳しい比較は [Community vs. Enterprise Edition](/packages/App/FeatureSet/Docs/Content/en/self-hosted/enterprise.md) をご覧ください。
 
 ---
 
 ## 💡 なぜ OneUptime なのか？
 
-私たちのミッションはシンプルです。**ダウンタイムを減らし、より多くのプロダクトの成功を後押しする** こと。7 つものベンダーをつぎはぎするのではなく、なぜ障害が起きるのかを *理解* し、インシデントに素早く対応し、運用の負担を削減する助けとなるひとつのプラットフォームが手に入ります。完全にオープンソースなので、データもスタックもあなたのものです。
+私たちのミッションはシンプルです。**ダウンタイムを減らし、より多くのプロダクトの成功を後押しする** こと。7 つものベンダーをつぎはぎするのではなく、なぜ障害が起きるのかを *理解* し、インシデントに素早く対応し、運用の負担を削減する助けとなるひとつのプラットフォームが手に入ります。コアはオープンソース（Apache 2.0）なので、データもスタックもあなたのものです。
 
 ---
 
@@ -239,7 +242,7 @@ OneUptime がお役に立っているなら:
 
 ## 📄 ライセンス
 
-OneUptime は [Apache License 2.0](/LICENSE) のもとでライセンスされています。
+OneUptime は [Apache License 2.0](/LICENSE) のもとで公開されているオープンソースです。ただし [`ee/`](/ee) ディレクトリは例外です。このディレクトリには Enterprise Edition が含まれ、[OneUptime Enterprise License](/ee/LICENSE) のもとでライセンスされています。Community Edition のイメージには `ee/` のコードは一切含まれません。この区分は、リポジトリのルートにある [`LICENSE`](/LICENSE) ファイルに定められています。
 
 <div align="center">
   <sub><a href="https://oneuptime.com">OneUptime</a> チームと <a href="https://github.com/OneUptime/oneuptime/graphs/contributors">コントリビューター</a> が ❤️ を込めて制作しました。</sub>

@@ -1,9 +1,11 @@
+import SlackReactionNoteActions, { SlackReactionData } from "./ReactionNote";
+import { WorkspaceNoteResourceType } from "../../WorkspaceReactionNote";
 import BadDataException from "../../../../../Types/Exception/BadDataException";
 import ObjectID from "../../../../../Types/ObjectID";
 import AlertService from "../../../../Services/AlertService";
 import { ExpressRequest, ExpressResponse } from "../../../Express";
 import SlackUtil from "../Slack";
-import SlackActionType, { PrivateNoteEmojis } from "./ActionTypes";
+import SlackActionType from "./ActionTypes";
 import { SlackAction, SlackRequest } from "./Auth";
 import Response from "../../../Response";
 import {
@@ -21,15 +23,14 @@ import UserNotificationEventType from "../../../../../Types/UserNotification/Use
 import AlertState from "../../../../../Models/DatabaseModels/AlertState";
 import AlertStateService from "../../../../Services/AlertStateService";
 import logger from "../../../Logger";
-import AccessTokenService from "../../../../Services/AccessTokenService";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceNotificationLogService from "../../../../Services/WorkspaceNotificationLogService";
-import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAuthTokenService";
 import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
-import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
-import WorkspaceNotificationLog from "../../../../../Models/DatabaseModels/WorkspaceNotificationLog";
-import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
-import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
+import AlertStateTimeline from "../../../../../Models/DatabaseModels/AlertStateTimeline";
+import AlertInternalNote from "../../../../../Models/DatabaseModels/AlertInternalNote";
+import OnCallDutyPolicyExecutionLog from "../../../../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import SlackActionAuthorization from "./Authorization";
 
 export default class SlackAlertActions {
   @CaptureSpan()
@@ -103,6 +104,17 @@ export default class SlackAlertActions {
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: AlertStateTimeline,
+          action: "acknowledge this alert",
+          resources: [{ service: AlertService, id: alertId }],
+        }))
+      ) {
+        return;
+      }
 
       const isAlreadyAcknowledged: boolean =
         await AlertService.isAlertAcknowledged({
@@ -231,6 +243,17 @@ export default class SlackAlertActions {
       Response.sendJsonObjectResponse(req, res, {
         response_action: "clear",
       });
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: AlertStateTimeline,
+          action: "resolve this alert",
+          resources: [{ service: AlertService, id: alertId }],
+        }))
+      ) {
+        return;
+      }
 
       const isAlreadyResolved: boolean = await AlertService.isAlertResolved({
         alertId: alertId,
@@ -489,18 +512,24 @@ export default class SlackAlertActions {
 
     const stateId: ObjectID = new ObjectID(stateString);
 
+    const props: DatabaseCommonInteractionProps | null =
+      await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: AlertStateTimeline,
+        action: "change the state of this alert",
+        resources: [{ service: AlertService, id: alertId }],
+      });
+
+    if (!props) {
+      return;
+    }
+
     await AlertService.updateOneById({
       id: alertId,
       data: {
         currentAlertStateId: stateId,
       },
-      props:
-        await AccessTokenService.getDatabaseCommonInteractionPropsByUserAndProject(
-          {
-            userId: data.slackRequest.userId!,
-            projectId: data.slackRequest.projectId!,
-          },
-        ),
+      props: props,
     });
 
     // Log the button interaction
@@ -593,6 +622,37 @@ export default class SlackAlertActions {
         response_action: "clear",
       });
 
+      if (
+        !data.slackRequest.viewValues ||
+        !data.slackRequest.viewValues["onCallPolicy"]
+      ) {
+        return Response.sendErrorResponse(
+          req,
+          res,
+          new BadDataException("Invalid View Values"),
+        );
+      }
+
+      const onCallPolicyString: string =
+        data.slackRequest.viewValues["onCallPolicy"].toString();
+
+      // get the on-call policy id.
+      const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
+
+      if (
+        !(await SlackActionAuthorization.authorize({
+          requester: slackRequest,
+          modelType: OnCallDutyPolicyExecutionLog,
+          action: "execute an on-call policy for this alert",
+          resources: [
+            { service: AlertService, id: alertId },
+            { service: OnCallDutyPolicyService, id: onCallPolicyId },
+          ],
+        }))
+      ) {
+        return;
+      }
+
       const isAlreadyResolved: boolean = await AlertService.isAlertResolved({
         alertId: alertId,
       });
@@ -618,23 +678,6 @@ export default class SlackAlertActions {
 
         return;
       }
-
-      if (
-        !data.slackRequest.viewValues ||
-        !data.slackRequest.viewValues["onCallPolicy"]
-      ) {
-        return Response.sendErrorResponse(
-          req,
-          res,
-          new BadDataException("Invalid View Values"),
-        );
-      }
-
-      const onCallPolicyString: string =
-        data.slackRequest.viewValues["onCallPolicy"].toString();
-
-      // get the on-call policy id.
-      const onCallPolicyId: ObjectID = new ObjectID(onCallPolicyString);
 
       await OnCallDutyPolicyService.executePolicy(onCallPolicyId, {
         triggeredByAlertId: alertId,
@@ -691,6 +734,17 @@ export default class SlackAlertActions {
     Response.sendJsonObjectResponse(req, res, {
       response_action: "clear",
     });
+
+    if (
+      !(await SlackActionAuthorization.authorize({
+        requester: data.slackRequest,
+        modelType: AlertInternalNote,
+        action: "add a private note to this alert",
+        resources: [{ service: AlertService, id: alertId }],
+      }))
+    ) {
+      return;
+    }
 
     await AlertInternalNoteService.addNote({
       alertId: alertId!,
@@ -812,203 +866,18 @@ export default class SlackAlertActions {
     );
   }
 
+  /*
+   * A note emoji on a message, looked up among alert channels only.
+   * Slack events go to SlackReactionNoteActions directly, which works out
+   * what the channel belongs to first.
+   */
   @CaptureSpan()
-  public static async handleEmojiReaction(data: {
-    teamId: string;
-    reaction: string;
-    userId: string;
-    channelId: string;
-    messageTs: string;
-  }): Promise<void> {
-    logger.debug("Handling emoji reaction for Alert with data:", {
-      channelId: data.channelId,
+  public static async handleEmojiReaction(
+    data: SlackReactionData,
+  ): Promise<void> {
+    await SlackReactionNoteActions.handleEmojiReaction({
+      ...data,
+      resourceTypes: [WorkspaceNoteResourceType.Alert],
     });
-    logger.debug(data);
-
-    const { teamId, reaction, userId, channelId, messageTs } = data;
-
-    // Alerts only support private notes, so only pushpin emojis work
-    const isPrivateNoteEmoji: boolean = PrivateNoteEmojis.includes(reaction);
-
-    if (!isPrivateNoteEmoji) {
-      logger.debug(
-        `Emoji "${reaction}" is not a supported private note emoji for alerts. Ignoring.`,
-      );
-      return;
-    }
-
-    // Get the project auth token using the team ID
-    const projectAuth: WorkspaceProjectAuthToken | null =
-      await WorkspaceProjectAuthTokenService.findOneBy({
-        query: {
-          workspaceProjectId: teamId,
-        },
-        select: {
-          projectId: true,
-          authToken: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!projectAuth || !projectAuth.projectId || !projectAuth.authToken) {
-      logger.debug(
-        "No project auth found for team ID. Ignoring emoji reaction.",
-      );
-      return;
-    }
-
-    const projectId: ObjectID = projectAuth.projectId;
-    const authToken: string = projectAuth.authToken;
-
-    // Find the alert linked to this channel
-    const workspaceLog: WorkspaceNotificationLog | null =
-      await WorkspaceNotificationLogService.findOneBy({
-        query: {
-          channelId: channelId,
-          workspaceType: WorkspaceType.Slack,
-          projectId: projectId,
-        },
-        select: {
-          alertId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!workspaceLog || !workspaceLog.alertId) {
-      logger.debug(
-        "No alert found linked to this channel. Ignoring emoji reaction.",
-      );
-      return;
-    }
-
-    const alertId: ObjectID = workspaceLog.alertId;
-
-    // Get the alert number for the confirmation message
-    const alertNumberResult: {
-      number: number | null;
-      numberWithPrefix: string | null;
-    } = await AlertService.getAlertNumber({
-      alertId: alertId,
-    });
-
-    // Get the user ID in OneUptime based on Slack user ID
-    const userAuth: WorkspaceUserAuthToken | null =
-      await WorkspaceUserAuthTokenService.findOneBy({
-        query: {
-          workspaceUserId: userId,
-          workspaceType: WorkspaceType.Slack,
-          projectId: projectId,
-        },
-        select: {
-          userId: true,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-
-    if (!userAuth || !userAuth.userId) {
-      logger.debug(
-        "No OneUptime user found for Slack user. Ignoring emoji reaction.",
-      );
-      return;
-    }
-
-    const oneUptimeUserId: ObjectID = userAuth.userId;
-
-    // Fetch the message text using the timestamp
-    let messageText: string | null = null;
-    try {
-      messageText = await SlackUtil.getMessageByTimestamp({
-        authToken: authToken,
-        channelId: channelId,
-        messageTs: messageTs,
-      });
-    } catch (err) {
-      logger.error("Error fetching message text:", {
-        projectId: projectId.toString(),
-        alertId: alertId.toString(),
-        channelId: channelId,
-      });
-      logger.error(err);
-      return;
-    }
-
-    if (!messageText) {
-      logger.debug("No message text found. Ignoring emoji reaction.", {
-        projectId: projectId.toString(),
-        alertId: alertId.toString(),
-        channelId: channelId,
-      });
-      return;
-    }
-
-    // Create a unique identifier for this Slack message to prevent duplicate notes
-    const postedFromSlackMessageId: string = `${channelId}:${messageTs}`;
-
-    // Check if a note from this Slack message already exists
-    const hasExistingNote: boolean =
-      await AlertInternalNoteService.hasNoteFromSlackMessage({
-        alertId: alertId,
-        postedFromSlackMessageId: postedFromSlackMessageId,
-      });
-
-    if (hasExistingNote) {
-      logger.debug(
-        "Private note from this Slack message already exists. Skipping duplicate.",
-      );
-      return;
-    }
-
-    // Save as private note (Alerts only support private notes)
-    try {
-      await AlertInternalNoteService.addNote({
-        alertId: alertId,
-        note: messageText,
-        projectId: projectId,
-        userId: oneUptimeUserId,
-        postedFromSlackMessageId: postedFromSlackMessageId,
-      });
-      logger.debug("Private note added to alert successfully.", {
-        projectId: projectId.toString(),
-        alertId: alertId.toString(),
-      });
-    } catch (err) {
-      logger.error("Error saving note:", {
-        projectId: projectId.toString(),
-        alertId: alertId.toString(),
-      });
-      logger.error(err);
-      return;
-    }
-
-    // Send confirmation message as a reply to the original message thread
-    try {
-      const alertLink: string = (
-        await AlertService.getAlertLinkInDashboard(projectId, alertId)
-      ).toString();
-
-      const confirmationMessage: string = `✅ Message saved as *private note* to <${alertLink}|Alert ${alertNumberResult.numberWithPrefix || "#" + alertNumberResult.number}>.`;
-
-      await SlackUtil.sendMessageToThread({
-        authToken: authToken,
-        channelId: channelId,
-        threadTs: messageTs,
-        text: confirmationMessage,
-      });
-
-      logger.debug("Confirmation message sent successfully.");
-    } catch (err) {
-      logger.error("Error sending confirmation message:", {
-        projectId: projectId.toString(),
-        alertId: alertId.toString(),
-      });
-      logger.error(err);
-      // Don't throw - note was saved successfully, confirmation is best effort
-    }
   }
 }

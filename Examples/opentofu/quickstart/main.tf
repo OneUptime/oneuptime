@@ -41,7 +41,7 @@ resource "oneuptime_monitor" "homepage" {
   name                = "Homepage"
   description         = "Checks that ${var.website_url} responds."
   monitor_type        = "Website"
-  monitoring_interval = "Every 5 minutes"
+  monitoring_interval = "*/5 * * * *"
   labels              = [oneuptime_label.quickstart.id]
 
   monitor_steps = [{

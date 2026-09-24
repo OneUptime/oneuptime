@@ -418,9 +418,11 @@ logs:
       repository: oneuptime/kubernetes-log-tailer
       # Leave empty to track `release` — the moving tag the release pipeline
       # republishes for every OneUptime version. Set this to a version
-      # (e.g. "11.6.1") to pin. Do NOT expect the chart's appVersion to work
-      # as a tag: nothing bumps it at release time, so it names no
-      # published image.
+      # (e.g. "11.6.1") to pin. The chart's appVersion is not used as the
+      # tag: the release pipeline does stamp the published chart with the
+      # OneUptime version, but a render from a git checkout carries the
+      # placeholder 1.0.0, and the chart is published before that version's
+      # images are.
       tag: ""
       pullPolicy: IfNotPresent
     replicas: 1
@@ -1205,3 +1207,192 @@ serviceAccount:
   create: true
   name: ""
   annotations: {}
+
+# OneUptime AI access — let OneUptime AI run kubectl on this cluster.
+#
+# When an incident or alert is raised on this cluster, OneUptime AI
+# investigates it. Without this block it can only use the telemetry the
+# agent ships; with it, it also runs kubectl the way an on-call engineer
+# would (describe the failing pod, read its events, tail the crashing
+# container's logs, check node capacity) and, if you allow it, fixes the
+# problem too. The investigation and the fix both appear on the incident /
+# alert page with every command that ran.
+#
+# Enabling this deploys one small Deployment: the OneUptime Runner
+# (oneuptime/runner), which registers itself with the same ingestion key the
+# agent uses (oneuptime.apiKey) and binds itself to this cluster by name
+# (clusterName). No dashboard steps: after `helm upgrade` the cluster's AI
+# page in OneUptime shows "Connected". An ingestion key with a Pinned Service
+# Name cannot register the Runner. If a registration is refused, the Runner's
+# log says whether it clears on its own or what to change. Removing what the
+# Runner row holds keeps the cluster's binding; if you delete the Runner
+# instead, the agent registers a fresh one, but a registration never
+# re-binds a cluster that had a Runner bound, so select the new Runner on
+# the cluster's AI page afterwards.
+#
+# What it can do is decided in two places, and they do different jobs:
+#   * RBAC, here. aiAccess.enabled grants the Runner's ServiceAccount
+#     READ-ONLY verbs (get/list/watch, pods/log), cluster-wide.
+#     aiAccess.remediation.enabled adds the write verbs OneUptime AI's fixes
+#     use: patch/update on Deployments, StatefulSets, DaemonSets, ReplicaSets
+#     (and their scale subresource), Jobs, CronJobs, Pods and HPAs; create on
+#     Jobs (`create job --from=cronjob/...`) and HPAs; delete on Pods and Jobs
+#     only; and, with remediation.nodeOperations, cordon/uncordon/taint/drain
+#     on nodes. It never grants secrets, exec, attach, port-forward, CRDs,
+#     RBAC writes, or deleting namespaces, volumes or nodes.
+#     Be clear about what that write access is, though: patch/update on
+#     workloads, pods and CronJobs (and create on Jobs) in a namespace is
+#     equivalent to running any image as any ServiceAccount in that namespace
+#     and reading its Secrets — a pod template can name any image,
+#     ServiceAccount and Secret volume. So RBAC bounds WHERE the Runner may
+#     write (remediation.namespaces), not what a write may do.
+#   * Policy, in OneUptime, re-checked by the Runner before it spawns
+#     kubectl. It refuses exec/attach/cp/port-forward/apply/edit/replace,
+#     Secret objects, pod-template security patches, patches that replace
+#     the pod spec or a whole containers list (`$patch: replace`, a merge
+#     patch of `containers`, a JSON-patch replace/remove of the pod spec),
+#     `set serviceaccount`, `create deployment|cronjob|job --image`,
+#     `expose --overrides` (which can create any kind of object instead of a
+#     Service), pod-template patches of host ports, hostUsers or
+#     runtimeClassName, patch bodies that are not JSON, labels/annotations
+#     on Namespace objects picked by --all or a selector, any write to RBAC
+#     objects, CRDs, APIServices, admission webhooks or admission policies,
+#     `--all-namespaces` writes and `delete --all` in every mode, even with
+#     a human approving. It does not refuse changing an
+#     image: `set image` (or a patch of an image field) is a riskier change
+#     that runs the new image as the workload's own ServiceAccount, with its
+#     Secrets; a human approves it unless the cluster bypasses approvals or
+#     its allowlist names the command.
+#     In every mode, "bypass approval" included, a write in kube-system,
+#     kube-public or kube-node-lease (a custom resource is judged by its
+#     namespace, even one named like a built-in kind), a drain, a taint and
+#     a patch of a node always wait for a human (a drain evicts pods in
+#     every namespace, those three and the agent's own included, and a
+#     NoExecute taint does too, whether `kubectl taint` or a node patch sets
+#     it), and the Runner never changes its own namespace, anything outside
+#     remediation.namespaces, or a node when remediation.nodeOperations is
+#     false. OneUptime reads that scope from what the Runner reports and
+#     refuses such a fix when it is proposed or approved, before the Runner
+#     would refuse it.
+#     The cluster's AI page decides whether AI may investigate (read-only
+#     kubectl), and whether it may remediate:
+#       - "ask for approval": a human approves the exact kubectl plan with
+#         one click;
+#       - "automatic": safe changes run on their own; a riskier change never
+#         does. When the round could only find riskier fixes it ends by
+#         proposing exactly those for one-click approval; when it also ran a
+#         safe fix, a riskier fix is proposed only if verification shows the
+#         safe one did not recover the signal (the follow-up round, which
+#         asks). Shapes on the cluster's kubectl allowlist run on their own,
+#         except the every-mode lines above (an allowlist entry must spell
+#         out its verb and be more than one word, or it is refused). A
+#         round proposes instead of running when the hourly circuit breaker
+#         trips or another unattended round still holds the cluster;
+#       - "bypass approval": AI does not ask. Every change the policy allows,
+#         riskier ones included, runs on its own, follow-up rounds included,
+#         except the every-mode lines above. A round still asks instead when
+#         the hourly circuit breaker trips, when another unattended OneUptime
+#         AI round is still changing or verifying the same cluster, or when it
+#         follows a fix whose rollback did not complete. The AI SRE docs
+#         (Cluster access) list every case.
+#
+# Read-only investigation only:
+#   --set aiAccess.enabled=true
+# Investigation + fixes:
+#   --set aiAccess.enabled=true --set aiAccess.remediation.enabled=true
+#
+# Existing install: run `helm repo update` first (an old local index serves
+# the previous chart, whose schema rejects aiAccess.*), then
+# `helm upgrade <release> oneuptime/kubernetes-agent -n <namespace>
+# --reuse-values --set ...`. That works even though the release's stored
+# values predate this block — every aiAccess.* value has a fallback in the
+# template matching the defaults below. On Helm 3.14+,
+# `--reset-then-reuse-values` is the safer flag: it keeps your overrides and
+# also picks up this chart's defaults for everything else, which plain
+# `--reuse-values` never does.
+aiAccess:
+  enabled: false
+  remediation:
+    # Grant the Runner write RBAC so OneUptime AI can apply fixes. A cluster
+    # registering for the FIRST time with this on starts in "ask for
+    # approval" on its AI page — unless someone already picked AI settings on
+    # that page before the install: then the Runner is bound and every
+    # setting is kept exactly as chosen. A cluster that was already
+    # registered (say, read-only first and writes now) keeps whatever mode
+    # its AI page has — the server never flips a switch an operator owns — so
+    # pick "ask for approval", "automatic" or "bypass approval" there after
+    # the upgrade.
+    enabled: false
+    # Where the write role applies. List namespaces to bind it with one
+    # RoleBinding in each (and nowhere else); the Runner is told the list
+    # and refuses a write outside it before spawning kubectl, and since it
+    # reports the list, OneUptime refuses such a write already when it is
+    # proposed or approved.
+    #
+    # Every listed namespace must already exist. The chart creates a
+    # RoleBinding in each and never creates a namespace, so a missing one
+    # fails the whole install or upgrade — the collector's too — with
+    # `namespaces "<name>" not found`: create it first, or take it off the
+    # list. Take a namespace off the list before you delete it (if it is
+    # already gone, drop it on the next upgrade). To go back to cluster-wide
+    # on a release that stores a list, pass
+    # `--set-json 'aiAccess.remediation.namespaces=[]'` (Helm 3.10+); leaving
+    # the flag out under --reuse-values keeps the stored list, and `={}` is
+    # read by Helm as one empty name, which the schema rejects.
+    # `--set aiAccess.remediation.namespaces=null` does not reset a stored
+    # list under --reuse-values: Helm keeps the stored list, and on a release
+    # installed before aiAccess existed the upgrade fails this schema. `=null`
+    # only works with --reset-then-reuse-values (Helm 3.14+) in place of
+    # --reuse-values.
+    #
+    # Empty (the default, so the one-flag setup keeps working) binds it
+    # cluster-wide with a ClusterRoleBinding. RBAC cannot leave namespaces
+    # out of a ClusterRoleBinding, so that includes kube-system,
+    # kube-public, kube-node-lease and this release's own namespace: there
+    # the policy (which never runs a write in those three system namespaces
+    # without a human) and the Runner (which never writes its own
+    # namespace) hold the line, not RBAC. List namespaces to make RBAC hold
+    # it too. This release's own namespace may not be listed.
+    #   namespaces: [web, api]
+    namespaces: []
+    # Node operations: cordon/uncordon/taint (patch on nodes) and drain
+    # (create on pods/eviction). Nodes are cluster-scoped and a drain evicts
+    # pods in every namespace, so these are bound cluster-wide in a role of
+    # their own whatever `namespaces` says, and a drain, a taint or a patch
+    # of a node always waits for a human, in every mode. On by default with
+    # remediation.enabled; set false to keep OneUptime AI's fixes off nodes:
+    # the chart then grants no node RBAC and tells the Runner
+    # (ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS=false), which refuses cordon,
+    # uncordon, drain, taint and label/annotate/patch on a node before it
+    # spawns kubectl; OneUptime, which the Runner tells, refuses such a fix
+    # already when it is proposed or approved.
+    nodeOperations: true
+  image:
+    repository: oneuptime/runner
+    # Leave empty to track `release` — the moving tag the release pipeline
+    # re-points at every OneUptime version, like this chart's other OneUptime
+    # images. Pin a OneUptime version (e.g. "14.0.1") to hold it.
+    tag: ""
+    # Leave empty for Always while the tag is the moving `release` (so a
+    # node that cached an older Runner, and its policy re-check, never keeps
+    # running it after an upgrade) and IfNotPresent for a pinned tag.
+    pullPolicy: ""
+  # The Runner idles between commands; a kubectl call is a short burst.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  # Extra environment for the Runner container (rarely needed), e.g.
+  # HTTPS_PROXY / NO_PROXY behind an egress proxy. The names the chart sets
+  # itself (ONEUPTIME_URL, ONEUPTIME_INGESTION_KEY,
+  # ONEUPTIME_KUBERNETES_CLUSTER_NAME, ONEUPTIME_RUNNER_NAME,
+  # ONEUPTIME_KUBERNETES_AGENT_CHART_VERSION, ONEUPTIME_KUBECTL_ALLOW_WRITES,
+  # ONEUPTIME_KUBECTL_WRITE_NAMESPACES,
+  # ONEUPTIME_KUBECTL_ALLOW_NODE_OPERATIONS, ONEUPTIME_RUNNER_POD_NAMESPACE,
+  # ONEUPTIME_RUNNER_ENABLE_RUNBOOKS, ONEUPTIME_RUNNER_ENABLE_CODE_FIXES,
+  # HOME, KUBECACHEDIR, PORT) and ONEUPTIME_RUNNER_ID / ONEUPTIME_RUNNER_KEY
+  # fail the render instead of silently replacing the chart's value.
+  extraEnv: []

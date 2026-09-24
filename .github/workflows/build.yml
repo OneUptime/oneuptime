@@ -22,6 +22,11 @@ jobs:
       - name: Checkout 
         uses: actions/checkout@v4
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Preinstall 
         uses: nick-fields/retry@v3
         with:
@@ -46,6 +51,11 @@ jobs:
       - name: Checkout 
         uses: actions/checkout@v4
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Preinstall 
         uses: nick-fields/retry@v3
         with:
@@ -53,14 +63,32 @@ jobs:
           max_attempts: 3
           command: npm run prerun
 
-        
-      # build image for accounts service
-      - name: build docker image
+      # The App Dockerfile builds both editions (packages/App/Dockerfile.tpl):
+      # --target community is the Community Edition and --target enterprise is
+      # the same build plus ee/. Community first and from scratch, like every
+      # other image here; the enterprise build then reuses its cached layers,
+      # so it only pays for ee/ and the two rebuilt frontend bundles.
+      - name: build the Community Edition image
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: sudo docker build --no-cache -f ./packages/App/Dockerfile .
+          command: sudo docker build --no-cache --target community -t oneuptime-app:community -f ./packages/App/Dockerfile .
+
+      - name: build the Enterprise Edition image
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: sudo docker build --target enterprise -t oneuptime-app:enterprise -f ./packages/App/Dockerfile .
+
+      # Nothing else would notice a Community image that picked up ee/, or an
+      # Enterprise image whose Dashboard quietly fell back to the Community UI.
+      - name: check the Community Edition image
+        run: sudo bash ./Scripts/GHA/check_app_image_edition.sh --image oneuptime-app:community --edition community
+
+      - name: check the Enterprise Edition image
+        run: sudo bash ./Scripts/GHA/check_app_image_edition.sh --image oneuptime-app:enterprise --edition enterprise
 
 
   docker-build-e2e:
@@ -70,6 +98,11 @@ jobs:
     steps:
       - name: Checkout 
         uses: actions/checkout@v4
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
 
       - name: Preinstall 
         uses: nick-fields/retry@v3
@@ -95,6 +128,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Preinstall
         uses: nick-fields/retry@v3
         with:
@@ -118,6 +156,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
+
       - name: Preinstall
         uses: nick-fields/retry@v3
         with:
@@ -140,6 +183,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # The pinned, cached gomplate, so prerun's configure.sh does not download
+      # it from GitHub's release CDN (see .github/actions/setup-gomplate).
+      - name: Set up gomplate
+        uses: ./.github/actions/setup-gomplate
 
       - name: Preinstall
         uses: nick-fields/retry@v3

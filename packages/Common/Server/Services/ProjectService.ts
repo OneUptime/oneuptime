@@ -14,6 +14,9 @@ import { OnCreate, OnDelete, OnFind, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
 import logger, { LogAttributes } from "../Utils/Logger";
+import EditionEnforcement from "../Utils/EditionEnforcement";
+import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
+import EnterpriseFeature from "../Enterprise/EnterpriseFeature";
 import Errors from "../Utils/Errors";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import MarketingEventUtil, {
@@ -142,6 +145,107 @@ export type ProjectBalanceColumnName =
  */
 export const MAX_BALANCE_ADJUSTMENT_IN_USD_CENTS: number = 10_000 * 100;
 
+/*
+ * The project columns that hold its SSO requirement: the ones onFindSuccess
+ * masks and onBeforeUpdate guards while SSO is not active.
+ */
+export const PROJECT_SSO_REQUIREMENT_COLUMNS: ReadonlyArray<string> = [
+  "requireSsoForLogin",
+  "requireSsoWithSsoProviderId",
+];
+
+// The project columns that decide what the audit log records and keeps.
+export interface ProjectAuditLogSettings {
+  enableAuditLogs: boolean;
+  storeSystemEventsInAuditLogs: boolean;
+  auditLogsRetentionInDays: number;
+}
+
+/*
+ * The settings as a project row holds them: a column that was not selected,
+ * or predates its default, reads as undefined or null.
+ */
+export interface StoredProjectAuditLogSettings {
+  enableAuditLogs?: boolean | null | undefined;
+  storeSystemEventsInAuditLogs?: boolean | null | undefined;
+  auditLogsRetentionInDays?: number | null | undefined;
+}
+
+// What a new project starts with: the three columns' defaults.
+export const DEFAULT_PROJECT_AUDIT_LOG_SETTINGS: Readonly<ProjectAuditLogSettings> =
+  {
+    enableAuditLogs: false,
+    storeSystemEventsInAuditLogs: false,
+    auditLogsRetentionInDays: 7,
+  };
+
+/*
+ * The narrowest settings there are. A write that widens even these could
+ * widen some project's; one that does not can only keep or narrow.
+ */
+const NARROWEST_AUDIT_LOG_SETTINGS: Readonly<ProjectAuditLogSettings> = {
+  enableAuditLogs: false,
+  storeSystemEventsInAuditLogs: false,
+  auditLogsRetentionInDays: Number.NEGATIVE_INFINITY,
+};
+
+/*
+ * Whether a written switch value turns the switch on. Only false (and a
+ * missing value) means off: anything else a database could read as true
+ * ("true", 1) counts as on, so an odd value is judged by the license check
+ * rather than waved through.
+ */
+const isSwitchedOn: (value: unknown) => boolean = (value: unknown): boolean => {
+  return value !== undefined && value !== null && value !== false;
+};
+
+/*
+ * Whether writing `requested` over `current` widens audit logging: switches
+ * it on, starts recording system events, or keeps entries for longer.
+ * Switching off, recording less and shortening retention never widen, and
+ * neither does writing the value a project already has.
+ */
+export const widensAuditLogging: (
+  requested: Record<string, unknown>,
+  current: StoredProjectAuditLogSettings,
+) => boolean = (
+  requested: Record<string, unknown>,
+  current: StoredProjectAuditLogSettings,
+): boolean => {
+  if (
+    isSwitchedOn(requested["enableAuditLogs"]) &&
+    current.enableAuditLogs !== true
+  ) {
+    return true;
+  }
+
+  if (
+    isSwitchedOn(requested["storeSystemEventsInAuditLogs"]) &&
+    current.storeSystemEventsInAuditLogs !== true
+  ) {
+    return true;
+  }
+
+  const requestedRetention: unknown = requested["auditLogsRetentionInDays"];
+
+  if (requestedRetention === undefined || requestedRetention === null) {
+    return false;
+  }
+
+  const requestedDays: number =
+    typeof requestedRetention === "number"
+      ? requestedRetention
+      : Number(requestedRetention);
+
+  const currentDays: number =
+    typeof current.auditLogsRetentionInDays === "number"
+      ? current.auditLogsRetentionInDays
+      : DEFAULT_PROJECT_AUDIT_LOG_SETTINGS.auditLogsRetentionInDays;
+
+  // A value that is not a number cannot be judged: treat it as widening.
+  return !Number.isFinite(requestedDays) || requestedDays > currentDays;
+};
+
 export class ProjectService extends DatabaseService<Model> {
   /*
    * Suppresses repeated `lastActive` UPDATEs from a single API node. 60s of
@@ -230,6 +334,17 @@ export class ProjectService extends DatabaseService<Model> {
         "User should be logged in to create the project.",
       );
     }
+
+    // A new project starts from the defaults, so any audit setting above them widens.
+    await this.assertAuditLogSettingsChangeIsLicensed({
+      requested: data.data as unknown as Record<string, unknown>,
+      props: data.props,
+      loadCurrentSettings: async (): Promise<
+        Array<StoredProjectAuditLogSettings>
+      > => {
+        return [DEFAULT_PROJECT_AUDIT_LOG_SETTINGS];
+      },
+    });
 
     logger.debug("Creating project for user " + data.props.userId, {
       userId: data.props.userId?.toString(),
@@ -547,6 +662,17 @@ export class ProjectService extends DatabaseService<Model> {
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
     /*
+     * While SSO is not active this caller only ever read the requirement as
+     * off (see onFindSuccess), so a write of it must not switch the stored
+     * requirement off, or set one nobody could see. Drops or refuses it.
+     */
+    EditionEnforcement.guardSsoRequirementWrite({
+      props: updateBy.props,
+      data: updateBy.data as unknown as Record<string, unknown>,
+      columns: PROJECT_SSO_REQUIREMENT_COLUMNS,
+    });
+
+    /*
      * Any project field could have changed; invalidate the in-process cache
      * of the SSO flag. Cheap to refetch on the next request.
      */
@@ -559,6 +685,19 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     this.applyDataResidencyRules(updateBy.data);
+
+    await this.assertAuditLogSettingsChangeIsLicensed({
+      requested: updateBy.data as unknown as Record<string, unknown>,
+      props: updateBy.props,
+      loadCurrentSettings: (): Promise<
+        Array<StoredProjectAuditLogSettings>
+      > => {
+        return this.findAuditLogSettingsInCallerScope({
+          query: updateBy.query,
+          props: updateBy.props,
+        });
+      },
+    });
 
     if (IsBillingEnabled) {
       if (
@@ -651,6 +790,113 @@ export class ProjectService extends DatabaseService<Model> {
     }
 
     return { updateBy, carryForward: [] };
+  }
+
+  /*
+   * Audit logging is an Enterprise feature (EnterpriseFeature.AuditLogs), but
+   * its settings are ordinary Project columns, gated only by the plan when
+   * billing is on. Without billing, switching audit logging on - or widening
+   * it: recording system events too, keeping entries longer - needs a license
+   * that includes audit logs, like creating or changing any other enterprise
+   * configuration. On the Community Edition it is refused.
+   *
+   * Never refused: switching it off or narrowing it (an administrator must
+   * always be able to record less), a write that keeps a project's settings
+   * as they are (the settings form sends every field), internal root writes,
+   * and anything when billing is on, where the plan gates apply. Whether
+   * entries are recorded at all is decided per entry by the recorder
+   * (EnterpriseEdition.isFeatureActive(AuditLogs)): recording stops while a
+   * self-hosted license is lapsed and resumes when it is renewed.
+   *
+   * The current settings are loaded only when the write could widen them and
+   * the license does not allow it.
+   */
+  @CaptureSpan()
+  public async assertAuditLogSettingsChangeIsLicensed(data: {
+    requested: Record<string, unknown>;
+    props: DatabaseCommonInteractionProps;
+    // The settings the write replaces, one entry per project it writes.
+    loadCurrentSettings: () => Promise<Array<StoredProjectAuditLogSettings>>;
+  }): Promise<void> {
+    if (IsBillingEnabled || data.props.isRoot) {
+      return;
+    }
+
+    if (!widensAuditLogging(data.requested, NARROWEST_AUDIT_LOG_SETTINGS)) {
+      return;
+    }
+
+    if (
+      await EnterpriseEdition.isFeatureAvailable(EnterpriseFeature.AuditLogs)
+    ) {
+      return;
+    }
+
+    const currentSettings: Array<StoredProjectAuditLogSettings> =
+      await data.loadCurrentSettings();
+
+    const widens: boolean = currentSettings.some(
+      (current: StoredProjectAuditLogSettings): boolean => {
+        return widensAuditLogging(data.requested, current);
+      },
+    );
+
+    if (!widens) {
+      return;
+    }
+
+    // Throws the Community Edition or the license message, as the case may be.
+    await EnterpriseEdition.assertFeatureAvailable(EnterpriseFeature.AuditLogs);
+  }
+
+  /*
+   * The audit settings of the projects an update matches, limited to the
+   * projects the caller belongs to (every project for a master admin). This
+   * runs in onBeforeUpdate, before the permission check: a refusal that
+   * depended on another project's settings would disclose them, and a write
+   * to a project the caller does not belong to is refused by the permission
+   * check that follows anyway.
+   */
+  private async findAuditLogSettingsInCallerScope(data: {
+    query: Query<Model>;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<Array<StoredProjectAuditLogSettings>> {
+    const projects: Array<Model> = await this.findBy({
+      query: data.query,
+      select: {
+        _id: true,
+        enableAuditLogs: true,
+        storeSystemEventsInAuditLogs: true,
+        auditLogsRetentionInDays: true,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    const callerProjectIds: Array<string> = data.props.isMasterAdmin
+      ? []
+      : [
+          ...(data.props.tenantId ? [data.props.tenantId] : []),
+          ...(data.props.userGlobalAccessPermission?.projectIds || []),
+        ].map((projectId: ObjectID): string => {
+          return projectId.toString();
+        });
+
+    return projects
+      .filter((project: Model): boolean => {
+        return (
+          Boolean(data.props.isMasterAdmin) ||
+          callerProjectIds.includes(String(project._id))
+        );
+      })
+      .map((project: Model): StoredProjectAuditLogSettings => {
+        return {
+          enableAuditLogs: project.enableAuditLogs,
+          storeSystemEventsInAuditLogs: project.storeSystemEventsInAuditLogs,
+          auditLogsRetentionInDays: project.auditLogsRetentionInDays,
+        };
+      });
   }
 
   @CaptureSpan()
@@ -1456,6 +1702,24 @@ These are no longer recorded against the project and have to be cancelled by han
         name: createdItem.name!,
         email: createdItem.createdOwnerEmail!,
         id: createdItem.id!,
+      });
+
+      /*
+       * Written down before subscribing. subscribeToPlan reports metered
+       * usage for this project while it runs, and that path looks the
+       * project's billing customer up from this row: a paid-plan project with
+       * no customer on record is refused with 402, which failed every
+       * paid-plan signup. It also keeps the Stripe customer findable if the
+       * subscription step fails.
+       */
+      await this.updateOneById({
+        id: createdItem.id!,
+        data: {
+          paymentProviderCustomerId: customerId,
+        },
+        props: {
+          isRoot: true,
+        },
       });
 
       const plan: SubscriptionPlan | undefined =
@@ -2528,7 +2792,16 @@ These are no longer recorded against the project and have to be cancelled by han
       },
     );
 
-    return TeamMemberService.getUsersInTeams(teamIds);
+    /*
+     * Accepted rows only. A pending invitation to an owner team grants no
+     * ProjectOwner permission and comes with no notification settings, so the
+     * owner jobs that fall back to this list recorded such invitees as
+     * notified while nothing reached them, and the owner emails sent from here
+     * reached someone who never joined. Acceptance is per team row, so this
+     * also leaves out a member of another team whose invitation to the owner
+     * team is still pending.
+     */
+    return TeamMemberService.getUsersInTeams(teamIds, { acceptedOnly: true });
   }
 
   @CaptureSpan()
@@ -2550,6 +2823,44 @@ These are no longer recorded against the project and have to be cancelled by han
     }
 
     return { findBy, carryForward: null };
+  }
+
+  /*
+   * While SSO is not active a project's SSO requirement is not enforced: on
+   * the Community Edition (the SSO login routes are part of the Enterprise
+   * Edition), and on an Enterprise install whose license is lapsed or does
+   * not include SSO (the routes refuse). Reads made for a caller then report
+   * the EFFECTIVE value: not required, no required provider. Clients decide
+   * from these columns whether to start an SSO flow - the mobile app hides a
+   * project's on-call data behind an SSO login it cannot complete, and its
+   * store builds cannot be patched.
+   *
+   * Only the returned objects change. Internal (root) reads, and the stored
+   * row, keep the real value, and onBeforeUpdate keeps a caller from writing
+   * the masked value back. So running the Enterprise Edition with a valid
+   * license (or in its trial or grace period) again restores enforcement
+   * exactly as configured.
+   */
+  @CaptureSpan()
+  protected override async onFindSuccess(
+    onFind: OnFind<Model>,
+    items: Array<Model>,
+  ): Promise<OnFind<Model>> {
+    if (
+      EditionEnforcement.shouldMaskSsoRequirementOnRead(onFind.findBy.props)
+    ) {
+      for (const item of items) {
+        if (item.requireSsoForLogin !== undefined) {
+          item.requireSsoForLogin = false;
+        }
+
+        if (item.requireSsoWithSsoProviderId !== undefined) {
+          item.requireSsoWithSsoProviderId = null!;
+        }
+      }
+    }
+
+    return { ...onFind, carryForward: items };
   }
 
   @CaptureSpan()
@@ -2780,6 +3091,7 @@ These are no longer recorded against the project and have to be cancelled by han
             message: message,
           },
           subject: subject,
+          isSubjectLiteral: true,
         },
         {
           projectId,

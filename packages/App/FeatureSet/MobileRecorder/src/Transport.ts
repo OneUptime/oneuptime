@@ -1,6 +1,7 @@
 import { gzipSync, strToU8 } from "fflate";
 import {
   CHUNK_PATH,
+  encodeSessionReplayEnvelopeLine,
   MAX_SESSION_REPLAY_CHUNK_BYTES,
   SESSION_REPLAY_CONTENT_TYPE,
   SessionReplayChunkEnvelope,
@@ -15,14 +16,31 @@ import {
 } from "./Config";
 import ReplayOutbox, {
   frameId,
+  OutboxEntry,
   OutboxMutationResult,
-  PersistedReplayFrame,
+  StoredReplayFrame,
 } from "./Outbox";
 
+/*
+ * Attempts a frame gets against a server that ANSWERS and fails (a 5xx with
+ * no Retry-After). Offline mode's rule is that nothing else costs an
+ * attempt: a request that never reached the server is the device's
+ * connection, and a throttle is the server asking for patience. Counting
+ * either dropped a frame after three tries fifteen seconds apart - under a
+ * minute of any outage lost everything recorded during it.
+ */
 const MAX_ATTEMPTS_PER_FRAME: number = 3;
 const DEFAULT_RETRY_MS: number = 15_000;
 const MAX_RETRY_MS: number = 5 * 60_000;
 export const CHUNK_POST_TIMEOUT_MS: number = 10_000;
+
+/*
+ * Waits after a request that never reached the server: short while a drop
+ * is likely brief, then a minute for as long as it lasts. The app coming
+ * to the foreground, and a connectivity source saying the network is back
+ * (see MobileReplayStartOptions.connectivity), drain at once instead.
+ */
+export const OFFLINE_RETRY_MS: Array<number> = [5_000, 15_000, 30_000, 60_000];
 const DIRECTIVE_REASON_PATTERN: RegExp = /^[A-Za-z0-9_.:-]{1,100}$/u;
 
 export interface ReplayTransportOptions {
@@ -44,14 +62,29 @@ export function encodeReplayFrame(
   originalEnvelope: SessionReplayChunkEnvelope,
   payload: string,
 ): EncodedReplayFrame {
-  const compressed: Uint8Array = gzipSync(strToU8(payload));
+  return encodeCompressedReplayFrame(
+    originalEnvelope,
+    gzipSync(strToU8(payload)),
+  );
+}
+
+/*
+ * The same frame from a payload the outbox already stores gzip-compressed.
+ * clientSendUnixMs is stamped here, as the request is built: a frame that
+ * waited out an outage tells the server how long it waited, which is what
+ * keeps a recording uploaded hours late on its real timeline.
+ */
+export function encodeCompressedReplayFrame(
+  originalEnvelope: SessionReplayChunkEnvelope,
+  compressed: Uint8Array,
+): EncodedReplayFrame {
   const envelope: SessionReplayChunkEnvelope = {
     ...originalEnvelope,
     payloadEncoding: "gzip",
     payloadBytes: compressed.byteLength,
     clientSendUnixMs: Date.now(),
   };
-  const prefix: Uint8Array = strToU8(`${JSON.stringify(envelope)}\n`);
+  const prefix: Uint8Array = strToU8(encodeSessionReplayEnvelopeLine(envelope));
   const body: Uint8Array = new Uint8Array(
     prefix.byteLength + compressed.byteLength,
   );
@@ -132,6 +165,8 @@ function parseRetryAfter(value: string | null): number | null {
     : null;
 }
 
+type PostOutcome = "remove" | "remove-and-halt" | "retry" | "wait" | "stop";
+
 export default class ReplayTransport {
   private readonly options: ReplayTransportOptions;
   private readonly fetch: ReplayFetch;
@@ -143,9 +178,54 @@ export default class ReplayTransport {
   private activeAbortController: AbortController | null = null;
   private abortCurrentRequest: (() => void) | null = null;
 
+  /* Requests in a row that never reached the server. */
+  private connectivityFailures: number = 0;
+
+  /* What the host app's connectivity source last said, if it has one. */
+  private reportedOffline: boolean = false;
+
   public constructor(options: ReplayTransportOptions) {
     this.options = options;
     this.fetch = options.startOptions.fetch;
+  }
+
+  /*
+   * Offline, as far as uploading goes: the host app's connectivity source
+   * says so, or the last request never reached the server.
+   */
+  public isOffline(): boolean {
+    return this.reportedOffline || this.connectivityFailures > 0;
+  }
+
+  /*
+   * The host app's connectivity source changed (NetInfo, typically). While
+   * it says offline nothing is attempted. Coming back does NOT drain on its
+   * own: whether this recorder may upload right now (consent) is the
+   * recorder's decision, so it calls resume() itself. null means "unknown",
+   * which blocks nothing.
+   */
+  public setConnectivity(isConnected: boolean | null): void {
+    this.reportedOffline = isConnected === false;
+  }
+
+  /*
+   * Drain now rather than on the retry timer: the app came to the
+   * foreground, or the network came back. An offline wait ends; a server
+   * throttle still stands.
+   */
+  public resume(): void {
+    if (this.stopped || this.reportedOffline) {
+      return;
+    }
+
+    if (this.connectivityFailures > 0 && this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
+
+    if (!this.retryTimer) {
+      void this.drain();
+    }
   }
 
   public async enqueue(
@@ -169,7 +249,15 @@ export default class ReplayTransport {
       });
     }
 
-    await this.drain();
+    /*
+     * Stored either way; posted now only when no retry is pending. A frame
+     * closes every 15 s, and posting each one into an outage, or into a
+     * throttle the server asked for, is a request on the user's battery the
+     * retry timer was about to make anyway.
+     */
+    if (!this.retryTimer) {
+      await this.drain();
+    }
   }
 
   public async restore(): Promise<void> {
@@ -177,7 +265,7 @@ export default class ReplayTransport {
   }
 
   public async drain(): Promise<void> {
-    if (this.stopped) {
+    if (this.stopped || this.reportedOffline) {
       return;
     }
     if (this.drainPromise) {
@@ -210,15 +298,27 @@ export default class ReplayTransport {
   }
 
   private async drainLoop(): Promise<void> {
-    const frames: Array<PersistedReplayFrame> =
-      await this.options.outbox.list();
-    for (const frame of frames) {
-      if (this.stopped) {
+    /*
+     * Index entries only; each frame's payload is read as it is posted, so a
+     * long offline backlog is never all in memory at once.
+     */
+    const entries: Array<OutboxEntry> = await this.options.outbox.entries();
+    for (const entry of entries) {
+      if (this.stopped || this.reportedOffline) {
         return;
       }
 
-      const outcome: "remove" | "remove-and-halt" | "retry" | "stop" =
-        await this.post(frame);
+      const frame: StoredReplayFrame | "unreadable" | null =
+        await this.options.outbox.load(entry.id);
+      if (frame === "unreadable") {
+        this.options.onDiagnostic("outbox-frame-unreadable");
+        continue;
+      }
+      if (!frame) {
+        continue;
+      }
+
+      const outcome: PostOutcome = await this.post(frame);
       if (outcome === "remove") {
         await this.options.outbox.remove(frame.id);
         continue;
@@ -231,10 +331,15 @@ export default class ReplayTransport {
         return;
       }
 
+      this.flushFailures += 1;
+      if (outcome === "wait") {
+        /* Offline or throttled: the frame keeps its place and its attempts. */
+        return;
+      }
+
       const attempts: number = await this.options.outbox.incrementAttempts(
         frame.id,
       );
-      this.flushFailures += 1;
       if (attempts >= MAX_ATTEMPTS_PER_FRAME) {
         await this.options.outbox.remove(frame.id);
         this.options.onDiagnostic("chunk-retry-exhausted", {
@@ -250,12 +355,10 @@ export default class ReplayTransport {
     }
   }
 
-  private async post(
-    frame: PersistedReplayFrame,
-  ): Promise<"remove" | "remove-and-halt" | "retry" | "stop"> {
-    const encoded: EncodedReplayFrame = encodeReplayFrame(
+  private async post(frame: StoredReplayFrame): Promise<PostOutcome> {
+    const encoded: EncodedReplayFrame = encodeCompressedReplayFrame(
       frame.envelope,
-      frame.payload,
+      frame.compressedPayload,
     );
     if (encoded.body.byteLength > MAX_SESSION_REPLAY_CHUNK_BYTES) {
       this.options.onDiagnostic("chunk-too-large", {
@@ -325,7 +428,18 @@ export default class ReplayTransport {
           chunkIndex: frame.envelope.chunkIndex,
         },
       );
-      return "retry";
+
+      /*
+       * The request never reached the server: the device is offline, or on
+       * a connection that goes nowhere. Not a failure of the frame - it
+       * waits, with no attempt counted, for as long as the outage lasts.
+       */
+      this.connectivityFailures += 1;
+      this.retryAfterDrainMs =
+        OFFLINE_RETRY_MS[
+          Math.min(this.connectivityFailures, OFFLINE_RETRY_MS.length) - 1
+        ]!;
+      return "wait";
     } finally {
       if (timeout) {
         clearTimeout(timeout);
@@ -336,6 +450,12 @@ export default class ReplayTransport {
       if (this.abortCurrentRequest === abortDeadline) {
         this.abortCurrentRequest = null;
       }
+    }
+
+    /* Any answer at all: the connection is back. */
+    if (this.connectivityFailures > 0) {
+      this.connectivityFailures = 0;
+      this.options.onDiagnostic("back-online");
     }
 
     if (said.directive) {
@@ -392,6 +512,21 @@ export default class ReplayTransport {
       (said.retryAfterSeconds ?? DEFAULT_RETRY_MS / 1_000) * 1_000,
     );
     this.retryAfterDrainMs = retryMs;
+
+    /*
+     * A 429, or any answer that says when to come back (a throttle directive
+     * or a Retry-After): the server asking for patience, which costs the
+     * frame nothing. A whole fleet reconnecting at once after an outage is
+     * exactly when the project's per-minute rate is spent.
+     */
+    if (
+      response.status === 429 ||
+      said.directive === "throttle" ||
+      said.retryAfterSeconds !== null
+    ) {
+      return "wait";
+    }
+
     return "retry";
   }
 

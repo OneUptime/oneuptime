@@ -3,6 +3,7 @@ import MetricsViewConfig from "../../Metrics/MetricsViewConfig";
 import MetricQueryConfigData from "../../Metrics/MetricQueryConfigData";
 import MetricFormulaConfigData from "../../Metrics/MetricFormulaConfigData";
 import MonitorStep from "../MonitorStep";
+import { MonitorStepExceptionMonitorUtil } from "../MonitorStepExceptionMonitor";
 import MonitorSteps from "../MonitorSteps";
 import MonitorCriteriaInstance from "../MonitorCriteriaInstance";
 import { CriteriaIncident } from "../CriteriaIncident";
@@ -39,6 +40,7 @@ interface RecommendationMonitorStepConfig {
   entityKeys?: Array<string> | undefined;
   lastXSecondsOfSpans?: number | undefined;
   exceptionTypes?: Array<string> | undefined;
+  environments?: Array<string> | undefined;
   message?: string | undefined;
   includeResolved?: boolean | undefined;
   includeArchived?: boolean | undefined;
@@ -519,6 +521,15 @@ export default class MonitorRecommendationUtil {
     if (configKind === "exceptionMonitor") {
       values.push(
         `exceptionTypes=${(config.exceptionTypes || []).slice().sort().join(",")}`,
+        /*
+         * A production-only monitor does not cover an every-environment
+         * recommendation for the same service.
+         */
+        `environments=${MonitorStepExceptionMonitorUtil.normalizeEnvironments(
+          config.environments,
+        )
+          .sort()
+          .join(",")}`,
         `message=${config.message || ""}`,
         `entityKeys=${(config.entityKeys || []).slice().sort().join(",")}`,
         `includeResolved=${String(Boolean(config.includeResolved))}`,

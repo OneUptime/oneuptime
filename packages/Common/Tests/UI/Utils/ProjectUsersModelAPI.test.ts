@@ -646,6 +646,57 @@ describe("ProjectUsersModelAPI.deleteItem", () => {
   });
 });
 
+/*
+ * The same one-request removal, callable without a membership id - the Users >
+ * View User > Remove from Project page has a user, not a row. That page used
+ * to read ONE membership (limit: 1) and delete it, so a user on several teams
+ * stayed in the project while the page reported success.
+ */
+describe("ProjectUsersModelAPI.removeUserFromProject", () => {
+  it("removes the user from the project in a single request", async () => {
+    await ProjectUsersModelAPI.removeUserFromProject({
+      userId: new ObjectID("u1"),
+    });
+
+    expect(postSpy.mock.calls).toHaveLength(1);
+    expect(postCallArgs(0).url.toString()).toContain(
+      "/team-member/remove-user-from-project",
+    );
+    expect(postCallArgs(0).data).toEqual({ userId: "u1" });
+    expect(postCallArgs(0).headers).toEqual({
+      tenantid: PROJECT_ID.toString(),
+    });
+  });
+
+  it("needs no lookup and deletes no membership itself", async () => {
+    await ProjectUsersModelAPI.removeUserFromProject({
+      userId: new ObjectID("u1"),
+    });
+
+    expect(getItemSpy.mock.calls).toHaveLength(0);
+    expect(getListSpy.mock.calls).toHaveLength(0);
+    expect(deleteItemSpy.mock.calls).toHaveLength(0);
+  });
+
+  it("throws when the server rejects the removal", async () => {
+    const rejection: HTTPErrorResponse = new HTTPErrorResponse(
+      400,
+      { message: "Cannot remove the last owner." },
+      {},
+    );
+
+    postSpy.mockImplementation(async () => {
+      return rejection;
+    });
+
+    await expect(
+      ProjectUsersModelAPI.removeUserFromProject({
+        userId: new ObjectID("u1"),
+      }),
+    ).rejects.toBe(rejection);
+  });
+});
+
 describe("ProjectUsersModelAPI.getList reading past the page cap", () => {
   const buildMemberships: (
     count: number,

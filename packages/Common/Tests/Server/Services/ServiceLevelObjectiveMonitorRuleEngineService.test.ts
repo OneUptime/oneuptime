@@ -14,6 +14,7 @@ import logger from "../../../Server/Utils/Logger";
 import SloLegacyMonitorLabelAdoption from "../../../Server/Utils/Slo/SloLegacyMonitorLabelAdoption";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
+import MonitorType from "../../../Types/Monitor/MonitorType";
 import RuleCriteria, {
   RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
   RULE_CRITERIA_SCHEMA_VERSION,
@@ -93,6 +94,7 @@ function fakeMonitor(
     description?: string | undefined;
     labelIds?: Array<ObjectID> | undefined;
     projectId?: ObjectID | null | undefined;
+    monitorType?: MonitorType | undefined;
   },
 ): Monitor {
   return {
@@ -101,6 +103,7 @@ function fakeMonitor(
     projectId: fields?.projectId === undefined ? PROJECT_ID : fields.projectId,
     name: fields?.name === undefined ? `Monitor ${id.toString()}` : fields.name,
     description: fields?.description,
+    monitorType: fields?.monitorType,
     labels: (fields?.labelIds || []).map(fakeLabel),
   } as unknown as Monitor;
 }
@@ -134,6 +137,7 @@ function fakeRule(fields: {
   id?: ObjectID | undefined;
   serviceLevelObjectiveId?: ObjectID | undefined;
   labelIds?: Array<ObjectID> | undefined;
+  monitorType?: MonitorType | undefined;
   monitorNamePattern?: string | undefined;
   monitorDescriptionPattern?: string | undefined;
   criteria?: RuleCriteria | null | undefined;
@@ -148,6 +152,7 @@ function fakeRule(fields: {
     serviceLevelObjectiveId: fields.serviceLevelObjectiveId || SLO_ID,
     isEnabled: fields.isEnabled === undefined ? true : fields.isEnabled,
     monitorLabels: (fields.labelIds || []).map(fakeLabel),
+    monitorType: fields.monitorType,
     monitorNamePattern: fields.monitorNamePattern,
     monitorDescriptionPattern: fields.monitorDescriptionPattern,
     criteria: fields.criteria,
@@ -297,6 +302,66 @@ describe("ServiceLevelObjectiveMonitorRuleEngineService.syncMonitorsForSlo", () 
   afterEach(() => {
     jest.restoreAllMocks();
   });
+
+  it.each([false, true])(
+    "backfills matching monitor types and detaches stale rule attachments with criteria=%p",
+    async (configured: boolean) => {
+      spies.sloFindOneById.mockResolvedValue(
+        fakeSlo({
+          monitors: [MONITOR_B_ID, MONITOR_C_ID],
+          autoAddedMonitors: [MONITOR_B_ID],
+        }),
+      );
+      spies.ruleFindBy.mockResolvedValue([
+        fakeRule(
+          configured
+            ? {
+                criteria: criteria(FilterCondition.All, [
+                  {
+                    field: "monitorType",
+                    operator: RuleCriteriaOperator.Equals,
+                    value: MonitorType.API,
+                  },
+                ]),
+                monitorNamePattern: RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
+              }
+            : { monitorType: MonitorType.API },
+        ),
+      ]);
+      spies.monitorFindBy.mockResolvedValue([
+        fakeMonitor(MONITOR_A_ID, { monitorType: MonitorType.API }),
+        fakeMonitor(MONITOR_B_ID, { monitorType: MonitorType.Website }),
+        fakeMonitor(MONITOR_C_ID, { monitorType: MonitorType.Ping }),
+      ]);
+
+      const result: SloMonitorSyncResult = await syncSlo();
+
+      expect(result).toEqual({
+        monitorIdsAdded: [MONITOR_A_ID.toString()],
+        monitorIdsRemoved: [MONITOR_B_ID.toString()],
+      });
+      expect(writtenIds(spies.sloUpdateOneById, "monitors")).toEqual(
+        sortedIds([MONITOR_A_ID, MONITOR_C_ID]),
+      );
+      expect(writtenIds(spies.sloUpdateOneById, "autoAddedMonitors")).toEqual([
+        MONITOR_A_ID.toString(),
+      ]);
+      expect(spies.monitorFindBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: { projectId: PROJECT_ID },
+          select: expect.objectContaining({ monitorType: true }),
+        }),
+      );
+      expect(spies.ruleFindBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            monitorType: true,
+            criteria: true,
+          }),
+        }),
+      );
+    },
+  );
 
   it("attaches every monitor an enabled rule's labels match", async () => {
     spies.ruleFindBy.mockResolvedValue([
@@ -536,6 +601,7 @@ describe("ServiceLevelObjectiveMonitorRuleEngineService.syncMonitorsForSlo", () 
       _id: true,
       name: true,
       description: true,
+      monitorType: true,
       labels: { _id: true },
     });
     expect(call.props).toEqual({ isRoot: true });
@@ -998,6 +1064,51 @@ describe("ServiceLevelObjectiveMonitorRuleEngineService.syncSlosForMonitor", () 
     );
   }
 
+  it.each([MonitorType.API, MonitorType.Website])(
+    "reconciles monitor-side membership when the monitor type becomes %s",
+    async (monitorType: MonitorType) => {
+      const shouldMatch: boolean = monitorType === MonitorType.API;
+      spies.monitorFindOneById.mockResolvedValue(
+        fakeMonitor(MONITOR_A_ID, { monitorType }),
+      );
+      spies.ruleFindBy.mockResolvedValue([
+        fakeRule({
+          criteria: criteria(FilterCondition.All, [
+            {
+              field: "monitorType",
+              operator: RuleCriteriaOperator.Equals,
+              value: MonitorType.API,
+            },
+          ]),
+        }),
+      ]);
+      spies.sloFindBy.mockImplementation(
+        answerSloReads({
+          byId: [
+            fakeSlo({
+              monitors: shouldMatch ? [] : [MONITOR_A_ID],
+              autoAddedMonitors: shouldMatch ? [] : [MONITOR_A_ID],
+            }),
+          ],
+        }) as never,
+      );
+
+      const results: Array<SloMonitorSyncResult> = await syncMonitor();
+
+      expect(results).toEqual([
+        {
+          monitorIdsAdded: shouldMatch ? [MONITOR_A_ID.toString()] : [],
+          monitorIdsRemoved: shouldMatch ? [] : [MONITOR_A_ID.toString()],
+        },
+      ]);
+      expect(spies.monitorFindOneById).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({ monitorType: true }),
+        }),
+      );
+    },
+  );
+
   it("attaches the monitor to an SLO whose enabled rule its labels satisfy", async () => {
     spies.ruleFindBy.mockResolvedValue([
       fakeRule({ labelIds: [LABEL_PRODUCTION_ID] }),
@@ -1320,6 +1431,7 @@ describe("ServiceLevelObjectiveMonitorRuleEngineService.syncSlosForMonitor", () 
       projectId: true,
       name: true,
       description: true,
+      monitorType: true,
       labels: { _id: true },
     });
   });
@@ -1792,4 +1904,215 @@ describe("ServiceLevelObjectiveMonitorRuleEngineService.doesMonitorMatchRule", (
       ).toBe(testCase.expected);
     });
   }
+});
+
+describe("SLO monitor type matching", () => {
+  function matches(
+    filters: Array<RuleCriteriaFilter>,
+    monitorType: MonitorType | undefined,
+    condition: FilterCondition = FilterCondition.All,
+  ): boolean {
+    return ServiceLevelObjectiveMonitorRuleEngineService.doesMonitorMatchRule({
+      monitor: fakeMonitor(MONITOR_A_ID, {
+        monitorType,
+        name: "api-production",
+        description: "primary",
+        labelIds: [LABEL_PRODUCTION_ID],
+      }),
+      rule: fakeRule({
+        criteria: criteria(condition, filters),
+        monitorNamePattern: RULE_CRITERIA_LEGACY_NEVER_MATCH_PATTERN,
+      }),
+    });
+  }
+
+  it.each(Object.values(MonitorType))(
+    "matches exact enum type %s",
+    (monitorType: MonitorType) => {
+      expect(
+        matches(
+          [
+            {
+              field: "monitorType",
+              operator: RuleCriteriaOperator.Equals,
+              value: monitorType,
+            },
+          ],
+          monitorType,
+        ),
+      ).toBe(true);
+      expect(
+        matches(
+          [
+            {
+              field: "monitorType",
+              operator: RuleCriteriaOperator.NotEquals,
+              value: monitorType,
+            },
+          ],
+          monitorType,
+        ),
+      ).toBe(false);
+    },
+  );
+
+  it("distinguishes Docker from Docker Swarm with both equality operators", () => {
+    expect(
+      matches(
+        [
+          {
+            field: "monitorType",
+            operator: RuleCriteriaOperator.Equals,
+            value: MonitorType.Docker,
+          },
+        ],
+        MonitorType.DockerSwarm,
+      ),
+    ).toBe(false);
+    expect(
+      matches(
+        [
+          {
+            field: "monitorType",
+            operator: RuleCriteriaOperator.NotEquals,
+            value: MonitorType.Docker,
+          },
+        ],
+        MonitorType.DockerSwarm,
+      ),
+    ).toBe(true);
+  });
+
+  it.each([undefined, "Unknown" as MonitorType])(
+    "does not match missing or invalid monitor types (%s), including negation",
+    (monitorType: MonitorType | undefined) => {
+      expect(
+        matches(
+          [
+            {
+              field: "monitorType",
+              operator: RuleCriteriaOperator.Equals,
+              value: MonitorType.API,
+            },
+          ],
+          monitorType,
+        ),
+      ).toBe(false);
+      expect(
+        matches(
+          [
+            {
+              field: "monitorType",
+              operator: RuleCriteriaOperator.NotEquals,
+              value: MonitorType.API,
+            },
+          ],
+          monitorType,
+        ),
+      ).toBe(false);
+    },
+  );
+
+  it.each([
+    { operator: RuleCriteriaOperator.Equals, value: "Unknown" },
+    { operator: RuleCriteriaOperator.NotEquals, value: "api" },
+    { operator: RuleCriteriaOperator.NotEquals, value: true },
+    { operator: RuleCriteriaOperator.Contains, value: MonitorType.API },
+    { operator: RuleCriteriaOperator.DoesNotMatchPattern, value: ".*" },
+    { operator: RuleCriteriaOperator.HasNoneOf, value: [MonitorType.API] },
+  ])(
+    "fails the entire rule for invalid type predicate %p even under Match any",
+    (filter: Omit<RuleCriteriaFilter, "field">) => {
+      expect(
+        matches(
+          [
+            { field: "monitorType", ...filter },
+            {
+              field: "monitorNamePattern",
+              operator: RuleCriteriaOperator.Contains,
+              value: "api",
+            },
+          ],
+          MonitorType.API,
+          FilterCondition.Any,
+        ),
+      ).toBe(false);
+    },
+  );
+
+  it("combines types with name, description, and label conditions", () => {
+    const filters: Array<RuleCriteriaFilter> = [
+      {
+        field: "monitorType",
+        operator: RuleCriteriaOperator.Equals,
+        value: MonitorType.API,
+      },
+      {
+        field: "monitorNamePattern",
+        operator: RuleCriteriaOperator.MatchesPattern,
+        value: "api-*",
+      },
+      {
+        field: "monitorDescriptionPattern",
+        operator: RuleCriteriaOperator.DoesNotMatchPattern,
+        value: "standby*",
+      },
+      {
+        field: "monitorLabels",
+        operator: RuleCriteriaOperator.HasAnyOf,
+        value: [LABEL_PRODUCTION_ID.toString()],
+      },
+    ];
+    expect(matches(filters, MonitorType.API)).toBe(true);
+    expect(matches(filters, MonitorType.Website)).toBe(false);
+    expect(matches(filters, MonitorType.Website, FilterCondition.Any)).toBe(
+      true,
+    );
+  });
+
+  it("supports several type alternatives", () => {
+    const filters: Array<RuleCriteriaFilter> = [
+      MonitorType.API,
+      MonitorType.Website,
+    ].map((monitorType: MonitorType): RuleCriteriaFilter => {
+      return {
+        field: "monitorType",
+        operator: RuleCriteriaOperator.Equals,
+        value: monitorType,
+      };
+    });
+    expect(matches(filters, MonitorType.Website, FilterCondition.Any)).toBe(
+      true,
+    );
+    expect(matches(filters, MonitorType.Ping, FilterCondition.Any)).toBe(false);
+    expect(matches(filters, MonitorType.API)).toBe(false);
+  });
+
+  it("ANDs a legacy type with legacy name and labels", () => {
+    const rule: ServiceLevelObjectiveMonitorRule = fakeRule({
+      monitorType: MonitorType.Docker,
+      monitorNamePattern: "api-*",
+      labelIds: [LABEL_PRODUCTION_ID],
+    });
+    expect(
+      ServiceLevelObjectiveMonitorRuleEngineService.doesMonitorMatchRule({
+        rule,
+        monitor: fakeMonitor(MONITOR_A_ID, {
+          monitorType: MonitorType.Docker,
+          name: "api-prod",
+          labelIds: [LABEL_PRODUCTION_ID],
+        }),
+      }),
+    ).toBe(true);
+    expect(
+      ServiceLevelObjectiveMonitorRuleEngineService.doesMonitorMatchRule({
+        rule,
+        monitor: fakeMonitor(MONITOR_A_ID, {
+          monitorType: MonitorType.DockerSwarm,
+          name: "api-prod",
+          labelIds: [LABEL_PRODUCTION_ID],
+        }),
+      }),
+    ).toBe(false);
+  });
 });

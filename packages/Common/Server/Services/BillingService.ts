@@ -2522,6 +2522,7 @@ export class BillingService extends BaseService {
                 dashboardLink: dashboardLink || "",
               },
               subject: `Invoice #${invoiceNumber} from OneUptime`,
+              isSubjectLiteral: true,
             },
             {
               projectId: projectId,

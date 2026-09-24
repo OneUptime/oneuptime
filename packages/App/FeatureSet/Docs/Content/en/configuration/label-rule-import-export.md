@@ -56,4 +56,4 @@ Keep the original `resourceType` in the file and open **Import JSON** on the des
 
 Configured conditions or actions that the destination does not support block the import. For example, an incident rule restricted to specific monitors cannot be copied to Network Device rules without editing those conditions. The preview lists field mappings so they can be reviewed.
 
-Network Device rules support wildcard matching as well as regular expressions. Transfers between Network Device rules and other rule types reject patterns containing `*` or surrounding whitespace, where the matching behavior differs. Edit those patterns explicitly for the destination, or keep the rule within the same resource type.
+Network Device and SLO label rules support wildcard matching as well as regular expressions. Transfers between those rules and other rule types reject patterns containing `*` or surrounding whitespace, where the matching behavior differs. Edit those patterns explicitly for the destination, or keep the rule within the same resource type. Network Device and SLO label rules can trade any pattern with each other, because they match the same way.

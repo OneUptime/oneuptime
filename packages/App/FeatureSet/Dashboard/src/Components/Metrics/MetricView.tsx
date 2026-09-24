@@ -1346,6 +1346,12 @@ const MetricView: FunctionComponent<ComponentProps> = (
                 >
                   <MetricCharts
                     hideCard={props.hideCardInCharts}
+                    /*
+                     * The panel above only sets a minHeight, so it can grow:
+                     * keep a plot floor and let the series controls add
+                     * height instead of squeezing the plot to a sliver.
+                     */
+                    minPlotHeight={props.hideCardInCharts}
                     metricResults={metricResults}
                     metricTypes={metricTypes}
                     metricViewData={effectiveData}

@@ -10,7 +10,6 @@ import ScheduledMaintenanceFeed, {
 } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { FeedItemProps } from "Common/UI/Components/Feed/FeedItem";
 import { Gray500 } from "Common/Types/BrandColors";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -18,6 +17,7 @@ import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Exception from "Common/Types/Exception/Exception";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
 import ScheduledMaintenancePublicNote from "Common/Models/DatabaseModels/ScheduledMaintenancePublicNote";
+import PublicNoteSubscriberNotificationDefault from "Common/Types/StatusPage/PublicNoteSubscriberNotificationDefault";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import OneUptimeDate from "Common/Types/Date";
@@ -27,6 +27,14 @@ import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useFeedItems from "Common/UI/Components/Feed/useFeedItems";
+import useFeedOptions, {
+  UseFeedOptionsResult,
+} from "Common/UI/Components/Feed/useFeedOptions";
+import FeedOptionsButton from "Common/UI/Components/Feed/FeedOptionsButton";
+import {
+  getFeedEventTypeQuery,
+  getFeedNoItemsMessage,
+} from "Common/UI/Components/Feed/FeedOptions";
 import RunbookPicker from "../Runbook/RunbookPicker";
 
 export interface ComponentProps {
@@ -36,12 +44,19 @@ export interface ComponentProps {
    * so the new activity shows without pressing Refresh.
    */
   refreshToken?: number | undefined;
+  /*
+   * Where "Notify Status Page Subscribers" starts on a new public note.
+   * False when the event was created without notifying subscribers.
+   */
+  notifyStatusPageSubscribersByDefault?: boolean | undefined;
 }
 
 /*
  * One icon per event type. A Record (rather than a chain of ifs) makes the
  * compiler flag a new event type that has no icon, instead of it quietly
- * falling back to a plain circle.
+ * falling back to a plain circle. It is shared by the feed items and the
+ * event type checklist behind the Filter & Sort button, so the two always
+ * match.
  */
 export const SCHEDULED_MAINTENANCE_FEED_ICONS: Record<
   ScheduledMaintenanceFeedEventType,
@@ -83,9 +98,21 @@ export const getScheduledMaintenanceFeedIcon: (
   return SCHEDULED_MAINTENANCE_FEED_ICONS[eventType] || IconProp.Circle;
 };
 
+// The checklist hands over plain strings rather than the enum.
+export const getScheduledMaintenanceFeedEventIcon: (
+  eventType: string,
+) => IconProp = (eventType: string): IconProp => {
+  return getScheduledMaintenanceFeedIcon(
+    eventType as ScheduledMaintenanceFeedEventType,
+  );
+};
+
 const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const notifySubscribersByDefault: boolean =
+    props.notifyStatusPageSubscribersByDefault ?? true;
+
   const [showPublicNoteModal, setShowPublicNoteModal] =
     React.useState<boolean>(false);
 
@@ -136,6 +163,13 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
       };
     };
 
+  const feedOptions: UseFeedOptionsResult = useFeedOptions({
+    eventTypes: Object.values(ScheduledMaintenanceFeedEventType),
+    getEventTypeIcon: getScheduledMaintenanceFeedEventIcon,
+    storageKey: "scheduled-maintenance",
+    resetKey: props.scheduledMaintenanceId.toString(),
+  });
+
   const {
     feedItems,
     isLoading,
@@ -149,6 +183,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
     loadMore,
   } = useFeedItems<ScheduledMaintenanceFeed>({
     resourceKey: props.scheduledMaintenanceId.toString(),
+    viewKey: feedOptions.optionsKey,
     refreshToken: props.refreshToken,
     getItems: async (
       limit: number,
@@ -157,6 +192,10 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
         modelType: ScheduledMaintenanceFeed,
         query: {
           scheduledMaintenanceId: props.scheduledMaintenanceId!,
+          ...getFeedEventTypeQuery<ScheduledMaintenanceFeed>(
+            "scheduledMaintenanceFeedEventType",
+            feedOptions.options,
+          ),
         },
         select: {
           moreInformationInMarkdown: true,
@@ -173,7 +212,7 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
         },
         skip: 0,
         sort: {
-          postedAt: SortOrder.Descending,
+          postedAt: feedOptions.options.sortOrder,
         },
         limit,
       });
@@ -188,6 +227,12 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
         "This is the timeline and feed for this scheduled maintenance. You can see all the updates and information about this scheduled maintenance here."
       }
       buttons={[
+        <FeedOptionsButton
+          key="scheduled-maintenance-feed-options"
+          value={feedOptions.options}
+          eventTypeOptions={feedOptions.eventTypeOptions}
+          onChange={feedOptions.setOptions}
+        />,
         <MoreMenu
           key="scheduled-maintenance-feed-actions-menu"
           elementToBeShownInsteadOfButton={
@@ -242,7 +287,11 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
         {isCurrentFeedLoaded && !isLoading && !error && (
           <Feed
             items={feedItems}
-            noItemsMessage="Looks like there are no items in this feed for this scheduled maintenance."
+            noItemsMessage={getFeedNoItemsMessage({
+              options: feedOptions.options,
+              noItemsMessage:
+                "Looks like there are no items in this feed for this scheduled maintenance.",
+            })}
             hasMore={hasMore}
             isLoadingMore={isLoadingMore}
             onMore={loadMore}
@@ -262,6 +311,15 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
               setShowPublicNoteModal(false);
             }}
             submitButtonText="Save"
+            /*
+             * Seeded as a value, not only as the field's default: the form
+             * drops a false default, and an unsent flag would fall back to
+             * notifying.
+             */
+            initialValues={{
+              shouldStatusPageSubscribersBeNotifiedOnNoteCreated:
+                notifySubscribersByDefault,
+            }}
             onBeforeCreate={async (model: ScheduledMaintenancePublicNote) => {
               model.scheduledMaintenanceId = props.scheduledMaintenanceId!;
               return model;
@@ -309,11 +367,12 @@ const ScheduledMaintenanceFeedElement: FunctionComponent<ComponentProps> = (
                     shouldStatusPageSubscribersBeNotifiedOnNoteCreated: true,
                   },
                   fieldType: FormFieldSchemaType.Checkbox,
-                  description:
-                    "Should status page subscribers be notified when this note is posted?",
+                  description: notifySubscribersByDefault
+                    ? "Should status page subscribers be notified when this note is posted?"
+                    : PublicNoteSubscriberNotificationDefault.quietScheduledMaintenanceDescription,
                   title: "Notify Status Page Subscribers",
                   required: false,
-                  defaultValue: true,
+                  defaultValue: notifySubscribersByDefault,
                 },
               ],
               formType: FormType.Create,

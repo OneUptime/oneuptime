@@ -7,6 +7,7 @@ import IncidentEpisodeMemberService from "Common/Server/Services/IncidentEpisode
 import IncidentService from "Common/Server/Services/IncidentService";
 import UserNotificationSettingService from "Common/Server/Services/UserNotificationSettingService";
 import logger from "Common/Server/Utils/Logger";
+import { EmailEnvelope } from "Common/Types/Email/EmailMessage";
 import ObjectID from "Common/Types/ObjectID";
 import "../../../../FeatureSet/Workers/Jobs/AlertEpisodeOwners/SendAlertAddedNotification";
 import "../../../../FeatureSet/Workers/Jobs/IncidentEpisodeOwners/SendIncidentAddedNotification";
@@ -264,5 +265,35 @@ describe.each(cases)(
         );
       },
     );
+
+    /*
+     * The episode title is user text. Compiled again by the mailer,
+     * "{{ ... }}" in it rendered as nothing and a lone "{{" stopped the email
+     * being sent.
+     */
+    test("an episode title quoting template syntax reaches the subject as written, marked literal", async () => {
+      entry.episodeService.findOneById.mockResolvedValue({
+        title: "Rollout of {{ .Values.image.tag }} stalled",
+        project: { name: "Acme" },
+        episodeNumber: 3,
+        episodeNumberWithPrefix: "EPI-3",
+        [entry.stateKey]: { name: "Investigating" },
+      });
+
+      await handlers.get(entry.jobName)!();
+
+      const sendUserNotification: jest.Mock =
+        UserNotificationSettingService.sendUserNotification as jest.Mock;
+
+      expect(sendUserNotification).toHaveBeenCalledTimes(1);
+
+      const envelope: EmailEnvelope = sendUserNotification.mock.calls[0][0]
+        .emailEnvelope as EmailEnvelope;
+
+      expect(envelope.isSubjectLiteral).toBe(true);
+      expect(envelope.subject).toBe(
+        `[Episode EPI-3] 1 new ${entry.name} added - Rollout of {{ .Values.image.tag }} stalled`,
+      );
+    });
   },
 );

@@ -238,12 +238,48 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     ];
   }
 
+  /*
+   * The server builds the Slack URL and records a single-use `state` for this
+   * user and project; the callback trusts only that record. The browser never
+   * chooses the project or user a connection is written to.
+   */
+  type NavigateToAuthorizationUrlFunction = (route: string) => Promise<void>;
+
+  const navigateToAuthorizationUrl: NavigateToAuthorizationUrlFunction = async (
+    route: string,
+  ): Promise<void> => {
+    try {
+      setError(null);
+
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.get<JSONObject>({
+          url: URL.fromURL(APP_API_URL).addRoute(route),
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response instanceof HTTPErrorResponse) {
+        throw response;
+      }
+
+      const authorizationUrl: string | undefined = (
+        response.data as JSONObject
+      )["authorizationUrl"] as string | undefined;
+
+      if (!authorizationUrl) {
+        throw new Error(
+          "OneUptime could not start the Slack connection. Please try again.",
+        );
+      }
+
+      Navigation.navigate(URL.fromString(authorizationUrl));
+    } catch (error) {
+      setError(<div>{API.getFriendlyErrorMessage(error as Exception)}</div>);
+    }
+  };
+
   const connectWithSlack: VoidFunction = (): void => {
     if (SlackAppClientId) {
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-      const userId: ObjectID | null = UserUtil.getUserId();
-
-      if (!projectId) {
+      if (!ProjectUtil.getCurrentProjectId()) {
         setError(
           <div>
             Looks like you have not selected any project. Please select a
@@ -253,7 +289,7 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      if (!userId) {
+      if (!UserUtil.getUserId()) {
         setError(
           <div>
             Looks like you are not logged in. Please login to continue.
@@ -262,88 +298,15 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         return;
       }
 
-      const userScopes: Array<string> = [];
-
-      if (
-        manifest &&
-        manifest["oauth_config"] &&
-        ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject) &&
-        ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)[
-          "user"
-        ] &&
-        (
-          ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)[
-            "user"
-          ] as Array<string>
-        ).length > 0
-      ) {
-        userScopes.push(
-          ...((
-            (manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject
-          )["user"] as Array<string>),
-        );
-      }
-
-      const botScopes: Array<string> = [];
-
-      if (
-        manifest &&
-        manifest["oauth_config"] &&
-        ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject) &&
-        ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)[
-          "bot"
-        ] &&
-        (
-          ((manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject)[
-            "bot"
-          ] as Array<string>
-        ).length > 0
-      ) {
-        botScopes.push(
-          ...((
-            (manifest["oauth_config"] as JSONObject)["scopes"] as JSONObject
-          )["bot"] as Array<string>),
-        );
-      }
-
-      // if any of the user or bot scopes length = = then error.
-      if (userScopes.length === 0 || botScopes.length === 0) {
-        setError(
-          <div>
-            Looks like the Slack App scopes are not set properly. For more
-            information, please check this guide to set up Slack App properly:{" "}
-            <Link
-              to={new Route("/docs/self-hosted/slack-integration")}
-              openInNewTab={true}
-            >
-              Slack Integration
-            </Link>
-          </div>,
-        );
-        return;
-      }
-
-      const project_install_redirect_uri: string = `${APP_API_URL}/slack/auth/${projectId.toString()}/${userId.toString()}`;
-      const user_signin_redirect_uri: string = `${APP_API_URL}/slack/auth/${projectId.toString()}/${userId.toString()}/user`;
-
-      if (!isProjectAccountConnected) {
-        Navigation.navigate(
-          URL.fromString(
-            `https://slack.com/oauth/v2/authorize?scope=${botScopes.join(
-              ",",
-            )}&user_scope=${userScopes.join(
-              ",",
-            )}&client_id=${SlackAppClientId}&redirect_uri=${project_install_redirect_uri}`,
-          ),
-        );
-      } else {
-        // if project account is not connected then we just need to sign in with slack and not install the app.
-        Navigation.navigate(
-          URL.fromString(
-            `https://slack.com/openid/connect/authorize?response_type=code&scope=openid%20profile%20email&client_id=${SlackAppClientId}&redirect_uri=${user_signin_redirect_uri}`,
-          ),
-        );
-      }
+      /*
+       * Not connected yet: install the app into a workspace. Already
+       * connected: only sign the user in with Slack.
+       */
+      navigateToAuthorizationUrl(
+        isProjectAccountConnected ? "/slack/sign-in-url" : "/slack/install-url",
+      ).catch((error: Exception) => {
+        setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+      });
     } else {
       setError(
         <div>
@@ -462,9 +425,8 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         </div>
       )}
 
-      {showChannelsModal && projectAuthTokenId ? (
+      {showChannelsModal && isProjectAccountConnected ? (
         <SlackChannelCacheModal
-          projectAuthTokenId={projectAuthTokenId}
           onClose={() => {
             return setShowChannelsModal(false);
           }}

@@ -35,6 +35,38 @@ Every event is normalized onto typed columns plus a flattened attributes map:
 - **Detection provenance**: `ruleId` / `ruleName`, MITRE ATT&CK `mitreTactics` / `mitreTechniques`.
 - **Attributes**: the full source payload, flattened to dot-notation keys — nothing is dropped just because it did not map.
 
+## Exploring events
+
+**Security Events → Events** is a telemetry explorer, the same one the Logs, Traces and Exceptions pages use: a severity-stacked volume chart over the window, a facet sidebar, a dense event list, and a detail drawer that shows every typed field and every source attribute of one event.
+
+The product's other destinations — **Correlate**, **Detection Rules**, **Threat Intel**, **Monitors**, **Connections** and the **Setup Guide** — are tabs in the page header.
+
+### Search
+
+The search bar speaks the same query language as the other telemetry explorers:
+
+| Syntax | Means | Example |
+|---|---|---|
+| free text | the message contains this | `failed logon` |
+| `"quoted phrase"` | keep spaces together | `"brute force"` |
+| `<field>:<value>` | a typed column | `severity:Critical` |
+| `@<attribute>:<value>` | a flattened source field | `@threat.matched:true` |
+| `-<filter>` | negate any filter | `-severity:Informational` |
+| `<field>:(a OR b)` | any of these values | `severity:(High OR Critical)` |
+| `<field>:a*` | glob — `*` is any text, `?` one character | `host:web-*` |
+| `@<attr>:*` | the attribute is present | `@threat.indicator:*` |
+| `@<attr>:~text` | the attribute contains | `@finding_info.title:~ransom` |
+
+Field names are the friendly ones (`severity`, `class`, `category`, `activity`, `status`, `vendor`, `product`, `rule`, `user`, `host`, `ip`, `targetuser`, `targethost`, `targetip`, `observable`, `tactic`, `technique`) or the column's own name (`severityName`, `principalHost`, ...). Anything else is read as a source attribute, since every un-typed source field lands in the attributes map.
+
+`observable:<value>` is the "all events mentioning X" query — it matches any extracted entity, whichever side of the interaction it was on.
+
+### Facets
+
+The sidebar counts the window by Source, Severity, Event Class, Category, Activity, Status, Vendor, Product, Detection Rule, Principal User and Principal Host. Clicking a value filters the list; the `-` beside it excludes that value instead. The chart and every facet count describe exactly the rows the list is showing, so a count never promises rows a click cannot reach. A dimension with nothing in the window folds away and is counted in the sidebar's footer.
+
+The window, the chips and the search text all live in the URL, so a filtered view is shareable and survives a refresh.
+
 ## Detection rules (Sigma)
 
 **Security Events → Detection Rules** evaluates [Sigma](https://sigmahq.io/) rules against your events every minute (per-rule interval configurable). A rule that matches:

@@ -7,7 +7,8 @@ import OwnerRuleAssignment, {
   OwnersToAssign,
 } from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
 import PostgresErrorTranslator from "../../../../Server/Utils/Database/PostgresErrorTranslator";
-import { describe, expect, it } from "@jest/globals";
+import TeamMemberService from "../../../../Server/Services/TeamMemberService";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
  * Contract under test - owner rules never create a second owner row for a user
@@ -19,7 +20,26 @@ import { describe, expect, it } from "@jest/globals";
  * owners on nearly every resource it touches. That is why this filter sits in
  * front of every owner rule engine, and why the inserts that follow it treat
  * "already an owner" as done rather than as a failure.
+ *
+ * The owner sets are saved configuration and can name a user who has left
+ * the project since; createOwner skips such a user (see the last block).
  */
+
+/*
+ * Every owner user below is a project member unless a test says otherwise.
+ * The membership read is TeamMemberService's; no Postgres here.
+ */
+let memberCheck: jest.SpyInstance;
+
+beforeEach(() => {
+  memberCheck = jest
+    .spyOn(TeamMemberService, "isUserMemberOfProject")
+    .mockResolvedValue(true);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
 const MONITOR_ID: ObjectID = new ObjectID(
   "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
@@ -581,5 +601,139 @@ describe("OwnerRuleAssignment.addOwners", () => {
     expect(services.createTeam).not.toHaveBeenCalled();
     expect(services.createUser).not.toHaveBeenCalled();
     expect(added).toEqual({ userIds: [], teamIds: [] });
+  });
+});
+
+describe("OwnerRuleAssignment and project membership", () => {
+  const DEPARTED: ObjectID = USER_B;
+
+  function membersAre(userIds: Array<ObjectID>): void {
+    memberCheck.mockImplementation(
+      async (data: { projectId: ObjectID; userId: ObjectID }) => {
+        return userIds.some((id: ObjectID): boolean => {
+          return id.toString() === data.userId.toString();
+        });
+      },
+    );
+  }
+
+  it("does not make a user who left the project an owner", async () => {
+    membersAre([]);
+    const create: jest.Mock = jest.fn(async () => {
+      return {};
+    });
+    const owner: MonitorOwnerUser = ownerUser(DEPARTED);
+    owner.projectId = PROJECT_ID;
+
+    await expect(
+      OwnerRuleAssignment.createOwner({
+        ownerService: {
+          create,
+        } as unknown as DatabaseService<MonitorOwnerUser>,
+        owner: owner,
+        props: { isRoot: true },
+      }),
+    ).resolves.toBe(false);
+
+    expect(create).not.toHaveBeenCalled();
+    expect(memberCheck).toHaveBeenCalledTimes(1);
+    const asked: { projectId: ObjectID; userId: ObjectID } = memberCheck.mock
+      .calls[0]![0] as { projectId: ObjectID; userId: ObjectID };
+    expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(asked.userId.toString()).toBe(DEPARTED.toString());
+  });
+
+  it("reads the project from the caller's tenant when the row has none", async () => {
+    membersAre([USER_A]);
+    const create: jest.Mock = jest.fn(async () => {
+      return {};
+    });
+
+    await expect(
+      OwnerRuleAssignment.createOwner({
+        ownerService: {
+          create,
+        } as unknown as DatabaseService<MonitorOwnerUser>,
+        owner: ownerUser(USER_A),
+        props: { tenantId: PROJECT_ID },
+      }),
+    ).resolves.toBe(true);
+
+    const asked: { projectId: ObjectID } = memberCheck.mock.calls[0]![0] as {
+      projectId: ObjectID;
+    };
+    expect(asked.projectId.toString()).toBe(PROJECT_ID.toString());
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not ask about team owners", async () => {
+    membersAre([]);
+    const create: jest.Mock = jest.fn(async () => {
+      return {};
+    });
+    const owner: MonitorOwnerTeam = ownerTeam(TEAM_A);
+    owner.projectId = PROJECT_ID;
+
+    await expect(
+      OwnerRuleAssignment.createOwner({
+        ownerService: {
+          create,
+        } as unknown as DatabaseService<MonitorOwnerTeam>,
+        owner: owner,
+        props: { isRoot: true },
+      }),
+    ).resolves.toBe(true);
+
+    expect(memberCheck).not.toHaveBeenCalled();
+  });
+
+  it("adds the rest of a saved owner set and reports only what it added", async () => {
+    membersAre([USER_A]);
+    const services: WritableServices = writableServices({});
+
+    const added: OwnersToAssign = await OwnerRuleAssignment.addOwners({
+      ownerUserService: services.ownerUserService,
+      ownerTeamService: services.ownerTeamService,
+      resourceIdColumn: "monitorId",
+      resourceId: MONITOR_ID,
+      projectId: PROJECT_ID,
+      userIds: [USER_A, DEPARTED],
+      teamIds: [TEAM_A],
+      props: { isRoot: true },
+    });
+
+    expect(
+      writtenRows<MonitorOwnerUser>(services.createUser).map(
+        (r: MonitorOwnerUser): string => {
+          return r.userId!.toString();
+        },
+      ),
+    ).toEqual([USER_A.toString()]);
+    expect(services.createTeam).toHaveBeenCalledTimes(1);
+
+    expect(ids(added.userIds)).toEqual([USER_A.toString()]);
+    expect(ids(added.teamIds)).toEqual([TEAM_A.toString()]);
+  });
+
+  it("a failing membership read fails the write, as any other read would", async () => {
+    const failure: Error = new Error("db down");
+    memberCheck.mockRejectedValue(failure);
+    const create: jest.Mock = jest.fn(async () => {
+      return {};
+    });
+    const owner: MonitorOwnerUser = ownerUser(USER_A);
+    owner.projectId = PROJECT_ID;
+
+    await expect(
+      OwnerRuleAssignment.createOwner({
+        ownerService: {
+          create,
+        } as unknown as DatabaseService<MonitorOwnerUser>,
+        owner: owner,
+        props: { isRoot: true },
+      }),
+    ).rejects.toBe(failure);
+
+    expect(create).not.toHaveBeenCalled();
   });
 });

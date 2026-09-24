@@ -135,7 +135,7 @@ RunCron(
         continue;
       }
 
-      const users: Array<User> = sloOwnersMap[sloId] as Array<User>;
+      const ownerUsers: Array<User> = sloOwnersMap[sloId] as Array<User>;
 
       const slo: ServiceLevelObjective | null =
         await ServiceLevelObjectiveService.findOneById({
@@ -158,6 +158,22 @@ RunCron(
         });
 
       if (!slo || !slo.projectId) {
+        continue;
+      }
+
+      /*
+       * A team row expands to every member row, pending invitations included.
+       * ensureSettingExistsForUser below would seed a setting for a pending
+       * invitee and reach someone who never joined, so tell only the accepted
+       * members of the project - the same people findOwners reports as owners.
+       */
+      const users: Array<User> =
+        await TeamMemberService.filterUsersToProjectMembers({
+          projectId: slo.projectId,
+          users: ownerUsers,
+        });
+
+      if (users.length === 0) {
         continue;
       }
 
@@ -212,6 +228,7 @@ RunCron(
           templateType: EmailTemplateType.SimpleMessage,
           vars: vars,
           subject: emailSubject,
+          isSubjectLiteral: true,
         };
 
         const sms: SMSMessage = {

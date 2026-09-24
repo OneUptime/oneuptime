@@ -55,7 +55,7 @@ This is the only place an on-call policy is attached to an incident directly. Se
 ### Step 5 — More
 
 - **Labels** — optional and an advanced feature: team members with access to these labels are the ones who can access the incident.
-- **Notify Status Page Subscribers** — checkbox, on by default. Controls whether subscribers are emailed about the incident being created (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Turn it off for internal noise you still want recorded.
+- **Notify Status Page Subscribers** — checkbox, on by default. Controls whether subscribers are emailed about the incident being created (`shouldStatusPageSubscribersBeNotifiedOnIncidentCreated`). Turn it off for internal noise you still want recorded. The incident then stays quiet by default: new public notes on it, and the state-change modal on its overview page (**Acknowledge**, **Resolve**, or picking another state), start with their own **Notify Status Page Subscribers** checkbox off. The manual form on the **State Timeline** page and the bulk **Change State** action in the incidents list still start with it on.
 - **Private Incident** — checkbox, off by default (`isPrivate`). A private incident is visible only to its owner users, the members of its owner teams, project admins and project owners — and it is hidden from every status page, regardless of any other setting. The incidents list marks these with a red **Private** pill.
 
 The **Should be visible on status page?** flag (`isVisibleOnStatusPage`) is not on the wizard; it defaults to true. Change it afterwards from **Settings** in the incident side menu, where it is labeled **Visible on Status Page**.
