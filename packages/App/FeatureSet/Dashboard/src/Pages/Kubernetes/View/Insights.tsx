@@ -32,6 +32,8 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 
 interface MetricSpec {
   variable: string;
@@ -77,11 +79,21 @@ function buildQuery(
   };
 }
 
-function getSectionTitle(icon: IconProp, title: string): ReactElement {
+/*
+ * `description` is for a section whose chart has no title of its own (the
+ * network throughput chart). Metric-query sections already caption every
+ * chart they draw, so they pass none.
+ */
+function getSectionTitle(
+  icon: IconProp,
+  title: string,
+  description?: string | undefined,
+): ReactElement {
   return (
     <div className="flex items-center gap-2">
       <Icon icon={icon} className="h-5 w-5 text-gray-500" />
       <span>{title}</span>
+      <InfoTooltip label={title} text={description} />
     </div>
   );
 }
@@ -258,7 +270,11 @@ const KubernetesClusterInsights: FunctionComponent<
       />
 
       <EmbeddedMetricCard
-        title={getSectionTitle(IconProp.Signal, "Network")}
+        title={getSectionTitle(
+          IconProp.Signal,
+          "Network",
+          KUBERNETES_CLUSTER_METRIC_DESCRIPTIONS.networkThroughput,
+        )}
         description="Per-second inbound and outbound network throughput across all nodes."
         timeRange={timeRange}
         onTimeRangeChange={handleTimeRangeChange}

@@ -32,6 +32,7 @@ import {
   attributeString,
 } from "../Utils/DockerSwarmResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
+import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 
 const DockerSwarmClusterTaskDetail: FunctionComponent<
   PageComponentProps
@@ -162,6 +163,7 @@ const DockerSwarmClusterTaskDetail: FunctionComponent<
       summaryFields.push({
         title: "CPU",
         value: formatPercent(Number(row.latestCpuPercent)),
+        description: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskCpu,
       });
     }
 
@@ -174,6 +176,7 @@ const DockerSwarmClusterTaskDetail: FunctionComponent<
       summaryFields.push({
         title: "Memory",
         value: `${used}${limit}`,
+        description: DOCKER_SWARM_METRIC_DESCRIPTIONS.taskMemory,
       });
     }
 

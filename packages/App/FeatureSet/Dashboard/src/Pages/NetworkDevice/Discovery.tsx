@@ -3,6 +3,7 @@ import DiscoveryScanProgress, {
   isWaitingForDiscoveryProgress,
 } from "../../Components/NetworkDevice/DiscoveryScanProgress";
 import DiscoveryScanStatusMessage from "../../Components/NetworkDevice/DiscoveryScanStatusMessage";
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/NetworkDeviceMetricDescriptions";
 import useDiscoveryScanLiveUpdates, {
   DiscoveryScanLiveUpdates,
 } from "../../Components/NetworkDevice/useDiscoveryScanLiveUpdates";
@@ -1658,6 +1659,14 @@ const NetworkDeviceDiscovery: FunctionComponent<
               respondedHostCount: true,
             },
             title: "Responded Hosts",
+            /*
+             * "12 of 254 hosts" reads as everything that answered. On an SNMP
+             * scan it is only the SNMP responders (the ping-only hosts are
+             * the line under it), and mid-sweep the 254 is what has been
+             * swept so far - the (i) says both.
+             */
+            headerTooltip:
+              NETWORK_DEVICE_METRIC_DESCRIPTIONS.discoveryRespondedHosts,
             type: FieldType.Element,
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-xs",

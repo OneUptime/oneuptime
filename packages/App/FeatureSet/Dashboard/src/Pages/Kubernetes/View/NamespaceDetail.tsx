@@ -245,7 +245,7 @@ const KubernetesClusterNamespaceDetail: FunctionComponent<
       children: (
         <Card
           title={`Namespace Metrics: ${namespaceName}`}
-          description="CPU and memory usage for pods in this namespace over the last 6 hours."
+          description="CPU and memory usage for pods in this namespace over the selected time range (the past hour by default)."
         >
           <KubernetesMetricsTab queryConfigs={[cpuQuery, memoryQuery]} />
         </Card>

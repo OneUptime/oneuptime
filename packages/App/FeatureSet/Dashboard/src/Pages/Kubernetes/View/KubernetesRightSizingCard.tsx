@@ -38,6 +38,7 @@ import {
   formatCpuCores,
   formatMemoryBytes,
 } from "Common/Types/Kubernetes/KubernetesRightSizing";
+import { KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesClusterMetricDescriptions";
 
 export interface ComponentProps {
   kubernetesClusterId: ObjectID;
@@ -249,6 +250,7 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
       },
       {
         title: "CPU Request",
+        headerTooltip: KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS.cpuRequest,
         type: FieldType.Element,
         key: "cpu",
         disableSort: true,
@@ -258,6 +260,8 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
       },
       {
         title: "Memory Request",
+        headerTooltip:
+          KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS.memoryRequest,
         type: FieldType.Element,
         key: "memory",
         disableSort: true,
@@ -267,6 +271,8 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
       },
       {
         title: "Est. Saving",
+        headerTooltip:
+          KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS.estimatedSaving,
         type: FieldType.Element,
         key: "estimatedMonthlySavings",
         getElement: getSavingsElement,
@@ -333,7 +339,7 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="Right-Sizing"
-      description="Recommended CPU and memory requests per container, derived from observed demand: a P95 of CPU usage and the peak memory working set, each with 25% headroom."
+      description="Recommended CPU and memory requests per container, derived from observed demand: the 95th percentile of hourly CPU usage (95% of hourly readings were lower) and the peak memory working set, each with 25% headroom."
       buttons={[refreshButton]}
     >
       <Fragment>
@@ -348,6 +354,9 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
                 : formatCost(summary.totalMonthlySavings)
             }
             sublabel="per month, if applied"
+            description={
+              KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS.potentialSaving
+            }
           />
           <GoldenMetricTile
             title="Over-provisioned"
@@ -357,6 +366,9 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
               isLoading || !summary ? "—" : `${summary.overprovisionedCount}`
             }
             sublabel="containers asking for too much"
+            description={
+              KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS.overprovisioned
+            }
           />
           <GoldenMetricTile
             title="Under-provisioned"
@@ -366,6 +378,9 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
               isLoading || !summary ? "—" : `${summary.underprovisionedCount}`
             }
             sublabel="throttle or OOM risk"
+            description={
+              KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS.underprovisioned
+            }
           />
           <GoldenMetricTile
             title="Analyzed"
@@ -373,6 +388,7 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
             iconColor="slate"
             value={isLoading || !summary ? "—" : `${summary.analyzedCount}`}
             sublabel="containers with cost data"
+            description={KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS.analyzed}
           />
         </div>
 

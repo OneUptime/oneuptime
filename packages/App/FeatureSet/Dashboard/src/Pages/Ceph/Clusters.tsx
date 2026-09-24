@@ -35,6 +35,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import CephDocumentationCard from "../../Components/Ceph/DocumentationCard";
 import AppLink from "../../Components/AppLink/AppLink";
 import ObjectID from "Common/Types/ObjectID";
+import { CEPH_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/CephMetricDescriptions";
 
 /*
  * Health pill rendered from the CephCluster.healthStatus snapshot column
@@ -341,6 +342,7 @@ const CephClusters: FunctionComponent<
               healthStatus: true,
             },
             title: "Health",
+            headerTooltip: CEPH_METRIC_DESCRIPTIONS.health,
             type: FieldType.Element,
             getElement: (item: CephCluster): ReactElement => {
               return renderHealthPill(item.healthStatus);
@@ -378,6 +380,7 @@ const CephClusters: FunctionComponent<
               osdCount: true,
             },
             title: "OSDs",
+            headerTooltip: CEPH_METRIC_DESCRIPTIONS.clusterOsds,
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: CephCluster): ReactElement => {
@@ -404,6 +407,7 @@ const CephClusters: FunctionComponent<
               monCount: true,
             },
             title: "Mons",
+            headerTooltip: CEPH_METRIC_DESCRIPTIONS.clusterMons,
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: CephCluster): ReactElement => {
@@ -419,6 +423,7 @@ const CephClusters: FunctionComponent<
               poolCount: true,
             },
             title: "Pools",
+            headerTooltip: CEPH_METRIC_DESCRIPTIONS.pools,
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: CephCluster): ReactElement => {
@@ -434,6 +439,7 @@ const CephClusters: FunctionComponent<
               capacityUsedPercent: true,
             },
             title: "Capacity",
+            headerTooltip: CEPH_METRIC_DESCRIPTIONS.clusterCapacity,
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: CephCluster): ReactElement => {

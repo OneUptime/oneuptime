@@ -37,6 +37,7 @@ import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
+import { CONTAINER_HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ContainerHostMetricDescriptions";
 
 interface PodmanContainerRow {
   containerName: string;
@@ -280,26 +281,32 @@ const PodmanHostContainers: FunctionComponent<
         title: "CPU",
         type: FieldType.Text,
         key: "cpuPercent",
+        headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerCpu,
       },
       {
         title: "Memory",
         type: FieldType.Text,
         key: "memoryUsage",
+        headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerMemory,
       },
       {
         title: "Memory %",
         type: FieldType.Text,
         key: "memoryPercent",
+        headerTooltip:
+          CONTAINER_HOST_METRIC_DESCRIPTIONS.containerMemoryPercent,
       },
       {
         title: "Network RX (total)",
         type: FieldType.Text,
         key: "networkRx",
+        headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerNetworkRx,
       },
       {
         title: "Network TX (total)",
         type: FieldType.Text,
         key: "networkTx",
+        headerTooltip: CONTAINER_HOST_METRIC_DESCRIPTIONS.containerNetworkTx,
       },
       {
         title: "",

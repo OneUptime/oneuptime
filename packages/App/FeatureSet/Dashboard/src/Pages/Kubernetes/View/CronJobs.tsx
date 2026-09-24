@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesResourceUtils, {
   KubernetesResource,
   PodMetricAggregate,
@@ -89,6 +90,10 @@ const KubernetesClusterCronJobs: FunctionComponent<
       title="CronJobs"
       description="All cron jobs in this cluster."
       resources={resources}
+      builtInColumnDescriptions={{
+        cpu: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.cronJobCpu,
+        memory: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.cronJobMemory,
+      }}
       columns={[
         {
           title: "Schedule",

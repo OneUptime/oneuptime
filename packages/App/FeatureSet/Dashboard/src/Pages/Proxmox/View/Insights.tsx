@@ -28,6 +28,8 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 
 /*
  * Curated MetricView presets sharing one time-range state — explicitly
@@ -320,8 +322,12 @@ const ProxmoxClusterInsights: FunctionComponent<
         renderExtraCharts={(dateRange: InBetween<Date>) => {
           return (
             <div>
-              <div className="mb-2 text-sm font-medium text-gray-700">
+              <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
                 Disk Throughput
+                <InfoTooltip
+                  label="Disk Throughput"
+                  text={PROXMOX_METRIC_DESCRIPTIONS.insightsDiskThroughput}
+                />
               </div>
               <ProxmoxRateChart
                 clusterName={clusterName}

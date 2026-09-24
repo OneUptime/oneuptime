@@ -103,6 +103,8 @@ const DeviceSummaryCards: FunctionComponent<ComponentProps> = (
           <InfoCard
             key={tile.key}
             title={tile.label}
+            // The (i) swallows its own click, so it never toggles the filter.
+            tooltip={tile.description}
             /*
              * The tiles stay inert until the counts land: clicking a skeleton
              * would filter the list to a number nobody has read yet.

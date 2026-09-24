@@ -44,6 +44,11 @@ import {
   getAutoRefreshIntervalInMs,
 } from "Common/Types/Dashboard/DashboardViewConfig";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
+import GoldenMetricTile, {
+  tileColorClasses,
+} from "../../../Components/Infrastructure/GoldenMetricTile";
+import { HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/HostMetricDescriptions";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import TelemetryTimeRangePicker from "Common/UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
@@ -122,99 +127,12 @@ const formatBytes: (value: number | null | undefined) => string = (
   return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
 };
 
-interface MetricTileProps {
-  title: string;
-  icon: IconProp;
-  iconColor: "blue" | "violet" | "amber" | "emerald" | "slate";
-  value: string;
-  sublabel?: string | undefined;
-  percent?: number | null | undefined;
-  thresholds?: { warn: number; danger: number } | undefined;
-}
-
-const colorClasses: Record<
-  MetricTileProps["iconColor"],
-  { bg: string; ring: string; text: string }
-> = {
-  blue: { bg: "bg-blue-50", ring: "ring-blue-200", text: "text-blue-600" },
-  violet: {
-    bg: "bg-violet-50",
-    ring: "ring-violet-200",
-    text: "text-violet-600",
-  },
-  amber: { bg: "bg-amber-50", ring: "ring-amber-200", text: "text-amber-600" },
-  emerald: {
-    bg: "bg-emerald-50",
-    ring: "ring-emerald-200",
-    text: "text-emerald-600",
-  },
-  slate: { bg: "bg-slate-50", ring: "ring-slate-200", text: "text-slate-600" },
-};
-
-const MetricTile: FunctionComponent<MetricTileProps> = (
-  props: MetricTileProps,
-): ReactElement => {
-  const colors: { bg: string; ring: string; text: string } =
-    colorClasses[props.iconColor];
-
-  const barColor: string = (() => {
-    if (props.percent === null || props.percent === undefined) {
-      return "bg-gray-300";
-    }
-    const t: { warn: number; danger: number } = props.thresholds || {
-      warn: 70,
-      danger: 90,
-    };
-    if (props.percent >= t.danger) {
-      return "bg-red-500";
-    }
-    if (props.percent >= t.warn) {
-      return "bg-amber-500";
-    }
-    return "bg-emerald-500";
-  })();
-
-  const safePercent: number =
-    props.percent === null || props.percent === undefined
-      ? 0
-      : Math.min(100, Math.max(0, props.percent));
-
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-          {props.title}
-        </span>
-        <div
-          className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
-        >
-          <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
-        </div>
-      </div>
-      <div className="text-2xl font-semibold text-gray-900 leading-none">
-        {props.value}
-      </div>
-      {props.sublabel ? (
-        <div className="mt-1 text-xs text-gray-500">{props.sublabel}</div>
-      ) : (
-        <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
-      )}
-      {props.percent !== undefined && props.percent !== null && (
-        <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">
-          <div
-            className={`${barColor} h-1.5 rounded-full transition-all`}
-            style={{ width: `${safePercent}%` }}
-          />
-        </div>
-      )}
-    </div>
-  );
-};
-
 /*
  * Tile values use a short recent-window mean regardless of how wide
  * the chart window is — "what is this process doing right now" is what
  * the tile numbers answer, even when the chart shows a wider range.
+ * Like the host overview, meanFromBuckets falls back to the whole range
+ * when no bucket starts inside the window (usual past 12 hours).
  */
 const TILE_WINDOW_MINUTES: number = 5;
 
@@ -923,30 +841,33 @@ const HostProcessView: FunctionComponent<
 
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricTile
+        <GoldenMetricTile
           title="CPU"
           icon={IconProp.ChartBar}
           iconColor="blue"
           value={formatPercent(s.cpuPercent)}
           sublabel={cpuSublabel}
           percent={s.cpuPercent}
+          description={HOST_METRIC_DESCRIPTIONS.processCpu}
         />
-        <MetricTile
+        <GoldenMetricTile
           title="Memory (RSS)"
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={formatBytes(s.memoryBytes)}
           sublabel={memorySublabel}
           percent={s.memoryPercent}
+          description={HOST_METRIC_DESCRIPTIONS.processMemoryRss}
         />
-        <MetricTile
+        <GoldenMetricTile
           title="Virtual Memory"
           icon={IconProp.Cube}
           iconColor="amber"
           value={formatBytes(s.virtualMemoryBytes)}
           sublabel="address space"
+          description={HOST_METRIC_DESCRIPTIONS.processVirtualMemory}
         />
-        <MetricTile
+        <GoldenMetricTile
           title="Threads"
           icon={IconProp.List}
           iconColor="slate"
@@ -956,6 +877,7 @@ const HostProcessView: FunctionComponent<
               ? `${formatInt(s.openFds)} open fds`
               : "thread count"
           }
+          description={HOST_METRIC_DESCRIPTIONS.processThreads}
         />
       </div>
     );
@@ -969,6 +891,8 @@ const HostProcessView: FunctionComponent<
     yAxis?: YAxis;
     showLegend?: boolean;
     curve?: ChartCurve;
+    // What the chart plots, shown in an (i) tooltip beside the title.
+    description?: string;
   }) => ReactElement = (params: {
     title: string;
     icon: IconProp;
@@ -977,17 +901,22 @@ const HostProcessView: FunctionComponent<
     yAxis?: YAxis;
     showLegend?: boolean;
     curve?: ChartCurve;
+    // What the chart plots, shown in an (i) tooltip beside the title.
+    description?: string;
   }): ReactElement => {
     const colors: { bg: string; ring: string; text: string } =
-      colorClasses[params.iconColor];
+      tileColorClasses[params.iconColor];
 
     if (!chartWindow) {
       return (
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {params.title}
-            </span>
+            <div className="flex min-w-0 items-center gap-1">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                {params.title}
+              </span>
+              <InfoTooltip label={params.title} text={params.description} />
+            </div>
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
             >
@@ -1027,9 +956,12 @@ const HostProcessView: FunctionComponent<
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {params.title}
-          </span>
+          <div className="flex min-w-0 items-center gap-1">
+            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {params.title}
+            </span>
+            <InfoTooltip label={params.title} text={params.description} />
+          </div>
           <div
             className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
           >
@@ -1099,6 +1031,7 @@ const HostProcessView: FunctionComponent<
             icon: IconProp.ChartBar,
             iconColor: "blue",
             data: cpuSeries,
+            description: HOST_METRIC_DESCRIPTIONS.processCpuChart,
           })}
           {renderChartCard({
             title: "Memory (RSS)",
@@ -1106,6 +1039,7 @@ const HostProcessView: FunctionComponent<
             iconColor: "violet",
             data: memorySeries,
             yAxis: memoryYAxis,
+            description: HOST_METRIC_DESCRIPTIONS.processMemoryRssChart,
           })}
           {renderChartCard({
             title: "Disk I/O",
@@ -1114,6 +1048,7 @@ const HostProcessView: FunctionComponent<
             data: diskSeries,
             yAxis: diskYAxis,
             showLegend: diskSeries.length > 1,
+            description: HOST_METRIC_DESCRIPTIONS.processDiskIoChart,
           })}
         </div>
       </div>

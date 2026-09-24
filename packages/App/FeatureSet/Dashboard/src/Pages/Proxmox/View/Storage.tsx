@@ -22,6 +22,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 
 const ProxmoxClusterStorage: FunctionComponent<
   PageComponentProps
@@ -79,12 +80,17 @@ const ProxmoxClusterStorage: FunctionComponent<
       showGroupColumn={true}
       groupColumnTitle="Node"
       showResourceMetrics={false}
+      builtInColumnDescriptions={{
+        status: PROXMOX_METRIC_DESCRIPTIONS.storageTableStatus,
+        age: PROXMOX_METRIC_DESCRIPTIONS.storageTableAge,
+      }}
       tableIdPrefix="proxmox"
       emptyMessage="No storage volumes reported yet. Make sure the Proxmox agent is sending metrics."
       columns={[
         {
           title: "Used / Total",
           key: "diskBytes",
+          description: PROXMOX_METRIC_DESCRIPTIONS.storageTableUsage,
           getValue: (resource: InfrastructureResource): string => {
             const usedRaw: string =
               resource.additionalAttributes["diskBytes"] || "";

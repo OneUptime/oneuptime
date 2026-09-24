@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesResourceUtils, {
   KubernetesResource,
   PodMetricAggregate,
@@ -99,6 +100,10 @@ const KubernetesClusterJobs: FunctionComponent<
       title="Jobs"
       description="All jobs in this cluster."
       resources={resources}
+      builtInColumnDescriptions={{
+        cpu: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.jobCpu,
+        memory: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.jobMemory,
+      }}
       getViewRoute={(resource: KubernetesResource) => {
         return RouteUtil.populateRouteParams(
           RouteMap[PageMap.KUBERNETES_CLUSTER_VIEW_JOB_DETAIL] as Route,

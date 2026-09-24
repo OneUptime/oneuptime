@@ -21,6 +21,7 @@ import ResourceTable, {
 } from "../../../Components/Infrastructure/ResourceTable";
 import CephResourceModel from "Common/Models/DatabaseModels/CephResource";
 import CephResourceUtils from "../Utils/CephResourceUtils";
+import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import Metric from "Common/Models/AnalyticsModels/Metric";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -212,12 +213,36 @@ const CephClusterPools: FunctionComponent<
       showStatus={false}
       showResourceMetrics={false}
       columns={[
-        { title: "Stored", key: "stored" },
-        { title: "Max Avail", key: "maxAvail" },
-        { title: "Used", key: "usedPercent" },
-        { title: "Objects", key: "objects" },
-        { title: "Read IOPS", key: "readIops" },
-        { title: "Write IOPS", key: "writeIops" },
+        {
+          title: "Stored",
+          key: "stored",
+          description: CEPH_METRIC_DESCRIPTIONS.poolStoredColumn,
+        },
+        {
+          title: "Max Avail",
+          key: "maxAvail",
+          description: CEPH_METRIC_DESCRIPTIONS.poolMaxAvailColumn,
+        },
+        {
+          title: "Used",
+          key: "usedPercent",
+          description: CEPH_METRIC_DESCRIPTIONS.poolUsedColumn,
+        },
+        {
+          title: "Objects",
+          key: "objects",
+          description: CEPH_METRIC_DESCRIPTIONS.poolObjectsColumn,
+        },
+        {
+          title: "Read IOPS",
+          key: "readIops",
+          description: CEPH_METRIC_DESCRIPTIONS.poolReadIopsColumn,
+        },
+        {
+          title: "Write IOPS",
+          key: "writeIops",
+          description: CEPH_METRIC_DESCRIPTIONS.poolWriteIopsColumn,
+        },
       ]}
       emptyMessage="No pools found in the inventory yet. Pools appear here a few minutes after the Ceph agent starts sending metrics."
       getViewRoute={(resource: InfrastructureResource) => {

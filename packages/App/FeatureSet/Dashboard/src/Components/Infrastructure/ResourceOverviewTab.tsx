@@ -18,6 +18,8 @@ import ConditionsTable, {
 export interface SummaryField {
   title: string;
   value: string | ReactElement;
+  // What the value means, shown in an (i) tooltip beside the title.
+  description?: string | undefined;
 }
 
 export interface OwnerReference {
@@ -65,7 +67,12 @@ const ResourceOverviewTab: FunctionComponent<ComponentProps> = (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {props.summaryFields.map((field: SummaryField, index: number) => {
             return (
-              <InfoCard key={index} title={field.title} value={field.value} />
+              <InfoCard
+                key={index}
+                title={field.title}
+                value={field.value}
+                tooltip={field.description}
+              />
             );
           })}
         </div>

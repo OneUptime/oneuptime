@@ -5,6 +5,7 @@ import {
   describeProviderBreakdown,
   summarizeCloudFleet,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Cloud/Utils/CloudFleetSummary";
+import { CLOUD_FLEET_METRIC_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/CloudMetricDescriptions";
 
 /*
  * The stat strip's wording lives in a pure function so it can be checked
@@ -57,6 +58,7 @@ describe("summarizeCloudFleet", () => {
       title: "Environments",
       value: "0",
       sublabel: "none discovered yet",
+      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.environments,
     });
     expect(tileByTitle(tiles, "Connected").value).toBe("0");
     expect(tileByTitle(tiles, "Connected").sublabel).toBe(
@@ -67,6 +69,7 @@ describe("summarizeCloudFleet", () => {
       title: "Live instances",
       value: "0",
       sublabel: "seen in the last 15 min",
+      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.liveInstances,
     });
   });
 
@@ -85,16 +88,19 @@ describe("summarizeCloudFleet", () => {
       title: "Environments",
       value: "6",
       sublabel: "3 AWS · 2 Azure · 1 Google Cloud",
+      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.environments,
     });
     expect(tileByTitle(tiles, "Connected")).toEqual({
       title: "Connected",
       value: "4",
       sublabel: "67% of environments",
+      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.connected,
     });
     expect(tileByTitle(tiles, "Disconnected")).toEqual({
       title: "Disconnected",
       value: "2",
       sublabel: "no telemetry recently",
+      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.disconnected,
     });
     expect(tileByTitle(tiles, "Live instances").value).toBe("17");
   });
@@ -112,11 +118,13 @@ describe("summarizeCloudFleet", () => {
       title: "Connected",
       value: "0",
       sublabel: "0% of environments",
+      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.connected,
     });
     expect(tileByTitle(tiles, "Disconnected")).toEqual({
       title: "Disconnected",
       value: "3",
       sublabel: "no telemetry recently",
+      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.disconnected,
     });
     expect(tileByTitle(tiles, "Environments").sublabel).toBe("3 AWS");
   });

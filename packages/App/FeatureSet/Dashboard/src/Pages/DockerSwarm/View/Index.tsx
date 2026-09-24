@@ -21,6 +21,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import OneUptimeDate from "Common/Types/Date";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import {
   fetchDockerSwarmInventoryRows,
   routeParamFromExternalId,
@@ -28,8 +29,67 @@ import {
 } from "../Utils/DockerSwarmResourceUtils";
 import AutoRefreshControl from "../../../Components/TelemetryResource/AutoRefreshControl";
 import useAutoRefresh from "../../../Components/TelemetryResource/useAutoRefresh";
+import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 
 type ClusterHealth = "Healthy" | "Degraded" | "Unhealthy";
+
+interface SpecChip {
+  icon: IconProp;
+  label: string;
+  /*
+   * Metric chips only: the chip's label is a sentence with numbers in it
+   * ("3/3 nodes ready"), so the (i) is named after `name` instead.
+   */
+  name?: string | undefined;
+  description?: string | undefined;
+}
+
+export interface SwarmCountTileProps {
+  label: string;
+  value: number;
+  subline: string | null;
+  // What the count means, shown in an (i) tooltip beside the label.
+  description?: string | undefined;
+  onOpen: () => void;
+}
+
+/*
+ * One count on the overview strip; the whole tile opens that list. The
+ * open control is laid over the card rather than wrapped around it, so the
+ * (i) - itself a button - is never nested inside another button, and it is
+ * lifted above the overlay so asking what a count means does not navigate.
+ */
+export const SwarmCountTile: FunctionComponent<SwarmCountTileProps> = (
+  props: SwarmCountTileProps,
+): ReactElement => {
+  return (
+    <div className="relative rounded-lg border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-300 hover:shadow">
+      <button
+        type="button"
+        onClick={props.onOpen}
+        className="absolute inset-0 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+      >
+        <span className="sr-only">{`View ${props.label}`}</span>
+      </button>
+      <div className="flex items-center gap-1">
+        <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          {props.label}
+        </div>
+        <InfoTooltip
+          label={props.label}
+          text={props.description}
+          className="relative z-10"
+        />
+      </div>
+      <div className="mt-1 text-2xl font-semibold text-gray-900">
+        {props.value}
+      </div>
+      {props.subline && (
+        <div className="mt-0.5 text-xs text-gray-500">{props.subline}</div>
+      )}
+    </div>
+  );
+};
 
 interface DegradedItem {
   kind: "Node" | "Service" | "Task";
@@ -380,28 +440,31 @@ const DockerSwarmClusterOverview: FunctionComponent<
           ? "bg-amber-500"
           : "bg-red-500";
 
-    const specChips: Array<{
-      icon: IconProp;
-      label: string;
-    }> = [];
+    const specChips: Array<SpecChip> = [];
     if (nodesTotal > 0) {
       specChips.push({
         icon: IconProp.ServerStack,
         label: `${nodesReady}/${nodesTotal} node${
           nodesTotal === 1 ? "" : "s"
         } ready`,
+        name: "Nodes ready",
+        description: DOCKER_SWARM_METRIC_DESCRIPTIONS.nodes,
       });
     }
     if (managerCount > 0) {
       specChips.push({
         icon: IconProp.Star,
         label: `${managerCount} manager${managerCount === 1 ? "" : "s"}`,
+        name: "Managers",
+        description: DOCKER_SWARM_METRIC_DESCRIPTIONS.managers,
       });
     }
     if (servicesTotal > 0) {
       specChips.push({
         icon: IconProp.Cube,
         label: `${servicesTotal} service${servicesTotal === 1 ? "" : "s"}`,
+        name: "Services",
+        description: DOCKER_SWARM_METRIC_DESCRIPTIONS.services,
       });
     }
     if (tasksTotal > 0) {
@@ -410,6 +473,8 @@ const DockerSwarmClusterOverview: FunctionComponent<
         label: `${tasksRunning}/${tasksTotal} task${
           tasksTotal === 1 ? "" : "s"
         } running`,
+        name: "Tasks running",
+        description: DOCKER_SWARM_METRIC_DESCRIPTIONS.tasks,
       });
     }
     if (cluster.dockerVersion) {
@@ -491,25 +556,22 @@ const DockerSwarmClusterOverview: FunctionComponent<
 
           {specChips.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-1.5">
-              {specChips.map(
-                (
-                  chip: { icon: IconProp; label: string },
-                  idx: number,
-                ): ReactElement => {
-                  return (
-                    <span
-                      key={`spec-${idx}`}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
-                    >
-                      <Icon
-                        icon={chip.icon}
-                        className="h-3 w-3 text-gray-500"
-                      />
-                      <span className="font-medium">{chip.label}</span>
-                    </span>
-                  );
-                },
-              )}
+              {specChips.map((chip: SpecChip, idx: number): ReactElement => {
+                return (
+                  <span
+                    key={`spec-${idx}`}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
+                  >
+                    <Icon icon={chip.icon} className="h-3 w-3 text-gray-500" />
+                    <span className="font-medium">{chip.label}</span>
+                    <InfoTooltip
+                      label={chip.name || chip.label}
+                      text={chip.description}
+                      iconClassName="h-3 w-3"
+                    />
+                  </span>
+                );
+              })}
             </div>
           )}
         </div>
@@ -522,33 +584,29 @@ const DockerSwarmClusterOverview: FunctionComponent<
     value: number,
     subline: string | null,
     pageMap: PageMap,
+    description?: string,
   ) => ReactElement = (
     label: string,
     value: number,
     subline: string | null,
     pageMap: PageMap,
+    description?: string,
   ): ReactElement => {
     return (
-      <button
+      <SwarmCountTile
         key={label}
-        type="button"
-        onClick={() => {
+        label={label}
+        value={value}
+        subline={subline}
+        description={description}
+        onOpen={() => {
           Navigation.navigate(
             RouteUtil.populateRouteParams(RouteMap[pageMap] as Route, {
               modelId: modelId,
             }),
           );
         }}
-        className="rounded-lg border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-sky-300 hover:shadow"
-      >
-        <div className="text-xs font-medium uppercase tracking-wide text-gray-500">
-          {label}
-        </div>
-        <div className="mt-1 text-2xl font-semibold text-gray-900">{value}</div>
-        {subline && (
-          <div className="mt-0.5 text-xs text-gray-500">{subline}</div>
-        )}
-      </button>
+      />
     );
   };
 
@@ -564,6 +622,7 @@ const DockerSwarmClusterOverview: FunctionComponent<
           nodesTotal,
           nodesTotal > 0 ? `${nodesReady}/${nodesTotal} ready` : null,
           PageMap.DOCKER_SWARM_CLUSTER_VIEW_NODES,
+          DOCKER_SWARM_METRIC_DESCRIPTIONS.nodes,
         )}
         {renderCountTile(
           "Services",
@@ -572,30 +631,35 @@ const DockerSwarmClusterOverview: FunctionComponent<
             ? `${inventory.servicesConverged}/${servicesTotal} converged`
             : null,
           PageMap.DOCKER_SWARM_CLUSTER_VIEW_SERVICES,
+          DOCKER_SWARM_METRIC_DESCRIPTIONS.services,
         )}
         {renderCountTile(
           "Tasks",
           tasksTotal,
           tasksTotal > 0 ? `${tasksRunning}/${tasksTotal} running` : null,
           PageMap.DOCKER_SWARM_CLUSTER_VIEW_TASKS,
+          DOCKER_SWARM_METRIC_DESCRIPTIONS.tasks,
         )}
         {renderCountTile(
           "Stacks",
           stackCount,
           null,
           PageMap.DOCKER_SWARM_CLUSTER_VIEW_STACKS,
+          DOCKER_SWARM_METRIC_DESCRIPTIONS.stacks,
         )}
         {renderCountTile(
           "Networks",
           networkCount,
           null,
           PageMap.DOCKER_SWARM_CLUSTER_VIEW_NETWORKS,
+          DOCKER_SWARM_METRIC_DESCRIPTIONS.networks,
         )}
         {renderCountTile(
           "Volumes",
           inventory?.volumeCount || 0,
           null,
           PageMap.DOCKER_SWARM_CLUSTER_VIEW_VOLUMES,
+          DOCKER_SWARM_METRIC_DESCRIPTIONS.volumes,
         )}
       </div>
 

@@ -21,6 +21,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { DOCKER_SWARM_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 
 const DockerSwarmClusterServices: FunctionComponent<
   PageComponentProps
@@ -78,6 +79,11 @@ const DockerSwarmClusterServices: FunctionComponent<
       groupColumnTitle="Stack"
       groupFallbackLabel="(no stack)"
       tableIdPrefix="docker-swarm"
+      builtInColumnDescriptions={{
+        status: DOCKER_SWARM_METRIC_DESCRIPTIONS.serviceStatusColumn,
+        cpu: DOCKER_SWARM_METRIC_DESCRIPTIONS.serviceUsageColumns,
+        memory: DOCKER_SWARM_METRIC_DESCRIPTIONS.serviceUsageColumns,
+      }}
       emptyMessage="No services reported yet. Make sure the Docker Swarm agent is sending metrics."
       columns={[
         {
@@ -87,6 +93,7 @@ const DockerSwarmClusterServices: FunctionComponent<
         {
           title: "Replicas",
           key: "replicas",
+          description: DOCKER_SWARM_METRIC_DESCRIPTIONS.replicas,
           getValue: (resource: InfrastructureResource): string => {
             return resource.additionalAttributes["replicas"] || "—";
           },

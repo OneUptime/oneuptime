@@ -26,6 +26,7 @@ import RangeStartAndEndDateTime, {
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "Common/Types/Time/TimeRange";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import { DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS } from "../../../Components/MetricDescriptions/DockerSwarmMetricDescriptions";
 
 /*
  * Curated MetricView presets sharing one time-range state — explicitly
@@ -39,8 +40,13 @@ import InBetween from "Common/Types/BaseDatabase/InBetween";
  * (container.cpu.utilization, container.memory.usage.total,
  * container.memory.percent, container.pids.count, container.uptime), so
  * the presets below target those names verbatim. `container.cpu.utilization`
- * is already a host-CPU percentage (0–100), so unlike Proxmox's
- * pve_cpu_usage_ratio it needs no ×100 transform.
+ * is already a percentage on the `docker stats` scale - 100% is one full CPU
+ * core, so a container on several cores reads above 100 - and unlike
+ * Proxmox's pve_cpu_usage_ratio it needs no ×100 transform.
+ *
+ * The text under each chart title comes from
+ * DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS, where it is held to the same
+ * rules as every metric tooltip.
  */
 
 interface MetricSpec {
@@ -103,8 +109,7 @@ function getComputeQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "cluster_cpu_utilization",
         title: "Cluster CPU Utilization",
-        description:
-          "container.cpu.utilization (host-CPU percent), one line per task.",
+        description: DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS.clusterCpu,
         legend: "CPU",
         legendUnit: "%",
         metricName: "container.cpu.utilization",
@@ -117,7 +122,7 @@ function getComputeQueries(cluster: string): Array<MetricQueryConfigData> {
         variable: "cluster_memory_percent",
         title: "Cluster Memory Utilization",
         description:
-          "container.memory.percent (percent of each task's memory limit), one line per task.",
+          DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS.clusterMemoryPercent,
         legend: "Memory",
         legendUnit: "%",
         metricName: "container.memory.percent",
@@ -138,7 +143,7 @@ function getMemoryQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "cluster_memory_usage",
         title: "Task Memory Usage",
-        description: "container.memory.usage.total (bytes), one line per task.",
+        description: DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS.taskMemory,
         legend: "Memory",
         legendUnit: "",
         metricName: "container.memory.usage.total",
@@ -162,8 +167,7 @@ function getTopTaskQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "top_tasks_cpu",
         title: "Top Tasks by CPU",
-        description:
-          "Peak container.cpu.utilization per task (Max), so the busiest tasks stand out.",
+        description: DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS.topTasksCpu,
         legend: "CPU",
         legendUnit: "%",
         metricName: "container.cpu.utilization",
@@ -175,8 +179,7 @@ function getTopTaskQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "top_tasks_memory",
         title: "Top Tasks by Memory",
-        description:
-          "Peak container.memory.usage.total per task (Max), so the hungriest tasks stand out.",
+        description: DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS.topTasksMemory,
         legend: "Memory",
         legendUnit: "",
         metricName: "container.memory.usage.total",
@@ -198,7 +201,7 @@ function getProcessQueries(cluster: string): Array<MetricQueryConfigData> {
       {
         variable: "task_pids",
         title: "Task Process Count",
-        description: "container.pids.count (processes per task).",
+        description: DOCKER_SWARM_INSIGHTS_CHART_DESCRIPTIONS.taskProcesses,
         legend: "Processes",
         legendUnit: "",
         metricName: "container.pids.count",

@@ -41,6 +41,7 @@ import {
   formatPercent,
   SpanMetrics,
 } from "../../../Components/TelemetryResource/telemetryMetrics";
+import { SERVERLESS_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ServerlessMetricDescriptions";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
@@ -215,6 +216,7 @@ const ServerlessFunctionOverview: FunctionComponent<
       iconColor: "blue",
       loading: metricsLoading,
       sublabel: "selected range",
+      description: SERVERLESS_METRIC_DESCRIPTIONS.invocations,
     },
     {
       title: "Error rate",
@@ -225,6 +227,7 @@ const ServerlessFunctionOverview: FunctionComponent<
       sublabel: m ? `${formatCompact(m.errors)} errored` : undefined,
       percent: m ? m.errorRatePercent : null,
       thresholds: { warn: 1, danger: 5 },
+      description: SERVERLESS_METRIC_DESCRIPTIONS.errorRate,
     },
     {
       title: "p95 duration",
@@ -233,6 +236,7 @@ const ServerlessFunctionOverview: FunctionComponent<
       iconColor: "violet",
       loading: metricsLoading,
       sublabel: "selected range",
+      description: SERVERLESS_METRIC_DESCRIPTIONS.p95Duration,
     },
     {
       title: "Instances",
@@ -242,6 +246,7 @@ const ServerlessFunctionOverview: FunctionComponent<
       loading: instanceCount === null,
       sublabel: "active",
       to: populate(PageMap.SERVERLESS_FUNCTION_VIEW_INSTANCES),
+      description: SERVERLESS_METRIC_DESCRIPTIONS.instances,
     },
   ];
 
@@ -262,6 +267,7 @@ const ServerlessFunctionOverview: FunctionComponent<
         syncId={`serverless-${modelId.toString()}`}
         showLegend={true}
         loading={metricsLoading && !m}
+        description={SERVERLESS_METRIC_DESCRIPTIONS.invocationsChart}
       />
       <ChartCard
         title="p95 duration"
@@ -280,6 +286,7 @@ const ServerlessFunctionOverview: FunctionComponent<
           return formatDurationMs(n);
         }}
         loading={metricsLoading && !m}
+        description={SERVERLESS_METRIC_DESCRIPTIONS.p95DurationChart}
       />
     </div>
   );

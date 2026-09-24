@@ -24,6 +24,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { VMWARE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/VMwareMetricDescriptions";
 
 const VMwareVCenterClusters: FunctionComponent<
   PageComponentProps
@@ -108,6 +109,7 @@ const VMwareVCenterClusters: FunctionComponent<
            */
           title: "Hosts (effective / total)",
           key: "hostCount",
+          description: VMWARE_METRIC_DESCRIPTIONS.clusterListHosts,
           getValue: (resource: InfrastructureResource): string => {
             const total: number | null = readCount(resource, "hostCount");
             const effective: number | null = readCount(
@@ -125,6 +127,7 @@ const VMwareVCenterClusters: FunctionComponent<
         {
           title: "VMs (powered on / total)",
           key: "vmCount",
+          description: VMWARE_METRIC_DESCRIPTIONS.clusterListVirtualMachines,
           getValue: (resource: InfrastructureResource): string => {
             const total: number | null = readCount(resource, "vmCount");
             const on: number | null = readCount(resource, "poweredOnVmCount");
@@ -137,6 +140,7 @@ const VMwareVCenterClusters: FunctionComponent<
         {
           title: "Templates",
           key: "vmTemplateCount",
+          description: VMWARE_METRIC_DESCRIPTIONS.clusterListTemplates,
           getValue: (resource: InfrastructureResource): string => {
             const n: number | null = readCount(resource, "vmTemplateCount");
             return n === null ? "-" : String(n);
@@ -145,6 +149,7 @@ const VMwareVCenterClusters: FunctionComponent<
         {
           title: "Effective CPU",
           key: "cpuEffectiveMhz",
+          description: VMWARE_METRIC_DESCRIPTIONS.clusterListEffectiveCpu,
           getValue: (resource: InfrastructureResource): string => {
             const n: number | null = readCount(resource, "cpuEffectiveMhz");
             const limit: number | null = readCount(resource, "cpuCapacityMhz");
@@ -159,6 +164,7 @@ const VMwareVCenterClusters: FunctionComponent<
         {
           title: "Effective Memory",
           key: "memoryEffectiveBytes",
+          description: VMWARE_METRIC_DESCRIPTIONS.clusterListEffectiveMemory,
           getValue: (resource: InfrastructureResource): string => {
             const n: number | null = readCount(
               resource,

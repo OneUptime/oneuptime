@@ -63,6 +63,11 @@ export default interface Columns<
   colSpan?: number | undefined;
   disableSort?: boolean;
   description?: string | undefined;
+  /*
+   * What the column's values mean, in an (i) beside the header (see the
+   * Table Column of the same name). Spread through to the table as is.
+   */
+  headerTooltip?: string | undefined;
   type: FieldType;
   tooltipText?: ((item: TEntity) => string) | undefined;
   actionButtons?: Array<ActionButton>;

@@ -25,6 +25,7 @@ import {
   fetchSessionReplayAuditSummaries,
   SessionReplayAuditSummary,
 } from "../../../Components/SessionReplay/SessionReplayAuditSummary";
+import { RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/RumMetricDescriptions";
 
 /*
  * Who watched a real end user's screen, and for how long.
@@ -276,6 +277,7 @@ const RumApplicationSessionReplayAudit: FunctionComponent<
           {
             field: { secondsWatched: true },
             title: "Watched",
+            headerTooltip: RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched,
             type: FieldType.Element,
             getElement: (item: RumSessionReplayView): ReactElement => {
               return (

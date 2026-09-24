@@ -6,6 +6,7 @@ import Card from "Common/UI/Components/Card/Card";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import Label from "Common/Models/DatabaseModels/Label";
 import OneUptimeDate from "Common/Types/Date";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import AppLink from "../AppLink/AppLink";
 
 export interface ResourceOverviewChip {
@@ -40,6 +41,12 @@ export interface ResourceOverviewTile {
   thresholds?: { warn: number; danger: number } | undefined;
   higherIsBetter?: boolean | undefined;
   to?: Route | undefined;
+  /*
+   * What the number means, in plain words - shown in an (i) tooltip beside
+   * the title. "p95" or "error rate" is jargon to most of the people who
+   * land on an overview.
+   */
+  description?: string | undefined;
 }
 
 export interface ResourceOverviewQuickLink {
@@ -129,15 +136,38 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
       ? 0
       : Math.min(100, Math.max(0, props.percent));
 
-  const inner: ReactElement = (
+  return (
     <div
-      className="h-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-indigo-300 hover:shadow"
+      className="relative h-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition-all hover:border-indigo-300 hover:shadow"
       aria-busy={props.loading ? "true" : "false"}
     >
+      {/*
+       * A linked tile is one big click target, but the (i) inside it must not
+       * navigate - and a button may not sit inside an anchor. So the link is
+       * laid over the card rather than wrapped around it, and the (i) is
+       * lifted above the overlay.
+       */}
+      {props.to ? (
+        <AppLink
+          to={props.to}
+          className="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        >
+          <span className="sr-only">{`View ${props.title}`}</span>
+        </AppLink>
+      ) : (
+        <></>
+      )}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-          {props.title}
-        </span>
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {props.title}
+          </span>
+          <InfoTooltip
+            label={props.title}
+            text={props.description}
+            className="relative z-10"
+          />
+        </div>
         <div
           className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
         >
@@ -188,15 +218,6 @@ const GoldenMetricTile: FunctionComponent<ResourceOverviewTile> = (
       )}
     </div>
   );
-
-  if (props.to) {
-    return (
-      <AppLink to={props.to} className="block h-full">
-        {inner}
-      </AppLink>
-    );
-  }
-  return inner;
 };
 
 const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (

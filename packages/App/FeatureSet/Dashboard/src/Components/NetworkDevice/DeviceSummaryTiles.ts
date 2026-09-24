@@ -5,6 +5,7 @@ import {
   DeviceStatusFacetValue,
 } from "./DeviceFacets";
 import { FacetTileSelection } from "../ResourceOwners/FacetTileSelection";
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 
 /*
  * The summary strip above the device list is a set of counts, and every one of
@@ -28,6 +29,12 @@ export interface DeviceSummaryTile {
   // css class for the count when everything is fine (count === 0).
   allClearClassName: string;
   caption: string;
+  /*
+   * What the count means, in the (i) beside the label. The caption under the
+   * number is the one-line answer; this is the whole of it — which check
+   * decides, and that the count is the project's, not the filtered list's.
+   */
+  description: string;
   /**
    * The facet chip and value that produce exactly the rows this tile counted.
    * Every device tile has one — no tile here counts rows that live on another
@@ -45,6 +52,7 @@ export const DEVICE_SUMMARY_TILES: Array<DeviceSummaryTile> = [
     allClearClassName: "text-gray-900",
     caption:
       "The last poll (ping or SNMP), or the bound monitor, reached the device.",
+    description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.devicesUp,
     selection: {
       facetKey: DEVICE_STATUS_FACET_KEY,
       values: [DeviceStatusFacetValue.Up],
@@ -59,6 +67,7 @@ export const DEVICE_SUMMARY_TILES: Array<DeviceSummaryTile> = [
     allClearClassName: "text-gray-900",
     caption:
       "The last poll (ping or SNMP), or the bound monitor, could not reach the device.",
+    description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.devicesDown,
     selection: {
       facetKey: DEVICE_STATUS_FACET_KEY,
       values: [DeviceStatusFacetValue.Down],
@@ -73,6 +82,7 @@ export const DEVICE_SUMMARY_TILES: Array<DeviceSummaryTile> = [
     allClearClassName: "text-gray-900",
     caption:
       "No verdict yet — never polled, no probe assigned, or no monitor bound.",
+    description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.devicesPending,
     selection: {
       facetKey: DEVICE_STATUS_FACET_KEY,
       values: [DeviceStatusFacetValue.Pending],
@@ -92,6 +102,7 @@ export const DEVICE_SUMMARY_TILES: Array<DeviceSummaryTile> = [
     attentionClassName: "text-red-600",
     allClearClassName: "text-gray-900",
     caption: "Across all devices in this project.",
+    description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.totalInterfacesDown,
     selection: {
       facetKey: DEVICE_INTERFACES_FACET_KEY,
       values: [DeviceInterfacesFacetValue.SomeDown],

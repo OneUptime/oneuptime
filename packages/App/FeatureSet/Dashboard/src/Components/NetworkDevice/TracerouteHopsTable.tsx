@@ -1,4 +1,6 @@
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 import { TraceRouteHop } from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -26,7 +28,20 @@ const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
           <tr className="text-left text-xs text-gray-500">
             <th className="pr-4 pb-2 font-medium">Hop</th>
             <th className="pr-4 pb-2 font-medium">Host</th>
-            <th className="pb-2 font-medium">RTT</th>
+            <th className="pb-2 font-medium">
+              {/*
+               * Only the first of the probe's replies per hop is kept, and
+               * routers often put answering these probes last — the (i)
+               * says so before a high hop reads as the fault.
+               */}
+              <span className="inline-flex items-center gap-1">
+                RTT
+                <InfoTooltip
+                  label="RTT"
+                  text={NETWORK_DEVICE_METRIC_DESCRIPTIONS.tracerouteRtt}
+                />
+              </span>
+            </th>
           </tr>
         </thead>
         <tbody>

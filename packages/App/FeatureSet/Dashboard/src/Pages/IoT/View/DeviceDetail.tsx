@@ -36,6 +36,7 @@ import {
   displayStatusForDevice,
 } from "../Utils/IoTDeviceUtils";
 import OneUptimeDate from "Common/Types/Date";
+import { IOT_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/IoTMetricDescriptions";
 
 const IoTFleetDeviceDetail: FunctionComponent<
   PageComponentProps
@@ -214,6 +215,7 @@ const IoTFleetDeviceDetail: FunctionComponent<
     if (status) {
       summaryFields.push({
         title: "Status",
+        description: IOT_METRIC_DESCRIPTIONS.deviceStatus,
         value: (
           <StatusBadge
             text={status}
@@ -238,7 +240,11 @@ const IoTFleetDeviceDetail: FunctionComponent<
 
     const uptime: string = formatUptime(row.uptimeSeconds);
     if (uptime) {
-      summaryFields.push({ title: "Uptime", value: uptime });
+      summaryFields.push({
+        title: "Uptime",
+        value: uptime,
+        description: IOT_METRIC_DESCRIPTIONS.uptime,
+      });
     }
 
     if (
@@ -248,6 +254,7 @@ const IoTFleetDeviceDetail: FunctionComponent<
       summaryFields.push({
         title: "Battery",
         value: formatPercent(Number(row.latestBatteryPercent)),
+        description: IOT_METRIC_DESCRIPTIONS.battery,
       });
     }
 
@@ -258,6 +265,7 @@ const IoTFleetDeviceDetail: FunctionComponent<
       summaryFields.push({
         title: "Signal Strength",
         value: `${Number(row.latestSignalStrengthDbm).toFixed(0)} dBm`,
+        description: IOT_METRIC_DESCRIPTIONS.signalStrength,
       });
     }
 
@@ -268,6 +276,7 @@ const IoTFleetDeviceDetail: FunctionComponent<
       summaryFields.push({
         title: "Temperature",
         value: `${Number(row.latestTemperatureCelsius).toFixed(1)} °C`,
+        description: IOT_METRIC_DESCRIPTIONS.temperature,
       });
     }
 
@@ -275,12 +284,14 @@ const IoTFleetDeviceDetail: FunctionComponent<
       summaryFields.push({
         title: "CPU",
         value: formatPercent(Number(row.latestCpuPercent)),
+        description: IOT_METRIC_DESCRIPTIONS.cpu,
       });
     }
 
     if (row.latestMemoryBytes !== null && row.latestMemoryBytes !== undefined) {
       summaryFields.push({
         title: "Memory (Used / Max)",
+        description: IOT_METRIC_DESCRIPTIONS.memory,
         value: `${formatBytes(Number(row.latestMemoryBytes))} / ${formatBytes(
           row.maxMemoryBytes !== null && row.maxMemoryBytes !== undefined
             ? Number(row.maxMemoryBytes)

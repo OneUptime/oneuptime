@@ -11,6 +11,7 @@ import GreaterThan from "Common/Types/BaseDatabase/GreaterThan";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import {
   CloudFleetCounts,
@@ -188,9 +189,12 @@ const CloudFleetSummary: FunctionComponent<ComponentProps> = (
             className="h-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
           >
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-xs font-medium uppercase tracking-wider text-gray-500">
-                {tile.title}
-              </span>
+              <div className="flex min-w-0 items-center gap-1">
+                <span className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                  {tile.title}
+                </span>
+                <InfoTooltip label={tile.title} text={tile.description} />
+              </div>
               <div
                 className={`flex h-7 w-7 items-center justify-center rounded-md ${style.bg} ring-1 ring-inset ${style.ring}`}
               >

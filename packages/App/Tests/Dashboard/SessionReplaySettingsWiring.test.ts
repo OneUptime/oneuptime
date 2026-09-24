@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import nodePath from "path";
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import { RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/RumMetricDescriptions";
 
 /*
  * Source-structural pins for the session replay settings surfaces.
@@ -21,7 +22,8 @@ import slugify from "Common/Server/Types/MarkdownSlugify";
  *  - the RUM settings section is not collapsed and the two side-menu
  *    entries no longer share a name (settings-setup-5);
  *  - the audit page's Viewed By filter is wired (settings-setup-9), the
- *    watched-time bucket matches the server (settings-setup-10);
+ *    watched-time bucket matches the server (settings-setup-10), and the
+ *    Watched header's (i) says what the player and the server count;
  *  - the policy card's model id is stable across renders and its Recording
  *    pill reads health itself, not from a closure frozen at mount;
  *  - no Dashboard replay file imports a server service into the bundle.
@@ -175,6 +177,9 @@ const SERVER_SERVICE_IMPORT_PATTERN: RegExp = new RegExp(
   "from [\"']Common/Server/Services",
 );
 const RRWEB_IMPORT_PATTERN: RegExp = new RegExp("from [\"']rrweb");
+const WATCH_BUCKET_PATTERN: RegExp = new RegExp(
+  "SESSION_REPLAY_WATCH_BUCKET_SECONDS: number = (\\d+)",
+);
 const FIELD_DECLARATION_PATTERN: RegExp = new RegExp(
   "field: \\{ (sessionReplay[A-Za-z]+|isSessionReplayEnabled): true \\}",
   "g",
@@ -765,6 +770,71 @@ describe("Replay access log page", () => {
 
   test("the Reason column explains an empty value instead of rendering blank", () => {
     expect(AUDIT_PAGE).toContain("None given (opened from the list)");
+  });
+
+  test("the Watched header carries an (i) and no other column does", () => {
+    expect(AUDIT_PAGE).toContain(
+      'import { RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/RumMetricDescriptions";',
+    );
+
+    const watchedColumn: string = AUDIT_PAGE.slice(
+      indexOfOrFail(AUDIT_PAGE, 'title: "Watched"'),
+      indexOfOrFail(AUDIT_PAGE, 'title: "Reason"'),
+    );
+
+    expect(watchedColumn).toContain(
+      "headerTooltip: RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched,",
+    );
+    expect(AUDIT_PAGE.split("headerTooltip:").length - 1).toBe(1);
+    expect(
+      AUDIT_PAGE.split("RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.").length - 1,
+    ).toBe(Object.keys(RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS).length);
+  });
+
+  test("the Watched text says what the player counts: played footage, times the speed", () => {
+    const player: string = readSource(
+      "Components/SessionReplay/SessionReplayPlayer.tsx",
+    );
+
+    // Time accrues only while playing, so pauses and scrubbing add nothing.
+    expect(player).toContain('if (current.phase === "playing") {');
+    expect(player).toContain(
+      "watchedMs += Math.max(0, now - lastSampleAt) * current.speed;",
+    );
+    expect(RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched).toContain(
+      "Paused time and jumps along the timeline do not count",
+    );
+    expect(RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched).toContain(
+      "at 2x speed a minute of watching counts as two",
+    );
+  });
+
+  test("the Watched text names the server's bucket and the page's reading of zero", () => {
+    const serverSource: string = fs.readFileSync(
+      nodePath.join(
+        __dirname,
+        "../../../Common/Server/Services/RumSessionReplayViewService.ts",
+      ),
+      "utf8",
+    );
+
+    expect(serverSource).toContain(
+      "Math.floor(clamped / SESSION_REPLAY_WATCH_BUCKET_SECONDS) *",
+    );
+
+    const bucket: RegExpMatchArray | null =
+      AUDIT_PAGE.match(WATCH_BUCKET_PATTERN);
+
+    expect(bucket?.[1]).toBeDefined();
+    expect(AUDIT_PAGE).toContain(
+      "return `< ${SESSION_REPLAY_WATCH_BUCKET_SECONDS}s`;",
+    );
+    expect(RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched).toContain(
+      `Rounded down to ${bucket?.[1]}-second steps`,
+    );
+    expect(RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched).toContain(
+      `shows as < ${bucket?.[1]}s.`,
+    );
   });
 });
 

@@ -2,6 +2,7 @@ import PageComponentProps from "../PageComponentProps";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../../Components/AppLink/AppLink";
+import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../../Components/MetricDescriptions/NetworkDeviceMetricDescriptions";
 import {
   NetworkOverviewSummary,
   OverviewAttentionDevice,
@@ -27,6 +28,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import InfoCard from "Common/UI/Components/InfoCard/InfoCard";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -40,6 +42,8 @@ import React, {
 } from "react";
 
 const RECENT_SCAN_LIMIT: number = 5;
+
+const FLEET_BY_VENDOR_TITLE: string = "Fleet by vendor";
 
 /*
  * Network Overview — the mission-control landing page for the whole
@@ -214,6 +218,7 @@ const NetworkOverview: FunctionComponent<
       <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <InfoCard
           title="Devices"
+          tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetDevices}
           value={
             <div className="mt-1">
               <div className="text-3xl font-semibold text-gray-900">
@@ -247,6 +252,7 @@ const NetworkOverview: FunctionComponent<
         />
         <InfoCard
           title="Interfaces Down"
+          tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetInterfacesDown}
           value={
             <div className="mt-1">
               <div
@@ -264,6 +270,7 @@ const NetworkOverview: FunctionComponent<
         />
         <InfoCard
           title="Sites"
+          tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetSites}
           value={
             <div className="mt-1">
               <div className="text-3xl font-semibold text-gray-900">
@@ -283,6 +290,7 @@ const NetworkOverview: FunctionComponent<
         />
         <InfoCard
           title="Endpoints"
+          tooltip={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetEndpoints}
           value={
             <div className="mt-1">
               <div className="text-3xl font-semibold text-gray-900">
@@ -409,7 +417,19 @@ const NetworkOverview: FunctionComponent<
         </Card>
 
         <Card
-          title="Fleet by vendor"
+          /*
+           * The bars are counts, and only the six biggest vendors get one —
+           * the (i) says so, and where ping-only devices went.
+           */
+          title={
+            <span className="inline-flex items-center gap-1.5">
+              {FLEET_BY_VENDOR_TITLE}
+              <InfoTooltip
+                label={FLEET_BY_VENDOR_TITLE}
+                text={NETWORK_DEVICE_METRIC_DESCRIPTIONS.fleetByVendor}
+              />
+            </span>
+          }
           description="What your network is made of, from SNMP-discovered vendor identity."
         >
           {vendors.length === 0 ? (

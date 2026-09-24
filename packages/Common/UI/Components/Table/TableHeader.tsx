@@ -10,6 +10,7 @@ import { VoidFunction } from "../../../Types/FunctionTypes";
 import GenericObject from "../../../Types/GenericObject";
 import IconProp from "../../../Types/Icon/IconProp";
 import useTranslateValue from "../../Utils/Translation";
+import InfoTooltip from "../Tooltip/InfoTooltip";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -172,7 +173,27 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                  * padding moves onto the button so the clickable area is the
                  * whole cell, exactly as before.
                  */}
-                {canSort ? (
+                {/*
+                 * A header tooltip is its own button, and a button may not
+                 * sit inside the sort button - so for those columns the sort
+                 * button shrinks to its content and the (i) follows it.
+                 */}
+                {canSort && column.headerTooltip?.trim() ? (
+                  <div className="flex w-full items-center">
+                    <button
+                      type="button"
+                      onClick={sortColumn}
+                      className="flex py-3 pl-6 pr-1 cursor-pointer text-left font-semibold text-gray-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+                    >
+                      {headerContent}
+                    </button>
+                    <InfoTooltip
+                      label={translateString(column.title) ?? column.title}
+                      text={column.headerTooltip}
+                      className="mr-6 font-normal"
+                    />
+                  </div>
+                ) : canSort ? (
                   <button
                     type="button"
                     onClick={sortColumn}
@@ -181,7 +202,20 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
                     {headerContent}
                   </button>
                 ) : (
-                  <div className={contentClassName}>{headerContent}</div>
+                  <div
+                    className={
+                      column.headerTooltip?.trim()
+                        ? `${contentClassName} items-center`
+                        : contentClassName
+                    }
+                  >
+                    {headerContent}
+                    <InfoTooltip
+                      label={translateString(column.title) ?? column.title}
+                      text={column.headerTooltip}
+                      className="ml-1 font-normal"
+                    />
+                  </div>
                 )}
               </th>
             );

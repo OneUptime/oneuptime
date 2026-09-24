@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
@@ -127,6 +128,7 @@ const KubernetesClusterPVCs: FunctionComponent<
         {
           title: "Capacity",
           key: "capacity",
+          description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.pvcCapacity,
         },
         {
           title: "Volume",

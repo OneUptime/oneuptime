@@ -27,6 +27,7 @@ import StatusBadge, {
   StatusBadgeType,
 } from "Common/UI/Components/StatusBadge/StatusBadge";
 import CephResourceUtils from "../Utils/CephResourceUtils";
+import { CEPH_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CephMetricDescriptions";
 
 /*
  * OSD detail page. The route param (subModelId) is the CephResource
@@ -213,6 +214,7 @@ const CephClusterOsdDetail: FunctionComponent<
     summaryFields.push(
       {
         title: "Status",
+        description: CEPH_METRIC_DESCRIPTIONS.osdStatus,
         value: (
           <StatusBadge
             text={resource.isUp ? "Up" : "Down"}
@@ -224,6 +226,7 @@ const CephClusterOsdDetail: FunctionComponent<
       },
       {
         title: "Placement",
+        description: CEPH_METRIC_DESCRIPTIONS.osdPlacement,
         value: (
           <StatusBadge
             text={resource.isIn ? "In" : "Out"}
@@ -237,6 +240,7 @@ const CephClusterOsdDetail: FunctionComponent<
       { title: "Device Class", value: resource.deviceClass || "N/A" },
       {
         title: "Used / Total",
+        description: CEPH_METRIC_DESCRIPTIONS.osdUsed,
         value: `${CephResourceUtils.formatBytes(
           CephResourceUtils.freshMetricValue(resource, resource.statBytesUsed),
         )} / ${CephResourceUtils.formatBytes(
@@ -245,12 +249,14 @@ const CephClusterOsdDetail: FunctionComponent<
       },
       {
         title: "Placement Groups",
+        description: CEPH_METRIC_DESCRIPTIONS.osdPlacementGroups,
         value: CephResourceUtils.formatCount(
           CephResourceUtils.freshMetricValue(resource, resource.pgCount),
         ),
       },
       {
         title: "Apply / Commit Latency",
+        description: CEPH_METRIC_DESCRIPTIONS.osdLatency,
         value: `${formatLatencyMs(
           CephResourceUtils.freshMetricValue(resource, resource.applyLatencyMs),
         )} / ${formatLatencyMs(

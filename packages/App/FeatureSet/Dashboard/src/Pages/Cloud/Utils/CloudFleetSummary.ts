@@ -1,5 +1,6 @@
 import { getCloudProviderLabel } from "Common/Types/Cloud/CloudPlatform";
 import { CLOUD_INSTANCE_LIVE_WINDOW_MINUTES } from "./CloudResourceTelemetryScope";
+import { CLOUD_FLEET_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
 
 /*
  * The numbers behind the stat strip at the top of the Cloud Environments
@@ -25,6 +26,8 @@ export interface CloudFleetSummaryTile {
   title: string;
   value: string;
   sublabel: string;
+  // What the number counts, shown in the (i) tooltip beside the title.
+  description: string;
 }
 
 interface ProviderCount {
@@ -88,11 +91,13 @@ export function summarizeCloudFleet(
       title: "Environments",
       value: formatCount(total),
       sublabel: breakdown || "none discovered yet",
+      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.environments,
     },
     {
       title: "Connected",
       value: formatCount(connected),
       sublabel: connectedShare || "nothing reporting yet",
+      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.connected,
     },
     {
       title: "Disconnected",
@@ -103,11 +108,13 @@ export function summarizeCloudFleet(
           : total > 0
             ? "every environment is reporting"
             : "—",
+      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.disconnected,
     },
     {
       title: "Live instances",
       value: formatCount(counts.liveInstances),
       sublabel: `seen in the last ${CLOUD_INSTANCE_LIVE_WINDOW_MINUTES} min`,
+      description: CLOUD_FLEET_METRIC_DESCRIPTIONS.liveInstances,
     },
   ];
 }

@@ -19,6 +19,12 @@ import Route from "Common/Types/API/Route";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
+import GoldenMetricTile, {
+  GoldenMetricTileColor,
+  tileColorClasses,
+} from "../../../Components/Infrastructure/GoldenMetricTile";
+import { CONTAINER_HOST_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ContainerHostMetricDescriptions";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
@@ -105,95 +111,17 @@ const formatInt: (value: number | null) => string = (
   return Math.round(value).toString();
 };
 
-interface MetricTileProps {
-  title: string;
+/*
+ * A hero chip. Only a chip that is a metric (the container count) carries a
+ * description; OS type and version are plain facts.
+ */
+interface SpecChip {
   icon: IconProp;
-  iconColor: "blue" | "violet" | "amber" | "emerald" | "slate" | "sky";
-  value: string;
-  sublabel?: string | undefined;
-  percent?: number | null | undefined;
-  thresholds?: { warn: number; danger: number } | undefined;
+  label: string;
+  description?: string | undefined;
 }
 
-const colorClasses: Record<
-  MetricTileProps["iconColor"],
-  { bg: string; ring: string; text: string }
-> = {
-  blue: { bg: "bg-blue-50", ring: "ring-blue-200", text: "text-blue-600" },
-  violet: {
-    bg: "bg-violet-50",
-    ring: "ring-violet-200",
-    text: "text-violet-600",
-  },
-  amber: { bg: "bg-amber-50", ring: "ring-amber-200", text: "text-amber-600" },
-  emerald: {
-    bg: "bg-emerald-50",
-    ring: "ring-emerald-200",
-    text: "text-emerald-600",
-  },
-  slate: { bg: "bg-slate-50", ring: "ring-slate-200", text: "text-slate-600" },
-  sky: { bg: "bg-sky-50", ring: "ring-sky-200", text: "text-sky-600" },
-};
-
-const MetricTile: FunctionComponent<MetricTileProps> = (
-  props: MetricTileProps,
-): ReactElement => {
-  const colors: { bg: string; ring: string; text: string } =
-    colorClasses[props.iconColor];
-
-  const barColor: string = (() => {
-    if (props.percent === null || props.percent === undefined) {
-      return "bg-gray-300";
-    }
-    const t: { warn: number; danger: number } = props.thresholds || {
-      warn: 70,
-      danger: 90,
-    };
-    if (props.percent >= t.danger) {
-      return "bg-red-500";
-    }
-    if (props.percent >= t.warn) {
-      return "bg-amber-500";
-    }
-    return "bg-emerald-500";
-  })();
-
-  const safePercent: number =
-    props.percent === null || props.percent === undefined
-      ? 0
-      : Math.min(100, Math.max(0, props.percent));
-
-  return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-          {props.title}
-        </span>
-        <div
-          className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
-        >
-          <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
-        </div>
-      </div>
-      <div className="text-2xl font-semibold text-gray-900 leading-none">
-        {props.value}
-      </div>
-      {props.sublabel ? (
-        <div className="mt-1 text-xs text-gray-500">{props.sublabel}</div>
-      ) : (
-        <div className="mt-1 text-xs text-gray-400">&nbsp;</div>
-      )}
-      {props.percent !== undefined && props.percent !== null && (
-        <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">
-          <div
-            className={`${barColor} h-1.5 rounded-full transition-all`}
-            style={{ width: `${safePercent}%` }}
-          />
-        </div>
-      )}
-    </div>
-  );
-};
+type ChartCardColor = Exclude<GoldenMetricTileColor, "slate">;
 
 /*
  * Tile values use a short recent-window mean regardless of how wide
@@ -948,15 +876,13 @@ const PodmanHostOverview: FunctionComponent<
     const hostIdentifier: string =
       (host.hostIdentifier as string | undefined) || "";
 
-    const specChips: Array<{
-      icon: IconProp;
-      label: string;
-    }> = [];
+    const specChips: Array<SpecChip> = [];
 
     if (stats && stats.containerCount > 0) {
       specChips.push({
         icon: IconProp.Cube,
         label: `${stats.containerCount} container${stats.containerCount === 1 ? "" : "s"}`,
+        description: CONTAINER_HOST_METRIC_DESCRIPTIONS.containers,
       });
     }
     if (host.osType) {
@@ -1038,25 +964,25 @@ const PodmanHostOverview: FunctionComponent<
 
             {specChips.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-1.5">
-                {specChips.map(
-                  (
-                    chip: { icon: IconProp; label: string },
-                    idx: number,
-                  ): ReactElement => {
-                    return (
-                      <span
-                        key={`spec-${idx}`}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
-                      >
-                        <Icon
-                          icon={chip.icon}
-                          className="h-3 w-3 text-gray-500"
-                        />
-                        <span className="font-medium">{chip.label}</span>
-                      </span>
-                    );
-                  },
-                )}
+                {specChips.map((chip: SpecChip, idx: number): ReactElement => {
+                  return (
+                    <span
+                      key={`spec-${idx}`}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
+                    >
+                      <Icon
+                        icon={chip.icon}
+                        className="h-3 w-3 text-gray-500"
+                      />
+                      <span className="font-medium">{chip.label}</span>
+                      <InfoTooltip
+                        label={chip.label}
+                        text={chip.description}
+                        iconClassName="h-3 w-3"
+                      />
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1088,23 +1014,25 @@ const PodmanHostOverview: FunctionComponent<
     }
 
     return (
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <MetricTile
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <GoldenMetricTile
           title="Containers"
           icon={IconProp.Cube}
           iconColor="sky"
           value={formatInt(s.containerCount)}
           sublabel="reporting"
+          description={CONTAINER_HOST_METRIC_DESCRIPTIONS.containers}
         />
-        <MetricTile
+        <GoldenMetricTile
           title="Avg CPU"
           icon={IconProp.ChartBar}
           iconColor="blue"
           value={formatPercent(s.avgCpu)}
           sublabel="across containers"
           percent={s.avgCpu}
+          description={CONTAINER_HOST_METRIC_DESCRIPTIONS.avgCpu}
         />
-        <MetricTile
+        <GoldenMetricTile
           title="Peak CPU"
           icon={IconProp.Activity}
           iconColor="amber"
@@ -1112,16 +1040,22 @@ const PodmanHostOverview: FunctionComponent<
           sublabel="busiest container"
           percent={s.maxCpu}
           thresholds={{ warn: 75, danger: 95 }}
+          description={CONTAINER_HOST_METRIC_DESCRIPTIONS.peakCpu}
         />
-        <MetricTile
+        {/*
+         * Most containers run without a memory limit, and then the percent
+         * is of the host's memory - so the sublabel names both.
+         */}
+        <GoldenMetricTile
           title="Avg Memory"
           icon={IconProp.SquareStack}
           iconColor="violet"
           value={formatPercent(s.avgMemory)}
-          sublabel="of container limit"
+          sublabel="of limit or host memory"
           percent={s.avgMemory}
+          description={CONTAINER_HOST_METRIC_DESCRIPTIONS.avgMemory}
         />
-        <MetricTile
+        <GoldenMetricTile
           title="Peak Memory"
           icon={IconProp.Database}
           iconColor="emerald"
@@ -1129,6 +1063,19 @@ const PodmanHostOverview: FunctionComponent<
           sublabel="hottest container"
           percent={s.maxMemory}
           thresholds={{ warn: 80, danger: 95 }}
+          description={CONTAINER_HOST_METRIC_DESCRIPTIONS.peakMemory}
+        />
+        {/*
+         * container.pids.count is the cgroup's task count, so threads are
+         * counted along with processes (the PIDS column of podman stats).
+         */}
+        <GoldenMetricTile
+          title="Processes"
+          icon={IconProp.QueueList}
+          iconColor="slate"
+          value={formatInt(s.totalPids)}
+          sublabel="incl. threads"
+          description={CONTAINER_HOST_METRIC_DESCRIPTIONS.processes}
         />
       </div>
     );
@@ -1137,32 +1084,48 @@ const PodmanHostOverview: FunctionComponent<
   const renderChartCard: (params: {
     title: string;
     icon: IconProp;
-    iconColor: "blue" | "violet" | "amber" | "emerald" | "sky";
+    iconColor: ChartCardColor;
     data: Array<SeriesPoint>;
     yAxis?: YAxis;
     showLegend?: boolean;
     curve?: ChartCurve;
     headerExtra?: ReactElement;
+    // What the chart shows, in an (i) beside its title.
+    description?: string | undefined;
   }) => ReactElement = (params: {
     title: string;
     icon: IconProp;
-    iconColor: "blue" | "violet" | "amber" | "emerald" | "sky";
+    iconColor: ChartCardColor;
     data: Array<SeriesPoint>;
     yAxis?: YAxis;
     showLegend?: boolean;
     curve?: ChartCurve;
     headerExtra?: ReactElement;
+    description?: string | undefined;
   }): ReactElement => {
     const colors: { bg: string; ring: string; text: string } =
-      colorClasses[params.iconColor];
+      tileColorClasses[params.iconColor];
+
+    /*
+     * The title - and so its (i) - is drawn in both branches: the skeleton
+     * while the first load is in flight, and the loaded card.
+     */
+    const renderTitle: () => ReactElement = (): ReactElement => {
+      return (
+        <div className="flex min-w-0 items-center gap-1">
+          <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+            {params.title}
+          </span>
+          <InfoTooltip label={params.title} text={params.description} />
+        </div>
+      );
+    };
 
     if (!chartWindow) {
       return (
         <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {params.title}
-            </span>
+            {renderTitle()}
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-md ${colors.bg} ring-1 ring-inset ${colors.ring}`}
             >
@@ -1203,9 +1166,7 @@ const PodmanHostOverview: FunctionComponent<
       <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-              {params.title}
-            </span>
+            {renderTitle()}
             {params.headerExtra ?? null}
           </div>
           <div
@@ -1291,8 +1252,8 @@ const PodmanHostOverview: FunctionComponent<
                 Availability
               </h2>
               <p className="text-xs text-gray-500">
-                Per-bucket presence of host heartbeats over the selected time
-                range
+                Whether this host&apos;s agent was sending metrics, over the
+                selected time range
               </p>
             </div>
           </div>
@@ -1304,6 +1265,7 @@ const PodmanHostOverview: FunctionComponent<
             yAxis: availabilityYAxis,
             curve: ChartCurve.STEP,
             headerExtra: availabilityBadge,
+            description: CONTAINER_HOST_METRIC_DESCRIPTIONS.availabilityChart,
           })}
         </div>
         <div className="mb-6">
@@ -1323,24 +1285,28 @@ const PodmanHostOverview: FunctionComponent<
               icon: IconProp.ChartBar,
               iconColor: "blue",
               data: cpuAvgSeries,
+              description: CONTAINER_HOST_METRIC_DESCRIPTIONS.avgCpuChart,
             })}
             {renderChartCard({
               title: "Peak CPU",
               icon: IconProp.Activity,
               iconColor: "amber",
               data: cpuMaxSeries,
+              description: CONTAINER_HOST_METRIC_DESCRIPTIONS.peakCpuChart,
             })}
             {renderChartCard({
               title: "Avg Memory",
               icon: IconProp.SquareStack,
               iconColor: "violet",
               data: memoryAvgSeries,
+              description: CONTAINER_HOST_METRIC_DESCRIPTIONS.avgMemoryChart,
             })}
             {renderChartCard({
               title: "Peak Memory",
               icon: IconProp.Database,
               iconColor: "emerald",
               data: memoryMaxSeries,
+              description: CONTAINER_HOST_METRIC_DESCRIPTIONS.peakMemoryChart,
             })}
           </div>
         </div>
@@ -1360,6 +1326,7 @@ const PodmanHostOverview: FunctionComponent<
             data: networkSeries,
             yAxis: networkYAxis,
             showLegend: networkSeries.length > 1,
+            description: CONTAINER_HOST_METRIC_DESCRIPTIONS.networkChart,
           })}
         </div>
       </Fragment>
@@ -1378,14 +1345,25 @@ const PodmanHostOverview: FunctionComponent<
       title: string,
       rows: Array<TopContainerRow>,
       metric: "cpu" | "memory",
+      description: string,
     ) => ReactElement = (
       title: string,
       rows: Array<TopContainerRow>,
       metric: "cpu" | "memory",
+      description: string,
     ): ReactElement => {
       return (
         <Card
-          title={title}
+          title={
+            <span className="inline-flex items-center gap-1.5">
+              {title}
+              <InfoTooltip
+                label={title}
+                text={description}
+                iconClassName="h-4 w-4"
+              />
+            </span>
+          }
           description={`Top ${rows.length} containers by ${metric === "cpu" ? "CPU" : "memory"} usage (last 5 minutes).`}
         >
           <div className="divide-y divide-gray-200">
@@ -1428,8 +1406,18 @@ const PodmanHostOverview: FunctionComponent<
 
     return (
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {renderList("Top CPU Consumers", stats.topByCpu, "cpu")}
-        {renderList("Top Memory Consumers", stats.topByMemory, "memory")}
+        {renderList(
+          "Top CPU Consumers",
+          stats.topByCpu,
+          "cpu",
+          CONTAINER_HOST_METRIC_DESCRIPTIONS.topCpuConsumers,
+        )}
+        {renderList(
+          "Top Memory Consumers",
+          stats.topByMemory,
+          "memory",
+          CONTAINER_HOST_METRIC_DESCRIPTIONS.topMemoryConsumers,
+        )}
       </div>
     );
   };

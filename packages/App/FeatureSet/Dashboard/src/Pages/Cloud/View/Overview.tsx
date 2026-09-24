@@ -20,6 +20,8 @@ import React, {
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Card from "Common/UI/Components/Card/Card";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import useTranslateValue from "Common/UI/Utils/Translation";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import OneUptimeDate from "Common/Types/Date";
@@ -60,9 +62,35 @@ import {
   isCloudInstanceLive,
   isCloudResourceScoped,
 } from "../Utils/CloudResourceTelemetryScope";
+import { CLOUD_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/CloudMetricDescriptions";
 
 const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
+};
+
+const TOP_INSTANCES_TITLE: string = "Top instances by CPU";
+
+/*
+ * The "Top instances by CPU" card title with its (i). A Card translates a
+ * string title itself but passes an element through untouched, so the
+ * title is translated here before the tooltip is attached to it. Exported
+ * for tests.
+ */
+export const TopInstancesByCpuTitle: FunctionComponent = (): ReactElement => {
+  const { translateString } = useTranslateValue();
+  const title: string =
+    translateString(TOP_INSTANCES_TITLE) || TOP_INSTANCES_TITLE;
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span>{title}</span>
+      <InfoTooltip
+        label={title}
+        text={CLOUD_METRIC_DESCRIPTIONS.topInstancesByCpu}
+        iconClassName="h-4 w-4"
+      />
+    </span>
+  );
 };
 
 const CloudResourceOverview: FunctionComponent<
@@ -322,6 +350,7 @@ const CloudResourceOverview: FunctionComponent<
       loading: !instancesLoaded,
       sublabel: "avg across live instances",
       percent: avgCpu,
+      description: CLOUD_METRIC_DESCRIPTIONS.cpu,
     },
     {
       title: "Memory",
@@ -330,6 +359,7 @@ const CloudResourceOverview: FunctionComponent<
       iconColor: "violet",
       loading: !instancesLoaded,
       sublabel: "total across live instances",
+      description: CLOUD_METRIC_DESCRIPTIONS.memory,
     },
     {
       title: "Instances",
@@ -339,6 +369,7 @@ const CloudResourceOverview: FunctionComponent<
       loading: !instancesLoaded,
       sublabel: `live in the last ${CLOUD_INSTANCE_LIVE_WINDOW_MINUTES} min`,
       to: populate(PageMap.CLOUD_RESOURCE_VIEW_INSTANCES),
+      description: CLOUD_METRIC_DESCRIPTIONS.instances,
     },
     {
       title: "Requests",
@@ -347,6 +378,7 @@ const CloudResourceOverview: FunctionComponent<
       iconColor: "sky",
       loading: metricsLoading,
       sublabel: "spans, selected range",
+      description: CLOUD_METRIC_DESCRIPTIONS.requests,
     },
     {
       title: "Error rate",
@@ -358,6 +390,7 @@ const CloudResourceOverview: FunctionComponent<
       percent: m ? m.errorRatePercent : null,
       higherIsBetter: false,
       thresholds: { warn: 1, danger: 5 },
+      description: CLOUD_METRIC_DESCRIPTIONS.errorRate,
     },
     {
       title: "p95 latency",
@@ -366,6 +399,7 @@ const CloudResourceOverview: FunctionComponent<
       iconColor: "emerald",
       loading: metricsLoading,
       sublabel: "selected range",
+      description: CLOUD_METRIC_DESCRIPTIONS.p95Latency,
     },
   ];
 
@@ -386,6 +420,7 @@ const CloudResourceOverview: FunctionComponent<
         syncId={`cloud-${modelId.toString()}`}
         showLegend={true}
         loading={metricsLoading && !m}
+        description={CLOUD_METRIC_DESCRIPTIONS.requestsChart}
       />
       <ChartCard
         title="Memory"
@@ -402,6 +437,7 @@ const CloudResourceOverview: FunctionComponent<
           return formatBytes(n);
         }}
         loading={metricsLoading && memorySeries.length === 0}
+        description={CLOUD_METRIC_DESCRIPTIONS.memoryChart}
       />
     </div>
   );
@@ -498,7 +534,7 @@ const CloudResourceOverview: FunctionComponent<
       {instancesLoaded && topInstances.length > 0 ? (
         <div className="mt-6">
           <Card
-            title="Top instances by CPU"
+            title={<TopInstancesByCpuTitle />}
             description="Live CPU and memory per running task / instance."
           >
             <div className="-m-6 -mt-2 border-t border-gray-200 divide-y divide-gray-100">

@@ -38,6 +38,8 @@ import {
   displayStatusForResource,
 } from "../Utils/ProxmoxResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
+import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 
 const ProxmoxClusterNodeDetail: FunctionComponent<
   PageComponentProps
@@ -205,18 +207,24 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
             type={row.isUp ? StatusBadgeType.Success : StatusBadgeType.Danger}
           />
         ),
+        description: PROXMOX_METRIC_DESCRIPTIONS.nodeStatus,
       });
     }
 
     const uptime: string = formatUptime(row.uptimeSeconds);
     if (uptime) {
-      summaryFields.push({ title: "Uptime", value: uptime });
+      summaryFields.push({
+        title: "Uptime",
+        value: uptime,
+        description: PROXMOX_METRIC_DESCRIPTIONS.nodeUptime,
+      });
     }
 
     if (row.latestCpuPercent !== null && row.latestCpuPercent !== undefined) {
       summaryFields.push({
         title: "CPU",
         value: formatPercent(Number(row.latestCpuPercent)),
+        description: PROXMOX_METRIC_DESCRIPTIONS.nodeCpu,
       });
     }
 
@@ -228,11 +236,16 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
             ? Number(row.maxMemoryBytes)
             : null,
         )}`,
+        description: PROXMOX_METRIC_DESCRIPTIONS.nodeMemory,
       });
     }
 
     if (row.haState) {
-      summaryFields.push({ title: "HA State", value: row.haState });
+      summaryFields.push({
+        title: "HA State",
+        value: row.haState,
+        description: PROXMOX_METRIC_DESCRIPTIONS.nodeHaState,
+      });
     }
 
     summaryFields.push({ title: "External ID", value: externalId });
@@ -271,8 +284,12 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
               return (
                 <div className="mt-4 space-y-6">
                   <div>
-                    <div className="mb-2 text-sm font-medium text-gray-700">
+                    <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
                       Network Throughput
+                      <InfoTooltip
+                        label="Network Throughput"
+                        text={PROXMOX_METRIC_DESCRIPTIONS.nodeNetworkThroughput}
+                      />
                     </div>
                     <ProxmoxRateChart
                       clusterName={clusterName}
@@ -293,8 +310,12 @@ const ProxmoxClusterNodeDetail: FunctionComponent<
                     />
                   </div>
                   <div>
-                    <div className="mb-2 text-sm font-medium text-gray-700">
+                    <div className="mb-2 flex items-center gap-1 text-sm font-medium text-gray-700">
                       Disk Throughput
+                      <InfoTooltip
+                        label="Disk Throughput"
+                        text={PROXMOX_METRIC_DESCRIPTIONS.nodeDiskThroughput}
+                      />
                     </div>
                     <ProxmoxRateChart
                       clusterName={clusterName}

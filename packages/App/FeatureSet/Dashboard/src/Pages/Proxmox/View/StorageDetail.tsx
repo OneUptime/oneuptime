@@ -43,6 +43,7 @@ import {
   displayStatusForResource,
 } from "../Utils/ProxmoxResourceUtils";
 import OneUptimeDate from "Common/Types/Date";
+import { PROXMOX_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/ProxmoxMetricDescriptions";
 
 /*
  * WI-29: window for the client-side linear growth fit — same 24 h
@@ -310,6 +311,7 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
             type={row.isUp ? StatusBadgeType.Success : StatusBadgeType.Danger}
           />
         ),
+        description: PROXMOX_METRIC_DESCRIPTIONS.storageStatus,
       });
     }
 
@@ -327,15 +329,24 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
         : null;
 
     if (used !== null) {
-      summaryFields.push({ title: "Used", value: formatBytes(used) });
+      summaryFields.push({
+        title: "Used",
+        value: formatBytes(used),
+        description: PROXMOX_METRIC_DESCRIPTIONS.storageUsed,
+      });
     }
     if (total !== null) {
-      summaryFields.push({ title: "Total", value: formatBytes(total) });
+      summaryFields.push({
+        title: "Total",
+        value: formatBytes(total),
+        description: PROXMOX_METRIC_DESCRIPTIONS.storageTotal,
+      });
     }
     if (used !== null && total !== null && total > 0) {
       summaryFields.push({
         title: "Used %",
         value: formatPercent((used / total) * 100),
+        description: PROXMOX_METRIC_DESCRIPTIONS.storageUsedPercent,
       });
     }
 
@@ -362,6 +373,7 @@ const ProxmoxClusterStorageDetail: FunctionComponent<
                 1,
                 Math.round(daysToFull),
               )} day${Math.max(1, Math.round(daysToFull)) === 1 ? "" : "s"} (linear fit over the last ${PROJECTION_WINDOW_HOURS} h)`,
+        description: PROXMOX_METRIC_DESCRIPTIONS.storageGrowthForecast,
       });
     }
 

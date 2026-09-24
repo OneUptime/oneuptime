@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import KubernetesResourceTable from "../../../Components/Kubernetes/KubernetesResourceTable";
+import { KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/KubernetesResourceMetricDescriptions";
 import KubernetesResourceUtils, {
   KubernetesResource,
 } from "../Utils/KubernetesResourceUtils";
@@ -153,6 +154,10 @@ const KubernetesClusterPods: FunctionComponent<
       title="Pods"
       description="All pods running in this cluster with their current resource usage."
       resources={resources}
+      builtInColumnDescriptions={{
+        cpu: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.podCpu,
+        memory: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.podMemory,
+      }}
       columns={[
         {
           title: "Node",
@@ -161,6 +166,7 @@ const KubernetesClusterPods: FunctionComponent<
         {
           title: "Containers",
           key: "containers",
+          description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.podContainers,
         },
       ]}
       getViewRoute={(resource: KubernetesResource) => {
