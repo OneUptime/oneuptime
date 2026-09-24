@@ -667,6 +667,46 @@ describe("buildSpanEventRows", () => {
     ).toEqual([0, 0]);
   });
 
+  test("keeps each event's attributes as recorded, beside the display rows, for Copy JSON", () => {
+    const [row] = buildSpanEventRows({
+      events: [
+        event("lock.acquired", 5, {
+          "lock.wait_ms": 18,
+          "lock.contended": true,
+          "lock.holders": ["tx-1", "tx-2"],
+        }),
+      ],
+      spanStartUnixNano: 0,
+      traceStartUnixNano: 0,
+    });
+
+    // The list shows text...
+    expect(row!.attributes).toEqual([
+      { key: "lock.contended", value: "true" },
+      { key: "lock.holders", value: '["tx-1","tx-2"]' },
+      { key: "lock.wait_ms", value: "18" },
+    ]);
+    // ...the copy keeps the types.
+    expect(row!.rawAttributes).toEqual({
+      "lock.wait_ms": 18,
+      "lock.contended": true,
+      "lock.holders": ["tx-1", "tx-2"],
+    });
+  });
+
+  test("an event without attributes has an empty raw attribute map", () => {
+    const [row] = buildSpanEventRows({
+      events: [
+        { name: "cache.miss", time: new Date(0), timeUnixNano: 1 } as SpanEvent,
+      ],
+      spanStartUnixNano: 0,
+      traceStartUnixNano: 0,
+    });
+
+    expect(row!.rawAttributes).toEqual({});
+    expect(row!.attributes).toEqual([]);
+  });
+
   test("no events", () => {
     expect(
       buildSpanEventRows({

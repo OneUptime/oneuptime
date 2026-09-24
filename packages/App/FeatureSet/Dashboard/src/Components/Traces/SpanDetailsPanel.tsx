@@ -25,6 +25,13 @@ import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
+import AttributesJSONView from "Common/UI/Components/AttributesJSON/AttributesJSONView";
+import AttributesViewToggle from "Common/UI/Components/AttributesJSON/AttributesViewToggle";
+import CopyAttributesAsJSONButton from "Common/UI/Components/AttributesJSON/CopyAttributesAsJSONButton";
+import {
+  AttributesView,
+  useAttributesView,
+} from "Common/UI/Components/AttributesJSON/AttributesJSONPreferences";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/UI/Components/Link/Link";
@@ -448,16 +455,7 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
     );
   }, [fullSpan]);
 
-  const attributesAsJson: string | null = useMemo(() => {
-    if (attributeEntries.length === 0) {
-      return null;
-    }
-    const flat: Record<string, string> = {};
-    for (const entry of attributeEntries) {
-      flat[entry.key] = entry.value;
-    }
-    return JSON.stringify(flat, null, 2);
-  }, [attributeEntries]);
+  const [attributesView, setAttributesView] = useAttributesView();
 
   // Exception events surfaced inline so error spans explain themselves.
   const exceptionMessages: Array<string> = useMemo(() => {
@@ -960,16 +958,31 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
 
             {/* Attributes */}
             <section className="space-y-3">
-              <header className="flex items-center justify-between">
-                <span className={sectionHeaderClass}>Attributes</span>
-                {attributesAsJson && (
-                  <CopyTextButton
-                    textToBeCopied={attributesAsJson}
-                    size="xs"
-                    variant="ghost"
-                    iconOnly={false}
-                    title="Copy attributes as JSON"
-                  />
+              <header className="flex flex-wrap items-center justify-between gap-2">
+                <span
+                  className={`flex items-center gap-1.5 ${sectionHeaderClass}`}
+                >
+                  Attributes
+                  {attributeEntries.length > 0 && (
+                    <span className="rounded-full bg-gray-100 px-1.5 py-px text-[10px] font-medium normal-case tracking-normal tabular-nums text-gray-500">
+                      {attributeEntries.length}
+                    </span>
+                  )}
+                </span>
+                {attributeEntries.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <AttributesViewToggle
+                      value={attributesView}
+                      onChange={(view: AttributesView) => {
+                        setAttributesView(view);
+                      }}
+                      dataTestId="span-attributes-view-toggle"
+                    />
+                    <CopyAttributesAsJSONButton
+                      attributes={fullSpan?.attributes}
+                      dataTestId="span-attributes-copy-json"
+                    />
+                  </div>
                 )}
               </header>
 
@@ -981,6 +994,11 @@ const SpanDetailsPanel: FunctionComponent<SpanDetailsPanelProps> = (
                 <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-6 text-center text-xs text-gray-400">
                   No attributes on this span.
                 </div>
+              ) : attributesView === "json" ? (
+                <AttributesJSONView
+                  attributes={fullSpan?.attributes}
+                  dataTestId="span-attributes-json"
+                />
               ) : (
                 <div
                   className={`max-h-80 overflow-auto rounded-lg border ${surfaceCardClass}`}
