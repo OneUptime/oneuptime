@@ -107,7 +107,33 @@ import InventoryItemService from "Common/Server/Services/InventoryItemService";
 import InventoryItemRelationshipService from "Common/Server/Services/InventoryItemRelationshipService";
 import DatabaseServerService from "Common/Server/Services/DatabaseServerService";
 import DatabaseServerEndpointService from "Common/Server/Services/DatabaseServerEndpointService";
-import { formatDatabaseEndpoint } from "Common/Types/DatabaseServer/DatabaseEndpoint";
+import {
+  DatabaseEndpoint,
+  buildDatabaseCallerContext,
+  formatDatabaseEndpoint,
+} from "Common/Types/DatabaseServer/DatabaseEndpoint";
+import { resolveDatabaseCallTarget } from "Common/Types/DatabaseServer/DatabaseTelemetryResolver";
+import {
+  ClientSpanDependencyRow,
+  DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE,
+  DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE,
+  DependencyTarget,
+  buildClientSpanDependencySql,
+  mergeDependencyEntityDescriptions,
+  resolveClientSpanTarget,
+  toExtractedDependencyEntity,
+} from "Common/Server/Utils/Telemetry/ServiceDependencyDiscovery";
+import { ExtractedEntity } from "Common/Server/Utils/Telemetry/TelemetryEntity";
+import OneUptimeDate from "Common/Types/Date";
+import { JSONObject } from "Common/Types/JSON";
+import AnalyticsBaseModel from "Common/Models/AnalyticsModels/AnalyticsBaseModel/AnalyticsBaseModel";
+import Span, { SpanKind } from "Common/Models/AnalyticsModels/Span";
+import { ClickHouseClientConfigOptions } from "Common/Server/Infrastructure/ClickhouseConfig";
+import ClickhouseDatabase, {
+  ClickhouseClient,
+} from "Common/Server/Infrastructure/ClickhouseDatabase";
+import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
+import { Statement } from "Common/Server/Utils/AnalyticsDatabase/Statement";
 import {
   MAX_DATABASE_ENDPOINT_ROWS,
   computeDependenciesForProject,
@@ -731,7 +757,7 @@ describe("database servers from client spans", () => {
     expect(sql[0]).toContain("hasAny(attributeKeys,");
   });
 
-  test("leaves the dependency queries exactly as they were", async () => {
+  test("leaves the dependency queries their own: only a database call's server columns are added", async () => {
     arrange({});
 
     await computeDependenciesForProject(WINDOW);
@@ -743,12 +769,31 @@ describe("database servers from client spans", () => {
       .filter((sql: string): boolean => {
         return !sql.includes(DATABASE_ENDPOINT_SQL_MARKER);
       });
-    // Trace-linked + client-span dependency queries, both untouched.
+    // Trace-linked + client-span dependency queries.
     expect(dependencySql).toHaveLength(2);
+    const clientSql: Array<string> = dependencySql.filter((sql: string) => {
+      return sql.includes("NOT IN");
+    });
+    const tracedSql: Array<string> = dependencySql.filter((sql: string) => {
+      return !sql.includes("NOT IN");
+    });
+    expect(clientSql).toHaveLength(1);
+    expect(tracedSql).toHaveLength(1);
     for (const sql of dependencySql) {
       expect(sql).not.toContain(DATABASE_ENDPOINT_SQL_MARKER);
-      expect(sql).not.toContain("resource.k8s.cluster.name");
     }
+    // The trace-linked query never reads a caller's placement.
+    expect(tracedSql[0]).not.toContain("resource.k8s.cluster.name");
+    expect(tracedSql[0]).not.toContain("resource.k8s.namespace.name");
+    // The client-span query reads it for database calls only.
+    const collapsed: string = clientSql[0]!.replace(/\s+/g, " ");
+    expect(collapsed).toContain(
+      "if(dbSystem != '', attributes['resource.k8s.cluster.name'], '') AS callerCluster",
+    );
+    expect(collapsed).toContain(
+      "if(dbSystem != '', attributes['resource.k8s.namespace.name'], '') AS callerNamespace",
+    );
+    expect(collapsed.split("resource.k8s.cluster.name").length - 1).toBe(1);
     expect(metricMock.executeQuery).toHaveBeenCalledTimes(1);
   });
 
@@ -841,6 +886,252 @@ describe("database servers from client spans", () => {
       host: "postgres.oneuptime.svc.cluster.local",
       port: 5432,
       kubernetesClusterName: "prod",
+    });
+  });
+
+  describe("a Database node describes the server its calls reached", () => {
+    const ENDPOINT: string = DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE;
+    const PORT: string = DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE;
+
+    // A client-span dependency row of a database call, with its server columns.
+    function databaseCall(
+      overrides: Record<string, unknown>,
+    ): Record<string, unknown> {
+      return {
+        callerServiceId: IDS["api"],
+        dbSystem: "postgresql",
+        dbNamespace: "oneuptime",
+        serverAddress: "postgres.data",
+        dbServerAddress: "postgres.data",
+        serverPort: "",
+        dbInstance: "",
+        callerNamespace: "shop",
+        callerCluster: "prod-eu",
+        callCount: "100",
+        errorCount: "0",
+        avgDurationNano: "4000000",
+        ...overrides,
+      };
+    }
+
+    function nodeKey(identifying: Record<string, string>): string {
+      return computeEntityKey({
+        projectId: PROJECT_ID,
+        entityType: EntityType.Database,
+        identifyingAttributes: identifying,
+      });
+    }
+
+    const POSTGRES_DATA_KEY: string = nodeKey({
+      "db.system.name": "postgresql",
+      "server.address": "postgres.data",
+      "db.namespace": "oneuptime",
+    });
+
+    function registered(): Array<{
+      entityKey: string;
+      identifyingAttributes: Record<string, string>;
+      descriptiveAttributes?: Record<string, string>;
+    }> {
+      return inventoryMock.reconcileEntities.mock.calls.flatMap(
+        (call: Array<unknown>) => {
+          return (
+            call[0] as {
+              entities: Array<{
+                entityKey: string;
+                identifyingAttributes: Record<string, string>;
+                descriptiveAttributes?: Record<string, string>;
+              }>;
+            }
+          ).entities;
+        },
+      );
+    }
+
+    test("the node names the very endpoint the Databases product keys the server by", async () => {
+      arrange({
+        clients: [databaseCall({ serverPort: "5432" })],
+        databases: [
+          databaseRow({
+            serverAddress: "postgres.data",
+            serverPort: "5432",
+            callerInKubernetes: 1,
+            callerCluster: "prod-eu",
+          }),
+        ],
+      });
+      arrangeDatabaseRows([]);
+
+      expect(await computeDependenciesForProject(WINDOW)).toBe(1);
+
+      const entities: ReturnType<typeof registered> = registered();
+      expect(entities).toHaveLength(1);
+      // Identity: what the spans said, exactly as before.
+      expect(entities[0]!.entityKey).toBe(POSTGRES_DATA_KEY);
+      expect(entities[0]!.identifyingAttributes).toEqual({
+        "db.system.name": "postgresql",
+        "server.address": "postgres.data",
+        "db.namespace": "oneuptime",
+      });
+      expect(entities[0]!.descriptiveAttributes).toEqual({
+        "db.system.name": "postgresql",
+        [ENDPOINT]: "postgres.data.svc.cluster.local:5432@prod-eu",
+        [PORT]: "5432",
+      });
+      expect(reconciledEdges()[0]).toMatchObject({
+        fromEntityKey: API_KEY,
+        toEntityKey: POSTGRES_DATA_KEY,
+      });
+
+      // …the endpoint the client-span discovery created the database under.
+      expect(createAttempts()).toHaveLength(1);
+      expect(formatDatabaseEndpoint(createAttempts()[0]!.endpoint)).toBe(
+        entities[0]!.descriptiveAttributes![ENDPOINT],
+      );
+    });
+
+    test("callers that agree keep the server, however many there are", async () => {
+      arrange({
+        clients: [
+          databaseCall({}),
+          databaseCall({ callerServiceId: IDS["dashboard"] }),
+          databaseCall({ callerServiceId: IDS["probe"], callCount: "3" }),
+        ],
+      });
+      arrangeDatabaseRows([]);
+
+      expect(await computeDependenciesForProject(WINDOW)).toBe(3);
+
+      const entities: ReturnType<typeof registered> = registered();
+      expect(entities).toHaveLength(1);
+      expect(entities[0]!.descriptiveAttributes).toEqual({
+        "db.system.name": "postgresql",
+        [ENDPOINT]: "postgres.data.svc.cluster.local:5432@prod-eu",
+      });
+    });
+
+    test("one node whose callers reached two servers says so, and never names either", async () => {
+      // `postgres.data` from two clusters: two databases behind one node.
+      arrange({
+        clients: [
+          databaseCall({ callerCluster: "prod-eu" }),
+          databaseCall({
+            callerServiceId: IDS["dashboard"],
+            callerCluster: "prod-us",
+          }),
+        ],
+      });
+      arrangeDatabaseRows([]);
+
+      expect(await computeDependenciesForProject(WINDOW)).toBe(2);
+
+      const entities: ReturnType<typeof registered> = registered();
+      expect(entities).toHaveLength(1);
+      expect(entities[0]!.entityKey).toBe(POSTGRES_DATA_KEY);
+      expect(entities[0]!.descriptiveAttributes).toEqual({
+        "db.system.name": "postgresql",
+        [ENDPOINT]: "",
+      });
+    });
+
+    test("two ports on one host: one server per logical database, ambiguous within one", async () => {
+      const call: (
+        overrides: Record<string, unknown>,
+      ) => Record<string, unknown> = (
+        overrides: Record<string, unknown>,
+      ): Record<string, unknown> => {
+        return databaseCall({
+          serverAddress: "db.example.com",
+          dbServerAddress: "db.example.com",
+          callerNamespace: "",
+          callerCluster: "",
+          ...overrides,
+        });
+      };
+      arrange({
+        clients: [
+          call({ dbNamespace: "orders", serverPort: "5432" }),
+          call({ dbNamespace: "users", serverPort: "5433" }),
+          call({ dbNamespace: "audit", serverPort: "5432" }),
+          call({
+            callerServiceId: IDS["dashboard"],
+            dbNamespace: "audit",
+            serverPort: "5433",
+          }),
+        ],
+      });
+      arrangeDatabaseRows([]);
+
+      await computeDependenciesForProject(WINDOW);
+
+      const byNamespace: Map<string, Record<string, string> | undefined> =
+        new Map(
+          registered().map((entity: ReturnType<typeof registered>[number]) => {
+            return [
+              entity.identifyingAttributes["db.namespace"]!,
+              entity.descriptiveAttributes,
+            ];
+          }),
+        );
+      expect(byNamespace.get("orders")).toEqual({
+        "db.system.name": "postgresql",
+        [ENDPOINT]: "db.example.com:5432",
+        [PORT]: "5432",
+      });
+      expect(byNamespace.get("users")).toEqual({
+        "db.system.name": "postgresql",
+        [ENDPOINT]: "db.example.com:5433",
+        [PORT]: "5433",
+      });
+      expect(byNamespace.get("audit")).toEqual({
+        "db.system.name": "postgresql",
+        [ENDPOINT]: "",
+        [PORT]: "",
+      });
+      // Three nodes, keyed exactly as before: engine, host, logical database.
+      expect(
+        registered()
+          .map((entity: ReturnType<typeof registered>[number]) => {
+            return entity.entityKey;
+          })
+          .sort(),
+      ).toEqual(
+        ["orders", "users", "audit"]
+          .map((namespace: string): string => {
+            return nodeKey({
+              "db.system.name": "postgresql",
+              "server.address": "db.example.com",
+              "db.namespace": namespace,
+            });
+          })
+          .sort(),
+      );
+    });
+
+    test("rows from a query without the server columns still register the node, undescribed", async () => {
+      arrange({
+        clients: [
+          {
+            callerServiceId: IDS["api"],
+            dbSystem: "postgresql",
+            dbNamespace: "oneuptime",
+            serverAddress: "postgres.data",
+            callCount: "10",
+            errorCount: "0",
+            avgDurationNano: "1",
+          },
+        ],
+      });
+      arrangeDatabaseRows([]);
+
+      await computeDependenciesForProject(WINDOW);
+
+      expect(registered()).toEqual([
+        expect.objectContaining({
+          entityKey: POSTGRES_DATA_KEY,
+          descriptiveAttributes: { "db.system.name": "postgresql" },
+        }),
+      ]);
     });
   });
 
@@ -1563,3 +1854,406 @@ describe("database servers from client spans", () => {
     expect(databaseServerMock.recordSighting).toHaveBeenCalledTimes(2);
   });
 });
+
+/*
+ * ------------------------------------------------------------------
+ * The client-span dependency query against a real ClickHouse server.
+ *
+ * The tests above feed the job hand-made rows. What they cannot show is
+ * that ClickHouse runs buildClientSpanDependencySql: that the `dbSystem`
+ * alias resolves inside the database-only columns, that those columns come
+ * back exactly as its TypeScript twin predicts ('' for every other span),
+ * that a node's identity columns group as before, and that the server a
+ * Database node describes is the endpoint ingest stamps on its spans — or
+ * '' when its spans reached several. Opt in with a disposable server, as
+ * DatabaseEndpointDiscoveryClickhouse.test.ts documents:
+ *
+ *   TEST_CLICKHOUSE_URL=http://default:test@localhost:18124 \
+ *     npx jest Tests/Workers/Jobs/TelemetryEntity/ComputeServiceDependencies.test.ts
+ * ------------------------------------------------------------------
+ */
+
+const CLICKHOUSE_URL: string | undefined = process.env["TEST_CLICKHOUSE_URL"];
+
+const clickhouseIntegration: typeof describe.skip = CLICKHOUSE_URL
+  ? describe
+  : describe.skip;
+
+interface DependencySpanFixture {
+  service: string;
+  attributes: Record<string, string>;
+  count?: number;
+}
+
+function callerPod(namespace: string, cluster: string): Record<string, string> {
+  return {
+    "resource.k8s.pod.name": `pod-${namespace}-${cluster}`,
+    "resource.k8s.namespace.name": namespace,
+    "resource.k8s.cluster.name": cluster,
+  };
+}
+
+const DEPENDENCY_SPANS: Array<DependencySpanFixture> = [
+  // One server from two pods of one placement: one row, described.
+  {
+    service: IDS["api"]!,
+    attributes: {
+      "db.system.name": "postgresql",
+      "db.namespace": "orders",
+      "server.address": "postgres.data",
+      "server.port": "5432",
+      ...callerPod("shop", "prod-eu"),
+    },
+    count: 3,
+  },
+  {
+    service: IDS["api"]!,
+    attributes: {
+      "db.system.name": "postgresql",
+      "db.namespace": "orders",
+      "server.address": "postgres.data",
+      "server.port": "5432",
+      "resource.k8s.pod.name": "pod-shop-prod-eu-2",
+      "resource.k8s.namespace.name": "shop",
+      "resource.k8s.cluster.name": "prod-eu",
+    },
+  },
+  // The same node from another cluster: another server behind ONE node.
+  {
+    service: IDS["dashboard"]!,
+    attributes: {
+      "db.system.name": "postgresql",
+      "db.namespace": "orders",
+      "server.address": "postgres.data",
+      "server.port": "5432",
+      ...callerPod("shop", "prod-us"),
+    },
+  },
+  // Legacy names, a SQL Server named instance, a network.peer fallback.
+  {
+    service: IDS["api"]!,
+    attributes: {
+      "db.system": "mssql",
+      "net.peer.name": "SQL1.corp.example.com",
+      "db.mssql.instance_name": "INST01",
+      "db.name": "billing",
+    },
+    count: 2,
+  },
+  {
+    service: IDS["api"]!,
+    attributes: {
+      "db.system.name": "redis",
+      "network.peer.address": "10.0.0.9",
+      "network.peer.port": "6380",
+      ...callerPod("cache", "prod-eu"),
+    },
+  },
+  // Loopback: a node without a host, and no server to describe.
+  {
+    service: IDS["api"]!,
+    attributes: { "db.system.name": "redis", "server.address": "localhost" },
+  },
+  // Not database calls: their server columns stay '', whatever the caller.
+  {
+    service: IDS["api"]!,
+    attributes: {
+      "server.address": "hooks.slack.com",
+      "http.request.method": "POST",
+      "server.port": "443",
+      ...callerPod("shop", "prod-eu"),
+    },
+  },
+  {
+    service: IDS["api"]!,
+    attributes: {
+      "server.address": "hooks.slack.com",
+      "http.request.method": "POST",
+      "server.port": "443",
+      ...callerPod("billing", "prod-us"),
+    },
+  },
+];
+
+clickhouseIntegration(
+  "The client-span dependency query against ClickHouse",
+  () => {
+    const database: string = `${
+      process.env["TEST_CLICKHOUSE_DATABASE_PREFIX"] ||
+      "service_dependency_discovery_test"
+    }_${process.pid}_${Date.now()}`;
+
+    let clickhouse: ClickhouseDatabase;
+    let client: ClickhouseClient;
+    let result: Array<ClientSpanDependencyRow> = [];
+
+    beforeAll(async (): Promise<void> => {
+      const url: URL = new URL(CLICKHOUSE_URL!);
+      if (!["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)) {
+        throw new Error(
+          "TEST_CLICKHOUSE_URL must point at a local, disposable ClickHouse server.",
+        );
+      }
+
+      const options: ClickHouseClientConfigOptions = {
+        url: `${url.protocol}//${url.host}`,
+        username: decodeURIComponent(url.username) || "default",
+        password: decodeURIComponent(url.password),
+        database: database,
+        request_timeout: 60000,
+      };
+      clickhouse = new ClickhouseDatabase(options);
+      client = await clickhouse.connect(options);
+
+      const model: AnalyticsBaseModel = new Span();
+      const generator: StatementGenerator<AnalyticsBaseModel> =
+        new StatementGenerator<AnalyticsBaseModel>({
+          modelType: Span as unknown as { new (): AnalyticsBaseModel },
+          database: clickhouse,
+        });
+      const columns: Statement = generator.toColumnsCreateStatement(
+        model.tableColumns,
+      );
+      await client.command({
+        query: `CREATE TABLE ${database}.${model.tableName} (${columns.query}) ENGINE = MergeTree PARTITION BY (${model.partitionKey}) ORDER BY (${model.sortKeys.join(", ")})`,
+        query_params: columns.query_params,
+      });
+
+      const now: number = Date.now();
+      const retentionDate: string = OneUptimeDate.toClickhouseDateTime(
+        OneUptimeDate.addRemoveDays(new Date(), 30),
+      ).substring(0, 10);
+      const values: Array<JSONObject> = [];
+      let index: number = 0;
+      for (const fixture of DEPENDENCY_SPANS) {
+        for (let copy: number = 0; copy < (fixture.count || 1); copy++) {
+          index++;
+          const start: Date = new Date(now - 60 * 1000 - index * 10);
+          values.push({
+            projectId: PROJECT_ID,
+            primaryEntityId: fixture.service,
+            primaryEntityType: "OpenTelemetry",
+            startTime: OneUptimeDate.toClickhouseDateTime64(start),
+            endTime: OneUptimeDate.toClickhouseDateTime64(start),
+            startTimeUnixNano: String(start.getTime() * 1000000),
+            endTimeUnixNano: String(start.getTime() * 1000000),
+            durationUnixNano: "1000000",
+            traceId: `trace-${index}`,
+            spanId: `span-${index}`,
+            parentSpanId: "",
+            attributes: fixture.attributes,
+            attributeKeys: Object.keys(fixture.attributes),
+            entityKeys: [],
+            statusCode: 0,
+            name: "call",
+            kind: SpanKind.Client,
+            retentionDate: retentionDate,
+          });
+        }
+      }
+      await client.insert({
+        table: `${database}.${model.tableName}`,
+        values: values,
+        format: "JSONEachRow",
+      });
+
+      const sql: string = buildClientSpanDependencySql({
+        projectId: PROJECT_ID,
+        startSql: `toDateTime64('${OneUptimeDate.toClickhouseDateTime64(new Date(now - 15 * 60 * 1000))}', 9)`,
+        endSql: `toDateTime64('${OneUptimeDate.toClickhouseDateTime64(new Date(now + 60 * 1000))}', 9)`,
+        maxEntrySpans: 1000,
+        maxRows: 1000,
+      });
+      const response: { json: () => Promise<unknown> } = await client.query({
+        query: sql
+          .split(`oneuptime.${model.tableName}`)
+          .join(`${database}.${model.tableName}`),
+        format: "JSON",
+      });
+      result = (
+        (await response.json()) as { data: Array<ClientSpanDependencyRow> }
+      ).data;
+    }, 120000);
+
+    afterAll(async (): Promise<void> => {
+      if (client) {
+        await client.command({ query: `DROP DATABASE IF EXISTS ${database}` });
+      }
+      if (clickhouse) {
+        await clickhouse.disconnect();
+      }
+    });
+
+    function rowsOf(system: string): Array<ClientSpanDependencyRow> {
+      return result.filter((row: ClientSpanDependencyRow): boolean => {
+        return row.dbSystem === system;
+      });
+    }
+
+    test("a database call keeps what the ingest resolver reads", () => {
+      const mssql: Array<ClientSpanDependencyRow> = rowsOf("mssql");
+      expect(mssql).toHaveLength(1);
+      expect(mssql[0]).toMatchObject({
+        serverAddress: "SQL1.corp.example.com",
+        dbServerAddress: "SQL1.corp.example.com",
+        serverPort: "",
+        dbInstance: "INST01",
+        dbNamespace: "billing",
+        callerNamespace: "",
+        callerCluster: "",
+      });
+      expect(Number(mssql[0]!.callCount)).toBe(2);
+
+      const redisByPeer: ClientSpanDependencyRow | undefined = rowsOf(
+        "redis",
+      ).find((row: ClientSpanDependencyRow): boolean => {
+        return row.dbServerAddress === "10.0.0.9";
+      });
+      // The node's own address has no network.peer fallback; the server's does.
+      expect(redisByPeer).toMatchObject({
+        serverAddress: "",
+        serverPort: "6380",
+        callerNamespace: "cache",
+        callerCluster: "prod-eu",
+      });
+    });
+
+    test("one placement is one row however many pods called; placements split", () => {
+      const postgres: Array<ClientSpanDependencyRow> = rowsOf("postgresql");
+      expect(
+        postgres
+          .map((row: ClientSpanDependencyRow): string => {
+            return `${row.callerCluster}:${Number(row.callCount)}`;
+          })
+          .sort(),
+      ).toEqual(["prod-eu:4", "prod-us:1"]);
+    });
+
+    test("every other call keeps no server columns, and groups exactly as before", () => {
+      const http: Array<ClientSpanDependencyRow> = result.filter(
+        (row: ClientSpanDependencyRow): boolean => {
+          return !row.dbSystem;
+        },
+      );
+      expect(http).toHaveLength(1);
+      expect(http[0]).toMatchObject({
+        serverAddress: "hooks.slack.com",
+        dbServerAddress: "",
+        serverPort: "",
+        dbInstance: "",
+        callerNamespace: "",
+        callerCluster: "",
+      });
+      expect(Number(http[0]!.callCount)).toBe(2);
+    });
+
+    test("a node describes the endpoint ingest stamped on its spans, or '' for several", () => {
+      // What ingest keyed each span with, per node.
+      const ingestByNode: Map<string, Set<string>> = new Map<
+        string,
+        Set<string>
+      >();
+      for (const fixture of DEPENDENCY_SPANS) {
+        const attributes: Record<string, string> = fixture.attributes;
+        const resource: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(attributes)) {
+          if (key.startsWith("resource.")) {
+            resource[key.substring("resource.".length)] = value;
+          }
+        }
+        const target: { endpoint: DatabaseEndpoint } | null =
+          resolveDatabaseCallTarget({
+            getAttribute: (key: string): unknown => {
+              return attributes[key];
+            },
+            caller: buildDatabaseCallerContext(resource),
+          });
+        const node: DependencyTarget | null = resolveClientSpanTarget(
+          {
+            callerServiceId: fixture.service,
+            dbSystem: attributes["db.system.name"] || attributes["db.system"],
+            dbNamespace: attributes["db.namespace"] || attributes["db.name"],
+            serverAddress:
+              attributes["server.address"] || attributes["net.peer.name"],
+            callCount: 1,
+            errorCount: 0,
+            avgDurationNano: 1,
+          },
+          new Set<string>(),
+        );
+        if (!target || node?.kind !== "dependency") {
+          continue;
+        }
+        const key: string = toExtractedDependencyEntity({
+          projectId: PROJECT_ID,
+          entity: node.entity,
+        }).entityKey;
+        const endpoints: Set<string> = ingestByNode.get(key) || new Set();
+        endpoints.add(formatDatabaseEndpoint(target.endpoint));
+        ingestByNode.set(key, endpoints);
+      }
+
+      // What the job describes each node with, from the query's rows.
+      const described: Map<string, ExtractedEntity> = new Map<
+        string,
+        ExtractedEntity
+      >();
+      for (const row of result) {
+        const node: DependencyTarget | null = resolveClientSpanTarget(
+          row,
+          new Set<string>(),
+        );
+        if (
+          node?.kind !== "dependency" ||
+          node.entity.entityType !== EntityType.Database
+        ) {
+          continue;
+        }
+        const entity: ExtractedEntity = toExtractedDependencyEntity({
+          projectId: PROJECT_ID,
+          entity: node.entity,
+        });
+        const earlier: ExtractedEntity | undefined = described.get(
+          entity.entityKey,
+        );
+        described.set(
+          entity.entityKey,
+          earlier ? mergeDependencyEntityDescriptions(earlier, entity) : entity,
+        );
+      }
+
+      expect(ingestByNode.size).toBe(3);
+      for (const [key, endpoints] of ingestByNode) {
+        const endpoint: string | undefined =
+          described.get(key)?.descriptiveAttributes?.[
+            DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE
+          ];
+        expect(endpoint).toBe(
+          endpoints.size === 1 ? Array.from(endpoints)[0] : "",
+        );
+      }
+
+      const endpointsDescribed: Array<string> = Array.from(described.values())
+        .map((entity: ExtractedEntity): string => {
+          return (
+            entity.descriptiveAttributes?.[
+              DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE
+            ] ?? "(none)"
+          );
+        })
+        .sort();
+      expect(endpointsDescribed).toEqual(
+        [
+          // postgres.data from prod-eu AND prod-us: two servers, one node.
+          "",
+          /*
+           * The hostless redis node: its localhost calls name no server,
+           * so they do not contradict the one its other calls reached.
+           */
+          "10.0.0.9:6380@prod-eu",
+          "sql1.corp.example.com\\inst01",
+        ].sort(),
+      );
+    });
+  },
+);

@@ -403,3 +403,94 @@ describe("InventoryItemService.deriveDisplayName for inferred dependencies", () 
     ).toBe("acme.ledger.v1.ledger");
   });
 });
+
+/*
+ * A Database dependency node describes the database SERVER its calls
+ * reached (`oneuptime.database.endpoint`, `server.port`) for the Service
+ * Map's "Open database" link. That description is presentation data: it
+ * never names the node, and a later run's '' (the node reached several
+ * servers) must overwrite a stale endpoint on the stored row.
+ */
+describe("a database node's server description", () => {
+  const identifying: Record<string, string> = {
+    "db.system.name": "postgresql",
+    "server.address": "postgres.data",
+    "db.namespace": "orders",
+  };
+
+  function databaseNode(descriptive: Record<string, string>): ExtractedEntity {
+    return entity({
+      entityType: EntityType.Database,
+      identifyingAttributes: identifying,
+      descriptiveAttributes: descriptive,
+    });
+  }
+
+  function descriptiveUpdate(
+    extracted: ExtractedEntity,
+    existing: InventoryItem,
+  ): Record<string, unknown> | undefined {
+    return (
+      InventoryItemService as unknown as {
+        buildDescriptiveUpdate: (
+          incoming: ExtractedEntity,
+          row: InventoryItem,
+        ) => { descriptiveAttributes?: Record<string, unknown> };
+      }
+    ).buildDescriptiveUpdate(extracted, existing).descriptiveAttributes;
+  }
+
+  test("never names the node", () => {
+    expect(
+      InventoryItemService.deriveDisplayName(
+        databaseNode({
+          "db.system.name": "postgresql",
+          "oneuptime.database.endpoint":
+            "postgres.data.svc.cluster.local:5432@prod-eu",
+          "server.port": "5432",
+        }),
+      ),
+    ).toBe("orders");
+  });
+
+  test("an ambiguous ('') description overwrites a stale endpoint, keeping the rest", () => {
+    const existing: InventoryItem = new InventoryItem();
+    existing.displayName = "orders";
+    existing.descriptiveAttributes = {
+      "db.system.name": "postgresql",
+      "oneuptime.database.endpoint":
+        "postgres.data.svc.cluster.local:5432@prod-eu",
+      "server.port": "5432",
+    };
+
+    expect(
+      descriptiveUpdate(
+        databaseNode({
+          "db.system.name": "postgresql",
+          "oneuptime.database.endpoint": "",
+          "server.port": "5432",
+        }),
+        existing,
+      ),
+    ).toEqual({
+      "db.system.name": "postgresql",
+      "oneuptime.database.endpoint": "",
+      "server.port": "5432",
+    });
+  });
+
+  test("an unchanged description writes nothing", () => {
+    const description: Record<string, string> = {
+      "db.system.name": "postgresql",
+      "oneuptime.database.endpoint":
+        "postgres.data.svc.cluster.local:5432@prod-eu",
+    };
+    const existing: InventoryItem = new InventoryItem();
+    existing.displayName = "orders";
+    existing.descriptiveAttributes = { ...description };
+
+    expect(
+      descriptiveUpdate(databaseNode(description), existing),
+    ).toBeUndefined();
+  });
+});

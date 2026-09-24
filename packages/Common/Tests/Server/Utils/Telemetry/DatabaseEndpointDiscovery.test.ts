@@ -1035,6 +1035,156 @@ describe("resolveDatabaseEndpointRows", () => {
     expect(result[0]!.callCount).toBe(550);
   });
 
+  /*
+   * Regression: a pure majority recorded a MariaDB server as MySQL whenever
+   * the MySQL drivers outnumbered the MariaDB connector — the one client
+   * that can tell. Engines of one family are one database seen by
+   * different clients: the fork wins, whatever the counts.
+   */
+  test("engines of one family: the fork a client named wins over a busier family value", () => {
+    const result: Array<DiscoveredDatabaseEndpoint> =
+      resolveDatabaseEndpointRows([
+        row({
+          dbSystem: "mysql",
+          serverAddress: "orders.example.com",
+          callCount: 900,
+        }),
+        row({
+          dbSystem: "mariadb",
+          serverAddress: "orders.example.com",
+          callCount: 3,
+        }),
+      ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]!.system).toBe("mariadb");
+    expect(result[0]!.callCount).toBe(903);
+    expect(formatted(result)).toEqual(["orders.example.com:3306"]);
+  });
+
+  test("the fork wins in any row order, and when it is the busier one", () => {
+    const rows: Array<DatabaseEndpointRow> = [
+      row({ dbSystem: "valkey", serverAddress: "cache.example.com" }),
+      row({ dbSystem: "redis", serverAddress: "cache.example.com" }),
+    ];
+    expect(resolveDatabaseEndpointRows(rows)[0]!.system).toBe("valkey");
+    expect(resolveDatabaseEndpointRows([...rows].reverse())[0]!.system).toBe(
+      "valkey",
+    );
+    expect(
+      resolveDatabaseEndpointRows([
+        row({
+          dbSystem: "valkey",
+          serverAddress: "cache.example.com",
+          callCount: 90,
+        }),
+        row({
+          dbSystem: "redis",
+          serverAddress: "cache.example.com",
+          callCount: 10,
+        }),
+      ])[0]!.system,
+    ).toBe("valkey");
+  });
+
+  test("aliases of the family engine fold into the family with the fork", () => {
+    const result: Array<DiscoveredDatabaseEndpoint> =
+      resolveDatabaseEndpointRows([
+        row({
+          dbSystem: "postgres",
+          serverAddress: "crdb.example.com:26257",
+          callCount: 40,
+        }),
+        row({
+          dbSystem: "postgresql",
+          serverAddress: "crdb.example.com:26257",
+          callCount: 40,
+        }),
+        row({
+          dbSystem: "cockroachdb",
+          serverAddress: "crdb.example.com:26257",
+          callCount: 1,
+        }),
+      ]);
+    expect(result[0]!.system).toBe("cockroachdb");
+    expect(result[0]!.callCount).toBe(81);
+  });
+
+  test("two forks of one family: the busier fork, then the name — never order-dependent", () => {
+    const rows: Array<DatabaseEndpointRow> = [
+      row({
+        dbSystem: "mysql",
+        serverAddress: "x.example.com",
+        callCount: 500,
+      }),
+      row({ dbSystem: "tidb", serverAddress: "x.example.com", callCount: 7 }),
+      row({
+        dbSystem: "mariadb",
+        serverAddress: "x.example.com",
+        callCount: 9,
+      }),
+    ];
+    expect(resolveDatabaseEndpointRows(rows)[0]!.system).toBe("mariadb");
+    expect(resolveDatabaseEndpointRows([...rows].reverse())[0]!.system).toBe(
+      "mariadb",
+    );
+
+    const tied: Array<DatabaseEndpointRow> = [
+      row({ dbSystem: "tidb", serverAddress: "x.example.com", callCount: 9 }),
+      row({
+        dbSystem: "mariadb",
+        serverAddress: "x.example.com",
+        callCount: 9,
+      }),
+    ];
+    expect(resolveDatabaseEndpointRows(tied)[0]!.system).toBe("mariadb");
+    expect(resolveDatabaseEndpointRows([...tied].reverse())[0]!.system).toBe(
+      "mariadb",
+    );
+  });
+
+  test("between families, a family's calls count together", () => {
+    // postgresql + cockroachdb (50) outvote mysql (45), though each alone would not.
+    const result: Array<DiscoveredDatabaseEndpoint> =
+      resolveDatabaseEndpointRows([
+        row({
+          dbSystem: "mysql",
+          serverAddress: "x.example.com:1",
+          callCount: 45,
+        }),
+        row({
+          dbSystem: "postgresql",
+          serverAddress: "x.example.com:1",
+          callCount: 25,
+        }),
+        row({
+          dbSystem: "cockroachdb",
+          serverAddress: "x.example.com:1",
+          callCount: 25,
+        }),
+      ]);
+    expect(result[0]!.system).toBe("cockroachdb");
+    expect(result[0]!.callCount).toBe(95);
+  });
+
+  test("an unknown engine never joins a known family", () => {
+    const result: Array<DiscoveredDatabaseEndpoint> =
+      resolveDatabaseEndpointRows([
+        row({
+          dbSystem: "mysql_fork_x",
+          serverAddress: "x.example.com:3306",
+          callCount: 1000,
+        }),
+        row({
+          dbSystem: "mysql",
+          serverAddress: "x.example.com:3306",
+          callCount: 1,
+        }),
+      ]);
+    // The known, auto-creatable engine still wins over the unknown one.
+    expect(result[0]!.system).toBe("mysql");
+  });
+
   test("an engine tie is broken by name, so the answer is stable", () => {
     const first: Array<DiscoveredDatabaseEndpoint> =
       resolveDatabaseEndpointRows([

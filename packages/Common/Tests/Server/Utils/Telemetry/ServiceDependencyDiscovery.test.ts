@@ -1,6 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  CALLER_CLUSTER_ATTRIBUTE,
+  CALLER_NAMESPACE_ATTRIBUTE,
   ClientSpanDependencyRow,
+  DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE,
+  DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE,
+  DependencyDatabaseEndpoint,
   DependencyEdgeCollector,
   DependencyQueryWindow,
   DependencyTarget,
@@ -10,15 +15,35 @@ import {
   buildClientSpanDependencySql,
   buildServiceGraphMetricSql,
   buildTraceLinkedDependencySql,
+  databaseInstanceSql,
   escapeSql,
+  firstNonEmptyAttributeSql,
   isUuid,
+  mergeDependencyEntityDescriptions,
   mergeDependencySources,
   resolveClientSpanTarget,
+  resolveDependencyDatabaseEndpoint,
   resolveServiceGraphPeer,
   serviceNameCandidatesForHost,
   toEdgeMetrics,
   toExtractedDependencyEntity,
 } from "../../../../Server/Utils/Telemetry/ServiceDependencyDiscovery";
+import {
+  CALLER_CLUSTER_ATTRIBUTE as DISCOVERY_CALLER_CLUSTER,
+  CALLER_NAMESPACE_ATTRIBUTE as DISCOVERY_CALLER_NAMESPACE,
+  databaseInstanceSql as discoveryDatabaseInstanceSql,
+  firstNonEmptyAttributeSql as discoveryFirstNonEmptyAttributeSql,
+} from "../../../../Server/Utils/Telemetry/DatabaseEndpointDiscovery";
+import {
+  DatabaseEndpoint,
+  buildDatabaseCallerContext,
+  formatDatabaseEndpoint,
+} from "../../../../Types/DatabaseServer/DatabaseEndpoint";
+import {
+  DATABASE_ADDRESS_ATTRIBUTES,
+  DATABASE_PORT_ATTRIBUTES,
+  resolveDatabaseCallTarget,
+} from "../../../../Types/DatabaseServer/DatabaseTelemetryResolver";
 import EntityRelationshipType from "../../../../Types/Telemetry/EntityRelationshipType";
 import EntityType from "../../../../Types/Telemetry/EntityType";
 import { EntityRelationshipEdge } from "../../../../Utils/Telemetry/EntityRelationship";
@@ -521,5 +546,600 @@ describe("helpers", () => {
 
   test("escapeSql escapes quotes and backslashes", () => {
     expect(escapeSql("a'b\\c")).toBe("a\\'b\\\\c");
+  });
+});
+
+/*
+ * The database SERVER a Database node's calls reached, for the Service
+ * Map's "Open database" link. The node itself stays keyed by what its spans
+ * said (engine, host, logical database); the server is described beside
+ * it, resolved exactly as ingest keyed the spans.
+ */
+
+// A stored CLIENT span: its own attributes plus the `resource.`-prefixed ones.
+type StoredAttributes = Record<string, string>;
+
+/*
+ * The client-span dependency query's columns for ONE stored span, computed
+ * the way the SQL computes them (ClickHouse maps answer '' for a missing
+ * key): the TypeScript twin of buildClientSpanDependencySql's SELECT.
+ */
+function dependencyRowForSpan(
+  attributes: StoredAttributes,
+): ClientSpanDependencyRow {
+  const read: (key: string) => string = (key: string): string => {
+    return attributes[key] ?? "";
+  };
+  const firstNonEmpty: (keys: ReadonlyArray<string>) => string = (
+    keys: ReadonlyArray<string>,
+  ): string => {
+    for (const key of keys) {
+      if (read(key) !== "") {
+        return read(key);
+      }
+    }
+    return "";
+  };
+
+  const dbSystem: string =
+    read("db.system.name") !== "" ? read("db.system.name") : read("db.system");
+  const databaseOnly: (value: string) => string = (value: string): string => {
+    return dbSystem !== "" ? value : "";
+  };
+  const namespace: string = read("db.namespace");
+  const instance: string =
+    read("db.mssql.instance_name") !== ""
+      ? read("db.mssql.instance_name")
+      : namespace.includes("|")
+        ? namespace.split("|")[0]!
+        : "";
+
+  return row({
+    dbSystem: dbSystem,
+    dbNamespace: namespace !== "" ? namespace : read("db.name"),
+    serverAddress: firstNonEmpty(["server.address", "net.peer.name"]),
+    dbServerAddress: databaseOnly(firstNonEmpty(DATABASE_ADDRESS_ATTRIBUTES)),
+    serverPort: databaseOnly(firstNonEmpty(DATABASE_PORT_ATTRIBUTES)),
+    dbInstance: databaseOnly(instance),
+    callerNamespace: databaseOnly(read(CALLER_NAMESPACE_ATTRIBUTE)),
+    callerCluster: databaseOnly(read(CALLER_CLUSTER_ATTRIBUTE)),
+  });
+}
+
+// What ingest keys the same span with (DatabaseCallEntityKeys).
+function ingestEndpoint(attributes: StoredAttributes): string | null {
+  const resource: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(attributes)) {
+    if (key.startsWith("resource.")) {
+      resource[key.substring("resource.".length)] = value;
+    }
+  }
+  const target: { endpoint: DatabaseEndpoint } | null =
+    resolveDatabaseCallTarget({
+      getAttribute: (key: string): unknown => {
+        return attributes[key];
+      },
+      caller: buildDatabaseCallerContext(resource),
+    });
+  return target ? formatDatabaseEndpoint(target.endpoint) : null;
+}
+
+const CALLERS: Record<string, StoredAttributes> = {
+  vm: { "resource.host.name": "vm-7", "resource.os.type": "linux" },
+  podProd: {
+    "resource.k8s.pod.name": "api-7d9f-x",
+    [CALLER_NAMESPACE_ATTRIBUTE]: "shop",
+    [CALLER_CLUSTER_ATTRIBUTE]: "prod-eu",
+  },
+  podOtherNamespace: {
+    "resource.k8s.pod.name": "billing-5c-y",
+    [CALLER_NAMESPACE_ATTRIBUTE]: "billing",
+    [CALLER_CLUSTER_ATTRIBUTE]: "prod-eu",
+  },
+  podOtherCluster: {
+    "resource.k8s.pod.name": "api-7d9f-z",
+    [CALLER_NAMESPACE_ATTRIBUTE]: "shop",
+    [CALLER_CLUSTER_ATTRIBUTE]: "prod-us",
+  },
+  podNoCluster: {
+    "resource.k8s.pod.name": "api-7d9f-x",
+    [CALLER_NAMESPACE_ATTRIBUTE]: "shop",
+  },
+};
+
+const DATABASE_SPANS: Array<StoredAttributes> = [
+  { "db.system.name": "postgresql", "server.address": "orders.example.com" },
+  {
+    "db.system.name": "postgresql",
+    "server.address": "orders.example.com",
+    "server.port": "6432",
+  },
+  {
+    "db.system": "postgres",
+    "net.peer.name": "db.prod",
+    "net.peer.port": "5433",
+  },
+  {
+    "db.system.name": "postgresql",
+    "server.address": "Orders.Example.COM.:5439",
+  },
+  { "db.system.name": "postgresql", "server.address": "postgres" },
+  { "db.system.name": "postgresql", "server.address": "postgres.data" },
+  { "db.system.name": "mongodb", "server.address": "mongo-0.mongo-headless" },
+  {
+    "db.system.name": "redis",
+    "server.address": "redis-master.cache.svc.cluster.local",
+  },
+  { "db.system.name": "mysql", "server.address": "10.0.0.5" },
+  { "db.system.name": "mysql", "server.address": "db.internal" },
+  { "db.system.name": "mysql", "network.peer.address": "10.0.4.7" },
+  { "db.system.name": "mysql", "server.address": "[fd00::5]:3307" },
+  {
+    "db.system.name": "microsoft.sql_server",
+    "server.address": "sql1.corp.example.com",
+    "db.mssql.instance_name": "INST01",
+  },
+  {
+    "db.system.name": "microsoft.sql_server",
+    "server.address": "sql1.corp.example.com",
+    "db.namespace": "inst02|orders",
+  },
+  {
+    "db.system.name": "microsoft.sql_server",
+    "server.address": "sql1.corp.example.com",
+    "server.port": "14330",
+    "db.mssql.instance_name": "INST01",
+  },
+  { "db.system.name": "postgresql", "server.address": "localhost" },
+  { "db.system.name": "redis", "server.address": "host.docker.internal" },
+  { "db.system.name": "postgresql", "server.address": "[REDACTED]" },
+  { "db.system.name": "cockroachdb", "server.address": "crdb.example.com" },
+];
+
+describe("client span dependency SQL — the database server a node calls", () => {
+  const sql: string = collapse(buildClientSpanDependencySql(WINDOW));
+
+  test("keeps what the ingest resolver reads, with its precedence, for database calls only", () => {
+    const only: (expression: string) => string = (
+      expression: string,
+    ): string => {
+      return `if(dbSystem != '', ${expression}, '')`;
+    };
+    expect(sql).toContain(
+      `${only(firstNonEmptyAttributeSql(DATABASE_ADDRESS_ATTRIBUTES))} AS dbServerAddress`,
+    );
+    expect(sql).toContain(
+      `${only(firstNonEmptyAttributeSql(DATABASE_PORT_ATTRIBUTES))} AS serverPort`,
+    );
+    expect(sql).toContain(`${only(databaseInstanceSql())} AS dbInstance`);
+    expect(sql).toContain(
+      `${only(`attributes['${CALLER_NAMESPACE_ATTRIBUTE}']`)} AS callerNamespace`,
+    );
+    expect(sql).toContain(
+      `${only(`attributes['${CALLER_CLUSTER_ATTRIBUTE}']`)} AS callerCluster`,
+    );
+  });
+
+  test("groups on them, beside the columns a node is keyed by", () => {
+    expect(sql).toContain(
+      "GROUP BY callerServiceId, dbSystem, dbNamespace, messagingSystem, peerService, rpcSystem, rpcService, serverAddress, isHttp, dbServerAddress, serverPort, dbInstance, callerNamespace, callerCluster ORDER BY",
+    );
+  });
+
+  test("the columns a node is keyed by are read exactly as before", () => {
+    expect(sql).toContain(
+      "multiIf(attributes['db.system.name'] != '', attributes['db.system.name'], attributes['db.system']) AS dbSystem",
+    );
+    expect(sql).toContain(
+      "multiIf(attributes['db.namespace'] != '', attributes['db.namespace'], attributes['db.name']) AS dbNamespace",
+    );
+    expect(sql).toContain(
+      "multiIf( attributes['server.address'] != '', attributes['server.address'], attributes['net.peer.name'] != '', attributes['net.peer.name'], attributes['http.host'] != '', attributes['http.host'], attributes['url.full'] != '', domain(attributes['url.full']), attributes['http.url'] != '', domain(attributes['http.url']), '' ) AS serverAddress",
+    );
+  });
+
+  test("never groups on anything that varies per caller instance", () => {
+    for (const perInstance of [
+      "k8s.pod.name",
+      "k8s.node.name",
+      "host.name",
+      "container.id",
+      "service.instance.id",
+    ]) {
+      expect(sql).not.toContain(perInstance);
+    }
+  });
+
+  test("the shared SQL helpers are the ones DatabaseEndpointDiscovery re-exports", () => {
+    expect(firstNonEmptyAttributeSql).toBe(discoveryFirstNonEmptyAttributeSql);
+    expect(databaseInstanceSql).toBe(discoveryDatabaseInstanceSql);
+    expect(CALLER_NAMESPACE_ATTRIBUTE).toBe(DISCOVERY_CALLER_NAMESPACE);
+    expect(CALLER_CLUSTER_ATTRIBUTE).toBe(DISCOVERY_CALLER_CLUSTER);
+  });
+});
+
+describe("resolveDependencyDatabaseEndpoint", () => {
+  for (const [callerName, caller] of Object.entries(CALLERS)) {
+    for (const span of DATABASE_SPANS) {
+      const attributes: StoredAttributes = { ...span, ...caller };
+      test(`is the endpoint ingest keyed the span with: ${callerName} → ${JSON.stringify(span)}`, () => {
+        const resolved: DependencyDatabaseEndpoint | null =
+          resolveDependencyDatabaseEndpoint(dependencyRowForSpan(attributes));
+        expect(resolved?.endpoint ?? null).toBe(ingestEndpoint(attributes));
+      });
+    }
+  }
+
+  test("a Kubernetes short name is the caller's own Service, qualified with its cluster", () => {
+    const shop: DependencyDatabaseEndpoint | null =
+      resolveDependencyDatabaseEndpoint(
+        dependencyRowForSpan({
+          "db.system.name": "postgresql",
+          "server.address": "postgres",
+          ...CALLERS["podProd"],
+        }),
+      );
+    const billing: DependencyDatabaseEndpoint | null =
+      resolveDependencyDatabaseEndpoint(
+        dependencyRowForSpan({
+          "db.system.name": "postgresql",
+          "server.address": "postgres",
+          ...CALLERS["podOtherNamespace"],
+        }),
+      );
+    expect(shop).toEqual({
+      endpoint: "postgres.shop.svc.cluster.local:5432@prod-eu",
+      port: null,
+    });
+    expect(billing?.endpoint).toBe(
+      "postgres.billing.svc.cluster.local:5432@prod-eu",
+    );
+  });
+
+  test("the port the calls named: the port attribute, else the address's, else none", () => {
+    const resolve: (span: StoredAttributes) => number | null | undefined = (
+      span: StoredAttributes,
+    ): number | null | undefined => {
+      return resolveDependencyDatabaseEndpoint(dependencyRowForSpan(span))
+        ?.port;
+    };
+    expect(
+      resolve({
+        "db.system.name": "postgresql",
+        "server.address": "db.example.com:6000",
+        "server.port": "6432",
+      }),
+    ).toBe(6432);
+    expect(
+      resolve({
+        "db.system.name": "postgresql",
+        "server.address": "db.example.com:6000",
+      }),
+    ).toBe(6000);
+    expect(
+      resolve({
+        "db.system.name": "postgresql",
+        "server.address": "db.example.com",
+      }),
+    ).toBeNull();
+    // An unusable port attribute is ignored, exactly as the resolver ignores it.
+    expect(
+      resolve({
+        "db.system.name": "postgresql",
+        "server.address": "db.example.com",
+        "server.port": "70000",
+      }),
+    ).toBeNull();
+    expect(
+      resolveDependencyDatabaseEndpoint(
+        row({
+          dbSystem: "postgresql",
+          dbServerAddress: "db.example.com",
+          serverPort: 6432,
+        }),
+      ),
+    ).toEqual({ endpoint: "db.example.com:6432", port: 6432 });
+  });
+
+  test("a SQL Server named instance reached without a port is that instance, never port 1433", () => {
+    expect(
+      resolveDependencyDatabaseEndpoint(
+        dependencyRowForSpan({
+          "db.system.name": "microsoft.sql_server",
+          "server.address": "sql1.corp.example.com",
+          "db.mssql.instance_name": "INST01",
+        }),
+      ),
+    ).toEqual({ endpoint: "sql1.corp.example.com\\inst01", port: null });
+  });
+
+  test("names no server for a call that has none", () => {
+    for (const overrides of [
+      { dbSystem: "postgresql", dbServerAddress: "localhost:5432" },
+      { dbSystem: "redis", dbServerAddress: "host.docker.internal" },
+      { dbSystem: "postgresql", dbServerAddress: "[REDACTED]" },
+      { dbSystem: "postgresql", dbServerAddress: "" },
+      { dbSystem: "", dbServerAddress: "db.example.com" },
+      { serverAddress: "db.example.com" },
+    ] as Array<Partial<ClientSpanDependencyRow>>) {
+      expect(resolveDependencyDatabaseEndpoint(row(overrides))).toBeNull();
+    }
+    expect(
+      resolveDependencyDatabaseEndpoint(
+        null as unknown as ClientSpanDependencyRow,
+      ),
+    ).toBeNull();
+  });
+});
+
+describe("resolveClientSpanTarget — the database server a node calls", () => {
+  const keyOf: (target: DependencyTarget | null) => string = (
+    target: DependencyTarget | null,
+  ): string => {
+    if (!target || target.kind !== "dependency") {
+      throw new Error("expected a dependency");
+    }
+    return toExtractedDependencyEntity({
+      projectId: PROJECT_ID,
+      entity: target.entity,
+    }).entityKey;
+  };
+
+  const describedEndpoint: (
+    target: DependencyTarget | null,
+  ) => string | undefined = (
+    target: DependencyTarget | null,
+  ): string | undefined => {
+    return target?.kind === "dependency"
+      ? target.entity.descriptiveAttributes[
+          DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE
+        ]
+      : undefined;
+  };
+
+  test("a database node describes the server its calls reached, beside its unchanged identity", () => {
+    const withServer: DependencyTarget | null = resolveClientSpanTarget(
+      row({
+        dbSystem: "PostgreSQL",
+        dbNamespace: "Orders",
+        serverAddress: "postgres.data",
+        dbServerAddress: "postgres.data",
+        serverPort: "5432",
+        callerNamespace: "shop",
+        callerCluster: "Prod-EU",
+      }),
+      KNOWN,
+    );
+    expect(withServer).toEqual({
+      kind: "dependency",
+      entity: {
+        entityType: EntityType.Database,
+        identifyingAttributes: {
+          "db.system.name": "postgresql",
+          "server.address": "postgres.data",
+          "db.namespace": "orders",
+        },
+        descriptiveAttributes: {
+          "db.system.name": "postgresql",
+          [DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE]:
+            "postgres.data.svc.cluster.local:5432@prod-eu",
+          [DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE]: "5432",
+        },
+      },
+    });
+
+    // The same calls without the database columns: the same node.
+    const withoutServer: DependencyTarget | null = resolveClientSpanTarget(
+      row({
+        dbSystem: "PostgreSQL",
+        dbNamespace: "Orders",
+        serverAddress: "postgres.data",
+      }),
+      KNOWN,
+    );
+    expect(keyOf(withServer)).toBe(keyOf(withoutServer));
+  });
+
+  test("the attributes are the ones the Service Map's database link reads", () => {
+    expect(DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE).toBe(
+      "oneuptime.database.endpoint",
+    );
+    expect(DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE).toBe("server.port");
+  });
+
+  test("callers in two clusters reach two servers through ONE node", () => {
+    const fromCluster: (cluster: string) => DependencyTarget | null = (
+      cluster: string,
+    ): DependencyTarget | null => {
+      return resolveClientSpanTarget(
+        dependencyRowForSpan({
+          "db.system.name": "postgresql",
+          "server.address": "postgres.data",
+          [CALLER_NAMESPACE_ATTRIBUTE]: "shop",
+          [CALLER_CLUSTER_ATTRIBUTE]: cluster,
+        }),
+        KNOWN,
+      );
+    };
+    const eu: DependencyTarget | null = fromCluster("prod-eu");
+    const us: DependencyTarget | null = fromCluster("prod-us");
+    expect(keyOf(eu)).toBe(keyOf(us));
+    expect(describedEndpoint(eu)).toBe(
+      "postgres.data.svc.cluster.local:5432@prod-eu",
+    );
+    expect(describedEndpoint(us)).toBe(
+      "postgres.data.svc.cluster.local:5432@prod-us",
+    );
+  });
+
+  test("a call whose server cannot be named carries no description of one", () => {
+    const target: DependencyTarget | null = resolveClientSpanTarget(
+      row({
+        dbSystem: "redis",
+        serverAddress: "host.docker.internal:6379",
+        dbServerAddress: "host.docker.internal:6379",
+      }),
+      KNOWN,
+    );
+    expect(target).toEqual({
+      kind: "dependency",
+      entity: {
+        entityType: EntityType.Database,
+        identifyingAttributes: {
+          "db.system.name": "redis",
+          "server.address": "host.docker.internal",
+        },
+        descriptiveAttributes: { "db.system.name": "redis" },
+      },
+    });
+  });
+
+  test("only database nodes ever describe a database server", () => {
+    for (const overrides of [
+      { peerService: "stripe", serverAddress: "api.stripe.com" },
+      { messagingSystem: "kafka", serverAddress: "kafka-0.kafka:9092" },
+      { serverAddress: "api.stripe.com", isHttp: 1 },
+      { rpcSystem: "grpc", rpcService: "acme.ledger.v1.Ledger" },
+    ] as Array<Partial<ClientSpanDependencyRow>>) {
+      const target: DependencyTarget | null = resolveClientSpanTarget(
+        row({ ...overrides, serverPort: "5432", dbServerAddress: "x.example" }),
+        KNOWN,
+      );
+      expect(target?.kind).toBe("dependency");
+      if (target?.kind === "dependency") {
+        const attributes: Record<string, string> =
+          target.entity.descriptiveAttributes;
+        expect(DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE in attributes).toBe(
+          false,
+        );
+        expect(DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE in attributes).toBe(false);
+      }
+    }
+  });
+});
+
+describe("mergeDependencyEntityDescriptions", () => {
+  const ENDPOINT: string = DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE;
+  const PORT: string = DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE;
+
+  function sighting(descriptive?: Record<string, string>): ExtractedEntity {
+    const entity: ExtractedEntity = {
+      entityType: EntityType.Database,
+      entityKey: "0123456789abcdef",
+      identifyingAttributes: {
+        "db.system.name": "postgresql",
+        "server.address": "db.example.com",
+      },
+    };
+    if (descriptive) {
+      entity.descriptiveAttributes = descriptive;
+    }
+    return entity;
+  }
+
+  function merged(
+    ...sightings: Array<ExtractedEntity>
+  ): Record<string, string> | undefined {
+    return sightings.reduce(mergeDependencyEntityDescriptions)
+      .descriptiveAttributes;
+  }
+
+  test("sightings that name the same server keep it", () => {
+    const same: ExtractedEntity = sighting({
+      "db.system.name": "postgresql",
+      [ENDPOINT]: "db.example.com:6432",
+      [PORT]: "6432",
+    });
+    expect(merged(same, same, same)).toEqual({
+      "db.system.name": "postgresql",
+      [ENDPOINT]: "db.example.com:6432",
+      [PORT]: "6432",
+    });
+  });
+
+  test("sightings that reach different servers leave the node ambiguous ('')", () => {
+    expect(
+      merged(
+        sighting({ [ENDPOINT]: "db.example.com:5432" }),
+        sighting({ [ENDPOINT]: "db.example.com:6432", [PORT]: "6432" }),
+      ),
+    ).toEqual({ [ENDPOINT]: "", [PORT]: "" });
+    // Same port, two clusters: the endpoint is ambiguous, the port is not.
+    expect(
+      merged(
+        sighting({
+          [ENDPOINT]: "pg.data.svc.cluster.local:5432@eu",
+          [PORT]: "5432",
+        }),
+        sighting({
+          [ENDPOINT]: "pg.data.svc.cluster.local:5432@us",
+          [PORT]: "5432",
+        }),
+      ),
+    ).toEqual({ [ENDPOINT]: "", [PORT]: "5432" });
+  });
+
+  test("a named port and no named port disagree", () => {
+    expect(
+      merged(
+        sighting({ [ENDPOINT]: "db.example.com:5432", [PORT]: "5432" }),
+        sighting({ [ENDPOINT]: "db.example.com:5432" }),
+      ),
+    ).toEqual({ [ENDPOINT]: "db.example.com:5432", [PORT]: "" });
+  });
+
+  test("once ambiguous, always ambiguous, in any order", () => {
+    const a: ExtractedEntity = sighting({ [ENDPOINT]: "a.example.com:5432" });
+    const b: ExtractedEntity = sighting({ [ENDPOINT]: "b.example.com:5432" });
+    for (const order of [
+      [a, b, a],
+      [a, a, b],
+      [b, a, a],
+      [a, b, b, a],
+    ]) {
+      expect(merged(...order)?.[ENDPOINT]).toBe("");
+    }
+  });
+
+  test("a sighting that names no server contradicts nothing", () => {
+    const named: ExtractedEntity = sighting({
+      "db.system.name": "postgresql",
+      [ENDPOINT]: "db.example.com:5432",
+    });
+    const unnamed: ExtractedEntity = sighting({
+      "db.system.name": "postgresql",
+    });
+    expect(merged(named, unnamed)?.[ENDPOINT]).toBe("db.example.com:5432");
+    expect(merged(unnamed, named)?.[ENDPOINT]).toBe("db.example.com:5432");
+    expect(merged(unnamed, sighting(), unnamed)).toEqual({
+      "db.system.name": "postgresql",
+    });
+    expect(merged(sighting(), sighting())).toBeUndefined();
+  });
+
+  test("every other attribute: the later sighting wins, and the identity is untouched", () => {
+    const earlier: ExtractedEntity = sighting({
+      "network.protocol.name": "tcp",
+      "db.system.name": "postgres",
+    });
+    const later: ExtractedEntity = sighting({ "db.system.name": "postgresql" });
+    const result: ExtractedEntity = mergeDependencyEntityDescriptions(
+      earlier,
+      later,
+    );
+    expect(result.descriptiveAttributes).toEqual({
+      "network.protocol.name": "tcp",
+      "db.system.name": "postgresql",
+    });
+    expect(result.entityKey).toBe(later.entityKey);
+    expect(result.identifyingAttributes).toEqual(later.identifyingAttributes);
+    // Neither input is modified.
+    expect(earlier.descriptiveAttributes).toEqual({
+      "network.protocol.name": "tcp",
+      "db.system.name": "postgres",
+    });
+    expect(later.descriptiveAttributes).toEqual({
+      "db.system.name": "postgresql",
+    });
   });
 });

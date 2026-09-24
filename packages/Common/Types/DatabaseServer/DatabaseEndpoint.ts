@@ -1,5 +1,6 @@
 import {
   getDatabaseSystemDisplayName,
+  getDatabaseSystemFamily,
   getDefaultDatabasePort,
   normalizeDatabaseSystem,
   trimTrailingCharacter,
@@ -1728,20 +1729,36 @@ export function getDatabaseClusterHost(host: string): string | null {
 
 // ---- row identity + naming -----------------------------------------------
 
-/** `${system}|${formatted endpoint}` — the identifier of an endpoint row. */
+/*
+ * Row identifiers start with the engine FAMILY (getDatabaseSystemFamily),
+ * never the engine: a fork keys like the engine it forks ("mariadb" as
+ * "mysql", "valkey" as "redis"). Which of the two a database is gets
+ * decided — and corrected — over its lifetime (a span says "mysql", the
+ * image then says "mariadb", a version string refines "mysql" to "tidb"),
+ * and that must never re-key the row or mint a second one. Engines of
+ * different families still key apart. An unknown engine is its own family.
+ */
+function identifierEngine(system: unknown): string {
+  return getDatabaseSystemFamily(system) || "";
+}
+
+/**
+ * `${family}|${formatted endpoint}` — the identifier of an endpoint row,
+ * keyed on the engine family (see identifierEngine).
+ */
 export function buildDatabaseServerIdentifier(
   system: string,
   endpoint: DatabaseEndpoint,
 ): string {
-  return `${normalizeDatabaseSystem(system) || ""}|${formatDatabaseEndpoint(
-    endpoint,
-  )}`;
+  return `${identifierEngine(system)}|${formatDatabaseEndpoint(endpoint)}`;
 }
 
 /**
- * The identifier of a workload-detected row, lowercased:
- *   kubernetes → `${system}|kubernetes:${cluster}/${namespace}/${kind}/${name}`
- *   docker / podman → `${system}|${platform}:${host}/${name}` — no kind, so
+ * The identifier of a workload-detected row, lowercased and keyed on the
+ * engine family (see identifierEngine), so a workload re-classified within
+ * its family (Redis → Valkey, MySQL → MariaDB) keeps its identifier:
+ *   kubernetes → `${family}|kubernetes:${cluster}/${namespace}/${kind}/${name}`
+ *   docker / podman → `${family}|${platform}:${host}/${name}` — no kind, so
  *   compose labels that appear later cannot change the identity.
  */
 export function buildWorkloadDatabaseServerIdentifier(input: {
@@ -1756,7 +1773,7 @@ export function buildWorkloadDatabaseServerIdentifier(input: {
     return typeof value === "string" ? value.trim() : "";
   };
 
-  const system: string = normalizeDatabaseSystem(input.system) || "";
+  const system: string = identifierEngine(input.system);
   const platform: string = segment(input.platform);
   const parentName: string = segment(input.parentName);
   const workloadName: string = segment(input.workloadName);

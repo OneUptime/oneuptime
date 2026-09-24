@@ -16,6 +16,22 @@ import {
   isLoopbackHost,
   normalizeHost,
 } from "../../../Utils/Telemetry/NetworkHost";
+import {
+  DATABASE_INSTANCE_NAME_ATTRIBUTE,
+  DATABASE_NAMESPACE_ATTRIBUTE,
+  DatabaseCallerContext,
+  DatabaseEndpoint,
+  DatabaseEndpointScope,
+  formatDatabaseEndpoint,
+  parseHostAndPort,
+  ParsedHostAndPort,
+} from "../../../Types/DatabaseServer/DatabaseEndpoint";
+import {
+  DATABASE_ADDRESS_ATTRIBUTES,
+  DATABASE_PORT_ATTRIBUTES,
+  DATABASE_SYSTEM_ATTRIBUTES,
+  resolveDatabaseCallTarget,
+} from "../../../Types/DatabaseServer/DatabaseTelemetryResolver";
 import { ExtractedEntity } from "./TelemetryEntity";
 
 export { isLoopbackHost, normalizeHost };
@@ -80,6 +96,46 @@ export function isUuid(value: unknown): boolean {
 
 export function escapeSql(value: string): string {
   return value.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+}
+
+/*
+ * The SQL both span-table discovery queries read a database call with — the
+ * dependency query below and DatabaseEndpointDiscovery's — kept here, the
+ * lower of the two modules, so neither imports the other in a cycle.
+ * DatabaseEndpointDiscovery re-exports them.
+ */
+
+// Stored span rows carry resource attributes under a `resource.` prefix.
+export const CALLER_NAMESPACE_ATTRIBUTE: string = "resource.k8s.namespace.name";
+export const CALLER_CLUSTER_ATTRIBUTE: string = "resource.k8s.cluster.name";
+
+/**
+ * `multiIf(attributes['a'] != '', attributes['a'], …, '')` — the first
+ * attribute that is present and not the empty string, exactly the
+ * `firstPresent` rule of the ingest resolver.
+ */
+export function firstNonEmptyAttributeSql(keys: ReadonlyArray<string>): string {
+  const branches: Array<string> = keys.map((key: string): string => {
+    const attribute: string = `attributes['${escapeSql(key)}']`;
+    return `${attribute} != '', ${attribute}`;
+  });
+  return `multiIf(${[...branches, "''"].join(", ")})`;
+}
+
+/**
+ * The SQL Server instance a span names beside its address, in SQL — the
+ * twin of readDatabaseInstanceName without its engine check (the resolver
+ * ignores the value for any other engine): `db.mssql.instance_name`, else
+ * the part of `db.namespace` before its first "|", else ''.
+ */
+export function databaseInstanceSql(): string {
+  const instanceName: string = `attributes['${escapeSql(
+    DATABASE_INSTANCE_NAME_ATTRIBUTE,
+  )}']`;
+  const namespace: string = `attributes['${escapeSql(
+    DATABASE_NAMESPACE_ATTRIBUTE,
+  )}']`;
+  return `multiIf(${instanceName} != '', ${instanceName}, position(${namespace}, '|') > 0, splitByChar('|', ${namespace})[1], '')`;
 }
 
 export interface DependencyQueryWindow {
@@ -169,10 +225,24 @@ export function buildTraceLinkedDependencySql(
  * attributes (old and new names both) so the grouping stays bounded: the
  * address of an HTTP call falls back from `server.address` to the host of
  * the URL, never to the URL itself.
+ *
+ * A database call also keeps what the ingest resolver
+ * (resolveDatabaseCallTarget) reads to find the database SERVER it called —
+ * the address, port and SQL Server instance with the resolver's precedence,
+ * and the caller's Kubernetes namespace and cluster — so its node can say
+ * which server that is (see resolveDependencyDatabaseEndpoint). They are ''
+ * for every other span, and none of them is part of a node's identity.
+ * They split a database's rows only by what tells servers apart: its
+ * address spellings, ports and instances, and the placements (namespace,
+ * cluster) of the service calling it — never its pods.
  */
 export function buildClientSpanDependencySql(
   window: DependencyQueryWindow,
 ): string {
+  const databaseOnly: (sql: string) => string = (sql: string): string => {
+    return `if(dbSystem != '', ${sql}, '')`;
+  };
+
   return `
     SELECT
       primaryEntityId AS callerServiceId,
@@ -191,6 +261,11 @@ export function buildClientSpanDependencySql(
         ''
       ) AS serverAddress,
       if(attributes['http.request.method'] != '' OR attributes['http.method'] != '', 1, 0) AS isHttp,
+      ${databaseOnly(firstNonEmptyAttributeSql(DATABASE_ADDRESS_ATTRIBUTES))} AS dbServerAddress,
+      ${databaseOnly(firstNonEmptyAttributeSql(DATABASE_PORT_ATTRIBUTES))} AS serverPort,
+      ${databaseOnly(databaseInstanceSql())} AS dbInstance,
+      ${databaseOnly(`attributes['${escapeSql(CALLER_NAMESPACE_ATTRIBUTE)}']`)} AS callerNamespace,
+      ${databaseOnly(`attributes['${escapeSql(CALLER_CLUSTER_ATTRIBUTE)}']`)} AS callerCluster,
       count() AS callCount,
       countIf(statusCode = 2) AS errorCount,
       avg(durationUnixNano) AS avgDurationNano
@@ -210,7 +285,7 @@ export function buildClientSpanDependencySql(
           AND parentSpanId != ''
         LIMIT ${window.maxEntrySpans}
       )
-    GROUP BY callerServiceId, dbSystem, dbNamespace, messagingSystem, peerService, rpcSystem, rpcService, serverAddress, isHttp
+    GROUP BY callerServiceId, dbSystem, dbNamespace, messagingSystem, peerService, rpcSystem, rpcService, serverAddress, isHttp, dbServerAddress, serverPort, dbInstance, callerNamespace, callerCluster
     ORDER BY callCount DESC
     LIMIT ${window.maxRows}
     ${QUERY_SETTINGS}
@@ -289,6 +364,16 @@ export interface ClientSpanDependencyRow {
   rpcService?: string | undefined;
   serverAddress?: string | undefined;
   isHttp?: string | number | boolean | undefined;
+  /*
+   * Database calls only ('' otherwise): what resolveDatabaseCallTarget
+   * reads — the address and port with its precedence, the SQL Server
+   * instance and the caller's Kubernetes namespace and cluster.
+   */
+  dbServerAddress?: string | undefined;
+  serverPort?: string | number | undefined;
+  dbInstance?: string | undefined;
+  callerNamespace?: string | undefined;
+  callerCluster?: string | undefined;
   callCount: string | number;
   errorCount: string | number;
   avgDurationNano: string | number;
@@ -374,6 +459,177 @@ function nonEmpty(value: string | undefined | null): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+/*
+ * What a Database dependency node says about the database SERVER its calls
+ * reached, for the Service Map's "Open database" link (ResolveTypedRowLink
+ * prefers these): the canonical endpoint ingest keyed the calls with
+ * (formatDatabaseEndpoint, `@cluster` included) and the port the calls
+ * named. DESCRIPTIVE only — a node stays keyed by what its spans said
+ * (engine, host, logical database), so these never change its identity.
+ * '' means the node's calls reached more than one server (see
+ * mergeDependencyEntityDescriptions).
+ */
+export const DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE: string =
+  "oneuptime.database.endpoint";
+export const DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE: string = "server.port";
+
+const DIGITS_ONLY_REGEX: RegExp = /^\d+$/;
+
+export interface DependencyDatabaseEndpoint {
+  // The server the calls reached, formatted (formatDatabaseEndpoint).
+  endpoint: string;
+  // The port the calls named (the port attribute, else the address's); null for none.
+  port: number | null;
+}
+
+function readPort(value: unknown): number | null {
+  const text: string =
+    typeof value === "number"
+      ? String(value)
+      : typeof value === "string"
+        ? value.trim()
+        : "";
+  if (!DIGITS_ONLY_REGEX.test(text)) {
+    return null;
+  }
+  const port: number = Number(text);
+  return port >= 1 && port <= 65535 ? port : null;
+}
+
+/**
+ * The database server a client-span dependency row called — exactly the
+ * endpoint ingest keyed its spans with: the row's database columns go
+ * through resolveDatabaseCallTarget, the ingest resolver itself, with the
+ * caller's namespace and cluster the row kept, as DatabaseEndpointDiscovery
+ * does. Null when the row names none: not a database call, or a loopback,
+ * host-relative or unreadable address.
+ */
+export function resolveDependencyDatabaseEndpoint(
+  row: ClientSpanDependencyRow,
+): DependencyDatabaseEndpoint | null {
+  if (!row || typeof row !== "object") {
+    return null;
+  }
+
+  const attributes: Record<string, unknown> = {
+    [DATABASE_SYSTEM_ATTRIBUTES[0]!]: row.dbSystem,
+    [DATABASE_ADDRESS_ATTRIBUTES[0]!]: row.dbServerAddress,
+    [DATABASE_PORT_ATTRIBUTES[0]!]: row.serverPort,
+    [DATABASE_INSTANCE_NAME_ATTRIBUTE]: row.dbInstance,
+  };
+
+  const caller: DatabaseCallerContext = {
+    kubernetesNamespace: nonEmpty(row.callerNamespace),
+    kubernetesClusterName: nonEmpty(row.callerCluster),
+    hostName: null,
+    // Only the collector purpose reads it; a client call never does.
+    isEphemeral: true,
+  };
+
+  const target: {
+    system: string;
+    endpoint: DatabaseEndpoint;
+    scope: DatabaseEndpointScope;
+  } | null = resolveDatabaseCallTarget({
+    getAttribute: (key: string): unknown => {
+      return attributes[key];
+    },
+    caller: caller,
+  });
+
+  if (!target) {
+    return null;
+  }
+
+  // Named exactly as the resolver reads it: the port attribute, else the address's.
+  const address: ParsedHostAndPort | null = parseHostAndPort(
+    row.dbServerAddress,
+  );
+
+  return {
+    endpoint: formatDatabaseEndpoint(target.endpoint),
+    port: readPort(row.serverPort) ?? address?.port ?? null,
+  };
+}
+
+interface DatabaseServerDescription {
+  endpoint: string;
+  port: string | null;
+}
+
+function readDatabaseServerDescription(
+  attributes: Record<string, string>,
+): DatabaseServerDescription | null {
+  const endpoint: string | undefined =
+    attributes[DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE];
+  if (typeof endpoint !== "string") {
+    return null;
+  }
+  const port: string | undefined =
+    attributes[DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE];
+  return { endpoint: endpoint, port: typeof port === "string" ? port : null };
+}
+
+/**
+ * Two sightings of one dependency node in one run → one description. A
+ * node is keyed by what its callers' spans said (engine, host, logical
+ * database), so it can stand for more than one database server: two ports
+ * on one host, or a short Kubernetes name (`postgres`) that is another
+ * Service in each caller's namespace. The server is therefore described
+ * only while every sighting that names one names the same endpoint (and
+ * the same port, "none" included); sightings that disagree leave '' —
+ * ambiguous — which also overwrites what an earlier run stamped, since
+ * descriptive attributes merge key by key, last writer wins. The Service
+ * Map then never opens one of several databases as if it were the only
+ * one. A sighting that names no server (its address did not resolve)
+ * contradicts nothing. Every other attribute: the later sighting wins.
+ */
+export function mergeDependencyEntityDescriptions(
+  earlier: ExtractedEntity,
+  later: ExtractedEntity,
+): ExtractedEntity {
+  const before: Record<string, string> = earlier.descriptiveAttributes || {};
+  const after: Record<string, string> = later.descriptiveAttributes || {};
+
+  const merged: Record<string, string> = {};
+  for (const [key, value] of Object.entries({ ...before, ...after })) {
+    if (
+      key !== DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE &&
+      key !== DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE
+    ) {
+      merged[key] = value;
+    }
+  }
+
+  const first: DatabaseServerDescription | null =
+    readDatabaseServerDescription(before);
+  const second: DatabaseServerDescription | null =
+    readDatabaseServerDescription(after);
+
+  let server: DatabaseServerDescription | null = first || second;
+  if (first && second) {
+    server = {
+      endpoint: first.endpoint === second.endpoint ? first.endpoint : "",
+      port: first.port === second.port ? first.port : "",
+    };
+  }
+
+  if (server) {
+    merged[DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE] = server.endpoint;
+    if (server.port !== null) {
+      merged[DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE] = server.port;
+    }
+  }
+
+  const result: ExtractedEntity = { ...later };
+  if (Object.keys(merged).length > 0) {
+    result.descriptiveAttributes = merged;
+  } else {
+    delete result.descriptiveAttributes;
+  }
+  return result;
+}
+
 function matchKnownService(
   names: Array<string>,
   knownServiceNames: ReadonlySet<string>,
@@ -417,14 +673,27 @@ export function resolveClientSpanTarget(
       identifyingAttributes["db.namespace"] =
         canonicalizeEntityValue(namespace);
     }
+    const descriptiveAttributes: Record<string, string> = {
+      "db.system.name": canonicalizeEntityValue(dbSystem),
+    };
+    // Which server the calls reached: descriptive, never identifying.
+    const server: DependencyDatabaseEndpoint | null =
+      resolveDependencyDatabaseEndpoint(row);
+    if (server) {
+      descriptiveAttributes[DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE] =
+        server.endpoint;
+      if (server.port !== null) {
+        descriptiveAttributes[DATABASE_PORT_DESCRIPTIVE_ATTRIBUTE] = String(
+          server.port,
+        );
+      }
+    }
     return {
       kind: "dependency",
       entity: {
         entityType: EntityType.Database,
         identifyingAttributes,
-        descriptiveAttributes: {
-          "db.system.name": canonicalizeEntityValue(dbSystem),
-        },
+        descriptiveAttributes,
       },
     };
   }

@@ -30,6 +30,7 @@ import {
   readDatabaseInstanceName,
   splitDatabaseHostInstance,
 } from "../../../Types/DatabaseServer/DatabaseEndpoint";
+import { DATABASE_SYSTEMS } from "../../../Types/DatabaseServer/DatabaseSystem";
 import { keyForDatabaseEndpoint } from "../../../Utils/Telemetry/EntityKey";
 import { describe, expect, test } from "@jest/globals";
 
@@ -1140,6 +1141,54 @@ describe("buildDatabaseServerIdentifier", () => {
       }),
     );
   });
+
+  /*
+   * Regression (fork-engines-lose-identity): forks are engines of their own,
+   * so an identifier keyed on the engine re-keyed a row the moment a
+   * stronger source refined it ("mysql" → "mariadb") and let a racing
+   * writer that saw the other spelling create a second row for one server.
+   */
+  test("keys on the engine family: a fork and the engine it forks are one row", () => {
+    const endpoint: DatabaseEndpoint = { host: "db.prod", port: 3306 };
+    const mysql: string = buildDatabaseServerIdentifier("mysql", endpoint);
+
+    expect(mysql).toBe("mysql|db.prod:3306");
+    for (const fork of ["mariadb", "MariaDB", " mariadb ", "tidb", "vitess"]) {
+      expect(buildDatabaseServerIdentifier(fork, endpoint)).toBe(mysql);
+    }
+
+    const cache: DatabaseEndpoint = { host: "cache.prod", port: 6379 };
+    for (const fork of ["redis", "valkey", "keydb", "dragonfly"]) {
+      expect(buildDatabaseServerIdentifier(fork, cache)).toBe(
+        "redis|cache.prod:6379",
+      );
+    }
+
+    const pg: DatabaseEndpoint = { host: "crdb.prod", port: 26257 };
+    expect(buildDatabaseServerIdentifier("cockroachdb", pg)).toBe(
+      buildDatabaseServerIdentifier("postgres", pg),
+    );
+  });
+
+  test("engines of different families still key apart on one endpoint", () => {
+    const endpoint: DatabaseEndpoint = { host: "db.prod", port: 5432 };
+    const identifiers: Set<string> = new Set<string>(
+      ["postgresql", "mysql", "redis", "mongodb", "microsoft.sql_server"].map(
+        (system: string): string => {
+          return buildDatabaseServerIdentifier(system, endpoint);
+        },
+      ),
+    );
+    expect(identifiers.size).toBe(5);
+  });
+
+  test("an unknown engine is a family of its own, canonicalized", () => {
+    const endpoint: DatabaseEndpoint = { host: "db.prod", port: 7000 };
+    expect(buildDatabaseServerIdentifier(" AcmeDB ", endpoint)).toBe(
+      "acmedb|db.prod:7000",
+    );
+    expect(buildDatabaseServerIdentifier("", endpoint)).toBe("|db.prod:7000");
+  });
 });
 
 describe("buildWorkloadDatabaseServerIdentifier", () => {
@@ -1192,6 +1241,86 @@ describe("buildWorkloadDatabaseServerIdentifier", () => {
     expect(
       buildWorkloadDatabaseServerIdentifier({ ...base, platform: "podman" }),
     ).toBe("mysql|podman:build-host-1/shop-db");
+  });
+
+  /*
+   * Regression (fork-engines-lose-identity): a workload the classifier
+   * re-reads as another engine of its family (the image moved from Redis to
+   * Valkey, a MySQL image turned out to be MariaDB) is the same database; an
+   * engine-keyed identifier turned it into two rows.
+   */
+  test("keys on the engine family: a re-classified workload keeps its identifier", () => {
+    const kubernetes: (system: string) => string = (system: string): string => {
+      return buildWorkloadDatabaseServerIdentifier({
+        system: system,
+        platform: "kubernetes",
+        parentName: "prod",
+        namespace: "cache",
+        workloadKind: "StatefulSet",
+        workloadName: "redis",
+      });
+    };
+
+    expect(kubernetes("redis")).toBe(
+      "redis|kubernetes:prod/cache/statefulset/redis",
+    );
+    for (const fork of ["valkey", "Valkey", "keydb", "dragonfly"]) {
+      expect(kubernetes(fork)).toBe(kubernetes("redis"));
+    }
+
+    for (const platform of ["docker", "podman"] as const) {
+      const container: (system: string) => string = (
+        system: string,
+      ): string => {
+        return buildWorkloadDatabaseServerIdentifier({
+          system: system,
+          platform: platform,
+          parentName: "host-1",
+          workloadName: "shop-db",
+        });
+      };
+      expect(container("mariadb")).toBe(`mysql|${platform}:host-1/shop-db`);
+      expect(container("mysql")).toBe(container("mariadb"));
+      expect(container("postgresql")).not.toBe(container("mariadb"));
+    }
+  });
+
+  test("every catalogued engine and alias keys both identifiers on its family", () => {
+    const endpoint: DatabaseEndpoint = { host: "db.example.com", port: 1 };
+    for (const descriptor of DATABASE_SYSTEMS) {
+      const family: string = descriptor.family || descriptor.system;
+      for (const name of [descriptor.system, ...descriptor.aliases]) {
+        expect(buildDatabaseServerIdentifier(name, endpoint)).toBe(
+          `${family}|db.example.com:1`,
+        );
+        expect(
+          buildWorkloadDatabaseServerIdentifier({
+            system: name,
+            platform: "docker",
+            parentName: "h",
+            workloadName: "w",
+          }),
+        ).toBe(`${family}|docker:h/w`);
+      }
+    }
+  });
+
+  test("workloads of different families stay apart", () => {
+    const identifier: (system: string) => string = (system: string): string => {
+      return buildWorkloadDatabaseServerIdentifier({
+        system: system,
+        platform: "kubernetes",
+        parentName: "prod",
+        namespace: "data",
+        workloadKind: "StatefulSet",
+        workloadName: "db",
+      });
+    };
+    expect(identifier("postgresql")).not.toBe(identifier("mysql"));
+    expect(identifier("cockroachdb")).toBe(identifier("postgresql"));
+    expect(identifier("opensearch")).toBe(
+      "elasticsearch|kubernetes:prod/data/statefulset/db",
+    );
   });
 });
 

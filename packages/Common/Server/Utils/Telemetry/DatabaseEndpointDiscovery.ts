@@ -2,7 +2,6 @@ import { SpanKind } from "../../../Models/AnalyticsModels/Span";
 import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
 import {
   DATABASE_INSTANCE_NAME_ATTRIBUTE,
-  DATABASE_NAMESPACE_ATTRIBUTE,
   DatabaseCallerContext,
   DatabaseEndpoint,
   DatabaseEndpointScope,
@@ -12,14 +11,33 @@ import {
   getDatabaseClusterHost,
   isIpLiteralHost,
 } from "../../../Types/DatabaseServer/DatabaseEndpoint";
-import { isAutoCreatableDatabaseSystem } from "../../../Types/DatabaseServer/DatabaseSystem";
+import {
+  getDatabaseSystemFamily,
+  getMoreSpecificDatabaseSystem,
+  isAutoCreatableDatabaseSystem,
+} from "../../../Types/DatabaseServer/DatabaseSystem";
 import {
   DATABASE_ADDRESS_ATTRIBUTES,
   DATABASE_PORT_ATTRIBUTES,
   DATABASE_SYSTEM_ATTRIBUTES,
   resolveDatabaseCallTarget,
 } from "../../../Types/DatabaseServer/DatabaseTelemetryResolver";
-import { QUERY_SETTINGS, escapeSql } from "./ServiceDependencyDiscovery";
+import {
+  CALLER_CLUSTER_ATTRIBUTE,
+  CALLER_NAMESPACE_ATTRIBUTE,
+  QUERY_SETTINGS,
+  databaseInstanceSql,
+  escapeSql,
+  firstNonEmptyAttributeSql,
+} from "./ServiceDependencyDiscovery";
+
+// Defined beside the dependency query, which reads DB calls the same way.
+export {
+  CALLER_CLUSTER_ATTRIBUTE,
+  CALLER_NAMESPACE_ATTRIBUTE,
+  databaseInstanceSql,
+  firstNonEmptyAttributeSql,
+};
 
 /*
  * Database endpoint discovery from CLIENT spans — the pure half of the
@@ -69,10 +87,6 @@ import { QUERY_SETTINGS, escapeSql } from "./ServiceDependencyDiscovery";
 // Unique marker comment, so the query can be told apart in logs and tests.
 export const DATABASE_ENDPOINT_SQL_MARKER: string =
   "oneuptime:database-endpoint-discovery";
-
-// Stored span rows carry resource attributes under a `resource.` prefix.
-export const CALLER_NAMESPACE_ATTRIBUTE: string = "resource.k8s.namespace.name";
-export const CALLER_CLUSTER_ATTRIBUTE: string = "resource.k8s.cluster.name";
 
 export const DATABASE_SERVER_MIN_CALLS_ENV: string =
   "DATABASE_SERVER_MIN_CALLS";
@@ -190,35 +204,6 @@ export interface DiscoveredDatabaseEndpoint {
   siblings?: Array<DatabaseEndpoint> | undefined;
   // The name a row created for a managed cluster gets (its cluster name).
   displayName?: string | undefined;
-}
-
-/**
- * `multiIf(attributes['a'] != '', attributes['a'], …, '')` — the first
- * attribute that is present and not the empty string, exactly the
- * `firstPresent` rule of the ingest resolver.
- */
-export function firstNonEmptyAttributeSql(keys: ReadonlyArray<string>): string {
-  const branches: Array<string> = keys.map((key: string): string => {
-    const attribute: string = `attributes['${escapeSql(key)}']`;
-    return `${attribute} != '', ${attribute}`;
-  });
-  return `multiIf(${[...branches, "''"].join(", ")})`;
-}
-
-/**
- * The SQL Server instance a span names beside its address, in SQL — the
- * twin of readDatabaseInstanceName without its engine check (the resolver
- * ignores the value for any other engine): `db.mssql.instance_name`, else
- * the part of `db.namespace` before its first "|", else ''.
- */
-export function databaseInstanceSql(): string {
-  const instanceName: string = `attributes['${escapeSql(
-    DATABASE_INSTANCE_NAME_ATTRIBUTE,
-  )}']`;
-  const namespace: string = `attributes['${escapeSql(
-    DATABASE_NAMESPACE_ATTRIBUTE,
-  )}']`;
-  return `multiIf(${instanceName} != '', ${instanceName}, position(${namespace}, '|') > 0, splitByChar('|', ${namespace})[1], '')`;
 }
 
 // Lowercase A-Z only, as ClickHouse `lower` does.
@@ -402,27 +387,94 @@ interface FamilyAccumulator {
   members: Array<EndpointAccumulator>;
 }
 
+interface EngineFamilyCalls {
+  // The most specific engine of the family the rows named.
+  system: string;
+  // Calls of every engine of the family.
+  calls: number;
+}
+
+function compareSystemsByCallsThenName(
+  a: [string, number],
+  b: [string, number],
+): number {
+  if (a[1] !== b[1]) {
+    return b[1] - a[1];
+  }
+  if (a[0] < b[0]) {
+    return -1;
+  }
+  return a[0] > b[0] ? 1 : 0;
+}
+
 /*
- * The engine an endpoint is recorded under when rows disagree (a CockroachDB
- * reached by some clients as "postgresql", say): an engine that may create a
- * row first, then the most calls, then the name, so the answer is stable.
+ * The engines rows named for one endpoint, folded per engine family
+ * (getDatabaseSystemFamily). A client library cannot tell a fork from the
+ * engine it forks, so for one MariaDB server the MariaDB connector says
+ * "mariadb" while every MySQL driver says "mysql": the family's calls are
+ * one database's calls, and its engine is the most specific one named —
+ * folded with getMoreSpecificDatabaseSystem, the rule a row's engine is
+ * refined by, busiest first, so the busiest fork wins over the family and
+ * a family value never undoes a fork.
+ */
+function foldSystemsByFamily(
+  callsBySystem: Map<string, number>,
+): Array<EngineFamilyCalls> {
+  const byFamily: Map<string, Array<[string, number]>> = new Map<
+    string,
+    Array<[string, number]>
+  >();
+
+  for (const entry of callsBySystem) {
+    const family: string = getDatabaseSystemFamily(entry[0]) || entry[0];
+    const members: Array<[string, number]> = byFamily.get(family) || [];
+    members.push(entry);
+    byFamily.set(family, members);
+  }
+
+  const families: Array<EngineFamilyCalls> = [];
+  for (const members of byFamily.values()) {
+    members.sort(compareSystemsByCallsThenName);
+
+    let system: string = "";
+    let calls: number = 0;
+    for (const [memberSystem, memberCalls] of members) {
+      system =
+        getMoreSpecificDatabaseSystem(system, memberSystem) || memberSystem;
+      calls += memberCalls;
+    }
+
+    families.push({ system: system, calls: calls });
+  }
+
+  return families;
+}
+
+/*
+ * The engine an endpoint is recorded under when rows disagree. Engines of
+ * one family are one database seen by different clients (a CockroachDB
+ * reached by some as "postgresql", a MariaDB as "mysql"), so they are
+ * folded first (foldSystemsByFamily); between families — which can only be
+ * a misreport — an engine that may create a row wins, then the family with
+ * the most calls, then the name, so the answer is stable.
  */
 function pickSystem(callsBySystem: Map<string, number>): string {
   let best: string = "";
   let bestCreatable: boolean = false;
   let bestCalls: number = -1;
 
-  for (const [system, calls] of callsBySystem) {
-    const creatable: boolean = isAutoCreatableDatabaseSystem(system);
+  for (const family of foldSystemsByFamily(callsBySystem)) {
+    const creatable: boolean = isAutoCreatableDatabaseSystem(family.system);
     const better: boolean =
       best === "" ||
       (creatable && !bestCreatable) ||
       (creatable === bestCreatable &&
-        (calls > bestCalls || (calls === bestCalls && system < best)));
+        (family.calls > bestCalls ||
+          (family.calls === bestCalls && family.system < best)));
     if (better) {
-      best = system;
+      best = family.system;
       bestCreatable = creatable;
-      bestCalls = calls;
+      bestCalls = family.calls;
     }
   }
 

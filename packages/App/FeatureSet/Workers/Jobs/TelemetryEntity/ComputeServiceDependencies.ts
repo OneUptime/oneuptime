@@ -44,6 +44,7 @@ import {
   buildServiceGraphMetricSql,
   buildTraceLinkedDependencySql,
   isUuid,
+  mergeDependencyEntityDescriptions,
   mergeDependencySources,
   resolveClientSpanTarget,
   resolveServiceGraphPeer,
@@ -90,6 +91,11 @@ import {
  * identity above, and neither side's failure costs the other its run. It
  * runs after the dependency queries rather than beside them, so a project
  * never has its two attribute-map scans of the window in flight at once.
+ *
+ * The two meet in one place only: a Database node also DESCRIBES the
+ * server its calls reached (`oneuptime.database.endpoint`, `server.port`),
+ * resolved from the dependency rows by the same ingest resolver, so the
+ * Service Map can open that database. Never part of the node's identity.
  */
 
 // CronTime.ts has no ten-minute constant; this job is its only user.
@@ -676,7 +682,18 @@ export async function computeDependenciesForProject(args: {
       projectId: args.projectId,
       entity: target.entity,
     });
-    dependencyEntities.set(entity.entityKey, entity);
+    /*
+     * One node, many rows (callers, ports, placements): its description is
+     * merged, so a node whose calls reached more than one database server
+     * says so instead of naming whichever row came last.
+     */
+    const earlier: ExtractedEntity | undefined = dependencyEntities.get(
+      entity.entityKey,
+    );
+    dependencyEntities.set(
+      entity.entityKey,
+      earlier ? mergeDependencyEntityDescriptions(earlier, entity) : entity,
+    );
     return entity.entityKey;
   };
 
