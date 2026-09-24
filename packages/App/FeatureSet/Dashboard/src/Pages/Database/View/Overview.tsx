@@ -49,6 +49,9 @@ import DatabaseServerUnscopedBanner from "../../../Components/DatabaseServer/Dat
 import DatabaseCallingServicesCard from "../../../Components/DatabaseServer/DatabaseCallingServicesCard";
 import DatabaseEngineMetricsSection from "../../../Components/DatabaseServer/DatabaseEngineMetricsSection";
 import DatabaseRuntimeSection from "../../../Components/DatabaseServer/DatabaseRuntimeSection";
+import { getDatabaseRunsOnRoute } from "../../../Components/DatabaseServer/DatabaseRunsOnLink";
+import { DATABASE_METRIC_DESCRIPTIONS } from "../../../Components/DatabaseServer/DatabaseMetricDescriptions";
+import ResourceActivityCards from "../../../Components/ResourceActivity/ResourceActivityCards";
 import {
   DatabaseServerScopeSource,
   getDatabaseServerEndpointScopeKeys,
@@ -59,9 +62,11 @@ import {
 } from "../Utils/DatabaseTelemetryScope";
 import {
   DatabaseCallingService,
+  DatabaseCallingServices,
   DatabaseEngineMetricResult,
   DatabaseQueryMetrics,
   DatabaseTimePoint,
+  EMPTY_DATABASE_CALLING_SERVICES,
   EMPTY_DATABASE_QUERY_METRICS,
   fetchDatabaseCallingServices,
   fetchDatabaseEngineMetrics,
@@ -131,9 +136,8 @@ const DatabaseServerOverview: FunctionComponent<
   const [queryMetrics, setQueryMetrics] = useState<DatabaseQueryMetrics>(
     EMPTY_DATABASE_QUERY_METRICS,
   );
-  const [callingServices, setCallingServices] = useState<
-    Array<DatabaseCallingService>
-  >([]);
+  const [callingServices, setCallingServices] =
+    useState<DatabaseCallingServices>(EMPTY_DATABASE_CALLING_SERVICES);
   const [serviceNames, setServiceNames] = useState<Record<string, string>>({});
   const [engineMetrics, setEngineMetrics] = useState<
     Array<DatabaseEngineMetricResult>
@@ -255,6 +259,8 @@ const DatabaseServerOverview: FunctionComponent<
 
     const source: DatabaseServerScopeSource = {
       projectId: item.projectId || ProjectUtil.getCurrentProjectId(),
+      // The row key: engine metrics linked by oneuptime.database.server.id.
+      id: modelId,
       endpoints: endpoints,
       dbSystem: item.dbSystem,
       memberEntityKeys: item.memberEntityKeys,
@@ -270,7 +276,7 @@ const DatabaseServerOverview: FunctionComponent<
      */
     if (!isDatabaseServerScoped(allKeys)) {
       setQueryMetrics(EMPTY_DATABASE_QUERY_METRICS);
-      setCallingServices([]);
+      setCallingServices(EMPTY_DATABASE_CALLING_SERVICES);
       setEngineMetrics([]);
       setCpuSeries([]);
       setMemorySeries([]);
@@ -335,7 +341,7 @@ const DatabaseServerOverview: FunctionComponent<
       .then(
         async ([queries, services, engine, cpu, memory]: [
           DatabaseQueryMetrics,
-          Array<DatabaseCallingService>,
+          DatabaseCallingServices,
           Array<DatabaseEngineMetricResult>,
           Array<DatabaseTimePoint>,
           Array<DatabaseTimePoint>,
@@ -350,7 +356,7 @@ const DatabaseServerOverview: FunctionComponent<
           setMemorySeries(memory);
           setTelemetryLoading(false);
 
-          const ids: Array<string> = services.map(
+          const ids: Array<string> = services.services.map(
             (service: DatabaseCallingService): string => {
               return service.serviceId;
             },
@@ -425,6 +431,7 @@ const DatabaseServerOverview: FunctionComponent<
   const m: DatabaseQueryMetrics = queryMetrics;
   const source: DatabaseServerScopeSource = {
     projectId: r.projectId || ProjectUtil.getCurrentProjectId(),
+    id: modelId,
     endpoints: endpoints,
     dbSystem: r.dbSystem,
     memberEntityKeys: r.memberEntityKeys,
@@ -446,6 +453,8 @@ const DatabaseServerOverview: FunctionComponent<
   const endpointLabel: string =
     getDatabaseEndpointLabel(r) || formattedEndpoints[0] || "";
   const hasQueries: boolean = m.total > 0;
+  // The cluster / host page, when the database runs on one.
+  const runsOnRoute: Route | null = getDatabaseRunsOnRoute(r);
 
   const populate: (page: PageMap) => Route = (page: PageMap): Route => {
     return RouteUtil.populateRouteParams(RouteMap[page] as Route, { modelId });
@@ -478,6 +487,7 @@ const DatabaseServerOverview: FunctionComponent<
       loading: telemetryLoading,
       sublabel: "from applications, selected range",
       to: populate(PageMap.DATABASE_SERVER_VIEW_TRACES),
+      description: DATABASE_METRIC_DESCRIPTIONS.queries,
     },
     {
       title: "Error rate",
@@ -491,6 +501,7 @@ const DatabaseServerOverview: FunctionComponent<
       percent: m.errorRatePercent,
       higherIsBetter: false,
       thresholds: { warn: 1, danger: 5 },
+      description: DATABASE_METRIC_DESCRIPTIONS.errorRate,
     },
     {
       title: "p95 query latency",
@@ -498,15 +509,19 @@ const DatabaseServerOverview: FunctionComponent<
       icon: IconProp.Clock,
       iconColor: "emerald",
       loading: telemetryLoading,
-      sublabel: "as the applications measure it",
+      sublabel: "every query in the range, as the applications measure it",
+      description: DATABASE_METRIC_DESCRIPTIONS.p95Latency,
     },
     {
       title: "Calling services",
-      value: telemetryLoading ? "—" : String(callingServices.length),
+      value: telemetryLoading
+        ? "—"
+        : formatDatabaseCount(callingServices.total),
       icon: IconProp.SquareStack,
       iconColor: "violet",
       loading: telemetryLoading,
       sublabel: "services that queried it",
+      description: DATABASE_METRIC_DESCRIPTIONS.callingServices,
     },
   ];
 
@@ -514,6 +529,7 @@ const DatabaseServerOverview: FunctionComponent<
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <ChartCard
         title="Queries from applications"
+        description={DATABASE_METRIC_DESCRIPTIONS.queriesChart}
         icon={IconProp.Workflow}
         iconColor="sky"
         series={
@@ -530,6 +546,7 @@ const DatabaseServerOverview: FunctionComponent<
       />
       <ChartCard
         title="p95 query latency"
+        description={DATABASE_METRIC_DESCRIPTIONS.p95Chart}
         icon={IconProp.Clock}
         iconColor="emerald"
         series={
@@ -579,6 +596,17 @@ const DatabaseServerOverview: FunctionComponent<
       icon: IconProp.Team,
     },
   ];
+  if (runsOnRoute) {
+    quickLinks.unshift({
+      title: runsOn,
+      description:
+        platform === DatabaseRuntimePlatform.Kubernetes
+          ? "The Kubernetes cluster this database runs on"
+          : "The container host this database runs on",
+      to: runsOnRoute,
+      icon: IconProp.Cube,
+    });
+  }
 
   const detailRows: Array<ResourceOverviewDetailRow> = [
     { label: "Engine (db.system.name)", value: r.dbSystem },
@@ -654,8 +682,22 @@ const DatabaseServerOverview: FunctionComponent<
       />
 
       <div className="mt-6">
+        <ResourceActivityCards
+          modelId={modelId}
+          resourceQueryKey="databaseServers"
+          refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
+          incidentsRoute={populate(PageMap.DATABASE_SERVER_VIEW_INCIDENTS)}
+          alertsRoute={populate(PageMap.DATABASE_SERVER_VIEW_ALERTS)}
+          scheduledMaintenanceRoute={populate(
+            PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE,
+          )}
+        />
+      </div>
+
+      <div className="mt-6">
         <DatabaseCallingServicesCard
-          services={callingServices}
+          services={callingServices.services}
+          totalServices={callingServices.total}
           serviceNames={serviceNames}
           isLoading={telemetryLoading}
         />
@@ -666,8 +708,7 @@ const DatabaseServerOverview: FunctionComponent<
           <DatabaseRuntimeSection
             modelId={modelId}
             platform={platform}
-            runsOn={runsOn}
-            workload={workload}
+            source={r}
             instanceCount={
               typeof r.instanceCount === "number" ? r.instanceCount : null
             }
@@ -690,6 +731,9 @@ const DatabaseServerOverview: FunctionComponent<
           status={engineStatus}
           hasCatalog={getDatabaseServerMetrics(r.dbSystem).length > 0}
           hasCollectorReceiver={hasCollectorReceiver(r.dbSystem)}
+          lastReceivedAt={
+            r.collectorLastSeenAt ? new Date(r.collectorLastSeenAt) : null
+          }
           results={engineMetrics}
           isLoading={telemetryLoading && isScoped}
           windowStart={chartWindow?.start ?? null}

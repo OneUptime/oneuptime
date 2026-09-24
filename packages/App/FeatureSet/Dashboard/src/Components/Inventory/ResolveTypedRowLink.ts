@@ -6,11 +6,17 @@ import ListResult from "Common/Types/BaseDatabase/ListResult";
 import StartsWith from "Common/Types/BaseDatabase/StartsWith";
 import {
   DatabaseEndpoint,
+  ParsedHostAndPort,
   formatDatabaseEndpoint,
   getDatabaseEndpointScope,
   parseDatabaseEndpointString,
+  parseHostAndPort,
 } from "Common/Types/DatabaseServer/DatabaseEndpoint";
-import { normalizeDatabaseSystem } from "Common/Types/DatabaseServer/DatabaseSystem";
+import {
+  getDefaultDatabasePort,
+  isSameDatabaseFamily,
+  normalizeDatabaseSystem,
+} from "Common/Types/DatabaseServer/DatabaseSystem";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -49,37 +55,100 @@ export const OPEN_DATABASE_LABEL: string = "Open database";
 
 /*
  * A Service Map `database` node is keyed by what the calling spans said:
- * engine (`db.system.name`), host (`server.address`) and logical database
- * (`db.namespace`) — no port. The Databases product keys the SERVER by its
- * endpoint, so the node maps to the endpoint `server.address:<engine default
- * port>`, canonicalized exactly as a stored endpoint is (Kubernetes DNS
- * expansion, lowercase host, engine default port via getDefaultDatabasePort).
+ * engine (`db.system.name`), host (`server.address`, port stripped) and
+ * logical database (`db.namespace`). The Databases product keys the SERVER
+ * by its endpoint — host AND port, cluster-qualified when the host is
+ * cluster-local — so the node carries less than the stored endpoint and is
+ * resolved in steps, most exact first:
  *
- * `isLocal` marks an endpoint that only resolves inside one cluster (an
- * unqualified `*.svc.cluster.local` name or a private IP): its stored twin
- * carries an `@cluster` qualifier the span did not, so resolution also
- * accepts exactly one qualified owner.
+ *   1. the exact endpoint: the node's own port when it has one (in its
+ *      address, a `server.port` attribute, or a stamped
+ *      `oneuptime.database.endpoint`), otherwise the engine's default port
+ *      — which is what a span that reports no `server.port` means;
+ *   2. for a cluster-local endpoint, its `@cluster`-qualified twins;
+ *   3. every stored endpoint on the same HOST, any port or cluster — a
+ *      database on a non-default port (PgBouncer on 6432, a managed
+ *      Postgres on 25060), and for a single-label Kubernetes name
+ *      (`postgres`) the `postgres.<namespace>.svc.cluster.local` forms the
+ *      in-cluster callers were recorded with. Rows of another engine family
+ *      are ignored; a known port must match exactly.
+ *
+ * Wherever more than one database is left, the one on the engine's default
+ * port is taken when it is the only one there; otherwise no link — opening
+ * the wrong database is worse than offering none.
  */
 export interface DatabaseEntityEndpoint {
+  // Canonical `host:port` (the explicit port, else the engine default).
   endpoint: string;
+  // Cluster-local: its stored twin may carry an `@cluster` qualifier.
   isLocal: boolean;
+  // Canonical host (Kubernetes DNS expanded), for the same-host fallback.
+  host?: string | undefined;
+  // Normalized engine of the node, for the engine-family check.
+  system?: string | undefined;
+  // The port the node itself named, or null when it named none.
+  port?: number | null | undefined;
 }
 
 export type GetDatabaseEntityEndpointFunction = (
   identifying: JSONObject,
+  descriptive?: JSONObject | null | undefined,
 ) => DatabaseEntityEndpoint | null;
+
+// The attribute a server-side resolver may stamp with the canonical endpoint.
+export const DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE: string =
+  "oneuptime.database.endpoint";
+
+function readPort(value: unknown): number | null {
+  if (typeof value !== "string" && typeof value !== "number") {
+    return null;
+  }
+  const port: number = Number(String(value).trim());
+  return Number.isInteger(port) && port >= 1 && port <= 65535 ? port : null;
+}
 
 export const getDatabaseEntityEndpoint: GetDatabaseEntityEndpointFunction = (
   identifying: JSONObject,
+  descriptive?: JSONObject | null | undefined,
 ): DatabaseEntityEndpoint | null => {
+  const system: string =
+    normalizeDatabaseSystem(identifying["db.system.name"]) ||
+    normalizeDatabaseSystem(descriptive?.["db.system.name"]) ||
+    "";
+
+  // A canonical endpoint stamped by the server wins: it has the real port.
+  const stamped: unknown =
+    descriptive?.[DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE];
+  if (typeof stamped === "string" && stamped.trim()) {
+    const stampedEndpoint: DatabaseEndpoint | null =
+      parseDatabaseEndpointString(stamped, { system });
+    if (stampedEndpoint) {
+      return {
+        endpoint: formatDatabaseEndpoint(stampedEndpoint),
+        isLocal: getDatabaseEndpointScope(stampedEndpoint) === "local",
+        host: stampedEndpoint.host,
+        system: system,
+        port: stampedEndpoint.port,
+      };
+    }
+  }
+
   const address: unknown = identifying["server.address"];
   if (typeof address !== "string" || !address.trim()) {
     return null;
   }
 
+  const parsed: ParsedHostAndPort | null = parseHostAndPort(address);
+  const explicitPort: number | null =
+    parsed?.port ??
+    readPort(identifying["server.port"]) ??
+    readPort(descriptive?.["server.port"]);
+
   const endpoint: DatabaseEndpoint | null = parseDatabaseEndpointString(
-    address,
-    { system: normalizeDatabaseSystem(identifying["db.system.name"]) || "" },
+    explicitPort !== null && parsed && parsed.port === null
+      ? formatDatabaseEndpoint({ host: parsed.host, port: explicitPort })
+      : address,
+    { system },
   );
   if (!endpoint) {
     return null;
@@ -88,11 +157,164 @@ export const getDatabaseEntityEndpoint: GetDatabaseEntityEndpointFunction = (
   return {
     endpoint: formatDatabaseEndpoint(endpoint),
     isLocal: getDatabaseEndpointScope(endpoint) === "local",
+    host: endpoint.host,
+    system: system,
+    port: explicitPort,
   };
 };
 
 // Enough rows to tell one qualified owner from several.
 const QUALIFIED_ENDPOINT_LOOKUP_LIMIT: number = 10;
+
+// Every endpoint one host could reasonably have, across ports and clusters.
+const SAME_HOST_ENDPOINT_LOOKUP_LIMIT: number = 50;
+
+const DNS_LABEL_PATTERN: RegExp = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
+
+const ALL_DIGITS_PATTERN: RegExp = /^\d+$/;
+
+function isSingleLabelHost(host: string): boolean {
+  return DNS_LABEL_PATTERN.test(host) && !ALL_DIGITS_PATTERN.test(host);
+}
+
+/*
+ * True when a stored endpoint host is the node's host: the same canonical
+ * host, or — for a single-label node name — that name as a Service in any
+ * namespace (`postgres` → `postgres.<ns>.svc.cluster.local`).
+ */
+function isSameHost(nodeHost: string, storedHost: string): boolean {
+  if (storedHost === nodeHost) {
+    return true;
+  }
+  if (!isSingleLabelHost(nodeHost)) {
+    return false;
+  }
+  const prefix: string = `${nodeHost}.`;
+  const suffix: string = ".svc.cluster.local";
+  if (!storedHost.startsWith(prefix) || !storedHost.endsWith(suffix)) {
+    return false;
+  }
+  const namespace: string = storedHost.substring(
+    prefix.length,
+    storedHost.length - suffix.length,
+  );
+  return DNS_LABEL_PATTERN.test(namespace);
+}
+
+interface SameHostCandidate {
+  owner: string;
+  port: number | null;
+}
+
+/*
+ * Step 3 — every endpoint stored for the node's host, filtered to the ones
+ * that can be this node's database. Null when nothing matches, and when
+ * several databases remain with no way to tell which one the node means.
+ */
+async function resolveDatabaseServerIdForHost(data: {
+  projectId: ObjectID;
+  endpoint: DatabaseEntityEndpoint;
+}): Promise<string | null> {
+  const host: string = (data.endpoint.host || "").trim().toLowerCase();
+  if (!host) {
+    return null;
+  }
+
+  const hostPart: string = host.includes(":") ? `[${host}]` : host;
+  const prefixes: Array<string> = [`${hostPart}:`];
+  if (isSingleLabelHost(host)) {
+    prefixes.push(`${host}.`);
+  }
+
+  const results: Array<ListResult<DatabaseServerEndpoint>> = await Promise.all(
+    prefixes.map(
+      (prefix: string): Promise<ListResult<DatabaseServerEndpoint>> => {
+        return ModelAPI.getList<DatabaseServerEndpoint>({
+          modelType: DatabaseServerEndpoint,
+          query: {
+            projectId: data.projectId,
+            endpoint: new StartsWith<string>(prefix),
+          },
+          select: {
+            databaseServerId: true,
+            endpoint: true,
+            databaseServer: { dbSystem: true },
+          },
+          sort: {},
+          skip: 0,
+          limit: SAME_HOST_ENDPOINT_LOOKUP_LIMIT,
+        });
+      },
+    ),
+  );
+
+  const system: string = data.endpoint.system || "";
+  const explicitPort: number | null = data.endpoint.port ?? null;
+  const candidates: Array<SameHostCandidate> = [];
+
+  for (const result of results) {
+    for (const row of result.data || []) {
+      const owner: string | undefined = row.databaseServerId?.toString();
+      if (!owner || typeof row.endpoint !== "string") {
+        continue;
+      }
+      // Re-parse: a LIKE prefix treats `_` as a wildcard.
+      const stored: DatabaseEndpoint | null = parseDatabaseEndpointString(
+        row.endpoint,
+        { system },
+      );
+      if (!stored || !isSameHost(host, stored.host)) {
+        continue;
+      }
+      if (explicitPort !== null && stored.port !== explicitPort) {
+        continue;
+      }
+      const ownerSystem: unknown = row.databaseServer?.dbSystem;
+      if (
+        system &&
+        typeof ownerSystem === "string" &&
+        ownerSystem.trim() &&
+        !isSameDatabaseFamily(system, ownerSystem)
+      ) {
+        continue;
+      }
+      candidates.push({ owner, port: stored.port });
+    }
+  }
+
+  return pickSingleOwner(candidates, getDefaultDatabasePort(system));
+}
+
+/*
+ * One database from the candidates: the only owner, or — when several
+ * remain — the only owner on the engine's default port. Otherwise null.
+ */
+function pickSingleOwner(
+  candidates: ReadonlyArray<SameHostCandidate>,
+  defaultPort: number | null,
+): string | null {
+  const owners: Set<string> = new Set<string>(
+    candidates.map((candidate: SameHostCandidate): string => {
+      return candidate.owner;
+    }),
+  );
+  if (owners.size === 1) {
+    return Array.from(owners)[0]!;
+  }
+  if (owners.size === 0 || defaultPort === null) {
+    return null;
+  }
+  const onDefaultPort: Set<string> = new Set<string>(
+    candidates
+      .filter((candidate: SameHostCandidate): boolean => {
+        return candidate.port === defaultPort;
+      })
+      .map((candidate: SameHostCandidate): string => {
+        return candidate.owner;
+      }),
+  );
+  return onDefaultPort.size === 1 ? Array.from(onDefaultPort)[0]! : null;
+}
 
 export type ResolveDatabaseServerIdFunction = (data: {
   projectId: ObjectID;
@@ -101,10 +323,11 @@ export type ResolveDatabaseServerIdFunction = (data: {
 
 /*
  * The DatabaseServer that owns the endpoint (each endpoint belongs to at
- * most one row per project). For a cluster-local endpoint the owner is
- * taken from its `@cluster`-qualified twins only when they all belong to one
- * database — two clusters' `db.prod.svc.cluster.local` are two servers, and
- * guessing between them would open the wrong one.
+ * most one row per project) — see DatabaseEntityEndpoint for the steps. For
+ * a cluster-local endpoint the owner is taken from its `@cluster`-qualified
+ * twins only when they all belong to one database: two clusters'
+ * `db.prod.svc.cluster.local` are two servers, and guessing between them
+ * would open the wrong one.
  */
 export const resolveDatabaseServerIdForEndpoint: ResolveDatabaseServerIdFunction =
   async (data: {
@@ -127,40 +350,46 @@ export const resolveDatabaseServerIdForEndpoint: ResolveDatabaseServerIdFunction
       return exactOwner;
     }
 
-    if (!data.endpoint.isLocal) {
-      return null;
+    if (data.endpoint.isLocal) {
+      const prefix: string = `${data.endpoint.endpoint}@`;
+      const qualified: ListResult<DatabaseServerEndpoint> =
+        await ModelAPI.getList<DatabaseServerEndpoint>({
+          modelType: DatabaseServerEndpoint,
+          query: {
+            projectId: data.projectId,
+            endpoint: new StartsWith<string>(prefix),
+          },
+          select: { databaseServerId: true, endpoint: true },
+          sort: {},
+          skip: 0,
+          limit: QUALIFIED_ENDPOINT_LOOKUP_LIMIT,
+        });
+
+      const owners: Set<string> = new Set<string>();
+      for (const row of qualified.data) {
+        // A LIKE prefix treats `_` as a wildcard; re-check it exactly.
+        if (
+          typeof row.endpoint !== "string" ||
+          !row.endpoint.startsWith(prefix)
+        ) {
+          continue;
+        }
+        const owner: string | undefined = row.databaseServerId?.toString();
+        if (owner) {
+          owners.add(owner);
+        }
+      }
+
+      if (owners.size === 1) {
+        return Array.from(owners)[0]!;
+      }
+      if (owners.size > 1) {
+        // Two clusters' databases of this name: never guessed between.
+        return null;
+      }
     }
 
-    const prefix: string = `${data.endpoint.endpoint}@`;
-    const qualified: ListResult<DatabaseServerEndpoint> =
-      await ModelAPI.getList<DatabaseServerEndpoint>({
-        modelType: DatabaseServerEndpoint,
-        query: {
-          projectId: data.projectId,
-          endpoint: new StartsWith<string>(prefix),
-        },
-        select: { databaseServerId: true, endpoint: true },
-        sort: {},
-        skip: 0,
-        limit: QUALIFIED_ENDPOINT_LOOKUP_LIMIT,
-      });
-
-    const owners: Set<string> = new Set<string>();
-    for (const row of qualified.data) {
-      // A LIKE prefix treats `_` as a wildcard; re-check it exactly.
-      if (
-        typeof row.endpoint !== "string" ||
-        !row.endpoint.startsWith(prefix)
-      ) {
-        continue;
-      }
-      const owner: string | undefined = row.databaseServerId?.toString();
-      if (owner) {
-        owners.add(owner);
-      }
-    }
-
-    return owners.size === 1 ? Array.from(owners)[0]! : null;
+    return resolveDatabaseServerIdForHost(data);
   };
 
 /*
@@ -182,6 +411,7 @@ export const resolveDatabaseServerLink: ResolveTypedRowLinkFunction = async (
 
   const endpoint: DatabaseEntityEndpoint | null = getDatabaseEntityEndpoint(
     (entity.identifyingAttributes || {}) as JSONObject,
+    (entity.descriptiveAttributes || {}) as JSONObject,
   );
   if (!endpoint) {
     return null;

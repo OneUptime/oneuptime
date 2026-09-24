@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import MetricType from "Common/Models/DatabaseModels/MetricType";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import React, {
   Fragment,
   FunctionComponent,
@@ -18,6 +19,7 @@ import useDatabaseServerTelemetryScope, {
   UseDatabaseServerTelemetryScopeResult,
 } from "../../../Components/DatabaseServer/useDatabaseServerTelemetryScope";
 import { isDatabaseServerScoped } from "../Utils/DatabaseTelemetryScope";
+import { getDatabaseMetricsRangeFromSearch } from "../Utils/DatabaseServerTelemetryQueries";
 
 /*
  * The database's metrics: engine metrics from the Database Agent or your
@@ -27,14 +29,33 @@ import { isDatabaseServerScoped } from "../Utils/DatabaseTelemetryScope";
  *
  * A row click charts the metric in place with the same key set: the metric
  * explorer the viewer opens by default scopes by attributes only, so it
- * would chart the metric across the whole project.
+ * would chart the metric across the whole project. The chart opens on the
+ * range the list is showing, and gets the metric's unit so its values read
+ * in it.
  */
+
+interface SelectedMetric {
+  name: string;
+  unit: string;
+}
+
 const DatabaseServerMetrics: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
 
-  const [selectedMetricName, setSelectedMetricName] = useState<string>("");
+  const [selectedMetric, setSelectedMetric] = useState<SelectedMetric | null>(
+    null,
+  );
+
+  // What the list shows: its URL range on load, then whatever is picked.
+  const [listRange, setListRange] = useState<RangeStartAndEndDateTime>(
+    (): RangeStartAndEndDateTime => {
+      return getDatabaseMetricsRangeFromSearch(
+        typeof window === "undefined" ? "" : window.location.search,
+      );
+    },
+  );
 
   const {
     keys,
@@ -70,21 +91,29 @@ const DatabaseServerMetrics: FunctionComponent<
       <MetricsViewer
         entityKeysFilter={keys}
         entityKeyDisplays={entityKeyDisplays}
+        onTimeRangeChange={(range: RangeStartAndEndDateTime): void => {
+          setListRange(range);
+        }}
         onMetricClick={(metric: MetricType): void => {
-          setSelectedMetricName((metric.name || "").trim());
+          const name: string = (metric.name || "").trim();
+          setSelectedMetric(
+            name ? { name: name, unit: (metric.unit || "").trim() } : null,
+          );
         }}
       />
-      {selectedMetricName ? (
+      {selectedMetric ? (
         <DatabaseMetricChartModal
-          key={selectedMetricName}
-          metricName={selectedMetricName}
+          key={selectedMetric.name}
+          metricName={selectedMetric.name}
+          unit={selectedMetric.unit}
           keys={keys}
           projectId={
             databaseServer.projectId || ProjectUtil.getCurrentProjectId()
           }
           dbSystem={databaseServer.dbSystem}
+          initialTimeRange={listRange}
           onClose={(): void => {
-            setSelectedMetricName("");
+            setSelectedMetric(null);
           }}
         />
       ) : (

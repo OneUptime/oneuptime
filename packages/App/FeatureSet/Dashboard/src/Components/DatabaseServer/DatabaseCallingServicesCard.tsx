@@ -12,7 +12,8 @@ import React, { FunctionComponent, ReactElement } from "react";
 /*
  * "Who queries this database": the application services whose CLIENT spans
  * name one of its endpoints, busiest first, with their error rate and p95
- * query latency over the selected range.
+ * query latency over the selected range. The table holds the busiest few;
+ * when more services called, a footer says how many in all.
  */
 
 export interface ComponentProps {
@@ -20,6 +21,23 @@ export interface ComponentProps {
   // Service id → display name. An id without a name renders as the id.
   serviceNames: Record<string, string>;
   isLoading: boolean;
+  // Every service that called in the range (the table may show fewer).
+  totalServices?: number | undefined;
+}
+
+/**
+ * The footer under a table that holds fewer services than called, e.g.
+ * "Showing the 10 busiest of 25 calling services." Empty when the table is
+ * the whole list.
+ */
+export function getCallingServicesFooter(
+  shown: number,
+  total: number | null | undefined,
+): string {
+  if (typeof total !== "number" || !Number.isFinite(total) || total <= shown) {
+    return "";
+  }
+  return `Showing the ${shown} busiest of ${formatDatabaseCount(total)} calling services.`;
 }
 
 function formatMs(value: number | null): string {
@@ -109,6 +127,22 @@ const DatabaseCallingServicesCard: FunctionComponent<ComponentProps> = (
               },
             )}
           </div>
+          {getCallingServicesFooter(
+            props.services.length,
+            props.totalServices,
+          ) ? (
+            <div
+              data-testid="database-calling-services-footer"
+              className="border-t border-gray-100 px-4 py-2 text-xs text-gray-500"
+            >
+              {getCallingServicesFooter(
+                props.services.length,
+                props.totalServices,
+              )}
+            </div>
+          ) : (
+            <></>
+          )}
         </div>
       )}
     </Card>

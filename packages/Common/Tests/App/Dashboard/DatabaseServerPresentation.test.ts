@@ -7,6 +7,7 @@ import {
   DatabaseRuntimePlatform,
   formatDatabaseBytes,
   formatDatabaseCount,
+  formatDatabaseMetricUnitValue,
   formatDatabaseMetricValue,
   formatDatabaseRuntimeValue,
   formatDatabaseSeconds,
@@ -16,6 +17,8 @@ import {
   getDatabaseEngineLabel,
   getDatabaseEngineMetricsStatus,
   getDatabaseEngineMetricsStatusLabel,
+  getDatabaseEngineMetricsStatusOptions,
+  getDatabaseEngineMetricsStatusQueryKind,
   getDatabaseEngineOptions,
   getDatabaseRunsOnLabel,
   getDatabaseRuntimePlatform,
@@ -99,15 +102,38 @@ describe("getDatabaseEngineMetricsStatus", () => {
     ).toBe(DatabaseEngineMetricsStatus.Connected);
   });
 
-  test("disconnected when the sweeper marked it, or it reported once", () => {
-    expect(
-      getDatabaseEngineMetricsStatus({ otelCollectorStatus: "disconnected" }),
-    ).toBe(DatabaseEngineMetricsStatus.Disconnected);
+  test("disconnected only when a collector reported once and stopped", () => {
     expect(
       getDatabaseEngineMetricsStatus({
+        otelCollectorStatus: "disconnected",
         collectorLastSeenAt: new Date("2026-09-20T00:00:00.000Z"),
       }),
     ).toBe(DatabaseEngineMetricsStatus.Disconnected);
+    expect(
+      getDatabaseEngineMetricsStatus({
+        collectorLastSeenAt: "2026-09-20T00:00:00.000Z",
+      }),
+    ).toBe(DatabaseEngineMetricsStatus.Disconnected);
+  });
+
+  /*
+   * The audit's scenario: every row created from client spans, Kubernetes,
+   * Docker, Podman or by hand stores otelCollectorStatus "disconnected" —
+   * the column default — with no collectorLastSeenAt. It never had an
+   * agent, so it is NOT CONNECTED, never a red "Disconnected".
+   */
+  test("the stored 'disconnected' default with no collector sighting is NOT CONNECTED", () => {
+    for (const row of [
+      { otelCollectorStatus: "disconnected", collectorLastSeenAt: null },
+      { otelCollectorStatus: "disconnected", collectorLastSeenAt: undefined },
+      { otelCollectorStatus: "disconnected" },
+      { otelCollectorStatus: " Disconnected ", collectorLastSeenAt: "" },
+      { otelCollectorStatus: "disconnected", collectorLastSeenAt: "garbage" },
+    ]) {
+      expect(getDatabaseEngineMetricsStatus(row)).toBe(
+        DatabaseEngineMetricsStatus.NotConnected,
+      );
+    }
   });
 
   test("a database only seen from traces or containers is NOT CONNECTED, not disconnected", () => {
@@ -120,6 +146,28 @@ describe("getDatabaseEngineMetricsStatus", () => {
     expect(
       getDatabaseEngineMetricsStatus({ otelCollectorStatus: undefined }),
     ).toBe(DatabaseEngineMetricsStatus.NotConnected);
+  });
+
+  test("the list filter offers all three, values from the enum", () => {
+    expect(getDatabaseEngineMetricsStatusOptions()).toEqual([
+      { value: "connected", label: "Connected" },
+      { value: "disconnected", label: "Disconnected" },
+      { value: "not-connected", label: "Not connected" },
+    ]);
+  });
+
+  test("each filter value maps to the rows its status covers", () => {
+    expect(getDatabaseEngineMetricsStatusQueryKind("connected")).toBe(
+      "connected",
+    );
+    expect(getDatabaseEngineMetricsStatusQueryKind(" Disconnected ")).toBe(
+      "reported-and-stopped",
+    );
+    expect(getDatabaseEngineMetricsStatusQueryKind("not-connected")).toBe(
+      "never-reported",
+    );
+    expect(getDatabaseEngineMetricsStatusQueryKind("nope")).toBeNull();
+    expect(getDatabaseEngineMetricsStatusQueryKind(null)).toBeNull();
   });
 
   test("labels", () => {
@@ -342,6 +390,29 @@ describe("formatting", () => {
       "4.0 KiB/s",
     );
     expect(formatDatabaseMetricValue(3, "", "counter")).toBe("3/s");
+  });
+
+  test("non-catalog metric values keep the metric's own unit", () => {
+    expect(formatDatabaseMetricUnitValue(null, "s")).toBe("—");
+    expect(formatDatabaseMetricUnitValue(Number.NaN, "s")).toBe("—");
+    // A 4 ms latency reported in seconds must not read "0" (the audit's bug).
+    expect(formatDatabaseMetricUnitValue(0.004, "s")).toBe("4 ms");
+    expect(formatDatabaseMetricUnitValue(1_500_000, "By")).toBe("1.5 MB");
+    expect(formatDatabaseMetricUnitValue(12, "{connections}")).toBe(
+      "12 connections",
+    );
+    expect(formatDatabaseMetricUnitValue(1500, "{rows}")).toBe("1.5k rows");
+    expect(formatDatabaseMetricUnitValue(3.5, "1")).toBe("3.5");
+    expect(formatDatabaseMetricUnitValue(3.5, "")).toBe("3.5");
+    expect(formatDatabaseMetricUnitValue(3.5, null)).toBe("3.5");
+    // Rates read per second.
+    expect(
+      formatDatabaseMetricUnitValue(2.5, "{deadlocks}", { isRate: true }),
+    ).toBe("2.5 deadlocks/s");
+    expect(formatDatabaseMetricUnitValue(2, "1", { isRate: true })).toBe("2/s");
+    expect(formatDatabaseMetricUnitValue(2_000, "By", { isRate: true })).toBe(
+      "2 KB/s",
+    );
   });
 
   test("runtime values", () => {

@@ -40,6 +40,8 @@ import { JSONObject } from "Common/Types/JSON";
 import { getDatabaseServerDiscoverySourceLabel } from "Common/Types/DatabaseServer/DatabaseServerDiscoverySource";
 import DatabaseDocumentationCard from "../../Components/DatabaseServer/DocumentationCard";
 import DatabaseServerSummaryStrip from "../../Components/DatabaseServer/DatabaseServerSummaryStrip";
+import DatabaseRunsOnLink from "../../Components/DatabaseServer/DatabaseRunsOnLink";
+import { computeDatabaseServerIdsForEngineMetricsStatuses } from "./Utils/DatabaseEngineMetricsFilter";
 import {
   DatabaseEngineMetricsStatus,
   DatabaseOption,
@@ -47,14 +49,16 @@ import {
   getDatabaseEngineLabel,
   getDatabaseEngineMetricsStatus,
   getDatabaseEngineMetricsStatusLabel,
+  getDatabaseEngineMetricsStatusOptions,
   getDatabaseEndpointLabel,
   getDatabaseEngineOptions,
-  getDatabaseRunsOnLabel,
 } from "./Utils/DatabaseServerPresentation";
 
 const ENGINE_OPTIONS: Array<DatabaseOption> = getDatabaseEngineOptions();
 const DISCOVERY_SOURCE_OPTIONS: Array<DatabaseOption> =
   getDatabaseDiscoverySourceOptions();
+const ENGINE_METRICS_STATUS_OPTIONS: Array<DatabaseOption> =
+  getDatabaseEngineMetricsStatusOptions();
 
 const ENGINE_METRICS_STATUS_COLORS: Record<DatabaseEngineMetricsStatus, Color> =
   {
@@ -66,6 +70,12 @@ const ENGINE_METRICS_STATUS_COLORS: Record<DatabaseEngineMetricsStatus, Color> =
 const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const [count, setCount] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
+  /*
+   * Bumped on every table fetch — its refresh button, a bulk archive / label
+   * / owner action, a create — so the summary strip above it never shows
+   * counts the table has moved past.
+   */
+  const [summaryRefreshToken, setSummaryRefreshToken] = useState<number>(0);
 
   const { bulkActions: labelBulkActions, modals: labelBulkActionModals } =
     useBulkLabelActions<DatabaseServer>({ modelType: DatabaseServer });
@@ -109,19 +119,26 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
       },
     },
     {
+      /*
+       * Connected / Disconnected (an agent reported, then stopped) / Not
+       * connected (none ever did). The last two differ by collectorLastSeenAt,
+       * not by the status column — every never-connected row stores the
+       * "disconnected" default — so the chip resolves row ids.
+       */
       key: "otelCollectorStatus",
       label: "Engine metrics",
       icon: IconProp.Wifi,
-      isMultiSelect: false,
-      options: [
-        { value: "connected", label: "Connected" },
-        { value: "disconnected", label: "Disconnected" },
-      ],
-      toQueryValue: (
+      isMultiSelect: true,
+      options: ENGINE_METRICS_STATUS_OPTIONS,
+      supportedOperators: ["is", "is_not"],
+      computeMatchingResourceIds: (
+        projectId: ObjectID,
         values: Array<string>,
-        operator: FilterOperator,
-      ): unknown => {
-        return buildEnumFacetQuery(values, operator, false);
+      ): Promise<Array<string>> => {
+        return computeDatabaseServerIdsForEngineMetricsStatuses(
+          projectId,
+          values,
+        );
       },
     },
   ];
@@ -168,7 +185,7 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
-      <DatabaseServerSummaryStrip refreshToken={count} />
+      <DatabaseServerSummaryStrip refreshToken={summaryRefreshToken} />
       <ModelTable<DatabaseServer>
         modelType={DatabaseServer}
         id="database-servers-table"
@@ -180,6 +197,9 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
         query={mergeFiltersIntoQuery({ isArchived: false })}
         onFetchSuccess={(data: Array<DatabaseServer>) => {
           onResourcesFetched(data);
+          setSummaryRefreshToken((token: number): number => {
+            return token + 1;
+          });
         }}
         onBeforeCreate={(
           item: DatabaseServer,
@@ -378,12 +398,8 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
             hideOnMobile: true,
             disableSort: true,
             getElement: (item: DatabaseServer): ReactElement => {
-              const label: string = getDatabaseRunsOnLabel(item);
-              return label === "—" ? (
-                <span className="text-sm text-gray-400">—</span>
-              ) : (
-                <span className="text-sm text-gray-700">{label}</span>
-              );
+              // Links to the cluster / host page when the database runs on one.
+              return <DatabaseRunsOnLink source={item} />;
             },
           },
           {

@@ -1,11 +1,14 @@
 import ChartCard from "../TelemetryResource/ChartCard";
+import { DatabaseRunsOnLink, DatabaseWorkloadLink } from "./DatabaseRunsOnLink";
 import {
   DATABASE_RUNTIME_METRICS,
+  DatabaseRunsOnSource,
   DatabaseRuntimeMetrics,
   DatabaseRuntimePlatform,
   formatDatabaseRuntimeValue,
 } from "../../Pages/Database/Utils/DatabaseServerPresentation";
 import { DatabaseTimePoint } from "../../Pages/Database/Utils/DatabaseServerTelemetryQueries";
+import { DATABASE_METRIC_DESCRIPTIONS } from "./DatabaseMetricDescriptions";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
@@ -16,14 +19,15 @@ import React, { FunctionComponent, ReactElement } from "react";
  * Section 2 of a database's Overview, for a database that runs on
  * Kubernetes, Docker or Podman: where it runs, how many instances it has,
  * and the CPU / memory of those instances — read from the pods' / containers'
- * own metrics through the database's member keys.
+ * own metrics through the database's member keys. "Runs on" links to the
+ * cluster / host page and "Workload" to the workload's own page.
  */
 
 export interface ComponentProps {
   modelId: ObjectID;
   platform: DatabaseRuntimePlatform;
-  runsOn: string;
-  workload: string;
+  // The row's parent and workload columns, for the two links.
+  source: DatabaseRunsOnSource;
   instanceCount: number | null;
   // Pods / containers seen as members in the last 30 days.
   memberCount: number;
@@ -61,14 +65,22 @@ const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
             <dt className="text-xs font-medium uppercase tracking-wider text-gray-500">
               Runs on
             </dt>
-            <dd className="mt-1 text-gray-900">{props.runsOn}</dd>
+            <dd className="mt-1 text-gray-900">
+              <DatabaseRunsOnLink
+                source={props.source}
+                className="text-sm text-indigo-600"
+              />
+            </dd>
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wider text-gray-500">
               Workload
             </dt>
             <dd className="mt-1 break-all font-mono text-gray-900">
-              {props.workload || "—"}
+              <DatabaseWorkloadLink
+                source={props.source}
+                className="text-indigo-600"
+              />
             </dd>
           </div>
           <div>
@@ -93,6 +105,7 @@ const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
         <ChartCard
           title={metrics.cpu.title}
+          description={DATABASE_METRIC_DESCRIPTIONS.runtimeCpu}
           icon={IconProp.ChartBar}
           iconColor="blue"
           series={
@@ -110,6 +123,7 @@ const DatabaseRuntimeSection: FunctionComponent<ComponentProps> = (
         />
         <ChartCard
           title={metrics.memory.title}
+          description={DATABASE_METRIC_DESCRIPTIONS.runtimeMemory}
           icon={IconProp.SquareStack}
           iconColor="violet"
           series={

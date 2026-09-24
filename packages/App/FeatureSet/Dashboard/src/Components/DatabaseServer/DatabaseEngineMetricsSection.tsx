@@ -11,12 +11,15 @@ import {
   formatDatabaseMetricValue,
   getDatabaseEngineMetricsStatusLabel,
 } from "../../Pages/Database/Utils/DatabaseServerPresentation";
+import { getDatabaseServerMetricId } from "Common/Types/DatabaseServer/DatabaseServerMetricCatalog";
 import Route from "Common/Types/API/Route";
+import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -28,6 +31,11 @@ import React, { FunctionComponent, ReactElement } from "react";
  * "not connected" card pointing at its prefilled Documentation tab instead
  * of a wall of empty charts; a connected one with nothing to chart (a quiet
  * range, or an engine without a curated set) points at its Metrics tab.
+ *
+ * "Not connected" (no agent ever reported — gray, with the install guide)
+ * and "Disconnected" (an agent reported, then stopped — red, with when it
+ * last did) are different situations and read differently: a database found
+ * from traces or containers is never told its agent "stopped reporting".
  */
 
 export interface ComponentProps {
@@ -38,6 +46,8 @@ export interface ComponentProps {
   hasCatalog: boolean;
   // Whether an OpenTelemetry Collector receiver exists for the engine.
   hasCollectorReceiver: boolean;
+  // When engine metrics last arrived (collectorLastSeenAt), if ever.
+  lastReceivedAt?: Date | null | undefined;
   results: Array<DatabaseEngineMetricResult>;
   isLoading: boolean;
   windowStart: Date | null;
@@ -47,6 +57,10 @@ export interface ComponentProps {
 export const ENGINE_METRICS_NOT_CONNECTED_TITLE: string =
   "Engine metrics not connected";
 
+// An agent reported once and has gone quiet.
+export const ENGINE_METRICS_DISCONNECTED_TITLE: string =
+  "Engine metrics disconnected";
+
 /*
  * Connected, yet nothing to chart: no curated metric arrived in the range,
  * or the engine has no curated set at all. The agent is fine, so the card
@@ -54,6 +68,56 @@ export const ENGINE_METRICS_NOT_CONNECTED_TITLE: string =
  */
 export const ENGINE_METRICS_NO_DATA_TITLE: string =
   "No engine metrics in this range";
+
+const STATUS_PILL_CLASSES: Record<DatabaseEngineMetricsStatus, string> = {
+  [DatabaseEngineMetricsStatus.Connected]: "bg-emerald-50 text-emerald-700",
+  [DatabaseEngineMetricsStatus.Disconnected]: "bg-red-50 text-red-700",
+  [DatabaseEngineMetricsStatus.NotConnected]: "bg-gray-100 text-gray-700",
+};
+
+/** The status chip every card of this section shows. */
+export const EngineMetricsStatusPill: FunctionComponent<{
+  status: DatabaseEngineMetricsStatus;
+}> = (props: { status: DatabaseEngineMetricsStatus }): ReactElement => {
+  return (
+    <span
+      data-testid="database-engine-metrics-status"
+      data-status={props.status}
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+        STATUS_PILL_CLASSES[props.status]
+      }`}
+    >
+      <Icon icon={IconProp.Database} className="h-3 w-3" />
+      {getDatabaseEngineMetricsStatusLabel(props.status)}
+    </span>
+  );
+};
+
+/**
+ * What the "no engine metrics" card says for a database whose metrics are
+ * not arriving: why, and what to do about it.
+ */
+export function getEngineMetricsMissingDescription(data: {
+  status: DatabaseEngineMetricsStatus;
+  engineLabel: string;
+  hasCollectorReceiver: boolean;
+  lastReceivedAt?: Date | null | undefined;
+}): string {
+  if (data.status === DatabaseEngineMetricsStatus.Disconnected) {
+    const since: string = data.lastReceivedAt
+      ? ` The last engine metrics arrived ${OneUptimeDate.getDateAsLocalFormattedString(
+          data.lastReceivedAt,
+        )}.`
+      : "";
+    return `The Database Agent (or OpenTelemetry Collector) that sent engine metrics for this ${data.engineLabel} database has stopped reporting.${since} Check that the agent is running, then its connection to the database.`;
+  }
+
+  if (data.hasCollectorReceiver) {
+    return `Connections, throughput, cache hit ratio, locks and replication come from the ${data.engineLabel} engine itself, and no Database Agent or OpenTelemetry Collector has sent them for this database yet. Install the OneUptime Database Agent (or point your own OpenTelemetry Collector at it) to see them here.`;
+  }
+
+  return `There is no OpenTelemetry Collector receiver for ${data.engineLabel}, so this page shows what your applications report about it: the queries they send and the services that call it.`;
+}
 
 const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -88,10 +152,7 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
           data-testid="database-engine-metrics-no-data"
           className="flex flex-wrap items-center gap-4"
         >
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
-            <Icon icon={IconProp.Database} className="h-3 w-3" />
-            {getDatabaseEngineMetricsStatusLabel(props.status)}
-          </span>
+          <EngineMetricsStatusPill status={props.status} />
           <AppLink
             to={metricsRoute}
             className="text-sm font-medium text-indigo-600 hover:underline"
@@ -104,32 +165,40 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
   }
 
   if (!hasData) {
-    const description: string =
-      props.status === DatabaseEngineMetricsStatus.Disconnected
-        ? `The Database Agent for this ${props.engineLabel} database stopped reporting. Check the agent, then its connection to the database.`
-        : props.hasCollectorReceiver
-          ? `Connections, throughput, cache hit ratio, locks and replication come from the ${props.engineLabel} engine itself. Install the OneUptime Database Agent (or point your own OpenTelemetry Collector at it) to see them here.`
-          : `There is no OpenTelemetry Collector receiver for ${props.engineLabel}, so this page shows what your applications report about it: the queries they send and the services that call it.`;
+    const isDisconnected: boolean =
+      props.status === DatabaseEngineMetricsStatus.Disconnected;
 
     return (
       <Card
-        title={ENGINE_METRICS_NOT_CONNECTED_TITLE}
-        description={description}
+        title={
+          isDisconnected
+            ? ENGINE_METRICS_DISCONNECTED_TITLE
+            : ENGINE_METRICS_NOT_CONNECTED_TITLE
+        }
+        description={getEngineMetricsMissingDescription({
+          status: props.status,
+          engineLabel: props.engineLabel,
+          hasCollectorReceiver: props.hasCollectorReceiver,
+          lastReceivedAt: props.lastReceivedAt,
+        })}
       >
         <div
-          data-testid="database-engine-metrics-not-connected"
+          data-testid={
+            isDisconnected
+              ? "database-engine-metrics-disconnected"
+              : "database-engine-metrics-not-connected"
+          }
           className="flex flex-wrap items-center gap-4"
         >
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">
-            <Icon icon={IconProp.Database} className="h-3 w-3" />
-            {getDatabaseEngineMetricsStatusLabel(props.status)}
-          </span>
+          <EngineMetricsStatusPill status={props.status} />
           {props.hasCollectorReceiver ? (
             <AppLink
               to={documentationRoute}
               className="text-sm font-medium text-indigo-600 hover:underline"
             >
-              Connect engine metrics →
+              {isDisconnected
+                ? "Check the agent setup →"
+                : "Install the Database Agent →"}
             </AppLink>
           ) : (
             <></>
@@ -148,9 +217,21 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
   return (
     <div data-testid="database-engine-metrics">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-gray-900">
-          Engine metrics
-        </h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-base font-semibold text-gray-900">
+            Engine metrics
+          </h2>
+          {/*
+           * Charts from an agent that has since stopped are history: say so.
+           * (Data with no collector sighting at all is not an agent's to
+           * judge, so it gets no pill.)
+           */}
+          {props.status === DatabaseEngineMetricsStatus.Disconnected ? (
+            <EngineMetricsStatusPill status={props.status} />
+          ) : (
+            <></>
+          )}
+        </div>
         <AppLink
           to={metricsRoute}
           className="text-sm font-medium text-indigo-600 hover:underline"
@@ -163,13 +244,18 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
           (result: DatabaseEngineMetricResult): ReactElement => {
             return (
               <div
-                key={`tile-${result.definition.metricName}`}
+                key={`tile-${getDatabaseServerMetricId(result.definition)}`}
                 data-testid="database-engine-metric-tile"
                 className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                title={result.definition.description}
               >
-                <div className="text-xs font-medium uppercase tracking-wider text-gray-500">
-                  {result.definition.title}
+                <div className="flex min-w-0 items-center gap-1">
+                  <span className="truncate text-xs font-medium uppercase tracking-wider text-gray-500">
+                    {result.definition.title}
+                  </span>
+                  <InfoTooltip
+                    label={result.definition.title}
+                    text={result.definition.description}
+                  />
                 </div>
                 <div className="mt-2 text-xl font-semibold text-gray-900">
                   {formatDatabaseMetricValue(
@@ -190,12 +276,13 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
         {charted.map((result: DatabaseEngineMetricResult): ReactElement => {
           return (
             <ChartCard
-              key={`chart-${result.definition.metricName}`}
+              key={`chart-${getDatabaseServerMetricId(result.definition)}`}
               title={
                 result.definition.kind === "counter"
                   ? `${result.definition.title} (per second)`
                   : result.definition.title
               }
+              description={result.definition.description}
               icon={IconProp.ChartBar}
               iconColor="violet"
               series={

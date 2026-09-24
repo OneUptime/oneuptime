@@ -212,7 +212,9 @@ const EntityDetailPanel: FunctionComponent<ComponentProps> = (
 
   /*
    * Database entities: the Databases product page of the server that owns
-   * the endpoint this node names (engine default port applied).
+   * the endpoint this node names — its own port when it has one, else the
+   * engine default, else the one database on that host (any port, or a
+   * single-label Kubernetes name in any namespace). See ResolveTypedRowLink.
    */
   useEffect(() => {
     let cancelled: boolean = false;

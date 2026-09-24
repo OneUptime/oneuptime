@@ -13,13 +13,19 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * A Service Map `database` node (EntityType.Database: engine + host +
- * logical database, inferred from CLIENT spans) links to the Databases
- * product page of the DatabaseServer that owns the endpoint it names,
- * `server.address:<engine default port>`. The node never carries a port and
- * the product keys servers by endpoint, so this is the one place the two
- * identities meet — pinned here against a mocked ModelAPI: which endpoint is
- * asked for, when a cluster-qualified owner is accepted, and that nothing
- * guesses between two candidates.
+ * logical database, inferred from CLIENT spans — the host's port is
+ * stripped) links to the Databases product page of the DatabaseServer that
+ * owns the endpoint it names. The product keys servers by endpoint (host
+ * AND port, cluster-qualified when cluster-local), so this is the one place
+ * the two identities meet — pinned here against a fake endpoint table:
+ *
+ *   - the exact endpoint first (the node's own port, else the engine
+ *     default), then a cluster-local name's `@cluster` twins;
+ *   - then any endpoint on the same host — a database on a non-default port
+ *     (the audit's PgBouncer on 6432, DigitalOcean on 25060) and a
+ *     single-label Kubernetes name (`postgres`) recorded in its namespace
+ *     form — of the same engine family;
+ *   - never a guess between two databases.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
@@ -61,6 +67,7 @@ jest.mock("../../../UI/Components/SideOver/SideOver", () => {
 });
 
 import {
+  DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE,
   DatabaseEntityEndpoint,
   OPEN_DATABASE_LABEL,
   TypedRowLink,
@@ -91,45 +98,102 @@ interface GetListArgs {
   limit: number;
 }
 
+interface StoredEndpoint {
+  owner: string;
+  endpoint: string;
+  dbSystem?: string;
+}
+
 function calls(): Array<GetListArgs> {
   return getListMock.mock.calls.map((call: Array<unknown>): GetListArgs => {
     return call[0] as GetListArgs;
   });
 }
 
-function endpointRow(owner: string, endpoint: string): JSONObject {
-  return { databaseServerId: new ObjectID(owner), endpoint } as JSONObject;
+function prefixQueries(): Array<string> {
+  return calls()
+    .map((args: GetListArgs): unknown => {
+      return args.query["endpoint"];
+    })
+    .filter((value: unknown): boolean => {
+      return value instanceof StartsWith;
+    })
+    .map((value: unknown): string => {
+      return (value as StartsWith<string>).toString();
+    });
 }
 
 /*
- * Answer the exact-endpoint query with `exact` and the qualified-prefix
- * query with `qualified`.
+ * A DatabaseServerEndpoint table: an exact query matches by equality, a
+ * StartsWith query like SQL LIKE — `_` matches any one character, which is
+ * why the resolver re-checks every prefix hit.
  */
-function answer(
-  exact: Array<JSONObject>,
-  qualified: Array<JSONObject> = [],
-): void {
+function useTable(rows: Array<StoredEndpoint>): void {
   getListMock.mockImplementation(async (args: unknown) => {
     const query: Record<string, unknown> = (args as GetListArgs).query;
+    const wanted: unknown = query["endpoint"];
+    const matching: Array<StoredEndpoint> = rows.filter(
+      (row: StoredEndpoint): boolean => {
+        if (wanted instanceof StartsWith) {
+          const pattern: RegExp = new RegExp(
+            `^${wanted
+              .toString()
+              .split("")
+              .map((char: string): string => {
+                return char === "_"
+                  ? "."
+                  : char.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+              })
+              .join("")}`,
+          );
+          return pattern.test(row.endpoint);
+        }
+        return row.endpoint === wanted;
+      },
+    );
     return {
-      data: query["endpoint"] instanceof StartsWith ? qualified : exact,
-      count: 0,
+      data: matching.map((row: StoredEndpoint): JSONObject => {
+        return {
+          databaseServerId: new ObjectID(row.owner),
+          endpoint: row.endpoint,
+          databaseServer: row.dbSystem ? { dbSystem: row.dbSystem } : undefined,
+        } as unknown as JSONObject;
+      }),
+      count: matching.length,
     };
   });
 }
 
-function databaseNode(identifying: JSONObject): InventoryItem {
+function databaseNode(
+  identifying: JSONObject,
+  descriptive?: JSONObject,
+): InventoryItem {
   return {
     entityKey: "db-node",
     displayName: "orders",
     entityType: EntityType.Database,
     identifyingAttributes: identifying,
+    descriptiveAttributes: descriptive,
   } as unknown as InventoryItem;
+}
+
+async function linkFor(
+  identifying: JSONObject,
+  descriptive?: JSONObject,
+): Promise<string | null> {
+  const link: TypedRowLink | null = await resolveDatabaseServerLink(
+    databaseNode(identifying, descriptive),
+  );
+  return link ? link.route.toString() : null;
+}
+
+function databasePage(id: string): string {
+  return `/dashboard/${PROJECT_ID.toString()}/databases/${id}`;
 }
 
 beforeEach(() => {
   getListMock.mockReset();
-  answer([]);
+  useTable([]);
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
 });
 
@@ -152,7 +216,13 @@ describe("getDatabaseEntityEndpoint", () => {
           "db.system.name": system,
           "server.address": address,
         }),
-      ).toEqual({ endpoint: expected, isLocal: false });
+      ).toEqual({
+        endpoint: expected,
+        isLocal: false,
+        host: address,
+        system: system,
+        port: null,
+      });
     },
   );
 
@@ -162,16 +232,55 @@ describe("getDatabaseEntityEndpoint", () => {
         "db.system.name": " PostgreSQL ",
         "server.address": "DB.Prod.Example.com",
       }),
-    ).toEqual({ endpoint: "db.prod.example.com:5432", isLocal: false });
+    ).toMatchObject({
+      endpoint: "db.prod.example.com:5432",
+      isLocal: false,
+      host: "db.prod.example.com",
+      system: "postgresql",
+    });
   });
 
-  test("an address that already carries a port keeps it", () => {
+  test("an address that carries a port keeps it, and says so", () => {
     expect(
       getDatabaseEntityEndpoint({
         "db.system.name": "postgresql",
         "server.address": "pgbouncer.example.com:6432",
       }),
-    ).toEqual({ endpoint: "pgbouncer.example.com:6432", isLocal: false });
+    ).toMatchObject({ endpoint: "pgbouncer.example.com:6432", port: 6432 });
+  });
+
+  test("a server.port attribute on the node is its port", () => {
+    expect(
+      getDatabaseEntityEndpoint(
+        { "db.system.name": "postgresql", "server.address": "pg.example.com" },
+        { "server.port": "25060" },
+      ),
+    ).toMatchObject({ endpoint: "pg.example.com:25060", port: 25060 });
+    expect(
+      getDatabaseEntityEndpoint({
+        "db.system.name": "postgresql",
+        "server.address": "pg.example.com",
+        "server.port": "not-a-port",
+      }),
+    ).toMatchObject({ endpoint: "pg.example.com:5432", port: null });
+  });
+
+  test("a stamped canonical endpoint wins over the address", () => {
+    expect(
+      getDatabaseEntityEndpoint(
+        { "db.system.name": "postgresql", "server.address": "postgres" },
+        {
+          [DATABASE_ENDPOINT_DESCRIPTIVE_ATTRIBUTE]:
+            "postgres.prod.svc.cluster.local:5433@c1",
+        },
+      ),
+    ).toEqual({
+      endpoint: "postgres.prod.svc.cluster.local:5433@c1",
+      isLocal: false,
+      host: "postgres.prod.svc.cluster.local",
+      system: "postgresql",
+      port: 5433,
+    });
   });
 
   test("an unknown engine has no default port, so the endpoint is the host alone", () => {
@@ -180,7 +289,7 @@ describe("getDatabaseEntityEndpoint", () => {
         "db.system.name": "made-up-db",
         "server.address": "weird.example.com",
       }),
-    ).toEqual({ endpoint: "weird.example.com", isLocal: false });
+    ).toMatchObject({ endpoint: "weird.example.com", isLocal: false });
   });
 
   test("Kubernetes service DNS is expanded and marked local (its stored twin is cluster-qualified)", () => {
@@ -189,19 +298,30 @@ describe("getDatabaseEntityEndpoint", () => {
         "db.system.name": "postgresql",
         "server.address": "postgres.data.svc",
       }),
-    ).toEqual({
+    ).toMatchObject({
       endpoint: "postgres.data.svc.cluster.local:5432",
       isLocal: true,
+      host: "postgres.data.svc.cluster.local",
     });
   });
 
-  test("a private IP is local too", () => {
+  test("a private IP and a single-label name are local too", () => {
     expect(
       getDatabaseEntityEndpoint({
         "db.system.name": "redis",
         "server.address": "10.0.0.5",
       }),
-    ).toEqual({ endpoint: "10.0.0.5:6379", isLocal: true });
+    ).toMatchObject({ endpoint: "10.0.0.5:6379", isLocal: true });
+    expect(
+      getDatabaseEntityEndpoint({
+        "db.system.name": "postgresql",
+        "server.address": "postgres",
+      }),
+    ).toMatchObject({
+      endpoint: "postgres:5432",
+      isLocal: true,
+      host: "postgres",
+    });
   });
 
   test.each([
@@ -228,7 +348,7 @@ describe("resolveDatabaseServerIdForEndpoint", () => {
   };
 
   test("the owner of the exact endpoint wins, in one project-scoped query", async () => {
-    answer([endpointRow(DATABASE_ID, GLOBAL.endpoint)]);
+    useTable([{ owner: DATABASE_ID, endpoint: GLOBAL.endpoint }]);
 
     await expect(
       resolveDatabaseServerIdForEndpoint({
@@ -247,8 +367,8 @@ describe("resolveDatabaseServerIdForEndpoint", () => {
     expect(calls()[0]!.limit).toBe(1);
   });
 
-  test("a global endpoint nobody owns resolves to nothing, without a prefix search", async () => {
-    answer([], [endpointRow(DATABASE_ID, "db.prod.example.com:5432@prod")]);
+  test("an endpoint that names no host has nothing to fall back on", async () => {
+    useTable([{ owner: DATABASE_ID, endpoint: "db.prod.example.com:6432" }]);
 
     await expect(
       resolveDatabaseServerIdForEndpoint({
@@ -260,7 +380,7 @@ describe("resolveDatabaseServerIdForEndpoint", () => {
   });
 
   test("a local endpoint falls back to its cluster-qualified twin when exactly one database owns it", async () => {
-    answer([], [endpointRow(DATABASE_ID, `${LOCAL.endpoint}@prod-eu`)]);
+    useTable([{ owner: DATABASE_ID, endpoint: `${LOCAL.endpoint}@prod-eu` }]);
 
     await expect(
       resolveDatabaseServerIdForEndpoint({
@@ -270,22 +390,15 @@ describe("resolveDatabaseServerIdForEndpoint", () => {
     ).resolves.toBe(DATABASE_ID);
 
     expect(calls()).toHaveLength(2);
-    const prefix: unknown = calls()[1]!.query["endpoint"];
-    expect(prefix).toBeInstanceOf(StartsWith);
-    expect((prefix as StartsWith<string>).toString()).toBe(
-      `${LOCAL.endpoint}@`,
-    );
+    expect(prefixQueries()).toEqual([`${LOCAL.endpoint}@`]);
     expect(calls()[1]!.query["projectId"]).toBe(PROJECT_ID);
   });
 
   test("one database qualified in two clusters is still one owner", async () => {
-    answer(
-      [],
-      [
-        endpointRow(DATABASE_ID, `${LOCAL.endpoint}@prod-eu`),
-        endpointRow(DATABASE_ID, `${LOCAL.endpoint}@prod-us`),
-      ],
-    );
+    useTable([
+      { owner: DATABASE_ID, endpoint: `${LOCAL.endpoint}@prod-eu` },
+      { owner: DATABASE_ID, endpoint: `${LOCAL.endpoint}@prod-us` },
+    ]);
 
     await expect(
       resolveDatabaseServerIdForEndpoint({
@@ -296,31 +409,30 @@ describe("resolveDatabaseServerIdForEndpoint", () => {
   });
 
   test("two clusters' servers of the same name are two databases — never guessed between", async () => {
-    answer(
-      [],
-      [
-        endpointRow(DATABASE_ID, `${LOCAL.endpoint}@prod-eu`),
-        endpointRow(OTHER_DATABASE_ID, `${LOCAL.endpoint}@prod-us`),
-      ],
-    );
+    useTable([
+      { owner: DATABASE_ID, endpoint: `${LOCAL.endpoint}@prod-eu` },
+      { owner: OTHER_DATABASE_ID, endpoint: `${LOCAL.endpoint}@prod-us` },
+    ]);
 
     await expect(
       resolveDatabaseServerIdForEndpoint({
         projectId: PROJECT_ID,
-        endpoint: LOCAL,
+        endpoint: { ...LOCAL, host: "postgres.data.svc.cluster.local" },
       }),
     ).resolves.toBeNull();
+    // Ambiguous twins end it: no same-host guess afterwards.
+    expect(prefixQueries()).toEqual([`${LOCAL.endpoint}@`]);
   });
 
   test("a LIKE-wildcard lookalike returned by the prefix search is ignored", async () => {
-    answer(
-      [],
-      [
-        // `_` is a single-character wildcard in a LIKE prefix.
-        endpointRow(OTHER_DATABASE_ID, "postgres.data.svc.cluster.local:5432X"),
-        endpointRow(DATABASE_ID, `${LOCAL.endpoint}@prod-eu`),
-      ],
-    );
+    useTable([
+      // `_` is a single-character wildcard in a LIKE prefix.
+      {
+        owner: OTHER_DATABASE_ID,
+        endpoint: "postgres.data.svc.cluster.local:5432X",
+      },
+      { owner: DATABASE_ID, endpoint: `${LOCAL.endpoint}@prod-eu` },
+    ]);
 
     await expect(
       resolveDatabaseServerIdForEndpoint({
@@ -330,7 +442,7 @@ describe("resolveDatabaseServerIdForEndpoint", () => {
     ).resolves.toBe(DATABASE_ID);
   });
 
-  test("a local endpoint with no qualified twin resolves to nothing", async () => {
+  test("a local endpoint with no qualified twin and no host resolves to nothing", async () => {
     await expect(
       resolveDatabaseServerIdForEndpoint({
         projectId: PROJECT_ID,
@@ -340,9 +452,230 @@ describe("resolveDatabaseServerIdForEndpoint", () => {
   });
 });
 
+/*
+ * The audit's failure scenarios, end to end from the node the Service Map
+ * actually has (port stripped by normalizeHost).
+ */
+describe("resolving nodes whose database is not on the default port", () => {
+  test("PgBouncer on 6432: the only endpoint on the host is the database", async () => {
+    useTable([
+      {
+        owner: DATABASE_ID,
+        endpoint: "pgbouncer.example.com:6432",
+        dbSystem: "postgresql",
+      },
+    ]);
+
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "pgbouncer.example.com",
+      }),
+    ).resolves.toBe(databasePage(DATABASE_ID));
+    expect(prefixQueries()).toEqual(["pgbouncer.example.com:"]);
+  });
+
+  test("a managed Postgres on 25060 and an Azure Redis on TLS 6380 resolve too", async () => {
+    useTable([
+      {
+        owner: DATABASE_ID,
+        endpoint: "db-abc.ondigitalocean.com:25060",
+        dbSystem: "postgresql",
+      },
+      {
+        owner: OTHER_DATABASE_ID,
+        endpoint: "cache.redis.cache.windows.net:6380",
+        dbSystem: "redis",
+      },
+    ]);
+
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "db-abc.ondigitalocean.com",
+      }),
+    ).resolves.toBe(databasePage(DATABASE_ID));
+    await expect(
+      linkFor({
+        "db.system.name": "redis",
+        "server.address": "cache.redis.cache.windows.net",
+      }),
+    ).resolves.toBe(databasePage(OTHER_DATABASE_ID));
+  });
+
+  test("two instances on one host: no port means the default one; a known port picks its own", async () => {
+    useTable([
+      { owner: DATABASE_ID, endpoint: "pg1.example.com:5432" },
+      { owner: OTHER_DATABASE_ID, endpoint: "pg1.example.com:5433" },
+    ]);
+
+    // A span that reports no server.port called the default port.
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "pg1.example.com",
+      }),
+    ).resolves.toBe(databasePage(DATABASE_ID));
+    await expect(
+      linkFor(
+        { "db.system.name": "postgresql", "server.address": "pg1.example.com" },
+        { "server.port": "5433" },
+      ),
+    ).resolves.toBe(databasePage(OTHER_DATABASE_ID));
+  });
+
+  test("a known port that nothing owns on that host is no link, not the other port", async () => {
+    useTable([{ owner: DATABASE_ID, endpoint: "pg1.example.com:5433" }]);
+
+    await expect(
+      linkFor(
+        { "db.system.name": "postgresql", "server.address": "pg1.example.com" },
+        { "server.port": "6432" },
+      ),
+    ).resolves.toBeNull();
+  });
+
+  test("two databases on non-default ports of one host are never guessed between", async () => {
+    useTable([
+      { owner: DATABASE_ID, endpoint: "pg1.example.com:5433" },
+      { owner: OTHER_DATABASE_ID, endpoint: "pg1.example.com:5434" },
+    ]);
+
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "pg1.example.com",
+      }),
+    ).resolves.toBeNull();
+  });
+
+  test("another engine family on the same host is not this node's database", async () => {
+    useTable([
+      {
+        owner: DATABASE_ID,
+        endpoint: "shared.example.com:5433",
+        dbSystem: "postgresql",
+      },
+      {
+        owner: OTHER_DATABASE_ID,
+        endpoint: "shared.example.com:6380",
+        dbSystem: "valkey",
+      },
+    ]);
+
+    // A Valkey server is the Redis family: a "redis" span resolves to it.
+    await expect(
+      linkFor({
+        "db.system.name": "redis",
+        "server.address": "shared.example.com",
+      }),
+    ).resolves.toBe(databasePage(OTHER_DATABASE_ID));
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "shared.example.com",
+      }),
+    ).resolves.toBe(databasePage(DATABASE_ID));
+    await expect(
+      linkFor({
+        "db.system.name": "mongodb",
+        "server.address": "shared.example.com",
+      }),
+    ).resolves.toBeNull();
+  });
+
+  test("a hostname that merely starts like the node's host is someone else", async () => {
+    useTable([
+      { owner: DATABASE_ID, endpoint: "pg1.example.com.evil.net:5433" },
+    ]);
+
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "pg1.example.com",
+      }),
+    ).resolves.toBeNull();
+  });
+
+  test("an IPv6 host is matched in its bracketed form", async () => {
+    useTable([{ owner: DATABASE_ID, endpoint: "[2001:db8::1]:6432" }]);
+
+    await expect(
+      linkFor({
+        "db.system.name": "postgresql",
+        "server.address": "2001:db8::1",
+      }),
+    ).resolves.toBe(databasePage(DATABASE_ID));
+    expect(prefixQueries()).toContain("[2001:db8::1]:");
+  });
+});
+
+describe("resolving a single-label Kubernetes name", () => {
+  test("`postgres` finds the Service a namespace's callers were recorded with", async () => {
+    useTable([
+      {
+        owner: DATABASE_ID,
+        endpoint: "postgres.prod.svc.cluster.local:5432@c1",
+        dbSystem: "postgresql",
+      },
+      // Not a Kubernetes Service: must not match `postgres`.
+      { owner: OTHER_DATABASE_ID, endpoint: "postgres.example.com:5432" },
+    ]);
+
+    await expect(
+      linkFor({ "db.system.name": "postgresql", "server.address": "postgres" }),
+    ).resolves.toBe(databasePage(DATABASE_ID));
+    expect(prefixQueries()).toEqual([
+      "postgres:5432@",
+      "postgres:",
+      "postgres.",
+    ]);
+  });
+
+  test("the same Service in two namespaces is two databases: no link", async () => {
+    useTable([
+      {
+        owner: DATABASE_ID,
+        endpoint: "postgres.prod.svc.cluster.local:5432@c1",
+      },
+      {
+        owner: OTHER_DATABASE_ID,
+        endpoint: "postgres.staging.svc.cluster.local:5432@c1",
+      },
+    ]);
+
+    await expect(
+      linkFor({ "db.system.name": "postgresql", "server.address": "postgres" }),
+    ).resolves.toBeNull();
+  });
+
+  test("with two candidates, the only one on the default port is the one a portless span called", async () => {
+    useTable([
+      { owner: DATABASE_ID, endpoint: "redis.cache.svc.cluster.local:6379@c1" },
+      {
+        owner: OTHER_DATABASE_ID,
+        endpoint: "redis.jobs.svc.cluster.local:7000@c1",
+      },
+    ]);
+
+    await expect(
+      linkFor({ "db.system.name": "redis", "server.address": "redis" }),
+    ).resolves.toBe(databasePage(DATABASE_ID));
+  });
+
+  test("a stored single-label alias still matches first, exactly", async () => {
+    useTable([{ owner: DATABASE_ID, endpoint: "postgres:5432" }]);
+
+    await expect(
+      linkFor({ "db.system.name": "postgresql", "server.address": "postgres" }),
+    ).resolves.toBe(databasePage(DATABASE_ID));
+    expect(calls()).toHaveLength(1);
+  });
+});
+
 describe("resolveDatabaseServerLink", () => {
   test("links a database node to its DatabaseServer page", async () => {
-    answer([endpointRow(DATABASE_ID, "db.prod.example.com:5432")]);
+    useTable([{ owner: DATABASE_ID, endpoint: "db.prod.example.com:5432" }]);
 
     const link: TypedRowLink | null = await resolveDatabaseServerLink(
       databaseNode({
@@ -355,13 +688,11 @@ describe("resolveDatabaseServerLink", () => {
     expect(link).not.toBeNull();
     expect(link!.label).toBe(OPEN_DATABASE_LABEL);
     expect(link!.label).toBe("Open database");
-    expect(link!.route.toString()).toBe(
-      `/dashboard/${PROJECT_ID.toString()}/databases/${DATABASE_ID}`,
-    );
+    expect(link!.route.toString()).toBe(databasePage(DATABASE_ID));
   });
 
   test("resolveTypedRowLink routes a database node through the same lookup", async () => {
-    answer([endpointRow(DATABASE_ID, "db.prod.example.com:5432")]);
+    useTable([{ owner: DATABASE_ID, endpoint: "db.prod.example.com:5432" }]);
 
     const link: TypedRowLink | null = await resolveTypedRowLink(
       databaseNode({
@@ -433,6 +764,26 @@ describe("resolveDatabaseServerLink", () => {
       ),
     ).resolves.toBeNull();
   });
+
+  test("the same-host lookup asks for the owner's engine, project-scoped", async () => {
+    await linkFor({
+      "db.system.name": "postgresql",
+      "server.address": "pg.example.com",
+    });
+
+    const hostLookup: GetListArgs | undefined = calls().find(
+      (args: GetListArgs): boolean => {
+        return args.query["endpoint"] instanceof StartsWith;
+      },
+    );
+    expect(hostLookup).toBeDefined();
+    expect(hostLookup!.query["projectId"]).toBe(PROJECT_ID);
+    expect(hostLookup!.select).toEqual({
+      databaseServerId: true,
+      endpoint: true,
+      databaseServer: { dbSystem: true },
+    });
+  });
 });
 
 describe("the Service Map detail drawer", () => {
@@ -454,7 +805,7 @@ describe("the Service Map detail drawer", () => {
   }
 
   test("offers 'Open database' for a database node a DatabaseServer owns", async () => {
-    answer([endpointRow(DATABASE_ID, "db.prod.example.com:5432")]);
+    useTable([{ owner: DATABASE_ID, endpoint: "db.prod.example.com:5432" }]);
 
     renderPanel(
       databaseNode({
@@ -466,7 +817,24 @@ describe("the Service Map detail drawer", () => {
     const link: HTMLElement = await screen.findByText("Open database");
     expect(link.closest("a")).toHaveAttribute(
       "href",
-      `/dashboard/${PROJECT_ID.toString()}/databases/${DATABASE_ID}`,
+      databasePage(DATABASE_ID),
+    );
+  });
+
+  test("offers it for a database on a non-default port too", async () => {
+    useTable([{ owner: DATABASE_ID, endpoint: "pgbouncer.example.com:6432" }]);
+
+    renderPanel(
+      databaseNode({
+        "db.system.name": "postgresql",
+        "server.address": "pgbouncer.example.com",
+      }),
+    );
+
+    const link: HTMLElement = await screen.findByText("Open database");
+    expect(link.closest("a")).toHaveAttribute(
+      "href",
+      databasePage(DATABASE_ID),
     );
   });
 

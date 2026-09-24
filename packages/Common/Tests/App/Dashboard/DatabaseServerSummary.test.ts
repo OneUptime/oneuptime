@@ -76,8 +76,25 @@ describe("summarizeDatabaseFleet", () => {
     expect(tiles[3]).toEqual({
       title: "Without engine metrics",
       value: "6",
-      sublabel: "queries from applications only",
+      sublabel: "no Database Agent or collector reporting",
     });
+  });
+
+  /*
+   * A project whose databases were all found as Kubernetes StatefulSets has
+   * no application queries at all; the tile must not claim it does.
+   */
+  test("'without engine metrics' says what is missing, not where rows came from", () => {
+    const tiles: Array<DatabaseFleetSummaryTile> = summarizeDatabaseFleet({
+      total: 4,
+      engineMetricsConnected: 0,
+      seenRecently: 4,
+      bySource: { kubernetes: 3, docker: 1 },
+    });
+
+    expect(tiles[3]!.value).toBe("4");
+    expect(tiles[3]!.sublabel).toBe("no Database Agent or collector reporting");
+    expect(tiles[3]!.sublabel).not.toContain("applications");
   });
 
   test("clamps subsets to the total so the strip never contradicts itself", () => {

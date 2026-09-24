@@ -1,14 +1,20 @@
 import ChartCard from "../TelemetryResource/ChartCard";
 import {
-  DATABASE_METRIC_CHART_AGGREGATIONS,
   DatabaseMetricChartSpec,
+  DatabaseMetricShape,
   DatabaseTimePoint,
+  UNKNOWN_DATABASE_METRIC_SHAPE,
   fetchDatabaseMetricChartSeries,
+  fetchDatabaseMetricShape,
   getDatabaseMetricChartSpec,
 } from "../../Pages/Database/Utils/DatabaseServerTelemetryQueries";
-import { formatDatabaseMetricValue } from "../../Pages/Database/Utils/DatabaseServerPresentation";
+import {
+  formatDatabaseMetricUnitValue,
+  formatDatabaseMetricValue,
+} from "../../Pages/Database/Utils/DatabaseServerPresentation";
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
+import { findDatabaseServerMetricByName } from "Common/Types/DatabaseServer/DatabaseServerMetricCatalog";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import RangeStartAndEndDateTime, {
@@ -32,15 +38,27 @@ import React, {
  * and a database is scoped by entity keys (its endpoints' and instances'),
  * so the explorer would chart the metric across the whole project. The
  * chart reads through DatabaseServerTelemetryQueries with the same key set
- * the list uses; a curated engine counter is charted as a per-second rate.
+ * the list uses.
+ *
+ * The metric is charted by what it is, not by one generic aggregation: a
+ * curated engine metric exactly as the Overview reads it, a histogram by
+ * percentile (its stored value is the SUM of its observations, never a
+ * latency — P95 by default), a cumulative counter as a per-second rate per
+ * series, a delta counter by its Sum per bucket. What it is comes from its
+ * newest stored point (fetchDatabaseMetricShape); values are formatted in
+ * the metric's own unit.
  */
 
 export interface ComponentProps {
   metricName: string;
+  // The metric's unit from the metric list (MetricType.unit, UCUM).
+  unit?: string | null | undefined;
   // The database's entity keys — the same set the Metrics tab lists by.
   keys: Array<string>;
   projectId: ObjectID | string | null | undefined;
   dbSystem?: string | null | undefined;
+  // The range the metric list was showing; the past hour when not given.
+  initialTimeRange?: RangeStartAndEndDateTime | undefined;
   onClose: () => void;
 }
 
@@ -48,25 +66,39 @@ const DEFAULT_RANGE: RangeStartAndEndDateTime = {
   range: TimeRange.PAST_ONE_HOUR,
 };
 
-const AGGREGATION_LABELS: Partial<Record<AggregationType, string>> = {
+export const DATABASE_METRIC_AGGREGATION_LABELS: Partial<
+  Record<AggregationType, string>
+> = {
   [AggregationType.Avg]: "Average",
   [AggregationType.Max]: "Max",
   [AggregationType.Min]: "Min",
   [AggregationType.Sum]: "Sum",
+  [AggregationType.P50]: "p50",
+  [AggregationType.P90]: "p90",
+  [AggregationType.P95]: "p95",
+  [AggregationType.P99]: "p99",
 };
 
 const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  const spec: DatabaseMetricChartSpec = useMemo(() => {
-    return getDatabaseMetricChartSpec(props.metricName, props.dbSystem);
+  const unit: string = (props.unit || "").trim();
+
+  // A curated metric is charted from the catalog; its shape is not needed.
+  const isCurated: boolean = useMemo(() => {
+    return (
+      findDatabaseServerMetricByName(props.dbSystem, props.metricName) !== null
+    );
   }, [props.metricName, props.dbSystem]);
 
-  const [timeRange, setTimeRange] =
-    useState<RangeStartAndEndDateTime>(DEFAULT_RANGE);
-  const [aggregation, setAggregation] = useState<AggregationType>(
-    spec.defaultAggregation,
+  const [timeRange, setTimeRange] = useState<RangeStartAndEndDateTime>(
+    props.initialTimeRange || DEFAULT_RANGE,
   );
+  const [shape, setShape] = useState<DatabaseMetricShape | null>(
+    isCurated ? { ...UNKNOWN_DATABASE_METRIC_SHAPE, unit } : null,
+  );
+  const [pickedAggregation, setPickedAggregation] =
+    useState<AggregationType | null>(null);
   const [series, setSeries] = useState<Array<DatabaseTimePoint>>([]);
   const [chartWindow, setChartWindow] = useState<{
     start: Date;
@@ -75,6 +107,56 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    if (isCurated) {
+      setShape({ ...UNKNOWN_DATABASE_METRIC_SHAPE, unit });
+      return;
+    }
+
+    let ignore: boolean = false;
+    const range: InBetween<Date> =
+      RangeStartAndEndDateTimeUtil.getStartAndEndDate(timeRange);
+
+    setShape(null);
+    fetchDatabaseMetricShape({
+      projectId: props.projectId,
+      keys: props.keys,
+      start: range.startValue,
+      end: range.endValue,
+      metricName: props.metricName,
+      unit: unit,
+    })
+      .then((result: DatabaseMetricShape): void => {
+        if (!ignore) {
+          setShape(result);
+        }
+      })
+      .catch((): void => {
+        if (!ignore) {
+          setShape({ ...UNKNOWN_DATABASE_METRIC_SHAPE, unit });
+        }
+      });
+
+    return (): void => {
+      ignore = true;
+    };
+    // The shape of a metric does not change with the range picked later.
+  }, [isCurated, props.metricName, unit, props.keys, props.projectId]);
+
+  const spec: DatabaseMetricChartSpec = useMemo(() => {
+    return getDatabaseMetricChartSpec(props.metricName, props.dbSystem, shape);
+  }, [props.metricName, props.dbSystem, shape]);
+
+  const aggregation: AggregationType =
+    pickedAggregation && spec.aggregations.includes(pickedAggregation)
+      ? pickedAggregation
+      : spec.defaultAggregation;
+
+  useEffect(() => {
+    if (!shape) {
+      setIsLoading(true);
+      return;
+    }
+
     // A slow wide-range fetch must not overwrite a newer one.
     let ignore: boolean = false;
 
@@ -110,7 +192,7 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
     return (): void => {
       ignore = true;
     };
-  }, [spec, aggregation, timeRange, props.keys, props.projectId]);
+  }, [shape, spec, aggregation, timeRange, props.keys, props.projectId]);
 
   const formatValue: (value: number) => string = (value: number): string => {
     if (spec.definition) {
@@ -120,40 +202,39 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
         spec.definition.kind,
       );
     }
-    return formatDatabaseMetricValue(value, "", "gauge");
+    return formatDatabaseMetricUnitValue(value, spec.unit, {
+      isRate: spec.isRate,
+      metricName: spec.metricName,
+    });
   };
+
+  const description: string = spec.definition
+    ? `${spec.definition.description} Charted for this database only.`
+    : "Charted for this database only — its endpoints and the pods or containers it runs as.";
 
   return (
     <Modal
       title={spec.title}
-      description={
-        spec.definition
-          ? `${spec.definition.description} Charted for this database only.`
-          : "Charted for this database only — its endpoints and the pods or containers it runs as."
-      }
+      description={description}
       modalWidth={ModalWidth.Large}
       onClose={props.onClose}
       closeButtonText="Close"
     >
       <div data-testid="database-metric-chart">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          {spec.isRate ? (
-            <span className="text-xs text-gray-500">
-              A cumulative counter, charted as a per-second rate.
-            </span>
-          ) : (
+          {spec.aggregations.length > 0 ? (
             <div
               className="inline-flex rounded-md shadow-sm"
               role="group"
               aria-label="Aggregation"
             >
-              {DATABASE_METRIC_CHART_AGGREGATIONS.map(
+              {spec.aggregations.map(
                 (option: AggregationType, index: number): ReactElement => {
                   const isSelected: boolean = option === aggregation;
                   const edges: string =
                     index === 0
                       ? "rounded-l-md"
-                      : index === DATABASE_METRIC_CHART_AGGREGATIONS.length - 1
+                      : index === spec.aggregations.length - 1
                         ? "-ml-px rounded-r-md"
                         : "-ml-px";
                   return (
@@ -162,7 +243,7 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
                       type="button"
                       aria-pressed={isSelected}
                       onClick={(): void => {
-                        setAggregation(option);
+                        setPickedAggregation(option);
                       }}
                       className={`${edges} border px-3 py-1.5 text-xs font-medium ${
                         isSelected
@@ -170,12 +251,14 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
                           : "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
                       }`}
                     >
-                      {AGGREGATION_LABELS[option] || option}
+                      {DATABASE_METRIC_AGGREGATION_LABELS[option] || option}
                     </button>
                   );
                 },
               )}
             </div>
+          ) : (
+            <span />
           )}
           <TelemetryTimeRangePicker
             value={timeRange}
@@ -184,6 +267,16 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
             }}
           />
         </div>
+        {spec.note ? (
+          <p
+            className="mb-3 text-xs text-gray-500"
+            data-testid="database-metric-chart-note"
+          >
+            {spec.note}
+          </p>
+        ) : (
+          <></>
+        )}
         <ChartCard
           title={props.metricName}
           icon={IconProp.ChartBar}

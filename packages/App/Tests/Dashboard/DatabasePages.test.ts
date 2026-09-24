@@ -121,19 +121,53 @@ describe("the Overview's own queries", () => {
     expect(util).toContain("getDatabaseServerEntityKeysQueryValue(");
   });
 
-  test("scope by keys only — no attribute or primaryEntityId filter", () => {
-    expect(util).not.toContain("attributes:");
-    for (const fn of ["buildDatabaseSpanQuery(", "buildDatabaseMetricQuery("]) {
-      const body: string = between(
-        util,
-        `export function ${fn}`,
-        "export function",
-      );
-      expect(body).not.toContain("primaryEntityId");
-      expect(body).not.toContain("attributes");
-    }
+  test("scope by keys only — the one attribute predicate is a catalog pin", () => {
+    const spans: string = between(
+      util,
+      "export function buildDatabaseSpanQuery(",
+      "export function",
+    );
+    expect(spans).not.toContain("primaryEntityId");
+    expect(spans).not.toContain("attributes");
+
+    const metrics: string = between(
+      util,
+      "export function buildDatabaseMetricQuery(",
+      "function bucketDate(",
+    );
+    expect(metrics).not.toContain("primaryEntityId");
+    // A catalog pin narrows the metric; it is never the database's scope.
+    expect(metrics).toContain(
+      "const pins: Record<string, string> | null = pinsOf(window.pins);",
+    );
+    expect(metrics).toContain('query["attributes"] = pins;');
+    expect(metrics).toContain("entityKeys: entityKeys,");
+
     // Grouping BY the calling service is fine; filtering by it is not.
     expect(util).toContain("groupBy: { primaryEntityId: true }");
+  });
+
+  test("engine metrics are read per series: gauges grouped and combined, counters rated per series", () => {
+    const gauges: string = between(
+      util,
+      "export async function fetchDatabaseGaugeSeries(",
+      "export async function",
+    );
+    expect(gauges).toContain("groupByAttributeKeys: window.groupKeys,");
+    expect(gauges).toContain("combineGaugeSeries(result, window.combine)");
+
+    const counters: string = between(
+      util,
+      "export async function fetchDatabaseCounterRateSeries(",
+      "export async function",
+    );
+    expect(counters).toContain("groupBy: { attributes: true },");
+    expect(counters).toContain("aggregationType: AggregationType.Max,");
+    expect(counters).toContain("counterResultToRatePerSecond(result)");
+
+    // The shared cumulative-counter math, not a local copy.
+    expect(util).toContain('from "../../../Utils/CounterRateUtils"');
+    expect(util).toContain("computeCounterRate(result, {");
   });
 
   test("each builder returns null before building anything when unscoped", () => {
@@ -278,6 +312,45 @@ describe("the Overview", () => {
     );
   });
 
+  test("shows the database's incidents, alerts and maintenance like other overviews", () => {
+    const cards: string = between(code, "<ResourceActivityCards", "/>");
+    expect(cards).toContain('resourceQueryKey="databaseServers"');
+    expect(cards).toContain("PageMap.DATABASE_SERVER_VIEW_INCIDENTS");
+    expect(cards).toContain("PageMap.DATABASE_SERVER_VIEW_ALERTS");
+    expect(cards).toContain(
+      "PageMap.DATABASE_SERVER_VIEW_SCHEDULED_MAINTENANCE",
+    );
+    expect(cards).toContain("refreshToken={");
+  });
+
+  test("every tile and chart explains itself", () => {
+    for (const key of [
+      "queries",
+      "errorRate",
+      "p95Latency",
+      "callingServices",
+      "queriesChart",
+      "p95Chart",
+    ]) {
+      expect(code).toContain(`DATABASE_METRIC_DESCRIPTIONS.${key}`);
+    }
+  });
+
+  test("Calling services counts every service, not the table's ten", () => {
+    expect(code).toContain("formatDatabaseCount(callingServices.total)");
+    expect(code).not.toContain("String(callingServices.length)");
+    expect(code).toContain("totalServices={callingServices.total}");
+  });
+
+  test("scopes by the row key too, like the telemetry tabs", () => {
+    expect(code).toContain("id: modelId,");
+  });
+
+  test("links to the cluster or host it runs on", () => {
+    expect(code).toContain("getDatabaseRunsOnRoute(r)");
+    expect(code).toContain("source={r}");
+  });
+
   test("resolves calling-service names through the Service model", () => {
     expect(code).toContain("modelType: Service,");
     expect(code).toContain("_id: new Includes(");
@@ -374,8 +447,38 @@ describe("the Databases list", () => {
       expect(code).toContain(title);
     }
     expect(code).toContain("getDatabaseEngineMetricsStatus(item)");
-    expect(code).toContain("getDatabaseRunsOnLabel(item)");
+    // Runs on links to the cluster / host page.
+    expect(code).toContain("<DatabaseRunsOnLink source={item} />");
     expect(code).toContain("getDatabaseEndpointLabel(item)");
+  });
+
+  test("the engine-metrics facet resolves rows by status, 'Not connected' included", () => {
+    const facet: string = between(
+      code,
+      'key: "otelCollectorStatus"',
+      "const { getOwnersForResource,",
+    );
+    expect(facet).toContain("options: ENGINE_METRICS_STATUS_OPTIONS");
+    expect(facet).toContain(
+      "computeDatabaseServerIdsForEngineMetricsStatuses(",
+    );
+    expect(code).toContain(
+      "const ENGINE_METRICS_STATUS_OPTIONS: Array<DatabaseOption> = getDatabaseEngineMetricsStatusOptions();",
+    );
+  });
+
+  test("the summary strip refreshes with every table fetch, not only after a create", () => {
+    expect(code).toContain(
+      "<DatabaseServerSummaryStrip refreshToken={summaryRefreshToken} />",
+    );
+    const onFetch: string = between(
+      code,
+      "onFetchSuccess={",
+      "onBeforeCreate={",
+    );
+    expect(onFetch).toContain("onResourcesFetched(data);");
+    expect(onFetch).toContain("setSummaryRefreshToken(");
+    expect(code).not.toContain("refreshToken={count}");
   });
 
   test("facets filter by engine, discovery source and engine-metrics status", () => {
@@ -448,6 +551,39 @@ describe("Endpoints", () => {
 });
 
 describe("Settings, Delete and Documentation", () => {
+  test("Settings opens with an editable name, description and labels", () => {
+    const code: string = readCode("Pages/Database/View/Settings.tsx");
+    const card: string = between(
+      code,
+      "<CardModelDetail<DatabaseServer>",
+      "<Alert",
+    );
+
+    expect(card).toContain("isEditable={true}");
+    expect(card).toContain('editButtonText="Edit Database"');
+    const formFields: string = between(
+      card,
+      "formFields={[",
+      "modelDetailProps={{",
+    );
+    expect(formFields).toContain("field: { name: true, }");
+    expect(formFields).toContain("fieldType: FormFieldSchemaType.Text");
+    expect(formFields).toContain("field: { description: true, }");
+    expect(formFields).toContain("fieldType: FormFieldSchemaType.LongText");
+    expect(formFields).toContain("field: { labels: true, }");
+    expect(formFields).toContain(
+      "fieldType: FormFieldSchemaType.MultiSelectDropdown",
+    );
+    // The identity is never editable here.
+    expect(formFields).not.toContain("serverAddress");
+    expect(formFields).not.toContain("databaseIdentifier");
+    expect(card).toContain("modelType: DatabaseServer,");
+    expect(card).toContain("modelId: modelId,");
+    expect(code.indexOf("<CardModelDetail<DatabaseServer>")).toBeLessThan(
+      code.indexOf("DATABASE_RETENTION_SCOPE_NOTE}"),
+    );
+  });
+
   test("Settings: scoped retention copy, retention, then the archive card", () => {
     const code: string = readCode("Pages/Database/View/Settings.tsx");
     const note: number = code.indexOf("DATABASE_RETENTION_SCOPE_NOTE}");

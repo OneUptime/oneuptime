@@ -1,5 +1,6 @@
 import AggregationType from "Common/Types/BaseDatabase/AggregationType";
 import OneUptimeDate from "Common/Types/Date";
+import ValueFormatter from "Common/Utils/ValueFormatter";
 import DatabaseServerDiscoverySource, {
   DATABASE_SERVER_DISCOVERY_SOURCES,
   getDatabaseServerDiscoverySourceLabel,
@@ -81,12 +82,27 @@ export interface DatabaseEngineMetricsStatusSource {
   collectorLastSeenAt?: Date | string | null | undefined;
 }
 
+function isValidTimestamp(value: Date | string | null | undefined): boolean {
+  if (!value) {
+    return false;
+  }
+  const date: Date = value instanceof Date ? value : new Date(value);
+  return !Number.isNaN(date.getTime());
+}
+
 /**
  * The status of the database's ENGINE metrics — the collector / Database
- * Agent side. `otelCollectorStatus` is only ever written by the collector
- * path (connected at ingest, disconnected by the stale sweeper), so a row
- * that was only discovered from traces or containers has no status at all:
- * that is "not connected", not "disconnected".
+ * Agent side:
+ *
+ *   - Connected: the collector path says so (it writes "connected" with
+ *     every batch).
+ *   - Disconnected: a collector DID report (`collectorLastSeenAt`, which only
+ *     the collector path writes) and has stopped.
+ *   - Not connected: nothing ever reported. That includes a row whose
+ *     `otelCollectorStatus` reads "disconnected" with no collectorLastSeenAt
+ *     — the column's default, which every row found from traces, Kubernetes,
+ *     Docker, Podman or by hand is created with. Such a row never had an
+ *     agent, so it must not be told one "stopped reporting".
  */
 export function getDatabaseEngineMetricsStatus(
   source: DatabaseEngineMetricsStatusSource | null | undefined,
@@ -100,11 +116,62 @@ export function getDatabaseEngineMetricsStatus(
     return DatabaseEngineMetricsStatus.Connected;
   }
 
-  if (status === "disconnected" || source?.collectorLastSeenAt) {
+  if (isValidTimestamp(source?.collectorLastSeenAt)) {
     return DatabaseEngineMetricsStatus.Disconnected;
   }
 
   return DatabaseEngineMetricsStatus.NotConnected;
+}
+
+/*
+ * The Engine-metrics filter on the Databases list, in the order it offers
+ * them. The values are the enum's, so a saved "connected" / "disconnected"
+ * selection keeps working.
+ */
+export function getDatabaseEngineMetricsStatusOptions(): Array<DatabaseOption> {
+  return [
+    DatabaseEngineMetricsStatus.Connected,
+    DatabaseEngineMetricsStatus.Disconnected,
+    DatabaseEngineMetricsStatus.NotConnected,
+  ].map((status: DatabaseEngineMetricsStatus): DatabaseOption => {
+    return {
+      value: status,
+      label: getDatabaseEngineMetricsStatusLabel(status),
+    };
+  });
+}
+
+/*
+ * Which rows one engine-metrics status selects — exactly the rows
+ * getDatabaseEngineMetricsStatus maps to it. A status takes TWO columns to
+ * express (a never-connected row stores the "disconnected" default), so the
+ * list's filter resolves these to row ids instead of writing one column:
+ *
+ *   - "connected": otelCollectorStatus = "connected";
+ *   - "reported-and-stopped": not connected, collectorLastSeenAt set;
+ *   - "never-reported": collectorLastSeenAt empty (a connected row always
+ *     has one).
+ *
+ * Null for a value that is not a status.
+ */
+export type DatabaseEngineMetricsStatusQueryKind =
+  | "connected"
+  | "reported-and-stopped"
+  | "never-reported";
+
+export function getDatabaseEngineMetricsStatusQueryKind(
+  value: string | null | undefined,
+): DatabaseEngineMetricsStatusQueryKind | null {
+  switch ((value || "").trim().toLowerCase()) {
+    case DatabaseEngineMetricsStatus.Connected:
+      return "connected";
+    case DatabaseEngineMetricsStatus.Disconnected:
+      return "reported-and-stopped";
+    case DatabaseEngineMetricsStatus.NotConnected:
+      return "never-reported";
+    default:
+      return null;
+  }
 }
 
 export function getDatabaseEngineMetricsStatusLabel(
@@ -429,6 +496,46 @@ export function formatDatabaseMetricValue(
   }
   const count: string = formatDatabaseCount(value);
   return cleanUnit ? `${count} ${cleanUnit}` : count;
+}
+
+// A UCUM annotation-only unit such as "{connections}".
+const ANNOTATION_UNIT_PATTERN: RegExp = /^\{([^{}]+)\}$/;
+
+/**
+ * A value of a metric that is NOT in the curated catalog, in the metric's
+ * own unit (UCUM, as its instrumentation reported it): "4 ms" for a
+ * duration in seconds, "1.5 MB" for bytes, "12 connections" for an
+ * annotation unit. A rate reads "…/s". Dimensional units go through the
+ * shared ValueFormatter, the one the metric explorer uses.
+ */
+export function formatDatabaseMetricUnitValue(
+  value: number | null | undefined,
+  unit: string | null | undefined,
+  options?: {
+    isRate?: boolean | undefined;
+    metricName?: string | undefined;
+  },
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "—";
+  }
+  const cleanUnit: string = (unit || "").trim();
+  const annotation: RegExpExecArray | null =
+    ANNOTATION_UNIT_PATTERN.exec(cleanUnit);
+
+  let formatted: string;
+  if (annotation) {
+    // "{connections}" is a label, not a dimension: keep it readable.
+    formatted = `${formatDatabaseCount(value)} ${annotation[1]!.trim()}`;
+  } else if (!cleanUnit || cleanUnit === "1") {
+    formatted = formatDatabaseCount(value);
+  } else {
+    formatted = ValueFormatter.formatValue(value, cleanUnit, {
+      metricName: options?.metricName || "",
+    });
+  }
+
+  return options?.isRate ? `${formatted}/s` : formatted;
 }
 
 export function formatDatabaseRuntimeValue(

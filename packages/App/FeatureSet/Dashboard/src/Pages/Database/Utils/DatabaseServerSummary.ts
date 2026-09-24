@@ -139,11 +139,16 @@ export function summarizeDatabaseFleet(
             : `${Math.round((connected / total) * 100)}% of databases`,
     },
     {
+      /*
+       * Databases no agent is reporting for right now. They may be known only
+       * from Kubernetes, Docker or Podman — not from application queries — so
+       * the sublabel says what is missing, not where the row came from.
+       */
       title: "Without engine metrics",
       value: formatCount(total - connected),
       sublabel:
         total - connected > 0
-          ? "queries from applications only"
+          ? "no Database Agent or collector reporting"
           : total > 0
             ? "every database reports engine metrics"
             : "—",

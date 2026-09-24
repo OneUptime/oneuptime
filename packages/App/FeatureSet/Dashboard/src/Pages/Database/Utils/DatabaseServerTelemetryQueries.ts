@@ -1,5 +1,12 @@
 import { getDatabaseServerEntityKeysQueryValue } from "./DatabaseTelemetryScope";
-import Metric from "Common/Models/AnalyticsModels/Metric";
+import {
+  CounterRatePoint,
+  computeCounterRate,
+} from "../../../Utils/CounterRateUtils";
+import Metric, {
+  AggregationTemporality,
+  MetricPointType,
+} from "Common/Models/AnalyticsModels/Metric";
 import Span, { SpanKind, SpanStatus } from "Common/Models/AnalyticsModels/Span";
 import AggregateBy from "Common/Types/BaseDatabase/AggregateBy";
 import AggregatedModel from "Common/Types/BaseDatabase/AggregatedModel";
@@ -12,10 +19,16 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import {
   DatabaseServerMetricDefinition,
-  getDatabaseServerMetrics,
+  DatabaseServerMetricSeriesCombine,
+  findDatabaseServerMetricByName,
+  getDatabaseServerMetricGroupKeys,
 } from "Common/Types/DatabaseServer/DatabaseServerMetricCatalog";
 import ObjectID from "Common/Types/ObjectID";
-import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
+import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
+import TimeRange from "Common/Types/Time/TimeRange";
+import AnalyticsModelAPI, {
+  ListResult,
+} from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 
 /*
  * The Database pages' own aggregate queries: the Overview's sections and
@@ -26,7 +39,16 @@ import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelA
  * set: the builders return null and the fetchers resolve to an empty result
  * without touching the API. (An empty Includes drops the predicate server
  * side, so a database with no parseable endpoint would otherwise chart the
- * whole project as its own traffic.)
+ * whole project as its own traffic.) The only attribute filter ever sent is
+ * a catalog entry's own pin (connections of type "current"); it narrows a
+ * metric, it never scopes the database.
+ *
+ * Engine metrics are almost never one series (see the catalog), so they are
+ * read per series and combined here: gauges grouped by the entry's series
+ * keys and reporting instance, then summed / maxed per bucket; cumulative
+ * counters grouped by their whole attribute set and turned into a rate per
+ * series (CounterRateUtils, shared with the Ceph / Proxmox / Kubernetes
+ * rate charts) before the rates are summed.
  *
  * Kept local to the Databases product rather than added to
  * Components/TelemetryResource/telemetryMetrics, which scopes by attribute
@@ -47,9 +69,11 @@ export interface DatabaseQueryMetrics {
   total: number;
   errors: number;
   errorRatePercent: number | null;
+  // The p95 of every query in the window (one percentile, not an average).
   p95DurationMs: number | null;
   countSeries: Array<DatabaseTimePoint>;
   errorSeries: Array<DatabaseTimePoint>;
+  // The p95 of each time bucket, for the chart.
   p95Series: Array<DatabaseTimePoint>;
 }
 
@@ -61,6 +85,16 @@ export interface DatabaseCallingService {
   errors: number;
   errorRatePercent: number | null;
   p95DurationMs: number | null;
+}
+
+/*
+ * The busiest calling services (at most the limit) and how many services
+ * called the database in all — the table shows the first, the Overview's
+ * tile the second.
+ */
+export interface DatabaseCallingServices {
+  services: Array<DatabaseCallingService>;
+  total: number;
 }
 
 export interface DatabaseQueryWindow {
@@ -78,6 +112,11 @@ export const EMPTY_DATABASE_QUERY_METRICS: DatabaseQueryMetrics = {
   countSeries: [],
   errorSeries: [],
   p95Series: [],
+};
+
+export const EMPTY_DATABASE_CALLING_SERVICES: DatabaseCallingServices = {
+  services: [],
+  total: 0,
 };
 
 export const DEFAULT_CALLING_SERVICE_LIMIT: number = 10;
@@ -135,12 +174,33 @@ export function buildDatabaseSpanQuery(
   return query;
 }
 
+function pinsOf(
+  pins: Readonly<Record<string, string>> | null | undefined,
+): Record<string, string> | null {
+  const entries: Array<[string, string]> = Object.entries(pins || {}).filter(
+    ([key, value]: [string, string]): boolean => {
+      return (
+        typeof key === "string" &&
+        key.trim().length > 0 &&
+        typeof value === "string" &&
+        value.length > 0
+      );
+    },
+  );
+  return entries.length > 0 ? Object.fromEntries(entries) : null;
+}
+
 /**
  * The Metric query for one metric name over the database's keys, or null
- * when unscoped.
+ * when unscoped. `pins` is a catalog entry's datapoint-attribute filter
+ * (e.g. `{ type: "current" }`) — it narrows the metric to one breakdown
+ * value and is the only attribute predicate this file ever sends.
  */
 export function buildDatabaseMetricQuery(
-  window: DatabaseQueryWindow & { metricName: string },
+  window: DatabaseQueryWindow & {
+    metricName: string;
+    pins?: Readonly<Record<string, string>> | null | undefined;
+  },
 ): Record<string, unknown> | null {
   const entityKeys: Includes | null = getDatabaseServerEntityKeysQueryValue(
     window.keys,
@@ -152,12 +212,19 @@ export function buildDatabaseMetricQuery(
     return null;
   }
 
-  return {
+  const query: Record<string, unknown> = {
     projectId: projectId,
     time: new InBetween<Date>(window.start, window.end),
     name: metricName,
     entityKeys: entityKeys,
   };
+
+  const pins: Record<string, string> | null = pinsOf(window.pins);
+  if (pins) {
+    query["attributes"] = pins;
+  }
+
+  return query;
 }
 
 function bucketDate(point: AggregatedModel): Date | null {
@@ -171,6 +238,14 @@ function bucketDate(point: AggregatedModel): Date | null {
     return Number.isNaN(date.getTime()) ? null : date;
   }
   return null;
+}
+
+function sortByTime(
+  points: Array<DatabaseTimePoint>,
+): Array<DatabaseTimePoint> {
+  return points.sort((a: DatabaseTimePoint, b: DatabaseTimePoint): number => {
+    return a.x.getTime() - b.x.getTime();
+  });
 }
 
 /**
@@ -189,10 +264,7 @@ export function aggregatedResultToTimePoints(
       points.push({ x: x, y: y * scale });
     }
   }
-  points.sort((a: DatabaseTimePoint, b: DatabaseTimePoint): number => {
-    return a.x.getTime() - b.x.getTime();
-  });
-  return points;
+  return sortByTime(points);
 }
 
 function sum(series: ReadonlyArray<DatabaseTimePoint>): number {
@@ -228,41 +300,112 @@ export function latestOfSeries(
 }
 
 /**
- * A cumulative counter (commits, commands processed) as a per-second rate,
- * computed client-side from consecutive buckets: (v[i] - v[i-1]) / Δt. The
- * rate is stamped at the later bucket. A drop in the cumulative value is a
- * restart (the counter went back to zero) — that interval is skipped rather
- * than charted as a huge negative rate. Unsorted input is sorted; buckets
- * with the same timestamp are skipped (no Δt).
+ * The identity of one series in a grouped result: its attribute map (the
+ * whole map for `groupBy: { attributes: true }`, the grouped keys for
+ * `groupByAttributeKeys`), keys sorted so the same series always gets the
+ * same key. A row without attributes is the single ungrouped series.
  */
-export function counterSeriesToRatePerSecond(
-  series: ReadonlyArray<DatabaseTimePoint>,
-): Array<DatabaseTimePoint> {
-  const sorted: Array<DatabaseTimePoint> = [...series]
-    .filter((point: DatabaseTimePoint): boolean => {
-      return (
-        point &&
-        point.x instanceof Date &&
-        Number.isFinite(point.x.getTime()) &&
-        Number.isFinite(point.y)
-      );
-    })
-    .sort((a: DatabaseTimePoint, b: DatabaseTimePoint): number => {
-      return a.x.getTime() - b.x.getTime();
-    });
+export function getAttributeSeriesKey(attributes: unknown): string {
+  if (!attributes || typeof attributes !== "object") {
+    return "{}";
+  }
+  const record: Record<string, unknown> = attributes as Record<string, unknown>;
+  const sorted: Record<string, string> = {};
+  for (const key of Object.keys(record).sort()) {
+    const value: unknown = record[key];
+    sorted[key] =
+      value === null || value === undefined
+        ? ""
+        : typeof value === "object"
+          ? JSON.stringify(value)
+          : String(value);
+  }
+  return JSON.stringify(sorted);
+}
 
-  const rates: Array<DatabaseTimePoint> = [];
-  for (let i: number = 1; i < sorted.length; i++) {
-    const previous: DatabaseTimePoint = sorted[i - 1]!;
-    const current: DatabaseTimePoint = sorted[i]!;
-    const seconds: number = (current.x.getTime() - previous.x.getTime()) / 1000;
-    const delta: number = current.y - previous.y;
-    if (seconds <= 0 || delta < 0) {
+function combineValues(
+  values: ReadonlyArray<number>,
+  combine: DatabaseServerMetricSeriesCombine,
+): number {
+  switch (combine) {
+    case "max":
+      return Math.max(...values);
+    case "min":
+      return Math.min(...values);
+    case "avg":
+      return (
+        values.reduce((total: number, value: number): number => {
+          return total + value;
+        }, 0) / values.length
+      );
+    default:
+      return values.reduce((total: number, value: number): number => {
+        return total + value;
+      }, 0);
+  }
+}
+
+/**
+ * A grouped gauge result (one row per series per bucket) → one point per
+ * bucket: the series of each bucket combined with `combine` — "sum" when
+ * they are parts of one total (backends per database), "max" / "min" for
+ * the worst one, "avg" for ratios. Rows without a bucket or a finite value
+ * are skipped; a series that has no row in a bucket simply does not
+ * contribute to it.
+ */
+export function combineGaugeSeries(
+  result: AggregatedResult | null | undefined,
+  combine: DatabaseServerMetricSeriesCombine,
+): Array<DatabaseTimePoint> {
+  // bucket time → (series key → value); a repeated row keeps the last.
+  const buckets: Map<number, Map<string, number>> = new Map();
+
+  for (const row of (result?.data || []) as Array<AggregatedModel>) {
+    const x: Date | null = bucketDate(row);
+    const y: number = Number(row["value"]);
+    if (!x || !Number.isFinite(y)) {
       continue;
     }
-    rates.push({ x: current.x, y: delta / seconds });
+    const time: number = x.getTime();
+    let series: Map<string, number> | undefined = buckets.get(time);
+    if (!series) {
+      series = new Map<string, number>();
+      buckets.set(time, series);
+    }
+    series.set(getAttributeSeriesKey(row["attributes"]), y);
   }
-  return rates;
+
+  const points: Array<DatabaseTimePoint> = [];
+  for (const [time, series] of buckets) {
+    points.push({
+      x: new Date(time),
+      y: combineValues(Array.from(series.values()), combine),
+    });
+  }
+  return sortByTime(points);
+}
+
+/**
+ * A grouped cumulative-counter result (one row per series per bucket, the
+ * Max of the bucket) → a per-second rate: consecutive buckets differenced
+ * PER SERIES, a reset clamped to zero, then the rates of every series
+ * summed per bucket (CounterRateUtils.computeCounterRate). A cumulative
+ * value is never compared across two series, so the busiest database, a
+ * row-lock time counter or a second agent cannot masquerade as the rate.
+ */
+export function counterResultToRatePerSecond(
+  result: AggregatedResult | null | undefined,
+): Array<DatabaseTimePoint> {
+  if (!result) {
+    return [];
+  }
+  return computeCounterRate(result, {
+    getSeriesKey: (attributes: Record<string, unknown>): string => {
+      return getAttributeSeriesKey(attributes);
+    },
+  }).map((point: CounterRatePoint): DatabaseTimePoint => {
+    return { x: point.x, y: point.y };
+  });
 }
 
 function aggregateBy<TModel extends Span | Metric>(data: {
@@ -273,6 +416,7 @@ function aggregateBy<TModel extends Span | Metric>(data: {
   start: Date;
   end: Date;
   groupBy?: Record<string, true> | undefined;
+  groupByAttributeKeys?: Array<string> | undefined;
   aggregationInterval?: AggregationInterval | undefined;
   topK?: { count: number; rankBy: "max" | "avg" } | undefined;
 }): AggregateBy<TModel> {
@@ -290,6 +434,9 @@ function aggregateBy<TModel extends Span | Metric>(data: {
   if (data.groupBy) {
     request["groupBy"] = data.groupBy;
   }
+  if (data.groupByAttributeKeys && data.groupByAttributeKeys.length > 0) {
+    request["groupByAttributeKeys"] = data.groupByAttributeKeys;
+  }
   if (data.aggregationInterval) {
     request["aggregationInterval"] = data.aggregationInterval;
   }
@@ -299,11 +446,26 @@ function aggregateBy<TModel extends Span | Metric>(data: {
   return request as unknown as AggregateBy<TModel>;
 }
 
+function firstFiniteValue(
+  result: AggregatedResult | null | undefined,
+  scale: number = 1,
+): number | null {
+  for (const row of (result?.data || []) as Array<AggregatedModel>) {
+    const value: number = Number(row["value"]);
+    if (Number.isFinite(value)) {
+      return value * scale;
+    }
+  }
+  return null;
+}
+
 /**
  * Rate, errors and p95 duration of the queries applications send the
- * database. Resolves to the empty metrics (no API call) when unscoped; a
- * failed request also resolves to the empty metrics so the Overview never
- * breaks on one bad chart.
+ * database. The tile's p95 is ONE percentile over every query in the window
+ * (not the mean of per-bucket p95s); the chart keeps the per-bucket p95.
+ * Resolves to the empty metrics (no API call) when unscoped; a failed
+ * request also resolves to the empty metrics so the Overview never breaks
+ * on one bad chart.
  */
 export async function fetchDatabaseQueryMetrics(
   window: DatabaseQueryWindow,
@@ -322,9 +484,11 @@ export async function fetchDatabaseQueryMetrics(
   const build: (
     query: Record<string, unknown>,
     aggregationType: AggregationType,
+    aggregationInterval?: AggregationInterval,
   ) => AggregateBy<Span> = (
     query: Record<string, unknown>,
     aggregationType: AggregationType,
+    aggregationInterval?: AggregationInterval,
   ): AggregateBy<Span> => {
     return aggregateBy<Span>({
       query: query,
@@ -333,11 +497,13 @@ export async function fetchDatabaseQueryMetrics(
       timestampColumnName: "startTime",
       start: window.start,
       end: window.end,
+      aggregationInterval: aggregationInterval,
     });
   };
 
   try {
-    const [countResult, errorResult, p95Result]: [
+    const [countResult, errorResult, p95Result, windowP95Result]: [
+      AggregatedResult,
       AggregatedResult,
       AggregatedResult,
       AggregatedResult,
@@ -353,6 +519,14 @@ export async function fetchDatabaseQueryMetrics(
       AnalyticsModelAPI.aggregate<Span>({
         modelType: Span,
         aggregateBy: build(baseQuery, AggregationType.P95),
+      }),
+      AnalyticsModelAPI.aggregate<Span>({
+        modelType: Span,
+        aggregateBy: build(
+          baseQuery,
+          AggregationType.P95,
+          AggregationInterval.Total,
+        ),
       }),
     ]);
 
@@ -372,7 +546,10 @@ export async function fetchDatabaseQueryMetrics(
       total: total,
       errors: errors,
       errorRatePercent: total > 0 ? (errors / total) * 100 : null,
-      p95DurationMs: meanOfSeries(p95Series),
+      p95DurationMs:
+        total > 0
+          ? firstFiniteValue(windowP95Result, 1 / NANOSECONDS_PER_MILLISECOND)
+          : null,
       countSeries: countSeries,
       errorSeries: errorSeries,
       p95Series: p95Series,
@@ -402,15 +579,16 @@ function groupValues(
 
 /**
  * Combine the three grouped aggregates (calls, failed calls, p95) into one
- * row per calling service, busiest first, at most `limit` rows. Pure — the
- * fetcher below and the tests share it.
+ * row per calling service, busiest first, at most `limit` rows — plus the
+ * number of services that called at all, counted BEFORE the limit. Pure —
+ * the fetcher below and the tests share it.
  */
 export function combineCallingServiceResults(data: {
   countResult: AggregatedResult | null | undefined;
   errorResult: AggregatedResult | null | undefined;
   p95Result: AggregatedResult | null | undefined;
   limit?: number | undefined;
-}): Array<DatabaseCallingService> {
+}): DatabaseCallingServices {
   const calls: Map<string, number> = groupValues(data.countResult);
   const errors: Map<string, number> = groupValues(data.errorResult);
   const p95: Map<string, number> = groupValues(
@@ -446,17 +624,18 @@ export function combineCallingServiceResults(data: {
     return a.serviceId < b.serviceId ? -1 : a.serviceId > b.serviceId ? 1 : 0;
   });
 
-  return rows.slice(0, limit);
+  return { services: rows.slice(0, limit), total: rows.length };
 }
 
 /**
  * The application services that query the database, busiest first — the
  * client spans grouped by their service (primaryEntityId) over the whole
- * window. Empty (no API call) when unscoped or on failure.
+ * window — and how many there are in all. Empty (no API call) when unscoped
+ * or on failure.
  */
 export async function fetchDatabaseCallingServices(
   window: DatabaseQueryWindow & { limit?: number | undefined },
-): Promise<Array<DatabaseCallingService>> {
+): Promise<DatabaseCallingServices> {
   const baseQuery: Record<string, unknown> | null =
     buildDatabaseSpanQuery(window);
   const errorQuery: Record<string, unknown> | null = buildDatabaseSpanQuery(
@@ -465,7 +644,7 @@ export async function fetchDatabaseCallingServices(
   );
 
   if (!baseQuery || !errorQuery) {
-    return [];
+    return { ...EMPTY_DATABASE_CALLING_SERVICES, services: [] };
   }
 
   const limit: number =
@@ -519,12 +698,15 @@ export async function fetchDatabaseCallingServices(
       limit,
     });
   } catch {
-    return [];
+    return { ...EMPTY_DATABASE_CALLING_SERVICES, services: [] };
   }
 }
 
 /**
- * One metric's series over the database's keys, per time bucket. Empty (no
+ * One metric as a single series over the database's keys, per time bucket
+ * — every series of the metric pooled with `aggregationType`. Right for a
+ * metric whose pooled value means something (a pod's CPU averaged across
+ * pods, a histogram's percentile), never for an engine counter. Empty (no
  * API call) when unscoped or on failure.
  */
 export async function fetchDatabaseMetricSeries(
@@ -557,29 +739,147 @@ export async function fetchDatabaseMetricSeries(
   }
 }
 
+/**
+ * A cumulative monotonic counter as a per-second rate over the database's
+ * keys: the Max of every distinct series per bucket (`groupBy: { attributes:
+ * true }`), a rate per series, the rates summed. `pins` narrows it to one
+ * breakdown value. Empty (no API call) when unscoped or on failure.
+ */
+export async function fetchDatabaseCounterRateSeries(
+  window: DatabaseQueryWindow & {
+    metricName: string;
+    pins?: Readonly<Record<string, string>> | null | undefined;
+  },
+): Promise<Array<DatabaseTimePoint>> {
+  const query: Record<string, unknown> | null =
+    buildDatabaseMetricQuery(window);
+  if (!query) {
+    return [];
+  }
+
+  try {
+    const result: AggregatedResult = await AnalyticsModelAPI.aggregate<Metric>({
+      modelType: Metric,
+      aggregateBy: aggregateBy<Metric>({
+        query: query,
+        // The latest cumulative value of each series in the bucket.
+        aggregationType: AggregationType.Max,
+        aggregateColumnName: "value",
+        timestampColumnName: "time",
+        start: window.start,
+        end: window.end,
+        groupBy: { attributes: true },
+      }),
+    });
+    return counterResultToRatePerSecond(result);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * A gauge read per series and combined per bucket: grouped by `groupKeys`,
+ * each group aggregated with `aggregationType`, the groups combined with
+ * `combine`. Empty (no API call) when unscoped or on failure.
+ */
+export async function fetchDatabaseGaugeSeries(
+  window: DatabaseQueryWindow & {
+    metricName: string;
+    aggregationType: AggregationType;
+    groupKeys: Array<string>;
+    combine: DatabaseServerMetricSeriesCombine;
+    pins?: Readonly<Record<string, string>> | null | undefined;
+  },
+): Promise<Array<DatabaseTimePoint>> {
+  const query: Record<string, unknown> | null =
+    buildDatabaseMetricQuery(window);
+  if (!query) {
+    return [];
+  }
+
+  try {
+    const result: AggregatedResult = await AnalyticsModelAPI.aggregate<Metric>({
+      modelType: Metric,
+      aggregateBy: aggregateBy<Metric>({
+        query: query,
+        aggregationType: window.aggregationType,
+        aggregateColumnName: "value",
+        timestampColumnName: "time",
+        start: window.start,
+        end: window.end,
+        groupByAttributeKeys: window.groupKeys,
+      }),
+    });
+    return combineGaugeSeries(result, window.combine);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * One catalog metric, chart-ready: a counter as its per-second rate, a
+ * gauge combined across its series as the catalog says. `aggregationType`
+ * overrides a gauge's per-series aggregation (the Metrics tab lets you pick
+ * Max); a counter always reads Max.
+ */
+export async function fetchDatabaseCatalogMetricSeries(
+  window: DatabaseQueryWindow & {
+    definition: DatabaseServerMetricDefinition;
+    aggregationType?: AggregationType | undefined;
+  },
+): Promise<Array<DatabaseTimePoint>> {
+  const definition: DatabaseServerMetricDefinition = window.definition;
+  const base: DatabaseQueryWindow & {
+    metricName: string;
+    pins?: Readonly<Record<string, string>> | undefined;
+  } = {
+    projectId: window.projectId,
+    keys: window.keys,
+    start: window.start,
+    end: window.end,
+    metricName: definition.metricName,
+    pins: definition.attributes,
+  };
+
+  if (definition.kind === "counter") {
+    return fetchDatabaseCounterRateSeries(base);
+  }
+
+  return fetchDatabaseGaugeSeries({
+    ...base,
+    aggregationType: window.aggregationType || definition.aggregation,
+    groupKeys: getDatabaseServerMetricGroupKeys(definition),
+    combine: definition.seriesCombine,
+  });
+}
+
 /** A catalog metric with the series to chart and the value its tile shows. */
 export interface DatabaseEngineMetricResult {
   definition: DatabaseServerMetricDefinition;
-  // Gauges: the bucketed values. Counters: the per-second rate series.
+  // Gauges: the combined value per bucket. Counters: the per-second rate.
   series: Array<DatabaseTimePoint>;
   // Gauges: the latest bucket. Counters: the mean rate over the window.
   value: number | null;
 }
 
 /**
- * Chart-ready form of one catalog metric's raw series: gauges as they are,
- * counters (cumulative) converted to a per-second rate.
+ * The tile value of one catalog metric's chart-ready series (see
+ * fetchDatabaseCatalogMetricSeries): a gauge shows its latest bucket, a
+ * counter its mean rate over the window.
  */
 export function toEngineMetricResult(
   definition: DatabaseServerMetricDefinition,
-  raw: ReadonlyArray<DatabaseTimePoint>,
+  series: ReadonlyArray<DatabaseTimePoint>,
 ): DatabaseEngineMetricResult {
-  if (definition.kind === "counter") {
-    const rate: Array<DatabaseTimePoint> = counterSeriesToRatePerSecond(raw);
-    return { definition, series: rate, value: meanOfSeries(rate) };
-  }
-  const series: Array<DatabaseTimePoint> = [...raw];
-  return { definition, series, value: latestOfSeries(series) };
+  const points: Array<DatabaseTimePoint> = sortByTime([...series]);
+  return {
+    definition,
+    series: points,
+    value:
+      definition.kind === "counter"
+        ? meanOfSeries(points)
+        : latestOfSeries(points),
+  };
 }
 
 /**
@@ -600,15 +900,15 @@ export async function fetchDatabaseEngineMetrics(
       async (
         definition: DatabaseServerMetricDefinition,
       ): Promise<DatabaseEngineMetricResult> => {
-        const raw: Array<DatabaseTimePoint> = await fetchDatabaseMetricSeries({
-          projectId: window.projectId,
-          keys: window.keys,
-          start: window.start,
-          end: window.end,
-          metricName: definition.metricName,
-          aggregationType: definition.aggregation,
-        });
-        return toEngineMetricResult(definition, raw);
+        const series: Array<DatabaseTimePoint> =
+          await fetchDatabaseCatalogMetricSeries({
+            projectId: window.projectId,
+            keys: window.keys,
+            start: window.start,
+            end: window.end,
+            definition: definition,
+          });
+        return toEngineMetricResult(definition, series);
       },
     ),
   );
@@ -623,19 +923,135 @@ export function hasEngineMetricData(
   });
 }
 
+// ---- the Metrics tab's in-place chart ------------------------------------
+
 /*
- * The aggregations the in-place metric chart (the Metrics tab's row click)
- * offers for a metric outside the engine's curated set. A curated counter
- * is not offered a choice: it is charted as a rate, which only Max per
- * bucket gives (see the catalog).
+ * What a clicked metric IS, read from its newest stored point: a histogram
+ * (charted by percentile — its stored `value` is the bucket sum), a
+ * cumulative monotonic counter (charted as a rate), a delta counter, or a
+ * gauge. The unit comes from the metric list (MetricType.unit). Unknown
+ * fields are null and the metric is then charted as a gauge.
  */
-export const DATABASE_METRIC_CHART_AGGREGATIONS: ReadonlyArray<AggregationType> =
+export interface DatabaseMetricShape {
+  unit: string;
+  pointType: MetricPointType | null;
+  isMonotonic: boolean | null;
+  aggregationTemporality: AggregationTemporality | null;
+}
+
+export const UNKNOWN_DATABASE_METRIC_SHAPE: DatabaseMetricShape = {
+  unit: "",
+  pointType: null,
+  isMonotonic: null,
+  aggregationTemporality: null,
+};
+
+const DISTRIBUTION_POINT_TYPES: ReadonlyArray<MetricPointType> = [
+  MetricPointType.Histogram,
+  MetricPointType.ExponentialHistogram,
+];
+
+/**
+ * Reads the point type, monotonicity and temporality of a metric from its
+ * newest point under the database's keys in the window. Resolves to the
+ * unknown shape (no API call) when unscoped, and on failure or no data.
+ */
+export async function fetchDatabaseMetricShape(
+  window: DatabaseQueryWindow & {
+    metricName: string;
+    unit?: string | null | undefined;
+  },
+): Promise<DatabaseMetricShape> {
+  const unit: string = (window.unit || "").trim();
+  const unknown: DatabaseMetricShape = {
+    ...UNKNOWN_DATABASE_METRIC_SHAPE,
+    unit: unit,
+  };
+  const query: Record<string, unknown> | null =
+    buildDatabaseMetricQuery(window);
+  if (!query) {
+    return unknown;
+  }
+
+  try {
+    const result: ListResult<Metric> = await AnalyticsModelAPI.getList<Metric>({
+      modelType: Metric,
+      query: query,
+      select: {
+        metricPointType: true,
+        isMonotonic: true,
+        aggregationTemporality: true,
+      },
+      sort: { time: SortOrder.Descending },
+      skip: 0,
+      limit: 1,
+    });
+    const row: Metric | undefined = result.data?.[0];
+    if (!row) {
+      return unknown;
+    }
+    const pointType: unknown = row.metricPointType;
+    const temporality: unknown = row.aggregationTemporality;
+    return {
+      unit: unit,
+      pointType: Object.values(MetricPointType).includes(
+        pointType as MetricPointType,
+      )
+        ? (pointType as MetricPointType)
+        : null,
+      isMonotonic:
+        typeof row.isMonotonic === "boolean" ? row.isMonotonic : null,
+      aggregationTemporality: Object.values(AggregationTemporality).includes(
+        temporality as AggregationTemporality,
+      )
+        ? (temporality as AggregationTemporality)
+        : null,
+    };
+  } catch {
+    return unknown;
+  }
+}
+
+export const DATABASE_METRIC_GAUGE_AGGREGATIONS: ReadonlyArray<AggregationType> =
   [
     AggregationType.Avg,
     AggregationType.Max,
     AggregationType.Min,
     AggregationType.Sum,
   ];
+
+/*
+ * A distribution's percentiles come from its buckets (MetricService); Avg
+ * is the count-weighted mean, Max / Min the observed extremes.
+ */
+export const DATABASE_METRIC_DISTRIBUTION_AGGREGATIONS: ReadonlyArray<AggregationType> =
+  [
+    AggregationType.P50,
+    AggregationType.P90,
+    AggregationType.P95,
+    AggregationType.P99,
+    AggregationType.Avg,
+    AggregationType.Max,
+    AggregationType.Min,
+  ];
+
+// A delta counter's points are increments: Sum per bucket is the total.
+export const DATABASE_METRIC_DELTA_COUNTER_AGGREGATIONS: ReadonlyArray<AggregationType> =
+  [
+    AggregationType.Sum,
+    AggregationType.Avg,
+    AggregationType.Max,
+    AggregationType.Min,
+  ];
+
+/*
+ * A curated gauge keeps its catalog combine; only the per-series aggregation
+ * is offered (a Sum of samples would multiply by the scrape count).
+ */
+export const DATABASE_METRIC_CATALOG_GAUGE_AGGREGATIONS: ReadonlyArray<AggregationType> =
+  [AggregationType.Avg, AggregationType.Max, AggregationType.Min];
+
+export type DatabaseMetricChartMode = "catalog" | "rate" | "aggregate";
 
 /** How one metric, clicked on a database's Metrics tab, is charted. */
 export interface DatabaseMetricChartSpec {
@@ -644,54 +1060,158 @@ export interface DatabaseMetricChartSpec {
   title: string;
   // The engine's catalog entry for this metric, when it has one.
   definition: DatabaseServerMetricDefinition | null;
+  /*
+   * "catalog": read exactly as the Overview reads it. "rate": a cumulative
+   * counter as a per-second rate, per series then summed. "aggregate": the
+   * pooled series with the picked aggregation.
+   */
+  mode: DatabaseMetricChartMode;
+  // What the picker offers; empty when there is nothing to pick.
+  aggregations: ReadonlyArray<AggregationType>;
   defaultAggregation: AggregationType;
-  // A curated counter: charted as a per-second rate, never re-aggregated.
+  // Charted as a per-second rate (curated counters, cumulative counters).
   isRate: boolean;
+  // A histogram: percentiles from its buckets.
+  isDistribution: boolean;
+  // The metric's own unit (UCUM, from the metric list) for formatting.
+  unit: string;
+  // One line under the picker saying how the metric is charted.
+  note: string;
 }
 
 /**
- * The chart spec for a metric of this database: a curated metric keeps the
- * catalog's aggregation and title (a counter becomes a per-second rate);
- * any other metric is averaged per bucket, like the metric explorer does.
+ * The chart spec for a metric of this database. A curated metric is read
+ * as the catalog says (a counter becomes a per-second rate, a gauge is
+ * combined across its series). Anything else is charted by what it is: a
+ * histogram by percentile (P95 by default — its stored value is the sum of
+ * its observations, not a latency), a cumulative monotonic counter as a
+ * per-second rate, a delta counter by its Sum per bucket, and any other
+ * metric averaged per bucket, like the metric explorer does.
  */
 export function getDatabaseMetricChartSpec(
   metricName: string,
   dbSystem: string | null | undefined,
+  shape?: Partial<DatabaseMetricShape> | null | undefined,
 ): DatabaseMetricChartSpec {
   const name: string = (metricName || "").trim();
+  const unit: string = (shape?.unit || "").trim();
   const definition: DatabaseServerMetricDefinition | null =
-    getDatabaseServerMetrics(dbSystem).find(
-      (candidate: DatabaseServerMetricDefinition): boolean => {
-        return candidate.metricName === name;
-      },
-    ) || null;
+    findDatabaseServerMetricByName(dbSystem, name);
 
-  if (!definition) {
+  if (definition) {
+    const isRate: boolean = definition.kind === "counter";
+    return {
+      metricName: name,
+      title: isRate ? `${definition.title} (per second)` : definition.title,
+      definition: definition,
+      mode: "catalog",
+      aggregations: isRate ? [] : DATABASE_METRIC_CATALOG_GAUGE_AGGREGATIONS,
+      defaultAggregation: definition.aggregation,
+      isRate: isRate,
+      isDistribution: false,
+      unit: unit,
+      note: isRate
+        ? "A cumulative counter, charted as a per-second rate: each series' rate, added up."
+        : `Charted as on the Overview: ${definition.description}`,
+    };
+  }
+
+  if (shape?.pointType && DISTRIBUTION_POINT_TYPES.includes(shape.pointType)) {
     return {
       metricName: name,
       title: name,
       definition: null,
-      defaultAggregation: AggregationType.Avg,
+      mode: "aggregate",
+      aggregations: DATABASE_METRIC_DISTRIBUTION_AGGREGATIONS,
+      defaultAggregation: AggregationType.P95,
       isRate: false,
+      isDistribution: true,
+      unit: unit,
+      note: "A distribution: percentiles are computed from its buckets, Average is the mean of every observation.",
     };
   }
 
-  const isRate: boolean = definition.kind === "counter";
+  if (shape?.isMonotonic === true) {
+    if (shape.aggregationTemporality === AggregationTemporality.Delta) {
+      return {
+        metricName: name,
+        title: name,
+        definition: null,
+        mode: "aggregate",
+        aggregations: DATABASE_METRIC_DELTA_COUNTER_AGGREGATIONS,
+        defaultAggregation: AggregationType.Sum,
+        isRate: false,
+        isDistribution: false,
+        unit: unit,
+        note: "A delta counter: Sum is the total counted in each interval.",
+      };
+    }
+    if (
+      shape.aggregationTemporality === AggregationTemporality.Cumulative ||
+      shape.pointType === MetricPointType.Sum
+    ) {
+      return {
+        metricName: name,
+        title: `${name} (per second)`,
+        definition: null,
+        mode: "rate",
+        aggregations: [],
+        defaultAggregation: AggregationType.Max,
+        isRate: true,
+        isDistribution: false,
+        unit: unit,
+        note: "A cumulative counter, charted as a per-second rate: each series' rate, added up.",
+      };
+    }
+  }
 
   return {
     metricName: name,
-    title: isRate ? `${definition.title} (per second)` : definition.title,
-    definition: definition,
-    defaultAggregation: definition.aggregation,
-    isRate: isRate,
+    title: name,
+    definition: null,
+    mode: "aggregate",
+    aggregations: DATABASE_METRIC_GAUGE_AGGREGATIONS,
+    defaultAggregation: AggregationType.Avg,
+    isRate: false,
+    isDistribution: false,
+    unit: unit,
+    note: "",
   };
 }
 
 /**
- * The series for the in-place metric chart, over the database's keys. A
- * curated counter is fetched with its catalog aggregation and converted to
- * a per-second rate whatever `aggregationType` says. Empty (no API call)
- * when unscoped or on failure.
+ * The range the Metrics tab's list shows on load, read from the URL the
+ * same way the metric list reads it (`range`, plus `start` / `end` for a
+ * custom range), so a clicked metric opens on that range rather than on a
+ * fixed hour. Anything unreadable is the past hour, the list's default.
+ */
+export function getDatabaseMetricsRangeFromSearch(
+  search: string | null | undefined,
+): RangeStartAndEndDateTime {
+  const fallback: RangeStartAndEndDateTime = {
+    range: TimeRange.PAST_ONE_HOUR,
+  };
+  const params: URLSearchParams = new URLSearchParams(search || "");
+  const raw: string | null = params.get("range");
+  if (!raw || !(Object.values(TimeRange) as Array<string>).includes(raw)) {
+    return fallback;
+  }
+  const range: TimeRange = raw as TimeRange;
+  if (range !== TimeRange.CUSTOM) {
+    return { range };
+  }
+  const start: Date = new Date(params.get("start") || "");
+  const end: Date = new Date(params.get("end") || "");
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return fallback;
+  }
+  return { range, startAndEndDate: new InBetween<Date>(start, end) };
+}
+
+/**
+ * The series for the in-place metric chart, over the database's keys, read
+ * the way the spec says. `aggregationType` is the picker's choice; it is
+ * ignored for a rate. Empty (no API call) when unscoped or on failure.
  */
 export async function fetchDatabaseMetricChartSeries(
   window: DatabaseQueryWindow & {
@@ -699,19 +1219,33 @@ export async function fetchDatabaseMetricChartSeries(
     aggregationType: AggregationType;
   },
 ): Promise<Array<DatabaseTimePoint>> {
-  const aggregationType: AggregationType =
-    window.spec.isRate && window.spec.definition
-      ? window.spec.definition.aggregation
-      : window.aggregationType;
-
-  const raw: Array<DatabaseTimePoint> = await fetchDatabaseMetricSeries({
+  const base: DatabaseQueryWindow = {
     projectId: window.projectId,
     keys: window.keys,
     start: window.start,
     end: window.end,
-    metricName: window.spec.metricName,
-    aggregationType: aggregationType,
-  });
+  };
 
-  return window.spec.isRate ? counterSeriesToRatePerSecond(raw) : raw;
+  if (window.spec.mode === "catalog" && window.spec.definition) {
+    return fetchDatabaseCatalogMetricSeries({
+      ...base,
+      definition: window.spec.definition,
+      aggregationType: window.spec.aggregations.includes(window.aggregationType)
+        ? window.aggregationType
+        : undefined,
+    });
+  }
+
+  if (window.spec.mode === "rate") {
+    return fetchDatabaseCounterRateSeries({
+      ...base,
+      metricName: window.spec.metricName,
+    });
+  }
+
+  return fetchDatabaseMetricSeries({
+    ...base,
+    metricName: window.spec.metricName,
+    aggregationType: window.aggregationType,
+  });
 }
