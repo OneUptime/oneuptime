@@ -19,10 +19,10 @@ jest.setTimeout(1_500_000);
 
 const MEGABYTE: number = 1024 * 1024;
 /*
- * The production default. An idle Chromium check already sums to about
- * 1.0-1.1 GB of RSS across its ~10 processes (shared pages count once per
- * process), so this leaves a healthy check some 450 MB of room, while a tenant
- * filling memory-backed storage crosses it after roughly eight 64 MB chunks.
+ * The production default. The watchdog holds a check to it by proportional
+ * set size (see ProcessTreeMemory), which an idle Chromium check keeps at a
+ * few hundred MB across its ~10 processes, while a tenant filling
+ * memory-backed storage crosses it after roughly twenty 64 MB chunks.
  */
 const MAX_PROCESS_TREE_RSS_BYTES: number = 1536 * MEGABYTE;
 const MAX_DISK_BYTES: number = 64 * MEGABYTE;
@@ -398,12 +398,12 @@ describe("SyntheticMonitorWorker full process boundary", () => {
    * the worker gives every check an ephemeral browser context, in which
    * Chromium keeps web storage in memory while Firefox writes it to the
    * browser's temporary profile inside the run directory. So Chromium's
-   * writes are held to the process-tree RSS limit and Firefox's to the run
+   * writes are held to the process-tree memory limit and Firefox's to the run
    * directory's disk limit.
    *
    * Both limits are armed for both engines, so the watchdog that fires is the
    * evidence of where the storage went. Chromium writes 2 GB -- more than its
-   * whole RSS limit before the browser itself is counted -- past a 64 MB disk
+   * whole memory limit before the browser itself is counted -- past a 64 MB disk
    * limit that stays quiet: the bytes are resident in the worker's process
    * tree, not files in the run directory. Each attack holds its storage for a
    * while after writing and then returns, so an unenforced limit fails the
@@ -415,9 +415,9 @@ describe("SyntheticMonitorWorker full process boundary", () => {
       label: "Chromium",
       browserType: BrowserType.Chromium,
       executablePath: chromium.executablePath(),
-      boundary: "process-tree RSS limit",
+      boundary: "process-tree memory limit",
       chunkCount: 32,
-      expectedFailure: `Synthetic worker process tree exceeded RSS limit of ${MAX_PROCESS_TREE_RSS_BYTES} bytes`,
+      expectedFailure: `Synthetic worker process tree exceeded memory limit of ${MAX_PROCESS_TREE_RSS_BYTES} bytes`,
     },
     {
       label: "Firefox",

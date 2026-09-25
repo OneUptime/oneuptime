@@ -4,6 +4,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import ConcurrencyLimiter from "./ConcurrencyLimiter";
+import ProcessTreeMemory, { ProcessMemoryIdentity } from "./ProcessTreeMemory";
 import { SyntheticRuntimeFaultKind } from "./SyntheticRuntimeFault";
 import { SYNTHETIC_RUNTIME_CONTROLLER_HOST } from "./ControllerOrigin";
 import {
@@ -88,6 +89,11 @@ interface ProcessRecord {
 interface ProcessTreeSnapshot {
   readonly records: Map<number, ProcessRecord>;
   readonly callerProcessGroupId: number | null;
+  /*
+   * Read from /proc rather than from `ps`. Only then are the pids ones whose
+   * smaps_rollup can be read, and the tree measured by PSS.
+   */
+  readonly isFromProcFileSystem: boolean;
 }
 
 interface RunDirectoryDiskUsage {
@@ -894,10 +900,13 @@ export default class ProcessRunner {
       ? this.startProcessTreeRssWatchdog({
           rootPid: child.pid,
           trackedTree,
-          onLimitExceeded: (observedRssBytes: number): void => {
+          identity: data.identity
+            ? { uid: data.identity.uid, gid: data.identity.gid }
+            : null,
+          onLimitExceeded: (observedBytes: number): void => {
             completeWithError(
               new Error(
-                `Synthetic worker process tree exceeded RSS limit of ${this.maxProcessTreeRssBytes} bytes (observed ${observedRssBytes} bytes).`,
+                `Synthetic worker process tree exceeded memory limit of ${this.maxProcessTreeRssBytes} bytes (observed ${observedBytes} bytes).`,
               ),
             );
           },
@@ -1548,6 +1557,7 @@ export default class ProcessRunner {
     return {
       records,
       callerProcessGroupId: callerRecord?.processGroupId ?? null,
+      isFromProcFileSystem: true,
     };
   }
 
@@ -1621,18 +1631,46 @@ export default class ProcessRunner {
   }
 
   private readLinuxRssBytes(pid: number): number | null {
-    try {
-      const status: string = fs.readFileSync(`/proc/${pid}/status`, "utf8");
-      const match: RegExpMatchArray | null = status.match(
-        /^VmRSS:\s+(\d+)\s+kB\s*$/m,
-      );
-      if (!match) {
-        return null;
-      }
+    const rssBytes: number | null = this.readLinuxStatusRssBytes(
+      `/proc/${pid}/status`,
+    );
+    if (rssBytes !== null) {
+      return rssBytes;
+    }
 
-      const rssInKilobytes: number = Number(match[1]);
-      const rssBytes: number = rssInKilobytes * 1024;
-      return Number.isSafeInteger(rssBytes) ? rssBytes : null;
+    /*
+     * A process whose main thread has exited while its other threads run on
+     * reports no memory at all in /proc/<pid>/status: the kernel reaches the
+     * address space through that thread. Every remaining thread shares it and
+     * reports it in its own status, so a process cannot drop out of the total
+     * by ending its main thread.
+     */
+    try {
+      for (const taskId of fs.readdirSync(`/proc/${pid}/task`)) {
+        // eslint-disable-next-line wrap-regex -- Parentheses conflict with Prettier.
+        if (!/^\d+$/.test(taskId) || taskId === String(pid)) {
+          continue;
+        }
+
+        const threadRssBytes: number | null = this.readLinuxStatusRssBytes(
+          `/proc/${pid}/task/${taskId}/status`,
+        );
+        if (threadRssBytes !== null) {
+          return threadRssBytes;
+        }
+      }
+    } catch {
+      // The process exited while its threads were being listed.
+    }
+
+    return null;
+  }
+
+  private readLinuxStatusRssBytes(statusPath: string): number | null {
+    try {
+      return ProcessTreeMemory.parseStatusResidentBytes(
+        fs.readFileSync(statusPath, "utf8"),
+      );
     } catch {
       // A process can exit between reading its stat and status files.
       return null;
@@ -1697,6 +1735,7 @@ export default class ProcessRunner {
       return {
         records: new Map<number, ProcessRecord>(),
         callerProcessGroupId: null,
+        isFromProcFileSystem: false,
       };
     }
 
@@ -1735,25 +1774,47 @@ export default class ProcessRunner {
     return {
       records,
       callerProcessGroupId: allRecords.get(process.pid)?.processGroupId ?? null,
+      isFromProcFileSystem: false,
     };
   }
 
+  /*
+   * Polls the memory the worker's process tree holds and reports the first
+   * reading over the limit. See ProcessTreeMemory for what is measured: every
+   * poll sums VmRSS, and a tree over the limit by that sum is measured again
+   * by PSS -- asynchronously, through a helper when the tree runs under its own
+   * uid -- and only reported if it is over by that measure too.
+   */
   private startProcessTreeRssWatchdog(data: {
     readonly rootPid: number;
     readonly trackedTree: TrackedProcessTree;
-    readonly onLimitExceeded: (observedRssBytes: number) => void;
+    readonly identity: ProcessMemoryIdentity | null;
+    readonly onLimitExceeded: (observedBytes: number) => void;
   }): () => void {
     let isStopped: boolean = false;
     let pollHandle: ReturnType<typeof setTimeout> | undefined;
+    let proportionalMeasurement: AbortController | null = null;
+
+    const scheduleNextPoll: () => void = (): void => {
+      pollHandle = global.setTimeout(poll, this.rssPollIntervalInMs);
+      pollHandle.unref?.();
+    };
+
+    const reportLimitExceeded: (observedBytes: number) => void = (
+      observedBytes: number,
+    ): void => {
+      isStopped = true;
+      data.onLimitExceeded(observedBytes);
+    };
 
     const poll: () => void = (): void => {
       if (isStopped) {
         return;
       }
 
-      let observedRssBytes: number | null = null;
+      let snapshot: ProcessTreeSnapshot | null = null;
       try {
-        observedRssBytes = this.getProcessTreeRssBytes(
+        snapshot = this.getProcessTreeMemorySnapshot(
           data.rootPid,
           data.trackedTree,
         );
@@ -1763,17 +1824,49 @@ export default class ProcessRunner {
          * transient /proc or process-table read failure.
          */
       }
+
+      const observedRssBytes: number | null = snapshot
+        ? this.sumProcessTreeRssBytes(snapshot)
+        : null;
       if (
-        observedRssBytes !== null &&
-        observedRssBytes > this.maxProcessTreeRssBytes
+        !snapshot ||
+        observedRssBytes === null ||
+        observedRssBytes <= this.maxProcessTreeRssBytes
       ) {
-        isStopped = true;
-        data.onLimitExceeded(observedRssBytes);
+        scheduleNextPoll();
         return;
       }
 
-      pollHandle = global.setTimeout(poll, this.rssPollIntervalInMs);
-      pollHandle.unref?.();
+      // `ps` names no pids whose PSS could be read.
+      if (!snapshot.isFromProcFileSystem) {
+        reportLimitExceeded(observedRssBytes);
+        return;
+      }
+
+      const measurement: AbortController = new AbortController();
+      proportionalMeasurement = measurement;
+
+      void ProcessTreeMemory.measureProportionalBytes({
+        processes: [...snapshot.records.values()].map(
+          (record: ProcessRecord) => {
+            return { pid: record.pid, residentBytes: record.rssBytes };
+          },
+        ),
+        identity: data.identity,
+        signal: measurement.signal,
+      }).then((observedBytes: number): void => {
+        if (isStopped || proportionalMeasurement !== measurement) {
+          return;
+        }
+        proportionalMeasurement = null;
+
+        if (observedBytes > this.maxProcessTreeRssBytes) {
+          reportLimitExceeded(observedBytes);
+          return;
+        }
+
+        scheduleNextPoll();
+      });
     };
 
     poll();
@@ -1787,17 +1880,23 @@ export default class ProcessRunner {
       if (pollHandle) {
         global.clearTimeout(pollHandle);
       }
+      proportionalMeasurement?.abort();
+      proportionalMeasurement = null;
     };
   }
 
-  private getProcessTreeRssBytes(
+  private getProcessTreeMemorySnapshot(
     rootPid: number,
     trackedTree: TrackedProcessTree,
-  ): number | null {
+  ): ProcessTreeSnapshot {
     const snapshot: ProcessTreeSnapshot = this.getProcessTreeSnapshot(
       new Set<number>([rootPid, ...trackedTree.descendantPids]),
     );
     this.mergeProcessTreeSnapshot(rootPid, trackedTree, snapshot);
+    return snapshot;
+  }
+
+  private sumProcessTreeRssBytes(snapshot: ProcessTreeSnapshot): number | null {
     let observedRssBytes: number = 0;
     let hasRssMeasurement: boolean = false;
 
