@@ -14,6 +14,7 @@ You can declare an incident by hand at 3am, or let a monitor declare it for you 
 - **Four ways in** — the **Declare Incident** wizard, **Create from Template**, a monitor criteria rule, or `POST /api/incident`.
 - **Numbered per project** — every incident gets an incident number, rendered as `#42` by default or with your own prefix, like `INC-42`.
 - **Two kinds of notes** — private notes (internal notes) for your team, public notes for status page subscribers.
+- **Alerts link to incidents** — link the alerts that are part of an incident, or declare an incident straight from a selection of alerts. See [Linked Alerts](/docs/incidents/linked-alerts).
 - **Settings live under Incidents, not Project Settings** — states, severities, templates, custom fields and the rule engines are all at **Incidents → Settings** and **Incidents → Rules**.
 
 ## Key terms
@@ -32,6 +33,7 @@ A handful of words show up on every other page in this section. Get these straig
 | **Owner**              | A user or team responsible for the incident. Owners get notified when it is created, when notes are posted, and when the state changes.             |
 | **Incident feed**      | The append-only activity timeline on the incident's **Overview**, recording state changes, notes, owner changes, rule executions and notifications. |
 | **State timeline**     | The record of which state the incident was in, when, and for how long — with the subscriber notification status for each transition.                |
+| **Linked alert**       | An alert linked to the incident as part of its response. An alert can be linked to more than one incident, and keeps its own state.                 |
 
 ## The three states OneUptime seeds for every project
 
@@ -81,7 +83,7 @@ Edit or add severities at **Incidents → Settings → Incident Severity**.
 
 Four routes lead to the same object:
 
-- **By hand** — from the Incidents list, click **Declare Incident**. That opens the **Declare New Incident** wizard, five steps long: **Incident Details**, **Resources Affected**, **Incident Roles**, **On-Call**, **More**.
+- **By hand** — from the Incidents list, click **Declare Incident**. That opens the **Declare New Incident** wizard, five steps long: **Incident Details**, **Resources Affected**, **Incident Roles**, **On-Call**, **More**. **Declare Incident** on a selection of alerts opens the same wizard, prefilled from the alerts, and links them to the new incident — see [Linked Alerts](/docs/incidents/linked-alerts).
 - **From a template** — click **Create from Template** and pick a saved **Incident Template**. Templates prefill title, description, severity, initial state, resources, on-call policies, owners and labels.
 - **From a monitor** — a monitor criteria rule with the "declare an incident" toggle enabled creates the incident automatically the moment its filters match. Titles and descriptions there support `{{variable}}` templating.
 - **Over the API** — `POST /api/incident` with an API key. The server fills in `declaredAt`, the created state, and the incident number for you.
@@ -98,7 +100,7 @@ If the incident is visible on a status page and subscriber notifications are ena
 
 ### 3. Your team works it
 
-Responders acknowledge the incident, attach affected resources, run runbooks, assign incident roles, and write things down as they learn them — private notes for the team, public notes for customers, plus the **Root Cause** and **Remediation** pages when the picture gets clearer. Everything they do lands in the **Incident Feed** on the **Overview** page.
+Responders acknowledge the incident, attach affected resources, link the alerts that belong to it, run runbooks, assign incident roles, and write things down as they learn them — private notes for the team, public notes for customers, plus the **Root Cause** and **Remediation** pages when the picture gets clearer. Everything they do lands in the **Incident Feed** on the **Overview** page.
 
 ### 4. It gets resolved
 
@@ -133,6 +135,7 @@ Open an incident and you get a left side menu, grouped like this:
 - **Description**, **Root Cause**, **Remediation** — three markdown pages. The description is the one that shows on your status page.
 - **Runbooks** — runbook executions attached to this incident.
 - **Postmortem** — the write-up, which you can optionally publish to the status page.
+- **Linked Alerts** — the alerts linked to this incident, with each alert's current state, and who linked it and when. Alerts have a matching **Linked Incidents** page. See [Linked Alerts](/docs/incidents/linked-alerts).
 - **Roles**, **On-Call Executions**, **Owners** — who is on it, which policies fired, and who gets notified.
 - **Notification Logs**, **AI Logs**, **Audit Logs** — what was sent and what changed.
 - **Private Notes** and **Public Notes** — under the **Notes** section of the side menu.
@@ -143,6 +146,7 @@ Open an incident and you get a left side menu, grouped like this:
 ## How incidents fit with the rest of OneUptime
 
 - **Monitors spot the problem; incidents record it.** A monitor criteria rule can declare an incident automatically, pre-filling title, severity, on-call policies, owners, labels and remediation notes. See [Incident and Alert Templating](/docs/monitor/incident-alert-templating) for the variables available there.
+- **Alerts are the signals; incidents are the response.** Link the alerts an incident explains to it, from either side, and two opt-in project switches can acknowledge and resolve those alerts along with the incident. See [Linked Alerts](/docs/incidents/linked-alerts).
 - **On-call policies do the paging.** Attach policies on the **On-Call** step of the declare wizard, on a template, or through **Incidents → Rules → On-Call Rules**. Every matching rule fires — the executed set is the union of all matches plus anything attached directly, deduplicated.
 - **Runbooks tell people what to do.** Runbook rules attach a procedure automatically when a matching incident is created, and responders can start one by hand from the incident. See [Runbooks Overview](/docs/runbooks/index).
 - **Status pages tell customers.** An incident shows in a status page's active list when the page has incidents enabled, the incident is marked visible on the status page, and its current state is not the resolved state. Private incidents are hidden from every status page, always. See [Status Pages Overview](/docs/status-pages/index).
@@ -153,6 +157,7 @@ Open an incident and you get a left side menu, grouped like this:
 - [Declaring an Incident](/docs/incidents/declaring-incidents) — the wizard, templates, monitor criteria and the API.
 - [Incident States & Severities](/docs/incidents/states-and-severities) — the state flags, custom states and severity classification.
 - [Incident Notes, Owners & Feed](/docs/incidents/notes-owners-and-feed) — public and private notes, owners, and the activity feed.
+- [Linked Alerts](/docs/incidents/linked-alerts) — linking alerts to incidents, declaring incidents from alerts, and keeping alert states in step.
 - [Incident Settings & Automation](/docs/incidents/settings) — templates, custom fields, number prefixes and the rule engines.
 - [Status Pages Overview](/docs/status-pages/index) — how incidents reach your customers.
 - [Subscribers & Announcements](/docs/status-pages/subscribers) — who gets notified when an incident moves.

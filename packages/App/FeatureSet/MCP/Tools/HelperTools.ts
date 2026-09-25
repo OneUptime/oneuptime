@@ -78,6 +78,8 @@ function getResourceDescription(singularName: string): string {
     "Incident Public Note":
       "Status-page-visible notes on incidents, seen by customers and subscribers.",
     "Incident Internal Note": "Internal team-only notes on incidents.",
+    "Incident Alert":
+      "Links an alert to an incident (many-to-many). Create one to link an alert to an incident, delete it to unlink. List these by incidentId to see an incident's linked alerts, or by alertId to see the incidents an alert is linked to.",
     "Alert Internal Note": "Internal team-only notes on alerts.",
     "Status Page Announcement": "Announcements posted to your status pages.",
     "Scheduled Maintenance State":

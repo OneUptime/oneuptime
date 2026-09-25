@@ -1882,6 +1882,12 @@ enum Permission {
   EditIncidentEpisodeMember = "EditIncidentEpisodeMember",
   ReadIncidentEpisodeMember = "ReadIncidentEpisodeMember",
 
+  // Incident Alert (alerts linked to an incident) Permissions
+  CreateIncidentAlert = "CreateIncidentAlert",
+  DeleteIncidentAlert = "DeleteIncidentAlert",
+  EditIncidentAlert = "EditIncidentAlert",
+  ReadIncidentAlert = "ReadIncidentAlert",
+
   // Incident Episode State Timeline Permissions
   CreateIncidentEpisodeStateTimeline = "CreateIncidentEpisodeStateTimeline",
   DeleteIncidentEpisodeStateTimeline = "DeleteIncidentEpisodeStateTimeline",
@@ -15276,6 +15282,48 @@ export class PermissionHelper {
         title: "Read Incident Episode Member",
         description:
           "This permission can read Incident Episode Members of this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+
+      // Incident Alert (alerts linked to an incident) Permissions
+      {
+        permission: Permission.CreateIncidentAlert,
+        title: "Create Incident Alert",
+        description:
+          "This permission can link alerts to incidents in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.DeleteIncidentAlert,
+        title: "Delete Incident Alert",
+        description:
+          "This permission can unlink alerts from incidents in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.EditIncidentAlert,
+        title: "Edit Incident Alert",
+        description:
+          "This permission can edit the links between alerts and incidents in this project.",
+        isAssignableToTenant: true,
+        isAccessControlPermission: false,
+        isRolePermission: false,
+        group: PermissionGroup.Incident,
+      },
+      {
+        permission: Permission.ReadIncidentAlert,
+        title: "Read Incident Alert",
+        description:
+          "This permission can read which alerts are linked to which incidents in this project.",
         isAssignableToTenant: true,
         isAccessControlPermission: false,
         isRolePermission: false,

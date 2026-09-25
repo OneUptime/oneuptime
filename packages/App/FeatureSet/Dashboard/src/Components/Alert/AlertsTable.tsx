@@ -14,6 +14,7 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkLabelActions from "Common/UI/Components/BulkUpdate/BulkLabelActions";
 import useCustomFieldFacets from "../CustomFields/useCustomFieldFacets";
 import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerActions";
+import useBulkIncidentLinkActions from "./BulkIncidentLinkActions";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Query from "Common/Types/BaseDatabase/Query";
@@ -135,6 +136,11 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
       ownerTeamModelType: AlertOwnerTeam,
       resourceIdField: "alertId",
     });
+
+  const {
+    bulkActions: incidentLinkBulkActions,
+    modals: incidentLinkBulkActionModals,
+  } = useBulkIncidentLinkActions();
 
   const alertExtraFacets: Array<ResourceFacet> = [
     {
@@ -593,6 +599,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
             getBulkChangeStateAction(),
             ...labelBulkActions,
             ...ownerBulkActions,
+            ...incidentLinkBulkActions,
             ModalTableBulkDefaultActions.Delete,
           ],
         }}
@@ -1031,6 +1038,7 @@ const AlertsTable: FunctionComponent<ComponentProps> = (
 
       {labelBulkActionModals}
       {ownerBulkActionModals}
+      {incidentLinkBulkActionModals}
 
       {showBulkStateChangeModal && (
         <BulkChangeStateModal

@@ -367,6 +367,50 @@ describe("a non-sortable column with a header tooltip", () => {
   });
 });
 
+describe("the column header is named by its title, not by its (i)", () => {
+  const columns: Columns<Row> = [
+    { title: "Name", type: FieldType.Text, key: "name" },
+    {
+      title: "CPU",
+      type: FieldType.Number,
+      key: "cpu",
+      headerTooltip: CPU_TIP,
+    },
+    {
+      title: "Restarts",
+      type: FieldType.Number,
+      key: "restarts",
+      disableSort: true,
+      headerTooltip: RESTARTS_TIP,
+    },
+  ];
+
+  test.each(["CPU", "Restarts"])(
+    "a %s header with an (i) is announced as its title alone",
+    (title: string) => {
+      renderHeader({ columns });
+
+      const cell: HTMLElement = screen.getByRole("columnheader", {
+        name: title,
+      });
+
+      expect(cell).toBe(headerCell(title));
+      expect(
+        within(cell).getByRole("button", { name: `About ${title}` }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  test("a header without an (i) keeps the name its content gives it", () => {
+    renderHeader({ columns });
+
+    const cell: HTMLElement = headerCell("Name");
+
+    expect(cell).not.toHaveAttribute("aria-label");
+    expect(cell).toHaveAccessibleName("Name");
+  });
+});
+
 describe("columns without a header tooltip render exactly as before", () => {
   const columns: Columns<Row> = [
     { title: "Name", type: FieldType.Text, key: "name" },

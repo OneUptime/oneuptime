@@ -60,6 +60,85 @@ import { CustomElementProps } from "Common/UI/Components/Forms/Types/Field";
 import IncidentMember from "Common/Models/DatabaseModels/IncidentMember";
 import IncidentRole from "Common/Models/DatabaseModels/IncidentRole";
 import UserUtil from "Common/UI/Utils/User";
+import Alert from "Common/Models/DatabaseModels/Alert";
+import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+import Includes from "Common/Types/BaseDatabase/Includes";
+import AlertBanner, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import AlertElement from "../../Components/Alert/Alert";
+import {
+  INCIDENT_ALERT_IDS_TO_LINK_KEY,
+  INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM,
+  MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
+} from "Common/Types/Incident/IncidentAlertLink";
+import IncidentFromAlerts, {
+  AlertForIncidentPrefill,
+  IncidentPrefillFromAlerts,
+  NamedResource,
+  ParsedAlertIds,
+  SeverityForMapping,
+} from "Common/Utils/Incident/IncidentFromAlerts";
+import IconProp from "Common/Types/Icon/IconProp";
+
+/*
+ * The fetched models, reduced to the plain shapes the prefill rules work on.
+ */
+type ToNamedResourceFunction = (resource: {
+  _id?: string | undefined;
+  name?: string | undefined;
+}) => NamedResource;
+
+const toNamedResource: ToNamedResourceFunction = (resource: {
+  _id?: string | undefined;
+  name?: string | undefined;
+}): NamedResource => {
+  return {
+    _id: resource._id?.toString() || "",
+    name: resource.name?.toString() || "",
+  };
+};
+
+type ToAlertForPrefillFunction = (alert: Alert) => AlertForIncidentPrefill;
+
+const toAlertForPrefill: ToAlertForPrefillFunction = (
+  alert: Alert,
+): AlertForIncidentPrefill => {
+  return {
+    id: alert._id?.toString() || "",
+    title: alert.title,
+    description: alert.description,
+    alertNumber: alert.alertNumber,
+    alertNumberWithPrefix: alert.alertNumberWithPrefix,
+    alertSeverityId: alert.alertSeverityId?.toString(),
+    monitor: alert.monitor?._id ? toNamedResource(alert.monitor) : undefined,
+    hosts: (alert.hosts || []).map(toNamedResource),
+    kubernetesClusters: (alert.kubernetesClusters || []).map(toNamedResource),
+    dockerHosts: (alert.dockerHosts || []).map(toNamedResource),
+    podmanHosts: (alert.podmanHosts || []).map(toNamedResource),
+    services: (alert.services || []).map(toNamedResource),
+    labelIds: (alert.labels || [])
+      .map((label: Label): string => {
+        return label._id?.toString() || "";
+      })
+      .filter((labelId: string): boolean => {
+        return Boolean(labelId);
+      }),
+    isPrivate: Boolean(alert.isPrivate),
+  };
+};
+
+type ToSeverityForMappingFunction = (
+  severity: AlertSeverity | IncidentSeverity,
+) => SeverityForMapping;
+
+const toSeverityForMapping: ToSeverityForMappingFunction = (
+  severity: AlertSeverity | IncidentSeverity,
+): SeverityForMapping => {
+  return {
+    id: severity._id?.toString() || "",
+    name: severity.name,
+    order: severity.order,
+  };
+};
 
 const IncidentCreate: FunctionComponent<
   PageComponentProps
@@ -72,13 +151,42 @@ const IncidentCreate: FunctionComponent<
   const [initialValuesForIncident, setInitialValuesForIncident] =
     useState<JSONObject>({});
 
+  /*
+   * The alerts this incident is being declared from (`?alertIds=`), in the
+   * order the link listed them. Only alerts that could be read are kept: the
+   * server refuses the whole declaration over an alert it cannot find, so an
+   * alert deleted since the link was made must not take the incident down
+   * with it.
+   */
+  const [alertsToLink, setAlertsToLink] = useState<Array<Alert>>([]);
+  const [missingAlertCount, setMissingAlertCount] = useState<number>(0);
+  const [wereAlertIdsTruncated, setWereAlertIdsTruncated] =
+    useState<boolean>(false);
+  /*
+   * A private alert makes the declared incident private, and a private
+   * incident is visible only to its owners (and project admins). The server
+   * makes the alerts' owners the incident's owners, so the people who could
+   * see the alert can see the incident; the banner says so up front.
+   */
+  const [isPrivateFromAlerts, setIsPrivateFromAlerts] =
+    useState<boolean>(false);
+
   useEffect(() => {
-    if (Navigation.getQueryStringByName("incidentTemplateId")) {
-      fetchIncidentTemplate(
-        new ObjectID(
-          Navigation.getQueryStringByName("incidentTemplateId") || "",
-        ),
+    const incidentTemplateId: string | null =
+      Navigation.getQueryStringByName("incidentTemplateId");
+
+    const parsedAlertIds: ParsedAlertIds =
+      IncidentFromAlerts.parseAlertIdsQueryParam(
+        Navigation.getQueryStringByName(INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM),
       );
+
+    if (parsedAlertIds.alertIds.length > 0) {
+      fetchInitialValuesFromAlerts(
+        parsedAlertIds,
+        incidentTemplateId ? new ObjectID(incidentTemplateId) : null,
+      );
+    } else if (incidentTemplateId) {
+      fetchIncidentTemplate(new ObjectID(incidentTemplateId));
     } else {
       // Fetch the first incident state to set as default
       fetchFirstIncidentState();
@@ -86,44 +194,49 @@ const IncidentCreate: FunctionComponent<
     }
   }, []);
 
+  const getFirstIncidentStateId: () => Promise<
+    string | null
+  > = async (): Promise<string | null> => {
+    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
+    if (!projectId) {
+      return null;
+    }
+
+    try {
+      const incidentStates: ListResult<IncidentState> =
+        await ModelAPI.getList<IncidentState>({
+          modelType: IncidentState,
+          query: {
+            projectId: projectId,
+          },
+          limit: 1,
+          skip: 0,
+          select: {
+            _id: true,
+          },
+          sort: {
+            order: SortOrder.Ascending,
+          },
+        });
+
+      return incidentStates.data[0]?._id?.toString() || null;
+    } catch {
+      // Silently fail to avoid breaking the form
+      return null;
+    }
+  };
+
   const fetchFirstIncidentState: () => Promise<void> =
     async (): Promise<void> => {
-      const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-      if (!projectId) {
-        return;
-      }
+      const firstStateId: string | null = await getFirstIncidentStateId();
 
-      try {
-        const incidentStates: ListResult<IncidentState> =
-          await ModelAPI.getList<IncidentState>({
-            modelType: IncidentState,
-            query: {
-              projectId: projectId,
-            },
-            limit: 1,
-            skip: 0,
-            select: {
-              _id: true,
-            },
-            sort: {
-              order: SortOrder.Ascending,
-            },
-          });
-
-        if (incidentStates.data.length > 0) {
-          const firstStateId: string | undefined =
-            incidentStates.data[0]!._id?.toString();
-          if (firstStateId) {
-            setInitialValuesForIncident((prev: JSONObject) => {
-              return {
-                ...prev,
-                currentIncidentState: firstStateId,
-              };
-            });
-          }
-        }
-      } catch {
-        // Silently fail to avoid breaking the form
+      if (firstStateId) {
+        setInitialValuesForIncident((prev: JSONObject) => {
+          return {
+            ...prev,
+            currentIncidentState: firstStateId,
+          };
+        });
       }
     };
 
@@ -134,140 +247,10 @@ const IncidentCreate: FunctionComponent<
     setIsLoading(true);
 
     try {
-      //fetch incident template
+      const initialValue: JSONObject | null =
+        await getIncidentTemplateInitialValues(id);
 
-      const incidentTemplate: IncidentTemplate | null =
-        await ModelAPI.getItem<IncidentTemplate>({
-          modelType: IncidentTemplate,
-          id: id,
-          select: {
-            title: true,
-            description: true,
-            incidentSeverityId: true,
-            initialIncidentStateId: true,
-            /*
-             * Pull `name` alongside `_id` for every affected-resource
-             * relation. `relation: true` on the server collapses to
-             * `{ _id: true }` for security, which leaves the picker with
-             * IDs only and forces its "Unnamed Monitor" fallback.
-             */
-            monitors: { _id: true, name: true },
-            hosts: { _id: true, name: true },
-            kubernetesClusters: { _id: true, name: true },
-            dockerHosts: { _id: true, name: true },
-            podmanHosts: { _id: true, name: true },
-            services: { _id: true, name: true },
-            onCallDutyPolicies: true,
-            labels: true,
-            changeMonitorStatusToId: true,
-          },
-        });
-
-      const teamsListResult: ListResult<IncidentTemplateOwnerTeam> =
-        await ModelAPI.getList<IncidentTemplateOwnerTeam>({
-          modelType: IncidentTemplateOwnerTeam,
-          query: {
-            incidentTemplate: id,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            teamId: true,
-          },
-          sort: {},
-        });
-
-      const usersListResult: ListResult<IncidentTemplateOwnerUser> =
-        await ModelAPI.getList<IncidentTemplateOwnerUser>({
-          modelType: IncidentTemplateOwnerUser,
-          query: {
-            incidentTemplate: id,
-          },
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          select: {
-            _id: true,
-            userId: true,
-          },
-          sort: {},
-        });
-
-      if (incidentTemplate) {
-        const initialValue: JSONObject = {
-          ...BaseModel.toJSONObject(incidentTemplate, IncidentTemplate),
-          incidentSeverity: incidentTemplate.incidentSeverityId?.toString(),
-          currentIncidentState:
-            incidentTemplate.initialIncidentStateId?.toString(),
-          /*
-           * Keep `{_id, name}` shape (not bare ID strings) so the picker can
-           * render the resource's real name on first paint and seed its
-           * name cache for subsequent picker writes.
-           */
-          monitors: incidentTemplate.monitors?.map((monitor: Monitor) => {
-            return {
-              _id: monitor.id!.toString(),
-              name: monitor.name || "",
-            };
-          }),
-          hosts: incidentTemplate.hosts?.map((host: Host) => {
-            return {
-              _id: host.id!.toString(),
-              name: host.name || "",
-            };
-          }),
-          kubernetesClusters: incidentTemplate.kubernetesClusters?.map(
-            (cluster: KubernetesCluster) => {
-              return {
-                _id: cluster.id!.toString(),
-                name: cluster.name || "",
-              };
-            },
-          ),
-          dockerHosts: incidentTemplate.dockerHosts?.map(
-            (dockerHost: DockerHost) => {
-              return {
-                _id: dockerHost.id!.toString(),
-                name: dockerHost.name || "",
-              };
-            },
-          ),
-          podmanHosts: incidentTemplate.podmanHosts?.map(
-            (podmanHost: PodmanHost) => {
-              return {
-                _id: podmanHost.id!.toString(),
-                name: podmanHost.name || "",
-              };
-            },
-          ),
-          services: incidentTemplate.services?.map((service: Service) => {
-            return {
-              _id: service.id!.toString(),
-              name: service.name || "",
-            };
-          }),
-          labels: incidentTemplate.labels?.map((label: Label) => {
-            return label.id!.toString();
-          }),
-          changeMonitorStatusTo:
-            incidentTemplate.changeMonitorStatusToId?.toString(),
-          onCallDutyPolicies: incidentTemplate.onCallDutyPolicies?.map(
-            (onCallPolicy: OnCallDutyPolicy) => {
-              return onCallPolicy.id!.toString();
-            },
-          ),
-          ownerUsers: usersListResult.data.map(
-            (user: IncidentTemplateOwnerUser): string => {
-              return user.userId!.toString() || "";
-            },
-          ),
-          ownerTeams: teamsListResult.data.map(
-            (team: IncidentTemplateOwnerTeam): string => {
-              return team.teamId!.toString() || "";
-            },
-          ),
-        };
-
+      if (initialValue) {
         setInitialValuesForIncident(initialValue);
       }
     } catch (err) {
@@ -275,6 +258,298 @@ const IncidentCreate: FunctionComponent<
     }
 
     setIsLoading(false);
+  };
+
+  /*
+   * Declaring from alerts: everything is fetched before the loader comes
+   * down, because the form latches its initial values on first render and
+   * ignores later changes to them.
+   */
+  const fetchInitialValuesFromAlerts: (
+    parsedAlertIds: ParsedAlertIds,
+    incidentTemplateId: ObjectID | null,
+  ) => Promise<void> = async (
+    parsedAlertIds: ParsedAlertIds,
+    incidentTemplateId: ObjectID | null,
+  ): Promise<void> => {
+    setError("");
+    setIsLoading(true);
+
+    try {
+      let initialValues: JSONObject = {};
+
+      if (incidentTemplateId) {
+        initialValues =
+          (await getIncidentTemplateInitialValues(incidentTemplateId)) || {};
+      } else {
+        const firstStateId: string | null = await getFirstIncidentStateId();
+
+        if (firstStateId) {
+          initialValues["currentIncidentState"] = firstStateId;
+        }
+      }
+
+      const [alerts, alertSeverities, incidentSeverities]: [
+        Array<Alert>,
+        Array<SeverityForMapping>,
+        Array<SeverityForMapping>,
+      ] = await Promise.all([
+        fetchAlertsToLink(parsedAlertIds.alertIds),
+        fetchAlertSeverities(),
+        fetchIncidentSeverities(),
+      ]);
+
+      const prefill: IncidentPrefillFromAlerts =
+        IncidentFromAlerts.buildIncidentPrefill({
+          alerts: alerts.map(toAlertForPrefill),
+          alertSeverities: alertSeverities,
+          incidentSeverities: incidentSeverities,
+        });
+
+      setAlertsToLink(alerts);
+      setMissingAlertCount(parsedAlertIds.alertIds.length - alerts.length);
+      setWereAlertIdsTruncated(parsedAlertIds.wasTruncated);
+      setIsPrivateFromAlerts(prefill.isPrivate);
+      setInitialValuesForIncident(
+        IncidentFromAlerts.applyPrefillToInitialValues(initialValues, prefill),
+      );
+    } catch (err) {
+      setError(API.getFriendlyMessage(err));
+    }
+
+    setIsLoading(false);
+  };
+
+  const fetchAlertsToLink: (
+    alertIds: Array<string>,
+  ) => Promise<Array<Alert>> = async (
+    alertIds: Array<string>,
+  ): Promise<Array<Alert>> => {
+    const result: ListResult<Alert> = await ModelAPI.getList<Alert>({
+      modelType: Alert,
+      query: {
+        _id: new Includes(alertIds),
+      },
+      limit: MAX_ALERTS_PER_INCIDENT_LINK_ACTION,
+      skip: 0,
+      select: {
+        _id: true,
+        title: true,
+        description: true,
+        alertNumber: true,
+        alertNumberWithPrefix: true,
+        alertSeverityId: true,
+        isPrivate: true,
+        monitor: { _id: true, name: true },
+        hosts: { _id: true, name: true },
+        kubernetesClusters: { _id: true, name: true },
+        dockerHosts: { _id: true, name: true },
+        podmanHosts: { _id: true, name: true },
+        services: { _id: true, name: true },
+        labels: { _id: true },
+      },
+      sort: {},
+    });
+
+    // Keep the order the link listed the alerts in.
+    return alertIds
+      .map((alertId: string): Alert | undefined => {
+        return result.data.find((alert: Alert) => {
+          return alert._id?.toString() === alertId;
+        });
+      })
+      .filter((alert: Alert | undefined): boolean => {
+        return Boolean(alert);
+      }) as Array<Alert>;
+  };
+
+  /*
+   * Severities only steer the prefill. Without them the severity is simply
+   * left for the user to pick, so a failed read must not block the page.
+   */
+  const fetchAlertSeverities: () => Promise<
+    Array<SeverityForMapping>
+  > = async (): Promise<Array<SeverityForMapping>> => {
+    try {
+      const result: ListResult<AlertSeverity> =
+        await ModelAPI.getList<AlertSeverity>({
+          modelType: AlertSeverity,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: { _id: true, name: true, order: true },
+          sort: { order: SortOrder.Ascending },
+        });
+
+      return result.data.map(toSeverityForMapping);
+    } catch {
+      return [];
+    }
+  };
+
+  const fetchIncidentSeverities: () => Promise<
+    Array<SeverityForMapping>
+  > = async (): Promise<Array<SeverityForMapping>> => {
+    try {
+      const result: ListResult<IncidentSeverity> =
+        await ModelAPI.getList<IncidentSeverity>({
+          modelType: IncidentSeverity,
+          query: {},
+          limit: LIMIT_PER_PROJECT,
+          skip: 0,
+          select: { _id: true, name: true, order: true },
+          sort: { order: SortOrder.Ascending },
+        });
+
+      return result.data.map(toSeverityForMapping);
+    } catch {
+      return [];
+    }
+  };
+
+  const getIncidentTemplateInitialValues: (
+    id: ObjectID,
+  ) => Promise<JSONObject | null> = async (
+    id: ObjectID,
+  ): Promise<JSONObject | null> => {
+    //fetch incident template
+
+    const incidentTemplate: IncidentTemplate | null =
+      await ModelAPI.getItem<IncidentTemplate>({
+        modelType: IncidentTemplate,
+        id: id,
+        select: {
+          title: true,
+          description: true,
+          incidentSeverityId: true,
+          initialIncidentStateId: true,
+          /*
+           * Pull `name` alongside `_id` for every affected-resource
+           * relation. `relation: true` on the server collapses to
+           * `{ _id: true }` for security, which leaves the picker with
+           * IDs only and forces its "Unnamed Monitor" fallback.
+           */
+          monitors: { _id: true, name: true },
+          hosts: { _id: true, name: true },
+          kubernetesClusters: { _id: true, name: true },
+          dockerHosts: { _id: true, name: true },
+          podmanHosts: { _id: true, name: true },
+          services: { _id: true, name: true },
+          onCallDutyPolicies: true,
+          labels: true,
+          changeMonitorStatusToId: true,
+        },
+      });
+
+    const teamsListResult: ListResult<IncidentTemplateOwnerTeam> =
+      await ModelAPI.getList<IncidentTemplateOwnerTeam>({
+        modelType: IncidentTemplateOwnerTeam,
+        query: {
+          incidentTemplate: id,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          _id: true,
+          teamId: true,
+        },
+        sort: {},
+      });
+
+    const usersListResult: ListResult<IncidentTemplateOwnerUser> =
+      await ModelAPI.getList<IncidentTemplateOwnerUser>({
+        modelType: IncidentTemplateOwnerUser,
+        query: {
+          incidentTemplate: id,
+        },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        select: {
+          _id: true,
+          userId: true,
+        },
+        sort: {},
+      });
+
+    if (incidentTemplate) {
+      const initialValue: JSONObject = {
+        ...BaseModel.toJSONObject(incidentTemplate, IncidentTemplate),
+        incidentSeverity: incidentTemplate.incidentSeverityId?.toString(),
+        currentIncidentState:
+          incidentTemplate.initialIncidentStateId?.toString(),
+        /*
+         * Keep `{_id, name}` shape (not bare ID strings) so the picker can
+         * render the resource's real name on first paint and seed its
+         * name cache for subsequent picker writes.
+         */
+        monitors: incidentTemplate.monitors?.map((monitor: Monitor) => {
+          return {
+            _id: monitor.id!.toString(),
+            name: monitor.name || "",
+          };
+        }),
+        hosts: incidentTemplate.hosts?.map((host: Host) => {
+          return {
+            _id: host.id!.toString(),
+            name: host.name || "",
+          };
+        }),
+        kubernetesClusters: incidentTemplate.kubernetesClusters?.map(
+          (cluster: KubernetesCluster) => {
+            return {
+              _id: cluster.id!.toString(),
+              name: cluster.name || "",
+            };
+          },
+        ),
+        dockerHosts: incidentTemplate.dockerHosts?.map(
+          (dockerHost: DockerHost) => {
+            return {
+              _id: dockerHost.id!.toString(),
+              name: dockerHost.name || "",
+            };
+          },
+        ),
+        podmanHosts: incidentTemplate.podmanHosts?.map(
+          (podmanHost: PodmanHost) => {
+            return {
+              _id: podmanHost.id!.toString(),
+              name: podmanHost.name || "",
+            };
+          },
+        ),
+        services: incidentTemplate.services?.map((service: Service) => {
+          return {
+            _id: service.id!.toString(),
+            name: service.name || "",
+          };
+        }),
+        labels: incidentTemplate.labels?.map((label: Label) => {
+          return label.id!.toString();
+        }),
+        changeMonitorStatusTo:
+          incidentTemplate.changeMonitorStatusToId?.toString(),
+        onCallDutyPolicies: incidentTemplate.onCallDutyPolicies?.map(
+          (onCallPolicy: OnCallDutyPolicy) => {
+            return onCallPolicy.id!.toString();
+          },
+        ),
+        ownerUsers: usersListResult.data.map(
+          (user: IncidentTemplateOwnerUser): string => {
+            return user.userId!.toString() || "";
+          },
+        ),
+        ownerTeams: teamsListResult.data.map(
+          (team: IncidentTemplateOwnerTeam): string => {
+            return team.teamId!.toString() || "";
+          },
+        ),
+      };
+
+      return initialValue;
+    }
+
+    return null;
   };
 
   return (
@@ -289,12 +564,101 @@ const IncidentCreate: FunctionComponent<
         <div>
           {isLoading && <PageLoader isVisible={true} />}
           {error && <ErrorMessage message={error} />}
+          {!isLoading && !error && alertsToLink.length > 0 && (
+            <AlertBanner
+              className="mb-5"
+              dataTestId="incident-create-alerts-to-link"
+              type={AlertType.INFO}
+              icon={IconProp.Link}
+              strongTitle="Declaring this incident from alerts"
+              title={
+                <div>
+                  <p>
+                    These alerts are linked to the incident when you declare it.
+                    The form below is prefilled from them - review and change
+                    anything before you declare.
+                  </p>
+                  <ul className="mt-2 list-disc space-y-1 pl-5">
+                    {alertsToLink.map((alert: Alert): ReactElement => {
+                      return (
+                        <li key={alert._id?.toString()}>
+                          <span className="mr-1 font-medium">
+                            {IncidentFromAlerts.getAlertReference(
+                              toAlertForPrefill(alert),
+                            )}
+                            :
+                          </span>
+                          <AlertElement alert={alert} />
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  {isPrivateFromAlerts && (
+                    <p
+                      className="mt-2"
+                      data-testid="incident-create-private-from-alerts"
+                    >
+                      At least one of these alerts is private, so Private
+                      Incident starts switched on. While it stays on, only the
+                      incident&apos;s owners, project owners and project admins
+                      can see it, and the owners of these alerts are added as
+                      its owners once it is declared.
+                    </p>
+                  )}
+                  {wereAlertIdsTruncated && (
+                    <p className="mt-2">
+                      Only the first {MAX_ALERTS_PER_INCIDENT_LINK_ACTION}{" "}
+                      alerts are linked. Link the rest from the incident&apos;s
+                      Linked Alerts page after you declare it.
+                    </p>
+                  )}
+                  {missingAlertCount > 0 && (
+                    <p className="mt-2">
+                      Some alerts could not be found, so they are not linked.
+                      They may have been deleted, or you may not have access to
+                      them.
+                    </p>
+                  )}
+                </div>
+              }
+            />
+          )}
+          {!isLoading &&
+            !error &&
+            alertsToLink.length === 0 &&
+            missingAlertCount > 0 && (
+              <AlertBanner
+                className="mb-5"
+                dataTestId="incident-create-alerts-not-found"
+                type={AlertType.WARNING}
+                strongTitle="The alerts could not be found"
+                title="None of the alerts this incident was being declared from could be found, so none will be linked. They may have been deleted, or you may not have access to them."
+              />
+            )}
           {!isLoading && !error && (
             <ModelForm<Incident>
               modelType={Incident}
               initialValues={initialValuesForIncident}
               name="Create New Incident"
               id="create-incident-form"
+              onBeforeCreate={async (
+                item: Incident,
+                miscDataProps: JSONObject,
+              ): Promise<Incident> => {
+                /*
+                 * ModelForm sends this same object as the request's
+                 * miscDataProps. The server checks the ids before it creates
+                 * the incident and links them once it exists.
+                 */
+                if (alertsToLink.length > 0) {
+                  miscDataProps[INCIDENT_ALERT_IDS_TO_LINK_KEY] =
+                    alertsToLink.map((alert: Alert): string => {
+                      return alert._id?.toString() || "";
+                    });
+                }
+
+                return item;
+              }}
               fields={[
                 {
                   field: {

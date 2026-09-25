@@ -45,7 +45,7 @@ import {
   REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE,
   REPLAY_TEXT_SELECTION_ATTRIBUTE,
   REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayStage";
+} from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTextSelectionAttributes";
 
 /*
  * The paused-frame screenshot, from the replay document to the PNG.

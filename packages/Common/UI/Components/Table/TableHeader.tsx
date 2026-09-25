@@ -158,10 +158,21 @@ const TableHeader: TableHeaderFunction = <T extends GenericObject>(
               </>
             );
 
+            /*
+             * A header's name is computed from its content, and the (i)
+             * button's "About <title>" would join it - every cell in the
+             * column would be announced as "Last seen About Last seen". The
+             * column is named by its title alone; the (i) keeps its own name.
+             */
+            const headerLabel: string | undefined = column.headerTooltip?.trim()
+              ? translateString(column.title) ?? column.title
+              : undefined;
+
             return (
               <th
                 key={i}
                 scope="col"
+                aria-label={headerLabel}
                 aria-sort={ariaSort}
                 className="text-left text-sm font-semibold text-gray-900"
               >

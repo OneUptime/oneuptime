@@ -41,6 +41,8 @@ export enum IncidentFeedEventType {
   OnCallNotification = "OnCallNotification",
   IncidentMemberAdded = "IncidentMemberAdded",
   IncidentMemberRemoved = "IncidentMemberRemoved",
+  AlertLinked = "AlertLinked",
+  AlertUnlinked = "AlertUnlinked",
   LabelRuleExecuted = "LabelRuleExecuted",
   OwnerRuleExecuted = "OwnerRuleExecuted",
   PrivacyRuleExecuted = "PrivacyRuleExecuted",

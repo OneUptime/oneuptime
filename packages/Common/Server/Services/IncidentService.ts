@@ -111,6 +111,10 @@ import IncidentAIContextBuilder, {
   AIGenerationContext,
   IncidentContextData,
 } from "../Utils/AI/IncidentAIContextBuilder";
+import IncidentAlertService, {
+  LinkAlertsToIncidentResult,
+} from "./IncidentAlertService";
+import { INCIDENT_ALERT_IDS_TO_LINK_KEY } from "../../Types/Incident/IncidentAlertLink";
 
 // key is incidentId for this dictionary.
 type UpdateCarryForward = Dictionary<{
@@ -119,6 +123,15 @@ type UpdateCarryForward = Dictionary<{
   oldChangeMonitorStatusIdTo: ObjectID | undefined;
   newMonitorChangeStatusIdTo: ObjectID | undefined;
 }>;
+
+/*
+ * What onBeforeCreate hands to onCreateSuccess. Null unless the incident is
+ * being declared from alerts.
+ */
+type IncidentCreateCarryForward = {
+  // Validated, deduplicated alert ids to link once the incident exists.
+  alertIdsToLink: Array<ObjectID>;
+} | null;
 
 type IncidentUpdatePayload = {
   postmortemNote?: string | null;
@@ -783,6 +796,30 @@ export class Service extends DatabaseService<Model> {
     const projectId: ObjectID =
       createBy.props.tenantId || createBy.data.projectId!;
 
+    /*
+     * Declaring the incident from alerts. The alert ids are checked here,
+     * before the incident number is taken and before anything is written, so
+     * a bad id (a typo, another project's alert, an alert the caller cannot
+     * see, too many alerts) rejects the whole request instead of leaving an
+     * incident behind that is missing some of its alerts. The alerts are
+     * linked in onCreateSuccess, once the incident exists.
+     */
+    let carryForward: IncidentCreateCarryForward = null;
+
+    const alertIdsToLink: unknown =
+      createBy.miscDataProps?.[INCIDENT_ALERT_IDS_TO_LINK_KEY];
+
+    if (alertIdsToLink !== undefined && alertIdsToLink !== null) {
+      carryForward = {
+        alertIdsToLink:
+          await IncidentAlertService.validateAlertIdsForNewIncident({
+            projectId: projectId,
+            alertIds: alertIdsToLink,
+            props: createBy.props,
+          }),
+      };
+    }
+
     if (!createBy.data.declaredAt) {
       createBy.data.declaredAt = OneUptimeDate.getCurrentDate();
     } else {
@@ -1179,7 +1216,7 @@ export class Service extends DatabaseService<Model> {
 
     return {
       createBy,
-      carryForward: null,
+      carryForward: carryForward,
     };
   }
 
@@ -1267,14 +1304,16 @@ export class Service extends DatabaseService<Model> {
      */
     let aiInvestigationEnqueued: boolean = false;
 
-    // Execute operations sequentially with error handling
-    Promise.resolve()
-      .then(async () => {
-        /*
-         * Apply privacy rules BEFORE workspace operations so the workspace
-         * channel is created with the correct privacy setting. This may set
-         * createdItem.isPrivate=true in memory.
-         */
+    /*
+     * Apply privacy rules BEFORE workspace operations so the workspace
+     * channel is created with the correct privacy setting. This may set
+     * createdItem.isPrivate=true in memory. Kept as its own promise (it never
+     * rejects) so declaring from alerts can wait for it before linking: the
+     * links' feed entries leave out a private incident's title, so they must
+     * see the privacy the rules settle on.
+     */
+    const privacyRulesApplied: Promise<void> = Promise.resolve().then(
+      async () => {
         try {
           await IncidentPrivacyRuleEngineService.applyRulesToIncident(
             createdItem,
@@ -1288,7 +1327,11 @@ export class Service extends DatabaseService<Model> {
             } as LogAttributes,
           );
         }
-      })
+      },
+    );
+
+    // Execute operations sequentially with error handling
+    privacyRulesApplied
       .then(async () => {
         try {
           if (createdItem.projectId && createdItem.id) {
@@ -1322,6 +1365,67 @@ export class Service extends DatabaseService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        /*
+         * Declared from alerts: announce the alerts once, here - after
+         * "Incident Created" and after the incident's Slack / Microsoft
+         * Teams channels exist - rather than once per alert as each link is
+         * written (see linkAlertsDeclaredWithIncident). Uses the validated
+         * ids, so it does not wait for the links.
+         */
+        try {
+          const alertIds: Array<ObjectID> =
+            this.getAlertIdsDeclaredWith(onCreate);
+
+          if (alertIds.length > 0) {
+            await IncidentAlertService.createDeclaredFromAlertsFeedItem({
+              projectId: createdItem.projectId!,
+              incidentId: createdItem.id!,
+              alertIds: alertIds,
+              actorUserId: this.getDeclaringUserId(onCreate, createdItem),
+            });
+          }
+        } catch (error) {
+          logger.error(
+            `Announcing the alerts an incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * A private incident declared from alerts - private from the form or
+         * made private by a privacy rule above - gets the alerts' owners as
+         * its owners, so the people who could see the alerts can see the
+         * incident. Here rather than before the request returns: the owners'
+         * own hooks invite them to the incident's Slack / Microsoft Teams
+         * channels, which exist only from the workspace step above, and their
+         * "owner added" entries belong after "Incident Created".
+         */
+        try {
+          const alertIds: Array<ObjectID> =
+            this.getAlertIdsDeclaredWith(onCreate);
+
+          if (alertIds.length > 0 && createdItem.isPrivate === true) {
+            await IncidentAlertService.copyAlertOwnersToIncident({
+              projectId: createdItem.projectId!,
+              incidentId: createdItem.id!,
+              alertIds: alertIds,
+            });
+          }
+        } catch (error) {
+          logger.error(
+            `Adding the owners of the alerts a private incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
         }
       })
       .then(async () => {
@@ -1623,7 +1727,103 @@ export class Service extends DatabaseService<Model> {
         );
       });
 
+    await this.linkAlertsDeclaredWithIncident(
+      onCreate,
+      createdItem,
+      privacyRulesApplied,
+    );
+
     return createdItem;
+  }
+
+  // The validated alert ids an incident is being declared from, if any.
+  private getAlertIdsDeclaredWith(onCreate: OnCreate<Model>): Array<ObjectID> {
+    const carryForward: IncidentCreateCarryForward =
+      (onCreate.carryForward as IncidentCreateCarryForward) || null;
+
+    return carryForward?.alertIdsToLink || [];
+  }
+
+  /*
+   * Who declared the incident, as "Linked by" on the links and the actor of
+   * their feed entries. A user is recorded as themselves and an API key as
+   * nobody: Incident.createdByUserId is writable by the create payload, and
+   * an API key must not be able to name somebody else as the one who linked
+   * the alerts (IncidentAlertService.onBeforeCreate applies the same rule to
+   * a link created directly). Only an internal root caller is trusted to
+   * name the incident's creator.
+   */
+  private getDeclaringUserId(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+  ): ObjectID | undefined {
+    if (onCreate.createBy.props.isRoot) {
+      return createdItem.createdByUserId || undefined;
+    }
+
+    return onCreate.createBy.props.userId || undefined;
+  }
+
+  /*
+   * The incident was declared from alerts (see onBeforeCreate): link them now
+   * that it exists. Awaited, unlike the chain above, so the incident page the
+   * user lands on already lists its alerts. Written as root because the
+   * caller's right to link them was checked before the incident was created;
+   * the user who declared the incident is recorded as the one who linked
+   * them. The links write no incident-side feed entries: the chain above
+   * posts one "Declared from N alerts" entry instead. A link that fails is
+   * logged and never fails the incident.
+   *
+   * The privacy rules run first: each link's entry on its alert leaves out
+   * the incident's title when the incident is private, and a rule can make
+   * it private after it was saved. (The alerts' owners are added to a private
+   * incident later in the chain, once its workspace channels exist.)
+   */
+  @CaptureSpan()
+  private async linkAlertsDeclaredWithIncident(
+    onCreate: OnCreate<Model>,
+    createdItem: Model,
+    privacyRulesApplied: Promise<void>,
+  ): Promise<void> {
+    const alertIds: Array<ObjectID> = this.getAlertIdsDeclaredWith(onCreate);
+
+    if (alertIds.length === 0 || !createdItem.projectId || !createdItem.id) {
+      return;
+    }
+
+    await privacyRulesApplied;
+
+    try {
+      const result: LinkAlertsToIncidentResult =
+        await IncidentAlertService.linkAlertsToIncident({
+          projectId: createdItem.projectId,
+          incidentId: createdItem.id,
+          alertIds: alertIds,
+          createdByUserId: this.getDeclaringUserId(onCreate, createdItem),
+          declaredWithIncident: true,
+          props: {
+            isRoot: true,
+          },
+        });
+
+      if (result.failed.length > 0) {
+        logger.error(
+          `${result.failed.length} of ${alertIds.length} alerts could not be linked to the incident they were declared with.`,
+          {
+            projectId: createdItem.projectId.toString(),
+            incidentId: createdItem.id.toString(),
+          } as LogAttributes,
+        );
+      }
+    } catch (error) {
+      logger.error(
+        `Linking the alerts an incident was declared from failed in IncidentService.onCreateSuccess: ${error}`,
+        {
+          projectId: createdItem.projectId.toString(),
+          incidentId: createdItem.id.toString(),
+        } as LogAttributes,
+      );
+    }
   }
 
   @CaptureSpan()

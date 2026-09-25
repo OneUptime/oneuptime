@@ -35,6 +35,9 @@
     "rrweb": "2.1.1"
   },
   "devDependencies": {
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/instrumentation-fetch": "^0.220.0",
+    "@opentelemetry/sdk-trace-web": "~2.9.0",
     "@types/jest": "^29.5.11",
     "@types/node": "^26.1.1",
     "esbuild": "^0.28.1",

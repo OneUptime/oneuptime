@@ -383,6 +383,7 @@ import AlertEpisodeLabelRule from "./AlertEpisodeLabelRule";
 
 import IncidentEpisode from "./IncidentEpisode";
 import IncidentEpisodeMember from "./IncidentEpisodeMember";
+import IncidentAlert from "./IncidentAlert";
 import IncidentEpisodeRoleMember from "./IncidentEpisodeRoleMember";
 import IncidentEpisodeStateTimeline from "./IncidentEpisodeStateTimeline";
 import IncidentEpisodeOwnerUser from "./IncidentEpisodeOwnerUser";
@@ -599,6 +600,7 @@ const AllModelTypes: Array<{
 
   IncidentEpisode,
   IncidentEpisodeMember,
+  IncidentAlert,
   IncidentEpisodeRoleMember,
   IncidentEpisodeStateTimeline,
   IncidentEpisodeOwnerUser,

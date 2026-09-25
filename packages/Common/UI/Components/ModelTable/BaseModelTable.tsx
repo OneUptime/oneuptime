@@ -208,6 +208,19 @@ export interface BulkActionProps<T extends BaseModel | AnalyticsBaseModel> {
    * cannot be undone - it cannot know what else goes with it.
    */
   deleteConfirmationWarning?: string | undefined;
+  /**
+   * The word the default bulk Delete uses instead of "Delete", for a table
+   * whose rows are relationships rather than things - "Unlink" on a table of
+   * links, say. When set, the menu item, the confirmation's title and its
+   * sentence all use it ("Unlink 3 Alerts", "Are you sure you want to unlink
+   * 3 alerts?"), and the sentence no longer claims the action cannot be
+   * undone: removing a relationship is undone by adding it again. It is still
+   * the table's delete action - it deletes the selected rows, is gated on the
+   * model's delete permission, and stops a second Delete being added.
+   */
+  deleteVerb?: string | undefined;
+  /* The menu icon to go with deleteVerb. Defaults to the trash can. */
+  deleteIcon?: IconProp | undefined;
 }
 
 /**
@@ -563,6 +576,29 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const model: TBaseModel = new props.modelType();
 
   /*
+   * The header's create button, "<verb> <noun>". Translating the two words
+   * separately reads the verb out of context - "Link" comes back as the noun
+   * in many languages, and word order differs - so the whole phrase is looked
+   * up first ("Link Alert") and the word-by-word join is only the fallback
+   * for a phrase with no entry of its own. In English both are the same.
+   */
+  const getCreateButtonTitle: () => string = (): string => {
+    const verb: string = props.createVerb || "Create";
+    const noun: string = props.singularName || model.singularName || "";
+
+    if (noun) {
+      const phrase: string = `${verb} ${noun}`;
+      const translatedPhrase: string = tx(phrase);
+
+      if (translatedPhrase && translatedPhrase !== phrase) {
+        return translatedPhrase;
+      }
+    }
+
+    return `${tx(verb)} ${tx(noun)}`;
+  };
+
+  /*
    * How a create / update / delete affordance should be rendered for this
    * viewer. A user without the permission used to simply not see the button,
    * which reads as "this feature does not exist" - and on the flows that route
@@ -586,8 +622,18 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
   const getActionGate: GetActionGateFunction = (
     action: ModelAction,
   ): ActionGate => {
+    /*
+     * A table that calls its delete "Unlink" must not say the locked button
+     * would delete the row's noun ("permission to delete this Alert"). Keyed
+     * on deleteVerb alone: deleteButtonText is also set by tables such as
+     * "Remove from Project", which keep the default "delete" sentence.
+     */
     const result: PermissionGateResult = PermissionGate.check(model, action, {
       singularName: props.singularName || model.singularName || undefined,
+      verb:
+        action === ModelAction.Delete
+          ? props.bulkActions?.deleteVerb?.trim() || undefined
+          : undefined,
     });
 
     if (result.isAllowed) {
@@ -2446,9 +2492,7 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
       showAs !== ShowAs.OrderedStatesList
     ) {
       headerbuttons.push({
-        title: `${tx(props.createVerb || "Create")} ${tx(
-          props.singularName || model.singularName || "",
-        )}`,
+        title: getCreateButtonTitle(),
         buttonStyle: ButtonStyleType.NORMAL,
         buttonSize: ButtonSize.Normal,
         className: "",
@@ -2908,10 +2952,16 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
       const deleteGate: ActionGate = getActionGate(ModelAction.Delete);
 
+      /* The row action wears the same icon as the bulk one it stands for. */
+      const rowDeleteIcon: IconProp =
+        (props.bulkActions?.deleteVerb?.trim() &&
+          props.bulkActions?.deleteIcon) ||
+        IconProp.Trash;
+
       if (props.isDeleteable && deleteGate.show) {
         actionsSchema.push({
           title: tx(props.deleteButtonText || "Delete"),
-          icon: IconProp.Trash,
+          icon: rowDeleteIcon,
           buttonStyleType: ButtonStyleType.DANGER_OUTLINE,
           disabled: deleteGate.disabled,
           tooltip: deleteGate.tooltip,
@@ -3008,28 +3058,43 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
 
   const getDeleteBulkAction: GetDeleteBulkActionFunction =
     (): BulkActionButtonSchema<TBaseModel> => {
+      /*
+       * A table that names its own verb ("Unlink") removes relationships, not
+       * things, so its sentence drops "This action cannot be undone" - that
+       * would say the opposite of the warning it usually appends.
+       */
+      const deleteVerb: string | undefined =
+        props.bulkActions?.deleteVerb?.trim() || undefined;
+
+      type GetItemLabelFunction = (items: Array<TBaseModel>) => string;
+
+      const getItemLabel: GetItemLabelFunction = (
+        items: Array<TBaseModel>,
+      ): string => {
+        return items.length === 1
+          ? props.singularName || model.singularName || "item"
+          : props.pluralName || model.pluralName || "items";
+      };
+
       return {
-        title: "Delete",
+        title: deleteVerb || "Delete",
         buttonStyleType: ButtonStyleType.DANGER,
-        icon: IconProp.Trash,
+        icon: (deleteVerb && props.bulkActions?.deleteIcon) || IconProp.Trash,
         confirmMessage: (items: Array<TBaseModel>) => {
-          const itemLabel: string =
-            items.length === 1
-              ? props.singularName || model.singularName || "item"
-              : props.pluralName || model.pluralName || "items";
+          const itemLabel: string = getItemLabel(items);
 
           const warning: string = props.bulkActions?.deleteConfirmationWarning
             ? ` ${props.bulkActions.deleteConfirmationWarning}`
             : "";
 
+          if (deleteVerb) {
+            return `Are you sure you want to ${deleteVerb.toLowerCase()} ${items.length} ${itemLabel.toLowerCase()}?${warning}`;
+          }
+
           return `Are you sure you want to delete ${items.length} ${itemLabel}? This action cannot be undone.${warning}`;
         },
         confirmTitle: (items: Array<TBaseModel>) => {
-          const itemLabel: string =
-            items.length === 1
-              ? props.singularName || model.singularName || "item"
-              : props.pluralName || model.pluralName || "items";
-          return `Delete ${items.length} ${itemLabel}`;
+          return `${deleteVerb || "Delete"} ${items.length} ${getItemLabel(items)}`;
         },
         confirmButtonStyleType: ButtonStyleType.DANGER,
         onClick: async ({
@@ -3207,7 +3272,19 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
            * Table derives the row checkboxes from this array being non-empty,
            * so injecting a locked Delete into an otherwise empty array would
            * grow a selection column onto tables that have never had one.
+           *
+           * A page's own button counts as the delete action when it carries
+           * the title the default one would have: "Delete", or the table's
+           * deleteVerb.
            */
+          const deleteActionTitles: Array<string> = ["Delete"];
+          const bulkDeleteVerb: string | undefined =
+            props.bulkActions?.deleteVerb?.trim() || undefined;
+
+          if (bulkDeleteVerb) {
+            deleteActionTitles.push(bulkDeleteVerb);
+          }
+
           const alreadyHasDeleteAction: boolean = sourceButtons.some(
             (
               action:
@@ -3221,8 +3298,9 @@ const BaseModelTable: <TBaseModel extends BaseModel | AnalyticsBaseModel>(
                 typeof action === "object" &&
                 action !== null &&
                 "title" in action &&
-                (action as BulkActionButtonSchema<TBaseModel>).title ===
-                  "Delete"
+                deleteActionTitles.includes(
+                  (action as BulkActionButtonSchema<TBaseModel>).title,
+                )
               ) {
                 return true;
               }

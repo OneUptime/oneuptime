@@ -79,6 +79,13 @@ export interface PermissionGateOptions {
    * what the user sees on screen ("Monitor" vs "Monitor Template").
    */
   singularName?: string | undefined;
+  /*
+   * The verb to use in the message when the operation is presented as
+   * something other than its own name - a table of links whose delete action
+   * is labelled "Unlink", say. Only the wording changes: the permissions
+   * checked and listed are still the ones for `action`.
+   */
+  verb?: string | undefined;
 }
 
 /*
@@ -176,15 +183,17 @@ export default class PermissionGate {
     const singularName: string =
       options?.singularName || model.singularName || "item";
 
+    const verb: string = (options?.verb?.trim() || action).toLowerCase();
+
     const titles: Array<string> = this.getPermissionTitles(
       this.getModelPermissions(model, action),
     );
 
     if (titles.length === 0) {
-      return `You do not have permission to ${action} this ${singularName}.`;
+      return `You do not have permission to ${verb} this ${singularName}.`;
     }
 
-    return `You do not have permission to ${action} this ${singularName}. You need one of these permissions: ${titles.join(
+    return `You do not have permission to ${verb} this ${singularName}. You need one of these permissions: ${titles.join(
       ", ",
     )}.`;
   }
