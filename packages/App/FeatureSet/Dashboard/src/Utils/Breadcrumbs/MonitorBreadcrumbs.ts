@@ -21,6 +21,9 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       PageMap.MONITORS_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       ["Project", "Monitors", "Microsoft Teams"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_WORKSPACE_CONNECTION_DISCORD, [
+      "Project", "Monitors", "Discord",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITORS_DISABLED, [
       "Project",
       "Monitors",

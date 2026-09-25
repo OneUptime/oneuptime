@@ -109,6 +109,10 @@ export function getScheduleMaintenanceBreadcrumbs(
       ],
     ),
     ...BuildBreadcrumbLinksByTitles(
+      PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_DISCORD,
+      ["Project", "Scheduled Maintenance Events", "Discord Workspace Connection"],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
       PageMap.SCHEDULED_MAINTENANCE_VIEW_NOTIFICATION_LOGS,
       [
         "Project",

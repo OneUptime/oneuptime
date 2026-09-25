@@ -157,6 +157,25 @@ const ScheduledMaintenanceEventsRoutes: FunctionComponent<ComponentProps> = (
         <PageRoute
           path={
             ScheduledMaintenanceEventsRoutePath[
+              PageMap.SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_DISCORD
+            ] || ""
+          }
+          element={
+            <ScheduledMaintenanceWorkspaceConnectionDiscord
+              {...props}
+              pageRoute={
+                RouteMap[
+                  PageMap
+                    .SCHEDULED_MAINTENANCE_EVENTS_WORKSPACE_CONNECTION_DISCORD
+                ] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            ScheduledMaintenanceEventsRoutePath[
               PageMap.SCHEDULED_MAINTENANCE_EVENT_CREATE
             ] || ""
           }

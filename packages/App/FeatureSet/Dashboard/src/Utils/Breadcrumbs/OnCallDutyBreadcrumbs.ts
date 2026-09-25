@@ -42,6 +42,9 @@ export function getOnCallDutyBreadcrumbs(
       PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_MICROSOFT_TEAMS,
       ["Project", "On-Call Duty", "Microsoft Teams"],
     ),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_WORKSPACE_CONNECTION_DISCORD, [
+      "Project", "On-Call Duty", "Discord",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_SCHEDULES, [
       "Project",
       "On-Call Duty",

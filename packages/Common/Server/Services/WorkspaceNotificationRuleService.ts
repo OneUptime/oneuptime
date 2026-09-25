@@ -82,6 +82,12 @@ export interface NotificationFor {
 const SLACK_CHANNEL_ID_REGEX: RegExp = /^[A-Za-z0-9]{1,64}$/;
 
 /*
+ * Discord snowflake channel ids are numeric and up to 20 digits; Slack ids
+ * are shorter, so this accepts both for the shared channel-id validation.
+ */
+const DISCORD_CHANNEL_ID_REGEX: RegExp = /^[0-9]{1,20}$/;
+
+/*
  * Upper bounds for Microsoft Teams ids accepted by the destination test.
  * Generous next to real ids (a GUID, "19:...@thread.tacv2"), small enough
  * that an oversized value is rejected before it reaches Microsoft Graph.
@@ -742,10 +748,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   }): void {
     if (
       data.workspaceType !== WorkspaceType.Slack &&
-      data.workspaceType !== WorkspaceType.MicrosoftTeams
+      data.workspaceType !== WorkspaceType.MicrosoftTeams &&
+      data.workspaceType !== WorkspaceType.Discord
     ) {
       throw new BadDataException(
-        "Test notifications can only be sent to Slack or Microsoft Teams.",
+        "Test notifications can only be sent to Slack, Microsoft Teams, or Discord.",
       );
     }
 
@@ -762,9 +769,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     }
 
     if (data.chatId) {
-      if (data.workspaceType === WorkspaceType.Slack) {
+      if (
+        data.workspaceType === WorkspaceType.Slack ||
+        data.workspaceType === WorkspaceType.Discord
+      ) {
         throw new BadDataException(
-          "Chats are only supported for Microsoft Teams. Please choose a Slack channel.",
+          "Chats are only supported for Microsoft Teams. Please choose a channel.",
         );
       }
 
@@ -775,9 +785,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       return;
     }
 
-    if (data.workspaceType === WorkspaceType.Slack) {
-      if (!SLACK_CHANNEL_ID_REGEX.test(data.channelId)) {
-        throw new BadDataException("The Slack channel id is not valid.");
+    if (
+      data.workspaceType === WorkspaceType.Slack ||
+      data.workspaceType === WorkspaceType.Discord
+    ) {
+      const valid: boolean =
+        data.workspaceType === WorkspaceType.Slack
+          ? SLACK_CHANNEL_ID_REGEX.test(data.channelId)
+          : DISCORD_CHANNEL_ID_REGEX.test(data.channelId);
+      if (!valid) {
+        throw new BadDataException("The channel id is not valid.");
       }
 
       return;
@@ -916,7 +933,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   }): string {
     const label: string = data.name.trim() || data.id;
 
-    if (data.workspaceType === WorkspaceType.Slack && !data.isChat) {
+    if (
+      (data.workspaceType === WorkspaceType.Slack ||
+        data.workspaceType === WorkspaceType.Discord) &&
+      !data.isChat
+    ) {
       return `#${label}`;
     }
 
@@ -1235,44 +1256,6 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
     const workspaceNotificationPaylaods: Array<WorkspaceMessagePayload> = [];
 
-    // Discord rides the same pipeline but addresses the project's bound
-    // incident channel instead of notification-rule channels (see
-    // getDiscordIncidentChannelPayload). Appended blocks (rich incident
-    // cards with Acknowledge/Resolve buttons) take precedence when present.
-    {
-      const discordEntry: MessageBlocksByWorkspaceType | undefined =
-        messageBlocksByWorkspaceTypes.find(
-          (messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
-            return (
-              messageBlocksByWorkspaceType.workspaceType ===
-              WorkspaceType.Discord
-            );
-          },
-        );
-      const slackEntry: MessageBlocksByWorkspaceType | undefined =
-        messageBlocksByWorkspaceTypes.find(
-          (messageBlocksByWorkspaceType: MessageBlocksByWorkspaceType) => {
-            return (
-              messageBlocksByWorkspaceType.workspaceType === WorkspaceType.Slack
-            );
-          },
-        );
-      const discordBlocks: Array<WorkspaceMessageBlock> | undefined =
-        discordEntry?.messageBlocks?.length
-          ? discordEntry.messageBlocks
-          : slackEntry?.messageBlocks;
-      if (discordBlocks) {
-        const discordPayload: WorkspaceMessagePayload | null =
-          await this.getDiscordIncidentChannelPayload({
-            projectId: data.projectId,
-            messageBlocks: discordBlocks,
-          });
-        if (discordPayload) {
-          workspaceNotificationPaylaods.push(discordPayload);
-        }
-      }
-    }
-
     for (const messageBlocksByWorkspaceType of messageBlocksByWorkspaceTypes) {
       const existingChannels: Array<WorkspaceChannel> =
         await this.getExistingChannelNamesBasedOnEventType({
@@ -1582,43 +1565,11 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
   @CaptureSpan()
   public static getAllWorkspaceTypes(): Array<WorkspaceType> {
-    return [WorkspaceType.Slack, WorkspaceType.MicrosoftTeams];
-  }
-
-  /*
-   * Discord is registered as a workspace provider (Workspace.ts) but is not
-   * yet a notification-rule target: its incident delivery is bound to the
-   * project's configured incident channel (WorkspaceProjectAuthToken
-   * miscData.incidentChannelId) rather than per-rule channels. Widen this
-   * list only when Discord grows rule-based routing (HOM-36 parity).
-   */
-  public async getDiscordIncidentChannelPayload(data: {
-    projectId: ObjectID;
-    messageBlocks: Array<WorkspaceMessageBlock>;
-  }): Promise<WorkspaceMessagePayload | null> {
-    const projectAuth: WorkspaceProjectAuthToken | null =
-      await WorkspaceProjectAuthTokenService.getProjectAuth({
-        projectId: data.projectId,
-        workspaceType: WorkspaceType.Discord,
-      });
-    const misc: MiscData | undefined = projectAuth?.miscData;
-    const channelId: unknown = misc?.["incidentChannelId"];
-    if (
-      !projectAuth?.authToken ||
-      typeof channelId !== "string" ||
-      channelId.length === 0
-    ) {
-      // No Discord connection or no incident channel chosen: most projects
-      // are not Discord-bound, so this is not an error.
-      return null;
-    }
-    return {
-      _type: "WorkspaceMessagePayload",
-      workspaceType: WorkspaceType.Discord,
-      messageBlocks: data.messageBlocks,
-      channelNames: [],
-      channelIds: [channelId],
-    };
+    return [
+      WorkspaceType.Slack,
+      WorkspaceType.MicrosoftTeams,
+      WorkspaceType.Discord,
+    ];
   }
 
   public getBotUserIdFromprojectAuthToken(data: {

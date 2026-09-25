@@ -234,6 +234,24 @@ function makeVectors(seed: number): Array<Vector> {
   return vectors;
 }
 
+async function fixtureReset(): Promise<ProviderState> {
+  const controlToken: string | undefined =
+    process.env["DISCORD_FIXTURE_CONTROL_TOKEN"];
+  if (!controlToken) {
+    throw new Error("Disposable DISCORD_FIXTURE_CONTROL_TOKEN is required");
+  }
+  const response: Response = await fetch(
+    "https://discord.com/__fixture/reset",
+    {
+      method: "POST",
+      headers: { "x-fixture-control": controlToken },
+      signal: AbortSignal.timeout(5000),
+    },
+  );
+  expect(response.status, "Discord fixture reset failed").toBe(200);
+  return (await response.json()) as ProviderState;
+}
+
 async function providerState(): Promise<ProviderState> {
   const controlToken: string | undefined =
     process.env["DISCORD_FIXTURE_CONTROL_TOKEN"];
@@ -275,7 +293,9 @@ test("seeded adversarial HTTP vectors preserve Discord authentication boundaries
   const vectors: Array<Vector> = makeVectors(seed);
   expect(vectors.length).toBeLessThanOrEqual(200);
   const startedAt: number = Math.floor(Date.now() / 1000);
-  const before: ProviderState = await providerState();
+  // A prior run's unhandled requests are not what this assertion catches:
+  // reset so the baseline is this run's, not leftover state.
+  const before: ProviderState = await fixtureReset();
   expect(before.unhandled).toEqual([]);
   const observed: Array<ObservedVector> = [];
   let after: ProviderState | undefined;
