@@ -22,6 +22,7 @@ import {
   ipv4AddressOfReverseName,
   ptrReply,
   rcodeReply,
+  reserveClosedUdpPort,
   startFakeDnsServer,
 } from "../../TestingUtils/FakeDnsServer";
 import { DiscoveredHostReverseDnsStatus } from "Common/Types/NetworkDevice/DiscoveredHostNamingStatus";
@@ -60,6 +61,13 @@ import dns from "dns";
  *      through its whole budget at one dead-primary timeout per wave — 74
  *      seconds for 1,000 hosts where the probe used to stop in four — and
  *      advised raising the budget.
+ *
+ * And one the final review found in the fix of (2): the first attempt still
+ * asked through a resolver with every server configured, and c-ares — which
+ * waits out a SILENT server — moves on at once from one that REFUSES the
+ * connection. A Helm pod whose cluster DNS had no ready endpoints got the
+ * public fallback's NXDOMAIN on the first attempt, for every host, as a
+ * final "no PTR record". The first attempt is now pinned to the primary.
  *
  * Every resolver here is pointed at loopback servers with setServers(), at
  * the SHIPPED timeouts, and no hosts file is read (the lookups are injected,
@@ -148,26 +156,24 @@ function range(prefix: string, from: number, count: number): Array<string> {
 }
 
 /*
- * How long the servers that only ever say NXDOMAIN take to say it.
+ * Every query answered with one response code, at once.
  *
- * Every scenario here starts from first attempts that FAILED on the primary,
- * and the first pass asks through a resolver with every server configured.
- * c-ares moves on to the next server only once the first has had its whole
- * two-second timeout, which the first pass's race ends first — but on a
- * loaded machine the race's timer can run late, and an instant NXDOMAIN from
- * the fallback would then land inside it and turn the precondition into a
- * final "no record". A second's delay keeps that answer out of the first
- * pass without changing what the retry walk makes of it.
+ * The fallback servers that only ever say NXDOMAIN say it AT ONCE too, which is
+ * what a public resolver really does and the worst case for a probe whose
+ * primary has failed. They used to answer a second late: the first pass
+ * asked through a resolver with every server configured, and on a loaded
+ * machine the race's timer could run past the point where c-ares moved on
+ * from a silent primary, so an instant NXDOMAIN from the fallback landed
+ * inside the first attempt and became a final "no record". The first pass is
+ * now pinned to the primary (#3916) and never asks a fallback at all, so
+ * there is nothing left for a delay to hide — and a first pass that did ask
+ * one would now fail these tests, as it should.
  */
-const FALLBACK_ANSWER_DELAY_IN_MS: number = 1000;
-
-// Every query answered with one response code, after an optional delay.
 function answeringEverything(
   responseCode: DnsResponseCode,
-  delayInMs?: number | undefined,
 ): () => FakeDnsReply {
   return (): FakeDnsReply => {
-    return rcodeReply(responseCode, { delayInMs: delayInMs });
+    return rcodeReply(responseCode);
   };
 }
 
@@ -198,6 +204,8 @@ const THOUSAND_HOSTS: Array<string> = [
   ...range("10.16.43", 1, 250),
 ];
 const KITCHEN: Array<string> = range("10.16.42", 51, 12);
+// Big enough to trip the breaker; asked of the refused-CoreDNS pod.
+const REFUSED_SWEEP: Array<string> = range("10.16.46", 1, 100);
 const STEERED_SWEEP: Array<string> = [
   "198.51.100.7",
   ...range("10.0.0", 1, 39),
@@ -221,6 +229,10 @@ describe("the real resolver: the review's reproductions of #3916's fix", () => {
   let helmServfail: ReverseDnsResolution;
   let helmTimeout: ReverseDnsResolution;
   let helmPublics: Array<FakeDnsServer>;
+  let helmRefused: ReverseDnsResolution;
+  let helmRefusedSweep: ReverseDnsResolution;
+  let refusedCoreDnsAddress: string;
+  let refusedPublics: Array<FakeDnsServer>;
   let steered: ReverseDnsResolution;
   let steeredPrimary: FakeDnsServer;
 
@@ -236,10 +248,7 @@ describe("the real resolver: the review's reproductions of #3916's fix", () => {
     // (3) A black-holed primary, then a resolver with no private zones.
     const deadPrimary: FakeDnsServer = await server(dropReply);
     deadPrimarySecondary = await server(
-      answeringEverything(
-        DnsResponseCode.NameError,
-        FALLBACK_ANSWER_DELAY_IN_MS,
-      ),
+      answeringEverything(DnsResponseCode.NameError),
     );
 
     // (2) The Helm chart's pod: CoreDNS, then two public resolvers.
@@ -248,18 +257,20 @@ describe("the real resolver: the review's reproductions of #3916's fix", () => {
     );
     const silentCoreDns: FakeDnsServer = await server(dropReply);
     helmPublics = [
-      await server(
-        answeringEverything(
-          DnsResponseCode.NameError,
-          FALLBACK_ANSWER_DELAY_IN_MS,
-        ),
-      ),
-      await server(
-        answeringEverything(
-          DnsResponseCode.NameError,
-          FALLBACK_ANSWER_DELAY_IN_MS,
-        ),
-      ),
+      await server(answeringEverything(DnsResponseCode.NameError)),
+      await server(answeringEverything(DnsResponseCode.NameError)),
+    ];
+
+    /*
+     * (4) The Helm chart's pod with NO ready CoreDNS behind the service:
+     * kube-proxy rejects the cluster IP, which c-ares reads as a connection
+     * error — and on a connection error it moves to the next server AT ONCE,
+     * inside the first attempt. Public resolvers of their own, so what they
+     * were asked is this scenario's alone.
+     */
+    refusedPublics = [
+      await server(answeringEverything(DnsResponseCode.NameError)),
+      await server(answeringEverything(DnsResponseCode.NameError)),
     ];
 
     /*
@@ -288,11 +299,21 @@ describe("the real resolver: the review's reproductions of #3916's fix", () => {
 
         return ipAddress?.startsWith("198.51.100.")
           ? ptrReply([`static-${ipAddress.split(".").pop()}.isp.example`])
-          : rcodeReply(DnsResponseCode.NameError, {
-              delayInMs: FALLBACK_ANSWER_DELAY_IN_MS,
-            });
+          : rcodeReply(DnsResponseCode.NameError);
       },
     );
+
+    /*
+     * Reserved LAST, so no server started above can have been handed the
+     * port after it was closed.
+     */
+    refusedCoreDnsAddress = `127.0.0.1:${await reserveClosedUdpPort()}`;
+
+    const refusedHelmServers: Array<string> = [
+      refusedCoreDnsAddress,
+      refusedPublics[0]!.address,
+      refusedPublics[1]!.address,
+    ];
 
     [
       servfailZone,
@@ -300,6 +321,8 @@ describe("the real resolver: the review's reproductions of #3916's fix", () => {
       deadPrimaryPublicSecondary,
       helmServfail,
       helmTimeout,
+      helmRefused,
+      helmRefusedSweep,
       steered,
     ] = await Promise.all([
       loopbackReverseDnsResolver([servfailServer.address]).resolveHostnames([
@@ -326,6 +349,10 @@ describe("the real resolver: the review's reproductions of #3916's fix", () => {
         helmPublics[0]!.address,
         helmPublics[1]!.address,
       ]).resolveHostnames(KITCHEN),
+      loopbackReverseDnsResolver(refusedHelmServers).resolveHostnames(KITCHEN),
+      loopbackReverseDnsResolver(refusedHelmServers).resolveHostnames(
+        REFUSED_SWEEP,
+      ),
       loopbackReverseDnsResolver([
         steeredPrimary.address,
         steeringSecondary.address,
@@ -395,12 +422,23 @@ describe("the real resolver: the review's reproductions of #3916's fix", () => {
     );
     expect(result.isReverseDnsAvailable).toBe(false);
     expect(result.isTimeBudgetExhausted).toBe(false);
-    expect(result.lookedUpCount).toBe(64);
-    expect(result.notLookedUpCount).toBe(936);
+    /*
+     * Sixty-four first tries, and two of the canaries — the next address
+     * and the last, asked out of turn — which were looked up and timed out
+     * on the primary like the rest: they keep that, not "never asked".
+     */
+    expect(result.lookedUpCount).toBe(66);
+    expect(result.notLookedUpCount).toBe(934);
     expect(statusCounts(result)).toEqual({
-      [DiscoveredHostReverseDnsStatus.Timeout]: 64,
-      [DiscoveredHostReverseDnsStatus.SkippedNoResolver]: 936,
+      [DiscoveredHostReverseDnsStatus.Timeout]: 66,
+      [DiscoveredHostReverseDnsStatus.SkippedNoResolver]: 934,
     });
+    expect(result.statusByIpAddress!.get("10.16.40.65")).toBe(
+      DiscoveredHostReverseDnsStatus.Timeout,
+    );
+    expect(result.statusByIpAddress!.get("10.16.43.250")).toBe(
+      DiscoveredHostReverseDnsStatus.Timeout,
+    );
     // The canaries did reach the secondary, and its NXDOMAIN rescued nothing.
     expect(deadPrimarySecondary.queries.length).toBeGreaterThanOrEqual(3);
   });
@@ -439,6 +477,130 @@ describe("the real resolver: the review's reproductions of #3916's fix", () => {
     for (const publicResolver of helmPublics) {
       expect(publicResolver.queries.length).toBeGreaterThan(0);
     }
+  });
+
+  it("reports every host unreachable, not 'no PTR record', when CoreDNS refuses and the public fallbacks say NXDOMAIN", () => {
+    /*
+     * The final review's reproduction (#3916). With every server configured
+     * on the first attempt, c-ares met the refused cluster DNS and moved on
+     * to 8.8.8.8 at once, inside the two seconds, and its NXDOMAIN was
+     * filed as a final "no PTR record" — never retried, not a failure, the
+     * status note empty and the dashboard sending the operator to add PTR
+     * records. Pinned to the primary, each first attempt is the refusal it
+     * really met; the retry walk asks the fallbacks too, and — the primary
+     * having failed — does not take their word for a private address.
+     */
+    expect(statusCounts(helmRefused)).toEqual({
+      [DiscoveredHostReverseDnsStatus.Unreachable]: KITCHEN.length,
+    });
+    expect(helmRefused.failedAddressCount).toBe(KITCHEN.length);
+    expect(helmRefused.hostnameByIpAddress.size).toBe(0);
+    expect(helmRefused.failureReason).toContain("ECONNREFUSED");
+
+    /*
+     * Each public resolver was asked about each host exactly ONCE — by the
+     * retry walk. The first attempt never reached it.
+     */
+    for (const publicResolver of refusedPublics) {
+      for (const ipAddress of KITCHEN) {
+        expect(
+          publicResolver.queriesFor(
+            `${ipAddress.split(".").reverse().join(".")}.in-addr.arpa`,
+          ),
+        ).toHaveLength(1);
+      }
+    }
+  });
+
+  it("calls DNS unusable, not 'no PTR record', on a sweep big enough to trip the breaker behind the refused CoreDNS", () => {
+    /*
+     * Sixty-four refusals trip the breaker; the rescue's canaries get only
+     * the fallbacks' NXDOMAIN, which it does not trust, and the primary's
+     * refusal again, so the pass stops as a probe whose DNS does not answer
+     * — which is the truth — with the two canaries asked out of turn
+     * reporting what they met.
+     */
+    expect(statusCounts(helmRefusedSweep)).toEqual({
+      [DiscoveredHostReverseDnsStatus.Unreachable]: 66,
+      [DiscoveredHostReverseDnsStatus.SkippedNoResolver]: 34,
+    });
+    expect(helmRefusedSweep.isReverseDnsAvailable).toBe(false);
+    expect(helmRefusedSweep.failedAddressCount).toBe(66);
+
+    // Only the three canaries' walks ever reached a public resolver.
+    for (const publicResolver of refusedPublics) {
+      const sweepQueries: Array<FakeDnsQuery> = publicResolver.queries.filter(
+        (query: FakeDnsQuery): boolean => {
+          return (
+            ipv4AddressOfReverseName(query.name)?.startsWith("10.16.46.") ===
+            true
+          );
+        },
+      );
+
+      expect(
+        sweepQueries
+          .map((query: FakeDnsQuery): string | undefined => {
+            return ipv4AddressOfReverseName(query.name);
+          })
+          .sort(),
+      ).toEqual(["10.16.46.1", "10.16.46.100", "10.16.46.65"]);
+    }
+  });
+
+  it("documents why: through a resolver it cannot pin, the refused primary's first attempt comes back as a public NXDOMAIN", async () => {
+    /*
+     * Not a test of the probe — a record, against the c-ares Node ships, of
+     * the behaviour the pinning exists for: the same three servers, asked as
+     * configured, answer a first attempt for a private address with the
+     * fallback's NXDOMAIN, well inside the two-second race. If this ever
+     * starts failing with ECONNREFUSED, c-ares has stopped failing over on a
+     * connection error and the pin is belt and braces.
+     */
+    const configured: Array<string> = [
+      refusedCoreDnsAddress,
+      refusedPublics[0]!.address,
+      refusedPublics[1]!.address,
+    ];
+    const pinnable: ReverseDnsResolverFactory =
+      loopbackResolverFactory(configured);
+    const unpinnable: ReverseDnsResolverFactory = (
+      timeoutInMs: number,
+    ): ReverseDnsResolverLike => {
+      const resolver: ReverseDnsResolverLike = pinnable(timeoutInMs);
+
+      return {
+        resolvePtr: (hostname: string): Promise<Array<string>> => {
+          return resolver.resolvePtr(hostname);
+        },
+        reverse: (ipAddress: string): Promise<Array<string>> => {
+          return resolver.reverse(ipAddress);
+        },
+        getServers: (): Array<string> => {
+          return resolver.getServers();
+        },
+        setServers: (): void => {
+          throw new TypeError("this resolver will not be pinned");
+        },
+        cancel: (): void => {
+          resolver.cancel();
+        },
+      };
+    };
+
+    await expect(
+      buildDefaultLookup(
+        DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS,
+        unpinnable,
+      )("10.16.47.1"),
+    ).rejects.toMatchObject({ code: "ENOTFOUND" });
+
+    await expect(
+      buildDefaultLookup(
+        DEFAULT_REVERSE_DNS_TIMEOUT_IN_MS,
+        pinnable,
+      )("10.16.47.2"),
+    ).rejects.toMatchObject({ code: "ECONNREFUSED" });
   });
 
   it("names from the primary the hosts a steering secondary would have filed as 'no record'", () => {

@@ -109,7 +109,7 @@ const REVERSE_DNS_SENTENCES: Record<DiscoveredHostReverseDnsStatus, string> = {
   [DiscoveredHostReverseDnsStatus.SkippedTimeBudget]:
     "Reverse DNS: not looked up. The scan ran out of time for name lookups before reaching this address.",
   [DiscoveredHostReverseDnsStatus.SkippedNoResolver]:
-    "Reverse DNS: not looked up. No lookup from this probe was getting an answer, so it stopped asking.",
+    "Reverse DNS: not looked up. The probe's DNS server was not answering, so it stopped asking.",
 };
 
 /*
@@ -165,7 +165,7 @@ export const SNMP_NO_SYSNAME_SENTENCE: string =
 export const NO_RECORD_TIP: string =
   "The probe uses its own DNS server, which may not be the one you checked with. Run nslookup on this address inside the probe's container or pod to compare.";
 export const TRANSIENT_FAILURE_TIP: string =
-  "Rescan to try again. If it keeps happening, check the DNS servers the probe's host uses.";
+  "Rescan to try again. If it keeps happening, check the DNS servers the probe uses, inside its container or pod.";
 
 /*
  * Offered when the scan left one or both of the ways of asking the DEVICE for

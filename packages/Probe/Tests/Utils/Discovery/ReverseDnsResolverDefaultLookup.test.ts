@@ -54,6 +54,15 @@ function methodsCalled(resolver: FakeReverseDnsResolver): Array<string> {
   });
 }
 
+/*
+ * The first call every first-pass lookup of an IPv4 address makes (#3916):
+ * reading the configuration, to pin a resolver with several servers to the
+ * primary. It sends nothing. With the fakes' default configuration — no
+ * servers — there is nothing to pin, and the query that follows is the only
+ * thing asked.
+ */
+const READ_CONFIGURATION: FakeResolverCall = { method: "getServers" };
+
 describe("toReverseLookupName — the in-addr.arpa name for an IPv4 address", () => {
   it.each([
     ["10.18.166.51", "51.166.18.10.in-addr.arpa"],
@@ -138,7 +147,9 @@ describe("buildDefaultLookup — which query an address is asked with", () => {
 
     expect(names).toEqual(["sw-core-01.corp.example.com"]);
     expect(factory.created).toHaveLength(1);
+    // The configuration read (nothing to pin: no servers), then ONE query.
     expect(factory.created[0]!.calls).toEqual([
+      READ_CONFIGURATION,
       { method: "resolvePtr", argument: "51.166.18.10.in-addr.arpa" },
     ]);
     // The first pass's own timeout, handed to the resolver unchanged.
@@ -168,7 +179,9 @@ describe("buildDefaultLookup — which query an address is asked with", () => {
     expect(factory.created).toHaveLength(3);
     expect(
       factory.created.map((resolver: FakeReverseDnsResolver): unknown => {
-        return resolver.calls[0]!.argument;
+        return resolver.calls.find((call: FakeResolverCall): boolean => {
+          return call.method === "resolvePtr";
+        })?.argument;
       }),
     ).toEqual([
       "1.0.0.10.in-addr.arpa",
@@ -240,9 +253,13 @@ describe("buildDefaultLookup — which query an address is asked with", () => {
       /*
        * And nothing else is asked: reverse() here would only turn the real
        * code back into ENOTFOUND, and the hosts file is the pass's business,
-       * read before any lookup (ReverseDnsResolverHostsFile.test.ts).
+       * read before any lookup (ReverseDnsResolverHostsFile.test.ts). The
+       * configuration read before the query sends nothing.
        */
-      expect(methodsCalled(factory.created[0]!)).toEqual(["resolvePtr"]);
+      expect(methodsCalled(factory.created[0]!)).toEqual([
+        "getServers",
+        "resolvePtr",
+      ]);
     },
   );
 });
@@ -283,6 +300,7 @@ describe("buildDefaultLookup — one DNS query, and never the hosts file", () =>
       expect(rejection).toBe(original);
       expect(factory.created).toHaveLength(1);
       expect(factory.created[0]!.calls).toEqual([
+        READ_CONFIGURATION,
         { method: "resolvePtr", argument: "70.42.16.10.in-addr.arpa" },
       ]);
     },
@@ -310,7 +328,10 @@ describe("buildDefaultLookup — one DNS query, and never the hosts file", () =>
       buildDefaultLookup(250, factory.create)("10.9.9.1"),
     ).rejects.toMatchObject({ code: "ENOTFOUND" });
 
-    expect(methodsCalled(factory.created[0]!)).toEqual(["resolvePtr"]);
+    expect(methodsCalled(factory.created[0]!)).toEqual([
+      "getServers",
+      "resolvePtr",
+    ]);
     expect(factory.created[0]!.cancelCount).toBe(0);
   });
 
@@ -338,6 +359,7 @@ describe("buildDefaultLookup — one DNS query, and never the hosts file", () =>
     await sleep(120);
 
     expect(methodsCalled(factory.created[0]!)).toEqual([
+      "getServers",
       "resolvePtr",
       "cancel",
     ]);
@@ -384,6 +406,310 @@ describe("buildDefaultLookup — the race", () => {
       50 + REVERSE_DNS_RETRY_RACE_SLACK_IN_MS / 2,
     );
   });
+});
+
+/*
+ * The first attempt asks the PRIMARY only (#3916).
+ *
+ * c-ares waits out a silent server before it moves on — which the first
+ * pass's race always ends first — but on a CONNECTION error it moves to the
+ * next server at once. The Helm chart gives the probe pod [cluster DNS,
+ * 8.8.8.8, 1.1.1.1], and a cluster DNS service with no ready endpoints is
+ * refused outright: every first attempt then fell through to a public
+ * resolver inside its two seconds, and that resolver's NXDOMAIN for a private
+ * address came back as a final "no PTR record" for every host — never
+ * retried, never counted as a failure. So a resolver configured with more
+ * than one server is pinned to the first before the query is sent, and a
+ * first-pass "no record" is always the primary's own word. The same thing
+ * against real c-ares, and the pass it produces, is in
+ * ReverseDnsResolverRealRescue.test.ts.
+ */
+describe("buildDefaultLookup — the primary nameserver only, when several are configured", () => {
+  const PRIMARY: string = "10.0.0.2";
+  const SECONDARY: string = "8.8.8.8";
+  const TERTIARY: string = "1.1.1.1";
+
+  /*
+   * What the query is asked of, recorded at the moment it is sent: the
+   * servers the resolver held THEN. A fake resolver still configured with
+   * the whole list plays c-ares failing over to a public resolver, which
+   * answers NXDOMAIN; one pinned to the primary gets the primary's answer.
+   */
+  interface HelmChartResolvers {
+    factory: FakeResolverFactory;
+    // Each query's servers, comma-joined, in the order the queries were sent.
+    askedOf: Array<string>;
+  }
+
+  function helmChartResolvers(
+    primaryAnswer: () => Promise<Array<string>>,
+    options?: {
+      setServers?: ((servers: Array<string>) => void) | undefined;
+    },
+  ): HelmChartResolvers {
+    const askedOf: Array<string> = [];
+
+    const factory: FakeResolverFactory = fakeResolverFactory({
+      servers: [PRIMARY, SECONDARY, TERTIARY],
+      setServers: options?.setServers,
+      resolvePtr: (
+        _hostname: string,
+        resolver: FakeReverseDnsResolver,
+      ): Promise<Array<string>> => {
+        const servers: string = resolver.servers.join(",");
+        askedOf.push(servers);
+
+        return servers === PRIMARY
+          ? primaryAnswer()
+          : Promise.reject(
+              fakeDnsError("ENOTFOUND", `queryPtr via ${servers}`),
+            );
+      },
+    });
+
+    return { factory: factory, askedOf: askedOf };
+  }
+
+  /*
+   * NOTE — the fake's setServers() records the call, then runs the script,
+   * then stores the servers; a script that throws leaves the resolver on
+   * its full configuration, which is what a real refusal does too.
+   */
+
+  it("pins a resolver configured with several servers to the FIRST, before the query is sent", async () => {
+    const helm: HelmChartResolvers = helmChartResolvers(
+      async (): Promise<Array<string>> => {
+        return ["kds-01.wbhq.example"];
+      },
+    );
+
+    await expect(
+      buildDefaultLookup(500, helm.factory.create)("10.16.42.51"),
+    ).resolves.toEqual(["kds-01.wbhq.example"]);
+
+    // One resolver, read, pinned, and only then asked.
+    expect(helm.factory.created).toHaveLength(1);
+    expect(helm.factory.created[0]!.calls).toEqual([
+      READ_CONFIGURATION,
+      { method: "setServers", argument: [PRIMARY] },
+      { method: "resolvePtr", argument: "51.42.16.10.in-addr.arpa" },
+    ]);
+    expect(helm.askedOf).toEqual([PRIMARY]);
+    // Still the first pass's own timeout: pinning changes where, not how long.
+    expect(helm.factory.created[0]!.timeoutInMs).toBe(500);
+  });
+
+  it("reports the refused primary's own ECONNREFUSED, never a public fallback's NXDOMAIN (the Helm chart's pod DNS)", async () => {
+    /*
+     * THE defect. Unpinned, this lookup would have come back ENOTFOUND —
+     * "no PTR record", final — from 8.8.8.8. Pinned, it is the primary's
+     * failure: an unreachable server, retried by the pass, where another
+     * server may still NAME the address but only the primary may say it has
+     * no record (buildDefaultRetryLookup, below).
+     */
+    const refused: Error = fakeDnsError("ECONNREFUSED");
+    const helm: HelmChartResolvers = helmChartResolvers(
+      (): Promise<Array<string>> => {
+        return Promise.reject(refused);
+      },
+    );
+
+    const rejection: unknown = await buildDefaultLookup(
+      500,
+      helm.factory.create,
+    )("10.16.42.51").catch((caught: unknown): unknown => {
+      return caught;
+    });
+
+    expect(rejection).toBe(refused);
+    expect(helm.askedOf).toEqual([PRIMARY]);
+  });
+
+  it("pins every lookup's own fresh resolver, each from the full configuration", async () => {
+    const helm: HelmChartResolvers = helmChartResolvers(
+      async (): Promise<Array<string>> => {
+        return ["kds.wbhq.example"];
+      },
+    );
+    const lookup: ReverseDnsLookupFunction = buildDefaultLookup(
+      500,
+      helm.factory.create,
+    );
+
+    await lookup("10.16.42.51");
+    await lookup("10.16.42.52");
+
+    expect(helm.factory.created).toHaveLength(2);
+
+    for (const resolver of helm.factory.created) {
+      expect(resolver.calls).toEqual([
+        READ_CONFIGURATION,
+        { method: "setServers", argument: [PRIMARY] },
+        {
+          method: "resolvePtr",
+          argument: resolver.calls[2]!.argument,
+        },
+      ]);
+    }
+
+    expect(helm.askedOf).toEqual([PRIMARY, PRIMARY]);
+  });
+
+  it("hands the primary back exactly as getServers() spelled it, port included", async () => {
+    // A loopback server on a port of its own, as the real-resolver suites use.
+    const factory: FakeResolverFactory = fakeResolverFactory({
+      servers: ["127.0.0.1:5353", SECONDARY],
+      resolvePtr: async (): Promise<Array<string>> => {
+        return ["kds-01.wbhq.example"];
+      },
+    });
+
+    await buildDefaultLookup(500, factory.create)("10.16.42.51");
+
+    expect(factory.created[0]!.calls[1]).toEqual({
+      method: "setServers",
+      argument: ["127.0.0.1:5353"],
+    });
+    expect(factory.created[0]!.servers).toEqual(["127.0.0.1:5353"]);
+  });
+
+  it.each([
+    ["one server", [PRIMARY]],
+    ["one server listed twice", [PRIMARY, PRIMARY]],
+    ["no server at all", []],
+  ])(
+    "pins nothing when the configuration holds %s: there is no fallback to fall through to",
+    async (_label: string, servers: Array<string>) => {
+      const factory: FakeResolverFactory = fakeResolverFactory({
+        servers: servers,
+        resolvePtr: async (): Promise<Array<string>> => {
+          return ["kds-01.wbhq.example"];
+        },
+      });
+
+      await expect(
+        buildDefaultLookup(500, factory.create)("10.16.42.51"),
+      ).resolves.toEqual(["kds-01.wbhq.example"]);
+
+      // Exactly the one-server lookup it always was, plus a read.
+      expect(factory.created[0]!.calls).toEqual([
+        READ_CONFIGURATION,
+        { method: "resolvePtr", argument: "51.42.16.10.in-addr.arpa" },
+      ]);
+    },
+  );
+
+  it.each([
+    [
+      "throws",
+      (): Array<string> => {
+        throw new Error("channel closed");
+      },
+    ],
+    [
+      "returns something that is not a list",
+      (): Array<string> => {
+        return "10.0.0.2,8.8.8.8" as unknown as Array<string>;
+      },
+    ],
+  ])(
+    "asks as configured when getServers() %s",
+    async (_label: string, getServers: () => Array<string>) => {
+      const factory: FakeResolverFactory = fakeResolverFactory({
+        getServers: getServers,
+        resolvePtr: async (): Promise<Array<string>> => {
+          return ["kds-01.wbhq.example"];
+        },
+      });
+
+      await expect(
+        buildDefaultLookup(500, factory.create)("10.16.42.51"),
+      ).resolves.toEqual(["kds-01.wbhq.example"]);
+      expect(methodsCalled(factory.created[0]!)).toEqual([
+        "getServers",
+        "resolvePtr",
+      ]);
+    },
+  );
+
+  it("still asks — as configured — when the resolver will not take the primary back", async () => {
+    /*
+     * A spelling setServers() refuses is not a reason to lose the lookup: the
+     * query goes out exactly as it did before pinning existed, to the whole
+     * configuration, and whatever that gets is the answer — here the
+     * fallback's NXDOMAIN, which is exactly what the pass got before #3916.
+     */
+    const helm: HelmChartResolvers = helmChartResolvers(
+      async (): Promise<Array<string>> => {
+        return ["never-pinned.example"];
+      },
+      {
+        setServers: (): void => {
+          throw new TypeError("ERR_INVALID_IP_ADDRESS");
+        },
+      },
+    );
+
+    await expect(
+      buildDefaultLookup(500, helm.factory.create)("10.16.42.51"),
+    ).rejects.toMatchObject({ code: "ENOTFOUND" });
+
+    expect(methodsCalled(helm.factory.created[0]!)).toEqual([
+      "getServers",
+      "setServers",
+      "resolvePtr",
+    ]);
+    expect(helm.askedOf).toEqual([[PRIMARY, SECONDARY, TERTIARY].join(",")]);
+  });
+
+  it("cancels the PINNED resolver's query when the race is lost", async () => {
+    const helm: HelmChartResolvers = helmChartResolvers(
+      (): Promise<Array<string>> => {
+        return neverSettles();
+      },
+    );
+
+    await expect(
+      buildDefaultLookup(20, helm.factory.create)("10.16.42.61"),
+    ).rejects.toMatchObject({ code: "ETIMEOUT" });
+
+    expect(helm.askedOf).toEqual([PRIMARY]);
+    expect(methodsCalled(helm.factory.created[0]!)).toEqual([
+      "getServers",
+      "setServers",
+      "resolvePtr",
+      "cancel",
+    ]);
+  });
+
+  it.each([
+    ["IPv6", "::1"],
+    ["a padded address", " 10.18.166.51 "],
+    ["a CIDR", "10.18.166.51/32"],
+  ])(
+    "neither reads nor pins anything for %s: reverse(), exactly as before",
+    async (_label: string, value: string) => {
+      /*
+       * reverse() has no per-server form worth pinning, and the sweep never
+       * produces these; a malformed one must still reach c-ares untouched,
+       * to be refused with EINVAL before a packet is built.
+       */
+      const factory: FakeResolverFactory = fakeResolverFactory({
+        servers: [PRIMARY, SECONDARY, TERTIARY],
+        reverse: (): Promise<Array<string>> => {
+          return Promise.reject(fakeDnsError("EINVAL", "getHostByAddr EINVAL"));
+        },
+      });
+
+      await expect(
+        buildDefaultLookup(500, factory.create)(value),
+      ).rejects.toMatchObject({ code: "EINVAL" });
+
+      expect(factory.created[0]!.calls).toEqual([
+        { method: "reverse", argument: value },
+      ]);
+    },
+  );
 });
 
 describe("buildDefaultRetryLookup — each configured nameserver, in turn", () => {
@@ -940,7 +1266,11 @@ describe("the retry's budget, as shipped", () => {
  * down. There, and only there, the primary is asked last until it names
  * something, a server that has NAMED something is asked first, and its
  * NXDOMAIN is trusted: a name for a private address is what a public
- * resolver never gives.
+ * resolver never gives. Only a PRIVATE address earns that (10/8, 172.16/12,
+ * 192.168/16, 100.64/10 — the zones RFC 6303 has a public resolver answer
+ * NXDOMAIN for itself): a public resolver naming a public host in the same
+ * sweep shows nothing about the probe's internal zones, and trusting it
+ * filed every private host behind a dead primary as "no PTR record".
  *
  * Both replaced a shared "server health" record the retry walk used to keep,
  * which inferred a dead primary from retry walks alone — and a primary that
@@ -1221,7 +1551,7 @@ describe("the server walks — whose word ends the walk, and who is asked first"
       expect(pinnedSince(factory, 0)).toEqual([SECONDARY, TERTIARY, PRIMARY]);
     });
 
-    it("trusts the NXDOMAIN of a server once it has named something, and asks it first", async () => {
+    it("trusts the NXDOMAIN of a server once it has named a PRIVATE address, and asks it first", async () => {
       const factory: FakeResolverFactory = scriptedServers({
         outcomes: {
           [PRIMARY]: timingOut,
@@ -1246,6 +1576,130 @@ describe("the server walks — whose word ends the walk, and who is asked first"
       // The naming server first, and its word ends the walk at once.
       expect(pinnedSince(factory, before)).toEqual([TERTIARY]);
     });
+
+    function namingOnlyPublic(ipAddress: string): Promise<Array<string>> {
+      return ipAddress.startsWith("198.51.100.")
+        ? naming(ipAddress)
+        : noRecord();
+    }
+
+    it("does not trust a server that has named only a PUBLIC address: its NXDOMAIN for a private one leaves the primary's failure", async () => {
+      /*
+       * The reviewers' reproduction, one walk at a time: a dead primary, and
+       * a public resolver that names the sweep's public hosts and answers
+       * NXDOMAIN for every private one. It named 198.51.100.7 — which proves
+       * it is a working resolver, not that it holds 10.16.42.0/24.
+       */
+      const factory: FakeResolverFactory = scriptedServers({
+        outcomes: { [PRIMARY]: timingOut, [SECONDARY]: namingOnlyPublic },
+        configured: [PRIMARY, SECONDARY],
+      });
+      const rescue: ReverseDnsLookupFunction = buildDefaultRescueLookup(
+        4000,
+        factory.create,
+      );
+
+      await expect(rescue("198.51.100.7")).resolves.toEqual([
+        "host-198.51.100.7.wbhq.example",
+      ]);
+
+      const before: number = factory.created.length;
+      const rejection: unknown = await rejectionOf(rescue("10.16.42.51"));
+
+      expect(codeOf(rejection)).toBe("ETIMEOUT");
+      // Its NXDOMAIN did not end the walk: the primary was still asked.
+      expect(pinnedSince(factory, before)).toEqual([SECONDARY, PRIMARY]);
+    });
+
+    it("does not move a server that has named only a PUBLIC address ahead of the others", async () => {
+      const factory: FakeResolverFactory = scriptedServers({
+        outcomes: {
+          [PRIMARY]: timingOut,
+          [SECONDARY]: noRecord,
+          [TERTIARY]: namingOnlyPublic,
+        },
+        configured: [PRIMARY, SECONDARY, TERTIARY],
+      });
+      const rescue: ReverseDnsLookupFunction = buildDefaultRescueLookup(
+        4000,
+        factory.create,
+      );
+
+      await rescue("198.51.100.7");
+      expect(pinnedSince(factory, 0)).toEqual([SECONDARY, TERTIARY]);
+
+      const before: number = factory.created.length;
+      const rejection: unknown = await rejectionOf(rescue("10.16.42.51"));
+
+      // Configured order, primary last — not the tertiary first.
+      expect(pinnedSince(factory, before)).toEqual([
+        SECONDARY,
+        TERTIARY,
+        PRIMARY,
+      ]);
+      expect(codeOf(rejection)).toBe("ETIMEOUT");
+    });
+
+    it.each([
+      // RFC 1918, and RFC 6598's shared address space, edge to edge.
+      ["10.0.0.1", true],
+      ["10.255.255.254", true],
+      ["172.16.0.1", true],
+      ["172.31.255.254", true],
+      ["192.168.1.1", true],
+      ["100.64.0.1", true],
+      ["100.127.255.254", true],
+      // Just outside each of them, and ordinary public addresses.
+      ["172.15.255.254", false],
+      ["172.32.0.1", false],
+      ["192.169.1.1", false],
+      ["100.63.255.254", false],
+      ["100.128.0.1", false],
+      ["11.0.0.1", false],
+      ["198.51.100.7", false],
+      ["8.8.8.8", false],
+    ])(
+      "after a server names %s, trusts it with the private zones: %s",
+      async (namedAddress: string, isTrusted: boolean) => {
+        const factory: FakeResolverFactory = scriptedServers({
+          outcomes: {
+            [PRIMARY]: timingOut,
+            [SECONDARY]: noRecord,
+            [TERTIARY]: (ipAddress: string): Promise<Array<string>> => {
+              return ipAddress === namedAddress
+                ? naming(ipAddress)
+                : noRecord();
+            },
+          },
+          configured: [PRIMARY, SECONDARY, TERTIARY],
+        });
+        const rescue: ReverseDnsLookupFunction = buildDefaultRescueLookup(
+          4000,
+          factory.create,
+        );
+
+        await expect(rescue(namedAddress)).resolves.toEqual([
+          `host-${namedAddress}.wbhq.example`,
+        ]);
+
+        const before: number = factory.created.length;
+        const rejection: unknown = await rejectionOf(rescue("10.16.42.52"));
+
+        if (isTrusted) {
+          // Asked first, and its "no record" is the answer.
+          expect(pinnedSince(factory, before)).toEqual([TERTIARY]);
+          expect(codeOf(rejection)).toBe("ENOTFOUND");
+        } else {
+          // Nothing learned: the primary's failure stands.
+          expect(pinnedSince(factory, before)).toEqual([
+            SECONDARY,
+            TERTIARY,
+            PRIMARY,
+          ]);
+          expect(codeOf(rejection)).toBe("ETIMEOUT");
+        }
+      },
+    );
 
     it("takes the primary's own NXDOMAIN as final even when it is asked last", async () => {
       const factory: FakeResolverFactory = scriptedServers({

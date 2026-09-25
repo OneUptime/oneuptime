@@ -565,7 +565,13 @@ describe("ReverseDnsResolver — which hosts file, by default", () => {
     return reads;
   }
 
-  it("reads the system hosts file once per resolver — and only when it is first needed — on the default wiring", async () => {
+  /*
+   * Once per PASS, and only when the pass first needs it (#3916). An
+   * instance reused for a second pass reads the file again, so a device the
+   * operator added to /etc/hosts between scans is named by the next one —
+   * the same reason the retry and rescue lookups are built per pass.
+   */
+  it("reads the system hosts file once per pass — and only when the pass first needs it — on the default wiring", async () => {
     const reads: Array<string> = spyOnHostsFileReads();
     const created: Array<FakeReverseDnsResolver> = [];
 
@@ -604,7 +610,7 @@ describe("ReverseDnsResolver — which hosts file, by default", () => {
     expect(second.hostnameByIpAddress.get("10.16.42.51")).toBe(
       "kds01.wbhq.com",
     );
-    expect(reads).toEqual([SYSTEM_HOSTS_FILE_PATH]);
+    expect(reads).toEqual([SYSTEM_HOSTS_FILE_PATH, SYSTEM_HOSTS_FILE_PATH]);
 
     // Only 10.16.42.52 ever reached DNS.
     const askedNames: Array<unknown> = created.flatMap(

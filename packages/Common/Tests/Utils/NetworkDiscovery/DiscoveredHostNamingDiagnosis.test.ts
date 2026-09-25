@@ -152,7 +152,7 @@ const REVERSE_DNS_COPY: Array<
   ],
   [
     DiscoveredHostReverseDnsStatus.SkippedNoResolver,
-    "Reverse DNS: not looked up. No lookup from this probe was getting an answer, so it stopped asking.",
+    "Reverse DNS: not looked up. The probe's DNS server was not answering, so it stopped asking.",
     TRANSIENT_FAILURE_TIP,
   ],
 ];
@@ -466,7 +466,7 @@ describe("the fixed copy", () => {
     [
       "TRANSIENT_FAILURE_TIP",
       TRANSIENT_FAILURE_TIP,
-      "Rescan to try again. If it keeps happening, check the DNS servers the probe's host uses.",
+      "Rescan to try again. If it keeps happening, check the DNS servers the probe uses, inside its container or pod.",
     ],
     [
       "ASK_THE_DEVICE_TIP",
