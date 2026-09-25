@@ -3,6 +3,10 @@ import {
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import User from "Common/Models/DatabaseModels/User";
+import HashedString from "Common/Types/HashedString";
+import { JSONObject } from "Common/Types/JSON";
+import { expect } from "@jest/globals";
 
 export type RouteHandler = (
   req: ExpressRequest,
@@ -156,4 +160,112 @@ export const buildResponse: BuildResponseFunction = (): ExpressResponse => {
     clearCookie: jest.fn().mockReturnThis(),
     setHeader: jest.fn().mockReturnThis(),
   } as unknown as ExpressResponse;
+};
+
+/*
+ * The User columns that must never appear in a response body from an identity
+ * route: the credential pair, and every other secret or proof-of-possession
+ * value the table holds.
+ */
+export const USER_SECRET_COLUMNS: ReadonlyArray<keyof User> = [
+  "password",
+  "passwordSalt",
+  "resetPasswordToken",
+  "resetPasswordExpires",
+  "webauthnRegistrationChallenge",
+  "webauthnRegistrationChallengeExpiresAt",
+  "webauthnAuthenticationChallenge",
+  "webauthnAuthenticationChallengeExpiresAt",
+  "alertPhoneVerificationCode",
+  "paymentProviderCustomerId",
+];
+
+export type WithSecretColumnsFunction = (user: User) => User;
+
+/*
+ * Loads `user` with a value in every column of USER_SECRET_COLUMNS, the way the
+ * write path leaves a freshly created row: the password replaced by its hash
+ * and the salt minted onto the same model (DatabaseService.hashColumnValue).
+ * Mutates and returns `user`, so a mock can hand back the very model the
+ * handler passed in, exactly as `UserService.create` does.
+ */
+export const withSecretColumns: WithSecretColumnsFunction = (
+  user: User,
+): User => {
+  user.password = new HashedString("scrypt$stored-password-hash", true);
+  user.passwordSalt = "stored-password-salt";
+  user.resetPasswordToken = "stored-reset-password-token";
+  user.resetPasswordExpires = new Date();
+  user.webauthnRegistrationChallenge = "stored-registration-challenge";
+  user.webauthnRegistrationChallengeExpiresAt = new Date();
+  user.webauthnAuthenticationChallenge = "stored-authentication-challenge";
+  user.webauthnAuthenticationChallengeExpiresAt = new Date();
+  user.alertPhoneVerificationCode = "123456";
+  user.paymentProviderCustomerId = "cus_stored";
+
+  return user;
+};
+
+export type SentEntityBodyFunction = (
+  sendEntityResponseArgs: Array<unknown>,
+) => JSONObject;
+
+/*
+ * The JSON body the REAL `Response.sendEntityResponse` would have put on the
+ * wire, for one call captured by a suite's Response mock.
+ *
+ * The identity suites mock Response to see what a handler answered with, so
+ * nothing in them ever serializes the entity -- and serialization is where a
+ * credential leak happens: the real serializer writes out every column that is
+ * set on the model, whatever its read permissions say. Inspecting the captured
+ * model's fields instead would test how the mock built it, and a plain object
+ * standing in for a User serializes to `{}`, which would pass any "no password
+ * in the response" check without the route doing anything. Replaying the call
+ * through the real implementation checks what the caller actually receives.
+ */
+export const sentEntityBody: SentEntityBodyFunction = (
+  sendEntityResponseArgs: Array<unknown>,
+): JSONObject => {
+  const actualResponse: typeof import("Common/Server/Utils/Response") =
+    jest.requireActual("Common/Server/Utils/Response");
+
+  const res: ExpressResponse = buildResponse();
+
+  actualResponse.default.sendEntityResponse(
+    buildRequest(undefined),
+    res,
+    sendEntityResponseArgs[2] as User | null,
+    sendEntityResponseArgs[3] as typeof User,
+    sendEntityResponseArgs[4] as { miscData?: JSONObject } | undefined,
+  );
+
+  const send: jest.Mock = res.send as unknown as jest.Mock;
+
+  expect(send).toHaveBeenCalledTimes(1);
+
+  // Through JSON text and back, as Express does before it reaches the client.
+  return JSON.parse(JSON.stringify(send.mock.calls[0]![0])) as JSONObject;
+};
+
+export type ExpectNoUserSecretsFunction = (body: JSONObject) => void;
+
+export const expectNoUserSecrets: ExpectNoUserSecretsFunction = (
+  body: JSONObject,
+): void => {
+  for (const column of USER_SECRET_COLUMNS) {
+    expect(body).not.toHaveProperty(column);
+  }
+
+  /*
+   * Belt and braces against a secret riding in under another key: none of
+   * the stored values may appear anywhere in the body.
+   */
+  const text: string = JSON.stringify(body);
+
+  expect(text).not.toContain("stored-password-hash");
+  expect(text).not.toContain("stored-password-salt");
+  expect(text).not.toContain("stored-reset-password-token");
+  expect(text).not.toContain("stored-registration-challenge");
+  expect(text).not.toContain("stored-authentication-challenge");
+  expect(text).not.toContain("cus_stored");
 };
