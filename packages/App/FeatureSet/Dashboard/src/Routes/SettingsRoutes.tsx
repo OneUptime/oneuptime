@@ -39,6 +39,7 @@ import SettingsMicrosoftTeamsIntegration from "../Pages/Settings/MicrosoftTeamsI
 
 import SettingsUsageHistory from "../Pages/Settings/UsageHistory";
 
+import SettingsDiscordIntegration from "../Pages/Settings/DiscordIntegration";
 import SettingsSlackIntegration from "../Pages/Settings/SlackIntegration";
 
 import SettingsMobileApps from "../Pages/Settings/MobileApps";
@@ -267,6 +268,20 @@ const SettingsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.SETTINGS_NOTIFICATION_SETTINGS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.SETTINGS_DISCORD_INTEGRATION,
+          )}
+          element={
+            <SettingsDiscordIntegration
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.SETTINGS_DISCORD_INTEGRATION] as Route
               }
             />
           }

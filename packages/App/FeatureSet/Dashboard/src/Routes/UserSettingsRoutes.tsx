@@ -23,6 +23,7 @@ import UserSettingsNotificationLogs from "../Pages/UserSettings/OnCallLogs";
 import UserSettingsNotificationLogsTimeline from "../Pages/UserSettings/OnCallLogsTimeline";
 import UserSettingsNotiifcationSetting from "../Pages/UserSettings/NotificationSettings";
 
+import UserSettingsDiscordIntegration from "../Pages/UserSettings/DiscordIntegration";
 import UserSettingsSlackIntegration from "../Pages/UserSettings/SlackIntegration";
 
 import UserSettingsIncomingCallPhoneNumbers from "../Pages/UserSettings/IncomingCallPhoneNumbers";
@@ -136,6 +137,21 @@ const UserSettingsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.USER_SETTINGS_INCIDENT_ON_CALL_RULES] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={
+            UserSettingsRoutePath[PageMap.USER_SETTINGS_DISCORD_INTEGRATION] ||
+            ""
+          }
+          element={
+            <UserSettingsDiscordIntegration
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.USER_SETTINGS_DISCORD_INTEGRATION] as Route
               }
             />
           }

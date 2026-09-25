@@ -1194,6 +1194,15 @@ export const AverageProfileSampleRowSizeInBytes: number =
 export const AverageSecurityEventRowSizeInBytes: number =
   parsePositiveNumberFromEnv("AVERAGE_SECURITY_EVENT_ROW_SIZE_IN_BYTES", 2048);
 
+export const DiscordAppClientId: string | null =
+  process.env["DISCORD_APP_CLIENT_ID"] || null;
+export const DiscordAppClientSecret: string | null =
+  process.env["DISCORD_APP_CLIENT_SECRET"] || null;
+export const DiscordBotToken: string | null =
+  process.env["DISCORD_BOT_TOKEN"] || null;
+export const DiscordAppPublicKey: string | null =
+  process.env["DISCORD_APP_PUBLIC_KEY"] || null;
+
 export const SlackAppClientId: string | null =
   process.env["SLACK_APP_CLIENT_ID"] || null;
 export const SlackAppClientSecret: string | null =

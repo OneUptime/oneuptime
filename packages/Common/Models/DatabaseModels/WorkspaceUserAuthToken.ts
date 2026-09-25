@@ -26,6 +26,14 @@ export interface SlackMiscData extends MiscData {
   userId: string;
 }
 
+export interface DiscordMiscData extends MiscData {
+  userId: string;
+  username: string;
+  displayName: string;
+}
+
+export type WorkspaceUserMiscData = SlackMiscData | DiscordMiscData;
+
 @TenantColumn("projectId")
 @TableAccessControl({
   create: [Permission.CurrentUser],
