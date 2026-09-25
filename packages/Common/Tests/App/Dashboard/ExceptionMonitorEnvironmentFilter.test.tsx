@@ -5,11 +5,11 @@
  */
 import "@testing-library/jest-dom";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
-  waitFor,
 } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import {
@@ -119,13 +119,33 @@ function latestPreviewQuery(): JSONObject {
   return previewQueries[previewQueries.length - 1]!;
 }
 
+// ExceptionMonitorStepForm's preview debounce.
+const PREVIEW_DEBOUNCE_MS: number = 500;
+
+/*
+ * Runs the preview debounce out on jest's clock, inside act() so the render
+ * it triggers has committed when this returns. This used to be a real-time
+ * waitFor with a 3s budget, which was not enough on a loaded CI runner: when
+ * the worker's event loop stalled past 3s (a major GC is enough), the
+ * debounce and waitFor's timeout were both overdue and fired in the same
+ * timers phase - the debounce only scheduling React's render, the timeout
+ * rejecting before that render ran.
+ */
+function runPreviewDebounce(): void {
+  act(() => {
+    jest.advanceTimersByTime(PREVIEW_DEBOUNCE_MS);
+  });
+}
+
 describe("Exceptions monitor form — environment filter", () => {
   beforeEach(() => {
     previewQueries = [];
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
     cleanup();
+    jest.useRealTimers();
   });
 
   test("offers an Environments field without opening the advanced options", () => {
@@ -143,7 +163,7 @@ describe("Exceptions monitor form — environment filter", () => {
     expect(latestPreviewQuery()["environment"]).toBeUndefined();
   });
 
-  test("typing environments saves them and narrows the preview", async () => {
+  test("typing environments saves them and narrows the preview", () => {
     const recorder: Recorder = renderForm({ exceptionTypes: ["TypeError"] });
 
     fireEvent.change(environmentsInput(), {
@@ -155,15 +175,14 @@ describe("Exceptions monitor form — environment filter", () => {
     expect(recorder.latest?.exceptionTypes).toEqual(["TypeError"]);
 
     // The preview is debounced so typing does not refetch per keystroke.
-    await waitFor(
-      () => {
-        expect(latestPreviewQuery()["environment"]).toEqual({
-          _type: "Includes",
-          value: ["production", "staging"],
-        });
-      },
-      { timeout: 3000 },
-    );
+    expect(latestPreviewQuery()["environment"]).toBeUndefined();
+
+    runPreviewDebounce();
+
+    expect(latestPreviewQuery()["environment"]).toEqual({
+      _type: "Includes",
+      value: ["production", "staging"],
+    });
     expect(latestPreviewQuery()["exceptionType"]).toEqual({
       _type: "Includes",
       value: ["TypeError"],
@@ -201,18 +220,19 @@ describe("Exceptions monitor form — environment filter", () => {
     });
   });
 
-  test("clearing the field goes back to every environment", async () => {
+  test("clearing the field goes back to every environment", () => {
     const recorder: Recorder = renderForm({ environments: ["production"] });
 
     fireEvent.change(environmentsInput(), { target: { value: "" } });
 
     expect(recorder.latest?.environments).toEqual([]);
+    expect(latestPreviewQuery()["environment"]).toEqual({
+      _type: "Includes",
+      value: ["production"],
+    });
 
-    await waitFor(
-      () => {
-        expect(latestPreviewQuery()["environment"]).toBeUndefined();
-      },
-      { timeout: 3000 },
-    );
+    runPreviewDebounce();
+
+    expect(latestPreviewQuery()["environment"]).toBeUndefined();
   });
 });
