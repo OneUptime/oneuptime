@@ -32,6 +32,7 @@ import PositiveNumber from "Common/Types/PositiveNumber";
 import DatabaseServerDiscoverySource from "Common/Types/DatabaseServer/DatabaseServerDiscoverySource";
 import {
   ContainerDatabaseClassification,
+  ContainerWorkloadKind,
   DATABASE_OPERATOR_LABEL_KEYS,
   DATABASE_WORKLOAD_NAME_LABEL_VALUES,
   KubernetesContainerLike,
@@ -269,6 +270,8 @@ export interface ContainerRowLike extends MemberTiming {
 
 export interface ContainerDatabaseGroup {
   system: string;
+  // A Compose or Swarm service when any member was grouped by one.
+  workloadKind: ContainerWorkloadKind;
   workloadName: string;
   containerNames: Array<string>;
   // Full (64-hex) container ids only — the form telemetry is keyed by.
@@ -1753,6 +1756,13 @@ async function discoverKubernetesCluster(data: {
 
 // ---- Docker / Podman ------------------------------------------------------
 
+// Which kind a group takes when its members disagree: a service over a container.
+const CONTAINER_WORKLOAD_KIND_RANK: Record<ContainerWorkloadKind, number> = {
+  [ContainerWorkloadKind.Container]: 0,
+  [ContainerWorkloadKind.ComposeService]: 1,
+  [ContainerWorkloadKind.SwarmService]: 2,
+};
+
 /**
  * Container rows → one entry per database workload (engine FAMILY + Swarm /
  * Compose service, else the container name - the parts of its family-keyed
@@ -1817,6 +1827,7 @@ export function groupContainerDatabases(
     if (!group) {
       group = {
         system: classification.system,
+        workloadKind: classification.workloadKind,
         workloadName: classification.workloadName,
         containerNames: [],
         containerIds: [],
@@ -1831,6 +1842,16 @@ export function groupContainerDatabases(
       continue;
     }
     group.containerNames.push(classification.containerName);
+    /*
+     * A lone container whose name equals a service's `<project>-<service>`
+     * shares that service's group; the group is still the service.
+     */
+    if (
+      CONTAINER_WORKLOAD_KIND_RANK[classification.workloadKind] >
+      CONTAINER_WORKLOAD_KIND_RANK[group.workloadKind]
+    ) {
+      group.workloadKind = classification.workloadKind;
+    }
 
     const reports: Array<{ system: string; version: string | null }> =
       reportsByKey.get(key) || [];
@@ -2072,7 +2093,7 @@ async function discoverContainerHost(data: {
           ),
           instanceCount: group.instanceCount,
           dbVersion: group.version || undefined,
-          workloadKind: "Container",
+          workloadKind: group.workloadKind,
           workloadName: group.workloadName,
           ...(platform === "docker"
             ? { dockerHostId: hostId }

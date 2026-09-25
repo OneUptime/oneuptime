@@ -1,5 +1,8 @@
 import AggregationType from "../BaseDatabase/AggregationType";
-import { getDatabaseSystemMetricsEngine } from "./DatabaseSystem";
+import {
+  getDatabaseSystemMetricsEngine,
+  normalizeDatabaseSystem,
+} from "./DatabaseSystem";
 
 /*
  * The curated engine metrics a Database's Overview charts, per engine, from
@@ -89,6 +92,12 @@ export interface DatabaseServerMetricDefinition {
    * the receiver emits it by default.
    */
   enabledByDefault?: boolean | undefined;
+  /*
+   * Engines of the family the receiver never emits this metric for (the
+   * server has nothing to read it from), so their Overview leaves it out
+   * instead of charting a tile that stays empty.
+   */
+  notEmittedFor?: ReadonlyArray<string> | undefined;
 }
 
 /*
@@ -276,6 +285,12 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
       kind: "counter",
       seriesCombine: "sum",
     },
+    /*
+     * From the Innodb_rows_* status counters, which MariaDB does not have
+     * (`SHOW GLOBAL STATUS LIKE 'Innodb_rows%'` is empty on 11.4): the
+     * receiver sends nothing for it there, so MariaDB is left out. Its
+     * row reads and writes show in Handler operations.
+     */
     {
       system: "mysql",
       metricName: "mysql.row_operations",
@@ -286,6 +301,7 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
       aggregation: AggregationType.Max,
       kind: "counter",
       seriesCombine: "sum",
+      notEmittedFor: ["mariadb"],
     },
     {
       system: "mysql",
@@ -863,8 +879,9 @@ export const DATABASE_SERVER_METRICS: ReadonlyArray<DatabaseServerMetricDefiniti
  * The curated metrics for an engine, in display order. Aliases are accepted
  * ("postgres" → PostgreSQL's), and a fork its family's receiver monitors
  * gets its family's set (Valkey → Redis's, MariaDB → MySQL's, OpenSearch →
- * Elasticsearch's: that receiver's metric names are what arrive). Empty for
- * an engine without a curated set — the Overview then shows its "engine
+ * Elasticsearch's: that receiver's metric names are what arrive), less the
+ * entries the receiver never emits for that fork (`notEmittedFor`). Empty
+ * for an engine without a curated set — the Overview then shows its "engine
  * metrics not connected" state.
  */
 export function getDatabaseServerMetrics(
@@ -874,9 +891,13 @@ export function getDatabaseServerMetrics(
   if (!engine) {
     return [];
   }
+  const exact: string | null = normalizeDatabaseSystem(system);
   return DATABASE_SERVER_METRICS.filter(
     (metric: DatabaseServerMetricDefinition): boolean => {
-      return metric.system === engine;
+      return (
+        metric.system === engine &&
+        !(exact && metric.notEmittedFor?.includes(exact))
+      );
     },
   );
 }

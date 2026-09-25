@@ -3726,7 +3726,8 @@ describe("Docker and Podman", () => {
     ]);
     expect(args.instanceCount).toBe(1);
     expect(args.dbVersion).toBe("16.1");
-    expect(args.workloadKind).toBe("Container");
+    // Grouped by its Compose labels: the workload is the service.
+    expect(args.workloadKind).toBe("Compose service");
     expect(args.workloadName).toBe("shop-postgres");
     expect(args.dockerHostId?.toString()).toBe(DOCKER_HOST);
     expect(args.podmanHostId).toBeUndefined();
@@ -3843,6 +3844,7 @@ describe("Docker and Podman", () => {
       "redis|docker:docker-host-1/redis-6380",
     );
     expect(first.instanceCount).toBe(1);
+    expect(first.workloadKind).toBe("Container");
     expect(first.dbVersion).toBe("7.2");
     expect(first.memberKeysSeenNow).toEqual([
       keyForContainer(PROJECT_A, FULL_ID_1),
@@ -3897,9 +3899,11 @@ describe("Docker and Podman", () => {
     await runTick();
 
     expect(finalUpserts()).toHaveLength(1);
-    expect(
-      upsertFor("postgresql|docker:docker-host-1/mystack_db").instanceCount,
-    ).toBe(2);
+    const swarm: UpsertArgs = upsertFor(
+      "postgresql|docker:docker-host-1/mystack_db",
+    );
+    expect(swarm.instanceCount).toBe(2);
+    expect(swarm.workloadKind).toBe("Swarm service");
   });
 
   test("regression: Testcontainers runs and `docker compose run` one-offs never become databases", async () => {
@@ -3995,9 +3999,16 @@ describe("Docker and Podman", () => {
     expect(compose.displayName).toBe(
       "PostgreSQL e2e-docker-spans-compose-postgres",
     );
+    /*
+     * Regression (live re-verification): this row was stored as a
+     * "Container", so its feed said "detected from container
+     * e2e-docker-spans-compose-postgres" — a name no container has.
+     */
+    expect(compose.workloadKind).toBe("Compose service");
     expect(
-      upsertFor("postgresql|docker:e2e-docker-host/e2e-docker-spans-pg-2"),
-    ).toBeDefined();
+      upsertFor("postgresql|docker:e2e-docker-host/e2e-docker-spans-pg-2")
+        .workloadKind,
+    ).toBe("Container");
     // Nothing for tc-pg or compose-oneoff; both were created at once (up 1 h 43 min).
     expect(created().sort()).toEqual([
       "postgresql|docker:e2e-docker-host/e2e-docker-spans-compose-postgres",
@@ -4410,6 +4421,31 @@ describe("groupContainerDatabases", () => {
     expect(groups[0]!.version).toBe("16.1");
     expect(groups[0]!.instanceCount).toBe(2);
     expect(groups[0]!.mayCreate).toBe(true);
+  });
+
+  test("a group is the service its members were grouped by, even with a lone container of the same name", () => {
+    // Whether the lone container sorts before the replica ("a-pg" < "a-pg-1") or after ("b-db-1" < "b-pg").
+    for (const [loneName, replicaName, project] of [
+      ["a-pg", "a-pg-1", "a"],
+      ["b-pg", "b-db-1", "b"],
+    ] as Array<[string, string, string]>) {
+      const groups: Array<ContainerDatabaseGroup> = groupContainerDatabases([
+        container({ name: loneName, imageName: "postgres:16", labels: null }),
+        container({
+          name: replicaName,
+          imageName: "postgres:16",
+          labels: composeLabels(project, "pg"),
+        }),
+      ]);
+      expect(groups).toHaveLength(1);
+      expect(groups[0]!.containerNames).toHaveLength(2);
+      expect(groups[0]!.workloadKind).toBe("Compose service");
+    }
+
+    const plain: Array<ContainerDatabaseGroup> = groupContainerDatabases([
+      container({ name: "pg", imageName: "postgres:16" }),
+    ]);
+    expect(plain[0]!.workloadKind).toBe("Container");
   });
 
   test("dedupes container names and ids and ignores non-hex ids", () => {

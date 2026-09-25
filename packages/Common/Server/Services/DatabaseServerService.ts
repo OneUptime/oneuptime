@@ -65,6 +65,7 @@ import {
   getMoreSpecificDatabaseSystem,
   normalizeDatabaseSystem,
 } from "../../Types/DatabaseServer/DatabaseSystem";
+import { ContainerWorkloadKind } from "../../Types/DatabaseServer/DatabaseContainerClassifier";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import { JSONObject } from "../../Types/JSON";
@@ -3508,19 +3509,20 @@ export class Service extends DatabaseService<Model> {
         const hostName: string | null = isDocker
           ? await this.readParentName("docker", row.dockerHostId)
           : await this.readParentName("podman", row.podmanHostId);
-        const container: string = row.workloadName
-          ? `container ${row.workloadName}`
-          : "a container";
+        const workload: string = describeContainerWorkload(row);
+        const service: string | null = containerServiceKind(row);
 
         return {
           emoji: "🤖",
-          summary: `was created automatically: detected from ${container}${
+          summary: `was created automatically: detected from ${workload}${
             hostName
               ? ` on ${platform} host ${hostName}`
               : ` on a ${platform} host`
           }`,
           createdBy: automatic,
-          explanation: `The ${platform} agent reports the containers of the host. OneUptime found a database engine running in this container and registered it as a database.`,
+          explanation: service
+            ? `The ${platform} agent reports the containers of the host. OneUptime found a database engine running in the containers of this ${service} and registered the service as one database, its containers as members.`
+            : `The ${platform} agent reports the containers of the host. OneUptime found a database engine running in this container and registered it as a database.`,
         };
       }
       case DatabaseServerDiscoverySource.ClientSpans:
@@ -4131,6 +4133,35 @@ function describeKubernetesWorkload(row: Model): string {
   }
 
   return `the pods of ${kind ? `${kind} ` : ""}${name}`;
+}
+
+/*
+ * "Compose service" / "Swarm service" when a Docker or Podman row's
+ * containers were grouped by one; null for a container of its own.
+ */
+function containerServiceKind(row: Model): string | null {
+  const kind: string | null = cleanShortText(row.workloadKind);
+
+  return kind === ContainerWorkloadKind.ComposeService ||
+    kind === ContainerWorkloadKind.SwarmService
+    ? kind
+    : null;
+}
+
+/*
+ * "container e2e-receivers-mariadb", "Compose service shop-postgres",
+ * "Swarm service mystack_db" - the workload a Docker or Podman row was
+ * detected from, for its Created feed item.
+ */
+function describeContainerWorkload(row: Model): string {
+  const name: string | null = cleanLongText(row.workloadName);
+  const service: string | null = containerServiceKind(row);
+
+  if (service) {
+    return name ? `${service} ${name}` : `a ${service}`;
+  }
+
+  return name ? `container ${name}` : "a container";
 }
 
 // The endpoint a row was created for: what discovery saw, else its own columns.

@@ -206,10 +206,70 @@ const RECEIVER_DATAPOINT_ATTRIBUTES: Record<string, Array<string>> = {
 /*
  * Every metric the e2e run's Database Agents (collector-contrib 0.161.0)
  * delivered for these engines, read back from ClickHouse: Elasticsearch
- * 8.15.3, OpenSearch 2.17.1 (the same receiver) and Memcached 1.6. A
- * curated tile for anything else would stay empty.
+ * 8.15.3, OpenSearch 2.17.1 (the same receiver), Memcached 1.6, MySQL
+ * 8.4.11 and MariaDB 11.4.13 (the same receiver). A curated tile for
+ * anything else would stay empty.
  */
 const SEEN_ARRIVING_FROM_AGENT: Record<string, Array<string>> = {
+  mysql: [
+    "mysql.buffer_pool.data_pages",
+    "mysql.buffer_pool.limit",
+    "mysql.buffer_pool.operations",
+    "mysql.buffer_pool.page_flushes",
+    "mysql.buffer_pool.pages",
+    "mysql.buffer_pool.usage",
+    "mysql.client.network.io",
+    "mysql.commands",
+    "mysql.connection.count",
+    "mysql.connection.errors",
+    "mysql.double_writes",
+    "mysql.handlers",
+    "mysql.locks",
+    "mysql.log_operations",
+    "mysql.max_used_connections",
+    "mysql.mysqlx_connections",
+    "mysql.opened_resources",
+    "mysql.operations",
+    "mysql.page_operations",
+    "mysql.prepared_statements",
+    "mysql.query.count",
+    "mysql.query.slow.count",
+    "mysql.row_locks",
+    "mysql.row_operations",
+    "mysql.sorts",
+    "mysql.threads",
+    "mysql.tmp_resources",
+    "mysql.uptime",
+  ],
+  // No mysql.row_operations: MariaDB has no Innodb_rows_* status counters.
+  mariadb: [
+    "mysql.buffer_pool.data_pages",
+    "mysql.buffer_pool.limit",
+    "mysql.buffer_pool.operations",
+    "mysql.buffer_pool.page_flushes",
+    "mysql.buffer_pool.pages",
+    "mysql.buffer_pool.usage",
+    "mysql.client.network.io",
+    "mysql.commands",
+    "mysql.connection.count",
+    "mysql.connection.errors",
+    "mysql.double_writes",
+    "mysql.handlers",
+    "mysql.locks",
+    "mysql.log_operations",
+    "mysql.max_used_connections",
+    "mysql.opened_resources",
+    "mysql.operations",
+    "mysql.page_operations",
+    "mysql.prepared_statements",
+    "mysql.query.count",
+    "mysql.query.slow.count",
+    "mysql.row_locks",
+    "mysql.sorts",
+    "mysql.threads",
+    "mysql.tmp_resources",
+    "mysql.uptime",
+  ],
   elasticsearch: [
     "elasticsearch.breaker.memory.estimated",
     "elasticsearch.breaker.memory.limit",
@@ -953,10 +1013,64 @@ describe("getDatabaseServerMetrics", () => {
     expect(getDatabaseServerMetrics("valkey")).toEqual(
       getDatabaseServerMetrics("redis"),
     );
+    // Less what the receiver never sends for the fork (see below).
     expect(getDatabaseServerMetrics("mariadb")).toEqual(
-      getDatabaseServerMetrics("mysql"),
+      getDatabaseServerMetrics("mysql").filter(
+        (metric: DatabaseServerMetricDefinition): boolean => {
+          return metric.metricName !== "mysql.row_operations";
+        },
+      ),
+    );
+    expect(getDatabaseServerMetrics("MariaDB")).toEqual(
+      getDatabaseServerMetrics("mariadb"),
     );
     expect(getDatabaseServerMetrics("redis").length).toBeGreaterThan(0);
+  });
+
+  /*
+   * Regression (live re-verification): a MariaDB 11.4 Overview showed
+   * "ROW OPERATIONS —" under ~960 handler ops/s. The tile reads
+   * mysql.row_operations, from the Innodb_rows_* status counters, which
+   * MariaDB does not have — `SHOW GLOBAL STATUS LIKE 'Innodb_rows%'` is
+   * empty — so the receiver never sends it there and the tile could never
+   * fill.
+   */
+  test.each([["mysql"], ["mariadb"]])(
+    "every %s tile reads a metric the agent delivered",
+    (system: string) => {
+      const metrics: Array<DatabaseServerMetricDefinition> =
+        getDatabaseServerMetrics(system);
+      expect(metrics.length).toBeGreaterThanOrEqual(5);
+      for (const metric of metrics) {
+        expect({
+          system,
+          metric: metric.metricName,
+          arrived: SEEN_ARRIVING_FROM_AGENT[system]!.includes(
+            metric.metricName,
+          ),
+        }).toEqual({ system, metric: metric.metricName, arrived: true });
+      }
+    },
+  );
+
+  test("notEmittedFor names only forks of the entry's own engine", () => {
+    for (const metric of DATABASE_SERVER_METRICS) {
+      for (const fork of metric.notEmittedFor || []) {
+        const descriptor: DatabaseSystemDescriptor | null =
+          getDatabaseSystemDescriptor(fork);
+        expect({
+          metric: metric.metricName,
+          fork,
+          family: descriptor?.family,
+          isItself: descriptor?.system === metric.system,
+        }).toEqual({
+          metric: metric.metricName,
+          fork,
+          family: metric.system,
+          isItself: false,
+        });
+      }
+    }
   });
 
   test("returns only that engine's metrics, in catalog order", () => {

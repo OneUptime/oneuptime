@@ -267,8 +267,11 @@ login reaches the container with every `$` doubled (the collector expands
 `$$` and `${...}` once more — measured against 0.161.0 and a live database),
 a re-run neither re-escapes nor loses it, an `.env` from an older script is read
 as typed, the first `docker compose up` runs from `.env` alone, an edited
-compose file or config is kept as `<file>.bak.<timestamp>` on a re-run, forks
-run their family's config under their own name; and that the diagnostic reads
+compose file or config is kept as `<file>.bak.<timestamp>` on a re-run, a
+re-run recreates the container on the config it just downloaded (Compose does
+not compare a bind-mounted file's content, so it needs `--force-recreate`, and
+so does every `compose up` the script advises), forks run their family's
+config under their own name; and that the diagnostic reads
 only a log line's `error` field, reports a failed EXPLAIN as a warning rather
 than a missing grant, and hands the ingestion key to a digest-pinned curl image
 on stdin, never on a command line.

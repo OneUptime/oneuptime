@@ -1545,7 +1545,28 @@ describe("Databases docs", (): void => {
           heading,
           text: expect.stringContaining("a file nobody edited is replaced"),
         });
+        /*
+         * Regression (live re-verification): a re-run replaced the config
+         * and ran a plain `up -d`, which Compose treats as nothing to do
+         * when only a bind-mounted file changed — the old config kept
+         * running. The script recreates the container; the pages say so.
+         */
+        expect({ heading, text }).toEqual({
+          heading,
+          text: expect.stringMatching(
+            /recreates the agent's container|the agent's container is recreated/,
+          ),
+        });
+        expect({ heading, text }).toEqual({
+          heading,
+          text: expect.stringContaining(
+            "Apply any edit to `.env` or `otel-collector-config.yaml` with `docker compose up -d --force-recreate`",
+          ),
+        });
       }
+      expect(readAgentFile("install.sh")).toContain(
+        "\n    docker compose up -d --force-recreate\n",
+      );
     });
 
     it("explains that PostgreSQL explain plans need table access, and that it is not a missing grant", (): void => {
@@ -3069,11 +3090,13 @@ describe("Databases docs", (): void => {
       );
 
       expect(section(markdown, "## How databases are detected")).toContain(
-        "the first item on its **Feed** says what found it: the Kubernetes workload and its cluster, the Docker or Podman container and its host, the endpoint applications called, or the Database Agent (with its version) or collector that reported it",
+        "the first item on its **Feed** says what found it: the Kubernetes workload and its cluster, the Docker or Podman container — or Compose or Swarm service — and its host, the endpoint applications called, or the Database Agent (with its version) or collector that reported it",
       );
       for (const origin of [
         "on Kubernetes cluster ",
         "`container ",
+        "ContainerWorkloadKind.ComposeService",
+        "ContainerWorkloadKind.SwarmService",
         " host ",
         "was created automatically: detected from application traces",
         " calling ",

@@ -63,7 +63,7 @@ function writeExecutable(file, text) {
  * `curl` serves the agent's files from this checkout — or from SERVE_DIR,
  * a copy standing in for a newer upstream — and records each URL; `docker`
  * succeeds and records its arguments and — for `compose up` — whether the
- * login reached it through the environment.
+ * login reached it through the environment, and the config it would start.
  */
 function installStubs(dir) {
   const bin = path.join(dir, "bin");
@@ -93,6 +93,7 @@ printf '%s\\n' "$*" >> "$STUB_DIR/docker.log"
 if [ "$1" = "compose" ] && [ "$2" = "up" ]; then
   printf 'DATABASE_PASSWORD=%s\\n' "\${DATABASE_PASSWORD-<unset>}" >> "$STUB_DIR/compose-env.log"
   printf 'DATABASE_ENDPOINT=%s\\n' "\${DATABASE_ENDPOINT-<unset>}" >> "$STUB_DIR/compose-env.log"
+  cp otel-collector-config.yaml "$STUB_DIR/config-at-up.yaml" 2>/dev/null || true
 fi
 exit 0
 `,
@@ -412,6 +413,98 @@ describe("install.sh", () => {
     expect(
       fs.existsSync(path.join(first.installDir, ".agent-files.sha256")),
     ).toBe(true);
+  });
+
+  /*
+   * Regression (live re-verification): a re-run downloaded the new
+   * otel-collector-config.yaml and then ran a plain `docker compose up -d`.
+   * Compose recreates a running container only when its service definition
+   * or environment changed — the content of a bind-mounted file is not part
+   * of that — and the collector reads its config only when it starts, so
+   * the agent kept running the old config (MySQL query events kept arriving
+   * as `{}`) until someone restarted it by hand. The advice printed after
+   * replacing an edited file said the same plain `up -d`.
+   */
+  test("a re-run recreates the agent on the new config, and every `compose up` it advises does too", () => {
+    const dir = scratch();
+    const env = {
+      ...BASE,
+      DATABASE_SYSTEM: "mysql",
+      DATABASE_ENDPOINT: "db.example.com",
+      DATABASE_USERNAME: "monitor",
+      DATABASE_PASSWORD: "secret",
+    };
+    const first = runInstall(dir, env);
+    expect(first.status).toBe(0);
+
+    // A newer upstream changes the config only: docker-compose.yml and .env
+    // stay byte-for-byte the same, so Compose alone would keep the container.
+    const upstream = path.join(scratch(), "upstream");
+    fs.cpSync(AGENT_DIR, upstream, { recursive: true });
+    const upstreamConfig = path.join(upstream, "configs", "mysql.yaml");
+    fs.writeFileSync(
+      upstreamConfig,
+      `${fs.readFileSync(upstreamConfig, "utf8")}# a newer config\n`,
+    );
+    // And the user had edited the compose file, so the edit advice prints.
+    const compose = path.join(first.installDir, "docker-compose.yml");
+    fs.writeFileSync(
+      compose,
+      fs
+        .readFileSync(compose, "utf8")
+        .replace("# network_mode: host", "network_mode: host"),
+    );
+    const composeBefore = fs.readFileSync(
+      path.join(upstream, "docker-compose.yml"),
+      "utf8",
+    );
+    const envBefore = first.envFile();
+
+    const upgraded = runInstall(dir, { ...env, SERVE_DIR: upstream });
+
+    expect(upgraded.status).toBe(0);
+    expect(fs.readFileSync(compose, "utf8")).toBe(composeBefore);
+    expect(upgraded.envFile()).toBe(envBefore);
+    // The container is recreated, and from the config just downloaded.
+    const composeUps = fs
+      .readFileSync(path.join(dir, "docker.log"), "utf8")
+      .split("\n")
+      .filter((line) => {
+        return line.startsWith("compose up");
+      });
+    expect(composeUps).toEqual([
+      "compose up -d --force-recreate",
+      "compose up -d --force-recreate",
+    ]);
+    expect(fs.readFileSync(path.join(dir, "config-at-up.yaml"), "utf8")).toBe(
+      fs.readFileSync(upstreamConfig, "utf8"),
+    );
+    expect(upgraded.output).toContain("Re-apply your edits");
+
+    // Without the record, the "may hold edits" advice prints instead.
+    fs.writeFileSync(
+      compose,
+      fs
+        .readFileSync(compose, "utf8")
+        .replace("# network_mode: host", "network_mode: host"),
+    );
+    fs.rmSync(path.join(first.installDir, ".agent-files.sha256"));
+    const unrecorded = runInstall(dir, { ...env, SERVE_DIR: upstream });
+    expect(unrecorded.status).toBe(0);
+    expect(unrecorded.output).toContain("differ from the new versions");
+
+    for (const run of [first, upgraded, unrecorded]) {
+      const advice = run.output.split("\n").filter((line) => {
+        return line.includes("docker compose up");
+      });
+      expect(advice.length).toBeGreaterThan(0);
+      for (const line of advice) {
+        expect(line).toMatch(/docker compose up -d --force-recreate$/);
+      }
+    }
+    expect(first.output).toContain(
+      `To apply edits:   cd ${first.installDir} && docker compose up -d --force-recreate`,
+    );
   });
 
   test.each([

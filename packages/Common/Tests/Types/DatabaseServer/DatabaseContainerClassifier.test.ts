@@ -5,6 +5,7 @@ import {
   classifyKubernetesPod,
   classifyKubernetesPoolerPod,
   ContainerDatabaseClassification,
+  ContainerWorkloadKind,
   DATABASE_OPERATOR_LABEL_KEYS,
   DATABASE_WORKLOAD_NAME_LABEL_VALUES,
   groupKubernetesDatabaseCandidates,
@@ -2012,6 +2013,7 @@ describe("classifyContainer (Docker / Podman)", () => {
       }),
     ).toEqual({
       system: "postgresql",
+      workloadKind: ContainerWorkloadKind.ComposeService,
       workloadName: "shop-postgres",
       containerName: "shop-postgres-1",
       version: "16",
@@ -2028,6 +2030,7 @@ describe("classifyContainer (Docker / Podman)", () => {
       }),
     ).toEqual({
       system: "redis",
+      workloadKind: ContainerWorkloadKind.ComposeService,
       workloadName: "shop-redis",
       containerName: "shop_redis_2",
       version: "7.2.4",
@@ -2191,6 +2194,55 @@ describe("classifyContainer (Docker / Podman)", () => {
         })?.workloadName,
       ).toBe("shop-db-1");
     }
+  });
+
+  /*
+   * Regression (live re-verification): every Docker / Podman database was
+   * stored with workloadKind "Container", so a two-replica Compose service
+   * read "detected from container e2e-docker-spans-compose-postgres" (no
+   * container has that name) and "workload: Container/…" in its header.
+   */
+  test("the workload kind says what grouped the container: a Swarm service, a Compose service, or itself", () => {
+    const kindOf: (
+      name: string,
+      labels?: Record<string, string>,
+    ) => ContainerWorkloadKind | undefined = (
+      name: string,
+      labels?: Record<string, string>,
+    ): ContainerWorkloadKind | undefined => {
+      return classifyContainer({ name, imageName: "postgres:16", labels })
+        ?.workloadKind;
+    };
+
+    expect(
+      kindOf("shop-db-1", {
+        "com.docker.compose.project": "shop",
+        "com.docker.compose.service": "db",
+      }),
+    ).toBe("Compose service");
+    expect(
+      kindOf("shop_db_1", {
+        "io.podman.compose.project": "shop",
+        "io.podman.compose.service": "db",
+      }),
+    ).toBe("Compose service");
+    expect(
+      kindOf("mystack_db.1.x7y8z9abcdefghijklmnopqrs", {
+        "com.docker.swarm.service.name": "mystack_db",
+        // A stack's task carries Compose-style labels as well.
+        "com.docker.compose.project": "mystack",
+        "com.docker.compose.service": "db",
+      }),
+    ).toBe("Swarm service");
+    // A task name alone still names its Swarm service.
+    expect(kindOf("mystack_db.1.x7y8z9abcdefghijklmnopqrs")).toBe(
+      "Swarm service",
+    );
+    // Anything else is a container of its own, half a Compose pair included.
+    expect(kindOf("postgres")).toBe("Container");
+    expect(kindOf("shop-db-1", { "com.docker.compose.project": "shop" })).toBe(
+      "Container",
+    );
   });
 
   test("Docker's comma-joined Names keep the first", () => {

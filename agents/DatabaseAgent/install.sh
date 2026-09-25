@@ -718,11 +718,16 @@ cd "$INSTALL_DIR"
 # a prompt — unescaped, un-normalized. Start from .env alone, so this first
 # start runs exactly what every later `docker compose up` (and the systemd
 # unit) will.
+# --force-recreate, because a re-run is the upgrade path: Compose recreates
+# a running container only when its service definition or environment
+# changed, never for a new otel-collector-config.yaml (a bind mount), and
+# the collector reads its config only when it starts — so a plain `up -d`
+# kept the old config running after the new one was downloaded.
 (
     for name in $ENV_NAMES; do
         unset "$name"
     done
-    docker compose up -d
+    docker compose up -d --force-recreate
 )
 
 echo ""
@@ -737,6 +742,7 @@ echo "To check status:  cd $INSTALL_DIR && docker compose ps"
 echo "To view logs:     cd $INSTALL_DIR && docker compose logs -f"
 echo "To stop:          cd $INSTALL_DIR && docker compose down"
 echo "To restart:       cd $INSTALL_DIR && docker compose restart"
+echo "To apply edits:   cd $INSTALL_DIR && docker compose up -d --force-recreate"
 echo "If nothing shows up: curl -fsSL $REPO_BASE/troubleshoot.sh | bash -s -- -d $INSTALL_DIR"
 
 if [ "${#EDITED_FILES[@]}" -gt 0 ]; then
@@ -747,7 +753,7 @@ if [ "${#EDITED_FILES[@]}" -gt 0 ]; then
         echo "  $backup"
     done
     echo "Re-apply your edits (network_mode: host, a filelog receiver and its log mount, extra"
-    echo "metrics) to the new files, then: cd $INSTALL_DIR && docker compose up -d"
+    echo "metrics) to the new files, then: cd $INSTALL_DIR && docker compose up -d --force-recreate"
 fi
 if [ "${#DIFFERING_FILES[@]}" -gt 0 ]; then
     echo ""
@@ -758,5 +764,5 @@ if [ "${#DIFFERING_FILES[@]}" -gt 0 ]; then
         echo "  $backup"
     done
     echo "If they do (network_mode: host, a filelog receiver and its log mount, extra metrics),"
-    echo "apply the same edits to the new files, then: cd $INSTALL_DIR && docker compose up -d"
+    echo "apply the same edits to the new files, then: cd $INSTALL_DIR && docker compose up -d --force-recreate"
 fi

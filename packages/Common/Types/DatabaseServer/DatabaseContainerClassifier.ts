@@ -150,8 +150,21 @@ export interface ContainerLike {
   labels?: Record<string, unknown> | null | undefined;
 }
 
+/*
+ * What a Docker / Podman database's workload is: the Swarm service or the
+ * Compose service its replicas were grouped by, else a container of its own.
+ * Stored as the database's workloadKind and read back as written ("detected
+ * from Compose service shop-db", "Swarm service/mystack_db").
+ */
+export enum ContainerWorkloadKind {
+  Container = "Container",
+  ComposeService = "Compose service",
+  SwarmService = "Swarm service",
+}
+
 export interface ContainerDatabaseClassification {
   system: string;
+  workloadKind: ContainerWorkloadKind;
   workloadName: string;
   containerName: string;
   version: string | null;
@@ -1963,17 +1976,20 @@ function swarmServiceFromTaskName(containerName: string): string | null {
  * `com.docker.compose.*`; podman-compose also `io.podman.compose.*`), else
  * the container name exactly as it is — never a guessed-away suffix, since
  * `redis-6379` and `redis-6380` or `pg-14` and `pg-16` are different
- * servers.
+ * servers. The kind says which of the three it is.
  */
-function containerWorkloadName(
+function containerWorkload(
   containerName: string,
   labels: Record<string, unknown>,
-): string {
+): { workloadKind: ContainerWorkloadKind; workloadName: string } {
   const swarmService: string | null =
     labelValue(labels, "com.docker.swarm.service.name") ||
     swarmServiceFromTaskName(containerName);
   if (swarmService) {
-    return swarmService;
+    return {
+      workloadKind: ContainerWorkloadKind.SwarmService,
+      workloadName: swarmService,
+    };
   }
 
   const project: string | null =
@@ -1983,18 +1999,24 @@ function containerWorkloadName(
     labelValue(labels, "com.docker.compose.service") ||
     labelValue(labels, "io.podman.compose.service");
   if (project && service) {
-    return `${project}-${service}`;
+    return {
+      workloadKind: ContainerWorkloadKind.ComposeService,
+      workloadName: `${project}-${service}`,
+    };
   }
 
-  return containerName;
+  return {
+    workloadKind: ContainerWorkloadKind.Container,
+    workloadName: containerName,
+  };
 }
 
 /**
  * The database a Docker / Podman container runs, or null. The workload is
  * the Swarm service or Compose service the container belongs to (so its
- * replicas group together), else the container's own name. Testcontainers
- * runs, `docker compose run` one-offs and kubelet-managed containers are
- * null.
+ * replicas group together), else the container's own name, and its kind
+ * says which. Testcontainers runs, `docker compose run` one-offs and
+ * kubelet-managed containers are null.
  */
 export function classifyContainer(
   container: ContainerLike,
@@ -2031,10 +2053,15 @@ export function classifyContainer(
 
   const descriptor: DatabaseSystemDescriptor | null =
     getDatabaseSystemDescriptor(classification.system);
+  const workload: {
+    workloadKind: ContainerWorkloadKind;
+    workloadName: string;
+  } = containerWorkload(containerName, labels);
 
   return {
     system: descriptor ? descriptor.system : classification.system,
-    workloadName: containerWorkloadName(containerName, labels),
+    workloadKind: workload.workloadKind,
+    workloadName: workload.workloadName,
     containerName,
     version: parseImageVersion(container.imageName),
   };

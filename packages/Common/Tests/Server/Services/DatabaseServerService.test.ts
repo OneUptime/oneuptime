@@ -1885,6 +1885,56 @@ describe("DatabaseServerService - the Created feed item of a discovered workload
     expect(findDockerHost).not.toHaveBeenCalled();
   });
 
+  /*
+   * Regression (live re-verification): a two-replica Compose service was
+   * stored as a "Container", and its feed said "detected from container
+   * e2e-docker-spans-compose-postgres" — a name no container has.
+   */
+  test("Docker: a Compose service is named as one, not as a container", async () => {
+    const feed: any = await writeCreatedFeed(
+      databaseRow({
+        discoverySource: DatabaseServerDiscoverySource.Docker,
+        workloadKind: "Compose service",
+        workloadName: "e2e-docker-spans-compose-postgres",
+        dockerHostId: ObjectID.generate(),
+      }),
+    );
+
+    expect(feed.feedInfoInMarkdown).toContain(
+      "was created automatically: detected from Compose service e2e-docker-spans-compose-postgres on Docker host e2e-docker-host.",
+    );
+    expect(feed.feedInfoInMarkdown).not.toContain("container");
+    expect(feed.moreInformationInMarkdown).toContain(
+      "running in the containers of this Compose service and registered the service as one database",
+    );
+  });
+
+  test("a Swarm service, and a service whose name is unknown, are named as services", async () => {
+    const swarm: any = await writeCreatedFeed(
+      databaseRow({
+        discoverySource: DatabaseServerDiscoverySource.Docker,
+        workloadKind: "Swarm service",
+        workloadName: "mystack_db",
+        dockerHostId: ObjectID.generate(),
+      }),
+    );
+    expect(swarm.feedInfoInMarkdown).toContain(
+      "detected from Swarm service mystack_db on Docker host e2e-docker-host.",
+    );
+
+    sideEffects.feed.mockClear();
+    const unnamed: any = await writeCreatedFeed(
+      databaseRow({
+        discoverySource: DatabaseServerDiscoverySource.Podman,
+        workloadKind: "Compose service",
+        podmanHostId: ObjectID.generate(),
+      }),
+    );
+    expect(unnamed.feedInfoInMarkdown).toContain(
+      "detected from a Compose service on Podman host podman-1.",
+    );
+  });
+
   test("a person's create still names the person", async () => {
     await service.writeDatabaseServerCreatedFeed(
       databaseRow({ discoverySource: DatabaseServerDiscoverySource.Manual }),
