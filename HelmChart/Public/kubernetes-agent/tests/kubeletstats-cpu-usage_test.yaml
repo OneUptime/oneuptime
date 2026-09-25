@@ -1,0 +1,77 @@
+# The "High Node CPU Utilization" alert template (k8s-high-cpu in
+# packages/Common/Types/Monitor/KubernetesAlertTemplates.ts) divides
+# `k8s.node.cpu.usage` by `k8s.node.allocatable_cpu`, and the Kubernetes
+# dashboard template charts `k8s.node.cpu.usage` and `k8s.pod.cpu.usage`.
+# The kubeletstats receiver in the collector this chart ships (0.96.0) defines
+# both but leaves them `enabled: false`, and the node collector's config only
+# turned on the pod/container *_limit_utilization / *_request_utilization
+# family. So neither series ever arrived: the alert's formula had no
+# numerator and could never fire, and the dashboard tiles stayed empty, with
+# no error anywhere.
+#
+# These assertions keep both metrics switched on, whatever the optional
+# kubeletstats groups are set to. The Common tests pin the template to the
+# same names through
+# packages/Common/Tests/Types/Monitor/Utils/KubernetesAgentEmittedMetrics.ts,
+# which lists what the agent emits; that list is only true while this holds.
+#
+# The patterns read the rendered collector config with the ConfigMap's own
+# indent stripped: `kubeletstats:` at 2 spaces, its keys at 4, metric names at
+# 6, `enabled:` at 8. Each gap only consumes lines indented at least as deep as
+# the block it is searching, so it cannot run out of the kubeletstats receiver
+# (or out of its `metrics:` map) and match something that belongs elsewhere.
+suite: node collector enables the CPU usage metrics OneUptime reads
+release:
+  name: oneuptime-agent
+  namespace: oneuptime
+templates:
+  - templates/configmap-daemonset.yaml
+tests:
+  - it: enables k8s.node.cpu.usage and k8s.pod.cpu.usage in the kubeletstats receiver by default
+    set:
+      clusterName: prod-us
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.node\\.cpu\\.usage:\\n        enabled: true\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.pod\\.cpu\\.usage:\\n        enabled: true\\n"
+      # Still one `metrics:` map. Two under the same receiver is a
+      # duplicate mapping key, which the collector rejects at startup.
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:    [^\\n]*\\n)*?    metrics:\\n"
+
+  - it: keeps them on when the saturation metrics are switched off
+    # utilizationMetrics used to gate the whole `metrics:` map. It governs
+    # the *_limit_utilization / *_request_utilization family only; turning it
+    # off must not take High Node CPU with it.
+    set:
+      clusterName: prod-us
+      kubeletstats.utilizationMetrics.enabled: false
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.node\\.cpu\\.usage:\\n        enabled: true\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.pod\\.cpu\\.usage:\\n        enabled: true\\n"
+      - notMatchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "_(limit|request)_utilization:"
+
+  - it: keeps them on with every optional node-collector receiver enabled
+    set:
+      clusterName: prod-us
+      cadvisor.enabled: true
+      hostMetrics.enabled: true
+      kubeletstats.volumeMetrics.enabled: true
+      auditLogs.enabled: true
+    asserts:
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.node\\.cpu\\.usage:\\n        enabled: true\\n"
+      - matchRegex:
+          path: data["otel-collector-config.yaml"]
+          pattern: "\\n  kubeletstats:\\n(?:    [^\\n]*\\n)*?    metrics:\\n(?:      [^\\n]*\\n)*?      k8s\\.pod\\.cpu\\.usage:\\n        enabled: true\\n"
