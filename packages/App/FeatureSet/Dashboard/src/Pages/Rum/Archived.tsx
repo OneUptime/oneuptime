@@ -5,7 +5,6 @@ import PageComponentProps from "../PageComponentProps";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import RumApplication from "Common/Models/DatabaseModels/RumApplication";
@@ -46,7 +45,21 @@ const RumArchivedPage: FunctionComponent<
         showViewIdButton={true}
         noItemsMessage={"No archived applications."}
         showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
+        /*
+         * View opens the resource's own page. The default view route (this
+         * list's URL + /<id>) would be ".../archived/<id>", which no route
+         * matches, so the user would land on a blank page.
+         */
+        onViewPage={(item: RumApplication): Promise<Route> => {
+          return Promise.resolve(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.RUM_APPLICATION_VIEW] as Route,
+              {
+                modelId: new ObjectID(item._id as string),
+              },
+            ),
+          );
+        }}
         searchableFields={["name", "description"]}
         selectMoreFields={{
           appIdentifier: true,

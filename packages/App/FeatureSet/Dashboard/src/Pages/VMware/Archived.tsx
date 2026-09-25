@@ -6,7 +6,6 @@ import PageComponentProps from "../PageComponentProps";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
@@ -46,7 +45,21 @@ const VMwareArchivedPage: FunctionComponent<
         showViewIdButton={true}
         noItemsMessage={"No archived vCenters."}
         showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
+        /*
+         * View opens the resource's own page. The default view route (this
+         * list's URL + /<id>) would be ".../archived/<id>", which no route
+         * matches, so the user would land on a blank page.
+         */
+        onViewPage={(item: VMwareVCenter): Promise<Route> => {
+          return Promise.resolve(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.VMWARE_VCENTER_VIEW] as Route,
+              {
+                modelId: new ObjectID(item._id as string),
+              },
+            ),
+          );
+        }}
         searchableFields={["name", "description"]}
         filters={[]}
         columns={[

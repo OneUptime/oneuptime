@@ -1,10 +1,13 @@
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import LabelsElement from "Common/UI/Components/Label/Labels";
 import ServiceElement from "../../Components/Service/ServiceElement";
 import PageComponentProps from "../PageComponentProps";
+import Route from "Common/Types/API/Route";
+import ObjectID from "Common/Types/ObjectID";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import FieldType from "Common/UI/Components/Types/FieldType";
-import Navigation from "Common/UI/Utils/Navigation";
 import Service from "Common/Models/DatabaseModels/Service";
 import User from "Common/Models/DatabaseModels/User";
 import UserElement from "../../Components/User/User";
@@ -42,7 +45,21 @@ const ServiceArchivedPage: FunctionComponent<
         showViewIdButton={true}
         noItemsMessage={"No archived services."}
         showRefreshButton={true}
-        viewPageRoute={Navigation.getCurrentRoute()}
+        /*
+         * View opens the service's own page. The default view route (this
+         * list's URL + /<id>) would be ".../archived/<id>", which no route
+         * matches, so the user would land on a blank page.
+         */
+        onViewPage={(item: Service): Promise<Route> => {
+          return Promise.resolve(
+            RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SERVICE_VIEW] as Route,
+              {
+                modelId: new ObjectID(item._id as string),
+              },
+            ),
+          );
+        }}
         searchableFields={["name", "description"]}
         selectMoreFields={{
           serviceColor: true,
