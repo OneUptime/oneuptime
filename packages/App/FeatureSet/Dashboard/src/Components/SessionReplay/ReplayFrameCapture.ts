@@ -2,7 +2,7 @@ import {
   REPLAY_SHADOW_TEXT_SELECTION_STYLE_ATTRIBUTE,
   REPLAY_TEXT_SELECTION_ATTRIBUTE,
   REPLAY_TEXT_SELECTION_STYLE_ATTRIBUTE,
-} from "./ReplayStage";
+} from "./ReplayTextSelectionAttributes";
 
 /*
  * Turns the paused replay document into a PNG.
