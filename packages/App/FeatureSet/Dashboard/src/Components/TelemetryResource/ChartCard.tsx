@@ -54,6 +54,11 @@ export interface ChartCardProps {
   yLegend?: string | undefined;
   yMax?: number | "auto" | undefined;
   yFormatter?: ((value: number) => string) | undefined;
+  /*
+   * false keeps the y ticks on whole numbers (a count of connections or
+   * nodes); unset, the axis may pick decimal ticks as it always has.
+   */
+  yAllowDecimals?: boolean | undefined;
   showLegend?: boolean | undefined;
   loading?: boolean | undefined;
   // What the chart plots, shown in an (i) tooltip beside the title.
@@ -145,6 +150,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
         syncid={props.syncId}
         heightInPx={176}
         showLegend={props.showLegend ?? false}
+        allowDecimals={props.yAllowDecimals}
       />
     </div>
   );

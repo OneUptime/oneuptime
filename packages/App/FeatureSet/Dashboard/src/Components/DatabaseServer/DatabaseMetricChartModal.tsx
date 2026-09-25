@@ -9,10 +9,14 @@ import {
   getDatabaseMetricChartSpec,
 } from "../../Pages/Database/Utils/DatabaseServerTelemetryQueries";
 import {
+  DatabaseChartYAxis,
   formatDatabaseMetricAxisValue,
   formatDatabaseMetricUnitAxisValue,
+  getDatabaseChartYAxis,
   getDatabaseMetricAxisUnitLabel,
   getDatabaseMetricUnitAxisLabel,
+  isDatabaseMetricUnitWholeNumber,
+  isDatabaseMetricWholeNumberUnit,
 } from "../../Pages/Database/Utils/DatabaseServerPresentation";
 import {
   buildDatabaseMetricMonitorRoute,
@@ -364,6 +368,21 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
   const chartTitle: string = axisUnitLabel
     ? `${props.metricName} (${axisUnitLabel})`
     : props.metricName;
+  // Whole-number ticks for a count; 0 to 1 for a series that stayed at 0.
+  const yAxis: DatabaseChartYAxis = getDatabaseChartYAxis(
+    series.map((point: DatabaseTimePoint): number => {
+      return point.y;
+    }),
+    spec.definition
+      ? isDatabaseMetricWholeNumberUnit(
+          spec.definition.unit,
+          spec.definition.kind,
+        )
+      : isDatabaseMetricUnitWholeNumber(spec.unit, {
+          isRate: spec.isRate,
+          isDistribution: spec.isDistribution,
+        }),
+  );
 
   const description: string = spec.definition
     ? `${spec.definition.description} Charted for this database only.`
@@ -497,6 +516,8 @@ const DatabaseMetricChartModal: FunctionComponent<ComponentProps> = (
           windowStart={chartWindow?.start ?? null}
           windowEnd={chartWindow?.end ?? null}
           syncId={`database-metric-${props.metricName}`}
+          yMax={yAxis.yMax}
+          yAllowDecimals={yAxis.allowDecimals}
           yFormatter={formatValue}
           loading={isLoading}
         />

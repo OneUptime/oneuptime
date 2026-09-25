@@ -420,19 +420,42 @@ export function getDatabaseHeaderIdentifier(
  * claimed for the Kubernetes workload the database runs as (released again
  * when the workload stops producing it); "auto", and anything older or
  * unknown, what telemetry found.
+ *
+ * The pill's words are short — the column already says "Added by", and
+ * "Discovered (Kubernetes Service)" alone was 268 px wide — and the
+ * sentence is its hover text.
  */
-export function getDatabaseEndpointSourceLabel(source: unknown): {
+export interface DatabaseEndpointSourceLabel {
   text: string;
   isUser: boolean;
-} {
+  description: string;
+}
+
+export function getDatabaseEndpointSourceLabel(
+  source: unknown,
+): DatabaseEndpointSourceLabel {
   const value: string = text(source).toLowerCase();
   if (value === "user") {
-    return { text: "Added by a person", isUser: true };
+    return {
+      text: "A person",
+      isUser: true,
+      description:
+        "Added as an alias by a person. Discovery never moves or releases it.",
+    };
   }
   if (value === "workload") {
-    return { text: "Discovered (Kubernetes Service)", isUser: false };
+    return {
+      text: "Kubernetes Service",
+      isUser: false,
+      description:
+        "Discovered: a Service name of the Kubernetes workload this database runs as. Released once the workload no longer produces it.",
+    };
   }
-  return { text: "Discovered", isUser: false };
+  return {
+    text: "Discovery",
+    isUser: false,
+    description: "Discovered: found in telemetry.",
+  };
 }
 
 /**
@@ -747,7 +770,8 @@ export function formatDatabaseMetricAxisValue(
   }
   const cleanUnit: string = (unit || "").trim();
   if (cleanUnit === "bytes") {
-    return formatDatabaseBytes(value);
+    // A whole tick reads "0 B" or "5 GiB", not "0.0 B" or "5.0 GiB".
+    return formatDatabaseBytes(value).replace(/\.0 /, " ");
   }
   if (cleanUnit === "s") {
     // Sub-second values in ms: "0.0 s" on every tick told nothing apart.
@@ -860,6 +884,90 @@ export function getDatabaseMetricUnitAxisLabel(
     (unit || "").trim(),
   );
   return annotation ? annotation[1]!.trim() : "";
+}
+
+// ---- chart y-axis ----------------------------------------------------
+
+// Plural unit words that measure time, not a number of things.
+const DATABASE_NON_COUNT_UNIT_WORDS: ReadonlyArray<string> = [
+  "seconds",
+  "milliseconds",
+  "microseconds",
+  "nanoseconds",
+  "minutes",
+  "hours",
+  "days",
+];
+
+/**
+ * Whether a catalog metric's chart counts whole things — connections,
+ * databases, nodes, pages, bytes — so its y ticks must be whole numbers:
+ * "0 | 0.5 | 1 | 1.5 | 2" databases and "0 | 0.25 | … | 1" nodes read as
+ * nonsense. A counter is charted as a per-second rate, and a share, a
+ * ratio, a duration or "ops/s" is fractional by nature.
+ */
+export function isDatabaseMetricWholeNumberUnit(
+  unit: string,
+  kind: DatabaseServerMetricKind,
+): boolean {
+  if (kind === "counter") {
+    return false;
+  }
+  const cleanUnit: string = (unit || "").trim().toLowerCase();
+  if (cleanUnit === "bytes") {
+    return true;
+  }
+  return (
+    PLAIN_WORD_PATTERN.test(cleanUnit) &&
+    cleanUnit.length >= 3 &&
+    cleanUnit.endsWith("s") &&
+    !DATABASE_NON_COUNT_UNIT_WORDS.includes(cleanUnit)
+  );
+}
+
+/**
+ * The same for a metric outside the catalog, by its own (UCUM) unit: a
+ * count annotation such as "{connections}", read as it is (not as a rate,
+ * not as a histogram's percentile).
+ */
+export function isDatabaseMetricUnitWholeNumber(
+  unit: string | null | undefined,
+  options: { isRate: boolean; isDistribution: boolean },
+): boolean {
+  if (options.isRate || options.isDistribution) {
+    return false;
+  }
+  return ANNOTATION_UNIT_PATTERN.test((unit || "").trim());
+}
+
+export interface DatabaseChartYAxis {
+  // A fixed top for the axis, or undefined to fit the data.
+  yMax: number | undefined;
+  allowDecimals: boolean;
+}
+
+/**
+ * How a database chart's y-axis is drawn. A count keeps whole-number
+ * ticks. A series that is 0 throughout gets the axis 0 to 1: left to
+ * itself the axis spread that 0 over "0 | 1 | 2 | 3 | 4" as if there were
+ * a scale to read — "0.0 B … 4.0 B" on an idle Memcached's "Memory used".
+ */
+export function getDatabaseChartYAxis(
+  values: ReadonlyArray<number>,
+  wholeNumbers: boolean,
+): DatabaseChartYAxis {
+  const finite: Array<number> = values.filter((value: number): boolean => {
+    return Number.isFinite(value);
+  });
+  if (
+    finite.length > 0 &&
+    finite.every((value: number): boolean => {
+      return value === 0;
+    })
+  ) {
+    return { yMax: 1, allowDecimals: false };
+  }
+  return { yMax: undefined, allowDecimals: !wholeNumbers };
 }
 
 /*

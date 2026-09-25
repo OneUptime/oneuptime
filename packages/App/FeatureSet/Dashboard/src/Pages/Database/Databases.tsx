@@ -461,8 +461,17 @@ const Databases: FunctionComponent<PageComponentProps> = (): ReactElement => {
                   >
                     {(item.name as string) || "—"}
                   </AppLink>
+                  {/*
+                   * One line, cut with an ellipsis (full on hover): wrapped
+                   * at the cap it broke mid-token, splitting the port
+                   * ("mariarv2.rcv-e2e.example.net:33" / "06").
+                   */}
                   {subtitle && (
-                    <div className="text-xs text-gray-500 font-mono break-all">
+                    <div
+                      data-testid="database-name-endpoint"
+                      className="truncate text-xs text-gray-500 font-mono"
+                      title={subtitle}
+                    >
                       {subtitle}
                     </div>
                   )}

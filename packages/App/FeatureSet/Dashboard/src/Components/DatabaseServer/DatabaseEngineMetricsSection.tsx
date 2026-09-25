@@ -4,15 +4,19 @@ import AppLink from "../AppLink/AppLink";
 import ChartCard from "../TelemetryResource/ChartCard";
 import {
   DatabaseEngineMetricResult,
+  DatabaseTimePoint,
   hasEngineMetricData,
 } from "../../Pages/Database/Utils/DatabaseServerTelemetryQueries";
 import {
+  DatabaseChartYAxis,
   DatabaseEngineMetricsStatus,
   formatDatabaseMetricAxisValue,
   formatDatabaseMetricValue,
+  getDatabaseChartYAxis,
   getDatabaseEngineMetricsStatusLabel,
   getDatabaseMetricAxisUnitLabel,
   getDatabaseUnitSingular,
+  isDatabaseMetricWholeNumberUnit,
 } from "../../Pages/Database/Utils/DatabaseServerPresentation";
 import { DatabaseAgentEngine } from "../../Pages/Database/Utils/DatabaseAgentConfigs";
 import {
@@ -139,9 +143,11 @@ export const ENGINE_METRICS_CHECK_AGENT_LINK_LABEL: string =
  * word carry the number alone (formatDatabaseMetricAxisValue), so the title
  * says the unit, once: a counter's "(per second)", and a gauge's unit word
  * in brackets unless its title already names it — "Connections" stays
- * "Connections", "Buffer pool size" in pages reads "Buffer pool size
- * (pages)".
+ * "Connections", "Commands per second" in ops/s stays as it is, "Buffer
+ * pool size" in pages reads "Buffer pool size (pages)".
  */
+const PER_SECOND_UNIT_PATTERN: RegExp = /\/s$/i;
+
 export function getDatabaseEngineMetricChartTitle(
   definition: Pick<DatabaseServerMetricDefinition, "title" | "unit" | "kind">,
 ): string {
@@ -153,11 +159,31 @@ export function getDatabaseEngineMetricChartTitle(
   if (
     !unitLabel ||
     title.includes(unitLabel.toLowerCase()) ||
-    title.includes(getDatabaseUnitSingular(unitLabel).toLowerCase())
+    title.includes(getDatabaseUnitSingular(unitLabel).toLowerCase()) ||
+    // "COMMANDS PER SECOND (OPS/S)" said the rate twice.
+    (PER_SECOND_UNIT_PATTERN.test(unitLabel) && title.includes("per second"))
   ) {
     return definition.title;
   }
   return `${definition.title} (${unitLabel})`;
+}
+
+/**
+ * An engine chart's y-axis: whole-number ticks for a count, and 0 to 1 for
+ * a series that stayed at 0 (getDatabaseChartYAxis).
+ */
+export function getDatabaseEngineMetricChartYAxis(
+  result: Pick<DatabaseEngineMetricResult, "definition" | "series">,
+): DatabaseChartYAxis {
+  return getDatabaseChartYAxis(
+    result.series.map((point: DatabaseTimePoint): number => {
+      return point.y;
+    }),
+    isDatabaseMetricWholeNumberUnit(
+      result.definition.unit,
+      result.definition.kind,
+    ),
+  );
 }
 
 export interface EngineMetricsGuidance {
@@ -424,6 +450,8 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
       </div>
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {charted.map((result: DatabaseEngineMetricResult): ReactElement => {
+          const yAxis: DatabaseChartYAxis =
+            getDatabaseEngineMetricChartYAxis(result);
           return (
             <ChartCard
               key={`chart-${getDatabaseServerMetricId(result.definition)}`}
@@ -442,6 +470,8 @@ const DatabaseEngineMetricsSection: FunctionComponent<ComponentProps> = (
               windowStart={props.windowStart}
               windowEnd={props.windowEnd}
               syncId={`database-${props.modelId.toString()}`}
+              yMax={yAxis.yMax}
+              yAllowDecimals={yAxis.allowDecimals}
               yFormatter={(value: number): string => {
                 return formatDatabaseMetricAxisValue(
                   value,

@@ -11,7 +11,10 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import React, { Fragment, FunctionComponent, ReactElement } from "react";
-import { getDatabaseEndpointSourceLabel } from "../Utils/DatabaseServerPresentation";
+import {
+  DatabaseEndpointSourceLabel,
+  getDatabaseEndpointSourceLabel,
+} from "../Utils/DatabaseServerPresentation";
 import useDatabaseWideTable from "../Utils/useDatabaseWideTable";
 
 /*
@@ -27,6 +30,15 @@ import useDatabaseWideTable from "../Utils/useDatabaseWideTable";
 
 export const PRIMARY_ENDPOINT_DELETE_MESSAGE: string =
   "The primary endpoint is this database's identity and cannot be removed. Archive the database instead if you no longer need it.";
+
+/*
+ * Width cap for the Endpoint cell. A Kubernetes pod's DNS name
+ * ("postgres-0.postgres-headless.data.svc.cluster.local:5432@e2e-kind")
+ * made the column 582 px wide and pushed Last Matched and Delete past the
+ * card at 1440 px; capped, the name is cut with an ellipsis and reads in
+ * full on hover (and when copied).
+ */
+export const DATABASE_ENDPOINT_COLUMN_MAX_WIDTH_CLASS: string = "max-w-xs";
 
 const DatabaseServerEndpoints: FunctionComponent<
   PageComponentProps
@@ -108,13 +120,27 @@ const DatabaseServerEndpoints: FunctionComponent<
             title: "Endpoint",
             type: FieldType.Element,
             getElement: (item: DatabaseServerEndpoint): ReactElement => {
+              const endpoint: string = String(item.endpoint || "").trim();
+              /*
+               * Truncated rather than wrapped: every table cell is nowrap,
+               * and a max-width without overflow hidden would paint the
+               * name over the next column.
+               */
               return (
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm text-gray-900 break-all">
-                    {(item.endpoint as string) || "—"}
+                <div
+                  className={`flex min-w-0 items-center gap-2 ${DATABASE_ENDPOINT_COLUMN_MAX_WIDTH_CLASS}`}
+                >
+                  <span
+                    data-testid="database-endpoint-value"
+                    className="min-w-0 truncate font-mono text-sm text-gray-900"
+                    title={endpoint || undefined}
+                  >
+                    {endpoint || "—"}
                   </span>
                   {item.isPrimary ? (
-                    <Pill text="Primary" color={Blue} />
+                    <span className="flex-shrink-0">
+                      <Pill text="Primary" color={Blue} />
+                    </span>
                   ) : (
                     <></>
                   )}
@@ -130,10 +156,14 @@ const DatabaseServerEndpoints: FunctionComponent<
             type: FieldType.Element,
             hideOnMobile: true,
             getElement: (item: DatabaseServerEndpoint): ReactElement => {
-              const label: { text: string; isUser: boolean } =
+              const label: DatabaseEndpointSourceLabel =
                 getDatabaseEndpointSourceLabel(item.source);
               return (
-                <Pill text={label.text} color={label.isUser ? Blue : Gray500} />
+                <Pill
+                  text={label.text}
+                  color={label.isUser ? Blue : Gray500}
+                  tooltip={label.description}
+                />
               );
             },
           },

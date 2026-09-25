@@ -242,7 +242,9 @@ jest.mock(
 );
 
 import DatabaseServerOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/View/Overview";
-import ResourceOverview from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
+import ResourceOverview, {
+  RESOURCE_OVERVIEW_TITLE_BASIS_CLASS,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryResource/ResourceOverview";
 import IconProp from "../../../Types/Icon/IconProp";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
@@ -456,12 +458,55 @@ describe("ResourceOverview's status pill", () => {
     expect(pill).toHaveAttribute("title", "What seen means");
   });
 
-  test("below md the controls stack under the title instead of squeezing it", () => {
+  /*
+   * md:flex-row put the controls beside the title from 768 px, where the
+   * side menu is also shown: the title was 0 px wide at 768, 109 px at 900
+   * and 181 px at 1024. The controls now wrap under the title whenever it
+   * would be narrower than its basis, at any width.
+   */
+  test("the controls wrap under the title instead of squeezing it, at any width", () => {
     renderHeader({});
-    const row: HTMLElement =
-      screen.getByTestId("controls").parentElement!.parentElement!;
-    expect(row.className).toContain("flex-col");
-    expect(row.className).toContain("md:flex-row");
+    const controls: HTMLElement = screen.getByTestId(
+      "resource-overview-controls",
+    );
+    expect(controls).toContainElement(screen.getByTestId("controls"));
+    const row: HTMLElement = screen.getByTestId("resource-overview-header-row");
+    expect(controls.parentElement).toBe(row);
+    const rowClasses: Array<string> = row.className.split(/\s+/);
+    expect(rowClasses).toContain("flex");
+    expect(rowClasses).toContain("flex-wrap");
+    // No breakpoint decides it: not md, nor any other.
+    expect(row.className).not.toMatch(/(^|\s)(sm|md|lg|xl|2xl):flex-(row|col)/);
+    expect(rowClasses).not.toContain("flex-col");
+
+    // The title asks for its basis and fills what is left beside the controls.
+    const title: HTMLElement = screen.getByTestId(
+      "resource-overview-title-block",
+    );
+    expect(title.parentElement).toBe(row);
+    const titleClasses: Array<string> = title.className.split(/\s+/);
+    expect(RESOURCE_OVERVIEW_TITLE_BASIS_CLASS).toBe("basis-96");
+    expect(titleClasses).toContain(RESOURCE_OVERVIEW_TITLE_BASIS_CLASS);
+    expect(titleClasses).toContain("grow");
+    expect(titleClasses).toContain("min-w-0");
+    expect(
+      within(title).getByText("checkout", { selector: "h1" }),
+    ).toBeTruthy();
+
+    // The controls may shrink to the row and never hold it at their width.
+    const controlClasses: Array<string> = controls.className.split(/\s+/);
+    expect(controlClasses).toContain("max-w-full");
+    expect(controls.className).not.toMatch(/flex-shrink-0|shrink-0/);
+  });
+
+  test("without controls the title still fills the row", () => {
+    renderHeader({ controls: undefined });
+    expect(
+      screen.queryByTestId("resource-overview-controls"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("resource-overview-title-block").className,
+    ).toContain("grow");
   });
 });
 

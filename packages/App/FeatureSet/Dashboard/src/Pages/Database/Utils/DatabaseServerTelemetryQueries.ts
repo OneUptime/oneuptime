@@ -547,10 +547,19 @@ function firstFiniteValue(
   return null;
 }
 
+/*
+ * How long after a bucket closes its spans are still arriving. A bucket
+ * that closed only just now is still short: the k8s postgres "Queries"
+ * line read 53.7 against a steady 59–60 per minute ten seconds after the
+ * minute turned, the spans for that minute still on their way in.
+ */
+export const DATABASE_QUERY_INGEST_GRACE_MS: number = 30 * 1000;
+
 /**
  * The points of a per-bucket COUNT series whose bucket lies wholly inside
- * the window. The window ends now, so its newest bucket is still filling
- * (and its oldest started before the window did): charted as is, every
+ * the window, and closed at least DATABASE_QUERY_INGEST_GRACE_MS before
+ * `now`. The window ends now, so its newest bucket is still filling (and
+ * its oldest started before the window did): charted as is, every
  * "Queries from applications" line fell at its right edge, as if traffic
  * had halved. The bucket width is the one the aggregate API picks for the
  * window (AggregationIntervalUtil, the server's own rule). A series whose
@@ -559,6 +568,7 @@ function firstFiniteValue(
 export function getCompleteBucketSeries(
   series: ReadonlyArray<DatabaseTimePoint>,
   window: { start: Date; end: Date },
+  now: number = Date.now(),
 ): Array<DatabaseTimePoint> {
   const width: number = AggregationIntervalUtil.getAggregationIntervalMs(
     AggregationIntervalUtil.getAggregationIntervalForWindow({
@@ -570,7 +580,11 @@ export function getCompleteBucketSeries(
     return [...series];
   }
   const start: number = window.start.getTime();
-  const end: number = window.end.getTime();
+  // A past window is unaffected: its buckets closed long before now.
+  const end: number = Math.min(
+    window.end.getTime(),
+    now - DATABASE_QUERY_INGEST_GRACE_MS,
+  );
   const complete: Array<DatabaseTimePoint> = series.filter(
     (point: DatabaseTimePoint): boolean => {
       const bucketStart: number = point.x.getTime();

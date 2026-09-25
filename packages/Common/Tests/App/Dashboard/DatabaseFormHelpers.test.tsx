@@ -271,31 +271,51 @@ describe("getDatabaseServerAddressHint", () => {
 });
 
 describe("getDatabaseEndpointSourceLabel", () => {
-  test("says who added each endpoint", () => {
-    expect(getDatabaseEndpointSourceLabel("user")).toEqual({
-      text: "Added by a person",
+  test("says who added each endpoint, in words short enough for the 'Added by' pill", () => {
+    expect(getDatabaseEndpointSourceLabel("user")).toMatchObject({
+      text: "A person",
       isUser: true,
     });
-    expect(getDatabaseEndpointSourceLabel("workload")).toEqual({
-      text: "Discovered (Kubernetes Service)",
+    expect(getDatabaseEndpointSourceLabel("workload")).toMatchObject({
+      text: "Kubernetes Service",
       isUser: false,
     });
-    expect(getDatabaseEndpointSourceLabel("auto")).toEqual({
-      text: "Discovered",
+    expect(getDatabaseEndpointSourceLabel("auto")).toMatchObject({
+      text: "Discovery",
       isUser: false,
     });
+    /*
+     * "Discovered (Kubernetes Service)" made the pill 268 px wide and the
+     * Endpoints table overflow its card at 1440 px.
+     */
+    for (const value of ["user", "workload", "auto"]) {
+      expect(
+        getDatabaseEndpointSourceLabel(value).text.length,
+      ).toBeLessThanOrEqual(18);
+    }
+  });
+
+  test("the sentence the pill used to say is its hover text", () => {
+    expect(getDatabaseEndpointSourceLabel("user").description).toContain(
+      "by a person",
+    );
+    expect(getDatabaseEndpointSourceLabel("workload").description).toContain(
+      "Service name of the Kubernetes workload",
+    );
+    expect(getDatabaseEndpointSourceLabel("auto").description).toContain(
+      "Discovered",
+    );
   });
 
   test("is case- and space-tolerant, and reads anything unknown as discovered", () => {
     expect(getDatabaseEndpointSourceLabel(" USER ").isUser).toBe(true);
     expect(getDatabaseEndpointSourceLabel("Workload").text).toBe(
-      "Discovered (Kubernetes Service)",
+      "Kubernetes Service",
     );
     for (const value of [undefined, null, "", "something-new", 42]) {
-      expect(getDatabaseEndpointSourceLabel(value)).toEqual({
-        text: "Discovered",
-        isUser: false,
-      });
+      expect(getDatabaseEndpointSourceLabel(value)).toEqual(
+        getDatabaseEndpointSourceLabel("auto"),
+      );
     }
   });
 });

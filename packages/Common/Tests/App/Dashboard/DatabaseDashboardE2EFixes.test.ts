@@ -6,6 +6,7 @@ import {
   buildDatabaseSpanQuery,
   fetchDatabaseMetricListValues,
   fetchDatabaseQueryMetrics,
+  DATABASE_QUERY_INGEST_GRACE_MS,
   getCompleteBucketSeries,
   getDatabaseConnectionSpanNameExclusions,
   getDatabaseMetricListCaption,
@@ -347,6 +348,12 @@ describe("the 'Queries from applications' chart", () => {
   // Every overview's line fell from 24 to about 12 at its right edge.
   const END: Date = new Date("2026-09-25T01:10:30.000Z");
   const START: Date = new Date("2026-09-25T00:10:30.000Z");
+  // Well after the window: the ingest grace plays no part in these cases.
+  const LATER: number = new Date("2026-09-25T02:00:00.000Z").getTime();
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   function minute(offset: number): Date {
     return new Date(
@@ -359,10 +366,14 @@ describe("the 'Queries from applications' chart", () => {
     for (let offset: number = 0; offset <= 60; offset++) {
       series.push({ x: minute(offset), y: offset === 60 ? 12 : 24 });
     }
-    const complete: Array<DatabaseTimePoint> = getCompleteBucketSeries(series, {
-      start: START,
-      end: END,
-    });
+    const complete: Array<DatabaseTimePoint> = getCompleteBucketSeries(
+      series,
+      {
+        start: START,
+        end: END,
+      },
+      LATER,
+    );
     // 00:10 began before the window; 01:10 ends after it.
     expect(complete[0]!.x).toEqual(minute(1));
     expect(complete[complete.length - 1]!.x).toEqual(minute(59));
@@ -373,14 +384,62 @@ describe("the 'Queries from applications' chart", () => {
     ).toBe(true);
     // Nothing to drop to: a lone partial bucket is kept.
     expect(
-      getCompleteBucketSeries([{ x: minute(60), y: 12 }], {
-        start: START,
-        end: END,
-      }),
+      getCompleteBucketSeries(
+        [{ x: minute(60), y: 12 }],
+        {
+          start: START,
+          end: END,
+        },
+        LATER,
+      ),
     ).toHaveLength(1);
   });
 
+  test("a bucket that closed under 30 s ago is left out while its spans still arrive", () => {
+    // k8s postgres at 02:29:10 read 53.7 against a steady 59-60 per minute.
+    const series: Array<DatabaseTimePoint> = [];
+    for (let offset: number = 0; offset <= 60; offset++) {
+      series.push({ x: minute(offset), y: offset === 59 ? 54 : 60 });
+    }
+    // The 01:09 bucket closed at 01:10:00.
+    const closedAt: number = minute(60).getTime();
+    const windowNow: { start: Date; end: Date } = {
+      start: START,
+      end: new Date(closedAt + 10 * 1000),
+    };
+
+    const tenSecondsIn: Array<DatabaseTimePoint> = getCompleteBucketSeries(
+      series,
+      { start: START, end: windowNow.end },
+      closedAt + 10 * 1000,
+    );
+    expect(tenSecondsIn[tenSecondsIn.length - 1]!.x).toEqual(minute(58));
+    expect(
+      tenSecondsIn.every((point: DatabaseTimePoint): boolean => {
+        return point.y === 60;
+      }),
+    ).toBe(true);
+
+    // Once the grace has passed the bucket is charted.
+    const settled: Array<DatabaseTimePoint> = getCompleteBucketSeries(
+      series,
+      {
+        start: START,
+        end: new Date(closedAt + DATABASE_QUERY_INGEST_GRACE_MS),
+      },
+      closedAt + DATABASE_QUERY_INGEST_GRACE_MS,
+    );
+    expect(settled[settled.length - 1]!.x).toEqual(minute(59));
+    expect(DATABASE_QUERY_INGEST_GRACE_MS).toBe(30 * 1000);
+
+    // A past window is not trimmed further: its buckets closed long ago.
+    expect(getCompleteBucketSeries(series, windowNow, LATER).pop()!.x).toEqual(
+      minute(59),
+    );
+  });
+
   test("the chart drops the partial bucket; the Queries tile still counts it", async () => {
+    jest.spyOn(Date, "now").mockReturnValue(END.getTime());
     aggregateMock.mockImplementation(
       (request: AggregateRequest): Promise<AggregatedResult> => {
         const type: unknown = request.aggregateBy["aggregationType"];

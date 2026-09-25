@@ -112,6 +112,13 @@ const tileColorClasses: Record<
   rose: { bg: "bg-rose-50", ring: "ring-rose-200", text: "text-rose-600" },
 };
 
+/*
+ * The hero's title block (icon, name, identifier, "Last seen") asks for
+ * this much of the row before the controls may sit beside it: 24rem, the
+ * icon plus 20rem of text. Any narrower and the controls wrap under it.
+ */
+export const RESOURCE_OVERVIEW_TITLE_BASIS_CLASS: string = "basis-96";
+
 const STATUS_TONE_CLASSES: Record<
   ResourceOverviewStatusTone,
   { badge: string; dot: string }
@@ -279,12 +286,22 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
         </div>
         <div className="relative px-6 py-5">
           {/*
-           * Below md the controls (time range, refresh) go under the title
-           * instead of squeezing it: at phone width they took the row and
-           * left the name, identifier and "Last seen" one word per line.
+           * The controls (time range, refresh) sit beside the title only
+           * while the title keeps its RESOURCE_OVERVIEW_TITLE_BASIS_CLASS
+           * width; otherwise they wrap under it. A fixed breakpoint cannot
+           * say when that is — the side menu and the controls vary — and
+           * with md (768 px, side menu shown) the title was 0 px wide, 109
+           * px at 900 and 181 px at 1024: the name hidden and "Last seen"
+           * one word per line.
            */}
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="flex items-start gap-4 min-w-0">
+          <div
+            data-testid="resource-overview-header-row"
+            className="flex flex-wrap items-start justify-between gap-4"
+          >
+            <div
+              data-testid="resource-overview-title-block"
+              className={`flex min-w-0 grow items-start gap-4 ${RESOURCE_OVERVIEW_TITLE_BASIS_CLASS}`}
+            >
               <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-inset ring-indigo-200 shadow-sm">
                 <Icon icon={props.icon} className="h-6 w-6 text-indigo-600" />
               </div>
@@ -317,7 +334,10 @@ const ResourceOverview: FunctionComponent<ResourceOverviewProps> = (
               </div>
             </div>
             {props.controls ? (
-              <div className="max-w-full md:ml-auto md:flex-shrink-0">
+              <div
+                data-testid="resource-overview-controls"
+                className="max-w-full"
+              >
                 {props.controls}
               </div>
             ) : (
